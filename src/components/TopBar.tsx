@@ -11,6 +11,7 @@ import {
   Settings2,
 } from 'lucide-react'
 import { DocumentTitleField } from '@/components/DocumentTitleField'
+import { EditorViewModeToggle } from '@/components/editor/EditorViewModeToggle'
 import { MoveToFolderMenu } from '@/components/MoveToFolderMenu'
 import { SidebarToggle } from '@/components/SidebarToggle'
 import { countWords } from '@/lib/utils'
@@ -98,7 +99,8 @@ export function EditorHeader() {
   }
 
   return (
-    <header className="editor-header titlebar-drag">
+    <header className="editor-header">
+      <div className="editor-header-drag titlebar-drag" aria-hidden="true" />
       <div className="editor-header-left titlebar-no-drag">
         <SidebarToggle />
         <Button variant="default" size="sm" onClick={() => setTemplatePickerOpen(true)}>
@@ -153,6 +155,7 @@ export function EditorHeader() {
       </div>
 
       <div className="editor-header-right titlebar-no-drag">
+        {document && <EditorViewModeToggle />}
         {document && (
           <MoveToFolderMenu
             documentId={document.id}

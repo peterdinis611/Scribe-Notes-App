@@ -41,6 +41,29 @@ export const templatePickerOpenAtom = atom(false)
 
 export const storageSettingsAtom = atom<StorageSettings | null>(null)
 
+const EDITOR_VIEW_MODE_KEY = 'scribe-editor-view-mode'
+
+export type EditorViewMode = 'rich' | 'markdown'
+
+function readEditorViewMode(): EditorViewMode {
+  return localStorage.getItem(EDITOR_VIEW_MODE_KEY) === 'markdown' ? 'markdown' : 'rich'
+}
+
+export const editorViewModeAtom = atom<EditorViewMode>(readEditorViewMode())
+
+export const setEditorViewModeAtom = atom(null, (_get, set, mode: EditorViewMode) => {
+  set(editorViewModeAtom, mode)
+  localStorage.setItem(EDITOR_VIEW_MODE_KEY, mode)
+})
+
+export type EditorModeActions = {
+  viewMode: EditorViewMode
+  switchToMarkdown: () => void
+  switchToRich: () => void
+}
+
+export const editorModeActionsAtom = atom<EditorModeActions | null>(null)
+
 export const applyThemeSettingsAtom = atom(
   null,
   (_get, set, settings: ThemeSettings) => {

@@ -27,7 +27,12 @@ pub struct ExportResult {
 }
 
 #[tauri::command]
-pub async fn pick_and_import_file(
+pub fn read_text_file(path: String) -> Result<String, String> {
+    std::fs::read_to_string(&path).map_err(|e| format!("Nepodarilo sa prečítať súbor: {e}"))
+}
+
+#[tauri::command]
+pub fn pick_and_import_file(
     app: AppHandle,
     state: State<'_, DbState>,
 ) -> Result<Option<Document>, String> {
@@ -35,7 +40,10 @@ pub async fn pick_and_import_file(
         .dialog()
         .file()
         .set_title("Importovať dokument")
-        .add_filter("Podporované formáty", &["scribe", "pages"])
+        .add_filter(
+            "Podporované dokumenty",
+            &["scribe", "pages", "md", "markdown", "txt", "docx", "rtf", "doc"],
+        )
         .blocking_pick_file();
 
     let Some(path) = picked else {
@@ -62,31 +70,26 @@ fn import_file_at_path(
     path: &Path,
 ) -> Result<Document, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
-    let extension = path
-        .extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("")
-        .to_lowercase();
-
     let now = chrono::Utc::now().timestamp();
 
-    let (id, title, content_json, created_at) = match extension.as_str() {
-        "scribe" => {
+    let (id, title, content_json, created_at) = match detect_import_format(path)? {
+        ImportFormat::Scribe => {
             let disk = storage::read_scribe_file(path)?;
+            let created_at = if disk.created_at > 0 {
+                disk.created_at
+            } else {
+                now
+            };
             (
                 disk.id,
                 disk.title,
                 disk.content_json,
-                disk.created_at,
+                created_at,
             )
         }
-        "pages" => {
+        ImportFormat::Pages => {
             let text = export::extract_pages_text(path)?;
-            let title = path
-                .file_stem()
-                .and_then(|s| s.to_str())
-                .unwrap_or("Import z Pages")
-                .to_string();
+            let title = import_title_from_path(path, "Import z Pages");
             (
                 Uuid::new_v4().to_string(),
                 title,
@@ -94,7 +97,16 @@ fn import_file_at_path(
                 now,
             )
         }
-        _ => return Err("Podporované formáty: .scribe, .pages".to_string()),
+        ImportFormat::Text => {
+            let text = export::import_text_from_file(path)?;
+            let title = import_title_from_path(path, "Importovaný dokument");
+            (
+                Uuid::new_v4().to_string(),
+                title,
+                export::text_to_tiptap_json(&text),
+                now,
+            )
+        }
     };
 
     let existing: Option<String> = conn
@@ -131,6 +143,112 @@ fn import_file_at_path(
         created_at,
         updated_at: now,
     })
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ImportFormat {
+    Scribe,
+    Pages,
+    Text,
+}
+
+fn import_title_from_path(path: &Path, fallback: &str) -> String {
+    let file_name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or(fallback);
+
+    let without_ext = if file_name.to_ascii_lowercase().ends_with(".scribe.json") {
+        file_name.trim_end_matches(".scribe.json")
+    } else {
+        path.file_stem()
+            .and_then(|stem| stem.to_str())
+            .unwrap_or(file_name)
+    };
+
+    let trimmed = without_ext.trim();
+    if trimmed.is_empty() {
+        fallback.to_string()
+    } else {
+        trimmed.to_string()
+    }
+}
+
+fn detect_import_format(path: &Path) -> Result<ImportFormat, String> {
+    let file_name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+
+    if file_name.ends_with(".scribe.json") {
+        return Ok(ImportFormat::Scribe);
+    }
+
+    if file_name.ends_with(".pages") {
+        return Ok(ImportFormat::Pages);
+    }
+
+    let extension = path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+
+    match extension.as_str() {
+        "scribe" => Ok(ImportFormat::Scribe),
+        "pages" => Ok(ImportFormat::Pages),
+        "md" | "markdown" | "txt" | "docx" | "doc" | "rtf" => Ok(ImportFormat::Text),
+        _ => Err(
+            "Podporované formáty: .scribe, .pages, .md, .txt, .docx, .rtf".to_string(),
+        ),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn detect_import_format_supports_common_extensions() {
+        assert_eq!(
+            detect_import_format(Path::new("/tmp/note.scribe")).unwrap(),
+            ImportFormat::Scribe
+        );
+        assert_eq!(
+            detect_import_format(Path::new("/tmp/legacy.scribe.json")).unwrap(),
+            ImportFormat::Scribe
+        );
+        assert_eq!(
+            detect_import_format(Path::new("/tmp/report.pages")).unwrap(),
+            ImportFormat::Pages
+        );
+        assert_eq!(
+            detect_import_format(Path::new("/tmp/My Doc.pages/")).unwrap(),
+            ImportFormat::Pages
+        );
+        assert_eq!(
+            detect_import_format(Path::new("/tmp/readme.md")).unwrap(),
+            ImportFormat::Text
+        );
+        assert_eq!(
+            detect_import_format(Path::new("/tmp/notes.docx")).unwrap(),
+            ImportFormat::Text
+        );
+        assert!(detect_import_format(Path::new("/tmp/image.png")).is_err());
+    }
+
+    #[test]
+    fn import_title_from_path_strips_extension() {
+        assert_eq!(
+            import_title_from_path(Path::new("/tmp/Môj dokument.docx"), "fallback"),
+            "Môj dokument"
+        );
+        assert_eq!(
+            import_title_from_path(Path::new("/tmp/legacy.scribe.json"), "fallback"),
+            "legacy"
+        );
+    }
 }
 
 #[tauri::command]

@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, type CSSProperties } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import type { Editor } from '@tiptap/react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { EditorToolbar } from '@/components/editor-toolbar/EditorToolbar'
 import { EditorMenus } from '@/components/editor/EditorMenus'
 import { EditorDropZone } from '@/components/editor/EditorDropOverlay'
+import { MarkdownSourceEditor } from '@/components/editor/MarkdownSourceEditor'
 import { EditorHeader } from '@/components/TopBar'
 import { EditorPagination } from '@/components/EditorPagination'
 import { useDocumentPagination } from '@/hooks/useDocumentPagination'
@@ -17,9 +18,11 @@ import {
 } from '@/lib/cache/document-cache'
 import { EDITOR_PAGE } from '@/lib/editor/page-layout'
 import { getEditorExtensions } from '@/lib/editor/extensions'
+import { getEditorMarkdown } from '@/lib/editor/markdown-content'
 import { insertImagesFromFiles } from '@/lib/editor/image-utils'
 import { updateDocument } from '@/lib/db/api'
 import { debounce, extractTitleFromContent } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import {
   activeDocumentAtom,
   activeDocumentIdAtom,
@@ -27,6 +30,11 @@ import {
   manualTitleDocumentIdsAtom,
   saveStatusAtom,
 } from '@/store/documents'
+import {
+  editorModeActionsAtom,
+  editorViewModeAtom,
+  setEditorViewModeAtom,
+} from '@/store/settings'
 
 export function DocumentEditor() {
   const [activeId] = useAtom(activeDocumentIdAtom)
@@ -34,12 +42,17 @@ export function DocumentEditor() {
   const manualTitleIds = useAtomValue(manualTitleDocumentIdsAtom)
   const setDocuments = useSetAtom(documentsAtom)
   const setSaveStatus = useSetAtom(saveStatusAtom)
+  const viewMode = useAtomValue(editorViewModeAtom)
+  const persistViewMode = useSetAtom(setEditorViewModeAtom)
+  const setEditorModeActions = useSetAtom(editorModeActionsAtom)
+  const [markdownDraft, setMarkdownDraft] = useState('')
   const latestDocIdRef = useRef<string | null>(null)
   const activeDocumentRef = useRef(activeDocument)
   const manualTitleIdsRef = useRef(manualTitleIds)
   const editorRef = useRef<Editor | null>(null)
   const editorContentHashRef = useRef<string | null>(null)
   const lastPersistedHashRef = useRef<string | null>(null)
+  const markdownDraftRef = useRef('')
 
   activeDocumentRef.current = activeDocument
   manualTitleIdsRef.current = manualTitleIds
@@ -115,6 +128,18 @@ export function DocumentEditor() {
     [setActiveDocument, setDocuments, setSaveStatus],
   )
 
+  const queueSaveFromJson = useMemo(
+    () =>
+      debounce((docId: string, contentJson: string) => {
+        if (latestDocIdRef.current !== docId) return
+        const contentHash = hashContent(contentJson)
+        if (contentHash === lastPersistedHashRef.current) return
+        editorContentHashRef.current = contentHash
+        void persistDocument(docId, contentJson, contentHash)
+      }, 450),
+    [persistDocument],
+  )
+
   const queueSave = useMemo(
     () =>
       debounce((docId: string) => {
@@ -122,13 +147,22 @@ export function DocumentEditor() {
         if (!currentEditor || latestDocIdRef.current !== docId) return
 
         const contentJson = JSON.stringify(currentEditor.getJSON())
-        const contentHash = hashContent(contentJson)
-        if (contentHash === lastPersistedHashRef.current) return
-
-        editorContentHashRef.current = contentHash
-        void persistDocument(docId, contentJson, contentHash)
+        queueSaveFromJson(docId, contentJson)
       }, 450),
-    [persistDocument],
+    [queueSaveFromJson],
+  )
+
+  const queueMarkdownSave = useMemo(
+    () =>
+      debounce((docId: string, markdown: string) => {
+        const currentEditor = editorRef.current
+        if (!currentEditor || latestDocIdRef.current !== docId) return
+
+        currentEditor.commands.setContent(markdown, { contentType: 'markdown', emitUpdate: false })
+        const contentJson = JSON.stringify(currentEditor.getJSON())
+        queueSaveFromJson(docId, contentJson)
+      }, 450),
+    [queueSaveFromJson],
   )
 
   const editor = useEditor({
@@ -142,12 +176,54 @@ export function DocumentEditor() {
       },
     },
     onUpdate: () => {
-      if (!activeId) return
+      if (!activeId || viewMode !== 'rich') return
       queueSave(activeId)
     },
   })
 
   editorRef.current = editor
+
+  const switchToMarkdown = useCallback(() => {
+    if (!editor) return
+    const markdown = getEditorMarkdown(editor)
+    markdownDraftRef.current = markdown
+    setMarkdownDraft(markdown)
+    persistViewMode('markdown')
+  }, [editor, persistViewMode])
+
+  const switchToRich = useCallback(() => {
+    if (!editor) return
+    editor.commands.setContent(markdownDraftRef.current, {
+      contentType: 'markdown',
+      emitUpdate: false,
+    })
+    const contentJson = JSON.stringify(editor.getJSON())
+    const contentHash = hashContent(contentJson)
+    editorContentHashRef.current = contentHash
+    if (activeId) {
+      void persistDocument(activeId, contentJson, contentHash)
+    }
+    persistViewMode('rich')
+  }, [activeId, editor, persistViewMode, persistDocument])
+
+  const handleMarkdownChange = useCallback(
+    (value: string) => {
+      markdownDraftRef.current = value
+      setMarkdownDraft(value)
+      if (!activeId) return
+      queueMarkdownSave(activeId, value)
+    },
+    [activeId, queueMarkdownSave],
+  )
+
+  useEffect(() => {
+    setEditorModeActions({
+      viewMode,
+      switchToMarkdown,
+      switchToRich,
+    })
+    return () => setEditorModeActions(null)
+  }, [setEditorModeActions, switchToMarkdown, switchToRich, viewMode])
 
   useEditorHotkeys(editor)
 
@@ -170,6 +246,10 @@ export function DocumentEditor() {
     editor.commands.setContent(getCachedParsedContent(activeDocument), { emitUpdate: false })
     editorContentHashRef.current = incomingHash
     lastPersistedHashRef.current = incomingHash
+
+    const markdown = getEditorMarkdown(editor)
+    markdownDraftRef.current = markdown
+    setMarkdownDraft(markdown)
   }, [activeDocument, activeId, editor])
 
   useEffect(() => {
@@ -177,44 +257,69 @@ export function DocumentEditor() {
     lastPersistedHashRef.current = null
   }, [activeId])
 
+  const isMarkdown = viewMode === 'markdown'
+
   return (
-    <div className="editor-shell">
+    <div className={cn('editor-shell', isMarkdown && 'editor-shell--markdown')}>
       <EditorHeader />
-      <EditorToolbar editor={editor} onInsertImages={handleInsertImages} />
-      <EditorMenus editor={editor} onInsertImages={handleInsertImages} />
+      {!isMarkdown && <EditorToolbar editor={editor} onInsertImages={handleInsertImages} />}
+      {!isMarkdown && <EditorMenus editor={editor} onInsertImages={handleInsertImages} />}
 
       <EditorDropZone className="editor-scroll" ref={scrollRef}>
         <div
           ref={canvasRef}
-          className="editor-canvas editor-canvas--paginated"
+          className={cn(
+            'editor-canvas',
+            !isMarkdown && 'editor-canvas--paginated',
+            isMarkdown && 'editor-canvas--markdown',
+          )}
           style={
-            {
-              '--page-content-height': `${EDITOR_PAGE.contentHeight}px`,
-              '--page-padding-top': `${EDITOR_PAGE.paddingTop}px`,
-            } as CSSProperties
+            !isMarkdown
+              ? ({
+                  '--page-content-height': `${EDITOR_PAGE.contentHeight}px`,
+                  '--page-padding-top': `${EDITOR_PAGE.paddingTop}px`,
+                } as CSSProperties)
+              : undefined
           }
         >
-          <div className="editor-page-label" aria-hidden="true">
-            Strana {currentPage}
-          </div>
-          {pageCount > 1 &&
-            Array.from({ length: pageCount - 1 }, (_, index) => (
-              <div
-                key={index}
-                className="editor-page-break"
-                style={{ top: EDITOR_PAGE.paddingTop + (index + 1) * EDITOR_PAGE.contentHeight }}
-                aria-hidden="true"
-              />
-            ))}
-          <EditorContent editor={editor} />
+          {!isMarkdown && (
+            <>
+              <div className="editor-page-label" aria-hidden="true">
+                Strana {currentPage}
+              </div>
+              {pageCount > 1 &&
+                Array.from({ length: pageCount - 1 }, (_, index) => (
+                  <div
+                    key={index}
+                    className="editor-page-break"
+                    style={{ top: EDITOR_PAGE.paddingTop + (index + 1) * EDITOR_PAGE.contentHeight }}
+                    aria-hidden="true"
+                  />
+                ))}
+            </>
+          )}
+
+          {isMarkdown ? (
+            <MarkdownSourceEditor value={markdownDraft} onChange={handleMarkdownChange} />
+          ) : (
+            <EditorContent editor={editor} />
+          )}
+
+          {isMarkdown && editor && (
+            <div className="editor-markdown-hidden" aria-hidden="true">
+              <EditorContent editor={editor} />
+            </div>
+          )}
         </div>
       </EditorDropZone>
 
-      <EditorPagination
-        currentPage={currentPage}
-        pageCount={pageCount}
-        onPageChange={scrollToPage}
-      />
+      {!isMarkdown && (
+        <EditorPagination
+          currentPage={currentPage}
+          pageCount={pageCount}
+          onPageChange={scrollToPage}
+        />
+      )}
     </div>
   )
 }

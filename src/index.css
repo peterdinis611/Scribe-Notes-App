@@ -90,6 +90,8 @@
 
 .titlebar-no-drag {
   -webkit-app-region: no-drag;
+  position: relative;
+  z-index: 2;
 }
 
 /* ── App shell ── */
@@ -467,8 +469,8 @@
 }
 
 .editor-header {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, auto) minmax(0, 1fr);
+  position: relative;
+  display: flex;
   align-items: center;
   gap: 8px;
   height: 48px;
@@ -478,6 +480,16 @@
   background: var(--color-toolbar);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+.editor-header-drag {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+[data-sidebar-drawer='true'] .editor-header {
+  padding-left: 78px;
 }
 
 .editor-header-divider {
@@ -493,9 +505,11 @@
   align-items: center;
   gap: 6px;
   min-width: 0;
+  flex: 1;
 }
 
 .editor-header-left {
+  justify-content: flex-start;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -509,9 +523,18 @@
 }
 
 .editor-header-center {
+  position: absolute;
+  left: 50%;
+  z-index: 1;
   display: flex;
   justify-content: center;
-  min-width: 0;
+  max-width: min(360px, 42vw);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.editor-header-center > * {
+  pointer-events: auto;
 }
 
 .editor-header-title {
@@ -990,6 +1013,53 @@
   min-height: calc(var(--page-padding-top) + var(--page-content-height) + 72px);
 }
 
+.editor-canvas--markdown {
+  max-width: min(920px, 100%);
+  padding: 28px 36px 40px;
+  min-height: min(70vh, 760px);
+}
+
+.markdown-source-editor {
+  display: block;
+  width: 100%;
+  min-height: min(58vh, 680px);
+  border: none;
+  background: transparent;
+  resize: vertical;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--color-foreground);
+  outline: none;
+}
+
+.markdown-source-editor::placeholder {
+  color: var(--color-muted-foreground);
+}
+
+.editor-markdown-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.editor-view-mode-toggle {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  margin-right: 4px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-sidebar);
+}
+
+.editor-view-mode-btn {
+  min-width: 0;
+}
+
 .editor-page-label {
   position: absolute;
   top: 18px;
@@ -1352,7 +1422,7 @@
 
 .theme-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
   gap: 8px;
 }
 
@@ -2196,6 +2266,15 @@
   background: var(--color-hover);
 }
 
+.editor-floating-btn-dismiss {
+  padding: 0 8px;
+  color: var(--color-muted-foreground);
+}
+
+.editor-floating-btn-dismiss:hover {
+  color: var(--color-foreground);
+}
+
 .emoji-picker-menu {
   padding: 0;
   border: none;
@@ -2977,8 +3056,7 @@
   text-overflow: ellipsis;
 }
 
-[data-layout-tier='tight'] .editor-header-divider,
-[data-layout-tier='tight'] .editor-header-import {
+[data-layout-tier='tight'] .editor-header-divider {
   display: none;
 }
 
@@ -3081,7 +3159,6 @@
 
 @media (max-width: 900px) {
   .editor-header {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
     height: 44px;
     gap: 4px;
   }

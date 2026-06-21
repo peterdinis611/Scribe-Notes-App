@@ -5,14 +5,22 @@ use tauri::AppHandle;
 pub const META_DOCUMENTS_DIR: &str = "documents_dir";
 pub const FILE_EXTENSION: &str = "scribe";
 
+fn default_disk_version() -> u8 {
+    1
+}
+
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DiskDocument {
+    #[serde(default = "default_disk_version")]
     pub version: u8,
     pub id: String,
     pub title: String,
+    #[serde(alias = "content_json")]
     pub content_json: String,
+    #[serde(default)]
     pub created_at: i64,
+    #[serde(default)]
     pub updated_at: i64,
 }
 
@@ -261,6 +269,15 @@ pub fn collect_scribe_files(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), St
             .extension()
             .and_then(|ext| ext.to_str())
             .is_some_and(|ext| ext.eq_ignore_ascii_case(FILE_EXTENSION))
+        {
+            out.push(path);
+            continue;
+        }
+
+        if path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .is_some_and(|name| name.to_ascii_lowercase().ends_with(".scribe.json"))
         {
             out.push(path);
         }

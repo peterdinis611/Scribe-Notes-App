@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState, type RefObject } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useAtom, useSetAtom } from 'jotai'
 import { useNavigate } from '@tanstack/react-router'
+import { confirm } from '@tauri-apps/plugin-dialog'
 import { FolderTreeDocumentRow, FolderTreeFolderRow } from '@/components/FolderTreeRows'
 import {
   createFolder,
@@ -11,6 +12,12 @@ import {
   renameFolder,
 } from '@/lib/db/api'
 import { useMoveDocumentToFolder } from '@/hooks/useMoveDocumentToFolder'
+import { invalidateDocumentCache } from '@/lib/cache/document-cache'
+import {
+  buildDeleteFolderConfirmMessage,
+  collectFolderSubtreeIds,
+  countDocumentsInFolders,
+} from '@/lib/library/folders'
 import { buildTree, estimateFlatItemSize, flattenTree } from '@/lib/library/tree'
 import { ROUTES } from '@/lib/routes'
 import { cn } from '@/lib/utils'
@@ -80,20 +87,51 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     setFolders((prev) => prev.map((item) => (item.id === id ? folder : item)))
   }, [setFolders])
 
-  const handleDeleteFolder = useCallback(async (id: string, event: React.MouseEvent) => {
+  const handleDeleteFolder = useCallback(async (id: string, name: string, event: React.MouseEvent) => {
     event.stopPropagation()
-    if (!window.confirm('Vymazať priečinok? Dokumenty zostanú bez priečinka.')) return
-    await deleteFolder(id)
-    setFolders((prev) => prev.filter((item) => item.id !== id))
-    setDocuments((prev) =>
-      prev.map((doc) => (doc.folderId === id ? { ...doc, folderId: null } : doc)),
-    )
+
+    const subtreeIds = collectFolderSubtreeIds(folders, id)
+    const documentCount = countDocumentsInFolders(documents, subtreeIds)
+    const confirmed = await confirm(buildDeleteFolderConfirmMessage(name, documentCount), {
+      title: 'Vymazať priečinok?',
+      kind: 'warning',
+      okLabel: 'Vymazať',
+      cancelLabel: 'Zrušiť',
+    })
+    if (!confirmed) return
+
+    const result = await deleteFolder(id)
+
+    for (const documentId of result.deletedDocumentIds) {
+      invalidateDocumentCache(documentId)
+    }
+
+    const deletedFolderIds = new Set(result.deletedFolderIds)
+    const deletedDocumentIds = new Set(result.deletedDocumentIds)
+
+    setFolders((prev) => prev.filter((item) => !deletedFolderIds.has(item.id)))
+    setDocuments((prev) => prev.filter((doc) => !deletedDocumentIds.has(doc.id)))
+
     setExpandedIds((prev: Set<string>) => {
       const next = new Set(prev)
-      next.delete(id)
+      for (const folderId of deletedFolderIds) {
+        next.delete(folderId)
+      }
       return next
     })
-  }, [setDocuments, setExpandedIds, setFolders])
+
+    if (activeId && deletedDocumentIds.has(activeId)) {
+      const remaining = documents.filter((doc) => !deletedDocumentIds.has(doc.id))
+      const nextId = remaining[0]?.id ?? null
+      setActiveId(nextId)
+      if (!nextId) {
+        setActiveDocument(null)
+        navigate(ROUTES.home())
+      } else {
+        navigate(ROUTES.document(nextId))
+      }
+    }
+  }, [activeId, documents, folders, navigate, setActiveDocument, setActiveId, setDocuments, setExpandedIds, setFolders])
 
   const handleDeleteDocument = useCallback(async (id: string, event: React.MouseEvent) => {
     event.stopPropagation()
@@ -195,7 +233,7 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
                       onToggle={toggleFolder}
                       onRename={(id, name) => void handleRenameFolder(id, name)}
                       onCreateChild={(parentId) => void handleCreateFolder(parentId)}
-                      onDelete={(id, event) => void handleDeleteFolder(id, event)}
+                      onDelete={(id, folderName, event) => void handleDeleteFolder(id, folderName, event)}
                       onDragStart={handleFolderDragStart}
                       onDragOver={handleFolderDragOver}
                       onDragLeave={handleFolderDragLeave}

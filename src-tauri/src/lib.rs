@@ -61,6 +61,7 @@ pub fn run() {
             commands::storage::get_storage_settings,
             commands::storage::pick_documents_directory,
             commands::storage::reveal_in_finder,
+            commands::import_export::read_text_file,
             commands::import_export::pick_and_import_file,
             commands::import_export::import_file,
             commands::import_export::export_document,

@@ -138,7 +138,7 @@ end tell"#
 }
 
 pub fn extract_pages_text(path: &Path) -> Result<String, String> {
-    // 1) macOS textutil (works for many .pages versions)
+    // 1) macOS textutil (works for many .pages versions, including bundles)
     if let Ok(text) = textutil_to_stdout(path, "txt") {
         let trimmed = text.trim();
         if !trimmed.is_empty() {
@@ -146,17 +146,112 @@ pub fn extract_pages_text(path: &Path) -> Result<String, String> {
         }
     }
 
-    // 2) Legacy index.xml inside zip package
-    if let Ok(text) = extract_from_pages_zip(path) {
+    // 2) Apple Pages.app — najspoľahlivejšie pre moderné .pages balíčky
+    if pages_app_installed() {
+        if let Ok(text) = extract_pages_text_via_pages_app(path) {
+            let trimmed = text.trim();
+            if !trimmed.is_empty() {
+                return Ok(trimmed.to_string());
+            }
+        }
+    }
+
+    // 3) Legacy index.xml inside zip alebo bundle priečinok
+    if path.is_dir() {
+        if let Ok(text) = extract_from_pages_package(path) {
+            if !text.trim().is_empty() {
+                return Ok(text);
+            }
+        }
+    } else if let Ok(text) = extract_from_pages_zip(path) {
         if !text.trim().is_empty() {
             return Ok(text);
         }
     }
 
-    Err(
-        "Tento .pages súbor sa nepodarilo načítať. Skúste v Pages exportovať do .docx alebo .pdf."
-            .to_string(),
-    )
+    Err(if pages_app_installed() {
+        "Tento .pages súbor sa nepodarilo načítať. Skúste ho otvoriť v Pages a exportovať do .docx alebo .txt."
+            .to_string()
+    } else {
+        "Na import .pages je potrebná aplikácia Apple Pages (App Store), alebo exportujte dokument do .docx / .txt."
+            .to_string()
+    })
+}
+
+pub fn extract_pages_text_via_pages_app(path: &Path) -> Result<String, String> {
+    let path_str = path.to_string_lossy();
+    let escaped_path = escape_applescript_string(&path_str);
+
+    let script = format!(
+        r#"set inPath to POSIX file "{escaped_path}"
+tell application "Pages"
+    set openedDoc to open inPath
+    try
+        tell openedDoc
+            if document body is false then
+                error "Dokument Pages neobsahuje textový obsah."
+            end if
+            set docText to body text
+        end tell
+        close openedDoc saving no
+        return docText
+    on error errMsg number errNum
+        try
+            close openedDoc saving no
+        end try
+        error errMsg number errNum
+    end try
+end tell"#
+    );
+
+    let temp_script =
+        std::env::temp_dir().join(format!("scribe-pages-import-{}.scpt", uuid::Uuid::new_v4()));
+    std::fs::write(&temp_script, script).map_err(|e| e.to_string())?;
+
+    let output = Command::new("/usr/bin/osascript")
+        .arg(&temp_script)
+        .output()
+        .map_err(|e| format!("osascript zlyhal: {e}"))?;
+
+    let _ = std::fs::remove_file(&temp_script);
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("Pages import zlyhal: {stderr}"));
+    }
+
+    let text = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if text.is_empty() {
+        return Err("Pages dokument neobsahuje žiadny text.".to_string());
+    }
+
+    Ok(text)
+}
+
+fn extract_from_pages_package(path: &Path) -> Result<String, String> {
+    let xml_candidates = [
+        path.join("index.xml"),
+        path.join("Index.xml"),
+        path.join("Index").join("index.xml"),
+        path.join("Index").join("Index.xml"),
+    ];
+
+    for candidate in xml_candidates {
+        if candidate.is_file() {
+            let xml = std::fs::read_to_string(&candidate).map_err(|e| e.to_string())?;
+            let text = extract_text_from_pages_xml(&xml);
+            if !text.trim().is_empty() {
+                return Ok(text);
+            }
+        }
+    }
+
+    let index_zip = path.join("Index.zip");
+    if index_zip.is_file() {
+        return extract_from_pages_zip(&index_zip);
+    }
+
+    Err("index.xml v .pages balíku nenájdený".to_string())
 }
 
 fn extract_from_pages_zip(path: &Path) -> Result<String, String> {
@@ -195,6 +290,24 @@ fn extract_text_from_pages_xml(xml: &str) -> String {
         }
     }
     parts.join("\n\n")
+}
+
+pub fn read_text_file(path: &Path) -> Result<String, String> {
+    std::fs::read_to_string(path).map_err(|e| format!("Nepodarilo sa prečítať súbor: {e}"))
+}
+
+pub fn import_text_from_file(path: &Path) -> Result<String, String> {
+    let extension = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+
+    match extension.as_str() {
+        "txt" | "md" | "markdown" => read_text_file(path),
+        "docx" | "doc" | "rtf" => textutil_to_stdout(path, "txt"),
+        _ => read_text_file(path),
+    }
 }
 
 pub fn text_to_tiptap_json(text: &str) -> String {

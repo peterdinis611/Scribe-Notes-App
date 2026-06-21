@@ -13,7 +13,7 @@ type FolderTreeFolderRowProps = {
   onToggle: (id: string) => void
   onRename: (id: string, name: string) => void
   onCreateChild: (parentId: string) => void
-  onDelete: (id: string, event: React.MouseEvent) => void
+  onDelete: (id: string, name: string, event: React.MouseEvent) => void
   onDragStart: (id: string, event: React.DragEvent) => void
   onDragOver: (id: string, event: React.DragEvent) => void
   onDragLeave: (id: string) => void
@@ -67,7 +67,7 @@ export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
       <button
         type="button"
         className="folder-tree-action folder-tree-action--danger"
-        onClick={(event) => onDelete(folder.id, event)}
+        onClick={(event) => onDelete(folder.id, folder.name, event)}
       >
         <Trash2 className="h-3.5 w-3.5" />
       </button>

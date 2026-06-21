@@ -1,7 +1,8 @@
 use crate::db::DbState;
-use rusqlite::{params, OptionalExtension};
+use crate::storage;
+use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
-use tauri::State;
+use tauri::{AppHandle, State};
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -106,12 +107,114 @@ pub fn rename_folder(state: State<'_, DbState>, input: RenameFolderInput) -> Res
     .map_err(|e| e.to_string())
 }
 
-#[tauri::command]
-pub fn delete_folder(state: State<'_, DbState>, id: String) -> Result<(), String> {
-    let conn = state.conn.lock().map_err(|e| e.to_string())?;
-    conn.execute("DELETE FROM folders WHERE id = ?1", params![id])
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeleteFolderResult {
+    pub deleted_document_ids: Vec<String>,
+    pub deleted_folder_ids: Vec<String>,
+}
+
+fn collect_folder_subtree_ids(conn: &Connection, root_id: &str) -> Result<Vec<String>, String> {
+    let mut stmt = conn
+        .prepare(
+            r#"
+            WITH RECURSIVE folder_tree(id) AS (
+                SELECT id FROM folders WHERE id = ?1
+                UNION ALL
+                SELECT f.id FROM folders f
+                INNER JOIN folder_tree ft ON f.parent_id = ft.id
+            )
+            SELECT id FROM folder_tree
+            "#,
+        )
         .map_err(|e| e.to_string())?;
+
+    let ids = stmt
+        .query_map(params![root_id], |row| row.get(0))
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+
+    Ok(ids)
+}
+
+fn delete_document_record(conn: &Connection, id: &str) -> Result<(), String> {
+    let file_path: Option<String> = conn
+        .query_row(
+            "SELECT file_path FROM documents WHERE id = ?1",
+            params![id],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|e| e.to_string())?
+        .flatten();
+
+    conn.execute("DELETE FROM documents WHERE id = ?1", params![id])
+        .map_err(|e| e.to_string())?;
+
+    crate::db::remove_document_fts(conn, id)?;
+
+    if let Some(path) = file_path {
+        storage::delete_document_file(&path)?;
+    }
+
     Ok(())
+}
+
+#[tauri::command]
+pub fn delete_folder(
+    _app: AppHandle,
+    state: State<'_, DbState>,
+    id: String,
+) -> Result<DeleteFolderResult, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+
+    conn.execute("BEGIN IMMEDIATE", [])
+        .map_err(|e| e.to_string())?;
+
+    let result = (|| -> Result<DeleteFolderResult, String> {
+        let folder_ids = collect_folder_subtree_ids(&conn, &id)?;
+        if folder_ids.is_empty() {
+            return Err("Priečinok neexistuje".to_string());
+        }
+
+        let mut deleted_document_ids = Vec::new();
+
+        for folder_id in &folder_ids {
+            let mut stmt = conn
+                .prepare("SELECT id FROM documents WHERE folder_id = ?1")
+                .map_err(|e| e.to_string())?;
+
+            let document_ids = stmt
+                .query_map(params![folder_id], |row| row.get(0))
+                .map_err(|e| e.to_string())?
+                .collect::<Result<Vec<String>, _>>()
+                .map_err(|e| e.to_string())?;
+
+            for document_id in document_ids {
+                delete_document_record(&conn, &document_id)?;
+                deleted_document_ids.push(document_id);
+            }
+        }
+
+        conn.execute("DELETE FROM folders WHERE id = ?1", params![id])
+            .map_err(|e| e.to_string())?;
+
+        Ok(DeleteFolderResult {
+            deleted_document_ids,
+            deleted_folder_ids: folder_ids,
+        })
+    })();
+
+    if result.is_err() {
+        let _ = conn.execute("ROLLBACK", []);
+        return Err(result.err().unwrap());
+    }
+
+    conn.execute("COMMIT", [])
+        .map_err(|e| e.to_string())?;
+
+    result
 }
 
 #[derive(Debug, Deserialize)]

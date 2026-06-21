@@ -20,6 +20,7 @@ import { TextStyle } from '@tiptap/extension-text-style'
 import Typography from '@tiptap/extension-typography'
 import Underline from '@tiptap/extension-underline'
 import Youtube from '@tiptap/extension-youtube'
+import { Markdown } from '@tiptap/markdown'
 import Dropcursor from '@tiptap/extension-dropcursor'
 import Gapcursor from '@tiptap/extension-gapcursor'
 import StarterKit from '@tiptap/starter-kit'
@@ -134,6 +135,9 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
     }),
     Placeholder.configure({
       placeholder: 'Začnite písať… pretiahnite sem obrázok alebo vložte zo schránky',
+    }),
+    Markdown.configure({
+      indentation: { style: 'space', size: 2 },
     }),
   ]
 }

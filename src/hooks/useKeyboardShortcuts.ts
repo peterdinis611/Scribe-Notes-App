@@ -96,7 +96,7 @@ export function useKeyboardShortcuts() {
           navigate(ROUTES.document(imported.id))
         },
         options: {
-          meta: { name: 'Importovať', description: 'Import .scribe alebo .pages' },
+          meta: { name: 'Importovať', description: 'Import .scribe, .pages, .md, .txt, .docx' },
         },
       },
       {

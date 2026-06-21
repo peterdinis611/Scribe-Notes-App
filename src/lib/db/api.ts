@@ -98,9 +98,11 @@ export const pickDocumentsDirectory = () =>
 export const revealInFinder = (path: string) =>
   invoke<void>('reveal_in_finder', { path })
 
+export const readTextFile = (path: string) => invoke<string>('read_text_file', { path })
+
 export const pickAndImportFile = async () => {
-  const doc = await invoke<Document | null>('pick_and_import_file')
-  return doc ? cacheDocument(doc) : null
+  const { pickAndImportDocument } = await import('@/lib/import-document')
+  return pickAndImportDocument()
 }
 
 export const importFile = async (path: string) => cacheDocument(await invoke<Document>('import_file', { path }))
@@ -129,7 +131,12 @@ export const createFolder = (input: { name: string; parentId?: string | null }) 
 export const renameFolder = (id: string, name: string) =>
   invoke<Folder>('rename_folder', { input: { id, name } })
 
-export const deleteFolder = (id: string) => invoke<void>('delete_folder', { id })
+export interface DeleteFolderResult {
+  deletedDocumentIds: string[]
+  deletedFolderIds: string[]
+}
+
+export const deleteFolder = (id: string) => invoke<DeleteFolderResult>('delete_folder', { id })
 
 export const moveFolder = (id: string, parentId: string | null) =>
   invoke<Folder>('move_folder', { input: { id, parentId } })
