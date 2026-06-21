@@ -189,6 +189,10 @@ pub fn sync_all_documents_to_disk(
         let (id, title, content_json, created_at, updated_at, file_path) =
             row.map_err(|e| e.to_string())?;
 
+        if document_file_is_current(file_path.as_deref(), updated_at)? {
+            continue;
+        }
+
         let disk_doc = DiskDocument {
             version: 1,
             id: id.clone(),
@@ -207,6 +211,58 @@ pub fn sync_all_documents_to_disk(
                 rusqlite::params![path_str, id],
             )
             .map_err(|e| e.to_string())?;
+        }
+    }
+
+    Ok(())
+}
+
+fn document_file_is_current(file_path: Option<&str>, updated_at: i64) -> Result<bool, String> {
+    let Some(path) = file_path else {
+        return Ok(false);
+    };
+
+    let file = Path::new(path);
+    if !file.is_file() {
+        return Ok(false);
+    }
+
+    let modified = file
+        .metadata()
+        .and_then(|meta| meta.modified())
+        .map_err(|e| format!("Nepodarilo sa prečítať metadáta súboru: {e}"))?;
+
+    let file_ts = modified
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|e| format!("Neplatný čas súboru: {e}"))?
+        .as_secs() as i64;
+
+    Ok(file_ts >= updated_at)
+}
+
+pub fn collect_scribe_files(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), String> {
+    let entries = std::fs::read_dir(dir).map_err(|e| e.to_string())?;
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            let skip = path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.starts_with('.') || name == "assets");
+            if skip {
+                continue;
+            }
+            collect_scribe_files(&path, out)?;
+            continue;
+        }
+
+        if path
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .is_some_and(|ext| ext.eq_ignore_ascii_case(FILE_EXTENSION))
+        {
+            out.push(path);
         }
     }
 

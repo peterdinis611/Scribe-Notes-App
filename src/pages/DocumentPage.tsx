@@ -6,7 +6,7 @@ import { ROUTES } from '@/lib/routes'
 import { activeDocumentAtom, activeDocumentIdAtom, saveStatusAtom } from '@/store/documents'
 
 export function DocumentPage() {
-  const { documentId } = useParams({ from: '/doc/$documentId' })
+  const { documentId } = useParams({ strict: false })
   const navigate = useNavigate()
   const [activeId] = useAtom(activeDocumentIdAtom)
   const activeDocument = useAtomValue(activeDocumentAtom)

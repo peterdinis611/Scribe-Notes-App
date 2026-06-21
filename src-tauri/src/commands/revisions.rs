@@ -65,7 +65,7 @@ pub fn restore_document_revision(
     )
     .map_err(|e| e.to_string())?;
 
-    crate::db::fts::sync_document_fts(&conn, &document_id, &title, &content_json)?;
+    crate::db::sync_document_fts(&conn, &document_id, &title, &content_json)?;
 
     conn.query_row(
         &format!("{DOCUMENT_SELECT} WHERE id = ?1"),

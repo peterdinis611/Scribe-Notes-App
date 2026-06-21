@@ -2,35 +2,46 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
+  Outlet,
   redirect,
 } from '@tanstack/react-router'
 import { AppLayout } from '@/layouts/AppLayout'
 import { SettingsLayout } from '@/layouts/SettingsLayout'
 import { HomePage } from '@/pages/HomePage'
 import { DocumentPage } from '@/pages/DocumentPage'
+import { ErrorPage } from '@/pages/ErrorPage'
+import { NotFoundPage } from '@/pages/NotFoundPage'
 import { AppearancePage } from '@/pages/settings/AppearancePage'
 import { StoragePage } from '@/pages/settings/StoragePage'
 import { ShortcutsPage } from '@/pages/settings/ShortcutsPage'
 import { AboutPage } from '@/pages/settings/AboutPage'
 
 const rootRoute = createRootRoute({
+  component: () => <Outlet />,
+  errorComponent: ErrorPage,
+})
+
+const appRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  id: 'app',
   component: AppLayout,
+  notFoundComponent: NotFoundPage,
 })
 
 const homeRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/',
   component: HomePage,
 })
 
 const documentRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/doc/$documentId',
   component: DocumentPage,
 })
 
 const settingsLayoutRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/settings',
   component: SettingsLayout,
 })
@@ -68,18 +79,23 @@ const settingsAboutRoute = createRoute({
 })
 
 const routeTree = rootRoute.addChildren([
-  homeRoute,
-  documentRoute,
-  settingsLayoutRoute.addChildren([
-    settingsIndexRoute,
-    settingsAppearanceRoute,
-    settingsStorageRoute,
-    settingsShortcutsRoute,
-    settingsAboutRoute,
+  appRoute.addChildren([
+    homeRoute,
+    documentRoute,
+    settingsLayoutRoute.addChildren([
+      settingsIndexRoute,
+      settingsAppearanceRoute,
+      settingsStorageRoute,
+      settingsShortcutsRoute,
+      settingsAboutRoute,
+    ]),
   ]),
 ])
 
-export const router = createRouter({ routeTree })
+export const router = createRouter({
+  routeTree,
+  defaultNotFoundComponent: NotFoundPage,
+})
 
 declare module '@tanstack/react-router' {
   interface Register {

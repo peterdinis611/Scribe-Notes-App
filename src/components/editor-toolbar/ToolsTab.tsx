@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Editor } from '@tiptap/react'
 import { useEditorState } from '@tiptap/react'
-import { useAtom, useAtomValue, useSetAtom } from 'jotai'
+import { useAtomValue, useSetAtom } from 'jotai'
 import { Eye, EyeOff, History, Redo, Trash2, Undo } from 'lucide-react'
 import {
   DropdownMenu,
@@ -19,6 +19,7 @@ import {
   hasEditorSelection,
 } from '@/lib/editor/delete-content'
 import { listDocumentRevisions, restoreDocumentRevision, type DocumentRevision } from '@/lib/db/api'
+import { cacheDocument } from '@/lib/cache/document-cache'
 import { cn, formatRelativeTime } from '@/lib/utils'
 import { activeDocumentAtom, activeDocumentIdAtom, documentsAtom } from '@/store/documents'
 
@@ -49,7 +50,7 @@ export function ToolsTab({ editor }: { editor: Editor }) {
   }, [activeId])
 
   async function handleRestoreRevision(revisionId: string) {
-    const restored = await restoreDocumentRevision(revisionId)
+    const restored = cacheDocument(await restoreDocumentRevision(revisionId))
     setActiveDocument(restored)
     setDocuments((prev) =>
       prev.map((item) =>

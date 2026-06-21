@@ -3,9 +3,9 @@ import { useHotkeys } from '@tanstack/react-hotkeys'
 import { useNavigate } from '@tanstack/react-router'
 import {
   forceSaveDocument,
-  listDocuments,
   pickAndImportFile,
 } from '@/lib/db/api'
+import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
 import { cycleThemeId } from '@/lib/themes/apply'
 import {
@@ -15,6 +15,12 @@ import {
   themeSettingsAtom,
 } from '@/store/settings'
 import { commandPaletteOpenAtom } from '@/store/folders'
+import {
+  activeDocumentAtom,
+  activeDocumentIdAtom,
+  documentsAtom,
+  saveStatusAtom,
+} from '@/store/documents'
 
 const APP_HOTKEY_OPTIONS = {
   preventDefault: true,
@@ -83,8 +89,7 @@ export function useKeyboardShortcuts() {
         callback: async () => {
           const imported = await pickAndImportFile()
           if (!imported) return
-          const items = await listDocuments()
-          setDocuments(items)
+          setDocuments((prev) => prependDocumentSummary(prev, imported))
           setActiveId(imported.id)
           setActiveDocument(imported)
           setSaveStatus('saved')

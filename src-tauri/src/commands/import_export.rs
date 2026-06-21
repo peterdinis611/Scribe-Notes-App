@@ -120,6 +120,8 @@ fn import_file_at_path(
 
     let file_path = persist_document(app, &conn, &id, &title, &content_json, created_at, now)?;
 
+    crate::db::sync_document_fts(&conn, &id, &title, &content_json)?;
+
     Ok(Document {
         id,
         title,
@@ -181,65 +183,110 @@ pub async fn export_document(
     }))
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScanScribeResult {
+    pub scanned_count: u32,
+    pub imported_count: u32,
+    pub updated_count: u32,
+}
+
 #[tauri::command]
 pub fn scan_scribe_files(
     app: AppHandle,
     state: State<'_, DbState>,
-) -> Result<Vec<Document>, String> {
+) -> Result<ScanScribeResult, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     let dir = storage::get_documents_dir(&app, &conn)?;
     drop(conn);
 
-    let mut imported = Vec::new();
+    let mut paths = Vec::new();
+    storage::collect_scribe_files(&dir, &mut paths)?;
 
-    let entries = std::fs::read_dir(&dir).map_err(|e| e.to_string())?;
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if path.extension().and_then(|e| e.to_str()) != Some("scribe") {
-            continue;
+    let mut scanned_count = 0u32;
+    let mut imported_count = 0u32;
+    let mut updated_count = 0u32;
+
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    conn.execute("BEGIN IMMEDIATE", [])
+        .map_err(|e| e.to_string())?;
+
+    let result = (|| -> Result<(), String> {
+        for path in paths {
+            scanned_count += 1;
+
+            let Ok(disk) = storage::read_scribe_file(&path) else {
+                continue;
+            };
+
+            let path_str = path.to_string_lossy().to_string();
+            let existing: Option<(String, i64)> = conn
+                .query_row(
+                    "SELECT id, updated_at FROM documents WHERE id = ?1",
+                    params![disk.id],
+                    |row| Ok((row.get(0)?, row.get(1)?)),
+                )
+                .optional()
+                .map_err(|e| e.to_string())?;
+
+            match existing {
+                None => {
+                    conn.execute(
+                        "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at) VALUES (?1, ?2, ?3, NULL, ?4, ?5, ?6)",
+                        rusqlite::params![
+                            disk.id,
+                            disk.title,
+                            disk.content_json,
+                            path_str,
+                            disk.created_at,
+                            disk.updated_at
+                        ],
+                    )
+                    .map_err(|e| e.to_string())?;
+                    crate::db::sync_document_fts(&conn, &disk.id, &disk.title, &disk.content_json)?;
+                    imported_count += 1;
+                }
+                Some((_, db_updated_at)) if disk.updated_at > db_updated_at => {
+                    conn.execute(
+                        "UPDATE documents SET title = ?1, content_json = ?2, updated_at = ?3, file_path = ?4 WHERE id = ?5",
+                        params![
+                            disk.title,
+                            disk.content_json,
+                            disk.updated_at,
+                            path_str,
+                            disk.id
+                        ],
+                    )
+                    .map_err(|e| e.to_string())?;
+                    crate::db::sync_document_fts(&conn, &disk.id, &disk.title, &disk.content_json)?;
+                    updated_count += 1;
+                }
+                Some((_, _)) => {
+                    conn.execute(
+                        "UPDATE documents SET file_path = ?1 WHERE id = ?2 AND (file_path IS NULL OR file_path = '')",
+                        params![path_str, disk.id],
+                    )
+                    .map_err(|e| e.to_string())?;
+                }
+            }
         }
 
-        let Ok(disk) = storage::read_scribe_file(&path) else {
-            continue;
-        };
+        Ok(())
+    })();
 
-        let conn = state.conn.lock().map_err(|e| e.to_string())?;
-        let exists: Option<String> = conn
-            .query_row(
-                "SELECT id FROM documents WHERE id = ?1",
-                params![disk.id],
-                |row| row.get(0),
-            )
-            .optional()
-            .map_err(|e| e.to_string())?;
-
-        if exists.is_none() {
-            conn.execute(
-                "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at) VALUES (?1, ?2, ?3, NULL, ?4, ?5, ?6)",
-                rusqlite::params![
-                    disk.id,
-                    disk.title,
-                    disk.content_json,
-                    path.to_string_lossy().to_string(),
-                    disk.created_at,
-                    disk.updated_at
-                ],
-            )
-            .map_err(|e| e.to_string())?;
-        }
-
-        let doc = conn
-            .query_row(
-                &format!("{DOCUMENT_SELECT} WHERE id = ?1"),
-                params![disk.id],
-                map_document,
-            )
-            .map_err(|e| e.to_string())?;
-
-        imported.push(doc);
+    if result.is_err() {
+        let _ = conn.execute("ROLLBACK", []);
+        return Err(result.err().unwrap());
     }
 
-    Ok(imported)
+    conn.execute("COMMIT", [])
+        .map_err(|e| e.to_string())?;
+
+    Ok(ScanScribeResult {
+        scanned_count,
+        imported_count,
+        updated_count,
+    })
 }
 
 #[tauri::command]

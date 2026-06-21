@@ -227,3 +227,21 @@ pub fn sanitize_export_name(title: &str, ext: &str) -> String {
 pub fn default_export_path(dir: &Path, title: &str, ext: &str) -> PathBuf {
     dir.join(sanitize_export_name(title, ext))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn text_to_tiptap_json_splits_paragraphs() {
+        let json = text_to_tiptap_json("Prvý odsek\n\nDruhý odsek");
+        let value: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(value["type"], "doc");
+        assert_eq!(value["content"].as_array().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn sanitize_export_name_strips_unsafe_characters() {
+        assert_eq!(sanitize_export_name("Môj dokument / test", "pdf"), "Môj dokument test.pdf");
+    }
+}

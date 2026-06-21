@@ -3,7 +3,8 @@ import { FileText, FolderInput, Plus } from 'lucide-react'
 import { useNavigate } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { APP_SHORTCUTS } from '@/lib/shortcuts'
-import { listDocuments, pickAndImportFile } from '@/lib/db/api'
+import { pickAndImportFile } from '@/lib/db/api'
+import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
 import {
   activeDocumentAtom,
@@ -24,8 +25,7 @@ export function WelcomeScreen() {
   async function handleImport() {
     const doc = await pickAndImportFile()
     if (!doc) return
-    const items = await listDocuments()
-    setDocuments(items)
+    setDocuments((prev) => prependDocumentSummary(prev, doc))
     setActiveId(doc.id)
     setActiveDocument(doc)
     setSaveStatus('saved')

@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useAtom, useSetAtom } from 'jotai'
+import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { useNavigate } from '@tanstack/react-router'
 import {
   FileText,
+  FolderInput,
   FolderPlus,
-  Import,
   Moon,
   Plus,
   Search,
@@ -14,8 +14,8 @@ import { searchDocuments } from '@/lib/db/api'
 import type { SearchHit } from '@/lib/db/api'
 import { ROUTES } from '@/lib/routes'
 import { cn, debounce } from '@/lib/utils'
-import { activeDocumentIdAtom } from '@/store/documents'
-import { commandPaletteOpenAtom } from '@/store/folders'
+import { activeDocumentIdAtom, documentsAtom } from '@/store/documents'
+import { commandPaletteOpenAtom, moveDocumentPickerOpenAtom } from '@/store/folders'
 import { templatePickerOpenAtom } from '@/store/settings'
 import { cycleThemeId } from '@/lib/themes/apply'
 import { applyThemeSettingsAtom, createThemeSelection, themeSettingsAtom } from '@/store/settings'
@@ -32,9 +32,17 @@ export function CommandPalette() {
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
   const setActiveId = useSetAtom(activeDocumentIdAtom)
+  const setMovePickerOpen = useSetAtom(moveDocumentPickerOpenAtom)
+  const activeDocumentId = useAtomValue(activeDocumentIdAtom)
+  const documents = useAtomValue(documentsAtom)
   const setTemplatePickerOpen = useSetAtom(templatePickerOpenAtom)
   const [themeSettings] = useAtom(themeSettingsAtom)
   const applyTheme = useSetAtom(applyThemeSettingsAtom)
+
+  const activeDocument = useMemo(
+    () => documents.find((doc) => doc.id === activeDocumentId) ?? null,
+    [activeDocumentId, documents],
+  )
 
   const actions: PaletteItem[] = useMemo(
     () => [
@@ -46,6 +54,18 @@ export function CommandPalette() {
         icon: <Plus className="h-4 w-4" />,
         run: () => setTemplatePickerOpen(true),
       },
+      ...(activeDocument
+        ? [
+            {
+              type: 'action' as const,
+              id: 'move-folder',
+              label: 'Presunúť do priečinka',
+              hint: activeDocument.title,
+              icon: <FolderInput className="h-4 w-4" />,
+              run: () => setMovePickerOpen(true),
+            },
+          ]
+        : []),
       {
         type: 'action',
         id: 'settings',
@@ -71,16 +91,17 @@ export function CommandPalette() {
         label: 'Nový priečinok',
         icon: <FolderPlus className="h-4 w-4" />,
         run: () => {
-          void import('@/lib/db/api').then(async ({ createFolder, listFolders }) => {
+          void (async () => {
+            const { createFolder, listFolders } = await import('@/lib/db/api')
             const name = window.prompt('Názov priečinka', 'Nový priečinok')
             if (!name?.trim()) return
             await createFolder({ name: name.trim() })
             await listFolders()
-          })
+          })()
         },
       },
     ],
-    [applyTheme, navigate, setTemplatePickerOpen, themeSettings],
+    [activeDocument, applyTheme, navigate, setMovePickerOpen, setTemplatePickerOpen, themeSettings],
   )
 
   const documentItems: PaletteItem[] = useMemo(

@@ -48,10 +48,10 @@ scribe/
 
 ## Ďalšie kroky
 
-- [ ] Stromová štruktúra priečinkov + drag & drop
-- [ ] Cmd+K vyhľadávanie
-- [ ] Slash commands (/)
-- [ ] Tabuľky, obrázky, komentáre
-- [ ] Export PDF / DOCX / Markdown
-- [ ] FTS5 fulltextové vyhľadávanie
-- [ ] Persistentná undo/redo história
+- [x] Stromová štruktúra priečinkov + drag & drop
+- [x] Cmd+K vyhľadávanie
+- [x] Slash commands (/)
+- [x] Tabuľky, obrázky, komentáre
+- [x] Export PDF / DOCX / Markdown
+- [x] FTS5 fulltextové vyhľadávanie
+- [x] Persistentná undo/redo história

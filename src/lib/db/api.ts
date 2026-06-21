@@ -146,10 +146,13 @@ export const listDocumentRevisions = (documentId: string, limit = 20) =>
 export const restoreDocumentRevision = (revisionId: string) =>
   invoke<Document>('restore_document_revision', { revisionId })
 
-export const scanScribeFiles = async () => {
-  const docs = await invoke<Document[]>('scan_scribe_files')
-  return docs.map(cacheDocument)
+export interface ScanScribeResult {
+  scannedCount: number
+  importedCount: number
+  updatedCount: number
 }
+
+export const scanScribeFiles = () => invoke<ScanScribeResult>('scan_scribe_files')
 
 export const forceSaveDocument = async (id: string) =>
   cacheDocument(await invoke<Document>('force_save_document', { id }))

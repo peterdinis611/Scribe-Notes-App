@@ -1,8 +1,9 @@
 import { useEffect } from 'react'
 import { useAtom, useSetAtom } from 'jotai'
 import { RouterProvider } from '@tanstack/react-router'
-import { listDocuments, scanScribeFiles } from '@/lib/db/api'
+import { listDocuments, listFolders, scanScribeFiles } from '@/lib/db/api'
 import { documentsAtom } from '@/store/documents'
+import { foldersAtom } from '@/store/folders'
 import { applyThemeSettings } from '@/lib/themes/apply'
 import { themeSettingsAtom } from '@/store/settings'
 import { useActiveDocumentLoader } from '@/hooks/useActiveDocumentLoader'
@@ -25,16 +26,21 @@ function useThemeSync() {
 
 function useDocumentBootstrap() {
   const setDocuments = useSetAtom(documentsAtom)
+  const setFolders = useSetAtom(foldersAtom)
 
   useEffect(() => {
     async function bootstrap() {
-      await scanScribeFiles().catch(() => undefined)
-      const docs = await listDocuments()
+      const [, docs, folders] = await Promise.all([
+        scanScribeFiles().catch(() => undefined),
+        listDocuments(),
+        listFolders(),
+      ])
       setDocuments(docs)
+      setFolders(folders)
     }
 
     bootstrap()
-  }, [setDocuments])
+  }, [setDocuments, setFolders])
 }
 
 export default function App() {

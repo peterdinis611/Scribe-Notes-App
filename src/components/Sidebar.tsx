@@ -1,15 +1,15 @@
-import { useAtom, useSetAtom } from 'jotai'
+import { useSetAtom } from 'jotai'
 import { FileText, Search, Settings2 } from 'lucide-react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useRouterState } from '@tanstack/react-router'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { FolderTree } from '@/components/FolderTree'
-import { ROUTES } from '@/lib/routes'
 import { cn } from '@/lib/utils'
 import { commandPaletteOpenAtom } from '@/store/folders'
 
 export function Sidebar() {
   const [query, setQuery] = useState('')
+  const scrollRef = useRef<HTMLDivElement>(null)
   const setCommandPaletteOpen = useSetAtom(commandPaletteOpenAtom)
   const pathname = useRouterState({ select: (state) => state.location.pathname })
   const onSettingsPage = pathname.startsWith('/settings')
@@ -59,9 +59,9 @@ export function Sidebar() {
         />
       </div>
 
-      <ScrollArea className="sidebar-list flex-1">
+      <ScrollArea className="sidebar-list flex-1" viewportRef={scrollRef}>
         <div className="sidebar-list-inner">
-          <FolderTree query={query} />
+          <FolderTree query={query} scrollRef={scrollRef} />
         </div>
       </ScrollArea>
     </aside>

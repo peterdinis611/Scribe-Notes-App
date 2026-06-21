@@ -11,8 +11,10 @@ import {
   Settings2,
 } from 'lucide-react'
 import { DocumentTitleField } from '@/components/DocumentTitleField'
+import { MoveToFolderMenu } from '@/components/MoveToFolderMenu'
 import { countWords } from '@/lib/utils'
-import { exportDocument, listDocuments, pickAndImportFile, revealInFinder } from '@/lib/db/api'
+import { exportDocument, pickAndImportFile, revealInFinder } from '@/lib/db/api'
+import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { tiptapJsonToHtml } from '@/lib/export/html'
 import { tiptapJsonToMarkdown } from '@/lib/export/markdown'
 import { tiptapToPlainText } from '@/lib/export/plain-text'
@@ -70,8 +72,7 @@ export function EditorHeader() {
   async function handleImport() {
     const doc = await pickAndImportFile()
     if (!doc) return
-    const items = await listDocuments()
-    setDocuments(items)
+    setDocuments((prev) => prependDocumentSummary(prev, doc))
     setActiveId(doc.id)
     setActiveDocument(doc)
     setSaveStatus('saved')
@@ -150,6 +151,17 @@ export function EditorHeader() {
       </div>
 
       <div className="editor-header-right titlebar-no-drag">
+        {document && (
+          <MoveToFolderMenu
+            documentId={document.id}
+            folderId={document.folderId}
+            trigger={
+              <Button variant="ghost" size="icon" title="Presunúť do priečinka" aria-label="Presunúť do priečinka">
+                <FolderInput className="h-4 w-4" />
+              </Button>
+            }
+          />
+        )}
         {document && (
           <span className="editor-meta">
             {words} {words === 1 ? 'slovo' : words < 5 ? 'slová' : 'slov'}

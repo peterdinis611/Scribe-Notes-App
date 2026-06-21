@@ -8,7 +8,7 @@ pub fn extract_search_text(content_json: &str) -> String {
 
     let mut parts = Vec::new();
     collect_text(&value, &mut parts);
-    parts.join(' ')
+    parts.join(" ")
 }
 
 fn collect_text(value: &Value, parts: &mut Vec<String>) {
@@ -83,4 +83,57 @@ pub fn backfill_fts(conn: &Connection) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::test_helpers::in_memory_conn;
+
+    #[test]
+    fn extracts_text_from_tiptap_json() {
+        let json = r#"{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Ahoj svet"}]}]}"#;
+        assert_eq!(extract_search_text(json), "Ahoj svet");
+    }
+
+    #[test]
+    fn sync_and_remove_round_trip() {
+        let conn = in_memory_conn();
+        sync_document_fts(&conn, "doc-1", "Titulok", r#"{"type":"doc","content":[]}"#).unwrap();
+
+        let count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM documents_fts WHERE document_id = ?1",
+                ["doc-1"],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 1);
+
+        remove_document_fts(&conn, "doc-1").unwrap();
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM documents_fts", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn backfill_indexes_existing_rows() {
+        let conn = in_memory_conn();
+        conn.execute(
+            "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at) VALUES (?1, ?2, ?3, NULL, NULL, 1, 1)",
+            rusqlite::params![
+                "doc-2",
+                "Test",
+                r#"{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"fulltext"}]}]}"#
+            ],
+        )
+        .unwrap();
+
+        backfill_fts(&conn).unwrap();
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM documents_fts", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(count, 1);
+    }
 }

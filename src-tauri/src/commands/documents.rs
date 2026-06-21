@@ -175,7 +175,7 @@ pub fn update_document(
     let now = now_ts();
 
     if content_json != existing.content_json || title != existing.title {
-        crate::db::revisions::save_revision(
+        crate::db::save_revision(
             &conn,
             &existing.id,
             &existing.title,
