@@ -704,6 +704,24 @@
   color: var(--color-accent);
 }
 
+.toolbar-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.font-family-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 180px;
+}
+
+.font-family-option-check {
+  color: var(--color-accent);
+  font-size: 12px;
+}
+
 .toolbar-lang-btn {
   display: inline-flex;
   align-items: center;
@@ -773,6 +791,51 @@
   overflow-y: auto;
   padding: 20px 24px 48px;
   scroll-behavior: smooth;
+}
+
+.editor-drop-zone {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.editor-drop-overlay {
+  position: absolute;
+  inset: 20px 24px 48px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-xl);
+  background: rgba(0, 122, 255, 0.08);
+  border: 2px dashed var(--color-accent);
+  pointer-events: none;
+}
+
+.editor-drop-overlay-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 32px;
+  border-radius: var(--radius-lg);
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  color: var(--color-accent);
+}
+
+.editor-drop-overlay-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+.editor-drop-overlay-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-muted-foreground);
 }
 
 .editor-canvas {
@@ -1701,6 +1764,7 @@
   line-height: 1.7;
   letter-spacing: -0.011em;
   color: var(--color-foreground);
+  contain: layout style;
 }
 
 .tiptap p.is-editor-empty:first-child::before {
@@ -2120,6 +2184,58 @@
   width: 100%;
   aspect-ratio: 16 / 9;
   border: 0;
+}
+
+.tiptap .math-js-node {
+  font-family: var(--font-mono);
+  color: var(--color-foreground);
+}
+
+.tiptap .math-js-node--inline {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.2em;
+  padding: 0 4px;
+  border-radius: 6px;
+  background: rgba(0, 122, 255, 0.08);
+}
+
+.tiptap .math-js-node--block {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35em;
+  margin: 16px 0;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  background: rgba(0, 122, 255, 0.06);
+  border: 1px solid var(--color-border);
+}
+
+.tiptap .math-js-node--editable {
+  cursor: pointer;
+}
+
+.tiptap .math-js-node--editable:hover {
+  background: rgba(0, 122, 255, 0.12);
+}
+
+.tiptap .math-js-node--error {
+  background: rgba(255, 59, 48, 0.08);
+  color: var(--color-destructive);
+}
+
+.tiptap .math-js-expression {
+  font-weight: 600;
+}
+
+.tiptap .math-js-equals {
+  opacity: 0.6;
+}
+
+.tiptap .math-js-result {
+  color: var(--color-accent);
+  font-weight: 600;
 }
 
 .tiptap [data-type='inline-math'],

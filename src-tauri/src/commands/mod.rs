@@ -1,4 +1,7 @@
 pub mod documents;
+pub mod folders;
 pub mod images;
 pub mod import_export;
+pub mod revisions;
+pub mod search;
 pub mod storage;

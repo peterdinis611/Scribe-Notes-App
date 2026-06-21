@@ -36,7 +36,7 @@ export function evaluateMathExpression(expression: string): MathEvaluation {
 export function promptMathExpression(
   label: string,
   initialValue = '',
-  placeholder = MATH_JS_EXAMPLES.inline,
+  placeholder: string = MATH_JS_EXAMPLES.inline,
 ): string | null {
   const value = window.prompt(`${label}\n(math.js syntax, napr. ${placeholder})`, initialValue)
   if (value === null) return null

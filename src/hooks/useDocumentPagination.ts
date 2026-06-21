@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Editor } from '@tiptap/react'
 import {
   EDITOR_PAGE,
@@ -6,6 +6,7 @@ import {
   getPageFromScrollTop,
   getPageScrollTop,
 } from '@/lib/editor/page-layout'
+import { throttle } from '@/lib/utils'
 
 type UseDocumentPaginationOptions = {
   editor: Editor | null
@@ -17,12 +18,13 @@ export function useDocumentPagination({ editor, documentId }: UseDocumentPaginat
   const canvasRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLElement | null>(null)
   const isProgrammaticScrollRef = useRef(false)
+  const measureFrameRef = useRef<number | null>(null)
 
   const [pageCount, setPageCount] = useState(1)
   const [currentPage, setCurrentPage] = useState(1)
   const [contentHeight, setContentHeight] = useState(0)
 
-  const measure = useCallback(() => {
+  const measureNow = useCallback(() => {
     const content = contentRef.current
     const canvas = canvasRef.current
     if (!content || !canvas) return
@@ -39,6 +41,19 @@ export function useDocumentPagination({ editor, documentId }: UseDocumentPaginat
       setCurrentPage(page)
     }
   }, [])
+
+  const scheduleMeasure = useCallback(() => {
+    if (measureFrameRef.current !== null) return
+    measureFrameRef.current = window.requestAnimationFrame(() => {
+      measureFrameRef.current = null
+      measureNow()
+    })
+  }, [measureNow])
+
+  const measureThrottled = useMemo(
+    () => throttle(scheduleMeasure, 120),
+    [scheduleMeasure],
+  )
 
   const scrollToPage = useCallback((page: number) => {
     const scrollEl = scrollRef.current
@@ -75,41 +90,43 @@ export function useDocumentPagination({ editor, documentId }: UseDocumentPaginat
     const root = editor.view.dom as HTMLElement
     contentRef.current = root
 
-    measure()
+    scheduleMeasure()
 
     const resizeObserver = new ResizeObserver(() => {
-      measure()
+      measureThrottled()
     })
     resizeObserver.observe(root)
 
     const onUpdate = () => {
-      requestAnimationFrame(measure)
+      measureThrottled()
     }
 
     editor.on('update', onUpdate)
-    editor.on('selectionUpdate', onUpdate)
 
     return () => {
       resizeObserver.disconnect()
       editor.off('update', onUpdate)
-      editor.off('selectionUpdate', onUpdate)
+      if (measureFrameRef.current !== null) {
+        window.cancelAnimationFrame(measureFrameRef.current)
+        measureFrameRef.current = null
+      }
     }
-  }, [editor, measure])
+  }, [editor, measureThrottled, scheduleMeasure])
 
   useEffect(() => {
     const scrollEl = scrollRef.current
     if (!scrollEl) return
 
-    function handleScroll() {
+    const handleScroll = throttle(() => {
       if (isProgrammaticScrollRef.current) return
 
       const canvas = canvasRef.current
       if (!canvas) return
 
       const contentStart = canvas.offsetTop + EDITOR_PAGE.paddingTop
-      const page = getPageFromScrollTop(scrollEl!.scrollTop, contentStart, pageCount)
+      const page = getPageFromScrollTop(scrollEl.scrollTop, contentStart, pageCount)
       setCurrentPage(page)
-    }
+    }, 80)
 
     scrollEl.addEventListener('scroll', handleScroll, { passive: true })
     return () => scrollEl.removeEventListener('scroll', handleScroll)

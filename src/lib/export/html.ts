@@ -1,5 +1,6 @@
 import { highlightCode } from '@/lib/editor/lowlight'
 import { resolveCodeLanguage } from '@/lib/editor/code-languages'
+import { evaluateMathExpression } from '@/lib/editor/math-js'
 
 type TipTapNode = {
   type?: string
@@ -124,6 +125,18 @@ function renderNodes(nodes?: TipTapNode[]): string {
           return `<span>$${escapeHtml(String(node.attrs?.latex ?? ''))}$</span>`
         case 'blockMath':
           return `<div style="margin:12pt 0;text-align:center;">$$${escapeHtml(String(node.attrs?.latex ?? ''))}$$</div>`
+        case 'mathInline': {
+          const expression = String(node.attrs?.expression ?? '')
+          const evaluation = evaluateMathExpression(expression)
+          const result = evaluation.ok ? ` = ${evaluation.result}` : ''
+          return `<span class="math-inline">${escapeHtml(expression)}${escapeHtml(result)}</span>`
+        }
+        case 'mathBlock': {
+          const expression = String(node.attrs?.expression ?? '')
+          const evaluation = evaluateMathExpression(expression)
+          const result = evaluation.ok ? ` = ${evaluation.result}` : ''
+          return `<div class="math-block" style="margin:12pt 0;text-align:center;font-family:ui-monospace,monospace;">${escapeHtml(expression)}${escapeHtml(result)}</div>`
+        }
         case 'table':
           return `<table style="border-collapse:collapse;width:100%;margin:12pt 0;">${renderNodes(node.content)}</table>`
         case 'tableRow':

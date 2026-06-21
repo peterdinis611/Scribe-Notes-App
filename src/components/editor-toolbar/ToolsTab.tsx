@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react'
 import type { Editor } from '@tiptap/react'
 import { useEditorState } from '@tiptap/react'
-import { Eye, EyeOff, Redo, Trash2, Undo } from 'lucide-react'
+import { useAtom, useAtomValue, useSetAtom } from 'jotai'
+import { Eye, EyeOff, History, Redo, Trash2, Undo } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,9 +18,16 @@ import {
   getActiveBlockDeleteLabel,
   hasEditorSelection,
 } from '@/lib/editor/delete-content'
-import { cn } from '@/lib/utils'
+import { listDocumentRevisions, restoreDocumentRevision, type DocumentRevision } from '@/lib/db/api'
+import { cn, formatRelativeTime } from '@/lib/utils'
+import { activeDocumentAtom, activeDocumentIdAtom, documentsAtom } from '@/store/documents'
 
 export function ToolsTab({ editor }: { editor: Editor }) {
+  const activeId = useAtomValue(activeDocumentIdAtom)
+  const setActiveDocument = useSetAtom(activeDocumentAtom)
+  const setDocuments = useSetAtom(documentsAtom)
+  const [revisions, setRevisions] = useState<DocumentRevision[]>([])
+
   const deleteState = useEditorState({
     editor,
     selector: ({ editor: currentEditor }) => ({
@@ -30,6 +39,36 @@ export function ToolsTab({ editor }: { editor: Editor }) {
       canRedo: currentEditor.can().redo(),
     }),
   })
+
+  useEffect(() => {
+    if (!activeId) {
+      setRevisions([])
+      return
+    }
+    void listDocumentRevisions(activeId, 15).then(setRevisions).catch(() => setRevisions([]))
+  }, [activeId])
+
+  async function handleRestoreRevision(revisionId: string) {
+    const restored = await restoreDocumentRevision(revisionId)
+    setActiveDocument(restored)
+    setDocuments((prev) =>
+      prev.map((item) =>
+        item.id === restored.id
+          ? {
+              ...item,
+              title: restored.title,
+              filePath: restored.filePath,
+              updatedAt: restored.updatedAt,
+            }
+          : item,
+      ),
+    )
+    editor.commands.setContent(JSON.parse(restored.contentJson), { emitUpdate: false })
+    if (activeId) {
+      const next = await listDocumentRevisions(activeId, 15)
+      setRevisions(next)
+    }
+  }
 
   const characters = editor.storage.characterCount.characters()
   const words = editor.storage.characterCount.words()
@@ -51,6 +90,28 @@ export function ToolsTab({ editor }: { editor: Editor }) {
         >
           <Redo className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button type="button" className="toolbar-btn" title="Uložené verzie dokumentu">
+              <History className="h-4 w-4 stroke-[1.75]" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="revision-menu">
+            {revisions.length === 0 ? (
+              <DropdownMenuItem disabled>Žiadne uložené verzie</DropdownMenuItem>
+            ) : (
+              revisions.map((revision) => (
+                <DropdownMenuItem
+                  key={revision.id}
+                  onClick={() => void handleRestoreRevision(revision.id)}
+                >
+                  <span className="revision-menu-title">{revision.title}</span>
+                  <span className="revision-menu-time">{formatRelativeTime(revision.createdAt)}</span>
+                </DropdownMenuItem>
+              ))
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </ToolbarGroup>
 
       <ToolbarGroup label="Mazanie">

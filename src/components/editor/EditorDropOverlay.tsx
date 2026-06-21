@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { forwardRef, useRef, useState, type ReactNode } from 'react'
 import { ImagePlus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -11,7 +11,10 @@ function dragEventHasFiles(event: React.DragEvent) {
   return Array.from(event.dataTransfer.types).includes('Files')
 }
 
-export function EditorDropZone({ children, className }: EditorDropZoneProps) {
+export const EditorDropZone = forwardRef<HTMLDivElement, EditorDropZoneProps>(function EditorDropZone(
+  { children, className },
+  ref,
+) {
   const [visible, setVisible] = useState(false)
   const depthRef = useRef(0)
 
@@ -46,6 +49,7 @@ export function EditorDropZone({ children, className }: EditorDropZoneProps) {
 
   return (
     <div
+      ref={ref}
       className={cn('editor-drop-zone', className)}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
@@ -64,4 +68,4 @@ export function EditorDropZone({ children, className }: EditorDropZoneProps) {
       {children}
     </div>
   )
-}
+})

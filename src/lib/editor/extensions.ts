@@ -24,6 +24,7 @@ import Dropcursor from '@tiptap/extension-dropcursor'
 import Gapcursor from '@tiptap/extension-gapcursor'
 import StarterKit from '@tiptap/starter-kit'
 import { createEmojiSuggestion } from '@/lib/editor/emoji-suggestion'
+import { CommentMark } from '@/lib/editor/comment-mark'
 import { FontFamily } from '@/lib/editor/font-family'
 import { FontSize } from '@/lib/editor/font-size'
 import { ListItemWithBlocks } from '@/lib/editor/list-item'
@@ -31,6 +32,7 @@ import { MathJs } from '@/lib/editor/math-js-extension'
 import { lowlight } from '@/lib/editor/lowlight'
 import { PageBreak } from '@/lib/editor/page-break'
 import { ResizableImage } from '@/lib/editor/resizable-image'
+import { SlashCommands } from '@/lib/editor/slash-commands'
 import { CustomTableCell, CustomTableHeader } from '@/lib/editor/table-extensions'
 
 type EditorExtensionsOptions = {
@@ -59,6 +61,7 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
     FontSize,
     FontFamily,
     Color,
+    CommentMark,
     Underline,
     Subscript,
     Superscript,
@@ -124,6 +127,11 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
     Dropcursor.configure({ color: '#007aff', width: 2 }),
     Gapcursor,
     Typography,
+    SlashCommands.configure({
+      onInsertImages: (files) => {
+        if (files.length) void onInsertImages?.(files)
+      },
+    }),
     Placeholder.configure({
       placeholder: 'Začnite písať… pretiahnite sem obrázok alebo vložte zo schránky',
     }),

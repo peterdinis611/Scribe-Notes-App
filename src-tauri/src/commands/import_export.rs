@@ -142,8 +142,10 @@ pub async fn export_document(
         && format != "docx"
         && format != "txt"
         && format != "pages"
+        && format != "md"
+        && format != "markdown"
     {
-        return Err("Podporované exporty: pdf, docx, txt, pages".to_string());
+        return Err("Podporované exporty: pdf, docx, txt, pages, md".to_string());
     }
 
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
@@ -170,6 +172,7 @@ pub async fn export_document(
         "docx" => export::export_html_to_docx(&input.html, &output)?,
         "txt" => export::export_plain_text(&input.plain_text, &output)?,
         "pages" => export::export_text_to_pages(&input.plain_text, &output)?,
+        "md" | "markdown" => export::export_markdown(&input.plain_text, &output)?,
         _ => unreachable!(),
     }
 

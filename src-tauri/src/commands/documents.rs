@@ -116,11 +116,18 @@ pub fn create_document(
         .filter(|c| !c.trim().is_empty())
         .unwrap_or_else(|| r#"{"type":"doc","content":[{"type":"paragraph"}]}"#.to_string());
 
+    let folder_id = match input.folder_id {
+        Some(id) => Some(id),
+        None => super::folders::default_folder_id(&conn)?,
+    };
+
     conn.execute(
         "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?5)",
-        params![id, input.title, content_json, input.folder_id, now],
+        params![id, input.title, content_json, folder_id, now],
     )
     .map_err(|e| e.to_string())?;
+
+    crate::db::sync_document_fts(&conn, &id, &input.title, &content_json)?;
 
     let file_path = persist_document(
         &app,
@@ -136,7 +143,7 @@ pub fn create_document(
         id,
         title: input.title,
         content_json: content_json.clone(),
-        folder_id: input.folder_id,
+        folder_id,
         file_path: Some(file_path),
         created_at: now,
         updated_at: now,
@@ -161,15 +168,28 @@ pub fn update_document(
         .map_err(|e| e.to_string())?
         .ok_or_else(|| format!("Document not found: {}", input.id))?;
 
-    let title = input.title.unwrap_or(existing.title);
-    let content_json = input.content_json.unwrap_or(existing.content_json);
+    let title = input.title.unwrap_or(existing.title.clone());
+    let content_json = input
+        .content_json
+        .unwrap_or_else(|| existing.content_json.clone());
     let now = now_ts();
+
+    if content_json != existing.content_json || title != existing.title {
+        crate::db::revisions::save_revision(
+            &conn,
+            &existing.id,
+            &existing.title,
+            &existing.content_json,
+        )?;
+    }
 
     conn.execute(
         "UPDATE documents SET title = ?1, content_json = ?2, updated_at = ?3 WHERE id = ?4",
         params![title, content_json, now, input.id],
     )
     .map_err(|e| e.to_string())?;
+
+    crate::db::sync_document_fts(&conn, &input.id, &title, &content_json)?;
 
     let file_path = persist_document(
         &app,
@@ -209,6 +229,8 @@ pub fn delete_document(state: State<'_, DbState>, id: String) -> Result<(), Stri
     conn.execute("DELETE FROM documents WHERE id = ?1", params![id])
         .map_err(|e| e.to_string())?;
 
+    crate::db::remove_document_fts(&conn, &id)?;
+
     if let Some(path) = file_path {
         storage::delete_document_file(&path)?;
     }
@@ -222,6 +244,11 @@ pub fn clear_all_documents(app: AppHandle, state: State<'_, DbState>) -> Result<
     let dir = storage::get_documents_dir(&app, &conn)?;
 
     conn.execute("DELETE FROM documents", [])
+        .map_err(|e| e.to_string())?;
+
+    conn.execute("DELETE FROM documents_fts", [])
+        .map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM document_revisions", [])
         .map_err(|e| e.to_string())?;
 
     let mut removed = 0u32;

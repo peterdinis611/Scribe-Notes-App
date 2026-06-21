@@ -59,6 +59,10 @@ pub fn export_plain_text(text: &str, output: &Path) -> Result<(), String> {
     std::fs::write(output, text).map_err(|e| e.to_string())
 }
 
+pub fn export_markdown(text: &str, output: &Path) -> Result<(), String> {
+    std::fs::write(output, text).map_err(|e| e.to_string())
+}
+
 pub fn pages_app_installed() -> bool {
     Path::new("/Applications/Pages.app").exists()
 }

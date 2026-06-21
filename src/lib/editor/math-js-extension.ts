@@ -57,13 +57,15 @@ function createMathNodeView(display: 'inline' | 'block', options: MathNodeOption
       renderMathNodeContent(wrapper, String(currentNode.attrs.expression ?? ''), display)
     }
 
-    const handleClick = (event: MouseEvent) => {
+    const handleClick = (event: Event) => {
       if (!editor.isEditable) return
       event.preventDefault()
       event.stopPropagation()
       const pos = getPos()
       if (pos == null) return
-      options.onEdit?.(editor, node, pos, String(node.attrs.expression ?? ''))
+      const currentNode = editor.state.doc.nodeAt(pos)
+      if (!currentNode) return
+      options.onEdit?.(editor, currentNode, pos, String(currentNode.attrs.expression ?? ''))
     }
 
     wrapper.addEventListener('click', handleClick)

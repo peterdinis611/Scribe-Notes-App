@@ -14,12 +14,7 @@ import {
   templatePickerOpenAtom,
   themeSettingsAtom,
 } from '@/store/settings'
-import {
-  activeDocumentAtom,
-  activeDocumentIdAtom,
-  documentsAtom,
-  saveStatusAtom,
-} from '@/store/documents'
+import { commandPaletteOpenAtom } from '@/store/folders'
 
 const APP_HOTKEY_OPTIONS = {
   preventDefault: true,
@@ -36,9 +31,17 @@ export function useKeyboardShortcuts() {
   const setActiveDocument = useSetAtom(activeDocumentAtom)
   const setDocuments = useSetAtom(documentsAtom)
   const setSaveStatus = useSetAtom(saveStatusAtom)
+  const setCommandPaletteOpen = useSetAtom(commandPaletteOpenAtom)
 
   useHotkeys(
     [
+      {
+        hotkey: 'Mod+K',
+        callback: () => setCommandPaletteOpen((open) => !open),
+        options: {
+          meta: { name: 'Príkazová paleta', description: 'Vyhľadávanie a príkazy' },
+        },
+      },
       {
         hotkey: 'Mod+N',
         callback: () => setTemplatePickerOpen(true),

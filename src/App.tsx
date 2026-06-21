@@ -1,15 +1,11 @@
 import { useEffect } from 'react'
 import { useAtom, useSetAtom } from 'jotai'
 import { RouterProvider } from '@tanstack/react-router'
-import { getDocument, listDocuments, scanScribeFiles } from '@/lib/db/api'
-import {
-  activeDocumentAtom,
-  activeDocumentIdAtom,
-  documentsAtom,
-  saveStatusAtom,
-} from '@/store/documents'
+import { listDocuments, scanScribeFiles } from '@/lib/db/api'
+import { documentsAtom } from '@/store/documents'
 import { applyThemeSettings } from '@/lib/themes/apply'
 import { themeSettingsAtom } from '@/store/settings'
+import { useActiveDocumentLoader } from '@/hooks/useActiveDocumentLoader'
 import { router } from '@/router'
 
 function useThemeSync() {
@@ -39,39 +35,6 @@ function useDocumentBootstrap() {
 
     bootstrap()
   }, [setDocuments])
-}
-
-function useActiveDocumentLoader() {
-  const [activeId] = useAtom(activeDocumentIdAtom)
-  const setActiveDocument = useSetAtom(activeDocumentAtom)
-  const setSaveStatus = useSetAtom(saveStatusAtom)
-
-  useEffect(() => {
-    if (!activeId) {
-      setActiveDocument(null)
-      return
-    }
-
-    const documentId = activeId
-    let cancelled = false
-
-    async function load() {
-      try {
-        const doc = await getDocument(documentId)
-        if (!cancelled) {
-          setActiveDocument(doc)
-          setSaveStatus('saved')
-        }
-      } catch {
-        if (!cancelled) setSaveStatus('error')
-      }
-    }
-
-    load()
-    return () => {
-      cancelled = true
-    }
-  }, [activeId, setActiveDocument, setSaveStatus])
 }
 
 export default function App() {

@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
+import { cacheDocument, clearDocumentCache, invalidateDocumentCache, peekCachedDocument } from '@/lib/cache/document-cache'
 
 export interface DocumentSummary {
   id: string
@@ -6,6 +7,28 @@ export interface DocumentSummary {
   folderId: string | null
   filePath: string | null
   updatedAt: number
+}
+
+export interface Folder {
+  id: string
+  name: string
+  parentId: string | null
+  createdAt: number
+  updatedAt: number
+}
+
+export interface SearchHit {
+  documentId: string
+  title: string
+  snippet: string
+  rank: number
+}
+
+export interface DocumentRevision {
+  id: string
+  documentId: string
+  title: string
+  createdAt: number
 }
 
 export interface Document {
@@ -40,18 +63,31 @@ export interface ExportResult {
 
 export const listDocuments = () => invoke<DocumentSummary[]>('list_documents')
 
-export const getDocument = (id: string) => invoke<Document>('get_document', { id })
+export const getDocument = async (id: string) => {
+  const cached = peekCachedDocument(id)
+  if (cached) return cached
+  return cacheDocument(await invoke<Document>('get_document', { id }))
+}
 
-export const createDocument = (input: CreateDocumentInput) =>
-  invoke<Document>('create_document', { input })
+export const fetchDocumentFresh = async (id: string) =>
+  cacheDocument(await invoke<Document>('get_document', { id }))
 
-export const updateDocument = (input: UpdateDocumentInput) =>
-  invoke<Document>('update_document', { input })
+export const createDocument = async (input: CreateDocumentInput) =>
+  cacheDocument(await invoke<Document>('create_document', { input }))
 
-export const deleteDocument = (id: string) =>
-  invoke<void>('delete_document', { id })
+export const updateDocument = async (input: UpdateDocumentInput) =>
+  cacheDocument(await invoke<Document>('update_document', { input }))
 
-export const clearAllDocuments = () => invoke<number>('clear_all_documents')
+export const deleteDocument = async (id: string) => {
+  await invoke<void>('delete_document', { id })
+  invalidateDocumentCache(id)
+}
+
+export const clearAllDocuments = async () => {
+  const count = await invoke<number>('clear_all_documents')
+  clearDocumentCache()
+  return count
+}
 
 export const getStorageSettings = () =>
   invoke<StorageSettings>('get_storage_settings')
@@ -62,26 +98,61 @@ export const pickDocumentsDirectory = () =>
 export const revealInFinder = (path: string) =>
   invoke<void>('reveal_in_finder', { path })
 
-export const pickAndImportFile = () =>
-  invoke<Document | null>('pick_and_import_file')
+export const pickAndImportFile = async () => {
+  const doc = await invoke<Document | null>('pick_and_import_file')
+  return doc ? cacheDocument(doc) : null
+}
 
-export const importFile = (path: string) =>
-  invoke<Document>('import_file', { path })
+export const importFile = async (path: string) => cacheDocument(await invoke<Document>('import_file', { path }))
 
 export const exportDocument = (
   html: string,
   plainText: string,
   title: string,
-  format: 'pdf' | 'docx' | 'txt' | 'pages',
+  format: 'pdf' | 'docx' | 'txt' | 'pages' | 'md',
+  markdown?: string,
 ) =>
   invoke<ExportResult | null>('export_document', {
-    input: { html, plainText, title, format },
+    input: {
+      html,
+      plainText: format === 'md' ? (markdown ?? plainText) : plainText,
+      title,
+      format,
+    },
   })
 
-export const scanScribeFiles = () => invoke<Document[]>('scan_scribe_files')
+export const listFolders = () => invoke<Folder[]>('list_folders')
 
-export const forceSaveDocument = (id: string) =>
-  invoke<Document>('force_save_document', { id })
+export const createFolder = (input: { name: string; parentId?: string | null }) =>
+  invoke<Folder>('create_folder', { input: { name: input.name, parentId: input.parentId ?? null } })
+
+export const renameFolder = (id: string, name: string) =>
+  invoke<Folder>('rename_folder', { input: { id, name } })
+
+export const deleteFolder = (id: string) => invoke<void>('delete_folder', { id })
+
+export const moveFolder = (id: string, parentId: string | null) =>
+  invoke<Folder>('move_folder', { input: { id, parentId } })
+
+export const moveDocumentToFolder = (documentId: string, folderId: string | null) =>
+  invoke<void>('move_document_to_folder', { input: { documentId, folderId } })
+
+export const searchDocuments = (query: string, limit = 20) =>
+  invoke<SearchHit[]>('search_documents', { query, limit })
+
+export const listDocumentRevisions = (documentId: string, limit = 20) =>
+  invoke<DocumentRevision[]>('list_document_revisions', { documentId, limit })
+
+export const restoreDocumentRevision = (revisionId: string) =>
+  invoke<Document>('restore_document_revision', { revisionId })
+
+export const scanScribeFiles = async () => {
+  const docs = await invoke<Document[]>('scan_scribe_files')
+  return docs.map(cacheDocument)
+}
+
+export const forceSaveDocument = async (id: string) =>
+  cacheDocument(await invoke<Document>('force_save_document', { id }))
 
 export const saveDocumentImage = (
   documentId: string,

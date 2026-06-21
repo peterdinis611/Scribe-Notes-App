@@ -1,13 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, type CSSProperties } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import type { Editor } from '@tiptap/react'
-import type { JSONContent } from '@tiptap/core'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { EditorToolbar } from '@/components/editor-toolbar/EditorToolbar'
 import { EditorMenus } from '@/components/editor/EditorMenus'
+import { EditorDropZone } from '@/components/editor/EditorDropOverlay'
 import { EditorHeader } from '@/components/TopBar'
 import { EditorPagination } from '@/components/EditorPagination'
 import { useDocumentPagination } from '@/hooks/useDocumentPagination'
+import { useEditorHotkeys } from '@/hooks/useEditorHotkeys'
+import {
+  cacheDocument,
+  getCachedContentHash,
+  getCachedParsedContent,
+  hashContent,
+} from '@/lib/cache/document-cache'
 import { EDITOR_PAGE } from '@/lib/editor/page-layout'
 import { getEditorExtensions } from '@/lib/editor/extensions'
 import { insertImagesFromFiles } from '@/lib/editor/image-utils'
@@ -31,9 +38,16 @@ export function DocumentEditor() {
   const activeDocumentRef = useRef(activeDocument)
   const manualTitleIdsRef = useRef(manualTitleIds)
   const editorRef = useRef<Editor | null>(null)
+  const editorContentHashRef = useRef<string | null>(null)
+  const lastPersistedHashRef = useRef<string | null>(null)
 
   activeDocumentRef.current = activeDocument
   manualTitleIdsRef.current = manualTitleIds
+
+  const initialContent = useMemo(() => {
+    if (!activeDocument) return undefined
+    return getCachedParsedContent(activeDocument)
+  }, [activeDocument?.id])
 
   const handleInsertImages = useCallback(
     async (files: File[], pos?: number) => {
@@ -56,26 +70,30 @@ export function DocumentEditor() {
     [],
   )
 
-  const saveDocument = useMemo(
+  const persistDocument = useMemo(
     () =>
-      debounce(async (docId: string, json: JSONContent) => {
+      debounce(async (docId: string, contentJson: string, contentHash: string) => {
         if (latestDocIdRef.current !== docId) return
+        if (contentHash === lastPersistedHashRef.current) return
 
-        const contentJson = JSON.stringify(json)
         const title = manualTitleIdsRef.current.has(docId)
           ? activeDocumentRef.current?.title ?? extractTitleFromContent(contentJson)
           : extractTitleFromContent(contentJson)
 
         try {
           setSaveStatus('saving')
-          const updated = await updateDocument({
-            id: docId,
-            title,
-            contentJson,
-          })
+          const updated = cacheDocument(
+            await updateDocument({
+              id: docId,
+              title,
+              contentJson,
+            }),
+          )
 
           if (latestDocIdRef.current !== docId) return
 
+          lastPersistedHashRef.current = contentHash
+          editorContentHashRef.current = contentHash
           setActiveDocument(updated)
           setDocuments((prev) =>
             prev.map((item) =>
@@ -93,28 +111,45 @@ export function DocumentEditor() {
         } catch {
           setSaveStatus('error')
         }
-      }, 600),
+      }, 700),
     [setActiveDocument, setDocuments, setSaveStatus],
+  )
+
+  const queueSave = useMemo(
+    () =>
+      debounce((docId: string) => {
+        const currentEditor = editorRef.current
+        if (!currentEditor || latestDocIdRef.current !== docId) return
+
+        const contentJson = JSON.stringify(currentEditor.getJSON())
+        const contentHash = hashContent(contentJson)
+        if (contentHash === lastPersistedHashRef.current) return
+
+        editorContentHashRef.current = contentHash
+        void persistDocument(docId, contentJson, contentHash)
+      }, 450),
+    [persistDocument],
   )
 
   const editor = useEditor({
     extensions,
-    content: activeDocument?.contentJson
-      ? JSON.parse(activeDocument.contentJson)
-      : undefined,
+    content: initialContent,
     immediatelyRender: false,
+    shouldRerenderOnTransaction: false,
     editorProps: {
       attributes: {
         class: 'tiptap',
       },
     },
-    onUpdate: ({ editor: currentEditor }) => {
+    onUpdate: () => {
       if (!activeId) return
-      saveDocument(activeId, currentEditor.getJSON())
+      queueSave(activeId)
     },
   })
 
   editorRef.current = editor
+
+  useEditorHotkeys(editor)
 
   const {
     scrollRef,
@@ -129,13 +164,18 @@ export function DocumentEditor() {
 
     if (!editor || !activeDocument) return
 
-    const parsed = JSON.parse(activeDocument.contentJson) as JSONContent
-    const current = editor.getJSON()
+    const incomingHash = getCachedContentHash(activeDocument)
+    if (incomingHash === editorContentHashRef.current) return
 
-    if (JSON.stringify(current) !== JSON.stringify(parsed)) {
-      editor.commands.setContent(parsed, { emitUpdate: false })
-    }
+    editor.commands.setContent(getCachedParsedContent(activeDocument), { emitUpdate: false })
+    editorContentHashRef.current = incomingHash
+    lastPersistedHashRef.current = incomingHash
   }, [activeDocument, activeId, editor])
+
+  useEffect(() => {
+    editorContentHashRef.current = null
+    lastPersistedHashRef.current = null
+  }, [activeId])
 
   return (
     <div className="editor-shell">
@@ -143,7 +183,7 @@ export function DocumentEditor() {
       <EditorToolbar editor={editor} onInsertImages={handleInsertImages} />
       <EditorMenus editor={editor} onInsertImages={handleInsertImages} />
 
-      <div className="editor-scroll" ref={scrollRef}>
+      <EditorDropZone className="editor-scroll" ref={scrollRef}>
         <div
           ref={canvasRef}
           className="editor-canvas editor-canvas--paginated"
@@ -168,7 +208,7 @@ export function DocumentEditor() {
             ))}
           <EditorContent editor={editor} />
         </div>
-      </div>
+      </EditorDropZone>
 
       <EditorPagination
         currentPage={currentPage}

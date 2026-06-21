@@ -1,10 +1,11 @@
 import { useEffect } from 'react'
 import { useAtom, useSetAtom } from 'jotai'
 import { Outlet, useNavigate, useParams, useRouterState } from '@tanstack/react-router'
+import { CommandPalette } from '@/components/CommandPalette'
 import { Sidebar } from '@/components/Sidebar'
 import { TemplatePicker } from '@/components/TemplatePicker'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
-import { createDocument, listDocuments } from '@/lib/db/api'
+import { createDocument, listDocuments, listFolders } from '@/lib/db/api'
 import { ROUTES } from '@/lib/routes'
 import type { DocumentTemplate } from '@/lib/templates'
 import {
@@ -12,6 +13,7 @@ import {
   activeDocumentIdAtom,
   documentsAtom,
 } from '@/store/documents'
+import { foldersAtom } from '@/store/folders'
 import { templatePickerOpenAtom } from '@/store/settings'
 
 function useDocumentRouteSync() {
@@ -40,9 +42,14 @@ export function AppLayout() {
   const [templatePickerOpen, setTemplatePickerOpen] = useAtom(templatePickerOpenAtom)
   const setActiveId = useSetAtom(activeDocumentIdAtom)
   const setDocuments = useSetAtom(documentsAtom)
+  const setFolders = useSetAtom(foldersAtom)
   const setActiveDocument = useSetAtom(activeDocumentAtom)
 
   const navigate = useNavigate()
+
+  useEffect(() => {
+    void listFolders().then(setFolders).catch(() => undefined)
+  }, [setFolders])
 
   async function handleCreateFromTemplate(template: DocumentTemplate) {
     const doc = await createDocument({
@@ -51,6 +58,8 @@ export function AppLayout() {
     })
     const items = await listDocuments()
     setDocuments(items)
+    const nextFolders = await listFolders()
+    setFolders(nextFolders)
     setActiveId(doc.id)
     setActiveDocument(doc)
     navigate(ROUTES.document(doc.id))
@@ -67,6 +76,7 @@ export function AppLayout() {
         onClose={() => setTemplatePickerOpen(false)}
         onSelect={(template) => void handleCreateFromTemplate(template)}
       />
+      <CommandPalette />
     </div>
   )
 }

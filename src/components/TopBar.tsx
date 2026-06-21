@@ -14,6 +14,7 @@ import { DocumentTitleField } from '@/components/DocumentTitleField'
 import { countWords } from '@/lib/utils'
 import { exportDocument, listDocuments, pickAndImportFile, revealInFinder } from '@/lib/db/api'
 import { tiptapJsonToHtml } from '@/lib/export/html'
+import { tiptapJsonToMarkdown } from '@/lib/export/markdown'
 import { tiptapToPlainText } from '@/lib/export/plain-text'
 import { ROUTES } from '@/lib/routes'
 import {
@@ -83,11 +84,12 @@ export function EditorHeader() {
     }
   }
 
-  async function handleExport(format: 'pdf' | 'docx' | 'txt' | 'pages') {
+  async function handleExport(format: 'pdf' | 'docx' | 'txt' | 'pages' | 'md') {
     if (!document) return
     const html = tiptapJsonToHtml(document.contentJson, document.title)
     const plainText = tiptapToPlainText(document.contentJson)
-    const result = await exportDocument(html, plainText, document.title, format)
+    const markdown = tiptapJsonToMarkdown(document.contentJson, document.title)
+    const result = await exportDocument(html, plainText, document.title, format, markdown)
     if (result?.path) {
       await revealInFinder(result.path)
     }
@@ -127,6 +129,7 @@ export function EditorHeader() {
                 <DropdownMenuItem onClick={() => void handleExport('docx')}>Word (DOCX)</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => void handleExport('txt')}>Text (TXT)</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => void handleExport('md')}>Markdown (MD)</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => void handleExport('pages')}>Apple Pages</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

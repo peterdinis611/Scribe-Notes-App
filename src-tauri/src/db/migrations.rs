@@ -1,6 +1,6 @@
 use rusqlite::Connection;
 
-const SCHEMA_VERSION: i32 = 2;
+const SCHEMA_VERSION: i32 = 3;
 
 pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     conn.execute_batch(
@@ -49,6 +49,31 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     }
 
     if current < SCHEMA_VERSION {
+        conn.execute_batch(
+            r#"
+            CREATE VIRTUAL TABLE IF NOT EXISTS documents_fts USING fts5(
+                document_id UNINDEXED,
+                title,
+                body,
+                tokenize='unicode61'
+            );
+
+            CREATE TABLE IF NOT EXISTS document_revisions (
+                id TEXT PRIMARY KEY,
+                document_id TEXT NOT NULL,
+                title TEXT NOT NULL,
+                content_json TEXT NOT NULL,
+                created_at INTEGER NOT NULL,
+                FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_revisions_document
+                ON document_revisions(document_id, created_at DESC);
+            "#,
+        )?;
+
+        let _ = crate::db::backfill_fts(conn);
+
         conn.execute(
             "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
             [SCHEMA_VERSION.to_string()],
@@ -80,6 +105,8 @@ pub fn seed_if_empty(conn: &Connection) -> Result<(), rusqlite::Error> {
         "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?5)",
         rusqlite::params![doc_id, "Vitajte v Scribe", welcome_content, folder_id, now],
     )?;
+
+    let _ = crate::db::sync_document_fts(conn, &doc_id, "Vitajte v Scribe", welcome_content);
 
     Ok(())
 }

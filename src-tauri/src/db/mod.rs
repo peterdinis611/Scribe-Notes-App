@@ -1,4 +1,8 @@
+mod fts;
 mod migrations;
+mod revisions;
+
+pub use fts::{backfill_fts, remove_document_fts, sync_document_fts};
 
 use rusqlite::Connection;
 use std::sync::Mutex;

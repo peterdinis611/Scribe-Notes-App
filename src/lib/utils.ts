@@ -31,6 +31,36 @@ export function debounce<T extends (...args: Parameters<T>) => void>(
   }
 }
 
+export function throttle<T extends (...args: Parameters<T>) => void>(
+  fn: T,
+  interval: number,
+) {
+  let lastRun = 0
+  let timeoutId: ReturnType<typeof setTimeout> | undefined
+
+  return (...args: Parameters<T>) => {
+    const now = Date.now()
+    const remaining = interval - (now - lastRun)
+
+    if (remaining <= 0) {
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+        timeoutId = undefined
+      }
+      lastRun = now
+      fn(...args)
+      return
+    }
+
+    if (timeoutId) clearTimeout(timeoutId)
+    timeoutId = setTimeout(() => {
+      lastRun = Date.now()
+      timeoutId = undefined
+      fn(...args)
+    }, remaining)
+  }
+}
+
 export function extractTitleFromContent(contentJson: string): string {
   try {
     const doc = JSON.parse(contentJson) as {
