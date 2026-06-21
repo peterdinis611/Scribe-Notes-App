@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { DocumentTitleField } from '@/components/DocumentTitleField'
 import { MoveToFolderMenu } from '@/components/MoveToFolderMenu'
+import { SidebarToggle } from '@/components/SidebarToggle'
 import { countWords } from '@/lib/utils'
 import { exportDocument, pickAndImportFile, revealInFinder } from '@/lib/db/api'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
@@ -99,13 +100,14 @@ export function EditorHeader() {
   return (
     <header className="editor-header titlebar-drag">
       <div className="editor-header-left titlebar-no-drag">
+        <SidebarToggle />
         <Button variant="default" size="sm" onClick={() => setTemplatePickerOpen(true)}>
           <Plus className="h-3.5 w-3.5" />
-          Nový
+          <span className="editor-header-label">Nový</span>
         </Button>
-        <Button variant="outline" size="sm" onClick={() => void handleImport()}>
+        <Button variant="outline" size="sm" className="editor-header-import" onClick={() => void handleImport()}>
           <FolderInput className="h-3.5 w-3.5" />
-          Import
+          <span className="editor-header-label">Import</span>
         </Button>
 
         {document && (
@@ -114,14 +116,14 @@ export function EditorHeader() {
             {document.filePath && (
               <Button variant="ghost" size="sm" onClick={() => void handleRevealFile()}>
                 <FileSymlink className="h-3.5 w-3.5" />
-                Súbor
+                <span className="editor-header-label">Súbor</span>
               </Button>
             )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm">
                   <FileDown className="h-3.5 w-3.5" />
-                  Export
+                  <span className="editor-header-label">Export</span>
                   <ChevronDown className="h-3 w-3 opacity-60" />
                 </Button>
               </DropdownMenuTrigger>

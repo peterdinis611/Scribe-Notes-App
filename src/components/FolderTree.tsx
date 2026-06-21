@@ -2,7 +2,6 @@ import { useCallback, useMemo, useState, type RefObject } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useAtom, useSetAtom } from 'jotai'
 import { useNavigate } from '@tanstack/react-router'
-import { FolderPlus } from 'lucide-react'
 import { FolderTreeDocumentRow, FolderTreeFolderRow } from '@/components/FolderTreeRows'
 import {
   createFolder,
@@ -25,9 +24,10 @@ import { expandedFolderIdsAtom, foldersAtom } from '@/store/folders'
 type FolderTreeProps = {
   query: string
   scrollRef: RefObject<HTMLDivElement | null>
+  onNavigate?: () => void
 }
 
-export function FolderTree({ query, scrollRef }: FolderTreeProps) {
+export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
   const [folders, setFolders] = useAtom(foldersAtom)
   const [documents, setDocuments] = useAtom(documentsAtom)
   const [expandedIds, setExpandedIds] = useAtom(expandedFolderIdsAtom)
@@ -115,7 +115,8 @@ export function FolderTree({ query, scrollRef }: FolderTreeProps) {
   const openDocument = useCallback((id: string) => {
     setActiveId(id)
     navigate(ROUTES.document(id))
-  }, [navigate, setActiveId])
+    onNavigate?.()
+  }, [navigate, onNavigate, setActiveId])
 
   const handleDropOnFolder = useCallback(async (folderId: string | null, event: React.DragEvent) => {
     event.preventDefault()
@@ -153,13 +154,6 @@ export function FolderTree({ query, scrollRef }: FolderTreeProps) {
 
   return (
     <div className="folder-tree">
-      <div className="folder-tree-toolbar titlebar-no-drag">
-        <button type="button" className="folder-tree-toolbar-btn" onClick={() => void handleCreateFolder(null)}>
-          <FolderPlus className="h-3.5 w-3.5" />
-          Nový priečinok
-        </button>
-        <p className="folder-tree-hint">Presuňte dokument na priečinok alebo použite ikonu priečinka.</p>
-      </div>
       <div
         className={cn('folder-tree-root-drop titlebar-no-drag', dragOverId === 'root' && 'is-drag-over')}
         onDragOver={(event) => {

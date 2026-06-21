@@ -62,7 +62,10 @@ export function CommandPalette() {
               label: 'Presunúť do priečinka',
               hint: activeDocument.title,
               icon: <FolderInput className="h-4 w-4" />,
-              run: () => setMovePickerOpen(true),
+              run: () => {
+                setOpen(false)
+                setMovePickerOpen(true)
+              },
             },
           ]
         : []),
@@ -101,7 +104,7 @@ export function CommandPalette() {
         },
       },
     ],
-    [activeDocument, applyTheme, navigate, setMovePickerOpen, setTemplatePickerOpen, themeSettings],
+    [activeDocument, applyTheme, navigate, setMovePickerOpen, setOpen, setTemplatePickerOpen, themeSettings],
   )
 
   const documentItems: PaletteItem[] = useMemo(

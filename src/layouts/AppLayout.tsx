@@ -1,10 +1,12 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { Outlet, useNavigate, useParams, useRouterState } from '@tanstack/react-router'
 import { CommandPalette } from '@/components/CommandPalette'
 import { MoveToFolderDialog } from '@/components/MoveToFolderMenu'
 import { Sidebar } from '@/components/Sidebar'
 import { TemplatePicker } from '@/components/TemplatePicker'
+import { useLayoutTier } from '@/hooks/useLayoutTier'
+import { useResponsiveSidebar } from '@/hooks/useResponsiveSidebar'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { createDocument } from '@/lib/db/api'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
@@ -42,11 +44,16 @@ export function AppLayout() {
   useDocumentRouteSync()
   useKeyboardShortcuts()
   const [templatePickerOpen, setTemplatePickerOpen] = useAtom(templatePickerOpenAtom)
+  const [movePickerOpen, setMovePickerOpen] = useAtom(moveDocumentPickerOpenAtom)
+  const activeDocument = useAtomValue(activeDocumentAtom)
   const setActiveId = useSetAtom(activeDocumentIdAtom)
   const setDocuments = useSetAtom(documentsAtom)
   const setActiveDocument = useSetAtom(activeDocumentAtom)
 
   const navigate = useNavigate()
+  const mainRef = useRef<HTMLElement>(null)
+  const layoutTier = useLayoutTier(mainRef)
+  const { isCompact, sidebarOpen, setSidebarOpen } = useResponsiveSidebar()
 
   async function handleCreateFromTemplate(template: DocumentTemplate) {
     const doc = await createDocument({
@@ -60,9 +67,21 @@ export function AppLayout() {
   }
 
   return (
-    <div className="flex h-full overflow-hidden bg-[var(--color-background)]">
-      <Sidebar />
-      <main className="relative flex min-w-0 flex-1 flex-col">
+    <div
+      className="app-shell flex h-full min-w-0 overflow-hidden bg-[var(--color-background)]"
+      data-layout-tier={layoutTier}
+      data-sidebar-drawer={isCompact ? 'true' : 'false'}
+    >
+      {isCompact && sidebarOpen && (
+        <button
+          type="button"
+          className="sidebar-backdrop titlebar-no-drag"
+          aria-label="Zavrieť knižnicu"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      <Sidebar isCompact={isCompact} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <main ref={mainRef} className="app-main relative flex min-w-0 flex-1 flex-col overflow-hidden">
         <Outlet />
       </main>
       <TemplatePicker
@@ -71,6 +90,12 @@ export function AppLayout() {
         onSelect={(template) => void handleCreateFromTemplate(template)}
       />
       <CommandPalette />
+      <MoveToFolderDialog
+        open={movePickerOpen}
+        documentId={activeDocument?.id ?? null}
+        folderId={activeDocument?.folderId ?? null}
+        onOpenChange={setMovePickerOpen}
+      />
     </div>
   )
 }

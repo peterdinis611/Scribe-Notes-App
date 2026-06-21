@@ -1,4 +1,5 @@
 import { Link, Outlet, useRouterState } from '@tanstack/react-router'
+import { SidebarToggle } from '@/components/SidebarToggle'
 import { ROUTES, SETTINGS_SECTIONS } from '@/lib/routes'
 
 export function SettingsLayout() {
@@ -10,9 +11,12 @@ export function SettingsLayout() {
   return (
     <div className="settings-page">
       <header className="settings-page-header titlebar-drag">
-        <div className="titlebar-no-drag">
-          <h1 className="settings-page-title">Nastavenia</h1>
-          <p className="settings-page-subtitle">Prispôsobte si Scribe</p>
+        <div className="settings-page-header-row titlebar-no-drag">
+          <SidebarToggle />
+          <div>
+            <h1 className="settings-page-title">Nastavenia</h1>
+            <p className="settings-page-subtitle">Prispôsobte si Scribe</p>
+          </div>
         </div>
       </header>
 

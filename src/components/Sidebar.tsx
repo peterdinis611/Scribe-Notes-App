@@ -1,22 +1,39 @@
 import { useSetAtom } from 'jotai'
-import { FileText, Search, Settings2 } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { FileText, FolderPlus, Search, Settings2 } from 'lucide-react'
+import { useCallback, useRef, useState } from 'react'
 import { Link, useRouterState } from '@tanstack/react-router'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { FolderTree } from '@/components/FolderTree'
+import { createFolder } from '@/lib/db/api'
 import { cn } from '@/lib/utils'
-import { commandPaletteOpenAtom } from '@/store/folders'
+import { commandPaletteOpenAtom, expandedFolderIdsAtom, foldersAtom } from '@/store/folders'
 
-export function Sidebar() {
+type SidebarProps = {
+  isCompact?: boolean
+  isOpen?: boolean
+  onClose?: () => void
+}
+
+export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarProps) {
   const [query, setQuery] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
   const setCommandPaletteOpen = useSetAtom(commandPaletteOpenAtom)
+  const setFolders = useSetAtom(foldersAtom)
+  const setExpandedIds = useSetAtom(expandedFolderIdsAtom)
   const pathname = useRouterState({ select: (state) => state.location.pathname })
   const onSettingsPage = pathname.startsWith('/settings')
   const onEditorPage = pathname === '/' || pathname.startsWith('/doc/')
 
+  const handleCreateFolder = useCallback(async () => {
+    const name = window.prompt('Názov priečinka', 'Nový priečinok')
+    if (!name?.trim()) return
+    const folder = await createFolder({ name: name.trim() })
+    setFolders((prev) => [...prev, folder])
+    setExpandedIds((prev: Set<string>) => new Set(prev).add(folder.id))
+  }, [setExpandedIds, setFolders])
+
   return (
-    <aside className="app-sidebar">
+    <aside className={cn('app-sidebar', isCompact && 'app-sidebar--drawer', isCompact && isOpen && 'is-open')}>
       <div className="sidebar-brand titlebar-drag">
         <div className="titlebar-no-drag">
           <p className="sidebar-brand-name">Scribe</p>
@@ -28,6 +45,7 @@ export function Sidebar() {
         <Link
           to="/"
           className={cn('sidebar-nav-item', onEditorPage && 'is-active')}
+          onClick={() => onClose?.()}
         >
           <FileText className="h-4 w-4" />
           Editor
@@ -35,6 +53,7 @@ export function Sidebar() {
         <Link
           to="/settings/appearance"
           className={cn('sidebar-nav-item', onSettingsPage && 'is-active')}
+          onClick={() => onClose?.()}
         >
           <Settings2 className="h-4 w-4" />
           Nastavenia
@@ -42,26 +61,43 @@ export function Sidebar() {
       </nav>
 
       <div className="sidebar-search titlebar-no-drag">
+        <div className="sidebar-search-wrap">
+          <Search className="sidebar-search-icon" aria-hidden="true" />
+          <input
+            type="search"
+            className="sidebar-search-input"
+            placeholder="Filtrovať dokumenty…"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          <button
+            type="button"
+            className="sidebar-search-kbd"
+            onClick={() => setCommandPaletteOpen(true)}
+            title="Príkazová paleta"
+            aria-label="Otvoriť príkazovú paletu"
+          >
+            ⌘K
+          </button>
+        </div>
+      </div>
+
+      <div className="sidebar-library-header titlebar-no-drag">
+        <h2 className="sidebar-library-title">Knižnica</h2>
         <button
           type="button"
-          className="sidebar-search-field sidebar-search-trigger"
-          onClick={() => setCommandPaletteOpen(true)}
+          className="sidebar-library-action"
+          onClick={() => void handleCreateFolder()}
+          title="Nový priečinok"
+          aria-label="Nový priečinok"
         >
-          <Search className="sidebar-search-icon" aria-hidden="true" />
-          <span className="sidebar-search-placeholder">Hľadať… ⌘K</span>
+          <FolderPlus className="h-4 w-4" />
         </button>
-        <input
-          type="search"
-          className="sidebar-search-input sidebar-search-input--filter"
-          placeholder="Filtrovať strom…"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-        />
       </div>
 
       <ScrollArea className="sidebar-list flex-1" viewportRef={scrollRef}>
         <div className="sidebar-list-inner">
-          <FolderTree query={query} scrollRef={scrollRef} />
+          <FolderTree query={query} scrollRef={scrollRef} onNavigate={onClose} />
         </div>
       </ScrollArea>
     </aside>

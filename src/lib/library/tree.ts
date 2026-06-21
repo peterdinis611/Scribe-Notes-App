@@ -58,5 +58,5 @@ export function flattenTree(nodes: TreeNode[], expandedIds: ReadonlySet<string>,
 }
 
 export function estimateFlatItemSize(item: FlatTreeItem): number {
-  return item.type === 'folder' ? 34 : 58
+  return item.type === 'folder' ? 32 : 52
 }

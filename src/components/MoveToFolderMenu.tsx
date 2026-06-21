@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useMoveDocumentToFolder } from '@/hooks/useMoveDocumentToFolder'
 import { flattenFoldersForPicker } from '@/lib/library/folders'
-import { cn } from '@/lib/utils'
+import { foldersAtom } from '@/store/folders'
 
 type MoveToFolderMenuProps = {
   documentId: string

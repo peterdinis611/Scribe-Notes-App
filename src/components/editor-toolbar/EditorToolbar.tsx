@@ -39,7 +39,7 @@ export function EditorToolbar({ editor, onInsertImages }: EditorToolbarProps) {
             onClick={() => setActiveTab(id)}
           >
             <Icon className="h-3.5 w-3.5" />
-            {label}
+            <span className="toolbar-tab-label">{label}</span>
           </button>
         ))}
       </div>
