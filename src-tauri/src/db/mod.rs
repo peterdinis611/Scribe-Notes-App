@@ -9,14 +9,19 @@ pub use fts::{backfill_fts, remove_document_fts, sync_document_fts};
 pub use revisions::save_revision;
 
 use rusqlite::Connection;
+use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::{AppHandle, Manager};
 
+use crate::storage::DiskPersistQueue;
+
 pub struct DbState {
     pub conn: Mutex<Connection>,
+    pub db_path: PathBuf,
+    pub persist_queue: DiskPersistQueue,
 }
 
-pub fn init_db(app: &AppHandle) -> Result<Connection, Box<dyn std::error::Error>> {
+pub fn init_db(app: &AppHandle) -> Result<(Connection, PathBuf), Box<dyn std::error::Error>> {
     let app_dir = app
         .path()
         .app_data_dir()
@@ -24,15 +29,22 @@ pub fn init_db(app: &AppHandle) -> Result<Connection, Box<dyn std::error::Error>
 
     std::fs::create_dir_all(&app_dir)?;
     let db_path = app_dir.join("scribe.db");
-    let conn = Connection::open(db_path)?;
+    let conn = Connection::open(&db_path)?;
 
     conn.execute_batch(
-        "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA foreign_keys=ON;",
+        r#"
+        PRAGMA journal_mode=WAL;
+        PRAGMA synchronous=NORMAL;
+        PRAGMA foreign_keys=ON;
+        PRAGMA cache_size=-64000;
+        PRAGMA temp_store=MEMORY;
+        PRAGMA mmap_size=268435456;
+        "#,
     )
     .map_err(|e| format!("Failed to configure database: {e}"))?;
 
     migrations::run_migrations(&conn)?;
     migrations::seed_if_empty(&conn)?;
 
-    Ok(conn)
+    Ok((conn, db_path))
 }

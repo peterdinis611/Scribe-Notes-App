@@ -4,7 +4,7 @@ mod export;
 mod storage;
 
 use db::{init_db, DbState};
-use std::sync::Mutex;
+use storage::DiskPersistQueue;
 use tauri::Manager;
 
 #[cfg(target_os = "macos")]
@@ -24,10 +24,17 @@ pub fn run() {
                 )?;
             }
 
-            let conn = init_db(&app.handle())?;
-            storage::sync_all_documents_to_disk(&app.handle(), &conn)?;
+            let (conn, db_path) = init_db(&app.handle())?;
+            let reconcile = storage::reconcile_storage(&app.handle(), &conn);
+            if let Err(error) = reconcile {
+                log::warn!("Storage reconcile on startup failed: {error}");
+            }
+
+            let persist_queue = DiskPersistQueue::spawn(db_path.clone());
             app.manage(DbState {
-                conn: Mutex::new(conn),
+                conn: std::sync::Mutex::new(conn),
+                db_path,
+                persist_queue,
             });
 
             #[cfg(target_os = "macos")]
@@ -68,6 +75,9 @@ pub fn run() {
             commands::import_export::scan_scribe_files,
             commands::import_export::force_save_document,
             commands::images::save_document_image,
+            commands::system::get_backend_stats,
+            commands::system::flush_pending_writes,
+            commands::system::reconcile_storage,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

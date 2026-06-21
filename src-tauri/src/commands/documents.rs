@@ -1,4 +1,4 @@
-use crate::commands::storage::persist_document;
+use crate::commands::storage::{persist_document, queue_document_persist};
 use crate::db::DbState;
 use crate::storage;
 use rusqlite::{params, OptionalExtension};
@@ -173,40 +173,58 @@ pub fn update_document(
         .content_json
         .unwrap_or_else(|| existing.content_json.clone());
     let now = now_ts();
+    let content_changed = content_json != existing.content_json || title != existing.title;
 
-    if content_json != existing.content_json || title != existing.title {
-        crate::db::save_revision(
-            &conn,
-            &existing.id,
-            &existing.title,
-            &existing.content_json,
-        )?;
+    conn.execute("BEGIN IMMEDIATE", [])
+        .map_err(|e| e.to_string())?;
+
+    let update_result = (|| -> Result<(), String> {
+        if content_changed {
+            crate::db::save_revision(
+                &conn,
+                &existing.id,
+                &existing.title,
+                &existing.content_json,
+            )?;
+        }
+
+        conn.execute(
+            "UPDATE documents SET title = ?1, content_json = ?2, updated_at = ?3 WHERE id = ?4",
+            params![title, content_json, now, input.id],
+        )
+        .map_err(|e| e.to_string())?;
+
+        crate::db::sync_document_fts(&conn, &input.id, &title, &content_json)?;
+        Ok(())
+    })();
+
+    if let Err(error) = update_result {
+        let _ = conn.execute("ROLLBACK", []);
+        return Err(error);
     }
 
-    conn.execute(
-        "UPDATE documents SET title = ?1, content_json = ?2, updated_at = ?3 WHERE id = ?4",
-        params![title, content_json, now, input.id],
-    )
-    .map_err(|e| e.to_string())?;
+    conn.execute("COMMIT", [])
+        .map_err(|e| e.to_string())?;
 
-    crate::db::sync_document_fts(&conn, &input.id, &title, &content_json)?;
-
-    let file_path = persist_document(
-        &app,
-        &conn,
-        &input.id,
-        &title,
-        &content_json,
-        existing.created_at,
-        now,
-    )?;
+    if content_changed {
+        queue_document_persist(
+            &app,
+            &conn,
+            &state.persist_queue,
+            &input.id,
+            &title,
+            &content_json,
+            existing.created_at,
+            now,
+        )?;
+    }
 
     Ok(Document {
         id: input.id,
         title,
         content_json,
         folder_id: existing.folder_id,
-        file_path: Some(file_path),
+        file_path: existing.file_path,
         created_at: existing.created_at,
         updated_at: now,
     })
@@ -252,19 +270,11 @@ pub fn clear_all_documents(app: AppHandle, state: State<'_, DbState>) -> Result<
         .map_err(|e| e.to_string())?;
 
     let mut removed = 0u32;
-    if let Ok(entries) = std::fs::read_dir(&dir) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.is_file()
-                && path
-                    .extension()
-                    .and_then(|ext| ext.to_str())
-                    .is_some_and(|ext| ext.eq_ignore_ascii_case(storage::FILE_EXTENSION))
-            {
-                storage::delete_document_file(&path.to_string_lossy())?;
-                removed += 1;
-            }
-        }
+    let mut paths = Vec::new();
+    storage::collect_scribe_files(&dir, &mut paths)?;
+    for path in paths {
+        storage::delete_document_file(&path.to_string_lossy())?;
+        removed += 1;
     }
 
     let assets_dir = dir.join("assets");

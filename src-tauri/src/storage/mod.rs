@@ -2,6 +2,12 @@ use rusqlite::Connection;
 use std::path::{Path, PathBuf};
 use tauri::AppHandle;
 
+mod persist_queue;
+mod reconcile;
+
+pub use persist_queue::{DiskPersistQueue, PersistJob};
+pub use reconcile::{reconcile_storage, ReconcileResult};
+
 pub const META_DOCUMENTS_DIR: &str = "documents_dir";
 pub const FILE_EXTENSION: &str = "scribe";
 
@@ -127,17 +133,40 @@ pub fn write_document_file(
     doc: &DiskDocument,
     old_path: Option<&str>,
 ) -> Result<PathBuf, String> {
+    match write_document_file_if_changed(dir, doc, old_path)? {
+        Some(path) => Ok(path),
+        None => Ok(resolve_unique_path(dir, &doc.title, &doc.id)),
+    }
+}
+
+pub fn write_document_file_if_changed(
+    dir: &Path,
+    doc: &DiskDocument,
+    old_path: Option<&str>,
+) -> Result<Option<PathBuf>, String> {
     ensure_documents_dir(dir)?;
     let path = resolve_unique_path(dir, &doc.title, &doc.id);
     let payload = serde_json::to_string_pretty(doc).map_err(|e| e.to_string())?;
-    std::fs::write(&path, payload).map_err(|e| format!("Nepodarilo sa uložiť súbor: {e}"))?;
 
+    if path.is_file() {
+        if let Ok(existing) = std::fs::read_to_string(&path) {
+            if existing == payload {
+                return Ok(None);
+            }
+        }
+    }
+
+    std::fs::write(&path, payload).map_err(|e| format!("Nepodarilo sa uložiť súbor: {e}"))?;
+    cleanup_old_paths(dir, doc, old_path, &path);
+    Ok(Some(path))
+}
+
+fn cleanup_old_paths(dir: &Path, doc: &DiskDocument, old_path: Option<&str>, path: &Path) {
     if let Some(old) = old_path {
         let old_path = Path::new(old);
-        if old_path != path.as_path() && old_path.exists() {
+        if old_path != path && old_path.exists() {
             let _ = std::fs::remove_file(old_path);
         }
-        // migrate legacy .scribe.json
         if let Some(stem) = old_path.file_stem().and_then(|s| s.to_str()) {
             let legacy = dir.join(format!("{stem}.scribe.json"));
             if legacy.exists() && legacy != path {
@@ -146,13 +175,10 @@ pub fn write_document_file(
         }
     }
 
-    // Clean legacy id-based json file if exists
     let legacy_id_json = dir.join(format!("{}.scribe.json", doc.id));
     if legacy_id_json.exists() && legacy_id_json != path {
         let _ = std::fs::remove_file(legacy_id_json);
     }
-
-    Ok(path)
 }
 
 pub fn delete_document_file(path: &str) -> Result<(), String> {
@@ -168,6 +194,7 @@ pub fn read_scribe_file(path: &Path) -> Result<DiskDocument, String> {
     serde_json::from_str(&raw).map_err(|e| format!("Neplatný .scribe súbor: {e}"))
 }
 
+#[allow(dead_code)]
 pub fn sync_all_documents_to_disk(
     app: &AppHandle,
     conn: &Connection,
@@ -197,15 +224,15 @@ pub fn sync_all_documents_to_disk(
         let (id, title, content_json, created_at, updated_at, file_path) =
             row.map_err(|e| e.to_string())?;
 
-        if document_file_is_current(file_path.as_deref(), updated_at)? {
+        if document_file_is_current(file_path.as_deref(), updated_at, &content_json)? {
             continue;
         }
 
         let disk_doc = DiskDocument {
             version: 1,
             id: id.clone(),
-            title,
-            content_json,
+            title: title.clone(),
+            content_json: content_json.clone(),
             created_at,
             updated_at,
         };
@@ -225,7 +252,11 @@ pub fn sync_all_documents_to_disk(
     Ok(())
 }
 
-fn document_file_is_current(file_path: Option<&str>, updated_at: i64) -> Result<bool, String> {
+pub fn document_file_is_current(
+    file_path: Option<&str>,
+    updated_at: i64,
+    content_json: &str,
+) -> Result<bool, String> {
     let Some(path) = file_path else {
         return Ok(false);
     };
@@ -233,6 +264,15 @@ fn document_file_is_current(file_path: Option<&str>, updated_at: i64) -> Result<
     let file = Path::new(path);
     if !file.is_file() {
         return Ok(false);
+    }
+
+    if let Ok(disk) = read_scribe_file(file) {
+        if disk.content_json == content_json {
+            return Ok(true);
+        }
+        if disk.updated_at >= updated_at {
+            return Ok(false);
+        }
     }
 
     let modified = file
@@ -243,9 +283,10 @@ fn document_file_is_current(file_path: Option<&str>, updated_at: i64) -> Result<
     let file_ts = modified
         .duration_since(std::time::UNIX_EPOCH)
         .map_err(|e| format!("Neplatný čas súboru: {e}"))?
-        .as_secs() as i64;
+        .as_millis() as i64;
 
-    Ok(file_ts >= updated_at)
+    let db_ts = updated_at.saturating_mul(1000);
+    Ok(file_ts + 1_000 >= db_ts)
 }
 
 pub fn collect_scribe_files(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), String> {

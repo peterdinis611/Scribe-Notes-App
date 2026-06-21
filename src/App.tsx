@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useAtom, useSetAtom } from 'jotai'
 import { RouterProvider } from '@tanstack/react-router'
-import { listDocuments, listFolders, scanScribeFiles } from '@/lib/db/api'
+import { listDocuments, listFolders } from '@/lib/db/api'
 import { documentsAtom } from '@/store/documents'
 import { foldersAtom } from '@/store/folders'
 import { applyThemeSettings } from '@/lib/themes/apply'
@@ -30,11 +30,7 @@ function useDocumentBootstrap() {
 
   useEffect(() => {
     async function bootstrap() {
-      const [, docs, folders] = await Promise.all([
-        scanScribeFiles().catch(() => undefined),
-        listDocuments(),
-        listFolders(),
-      ])
+      const [docs, folders] = await Promise.all([listDocuments(), listFolders()])
       setDocuments(docs)
       setFolders(folders)
     }

@@ -1,8 +1,9 @@
 use crate::commands::documents::{map_document, Document, DOCUMENT_SELECT};
+use crate::commands::storage::{flush_document_persist, persist_document};
 use crate::db::DbState;
 use rusqlite::params;
 use serde::Serialize;
-use tauri::State;
+use tauri::{AppHandle, State};
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -44,6 +45,7 @@ pub fn list_document_revisions(
 
 #[tauri::command]
 pub fn restore_document_revision(
+    app: AppHandle,
     state: State<'_, DbState>,
     revision_id: String,
 ) -> Result<Document, String> {
@@ -57,20 +59,57 @@ pub fn restore_document_revision(
         )
         .map_err(|e| e.to_string())?;
 
+    let existing = conn
+        .query_row(
+            &format!("{DOCUMENT_SELECT} WHERE id = ?1"),
+            params![document_id],
+            map_document,
+        )
+        .map_err(|e| e.to_string())?;
+
     let now = chrono::Utc::now().timestamp();
 
-    conn.execute(
-        "UPDATE documents SET title = ?1, content_json = ?2, updated_at = ?3 WHERE id = ?4",
-        params![title, content_json, now, document_id],
-    )
-    .map_err(|e| e.to_string())?;
+    conn.execute("BEGIN IMMEDIATE", [])
+        .map_err(|e| e.to_string())?;
 
-    crate::db::sync_document_fts(&conn, &document_id, &title, &content_json)?;
+    let restore_result = (|| -> Result<(), String> {
+        conn.execute(
+            "UPDATE documents SET title = ?1, content_json = ?2, updated_at = ?3 WHERE id = ?4",
+            params![title, content_json, now, document_id],
+        )
+        .map_err(|e| e.to_string())?;
 
-    conn.query_row(
-        &format!("{DOCUMENT_SELECT} WHERE id = ?1"),
-        params![document_id],
-        map_document,
-    )
-    .map_err(|e| e.to_string())
+        crate::db::sync_document_fts(&conn, &document_id, &title, &content_json)?;
+        Ok(())
+    })();
+
+    if let Err(error) = restore_result {
+        let _ = conn.execute("ROLLBACK", []);
+        return Err(error);
+    }
+
+    conn.execute("COMMIT", [])
+        .map_err(|e| e.to_string())?;
+
+    let _ = flush_document_persist(&state.persist_queue, Some(&document_id));
+
+    let file_path = persist_document(
+        &app,
+        &conn,
+        &document_id,
+        &title,
+        &content_json,
+        existing.created_at,
+        now,
+    )?;
+
+    Ok(Document {
+        id: document_id,
+        title,
+        content_json,
+        folder_id: existing.folder_id,
+        file_path: Some(file_path),
+        created_at: existing.created_at,
+        updated_at: now,
+    })
 }

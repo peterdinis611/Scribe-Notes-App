@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { useEditor, EditorContent } from '@tiptap/react'
 import type { Editor } from '@tiptap/react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
+import { DocumentOutlinePanel } from '@/components/editor/DocumentOutlinePanel'
 import { EditorToolbar } from '@/components/editor-toolbar/EditorToolbar'
 import { EditorMenus } from '@/components/editor/EditorMenus'
 import { EditorDropZone } from '@/components/editor/EditorDropOverlay'
@@ -26,6 +27,7 @@ import { cn } from '@/lib/utils'
 import {
   activeDocumentAtom,
   activeDocumentIdAtom,
+  documentOutlineOpenAtom,
   documentsAtom,
   manualTitleDocumentIdsAtom,
   saveStatusAtom,
@@ -45,6 +47,8 @@ export function DocumentEditor() {
   const viewMode = useAtomValue(editorViewModeAtom)
   const persistViewMode = useSetAtom(setEditorViewModeAtom)
   const setEditorModeActions = useSetAtom(editorModeActionsAtom)
+  const outlineOpen = useAtomValue(documentOutlineOpenAtom)
+  const setOutlineOpen = useSetAtom(documentOutlineOpenAtom)
   const [markdownDraft, setMarkdownDraft] = useState('')
   const latestDocIdRef = useRef<string | null>(null)
   const activeDocumentRef = useRef(activeDocument)
@@ -265,7 +269,8 @@ export function DocumentEditor() {
       {!isMarkdown && <EditorToolbar editor={editor} onInsertImages={handleInsertImages} />}
       {!isMarkdown && <EditorMenus editor={editor} onInsertImages={handleInsertImages} />}
 
-      <EditorDropZone className="editor-scroll" ref={scrollRef}>
+      <div className={cn('editor-body', outlineOpen && !isMarkdown && 'editor-body--with-outline')}>
+        <EditorDropZone className="editor-scroll" ref={scrollRef}>
         <div
           ref={canvasRef}
           className={cn(
@@ -312,6 +317,11 @@ export function DocumentEditor() {
           )}
         </div>
       </EditorDropZone>
+
+        {!isMarkdown && outlineOpen && (
+          <DocumentOutlinePanel editor={editor} onClose={() => setOutlineOpen(false)} />
+        )}
+      </div>
 
       {!isMarkdown && (
         <EditorPagination

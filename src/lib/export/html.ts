@@ -87,7 +87,7 @@ function renderNodes(nodes?: TipTapNode[]): string {
           return `<p${textAlignStyle(node.attrs)}>${renderInline(node.content)}</p>`
         case 'heading': {
           const level = Number(node.attrs?.level ?? 1)
-          const tag = `h${Math.min(Math.max(level, 1), 3)}`
+          const tag = `h${Math.min(Math.max(level, 1), 6)}`
           return `<${tag}${textAlignStyle(node.attrs)}>${renderInline(node.content)}</${tag}>`
         }
         case 'bulletList':

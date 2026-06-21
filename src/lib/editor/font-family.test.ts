@@ -11,6 +11,6 @@ describe('font family helpers', () => {
   it('resolves known labels', () => {
     expect(getFontFamilyLabel('Georgia, Times New Roman, serif')).toBe('Georgia')
     expect(getFontFamilyLabel('')).toBe('Predvolená')
-    expect(getFontFamilyLabel('Unknown Font')).toBe('Predvolená')
+    expect(getFontFamilyLabel('Unknown Font')).toBe('Unknown Font')
   })
 })

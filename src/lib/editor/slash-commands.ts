@@ -13,6 +13,10 @@ import { pickImageFiles } from '@/lib/editor/image-utils'
 export const SLASH_COMMANDS: SlashCommandItem[] = [
   { id: 'h1', label: 'Nadpis 1', hint: 'Veľký nadpis', icon: 'H1' },
   { id: 'h2', label: 'Nadpis 2', hint: 'Stredný nadpis', icon: 'H2' },
+  { id: 'h3', label: 'Nadpis 3', hint: 'Menší nadpis', icon: 'H3' },
+  { id: 'h4', label: 'Nadpis 4', hint: 'Podnadpis', icon: 'H4' },
+  { id: 'h5', label: 'Nadpis 5', hint: 'Malý nadpis', icon: 'H5' },
+  { id: 'h6', label: 'Nadpis 6', hint: 'Najmenší nadpis', icon: 'H6' },
   { id: 'bullet', label: 'Zoznam', hint: 'Odrážky', icon: '•' },
   { id: 'ordered', label: 'Číslovaný zoznam', hint: '1. 2. 3.', icon: '1.' },
   { id: 'task', label: 'Úlohy', hint: 'Checklist', icon: '☑' },
@@ -48,6 +52,18 @@ export function runSlashCommand(
       break
     case 'h2':
       editor.chain().focus().setHeading({ level: 2 }).run()
+      break
+    case 'h3':
+      editor.chain().focus().setHeading({ level: 3 }).run()
+      break
+    case 'h4':
+      editor.chain().focus().setHeading({ level: 4 }).run()
+      break
+    case 'h5':
+      editor.chain().focus().setHeading({ level: 5 }).run()
+      break
+    case 'h6':
+      editor.chain().focus().setHeading({ level: 6 }).run()
       break
     case 'bullet':
       editor.chain().focus().toggleBulletList().run()

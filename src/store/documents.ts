@@ -1,4 +1,5 @@
 import { atom } from 'jotai'
+import { atomWithStorage } from 'jotai/utils'
 import type { Document, DocumentSummary } from '@/lib/db/api'
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
@@ -24,6 +25,7 @@ export const activeDocumentIdAtom = atom<string | null>(null)
 export const activeDocumentAtom = atom<Document | null>(null)
 export const saveStatusAtom = atom<SaveStatus>('idle')
 export const sidebarOpenAtom = atom(true)
+export const documentOutlineOpenAtom = atomWithStorage('scribe-document-outline-open', false)
 export const manualTitleDocumentIdsAtom = atom<Set<string>>(readManualTitleIds())
 
 export const markDocumentTitleManualAtom = atom(null, (get, set, id: string) => {

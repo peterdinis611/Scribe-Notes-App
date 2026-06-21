@@ -1,6 +1,6 @@
 use rusqlite::Connection;
 
-const SCHEMA_VERSION: i32 = 4;
+const SCHEMA_VERSION: i32 = 5;
 
 pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     conn.execute_batch(
@@ -92,6 +92,19 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         conn.execute(
             "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
             ["4".to_string()],
+        )?;
+    }
+
+    if current < 5 {
+        conn.execute_batch(
+            r#"
+            CREATE INDEX IF NOT EXISTS idx_documents_file_path ON documents(file_path);
+            "#,
+        )?;
+
+        conn.execute(
+            "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
+            ["5".to_string()],
         )?;
     }
 

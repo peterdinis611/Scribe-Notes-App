@@ -413,6 +413,8 @@ pub fn force_save_document(
     state: State<'_, DbState>,
     id: String,
 ) -> Result<Document, String> {
+    let _ = crate::commands::storage::flush_document_persist(&state.persist_queue, Some(&id));
+
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
 
     let doc = conn

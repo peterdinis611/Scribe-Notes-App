@@ -1,4 +1,4 @@
-import { useAtomValue, useSetAtom } from 'jotai'
+import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { useNavigate } from '@tanstack/react-router'
 import {
   Check,
@@ -6,6 +6,7 @@ import {
   FileDown,
   FileSymlink,
   FolderInput,
+  ListTree,
   Loader2,
   Plus,
   Settings2,
@@ -24,10 +25,11 @@ import { ROUTES } from '@/lib/routes'
 import {
   activeDocumentAtom,
   activeDocumentIdAtom,
+  documentOutlineOpenAtom,
   documentsAtom,
   saveStatusAtom,
 } from '@/store/documents'
-import { templatePickerOpenAtom } from '@/store/settings'
+import { editorViewModeAtom, templatePickerOpenAtom } from '@/store/settings'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -63,6 +65,8 @@ function SaveStatus() {
 
 export function EditorHeader() {
   const document = useAtomValue(activeDocumentAtom)
+  const viewMode = useAtomValue(editorViewModeAtom)
+  const [outlineOpen, setOutlineOpen] = useAtom(documentOutlineOpenAtom)
   const setActiveId = useSetAtom(activeDocumentIdAtom)
   const setActiveDocument = useSetAtom(activeDocumentAtom)
   const setDocuments = useSetAtom(documentsAtom)
@@ -155,6 +159,18 @@ export function EditorHeader() {
       </div>
 
       <div className="editor-header-right titlebar-no-drag">
+        {document && viewMode === 'rich' && (
+          <Button
+            variant={outlineOpen ? 'default' : 'ghost'}
+            size="icon"
+            title="Štruktúra dokumentu"
+            aria-label="Štruktúra dokumentu"
+            aria-pressed={outlineOpen}
+            onClick={() => setOutlineOpen((open) => !open)}
+          >
+            <ListTree className="h-4 w-4" />
+          </Button>
+        )}
         {document && <EditorViewModeToggle />}
         {document && (
           <MoveToFolderMenu

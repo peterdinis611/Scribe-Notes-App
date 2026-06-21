@@ -20,14 +20,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { FontFamilyMenuItems, getCurrentFontFamilyLabel } from '@/components/editor-toolbar/FontFamilyPicker'
 import {
   BlockTypeSelect,
   ColorSwatchGrid,
+  CustomColorPicker,
   ToolbarButton,
   ToolbarGroup,
   ToolbarLabel,
 } from '@/components/editor-toolbar/primitives'
-import { FONT_FAMILIES, getFontFamilyLabel, normalizeFontFamily } from '@/lib/editor/font-family'
 import { FONT_SIZES, HIGHLIGHT_COLORS, TEXT_COLORS } from '@/lib/editor/font-size'
 import { EmojiPickerPanel } from '@/components/editor/EmojiPickerPanel'
 
@@ -40,9 +41,8 @@ export function TextTab({ editor }: { editor: Editor }) {
     }),
   })
 
-  const currentFontFamily = editor.getAttributes('textStyle').fontFamily as string | undefined
-  const currentFont = getFontFamilyLabel(currentFontFamily)
-  const normalizedCurrentFont = normalizeFontFamily(currentFontFamily)
+  const currentFont = getCurrentFontFamilyLabel(editor)
+  const currentTextColor = (editor.getAttributes('textStyle').color as string | undefined) ?? ''
 
   function setLink() {
     const previous = editor.getAttributes('link').href as string | undefined
@@ -79,16 +79,16 @@ export function TextTab({ editor }: { editor: Editor }) {
       </ToolbarGroup>
 
       <ToolbarGroup label="Formátovanie">
-        <ToolbarButton label="Tučné" active={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()}>
+        <ToolbarButton label="Tučné (⌘B)" active={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()}>
           <Bold className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
-        <ToolbarButton label="Kurzíva" active={editor.isActive('italic')} onClick={() => editor.chain().focus().toggleItalic().run()}>
+        <ToolbarButton label="Kurzíva (⌘I)" active={editor.isActive('italic')} onClick={() => editor.chain().focus().toggleItalic().run()}>
           <Italic className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
-        <ToolbarButton label="Podčiarknutie" active={editor.isActive('underline')} onClick={() => editor.chain().focus().toggleUnderline().run()}>
+        <ToolbarButton label="Podčiarknutie (⌘U)" active={editor.isActive('underline')} onClick={() => editor.chain().focus().toggleUnderline().run()}>
           <Underline className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
-        <ToolbarButton label="Prečiarknuté" active={editor.isActive('strike')} onClick={() => editor.chain().focus().toggleStrike().run()}>
+        <ToolbarButton label="Prečiarknuté (⌘⇧X)" active={editor.isActive('strike')} onClick={() => editor.chain().focus().toggleStrike().run()}>
           <Strikethrough className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
         <ToolbarButton label="Horný index" active={editor.isActive('superscript')} onClick={() => editor.chain().focus().toggleSuperscript().run()}>
@@ -97,10 +97,10 @@ export function TextTab({ editor }: { editor: Editor }) {
         <ToolbarButton label="Dolný index" active={editor.isActive('subscript')} onClick={() => editor.chain().focus().toggleSubscript().run()}>
           <Subscript className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
-        <ToolbarButton label="Odkaz" active={editor.isActive('link')} onClick={setLink}>
+        <ToolbarButton label="Odkaz (⌘K)" active={editor.isActive('link')} onClick={setLink}>
           <Link2 className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
-        <ToolbarButton label="Inline kód" active={editor.isActive('code')} onClick={() => editor.chain().focus().toggleCode().run()}>
+        <ToolbarButton label="Inline kód (⌘E)" active={editor.isActive('code')} onClick={() => editor.chain().focus().toggleCode().run()}>
           <Code className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
       </ToolbarGroup>
@@ -125,7 +125,7 @@ export function TextTab({ editor }: { editor: Editor }) {
               <span>Aa</span>
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
+          <DropdownMenuContent align="start" className="max-h-[280px] overflow-y-auto">
             {FONT_SIZES.map((size) => (
               <DropdownMenuItem key={size} onClick={() => editor.chain().focus().setFontSize(size).run()}>
                 {size}
@@ -143,23 +143,8 @@ export function TextTab({ editor }: { editor: Editor }) {
               <span>{currentFont}</span>
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            {FONT_FAMILIES.map(({ label, value }) => (
-              <DropdownMenuItem
-                key={label}
-                className="font-family-option"
-                style={{ fontFamily: value || undefined }}
-                onClick={() => {
-                  if (!value) editor.chain().focus().unsetFontFamily().run()
-                  else editor.chain().focus().setFontFamily(value).run()
-                }}
-              >
-                <span>{label}</span>
-                {normalizeFontFamily(value) === normalizedCurrentFont && (
-                  <span className="font-family-option-check">✓</span>
-                )}
-              </DropdownMenuItem>
-            ))}
+          <DropdownMenuContent align="start" className="min-w-[220px] max-h-[360px] overflow-y-auto">
+            <FontFamilyMenuItems editor={editor} />
           </DropdownMenuContent>
         </DropdownMenu>
       </ToolbarGroup>
@@ -168,14 +153,23 @@ export function TextTab({ editor }: { editor: Editor }) {
         <ToolbarLabel>Text</ToolbarLabel>
         <ColorSwatchGrid
           colors={TEXT_COLORS}
+          activeValue={currentTextColor}
           onPick={(value) => {
             if (!value) editor.chain().focus().unsetColor().run()
             else editor.chain().focus().setColor(value).run()
           }}
         />
+        <CustomColorPicker
+          label="Vlastná"
+          onPick={(value) => editor.chain().focus().setColor(value).run()}
+        />
         <ToolbarLabel>Zvýraznenie</ToolbarLabel>
         <ColorSwatchGrid
           colors={HIGHLIGHT_COLORS}
+          onPick={(value) => editor.chain().focus().toggleHighlight({ color: value }).run()}
+        />
+        <CustomColorPicker
+          label="Vlastná"
           onPick={(value) => editor.chain().focus().toggleHighlight({ color: value }).run()}
         />
         <ToolbarButton label="Odstrániť zvýraznenie" onClick={() => editor.chain().focus().unsetHighlight().run()}>
