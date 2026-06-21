@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="sk">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Scribe</title>
+    <script>
+      ;(function () {
+        var presets = {
+          light: {
+            background: '#ffffff',
+            foreground: '#1d1d1f',
+            mutedForeground: '#86868b',
+            border: 'rgba(0, 0, 0, 0.08)',
+            sidebar: 'rgba(246, 246, 246, 0.72)',
+            sidebarSolid: '#f5f5f7',
+            toolbar: 'rgba(251, 251, 253, 0.82)',
+            selection: 'rgba(0, 122, 255, 0.14)',
+            selectionStrong: '#007aff',
+            hover: 'rgba(0, 0, 0, 0.04)',
+            separator: 'rgba(0, 0, 0, 0.06)',
+            formatBar: 'rgba(255, 255, 255, 0.92)',
+            destructive: '#ff3b30',
+            colorScheme: 'light',
+          },
+          dark: {
+            background: '#1e1e1e',
+            foreground: '#f5f5f7',
+            mutedForeground: '#98989d',
+            border: 'rgba(255, 255, 255, 0.08)',
+            sidebar: 'rgba(40, 40, 40, 0.72)',
+            sidebarSolid: '#2c2c2e',
+            toolbar: 'rgba(30, 30, 30, 0.82)',
+            selection: 'rgba(10, 132, 255, 0.22)',
+            selectionStrong: '#0a84ff',
+            hover: 'rgba(255, 255, 255, 0.06)',
+            separator: 'rgba(255, 255, 255, 0.06)',
+            formatBar: 'rgba(44, 44, 46, 0.92)',
+            destructive: '#ff453a',
+            colorScheme: 'dark',
+          },
+        }
+
+        var root = document.documentElement
+        var themeId = 'system'
+        var customTheme = null
+
+        try {
+          var raw = localStorage.getItem('scribe-theme-v2')
+          if (raw) {
+            var parsed = JSON.parse(raw)
+            themeId = parsed.themeId || 'system'
+            customTheme = parsed.customTheme || null
+          } else {
+            themeId = localStorage.getItem('scribe-theme') || 'system'
+          }
+        } catch (e) {}
+
+        var resolved = themeId
+        if (themeId === 'system') {
+          resolved = window.matchMedia('(prefers-color-scheme: dark)').matches
+            ? 'dark'
+            : 'light'
+        }
+
+        var colors = customTheme
+        if (!colors && presets[resolved]) colors = presets[resolved]
+        if (!colors) colors = presets.light
+
+        var map = {
+          background: '--color-background',
+          foreground: '--color-foreground',
+          mutedForeground: '--color-muted-foreground',
+          border: '--color-border',
+          sidebar: '--color-sidebar',
+          sidebarSolid: '--color-sidebar-solid',
+          toolbar: '--color-toolbar',
+          selection: '--color-selection',
+          selectionStrong: '--color-selection-strong',
+          hover: '--color-hover',
+          separator: '--color-separator',
+          formatBar: '--color-format-bar',
+          destructive: '--color-destructive',
+        }
+
+        for (var key in map) {
+          if (colors[key]) root.style.setProperty(map[key], colors[key])
+        }
+
+        var scheme = colors.colorScheme || (resolved === 'dark' ? 'dark' : 'light')
+        root.dataset.theme = themeId === 'system' ? 'system' : resolved
+        if (scheme === 'dark') root.classList.add('dark')
+        root.style.colorScheme = scheme
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
