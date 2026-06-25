@@ -1,22 +1,23 @@
-import { useAtom, useAtomValue, useSetAtom } from 'jotai'
+import { useAtomValue, useSetAtom } from 'jotai'
+import { lazy, Suspense, useMemo, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import {
   Check,
   ChevronDown,
   Circle,
+  Eye,
   FileDown,
   FileSymlink,
   FolderInput,
-  ListTree,
   Loader2,
   Plus,
   Settings2,
 } from 'lucide-react'
 import { DocumentTitleField } from '@/components/DocumentTitleField'
+import { EditorDocumentToolsMenu } from '@/components/editor/EditorDocumentToolsMenu'
 import { EditorViewModeToggle } from '@/components/editor/EditorViewModeToggle'
-import { MoveToFolderMenu } from '@/components/MoveToFolderMenu'
 import { SidebarToggle } from '@/components/SidebarToggle'
-import { countWords } from '@/lib/utils'
+import { countCharacters, countWords } from '@/lib/utils'
 import { exportDocument, pickAndImportFile, revealInFinder } from '@/lib/db/api'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { tiptapJsonToHtml } from '@/lib/export/html'
@@ -26,7 +27,6 @@ import { ROUTES } from '@/lib/routes'
 import {
   activeDocumentAtom,
   activeDocumentIdAtom,
-  documentOutlineOpenAtom,
   documentsAtom,
   saveStatusAtom,
 } from '@/store/documents'
@@ -39,6 +39,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+
+const PdfPreviewDialog = lazy(() =>
+  import('@/components/export/PdfPreviewDialog').then((module) => ({
+    default: module.PdfPreviewDialog,
+  })),
+)
 
 function SaveStatus() {
   const status = useAtomValue(saveStatusAtom)
@@ -76,14 +82,34 @@ function SaveStatus() {
 export function EditorHeader() {
   const document = useAtomValue(activeDocumentAtom)
   const viewMode = useAtomValue(editorViewModeAtom)
-  const [outlineOpen, setOutlineOpen] = useAtom(documentOutlineOpenAtom)
   const setActiveId = useSetAtom(activeDocumentIdAtom)
   const setActiveDocument = useSetAtom(activeDocumentAtom)
   const setDocuments = useSetAtom(documentsAtom)
   const setSaveStatus = useSetAtom(saveStatusAtom)
   const setTemplatePickerOpen = useSetAtom(templatePickerOpenAtom)
   const navigate = useNavigate()
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false)
   const words = document ? countWords(document.contentJson) : 0
+  const characters = document ? countCharacters(document.contentJson) : 0
+
+  const pdfPreviewPayload = useMemo(() => {
+    if (!document) return null
+    return {
+      title: document.title,
+      html: tiptapJsonToHtml(document.contentJson, document.title),
+      plainText: tiptapToPlainText(document.contentJson),
+      markdown: tiptapJsonToMarkdown(document.contentJson, document.title),
+    }
+  }, [document])
+
+  async function handleExport(format: 'pdf' | 'docx' | 'txt' | 'pages' | 'md') {
+    if (!pdfPreviewPayload) return
+    const { html, plainText, title, markdown } = pdfPreviewPayload
+    const result = await exportDocument(html, plainText, title, format, markdown)
+    if (result?.path) {
+      await revealInFinder(result.path)
+    }
+  }
 
   async function handleImport() {
     const doc = await pickAndImportFile()
@@ -101,28 +127,18 @@ export function EditorHeader() {
     }
   }
 
-  async function handleExport(format: 'pdf' | 'docx' | 'txt' | 'pages' | 'md') {
-    if (!document) return
-    const html = tiptapJsonToHtml(document.contentJson, document.title)
-    const plainText = tiptapToPlainText(document.contentJson)
-    const markdown = tiptapJsonToMarkdown(document.contentJson, document.title)
-    const result = await exportDocument(html, plainText, document.title, format, markdown)
-    if (result?.path) {
-      await revealInFinder(result.path)
-    }
-  }
-
   return (
+    <>
     <header className="editor-header">
       <div className="editor-header-drag titlebar-drag" aria-hidden="true" />
       <div className="editor-header-left titlebar-no-drag">
         <SidebarToggle />
         <Button variant="default" size="sm" onClick={() => setTemplatePickerOpen(true)}>
-          <Plus className="h-3.5 w-3.5" />
+          <Plus className="h-3.5 w-3.5 shrink-0" />
           <span className="editor-header-label">Nový</span>
         </Button>
         <Button variant="outline" size="sm" className="editor-header-import" onClick={() => void handleImport()}>
-          <FolderInput className="h-3.5 w-3.5" />
+          <FolderInput className="h-3.5 w-3.5 shrink-0" />
           <span className="editor-header-label">Import</span>
         </Button>
 
@@ -131,20 +147,24 @@ export function EditorHeader() {
             <span className="editor-header-divider" aria-hidden="true" />
             {document.filePath && (
               <Button variant="ghost" size="sm" onClick={() => void handleRevealFile()}>
-                <FileSymlink className="h-3.5 w-3.5" />
+                <FileSymlink className="h-3.5 w-3.5 shrink-0" />
                 <span className="editor-header-label">Súbor</span>
               </Button>
             )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm">
-                  <FileDown className="h-3.5 w-3.5" />
+                  <FileDown className="h-3.5 w-3.5 shrink-0" />
                   <span className="editor-header-label">Export</span>
-                  <ChevronDown className="h-3 w-3 opacity-60" />
+                  <ChevronDown className="h-3 w-3 shrink-0 opacity-60" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="min-w-[180px]">
-                <DropdownMenuItem onClick={() => void handleExport('pdf')}>PDF</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setPdfPreviewOpen(true)}>
+                  <Eye className="h-3.5 w-3.5 shrink-0" />
+                  Náhľad PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => void handleExport('pdf')}>Exportovať PDF</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => void handleExport('docx')}>Word (DOCX)</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => void handleExport('txt')}>Text (TXT)</DropdownMenuItem>
@@ -158,44 +178,22 @@ export function EditorHeader() {
 
       <div className="editor-header-center titlebar-no-drag">
         {document ? (
-          <DocumentTitleField
-            documentId={document.id}
-            title={document.title}
-            variant="header"
-          />
+          <DocumentTitleField documentId={document.id} title={document.title} variant="header" />
         ) : (
           <p className="editor-header-title">Scribe</p>
         )}
       </div>
 
       <div className="editor-header-right titlebar-no-drag">
-        {document && viewMode === 'rich' && (
-          <Button
-            variant={outlineOpen ? 'default' : 'ghost'}
-            size="icon"
-            title="Štruktúra dokumentu"
-            aria-label="Štruktúra dokumentu"
-            aria-pressed={outlineOpen}
-            onClick={() => setOutlineOpen((open) => !open)}
-          >
-            <ListTree className="h-4 w-4" />
-          </Button>
-        )}
+        {document && <EditorDocumentToolsMenu viewMode={viewMode} />}
         {document && <EditorViewModeToggle />}
         {document && (
-          <MoveToFolderMenu
-            documentId={document.id}
-            folderId={document.folderId}
-            trigger={
-              <Button variant="ghost" size="icon" title="Presunúť do priečinka" aria-label="Presunúť do priečinka">
-                <FolderInput className="h-4 w-4" />
-              </Button>
-            }
-          />
-        )}
-        {document && (
-          <span className="editor-meta">
+          <span className="editor-meta" title={`${characters} znakov`}>
             {words} {words === 1 ? 'slovo' : words < 5 ? 'slová' : 'slov'}
+            <span className="editor-meta-sep" aria-hidden="true">
+              ·
+            </span>
+            {characters} zn.
           </span>
         )}
         {document && <SaveStatus />}
@@ -210,5 +208,19 @@ export function EditorHeader() {
         </Button>
       </div>
     </header>
+
+    {pdfPreviewPayload && (
+      <Suspense fallback={null}>
+        <PdfPreviewDialog
+          open={pdfPreviewOpen}
+          onOpenChange={setPdfPreviewOpen}
+          title={pdfPreviewPayload.title}
+          html={pdfPreviewPayload.html}
+          plainText={pdfPreviewPayload.plainText}
+          onExport={() => void handleExport('pdf')}
+        />
+      </Suspense>
+    )}
+    </>
   )
 }

@@ -20,6 +20,7 @@ import {
 } from '@/lib/library/folders'
 import { buildTree, estimateFlatItemSize, flattenTree } from '@/lib/library/tree'
 import { ROUTES } from '@/lib/routes'
+import { promptInput } from '@/lib/input-dialog'
 import { cn } from '@/lib/utils'
 import {
   activeDocumentAtom,
@@ -71,9 +72,14 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
   }, [setExpandedIds])
 
   const handleCreateFolder = useCallback(async (parentId: string | null) => {
-    const name = window.prompt('Názov priečinka', 'Nový priečinok')
-    if (!name?.trim()) return
-    const folder = await createFolder({ name: name.trim(), parentId })
+    const name = await promptInput({
+      title: 'Nový priečinok',
+      defaultValue: 'Nový priečinok',
+      placeholder: 'Názov priečinka',
+      confirmLabel: 'Vytvoriť',
+    })
+    if (!name) return
+    const folder = await createFolder({ name, parentId })
     if (parentId) {
       setExpandedIds((prev: Set<string>) => new Set(prev).add(parentId))
     }
@@ -81,9 +87,14 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
   }, [setExpandedIds, setFolders])
 
   const handleRenameFolder = useCallback(async (id: string, currentName: string) => {
-    const name = window.prompt('Premenovať priečinok', currentName)
-    if (!name?.trim() || name.trim() === currentName) return
-    const folder = await renameFolder(id, name.trim())
+    const name = await promptInput({
+      title: 'Premenovať priečinok',
+      defaultValue: currentName,
+      placeholder: 'Názov priečinka',
+      confirmLabel: 'Uložiť',
+    })
+    if (!name || name === currentName) return
+    const folder = await renameFolder(id, name)
     setFolders((prev) => prev.map((item) => (item.id === id ? folder : item)))
   }, [setFolders])
 

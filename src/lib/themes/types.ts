@@ -32,6 +32,14 @@ export type ThemePresetId =
   | 'coffee'
   | 'grape'
   | 'slate'
+  | 'cherry'
+  | 'arctic'
+  | 'sandstorm'
+  | 'neon'
+  | 'graphite'
+  | 'peach'
+  | 'cobalt'
+  | 'ember'
   | 'custom'
 
 export interface ThemePreset {

@@ -196,51 +196,14 @@ export function useDocumentAutoSave({
       }
     }
 
-    const onBeforeUnload = () => {
-      if (scheduleSave.pending() || saveInFlightRef.current) {
-        scheduleSave.flush()
-      }
-    }
-
     document.addEventListener('visibilitychange', onVisibilityChange)
-    window.addEventListener('beforeunload', onBeforeUnload)
 
     return () => {
       document.removeEventListener('visibilitychange', onVisibilityChange)
-      window.removeEventListener('beforeunload', onBeforeUnload)
       scheduleSave.cancel()
       void flushSave()
     }
   }, [flushSave, scheduleSave])
-
-  useEffect(() => {
-    let unlisten: (() => void) | undefined
-    let disposed = false
-
-    void import('@tauri-apps/api/window').then(({ getCurrentWindow }) => {
-      if (disposed) return
-
-      void getCurrentWindow()
-        .onCloseRequested((event) => {
-          event.preventDefault()
-          void flushSave().finally(() => {
-            void getCurrentWindow().destroy()
-          })
-        })
-        .then((cleanup) => {
-          if (disposed) {
-            cleanup()
-            return
-          }
-          unlisten = cleanup
-        })
-    })
-
-    return () => {
-      disposed = true
-      unlisten?.()
-    }
-  }, [flushSave])
 
   return {
     queueSave,

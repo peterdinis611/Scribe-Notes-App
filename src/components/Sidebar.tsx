@@ -4,7 +4,9 @@ import { useCallback, useRef, useState } from 'react'
 import { Link, useRouterState } from '@tanstack/react-router'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { FolderTree } from '@/components/FolderTree'
+import { SidebarSearchResults } from '@/components/SidebarSearchResults'
 import { createFolder } from '@/lib/db/api'
+import { promptInput } from '@/lib/input-dialog'
 import { cn } from '@/lib/utils'
 import { commandPaletteOpenAtom, expandedFolderIdsAtom, foldersAtom } from '@/store/folders'
 
@@ -23,18 +25,25 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
   const pathname = useRouterState({ select: (state) => state.location.pathname })
   const onSettingsPage = pathname.startsWith('/settings')
   const onEditorPage = pathname === '/' || pathname.startsWith('/doc/')
+  const isContentSearch = query.trim().length >= 2
 
   const handleCreateFolder = useCallback(async () => {
-    const name = window.prompt('Názov priečinka', 'Nový priečinok')
-    if (!name?.trim()) return
-    const folder = await createFolder({ name: name.trim() })
+    const name = await promptInput({
+      title: 'Nový priečinok',
+      defaultValue: 'Nový priečinok',
+      placeholder: 'Názov priečinka',
+      confirmLabel: 'Vytvoriť',
+    })
+    if (!name) return
+    const folder = await createFolder({ name })
     setFolders((prev) => [...prev, folder])
     setExpandedIds((prev: Set<string>) => new Set(prev).add(folder.id))
   }, [setExpandedIds, setFolders])
 
   return (
     <aside className={cn('app-sidebar', isCompact && 'app-sidebar--drawer', isCompact && isOpen && 'is-open')}>
-      <div className="sidebar-brand titlebar-drag">
+      <div className="sidebar-brand">
+        <div className="sidebar-brand-drag titlebar-drag" aria-hidden="true" />
         <div className="titlebar-no-drag">
           <p className="sidebar-brand-name">Scribe</p>
           <p className="sidebar-brand-tagline">Textový editor</p>
@@ -66,7 +75,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
           <input
             type="search"
             className="sidebar-search-input"
-            placeholder="Filtrovať dokumenty…"
+            placeholder="Hľadať v dokumentoch…"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
@@ -82,24 +91,30 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
         </div>
       </div>
 
-      <div className="sidebar-library-header titlebar-no-drag">
-        <h2 className="sidebar-library-title">Knižnica</h2>
-        <button
-          type="button"
-          className="sidebar-library-action"
-          onClick={() => void handleCreateFolder()}
-          title="Nový priečinok"
-          aria-label="Nový priečinok"
-        >
-          <FolderPlus className="h-4 w-4" />
-        </button>
-      </div>
+      <SidebarSearchResults query={query} onNavigate={onClose} />
 
-      <ScrollArea className="sidebar-list flex-1" viewportRef={scrollRef}>
-        <div className="sidebar-list-inner">
-          <FolderTree query={query} scrollRef={scrollRef} onNavigate={onClose} />
-        </div>
-      </ScrollArea>
+      {!isContentSearch && (
+        <>
+          <div className="sidebar-library-header titlebar-no-drag">
+            <h2 className="sidebar-library-title">Knižnica</h2>
+            <button
+              type="button"
+              className="sidebar-library-action"
+              onClick={() => void handleCreateFolder()}
+              title="Nový priečinok"
+              aria-label="Nový priečinok"
+            >
+              <FolderPlus className="h-4 w-4" />
+            </button>
+          </div>
+
+          <ScrollArea className="sidebar-list flex-1" viewportRef={scrollRef}>
+            <div className="sidebar-list-inner">
+              <FolderTree query={query} scrollRef={scrollRef} onNavigate={onClose} />
+            </div>
+          </ScrollArea>
+        </>
+      )}
     </aside>
   )
 }

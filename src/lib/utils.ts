@@ -124,6 +124,14 @@ export function extractTitleFromContent(contentJson: string): string {
 }
 
 export function countWords(contentJson: string): number {
+  return countTextUnits(contentJson, 'words')
+}
+
+export function countCharacters(contentJson: string): number {
+  return countTextUnits(contentJson, 'characters')
+}
+
+function countTextUnits(contentJson: string, mode: 'words' | 'characters'): number {
   try {
     const doc = JSON.parse(contentJson) as {
       content?: Array<{ content?: Array<{ text?: string }> }>
@@ -144,6 +152,7 @@ export function countWords(contentJson: string): number {
 
     const text = texts.join(' ').trim()
     if (!text) return 0
+    if (mode === 'characters') return text.replace(/\s+/g, '').length
     return text.split(/\s+/).filter(Boolean).length
   } catch {
     return 0

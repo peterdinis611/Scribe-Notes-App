@@ -8,6 +8,8 @@ use storage::DiskPersistQueue;
 use tauri::Manager;
 
 #[cfg(target_os = "macos")]
+use tauri::menu::{MenuBuilder, SubmenuBuilder};
+#[cfg(target_os = "macos")]
 use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -35,6 +37,17 @@ pub fn run() {
                 conn: std::sync::Mutex::new(conn),
                 persist_queue,
             });
+
+            #[cfg(target_os = "macos")]
+            {
+                let app_menu = SubmenuBuilder::new(app, "Scribe")
+                    .about(None)
+                    .separator()
+                    .quit()
+                    .build()?;
+                let menu = MenuBuilder::new(app).item(&app_menu).build()?;
+                app.set_menu(menu)?;
+            }
 
             #[cfg(target_os = "macos")]
             if let Some(window) = app.get_webview_window("main") {
@@ -71,6 +84,7 @@ pub fn run() {
             commands::import_export::pick_and_import_file,
             commands::import_export::import_file,
             commands::import_export::export_document,
+            commands::import_export::preview_pdf_export,
             commands::import_export::scan_scribe_files,
             commands::import_export::force_save_document,
             commands::images::save_document_image,

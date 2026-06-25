@@ -10,7 +10,8 @@ export function SettingsLayout() {
 
   return (
     <div className="settings-page">
-      <header className="settings-page-header titlebar-drag">
+      <header className="settings-page-header">
+        <div className="settings-page-header-drag titlebar-drag" aria-hidden="true" />
         <div className="settings-page-header-row titlebar-no-drag">
           <SidebarToggle />
           <div>

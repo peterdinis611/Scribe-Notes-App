@@ -303,6 +303,26 @@ pub async fn export_document(
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct PdfPreviewResult {
+    pub data_base64: String,
+}
+
+#[tauri::command]
+pub fn preview_pdf_export(input: ExportHtmlInput) -> Result<PdfPreviewResult, String> {
+    let temp_dir = std::env::temp_dir().join(format!("scribe-pdf-preview-{}", Uuid::new_v4()));
+    std::fs::create_dir_all(&temp_dir).map_err(|e| e.to_string())?;
+    let output = temp_dir.join("preview.pdf");
+    export::export_html_to_pdf(&input.html, &output)?;
+    let bytes = std::fs::read(&output).map_err(|e| e.to_string())?;
+    let _ = std::fs::remove_dir_all(&temp_dir);
+    use base64::{engine::general_purpose::STANDARD, Engine as _};
+    Ok(PdfPreviewResult {
+        data_base64: STANDARD.encode(bytes),
+    })
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ScanScribeResult {
     pub scanned_count: u32,
     pub imported_count: u32,

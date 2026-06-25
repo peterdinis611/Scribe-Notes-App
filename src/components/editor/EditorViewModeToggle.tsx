@@ -21,7 +21,7 @@ export function EditorViewModeToggle({ className }: { className?: string }) {
         aria-pressed={!isMarkdown}
       >
         <Type className="h-3.5 w-3.5" />
-        <span className="editor-header-label">Rich text</span>
+        <span className="editor-header-label">Formátovaný text</span>
       </Button>
       <Button
         type="button"

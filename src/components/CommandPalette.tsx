@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { useNavigate } from '@tanstack/react-router'
 import {
+  Copy,
   FileText,
   FolderInput,
   FolderPlus,
@@ -10,11 +11,13 @@ import {
   Search,
   Settings2,
 } from 'lucide-react'
-import { searchDocuments, createFolder } from '@/lib/db/api'
+import { createDocument, createFolder, getDocument, searchDocuments } from '@/lib/db/api'
 import type { SearchHit } from '@/lib/db/api'
+import { promptInput } from '@/lib/input-dialog'
+import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
 import { cn, debounce } from '@/lib/utils'
-import { activeDocumentIdAtom, documentsAtom } from '@/store/documents'
+import { activeDocumentAtom, activeDocumentIdAtom, documentsAtom } from '@/store/documents'
 import { commandPaletteOpenAtom, moveDocumentPickerOpenAtom } from '@/store/folders'
 import { templatePickerOpenAtom } from '@/store/settings'
 import { cycleThemeId } from '@/lib/themes/apply'
@@ -32,6 +35,8 @@ export function CommandPalette() {
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
   const setActiveId = useSetAtom(activeDocumentIdAtom)
+  const setActiveDocument = useSetAtom(activeDocumentAtom)
+  const setDocuments = useSetAtom(documentsAtom)
   const setMovePickerOpen = useSetAtom(moveDocumentPickerOpenAtom)
   const activeDocumentId = useAtomValue(activeDocumentIdAtom)
   const documents = useAtomValue(documentsAtom)
@@ -56,6 +61,27 @@ export function CommandPalette() {
       },
       ...(activeDocument
         ? [
+            {
+              type: 'action' as const,
+              id: 'duplicate',
+              label: 'Duplikovať dokument',
+              hint: activeDocument.title,
+              icon: <Copy className="h-4 w-4" />,
+              run: () => {
+                void (async () => {
+                  const source = await getDocument(activeDocument.id)
+                  const copy = await createDocument({
+                    title: `${source.title} (kópia)`,
+                    folderId: source.folderId,
+                    contentJson: source.contentJson,
+                  })
+                  setDocuments((prev) => prependDocumentSummary(prev, copy))
+                  setActiveId(copy.id)
+                  setActiveDocument(copy)
+                  navigate(ROUTES.document(copy.id))
+                })()
+              },
+            },
             {
               type: 'action' as const,
               id: 'move-folder',
@@ -95,14 +121,19 @@ export function CommandPalette() {
         icon: <FolderPlus className="h-4 w-4" />,
         run: () => {
           void (async () => {
-            const name = window.prompt('Názov priečinka', 'Nový priečinok')
-            if (!name?.trim()) return
-            await createFolder({ name: name.trim() })
+            const name = await promptInput({
+              title: 'Nový priečinok',
+              defaultValue: 'Nový priečinok',
+              placeholder: 'Názov priečinka',
+              confirmLabel: 'Vytvoriť',
+            })
+            if (!name) return
+            await createFolder({ name })
           })()
         },
       },
     ],
-    [activeDocument, applyTheme, navigate, setMovePickerOpen, setOpen, setTemplatePickerOpen, themeSettings],
+    [activeDocument, applyTheme, navigate, setActiveDocument, setActiveId, setDocuments, setMovePickerOpen, setOpen, setTemplatePickerOpen, themeSettings],
   )
 
   const documentItems: PaletteItem[] = useMemo(

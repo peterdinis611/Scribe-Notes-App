@@ -28,6 +28,7 @@ export default defineConfig({
             { name: 'tiptap', test: /\/node_modules\/@tiptap\// },
             { name: 'prosemirror', test: /\/node_modules\/prosemirror-/ },
             { name: 'highlight', test: /\/node_modules\/(highlight\.js|lowlight)\// },
+            { name: 'embedpdf', test: /\/node_modules\/@embedpdf\// },
           ],
         },
       },

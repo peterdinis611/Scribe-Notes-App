@@ -1,7 +1,5 @@
-import { useEffect, useState } from 'react'
 import type { Editor } from '@tiptap/react'
 import { useEditorState } from '@tiptap/react'
-import { useAtomValue, useSetAtom } from 'jotai'
 import {
   AlignCenter,
   AlignJustify,
@@ -65,10 +63,8 @@ import {
   insertInlineMath,
   insertYoutubeVideo,
 } from '@/lib/editor/insert-helpers'
-import { listDocumentRevisions, restoreDocumentRevision, type DocumentRevision } from '@/lib/db/api'
-import { cacheDocument } from '@/lib/cache/document-cache'
-import { cn, formatRelativeTime } from '@/lib/utils'
-import { activeDocumentAtom, activeDocumentIdAtom, documentsAtom } from '@/store/documents'
+import { promptInput } from '@/lib/input-dialog'
+import { cn } from '@/lib/utils'
 
 type ToolbarRibbonProps = {
   editor: Editor
@@ -90,11 +86,6 @@ function ToolbarSep() {
 }
 
 export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
-  const activeId = useAtomValue(activeDocumentIdAtom)
-  const setActiveDocument = useSetAtom(activeDocumentAtom)
-  const setDocuments = useSetAtom(documentsAtom)
-  const [revisions, setRevisions] = useState<DocumentRevision[]>([])
-
   const state = useEditorState({
     editor,
     selector: ({ editor: currentEditor }) => ({
@@ -113,23 +104,23 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
 
   const currentFont = getCurrentFontFamilyLabel(editor)
 
-  useEffect(() => {
-    if (!activeId) {
-      setRevisions([])
-      return
-    }
-    void listDocumentRevisions(activeId, 15).then(setRevisions).catch(() => setRevisions([]))
-  }, [activeId])
-
   function setLink() {
-    const previous = editor.getAttributes('link').href as string | undefined
-    const url = window.prompt('URL odkazu', previous ?? 'https://')
-    if (url === null) return
-    if (url === '') {
-      editor.chain().focus().extendMarkRange('link').unsetLink().run()
-      return
-    }
-    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
+    void (async () => {
+      const previous = editor.getAttributes('link').href as string | undefined
+      const url = await promptInput({
+        title: 'Odkaz',
+        description: 'Zadajte URL adresu odkazu.',
+        defaultValue: previous ?? 'https://',
+        placeholder: 'https://',
+        confirmLabel: 'Použiť',
+      })
+      if (url === null) return
+      if (url === '') {
+        editor.chain().focus().extendMarkRange('link').unsetLink().run()
+        return
+      }
+      editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
+    })()
   }
 
   function setCodeLanguage(language: string) {
@@ -148,28 +139,6 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
   async function handlePickImage() {
     const files = await pickImageFiles()
     if (files.length) await onInsertImages(files)
-  }
-
-  async function handleRestoreRevision(revisionId: string) {
-    const restored = cacheDocument(await restoreDocumentRevision(revisionId))
-    setActiveDocument(restored)
-    setDocuments((prev) =>
-      prev.map((item) =>
-        item.id === restored.id
-          ? {
-              ...item,
-              title: restored.title,
-              filePath: restored.filePath,
-              updatedAt: restored.updatedAt,
-            }
-          : item,
-      ),
-    )
-    editor.commands.setContent(JSON.parse(restored.contentJson), { emitUpdate: false })
-    if (activeId) {
-      const next = await listDocumentRevisions(activeId, 15)
-      setRevisions(next)
-    }
   }
 
   return (
@@ -424,17 +393,6 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
               >
                 Vyčistiť celý dokument
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              {revisions.length === 0 ? (
-                <DropdownMenuItem disabled>Žiadne uložené verzie</DropdownMenuItem>
-              ) : (
-                revisions.map((revision) => (
-                  <DropdownMenuItem key={revision.id} onClick={() => void handleRestoreRevision(revision.id)}>
-                    <span className="revision-menu-title">{revision.title}</span>
-                    <span className="revision-menu-time">{formatRelativeTime(revision.createdAt)}</span>
-                  </DropdownMenuItem>
-                ))
-              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </ToolbarCluster>

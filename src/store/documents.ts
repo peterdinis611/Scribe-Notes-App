@@ -28,6 +28,8 @@ export const activeDocumentAtom = atom<Document | null>(null)
 export const saveStatusAtom = atom<SaveStatus>('idle')
 export const sidebarOpenAtom = atom(true)
 export const documentOutlineOpenAtom = atomWithStorage('scribe-document-outline-open', false)
+export const revisionHistoryOpenAtom = atomWithStorage('scribe-revision-history-open', false)
+export const focusModeAtom = atomWithStorage('scribe-focus-mode', false)
 export const manualTitleDocumentIdsAtom = atom<Set<string>>(readManualTitleIds())
 
 export const markDocumentTitleManualAtom = atom(null, (get, set, id: string) => {

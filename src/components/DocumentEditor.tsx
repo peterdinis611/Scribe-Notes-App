@@ -3,6 +3,7 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import type { Editor } from '@tiptap/react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { DocumentOutlinePanel } from '@/components/editor/DocumentOutlinePanel'
+import { RevisionHistoryPanel } from '@/components/editor/RevisionHistoryPanel'
 import { EditorToolbar } from '@/components/editor-toolbar/EditorToolbar'
 import { EditorMenus } from '@/components/editor/EditorMenus'
 import { EditorDropZone } from '@/components/editor/EditorDropOverlay'
@@ -26,7 +27,9 @@ import {
   activeDocumentIdAtom,
   documentOutlineOpenAtom,
   documentsAtom,
+  focusModeAtom,
   manualTitleDocumentIdsAtom,
+  revisionHistoryOpenAtom,
   saveStatusAtom,
 } from '@/store/documents'
 import {
@@ -45,7 +48,10 @@ export function DocumentEditor() {
   const persistViewMode = useSetAtom(setEditorViewModeAtom)
   const setEditorModeActions = useSetAtom(editorModeActionsAtom)
   const outlineOpen = useAtomValue(documentOutlineOpenAtom)
+  const historyOpen = useAtomValue(revisionHistoryOpenAtom)
+  const focusMode = useAtomValue(focusModeAtom)
   const setOutlineOpen = useSetAtom(documentOutlineOpenAtom)
+  const setHistoryOpen = useSetAtom(revisionHistoryOpenAtom)
   const [markdownDraft, setMarkdownDraft] = useState('')
   const activeDocumentRef = useRef(activeDocument)
   const manualTitleIdsRef = useRef(manualTitleIds)
@@ -191,12 +197,17 @@ export function DocumentEditor() {
   const isMarkdown = viewMode === 'markdown'
 
   return (
-    <div className={cn('editor-shell', isMarkdown && 'editor-shell--markdown')}>
+    <div className={cn('editor-shell', isMarkdown && 'editor-shell--markdown', focusMode && 'editor-shell--focus')}>
       <EditorHeader />
-      {!isMarkdown && <EditorToolbar editor={editor} onInsertImages={handleInsertImages} />}
+      {!isMarkdown && !focusMode && <EditorToolbar editor={editor} onInsertImages={handleInsertImages} />}
       {!isMarkdown && <EditorMenus editor={editor} onInsertImages={handleInsertImages} pageCount={pageCount} canvasRef={canvasRef} />}
 
-      <div className={cn('editor-body', outlineOpen && !isMarkdown && 'editor-body--with-outline')}>
+      <div
+        className={cn(
+          'editor-body',
+          (outlineOpen || historyOpen) && !isMarkdown && 'editor-body--with-outline',
+        )}
+      >
         <EditorDropZone className="editor-scroll" ref={scrollRef}>
         <div
           ref={canvasRef}
@@ -248,9 +259,12 @@ export function DocumentEditor() {
         {!isMarkdown && outlineOpen && (
           <DocumentOutlinePanel editor={editor} onClose={() => setOutlineOpen(false)} />
         )}
+        {!isMarkdown && historyOpen && (
+          <RevisionHistoryPanel onClose={() => setHistoryOpen(false)} />
+        )}
       </div>
 
-      {!isMarkdown && (
+      {!isMarkdown && !focusMode && (
         <EditorPagination
           currentPage={currentPage}
           pageCount={pageCount}

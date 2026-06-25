@@ -123,6 +123,11 @@ export const exportDocument = (
     },
   })
 
+export const previewPdfExport = (html: string, plainText: string, title: string) =>
+  invoke<{ dataBase64: string }>('preview_pdf_export', {
+    input: { html, plainText, title, format: 'pdf' },
+  })
+
 export const listFolders = () => invoke<Folder[]>('list_folders')
 
 export const createFolder = (input: { name: string; parentId?: string | null }) =>

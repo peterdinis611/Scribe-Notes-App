@@ -43,7 +43,7 @@ export function EditorBlockBubbleMenu({ editor, pageCount, canvasRef }: EditorBl
         <>
           <button
             type="button"
-            className="editor-bubble-btn editor-bubble-btn--neutral"
+            className="editor-bubble-icon-btn"
             disabled={!canMoveBlockUp(editor)}
             onClick={() => moveBlockUp(editor)}
             title="Presunúť vyššie"
@@ -52,7 +52,7 @@ export function EditorBlockBubbleMenu({ editor, pageCount, canvasRef }: EditorBl
           </button>
           <button
             type="button"
-            className="editor-bubble-btn editor-bubble-btn--neutral"
+            className="editor-bubble-icon-btn"
             disabled={!canMoveBlockDown(editor)}
             onClick={() => moveBlockDown(editor)}
             title="Presunúť nižšie"

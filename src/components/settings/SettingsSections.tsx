@@ -12,6 +12,7 @@ import {
   clearAllDocuments,
   getStorageSettings,
   pickDocumentsDirectory,
+  reconcileStorage,
   revealInFinder,
 } from '@/lib/db/api'
 import type { SettingsSection } from '@/lib/routes'
@@ -125,6 +126,8 @@ export function StorageSection() {
   const setActiveDocument = useSetAtom(activeDocumentAtom)
   const setSaveStatus = useSetAtom(saveStatusAtom)
   const [clearing, setClearing] = useState(false)
+  const [reconciling, setReconciling] = useState(false)
+  const [reconcileMessage, setReconcileMessage] = useState<string | null>(null)
 
   useEffect(() => {
     getStorageSettings()
@@ -140,6 +143,21 @@ export function StorageSection() {
   async function handleRevealFolder() {
     if (settings?.documentsDir) {
       await revealInFinder(settings.documentsDir)
+    }
+  }
+
+  async function handleReconcile() {
+    setReconciling(true)
+    setReconcileMessage(null)
+    try {
+      const result = await reconcileStorage()
+      setReconcileMessage(
+        `Synchronizované: ${result.syncedToDiskCount} na disk, ${result.updatedFromDiskCount} z disku, ${result.importedCount} nových.`,
+      )
+    } catch {
+      setReconcileMessage('Synchronizácia zlyhala.')
+    } finally {
+      setReconciling(false)
     }
   }
 
@@ -187,7 +205,11 @@ export function StorageSection() {
             <Button variant="ghost" size="sm" onClick={() => void handleRevealFolder()} disabled={!settings}>
               Otvoriť vo Finderi
             </Button>
+            <Button variant="ghost" size="sm" disabled={reconciling} onClick={() => void handleReconcile()}>
+              {reconciling ? 'Synchronizujem…' : 'Synchronizovať s diskom'}
+            </Button>
           </div>
+          {reconcileMessage && <p className="settings-storage-note">{reconcileMessage}</p>}
         </div>
       </section>
 

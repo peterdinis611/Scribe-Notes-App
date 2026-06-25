@@ -12,10 +12,12 @@ import { createDocument } from '@/lib/db/api'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
 import type { DocumentTemplate } from '@/lib/templates'
+import { InputDialogHost } from '@/components/InputDialogHost'
 import {
   activeDocumentAtom,
   activeDocumentIdAtom,
   documentsAtom,
+  focusModeAtom,
 } from '@/store/documents'
 import { templatePickerOpenAtom } from '@/store/settings'
 import { moveDocumentPickerOpenAtom } from '@/store/folders'
@@ -51,6 +53,7 @@ export function AppLayout() {
   const setActiveDocument = useSetAtom(activeDocumentAtom)
 
   const navigate = useNavigate()
+  const focusMode = useAtomValue(focusModeAtom)
   const mainRef = useRef<HTMLElement>(null)
   const layoutTier = useLayoutTier(mainRef)
   const { isCompact, sidebarOpen, setSidebarOpen } = useResponsiveSidebar()
@@ -71,16 +74,21 @@ export function AppLayout() {
       className="app-shell flex h-full min-w-0 overflow-hidden bg-[var(--color-background)]"
       data-layout-tier={layoutTier}
       data-sidebar-drawer={isCompact ? 'true' : 'false'}
+      data-focus-mode={focusMode ? 'true' : 'false'}
     >
-      {isCompact && sidebarOpen && (
-        <button
-          type="button"
-          className="sidebar-backdrop titlebar-no-drag"
-          aria-label="Zavrieť knižnicu"
-          onClick={() => setSidebarOpen(false)}
-        />
+      {!focusMode && (
+        <>
+          {isCompact && sidebarOpen && (
+            <button
+              type="button"
+              className="sidebar-backdrop titlebar-no-drag"
+              aria-label="Zavrieť knižnicu"
+              onClick={() => setSidebarOpen(false)}
+            />
+          )}
+          <Sidebar isCompact={isCompact} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        </>
       )}
-      <Sidebar isCompact={isCompact} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <main ref={mainRef} className="app-main relative flex min-w-0 flex-1 flex-col overflow-hidden">
         <Outlet />
       </main>
@@ -96,6 +104,7 @@ export function AppLayout() {
         folderId={activeDocument?.folderId ?? null}
         onOpenChange={setMovePickerOpen}
       />
+      <InputDialogHost />
     </div>
   )
 }
