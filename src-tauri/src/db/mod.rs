@@ -17,7 +17,6 @@ use crate::storage::DiskPersistQueue;
 
 pub struct DbState {
     pub conn: Mutex<Connection>,
-    pub db_path: PathBuf,
     pub persist_queue: DiskPersistQueue,
 }
 

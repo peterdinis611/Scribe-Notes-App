@@ -10,7 +10,7 @@ import {
   Search,
   Settings2,
 } from 'lucide-react'
-import { searchDocuments } from '@/lib/db/api'
+import { searchDocuments, createFolder } from '@/lib/db/api'
 import type { SearchHit } from '@/lib/db/api'
 import { ROUTES } from '@/lib/routes'
 import { cn, debounce } from '@/lib/utils'
@@ -95,11 +95,9 @@ export function CommandPalette() {
         icon: <FolderPlus className="h-4 w-4" />,
         run: () => {
           void (async () => {
-            const { createFolder, listFolders } = await import('@/lib/db/api')
             const name = window.prompt('Názov priečinka', 'Nový priečinok')
             if (!name?.trim()) return
             await createFolder({ name: name.trim() })
-            await listFolders()
           })()
         },
       },

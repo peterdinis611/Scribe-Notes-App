@@ -33,7 +33,6 @@ pub fn run() {
             let persist_queue = DiskPersistQueue::spawn(db_path.clone());
             app.manage(DbState {
                 conn: std::sync::Mutex::new(conn),
-                db_path,
                 persist_queue,
             });
 

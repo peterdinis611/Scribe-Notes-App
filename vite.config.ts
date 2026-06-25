@@ -20,5 +20,17 @@ export default defineConfig({
     target: 'es2021',
     minify: !process.env.TAURI_DEBUG ? 'esbuild' : false,
     sourcemap: !!process.env.TAURI_DEBUG,
+    chunkSizeWarningLimit: 1200,
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            { name: 'tiptap', test: /\/node_modules\/@tiptap\// },
+            { name: 'prosemirror', test: /\/node_modules\/prosemirror-/ },
+            { name: 'highlight', test: /\/node_modules\/(highlight\.js|lowlight)\// },
+          ],
+        },
+      },
+    },
   },
 })

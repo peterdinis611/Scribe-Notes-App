@@ -2,13 +2,13 @@ import { NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
 import Image from '@tiptap/extension-image'
 import type { NodeViewProps } from '@tiptap/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { AlignCenter, AlignLeft, AlignRight, GripVertical, ImageIcon } from 'lucide-react'
+import { AlignCenter, AlignLeft, AlignRight, ImageIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { resolveImageSrc } from '@/lib/editor/image-utils'
 
 export const ResizableImage = Image.extend({
   name: 'image',
-  draggable: true,
+  draggable: false,
   selectable: true,
   group: 'block',
   inline: false,
@@ -104,16 +104,6 @@ function ImageNodeView({ node, updateAttributes, selected, editor }: NodeViewPro
       data-align={align}
     >
       <div className="image-block-inner">
-        <button
-          type="button"
-          className="image-drag-handle"
-          contentEditable={false}
-          data-drag-handle
-          title="Presunúť obrázok"
-        >
-          <GripVertical className="h-3.5 w-3.5" />
-        </button>
-
         {selected && (
           <div className="image-align-bar" contentEditable={false}>
             <button

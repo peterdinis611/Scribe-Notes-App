@@ -2,7 +2,6 @@ import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { useHotkeys } from '@tanstack/react-hotkeys'
 import { useNavigate } from '@tanstack/react-router'
 import {
-  forceSaveDocument,
   pickAndImportFile,
 } from '@/lib/db/api'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
@@ -19,6 +18,7 @@ import {
   activeDocumentAtom,
   activeDocumentIdAtom,
   documentsAtom,
+  flushAutoSaveAtom,
   saveStatusAtom,
 } from '@/store/documents'
 
@@ -38,6 +38,7 @@ export function useKeyboardShortcuts() {
   const setDocuments = useSetAtom(documentsAtom)
   const setSaveStatus = useSetAtom(saveStatusAtom)
   const setCommandPaletteOpen = useSetAtom(commandPaletteOpenAtom)
+  const flushAutoSave = useAtomValue(flushAutoSaveAtom)
 
   useHotkeys(
     [
@@ -59,29 +60,15 @@ export function useKeyboardShortcuts() {
         hotkey: 'Mod+S',
         callback: async () => {
           if (!activeId || !activeDocument) return
+          if (!flushAutoSave) return
           try {
-            setSaveStatus('saving')
-            const saved = await forceSaveDocument(activeId)
-            setActiveDocument(saved)
-            setDocuments((prev) =>
-              prev.map((item) =>
-                item.id === saved.id
-                  ? {
-                      ...item,
-                      title: saved.title,
-                      filePath: saved.filePath,
-                      updatedAt: saved.updatedAt,
-                    }
-                  : item,
-              ),
-            )
-            setSaveStatus('saved')
+            await flushAutoSave()
           } catch {
             setSaveStatus('error')
           }
         },
         options: {
-          meta: { name: 'Uložiť', description: 'Uloží dokument na disk' },
+          meta: { name: 'Uložiť', description: 'Okamžite uloží aktuálny obsah dokumentu' },
         },
       },
       {

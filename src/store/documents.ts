@@ -2,7 +2,9 @@ import { atom } from 'jotai'
 import { atomWithStorage } from 'jotai/utils'
 import type { Document, DocumentSummary } from '@/lib/db/api'
 
-export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
+export type SaveStatus = 'idle' | 'dirty' | 'saving' | 'saved' | 'error'
+
+export const flushAutoSaveAtom = atom<(() => Promise<void>) | null>(null)
 
 const MANUAL_TITLES_KEY = 'scribe-manual-titles'
 

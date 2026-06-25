@@ -9,20 +9,17 @@ import { EditorDropZone } from '@/components/editor/EditorDropOverlay'
 import { MarkdownSourceEditor } from '@/components/editor/MarkdownSourceEditor'
 import { EditorHeader } from '@/components/TopBar'
 import { EditorPagination } from '@/components/EditorPagination'
+import { useDocumentAutoSave } from '@/hooks/useDocumentAutoSave'
 import { useDocumentPagination } from '@/hooks/useDocumentPagination'
 import { useEditorHotkeys } from '@/hooks/useEditorHotkeys'
 import {
-  cacheDocument,
   getCachedContentHash,
   getCachedParsedContent,
-  hashContent,
 } from '@/lib/cache/document-cache'
 import { EDITOR_PAGE } from '@/lib/editor/page-layout'
 import { getEditorExtensions } from '@/lib/editor/extensions'
 import { getEditorMarkdown } from '@/lib/editor/markdown-content'
 import { insertImagesFromFiles } from '@/lib/editor/image-utils'
-import { updateDocument } from '@/lib/db/api'
-import { debounce, extractTitleFromContent } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import {
   activeDocumentAtom,
@@ -50,16 +47,18 @@ export function DocumentEditor() {
   const outlineOpen = useAtomValue(documentOutlineOpenAtom)
   const setOutlineOpen = useSetAtom(documentOutlineOpenAtom)
   const [markdownDraft, setMarkdownDraft] = useState('')
-  const latestDocIdRef = useRef<string | null>(null)
   const activeDocumentRef = useRef(activeDocument)
   const manualTitleIdsRef = useRef(manualTitleIds)
   const editorRef = useRef<Editor | null>(null)
-  const editorContentHashRef = useRef<string | null>(null)
-  const lastPersistedHashRef = useRef<string | null>(null)
   const markdownDraftRef = useRef('')
+  const queueSaveRef = useRef<(docId: string) => void>(() => {})
+  const activeIdRef = useRef(activeId)
+  const viewModeRef = useRef(viewMode)
 
   activeDocumentRef.current = activeDocument
   manualTitleIdsRef.current = manualTitleIds
+  activeIdRef.current = activeId
+  viewModeRef.current = viewMode
 
   const initialContent = useMemo(() => {
     if (!activeDocument) return undefined
@@ -87,88 +86,6 @@ export function DocumentEditor() {
     [],
   )
 
-  const persistDocument = useMemo(
-    () =>
-      debounce(async (docId: string, contentJson: string, contentHash: string) => {
-        if (latestDocIdRef.current !== docId) return
-        if (contentHash === lastPersistedHashRef.current) return
-
-        const title = manualTitleIdsRef.current.has(docId)
-          ? activeDocumentRef.current?.title ?? extractTitleFromContent(contentJson)
-          : extractTitleFromContent(contentJson)
-
-        try {
-          setSaveStatus('saving')
-          const updated = cacheDocument(
-            await updateDocument({
-              id: docId,
-              title,
-              contentJson,
-            }),
-          )
-
-          if (latestDocIdRef.current !== docId) return
-
-          lastPersistedHashRef.current = contentHash
-          editorContentHashRef.current = contentHash
-          setActiveDocument(updated)
-          setDocuments((prev) =>
-            prev.map((item) =>
-              item.id === updated.id
-                ? {
-                    ...item,
-                    title: updated.title,
-                    filePath: updated.filePath,
-                    updatedAt: updated.updatedAt,
-                  }
-                : item,
-            ),
-          )
-          setSaveStatus('saved')
-        } catch {
-          setSaveStatus('error')
-        }
-      }, 700),
-    [setActiveDocument, setDocuments, setSaveStatus],
-  )
-
-  const queueSaveFromJson = useMemo(
-    () =>
-      debounce((docId: string, contentJson: string) => {
-        if (latestDocIdRef.current !== docId) return
-        const contentHash = hashContent(contentJson)
-        if (contentHash === lastPersistedHashRef.current) return
-        editorContentHashRef.current = contentHash
-        void persistDocument(docId, contentJson, contentHash)
-      }, 450),
-    [persistDocument],
-  )
-
-  const queueSave = useMemo(
-    () =>
-      debounce((docId: string) => {
-        const currentEditor = editorRef.current
-        if (!currentEditor || latestDocIdRef.current !== docId) return
-
-        const contentJson = JSON.stringify(currentEditor.getJSON())
-        queueSaveFromJson(docId, contentJson)
-      }, 450),
-    [queueSaveFromJson],
-  )
-
-  const queueMarkdownSave = useMemo(
-    () =>
-      debounce((docId: string, markdown: string) => {
-        const currentEditor = editorRef.current
-        if (!currentEditor || latestDocIdRef.current !== docId) return
-
-        currentEditor.commands.setContent(markdown, { contentType: 'markdown', emitUpdate: false })
-        const contentJson = JSON.stringify(currentEditor.getJSON())
-        queueSaveFromJson(docId, contentJson)
-      }, 450),
-    [queueSaveFromJson],
-  )
-
   const editor = useEditor({
     extensions,
     content: initialContent,
@@ -180,12 +97,26 @@ export function DocumentEditor() {
       },
     },
     onUpdate: () => {
-      if (!activeId || viewMode !== 'rich') return
-      queueSave(activeId)
+      if (!activeIdRef.current || viewModeRef.current !== 'rich') return
+      queueSaveRef.current(activeIdRef.current)
     },
   })
 
   editorRef.current = editor
+
+  const { queueSave, flushSave, editorContentHashRef, lastPersistedHashRef } = useDocumentAutoSave({
+    editor,
+    activeId,
+    viewMode,
+    markdownDraftRef,
+    manualTitleIdsRef,
+    activeDocumentRef,
+    setActiveDocument,
+    setDocuments,
+    setSaveStatus,
+  })
+
+  queueSaveRef.current = queueSave
 
   const switchToMarkdown = useCallback(() => {
     if (!editor) return
@@ -201,23 +132,20 @@ export function DocumentEditor() {
       contentType: 'markdown',
       emitUpdate: false,
     })
-    const contentJson = JSON.stringify(editor.getJSON())
-    const contentHash = hashContent(contentJson)
-    editorContentHashRef.current = contentHash
     if (activeId) {
-      void persistDocument(activeId, contentJson, contentHash)
+      void flushSave()
     }
     persistViewMode('rich')
-  }, [activeId, editor, persistViewMode, persistDocument])
+  }, [activeId, editor, flushSave, persistViewMode])
 
   const handleMarkdownChange = useCallback(
     (value: string) => {
       markdownDraftRef.current = value
       setMarkdownDraft(value)
       if (!activeId) return
-      queueMarkdownSave(activeId, value)
+      queueSave(activeId)
     },
-    [activeId, queueMarkdownSave],
+    [activeId, queueSave],
   )
 
   useEffect(() => {
@@ -240,8 +168,6 @@ export function DocumentEditor() {
   } = useDocumentPagination({ editor, documentId: activeId })
 
   useEffect(() => {
-    latestDocIdRef.current = activeId
-
     if (!editor || !activeDocument) return
 
     const incomingHash = getCachedContentHash(activeDocument)
@@ -254,12 +180,13 @@ export function DocumentEditor() {
     const markdown = getEditorMarkdown(editor)
     markdownDraftRef.current = markdown
     setMarkdownDraft(markdown)
-  }, [activeDocument, activeId, editor])
+    setSaveStatus('saved')
+  }, [activeDocument, activeId, editor, editorContentHashRef, lastPersistedHashRef, setSaveStatus])
 
   useEffect(() => {
     editorContentHashRef.current = null
     lastPersistedHashRef.current = null
-  }, [activeId])
+  }, [activeId, editorContentHashRef, lastPersistedHashRef])
 
   const isMarkdown = viewMode === 'markdown'
 
@@ -267,7 +194,7 @@ export function DocumentEditor() {
     <div className={cn('editor-shell', isMarkdown && 'editor-shell--markdown')}>
       <EditorHeader />
       {!isMarkdown && <EditorToolbar editor={editor} onInsertImages={handleInsertImages} />}
-      {!isMarkdown && <EditorMenus editor={editor} onInsertImages={handleInsertImages} />}
+      {!isMarkdown && <EditorMenus editor={editor} onInsertImages={handleInsertImages} pageCount={pageCount} canvasRef={canvasRef} />}
 
       <div className={cn('editor-body', outlineOpen && !isMarkdown && 'editor-body--with-outline')}>
         <EditorDropZone className="editor-scroll" ref={scrollRef}>

@@ -1,9 +1,24 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { useNavigate, useParams } from '@tanstack/react-router'
 import { useAtom, useAtomValue } from 'jotai'
-import { DocumentEditor } from '@/components/DocumentEditor'
 import { ROUTES } from '@/lib/routes'
 import { activeDocumentAtom, activeDocumentIdAtom, saveStatusAtom } from '@/store/documents'
+
+const DocumentEditor = lazy(() =>
+  import('@/components/DocumentEditor').then((module) => ({
+    default: module.DocumentEditor,
+  })),
+)
+
+function DocumentEditorFallback() {
+  return (
+    <div className="editor-shell">
+      <div className="flex flex-1 items-center justify-center text-sm text-[var(--color-muted-foreground)]">
+        Načítavam editor…
+      </div>
+    </div>
+  )
+}
 
 export function DocumentPage() {
   const { documentId } = useParams({ strict: false })
@@ -28,5 +43,9 @@ export function DocumentPage() {
     )
   }
 
-  return <DocumentEditor />
+  return (
+    <Suspense fallback={<DocumentEditorFallback />}>
+      <DocumentEditor />
+    </Suspense>
+  )
 }

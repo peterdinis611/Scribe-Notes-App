@@ -19,16 +19,49 @@ export function formatRelativeTime(timestamp: number): string {
   return `Pred ${days} d`
 }
 
-export function debounce<T extends (...args: Parameters<T>) => void>(
+export type DebouncedFunction<T extends (...args: never[]) => void> = ((
+  ...args: Parameters<T>
+) => void) & {
+  cancel: () => void
+  flush: () => void
+  pending: () => boolean
+}
+
+export function debounce<T extends (...args: never[]) => void>(
   fn: T,
   delay: number,
-) {
+): DebouncedFunction<T> {
   let timeoutId: ReturnType<typeof setTimeout> | undefined
+  let lastArgs: Parameters<T> | undefined
 
-  return (...args: Parameters<T>) => {
+  const debounced = ((...args: Parameters<T>) => {
+    lastArgs = args
     if (timeoutId) clearTimeout(timeoutId)
-    timeoutId = setTimeout(() => fn(...args), delay)
+    timeoutId = setTimeout(() => {
+      timeoutId = undefined
+      lastArgs = undefined
+      fn(...args)
+    }, delay)
+  }) as DebouncedFunction<T>
+
+  debounced.cancel = () => {
+    if (timeoutId) clearTimeout(timeoutId)
+    timeoutId = undefined
+    lastArgs = undefined
   }
+
+  debounced.flush = () => {
+    if (!timeoutId || !lastArgs) return
+    clearTimeout(timeoutId)
+    timeoutId = undefined
+    const args = lastArgs
+    lastArgs = undefined
+    fn(...args)
+  }
+
+  debounced.pending = () => timeoutId !== undefined
+
+  return debounced
 }
 
 export function throttle<T extends (...args: Parameters<T>) => void>(

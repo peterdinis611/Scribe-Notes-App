@@ -643,6 +643,15 @@
   color: var(--color-muted-foreground);
 }
 
+.status-pill.is-dirty {
+  background: color-mix(in srgb, #ff9500 14%, transparent);
+  color: #c93400;
+}
+
+.dark .status-pill.is-dirty {
+  color: #ff9f0a;
+}
+
 .status-pill.is-error {
   background: color-mix(in srgb, var(--color-destructive) 14%, transparent);
   color: var(--color-destructive);
@@ -2601,6 +2610,49 @@
 
 .editor-bubble-btn--neutral {
   color: var(--color-foreground);
+}
+
+.editor-bubble-page-move {
+  display: inline-flex;
+  align-items: center;
+}
+
+.editor-bubble-page-select {
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-background);
+  font-size: 12px;
+  color: var(--color-foreground);
+  cursor: default;
+}
+
+.editor-block-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-background);
+  color: var(--color-muted-foreground);
+  cursor: grab;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  z-index: 40;
+  transition: opacity 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.editor-block-drag-handle:hover {
+  color: var(--color-foreground);
+  border-color: var(--color-selection-strong);
+}
+
+.editor-block-drag-handle:active,
+.editor-block-drag-handle[data-dragging='true'] {
+  cursor: grabbing;
+  opacity: 0.85;
 }
 
 .editor-bubble-btn--neutral:hover {

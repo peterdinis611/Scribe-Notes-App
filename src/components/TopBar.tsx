@@ -3,6 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import {
   Check,
   ChevronDown,
+  Circle,
   FileDown,
   FileSymlink,
   FolderInput,
@@ -47,6 +48,15 @@ function SaveStatus() {
       <span className="status-pill is-saving">
         <Loader2 className="h-3 w-3 animate-spin" />
         Ukladám
+      </span>
+    )
+  }
+
+  if (status === 'dirty') {
+    return (
+      <span className="status-pill is-dirty">
+        <Circle className="h-2.5 w-2.5 fill-current" />
+        Neuložené
       </span>
     )
   }

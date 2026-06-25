@@ -104,6 +104,19 @@ describe('debounce', () => {
     expect(fn).toHaveBeenCalledOnce()
     expect(fn).toHaveBeenCalledWith('b')
   })
+
+  it('flushes pending calls immediately', () => {
+    const fn = vi.fn()
+    const debounced = debounce(fn, 200)
+
+    debounced('a')
+    debounced.flush()
+    expect(fn).toHaveBeenCalledOnce()
+    expect(fn).toHaveBeenCalledWith('a')
+
+    vi.advanceTimersByTime(200)
+    expect(fn).toHaveBeenCalledOnce()
+  })
 })
 
 describe('throttle', () => {
