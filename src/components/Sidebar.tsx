@@ -7,6 +7,7 @@ import { FolderTree } from '@/components/FolderTree'
 import { SidebarSearchResults } from '@/components/SidebarSearchResults'
 import { createFolder } from '@/lib/db/api'
 import { promptInput } from '@/lib/input-dialog'
+import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { commandPaletteOpenAtom, expandedFolderIdsAtom, foldersAtom } from '@/store/folders'
 
@@ -38,6 +39,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
     const folder = await createFolder({ name })
     setFolders((prev) => [...prev, folder])
     setExpandedIds((prev: Set<string>) => new Set(prev).add(folder.id))
+    toast.success('Priečinok vytvorený', folder.name)
   }, [setExpandedIds, setFolders])
 
   return (

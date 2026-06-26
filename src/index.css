@@ -1661,6 +1661,117 @@
   gap: 8px;
 }
 
+.toast-host {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(360px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.toast-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-card) 92%, transparent);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  pointer-events: auto;
+  animation: toast-in 180ms ease-out;
+}
+
+.toast-item--success {
+  border-color: color-mix(in srgb, #34c759 35%, var(--color-border));
+}
+
+.toast-item--error {
+  border-color: color-mix(in srgb, #ff453a 35%, var(--color-border));
+}
+
+.toast-item--info {
+  border-color: color-mix(in srgb, var(--color-accent) 35%, var(--color-border));
+}
+
+.toast-icon {
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+
+.toast-icon--success {
+  color: #34c759;
+}
+
+.toast-icon--error {
+  color: #ff453a;
+}
+
+.toast-icon--info {
+  color: var(--color-accent);
+}
+
+.toast-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.toast-item-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--color-foreground);
+}
+
+.toast-item-desc {
+  margin: 3px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-muted-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toast-item-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin: -2px -2px -2px 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-muted-foreground);
+  cursor: pointer;
+}
+
+.toast-item-close:hover {
+  background: var(--color-hover);
+  color: var(--color-foreground);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .settings-storage-note {
   margin: 10px 0 0;
   font-size: 12px;

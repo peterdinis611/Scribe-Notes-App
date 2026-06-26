@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { APP_SHORTCUTS } from '@/lib/shortcuts'
 import { pickAndImportFile } from '@/lib/db/api'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
+import { toast } from '@/lib/toast'
 import { ROUTES } from '@/lib/routes'
 import { formatRelativeTime } from '@/lib/utils'
 import {
@@ -37,6 +38,7 @@ export function WelcomeScreen() {
     setActiveId(doc.id)
     setActiveDocument(doc)
     setSaveStatus('saved')
+    toast.success('Dokument importovaný', doc.title)
     navigate(ROUTES.document(doc.id))
   }
 

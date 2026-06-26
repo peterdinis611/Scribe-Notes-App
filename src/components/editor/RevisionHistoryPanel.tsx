@@ -9,6 +9,7 @@ import {
   type DocumentRevision,
 } from '@/lib/db/api'
 import { formatRelativeTime } from '@/lib/utils'
+import { toast } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 import { activeDocumentAtom, activeDocumentIdAtom, documentsAtom } from '@/store/documents'
 
@@ -61,6 +62,9 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
             : item,
         ),
       )
+      toast.success('Verzia obnovená', formatRelativeTime(revision.createdAt))
+    } catch {
+      toast.error('Obnovenie verzie zlyhalo')
     } finally {
       setRestoringId(null)
     }

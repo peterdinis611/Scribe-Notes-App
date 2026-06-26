@@ -21,6 +21,7 @@ import {
 import { listDocumentRevisions, restoreDocumentRevision, type DocumentRevision } from '@/lib/db/api'
 import { cacheDocument } from '@/lib/cache/document-cache'
 import { cn, formatRelativeTime } from '@/lib/utils'
+import { toast } from '@/lib/toast'
 import { activeDocumentAtom, activeDocumentIdAtom, documentsAtom } from '@/store/documents'
 
 export function ToolsTab({ editor }: { editor: Editor }) {
@@ -50,24 +51,29 @@ export function ToolsTab({ editor }: { editor: Editor }) {
   }, [activeId])
 
   async function handleRestoreRevision(revisionId: string) {
-    const restored = cacheDocument(await restoreDocumentRevision(revisionId))
-    setActiveDocument(restored)
-    setDocuments((prev) =>
-      prev.map((item) =>
-        item.id === restored.id
-          ? {
-              ...item,
-              title: restored.title,
-              filePath: restored.filePath,
-              updatedAt: restored.updatedAt,
-            }
-          : item,
-      ),
-    )
-    editor.commands.setContent(JSON.parse(restored.contentJson), { emitUpdate: false })
-    if (activeId) {
-      const next = await listDocumentRevisions(activeId, 15)
-      setRevisions(next)
+    try {
+      const restored = cacheDocument(await restoreDocumentRevision(revisionId))
+      setActiveDocument(restored)
+      setDocuments((prev) =>
+        prev.map((item) =>
+          item.id === restored.id
+            ? {
+                ...item,
+                title: restored.title,
+                filePath: restored.filePath,
+                updatedAt: restored.updatedAt,
+              }
+            : item,
+        ),
+      )
+      editor.commands.setContent(JSON.parse(restored.contentJson), { emitUpdate: false })
+      if (activeId) {
+        const next = await listDocumentRevisions(activeId, 15)
+        setRevisions(next)
+      }
+      toast.success('Verzia obnovená')
+    } catch {
+      toast.error('Obnovenie verzie zlyhalo')
     }
   }
 

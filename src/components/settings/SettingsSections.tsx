@@ -16,6 +16,7 @@ import {
   reconcileStorage,
   revealInFinder,
 } from '@/lib/db/api'
+import { toast } from '@/lib/toast'
 import type { SettingsSection } from '@/lib/routes'
 import {
   activeDocumentAtom,
@@ -155,7 +156,11 @@ export function StorageSection() {
 
   async function handlePickFolder() {
     const result = await pickDocumentsDirectory()
-    if (result) setSettings(result)
+    if (result) {
+      setSettings(result)
+      const shortPath = result.documentsDir.replace(/^\/Users\/[^/]+/, '~')
+      toast.success('Priečinok dokumentov zmenený', shortPath)
+    }
   }
 
   async function handleRevealFolder() {
@@ -172,8 +177,10 @@ export function StorageSection() {
       setReconcileMessage(
         `Synchronizované: ${result.syncedToDiskCount} na disk, ${result.updatedFromDiskCount} z disku, ${result.importedCount} nových.`,
       )
+      toast.success('Synchronizácia dokončená')
     } catch {
       setReconcileMessage('Synchronizácia zlyhala.')
+      toast.error('Synchronizácia zlyhala')
     } finally {
       setReconciling(false)
     }
@@ -193,6 +200,7 @@ export function StorageSection() {
       setActiveId(null)
       setActiveDocument(null)
       setSaveStatus('saved')
+      toast.success('Všetky dokumenty vymazané')
     } finally {
       setClearing(false)
     }

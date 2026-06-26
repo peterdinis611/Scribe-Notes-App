@@ -6,6 +6,7 @@ import {
   hashContent,
 } from '@/lib/cache/document-cache'
 import { flushPendingWrites, updateDocument } from '@/lib/db/api'
+import { toast } from '@/lib/toast'
 import { debounce, extractTitleFromContent } from '@/lib/utils'
 import {
   flushAutoSaveAtom,
@@ -106,6 +107,7 @@ export function useDocumentAutoSave({
       } catch {
         if (latestDocIdRef.current === docId) {
           setSaveStatus('error')
+          toast.error('Ukladanie zlyhalo')
         }
         return false
       }

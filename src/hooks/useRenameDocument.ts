@@ -1,5 +1,6 @@
 import { useSetAtom } from 'jotai'
 import { updateDocument } from '@/lib/db/api'
+import { toast } from '@/lib/toast'
 import {
   activeDocumentAtom,
   documentsAtom,
@@ -34,9 +35,11 @@ export function useRenameDocument() {
         ),
       )
       setSaveStatus('saved')
+      toast.success('Dokument premenovaný', updated.title)
       return updated
     } catch {
       setSaveStatus('error')
+      toast.error('Premenovanie zlyhalo')
       return null
     }
   }

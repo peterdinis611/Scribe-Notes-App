@@ -1,9 +1,11 @@
-import { useSetAtom } from 'jotai'
+import { useAtomValue, useSetAtom } from 'jotai'
 import { moveDocumentToFolder } from '@/lib/db/api'
+import { toast } from '@/lib/toast'
 import { documentsAtom } from '@/store/documents'
-import { expandedFolderIdsAtom } from '@/store/folders'
+import { expandedFolderIdsAtom, foldersAtom } from '@/store/folders'
 
 export function useMoveDocumentToFolder() {
+  const folders = useAtomValue(foldersAtom)
   const setDocuments = useSetAtom(documentsAtom)
   const setExpandedIds = useSetAtom(expandedFolderIdsAtom)
 
@@ -15,5 +17,10 @@ export function useMoveDocumentToFolder() {
     if (folderId) {
       setExpandedIds((prev: Set<string>) => new Set(prev).add(folderId))
     }
+
+    const folderName = folderId
+      ? folders.find((folder) => folder.id === folderId)?.name ?? 'Priečinok'
+      : 'Koreň knižnice'
+    toast.success('Dokument presunutý', folderName)
   }
 }

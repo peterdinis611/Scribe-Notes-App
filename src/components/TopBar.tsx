@@ -15,6 +15,7 @@ import { EditorFileMenu } from '@/components/editor/EditorFileMenu'
 import { EditorViewModeToggle } from '@/components/editor/EditorViewModeToggle'
 import { SidebarToggle } from '@/components/SidebarToggle'
 import { exportDocument, pickAndImportFile, revealInFinder } from '@/lib/db/api'
+import { fileBasename, toast } from '@/lib/toast'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { tiptapJsonToHtml } from '@/lib/export/html'
 import { tiptapJsonToMarkdown } from '@/lib/export/markdown'
@@ -94,9 +95,14 @@ export function EditorHeader() {
   async function handleExport(format: 'pdf' | 'docx' | 'txt' | 'pages' | 'md') {
     if (!pdfPreviewPayload) return
     const { html, plainText, title, markdown } = pdfPreviewPayload
-    const result = await exportDocument(html, plainText, title, format, markdown)
-    if (result?.path) {
-      await revealInFinder(result.path)
+    try {
+      const result = await exportDocument(html, plainText, title, format, markdown)
+      if (result?.path) {
+        toast.success('Export dokončený', fileBasename(result.path))
+        await revealInFinder(result.path)
+      }
+    } catch {
+      toast.error('Export zlyhal')
     }
   }
 
@@ -107,6 +113,7 @@ export function EditorHeader() {
     setActiveId(doc.id)
     setActiveDocument(doc)
     setSaveStatus('saved')
+    toast.success('Dokument importovaný', doc.title)
     navigate(ROUTES.document(doc.id))
   }
 

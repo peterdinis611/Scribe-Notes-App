@@ -6,6 +6,7 @@ import {
 } from '@/lib/db/api'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
+import { toast } from '@/lib/toast'
 import { cycleThemeId } from '@/lib/themes/apply'
 import {
   applyThemeSettingsAtom,
@@ -84,6 +85,7 @@ export function useKeyboardShortcuts() {
           setActiveId(imported.id)
           setActiveDocument(imported)
           setSaveStatus('saved')
+          toast.success('Dokument importovaný', imported.title)
           navigate(ROUTES.document(imported.id))
         },
         options: {

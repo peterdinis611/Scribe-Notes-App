@@ -10,9 +10,11 @@ import { useResponsiveSidebar } from '@/hooks/useResponsiveSidebar'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { createDocument } from '@/lib/db/api'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
+import { toast } from '@/lib/toast'
 import { ROUTES } from '@/lib/routes'
 import type { DocumentTemplate } from '@/lib/templates'
 import { InputDialogHost } from '@/components/InputDialogHost'
+import { ToastHost } from '@/components/ToastHost'
 import {
   activeDocumentAtom,
   activeDocumentIdAtom,
@@ -66,6 +68,7 @@ export function AppLayout() {
     setDocuments((prev) => prependDocumentSummary(prev, doc))
     setActiveId(doc.id)
     setActiveDocument(doc)
+    toast.success('Dokument vytvorený', doc.title)
     navigate(ROUTES.document(doc.id))
   }
 
@@ -105,6 +108,7 @@ export function AppLayout() {
         onOpenChange={setMovePickerOpen}
       />
       <InputDialogHost />
+      <ToastHost />
     </div>
   )
 }

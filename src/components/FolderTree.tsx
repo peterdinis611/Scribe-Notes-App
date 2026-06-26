@@ -27,6 +27,7 @@ import {
 } from '@/lib/library/folder-tree-drag'
 import { ROUTES } from '@/lib/routes'
 import { promptInput } from '@/lib/input-dialog'
+import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import {
   activeDocumentAtom,
@@ -90,6 +91,7 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
       setExpandedIds((prev: Set<string>) => new Set(prev).add(parentId))
     }
     setFolders((prev) => [...prev, folder])
+    toast.success('Priečinok vytvorený', folder.name)
   }, [setExpandedIds, setFolders])
 
   const handleRenameFolder = useCallback(async (id: string, currentName: string) => {
@@ -102,6 +104,7 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     if (!name || name === currentName) return
     const folder = await renameFolder(id, name)
     setFolders((prev) => prev.map((item) => (item.id === id ? folder : item)))
+    toast.success('Priečinok premenovaný', folder.name)
   }, [setFolders])
 
   const handleDeleteFolder = useCallback(async (id: string, name: string, event: React.MouseEvent) => {
@@ -148,10 +151,13 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
         navigate(ROUTES.document(nextId))
       }
     }
+
+    toast.success('Priečinok vymazaný', name)
   }, [activeId, documents, folders, navigate, setActiveDocument, setActiveId, setDocuments, setExpandedIds, setFolders])
 
   const handleDeleteDocument = useCallback(async (id: string, event: React.MouseEvent) => {
     event.stopPropagation()
+    const deleted = documents.find((doc) => doc.id === id)
     await deleteDocument(id)
     const remaining = documents.filter((doc) => doc.id !== id)
     setDocuments(remaining)
@@ -165,6 +171,7 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
         navigate(ROUTES.document(nextId))
       }
     }
+    toast.success('Dokument vymazaný', deleted?.title)
   }, [activeId, documents, navigate, setActiveDocument, setActiveId, setDocuments])
 
   const openDocument = useCallback((id: string) => {
@@ -191,6 +198,7 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     if (folderDragId && folderDragId !== folderId) {
       const folder = await moveFolder(folderDragId, folderId)
       setFolders((prev) => prev.map((item) => (item.id === folder.id ? folder : item)))
+      toast.success('Priečinok presunutý', folder.name)
     }
   }, [documents, moveDocument, setFolders])
 

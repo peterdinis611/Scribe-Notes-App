@@ -19,8 +19,9 @@ import { promptInput } from '@/lib/input-dialog'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
 import { cn, debounce } from '@/lib/utils'
+import { toast } from '@/lib/toast'
 import { activeDocumentAtom, activeDocumentIdAtom, documentsAtom, focusModeAtom } from '@/store/documents'
-import { commandPaletteOpenAtom, moveDocumentPickerOpenAtom } from '@/store/folders'
+import { commandPaletteOpenAtom, foldersAtom, moveDocumentPickerOpenAtom } from '@/store/folders'
 import { templatePickerOpenAtom } from '@/store/settings'
 import { cycleThemeId } from '@/lib/themes/apply'
 import { generateRandomTheme } from '@/lib/themes/generate-random-theme'
@@ -41,6 +42,7 @@ export function CommandPalette() {
   const setActiveDocument = useSetAtom(activeDocumentAtom)
   const setDocuments = useSetAtom(documentsAtom)
   const setMovePickerOpen = useSetAtom(moveDocumentPickerOpenAtom)
+  const setFolders = useSetAtom(foldersAtom)
   const activeDocumentId = useAtomValue(activeDocumentIdAtom)
   const documents = useAtomValue(documentsAtom)
   const setTemplatePickerOpen = useSetAtom(templatePickerOpenAtom)
@@ -90,6 +92,7 @@ export function CommandPalette() {
                   setDocuments((prev) => prependDocumentSummary(prev, copy))
                   setActiveId(copy.id)
                   setActiveDocument(copy)
+                  toast.success('Dokument duplikovaný', copy.title)
                   navigate(ROUTES.document(copy.id))
                 })()
               },
@@ -150,12 +153,14 @@ export function CommandPalette() {
               confirmLabel: 'Vytvoriť',
             })
             if (!name) return
-            await createFolder({ name })
+            const folder = await createFolder({ name })
+            setFolders((prev) => [...prev, folder])
+            toast.success('Priečinok vytvorený', folder.name)
           })()
         },
       },
     ],
-    [activeDocument, applyTheme, focusMode, navigate, setActiveDocument, setActiveId, setDocuments, setFocusMode, setMovePickerOpen, setOpen, setTemplatePickerOpen, themeSettings],
+    [activeDocument, applyTheme, focusMode, navigate, setActiveDocument, setActiveId, setDocuments, setFocusMode, setFolders, setMovePickerOpen, setOpen, setTemplatePickerOpen, themeSettings],
   )
 
   const documentItems: PaletteItem[] = useMemo(
