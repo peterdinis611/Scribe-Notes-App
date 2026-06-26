@@ -1,19 +1,22 @@
-export const EDITOR_PAGE = {
-  paddingTop: 56,
-  paddingBottom: 72,
-  contentHeight: 1032,
-  scrollPaddingTop: 20,
-} as const
+import type { ResolvedPageLayout } from '@/lib/editor/page-setup'
+import { DEFAULT_PAGE_SETUP, resolvePageLayout } from '@/lib/editor/page-setup'
 
-export function getPageCount(contentHeight: number): number {
+export { DEFAULT_PAGE_SETUP, EDITOR_PAGE, resolvePageLayout } from '@/lib/editor/page-setup'
+export type { PageSetup, PaperSizeId, ResolvedPageLayout } from '@/lib/editor/page-setup'
+
+export function getPageCount(contentHeight: number, layout: ResolvedPageLayout = resolvePageLayout(DEFAULT_PAGE_SETUP)): number {
   if (contentHeight <= 0) return 1
-  return Math.max(1, Math.ceil(contentHeight / EDITOR_PAGE.contentHeight))
+  return Math.max(1, Math.ceil(contentHeight / layout.contentHeight))
 }
 
-export function getPageScrollTop(page: number, contentStartOffset: number): number {
+export function getPageScrollTop(
+  page: number,
+  contentStartOffset: number,
+  layout: ResolvedPageLayout = resolvePageLayout(DEFAULT_PAGE_SETUP),
+): number {
   return Math.max(
     0,
-    contentStartOffset + (page - 1) * EDITOR_PAGE.contentHeight - EDITOR_PAGE.scrollPaddingTop,
+    contentStartOffset + (page - 1) * layout.contentHeight - layout.scrollPaddingTop,
   )
 }
 
@@ -21,9 +24,10 @@ export function getPageFromScrollTop(
   scrollTop: number,
   contentStartOffset: number,
   pageCount: number,
+  layout: ResolvedPageLayout = resolvePageLayout(DEFAULT_PAGE_SETUP),
 ): number {
-  const relative = scrollTop + EDITOR_PAGE.scrollPaddingTop - contentStartOffset
-  const page = Math.floor(relative / EDITOR_PAGE.contentHeight) + 1
+  const relative = scrollTop + layout.scrollPaddingTop - contentStartOffset
+  const page = Math.floor(relative / layout.contentHeight) + 1
   return Math.min(pageCount, Math.max(1, page))
 }
 

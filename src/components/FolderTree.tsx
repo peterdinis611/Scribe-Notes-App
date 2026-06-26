@@ -19,6 +19,12 @@ import {
   countDocumentsInFolders,
 } from '@/lib/library/folders'
 import { buildTree, estimateFlatItemSize, flattenTree } from '@/lib/library/tree'
+import {
+  readDocumentDragId,
+  readFolderDragId,
+  setDocumentDragData,
+  setFolderDragData,
+} from '@/lib/library/folder-tree-drag'
 import { ROUTES } from '@/lib/routes'
 import { promptInput } from '@/lib/input-dialog'
 import { cn } from '@/lib/utils'
@@ -169,31 +175,37 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
 
   const handleDropOnFolder = useCallback(async (folderId: string | null, event: React.DragEvent) => {
     event.preventDefault()
+    event.stopPropagation()
     setDragOverId(null)
-    const documentId = event.dataTransfer.getData('application/x-scribe-document')
-    const folderDragId = event.dataTransfer.getData('application/x-scribe-folder')
+
+    const documentId = readDocumentDragId(event)
+    const folderDragId = readFolderDragId(event)
+
     if (documentId) {
+      const current = documents.find((doc) => doc.id === documentId)
+      if (current?.folderId === folderId) return
       await moveDocument(documentId, folderId)
       return
     }
+
     if (folderDragId && folderDragId !== folderId) {
       const folder = await moveFolder(folderDragId, folderId)
       setFolders((prev) => prev.map((item) => (item.id === folder.id ? folder : item)))
     }
-  }, [moveDocument, setFolders])
+  }, [documents, moveDocument, setFolders])
 
   const handleFolderDragStart = useCallback((id: string, event: React.DragEvent) => {
-    event.dataTransfer.setData('application/x-scribe-folder', id)
-    event.dataTransfer.effectAllowed = 'move'
+    setFolderDragData(event, id)
   }, [])
 
   const handleDocumentDragStart = useCallback((id: string, event: React.DragEvent) => {
-    event.dataTransfer.setData('application/x-scribe-document', id)
-    event.dataTransfer.effectAllowed = 'move'
+    setDocumentDragData(event, id)
   }, [])
 
   const handleFolderDragOver = useCallback((id: string, event: React.DragEvent) => {
     event.preventDefault()
+    event.stopPropagation()
+    event.dataTransfer.dropEffect = 'move'
     setDragOverId(id)
   }, [])
 
@@ -206,10 +218,15 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
       <div
         className={cn('folder-tree-root-drop titlebar-no-drag', dragOverId === 'root' && 'is-drag-over')}
         onDragOver={(event) => {
+          if (event.target !== event.currentTarget) return
           event.preventDefault()
+          event.dataTransfer.dropEffect = 'move'
           setDragOverId('root')
         }}
-        onDragLeave={() => setDragOverId((id) => (id === 'root' ? null : id))}
+        onDragLeave={(event) => {
+          if (event.target !== event.currentTarget) return
+          setDragOverId((id) => (id === 'root' ? null : id))
+        }}
         onDrop={(event) => void handleDropOnFolder(null, event)}
       >
         {flatItems.length === 0 ? (

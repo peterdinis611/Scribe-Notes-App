@@ -17,22 +17,24 @@ export function EditorViewModeToggle({ className }: { className?: string }) {
         variant={isMarkdown ? 'ghost' : 'default'}
         size="sm"
         className="editor-view-mode-btn"
+        title="Formátovaný text"
         onClick={actions.switchToRich}
         aria-pressed={!isMarkdown}
       >
         <Type className="h-3.5 w-3.5" />
-        <span className="editor-header-label">Formátovaný text</span>
+        <span className="editor-header-label">Text</span>
       </Button>
       <Button
         type="button"
         variant={isMarkdown ? 'default' : 'ghost'}
         size="sm"
         className="editor-view-mode-btn"
+        title="Markdown"
         onClick={actions.switchToMarkdown}
         aria-pressed={isMarkdown}
       >
         <FileCode2 className="h-3.5 w-3.5" />
-        <span className="editor-header-label">Markdown</span>
+        <span className="editor-header-label">MD</span>
       </Button>
     </div>
   )

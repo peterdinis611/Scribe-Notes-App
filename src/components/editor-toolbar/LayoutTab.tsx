@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { ToolbarButton, ToolbarGroup } from '@/components/editor-toolbar/primitives'
 import { insertDetailsBlock } from '@/lib/editor/insert-helpers'
+import { insertBulletList, insertOrderedList, insertTaskList } from '@/lib/editor/list-commands'
 
 export function LayoutTab({ editor }: { editor: Editor }) {
   return (
@@ -33,13 +34,13 @@ export function LayoutTab({ editor }: { editor: Editor }) {
       </ToolbarGroup>
 
       <ToolbarGroup label="Zoznamy">
-        <ToolbarButton label="Odrážky" active={editor.isActive('bulletList')} onClick={() => editor.chain().focus().toggleBulletList().run()}>
+        <ToolbarButton label="Odrážky" active={editor.isActive('bulletList')} onClick={() => insertBulletList(editor)}>
           <List className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
-        <ToolbarButton label="Číslovaný zoznam" active={editor.isActive('orderedList')} onClick={() => editor.chain().focus().toggleOrderedList().run()}>
+        <ToolbarButton label="Číslovaný zoznam" active={editor.isActive('orderedList')} onClick={() => insertOrderedList(editor)}>
           <ListOrdered className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
-        <ToolbarButton label="Checklist" active={editor.isActive('taskList')} onClick={() => editor.chain().focus().toggleTaskList().run()}>
+        <ToolbarButton label="Checklist" active={editor.isActive('taskList')} onClick={() => insertTaskList(editor)}>
           <CheckSquare className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
       </ToolbarGroup>

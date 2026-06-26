@@ -9,6 +9,7 @@ import {
 } from '@/components/editor/SlashSuggestionList'
 import { insertBlockMath, insertInlineMath } from '@/lib/editor/insert-helpers'
 import { pickImageFiles } from '@/lib/editor/image-utils'
+import { insertBulletList, insertOrderedList, insertTaskList } from '@/lib/editor/list-commands'
 
 export const SLASH_COMMANDS: SlashCommandItem[] = [
   { id: 'h1', label: 'Nadpis 1', hint: 'Veľký nadpis', icon: 'H1' },
@@ -28,6 +29,7 @@ export const SLASH_COMMANDS: SlashCommandItem[] = [
   { id: 'math-block', label: 'Vzorec blok', hint: 'math.js blok', icon: '∑' },
   { id: 'hr', label: 'Oddeľovač', hint: 'Horizontálna čiara', icon: '—' },
   { id: 'comment', label: 'Komentár', hint: 'Poznámka k textu', icon: '💬' },
+  { id: 'toc', label: 'Obsah', hint: 'Automatický TOC', icon: '≡' },
 ]
 
 function filterCommands(query: string) {
@@ -66,13 +68,13 @@ export function runSlashCommand(
       editor.chain().focus().setHeading({ level: 6 }).run()
       break
     case 'bullet':
-      editor.chain().focus().toggleBulletList().run()
+      insertBulletList(editor)
       break
     case 'ordered':
-      editor.chain().focus().toggleOrderedList().run()
+      insertOrderedList(editor)
       break
     case 'task':
-      editor.chain().focus().toggleTaskList().run()
+      insertTaskList(editor)
       break
     case 'quote':
       editor.chain().focus().toggleBlockquote().run()
@@ -104,6 +106,9 @@ export function runSlashCommand(
       }
       break
     }
+    case 'toc':
+      editor.chain().focus().insertTableOfContents().run()
+      break
     default:
       break
   }

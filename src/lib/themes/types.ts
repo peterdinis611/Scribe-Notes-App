@@ -40,6 +40,14 @@ export type ThemePresetId =
   | 'peach'
   | 'cobalt'
   | 'ember'
+  | 'jade'
+  | 'plum'
+  | 'storm'
+  | 'honey'
+  | 'ink'
+  | 'coral'
+  | 'sage'
+  | 'twilight'
   | 'custom'
 
 export interface ThemePreset {

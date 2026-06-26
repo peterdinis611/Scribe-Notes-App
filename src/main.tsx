@@ -1,7 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { HotkeysProvider } from '@tanstack/react-hotkeys'
-import { Provider as JotaiProvider } from 'jotai'
+import { Provider as JotaiProvider, getDefaultStore } from 'jotai'
 import { bootstrapTheme } from '@/store/settings'
 import 'highlight.js/styles/github-dark.min.css'
 import './index.css'
@@ -11,7 +11,7 @@ bootstrapTheme()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <JotaiProvider>
+    <JotaiProvider store={getDefaultStore()}>
       <HotkeysProvider
         defaultOptions={{
           hotkey: {

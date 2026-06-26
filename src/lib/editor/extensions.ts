@@ -28,12 +28,14 @@ import { createEmojiSuggestion } from '@/lib/editor/emoji-suggestion'
 import { CommentMark } from '@/lib/editor/comment-mark'
 import { FontFamily } from '@/lib/editor/font-family'
 import { FontSize } from '@/lib/editor/font-size'
+import { BlockSpacing } from '@/lib/editor/block-spacing'
 import { ListItemWithBlocks } from '@/lib/editor/list-item'
 import { MathJs } from '@/lib/editor/math-js-extension'
 import { lowlight } from '@/lib/editor/lowlight'
 import { PageBreak } from '@/lib/editor/page-break'
 import { ResizableImage } from '@/lib/editor/resizable-image'
 import { SlashCommands } from '@/lib/editor/slash-commands'
+import { TableOfContents } from '@/lib/editor/table-of-contents'
 import { CustomTableCell, CustomTableHeader } from '@/lib/editor/table-extensions'
 
 type EditorExtensionsOptions = {
@@ -61,6 +63,7 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
     TextStyle,
     FontSize,
     FontFamily,
+    BlockSpacing,
     Color,
     CommentMark,
     Underline,
@@ -104,6 +107,7 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
       nocookie: true,
     }),
     PageBreak,
+    TableOfContents,
     ResizableImage.configure({
       allowBase64: true,
       inline: false,
@@ -134,7 +138,7 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
       },
     }),
     Placeholder.configure({
-      placeholder: 'Začnite písať… pretiahnite sem obrázok alebo vložte zo schránky',
+      placeholder: 'Píšte text alebo stlačte / pre príkazy…',
     }),
     Markdown.configure({
       indentation: { style: 'space', size: 2 },

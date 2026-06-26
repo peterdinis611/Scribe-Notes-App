@@ -1,5 +1,6 @@
 import { useHotkeys } from '@tanstack/react-hotkeys'
 import type { Editor } from '@tiptap/react'
+import { insertBulletList, insertOrderedList, insertTaskList } from '@/lib/editor/list-commands'
 
 export function useEditorHotkeys(editor: Editor | null) {
   useHotkeys(
@@ -66,6 +67,39 @@ export function useEditorHotkeys(editor: Editor | null) {
         options: {
           enabled: !!editor,
           meta: { name: 'Inline kód', description: 'Prepnúť inline kód' },
+        },
+      },
+      {
+        hotkey: 'Mod+Shift+8',
+        callback: () => {
+          if (!editor) return
+          insertBulletList(editor)
+        },
+        options: {
+          enabled: !!editor,
+          meta: { name: 'Odrážky', description: 'Vložiť odrážkový zoznam' },
+        },
+      },
+      {
+        hotkey: 'Mod+Shift+7',
+        callback: () => {
+          if (!editor) return
+          insertOrderedList(editor)
+        },
+        options: {
+          enabled: !!editor,
+          meta: { name: 'Číslovaný zoznam', description: 'Vložiť číslovaný zoznam' },
+        },
+      },
+      {
+        hotkey: 'Mod+Shift+9',
+        callback: () => {
+          if (!editor) return
+          insertTaskList(editor)
+        },
+        options: {
+          enabled: !!editor,
+          meta: { name: 'Checklist', description: 'Vložiť zoznam úloh' },
         },
       },
       {

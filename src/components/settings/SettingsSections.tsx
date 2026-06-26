@@ -1,11 +1,12 @@
 import { getVersion } from '@tauri-apps/api/app'
 import { confirm } from '@tauri-apps/plugin-dialog'
 import { useAtom, useSetAtom } from 'jotai'
-import { FolderOpen, FolderSearch, Trash2 } from 'lucide-react'
+import { FolderOpen, FolderSearch, Shuffle, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { APP_SHORTCUTS } from '@/lib/shortcuts'
 import { THEME_PRESETS } from '@/lib/themes/presets'
+import { generateRandomTheme } from '@/lib/themes/generate-random-theme'
 import type { ThemeColors, ThemePresetId } from '@/lib/themes/types'
 import { THEME_COLOR_FIELDS } from '@/lib/themes/types'
 import {
@@ -45,14 +46,26 @@ export function AppearanceSection() {
     applyTheme(createCustomThemeSelection(themeSettings, { ...base, [key]: value }))
   }
 
+  function applyRandomTheme() {
+    applyTheme(createCustomThemeSelection(themeSettings, generateRandomTheme()))
+  }
+
   const customTheme = themeSettings.customTheme ?? THEME_PRESETS[0].colors
   const isCustomActive = themeSettings.themeId === 'custom'
 
   return (
     <>
       <section className="settings-section">
-        <h3 className="settings-section-title">Téma</h3>
-        <p className="settings-section-desc">Vyberte predvolenú tému alebo vytvorte vlastnú.</p>
+        <div className="settings-section-head">
+          <div>
+            <h3 className="settings-section-title">Téma</h3>
+            <p className="settings-section-desc">Vyberte predvolenú tému, vygenerujte náhodnú alebo vytvorte vlastnú.</p>
+          </div>
+          <Button variant="outline" size="sm" className="theme-random-btn" onClick={applyRandomTheme}>
+            <Shuffle className="h-3.5 w-3.5" />
+            Náhodná téma
+          </Button>
+        </div>
 
         <div className="theme-grid">
           <ThemeCard
@@ -79,6 +92,17 @@ export function AppearanceSection() {
             swatch={[customTheme.background, customTheme.selectionStrong]}
             onClick={() => chooseTheme('custom')}
           />
+          <button type="button" className="theme-card theme-card--random" onClick={applyRandomTheme}>
+            <div className="theme-card-swatches theme-card-swatches--random" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </div>
+            <div className="theme-card-text">
+              <p className="theme-card-name">Náhodná</p>
+              <p className="theme-card-desc">Nová paleta jedným klikom</p>
+            </div>
+          </button>
         </div>
       </section>
 
@@ -91,6 +115,10 @@ export function AppearanceSection() {
             </div>
             <Button variant="ghost" size="sm" onClick={() => applyTheme(createResetCustomTheme(themeSettings))}>
               Reset
+            </Button>
+            <Button variant="outline" size="sm" onClick={applyRandomTheme}>
+              <Shuffle className="h-3.5 w-3.5" />
+              Nová náhodná
             </Button>
           </div>
 

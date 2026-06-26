@@ -437,6 +437,254 @@ const meetingNotes: DocumentTemplate = {
   },
 }
 
+const essay: DocumentTemplate = {
+  id: 'essay',
+  name: 'Esej',
+  description: 'Akademická esej s úvodom, argumentmi a záverom',
+  category: 'personal',
+  title: 'Esej',
+  content: {
+    type: 'doc',
+    content: [
+      {
+        type: 'heading',
+        attrs: { level: 1 },
+        content: [{ type: 'text', text: 'Názov eseje' }],
+      },
+      {
+        type: 'paragraph',
+        content: [{ type: 'text', text: 'Autor · Predmet · Dátum' }],
+      },
+      { type: 'tableOfContents', attrs: { maxLevel: 2 } },
+      {
+        type: 'heading',
+        attrs: { level: 2 },
+        content: [{ type: 'text', text: 'Úvod' }],
+      },
+      {
+        type: 'paragraph',
+        content: [{ type: 'text', text: 'Predstavte tému a hlavnú tézu eseje.' }],
+      },
+      {
+        type: 'heading',
+        attrs: { level: 2 },
+        content: [{ type: 'text', text: 'Argument 1' }],
+      },
+      {
+        type: 'paragraph',
+        content: [{ type: 'text', text: 'Rozviňte prvý hlavný argument s príkladmi.' }],
+      },
+      {
+        type: 'heading',
+        attrs: { level: 2 },
+        content: [{ type: 'text', text: 'Záver' }],
+      },
+      {
+        type: 'paragraph',
+        content: [{ type: 'text', text: 'Zhrňte myšlienky a otvorte ďalšie otázky.' }],
+      },
+    ],
+  },
+}
+
+const projectProposal: DocumentTemplate = {
+  id: 'project-proposal',
+  name: 'Návrh projektu',
+  description: 'Ciele, rozsah, harmonogram a rozpočet',
+  category: 'business',
+  title: 'Návrh projektu',
+  content: {
+    type: 'doc',
+    content: [
+      {
+        type: 'heading',
+        attrs: { level: 1 },
+        content: [{ type: 'text', text: 'Názov projektu' }],
+      },
+      {
+        type: 'paragraph',
+        content: [{ type: 'text', text: 'Zodpovedná osoba · Oddelenie · Termín' }],
+      },
+      { type: 'tableOfContents', attrs: { maxLevel: 2 } },
+      {
+        type: 'heading',
+        attrs: { level: 2 },
+        content: [{ type: 'text', text: 'Cieľ projektu' }],
+      },
+      {
+        type: 'paragraph',
+        content: [{ type: 'text', text: 'Stručne popíšte, čo projekt dosiahne.' }],
+      },
+      {
+        type: 'heading',
+        attrs: { level: 2 },
+        content: [{ type: 'text', text: 'Rozsah' }],
+      },
+      {
+        type: 'bulletList',
+        content: [
+          {
+            type: 'listItem',
+            content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Súčasť projektu 1' }] }],
+          },
+          {
+            type: 'listItem',
+            content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Súčasť projektu 2' }] }],
+          },
+        ],
+      },
+      {
+        type: 'heading',
+        attrs: { level: 2 },
+        content: [{ type: 'text', text: 'Harmonogram' }],
+      },
+      {
+        type: 'taskList',
+        content: [
+          {
+            type: 'taskItem',
+            attrs: { checked: false },
+            content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Fáza 1 — termín' }] }],
+          },
+          {
+            type: 'taskItem',
+            attrs: { checked: false },
+            content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Fáza 2 — termín' }] }],
+          },
+        ],
+      },
+    ],
+  },
+}
+
+const invoice: DocumentTemplate = {
+  id: 'invoice',
+  name: 'Faktúra',
+  description: 'Jednoduchá faktúra s položkami a sumou',
+  category: 'business',
+  title: 'Faktúra',
+  content: {
+    type: 'doc',
+    content: [
+      {
+        type: 'heading',
+        attrs: { level: 1 },
+        content: [{ type: 'text', text: 'FAKTÚRA' }],
+      },
+      {
+        type: 'paragraph',
+        content: [{ type: 'text', text: 'Číslo faktúry: 2026-001 · Dátum vystavenia · Splatnosť' }],
+      },
+      {
+        type: 'heading',
+        attrs: { level: 3 },
+        content: [{ type: 'text', text: 'Dodávateľ' }],
+      },
+      {
+        type: 'paragraph',
+        content: [{ type: 'text', text: 'Názov firmy · IČO · DIČ · Adresa' }],
+      },
+      {
+        type: 'heading',
+        attrs: { level: 3 },
+        content: [{ type: 'text', text: 'Odberateľ' }],
+      },
+      {
+        type: 'paragraph',
+        content: [{ type: 'text', text: 'Meno / firma · Adresa' }],
+      },
+      {
+        type: 'paragraph',
+        content: [{ type: 'text', text: '' }],
+      },
+      {
+        type: 'table',
+        content: [
+          {
+            type: 'tableRow',
+            content: [
+              { type: 'tableHeader', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Položka' }] }] },
+              { type: 'tableHeader', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Množstvo' }] }] },
+              { type: 'tableHeader', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Cena' }] }] },
+            ],
+          },
+          {
+            type: 'tableRow',
+            content: [
+              { type: 'tableCell', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Služba / produkt' }] }] },
+              { type: 'tableCell', content: [{ type: 'paragraph', content: [{ type: 'text', text: '1' }] }] },
+              { type: 'tableCell', content: [{ type: 'paragraph', content: [{ type: 'text', text: '0,00 €' }] }] },
+            ],
+          },
+        ],
+      },
+      {
+        type: 'paragraph',
+        content: [{ type: 'text', marks: [{ type: 'bold' }], text: 'Spolu: 0,00 €' }],
+      },
+    ],
+  },
+}
+
+const academicPaper: DocumentTemplate = {
+  id: 'academic-paper',
+  name: 'Akademická práca',
+  description: 'Abstrakt, obsah a štruktúrované kapitoly',
+  category: 'general',
+  title: 'Akademická práca',
+  content: {
+    type: 'doc',
+    content: [
+      {
+        type: 'heading',
+        attrs: { level: 1 },
+        content: [{ type: 'text', text: 'Názov práce' }],
+      },
+      {
+        type: 'paragraph',
+        content: [{ type: 'text', text: 'Autor · Inštitúcia · Rok' }],
+      },
+      {
+        type: 'heading',
+        attrs: { level: 2 },
+        content: [{ type: 'text', text: 'Abstrakt' }],
+      },
+      {
+        type: 'paragraph',
+        content: [{ type: 'text', text: 'Stručné zhrnutie práce v 150–250 slovách.' }],
+      },
+      { type: 'tableOfContents', attrs: { maxLevel: 3 } },
+      {
+        type: 'heading',
+        attrs: { level: 2 },
+        content: [{ type: 'text', text: '1. Úvod' }],
+      },
+      {
+        type: 'paragraph',
+        content: [{ type: 'text', text: 'Motivácia, ciele a štruktúra práce.' }],
+      },
+      {
+        type: 'heading',
+        attrs: { level: 2 },
+        content: [{ type: 'text', text: '2. Teoretická časť' }],
+      },
+      {
+        type: 'paragraph',
+        content: [{ type: 'text', text: 'Prehľad existujúcej literatúry a pojmov.' }],
+      },
+      {
+        type: 'heading',
+        attrs: { level: 2 },
+        content: [{ type: 'text', text: '3. Záver' }],
+      },
+      {
+        type: 'paragraph',
+        content: [{ type: 'text', text: 'Zhrnutie výsledkov a odporúčania.' }],
+      },
+    ],
+  },
+}
+
 export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
   blank,
   modernReport,
@@ -444,6 +692,10 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
   resume,
   newsletter,
   meetingNotes,
+  essay,
+  projectProposal,
+  invoice,
+  academicPaper,
 ]
 
 export function getTemplateById(id: string): DocumentTemplate | undefined {

@@ -1,5 +1,6 @@
 import type { Editor } from '@tiptap/react'
 import { useEditorState } from '@tiptap/react'
+import { useAtomValue } from 'jotai'
 import {
   AlignCenter,
   AlignJustify,
@@ -18,12 +19,12 @@ import {
   List,
   ListChevronsDownUp,
   ListOrdered,
+  ListTree,
   Minus,
   Palette,
   PlusSquare,
   Quote,
   Redo,
-  Smile,
   Strikethrough,
   Subscript,
   Superscript,
@@ -55,6 +56,7 @@ import {
   getActiveBlockDeleteLabel,
   hasEditorSelection,
 } from '@/lib/editor/delete-content'
+import { LINE_HEIGHTS, PARAGRAPH_SPACING } from '@/lib/editor/block-spacing'
 import { FONT_SIZES, HIGHLIGHT_COLORS, TEXT_COLORS } from '@/lib/editor/font-size'
 import { pickImageFiles } from '@/lib/editor/image-utils'
 import {
@@ -63,8 +65,11 @@ import {
   insertInlineMath,
   insertYoutubeVideo,
 } from '@/lib/editor/insert-helpers'
+import { insertBulletList, insertOrderedList, insertTaskList } from '@/lib/editor/list-commands'
+import { PARAGRAPH_STYLES, applyParagraphStyle } from '@/lib/editor/paragraph-styles'
 import { promptInput } from '@/lib/input-dialog'
-import { cn } from '@/lib/utils'
+import { countCharacters, countWords, cn } from '@/lib/utils'
+import { activeDocumentAtom } from '@/store/documents'
 
 type ToolbarRibbonProps = {
   editor: Editor
@@ -86,6 +91,10 @@ function ToolbarSep() {
 }
 
 export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
+  const document = useAtomValue(activeDocumentAtom)
+  const words = document ? countWords(document.contentJson) : 0
+  const characters = document ? countCharacters(document.contentJson) : 0
+
   const state = useEditorState({
     editor,
     selector: ({ editor: currentEditor }) => ({
@@ -144,7 +153,7 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
   return (
     <div className="editor-toolbar-shell">
       <div className="editor-toolbar-ribbon">
-        <ToolbarCluster>
+        <ToolbarCluster className="toolbar-cluster--flat">
           <ToolbarButton
             label="Späť (⌘Z)"
             disabled={!state.canUndo}
@@ -163,13 +172,11 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
 
         <ToolbarSep />
 
-        <ToolbarCluster>
-          <BlockTypeSelect editor={editor} />
-        </ToolbarCluster>
+        <BlockTypeSelect editor={editor} />
 
         <ToolbarSep />
 
-        <ToolbarCluster>
+        <ToolbarCluster className="toolbar-cluster--flat">
           <ToolbarButton label="Tučné (⌘B)" active={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()}>
             <Bold className="h-4 w-4 stroke-[1.75]" />
           </ToolbarButton>
@@ -182,220 +189,244 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
           <ToolbarButton label="Prečiarknuté (⌘⇧X)" active={editor.isActive('strike')} onClick={() => editor.chain().focus().toggleStrike().run()}>
             <Strikethrough className="h-4 w-4 stroke-[1.75]" />
           </ToolbarButton>
-          <span className="toolbar-cluster-inner-sep" aria-hidden="true" />
-          <ToolbarButton label="Horný index" active={editor.isActive('superscript')} onClick={() => editor.chain().focus().toggleSuperscript().run()}>
-            <Superscript className="h-4 w-4 stroke-[1.75]" />
+        </ToolbarCluster>
+
+        <ToolbarSep />
+
+        <ToolbarCluster className="toolbar-cluster--flat">
+          <ToolbarButton label="Odrážky (⌘⇧8)" active={editor.isActive('bulletList')} onClick={() => insertBulletList(editor)}>
+            <List className="h-4 w-4 stroke-[1.75]" />
           </ToolbarButton>
-          <ToolbarButton label="Dolný index" active={editor.isActive('subscript')} onClick={() => editor.chain().focus().toggleSubscript().run()}>
-            <Subscript className="h-4 w-4 stroke-[1.75]" />
+          <ToolbarButton label="Číslovaný zoznam (⌘⇧7)" active={editor.isActive('orderedList')} onClick={() => insertOrderedList(editor)}>
+            <ListOrdered className="h-4 w-4 stroke-[1.75]" />
           </ToolbarButton>
-          <ToolbarButton label="Odkaz (⌘K)" active={editor.isActive('link')} onClick={setLink}>
-            <Link2 className="h-4 w-4 stroke-[1.75]" />
-          </ToolbarButton>
-          <ToolbarButton label="Inline kód (⌘E)" active={editor.isActive('code')} onClick={() => editor.chain().focus().toggleCode().run()}>
-            <Code className="h-4 w-4 stroke-[1.75]" />
+          <ToolbarButton label="Checklist (⌘⇧9)" active={editor.isActive('taskList')} onClick={() => insertTaskList(editor)}>
+            <CheckSquare className="h-4 w-4 stroke-[1.75]" />
           </ToolbarButton>
         </ToolbarCluster>
 
         <ToolbarSep />
 
-        <ToolbarCluster>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button type="button" className="toolbar-menu-trigger" title="Veľkosť písma">
-                <Type className="h-3.5 w-3.5 opacity-70" />
-                <span>Aa</span>
-                <ChevronDown className="h-3 w-3 opacity-50" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="max-h-[280px] overflow-y-auto">
-              {FONT_SIZES.map((size) => (
-                <DropdownMenuItem key={size} onClick={() => editor.chain().focus().setFontSize(size).run()}>
-                  {size}
-                </DropdownMenuItem>
-              ))}
-              <DropdownMenuItem onClick={() => editor.chain().focus().unsetFontSize().run()}>
-                Reset
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button type="button" className="toolbar-menu-trigger toolbar-menu-trigger--icon" title={`Font: ${currentFont}`}>
-                <Type className="h-4 w-4 stroke-[1.75]" />
-                <ChevronDown className="h-3 w-3 opacity-50" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="min-w-[220px] max-h-[360px] overflow-y-auto">
-              <FontFamilyMenuItems editor={editor} />
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <ColorMenuDropdown
-            label="Farba textu"
-            icon={<Palette className="h-3.5 w-3.5" />}
-            colors={TEXT_COLORS}
-            activeValue={state.currentTextColor}
-            onPick={(value) => {
-              if (!value) editor.chain().focus().unsetColor().run()
-              else editor.chain().focus().setColor(value).run()
-            }}
-            onCustomPick={(value) => editor.chain().focus().setColor(value).run()}
-            onClear={() => editor.chain().focus().unsetColor().run()}
-          />
-
-          <ColorMenuDropdown
-            label="Zvýraznenie"
-            icon={<Highlighter className="h-3.5 w-3.5" />}
-            colors={HIGHLIGHT_COLORS}
-            onPick={(value) => editor.chain().focus().toggleHighlight({ color: value }).run()}
-            onCustomPick={(value) => editor.chain().focus().toggleHighlight({ color: value }).run()}
-            onClear={() => editor.chain().focus().unsetHighlight().run()}
-          />
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button type="button" className="toolbar-btn" title="Emoji">
-                <Smile className="h-4 w-4 stroke-[1.75]" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="emoji-picker-menu p-0">
-              <EmojiPickerPanel editor={editor} />
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </ToolbarCluster>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button type="button" className="toolbar-menu-trigger toolbar-menu-trigger--icon" title="Zarovnanie">
+              <AlignLeft className="h-4 w-4 stroke-[1.75]" />
+              <ChevronDown className="h-3 w-3 opacity-50" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="toolbar-section-menu min-w-[180px]">
+            <div className="toolbar-section-menu-row">
+              <ToolbarButton label="Vľavo" active={editor.isActive({ textAlign: 'left' })} onClick={() => editor.chain().focus().setTextAlign('left').run()}>
+                <AlignLeft className="h-4 w-4 stroke-[1.75]" />
+              </ToolbarButton>
+              <ToolbarButton label="Na stred" active={editor.isActive({ textAlign: 'center' })} onClick={() => editor.chain().focus().setTextAlign('center').run()}>
+                <AlignCenter className="h-4 w-4 stroke-[1.75]" />
+              </ToolbarButton>
+              <ToolbarButton label="Vpravo" active={editor.isActive({ textAlign: 'right' })} onClick={() => editor.chain().focus().setTextAlign('right').run()}>
+                <AlignRight className="h-4 w-4 stroke-[1.75]" />
+              </ToolbarButton>
+              <ToolbarButton label="Do bloku" active={editor.isActive({ textAlign: 'justify' })} onClick={() => editor.chain().focus().setTextAlign('justify').run()}>
+                <AlignJustify className="h-4 w-4 stroke-[1.75]" />
+              </ToolbarButton>
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <ToolbarSep />
 
-        <ToolbarCluster>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button type="button" className="toolbar-menu-trigger" title="Rozloženie">
-                <LayoutTemplate className="h-3.5 w-3.5 opacity-70" />
-                <span>Rozloženie</span>
-                <ChevronDown className="h-3 w-3 opacity-50" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="toolbar-section-menu min-w-[220px]">
-              <p className="toolbar-section-menu-label">Zarovnanie</p>
-              <div className="toolbar-section-menu-row">
-                <ToolbarButton label="Vľavo" active={editor.isActive({ textAlign: 'left' })} onClick={() => editor.chain().focus().setTextAlign('left').run()}>
-                  <AlignLeft className="h-4 w-4 stroke-[1.75]" />
-                </ToolbarButton>
-                <ToolbarButton label="Na stred" active={editor.isActive({ textAlign: 'center' })} onClick={() => editor.chain().focus().setTextAlign('center').run()}>
-                  <AlignCenter className="h-4 w-4 stroke-[1.75]" />
-                </ToolbarButton>
-                <ToolbarButton label="Vpravo" active={editor.isActive({ textAlign: 'right' })} onClick={() => editor.chain().focus().setTextAlign('right').run()}>
-                  <AlignRight className="h-4 w-4 stroke-[1.75]" />
-                </ToolbarButton>
-                <ToolbarButton label="Do bloku" active={editor.isActive({ textAlign: 'justify' })} onClick={() => editor.chain().focus().setTextAlign('justify').run()}>
-                  <AlignJustify className="h-4 w-4 stroke-[1.75]" />
-                </ToolbarButton>
-              </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => editor.chain().focus().toggleBulletList().run()}>
-                <List className="h-4 w-4" />
-                Odrážky
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button type="button" className="toolbar-menu-trigger" title={`Typografia · ${currentFont}`}>
+              <Type className="h-3.5 w-3.5 opacity-70" />
+              <span className="toolbar-menu-label">Aa</span>
+              <ChevronDown className="h-3 w-3 opacity-50" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="min-w-[220px] max-h-[360px] overflow-y-auto">
+            <p className="toolbar-section-menu-label">Veľkosť</p>
+            {FONT_SIZES.map((size) => (
+              <DropdownMenuItem key={size} onClick={() => editor.chain().focus().setFontSize(size).run()}>
+                {size}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => editor.chain().focus().toggleOrderedList().run()}>
-                <ListOrdered className="h-4 w-4" />
-                Číslovaný zoznam
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => editor.chain().focus().toggleTaskList().run()}>
-                <CheckSquare className="h-4 w-4" />
-                Checklist
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => editor.chain().focus().toggleBlockquote().run()}>
-                <Quote className="h-4 w-4" />
-                Citácia
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => editor.chain().focus().setHorizontalRule().run()}>
-                <Minus className="h-4 w-4" />
-                Oddeľovač
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => insertDetailsBlock(editor)}>
-                <ListChevronsDownUp className="h-4 w-4" />
-                Rozbaľovacia sekcia
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            ))}
+            <DropdownMenuItem onClick={() => editor.chain().focus().unsetFontSize().run()}>
+              Reset veľkosti
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <p className="toolbar-section-menu-label">Písmo</p>
+            <FontFamilyMenuItems editor={editor} />
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button type="button" className="toolbar-menu-trigger" title="Vložiť">
-                <PlusSquare className="h-3.5 w-3.5 opacity-70" />
-                <span>Vložiť</span>
-                <ChevronDown className="h-3 w-3 opacity-50" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="min-w-[200px]">
-              <DropdownMenuItem onClick={() => void handlePickImage()}>
-                <ImagePlus className="h-4 w-4" />
-                Obrázok
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>
-                <Table2 className="h-4 w-4" />
-                Tabuľka
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => insertYoutubeVideo(editor)}>
-                YouTube video
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => editor.chain().focus().setPageBreak().run()}>
-                Zalomenie strany
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => insertInlineMath(editor)}>
-                Vzorec v riadku
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => insertBlockMath(editor)}>
-                Vzorec blok
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => editor.chain().focus().toggleCodeBlock().run()}>
-                <Code className="h-4 w-4" />
-                Blok kódu
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </ToolbarCluster>
+        <ColorMenuDropdown
+          label="Farba textu"
+          icon={<Palette className="h-3.5 w-3.5" />}
+          colors={TEXT_COLORS}
+          activeValue={state.currentTextColor}
+          onPick={(value) => {
+            if (!value) editor.chain().focus().unsetColor().run()
+            else editor.chain().focus().setColor(value).run()
+          }}
+          onCustomPick={(value) => editor.chain().focus().setColor(value).run()}
+          onClear={() => editor.chain().focus().unsetColor().run()}
+        />
 
-        <ToolbarCluster className="toolbar-cluster--end">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button type="button" className="toolbar-btn" title="Ďalšie nástroje">
-                <Ellipsis className="h-4 w-4 stroke-[1.75]" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-[220px]">
-              <DropdownMenuItem onClick={() => editor.chain().focus().toggleInvisibleCharacters().run()}>
-                {state.showInvisible ? 'Skryť neviditeľné znaky' : 'Zobraziť neviditeľné znaky'}
+        <ColorMenuDropdown
+          label="Zvýraznenie"
+          icon={<Highlighter className="h-3.5 w-3.5" />}
+          colors={HIGHLIGHT_COLORS}
+          onPick={(value) => editor.chain().focus().toggleHighlight({ color: value }).run()}
+          onCustomPick={(value) => editor.chain().focus().toggleHighlight({ color: value }).run()}
+          onClear={() => editor.chain().focus().unsetHighlight().run()}
+        />
+
+        <ToolbarButton label="Odkaz (⌘K)" active={editor.isActive('link')} onClick={setLink}>
+          <Link2 className="h-4 w-4 stroke-[1.75]" />
+        </ToolbarButton>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button type="button" className="toolbar-btn toolbar-item-optional" title="Emoji">
+              <span className="toolbar-emoji-trigger" aria-hidden="true">☺</span>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="emoji-picker-menu p-0">
+            <EmojiPickerPanel editor={editor} />
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <ToolbarSep />
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button type="button" className="toolbar-menu-trigger toolbar-menu-trigger--icon" title="Vložiť">
+              <PlusSquare className="h-4 w-4 stroke-[1.75]" />
+              <ChevronDown className="h-3 w-3 opacity-50" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="min-w-[200px]">
+            <DropdownMenuItem onClick={() => void handlePickImage()}>
+              <ImagePlus className="h-4 w-4" />
+              Obrázok
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>
+              <Table2 className="h-4 w-4" />
+              Tabuľka
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => insertYoutubeVideo(editor)}>YouTube video</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => editor.chain().focus().insertTableOfContents().run()}>
+              <ListTree className="h-4 w-4" />
+              Obsah (TOC)
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => editor.chain().focus().setPageBreak().run()}>
+              Zalomenie strany
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => insertInlineMath(editor)}>Vzorec v riadku</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => insertBlockMath(editor)}>Vzorec blok</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => editor.chain().focus().toggleCodeBlock().run()}>
+              <Code className="h-4 w-4" />
+              Blok kódu
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button type="button" className="toolbar-menu-trigger toolbar-menu-trigger--icon" title="Formát odseku">
+              <LayoutTemplate className="h-4 w-4 stroke-[1.75]" />
+              <ChevronDown className="h-3 w-3 opacity-50" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="toolbar-section-menu min-w-[220px]">
+            <p className="toolbar-section-menu-label">Štýly odsekov</p>
+            {PARAGRAPH_STYLES.map((style) => (
+              <DropdownMenuItem key={style.id} onClick={() => applyParagraphStyle(editor, style.id)}>
+                {style.label}
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                disabled={!state.hasSelection}
-                onClick={() => deleteEditorSelection(editor)}
-              >
-                Odstrániť výber
+            ))}
+            <DropdownMenuSeparator />
+            <p className="toolbar-section-menu-label">Riadkovanie</p>
+            {LINE_HEIGHTS.map((option) => (
+              <DropdownMenuItem key={option.value} onClick={() => editor.chain().focus().setLineHeight(option.value).run()}>
+                {option.label}
               </DropdownMenuItem>
-              <DropdownMenuItem
-                disabled={!state.canDeleteBlock}
-                onClick={() => deleteCurrentBlock(editor)}
-              >
-                {state.blockDeleteLabel ?? 'Odstrániť blok'}
+            ))}
+            <DropdownMenuItem onClick={() => editor.chain().focus().unsetLineHeight().run()}>
+              Reset riadkovania
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <p className="toolbar-section-menu-label">Medzera pod odsekom</p>
+            {PARAGRAPH_SPACING.map((option) => (
+              <DropdownMenuItem key={option.value} onClick={() => editor.chain().focus().setSpaceAfter(option.value).run()}>
+                {option.label}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}>
-                Odstrániť formátovanie
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-[var(--color-destructive)]"
-                onClick={() => editor.chain().focus().clearContent().run()}
-              >
-                Vyčistiť celý dokument
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </ToolbarCluster>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => editor.chain().focus().toggleBlockquote().run()}>
+              <Quote className="h-4 w-4" />
+              Citácia
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => editor.chain().focus().setHorizontalRule().run()}>
+              <Minus className="h-4 w-4" />
+              Oddeľovač
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => insertDetailsBlock(editor)}>
+              <ListChevronsDownUp className="h-4 w-4" />
+              Rozbaľovacia sekcia
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <span className="toolbar-spacer" aria-hidden="true" />
+
+        {document && (
+          <span className="toolbar-word-count" title={`${characters} znakov`}>
+            {words} {words === 1 ? 'slovo' : words < 5 ? 'slová' : 'slov'}
+          </span>
+        )}
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button type="button" className="toolbar-btn" title="Ďalšie nástroje">
+              <Ellipsis className="h-4 w-4 stroke-[1.75]" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-[220px]">
+            <DropdownMenuItem onClick={() => editor.chain().focus().toggleSuperscript().run()}>
+              <Superscript className="h-4 w-4" />
+              Horný index
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => editor.chain().focus().toggleSubscript().run()}>
+              <Subscript className="h-4 w-4" />
+              Dolný index
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => editor.chain().focus().toggleCode().run()}>
+              <Code className="h-4 w-4" />
+              Inline kód
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => editor.chain().focus().toggleInvisibleCharacters().run()}>
+              {state.showInvisible ? 'Skryť neviditeľné znaky' : 'Zobraziť neviditeľné znaky'}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem disabled={!state.hasSelection} onClick={() => deleteEditorSelection(editor)}>
+              Odstrániť výber
+            </DropdownMenuItem>
+            <DropdownMenuItem disabled={!state.canDeleteBlock} onClick={() => deleteCurrentBlock(editor)}>
+              {state.blockDeleteLabel ?? 'Odstrániť blok'}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}>
+              Odstrániť formátovanie
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-[var(--color-destructive)]"
+              onClick={() => editor.chain().focus().clearContent().run()}
+            >
+              Vyčistiť celý dokument
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {(state.isCodeBlock || state.isTable) && (

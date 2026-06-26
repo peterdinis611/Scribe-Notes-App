@@ -3,21 +3,16 @@ import { lazy, Suspense, useMemo, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import {
   Check,
-  ChevronDown,
   Circle,
-  Eye,
-  FileDown,
-  FileSymlink,
-  FolderInput,
   Loader2,
   Plus,
   Settings2,
 } from 'lucide-react'
 import { DocumentTitleField } from '@/components/DocumentTitleField'
 import { EditorDocumentToolsMenu } from '@/components/editor/EditorDocumentToolsMenu'
+import { EditorFileMenu } from '@/components/editor/EditorFileMenu'
 import { EditorViewModeToggle } from '@/components/editor/EditorViewModeToggle'
 import { SidebarToggle } from '@/components/SidebarToggle'
-import { countCharacters, countWords } from '@/lib/utils'
 import { exportDocument, pickAndImportFile, revealInFinder } from '@/lib/db/api'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { tiptapJsonToHtml } from '@/lib/export/html'
@@ -32,13 +27,6 @@ import {
 } from '@/store/documents'
 import { editorViewModeAtom, templatePickerOpenAtom } from '@/store/settings'
 import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 
 const PdfPreviewDialog = lazy(() =>
   import('@/components/export/PdfPreviewDialog').then((module) => ({
@@ -89,8 +77,6 @@ export function EditorHeader() {
   const setTemplatePickerOpen = useSetAtom(templatePickerOpenAtom)
   const navigate = useNavigate()
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false)
-  const words = document ? countWords(document.contentJson) : 0
-  const characters = document ? countCharacters(document.contentJson) : 0
 
   const pdfPreviewPayload = useMemo(() => {
     if (!document) return null
@@ -137,42 +123,14 @@ export function EditorHeader() {
           <Plus className="h-3.5 w-3.5 shrink-0" />
           <span className="editor-header-label">Nový</span>
         </Button>
-        <Button variant="outline" size="sm" className="editor-header-import" onClick={() => void handleImport()}>
-          <FolderInput className="h-3.5 w-3.5 shrink-0" />
-          <span className="editor-header-label">Import</span>
-        </Button>
-
         {document && (
-          <>
-            <span className="editor-header-divider" aria-hidden="true" />
-            {document.filePath && (
-              <Button variant="ghost" size="sm" onClick={() => void handleRevealFile()}>
-                <FileSymlink className="h-3.5 w-3.5 shrink-0" />
-                <span className="editor-header-label">Súbor</span>
-              </Button>
-            )}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <FileDown className="h-3.5 w-3.5 shrink-0" />
-                  <span className="editor-header-label">Export</span>
-                  <ChevronDown className="h-3 w-3 shrink-0 opacity-60" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="min-w-[180px]">
-                <DropdownMenuItem onClick={() => setPdfPreviewOpen(true)}>
-                  <Eye className="h-3.5 w-3.5 shrink-0" />
-                  Náhľad PDF
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => void handleExport('pdf')}>Exportovať PDF</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => void handleExport('docx')}>Word (DOCX)</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => void handleExport('txt')}>Text (TXT)</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => void handleExport('md')}>Markdown (MD)</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => void handleExport('pages')}>Apple Pages</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </>
+          <EditorFileMenu
+            hasFilePath={!!document.filePath}
+            onImport={() => void handleImport()}
+            onRevealFile={() => void handleRevealFile()}
+            onPdfPreview={() => setPdfPreviewOpen(true)}
+            onExport={(format) => void handleExport(format)}
+          />
         )}
       </div>
 
@@ -187,15 +145,6 @@ export function EditorHeader() {
       <div className="editor-header-right titlebar-no-drag">
         {document && <EditorDocumentToolsMenu viewMode={viewMode} />}
         {document && <EditorViewModeToggle />}
-        {document && (
-          <span className="editor-meta" title={`${characters} znakov`}>
-            {words} {words === 1 ? 'slovo' : words < 5 ? 'slová' : 'slov'}
-            <span className="editor-meta-sep" aria-hidden="true">
-              ·
-            </span>
-            {characters} zn.
-          </span>
-        )}
         {document && <SaveStatus />}
         <Button
           variant="ghost"

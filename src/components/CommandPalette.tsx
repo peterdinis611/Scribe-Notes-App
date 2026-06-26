@@ -10,6 +10,7 @@ import {
   Plus,
   Search,
   Settings2,
+  Shuffle,
 } from 'lucide-react'
 import { createDocument, createFolder, getDocument, searchDocuments } from '@/lib/db/api'
 import type { SearchHit } from '@/lib/db/api'
@@ -21,7 +22,8 @@ import { activeDocumentAtom, activeDocumentIdAtom, documentsAtom } from '@/store
 import { commandPaletteOpenAtom, moveDocumentPickerOpenAtom } from '@/store/folders'
 import { templatePickerOpenAtom } from '@/store/settings'
 import { cycleThemeId } from '@/lib/themes/apply'
-import { applyThemeSettingsAtom, createThemeSelection, themeSettingsAtom } from '@/store/settings'
+import { generateRandomTheme } from '@/lib/themes/generate-random-theme'
+import { applyThemeSettingsAtom, createCustomThemeSelection, createThemeSelection, themeSettingsAtom } from '@/store/settings'
 
 type PaletteItem =
   | { type: 'action'; id: string; label: string; hint?: string; icon: React.ReactNode; run: () => void }
@@ -112,6 +114,16 @@ export function CommandPalette() {
         run: () => {
           const next = cycleThemeId(themeSettings.themeId)
           applyTheme(createThemeSelection(themeSettings, next))
+        },
+      },
+      {
+        type: 'action',
+        id: 'random-theme',
+        label: 'Náhodná téma',
+        hint: 'Vygenerovať vlastnú paletu',
+        icon: <Shuffle className="h-4 w-4" />,
+        run: () => {
+          applyTheme(createCustomThemeSelection(themeSettings, generateRandomTheme()))
         },
       },
       {

@@ -17,7 +17,7 @@ import {
   getCachedContentHash,
   getCachedParsedContent,
 } from '@/lib/cache/document-cache'
-import { EDITOR_PAGE } from '@/lib/editor/page-layout'
+import { resolvePageLayout } from '@/lib/editor/page-layout'
 import { getEditorExtensions } from '@/lib/editor/extensions'
 import { getEditorMarkdown } from '@/lib/editor/markdown-content'
 import { insertImagesFromFiles } from '@/lib/editor/image-utils'
@@ -35,6 +35,7 @@ import {
 import {
   editorModeActionsAtom,
   editorViewModeAtom,
+  pageSetupAtom,
   setEditorViewModeAtom,
 } from '@/store/settings'
 
@@ -165,13 +166,16 @@ export function DocumentEditor() {
 
   useEditorHotkeys(editor)
 
+  const pageSetup = useAtomValue(pageSetupAtom)
+  const pageLayout = useMemo(() => resolvePageLayout(pageSetup), [pageSetup])
+
   const {
     scrollRef,
     canvasRef,
     pageCount,
     currentPage,
     scrollToPage,
-  } = useDocumentPagination({ editor, documentId: activeId })
+  } = useDocumentPagination({ editor, documentId: activeId, pageLayout })
 
   useEffect(() => {
     if (!editor || !activeDocument) return
@@ -219,8 +223,12 @@ export function DocumentEditor() {
           style={
             !isMarkdown
               ? ({
-                  '--page-content-height': `${EDITOR_PAGE.contentHeight}px`,
-                  '--page-padding-top': `${EDITOR_PAGE.paddingTop}px`,
+                  '--page-width': `${pageLayout.width}px`,
+                  '--page-content-height': `${pageLayout.contentHeight}px`,
+                  '--page-padding-top': `${pageLayout.paddingTop}px`,
+                  '--page-padding-bottom': `${pageLayout.paddingBottom}px`,
+                  '--page-padding-left': `${pageLayout.paddingLeft}px`,
+                  '--page-padding-right': `${pageLayout.paddingRight}px`,
                 } as CSSProperties)
               : undefined
           }
@@ -235,7 +243,7 @@ export function DocumentEditor() {
                   <div
                     key={index}
                     className="editor-page-break"
-                    style={{ top: EDITOR_PAGE.paddingTop + (index + 1) * EDITOR_PAGE.contentHeight }}
+                    style={{ top: pageLayout.paddingTop + (index + 1) * pageLayout.contentHeight }}
                     aria-hidden="true"
                   />
                 ))}

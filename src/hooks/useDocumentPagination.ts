@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Editor } from '@tiptap/react'
+import type { ResolvedPageLayout } from '@/lib/editor/page-setup'
 import {
-  EDITOR_PAGE,
   getPageCount,
   getPageFromScrollTop,
   getPageScrollTop,
@@ -11,9 +11,10 @@ import { throttle } from '@/lib/utils'
 type UseDocumentPaginationOptions = {
   editor: Editor | null
   documentId: string | null
+  pageLayout: ResolvedPageLayout
 }
 
-export function useDocumentPagination({ editor, documentId }: UseDocumentPaginationOptions) {
+export function useDocumentPagination({ editor, documentId, pageLayout }: UseDocumentPaginationOptions) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLElement | null>(null)
@@ -30,17 +31,17 @@ export function useDocumentPagination({ editor, documentId }: UseDocumentPaginat
     if (!content || !canvas) return
 
     const nextHeight = content.scrollHeight
-    const nextPageCount = getPageCount(nextHeight)
+    const nextPageCount = getPageCount(nextHeight, pageLayout)
     setContentHeight(nextHeight)
     setPageCount(nextPageCount)
 
     const scrollEl = scrollRef.current
     if (scrollEl) {
-      const contentStart = canvas.offsetTop + EDITOR_PAGE.paddingTop
-      const page = getPageFromScrollTop(scrollEl.scrollTop, contentStart, nextPageCount)
+      const contentStart = canvas.offsetTop + pageLayout.paddingTop
+      const page = getPageFromScrollTop(scrollEl.scrollTop, contentStart, nextPageCount, pageLayout)
       setCurrentPage(page)
     }
-  }, [])
+  }, [pageLayout])
 
   const scheduleMeasure = useCallback(() => {
     if (measureFrameRef.current !== null) return
@@ -61,8 +62,8 @@ export function useDocumentPagination({ editor, documentId }: UseDocumentPaginat
     if (!scrollEl || !canvas) return
 
     const boundedPage = Math.min(pageCount, Math.max(1, page))
-    const contentStart = canvas.offsetTop + EDITOR_PAGE.paddingTop
-    const targetTop = getPageScrollTop(boundedPage, contentStart)
+    const contentStart = canvas.offsetTop + pageLayout.paddingTop
+    const targetTop = getPageScrollTop(boundedPage, contentStart, pageLayout)
 
     isProgrammaticScrollRef.current = true
     scrollEl.scrollTo({ top: targetTop, behavior: 'smooth' })
@@ -71,7 +72,7 @@ export function useDocumentPagination({ editor, documentId }: UseDocumentPaginat
     window.setTimeout(() => {
       isProgrammaticScrollRef.current = false
     }, 350)
-  }, [pageCount])
+  }, [pageCount, pageLayout])
 
   useEffect(() => {
     setCurrentPage(1)
@@ -83,6 +84,10 @@ export function useDocumentPagination({ editor, documentId }: UseDocumentPaginat
       scrollEl.scrollTop = 0
     }
   }, [documentId])
+
+  useEffect(() => {
+    scheduleMeasure()
+  }, [pageLayout, scheduleMeasure])
 
   useEffect(() => {
     if (!editor) return
@@ -123,14 +128,14 @@ export function useDocumentPagination({ editor, documentId }: UseDocumentPaginat
       const canvas = canvasRef.current
       if (!canvas) return
 
-      const contentStart = canvas.offsetTop + EDITOR_PAGE.paddingTop
-      const page = getPageFromScrollTop(scrollEl.scrollTop, contentStart, pageCount)
+      const contentStart = canvas.offsetTop + pageLayout.paddingTop
+      const page = getPageFromScrollTop(scrollEl.scrollTop, contentStart, pageCount, pageLayout)
       setCurrentPage(page)
     }, 80)
 
     scrollEl.addEventListener('scroll', handleScroll, { passive: true })
     return () => scrollEl.removeEventListener('scroll', handleScroll)
-  }, [pageCount])
+  }, [pageCount, pageLayout])
 
   useEffect(() => {
     if (currentPage > pageCount) {

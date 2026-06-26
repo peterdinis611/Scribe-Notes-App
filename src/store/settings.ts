@@ -1,8 +1,10 @@
 import { atom } from 'jotai'
+import { atomWithStorage } from 'jotai/utils'
 import type { StorageSettings } from '@/lib/db/api'
 import { applyThemeSettings } from '@/lib/themes/apply'
 import { getDefaultCustomTheme } from '@/lib/themes/presets'
 import type { ThemeColors, ThemePresetId, ThemeSettings } from '@/lib/themes/types'
+import { DEFAULT_PAGE_SETUP, type PageSetup } from '@/lib/editor/page-setup'
 
 export type ThemeMode = ThemePresetId
 
@@ -63,6 +65,10 @@ export type EditorModeActions = {
 }
 
 export const editorModeActionsAtom = atom<EditorModeActions | null>(null)
+
+const PAGE_SETUP_KEY = 'scribe-page-setup'
+
+export const pageSetupAtom = atomWithStorage<PageSetup>(PAGE_SETUP_KEY, DEFAULT_PAGE_SETUP)
 
 export const applyThemeSettingsAtom = atom(
   null,
