@@ -84,7 +84,7 @@ pub fn run() {
             commands::import_export::pick_and_import_file,
             commands::import_export::import_file,
             commands::import_export::export_document,
-            commands::import_export::preview_pdf_export,
+            commands::import_export::export_pdf_bytes,
             commands::import_export::scan_scribe_files,
             commands::import_export::force_save_document,
             commands::images::save_document_image,

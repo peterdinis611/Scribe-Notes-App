@@ -35,16 +35,6 @@ pub fn textutil_to_stdout(input: &Path, format: &str) -> Result<String, String> 
     Ok(String::from_utf8_lossy(&output.stdout).to_string())
 }
 
-pub fn export_html_to_pdf(html: &str, output: &Path) -> Result<(), String> {
-    let temp_dir = std::env::temp_dir().join(format!("scribe-export-{}", uuid::Uuid::new_v4()));
-    std::fs::create_dir_all(&temp_dir).map_err(|e| e.to_string())?;
-    let html_path = temp_dir.join("export.html");
-    std::fs::write(&html_path, html).map_err(|e| e.to_string())?;
-    let result = textutil_convert(&html_path, "pdf", output);
-    let _ = std::fs::remove_dir_all(temp_dir);
-    result
-}
-
 pub fn export_html_to_docx(html: &str, output: &Path) -> Result<(), String> {
     let temp_dir = std::env::temp_dir().join(format!("scribe-export-{}", uuid::Uuid::new_v4()));
     std::fs::create_dir_all(&temp_dir).map_err(|e| e.to_string())?;
@@ -341,6 +331,25 @@ pub fn default_export_path(dir: &Path, title: &str, ext: &str) -> PathBuf {
     dir.join(sanitize_export_name(title, ext))
 }
 
+pub fn default_pdf_export_path(documents_dir: &Path, title: &str) -> Result<PathBuf, String> {
+    let pdf_dir = crate::storage::pdf_export_dir(documents_dir)?;
+    let base = sanitize_export_name(title, "pdf");
+    let path = pdf_dir.join(&base);
+    if !path.exists() {
+        return Ok(path);
+    }
+
+    let stem = base.strip_suffix(".pdf").unwrap_or(&base);
+    for i in 2..100 {
+        let candidate = pdf_dir.join(format!("{stem}-{i}.pdf"));
+        if !candidate.exists() {
+            return Ok(candidate);
+        }
+    }
+
+    Ok(pdf_dir.join(format!("{stem}-{}.pdf", uuid::Uuid::new_v4())))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -356,5 +365,17 @@ mod tests {
     #[test]
     fn sanitize_export_name_strips_unsafe_characters() {
         assert_eq!(sanitize_export_name("Môj dokument / test", "pdf"), "Môj dokument test.pdf");
+    }
+
+    #[test]
+    fn default_pdf_export_path_uses_pdf_subfolder() {
+        let temp = std::env::temp_dir().join(format!("scribe-pdf-test-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&temp).unwrap();
+
+        let path = default_pdf_export_path(&temp, "Report").unwrap();
+        assert_eq!(path, temp.join("pdf").join("Report.pdf"));
+        assert!(path.parent().is_some_and(|parent| parent.ends_with("pdf")));
+
+        let _ = std::fs::remove_dir_all(temp);
     }
 }

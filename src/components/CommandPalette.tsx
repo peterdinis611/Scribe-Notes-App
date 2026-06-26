@@ -4,6 +4,7 @@ import { useNavigate } from '@tanstack/react-router'
 import {
   Copy,
   FileText,
+  Focus,
   FolderInput,
   FolderPlus,
   Moon,
@@ -18,7 +19,7 @@ import { promptInput } from '@/lib/input-dialog'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
 import { cn, debounce } from '@/lib/utils'
-import { activeDocumentAtom, activeDocumentIdAtom, documentsAtom } from '@/store/documents'
+import { activeDocumentAtom, activeDocumentIdAtom, documentsAtom, focusModeAtom } from '@/store/documents'
 import { commandPaletteOpenAtom, moveDocumentPickerOpenAtom } from '@/store/folders'
 import { templatePickerOpenAtom } from '@/store/settings'
 import { cycleThemeId } from '@/lib/themes/apply'
@@ -45,6 +46,7 @@ export function CommandPalette() {
   const setTemplatePickerOpen = useSetAtom(templatePickerOpenAtom)
   const [themeSettings] = useAtom(themeSettingsAtom)
   const applyTheme = useSetAtom(applyThemeSettingsAtom)
+  const [focusMode, setFocusMode] = useAtom(focusModeAtom)
 
   const activeDocument = useMemo(
     () => documents.find((doc) => doc.id === activeDocumentId) ?? null,
@@ -63,6 +65,14 @@ export function CommandPalette() {
       },
       ...(activeDocument
         ? [
+            {
+              type: 'action' as const,
+              id: 'focus-mode',
+              label: focusMode ? 'Vypnúť režim sústredenia' : 'Zapnúť režim sústredenia',
+              hint: '⌘⇧F',
+              icon: <Focus className="h-4 w-4" />,
+              run: () => setFocusMode((enabled) => !enabled),
+            },
             {
               type: 'action' as const,
               id: 'duplicate',
@@ -145,7 +155,7 @@ export function CommandPalette() {
         },
       },
     ],
-    [activeDocument, applyTheme, navigate, setActiveDocument, setActiveId, setDocuments, setMovePickerOpen, setOpen, setTemplatePickerOpen, themeSettings],
+    [activeDocument, applyTheme, focusMode, navigate, setActiveDocument, setActiveId, setDocuments, setFocusMode, setMovePickerOpen, setOpen, setTemplatePickerOpen, themeSettings],
   )
 
   const documentItems: PaletteItem[] = useMemo(

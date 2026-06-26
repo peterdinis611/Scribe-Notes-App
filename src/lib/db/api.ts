@@ -107,14 +107,22 @@ export const pickAndImportFile = async () => {
 
 export const importFile = async (path: string) => cacheDocument(await invoke<Document>('import_file', { path }))
 
-export const exportDocument = (
+export const exportDocument = async (
   html: string,
   plainText: string,
   title: string,
   format: 'pdf' | 'docx' | 'txt' | 'pages' | 'md',
   markdown?: string,
-) =>
-  invoke<ExportResult | null>('export_document', {
+) => {
+  if (format === 'pdf') {
+    const { generatePdfFromHtml } = await import('@/lib/export/pdf')
+    const { dataBase64 } = await generatePdfFromHtml(html)
+    return invoke<ExportResult | null>('export_pdf_bytes', {
+      input: { title, dataBase64 },
+    })
+  }
+
+  return invoke<ExportResult | null>('export_document', {
     input: {
       html,
       plainText: format === 'md' ? (markdown ?? plainText) : plainText,
@@ -122,11 +130,13 @@ export const exportDocument = (
       format,
     },
   })
+}
 
-export const previewPdfExport = (html: string, plainText: string, title: string) =>
-  invoke<{ dataBase64: string }>('preview_pdf_export', {
-    input: { html, plainText, title, format: 'pdf' },
-  })
+export const previewPdfExport = async (html: string, _plainText: string, _title: string) => {
+  const { generatePdfFromHtml } = await import('@/lib/export/pdf')
+  const { dataBase64 } = await generatePdfFromHtml(html)
+  return { dataBase64 }
+}
 
 export const listFolders = () => invoke<Folder[]>('list_folders')
 

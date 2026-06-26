@@ -127,7 +127,7 @@ export function PdfPreviewDialog({
             <div className="pdf-preview-state is-error">
               <p>{error}</p>
               <p className="pdf-preview-state-hint">
-                PDF export vyžaduje macOS a nástroj textutil. Skúste exportovať priamo do súboru.
+                Skúste znova alebo exportujte priamo do súboru cez menu Súbor.
               </p>
             </div>
           )}

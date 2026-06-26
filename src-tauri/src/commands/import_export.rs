@@ -258,14 +258,13 @@ pub async fn export_document(
     input: ExportHtmlInput,
 ) -> Result<Option<ExportResult>, String> {
     let format = input.format.to_lowercase();
-    if format != "pdf"
-        && format != "docx"
+    if format != "docx"
         && format != "txt"
         && format != "pages"
         && format != "md"
         && format != "markdown"
     {
-        return Err("Podporované exporty: pdf, docx, txt, pages, md".to_string());
+        return Err("Podporované exporty: docx, txt, pages, md".to_string());
     }
 
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
@@ -288,7 +287,6 @@ pub async fn export_document(
     let output = PathBuf::from(path.to_string());
 
     match format.as_str() {
-        "pdf" => export::export_html_to_pdf(&input.html, &output)?,
         "docx" => export::export_html_to_docx(&input.html, &output)?,
         "txt" => export::export_plain_text(&input.plain_text, &output)?,
         "pages" => export::export_text_to_pages(&input.plain_text, &output)?,
@@ -301,24 +299,35 @@ pub async fn export_document(
     }))
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct PdfPreviewResult {
+pub struct ExportPdfBytesInput {
+    pub title: String,
     pub data_base64: String,
 }
 
 #[tauri::command]
-pub fn preview_pdf_export(input: ExportHtmlInput) -> Result<PdfPreviewResult, String> {
-    let temp_dir = std::env::temp_dir().join(format!("scribe-pdf-preview-{}", Uuid::new_v4()));
-    std::fs::create_dir_all(&temp_dir).map_err(|e| e.to_string())?;
-    let output = temp_dir.join("preview.pdf");
-    export::export_html_to_pdf(&input.html, &output)?;
-    let bytes = std::fs::read(&output).map_err(|e| e.to_string())?;
-    let _ = std::fs::remove_dir_all(&temp_dir);
+pub async fn export_pdf_bytes(
+    app: AppHandle,
+    state: State<'_, DbState>,
+    input: ExportPdfBytesInput,
+) -> Result<Option<ExportResult>, String> {
     use base64::{engine::general_purpose::STANDARD, Engine as _};
-    Ok(PdfPreviewResult {
-        data_base64: STANDARD.encode(bytes),
-    })
+
+    let bytes = STANDARD
+        .decode(&input.data_base64)
+        .map_err(|e| format!("Neplatné PDF dáta: {e}"))?;
+
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let dir = storage::get_documents_dir(&app, &conn)?;
+    drop(conn);
+
+    let output = export::default_pdf_export_path(&dir, &input.title)?;
+    std::fs::write(&output, bytes).map_err(|e| format!("Nepodarilo sa uložiť PDF: {e}"))?;
+
+    Ok(Some(ExportResult {
+        path: output.to_string_lossy().to_string(),
+    }))
 }
 
 #[derive(Debug, Serialize)]

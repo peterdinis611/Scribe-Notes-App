@@ -1,9 +1,10 @@
-import { useAtomValue, useSetAtom } from 'jotai'
+import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { lazy, Suspense, useMemo, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import {
   Check,
   Circle,
+  Focus,
   Loader2,
   Plus,
   Settings2,
@@ -23,6 +24,7 @@ import {
   activeDocumentAtom,
   activeDocumentIdAtom,
   documentsAtom,
+  focusModeAtom,
   saveStatusAtom,
 } from '@/store/documents'
 import { editorViewModeAtom, templatePickerOpenAtom } from '@/store/settings'
@@ -77,6 +79,7 @@ export function EditorHeader() {
   const setTemplatePickerOpen = useSetAtom(templatePickerOpenAtom)
   const navigate = useNavigate()
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false)
+  const [focusMode, setFocusMode] = useAtom(focusModeAtom)
 
   const pdfPreviewPayload = useMemo(() => {
     if (!document) return null
@@ -143,18 +146,32 @@ export function EditorHeader() {
       </div>
 
       <div className="editor-header-right titlebar-no-drag">
-        {document && <EditorDocumentToolsMenu viewMode={viewMode} />}
-        {document && <EditorViewModeToggle />}
+        {focusMode && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="editor-focus-exit"
+            title="Ukončiť režim sústredenia (Esc)"
+            onClick={() => setFocusMode(false)}
+          >
+            <Focus className="h-3.5 w-3.5 shrink-0" />
+            <span className="editor-header-label">Ukončiť sústredenie</span>
+          </Button>
+        )}
+        {document && !focusMode && <EditorDocumentToolsMenu viewMode={viewMode} />}
+        {document && !focusMode && <EditorViewModeToggle />}
         {document && <SaveStatus />}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate(ROUTES.settingsSection('appearance'))}
-          title="Nastavenia (⌘,)"
-          aria-label="Nastavenia"
-        >
-          <Settings2 className="h-4 w-4" />
-        </Button>
+        {!focusMode && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(ROUTES.settingsSection('appearance'))}
+            title="Nastavenia (⌘,)"
+            aria-label="Nastavenia"
+          >
+            <Settings2 className="h-4 w-4" />
+          </Button>
+        )}
       </div>
     </header>
 

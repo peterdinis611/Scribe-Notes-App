@@ -1513,9 +1513,14 @@
   pointer-events: none;
 }
 
-.editor-shell--focus .editor-header-right > :not(.status-pill):not(.doc-title-button-header) {
+.editor-shell--focus .editor-header-right > :not(.status-pill):not(.doc-title-button-header):not(.editor-focus-exit) {
   opacity: 0;
   pointer-events: none;
+}
+
+.editor-shell--focus .editor-header-right .editor-focus-exit {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .editor-shell--focus .editor-header-right .status-pill {

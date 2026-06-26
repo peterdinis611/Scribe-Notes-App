@@ -19,6 +19,7 @@ import {
   activeDocumentIdAtom,
   documentsAtom,
   flushAutoSaveAtom,
+  focusModeAtom,
   saveStatusAtom,
 } from '@/store/documents'
 
@@ -39,6 +40,9 @@ export function useKeyboardShortcuts() {
   const setSaveStatus = useSetAtom(saveStatusAtom)
   const setCommandPaletteOpen = useSetAtom(commandPaletteOpenAtom)
   const flushAutoSave = useAtomValue(flushAutoSaveAtom)
+  const [focusMode, setFocusMode] = useAtom(focusModeAtom)
+  const commandPaletteOpen = useAtomValue(commandPaletteOpenAtom)
+  const templatePickerOpen = useAtomValue(templatePickerOpenAtom)
 
   useHotkeys(
     [
@@ -101,6 +105,23 @@ export function useKeyboardShortcuts() {
         callback: () => navigate(ROUTES.settingsSection('appearance')),
         options: {
           meta: { name: 'Nastavenia', description: 'Otvorí stránku nastavení' },
+        },
+      },
+      {
+        hotkey: 'Mod+Shift+F',
+        callback: () => setFocusMode((enabled) => !enabled),
+        options: {
+          meta: { name: 'Režim sústredenia', description: 'Zapne alebo vypne režim sústredenia' },
+        },
+      },
+      {
+        hotkey: 'Escape',
+        callback: () => {
+          if (!focusMode || commandPaletteOpen || templatePickerOpen) return
+          setFocusMode(false)
+        },
+        options: {
+          meta: { name: 'Ukončiť sústredenie', description: 'Vypne režim sústredenia' },
         },
       },
     ],

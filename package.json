@@ -71,6 +71,7 @@
     "emoji-picker-react": "^4.19.1",
     "file-saver": "^2.0.5",
     "highlight.js": "^11.11.1",
+    "html2pdf.js": "^0.14.0",
     "jotai": "^2.20.1",
     "katex": "^0.17.0",
     "lowlight": "^3.3.0",

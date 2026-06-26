@@ -72,7 +72,8 @@ export function EditorDocumentToolsMenu({ viewMode }: EditorDocumentToolsMenuPro
             onClick={() => setFocusMode((open) => !open)}
           >
             <Focus className="h-4 w-4 shrink-0" />
-            Režim sústredenia
+            {focusMode ? 'Vypnúť režim sústredenia' : 'Režim sústredenia'}
+            <span className="ml-auto text-[11px] text-[var(--color-muted-foreground)]">⌘⇧F</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setPageSetupOpen(true)}>

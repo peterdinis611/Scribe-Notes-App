@@ -73,6 +73,12 @@ pub fn ensure_documents_dir(path: &Path) -> Result<(), String> {
     std::fs::create_dir_all(path).map_err(|e| format!("Nepodarilo sa vytvoriť priečinok: {e}"))
 }
 
+pub fn pdf_export_dir(documents_dir: &Path) -> Result<PathBuf, String> {
+    let dir = documents_dir.join("pdf");
+    ensure_documents_dir(&dir)?;
+    Ok(dir)
+}
+
 pub fn sanitize_filename(title: &str) -> String {
     let mut slug: String = title
         .chars()
@@ -298,7 +304,7 @@ pub fn collect_scribe_files(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), St
             let skip = path
                 .file_name()
                 .and_then(|name| name.to_str())
-                .is_some_and(|name| name.starts_with('.') || name == "assets");
+                .is_some_and(|name| name.starts_with('.') || name == "assets" || name == "pdf");
             if skip {
                 continue;
             }
