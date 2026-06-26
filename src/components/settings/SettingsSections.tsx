@@ -92,17 +92,7 @@ export function AppearanceSection() {
             swatch={[customTheme.background, customTheme.selectionStrong]}
             onClick={() => chooseTheme('custom')}
           />
-          <button type="button" className="theme-card theme-card--random" onClick={applyRandomTheme}>
-            <div className="theme-card-swatches theme-card-swatches--random" aria-hidden="true">
-              <span />
-              <span />
-              <span />
-            </div>
-            <div className="theme-card-text">
-              <p className="theme-card-name">Náhodná</p>
-              <p className="theme-card-desc">Nová paleta jedným klikom</p>
-            </div>
-          </button>
+          <RandomThemeCard onClick={applyRandomTheme} />
         </div>
       </section>
 
@@ -352,6 +342,21 @@ function FileTextIcon() {
       />
       <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
+  )
+}
+
+function RandomThemeCard({ onClick }: { onClick: () => void }) {
+  return (
+    <button type="button" className="theme-card theme-card--random" onClick={onClick}>
+      <div className="theme-card-swatches" aria-hidden="true">
+        <span className="theme-card-swatch-random theme-card-swatch-random--a" />
+        <span className="theme-card-swatch-random theme-card-swatch-random--b" />
+      </div>
+      <div className="theme-card-text">
+        <p className="theme-card-name">Náhodná</p>
+        <p className="theme-card-desc">Nová paleta jedným klikom</p>
+      </div>
+    </button>
   )
 }
 

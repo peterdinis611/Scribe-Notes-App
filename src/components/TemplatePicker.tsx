@@ -10,7 +10,6 @@ import {
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { DOCUMENT_TEMPLATES, type DocumentTemplate } from '@/lib/templates'
 import { cn } from '@/lib/utils'
 
@@ -141,7 +140,7 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
           </div>
         </div>
 
-        <ScrollArea className="template-sheet-body">
+        <div className="template-sheet-body">
           {showBlankHero && (
             <TemplateCard
               template={BLANK_TEMPLATE}
@@ -170,7 +169,7 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
               </Button>
             </div>
           )}
-        </ScrollArea>
+        </div>
 
         <div className="template-sheet-footer">
           <p className="template-sheet-selection">
