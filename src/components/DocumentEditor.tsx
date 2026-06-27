@@ -204,7 +204,7 @@ export function DocumentEditor() {
     <div className={cn('editor-shell', isMarkdown && 'editor-shell--markdown', focusMode && 'editor-shell--focus')}>
       <EditorHeader />
       {!isMarkdown && !focusMode && <EditorToolbar editor={editor} onInsertImages={handleInsertImages} />}
-      {!isMarkdown && <EditorMenus editor={editor} onInsertImages={handleInsertImages} pageCount={pageCount} canvasRef={canvasRef} />}
+      {!isMarkdown && <EditorMenus editor={editor} onInsertImages={handleInsertImages} />}
 
       <div
         className={cn(

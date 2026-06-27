@@ -1,5 +1,6 @@
 import type { Editor } from '@tiptap/react'
 import type { Node as PMNode } from '@tiptap/pm/model'
+import type { ResolvedPos } from '@tiptap/pm/model'
 import { EDITOR_PAGE } from '@/lib/editor/page-layout'
 
 export type BlockRange = {
@@ -44,10 +45,7 @@ function getOffsetTopWithin(element: HTMLElement, container: HTMLElement): numbe
   return top
 }
 
-export function getActiveBlockRange(editor: Editor): BlockRange | null {
-  const { selection } = editor.state
-  const $from = selection.$from
-
+export function getBlockRangeAtPos($from: ResolvedPos): BlockRange | null {
   for (let depth = $from.depth; depth > 0; depth -= 1) {
     const node = $from.node(depth)
     const name = node.type.name
@@ -75,6 +73,10 @@ export function getActiveBlockRange(editor: Editor): BlockRange | null {
   }
 
   return null
+}
+
+export function getActiveBlockRange(editor: Editor): BlockRange | null {
+  return getBlockRangeAtPos(editor.state.selection.$from)
 }
 
 export function canMoveBlockUp(editor: Editor): boolean {

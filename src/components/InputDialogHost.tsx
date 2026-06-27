@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useAtomValue } from 'jotai'
 import { Button } from '@/components/ui/button'
 import { inputDialogAtom, resolveInputDialog } from '@/lib/input-dialog'
@@ -7,6 +8,11 @@ export function InputDialogHost() {
   const dialog = useAtomValue(inputDialogAtom)
   const inputRef = useRef<HTMLInputElement>(null)
   const [value, setValue] = useState('')
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     if (!dialog.open) return
@@ -18,7 +24,7 @@ export function InputDialogHost() {
     return () => window.cancelAnimationFrame(frame)
   }, [dialog])
 
-  if (!dialog.open) return null
+  if (!dialog.open || !mounted) return null
 
   function close(result: string | null) {
     resolveInputDialog(result)
@@ -29,7 +35,7 @@ export function InputDialogHost() {
     close(value.trim() || null)
   }
 
-  return (
+  return createPortal(
     <div className="input-dialog-backdrop titlebar-no-drag" onClick={() => close(null)}>
       <form
         className="input-dialog-card"
@@ -61,6 +67,7 @@ export function InputDialogHost() {
           </Button>
         </div>
       </form>
-    </div>
+    </div>,
+    document.body,
   )
 }

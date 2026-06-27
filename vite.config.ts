@@ -16,6 +16,15 @@ export default defineConfig({
     strictPort: true,
   },
   envPrefix: ['VITE_', 'TAURI_'],
+  optimizeDeps: {
+    include: [
+      'effect/Effect',
+      'effect/Option',
+      'effect/Fiber',
+      'effect/Data',
+      'effect/Function',
+    ],
+  },
   build: {
     target: 'es2021',
     minify: !process.env.TAURI_DEBUG ? 'esbuild' : false,

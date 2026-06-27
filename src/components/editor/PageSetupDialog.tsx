@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useAtom } from 'jotai'
 import { FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -29,8 +31,30 @@ function matchesMarginPreset(setup: PageSetup, presetId: string) {
 
 export function PageSetupDialog({ open, onClose }: PageSetupDialogProps) {
   const [pageSetup, setPageSetup] = useAtom(pageSetupAtom)
+  const [mounted, setMounted] = useState(false)
 
-  if (!open) return null
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!open) return
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', onKeyDown)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [open, onClose])
+
+  if (!open || !mounted) return null
 
   function update(partial: Partial<PageSetup>) {
     setPageSetup({ ...pageSetup, ...partial })
@@ -40,7 +64,7 @@ export function PageSetupDialog({ open, onClose }: PageSetupDialogProps) {
     setPageSetup(DEFAULT_PAGE_SETUP)
   }
 
-  return (
+  return createPortal(
     <div className="input-dialog-backdrop titlebar-no-drag" onClick={onClose}>
       <div
         className="page-setup-dialog"
@@ -160,6 +184,7 @@ export function PageSetupDialog({ open, onClose }: PageSetupDialogProps) {
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

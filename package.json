@@ -68,6 +68,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "docx": "^9.7.1",
+    "effect": "^3.21.4",
     "emoji-picker-react": "^4.19.1",
     "file-saver": "^2.0.5",
     "highlight.js": "^11.11.1",

@@ -7,11 +7,9 @@ import { EditorTextBubbleMenu } from '@/components/editor/EditorTextBubbleMenu'
 type EditorMenusProps = {
   editor: import('@tiptap/react').Editor | null
   onInsertImages: (files: File[]) => Promise<void>
-  pageCount: number
-  canvasRef: React.RefObject<HTMLDivElement | null>
 }
 
-export function EditorMenus({ editor, onInsertImages, pageCount, canvasRef }: EditorMenusProps) {
+export function EditorMenus({ editor, onInsertImages }: EditorMenusProps) {
   if (!editor) return null
 
   return (
@@ -19,7 +17,7 @@ export function EditorMenus({ editor, onInsertImages, pageCount, canvasRef }: Ed
       <EditorDragHandle editor={editor} />
       <EditorTextBubbleMenu editor={editor} />
       <EditorTableBubbleMenu editor={editor} />
-      <EditorBlockBubbleMenu editor={editor} pageCount={pageCount} canvasRef={canvasRef} />
+      <EditorBlockBubbleMenu editor={editor} />
       <EditorFloatingMenu editor={editor} onInsertImages={onInsertImages} />
     </>
   )

@@ -129,7 +129,11 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
         if (files.length) void onInsertImages?.(files)
       },
     }),
-    Dropcursor.configure({ color: '#007aff', width: 2 }),
+    Dropcursor.configure({
+      color: 'var(--color-accent)',
+      width: 3,
+      class: 'editor-drop-indicator',
+    }),
     Gapcursor,
     Typography,
     SlashCommands.configure({
@@ -138,7 +142,7 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
       },
     }),
     Placeholder.configure({
-      placeholder: 'Píšte text alebo stlačte / pre príkazy…',
+      placeholder: 'Píšte text, stlačte / pre príkazy alebo + pre bloky…',
     }),
     Markdown.configure({
       indentation: { style: 'space', size: 2 },

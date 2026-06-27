@@ -1606,7 +1606,7 @@
 .input-dialog-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 80;
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3395,27 +3395,96 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: 7px;
   background: var(--color-background);
   color: var(--color-muted-foreground);
   cursor: grab;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   z-index: 40;
-  transition: opacity 120ms ease, color 120ms ease, border-color 120ms ease;
+  opacity: 0.72;
+  transition:
+    opacity 140ms ease,
+    color 140ms ease,
+    border-color 140ms ease,
+    transform 140ms ease,
+    box-shadow 140ms ease;
 }
 
-.editor-block-drag-handle:hover {
+.editor-block-drag-handle.is-active,
+.editor-block-drag-handle:hover,
+.editor-block-drag-handle:focus-visible {
+  opacity: 1;
   color: var(--color-foreground);
   border-color: var(--color-selection-strong);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
 }
 
 .editor-block-drag-handle:active,
-.editor-block-drag-handle[data-dragging='true'] {
+body.is-block-dragging .editor-block-drag-handle {
   cursor: grabbing;
-  opacity: 0.85;
+}
+
+.tiptap > *:is(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, pre, table, hr, .details-block, .table-of-contents-block, .image-block, li).is-block-drag-hover,
+.tiptap > *:is(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, pre, table, hr, .details-block, .table-of-contents-block, .image-block, li).is-block-drag-source {
+  outline: 2px solid color-mix(in srgb, var(--color-accent) 45%, transparent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.tiptap > *:is(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, pre, table, hr, .details-block, .table-of-contents-block, .image-block, li).is-block-drag-source {
+  opacity: 0.35;
+}
+
+body.is-block-dragging {
+  cursor: grabbing;
+}
+
+body.is-block-dragging .tiptap {
+  cursor: grabbing;
+}
+
+.editor-block-drag-ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 90;
+  max-width: min(320px, calc(100vw - 48px));
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-background);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+  opacity: 0.96;
+  pointer-events: none;
+  transform: translate(0, 0);
+}
+
+.editor-block-drag-ghost-preview {
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--color-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.editor-block-drop-indicator {
+  border-radius: 999px;
+  background: var(--color-accent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 30%, transparent);
+}
+
+.tiptap .ProseMirror-dropcursor,
+.tiptap .editor-drop-indicator {
+  background: var(--color-accent) !important;
+  height: 3px !important;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 25%, transparent);
 }
 
 .editor-bubble-btn--neutral:hover {
@@ -3484,6 +3553,37 @@
 
 .table-matrix-cell.is-header {
   color: var(--color-accent);
+}
+
+.editor-insert-trigger-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.editor-insert-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-muted-foreground);
+  opacity: 0.55;
+  transition:
+    opacity 120ms ease,
+    background 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
+}
+
+.editor-insert-trigger-wrap:hover .editor-insert-trigger,
+.editor-insert-trigger:focus-visible {
+  opacity: 1;
+  background: var(--color-hover);
+  border-color: var(--color-border);
+  color: var(--color-foreground);
 }
 
 .editor-insert-menu {

@@ -34,14 +34,20 @@ export function isInsideList(editor: Editor) {
   )
 }
 
-export function shouldShowInsertMenu(editor: Editor, dismissedBlockPos: number | null) {
+export function shouldShowInsertMenu(editor: Editor, _dismissedBlockPos: number | null = null) {
   if (!editor.isEditable || editor.isActive('table') || isInsideList(editor)) {
     return false
   }
 
   const { $from } = editor.state.selection
-  const blockPos = $from.before($from.depth)
-  if (dismissedBlockPos === blockPos) return false
+  if (!$from.parent.isTextblock || $from.parent.textContent.length > 0) {
+    return false
+  }
 
-  return $from.parent.isTextblock && $from.parent.textContent.length === 0
+  // Hide while slash command palette is active (user typed "/")
+  if ($from.parent.textContent.startsWith('/')) {
+    return false
+  }
+
+  return true
 }
