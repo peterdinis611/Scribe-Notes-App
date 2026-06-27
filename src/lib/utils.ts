@@ -1,4 +1,6 @@
 import { type ClassValue, clsx } from 'clsx'
+import { Debouncer } from '@tanstack/pacer/debouncer'
+import { Throttler } from '@tanstack/pacer/throttler'
 import { twMerge } from 'tailwind-merge'
 
 export function cn(...inputs: ClassValue[]) {
@@ -31,35 +33,21 @@ export function debounce<T extends (...args: never[]) => void>(
   fn: T,
   delay: number,
 ): DebouncedFunction<T> {
-  let timeoutId: ReturnType<typeof setTimeout> | undefined
-  let lastArgs: Parameters<T> | undefined
+  const debouncer = new Debouncer(fn, { wait: delay })
 
   const debounced = ((...args: Parameters<T>) => {
-    lastArgs = args
-    if (timeoutId) clearTimeout(timeoutId)
-    timeoutId = setTimeout(() => {
-      timeoutId = undefined
-      lastArgs = undefined
-      fn(...args)
-    }, delay)
+    debouncer.maybeExecute(...args)
   }) as DebouncedFunction<T>
 
   debounced.cancel = () => {
-    if (timeoutId) clearTimeout(timeoutId)
-    timeoutId = undefined
-    lastArgs = undefined
+    debouncer.cancel()
   }
 
   debounced.flush = () => {
-    if (!timeoutId || !lastArgs) return
-    clearTimeout(timeoutId)
-    timeoutId = undefined
-    const args = lastArgs
-    lastArgs = undefined
-    fn(...args)
+    debouncer.flush()
   }
 
-  debounced.pending = () => timeoutId !== undefined
+  debounced.pending = () => debouncer.store.state.isPending
 
   return debounced
 }
@@ -68,29 +56,10 @@ export function throttle<T extends (...args: Parameters<T>) => void>(
   fn: T,
   interval: number,
 ) {
-  let lastRun = 0
-  let timeoutId: ReturnType<typeof setTimeout> | undefined
+  const throttler = new Throttler(fn, { wait: interval })
 
   return (...args: Parameters<T>) => {
-    const now = Date.now()
-    const remaining = interval - (now - lastRun)
-
-    if (remaining <= 0) {
-      if (timeoutId) {
-        clearTimeout(timeoutId)
-        timeoutId = undefined
-      }
-      lastRun = now
-      fn(...args)
-      return
-    }
-
-    if (timeoutId) clearTimeout(timeoutId)
-    timeoutId = setTimeout(() => {
-      lastRun = Date.now()
-      timeoutId = undefined
-      fn(...args)
-    }, remaining)
+    throttler.maybeExecute(...args)
   }
 }
 

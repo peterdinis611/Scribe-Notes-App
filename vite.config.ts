@@ -18,6 +18,9 @@ export default defineConfig({
   envPrefix: ['VITE_', 'TAURI_'],
   optimizeDeps: {
     include: [
+      '@tanstack/pacer/debouncer',
+      '@tanstack/pacer/throttler',
+      '@tanstack/react-pacer',
       'effect/Effect',
       'effect/Option',
       'effect/Fiber',
