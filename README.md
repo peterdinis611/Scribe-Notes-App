@@ -11,17 +11,6 @@ Moderná macOS desktopová aplikácia pre písanie dokumentov — alternatíva k
 - **Jotai** (state management)
 - **SQLite** cez rusqlite (lokálne ukladanie)
 
-## Aktuálny stav (MVP – krok 1)
-
-- ✅ Tauri 2 + React + TypeScript projekt
-- ✅ SQLite schéma (`documents`, `folders`, `meta`) + migrácie
-- ✅ Tauri commands pre CRUD dokumentov
-- ✅ TipTap editor so StarterKit + Typography
-- ✅ Auto-save (debounced 600 ms) do SQLite ako TipTap JSON
-- ✅ Sidebar s výberom/vytvorením/mazaním dokumentov
-- ✅ macOS overlay titlebar + dark/light mode podľa systému
-- ✅ Plávajúci editor toolbar
-
 ## Spustenie
 
 ```bash
