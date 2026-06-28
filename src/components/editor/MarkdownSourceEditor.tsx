@@ -1,15 +1,17 @@
 type MarkdownSourceEditorProps = {
   value: string
   onChange: (value: string) => void
+  spellCheck?: boolean
 }
 
-export function MarkdownSourceEditor({ value, onChange }: MarkdownSourceEditorProps) {
+export function MarkdownSourceEditor({ value, onChange, spellCheck = true }: MarkdownSourceEditorProps) {
   return (
     <textarea
       className="markdown-source-editor titlebar-no-drag"
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      spellCheck={false}
+      spellCheck={spellCheck}
+      lang="sk"
       aria-label="Markdown editor"
       placeholder={'# Nadpis\n\nPíšte v **Markdown** — nadpisy, zoznamy, `kód`, tabuľky…'}
     />

@@ -31,6 +31,10 @@ export interface DocumentRevision {
   createdAt: number
 }
 
+export interface DocumentRevisionDetail extends DocumentRevision {
+  contentJson: string
+}
+
 export interface Document {
   id: string
   title: string
@@ -113,10 +117,11 @@ export const exportDocument = async (
   title: string,
   format: 'pdf' | 'docx' | 'txt' | 'pages' | 'md',
   markdown?: string,
+  pageSetup?: import('@/lib/editor/page-setup').PageSetup,
 ) => {
   if (format === 'pdf') {
     const { generatePdfFromHtml } = await import('@/lib/export/pdf')
-    const { dataBase64 } = await generatePdfFromHtml(html)
+    const { dataBase64 } = await generatePdfFromHtml(html, { pageSetup, title })
     return invoke<ExportResult | null>('export_pdf_bytes', {
       input: { title, dataBase64 },
     })
@@ -132,9 +137,14 @@ export const exportDocument = async (
   })
 }
 
-export const previewPdfExport = async (html: string, _plainText: string, _title: string) => {
+export const previewPdfExport = async (
+  html: string,
+  _plainText: string,
+  title: string,
+  pageSetup?: import('@/lib/editor/page-setup').PageSetup,
+) => {
   const { generatePdfFromHtml } = await import('@/lib/export/pdf')
-  const { dataBase64 } = await generatePdfFromHtml(html)
+  const { dataBase64 } = await generatePdfFromHtml(html, { pageSetup, title })
   return { dataBase64 }
 }
 
@@ -164,6 +174,9 @@ export const searchDocuments = (query: string, limit = 20) =>
 
 export const listDocumentRevisions = (documentId: string, limit = 20) =>
   invoke<DocumentRevision[]>('list_document_revisions', { documentId, limit })
+
+export const getDocumentRevision = (revisionId: string) =>
+  invoke<DocumentRevisionDetail>('get_document_revision', { revisionId })
 
 export const restoreDocumentRevision = (revisionId: string) =>
   invoke<Document>('restore_document_revision', { revisionId })

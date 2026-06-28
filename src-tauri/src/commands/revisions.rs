@@ -43,6 +43,39 @@ pub fn list_document_revisions(
     rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentRevisionDetail {
+    pub id: String,
+    pub document_id: String,
+    pub title: String,
+    pub content_json: String,
+    pub created_at: i64,
+}
+
+#[tauri::command]
+pub fn get_document_revision(
+    state: State<'_, DbState>,
+    revision_id: String,
+) -> Result<DocumentRevisionDetail, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+
+    conn.query_row(
+        "SELECT id, document_id, title, content_json, created_at FROM document_revisions WHERE id = ?1",
+        params![revision_id],
+        |row| {
+            Ok(DocumentRevisionDetail {
+                id: row.get(0)?,
+                document_id: row.get(1)?,
+                title: row.get(2)?,
+                content_json: row.get(3)?,
+                created_at: row.get(4)?,
+            })
+        },
+    )
+    .map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 pub fn restore_document_revision(
     app: AppHandle,

@@ -67,8 +67,27 @@ export type EditorModeActions = {
 export const editorModeActionsAtom = atom<EditorModeActions | null>(null)
 
 const PAGE_SETUP_KEY = 'scribe-page-setup'
+const SPELL_CHECK_KEY = 'scribe-spell-check'
 
 export const pageSetupAtom = atomWithStorage<PageSetup>(PAGE_SETUP_KEY, DEFAULT_PAGE_SETUP)
+
+function readSpellCheckEnabled(): boolean {
+  try {
+    const raw = localStorage.getItem(SPELL_CHECK_KEY)
+    if (raw === 'false') return false
+    if (raw === 'true') return true
+  } catch {
+    // ignore
+  }
+  return true
+}
+
+export const spellCheckEnabledAtom = atom<boolean>(readSpellCheckEnabled())
+
+export const setSpellCheckEnabledAtom = atom(null, (_get, set, enabled: boolean) => {
+  set(spellCheckEnabledAtom, enabled)
+  localStorage.setItem(SPELL_CHECK_KEY, String(enabled))
+})
 
 export const applyThemeSettingsAtom = atom(
   null,

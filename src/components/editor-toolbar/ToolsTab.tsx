@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Editor } from '@tiptap/react'
 import { useEditorState } from '@tiptap/react'
 import { useAtomValue, useSetAtom } from 'jotai'
-import { Eye, EyeOff, History, Redo, Trash2, Undo } from 'lucide-react'
+import { Eye, EyeOff, History, Redo, SpellCheck, Trash2, Undo } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,9 +23,12 @@ import { cacheDocument } from '@/lib/cache/document-cache'
 import { cn, formatRelativeTime } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 import { activeDocumentAtom, activeDocumentIdAtom, documentsAtom } from '@/store/documents'
+import { setSpellCheckEnabledAtom, spellCheckEnabledAtom } from '@/store/settings'
 
 export function ToolsTab({ editor }: { editor: Editor }) {
   const activeId = useAtomValue(activeDocumentIdAtom)
+  const spellCheckEnabled = useAtomValue(spellCheckEnabledAtom)
+  const setSpellCheckEnabled = useSetAtom(setSpellCheckEnabledAtom)
   const setActiveDocument = useSetAtom(activeDocumentAtom)
   const setDocuments = useSetAtom(documentsAtom)
   const [revisions, setRevisions] = useState<DocumentRevision[]>([])
@@ -163,6 +166,13 @@ export function ToolsTab({ editor }: { editor: Editor }) {
       </ToolbarGroup>
 
       <ToolbarGroup label="Zobrazenie">
+        <ToolbarButton
+          label={spellCheckEnabled ? 'Vypnúť kontrolu pravopisu' : 'Zapnúť kontrolu pravopisu'}
+          active={spellCheckEnabled}
+          onClick={() => setSpellCheckEnabled(!spellCheckEnabled)}
+        >
+          <SpellCheck className="h-4 w-4 stroke-[1.75]" />
+        </ToolbarButton>
         <ToolbarButton
           label={deleteState.showInvisible ? 'Skryť neviditeľné znaky' : 'Zobraziť neviditeľné znaky'}
           active={deleteState.showInvisible}

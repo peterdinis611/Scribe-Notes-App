@@ -4,6 +4,7 @@ import { PDFViewer } from '@embedpdf/react-pdf-viewer'
 import { Button } from '@/components/ui/button'
 import { previewPdfExport } from '@/lib/db/api'
 import { base64ToPdfUrl, createPdfViewerConfig } from '@/lib/pdf/pdf-viewer-config'
+import type { PageSetup } from '@/lib/editor/page-setup'
 import { cn } from '@/lib/utils'
 
 type PdfPreviewDialogProps = {
@@ -12,6 +13,7 @@ type PdfPreviewDialogProps = {
   title: string
   html: string
   plainText: string
+  pageSetup?: PageSetup
   onExport: () => void
 }
 
@@ -21,6 +23,7 @@ export function PdfPreviewDialog({
   title,
   html,
   plainText,
+  pageSetup,
   onExport,
 }: PdfPreviewDialogProps) {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
@@ -48,7 +51,7 @@ export function PdfPreviewDialog({
     setLoading(true)
     setError(null)
 
-    void previewPdfExport(html, plainText, title)
+    void previewPdfExport(html, plainText, title, pageSetup)
       .then((result) => {
         if (cancelled) return
         setPdfUrl((current) => {
@@ -68,7 +71,7 @@ export function PdfPreviewDialog({
     return () => {
       cancelled = true
     }
-  }, [open, html, plainText, title])
+  }, [open, html, plainText, title, pageSetup])
 
   useEffect(() => {
     if (!open) return

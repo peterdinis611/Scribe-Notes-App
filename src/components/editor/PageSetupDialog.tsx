@@ -7,6 +7,8 @@ import {
   DEFAULT_PAGE_SETUP,
   PAGE_MARGIN_PRESETS,
   PAPER_SIZES,
+  normalizePageSetup,
+  type PageHeaderFooter,
   type PageSetup,
   type PaperSizeId,
 } from '@/lib/editor/page-setup'
@@ -31,6 +33,8 @@ function matchesMarginPreset(setup: PageSetup, presetId: string) {
 
 export function PageSetupDialog({ open, onClose }: PageSetupDialogProps) {
   const [pageSetup, setPageSetup] = useAtom(pageSetupAtom)
+  const normalized = normalizePageSetup(pageSetup)
+  const headerFooter = normalized.headerFooter
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -62,6 +66,16 @@ export function PageSetupDialog({ open, onClose }: PageSetupDialogProps) {
 
   function resetDefaults() {
     setPageSetup(DEFAULT_PAGE_SETUP)
+  }
+
+  function updateHeaderFooter(partial: Partial<PageHeaderFooter>) {
+    setPageSetup({
+      ...pageSetup,
+      headerFooter: {
+        ...headerFooter,
+        ...partial,
+      },
+    })
   }
 
   return createPortal(
@@ -154,6 +168,56 @@ export function PageSetupDialog({ open, onClose }: PageSetupDialogProps) {
               />
             </label>
           </div>
+        </section>
+
+        <section className="page-setup-section">
+          <div className="page-setup-section-head">
+            <h3 className="page-setup-section-title">Hlavička a pätička</h3>
+            <label className="page-setup-toggle">
+              <input
+                type="checkbox"
+                checked={headerFooter.enabled}
+                onChange={(event) => updateHeaderFooter({ enabled: event.target.checked })}
+              />
+              <span>Zapnúť</span>
+            </label>
+          </div>
+
+          {headerFooter.enabled && (
+            <>
+              <p className="page-setup-hint">
+                Premenné: {'{title}'}, {'{page}'}, {'{pages}'}, {'{date}'}
+              </p>
+              <div className="page-setup-stack">
+                <label className="page-setup-field">
+                  <span>Hlavička</span>
+                  <input
+                    type="text"
+                    value={headerFooter.headerText}
+                    placeholder="{title}"
+                    onChange={(event) => updateHeaderFooter({ headerText: event.target.value })}
+                  />
+                </label>
+                <label className="page-setup-field">
+                  <span>Pätička</span>
+                  <input
+                    type="text"
+                    value={headerFooter.footerText}
+                    placeholder="Voliteľný text pätičky"
+                    onChange={(event) => updateHeaderFooter({ footerText: event.target.value })}
+                  />
+                </label>
+                <label className="page-setup-toggle page-setup-toggle--inline">
+                  <input
+                    type="checkbox"
+                    checked={headerFooter.showPageNumber}
+                    onChange={(event) => updateHeaderFooter({ showPageNumber: event.target.checked })}
+                  />
+                  <span>Zobraziť číslo strany</span>
+                </label>
+              </div>
+            </>
+          )}
         </section>
 
         <div className="page-setup-preview">

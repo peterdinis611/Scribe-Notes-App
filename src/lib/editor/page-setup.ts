@@ -1,11 +1,19 @@
 export type PaperSizeId = 'a4' | 'letter' | 'a5'
 
+export type PageHeaderFooter = {
+  enabled: boolean
+  headerText: string
+  footerText: string
+  showPageNumber: boolean
+}
+
 export type PageSetup = {
   paperSize: PaperSizeId
   marginTop: number
   marginBottom: number
   marginLeft: number
   marginRight: number
+  headerFooter: PageHeaderFooter
 }
 
 export type ResolvedPageLayout = {
@@ -42,20 +50,44 @@ export const PAGE_MARGIN_PRESETS: Array<{ id: string; label: string; setup: Pick
   },
 ]
 
+export const DEFAULT_PAGE_HEADER_FOOTER: PageHeaderFooter = {
+  enabled: false,
+  headerText: '{title}',
+  footerText: '',
+  showPageNumber: true,
+}
+
 export const DEFAULT_PAGE_SETUP: PageSetup = {
   paperSize: 'a4',
   ...PAGE_MARGIN_PRESETS[0].setup,
+  headerFooter: DEFAULT_PAGE_HEADER_FOOTER,
+}
+
+export function normalizePageSetup(setup: PageSetup): PageSetup {
+  return {
+    ...DEFAULT_PAGE_SETUP,
+    ...setup,
+    headerFooter: {
+      ...DEFAULT_PAGE_HEADER_FOOTER,
+      ...setup.headerFooter,
+    },
+  }
 }
 
 export function resolvePageLayout(setup: PageSetup): ResolvedPageLayout {
-  const paper = PAPER_SIZES[setup.paperSize]
+  const normalized = normalizePageSetup(setup)
+  const paper = PAPER_SIZES[normalized.paperSize]
+  const headerFooterReserve = normalized.headerFooter.enabled ? 48 : 0
   return {
     width: paper.width,
-    paddingTop: setup.marginTop,
-    paddingBottom: setup.marginBottom,
-    paddingLeft: setup.marginLeft,
-    paddingRight: setup.marginRight,
-    contentHeight: Math.max(480, paper.height - setup.marginTop - setup.marginBottom),
+    paddingTop: normalized.marginTop,
+    paddingBottom: normalized.marginBottom,
+    paddingLeft: normalized.marginLeft,
+    paddingRight: normalized.marginRight,
+    contentHeight: Math.max(
+      480,
+      paper.height - normalized.marginTop - normalized.marginBottom - headerFooterReserve,
+    ),
     scrollPaddingTop: 20,
   }
 }

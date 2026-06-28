@@ -1,6 +1,16 @@
 import { highlightCode } from '@/lib/editor/lowlight'
 import { resolveCodeLanguage } from '@/lib/editor/code-languages'
 import { evaluateMathExpression } from '@/lib/editor/math-js'
+import {
+  DEFAULT_PAGE_SETUP,
+  normalizePageSetup,
+  PAPER_SIZES,
+  type PageSetup,
+} from '@/lib/editor/page-setup'
+import {
+  buildHeaderFooterLines,
+  formatExportDate,
+} from '@/lib/editor/page-header-footer'
 
 type TipTapNode = {
   type?: string
@@ -169,7 +179,19 @@ function renderNodes(nodes?: TipTapNode[]): string {
     .join('')
 }
 
-export function tiptapJsonToHtml(contentJson: string, title: string): string {
+export type HtmlExportOptions = {
+  pageSetup?: PageSetup
+  includeTitleHeading?: boolean
+}
+
+export function tiptapJsonToHtml(
+  contentJson: string,
+  title: string,
+  options?: HtmlExportOptions,
+): string {
+  const pageSetup = normalizePageSetup(options?.pageSetup ?? DEFAULT_PAGE_SETUP)
+  const includeTitleHeading = options?.includeTitleHeading ?? true
+  const paper = PAPER_SIZES[pageSetup.paperSize]
   let doc: TipTapNode = { type: 'doc', content: [] }
   try {
     doc = JSON.parse(contentJson) as TipTapNode
@@ -178,6 +200,13 @@ export function tiptapJsonToHtml(contentJson: string, title: string): string {
   }
 
   const body = renderNodes(doc.content)
+  const exportDate = formatExportDate()
+  const headerFooter = buildHeaderFooterLines(pageSetup.headerFooter, {
+    title,
+    page: 1,
+    pages: 1,
+    date: exportDate,
+  })
 
   return `<!DOCTYPE html>
 <html lang="sk">
@@ -185,7 +214,31 @@ export function tiptapJsonToHtml(contentJson: string, title: string): string {
   <meta charset="UTF-8" />
   <title>${escapeHtml(title)}</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; font-size: 12pt; line-height: 1.6; color: #111; margin: 48px; }
+    @page {
+      size: ${pageSetup.paperSize === 'letter' ? 'letter' : pageSetup.paperSize};
+      margin: ${pageSetup.marginTop}px ${pageSetup.marginRight}px ${pageSetup.marginBottom}px ${pageSetup.marginLeft}px;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+      font-size: 12pt;
+      line-height: 1.6;
+      color: #111;
+      max-width: ${paper.width - pageSetup.marginLeft - pageSetup.marginRight}px;
+      margin: 0 auto;
+      padding: ${pageSetup.marginTop}px ${pageSetup.marginRight}px ${pageSetup.marginBottom}px ${pageSetup.marginLeft}px;
+    }
+    .export-header, .export-footer {
+      font-size: 9pt;
+      color: #666;
+      text-align: center;
+    }
+    .export-header { margin-bottom: 18pt; padding-bottom: 6pt; border-bottom: 1px solid #ddd; }
+    .export-footer { margin-top: 24pt; padding-top: 6pt; border-top: 1px solid #ddd; }
+    @media print {
+      body { padding: 0; }
+      .export-header { position: fixed; top: 0; left: 0; right: 0; }
+      .export-footer { position: fixed; bottom: 0; left: 0; right: 0; }
+    }
     h1 { font-size: 24pt; margin: 0 0 12pt; }
     h2 { font-size: 18pt; margin: 18pt 0 8pt; }
     h3 { font-size: 14pt; margin: 14pt 0 6pt; }
@@ -204,8 +257,10 @@ export function tiptapJsonToHtml(contentJson: string, title: string): string {
   </style>
 </head>
 <body>
-  <h1>${escapeHtml(title)}</h1>
+  ${pageSetup.headerFooter.enabled && headerFooter.header ? `<div class="export-header">${escapeHtml(headerFooter.header)}</div>` : ''}
+  ${includeTitleHeading ? `<h1>${escapeHtml(title)}</h1>` : ''}
   ${body}
+  ${pageSetup.headerFooter.enabled && headerFooter.footer ? `<div class="export-footer">${escapeHtml(headerFooter.footer)}</div>` : ''}
 </body>
 </html>`
 }

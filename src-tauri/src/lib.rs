@@ -76,6 +76,7 @@ pub fn run() {
             commands::folders::move_document_to_folder,
             commands::search::search_documents,
             commands::revisions::list_document_revisions,
+            commands::revisions::get_document_revision,
             commands::revisions::restore_document_revision,
             commands::storage::get_storage_settings,
             commands::storage::pick_documents_directory,

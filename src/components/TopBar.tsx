@@ -28,7 +28,7 @@ import {
   focusModeAtom,
   saveStatusAtom,
 } from '@/store/documents'
-import { editorViewModeAtom, templatePickerOpenAtom } from '@/store/settings'
+import { editorViewModeAtom, pageSetupAtom, templatePickerOpenAtom } from '@/store/settings'
 import { Button } from '@/components/ui/button'
 
 const PdfPreviewDialog = lazy(() =>
@@ -72,6 +72,7 @@ function SaveStatus() {
 
 export function EditorHeader() {
   const document = useAtomValue(activeDocumentAtom)
+  const pageSetup = useAtomValue(pageSetupAtom)
   const viewMode = useAtomValue(editorViewModeAtom)
   const setActiveId = useSetAtom(activeDocumentIdAtom)
   const setActiveDocument = useSetAtom(activeDocumentAtom)
@@ -86,17 +87,18 @@ export function EditorHeader() {
     if (!document) return null
     return {
       title: document.title,
-      html: tiptapJsonToHtml(document.contentJson, document.title),
+      html: tiptapJsonToHtml(document.contentJson, document.title, { pageSetup }),
       plainText: tiptapToPlainText(document.contentJson),
       markdown: tiptapJsonToMarkdown(document.contentJson, document.title),
+      pageSetup,
     }
-  }, [document])
+  }, [document, pageSetup])
 
   async function handleExport(format: 'pdf' | 'docx' | 'txt' | 'pages' | 'md') {
     if (!pdfPreviewPayload) return
-    const { html, plainText, title, markdown } = pdfPreviewPayload
+    const { html, plainText, title, markdown, pageSetup: exportPageSetup } = pdfPreviewPayload
     try {
-      const result = await exportDocument(html, plainText, title, format, markdown)
+      const result = await exportDocument(html, plainText, title, format, markdown, exportPageSetup)
       if (result?.path) {
         toast.success('Export dokončený', fileBasename(result.path))
         await revealInFinder(result.path)
@@ -190,6 +192,7 @@ export function EditorHeader() {
           title={pdfPreviewPayload.title}
           html={pdfPreviewPayload.html}
           plainText={pdfPreviewPayload.plainText}
+          pageSetup={pdfPreviewPayload.pageSetup}
           onExport={() => void handleExport('pdf')}
         />
       </Suspense>

@@ -7,6 +7,7 @@ import { RevisionHistoryPanel } from '@/components/editor/RevisionHistoryPanel'
 import { EditorToolbar } from '@/components/editor-toolbar/EditorToolbar'
 import { EditorMenus } from '@/components/editor/EditorMenus'
 import { EditorDropZone } from '@/components/editor/EditorDropOverlay'
+import { PageHeaderFooterOverlays } from '@/components/editor/PageHeaderFooterOverlays'
 import { MarkdownSourceEditor } from '@/components/editor/MarkdownSourceEditor'
 import { EditorHeader } from '@/components/TopBar'
 import { EditorPagination } from '@/components/EditorPagination'
@@ -37,6 +38,7 @@ import {
   editorViewModeAtom,
   pageSetupAtom,
   setEditorViewModeAtom,
+  spellCheckEnabledAtom,
 } from '@/store/settings'
 
 export function DocumentEditor() {
@@ -93,6 +95,10 @@ export function DocumentEditor() {
     [],
   )
 
+  const pageSetup = useAtomValue(pageSetupAtom)
+  const spellCheckEnabled = useAtomValue(spellCheckEnabledAtom)
+  const pageLayout = useMemo(() => resolvePageLayout(pageSetup), [pageSetup])
+
   const editor = useEditor({
     extensions,
     content: initialContent,
@@ -101,13 +107,15 @@ export function DocumentEditor() {
     editorProps: {
       attributes: {
         class: 'tiptap',
+        spellcheck: spellCheckEnabled ? 'true' : 'false',
+        lang: 'sk',
       },
     },
     onUpdate: () => {
       if (!activeIdRef.current || viewModeRef.current !== 'rich') return
       queueSaveRef.current(activeIdRef.current)
     },
-  })
+  }, [extensions, initialContent, spellCheckEnabled])
 
   editorRef.current = editor
 
@@ -166,8 +174,11 @@ export function DocumentEditor() {
 
   useEditorHotkeys(editor)
 
-  const pageSetup = useAtomValue(pageSetupAtom)
-  const pageLayout = useMemo(() => resolvePageLayout(pageSetup), [pageSetup])
+  useEffect(() => {
+    if (!editor) return
+    editor.view.dom.setAttribute('spellcheck', spellCheckEnabled ? 'true' : 'false')
+    editor.view.dom.setAttribute('lang', 'sk')
+  }, [editor, spellCheckEnabled])
 
   const {
     scrollRef,
@@ -247,11 +258,21 @@ export function DocumentEditor() {
                     aria-hidden="true"
                   />
                 ))}
+              <PageHeaderFooterOverlays
+                pageSetup={pageSetup}
+                pageCount={pageCount}
+                pageLayout={pageLayout}
+                documentTitle={activeDocument?.title ?? 'Dokument'}
+              />
             </>
           )}
 
           {isMarkdown ? (
-            <MarkdownSourceEditor value={markdownDraft} onChange={handleMarkdownChange} />
+            <MarkdownSourceEditor
+              value={markdownDraft}
+              onChange={handleMarkdownChange}
+              spellCheck={spellCheckEnabled}
+            />
           ) : (
             <EditorContent editor={editor} />
           )}
