@@ -1437,6 +1437,10 @@
   background: var(--color-background);
 }
 
+.revision-panel--compare {
+  width: min(100%, 560px);
+}
+
 .revision-panel-header {
   display: flex;
   align-items: flex-start;
@@ -1485,6 +1489,73 @@
   background: var(--color-surface-elevated);
 }
 
+.revision-panel-item--selected {
+  border-color: var(--color-selection-strong);
+  background: color-mix(in srgb, var(--color-selection) 35%, var(--color-surface-elevated));
+}
+
+.revision-panel-item-tags {
+  display: flex;
+  gap: 6px;
+}
+
+.revision-panel-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--color-selection);
+  color: var(--color-foreground);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.revision-compare-controls {
+  padding: 10px 14px 12px;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.revision-compare-label {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+
+.revision-compare-selects {
+  display: grid;
+  gap: 8px;
+}
+
+.revision-compare-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+}
+
+.revision-compare-field select {
+  padding: 7px 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-size: 12px;
+}
+
+.revision-compare-run {
+  align-self: flex-start;
+}
+
 .revision-panel-item-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1501,9 +1572,134 @@
 .revision-diff {
   border-top: 1px solid var(--color-border);
   background: var(--color-background);
-  max-height: 42vh;
+  max-height: 48vh;
   display: flex;
   flex-direction: column;
+}
+
+.revision-diff-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.revision-diff-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.revision-diff-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-muted-foreground);
+  cursor: pointer;
+}
+
+.revision-diff-view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.revision-diff-view-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 28px;
+  border: none;
+  background: var(--color-background);
+  color: var(--color-muted-foreground);
+  cursor: pointer;
+}
+
+.revision-diff-view-btn.is-active {
+  background: var(--color-selection);
+  color: var(--color-foreground);
+}
+
+.revision-diff-meta-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.revision-diff-meta-side {
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+}
+
+.revision-diff-split {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.revision-diff-split-header {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  padding: 0 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-muted-foreground);
+  background: var(--color-border);
+}
+
+.revision-diff-split-header span {
+  padding: 8px 10px;
+  background: var(--color-surface-elevated);
+}
+
+.revision-diff-split-body {
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.revision-diff-split-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--color-border);
+}
+
+.revision-diff-split-cell {
+  padding: 4px 10px;
+  background: var(--color-background);
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 1.5em;
+}
+
+.revision-diff-split-cell--removed {
+  background: color-mix(in srgb, #ef4444 12%, var(--color-background));
+}
+
+.revision-diff-split-cell--added {
+  background: color-mix(in srgb, #22c55e 12%, var(--color-background));
+}
+
+.revision-diff-split-cell--unchanged {
+  color: var(--color-muted-foreground);
+}
+
+.revision-diff-empty {
+  padding: 16px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-muted-foreground);
+  text-align: center;
 }
 
 .revision-diff-header {
@@ -1537,10 +1733,8 @@
 
 .revision-diff-summary {
   margin: 0;
-  padding: 8px 16px;
   font-size: 12px;
   color: var(--color-muted-foreground);
-  border-bottom: 1px solid var(--color-border);
 }
 
 .revision-diff-added {

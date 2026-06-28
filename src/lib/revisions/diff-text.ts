@@ -3,6 +3,21 @@ export type DiffLine = {
   text: string
 }
 
+export type SideBySideCell = {
+  kind: 'text' | 'gap'
+  type?: 'unchanged' | 'removed' | 'added'
+  text: string
+}
+
+export type SideBySideRow = {
+  left: SideBySideCell
+  right: SideBySideCell
+}
+
+export type DiffViewMode = 'split' | 'unified'
+
+export const CURRENT_REVISION_ID = '__current__'
+
 function longestCommonSubsequence(a: string[], b: string[]): number[][] {
   const rows = a.length + 1
   const cols = b.length + 1
@@ -64,5 +79,40 @@ export function countDiffChanges(lines: DiffLine[]): { added: number; removed: n
       return acc
     },
     { added: 0, removed: 0 },
+  )
+}
+
+export function diffSideBySide(oldText: string, newText: string): SideBySideRow[] {
+  return diffLines(oldText, newText).map((line) => {
+    if (line.type === 'unchanged') {
+      return {
+        left: { kind: 'text', type: 'unchanged', text: line.text },
+        right: { kind: 'text', type: 'unchanged', text: line.text },
+      }
+    }
+
+    if (line.type === 'removed') {
+      return {
+        left: { kind: 'text', type: 'removed', text: line.text },
+        right: { kind: 'gap', text: '' },
+      }
+    }
+
+    return {
+      left: { kind: 'gap', text: '' },
+      right: { kind: 'text', type: 'added', text: line.text },
+    }
+  })
+}
+
+export function filterDiffLines(lines: DiffLine[], changesOnly: boolean): DiffLine[] {
+  if (!changesOnly) return lines
+  return lines.filter((line) => line.type !== 'unchanged')
+}
+
+export function filterSideBySideRows(rows: SideBySideRow[], changesOnly: boolean): SideBySideRow[] {
+  if (!changesOnly) return rows
+  return rows.filter(
+    (row) => row.left.type !== 'unchanged' || row.right.type !== 'unchanged',
   )
 }

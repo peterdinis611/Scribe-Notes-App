@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { diffLines, countDiffChanges } from '@/lib/revisions/diff-text'
+import {
+  countDiffChanges,
+  diffLines,
+  diffSideBySide,
+  filterDiffLines,
+  filterSideBySideRows,
+} from '@/lib/revisions/diff-text'
 
 describe('diffLines', () => {
   it('detects added and removed lines', () => {
@@ -17,5 +23,14 @@ describe('diffLines', () => {
     const text = 'Riadok A\nRiadok B'
     const result = diffLines(text, text)
     expect(result.every((line) => line.type === 'unchanged')).toBe(true)
+  })
+
+  it('builds side-by-side rows and filters changes only', () => {
+    const rows = diffSideBySide('Starý text\nRiadok B', 'Starý text\nNový riadok')
+    expect(rows[0]?.left.type).toBe('unchanged')
+    expect(rows[1]?.left.type).toBe('removed')
+    expect(rows[2]?.right.type).toBe('added')
+    expect(filterSideBySideRows(rows, true)).toHaveLength(2)
+    expect(filterDiffLines(diffLines('A\nB', 'A\nC'), true)).toHaveLength(2)
   })
 })
