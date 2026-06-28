@@ -2244,6 +2244,160 @@
   border-top: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
 }
 
+.editor-page-chrome--sheet {
+  position: absolute;
+  z-index: 1;
+}
+
+.editor-page-chrome--sheet .editor-page-header {
+  top: 10px;
+  bottom: auto;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+}
+
+.editor-page-chrome--sheet .editor-page-footer {
+  top: auto;
+  bottom: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+}
+
+.editor-page-watermark {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.editor-page-watermark span {
+  transform: rotate(var(--watermark-angle, -35deg));
+  font-size: 42px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-muted-foreground) calc(var(--watermark-opacity, 0.12) * 100%), transparent);
+  user-select: none;
+}
+
+.editor-print-host {
+  width: 100%;
+}
+
+.editor-print-host--active {
+  display: flex;
+  justify-content: center;
+}
+
+.editor-print-stage {
+  position: relative;
+  transform-origin: top center;
+}
+
+.editor-scroll--print-layout {
+  background: color-mix(in srgb, var(--color-sidebar) 70%, var(--color-background));
+}
+
+.editor-page-sheets {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.editor-page-sheet {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 4px;
+  background: #ffffff;
+  border: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 12px 32px rgba(0, 0, 0, 0.05);
+}
+
+.dark .editor-page-sheet {
+  background: var(--color-surface-elevated);
+}
+
+.editor-page-sheet-label {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-muted-foreground);
+}
+
+.editor-canvas--print-layout {
+  position: relative;
+  z-index: 2;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  min-height: auto;
+}
+
+.editor-print-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-toolbar);
+}
+
+.editor-print-bar-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.editor-print-bar-group--end {
+  margin-left: auto;
+}
+
+.editor-print-bar-label {
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+}
+
+.editor-print-bar-zoom {
+  min-width: 42px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tiptap--print-accurate {
+  font-size: 12pt;
+  line-height: 1.6;
+  letter-spacing: 0;
+}
+
+.tiptap--print-accurate h1 {
+  font-size: 24pt;
+  line-height: 1.15;
+  margin: 0 0 12pt;
+}
+
+.tiptap--print-accurate h2 {
+  font-size: 18pt;
+  line-height: 1.2;
+  margin: 18pt 0 8pt;
+}
+
+.tiptap--print-accurate h3 {
+  font-size: 14pt;
+  line-height: 1.25;
+  margin: 14pt 0 6pt;
+}
+
+.tiptap--print-accurate p {
+  margin: 0 0 10pt;
+}
+
 .editor-pagination {
   display: flex;
   align-items: center;
@@ -4189,7 +4343,9 @@ body.is-block-dragging .tiptap {
 }
 
 .page-setup-dialog {
-  width: min(480px, calc(100vw - 32px));
+  width: min(520px, calc(100vw - 32px));
+  max-height: min(90vh, 820px);
+  overflow-y: auto;
   padding: 20px;
   border-radius: var(--radius-xl);
   border: 1px solid var(--color-border);

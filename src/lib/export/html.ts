@@ -11,6 +11,14 @@ import {
   buildHeaderFooterLines,
   formatExportDate,
 } from '@/lib/editor/page-header-footer'
+import { getPageMargins, shouldShowHeaderFooter } from '@/lib/editor/page-segments'
+import {
+  DOCUMENT_BODY_FONT,
+  DOCUMENT_CONTENT_CSS,
+  DOCUMENT_HIGHLIGHT_CSS,
+  DOCUMENT_TIPTAP_CSS,
+  buildWatermarkCss,
+} from '@/lib/export/document-styles'
 
 type TipTapNode = {
   type?: string
@@ -182,6 +190,29 @@ function renderNodes(nodes?: TipTapNode[]): string {
 export type HtmlExportOptions = {
   pageSetup?: PageSetup
   includeTitleHeading?: boolean
+  forPrint?: boolean
+}
+
+function buildFirstPageMarginCss(pageSetup: PageSetup): string {
+  if (!pageSetup.firstPage.different) return ''
+
+  const first = getPageMargins(pageSetup, 1)
+  const standard = getPageMargins(pageSetup, 2)
+
+  if (
+    first.top === standard.top &&
+    first.right === standard.right &&
+    first.bottom === standard.bottom &&
+    first.left === standard.left
+  ) {
+    return ''
+  }
+
+  return `
+    @page :first {
+      margin: ${first.top}px ${first.right}px ${first.bottom}px ${first.left}px;
+    }
+  `
 }
 
 export function tiptapJsonToHtml(
@@ -191,6 +222,7 @@ export function tiptapJsonToHtml(
 ): string {
   const pageSetup = normalizePageSetup(options?.pageSetup ?? DEFAULT_PAGE_SETUP)
   const includeTitleHeading = options?.includeTitleHeading ?? true
+  const forPrint = options?.forPrint ?? false
   const paper = PAPER_SIZES[pageSetup.paperSize]
   let doc: TipTapNode = { type: 'doc', content: [] }
   try {
@@ -201,12 +233,20 @@ export function tiptapJsonToHtml(
 
   const body = renderNodes(doc.content)
   const exportDate = formatExportDate()
-  const headerFooter = buildHeaderFooterLines(pageSetup.headerFooter, {
-    title,
-    page: 1,
-    pages: 1,
-    date: exportDate,
-  })
+  const showHeaderFooter = shouldShowHeaderFooter(pageSetup, 1)
+  const headerFooter = showHeaderFooter
+    ? buildHeaderFooterLines(pageSetup.headerFooter, {
+        title,
+        page: 1,
+        pages: 1,
+        date: exportDate,
+      })
+    : { header: '', footer: '' }
+
+  const watermarkHtml =
+    pageSetup.watermark.enabled && pageSetup.watermark.text.trim()
+      ? `<div class="export-watermark print-watermark"><span>${escapeHtml(pageSetup.watermark.text.trim())}</span></div>`
+      : ''
 
   return `<!DOCTYPE html>
 <html lang="sk">
@@ -218,14 +258,26 @@ export function tiptapJsonToHtml(
       size: ${pageSetup.paperSize === 'letter' ? 'letter' : pageSetup.paperSize};
       margin: ${pageSetup.marginTop}px ${pageSetup.marginRight}px ${pageSetup.marginBottom}px ${pageSetup.marginLeft}px;
     }
+    ${buildFirstPageMarginCss(pageSetup)}
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: ${forPrint ? '#ffffff' : '#f3f4f6'};
+    }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
-      font-size: 12pt;
-      line-height: 1.6;
-      color: #111;
+      font-family: ${DOCUMENT_BODY_FONT};
+      ${DOCUMENT_CONTENT_CSS}
+      max-width: ${paper.width}px;
+      margin: 0 auto;
+      padding: ${forPrint ? '0' : `${pageSetup.marginTop}px ${pageSetup.marginRight}px ${pageSetup.marginBottom}px ${pageSetup.marginLeft}px`};
+      position: relative;
+    }
+    .document-content {
+      position: relative;
+      z-index: 1;
       max-width: ${paper.width - pageSetup.marginLeft - pageSetup.marginRight}px;
       margin: 0 auto;
-      padding: ${pageSetup.marginTop}px ${pageSetup.marginRight}px ${pageSetup.marginBottom}px ${pageSetup.marginLeft}px;
+      padding: ${forPrint ? `${pageSetup.marginTop}px ${pageSetup.marginRight}px ${pageSetup.marginBottom}px ${pageSetup.marginLeft}px` : '0'};
     }
     .export-header, .export-footer {
       font-size: 9pt;
@@ -234,33 +286,36 @@ export function tiptapJsonToHtml(
     }
     .export-header { margin-bottom: 18pt; padding-bottom: 6pt; border-bottom: 1px solid #ddd; }
     .export-footer { margin-top: 24pt; padding-top: 6pt; border-top: 1px solid #ddd; }
+    ${DOCUMENT_TIPTAP_CSS}
+    ${DOCUMENT_HIGHLIGHT_CSS}
+    ${buildWatermarkCss(pageSetup.watermark.opacity, pageSetup.watermark.angle)}
     @media print {
+      html, body { background: #ffffff; }
       body { padding: 0; }
-      .export-header { position: fixed; top: 0; left: 0; right: 0; }
-      .export-footer { position: fixed; bottom: 0; left: 0; right: 0; }
+      .document-content { padding: 0; max-width: none; }
+      .export-header {
+        position: fixed;
+        top: ${Math.max(12, pageSetup.marginTop * 0.35)}px;
+        left: ${pageSetup.marginLeft}px;
+        right: ${pageSetup.marginRight}px;
+      }
+      .export-footer {
+        position: fixed;
+        bottom: ${Math.max(12, pageSetup.marginBottom * 0.35)}px;
+        left: ${pageSetup.marginLeft}px;
+        right: ${pageSetup.marginRight}px;
+      }
     }
-    h1 { font-size: 24pt; margin: 0 0 12pt; }
-    h2 { font-size: 18pt; margin: 18pt 0 8pt; }
-    h3 { font-size: 14pt; margin: 14pt 0 6pt; }
-    p { margin: 0 0 10pt; }
-    mark { background: #fff3a3; }
-    blockquote { border-left: 3px solid #ccc; padding-left: 12pt; color: #555; }
-    pre { background: #0d1117; padding: 10pt; border-radius: 6pt; overflow-x: auto; }
-    pre code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10pt; }
-    .hljs-comment, .hljs-quote { color: #8b949e; }
-    .hljs-keyword, .hljs-selector-tag { color: #ff7b72; }
-    .hljs-string, .hljs-addition { color: #a5d6ff; }
-    .hljs-number, .hljs-literal { color: #79c0ff; }
-    .hljs-title, .hljs-section { color: #d2a8ff; }
-    .hljs-built_in, .hljs-type { color: #ffa657; }
-    .hljs-attr, .hljs-variable { color: #79c0ff; }
   </style>
 </head>
 <body>
-  ${pageSetup.headerFooter.enabled && headerFooter.header ? `<div class="export-header">${escapeHtml(headerFooter.header)}</div>` : ''}
-  ${includeTitleHeading ? `<h1>${escapeHtml(title)}</h1>` : ''}
-  ${body}
-  ${pageSetup.headerFooter.enabled && headerFooter.footer ? `<div class="export-footer">${escapeHtml(headerFooter.footer)}</div>` : ''}
+  ${watermarkHtml}
+  ${showHeaderFooter && headerFooter.header ? `<div class="export-header">${escapeHtml(headerFooter.header)}</div>` : ''}
+  <div class="document-content">
+    ${includeTitleHeading ? `<h1>${escapeHtml(title)}</h1>` : ''}
+    ${body}
+  </div>
+  ${showHeaderFooter && headerFooter.footer ? `<div class="export-footer">${escapeHtml(headerFooter.footer)}</div>` : ''}
 </body>
 </html>`
 }

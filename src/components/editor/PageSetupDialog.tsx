@@ -8,8 +8,10 @@ import {
   PAGE_MARGIN_PRESETS,
   PAPER_SIZES,
   normalizePageSetup,
+  type FirstPageSetup,
   type PageHeaderFooter,
   type PageSetup,
+  type PageWatermark,
   type PaperSizeId,
 } from '@/lib/editor/page-setup'
 import { cn } from '@/lib/utils'
@@ -35,6 +37,8 @@ export function PageSetupDialog({ open, onClose }: PageSetupDialogProps) {
   const [pageSetup, setPageSetup] = useAtom(pageSetupAtom)
   const normalized = normalizePageSetup(pageSetup)
   const headerFooter = normalized.headerFooter
+  const watermark = normalized.watermark
+  const firstPage = normalized.firstPage
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -73,6 +77,26 @@ export function PageSetupDialog({ open, onClose }: PageSetupDialogProps) {
       ...pageSetup,
       headerFooter: {
         ...headerFooter,
+        ...partial,
+      },
+    })
+  }
+
+  function updateWatermark(partial: Partial<PageWatermark>) {
+    setPageSetup({
+      ...pageSetup,
+      watermark: {
+        ...watermark,
+        ...partial,
+      },
+    })
+  }
+
+  function updateFirstPage(partial: Partial<FirstPageSetup>) {
+    setPageSetup({
+      ...pageSetup,
+      firstPage: {
+        ...firstPage,
         ...partial,
       },
     })
@@ -217,6 +241,118 @@ export function PageSetupDialog({ open, onClose }: PageSetupDialogProps) {
                 </label>
               </div>
             </>
+          )}
+        </section>
+
+        <section className="page-setup-section">
+          <div className="page-setup-section-head">
+            <h3 className="page-setup-section-title">Vodoznak</h3>
+            <label className="page-setup-toggle">
+              <input
+                type="checkbox"
+                checked={watermark.enabled}
+                onChange={(event) => updateWatermark({ enabled: event.target.checked })}
+              />
+              <span>Zapnúť</span>
+            </label>
+          </div>
+
+          {watermark.enabled && (
+            <div className="page-setup-stack">
+              <label className="page-setup-field">
+                <span>Text</span>
+                <input
+                  type="text"
+                  value={watermark.text}
+                  placeholder="Koncept"
+                  onChange={(event) => updateWatermark({ text: event.target.value })}
+                />
+              </label>
+              <div className="page-setup-grid">
+                <label className="page-setup-field">
+                  <span>Priehľadnosť</span>
+                  <input
+                    type="number"
+                    min={0.05}
+                    max={0.35}
+                    step={0.01}
+                    value={watermark.opacity}
+                    onChange={(event) => updateWatermark({ opacity: Number(event.target.value) })}
+                  />
+                </label>
+                <label className="page-setup-field">
+                  <span>Uhol (°)</span>
+                  <input
+                    type="number"
+                    min={-90}
+                    max={90}
+                    value={watermark.angle}
+                    onChange={(event) => updateWatermark({ angle: Number(event.target.value) })}
+                  />
+                </label>
+              </div>
+              <div className="page-setup-chip-row">
+                {['Koncept', 'Dôverné', 'Návrh'].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    className="page-setup-chip"
+                    onClick={() => updateWatermark({ text: preset })}
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+
+        <section className="page-setup-section">
+          <div className="page-setup-section-head">
+            <h3 className="page-setup-section-title">Prvá strana odlišná</h3>
+            <label className="page-setup-toggle">
+              <input
+                type="checkbox"
+                checked={firstPage.different}
+                onChange={(event) => updateFirstPage({ different: event.target.checked })}
+              />
+              <span>Zapnúť</span>
+            </label>
+          </div>
+
+          {firstPage.different && (
+            <div className="page-setup-stack">
+              <label className="page-setup-toggle page-setup-toggle--inline">
+                <input
+                  type="checkbox"
+                  checked={firstPage.hideHeaderFooter}
+                  onChange={(event) => updateFirstPage({ hideHeaderFooter: event.target.checked })}
+                />
+                <span>Skryť hlavičku a pätičku na prvej strane</span>
+              </label>
+              <div className="page-setup-grid">
+                <label className="page-setup-field">
+                  <span>Hore prvá strana (px)</span>
+                  <input
+                    type="number"
+                    min={24}
+                    max={200}
+                    value={firstPage.marginTop ?? pageSetup.marginTop}
+                    onChange={(event) => updateFirstPage({ marginTop: Number(event.target.value) })}
+                  />
+                </label>
+                <label className="page-setup-field">
+                  <span>Dole prvá strana (px)</span>
+                  <input
+                    type="number"
+                    min={24}
+                    max={200}
+                    value={firstPage.marginBottom ?? pageSetup.marginBottom}
+                    onChange={(event) => updateFirstPage({ marginBottom: Number(event.target.value) })}
+                  />
+                </label>
+              </div>
+            </div>
           )}
         </section>
 

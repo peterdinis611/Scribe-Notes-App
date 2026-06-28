@@ -70,7 +70,7 @@ function SaveStatus() {
   )
 }
 
-export function EditorHeader() {
+export function EditorHeader({ onPrint }: { onPrint?: () => void }) {
   const document = useAtomValue(activeDocumentAtom)
   const pageSetup = useAtomValue(pageSetupAtom)
   const viewMode = useAtomValue(editorViewModeAtom)
@@ -141,6 +141,7 @@ export function EditorHeader() {
             onImport={() => void handleImport()}
             onRevealFile={() => void handleRevealFile()}
             onPdfPreview={() => setPdfPreviewOpen(true)}
+            onPrint={onPrint}
             onExport={(format) => void handleExport(format)}
           />
         )}

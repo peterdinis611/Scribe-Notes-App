@@ -7,7 +7,10 @@ import { RevisionHistoryPanel } from '@/components/editor/RevisionHistoryPanel'
 import { EditorToolbar } from '@/components/editor-toolbar/EditorToolbar'
 import { EditorMenus } from '@/components/editor/EditorMenus'
 import { EditorDropZone } from '@/components/editor/EditorDropOverlay'
+import { EDITOR_PAGE_GAP, EditorPageSheets, getEditorPrintStageSize } from '@/components/editor/EditorPageSheets'
+import { EditorPrintLayoutBar } from '@/components/editor/EditorPrintLayoutBar'
 import { PageHeaderFooterOverlays } from '@/components/editor/PageHeaderFooterOverlays'
+import { PageWatermarkOverlays } from '@/components/editor/PageWatermarkOverlays'
 import { MarkdownSourceEditor } from '@/components/editor/MarkdownSourceEditor'
 import { EditorHeader } from '@/components/TopBar'
 import { EditorPagination } from '@/components/EditorPagination'
@@ -19,9 +22,11 @@ import {
   getCachedParsedContent,
 } from '@/lib/cache/document-cache'
 import { resolvePageLayout } from '@/lib/editor/page-layout'
+import { normalizePageSetup, PAPER_SIZES } from '@/lib/editor/page-setup'
 import { getEditorExtensions } from '@/lib/editor/extensions'
 import { getEditorMarkdown } from '@/lib/editor/markdown-content'
 import { insertImagesFromFiles } from '@/lib/editor/image-utils'
+import { printDocumentFromContent } from '@/lib/export/print-document'
 import { cn } from '@/lib/utils'
 import {
   activeDocumentAtom,
@@ -37,6 +42,9 @@ import {
   editorModeActionsAtom,
   editorViewModeAtom,
   pageSetupAtom,
+  printLayoutColumnsAtom,
+  printLayoutEnabledAtom,
+  printZoomAtom,
   setEditorViewModeAtom,
   spellCheckEnabledAtom,
 } from '@/store/settings'
@@ -97,7 +105,12 @@ export function DocumentEditor() {
 
   const pageSetup = useAtomValue(pageSetupAtom)
   const spellCheckEnabled = useAtomValue(spellCheckEnabledAtom)
+  const printLayoutEnabled = useAtomValue(printLayoutEnabledAtom)
+  const printZoom = useAtomValue(printZoomAtom)
+  const printColumns = useAtomValue(printLayoutColumnsAtom)
+  const normalizedPageSetup = useMemo(() => normalizePageSetup(pageSetup), [pageSetup])
   const pageLayout = useMemo(() => resolvePageLayout(pageSetup), [pageSetup])
+  const paper = PAPER_SIZES[normalizedPageSetup.paperSize]
 
   const editor = useEditor({
     extensions,
@@ -106,7 +119,7 @@ export function DocumentEditor() {
     shouldRerenderOnTransaction: false,
     editorProps: {
       attributes: {
-        class: 'tiptap',
+        class: cn('tiptap', printLayoutEnabled && 'tiptap--print-accurate'),
         spellcheck: spellCheckEnabled ? 'true' : 'false',
         lang: 'sk',
       },
@@ -115,7 +128,7 @@ export function DocumentEditor() {
       if (!activeIdRef.current || viewModeRef.current !== 'rich') return
       queueSaveRef.current(activeIdRef.current)
     },
-  }, [extensions, initialContent, spellCheckEnabled])
+  }, [extensions, initialContent, spellCheckEnabled, printLayoutEnabled])
 
   editorRef.current = editor
 
@@ -178,15 +191,44 @@ export function DocumentEditor() {
     if (!editor) return
     editor.view.dom.setAttribute('spellcheck', spellCheckEnabled ? 'true' : 'false')
     editor.view.dom.setAttribute('lang', 'sk')
-  }, [editor, spellCheckEnabled])
+    editor.view.dom.classList.toggle('tiptap--print-accurate', printLayoutEnabled)
+  }, [editor, printLayoutEnabled, spellCheckEnabled])
 
   const {
     scrollRef,
     canvasRef,
     pageCount,
     currentPage,
+    pageSegments,
     scrollToPage,
-  } = useDocumentPagination({ editor, documentId: activeId, pageLayout })
+  } = useDocumentPagination({ editor, documentId: activeId, pageSetup, pageLayout })
+
+  const stageSize = useMemo(
+    () => getEditorPrintStageSize(pageCount, printColumns, pageSetup),
+    [pageCount, printColumns, pageSetup],
+  )
+
+  const printLayoutConfig = useMemo(
+    () =>
+      printLayoutEnabled
+        ? {
+            enabled: true as const,
+            columns: printColumns,
+            paperWidth: paper.width,
+            paperHeight: paper.height,
+            gap: EDITOR_PAGE_GAP,
+          }
+        : undefined,
+    [paper.height, paper.width, printColumns, printLayoutEnabled],
+  )
+
+  const handlePrint = useCallback(() => {
+    if (!activeDocument) return
+    printDocumentFromContent(activeDocument.contentJson, activeDocument.title, {
+      pageSetup,
+      includeTitleHeading: true,
+    })
+  }, [activeDocument, pageSetup])
 
   useEffect(() => {
     if (!editor || !activeDocument) return
@@ -213,7 +255,7 @@ export function DocumentEditor() {
 
   return (
     <div className={cn('editor-shell', isMarkdown && 'editor-shell--markdown', focusMode && 'editor-shell--focus')}>
-      <EditorHeader />
+      <EditorHeader onPrint={!isMarkdown ? handlePrint : undefined} />
       {!isMarkdown && !focusMode && <EditorToolbar editor={editor} onInsertImages={handleInsertImages} />}
       {!isMarkdown && <EditorMenus editor={editor} onInsertImages={handleInsertImages} />}
 
@@ -223,67 +265,134 @@ export function DocumentEditor() {
           (outlineOpen || historyOpen) && !isMarkdown && 'editor-body--with-outline',
         )}
       >
-        <EditorDropZone className="editor-scroll" ref={scrollRef}>
-        <div
-          ref={canvasRef}
-          className={cn(
-            'editor-canvas',
-            !isMarkdown && 'editor-canvas--paginated',
-            isMarkdown && 'editor-canvas--markdown',
-          )}
-          style={
-            !isMarkdown
-              ? ({
-                  '--page-width': `${pageLayout.width}px`,
-                  '--page-content-height': `${pageLayout.contentHeight}px`,
-                  '--page-padding-top': `${pageLayout.paddingTop}px`,
-                  '--page-padding-bottom': `${pageLayout.paddingBottom}px`,
-                  '--page-padding-left': `${pageLayout.paddingLeft}px`,
-                  '--page-padding-right': `${pageLayout.paddingRight}px`,
-                } as CSSProperties)
-              : undefined
-          }
+        <EditorDropZone
+          className={cn('editor-scroll', printLayoutEnabled && !isMarkdown && 'editor-scroll--print-layout')}
+          ref={scrollRef}
         >
-          {!isMarkdown && (
-            <>
-              <div className="editor-page-label" aria-hidden="true">
-                Strana {currentPage}
-              </div>
-              {pageCount > 1 &&
-                Array.from({ length: pageCount - 1 }, (_, index) => (
-                  <div
-                    key={index}
-                    className="editor-page-break"
-                    style={{ top: pageLayout.paddingTop + (index + 1) * pageLayout.contentHeight }}
-                    aria-hidden="true"
+          <div
+            className={cn('editor-print-host', printLayoutEnabled && !isMarkdown && 'editor-print-host--active')}
+            style={
+              printLayoutEnabled && !isMarkdown
+                ? ({
+                    ['--print-zoom' as string]: String(printZoom),
+                  } as CSSProperties)
+                : undefined
+            }
+          >
+            <div
+              className="editor-print-stage"
+              style={
+                printLayoutEnabled && !isMarkdown
+                  ? {
+                      width: stageSize.width,
+                      minHeight: stageSize.height,
+                      transform: `scale(${printZoom})`,
+                    }
+                  : undefined
+              }
+            >
+              {!isMarkdown && printLayoutEnabled && (
+                <>
+                  <EditorPageSheets
+                    pageSetup={pageSetup}
+                    pageSegments={pageSegments}
+                    columns={printColumns}
                   />
-                ))}
-              <PageHeaderFooterOverlays
-                pageSetup={pageSetup}
-                pageCount={pageCount}
-                pageLayout={pageLayout}
-                documentTitle={activeDocument?.title ?? 'Dokument'}
-              />
-            </>
-          )}
+                  <PageWatermarkOverlays
+                    pageSetup={pageSetup}
+                    pageSegments={pageSegments}
+                    columns={printColumns}
+                    paperWidth={paper.width}
+                    paperHeight={paper.height}
+                    gap={EDITOR_PAGE_GAP}
+                    printLayout
+                  />
+                </>
+              )}
 
-          {isMarkdown ? (
-            <MarkdownSourceEditor
-              value={markdownDraft}
-              onChange={handleMarkdownChange}
-              spellCheck={spellCheckEnabled}
-            />
-          ) : (
-            <EditorContent editor={editor} />
-          )}
+              <div
+                ref={canvasRef}
+                className={cn(
+                  'editor-canvas',
+                  !isMarkdown && 'editor-canvas--paginated',
+                  !isMarkdown && printLayoutEnabled && 'editor-canvas--print-layout',
+                  isMarkdown && 'editor-canvas--markdown',
+                )}
+                style={
+                  !isMarkdown
+                    ? ({
+                        '--page-width': `${pageLayout.width}px`,
+                        '--page-content-height': `${pageLayout.contentHeight}px`,
+                        '--page-padding-top': `${pageLayout.paddingTop}px`,
+                        '--page-padding-bottom': `${pageLayout.paddingBottom}px`,
+                        '--page-padding-left': `${pageLayout.paddingLeft}px`,
+                        '--page-padding-right': `${pageLayout.paddingRight}px`,
+                        '--page-paper-height': `${pageLayout.paperHeight}px`,
+                        ...(printLayoutEnabled
+                          ? {
+                              width: printColumns === 2 ? stageSize.width : pageLayout.width,
+                            }
+                          : {}),
+                      } as CSSProperties)
+                    : undefined
+                }
+              >
+                {!isMarkdown && (
+                  <>
+                    {!printLayoutEnabled && (
+                      <div className="editor-page-label" aria-hidden="true">
+                        Strana {currentPage}
+                      </div>
+                    )}
+                    {!printLayoutEnabled &&
+                      pageSegments.slice(1).map((segment) => (
+                        <div
+                          key={segment.pageNumber}
+                          className="editor-page-break"
+                          style={{ top: pageLayout.paddingTop + segment.start }}
+                          aria-hidden="true"
+                        />
+                      ))}
+                    <PageHeaderFooterOverlays
+                      pageSetup={pageSetup}
+                      pageSegments={pageSegments}
+                      documentTitle={activeDocument?.title ?? 'Dokument'}
+                      paddingTop={pageLayout.paddingTop}
+                      printLayout={printLayoutConfig}
+                    />
+                    {!printLayoutEnabled && (
+                      <PageWatermarkOverlays
+                        pageSetup={pageSetup}
+                        pageSegments={pageSegments}
+                        columns={1}
+                        paperWidth={paper.width}
+                        paperHeight={paper.height}
+                        gap={0}
+                        paddingTop={pageLayout.paddingTop}
+                      />
+                    )}
+                  </>
+                )}
 
-          {isMarkdown && editor && (
-            <div className="editor-markdown-hidden" aria-hidden="true">
-              <EditorContent editor={editor} />
+                {isMarkdown ? (
+                  <MarkdownSourceEditor
+                    value={markdownDraft}
+                    onChange={handleMarkdownChange}
+                    spellCheck={spellCheckEnabled}
+                  />
+                ) : (
+                  <EditorContent editor={editor} />
+                )}
+
+                {isMarkdown && editor && (
+                  <div className="editor-markdown-hidden" aria-hidden="true">
+                    <EditorContent editor={editor} />
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-        </div>
-      </EditorDropZone>
+          </div>
+        </EditorDropZone>
 
         {!isMarkdown && outlineOpen && (
           <DocumentOutlinePanel editor={editor} onClose={() => setOutlineOpen(false)} />
@@ -294,11 +403,14 @@ export function DocumentEditor() {
       </div>
 
       {!isMarkdown && !focusMode && (
-        <EditorPagination
-          currentPage={currentPage}
-          pageCount={pageCount}
-          onPageChange={scrollToPage}
-        />
+        <>
+          <EditorPrintLayoutBar onPrint={handlePrint} />
+          <EditorPagination
+            currentPage={currentPage}
+            pageCount={pageCount}
+            onPageChange={scrollToPage}
+          />
+        </>
       )}
     </div>
   )

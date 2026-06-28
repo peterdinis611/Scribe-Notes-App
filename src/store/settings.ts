@@ -68,8 +68,47 @@ export const editorModeActionsAtom = atom<EditorModeActions | null>(null)
 
 const PAGE_SETUP_KEY = 'scribe-page-setup'
 const SPELL_CHECK_KEY = 'scribe-spell-check'
+const PRINT_LAYOUT_KEY = 'scribe-print-layout'
+const PRINT_ZOOM_KEY = 'scribe-print-zoom'
+const PRINT_COLUMNS_KEY = 'scribe-print-columns'
 
 export const pageSetupAtom = atomWithStorage<PageSetup>(PAGE_SETUP_KEY, DEFAULT_PAGE_SETUP)
+
+export type PrintLayoutColumns = 1 | 2
+
+function readPrintLayoutEnabled(): boolean {
+  return localStorage.getItem(PRINT_LAYOUT_KEY) === 'true'
+}
+
+function readPrintZoom(): number {
+  const raw = localStorage.getItem(PRINT_ZOOM_KEY)
+  const value = raw ? Number(raw) : 0.85
+  return Number.isFinite(value) ? Math.min(1, Math.max(0.5, value)) : 0.85
+}
+
+function readPrintColumns(): PrintLayoutColumns {
+  return localStorage.getItem(PRINT_COLUMNS_KEY) === '2' ? 2 : 1
+}
+
+export const printLayoutEnabledAtom = atom<boolean>(readPrintLayoutEnabled())
+export const printZoomAtom = atom<number>(readPrintZoom())
+export const printLayoutColumnsAtom = atom<PrintLayoutColumns>(readPrintColumns())
+
+export const setPrintLayoutEnabledAtom = atom(null, (_get, set, enabled: boolean) => {
+  set(printLayoutEnabledAtom, enabled)
+  localStorage.setItem(PRINT_LAYOUT_KEY, String(enabled))
+})
+
+export const setPrintZoomAtom = atom(null, (_get, set, zoom: number) => {
+  const value = Math.min(1, Math.max(0.5, zoom))
+  set(printZoomAtom, value)
+  localStorage.setItem(PRINT_ZOOM_KEY, String(value))
+})
+
+export const setPrintLayoutColumnsAtom = atom(null, (_get, set, columns: PrintLayoutColumns) => {
+  set(printLayoutColumnsAtom, columns)
+  localStorage.setItem(PRINT_COLUMNS_KEY, String(columns))
+})
 
 function readSpellCheckEnabled(): boolean {
   try {

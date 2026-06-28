@@ -11,6 +11,7 @@ import {
   PAPER_SIZES,
   type PageSetup,
 } from '@/lib/editor/page-setup'
+import { shouldShowHeaderFooter } from '@/lib/editor/page-segments'
 
 export type PdfExportOptions = {
   pageSetup?: PageSetup
@@ -108,6 +109,8 @@ function applyHeaderFooterToPdf(
   const date = formatExportDate()
 
   for (let page = 1; page <= totalPages; page += 1) {
+    if (!shouldShowHeaderFooter(pageSetup, page)) continue
+
     pdf.setPage(page)
     const lines = buildHeaderFooterLines(pageSetup.headerFooter, {
       title,
@@ -128,6 +131,43 @@ function applyHeaderFooterToPdf(
         align: 'right',
       })
     }
+  }
+}
+
+function applyWatermarkToPdf(
+  pdf: {
+    internal: {
+      getNumberOfPages: () => number
+      pageSize: { getWidth: () => number; getHeight: () => number }
+    }
+    setPage: (page: number) => void
+    setFontSize: (size: number) => void
+    setTextColor: (color: number) => void
+    text: (
+      text: string,
+      x: number,
+      y: number,
+      options?: { align?: string; angle?: number },
+    ) => void
+  },
+  pageSetup: PageSetup,
+): void {
+  const normalized = normalizePageSetup(pageSetup)
+  if (!normalized.watermark.enabled || !normalized.watermark.text.trim()) return
+
+  const totalPages = pdf.internal.getNumberOfPages()
+  const pageWidth = pdf.internal.pageSize.getWidth()
+  const pageHeight = pdf.internal.pageSize.getHeight()
+  const opacity = Math.round(normalized.watermark.opacity * 255)
+
+  for (let page = 1; page <= totalPages; page += 1) {
+    pdf.setPage(page)
+    pdf.setFontSize(42)
+    pdf.setTextColor(opacity)
+    pdf.text(normalized.watermark.text.trim(), pageWidth / 2, pageHeight / 2, {
+      align: 'center',
+      angle: normalized.watermark.angle,
+    })
   }
 }
 
@@ -173,6 +213,7 @@ export async function generatePdfFromHtml(
 
     const pdf = await worker.get('pdf')
     applyHeaderFooterToPdf(pdf, pageSetup, title)
+    applyWatermarkToPdf(pdf, pageSetup)
 
     const blob = (await worker.output('blob')) as Blob
     const dataBase64 = await blobToBase64(blob)

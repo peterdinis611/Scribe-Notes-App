@@ -6,13 +6,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
-import { ChevronDown, Eye, FileDown, FileSymlink, FolderInput } from 'lucide-react'
+import { ChevronDown, Eye, FileDown, FileSymlink, FolderInput, Printer } from 'lucide-react'
 
 type EditorFileMenuProps = {
   hasFilePath: boolean
   onImport: () => void
   onRevealFile: () => void
   onPdfPreview: () => void
+  onPrint?: () => void
   onExport: (format: 'pdf' | 'docx' | 'txt' | 'pages' | 'md') => void
 }
 
@@ -21,6 +22,7 @@ export function EditorFileMenu({
   onImport,
   onRevealFile,
   onPdfPreview,
+  onPrint,
   onExport,
 }: EditorFileMenuProps) {
   return (
@@ -48,6 +50,12 @@ export function EditorFileMenu({
           <Eye className="h-3.5 w-3.5 shrink-0" />
           Náhľad PDF
         </DropdownMenuItem>
+        {onPrint && (
+          <DropdownMenuItem onClick={onPrint}>
+            <Printer className="h-3.5 w-3.5 shrink-0" />
+            Tlačiť…
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => onExport('pdf')}>Exportovať PDF</DropdownMenuItem>
         <DropdownMenuItem onClick={() => onExport('docx')}>Word (DOCX)</DropdownMenuItem>
