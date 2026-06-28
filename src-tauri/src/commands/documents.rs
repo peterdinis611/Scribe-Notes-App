@@ -230,6 +230,71 @@ pub fn update_document(
     })
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DuplicateDocumentInput {
+    pub id: String,
+    pub title: Option<String>,
+}
+
+#[tauri::command]
+pub fn duplicate_document(
+    app: AppHandle,
+    state: State<'_, DbState>,
+    input: DuplicateDocumentInput,
+) -> Result<Document, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+
+    let source = conn
+        .query_row(
+            &format!("{DOCUMENT_SELECT} WHERE id = ?1"),
+            params![input.id],
+            map_document,
+        )
+        .optional()
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("Document not found: {}", input.id))?;
+
+    let new_id = Uuid::new_v4().to_string();
+    let now = now_ts();
+    let title = input
+        .title
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| format!("{} (kópia)", source.title));
+
+    let dir = storage::get_documents_dir(&app, &conn)?;
+    let content_json =
+        storage::duplicate_document_assets(&dir, &source.id, &new_id, &source.content_json)?;
+
+    conn.execute(
+        "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?5)",
+        params![new_id, title, content_json, source.folder_id, now],
+    )
+    .map_err(|e| e.to_string())?;
+
+    crate::db::sync_document_fts(&conn, &new_id, &title, &content_json)?;
+
+    let file_path = persist_document(
+        &app,
+        &conn,
+        &new_id,
+        &title,
+        &content_json,
+        now,
+        now,
+    )?;
+
+    Ok(Document {
+        id: new_id,
+        title,
+        content_json,
+        folder_id: source.folder_id,
+        file_path: Some(file_path),
+        created_at: now,
+        updated_at: now,
+    })
+}
+
 #[tauri::command]
 pub fn delete_document(state: State<'_, DbState>, id: String) -> Result<(), String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;

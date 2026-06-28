@@ -6,7 +6,7 @@ pub mod search;
 mod test_helpers;
 
 pub use fts::{backfill_fts, remove_document_fts, sync_document_fts};
-pub use revisions::save_revision;
+pub use revisions::{fetch_revision, restore_document_content, save_revision};
 
 use rusqlite::Connection;
 use std::path::PathBuf;

@@ -13,7 +13,7 @@ import {
   Settings2,
   Shuffle,
 } from 'lucide-react'
-import { createDocument, createFolder, getDocument, searchDocuments } from '@/lib/db/api'
+import { createFolder, duplicateDocument, searchDocuments } from '@/lib/db/api'
 import type { SearchHit } from '@/lib/db/api'
 import { promptInput } from '@/lib/input-dialog'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
@@ -83,12 +83,10 @@ export function CommandPalette() {
               icon: <Copy className="h-4 w-4" />,
               run: () => {
                 void (async () => {
-                  const source = await getDocument(activeDocument.id)
-                  const copy = await createDocument({
-                    title: `${source.title} (kópia)`,
-                    folderId: source.folderId,
-                    contentJson: source.contentJson,
-                  })
+                  const copy = await duplicateDocument(
+                    activeDocument.id,
+                    `${activeDocument.title} (kópia)`,
+                  )
                   setDocuments((prev) => prependDocumentSummary(prev, copy))
                   setActiveId(copy.id)
                   setActiveDocument(copy)

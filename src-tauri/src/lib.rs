@@ -66,6 +66,7 @@ pub fn run() {
             commands::documents::get_document,
             commands::documents::create_document,
             commands::documents::update_document,
+            commands::documents::duplicate_document,
             commands::documents::delete_document,
             commands::documents::clear_all_documents,
             commands::folders::list_folders,

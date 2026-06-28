@@ -79,6 +79,9 @@ export const fetchDocumentFresh = async (id: string) =>
 export const createDocument = async (input: CreateDocumentInput) =>
   cacheDocument(await invoke<Document>('create_document', { input }))
 
+export const duplicateDocument = async (id: string, title?: string) =>
+  cacheDocument(await invoke<Document>('duplicate_document', { input: { id, title } }))
+
 export const updateDocument = async (input: UpdateDocumentInput) =>
   cacheDocument(await invoke<Document>('update_document', { input }))
 

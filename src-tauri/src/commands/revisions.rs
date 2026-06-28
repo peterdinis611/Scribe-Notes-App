@@ -1,6 +1,6 @@
 use crate::commands::documents::{map_document, Document, DOCUMENT_SELECT};
 use crate::commands::storage::{flush_document_persist, persist_document};
-use crate::db::DbState;
+use crate::db::{fetch_revision, restore_document_content, DbState};
 use rusqlite::params;
 use serde::Serialize;
 use tauri::{AppHandle, State};
@@ -73,7 +73,10 @@ pub fn get_document_revision(
             })
         },
     )
-    .map_err(|e| e.to_string())
+    .map_err(|error| match error {
+        rusqlite::Error::QueryReturnedNoRows => "Verzia neexistuje".to_string(),
+        other => other.to_string(),
+    })
 }
 
 #[tauri::command]
@@ -84,13 +87,7 @@ pub fn restore_document_revision(
 ) -> Result<Document, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
 
-    let (document_id, title, content_json): (String, String, String) = conn
-        .query_row(
-            "SELECT document_id, title, content_json FROM document_revisions WHERE id = ?1",
-            params![revision_id],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
-        )
-        .map_err(|e| e.to_string())?;
+    let (document_id, title, content_json) = fetch_revision(&conn, &revision_id)?;
 
     let existing = conn
         .query_row(
@@ -98,31 +95,24 @@ pub fn restore_document_revision(
             params![document_id],
             map_document,
         )
-        .map_err(|e| e.to_string())?;
+        .map_err(|error| match error {
+            rusqlite::Error::QueryReturnedNoRows => {
+                format!("Dokument neexistuje: {document_id}")
+            }
+            other => other.to_string(),
+        })?;
 
     let now = chrono::Utc::now().timestamp();
 
-    conn.execute("BEGIN IMMEDIATE", [])
-        .map_err(|e| e.to_string())?;
-
-    let restore_result = (|| -> Result<(), String> {
-        conn.execute(
-            "UPDATE documents SET title = ?1, content_json = ?2, updated_at = ?3 WHERE id = ?4",
-            params![title, content_json, now, document_id],
-        )
-        .map_err(|e| e.to_string())?;
-
-        crate::db::sync_document_fts(&conn, &document_id, &title, &content_json)?;
-        Ok(())
-    })();
-
-    if let Err(error) = restore_result {
-        let _ = conn.execute("ROLLBACK", []);
-        return Err(error);
-    }
-
-    conn.execute("COMMIT", [])
-        .map_err(|e| e.to_string())?;
+    restore_document_content(
+        &conn,
+        &document_id,
+        &title,
+        &content_json,
+        &existing.title,
+        &existing.content_json,
+        now,
+    )?;
 
     let _ = flush_document_persist(&state.persist_queue, Some(&document_id));
 

@@ -187,6 +187,56 @@ fn cleanup_old_paths(dir: &Path, doc: &DiskDocument, old_path: Option<&str>, pat
     }
 }
 
+pub fn remap_document_asset_paths(content_json: &str, old_id: &str, new_id: &str) -> String {
+    let marker_old = format!("/assets/{old_id}/");
+    let marker_new = format!("/assets/{new_id}/");
+    content_json.replace(&marker_old, &marker_new)
+}
+
+pub fn duplicate_document_assets(
+    documents_dir: &Path,
+    from_id: &str,
+    to_id: &str,
+    content_json: &str,
+) -> Result<String, String> {
+    let from_assets = documents_dir.join("assets").join(from_id);
+    let to_assets = documents_dir.join("assets").join(to_id);
+
+    if from_assets.is_dir() {
+        copy_dir_all(&from_assets, &to_assets)?;
+    }
+
+    Ok(remap_document_asset_paths(content_json, from_id, to_id))
+}
+
+fn copy_dir_all(src: &Path, dst: &Path) -> Result<(), String> {
+    std::fs::create_dir_all(dst).map_err(|error| {
+        format!(
+            "Nepodarilo sa vytvoriť priečinok {}: {error}",
+            dst.display()
+        )
+    })?;
+
+    for entry in std::fs::read_dir(src).map_err(|error| error.to_string())? {
+        let entry = entry.map_err(|error| error.to_string())?;
+        let path = entry.path();
+        let dest = dst.join(entry.file_name());
+
+        if path.is_dir() {
+            copy_dir_all(&path, &dest)?;
+        } else {
+            std::fs::copy(&path, &dest).map_err(|error| {
+                format!(
+                    "Nepodarilo sa skopírovať {}: {error}",
+                    path.display()
+                )
+            })?;
+        }
+    }
+
+    Ok(())
+}
+
 pub fn delete_document_file(path: &str) -> Result<(), String> {
     let file = Path::new(path);
     if file.exists() {
@@ -331,4 +381,49 @@ pub fn collect_scribe_files(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), St
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod asset_tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn remap_document_asset_paths_rewrites_document_id() {
+        let old_id = "11111111-1111-1111-1111-111111111111";
+        let new_id = "22222222-2222-2222-2222-222222222222";
+        let content = format!(
+            r#"{{"src":"/Users/me/Scribe/assets/{old_id}/photo.png"}}"#
+        );
+
+        let remapped = remap_document_asset_paths(&content, old_id, new_id);
+        assert!(remapped.contains(&format!("/assets/{new_id}/photo.png")));
+        assert!(!remapped.contains(old_id));
+    }
+
+    #[test]
+    fn duplicate_document_assets_copies_files_and_rewrites_paths() {
+        let temp = std::env::temp_dir().join(format!("scribe-test-{}", uuid::Uuid::new_v4()));
+        let old_id = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+        let new_id = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+        let from_assets = temp.join("assets").join(old_id);
+        fs::create_dir_all(&from_assets).unwrap();
+        fs::write(from_assets.join("image.png"), b"png-bytes").unwrap();
+
+        let content = format!(
+            r#"{{"src":"{}/assets/{}/image.png"}}"#,
+            temp.display(),
+            old_id
+        );
+
+        let remapped =
+            duplicate_document_assets(&temp, old_id, new_id, &content).expect("duplicate assets");
+
+        let copied = temp.join("assets").join(new_id).join("image.png");
+        assert!(copied.is_file());
+        assert!(remapped.contains(&format!("/assets/{new_id}/image.png")));
+        assert!(!remapped.contains(old_id));
+
+        let _ = fs::remove_dir_all(&temp);
+    }
 }
