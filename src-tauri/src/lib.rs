@@ -43,9 +43,31 @@ pub fn run() {
                 let app_menu = SubmenuBuilder::new(app, "Scribe")
                     .about(None)
                     .separator()
+                    .services()
+                    .separator()
+                    .hide()
+                    .hide_others()
+                    .separator()
                     .quit()
                     .build()?;
-                let menu = MenuBuilder::new(app).item(&app_menu).build()?;
+
+                // macOS routes Cmd+C/V/X/Z/A through the app menu bar — without Edit items
+                // the webview never receives copy/paste/cut/undo shortcuts.
+                let edit_menu = SubmenuBuilder::new(app, "Edit")
+                    .undo()
+                    .redo()
+                    .separator()
+                    .cut()
+                    .copy()
+                    .paste()
+                    .separator()
+                    .select_all()
+                    .build()?;
+
+                let menu = MenuBuilder::new(app)
+                    .item(&app_menu)
+                    .item(&edit_menu)
+                    .build()?;
                 app.set_menu(menu)?;
             }
 

@@ -83,15 +83,19 @@ export function CommandPalette() {
               icon: <Copy className="h-4 w-4" />,
               run: () => {
                 void (async () => {
-                  const copy = await duplicateDocument(
-                    activeDocument.id,
-                    `${activeDocument.title} (kópia)`,
-                  )
-                  setDocuments((prev) => prependDocumentSummary(prev, copy))
-                  setActiveId(copy.id)
-                  setActiveDocument(copy)
-                  toast.success('Dokument duplikovaný', copy.title)
-                  navigate(ROUTES.document(copy.id))
+                  try {
+                    const copy = await duplicateDocument(
+                      activeDocument.id,
+                      `${activeDocument.title} (kópia)`,
+                    )
+                    setDocuments((prev) => prependDocumentSummary(prev, copy))
+                    setActiveId(copy.id)
+                    setActiveDocument(copy)
+                    toast.success('Dokument duplikovaný', copy.title)
+                    navigate(ROUTES.document(copy.id))
+                  } catch (error) {
+                    toast.error('Duplikovanie zlyhalo', error instanceof Error ? error.message : undefined)
+                  }
                 })()
               },
             },

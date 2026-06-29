@@ -37,6 +37,7 @@ import { ResizableImage } from '@/lib/editor/resizable-image'
 import { SlashCommands } from '@/lib/editor/slash-commands'
 import { TableOfContents } from '@/lib/editor/table-of-contents'
 import { CustomTableCell, CustomTableHeader } from '@/lib/editor/table-extensions'
+import { ClipboardPaste } from '@/lib/editor/paste-handler'
 
 type EditorExtensionsOptions = {
   onInsertImages?: (files: File[], pos?: number) => void | Promise<void>
@@ -125,7 +126,9 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
       onDrop: (_editor, files, pos) => {
         if (files.length) void onInsertImages?.(files, pos)
       },
-      onPaste: (_editor, files) => {
+    }),
+    ClipboardPaste.configure({
+      onInsertImages: (files) => {
         if (files.length) void onInsertImages?.(files)
       },
     }),
