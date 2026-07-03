@@ -1,4 +1,5 @@
 mod fts;
+mod links;
 mod migrations;
 mod revisions;
 pub mod search;
@@ -6,6 +7,7 @@ pub mod search;
 mod test_helpers;
 
 pub use fts::{backfill_fts, remove_document_fts, sync_document_fts};
+pub use links::{backfill_links, sync_document_links};
 pub use revisions::{fetch_revision, restore_document_content, save_revision};
 
 use rusqlite::Connection;

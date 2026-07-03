@@ -43,6 +43,7 @@ export const documentOutlineOpenAtom = atomWithStorage('scribe-document-outline-
 export const revisionHistoryOpenAtom = atomWithStorage('scribe-revision-history-open', false)
 export const commentsPanelOpenAtom = atomWithStorage('scribe-comments-open', false)
 export const statsPanelOpenAtom = atomWithStorage('scribe-stats-open', false)
+export const backlinksPanelOpenAtom = atomWithStorage('scribe-backlinks-open', false)
 export const focusModeAtom = atomWithStorage('scribe-focus-mode', false)
 export const manualTitleDocumentIdsAtom = atom<Set<string>>(readManualTitleIds())
 

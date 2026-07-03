@@ -96,6 +96,7 @@ pub fn run() {
             commands::documents::list_trashed_documents,
             commands::documents::set_document_favorite,
             commands::documents::set_document_tags,
+            commands::documents::list_backlinks,
             commands::documents::clear_all_documents,
             commands::comments::list_comment_threads,
             commands::comments::create_comment_thread,

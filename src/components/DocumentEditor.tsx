@@ -2,9 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { useEditor, EditorContent } from '@tiptap/react'
 import type { Editor } from '@tiptap/react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
+import { useNavigate } from '@tanstack/react-router'
 import { DocumentOutlinePanel } from '@/components/editor/DocumentOutlinePanel'
 import { RevisionHistoryPanel } from '@/components/editor/RevisionHistoryPanel'
 import { CommentsPanel } from '@/components/editor/CommentsPanel'
+import { BacklinksPanel } from '@/components/editor/BacklinksPanel'
 import { StatsPanel } from '@/components/editor/StatsPanel'
 import { FindReplaceBar } from '@/components/editor/FindReplaceBar'
 import { EditorToolbar } from '@/components/editor-toolbar/EditorToolbar'
@@ -31,10 +33,12 @@ import { getEditorExtensions } from '@/lib/editor/extensions'
 import { getEditorMarkdown } from '@/lib/editor/markdown-content'
 import { insertImagesFromFiles } from '@/lib/editor/image-utils'
 import { printDocumentFromContent } from '@/lib/export/print-document'
+import { ROUTES } from '@/lib/routes'
 import { cn } from '@/lib/utils'
 import {
   activeDocumentAtom,
   activeDocumentIdAtom,
+  backlinksPanelOpenAtom,
   commentsPanelOpenAtom,
   documentOutlineOpenAtom,
   documentsAtom,
@@ -57,6 +61,8 @@ import {
 
 export function DocumentEditor() {
   const [activeId] = useAtom(activeDocumentIdAtom)
+  const setActiveId = useSetAtom(activeDocumentIdAtom)
+  const navigate = useNavigate()
   const [activeDocument, setActiveDocument] = useAtom(activeDocumentAtom)
   const manualTitleIds = useAtomValue(manualTitleDocumentIdsAtom)
   const setDocuments = useSetAtom(documentsAtom)
@@ -68,6 +74,7 @@ export function DocumentEditor() {
   const historyOpen = useAtomValue(revisionHistoryOpenAtom)
   const [commentsOpen, setCommentsOpen] = useAtom(commentsPanelOpenAtom)
   const [statsOpen, setStatsOpen] = useAtom(statsPanelOpenAtom)
+  const [backlinksOpen, setBacklinksOpen] = useAtom(backlinksPanelOpenAtom)
   const focusMode = useAtomValue(focusModeAtom)
   const setOutlineOpen = useSetAtom(documentOutlineOpenAtom)
   const setHistoryOpen = useSetAtom(revisionHistoryOpenAtom)
@@ -203,6 +210,22 @@ export function DocumentEditor() {
     editor.view.dom.classList.toggle('tiptap--print-accurate', printLayoutEnabled)
   }, [editor, printLayoutEnabled, spellCheckEnabled])
 
+  useEffect(() => {
+    if (!editor) return
+    const dom = editor.view.dom
+    const handleClick = (event: MouseEvent) => {
+      const anchor = (event.target as HTMLElement | null)?.closest?.('a[data-wiki-link]')
+      if (!anchor) return
+      event.preventDefault()
+      const targetId = anchor.getAttribute('data-target-id')
+      if (!targetId) return
+      setActiveId(targetId)
+      navigate(ROUTES.document(targetId))
+    }
+    dom.addEventListener('click', handleClick)
+    return () => dom.removeEventListener('click', handleClick)
+  }, [editor, navigate, setActiveId])
+
   const {
     scrollRef,
     canvasRef,
@@ -281,7 +304,7 @@ export function DocumentEditor() {
       <div
         className={cn(
           'editor-body',
-          (outlineOpen || historyOpen || commentsOpen || statsOpen) &&
+          (outlineOpen || historyOpen || commentsOpen || statsOpen || backlinksOpen) &&
             !isMarkdown &&
             'editor-body--with-outline',
         )}
@@ -444,6 +467,9 @@ export function DocumentEditor() {
         )}
         {!isMarkdown && statsOpen && (
           <StatsPanel editor={editor} onClose={() => setStatsOpen(false)} />
+        )}
+        {!isMarkdown && backlinksOpen && (
+          <BacklinksPanel onClose={() => setBacklinksOpen(false)} />
         )}
       </div>
 

@@ -113,6 +113,9 @@ export const setDocumentFavorite = (id: string, favorite: boolean) =>
 export const setDocumentTags = (id: string, tags: string[]) =>
   invoke<void>('set_document_tags', { id, tags })
 
+export const listBacklinks = (id: string) =>
+  invoke<DocumentSummary[]>('list_backlinks', { id })
+
 export interface Comment {
   id: string
   threadId: string

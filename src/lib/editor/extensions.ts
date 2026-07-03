@@ -39,6 +39,7 @@ import { SlashCommands } from '@/lib/editor/slash-commands'
 import { TableOfContents } from '@/lib/editor/table-of-contents'
 import { CustomTableCell, CustomTableHeader } from '@/lib/editor/table-extensions'
 import { ClipboardPaste } from '@/lib/editor/paste-handler'
+import { WikiLink } from '@/lib/editor/wiki-link'
 
 type EditorExtensionsOptions = {
   onInsertImages?: (files: File[], pos?: number) => void | Promise<void>
@@ -109,6 +110,7 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
       nocookie: true,
     }),
     PageBreak,
+    WikiLink,
     SearchReplace,
     TableOfContents,
     ResizableImage.configure({

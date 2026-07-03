@@ -7,6 +7,7 @@ import {
   Focus,
   FolderInput,
   History,
+  Link2,
   ListTree,
   MessageSquare,
   Search,
@@ -23,6 +24,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 import {
+  backlinksPanelOpenAtom,
   commentsPanelOpenAtom,
   documentOutlineOpenAtom,
   findReplaceModeAtom,
@@ -42,6 +44,7 @@ export function EditorDocumentToolsMenu({ viewMode }: EditorDocumentToolsMenuPro
   const [historyOpen, setHistoryOpen] = useAtom(revisionHistoryOpenAtom)
   const [commentsOpen, setCommentsOpen] = useAtom(commentsPanelOpenAtom)
   const [statsOpen, setStatsOpen] = useAtom(statsPanelOpenAtom)
+  const [backlinksOpen, setBacklinksOpen] = useAtom(backlinksPanelOpenAtom)
   const [focusMode, setFocusMode] = useAtom(focusModeAtom)
   const setMovePickerOpen = useSetAtom(moveDocumentPickerOpenAtom)
   const setFindReplaceOpen = useSetAtom(findReplaceOpenAtom)
@@ -56,7 +59,7 @@ export function EditorDocumentToolsMenu({ viewMode }: EditorDocumentToolsMenuPro
         <DropdownMenuTrigger asChild>
           <Button
             variant={
-              outlineOpen || historyOpen || commentsOpen || statsOpen || focusMode
+              outlineOpen || historyOpen || commentsOpen || statsOpen || backlinksOpen || focusMode
                 ? 'default'
                 : 'ghost'
             }
@@ -84,6 +87,7 @@ export function EditorDocumentToolsMenu({ viewMode }: EditorDocumentToolsMenuPro
             className={cn(commentsOpen && 'is-selected')}
             onClick={() => {
               setStatsOpen(false)
+              setBacklinksOpen(false)
               setCommentsOpen((open) => !open)
             }}
           >
@@ -91,9 +95,21 @@ export function EditorDocumentToolsMenu({ viewMode }: EditorDocumentToolsMenuPro
             Komentáre
           </DropdownMenuItem>
           <DropdownMenuItem
+            className={cn(backlinksOpen && 'is-selected')}
+            onClick={() => {
+              setCommentsOpen(false)
+              setStatsOpen(false)
+              setBacklinksOpen((open) => !open)
+            }}
+          >
+            <Link2 className="h-4 w-4 shrink-0" />
+            Odkazy sem
+          </DropdownMenuItem>
+          <DropdownMenuItem
             className={cn(statsOpen && 'is-selected')}
             onClick={() => {
               setCommentsOpen(false)
+              setBacklinksOpen(false)
               setStatsOpen((open) => !open)
             }}
           >

@@ -1,6 +1,6 @@
 use rusqlite::Connection;
 
-const SCHEMA_VERSION: i32 = 6;
+const SCHEMA_VERSION: i32 = 7;
 
 pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     conn.execute_batch(
@@ -152,6 +152,31 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         conn.execute(
             "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
             ["6".to_string()],
+        )?;
+    }
+
+    if current < 7 {
+        // Wiki-link edges between documents power the backlinks panel.
+        conn.execute_batch(
+            r#"
+            CREATE TABLE IF NOT EXISTS document_links (
+                source_id TEXT NOT NULL,
+                target_id TEXT NOT NULL,
+                PRIMARY KEY (source_id, target_id),
+                FOREIGN KEY (source_id) REFERENCES documents(id) ON DELETE CASCADE,
+                FOREIGN KEY (target_id) REFERENCES documents(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_document_links_target
+                ON document_links(target_id);
+            "#,
+        )?;
+
+        let _ = crate::db::backfill_links(conn);
+
+        conn.execute(
+            "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
+            ["7".to_string()],
         )?;
     }
 

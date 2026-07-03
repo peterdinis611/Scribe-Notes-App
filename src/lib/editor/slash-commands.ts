@@ -31,6 +31,7 @@ export const SLASH_COMMANDS: SlashCommandItem[] = [
   { id: 'math-block', label: 'Vzorec blok', hint: 'math.js blok', icon: '∑' },
   { id: 'hr', label: 'Oddeľovač', hint: 'Horizontálna čiara', icon: '—' },
   { id: 'comment', label: 'Komentár', hint: 'Poznámka k textu', icon: '💬' },
+  { id: 'wiki-link', label: 'Prepojiť dokument', hint: 'Odkaz [[ na dokument', icon: '🔗' },
   { id: 'toc', label: 'Obsah', hint: 'Automatický TOC', icon: '≡' },
 ]
 
@@ -108,6 +109,9 @@ export function runSlashCommand(
       void createCommentForSelection(editor)
       break
     }
+    case 'wiki-link':
+      editor.chain().focus().insertContent('[[').run()
+      break
     case 'toc':
       editor.chain().focus().insertTableOfContents().run()
       break

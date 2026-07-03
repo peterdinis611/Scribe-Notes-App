@@ -161,6 +161,7 @@ pub fn create_document(
     .map_err(|e| e.to_string())?;
 
     crate::db::sync_document_fts(&conn, &id, &input.title, &content_json)?;
+    crate::db::sync_document_links(&conn, &id, &content_json)?;
 
     let file_path = persist_document(
         &app,
@@ -228,6 +229,7 @@ pub fn update_document(
         .map_err(|e| e.to_string())?;
 
         crate::db::sync_document_fts(&conn, &input.id, &title, &content_json)?;
+        crate::db::sync_document_links(&conn, &input.id, &content_json)?;
         Ok(())
     })();
 
@@ -306,6 +308,7 @@ pub fn duplicate_document(
     .map_err(|e| e.to_string())?;
 
     crate::db::sync_document_fts(&conn, &new_id, &title, &content_json)?;
+    crate::db::sync_document_links(&conn, &new_id, &content_json)?;
 
     let file_path = persist_document(
         &app,
@@ -370,9 +373,35 @@ pub fn restore_document(state: State<'_, DbState>, id: String) -> Result<(), Str
 
     if let Some(doc) = restored {
         crate::db::sync_document_fts(&conn, &doc.id, &doc.title, &doc.content_json)?;
+        crate::db::sync_document_links(&conn, &doc.id, &doc.content_json)?;
     }
 
     Ok(())
+}
+
+#[tauri::command]
+pub fn list_backlinks(
+    state: State<'_, DbState>,
+    id: String,
+) -> Result<Vec<DocumentSummary>, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+
+    let mut stmt = conn
+        .prepare(
+            "SELECT d.id, d.title, d.folder_id, d.file_path, d.updated_at, \
+                    d.is_favorite, d.tags, d.deleted_at \
+             FROM document_links l \
+             JOIN documents d ON d.id = l.source_id \
+             WHERE l.target_id = ?1 AND d.deleted_at IS NULL \
+             ORDER BY d.updated_at DESC",
+        )
+        .map_err(|e| e.to_string())?;
+
+    let rows = stmt
+        .query_map(params![id], map_summary)
+        .map_err(|e| e.to_string())?;
+
+    rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
 }
 
 fn purge_document_row(conn: &rusqlite::Connection, id: &str) -> Result<(), String> {
