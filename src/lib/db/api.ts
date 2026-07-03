@@ -116,6 +116,9 @@ export const setDocumentTags = (id: string, tags: string[]) =>
 export const listBacklinks = (id: string) =>
   invoke<DocumentSummary[]>('list_backlinks', { id })
 
+export const listOutgoingLinks = (id: string) =>
+  invoke<DocumentSummary[]>('list_outgoing_links', { id })
+
 export interface Comment {
   id: string
   threadId: string

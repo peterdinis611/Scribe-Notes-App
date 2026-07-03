@@ -404,6 +404,31 @@ pub fn list_backlinks(
     rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+pub fn list_outgoing_links(
+    state: State<'_, DbState>,
+    id: String,
+) -> Result<Vec<DocumentSummary>, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+
+    let mut stmt = conn
+        .prepare(
+            "SELECT d.id, d.title, d.folder_id, d.file_path, d.updated_at, \
+                    d.is_favorite, d.tags, d.deleted_at \
+             FROM document_links l \
+             JOIN documents d ON d.id = l.target_id \
+             WHERE l.source_id = ?1 AND d.deleted_at IS NULL \
+             ORDER BY d.updated_at DESC",
+        )
+        .map_err(|e| e.to_string())?;
+
+    let rows = stmt
+        .query_map(params![id], map_summary)
+        .map_err(|e| e.to_string())?;
+
+    rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+}
+
 fn purge_document_row(conn: &rusqlite::Connection, id: &str) -> Result<(), String> {
     let file_path: Option<String> = conn
         .query_row(

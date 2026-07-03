@@ -1,4 +1,4 @@
-import { mergeAttributes, Node } from '@tiptap/core'
+import { InputRule, mergeAttributes, Node } from '@tiptap/core'
 import { ReactRenderer } from '@tiptap/react'
 import Suggestion, { type SuggestionProps } from '@tiptap/suggestion'
 import { getDefaultStore } from 'jotai'
@@ -15,7 +15,31 @@ declare module '@tiptap/core' {
     wikiLink: {
       /** Insert a wiki-link node pointing at a document. */
       insertWikiLink: (attrs: { targetId: string; label: string }) => ReturnType
+      /** Fill in the target id for every unresolved link with a matching label. */
+      resolveWikiLinkLabel: (attrs: { label: string; targetId: string }) => ReturnType
     }
+  }
+}
+
+/** Resolves a typed title to an existing document (case-insensitive, excluding the active one). */
+function resolveTitle(title: string): { targetId: string | null; label: string } {
+  const store = getDefaultStore()
+  const docs = store.get(documentsAtom)
+  const activeId = store.get(activeDocumentIdAtom)
+  const match = docs.find(
+    (doc) => doc.id !== activeId && doc.title.toLowerCase() === title.toLowerCase(),
+  )
+  return match ? { targetId: match.id, label: match.title } : { targetId: null, label: title }
+}
+
+async function createAndResolveLabel(editor: Editor, title: string) {
+  const store = getDefaultStore()
+  try {
+    const doc = await createDocument({ title })
+    store.set(documentsAtom, (prev) => prependDocumentSummary(prev, doc))
+    editor.chain().resolveWikiLinkLabel({ label: title, targetId: doc.id }).run()
+  } catch (error) {
+    toast.error('Nepodarilo sa vytvoriť dokument', String(error))
   }
 }
 
@@ -116,7 +140,44 @@ export const WikiLink = Node.create({
               { type: 'text', text: ' ' },
             ])
             .run(),
+      resolveWikiLinkLabel:
+        (attrs) =>
+        ({ state, tr, dispatch }) => {
+          const type = state.schema.nodes[this.name]
+          if (!type) return false
+          let changed = false
+          state.doc.descendants((node, pos) => {
+            if (node.type === type && !node.attrs.targetId && node.attrs.label === attrs.label) {
+              tr.setNodeMarkup(pos, undefined, { ...node.attrs, targetId: attrs.targetId })
+              changed = true
+            }
+          })
+          if (changed && dispatch) dispatch(tr)
+          return changed
+        },
     }
+  },
+
+  addInputRules() {
+    return [
+      new InputRule({
+        find: /\[\[([^[\]\n]+)]]$/,
+        handler: ({ range, match, chain }) => {
+          const title = match[1]?.trim()
+          if (!title) return
+          const { targetId, label } = resolveTitle(title)
+          chain()
+            .insertContentAt({ from: range.from, to: range.to }, [
+              { type: this.name, attrs: { targetId, label } },
+              { type: 'text', text: ' ' },
+            ])
+            .run()
+          if (!targetId) {
+            void createAndResolveLabel(this.editor, title)
+          }
+        },
+      }),
+    ]
   },
 
   addProseMirrorPlugins() {

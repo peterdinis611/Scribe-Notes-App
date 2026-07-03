@@ -7,6 +7,7 @@ import { DocumentOutlinePanel } from '@/components/editor/DocumentOutlinePanel'
 import { RevisionHistoryPanel } from '@/components/editor/RevisionHistoryPanel'
 import { CommentsPanel } from '@/components/editor/CommentsPanel'
 import { BacklinksPanel } from '@/components/editor/BacklinksPanel'
+import { WikiLinkHoverCard } from '@/components/editor/WikiLinkHoverCard'
 import { StatsPanel } from '@/components/editor/StatsPanel'
 import { FindReplaceBar } from '@/components/editor/FindReplaceBar'
 import { EditorToolbar } from '@/components/editor-toolbar/EditorToolbar'
@@ -488,6 +489,7 @@ export function DocumentEditor() {
       )}
 
       <PageSetupDialog open={pageSetupOpen} onClose={() => setPageSetupOpen(false)} />
+      {!isMarkdown && <WikiLinkHoverCard editor={editor} />}
     </div>
   )
 }
