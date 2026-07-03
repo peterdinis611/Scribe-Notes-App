@@ -25,7 +25,9 @@ import Dropcursor from '@tiptap/extension-dropcursor'
 import Gapcursor from '@tiptap/extension-gapcursor'
 import StarterKit from '@tiptap/starter-kit'
 import { createEmojiSuggestion } from '@/lib/editor/emoji-suggestion'
+import { Callout } from '@/lib/editor/callout'
 import { CommentMark } from '@/lib/editor/comment-mark'
+import { Footnote, createFootnoteEditHandler } from '@/lib/editor/footnote'
 import { FontFamily } from '@/lib/editor/font-family'
 import { FontSize } from '@/lib/editor/font-size'
 import { BlockSpacing } from '@/lib/editor/block-spacing'
@@ -110,6 +112,8 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
       nocookie: true,
     }),
     PageBreak,
+    Callout,
+    Footnote.configure({ onEdit: createFootnoteEditHandler() }),
     WikiLink,
     SearchReplace,
     TableOfContents,

@@ -5347,6 +5347,227 @@ body.is-block-dragging .tiptap {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-muted-foreground) 30%, transparent);
 }
 
+/* ── Wiki-link hover preview ── */
+.wiki-link-hover-card {
+  position: fixed;
+  z-index: 60;
+  width: 300px;
+  max-width: calc(100vw - 16px);
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface-elevated);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.22);
+  pointer-events: none;
+  animation: wiki-hover-in 0.12s ease;
+}
+
+@keyframes wiki-hover-in {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}
+
+.wiki-link-hover-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-foreground);
+}
+
+.wiki-link-hover-time {
+  margin-top: 2px;
+  font-size: 10.5px;
+  color: var(--color-muted-foreground);
+}
+
+.wiki-link-hover-snippet {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-muted-foreground);
+}
+
+.wiki-link-hover-snippet--empty {
+  font-style: italic;
+  opacity: 0.7;
+}
+
+/* ── Callout bloky ── */
+.tiptap .callout {
+  position: relative;
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  gap: 10px;
+  margin: 14px 0;
+  padding: 12px 14px 12px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--callout-border, var(--color-border));
+  border-left: 4px solid var(--callout-accent, var(--color-accent));
+  background: var(--callout-bg, color-mix(in srgb, var(--color-accent) 8%, transparent));
+}
+
+.tiptap .callout--info {
+  --callout-accent: #3b82f6;
+  --callout-bg: color-mix(in srgb, #3b82f6 10%, transparent);
+  --callout-border: color-mix(in srgb, #3b82f6 30%, transparent);
+}
+
+.tiptap .callout--tip {
+  --callout-accent: #22c55e;
+  --callout-bg: color-mix(in srgb, #22c55e 10%, transparent);
+  --callout-border: color-mix(in srgb, #22c55e 30%, transparent);
+}
+
+.tiptap .callout--warning {
+  --callout-accent: #f59e0b;
+  --callout-bg: color-mix(in srgb, #f59e0b 12%, transparent);
+  --callout-border: color-mix(in srgb, #f59e0b 34%, transparent);
+}
+
+.tiptap .callout--danger {
+  --callout-accent: #ef4444;
+  --callout-bg: color-mix(in srgb, #ef4444 11%, transparent);
+  --callout-border: color-mix(in srgb, #ef4444 32%, transparent);
+}
+
+.tiptap .callout-icon {
+  font-size: 16px;
+  line-height: 1.5;
+  user-select: none;
+}
+
+.tiptap .callout-content {
+  min-width: 0;
+}
+
+.tiptap .callout-content > :first-child {
+  margin-top: 0;
+}
+
+.tiptap .callout-content > :last-child {
+  margin-bottom: 0;
+}
+
+.tiptap .callout-toolbar {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  pointer-events: none;
+}
+
+.tiptap .callout:hover .callout-toolbar {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.tiptap .callout-variant-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 14px;
+  cursor: default;
+}
+
+.tiptap .callout-variant-btn:hover {
+  background: var(--color-hover);
+}
+
+/* ── Poznámky pod čiarou ── */
+.tiptap .footnote-ref {
+  color: var(--color-accent);
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0 1px;
+}
+
+.tiptap .footnote-ref::before {
+  content: '[';
+}
+
+.tiptap .footnote-ref::after {
+  content: ']';
+}
+
+.tiptap .footnote-ref:hover {
+  text-decoration: underline;
+}
+
+.tiptap .footnotes-section {
+  margin-top: 32px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border);
+  user-select: none;
+}
+
+.tiptap .footnotes-heading {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted-foreground);
+  margin-bottom: 8px;
+}
+
+.tiptap .footnotes-list {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.tiptap .footnotes-item {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--color-foreground);
+}
+
+.tiptap .footnotes-item-text {
+  cursor: pointer;
+}
+
+.tiptap .footnotes-item-text:hover {
+  color: var(--color-accent);
+}
+
+.tiptap .footnotes-item-text--empty {
+  font-style: italic;
+  color: var(--color-muted-foreground);
+}
+
+.tiptap .footnotes-item-edit {
+  margin-left: 8px;
+  padding: 0 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: transparent;
+  font-size: 10.5px;
+  color: var(--color-muted-foreground);
+  cursor: default;
+}
+
+.tiptap .footnotes-item-edit:hover {
+  color: var(--color-accent);
+  border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
+}
+
 .revision-menu {
   min-width: 240px;
 }
@@ -5982,6 +6203,39 @@ body.is-block-dragging .tiptap {
 
 .backlink-item-time {
   font-size: 10.5px;
+  color: var(--color-muted-foreground);
+}
+
+.backlinks-section + .backlinks-section {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.backlinks-section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-muted-foreground);
+}
+
+.backlinks-section-count {
+  margin-left: auto;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--color-hover);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.backlinks-section-empty {
+  margin: 2px 0 0;
+  font-size: 11.5px;
   color: var(--color-muted-foreground);
 }
 

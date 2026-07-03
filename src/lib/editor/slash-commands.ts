@@ -30,6 +30,11 @@ export const SLASH_COMMANDS: SlashCommandItem[] = [
   { id: 'math-inline', label: 'Vzorec', hint: 'math.js v riadku', icon: 'ƒ' },
   { id: 'math-block', label: 'Vzorec blok', hint: 'math.js blok', icon: '∑' },
   { id: 'hr', label: 'Oddeľovač', hint: 'Horizontálna čiara', icon: '—' },
+  { id: 'callout-info', label: 'Callout: Info', hint: 'Informačný blok', icon: 'ℹ️' },
+  { id: 'callout-tip', label: 'Callout: Tip', hint: 'Tip / rada', icon: '💡' },
+  { id: 'callout-warning', label: 'Callout: Varovanie', hint: 'Upozornenie', icon: '⚠️' },
+  { id: 'callout-danger', label: 'Callout: Dôležité', hint: 'Kritická poznámka', icon: '🛑' },
+  { id: 'footnote', label: 'Poznámka pod čiarou', hint: 'Číslovaná poznámka', icon: '⁽¹⁾' },
   { id: 'comment', label: 'Komentár', hint: 'Poznámka k textu', icon: '💬' },
   { id: 'wiki-link', label: 'Prepojiť dokument', hint: 'Odkaz [[ na dokument', icon: '🔗' },
   { id: 'toc', label: 'Obsah', hint: 'Automatický TOC', icon: '≡' },
@@ -104,6 +109,21 @@ export function runSlashCommand(
       break
     case 'hr':
       editor.chain().focus().setHorizontalRule().run()
+      break
+    case 'callout-info':
+      editor.chain().focus().toggleCallout('info').run()
+      break
+    case 'callout-tip':
+      editor.chain().focus().toggleCallout('tip').run()
+      break
+    case 'callout-warning':
+      editor.chain().focus().toggleCallout('warning').run()
+      break
+    case 'callout-danger':
+      editor.chain().focus().toggleCallout('danger').run()
+      break
+    case 'footnote':
+      editor.chain().focus().insertFootnote().run()
       break
     case 'comment': {
       void createCommentForSelection(editor)
