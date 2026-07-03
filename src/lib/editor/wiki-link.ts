@@ -1,5 +1,6 @@
 import { InputRule, mergeAttributes, Node } from '@tiptap/core'
 import { ReactRenderer } from '@tiptap/react'
+import { PluginKey } from '@tiptap/pm/state'
 import Suggestion, { type SuggestionProps } from '@tiptap/suggestion'
 import { getDefaultStore } from 'jotai'
 import type { Range } from '@tiptap/core'
@@ -184,6 +185,7 @@ export const WikiLink = Node.create({
     return [
       Suggestion<WikiLinkItem>({
         editor: this.editor,
+        pluginKey: new PluginKey('wikiLinkSuggestion'),
         char: '[[',
         startOfLine: false,
         allowSpaces: true,
