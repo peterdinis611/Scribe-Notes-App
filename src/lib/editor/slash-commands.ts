@@ -10,6 +10,7 @@ import {
 import { insertBlockMath, insertInlineMath } from '@/lib/editor/insert-helpers'
 import { pickImageFiles } from '@/lib/editor/image-utils'
 import { insertBulletList, insertOrderedList, insertTaskList } from '@/lib/editor/list-commands'
+import { createCommentForSelection } from '@/lib/editor/comments'
 
 export const SLASH_COMMANDS: SlashCommandItem[] = [
   { id: 'h1', label: 'Nadpis 1', hint: 'Veľký nadpis', icon: 'H1' },
@@ -22,7 +23,8 @@ export const SLASH_COMMANDS: SlashCommandItem[] = [
   { id: 'ordered', label: 'Číslovaný zoznam', hint: '1. 2. 3.', icon: '1.' },
   { id: 'task', label: 'Úlohy', hint: 'Checklist', icon: '☑' },
   { id: 'quote', label: 'Citácia', hint: 'Blok citátu', icon: '❝' },
-  { id: 'code', label: 'Kód', hint: 'Blok kódu', icon: '</>' },
+  { id: 'inline-code', label: 'Inline kód', hint: 'Kód v riadku (⌘E)', icon: '‹›' },
+  { id: 'code', label: 'Blok kódu', hint: 'Viacriadkový kód', icon: '</>' },
   { id: 'table', label: 'Tabuľka', hint: '3×3', icon: '⊞' },
   { id: 'image', label: 'Obrázok', hint: 'Vložiť obrázok', icon: '🖼' },
   { id: 'math-inline', label: 'Vzorec', hint: 'math.js v riadku', icon: 'ƒ' },
@@ -79,6 +81,9 @@ export function runSlashCommand(
     case 'quote':
       editor.chain().focus().toggleBlockquote().run()
       break
+    case 'inline-code':
+      editor.chain().focus().setMark('code').run()
+      break
     case 'code':
       editor.chain().focus().toggleCodeBlock().run()
       break
@@ -100,10 +105,7 @@ export function runSlashCommand(
       editor.chain().focus().setHorizontalRule().run()
       break
     case 'comment': {
-      const text = window.prompt('Text komentára', '')
-      if (text?.trim()) {
-        editor.chain().focus().setComment({ text: text.trim() }).run()
-      }
+      void createCommentForSelection(editor)
       break
     }
     case 'toc':

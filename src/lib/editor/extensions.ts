@@ -34,6 +34,7 @@ import { MathJs } from '@/lib/editor/math-js-extension'
 import { lowlight } from '@/lib/editor/lowlight'
 import { PageBreak } from '@/lib/editor/page-break'
 import { ResizableImage } from '@/lib/editor/resizable-image'
+import { SearchReplace } from '@/lib/editor/search-extension'
 import { SlashCommands } from '@/lib/editor/slash-commands'
 import { TableOfContents } from '@/lib/editor/table-of-contents'
 import { CustomTableCell, CustomTableHeader } from '@/lib/editor/table-extensions'
@@ -108,6 +109,7 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
       nocookie: true,
     }),
     PageBreak,
+    SearchReplace,
     TableOfContents,
     ResizableImage.configure({
       allowBase64: true,

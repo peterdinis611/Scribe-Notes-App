@@ -15,6 +15,7 @@ import { ROUTES } from '@/lib/routes'
 import type { DocumentTemplate } from '@/lib/templates'
 import { InputDialogHost } from '@/components/InputDialogHost'
 import { ToastHost } from '@/components/ToastHost'
+import { TrashDialog } from '@/components/TrashDialog'
 import {
   activeDocumentAtom,
   activeDocumentIdAtom,
@@ -108,6 +109,7 @@ export function AppLayout() {
         onOpenChange={setMovePickerOpen}
       />
       <InputDialogHost />
+      <TrashDialog />
       <ToastHost />
     </div>
   )

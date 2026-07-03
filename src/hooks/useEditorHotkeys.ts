@@ -1,10 +1,48 @@
 import { useHotkeys } from '@tanstack/react-hotkeys'
+import { useSetAtom } from 'jotai'
 import type { Editor } from '@tiptap/react'
 import { insertBulletList, insertOrderedList, insertTaskList } from '@/lib/editor/list-commands'
+import { findReplaceModeAtom, findReplaceOpenAtom } from '@/store/documents'
 
 export function useEditorHotkeys(editor: Editor | null) {
+  const setFindReplaceOpen = useSetAtom(findReplaceOpenAtom)
+  const setFindReplaceMode = useSetAtom(findReplaceModeAtom)
+
   useHotkeys(
     [
+      {
+        hotkey: 'Mod+F',
+        callback: () => {
+          setFindReplaceMode('find')
+          setFindReplaceOpen(true)
+        },
+        options: {
+          enabled: !!editor,
+          meta: { name: 'Hľadať', description: 'Hľadať v dokumente' },
+        },
+      },
+      {
+        hotkey: 'Mod+H',
+        callback: () => {
+          setFindReplaceMode('replace')
+          setFindReplaceOpen(true)
+        },
+        options: {
+          enabled: !!editor,
+          meta: { name: 'Nahradiť', description: 'Hľadať a nahradiť v dokumente' },
+        },
+      },
+      {
+        hotkey: 'Mod+Alt+F',
+        callback: () => {
+          setFindReplaceMode('replace')
+          setFindReplaceOpen(true)
+        },
+        options: {
+          enabled: !!editor,
+          meta: { name: 'Nahradiť', description: 'Hľadať a nahradiť v dokumente' },
+        },
+      },
       {
         hotkey: 'Mod+Z',
         callback: () => editor?.chain().focus().undo().run(),

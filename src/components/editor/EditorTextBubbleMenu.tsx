@@ -15,6 +15,7 @@ import {
 import { ColorSwatchGrid, CustomColorPicker } from '@/components/editor-toolbar/primitives'
 import { HIGHLIGHT_COLORS, TEXT_COLORS } from '@/lib/editor/font-size'
 import { hasEditorSelection } from '@/lib/editor/delete-content'
+import { createCommentForSelection } from '@/lib/editor/comments'
 import { cn } from '@/lib/utils'
 
 type EditorTextBubbleMenuProps = {
@@ -74,12 +75,7 @@ export function EditorTextBubbleMenu({ editor }: EditorTextBubbleMenuProps) {
         className={cn('editor-bubble-icon-btn', editor.isActive('comment') && 'is-active')}
         title="Komentár"
         onClick={() => {
-          if (editor.isActive('comment')) {
-            editor.chain().focus().unsetComment().run()
-            return
-          }
-          const text = window.prompt('Komentár', '')
-          if (text?.trim()) editor.chain().focus().setComment({ text: text.trim() }).run()
+          void createCommentForSelection(editor)
         }}
       >
         <MessageSquare className="h-3.5 w-3.5" />

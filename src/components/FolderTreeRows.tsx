@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { ChevronRight, FileText, Folder, FolderPlus, Trash2 } from 'lucide-react'
+import { ChevronRight, FileText, Folder, FolderPlus, Star, Tag, Trash2 } from 'lucide-react'
 import { MoveToFolderMenu } from '@/components/MoveToFolderMenu'
 import { DocumentTitleField } from '@/components/DocumentTitleField'
 import { cn, formatRelativeTime } from '@/lib/utils'
@@ -81,6 +81,8 @@ type FolderTreeDocumentRowProps = {
   isActive: boolean
   onOpen: (id: string) => void
   onDelete: (id: string, event: React.MouseEvent) => void
+  onToggleFavorite: (id: string, event: React.MouseEvent) => void
+  onEditTags: (id: string, event: React.MouseEvent) => void
   onDragStart: (id: string, event: React.DragEvent) => void
 }
 
@@ -90,6 +92,8 @@ export const FolderTreeDocumentRow = memo(function FolderTreeDocumentRow({
   isActive,
   onOpen,
   onDelete,
+  onToggleFavorite,
+  onEditTags,
   onDragStart,
 }: FolderTreeDocumentRowProps) {
   return (
@@ -111,19 +115,55 @@ export const FolderTreeDocumentRow = memo(function FolderTreeDocumentRow({
       <div className="doc-item-icon">
         <FileText className="h-4 w-4 stroke-[1.5]" />
       </div>
-      <div className="min-w-0 flex-1">
+      <div className="doc-item-body">
         <DocumentTitleField documentId={document.id} title={document.title} variant="sidebar" />
-        <p className="doc-item-meta">{formatRelativeTime(document.updatedAt)}</p>
+        <div className="doc-item-subline">
+          <span className="doc-item-meta">{formatRelativeTime(document.updatedAt)}</span>
+          {document.tags.slice(0, 2).map((tag) => (
+            <span key={tag} className="doc-item-tag">
+              {tag}
+            </span>
+          ))}
+          {document.tags.length > 2 && (
+            <span className="doc-item-tag doc-item-tag--more">+{document.tags.length - 2}</span>
+          )}
+        </div>
       </div>
-      <MoveToFolderMenu documentId={document.id} folderId={document.folderId} />
-      <button
-        type="button"
-        className="doc-item-delete"
-        onClick={(event) => onDelete(document.id, event)}
-        aria-label="Vymazať"
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </button>
+
+      {document.isFavorite && (
+        <Star className="doc-item-fav-badge h-3.5 w-3.5" aria-hidden="true" />
+      )}
+
+      <div className="doc-item-actions">
+        <button
+          type="button"
+          className={cn('doc-item-action doc-item-star', document.isFavorite && 'is-active')}
+          onClick={(event) => onToggleFavorite(document.id, event)}
+          aria-label={document.isFavorite ? 'Odobrať z obľúbených' : 'Pridať do obľúbených'}
+          title="Obľúbené"
+        >
+          <Star className={cn('h-3.5 w-3.5', document.isFavorite && 'fill-current')} />
+        </button>
+        <button
+          type="button"
+          className="doc-item-action"
+          onClick={(event) => onEditTags(document.id, event)}
+          aria-label="Upraviť štítky"
+          title="Štítky"
+        >
+          <Tag className="h-3.5 w-3.5" />
+        </button>
+        <MoveToFolderMenu documentId={document.id} folderId={document.folderId} />
+        <button
+          type="button"
+          className="doc-item-delete"
+          onClick={(event) => onDelete(document.id, event)}
+          aria-label="Presunúť do koša"
+          title="Presunúť do koša"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
     </div>
   )
 })

@@ -1,3 +1,4 @@
+pub mod comments;
 pub mod documents;
 pub mod folders;
 pub mod images;

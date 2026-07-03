@@ -10,6 +10,8 @@ export const APP_SHORTCUTS: ShortcutDef[] = [
   { label: 'Príkazová paleta', keys: ['⌘', 'K'], description: 'Vyhľadávanie dokumentov a príkazov' },
   { label: 'Späť', keys: ['⌘', 'Z'], description: 'Vráti poslednú zmenu v editore' },
   { label: 'Znovu', keys: ['⌘', '⇧', 'Z'], description: 'Opakuje zrušenú zmenu v editore' },
+  { label: 'Hľadať', keys: ['⌘', 'F'], description: 'Hľadať v dokumente' },
+  { label: 'Hľadať a nahradiť', keys: ['⌘', 'H'], description: 'Nahradiť text v dokumente' },
   { label: 'Importovať', keys: ['⌘', 'O'], description: 'Import .scribe, .pages, .md, .txt, .docx' },
   { label: 'Prepínať tému', keys: ['⌘', '⇧', 'L'], description: 'Prepína medzi témami' },
   { label: 'Nastavenia', keys: ['⌘', ','], description: 'Otvorí panel nastavení' },

@@ -14,6 +14,14 @@ pub struct DocumentSummary {
     pub folder_id: Option<String>,
     pub file_path: Option<String>,
     pub updated_at: i64,
+    pub is_favorite: bool,
+    pub tags: Vec<String>,
+    pub deleted_at: Option<i64>,
+}
+
+fn parse_tags(raw: Option<String>) -> Vec<String> {
+    raw.and_then(|value| serde_json::from_str::<Vec<String>>(&value).ok())
+        .unwrap_or_default()
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -63,26 +71,51 @@ pub fn map_document(row: &rusqlite::Row<'_>) -> rusqlite::Result<Document> {
 pub const DOCUMENT_SELECT: &str =
     "SELECT id, title, content_json, folder_id, file_path, created_at, updated_at FROM documents";
 
+const SUMMARY_SELECT: &str =
+    "SELECT id, title, folder_id, file_path, updated_at, is_favorite, tags, deleted_at FROM documents";
+
+fn map_summary(row: &rusqlite::Row<'_>) -> rusqlite::Result<DocumentSummary> {
+    Ok(DocumentSummary {
+        id: row.get(0)?,
+        title: row.get(1)?,
+        folder_id: row.get(2)?,
+        file_path: row.get(3)?,
+        updated_at: row.get(4)?,
+        is_favorite: row.get::<_, i64>(5)? != 0,
+        tags: parse_tags(row.get::<_, Option<String>>(6)?),
+        deleted_at: row.get(7)?,
+    })
+}
+
 #[tauri::command]
 pub fn list_documents(state: State<'_, DbState>) -> Result<Vec<DocumentSummary>, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
 
     let mut stmt = conn
-        .prepare(
-            "SELECT id, title, folder_id, file_path, updated_at FROM documents ORDER BY updated_at DESC",
-        )
+        .prepare(&format!(
+            "{SUMMARY_SELECT} WHERE deleted_at IS NULL ORDER BY updated_at DESC"
+        ))
         .map_err(|e| e.to_string())?;
 
     let rows = stmt
-        .query_map([], |row| {
-            Ok(DocumentSummary {
-                id: row.get(0)?,
-                title: row.get(1)?,
-                folder_id: row.get(2)?,
-                file_path: row.get(3)?,
-                updated_at: row.get(4)?,
-            })
-        })
+        .query_map([], map_summary)
+        .map_err(|e| e.to_string())?;
+
+    rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn list_trashed_documents(state: State<'_, DbState>) -> Result<Vec<DocumentSummary>, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+
+    let mut stmt = conn
+        .prepare(&format!(
+            "{SUMMARY_SELECT} WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC"
+        ))
+        .map_err(|e| e.to_string())?;
+
+    let rows = stmt
+        .query_map([], map_summary)
         .map_err(|e| e.to_string())?;
 
     rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
@@ -298,7 +331,51 @@ pub fn duplicate_document(
 #[tauri::command]
 pub fn delete_document(state: State<'_, DbState>, id: String) -> Result<(), String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let now = now_ts();
 
+    // Soft delete: move to trash. The file on disk and FTS entry stay until purge,
+    // but we drop it from the search index so trashed docs don't appear in search.
+    let affected = conn
+        .execute(
+            "UPDATE documents SET deleted_at = ?1 WHERE id = ?2 AND deleted_at IS NULL",
+            params![now, id],
+        )
+        .map_err(|e| e.to_string())?;
+
+    if affected > 0 {
+        crate::db::remove_document_fts(&conn, &id)?;
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn restore_document(state: State<'_, DbState>, id: String) -> Result<(), String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+
+    let restored = conn
+        .query_row(
+            &format!("{DOCUMENT_SELECT} WHERE id = ?1"),
+            params![id],
+            map_document,
+        )
+        .optional()
+        .map_err(|e| e.to_string())?;
+
+    conn.execute(
+        "UPDATE documents SET deleted_at = NULL WHERE id = ?1",
+        params![id],
+    )
+    .map_err(|e| e.to_string())?;
+
+    if let Some(doc) = restored {
+        crate::db::sync_document_fts(&conn, &doc.id, &doc.title, &doc.content_json)?;
+    }
+
+    Ok(())
+}
+
+fn purge_document_row(conn: &rusqlite::Connection, id: &str) -> Result<(), String> {
     let file_path: Option<String> = conn
         .query_row(
             "SELECT file_path FROM documents WHERE id = ?1",
@@ -312,12 +389,81 @@ pub fn delete_document(state: State<'_, DbState>, id: String) -> Result<(), Stri
     conn.execute("DELETE FROM documents WHERE id = ?1", params![id])
         .map_err(|e| e.to_string())?;
 
-    crate::db::remove_document_fts(&conn, &id)?;
+    crate::db::remove_document_fts(conn, id)?;
 
     if let Some(path) = file_path {
         storage::delete_document_file(&path)?;
     }
 
+    Ok(())
+}
+
+#[tauri::command]
+pub fn purge_document(state: State<'_, DbState>, id: String) -> Result<(), String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    purge_document_row(&conn, &id)
+}
+
+#[tauri::command]
+pub fn empty_trash(state: State<'_, DbState>) -> Result<u32, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+
+    let ids: Vec<String> = {
+        let mut stmt = conn
+            .prepare("SELECT id FROM documents WHERE deleted_at IS NOT NULL")
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map([], |row| row.get::<_, String>(0))
+            .map_err(|e| e.to_string())?;
+        rows.collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?
+    };
+
+    let mut removed = 0u32;
+    for id in ids {
+        purge_document_row(&conn, &id)?;
+        removed += 1;
+    }
+
+    Ok(removed)
+}
+
+#[tauri::command]
+pub fn set_document_favorite(
+    state: State<'_, DbState>,
+    id: String,
+    favorite: bool,
+) -> Result<(), String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "UPDATE documents SET is_favorite = ?1 WHERE id = ?2",
+        params![if favorite { 1 } else { 0 }, id],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn set_document_tags(
+    state: State<'_, DbState>,
+    id: String,
+    tags: Vec<String>,
+) -> Result<(), String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let mut cleaned: Vec<String> = tags
+        .into_iter()
+        .map(|tag| tag.trim().to_string())
+        .filter(|tag| !tag.is_empty())
+        .collect();
+    cleaned.sort();
+    cleaned.dedup();
+
+    let encoded = serde_json::to_string(&cleaned).map_err(|e| e.to_string())?;
+    conn.execute(
+        "UPDATE documents SET tags = ?1 WHERE id = ?2",
+        params![encoded, id],
+    )
+    .map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -333,6 +479,8 @@ pub fn clear_all_documents(app: AppHandle, state: State<'_, DbState>) -> Result<
         .map_err(|e| e.to_string())?;
     conn.execute("DELETE FROM document_revisions", [])
         .map_err(|e| e.to_string())?;
+    let _ = conn.execute("DELETE FROM comments", []);
+    let _ = conn.execute("DELETE FROM comment_threads", []);
 
     let mut removed = 0u32;
     let mut paths = Vec::new();

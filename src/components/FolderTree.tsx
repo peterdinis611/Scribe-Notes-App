@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState, type RefObject } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { useAtom, useSetAtom } from 'jotai'
+import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { useNavigate } from '@tanstack/react-router'
 import { confirm } from '@tauri-apps/plugin-dialog'
 import { FolderTreeDocumentRow, FolderTreeFolderRow } from '@/components/FolderTreeRows'
@@ -10,6 +10,8 @@ import {
   deleteFolder,
   moveFolder,
   renameFolder,
+  setDocumentFavorite,
+  setDocumentTags,
 } from '@/lib/db/api'
 import { useMoveDocumentToFolder } from '@/hooks/useMoveDocumentToFolder'
 import { invalidateDocumentCache } from '@/lib/cache/document-cache'
@@ -32,7 +34,9 @@ import { cn } from '@/lib/utils'
 import {
   activeDocumentAtom,
   activeDocumentIdAtom,
+  activeTagFilterAtom,
   documentsAtom,
+  favoritesOnlyFilterAtom,
 } from '@/store/documents'
 import { expandedFolderIdsAtom, foldersAtom } from '@/store/folders'
 
@@ -51,12 +55,18 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
   const navigate = useNavigate()
   const moveDocument = useMoveDocumentToFolder()
   const [dragOverId, setDragOverId] = useState<string | null>(null)
+  const favoritesOnly = useAtomValue(favoritesOnlyFilterAtom)
+  const activeTag = useAtomValue(activeTagFilterAtom)
 
   const filteredDocuments = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return documents
-    return documents.filter((doc) => doc.title.toLowerCase().includes(q))
-  }, [documents, query])
+    return documents.filter((doc) => {
+      if (q && !doc.title.toLowerCase().includes(q)) return false
+      if (favoritesOnly && !doc.isFavorite) return false
+      if (activeTag && !doc.tags.includes(activeTag)) return false
+      return true
+    })
+  }, [documents, query, favoritesOnly, activeTag])
 
   const tree = useMemo(() => buildTree(folders, filteredDocuments), [folders, filteredDocuments])
   const flatItems = useMemo(() => flattenTree(tree, expandedIds), [tree, expandedIds])
@@ -180,6 +190,52 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     onNavigate?.()
   }, [navigate, onNavigate, setActiveId])
 
+  const handleToggleFavorite = useCallback(async (id: string, event: React.MouseEvent) => {
+    event.stopPropagation()
+    const current = documents.find((doc) => doc.id === id)
+    if (!current) return
+    const next = !current.isFavorite
+    setDocuments((prev) =>
+      prev.map((doc) => (doc.id === id ? { ...doc, isFavorite: next } : doc)),
+    )
+    try {
+      await setDocumentFavorite(id, next)
+    } catch (error) {
+      setDocuments((prev) =>
+        prev.map((doc) => (doc.id === id ? { ...doc, isFavorite: !next } : doc)),
+      )
+      toast.error('Nepodarilo sa zmeniť obľúbené', String(error))
+    }
+  }, [documents, setDocuments])
+
+  const handleEditTags = useCallback(async (id: string, event: React.MouseEvent) => {
+    event.stopPropagation()
+    const current = documents.find((doc) => doc.id === id)
+    if (!current) return
+    const value = await promptInput({
+      title: 'Štítky dokumentu',
+      description: 'Oddeľte štítky čiarkou',
+      defaultValue: current.tags.join(', '),
+      placeholder: 'napr. práca, návrh',
+      confirmLabel: 'Uložiť',
+    })
+    if (value === null) return
+    const tags = Array.from(
+      new Set(
+        value
+          .split(',')
+          .map((tag) => tag.trim())
+          .filter(Boolean),
+      ),
+    ).sort()
+    setDocuments((prev) => prev.map((doc) => (doc.id === id ? { ...doc, tags } : doc)))
+    try {
+      await setDocumentTags(id, tags)
+    } catch (error) {
+      toast.error('Nepodarilo sa uložiť štítky', String(error))
+    }
+  }, [documents, setDocuments])
+
   const handleDropOnFolder = useCallback(async (folderId: string | null, event: React.DragEvent) => {
     event.preventDefault()
     event.stopPropagation()
@@ -282,6 +338,8 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
                       isActive={activeId === item.document.id}
                       onOpen={openDocument}
                       onDelete={(id, event) => void handleDeleteDocument(id, event)}
+                      onToggleFavorite={(id, event) => void handleToggleFavorite(id, event)}
+                      onEditTags={(id, event) => void handleEditTags(id, event)}
                       onDragStart={handleDocumentDragStart}
                     />
                   )}

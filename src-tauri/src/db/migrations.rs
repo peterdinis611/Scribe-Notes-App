@@ -1,6 +1,6 @@
 use rusqlite::Connection;
 
-const SCHEMA_VERSION: i32 = 5;
+const SCHEMA_VERSION: i32 = 6;
 
 pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     conn.execute_batch(
@@ -108,6 +108,53 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         )?;
     }
 
+    if current < 6 {
+        // Soft-delete (trash), favorites and tags live directly on the document row.
+        let _ = conn.execute("ALTER TABLE documents ADD COLUMN deleted_at INTEGER", []);
+        let _ = conn.execute(
+            "ALTER TABLE documents ADD COLUMN is_favorite INTEGER NOT NULL DEFAULT 0",
+            [],
+        );
+        let _ = conn.execute("ALTER TABLE documents ADD COLUMN tags TEXT", []);
+
+        conn.execute_batch(
+            r#"
+            CREATE INDEX IF NOT EXISTS idx_documents_deleted ON documents(deleted_at);
+            CREATE INDEX IF NOT EXISTS idx_documents_favorite ON documents(is_favorite);
+
+            CREATE TABLE IF NOT EXISTS comment_threads (
+                id TEXT PRIMARY KEY,
+                document_id TEXT NOT NULL,
+                quote TEXT NOT NULL DEFAULT '',
+                resolved INTEGER NOT NULL DEFAULT 0,
+                created_at INTEGER NOT NULL,
+                FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS comments (
+                id TEXT PRIMARY KEY,
+                thread_id TEXT NOT NULL,
+                document_id TEXT NOT NULL,
+                author TEXT NOT NULL,
+                body TEXT NOT NULL,
+                created_at INTEGER NOT NULL,
+                FOREIGN KEY (thread_id) REFERENCES comment_threads(id) ON DELETE CASCADE,
+                FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_comment_threads_document
+                ON comment_threads(document_id, created_at);
+            CREATE INDEX IF NOT EXISTS idx_comments_thread
+                ON comments(thread_id, created_at);
+            "#,
+        )?;
+
+        conn.execute(
+            "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
+            ["6".to_string()],
+        )?;
+    }
+
     Ok(())
 }
 
@@ -137,4 +184,121 @@ pub fn seed_if_empty(conn: &Connection) -> Result<(), rusqlite::Error> {
     let _ = crate::db::sync_document_fts(conn, &doc_id, "Vitajte v Scribe", welcome_content);
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::db::test_helpers::in_memory_conn;
+    use rusqlite::params;
+
+    fn column_names(conn: &rusqlite::Connection, table: &str) -> Vec<String> {
+        let mut stmt = conn
+            .prepare(&format!("PRAGMA table_info({table})"))
+            .unwrap();
+        let rows = stmt
+            .query_map([], |row| row.get::<_, String>(1))
+            .unwrap();
+        rows.collect::<Result<Vec<_>, _>>().unwrap()
+    }
+
+    #[test]
+    fn migration_adds_soft_delete_favorite_and_tag_columns() {
+        let conn = in_memory_conn();
+        let columns = column_names(&conn, "documents");
+        assert!(columns.contains(&"deleted_at".to_string()));
+        assert!(columns.contains(&"is_favorite".to_string()));
+        assert!(columns.contains(&"tags".to_string()));
+    }
+
+    #[test]
+    fn schema_version_reaches_latest() {
+        let conn = in_memory_conn();
+        let version: String = conn
+            .query_row(
+                "SELECT value FROM meta WHERE key = 'schema_version'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(version, super::SCHEMA_VERSION.to_string());
+    }
+
+    #[test]
+    fn comment_tables_support_thread_with_replies() {
+        let conn = in_memory_conn();
+        let now = 1_000i64;
+
+        conn.execute(
+            "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at) \
+             VALUES ('doc1', 'Doc', '{}', NULL, NULL, ?1, ?1)",
+            params![now],
+        )
+        .unwrap();
+
+        conn.execute(
+            "INSERT INTO comment_threads (id, document_id, quote, resolved, created_at) \
+             VALUES ('t1', 'doc1', 'quoted', 0, ?1)",
+            params![now],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO comments (id, thread_id, document_id, author, body, created_at) \
+             VALUES ('c1', 't1', 'doc1', 'Ja', 'first', ?1)",
+            params![now],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO comments (id, thread_id, document_id, author, body, created_at) \
+             VALUES ('c2', 't1', 'doc1', 'Ja', 'reply', ?1)",
+            params![now + 1],
+        )
+        .unwrap();
+
+        let count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM comments WHERE thread_id = 't1'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 2);
+    }
+
+    #[test]
+    fn deleting_document_cascades_to_comments() {
+        let conn = in_memory_conn();
+        conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
+        let now = 1_000i64;
+
+        conn.execute(
+            "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at) \
+             VALUES ('doc1', 'Doc', '{}', NULL, NULL, ?1, ?1)",
+            params![now],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO comment_threads (id, document_id, quote, resolved, created_at) \
+             VALUES ('t1', 'doc1', '', 0, ?1)",
+            params![now],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO comments (id, thread_id, document_id, author, body, created_at) \
+             VALUES ('c1', 't1', 'doc1', 'Ja', 'body', ?1)",
+            params![now],
+        )
+        .unwrap();
+
+        conn.execute("DELETE FROM documents WHERE id = 'doc1'", [])
+            .unwrap();
+
+        let threads: i64 = conn
+            .query_row("SELECT COUNT(*) FROM comment_threads", [], |row| row.get(0))
+            .unwrap();
+        let comments: i64 = conn
+            .query_row("SELECT COUNT(*) FROM comments", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(threads, 0);
+        assert_eq!(comments, 0);
+    }
 }

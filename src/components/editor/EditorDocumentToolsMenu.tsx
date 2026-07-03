@@ -1,6 +1,17 @@
 import { useAtom, useSetAtom } from 'jotai'
 import { useState } from 'react'
-import { ChevronDown, FileText, Focus, FolderInput, History, ListTree, SlidersHorizontal } from 'lucide-react'
+import {
+  BarChart3,
+  ChevronDown,
+  FileText,
+  Focus,
+  FolderInput,
+  History,
+  ListTree,
+  MessageSquare,
+  Search,
+  SlidersHorizontal,
+} from 'lucide-react'
 import { PageSetupDialog } from '@/components/editor/PageSetupDialog'
 import { Button } from '@/components/ui/button'
 import {
@@ -12,9 +23,13 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 import {
+  commentsPanelOpenAtom,
   documentOutlineOpenAtom,
+  findReplaceModeAtom,
+  findReplaceOpenAtom,
   focusModeAtom,
   revisionHistoryOpenAtom,
+  statsPanelOpenAtom,
 } from '@/store/documents'
 import { moveDocumentPickerOpenAtom } from '@/store/folders'
 
@@ -25,8 +40,12 @@ type EditorDocumentToolsMenuProps = {
 export function EditorDocumentToolsMenu({ viewMode }: EditorDocumentToolsMenuProps) {
   const [outlineOpen, setOutlineOpen] = useAtom(documentOutlineOpenAtom)
   const [historyOpen, setHistoryOpen] = useAtom(revisionHistoryOpenAtom)
+  const [commentsOpen, setCommentsOpen] = useAtom(commentsPanelOpenAtom)
+  const [statsOpen, setStatsOpen] = useAtom(statsPanelOpenAtom)
   const [focusMode, setFocusMode] = useAtom(focusModeAtom)
   const setMovePickerOpen = useSetAtom(moveDocumentPickerOpenAtom)
+  const setFindReplaceOpen = useSetAtom(findReplaceOpenAtom)
+  const setFindReplaceMode = useSetAtom(findReplaceModeAtom)
   const [pageSetupOpen, setPageSetupOpen] = useState(false)
 
   if (viewMode !== 'rich') return null
@@ -36,7 +55,11 @@ export function EditorDocumentToolsMenu({ viewMode }: EditorDocumentToolsMenuPro
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
-            variant={outlineOpen || historyOpen || focusMode ? 'default' : 'ghost'}
+            variant={
+              outlineOpen || historyOpen || commentsOpen || statsOpen || focusMode
+                ? 'default'
+                : 'ghost'
+            }
             size="sm"
             className="editor-tools-trigger"
             title="Nástroje dokumentu"
@@ -47,6 +70,37 @@ export function EditorDocumentToolsMenu({ viewMode }: EditorDocumentToolsMenuPro
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-[220px]">
+          <DropdownMenuItem
+            onClick={() => {
+              setFindReplaceMode('find')
+              setFindReplaceOpen(true)
+            }}
+          >
+            <Search className="h-4 w-4 shrink-0" />
+            Nájsť a nahradiť
+            <span className="ml-auto text-[11px] text-[var(--color-muted-foreground)]">⌘F</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className={cn(commentsOpen && 'is-selected')}
+            onClick={() => {
+              setStatsOpen(false)
+              setCommentsOpen((open) => !open)
+            }}
+          >
+            <MessageSquare className="h-4 w-4 shrink-0" />
+            Komentáre
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className={cn(statsOpen && 'is-selected')}
+            onClick={() => {
+              setCommentsOpen(false)
+              setStatsOpen((open) => !open)
+            }}
+          >
+            <BarChart3 className="h-4 w-4 shrink-0" />
+            Štatistika
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem
             className={cn(outlineOpen && 'is-selected')}
             onClick={() => {

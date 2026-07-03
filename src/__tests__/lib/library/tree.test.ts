@@ -26,6 +26,9 @@ const documents: DocumentSummary[] = [
     folderId: 'f1',
     filePath: null,
     updatedAt: 2,
+    isFavorite: false,
+    tags: [],
+    deletedAt: null,
   },
   {
     id: 'd2',
@@ -33,6 +36,9 @@ const documents: DocumentSummary[] = [
     folderId: null,
     filePath: null,
     updatedAt: 3,
+    isFavorite: false,
+    tags: [],
+    deletedAt: null,
   },
 ]
 

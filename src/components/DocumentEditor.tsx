@@ -4,6 +4,9 @@ import type { Editor } from '@tiptap/react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { DocumentOutlinePanel } from '@/components/editor/DocumentOutlinePanel'
 import { RevisionHistoryPanel } from '@/components/editor/RevisionHistoryPanel'
+import { CommentsPanel } from '@/components/editor/CommentsPanel'
+import { StatsPanel } from '@/components/editor/StatsPanel'
+import { FindReplaceBar } from '@/components/editor/FindReplaceBar'
 import { EditorToolbar } from '@/components/editor-toolbar/EditorToolbar'
 import { EditorMenus } from '@/components/editor/EditorMenus'
 import { EditorDropZone } from '@/components/editor/EditorDropOverlay'
@@ -32,12 +35,14 @@ import { cn } from '@/lib/utils'
 import {
   activeDocumentAtom,
   activeDocumentIdAtom,
+  commentsPanelOpenAtom,
   documentOutlineOpenAtom,
   documentsAtom,
   focusModeAtom,
   manualTitleDocumentIdsAtom,
   revisionHistoryOpenAtom,
   saveStatusAtom,
+  statsPanelOpenAtom,
 } from '@/store/documents'
 import {
   editorModeActionsAtom,
@@ -61,6 +66,8 @@ export function DocumentEditor() {
   const setEditorModeActions = useSetAtom(editorModeActionsAtom)
   const outlineOpen = useAtomValue(documentOutlineOpenAtom)
   const historyOpen = useAtomValue(revisionHistoryOpenAtom)
+  const [commentsOpen, setCommentsOpen] = useAtom(commentsPanelOpenAtom)
+  const [statsOpen, setStatsOpen] = useAtom(statsPanelOpenAtom)
   const focusMode = useAtomValue(focusModeAtom)
   const setOutlineOpen = useSetAtom(documentOutlineOpenAtom)
   const setHistoryOpen = useSetAtom(revisionHistoryOpenAtom)
@@ -269,10 +276,14 @@ export function DocumentEditor() {
       {!isMarkdown && !focusMode && <EditorToolbar editor={editor} onInsertImages={handleInsertImages} />}
       {!isMarkdown && <EditorMenus editor={editor} onInsertImages={handleInsertImages} />}
 
+      {!isMarkdown && <FindReplaceBar editor={editor} />}
+
       <div
         className={cn(
           'editor-body',
-          (outlineOpen || historyOpen) && !isMarkdown && 'editor-body--with-outline',
+          (outlineOpen || historyOpen || commentsOpen || statsOpen) &&
+            !isMarkdown &&
+            'editor-body--with-outline',
         )}
       >
         <EditorDropZone
@@ -427,6 +438,12 @@ export function DocumentEditor() {
         )}
         {!isMarkdown && historyOpen && (
           <RevisionHistoryPanel onClose={() => setHistoryOpen(false)} />
+        )}
+        {!isMarkdown && commentsOpen && (
+          <CommentsPanel editor={editor} onClose={() => setCommentsOpen(false)} />
+        )}
+        {!isMarkdown && statsOpen && (
+          <StatsPanel editor={editor} onClose={() => setStatsOpen(false)} />
         )}
       </div>
 

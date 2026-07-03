@@ -7,6 +7,9 @@ export interface DocumentSummary {
   folderId: string | null
   filePath: string | null
   updatedAt: number
+  isFavorite: boolean
+  tags: string[]
+  deletedAt: number | null
 }
 
 export interface Folder {
@@ -89,6 +92,72 @@ export const deleteDocument = async (id: string) => {
   await invoke<void>('delete_document', { id })
   invalidateDocumentCache(id)
 }
+
+export const listTrashedDocuments = () => invoke<DocumentSummary[]>('list_trashed_documents')
+
+export const restoreDocument = async (id: string) => {
+  await invoke<void>('restore_document', { id })
+  invalidateDocumentCache(id)
+}
+
+export const purgeDocument = async (id: string) => {
+  await invoke<void>('purge_document', { id })
+  invalidateDocumentCache(id)
+}
+
+export const emptyTrash = () => invoke<number>('empty_trash')
+
+export const setDocumentFavorite = (id: string, favorite: boolean) =>
+  invoke<void>('set_document_favorite', { id, favorite })
+
+export const setDocumentTags = (id: string, tags: string[]) =>
+  invoke<void>('set_document_tags', { id, tags })
+
+export interface Comment {
+  id: string
+  threadId: string
+  author: string
+  body: string
+  createdAt: number
+}
+
+export interface CommentThread {
+  id: string
+  documentId: string
+  quote: string
+  resolved: boolean
+  createdAt: number
+  comments: Comment[]
+}
+
+export const listCommentThreads = (documentId: string) =>
+  invoke<CommentThread[]>('list_comment_threads', { documentId })
+
+export const createCommentThread = (input: {
+  id?: string
+  documentId: string
+  quote: string
+  author: string
+  body: string
+}) =>
+  invoke<CommentThread>('create_comment_thread', {
+    input: {
+      id: input.id ?? null,
+      documentId: input.documentId,
+      quote: input.quote,
+      author: input.author,
+      body: input.body,
+    },
+  })
+
+export const addCommentReply = (input: { threadId: string; author: string; body: string }) =>
+  invoke<Comment>('add_comment_reply', { input })
+
+export const resolveCommentThread = (threadId: string, resolved: boolean) =>
+  invoke<void>('resolve_comment_thread', { threadId, resolved })
+
+export const deleteCommentThread = (threadId: string) =>
+  invoke<void>('delete_comment_thread', { threadId })
 
 export const clearAllDocuments = async () => {
   const count = await invoke<number>('clear_all_documents')

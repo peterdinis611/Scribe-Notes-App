@@ -1,6 +1,6 @@
-import { useSetAtom } from 'jotai'
-import { FileText, FolderPlus, Search, Settings2 } from 'lucide-react'
-import { useCallback, useRef, useState } from 'react'
+import { useAtom, useAtomValue, useSetAtom } from 'jotai'
+import { FileText, FolderPlus, Search, Settings2, Star, Tag, Trash2 } from 'lucide-react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { Link, useRouterState } from '@tanstack/react-router'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { FolderTree } from '@/components/FolderTree'
@@ -9,6 +9,12 @@ import { createFolder } from '@/lib/db/api'
 import { promptInput } from '@/lib/input-dialog'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
+import {
+  activeTagFilterAtom,
+  documentsAtom,
+  favoritesOnlyFilterAtom,
+  trashOpenAtom,
+} from '@/store/documents'
 import { commandPaletteOpenAtom, expandedFolderIdsAtom, foldersAtom } from '@/store/folders'
 
 type SidebarProps = {
@@ -23,6 +29,18 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
   const setCommandPaletteOpen = useSetAtom(commandPaletteOpenAtom)
   const setFolders = useSetAtom(foldersAtom)
   const setExpandedIds = useSetAtom(expandedFolderIdsAtom)
+  const documents = useAtomValue(documentsAtom)
+  const [favoritesOnly, setFavoritesOnly] = useAtom(favoritesOnlyFilterAtom)
+  const [activeTag, setActiveTag] = useAtom(activeTagFilterAtom)
+  const setTrashOpen = useSetAtom(trashOpenAtom)
+
+  const availableTags = useMemo(() => {
+    const tags = new Set<string>()
+    for (const doc of documents) {
+      for (const tag of doc.tags) tags.add(tag)
+    }
+    return [...tags].sort()
+  }, [documents])
   const pathname = useRouterState({ select: (state) => state.location.pathname })
   const onSettingsPage = pathname.startsWith('/settings')
   const onEditorPage = pathname === '/' || pathname.startsWith('/doc/')
@@ -99,16 +117,65 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
         <>
           <div className="sidebar-library-header titlebar-no-drag">
             <h2 className="sidebar-library-title">Knižnica</h2>
-            <button
-              type="button"
-              className="sidebar-library-action"
-              onClick={() => void handleCreateFolder()}
-              title="Nový priečinok"
-              aria-label="Nový priečinok"
-            >
-              <FolderPlus className="h-4 w-4" />
-            </button>
+            <div className="sidebar-library-actions">
+              <button
+                type="button"
+                className={cn('sidebar-library-action', favoritesOnly && 'is-active')}
+                onClick={() => setFavoritesOnly((value) => !value)}
+                title="Iba obľúbené"
+                aria-label="Iba obľúbené"
+                aria-pressed={favoritesOnly}
+              >
+                <Star className={cn('h-4 w-4', favoritesOnly && 'fill-current')} />
+              </button>
+              <button
+                type="button"
+                className="sidebar-library-action"
+                onClick={() => setTrashOpen(true)}
+                title="Kôš"
+                aria-label="Kôš"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                className="sidebar-library-action"
+                onClick={() => void handleCreateFolder()}
+                title="Nový priečinok"
+                aria-label="Nový priečinok"
+              >
+                <FolderPlus className="h-4 w-4" />
+              </button>
+            </div>
           </div>
+
+          {availableTags.length > 0 && (
+            <div className="sidebar-tag-filter titlebar-no-drag">
+              <Tag className="h-3.5 w-3.5 shrink-0 opacity-60" />
+              <div className="sidebar-tag-chips">
+                {activeTag && (
+                  <button
+                    type="button"
+                    className="sidebar-tag-chip is-active"
+                    onClick={() => setActiveTag(null)}
+                  >
+                    {activeTag} ✕
+                  </button>
+                )}
+                {!activeTag &&
+                  availableTags.map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      className="sidebar-tag-chip"
+                      onClick={() => setActiveTag(tag)}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+              </div>
+            </div>
+          )}
 
           <ScrollArea className="sidebar-list flex-1" viewportRef={scrollRef}>
             <div className="sidebar-list-inner">
