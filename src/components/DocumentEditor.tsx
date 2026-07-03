@@ -9,6 +9,7 @@ import { EditorMenus } from '@/components/editor/EditorMenus'
 import { EditorDropZone } from '@/components/editor/EditorDropOverlay'
 import { EDITOR_PAGE_GAP, EditorPageSheets, getEditorPrintStageSize } from '@/components/editor/EditorPageSheets'
 import { EditorPrintLayoutBar } from '@/components/editor/EditorPrintLayoutBar'
+import { PageSetupDialog } from '@/components/editor/PageSetupDialog'
 import { PageHeaderFooterOverlays } from '@/components/editor/PageHeaderFooterOverlays'
 import { PageWatermarkOverlays } from '@/components/editor/PageWatermarkOverlays'
 import { MarkdownSourceEditor } from '@/components/editor/MarkdownSourceEditor'
@@ -64,6 +65,7 @@ export function DocumentEditor() {
   const setOutlineOpen = useSetAtom(documentOutlineOpenAtom)
   const setHistoryOpen = useSetAtom(revisionHistoryOpenAtom)
   const [markdownDraft, setMarkdownDraft] = useState('')
+  const [pageSetupOpen, setPageSetupOpen] = useState(false)
   const activeDocumentRef = useRef(activeDocument)
   const manualTitleIdsRef = useRef(manualTitleIds)
   const editorRef = useRef<Editor | null>(null)
@@ -128,7 +130,7 @@ export function DocumentEditor() {
       if (!activeIdRef.current || viewModeRef.current !== 'rich') return
       queueSaveRef.current(activeIdRef.current)
     },
-  }, [extensions, initialContent, spellCheckEnabled, printLayoutEnabled])
+  }, [extensions, initialContent, spellCheckEnabled])
 
   editorRef.current = editor
 
@@ -204,8 +206,16 @@ export function DocumentEditor() {
   } = useDocumentPagination({ editor, documentId: activeId, pageSetup, pageLayout })
 
   const stageSize = useMemo(
-    () => getEditorPrintStageSize(pageCount, printColumns, pageSetup),
-    [pageCount, printColumns, pageSetup],
+    () =>
+      getEditorPrintStageSize(
+        pageCount,
+        printColumns,
+        pageSetup,
+        pageSegments,
+        pageLayout.paddingTop,
+        pageLayout.paddingBottom,
+      ),
+    [pageCount, pageSegments, pageLayout.paddingBottom, pageLayout.paddingTop, pageSetup, printColumns],
   )
 
   const printLayoutConfig = useMemo(
@@ -286,7 +296,7 @@ export function DocumentEditor() {
                   ? {
                       width: stageSize.width,
                       minHeight: stageSize.height,
-                      transform: `scale(${printZoom})`,
+                      zoom: printZoom,
                     }
                   : undefined
               }
@@ -297,6 +307,7 @@ export function DocumentEditor() {
                     pageSetup={pageSetup}
                     pageSegments={pageSegments}
                     columns={printColumns}
+                    paddingTop={pageLayout.paddingTop}
                   />
                   <PageWatermarkOverlays
                     pageSetup={pageSetup}
@@ -305,6 +316,7 @@ export function DocumentEditor() {
                     paperWidth={paper.width}
                     paperHeight={paper.height}
                     gap={EDITOR_PAGE_GAP}
+                    paddingTop={pageLayout.paddingTop}
                     printLayout
                   />
                 </>
@@ -330,7 +342,9 @@ export function DocumentEditor() {
                         '--page-paper-height': `${pageLayout.paperHeight}px`,
                         ...(printLayoutEnabled
                           ? {
-                              width: printColumns === 2 ? stageSize.width : pageLayout.width,
+                              width: pageLayout.width,
+                              maxWidth: '100%',
+                              paddingBottom: `${pageLayout.paddingBottom + Math.max(0, pageCount - 1) * EDITOR_PAGE_GAP}px`,
                             }
                           : {}),
                       } as CSSProperties)
@@ -350,6 +364,20 @@ export function DocumentEditor() {
                           key={segment.pageNumber}
                           className="editor-page-break"
                           style={{ top: pageLayout.paddingTop + segment.start }}
+                          aria-hidden="true"
+                        />
+                      ))}
+                    {printLayoutEnabled &&
+                      pageSegments.slice(1).map((segment, index) => (
+                        <div
+                          key={`gap-${segment.pageNumber}`}
+                          className="editor-print-page-gap"
+                          style={{
+                            top:
+                              pageLayout.paddingTop +
+                              pageSegments[index]!.start +
+                              pageSegments[index]!.height,
+                          }}
                           aria-hidden="true"
                         />
                       ))}
@@ -404,7 +432,10 @@ export function DocumentEditor() {
 
       {!isMarkdown && !focusMode && (
         <>
-          <EditorPrintLayoutBar onPrint={handlePrint} />
+          <EditorPrintLayoutBar
+            onPrint={handlePrint}
+            onOpenPageSetup={() => setPageSetupOpen(true)}
+          />
           <EditorPagination
             currentPage={currentPage}
             pageCount={pageCount}
@@ -412,6 +443,8 @@ export function DocumentEditor() {
           />
         </>
       )}
+
+      <PageSetupDialog open={pageSetupOpen} onClose={() => setPageSetupOpen(false)} />
     </div>
   )
 }

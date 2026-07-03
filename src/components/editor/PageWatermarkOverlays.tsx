@@ -1,5 +1,5 @@
 import { normalizePageSetup, type PageSetup } from '@/lib/editor/page-setup'
-import { getSheetPosition, type PageSegment } from '@/lib/editor/page-segments'
+import { getAlignedSheetTop, getSheetPosition, type PageSegment } from '@/lib/editor/page-segments'
 
 type PageWatermarkOverlaysProps = {
   pageSetup: PageSetup
@@ -30,12 +30,17 @@ export function PageWatermarkOverlays({
   return (
     <>
       {pageSegments.map((segment, index) => {
-        const position = printLayout
+        const spread = printLayout
           ? getSheetPosition(index, columns, paperWidth, paperHeight, gap)
-          : { left: 0, top: paddingTop + segment.start }
+          : { left: 0, top: 0 }
+        const alignedTop = printLayout
+          ? getAlignedSheetTop(index, segment, paddingTop, gap)
+          : paddingTop + segment.start
 
+        const top = printLayout ? alignedTop : paddingTop + segment.start
+        const left = printLayout ? spread.left : 0
         const height = printLayout ? paperHeight : segment.height
-        const width = printLayout ? paperWidth : paperWidth
+        const width = paperWidth
 
         return (
           <div
@@ -43,8 +48,8 @@ export function PageWatermarkOverlays({
             className="editor-page-watermark"
             aria-hidden="true"
             style={{
-              left: position.left,
-              top: position.top,
+              left,
+              top,
               width,
               height,
               ['--watermark-opacity' as string]: String(watermark.opacity),

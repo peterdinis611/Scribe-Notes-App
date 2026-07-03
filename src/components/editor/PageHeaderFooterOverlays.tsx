@@ -4,7 +4,7 @@ import {
   formatExportDate,
 } from '@/lib/editor/page-header-footer'
 import { normalizePageSetup, type PageSetup } from '@/lib/editor/page-setup'
-import { getSheetPosition, shouldShowHeaderFooter, type PageSegment } from '@/lib/editor/page-segments'
+import { getAlignedSheetTop, getSheetPosition, shouldShowHeaderFooter, type PageSegment } from '@/lib/editor/page-segments'
 
 type PageHeaderFooterOverlaysProps = {
   pageSetup: PageSetup
@@ -47,11 +47,17 @@ export function PageHeaderFooterOverlays({
         })
 
         if (printLayout?.enabled) {
-          const position = getSheetPosition(
+          const spread = getSheetPosition(
             segment.pageNumber - 1,
             printLayout.columns,
             printLayout.paperWidth,
             printLayout.paperHeight,
+            printLayout.gap,
+          )
+          const alignedTop = getAlignedSheetTop(
+            segment.pageNumber - 1,
+            segment,
+            paddingTop,
             printLayout.gap,
           )
 
@@ -60,8 +66,8 @@ export function PageHeaderFooterOverlays({
             header: lines.header,
             footer: lines.footer,
             style: {
-              left: position.left,
-              top: position.top,
+              left: spread.left,
+              top: alignedTop,
               width: printLayout.paperWidth,
               height: printLayout.paperHeight,
             },

@@ -147,3 +147,43 @@ export function getPrintStageSize(
     height: rows * paperHeight + Math.max(0, rows - 1) * gap,
   }
 }
+
+/** Align sheet tops with paginated editor content (includes inter-page gap). */
+export function getAlignedSheetTop(
+  pageIndex: number,
+  segment: PageSegment,
+  paddingTop: number,
+  gap: number,
+): number {
+  return paddingTop + segment.start - segment.margins.top + pageIndex * gap
+}
+
+export function resolvePrintStageSize(
+  pageSegments: PageSegment[],
+  pageLayout: { paddingTop: number; paddingBottom: number },
+  paperWidth: number,
+  paperHeight: number,
+  gap: number,
+  columns: 1 | 2,
+  pageCount = Math.max(1, pageSegments.length),
+): { width: number; height: number } {
+  const base = getPrintStageSize(pageCount, columns, paperWidth, paperHeight, gap)
+
+  if (pageSegments.length === 0) {
+    return base
+  }
+
+  const last = pageSegments[pageSegments.length - 1]!
+  const contentHeight =
+    pageLayout.paddingTop +
+    last.start +
+    last.height +
+    last.margins.bottom +
+    pageLayout.paddingBottom +
+    Math.max(0, pageSegments.length - 1) * gap
+
+  return {
+    width: base.width,
+    height: Math.max(base.height, contentHeight),
+  }
+}
