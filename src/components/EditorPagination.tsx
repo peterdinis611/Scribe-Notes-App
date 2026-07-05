@@ -7,13 +7,23 @@ type EditorPaginationProps = {
   currentPage: number
   pageCount: number
   onPageChange: (page: number) => void
+  compact?: boolean
 }
 
-export function EditorPagination({ currentPage, pageCount, onPageChange }: EditorPaginationProps) {
+export function EditorPagination({
+  currentPage,
+  pageCount,
+  onPageChange,
+  compact = false,
+}: EditorPaginationProps) {
   const visiblePages = getVisiblePageNumbers(currentPage, pageCount)
 
   return (
-    <div className="editor-pagination titlebar-no-drag" role="navigation" aria-label="Stránkovanie dokumentu">
+    <div
+      className={cn('editor-pagination titlebar-no-drag', compact && 'editor-pagination--compact')}
+      role="navigation"
+      aria-label="Stránkovanie dokumentu"
+    >
       <Button
         variant="ghost"
         size="icon"

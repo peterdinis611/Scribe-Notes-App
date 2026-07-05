@@ -14,13 +14,12 @@ import { EditorToolbar } from '@/components/editor-toolbar/EditorToolbar'
 import { EditorMenus } from '@/components/editor/EditorMenus'
 import { EditorDropZone } from '@/components/editor/EditorDropOverlay'
 import { EDITOR_PAGE_GAP, EditorPageSheets, getEditorPrintStageSize } from '@/components/editor/EditorPageSheets'
-import { EditorPrintLayoutBar } from '@/components/editor/EditorPrintLayoutBar'
+import { EditorPanelRail } from '@/components/editor/EditorPanelRail'
+import { EditorStatusBar } from '@/components/editor/EditorStatusBar'
 import { PageSetupDialog } from '@/components/editor/PageSetupDialog'
 import { PageHeaderFooterOverlays } from '@/components/editor/PageHeaderFooterOverlays'
 import { PageWatermarkOverlays } from '@/components/editor/PageWatermarkOverlays'
 import { MarkdownSourceEditor } from '@/components/editor/MarkdownSourceEditor'
-import { EditorHeader } from '@/components/TopBar'
-import { EditorPagination } from '@/components/EditorPagination'
 import { useDocumentAutoSave } from '@/hooks/useDocumentAutoSave'
 import { useDocumentPagination } from '@/hooks/useDocumentPagination'
 import { useEditorHotkeys } from '@/hooks/useEditorHotkeys'
@@ -43,6 +42,7 @@ import {
   commentsPanelOpenAtom,
   documentOutlineOpenAtom,
   documentsAtom,
+  editorPrintHandlerAtom,
   focusModeAtom,
   manualTitleDocumentIdsAtom,
   revisionHistoryOpenAtom,
@@ -77,6 +77,7 @@ export function DocumentEditor() {
   const [statsOpen, setStatsOpen] = useAtom(statsPanelOpenAtom)
   const [backlinksOpen, setBacklinksOpen] = useAtom(backlinksPanelOpenAtom)
   const focusMode = useAtomValue(focusModeAtom)
+  const setPrintHandler = useSetAtom(editorPrintHandlerAtom)
   const setOutlineOpen = useSetAtom(documentOutlineOpenAtom)
   const setHistoryOpen = useSetAtom(revisionHistoryOpenAtom)
   const [markdownDraft, setMarkdownDraft] = useState('')
@@ -294,26 +295,39 @@ export function DocumentEditor() {
 
   const isMarkdown = viewMode === 'markdown'
 
+  useEffect(() => {
+    if (isMarkdown || focusMode) {
+      setPrintHandler(null)
+      return
+    }
+    setPrintHandler(() => handlePrint)
+    return () => setPrintHandler(null)
+  }, [focusMode, handlePrint, isMarkdown, setPrintHandler])
+
   return (
     <div className={cn('editor-shell', isMarkdown && 'editor-shell--markdown', focusMode && 'editor-shell--focus')}>
-      <EditorHeader onPrint={!isMarkdown ? handlePrint : undefined} />
       {!isMarkdown && !focusMode && <EditorToolbar editor={editor} onInsertImages={handleInsertImages} />}
       {!isMarkdown && <EditorMenus editor={editor} onInsertImages={handleInsertImages} />}
 
       {!isMarkdown && <FindReplaceBar editor={editor} />}
 
-      <div
-        className={cn(
-          'editor-body',
-          (outlineOpen || historyOpen || commentsOpen || statsOpen || backlinksOpen) &&
-            !isMarkdown &&
-            'editor-body--with-outline',
-        )}
-      >
-        <EditorDropZone
-          className={cn('editor-scroll', printLayoutEnabled && !isMarkdown && 'editor-scroll--print-layout')}
-          ref={scrollRef}
-        >
+      <div className="editor-workspace">
+        <div className="editor-main">
+          <div
+            className={cn(
+              'editor-body',
+              (outlineOpen || historyOpen || commentsOpen || statsOpen || backlinksOpen) &&
+                !isMarkdown &&
+                'editor-body--with-outline',
+            )}
+          >
+            <EditorDropZone
+              className={cn(
+                'editor-scroll editor-stage',
+                printLayoutEnabled && !isMarkdown && 'editor-scroll--print-layout',
+              )}
+              ref={scrollRef}
+            >
           <div
             className={cn('editor-print-host', printLayoutEnabled && !isMarkdown && 'editor-print-host--active')}
             style={
@@ -472,21 +486,21 @@ export function DocumentEditor() {
         {!isMarkdown && backlinksOpen && (
           <BacklinksPanel onClose={() => setBacklinksOpen(false)} />
         )}
-      </div>
+          </div>
 
-      {!isMarkdown && !focusMode && (
-        <>
-          <EditorPrintLayoutBar
-            onPrint={handlePrint}
-            onOpenPageSetup={() => setPageSetupOpen(true)}
-          />
-          <EditorPagination
-            currentPage={currentPage}
-            pageCount={pageCount}
-            onPageChange={scrollToPage}
-          />
-        </>
-      )}
+          {!isMarkdown && !focusMode && (
+            <EditorStatusBar
+              currentPage={currentPage}
+              pageCount={pageCount}
+              onPageChange={scrollToPage}
+              onPrint={handlePrint}
+              onOpenPageSetup={() => setPageSetupOpen(true)}
+            />
+          )}
+        </div>
+
+        {!isMarkdown && !focusMode && <EditorPanelRail />}
+      </div>
 
       <PageSetupDialog open={pageSetupOpen} onClose={() => setPageSetupOpen(false)} />
       {!isMarkdown && <WikiLinkHoverCard editor={editor} />}

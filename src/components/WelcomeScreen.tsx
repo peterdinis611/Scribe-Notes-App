@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useAtomValue, useSetAtom } from 'jotai'
-import { Clock, FileText, FolderInput, Plus } from 'lucide-react'
+import { ArrowRight, Clock, FileText, FolderInput, Plus, Sparkles } from 'lucide-react'
 import { useNavigate } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -10,7 +10,7 @@ import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { toast } from '@/lib/toast'
 import { ROUTES } from '@/lib/routes'
-import { cn, formatRelativeTime } from '@/lib/utils'
+import { formatRelativeTime } from '@/lib/utils'
 import {
   activeDocumentAtom,
   activeDocumentIdAtom,
@@ -29,7 +29,7 @@ export function WelcomeScreen() {
   const navigate = useNavigate()
 
   const recentDocuments = useMemo(
-    () => [...documents].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 6),
+    () => [...documents].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 8),
     [documents],
   )
 
@@ -52,67 +52,95 @@ export function WelcomeScreen() {
   }
 
   return (
-    <div className="titlebar-no-drag flex flex-1 items-center justify-center p-8 max-[1100px]:px-4 max-[1100px]:py-6">
-      <div className="max-w-[420px] text-center">
-        <div className="mb-5 inline-flex h-16 w-16 items-center justify-center rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-accent)] shadow-[0_4px_16px_rgba(0,0,0,0.06)]">
-          <FileText className="h-8 w-8 stroke-[1.25]" />
-        </div>
-        <h1 className="mb-2 text-2xl font-bold tracking-[-0.03em] text-[var(--color-foreground)]">
-          Vitajte v Scribe
-        </h1>
-        <p className="mb-6 text-[14px] leading-relaxed text-[var(--color-muted-foreground)]">
-          Vytvorte nový dokument, importujte existujúci súbor alebo pokračujte v písaní.
-        </p>
+    <div className="titlebar-no-drag flex min-h-0 flex-1 overflow-y-auto">
+      <div className="mx-auto grid w-full max-w-[1080px] gap-8 p-8 max-[900px]:p-5 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
+        <section className="space-y-6">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1 text-[11px] font-medium text-[var(--color-muted-foreground)]">
+            <Sparkles className="h-3.5 w-3.5 text-[var(--color-accent)]" />
+            Lokálny editor dokumentov
+          </div>
 
-        <div className="titlebar-no-drag mb-6 flex justify-center gap-2.5">
-          <Button variant="default" onClick={() => setTemplatePickerOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Nový dokument
-          </Button>
-          <Button variant="outline" onClick={() => void handleImport()}>
-            <FolderInput className="h-4 w-4" />
-            Importovať
-          </Button>
-        </div>
+          <div>
+            <h1 className="m-0 text-[clamp(28px,4vw,40px)] font-bold leading-[1.05] tracking-[-0.04em] text-[var(--color-foreground)]">
+              Píšte, organizujte a exportujte na jednom mieste.
+            </h1>
+            <p className="mt-3 max-w-[48ch] text-[15px] leading-relaxed text-[var(--color-muted-foreground)]">
+              Vytvorte nový dokument zo šablóny, importujte existujúci súbor alebo pokračujte tam, kde ste prestali.
+            </p>
+          </div>
 
-        {recentDocuments.length > 0 && (
-          <div className="mb-6 w-full text-left">
-            <h2 className="mb-2 text-[11px] font-bold uppercase tracking-[0.04em] text-[var(--color-muted-foreground)]">
+          <div className="flex flex-wrap gap-2.5">
+            <Button variant="default" size="default" onClick={() => setTemplatePickerOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Nový dokument
+            </Button>
+            <Button variant="outline" size="default" onClick={() => void handleImport()}>
+              <FolderInput className="h-4 w-4" />
+              Importovať
+            </Button>
+          </div>
+
+          <Card className="grid gap-2 p-4 sm:grid-cols-2">
+            {APP_SHORTCUTS.slice(0, 4).map((shortcut) => (
+              <Shortcut key={shortcut.label} label={shortcut.label} keys={shortcut.keys} />
+            ))}
+          </Card>
+        </section>
+
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="m-0 text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--color-muted-foreground)]">
               Nedávne dokumenty
             </h2>
+            <span className="text-[11px] text-[var(--color-muted-foreground)]">
+              {documents.length} celkom
+            </span>
+          </div>
+
+          {recentDocuments.length > 0 ? (
             <Card className="overflow-hidden">
-              <ul className="m-0 list-none p-0">
-                {recentDocuments.map((doc, index) => (
+              <ul className="m-0 list-none divide-y divide-[var(--color-border)] p-0">
+                {recentDocuments.map((doc) => (
                   <li key={doc.id}>
                     <button
                       type="button"
-                      className={cn(
-                        'flex w-full items-center gap-2.5 border-b border-[var(--color-border)] bg-transparent px-3 py-2.5 text-left transition-colors hover:bg-[var(--color-hover)]',
-                        index === recentDocuments.length - 1 && 'border-b-0',
-                      )}
+                      className="group flex w-full items-center gap-3 bg-transparent px-4 py-3 text-left transition-colors hover:bg-[var(--color-hover)]"
                       onClick={() => openDocument(doc.id)}
                     >
-                      <FileText className="h-4 w-4 shrink-0 opacity-50" />
-                      <span className="min-w-0 flex-1 truncate text-[13px] font-medium">
-                        {doc.title}
-                      </span>
-                      <span className="inline-flex shrink-0 items-center gap-1 text-[11px] text-[var(--color-muted-foreground)]">
-                        <Clock className="h-3 w-3" />
-                        {formatRelativeTime(doc.updatedAt)}
-                      </span>
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-[var(--color-border)] bg-[var(--color-canvas)] text-[var(--color-accent)]">
+                        <FileText className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="m-0 truncate text-[13px] font-semibold text-[var(--color-foreground)]">
+                          {doc.title}
+                        </p>
+                        <p className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-[var(--color-muted-foreground)]">
+                          <Clock className="h-3 w-3" />
+                          {formatRelativeTime(doc.updatedAt)}
+                        </p>
+                      </div>
+                      <ArrowRight className="h-4 w-4 shrink-0 text-[var(--color-muted-foreground)] opacity-0 transition-opacity group-hover:opacity-100" />
                     </button>
                   </li>
                 ))}
               </ul>
             </Card>
-          </div>
-        )}
-
-        <div className="grid gap-2 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-4 text-left">
-          {APP_SHORTCUTS.slice(0, 4).map((shortcut) => (
-            <Shortcut key={shortcut.label} label={shortcut.label} keys={shortcut.keys} />
-          ))}
-        </div>
+          ) : (
+            <Card className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-[16px] border border-[var(--color-border)] bg-[var(--color-canvas)] text-[var(--color-accent)]">
+                <FileText className="h-7 w-7 stroke-[1.25]" />
+              </div>
+              <div>
+                <p className="m-0 text-[14px] font-semibold text-[var(--color-foreground)]">
+                  Zatiaľ žiadne dokumenty
+                </p>
+                <p className="mt-1 text-[12px] text-[var(--color-muted-foreground)]">
+                  Začnite novým dokumentom alebo importom.
+                </p>
+              </div>
+            </Card>
+          )}
+        </section>
       </div>
     </div>
   )
@@ -120,7 +148,7 @@ export function WelcomeScreen() {
 
 function Shortcut({ label, keys }: { label: string; keys: string[] }) {
   return (
-    <div className="flex items-center justify-between gap-3">
+    <div className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] px-1 py-1">
       <span className="text-[12px] text-[var(--color-muted-foreground)]">{label}</span>
       <span className="flex gap-1">
         {keys.map((key) => (

@@ -3,6 +3,7 @@ import { flushSync } from 'react-dom'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { Outlet, useNavigate, useParams } from '@tanstack/react-router'
 import { CommandPalette } from '@/components/CommandPalette'
+import { AppHeader } from '@/components/layout/AppHeader'
 import { MoveToFolderDialog } from '@/components/MoveToFolderMenu'
 import { Sidebar } from '@/components/Sidebar'
 import { TemplatePicker } from '@/components/TemplatePicker'
@@ -81,7 +82,7 @@ export function AppLayout() {
 
   return (
     <div
-      className="relative flex h-full min-w-0 overflow-hidden bg-[var(--color-background)]"
+      className="app-shell"
       data-layout-tier={layoutTier}
       data-sidebar-drawer={isCompact ? 'true' : 'false'}
       data-focus-mode={focusMode ? 'true' : 'false'}
@@ -99,12 +100,17 @@ export function AppLayout() {
           <Sidebar isCompact={isCompact} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         </>
       )}
-      <main
-        ref={mainRef}
-        className="app-main titlebar-no-drag titlebar-interactive relative flex min-w-0 flex-1 flex-col overflow-hidden"
-      >
-        <Outlet />
-      </main>
+
+      <div className="app-workspace titlebar-no-drag titlebar-interactive">
+        <AppHeader />
+        <main
+          ref={mainRef}
+          className="app-main relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+        >
+          <Outlet />
+        </main>
+      </div>
+
       <TemplatePicker
         open={templatePickerOpen}
         onClose={() => setTemplatePickerOpen(false)}

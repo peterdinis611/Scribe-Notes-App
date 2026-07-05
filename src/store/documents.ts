@@ -34,6 +34,8 @@ function readCommentAuthor(): string {
   return 'Ja'
 }
 
+export const editorPrintHandlerAtom = atom<(() => void) | null>(null)
+
 export const documentsAtom = atom<DocumentSummary[]>([])
 export const activeDocumentIdAtom = atom<string | null>(null)
 export const activeDocumentAtom = atom<Document | null>(null)

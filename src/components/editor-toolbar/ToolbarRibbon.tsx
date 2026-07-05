@@ -1,6 +1,5 @@
 import type { Editor } from '@tiptap/react'
 import { useEditorState } from '@tiptap/react'
-import { useAtomValue } from 'jotai'
 import {
   AlignCenter,
   AlignJustify,
@@ -68,8 +67,7 @@ import {
 import { insertBulletList, insertOrderedList, insertTaskList } from '@/lib/editor/list-commands'
 import { PARAGRAPH_STYLES, applyParagraphStyle } from '@/lib/editor/paragraph-styles'
 import { promptInput } from '@/lib/input-dialog'
-import { countCharacters, countWords, cn } from '@/lib/utils'
-import { activeDocumentAtom } from '@/store/documents'
+import { cn } from '@/lib/utils'
 
 type ToolbarRibbonProps = {
   editor: Editor
@@ -91,10 +89,6 @@ function ToolbarSep() {
 }
 
 export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
-  const document = useAtomValue(activeDocumentAtom)
-  const words = document ? countWords(document.contentJson) : 0
-  const characters = document ? countCharacters(document.contentJson) : 0
-
   const state = useEditorState({
     editor,
     selector: ({ editor: currentEditor }) => ({
@@ -379,12 +373,6 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
         </DropdownMenu>
 
         <span className="toolbar-spacer" aria-hidden="true" />
-
-        {document && (
-          <span className="toolbar-word-count" title={`${characters} znakov`}>
-            {words} {words === 1 ? 'slovo' : words < 5 ? 'slová' : 'slov'}
-          </span>
-        )}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
