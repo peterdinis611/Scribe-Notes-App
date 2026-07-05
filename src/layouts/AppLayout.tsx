@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { flushSync } from 'react-dom'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { Outlet, useNavigate, useParams } from '@tanstack/react-router'
 import { CommandPalette } from '@/components/CommandPalette'
@@ -8,6 +9,7 @@ import { TemplatePicker } from '@/components/TemplatePicker'
 import { useLayoutTier } from '@/hooks/useLayoutTier'
 import { useResponsiveSidebar } from '@/hooks/useResponsiveSidebar'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
+import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { createDocument } from '@/lib/db/api'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { toast } from '@/lib/toast'
@@ -21,6 +23,7 @@ import {
   activeDocumentIdAtom,
   documentsAtom,
   focusModeAtom,
+  saveStatusAtom,
 } from '@/store/documents'
 import { templatePickerOpenAtom } from '@/store/settings'
 import { moveDocumentPickerOpenAtom } from '@/store/folders'
@@ -28,12 +31,14 @@ import { moveDocumentPickerOpenAtom } from '@/store/folders'
 function useDocumentRouteSync() {
   const { documentId } = useParams({ strict: false })
   const [activeId, setActiveId] = useAtom(activeDocumentIdAtom)
+  const setActiveDocument = useSetAtom(activeDocumentAtom)
 
   useEffect(() => {
-    if (documentId && documentId !== activeId) {
-      setActiveId(documentId)
-    }
-  }, [documentId, activeId, setActiveId])
+    if (!documentId || documentId === activeId) return
+    setActiveId(documentId)
+    const cached = peekCachedDocument(documentId)
+    if (cached) setActiveDocument(cached)
+  }, [documentId, activeId, setActiveDocument, setActiveId])
 }
 
 export function AppLayout() {
@@ -45,6 +50,7 @@ export function AppLayout() {
   const setActiveId = useSetAtom(activeDocumentIdAtom)
   const setDocuments = useSetAtom(documentsAtom)
   const setActiveDocument = useSetAtom(activeDocumentAtom)
+  const setSaveStatus = useSetAtom(saveStatusAtom)
 
   const navigate = useNavigate()
   const focusMode = useAtomValue(focusModeAtom)
@@ -58,13 +64,18 @@ export function AppLayout() {
         title: template.title,
         contentJson: JSON.stringify(template.content),
       })
-      setDocuments((prev) => prependDocumentSummary(prev, doc))
-      setActiveId(doc.id)
-      setActiveDocument(doc)
+      flushSync(() => {
+        setDocuments((prev) => prependDocumentSummary(prev, doc))
+        setActiveId(doc.id)
+        setActiveDocument(doc)
+        setSaveStatus('saved')
+      })
+      setTemplatePickerOpen(false)
+      await navigate(ROUTES.document(doc.id))
       toast.success('Dokument vytvorený', doc.title)
-      navigate(ROUTES.document(doc.id))
     } catch (error) {
       toast.error('Nepodarilo sa vytvoriť dokument', String(error))
+      throw error
     }
   }
 
@@ -88,13 +99,16 @@ export function AppLayout() {
           <Sidebar isCompact={isCompact} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         </>
       )}
-      <main ref={mainRef} className="app-main relative flex min-w-0 flex-1 flex-col overflow-hidden">
+      <main
+        ref={mainRef}
+        className="app-main titlebar-no-drag titlebar-interactive relative flex min-w-0 flex-1 flex-col overflow-hidden"
+      >
         <Outlet />
       </main>
       <TemplatePicker
         open={templatePickerOpen}
         onClose={() => setTemplatePickerOpen(false)}
-        onSelect={(template) => void handleCreateFromTemplate(template)}
+        onSelect={(template) => handleCreateFromTemplate(template)}
       />
       <CommandPalette />
       <MoveToFolderDialog

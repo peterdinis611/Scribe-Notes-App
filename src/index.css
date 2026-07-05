@@ -57,6 +57,7 @@
   body,
   #root {
     height: 100%;
+    -webkit-app-region: no-drag;
   }
 
   body {
@@ -106,6 +107,10 @@
 
 .titlebar-no-drag {
   -webkit-app-region: no-drag;
+}
+
+/* Keep header/sidebar controls above the macOS drag strip without touching position. */
+.titlebar-interactive {
   position: relative;
   z-index: 2;
 }
@@ -128,6 +133,52 @@
 .app-main {
   min-width: 0;
   overflow: hidden;
+}
+
+.editor-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.editor-header-left,
+.editor-header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 0;
+}
+
+.editor-header-left {
+  justify-content: flex-start;
+}
+
+.editor-header-right {
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+}
+
+.editor-header-center {
+  position: absolute;
+  left: 50%;
+  display: flex;
+  justify-content: center;
+  max-width: min(360px, 42vw);
+  transform: translateX(-50%);
+}
+
+.editor-header-title {
+  max-width: 360px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 

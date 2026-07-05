@@ -92,7 +92,8 @@ export function TrashDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-lg p-0 titlebar-no-drag" showClose>
+      {open && (
+        <DialogContent className="max-w-lg p-0" showClose>
         <DialogHeader className="border-b border-[var(--color-border)] px-5 pb-4 pt-5">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -163,7 +164,8 @@ export function TrashDialog() {
             )}
           </div>
         </ScrollArea>
-      </DialogContent>
+        </DialogContent>
+      )}
     </Dialog>
   )
 }

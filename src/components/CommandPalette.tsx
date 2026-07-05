@@ -251,7 +251,8 @@ export function CommandPalette() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="top-[12vh] max-w-[560px] translate-y-0 gap-0 overflow-hidden p-0 titlebar-no-drag">
+      {open && (
+        <DialogContent className="top-[12vh] max-w-[560px] translate-y-0 gap-0 overflow-hidden p-0">
         <div className="flex items-center gap-2.5 border-b border-[var(--color-border)] px-4 py-3.5">
           <Search className="h-4 w-4 text-[var(--color-muted-foreground)]" />
           <input
@@ -302,7 +303,8 @@ export function CommandPalette() {
             ))
           )}
         </div>
-      </DialogContent>
+        </DialogContent>
+      )}
     </Dialog>
   )
 }

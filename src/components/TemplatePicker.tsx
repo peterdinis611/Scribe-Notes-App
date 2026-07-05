@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   Briefcase,
   FileText,
+  Loader2,
   Palette,
   Search,
   Sparkles,
@@ -19,7 +20,7 @@ import { cn } from '@/lib/utils'
 interface TemplatePickerProps {
   open: boolean
   onClose: () => void
-  onSelect: (template: DocumentTemplate) => void
+  onSelect: (template: DocumentTemplate) => Promise<void>
 }
 
 const categoryLabels: Record<DocumentTemplate['category'], string> = {
@@ -49,12 +50,14 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
   const [category, setCategory] = useState<DocumentTemplate['category'] | 'all'>('all')
   const [query, setQuery] = useState('')
   const [selectedId, setSelectedId] = useState(BLANK_TEMPLATE.id)
+  const [creating, setCreating] = useState(false)
 
   useEffect(() => {
     if (!open) return
     setCategory('all')
     setQuery('')
     setSelectedId(BLANK_TEMPLATE.id)
+    setCreating(false)
   }, [open])
 
   const categoryCounts = useMemo(() => {
@@ -97,17 +100,25 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
     setSelectedId(filtered[0]?.id ?? BLANK_TEMPLATE.id)
   }, [filtered, selectedId])
 
-  function handleCreate() {
-    onSelect(selectedTemplate)
-    onClose()
+  async function handleCreate() {
+    if (creating) return
+    setCreating(true)
+    try {
+      await onSelect(selectedTemplate)
+    } catch {
+      // Parent shows toast; keep dialog open for retry.
+    } finally {
+      setCreating(false)
+    }
   }
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent
-        className="flex h-[min(680px,calc(100vh-40px))] max-w-[720px] flex-col gap-0 overflow-hidden p-0 titlebar-no-drag"
-        showClose
-      >
+      {open && (
+        <DialogContent
+          className="flex h-[min(680px,calc(100vh-40px))] max-w-[720px] flex-col gap-0 overflow-hidden p-0"
+          showClose
+        >
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--color-border)] px-5 pb-3.5 pt-[18px]">
           <div>
             <h2 className="m-0 text-[18px] font-bold tracking-[-0.02em]">Nový dokument</h2>
@@ -176,21 +187,23 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
           </div>
         </ScrollArea>
 
-        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-[var(--color-border)] px-5 py-3">
+        <div className="titlebar-interactive relative z-10 flex shrink-0 items-center justify-between gap-3 border-t border-[var(--color-border)] px-5 py-3">
           <p className="m-0 inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--color-foreground)]">
             <Sparkles className="h-3.5 w-3.5 text-[var(--color-accent)]" />
             {selectedTemplate.name}
           </p>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={onClose}>
+            <Button variant="ghost" size="sm" disabled={creating} onClick={onClose}>
               Zrušiť
             </Button>
-            <Button variant="default" size="sm" onClick={handleCreate}>
-              Vytvoriť dokument
+            <Button variant="default" size="sm" disabled={creating} onClick={() => void handleCreate()}>
+              {creating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              {creating ? 'Vytváram…' : 'Vytvoriť dokument'}
             </Button>
           </div>
         </div>
-      </DialogContent>
+        </DialogContent>
+      )}
     </Dialog>
   )
 }
@@ -212,7 +225,7 @@ function TemplateCard({
     <button
       type="button"
       className={cn(
-        'flex w-full flex-col gap-2.5 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-left transition-[border-color,box-shadow,background]',
+        'titlebar-no-drag flex w-full flex-col gap-2.5 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-left transition-[border-color,box-shadow,background]',
         variant === 'hero' && 'sm:flex-row sm:items-center',
         selected &&
           'border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-selection)_65%,var(--color-surface))] shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-accent)_35%,transparent)]',
@@ -266,7 +279,7 @@ function FilterChip({
       type="button"
       onClick={onClick}
       className={cn(
-        'inline-flex h-7 items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[12px] text-[var(--color-muted-foreground)] transition-colors',
+        'titlebar-no-drag inline-flex h-7 items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[12px] text-[var(--color-muted-foreground)] transition-colors',
         active
           ? 'border-[var(--color-accent)] bg-[var(--color-selection)] font-medium text-[var(--color-accent)]'
           : 'hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]',

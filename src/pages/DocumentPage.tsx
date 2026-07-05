@@ -1,6 +1,7 @@
-import { lazy, Suspense, useEffect } from 'react'
+import { lazy, Suspense, useEffect, useMemo } from 'react'
 import { useNavigate, useParams } from '@tanstack/react-router'
-import { useAtom, useAtomValue } from 'jotai'
+import { useAtom, useAtomValue, useSetAtom } from 'jotai'
+import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { ROUTES } from '@/lib/routes'
 import { activeDocumentAtom, activeDocumentIdAtom, saveStatusAtom } from '@/store/documents'
 
@@ -23,17 +24,32 @@ function DocumentEditorFallback() {
 export function DocumentPage() {
   const { documentId } = useParams({ strict: false })
   const navigate = useNavigate()
-  const [activeId] = useAtom(activeDocumentIdAtom)
+  const [activeId, setActiveId] = useAtom(activeDocumentIdAtom)
   const activeDocument = useAtomValue(activeDocumentAtom)
+  const setActiveDocument = useSetAtom(activeDocumentAtom)
   const [saveStatus] = useAtom(saveStatusAtom)
 
+  const resolvedDocument = useMemo(() => {
+    if (!documentId) return null
+    if (activeDocument?.id === documentId) return activeDocument
+    return peekCachedDocument(documentId)
+  }, [activeDocument, documentId])
+
   useEffect(() => {
-    if (activeId === documentId && saveStatus === 'error' && !activeDocument) {
+    if (!documentId) return
+    if (activeId !== documentId) setActiveId(documentId)
+    if (resolvedDocument && activeDocument?.id !== documentId) {
+      setActiveDocument(resolvedDocument)
+    }
+  }, [activeDocument?.id, activeId, documentId, resolvedDocument, setActiveDocument, setActiveId])
+
+  useEffect(() => {
+    if (activeId === documentId && saveStatus === 'error' && !resolvedDocument) {
       navigate(ROUTES.home())
     }
-  }, [activeId, documentId, activeDocument, saveStatus, navigate])
+  }, [activeId, documentId, resolvedDocument, saveStatus, navigate])
 
-  if (activeId !== documentId || !activeDocument || activeDocument.id !== documentId) {
+  if (!documentId || !resolvedDocument || resolvedDocument.id !== documentId) {
     return (
       <div className="editor-shell">
         <div className="flex flex-1 items-center justify-center text-sm text-[var(--color-muted-foreground)]">

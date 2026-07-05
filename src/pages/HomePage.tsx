@@ -1,17 +1,20 @@
-import { useLayoutEffect } from 'react'
+import { useEffect } from 'react'
 import { useSetAtom } from 'jotai'
+import { useRouterState } from '@tanstack/react-router'
 import { EditorHeader } from '@/components/TopBar'
 import { WelcomeScreen } from '@/components/WelcomeScreen'
 import { activeDocumentAtom, activeDocumentIdAtom } from '@/store/documents'
 
 export function HomePage() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname })
   const setActiveId = useSetAtom(activeDocumentIdAtom)
   const setActiveDocument = useSetAtom(activeDocumentAtom)
 
-  useLayoutEffect(() => {
+  useEffect(() => {
+    if (pathname !== '/') return
     setActiveId(null)
     setActiveDocument(null)
-  }, [setActiveDocument, setActiveId])
+  }, [pathname, setActiveDocument, setActiveId])
 
   return (
     <div className="editor-shell">

@@ -29,4 +29,5 @@ export function useLayoutTier(ref: RefObject<HTMLElement | null>) {
   return tier
 }
 
-export const SIDEBAR_DRAWER_BREAKPOINT = 1280
+// Keep in sync with Tailwind `xl` (min-width 1280px) — drawer mode is below that.
+export const SIDEBAR_DRAWER_BREAKPOINT = 1279

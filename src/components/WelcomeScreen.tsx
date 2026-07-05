@@ -52,7 +52,7 @@ export function WelcomeScreen() {
   }
 
   return (
-    <div className="flex flex-1 items-center justify-center p-8 max-[1100px]:px-4 max-[1100px]:py-6">
+    <div className="titlebar-no-drag flex flex-1 items-center justify-center p-8 max-[1100px]:px-4 max-[1100px]:py-6">
       <div className="max-w-[420px] text-center">
         <div className="mb-5 inline-flex h-16 w-16 items-center justify-center rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-accent)] shadow-[0_4px_16px_rgba(0,0,0,0.06)]">
           <FileText className="h-8 w-8 stroke-[1.25]" />
@@ -64,7 +64,7 @@ export function WelcomeScreen() {
           Vytvorte nový dokument, importujte existujúci súbor alebo pokračujte v písaní.
         </p>
 
-        <div className="mb-6 flex justify-center gap-2.5">
+        <div className="titlebar-no-drag mb-6 flex justify-center gap-2.5">
           <Button variant="default" onClick={() => setTemplatePickerOpen(true)}>
             <Plus className="h-4 w-4" />
             Nový dokument

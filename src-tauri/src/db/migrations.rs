@@ -1,6 +1,6 @@
 use rusqlite::Connection;
 
-const SCHEMA_VERSION: i32 = 7;
+const SCHEMA_VERSION: i32 = 8;
 
 pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     conn.execute_batch(
@@ -48,7 +48,7 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         let _ = conn.execute("ALTER TABLE documents ADD COLUMN file_path TEXT", []);
     }
 
-    if current < SCHEMA_VERSION {
+    if current < 3 {
         conn.execute_batch(
             r#"
             CREATE VIRTUAL TABLE IF NOT EXISTS documents_fts USING fts5(
@@ -76,7 +76,7 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
 
         conn.execute(
             "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
-            [SCHEMA_VERSION.to_string()],
+            ["3".to_string()],
         )?;
     }
 
@@ -180,6 +180,31 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         )?;
     }
 
+    if current < 8 {
+        // Repair: older builds could mark schema v7 before document_links existed.
+        conn.execute_batch(
+            r#"
+            CREATE TABLE IF NOT EXISTS document_links (
+                source_id TEXT NOT NULL,
+                target_id TEXT NOT NULL,
+                PRIMARY KEY (source_id, target_id),
+                FOREIGN KEY (source_id) REFERENCES documents(id) ON DELETE CASCADE,
+                FOREIGN KEY (target_id) REFERENCES documents(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_document_links_target
+                ON document_links(target_id);
+            "#,
+        )?;
+
+        let _ = crate::db::backfill_links(conn);
+
+        conn.execute(
+            "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
+            [SCHEMA_VERSION.to_string()],
+        )?;
+    }
+
     Ok(())
 }
 
@@ -233,6 +258,70 @@ mod tests {
         assert!(columns.contains(&"deleted_at".to_string()));
         assert!(columns.contains(&"is_favorite".to_string()));
         assert!(columns.contains(&"tags".to_string()));
+    }
+
+    #[test]
+    fn migration_creates_document_links_table() {
+        let conn = in_memory_conn();
+        let exists: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'document_links'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(exists, 1);
+    }
+
+    #[test]
+    fn migration_repairs_schema_v7_without_document_links() {
+        let conn = rusqlite::Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            r#"
+            CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+            CREATE TABLE folders (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                parent_id TEXT,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL
+            );
+            CREATE TABLE documents (
+                id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                content_json TEXT NOT NULL,
+                folder_id TEXT,
+                file_path TEXT,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL,
+                deleted_at INTEGER,
+                is_favorite INTEGER NOT NULL DEFAULT 0,
+                tags TEXT
+            );
+            INSERT INTO meta (key, value) VALUES ('schema_version', '7');
+            "#,
+        )
+        .unwrap();
+
+        super::run_migrations(&conn).unwrap();
+
+        let version: String = conn
+            .query_row(
+                "SELECT value FROM meta WHERE key = 'schema_version'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(version, super::SCHEMA_VERSION.to_string());
+
+        let exists: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'document_links'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(exists, 1);
     }
 
     #[test]

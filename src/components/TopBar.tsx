@@ -132,17 +132,12 @@ export function EditorHeader({ onPrint }: { onPrint?: () => void }) {
 
   return (
     <>
-      <header className="relative flex h-12 min-w-0 items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-toolbar)] px-4 backdrop-blur-xl backdrop-saturate-[180%] [[data-sidebar-drawer=true]_&]:pl-[78px]">
-        <div
-          className="editor-header-drag titlebar-drag absolute bottom-0 left-[var(--titlebar-traffic-lights-width,78px)] right-0 top-0 z-0"
-          aria-hidden="true"
-        />
-
-        <div className="titlebar-no-drag relative z-1 flex min-w-0 flex-1 items-center justify-start gap-1.5 overflow-x-auto pr-[max(96px,14vw)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0">
+      <header className="editor-header titlebar-drag relative flex h-12 min-w-0 items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-toolbar)] px-4 backdrop-blur-xl backdrop-saturate-[180%] [[data-sidebar-drawer=true]_&]:pl-[78px]">
+        <div className="editor-header-left titlebar-no-drag titlebar-interactive relative z-10 flex min-w-0 flex-1 items-center justify-start gap-1.5 overflow-x-auto pr-[max(96px,14vw)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0">
           <SidebarToggle />
           <Button variant="default" size="sm" onClick={() => setTemplatePickerOpen(true)}>
             <Plus className="h-3.5 w-3.5 shrink-0" />
-            <span className="[[data-layout-tier=medium]_&]:hidden [[data-layout-tier=narrow]_&]:hidden [[data-layout-tier=tight]_&]:hidden">
+            <span className="editor-header-label [[data-layout-tier=medium]_&]:hidden [[data-layout-tier=narrow]_&]:hidden [[data-layout-tier=tight]_&]:hidden">
               Nový
             </span>
           </Button>
@@ -158,17 +153,17 @@ export function EditorHeader({ onPrint }: { onPrint?: () => void }) {
           )}
         </div>
 
-        <div className="titlebar-no-drag pointer-events-none absolute left-1/2 z-1 flex max-w-[min(360px,42vw)] -translate-x-1/2 justify-center [&>*]:pointer-events-auto">
+        <div className="editor-header-center titlebar-no-drag pointer-events-none absolute left-1/2 z-[5] flex max-w-[min(360px,42vw)] -translate-x-1/2 justify-center [&>*]:pointer-events-auto">
           {document ? (
             <DocumentTitleField documentId={document.id} title={document.title} variant="header" />
           ) : (
-            <p className="m-0 max-w-[360px] truncate text-[13px] font-semibold tracking-[-0.01em] text-[var(--color-foreground)]">
+            <p className="editor-header-title m-0 max-w-[360px] truncate text-[13px] font-semibold tracking-[-0.01em] text-[var(--color-foreground)]">
               Scribe
             </p>
           )}
         </div>
 
-        <div className="titlebar-no-drag relative z-1 flex min-w-0 flex-1 flex-nowrap items-center justify-end gap-1.5 overflow-x-auto pl-[max(96px,14vw)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0">
+        <div className="editor-header-right titlebar-no-drag titlebar-interactive relative z-10 flex min-w-0 flex-1 flex-nowrap items-center justify-end gap-1.5 overflow-x-auto pl-[max(96px,14vw)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0">
           {focusMode && (
             <Button
               variant="outline"
