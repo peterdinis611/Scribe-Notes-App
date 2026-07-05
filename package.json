@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@embedpdf/react-pdf-viewer": "^2.14.4",
+    "@radix-ui/react-dialog": "^1.1.18",
     "@radix-ui/react-dropdown-menu": "^2.1.19",
     "@radix-ui/react-scroll-area": "^1.2.13",
     "@radix-ui/react-separator": "^1.1.11",

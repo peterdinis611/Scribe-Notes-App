@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
-import { Outlet, useNavigate, useParams, useRouterState } from '@tanstack/react-router'
+import { Outlet, useNavigate, useParams } from '@tanstack/react-router'
 import { CommandPalette } from '@/components/CommandPalette'
 import { MoveToFolderDialog } from '@/components/MoveToFolderMenu'
 import { Sidebar } from '@/components/Sidebar'
@@ -27,22 +27,13 @@ import { moveDocumentPickerOpenAtom } from '@/store/folders'
 
 function useDocumentRouteSync() {
   const { documentId } = useParams({ strict: false })
-  const pathname = useRouterState({ select: (state) => state.location.pathname })
   const [activeId, setActiveId] = useAtom(activeDocumentIdAtom)
-  const setActiveDocument = useSetAtom(activeDocumentAtom)
 
   useEffect(() => {
     if (documentId && documentId !== activeId) {
       setActiveId(documentId)
     }
   }, [documentId, activeId, setActiveId])
-
-  useEffect(() => {
-    if (pathname === '/') {
-      setActiveId(null)
-      setActiveDocument(null)
-    }
-  }, [pathname, setActiveId, setActiveDocument])
 }
 
 export function AppLayout() {
@@ -62,20 +53,24 @@ export function AppLayout() {
   const { isCompact, sidebarOpen, setSidebarOpen } = useResponsiveSidebar()
 
   async function handleCreateFromTemplate(template: DocumentTemplate) {
-    const doc = await createDocument({
-      title: template.title,
-      contentJson: JSON.stringify(template.content),
-    })
-    setDocuments((prev) => prependDocumentSummary(prev, doc))
-    setActiveId(doc.id)
-    setActiveDocument(doc)
-    toast.success('Dokument vytvorený', doc.title)
-    navigate(ROUTES.document(doc.id))
+    try {
+      const doc = await createDocument({
+        title: template.title,
+        contentJson: JSON.stringify(template.content),
+      })
+      setDocuments((prev) => prependDocumentSummary(prev, doc))
+      setActiveId(doc.id)
+      setActiveDocument(doc)
+      toast.success('Dokument vytvorený', doc.title)
+      navigate(ROUTES.document(doc.id))
+    } catch (error) {
+      toast.error('Nepodarilo sa vytvoriť dokument', String(error))
+    }
   }
 
   return (
     <div
-      className="app-shell flex h-full min-w-0 overflow-hidden bg-[var(--color-background)]"
+      className="relative flex h-full min-w-0 overflow-hidden bg-[var(--color-background)]"
       data-layout-tier={layoutTier}
       data-sidebar-drawer={isCompact ? 'true' : 'false'}
       data-focus-mode={focusMode ? 'true' : 'false'}
@@ -85,7 +80,7 @@ export function AppLayout() {
           {isCompact && sidebarOpen && (
             <button
               type="button"
-              className="sidebar-backdrop titlebar-no-drag"
+              className="titlebar-no-drag fixed inset-0 z-[35] cursor-default border-none bg-black/38 backdrop-blur-[2px]"
               aria-label="Zavrieť knižnicu"
               onClick={() => setSidebarOpen(false)}
             />

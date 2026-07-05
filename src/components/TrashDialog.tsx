@@ -1,7 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAtom, useSetAtom } from 'jotai'
 import { confirm } from '@tauri-apps/plugin-dialog'
-import { RotateCcw, Trash2, X } from 'lucide-react'
+import { RotateCcw, Trash2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   emptyTrash,
   fetchDocumentFresh,
@@ -81,80 +90,80 @@ export function TrashDialog() {
     }
   }, [items.length])
 
-  if (!open) return null
-
   return (
-    <div
-      className="trash-dialog-overlay"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) setOpen(false)
-      }}
-    >
-      <div className="trash-dialog" role="dialog" aria-label="Kôš">
-        <div className="trash-dialog-header">
-          <div>
-            <h2 className="trash-dialog-title">Kôš</h2>
-            <p className="trash-dialog-subtitle">
-              {items.length === 0 ? 'Kôš je prázdny' : `${items.length} dokumentov`}
-            </p>
-          </div>
-          <div className="trash-dialog-header-actions">
-            <button
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent className="max-w-lg p-0 titlebar-no-drag" showClose>
+        <DialogHeader className="border-b border-[var(--color-border)] px-5 pb-4 pt-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <DialogTitle className="text-[17px]">Kôš</DialogTitle>
+              <DialogDescription>
+                {items.length === 0 ? 'Kôš je prázdny' : `${items.length} dokumentov`}
+              </DialogDescription>
+            </div>
+            <Button
               type="button"
-              className="trash-dialog-empty-btn"
+              variant="outline"
+              size="sm"
               onClick={() => void handleEmpty()}
               disabled={items.length === 0}
             >
               <Trash2 className="h-3.5 w-3.5" />
               Vysypať kôš
-            </button>
-            <button
-              type="button"
-              className="trash-dialog-close"
-              aria-label="Zavrieť"
-              onClick={() => setOpen(false)}
-            >
-              <X className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
-        </div>
+        </DialogHeader>
 
-        <div className="trash-dialog-list">
-          {loading && items.length === 0 ? (
-            <p className="trash-dialog-empty">Načítavam…</p>
-          ) : items.length === 0 ? (
-            <p className="trash-dialog-empty">Vymazané dokumenty sa zobrazia tu.</p>
-          ) : (
-            items.map((item) => (
-              <div key={item.id} className="trash-item">
-                <div className="min-w-0 flex-1">
-                  <p className="trash-item-title">{item.title || 'Bez názvu'}</p>
-                  <p className="trash-item-meta">
-                    Vymazané {item.deletedAt ? formatRelativeTime(item.deletedAt) : ''}
-                  </p>
+        <ScrollArea className="max-h-[min(60vh,420px)]">
+          <div className="px-3 py-2">
+            {loading && items.length === 0 ? (
+              <p className="px-3 py-8 text-center text-[13px] text-[var(--color-muted-foreground)]">
+                Načítavam…
+              </p>
+            ) : items.length === 0 ? (
+              <p className="px-3 py-8 text-center text-[13px] text-[var(--color-muted-foreground)]">
+                Vymazané dokumenty sa zobrazia tu.
+              </p>
+            ) : (
+              items.map((item) => (
+                <div
+                  key={item.id}
+                  className="mb-1 flex items-center gap-2 rounded-lg px-2 py-2 transition-colors hover:bg-[var(--color-hover)]"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-medium text-[var(--color-foreground)]">
+                      {item.title || 'Bez názvu'}
+                    </p>
+                    <p className="text-[11px] text-[var(--color-muted-foreground)]">
+                      Vymazané {item.deletedAt ? formatRelativeTime(item.deletedAt) : ''}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    title="Obnoviť"
+                    onClick={() => void handleRestore(item)}
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    Obnoviť
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="hover:bg-[color-mix(in_srgb,var(--color-destructive)_12%,transparent)] hover:text-[var(--color-destructive)]"
+                    title="Odstrániť natrvalo"
+                    onClick={() => void handlePurge(item)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
-                <button
-                  type="button"
-                  className="trash-item-action"
-                  title="Obnoviť"
-                  onClick={() => void handleRestore(item)}
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  Obnoviť
-                </button>
-                <button
-                  type="button"
-                  className="trash-item-action trash-item-action--danger"
-                  title="Odstrániť natrvalo"
-                  onClick={() => void handlePurge(item)}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-    </div>
+              ))
+            )}
+          </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
   )
 }

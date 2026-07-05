@@ -87,8 +87,12 @@ export function formatSlovakDocumentCount(count: number): string {
 
 export function buildDeleteFolderConfirmMessage(folderName: string, documentCount: number): string {
   if (documentCount > 0) {
-    return `Vymazaním priečinka „${folderName}" sa natrvalo vymažú aj ${formatSlovakDocumentCount(documentCount)} v ňom a v podpriečinkoch. Túto akciu nie je možné vrátiť späť.`
+    return `Vymazaním priečinka „${folderName}" sa presunú do koša aj ${formatSlovakDocumentCount(documentCount)} v ňom a v podpriečinkoch. Samotný priečinok sa odstráni.`
   }
 
-  return `Vymazaním priečinka „${folderName}" sa vymažú aj všetky podpriečinky. Túto akciu nie je možné vrátiť späť.`
+  return `Vymazaním priečinka „${folderName}" sa odstránia aj všetky podpriečinky.`
+}
+
+export function buildTrashFolderConfirmMessage(folderName: string, documentCount: number): string {
+  return `Presunúť ${formatSlovakDocumentCount(documentCount)} z priečinka „${folderName}" (vrátane podpriečinkov) do koša? Priečinok ostane zachovaný.`
 }

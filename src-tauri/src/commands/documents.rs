@@ -56,6 +56,39 @@ fn now_ts() -> i64 {
     chrono::Utc::now().timestamp()
 }
 
+/// Soft-deletes a document into trash. Returns true when a row was updated.
+pub(crate) fn soft_delete_document_row(
+    conn: &rusqlite::Connection,
+    id: &str,
+    now: i64,
+) -> Result<bool, String> {
+    let affected = conn
+        .execute(
+            "UPDATE documents SET deleted_at = ?1 WHERE id = ?2 AND deleted_at IS NULL",
+            params![now, id],
+        )
+        .map_err(|e| e.to_string())?;
+
+    if affected > 0 {
+        crate::db::remove_document_fts(conn, id)?;
+    }
+
+    Ok(affected > 0)
+}
+
+fn folder_exists(conn: &rusqlite::Connection, folder_id: &str) -> Result<bool, String> {
+    let exists: Option<String> = conn
+        .query_row(
+            "SELECT id FROM folders WHERE id = ?1",
+            params![folder_id],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|e| e.to_string())?;
+
+    Ok(exists.is_some())
+}
+
 pub fn map_document(row: &rusqlite::Row<'_>) -> rusqlite::Result<Document> {
     Ok(Document {
         id: row.get(0)?,
@@ -334,21 +367,7 @@ pub fn duplicate_document(
 #[tauri::command]
 pub fn delete_document(state: State<'_, DbState>, id: String) -> Result<(), String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
-    let now = now_ts();
-
-    // Soft delete: move to trash. The file on disk and FTS entry stay until purge,
-    // but we drop it from the search index so trashed docs don't appear in search.
-    let affected = conn
-        .execute(
-            "UPDATE documents SET deleted_at = ?1 WHERE id = ?2 AND deleted_at IS NULL",
-            params![now, id],
-        )
-        .map_err(|e| e.to_string())?;
-
-    if affected > 0 {
-        crate::db::remove_document_fts(&conn, &id)?;
-    }
-
+    soft_delete_document_row(&conn, &id, now_ts())?;
     Ok(())
 }
 
@@ -372,6 +391,17 @@ pub fn restore_document(state: State<'_, DbState>, id: String) -> Result<(), Str
     .map_err(|e| e.to_string())?;
 
     if let Some(doc) = restored {
+        if let Some(folder_id) = &doc.folder_id {
+            if !folder_exists(&conn, folder_id)? {
+                let fallback = super::folders::default_folder_id(&conn)?;
+                conn.execute(
+                    "UPDATE documents SET folder_id = ?1 WHERE id = ?2",
+                    params![fallback, id],
+                )
+                .map_err(|e| e.to_string())?;
+            }
+        }
+
         crate::db::sync_document_fts(&conn, &doc.id, &doc.title, &doc.content_json)?;
         crate::db::sync_document_links(&conn, &doc.id, &doc.content_json)?;
     }

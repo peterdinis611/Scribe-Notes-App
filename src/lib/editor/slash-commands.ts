@@ -1,5 +1,6 @@
 import { Extension } from '@tiptap/core'
 import { ReactRenderer } from '@tiptap/react'
+import { PluginKey } from '@tiptap/pm/state'
 import type { SuggestionProps } from '@tiptap/suggestion'
 import Suggestion from '@tiptap/suggestion'
 import type { Editor } from '@tiptap/react'
@@ -157,6 +158,7 @@ export const SlashCommands = Extension.create<SlashCommandsOptions>({
     return [
       Suggestion({
         editor: this.editor,
+        pluginKey: new PluginKey('slashCommandsSuggestion'),
         char: '/',
         startOfLine: false,
         items: ({ query }) => filterCommands(query),

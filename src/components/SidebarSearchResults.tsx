@@ -4,7 +4,7 @@ import { FileText } from 'lucide-react'
 import { useSetAtom } from 'jotai'
 import { searchDocuments, type SearchHit } from '@/lib/db/api'
 import { ROUTES } from '@/lib/routes'
-import { cn, debounce } from '@/lib/utils'
+import { debounce } from '@/lib/utils'
 import { activeDocumentIdAtom } from '@/store/documents'
 
 type SidebarSearchResultsProps = {
@@ -45,29 +45,35 @@ export function SidebarSearchResults({ query, onNavigate }: SidebarSearchResults
   if (query.trim().length < 2) return null
 
   return (
-    <div className="sidebar-search-results titlebar-no-drag">
-      <p className="sidebar-search-results-label">Výsledky v obsahu</p>
-      {loading && <p className="sidebar-search-results-empty">Hľadám…</p>}
+    <div className="titlebar-no-drag px-3 pb-2">
+      <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.04em] text-[var(--color-muted-foreground)]">
+        Výsledky v obsahu
+      </p>
+      {loading && (
+        <p className="px-1 py-2 text-[12px] text-[var(--color-muted-foreground)]">Hľadám…</p>
+      )}
       {!loading && hits.length === 0 && (
-        <p className="sidebar-search-results-empty">Nič sa nenašlo</p>
+        <p className="px-1 py-2 text-[12px] text-[var(--color-muted-foreground)]">Nič sa nenašlo</p>
       )}
       {!loading &&
         hits.map((hit) => (
           <button
             key={hit.documentId}
             type="button"
-            className={cn('sidebar-search-hit')}
+            className="mb-0.5 flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-[var(--color-hover)]"
             onClick={() => {
               setActiveId(hit.documentId)
               navigate(ROUTES.document(hit.documentId))
               onNavigate?.()
             }}
           >
-            <FileText className="h-3.5 w-3.5 shrink-0 opacity-50" />
-            <span className="sidebar-search-hit-body">
-              <span className="sidebar-search-hit-title">{hit.title}</span>
+            <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 opacity-50" />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[12px] font-medium text-[var(--color-foreground)]">
+                {hit.title}
+              </span>
               <span
-                className="sidebar-search-hit-snippet"
+                className="line-clamp-2 text-[11px] leading-snug text-[var(--color-muted-foreground)] [&_mark]:rounded-sm [&_mark]:bg-[var(--color-selection)] [&_mark]:px-0.5 [&_mark]:text-[var(--color-accent)]"
                 dangerouslySetInnerHTML={{ __html: hit.snippet }}
               />
             </span>

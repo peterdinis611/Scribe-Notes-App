@@ -12,11 +12,13 @@ import {
   renameFolder,
   setDocumentFavorite,
   setDocumentTags,
+  trashFolderDocuments,
 } from '@/lib/db/api'
 import { useMoveDocumentToFolder } from '@/hooks/useMoveDocumentToFolder'
-import { invalidateDocumentCache } from '@/lib/cache/document-cache'
+import { invalidateDocumentCache, peekCachedDocument } from '@/lib/cache/document-cache'
 import {
   buildDeleteFolderConfirmMessage,
+  buildTrashFolderConfirmMessage,
   collectFolderSubtreeIds,
   countDocumentsInFolders,
 } from '@/lib/library/folders'
@@ -117,6 +119,51 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     toast.success('Priečinok premenovaný', folder.name)
   }, [setFolders])
 
+  const handleTrashFolderDocuments = useCallback(async (id: string, name: string, event: React.MouseEvent) => {
+    event.stopPropagation()
+
+    const subtreeIds = collectFolderSubtreeIds(folders, id)
+    const documentCount = countDocumentsInFolders(documents, subtreeIds)
+    if (documentCount === 0) {
+      toast.info('Priečinok neobsahuje žiadne dokumenty')
+      return
+    }
+
+    const confirmed = await confirm(buildTrashFolderConfirmMessage(name, documentCount), {
+      title: 'Presunúť do koša?',
+      kind: 'warning',
+      okLabel: 'Presunúť do koša',
+      cancelLabel: 'Zrušiť',
+    })
+    if (!confirmed) return
+
+    const result = await trashFolderDocuments(id)
+    const trashedIds = new Set(result.trashedDocumentIds)
+
+    for (const documentId of result.trashedDocumentIds) {
+      invalidateDocumentCache(documentId)
+    }
+
+    setDocuments((prev) => prev.filter((doc) => !trashedIds.has(doc.id)))
+
+    if (activeId && trashedIds.has(activeId)) {
+      const remaining = documents.filter((doc) => !trashedIds.has(doc.id))
+      const nextId = remaining[0]?.id ?? null
+      setActiveId(nextId)
+      if (!nextId) {
+        setActiveDocument(null)
+        navigate(ROUTES.home())
+      } else {
+        navigate(ROUTES.document(nextId))
+      }
+    }
+
+    toast.success(
+      'Dokumenty presunuté do koša',
+      `${result.trashedDocumentIds.length} z priečinka „${name}"`,
+    )
+  }, [activeId, documents, folders, navigate, setActiveDocument, setActiveId, setDocuments])
+
   const handleDeleteFolder = useCallback(async (id: string, name: string, event: React.MouseEvent) => {
     event.stopPropagation()
 
@@ -125,7 +172,7 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     const confirmed = await confirm(buildDeleteFolderConfirmMessage(name, documentCount), {
       title: 'Vymazať priečinok?',
       kind: 'warning',
-      okLabel: 'Vymazať',
+      okLabel: 'Vymazať priečinok',
       cancelLabel: 'Zrušiť',
     })
     if (!confirmed) return
@@ -181,14 +228,16 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
         navigate(ROUTES.document(nextId))
       }
     }
-    toast.success('Dokument vymazaný', deleted?.title)
+    toast.success('Dokument presunutý do koša', deleted?.title)
   }, [activeId, documents, navigate, setActiveDocument, setActiveId, setDocuments])
 
   const openDocument = useCallback((id: string) => {
     setActiveId(id)
+    const cached = peekCachedDocument(id)
+    if (cached) setActiveDocument(cached)
     navigate(ROUTES.document(id))
     onNavigate?.()
-  }, [navigate, onNavigate, setActiveId])
+  }, [navigate, onNavigate, setActiveDocument, setActiveId])
 
   const handleToggleFavorite = useCallback(async (id: string, event: React.MouseEvent) => {
     event.stopPropagation()
@@ -278,9 +327,12 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
   }, [])
 
   return (
-    <div className="folder-tree">
+    <div className="min-h-full">
       <div
-        className={cn('folder-tree-root-drop titlebar-no-drag', dragOverId === 'root' && 'is-drag-over')}
+        className={cn(
+          'titlebar-no-drag',
+          dragOverId === 'root' && 'rounded-[10px] outline outline-1 outline-dashed outline-[var(--color-accent)] outline-offset-2',
+        )}
         onDragOver={(event) => {
           if (event.target !== event.currentTarget) return
           event.preventDefault()
@@ -294,10 +346,12 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
         onDrop={(event) => void handleDropOnFolder(null, event)}
       >
         {flatItems.length === 0 ? (
-          <p className="sidebar-empty">{query ? 'Žiadne výsledky.' : 'Zatiaľ žiadne dokumenty.'}</p>
+          <p className="px-3 py-6 text-center text-[12px] text-[var(--color-muted-foreground)]">
+            {query ? 'Žiadne výsledky.' : 'Zatiaľ žiadne dokumenty.'}
+          </p>
         ) : (
           <div
-            className="folder-tree-virtual"
+            className="w-full"
             style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }}
           >
             {virtualizer.getVirtualItems().map((virtualItem) => {
@@ -307,7 +361,7 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
                   key={virtualItem.key}
                   ref={virtualizer.measureElement}
                   data-index={virtualItem.index}
-                  className="folder-tree-virtual-item"
+                  className="w-full"
                   style={{
                     position: 'absolute',
                     top: 0,
@@ -320,11 +374,18 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
                     <FolderTreeFolderRow
                       folder={item.folder}
                       depth={item.depth}
+                      documentCount={countDocumentsInFolders(
+                        documents,
+                        collectFolderSubtreeIds(folders, item.folder.id),
+                      )}
                       isExpanded={expandedIds.has(item.folder.id)}
                       isDragOver={dragOverId === item.folder.id}
                       onToggle={toggleFolder}
                       onRename={(id, name) => void handleRenameFolder(id, name)}
                       onCreateChild={(parentId) => void handleCreateFolder(parentId)}
+                      onTrashDocuments={(id, folderName, event) =>
+                        void handleTrashFolderDocuments(id, folderName, event)
+                      }
                       onDelete={(id, folderName, event) => void handleDeleteFolder(id, folderName, event)}
                       onDragStart={handleFolderDragStart}
                       onDragOver={handleFolderDragOver}

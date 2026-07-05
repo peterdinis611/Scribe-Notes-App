@@ -1,5 +1,5 @@
+use crate::commands::documents::soft_delete_document_row;
 use crate::db::DbState;
-use crate::storage;
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, State};
@@ -138,27 +138,60 @@ fn collect_folder_subtree_ids(conn: &Connection, root_id: &str) -> Result<Vec<St
     Ok(ids)
 }
 
-fn delete_document_record(conn: &Connection, id: &str) -> Result<(), String> {
-    let file_path: Option<String> = conn
-        .query_row(
-            "SELECT file_path FROM documents WHERE id = ?1",
-            params![id],
-            |row| row.get(0),
-        )
-        .optional()
-        .map_err(|e| e.to_string())?
-        .flatten();
+fn collect_document_ids_in_folders(
+    conn: &Connection,
+    folder_ids: &[String],
+) -> Result<Vec<String>, String> {
+    let mut document_ids = Vec::new();
 
-    conn.execute("DELETE FROM documents WHERE id = ?1", params![id])
-        .map_err(|e| e.to_string())?;
+    for folder_id in folder_ids {
+        let mut stmt = conn
+            .prepare("SELECT id FROM documents WHERE folder_id = ?1 AND deleted_at IS NULL")
+            .map_err(|e| e.to_string())?;
 
-    crate::db::remove_document_fts(conn, id)?;
+        let ids = stmt
+            .query_map(params![folder_id], |row| row.get(0))
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<String>, _>>()
+            .map_err(|e| e.to_string())?;
 
-    if let Some(path) = file_path {
-        storage::delete_document_file(&path)?;
+        document_ids.extend(ids);
     }
 
-    Ok(())
+    Ok(document_ids)
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrashFolderDocumentsResult {
+    pub trashed_document_ids: Vec<String>,
+}
+
+#[tauri::command]
+pub fn trash_folder_documents(
+    state: State<'_, DbState>,
+    folder_id: String,
+) -> Result<TrashFolderDocumentsResult, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let now = now_ts();
+
+    let folder_ids = collect_folder_subtree_ids(&conn, &folder_id)?;
+    if folder_ids.is_empty() {
+        return Err("Priečinok neexistuje".to_string());
+    }
+
+    let document_ids = collect_document_ids_in_folders(&conn, &folder_ids)?;
+    let mut trashed_document_ids = Vec::new();
+
+    for document_id in document_ids {
+        if soft_delete_document_row(&conn, &document_id, now)? {
+            trashed_document_ids.push(document_id);
+        }
+    }
+
+    Ok(TrashFolderDocumentsResult {
+        trashed_document_ids,
+    })
 }
 
 #[tauri::command]
@@ -178,21 +211,12 @@ pub fn delete_folder(
             return Err("Priečinok neexistuje".to_string());
         }
 
+        let now = now_ts();
+        let document_ids = collect_document_ids_in_folders(&conn, &folder_ids)?;
         let mut deleted_document_ids = Vec::new();
 
-        for folder_id in &folder_ids {
-            let mut stmt = conn
-                .prepare("SELECT id FROM documents WHERE folder_id = ?1")
-                .map_err(|e| e.to_string())?;
-
-            let document_ids = stmt
-                .query_map(params![folder_id], |row| row.get(0))
-                .map_err(|e| e.to_string())?
-                .collect::<Result<Vec<String>, _>>()
-                .map_err(|e| e.to_string())?;
-
-            for document_id in document_ids {
-                delete_document_record(&conn, &document_id)?;
+        for document_id in document_ids {
+            if soft_delete_document_row(&conn, &document_id, now)? {
                 deleted_document_ids.push(document_id);
             }
         }

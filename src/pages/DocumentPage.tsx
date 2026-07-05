@@ -33,7 +33,7 @@ export function DocumentPage() {
     }
   }, [activeId, documentId, activeDocument, saveStatus, navigate])
 
-  if (activeId !== documentId || !activeDocument) {
+  if (activeId !== documentId || !activeDocument || activeDocument.id !== documentId) {
     return (
       <div className="editor-shell">
         <div className="flex flex-1 items-center justify-center text-sm text-[var(--color-muted-foreground)]">

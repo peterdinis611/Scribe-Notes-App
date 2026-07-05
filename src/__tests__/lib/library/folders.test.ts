@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildDeleteFolderConfirmMessage,
+  buildTrashFolderConfirmMessage,
   collectFolderSubtreeIds,
   countDocumentsInFolders,
   flattenFoldersForPicker,
@@ -54,6 +55,8 @@ describe('delete folder helpers', () => {
     expect(formatSlovakDocumentCount(1)).toBe('1 dokument')
     expect(formatSlovakDocumentCount(3)).toBe('3 dokumenty')
     expect(buildDeleteFolderConfirmMessage('Projekty', 2)).toContain('2 dokumenty')
+    expect(buildDeleteFolderConfirmMessage('Projekty', 2)).toContain('koša')
     expect(buildDeleteFolderConfirmMessage('Prázdny', 0)).toContain('podpriečinky')
+    expect(buildTrashFolderConfirmMessage('Projekty', 2)).toContain('Presunúť 2 dokumenty')
   })
 })

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { useRenameDocument } from '@/hooks/useRenameDocument'
 
@@ -49,13 +50,13 @@ export function DocumentTitleField({
 
   if (editing) {
     return (
-      <input
+      <Input
         ref={inputRef}
         type="text"
         className={cn(
-          'doc-title-input',
-          variant === 'header' && 'doc-title-input-header',
-          variant === 'sidebar' && 'doc-title-input-sidebar',
+          'h-auto border-none bg-transparent p-0 shadow-none focus-visible:shadow-none',
+          variant === 'header' && 'text-center text-[15px] font-semibold',
+          variant === 'sidebar' && 'text-[13px] font-medium',
           className,
         )}
         value={draft}
@@ -81,7 +82,10 @@ export function DocumentTitleField({
     return (
       <button
         type="button"
-        className={cn('doc-title-button doc-title-button-header', className)}
+        className={cn(
+          'max-w-full truncate border-none bg-transparent px-2 py-1 text-[15px] font-semibold text-[var(--color-foreground)] transition-colors hover:text-[var(--color-accent)]',
+          className,
+        )}
         onClick={startEditing}
         title="Kliknite pre premenovanie"
       >
@@ -92,7 +96,10 @@ export function DocumentTitleField({
 
   return (
     <p
-      className={cn('doc-item-title doc-title-button-sidebar', className)}
+      className={cn(
+        'm-0 truncate text-[13px] font-medium leading-snug text-[var(--color-foreground)]',
+        className,
+      )}
       onDoubleClick={(event) => {
         event.stopPropagation()
         startEditing()

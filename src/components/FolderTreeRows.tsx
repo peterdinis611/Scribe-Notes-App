@@ -1,18 +1,25 @@
 import { memo } from 'react'
-import { ChevronRight, FileText, Folder, FolderPlus, Star, Tag, Trash2 } from 'lucide-react'
+import { ChevronRight, FileText, Folder, FolderMinus, FolderPlus, Star, Tag, Trash2 } from 'lucide-react'
 import { MoveToFolderMenu } from '@/components/MoveToFolderMenu'
 import { DocumentTitleField } from '@/components/DocumentTitleField'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { cn, formatRelativeTime } from '@/lib/utils'
 import type { DocumentSummary, Folder as FolderType } from '@/lib/db/api'
+
+const treeActionClass =
+  'inline-flex h-6 w-6 items-center justify-center rounded-md border-none bg-transparent text-[var(--color-muted-foreground)] opacity-0 transition-[opacity,background,color] group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]'
 
 type FolderTreeFolderRowProps = {
   folder: FolderType
   depth: number
+  documentCount: number
   isExpanded: boolean
   isDragOver: boolean
   onToggle: (id: string) => void
   onRename: (id: string, name: string) => void
   onCreateChild: (parentId: string) => void
+  onTrashDocuments: (id: string, name: string, event: React.MouseEvent) => void
   onDelete: (id: string, name: string, event: React.MouseEvent) => void
   onDragStart: (id: string, event: React.DragEvent) => void
   onDragOver: (id: string, event: React.DragEvent) => void
@@ -23,11 +30,13 @@ type FolderTreeFolderRowProps = {
 export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
   folder,
   depth,
+  documentCount,
   isExpanded,
   isDragOver,
   onToggle,
   onRename,
   onCreateChild,
+  onTrashDocuments,
   onDelete,
   onDragStart,
   onDragOver,
@@ -36,7 +45,10 @@ export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
 }: FolderTreeFolderRowProps) {
   return (
     <div
-      className={cn('folder-tree-row titlebar-no-drag', isDragOver && 'is-drag-over')}
+      className={cn(
+        'group titlebar-no-drag mx-1 flex min-h-[30px] items-center gap-1 rounded-lg pr-1 transition-colors hover:bg-[var(--color-hover)]',
+        isDragOver && 'bg-[var(--color-selection)] outline outline-1 outline-dashed outline-[var(--color-accent)]',
+      )}
       style={{ paddingLeft: 8 + depth * 14 }}
       draggable
       onDragStart={(event) => onDragStart(folder.id, event)}
@@ -44,13 +56,13 @@ export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
       onDragLeave={() => onDragLeave(folder.id)}
       onDrop={(event) => onDrop(folder.id, event)}
     >
-      <button type="button" className="folder-tree-toggle" onClick={() => onToggle(folder.id)}>
+      <button type="button" className={cn(treeActionClass, 'opacity-100')} onClick={() => onToggle(folder.id)}>
         <ChevronRight className={cn('h-3.5 w-3.5 transition-transform', isExpanded && 'rotate-90')} />
       </button>
       <Folder className="h-4 w-4 shrink-0 text-[var(--color-accent)]" />
       <button
         type="button"
-        className="folder-tree-name"
+        className="min-w-0 flex-1 truncate border-none bg-transparent text-left text-[12px] font-semibold text-[var(--color-foreground)]"
         onClick={() => onToggle(folder.id)}
         onDoubleClick={() => onRename(folder.id, folder.name)}
       >
@@ -58,18 +70,31 @@ export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
       </button>
       <button
         type="button"
-        className="folder-tree-action"
+        className={treeActionClass}
         title="Nový podpriečinok"
         onClick={() => onCreateChild(folder.id)}
       >
         <FolderPlus className="h-3.5 w-3.5" />
       </button>
+      {documentCount > 0 && (
+        <button
+          type="button"
+          className={treeActionClass}
+          title="Presunúť všetky dokumenty do koša"
+          aria-label="Presunúť všetky dokumenty do koša"
+          onClick={(event) => onTrashDocuments(folder.id, folder.name, event)}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      )}
       <button
         type="button"
-        className="folder-tree-action folder-tree-action--danger"
+        className={cn(treeActionClass, 'hover:text-[var(--color-destructive)]')}
+        title="Vymazať priečinok"
+        aria-label="Vymazať priečinok"
         onClick={(event) => onDelete(folder.id, folder.name, event)}
       >
-        <Trash2 className="h-3.5 w-3.5" />
+        <FolderMinus className="h-3.5 w-3.5" />
       </button>
     </div>
   )
@@ -109,60 +134,84 @@ export const FolderTreeDocumentRow = memo(function FolderTreeDocumentRow({
           onOpen(document.id)
         }
       }}
-      className={cn('doc-item group titlebar-no-drag', isActive && 'is-active')}
+      className={cn(
+        'group titlebar-no-drag relative mx-1 mb-0.5 flex w-[calc(100%-8px)] cursor-default items-center gap-2 rounded-[var(--radius-md)] border border-transparent px-2 py-1.5 transition-[background,border-color] hover:bg-[var(--color-hover)] active:cursor-grabbing',
+        isActive &&
+          'border-[color-mix(in_srgb,var(--color-accent)_20%,transparent)] bg-[var(--color-selection)]',
+      )}
       style={{ paddingLeft: 12 + depth * 14 }}
     >
-      <div className="doc-item-icon">
+      <div
+        className={cn(
+          'flex h-7 w-7 shrink-0 items-center justify-center rounded-[7px] bg-[var(--color-surface)] text-[var(--color-muted-foreground)]',
+          isActive && 'text-[var(--color-accent)]',
+        )}
+      >
         <FileText className="h-4 w-4 stroke-[1.5]" />
       </div>
-      <div className="doc-item-body">
+      <div className="min-w-0 flex-1">
         <DocumentTitleField documentId={document.id} title={document.title} variant="sidebar" />
-        <div className="doc-item-subline">
-          <span className="doc-item-meta">{formatRelativeTime(document.updatedAt)}</span>
+        <div className="mt-px flex flex-wrap items-center gap-1.5">
+          <span
+            className={cn(
+              'text-[10px] text-[var(--color-muted-foreground)]',
+              isActive && 'text-[color-mix(in_srgb,var(--color-accent)_70%,transparent)]',
+            )}
+          >
+            {formatRelativeTime(document.updatedAt)}
+          </span>
           {document.tags.slice(0, 2).map((tag) => (
-            <span key={tag} className="doc-item-tag">
+            <Badge key={tag} variant="tag">
               {tag}
-            </span>
+            </Badge>
           ))}
           {document.tags.length > 2 && (
-            <span className="doc-item-tag doc-item-tag--more">+{document.tags.length - 2}</span>
+            <Badge variant="muted" className="text-[9px]">
+              +{document.tags.length - 2}
+            </Badge>
           )}
         </div>
       </div>
 
       {document.isFavorite && (
-        <Star className="doc-item-fav-badge h-3.5 w-3.5" aria-hidden="true" />
+        <Star className="h-3.5 w-3.5 text-[var(--color-accent)] group-hover:opacity-0" aria-hidden="true" />
       )}
 
-      <div className="doc-item-actions">
-        <button
+      <div className="flex items-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+        <Button
           type="button"
-          className={cn('doc-item-action doc-item-star', document.isFavorite && 'is-active')}
+          variant="ghost"
+          size="icon"
+          className={cn('h-7 w-7', document.isFavorite && 'text-[var(--color-accent)]')}
           onClick={(event) => onToggleFavorite(document.id, event)}
           aria-label={document.isFavorite ? 'Odobrať z obľúbených' : 'Pridať do obľúbených'}
           title="Obľúbené"
         >
           <Star className={cn('h-3.5 w-3.5', document.isFavorite && 'fill-current')} />
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className="doc-item-action"
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
           onClick={(event) => onEditTags(document.id, event)}
           aria-label="Upraviť štítky"
           title="Štítky"
         >
           <Tag className="h-3.5 w-3.5" />
-        </button>
+        </Button>
         <MoveToFolderMenu documentId={document.id} folderId={document.folderId} />
-        <button
+        <Button
           type="button"
-          className="doc-item-delete"
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 hover:bg-[color-mix(in_srgb,var(--color-destructive)_12%,transparent)] hover:text-[var(--color-destructive)]"
           onClick={(event) => onDelete(document.id, event)}
           aria-label="Presunúť do koša"
           title="Presunúť do koša"
         >
           <Trash2 className="h-3.5 w-3.5" />
-        </button>
+        </Button>
       </div>
     </div>
   )

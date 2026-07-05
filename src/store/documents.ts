@@ -1,4 +1,4 @@
-import { atom } from 'jotai'
+import { atom, type PrimitiveAtom } from 'jotai'
 import { atomWithStorage } from 'jotai/utils'
 import type { Document, DocumentSummary } from '@/lib/db/api'
 
@@ -52,7 +52,7 @@ export const findReplaceOpenAtom = atom(false)
 export const findReplaceModeAtom = atom<'find' | 'replace'>('find')
 export const trashOpenAtom = atom(false)
 export const favoritesOnlyFilterAtom = atom(false)
-export const activeTagFilterAtom = atom<string | null>(null)
+export const activeTagFilterAtom: PrimitiveAtom<string | null> = atom<string | null>(null)
 
 /** Bump to force the comments panel to reload threads from the backend. */
 export const commentsVersionAtom = atom(0)

@@ -239,7 +239,14 @@ export interface DeleteFolderResult {
   deletedFolderIds: string[]
 }
 
+export interface TrashFolderDocumentsResult {
+  trashedDocumentIds: string[]
+}
+
 export const deleteFolder = (id: string) => invoke<DeleteFolderResult>('delete_folder', { id })
+
+export const trashFolderDocuments = (folderId: string) =>
+  invoke<TrashFolderDocumentsResult>('trash_folder_documents', { folderId })
 
 export const moveFolder = (id: string, parentId: string | null) =>
   invoke<Folder>('move_folder', { input: { id, parentId } })

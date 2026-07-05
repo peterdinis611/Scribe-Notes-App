@@ -108,6 +108,7 @@ pub fn run() {
             commands::folders::create_folder,
             commands::folders::rename_folder,
             commands::folders::delete_folder,
+            commands::folders::trash_folder_documents,
             commands::folders::move_folder,
             commands::folders::move_document_to_folder,
             commands::search::search_documents,

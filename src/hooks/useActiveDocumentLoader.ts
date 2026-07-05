@@ -23,6 +23,8 @@ export function useActiveDocumentLoader() {
     if (cached) {
       setActiveDocument(cached)
       setSaveStatus('saved')
+    } else {
+      setActiveDocument(null)
     }
 
     async function loadFresh() {
