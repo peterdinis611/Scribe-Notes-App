@@ -1,22 +1,20 @@
-import { useAtom, useAtomValue, useSetAtom } from 'jotai'
-import { FolderPlus, Search, Star, Tag as TagIcon, Trash2 } from 'lucide-react'
+import { useAtomValue, useSetAtom } from 'jotai'
+import { FolderPlus, Search, Trash2 } from 'lucide-react'
 import { useCallback, useMemo, useRef, useState } from 'react'
-import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { FolderTree } from '@/components/FolderTree'
+import { LibraryFavoritesView } from '@/components/LibraryFavoritesView'
+import { LibraryFilterBanner } from '@/components/LibraryFilterBanner'
+import { LibraryTagsView } from '@/components/LibraryTagsView'
+import { LibraryViewTabs, type LibraryView } from '@/components/LibraryViewTabs'
 import { SidebarRail } from '@/components/layout/SidebarRail'
 import { SidebarSearchResults } from '@/components/SidebarSearchResults'
 import { createFolder } from '@/lib/db/api'
 import { promptInput } from '@/lib/input-dialog'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
-import {
-  activeTagFilterAtom,
-  documentsAtom,
-  favoritesOnlyFilterAtom,
-  trashOpenAtom,
-} from '@/store/documents'
+import { documentsAtom, trashOpenAtom } from '@/store/documents'
 import { commandPaletteOpenAtom, expandedFolderIdsAtom, foldersAtom } from '@/store/folders'
 
 type SidebarProps = {
@@ -30,22 +28,26 @@ const libraryActionClass =
 
 export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarProps) {
   const [query, setQuery] = useState('')
+  const [libraryView, setLibraryView] = useState<LibraryView>('folders')
   const scrollRef = useRef<HTMLDivElement>(null)
   const setCommandPaletteOpen = useSetAtom(commandPaletteOpenAtom)
   const setFolders = useSetAtom(foldersAtom)
   const setExpandedIds = useSetAtom(expandedFolderIdsAtom)
   const documents = useAtomValue(documentsAtom)
-  const [favoritesOnly, setFavoritesOnly] = useAtom(favoritesOnlyFilterAtom)
-  const [activeTagFilter, setTagFilter] = useAtom(activeTagFilterAtom)
   const setTrashOpen = useSetAtom(trashOpenAtom)
   const isContentSearch = query.trim().length >= 2
 
-  const availableTags = useMemo(() => {
+  const favoriteCount = useMemo(
+    () => documents.filter((doc) => doc.isFavorite).length,
+    [documents],
+  )
+
+  const tagCount = useMemo(() => {
     const tags = new Set<string>()
     for (const doc of documents) {
       for (const tag of doc.tags) tags.add(tag)
     }
-    return [...tags].sort()
+    return tags.size
   }, [documents])
 
   const handleCreateFolder = useCallback(async () => {
@@ -117,88 +119,66 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
 
           {!isContentSearch && (
             <>
-              <div className="flex items-center justify-between gap-2 px-3 pb-2">
-                <h2 className="m-0 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--color-muted-foreground)]">
-                  Priečinky
-                </h2>
-                <div className="inline-flex items-center gap-1">
-                  <button
-                    type="button"
-                    className={cn(
-                      libraryActionClass,
-                      favoritesOnly &&
-                        'border-[color-mix(in_srgb,var(--color-accent)_40%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] text-[var(--color-accent)]',
-                    )}
-                    onClick={() => setFavoritesOnly((value) => !value)}
-                    title="Iba obľúbené"
-                    aria-label="Iba obľúbené"
-                    aria-pressed={favoritesOnly}
-                  >
-                    <Star className={cn('h-4 w-4', favoritesOnly && 'fill-current')} />
-                  </button>
-                  <button
-                    type="button"
-                    className={libraryActionClass}
-                    onClick={() => setTrashOpen(true)}
-                    title="Kôš"
-                    aria-label="Kôš"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    className={libraryActionClass}
-                    onClick={() => void handleCreateFolder()}
-                    title="Nový priečinok"
-                    aria-label="Nový priečinok"
-                  >
-                    <FolderPlus className="h-4 w-4" />
-                  </button>
-                </div>
+              <div className="px-3 pb-2">
+                <LibraryViewTabs
+                  value={libraryView}
+                  favoriteCount={favoriteCount}
+                  tagCount={tagCount}
+                  onChange={setLibraryView}
+                />
               </div>
 
-              {availableTags.length > 0 && (
-                <div className="flex items-center gap-1.5 px-3 pb-2">
-                  <TagIcon className="h-3.5 w-3.5 shrink-0 opacity-60" />
-                  <div className="flex min-w-0 flex-wrap gap-1">
-                    {activeTagFilter && (
-                      <Badge
-                        variant="accent"
-                        className="cursor-default"
-                        onClick={() => setTagFilter(null)}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter' || event.key === ' ') setTagFilter(null)
-                        }}
+              {libraryView === 'folders' && (
+                <>
+                  <LibraryFilterBanner />
+                  <div className="flex items-center justify-between gap-2 px-3 pb-2">
+                    <h2 className="m-0 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--color-muted-foreground)]">
+                      Všetky dokumenty
+                    </h2>
+                    <div className="inline-flex items-center gap-1">
+                      <button
+                        type="button"
+                        className={libraryActionClass}
+                        onClick={() => setTrashOpen(true)}
+                        title="Kôš"
+                        aria-label="Kôš"
                       >
-                        {activeTagFilter} ✕
-                      </Badge>
-                    )}
-                    {!activeTagFilter &&
-                      availableTags.map((tagName) => (
-                        <Badge
-                          key={tagName}
-                          className="cursor-default hover:border-[color-mix(in_srgb,var(--color-accent)_35%,var(--color-border))] hover:text-[var(--color-accent)]"
-                          onClick={() => setTagFilter(tagName)}
-                          role="button"
-                          tabIndex={0}
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter' || event.key === ' ') setTagFilter(tagName)
-                          }}
-                        >
-                          {tagName}
-                        </Badge>
-                      ))}
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        className={libraryActionClass}
+                        onClick={() => void handleCreateFolder()}
+                        title="Nový priečinok"
+                        aria-label="Nový priečinok"
+                      >
+                        <FolderPlus className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
-                </div>
+                  <ScrollArea className="min-h-0 flex-1" viewportRef={scrollRef}>
+                    <div className="px-1 pb-3">
+                      <FolderTree query={query} scrollRef={scrollRef} onNavigate={onClose} />
+                    </div>
+                  </ScrollArea>
+                </>
               )}
 
-              <ScrollArea className="min-h-0 flex-1" viewportRef={scrollRef}>
-                <div className="px-1 pb-3">
-                  <FolderTree query={query} scrollRef={scrollRef} onNavigate={onClose} />
-                </div>
-              </ScrollArea>
+              {libraryView === 'favorites' && (
+                <ScrollArea className="min-h-0 flex-1">
+                  <div className="px-2 pb-3">
+                    <LibraryFavoritesView onNavigate={onClose} />
+                  </div>
+                </ScrollArea>
+              )}
+
+              {libraryView === 'tags' && (
+                <ScrollArea className="min-h-0 flex-1">
+                  <div className="px-2 pb-3">
+                    <LibraryTagsView onNavigate={onClose} />
+                  </div>
+                </ScrollArea>
+              )}
             </>
           )}
         </div>

@@ -2,7 +2,6 @@ import { memo } from 'react'
 import { ChevronRight, FileText, Folder, FolderMinus, FolderPlus, Star, Tag, Trash2 } from 'lucide-react'
 import { MoveToFolderMenu } from '@/components/MoveToFolderMenu'
 import { DocumentTitleField } from '@/components/DocumentTitleField'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn, formatRelativeTime } from '@/lib/utils'
 import type { DocumentSummary, Folder as FolderType } from '@/lib/db/api'
@@ -151,26 +150,17 @@ export const FolderTreeDocumentRow = memo(function FolderTreeDocumentRow({
       </div>
       <div className="min-w-0 flex-1">
         <DocumentTitleField documentId={document.id} title={document.title} variant="sidebar" />
-        <div className="mt-px flex flex-wrap items-center gap-1.5">
-          <span
-            className={cn(
-              'text-[10px] text-[var(--color-muted-foreground)]',
-              isActive && 'text-[color-mix(in_srgb,var(--color-accent)_70%,transparent)]',
-            )}
-          >
-            {formatRelativeTime(document.updatedAt)}
-          </span>
-          {document.tags.slice(0, 2).map((tag) => (
-            <Badge key={tag} variant="tag">
-              {tag}
-            </Badge>
-          ))}
-          {document.tags.length > 2 && (
-            <Badge variant="muted" className="text-[9px]">
-              +{document.tags.length - 2}
-            </Badge>
+        <span
+          className={cn(
+            'mt-0.5 block text-[10px] text-[var(--color-muted-foreground)]',
+            isActive && 'text-[color-mix(in_srgb,var(--color-accent)_70%,transparent)]',
           )}
-        </div>
+        >
+          {formatRelativeTime(document.updatedAt)}
+          {document.tags.length > 0 && (
+            <span className="opacity-70"> · {document.tags.length} štítok{document.tags.length === 1 ? '' : document.tags.length < 5 ? 'y' : 'ov'}</span>
+          )}
+        </span>
       </div>
 
       {document.isFavorite && (
