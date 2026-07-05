@@ -1,5 +1,12 @@
 import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
-import { cn } from '@/lib/utils'
+import {
+  suggestionEmptyClass,
+  suggestionHintClass,
+  suggestionIconClass,
+  suggestionItemClass,
+  suggestionLabelClass,
+  suggestionListClass,
+} from '@/lib/editor/suggestion-list-styles'
 
 export type SlashCommandItem = {
   id: string
@@ -43,21 +50,21 @@ export const SlashSuggestionList = forwardRef<
   }))
 
   if (!items.length) {
-    return <div className="slash-suggestion-empty">Žiadne príkazy</div>
+    return <div className={suggestionEmptyClass}>Žiadne príkazy</div>
   }
 
   return (
-    <div className="slash-suggestion-list titlebar-no-drag">
+    <div className={`${suggestionListClass} titlebar-no-drag`}>
       {items.map((item, index) => (
         <button
           key={item.id}
           type="button"
-          className={cn('slash-suggestion-item', index === selectedIndex && 'is-active')}
+          className={suggestionItemClass(index === selectedIndex)}
           onClick={() => command(item)}
         >
-          {item.icon && <span className="slash-suggestion-icon">{item.icon}</span>}
-          <span className="slash-suggestion-label">{item.label}</span>
-          {item.hint && <span className="slash-suggestion-hint">{item.hint}</span>}
+          {item.icon && <span className={suggestionIconClass}>{item.icon}</span>}
+          <span className={suggestionLabelClass}>{item.label}</span>
+          {item.hint && <span className={suggestionHintClass}>{item.hint}</span>}
         </button>
       ))}
     </div>

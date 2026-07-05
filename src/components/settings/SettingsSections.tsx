@@ -4,6 +4,12 @@ import { useAtom, useSetAtom } from 'jotai'
 import { FolderOpen, FolderSearch, Shuffle, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  SettingsKbd,
+  SettingsSection,
+  SettingsSectionHeader,
+} from '@/components/settings/SettingsPrimitives'
 import { APP_SHORTCUTS } from '@/lib/shortcuts'
 import { THEME_PRESETS } from '@/lib/themes/presets'
 import { generateRandomTheme } from '@/lib/themes/generate-random-theme'
@@ -17,7 +23,7 @@ import {
   revealInFinder,
 } from '@/lib/db/api'
 import { toast } from '@/lib/toast'
-import type { SettingsSection } from '@/lib/routes'
+import type { SettingsSection as SettingsSectionId } from '@/lib/routes'
 import {
   activeDocumentAtom,
   activeDocumentIdAtom,
@@ -56,19 +62,19 @@ export function AppearanceSection() {
 
   return (
     <>
-      <section className="settings-section">
-        <div className="settings-section-head">
-          <div>
-            <h3 className="settings-section-title">Téma</h3>
-            <p className="settings-section-desc">Vyberte predvolenú tému, vygenerujte náhodnú alebo vytvorte vlastnú.</p>
-          </div>
-          <Button variant="outline" size="sm" className="theme-random-btn" onClick={applyRandomTheme}>
-            <Shuffle className="h-3.5 w-3.5" />
-            Náhodná téma
-          </Button>
-        </div>
+      <SettingsSection>
+        <SettingsSectionHeader
+          title="Téma"
+          description="Vyberte predvolenú tému, vygenerujte náhodnú alebo vytvorte vlastnú."
+          actions={
+            <Button variant="outline" size="sm" className="shrink-0" onClick={applyRandomTheme}>
+              <Shuffle className="h-3.5 w-3.5" />
+              Náhodná téma
+            </Button>
+          }
+        />
 
-        <div className="theme-grid">
+        <div className="grid w-full grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-2">
           <ThemeCard
             active={themeSettings.themeId === 'system'}
             name="Systém"
@@ -95,44 +101,45 @@ export function AppearanceSection() {
           />
           <RandomThemeCard onClick={applyRandomTheme} />
         </div>
-      </section>
+      </SettingsSection>
 
       {isCustomActive && (
-        <section className="settings-section">
-          <div className="settings-section-head">
-            <div>
-              <h3 className="settings-section-title">Vlastná téma</h3>
-              <p className="settings-section-desc">Upravte jednotlivé farby rozhrania.</p>
-            </div>
-            <Button variant="ghost" size="sm" onClick={() => applyTheme(createResetCustomTheme(themeSettings))}>
-              Reset
-            </Button>
-            <Button variant="outline" size="sm" onClick={applyRandomTheme}>
-              <Shuffle className="h-3.5 w-3.5" />
-              Nová náhodná
-            </Button>
-          </div>
+        <SettingsSection>
+          <SettingsSectionHeader
+            title="Vlastná téma"
+            description="Upravte jednotlivé farby rozhrania."
+            actions={
+              <div className="flex shrink-0 gap-2">
+                <Button variant="ghost" size="sm" onClick={() => applyTheme(createResetCustomTheme(themeSettings))}>
+                  Reset
+                </Button>
+                <Button variant="outline" size="sm" onClick={applyRandomTheme}>
+                  <Shuffle className="h-3.5 w-3.5" />
+                  Nová náhodná
+                </Button>
+              </div>
+            }
+          />
 
-          <div className="settings-colors">
+          <div className="flex max-w-[640px] flex-col gap-2">
             {THEME_COLOR_FIELDS.map(({ key, label }) => (
-              <label key={key} className="settings-color-row">
-                <span className="settings-color-label">{label}</span>
+              <label key={key} className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                <span className="text-[12px]">{label}</span>
                 <input
                   type="color"
-                  className="settings-color-input"
+                  className="h-7 w-8 rounded-md border border-[var(--color-border)] bg-transparent p-0"
                   value={toColorInputValue(customTheme[key])}
                   onChange={(event) => patchCustomTheme(key, event.target.value)}
                 />
-                <input
-                  type="text"
-                  className="settings-text-input"
+                <Input
+                  className="h-8 font-mono text-[11px]"
                   value={customTheme[key]}
                   onChange={(event) => patchCustomTheme(key, event.target.value)}
                 />
               </label>
             ))}
           </div>
-        </section>
+        </SettingsSection>
       )}
     </>
   )
@@ -210,20 +217,20 @@ export function StorageSection() {
 
   return (
     <>
-      <section className="settings-section">
-        <h3 className="settings-section-title">Priečinok dokumentov</h3>
-        <p className="settings-section-desc">
-          Všetky dokumenty sa ukladajú ako .scribe súbory v tomto priečinku.
-        </p>
+      <SettingsSection>
+        <SettingsSectionHeader
+          title="Priečinok dokumentov"
+          description="Všetky dokumenty sa ukladajú ako .scribe súbory v tomto priečinku."
+        />
 
-        <div className="settings-storage-card">
-          <div className="settings-storage-path-wrap">
+        <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+          <div className="mb-3 flex items-center gap-2.5">
             <FolderOpen className="h-4 w-4 shrink-0 opacity-50" />
-            <p className="settings-storage-path" title={settings?.documentsDir}>
+            <p className="m-0 truncate font-mono text-[12px] text-[var(--color-foreground)]" title={settings?.documentsDir}>
               {shortPath}
             </p>
           </div>
-          <div className="settings-storage-actions">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={() => void handlePickFolder()}>
               <FolderSearch className="h-3.5 w-3.5" />
               Zmeniť priečinok
@@ -235,21 +242,25 @@ export function StorageSection() {
               {reconciling ? 'Synchronizujem…' : 'Synchronizovať s diskom'}
             </Button>
           </div>
-          {reconcileMessage && <p className="settings-storage-note">{reconcileMessage}</p>}
+          {reconcileMessage && (
+            <p className="mt-2.5 text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
+              {reconcileMessage}
+            </p>
+          )}
         </div>
-      </section>
+      </SettingsSection>
 
-      <section className="settings-section">
-        <h3 className="settings-section-title">Vyčistiť údaje</h3>
-        <p className="settings-section-desc">
-          Vymaže všetky dokumenty z aplikácie, príslušné .scribe súbory na disku a uložené obrázky.
-        </p>
+      <SettingsSection>
+        <SettingsSectionHeader
+          title="Vyčistiť údaje"
+          description="Vymaže všetky dokumenty z aplikácie, príslušné .scribe súbory na disku a uložené obrázky."
+        />
 
-        <div className="settings-danger-card">
+        <div className="rounded-[var(--radius-md)] border border-[color-mix(in_srgb,var(--color-destructive)_25%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-destructive)_4%,var(--color-surface))] p-4">
           <Button
             variant="outline"
             size="sm"
-            className="settings-danger-btn"
+            className="hover:border-[color-mix(in_srgb,var(--color-destructive)_40%,var(--color-border))] hover:bg-[color-mix(in_srgb,var(--color-destructive)_10%,var(--color-hover))] hover:text-[var(--color-destructive)]"
             disabled={clearing}
             onClick={() => void handleClearAll()}
           >
@@ -257,35 +268,40 @@ export function StorageSection() {
             {clearing ? 'Mažem…' : 'Vyčistiť všetko'}
           </Button>
         </div>
-      </section>
+      </SettingsSection>
     </>
   )
 }
 
 export function ShortcutsSection() {
   return (
-    <section className="settings-section">
-      <h3 className="settings-section-title">Klávesové skratky</h3>
-      <p className="settings-section-desc">Rýchle akcie dostupné kdekoľvek v aplikácii.</p>
+    <SettingsSection>
+      <SettingsSectionHeader
+        title="Klávesové skratky"
+        description="Rýchle akcie dostupné kdekoľvek v aplikácii."
+      />
 
-      <div className="settings-shortcuts">
+      <div className="flex flex-col gap-0.5">
         {APP_SHORTCUTS.map((shortcut) => (
-          <div key={shortcut.label} className="settings-shortcut-row">
+          <div
+            key={shortcut.label}
+            className="flex items-center justify-between gap-4 rounded-[var(--radius-md)] px-3 py-2.5 transition-colors hover:bg-[var(--color-hover)]"
+          >
             <div>
-              <p className="settings-shortcut-label">{shortcut.label}</p>
+              <p className="m-0 text-[13px] font-medium text-[var(--color-foreground)]">{shortcut.label}</p>
               {shortcut.description && (
-                <p className="settings-shortcut-desc">{shortcut.description}</p>
+                <p className="mt-0.5 text-[11px] text-[var(--color-muted-foreground)]">{shortcut.description}</p>
               )}
             </div>
-            <span className="settings-shortcut-keys">
+            <span className="flex gap-1">
               {shortcut.keys.map((key) => (
-                <kbd key={key}>{key}</kbd>
+                <SettingsKbd key={key}>{key}</SettingsKbd>
               ))}
             </span>
           </div>
         ))}
       </div>
-    </section>
+    </SettingsSection>
   )
 }
 
@@ -299,26 +315,26 @@ export function AboutSection() {
   }, [])
 
   return (
-    <section className="settings-section">
-      <div className="settings-about">
-        <div className="settings-about-icon">
+    <SettingsSection>
+      <div className="mb-6 flex flex-col items-center rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-8 text-center">
+        <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-accent)]">
           <FileTextIcon />
         </div>
-        <h3 className="settings-about-name">Scribe</h3>
-        <p className="settings-about-tagline">Textový editor pre macOS</p>
-        <p className="settings-about-version">Verzia {version}</p>
+        <h3 className="m-0 text-[20px] font-bold tracking-[-0.02em]">Scribe</h3>
+        <p className="mt-1 text-[13px] text-[var(--color-muted-foreground)]">Textový editor pre macOS</p>
+        <p className="mt-2 text-[12px] text-[var(--color-muted-foreground)]">Verzia {version}</p>
       </div>
 
-      <div className="settings-about-details">
+      <div className="space-y-2">
         <AboutRow label="Platforma" value="macOS" />
         <AboutRow label="Formát súborov" value=".scribe" />
         <AboutRow label="Export" value="PDF, DOCX, TXT, Pages" />
       </div>
-    </section>
+    </SettingsSection>
   )
 }
 
-export function SettingsSectionContent({ section }: { section: SettingsSection }) {
+export function SettingsSectionContent({ section }: { section: SettingsSectionId }) {
   switch (section) {
     case 'appearance':
       return <AppearanceSection />
@@ -333,9 +349,9 @@ export function SettingsSectionContent({ section }: { section: SettingsSection }
 
 function AboutRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="settings-about-row">
-      <span className="settings-about-row-label">{label}</span>
-      <span className="settings-about-row-value">{value}</span>
+    <div className="flex items-center justify-between gap-4 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3">
+      <span className="text-[12px] text-[var(--color-muted-foreground)]">{label}</span>
+      <span className="text-[13px] font-medium text-[var(--color-foreground)]">{value}</span>
     </div>
   )
 }
@@ -355,14 +371,18 @@ function FileTextIcon() {
 
 function RandomThemeCard({ onClick }: { onClick: () => void }) {
   return (
-    <button type="button" className="theme-card theme-card--random" onClick={onClick}>
-      <div className="theme-card-swatches" aria-hidden="true">
-        <span className="theme-card-swatch-random theme-card-swatch-random--a" />
-        <span className="theme-card-swatch-random theme-card-swatch-random--b" />
+    <button
+      type="button"
+      className="flex w-full items-center gap-2.5 rounded-[var(--radius-md)] border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] p-2.5 text-left transition-colors hover:border-[var(--color-accent)] hover:bg-[color-mix(in_srgb,var(--color-selection)_45%,var(--color-surface))]"
+      onClick={onClick}
+    >
+      <div className="flex shrink-0 flex-col gap-0.5" aria-hidden="true">
+        <span className="block h-3 w-7 rounded-[3px] border border-[var(--color-border)] bg-[linear-gradient(90deg,#ff6b6b_0%,#ffd93d_50%,#6bcb77_100%)]" />
+        <span className="block h-3 w-7 rounded-[3px] border border-[var(--color-border)] bg-[linear-gradient(90deg,#4d96ff_0%,#b983ff_100%)]" />
       </div>
-      <div className="theme-card-text">
-        <p className="theme-card-name">Náhodná</p>
-        <p className="theme-card-desc">Nová paleta jedným klikom</p>
+      <div className="min-w-0 flex-1">
+        <p className="m-0 text-[13px] font-semibold text-[var(--color-foreground)]">Náhodná</p>
+        <p className="mt-0.5 text-[11px] text-[var(--color-muted-foreground)]">Nová paleta jedným klikom</p>
       </div>
     </button>
   )
@@ -382,14 +402,22 @@ function ThemeCard({
   onClick: () => void
 }) {
   return (
-    <button type="button" className={cn('theme-card', active && 'is-active')} onClick={onClick}>
-      <div className="theme-card-swatches">
-        <span style={{ background: swatch[0] }} />
-        <span style={{ background: swatch[1] }} />
+    <button
+      type="button"
+      className={cn(
+        'flex w-full items-center gap-2.5 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-2.5 text-left transition-[border-color,box-shadow]',
+        active && 'border-[var(--color-accent)] shadow-[0_0_0_1px_var(--color-selection)]',
+        !active && 'hover:border-[color-mix(in_srgb,var(--color-accent)_40%,var(--color-border))]',
+      )}
+      onClick={onClick}
+    >
+      <div className="flex shrink-0 flex-col gap-0.5">
+        <span className="block h-3 w-7 rounded-[3px] border border-[var(--color-border)]" style={{ background: swatch[0] }} />
+        <span className="block h-3 w-7 rounded-[3px] border border-[var(--color-border)]" style={{ background: swatch[1] }} />
       </div>
-      <div className="theme-card-text">
-        <p className="theme-card-name">{name}</p>
-        <p className="theme-card-desc">{description}</p>
+      <div className="min-w-0 flex-1 text-left">
+        <p className="m-0 text-[13px] font-semibold text-[var(--color-foreground)]">{name}</p>
+        <p className="mt-0.5 text-[11px] text-[var(--color-muted-foreground)]">{description}</p>
       </div>
     </button>
   )

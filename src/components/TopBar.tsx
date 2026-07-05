@@ -14,6 +14,8 @@ import { EditorDocumentToolsMenu } from '@/components/editor/EditorDocumentTools
 import { EditorFileMenu } from '@/components/editor/EditorFileMenu'
 import { EditorViewModeToggle } from '@/components/editor/EditorViewModeToggle'
 import { SidebarToggle } from '@/components/SidebarToggle'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { exportDocument, pickAndImportFile, revealInFinder } from '@/lib/db/api'
 import { fileBasename, toast } from '@/lib/toast'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
@@ -29,7 +31,6 @@ import {
   saveStatusAtom,
 } from '@/store/documents'
 import { editorViewModeAtom, pageSetupAtom, templatePickerOpenAtom } from '@/store/settings'
-import { Button } from '@/components/ui/button'
 
 const PdfPreviewDialog = lazy(() =>
   import('@/components/export/PdfPreviewDialog').then((module) => ({
@@ -42,31 +43,35 @@ function SaveStatus() {
 
   if (status === 'saving') {
     return (
-      <span className="status-pill is-saving">
+      <Badge className="status-pill h-6 gap-1 bg-[var(--color-hover)] px-2 text-[11px] font-medium text-[var(--color-muted-foreground)]">
         <Loader2 className="h-3 w-3 animate-spin" />
         Ukladám
-      </span>
+      </Badge>
     )
   }
 
   if (status === 'dirty') {
     return (
-      <span className="status-pill is-dirty">
+      <Badge className="status-pill h-6 gap-1 border-transparent bg-[color-mix(in_srgb,#ff9500_14%,transparent)] px-2 text-[11px] font-medium text-[#c93400] dark:text-[#ff9f0a]">
         <Circle className="h-2.5 w-2.5 fill-current" />
         Neuložené
-      </span>
+      </Badge>
     )
   }
 
   if (status === 'error') {
-    return <span className="status-pill is-error">Chyba ukladania</span>
+    return (
+      <Badge className="status-pill h-6 border-transparent bg-[color-mix(in_srgb,var(--color-destructive)_14%,transparent)] px-2 text-[11px] font-medium text-[var(--color-destructive)]">
+        Chyba ukladania
+      </Badge>
+    )
   }
 
   return (
-    <span className="status-pill is-saved">
+    <Badge className="status-pill h-6 gap-1 border-transparent bg-[color-mix(in_srgb,#34c759_14%,transparent)] px-2 text-[11px] font-medium text-[#248a3d] dark:text-[#30d158]">
       <Check className="h-3 w-3" />
       Uložené
-    </span>
+    </Badge>
   )
 }
 
@@ -127,77 +132,87 @@ export function EditorHeader({ onPrint }: { onPrint?: () => void }) {
 
   return (
     <>
-    <header className="editor-header">
-      <div className="editor-header-drag titlebar-drag" aria-hidden="true" />
-      <div className="editor-header-left titlebar-no-drag">
-        <SidebarToggle />
-        <Button variant="default" size="sm" onClick={() => setTemplatePickerOpen(true)}>
-          <Plus className="h-3.5 w-3.5 shrink-0" />
-          <span className="editor-header-label">Nový</span>
-        </Button>
-        {document && (
-          <EditorFileMenu
-            hasFilePath={!!document.filePath}
-            onImport={() => void handleImport()}
-            onRevealFile={() => void handleRevealFile()}
-            onPdfPreview={() => setPdfPreviewOpen(true)}
-            onPrint={onPrint}
-            onExport={(format) => void handleExport(format)}
-          />
-        )}
-      </div>
-
-      <div className="editor-header-center titlebar-no-drag">
-        {document ? (
-          <DocumentTitleField documentId={document.id} title={document.title} variant="header" />
-        ) : (
-          <p className="editor-header-title">Scribe</p>
-        )}
-      </div>
-
-      <div className="editor-header-right titlebar-no-drag">
-        {focusMode && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="editor-focus-exit"
-            title="Ukončiť režim sústredenia (Esc)"
-            onClick={() => setFocusMode(false)}
-          >
-            <Focus className="h-3.5 w-3.5 shrink-0" />
-            <span className="editor-header-label">Ukončiť sústredenie</span>
-          </Button>
-        )}
-        {document && !focusMode && <EditorDocumentToolsMenu viewMode={viewMode} />}
-        {document && !focusMode && <EditorViewModeToggle />}
-        {document && <SaveStatus />}
-        {!focusMode && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate(ROUTES.settingsSection('appearance'))}
-            title="Nastavenia (⌘,)"
-            aria-label="Nastavenia"
-          >
-            <Settings2 className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
-    </header>
-
-    {pdfPreviewPayload && (
-      <Suspense fallback={null}>
-        <PdfPreviewDialog
-          open={pdfPreviewOpen}
-          onOpenChange={setPdfPreviewOpen}
-          title={pdfPreviewPayload.title}
-          html={pdfPreviewPayload.html}
-          plainText={pdfPreviewPayload.plainText}
-          pageSetup={pdfPreviewPayload.pageSetup}
-          onExport={() => void handleExport('pdf')}
+      <header className="relative flex h-12 min-w-0 items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-toolbar)] px-4 backdrop-blur-xl backdrop-saturate-[180%] [[data-sidebar-drawer=true]_&]:pl-[78px]">
+        <div
+          className="editor-header-drag titlebar-drag absolute bottom-0 left-[var(--titlebar-traffic-lights-width,78px)] right-0 top-0 z-0"
+          aria-hidden="true"
         />
-      </Suspense>
-    )}
+
+        <div className="titlebar-no-drag relative z-1 flex min-w-0 flex-1 items-center justify-start gap-1.5 overflow-x-auto pr-[max(96px,14vw)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0">
+          <SidebarToggle />
+          <Button variant="default" size="sm" onClick={() => setTemplatePickerOpen(true)}>
+            <Plus className="h-3.5 w-3.5 shrink-0" />
+            <span className="[[data-layout-tier=medium]_&]:hidden [[data-layout-tier=narrow]_&]:hidden [[data-layout-tier=tight]_&]:hidden">
+              Nový
+            </span>
+          </Button>
+          {document && (
+            <EditorFileMenu
+              hasFilePath={!!document.filePath}
+              onImport={() => void handleImport()}
+              onRevealFile={() => void handleRevealFile()}
+              onPdfPreview={() => setPdfPreviewOpen(true)}
+              onPrint={onPrint}
+              onExport={(format) => void handleExport(format)}
+            />
+          )}
+        </div>
+
+        <div className="titlebar-no-drag pointer-events-none absolute left-1/2 z-1 flex max-w-[min(360px,42vw)] -translate-x-1/2 justify-center [&>*]:pointer-events-auto">
+          {document ? (
+            <DocumentTitleField documentId={document.id} title={document.title} variant="header" />
+          ) : (
+            <p className="m-0 max-w-[360px] truncate text-[13px] font-semibold tracking-[-0.01em] text-[var(--color-foreground)]">
+              Scribe
+            </p>
+          )}
+        </div>
+
+        <div className="titlebar-no-drag relative z-1 flex min-w-0 flex-1 flex-nowrap items-center justify-end gap-1.5 overflow-x-auto pl-[max(96px,14vw)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0">
+          {focusMode && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="editor-focus-exit"
+            title="Ukončiť režim sústredenia (Esc)"
+              onClick={() => setFocusMode(false)}
+            >
+              <Focus className="h-3.5 w-3.5 shrink-0" />
+              <span className="[[data-layout-tier=medium]_&]:hidden [[data-layout-tier=narrow]_&]:hidden [[data-layout-tier=tight]_&]:hidden">
+                Ukončiť sústredenie
+              </span>
+            </Button>
+          )}
+          {document && !focusMode && <EditorDocumentToolsMenu viewMode={viewMode} />}
+          {document && !focusMode && <EditorViewModeToggle />}
+          {document && <SaveStatus />}
+          {!focusMode && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate(ROUTES.settingsSection('appearance'))}
+              title="Nastavenia (⌘,)"
+              aria-label="Nastavenia"
+            >
+              <Settings2 className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      </header>
+
+      {pdfPreviewPayload && (
+        <Suspense fallback={null}>
+          <PdfPreviewDialog
+            open={pdfPreviewOpen}
+            onOpenChange={setPdfPreviewOpen}
+            title={pdfPreviewPayload.title}
+            html={pdfPreviewPayload.html}
+            plainText={pdfPreviewPayload.plainText}
+            pageSetup={pdfPreviewPayload.pageSetup}
+            onExport={() => void handleExport('pdf')}
+          />
+        </Suspense>
+      )}
     </>
   )
 }

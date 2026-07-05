@@ -30,7 +30,7 @@ export function EditorFileMenu({
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className="editor-file-menu-trigger">
           <FileDown className="h-3.5 w-3.5 shrink-0" />
-          <span className="editor-header-label">Súbor</span>
+          <span className="[[data-layout-tier=medium]_&]:hidden [[data-layout-tier=narrow]_&]:hidden [[data-layout-tier=tight]_&]:hidden">Súbor</span>
           <ChevronDown className="h-3 w-3 shrink-0 opacity-60" />
         </Button>
       </DropdownMenuTrigger>

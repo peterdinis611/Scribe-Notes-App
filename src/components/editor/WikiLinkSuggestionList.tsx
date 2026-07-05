@@ -1,6 +1,12 @@
 import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
 import { FileText, Plus } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import {
+  suggestionEmptyClass,
+  suggestionIconClass,
+  suggestionItemClass,
+  suggestionLabelClass,
+  suggestionListClass,
+} from '@/lib/editor/suggestion-list-styles'
 
 export type WikiLinkItem = {
   id: string
@@ -45,22 +51,22 @@ export const WikiLinkSuggestionList = forwardRef<
   }))
 
   if (!items.length) {
-    return <div className="slash-suggestion-empty">Žiadne dokumenty</div>
+    return <div className={suggestionEmptyClass}>Žiadne dokumenty</div>
   }
 
   return (
-    <div className="slash-suggestion-list titlebar-no-drag">
+    <div className={`${suggestionListClass} titlebar-no-drag`}>
       {items.map((item, index) => (
         <button
           key={item.id}
           type="button"
-          className={cn('slash-suggestion-item', index === selectedIndex && 'is-active')}
+          className={suggestionItemClass(index === selectedIndex)}
           onClick={() => command(item)}
         >
-          <span className="slash-suggestion-icon">
+          <span className={suggestionIconClass}>
             {item.isCreate ? <Plus className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
           </span>
-          <span className="slash-suggestion-label">
+          <span className={suggestionLabelClass}>
             {item.isCreate ? `Vytvoriť „${item.title}“` : item.title}
           </span>
         </button>

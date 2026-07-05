@@ -5,6 +5,8 @@ import { ArrowDown, ArrowUp, CaseSensitive, Replace, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { searchPluginKey } from '@/lib/editor/search-extension'
 import { findReplaceModeAtom, findReplaceOpenAtom } from '@/store/documents'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 type FindReplaceBarProps = {
   editor: Editor | null
@@ -90,13 +92,19 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
 
   if (!open || !editor) return null
 
+  const iconBtnClass =
+    'inline-flex h-[30px] w-[30px] items-center justify-center rounded-lg border border-transparent bg-transparent text-[var(--color-muted-foreground)] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)] disabled:opacity-35'
+
   return (
-    <div className="find-replace-bar titlebar-no-drag" role="search">
-      <div className="find-replace-row">
-        <div className="find-replace-field">
-          <input
+    <div
+      className="absolute right-5 top-2 z-30 flex flex-col gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2 shadow-[0_12px_32px_rgba(0,0,0,0.18)] titlebar-no-drag"
+      role="search"
+    >
+      <div className="flex items-center gap-1">
+        <div className="relative flex min-w-[220px] items-center">
+          <Input
             ref={searchInputRef}
-            className="find-replace-input"
+            className="h-8 pr-12 text-[13px]"
             placeholder="Hľadať v dokumente…"
             value={term}
             onChange={(event) => setTerm(event.target.value)}
@@ -112,14 +120,14 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
               }
             }}
           />
-          <span className="find-replace-count">
+          <span className="pointer-events-none absolute right-2.5 text-[11px] tabular-nums text-[var(--color-muted-foreground)]">
             {status.total === 0 ? (term ? '0' : '') : `${status.active + 1}/${status.total}`}
           </span>
         </div>
 
         <button
           type="button"
-          className={cn('find-replace-icon-btn', caseSensitive && 'is-active')}
+          className={cn(iconBtnClass, caseSensitive && 'bg-[color-mix(in_srgb,var(--color-accent)_14%,transparent)] text-[var(--color-accent)]')}
           title="Rozlišovať veľkosť písmen"
           onClick={() => setCaseSensitive((value) => !value)}
         >
@@ -127,7 +135,7 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
         </button>
         <button
           type="button"
-          className="find-replace-icon-btn"
+          className={iconBtnClass}
           title="Predchádzajúca (⇧⏎)"
           onClick={goPrev}
           disabled={status.total === 0}
@@ -136,7 +144,7 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
         </button>
         <button
           type="button"
-          className="find-replace-icon-btn"
+          className={iconBtnClass}
           title="Ďalšia (⏎)"
           onClick={goNext}
           disabled={status.total === 0}
@@ -145,27 +153,22 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
         </button>
         <button
           type="button"
-          className={cn('find-replace-icon-btn', showReplace && 'is-active')}
+          className={cn(iconBtnClass, showReplace && 'bg-[color-mix(in_srgb,var(--color-accent)_14%,transparent)] text-[var(--color-accent)]')}
           title="Nahradiť"
           onClick={() => setShowReplace((value) => !value)}
         >
           <Replace className="h-4 w-4" />
         </button>
-        <button
-          type="button"
-          className="find-replace-icon-btn"
-          title="Zavrieť (Esc)"
-          onClick={handleClose}
-        >
+        <button type="button" className={iconBtnClass} title="Zavrieť (Esc)" onClick={handleClose}>
           <X className="h-4 w-4" />
         </button>
       </div>
 
       {showReplace && (
-        <div className="find-replace-row">
-          <div className="find-replace-field">
-            <input
-              className="find-replace-input"
+        <div className="flex items-center gap-1">
+          <div className="relative flex min-w-[220px] items-center">
+            <Input
+              className="h-8 text-[13px]"
               placeholder="Nahradiť za…"
               value={replacement}
               onChange={(event) => setReplacement(event.target.value)}
@@ -177,9 +180,10 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
               }}
             />
           </div>
-          <button
-            type="button"
-            className="find-replace-text-btn"
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8"
             onClick={() => {
               editor.commands.replaceCurrent(replacement)
               requestAnimationFrame(scrollToActive)
@@ -187,15 +191,16 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
             disabled={status.total === 0}
           >
             Nahradiť
-          </button>
-          <button
-            type="button"
-            className="find-replace-text-btn"
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8"
             onClick={() => editor.commands.replaceAll(replacement)}
             disabled={status.total === 0}
           >
             Všetko
-          </button>
+          </Button>
         </div>
       )}
     </div>

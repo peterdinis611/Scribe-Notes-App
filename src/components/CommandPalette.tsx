@@ -13,6 +13,7 @@ import {
   Settings2,
   Shuffle,
 } from 'lucide-react'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { createFolder, duplicateDocument, searchDocuments } from '@/lib/db/api'
 import type { SearchHit } from '@/lib/db/api'
 import { promptInput } from '@/lib/input-dialog'
@@ -229,11 +230,6 @@ export function CommandPalette() {
     if (!open) return
 
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        setOpen(false)
-        return
-      }
       if (event.key === 'ArrowDown') {
         event.preventDefault()
         setSelected((index) => Math.min(index + 1, Math.max(items.length - 1, 0)))
@@ -253,48 +249,60 @@ export function CommandPalette() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [items, open, selected, setOpen])
 
-  if (!open) return null
-
   return (
-    <div className="command-palette-backdrop titlebar-no-drag" onClick={() => setOpen(false)}>
-      <div className="command-palette" onClick={(event) => event.stopPropagation()} role="dialog" aria-label="Príkazová paleta">
-        <div className="command-palette-input-wrap">
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent className="top-[12vh] max-w-[560px] translate-y-0 gap-0 overflow-hidden p-0 titlebar-no-drag">
+        <div className="flex items-center gap-2.5 border-b border-[var(--color-border)] px-4 py-3.5">
           <Search className="h-4 w-4 text-[var(--color-muted-foreground)]" />
           <input
             ref={inputRef}
-            className="command-palette-input"
+            className="flex-1 border-none bg-transparent text-[15px] text-[var(--color-foreground)] outline-none placeholder:text-[var(--color-muted-foreground)]"
             placeholder="Hľadať dokumenty alebo príkazy…"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
-          <kbd className="command-palette-kbd">⌘K</kbd>
+          <kbd className="rounded-md border border-[var(--color-border)] px-1.5 py-0.5 text-[11px] text-[var(--color-muted-foreground)]">
+            ⌘K
+          </kbd>
         </div>
 
-        <div className="command-palette-results">
+        <div className="max-h-[360px] overflow-y-auto p-2">
           {items.length === 0 ? (
-            <p className="command-palette-empty">Žiadne výsledky</p>
+            <p className="px-3 py-6 text-center text-[13px] text-[var(--color-muted-foreground)]">
+              Žiadne výsledky
+            </p>
           ) : (
             items.map((item, index) => (
               <button
                 key={`${item.type}-${item.id}`}
                 type="button"
-                className={cn('command-palette-item', index === selected && 'is-active')}
+                className={cn(
+                  'flex w-full items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-left transition-colors',
+                  index === selected && 'bg-[var(--color-selection)]',
+                  index !== selected && 'hover:bg-[var(--color-hover)]',
+                )}
                 onMouseEnter={() => setSelected(index)}
                 onClick={() => {
                   item.run()
                   setOpen(false)
                 }}
               >
-                <span className="command-palette-item-icon">{item.icon}</span>
-                <span className="command-palette-item-body">
-                  <span className="command-palette-item-label">{item.label}</span>
-                  {item.hint && <span className="command-palette-item-hint">{item.hint}</span>}
+                <span className="text-[var(--color-muted-foreground)]">{item.icon}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[13px] font-semibold text-[var(--color-foreground)]">
+                    {item.label}
+                  </span>
+                  {item.hint && (
+                    <span className="block truncate text-[11px] text-[var(--color-muted-foreground)]">
+                      {item.hint}
+                    </span>
+                  )}
                 </span>
               </button>
             ))
           )}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

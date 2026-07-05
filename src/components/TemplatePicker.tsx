@@ -6,10 +6,13 @@ import {
   Search,
   Sparkles,
   User,
-  X,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { DOCUMENT_TEMPLATES, type DocumentTemplate } from '@/lib/templates'
 import { cn } from '@/lib/utils'
 
@@ -31,6 +34,13 @@ const categoryIcons: Record<DocumentTemplate['category'], LucideIcon> = {
   business: Briefcase,
   personal: User,
   creative: Palette,
+}
+
+const categoryPreviewClass: Record<DocumentTemplate['category'], string> = {
+  general: 'bg-[color-mix(in_srgb,var(--color-accent)_10%,var(--color-canvas))] text-[var(--color-accent)]',
+  business: 'bg-[color-mix(in_srgb,#34c759_10%,var(--color-canvas))] text-[#248a3d]',
+  personal: 'bg-[color-mix(in_srgb,#af52de_10%,var(--color-canvas))] text-[#9b44c8]',
+  creative: 'bg-[color-mix(in_srgb,#ff9500_10%,var(--color-canvas))] text-[#c93400]',
 }
 
 const BLANK_TEMPLATE = DOCUMENT_TEMPLATES.find((template) => template.id === 'blank')!
@@ -87,96 +97,91 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
     setSelectedId(filtered[0]?.id ?? BLANK_TEMPLATE.id)
   }, [filtered, selectedId])
 
-  if (!open) return null
-
   function handleCreate() {
     onSelect(selectedTemplate)
     onClose()
   }
 
   return (
-    <div className="sheet-backdrop titlebar-no-drag" onClick={onClose}>
-      <div
-        className="template-sheet"
-        onClick={(event) => event.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Vybrať šablónu"
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent
+        className="flex h-[min(680px,calc(100vh-40px))] max-w-[720px] flex-col gap-0 overflow-hidden p-0 titlebar-no-drag"
+        showClose
       >
-        <div className="template-sheet-header">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--color-border)] px-5 pb-3.5 pt-[18px]">
           <div>
-            <h2 className="template-sheet-title">Nový dokument</h2>
-            <p className="template-sheet-subtitle">
+            <h2 className="m-0 text-[18px] font-bold tracking-[-0.02em]">Nový dokument</h2>
+            <p className="mt-1 text-[12px] text-[var(--color-muted-foreground)]">
               Vyberte šablónu alebo začnite od prázdnej stránky
             </p>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Zavrieť">
-            <X className="h-4 w-4" />
-          </Button>
         </div>
 
-        <div className="template-sheet-toolbar">
-          <label className="template-search">
-            <Search className="h-3.5 w-3.5" />
-            <input
+        <div className="shrink-0 space-y-3 border-b border-[var(--color-border)] px-5 py-3">
+          <label className="flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2">
+            <Search className="h-3.5 w-3.5 text-[var(--color-muted-foreground)]" />
+            <Input
               type="search"
               value={query}
               placeholder="Hľadať šablóny…"
+              className="h-auto border-none bg-transparent p-0 shadow-none focus-visible:shadow-none"
               onChange={(event) => setQuery(event.target.value)}
             />
           </label>
 
-          <div className="template-filters">
+          <div className="flex flex-wrap gap-1.5">
             <FilterChip active={category === 'all'} onClick={() => setCategory('all')}>
               Všetky
-              <span className="template-filter-count">{categoryCounts.all}</span>
+              <span className="ml-1 opacity-60">{categoryCounts.all}</span>
             </FilterChip>
             {(Object.keys(categoryLabels) as DocumentTemplate['category'][]).map((key) => (
               <FilterChip key={key} active={category === key} onClick={() => setCategory(key)}>
                 {categoryLabels[key]}
-                <span className="template-filter-count">{categoryCounts[key]}</span>
+                <span className="ml-1 opacity-60">{categoryCounts[key]}</span>
               </FilterChip>
             ))}
           </div>
         </div>
 
-        <div className="template-sheet-body">
-          {showBlankHero && (
-            <TemplateCard
-              template={BLANK_TEMPLATE}
-              selected={selectedId === BLANK_TEMPLATE.id}
-              variant="hero"
-              onSelect={() => setSelectedId(BLANK_TEMPLATE.id)}
-            />
-          )}
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="space-y-3 p-5">
+            {showBlankHero && (
+              <TemplateCard
+                template={BLANK_TEMPLATE}
+                selected={selectedId === BLANK_TEMPLATE.id}
+                variant="hero"
+                onSelect={() => setSelectedId(BLANK_TEMPLATE.id)}
+              />
+            )}
 
-          {gridTemplates.length > 0 ? (
-            <div className="template-grid">
-              {gridTemplates.map((template) => (
-                <TemplateCard
-                  key={template.id}
-                  template={template}
-                  selected={selectedId === template.id}
-                  onSelect={() => setSelectedId(template.id)}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="template-empty">
-              <p>Žiadna šablóna nevyhovuje hľadaniu.</p>
-              <Button variant="ghost" size="sm" onClick={() => setQuery('')}>
-                Vymazať filter
-              </Button>
-            </div>
-          )}
-        </div>
+            {gridTemplates.length > 0 ? (
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2">
+                {gridTemplates.map((template) => (
+                  <TemplateCard
+                    key={template.id}
+                    template={template}
+                    selected={selectedId === template.id}
+                    onSelect={() => setSelectedId(template.id)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2 py-10 text-center text-[13px] text-[var(--color-muted-foreground)]">
+                <p>Žiadna šablóna nevyhovuje hľadaniu.</p>
+                <Button variant="ghost" size="sm" onClick={() => setQuery('')}>
+                  Vymazať filter
+                </Button>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
 
-        <div className="template-sheet-footer">
-          <p className="template-sheet-selection">
-            <Sparkles className="h-3.5 w-3.5" />
+        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-[var(--color-border)] px-5 py-3">
+          <p className="m-0 inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--color-foreground)]">
+            <Sparkles className="h-3.5 w-3.5 text-[var(--color-accent)]" />
             {selectedTemplate.name}
           </p>
-          <div className="template-sheet-actions">
+          <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={onClose}>
               Zrušiť
             </Button>
@@ -185,8 +190,8 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
             </Button>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -207,26 +212,41 @@ function TemplateCard({
     <button
       type="button"
       className={cn(
-        'template-card',
-        variant === 'hero' && 'template-card--hero',
-        selected && 'is-selected',
+        'flex w-full flex-col gap-2.5 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-left transition-[border-color,box-shadow,background]',
+        variant === 'hero' && 'sm:flex-row sm:items-center',
+        selected &&
+          'border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-selection)_65%,var(--color-surface))] shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-accent)_35%,transparent)]',
+        !selected && 'hover:border-[color-mix(in_srgb,var(--color-accent)_35%,var(--color-border))]',
       )}
       onClick={onSelect}
     >
-      <div className={cn('template-card-preview', `template-card-preview--${template.category}`)}>
+      <div
+        className={cn(
+          'flex h-[72px] w-full shrink-0 flex-col justify-between rounded-[10px] p-2.5',
+          categoryPreviewClass[template.category],
+          variant === 'hero' && 'sm:h-20 sm:w-36',
+        )}
+      >
         <CategoryIcon className="h-4 w-4" />
-        <div className="template-card-preview-lines" aria-hidden="true">
-          <span />
-          <span />
-          <span />
+        <div className="flex w-full flex-col gap-1" aria-hidden="true">
+          <span className="block h-[3px] w-[72%] rounded-full bg-current opacity-20" />
+          <span className="block h-[3px] w-[92%] rounded-full bg-current opacity-20" />
+          <span className="block h-[3px] w-[56%] rounded-full bg-current opacity-20" />
         </div>
       </div>
-      <div className="template-card-body">
-        <div className="template-card-head">
-          <p className="template-card-name">{template.name}</p>
-          <span className="template-card-badge">{categoryLabels[template.category]}</span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-2">
+          <p className="m-0 text-[13px] font-semibold text-[var(--color-foreground)]">{template.name}</p>
+          <Badge
+            variant={selected ? 'accent' : 'muted'}
+            className="shrink-0 text-[10px]"
+          >
+            {categoryLabels[template.category]}
+          </Badge>
         </div>
-        <p className="template-card-desc">{template.description}</p>
+        <p className="mt-1 text-[11px] leading-snug text-[var(--color-muted-foreground)]">
+          {template.description}
+        </p>
       </div>
     </button>
   )
@@ -242,7 +262,16 @@ function FilterChip({
   children: React.ReactNode
 }) {
   return (
-    <button type="button" onClick={onClick} className={cn('filter-chip', active && 'is-active')}>
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'inline-flex h-7 items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[12px] text-[var(--color-muted-foreground)] transition-colors',
+        active
+          ? 'border-[var(--color-accent)] bg-[var(--color-selection)] font-medium text-[var(--color-accent)]'
+          : 'hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]',
+      )}
+    >
       {children}
     </button>
   )

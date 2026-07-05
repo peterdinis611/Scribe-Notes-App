@@ -1,6 +1,11 @@
 import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
 import type { EmojiItem } from '@tiptap/extension-emoji'
-import { cn } from '@/lib/utils'
+import {
+  suggestionEmptyClass,
+  suggestionItemClass,
+  suggestionLabelClass,
+  suggestionListClass,
+} from '@/lib/editor/suggestion-list-styles'
 
 type EmojiSuggestionListProps = {
   items: EmojiItem[]
@@ -37,20 +42,22 @@ export const EmojiSuggestionList = forwardRef<
   }))
 
   if (!items.length) {
-    return <div className="emoji-suggestion-empty">Žiadne emoji</div>
+    return <div className={suggestionEmptyClass}>Žiadne emoji</div>
   }
 
   return (
-    <div className="emoji-suggestion-list titlebar-no-drag">
+    <div className={`${suggestionListClass} titlebar-no-drag`}>
       {items.map((item, index) => (
         <button
           key={item.name}
           type="button"
-          className={cn('emoji-suggestion-item', index === selectedIndex && 'is-active')}
+          className={suggestionItemClass(index === selectedIndex)}
           onClick={() => command(item)}
         >
-          <span className="emoji-suggestion-icon">{item.emoji ?? '⬜'}</span>
-          <span className="emoji-suggestion-label">:{item.shortcodes[0]}:</span>
+          <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center text-[16px]">
+            {item.emoji ?? '⬜'}
+          </span>
+          <span className={suggestionLabelClass}>:{item.shortcodes[0]}:</span>
         </button>
       ))}
     </div>

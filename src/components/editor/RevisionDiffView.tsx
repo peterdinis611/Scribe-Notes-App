@@ -47,34 +47,38 @@ export function RevisionDiffView({
   const { added, removed } = countDiffChanges(lines)
 
   return (
-    <div className="revision-diff">
-      <div className="revision-diff-header">
+    <div className="flex max-h-[48vh] flex-col border-t border-[var(--color-border)] bg-[var(--color-background)]">
+      <div className="flex items-start justify-between gap-3 border-b border-[var(--color-border)] px-4 py-3">
         <div>
-          <p className="revision-diff-title">Porovnanie verzií</p>
-          <div className="revision-diff-meta-grid">
-            <span className="revision-diff-meta-side">
+          <p className="m-0 text-[13px] font-semibold">Porovnanie verzií</p>
+          <div className="mt-1 flex flex-col gap-1">
+            <span className="text-[11px] text-[var(--color-muted-foreground)]">
               <strong>A:</strong> {left.label} · {formatRelativeTime(left.createdAt)}
             </span>
-            <span className="revision-diff-meta-side">
+            <span className="text-[11px] text-[var(--color-muted-foreground)]">
               <strong>B:</strong> {right.label} · {formatRelativeTime(right.createdAt)}
             </span>
           </div>
         </div>
-        <button type="button" className="revision-diff-close" onClick={onClose}>
+        <button
+          type="button"
+          className="border-none bg-transparent text-[12px] text-[var(--color-muted-foreground)]"
+          onClick={onClose}
+        >
           Zavrieť
         </button>
       </div>
 
-      <div className="revision-diff-toolbar">
-        <p className="revision-diff-summary">
-          {added > 0 && <span className="revision-diff-added">+{added} riadkov</span>}
+      <div className="flex items-center justify-between gap-3 border-b border-[var(--color-border)] px-4 py-2">
+        <p className="m-0 text-[12px] text-[var(--color-muted-foreground)]">
+          {added > 0 && <span className="text-[#15803d]">+{added} riadkov</span>}
           {added > 0 && removed > 0 && ' · '}
-          {removed > 0 && <span className="revision-diff-removed">−{removed} riadkov</span>}
+          {removed > 0 && <span className="text-[#b91c1c]">−{removed} riadkov</span>}
           {added === 0 && removed === 0 && 'Bez rozdielov'}
         </p>
 
-        <div className="revision-diff-toolbar-actions">
-          <label className="revision-diff-toggle">
+        <div className="flex items-center gap-2.5">
+          <label className="inline-flex cursor-pointer items-center gap-1.5 text-[12px] text-[var(--color-muted-foreground)]">
             <input
               type="checkbox"
               checked={changesOnly}
@@ -83,10 +87,17 @@ export function RevisionDiffView({
             <span>Len zmeny</span>
           </label>
 
-          <div className="revision-diff-view-toggle" role="group" aria-label="Režim zobrazenia">
+          <div
+            className="inline-flex overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border)]"
+            role="group"
+            aria-label="Režim zobrazenia"
+          >
             <button
               type="button"
-              className={cn('revision-diff-view-btn', viewMode === 'split' && 'is-active')}
+              className={cn(
+                'inline-flex h-7 w-[30px] items-center justify-center border-none bg-[var(--color-background)] text-[var(--color-muted-foreground)]',
+                viewMode === 'split' && 'bg-[var(--color-selection)] text-[var(--color-foreground)]',
+              )}
               title="Vedľa seba"
               onClick={() => onViewModeChange('split')}
             >
@@ -94,7 +105,10 @@ export function RevisionDiffView({
             </button>
             <button
               type="button"
-              className={cn('revision-diff-view-btn', viewMode === 'unified' && 'is-active')}
+              className={cn(
+                'inline-flex h-7 w-[30px] items-center justify-center border-none bg-[var(--color-background)] text-[var(--color-muted-foreground)]',
+                viewMode === 'unified' && 'bg-[var(--color-selection)] text-[var(--color-foreground)]',
+              )}
               title="Zjednotený diff"
               onClick={() => onViewModeChange('unified')}
             >
@@ -105,29 +119,39 @@ export function RevisionDiffView({
       </div>
 
       {viewMode === 'split' ? (
-        <div className="revision-diff-split">
-          <div className="revision-diff-split-header">
-            <span>{left.label}</span>
-            <span>{right.label}</span>
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="grid grid-cols-2 gap-px bg-[var(--color-border)] px-3 text-[11px] font-semibold text-[var(--color-muted-foreground)]">
+            <span className="bg-[var(--color-surface-elevated)] px-2.5 py-2">{left.label}</span>
+            <span className="bg-[var(--color-surface-elevated)] px-2.5 py-2">{right.label}</span>
           </div>
-          <div className="revision-diff-split-body">
+          <div className="overflow-auto font-mono text-[12px] leading-normal">
             {visibleRows.length === 0 ? (
-              <p className="revision-diff-empty">Žiadne rozdiely na zobrazenie.</p>
+              <p className="m-0 p-4 text-center text-[12px] text-[var(--color-muted-foreground)]">
+                Žiadne rozdiely na zobrazenie.
+              </p>
             ) : (
               visibleRows.map((row, index) => (
-                <div key={index} className="revision-diff-split-row">
+                <div key={index} className="grid grid-cols-2 gap-px bg-[var(--color-border)]">
                   <div
                     className={cn(
-                      'revision-diff-split-cell',
-                      row.left.type && `revision-diff-split-cell--${row.left.type}`,
+                      'min-h-[1.5em] whitespace-pre-wrap break-words bg-[var(--color-background)] px-2.5 py-1',
+                      row.left.type === 'removed' &&
+                        'bg-[color-mix(in_srgb,#ef4444_12%,var(--color-background))]',
+                      row.left.type === 'added' &&
+                        'bg-[color-mix(in_srgb,#22c55e_12%,var(--color-background))]',
+                      row.left.type === 'unchanged' && 'text-[var(--color-muted-foreground)]',
                     )}
                   >
                     {renderCellText(row.left.text)}
                   </div>
                   <div
                     className={cn(
-                      'revision-diff-split-cell',
-                      row.right.type && `revision-diff-split-cell--${row.right.type}`,
+                      'min-h-[1.5em] whitespace-pre-wrap break-words bg-[var(--color-background)] px-2.5 py-1',
+                      row.right.type === 'removed' &&
+                        'bg-[color-mix(in_srgb,#ef4444_12%,var(--color-background))]',
+                      row.right.type === 'added' &&
+                        'bg-[color-mix(in_srgb,#22c55e_12%,var(--color-background))]',
+                      row.right.type === 'unchanged' && 'text-[var(--color-muted-foreground)]',
                     )}
                   >
                     {renderCellText(row.right.text)}
@@ -138,19 +162,25 @@ export function RevisionDiffView({
           </div>
         </div>
       ) : (
-        <div className="revision-diff-body">
+        <div className="overflow-auto py-2 font-mono text-[12px] leading-normal">
           {visibleLines.length === 0 ? (
-            <p className="revision-diff-empty">Žiadne rozdiely na zobrazenie.</p>
+            <p className="m-0 p-4 text-center text-[12px] text-[var(--color-muted-foreground)]">
+              Žiadne rozdiely na zobrazenie.
+            </p>
           ) : (
             visibleLines.map((line, index) => (
               <div
                 key={`${line.type}-${index}`}
-                className={`revision-diff-line revision-diff-line--${line.type}`}
+                className={cn(
+                  'flex gap-2 whitespace-pre-wrap break-words px-4 py-0.5',
+                  line.type === 'added' && 'bg-[color-mix(in_srgb,#22c55e_14%,transparent)]',
+                  line.type === 'removed' && 'bg-[color-mix(in_srgb,#ef4444_14%,transparent)]',
+                )}
               >
-                <span className="revision-diff-gutter" aria-hidden="true">
+                <span className="w-3 shrink-0 opacity-70" aria-hidden="true">
                   {line.type === 'added' ? '+' : line.type === 'removed' ? '−' : ' '}
                 </span>
-                <span className="revision-diff-text">{renderCellText(line.text)}</span>
+                <span>{renderCellText(line.text)}</span>
               </div>
             ))
           )}

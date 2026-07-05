@@ -4,6 +4,12 @@ import { useEditorState } from '@tiptap/react'
 import { useAtomValue } from 'jotai'
 import { PanelRightClose, Target } from 'lucide-react'
 import { activeDocumentIdAtom } from '@/store/documents'
+import { Input } from '@/components/ui/input'
+import {
+  EditorSidePanel,
+  EditorSidePanelHeader,
+  EditorSidePanelIconButton,
+} from '@/components/editor/EditorSidePanelPrimitives'
 
 type StatsPanelProps = {
   editor: Editor | null
@@ -91,57 +97,58 @@ export function StatsPanel({ editor, onClose }: StatsPanelProps) {
   ]
 
   return (
-    <aside className="stats-panel titlebar-no-drag" aria-label="Štatistika dokumentu">
-      <div className="stats-panel-header">
-        <div>
-          <h2 className="stats-panel-title">Štatistika</h2>
-          <p className="stats-panel-subtitle">Prehľad dokumentu</p>
-        </div>
-        <button
-          type="button"
-          className="stats-panel-close"
-          aria-label="Skryť štatistiku"
-          onClick={onClose}
-        >
-          <PanelRightClose className="h-4 w-4" />
-        </button>
-      </div>
+    <EditorSidePanel className="titlebar-no-drag" aria-label="Štatistika dokumentu">
+      <EditorSidePanelHeader
+        title="Štatistika"
+        subtitle="Prehľad dokumentu"
+        actions={
+          <EditorSidePanelIconButton aria-label="Skryť štatistiku" onClick={onClose}>
+            <PanelRightClose className="h-4 w-4" />
+          </EditorSidePanelIconButton>
+        }
+      />
 
-      <div className="stats-panel-grid">
+      <div className="grid grid-cols-2 gap-2 p-3">
         {rows.map((row) => (
-          <div key={row.label} className="stats-cell">
-            <span className="stats-cell-value">{row.value}</span>
-            <span className="stats-cell-label">{row.label}</span>
+          <div
+            key={row.label}
+            className="flex flex-col gap-0.5 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2.5"
+          >
+            <span className="text-[18px] font-bold tabular-nums">{row.value}</span>
+            <span className="text-[10px] text-[var(--color-muted-foreground)]">{row.label}</span>
           </div>
         ))}
       </div>
 
-      <div className="stats-goal">
-        <div className="stats-goal-header">
+      <div className="mx-3 mb-4 mt-1 flex flex-col gap-2 rounded-[10px] border border-[var(--color-border)] p-3">
+        <div className="flex items-center gap-1.5 text-[12px] font-semibold text-[var(--color-muted-foreground)]">
           <Target className="h-4 w-4" />
           <span>Cieľ počtu slov</span>
         </div>
-        <input
+        <Input
           type="number"
           min={0}
           step={50}
-          className="stats-goal-input"
+          className="h-8 text-[13px]"
           placeholder="napr. 500"
           value={goal || ''}
           onChange={(event) => handleGoalChange(Number(event.target.value))}
         />
         {goal > 0 && (
           <>
-            <div className="stats-goal-bar">
-              <div className="stats-goal-bar-fill" style={{ width: `${progress}%` }} />
+            <div className="h-2 overflow-hidden rounded-full bg-[var(--color-hover)]">
+              <div
+                className="h-full rounded-full bg-[var(--color-accent)] transition-[width] duration-250"
+                style={{ width: `${progress}%` }}
+              />
             </div>
-            <p className="stats-goal-caption">
+            <p className="m-0 text-[11px] text-[var(--color-muted-foreground)]">
               {data.words.toLocaleString('sk-SK')} / {goal.toLocaleString('sk-SK')} slov · {progress}%
               {data.words >= goal ? ' · Hotovo!' : ''}
             </p>
           </>
         )}
       </div>
-    </aside>
+    </EditorSidePanel>
   )
 }

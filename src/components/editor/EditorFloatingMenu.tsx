@@ -14,6 +14,7 @@ import {
   Table2,
   X,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { pickImageFiles } from '@/lib/editor/image-utils'
 import {
   insertBulletList,
@@ -175,7 +176,12 @@ export function EditorFloatingMenu({ editor, onInsertImages }: EditorFloatingMen
     <FloatingMenu
       ref={menuRef}
       editor={editor}
-      className={expanded ? 'editor-insert-menu titlebar-no-drag' : 'editor-insert-trigger-wrap titlebar-no-drag'}
+      className={cn(
+        'titlebar-no-drag',
+        expanded
+          ? 'flex w-max max-w-[min(320px,calc(100vw-48px))] flex-col gap-2 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-background)] p-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.06),0_12px_32px_rgba(0,0,0,0.14)]'
+          : 'flex items-center',
+      )}
       options={{
         placement: expanded ? 'bottom-start' : 'left',
         offset: expanded ? 8 : 6,
@@ -187,7 +193,7 @@ export function EditorFloatingMenu({ editor, onInsertImages }: EditorFloatingMen
       {!expanded ? (
         <button
           type="button"
-          className="editor-insert-trigger"
+          className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-transparent bg-transparent text-[var(--color-muted-foreground)] opacity-55 transition-[opacity,background,color,border-color] duration-120 hover:border-[var(--color-border)] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)] hover:opacity-100 focus-visible:border-[var(--color-border)] focus-visible:bg-[var(--color-hover)] focus-visible:text-[var(--color-foreground)] focus-visible:opacity-100"
           aria-label="Vložiť blok"
           title="Vložiť blok alebo napíšte /"
           onClick={() => setExpanded(true)}
@@ -196,14 +202,18 @@ export function EditorFloatingMenu({ editor, onInsertImages }: EditorFloatingMen
         </button>
       ) : (
         <>
-          <div className="editor-insert-menu-header">
-            <div className="editor-insert-menu-heading">
-              <p className="editor-insert-menu-title">Vložiť blok</p>
-              <p className="editor-insert-menu-subtitle">Alebo napíšte / pre všetky príkazy</p>
+          <div className="flex items-start justify-between gap-2.5 px-0.5 pt-0.5">
+            <div className="min-w-0">
+              <p className="m-0 text-[12px] font-bold tracking-[-0.01em] text-[var(--color-foreground)]">
+                Vložiť blok
+              </p>
+              <p className="mt-0.5 text-[11px] leading-snug text-[var(--color-muted-foreground)]">
+                Alebo napíšte / pre všetky príkazy
+              </p>
             </div>
             <button
               type="button"
-              className="editor-insert-menu-close"
+              className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-none bg-transparent text-[var(--color-muted-foreground)] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
               aria-label="Zavrieť"
               onClick={collapseMenu}
             >
@@ -211,22 +221,24 @@ export function EditorFloatingMenu({ editor, onInsertImages }: EditorFloatingMen
             </button>
           </div>
 
-          <div className="editor-insert-menu-grid">
+          <div className="grid grid-cols-2 gap-1.5 max-[720px]:grid-cols-1">
             {quickInsertItems.map((item) => {
               const Icon = item.icon
               return (
                 <button
                   key={item.id}
                   type="button"
-                  className="editor-insert-menu-item"
+                  className="flex min-h-[52px] items-center gap-2.5 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-2 text-left transition-[background,border-color,transform] duration-120 hover:-translate-y-px hover:border-[color-mix(in_srgb,var(--color-accent)_35%,var(--color-border))] hover:bg-[var(--color-selection)]"
                   onClick={() => void runInsertItem(item)}
                 >
-                  <span className="editor-insert-menu-item-icon">
+                  <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--color-background)] text-[var(--color-accent)]">
                     <Icon className="h-4 w-4" />
                   </span>
-                  <span className="editor-insert-menu-item-text">
-                    <span className="editor-insert-menu-item-label">{item.label}</span>
-                    <span className="editor-insert-menu-item-hint">{item.hint}</span>
+                  <span className="flex min-w-0 flex-col gap-px">
+                    <span className="text-[12px] font-semibold text-[var(--color-foreground)]">
+                      {item.label}
+                    </span>
+                    <span className="text-[10px] text-[var(--color-muted-foreground)]">{item.hint}</span>
                   </span>
                 </button>
               )

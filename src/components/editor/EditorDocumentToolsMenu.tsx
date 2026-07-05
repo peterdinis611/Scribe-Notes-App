@@ -68,7 +68,7 @@ export function EditorDocumentToolsMenu({ viewMode }: EditorDocumentToolsMenuPro
             title="Nástroje dokumentu"
           >
             <SlidersHorizontal className="h-3.5 w-3.5 shrink-0" />
-            <span className="editor-header-label">Nástroje</span>
+            <span className="[[data-layout-tier=medium]_&]:hidden [[data-layout-tier=narrow]_&]:hidden [[data-layout-tier=tight]_&]:hidden">Nástroje</span>
             <ChevronDown className="h-3 w-3 shrink-0 opacity-60" />
           </Button>
         </DropdownMenuTrigger>

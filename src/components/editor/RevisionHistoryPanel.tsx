@@ -29,6 +29,7 @@ import { toast } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { activeDocumentAtom, activeDocumentIdAtom, documentsAtom } from '@/store/documents'
+import { EditorSidePanel, EditorSidePanelHeader } from '@/components/editor/EditorSidePanelPrimitives'
 
 type RevisionHistoryPanelProps = {
   onClose: () => void
@@ -190,24 +191,30 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
   const canCompare = compareOptions.length >= 2 && versionAId !== versionBId
 
   return (
-    <aside className={cn('revision-panel titlebar-no-drag', compareState && 'revision-panel--compare')}>
-      <div className="revision-panel-header">
-        <div>
-          <h2 className="revision-panel-title">História verzií</h2>
-          <p className="revision-panel-subtitle">Automaticky uložené verzie dokumentu</p>
-        </div>
-        <Button variant="ghost" size="sm" onClick={onClose}>
-          Zavrieť
-        </Button>
-      </div>
+    <EditorSidePanel
+      width={compareState ? 560 : 300}
+      className="titlebar-no-drag"
+    >
+      <EditorSidePanelHeader
+        title="História verzií"
+        subtitle="Automaticky uložené verzie dokumentu"
+        actions={
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            Zavrieť
+          </Button>
+        }
+      />
 
       {!loading && compareOptions.length >= 2 && (
-        <section className="revision-compare-controls">
-          <p className="revision-compare-label">Porovnať verzie</p>
-          <div className="revision-compare-selects">
-            <label className="revision-compare-field">
+        <section className="flex flex-col gap-2.5 border-b border-[var(--color-border)] px-3.5 pb-3 pt-2.5">
+          <p className="m-0 text-[11px] font-bold uppercase tracking-[0.04em] text-[var(--color-muted-foreground)]">
+            Porovnať verzie
+          </p>
+          <div className="grid gap-2">
+            <label className="flex flex-col gap-1 text-[11px] text-[var(--color-muted-foreground)]">
               <span>Verzia A</span>
               <select
+                className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-background)] px-2 py-1.5 text-[12px] text-[var(--color-foreground)]"
                 value={versionAId}
                 onChange={(event) => setVersionAId(event.target.value)}
               >
@@ -218,9 +225,10 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
                 ))}
               </select>
             </label>
-            <label className="revision-compare-field">
+            <label className="flex flex-col gap-1 text-[11px] text-[var(--color-muted-foreground)]">
               <span>Verzia B</span>
               <select
+                className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-background)] px-2 py-1.5 text-[12px] text-[var(--color-foreground)]"
                 value={versionBId}
                 onChange={(event) => setVersionBId(event.target.value)}
               >
@@ -235,7 +243,7 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
           <Button
             variant="default"
             size="sm"
-            className="revision-compare-run"
+            className="self-start"
             disabled={!canCompare || compareLoading}
             onClick={() => void runCompare(versionAId, versionBId)}
           >
@@ -245,10 +253,10 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
         </section>
       )}
 
-      <div className="revision-panel-body">
-        {loading && <p className="revision-panel-empty">Načítavam verzie…</p>}
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2.5">
+        {loading && <p className="px-2 py-3 text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">Načítavam verzie…</p>}
         {!loading && revisions.length === 0 && (
-          <p className="revision-panel-empty">
+          <p className="px-2 py-3 text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
             Zatiaľ žiadne uložené verzie. Verzie sa vytvárajú pri každom uložení dokumentu.
           </p>
         )}
@@ -261,36 +269,39 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
               <div
                 key={revision.id}
                 className={cn(
-                  'revision-panel-item',
-                  (isSelectedA || isSelectedB) && 'revision-panel-item--selected',
+                  'flex flex-col gap-2.5 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2.5',
+                  (isSelectedA || isSelectedB) &&
+                    'border-[var(--color-selection-strong)] bg-[color-mix(in_srgb,var(--color-selection)_35%,var(--color-surface-elevated))]',
                 )}
               >
-                <div className="revision-panel-item-main">
-                  <Clock className="h-3.5 w-3.5 shrink-0 opacity-50" />
-                  <div>
-                    <p className="revision-panel-item-title">{revision.title}</p>
-                    <p className="revision-panel-item-time">{formatRelativeTime(revision.createdAt)}</p>
+                <div className="flex min-w-0 items-start gap-2">
+                  <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 opacity-50" />
+                  <div className="min-w-0">
+                    <p className="m-0 truncate text-[12px] font-semibold">{revision.title}</p>
+                    <p className="mt-0.5 text-[11px] text-[var(--color-muted-foreground)]">
+                      {formatRelativeTime(revision.createdAt)}
+                    </p>
                   </div>
                 </div>
 
-                <div className="revision-panel-item-tags">
-                  {isSelectedA && <span className="revision-panel-tag">A</span>}
-                  {isSelectedB && <span className="revision-panel-tag">B</span>}
+                <div className="flex gap-1.5">
+                  {isSelectedA && (
+                    <span className="inline-flex h-[22px] min-w-[22px] items-center justify-center rounded-full bg-[var(--color-selection)] px-1.5 text-[11px] font-bold">
+                      A
+                    </span>
+                  )}
+                  {isSelectedB && (
+                    <span className="inline-flex h-[22px] min-w-[22px] items-center justify-center rounded-full bg-[var(--color-selection)] px-1.5 text-[11px] font-bold">
+                      B
+                    </span>
+                  )}
                 </div>
 
-                <div className="revision-panel-item-actions">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleSelectVersion(revision.id, 'a')}
-                  >
+                <div className="flex flex-wrap gap-1.5">
+                  <Button variant="outline" size="sm" onClick={() => handleSelectVersion(revision.id, 'a')}>
                     A
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleSelectVersion(revision.id, 'b')}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => handleSelectVersion(revision.id, 'b')}>
                     B
                   </Button>
                   <Button
@@ -336,6 +347,6 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
           onClose={() => setCompareState(null)}
         />
       )}
-    </aside>
+    </EditorSidePanel>
   )
 }

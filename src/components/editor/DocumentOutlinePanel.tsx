@@ -25,6 +25,11 @@ import {
   type DocumentOutlineItem,
   type DocumentOutlineKind,
 } from '@/lib/editor/document-outline'
+import {
+  EditorSidePanel,
+  EditorSidePanelHeader,
+  EditorSidePanelIconButton,
+} from '@/components/editor/EditorSidePanelPrimitives'
 
 type DocumentOutlinePanelProps = {
   editor: Editor | null
@@ -62,15 +67,35 @@ function OutlineRow({
   return (
     <button
       type="button"
-      className={cn('document-outline-item', active && 'is-active')}
+      className={cn(
+        'flex w-full items-start gap-2 rounded-lg border-none bg-transparent p-2 text-left hover:bg-[var(--color-selection)]',
+        active && 'bg-[var(--color-selection)]',
+      )}
       style={{ paddingLeft: `${12 + item.depth * 14}px` }}
       onClick={onSelect}
       title={item.preview || item.label}
     >
-      <Icon className="document-outline-item-icon" aria-hidden="true" />
-      <span className="document-outline-item-body">
-        <span className="document-outline-item-label">{item.label}</span>
-        {item.preview ? <span className="document-outline-item-preview">{item.preview}</span> : null}
+      <Icon
+        className={cn(
+          'mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--color-muted-foreground)]',
+          active && 'text-[var(--color-accent)]',
+        )}
+        aria-hidden="true"
+      />
+      <span className="flex min-w-0 flex-col gap-0.5">
+        <span
+          className={cn(
+            'text-[11px] font-bold text-[var(--color-muted-foreground)]',
+            active && 'text-[var(--color-accent)]',
+          )}
+        >
+          {item.label}
+        </span>
+        {item.preview ? (
+          <span className="truncate text-[12px] leading-snug text-[var(--color-foreground)]">
+            {item.preview}
+          </span>
+        ) : null}
       </span>
     </button>
   )
@@ -96,20 +121,22 @@ export function DocumentOutlinePanel({ editor, onClose }: DocumentOutlinePanelPr
   const activeId = outlineState?.activeId ?? null
 
   return (
-    <aside className="document-outline-panel titlebar-no-drag" aria-label="Štruktúra dokumentu">
-      <div className="document-outline-header">
-        <div>
-          <h2 className="document-outline-title">Štruktúra</h2>
-          <p className="document-outline-subtitle">{items.length} elementov</p>
-        </div>
-        <button type="button" className="document-outline-close" aria-label="Skryť štruktúru" onClick={onClose}>
-          <PanelRightClose className="h-4 w-4" />
-        </button>
-      </div>
+    <EditorSidePanel width={280} className="titlebar-no-drag" aria-label="Štruktúra dokumentu">
+      <EditorSidePanelHeader
+        title="Štruktúra"
+        subtitle={`${items.length} elementov`}
+        actions={
+          <EditorSidePanelIconButton aria-label="Skryť štruktúru" onClick={onClose}>
+            <PanelRightClose className="h-4 w-4" />
+          </EditorSidePanelIconButton>
+        }
+      />
 
-      <div className="document-outline-list">
+      <div className="min-h-0 flex-1 overflow-y-auto p-2">
         {items.length === 0 ? (
-          <p className="document-outline-empty">Dokument zatiaľ nemá žiadne bloky na zobrazenie.</p>
+          <p className="px-2 py-3 text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
+            Dokument zatiaľ nemá žiadne bloky na zobrazenie.
+          </p>
         ) : (
           items.map((item) => (
             <OutlineRow
@@ -124,6 +151,6 @@ export function DocumentOutlinePanel({ editor, onClose }: DocumentOutlinePanelPr
           ))
         )}
       </div>
-    </aside>
+    </EditorSidePanel>
   )
 }
