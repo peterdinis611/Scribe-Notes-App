@@ -1,11 +1,10 @@
-import { useAtom, useAtomValue, useSetAtom } from 'jotai'
+import { useAtomValue, useSetAtom } from 'jotai'
 import { lazy, Suspense, useMemo, useState } from 'react'
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 import {
   Check,
   ChevronRight,
   Circle,
-  Focus,
   Loader2,
   Plus,
 } from 'lucide-react'
@@ -108,7 +107,6 @@ function EditorChrome() {
   const setTemplatePickerOpen = useSetAtom(templatePickerOpenAtom)
   const navigate = useNavigate()
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false)
-  const [focusMode, setFocusMode] = useAtom(focusModeAtom)
 
   const pdfPreviewPayload = useMemo(() => {
     if (!document) return null
@@ -188,22 +186,8 @@ function EditorChrome() {
         </div>
 
         <div className="editor-header-right titlebar-no-drag titlebar-interactive flex shrink-0 flex-nowrap items-center justify-end gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0">
-          {focusMode && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="editor-focus-exit"
-              title="Ukončiť režim sústredenia (Esc)"
-              onClick={() => setFocusMode(false)}
-            >
-              <Focus className="h-3.5 w-3.5 shrink-0" />
-              <span className="[[data-layout-tier=medium]_&]:hidden [[data-layout-tier=narrow]_&]:hidden [[data-layout-tier=tight]_&]:hidden">
-                Ukončiť sústredenie
-              </span>
-            </Button>
-          )}
-          {document && !focusMode && <EditorDocumentToolsMenu viewMode={viewMode} />}
-          {document && !focusMode && <EditorViewModeToggle />}
+          {document && <EditorDocumentToolsMenu viewMode={viewMode} />}
+          {document && <EditorViewModeToggle />}
           {document && <SaveStatus />}
         </div>
       </header>

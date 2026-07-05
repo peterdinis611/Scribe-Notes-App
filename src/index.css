@@ -947,6 +947,42 @@
 }
 
 
+.editor-shell--focus {
+  position: relative;
+}
+
+.editor-focus-exit-bar {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  z-index: 60;
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+
+.editor-focus-exit {
+  gap: 6px;
+  background: color-mix(in srgb, var(--color-background) 92%, transparent);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+
+.editor-focus-exit-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-muted-foreground);
+}
+
 .editor-shell--focus .editor-header-left {
   opacity: 0;
   pointer-events: none;

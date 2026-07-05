@@ -27,6 +27,13 @@ import {
 import { formatRelativeTime } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { activeDocumentAtom, activeDocumentIdAtom, documentsAtom } from '@/store/documents'
 import { EditorSidePanel, EditorSidePanelHeader } from '@/components/editor/EditorSidePanelPrimitives'
@@ -190,6 +197,10 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
 
   const canCompare = compareOptions.length >= 2 && versionAId !== versionBId
 
+  function formatVersionLabel(option: (typeof compareOptions)[number]) {
+    return `${option.label} · ${formatRelativeTime(option.createdAt)}`
+  }
+
   return (
     <EditorSidePanel
       width={compareState ? 560 : 300}
@@ -206,50 +217,70 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
       />
 
       {!loading && compareOptions.length >= 2 && (
-        <section className="flex flex-col gap-2.5 border-b border-[var(--color-border)] px-3.5 pb-3 pt-2.5">
-          <p className="m-0 text-[11px] font-bold uppercase tracking-[0.04em] text-[var(--color-muted-foreground)]">
+        <section className="border-b border-[var(--color-border)] px-3.5 pb-3.5 pt-2.5">
+          <p className="m-0 mb-2.5 text-[11px] font-bold uppercase tracking-[0.04em] text-[var(--color-muted-foreground)]">
             Porovnať verzie
           </p>
-          <div className="grid gap-2">
-            <label className="flex flex-col gap-1 text-[11px] text-[var(--color-muted-foreground)]">
-              <span>Verzia A</span>
-              <select
-                className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-background)] px-2 py-1.5 text-[12px] text-[var(--color-foreground)]"
-                value={versionAId}
-                onChange={(event) => setVersionAId(event.target.value)}
-              >
-                {compareOptions.map((option) => (
-                  <option key={`a-${option.id}`} value={option.id}>
-                    {option.label} · {formatRelativeTime(option.createdAt)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-[11px] text-[var(--color-muted-foreground)]">
-              <span>Verzia B</span>
-              <select
-                className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-background)] px-2 py-1.5 text-[12px] text-[var(--color-foreground)]"
-                value={versionBId}
-                onChange={(event) => setVersionBId(event.target.value)}
-              >
-                {compareOptions.map((option) => (
-                  <option key={`b-${option.id}`} value={option.id}>
-                    {option.label} · {formatRelativeTime(option.createdAt)}
-                  </option>
-                ))}
-              </select>
-            </label>
+          <div className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-2.5">
+            <div className="grid gap-2.5">
+              <div className="grid gap-1">
+                <label htmlFor="revision-version-a" className="text-[11px] font-medium text-[var(--color-muted-foreground)]">
+                  Verzia A
+                </label>
+                <Select value={versionAId} onValueChange={setVersionAId}>
+                  <SelectTrigger id="revision-version-a" aria-label="Verzia A">
+                    <SelectValue placeholder="Vyberte verziu A" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {compareOptions.map((option) => (
+                      <SelectItem key={`a-${option.id}`} value={option.id} textValue={formatVersionLabel(option)}>
+                        <span className="flex min-w-0 items-center justify-between gap-2">
+                          <span className="truncate font-medium">{option.label}</span>
+                          <span className="shrink-0 text-[11px] text-[var(--color-muted-foreground)]">
+                            {formatRelativeTime(option.createdAt)}
+                          </span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid gap-1">
+                <label htmlFor="revision-version-b" className="text-[11px] font-medium text-[var(--color-muted-foreground)]">
+                  Verzia B
+                </label>
+                <Select value={versionBId} onValueChange={setVersionBId}>
+                  <SelectTrigger id="revision-version-b" aria-label="Verzia B">
+                    <SelectValue placeholder="Vyberte verziu B" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {compareOptions.map((option) => (
+                      <SelectItem key={`b-${option.id}`} value={option.id} textValue={formatVersionLabel(option)}>
+                        <span className="flex min-w-0 items-center justify-between gap-2">
+                          <span className="truncate font-medium">{option.label}</span>
+                          <span className="shrink-0 text-[11px] text-[var(--color-muted-foreground)]">
+                            {formatRelativeTime(option.createdAt)}
+                          </span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <Button
+              variant="default"
+              size="sm"
+              className="mt-2.5 w-full"
+              disabled={!canCompare || compareLoading}
+              onClick={() => void runCompare(versionAId, versionBId)}
+            >
+              <GitCompare className="h-3.5 w-3.5" />
+              {compareLoading ? 'Porovnávam…' : 'Porovnať'}
+            </Button>
           </div>
-          <Button
-            variant="default"
-            size="sm"
-            className="self-start"
-            disabled={!canCompare || compareLoading}
-            onClick={() => void runCompare(versionAId, versionBId)}
-          >
-            <GitCompare className="h-3.5 w-3.5" />
-            {compareLoading ? 'Porovnávam…' : 'Porovnať'}
-          </Button>
         </section>
       )}
 

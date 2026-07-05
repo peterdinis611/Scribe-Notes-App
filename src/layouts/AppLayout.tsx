@@ -4,6 +4,7 @@ import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { Outlet, useNavigate, useParams } from '@tanstack/react-router'
 import { CommandPalette } from '@/components/CommandPalette'
 import { AppHeader } from '@/components/layout/AppHeader'
+import { FocusModeExitBar } from '@/components/editor/FocusModeExitBar'
 import { MoveToFolderDialog } from '@/components/MoveToFolderMenu'
 import { Sidebar } from '@/components/Sidebar'
 import { TemplatePicker } from '@/components/TemplatePicker'
@@ -102,6 +103,7 @@ export function AppLayout() {
       )}
 
       <div className="app-workspace titlebar-no-drag titlebar-interactive">
+        <FocusModeExitBar />
         <AppHeader />
         <main
           ref={mainRef}
