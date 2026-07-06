@@ -43,7 +43,7 @@ Scribe beží lokálne na vašom Macu. Žiadne účty, žiadny cloud — dokumen
 | Editor | TipTap 3 (ProseMirror) |
 | UI | Tailwind CSS v4, Radix UI, shadcn-style komponenty |
 | Routing | TanStack Router |
-| State | Jotai |
+| State | Redux Toolkit |
 | Databáza | SQLite (rusqlite, WAL mode) |
 | Testy | Vitest, Testing Library, `cargo test` |
 
@@ -136,7 +136,7 @@ scribe/
 │   │   ├── revisions/            # Porovnanie verzií
 │   │   └── themes/               # Témy a preset farby
 │   ├── pages/                    # Home, Document, Settings
-│   └── store/                    # Jotai atoms
+│   └── store/                    # Redux slices + persistence
 ├── src-tauri/                    # Rust backend
 │   └── src/
 │       ├── commands/             # Tauri commands (documents, folders, …)

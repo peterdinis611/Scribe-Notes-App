@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { useAtomValue } from 'jotai'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -10,10 +9,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { inputDialogAtom, resolveInputDialog } from '@/lib/input-dialog'
+import { resolveInputDialog } from '@/lib/input-dialog'
+import { useAppSelector } from '@/store/hooks'
 
 export function InputDialogHost() {
-  const dialog = useAtomValue(inputDialogAtom)
+  const dialog = useAppSelector((state) => state.ui.inputDialog)
   const inputRef = useRef<HTMLInputElement>(null)
   const [value, setValue] = useState('')
 

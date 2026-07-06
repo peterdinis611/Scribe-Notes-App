@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useAtomValue, useSetAtom } from 'jotai'
 import { useNavigate } from '@tanstack/react-router'
 import { ArrowDownLeft, ArrowUpRight, FileText, Link2, PanelRightClose, RotateCcw } from 'lucide-react'
 import { listBacklinks, listOutgoingLinks, type DocumentSummary } from '@/lib/db/api'
 import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
 import { formatRelativeTime } from '@/lib/utils'
-import { activeDocumentIdAtom } from '@/store/documents'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { setActiveDocumentId } from '@/store/documentsSlice'
 import {
   EditorSidePanel,
   EditorSidePanelEmpty,
@@ -26,8 +26,8 @@ function countLabel(count: number): string {
 }
 
 export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
-  const activeId = useAtomValue(activeDocumentIdAtom)
-  const setActiveId = useSetAtom(activeDocumentIdAtom)
+  const activeId = useAppSelector((state) => state.documents.activeDocumentId)
+  const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const [backlinks, setBacklinks] = useState<DocumentSummary[]>([])
   const [outgoing, setOutgoing] = useState<DocumentSummary[]>([])
@@ -61,10 +61,10 @@ export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
 
   const handleOpen = useCallback(
     (id: string) => {
-      setActiveId(id)
+      dispatch(setActiveDocumentId(id))
       navigate(ROUTES.document(id))
     },
-    [navigate, setActiveId],
+    [dispatch, navigate],
   )
 
   const renderList = (docs: DocumentSummary[], emptyText: string) => {

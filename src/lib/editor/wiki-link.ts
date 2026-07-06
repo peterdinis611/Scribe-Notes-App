@@ -2,14 +2,14 @@ import { InputRule, mergeAttributes, Node } from '@tiptap/core'
 import { ReactRenderer } from '@tiptap/react'
 import { PluginKey } from '@tiptap/pm/state'
 import Suggestion, { type SuggestionProps } from '@tiptap/suggestion'
-import { getDefaultStore } from 'jotai'
 import type { Range } from '@tiptap/core'
 import type { Editor } from '@tiptap/react'
 import { createDocument } from '@/lib/db/api'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { toast } from '@/lib/toast'
 import { WikiLinkSuggestionList, type WikiLinkItem } from '@/components/editor/WikiLinkSuggestionList'
-import { activeDocumentIdAtom, documentsAtom } from '@/store/documents'
+import { store } from '@/store/index'
+import { updateDocuments } from '@/store/documentsSlice'
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -24,9 +24,7 @@ declare module '@tiptap/core' {
 
 /** Resolves a typed title to an existing document (case-insensitive, excluding the active one). */
 function resolveTitle(title: string): { targetId: string | null; label: string } {
-  const store = getDefaultStore()
-  const docs = store.get(documentsAtom)
-  const activeId = store.get(activeDocumentIdAtom)
+  const { documents: docs, activeDocumentId: activeId } = store.getState().documents
   const match = docs.find(
     (doc) => doc.id !== activeId && doc.title.toLowerCase() === title.toLowerCase(),
   )
@@ -34,10 +32,9 @@ function resolveTitle(title: string): { targetId: string | null; label: string }
 }
 
 async function createAndResolveLabel(editor: Editor, title: string) {
-  const store = getDefaultStore()
   try {
     const doc = await createDocument({ title })
-    store.set(documentsAtom, (prev) => prependDocumentSummary(prev, doc))
+    store.dispatch(updateDocuments((prev) => prependDocumentSummary(prev, doc)))
     editor.chain().resolveWikiLinkLabel({ label: title, targetId: doc.id }).run()
   } catch (error) {
     toast.error('Nepodarilo sa vytvoriť dokument', String(error))
@@ -47,9 +44,7 @@ async function createAndResolveLabel(editor: Editor, title: string) {
 const MAX_RESULTS = 8
 
 function filterDocuments(query: string): WikiLinkItem[] {
-  const store = getDefaultStore()
-  const docs = store.get(documentsAtom)
-  const activeId = store.get(activeDocumentIdAtom)
+  const { documents: docs, activeDocumentId: activeId } = store.getState().documents
   const q = query.trim().toLowerCase()
 
   const items: WikiLinkItem[] = docs
@@ -77,10 +72,9 @@ function insertNode(editor: Editor, range: Range, targetId: string, label: strin
 }
 
 async function createAndInsert(editor: Editor, range: Range, title: string) {
-  const store = getDefaultStore()
   try {
     const doc = await createDocument({ title })
-    store.set(documentsAtom, (prev) => prependDocumentSummary(prev, doc))
+    store.dispatch(updateDocuments((prev) => prependDocumentSummary(prev, doc)))
     insertNode(editor, range, doc.id, doc.title)
   } catch (error) {
     toast.error('Nepodarilo sa vytvoriť dokument', String(error))

@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react'
 import { flushSync } from 'react-dom'
-import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { Outlet, useNavigate, useParams } from '@tanstack/react-router'
 import { CommandPalette } from '@/components/CommandPalette'
 import { AppHeader } from '@/components/layout/AppHeader'
@@ -18,44 +17,42 @@ import { toast } from '@/lib/toast'
 import { ROUTES } from '@/lib/routes'
 import type { DocumentTemplate } from '@/lib/templates'
 import { InputDialogHost } from '@/components/InputDialogHost'
+import { SaveCustomTemplateDialogHost } from '@/components/SaveCustomTemplateDialogHost'
 import { ToastHost } from '@/components/ToastHost'
 import { TrashDialog } from '@/components/TrashDialog'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
-  activeDocumentAtom,
-  activeDocumentIdAtom,
-  documentsAtom,
-  focusModeAtom,
-  saveStatusAtom,
-} from '@/store/documents'
-import { templatePickerOpenAtom } from '@/store/settings'
-import { moveDocumentPickerOpenAtom } from '@/store/folders'
+  setActiveDocument,
+  setActiveDocumentId,
+  setSaveStatus,
+  updateDocuments,
+} from '@/store/documentsSlice'
+import { setTemplatePickerOpen } from '@/store/settingsSlice'
+import { setMoveDocumentPickerOpen } from '@/store/foldersSlice'
 
 function useDocumentRouteSync() {
   const { documentId } = useParams({ strict: false })
-  const [activeId, setActiveId] = useAtom(activeDocumentIdAtom)
-  const setActiveDocument = useSetAtom(activeDocumentAtom)
+  const activeId = useAppSelector((state) => state.documents.activeDocumentId)
+  const dispatch = useAppDispatch()
 
   useEffect(() => {
     if (!documentId || documentId === activeId) return
-    setActiveId(documentId)
+    dispatch(setActiveDocumentId(documentId))
     const cached = peekCachedDocument(documentId)
-    if (cached) setActiveDocument(cached)
-  }, [documentId, activeId, setActiveDocument, setActiveId])
+    if (cached) dispatch(setActiveDocument(cached))
+  }, [activeId, dispatch, documentId])
 }
 
 export function AppLayout() {
   useDocumentRouteSync()
   useKeyboardShortcuts()
-  const [templatePickerOpen, setTemplatePickerOpen] = useAtom(templatePickerOpenAtom)
-  const [movePickerOpen, setMovePickerOpen] = useAtom(moveDocumentPickerOpenAtom)
-  const activeDocument = useAtomValue(activeDocumentAtom)
-  const setActiveId = useSetAtom(activeDocumentIdAtom)
-  const setDocuments = useSetAtom(documentsAtom)
-  const setActiveDocument = useSetAtom(activeDocumentAtom)
-  const setSaveStatus = useSetAtom(saveStatusAtom)
+  const templatePickerOpen = useAppSelector((state) => state.settings.templatePickerOpen)
+  const movePickerOpen = useAppSelector((state) => state.folders.moveDocumentPickerOpen)
+  const activeDocument = useAppSelector((state) => state.documents.activeDocument)
+  const focusMode = useAppSelector((state) => state.documents.focusMode)
+  const dispatch = useAppDispatch()
 
   const navigate = useNavigate()
-  const focusMode = useAtomValue(focusModeAtom)
   const mainRef = useRef<HTMLElement>(null)
   const layoutTier = useLayoutTier(mainRef)
   const { isCompact, sidebarOpen, setSidebarOpen } = useResponsiveSidebar()
@@ -67,12 +64,12 @@ export function AppLayout() {
         contentJson: JSON.stringify(template.content),
       })
       flushSync(() => {
-        setDocuments((prev) => prependDocumentSummary(prev, doc))
-        setActiveId(doc.id)
-        setActiveDocument(doc)
-        setSaveStatus('saved')
+        dispatch(updateDocuments((prev) => prependDocumentSummary(prev, doc)))
+        dispatch(setActiveDocumentId(doc.id))
+        dispatch(setActiveDocument(doc))
+        dispatch(setSaveStatus('saved'))
       })
-      setTemplatePickerOpen(false)
+      dispatch(setTemplatePickerOpen(false))
       await navigate(ROUTES.document(doc.id))
       toast.success('Dokument vytvorený', doc.title)
     } catch (error) {
@@ -115,7 +112,7 @@ export function AppLayout() {
 
       <TemplatePicker
         open={templatePickerOpen}
-        onClose={() => setTemplatePickerOpen(false)}
+        onClose={() => dispatch(setTemplatePickerOpen(false))}
         onSelect={(template) => handleCreateFromTemplate(template)}
       />
       <CommandPalette />
@@ -123,9 +120,10 @@ export function AppLayout() {
         open={movePickerOpen}
         documentId={activeDocument?.id ?? null}
         folderId={activeDocument?.folderId ?? null}
-        onOpenChange={setMovePickerOpen}
+        onOpenChange={(open) => dispatch(setMoveDocumentPickerOpen(open))}
       />
       <InputDialogHost />
+      <SaveCustomTemplateDialogHost />
       <TrashDialog />
       <ToastHost />
     </div>

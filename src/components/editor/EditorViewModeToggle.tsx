@@ -1,11 +1,10 @@
-import { useAtomValue } from 'jotai'
 import { FileCode2, Type } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { editorModeActionsAtom } from '@/store/settings'
+import { editorRefs } from '@/store/editorRefs'
 
 export function EditorViewModeToggle({ className }: { className?: string }) {
-  const actions = useAtomValue(editorModeActionsAtom)
+  const actions = editorRefs.modeActions
   if (!actions) return null
 
   const isMarkdown = actions.viewMode === 'markdown'

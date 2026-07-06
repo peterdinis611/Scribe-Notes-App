@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useAtomValue, useSetAtom } from 'jotai'
 import { Clock, GitCompare, RotateCcw } from 'lucide-react'
 import { confirm } from '@tauri-apps/plugin-dialog'
 import { RevisionDiffView } from '@/components/editor/RevisionDiffView'
@@ -35,7 +34,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import { activeDocumentAtom, activeDocumentIdAtom, documentsAtom } from '@/store/documents'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { setActiveDocument, updateDocuments } from '@/store/documentsSlice'
 import { EditorSidePanel, EditorSidePanelHeader } from '@/components/editor/EditorSidePanelPrimitives'
 
 type RevisionHistoryPanelProps = {
@@ -50,10 +50,9 @@ type CompareState = {
 }
 
 export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
-  const activeId = useAtomValue(activeDocumentIdAtom)
-  const activeDocument = useAtomValue(activeDocumentAtom)
-  const setActiveDocument = useSetAtom(activeDocumentAtom)
-  const setDocuments = useSetAtom(documentsAtom)
+  const activeId = useAppSelector((state) => state.documents.activeDocumentId)
+  const activeDocument = useAppSelector((state) => state.documents.activeDocument)
+  const dispatch = useAppDispatch()
   const [revisions, setRevisions] = useState<DocumentRevision[]>([])
   const [loading, setLoading] = useState(true)
   const [restoringId, setRestoringId] = useState<string | null>(null)
@@ -161,17 +160,19 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
     setRestoringId(revision.id)
     try {
       const restored = cacheDocument(await restoreDocumentRevision(revision.id))
-      setActiveDocument(restored)
-      setDocuments((prev) =>
-        prev.map((item) =>
-          item.id === restored.id
-            ? {
-                ...item,
-                title: restored.title,
-                filePath: restored.filePath,
-                updatedAt: restored.updatedAt,
-              }
-            : item,
+      dispatch(setActiveDocument(restored))
+      dispatch(
+        updateDocuments((prev) =>
+          prev.map((item) =>
+            item.id === restored.id
+              ? {
+                  ...item,
+                  title: restored.title,
+                  filePath: restored.filePath,
+                  updatedAt: restored.updatedAt,
+                }
+              : item,
+          ),
         ),
       )
       toast.success('Verzia obnovená', formatRelativeTime(revision.createdAt))

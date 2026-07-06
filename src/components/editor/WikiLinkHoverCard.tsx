@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Editor } from '@tiptap/react'
-import { useAtomValue } from 'jotai'
 import { getDocument } from '@/lib/db/api'
 import { formatRelativeTime } from '@/lib/utils'
-import { documentsAtom } from '@/store/documents'
+import { useAppSelector } from '@/store/hooks'
 
 type HoverState = {
   targetId: string
@@ -42,7 +41,7 @@ function snippetFromContent(contentJson: string): string {
 }
 
 export function WikiLinkHoverCard({ editor }: { editor: Editor | null }) {
-  const documents = useAtomValue(documentsAtom)
+  const documents = useAppSelector((state) => state.documents.documents)
   const [hover, setHover] = useState<HoverState | null>(null)
   const timerRef = useRef<number | null>(null)
   const tokenRef = useRef(0)

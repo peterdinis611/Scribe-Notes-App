@@ -1,4 +1,3 @@
-import { useAtomValue, useSetAtom } from 'jotai'
 import { FolderPlus, Search, Trash2 } from 'lucide-react'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { Input } from '@/components/ui/input'
@@ -14,8 +13,13 @@ import { createFolder } from '@/lib/db/api'
 import { promptInput } from '@/lib/input-dialog'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
-import { documentsAtom, trashOpenAtom } from '@/store/documents'
-import { commandPaletteOpenAtom, expandedFolderIdsAtom, foldersAtom } from '@/store/folders'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { setTrashOpen } from '@/store/documentsSlice'
+import {
+  setCommandPaletteOpen,
+  updateExpandedFolderIds,
+  updateFolders,
+} from '@/store/foldersSlice'
 
 type SidebarProps = {
   isCompact?: boolean
@@ -30,11 +34,8 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
   const [query, setQuery] = useState('')
   const [libraryView, setLibraryView] = useState<LibraryView>('folders')
   const scrollRef = useRef<HTMLDivElement>(null)
-  const setCommandPaletteOpen = useSetAtom(commandPaletteOpenAtom)
-  const setFolders = useSetAtom(foldersAtom)
-  const setExpandedIds = useSetAtom(expandedFolderIdsAtom)
-  const documents = useAtomValue(documentsAtom)
-  const setTrashOpen = useSetAtom(trashOpenAtom)
+  const dispatch = useAppDispatch()
+  const documents = useAppSelector((state) => state.documents.documents)
   const isContentSearch = query.trim().length >= 2
 
   const favoriteCount = useMemo(
@@ -59,10 +60,10 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
     })
     if (!name) return
     const folder = await createFolder({ name })
-    setFolders((prev) => [...prev, folder])
-    setExpandedIds((prev: Set<string>) => new Set(prev).add(folder.id))
+    dispatch(updateFolders((prev) => [...prev, folder]))
+    dispatch(updateExpandedFolderIds((prev) => [...prev, folder.id]))
     toast.success('Priečinok vytvorený', folder.name)
-  }, [setExpandedIds, setFolders])
+  }, [dispatch])
 
   return (
     <aside
@@ -106,7 +107,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
               <button
                 type="button"
                 className="absolute right-1.5 top-1/2 inline-flex h-[22px] min-w-7 -translate-y-1/2 items-center justify-center rounded-md border border-[var(--color-border)] bg-[var(--color-background)] px-1.5 text-[11px] font-medium text-[var(--color-muted-foreground)] transition-colors hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
-                onClick={() => setCommandPaletteOpen(true)}
+                onClick={() => dispatch(setCommandPaletteOpen(true))}
                 title="Príkazová paleta"
                 aria-label="Otvoriť príkazovú paletu"
               >
@@ -139,7 +140,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                       <button
                         type="button"
                         className={libraryActionClass}
-                        onClick={() => setTrashOpen(true)}
+                        onClick={() => dispatch(setTrashOpen(true))}
                         title="Kôš"
                         aria-label="Kôš"
                       >

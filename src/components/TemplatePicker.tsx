@@ -1,21 +1,34 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
+  Bookmark,
   Briefcase,
   FileText,
   Loader2,
   Palette,
+  Plus,
   Search,
   Sparkles,
+  Trash2,
   User,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { confirm } from '@tauri-apps/plugin-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { CustomTemplateDialog } from '@/components/CustomTemplateDialog'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { DOCUMENT_TEMPLATES, type DocumentTemplate } from '@/lib/templates'
+import {
+  DOCUMENT_TEMPLATES,
+  createCustomTemplate,
+  isCustomTemplate,
+  mergeTemplates,
+  type DocumentTemplate,
+} from '@/lib/templates'
 import { cn } from '@/lib/utils'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { setCustomTemplates, removeCustomTemplate } from '@/store/templatesSlice'
 
 interface TemplatePickerProps {
   open: boolean
@@ -23,34 +36,47 @@ interface TemplatePickerProps {
   onSelect: (template: DocumentTemplate) => Promise<void>
 }
 
-const categoryLabels: Record<DocumentTemplate['category'], string> = {
+type TemplateCategoryFilter = 'all' | DocumentTemplate['category'] | 'custom'
+
+const categoryLabels: Record<DocumentTemplate['category'] | 'custom', string> = {
   general: 'Všeobecné',
   business: 'Biznis',
   personal: 'Osobné',
   creative: 'Kreatívne',
+  custom: 'Vlastné',
 }
 
-const categoryIcons: Record<DocumentTemplate['category'], LucideIcon> = {
+const categoryIcons: Record<DocumentTemplate['category'] | 'custom', LucideIcon> = {
   general: FileText,
   business: Briefcase,
   personal: User,
   creative: Palette,
+  custom: Bookmark,
 }
 
-const categoryPreviewClass: Record<DocumentTemplate['category'], string> = {
+const categoryPreviewClass: Record<DocumentTemplate['category'] | 'custom', string> = {
   general: 'bg-[color-mix(in_srgb,var(--color-accent)_10%,var(--color-canvas))] text-[var(--color-accent)]',
   business: 'bg-[color-mix(in_srgb,#34c759_10%,var(--color-canvas))] text-[#248a3d]',
   personal: 'bg-[color-mix(in_srgb,#af52de_10%,var(--color-canvas))] text-[#9b44c8]',
   creative: 'bg-[color-mix(in_srgb,#ff9500_10%,var(--color-canvas))] text-[#c93400]',
+  custom: 'bg-[color-mix(in_srgb,#5856d6_10%,var(--color-canvas))] text-[#4f46e5] dark:text-[#a5b4fc]',
 }
 
 const BLANK_TEMPLATE = DOCUMENT_TEMPLATES.find((template) => template.id === 'blank')!
 
 export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps) {
-  const [category, setCategory] = useState<DocumentTemplate['category'] | 'all'>('all')
+  const customTemplates = useAppSelector((state) => state.templates.customTemplates)
+  const dispatch = useAppDispatch()
+  const allTemplates = useMemo(
+    () => mergeTemplates(DOCUMENT_TEMPLATES, customTemplates),
+    [customTemplates],
+  )
+
+  const [category, setCategory] = useState<TemplateCategoryFilter>('all')
   const [query, setQuery] = useState('')
   const [selectedId, setSelectedId] = useState(BLANK_TEMPLATE.id)
   const [creating, setCreating] = useState(false)
+  const [customDialogOpen, setCustomDialogOpen] = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -58,34 +84,42 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
     setQuery('')
     setSelectedId(BLANK_TEMPLATE.id)
     setCreating(false)
+    setCustomDialogOpen(false)
   }, [open])
 
   const categoryCounts = useMemo(() => {
-    const counts: Record<DocumentTemplate['category'] | 'all', number> = {
-      all: DOCUMENT_TEMPLATES.length,
+    const counts: Record<TemplateCategoryFilter, number> = {
+      all: allTemplates.length,
       general: 0,
       business: 0,
       personal: 0,
       creative: 0,
+      custom: customTemplates.length,
     }
-    for (const template of DOCUMENT_TEMPLATES) {
+    for (const template of allTemplates) {
+      if (isCustomTemplate(template)) continue
       counts[template.category] += 1
     }
     return counts
-  }, [])
+  }, [allTemplates, customTemplates.length])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return DOCUMENT_TEMPLATES.filter((template) => {
-      if (category !== 'all' && template.category !== category) return false
+    return allTemplates.filter((template) => {
+      if (category === 'custom' && !isCustomTemplate(template)) return false
+      if (category !== 'all' && category !== 'custom' && template.category !== category) {
+        return false
+      }
       if (!q) return true
       return (
         template.name.toLowerCase().includes(q) ||
         template.description.toLowerCase().includes(q) ||
-        categoryLabels[template.category].toLowerCase().includes(q)
+        categoryLabels[isCustomTemplate(template) ? 'custom' : template.category]
+          .toLowerCase()
+          .includes(q)
       )
     })
-  }, [category, query])
+  }, [allTemplates, category, query])
 
   const showBlankHero = category === 'all' && !query.trim()
   const gridTemplates = showBlankHero
@@ -93,7 +127,7 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
     : filtered
 
   const selectedTemplate =
-    DOCUMENT_TEMPLATES.find((template) => template.id === selectedId) ?? BLANK_TEMPLATE
+    allTemplates.find((template) => template.id === selectedId) ?? BLANK_TEMPLATE
 
   useEffect(() => {
     if (filtered.some((template) => template.id === selectedId)) return
@@ -112,99 +146,165 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
     }
   }
 
+  async function handleDeleteCustom() {
+    if (!isCustomTemplate(selectedTemplate)) return
+    const confirmed = await confirm(`Vymazať šablónu „${selectedTemplate.name}"?`, {
+      title: 'Vymazať šablónu',
+      kind: 'warning',
+      okLabel: 'Vymazať',
+      cancelLabel: 'Zrušiť',
+    })
+    if (!confirmed) return
+    dispatch(removeCustomTemplate(selectedTemplate.id))
+    setSelectedId(BLANK_TEMPLATE.id)
+  }
+
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      {open && (
-        <DialogContent
-          className="flex h-[min(680px,calc(100vh-40px))] max-w-[720px] flex-col gap-0 overflow-hidden p-0"
-          showClose
-        >
-        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--color-border)] px-5 pb-3.5 pt-[18px]">
-          <div>
-            <h2 className="m-0 text-[18px] font-bold tracking-[-0.02em]">Nový dokument</h2>
-            <p className="mt-1 text-[12px] text-[var(--color-muted-foreground)]">
-              Vyberte šablónu alebo začnite od prázdnej stránky
-            </p>
-          </div>
-        </div>
+    <>
+      <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+        {open && (
+          <DialogContent
+            className="flex h-[min(680px,calc(100vh-40px))] max-w-[720px] flex-col gap-0 overflow-hidden p-0"
+            showClose
+          >
+            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--color-border)] px-5 pb-3.5 pt-[18px]">
+              <div>
+                <h2 className="m-0 text-[18px] font-bold tracking-[-0.02em]">Nový dokument</h2>
+                <p className="mt-1 text-[12px] text-[var(--color-muted-foreground)]">
+                  Vyberte šablónu alebo začnite od prázdnej stránky
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                onClick={() => setCustomDialogOpen(true)}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Vlastná šablóna
+              </Button>
+            </div>
 
-        <div className="shrink-0 space-y-3 border-b border-[var(--color-border)] px-5 py-3">
-          <label className="flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2">
-            <Search className="h-3.5 w-3.5 text-[var(--color-muted-foreground)]" />
-            <Input
-              type="search"
-              value={query}
-              placeholder="Hľadať šablóny…"
-              className="h-auto border-none bg-transparent p-0 shadow-none focus-visible:shadow-none"
-              onChange={(event) => setQuery(event.target.value)}
-            />
-          </label>
+            <div className="shrink-0 space-y-3 border-b border-[var(--color-border)] px-5 py-3">
+              <label className="flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2">
+                <Search className="h-3.5 w-3.5 text-[var(--color-muted-foreground)]" />
+                <Input
+                  type="search"
+                  value={query}
+                  placeholder="Hľadať šablóny…"
+                  className="h-auto border-none bg-transparent p-0 shadow-none focus-visible:shadow-none"
+                  onChange={(event) => setQuery(event.target.value)}
+                />
+              </label>
 
-          <div className="flex flex-wrap gap-1.5">
-            <FilterChip active={category === 'all'} onClick={() => setCategory('all')}>
-              Všetky
-              <span className="ml-1 opacity-60">{categoryCounts.all}</span>
-            </FilterChip>
-            {(Object.keys(categoryLabels) as DocumentTemplate['category'][]).map((key) => (
-              <FilterChip key={key} active={category === key} onClick={() => setCategory(key)}>
-                {categoryLabels[key]}
-                <span className="ml-1 opacity-60">{categoryCounts[key]}</span>
-              </FilterChip>
-            ))}
-          </div>
-        </div>
-
-        <ScrollArea className="min-h-0 flex-1">
-          <div className="space-y-3 p-5">
-            {showBlankHero && (
-              <TemplateCard
-                template={BLANK_TEMPLATE}
-                selected={selectedId === BLANK_TEMPLATE.id}
-                variant="hero"
-                onSelect={() => setSelectedId(BLANK_TEMPLATE.id)}
-              />
-            )}
-
-            {gridTemplates.length > 0 ? (
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2">
-                {gridTemplates.map((template) => (
-                  <TemplateCard
-                    key={template.id}
-                    template={template}
-                    selected={selectedId === template.id}
-                    onSelect={() => setSelectedId(template.id)}
-                  />
+              <div className="flex flex-wrap gap-1.5">
+                <FilterChip active={category === 'all'} onClick={() => setCategory('all')}>
+                  Všetky
+                  <span className="ml-1 opacity-60">{categoryCounts.all}</span>
+                </FilterChip>
+                <FilterChip active={category === 'custom'} onClick={() => setCategory('custom')}>
+                  Vlastné
+                  <span className="ml-1 opacity-60">{categoryCounts.custom}</span>
+                </FilterChip>
+                {(Object.keys(categoryLabels) as DocumentTemplate['category'][]).map((key) => (
+                  <FilterChip key={key} active={category === key} onClick={() => setCategory(key)}>
+                    {categoryLabels[key]}
+                    <span className="ml-1 opacity-60">{categoryCounts[key]}</span>
+                  </FilterChip>
                 ))}
               </div>
-            ) : (
-              <div className="flex flex-col items-center gap-2 py-10 text-center text-[13px] text-[var(--color-muted-foreground)]">
-                <p>Žiadna šablóna nevyhovuje hľadaniu.</p>
-                <Button variant="ghost" size="sm" onClick={() => setQuery('')}>
-                  Vymazať filter
+            </div>
+
+            <ScrollArea className="min-h-0 flex-1">
+              <div className="space-y-3 p-5">
+                {showBlankHero && (
+                  <TemplateCard
+                    template={BLANK_TEMPLATE}
+                    selected={selectedId === BLANK_TEMPLATE.id}
+                    variant="hero"
+                    onSelect={() => setSelectedId(BLANK_TEMPLATE.id)}
+                  />
+                )}
+
+                {gridTemplates.length > 0 ? (
+                  <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2">
+                    {gridTemplates.map((template) => (
+                      <TemplateCard
+                        key={template.id}
+                        template={template}
+                        selected={selectedId === template.id}
+                        onSelect={() => setSelectedId(template.id)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-2 py-10 text-center text-[13px] text-[var(--color-muted-foreground)]">
+                    <p>Žiadna šablóna nevyhovuje hľadaniu.</p>
+                    <Button variant="ghost" size="sm" onClick={() => setQuery('')}>
+                      Vymazať filter
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+
+            <div className="titlebar-interactive relative z-10 flex shrink-0 items-center justify-between gap-3 border-t border-[var(--color-border)] px-5 py-3">
+              <p className="m-0 inline-flex min-w-0 items-center gap-1.5 text-[13px] font-medium text-[var(--color-foreground)]">
+                <Sparkles className="h-3.5 w-3.5 shrink-0 text-[var(--color-accent)]" />
+                <span className="truncate">{selectedTemplate.name}</span>
+              </p>
+              <div className="flex shrink-0 items-center gap-2">
+                {isCustomTemplate(selectedTemplate) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={creating}
+                    className="text-[var(--color-destructive)] hover:text-[var(--color-destructive)]"
+                    onClick={() => void handleDeleteCustom()}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Vymazať
+                  </Button>
+                )}
+                <Button variant="ghost" size="sm" disabled={creating} onClick={onClose}>
+                  Zrušiť
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  disabled={creating}
+                  onClick={() => void handleCreate()}
+                >
+                  {creating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                  {creating ? 'Vytváram…' : 'Vytvoriť dokument'}
                 </Button>
               </div>
-            )}
-          </div>
-        </ScrollArea>
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
 
-        <div className="titlebar-interactive relative z-10 flex shrink-0 items-center justify-between gap-3 border-t border-[var(--color-border)] px-5 py-3">
-          <p className="m-0 inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--color-foreground)]">
-            <Sparkles className="h-3.5 w-3.5 text-[var(--color-accent)]" />
-            {selectedTemplate.name}
-          </p>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" disabled={creating} onClick={onClose}>
-              Zrušiť
-            </Button>
-            <Button variant="default" size="sm" disabled={creating} onClick={() => void handleCreate()}>
-              {creating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-              {creating ? 'Vytváram…' : 'Vytvoriť dokument'}
-            </Button>
-          </div>
-        </div>
-        </DialogContent>
-      )}
-    </Dialog>
+      <CustomTemplateDialog
+        open={customDialogOpen}
+        onOpenChange={setCustomDialogOpen}
+        content={structuredClone(selectedTemplate.content)}
+        initialValues={{
+          name: selectedTemplate.id === 'blank' ? '' : `${selectedTemplate.name} (kópia)`,
+          description: selectedTemplate.description,
+          category: isCustomTemplate(selectedTemplate) ? 'general' : selectedTemplate.category,
+          title: selectedTemplate.title,
+        }}
+        onSave={(values) => {
+          const created = createCustomTemplate({
+            ...values,
+            content: structuredClone(selectedTemplate.content),
+          })
+          dispatch(setCustomTemplates([...customTemplates, created]))
+          setSelectedId(created.id)
+          setCategory('custom')
+        }}
+      />
+    </>
   )
 }
 
@@ -219,7 +319,9 @@ function TemplateCard({
   variant?: 'grid' | 'hero'
   onSelect: () => void
 }) {
-  const CategoryIcon = categoryIcons[template.category]
+  const custom = isCustomTemplate(template)
+  const categoryKey: DocumentTemplate['category'] | 'custom' = custom ? 'custom' : template.category
+  const CategoryIcon = categoryIcons[categoryKey]
 
   return (
     <button
@@ -236,7 +338,7 @@ function TemplateCard({
       <div
         className={cn(
           'flex h-[72px] w-full shrink-0 flex-col justify-between rounded-[10px] p-2.5',
-          categoryPreviewClass[template.category],
+          categoryPreviewClass[categoryKey],
           variant === 'hero' && 'sm:h-20 sm:w-36',
         )}
       >
@@ -250,15 +352,12 @@ function TemplateCard({
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
           <p className="m-0 text-[13px] font-semibold text-[var(--color-foreground)]">{template.name}</p>
-          <Badge
-            variant={selected ? 'accent' : 'muted'}
-            className="shrink-0 text-[10px]"
-          >
-            {categoryLabels[template.category]}
+          <Badge variant={selected ? 'accent' : 'muted'} className="shrink-0 text-[10px]">
+            {categoryLabels[categoryKey]}
           </Badge>
         </div>
         <p className="mt-1 text-[11px] leading-snug text-[var(--color-muted-foreground)]">
-          {template.description}
+          {template.description || 'Vlastná šablóna'}
         </p>
       </div>
     </button>

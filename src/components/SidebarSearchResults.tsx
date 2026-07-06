@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { FileText } from 'lucide-react'
-import { useSetAtom } from 'jotai'
 import { searchDocuments, type SearchHit } from '@/lib/db/api'
 import { ROUTES } from '@/lib/routes'
 import { debounce } from '@/lib/utils'
-import { activeDocumentIdAtom } from '@/store/documents'
+import { useAppDispatch } from '@/store/hooks'
+import { setActiveDocumentId } from '@/store/documentsSlice'
 
 type SidebarSearchResultsProps = {
   query: string
@@ -14,7 +14,7 @@ type SidebarSearchResultsProps = {
 
 export function SidebarSearchResults({ query, onNavigate }: SidebarSearchResultsProps) {
   const navigate = useNavigate()
-  const setActiveId = useSetAtom(activeDocumentIdAtom)
+  const dispatch = useAppDispatch()
   const [hits, setHits] = useState<SearchHit[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -62,7 +62,7 @@ export function SidebarSearchResults({ query, onNavigate }: SidebarSearchResults
             type="button"
             className="mb-0.5 flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-[var(--color-hover)]"
             onClick={() => {
-              setActiveId(hit.documentId)
+              dispatch(setActiveDocumentId(hit.documentId))
               navigate(ROUTES.document(hit.documentId))
               onNavigate?.()
             }}

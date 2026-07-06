@@ -1,14 +1,12 @@
 import type { Editor } from '@tiptap/react'
-import { getDefaultStore } from 'jotai'
 import { createCommentThread } from '@/lib/db/api'
 import { promptInput } from '@/lib/input-dialog'
 import { toast } from '@/lib/toast'
+import { store } from '@/store/index'
 import {
-  activeDocumentIdAtom,
-  commentAuthorAtom,
-  commentsPanelOpenAtom,
-  commentsVersionAtom,
-} from '@/store/documents'
+  bumpCommentsVersion,
+  setCommentsPanelOpen,
+} from '@/store/documentsSlice'
 
 function generateCommentId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -19,8 +17,7 @@ function generateCommentId(): string {
 
 /** Prompts for a comment, persists the thread and anchors a mark on the current selection. */
 export async function createCommentForSelection(editor: Editor): Promise<void> {
-  const store = getDefaultStore()
-  const documentId = store.get(activeDocumentIdAtom)
+  const { activeDocumentId: documentId, commentAuthor: author } = store.getState().documents
   if (!documentId) return
 
   const { from, to } = editor.state.selection
@@ -34,14 +31,13 @@ export async function createCommentForSelection(editor: Editor): Promise<void> {
   })
   if (!body?.trim()) return
 
-  const author = store.get(commentAuthorAtom)
   const commentId = generateCommentId()
 
   try {
     await createCommentThread({ id: commentId, documentId, quote, author, body: body.trim() })
     editor.chain().focus().setComment({ commentId }).run()
-    store.set(commentsVersionAtom, (value) => value + 1)
-    store.set(commentsPanelOpenAtom, true)
+    store.dispatch(bumpCommentsVersion())
+    store.dispatch(setCommentsPanelOpen(true))
   } catch (error) {
     toast.error('Nepodarilo sa pridať komentár', String(error))
   }

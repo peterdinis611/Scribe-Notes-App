@@ -1,4 +1,3 @@
-import { useAtom } from 'jotai'
 import { FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
@@ -16,7 +15,8 @@ import {
   type PaperSizeId,
 } from '@/lib/editor/page-setup'
 import { cn } from '@/lib/utils'
-import { pageSetupAtom } from '@/store/settings'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { setPageSetup } from '@/store/settingsSlice'
 
 type PageSetupDialogProps = {
   open: boolean
@@ -43,48 +43,55 @@ function matchesMarginPreset(setup: PageSetup, presetId: string) {
 }
 
 export function PageSetupDialog({ open, onClose }: PageSetupDialogProps) {
-  const [pageSetup, setPageSetup] = useAtom(pageSetupAtom)
+  const pageSetup = useAppSelector((state) => state.settings.pageSetup)
+  const dispatch = useAppDispatch()
   const normalized = normalizePageSetup(pageSetup)
   const headerFooter = normalized.headerFooter
   const watermark = normalized.watermark
   const firstPage = normalized.firstPage
 
   function update(partial: Partial<PageSetup>) {
-    setPageSetup({ ...pageSetup, ...partial })
+    dispatch(setPageSetup({ ...pageSetup, ...partial }))
   }
 
   function resetDefaults() {
-    setPageSetup(DEFAULT_PAGE_SETUP)
+    dispatch(setPageSetup(DEFAULT_PAGE_SETUP))
   }
 
   function updateHeaderFooter(partial: Partial<PageHeaderFooter>) {
-    setPageSetup({
-      ...pageSetup,
-      headerFooter: {
-        ...headerFooter,
-        ...partial,
-      },
-    })
+    dispatch(
+      setPageSetup({
+        ...pageSetup,
+        headerFooter: {
+          ...headerFooter,
+          ...partial,
+        },
+      }),
+    )
   }
 
   function updateWatermark(partial: Partial<PageWatermark>) {
-    setPageSetup({
-      ...pageSetup,
-      watermark: {
-        ...watermark,
-        ...partial,
-      },
-    })
+    dispatch(
+      setPageSetup({
+        ...pageSetup,
+        watermark: {
+          ...watermark,
+          ...partial,
+        },
+      }),
+    )
   }
 
   function updateFirstPage(partial: Partial<FirstPageSetup>) {
-    setPageSetup({
-      ...pageSetup,
-      firstPage: {
-        ...firstPage,
-        ...partial,
-      },
-    })
+    dispatch(
+      setPageSetup({
+        ...pageSetup,
+        firstPage: {
+          ...firstPage,
+          ...partial,
+        },
+      }),
+    )
   }
 
   return (

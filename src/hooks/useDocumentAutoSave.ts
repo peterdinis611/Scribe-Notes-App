@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import type { Editor } from '@tiptap/react'
-import { useSetAtom } from 'jotai'
 import {
   cacheDocument,
   hashContent,
@@ -8,11 +7,14 @@ import {
 import { flushPendingWrites, updateDocument } from '@/lib/db/api'
 import { toast } from '@/lib/toast'
 import { debounce, extractTitleFromContent } from '@/lib/utils'
+import { useAppDispatch } from '@/store/hooks'
 import {
-  flushAutoSaveAtom,
-  type SaveStatus,
-} from '@/store/documents'
-import type { Document, DocumentSummary } from '@/lib/db/api'
+  setActiveDocument,
+  setSaveStatus,
+  updateDocuments,
+} from '@/store/documentsSlice'
+import { editorRefs } from '@/store/editorRefs'
+import type { Document } from '@/lib/db/api'
 
 const AUTO_SAVE_DELAY_MS = 600
 
@@ -23,9 +25,6 @@ type UseDocumentAutoSaveOptions = {
   markdownDraftRef: React.MutableRefObject<string>
   manualTitleIdsRef: React.MutableRefObject<Set<string>>
   activeDocumentRef: React.MutableRefObject<Document | null>
-  setActiveDocument: (doc: Document) => void
-  setDocuments: React.Dispatch<React.SetStateAction<DocumentSummary[]>>
-  setSaveStatus: (status: SaveStatus) => void
 }
 
 export function useDocumentAutoSave({
@@ -35,11 +34,8 @@ export function useDocumentAutoSave({
   markdownDraftRef,
   manualTitleIdsRef,
   activeDocumentRef,
-  setActiveDocument,
-  setDocuments,
-  setSaveStatus,
 }: UseDocumentAutoSaveOptions) {
-  const setFlushAutoSave = useSetAtom(flushAutoSaveAtom)
+  const dispatch = useAppDispatch()
   const latestDocIdRef = useRef<string | null>(null)
   const previousDocIdRef = useRef<string | null>(null)
   const editorContentHashRef = useRef<string | null>(null)
@@ -71,7 +67,7 @@ export function useDocumentAutoSave({
         : extractTitleFromContent(contentJson)
 
       try {
-        setSaveStatus('saving')
+        dispatch(setSaveStatus('saving'))
         const updated = cacheDocument(
           await updateDocument({
             id: docId,
@@ -83,36 +79,38 @@ export function useDocumentAutoSave({
         if (latestDocIdRef.current === docId) {
           lastPersistedHashRef.current = contentHash
           editorContentHashRef.current = contentHash
-          setActiveDocument(updated)
+          dispatch(setActiveDocument(updated))
         }
 
-        setDocuments((prev) =>
-          prev.map((item) =>
-            item.id === updated.id
-              ? {
-                  ...item,
-                  title: updated.title,
-                  filePath: updated.filePath,
-                  updatedAt: updated.updatedAt,
-                }
-              : item,
+        dispatch(
+          updateDocuments((prev) =>
+            prev.map((item) =>
+              item.id === updated.id
+                ? {
+                    ...item,
+                    title: updated.title,
+                    filePath: updated.filePath,
+                    updatedAt: updated.updatedAt,
+                  }
+                : item,
+            ),
           ),
         )
 
         if (latestDocIdRef.current === docId) {
-          setSaveStatus('saved')
+          dispatch(setSaveStatus('saved'))
         }
 
         return true
       } catch {
         if (latestDocIdRef.current === docId) {
-          setSaveStatus('error')
+          dispatch(setSaveStatus('error'))
           toast.error('Ukladanie zlyhalo')
         }
         return false
       }
     },
-    [activeDocumentRef, manualTitleIdsRef, setActiveDocument, setDocuments, setSaveStatus],
+    [activeDocumentRef, dispatch, manualTitleIdsRef],
   )
 
   const saveNow = useCallback(
@@ -151,8 +149,8 @@ export function useDocumentAutoSave({
   }, [activeId, editor, saveNow, scheduleSave])
 
   const markDirty = useCallback(() => {
-    setSaveStatus('dirty')
-  }, [setSaveStatus])
+    dispatch(setSaveStatus('dirty'))
+  }, [dispatch])
 
   const queueSave = useCallback(
     (docId: string) => {
@@ -172,9 +170,11 @@ export function useDocumentAutoSave({
   )
 
   useEffect(() => {
-    setFlushAutoSave(() => flushSave)
-    return () => setFlushAutoSave(null)
-  }, [flushSave, setFlushAutoSave])
+    editorRefs.flushAutoSave = flushSave
+    return () => {
+      editorRefs.flushAutoSave = null
+    }
+  }, [flushSave])
 
   useEffect(() => {
     const previousId = previousDocIdRef.current

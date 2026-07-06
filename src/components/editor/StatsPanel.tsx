@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Editor } from '@tiptap/react'
 import { useEditorState } from '@tiptap/react'
-import { useAtomValue } from 'jotai'
 import { PanelRightClose, Target } from 'lucide-react'
-import { activeDocumentIdAtom } from '@/store/documents'
 import { Input } from '@/components/ui/input'
+import { useAppSelector } from '@/store/hooks'
 import {
   EditorSidePanel,
   EditorSidePanelHeader,
@@ -34,7 +33,7 @@ function formatReadingTime(words: number): string {
 }
 
 export function StatsPanel({ editor, onClose }: StatsPanelProps) {
-  const activeId = useAtomValue(activeDocumentIdAtom)
+  const activeId = useAppSelector((state) => state.documents.activeDocumentId)
   const [goal, setGoal] = useState(() => readGoal(activeId))
 
   useEffect(() => {

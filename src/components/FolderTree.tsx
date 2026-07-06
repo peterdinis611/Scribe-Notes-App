@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState, type RefObject } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { useNavigate } from '@tanstack/react-router'
 import { confirm } from '@tauri-apps/plugin-dialog'
 import { FolderTreeDocumentRow, FolderTreeFolderRow } from '@/components/FolderTreeRows'
@@ -33,14 +32,13 @@ import { ROUTES } from '@/lib/routes'
 import { promptInput } from '@/lib/input-dialog'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
-  activeDocumentAtom,
-  activeDocumentIdAtom,
-  activeTagFilterAtom,
-  documentsAtom,
-  favoritesOnlyFilterAtom,
-} from '@/store/documents'
-import { expandedFolderIdsAtom, foldersAtom } from '@/store/folders'
+  setActiveDocument,
+  setActiveDocumentId,
+  updateDocuments,
+} from '@/store/documentsSlice'
+import { updateExpandedFolderIds, updateFolders } from '@/store/foldersSlice'
 
 type FolderTreeProps = {
   query: string
@@ -49,16 +47,15 @@ type FolderTreeProps = {
 }
 
 export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
-  const [folders, setFolders] = useAtom(foldersAtom)
-  const [documents, setDocuments] = useAtom(documentsAtom)
-  const [expandedIds, setExpandedIds] = useAtom(expandedFolderIdsAtom)
-  const [activeId, setActiveId] = useAtom(activeDocumentIdAtom)
-  const setActiveDocument = useSetAtom(activeDocumentAtom)
+  const folders = useAppSelector((state) => state.folders.folders)
+  const documents = useAppSelector((state) => state.documents.documents)
+  const expandedIds = useAppSelector((state) => state.folders.expandedFolderIds)
+  const activeId = useAppSelector((state) => state.documents.activeDocumentId)
+  const favoritesOnly = useAppSelector((state) => state.documents.favoritesOnlyFilter)
+  const activeTag = useAppSelector((state) => state.documents.activeTagFilter)
+  const dispatch = useAppDispatch()
   const navigate = useNavigate()
-  const moveDocument = useMoveDocumentToFolder()
   const [dragOverId, setDragOverId] = useState<string | null>(null)
-  const favoritesOnly = useAtomValue(favoritesOnlyFilterAtom)
-  const activeTag = useAtomValue(activeTagFilterAtom)
 
   const filteredDocuments = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -81,14 +78,15 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     measureElement: (element) => element.getBoundingClientRect().height,
   })
 
+  const moveDocument = useMoveDocumentToFolder()
+
   const toggleFolder = useCallback((id: string) => {
-    setExpandedIds((prev: Set<string>) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }, [setExpandedIds])
+    dispatch(
+      updateExpandedFolderIds((prev) =>
+        prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+      ),
+    )
+  }, [dispatch])
 
   const handleCreateFolder = useCallback(async (parentId: string | null) => {
     const name = await promptInput({
@@ -100,11 +98,11 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     if (!name) return
     const folder = await createFolder({ name, parentId })
     if (parentId) {
-      setExpandedIds((prev: Set<string>) => new Set(prev).add(parentId))
+      dispatch(updateExpandedFolderIds((prev) => (prev.includes(parentId) ? prev : [...prev, parentId])))
     }
-    setFolders((prev) => [...prev, folder])
+    dispatch(updateFolders((prev) => [...prev, folder]))
     toast.success('Priečinok vytvorený', folder.name)
-  }, [setExpandedIds, setFolders])
+  }, [dispatch])
 
   const handleRenameFolder = useCallback(async (id: string, currentName: string) => {
     const name = await promptInput({
@@ -115,9 +113,9 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     })
     if (!name || name === currentName) return
     const folder = await renameFolder(id, name)
-    setFolders((prev) => prev.map((item) => (item.id === id ? folder : item)))
+    dispatch(updateFolders((prev) => prev.map((item) => (item.id === id ? folder : item))))
     toast.success('Priečinok premenovaný', folder.name)
-  }, [setFolders])
+  }, [dispatch])
 
   const handleTrashFolderDocuments = useCallback(async (id: string, name: string, event: React.MouseEvent) => {
     event.stopPropagation()
@@ -144,14 +142,14 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
       invalidateDocumentCache(documentId)
     }
 
-    setDocuments((prev) => prev.filter((doc) => !trashedIds.has(doc.id)))
+    dispatch(updateDocuments((prev) => prev.filter((doc) => !trashedIds.has(doc.id))))
 
     if (activeId && trashedIds.has(activeId)) {
       const remaining = documents.filter((doc) => !trashedIds.has(doc.id))
       const nextId = remaining[0]?.id ?? null
-      setActiveId(nextId)
+      dispatch(setActiveDocumentId(nextId))
       if (!nextId) {
-        setActiveDocument(null)
+        dispatch(setActiveDocument(null))
         navigate(ROUTES.home())
       } else {
         navigate(ROUTES.document(nextId))
@@ -162,7 +160,7 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
       'Dokumenty presunuté do koša',
       `${result.trashedDocumentIds.length} z priečinka „${name}"`,
     )
-  }, [activeId, documents, folders, navigate, setActiveDocument, setActiveId, setDocuments])
+  }, [activeId, dispatch, documents, folders, navigate])
 
   const handleDeleteFolder = useCallback(async (id: string, name: string, event: React.MouseEvent) => {
     event.stopPropagation()
@@ -186,23 +184,19 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     const deletedFolderIds = new Set(result.deletedFolderIds)
     const deletedDocumentIds = new Set(result.deletedDocumentIds)
 
-    setFolders((prev) => prev.filter((item) => !deletedFolderIds.has(item.id)))
-    setDocuments((prev) => prev.filter((doc) => !deletedDocumentIds.has(doc.id)))
+    dispatch(updateFolders((prev) => prev.filter((item) => !deletedFolderIds.has(item.id))))
+    dispatch(updateDocuments((prev) => prev.filter((doc) => !deletedDocumentIds.has(doc.id))))
 
-    setExpandedIds((prev: Set<string>) => {
-      const next = new Set(prev)
-      for (const folderId of deletedFolderIds) {
-        next.delete(folderId)
-      }
-      return next
-    })
+    dispatch(
+      updateExpandedFolderIds((prev) => prev.filter((folderId) => !deletedFolderIds.has(folderId))),
+    )
 
     if (activeId && deletedDocumentIds.has(activeId)) {
       const remaining = documents.filter((doc) => !deletedDocumentIds.has(doc.id))
       const nextId = remaining[0]?.id ?? null
-      setActiveId(nextId)
+      dispatch(setActiveDocumentId(nextId))
       if (!nextId) {
-        setActiveDocument(null)
+        dispatch(setActiveDocument(null))
         navigate(ROUTES.home())
       } else {
         navigate(ROUTES.document(nextId))
@@ -210,52 +204,56 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     }
 
     toast.success('Priečinok vymazaný', name)
-  }, [activeId, documents, folders, navigate, setActiveDocument, setActiveId, setDocuments, setExpandedIds, setFolders])
+  }, [activeId, dispatch, documents, folders, navigate])
 
   const handleDeleteDocument = useCallback(async (id: string, event: React.MouseEvent) => {
     event.stopPropagation()
     const deleted = documents.find((doc) => doc.id === id)
     await deleteDocument(id)
     const remaining = documents.filter((doc) => doc.id !== id)
-    setDocuments(remaining)
+    dispatch(updateDocuments(() => remaining))
     if (activeId === id) {
       const nextId = remaining[0]?.id ?? null
-      setActiveId(nextId)
+      dispatch(setActiveDocumentId(nextId))
       if (!nextId) {
-        setActiveDocument(null)
+        dispatch(setActiveDocument(null))
         navigate(ROUTES.home())
       } else {
         navigate(ROUTES.document(nextId))
       }
     }
     toast.success('Dokument presunutý do koša', deleted?.title)
-  }, [activeId, documents, navigate, setActiveDocument, setActiveId, setDocuments])
+  }, [activeId, dispatch, documents, navigate])
 
   const openDocument = useCallback((id: string) => {
-    setActiveId(id)
+    dispatch(setActiveDocumentId(id))
     const cached = peekCachedDocument(id)
-    if (cached) setActiveDocument(cached)
+    if (cached) dispatch(setActiveDocument(cached))
     navigate(ROUTES.document(id))
     onNavigate?.()
-  }, [navigate, onNavigate, setActiveDocument, setActiveId])
+  }, [dispatch, navigate, onNavigate])
 
   const handleToggleFavorite = useCallback(async (id: string, event: React.MouseEvent) => {
     event.stopPropagation()
     const current = documents.find((doc) => doc.id === id)
     if (!current) return
     const next = !current.isFavorite
-    setDocuments((prev) =>
-      prev.map((doc) => (doc.id === id ? { ...doc, isFavorite: next } : doc)),
+    dispatch(
+      updateDocuments((prev) =>
+        prev.map((doc) => (doc.id === id ? { ...doc, isFavorite: next } : doc)),
+      ),
     )
     try {
       await setDocumentFavorite(id, next)
     } catch (error) {
-      setDocuments((prev) =>
-        prev.map((doc) => (doc.id === id ? { ...doc, isFavorite: !next } : doc)),
+      dispatch(
+        updateDocuments((prev) =>
+          prev.map((doc) => (doc.id === id ? { ...doc, isFavorite: !next } : doc)),
+        ),
       )
       toast.error('Nepodarilo sa zmeniť obľúbené', String(error))
     }
-  }, [documents, setDocuments])
+  }, [dispatch, documents])
 
   const handleEditTags = useCallback(async (id: string, event: React.MouseEvent) => {
     event.stopPropagation()
@@ -277,13 +275,13 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
           .filter(Boolean),
       ),
     ).sort()
-    setDocuments((prev) => prev.map((doc) => (doc.id === id ? { ...doc, tags } : doc)))
+    dispatch(updateDocuments((prev) => prev.map((doc) => (doc.id === id ? { ...doc, tags } : doc))))
     try {
       await setDocumentTags(id, tags)
     } catch (error) {
       toast.error('Nepodarilo sa uložiť štítky', String(error))
     }
-  }, [documents, setDocuments])
+  }, [dispatch, documents])
 
   const handleDropOnFolder = useCallback(async (folderId: string | null, event: React.DragEvent) => {
     event.preventDefault()
@@ -302,10 +300,10 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
 
     if (folderDragId && folderDragId !== folderId) {
       const folder = await moveFolder(folderDragId, folderId)
-      setFolders((prev) => prev.map((item) => (item.id === folder.id ? folder : item)))
+      dispatch(updateFolders((prev) => prev.map((item) => (item.id === folder.id ? folder : item))))
       toast.success('Priečinok presunutý', folder.name)
     }
-  }, [documents, moveDocument, setFolders])
+  }, [dispatch, documents, moveDocument])
 
   const handleFolderDragStart = useCallback((id: string, event: React.DragEvent) => {
     setFolderDragData(event, id)
@@ -378,7 +376,7 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
                         documents,
                         collectFolderSubtreeIds(folders, item.folder.id),
                       )}
-                      isExpanded={expandedIds.has(item.folder.id)}
+                      isExpanded={expandedIds.includes(item.folder.id)}
                       isDragOver={dragOverId === item.folder.id}
                       onToggle={toggleFolder}
                       onRename={(id, name) => void handleRenameFolder(id, name)}

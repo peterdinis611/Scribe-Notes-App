@@ -1,9 +1,12 @@
 import { lazy, Suspense, useEffect, useMemo } from 'react'
 import { useNavigate, useParams } from '@tanstack/react-router'
-import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { ROUTES } from '@/lib/routes'
-import { activeDocumentAtom, activeDocumentIdAtom, saveStatusAtom } from '@/store/documents'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import {
+  setActiveDocument,
+  setActiveDocumentId,
+} from '@/store/documentsSlice'
 
 const DocumentEditor = lazy(() =>
   import('@/components/DocumentEditor').then((module) => ({
@@ -24,10 +27,10 @@ function DocumentEditorFallback() {
 export function DocumentPage() {
   const { documentId } = useParams({ strict: false })
   const navigate = useNavigate()
-  const [activeId, setActiveId] = useAtom(activeDocumentIdAtom)
-  const activeDocument = useAtomValue(activeDocumentAtom)
-  const setActiveDocument = useSetAtom(activeDocumentAtom)
-  const [saveStatus] = useAtom(saveStatusAtom)
+  const activeId = useAppSelector((state) => state.documents.activeDocumentId)
+  const activeDocument = useAppSelector((state) => state.documents.activeDocument)
+  const saveStatus = useAppSelector((state) => state.documents.saveStatus)
+  const dispatch = useAppDispatch()
 
   const resolvedDocument = useMemo(() => {
     if (!documentId) return null
@@ -37,11 +40,11 @@ export function DocumentPage() {
 
   useEffect(() => {
     if (!documentId) return
-    if (activeId !== documentId) setActiveId(documentId)
+    if (activeId !== documentId) dispatch(setActiveDocumentId(documentId))
     if (resolvedDocument && activeDocument?.id !== documentId) {
-      setActiveDocument(resolvedDocument)
+      dispatch(setActiveDocument(resolvedDocument))
     }
-  }, [activeDocument?.id, activeId, documentId, resolvedDocument, setActiveDocument, setActiveId])
+  }, [activeDocument?.id, activeId, dispatch, documentId, resolvedDocument])
 
   useEffect(() => {
     if (activeId === documentId && saveStatus === 'error' && !resolvedDocument) {

@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { useNavigate } from '@tanstack/react-router'
 import {
   Copy,
@@ -21,35 +20,42 @@ import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
 import { cn, debounce } from '@/lib/utils'
 import { toast } from '@/lib/toast'
-import { activeDocumentAtom, activeDocumentIdAtom, documentsAtom, focusModeAtom } from '@/store/documents'
-import { commandPaletteOpenAtom, foldersAtom, moveDocumentPickerOpenAtom } from '@/store/folders'
-import { templatePickerOpenAtom } from '@/store/settings'
 import { cycleThemeId } from '@/lib/themes/apply'
 import { generateRandomTheme } from '@/lib/themes/generate-random-theme'
-import { applyThemeSettingsAtom, createCustomThemeSelection, createThemeSelection, themeSettingsAtom } from '@/store/settings'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import {
+  setActiveDocument,
+  setActiveDocumentId,
+  toggleFocusMode,
+  updateDocuments,
+} from '@/store/documentsSlice'
+import {
+  setCommandPaletteOpen,
+  setMoveDocumentPickerOpen,
+  updateFolders,
+} from '@/store/foldersSlice'
+import { setTemplatePickerOpen, setThemeSettings } from '@/store/settingsSlice'
+import {
+  createCustomThemeSelection,
+  createThemeSelection,
+} from '@/store/settings-helpers'
 
 type PaletteItem =
   | { type: 'action'; id: string; label: string; hint?: string; icon: React.ReactNode; run: () => void }
   | { type: 'document'; id: string; label: string; hint?: string; icon: React.ReactNode; run: () => void }
 
 export function CommandPalette() {
-  const [open, setOpen] = useAtom(commandPaletteOpenAtom)
+  const open = useAppSelector((state) => state.folders.commandPaletteOpen)
   const [query, setQuery] = useState('')
   const [hits, setHits] = useState<SearchHit[]>([])
   const [selected, setSelected] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
-  const setActiveId = useSetAtom(activeDocumentIdAtom)
-  const setActiveDocument = useSetAtom(activeDocumentAtom)
-  const setDocuments = useSetAtom(documentsAtom)
-  const setMovePickerOpen = useSetAtom(moveDocumentPickerOpenAtom)
-  const setFolders = useSetAtom(foldersAtom)
-  const activeDocumentId = useAtomValue(activeDocumentIdAtom)
-  const documents = useAtomValue(documentsAtom)
-  const setTemplatePickerOpen = useSetAtom(templatePickerOpenAtom)
-  const [themeSettings] = useAtom(themeSettingsAtom)
-  const applyTheme = useSetAtom(applyThemeSettingsAtom)
-  const [focusMode, setFocusMode] = useAtom(focusModeAtom)
+  const dispatch = useAppDispatch()
+  const activeDocumentId = useAppSelector((state) => state.documents.activeDocumentId)
+  const documents = useAppSelector((state) => state.documents.documents)
+  const themeSettings = useAppSelector((state) => state.settings.themeSettings)
+  const focusMode = useAppSelector((state) => state.documents.focusMode)
 
   const activeDocument = useMemo(
     () => documents.find((doc) => doc.id === activeDocumentId) ?? null,
@@ -64,7 +70,7 @@ export function CommandPalette() {
         label: 'Nový dokument',
         hint: '⌘N',
         icon: <Plus className="h-4 w-4" />,
-        run: () => setTemplatePickerOpen(true),
+        run: () => dispatch(setTemplatePickerOpen(true)),
       },
       ...(activeDocument
         ? [
@@ -74,7 +80,7 @@ export function CommandPalette() {
               label: focusMode ? 'Vypnúť režim sústredenia' : 'Zapnúť režim sústredenia',
               hint: '⌘⇧F',
               icon: <Focus className="h-4 w-4" />,
-              run: () => setFocusMode((enabled) => !enabled),
+              run: () => dispatch(toggleFocusMode()),
             },
             {
               type: 'action' as const,
@@ -89,9 +95,9 @@ export function CommandPalette() {
                       activeDocument.id,
                       `${activeDocument.title} (kópia)`,
                     )
-                    setDocuments((prev) => prependDocumentSummary(prev, copy))
-                    setActiveId(copy.id)
-                    setActiveDocument(copy)
+                    dispatch(updateDocuments((prev) => prependDocumentSummary(prev, copy)))
+                    dispatch(setActiveDocumentId(copy.id))
+                    dispatch(setActiveDocument(copy))
                     toast.success('Dokument duplikovaný', copy.title)
                     navigate(ROUTES.document(copy.id))
                   } catch (error) {
@@ -107,8 +113,8 @@ export function CommandPalette() {
               hint: activeDocument.title,
               icon: <FolderInput className="h-4 w-4" />,
               run: () => {
-                setOpen(false)
-                setMovePickerOpen(true)
+                dispatch(setCommandPaletteOpen(false))
+                dispatch(setMoveDocumentPickerOpen(true))
               },
             },
           ]
@@ -129,7 +135,7 @@ export function CommandPalette() {
         icon: <Moon className="h-4 w-4" />,
         run: () => {
           const next = cycleThemeId(themeSettings.themeId)
-          applyTheme(createThemeSelection(themeSettings, next))
+          dispatch(setThemeSettings(createThemeSelection(themeSettings, next)))
         },
       },
       {
@@ -139,7 +145,7 @@ export function CommandPalette() {
         hint: 'Vygenerovať vlastnú paletu',
         icon: <Shuffle className="h-4 w-4" />,
         run: () => {
-          applyTheme(createCustomThemeSelection(themeSettings, generateRandomTheme()))
+          dispatch(setThemeSettings(createCustomThemeSelection(themeSettings, generateRandomTheme())))
         },
       },
       {
@@ -157,13 +163,13 @@ export function CommandPalette() {
             })
             if (!name) return
             const folder = await createFolder({ name })
-            setFolders((prev) => [...prev, folder])
+            dispatch(updateFolders((prev) => [...prev, folder]))
             toast.success('Priečinok vytvorený', folder.name)
           })()
         },
       },
     ],
-    [activeDocument, applyTheme, focusMode, navigate, setActiveDocument, setActiveId, setDocuments, setFocusMode, setFolders, setMovePickerOpen, setOpen, setTemplatePickerOpen, themeSettings],
+    [activeDocument, dispatch, focusMode, navigate, themeSettings],
   )
 
   const documentItems: PaletteItem[] = useMemo(
@@ -175,11 +181,11 @@ export function CommandPalette() {
         hint: hit.snippet.replace(/<\/?mark>/g, ''),
         icon: <FileText className="h-4 w-4" />,
         run: () => {
-          setActiveId(hit.documentId)
+          dispatch(setActiveDocumentId(hit.documentId))
           navigate(ROUTES.document(hit.documentId))
         },
       })),
-    [hits, navigate, setActiveId],
+    [dispatch, hits, navigate],
   )
 
   const filteredActions = useMemo(() => {
@@ -241,16 +247,16 @@ export function CommandPalette() {
       if (event.key === 'Enter' && items[selected]) {
         event.preventDefault()
         items[selected].run()
-        setOpen(false)
+        dispatch(setCommandPaletteOpen(false))
       }
     }
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [items, open, selected, setOpen])
+  }, [dispatch, items, open, selected])
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(next) => dispatch(setCommandPaletteOpen(next))}>
       {open && (
         <DialogContent className="top-[12vh] max-w-[560px] translate-y-0 gap-0 overflow-hidden p-0">
         <div className="flex items-center gap-2.5 border-b border-[var(--color-border)] px-4 py-3.5">
@@ -285,7 +291,7 @@ export function CommandPalette() {
                 onMouseEnter={() => setSelected(index)}
                 onClick={() => {
                   item.run()
-                  setOpen(false)
+                  dispatch(setCommandPaletteOpen(false))
                 }}
               >
                 <span className="text-[var(--color-muted-foreground)]">{item.icon}</span>

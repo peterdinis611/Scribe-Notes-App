@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Editor } from '@tiptap/react'
-import { useAtom, useAtomValue } from 'jotai'
 import { ArrowDown, ArrowUp, CaseSensitive, Replace, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { searchPluginKey } from '@/lib/editor/search-extension'
-import { findReplaceModeAtom, findReplaceOpenAtom } from '@/store/documents'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { setFindReplaceOpen } from '@/store/documentsSlice'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
@@ -13,8 +13,9 @@ type FindReplaceBarProps = {
 }
 
 export function FindReplaceBar({ editor }: FindReplaceBarProps) {
-  const [open, setOpen] = useAtom(findReplaceOpenAtom)
-  const mode = useAtomValue(findReplaceModeAtom)
+  const open = useAppSelector((state) => state.documents.findReplaceOpen)
+  const mode = useAppSelector((state) => state.documents.findReplaceMode)
+  const dispatch = useAppDispatch()
   const [term, setTerm] = useState('')
   const [replacement, setReplacement] = useState('')
   const [caseSensitive, setCaseSensitive] = useState(false)
@@ -75,10 +76,10 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
   }, [editor, open, term, caseSensitive, scrollToActive])
 
   const handleClose = useCallback(() => {
-    setOpen(false)
+    dispatch(setFindReplaceOpen(false))
     editor?.commands.clearSearch()
     editor?.commands.focus()
-  }, [editor, setOpen])
+  }, [dispatch, editor])
 
   const goNext = useCallback(() => {
     editor?.commands.findNext()

@@ -1,18 +1,19 @@
 import { useEffect } from 'react'
-import { useSetAtom } from 'jotai'
 import { fetchDocumentFresh } from '@/lib/db/api'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
-import { activeDocumentAtom, activeDocumentIdAtom, saveStatusAtom } from '@/store/documents'
-import { useAtomValue } from 'jotai'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import {
+  setActiveDocument,
+  setSaveStatus,
+} from '@/store/documentsSlice'
 
 export function useActiveDocumentLoader() {
-  const activeId = useAtomValue(activeDocumentIdAtom)
-  const setActiveDocument = useSetAtom(activeDocumentAtom)
-  const setSaveStatus = useSetAtom(saveStatusAtom)
+  const activeId = useAppSelector((state) => state.documents.activeDocumentId)
+  const dispatch = useAppDispatch()
 
   useEffect(() => {
     if (!activeId) {
-      setActiveDocument(null)
+      dispatch(setActiveDocument(null))
       return
     }
 
@@ -21,10 +22,10 @@ export function useActiveDocumentLoader() {
 
     const cached = peekCachedDocument(documentId)
     if (cached) {
-      setActiveDocument(cached)
-      setSaveStatus('saved')
+      dispatch(setActiveDocument(cached))
+      dispatch(setSaveStatus('saved'))
     } else {
-      setActiveDocument(null)
+      dispatch(setActiveDocument(null))
     }
 
     async function loadFresh() {
@@ -35,12 +36,12 @@ export function useActiveDocumentLoader() {
         const fresh = doc
 
         if (!cached || cached.updatedAt !== fresh.updatedAt) {
-          setActiveDocument(fresh)
+          dispatch(setActiveDocument(fresh))
         }
 
-        setSaveStatus('saved')
+        dispatch(setSaveStatus('saved'))
       } catch {
-        if (!cancelled && !cached) setSaveStatus('error')
+        if (!cancelled && !cached) dispatch(setSaveStatus('error'))
       }
     }
 
@@ -49,5 +50,5 @@ export function useActiveDocumentLoader() {
     return () => {
       cancelled = true
     }
-  }, [activeId, setActiveDocument, setSaveStatus])
+  }, [activeId, dispatch])
 }

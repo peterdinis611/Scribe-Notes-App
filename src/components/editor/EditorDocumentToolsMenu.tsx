@@ -8,15 +8,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { moveDocumentPickerOpenAtom } from '@/store/folders'
-import { useSetAtom } from 'jotai'
+import { useAppDispatch } from '@/store/hooks'
+import { setMoveDocumentPickerOpen } from '@/store/foldersSlice'
 
 type EditorDocumentToolsMenuProps = {
   viewMode: 'rich' | 'markdown'
 }
 
 export function EditorDocumentToolsMenu({ viewMode }: EditorDocumentToolsMenuProps) {
-  const setMovePickerOpen = useSetAtom(moveDocumentPickerOpenAtom)
+  const dispatch = useAppDispatch()
   const [pageSetupOpen, setPageSetupOpen] = useState(false)
 
   if (viewMode !== 'rich') return null
@@ -43,7 +43,7 @@ export function EditorDocumentToolsMenu({ viewMode }: EditorDocumentToolsMenuPro
             <FileText className="h-4 w-4 shrink-0" />
             Nastavenie stránky
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setMovePickerOpen(true)}>
+          <DropdownMenuItem onClick={() => dispatch(setMoveDocumentPickerOpen(true))}>
             <FolderInput className="h-4 w-4 shrink-0" />
             Presunúť do priečinka
           </DropdownMenuItem>

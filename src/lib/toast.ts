@@ -1,4 +1,5 @@
-import { atom, getDefaultStore } from 'jotai'
+import { store } from '@/store/index'
+import { dismissToast as dismissToastAction, pushToast } from '@/store/uiSlice'
 
 export type ToastVariant = 'default' | 'success' | 'error' | 'info'
 
@@ -9,8 +10,6 @@ export type ToastItem = {
   variant: ToastVariant
 }
 
-export const toastsAtom = atom<ToastItem[]>([])
-
 let toastCounter = 0
 
 type ToastInput = {
@@ -20,7 +19,7 @@ type ToastInput = {
   duration?: number
 }
 
-function pushToast(input: ToastInput): string {
+function pushToastItem(input: ToastInput): string {
   const id = `toast-${++toastCounter}-${Date.now()}`
   const toast: ToastItem = {
     id,
@@ -29,8 +28,7 @@ function pushToast(input: ToastInput): string {
     variant: input.variant ?? 'default',
   }
 
-  const store = getDefaultStore()
-  store.set(toastsAtom, (current) => [...current, toast])
+  store.dispatch(pushToast(toast))
 
   const duration = input.duration ?? 3500
   if (duration > 0) {
@@ -41,15 +39,16 @@ function pushToast(input: ToastInput): string {
 }
 
 export function dismissToast(id: string) {
-  getDefaultStore().set(toastsAtom, (current) => current.filter((item) => item.id !== id))
+  store.dispatch(dismissToastAction(id))
 }
 
 export const toast = {
-  show: (title: string, description?: string) => pushToast({ title, description }),
+  show: (title: string, description?: string) => pushToastItem({ title, description }),
   success: (title: string, description?: string) =>
-    pushToast({ title, description, variant: 'success' }),
-  error: (title: string, description?: string) => pushToast({ title, description, variant: 'error' }),
-  info: (title: string, description?: string) => pushToast({ title, description, variant: 'info' }),
+    pushToastItem({ title, description, variant: 'success' }),
+  error: (title: string, description?: string) =>
+    pushToastItem({ title, description, variant: 'error' }),
+  info: (title: string, description?: string) => pushToastItem({ title, description, variant: 'info' }),
 }
 
 export function fileBasename(path: string): string {

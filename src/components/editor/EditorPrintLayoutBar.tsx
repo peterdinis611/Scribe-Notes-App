@@ -1,15 +1,12 @@
-import { useAtom, useSetAtom } from 'jotai'
 import { Columns2, FileText, LayoutGrid, Minus, Plus, Printer, Rows2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
-  printLayoutColumnsAtom,
-  printLayoutEnabledAtom,
-  printZoomAtom,
-  setPrintLayoutColumnsAtom,
-  setPrintLayoutEnabledAtom,
-  setPrintZoomAtom,
-} from '@/store/settings'
+  setPrintLayoutColumns,
+  setPrintLayoutEnabled,
+  setPrintZoom,
+} from '@/store/settingsSlice'
 
 type EditorPrintLayoutBarProps = {
   onPrint: () => void
@@ -17,15 +14,14 @@ type EditorPrintLayoutBarProps = {
 }
 
 export function EditorPrintLayoutBar({ onPrint, onOpenPageSetup }: EditorPrintLayoutBarProps) {
-  const [printLayoutEnabled] = useAtom(printLayoutEnabledAtom)
-  const [printZoom] = useAtom(printZoomAtom)
-  const [printColumns] = useAtom(printLayoutColumnsAtom)
-  const setPrintLayoutEnabled = useSetAtom(setPrintLayoutEnabledAtom)
-  const setPrintZoom = useSetAtom(setPrintZoomAtom)
-  const setPrintColumns = useSetAtom(setPrintLayoutColumnsAtom)
+  const printLayoutEnabled = useAppSelector((state) => state.settings.printLayoutEnabled)
+  const printZoom = useAppSelector((state) => state.settings.printZoom)
+  const printColumns = useAppSelector((state) => state.settings.printLayoutColumns)
+  const dispatch = useAppDispatch()
 
   function adjustZoom(delta: number) {
-    setPrintZoom(Math.min(1, Math.max(0.5, Number((printZoom + delta).toFixed(2)))))
+    const next = Math.min(1, Math.max(0.5, Number((printZoom + delta).toFixed(2))))
+    dispatch(setPrintZoom(next))
   }
 
   return (
@@ -35,7 +31,7 @@ export function EditorPrintLayoutBar({ onPrint, onOpenPageSetup }: EditorPrintLa
           type="button"
           className={cn('editor-print-mode-toggle', printLayoutEnabled && 'is-active')}
           aria-pressed={printLayoutEnabled}
-          onClick={() => setPrintLayoutEnabled(!printLayoutEnabled)}
+          onClick={() => dispatch(setPrintLayoutEnabled(!printLayoutEnabled))}
         >
           <LayoutGrid className="h-4 w-4 shrink-0" />
           <span>Rozloženie strán</span>
@@ -60,7 +56,7 @@ export function EditorPrintLayoutBar({ onPrint, onOpenPageSetup }: EditorPrintLa
                 className={cn('editor-print-bar-segment', printColumns === 1 && 'is-active')}
                 title="Jeden stĺpec"
                 aria-pressed={printColumns === 1}
-                onClick={() => setPrintColumns(1)}
+                onClick={() => dispatch(setPrintLayoutColumns(1))}
               >
                 <Rows2 className="h-3.5 w-3.5" />
               </button>
@@ -69,7 +65,7 @@ export function EditorPrintLayoutBar({ onPrint, onOpenPageSetup }: EditorPrintLa
                 className={cn('editor-print-bar-segment', printColumns === 2 && 'is-active')}
                 title="Dva stĺpce (spred)"
                 aria-pressed={printColumns === 2}
-                onClick={() => setPrintColumns(2)}
+                onClick={() => dispatch(setPrintLayoutColumns(2))}
               >
                 <Columns2 className="h-3.5 w-3.5" />
               </button>

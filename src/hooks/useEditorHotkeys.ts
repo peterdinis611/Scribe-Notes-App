@@ -1,20 +1,19 @@
 import { useHotkeys } from '@tanstack/react-hotkeys'
-import { useSetAtom } from 'jotai'
 import type { Editor } from '@tiptap/react'
 import { insertBulletList, insertOrderedList, insertTaskList } from '@/lib/editor/list-commands'
-import { findReplaceModeAtom, findReplaceOpenAtom } from '@/store/documents'
+import { useAppDispatch } from '@/store/hooks'
+import { setFindReplaceMode, setFindReplaceOpen } from '@/store/documentsSlice'
 
 export function useEditorHotkeys(editor: Editor | null) {
-  const setFindReplaceOpen = useSetAtom(findReplaceOpenAtom)
-  const setFindReplaceMode = useSetAtom(findReplaceModeAtom)
+  const dispatch = useAppDispatch()
 
   useHotkeys(
     [
       {
         hotkey: 'Mod+F',
         callback: () => {
-          setFindReplaceMode('find')
-          setFindReplaceOpen(true)
+          dispatch(setFindReplaceMode('find'))
+          dispatch(setFindReplaceOpen(true))
         },
         options: {
           enabled: !!editor,
@@ -24,8 +23,8 @@ export function useEditorHotkeys(editor: Editor | null) {
       {
         hotkey: 'Mod+H',
         callback: () => {
-          setFindReplaceMode('replace')
-          setFindReplaceOpen(true)
+          dispatch(setFindReplaceMode('replace'))
+          dispatch(setFindReplaceOpen(true))
         },
         options: {
           enabled: !!editor,
@@ -35,8 +34,8 @@ export function useEditorHotkeys(editor: Editor | null) {
       {
         hotkey: 'Mod+Alt+F',
         callback: () => {
-          setFindReplaceMode('replace')
-          setFindReplaceOpen(true)
+          dispatch(setFindReplaceMode('replace'))
+          dispatch(setFindReplaceOpen(true))
         },
         options: {
           enabled: !!editor,

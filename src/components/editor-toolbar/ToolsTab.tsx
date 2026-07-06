@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Editor } from '@tiptap/react'
 import { useEditorState } from '@tiptap/react'
-import { useAtomValue, useSetAtom } from 'jotai'
 import { Eye, EyeOff, History, Redo, SpellCheck, Trash2, Undo } from 'lucide-react'
 import {
   DropdownMenu,
@@ -22,15 +21,14 @@ import { listDocumentRevisions, restoreDocumentRevision, type DocumentRevision }
 import { cacheDocument } from '@/lib/cache/document-cache'
 import { cn, formatRelativeTime } from '@/lib/utils'
 import { toast } from '@/lib/toast'
-import { activeDocumentAtom, activeDocumentIdAtom, documentsAtom } from '@/store/documents'
-import { setSpellCheckEnabledAtom, spellCheckEnabledAtom } from '@/store/settings'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { setActiveDocument, updateDocuments } from '@/store/documentsSlice'
+import { setSpellCheckEnabled } from '@/store/settingsSlice'
 
 export function ToolsTab({ editor }: { editor: Editor }) {
-  const activeId = useAtomValue(activeDocumentIdAtom)
-  const spellCheckEnabled = useAtomValue(spellCheckEnabledAtom)
-  const setSpellCheckEnabled = useSetAtom(setSpellCheckEnabledAtom)
-  const setActiveDocument = useSetAtom(activeDocumentAtom)
-  const setDocuments = useSetAtom(documentsAtom)
+  const activeId = useAppSelector((state) => state.documents.activeDocumentId)
+  const spellCheckEnabled = useAppSelector((state) => state.settings.spellCheckEnabled)
+  const dispatch = useAppDispatch()
   const [revisions, setRevisions] = useState<DocumentRevision[]>([])
 
   const deleteState = useEditorState({
@@ -56,17 +54,19 @@ export function ToolsTab({ editor }: { editor: Editor }) {
   async function handleRestoreRevision(revisionId: string) {
     try {
       const restored = cacheDocument(await restoreDocumentRevision(revisionId))
-      setActiveDocument(restored)
-      setDocuments((prev) =>
-        prev.map((item) =>
-          item.id === restored.id
-            ? {
-                ...item,
-                title: restored.title,
-                filePath: restored.filePath,
-                updatedAt: restored.updatedAt,
-              }
-            : item,
+      dispatch(setActiveDocument(restored))
+      dispatch(
+        updateDocuments((prev) =>
+          prev.map((item) =>
+            item.id === restored.id
+              ? {
+                  ...item,
+                  title: restored.title,
+                  filePath: restored.filePath,
+                  updatedAt: restored.updatedAt,
+                }
+              : item,
+          ),
         ),
       )
       editor.commands.setContent(JSON.parse(restored.contentJson), { emitUpdate: false })
@@ -169,7 +169,7 @@ export function ToolsTab({ editor }: { editor: Editor }) {
         <ToolbarButton
           label={spellCheckEnabled ? 'Vypnúť kontrolu pravopisu' : 'Zapnúť kontrolu pravopisu'}
           active={spellCheckEnabled}
-          onClick={() => setSpellCheckEnabled(!spellCheckEnabled)}
+          onClick={() => dispatch(setSpellCheckEnabled(!spellCheckEnabled))}
         >
           <SpellCheck className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>

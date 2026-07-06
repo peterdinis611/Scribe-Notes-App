@@ -1,4 +1,3 @@
-import { useAtomValue, useSetAtom } from 'jotai'
 import { lazy, Suspense, useMemo, useState } from 'react'
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 import {
@@ -16,21 +15,23 @@ import { SidebarToggle } from '@/components/SidebarToggle'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { exportDocument, pickAndImportFile, revealInFinder } from '@/lib/db/api'
+import { getCachedParsedContent } from '@/lib/cache/document-cache'
 import { fileBasename, toast } from '@/lib/toast'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { tiptapJsonToHtml } from '@/lib/export/html'
 import { tiptapJsonToMarkdown } from '@/lib/export/markdown'
 import { tiptapToPlainText } from '@/lib/export/plain-text'
 import { ROUTES, SETTINGS_SECTIONS } from '@/lib/routes'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { editorRefs } from '@/store/editorRefs'
 import {
-  activeDocumentAtom,
-  activeDocumentIdAtom,
-  documentsAtom,
-  editorPrintHandlerAtom,
-  focusModeAtom,
-  saveStatusAtom,
-} from '@/store/documents'
-import { editorViewModeAtom, pageSetupAtom, templatePickerOpenAtom } from '@/store/settings'
+  setActiveDocument,
+  setActiveDocumentId,
+  setSaveStatus,
+  updateDocuments,
+} from '@/store/documentsSlice'
+import { setTemplatePickerOpen } from '@/store/settingsSlice'
+import { setSaveCustomTemplateDialog } from '@/store/templatesSlice'
 
 const PdfPreviewDialog = lazy(() =>
   import('@/components/export/PdfPreviewDialog').then((module) => ({
@@ -39,7 +40,7 @@ const PdfPreviewDialog = lazy(() =>
 )
 
 function SaveStatus() {
-  const status = useAtomValue(saveStatusAtom)
+  const status = useAppSelector((state) => state.documents.saveStatus)
 
   if (status === 'saving') {
     return (
@@ -96,15 +97,10 @@ function SettingsChrome() {
 }
 
 function EditorChrome() {
-  const document = useAtomValue(activeDocumentAtom)
-  const pageSetup = useAtomValue(pageSetupAtom)
-  const viewMode = useAtomValue(editorViewModeAtom)
-  const printHandler = useAtomValue(editorPrintHandlerAtom)
-  const setActiveId = useSetAtom(activeDocumentIdAtom)
-  const setActiveDocument = useSetAtom(activeDocumentAtom)
-  const setDocuments = useSetAtom(documentsAtom)
-  const setSaveStatus = useSetAtom(saveStatusAtom)
-  const setTemplatePickerOpen = useSetAtom(templatePickerOpenAtom)
+  const document = useAppSelector((state) => state.documents.activeDocument)
+  const pageSetup = useAppSelector((state) => state.settings.pageSetup)
+  const viewMode = useAppSelector((state) => state.settings.editorViewMode)
+  const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false)
 
@@ -136,10 +132,10 @@ function EditorChrome() {
   async function handleImport() {
     const doc = await pickAndImportFile()
     if (!doc) return
-    setDocuments((prev) => prependDocumentSummary(prev, doc))
-    setActiveId(doc.id)
-    setActiveDocument(doc)
-    setSaveStatus('saved')
+    dispatch(updateDocuments((prev) => prependDocumentSummary(prev, doc)))
+    dispatch(setActiveDocumentId(doc.id))
+    dispatch(setActiveDocument(doc))
+    dispatch(setSaveStatus('saved'))
     toast.success('Dokument importovaný', doc.title)
     navigate(ROUTES.document(doc.id))
   }
@@ -150,13 +146,25 @@ function EditorChrome() {
     }
   }
 
+  function handleSaveAsTemplate() {
+    if (!document) return
+    dispatch(
+      setSaveCustomTemplateDialog({
+        open: true,
+        content: getCachedParsedContent(document),
+        suggestedName: document.title,
+        suggestedTitle: document.title,
+      }),
+    )
+  }
+
   return (
     <>
       <header className="app-chrome editor-header titlebar-drag [[data-sidebar-drawer=true]_&]:pl-[78px]">
         <div className="editor-header-left titlebar-no-drag titlebar-interactive flex min-w-0 flex-1 items-center justify-start gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0">
           <SidebarToggle />
           {document && (
-            <Button variant="default" size="sm" onClick={() => setTemplatePickerOpen(true)}>
+            <Button variant="default" size="sm" onClick={() => dispatch(setTemplatePickerOpen(true))}>
               <Plus className="h-3.5 w-3.5 shrink-0" />
               <span className="editor-header-label [[data-layout-tier=medium]_&]:hidden [[data-layout-tier=narrow]_&]:hidden [[data-layout-tier=tight]_&]:hidden">
                 Nový
@@ -169,7 +177,8 @@ function EditorChrome() {
               onImport={() => void handleImport()}
               onRevealFile={() => void handleRevealFile()}
               onPdfPreview={() => setPdfPreviewOpen(true)}
-              onPrint={printHandler ?? undefined}
+              onPrint={editorRefs.printHandler ?? undefined}
+              onSaveAsTemplate={handleSaveAsTemplate}
               onExport={(format) => void handleExport(format)}
             />
           )}
@@ -211,7 +220,7 @@ function EditorChrome() {
 
 export function AppHeader() {
   const pathname = useRouterState({ select: (state) => state.location.pathname })
-  const focusMode = useAtomValue(focusModeAtom)
+  const focusMode = useAppSelector((state) => state.documents.focusMode)
 
   if (focusMode) return null
   if (pathname.startsWith('/settings')) return <SettingsChrome />

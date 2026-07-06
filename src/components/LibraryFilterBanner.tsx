@@ -1,13 +1,14 @@
-import { useAtom } from 'jotai'
 import { Star, Tag as TagIcon, X } from 'lucide-react'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
-  activeTagFilterAtom,
-  favoritesOnlyFilterAtom,
-} from '@/store/documents'
+  setActiveTagFilter,
+  setFavoritesOnlyFilter,
+} from '@/store/documentsSlice'
 
 export function LibraryFilterBanner() {
-  const [favoritesOnly, setFavoritesOnly] = useAtom(favoritesOnlyFilterAtom)
-  const [activeTagFilter, setTagFilter] = useAtom(activeTagFilterAtom)
+  const favoritesOnly = useAppSelector((state) => state.documents.favoritesOnlyFilter)
+  const activeTagFilter = useAppSelector((state) => state.documents.activeTagFilter)
+  const dispatch = useAppDispatch()
 
   if (!favoritesOnly && !activeTagFilter) return null
 
@@ -30,8 +31,8 @@ export function LibraryFilterBanner() {
         type="button"
         className="library-filter-clear"
         onClick={() => {
-          setFavoritesOnly(false)
-          setTagFilter(null)
+          dispatch(setFavoritesOnlyFilter(false))
+          dispatch(setActiveTagFilter(null))
         }}
         aria-label="Zrušiť filter"
       >

@@ -1,6 +1,5 @@
 import { getVersion } from '@tauri-apps/api/app'
 import { confirm } from '@tauri-apps/plugin-dialog'
-import { useAtom, useSetAtom } from 'jotai'
 import { FolderOpen, FolderSearch, Shuffle, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -24,37 +23,36 @@ import {
 } from '@/lib/db/api'
 import { toast } from '@/lib/toast'
 import type { SettingsSection as SettingsSectionId } from '@/lib/routes'
-import {
-  activeDocumentAtom,
-  activeDocumentIdAtom,
-  documentsAtom,
-  saveStatusAtom,
-} from '@/store/documents'
 import { cn } from '@/lib/utils'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
-  applyThemeSettingsAtom,
+  setActiveDocument,
+  setActiveDocumentId,
+  setDocuments,
+  setSaveStatus,
+} from '@/store/documentsSlice'
+import { setStorageSettings, setThemeSettings } from '@/store/settingsSlice'
+import {
   createCustomThemeSelection,
   createResetCustomTheme,
   createThemeSelection,
-  storageSettingsAtom,
-  themeSettingsAtom,
-} from '@/store/settings'
+} from '@/store/settings-helpers'
 
 export function AppearanceSection() {
-  const [themeSettings] = useAtom(themeSettingsAtom)
-  const applyTheme = useSetAtom(applyThemeSettingsAtom)
+  const themeSettings = useAppSelector((state) => state.settings.themeSettings)
+  const dispatch = useAppDispatch()
 
   function chooseTheme(themeId: ThemePresetId) {
-    applyTheme(createThemeSelection(themeSettings, themeId))
+    dispatch(setThemeSettings(createThemeSelection(themeSettings, themeId)))
   }
 
   function patchCustomTheme(key: keyof ThemeColors, value: string) {
     const base = themeSettings.customTheme ?? THEME_PRESETS[0].colors
-    applyTheme(createCustomThemeSelection(themeSettings, { ...base, [key]: value }))
+    dispatch(setThemeSettings(createCustomThemeSelection(themeSettings, { ...base, [key]: value })))
   }
 
   function applyRandomTheme() {
-    applyTheme(createCustomThemeSelection(themeSettings, generateRandomTheme()))
+    dispatch(setThemeSettings(createCustomThemeSelection(themeSettings, generateRandomTheme())))
   }
 
   const customTheme = themeSettings.customTheme ?? THEME_PRESETS[0].colors
@@ -110,7 +108,7 @@ export function AppearanceSection() {
             description="Upravte jednotlivé farby rozhrania."
             actions={
               <div className="flex shrink-0 gap-2">
-                <Button variant="ghost" size="sm" onClick={() => applyTheme(createResetCustomTheme(themeSettings))}>
+                <Button variant="ghost" size="sm" onClick={() => dispatch(setThemeSettings(createResetCustomTheme(themeSettings)))}>
                   Reset
                 </Button>
                 <Button variant="outline" size="sm" onClick={applyRandomTheme}>
@@ -146,25 +144,22 @@ export function AppearanceSection() {
 }
 
 export function StorageSection() {
-  const [settings, setSettings] = useAtom(storageSettingsAtom)
-  const setDocuments = useSetAtom(documentsAtom)
-  const setActiveId = useSetAtom(activeDocumentIdAtom)
-  const setActiveDocument = useSetAtom(activeDocumentAtom)
-  const setSaveStatus = useSetAtom(saveStatusAtom)
+  const settings = useAppSelector((state) => state.settings.storageSettings)
+  const dispatch = useAppDispatch()
   const [clearing, setClearing] = useState(false)
   const [reconciling, setReconciling] = useState(false)
   const [reconcileMessage, setReconcileMessage] = useState<string | null>(null)
 
   useEffect(() => {
     getStorageSettings()
-      .then(setSettings)
+      .then((value) => dispatch(setStorageSettings(value)))
       .catch(() => undefined)
-  }, [setSettings])
+  }, [dispatch])
 
   async function handlePickFolder() {
     const result = await pickDocumentsDirectory()
     if (result) {
-      setSettings(result)
+      dispatch(setStorageSettings(result))
       const shortPath = result.documentsDir.replace(/^\/Users\/[^/]+/, '~')
       toast.success('Priečinok dokumentov zmenený', shortPath)
     }
@@ -203,10 +198,10 @@ export function StorageSection() {
     setClearing(true)
     try {
       await clearAllDocuments()
-      setDocuments([])
-      setActiveId(null)
-      setActiveDocument(null)
-      setSaveStatus('saved')
+      dispatch(setDocuments([]))
+      dispatch(setActiveDocumentId(null))
+      dispatch(setActiveDocument(null))
+      dispatch(setSaveStatus('saved'))
       toast.success('Všetky dokumenty vymazané')
     } finally {
       setClearing(false)

@@ -1,16 +1,15 @@
 import { useMemo } from 'react'
-import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { useNavigate } from '@tanstack/react-router'
 import { Clock, FileText, Tag as TagIcon } from 'lucide-react'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { ROUTES } from '@/lib/routes'
 import { cn, formatRelativeTime } from '@/lib/utils'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
-  activeDocumentAtom,
-  activeDocumentIdAtom,
-  activeTagFilterAtom,
-  documentsAtom,
-} from '@/store/documents'
+  setActiveDocument,
+  setActiveDocumentId,
+  setActiveTagFilter,
+} from '@/store/documentsSlice'
 
 type LibraryTagsViewProps = {
   onNavigate?: () => void
@@ -22,11 +21,10 @@ type TagStat = {
 }
 
 export function LibraryTagsView({ onNavigate }: LibraryTagsViewProps) {
-  const documents = useAtomValue(documentsAtom)
-  const activeId = useAtomValue(activeDocumentIdAtom)
-  const [activeTagFilter, setTagFilter] = useAtom(activeTagFilterAtom)
-  const setActiveId = useSetAtom(activeDocumentIdAtom)
-  const setActiveDocument = useSetAtom(activeDocumentAtom)
+  const documents = useAppSelector((state) => state.documents.documents)
+  const activeId = useAppSelector((state) => state.documents.activeDocumentId)
+  const activeTagFilter = useAppSelector((state) => state.documents.activeTagFilter)
+  const dispatch = useAppDispatch()
   const navigate = useNavigate()
 
   const tagStats = useMemo(() => {
@@ -49,9 +47,9 @@ export function LibraryTagsView({ onNavigate }: LibraryTagsViewProps) {
   }, [activeTagFilter, documents])
 
   function openDocument(id: string) {
-    setActiveId(id)
+    dispatch(setActiveDocumentId(id))
     const cached = peekCachedDocument(id)
-    if (cached) setActiveDocument(cached)
+    if (cached) dispatch(setActiveDocument(cached))
     navigate(ROUTES.document(id))
     onNavigate?.()
   }
@@ -81,7 +79,7 @@ export function LibraryTagsView({ onNavigate }: LibraryTagsViewProps) {
               type="button"
               className={cn('library-tag-chip', isActive && 'is-active')}
               aria-pressed={isActive}
-              onClick={() => setTagFilter(isActive ? null : name)}
+              onClick={() => dispatch(setActiveTagFilter(isActive ? null : name))}
             >
               <span className="library-tag-chip-name">{name}</span>
               <span className="library-tag-chip-count">{count}</span>

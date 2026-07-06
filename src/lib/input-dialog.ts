@@ -1,26 +1,14 @@
-import { atom, getDefaultStore } from 'jotai'
+import { store } from '@/store/index'
+import { setInputDialog, type InputDialogOptions, type InputDialogState } from '@/store/uiSlice'
 
-export type InputDialogOptions = {
-  title: string
-  description?: string
-  defaultValue?: string
-  placeholder?: string
-  confirmLabel?: string
-  cancelLabel?: string
-}
-
-export type InputDialogState =
-  | ({ open: true } & InputDialogOptions)
-  | { open: false }
-
-export const inputDialogAtom = atom<InputDialogState>({ open: false })
+export type { InputDialogOptions, InputDialogState }
 
 let pendingResolve: ((value: string | null) => void) | null = null
 
 export function resolveInputDialog(value: string | null) {
   pendingResolve?.(value)
   pendingResolve = null
-  getDefaultStore().set(inputDialogAtom, { open: false })
+  store.dispatch(setInputDialog({ open: false }))
 }
 
 export function promptInput(options: InputDialogOptions): Promise<string | null> {
@@ -29,6 +17,6 @@ export function promptInput(options: InputDialogOptions): Promise<string | null>
       pendingResolve(null)
     }
     pendingResolve = resolve
-    getDefaultStore().set(inputDialogAtom, { open: true, ...options })
+    store.dispatch(setInputDialog({ open: true, ...options }))
   })
 }

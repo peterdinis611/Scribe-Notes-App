@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useAtom, useSetAtom } from 'jotai'
 import { confirm } from '@tauri-apps/plugin-dialog'
 import { RotateCcw, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -21,12 +20,13 @@ import {
 } from '@/lib/db/api'
 import { toast } from '@/lib/toast'
 import { formatRelativeTime } from '@/lib/utils'
-import { documentsAtom, trashOpenAtom } from '@/store/documents'
 import { documentToSummary } from '@/lib/db/library-sync'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { setTrashOpen, updateDocuments } from '@/store/documentsSlice'
 
 export function TrashDialog() {
-  const [open, setOpen] = useAtom(trashOpenAtom)
-  const setDocuments = useSetAtom(documentsAtom)
+  const open = useAppSelector((state) => state.documents.trashOpen)
+  const dispatch = useAppDispatch()
   const [items, setItems] = useState<DocumentSummary[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -48,16 +48,18 @@ export function TrashDialog() {
         await restoreDocument(item.id)
         setItems((prev) => prev.filter((doc) => doc.id !== item.id))
         const fresh = await fetchDocumentFresh(item.id)
-        setDocuments((prev) => {
-          const summary = documentToSummary(fresh, { ...item, deletedAt: null })
-          return [summary, ...prev.filter((doc) => doc.id !== item.id)]
-        })
+        dispatch(
+          updateDocuments((prev) => {
+            const summary = documentToSummary(fresh, { ...item, deletedAt: null })
+            return [summary, ...prev.filter((doc) => doc.id !== item.id)]
+          }),
+        )
         toast.success('Dokument obnovený', item.title)
       } catch (error) {
         toast.error('Nepodarilo sa obnoviť dokument', String(error))
       }
     },
-    [setDocuments],
+    [dispatch],
   )
 
   const handlePurge = useCallback(async (item: DocumentSummary) => {
@@ -91,7 +93,7 @@ export function TrashDialog() {
   }, [items.length])
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(next) => dispatch(setTrashOpen(next))}>
       {open && (
         <DialogContent className="max-w-lg p-0" showClose>
         <DialogHeader className="border-b border-[var(--color-border)] px-5 pb-4 pt-5">

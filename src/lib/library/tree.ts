@@ -38,14 +38,14 @@ export function buildTree(folders: Folder[], documents: DocumentSummary[]): Tree
   return roots
 }
 
-export function flattenTree(nodes: TreeNode[], expandedIds: ReadonlySet<string>, depth = 0): FlatTreeItem[] {
+export function flattenTree(nodes: TreeNode[], expandedIds: readonly string[], depth = 0): FlatTreeItem[] {
   const items: FlatTreeItem[] = []
 
   for (const node of nodes) {
     if (node.type === 'folder') {
       const hasChildren = node.children.length > 0
       items.push({ type: 'folder', folder: node.folder, depth, hasChildren })
-      if (hasChildren && expandedIds.has(node.folder.id)) {
+      if (hasChildren && expandedIds.includes(node.folder.id)) {
         items.push(...flattenTree(node.children, expandedIds, depth + 1))
       }
       continue

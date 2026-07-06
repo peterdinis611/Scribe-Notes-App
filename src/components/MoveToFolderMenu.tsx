@@ -1,5 +1,4 @@
 import { useMemo, useState, type ReactNode } from 'react'
-import { useAtomValue } from 'jotai'
 import { Check, Folder, FolderInput } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -18,7 +17,7 @@ import {
 } from '@/components/ui/dialog'
 import { useMoveDocumentToFolder } from '@/hooks/useMoveDocumentToFolder'
 import { flattenFoldersForPicker } from '@/lib/library/folders'
-import { foldersAtom } from '@/store/folders'
+import { useAppSelector } from '@/store/hooks'
 
 type MoveToFolderMenuProps = {
   documentId: string
@@ -33,7 +32,7 @@ export function MoveToFolderMenu({
   trigger,
   onMoved,
 }: MoveToFolderMenuProps) {
-  const folders = useAtomValue(foldersAtom)
+  const folders = useAppSelector((state) => state.folders.folders)
   const moveDocument = useMoveDocumentToFolder()
   const [open, setOpen] = useState(false)
 
@@ -108,7 +107,7 @@ export function MoveToFolderDialog({
   folderId,
   onOpenChange,
 }: MoveToFolderDialogProps) {
-  const folders = useAtomValue(foldersAtom)
+  const folders = useAppSelector((state) => state.folders.folders)
   const moveDocument = useMoveDocumentToFolder()
   const folderItems = useMemo(() => flattenFoldersForPicker(folders), [folders])
 

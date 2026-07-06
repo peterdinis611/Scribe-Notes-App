@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import type { Editor } from '@tiptap/react'
-import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { useNavigate } from '@tanstack/react-router'
 import { DocumentOutlinePanel } from '@/components/editor/DocumentOutlinePanel'
 import { RevisionHistoryPanel } from '@/components/editor/RevisionHistoryPanel'
@@ -35,55 +34,36 @@ import { insertImagesFromFiles } from '@/lib/editor/image-utils'
 import { printDocumentFromContent } from '@/lib/export/print-document'
 import { ROUTES } from '@/lib/routes'
 import { cn } from '@/lib/utils'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { editorRefs } from '@/store/editorRefs'
 import {
-  activeDocumentAtom,
-  activeDocumentIdAtom,
-  backlinksPanelOpenAtom,
-  commentsPanelOpenAtom,
-  documentOutlineOpenAtom,
-  documentsAtom,
-  editorPrintHandlerAtom,
-  focusModeAtom,
-  manualTitleDocumentIdsAtom,
-  revisionHistoryOpenAtom,
-  saveStatusAtom,
-  statsPanelOpenAtom,
-} from '@/store/documents'
-import {
-  editorModeActionsAtom,
-  editorViewModeAtom,
-  pageSetupAtom,
-  printLayoutColumnsAtom,
-  printLayoutEnabledAtom,
-  printZoomAtom,
-  setEditorViewModeAtom,
-  spellCheckEnabledAtom,
-} from '@/store/settings'
+  setActiveDocumentId,
+  setBacklinksPanelOpen,
+  setCommentsPanelOpen,
+  setDocumentOutlineOpen,
+  setRevisionHistoryOpen,
+  setSaveStatus,
+  setStatsPanelOpen,
+} from '@/store/documentsSlice'
+import { setEditorViewMode } from '@/store/settingsSlice'
 
 export function DocumentEditor() {
-  const [activeId] = useAtom(activeDocumentIdAtom)
-  const setActiveId = useSetAtom(activeDocumentIdAtom)
+  const activeId = useAppSelector((state) => state.documents.activeDocumentId)
+  const dispatch = useAppDispatch()
   const navigate = useNavigate()
-  const [activeDocument, setActiveDocument] = useAtom(activeDocumentAtom)
-  const manualTitleIds = useAtomValue(manualTitleDocumentIdsAtom)
-  const setDocuments = useSetAtom(documentsAtom)
-  const setSaveStatus = useSetAtom(saveStatusAtom)
-  const viewMode = useAtomValue(editorViewModeAtom)
-  const persistViewMode = useSetAtom(setEditorViewModeAtom)
-  const setEditorModeActions = useSetAtom(editorModeActionsAtom)
-  const outlineOpen = useAtomValue(documentOutlineOpenAtom)
-  const historyOpen = useAtomValue(revisionHistoryOpenAtom)
-  const [commentsOpen, setCommentsOpen] = useAtom(commentsPanelOpenAtom)
-  const [statsOpen, setStatsOpen] = useAtom(statsPanelOpenAtom)
-  const [backlinksOpen, setBacklinksOpen] = useAtom(backlinksPanelOpenAtom)
-  const focusMode = useAtomValue(focusModeAtom)
-  const setPrintHandler = useSetAtom(editorPrintHandlerAtom)
-  const setOutlineOpen = useSetAtom(documentOutlineOpenAtom)
-  const setHistoryOpen = useSetAtom(revisionHistoryOpenAtom)
+  const activeDocument = useAppSelector((state) => state.documents.activeDocument)
+  const manualTitleIds = useAppSelector((state) => state.documents.manualTitleDocumentIds)
+  const viewMode = useAppSelector((state) => state.settings.editorViewMode)
+  const outlineOpen = useAppSelector((state) => state.documents.documentOutlineOpen)
+  const historyOpen = useAppSelector((state) => state.documents.revisionHistoryOpen)
+  const commentsOpen = useAppSelector((state) => state.documents.commentsPanelOpen)
+  const statsOpen = useAppSelector((state) => state.documents.statsPanelOpen)
+  const backlinksOpen = useAppSelector((state) => state.documents.backlinksPanelOpen)
+  const focusMode = useAppSelector((state) => state.documents.focusMode)
   const [markdownDraft, setMarkdownDraft] = useState('')
   const [pageSetupOpen, setPageSetupOpen] = useState(false)
   const activeDocumentRef = useRef(activeDocument)
-  const manualTitleIdsRef = useRef(manualTitleIds)
+  const manualTitleIdsRef = useRef(new Set(manualTitleIds))
   const editorRef = useRef<Editor | null>(null)
   const markdownDraftRef = useRef('')
   const queueSaveRef = useRef<(docId: string) => void>(() => {})
@@ -91,7 +71,7 @@ export function DocumentEditor() {
   const viewModeRef = useRef(viewMode)
 
   activeDocumentRef.current = activeDocument
-  manualTitleIdsRef.current = manualTitleIds
+  manualTitleIdsRef.current = new Set(manualTitleIds)
   activeIdRef.current = activeId
   viewModeRef.current = viewMode
 
@@ -121,11 +101,11 @@ export function DocumentEditor() {
     [],
   )
 
-  const pageSetup = useAtomValue(pageSetupAtom)
-  const spellCheckEnabled = useAtomValue(spellCheckEnabledAtom)
-  const printLayoutEnabled = useAtomValue(printLayoutEnabledAtom)
-  const printZoom = useAtomValue(printZoomAtom)
-  const printColumns = useAtomValue(printLayoutColumnsAtom)
+  const pageSetup = useAppSelector((state) => state.settings.pageSetup)
+  const spellCheckEnabled = useAppSelector((state) => state.settings.spellCheckEnabled)
+  const printLayoutEnabled = useAppSelector((state) => state.settings.printLayoutEnabled)
+  const printZoom = useAppSelector((state) => state.settings.printZoom)
+  const printColumns = useAppSelector((state) => state.settings.printLayoutColumns)
   const normalizedPageSetup = useMemo(() => normalizePageSetup(pageSetup), [pageSetup])
   const pageLayout = useMemo(() => resolvePageLayout(pageSetup), [pageSetup])
   const paper = PAPER_SIZES[normalizedPageSetup.paperSize]
@@ -157,12 +137,14 @@ export function DocumentEditor() {
     markdownDraftRef,
     manualTitleIdsRef,
     activeDocumentRef,
-    setActiveDocument,
-    setDocuments,
-    setSaveStatus,
   })
 
   queueSaveRef.current = queueSave
+
+  const persistViewMode = useCallback(
+    (mode: 'rich' | 'markdown') => dispatch(setEditorViewMode(mode)),
+    [dispatch],
+  )
 
   const switchToMarkdown = useCallback(() => {
     if (!editor) return
@@ -195,13 +177,15 @@ export function DocumentEditor() {
   )
 
   useEffect(() => {
-    setEditorModeActions({
+    editorRefs.modeActions = {
       viewMode,
       switchToMarkdown,
       switchToRich,
-    })
-    return () => setEditorModeActions(null)
-  }, [setEditorModeActions, switchToMarkdown, switchToRich, viewMode])
+    }
+    return () => {
+      editorRefs.modeActions = null
+    }
+  }, [switchToMarkdown, switchToRich, viewMode])
 
   useEditorHotkeys(editor)
 
@@ -221,12 +205,12 @@ export function DocumentEditor() {
       event.preventDefault()
       const targetId = anchor.getAttribute('data-target-id')
       if (!targetId) return
-      setActiveId(targetId)
+      dispatch(setActiveDocumentId(targetId))
       navigate(ROUTES.document(targetId))
     }
     dom.addEventListener('click', handleClick)
     return () => dom.removeEventListener('click', handleClick)
-  }, [editor, navigate, setActiveId])
+  }, [editor, navigate, dispatch])
 
   const {
     scrollRef,
@@ -285,8 +269,8 @@ export function DocumentEditor() {
     const markdown = getEditorMarkdown(editor)
     markdownDraftRef.current = markdown
     setMarkdownDraft(markdown)
-    setSaveStatus('saved')
-  }, [activeDocument, activeId, editor, editorContentHashRef, lastPersistedHashRef, setSaveStatus])
+    dispatch(setSaveStatus('saved'))
+  }, [activeDocument, activeId, dispatch, editor, editorContentHashRef, lastPersistedHashRef])
 
   useEffect(() => {
     editorContentHashRef.current = null
@@ -297,12 +281,14 @@ export function DocumentEditor() {
 
   useEffect(() => {
     if (isMarkdown || focusMode) {
-      setPrintHandler(null)
+      editorRefs.printHandler = null
       return
     }
-    setPrintHandler(() => handlePrint)
-    return () => setPrintHandler(null)
-  }, [focusMode, handlePrint, isMarkdown, setPrintHandler])
+    editorRefs.printHandler = handlePrint
+    return () => {
+      editorRefs.printHandler = null
+    }
+  }, [focusMode, handlePrint, isMarkdown])
 
   return (
     <div className={cn('editor-shell', isMarkdown && 'editor-shell--markdown', focusMode && 'editor-shell--focus')}>
@@ -472,19 +458,19 @@ export function DocumentEditor() {
         </EditorDropZone>
 
         {!isMarkdown && outlineOpen && (
-          <DocumentOutlinePanel editor={editor} onClose={() => setOutlineOpen(false)} />
+          <DocumentOutlinePanel editor={editor} onClose={() => dispatch(setDocumentOutlineOpen(false))} />
         )}
         {!isMarkdown && historyOpen && (
-          <RevisionHistoryPanel onClose={() => setHistoryOpen(false)} />
+          <RevisionHistoryPanel onClose={() => dispatch(setRevisionHistoryOpen(false))} />
         )}
         {!isMarkdown && commentsOpen && (
-          <CommentsPanel editor={editor} onClose={() => setCommentsOpen(false)} />
+          <CommentsPanel editor={editor} onClose={() => dispatch(setCommentsPanelOpen(false))} />
         )}
         {!isMarkdown && statsOpen && (
-          <StatsPanel editor={editor} onClose={() => setStatsOpen(false)} />
+          <StatsPanel editor={editor} onClose={() => dispatch(setStatsPanelOpen(false))} />
         )}
         {!isMarkdown && backlinksOpen && (
-          <BacklinksPanel onClose={() => setBacklinksOpen(false)} />
+          <BacklinksPanel onClose={() => dispatch(setBacklinksPanelOpen(false))} />
         )}
           </div>
 

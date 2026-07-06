@@ -1,44 +1,45 @@
-import { useSetAtom } from 'jotai'
 import { updateDocument } from '@/lib/db/api'
 import { toast } from '@/lib/toast'
+import { store } from '@/store/index'
+import { useAppDispatch } from '@/store/hooks'
 import {
-  activeDocumentAtom,
-  documentsAtom,
-  markDocumentTitleManualAtom,
-  saveStatusAtom,
-} from '@/store/documents'
+  markDocumentTitleManual,
+  setActiveDocument,
+  setSaveStatus,
+  updateDocuments,
+} from '@/store/documentsSlice'
 
 export function useRenameDocument() {
-  const setActiveDocument = useSetAtom(activeDocumentAtom)
-  const setDocuments = useSetAtom(documentsAtom)
-  const setSaveStatus = useSetAtom(saveStatusAtom)
-  const markManual = useSetAtom(markDocumentTitleManualAtom)
+  const dispatch = useAppDispatch()
 
   return async function renameDocument(id: string, title: string) {
     const trimmed = title.trim() || 'Bez názvu'
 
-    setSaveStatus('saving')
+    dispatch(setSaveStatus('saving'))
     try {
       const updated = await updateDocument({ id, title: trimmed })
-      markManual(id)
-      setActiveDocument((prev) => (prev?.id === id ? updated : prev))
-      setDocuments((prev) =>
-        prev.map((item) =>
-          item.id === id
-            ? {
-                ...item,
-                title: updated.title,
-                filePath: updated.filePath,
-                updatedAt: updated.updatedAt,
-              }
-            : item,
+      dispatch(markDocumentTitleManual(id))
+      const prev = store.getState().documents.activeDocument
+      dispatch(setActiveDocument(prev?.id === id ? updated : prev))
+      dispatch(
+        updateDocuments((prevDocs) =>
+          prevDocs.map((item) =>
+            item.id === id
+              ? {
+                  ...item,
+                  title: updated.title,
+                  filePath: updated.filePath,
+                  updatedAt: updated.updatedAt,
+                }
+              : item,
+          ),
         ),
       )
-      setSaveStatus('saved')
+      dispatch(setSaveStatus('saved'))
       toast.success('Dokument premenovaný', updated.title)
       return updated
     } catch {
-      setSaveStatus('error')
+      dispatch(setSaveStatus('error'))
       toast.error('Premenovanie zlyhalo')
       return null
     }

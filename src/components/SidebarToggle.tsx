@@ -1,13 +1,13 @@
-import { useSetAtom } from 'jotai'
 import { PanelLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { SIDEBAR_DRAWER_BREAKPOINT } from '@/hooks/useLayoutTier'
-import { sidebarOpenAtom } from '@/store/documents'
+import { useAppDispatch } from '@/store/hooks'
+import { setSidebarOpen } from '@/store/documentsSlice'
 
 export function SidebarToggle() {
   const isCompact = useMediaQuery(`(max-width: ${SIDEBAR_DRAWER_BREAKPOINT}px)`)
-  const setSidebarOpen = useSetAtom(sidebarOpenAtom)
+  const dispatch = useAppDispatch()
 
   if (!isCompact) return null
 
@@ -15,7 +15,7 @@ export function SidebarToggle() {
     <Button
       variant="ghost"
       size="icon"
-      onClick={() => setSidebarOpen(true)}
+      onClick={() => dispatch(setSidebarOpen(true))}
       title="Knižnica"
       aria-label="Otvoriť knižnicu"
     >

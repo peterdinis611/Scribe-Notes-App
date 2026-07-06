@@ -1,7 +1,7 @@
-import { useAtomValue } from 'jotai'
 import { CheckCircle2, Info, X, XCircle } from 'lucide-react'
-import { dismissToast, toastsAtom, type ToastVariant } from '@/lib/toast'
+import { dismissToast, type ToastVariant } from '@/lib/toast'
 import { cn } from '@/lib/utils'
+import { useAppSelector } from '@/store/hooks'
 
 function ToastIcon({ variant }: { variant: ToastVariant }) {
   const className = 'h-4 w-4 shrink-0'
@@ -25,7 +25,7 @@ const toastVariantClass: Record<ToastVariant, string> = {
 }
 
 export function ToastHost() {
-  const toasts = useAtomValue(toastsAtom)
+  const toasts = useAppSelector((state) => state.ui.toasts)
 
   if (toasts.length === 0) return null
 

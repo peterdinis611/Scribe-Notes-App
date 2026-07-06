@@ -1,28 +1,26 @@
-import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { useHotkeys } from '@tanstack/react-hotkeys'
 import { useNavigate } from '@tanstack/react-router'
-import {
-  pickAndImportFile,
-} from '@/lib/db/api'
+import { pickAndImportFile } from '@/lib/db/api'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
 import { cycleThemeId } from '@/lib/themes/apply'
+import { createThemeSelection } from '@/store/settings-helpers'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { editorRefs } from '@/store/editorRefs'
 import {
-  applyThemeSettingsAtom,
-  createThemeSelection,
-  templatePickerOpenAtom,
-  themeSettingsAtom,
-} from '@/store/settings'
-import { commandPaletteOpenAtom } from '@/store/folders'
+  setActiveDocument,
+  setActiveDocumentId,
+  setFocusMode,
+  setSaveStatus,
+  toggleFocusMode,
+  updateDocuments,
+} from '@/store/documentsSlice'
 import {
-  activeDocumentAtom,
-  activeDocumentIdAtom,
-  documentsAtom,
-  flushAutoSaveAtom,
-  focusModeAtom,
-  saveStatusAtom,
-} from '@/store/documents'
+  setTemplatePickerOpen,
+  setThemeSettings,
+} from '@/store/settingsSlice'
+import { toggleCommandPaletteOpen } from '@/store/foldersSlice'
 
 const APP_HOTKEY_OPTIONS = {
   preventDefault: true,
@@ -30,33 +28,27 @@ const APP_HOTKEY_OPTIONS = {
 } as const
 
 export function useKeyboardShortcuts() {
-  const [activeId, setActiveId] = useAtom(activeDocumentIdAtom)
-  const [themeSettings] = useAtom(themeSettingsAtom)
-  const applyTheme = useSetAtom(applyThemeSettingsAtom)
+  const activeId = useAppSelector((state) => state.documents.activeDocumentId)
+  const themeSettings = useAppSelector((state) => state.settings.themeSettings)
+  const activeDocument = useAppSelector((state) => state.documents.activeDocument)
+  const focusMode = useAppSelector((state) => state.documents.focusMode)
+  const commandPaletteOpen = useAppSelector((state) => state.folders.commandPaletteOpen)
+  const templatePickerOpen = useAppSelector((state) => state.settings.templatePickerOpen)
+  const dispatch = useAppDispatch()
   const navigate = useNavigate()
-  const setTemplatePickerOpen = useSetAtom(templatePickerOpenAtom)
-  const activeDocument = useAtomValue(activeDocumentAtom)
-  const setActiveDocument = useSetAtom(activeDocumentAtom)
-  const setDocuments = useSetAtom(documentsAtom)
-  const setSaveStatus = useSetAtom(saveStatusAtom)
-  const setCommandPaletteOpen = useSetAtom(commandPaletteOpenAtom)
-  const flushAutoSave = useAtomValue(flushAutoSaveAtom)
-  const [focusMode, setFocusMode] = useAtom(focusModeAtom)
-  const commandPaletteOpen = useAtomValue(commandPaletteOpenAtom)
-  const templatePickerOpen = useAtomValue(templatePickerOpenAtom)
 
   useHotkeys(
     [
       {
         hotkey: 'Mod+K',
-        callback: () => setCommandPaletteOpen((open) => !open),
+        callback: () => dispatch(toggleCommandPaletteOpen()),
         options: {
           meta: { name: 'Príkazová paleta', description: 'Vyhľadávanie a príkazy' },
         },
       },
       {
         hotkey: 'Mod+N',
-        callback: () => setTemplatePickerOpen(true),
+        callback: () => dispatch(setTemplatePickerOpen(true)),
         options: {
           meta: { name: 'Nový dokument', description: 'Otvorí výber šablóny' },
         },
@@ -65,11 +57,11 @@ export function useKeyboardShortcuts() {
         hotkey: 'Mod+S',
         callback: async () => {
           if (!activeId || !activeDocument) return
-          if (!flushAutoSave) return
+          if (!editorRefs.flushAutoSave) return
           try {
-            await flushAutoSave()
+            await editorRefs.flushAutoSave()
           } catch {
-            setSaveStatus('error')
+            dispatch(setSaveStatus('error'))
           }
         },
         options: {
@@ -81,10 +73,10 @@ export function useKeyboardShortcuts() {
         callback: async () => {
           const imported = await pickAndImportFile()
           if (!imported) return
-          setDocuments((prev) => prependDocumentSummary(prev, imported))
-          setActiveId(imported.id)
-          setActiveDocument(imported)
-          setSaveStatus('saved')
+          dispatch(updateDocuments((prev) => prependDocumentSummary(prev, imported)))
+          dispatch(setActiveDocumentId(imported.id))
+          dispatch(setActiveDocument(imported))
+          dispatch(setSaveStatus('saved'))
           toast.success('Dokument importovaný', imported.title)
           navigate(ROUTES.document(imported.id))
         },
@@ -96,7 +88,7 @@ export function useKeyboardShortcuts() {
         hotkey: 'Mod+Shift+L',
         callback: () => {
           const next = cycleThemeId(themeSettings.themeId)
-          applyTheme(createThemeSelection(themeSettings, next))
+          dispatch(setThemeSettings(createThemeSelection(themeSettings, next)))
         },
         options: {
           meta: { name: 'Téma', description: 'Prepína medzi témami' },
@@ -111,7 +103,7 @@ export function useKeyboardShortcuts() {
       },
       {
         hotkey: 'Mod+Shift+F',
-        callback: () => setFocusMode((enabled) => !enabled),
+        callback: () => dispatch(toggleFocusMode()),
         options: {
           meta: { name: 'Režim sústredenia', description: 'Zapne alebo vypne režim sústredenia' },
         },
@@ -120,7 +112,7 @@ export function useKeyboardShortcuts() {
         hotkey: 'Escape',
         callback: () => {
           if (!focusMode || commandPaletteOpen || templatePickerOpen) return
-          setFocusMode(false)
+          dispatch(setFocusMode(false))
         },
         options: {
           meta: { name: 'Ukončiť sústredenie', description: 'Vypne režim sústredenia' },

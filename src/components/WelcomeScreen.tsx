@@ -1,5 +1,4 @@
 import { useMemo } from 'react'
-import { useAtomValue, useSetAtom } from 'jotai'
 import { ArrowRight, Clock, FileText, FolderInput, Plus, Sparkles } from 'lucide-react'
 import { useNavigate } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
@@ -11,21 +10,18 @@ import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { toast } from '@/lib/toast'
 import { ROUTES } from '@/lib/routes'
 import { formatRelativeTime } from '@/lib/utils'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
-  activeDocumentAtom,
-  activeDocumentIdAtom,
-  documentsAtom,
-  saveStatusAtom,
-} from '@/store/documents'
-import { templatePickerOpenAtom } from '@/store/settings'
+  setActiveDocument,
+  setActiveDocumentId,
+  setSaveStatus,
+  updateDocuments,
+} from '@/store/documentsSlice'
+import { setTemplatePickerOpen } from '@/store/settingsSlice'
 
 export function WelcomeScreen() {
-  const documents = useAtomValue(documentsAtom)
-  const setTemplatePickerOpen = useSetAtom(templatePickerOpenAtom)
-  const setDocuments = useSetAtom(documentsAtom)
-  const setActiveId = useSetAtom(activeDocumentIdAtom)
-  const setActiveDocument = useSetAtom(activeDocumentAtom)
-  const setSaveStatus = useSetAtom(saveStatusAtom)
+  const documents = useAppSelector((state) => state.documents.documents)
+  const dispatch = useAppDispatch()
   const navigate = useNavigate()
 
   const recentDocuments = useMemo(
@@ -36,18 +32,18 @@ export function WelcomeScreen() {
   async function handleImport() {
     const doc = await pickAndImportFile()
     if (!doc) return
-    setDocuments((prev) => prependDocumentSummary(prev, doc))
-    setActiveId(doc.id)
-    setActiveDocument(doc)
-    setSaveStatus('saved')
+    dispatch(updateDocuments((prev) => prependDocumentSummary(prev, doc)))
+    dispatch(setActiveDocumentId(doc.id))
+    dispatch(setActiveDocument(doc))
+    dispatch(setSaveStatus('saved'))
     toast.success('Dokument importovaný', doc.title)
     navigate(ROUTES.document(doc.id))
   }
 
   function openDocument(id: string) {
-    setActiveId(id)
+    dispatch(setActiveDocumentId(id))
     const cached = peekCachedDocument(id)
-    if (cached) setActiveDocument(cached)
+    if (cached) dispatch(setActiveDocument(cached))
     navigate(ROUTES.document(id))
   }
 
@@ -70,7 +66,7 @@ export function WelcomeScreen() {
           </div>
 
           <div className="flex flex-wrap gap-2.5">
-            <Button variant="default" size="default" onClick={() => setTemplatePickerOpen(true)}>
+            <Button variant="default" size="default" onClick={() => dispatch(setTemplatePickerOpen(true))}>
               <Plus className="h-4 w-4" />
               Nový dokument
             </Button>

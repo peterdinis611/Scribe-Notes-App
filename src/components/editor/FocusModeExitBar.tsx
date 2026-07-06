@@ -1,11 +1,12 @@
 import { useEffect } from 'react'
-import { useAtom } from 'jotai'
 import { Focus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { focusModeAtom } from '@/store/documents'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { setFocusMode } from '@/store/documentsSlice'
 
 export function FocusModeExitBar() {
-  const [focusMode, setFocusMode] = useAtom(focusModeAtom)
+  const focusMode = useAppSelector((state) => state.documents.focusMode)
+  const dispatch = useAppDispatch()
 
   useEffect(() => {
     if (!focusMode) return
@@ -14,12 +15,12 @@ export function FocusModeExitBar() {
       if (event.key !== 'Escape') return
       event.preventDefault()
       event.stopPropagation()
-      setFocusMode(false)
+      dispatch(setFocusMode(false))
     }
 
     window.addEventListener('keydown', handleKeyDown, true)
     return () => window.removeEventListener('keydown', handleKeyDown, true)
-  }, [focusMode, setFocusMode])
+  }, [dispatch, focusMode])
 
   if (!focusMode) return null
 
@@ -30,7 +31,7 @@ export function FocusModeExitBar() {
         size="sm"
         className="editor-focus-exit shadow-md"
         title="Ukončiť režim sústredenia (Esc)"
-        onClick={() => setFocusMode(false)}
+        onClick={() => dispatch(setFocusMode(false))}
       >
         <Focus className="h-3.5 w-3.5 shrink-0" />
         Ukončiť sústredenie

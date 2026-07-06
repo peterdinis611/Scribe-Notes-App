@@ -1,19 +1,18 @@
 import { useEffect } from 'react'
-import { useSetAtom } from 'jotai'
 import { useRouterState } from '@tanstack/react-router'
 import { WelcomeScreen } from '@/components/WelcomeScreen'
-import { activeDocumentAtom, activeDocumentIdAtom } from '@/store/documents'
+import { useAppDispatch } from '@/store/hooks'
+import { setActiveDocument, setActiveDocumentId } from '@/store/documentsSlice'
 
 export function HomePage() {
   const pathname = useRouterState({ select: (state) => state.location.pathname })
-  const setActiveId = useSetAtom(activeDocumentIdAtom)
-  const setActiveDocument = useSetAtom(activeDocumentAtom)
+  const dispatch = useAppDispatch()
 
   useEffect(() => {
     if (pathname !== '/') return
-    setActiveId(null)
-    setActiveDocument(null)
-  }, [pathname, setActiveDocument, setActiveId])
+    dispatch(setActiveDocumentId(null))
+    dispatch(setActiveDocument(null))
+  }, [dispatch, pathname])
 
   return (
     <div className="editor-shell editor-shell--home">

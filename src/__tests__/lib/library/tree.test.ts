@@ -57,13 +57,13 @@ describe('buildTree', () => {
 describe('flattenTree', () => {
   it('includes only expanded branches', () => {
     const tree = buildTree(folders, documents)
-    const collapsed = flattenTree(tree, new Set())
+    const collapsed = flattenTree(tree, [])
     expect(collapsed.map((item) => (item.type === 'folder' ? item.folder.id : item.document.id))).toEqual([
       'f1',
       'd2',
     ])
 
-    const expanded = flattenTree(tree, new Set(['f1']))
+    const expanded = flattenTree(tree, ['f1'])
     expect(expanded.some((item) => item.type === 'document' && item.document.id === 'd1')).toBe(true)
     expect(expanded.some((item) => item.type === 'folder' && item.folder.id === 'f2')).toBe(true)
   })

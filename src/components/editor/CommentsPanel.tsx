@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Editor } from '@tiptap/react'
-import { useAtomValue, useSetAtom } from 'jotai'
 import { Check, MessageSquare, PanelRightClose, RotateCcw, Send, Trash2 } from 'lucide-react'
 import {
   addCommentReply,
@@ -12,12 +11,8 @@ import {
 import { focusComment } from '@/lib/editor/comments'
 import { cn, formatRelativeTime } from '@/lib/utils'
 import { toast } from '@/lib/toast'
-import {
-  activeDocumentIdAtom,
-  commentAuthorAtom,
-  commentsVersionAtom,
-  setCommentAuthorAtom,
-} from '@/store/documents'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { bumpCommentsVersion, setCommentAuthor } from '@/store/documentsSlice'
 import { Input } from '@/components/ui/input'
 import {
   EditorSidePanel,
@@ -33,11 +28,10 @@ type CommentsPanelProps = {
 }
 
 export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
-  const activeId = useAtomValue(activeDocumentIdAtom)
-  const author = useAtomValue(commentAuthorAtom)
-  const setAuthor = useSetAtom(setCommentAuthorAtom)
-  const version = useAtomValue(commentsVersionAtom)
-  const setVersionValue = useSetAtom(commentsVersionAtom)
+  const activeId = useAppSelector((state) => state.documents.activeDocumentId)
+  const author = useAppSelector((state) => state.documents.commentAuthor)
+  const version = useAppSelector((state) => state.documents.commentsVersion)
+  const dispatch = useAppDispatch()
   const [threads, setThreads] = useState<CommentThread[]>([])
   const [showResolved, setShowResolved] = useState(false)
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({})
@@ -65,7 +59,7 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
     }
   }, [activeId, version])
 
-  const refresh = useCallback(() => setVersionValue((value) => value + 1), [setVersionValue])
+  const refresh = useCallback(() => dispatch(bumpCommentsVersion()), [dispatch])
 
   const visibleThreads = useMemo(
     () => threads.filter((thread) => showResolved || !thread.resolved),
@@ -264,7 +258,7 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
         <Input
           className="h-7 min-w-0 flex-1 text-[12px]"
           value={author}
-          onChange={(event) => setAuthor(event.target.value)}
+          onChange={(event) => dispatch(setCommentAuthor(event.target.value))}
           placeholder="Vaše meno"
         />
       </label>

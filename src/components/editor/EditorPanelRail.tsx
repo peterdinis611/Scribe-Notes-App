@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react'
-import { useAtom, useSetAtom } from 'jotai'
 import {
   BarChart3,
   Focus,
@@ -10,16 +9,17 @@ import {
   Search,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
-  backlinksPanelOpenAtom,
-  commentsPanelOpenAtom,
-  documentOutlineOpenAtom,
-  findReplaceModeAtom,
-  findReplaceOpenAtom,
-  focusModeAtom,
-  revisionHistoryOpenAtom,
-  statsPanelOpenAtom,
-} from '@/store/documents'
+  setBacklinksPanelOpen,
+  setCommentsPanelOpen,
+  setDocumentOutlineOpen,
+  setFindReplaceMode,
+  setFindReplaceOpen,
+  setRevisionHistoryOpen,
+  setStatsPanelOpen,
+  toggleFocusMode,
+} from '@/store/documentsSlice'
 
 type RailButtonProps = {
   active?: boolean
@@ -44,21 +44,20 @@ function RailButton({ active, label, onClick, children }: RailButtonProps) {
 }
 
 export function EditorPanelRail() {
-  const [outlineOpen, setOutlineOpen] = useAtom(documentOutlineOpenAtom)
-  const [historyOpen, setHistoryOpen] = useAtom(revisionHistoryOpenAtom)
-  const [commentsOpen, setCommentsOpen] = useAtom(commentsPanelOpenAtom)
-  const [statsOpen, setStatsOpen] = useAtom(statsPanelOpenAtom)
-  const [backlinksOpen, setBacklinksOpen] = useAtom(backlinksPanelOpenAtom)
-  const [focusMode, setFocusMode] = useAtom(focusModeAtom)
-  const setFindReplaceOpen = useSetAtom(findReplaceOpenAtom)
-  const setFindReplaceMode = useSetAtom(findReplaceModeAtom)
+  const outlineOpen = useAppSelector((state) => state.documents.documentOutlineOpen)
+  const historyOpen = useAppSelector((state) => state.documents.revisionHistoryOpen)
+  const commentsOpen = useAppSelector((state) => state.documents.commentsPanelOpen)
+  const statsOpen = useAppSelector((state) => state.documents.statsPanelOpen)
+  const backlinksOpen = useAppSelector((state) => state.documents.backlinksPanelOpen)
+  const focusMode = useAppSelector((state) => state.documents.focusMode)
+  const dispatch = useAppDispatch()
 
   function closeOtherPanels(except?: 'outline' | 'history' | 'comments' | 'stats' | 'backlinks') {
-    if (except !== 'outline') setOutlineOpen(false)
-    if (except !== 'history') setHistoryOpen(false)
-    if (except !== 'comments') setCommentsOpen(false)
-    if (except !== 'stats') setStatsOpen(false)
-    if (except !== 'backlinks') setBacklinksOpen(false)
+    if (except !== 'outline') dispatch(setDocumentOutlineOpen(false))
+    if (except !== 'history') dispatch(setRevisionHistoryOpen(false))
+    if (except !== 'comments') dispatch(setCommentsPanelOpen(false))
+    if (except !== 'stats') dispatch(setStatsPanelOpen(false))
+    if (except !== 'backlinks') dispatch(setBacklinksPanelOpen(false))
   }
 
   return (
@@ -68,7 +67,7 @@ export function EditorPanelRail() {
         active={outlineOpen}
         onClick={() => {
           closeOtherPanels('outline')
-          setOutlineOpen((open) => !open)
+          dispatch(setDocumentOutlineOpen(!outlineOpen))
         }}
       >
         <ListTree className="h-4 w-4" />
@@ -78,7 +77,7 @@ export function EditorPanelRail() {
         active={commentsOpen}
         onClick={() => {
           closeOtherPanels('comments')
-          setCommentsOpen((open) => !open)
+          dispatch(setCommentsPanelOpen(!commentsOpen))
         }}
       >
         <MessageSquare className="h-4 w-4" />
@@ -88,7 +87,7 @@ export function EditorPanelRail() {
         active={backlinksOpen}
         onClick={() => {
           closeOtherPanels('backlinks')
-          setBacklinksOpen((open) => !open)
+          dispatch(setBacklinksPanelOpen(!backlinksOpen))
         }}
       >
         <Link2 className="h-4 w-4" />
@@ -98,7 +97,7 @@ export function EditorPanelRail() {
         active={statsOpen}
         onClick={() => {
           closeOtherPanels('stats')
-          setStatsOpen((open) => !open)
+          dispatch(setStatsPanelOpen(!statsOpen))
         }}
       >
         <BarChart3 className="h-4 w-4" />
@@ -108,7 +107,7 @@ export function EditorPanelRail() {
         active={historyOpen}
         onClick={() => {
           closeOtherPanels('history')
-          setHistoryOpen((open) => !open)
+          dispatch(setRevisionHistoryOpen(!historyOpen))
         }}
       >
         <History className="h-4 w-4" />
@@ -119,8 +118,8 @@ export function EditorPanelRail() {
       <RailButton
         label="Nájsť a nahradiť"
         onClick={() => {
-          setFindReplaceMode('find')
-          setFindReplaceOpen(true)
+          dispatch(setFindReplaceMode('find'))
+          dispatch(setFindReplaceOpen(true))
         }}
       >
         <Search className="h-4 w-4" />
@@ -128,7 +127,7 @@ export function EditorPanelRail() {
       <RailButton
         label={focusMode ? 'Vypnúť režim sústredenia' : 'Režim sústredenia'}
         active={focusMode}
-        onClick={() => setFocusMode((open) => !open)}
+        onClick={() => dispatch(toggleFocusMode())}
       >
         <Focus className="h-4 w-4" />
       </RailButton>

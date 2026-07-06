@@ -1,25 +1,20 @@
 import { useMemo } from 'react'
-import { useAtomValue, useSetAtom } from 'jotai'
 import { useNavigate } from '@tanstack/react-router'
 import { Clock, FileText, Star } from 'lucide-react'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { ROUTES } from '@/lib/routes'
 import { cn, formatRelativeTime } from '@/lib/utils'
-import {
-  activeDocumentAtom,
-  activeDocumentIdAtom,
-  documentsAtom,
-} from '@/store/documents'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { setActiveDocument, setActiveDocumentId } from '@/store/documentsSlice'
 
 type LibraryFavoritesViewProps = {
   onNavigate?: () => void
 }
 
 export function LibraryFavoritesView({ onNavigate }: LibraryFavoritesViewProps) {
-  const documents = useAtomValue(documentsAtom)
-  const activeId = useAtomValue(activeDocumentIdAtom)
-  const setActiveId = useSetAtom(activeDocumentIdAtom)
-  const setActiveDocument = useSetAtom(activeDocumentAtom)
+  const documents = useAppSelector((state) => state.documents.documents)
+  const activeId = useAppSelector((state) => state.documents.activeDocumentId)
+  const dispatch = useAppDispatch()
   const navigate = useNavigate()
 
   const favoriteDocuments = useMemo(
@@ -31,9 +26,9 @@ export function LibraryFavoritesView({ onNavigate }: LibraryFavoritesViewProps) 
   )
 
   function openDocument(id: string) {
-    setActiveId(id)
+    dispatch(setActiveDocumentId(id))
     const cached = peekCachedDocument(id)
-    if (cached) setActiveDocument(cached)
+    if (cached) dispatch(setActiveDocument(cached))
     navigate(ROUTES.document(id))
     onNavigate?.()
   }

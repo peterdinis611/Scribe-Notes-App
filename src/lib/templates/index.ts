@@ -701,3 +701,6 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
 export function getTemplateById(id: string): DocumentTemplate | undefined {
   return DOCUMENT_TEMPLATES.find((t) => t.id === id)
 }
+
+export { mergeTemplates, isCustomTemplate, createCustomTemplate } from '@/lib/templates/custom'
+export type { CustomDocumentTemplate, CustomTemplateInput } from '@/lib/templates/custom'
