@@ -18,6 +18,7 @@ import { toast } from '@/lib/toast'
 import { ROUTES } from '@/lib/routes'
 import type { DocumentTemplate } from '@/lib/templates'
 import { InputDialogHost } from '@/components/InputDialogHost'
+import { StorageAccessDialogHost } from '@/components/StorageAccessDialogHost'
 import { SaveCustomTemplateDialogHost } from '@/components/SaveCustomTemplateDialogHost'
 import { ToastHost } from '@/components/ToastHost'
 import { TrashDialog } from '@/components/TrashDialog'
@@ -130,6 +131,7 @@ export function AppLayout() {
         onOpenChange={(open) => dispatch(setMoveDocumentPickerOpen(open))}
       />
       <InputDialogHost />
+      <StorageAccessDialogHost />
       <SaveCustomTemplateDialogHost />
       <TrashDialog />
       <ToastHost />

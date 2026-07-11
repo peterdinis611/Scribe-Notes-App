@@ -18,6 +18,23 @@ const MANUAL_TITLES_KEY = 'scribe-manual-titles'
 const COMMENT_AUTHOR_KEY = 'scribe-comment-author'
 const CUSTOM_TEMPLATES_KEY = 'scribe-custom-templates'
 const CUSTOM_TEMPLATE_CATEGORIES_KEY = 'scribe-custom-template-categories'
+const STORAGE_ACCESS_EXPLAINER_KEY = 'scribe-storage-access-explainer-dismissed'
+
+export function readStorageAccessExplainerDismissed(): boolean {
+  try {
+    return localStorage.getItem(STORAGE_ACCESS_EXPLAINER_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+export function persistStorageAccessExplainerDismissed(dismissed: boolean) {
+  if (dismissed) {
+    localStorage.setItem(STORAGE_ACCESS_EXPLAINER_KEY, '1')
+    return
+  }
+  localStorage.removeItem(STORAGE_ACCESS_EXPLAINER_KEY)
+}
 
 export function readThemeSettings(): ThemeSettings {
   try {

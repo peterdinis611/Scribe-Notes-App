@@ -2,6 +2,7 @@ import { getVersion } from '@tauri-apps/api/app'
 import { confirm } from '@tauri-apps/plugin-dialog'
 import { FolderOpen, FolderSearch, Shuffle, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { requestStorageAccessDialog } from '@/components/StorageAccessDialogHost'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -17,7 +18,6 @@ import { THEME_COLOR_FIELDS } from '@/lib/themes/types'
 import {
   clearAllDocuments,
   getStorageSettings,
-  pickDocumentsDirectory,
   reconcileStorage,
   revealInFinder,
 } from '@/lib/db/api'
@@ -156,13 +156,12 @@ export function StorageSection() {
       .catch(() => undefined)
   }, [dispatch])
 
-  async function handlePickFolder() {
-    const result = await pickDocumentsDirectory()
-    if (result) {
-      dispatch(setStorageSettings(result))
-      const shortPath = result.documentsDir.replace(/^\/Users\/[^/]+/, '~')
-      toast.success('Priečinok dokumentov zmenený', shortPath)
-    }
+  function handlePickFolder() {
+    requestStorageAccessDialog(dispatch, 'pick')
+  }
+
+  function handleShowStorageExplainer() {
+    requestStorageAccessDialog(dispatch, 'info', { force: true })
   }
 
   async function handleRevealFolder() {
@@ -220,7 +219,14 @@ export function StorageSection() {
 
         <p className="settings-storage-note mb-3 text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
           Ak zápis na disk zlyhá, editor naďalej funguje a dokument zostane uložený v aplikácii.
-          V takom prípade zmeňte priečinok alebo skontrolujte oprávnenia k disku.
+          V takom prípade zmeňte priečinok alebo skontrolujte oprávnenia k disku.{' '}
+          <button
+            type="button"
+            className="text-[var(--color-accent)] underline-offset-2 hover:underline"
+            onClick={handleShowStorageExplainer}
+          >
+            Prečo Scribe pýta prístup k priečinku?
+          </button>
         </p>
 
         <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
