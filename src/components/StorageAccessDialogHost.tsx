@@ -17,7 +17,8 @@ import type { AppDispatch } from '@/store/index'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
   persistStorageAccessExplainerDismissed,
-  readStorageAccessExplainerDismissed,
+  persistStorageFolderAccessGranted,
+  hasStorageFolderAccess,
 } from '@/store/persistence'
 import { setStorageSettings } from '@/store/settingsSlice'
 import { setStorageAccessDialog, type StorageAccessDialogIntent } from '@/store/uiSlice'
@@ -74,6 +75,7 @@ export function StorageAccessDialogHost() {
     const result = await pickDocumentsDirectory()
     if (result) {
       dispatch(setStorageSettings(result))
+      persistStorageFolderAccessGranted(true)
       const shortPath = result.documentsDir.replace(/^\/Users\/[^/]+/, '~')
       toast.success(t('settings.storage.folderChanged'), shortPath)
     }
@@ -135,15 +137,14 @@ export function requestStorageAccessDialog(
   intent: StorageAccessDialogIntent,
   options?: { force?: boolean },
 ) {
-  const dismissed = readStorageAccessExplainerDismissed()
-
-  if (!options?.force && dismissed) {
+  if (!options?.force && hasStorageFolderAccess()) {
     if (intent === 'info') return false
 
     if (intent === 'pick') {
       void pickDocumentsDirectory().then((result) => {
         if (result) {
           dispatch(setStorageSettings(result))
+          persistStorageFolderAccessGranted(true)
           const shortPath = result.documentsDir.replace(/^\/Users\/[^/]+/, '~')
           toast.success(i18n.t('settings.storage.folderChanged'), shortPath)
         }

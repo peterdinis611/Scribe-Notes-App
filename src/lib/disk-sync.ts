@@ -4,7 +4,7 @@ import i18n from '@/i18n'
 import { toast } from '@/lib/toast'
 import type { AppDispatch } from '@/store/index'
 import { setDiskSyncWarning } from '@/store/documentsSlice'
-import { readStorageAccessExplainerDismissed } from '@/store/persistence'
+import { hasStorageFolderAccess } from '@/store/persistence'
 
 export function getDiskSyncWarning(): string {
   return i18n.t('diskSync.warning')
@@ -27,7 +27,7 @@ export function applyDiskPersistResult(
   dispatch(setDiskSyncWarning(detail))
   toast.info(i18n.t('diskSync.toastTitle'), detail)
 
-  if (!readStorageAccessExplainerDismissed()) {
+  if (!hasStorageFolderAccess()) {
     requestStorageAccessDialog(dispatch, 'info')
   }
 }

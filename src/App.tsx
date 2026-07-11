@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { RouterProvider } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { listDocuments, listFolders } from '@/lib/db/api'
+import { listDocuments, listFolders, getStorageSettings } from '@/lib/db/api'
 import { applyThemeSettings } from '@/lib/themes/apply'
 import { toast } from '@/lib/toast'
 import { useActiveDocumentLoader } from '@/hooks/useActiveDocumentLoader'
@@ -10,6 +10,8 @@ import { useTemplateCollectionsBootstrap } from '@/hooks/useTemplateCollections'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setDocuments } from '@/store/documentsSlice'
 import { setFolders } from '@/store/foldersSlice'
+import { setStorageSettings } from '@/store/settingsSlice'
+import { persistStorageFolderAccessGranted } from '@/store/persistence'
 import { router } from '@/router'
 
 function useThemeSync() {
@@ -41,10 +43,26 @@ function useDocumentBootstrap() {
   }, [dispatch])
 }
 
+function useStorageBootstrap() {
+  const dispatch = useAppDispatch()
+
+  useEffect(() => {
+    getStorageSettings()
+      .then((settings) => {
+        dispatch(setStorageSettings(settings))
+        if (settings.folderAccessGranted) {
+          persistStorageFolderAccessGranted(true)
+        }
+      })
+      .catch(() => undefined)
+  }, [dispatch])
+}
+
 export default function App() {
   useI18nSync()
   useThemeSync()
   useDocumentBootstrap()
+  useStorageBootstrap()
   const { t } = useTranslation()
   const { error: templateCollectionsError } = useTemplateCollectionsBootstrap()
   useActiveDocumentLoader()

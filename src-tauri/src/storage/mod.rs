@@ -9,6 +9,7 @@ pub use persist_queue::{DiskPersistQueue, FlushPendingWritesResult, PersistJob};
 pub use reconcile::{reconcile_storage, ReconcileResult};
 
 pub const META_DOCUMENTS_DIR: &str = "documents_dir";
+pub const META_DOCUMENTS_DIR_GRANTED: &str = "documents_dir_granted";
 pub const FILE_EXTENSION: &str = "scribe";
 
 fn default_disk_version() -> u8 {
@@ -34,6 +35,37 @@ pub fn default_documents_dir() -> PathBuf {
     dirs::document_dir()
         .unwrap_or_else(|| PathBuf::from("."))
         .join("Scribe")
+}
+
+pub fn documents_dir_access_granted(conn: &Connection) -> bool {
+    let explicit: Option<String> = conn
+        .query_row(
+            "SELECT value FROM meta WHERE key = ?1",
+            [META_DOCUMENTS_DIR_GRANTED],
+            |row| row.get(0),
+        )
+        .ok();
+
+    if explicit.as_deref() == Some("1") {
+        return true;
+    }
+
+    // Users who picked a folder before this flag existed already have a stored path.
+    conn.query_row(
+        "SELECT 1 FROM meta WHERE key = ?1",
+        [META_DOCUMENTS_DIR],
+        |_| Ok(()),
+    )
+    .is_ok()
+}
+
+pub fn mark_documents_dir_access_granted(conn: &Connection) -> Result<(), String> {
+    conn.execute(
+        "INSERT OR REPLACE INTO meta (key, value) VALUES (?1, ?2)",
+        rusqlite::params![META_DOCUMENTS_DIR_GRANTED, "1"],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 pub fn get_documents_dir(_app: &AppHandle, conn: &Connection) -> Result<PathBuf, String> {

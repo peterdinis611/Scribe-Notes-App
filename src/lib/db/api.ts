@@ -62,6 +62,7 @@ export interface UpdateDocumentInput {
 
 export interface StorageSettings {
   documentsDir: string
+  folderAccessGranted: boolean
 }
 
 export interface ExportResult {

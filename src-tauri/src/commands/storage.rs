@@ -9,6 +9,7 @@ use tauri_plugin_opener::OpenerExt;
 #[serde(rename_all = "camelCase")]
 pub struct StorageSettings {
     pub documents_dir: String,
+    pub folder_access_granted: bool,
 }
 
 #[tauri::command]
@@ -20,6 +21,7 @@ pub fn get_storage_settings(
     let dir = storage::get_documents_dir(&app, &conn)?;
     Ok(StorageSettings {
         documents_dir: dir.to_string_lossy().to_string(),
+        folder_access_granted: storage::documents_dir_access_granted(&conn),
     })
 }
 
@@ -41,10 +43,12 @@ pub async fn pick_documents_directory(
     let path = PathBuf::from(path.to_string());
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     let dir = storage::set_documents_dir(&conn, &path)?;
+    storage::mark_documents_dir_access_granted(&conn)?;
     storage::reconcile_storage(&app, &conn)?;
 
     Ok(Some(StorageSettings {
         documents_dir: dir.to_string_lossy().to_string(),
+        folder_access_granted: true,
     }))
 }
 

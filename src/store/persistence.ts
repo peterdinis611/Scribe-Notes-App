@@ -20,6 +20,7 @@ const COMMENT_AUTHOR_KEY = 'scribe-comment-author'
 const CUSTOM_TEMPLATES_KEY = 'scribe-custom-templates'
 const CUSTOM_TEMPLATE_CATEGORIES_KEY = 'scribe-custom-template-categories'
 const STORAGE_ACCESS_EXPLAINER_KEY = 'scribe-storage-access-explainer-dismissed'
+const STORAGE_FOLDER_ACCESS_GRANTED_KEY = 'scribe-storage-folder-access-granted'
 const LOCALE_KEY = 'scribe-locale'
 
 export function readLocale(): AppLocale {
@@ -50,6 +51,27 @@ export function persistStorageAccessExplainerDismissed(dismissed: boolean) {
     return
   }
   localStorage.removeItem(STORAGE_ACCESS_EXPLAINER_KEY)
+}
+
+export function readStorageFolderAccessGranted(): boolean {
+  try {
+    return localStorage.getItem(STORAGE_FOLDER_ACCESS_GRANTED_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+export function persistStorageFolderAccessGranted(granted: boolean) {
+  if (granted) {
+    localStorage.setItem(STORAGE_FOLDER_ACCESS_GRANTED_KEY, '1')
+    persistStorageAccessExplainerDismissed(true)
+    return
+  }
+  localStorage.removeItem(STORAGE_FOLDER_ACCESS_GRANTED_KEY)
+}
+
+export function hasStorageFolderAccess(): boolean {
+  return readStorageFolderAccessGranted() || readStorageAccessExplainerDismissed()
 }
 
 export function readThemeSettings(): ThemeSettings {

@@ -40,6 +40,7 @@ import {
   setSaveStatus,
 } from '@/store/documentsSlice'
 import { setStorageSettings, setLocale, setThemeSettings } from '@/store/settingsSlice'
+import { persistStorageFolderAccessGranted } from '@/store/persistence'
 import type { AppLocale } from '@/i18n'
 import {
   createCustomThemeSelection,
@@ -181,7 +182,12 @@ export function StorageSection() {
 
   useEffect(() => {
     getStorageSettings()
-      .then((value) => dispatch(setStorageSettings(value)))
+      .then((value) => {
+        dispatch(setStorageSettings(value))
+        if (value.folderAccessGranted) {
+          persistStorageFolderAccessGranted(true)
+        }
+      })
       .catch(() => undefined)
   }, [dispatch])
 
