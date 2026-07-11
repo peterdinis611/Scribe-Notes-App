@@ -220,3 +220,74 @@ pub fn delete_custom_template(state: State<'_, DbState>, id: String) -> Result<(
         .map_err(|e| e.to_string())?;
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::test_helpers::in_memory_conn;
+
+    #[test]
+    fn validate_category_id_requires_cat_prefix() {
+        assert!(validate_category_id("cat-123").is_ok());
+        assert!(validate_category_id("general").is_err());
+    }
+
+    #[test]
+    fn delete_category_reassigns_templates_to_general() {
+        let conn = in_memory_conn();
+        let now = 1_700_000_000i64;
+
+        conn.execute(
+            "INSERT INTO custom_template_categories (id, name, created_at) VALUES ('cat-a', 'A', ?1)",
+            params![now],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO custom_templates (id, name, description, category, title, content_json, created_at)
+             VALUES ('tpl-1', 'Tpl', '', 'cat-a', 'Title', '{}', ?1)",
+            params![now],
+        )
+        .unwrap();
+
+        conn.execute(
+            "UPDATE custom_templates SET category = 'general' WHERE category = ?1",
+            params!["cat-a"],
+        )
+        .unwrap();
+        let reassigned = conn.changes() as u32;
+        conn.execute(
+            "DELETE FROM custom_template_categories WHERE id = ?1",
+            params!["cat-a"],
+        )
+        .unwrap();
+
+        let category: String = conn
+            .query_row(
+                "SELECT category FROM custom_templates WHERE id = 'tpl-1'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(reassigned, 1);
+        assert_eq!(category, "general");
+        assert_eq!(list_categories(&conn).unwrap().len(), 0);
+    }
+
+    #[test]
+    fn create_and_list_custom_template_round_trip() {
+        let conn = in_memory_conn();
+        let now = 1_700_000_000i64;
+
+        conn.execute(
+            "INSERT INTO custom_templates (id, name, description, category, title, content_json, created_at)
+             VALUES ('tpl-1', 'Report', 'Popis', 'general', 'Nový report', '{\"type\":\"doc\"}', ?1)",
+            params![now],
+        )
+        .unwrap();
+
+        let templates = list_templates(&conn).unwrap();
+        assert_eq!(templates.len(), 1);
+        assert_eq!(templates[0].name, "Report");
+        assert_eq!(templates[0].title, "Nový report");
+    }
+}

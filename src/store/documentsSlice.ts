@@ -31,6 +31,7 @@ export interface DocumentsState {
   activeTagFilter: string | null
   commentsVersion: number
   commentAuthor: string
+  diskSyncWarning: string | null
 }
 
 const initialState: DocumentsState = {
@@ -53,6 +54,7 @@ const initialState: DocumentsState = {
   activeTagFilter: null,
   commentsVersion: 0,
   commentAuthor: readCommentAuthor(),
+  diskSyncWarning: null,
 }
 
 const documentsSlice = createSlice({
@@ -144,6 +146,9 @@ const documentsSlice = createSlice({
       state.commentAuthor = trimmed
       persistCommentAuthor(trimmed)
     },
+    setDiskSyncWarning(state, action: PayloadAction<string | null>) {
+      state.diskSyncWarning = action.payload
+    },
   },
 })
 
@@ -172,6 +177,7 @@ export const {
   setActiveTagFilter,
   bumpCommentsVersion,
   setCommentAuthor,
+  setDiskSyncWarning,
 } = documentsSlice.actions
 
 export default documentsSlice.reducer

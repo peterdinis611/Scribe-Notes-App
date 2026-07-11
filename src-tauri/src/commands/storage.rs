@@ -132,6 +132,10 @@ pub fn queue_document_persist(
 pub fn flush_document_persist(
     queue: &DiskPersistQueue,
     id: Option<&str>,
-) -> Result<u32, String> {
-    queue.flush(id)
+) -> Result<crate::storage::FlushPendingWritesResult, String> {
+    let mut result = queue.flush(id)?;
+    result.errors.extend(queue.take_errors(id));
+    result.errors.sort_by(|left, right| left.document_id.cmp(&right.document_id));
+    result.errors.dedup_by(|left, right| left.document_id == right.document_id);
+    Ok(result)
 }

@@ -11,8 +11,9 @@ import { useLayoutTier } from '@/hooks/useLayoutTier'
 import { useResponsiveSidebar } from '@/hooks/useResponsiveSidebar'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
-import { createDocument } from '@/lib/db/api'
+import { createDocument, flushPendingWrites } from '@/lib/db/api'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
+import { applyDiskPersistResult } from '@/lib/disk-sync'
 import { toast } from '@/lib/toast'
 import { ROUTES } from '@/lib/routes'
 import type { DocumentTemplate } from '@/lib/templates'
@@ -72,6 +73,12 @@ export function AppLayout() {
       dispatch(setTemplatePickerOpen(false))
       await navigate(ROUTES.document(doc.id))
       toast.success('Dokument vytvorený', doc.title)
+      try {
+        const result = await flushPendingWrites(doc.id)
+        applyDiskPersistResult(dispatch, result)
+      } catch {
+        // Ignore disk flush transport errors after create.
+      }
     } catch (error) {
       toast.error('Nepodarilo sa vytvoriť dokument', String(error))
       throw error

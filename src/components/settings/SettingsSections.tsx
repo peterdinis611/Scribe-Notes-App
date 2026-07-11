@@ -215,8 +215,13 @@ export function StorageSection() {
       <SettingsSection>
         <SettingsSectionHeader
           title="Priečinok dokumentov"
-          description="Všetky dokumenty sa ukladajú ako .scribe súbory v tomto priečinku."
+          description="Všetky dokumenty sa ukladajú do lokálnej databáze aplikácie. Tento priečinok drží zálohu vo formáte .scribe."
         />
+
+        <p className="settings-storage-note mb-3 text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
+          Ak zápis na disk zlyhá, editor naďalej funguje a dokument zostane uložený v aplikácii.
+          V takom prípade zmeňte priečinok alebo skontrolujte oprávnenia k disku.
+        </p>
 
         <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
           <div className="mb-3 flex items-center gap-2.5">

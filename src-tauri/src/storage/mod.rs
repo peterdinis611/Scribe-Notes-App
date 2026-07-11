@@ -5,7 +5,7 @@ use tauri::AppHandle;
 mod persist_queue;
 mod reconcile;
 
-pub use persist_queue::{DiskPersistQueue, PersistJob};
+pub use persist_queue::{DiskPersistQueue, FlushPendingWritesResult, PersistJob};
 pub use reconcile::{reconcile_storage, ReconcileResult};
 
 pub const META_DOCUMENTS_DIR: &str = "documents_dir";

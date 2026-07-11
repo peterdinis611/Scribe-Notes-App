@@ -1,6 +1,9 @@
+import { useMemo } from 'react'
 import { FileText, Settings2 } from 'lucide-react'
 import { Link, useRouterState } from '@tanstack/react-router'
+import { ROUTES } from '@/lib/routes'
 import { cn } from '@/lib/utils'
+import { useAppSelector } from '@/store/hooks'
 
 type SidebarRailProps = {
   onNavigate?: () => void
@@ -8,8 +11,20 @@ type SidebarRailProps = {
 
 export function SidebarRail({ onNavigate }: SidebarRailProps) {
   const pathname = useRouterState({ select: (state) => state.location.pathname })
+  const activeDocumentId = useAppSelector((state) => state.documents.activeDocumentId)
+  const documents = useAppSelector((state) => state.documents.documents)
   const onSettingsPage = pathname.startsWith('/settings')
   const onEditorPage = pathname === '/' || pathname.startsWith('/doc/')
+
+  const editorLink = useMemo(() => {
+    if (
+      activeDocumentId &&
+      documents.some((doc) => doc.id === activeDocumentId && doc.deletedAt == null)
+    ) {
+      return ROUTES.document(activeDocumentId)
+    }
+    return ROUTES.home()
+  }, [activeDocumentId, documents])
 
   return (
     <div className="app-sidebar-rail titlebar-no-drag">
@@ -21,7 +36,7 @@ export function SidebarRail({ onNavigate }: SidebarRailProps) {
       </div>
 
       <Link
-        to="/"
+        {...editorLink}
         title="Editor"
         aria-label="Editor"
         onClick={() => onNavigate?.()}

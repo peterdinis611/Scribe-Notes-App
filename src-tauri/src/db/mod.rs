@@ -4,7 +4,7 @@ mod migrations;
 mod revisions;
 pub mod search;
 #[cfg(test)]
-mod test_helpers;
+pub(crate) mod test_helpers;
 
 pub use fts::{backfill_fts, remove_document_fts, sync_document_fts};
 pub use links::{backfill_links, sync_document_links};

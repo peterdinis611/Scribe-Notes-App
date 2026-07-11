@@ -1,6 +1,6 @@
 use rusqlite::Connection;
 
-const SCHEMA_VERSION: i32 = 9;
+const SCHEMA_VERSION: i32 = 10;
 
 pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     conn.execute_batch(
@@ -232,6 +232,24 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         )?;
     }
 
+    if current < 10 {
+        conn.execute_batch(
+            r#"
+            CREATE INDEX IF NOT EXISTS idx_document_links_source
+                ON document_links(source_id);
+            CREATE INDEX IF NOT EXISTS idx_custom_templates_category
+                ON custom_templates(category);
+            CREATE INDEX IF NOT EXISTS idx_documents_folder_deleted
+                ON documents(folder_id, deleted_at);
+            "#,
+        )?;
+
+        conn.execute(
+            "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
+            [SCHEMA_VERSION.to_string()],
+        )?;
+    }
+
     Ok(())
 }
 
@@ -441,5 +459,45 @@ mod tests {
             .unwrap();
         assert_eq!(threads, 0);
         assert_eq!(comments, 0);
+    }
+
+    #[test]
+    fn migration_creates_custom_template_tables() {
+        let conn = in_memory_conn();
+        let categories: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'custom_template_categories'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let templates: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'custom_templates'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(categories, 1);
+        assert_eq!(templates, 1);
+    }
+
+    #[test]
+    fn migration_adds_performance_indexes() {
+        let conn = in_memory_conn();
+        for index in [
+            "idx_document_links_source",
+            "idx_custom_templates_category",
+            "idx_documents_folder_deleted",
+        ] {
+            let exists: i64 = conn
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = ?1",
+                    [index],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert_eq!(exists, 1, "missing index {index}");
+        }
     }
 }

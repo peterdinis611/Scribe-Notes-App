@@ -1,6 +1,7 @@
 use crate::db::DbState;
 use rusqlite::{params, OptionalExtension};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use tauri::State;
 use uuid::Uuid;
 
@@ -27,6 +28,40 @@ pub struct CommentThread {
 
 fn now_ts() -> i64 {
     chrono::Utc::now().timestamp()
+}
+
+fn load_comments_grouped_by_thread(
+    conn: &rusqlite::Connection,
+    document_id: &str,
+) -> Result<HashMap<String, Vec<Comment>>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, thread_id, author, body, created_at FROM comments \
+             WHERE document_id = ?1 ORDER BY thread_id ASC, created_at ASC",
+        )
+        .map_err(|e| e.to_string())?;
+
+    let rows = stmt
+        .query_map(params![document_id], |row| {
+            Ok(Comment {
+                id: row.get(0)?,
+                thread_id: row.get(1)?,
+                author: row.get(2)?,
+                body: row.get(3)?,
+                created_at: row.get(4)?,
+            })
+        })
+        .map_err(|e| e.to_string())?;
+
+    let mut grouped = HashMap::new();
+    for comment in rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())? {
+        grouped
+            .entry(comment.thread_id.clone())
+            .or_insert_with(Vec::new)
+            .push(comment);
+    }
+
+    Ok(grouped)
 }
 
 fn load_thread_comments(
@@ -84,13 +119,18 @@ pub fn list_comment_threads(
         .collect::<Result<Vec<_>, _>>()
         .map_err(|e| e.to_string())?;
 
-    threads
+    let comments_by_thread = load_comments_grouped_by_thread(&conn, &document_id)?;
+
+    Ok(threads
         .into_iter()
         .map(|mut thread| {
-            thread.comments = load_thread_comments(&conn, &thread.id)?;
-            Ok(thread)
+            thread.comments = comments_by_thread
+                .get(&thread.id)
+                .cloned()
+                .unwrap_or_default();
+            thread
         })
-        .collect()
+        .collect())
 }
 
 #[derive(Debug, Deserialize)]
@@ -224,4 +264,42 @@ pub fn delete_comment_thread(state: State<'_, DbState>, thread_id: String) -> Re
     conn.execute("DELETE FROM comment_threads WHERE id = ?1", params![thread_id])
         .map_err(|e| e.to_string())?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::test_helpers::{in_memory_conn, seed_document};
+
+    #[test]
+    fn load_comments_grouped_by_thread_returns_all_replies() {
+        let conn = in_memory_conn();
+        seed_document(&conn, "doc1", "Doc", r#"{"type":"doc","content":[]}"#, None);
+        let now = 1_000i64;
+
+        for (thread_id, comment_id, body) in [
+            ("t1", "c1", "First"),
+            ("t1", "c2", "Second"),
+            ("t2", "c3", "Other thread"),
+        ] {
+            conn.execute(
+                "INSERT OR IGNORE INTO comment_threads (id, document_id, quote, resolved, created_at)
+                 VALUES (?1, 'doc1', 'quote', 0, ?2)",
+                params![thread_id, now],
+            )
+            .unwrap();
+            conn.execute(
+                "INSERT INTO comments (id, thread_id, document_id, author, body, created_at)
+                 VALUES (?1, ?2, 'doc1', 'Peter', ?3, ?4)",
+                params![comment_id, thread_id, body, now],
+            )
+            .unwrap();
+        }
+
+        let grouped = load_comments_grouped_by_thread(&conn, "doc1").unwrap();
+        assert_eq!(grouped.get("t1").map(|items| items.len()), Some(2));
+        assert_eq!(grouped.get("t2").map(|items| items.len()), Some(1));
+        assert_eq!(grouped["t1"][0].body, "First");
+        assert_eq!(grouped["t1"][1].body, "Second");
+    }
 }

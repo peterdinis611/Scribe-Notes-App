@@ -142,23 +142,24 @@ fn collect_document_ids_in_folders(
     conn: &Connection,
     folder_ids: &[String],
 ) -> Result<Vec<String>, String> {
-    let mut document_ids = Vec::new();
-
-    for folder_id in folder_ids {
-        let mut stmt = conn
-            .prepare("SELECT id FROM documents WHERE folder_id = ?1 AND deleted_at IS NULL")
-            .map_err(|e| e.to_string())?;
-
-        let ids = stmt
-            .query_map(params![folder_id], |row| row.get(0))
-            .map_err(|e| e.to_string())?
-            .collect::<Result<Vec<String>, _>>()
-            .map_err(|e| e.to_string())?;
-
-        document_ids.extend(ids);
+    if folder_ids.is_empty() {
+        return Ok(Vec::new());
     }
 
-    Ok(document_ids)
+    let placeholders = std::iter::repeat("?")
+        .take(folder_ids.len())
+        .collect::<Vec<_>>()
+        .join(", ");
+    let sql = format!(
+        "SELECT id FROM documents WHERE folder_id IN ({placeholders}) AND deleted_at IS NULL"
+    );
+
+    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map(rusqlite::params_from_iter(folder_ids.iter()), |row| row.get(0))
+        .map_err(|e| e.to_string())?;
+
+    rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
 }
 
 #[derive(Debug, Serialize)]
@@ -318,4 +319,41 @@ pub fn default_folder_id(conn: &rusqlite::Connection) -> Result<Option<String>, 
     )
     .optional()
     .map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::test_helpers::{in_memory_conn, seed_document, seed_folder};
+
+    #[test]
+    fn collect_document_ids_uses_single_query_for_multiple_folders() {
+        let conn = in_memory_conn();
+        seed_folder(&conn, "f1", "One", None);
+        seed_folder(&conn, "f2", "Two", None);
+        seed_document(&conn, "d1", "A", r#"{"type":"doc","content":[]}"#, Some("f1"));
+        seed_document(&conn, "d2", "B", r#"{"type":"doc","content":[]}"#, Some("f2"));
+        seed_document(&conn, "d3", "C", r#"{"type":"doc","content":[]}"#, Some("f1"));
+
+        let ids = collect_document_ids_in_folders(&conn, &["f1".into(), "f2".into()]).unwrap();
+        let mut sorted = ids;
+        sorted.sort();
+        assert_eq!(sorted, vec!["d1".to_string(), "d2".to_string(), "d3".to_string()]);
+    }
+
+    #[test]
+    fn collect_folder_subtree_includes_nested_children() {
+        let conn = in_memory_conn();
+        seed_folder(&conn, "root", "Root", None);
+        seed_folder(&conn, "child", "Child", Some("root"));
+        seed_folder(&conn, "grand", "Grand", Some("child"));
+
+        let ids = collect_folder_subtree_ids(&conn, "root").unwrap();
+        let mut sorted = ids;
+        sorted.sort();
+        assert_eq!(
+            sorted,
+            vec!["child".to_string(), "grand".to_string(), "root".to_string()]
+        );
+    }
 }

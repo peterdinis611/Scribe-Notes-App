@@ -123,7 +123,12 @@ fn map_summary(row: &rusqlite::Row<'_>) -> rusqlite::Result<DocumentSummary> {
 #[tauri::command]
 pub fn list_documents(state: State<'_, DbState>) -> Result<Vec<DocumentSummary>, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    list_open_document_summaries(&conn)
+}
 
+pub(crate) fn list_open_document_summaries(
+    conn: &rusqlite::Connection,
+) -> Result<Vec<DocumentSummary>, String> {
     let mut stmt = conn
         .prepare(&format!(
             "{SUMMARY_SELECT} WHERE deleted_at IS NULL ORDER BY updated_at DESC"
@@ -168,6 +173,25 @@ pub fn get_document(state: State<'_, DbState>, id: String) -> Result<Document, S
     .ok_or_else(|| format!("Document not found: {id}"))
 }
 
+pub(crate) fn insert_document_record(
+    conn: &rusqlite::Connection,
+    id: &str,
+    title: &str,
+    content_json: &str,
+    folder_id: Option<String>,
+    now: i64,
+) -> Result<(), String> {
+    conn.execute(
+        "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?5)",
+        params![id, title, content_json, folder_id, now],
+    )
+    .map_err(|e| e.to_string())?;
+
+    crate::db::sync_document_fts(conn, id, title, content_json)?;
+    crate::db::sync_document_links(conn, id, content_json)?;
+    Ok(())
+}
+
 #[tauri::command]
 pub fn create_document(
     app: AppHandle,
@@ -187,31 +211,34 @@ pub fn create_document(
         None => super::folders::default_folder_id(&conn)?,
     };
 
-    conn.execute(
-        "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?5)",
-        params![id, input.title, content_json, folder_id, now],
-    )
-    .map_err(|e| e.to_string())?;
+    insert_document_record(
+        &conn,
+        &id,
+        &input.title,
+        &content_json,
+        folder_id.clone(),
+        now,
+    )?;
 
-    crate::db::sync_document_fts(&conn, &id, &input.title, &content_json)?;
-    crate::db::sync_document_links(&conn, &id, &content_json)?;
-
-    let file_path = persist_document(
+    if let Err(error) = queue_document_persist(
         &app,
         &conn,
+        &state.persist_queue,
         &id,
         &input.title,
         &content_json,
         now,
         now,
-    )?;
+    ) {
+        state.persist_queue.record_error(&id, error);
+    }
 
     Ok(Document {
         id,
         title: input.title,
-        content_json: content_json.clone(),
+        content_json,
         folder_id,
-        file_path: Some(file_path),
+        file_path: None,
         created_at: now,
         updated_at: now,
     })
@@ -275,7 +302,7 @@ pub fn update_document(
         .map_err(|e| e.to_string())?;
 
     if content_changed {
-        queue_document_persist(
+        if let Err(error) = queue_document_persist(
             &app,
             &conn,
             &state.persist_queue,
@@ -284,7 +311,9 @@ pub fn update_document(
             &content_json,
             existing.created_at,
             now,
-        )?;
+        ) {
+            state.persist_queue.record_error(&input.id, error);
+        }
     }
 
     Ok(Document {
@@ -534,6 +563,14 @@ pub fn set_document_tags(
     tags: Vec<String>,
 ) -> Result<(), String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    store_document_tags(&conn, &id, tags)
+}
+
+pub(crate) fn store_document_tags(
+    conn: &rusqlite::Connection,
+    id: &str,
+    tags: Vec<String>,
+) -> Result<(), String> {
     let mut cleaned: Vec<String> = tags
         .into_iter()
         .map(|tag| tag.trim().to_string())
@@ -581,4 +618,86 @@ pub fn clear_all_documents(app: AppHandle, state: State<'_, DbState>) -> Result<
     }
 
     Ok(removed)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::test_helpers::{in_memory_conn, seed_document, seed_folder};
+
+    #[test]
+    fn list_open_documents_excludes_trashed() {
+        let conn = in_memory_conn();
+        seed_folder(&conn, "f1", "Folder", None);
+        seed_document(
+            &conn,
+            "d1",
+            "Open",
+            r#"{"type":"doc","content":[]}"#,
+            Some("f1"),
+        );
+        seed_document(
+            &conn,
+            "d2",
+            "Trashed",
+            r#"{"type":"doc","content":[]}"#,
+            Some("f1"),
+        );
+        conn.execute("UPDATE documents SET deleted_at = 99 WHERE id = 'd2'", [])
+            .unwrap();
+
+        let listed = list_open_document_summaries(&conn).unwrap();
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].id, "d1");
+    }
+
+    #[test]
+    fn insert_document_record_indexes_search_and_links() {
+        let conn = in_memory_conn();
+        seed_document(&conn, "tgt", "Target", r#"{"type":"doc","content":[]}"#, None);
+        let content = r#"{"type":"doc","content":[
+            {"type":"wikiLink","attrs":{"targetId":"tgt"}}
+        ]}"#;
+        insert_document_record(&conn, "src", "Source doc", content, None, 100).unwrap();
+
+        let hits = crate::db::search::search_documents_in_conn(&conn, "Source", 10).unwrap();
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].document_id, "src");
+
+        let backlink_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM document_links WHERE source_id = 'src' AND target_id = 'tgt'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(backlink_count, 1);
+    }
+
+    #[test]
+    fn soft_delete_hides_document_from_open_list() {
+        let conn = in_memory_conn();
+        seed_document(&conn, "d1", "Doc", r#"{"type":"doc","content":[]}"#, None);
+
+        assert!(soft_delete_document_row(&conn, "d1", 200).unwrap());
+        assert!(list_open_document_summaries(&conn).unwrap().is_empty());
+    }
+
+    #[test]
+    fn store_document_tags_normalizes_values() {
+        let conn = in_memory_conn();
+        seed_document(&conn, "d1", "Doc", r#"{"type":"doc","content":[]}"#, None);
+
+        store_document_tags(
+            &conn,
+            "d1",
+            vec![" beta ".into(), "alpha".into(), "alpha".into()],
+        )
+        .unwrap();
+
+        let tags: String = conn
+            .query_row("SELECT tags FROM documents WHERE id = 'd1'", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(tags, r#"["alpha","beta"]"#);
+    }
 }

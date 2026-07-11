@@ -22,6 +22,7 @@ import { tiptapJsonToHtml } from '@/lib/export/html'
 import { tiptapJsonToMarkdown } from '@/lib/export/markdown'
 import { tiptapToPlainText } from '@/lib/export/plain-text'
 import { ROUTES, SETTINGS_SECTIONS } from '@/lib/routes'
+import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { editorRefs } from '@/store/editorRefs'
 import {
@@ -41,6 +42,7 @@ const PdfPreviewDialog = lazy(() =>
 
 function SaveStatus() {
   const status = useAppSelector((state) => state.documents.saveStatus)
+  const diskSyncWarning = useAppSelector((state) => state.documents.diskSyncWarning)
 
   if (status === 'saving') {
     return (
@@ -69,9 +71,17 @@ function SaveStatus() {
   }
 
   return (
-    <Badge className="status-pill h-6 gap-1 border-transparent bg-[color-mix(in_srgb,#34c759_14%,transparent)] px-2 text-[11px] font-medium text-[#248a3d] dark:text-[#30d158]">
+    <Badge
+      className={cn(
+        'status-pill h-6 gap-1 border-transparent px-2 text-[11px] font-medium',
+        diskSyncWarning
+          ? 'bg-[color-mix(in_srgb,#ff9500_14%,transparent)] text-[#c93400] dark:text-[#ff9f0a]'
+          : 'bg-[color-mix(in_srgb,#34c759_14%,transparent)] text-[#248a3d] dark:text-[#30d158]',
+      )}
+      title={diskSyncWarning ?? undefined}
+    >
       <Check className="h-3 w-3" />
-      Uložené
+      {diskSyncWarning ? 'Uložené · bez disku' : 'Uložené'}
     </Badge>
   )
 }

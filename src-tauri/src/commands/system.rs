@@ -1,5 +1,5 @@
 use crate::db::DbState;
-use crate::storage::{self, ReconcileResult};
+use crate::storage::{self, FlushPendingWritesResult, ReconcileResult};
 use serde::Serialize;
 use tauri::{AppHandle, State};
 
@@ -59,7 +59,7 @@ pub fn get_backend_stats(state: State<'_, DbState>) -> Result<BackendStats, Stri
 pub fn flush_pending_writes(
     state: State<'_, DbState>,
     document_id: Option<String>,
-) -> Result<u32, String> {
+) -> Result<FlushPendingWritesResult, String> {
     crate::commands::storage::flush_document_persist(
         &state.persist_queue,
         document_id.as_deref(),

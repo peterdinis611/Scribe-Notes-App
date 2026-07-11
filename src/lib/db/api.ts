@@ -279,6 +279,16 @@ export interface ReconcileResult {
   syncedToDiskCount: number
 }
 
+export interface DiskPersistError {
+  documentId: string
+  message: string
+}
+
+export interface FlushPendingWritesResult {
+  flushed: number
+  errors: DiskPersistError[]
+}
+
 export interface BackendStats {
   schemaVersion: number
   documentsCount: number
@@ -293,7 +303,9 @@ export const scanScribeFiles = () => invoke<ScanScribeResult>('scan_scribe_files
 export const reconcileStorage = () => invoke<ReconcileResult>('reconcile_storage')
 
 export const flushPendingWrites = (documentId?: string) =>
-  invoke<number>('flush_pending_writes', { documentId: documentId ?? null })
+  invoke<FlushPendingWritesResult>('flush_pending_writes', {
+    documentId: documentId ?? null,
+  })
 
 export const getBackendStats = () => invoke<BackendStats>('get_backend_stats')
 

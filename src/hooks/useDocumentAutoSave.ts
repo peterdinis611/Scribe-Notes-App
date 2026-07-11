@@ -5,6 +5,7 @@ import {
   hashContent,
 } from '@/lib/cache/document-cache'
 import { flushPendingWrites, updateDocument } from '@/lib/db/api'
+import { applyDiskPersistResult } from '@/lib/disk-sync'
 import { toast } from '@/lib/toast'
 import { debounce, extractTitleFromContent } from '@/lib/utils'
 import { useAppDispatch } from '@/store/hooks'
@@ -145,8 +146,13 @@ export function useDocumentAutoSave({
     scheduleSave.flush()
     await saveInFlightRef.current
     await saveNow(activeId)
-    await flushPendingWrites(activeId)
-  }, [activeId, editor, saveNow, scheduleSave])
+    try {
+      const result = await flushPendingWrites(activeId)
+      applyDiskPersistResult(dispatch, result)
+    } catch {
+      // Disk flush failures should not roll back the in-app save.
+    }
+  }, [activeId, dispatch, editor, saveNow, scheduleSave])
 
   const markDirty = useCallback(() => {
     dispatch(setSaveStatus('dirty'))
@@ -186,10 +192,15 @@ export function useDocumentAutoSave({
         scheduleSave.flush()
         await saveInFlightRef.current
         await saveNow(previousId)
-        await flushPendingWrites(previousId)
+        try {
+          const result = await flushPendingWrites(previousId)
+          applyDiskPersistResult(dispatch, result)
+        } catch {
+          // Ignore disk flush transport errors when switching documents.
+        }
       })()
     }
-  }, [activeId, saveNow, scheduleSave])
+  }, [activeId, dispatch, saveNow, scheduleSave])
 
   useEffect(() => {
     const onVisibilityChange = () => {
