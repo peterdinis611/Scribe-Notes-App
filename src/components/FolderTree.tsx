@@ -112,10 +112,27 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
       confirmLabel: 'Uložiť',
     })
     if (!name || name === currentName) return
-    const folder = await renameFolder(id, name)
-    dispatch(updateFolders((prev) => prev.map((item) => (item.id === id ? folder : item))))
-    toast.success('Priečinok premenovaný', folder.name)
-  }, [dispatch])
+
+    const previous = folders.find((item) => item.id === id)
+    dispatch(
+      updateFolders((prev) =>
+        prev.map((item) => (item.id === id ? { ...item, name } : item)),
+      ),
+    )
+
+    try {
+      const folder = await renameFolder(id, name)
+      dispatch(updateFolders((prev) => prev.map((item) => (item.id === id ? folder : item))))
+      toast.success('Priečinok premenovaný', folder.name)
+    } catch (error) {
+      if (previous) {
+        dispatch(
+          updateFolders((prev) => prev.map((item) => (item.id === id ? previous : item))),
+        )
+      }
+      toast.error('Nepodarilo sa premenovať priečinok', String(error))
+    }
+  }, [dispatch, folders])
 
   const handleTrashFolderDocuments = useCallback(async (id: string, name: string, event: React.MouseEvent) => {
     event.stopPropagation()
@@ -135,12 +152,11 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     })
     if (!confirmed) return
 
-    const result = await trashFolderDocuments(id)
-    const trashedIds = new Set(result.trashedDocumentIds)
-
-    for (const documentId of result.trashedDocumentIds) {
-      invalidateDocumentCache(documentId)
-    }
+    const trashedDocuments = documents.filter(
+      (doc) => doc.folderId && subtreeIds.has(doc.folderId),
+    )
+    const trashedIds = new Set(trashedDocuments.map((doc) => doc.id))
+    const previousActiveId = activeId
 
     dispatch(updateDocuments((prev) => prev.filter((doc) => !trashedIds.has(doc.id))))
 
@@ -156,10 +172,27 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
       }
     }
 
-    toast.success(
-      'Dokumenty presunuté do koša',
-      `${result.trashedDocumentIds.length} z priečinka „${name}"`,
-    )
+    try {
+      const result = await trashFolderDocuments(id)
+
+      for (const documentId of result.trashedDocumentIds) {
+        invalidateDocumentCache(documentId)
+      }
+
+      toast.success(
+        'Dokumenty presunuté do koša',
+        `${result.trashedDocumentIds.length} z priečinka „${name}"`,
+      )
+    } catch (error) {
+      dispatch(updateDocuments((prev) => [...prev, ...trashedDocuments]))
+      if (previousActiveId && trashedIds.has(previousActiveId)) {
+        dispatch(setActiveDocumentId(previousActiveId))
+        const cached = peekCachedDocument(previousActiveId)
+        if (cached) dispatch(setActiveDocument(cached))
+        navigate(ROUTES.document(previousActiveId))
+      }
+      toast.error('Nepodarilo sa presunúť dokumenty do koša', String(error))
+    }
   }, [activeId, dispatch, documents, folders, navigate])
 
   const handleDeleteFolder = useCallback(async (id: string, name: string, event: React.MouseEvent) => {
@@ -175,18 +208,17 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     })
     if (!confirmed) return
 
-    const result = await deleteFolder(id)
-
-    for (const documentId of result.deletedDocumentIds) {
-      invalidateDocumentCache(documentId)
-    }
-
-    const deletedFolderIds = new Set(result.deletedFolderIds)
-    const deletedDocumentIds = new Set(result.deletedDocumentIds)
+    const deletedFolders = folders.filter((item) => subtreeIds.has(item.id))
+    const deletedDocuments = documents.filter(
+      (doc) => doc.folderId && subtreeIds.has(doc.folderId),
+    )
+    const deletedFolderIds = new Set(deletedFolders.map((item) => item.id))
+    const deletedDocumentIds = new Set(deletedDocuments.map((doc) => doc.id))
+    const previousExpandedIds = expandedIds
+    const previousActiveId = activeId
 
     dispatch(updateFolders((prev) => prev.filter((item) => !deletedFolderIds.has(item.id))))
     dispatch(updateDocuments((prev) => prev.filter((doc) => !deletedDocumentIds.has(doc.id))))
-
     dispatch(
       updateExpandedFolderIds((prev) => prev.filter((folderId) => !deletedFolderIds.has(folderId))),
     )
@@ -203,14 +235,36 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
       }
     }
 
-    toast.success('Priečinok vymazaný', name)
-  }, [activeId, dispatch, documents, folders, navigate])
+    try {
+      const result = await deleteFolder(id)
+
+      for (const documentId of result.deletedDocumentIds) {
+        invalidateDocumentCache(documentId)
+      }
+
+      toast.success('Priečinok vymazaný', name)
+    } catch (error) {
+      dispatch(updateFolders((prev) => [...prev, ...deletedFolders]))
+      dispatch(updateDocuments((prev) => [...prev, ...deletedDocuments]))
+      dispatch(updateExpandedFolderIds(() => previousExpandedIds))
+      if (previousActiveId && deletedDocumentIds.has(previousActiveId)) {
+        dispatch(setActiveDocumentId(previousActiveId))
+        const cached = peekCachedDocument(previousActiveId)
+        if (cached) dispatch(setActiveDocument(cached))
+        navigate(ROUTES.document(previousActiveId))
+      }
+      toast.error('Nepodarilo sa vymazať priečinok', String(error))
+    }
+  }, [activeId, dispatch, documents, expandedIds, folders, navigate])
 
   const handleDeleteDocument = useCallback(async (id: string, event: React.MouseEvent) => {
     event.stopPropagation()
     const deleted = documents.find((doc) => doc.id === id)
-    await deleteDocument(id)
+    if (!deleted) return
+
     const remaining = documents.filter((doc) => doc.id !== id)
+    const previousActiveId = activeId
+
     dispatch(updateDocuments(() => remaining))
     if (activeId === id) {
       const nextId = remaining[0]?.id ?? null
@@ -222,7 +276,20 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
         navigate(ROUTES.document(nextId))
       }
     }
-    toast.success('Dokument presunutý do koša', deleted?.title)
+
+    try {
+      await deleteDocument(id)
+      toast.success('Dokument presunutý do koša', deleted.title)
+    } catch (error) {
+      dispatch(updateDocuments((prev) => [...prev, deleted]))
+      if (previousActiveId === id) {
+        dispatch(setActiveDocumentId(id))
+        const cached = peekCachedDocument(id)
+        if (cached) dispatch(setActiveDocument(cached))
+        navigate(ROUTES.document(id))
+      }
+      toast.error('Nepodarilo sa presunúť dokument do koša', String(error))
+    }
   }, [activeId, dispatch, documents, navigate])
 
   const openDocument = useCallback((id: string) => {
@@ -275,10 +342,16 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
           .filter(Boolean),
       ),
     ).sort()
+    const previousTags = current.tags
     dispatch(updateDocuments((prev) => prev.map((doc) => (doc.id === id ? { ...doc, tags } : doc))))
     try {
       await setDocumentTags(id, tags)
     } catch (error) {
+      dispatch(
+        updateDocuments((prev) =>
+          prev.map((doc) => (doc.id === id ? { ...doc, tags: previousTags } : doc)),
+        ),
+      )
       toast.error('Nepodarilo sa uložiť štítky', String(error))
     }
   }, [dispatch, documents])
@@ -299,11 +372,31 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     }
 
     if (folderDragId && folderDragId !== folderId) {
-      const folder = await moveFolder(folderDragId, folderId)
-      dispatch(updateFolders((prev) => prev.map((item) => (item.id === folder.id ? folder : item))))
-      toast.success('Priečinok presunutý', folder.name)
+      const previous = folders.find((item) => item.id === folderDragId)
+      if (!previous) return
+
+      dispatch(
+        updateFolders((prev) =>
+          prev.map((item) =>
+            item.id === folderDragId ? { ...item, parentId: folderId } : item,
+          ),
+        ),
+      )
+
+      try {
+        const folder = await moveFolder(folderDragId, folderId)
+        dispatch(updateFolders((prev) => prev.map((item) => (item.id === folder.id ? folder : item))))
+        toast.success('Priečinok presunutý', folder.name)
+      } catch (error) {
+        dispatch(
+          updateFolders((prev) =>
+            prev.map((item) => (item.id === folderDragId ? previous : item)),
+          ),
+        )
+        toast.error('Nepodarilo sa presunúť priečinok', String(error))
+      }
     }
-  }, [dispatch, documents, moveDocument])
+  }, [dispatch, documents, folders, moveDocument])
 
   const handleFolderDragStart = useCallback((id: string, event: React.DragEvent) => {
     setFolderDragData(event, id)

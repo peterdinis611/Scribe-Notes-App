@@ -3,6 +3,8 @@ import { DEFAULT_PAGE_SETUP } from '@/lib/editor/page-setup'
 import type { ThemeSettings } from '@/lib/themes/types'
 import type { CustomDocumentTemplate } from '@/lib/templates/custom'
 import { parseStoredCustomTemplates } from '@/lib/templates/custom'
+import type { CustomTemplateCategory } from '@/lib/templates/categories'
+import { parseStoredCustomCategories } from '@/lib/templates/categories'
 
 const THEME_KEY_V2 = 'scribe-theme-v2'
 const THEME_KEY_LEGACY = 'scribe-theme'
@@ -15,6 +17,7 @@ const PRINT_COLUMNS_KEY = 'scribe-print-columns'
 const MANUAL_TITLES_KEY = 'scribe-manual-titles'
 const COMMENT_AUTHOR_KEY = 'scribe-comment-author'
 const CUSTOM_TEMPLATES_KEY = 'scribe-custom-templates'
+const CUSTOM_TEMPLATE_CATEGORIES_KEY = 'scribe-custom-template-categories'
 
 export function readThemeSettings(): ThemeSettings {
   try {
@@ -163,4 +166,18 @@ export function readCustomTemplates(): CustomDocumentTemplate[] {
 
 export function persistCustomTemplates(templates: CustomDocumentTemplate[]) {
   localStorage.setItem(CUSTOM_TEMPLATES_KEY, JSON.stringify(templates))
+}
+
+export function readCustomTemplateCategories(): CustomTemplateCategory[] {
+  try {
+    const raw = localStorage.getItem(CUSTOM_TEMPLATE_CATEGORIES_KEY)
+    if (!raw) return []
+    return parseStoredCustomCategories(JSON.parse(raw))
+  } catch {
+    return []
+  }
+}
+
+export function persistCustomTemplateCategories(categories: CustomTemplateCategory[]) {
+  localStorage.setItem(CUSTOM_TEMPLATE_CATEGORIES_KEY, JSON.stringify(categories))
 }

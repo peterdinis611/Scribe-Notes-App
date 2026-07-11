@@ -33,12 +33,14 @@ export async function createCommentForSelection(editor: Editor): Promise<void> {
 
   const commentId = generateCommentId()
 
+  editor.chain().focus().setComment({ commentId }).run()
+
   try {
     await createCommentThread({ id: commentId, documentId, quote, author, body: body.trim() })
-    editor.chain().focus().setComment({ commentId }).run()
     store.dispatch(bumpCommentsVersion())
     store.dispatch(setCommentsPanelOpen(true))
   } catch (error) {
+    editor.chain().focus().removeCommentById({ commentId }).run()
     toast.error('Nepodarilo sa pridať komentár', String(error))
   }
 }

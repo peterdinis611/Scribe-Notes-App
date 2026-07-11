@@ -8,7 +8,7 @@ import {
   resolveCommentThread,
   type CommentThread,
 } from '@/lib/db/api'
-import { focusComment } from '@/lib/editor/comments'
+import { findCommentRange, focusComment } from '@/lib/editor/comments'
 import { cn, formatRelativeTime } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
@@ -82,13 +82,19 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
   const handleResolve = useCallback(
     async (thread: CommentThread) => {
       const next = !thread.resolved
+      const previous = thread.resolved
+      editor?.chain().setCommentResolved({ commentId: thread.id, resolved: next }).run()
+      setThreads((prev) =>
+        prev.map((item) => (item.id === thread.id ? { ...item, resolved: next } : item)),
+      )
+
       try {
         await resolveCommentThread(thread.id, next)
-        editor?.chain().setCommentResolved({ commentId: thread.id, resolved: next }).run()
-        setThreads((prev) =>
-          prev.map((item) => (item.id === thread.id ? { ...item, resolved: next } : item)),
-        )
       } catch (error) {
+        editor?.chain().setCommentResolved({ commentId: thread.id, resolved: previous }).run()
+        setThreads((prev) =>
+          prev.map((item) => (item.id === thread.id ? { ...item, resolved: previous } : item)),
+        )
         toast.error('Nepodarilo sa zmeniť stav', String(error))
       }
     },
@@ -97,11 +103,22 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
 
   const handleDelete = useCallback(
     async (thread: CommentThread) => {
+      const range = editor ? findCommentRange(editor, thread.id) : null
+      setThreads((prev) => prev.filter((item) => item.id !== thread.id))
+      editor?.chain().focus().removeCommentById({ commentId: thread.id }).run()
+
       try {
         await deleteCommentThread(thread.id)
-        editor?.chain().focus().removeCommentById({ commentId: thread.id }).run()
-        setThreads((prev) => prev.filter((item) => item.id !== thread.id))
       } catch (error) {
+        setThreads((prev) => [...prev, thread].sort((a, b) => a.createdAt - b.createdAt))
+        if (editor && range) {
+          editor
+            .chain()
+            .focus()
+            .setTextSelection(range)
+            .setComment({ commentId: thread.id })
+            .run()
+        }
         toast.error('Nepodarilo sa vymazať komentár', String(error))
       }
     },
@@ -112,15 +129,51 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
     async (thread: CommentThread) => {
       const body = (replyDrafts[thread.id] ?? '').trim()
       if (!body) return
+
+      const optimisticId = `pending-${Date.now()}`
+      const optimisticReply = {
+        id: optimisticId,
+        threadId: thread.id,
+        author,
+        body,
+        createdAt: Date.now(),
+      }
+
+      setThreads((prev) =>
+        prev.map((item) =>
+          item.id === thread.id
+            ? { ...item, comments: [...item.comments, optimisticReply] }
+            : item,
+        ),
+      )
+      setReplyDrafts((prev) => ({ ...prev, [thread.id]: '' }))
+
       try {
         const reply = await addCommentReply({ threadId: thread.id, author, body })
         setThreads((prev) =>
           prev.map((item) =>
-            item.id === thread.id ? { ...item, comments: [...item.comments, reply] } : item,
+            item.id === thread.id
+              ? {
+                  ...item,
+                  comments: item.comments.map((comment) =>
+                    comment.id === optimisticId ? reply : comment,
+                  ),
+                }
+              : item,
           ),
         )
-        setReplyDrafts((prev) => ({ ...prev, [thread.id]: '' }))
       } catch (error) {
+        setThreads((prev) =>
+          prev.map((item) =>
+            item.id === thread.id
+              ? {
+                  ...item,
+                  comments: item.comments.filter((comment) => comment.id !== optimisticId),
+                }
+              : item,
+          ),
+        )
+        setReplyDrafts((prev) => ({ ...prev, [thread.id]: body }))
         toast.error('Nepodarilo sa pridať odpoveď', String(error))
       }
     },

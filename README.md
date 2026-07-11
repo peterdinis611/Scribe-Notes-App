@@ -171,4 +171,4 @@ Schéma SQLite je verzovaná v `src-tauri/src/db/migrations.rs`. Pri štarte apl
 
 ## Verzia
 
-Aktuálna verzia: **0.2.0**
+Aktuálna verzia: **0.3.0**

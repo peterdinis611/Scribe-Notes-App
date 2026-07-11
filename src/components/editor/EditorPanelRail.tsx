@@ -8,6 +8,12 @@ import {
   MessageSquare,
   Search,
 } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
@@ -30,16 +36,20 @@ type RailButtonProps = {
 
 function RailButton({ active, label, onClick, children }: RailButtonProps) {
   return (
-    <button
-      type="button"
-      className={cn('editor-panel-rail-btn titlebar-no-drag', active && 'is-active')}
-      title={label}
-      aria-label={label}
-      aria-pressed={active}
-      onClick={onClick}
-    >
-      {children}
-    </button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          className={cn('editor-panel-rail-btn titlebar-no-drag', active && 'is-active')}
+          aria-label={label}
+          aria-pressed={active}
+          onClick={onClick}
+        >
+          {children}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="left">{label}</TooltipContent>
+    </Tooltip>
   )
 }
 
@@ -61,76 +71,78 @@ export function EditorPanelRail() {
   }
 
   return (
-    <div className="editor-panel-rail titlebar-no-drag" aria-label="Panely dokumentu">
-      <RailButton
-        label="Štruktúra dokumentu"
-        active={outlineOpen}
-        onClick={() => {
-          closeOtherPanels('outline')
-          dispatch(setDocumentOutlineOpen(!outlineOpen))
-        }}
-      >
-        <ListTree className="h-4 w-4" />
-      </RailButton>
-      <RailButton
-        label="Komentáre"
-        active={commentsOpen}
-        onClick={() => {
-          closeOtherPanels('comments')
-          dispatch(setCommentsPanelOpen(!commentsOpen))
-        }}
-      >
-        <MessageSquare className="h-4 w-4" />
-      </RailButton>
-      <RailButton
-        label="Odkazy sem"
-        active={backlinksOpen}
-        onClick={() => {
-          closeOtherPanels('backlinks')
-          dispatch(setBacklinksPanelOpen(!backlinksOpen))
-        }}
-      >
-        <Link2 className="h-4 w-4" />
-      </RailButton>
-      <RailButton
-        label="Štatistika"
-        active={statsOpen}
-        onClick={() => {
-          closeOtherPanels('stats')
-          dispatch(setStatsPanelOpen(!statsOpen))
-        }}
-      >
-        <BarChart3 className="h-4 w-4" />
-      </RailButton>
-      <RailButton
-        label="História verzií"
-        active={historyOpen}
-        onClick={() => {
-          closeOtherPanels('history')
-          dispatch(setRevisionHistoryOpen(!historyOpen))
-        }}
-      >
-        <History className="h-4 w-4" />
-      </RailButton>
+    <TooltipProvider>
+      <div className="editor-panel-rail titlebar-no-drag" aria-label="Panely dokumentu">
+        <RailButton
+          label="Štruktúra dokumentu"
+          active={outlineOpen}
+          onClick={() => {
+            closeOtherPanels('outline')
+            dispatch(setDocumentOutlineOpen(!outlineOpen))
+          }}
+        >
+          <ListTree className="h-4 w-4" />
+        </RailButton>
+        <RailButton
+          label="Komentáre"
+          active={commentsOpen}
+          onClick={() => {
+            closeOtherPanels('comments')
+            dispatch(setCommentsPanelOpen(!commentsOpen))
+          }}
+        >
+          <MessageSquare className="h-4 w-4" />
+        </RailButton>
+        <RailButton
+          label="Odkazy sem"
+          active={backlinksOpen}
+          onClick={() => {
+            closeOtherPanels('backlinks')
+            dispatch(setBacklinksPanelOpen(!backlinksOpen))
+          }}
+        >
+          <Link2 className="h-4 w-4" />
+        </RailButton>
+        <RailButton
+          label="Štatistika"
+          active={statsOpen}
+          onClick={() => {
+            closeOtherPanels('stats')
+            dispatch(setStatsPanelOpen(!statsOpen))
+          }}
+        >
+          <BarChart3 className="h-4 w-4" />
+        </RailButton>
+        <RailButton
+          label="História verzií"
+          active={historyOpen}
+          onClick={() => {
+            closeOtherPanels('history')
+            dispatch(setRevisionHistoryOpen(!historyOpen))
+          }}
+        >
+          <History className="h-4 w-4" />
+        </RailButton>
 
-      <div className="editor-panel-rail-sep" aria-hidden="true" />
+        <div className="editor-panel-rail-sep" aria-hidden="true" />
 
-      <RailButton
-        label="Nájsť a nahradiť"
-        onClick={() => {
-          dispatch(setFindReplaceMode('find'))
-          dispatch(setFindReplaceOpen(true))
-        }}
-      >
-        <Search className="h-4 w-4" />
-      </RailButton>
-      <RailButton
-        label={focusMode ? 'Vypnúť režim sústredenia' : 'Režim sústredenia'}
-        active={focusMode}
-        onClick={() => dispatch(toggleFocusMode())}
-      >
-        <Focus className="h-4 w-4" />
-      </RailButton>
-    </div>
+        <RailButton
+          label="Nájsť a nahradiť"
+          onClick={() => {
+            dispatch(setFindReplaceMode('find'))
+            dispatch(setFindReplaceOpen(true))
+          }}
+        >
+          <Search className="h-4 w-4" />
+        </RailButton>
+        <RailButton
+          label={focusMode ? 'Vypnúť režim sústredenia' : 'Režim sústredenia'}
+          active={focusMode}
+          onClick={() => dispatch(toggleFocusMode())}
+        >
+          <Focus className="h-4 w-4" />
+        </RailButton>
+      </div>
+    </TooltipProvider>
   )
 }

@@ -310,3 +310,52 @@ export const saveDocumentImage = (
     fileName,
     dataBase64,
   })
+
+export interface CustomTemplateCategoryRow {
+  id: string
+  name: string
+  createdAt: number
+}
+
+export interface CustomTemplateRow {
+  id: string
+  name: string
+  description: string
+  category: string
+  title: string
+  contentJson: string
+  createdAt: number
+}
+
+export const listCustomTemplateCategories = () =>
+  invoke<CustomTemplateCategoryRow[]>('list_custom_template_categories')
+
+export const createCustomTemplateCategory = (input: CustomTemplateCategoryRow) =>
+  invoke<CustomTemplateCategoryRow>('create_custom_template_category', {
+    input: {
+      id: input.id,
+      name: input.name,
+      createdAt: input.createdAt,
+    },
+  })
+
+export const deleteCustomTemplateCategory = (id: string) =>
+  invoke<number>('delete_custom_template_category', { id })
+
+export const listCustomTemplates = () => invoke<CustomTemplateRow[]>('list_custom_templates')
+
+export const createCustomTemplate = (input: CustomTemplateRow) =>
+  invoke<CustomTemplateRow>('create_custom_template', {
+    input: {
+      id: input.id,
+      name: input.name,
+      description: input.description,
+      category: input.category,
+      title: input.title,
+      contentJson: input.contentJson,
+      createdAt: input.createdAt,
+    },
+  })
+
+export const deleteCustomTemplate = (id: string) =>
+  invoke<void>('delete_custom_template', { id })

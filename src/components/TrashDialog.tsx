@@ -44,18 +44,28 @@ export function TrashDialog() {
 
   const handleRestore = useCallback(
     async (item: DocumentSummary) => {
+      setItems((prev) => prev.filter((doc) => doc.id !== item.id))
+      const optimisticSummary = { ...item, deletedAt: null }
+      dispatch(
+        updateDocuments((prev) => [
+          optimisticSummary,
+          ...prev.filter((doc) => doc.id !== item.id),
+        ]),
+      )
+
       try {
         await restoreDocument(item.id)
-        setItems((prev) => prev.filter((doc) => doc.id !== item.id))
         const fresh = await fetchDocumentFresh(item.id)
         dispatch(
           updateDocuments((prev) => {
-            const summary = documentToSummary(fresh, { ...item, deletedAt: null })
+            const summary = documentToSummary(fresh, optimisticSummary)
             return [summary, ...prev.filter((doc) => doc.id !== item.id)]
           }),
         )
         toast.success('Dokument obnovený', item.title)
       } catch (error) {
+        setItems((prev) => [...prev, item])
+        dispatch(updateDocuments((prev) => prev.filter((doc) => doc.id !== item.id)))
         toast.error('Nepodarilo sa obnoviť dokument', String(error))
       }
     },
@@ -68,10 +78,13 @@ export function TrashDialog() {
       { title: 'Odstrániť natrvalo?', kind: 'warning', okLabel: 'Odstrániť', cancelLabel: 'Zrušiť' },
     )
     if (!confirmed) return
+
+    setItems((prev) => prev.filter((doc) => doc.id !== item.id))
+
     try {
       await purgeDocument(item.id)
-      setItems((prev) => prev.filter((doc) => doc.id !== item.id))
     } catch (error) {
+      setItems((prev) => [...prev, item])
       toast.error('Nepodarilo sa odstrániť dokument', String(error))
     }
   }, [])
@@ -83,14 +96,18 @@ export function TrashDialog() {
       { title: 'Vysypať kôš?', kind: 'warning', okLabel: 'Vysypať', cancelLabel: 'Zrušiť' },
     )
     if (!confirmed) return
+
+    const previousItems = items
+    setItems([])
+
     try {
       const count = await emptyTrash()
-      setItems([])
       toast.success('Kôš vysypaný', `${count} dokumentov odstránených`)
     } catch (error) {
+      setItems(previousItems)
       toast.error('Nepodarilo sa vysypať kôš', String(error))
     }
-  }, [items.length])
+  }, [items])
 
   return (
     <Dialog open={open} onOpenChange={(next) => dispatch(setTrashOpen(next))}>

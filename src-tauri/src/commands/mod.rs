@@ -1,6 +1,7 @@
 pub mod comments;
 pub mod documents;
 pub mod folders;
+pub mod templates;
 pub mod images;
 pub mod import_export;
 pub mod revisions;

@@ -1,13 +1,26 @@
 import type { JSONContent } from '@tiptap/core'
+import type { TemplateCategoryId } from '@/lib/templates/categories'
 
 export interface DocumentTemplate {
   id: string
   name: string
   description: string
-  category: 'general' | 'business' | 'personal' | 'creative'
+  category: TemplateCategoryId
   title: string
   content: JSONContent
 }
+
+export type { TemplateCategoryId, BuiltInTemplateCategory, CustomTemplateCategory } from '@/lib/templates/categories'
+export {
+  BUILT_IN_TEMPLATE_CATEGORIES,
+  builtInCategoryLabels,
+  createCustomCategory,
+  getCategoryLabel,
+  isBuiltInCategory,
+  isCustomCategoryId,
+  isValidCategoryId,
+  NEW_CATEGORY_SELECT_VALUE,
+} from '@/lib/templates/categories'
 
 const blank: DocumentTemplate = {
   id: 'blank',

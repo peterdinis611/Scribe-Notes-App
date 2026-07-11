@@ -56,8 +56,9 @@ export function SelectContent({
     <SelectPrimitive.Portal>
       <SelectPrimitive.Content
         position={position}
+        onCloseAutoFocus={(event) => event.preventDefault()}
         className={cn(
-          'titlebar-no-drag z-50 max-h-[min(280px,70vh)] min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] shadow-lg',
+          'titlebar-no-drag z-[100] max-h-[min(280px,70vh)] min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] shadow-lg',
           position === 'popper' &&
             'data-[side=bottom]:translate-y-1 data-[side=top]:-translate-y-1',
           className,

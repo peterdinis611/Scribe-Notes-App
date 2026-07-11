@@ -1,5 +1,6 @@
 import type { JSONContent } from '@tiptap/core'
 import type { DocumentTemplate } from '@/lib/templates'
+import { isValidCategoryId } from '@/lib/templates/categories'
 
 export type CustomDocumentTemplate = DocumentTemplate & {
   isCustom: true
@@ -58,9 +59,7 @@ export function parseStoredCustomTemplates(raw: unknown): CustomDocumentTemplate
         name: record.name,
         description: typeof record.description === 'string' ? record.description : '',
         category:
-          record.category === 'business' ||
-          record.category === 'personal' ||
-          record.category === 'creative'
+          typeof record.category === 'string' && isValidCategoryId(record.category)
             ? record.category
             : 'general',
         title: record.title,

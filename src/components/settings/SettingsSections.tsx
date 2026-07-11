@@ -301,7 +301,7 @@ export function ShortcutsSection() {
 }
 
 export function AboutSection() {
-  const [version, setVersion] = useState('0.2.0')
+  const [version, setVersion] = useState('0.3.0')
 
   useEffect(() => {
     getVersion()

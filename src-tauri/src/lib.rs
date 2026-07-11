@@ -15,8 +15,8 @@ use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_opener::init())
+    .plugin(tauri_plugin_dialog::init())
+    .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
@@ -111,6 +111,12 @@ pub fn run() {
             commands::folders::trash_folder_documents,
             commands::folders::move_folder,
             commands::folders::move_document_to_folder,
+            commands::templates::list_custom_template_categories,
+            commands::templates::create_custom_template_category,
+            commands::templates::delete_custom_template_category,
+            commands::templates::list_custom_templates,
+            commands::templates::create_custom_template,
+            commands::templates::delete_custom_template,
             commands::search::search_documents,
             commands::revisions::list_document_revisions,
             commands::revisions::get_document_revision,

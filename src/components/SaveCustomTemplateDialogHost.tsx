@@ -1,7 +1,9 @@
 import { CustomTemplateDialog } from '@/components/CustomTemplateDialog'
+import { insertStoredTemplate } from '@/lib/db/template-collections'
+import { createCustomTemplate } from '@/lib/templates'
 import { toast } from '@/lib/toast'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { addCustomTemplate, setSaveCustomTemplateDialog } from '@/store/templatesSlice'
+import { setSaveCustomTemplateDialog } from '@/store/templatesSlice'
 
 export function SaveCustomTemplateDialogHost() {
   const dialog = useAppSelector((state) => state.templates.saveCustomTemplateDialog)
@@ -21,13 +23,18 @@ export function SaveCustomTemplateDialogHost() {
         title: dialog.suggestedTitle,
       }}
       onSave={(values) => {
-        dispatch(
-          addCustomTemplate({
-            ...values,
-            content: dialog.content,
-          }),
-        )
-        toast.success('Šablóna uložená', values.name)
+        void (async () => {
+          try {
+            const created = createCustomTemplate({
+              ...values,
+              content: dialog.content,
+            })
+            await insertStoredTemplate(created)
+            toast.success('Šablóna uložená', values.name)
+          } catch (error) {
+            toast.error('Nepodarilo sa uložiť šablónu', String(error))
+          }
+        })()
       }}
     />
   )

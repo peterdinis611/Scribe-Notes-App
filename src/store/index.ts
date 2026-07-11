@@ -16,8 +16,8 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        ignoredActions: ['templates/setSaveCustomTemplateDialog', 'templates/addCustomTemplate'],
-        ignoredPaths: ['templates.saveCustomTemplateDialog.content', 'templates.customTemplates'],
+        ignoredActions: ['templates/setSaveCustomTemplateDialog'],
+        ignoredPaths: ['templates.saveCustomTemplateDialog.content'],
       },
     }),
 })

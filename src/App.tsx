@@ -2,10 +2,12 @@ import { useEffect } from 'react'
 import { RouterProvider } from '@tanstack/react-router'
 import { listDocuments, listFolders } from '@/lib/db/api'
 import { applyThemeSettings } from '@/lib/themes/apply'
+import { toast } from '@/lib/toast'
+import { useActiveDocumentLoader } from '@/hooks/useActiveDocumentLoader'
+import { useTemplateCollectionsBootstrap } from '@/hooks/useTemplateCollections'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setDocuments } from '@/store/documentsSlice'
 import { setFolders } from '@/store/foldersSlice'
-import { useActiveDocumentLoader } from '@/hooks/useActiveDocumentLoader'
 import { router } from '@/router'
 
 function useThemeSync() {
@@ -40,7 +42,13 @@ function useDocumentBootstrap() {
 export default function App() {
   useThemeSync()
   useDocumentBootstrap()
+  const { error: templateCollectionsError } = useTemplateCollectionsBootstrap()
   useActiveDocumentLoader()
+
+  useEffect(() => {
+    if (!templateCollectionsError) return
+    toast.error('Nepodarilo sa načítať šablóny', templateCollectionsError.message)
+  }, [templateCollectionsError])
 
   return <RouterProvider router={router} />
 }
