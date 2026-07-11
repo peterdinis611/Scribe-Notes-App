@@ -26,6 +26,7 @@ import {
   getCachedContentHash,
   getCachedParsedContent,
 } from '@/lib/cache/document-cache'
+import { useEditorViewEffect, setEditorContent, useEditorReady } from '@/lib/editor/view-ready'
 import { resolvePageLayout } from '@/lib/editor/page-layout'
 import { normalizePageSetup, PAPER_SIZES } from '@/lib/editor/page-setup'
 import { getEditorExtensions } from '@/lib/editor/extensions'
@@ -41,6 +42,7 @@ import {
   setBacklinksPanelOpen,
   setCommentsPanelOpen,
   setDocumentOutlineOpen,
+  setFindReplaceOpen,
   setRevisionHistoryOpen,
   setSaveStatus,
   setStatsPanelOpen,
@@ -113,7 +115,7 @@ export function DocumentEditor() {
   const editor = useEditor({
     extensions,
     content: initialContent,
-    immediatelyRender: false,
+    immediatelyRender: true,
     shouldRerenderOnTransaction: false,
     editorProps: {
       attributes: {
@@ -126,9 +128,10 @@ export function DocumentEditor() {
       if (!activeIdRef.current || viewModeRef.current !== 'rich') return
       queueSaveRef.current(activeIdRef.current)
     },
-  }, [extensions, initialContent, spellCheckEnabled])
+  }, [extensions])
 
   editorRef.current = editor
+  const editorReady = useEditorReady(editor)
 
   const { queueSave, flushSave, editorContentHashRef, lastPersistedHashRef } = useDocumentAutoSave({
     editor,
@@ -156,10 +159,14 @@ export function DocumentEditor() {
 
   const switchToRich = useCallback(() => {
     if (!editor) return
-    editor.commands.setContent(markdownDraftRef.current, {
-      contentType: 'markdown',
-      emitUpdate: false,
-    })
+    if (
+      !setEditorContent(editor, markdownDraftRef.current, {
+        contentType: 'markdown',
+        emitUpdate: false,
+      })
+    ) {
+      return
+    }
     if (activeId) {
       void flushSave()
     }
@@ -189,28 +196,33 @@ export function DocumentEditor() {
 
   useEditorHotkeys(editor)
 
-  useEffect(() => {
-    if (!editor) return
-    editor.view.dom.setAttribute('spellcheck', spellCheckEnabled ? 'true' : 'false')
-    editor.view.dom.setAttribute('lang', 'sk')
-    editor.view.dom.classList.toggle('tiptap--print-accurate', printLayoutEnabled)
-  }, [editor, printLayoutEnabled, spellCheckEnabled])
+  useEditorViewEffect(
+    editor,
+    (_editor, dom) => {
+      dom.setAttribute('spellcheck', spellCheckEnabled ? 'true' : 'false')
+      dom.setAttribute('lang', 'sk')
+      dom.classList.toggle('tiptap--print-accurate', printLayoutEnabled)
+    },
+    [printLayoutEnabled, spellCheckEnabled],
+  )
 
-  useEffect(() => {
-    if (!editor) return
-    const dom = editor.view.dom
-    const handleClick = (event: MouseEvent) => {
-      const anchor = (event.target as HTMLElement | null)?.closest?.('a[data-wiki-link]')
-      if (!anchor) return
-      event.preventDefault()
-      const targetId = anchor.getAttribute('data-target-id')
-      if (!targetId) return
-      dispatch(setActiveDocumentId(targetId))
-      navigate(ROUTES.document(targetId))
-    }
-    dom.addEventListener('click', handleClick)
-    return () => dom.removeEventListener('click', handleClick)
-  }, [editor, navigate, dispatch])
+  useEditorViewEffect(
+    editor,
+    (_editor, dom) => {
+      const handleClick = (event: MouseEvent) => {
+        const anchor = (event.target as HTMLElement | null)?.closest?.('a[data-wiki-link]')
+        if (!anchor) return
+        event.preventDefault()
+        const targetId = anchor.getAttribute('data-target-id')
+        if (!targetId) return
+        dispatch(setActiveDocumentId(targetId))
+        navigate(ROUTES.document(targetId))
+      }
+      dom.addEventListener('click', handleClick)
+      return () => dom.removeEventListener('click', handleClick)
+    },
+    [dispatch, navigate],
+  )
 
   const {
     scrollRef,
@@ -256,21 +268,36 @@ export function DocumentEditor() {
     })
   }, [activeDocument, pageSetup])
 
+  useEditorViewEffect(
+    editor,
+    (currentEditor) => {
+      if (!activeDocument) return
+
+      const incomingHash = getCachedContentHash(activeDocument)
+      if (incomingHash === editorContentHashRef.current) return
+
+      if (
+        !setEditorContent(currentEditor, getCachedParsedContent(activeDocument), {
+          emitUpdate: false,
+        })
+      ) {
+        return
+      }
+
+      editorContentHashRef.current = incomingHash
+      lastPersistedHashRef.current = incomingHash
+
+      const markdown = getEditorMarkdown(currentEditor)
+      markdownDraftRef.current = markdown
+      setMarkdownDraft(markdown)
+      dispatch(setSaveStatus('saved'))
+    },
+    [activeDocument, activeId, dispatch, editorContentHashRef, lastPersistedHashRef],
+  )
+
   useEffect(() => {
-    if (!editor || !activeDocument) return
-
-    const incomingHash = getCachedContentHash(activeDocument)
-    if (incomingHash === editorContentHashRef.current) return
-
-    editor.commands.setContent(getCachedParsedContent(activeDocument), { emitUpdate: false })
-    editorContentHashRef.current = incomingHash
-    lastPersistedHashRef.current = incomingHash
-
-    const markdown = getEditorMarkdown(editor)
-    markdownDraftRef.current = markdown
-    setMarkdownDraft(markdown)
-    dispatch(setSaveStatus('saved'))
-  }, [activeDocument, activeId, dispatch, editor, editorContentHashRef, lastPersistedHashRef])
+    dispatch(setFindReplaceOpen(false))
+  }, [activeId, dispatch])
 
   useEffect(() => {
     editorContentHashRef.current = null
@@ -292,10 +319,14 @@ export function DocumentEditor() {
 
   return (
     <div className={cn('editor-shell', isMarkdown && 'editor-shell--markdown', focusMode && 'editor-shell--focus')}>
-      {!isMarkdown && !focusMode && <EditorToolbar editor={editor} onInsertImages={handleInsertImages} />}
-      {!isMarkdown && <EditorMenus editor={editor} onInsertImages={handleInsertImages} />}
+      {!isMarkdown && !focusMode && editorReady && (
+        <EditorToolbar editor={editor} onInsertImages={handleInsertImages} />
+      )}
+      {!isMarkdown && editorReady && (
+        <EditorMenus editor={editor} onInsertImages={handleInsertImages} />
+      )}
 
-      {!isMarkdown && <FindReplaceBar editor={editor} />}
+      {!isMarkdown && editorReady && <FindReplaceBar editor={editor} />}
 
       <div className="editor-workspace">
         <div className="editor-main">
@@ -457,16 +488,16 @@ export function DocumentEditor() {
           </div>
         </EditorDropZone>
 
-        {!isMarkdown && outlineOpen && (
+        {!isMarkdown && editorReady && outlineOpen && (
           <DocumentOutlinePanel editor={editor} onClose={() => dispatch(setDocumentOutlineOpen(false))} />
         )}
-        {!isMarkdown && historyOpen && (
+        {!isMarkdown && editorReady && historyOpen && (
           <RevisionHistoryPanel onClose={() => dispatch(setRevisionHistoryOpen(false))} />
         )}
-        {!isMarkdown && commentsOpen && (
+        {!isMarkdown && editorReady && commentsOpen && (
           <CommentsPanel editor={editor} onClose={() => dispatch(setCommentsPanelOpen(false))} />
         )}
-        {!isMarkdown && statsOpen && (
+        {!isMarkdown && editorReady && statsOpen && (
           <StatsPanel editor={editor} onClose={() => dispatch(setStatsPanelOpen(false))} />
         )}
         {!isMarkdown && backlinksOpen && (
@@ -489,7 +520,7 @@ export function DocumentEditor() {
       </div>
 
       <PageSetupDialog open={pageSetupOpen} onClose={() => setPageSetupOpen(false)} />
-      {!isMarkdown && <WikiLinkHoverCard editor={editor} />}
+      {!isMarkdown && editorReady && <WikiLinkHoverCard editor={editor} />}
     </div>
   )
 }

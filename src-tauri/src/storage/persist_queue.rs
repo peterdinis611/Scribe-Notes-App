@@ -74,12 +74,6 @@ impl DiskPersistQueue {
         }
     }
 
-    pub fn clear_error(&self, document_id: &str) {
-        if let Ok(mut errors) = self.errors.lock() {
-            errors.remove(document_id);
-        }
-    }
-
     pub fn take_errors(&self, document_id: Option<&str>) -> Vec<DiskPersistError> {
         let Ok(mut errors) = self.errors.lock() else {
             return Vec::new();

@@ -9,6 +9,7 @@ import {
   type PageSegment,
 } from '@/lib/editor/page-segments'
 import { throttle } from '@/lib/utils'
+import { getEditorViewDom } from '@/lib/editor/view-ready'
 
 type UseDocumentPaginationOptions = {
   editor: Editor | null
@@ -110,27 +111,52 @@ export function useDocumentPagination({
   }, [pageLayout, pageSetup, scheduleMeasure])
 
   useEffect(() => {
-    if (!editor) return
+    if (!editor || editor.isDestroyed) return
 
-    const root = editor.view.dom as HTMLElement
-    contentRef.current = root
+    let cleanup: (() => void) | undefined
 
-    scheduleMeasure()
+    const attach = () => {
+      const root = getEditorViewDom(editor)
+      if (!root) return
 
-    const resizeObserver = new ResizeObserver(() => {
-      measureThrottled()
-    })
-    resizeObserver.observe(root)
+      contentRef.current = root
+      scheduleMeasure()
 
-    const onUpdate = () => {
-      measureThrottled()
+      const resizeObserver = new ResizeObserver(() => {
+        measureThrottled()
+      })
+      resizeObserver.observe(root)
+
+      const onUpdate = () => {
+        measureThrottled()
+      }
+
+      editor.on('update', onUpdate)
+
+      cleanup = () => {
+        resizeObserver.disconnect()
+        editor.off('update', onUpdate)
+      }
     }
 
-    editor.on('update', onUpdate)
+    const detach = () => {
+      cleanup?.()
+      cleanup = undefined
+      contentRef.current = null
+    }
+
+    attach()
+    editor.on('create', attach)
+    editor.on('mount', attach)
+    editor.on('unmount', detach)
+    editor.on('destroy', detach)
 
     return () => {
-      resizeObserver.disconnect()
-      editor.off('update', onUpdate)
+      editor.off('create', attach)
+      editor.off('mount', attach)
+      editor.off('unmount', detach)
+      editor.off('destroy', detach)
+      detach()
       if (measureFrameRef.current !== null) {
         window.cancelAnimationFrame(measureFrameRef.current)
         measureFrameRef.current = null

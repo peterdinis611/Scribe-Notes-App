@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import type { Editor } from '@tiptap/react'
+import { useEditorViewEffect } from '@/lib/editor/view-ready'
 import { getDocument } from '@/lib/db/api'
 import { formatRelativeTime } from '@/lib/utils'
 import { useAppSelector } from '@/store/hooks'
@@ -46,70 +47,71 @@ export function WikiLinkHoverCard({ editor }: { editor: Editor | null }) {
   const timerRef = useRef<number | null>(null)
   const tokenRef = useRef(0)
 
-  useEffect(() => {
-    if (!editor) return
-    const dom = editor.view.dom
+  useEditorViewEffect(
+    editor,
+    (_editor, dom) => {
+      const clear = () => {
+        if (timerRef.current) window.clearTimeout(timerRef.current)
+        timerRef.current = null
+        tokenRef.current += 1
+        setHover(null)
+      }
 
-    const clear = () => {
-      if (timerRef.current) window.clearTimeout(timerRef.current)
-      timerRef.current = null
-      tokenRef.current += 1
-      setHover(null)
-    }
+      const handleOver = (event: MouseEvent) => {
+        const anchor = (event.target as HTMLElement | null)?.closest?.(
+          'a[data-wiki-link]',
+        ) as HTMLElement | null
+        const targetId = anchor?.getAttribute('data-target-id')
+        if (!anchor || !targetId) return
 
-    const handleOver = (event: MouseEvent) => {
-      const anchor = (event.target as HTMLElement | null)?.closest?.(
-        'a[data-wiki-link]',
-      ) as HTMLElement | null
-      const targetId = anchor?.getAttribute('data-target-id')
-      if (!anchor || !targetId) return
+        if (timerRef.current) window.clearTimeout(timerRef.current)
+        const rect = anchor.getBoundingClientRect()
+        const token = ++tokenRef.current
+        const summary = documents.find((doc) => doc.id === targetId)
 
-      if (timerRef.current) window.clearTimeout(timerRef.current)
-      const rect = anchor.getBoundingClientRect()
-      const token = ++tokenRef.current
-      const summary = documents.find((doc) => doc.id === targetId)
-
-      timerRef.current = window.setTimeout(() => {
-        getDocument(targetId)
-          .then((doc) => {
-            if (tokenRef.current !== token) return
-            setHover({
-              targetId,
-              title: doc.title || summary?.title || 'Bez názvu',
-              snippet: snippetFromContent(doc.contentJson),
-              updatedAt: doc.updatedAt ?? summary?.updatedAt ?? null,
-              x: rect.left,
-              y: rect.bottom + 6,
+        timerRef.current = window.setTimeout(() => {
+          getDocument(targetId)
+            .then((doc) => {
+              if (tokenRef.current !== token) return
+              setHover({
+                targetId,
+                title: doc.title || summary?.title || 'Bez názvu',
+                snippet: snippetFromContent(doc.contentJson),
+                updatedAt: doc.updatedAt ?? summary?.updatedAt ?? null,
+                x: rect.left,
+                y: rect.bottom + 6,
+              })
             })
-          })
-          .catch(() => {
-            if (tokenRef.current !== token) return
-            setHover({
-              targetId,
-              title: summary?.title ?? 'Dokument sa nenašiel',
-              snippet: '',
-              updatedAt: summary?.updatedAt ?? null,
-              x: rect.left,
-              y: rect.bottom + 6,
+            .catch(() => {
+              if (tokenRef.current !== token) return
+              setHover({
+                targetId,
+                title: summary?.title ?? 'Dokument sa nenašiel',
+                snippet: '',
+                updatedAt: summary?.updatedAt ?? null,
+                x: rect.left,
+                y: rect.bottom + 6,
+              })
             })
-          })
-      }, SHOW_DELAY)
-    }
+        }, SHOW_DELAY)
+      }
 
-    const handleOut = (event: MouseEvent) => {
-      const related = event.relatedTarget as HTMLElement | null
-      if (related?.closest?.('a[data-wiki-link]')) return
-      clear()
-    }
+      const handleOut = (event: MouseEvent) => {
+        const related = event.relatedTarget as HTMLElement | null
+        if (related?.closest?.('a[data-wiki-link]')) return
+        clear()
+      }
 
-    dom.addEventListener('mouseover', handleOver)
-    dom.addEventListener('mouseout', handleOut)
-    return () => {
-      dom.removeEventListener('mouseover', handleOver)
-      dom.removeEventListener('mouseout', handleOut)
-      if (timerRef.current) window.clearTimeout(timerRef.current)
-    }
-  }, [editor, documents])
+      dom.addEventListener('mouseover', handleOver)
+      dom.addEventListener('mouseout', handleOut)
+      return () => {
+        dom.removeEventListener('mouseover', handleOver)
+        dom.removeEventListener('mouseout', handleOut)
+        if (timerRef.current) window.clearTimeout(timerRef.current)
+      }
+    },
+    [documents],
+  )
 
   if (!hover) return null
 

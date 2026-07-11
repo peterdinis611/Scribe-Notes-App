@@ -3,10 +3,29 @@ import type { Editor } from '@tiptap/react'
 import { ArrowDown, ArrowUp, CaseSensitive, Replace, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { searchPluginKey } from '@/lib/editor/search-extension'
+import { isEditorViewReady, runEditorCommand } from '@/lib/editor/view-ready'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setFindReplaceOpen } from '@/store/documentsSlice'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+
+function clearEditorSearch(editor: Editor | null) {
+  if (!editor || editor.isDestroyed) return
+  try {
+    editor.commands.clearSearch()
+  } catch {
+    // view not mounted
+  }
+}
+
+function focusEditor(editor: Editor | null) {
+  if (!editor || editor.isDestroyed) return
+  try {
+    editor.commands.focus()
+  } catch {
+    // view not mounted
+  }
+}
 
 type FindReplaceBarProps = {
   editor: Editor | null
@@ -29,9 +48,13 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
     if (!search || search.activeIndex < 0) return
     const match = search.matches[search.activeIndex]
     if (!match) return
-    const dom = editor.view.domAtPos(match.from)?.node as HTMLElement | undefined
-    const element = dom?.nodeType === 1 ? dom : dom?.parentElement
-    element?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+    try {
+      const dom = editor.view.domAtPos(match.from)?.node as HTMLElement | undefined
+      const element = dom?.nodeType === 1 ? dom : dom?.parentElement
+      element?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+    } catch {
+      // view not mounted yet
+    }
   }, [editor])
 
   useEffect(() => {
@@ -48,9 +71,11 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
   }, [editor])
 
   useEffect(() => {
-    if (open) {
-      setShowReplace(mode === 'replace')
-      const selected = editor?.state.doc.textBetween(
+    if (!open) return
+
+    setShowReplace(mode === 'replace')
+    if (editor && !editor.isDestroyed) {
+      const selected = editor.state.doc.textBetween(
         editor.state.selection.from,
         editor.state.selection.to,
         ' ',
@@ -58,40 +83,47 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
       if (selected && selected.length <= 80) {
         setTerm(selected)
       }
-      requestAnimationFrame(() => {
-        searchInputRef.current?.focus()
-        searchInputRef.current?.select()
-      })
     }
-  }, [open, editor])
+    requestAnimationFrame(() => {
+      searchInputRef.current?.focus()
+      searchInputRef.current?.select()
+    })
+  }, [open, editor, mode])
 
   useEffect(() => {
-    if (!editor) return
-    if (!open) {
-      editor.commands.clearSearch()
+    if (!editor || !open) {
+      if (!open) clearEditorSearch(editor)
       return
     }
-    editor.commands.setSearchTerm(term, { caseSensitive })
+    if (!isEditorViewReady(editor)) return
+
+    runEditorCommand(editor, (currentEditor) => {
+      currentEditor.commands.setSearchTerm(term, { caseSensitive })
+    })
     requestAnimationFrame(scrollToActive)
   }, [editor, open, term, caseSensitive, scrollToActive])
 
   const handleClose = useCallback(() => {
     dispatch(setFindReplaceOpen(false))
-    editor?.commands.clearSearch()
-    editor?.commands.focus()
+    clearEditorSearch(editor)
+    focusEditor(editor)
   }, [dispatch, editor])
 
   const goNext = useCallback(() => {
-    editor?.commands.findNext()
+    runEditorCommand(editor, (currentEditor) => {
+      currentEditor.commands.findNext()
+    })
     requestAnimationFrame(scrollToActive)
   }, [editor, scrollToActive])
 
   const goPrev = useCallback(() => {
-    editor?.commands.findPrevious()
+    runEditorCommand(editor, (currentEditor) => {
+      currentEditor.commands.findPrevious()
+    })
     requestAnimationFrame(scrollToActive)
   }, [editor, scrollToActive])
 
-  if (!open || !editor) return null
+  if (!open) return null
 
   const iconBtnClass =
     'inline-flex h-[30px] w-[30px] items-center justify-center rounded-lg border border-transparent bg-transparent text-[var(--color-muted-foreground)] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)] disabled:opacity-35'
@@ -160,7 +192,17 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
         >
           <Replace className="h-4 w-4" />
         </button>
-        <button type="button" className={iconBtnClass} title="Zavrieť (Esc)" onClick={handleClose}>
+        <button
+          type="button"
+          className={iconBtnClass}
+          title="Zavrieť (Esc)"
+          aria-label="Zavrieť vyhľadávanie"
+          onClick={(event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            handleClose()
+          }}
+        >
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -186,7 +228,9 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
             size="sm"
             className="h-8"
             onClick={() => {
-              editor.commands.replaceCurrent(replacement)
+              runEditorCommand(editor, (currentEditor) => {
+                currentEditor.commands.replaceCurrent(replacement)
+              })
               requestAnimationFrame(scrollToActive)
             }}
             disabled={status.total === 0}
@@ -197,7 +241,11 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
             variant="outline"
             size="sm"
             className="h-8"
-            onClick={() => editor.commands.replaceAll(replacement)}
+            onClick={() => {
+              runEditorCommand(editor, (currentEditor) => {
+                currentEditor.commands.replaceAll(replacement)
+              })
+            }}
             disabled={status.total === 0}
           >
             Všetko

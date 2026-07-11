@@ -11,6 +11,7 @@ import {
   Search,
   Settings2,
   Shuffle,
+  Sparkles,
 } from 'lucide-react'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { createFolder, duplicateDocument, searchDocuments } from '@/lib/db/api'
@@ -22,6 +23,7 @@ import { cn, debounce } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 import { cycleThemeId } from '@/lib/themes/apply'
 import { generateRandomTheme } from '@/lib/themes/generate-random-theme'
+import { useOpenDemoGuide } from '@/hooks/useOpenDemoGuide'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
   setActiveDocument,
@@ -56,6 +58,7 @@ export function CommandPalette() {
   const documents = useAppSelector((state) => state.documents.documents)
   const themeSettings = useAppSelector((state) => state.settings.themeSettings)
   const focusMode = useAppSelector((state) => state.documents.focusMode)
+  const openDemoGuide = useOpenDemoGuide()
 
   const activeDocument = useMemo(
     () => documents.find((doc) => doc.id === activeDocumentId) ?? null,
@@ -71,6 +74,14 @@ export function CommandPalette() {
         hint: '⌘N',
         icon: <Plus className="h-4 w-4" />,
         run: () => dispatch(setTemplatePickerOpen(true)),
+      },
+      {
+        type: 'action',
+        id: 'demo-guide',
+        label: 'Ukážkový dokument',
+        hint: 'Sprievodca Scribe',
+        icon: <Sparkles className="h-4 w-4" />,
+        run: () => void openDemoGuide(),
       },
       ...(activeDocument
         ? [
@@ -169,7 +180,7 @@ export function CommandPalette() {
         },
       },
     ],
-    [activeDocument, dispatch, focusMode, navigate, themeSettings],
+    [activeDocument, dispatch, focusMode, navigate, openDemoGuide, themeSettings],
   )
 
   const documentItems: PaletteItem[] = useMemo(

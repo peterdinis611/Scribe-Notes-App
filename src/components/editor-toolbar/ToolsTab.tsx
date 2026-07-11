@@ -19,6 +19,7 @@ import {
 } from '@/lib/editor/delete-content'
 import { listDocumentRevisions, restoreDocumentRevision, type DocumentRevision } from '@/lib/db/api'
 import { cacheDocument } from '@/lib/cache/document-cache'
+import { safeEditorCanRedo, safeEditorCanUndo, setEditorContent } from '@/lib/editor/view-ready'
 import { cn, formatRelativeTime } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
@@ -38,8 +39,8 @@ export function ToolsTab({ editor }: { editor: Editor }) {
       canDeleteBlock: canDeleteCurrentBlock(currentEditor),
       blockDeleteLabel: getActiveBlockDeleteLabel(currentEditor),
       showInvisible: currentEditor.storage.invisibleCharacters.visibility(),
-      canUndo: currentEditor.can().undo(),
-      canRedo: currentEditor.can().redo(),
+      canUndo: safeEditorCanUndo(currentEditor),
+      canRedo: safeEditorCanRedo(currentEditor),
     }),
   })
 
@@ -69,7 +70,7 @@ export function ToolsTab({ editor }: { editor: Editor }) {
           ),
         ),
       )
-      editor.commands.setContent(JSON.parse(restored.contentJson), { emitUpdate: false })
+      setEditorContent(editor, JSON.parse(restored.contentJson), { emitUpdate: false })
       if (activeId) {
         const next = await listDocumentRevisions(activeId, 15)
         setRevisions(next)

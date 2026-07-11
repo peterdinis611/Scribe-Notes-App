@@ -14,6 +14,7 @@ import {
   setSaveStatus,
   updateDocuments,
 } from '@/store/documentsSlice'
+import { setEditorContent } from '@/lib/editor/view-ready'
 import { editorRefs } from '@/store/editorRefs'
 import type { Document } from '@/lib/db/api'
 
@@ -49,7 +50,7 @@ export function useDocumentAutoSave({
     if (!editor) return null
 
     if (viewMode === 'markdown') {
-      editor.commands.setContent(markdownDraftRef.current, {
+      setEditorContent(editor, markdownDraftRef.current, {
         contentType: 'markdown',
         emitUpdate: false,
       })

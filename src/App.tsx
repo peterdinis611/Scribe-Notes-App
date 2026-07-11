@@ -2,13 +2,14 @@ import { useEffect } from 'react'
 import { RouterProvider } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { listDocuments, listFolders, getStorageSettings } from '@/lib/db/api'
+import { mergeLibrarySummaries } from '@/lib/db/library-sync'
 import { applyThemeSettings } from '@/lib/themes/apply'
 import { toast } from '@/lib/toast'
 import { useActiveDocumentLoader } from '@/hooks/useActiveDocumentLoader'
 import { useI18nSync } from '@/hooks/useI18nSync'
 import { useTemplateCollectionsBootstrap } from '@/hooks/useTemplateCollections'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { setDocuments } from '@/store/documentsSlice'
+import { updateDocuments } from '@/store/documentsSlice'
 import { setFolders } from '@/store/foldersSlice'
 import { setStorageSettings } from '@/store/settingsSlice'
 import { persistStorageFolderAccessGranted } from '@/store/persistence'
@@ -35,7 +36,7 @@ function useDocumentBootstrap() {
   useEffect(() => {
     async function bootstrap() {
       const [docs, folders] = await Promise.all([listDocuments(), listFolders()])
-      dispatch(setDocuments(docs))
+      dispatch(updateDocuments((prev) => mergeLibrarySummaries(prev, docs)))
       dispatch(setFolders(folders))
     }
 

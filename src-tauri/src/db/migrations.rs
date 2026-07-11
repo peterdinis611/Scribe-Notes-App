@@ -262,21 +262,55 @@ pub fn seed_if_empty(conn: &Connection) -> Result<(), rusqlite::Error> {
 
     let now = chrono::Utc::now().timestamp();
     let folder_id = uuid::Uuid::new_v4().to_string();
-    let doc_id = uuid::Uuid::new_v4().to_string();
+    let wiki_target_id = uuid::Uuid::new_v4().to_string();
+    let demo_id = uuid::Uuid::new_v4().to_string();
 
     conn.execute(
         "INSERT INTO folders (id, name, parent_id, created_at, updated_at) VALUES (?1, ?2, NULL, ?3, ?3)",
         rusqlite::params![folder_id, "Moje dokumenty", now],
     )?;
 
-    let welcome_content = r#"{"type":"doc","content":[{"type":"heading","attrs":{"level":1},"content":[{"type":"text","text":"Vitajte v Scribe"}]},{"type":"paragraph","content":[{"type":"text","text":"Vaše dokumenty sa automaticky ukladajú ako súbory do priečinka Dokumenty/Scribe na tomto počítači."}]},{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Formátovanie ako v Pages"}]},{"type":"paragraph","content":[{"type":"text","text":"Skúste "},{"type":"text","marks":[{"type":"bold"}],"text":"tučné"},{"type":"text","text":", "},{"type":"text","marks":[{"type":"italic"}],"text":"kurzívu"},{"type":"text","text":", "},{"type":"text","marks":[{"type":"underline"}],"text":"podčiarknutie"},{"type":"text","text":" alebo "},{"type":"text","marks":[{"type":"highlight"}],"text":"zvýraznenie"},{"type":"text","text":"."}]},{"type":"bulletList","content":[{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"Auto-save do SQLite aj na disk"}]}]},{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"Prepínač svetlej / tmavej témy"}]}]},{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"Zarovnanie textu a odkazy"}]}]}]}]}"#;
+    let wiki_target_content = r#"{"type":"doc","content":[{"type":"heading","attrs":{"level":1},"content":[{"type":"text","text":"Ukážkový cieľ wiki odkazu"}]},{"type":"paragraph","content":[{"type":"text","text":"Tento krátky dokument slúži ako cieľ wiki odkazu v sprievodcovi Scribe. Kliknite na odkaz v hlavnom demo dokumente a presuniete sa sem."}]}]}"#;
 
     conn.execute(
         "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?5)",
-        rusqlite::params![doc_id, "Vitajte v Scribe", welcome_content, folder_id, now],
+        rusqlite::params![
+            wiki_target_id,
+            "Ukážkový cieľ wiki odkazu",
+            wiki_target_content,
+            folder_id,
+            now
+        ],
+    )?;
+    let _ = crate::db::sync_document_fts(
+        conn,
+        &wiki_target_id,
+        "Ukážkový cieľ wiki odkazu",
+        wiki_target_content,
+    );
+    let _ = crate::db::sync_document_links(conn, &wiki_target_id, wiki_target_content);
+
+    let demo_content_template = include_str!("../../assets/scribe-demo-content.json");
+    let demo_content = demo_content_template.replace("{{WIKI_TARGET_ID}}", &wiki_target_id);
+
+    conn.execute(
+        "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at, is_favorite) VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?5, 1)",
+        rusqlite::params![
+            demo_id,
+            "Sprievodca Scribe — demo",
+            demo_content,
+            folder_id,
+            now
+        ],
     )?;
 
-    let _ = crate::db::sync_document_fts(conn, &doc_id, "Vitajte v Scribe", welcome_content);
+    let _ = crate::db::sync_document_fts(
+        conn,
+        &demo_id,
+        "Sprievodca Scribe — demo",
+        &demo_content,
+    );
+    let _ = crate::db::sync_document_links(conn, &demo_id, &demo_content);
 
     Ok(())
 }
@@ -499,5 +533,44 @@ mod tests {
                 .unwrap();
             assert_eq!(exists, 1, "missing index {index}");
         }
+    }
+
+    #[test]
+    fn seed_if_empty_creates_demo_guide_and_wiki_target() {
+        let conn = in_memory_conn();
+        super::seed_if_empty(&conn).unwrap();
+
+        let doc_count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM documents", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(doc_count, 2);
+
+        let demo_title: String = conn
+            .query_row(
+                "SELECT title FROM documents WHERE title LIKE 'Sprievodca Scribe%'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(demo_title, "Sprievodca Scribe — demo");
+
+        let demo_content: String = conn
+            .query_row(
+                "SELECT content_json FROM documents WHERE title LIKE 'Sprievodca Scribe%'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(demo_content.contains("wikiLink"));
+        assert!(!demo_content.contains("{{WIKI_TARGET_ID}}"));
+
+        let wiki_title: String = conn
+            .query_row(
+                "SELECT title FROM documents WHERE title = 'Ukážkový cieľ wiki odkazu'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(wiki_title, "Ukážkový cieľ wiki odkazu");
     }
 }

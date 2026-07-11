@@ -1,17 +1,22 @@
 import { useHotkeys } from '@tanstack/react-hotkeys'
 import type { Editor } from '@tiptap/react'
 import { insertBulletList, insertOrderedList, insertTaskList } from '@/lib/editor/list-commands'
-import { useAppDispatch } from '@/store/hooks'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setFindReplaceMode, setFindReplaceOpen } from '@/store/documentsSlice'
 
 export function useEditorHotkeys(editor: Editor | null) {
   const dispatch = useAppDispatch()
+  const findReplaceOpen = useAppSelector((state) => state.documents.findReplaceOpen)
 
   useHotkeys(
     [
       {
         hotkey: 'Mod+F',
         callback: () => {
+          if (findReplaceOpen) {
+            dispatch(setFindReplaceOpen(false))
+            return
+          }
           dispatch(setFindReplaceMode('find'))
           dispatch(setFindReplaceOpen(true))
         },
@@ -40,6 +45,17 @@ export function useEditorHotkeys(editor: Editor | null) {
         options: {
           enabled: !!editor,
           meta: { name: 'Nahradiť', description: 'Hľadať a nahradiť v dokumente' },
+        },
+      },
+      {
+        hotkey: 'Escape',
+        callback: () => {
+          if (!findReplaceOpen) return
+          dispatch(setFindReplaceOpen(false))
+        },
+        options: {
+          enabled: !!editor && findReplaceOpen,
+          meta: { name: 'Zavrieť vyhľadávanie', description: 'Zavrie panel hľadať a nahradiť' },
         },
       },
       {

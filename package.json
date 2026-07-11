@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "test:backend": "cargo test --manifest-path src-tauri/Cargo.toml",
     "test:all": "npm run test && npm run test:backend",
+    "export:demo": "bun -e \"import { writeFileSync, mkdirSync } from 'fs'; import { serializeScribeDemoContent } from './src/lib/templates/demo-guide.ts'; mkdirSync('src-tauri/assets', { recursive: true }); writeFileSync('src-tauri/assets/scribe-demo-content.json', serializeScribeDemoContent())\"",
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",

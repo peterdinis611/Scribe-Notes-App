@@ -29,6 +29,7 @@ import {
   ToolbarGroup,
   ToolbarLabel,
 } from '@/components/editor-toolbar/primitives'
+import { safeEditorCanRedo, safeEditorCanUndo } from '@/lib/editor/view-ready'
 import { FONT_SIZES, HIGHLIGHT_COLORS, TEXT_COLORS } from '@/lib/editor/font-size'
 import { EmojiPickerPanel } from '@/components/editor/EmojiPickerPanel'
 
@@ -36,8 +37,8 @@ export function TextTab({ editor }: { editor: Editor }) {
   const historyState = useEditorState({
     editor,
     selector: ({ editor: currentEditor }) => ({
-      canUndo: currentEditor.can().undo(),
-      canRedo: currentEditor.can().redo(),
+      canUndo: safeEditorCanUndo(currentEditor),
+      canRedo: safeEditorCanRedo(currentEditor),
     }),
   })
 

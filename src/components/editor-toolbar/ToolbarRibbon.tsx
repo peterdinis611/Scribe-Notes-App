@@ -48,6 +48,7 @@ import {
 } from '@/components/editor-toolbar/primitives'
 import { EmojiPickerPanel } from '@/components/editor/EmojiPickerPanel'
 import { CODE_LANGUAGES, getCodeLanguageLabel } from '@/lib/editor/code-languages'
+import { safeEditorCanRedo, safeEditorCanUndo } from '@/lib/editor/view-ready'
 import {
   canDeleteCurrentBlock,
   deleteCurrentBlock,
@@ -92,8 +93,8 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
   const state = useEditorState({
     editor,
     selector: ({ editor: currentEditor }) => ({
-      canUndo: currentEditor.can().undo(),
-      canRedo: currentEditor.can().redo(),
+      canUndo: safeEditorCanUndo(currentEditor),
+      canRedo: safeEditorCanRedo(currentEditor),
       currentTextColor: (currentEditor.getAttributes('textStyle').color as string | undefined) ?? '',
       isCodeBlock: currentEditor.isActive('codeBlock'),
       codeLanguage: (currentEditor.getAttributes('codeBlock').language as string | null) ?? null,

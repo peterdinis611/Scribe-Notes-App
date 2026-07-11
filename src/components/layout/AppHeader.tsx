@@ -9,6 +9,7 @@ import {
   Plus,
 } from 'lucide-react'
 import { DocumentTitleField } from '@/components/DocumentTitleField'
+import { DemoGuideButton } from '@/components/DemoGuideButton'
 import { EditorDocumentToolsMenu } from '@/components/editor/EditorDocumentToolsMenu'
 import { EditorFileMenu } from '@/components/editor/EditorFileMenu'
 import { EditorViewModeToggle } from '@/components/editor/EditorViewModeToggle'
@@ -185,17 +186,17 @@ function EditorChrome() {
               </span>
             </Button>
           )}
-          {document && (
-            <EditorFileMenu
-              hasFilePath={!!document.filePath}
-              onImport={() => void handleImport()}
-              onRevealFile={() => void handleRevealFile()}
-              onPdfPreview={() => setPdfPreviewOpen(true)}
-              onPrint={editorRefs.printHandler ?? undefined}
-              onSaveAsTemplate={handleSaveAsTemplate}
-              onExport={(format) => void handleExport(format)}
-            />
-          )}
+          <DemoGuideButton size="sm" />
+          <EditorFileMenu
+            hasDocument={!!document}
+            hasFilePath={!!document?.filePath}
+            onImport={() => void handleImport()}
+            onRevealFile={() => void handleRevealFile()}
+            onPdfPreview={document ? () => setPdfPreviewOpen(true) : undefined}
+            onPrint={document ? (editorRefs.printHandler ?? undefined) : undefined}
+            onSaveAsTemplate={document ? handleSaveAsTemplate : undefined}
+            onExport={document ? (format) => void handleExport(format) : undefined}
+          />
           {document ? (
             <>
               <div className="editor-header-divider" aria-hidden="true" />

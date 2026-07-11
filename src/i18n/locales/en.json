@@ -19,6 +19,13 @@
     "settings": "Settings",
     "settingsSections": "Settings sections"
   },
+  "demoGuide": {
+    "badge": "Start here",
+    "title": "Scribe Guide",
+    "description": "Interactive demo of every feature — formatting, wiki links, export, templates, and more.",
+    "open": "Open demo",
+    "shortLabel": "Demo"
+  },
   "settings": {
     "sections": {
       "appearance": {

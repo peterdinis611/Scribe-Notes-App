@@ -71,7 +71,7 @@ export function persistStorageFolderAccessGranted(granted: boolean) {
 }
 
 export function hasStorageFolderAccess(): boolean {
-  return readStorageFolderAccessGranted() || readStorageAccessExplainerDismissed()
+  return readStorageFolderAccessGranted()
 }
 
 export function readThemeSettings(): ThemeSettings {

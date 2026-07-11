@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import type { Editor } from '@tiptap/react'
 import { GripVertical } from 'lucide-react'
 import { cleanupDragArtifacts, findBlockFromCoords, findBlockFromSelection, type BlockDragTarget } from '@/lib/editor/block-drag-handle'
+import { getEditorViewDom } from '@/lib/editor/view-ready'
 import { useBlockDragSession } from '@/hooks/useBlockDragSession'
 
 type EditorDragHandleProps = {
@@ -124,93 +125,121 @@ export function EditorDragHandle({ editor }: EditorDragHandleProps) {
   useEffect(() => {
     if (!editor || editor.isDestroyed) return
 
-    const editorDom = editor.view.dom
+    let cleanup: (() => void) | undefined
 
-    const syncActiveBlock = (block: BlockDragTarget | null) => {
-      if (!block) {
-        scheduleHide()
-        return
-      }
-      showHandleForBlock(block)
-      clearHideTimer()
-    }
+    const attach = () => {
+      const editorDom = getEditorViewDom(editor)
+      if (!editorDom) return
 
-    const onMouseMove = (event: MouseEvent) => {
-      if (draggingRef.current) return
+      cleanup?.()
 
-      if (isNearHandle(event.clientX, event.clientY) || handleRef.current?.contains(event.target as Node)) {
-        overHandleRef.current = true
-        setHandleActive(true)
-        clearHideTimer()
-        return
-      }
-
-      overHandleRef.current = false
-
-      if (editorDom.contains(event.target as Node)) {
-        const block = findBlockFromCoords(editor, event.clientX, event.clientY)
-        if (block) {
-          setHandleActive(true)
-          syncActiveBlock(block)
+      const syncActiveBlock = (block: BlockDragTarget | null) => {
+        if (!block) {
+          scheduleHide()
           return
         }
+        showHandleForBlock(block)
+        clearHideTimer()
       }
 
-      if (pinnedBlockRef.current && editor.isFocused) {
-        setHandleActive(false)
-        syncActiveBlock(pinnedBlockRef.current)
-        return
+      const onMouseMove = (event: MouseEvent) => {
+        if (draggingRef.current) return
+
+        if (isNearHandle(event.clientX, event.clientY) || handleRef.current?.contains(event.target as Node)) {
+          overHandleRef.current = true
+          setHandleActive(true)
+          clearHideTimer()
+          return
+        }
+
+        overHandleRef.current = false
+
+        if (editorDom.contains(event.target as Node)) {
+          const block = findBlockFromCoords(editor, event.clientX, event.clientY)
+          if (block) {
+            setHandleActive(true)
+            syncActiveBlock(block)
+            return
+          }
+        }
+
+        if (pinnedBlockRef.current && editor.isFocused) {
+          setHandleActive(false)
+          syncActiveBlock(pinnedBlockRef.current)
+          return
+        }
+
+        scheduleHide()
       }
 
-      scheduleHide()
-    }
+      const onScroll = () => {
+        if (draggingRef.current) return
+        const block = blockRef.current ?? pinnedBlockRef.current
+        if (block) showHandleForBlock(block)
+      }
 
-    const onScroll = () => {
-      if (draggingRef.current) return
-      const block = blockRef.current ?? pinnedBlockRef.current
-      if (block) showHandleForBlock(block)
-    }
+      const onFocus = () => {
+        clearHideTimer()
+        syncPinnedBlock()
+      }
 
-    const onFocus = () => {
-      clearHideTimer()
+      const onBlur = () => {
+        overHandleRef.current = false
+        scheduleHide()
+      }
+
+      const onSelectionUpdate = () => {
+        syncPinnedBlock()
+      }
+
+      const onUpdate = () => {
+        syncPinnedBlock()
+      }
+
+      document.addEventListener('mousemove', onMouseMove)
+      window.addEventListener('scroll', onScroll, true)
+      window.addEventListener('resize', onScroll)
+      editorDom.addEventListener('scroll', onScroll)
+      editor.on('focus', onFocus)
+      editor.on('blur', onBlur)
+      editor.on('selectionUpdate', onSelectionUpdate)
+      editor.on('update', onUpdate)
+
       syncPinnedBlock()
+
+      cleanup = () => {
+        document.removeEventListener('mousemove', onMouseMove)
+        window.removeEventListener('scroll', onScroll, true)
+        window.removeEventListener('resize', onScroll)
+        editorDom.removeEventListener('scroll', onScroll)
+        editor.off('focus', onFocus)
+        editor.off('blur', onBlur)
+        editor.off('selectionUpdate', onSelectionUpdate)
+        editor.off('update', onUpdate)
+      }
     }
 
-    const onBlur = () => {
-      overHandleRef.current = false
-      scheduleHide()
-    }
-
-    editor.on('selectionUpdate', syncPinnedBlock)
-    editor.on('update', syncPinnedBlock)
-    editor.on('focus', onFocus)
-    editor.on('blur', onBlur)
-    document.addEventListener('mousemove', onMouseMove)
-    window.addEventListener('scroll', onScroll, true)
-    window.addEventListener('resize', onScroll)
-
-    syncPinnedBlock()
-
-    return () => {
-      editor.off('selectionUpdate', syncPinnedBlock)
-      editor.off('update', syncPinnedBlock)
-      editor.off('focus', onFocus)
-      editor.off('blur', onBlur)
-      document.removeEventListener('mousemove', onMouseMove)
-      window.removeEventListener('scroll', onScroll, true)
-      window.removeEventListener('resize', onScroll)
-      clearHideTimer()
+    const detach = () => {
+      cleanup?.()
+      cleanup = undefined
       clearHoverHighlight()
     }
-  }, [
-    editor,
-    isNearHandle,
-    scheduleHide,
-    showHandleForBlock,
-    syncPinnedBlock,
-    clearHideTimer,
-    clearHoverHighlight,
-  ])
+
+    attach()
+    editor.on('create', attach)
+    editor.on('mount', attach)
+    editor.on('unmount', detach)
+    editor.on('destroy', detach)
+
+    return () => {
+      editor.off('create', attach)
+      editor.off('mount', attach)
+      editor.off('unmount', detach)
+      editor.off('destroy', detach)
+      detach()
+      clearHideTimer()
+    }
+  }, [editor, clearHideTimer, clearHoverHighlight, isNearHandle, scheduleHide, showHandleForBlock, syncPinnedBlock])
 
   useEffect(() => {
     const handle = handleRef.current

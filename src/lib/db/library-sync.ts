@@ -22,6 +22,22 @@ export function prependDocumentSummary(documents: DocumentSummary[], doc: Docume
   return [summary, ...documents.filter((item) => item.id !== summary.id)]
 }
 
+/** Keeps optimistically added docs when bootstrap listDocuments() raced ahead of them. */
+export function mergeLibrarySummaries(
+  current: DocumentSummary[],
+  fetched: DocumentSummary[],
+): DocumentSummary[] {
+  const merged = new Map(fetched.map((doc) => [doc.id, doc]))
+
+  for (const doc of current) {
+    if (!merged.has(doc.id) && doc.deletedAt == null) {
+      merged.set(doc.id, doc)
+    }
+  }
+
+  return [...merged.values()].sort((a, b) => b.updatedAt - a.updatedAt)
+}
+
 export async function fetchLibrarySnapshot() {
   const [folders, documents] = await Promise.all([listFolders(), listDocuments()])
   return { folders, documents }

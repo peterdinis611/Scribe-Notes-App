@@ -21,9 +21,9 @@ import {
   setCommentsPanelOpen,
   setDocumentOutlineOpen,
   setFindReplaceMode,
-  setFindReplaceOpen,
   setRevisionHistoryOpen,
   setStatsPanelOpen,
+  toggleFindReplaceOpen,
   toggleFocusMode,
 } from '@/store/documentsSlice'
 
@@ -59,6 +59,7 @@ export function EditorPanelRail() {
   const commentsOpen = useAppSelector((state) => state.documents.commentsPanelOpen)
   const statsOpen = useAppSelector((state) => state.documents.statsPanelOpen)
   const backlinksOpen = useAppSelector((state) => state.documents.backlinksPanelOpen)
+  const findReplaceOpen = useAppSelector((state) => state.documents.findReplaceOpen)
   const focusMode = useAppSelector((state) => state.documents.focusMode)
   const dispatch = useAppDispatch()
 
@@ -127,10 +128,13 @@ export function EditorPanelRail() {
         <div className="editor-panel-rail-sep" aria-hidden="true" />
 
         <RailButton
-          label="Nájsť a nahradiť"
+          label={findReplaceOpen ? 'Zavrieť vyhľadávanie' : 'Nájsť a nahradiť'}
+          active={findReplaceOpen}
           onClick={() => {
-            dispatch(setFindReplaceMode('find'))
-            dispatch(setFindReplaceOpen(true))
+            if (!findReplaceOpen) {
+              dispatch(setFindReplaceMode('find'))
+            }
+            dispatch(toggleFindReplaceOpen())
           }}
         >
           <Search className="h-4 w-4" />

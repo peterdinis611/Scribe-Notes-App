@@ -19,6 +19,13 @@
     "settings": "Nastavenia",
     "settingsSections": "Sekcie nastavení"
   },
+  "demoGuide": {
+    "badge": "Začnite tu",
+    "title": "Sprievodca Scribe",
+    "description": "Interaktívne demo všetkých funkcií — formátovanie, wiki odkazy, export, šablóny a ďalšie.",
+    "open": "Otvoriť ukážku",
+    "shortLabel": "Ukážka"
+  },
   "settings": {
     "sections": {
       "appearance": {

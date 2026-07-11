@@ -48,9 +48,11 @@ export function DocumentPage() {
 
   useEffect(() => {
     if (activeId === documentId && saveStatus === 'error' && !resolvedDocument) {
+      dispatch(setActiveDocumentId(null))
+      dispatch(setActiveDocument(null))
       navigate(ROUTES.home())
     }
-  }, [activeId, documentId, resolvedDocument, saveStatus, navigate])
+  }, [activeId, documentId, resolvedDocument, saveStatus, navigate, dispatch])
 
   if (!documentId || !resolvedDocument || resolvedDocument.id !== documentId) {
     return (
@@ -64,7 +66,7 @@ export function DocumentPage() {
 
   return (
     <Suspense fallback={<DocumentEditorFallback />}>
-      <DocumentEditor />
+      <DocumentEditor key={documentId} />
     </Suspense>
   )
 }

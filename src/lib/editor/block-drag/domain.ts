@@ -5,6 +5,7 @@ import * as Effect from 'effect/Effect'
 import * as Option from 'effect/Option'
 import { MoveFailed, NoOpMove } from '@/lib/editor/block-drag/errors'
 import type { BlockBounds, BlockDragTarget, DropTarget } from '@/lib/editor/block-drag/types'
+import { isEditorViewReady } from '@/lib/editor/view-ready'
 import { getActiveBlockRange, getBlockRangeAtPos, type BlockRange } from '@/lib/editor/block-move'
 
 type BlockRect = {
@@ -31,6 +32,8 @@ function getTopLevelBlockElement(tiptap: HTMLElement, dom: Node): HTMLElement | 
 }
 
 function blockDomForRange(editor: Editor, range: BlockRange): HTMLElement | null {
+  if (!isEditorViewReady(editor)) return null
+
   const view = editor.view
   const tiptap = view.dom
   const dom = view.nodeDOM(range.start)
@@ -103,7 +106,7 @@ function isValidDrop(insertPos: number, exclude?: BlockBounds) {
 
 export const findBlockFromSelection = (editor: Editor): Effect.Effect<Option.Option<BlockDragTarget>> =>
   Effect.sync(() => {
-    if (editor.isDestroyed) return Option.none()
+    if (editor.isDestroyed || !isEditorViewReady(editor)) return Option.none()
 
     const range = getActiveBlockRange(editor)
     if (!range) return Option.none()
@@ -117,7 +120,7 @@ export const findBlockFromCoords = (
   y: number,
 ): Effect.Effect<Option.Option<BlockDragTarget>> =>
   Effect.sync(() => {
-    if (editor.isDestroyed) return Option.none()
+    if (editor.isDestroyed || !isEditorViewReady(editor)) return Option.none()
 
     const coords = editor.view.posAtCoords({ left: x, top: y })
     if (!coords) return Option.none()
@@ -150,7 +153,7 @@ export const getDropTargetFromCoords = (
   exclude?: BlockBounds,
 ): Effect.Effect<Option.Option<DropTarget>> =>
   Effect.sync(() => {
-    if (editor.isDestroyed) return Option.none()
+    if (editor.isDestroyed || !isEditorViewReady(editor)) return Option.none()
 
     const view = editor.view
     const blocks = collectMovableBlockRects(editor)

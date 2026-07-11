@@ -4,6 +4,8 @@ import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { DemoGuidePromoCard } from '@/components/DemoGuidePromoCard'
+import { DemoGuideButton } from '@/components/DemoGuideButton'
 import { APP_SHORTCUTS } from '@/lib/shortcuts'
 import { pickAndImportFile } from '@/lib/db/api'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
@@ -67,11 +69,14 @@ export function WelcomeScreen() {
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2.5">
+          <DemoGuidePromoCard />
+
+          <div className="welcome-actions flex flex-wrap gap-2.5">
             <Button variant="default" size="default" onClick={() => dispatch(setTemplatePickerOpen(true))}>
               <Plus className="h-4 w-4" />
               Nový dokument
             </Button>
+            <DemoGuideButton />
             <Button variant="outline" size="default" onClick={() => void handleImport()}>
               <FolderInput className="h-4 w-4" />
               Importovať
@@ -137,8 +142,11 @@ export function WelcomeScreen() {
                   Zatiaľ žiadne dokumenty
                 </p>
                 <p className="mt-1 text-[12px] text-[var(--color-muted-foreground)]">
-                  Začnite novým dokumentom alebo importom.
+                  Začnite novým dokumentom, ukážkou alebo importom.
                 </p>
+                <div className="mt-2">
+                  <DemoGuideButton size="sm" />
+                </div>
               </div>
             </Card>
           )}

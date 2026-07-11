@@ -1,6 +1,8 @@
 import type { JSONContent } from '@tiptap/core'
 import type { TemplateCategoryId } from '@/lib/templates/categories'
 
+import { SCRIBE_DEMO_GUIDE_TEMPLATE } from '@/lib/templates/demo-guide'
+
 export interface DocumentTemplate {
   id: string
   name: string
@@ -700,6 +702,7 @@ const academicPaper: DocumentTemplate = {
 
 export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
   blank,
+  SCRIBE_DEMO_GUIDE_TEMPLATE,
   modernReport,
   businessLetter,
   resume,

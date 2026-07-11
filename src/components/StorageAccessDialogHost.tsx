@@ -18,7 +18,8 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
   persistStorageAccessExplainerDismissed,
   persistStorageFolderAccessGranted,
-  hasStorageFolderAccess,
+  readStorageAccessExplainerDismissed,
+  readStorageFolderAccessGranted,
 } from '@/store/persistence'
 import { setStorageSettings } from '@/store/settingsSlice'
 import { setStorageAccessDialog, type StorageAccessDialogIntent } from '@/store/uiSlice'
@@ -137,7 +138,7 @@ export function requestStorageAccessDialog(
   intent: StorageAccessDialogIntent,
   options?: { force?: boolean },
 ) {
-  if (!options?.force && hasStorageFolderAccess()) {
+  if (!options?.force && readStorageFolderAccessGranted()) {
     if (intent === 'info') return false
 
     if (intent === 'pick') {
@@ -151,6 +152,10 @@ export function requestStorageAccessDialog(
       })
       return true
     }
+  }
+
+  if (!options?.force && readStorageAccessExplainerDismissed() && intent === 'info') {
+    return false
   }
 
   dispatch(setStorageAccessDialog({ open: true, intent }))

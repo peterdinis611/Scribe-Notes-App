@@ -11,6 +11,7 @@ import { editorRefs } from '@/store/editorRefs'
 import {
   setActiveDocument,
   setActiveDocumentId,
+  setFindReplaceOpen,
   setFocusMode,
   setSaveStatus,
   toggleFocusMode,
@@ -32,6 +33,7 @@ export function useKeyboardShortcuts() {
   const themeSettings = useAppSelector((state) => state.settings.themeSettings)
   const activeDocument = useAppSelector((state) => state.documents.activeDocument)
   const focusMode = useAppSelector((state) => state.documents.focusMode)
+  const findReplaceOpen = useAppSelector((state) => state.documents.findReplaceOpen)
   const commandPaletteOpen = useAppSelector((state) => state.folders.commandPaletteOpen)
   const templatePickerOpen = useAppSelector((state) => state.settings.templatePickerOpen)
   const dispatch = useAppDispatch()
@@ -111,11 +113,15 @@ export function useKeyboardShortcuts() {
       {
         hotkey: 'Escape',
         callback: () => {
+          if (findReplaceOpen) {
+            dispatch(setFindReplaceOpen(false))
+            return
+          }
           if (!focusMode || commandPaletteOpen || templatePickerOpen) return
           dispatch(setFocusMode(false))
         },
         options: {
-          meta: { name: 'Ukončiť sústredenie', description: 'Vypne režim sústredenia' },
+          meta: { name: 'Zavrieť panel', description: 'Zavrie vyhľadávanie alebo režim sústredenia' },
         },
       },
     ],
