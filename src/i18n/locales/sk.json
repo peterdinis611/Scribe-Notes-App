@@ -1,0 +1,153 @@
+{
+  "common": {
+    "save": "Uložiť",
+    "cancel": "Zrušiť",
+    "close": "Zavrieť",
+    "reset": "Reset",
+    "later": "Neskôr",
+    "understood": "Rozumiem",
+    "dontShowAgain": "Nezobrazovať znova",
+    "saving": "Ukladám",
+    "unsaved": "Neuložené",
+    "saveError": "Chyba ukladania",
+    "saved": "Uložené",
+    "savedNoDisk": "Uložené · bez disku",
+    "version": "Verzia {{version}}"
+  },
+  "nav": {
+    "editor": "Editor",
+    "settings": "Nastavenia",
+    "settingsSections": "Sekcie nastavení"
+  },
+  "settings": {
+    "sections": {
+      "appearance": {
+        "label": "Vzhľad",
+        "description": "Témy, farby a jazyk"
+      },
+      "storage": {
+        "label": "Úložisko",
+        "description": "Súbory a priečinky"
+      },
+      "shortcuts": {
+        "label": "Skratky",
+        "description": "Klávesové skratky"
+      },
+      "about": {
+        "label": "O aplikácii",
+        "description": "Verzia a info"
+      }
+    },
+    "language": {
+      "title": "Jazyk",
+      "description": "Jazyk rozhrania aplikácie.",
+      "sk": "Slovenčina",
+      "en": "English"
+    },
+    "appearance": {
+      "themeTitle": "Téma",
+      "themeDescription": "Vyberte predvolenú tému, vygenerujte náhodnú alebo vytvorte vlastnú.",
+      "randomTheme": "Náhodná téma",
+      "systemTheme": "Systém",
+      "systemThemeDescription": "Podľa macOS",
+      "customTheme": "Vlastná",
+      "customThemeDescription": "Vlastné farby",
+      "customThemeTitle": "Vlastná téma",
+      "customThemeSectionDescription": "Upravte jednotlivé farby rozhrania.",
+      "newRandom": "Nová náhodná",
+      "randomCardTitle": "Náhodná",
+      "randomCardDescription": "Nová paleta jedným klikom"
+    },
+    "storage": {
+      "folderTitle": "Priečinok dokumentov",
+      "folderDescription": "Všetky dokumenty sa ukladajú do lokálnej databázy aplikácie. Tento priečinok drží zálohu vo formáte .scribe.",
+      "folderNote": "Ak zápis na disk zlyhá, editor naďalej funguje a dokument zostane uložený v aplikácii. V takom prípade zmeňte priečinok alebo skontrolujte oprávnenia k disku.",
+      "whyAccessLink": "Prečo Scribe pýta prístup k priečinku?",
+      "changeFolder": "Zmeniť priečinok",
+      "openInFinder": "Otvoriť vo Finderi",
+      "reconcile": "Synchronizovať s diskom",
+      "reconciling": "Synchronizujem…",
+      "reconcileSuccess": "Synchronizované: {{toDisk}} na disk, {{fromDisk}} z disku, {{imported}} nových.",
+      "reconcileFailed": "Synchronizácia zlyhala.",
+      "clearTitle": "Vyčistiť údaje",
+      "clearDescription": "Vymaže všetky dokumenty z aplikácie, príslušné .scribe súbory na disku a uložené obrázky.",
+      "clearing": "Mažem…",
+      "clearAll": "Vyčistiť všetko",
+      "clearConfirm": "Natrvalo vymažete všetky dokumenty, .scribe súbory a obrázky v priečinku. Túto akciu nie je možné vrátiť späť.",
+      "clearConfirmTitle": "Vyčistiť všetko?",
+      "clearConfirmOk": "Vymazať všetko",
+      "folderChanged": "Priečinok dokumentov zmenený"
+    },
+    "shortcuts": {
+      "title": "Klávesové skratky",
+      "description": "Rýchle akcie dostupné kdekoľvek v aplikácii."
+    },
+    "about": {
+      "tagline": "Textový editor pre macOS",
+      "platform": "Platforma",
+      "fileFormat": "Formát súborov",
+      "export": "Export"
+    }
+  },
+  "storageAccess": {
+    "title": "Prečo Scribe pýta prístup k priečinku?",
+    "description": "Vysvetlenie prístupu k Dokumentom a záložným súborom .scribe",
+    "body1": "Scribe ukladá dokumenty najprv do vlastnej databázy v aplikácii. Písať a upravovať môžete vždy — aj bez prístupu k priečinku Dokumenty.",
+    "body2": "Navyše vytvára záložné súbory <strong>.scribe</strong> vo vami zvolenom priečinku (predvolene <code>~/Documents/Scribe</code>), aby ste ich mohli otvárať vo Finderi, zálohovať alebo zdieľať.",
+    "body3": "macOS môže zobraziť systémový dialóg s žiadosťou o prístup k priečinku Dokumenty alebo inému miestu. Je to normálne — systém chráni vaše súbory pred aplikáciami.",
+    "body4": "Scribe <strong>neprehľadáva celý disk</strong>. Zapisuje len do priečinka, ktorý sami vyberiete. Ak prístup zamietnete, editor naďalej funguje a priečinok môžete zmeniť neskôr v Nastaveniach → Úložisko.",
+    "pickFolder": "Vybrať priečinok"
+  },
+  "diskSync": {
+    "warning": "Zápis .scribe súboru na disk zlyhal. Dokument je uložený v aplikácii. Skontrolujte Nastavenia → Úložisko.",
+    "toastTitle": "Uložené iba v aplikácii"
+  },
+  "shortcuts": {
+    "newDocument": {
+      "label": "Nový dokument",
+      "description": "Otvorí výber šablóny"
+    },
+    "save": {
+      "label": "Uložiť",
+      "description": "Uloží dokument na disk"
+    },
+    "commandPalette": {
+      "label": "Príkazová paleta",
+      "description": "Vyhľadávanie dokumentov a príkazov"
+    },
+    "undo": {
+      "label": "Späť",
+      "description": "Vráti poslednú zmenu v editore"
+    },
+    "redo": {
+      "label": "Znovu",
+      "description": "Opakuje zrušenú zmenu v editore"
+    },
+    "find": {
+      "label": "Hľadať",
+      "description": "Hľadať v dokumente"
+    },
+    "findReplace": {
+      "label": "Hľadať a nahradiť",
+      "description": "Nahradiť text v dokumente"
+    },
+    "import": {
+      "label": "Importovať",
+      "description": "Import .scribe, .pages, .md, .txt, .docx"
+    },
+    "toggleTheme": {
+      "label": "Prepínať tému",
+      "description": "Prepína medzi témami"
+    },
+    "settings": {
+      "label": "Nastavenia",
+      "description": "Otvorí panel nastavení"
+    }
+  },
+  "toasts": {
+    "reconcileSuccess": "Synchronizácia dokončená",
+    "reconcileError": "Synchronizácia zlyhala",
+    "clearSuccess": "Všetky dokumenty vymazané",
+    "templatesLoadError": "Nepodarilo sa načítať šablóny"
+  }
+}

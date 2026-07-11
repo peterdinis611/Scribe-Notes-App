@@ -1,60 +1,63 @@
 # Scribe
 
-Moderná macOS desktopová aplikácia pre písanie a organizáciu dokumentov — lokálny rich-text editor s knižnicou, šablónami a exportom do viacerých formátov.
+Modern macOS desktop app for writing and organizing documents — a local rich-text editor with a library, templates, and multi-format export.
 
-Scribe beží lokálne na vašom Macu. Žiadne účty, žiadny cloud — dokumenty, databáza a nastavenia patria používateľovi macOS účtu, v ktorom je aplikácia spustená.
+Scribe runs locally on your Mac. No accounts, no cloud — documents, the database, and settings belong to the macOS user account running the app.
 
-## Funkcie
+**Languages:** [English](README.md) · [Slovenčina](README.sk.md)
+
+## Features
 
 ### Editor
-- Rich-text editor postavený na **TipTap** / ProseMirror
-- Prepínanie medzi formátovaným textom a **Markdown** zdrojákom
-- Formátovanie: nadpisy, zoznamy, checklisty, tabuľky, obrázky, odkazy, poznámky pod čiarou
-- Slash príkazy (`/`), bubble menu, drag & drop blokov a obrázkov
-- Wiki odkazy (`[[dokument]]`), komentáre, matematika (KaTeX), code bloky (highlight.js)
-- Náhľad tlače, rozloženie strán, hlavičky/päty, vodotlač, stránkovanie
-- **Režim sústredenia** — minimal UI pre nerušené písanie (`⌘⇧F`, ukončenie cez `Esc`)
+- Rich-text editor built on **TipTap** / ProseMirror
+- Switch between formatted text and **Markdown** source
+- Formatting: headings, lists, checklists, tables, images, links, footnotes
+- Slash commands (`/`), bubble menu, drag & drop blocks and images
+- Wiki links (`[[document]]`), comments, math (KaTeX), code blocks (highlight.js)
+- Print preview, page layout, headers/footers, watermarks, pagination
+- **Focus mode** — minimal UI for distraction-free writing (`⌘⇧F`, exit with `Esc`)
 
-### Knižnica
-- Stromová štruktúra **priečinkov** s drag & drop
-- Fulltextové vyhľadávanie dokumentov (**SQLite FTS5**)
-- Obľúbené, kôš, nedávne dokumenty
-- Príkazová paleta (`⌘K`) pre rýchly prístup k dokumentom a akciám
+### Library
+- Tree-structured **folders** with drag & drop
+- Full-text document search (**SQLite FTS5**)
+- Favorites, trash, recent documents
+- Command palette (`⌘K`) for quick access to documents and actions
 
-### Dokumenty
-- Vlastný formát **`.scribe`** + synchronizácia na disk
-- Šablóny (report, list, životopis, faktúra, esej, …)
+### Documents
+- Custom **`.scribe`** format + disk sync
+- Templates (report, letter, resume, invoice, essay, …)
 - Import: `.scribe`, `.pages`, `.md`, `.txt`, `.docx`, `.rtf`, `.doc`
 - Export: **PDF**, **DOCX**, **Markdown**, **TXT**, **Pages**
-- Automatické ukladanie a **história verzií** s porovnaním diff
+- Auto-save and **revision history** with diff comparison
 
-### Vzhľad a nastavenia
-- Svetlá / tmavá / systémová téma + vlastné farby
-- Náhodná generácia témy
-- Konfigurovateľný priečinok dokumentov
-- Slovenské UI
+### Appearance & settings
+- Light / dark / system theme + custom colors
+- Random theme generation
+- Configurable documents folder
+- **Interface language:** Slovak or English (Settings → Appearance → Language)
 
 ## Tech stack
 
-| Vrstva | Technológia |
+| Layer | Technology |
 |--------|-------------|
 | Desktop shell | [Tauri 2](https://v2.tauri.app/) (Rust) |
 | Frontend | React 19, TypeScript, Vite 8 |
 | Editor | TipTap 3 (ProseMirror) |
-| UI | Tailwind CSS v4, Radix UI, shadcn-style komponenty |
+| UI | Tailwind CSS v4, Radix UI, shadcn-style components |
 | Routing | TanStack Router |
 | State | Redux Toolkit |
-| Databáza | SQLite (rusqlite, WAL mode) |
-| Testy | Vitest, Testing Library, `cargo test` |
+| i18n | i18next + react-i18next |
+| Database | SQLite (rusqlite, WAL mode) |
+| Tests | Vitest, Testing Library, `cargo test` |
 
-## Požiadavky
+## Requirements
 
-- **macOS** (primárna cieľová platforma)
-- [Bun](https://bun.sh/) alebo Node.js 20+
+- **macOS** (primary target platform)
+- [Bun](https://bun.sh/) or Node.js 20+
 - [Rust](https://rustup.rs/) 1.77+
-- Xcode Command Line Tools (pre Tauri build)
+- Xcode Command Line Tools (for Tauri build)
 
-## Spustenie
+## Getting started
 
 ```bash
 git clone <repo-url>
@@ -63,112 +66,135 @@ bun install
 bun run tauri:dev
 ```
 
-Alternatíva s npm:
+With npm:
 
 ```bash
 npm install
 npm run tauri:dev
 ```
 
-Dev server beží na `http://localhost:5174`. Pri prvom spustení Tauri stiahne a skompiluje Rust závislosti — môže to trvať niekoľko minút.
+The dev server runs at `http://localhost:5174`. On first launch, Tauri downloads and compiles Rust dependencies — this can take several minutes.
 
-## Skripty
+## Scripts
 
-| Príkaz | Popis |
-|--------|-------|
-| `bun run tauri:dev` | Spustí aplikáciu v dev režime |
-| `bun run tauri:dev:clean` | Dev režim s vyčisteným Vite cache |
-| `bun run tauri:build` | Produkčný build `.app` / inštalátora |
-| `bun run build` | Len frontend build |
-| `bun run test` | Frontend testy (Vitest) |
-| `bun run test:backend` | Rust testy |
-| `bun run test:all` | Oba test suites |
+| Command | Description |
+|--------|-------------|
+| `bun run tauri:dev` | Run the app in dev mode |
+| `bun run tauri:dev:clean` | Dev mode with cleared Vite cache |
+| `bun run tauri:build` | Production `.app` / installer build |
+| `bun run build` | Frontend build only |
+| `bun run test` | Frontend tests (Vitest) |
+| `bun run test:backend` | Rust tests |
+| `bun run test:all` | Both test suites |
 | `bun run lint` | ESLint |
 
-## Úložisko dát
+## Data storage
 
-Scribe ukladá dáta lokálne na disk:
+Scribe stores data locally on disk:
 
-| Čo | Kde (predvolene) |
-|----|------------------|
-| SQLite databáza | `~/Library/Application Support/com.scribe.app/scribe.db` |
-| Dokumenty (`.scribe`) | `~/Documents/Scribe/` |
-| Obrázky dokumentov | `~/Documents/Scribe/assets/` |
-| PDF exporty | `~/Documents/Scribe/pdf/` |
+| What | Where (default) |
+|------|------------------|
+| SQLite database | `~/Library/Application Support/com.scribe.app/scribe.db` |
+| Documents (`.scribe`) | `~/Documents/Scribe/` |
+| Document images | `~/Documents/Scribe/assets/` |
+| PDF exports | `~/Documents/Scribe/pdf/` |
 
-Priečinok dokumentov je možné zmeniť v **Nastavenia → Úložisko**. Aplikácia neimplementuje viacužívateľské účty — izolácia je na úrovni macOS používateľa.
+You can change the documents folder in **Settings → Storage**. The app does not implement multi-user accounts — isolation is at the macOS user level.
 
-## Klávesové skratky
+## Internationalization (i18n)
 
-| Skratka | Akcia |
-|---------|-------|
-| `⌘N` | Nový dokument (šablóny) |
-| `⌘S` | Uložiť |
-| `⌘K` | Príkazová paleta |
-| `⌘O` | Importovať súbor |
-| `⌘F` | Hľadať v dokumente |
-| `⌘H` | Hľadať a nahradiť |
-| `⌘Z` / `⌘⇧Z` | Späť / Znovu |
-| `⌘⇧F` | Režim sústredenia |
-| `⌘⇧L` | Prepínať tému |
-| `⌘,` | Nastavenia |
-| `Esc` | Ukončiť režim sústredenia |
+Translations live in:
 
-Kompletný zoznam je v aplikácii pod **Nastavenia → Skratky**.
+```
+src/i18n/
+├── index.ts          # i18next setup
+└── locales/
+    ├── en.json       # English
+    └── sk.json       # Slovak (default)
+```
 
-## Štruktúra projektu
+To add or change UI strings:
+
+1. Add the key to both `en.json` and `sk.json`
+2. Use `useTranslation()` in React components: `t('settings.language.title')`
+3. Outside React, import `i18n` from `@/i18n` and call `i18n.t(...)`
+
+The selected language is persisted in `localStorage` (`scribe-locale`) and can be changed in **Settings → Appearance → Language**.
+
+Not every screen is translated yet — settings, navigation, storage dialogs, and shortcuts are covered first. New UI should use translation keys from the start.
+
+## Keyboard shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `⌘N` | New document (templates) |
+| `⌘S` | Save |
+| `⌘K` | Command palette |
+| `⌘O` | Import file |
+| `⌘F` | Find in document |
+| `⌘H` | Find and replace |
+| `⌘Z` / `⌘⇧Z` | Undo / Redo |
+| `⌘⇧F` | Focus mode |
+| `⌘⇧L` | Toggle theme |
+| `⌘,` | Settings |
+| `Esc` | Exit focus mode |
+
+The full list is in the app under **Settings → Shortcuts**.
+
+## Project structure
 
 ```
 scribe/
 ├── src/                          # React frontend
 │   ├── components/
-│   │   ├── editor/               # Panely, menu, stránkovanie, diff
-│   │   ├── editor-toolbar/       # Formátovací toolbar
+│   │   ├── editor/               # Panels, menus, pagination, diff
+│   │   ├── editor-toolbar/       # Formatting toolbar
 │   │   ├── layout/               # AppHeader, SidebarRail
-│   │   ├── settings/             # Nastavenia UI
-│   │   └── ui/                   # shadcn-style primitívy
+│   │   ├── settings/             # Settings UI
+│   │   └── ui/                   # shadcn-style primitives
 │   ├── hooks/                    # Auto-save, hotkeys, pagination, …
+│   ├── i18n/                     # Translations (en, sk)
 │   ├── layouts/                  # AppLayout, SettingsLayout
 │   ├── lib/
 │   │   ├── db/                   # Tauri invoke API
-│   │   ├── editor/               # TipTap extensions a helpery
+│   │   ├── editor/               # TipTap extensions and helpers
 │   │   ├── export/               # HTML, PDF, DOCX, Markdown
-│   │   ├── revisions/            # Porovnanie verzií
-│   │   └── themes/               # Témy a preset farby
+│   │   ├── revisions/            # Version comparison
+│   │   └── themes/               # Themes and preset colors
 │   ├── pages/                    # Home, Document, Settings
 │   └── store/                    # Redux slices + persistence
 ├── src-tauri/                    # Rust backend
 │   └── src/
 │       ├── commands/             # Tauri commands (documents, folders, …)
-│       ├── db/                   # SQLite, migrácie, FTS, revízie
-│       ├── export/               # Export do súborov
-│       └── storage/              # .scribe súbory, sync, persist queue
-└── src/__tests__/                # Vitest testy
+│       ├── db/                   # SQLite, migrations, FTS, revisions
+│       ├── export/               # File export
+│       └── storage/              # .scribe files, sync, persist queue
+└── src/__tests__/                # Vitest tests
 ```
 
-## Vývoj
+## Development
 
-### Testy
+### Tests
 
 ```bash
-bun run test          # 77+ frontend testov
-bun run test:backend  # Rust unit testy (migrácie, export, storage)
+bun run test          # 77+ frontend tests
+bun run test:backend  # Rust unit tests (migrations, export, storage)
 ```
 
-### Architektúra UI
+### UI architecture
 
-Aplikácia používa trojstĺpcový shell:
+The app uses a three-column shell:
 
 ```
-Icon rail (52px) | Knižnica (252px) | Header + obsah
+Icon rail (52px) | Library (252px) | Header + content
 ```
 
-Editor obsahuje formátovací toolbar, plátno s „papierovým“ náhľadom, pravý panel rail (štruktúra, komentáre, odkazy, štatistiky, história) a spodný status bar so stránkovaním a tlačou.
+The editor includes a formatting toolbar, a “paper” canvas preview, a right panel rail (outline, comments, backlinks, stats, history), and a bottom status bar with pagination and print.
 
-### Databázové migrácie
+### Database migrations
 
-Schéma SQLite je verzovaná v `src-tauri/src/db/migrations.rs`. Pri štarte aplikácie sa migrácie aplikujú automaticky.
+The SQLite schema is versioned in `src-tauri/src/db/migrations.rs`. Migrations run automatically on app startup.
 
-## Verzia
+## Version
 
-Aktuálna verzia: **0.3.0**
+Current version: **0.3.0**

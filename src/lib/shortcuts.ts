@@ -1,18 +1,27 @@
 export interface ShortcutDef {
-  label: string
+  id:
+    | 'newDocument'
+    | 'save'
+    | 'commandPalette'
+    | 'undo'
+    | 'redo'
+    | 'find'
+    | 'findReplace'
+    | 'import'
+    | 'toggleTheme'
+    | 'settings'
   keys: string[]
-  description?: string
 }
 
 export const APP_SHORTCUTS: ShortcutDef[] = [
-  { label: 'Nový dokument', keys: ['⌘', 'N'], description: 'Otvorí výber šablóny' },
-  { label: 'Uložiť', keys: ['⌘', 'S'], description: 'Uloží dokument na disk' },
-  { label: 'Príkazová paleta', keys: ['⌘', 'K'], description: 'Vyhľadávanie dokumentov a príkazov' },
-  { label: 'Späť', keys: ['⌘', 'Z'], description: 'Vráti poslednú zmenu v editore' },
-  { label: 'Znovu', keys: ['⌘', '⇧', 'Z'], description: 'Opakuje zrušenú zmenu v editore' },
-  { label: 'Hľadať', keys: ['⌘', 'F'], description: 'Hľadať v dokumente' },
-  { label: 'Hľadať a nahradiť', keys: ['⌘', 'H'], description: 'Nahradiť text v dokumente' },
-  { label: 'Importovať', keys: ['⌘', 'O'], description: 'Import .scribe, .pages, .md, .txt, .docx' },
-  { label: 'Prepínať tému', keys: ['⌘', '⇧', 'L'], description: 'Prepína medzi témami' },
-  { label: 'Nastavenia', keys: ['⌘', ','], description: 'Otvorí panel nastavení' },
+  { id: 'newDocument', keys: ['⌘', 'N'] },
+  { id: 'save', keys: ['⌘', 'S'] },
+  { id: 'commandPalette', keys: ['⌘', 'K'] },
+  { id: 'undo', keys: ['⌘', 'Z'] },
+  { id: 'redo', keys: ['⌘', '⇧', 'Z'] },
+  { id: 'find', keys: ['⌘', 'F'] },
+  { id: 'findReplace', keys: ['⌘', 'H'] },
+  { id: 'import', keys: ['⌘', 'O'] },
+  { id: 'toggleTheme', keys: ['⌘', '⇧', 'L'] },
+  { id: 'settings', keys: ['⌘', ','] },
 ]

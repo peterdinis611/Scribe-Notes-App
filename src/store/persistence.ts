@@ -1,3 +1,4 @@
+import type { AppLocale } from '@/i18n'
 import type { PageSetup } from '@/lib/editor/page-setup'
 import { DEFAULT_PAGE_SETUP } from '@/lib/editor/page-setup'
 import type { ThemeSettings } from '@/lib/themes/types'
@@ -19,6 +20,21 @@ const COMMENT_AUTHOR_KEY = 'scribe-comment-author'
 const CUSTOM_TEMPLATES_KEY = 'scribe-custom-templates'
 const CUSTOM_TEMPLATE_CATEGORIES_KEY = 'scribe-custom-template-categories'
 const STORAGE_ACCESS_EXPLAINER_KEY = 'scribe-storage-access-explainer-dismissed'
+const LOCALE_KEY = 'scribe-locale'
+
+export function readLocale(): AppLocale {
+  try {
+    const raw = localStorage.getItem(LOCALE_KEY)
+    if (raw === 'en' || raw === 'sk') return raw
+  } catch {
+    // ignore
+  }
+  return 'sk'
+}
+
+export function persistLocale(locale: AppLocale) {
+  localStorage.setItem(LOCALE_KEY, locale)
+}
 
 export function readStorageAccessExplainerDismissed(): boolean {
   try {

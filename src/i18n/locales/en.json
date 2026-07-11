@@ -1,0 +1,153 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "reset": "Reset",
+    "later": "Later",
+    "understood": "Got it",
+    "dontShowAgain": "Don't show again",
+    "saving": "Saving",
+    "unsaved": "Unsaved",
+    "saveError": "Save failed",
+    "saved": "Saved",
+    "savedNoDisk": "Saved · no disk",
+    "version": "Version {{version}}"
+  },
+  "nav": {
+    "editor": "Editor",
+    "settings": "Settings",
+    "settingsSections": "Settings sections"
+  },
+  "settings": {
+    "sections": {
+      "appearance": {
+        "label": "Appearance",
+        "description": "Themes, colors, and language"
+      },
+      "storage": {
+        "label": "Storage",
+        "description": "Files and folders"
+      },
+      "shortcuts": {
+        "label": "Shortcuts",
+        "description": "Keyboard shortcuts"
+      },
+      "about": {
+        "label": "About",
+        "description": "Version and info"
+      }
+    },
+    "language": {
+      "title": "Language",
+      "description": "Application interface language.",
+      "sk": "Slovenčina",
+      "en": "English"
+    },
+    "appearance": {
+      "themeTitle": "Theme",
+      "themeDescription": "Choose a default theme, generate a random one, or create your own.",
+      "randomTheme": "Random theme",
+      "systemTheme": "System",
+      "systemThemeDescription": "Follow macOS",
+      "customTheme": "Custom",
+      "customThemeDescription": "Custom colors",
+      "customThemeTitle": "Custom theme",
+      "customThemeSectionDescription": "Adjust individual interface colors.",
+      "newRandom": "New random",
+      "randomCardTitle": "Random",
+      "randomCardDescription": "New palette in one click"
+    },
+    "storage": {
+      "folderTitle": "Documents folder",
+      "folderDescription": "All documents are stored in the app's local database. This folder holds .scribe backups.",
+      "folderNote": "If disk writes fail, the editor keeps working and the document stays saved in the app. Change the folder or check disk permissions.",
+      "whyAccessLink": "Why does Scribe ask for folder access?",
+      "changeFolder": "Change folder",
+      "openInFinder": "Open in Finder",
+      "reconcile": "Sync with disk",
+      "reconciling": "Syncing…",
+      "reconcileSuccess": "Synced: {{toDisk}} to disk, {{fromDisk}} from disk, {{imported}} new.",
+      "reconcileFailed": "Sync failed.",
+      "clearTitle": "Clear data",
+      "clearDescription": "Deletes all documents from the app, related .scribe files on disk, and stored images.",
+      "clearing": "Clearing…",
+      "clearAll": "Clear everything",
+      "clearConfirm": "This permanently deletes all documents, .scribe files, and images in the folder. This action cannot be undone.",
+      "clearConfirmTitle": "Clear everything?",
+      "clearConfirmOk": "Delete everything",
+      "folderChanged": "Documents folder changed"
+    },
+    "shortcuts": {
+      "title": "Keyboard shortcuts",
+      "description": "Quick actions available anywhere in the app."
+    },
+    "about": {
+      "tagline": "Writing app for macOS",
+      "platform": "Platform",
+      "fileFormat": "File format",
+      "export": "Export"
+    }
+  },
+  "storageAccess": {
+    "title": "Why does Scribe ask for folder access?",
+    "description": "Explanation of Documents access and .scribe backup files",
+    "body1": "Scribe saves documents first to its own in-app database. You can always write and edit — even without access to the Documents folder.",
+    "body2": "It also creates backup <strong>.scribe</strong> files in a folder you choose (default <code>~/Documents/Scribe</code>) so you can open them in Finder, back them up, or share them.",
+    "body3": "macOS may show a system dialog asking for access to Documents or another location. This is normal — the system protects your files from apps.",
+    "body4": "Scribe <strong>does not scan your entire disk</strong>. It only writes to the folder you select. If you deny access, the editor still works and you can change the folder later in Settings → Storage.",
+    "pickFolder": "Choose folder"
+  },
+  "diskSync": {
+    "warning": "Writing the .scribe file to disk failed. The document is saved in the app. Check Settings → Storage.",
+    "toastTitle": "Saved in app only"
+  },
+  "shortcuts": {
+    "newDocument": {
+      "label": "New document",
+      "description": "Opens template picker"
+    },
+    "save": {
+      "label": "Save",
+      "description": "Saves document to disk"
+    },
+    "commandPalette": {
+      "label": "Command palette",
+      "description": "Search documents and commands"
+    },
+    "undo": {
+      "label": "Undo",
+      "description": "Reverts the last editor change"
+    },
+    "redo": {
+      "label": "Redo",
+      "description": "Reapplies the undone change"
+    },
+    "find": {
+      "label": "Find",
+      "description": "Find in document"
+    },
+    "findReplace": {
+      "label": "Find and replace",
+      "description": "Replace text in document"
+    },
+    "import": {
+      "label": "Import",
+      "description": "Import .scribe, .pages, .md, .txt, .docx"
+    },
+    "toggleTheme": {
+      "label": "Toggle theme",
+      "description": "Cycles through themes"
+    },
+    "settings": {
+      "label": "Settings",
+      "description": "Opens settings panel"
+    }
+  },
+  "toasts": {
+    "reconcileSuccess": "Sync completed",
+    "reconcileError": "Sync failed",
+    "clearSuccess": "All documents deleted",
+    "templatesLoadError": "Failed to load templates"
+  }
+}

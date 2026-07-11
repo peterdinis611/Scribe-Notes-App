@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { FileText, Settings2 } from 'lucide-react'
 import { Link, useRouterState } from '@tanstack/react-router'
+import { useTranslation } from 'react-i18next'
 import { ROUTES } from '@/lib/routes'
 import { cn } from '@/lib/utils'
 import { useAppSelector } from '@/store/hooks'
@@ -11,6 +12,7 @@ type SidebarRailProps = {
 
 export function SidebarRail({ onNavigate }: SidebarRailProps) {
   const pathname = useRouterState({ select: (state) => state.location.pathname })
+  const { t } = useTranslation()
   const activeDocumentId = useAppSelector((state) => state.documents.activeDocumentId)
   const documents = useAppSelector((state) => state.documents.documents)
   const onSettingsPage = pathname.startsWith('/settings')
@@ -37,8 +39,8 @@ export function SidebarRail({ onNavigate }: SidebarRailProps) {
 
       <Link
         {...editorLink}
-        title="Editor"
-        aria-label="Editor"
+        title={t('nav.editor')}
+        aria-label={t('nav.editor')}
         onClick={() => onNavigate?.()}
         className={cn('app-rail-btn titlebar-no-drag', onEditorPage && 'is-active')}
       >
@@ -47,8 +49,8 @@ export function SidebarRail({ onNavigate }: SidebarRailProps) {
 
       <Link
         to="/settings/appearance"
-        title="Nastavenia"
-        aria-label="Nastavenia"
+        title={t('nav.settings')}
+        aria-label={t('nav.settings')}
         onClick={() => onNavigate?.()}
         className={cn('app-rail-btn titlebar-no-drag', onSettingsPage && 'is-active')}
       >

@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { ArrowRight, Clock, FileText, FolderInput, Plus, Sparkles } from 'lucide-react'
 import { useNavigate } from '@tanstack/react-router'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { APP_SHORTCUTS } from '@/lib/shortcuts'
@@ -23,6 +24,7 @@ export function WelcomeScreen() {
   const documents = useAppSelector((state) => state.documents.documents)
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   const recentDocuments = useMemo(
     () => [...documents].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 8),
@@ -78,7 +80,11 @@ export function WelcomeScreen() {
 
           <Card className="grid gap-2 p-4 sm:grid-cols-2">
             {APP_SHORTCUTS.slice(0, 4).map((shortcut) => (
-              <Shortcut key={shortcut.label} label={shortcut.label} keys={shortcut.keys} />
+              <Shortcut
+                key={shortcut.id}
+                label={t(`shortcuts.${shortcut.id}.label`)}
+                keys={shortcut.keys}
+              />
             ))}
           </Card>
         </section>

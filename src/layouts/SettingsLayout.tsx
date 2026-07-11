@@ -1,17 +1,20 @@
 import { Link, Outlet, useRouterState } from '@tanstack/react-router'
-import { ROUTES, SETTINGS_SECTIONS } from '@/lib/routes'
+import { useTranslation } from 'react-i18next'
+import { ROUTES, useSettingsSections } from '@/lib/routes'
 import { cn } from '@/lib/utils'
 
 export function SettingsLayout() {
   const pathname = useRouterState({ select: (state) => state.location.pathname })
+  const settingsSections = useSettingsSections()
+  const { t } = useTranslation()
 
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
       <nav
         className="titlebar-no-drag flex w-[200px] shrink-0 flex-col gap-0.5 border-r border-[var(--color-border)] bg-[var(--color-surface)] p-3"
-        aria-label="Sekcie nastavení"
+        aria-label={t('nav.settingsSections')}
       >
-        {SETTINGS_SECTIONS.map(({ id, label, description, icon: Icon }) => (
+        {settingsSections.map(({ id, label, description, icon: Icon }) => (
           <Link
             key={id}
             {...ROUTES.settingsSection(id)}

@@ -1,5 +1,6 @@
 import { lazy, Suspense, useMemo, useState } from 'react'
 import { useNavigate, useRouterState } from '@tanstack/react-router'
+import { useTranslation } from 'react-i18next'
 import {
   Check,
   ChevronRight,
@@ -21,7 +22,7 @@ import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { tiptapJsonToHtml } from '@/lib/export/html'
 import { tiptapJsonToMarkdown } from '@/lib/export/markdown'
 import { tiptapToPlainText } from '@/lib/export/plain-text'
-import { ROUTES, SETTINGS_SECTIONS } from '@/lib/routes'
+import { ROUTES, useSettingsSections } from '@/lib/routes'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { editorRefs } from '@/store/editorRefs'
@@ -43,12 +44,13 @@ const PdfPreviewDialog = lazy(() =>
 function SaveStatus() {
   const status = useAppSelector((state) => state.documents.saveStatus)
   const diskSyncWarning = useAppSelector((state) => state.documents.diskSyncWarning)
+  const { t } = useTranslation()
 
   if (status === 'saving') {
     return (
       <Badge className="status-pill h-6 gap-1 bg-[var(--color-hover)] px-2 text-[11px] font-medium text-[var(--color-muted-foreground)]">
         <Loader2 className="h-3 w-3 animate-spin" />
-        Ukladám
+        {t('common.saving')}
       </Badge>
     )
   }
@@ -57,7 +59,7 @@ function SaveStatus() {
     return (
       <Badge className="status-pill h-6 gap-1 border-transparent bg-[color-mix(in_srgb,#ff9500_14%,transparent)] px-2 text-[11px] font-medium text-[#c93400] dark:text-[#ff9f0a]">
         <Circle className="h-2.5 w-2.5 fill-current" />
-        Neuložené
+        {t('common.unsaved')}
       </Badge>
     )
   }
@@ -65,7 +67,7 @@ function SaveStatus() {
   if (status === 'error') {
     return (
       <Badge className="status-pill h-6 border-transparent bg-[color-mix(in_srgb,var(--color-destructive)_14%,transparent)] px-2 text-[11px] font-medium text-[var(--color-destructive)]">
-        Chyba ukladania
+        {t('common.saveError')}
       </Badge>
     )
   }
@@ -81,23 +83,25 @@ function SaveStatus() {
       title={diskSyncWarning ?? undefined}
     >
       <Check className="h-3 w-3" />
-      {diskSyncWarning ? 'Uložené · bez disku' : 'Uložené'}
+      {diskSyncWarning ? t('common.savedNoDisk') : t('common.saved')}
     </Badge>
   )
 }
 
 function SettingsChrome() {
   const pathname = useRouterState({ select: (state) => state.location.pathname })
+  const settingsSections = useSettingsSections()
+  const { t } = useTranslation()
   const active =
-    SETTINGS_SECTIONS.find((section) => pathname === `/settings/${section.id}`) ??
-    SETTINGS_SECTIONS[0]
+    settingsSections.find((section) => pathname === `/settings/${section.id}`) ??
+    settingsSections[0]
 
   return (
     <header className="app-chrome titlebar-drag [[data-sidebar-drawer=true]_&]:pl-[78px]">
       <div className="titlebar-no-drag titlebar-interactive flex min-w-0 flex-1 items-center gap-2">
         <SidebarToggle />
         <div className="flex min-w-0 items-center gap-1.5 text-[13px]">
-          <span className="font-semibold text-[var(--color-foreground)]">Nastavenia</span>
+          <span className="font-semibold text-[var(--color-foreground)]">{t('nav.settings')}</span>
           <ChevronRight className="h-3.5 w-3.5 text-[var(--color-muted-foreground)]" />
           <span className="truncate text-[var(--color-muted-foreground)]">{active.label}</span>
         </div>

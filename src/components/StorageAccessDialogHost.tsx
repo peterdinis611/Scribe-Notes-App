@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { FolderOpen, ShieldCheck } from 'lucide-react'
+import { Trans, useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -10,6 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { pickDocumentsDirectory } from '@/lib/db/api'
+import i18n from '@/i18n'
 import { toast } from '@/lib/toast'
 import type { AppDispatch } from '@/store/index'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
@@ -21,25 +23,28 @@ import { setStorageSettings } from '@/store/settingsSlice'
 import { setStorageAccessDialog, type StorageAccessDialogIntent } from '@/store/uiSlice'
 
 function StorageAccessExplainerBody() {
+  const { t } = useTranslation()
+
   return (
     <div className="space-y-3 text-[13px] leading-relaxed text-[var(--color-muted-foreground)]">
+      <p className="m-0">{t('storageAccess.body1')}</p>
       <p className="m-0">
-        Scribe ukladá dokumenty najprv do vlastnej databázy v aplikácii. Písať a upravovať môžete
-        vždy — aj bez prístupu k priečinku Dokumenty.
+        <Trans
+          i18nKey="storageAccess.body2"
+          components={{
+            strong: <strong className="text-[var(--color-foreground)]" />,
+            code: <code />,
+          }}
+        />
       </p>
+      <p className="m-0">{t('storageAccess.body3')}</p>
       <p className="m-0">
-        Navyše vytvára záložné súbory <strong className="text-[var(--color-foreground)]">.scribe</strong>{' '}
-        vo vami zvolenom priečinku (predvolene <code>~/Documents/Scribe</code>), aby ste ich mohli
-        otvárať vo Finderi, zálohovať alebo zdieľať.
-      </p>
-      <p className="m-0">
-        macOS môže zobraziť systémový dialóg s žiadosťou o prístup k priečinku Dokumenty alebo
-        inému miestu. Je to normálne — systém chráni vaše súbory pred aplikáciami.
-      </p>
-      <p className="m-0">
-        Scribe <strong className="text-[var(--color-foreground)]">neprehľadáva celý disk</strong>.
-        Zapisuje len do priečinka, ktorý sami vyberiete. Ak prístup zamietnete, editor naďalej
-        funguje a priečinok môžete zmeniť neskôr v Nastaveniach → Úložisko.
+        <Trans
+          i18nKey="storageAccess.body4"
+          components={{
+            strong: <strong className="text-[var(--color-foreground)]" />,
+          }}
+        />
       </p>
     </div>
   )
@@ -48,6 +53,7 @@ function StorageAccessExplainerBody() {
 export function StorageAccessDialogHost() {
   const dialog = useAppSelector((state) => state.ui.storageAccessDialog)
   const dispatch = useAppDispatch()
+  const { t } = useTranslation()
   const [dontShowAgain, setDontShowAgain] = useState(false)
 
   function closeDialog() {
@@ -69,7 +75,7 @@ export function StorageAccessDialogHost() {
     if (result) {
       dispatch(setStorageSettings(result))
       const shortPath = result.documentsDir.replace(/^\/Users\/[^/]+/, '~')
-      toast.success('Priečinok dokumentov zmenený', shortPath)
+      toast.success(t('settings.storage.folderChanged'), shortPath)
     }
   }
 
@@ -89,10 +95,8 @@ export function StorageAccessDialogHost() {
           <div className="mb-1 inline-flex h-9 w-9 items-center justify-center rounded-[10px] bg-[color-mix(in_srgb,var(--color-accent)_12%,var(--color-surface))] text-[var(--color-accent)]">
             {isPickIntent ? <FolderOpen className="h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />}
           </div>
-          <DialogTitle>Prečo Scribe pýta prístup k priečinku?</DialogTitle>
-          <DialogDescription>
-            Vysvetlenie prístupu k Dokumentom a záložným súborom .scribe
-          </DialogDescription>
+          <DialogTitle>{t('storageAccess.title')}</DialogTitle>
+          <DialogDescription>{t('storageAccess.description')}</DialogDescription>
         </DialogHeader>
 
         <StorageAccessExplainerBody />
@@ -104,20 +108,20 @@ export function StorageAccessDialogHost() {
             onChange={(event) => setDontShowAgain(event.target.checked)}
             className="accent-[var(--color-accent)]"
           />
-          Nezobrazovať znova
+          {t('common.dontShowAgain')}
         </label>
 
         <DialogFooter>
           <Button type="button" variant="ghost" size="sm" onClick={closeDialog}>
-            {isPickIntent ? 'Neskôr' : 'Zavrieť'}
+            {isPickIntent ? t('common.later') : t('common.close')}
           </Button>
           {isPickIntent ? (
             <Button type="button" variant="default" size="sm" onClick={() => void handlePickFolder()}>
-              Vybrať priečinok
+              {t('storageAccess.pickFolder')}
             </Button>
           ) : (
             <Button type="button" variant="default" size="sm" onClick={closeDialog}>
-              Rozumiem
+              {t('common.understood')}
             </Button>
           )}
         </DialogFooter>
@@ -141,7 +145,7 @@ export function requestStorageAccessDialog(
         if (result) {
           dispatch(setStorageSettings(result))
           const shortPath = result.documentsDir.replace(/^\/Users\/[^/]+/, '~')
-          toast.success('Priečinok dokumentov zmenený', shortPath)
+          toast.success(i18n.t('settings.storage.folderChanged'), shortPath)
         }
       })
       return true

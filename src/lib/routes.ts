@@ -1,23 +1,37 @@
+import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { LucideIcon } from 'lucide-react'
 import { FolderOpen, Info, Keyboard, Palette } from 'lucide-react'
-
 export type SettingsSection = 'appearance' | 'storage' | 'shortcuts' | 'about'
 
 export function isSettingsSection(value: string | undefined): value is SettingsSection {
   return value === 'appearance' || value === 'storage' || value === 'shortcuts' || value === 'about'
 }
 
-export const SETTINGS_SECTIONS: {
+const SETTINGS_SECTION_META: {
   id: SettingsSection
-  label: string
-  description: string
   icon: LucideIcon
 }[] = [
-  { id: 'appearance', label: 'Vzhľad', description: 'Témy a farby', icon: Palette },
-  { id: 'storage', label: 'Úložisko', description: 'Súbory a priečinky', icon: FolderOpen },
-  { id: 'shortcuts', label: 'Skratky', description: 'Klávesové skratky', icon: Keyboard },
-  { id: 'about', label: 'O aplikácii', description: 'Verzia a info', icon: Info },
+  { id: 'appearance', icon: Palette },
+  { id: 'storage', icon: FolderOpen },
+  { id: 'shortcuts', icon: Keyboard },
+  { id: 'about', icon: Info },
 ]
+
+export function useSettingsSections() {
+  const { t } = useTranslation()
+
+  return useMemo(
+    () =>
+      SETTINGS_SECTION_META.map(({ id, icon }) => ({
+        id,
+        icon,
+        label: t(`settings.sections.${id}.label`),
+        description: t(`settings.sections.${id}.description`),
+      })),
+    [t],
+  )
+}
 
 const SETTINGS_PATHS = {
   appearance: '/settings/appearance',

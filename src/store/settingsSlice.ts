@@ -1,5 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import type { StorageSettings } from '@/lib/db/api'
+import type { AppLocale } from '@/i18n'
 import type { PageSetup } from '@/lib/editor/page-setup'
 import { applyThemeSettings } from '@/lib/themes/apply'
 import type { ThemeSettings } from '@/lib/themes/types'
@@ -11,7 +12,9 @@ import {
   persistPrintZoom,
   persistSpellCheckEnabled,
   persistThemeSettings,
+  persistLocale,
   readEditorViewMode,
+  readLocale,
   readPageSetup,
   readPrintColumns,
   readPrintLayoutEnabled,
@@ -33,6 +36,7 @@ export interface SettingsState {
   themeSettings: ThemeSettings
   templatePickerOpen: boolean
   storageSettings: StorageSettings | null
+  locale: AppLocale
   editorViewMode: EditorViewMode
   pageSetup: PageSetup
   printLayoutEnabled: boolean
@@ -45,6 +49,7 @@ const initialState: SettingsState = {
   themeSettings: readThemeSettings(),
   templatePickerOpen: false,
   storageSettings: null,
+  locale: readLocale(),
   editorViewMode: readEditorViewMode(),
   pageSetup: readPageSetup(),
   printLayoutEnabled: readPrintLayoutEnabled(),
@@ -67,6 +72,10 @@ const settingsSlice = createSlice({
     },
     setStorageSettings(state, action: PayloadAction<StorageSettings | null>) {
       state.storageSettings = action.payload
+    },
+    setLocale(state, action: PayloadAction<AppLocale>) {
+      state.locale = action.payload
+      persistLocale(action.payload)
     },
     setEditorViewMode(state, action: PayloadAction<EditorViewMode>) {
       state.editorViewMode = action.payload
@@ -100,6 +109,7 @@ export const {
   setThemeSettings,
   setTemplatePickerOpen,
   setStorageSettings,
+  setLocale,
   setEditorViewMode,
   setPageSetup,
   setPrintLayoutEnabled,
