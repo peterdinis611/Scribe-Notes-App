@@ -25,6 +25,7 @@ export function OnboardingTour() {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState(0)
+  const [dontShowAgain, setDontShowAgain] = useState(true)
 
   useEffect(() => {
     if (!readOnboardingDismissed()) {
@@ -32,18 +33,20 @@ export function OnboardingTour() {
     }
   }, [])
 
-  function dismiss() {
-    persistOnboardingDismissed(true)
+  function closeTour() {
+    if (dontShowAgain) {
+      persistOnboardingDismissed(true)
+    }
     setOpen(false)
   }
 
   function handleSkip() {
-    dismiss()
+    closeTour()
   }
 
   function handleNext() {
     if (step >= STEP_IDS.length - 1) {
-      dismiss()
+      closeTour()
       return
     }
     setStep((value) => value + 1)
@@ -62,7 +65,7 @@ export function OnboardingTour() {
     <Dialog
       open
       onOpenChange={(next) => {
-        if (!next) dismiss()
+        if (!next) closeTour()
       }}
     >
       <DialogContent className="max-w-[460px]" showClose>
@@ -98,6 +101,18 @@ export function OnboardingTour() {
             />
           ))}
         </div>
+
+        <label className="flex cursor-pointer items-center gap-2.5 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5">
+          <input
+            type="checkbox"
+            className="h-3.5 w-3.5 accent-[var(--color-accent)]"
+            checked={dontShowAgain}
+            onChange={(event) => setDontShowAgain(event.target.checked)}
+          />
+          <span className="text-[12px] text-[var(--color-muted-foreground)]">
+            {t('onboarding.dontShowAgain')}
+          </span>
+        </label>
 
         <DialogFooter>
           <Button type="button" variant="ghost" size="sm" onClick={handleSkip}>

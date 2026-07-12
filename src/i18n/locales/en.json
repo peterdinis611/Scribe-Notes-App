@@ -99,6 +99,7 @@
   "onboarding": {
     "title": "Welcome to Scribe",
     "stepOf": "Step {{current}} of {{total}}",
+    "dontShowAgain": "Don't show again on next launch",
     "library": {
       "title": "Document library",
       "description": "Use the sidebar to organize documents into folders, mark favorites, and switch between them quickly."

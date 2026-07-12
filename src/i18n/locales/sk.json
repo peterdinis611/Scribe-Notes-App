@@ -99,6 +99,7 @@
   "onboarding": {
     "title": "Vitajte v Scribe",
     "stepOf": "Krok {{current}} z {{total}}",
+    "dontShowAgain": "Pri ďalšom spustení už nezobrazovať",
     "library": {
       "title": "Knižnica dokumentov",
       "description": "V bočnom paneli organizujete dokumenty do priečinkov, označujete obľúbené a rýchlo prepínate medzi nimi."
