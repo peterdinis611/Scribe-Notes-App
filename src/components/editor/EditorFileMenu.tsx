@@ -7,6 +7,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
 import { ChevronDown, Eye, FileDown, FileSymlink, FolderInput, LayoutTemplate, Printer } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 type EditorFileMenuProps = {
   hasDocument?: boolean
@@ -29,30 +30,34 @@ export function EditorFileMenu({
   onSaveAsTemplate,
   onExport,
 }: EditorFileMenuProps) {
+  const { t } = useTranslation()
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className="editor-file-menu-trigger">
           <FileDown className="h-3.5 w-3.5 shrink-0" />
-          <span className="[[data-layout-tier=medium]_&]:hidden [[data-layout-tier=narrow]_&]:hidden [[data-layout-tier=tight]_&]:hidden">Súbor</span>
+          <span className="[[data-layout-tier=medium]_&]:hidden [[data-layout-tier=narrow]_&]:hidden [[data-layout-tier=tight]_&]:hidden">
+            {t('fileMenu.label')}
+          </span>
           <ChevronDown className="h-3 w-3 shrink-0 opacity-60" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="min-w-[220px]">
         <DropdownMenuItem onClick={onImport}>
           <FolderInput className="h-3.5 w-3.5 shrink-0" />
-          Importovať…
+          {t('fileMenu.import')}
         </DropdownMenuItem>
         {hasDocument && hasFilePath && onRevealFile && (
           <DropdownMenuItem onClick={onRevealFile}>
             <FileSymlink className="h-3.5 w-3.5 shrink-0" />
-            Zobraziť v Finderi
+            {t('fileMenu.revealInFinder')}
           </DropdownMenuItem>
         )}
         {hasDocument && onSaveAsTemplate && (
           <DropdownMenuItem onClick={onSaveAsTemplate}>
             <LayoutTemplate className="h-3.5 w-3.5 shrink-0" />
-            Uložiť ako šablónu…
+            {t('fileMenu.saveAsTemplate')}
           </DropdownMenuItem>
         )}
         {hasDocument && onPdfPreview && (
@@ -60,24 +65,24 @@ export function EditorFileMenu({
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onPdfPreview}>
               <Eye className="h-3.5 w-3.5 shrink-0" />
-              Náhľad PDF
+              {t('fileMenu.pdfPreview')}
             </DropdownMenuItem>
           </>
         )}
         {hasDocument && onPrint && (
           <DropdownMenuItem onClick={onPrint}>
             <Printer className="h-3.5 w-3.5 shrink-0" />
-            Tlačiť…
+            {t('fileMenu.print')}
           </DropdownMenuItem>
         )}
         {hasDocument && onExport && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => onExport('pdf')}>Exportovať PDF</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onExport('docx')}>Word (DOCX)</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onExport('md')}>Markdown (MD)</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onExport('txt')}>Text (TXT)</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onExport('pages')}>Apple Pages</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onExport('pdf')}>{t('fileMenu.exportPdf')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onExport('docx')}>{t('fileMenu.exportDocx')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onExport('md')}>{t('fileMenu.exportMd')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onExport('txt')}>{t('fileMenu.exportTxt')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onExport('pages')}>{t('fileMenu.exportPages')}</DropdownMenuItem>
           </>
         )}
       </DropdownMenuContent>

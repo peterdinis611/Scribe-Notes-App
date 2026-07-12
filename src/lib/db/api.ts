@@ -295,9 +295,39 @@ export interface BackendStats {
   documentsCount: number
   foldersCount: number
   revisionsCount: number
+  linksCount: number
   walEnabled: boolean
   deferredDiskWrites: boolean
+  dbPath: string
+  documentsDir: string
+  appVersion: string
+  pendingDiskJobs: number
 }
+
+export interface LinkGraphEdge {
+  sourceId: string
+  targetId: string
+  sourceTitle: string
+  targetTitle: string
+}
+
+export interface BackupExportResult {
+  path: string
+  documentsIncluded: number
+}
+
+export interface BackupImportResult {
+  documentsImported: number
+  message: string
+}
+
+export const listLinkGraph = () => invoke<LinkGraphEdge[]>('list_link_graph')
+
+export const exportLibraryArchive = () =>
+  invoke<BackupExportResult | null>('export_library_archive')
+
+export const importLibraryArchive = () =>
+  invoke<BackupImportResult | null>('import_library_archive')
 
 export const scanScribeFiles = () => invoke<ScanScribeResult>('scan_scribe_files')
 

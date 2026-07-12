@@ -21,6 +21,7 @@ export function HomePage() {
 
   useEffect(() => {
     if (!activeId) return
+    if (documents.length === 0) return
 
     if (isOpenDocument(documents, activeId)) {
       void navigate(ROUTES.document(activeId))

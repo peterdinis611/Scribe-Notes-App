@@ -12,12 +12,35 @@
     "saveError": "Save failed",
     "saved": "Saved",
     "savedNoDisk": "Saved · no disk",
-    "version": "Version {{version}}"
+    "version": "Version {{version}}",
+    "new": "New",
+    "import": "Import",
+    "create": "Create",
+    "skip": "Skip",
+    "next": "Next",
+    "back": "Back",
+    "done": "Done",
+    "home": "Home",
+    "tryAgain": "Try again",
+    "total": "{{count}} total",
+    "copySuffix": "(copy)"
   },
   "nav": {
     "editor": "Editor",
     "settings": "Settings",
-    "settingsSections": "Settings sections"
+    "settingsSections": "Settings sections",
+    "closeLibrary": "Close library"
+  },
+  "welcome": {
+    "badge": "Local document editor",
+    "title": "Write, organize, and export in one place.",
+    "subtitle": "Create a new document from a template, import an existing file, or pick up where you left off.",
+    "newDocument": "New document",
+    "import": "Import",
+    "recentDocuments": "Recent documents",
+    "noDocuments": "No documents yet",
+    "noDocumentsHint": "Start with a new document, the demo, or an import.",
+    "emptyStartHint": "Start with a new document, the demo, or an import."
   },
   "demoGuide": {
     "badge": "Start here",
@@ -25,6 +48,73 @@
     "description": "Interactive demo of every feature — formatting, wiki links, export, templates, and more.",
     "open": "Open demo",
     "shortLabel": "Demo"
+  },
+  "fileMenu": {
+    "label": "File",
+    "import": "Import…",
+    "revealInFinder": "Reveal in Finder",
+    "saveAsTemplate": "Save as template…",
+    "pdfPreview": "PDF preview",
+    "print": "Print…",
+    "exportPdf": "Export PDF",
+    "exportDocx": "Word (DOCX)",
+    "exportMd": "Markdown (MD)",
+    "exportTxt": "Text (TXT)",
+    "exportPages": "Apple Pages"
+  },
+  "commandPalette": {
+    "placeholder": "Search documents and commands…",
+    "noResults": "No results",
+    "actions": "Commands",
+    "documents": "Documents",
+    "sectionActions": "Commands",
+    "sectionDocuments": "In document content",
+    "quickNote": "Quick note",
+    "readingOn": "Enable reading mode",
+    "readingOff": "Disable reading mode",
+    "newDocument": "New document",
+    "demoDocument": "Demo document",
+    "demoHint": "Scribe Guide",
+    "focusOn": "Enable focus mode",
+    "focusOff": "Disable focus mode",
+    "duplicate": "Duplicate document",
+    "moveToFolder": "Move to folder",
+    "settings": "Settings",
+    "toggleTheme": "Toggle theme",
+    "randomTheme": "Random theme",
+    "randomThemeHint": "Generate a custom palette",
+    "newFolder": "New folder",
+    "newFolderTitle": "New folder",
+    "newFolderPlaceholder": "Folder name"
+  },
+  "editor": {
+    "loading": "Loading document…",
+    "loadingEditor": "Loading editor…",
+    "page": "Page {{page}}"
+  },
+  "errors": {
+    "title": "Something went wrong",
+    "generic": "An unexpected error occurred. Try again or return home."
+  },
+  "onboarding": {
+    "title": "Welcome to Scribe",
+    "stepOf": "Step {{current}} of {{total}}",
+    "library": {
+      "title": "Document library",
+      "description": "Use the sidebar to organize documents into folders, mark favorites, and switch between them quickly."
+    },
+    "export": {
+      "title": "Export and files",
+      "description": "The File menu lets you import, preview PDF, print, and export to PDF, Word, Markdown, or Pages."
+    },
+    "focus": {
+      "title": "Focus mode",
+      "description": "Press ⌘⇧F for distraction-free writing — the sidebar and toolbar hide. Press Esc to exit."
+    },
+    "demo": {
+      "title": "Demo guide",
+      "description": "The Demo button opens an interactive document with every editor feature. A great starting point for new users."
+    }
   },
   "settings": {
     "sections": {
@@ -39,6 +129,10 @@
       "shortcuts": {
         "label": "Shortcuts",
         "description": "Keyboard shortcuts"
+      },
+      "diagnostics": {
+        "label": "Diagnostics",
+        "description": "Database and storage health"
       },
       "about": {
         "label": "About",
@@ -83,11 +177,32 @@
       "clearConfirm": "This permanently deletes all documents, .scribe files, and images in the folder. This action cannot be undone.",
       "clearConfirmTitle": "Clear everything?",
       "clearConfirmOk": "Delete everything",
-      "folderChanged": "Documents folder changed"
+      "folderChanged": "Documents folder changed",
+      "backupTitle": "Library backup",
+      "backupDescription": "Export or import the full archive (.scribe-backup.zip) including SQLite and on-disk files.",
+      "backupExport": "Export backup",
+      "backupExporting": "Exporting…",
+      "backupExportDone": "Backup exported",
+      "backupExportError": "Backup export failed",
+      "backupImport": "Import backup",
+      "backupImporting": "Importing…",
+      "backupImportDone": "Backup restored",
+      "backupImportError": "Backup import failed",
+      "backupImportConfirmTitle": "Restore backup?",
+      "backupImportConfirm": "The current library will be replaced by the archive contents. The existing database is backed up to a .bak file.",
+      "backupImportConfirmOk": "Import"
+    },
+    "diagnostics": {
+      "title": "Diagnostics",
+      "description": "SQLite status, paths, and recent disk operations."
     },
     "shortcuts": {
       "title": "Keyboard shortcuts",
-      "description": "Quick actions available anywhere in the app."
+      "description": "Quick actions available anywhere in the app.",
+      "reset": "Reset to defaults",
+      "edit": "Edit shortcut: {{action}}",
+      "pressKeys": "Press a key combination…",
+      "editorTitle": "Editor shortcuts"
     },
     "about": {
       "tagline": "Writing app for macOS",
@@ -149,12 +264,106 @@
     "settings": {
       "label": "Settings",
       "description": "Opens settings panel"
+    },
+    "quickNote": {
+      "label": "Quick note",
+      "description": "Opens a scratch document"
+    },
+    "focusMode": {
+      "label": "Focus mode",
+      "labelOff": "Exit focus mode",
+      "description": "Hides side panels and toolbar"
+    },
+    "readingMode": {
+      "label": "Reading mode",
+      "labelOff": "Exit reading mode",
+      "description": "Clean read-only preview"
     }
+  },
+  "quickNote": {
+    "title": "Quick note"
+  },
+  "readingMode": {
+    "exit": "Exit reading",
+    "exitHint": "Exit reading mode (Esc)"
+  },
+  "library": {
+    "title": "Library",
+    "documentCount_one": "{{count}} document",
+    "documentCount_other": "{{count}} documents",
+    "searchPlaceholder": "Search documents…",
+    "tabs": {
+      "ariaLabel": "Library view",
+      "folders": "Folders",
+      "favorites": "Favorites",
+      "tags": "Tags",
+      "graph": "Link graph"
+    }
+  },
+  "linkGraph": {
+    "loading": "Loading link graph…",
+    "empty": "No wiki links between documents yet.",
+    "summary": "{{nodes}} documents · {{edges}} links"
+  },
+  "diagnostics": {
+    "loadError": "Failed to load diagnostics",
+    "refresh": "Refresh",
+    "loading": "Loading…",
+    "appVersion": "App version",
+    "schemaVersion": "Schema version",
+    "documents": "Documents",
+    "folders": "Folders",
+    "revisions": "Revisions",
+    "links": "Wiki links",
+    "wal": "WAL mode",
+    "pendingDisk": "Pending disk writes",
+    "dbPath": "Database path",
+    "documentsDir": "Documents folder",
+    "flushPending": "Flush disk writes",
+    "flushDone": "Disk writes completed",
+    "flushError": "Disk flush failed",
+    "reconcile": "Reconcile storage",
+    "copy": "Copy JSON",
+    "copied": "Diagnostics copied",
+    "checkUpdates": "Check for updates"
   },
   "toasts": {
     "reconcileSuccess": "Sync completed",
     "reconcileError": "Sync failed",
     "clearSuccess": "All documents deleted",
-    "templatesLoadError": "Failed to load templates"
+    "templatesLoadError": "Failed to load templates",
+    "documentCreated": "Document created",
+    "documentCreateError": "Failed to create document",
+    "documentImported": "Document imported",
+    "documentDuplicated": "Document duplicated",
+    "duplicateError": "Duplication failed",
+    "documentRenamed": "Document renamed",
+    "renameError": "Rename failed",
+    "documentMoved": "Document moved",
+    "moveError": "Failed to move document",
+    "documentTrashed": "Document moved to trash",
+    "trashError": "Failed to move document to trash",
+    "documentRestored": "Document restored",
+    "restoreError": "Failed to restore document",
+    "folderCreated": "Folder created",
+    "folderRenamed": "Folder renamed",
+    "folderRenameError": "Failed to rename folder",
+    "folderMoved": "Folder moved",
+    "folderMoveError": "Failed to move folder",
+    "folderDeleted": "Folder deleted",
+    "folderDeleteError": "Failed to delete folder",
+    "folderEmpty": "Folder contains no documents",
+    "favoriteError": "Failed to update favorite",
+    "tagsError": "Failed to save tags",
+    "saveError": "Save failed",
+    "exportDone": "Export completed",
+    "exportError": "Export failed",
+    "demoOpened": "Demo document opened",
+    "demoCreated": "Demo document created",
+    "demoError": "Failed to load demo document",
+    "trashLoadError": "Failed to load trash",
+    "trashEmptied": "Trash emptied",
+    "trashEmptyError": "Failed to empty trash",
+    "trashPurgeError": "Failed to delete document"
   }
 }

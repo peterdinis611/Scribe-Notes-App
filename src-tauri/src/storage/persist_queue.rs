@@ -110,6 +110,13 @@ impl DiskPersistQueue {
             .recv()
             .map_err(|e| format!("Disková fronta neodpovedala: {e}"))
     }
+
+    pub fn pending_count(&self) -> u32 {
+        self.errors
+            .lock()
+            .map(|errors| errors.len() as u32)
+            .unwrap_or(0)
+    }
 }
 
 fn worker_loop(db_path: PathBuf, rx: Receiver<Command>, errors: Arc<Mutex<HashMap<String, String>>>) {

@@ -1,9 +1,11 @@
 import { useEffect, useRef } from 'react'
 import { flushSync } from 'react-dom'
 import { Outlet, useNavigate, useParams } from '@tanstack/react-router'
+import { useTranslation } from 'react-i18next'
 import { CommandPalette } from '@/components/CommandPalette'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { FocusModeExitBar } from '@/components/editor/FocusModeExitBar'
+import { ReadingModeExitBar } from '@/components/editor/ReadingModeExitBar'
 import { MoveToFolderDialog } from '@/components/MoveToFolderMenu'
 import { Sidebar } from '@/components/Sidebar'
 import { TemplatePicker } from '@/components/TemplatePicker'
@@ -18,6 +20,7 @@ import { toast } from '@/lib/toast'
 import { ROUTES } from '@/lib/routes'
 import type { DocumentTemplate } from '@/lib/templates'
 import { InputDialogHost } from '@/components/InputDialogHost'
+import { OnboardingTour } from '@/components/OnboardingTour'
 import { StorageAccessDialogHost } from '@/components/StorageAccessDialogHost'
 import { SaveCustomTemplateDialogHost } from '@/components/SaveCustomTemplateDialogHost'
 import { ToastHost } from '@/components/ToastHost'
@@ -53,6 +56,7 @@ export function AppLayout() {
   const activeDocument = useAppSelector((state) => state.documents.activeDocument)
   const focusMode = useAppSelector((state) => state.documents.focusMode)
   const dispatch = useAppDispatch()
+  const { t } = useTranslation()
 
   const navigate = useNavigate()
   const mainRef = useRef<HTMLElement>(null)
@@ -73,7 +77,7 @@ export function AppLayout() {
       })
       dispatch(setTemplatePickerOpen(false))
       await navigate(ROUTES.document(doc.id))
-      toast.success('Dokument vytvorený', doc.title)
+      toast.success(t('toasts.documentCreated'), doc.title)
       try {
         const result = await flushPendingWrites(doc.id)
         applyDiskPersistResult(dispatch, result)
@@ -81,7 +85,7 @@ export function AppLayout() {
         // Ignore disk flush transport errors after create.
       }
     } catch (error) {
-      toast.error('Nepodarilo sa vytvoriť dokument', String(error))
+      toast.error(t('toasts.documentCreateError'), String(error))
       throw error
     }
   }
@@ -99,7 +103,7 @@ export function AppLayout() {
             <button
               type="button"
               className="titlebar-no-drag fixed inset-0 z-[35] cursor-default border-none bg-black/38 backdrop-blur-[2px]"
-              aria-label="Zavrieť knižnicu"
+              aria-label={t('nav.closeLibrary')}
               onClick={() => setSidebarOpen(false)}
             />
           )}
@@ -109,6 +113,7 @@ export function AppLayout() {
 
       <div className="app-workspace titlebar-no-drag titlebar-interactive">
         <FocusModeExitBar />
+        <ReadingModeExitBar />
         <AppHeader />
         <main
           ref={mainRef}
@@ -134,6 +139,7 @@ export function AppLayout() {
       <StorageAccessDialogHost />
       <SaveCustomTemplateDialogHost />
       <TrashDialog />
+      <OnboardingTour />
       <ToastHost />
     </div>
   )

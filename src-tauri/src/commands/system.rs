@@ -1,7 +1,7 @@
 use crate::db::DbState;
 use crate::storage::{self, FlushPendingWritesResult, ReconcileResult};
 use serde::Serialize;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -10,12 +10,17 @@ pub struct BackendStats {
     pub documents_count: u32,
     pub folders_count: u32,
     pub revisions_count: u32,
+    pub links_count: u32,
     pub wal_enabled: bool,
     pub deferred_disk_writes: bool,
+    pub db_path: String,
+    pub documents_dir: String,
+    pub app_version: String,
+    pub pending_disk_jobs: u32,
 }
 
 #[tauri::command]
-pub fn get_backend_stats(state: State<'_, DbState>) -> Result<BackendStats, String> {
+pub fn get_backend_stats(app: AppHandle, state: State<'_, DbState>) -> Result<BackendStats, String> {
     let conn = state.conn.lock().map_err(|error| error.to_string())?;
 
     let schema_version: i32 = conn
@@ -29,13 +34,16 @@ pub fn get_backend_stats(state: State<'_, DbState>) -> Result<BackendStats, Stri
         .unwrap_or(0);
 
     let documents_count: u32 = conn
-        .query_row("SELECT COUNT(*) FROM documents", [], |row| row.get(0))
+        .query_row("SELECT COUNT(*) FROM documents WHERE deleted_at IS NULL", [], |row| row.get(0))
         .map_err(|error| error.to_string())?;
     let folders_count: u32 = conn
         .query_row("SELECT COUNT(*) FROM folders", [], |row| row.get(0))
         .map_err(|error| error.to_string())?;
     let revisions_count: u32 = conn
         .query_row("SELECT COUNT(*) FROM document_revisions", [], |row| row.get(0))
+        .map_err(|error| error.to_string())?;
+    let links_count: u32 = conn
+        .query_row("SELECT COUNT(*) FROM document_links", [], |row| row.get(0))
         .map_err(|error| error.to_string())?;
 
     let wal_enabled: bool = conn
@@ -45,13 +53,22 @@ pub fn get_backend_stats(state: State<'_, DbState>) -> Result<BackendStats, Stri
         })
         .unwrap_or(false);
 
+    let app_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let db_path = app_dir.join("scribe.db");
+    let documents_dir = storage::get_documents_dir(&app, &conn)?;
+
     Ok(BackendStats {
         schema_version,
         documents_count,
         folders_count,
         revisions_count,
+        links_count,
         wal_enabled,
         deferred_disk_writes: true,
+        db_path: db_path.to_string_lossy().to_string(),
+        documents_dir: documents_dir.to_string_lossy().to_string(),
+        app_version: env!("CARGO_PKG_VERSION").to_string(),
+        pending_disk_jobs: state.persist_queue.pending_count(),
     })
 }
 

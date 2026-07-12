@@ -4,6 +4,8 @@ import {
   persistBoolStorage,
   persistCommentAuthor,
   persistManualTitleIds,
+  persistActiveDocumentId,
+  readActiveDocumentId,
   readBoolStorage,
   readCommentAuthor,
   readManualTitleIds,
@@ -23,6 +25,7 @@ export interface DocumentsState {
   statsPanelOpen: boolean
   backlinksPanelOpen: boolean
   focusMode: boolean
+  readingMode: boolean
   manualTitleDocumentIds: string[]
   findReplaceOpen: boolean
   findReplaceMode: 'find' | 'replace'
@@ -36,7 +39,7 @@ export interface DocumentsState {
 
 const initialState: DocumentsState = {
   documents: [],
-  activeDocumentId: null,
+  activeDocumentId: readActiveDocumentId(),
   activeDocument: null,
   saveStatus: 'idle',
   sidebarOpen: true,
@@ -46,6 +49,7 @@ const initialState: DocumentsState = {
   statsPanelOpen: readBoolStorage('scribe-stats-open', false),
   backlinksPanelOpen: readBoolStorage('scribe-backlinks-open', false),
   focusMode: readBoolStorage('scribe-focus-mode', false),
+  readingMode: readBoolStorage('scribe-reading-mode', false),
   manualTitleDocumentIds: readManualTitleIds(),
   findReplaceOpen: false,
   findReplaceMode: 'find',
@@ -69,6 +73,7 @@ const documentsSlice = createSlice({
     },
     setActiveDocumentId(state, action: PayloadAction<string | null>) {
       state.activeDocumentId = action.payload
+      persistActiveDocumentId(action.payload)
     },
     setActiveDocument(state, action: PayloadAction<Document | null>) {
       state.activeDocument = action.payload
@@ -106,6 +111,26 @@ const documentsSlice = createSlice({
     toggleFocusMode(state) {
       state.focusMode = !state.focusMode
       persistBoolStorage('scribe-focus-mode', state.focusMode)
+      if (state.focusMode) {
+        state.readingMode = false
+        persistBoolStorage('scribe-reading-mode', false)
+      }
+    },
+    setReadingMode(state, action: PayloadAction<boolean>) {
+      state.readingMode = action.payload
+      persistBoolStorage('scribe-reading-mode', action.payload)
+      if (action.payload) {
+        state.focusMode = false
+        persistBoolStorage('scribe-focus-mode', false)
+      }
+    },
+    toggleReadingMode(state) {
+      state.readingMode = !state.readingMode
+      persistBoolStorage('scribe-reading-mode', state.readingMode)
+      if (state.readingMode) {
+        state.focusMode = false
+        persistBoolStorage('scribe-focus-mode', false)
+      }
     },
     setManualTitleDocumentIds(state, action: PayloadAction<string[]>) {
       state.manualTitleDocumentIds = action.payload
@@ -166,6 +191,8 @@ export const {
   setBacklinksPanelOpen,
   setFocusMode,
   toggleFocusMode,
+  setReadingMode,
+  toggleReadingMode,
   setManualTitleDocumentIds,
   markDocumentTitleManual,
   setFindReplaceOpen,

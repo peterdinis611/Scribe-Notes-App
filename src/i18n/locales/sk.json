@@ -12,12 +12,35 @@
     "saveError": "Chyba ukladania",
     "saved": "Uložené",
     "savedNoDisk": "Uložené · bez disku",
-    "version": "Verzia {{version}}"
+    "version": "Verzia {{version}}",
+    "new": "Nový",
+    "import": "Importovať",
+    "create": "Vytvoriť",
+    "skip": "Preskočiť",
+    "next": "Ďalej",
+    "back": "Späť",
+    "done": "Hotovo",
+    "home": "Na úvod",
+    "tryAgain": "Skúsiť znova",
+    "total": "{{count}} celkom",
+    "copySuffix": "(kópia)"
   },
   "nav": {
     "editor": "Editor",
     "settings": "Nastavenia",
-    "settingsSections": "Sekcie nastavení"
+    "settingsSections": "Sekcie nastavení",
+    "closeLibrary": "Zavrieť knižnicu"
+  },
+  "welcome": {
+    "badge": "Lokálny editor dokumentov",
+    "title": "Píšte, organizujte a exportujte na jednom mieste.",
+    "subtitle": "Vytvorte nový dokument zo šablóny, importujte existujúci súbor alebo pokračujte tam, kde ste prestali.",
+    "newDocument": "Nový dokument",
+    "import": "Importovať",
+    "recentDocuments": "Nedávne dokumenty",
+    "noDocuments": "Zatiaľ žiadne dokumenty",
+    "noDocumentsHint": "Začnite novým dokumentom, ukážkou alebo importom.",
+    "emptyStartHint": "Začnite novým dokumentom, ukážkou alebo importom."
   },
   "demoGuide": {
     "badge": "Začnite tu",
@@ -25,6 +48,73 @@
     "description": "Interaktívne demo všetkých funkcií — formátovanie, wiki odkazy, export, šablóny a ďalšie.",
     "open": "Otvoriť ukážku",
     "shortLabel": "Ukážka"
+  },
+  "fileMenu": {
+    "label": "Súbor",
+    "import": "Importovať…",
+    "revealInFinder": "Zobraziť v Finderi",
+    "saveAsTemplate": "Uložiť ako šablónu…",
+    "pdfPreview": "Náhľad PDF",
+    "print": "Tlačiť…",
+    "exportPdf": "Exportovať PDF",
+    "exportDocx": "Word (DOCX)",
+    "exportMd": "Markdown (MD)",
+    "exportTxt": "Text (TXT)",
+    "exportPages": "Apple Pages"
+  },
+  "commandPalette": {
+    "placeholder": "Hľadať dokumenty a príkazy…",
+    "noResults": "Žiadne výsledky",
+    "actions": "Príkazy",
+    "documents": "Dokumenty",
+    "sectionActions": "Príkazy",
+    "sectionDocuments": "V obsahu dokumentov",
+    "quickNote": "Rýchla poznámka",
+    "readingOn": "Zapnúť čítací režim",
+    "readingOff": "Vypnúť čítací režim",
+    "newDocument": "Nový dokument",
+    "demoDocument": "Ukážkový dokument",
+    "demoHint": "Sprievodca Scribe",
+    "focusOn": "Zapnúť režim sústredenia",
+    "focusOff": "Vypnúť režim sústredenia",
+    "duplicate": "Duplikovať dokument",
+    "moveToFolder": "Presunúť do priečinka",
+    "settings": "Nastavenia",
+    "toggleTheme": "Prepínať tému",
+    "randomTheme": "Náhodná téma",
+    "randomThemeHint": "Vygenerovať vlastnú paletu",
+    "newFolder": "Nový priečinok",
+    "newFolderTitle": "Nový priečinok",
+    "newFolderPlaceholder": "Názov priečinka"
+  },
+  "editor": {
+    "loading": "Načítavam dokument…",
+    "loadingEditor": "Načítavam editor…",
+    "page": "Strana {{page}}"
+  },
+  "errors": {
+    "title": "Niečo sa pokazilo",
+    "generic": "Nastala neočakávaná chyba. Skúste to znova alebo sa vráťte na úvod."
+  },
+  "onboarding": {
+    "title": "Vitajte v Scribe",
+    "stepOf": "Krok {{current}} z {{total}}",
+    "library": {
+      "title": "Knižnica dokumentov",
+      "description": "V bočnom paneli organizujete dokumenty do priečinkov, označujete obľúbené a rýchlo prepínate medzi nimi."
+    },
+    "export": {
+      "title": "Export a súbory",
+      "description": "Menu Súbor umožňuje import, náhľad PDF, tlač a export do PDF, Word, Markdown alebo Pages."
+    },
+    "focus": {
+      "title": "Režim sústredenia",
+      "description": "Stlačte ⌘⇧F pre nerušené písanie — skryje sa bočný panel aj toolbar. Ukončite klávesom Esc."
+    },
+    "demo": {
+      "title": "Ukážkový sprievodca",
+      "description": "Tlačidlo Ukážka otvorí interaktívny dokument so všetkými funkciami editora. Ideálny štart pre nových používateľov."
+    }
   },
   "settings": {
     "sections": {
@@ -39,6 +129,10 @@
       "shortcuts": {
         "label": "Skratky",
         "description": "Klávesové skratky"
+      },
+      "diagnostics": {
+        "label": "Diagnostika",
+        "description": "Stav databázy a úložiska"
       },
       "about": {
         "label": "O aplikácii",
@@ -83,11 +177,32 @@
       "clearConfirm": "Natrvalo vymažete všetky dokumenty, .scribe súbory a obrázky v priečinku. Túto akciu nie je možné vrátiť späť.",
       "clearConfirmTitle": "Vyčistiť všetko?",
       "clearConfirmOk": "Vymazať všetko",
-      "folderChanged": "Priečinok dokumentov zmenený"
+      "folderChanged": "Priečinok dokumentov zmenený",
+      "backupTitle": "Záloha knižnice",
+      "backupDescription": "Export alebo import celého archívu (.scribe-backup.zip) vrátane SQLite a súborov na disku.",
+      "backupExport": "Exportovať zálohu",
+      "backupExporting": "Exportujem…",
+      "backupExportDone": "Záloha exportovaná",
+      "backupExportError": "Export zálohy zlyhal",
+      "backupImport": "Importovať zálohu",
+      "backupImporting": "Importujem…",
+      "backupImportDone": "Záloha obnovená",
+      "backupImportError": "Import zálohy zlyhal",
+      "backupImportConfirmTitle": "Obnoviť zálohu?",
+      "backupImportConfirm": "Aktuálna knižnica bude nahradená obsahom archívu. Existujúca databáza sa zálohuje do .bak súboru.",
+      "backupImportConfirmOk": "Importovať"
+    },
+    "diagnostics": {
+      "title": "Diagnostika",
+      "description": "Stav SQLite, cesty a posledné operácie na disku."
     },
     "shortcuts": {
       "title": "Klávesové skratky",
-      "description": "Rýchle akcie dostupné kdekoľvek v aplikácii."
+      "description": "Rýchle akcie dostupné kdekoľvek v aplikácii.",
+      "reset": "Obnoviť predvolené",
+      "edit": "Upraviť skratku: {{action}}",
+      "pressKeys": "Stlačte kombináciu…",
+      "editorTitle": "Skratky v editore"
     },
     "about": {
       "tagline": "Textový editor pre macOS",
@@ -149,12 +264,108 @@
     "settings": {
       "label": "Nastavenia",
       "description": "Otvorí panel nastavení"
+    },
+    "quickNote": {
+      "label": "Rýchla poznámka",
+      "description": "Otvorí scratch dokument"
+    },
+    "focusMode": {
+      "label": "Režim sústredenia",
+      "labelOff": "Vypnúť režim sústredenia",
+      "description": "Skryje bočné panely a toolbar"
+    },
+    "readingMode": {
+      "label": "Čítací režim",
+      "labelOff": "Vypnúť čítací režim",
+      "description": "Čistý náhľad bez úprav"
     }
+  },
+  "quickNote": {
+    "title": "Rýchla poznámka"
+  },
+  "readingMode": {
+    "exit": "Ukončiť čítanie",
+    "exitHint": "Ukončiť čítací režim (Esc)"
+  },
+  "library": {
+    "title": "Knižnica",
+    "documentCount_one": "{{count}} dokument",
+    "documentCount_few": "{{count}} dokumenty",
+    "documentCount_many": "{{count}} dokumentov",
+    "documentCount_other": "{{count}} dokumentov",
+    "searchPlaceholder": "Hľadať v dokumentoch…",
+    "tabs": {
+      "ariaLabel": "Zobrazenie knižnice",
+      "folders": "Priečinky",
+      "favorites": "Obľúbené",
+      "tags": "Štítky",
+      "graph": "Graf odkazov"
+    }
+  },
+  "linkGraph": {
+    "loading": "Načítavam graf odkazov…",
+    "empty": "Zatiaľ žiadne wiki odkazy medzi dokumentmi.",
+    "summary": "{{nodes}} dokumentov · {{edges}} odkazov"
+  },
+  "diagnostics": {
+    "loadError": "Nepodarilo sa načítať diagnostiku",
+    "refresh": "Obnoviť",
+    "loading": "Načítavam…",
+    "appVersion": "Verzia aplikácie",
+    "schemaVersion": "Verzia schémy",
+    "documents": "Dokumenty",
+    "folders": "Priečinky",
+    "revisions": "Revízie",
+    "links": "Wiki odkazy",
+    "wal": "WAL režim",
+    "pendingDisk": "Čakajúce zápisy na disk",
+    "dbPath": "Cesta k databáze",
+    "documentsDir": "Priečinok dokumentov",
+    "flushPending": "Vynútiť zápis na disk",
+    "flushDone": "Zápisy na disk dokončené",
+    "flushError": "Zápis na disk zlyhal",
+    "reconcile": "Synchronizovať úložisko",
+    "copy": "Kopírovať JSON",
+    "copied": "Diagnostika skopírovaná",
+    "checkUpdates": "Skontrolovať aktualizácie"
   },
   "toasts": {
     "reconcileSuccess": "Synchronizácia dokončená",
     "reconcileError": "Synchronizácia zlyhala",
     "clearSuccess": "Všetky dokumenty vymazané",
-    "templatesLoadError": "Nepodarilo sa načítať šablóny"
+    "templatesLoadError": "Nepodarilo sa načítať šablóny",
+    "documentCreated": "Dokument vytvorený",
+    "documentCreateError": "Nepodarilo sa vytvoriť dokument",
+    "documentImported": "Dokument importovaný",
+    "documentDuplicated": "Dokument duplikovaný",
+    "duplicateError": "Duplikovanie zlyhalo",
+    "documentRenamed": "Dokument premenovaný",
+    "renameError": "Premenovanie zlyhalo",
+    "documentMoved": "Dokument presunutý",
+    "moveError": "Nepodarilo sa presunúť dokument",
+    "documentTrashed": "Dokument presunutý do koša",
+    "trashError": "Nepodarilo sa presunúť dokument do koša",
+    "documentRestored": "Dokument obnovený",
+    "restoreError": "Nepodarilo sa obnoviť dokument",
+    "folderCreated": "Priečinok vytvorený",
+    "folderRenamed": "Priečinok premenovaný",
+    "folderRenameError": "Nepodarilo sa premenovať priečinok",
+    "folderMoved": "Priečinok presunutý",
+    "folderMoveError": "Nepodarilo sa presunúť priečinok",
+    "folderDeleted": "Priečinok vymazaný",
+    "folderDeleteError": "Nepodarilo sa vymazať priečinok",
+    "folderEmpty": "Priečinok neobsahuje žiadne dokumenty",
+    "favoriteError": "Nepodarilo sa zmeniť obľúbené",
+    "tagsError": "Nepodarilo sa uložiť štítky",
+    "saveError": "Ukladanie zlyhalo",
+    "exportDone": "Export dokončený",
+    "exportError": "Export zlyhal",
+    "demoOpened": "Ukážkový dokument otvorený",
+    "demoCreated": "Ukážkový dokument vytvorený",
+    "demoError": "Nepodarilo sa načítať ukážkový dokument",
+    "trashLoadError": "Nepodarilo sa načítať kôš",
+    "trashEmptied": "Kôš vysypaný",
+    "trashEmptyError": "Nepodarilo sa vysypať kôš",
+    "trashPurgeError": "Nepodarilo sa odstrániť dokument"
   }
 }

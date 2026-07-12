@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { useEditor, EditorContent } from '@tiptap/react'
 import type { Editor } from '@tiptap/react'
 import { useNavigate } from '@tanstack/react-router'
+import { useTranslation } from 'react-i18next'
 import { DocumentOutlinePanel } from '@/components/editor/DocumentOutlinePanel'
 import { RevisionHistoryPanel } from '@/components/editor/RevisionHistoryPanel'
 import { CommentsPanel } from '@/components/editor/CommentsPanel'
@@ -51,6 +52,7 @@ import { setEditorViewMode } from '@/store/settingsSlice'
 
 export function DocumentEditor() {
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
+  const { t } = useTranslation()
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const activeDocument = useAppSelector((state) => state.documents.activeDocument)
@@ -62,6 +64,7 @@ export function DocumentEditor() {
   const statsOpen = useAppSelector((state) => state.documents.statsPanelOpen)
   const backlinksOpen = useAppSelector((state) => state.documents.backlinksPanelOpen)
   const focusMode = useAppSelector((state) => state.documents.focusMode)
+  const readingMode = useAppSelector((state) => state.documents.readingMode)
   const [markdownDraft, setMarkdownDraft] = useState('')
   const [pageSetupOpen, setPageSetupOpen] = useState(false)
   const activeDocumentRef = useRef(activeDocument)
@@ -105,6 +108,7 @@ export function DocumentEditor() {
 
   const pageSetup = useAppSelector((state) => state.settings.pageSetup)
   const spellCheckEnabled = useAppSelector((state) => state.settings.spellCheckEnabled)
+  const locale = useAppSelector((state) => state.settings.locale)
   const printLayoutEnabled = useAppSelector((state) => state.settings.printLayoutEnabled)
   const printZoom = useAppSelector((state) => state.settings.printZoom)
   const printColumns = useAppSelector((state) => state.settings.printLayoutColumns)
@@ -121,7 +125,7 @@ export function DocumentEditor() {
       attributes: {
         class: cn('tiptap', printLayoutEnabled && 'tiptap--print-accurate'),
         spellcheck: spellCheckEnabled ? 'true' : 'false',
-        lang: 'sk',
+        lang: locale,
       },
     },
     onUpdate: () => {
@@ -200,10 +204,10 @@ export function DocumentEditor() {
     editor,
     (_editor, dom) => {
       dom.setAttribute('spellcheck', spellCheckEnabled ? 'true' : 'false')
-      dom.setAttribute('lang', 'sk')
+      dom.setAttribute('lang', locale)
       dom.classList.toggle('tiptap--print-accurate', printLayoutEnabled)
     },
-    [printLayoutEnabled, spellCheckEnabled],
+    [locale, printLayoutEnabled, spellCheckEnabled],
   )
 
   useEditorViewEffect(
@@ -307,7 +311,12 @@ export function DocumentEditor() {
   const isMarkdown = viewMode === 'markdown'
 
   useEffect(() => {
-    if (isMarkdown || focusMode) {
+    if (!editor) return
+    editor.setEditable(!readingMode && viewMode === 'rich')
+  }, [editor, readingMode, viewMode])
+
+  useEffect(() => {
+    if (isMarkdown || focusMode || readingMode) {
       editorRefs.printHandler = null
       return
     }
@@ -315,18 +324,25 @@ export function DocumentEditor() {
     return () => {
       editorRefs.printHandler = null
     }
-  }, [focusMode, handlePrint, isMarkdown])
+  }, [focusMode, handlePrint, isMarkdown, readingMode])
 
   return (
-    <div className={cn('editor-shell', isMarkdown && 'editor-shell--markdown', focusMode && 'editor-shell--focus')}>
-      {!isMarkdown && !focusMode && editorReady && (
+    <div
+      className={cn(
+        'editor-shell',
+        isMarkdown && 'editor-shell--markdown',
+        focusMode && 'editor-shell--focus',
+        readingMode && 'editor-shell--reading',
+      )}
+    >
+      {!isMarkdown && !focusMode && !readingMode && editorReady && (
         <EditorToolbar editor={editor} onInsertImages={handleInsertImages} />
       )}
-      {!isMarkdown && editorReady && (
+      {!isMarkdown && !readingMode && editorReady && (
         <EditorMenus editor={editor} onInsertImages={handleInsertImages} />
       )}
 
-      {!isMarkdown && editorReady && <FindReplaceBar editor={editor} />}
+      {!isMarkdown && !readingMode && editorReady && <FindReplaceBar editor={editor} />}
 
       <div className="editor-workspace">
         <div className="editor-main">
@@ -421,7 +437,7 @@ export function DocumentEditor() {
                   <>
                     {!printLayoutEnabled && (
                       <div className="editor-page-label" aria-hidden="true">
-                        Strana {currentPage}
+                        {t('editor.page', { page: currentPage })}
                       </div>
                     )}
                     {!printLayoutEnabled &&
@@ -488,24 +504,24 @@ export function DocumentEditor() {
           </div>
         </EditorDropZone>
 
-        {!isMarkdown && editorReady && outlineOpen && (
+        {!isMarkdown && editorReady && !readingMode && outlineOpen && (
           <DocumentOutlinePanel editor={editor} onClose={() => dispatch(setDocumentOutlineOpen(false))} />
         )}
-        {!isMarkdown && editorReady && historyOpen && (
+        {!isMarkdown && editorReady && !readingMode && historyOpen && (
           <RevisionHistoryPanel onClose={() => dispatch(setRevisionHistoryOpen(false))} />
         )}
-        {!isMarkdown && editorReady && commentsOpen && (
+        {!isMarkdown && editorReady && !readingMode && commentsOpen && (
           <CommentsPanel editor={editor} onClose={() => dispatch(setCommentsPanelOpen(false))} />
         )}
-        {!isMarkdown && editorReady && statsOpen && (
+        {!isMarkdown && editorReady && !readingMode && statsOpen && (
           <StatsPanel editor={editor} onClose={() => dispatch(setStatsPanelOpen(false))} />
         )}
-        {!isMarkdown && backlinksOpen && (
+        {!isMarkdown && !readingMode && backlinksOpen && (
           <BacklinksPanel onClose={() => dispatch(setBacklinksPanelOpen(false))} />
         )}
           </div>
 
-          {!isMarkdown && !focusMode && (
+          {!isMarkdown && !focusMode && !readingMode && (
             <EditorStatusBar
               currentPage={currentPage}
               pageCount={pageCount}
@@ -516,7 +532,7 @@ export function DocumentEditor() {
           )}
         </div>
 
-        {!isMarkdown && !focusMode && <EditorPanelRail />}
+        {!isMarkdown && !focusMode && !readingMode && <EditorPanelRail />}
       </div>
 
       <PageSetupDialog open={pageSetupOpen} onClose={() => setPageSetupOpen(false)} />

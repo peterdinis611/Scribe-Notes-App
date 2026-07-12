@@ -15,6 +15,7 @@ import { AppearancePage } from '@/pages/settings/AppearancePage'
 import { StoragePage } from '@/pages/settings/StoragePage'
 import { ShortcutsPage } from '@/pages/settings/ShortcutsPage'
 import { AboutPage } from '@/pages/settings/AboutPage'
+import { DiagnosticsPage } from '@/pages/settings/DiagnosticsPage'
 
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
@@ -72,6 +73,12 @@ const settingsShortcutsRoute = createRoute({
   component: ShortcutsPage,
 })
 
+const settingsDiagnosticsRoute = createRoute({
+  getParentRoute: () => settingsLayoutRoute,
+  path: 'diagnostics',
+  component: DiagnosticsPage,
+})
+
 const settingsAboutRoute = createRoute({
   getParentRoute: () => settingsLayoutRoute,
   path: 'about',
@@ -87,6 +94,7 @@ const routeTree = rootRoute.addChildren([
       settingsAppearanceRoute,
       settingsStorageRoute,
       settingsShortcutsRoute,
+      settingsDiagnosticsRoute,
       settingsAboutRoute,
     ]),
   ]),

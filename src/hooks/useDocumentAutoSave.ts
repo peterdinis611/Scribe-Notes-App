@@ -15,6 +15,7 @@ import {
   updateDocuments,
 } from '@/store/documentsSlice'
 import { setEditorContent } from '@/lib/editor/view-ready'
+import i18n from '@/i18n'
 import { editorRefs } from '@/store/editorRefs'
 import type { Document } from '@/lib/db/api'
 
@@ -107,7 +108,7 @@ export function useDocumentAutoSave({
       } catch {
         if (latestDocIdRef.current === docId) {
           dispatch(setSaveStatus('error'))
-          toast.error('Ukladanie zlyhalo')
+          toast.error(i18n.t('toasts.saveError'))
         }
         return false
       }

@@ -1,8 +1,9 @@
 import { getVersion } from '@tauri-apps/api/app'
 import { confirm } from '@tauri-apps/plugin-dialog'
-import { FolderOpen, FolderSearch, Shuffle, Trash2 } from 'lucide-react'
+import { Archive, ArchiveRestore, FolderOpen, FolderSearch, Shuffle, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from '@tanstack/react-router'
 import { requestStorageAccessDialog } from '@/components/StorageAccessDialogHost'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,19 +14,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { DiagnosticsSection } from '@/components/settings/DiagnosticsSection'
 import {
   SettingsKbd,
   SettingsSection,
   SettingsSectionHeader,
 } from '@/components/settings/SettingsPrimitives'
-import { APP_SHORTCUTS } from '@/lib/shortcuts'
+import {
+  APP_SHORTCUT_BINDINGS,
+  APP_SHORTCUTS,
+  eventToHotkey,
+  getDisplayKeysForShortcut,
+} from '@/lib/shortcuts'
+import { reloadLibraryFromBackend } from '@/lib/library-reload'
+import { ROUTES } from '@/lib/routes'
 import { THEME_PRESETS } from '@/lib/themes/presets'
 import { generateRandomTheme } from '@/lib/themes/generate-random-theme'
 import type { ThemeColors, ThemePresetId } from '@/lib/themes/types'
 import { THEME_COLOR_FIELDS } from '@/lib/themes/types'
 import {
   clearAllDocuments,
+  exportLibraryArchive,
   getStorageSettings,
+  importLibraryArchive,
   reconcileStorage,
   revealInFinder,
 } from '@/lib/db/api'
@@ -39,7 +50,7 @@ import {
   setDocuments,
   setSaveStatus,
 } from '@/store/documentsSlice'
-import { setStorageSettings, setLocale, setThemeSettings } from '@/store/settingsSlice'
+import { setStorageSettings, setLocale, setThemeSettings, setShortcutOverride, resetShortcutOverrides } from '@/store/settingsSlice'
 import { persistStorageFolderAccessGranted } from '@/store/persistence'
 import type { AppLocale } from '@/i18n'
 import {
@@ -175,9 +186,12 @@ export function AppearanceSection() {
 export function StorageSection() {
   const settings = useAppSelector((state) => state.settings.storageSettings)
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
   const { t } = useTranslation()
   const [clearing, setClearing] = useState(false)
   const [reconciling, setReconciling] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [importing, setImporting] = useState(false)
   const [reconcileMessage, setReconcileMessage] = useState<string | null>(null)
 
   useEffect(() => {
@@ -223,6 +237,42 @@ export function StorageSection() {
       toast.error(t('toasts.reconcileError'))
     } finally {
       setReconciling(false)
+    }
+  }
+
+  async function handleExportBackup() {
+    setExporting(true)
+    try {
+      const result = await exportLibraryArchive()
+      if (!result) return
+      toast.success(t('settings.storage.backupExportDone'), result.path)
+    } catch (error) {
+      toast.error(t('settings.storage.backupExportError'), String(error))
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  async function handleImportBackup() {
+    const confirmed = await confirm(t('settings.storage.backupImportConfirm'), {
+      title: t('settings.storage.backupImportConfirmTitle'),
+      kind: 'warning',
+      okLabel: t('settings.storage.backupImportConfirmOk'),
+      cancelLabel: t('common.cancel'),
+    })
+    if (!confirmed) return
+
+    setImporting(true)
+    try {
+      const result = await importLibraryArchive()
+      if (!result) return
+      await reloadLibraryFromBackend(dispatch)
+      toast.success(t('settings.storage.backupImportDone'), result.message)
+      await navigate(ROUTES.home())
+    } catch (error) {
+      toast.error(t('settings.storage.backupImportError'), String(error))
+    } finally {
+      setImporting(false)
     }
   }
 
@@ -298,6 +348,26 @@ export function StorageSection() {
 
       <SettingsSection>
         <SettingsSectionHeader
+          title={t('settings.storage.backupTitle')}
+          description={t('settings.storage.backupDescription')}
+        />
+
+        <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" disabled={exporting} onClick={() => void handleExportBackup()}>
+              <Archive className="h-3.5 w-3.5" />
+              {exporting ? t('settings.storage.backupExporting') : t('settings.storage.backupExport')}
+            </Button>
+            <Button variant="outline" size="sm" disabled={importing} onClick={() => void handleImportBackup()}>
+              <ArchiveRestore className="h-3.5 w-3.5" />
+              {importing ? t('settings.storage.backupImporting') : t('settings.storage.backupImport')}
+            </Button>
+          </div>
+        </div>
+      </SettingsSection>
+
+      <SettingsSection>
+        <SettingsSectionHeader
           title={t('settings.storage.clearTitle')}
           description={t('settings.storage.clearDescription')}
         />
@@ -321,35 +391,116 @@ export function StorageSection() {
 
 export function ShortcutsSection() {
   const { t } = useTranslation()
+  const dispatch = useAppDispatch()
+  const shortcutOverrides = useAppSelector((state) => state.settings.shortcutOverrides)
+  const [editingId, setEditingId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!editingId) return
+
+    function onKeyDown(event: KeyboardEvent) {
+      event.preventDefault()
+      event.stopPropagation()
+
+      if (event.key === 'Escape') {
+        setEditingId(null)
+        return
+      }
+
+      const hotkey = eventToHotkey(event)
+      if (!hotkey || !editingId) return
+
+      dispatch(setShortcutOverride({ id: editingId, hotkey }))
+      setEditingId(null)
+    }
+
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
+  }, [dispatch, editingId])
 
   return (
     <SettingsSection>
       <SettingsSectionHeader
         title={t('settings.shortcuts.title')}
         description={t('settings.shortcuts.description')}
+        actions={
+          <Button variant="ghost" size="sm" onClick={() => dispatch(resetShortcutOverrides())}>
+            {t('settings.shortcuts.reset')}
+          </Button>
+        }
       />
 
       <div className="flex flex-col gap-0.5">
-        {APP_SHORTCUTS.map((shortcut) => (
-          <div
-            key={shortcut.id}
-            className="flex items-center justify-between gap-4 rounded-[var(--radius-md)] px-3 py-2.5 transition-colors hover:bg-[var(--color-hover)]"
-          >
-            <div>
-              <p className="m-0 text-[13px] font-medium text-[var(--color-foreground)]">
-                {t(`shortcuts.${shortcut.id}.label`)}
-              </p>
-              <p className="mt-0.5 text-[11px] text-[var(--color-muted-foreground)]">
-                {t(`shortcuts.${shortcut.id}.description`)}
-              </p>
+        {APP_SHORTCUT_BINDINGS.map((shortcut) => {
+          const keys = getDisplayKeysForShortcut(shortcut.id, shortcutOverrides)
+          const isEditing = editingId === shortcut.id
+
+          return (
+            <div
+              key={shortcut.id}
+              className="flex items-center justify-between gap-4 rounded-[var(--radius-md)] px-3 py-2.5 transition-colors hover:bg-[var(--color-hover)]"
+            >
+              <div>
+                <p className="m-0 text-[13px] font-medium text-[var(--color-foreground)]">
+                  {t(shortcut.labelKey)}
+                </p>
+                <p className="mt-0.5 text-[11px] text-[var(--color-muted-foreground)]">
+                  {t(shortcut.descriptionKey)}
+                </p>
+              </div>
+              <button
+                type="button"
+                className={cn(
+                  'flex gap-1 rounded-md border px-2 py-1 transition-colors',
+                  isEditing
+                    ? 'border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_12%,var(--color-surface))]'
+                    : 'border-transparent hover:border-[var(--color-border)] hover:bg-[var(--color-surface)]',
+                )}
+                onClick={() => setEditingId(shortcut.id)}
+                aria-label={t('settings.shortcuts.edit', { action: t(shortcut.labelKey) })}
+              >
+                {isEditing ? (
+                  <span className="text-[11px] text-[var(--color-accent)]">
+                    {t('settings.shortcuts.pressKeys')}
+                  </span>
+                ) : (
+                  keys.map((key) => <SettingsKbd key={key}>{key}</SettingsKbd>)
+                )}
+              </button>
             </div>
-            <span className="flex gap-1">
-              {shortcut.keys.map((key) => (
-                <SettingsKbd key={key}>{key}</SettingsKbd>
-              ))}
-            </span>
-          </div>
-        ))}
+          )
+        })}
+      </div>
+
+      <div className="mt-6 border-t border-[var(--color-border)] pt-4">
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-muted-foreground)]">
+          {t('settings.shortcuts.editorTitle')}
+        </p>
+        <div className="flex flex-col gap-0.5">
+          {APP_SHORTCUTS.filter(
+            (shortcut) =>
+              !APP_SHORTCUT_BINDINGS.some((binding) => binding.id === shortcut.id),
+          ).map((shortcut) => (
+            <div
+              key={shortcut.id}
+              className="flex items-center justify-between gap-4 rounded-[var(--radius-md)] px-3 py-2.5"
+            >
+              <div>
+                <p className="m-0 text-[13px] font-medium text-[var(--color-foreground)]">
+                  {t(`shortcuts.${shortcut.id}.label`)}
+                </p>
+                <p className="mt-0.5 text-[11px] text-[var(--color-muted-foreground)]">
+                  {t(`shortcuts.${shortcut.id}.description`)}
+                </p>
+              </div>
+              <span className="flex gap-1">
+                {shortcut.keys.map((key) => (
+                  <SettingsKbd key={key}>{key}</SettingsKbd>
+                ))}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     </SettingsSection>
   )
@@ -393,6 +544,8 @@ export function SettingsSectionContent({ section }: { section: SettingsSectionId
       return <StorageSection />
     case 'shortcuts':
       return <ShortcutsSection />
+    case 'diagnostics':
+      return <DiagnosticsSection />
     case 'about':
       return <AboutSection />
   }

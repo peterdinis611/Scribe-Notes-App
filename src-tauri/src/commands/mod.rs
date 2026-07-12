@@ -8,3 +8,4 @@ pub mod revisions;
 pub mod search;
 pub mod storage;
 pub mod system;
+pub mod links;

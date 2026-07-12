@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo } from 'react'
 import { useNavigate, useParams } from '@tanstack/react-router'
+import { useTranslation } from 'react-i18next'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { ROUTES } from '@/lib/routes'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
@@ -15,10 +16,12 @@ const DocumentEditor = lazy(() =>
 )
 
 function DocumentEditorFallback() {
+  const { t } = useTranslation()
+
   return (
     <div className="editor-shell">
       <div className="flex flex-1 items-center justify-center text-sm text-[var(--color-muted-foreground)]">
-        Načítavam editor…
+        {t('editor.loadingEditor')}
       </div>
     </div>
   )
@@ -27,6 +30,7 @@ function DocumentEditorFallback() {
 export function DocumentPage() {
   const { documentId } = useParams({ strict: false })
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
   const activeDocument = useAppSelector((state) => state.documents.activeDocument)
   const saveStatus = useAppSelector((state) => state.documents.saveStatus)
@@ -58,7 +62,7 @@ export function DocumentPage() {
     return (
       <div className="editor-shell">
         <div className="flex flex-1 items-center justify-center text-sm text-[var(--color-muted-foreground)]">
-          Načítavam dokument…
+          {t('editor.loading')}
         </div>
       </div>
     )

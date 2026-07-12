@@ -1,4 +1,5 @@
 mod commands;
+mod backup;
 mod db;
 mod export;
 mod storage;
@@ -135,6 +136,9 @@ pub fn run() {
             commands::system::get_backend_stats,
             commands::system::flush_pending_writes,
             commands::system::reconcile_storage,
+            commands::links::list_link_graph,
+            backup::export_library_archive,
+            backup::import_library_archive,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

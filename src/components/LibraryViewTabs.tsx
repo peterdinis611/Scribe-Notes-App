@@ -1,7 +1,8 @@
-import { FolderTree, Star, Tag as TagIcon } from 'lucide-react'
+import { FolderTree, GitBranch, Star, Tag as TagIcon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 
-export type LibraryView = 'folders' | 'favorites' | 'tags'
+export type LibraryView = 'folders' | 'favorites' | 'tags' | 'graph'
 
 type LibraryViewTabsProps = {
   value: LibraryView
@@ -10,13 +11,16 @@ type LibraryViewTabsProps = {
   onChange: (view: LibraryView) => void
 }
 
-const tabs: { id: LibraryView; label: string; icon: typeof FolderTree }[] = [
-  { id: 'folders', label: 'Priečinky', icon: FolderTree },
-  { id: 'favorites', label: 'Obľúbené', icon: Star },
-  { id: 'tags', label: 'Štítky', icon: TagIcon },
-]
-
 export function LibraryViewTabs({ value, favoriteCount, tagCount, onChange }: LibraryViewTabsProps) {
+  const { t } = useTranslation()
+
+  const tabs: { id: LibraryView; label: string; icon: typeof FolderTree }[] = [
+    { id: 'folders', label: t('library.tabs.folders'), icon: FolderTree },
+    { id: 'favorites', label: t('library.tabs.favorites'), icon: Star },
+    { id: 'tags', label: t('library.tabs.tags'), icon: TagIcon },
+    { id: 'graph', label: t('library.tabs.graph'), icon: GitBranch },
+  ]
+
   function countFor(view: LibraryView) {
     if (view === 'favorites') return favoriteCount
     if (view === 'tags') return tagCount
@@ -24,7 +28,7 @@ export function LibraryViewTabs({ value, favoriteCount, tagCount, onChange }: Li
   }
 
   return (
-    <div className="library-view-tabs titlebar-no-drag" role="tablist" aria-label="Zobrazenie knižnice">
+    <div className="library-view-tabs titlebar-no-drag" role="tablist" aria-label={t('library.tabs.ariaLabel')}>
       {tabs.map((tab) => {
         const count = countFor(tab.id)
         const Icon = tab.icon

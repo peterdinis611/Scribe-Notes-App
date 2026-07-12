@@ -1,11 +1,13 @@
 import { FolderPlus, Search, Trash2 } from 'lucide-react'
 import { useCallback, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { FolderTree } from '@/components/FolderTree'
 import { LibraryFavoritesView } from '@/components/LibraryFavoritesView'
 import { LibraryFilterBanner } from '@/components/LibraryFilterBanner'
 import { LibraryTagsView } from '@/components/LibraryTagsView'
+import { LibraryLinkGraphView } from '@/components/LibraryLinkGraphView'
 import { LibraryViewTabs, type LibraryView } from '@/components/LibraryViewTabs'
 import { SidebarRail } from '@/components/layout/SidebarRail'
 import { SidebarSearchResults } from '@/components/SidebarSearchResults'
@@ -31,6 +33,7 @@ const libraryActionClass =
   'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[var(--color-border)] bg-transparent text-[var(--color-muted-foreground)] transition-[background,color,border-color] hover:border-[color-mix(in_srgb,var(--color-accent)_30%,var(--color-border))] hover:bg-[var(--color-hover)] hover:text-[var(--color-accent)]'
 
 export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarProps) {
+  const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [libraryView, setLibraryView] = useState<LibraryView>('folders')
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -84,10 +87,10 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
         <div className="app-sidebar-panel titlebar-no-drag min-h-0">
           <div className="border-b border-[var(--color-border)] px-4 pb-3 pt-4">
             <p className="m-0 text-[15px] font-bold tracking-[-0.02em] text-[var(--color-foreground)]">
-              Knižnica
+              {t('library.title')}
             </p>
             <p className="mt-0.5 text-[11px] text-[var(--color-muted-foreground)]">
-              {documents.length} {documents.length === 1 ? 'dokument' : 'dokumentov'}
+              {t('library.documentCount', { count: documents.length })}
             </p>
           </div>
 
@@ -100,7 +103,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
               <Input
                 type="search"
                 className="h-8 pl-[30px] pr-11 text-[12px]"
-                placeholder="Hľadať v dokumentoch…"
+                placeholder={t('library.searchPlaceholder')}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
@@ -108,8 +111,8 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                 type="button"
                 className="absolute right-1.5 top-1/2 inline-flex h-[22px] min-w-7 -translate-y-1/2 items-center justify-center rounded-md border border-[var(--color-border)] bg-[var(--color-background)] px-1.5 text-[11px] font-medium text-[var(--color-muted-foreground)] transition-colors hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
                 onClick={() => dispatch(setCommandPaletteOpen(true))}
-                title="Príkazová paleta"
-                aria-label="Otvoriť príkazovú paletu"
+                title={t('shortcuts.commandPalette.label')}
+                aria-label={t('shortcuts.commandPalette.label')}
               >
                 ⌘K
               </button>
@@ -178,6 +181,12 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                   <div className="px-2 pb-3">
                     <LibraryTagsView onNavigate={onClose} />
                   </div>
+                </ScrollArea>
+              )}
+
+              {libraryView === 'graph' && (
+                <ScrollArea className="min-h-0 flex-1">
+                  <LibraryLinkGraphView />
                 </ScrollArea>
               )}
             </>

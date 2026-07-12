@@ -22,6 +22,10 @@ const CUSTOM_TEMPLATE_CATEGORIES_KEY = 'scribe-custom-template-categories'
 const STORAGE_ACCESS_EXPLAINER_KEY = 'scribe-storage-access-explainer-dismissed'
 const STORAGE_FOLDER_ACCESS_GRANTED_KEY = 'scribe-storage-folder-access-granted'
 const LOCALE_KEY = 'scribe-locale'
+const ACTIVE_DOCUMENT_ID_KEY = 'scribe-active-document-id'
+const ONBOARDING_DISMISSED_KEY = 'scribe-onboarding-dismissed'
+const SCRATCH_DOCUMENT_ID_KEY = 'scribe-scratch-document-id'
+const SHORTCUT_OVERRIDES_KEY = 'scribe-shortcut-overrides'
 
 export function readLocale(): AppLocale {
   try {
@@ -35,6 +39,73 @@ export function readLocale(): AppLocale {
 
 export function persistLocale(locale: AppLocale) {
   localStorage.setItem(LOCALE_KEY, locale)
+}
+
+export function readActiveDocumentId(): string | null {
+  try {
+    const raw = localStorage.getItem(ACTIVE_DOCUMENT_ID_KEY)
+    return raw && raw.trim() ? raw : null
+  } catch {
+    return null
+  }
+}
+
+export function persistActiveDocumentId(id: string | null) {
+  if (id) {
+    localStorage.setItem(ACTIVE_DOCUMENT_ID_KEY, id)
+    return
+  }
+  localStorage.removeItem(ACTIVE_DOCUMENT_ID_KEY)
+}
+
+export function readOnboardingDismissed(): boolean {
+  try {
+    return localStorage.getItem(ONBOARDING_DISMISSED_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+export function persistOnboardingDismissed(dismissed: boolean) {
+  if (dismissed) {
+    localStorage.setItem(ONBOARDING_DISMISSED_KEY, '1')
+    return
+  }
+  localStorage.removeItem(ONBOARDING_DISMISSED_KEY)
+}
+
+export function readScratchDocumentId(): string | null {
+  try {
+    const raw = localStorage.getItem(SCRATCH_DOCUMENT_ID_KEY)
+    return raw && raw.trim() ? raw : null
+  } catch {
+    return null
+  }
+}
+
+export function persistScratchDocumentId(id: string | null) {
+  if (id) {
+    localStorage.setItem(SCRATCH_DOCUMENT_ID_KEY, id)
+    return
+  }
+  localStorage.removeItem(SCRATCH_DOCUMENT_ID_KEY)
+}
+
+export type ShortcutOverrides = Record<string, string>
+
+export function readShortcutOverrides(): ShortcutOverrides {
+  try {
+    const raw = localStorage.getItem(SHORTCUT_OVERRIDES_KEY)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw) as ShortcutOverrides
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+export function persistShortcutOverrides(overrides: ShortcutOverrides) {
+  localStorage.setItem(SHORTCUT_OVERRIDES_KEY, JSON.stringify(overrides))
 }
 
 export function readStorageAccessExplainerDismissed(): boolean {

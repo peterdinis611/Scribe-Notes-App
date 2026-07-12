@@ -117,6 +117,7 @@ function EditorChrome() {
   const viewMode = useAppSelector((state) => state.settings.editorViewMode)
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false)
 
   const pdfPreviewPayload = useMemo(() => {
@@ -136,11 +137,11 @@ function EditorChrome() {
     try {
       const result = await exportDocument(html, plainText, title, format, markdown, exportPageSetup)
       if (result?.path) {
-        toast.success('Export dokončený', fileBasename(result.path))
+        toast.success(t('toasts.exportDone'), fileBasename(result.path))
         await revealInFinder(result.path)
       }
     } catch {
-      toast.error('Export zlyhal')
+      toast.error(t('toasts.exportError'))
     }
   }
 
@@ -151,7 +152,7 @@ function EditorChrome() {
     dispatch(setActiveDocumentId(doc.id))
     dispatch(setActiveDocument(doc))
     dispatch(setSaveStatus('saved'))
-    toast.success('Dokument importovaný', doc.title)
+    toast.success(t('toasts.documentImported'), doc.title)
     navigate(ROUTES.document(doc.id))
   }
 
@@ -182,7 +183,7 @@ function EditorChrome() {
             <Button variant="default" size="sm" onClick={() => dispatch(setTemplatePickerOpen(true))}>
               <Plus className="h-3.5 w-3.5 shrink-0" />
               <span className="editor-header-label [[data-layout-tier=medium]_&]:hidden [[data-layout-tier=narrow]_&]:hidden [[data-layout-tier=tight]_&]:hidden">
-                Nový
+                {t('common.new')}
               </span>
             </Button>
           )}

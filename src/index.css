@@ -1249,6 +1249,51 @@
 }
 
 
+.editor-shell--reading .editor-panel-rail,
+.editor-shell--reading .editor-toolbar,
+.editor-shell--reading .editor-status-bar {
+  display: none;
+}
+
+.editor-reading-exit-bar {
+  position: fixed;
+  top: 14px;
+  right: 18px;
+  z-index: 60;
+  pointer-events: auto;
+}
+
+.editor-reading-exit {
+  gap: 6px;
+  background: color-mix(in srgb, var(--color-background) 92%, transparent);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+
+.editor-shell--reading .ProseMirror {
+  cursor: default;
+}
+
+.editor-shell--reading .tiptap {
+  max-width: 720px;
+  margin-inline: auto;
+}
+
+.command-palette-section-label {
+  padding: 8px 12px 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+
+.command-palette-snippet mark {
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--color-accent) 28%, transparent);
+  color: inherit;
+}
+
 .editor-shell--focus {
   position: relative;
 }

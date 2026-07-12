@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import {
   BarChart3,
+  BookOpen,
   Focus,
   History,
   Link2,
@@ -8,6 +9,7 @@ import {
   MessageSquare,
   Search,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import {
   Tooltip,
   TooltipContent,
@@ -25,6 +27,7 @@ import {
   setStatsPanelOpen,
   toggleFindReplaceOpen,
   toggleFocusMode,
+  toggleReadingMode,
 } from '@/store/documentsSlice'
 
 type RailButtonProps = {
@@ -61,7 +64,9 @@ export function EditorPanelRail() {
   const backlinksOpen = useAppSelector((state) => state.documents.backlinksPanelOpen)
   const findReplaceOpen = useAppSelector((state) => state.documents.findReplaceOpen)
   const focusMode = useAppSelector((state) => state.documents.focusMode)
+  const readingMode = useAppSelector((state) => state.documents.readingMode)
   const dispatch = useAppDispatch()
+  const { t } = useTranslation()
 
   function closeOtherPanels(except?: 'outline' | 'history' | 'comments' | 'stats' | 'backlinks') {
     if (except !== 'outline') dispatch(setDocumentOutlineOpen(false))
@@ -140,11 +145,18 @@ export function EditorPanelRail() {
           <Search className="h-4 w-4" />
         </RailButton>
         <RailButton
-          label={focusMode ? 'Vypnúť režim sústredenia' : 'Režim sústredenia'}
+          label={focusMode ? t('shortcuts.focusMode.labelOff') : t('shortcuts.focusMode.label')}
           active={focusMode}
           onClick={() => dispatch(toggleFocusMode())}
         >
           <Focus className="h-4 w-4" />
+        </RailButton>
+        <RailButton
+          label={readingMode ? t('shortcuts.readingMode.labelOff') : t('shortcuts.readingMode.label')}
+          active={readingMode}
+          onClick={() => dispatch(toggleReadingMode())}
+        >
+          <BookOpen className="h-4 w-4" />
         </RailButton>
       </div>
     </TooltipProvider>

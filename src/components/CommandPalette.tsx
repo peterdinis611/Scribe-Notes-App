@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
+import { useTranslation } from 'react-i18next'
 import {
   Copy,
   FileText,
   Focus,
+  BookOpen,
   FolderInput,
   FolderPlus,
   Moon,
@@ -12,7 +14,10 @@ import {
   Settings2,
   Shuffle,
   Sparkles,
+  StickyNote,
 } from 'lucide-react'
+import { openQuickNote } from '@/lib/quick-note'
+import { getDisplayKeysForShortcut } from '@/lib/shortcuts'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { createFolder, duplicateDocument, searchDocuments } from '@/lib/db/api'
 import type { SearchHit } from '@/lib/db/api'
@@ -29,6 +34,7 @@ import {
   setActiveDocument,
   setActiveDocumentId,
   toggleFocusMode,
+  toggleReadingMode,
   updateDocuments,
 } from '@/store/documentsSlice'
 import {
@@ -44,10 +50,22 @@ import {
 
 type PaletteItem =
   | { type: 'action'; id: string; label: string; hint?: string; icon: React.ReactNode; run: () => void }
-  | { type: 'document'; id: string; label: string; hint?: string; icon: React.ReactNode; run: () => void }
+  | {
+      type: 'document'
+      id: string
+      label: string
+      snippetHtml?: string
+      icon: React.ReactNode
+      run: () => void
+    }
+
+function sanitizeSnippet(html: string): string {
+  return html.replace(/<(?!\/?mark>)[^>]+>/gi, '')
+}
 
 export function CommandPalette() {
   const open = useAppSelector((state) => state.folders.commandPaletteOpen)
+  const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [hits, setHits] = useState<SearchHit[]>([])
   const [selected, setSelected] = useState(0)
@@ -58,6 +76,8 @@ export function CommandPalette() {
   const documents = useAppSelector((state) => state.documents.documents)
   const themeSettings = useAppSelector((state) => state.settings.themeSettings)
   const focusMode = useAppSelector((state) => state.documents.focusMode)
+  const readingMode = useAppSelector((state) => state.documents.readingMode)
+  const shortcutOverrides = useAppSelector((state) => state.settings.shortcutOverrides)
   const openDemoGuide = useOpenDemoGuide()
 
   const activeDocument = useMemo(
@@ -70,16 +90,26 @@ export function CommandPalette() {
       {
         type: 'action',
         id: 'new',
-        label: 'Nový dokument',
-        hint: '⌘N',
+        label: t('commandPalette.newDocument'),
+        hint: getDisplayKeysForShortcut('newDocument', shortcutOverrides).join(''),
         icon: <Plus className="h-4 w-4" />,
         run: () => dispatch(setTemplatePickerOpen(true)),
       },
       {
         type: 'action',
+        id: 'quick-note',
+        label: t('commandPalette.quickNote'),
+        hint: getDisplayKeysForShortcut('quickNote', shortcutOverrides).join(''),
+        icon: <StickyNote className="h-4 w-4" />,
+        run: () => {
+          void openQuickNote(documents, dispatch, navigate, (key) => t(key))
+        },
+      },
+      {
+        type: 'action',
         id: 'demo-guide',
-        label: 'Ukážkový dokument',
-        hint: 'Sprievodca Scribe',
+        label: t('commandPalette.demoDocument'),
+        hint: t('commandPalette.demoHint'),
         icon: <Sparkles className="h-4 w-4" />,
         run: () => void openDemoGuide(),
       },
@@ -88,15 +118,23 @@ export function CommandPalette() {
             {
               type: 'action' as const,
               id: 'focus-mode',
-              label: focusMode ? 'Vypnúť režim sústredenia' : 'Zapnúť režim sústredenia',
-              hint: '⌘⇧F',
+              label: focusMode ? t('commandPalette.focusOff') : t('commandPalette.focusOn'),
+              hint: getDisplayKeysForShortcut('focusMode', shortcutOverrides).join(''),
               icon: <Focus className="h-4 w-4" />,
               run: () => dispatch(toggleFocusMode()),
             },
             {
               type: 'action' as const,
+              id: 'reading-mode',
+              label: readingMode ? t('commandPalette.readingOff') : t('commandPalette.readingOn'),
+              hint: getDisplayKeysForShortcut('readingMode', shortcutOverrides).join(''),
+              icon: <BookOpen className="h-4 w-4" />,
+              run: () => dispatch(toggleReadingMode()),
+            },
+            {
+              type: 'action' as const,
               id: 'duplicate',
-              label: 'Duplikovať dokument',
+              label: t('commandPalette.duplicate'),
               hint: activeDocument.title,
               icon: <Copy className="h-4 w-4" />,
               run: () => {
@@ -104,15 +142,18 @@ export function CommandPalette() {
                   try {
                     const copy = await duplicateDocument(
                       activeDocument.id,
-                      `${activeDocument.title} (kópia)`,
+                      `${activeDocument.title} ${t('common.copySuffix')}`,
                     )
                     dispatch(updateDocuments((prev) => prependDocumentSummary(prev, copy)))
                     dispatch(setActiveDocumentId(copy.id))
                     dispatch(setActiveDocument(copy))
-                    toast.success('Dokument duplikovaný', copy.title)
+                    toast.success(t('toasts.documentDuplicated'), copy.title)
                     navigate(ROUTES.document(copy.id))
                   } catch (error) {
-                    toast.error('Duplikovanie zlyhalo', error instanceof Error ? error.message : undefined)
+                    toast.error(
+                      t('toasts.duplicateError'),
+                      error instanceof Error ? error.message : undefined,
+                    )
                   }
                 })()
               },
@@ -120,7 +161,7 @@ export function CommandPalette() {
             {
               type: 'action' as const,
               id: 'move-folder',
-              label: 'Presunúť do priečinka',
+              label: t('commandPalette.moveToFolder'),
               hint: activeDocument.title,
               icon: <FolderInput className="h-4 w-4" />,
               run: () => {
@@ -133,16 +174,16 @@ export function CommandPalette() {
       {
         type: 'action',
         id: 'settings',
-        label: 'Nastavenia',
-        hint: '⌘,',
+        label: t('commandPalette.settings'),
+        hint: getDisplayKeysForShortcut('settings', shortcutOverrides).join(''),
         icon: <Settings2 className="h-4 w-4" />,
         run: () => navigate(ROUTES.settingsSection('appearance')),
       },
       {
         type: 'action',
         id: 'theme',
-        label: 'Prepínať tému',
-        hint: '⌘⇧L',
+        label: t('commandPalette.toggleTheme'),
+        hint: getDisplayKeysForShortcut('toggleTheme', shortcutOverrides).join(''),
         icon: <Moon className="h-4 w-4" />,
         run: () => {
           const next = cycleThemeId(themeSettings.themeId)
@@ -152,8 +193,8 @@ export function CommandPalette() {
       {
         type: 'action',
         id: 'random-theme',
-        label: 'Náhodná téma',
-        hint: 'Vygenerovať vlastnú paletu',
+        label: t('commandPalette.randomTheme'),
+        hint: t('commandPalette.randomThemeHint'),
         icon: <Shuffle className="h-4 w-4" />,
         run: () => {
           dispatch(setThemeSettings(createCustomThemeSelection(themeSettings, generateRandomTheme())))
@@ -162,25 +203,36 @@ export function CommandPalette() {
       {
         type: 'action',
         id: 'folder',
-        label: 'Nový priečinok',
+        label: t('commandPalette.newFolder'),
         icon: <FolderPlus className="h-4 w-4" />,
         run: () => {
           void (async () => {
             const name = await promptInput({
-              title: 'Nový priečinok',
-              defaultValue: 'Nový priečinok',
-              placeholder: 'Názov priečinka',
-              confirmLabel: 'Vytvoriť',
+              title: t('commandPalette.newFolderTitle'),
+              defaultValue: t('commandPalette.newFolderTitle'),
+              placeholder: t('commandPalette.newFolderPlaceholder'),
+              confirmLabel: t('common.create'),
             })
             if (!name) return
             const folder = await createFolder({ name })
             dispatch(updateFolders((prev) => [...prev, folder]))
-            toast.success('Priečinok vytvorený', folder.name)
+            toast.success(t('toasts.folderCreated'), folder.name)
           })()
         },
       },
     ],
-    [activeDocument, dispatch, focusMode, navigate, openDemoGuide, themeSettings],
+    [
+      activeDocument,
+      dispatch,
+      documents,
+      focusMode,
+      navigate,
+      openDemoGuide,
+      readingMode,
+      shortcutOverrides,
+      t,
+      themeSettings,
+    ],
   )
 
   const documentItems: PaletteItem[] = useMemo(
@@ -189,7 +241,7 @@ export function CommandPalette() {
         type: 'document' as const,
         id: hit.documentId,
         label: hit.title,
-        hint: hit.snippet.replace(/<\/?mark>/g, ''),
+        snippetHtml: hit.snippet,
         icon: <FileText className="h-4 w-4" />,
         run: () => {
           dispatch(setActiveDocumentId(hit.documentId))
@@ -202,9 +254,10 @@ export function CommandPalette() {
   const filteredActions = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return actions
-    return actions.filter(
-      (item) => item.label.toLowerCase().includes(q) || item.hint?.toLowerCase().includes(q),
-    )
+    return actions.filter((item) => {
+      const hint = item.type === 'action' ? item.hint : undefined
+      return item.label.toLowerCase().includes(q) || hint?.toLowerCase().includes(q)
+    })
   }, [actions, query])
 
   const items = useMemo(
@@ -275,7 +328,7 @@ export function CommandPalette() {
           <input
             ref={inputRef}
             className="flex-1 border-none bg-transparent text-[15px] text-[var(--color-foreground)] outline-none placeholder:text-[var(--color-muted-foreground)]"
-            placeholder="Hľadať dokumenty alebo príkazy…"
+            placeholder={t('commandPalette.placeholder')}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
@@ -287,41 +340,94 @@ export function CommandPalette() {
         <div className="max-h-[360px] overflow-y-auto p-2">
           {items.length === 0 ? (
             <p className="px-3 py-6 text-center text-[13px] text-[var(--color-muted-foreground)]">
-              Žiadne výsledky
+              {t('commandPalette.noResults')}
             </p>
           ) : (
-            items.map((item, index) => (
-              <button
-                key={`${item.type}-${item.id}`}
-                type="button"
-                className={cn(
-                  'flex w-full items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-left transition-colors',
-                  index === selected && 'bg-[var(--color-selection)]',
-                  index !== selected && 'hover:bg-[var(--color-hover)]',
-                )}
-                onMouseEnter={() => setSelected(index)}
-                onClick={() => {
-                  item.run()
-                  dispatch(setCommandPaletteOpen(false))
-                }}
-              >
-                <span className="text-[var(--color-muted-foreground)]">{item.icon}</span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[13px] font-semibold text-[var(--color-foreground)]">
-                    {item.label}
-                  </span>
-                  {item.hint && (
-                    <span className="block truncate text-[11px] text-[var(--color-muted-foreground)]">
-                      {item.hint}
-                    </span>
-                  )}
-                </span>
-              </button>
-            ))
+            <>
+              {filteredActions.length > 0 && (
+                <>
+                  <p className="command-palette-section-label">{t('commandPalette.sectionActions')}</p>
+                  {filteredActions.map((item, index) => (
+                    <PaletteRow
+                      key={`${item.type}-${item.id}`}
+                      item={item}
+                      selected={selected === index}
+                      onSelect={() => setSelected(index)}
+                      onRun={() => {
+                        item.run()
+                        dispatch(setCommandPaletteOpen(false))
+                      }}
+                    />
+                  ))}
+                </>
+              )}
+              {documentItems.length > 0 && (
+                <>
+                  <p className="command-palette-section-label">{t('commandPalette.sectionDocuments')}</p>
+                  {documentItems.map((item, index) => {
+                    const flatIndex = filteredActions.length + index
+                    return (
+                      <PaletteRow
+                        key={`${item.type}-${item.id}`}
+                        item={item}
+                        selected={selected === flatIndex}
+                        onSelect={() => setSelected(flatIndex)}
+                        onRun={() => {
+                          item.run()
+                          dispatch(setCommandPaletteOpen(false))
+                        }}
+                      />
+                    )
+                  })}
+                </>
+              )}
+            </>
           )}
         </div>
         </DialogContent>
       )}
     </Dialog>
+  )
+}
+
+function PaletteRow({
+  item,
+  selected,
+  onSelect,
+  onRun,
+}: {
+  item: PaletteItem
+  selected: boolean
+  onSelect: () => void
+  onRun: () => void
+}) {
+  return (
+    <button
+      type="button"
+      className={cn(
+        'flex w-full items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-left transition-colors',
+        selected && 'bg-[var(--color-selection)]',
+        !selected && 'hover:bg-[var(--color-hover)]',
+      )}
+      onMouseEnter={onSelect}
+      onClick={onRun}
+    >
+      <span className="text-[var(--color-muted-foreground)]">{item.icon}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[13px] font-semibold text-[var(--color-foreground)]">
+          {item.label}
+        </span>
+        {item.type === 'document' && item.snippetHtml ? (
+          <span
+            className="command-palette-snippet block truncate text-[11px] text-[var(--color-muted-foreground)]"
+            dangerouslySetInnerHTML={{ __html: sanitizeSnippet(item.snippetHtml) }}
+          />
+        ) : item.type === 'action' && item.hint ? (
+          <span className="block truncate text-[11px] text-[var(--color-muted-foreground)]">
+            {item.hint}
+          </span>
+        ) : null}
+      </span>
+    </button>
   )
 }

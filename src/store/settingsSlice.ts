@@ -20,7 +20,10 @@ import {
   readPrintLayoutEnabled,
   readPrintZoom,
   readSpellCheckEnabled,
+  readShortcutOverrides,
   readThemeSettings,
+  persistShortcutOverrides,
+  type ShortcutOverrides,
 } from '@/store/persistence'
 
 export type EditorViewMode = 'rich' | 'markdown'
@@ -43,6 +46,7 @@ export interface SettingsState {
   printZoom: number
   printLayoutColumns: PrintLayoutColumns
   spellCheckEnabled: boolean
+  shortcutOverrides: ShortcutOverrides
 }
 
 const initialState: SettingsState = {
@@ -56,6 +60,7 @@ const initialState: SettingsState = {
   printZoom: readPrintZoom(),
   printLayoutColumns: readPrintColumns(),
   spellCheckEnabled: readSpellCheckEnabled(),
+  shortcutOverrides: readShortcutOverrides(),
 }
 
 const settingsSlice = createSlice({
@@ -102,6 +107,20 @@ const settingsSlice = createSlice({
       state.spellCheckEnabled = action.payload
       persistSpellCheckEnabled(action.payload)
     },
+    setShortcutOverride(state, action: PayloadAction<{ id: string; hotkey: string | null }>) {
+      const next = { ...state.shortcutOverrides }
+      if (action.payload.hotkey) {
+        next[action.payload.id] = action.payload.hotkey
+      } else {
+        delete next[action.payload.id]
+      }
+      state.shortcutOverrides = next
+      persistShortcutOverrides(next)
+    },
+    resetShortcutOverrides(state) {
+      state.shortcutOverrides = {}
+      persistShortcutOverrides({})
+    },
   },
 })
 
@@ -116,6 +135,8 @@ export const {
   setPrintZoom,
   setPrintLayoutColumns,
   setSpellCheckEnabled,
+  setShortcutOverride,
+  resetShortcutOverrides,
 } = settingsSlice.actions
 
 export default settingsSlice.reducer
