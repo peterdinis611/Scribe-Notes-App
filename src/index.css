@@ -542,6 +542,15 @@
     var(--color-canvas);
 }
 
+.welcome-brand {
+  font-family: var(--font-display, inherit);
+}
+
+.welcome-recent-list button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-accent) 55%, transparent);
+  outline-offset: -2px;
+}
+
 .app-shell[data-focus-mode='true'] .app-workspace {
   background: var(--color-canvas);
 }

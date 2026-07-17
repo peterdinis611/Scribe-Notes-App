@@ -32,9 +32,8 @@
     "closeLibrary": "Close library"
   },
   "welcome": {
-    "badge": "Local document editor",
-    "title": "Write, organize, and export in one place.",
-    "subtitle": "Create a new document from a template, import an existing file, or pick up where you left off.",
+    "brand": "Scribe",
+    "brandTagline": "A local document editor. Create a new one, import a file, or continue writing.",
     "newDocument": "New document",
     "import": "Import",
     "recentDocuments": "Recent documents",

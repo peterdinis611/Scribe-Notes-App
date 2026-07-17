@@ -32,9 +32,8 @@
     "closeLibrary": "Zavrieť knižnicu"
   },
   "welcome": {
-    "badge": "Lokálny editor dokumentov",
-    "title": "Píšte, organizujte a exportujte na jednom mieste.",
-    "subtitle": "Vytvorte nový dokument zo šablóny, importujte existujúci súbor alebo pokračujte tam, kde ste prestali.",
+    "brand": "Scribe",
+    "brandTagline": "Lokálny editor dokumentov. Vytvorte nový, importujte súbor alebo pokračujte v písaní.",
     "newDocument": "Nový dokument",
     "import": "Importovať",
     "recentDocuments": "Nedávne dokumenty",
