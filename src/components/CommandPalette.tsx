@@ -8,6 +8,7 @@ import {
   BookOpen,
   FolderInput,
   FolderPlus,
+  Languages,
   Moon,
   Plus,
   Search,
@@ -18,6 +19,7 @@ import {
 } from 'lucide-react'
 import { openQuickNote } from '@/lib/quick-note'
 import { getDisplayKeysForShortcut } from '@/lib/shortcuts'
+import type { AppLocale } from '@/i18n'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { createFolder, duplicateDocument, searchDocuments } from '@/lib/db/api'
 import type { SearchHit } from '@/lib/db/api'
@@ -42,7 +44,7 @@ import {
   setMoveDocumentPickerOpen,
   updateFolders,
 } from '@/store/foldersSlice'
-import { setTemplatePickerOpen, setThemeSettings } from '@/store/settingsSlice'
+import { setTemplatePickerOpen, setThemeSettings, setLocale } from '@/store/settingsSlice'
 import {
   createCustomThemeSelection,
   createThemeSelection,
@@ -78,6 +80,7 @@ export function CommandPalette() {
   const focusMode = useAppSelector((state) => state.documents.focusMode)
   const readingMode = useAppSelector((state) => state.documents.readingMode)
   const shortcutOverrides = useAppSelector((state) => state.settings.shortcutOverrides)
+  const locale = useAppSelector((state) => state.settings.locale)
   const openDemoGuide = useOpenDemoGuide()
 
   const activeDocument = useMemo(
@@ -181,6 +184,21 @@ export function CommandPalette() {
       },
       {
         type: 'action',
+        id: 'language',
+        label:
+          locale === 'sk'
+            ? t('commandPalette.switchToEnglish')
+            : t('commandPalette.switchToSlovak'),
+        hint: locale === 'sk' ? 'EN' : 'SK',
+        icon: <Languages className="h-4 w-4" />,
+        run: () => {
+          const next: AppLocale = locale === 'sk' ? 'en' : 'sk'
+          dispatch(setLocale(next))
+          toast.success(t('toasts.localeChanged'), t(`settings.language.${next}`))
+        },
+      },
+      {
+        type: 'action',
         id: 'theme',
         label: t('commandPalette.toggleTheme'),
         hint: getDisplayKeysForShortcut('toggleTheme', shortcutOverrides).join(''),
@@ -229,6 +247,7 @@ export function CommandPalette() {
       navigate,
       openDemoGuide,
       readingMode,
+      locale,
       shortcutOverrides,
       t,
       themeSettings,

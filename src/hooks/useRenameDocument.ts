@@ -1,4 +1,5 @@
 import { updateDocument } from '@/lib/db/api'
+import i18n from '@/i18n'
 import { toast } from '@/lib/toast'
 import { store } from '@/store/index'
 import { useAppDispatch } from '@/store/hooks'
@@ -13,7 +14,7 @@ export function useRenameDocument() {
   const dispatch = useAppDispatch()
 
   return async function renameDocument(id: string, title: string) {
-    const trimmed = title.trim() || 'Bez názvu'
+    const trimmed = title.trim() || i18n.t('common.untitled')
     const { activeDocument, documents } = store.getState().documents
     const previousSummary = documents.find((item) => item.id === id)
     const previousActive = activeDocument?.id === id ? activeDocument : null
@@ -48,7 +49,7 @@ export function useRenameDocument() {
         ),
       )
       dispatch(setSaveStatus('saved'))
-      toast.success('Dokument premenovaný', updated.title)
+      toast.success(i18n.t('toasts.documentRenamed'), updated.title)
       return updated
     } catch {
       if (previousSummary) {
@@ -62,7 +63,7 @@ export function useRenameDocument() {
         dispatch(setActiveDocument(previousActive))
       }
       dispatch(setSaveStatus('error'))
-      toast.error('Premenovanie zlyhalo')
+      toast.error(i18n.t('toasts.renameError'))
       return null
     }
   }

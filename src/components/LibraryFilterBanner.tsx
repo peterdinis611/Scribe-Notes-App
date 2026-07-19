@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Star, Tag as TagIcon, X } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
@@ -6,6 +7,7 @@ import {
 } from '@/store/documentsSlice'
 
 export function LibraryFilterBanner() {
+  const { t } = useTranslation()
   const favoritesOnly = useAppSelector((state) => state.documents.favoritesOnlyFilter)
   const activeTagFilter = useAppSelector((state) => state.documents.activeTagFilter)
   const dispatch = useAppDispatch()
@@ -14,11 +16,11 @@ export function LibraryFilterBanner() {
 
   return (
     <div className="library-filter-banner titlebar-no-drag">
-      <span className="library-filter-banner-label">Filter:</span>
+      <span className="library-filter-banner-label">{t('common.filter')}:</span>
       {favoritesOnly && (
         <span className="library-filter-pill">
           <Star className="h-3 w-3 fill-current" />
-          Obľúbené
+          {t('library.tabs.favorites')}
         </span>
       )}
       {activeTagFilter && (
@@ -34,7 +36,7 @@ export function LibraryFilterBanner() {
           dispatch(setFavoritesOnlyFilter(false))
           dispatch(setActiveTagFilter(null))
         }}
-        aria-label="Zrušiť filter"
+        aria-label={t('library.clearFilter')}
       >
         <X className="h-3.5 w-3.5" />
       </button>

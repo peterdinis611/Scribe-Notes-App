@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Editor } from '@tiptap/react'
 import { useEditorState } from '@tiptap/react'
 import { Eye, EyeOff, History, Redo, SpellCheck, Trash2, Undo } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +28,7 @@ import { setActiveDocument, updateDocuments } from '@/store/documentsSlice'
 import { setSpellCheckEnabled } from '@/store/settingsSlice'
 
 export function ToolsTab({ editor }: { editor: Editor }) {
+  const { t } = useTranslation()
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
   const spellCheckEnabled = useAppSelector((state) => state.settings.spellCheckEnabled)
   const dispatch = useAppDispatch()
@@ -75,9 +77,9 @@ export function ToolsTab({ editor }: { editor: Editor }) {
         const next = await listDocumentRevisions(activeId, 15)
         setRevisions(next)
       }
-      toast.success('Verzia obnovená')
+      toast.success(t('toolbar.toasts.revisionRestored'))
     } catch {
-      toast.error('Obnovenie verzie zlyhalo')
+      toast.error(t('toolbar.toasts.revisionRestoreFailed'))
     }
   }
 
@@ -86,16 +88,16 @@ export function ToolsTab({ editor }: { editor: Editor }) {
 
   return (
     <div className="toolbar-panel">
-      <ToolbarGroup label="História">
+      <ToolbarGroup label={t('toolbar.groups.history')}>
         <ToolbarButton
-          label="Späť (⌘Z)"
+          label={t('toolbar.actions.undo')}
           disabled={!deleteState.canUndo}
           onClick={() => editor.chain().focus().undo().run()}
         >
           <Undo className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
         <ToolbarButton
-          label="Znovu (⌘⇧Z)"
+          label={t('toolbar.actions.redo')}
           disabled={!deleteState.canRedo}
           onClick={() => editor.chain().focus().redo().run()}
         >
@@ -103,13 +105,13 @@ export function ToolsTab({ editor }: { editor: Editor }) {
         </ToolbarButton>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button type="button" className="toolbar-btn" title="Uložené verzie dokumentu">
+            <button type="button" className="toolbar-btn" title={t('toolbar.actions.savedVersions')}>
               <History className="h-4 w-4 stroke-[1.75]" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="revision-menu">
             {revisions.length === 0 ? (
-              <DropdownMenuItem disabled>Žiadne uložené verzie</DropdownMenuItem>
+              <DropdownMenuItem disabled>{t('toolbar.actions.noSavedVersions')}</DropdownMenuItem>
             ) : (
               revisions.map((revision) => (
                 <DropdownMenuItem
@@ -125,7 +127,7 @@ export function ToolsTab({ editor }: { editor: Editor }) {
         </DropdownMenu>
       </ToolbarGroup>
 
-      <ToolbarGroup label="Mazanie">
+      <ToolbarGroup label={t('toolbar.groups.deletion')}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
@@ -134,7 +136,7 @@ export function ToolsTab({ editor }: { editor: Editor }) {
                 'toolbar-btn',
                 (deleteState.hasSelection || deleteState.canDeleteBlock) && 'is-active',
               )}
-              title="Odstrániť"
+              title={t('editorActions.deleteSelection')}
             >
               <Trash2 className="h-4 w-4 stroke-[1.75]" />
             </button>
@@ -144,38 +146,38 @@ export function ToolsTab({ editor }: { editor: Editor }) {
               disabled={!deleteState.hasSelection}
               onClick={() => deleteEditorSelection(editor)}
             >
-              Odstrániť výber
+              {t('editorActions.deleteSelectedText')}
             </DropdownMenuItem>
             <DropdownMenuItem
               disabled={!deleteState.canDeleteBlock}
               onClick={() => deleteCurrentBlock(editor)}
             >
-              {deleteState.blockDeleteLabel ?? 'Odstrániť blok'}
+              {deleteState.blockDeleteLabel ?? t('editorActions.deleteBlock')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}>
-              Odstrániť formátovanie
+              {t('editorActions.clearFormatting')}
             </DropdownMenuItem>
             <DropdownMenuItem
               className="text-[var(--color-destructive)]"
               onClick={() => editor.chain().focus().clearContent().run()}
             >
-              Vyčistiť celý dokument
+              {t('editorActions.clearDocument')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </ToolbarGroup>
 
-      <ToolbarGroup label="Zobrazenie">
+      <ToolbarGroup label={t('toolbar.groups.display')}>
         <ToolbarButton
-          label={spellCheckEnabled ? 'Vypnúť kontrolu pravopisu' : 'Zapnúť kontrolu pravopisu'}
+          label={spellCheckEnabled ? t('toolbar.actions.spellcheckOff') : t('toolbar.actions.spellcheckOn')}
           active={spellCheckEnabled}
           onClick={() => dispatch(setSpellCheckEnabled(!spellCheckEnabled))}
         >
           <SpellCheck className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
         <ToolbarButton
-          label={deleteState.showInvisible ? 'Skryť neviditeľné znaky' : 'Zobraziť neviditeľné znaky'}
+          label={deleteState.showInvisible ? t('toolbar.actions.hideInvisible') : t('toolbar.actions.showInvisible')}
           active={deleteState.showInvisible}
           onClick={() => editor.chain().focus().toggleInvisibleCharacters().run()}
         >
@@ -188,9 +190,9 @@ export function ToolsTab({ editor }: { editor: Editor }) {
       </ToolbarGroup>
 
       <div className="toolbar-stats" aria-live="polite">
-        <span>{words} {words === 1 ? 'slovo' : words < 5 ? 'slová' : 'slov'}</span>
+        <span>{t('toolbar.stats.word', { count: words })}</span>
         <span className="toolbar-stats-sep">·</span>
-        <span>{characters} znakov</span>
+        <span>{t('toolbar.stats.characters', { count: characters })}</span>
       </div>
     </div>
   )

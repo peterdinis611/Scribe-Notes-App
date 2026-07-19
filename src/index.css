@@ -156,9 +156,9 @@
   flex-shrink: 0;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  border-right: 1px solid var(--color-border);
-  background: var(--color-rail);
+  gap: 2px;
+  border-right: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  background: transparent;
   padding: 10px 0;
 }
 
@@ -168,60 +168,141 @@
   width: var(--sidebar-width);
   flex: 1;
   flex-direction: column;
-  background: var(--color-sidebar);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .library-view-tabs {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 2px;
-  border-radius: 10px;
-  border: 1px solid var(--color-border);
-  background: color-mix(in srgb, var(--color-background) 70%, transparent);
-  padding: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
 }
 
 .library-view-tab {
-  display: inline-flex;
+  display: flex;
+  width: 100%;
   min-width: 0;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
+  justify-content: flex-start;
+  gap: 8px;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   background: transparent;
-  padding: 6px 4px;
-  font-size: 10px;
-  font-weight: 600;
+  padding: 5px 8px;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--color-muted-foreground);
   cursor: default;
-  transition: background 120ms ease, color 120ms ease, box-shadow 120ms ease;
+  transition: background 100ms ease, color 100ms ease;
 }
 
 .library-view-tab:hover {
+  background: var(--color-hover);
   color: var(--color-foreground);
 }
 
 .library-view-tab.is-active {
-  background: var(--color-surface-elevated);
+  background: var(--color-selection);
+  color: var(--color-foreground);
+  box-shadow: none;
+}
+
+.library-view-tab-icon {
+  color: inherit;
+  opacity: 0.85;
+}
+
+.library-view-tab.is-active .library-view-tab-icon {
   color: var(--color-accent);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  opacity: 1;
+}
+
+.library-view-tab-label {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .library-view-tab-count {
-  min-width: 16px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-muted-foreground) 12%, transparent);
-  padding: 0 5px;
-  font-size: 9px;
-  font-weight: 700;
-  line-height: 16px;
+  min-width: 0;
+  border-radius: 4px;
+  background: transparent;
+  padding: 0;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--color-muted-foreground);
 }
 
 .library-view-tab.is-active .library-view-tab-count {
-  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  background: transparent;
+  color: var(--color-muted-foreground);
+}
+
+.library-search {
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-foreground) 4%, transparent);
+  transition: background 100ms ease;
+}
+
+.library-search:focus-within {
+  background: color-mix(in srgb, var(--color-foreground) 7%, transparent);
+}
+
+.library-search-input {
+  width: 100%;
+  height: 30px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  padding: 0 40px 0 30px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--color-foreground);
+  outline: none;
+}
+
+.library-search-input::placeholder {
+  color: var(--color-muted-foreground);
+}
+
+.library-search-kbd {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  display: inline-flex;
+  height: 18px;
+  min-width: 26px;
+  transform: translateY(-50%);
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  padding: 0 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-muted-foreground);
+  transition: color 100ms ease, background 100ms ease;
+}
+
+.library-search-kbd:hover {
+  background: var(--color-hover);
+  color: var(--color-foreground);
+}
+
+.library-section-sep {
+  height: 1px;
+  margin: 6px 12px;
+  background: color-mix(in srgb, var(--color-border) 80%, transparent);
 }
 
 .library-filter-banner {
@@ -277,21 +358,21 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 1px;
 }
 
 .library-doc-card {
   display: flex;
   width: 100%;
   align-items: center;
-  gap: 10px;
-  border: 1px solid transparent;
-  border-radius: 10px;
+  gap: 8px;
+  border: none;
+  border-radius: 6px;
   background: transparent;
-  padding: 8px 10px;
+  padding: 5px 8px;
   text-align: left;
   cursor: default;
-  transition: background 120ms ease, border-color 120ms ease;
+  transition: background 100ms ease;
 }
 
 .library-doc-card:hover {
@@ -299,20 +380,24 @@
 }
 
 .library-doc-card.is-active {
-  border-color: color-mix(in srgb, var(--color-accent) 28%, var(--color-border));
+  border-color: transparent;
   background: var(--color-selection);
 }
 
 .library-doc-card-icon {
   display: flex;
-  height: 34px;
-  width: 34px;
+  height: 20px;
+  width: 20px;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  border-radius: 9px;
-  border: 1px solid var(--color-border);
-  background: var(--color-canvas);
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: var(--color-muted-foreground);
+}
+
+.library-doc-card.is-active .library-doc-card-icon {
   color: var(--color-accent);
 }
 
@@ -324,8 +409,8 @@
 .library-doc-card-title {
   margin: 0;
   overflow: hidden;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   line-height: 1.3;
   color: var(--color-foreground);
   text-overflow: ellipsis;
@@ -334,10 +419,10 @@
 
 .library-doc-card-meta {
   display: inline-flex;
-  margin: 2px 0 0;
+  margin: 1px 0 0;
   align-items: center;
   gap: 4px;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--color-muted-foreground);
 }
 
@@ -476,16 +561,16 @@
 
 .app-rail-btn {
   display: inline-flex;
-  height: 36px;
-  width: 36px;
+  height: 32px;
+  width: 32px;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
+  border-radius: 6px;
   border: none;
   background: transparent;
   color: var(--color-rail-foreground);
   text-decoration: none;
-  transition: background 140ms ease, color 140ms ease, box-shadow 140ms ease;
+  transition: background 100ms ease, color 100ms ease;
 }
 
 .app-rail-btn:hover {
@@ -496,7 +581,7 @@
 .app-rail-btn.is-active {
   background: var(--color-selection);
   color: var(--color-accent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 28%, transparent);
+  box-shadow: none;
 }
 
 .app-chrome {

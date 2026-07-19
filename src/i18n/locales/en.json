@@ -23,13 +23,26 @@
     "home": "Home",
     "tryAgain": "Try again",
     "total": "{{count}} total",
-    "copySuffix": "(copy)"
+    "copySuffix": "(copy)",
+    "delete": "Delete",
+    "restore": "Restore",
+    "rename": "Rename",
+    "untitled": "Untitled",
+    "loading": "Loading…",
+    "refresh": "Refresh",
+    "document": "Document",
+    "filter": "Filter",
+    "confirm": "Confirm",
+    "folder": "Folder",
+    "all": "All"
   },
   "nav": {
     "editor": "Editor",
     "settings": "Settings",
     "settingsSections": "Settings sections",
-    "closeLibrary": "Close library"
+    "closeLibrary": "Close library",
+    "openLibrary": "Open library",
+    "library": "Library"
   },
   "welcome": {
     "brand": "Scribe",
@@ -82,6 +95,8 @@
     "toggleTheme": "Toggle theme",
     "randomTheme": "Random theme",
     "randomThemeHint": "Generate a custom palette",
+    "switchToEnglish": "Switch to English",
+    "switchToSlovak": "Switch to Slovak",
     "newFolder": "New folder",
     "newFolderTitle": "New folder",
     "newFolderPlaceholder": "Folder name"
@@ -142,6 +157,7 @@
     "language": {
       "title": "Language",
       "description": "Application interface language.",
+      "rowDescription": "Switches menus, dialogs, and editor UI text.",
       "sk": "Slovenčina",
       "en": "English"
     },
@@ -160,18 +176,22 @@
       "randomCardDescription": "New palette in one click"
     },
     "storage": {
+      "pageTitle": "Storage",
+      "pageDescription": "Disk folder, library backup, and clearing data.",
       "folderTitle": "Documents folder",
       "folderDescription": "All documents are stored in the app's local database. This folder holds .scribe backups.",
+      "folderDescriptionShort": "Local database + .scribe files on disk.",
       "folderNote": "If disk writes fail, the editor keeps working and the document stays saved in the app. Change the folder or check disk permissions.",
-      "whyAccessLink": "Why does Scribe ask for folder access?",
-      "changeFolder": "Change folder",
-      "openInFinder": "Open in Finder",
-      "reconcile": "Sync with disk",
+      "whyAccessLink": "Why access?",
+      "changeFolder": "Change",
+      "openInFinder": "Finder",
+      "reconcile": "Sync",
       "reconciling": "Syncing…",
       "reconcileSuccess": "Synced: {{toDisk}} to disk, {{fromDisk}} from disk, {{imported}} new.",
       "reconcileFailed": "Sync failed.",
       "clearTitle": "Clear data",
       "clearDescription": "Deletes all documents from the app, related .scribe files on disk, and stored images.",
+      "clearDescriptionShort": "Permanently deletes documents, .scribe files, and images.",
       "clearing": "Clearing…",
       "clearAll": "Clear everything",
       "clearConfirm": "This permanently deletes all documents, .scribe files, and images in the folder. This action cannot be undone.",
@@ -180,11 +200,12 @@
       "folderChanged": "Documents folder changed",
       "backupTitle": "Library backup",
       "backupDescription": "Export or import the full archive (.scribe-backup.zip) including SQLite and on-disk files.",
-      "backupExport": "Export backup",
+      "backupDescriptionShort": "Export / import the full archive (.scribe-backup.zip).",
+      "backupExport": "Export",
       "backupExporting": "Exporting…",
       "backupExportDone": "Backup exported",
       "backupExportError": "Backup export failed",
-      "backupImport": "Import backup",
+      "backupImport": "Import",
       "backupImporting": "Importing…",
       "backupImportDone": "Backup restored",
       "backupImportError": "Backup import failed",
@@ -278,6 +299,50 @@
       "label": "Reading mode",
       "labelOff": "Exit reading mode",
       "description": "Clean read-only preview"
+    },
+    "closeFind": {
+      "label": "Close search",
+      "description": "Closes the find and replace panel"
+    },
+    "bold": {
+      "label": "Bold",
+      "description": "Toggle bold"
+    },
+    "italic": {
+      "label": "Italic",
+      "description": "Toggle italic"
+    },
+    "underline": {
+      "label": "Underline",
+      "description": "Toggle underline"
+    },
+    "strike": {
+      "label": "Strikethrough",
+      "description": "Toggle strikethrough"
+    },
+    "inlineCode": {
+      "label": "Inline code",
+      "description": "Toggle inline code"
+    },
+    "bulletList": {
+      "label": "Bullets",
+      "description": "Insert bullet list"
+    },
+    "orderedList": {
+      "label": "Numbered list",
+      "description": "Insert numbered list"
+    },
+    "taskList": {
+      "label": "Checklist",
+      "description": "Insert task list"
+    },
+    "link": {
+      "label": "Link",
+      "description": "Insert or edit link"
+    },
+    "closePanel": {
+      "label": "Close panel",
+      "description": "Closes search or reading/focus mode"
     }
   },
   "quickNote": {
@@ -289,6 +354,7 @@
   },
   "library": {
     "title": "Library",
+    "allDocuments": "All documents",
     "documentCount_one": "{{count}} document",
     "documentCount_other": "{{count}} documents",
     "searchPlaceholder": "Search documents…",
@@ -298,7 +364,175 @@
       "favorites": "Favorites",
       "tags": "Tags",
       "graph": "Link graph"
+    },
+    "trash": "Trash",
+    "newFolder": "New folder",
+    "newSubfolder": "New subfolder",
+    "renameFolder": "Rename folder",
+    "deleteFolder": "Delete folder",
+    "deleteFolderTitle": "Delete folder?",
+    "trashFolderTitle": "Move to trash?",
+    "trashFolderOk": "Move to trash",
+    "trashAllInFolder": "Move all documents to trash",
+    "moveToTrash": "Move to trash",
+    "favorite": "Favorite",
+    "tags": "Tags",
+    "documentTags": "Document tags",
+    "documentTagsHint": "Separate tags with commas",
+    "folderNamePlaceholder": "Folder name",
+    "noResults": "No results.",
+    "noDocumentsYet": "No documents yet.",
+    "noFavorites": "No favorites",
+    "noFavoritesHint": "Click the star next to a document in the Folders tab.",
+    "noTags": "No tags",
+    "noTagsHint": "Add tags to a document in the library.",
+    "selectTag": "Select a tag…",
+    "documentsWithTag": "Documents with tag",
+    "clearFilter": "Clear filter",
+    "searchResults": "Content results",
+    "searching": "Searching…",
+    "searchEmpty": "Nothing found",
+    "moveToFolder": "Move to folder",
+    "rootFolder": "Root (no folder)",
+    "rootLibrary": "Library root",
+    "tagCount_one": "{{count}} tag",
+    "tagCount_other": "{{count}} tags",
+    "deleteFolderWithDocs": "Deleting folder “{{name}}” will also move {{docs}} in it and its subfolders to trash. The folder itself will be removed.",
+    "deleteFolderEmpty": "Deleting folder “{{name}}” will also remove all subfolders.",
+    "trashFolderConfirm": "Move {{docs}} from folder “{{name}}” (including subfolders) to trash? The folder will be kept."
+  },
+  "trash": {
+    "title": "Trash",
+    "empty": "Empty trash",
+    "emptyTitle": "Empty trash?",
+    "emptyConfirm": "All documents in the trash will be permanently deleted. This cannot be undone.",
+    "emptyOk": "Empty",
+    "hint": "Deleted documents will appear here.",
+    "deletedAt": "Deleted {{time}}",
+    "purgeTitle": "Delete permanently?",
+    "purgeConfirm": "Document “{{title}}” will be permanently deleted. This cannot be undone.",
+    "purgeOk": "Delete",
+    "purgeForever": "Delete permanently"
+  },
+  "editorPanels": {
+    "ariaLabel": "Document panels",
+    "outline": "Document outline",
+    "comments": "Comments",
+    "backlinks": "Backlinks",
+    "stats": "Statistics",
+    "revisions": "Version history",
+    "findReplace": "Find and replace",
+    "findReplaceClose": "Close search"
+  },
+  "panels": {
+    "comments": {
+      "hide": "Hide comments",
+      "noComments": "No comments",
+      "threadCount_one": "{{count}} thread",
+      "threadCount_other": "{{count}} threads",
+      "hideResolved": "Hide resolved",
+      "showResolved": "Show resolved ({{count}})",
+      "emptyHint": "Select text and add a comment via the floating toolbar.",
+      "jumpToAnchor": "Jump to location in text",
+      "reopen": "Reopen",
+      "resolve": "Resolve",
+      "replyPlaceholder": "Reply…",
+      "sendReply": "Send reply",
+      "signedAs": "Signed as",
+      "authorPlaceholder": "Your name",
+      "anchorNotFound": "Comment anchor not found in text",
+      "loadError": "Failed to load comments",
+      "resolveError": "Failed to change status",
+      "deleteError": "Failed to delete comment",
+      "replyError": "Failed to add reply"
+    },
+    "outline": {
+      "title": "Outline",
+      "hide": "Hide outline",
+      "elementCount_one": "{{count}} element",
+      "elementCount_other": "{{count}} elements",
+      "empty": "The document has no blocks to display yet."
+    },
+    "backlinks": {
+      "title": "Connections",
+      "hide": "Hide connections",
+      "noConnections": "No connections",
+      "emptyHint": "No connections. Type <code>[[</code> to link documents.",
+      "incoming": "Links here",
+      "outgoing": "Links from here",
+      "incomingEmpty": "No documents link here yet.",
+      "outgoingEmpty": "This document doesn't link anywhere yet.",
+      "loadError": "Failed to load links"
+    },
+    "stats": {
+      "subtitle": "Document overview",
+      "hide": "Hide statistics",
+      "words": "Words",
+      "characters": "Characters",
+      "charactersNoSpaces": "Characters (no spaces)",
+      "paragraphs": "Paragraphs",
+      "sentences": "Sentences",
+      "readingTime": "Reading time",
+      "readingTimeZero": "0 min",
+      "readingTimeUnderOne": "< 1 min",
+      "readingTimeMinutes": "{{count}} min",
+      "wordGoal": "Word count goal",
+      "goalPlaceholder": "e.g. 500",
+      "goalProgress": "{{current}} / {{goal}} words · {{percent}}%",
+      "goalComplete": " · Done!"
+    },
+    "revisions": {
+      "subtitle": "Automatically saved document versions",
+      "compareTitle": "Compare versions",
+      "versionA": "Version A",
+      "versionB": "Version B",
+      "selectVersionA": "Select version A",
+      "selectVersionB": "Select version B",
+      "comparing": "Comparing…",
+      "compare": "Compare",
+      "loading": "Loading versions…",
+      "empty": "No saved versions yet. Versions are created each time the document is saved.",
+      "vsCurrent": "vs current",
+      "restoring": "Restoring…",
+      "restoreConfirmTitle": "Restore version",
+      "restoreConfirm": "Restore version “{{title}}” from {{time}}? Current content will be replaced.",
+      "restoreSuccess": "Version restored",
+      "restoreError": "Failed to restore version",
+      "compareError": "Version comparison failed",
+      "selectTwoVersions": "Select two different versions",
+      "currentVersion": "Current version",
+      "diffTitle": "Version comparison",
+      "sideA": "A:",
+      "sideB": "B:",
+      "linesAdded": "+{{count}} lines",
+      "linesRemoved": "−{{count}} lines",
+      "noDiff": "No differences",
+      "changesOnly": "Changes only",
+      "viewModeAria": "Display mode",
+      "viewSplit": "Side by side",
+      "viewUnified": "Unified diff",
+      "noDiffToShow": "No differences to display."
     }
+  },
+  "focusMode": {
+    "exit": "Exit focus",
+    "exitHint": "Exit focus mode (Esc)"
+  },
+  "findReplace": {
+    "findPlaceholder": "Find in document…",
+    "replacePlaceholder": "Replace…",
+    "replaceWith": "Replace with…",
+    "matchCase": "Match case",
+    "previous": "Previous (⇧⏎)",
+    "next": "Next (⏎)",
+    "replace": "Replace",
+    "replaceAll": "All",
+    "close": "Close (Esc)",
+    "closeAria": "Close search"
+  },
+  "viewMode": {
+    "rich": "Rich text",
+    "markdown": "Markdown"
   },
   "linkGraph": {
     "loading": "Loading link graph…",
@@ -321,11 +555,19 @@
     "documentsDir": "Documents folder",
     "flushPending": "Flush disk writes",
     "flushDone": "Disk writes completed",
+    "flushEmpty": "No pending disk writes",
+    "flushCount": "{{count}} files written",
     "flushError": "Disk flush failed",
     "reconcile": "Reconcile storage",
     "copy": "Copy JSON",
     "copied": "Diagnostics copied",
-    "checkUpdates": "Check for updates"
+    "copyEmpty": "No diagnostics data loaded",
+    "copyError": "Copy failed",
+    "checkUpdates": "Check for updates",
+    "updatesChecking": "Opening…",
+    "updatesOpened": "Releases page opened",
+    "updatesOpenedHint": "Current version: {{version}}",
+    "updatesError": "Could not open the updates page"
   },
   "toasts": {
     "reconcileSuccess": "Sync completed",
@@ -361,9 +603,365 @@
     "demoOpened": "Demo document opened",
     "demoCreated": "Demo document created",
     "demoError": "Failed to load demo document",
+    "localeChanged": "Language changed",
     "trashLoadError": "Failed to load trash",
     "trashEmptied": "Trash emptied",
     "trashEmptyError": "Failed to empty trash",
     "trashPurgeError": "Failed to delete document"
+  },
+  "slash": {
+    "empty": "No commands",
+    "h1": {
+      "label": "Heading 1",
+      "hint": "Large heading"
+    },
+    "h2": {
+      "label": "Heading 2",
+      "hint": "Medium heading"
+    },
+    "h3": {
+      "label": "Heading 3",
+      "hint": "Smaller heading"
+    },
+    "h4": {
+      "label": "Heading 4",
+      "hint": "Subheading"
+    },
+    "h5": {
+      "label": "Heading 5",
+      "hint": "Small heading"
+    },
+    "h6": {
+      "label": "Heading 6",
+      "hint": "Smallest heading"
+    },
+    "bullet": {
+      "label": "Bullet list",
+      "hint": "Bullets"
+    },
+    "ordered": {
+      "label": "Numbered list",
+      "hint": "1. 2. 3."
+    },
+    "task": {
+      "label": "Tasks",
+      "hint": "Checklist"
+    },
+    "quote": {
+      "label": "Quote",
+      "hint": "Block quote"
+    },
+    "inline-code": {
+      "label": "Inline code",
+      "hint": "Inline code (⌘E)"
+    },
+    "code": {
+      "label": "Code block",
+      "hint": "Multi-line code"
+    },
+    "table": {
+      "label": "Table",
+      "hint": "3×3"
+    },
+    "image": {
+      "label": "Image",
+      "hint": "Insert image"
+    },
+    "math-inline": {
+      "label": "Formula",
+      "hint": "Inline math.js"
+    },
+    "math-block": {
+      "label": "Formula block",
+      "hint": "math.js block"
+    },
+    "hr": {
+      "label": "Divider",
+      "hint": "Horizontal rule"
+    },
+    "callout-info": {
+      "label": "Callout: Info",
+      "hint": "Info block"
+    },
+    "callout-tip": {
+      "label": "Callout: Tip",
+      "hint": "Tip / advice"
+    },
+    "callout-warning": {
+      "label": "Callout: Warning",
+      "hint": "Caution"
+    },
+    "callout-danger": {
+      "label": "Callout: Important",
+      "hint": "Critical note"
+    },
+    "footnote": {
+      "label": "Footnote",
+      "hint": "Numbered note"
+    },
+    "comment": {
+      "label": "Comment",
+      "hint": "Note on text"
+    },
+    "wiki-link": {
+      "label": "Link document",
+      "hint": "[[ link to document"
+    },
+    "toc": {
+      "label": "Table of contents",
+      "hint": "Automatic TOC"
+    }
+  },
+  "floatingMenu": {
+    "slashHint": "Or type / for all commands",
+    "heading": "Heading",
+    "headingHint": "H2",
+    "list": "List",
+    "listHint": "Bullets",
+    "ordered": "Numbered",
+    "orderedHint": "1. 2. 3.",
+    "tasks": "Tasks",
+    "tasksHint": "Checklist",
+    "quote": "Quote",
+    "quoteHint": "Block",
+    "code": "Code",
+    "codeHint": "Block",
+    "table": "Table",
+    "tableHint": "3×3",
+    "image": "Image",
+    "imageHint": "File"
+  },
+  "emojiPicker": {
+    "searchPlaceholder": "Search emoji…"
+  },
+  "pagination": {
+    "ariaLabel": "Document pagination",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "page": "Page {{page}}",
+    "summary": "Page {{current}} / {{total}}"
+  },
+  "wikiLink": {
+    "modified": "Edited {{time}}",
+    "emptyDocument": "Empty document"
+  },
+  "templates": {
+    "title": "New document",
+    "subtitle": "Choose a template or start from a blank page",
+    "searchPlaceholder": "Search templates…",
+    "customTemplate": "Custom template",
+    "all": "All",
+    "customTemplates": "Custom templates",
+    "myCategories": "My categories",
+    "addCategory": "Add",
+    "noCustomCategories": "No custom categories yet. Click Add to create your own label.",
+    "noMatch": "No templates match the filter.",
+    "noneYet": "No templates yet.",
+    "clearFilter": "Clear filter",
+    "creating": "Creating…",
+    "createDocument": "Create document",
+    "deleteTemplateTitle": "Delete template",
+    "deleteTemplateConfirm": "Delete template “{{name}}”?",
+    "deleteTemplateError": "Failed to delete template",
+    "newCategoryTitle": "New category",
+    "newCategoryPlaceholder": "e.g. Marketing",
+    "categoryCreated": "Category created",
+    "categoryCreateError": "Failed to create category",
+    "deleteCategoryTitle": "Delete category",
+    "deleteCategoryConfirm": "Delete category “{{name}}”?",
+    "deleteCategoryMessage": "Category “{{name}}” will be removed. {{note}}",
+    "deleteCategoryMove_one": "1 template will move to General.",
+    "deleteCategoryMove_other": "{{count}} templates will move to General.",
+    "categoryDeleted": "Category deleted",
+    "categoryDeleteError": "Failed to delete category",
+    "deleteCategoryAria": "Delete category",
+    "templateSaved": "Template saved",
+    "templateSaveError": "Failed to save template",
+    "customTemplateFallback": "Custom template",
+    "defaultDocumentTitle": "New document",
+    "dialogDescription": "Saved locally on this computer. Content has {{count}} {{blocks}}.",
+    "blockCount_one": "block",
+    "blockCount_few": "blocks",
+    "blockCount_many": "blocks",
+    "blockCount_other": "blocks",
+    "nameLabel": "Template name",
+    "namePlaceholder": "e.g. Weekly report",
+    "documentTitleLabel": "Default document title",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Short description of the template purpose",
+    "categoryLabel": "Category",
+    "newCategoryChip": "New",
+    "saving": "Saving…",
+    "saveTemplate": "Save template"
+  },
+  "pdfPreview": {
+    "title": "PDF preview",
+    "ariaLabel": "PDF preview: {{title}}",
+    "export": "Export",
+    "generating": "Generating PDF preview…",
+    "errorFallback": "Failed to generate PDF preview.",
+    "errorHint": "Try again or export directly to a file via the File menu."
+  },
+  "toolbar": {
+    "groups": {
+      "history": "History",
+      "blockType": "Block type",
+      "formatting": "Formatting",
+      "emoji": "Emoji",
+      "font": "Font",
+      "colors": "Colors",
+      "media": "Media",
+      "math": "Math",
+      "code": "Code",
+      "table": "Table",
+      "insert": "Insert",
+      "paragraph": "Paragraph format",
+      "more": "More",
+      "deletion": "Delete",
+      "display": "Display",
+      "lists": "Lists",
+      "blocks": "Blocks",
+      "alignment": "Alignment"
+    },
+    "actions": {
+      "undo": "Undo (⌘Z)",
+      "redo": "Redo (⌘⇧Z)",
+      "bold": "Bold (⌘B)",
+      "italic": "Italic (⌘I)",
+      "underline": "Underline (⌘U)",
+      "strike": "Strikethrough (⌘⇧X)",
+      "bulletList": "Bullets (⌘⇧8)",
+      "orderedList": "Numbered list (⌘⇧7)",
+      "taskList": "Checklist (⌘⇧9)",
+      "alignLeft": "Align left",
+      "alignCenter": "Align center",
+      "alignRight": "Align right",
+      "alignJustify": "Justify",
+      "link": "Link (⌘K)",
+      "inlineCode": "Inline code (⌘E)",
+      "superscript": "Superscript",
+      "subscript": "Subscript",
+      "textColor": "Text color",
+      "highlight": "Highlight",
+      "emoji": "Emoji",
+      "insert": "Insert",
+      "image": "Image",
+      "table": "Table",
+      "youtube": "YouTube",
+      "youtubeVideo": "YouTube video",
+      "tableOfContents": "Table of contents (TOC)",
+      "pageBreak": "Page break",
+      "inlineMath": "Inline formula",
+      "inlineMathFull": "Inline formula (math.js)",
+      "blockMath": "Formula block",
+      "blockMathFull": "Formula block (math.js)",
+      "codeBlock": "Code block",
+      "paragraphFormat": "Paragraph format",
+      "moreTools": "More tools",
+      "alignment": "Alignment",
+      "typography": "Typography · {{font}}",
+      "fontSize": "Size",
+      "fontSizeTitle": "Font size",
+      "resetFontSize": "Reset size",
+      "fontFamily": "Font",
+      "fontTitle": "Font",
+      "paragraphStyles": "Paragraph styles",
+      "lineHeight": "Line height",
+      "resetLineHeight": "Reset line height",
+      "spaceAfter": "Space after paragraph",
+      "quote": "Quote",
+      "divider": "Divider",
+      "detailsBlock": "Collapsible section",
+      "syntaxLanguage": "Syntax language",
+      "addRow": "Add row",
+      "addColumn": "Add column",
+      "showInvisible": "Show invisible characters",
+      "hideInvisible": "Hide invisible characters",
+      "spellcheckOn": "Enable spell check",
+      "spellcheckOff": "Disable spell check",
+      "savedVersions": "Saved document versions",
+      "noSavedVersions": "No saved versions",
+      "textLabel": "Text",
+      "highlightLabel": "Highlight",
+      "customColor": "Custom"
+    },
+    "linkDialog": {
+      "title": "Link",
+      "description": "Enter the link URL.",
+      "confirm": "Apply"
+    },
+    "paragraphStyles": {
+      "title": "Title",
+      "subtitle": "Subtitle",
+      "heading": "Section heading",
+      "body": "Body",
+      "caption": "Caption"
+    },
+    "lineHeights": {
+      "single": "Single",
+      "double": "Double"
+    },
+    "spacing": {
+      "none": "None",
+      "small": "Small (6 px)",
+      "medium": "Medium (12 px)",
+      "large": "Large (18 px)",
+      "extra": "Extra (24 px)"
+    },
+    "stats": {
+      "word_one": "{{count}} word",
+      "word_other": "{{count}} words",
+      "characters": "{{count}} characters"
+    },
+    "toasts": {
+      "revisionRestored": "Version restored",
+      "revisionRestoreFailed": "Failed to restore version"
+    },
+    "blockTypes": {
+      "paragraph": "Paragraph",
+      "blockquote": "Quote",
+      "heading": "Heading {{level}}",
+      "title": "Block type"
+    }
+  },
+  "editorActions": {
+    "deleteSelection": "Delete",
+    "deleteSelectedText": "Delete selection",
+    "deleteBlock": "Delete block",
+    "deleteCodeBlock": "Delete code block",
+    "deleteBlockquote": "Delete quote",
+    "deleteHr": "Delete divider",
+    "deleteImage": "Delete image",
+    "deleteList": "Delete list",
+    "deleteChecklist": "Delete checklist",
+    "deleteHighlight": "Remove highlight",
+    "deleteTable": "Delete table",
+    "moveBlock": "Move block",
+    "moveBlockHint": "Drag to move the block",
+    "insertBlock": "Insert block",
+    "insertBlockHint": "Insert a block or type /",
+    "comment": "Comment",
+    "linkUrlPrompt": "Link URL",
+    "documentNotFound": "Document not found",
+    "newComment": "New comment",
+    "commentPlaceholder": "Write a comment…",
+    "addComment": "Add",
+    "commentAddError": "Failed to add comment",
+    "clearFormatting": "Remove formatting",
+    "clearDocument": "Clear entire document"
+  },
+  "printLayout": {
+    "oneColumn": "One column",
+    "twoColumns": "Two columns",
+    "twoColumnsSpread": "Two columns (spread)",
+    "moreActions": "More document actions",
+    "more": "More",
+    "layout": "Layout",
+    "pageLayout": "Page layout",
+    "page": "Page",
+    "pageSetup": "Page setup",
+    "preview": "Preview",
+    "zoom": "Zoom",
+    "moveToFolder": "Move to folder"
   }
 }

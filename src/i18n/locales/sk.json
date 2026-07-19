@@ -23,13 +23,26 @@
     "home": "Na úvod",
     "tryAgain": "Skúsiť znova",
     "total": "{{count}} celkom",
-    "copySuffix": "(kópia)"
+    "copySuffix": "(kópia)",
+    "delete": "Vymazať",
+    "restore": "Obnoviť",
+    "rename": "Premenovať",
+    "untitled": "Bez názvu",
+    "loading": "Načítavam…",
+    "refresh": "Obnoviť",
+    "document": "Dokument",
+    "filter": "Filter",
+    "confirm": "Potvrdiť",
+    "folder": "Priečinok",
+    "all": "Všetko"
   },
   "nav": {
     "editor": "Editor",
     "settings": "Nastavenia",
     "settingsSections": "Sekcie nastavení",
-    "closeLibrary": "Zavrieť knižnicu"
+    "closeLibrary": "Zavrieť knižnicu",
+    "openLibrary": "Otvoriť knižnicu",
+    "library": "Knižnica"
   },
   "welcome": {
     "brand": "Scribe",
@@ -82,6 +95,8 @@
     "toggleTheme": "Prepínať tému",
     "randomTheme": "Náhodná téma",
     "randomThemeHint": "Vygenerovať vlastnú paletu",
+    "switchToEnglish": "Prepnúť na English",
+    "switchToSlovak": "Prepnúť na slovenčinu",
     "newFolder": "Nový priečinok",
     "newFolderTitle": "Nový priečinok",
     "newFolderPlaceholder": "Názov priečinka"
@@ -142,6 +157,7 @@
     "language": {
       "title": "Jazyk",
       "description": "Jazyk rozhrania aplikácie.",
+      "rowDescription": "Prepína texty menu, dialógov a editora.",
       "sk": "Slovenčina",
       "en": "English"
     },
@@ -160,18 +176,22 @@
       "randomCardDescription": "Nová paleta jedným klikom"
     },
     "storage": {
+      "pageTitle": "Úložisko",
+      "pageDescription": "Priečinok na disku, záloha knižnice a vymazanie údajov.",
       "folderTitle": "Priečinok dokumentov",
       "folderDescription": "Všetky dokumenty sa ukladajú do lokálnej databázy aplikácie. Tento priečinok drží zálohu vo formáte .scribe.",
+      "folderDescriptionShort": "Lokálna databáza + .scribe súbory na disku.",
       "folderNote": "Ak zápis na disk zlyhá, editor naďalej funguje a dokument zostane uložený v aplikácii. V takom prípade zmeňte priečinok alebo skontrolujte oprávnenia k disku.",
-      "whyAccessLink": "Prečo Scribe pýta prístup k priečinku?",
-      "changeFolder": "Zmeniť priečinok",
-      "openInFinder": "Otvoriť vo Finderi",
-      "reconcile": "Synchronizovať s diskom",
+      "whyAccessLink": "Prečo prístup?",
+      "changeFolder": "Zmeniť",
+      "openInFinder": "Finder",
+      "reconcile": "Synchronizovať",
       "reconciling": "Synchronizujem…",
       "reconcileSuccess": "Synchronizované: {{toDisk}} na disk, {{fromDisk}} z disku, {{imported}} nových.",
       "reconcileFailed": "Synchronizácia zlyhala.",
       "clearTitle": "Vyčistiť údaje",
       "clearDescription": "Vymaže všetky dokumenty z aplikácie, príslušné .scribe súbory na disku a uložené obrázky.",
+      "clearDescriptionShort": "Natrvalo zmaže dokumenty, .scribe súbory a obrázky.",
       "clearing": "Mažem…",
       "clearAll": "Vyčistiť všetko",
       "clearConfirm": "Natrvalo vymažete všetky dokumenty, .scribe súbory a obrázky v priečinku. Túto akciu nie je možné vrátiť späť.",
@@ -180,11 +200,12 @@
       "folderChanged": "Priečinok dokumentov zmenený",
       "backupTitle": "Záloha knižnice",
       "backupDescription": "Export alebo import celého archívu (.scribe-backup.zip) vrátane SQLite a súborov na disku.",
-      "backupExport": "Exportovať zálohu",
+      "backupDescriptionShort": "Export / import celého archívu (.scribe-backup.zip).",
+      "backupExport": "Exportovať",
       "backupExporting": "Exportujem…",
       "backupExportDone": "Záloha exportovaná",
       "backupExportError": "Export zálohy zlyhal",
-      "backupImport": "Importovať zálohu",
+      "backupImport": "Importovať",
       "backupImporting": "Importujem…",
       "backupImportDone": "Záloha obnovená",
       "backupImportError": "Import zálohy zlyhal",
@@ -278,6 +299,50 @@
       "label": "Čítací režim",
       "labelOff": "Vypnúť čítací režim",
       "description": "Čistý náhľad bez úprav"
+    },
+    "closeFind": {
+      "label": "Zavrieť vyhľadávanie",
+      "description": "Zavrie panel hľadať a nahradiť"
+    },
+    "bold": {
+      "label": "Tučné",
+      "description": "Prepnúť tučné písmo"
+    },
+    "italic": {
+      "label": "Kurzíva",
+      "description": "Prepnúť kurzívu"
+    },
+    "underline": {
+      "label": "Podčiarknutie",
+      "description": "Prepnúť podčiarknutie"
+    },
+    "strike": {
+      "label": "Prečiarknuté",
+      "description": "Prepnúť prečiarknutie"
+    },
+    "inlineCode": {
+      "label": "Inline kód",
+      "description": "Prepnúť inline kód"
+    },
+    "bulletList": {
+      "label": "Odrážky",
+      "description": "Vložiť odrážkový zoznam"
+    },
+    "orderedList": {
+      "label": "Číslovaný zoznam",
+      "description": "Vložiť číslovaný zoznam"
+    },
+    "taskList": {
+      "label": "Checklist",
+      "description": "Vložiť zoznam úloh"
+    },
+    "link": {
+      "label": "Odkaz",
+      "description": "Vložiť alebo upraviť odkaz"
+    },
+    "closePanel": {
+      "label": "Zavrieť panel",
+      "description": "Zavrie vyhľadávanie alebo režim"
     }
   },
   "quickNote": {
@@ -289,6 +354,7 @@
   },
   "library": {
     "title": "Knižnica",
+    "allDocuments": "Všetky dokumenty",
     "documentCount_one": "{{count}} dokument",
     "documentCount_few": "{{count}} dokumenty",
     "documentCount_many": "{{count}} dokumentov",
@@ -300,7 +366,181 @@
       "favorites": "Obľúbené",
       "tags": "Štítky",
       "graph": "Graf odkazov"
+    },
+    "trash": "Kôš",
+    "newFolder": "Nový priečinok",
+    "newSubfolder": "Nový podpriečinok",
+    "renameFolder": "Premenovať priečinok",
+    "deleteFolder": "Vymazať priečinok",
+    "deleteFolderTitle": "Vymazať priečinok?",
+    "trashFolderTitle": "Presunúť do koša?",
+    "trashFolderOk": "Presunúť do koša",
+    "trashAllInFolder": "Presunúť všetky dokumenty do koša",
+    "moveToTrash": "Presunúť do koša",
+    "favorite": "Obľúbené",
+    "tags": "Štítky",
+    "documentTags": "Štítky dokumentu",
+    "documentTagsHint": "Oddeľte štítky čiarkou",
+    "folderNamePlaceholder": "Názov priečinka",
+    "noResults": "Žiadne výsledky.",
+    "noDocumentsYet": "Zatiaľ žiadne dokumenty.",
+    "noFavorites": "Žiadne obľúbené",
+    "noFavoritesHint": "Kliknite na hviezdičku pri dokumente v záložke Priečinky.",
+    "noTags": "Žiadne štítky",
+    "noTagsHint": "Pridajte štítky k dokumentu v knižnici.",
+    "selectTag": "Vyberte štítok…",
+    "documentsWithTag": "Dokumenty so štítkom",
+    "clearFilter": "Zrušiť filter",
+    "searchResults": "Výsledky v obsahu",
+    "searching": "Hľadám…",
+    "searchEmpty": "Nič sa nenašlo",
+    "moveToFolder": "Presunúť do priečinka",
+    "rootFolder": "Koreň (bez priečinka)",
+    "rootLibrary": "Koreň knižnice",
+    "tagCount_one": "{{count}} štítok",
+    "tagCount_few": "{{count}} štítky",
+    "tagCount_many": "{{count}} štítkov",
+    "tagCount_other": "{{count}} štítkov",
+    "deleteFolderWithDocs": "Vymazaním priečinka „{{name}}“ sa presunú do koša aj {{docs}} v ňom a v podpriečinkoch. Samotný priečinok sa odstráni.",
+    "deleteFolderEmpty": "Vymazaním priečinka „{{name}}“ sa odstránia aj všetky podpriečinky.",
+    "trashFolderConfirm": "Presunúť {{docs}} z priečinka „{{name}}“ (vrátane podpriečinkov) do koša? Priečinok ostane zachovaný."
+  },
+  "trash": {
+    "title": "Kôš",
+    "empty": "Vysypať kôš",
+    "emptyTitle": "Vysypať kôš?",
+    "emptyConfirm": "Všetky dokumenty v koši sa natrvalo odstránia. Túto akciu nie je možné vrátiť.",
+    "emptyOk": "Vysypať",
+    "hint": "Vymazané dokumenty sa zobrazia tu.",
+    "deletedAt": "Vymazané {{time}}",
+    "purgeTitle": "Odstrániť natrvalo?",
+    "purgeConfirm": "Dokument „{{title}}“ sa natrvalo odstráni. Túto akciu nie je možné vrátiť.",
+    "purgeOk": "Odstrániť",
+    "purgeForever": "Odstrániť natrvalo"
+  },
+  "editorPanels": {
+    "ariaLabel": "Panely dokumentu",
+    "outline": "Štruktúra dokumentu",
+    "comments": "Komentáre",
+    "backlinks": "Odkazy sem",
+    "stats": "Štatistika",
+    "revisions": "História verzií",
+    "findReplace": "Nájsť a nahradiť",
+    "findReplaceClose": "Zavrieť vyhľadávanie"
+  },
+  "panels": {
+    "comments": {
+      "hide": "Skryť komentáre",
+      "noComments": "Žiadne komentáre",
+      "threadCount_one": "{{count}} vlákno",
+      "threadCount_few": "{{count}} vlákna",
+      "threadCount_many": "{{count}} vláken",
+      "threadCount_other": "{{count}} vláken",
+      "hideResolved": "Skryť vyriešené",
+      "showResolved": "Zobraziť vyriešené ({{count}})",
+      "emptyHint": "Označte text a pridajte komentár cez plávajúcu lištu.",
+      "jumpToAnchor": "Prejsť na miesto v texte",
+      "reopen": "Znovu otvoriť",
+      "resolve": "Vyriešiť",
+      "replyPlaceholder": "Odpovedať…",
+      "sendReply": "Odoslať odpoveď",
+      "signedAs": "Podpísané ako",
+      "authorPlaceholder": "Vaše meno",
+      "anchorNotFound": "Ukotvenie komentára sa v texte nenašlo",
+      "loadError": "Nepodarilo sa načítať komentáre",
+      "resolveError": "Nepodarilo sa zmeniť stav",
+      "deleteError": "Nepodarilo sa vymazať komentár",
+      "replyError": "Nepodarilo sa pridať odpoveď"
+    },
+    "outline": {
+      "title": "Štruktúra",
+      "hide": "Skryť štruktúru",
+      "elementCount_one": "{{count}} element",
+      "elementCount_few": "{{count}} elementy",
+      "elementCount_many": "{{count}} elementov",
+      "elementCount_other": "{{count}} elementov",
+      "empty": "Dokument zatiaľ nemá žiadne bloky na zobrazenie."
+    },
+    "backlinks": {
+      "title": "Prepojenia",
+      "hide": "Skryť prepojenia",
+      "noConnections": "Žiadne prepojenia",
+      "emptyHint": "Žiadne prepojenia. Napíšte <code>[[</code> a prepojte dokumenty.",
+      "incoming": "Odkazy sem",
+      "outgoing": "Odkazy odtiaľto",
+      "incomingEmpty": "Zatiaľ sem neodkazuje žiadny dokument.",
+      "outgoingEmpty": "Tento dokument zatiaľ na nič neodkazuje.",
+      "loadError": "Nepodarilo sa načítať odkazy"
+    },
+    "stats": {
+      "subtitle": "Prehľad dokumentu",
+      "hide": "Skryť štatistiku",
+      "words": "Slová",
+      "characters": "Znaky",
+      "charactersNoSpaces": "Znaky (bez medzier)",
+      "paragraphs": "Odseky",
+      "sentences": "Vety",
+      "readingTime": "Čas čítania",
+      "readingTimeZero": "0 min",
+      "readingTimeUnderOne": "< 1 min",
+      "readingTimeMinutes": "{{count}} min",
+      "wordGoal": "Cieľ počtu slov",
+      "goalPlaceholder": "napr. 500",
+      "goalProgress": "{{current}} / {{goal}} slov · {{percent}}%",
+      "goalComplete": " · Hotovo!"
+    },
+    "revisions": {
+      "subtitle": "Automaticky uložené verzie dokumentu",
+      "compareTitle": "Porovnať verzie",
+      "versionA": "Verzia A",
+      "versionB": "Verzia B",
+      "selectVersionA": "Vyberte verziu A",
+      "selectVersionB": "Vyberte verziu B",
+      "comparing": "Porovnávam…",
+      "compare": "Porovnať",
+      "loading": "Načítavam verzie…",
+      "empty": "Zatiaľ žiadne uložené verzie. Verzie sa vytvárajú pri každom uložení dokumentu.",
+      "vsCurrent": "vs aktuálna",
+      "restoring": "Obnovujem…",
+      "restoreConfirmTitle": "Obnoviť verziu",
+      "restoreConfirm": "Obnoviť verziu „{{title}}“ z {{time}}? Aktuálny obsah bude nahradený.",
+      "restoreSuccess": "Verzia obnovená",
+      "restoreError": "Obnovenie verzie zlyhalo",
+      "compareError": "Porovnanie verzií zlyhalo",
+      "selectTwoVersions": "Vyberte dve rôzne verzie",
+      "currentVersion": "Aktuálna verzia",
+      "diffTitle": "Porovnanie verzií",
+      "sideA": "A:",
+      "sideB": "B:",
+      "linesAdded": "+{{count}} riadkov",
+      "linesRemoved": "−{{count}} riadkov",
+      "noDiff": "Bez rozdielov",
+      "changesOnly": "Len zmeny",
+      "viewModeAria": "Režim zobrazenia",
+      "viewSplit": "Vedľa seba",
+      "viewUnified": "Zjednotený diff",
+      "noDiffToShow": "Žiadne rozdiely na zobrazenie."
     }
+  },
+  "focusMode": {
+    "exit": "Ukončiť sústredenie",
+    "exitHint": "Ukončiť režim sústredenia (Esc)"
+  },
+  "findReplace": {
+    "findPlaceholder": "Hľadať v dokumente…",
+    "replacePlaceholder": "Nahradiť…",
+    "replaceWith": "Nahradiť za…",
+    "matchCase": "Rozlišovať veľkosť písmen",
+    "previous": "Predchádzajúca (⇧⏎)",
+    "next": "Ďalšia (⏎)",
+    "replace": "Nahradiť",
+    "replaceAll": "Všetko",
+    "close": "Zavrieť (Esc)",
+    "closeAria": "Zavrieť vyhľadávanie"
+  },
+  "viewMode": {
+    "rich": "Formátovaný text",
+    "markdown": "Markdown"
   },
   "linkGraph": {
     "loading": "Načítavam graf odkazov…",
@@ -323,11 +563,19 @@
     "documentsDir": "Priečinok dokumentov",
     "flushPending": "Vynútiť zápis na disk",
     "flushDone": "Zápisy na disk dokončené",
+    "flushEmpty": "Žiadne čakajúce zápisy",
+    "flushCount": "{{count}} súborov zapísaných",
     "flushError": "Zápis na disk zlyhal",
     "reconcile": "Synchronizovať úložisko",
     "copy": "Kopírovať JSON",
     "copied": "Diagnostika skopírovaná",
-    "checkUpdates": "Skontrolovať aktualizácie"
+    "copyEmpty": "Nie sú načítané žiadne údaje",
+    "copyError": "Kopírovanie zlyhalo",
+    "checkUpdates": "Skontrolovať aktualizácie",
+    "updatesChecking": "Otváram…",
+    "updatesOpened": "Stránka s release otvorená",
+    "updatesOpenedHint": "Aktuálna verzia: {{version}}",
+    "updatesError": "Nepodarilo sa otvoriť stránku s aktualizáciami"
   },
   "toasts": {
     "reconcileSuccess": "Synchronizácia dokončená",
@@ -363,9 +611,369 @@
     "demoOpened": "Ukážkový dokument otvorený",
     "demoCreated": "Ukážkový dokument vytvorený",
     "demoError": "Nepodarilo sa načítať ukážkový dokument",
+    "localeChanged": "Jazyk zmenený",
     "trashLoadError": "Nepodarilo sa načítať kôš",
     "trashEmptied": "Kôš vysypaný",
     "trashEmptyError": "Nepodarilo sa vysypať kôš",
     "trashPurgeError": "Nepodarilo sa odstrániť dokument"
+  },
+  "slash": {
+    "empty": "Žiadne príkazy",
+    "h1": {
+      "label": "Nadpis 1",
+      "hint": "Veľký nadpis"
+    },
+    "h2": {
+      "label": "Nadpis 2",
+      "hint": "Stredný nadpis"
+    },
+    "h3": {
+      "label": "Nadpis 3",
+      "hint": "Menší nadpis"
+    },
+    "h4": {
+      "label": "Nadpis 4",
+      "hint": "Podnadpis"
+    },
+    "h5": {
+      "label": "Nadpis 5",
+      "hint": "Malý nadpis"
+    },
+    "h6": {
+      "label": "Nadpis 6",
+      "hint": "Najmenší nadpis"
+    },
+    "bullet": {
+      "label": "Zoznam",
+      "hint": "Odrážky"
+    },
+    "ordered": {
+      "label": "Číslovaný zoznam",
+      "hint": "1. 2. 3."
+    },
+    "task": {
+      "label": "Úlohy",
+      "hint": "Checklist"
+    },
+    "quote": {
+      "label": "Citácia",
+      "hint": "Blok citátu"
+    },
+    "inline-code": {
+      "label": "Inline kód",
+      "hint": "Kód v riadku (⌘E)"
+    },
+    "code": {
+      "label": "Blok kódu",
+      "hint": "Viacriadkový kód"
+    },
+    "table": {
+      "label": "Tabuľka",
+      "hint": "3×3"
+    },
+    "image": {
+      "label": "Obrázok",
+      "hint": "Vložiť obrázok"
+    },
+    "math-inline": {
+      "label": "Vzorec",
+      "hint": "math.js v riadku"
+    },
+    "math-block": {
+      "label": "Vzorec blok",
+      "hint": "math.js blok"
+    },
+    "hr": {
+      "label": "Oddeľovač",
+      "hint": "Horizontálna čiara"
+    },
+    "callout-info": {
+      "label": "Callout: Info",
+      "hint": "Informačný blok"
+    },
+    "callout-tip": {
+      "label": "Callout: Tip",
+      "hint": "Tip / rada"
+    },
+    "callout-warning": {
+      "label": "Callout: Varovanie",
+      "hint": "Upozornenie"
+    },
+    "callout-danger": {
+      "label": "Callout: Dôležité",
+      "hint": "Kritická poznámka"
+    },
+    "footnote": {
+      "label": "Poznámka pod čiarou",
+      "hint": "Číslovaná poznámka"
+    },
+    "comment": {
+      "label": "Komentár",
+      "hint": "Poznámka k textu"
+    },
+    "wiki-link": {
+      "label": "Prepojiť dokument",
+      "hint": "Odkaz [[ na dokument"
+    },
+    "toc": {
+      "label": "Obsah",
+      "hint": "Automatický TOC"
+    }
+  },
+  "floatingMenu": {
+    "slashHint": "Alebo napíšte / pre všetky príkazy",
+    "heading": "Nadpis",
+    "headingHint": "H2",
+    "list": "Zoznam",
+    "listHint": "Odrážky",
+    "ordered": "Číslovaný",
+    "orderedHint": "1. 2. 3.",
+    "tasks": "Úlohy",
+    "tasksHint": "Checklist",
+    "quote": "Citácia",
+    "quoteHint": "Blok",
+    "code": "Kód",
+    "codeHint": "Blok",
+    "table": "Tabuľka",
+    "tableHint": "3×3",
+    "image": "Obrázok",
+    "imageHint": "Súbor"
+  },
+  "emojiPicker": {
+    "searchPlaceholder": "Hľadať emoji…"
+  },
+  "pagination": {
+    "ariaLabel": "Stránkovanie dokumentu",
+    "previousPage": "Predchádzajúca strana",
+    "nextPage": "Ďalšia strana",
+    "page": "Strana {{page}}",
+    "summary": "Strana {{current}} / {{total}}"
+  },
+  "wikiLink": {
+    "modified": "Upravené {{time}}",
+    "emptyDocument": "Prázdny dokument"
+  },
+  "templates": {
+    "title": "Nový dokument",
+    "subtitle": "Vyberte šablónu alebo začnite od prázdnej stránky",
+    "searchPlaceholder": "Hľadať šablóny…",
+    "customTemplate": "Vlastná šablóna",
+    "all": "Všetky",
+    "customTemplates": "Vlastné šablóny",
+    "myCategories": "Moje kategórie",
+    "addCategory": "Pridať",
+    "noCustomCategories": "Zatiaľ žiadne vlastné kategórie. Kliknite na Pridať a vytvorte si vlastný štítok.",
+    "noMatch": "Žiadna šablóna nevyhovuje filtru.",
+    "noneYet": "Zatiaľ žiadne šablóny.",
+    "clearFilter": "Vymazať filter",
+    "creating": "Vytváram…",
+    "createDocument": "Vytvoriť dokument",
+    "deleteTemplateTitle": "Vymazať šablónu",
+    "deleteTemplateConfirm": "Vymazať šablónu „{{name}}“?",
+    "deleteTemplateError": "Nepodarilo sa vymazať šablónu",
+    "newCategoryTitle": "Nová kategória",
+    "newCategoryPlaceholder": "napr. Marketing",
+    "categoryCreated": "Kategória vytvorená",
+    "categoryCreateError": "Nepodarilo sa vytvoriť kategóriu",
+    "deleteCategoryTitle": "Odstrániť kategóriu",
+    "deleteCategoryConfirm": "Odstrániť kategóriu „{{name}}“?",
+    "deleteCategoryMessage": "Kategória „{{name}}“ sa odstráni. {{note}}",
+    "deleteCategoryMove_one": "1 šablóna sa presunie do Všeobecné.",
+    "deleteCategoryMove_few": "{{count}} šablóny sa presunú do Všeobecné.",
+    "deleteCategoryMove_many": "{{count}} šablón sa presunie do Všeobecné.",
+    "deleteCategoryMove_other": "{{count}} šablón sa presunie do Všeobecné.",
+    "categoryDeleted": "Kategória odstránená",
+    "categoryDeleteError": "Nepodarilo sa odstrániť kategóriu",
+    "deleteCategoryAria": "Odstrániť kategóriu",
+    "templateSaved": "Šablóna uložená",
+    "templateSaveError": "Nepodarilo sa uložiť šablónu",
+    "customTemplateFallback": "Vlastná šablóna",
+    "defaultDocumentTitle": "Nový dokument",
+    "dialogDescription": "Uloží sa lokálne do tohto počítača. Obsah má {{count}} {{blocks}}.",
+    "blockCount_one": "blok",
+    "blockCount_few": "bloky",
+    "blockCount_many": "blokov",
+    "blockCount_other": "blokov",
+    "nameLabel": "Názov šablóny",
+    "namePlaceholder": "napr. Týždenný report",
+    "documentTitleLabel": "Predvolený názov dokumentu",
+    "descriptionLabel": "Popis",
+    "descriptionPlaceholder": "Krátky popis účelu šablóny",
+    "categoryLabel": "Kategória",
+    "newCategoryChip": "Nová",
+    "saving": "Ukladám…",
+    "saveTemplate": "Uložiť šablónu"
+  },
+  "pdfPreview": {
+    "title": "Náhľad PDF",
+    "ariaLabel": "Náhľad PDF: {{title}}",
+    "export": "Exportovať",
+    "generating": "Generujem PDF náhľad…",
+    "errorFallback": "Nepodarilo sa vygenerovať náhľad PDF.",
+    "errorHint": "Skúste znova alebo exportujte priamo do súboru cez menu Súbor."
+  },
+  "toolbar": {
+    "groups": {
+      "history": "História",
+      "blockType": "Typ bloku",
+      "formatting": "Formátovanie",
+      "emoji": "Emoji",
+      "font": "Písmo",
+      "colors": "Farby",
+      "media": "Média",
+      "math": "Matematika",
+      "code": "Kód",
+      "table": "Tabuľka",
+      "insert": "Vložiť",
+      "paragraph": "Formát odseku",
+      "more": "Ďalšie",
+      "deletion": "Mazanie",
+      "display": "Zobrazenie",
+      "lists": "Zoznamy",
+      "blocks": "Bloky",
+      "alignment": "Zarovnanie"
+    },
+    "actions": {
+      "undo": "Späť (⌘Z)",
+      "redo": "Znovu (⌘⇧Z)",
+      "bold": "Tučné (⌘B)",
+      "italic": "Kurzíva (⌘I)",
+      "underline": "Podčiarknutie (⌘U)",
+      "strike": "Prečiarknuté (⌘⇧X)",
+      "bulletList": "Odrážky (⌘⇧8)",
+      "orderedList": "Číslovaný zoznam (⌘⇧7)",
+      "taskList": "Checklist (⌘⇧9)",
+      "alignLeft": "Vľavo",
+      "alignCenter": "Na stred",
+      "alignRight": "Vpravo",
+      "alignJustify": "Do bloku",
+      "link": "Odkaz (⌘K)",
+      "inlineCode": "Inline kód (⌘E)",
+      "superscript": "Horný index",
+      "subscript": "Dolný index",
+      "textColor": "Farba textu",
+      "highlight": "Zvýraznenie",
+      "emoji": "Emoji",
+      "insert": "Vložiť",
+      "image": "Obrázok",
+      "table": "Tabuľka",
+      "youtube": "YouTube",
+      "youtubeVideo": "YouTube video",
+      "tableOfContents": "Obsah (TOC)",
+      "pageBreak": "Zalomenie strany",
+      "inlineMath": "Vzorec v riadku",
+      "inlineMathFull": "Vzorec v riadku (math.js)",
+      "blockMath": "Vzorec blok",
+      "blockMathFull": "Vzorec blok (math.js)",
+      "codeBlock": "Blok kódu",
+      "paragraphFormat": "Formát odseku",
+      "moreTools": "Ďalšie nástroje",
+      "alignment": "Zarovnanie",
+      "typography": "Typografia · {{font}}",
+      "fontSize": "Veľkosť",
+      "fontSizeTitle": "Veľkosť písma",
+      "resetFontSize": "Reset veľkosti",
+      "fontFamily": "Písmo",
+      "fontTitle": "Font",
+      "paragraphStyles": "Štýly odsekov",
+      "lineHeight": "Riadkovanie",
+      "resetLineHeight": "Reset riadkovania",
+      "spaceAfter": "Medzera pod odsekom",
+      "quote": "Citácia",
+      "divider": "Oddeľovač",
+      "detailsBlock": "Rozbaľovacia sekcia",
+      "syntaxLanguage": "Jazyk syntaxe",
+      "addRow": "Pridať riadok",
+      "addColumn": "Pridať stĺpec",
+      "showInvisible": "Zobraziť neviditeľné znaky",
+      "hideInvisible": "Skryť neviditeľné znaky",
+      "spellcheckOn": "Zapnúť kontrolu pravopisu",
+      "spellcheckOff": "Vypnúť kontrolu pravopisu",
+      "savedVersions": "Uložené verzie dokumentu",
+      "noSavedVersions": "Žiadne uložené verzie",
+      "textLabel": "Text",
+      "highlightLabel": "Zvýraznenie",
+      "customColor": "Vlastná"
+    },
+    "linkDialog": {
+      "title": "Odkaz",
+      "description": "Zadajte URL adresu odkazu.",
+      "confirm": "Použiť"
+    },
+    "paragraphStyles": {
+      "title": "Titulok",
+      "subtitle": "Podtitul",
+      "heading": "Nadpis sekcie",
+      "body": "Text",
+      "caption": "Popisok"
+    },
+    "lineHeights": {
+      "single": "Jednoduché",
+      "double": "Dvojité"
+    },
+    "spacing": {
+      "none": "Žiadne",
+      "small": "Malé (6 px)",
+      "medium": "Stredné (12 px)",
+      "large": "Veľké (18 px)",
+      "extra": "Extra (24 px)"
+    },
+    "stats": {
+      "word_one": "{{count}} slovo",
+      "word_few": "{{count}} slová",
+      "word_many": "{{count}} slov",
+      "word_other": "{{count}} slov",
+      "characters": "{{count}} znakov"
+    },
+    "toasts": {
+      "revisionRestored": "Verzia obnovená",
+      "revisionRestoreFailed": "Obnovenie verzie zlyhalo"
+    },
+    "blockTypes": {
+      "paragraph": "Odsek",
+      "blockquote": "Citácia",
+      "heading": "Nadpis {{level}}",
+      "title": "Typ bloku"
+    }
+  },
+  "editorActions": {
+    "deleteSelection": "Odstrániť",
+    "deleteSelectedText": "Odstrániť výber",
+    "deleteBlock": "Odstrániť blok",
+    "deleteCodeBlock": "Odstrániť blok kódu",
+    "deleteBlockquote": "Odstrániť citáciu",
+    "deleteHr": "Odstrániť oddeľovač",
+    "deleteImage": "Odstrániť obrázok",
+    "deleteList": "Odstrániť zoznam",
+    "deleteChecklist": "Odstrániť checklist",
+    "deleteHighlight": "Odstrániť zvýraznenie",
+    "deleteTable": "Odstrániť tabuľku",
+    "moveBlock": "Presunúť blok",
+    "moveBlockHint": "Presuňte blok myšou",
+    "insertBlock": "Vložiť blok",
+    "insertBlockHint": "Vložiť blok alebo napíšte /",
+    "comment": "Komentár",
+    "linkUrlPrompt": "URL odkazu",
+    "documentNotFound": "Dokument sa nenašiel",
+    "newComment": "Nový komentár",
+    "commentPlaceholder": "Napíšte komentár…",
+    "addComment": "Pridať",
+    "commentAddError": "Nepodarilo sa pridať komentár",
+    "clearFormatting": "Odstrániť formátovanie",
+    "clearDocument": "Vyčistiť celý dokument"
+  },
+  "printLayout": {
+    "oneColumn": "Jeden stĺpec",
+    "twoColumns": "Dva stĺpce",
+    "twoColumnsSpread": "Dva stĺpce (spred)",
+    "moreActions": "Ďalšie akcie dokumentu",
+    "more": "Viac",
+    "layout": "Rozloženie",
+    "pageLayout": "Rozloženie strán",
+    "page": "Stránka",
+    "pageSetup": "Nastavenie stránky",
+    "preview": "Náhľad",
+    "zoom": "Zoom",
+    "moveToFolder": "Presunúť do priečinka"
   }
 }

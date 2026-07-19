@@ -1,4 +1,5 @@
 import type { Editor } from '@tiptap/react'
+import i18n from '@/i18n'
 import { createCommentThread } from '@/lib/db/api'
 import { promptInput } from '@/lib/input-dialog'
 import { toast } from '@/lib/toast'
@@ -24,10 +25,10 @@ export async function createCommentForSelection(editor: Editor): Promise<void> {
   const quote = editor.state.doc.textBetween(from, to, ' ').trim().slice(0, 280)
 
   const body = await promptInput({
-    title: 'Nový komentár',
+    title: i18n.t('editorActions.newComment'),
     description: quote ? `“${quote.slice(0, 120)}”` : undefined,
-    placeholder: 'Napíšte komentár…',
-    confirmLabel: 'Pridať',
+    placeholder: i18n.t('editorActions.commentPlaceholder'),
+    confirmLabel: i18n.t('editorActions.addComment'),
   })
   if (!body?.trim()) return
 
@@ -41,7 +42,7 @@ export async function createCommentForSelection(editor: Editor): Promise<void> {
     store.dispatch(setCommentsPanelOpen(true))
   } catch (error) {
     editor.chain().focus().removeCommentById({ commentId }).run()
-    toast.error('Nepodarilo sa pridať komentár', String(error))
+    toast.error(i18n.t('editorActions.commentAddError'), String(error))
   }
 }
 

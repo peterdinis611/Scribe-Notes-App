@@ -5,6 +5,8 @@ export type FolderPickerItem = {
   depth: number
 }
 
+type Translate = (key: string, options?: Record<string, unknown>) => string
+
 export function flattenFoldersForPicker(folders: Folder[]): FolderPickerItem[] {
   const childrenByParent = new Map<string | null, Folder[]>()
 
@@ -32,8 +34,12 @@ export function flattenFoldersForPicker(folders: Folder[]): FolderPickerItem[] {
   return items
 }
 
-export function folderPathLabel(folders: Folder[], folderId: string | null): string {
-  if (!folderId) return 'Koreň'
+export function folderPathLabel(
+  folders: Folder[],
+  folderId: string | null,
+  rootLabel = 'Koreň',
+): string {
+  if (!folderId) return rootLabel
 
   const byId = new Map(folders.map((folder) => [folder.id, folder]))
   const parts: string[] = []
@@ -44,7 +50,7 @@ export function folderPathLabel(folders: Folder[], folderId: string | null): str
     current = current.parentId ? byId.get(current.parentId) : undefined
   }
 
-  return parts.join(' / ') || 'Koreň'
+  return parts.join(' / ') || rootLabel
 }
 
 export function collectFolderSubtreeIds(folders: Folder[], rootId: string): Set<string> {
@@ -79,13 +85,32 @@ export function countDocumentsInFolders(
   return documents.filter((doc) => doc.folderId != null && folderIds.has(doc.folderId)).length
 }
 
+/** @deprecated Prefer formatDocumentCount with i18n */
 export function formatSlovakDocumentCount(count: number): string {
   if (count === 1) return '1 dokument'
   if (count >= 2 && count <= 4) return `${count} dokumenty`
   return `${count} dokumentov`
 }
 
-export function buildDeleteFolderConfirmMessage(folderName: string, documentCount: number): string {
+export function formatDocumentCount(count: number, t: Translate): string {
+  return t('library.documentCount', { count })
+}
+
+export function buildDeleteFolderConfirmMessage(
+  folderName: string,
+  documentCount: number,
+  t?: Translate,
+): string {
+  if (t) {
+    if (documentCount > 0) {
+      return t('library.deleteFolderWithDocs', {
+        name: folderName,
+        docs: formatDocumentCount(documentCount, t),
+      })
+    }
+    return t('library.deleteFolderEmpty', { name: folderName })
+  }
+
   if (documentCount > 0) {
     return `Vymazaním priečinka „${folderName}" sa presunú do koša aj ${formatSlovakDocumentCount(documentCount)} v ňom a v podpriečinkoch. Samotný priečinok sa odstráni.`
   }
@@ -93,6 +118,17 @@ export function buildDeleteFolderConfirmMessage(folderName: string, documentCoun
   return `Vymazaním priečinka „${folderName}" sa odstránia aj všetky podpriečinky.`
 }
 
-export function buildTrashFolderConfirmMessage(folderName: string, documentCount: number): string {
+export function buildTrashFolderConfirmMessage(
+  folderName: string,
+  documentCount: number,
+  t?: Translate,
+): string {
+  if (t) {
+    return t('library.trashFolderConfirm', {
+      name: folderName,
+      docs: formatDocumentCount(documentCount, t),
+    })
+  }
+
   return `Presunúť ${formatSlovakDocumentCount(documentCount)} z priečinka „${folderName}" (vrátane podpriečinkov) do koša? Priečinok ostane zachovaný.`
 }

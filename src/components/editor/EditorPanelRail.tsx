@@ -78,9 +78,9 @@ export function EditorPanelRail() {
 
   return (
     <TooltipProvider>
-      <div className="editor-panel-rail titlebar-no-drag" aria-label="Panely dokumentu">
+      <div className="editor-panel-rail titlebar-no-drag" aria-label={t('editorPanels.ariaLabel')}>
         <RailButton
-          label="Štruktúra dokumentu"
+          label={t('editorPanels.outline')}
           active={outlineOpen}
           onClick={() => {
             closeOtherPanels('outline')
@@ -90,7 +90,7 @@ export function EditorPanelRail() {
           <ListTree className="h-4 w-4" />
         </RailButton>
         <RailButton
-          label="Komentáre"
+          label={t('editorPanels.comments')}
           active={commentsOpen}
           onClick={() => {
             closeOtherPanels('comments')
@@ -100,7 +100,7 @@ export function EditorPanelRail() {
           <MessageSquare className="h-4 w-4" />
         </RailButton>
         <RailButton
-          label="Odkazy sem"
+          label={t('editorPanels.backlinks')}
           active={backlinksOpen}
           onClick={() => {
             closeOtherPanels('backlinks')
@@ -110,7 +110,7 @@ export function EditorPanelRail() {
           <Link2 className="h-4 w-4" />
         </RailButton>
         <RailButton
-          label="Štatistika"
+          label={t('editorPanels.stats')}
           active={statsOpen}
           onClick={() => {
             closeOtherPanels('stats')
@@ -120,7 +120,7 @@ export function EditorPanelRail() {
           <BarChart3 className="h-4 w-4" />
         </RailButton>
         <RailButton
-          label="História verzií"
+          label={t('editorPanels.revisions')}
           active={historyOpen}
           onClick={() => {
             closeOtherPanels('history')
@@ -133,7 +133,7 @@ export function EditorPanelRail() {
         <div className="editor-panel-rail-sep" aria-hidden="true" />
 
         <RailButton
-          label={findReplaceOpen ? 'Zavrieť vyhľadávanie' : 'Nájsť a nahradiť'}
+          label={findReplaceOpen ? t('editorPanels.findReplaceClose') : t('editorPanels.findReplace')}
           active={findReplaceOpen}
           onClick={() => {
             if (!findReplaceOpen) {

@@ -1,7 +1,6 @@
 import { FolderPlus, Search, Trash2 } from 'lucide-react'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { FolderTree } from '@/components/FolderTree'
 import { LibraryFavoritesView } from '@/components/LibraryFavoritesView'
@@ -30,7 +29,7 @@ type SidebarProps = {
 }
 
 const libraryActionClass =
-  'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[var(--color-border)] bg-transparent text-[var(--color-muted-foreground)] transition-[background,color,border-color] hover:border-[color-mix(in_srgb,var(--color-accent)_30%,var(--color-border))] hover:bg-[var(--color-hover)] hover:text-[var(--color-accent)]'
+  'inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-none bg-transparent text-[var(--color-muted-foreground)] transition-[background,color] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]'
 
 export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarProps) {
   const { t } = useTranslation()
@@ -56,17 +55,17 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
 
   const handleCreateFolder = useCallback(async () => {
     const name = await promptInput({
-      title: 'Nový priečinok',
-      defaultValue: 'Nový priečinok',
-      placeholder: 'Názov priečinka',
-      confirmLabel: 'Vytvoriť',
+      title: t('library.newFolder'),
+      defaultValue: t('library.newFolder'),
+      placeholder: t('library.folderNamePlaceholder'),
+      confirmLabel: t('common.create'),
     })
     if (!name) return
     const folder = await createFolder({ name })
     dispatch(updateFolders((prev) => [...prev, folder]))
     dispatch(updateExpandedFolderIds((prev) => [...prev, folder.id]))
-    toast.success('Priečinok vytvorený', folder.name)
-  }, [dispatch])
+    toast.success(t('toasts.folderCreated'), folder.name)
+  }, [dispatch, t])
 
   return (
     <aside
@@ -85,31 +84,31 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
         <SidebarRail onNavigate={onClose} />
 
         <div className="app-sidebar-panel titlebar-no-drag min-h-0">
-          <div className="border-b border-[var(--color-border)] px-4 pb-3 pt-4">
-            <p className="m-0 text-[15px] font-bold tracking-[-0.02em] text-[var(--color-foreground)]">
+          <div className="px-3 pb-1 pt-3">
+            <p className="m-0 truncate px-1 text-[13px] font-semibold tracking-[-0.02em] text-[var(--color-foreground)]">
               {t('library.title')}
             </p>
-            <p className="mt-0.5 text-[11px] text-[var(--color-muted-foreground)]">
+            <p className="m-0 mt-0.5 truncate px-1 text-[11px] text-[var(--color-muted-foreground)]">
               {t('library.documentCount', { count: documents.length })}
             </p>
           </div>
 
-          <div className="px-3 py-2.5">
-            <div className="relative flex items-center">
+          <div className="px-2 py-1.5">
+            <div className="library-search relative flex items-center">
               <Search
                 className="pointer-events-none absolute left-2.5 top-1/2 z-1 h-3.5 w-3.5 -translate-y-1/2 text-[var(--color-muted-foreground)]"
                 aria-hidden="true"
               />
-              <Input
+              <input
                 type="search"
-                className="h-8 pl-[30px] pr-11 text-[12px]"
+                className="library-search-input"
                 placeholder={t('library.searchPlaceholder')}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
               <button
                 type="button"
-                className="absolute right-1.5 top-1/2 inline-flex h-[22px] min-w-7 -translate-y-1/2 items-center justify-center rounded-md border border-[var(--color-border)] bg-[var(--color-background)] px-1.5 text-[11px] font-medium text-[var(--color-muted-foreground)] transition-colors hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
+                className="library-search-kbd"
                 onClick={() => dispatch(setCommandPaletteOpen(true))}
                 title={t('shortcuts.commandPalette.label')}
                 aria-label={t('shortcuts.commandPalette.label')}
@@ -123,7 +122,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
 
           {!isContentSearch && (
             <>
-              <div className="px-3 pb-2">
+              <div className="px-2 pb-1 pt-0.5">
                 <LibraryViewTabs
                   value={libraryView}
                   favoriteCount={favoriteCount}
@@ -132,31 +131,33 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                 />
               </div>
 
+              <div className="library-section-sep" aria-hidden="true" />
+
               {libraryView === 'folders' && (
                 <>
                   <LibraryFilterBanner />
-                  <div className="flex items-center justify-between gap-2 px-3 pb-2">
-                    <h2 className="m-0 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--color-muted-foreground)]">
-                      Všetky dokumenty
+                  <div className="flex items-center justify-between gap-2 px-3 pb-1 pt-2">
+                    <h2 className="m-0 text-[11px] font-medium text-[var(--color-muted-foreground)]">
+                      {t('library.allDocuments')}
                     </h2>
-                    <div className="inline-flex items-center gap-1">
+                    <div className="inline-flex items-center gap-0.5">
                       <button
                         type="button"
                         className={libraryActionClass}
                         onClick={() => dispatch(setTrashOpen(true))}
-                        title="Kôš"
-                        aria-label="Kôš"
+                        title={t('library.trash')}
+                        aria-label={t('library.trash')}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       </button>
                       <button
                         type="button"
                         className={libraryActionClass}
                         onClick={() => void handleCreateFolder()}
-                        title="Nový priečinok"
-                        aria-label="Nový priečinok"
+                        title={t('library.newFolder')}
+                        aria-label={t('library.newFolder')}
                       >
-                        <FolderPlus className="h-4 w-4" />
+                        <FolderPlus className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   </div>
@@ -170,7 +171,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
 
               {libraryView === 'favorites' && (
                 <ScrollArea className="min-h-0 flex-1">
-                  <div className="px-2 pb-3">
+                  <div className="px-1 pb-3 pt-1">
                     <LibraryFavoritesView onNavigate={onClose} />
                   </div>
                 </ScrollArea>
@@ -178,7 +179,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
 
               {libraryView === 'tags' && (
                 <ScrollArea className="min-h-0 flex-1">
-                  <div className="px-2 pb-3">
+                  <div className="px-1 pb-3 pt-1">
                     <LibraryTagsView onNavigate={onClose} />
                   </div>
                 </ScrollArea>

@@ -1,4 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   suggestionEmptyClass,
   suggestionHintClass,
@@ -24,6 +25,7 @@ export const SlashSuggestionList = forwardRef<
   { onKeyDown: (props: { event: KeyboardEvent }) => boolean },
   SlashSuggestionListProps
 >(function SlashSuggestionList({ items, command }, ref) {
+  const { t } = useTranslation()
   const [selectedIndex, setSelectedIndex] = useState(0)
 
   useEffect(() => {
@@ -50,7 +52,7 @@ export const SlashSuggestionList = forwardRef<
   }))
 
   if (!items.length) {
-    return <div className={suggestionEmptyClass}>Žiadne príkazy</div>
+    return <div className={suggestionEmptyClass}>{t('slash.empty')}</div>
   }
 
   return (

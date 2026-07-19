@@ -12,39 +12,57 @@ import { insertBlockMath, insertInlineMath } from '@/lib/editor/insert-helpers'
 import { pickImageFiles } from '@/lib/editor/image-utils'
 import { insertBulletList, insertOrderedList, insertTaskList } from '@/lib/editor/list-commands'
 import { createCommentForSelection } from '@/lib/editor/comments'
+import i18n from '@/i18n'
 
-export const SLASH_COMMANDS: SlashCommandItem[] = [
-  { id: 'h1', label: 'Nadpis 1', hint: 'Veľký nadpis', icon: 'H1' },
-  { id: 'h2', label: 'Nadpis 2', hint: 'Stredný nadpis', icon: 'H2' },
-  { id: 'h3', label: 'Nadpis 3', hint: 'Menší nadpis', icon: 'H3' },
-  { id: 'h4', label: 'Nadpis 4', hint: 'Podnadpis', icon: 'H4' },
-  { id: 'h5', label: 'Nadpis 5', hint: 'Malý nadpis', icon: 'H5' },
-  { id: 'h6', label: 'Nadpis 6', hint: 'Najmenší nadpis', icon: 'H6' },
-  { id: 'bullet', label: 'Zoznam', hint: 'Odrážky', icon: '•' },
-  { id: 'ordered', label: 'Číslovaný zoznam', hint: '1. 2. 3.', icon: '1.' },
-  { id: 'task', label: 'Úlohy', hint: 'Checklist', icon: '☑' },
-  { id: 'quote', label: 'Citácia', hint: 'Blok citátu', icon: '❝' },
-  { id: 'inline-code', label: 'Inline kód', hint: 'Kód v riadku (⌘E)', icon: '‹›' },
-  { id: 'code', label: 'Blok kódu', hint: 'Viacriadkový kód', icon: '</>' },
-  { id: 'table', label: 'Tabuľka', hint: '3×3', icon: '⊞' },
-  { id: 'image', label: 'Obrázok', hint: 'Vložiť obrázok', icon: '🖼' },
-  { id: 'math-inline', label: 'Vzorec', hint: 'math.js v riadku', icon: 'ƒ' },
-  { id: 'math-block', label: 'Vzorec blok', hint: 'math.js blok', icon: '∑' },
-  { id: 'hr', label: 'Oddeľovač', hint: 'Horizontálna čiara', icon: '—' },
-  { id: 'callout-info', label: 'Callout: Info', hint: 'Informačný blok', icon: 'ℹ️' },
-  { id: 'callout-tip', label: 'Callout: Tip', hint: 'Tip / rada', icon: '💡' },
-  { id: 'callout-warning', label: 'Callout: Varovanie', hint: 'Upozornenie', icon: '⚠️' },
-  { id: 'callout-danger', label: 'Callout: Dôležité', hint: 'Kritická poznámka', icon: '🛑' },
-  { id: 'footnote', label: 'Poznámka pod čiarou', hint: 'Číslovaná poznámka', icon: '⁽¹⁾' },
-  { id: 'comment', label: 'Komentár', hint: 'Poznámka k textu', icon: '💬' },
-  { id: 'wiki-link', label: 'Prepojiť dokument', hint: 'Odkaz [[ na dokument', icon: '🔗' },
-  { id: 'toc', label: 'Obsah', hint: 'Automatický TOC', icon: '≡' },
+type SlashCommandDef = {
+  id: string
+  icon?: string
+}
+
+export const SLASH_COMMAND_DEFS: SlashCommandDef[] = [
+  { id: 'h1', icon: 'H1' },
+  { id: 'h2', icon: 'H2' },
+  { id: 'h3', icon: 'H3' },
+  { id: 'h4', icon: 'H4' },
+  { id: 'h5', icon: 'H5' },
+  { id: 'h6', icon: 'H6' },
+  { id: 'bullet', icon: '•' },
+  { id: 'ordered', icon: '1.' },
+  { id: 'task', icon: '☑' },
+  { id: 'quote', icon: '❝' },
+  { id: 'inline-code', icon: '‹›' },
+  { id: 'code', icon: '</>' },
+  { id: 'table', icon: '⊞' },
+  { id: 'image', icon: '🖼' },
+  { id: 'math-inline', icon: 'ƒ' },
+  { id: 'math-block', icon: '∑' },
+  { id: 'hr', icon: '—' },
+  { id: 'callout-info', icon: 'ℹ️' },
+  { id: 'callout-tip', icon: '💡' },
+  { id: 'callout-warning', icon: '⚠️' },
+  { id: 'callout-danger', icon: '🛑' },
+  { id: 'footnote', icon: '⁽¹⁾' },
+  { id: 'comment', icon: '💬' },
+  { id: 'wiki-link', icon: '🔗' },
+  { id: 'toc', icon: '≡' },
 ]
 
+function localizeSlashCommand(def: SlashCommandDef): SlashCommandItem {
+  return {
+    id: def.id,
+    icon: def.icon,
+    label: i18n.t(`slash.${def.id}.label`),
+    hint: i18n.t(`slash.${def.id}.hint`),
+  }
+}
+
+export const SLASH_COMMANDS: SlashCommandItem[] = SLASH_COMMAND_DEFS.map(localizeSlashCommand)
+
 function filterCommands(query: string) {
+  const commands = SLASH_COMMAND_DEFS.map(localizeSlashCommand)
   const q = query.toLowerCase().trim()
-  if (!q) return SLASH_COMMANDS
-  return SLASH_COMMANDS.filter(
+  if (!q) return commands
+  return commands.filter(
     (item) =>
       item.label.toLowerCase().includes(q) ||
       item.hint?.toLowerCase().includes(q) ||

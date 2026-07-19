@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Clock, GitCompare, RotateCcw } from 'lucide-react'
 import { confirm } from '@tauri-apps/plugin-dialog'
 import { RevisionDiffView } from '@/components/editor/RevisionDiffView'
@@ -50,6 +51,7 @@ type CompareState = {
 }
 
 export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
+  const { t } = useTranslation()
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
   const activeDocument = useAppSelector((state) => state.documents.activeDocument)
   const dispatch = useAppDispatch()
@@ -63,11 +65,14 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
   const [viewMode, setViewMode] = useState<DiffViewMode>('split')
   const [changesOnly, setChangesOnly] = useState(false)
 
-  const compareOptions = useMemo(
-    () =>
-      buildRevisionCompareOptions(revisions, activeDocument?.updatedAt ?? Date.now()),
-    [activeDocument?.updatedAt, revisions],
-  )
+  const compareOptions = useMemo(() => {
+    const options = buildRevisionCompareOptions(revisions, activeDocument?.updatedAt ?? Date.now())
+    return options.map((option) =>
+      option.id === CURRENT_REVISION_ID
+        ? { ...option, label: t('panels.revisions.currentVersion') }
+        : option,
+    )
+  }, [activeDocument?.updatedAt, revisions, t])
 
   useEffect(() => {
     if (!activeId) {
@@ -105,7 +110,7 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
     if (!activeDocument) return
 
     if (nextAId === nextBId) {
-      toast.error('Vyberte dve rôzne verzie')
+      toast.error(t('panels.revisions.selectTwoVersions'))
       return
     }
 
@@ -144,7 +149,7 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
       setVersionAId(olderId)
       setVersionBId(newerId)
     } catch {
-      toast.error('Porovnanie verzií zlyhalo')
+      toast.error(t('panels.revisions.compareError'))
     } finally {
       setCompareLoading(false)
     }
@@ -152,8 +157,16 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
 
   async function handleRestore(revision: DocumentRevision) {
     const confirmed = await confirm(
-      `Obnoviť verziu „${revision.title}" z ${formatRelativeTime(revision.createdAt)}? Aktuálny obsah bude nahradený.`,
-      { title: 'Obnoviť verziu', kind: 'warning', okLabel: 'Obnoviť', cancelLabel: 'Zrušiť' },
+      t('panels.revisions.restoreConfirm', {
+        title: revision.title,
+        time: formatRelativeTime(revision.createdAt),
+      }),
+      {
+        title: t('panels.revisions.restoreConfirmTitle'),
+        kind: 'warning',
+        okLabel: t('common.restore'),
+        cancelLabel: t('common.cancel'),
+      },
     )
     if (!confirmed) return
 
@@ -175,10 +188,10 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
           ),
         ),
       )
-      toast.success('Verzia obnovená', formatRelativeTime(revision.createdAt))
+      toast.success(t('panels.revisions.restoreSuccess'), formatRelativeTime(revision.createdAt))
       setCompareState(null)
     } catch {
-      toast.error('Obnovenie verzie zlyhalo')
+      toast.error(t('panels.revisions.restoreError'))
     } finally {
       setRestoringId(null)
     }
@@ -208,11 +221,11 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
       className="titlebar-no-drag"
     >
       <EditorSidePanelHeader
-        title="História verzií"
-        subtitle="Automaticky uložené verzie dokumentu"
+        title={t('editorPanels.revisions')}
+        subtitle={t('panels.revisions.subtitle')}
         actions={
           <Button variant="ghost" size="sm" onClick={onClose}>
-            Zavrieť
+            {t('common.close')}
           </Button>
         }
       />
@@ -220,17 +233,17 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
       {!loading && compareOptions.length >= 2 && (
         <section className="border-b border-[var(--color-border)] px-3.5 pb-3.5 pt-2.5">
           <p className="m-0 mb-2.5 text-[11px] font-bold uppercase tracking-[0.04em] text-[var(--color-muted-foreground)]">
-            Porovnať verzie
+            {t('panels.revisions.compareTitle')}
           </p>
           <div className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-2.5">
             <div className="grid gap-2.5">
               <div className="grid gap-1">
                 <label htmlFor="revision-version-a" className="text-[11px] font-medium text-[var(--color-muted-foreground)]">
-                  Verzia A
+                  {t('panels.revisions.versionA')}
                 </label>
                 <Select value={versionAId} onValueChange={setVersionAId}>
-                  <SelectTrigger id="revision-version-a" aria-label="Verzia A">
-                    <SelectValue placeholder="Vyberte verziu A" />
+                  <SelectTrigger id="revision-version-a" aria-label={t('panels.revisions.versionA')}>
+                    <SelectValue placeholder={t('panels.revisions.selectVersionA')} />
                   </SelectTrigger>
                   <SelectContent>
                     {compareOptions.map((option) => (
@@ -249,11 +262,11 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
 
               <div className="grid gap-1">
                 <label htmlFor="revision-version-b" className="text-[11px] font-medium text-[var(--color-muted-foreground)]">
-                  Verzia B
+                  {t('panels.revisions.versionB')}
                 </label>
                 <Select value={versionBId} onValueChange={setVersionBId}>
-                  <SelectTrigger id="revision-version-b" aria-label="Verzia B">
-                    <SelectValue placeholder="Vyberte verziu B" />
+                  <SelectTrigger id="revision-version-b" aria-label={t('panels.revisions.versionB')}>
+                    <SelectValue placeholder={t('panels.revisions.selectVersionB')} />
                   </SelectTrigger>
                   <SelectContent>
                     {compareOptions.map((option) => (
@@ -279,17 +292,21 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
               onClick={() => void runCompare(versionAId, versionBId)}
             >
               <GitCompare className="h-3.5 w-3.5" />
-              {compareLoading ? 'Porovnávam…' : 'Porovnať'}
+              {compareLoading ? t('panels.revisions.comparing') : t('panels.revisions.compare')}
             </Button>
           </div>
         </section>
       )}
 
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2.5">
-        {loading && <p className="px-2 py-3 text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">Načítavam verzie…</p>}
+        {loading && (
+          <p className="px-2 py-3 text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
+            {t('panels.revisions.loading')}
+          </p>
+        )}
         {!loading && revisions.length === 0 && (
           <p className="px-2 py-3 text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
-            Zatiaľ žiadne uložené verzie. Verzie sa vytvárajú pri každom uložení dokumentu.
+            {t('panels.revisions.empty')}
           </p>
         )}
         {!loading &&
@@ -343,7 +360,7 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
                     onClick={() => handleQuickCompare(revision)}
                   >
                     <GitCompare className="h-3.5 w-3.5" />
-                    vs aktuálna
+                    {t('panels.revisions.vsCurrent')}
                   </Button>
                   <Button
                     variant="outline"
@@ -352,7 +369,7 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
                     onClick={() => void handleRestore(revision)}
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
-                    {restoringId === revision.id ? 'Obnovujem…' : 'Obnoviť'}
+                    {restoringId === revision.id ? t('panels.revisions.restoring') : t('common.restore')}
                   </Button>
                 </div>
               </div>

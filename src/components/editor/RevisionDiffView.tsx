@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Columns2, List } from 'lucide-react'
 import {
   countDiffChanges,
@@ -42,6 +43,7 @@ export function RevisionDiffView({
   onChangesOnlyChange,
   onClose,
 }: RevisionDiffViewProps) {
+  const { t } = useTranslation()
   const visibleLines = filterDiffLines(lines, changesOnly)
   const visibleRows = filterSideBySideRows(sideBySideRows, changesOnly)
   const { added, removed } = countDiffChanges(lines)
@@ -50,13 +52,13 @@ export function RevisionDiffView({
     <div className="flex max-h-[48vh] flex-col border-t border-[var(--color-border)] bg-[var(--color-background)]">
       <div className="flex items-start justify-between gap-3 border-b border-[var(--color-border)] px-4 py-3">
         <div>
-          <p className="m-0 text-[13px] font-semibold">Porovnanie verzií</p>
+          <p className="m-0 text-[13px] font-semibold">{t('panels.revisions.diffTitle')}</p>
           <div className="mt-1 flex flex-col gap-1">
             <span className="text-[11px] text-[var(--color-muted-foreground)]">
-              <strong>A:</strong> {left.label} · {formatRelativeTime(left.createdAt)}
+              <strong>{t('panels.revisions.sideA')}</strong> {left.label} · {formatRelativeTime(left.createdAt)}
             </span>
             <span className="text-[11px] text-[var(--color-muted-foreground)]">
-              <strong>B:</strong> {right.label} · {formatRelativeTime(right.createdAt)}
+              <strong>{t('panels.revisions.sideB')}</strong> {right.label} · {formatRelativeTime(right.createdAt)}
             </span>
           </div>
         </div>
@@ -65,16 +67,16 @@ export function RevisionDiffView({
           className="border-none bg-transparent text-[12px] text-[var(--color-muted-foreground)]"
           onClick={onClose}
         >
-          Zavrieť
+          {t('common.close')}
         </button>
       </div>
 
       <div className="flex items-center justify-between gap-3 border-b border-[var(--color-border)] px-4 py-2">
         <p className="m-0 text-[12px] text-[var(--color-muted-foreground)]">
-          {added > 0 && <span className="text-[#15803d]">+{added} riadkov</span>}
+          {added > 0 && <span className="text-[#15803d]">{t('panels.revisions.linesAdded', { count: added })}</span>}
           {added > 0 && removed > 0 && ' · '}
-          {removed > 0 && <span className="text-[#b91c1c]">−{removed} riadkov</span>}
-          {added === 0 && removed === 0 && 'Bez rozdielov'}
+          {removed > 0 && <span className="text-[#b91c1c]">{t('panels.revisions.linesRemoved', { count: removed })}</span>}
+          {added === 0 && removed === 0 && t('panels.revisions.noDiff')}
         </p>
 
         <div className="flex items-center gap-2.5">
@@ -84,13 +86,13 @@ export function RevisionDiffView({
               checked={changesOnly}
               onChange={(event) => onChangesOnlyChange(event.target.checked)}
             />
-            <span>Len zmeny</span>
+            <span>{t('panels.revisions.changesOnly')}</span>
           </label>
 
           <div
             className="inline-flex overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border)]"
             role="group"
-            aria-label="Režim zobrazenia"
+            aria-label={t('panels.revisions.viewModeAria')}
           >
             <button
               type="button"
@@ -98,7 +100,7 @@ export function RevisionDiffView({
                 'inline-flex h-7 w-[30px] items-center justify-center border-none bg-[var(--color-background)] text-[var(--color-muted-foreground)]',
                 viewMode === 'split' && 'bg-[var(--color-selection)] text-[var(--color-foreground)]',
               )}
-              title="Vedľa seba"
+              title={t('panels.revisions.viewSplit')}
               onClick={() => onViewModeChange('split')}
             >
               <Columns2 className="h-3.5 w-3.5" />
@@ -109,7 +111,7 @@ export function RevisionDiffView({
                 'inline-flex h-7 w-[30px] items-center justify-center border-none bg-[var(--color-background)] text-[var(--color-muted-foreground)]',
                 viewMode === 'unified' && 'bg-[var(--color-selection)] text-[var(--color-foreground)]',
               )}
-              title="Zjednotený diff"
+              title={t('panels.revisions.viewUnified')}
               onClick={() => onViewModeChange('unified')}
             >
               <List className="h-3.5 w-3.5" />
@@ -127,7 +129,7 @@ export function RevisionDiffView({
           <div className="overflow-auto font-mono text-[12px] leading-normal">
             {visibleRows.length === 0 ? (
               <p className="m-0 p-4 text-center text-[12px] text-[var(--color-muted-foreground)]">
-                Žiadne rozdiely na zobrazenie.
+                {t('panels.revisions.noDiffToShow')}
               </p>
             ) : (
               visibleRows.map((row, index) => (
@@ -165,7 +167,7 @@ export function RevisionDiffView({
         <div className="overflow-auto py-2 font-mono text-[12px] leading-normal">
           {visibleLines.length === 0 ? (
             <p className="m-0 p-4 text-center text-[12px] text-[var(--color-muted-foreground)]">
-              Žiadne rozdiely na zobrazenie.
+              {t('panels.revisions.noDiffToShow')}
             </p>
           ) : (
             visibleLines.map((line, index) => (

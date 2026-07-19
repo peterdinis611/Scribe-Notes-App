@@ -466,7 +466,7 @@ export function DocumentEditor() {
                     <PageHeaderFooterOverlays
                       pageSetup={pageSetup}
                       pageSegments={pageSegments}
-                      documentTitle={activeDocument?.title ?? 'Dokument'}
+                      documentTitle={activeDocument?.title ?? t('common.document')}
                       paddingTop={pageLayout.paddingTop}
                       printLayout={printLayoutConfig}
                     />

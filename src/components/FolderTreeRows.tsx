@@ -1,4 +1,5 @@
 import { memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronRight, FileText, Folder, FolderMinus, FolderPlus, Star, Tag, Trash2 } from 'lucide-react'
 import { MoveToFolderMenu } from '@/components/MoveToFolderMenu'
 import { DocumentTitleField } from '@/components/DocumentTitleField'
@@ -42,10 +43,12 @@ export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
   onDragLeave,
   onDrop,
 }: FolderTreeFolderRowProps) {
+  const { t } = useTranslation()
+
   return (
     <div
       className={cn(
-        'group titlebar-no-drag mx-1 flex min-h-[30px] items-center gap-1 rounded-lg pr-1 transition-colors hover:bg-[var(--color-hover)]',
+        'group titlebar-no-drag mx-1 flex min-h-[28px] items-center gap-1 rounded-md pr-1 transition-colors hover:bg-[var(--color-hover)]',
         isDragOver && 'bg-[var(--color-selection)] outline outline-1 outline-dashed outline-[var(--color-accent)]',
       )}
       style={{ paddingLeft: 8 + depth * 14 }}
@@ -70,7 +73,7 @@ export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
       <button
         type="button"
         className={treeActionClass}
-        title="Nový podpriečinok"
+        title={t('library.newSubfolder')}
         onClick={() => onCreateChild(folder.id)}
       >
         <FolderPlus className="h-3.5 w-3.5" />
@@ -79,8 +82,8 @@ export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
         <button
           type="button"
           className={treeActionClass}
-          title="Presunúť všetky dokumenty do koša"
-          aria-label="Presunúť všetky dokumenty do koša"
+          title={t('library.trashAllInFolder')}
+          aria-label={t('library.trashAllInFolder')}
           onClick={(event) => onTrashDocuments(folder.id, folder.name, event)}
         >
           <Trash2 className="h-3.5 w-3.5" />
@@ -89,8 +92,8 @@ export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
       <button
         type="button"
         className={cn(treeActionClass, 'hover:text-[var(--color-destructive)]')}
-        title="Vymazať priečinok"
-        aria-label="Vymazať priečinok"
+        title={t('library.deleteFolder')}
+        aria-label={t('library.deleteFolder')}
         onClick={(event) => onDelete(folder.id, folder.name, event)}
       >
         <FolderMinus className="h-3.5 w-3.5" />
@@ -120,6 +123,8 @@ export const FolderTreeDocumentRow = memo(function FolderTreeDocumentRow({
   onEditTags,
   onDragStart,
 }: FolderTreeDocumentRowProps) {
+  const { t } = useTranslation()
+
   return (
     <div
       role="button"
@@ -134,31 +139,28 @@ export const FolderTreeDocumentRow = memo(function FolderTreeDocumentRow({
         }
       }}
       className={cn(
-        'group titlebar-no-drag relative mx-1 mb-0.5 flex w-[calc(100%-8px)] cursor-default items-center gap-2 rounded-[var(--radius-md)] border border-transparent px-2 py-1.5 transition-[background,border-color] hover:bg-[var(--color-hover)] active:cursor-grabbing',
-        isActive &&
-          'border-[color-mix(in_srgb,var(--color-accent)_20%,transparent)] bg-[var(--color-selection)]',
+        'group titlebar-no-drag relative mx-1 mb-px flex w-[calc(100%-8px)] cursor-default items-center gap-2 rounded-md border-none px-2 py-1 transition-colors hover:bg-[var(--color-hover)] active:cursor-grabbing',
+        isActive && 'bg-[var(--color-selection)]',
       )}
       style={{ paddingLeft: 12 + depth * 14 }}
     >
-      <div
+      <FileText
         className={cn(
-          'flex h-7 w-7 shrink-0 items-center justify-center rounded-[7px] bg-[var(--color-surface)] text-[var(--color-muted-foreground)]',
+          'h-4 w-4 shrink-0 stroke-[1.5] text-[var(--color-muted-foreground)]',
           isActive && 'text-[var(--color-accent)]',
         )}
-      >
-        <FileText className="h-4 w-4 stroke-[1.5]" />
-      </div>
+      />
       <div className="min-w-0 flex-1">
         <DocumentTitleField documentId={document.id} title={document.title} variant="sidebar" />
         <span
           className={cn(
-            'mt-0.5 block text-[10px] text-[var(--color-muted-foreground)]',
+            'mt-0.5 block text-[11px] text-[var(--color-muted-foreground)]',
             isActive && 'text-[color-mix(in_srgb,var(--color-accent)_70%,transparent)]',
           )}
         >
           {formatRelativeTime(document.updatedAt)}
           {document.tags.length > 0 && (
-            <span className="opacity-70"> · {document.tags.length} štítok{document.tags.length === 1 ? '' : document.tags.length < 5 ? 'y' : 'ov'}</span>
+            <span className="opacity-70"> · {t('library.tagCount', { count: document.tags.length })}</span>
           )}
         </span>
       </div>
@@ -174,8 +176,8 @@ export const FolderTreeDocumentRow = memo(function FolderTreeDocumentRow({
           size="icon"
           className={cn('h-7 w-7', document.isFavorite && 'text-[var(--color-accent)]')}
           onClick={(event) => onToggleFavorite(document.id, event)}
-          aria-label={document.isFavorite ? 'Odobrať z obľúbených' : 'Pridať do obľúbených'}
-          title="Obľúbené"
+          aria-label={t('library.favorite')}
+          title={t('library.favorite')}
         >
           <Star className={cn('h-3.5 w-3.5', document.isFavorite && 'fill-current')} />
         </Button>
@@ -185,8 +187,8 @@ export const FolderTreeDocumentRow = memo(function FolderTreeDocumentRow({
           size="icon"
           className="h-7 w-7"
           onClick={(event) => onEditTags(document.id, event)}
-          aria-label="Upraviť štítky"
-          title="Štítky"
+          aria-label={t('library.tags')}
+          title={t('library.tags')}
         >
           <Tag className="h-3.5 w-3.5" />
         </Button>
@@ -197,8 +199,8 @@ export const FolderTreeDocumentRow = memo(function FolderTreeDocumentRow({
           size="icon"
           className="h-7 w-7 hover:bg-[color-mix(in_srgb,var(--color-destructive)_12%,transparent)] hover:text-[var(--color-destructive)]"
           onClick={(event) => onDelete(document.id, event)}
-          aria-label="Presunúť do koša"
-          title="Presunúť do koša"
+          aria-label={t('library.moveToTrash')}
+          title={t('library.moveToTrash')}
         >
           <Trash2 className="h-3.5 w-3.5" />
         </Button>

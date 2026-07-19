@@ -1,6 +1,7 @@
 import type { Editor } from '@tiptap/react'
 import { useEditorState } from '@tiptap/react'
 import { ChevronDown, Code, FunctionSquare, ImagePlus, Play, Sigma, SplitSquareHorizontal, Table2, Trash2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +21,7 @@ type InsertTabProps = {
 }
 
 export function InsertTab({ editor, onInsertImages }: InsertTabProps) {
+  const { t } = useTranslation()
   const codeBlockState = useEditorState({
     editor,
     selector: ({ editor: currentEditor }) => ({
@@ -56,40 +58,40 @@ export function InsertTab({ editor, onInsertImages }: InsertTabProps) {
 
   return (
     <div className="toolbar-panel">
-      <ToolbarGroup label="Média">
-        <ToolbarButton label="Obrázok" onClick={() => void handlePickImage()}>
+      <ToolbarGroup label={t('toolbar.groups.media')}>
+        <ToolbarButton label={t('toolbar.actions.image')} onClick={() => void handlePickImage()}>
           <ImagePlus className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
-        <ToolbarButton label="YouTube" onClick={() => insertYoutubeVideo(editor)}>
+        <ToolbarButton label={t('toolbar.actions.youtube')} onClick={() => insertYoutubeVideo(editor)}>
           <Play className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
-        <ToolbarButton label="Tabuľka" active={codeBlockState.isTable} onClick={insertTable}>
+        <ToolbarButton label={t('toolbar.actions.table')} active={codeBlockState.isTable} onClick={insertTable}>
           <Table2 className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
-        <ToolbarButton label="Zalomenie strany" onClick={() => editor.chain().focus().setPageBreak().run()}>
+        <ToolbarButton label={t('toolbar.actions.pageBreak')} onClick={() => editor.chain().focus().setPageBreak().run()}>
           <SplitSquareHorizontal className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
       </ToolbarGroup>
 
-      <ToolbarGroup label="Matematika">
-        <ToolbarButton label="Vzorec v riadku (math.js)" onClick={() => insertInlineMath(editor)}>
+      <ToolbarGroup label={t('toolbar.groups.math')}>
+        <ToolbarButton label={t('toolbar.actions.inlineMathFull')} onClick={() => insertInlineMath(editor)}>
           <FunctionSquare className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
-        <ToolbarButton label="Vzorec blok (math.js)" onClick={() => insertBlockMath(editor)}>
+        <ToolbarButton label={t('toolbar.actions.blockMathFull')} onClick={() => insertBlockMath(editor)}>
           <Sigma className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
       </ToolbarGroup>
 
-      <ToolbarGroup label="Kód">
+      <ToolbarGroup label={t('toolbar.groups.code')}>
         <ToolbarButton
-          label="Blok kódu"
+          label={t('toolbar.actions.codeBlock')}
           active={codeBlockState.isCodeBlock}
           onClick={() => editor.chain().focus().toggleCodeBlock().run()}
         >
           <Code className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
         {codeBlockState.isCodeBlock && (
-          <ToolbarButton label="Odstrániť blok kódu" onClick={() => deleteCurrentBlock(editor)}>
+          <ToolbarButton label={t('editorActions.deleteCodeBlock')} onClick={() => deleteCurrentBlock(editor)}>
             <Trash2 className="h-4 w-4 stroke-[1.75]" />
           </ToolbarButton>
         )}
@@ -98,7 +100,7 @@ export function InsertTab({ editor, onInsertImages }: InsertTabProps) {
             <button
               type="button"
               className={cn('toolbar-select', codeBlockState.isCodeBlock && 'is-active')}
-              title="Jazyk syntaxe"
+              title={t('toolbar.actions.syntaxLanguage')}
             >
               <span>{getCodeLanguageLabel(codeBlockState.language)}</span>
               <ChevronDown className="h-3.5 w-3.5 opacity-60" />
@@ -119,14 +121,14 @@ export function InsertTab({ editor, onInsertImages }: InsertTabProps) {
       </ToolbarGroup>
 
       {codeBlockState.isTable && (
-        <ToolbarGroup label="Tabuľka">
-          <ToolbarButton label="Pridať riadok" onClick={() => editor.chain().focus().addRowAfter().run()}>
+        <ToolbarGroup label={t('toolbar.groups.table')}>
+          <ToolbarButton label={t('toolbar.actions.addRow')} onClick={() => editor.chain().focus().addRowAfter().run()}>
             +R
           </ToolbarButton>
-          <ToolbarButton label="Pridať stĺpec" onClick={() => editor.chain().focus().addColumnAfter().run()}>
+          <ToolbarButton label={t('toolbar.actions.addColumn')} onClick={() => editor.chain().focus().addColumnAfter().run()}>
             +S
           </ToolbarButton>
-          <ToolbarButton label="Odstrániť tabuľku" onClick={() => editor.chain().focus().deleteTable().run()}>
+          <ToolbarButton label={t('editorActions.deleteTable')} onClick={() => editor.chain().focus().deleteTable().run()}>
             <Trash2 className="h-4 w-4 stroke-[1.75]" />
           </ToolbarButton>
         </ToolbarGroup>

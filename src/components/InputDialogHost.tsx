@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -13,6 +14,7 @@ import { resolveInputDialog } from '@/lib/input-dialog'
 import { useAppSelector } from '@/store/hooks'
 
 export function InputDialogHost() {
+  const { t } = useTranslation()
   const dialog = useAppSelector((state) => state.ui.inputDialog)
   const inputRef = useRef<HTMLInputElement>(null)
   const [value, setValue] = useState('')
@@ -65,10 +67,10 @@ export function InputDialogHost() {
             />
             <DialogFooter>
               <Button type="button" variant="ghost" size="sm" onClick={() => close(null)}>
-                {dialog.cancelLabel ?? 'Zrušiť'}
+                {dialog.cancelLabel ?? t('common.cancel')}
               </Button>
               <Button type="submit" variant="default" size="sm">
-                {dialog.confirmLabel ?? 'Potvrdiť'}
+                {dialog.confirmLabel ?? t('common.confirm')}
               </Button>
             </DialogFooter>
           </form>

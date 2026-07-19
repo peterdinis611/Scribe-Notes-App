@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { LucideIcon } from 'lucide-react'
 import {
   Calculator,
@@ -102,6 +103,7 @@ function OutlineRow({
 }
 
 export function DocumentOutlinePanel({ editor, onClose }: DocumentOutlinePanelProps) {
+  const { t } = useTranslation()
   const outlineState = useEditorState({
     editor,
     selector: ({ editor: currentEditor }) => {
@@ -121,12 +123,12 @@ export function DocumentOutlinePanel({ editor, onClose }: DocumentOutlinePanelPr
   const activeId = outlineState?.activeId ?? null
 
   return (
-    <EditorSidePanel width={280} className="titlebar-no-drag" aria-label="Štruktúra dokumentu">
+    <EditorSidePanel width={280} className="titlebar-no-drag" aria-label={t('editorPanels.outline')}>
       <EditorSidePanelHeader
-        title="Štruktúra"
-        subtitle={`${items.length} elementov`}
+        title={t('panels.outline.title')}
+        subtitle={t('panels.outline.elementCount', { count: items.length })}
         actions={
-          <EditorSidePanelIconButton aria-label="Skryť štruktúru" onClick={onClose}>
+          <EditorSidePanelIconButton aria-label={t('panels.outline.hide')} onClick={onClose}>
             <PanelRightClose className="h-4 w-4" />
           </EditorSidePanelIconButton>
         }
@@ -135,7 +137,7 @@ export function DocumentOutlinePanel({ editor, onClose }: DocumentOutlinePanelPr
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
         {items.length === 0 ? (
           <p className="px-2 py-3 text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
-            Dokument zatiaľ nemá žiadne bloky na zobrazenie.
+            {t('panels.outline.empty')}
           </p>
         ) : (
           items.map((item) => (

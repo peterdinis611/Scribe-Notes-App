@@ -1,10 +1,12 @@
 import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Focus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setFocusMode } from '@/store/documentsSlice'
 
 export function FocusModeExitBar() {
+  const { t } = useTranslation()
   const focusMode = useAppSelector((state) => state.documents.focusMode)
   const dispatch = useAppDispatch()
 
@@ -30,11 +32,11 @@ export function FocusModeExitBar() {
         variant="outline"
         size="sm"
         className="editor-focus-exit shadow-md"
-        title="Ukončiť režim sústredenia (Esc)"
+        title={t('focusMode.exitHint')}
         onClick={() => dispatch(setFocusMode(false))}
       >
         <Focus className="h-3.5 w-3.5 shrink-0" />
-        Ukončiť sústredenie
+        {t('focusMode.exit')}
         <kbd className="editor-focus-exit-kbd">Esc</kbd>
       </Button>
     </div>

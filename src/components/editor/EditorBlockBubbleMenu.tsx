@@ -1,6 +1,7 @@
 import { BubbleMenu } from '@tiptap/react/menus'
 import type { Editor } from '@tiptap/react'
 import { Trash2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import {
   canDeleteCurrentBlock,
   deleteCurrentBlock,
@@ -14,6 +15,7 @@ type EditorBlockBubbleMenuProps = {
 }
 
 export function EditorBlockBubbleMenu({ editor }: EditorBlockBubbleMenuProps) {
+  const { t } = useTranslation()
   if (!editor) return null
 
   const showDelete = shouldShowBlockBubble(editor)
@@ -29,7 +31,7 @@ export function EditorBlockBubbleMenu({ editor }: EditorBlockBubbleMenuProps) {
       {showDelete && (
         <button type="button" className="editor-bubble-btn" onClick={() => deleteCurrentBlock(editor)}>
           <Trash2 className="h-3.5 w-3.5" />
-          {getActiveBlockDeleteLabel(editor) ?? 'Odstrániť'}
+          {getActiveBlockDeleteLabel(editor) ?? t('editorActions.deleteSelection')}
         </button>
       )}
 

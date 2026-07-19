@@ -1,4 +1,5 @@
 import { CheckCircle2, Info, X, XCircle } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { dismissToast, type ToastVariant } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { useAppSelector } from '@/store/hooks'
@@ -25,6 +26,7 @@ const toastVariantClass: Record<ToastVariant, string> = {
 }
 
 export function ToastHost() {
+  const { t } = useTranslation()
   const toasts = useAppSelector((state) => state.ui.toasts)
 
   if (toasts.length === 0) return null
@@ -58,7 +60,7 @@ export function ToastHost() {
           <button
             type="button"
             className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[var(--color-muted-foreground)] transition-colors hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
-            aria-label="Zavrieť"
+            aria-label={t('common.close')}
             onClick={() => dismissToast(item.id)}
           >
             <X className="h-3.5 w-3.5" />

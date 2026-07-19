@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import { FileText } from 'lucide-react'
 import { searchDocuments, type SearchHit } from '@/lib/db/api'
@@ -13,6 +14,7 @@ type SidebarSearchResultsProps = {
 }
 
 export function SidebarSearchResults({ query, onNavigate }: SidebarSearchResultsProps) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
   const [hits, setHits] = useState<SearchHit[]>([])
@@ -47,13 +49,13 @@ export function SidebarSearchResults({ query, onNavigate }: SidebarSearchResults
   return (
     <div className="titlebar-no-drag px-3 pb-2">
       <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.04em] text-[var(--color-muted-foreground)]">
-        Výsledky v obsahu
+        {t('library.searchResults')}
       </p>
       {loading && (
-        <p className="px-1 py-2 text-[12px] text-[var(--color-muted-foreground)]">Hľadám…</p>
+        <p className="px-1 py-2 text-[12px] text-[var(--color-muted-foreground)]">{t('library.searching')}</p>
       )}
       {!loading && hits.length === 0 && (
-        <p className="px-1 py-2 text-[12px] text-[var(--color-muted-foreground)]">Nič sa nenašlo</p>
+        <p className="px-1 py-2 text-[12px] text-[var(--color-muted-foreground)]">{t('library.searchEmpty')}</p>
       )}
       {!loading &&
         hits.map((hit) => (

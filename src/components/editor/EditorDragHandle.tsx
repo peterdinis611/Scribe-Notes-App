@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { Editor } from '@tiptap/react'
 import { GripVertical } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { cleanupDragArtifacts, findBlockFromCoords, findBlockFromSelection, type BlockDragTarget } from '@/lib/editor/block-drag-handle'
 import { getEditorViewDom } from '@/lib/editor/view-ready'
 import { useBlockDragSession } from '@/hooks/useBlockDragSession'
@@ -14,6 +15,7 @@ const HANDLE_HIT_PADDING = 18
 const HIDE_DELAY_MS = 280
 
 export function EditorDragHandle({ editor }: EditorDragHandleProps) {
+  const { t } = useTranslation()
   const handleRef = useRef<HTMLButtonElement>(null)
   const blockRef = useRef<BlockDragTarget | null>(null)
   const pinnedBlockRef = useRef<BlockDragTarget | null>(null)
@@ -271,9 +273,9 @@ export function EditorDragHandle({ editor }: EditorDragHandleProps) {
         pointerEvents: handleVisible && !isDragging ? 'auto' : 'none',
         zIndex: 60,
       }}
-      aria-label="Presunúť blok"
+      aria-label={t('editorActions.moveBlock')}
       aria-hidden={!handleVisible}
-      title="Presuňte blok myšou"
+      title={t('editorActions.moveBlockHint')}
       onMouseEnter={() => {
         overHandleRef.current = true
         setHandleActive(true)

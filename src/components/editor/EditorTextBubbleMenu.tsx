@@ -12,6 +12,7 @@ import {
   Superscript,
   Underline,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { ColorSwatchGrid, CustomColorPicker } from '@/components/editor-toolbar/primitives'
 import { HIGHLIGHT_COLORS, TEXT_COLORS } from '@/lib/editor/font-size'
 import { hasEditorSelection } from '@/lib/editor/delete-content'
@@ -23,13 +24,14 @@ type EditorTextBubbleMenuProps = {
 }
 
 export function EditorTextBubbleMenu({ editor }: EditorTextBubbleMenuProps) {
+  const { t } = useTranslation()
   if (!editor) return null
 
   const currentTextColor = (editor.getAttributes('textStyle').color as string | undefined) ?? ''
 
   function setLink() {
     const previous = editor!.getAttributes('link').href as string | undefined
-    const url = window.prompt('URL odkazu', previous ?? 'https://')
+    const url = window.prompt(t('editorActions.linkUrlPrompt'), previous ?? 'https://')
     if (url === null) return
     if (url === '') {
       editor!.chain().focus().extendMarkRange('link').unsetLink().run()
@@ -46,34 +48,34 @@ export function EditorTextBubbleMenu({ editor }: EditorTextBubbleMenuProps) {
         hasEditorSelection(currentEditor) && !currentEditor.isActive('table')
       }
     >
-      <button type="button" className={cn('editor-bubble-icon-btn', editor.isActive('bold') && 'is-active')} title="Tučné (⌘B)" onClick={() => editor.chain().focus().toggleBold().run()}>
+      <button type="button" className={cn('editor-bubble-icon-btn', editor.isActive('bold') && 'is-active')} title={t('toolbar.actions.bold')} onClick={() => editor.chain().focus().toggleBold().run()}>
         <Bold className="h-3.5 w-3.5" />
       </button>
-      <button type="button" className={cn('editor-bubble-icon-btn', editor.isActive('italic') && 'is-active')} title="Kurzíva (⌘I)" onClick={() => editor.chain().focus().toggleItalic().run()}>
+      <button type="button" className={cn('editor-bubble-icon-btn', editor.isActive('italic') && 'is-active')} title={t('toolbar.actions.italic')} onClick={() => editor.chain().focus().toggleItalic().run()}>
         <Italic className="h-3.5 w-3.5" />
       </button>
-      <button type="button" className={cn('editor-bubble-icon-btn', editor.isActive('underline') && 'is-active')} title="Podčiarknutie (⌘U)" onClick={() => editor.chain().focus().toggleUnderline().run()}>
+      <button type="button" className={cn('editor-bubble-icon-btn', editor.isActive('underline') && 'is-active')} title={t('toolbar.actions.underline')} onClick={() => editor.chain().focus().toggleUnderline().run()}>
         <Underline className="h-3.5 w-3.5" />
       </button>
-      <button type="button" className={cn('editor-bubble-icon-btn', editor.isActive('strike') && 'is-active')} title="Prečiarknuté (⌘⇧X)" onClick={() => editor.chain().focus().toggleStrike().run()}>
+      <button type="button" className={cn('editor-bubble-icon-btn', editor.isActive('strike') && 'is-active')} title={t('toolbar.actions.strike')} onClick={() => editor.chain().focus().toggleStrike().run()}>
         <Strikethrough className="h-3.5 w-3.5" />
       </button>
-      <button type="button" className={cn('editor-bubble-icon-btn', editor.isActive('code') && 'is-active')} title="Inline kód (⌘E)" onClick={() => editor.chain().focus().toggleCode().run()}>
+      <button type="button" className={cn('editor-bubble-icon-btn', editor.isActive('code') && 'is-active')} title={t('toolbar.actions.inlineCode')} onClick={() => editor.chain().focus().toggleCode().run()}>
         <Code className="h-3.5 w-3.5" />
       </button>
-      <button type="button" className={cn('editor-bubble-icon-btn', editor.isActive('superscript') && 'is-active')} title="Horný index" onClick={() => editor.chain().focus().toggleSuperscript().run()}>
+      <button type="button" className={cn('editor-bubble-icon-btn', editor.isActive('superscript') && 'is-active')} title={t('toolbar.actions.superscript')} onClick={() => editor.chain().focus().toggleSuperscript().run()}>
         <Superscript className="h-3.5 w-3.5" />
       </button>
-      <button type="button" className={cn('editor-bubble-icon-btn', editor.isActive('subscript') && 'is-active')} title="Dolný index" onClick={() => editor.chain().focus().toggleSubscript().run()}>
+      <button type="button" className={cn('editor-bubble-icon-btn', editor.isActive('subscript') && 'is-active')} title={t('toolbar.actions.subscript')} onClick={() => editor.chain().focus().toggleSubscript().run()}>
         <Subscript className="h-3.5 w-3.5" />
       </button>
-      <button type="button" className={cn('editor-bubble-icon-btn', editor.isActive('link') && 'is-active')} title="Odkaz (⌘K)" onClick={setLink}>
+      <button type="button" className={cn('editor-bubble-icon-btn', editor.isActive('link') && 'is-active')} title={t('toolbar.actions.link')} onClick={setLink}>
         <Link2 className="h-3.5 w-3.5" />
       </button>
       <button
         type="button"
         className={cn('editor-bubble-icon-btn', editor.isActive('comment') && 'is-active')}
-        title="Komentár"
+        title={t('editorActions.comment')}
         onClick={() => {
           void createCommentForSelection(editor)
         }}
@@ -99,7 +101,7 @@ export function EditorTextBubbleMenu({ editor }: EditorTextBubbleMenuProps) {
       <button
         type="button"
         className={cn('editor-bubble-icon-btn', editor.isActive('highlight') && 'is-active')}
-        title="Odstrániť zvýraznenie"
+        title={t('editorActions.deleteHighlight')}
         onClick={() => editor.chain().focus().unsetHighlight().run()}
       >
         <Highlighter className="h-3.5 w-3.5" />

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { confirm } from '@tauri-apps/plugin-dialog'
 import { RotateCcw, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -25,6 +26,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setTrashOpen, updateDocuments } from '@/store/documentsSlice'
 
 export function TrashDialog() {
+  const { t } = useTranslation()
   const open = useAppSelector((state) => state.documents.trashOpen)
   const dispatch = useAppDispatch()
   const [items, setItems] = useState<DocumentSummary[]>([])
@@ -34,9 +36,9 @@ export function TrashDialog() {
     setLoading(true)
     listTrashedDocuments()
       .then(setItems)
-      .catch((error) => toast.error('Nepodarilo sa načítať kôš', String(error)))
+      .catch((error) => toast.error(t('toasts.trashLoadError'), String(error)))
       .finally(() => setLoading(false))
-  }, [])
+  }, [t])
 
   useEffect(() => {
     if (open) reload()
@@ -62,20 +64,25 @@ export function TrashDialog() {
             return [summary, ...prev.filter((doc) => doc.id !== item.id)]
           }),
         )
-        toast.success('Dokument obnovený', item.title)
+        toast.success(t('toasts.documentRestored'), item.title)
       } catch (error) {
         setItems((prev) => [...prev, item])
         dispatch(updateDocuments((prev) => prev.filter((doc) => doc.id !== item.id)))
-        toast.error('Nepodarilo sa obnoviť dokument', String(error))
+        toast.error(t('toasts.restoreError'), String(error))
       }
     },
-    [dispatch],
+    [dispatch, t],
   )
 
   const handlePurge = useCallback(async (item: DocumentSummary) => {
     const confirmed = await confirm(
-      `Dokument „${item.title}“ sa natrvalo odstráni. Túto akciu nie je možné vrátiť.`,
-      { title: 'Odstrániť natrvalo?', kind: 'warning', okLabel: 'Odstrániť', cancelLabel: 'Zrušiť' },
+      t('trash.purgeConfirm', { title: item.title }),
+      {
+        title: t('trash.purgeTitle'),
+        kind: 'warning',
+        okLabel: t('trash.purgeOk'),
+        cancelLabel: t('common.cancel'),
+      },
     )
     if (!confirmed) return
 
@@ -85,15 +92,20 @@ export function TrashDialog() {
       await purgeDocument(item.id)
     } catch (error) {
       setItems((prev) => [...prev, item])
-      toast.error('Nepodarilo sa odstrániť dokument', String(error))
+      toast.error(t('toasts.trashPurgeError'), String(error))
     }
-  }, [])
+  }, [t])
 
   const handleEmpty = useCallback(async () => {
     if (items.length === 0) return
     const confirmed = await confirm(
-      `Natrvalo sa odstráni ${items.length} dokumentov. Túto akciu nie je možné vrátiť.`,
-      { title: 'Vysypať kôš?', kind: 'warning', okLabel: 'Vysypať', cancelLabel: 'Zrušiť' },
+      t('trash.emptyConfirm'),
+      {
+        title: t('trash.emptyTitle'),
+        kind: 'warning',
+        okLabel: t('trash.emptyOk'),
+        cancelLabel: t('common.cancel'),
+      },
     )
     if (!confirmed) return
 
@@ -102,12 +114,12 @@ export function TrashDialog() {
 
     try {
       const count = await emptyTrash()
-      toast.success('Kôš vysypaný', `${count} dokumentov odstránených`)
+      toast.success(t('toasts.trashEmptied'), t('library.documentCount', { count }))
     } catch (error) {
       setItems(previousItems)
-      toast.error('Nepodarilo sa vysypať kôš', String(error))
+      toast.error(t('toasts.trashEmptyError'), String(error))
     }
-  }, [items])
+  }, [items, t])
 
   return (
     <Dialog open={open} onOpenChange={(next) => dispatch(setTrashOpen(next))}>
@@ -116,9 +128,9 @@ export function TrashDialog() {
         <DialogHeader className="border-b border-[var(--color-border)] px-5 pb-4 pt-5">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <DialogTitle className="text-[17px]">Kôš</DialogTitle>
+              <DialogTitle className="text-[17px]">{t('trash.title')}</DialogTitle>
               <DialogDescription>
-                {items.length === 0 ? 'Kôš je prázdny' : `${items.length} dokumentov`}
+                {t('library.documentCount', { count: items.length })}
               </DialogDescription>
             </div>
             <Button
@@ -129,7 +141,7 @@ export function TrashDialog() {
               disabled={items.length === 0}
             >
               <Trash2 className="h-3.5 w-3.5" />
-              Vysypať kôš
+              {t('trash.empty')}
             </Button>
           </div>
         </DialogHeader>
@@ -138,11 +150,11 @@ export function TrashDialog() {
           <div className="px-3 py-2">
             {loading && items.length === 0 ? (
               <p className="px-3 py-8 text-center text-[13px] text-[var(--color-muted-foreground)]">
-                Načítavam…
+                {t('common.loading')}
               </p>
             ) : items.length === 0 ? (
               <p className="px-3 py-8 text-center text-[13px] text-[var(--color-muted-foreground)]">
-                Vymazané dokumenty sa zobrazia tu.
+                {t('trash.hint')}
               </p>
             ) : (
               items.map((item) => (
@@ -152,28 +164,30 @@ export function TrashDialog() {
                 >
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[13px] font-medium text-[var(--color-foreground)]">
-                      {item.title || 'Bez názvu'}
+                      {item.title || t('common.untitled')}
                     </p>
                     <p className="text-[11px] text-[var(--color-muted-foreground)]">
-                      Vymazané {item.deletedAt ? formatRelativeTime(item.deletedAt) : ''}
+                      {t('trash.deletedAt', {
+                        time: item.deletedAt ? formatRelativeTime(item.deletedAt) : '',
+                      })}
                     </p>
                   </div>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    title="Obnoviť"
+                    title={t('common.restore')}
                     onClick={() => void handleRestore(item)}
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
-                    Obnoviť
+                    {t('common.restore')}
                   </Button>
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
                     className="hover:bg-[color-mix(in_srgb,var(--color-destructive)_12%,transparent)] hover:text-[var(--color-destructive)]"
-                    title="Odstrániť natrvalo"
+                    title={t('trash.purgeForever')}
                     onClick={() => void handlePurge(item)}
                   >
                     <Trash2 className="h-3.5 w-3.5" />

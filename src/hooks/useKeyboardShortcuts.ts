@@ -59,14 +59,14 @@ export function useKeyboardShortcuts() {
         hotkey: hotkey('commandPalette', shortcutOverrides),
         callback: () => dispatch(toggleCommandPaletteOpen()),
         options: {
-          meta: { name: 'Príkazová paleta', description: 'Vyhľadávanie a príkazy' },
+          meta: { name: t('shortcuts.commandPalette.label'), description: t('shortcuts.commandPalette.description') },
         },
       },
       {
         hotkey: hotkey('newDocument', shortcutOverrides),
         callback: () => dispatch(setTemplatePickerOpen(true)),
         options: {
-          meta: { name: 'Nový dokument', description: 'Otvorí výber šablóny' },
+          meta: { name: t('shortcuts.newDocument.label'), description: t('shortcuts.newDocument.description') },
         },
       },
       {
@@ -75,7 +75,7 @@ export function useKeyboardShortcuts() {
           void openQuickNote(documents, dispatch, navigate, (key) => t(key))
         },
         options: {
-          meta: { name: 'Rýchla poznámka', description: 'Otvorí scratch dokument' },
+          meta: { name: t('shortcuts.quickNote.label'), description: t('shortcuts.quickNote.description') },
         },
       },
       {
@@ -90,7 +90,7 @@ export function useKeyboardShortcuts() {
           }
         },
         options: {
-          meta: { name: 'Uložiť', description: 'Okamžite uloží aktuálny obsah dokumentu' },
+          meta: { name: t('shortcuts.save.label'), description: t('shortcuts.save.description') },
         },
       },
       {
@@ -106,7 +106,7 @@ export function useKeyboardShortcuts() {
           navigate(ROUTES.document(imported.id))
         },
         options: {
-          meta: { name: 'Importovať', description: 'Import .scribe, .pages, .md, .txt, .docx' },
+          meta: { name: t('shortcuts.import.label'), description: t('shortcuts.import.description') },
         },
       },
       {
@@ -116,28 +116,28 @@ export function useKeyboardShortcuts() {
           dispatch(setThemeSettings(createThemeSelection(themeSettings, next)))
         },
         options: {
-          meta: { name: 'Téma', description: 'Prepína medzi témami' },
+          meta: { name: t('shortcuts.toggleTheme.label'), description: t('shortcuts.toggleTheme.description') },
         },
       },
       {
         hotkey: hotkey('settings', shortcutOverrides),
         callback: () => navigate(ROUTES.settingsSection('appearance')),
         options: {
-          meta: { name: 'Nastavenia', description: 'Otvorí stránku nastavení' },
+          meta: { name: t('shortcuts.settings.label'), description: t('shortcuts.settings.description') },
         },
       },
       {
         hotkey: hotkey('focusMode', shortcutOverrides),
         callback: () => dispatch(toggleFocusMode()),
         options: {
-          meta: { name: 'Režim sústredenia', description: 'Zapne alebo vypne režim sústredenia' },
+          meta: { name: t('shortcuts.focusMode.label'), description: t('shortcuts.focusMode.description') },
         },
       },
       {
         hotkey: hotkey('readingMode', shortcutOverrides),
         callback: () => dispatch(toggleReadingMode()),
         options: {
-          meta: { name: 'Čítací režim', description: 'Čistý náhľad bez úprav' },
+          meta: { name: t('shortcuts.readingMode.label'), description: t('shortcuts.readingMode.description') },
         },
       },
       {
@@ -155,7 +155,7 @@ export function useKeyboardShortcuts() {
           dispatch(setFocusMode(false))
         },
         options: {
-          meta: { name: 'Zavrieť panel', description: 'Zavrie vyhľadávanie alebo režim' },
+          meta: { name: t('shortcuts.closePanel.label'), description: t('shortcuts.closePanel.description') },
         },
       },
     ],

@@ -28,7 +28,7 @@ export function LibraryViewTabs({ value, favoriteCount, tagCount, onChange }: Li
   }
 
   return (
-    <div className="library-view-tabs titlebar-no-drag" role="tablist" aria-label={t('library.tabs.ariaLabel')}>
+    <nav className="library-view-tabs titlebar-no-drag" aria-label={t('library.tabs.ariaLabel')}>
       {tabs.map((tab) => {
         const count = countFor(tab.id)
         const Icon = tab.icon
@@ -43,12 +43,19 @@ export function LibraryViewTabs({ value, favoriteCount, tagCount, onChange }: Li
             className={cn('library-view-tab', isActive && 'is-active')}
             onClick={() => onChange(tab.id)}
           >
-            <Icon className={cn('h-3.5 w-3.5 shrink-0', tab.id === 'favorites' && isActive && 'fill-current')} />
-            <span>{tab.label}</span>
-            {count !== null && count > 0 && <span className="library-view-tab-count">{count}</span>}
+            <Icon
+              className={cn(
+                'library-view-tab-icon h-4 w-4 shrink-0',
+                tab.id === 'favorites' && isActive && 'fill-current',
+              )}
+            />
+            <span className="library-view-tab-label">{tab.label}</span>
+            {count !== null && count > 0 && (
+              <span className="library-view-tab-count">{count}</span>
+            )}
           </button>
         )
       })}
-    </div>
+    </nav>
   )
 }

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Bookmark,
   Briefcase,
@@ -81,6 +82,7 @@ const customCategoryPreviewClass =
 const BLANK_TEMPLATE = DOCUMENT_TEMPLATES.find((template) => template.id === 'blank')!
 
 export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps) {
+  const { t } = useTranslation()
   const { templates: customTemplates } = useCustomTemplatesLive()
   const { categories: customCategories } = useCustomCategoriesLive()
   const allTemplates = useMemo(
@@ -161,54 +163,53 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
 
   async function handleDeleteCustom() {
     if (!isCustomTemplate(selectedTemplate)) return
-    const confirmed = await confirm(`Vymazať šablónu „${selectedTemplate.name}"?`, {
-      title: 'Vymazať šablónu',
-      kind: 'warning',
-      okLabel: 'Vymazať',
-      cancelLabel: 'Zrušiť',
-    })
+    const confirmed = await confirm(
+      t('templates.deleteTemplateConfirm', { name: selectedTemplate.name }),
+      {
+        title: t('templates.deleteTemplateTitle'),
+        kind: 'warning',
+        okLabel: t('common.delete'),
+        cancelLabel: t('common.cancel'),
+      },
+    )
     if (!confirmed) return
     try {
       await deleteStoredTemplate(selectedTemplate.id)
       setSelectedId(BLANK_TEMPLATE.id)
     } catch (error) {
-      toast.error('Nepodarilo sa vymazať šablónu', String(error))
+      toast.error(t('templates.deleteTemplateError'), String(error))
     }
   }
 
   async function handleCreateCategory() {
     const name = await promptInput({
-      title: 'Nová kategória',
-      placeholder: 'napr. Marketing',
-      confirmLabel: 'Vytvoriť',
+      title: t('templates.newCategoryTitle'),
+      placeholder: t('templates.newCategoryPlaceholder'),
+      confirmLabel: t('common.create'),
     })
     if (!name) return
 
     try {
       const created = await createAndStoreCategory(name, customCategories)
       setCategory(created.id)
-      toast.success('Kategória vytvorená', created.name)
+      toast.success(t('templates.categoryCreated'), created.name)
     } catch (error) {
-      toast.error('Nepodarilo sa vytvoriť kategóriu', String(error))
+      toast.error(t('templates.categoryCreateError'), String(error))
     }
   }
 
   async function handleDeleteCategory(item: CustomTemplateCategory) {
     const templateCount = categoryCounts[item.id] ?? 0
     const templateNote =
-      templateCount === 1
-        ? '1 šablóna sa presunie do Všeobecné.'
-        : templateCount >= 2 && templateCount <= 4
-          ? `${templateCount} šablóny sa presunú do Všeobecné.`
-          : templateCount > 0
-            ? `${templateCount} šablón sa presunie do Všeobecné.`
-            : ''
+      templateCount > 0
+        ? t('templates.deleteCategoryMove', { count: templateCount })
+        : ''
     const message = templateNote
-      ? `Kategória „${item.name}“ sa odstráni. ${templateNote}`
-      : `Odstrániť kategóriu „${item.name}“?`
+      ? t('templates.deleteCategoryMessage', { name: item.name, note: templateNote })
+      : t('templates.deleteCategoryConfirm', { name: item.name })
 
     const confirmed = await confirm(message, {
-      title: 'Odstrániť kategóriu',
+      title: t('templates.deleteCategoryTitle'),
       kind: 'warning',
     })
     if (!confirmed) return
@@ -216,9 +217,9 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
     try {
       await deleteStoredCategory(item.id)
       if (category === item.id) setCategory('all')
-      toast.success('Kategória odstránená', item.name)
+      toast.success(t('templates.categoryDeleted'), item.name)
     } catch (error) {
-      toast.error('Nepodarilo sa odstrániť kategóriu', String(error))
+      toast.error(t('templates.categoryDeleteError'), String(error))
     }
   }
 
@@ -231,9 +232,9 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
             showClose
           >
             <div className="flex shrink-0 flex-col gap-1 border-b border-[var(--color-border)] px-5 pb-3.5 pt-[18px] pr-12">
-              <h2 className="m-0 text-[18px] font-bold tracking-[-0.02em]">Nový dokument</h2>
+              <h2 className="m-0 text-[18px] font-bold tracking-[-0.02em]">{t('templates.title')}</h2>
               <p className="m-0 text-[12px] text-[var(--color-muted-foreground)]">
-                Vyberte šablónu alebo začnite od prázdnej stránky
+                {t('templates.subtitle')}
               </p>
             </div>
 
@@ -244,7 +245,7 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
                   <Input
                     type="search"
                     value={query}
-                    placeholder="Hľadať šablóny…"
+                    placeholder={t('templates.searchPlaceholder')}
                     className="h-auto border-none bg-transparent p-0 shadow-none focus-visible:shadow-none"
                     onChange={(event) => setQuery(event.target.value)}
                   />
@@ -256,17 +257,17 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
                   onClick={() => setCustomDialogOpen(true)}
                 >
                   <Plus className="h-3.5 w-3.5" />
-                  Vlastná šablóna
+                  {t('templates.customTemplate')}
                 </Button>
               </div>
 
               <div className="flex flex-wrap gap-1.5">
                 <FilterChip active={category === 'all'} onClick={() => setCategory('all')}>
-                  Všetky
+                  {t('templates.all')}
                   <span className="ml-1 opacity-60">{categoryCounts.all}</span>
                 </FilterChip>
                 <FilterChip active={category === 'custom'} onClick={() => setCategory('custom')}>
-                  Vlastné šablóny
+                  {t('templates.customTemplates')}
                   <span className="ml-1 opacity-60">{categoryCounts.custom}</span>
                 </FilterChip>
                 {BUILT_IN_TEMPLATE_CATEGORIES.map((key) => (
@@ -280,7 +281,7 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
               <div className="rounded-[10px] border border-dashed border-[color-mix(in_srgb,var(--color-accent)_28%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-accent)_4%,var(--color-surface))] px-3 py-2.5">
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <p className="m-0 text-[11px] font-semibold uppercase tracking-[0.04em] text-[var(--color-muted-foreground)]">
-                    Moje kategórie
+                    {t('templates.myCategories')}
                     {customCategories.length > 0 && (
                       <span className="ml-1.5 font-normal normal-case tracking-normal opacity-70">
                         ({customCategories.length})
@@ -295,13 +296,13 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
                     onClick={() => void handleCreateCategory()}
                   >
                     <Plus className="h-3 w-3" />
-                    Pridať
+                    {t('templates.addCategory')}
                   </Button>
                 </div>
 
                 {customCategories.length === 0 ? (
                   <p className="m-0 text-[12px] text-[var(--color-muted-foreground)]">
-                    Zatiaľ žiadne vlastné kategórie. Kliknite na Pridať a vytvorte si vlastný štítok.
+                    {t('templates.noCustomCategories')}
                   </p>
                 ) : (
                   <div className="flex max-h-24 flex-wrap gap-1.5 overflow-y-auto pr-1">
@@ -349,8 +350,8 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
                   <div className="flex flex-col items-center gap-2 py-10 text-center text-[13px] text-[var(--color-muted-foreground)]">
                     <p>
                       {category !== 'all' || query.trim()
-                        ? 'Žiadna šablóna nevyhovuje filtru.'
-                        : 'Zatiaľ žiadne šablóny.'}
+                        ? t('templates.noMatch')
+                        : t('templates.noneYet')}
                     </p>
                     <Button
                       variant="ghost"
@@ -360,7 +361,7 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
                         setCategory('all')
                       }}
                     >
-                      Vymazať filter
+                      {t('templates.clearFilter')}
                     </Button>
                   </div>
                 )}
@@ -382,11 +383,11 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
                     onClick={() => void handleDeleteCustom()}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
-                    Vymazať
+                    {t('common.delete')}
                   </Button>
                 )}
                 <Button variant="ghost" size="sm" disabled={creating} onClick={onClose}>
-                  Zrušiť
+                  {t('common.cancel')}
                 </Button>
                 <Button
                   variant="default"
@@ -395,7 +396,7 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
                   onClick={() => void handleCreate()}
                 >
                   {creating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                  {creating ? 'Vytváram…' : 'Vytvoriť dokument'}
+                  {creating ? t('templates.creating') : t('templates.createDocument')}
                 </Button>
               </div>
             </div>
@@ -411,7 +412,7 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
           name:
             selectedTemplate.id === 'blank'
               ? selectedTemplate.name
-              : `${selectedTemplate.name} (kópia)`,
+              : `${selectedTemplate.name} ${t('common.copySuffix')}`,
           description: selectedTemplate.description,
           category: isCustomTemplate(selectedTemplate)
             ? selectedTemplate.category
@@ -428,9 +429,9 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
               await insertStoredTemplate(created)
               setSelectedId(created.id)
               setCategory('custom')
-              toast.success('Šablóna uložená', values.name)
+              toast.success(t('templates.templateSaved'), values.name)
             } catch (error) {
-              toast.error('Nepodarilo sa uložiť šablónu', String(error))
+              toast.error(t('templates.templateSaveError'), String(error))
             }
           })()
         }}
@@ -452,6 +453,7 @@ function TemplateCard({
   variant?: 'grid' | 'hero'
   onSelect: () => void
 }) {
+  const { t } = useTranslation()
   const categoryLabel = getCategoryLabel(template.category, customCategories)
   const CategoryIcon = isBuiltInCategory(template.category)
     ? builtInCategoryIcons[template.category]
@@ -494,7 +496,7 @@ function TemplateCard({
           </Badge>
         </div>
         <p className="mt-1 text-[11px] leading-snug text-[var(--color-muted-foreground)]">
-          {template.description || 'Vlastná šablóna'}
+          {template.description || t('templates.customTemplateFallback')}
         </p>
       </div>
     </button>
@@ -514,6 +516,8 @@ function CustomCategoryFilterChip({
   onDelete: () => void
   children: React.ReactNode
 }) {
+  const { t } = useTranslation()
+
   return (
     <div
       className={cn(
@@ -534,7 +538,7 @@ function CustomCategoryFilterChip({
       </button>
       <button
         type="button"
-        aria-label="Odstrániť kategóriu"
+        aria-label={t('templates.deleteCategoryAria')}
         onClick={(event) => {
           event.stopPropagation()
           onDelete()

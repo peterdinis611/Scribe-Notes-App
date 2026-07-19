@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import { Clock, FileText, Tag as TagIcon } from 'lucide-react'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
@@ -21,6 +22,7 @@ type TagStat = {
 }
 
 export function LibraryTagsView({ onNavigate }: LibraryTagsViewProps) {
+  const { t } = useTranslation()
   const documents = useAppSelector((state) => state.documents.documents)
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
   const activeTagFilter = useAppSelector((state) => state.documents.activeTagFilter)
@@ -60,9 +62,9 @@ export function LibraryTagsView({ onNavigate }: LibraryTagsViewProps) {
         <div className="library-empty-state-icon">
           <TagIcon className="h-5 w-5" />
         </div>
-        <p className="library-empty-state-title">Žiadne štítky</p>
+        <p className="library-empty-state-title">{t('library.noTags')}</p>
         <p className="library-empty-state-text">
-          Štítky pridáte cez menu dokumentu v záložke Priečinky.
+          {t('library.noTagsHint')}
         </p>
       </div>
     )
@@ -91,7 +93,7 @@ export function LibraryTagsView({ onNavigate }: LibraryTagsViewProps) {
       {activeTagFilter ? (
         <div className="library-tags-results">
           <p className="library-tags-results-label">
-            Dokumenty so štítkom <strong>{activeTagFilter}</strong>
+            {t('library.documentsWithTag')} <strong>{activeTagFilter}</strong>
           </p>
           <ul className="library-doc-list">
             {taggedDocuments.map((doc) => (
@@ -117,7 +119,7 @@ export function LibraryTagsView({ onNavigate }: LibraryTagsViewProps) {
           </ul>
         </div>
       ) : (
-        <p className="library-tags-hint">Vyberte štítok a zobrazia sa súvisiace dokumenty.</p>
+        <p className="library-tags-hint">{t('library.selectTag')}</p>
       )}
     </div>
   )

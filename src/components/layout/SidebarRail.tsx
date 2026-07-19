@@ -31,7 +31,7 @@ export function SidebarRail({ onNavigate }: SidebarRailProps) {
   return (
     <div className="app-sidebar-rail titlebar-no-drag">
       <div
-        className="mb-2 flex h-9 w-9 items-center justify-center rounded-[10px] bg-[var(--color-accent)] text-[13px] font-bold text-white shadow-[0_2px_8px_color-mix(in_srgb,var(--color-accent)_35%,transparent)]"
+        className="mb-1 flex h-7 w-7 items-center justify-center rounded-md text-[12px] font-semibold text-[var(--color-foreground)]"
         aria-hidden="true"
       >
         S

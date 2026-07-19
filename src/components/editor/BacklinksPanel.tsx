@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import { ArrowDownLeft, ArrowUpRight, FileText, Link2, PanelRightClose, RotateCcw } from 'lucide-react'
 import { listBacklinks, listOutgoingLinks, type DocumentSummary } from '@/lib/db/api'
@@ -19,13 +20,8 @@ type BacklinksPanelProps = {
   onClose: () => void
 }
 
-function countLabel(count: number): string {
-  if (count === 1) return 'dokument'
-  if (count > 1 && count < 5) return 'dokumenty'
-  return 'dokumentov'
-}
-
 export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
+  const { t } = useTranslation()
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
@@ -49,7 +45,7 @@ export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
         setOutgoing(outbound)
       })
       .catch((error) => {
-        if (!cancelled) toast.error('Nepodarilo sa načítať odkazy', String(error))
+        if (!cancelled) toast.error(t('panels.backlinks.loadError'), String(error))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -57,7 +53,7 @@ export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
     return () => {
       cancelled = true
     }
-  }, [activeId, reloadKey])
+  }, [activeId, reloadKey, t])
 
   const handleOpen = useCallback(
     (id: string) => {
@@ -82,7 +78,7 @@ export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
         <FileText className="h-4 w-4 shrink-0 opacity-60" />
         <span className="flex min-w-0 flex-col gap-px">
           <span className="truncate text-[12.5px] font-medium text-[var(--color-foreground)]">
-            {doc.title || 'Bez názvu'}
+            {doc.title || t('common.untitled')}
           </span>
           <span className="text-[10.5px] text-[var(--color-muted-foreground)]">
             {formatRelativeTime(doc.updatedAt)}
@@ -95,16 +91,20 @@ export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
   const total = backlinks.length + outgoing.length
 
   return (
-    <EditorSidePanel className="titlebar-no-drag" aria-label="Prepojenia">
+    <EditorSidePanel className="titlebar-no-drag" aria-label={t('panels.backlinks.title')}>
       <EditorSidePanelHeader
-        title="Prepojenia"
-        subtitle={total === 0 ? 'Žiadne prepojenia' : `${total} ${countLabel(total)}`}
+        title={t('panels.backlinks.title')}
+        subtitle={
+          total === 0
+            ? t('panels.backlinks.noConnections')
+            : t('library.documentCount', { count: total })
+        }
         actions={
           <div className="inline-flex gap-0.5">
-            <EditorSidePanelIconButton title="Obnoviť" onClick={() => setReloadKey((value) => value + 1)}>
+            <EditorSidePanelIconButton title={t('common.refresh')} onClick={() => setReloadKey((value) => value + 1)}>
               <RotateCcw className="h-4 w-4" />
             </EditorSidePanelIconButton>
-            <EditorSidePanelIconButton aria-label="Skryť prepojenia" onClick={onClose}>
+            <EditorSidePanelIconButton aria-label={t('panels.backlinks.hide')} onClick={onClose}>
               <PanelRightClose className="h-4 w-4" />
             </EditorSidePanelIconButton>
           </div>
@@ -112,35 +112,39 @@ export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
       />
 
       {loading && total === 0 ? (
-        <EditorSidePanelEmpty>Načítavam…</EditorSidePanelEmpty>
+        <EditorSidePanelEmpty>{t('common.loading')}</EditorSidePanelEmpty>
       ) : total === 0 ? (
         <EditorSidePanelEmpty>
           <Link2 className="h-5 w-5 opacity-40" />
-          Žiadne prepojenia. Napíšte{' '}
-          <code className="rounded bg-[var(--color-hover)] px-1 text-[11px]">[[</code> a prepojte dokumenty.
+          <Trans
+            i18nKey="panels.backlinks.emptyHint"
+            components={{
+              code: <code className="rounded bg-[var(--color-hover)] px-1 text-[11px]" />,
+            }}
+          />
         </EditorSidePanelEmpty>
       ) : (
         <EditorSidePanelList className="gap-1">
           <div>
             <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.03em] text-[var(--color-muted-foreground)]">
               <ArrowDownLeft className="h-3.5 w-3.5" />
-              Odkazy sem
+              {t('panels.backlinks.incoming')}
               <span className="ml-auto rounded-full bg-[var(--color-hover)] px-1.5 text-[10px] font-semibold">
                 {backlinks.length}
               </span>
             </h3>
-            {renderList(backlinks, 'Zatiaľ sem neodkazuje žiadny dokument.')}
+            {renderList(backlinks, t('panels.backlinks.incomingEmpty'))}
           </div>
 
           <div className="mt-3.5 border-t border-[var(--color-border)] pt-3">
             <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.03em] text-[var(--color-muted-foreground)]">
               <ArrowUpRight className="h-3.5 w-3.5" />
-              Odkazy odtiaľto
+              {t('panels.backlinks.outgoing')}
               <span className="ml-auto rounded-full bg-[var(--color-hover)] px-1.5 text-[10px] font-semibold">
                 {outgoing.length}
               </span>
             </h3>
-            {renderList(outgoing, 'Tento dokument zatiaľ na nič neodkazuje.')}
+            {renderList(outgoing, t('panels.backlinks.outgoingEmpty'))}
           </div>
         </EditorSidePanelList>
       )}

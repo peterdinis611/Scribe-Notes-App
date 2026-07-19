@@ -1,8 +1,16 @@
 import { useHotkeys } from '@tanstack/react-hotkeys'
 import type { Editor } from '@tiptap/react'
+import i18n from '@/i18n'
 import { insertBulletList, insertOrderedList, insertTaskList } from '@/lib/editor/list-commands'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setFindReplaceMode, setFindReplaceOpen } from '@/store/documentsSlice'
+
+function hotkeyMeta(key: string) {
+  return {
+    name: i18n.t(`shortcuts.${key}.label`),
+    description: i18n.t(`shortcuts.${key}.description`),
+  }
+}
 
 export function useEditorHotkeys(editor: Editor | null) {
   const dispatch = useAppDispatch()
@@ -22,7 +30,7 @@ export function useEditorHotkeys(editor: Editor | null) {
         },
         options: {
           enabled: !!editor,
-          meta: { name: 'Hľadať', description: 'Hľadať v dokumente' },
+          meta: hotkeyMeta('find'),
         },
       },
       {
@@ -33,7 +41,7 @@ export function useEditorHotkeys(editor: Editor | null) {
         },
         options: {
           enabled: !!editor,
-          meta: { name: 'Nahradiť', description: 'Hľadať a nahradiť v dokumente' },
+          meta: hotkeyMeta('findReplace'),
         },
       },
       {
@@ -44,7 +52,7 @@ export function useEditorHotkeys(editor: Editor | null) {
         },
         options: {
           enabled: !!editor,
-          meta: { name: 'Nahradiť', description: 'Hľadať a nahradiť v dokumente' },
+          meta: hotkeyMeta('findReplace'),
         },
       },
       {
@@ -55,7 +63,7 @@ export function useEditorHotkeys(editor: Editor | null) {
         },
         options: {
           enabled: !!editor && findReplaceOpen,
-          meta: { name: 'Zavrieť vyhľadávanie', description: 'Zavrie panel hľadať a nahradiť' },
+          meta: hotkeyMeta('closeFind'),
         },
       },
       {
@@ -63,7 +71,7 @@ export function useEditorHotkeys(editor: Editor | null) {
         callback: () => editor?.chain().focus().undo().run(),
         options: {
           enabled: !!editor,
-          meta: { name: 'Späť', description: 'Vráti poslednú zmenu v editore' },
+          meta: hotkeyMeta('undo'),
         },
       },
       {
@@ -71,7 +79,7 @@ export function useEditorHotkeys(editor: Editor | null) {
         callback: () => editor?.chain().focus().redo().run(),
         options: {
           enabled: !!editor,
-          meta: { name: 'Znovu', description: 'Opakuje zrušenú zmenu v editore' },
+          meta: hotkeyMeta('redo'),
         },
       },
       {
@@ -79,7 +87,7 @@ export function useEditorHotkeys(editor: Editor | null) {
         callback: () => editor?.chain().focus().redo().run(),
         options: {
           enabled: !!editor,
-          meta: { name: 'Znovu', description: 'Opakuje zrušenú zmenu v editore' },
+          meta: hotkeyMeta('redo'),
         },
       },
       {
@@ -87,7 +95,7 @@ export function useEditorHotkeys(editor: Editor | null) {
         callback: () => editor?.chain().focus().toggleBold().run(),
         options: {
           enabled: !!editor,
-          meta: { name: 'Tučné', description: 'Prepnúť tučné písmo' },
+          meta: hotkeyMeta('bold'),
         },
       },
       {
@@ -95,7 +103,7 @@ export function useEditorHotkeys(editor: Editor | null) {
         callback: () => editor?.chain().focus().toggleItalic().run(),
         options: {
           enabled: !!editor,
-          meta: { name: 'Kurzíva', description: 'Prepnúť kurzívu' },
+          meta: hotkeyMeta('italic'),
         },
       },
       {
@@ -103,7 +111,7 @@ export function useEditorHotkeys(editor: Editor | null) {
         callback: () => editor?.chain().focus().toggleUnderline().run(),
         options: {
           enabled: !!editor,
-          meta: { name: 'Podčiarknutie', description: 'Prepnúť podčiarknutie' },
+          meta: hotkeyMeta('underline'),
         },
       },
       {
@@ -111,7 +119,7 @@ export function useEditorHotkeys(editor: Editor | null) {
         callback: () => editor?.chain().focus().toggleStrike().run(),
         options: {
           enabled: !!editor,
-          meta: { name: 'Prečiarknuté', description: 'Prepnúť prečiarknutie' },
+          meta: hotkeyMeta('strike'),
         },
       },
       {
@@ -119,7 +127,7 @@ export function useEditorHotkeys(editor: Editor | null) {
         callback: () => editor?.chain().focus().toggleCode().run(),
         options: {
           enabled: !!editor,
-          meta: { name: 'Inline kód', description: 'Prepnúť inline kód' },
+          meta: hotkeyMeta('inlineCode'),
         },
       },
       {
@@ -130,7 +138,7 @@ export function useEditorHotkeys(editor: Editor | null) {
         },
         options: {
           enabled: !!editor,
-          meta: { name: 'Odrážky', description: 'Vložiť odrážkový zoznam' },
+          meta: hotkeyMeta('bulletList'),
         },
       },
       {
@@ -141,7 +149,7 @@ export function useEditorHotkeys(editor: Editor | null) {
         },
         options: {
           enabled: !!editor,
-          meta: { name: 'Číslovaný zoznam', description: 'Vložiť číslovaný zoznam' },
+          meta: hotkeyMeta('orderedList'),
         },
       },
       {
@@ -152,7 +160,7 @@ export function useEditorHotkeys(editor: Editor | null) {
         },
         options: {
           enabled: !!editor,
-          meta: { name: 'Checklist', description: 'Vložiť zoznam úloh' },
+          meta: hotkeyMeta('taskList'),
         },
       },
       {
@@ -160,7 +168,7 @@ export function useEditorHotkeys(editor: Editor | null) {
         callback: () => {
           if (!editor) return
           const previous = editor.getAttributes('link').href as string | undefined
-          const url = window.prompt('URL odkazu', previous ?? 'https://')
+          const url = window.prompt(i18n.t('editorActions.linkUrlPrompt'), previous ?? 'https://')
           if (url === null) return
           if (url === '') {
             editor.chain().focus().extendMarkRange('link').unsetLink().run()
@@ -170,7 +178,7 @@ export function useEditorHotkeys(editor: Editor | null) {
         },
         options: {
           enabled: !!editor,
-          meta: { name: 'Odkaz', description: 'Vložiť alebo upraviť odkaz' },
+          meta: hotkeyMeta('link'),
         },
       },
     ],

@@ -15,7 +15,12 @@ type GraphNode = {
   y: number
 }
 
-function buildLayout(edges: LinkGraphEdge[], centerId: string | null, size: number) {
+function buildLayout(
+  edges: LinkGraphEdge[],
+  centerId: string | null,
+  size: number,
+  documentFallback: string,
+) {
   const ids = new Set<string>()
   const titles = new Map<string, string>()
   for (const edge of edges) {
@@ -34,7 +39,7 @@ function buildLayout(edges: LinkGraphEdge[], centerId: string | null, size: numb
     const angle = (index / Math.max(nodeIds.length, 1)) * Math.PI * 2 - Math.PI / 2
     return {
       id,
-      title: titles.get(id) ?? 'Dokument',
+      title: titles.get(id) ?? documentFallback,
       x: cx + Math.cos(angle) * radius,
       y: cy + Math.sin(angle) * radius,
     }
@@ -79,8 +84,8 @@ export function LibraryLinkGraphView() {
 
   const size = 320
   const { nodes, nodeMap } = useMemo(
-    () => buildLayout(edges, activeId, size),
-    [activeId, edges],
+    () => buildLayout(edges, activeId, size, t('common.document')),
+    [activeId, edges, t],
   )
 
   function openDocument(id: string) {

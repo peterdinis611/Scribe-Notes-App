@@ -1,4 +1,5 @@
 import type { Editor } from '@tiptap/react'
+import i18n from '@/i18n'
 
 const DELETABLE_NODE_TYPES = [
   'codeBlock',
@@ -15,13 +16,13 @@ export function hasEditorSelection(editor: Editor): boolean {
 }
 
 export function getActiveBlockDeleteLabel(editor: Editor): string | null {
-  if (editor.isActive('codeBlock')) return 'Odstrániť blok kódu'
-  if (editor.isActive('blockquote')) return 'Odstrániť citáciu'
-  if (editor.isActive('horizontalRule')) return 'Odstrániť oddeľovač'
-  if (editor.isActive('image')) return 'Odstrániť obrázok'
-  if (editor.isActive('bulletList')) return 'Odstrániť zoznam'
-  if (editor.isActive('orderedList')) return 'Odstrániť zoznam'
-  if (editor.isActive('taskList')) return 'Odstrániť checklist'
+  if (editor.isActive('codeBlock')) return i18n.t('editorActions.deleteCodeBlock')
+  if (editor.isActive('blockquote')) return i18n.t('editorActions.deleteBlockquote')
+  if (editor.isActive('horizontalRule')) return i18n.t('editorActions.deleteHr')
+  if (editor.isActive('image')) return i18n.t('editorActions.deleteImage')
+  if (editor.isActive('bulletList')) return i18n.t('editorActions.deleteList')
+  if (editor.isActive('orderedList')) return i18n.t('editorActions.deleteList')
+  if (editor.isActive('taskList')) return i18n.t('editorActions.deleteChecklist')
   return null
 }
 

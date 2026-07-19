@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { DocumentTitleField } from '@/components/DocumentTitleField'
 import { DemoGuideButton } from '@/components/DemoGuideButton'
+import { LocaleToggle } from '@/components/LocaleToggle'
 import { EditorDocumentToolsMenu } from '@/components/editor/EditorDocumentToolsMenu'
 import { EditorFileMenu } from '@/components/editor/EditorFileMenu'
 import { EditorViewModeToggle } from '@/components/editor/EditorViewModeToggle'
@@ -213,6 +214,7 @@ function EditorChrome() {
         <div className="editor-header-right titlebar-no-drag titlebar-interactive flex shrink-0 flex-nowrap items-center justify-end gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0">
           {document && <EditorDocumentToolsMenu viewMode={viewMode} />}
           {document && <EditorViewModeToggle />}
+          <LocaleToggle size="sm" />
           {document && <SaveStatus />}
         </div>
       </header>

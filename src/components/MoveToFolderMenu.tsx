@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Check, Folder, FolderInput } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -32,6 +33,7 @@ export function MoveToFolderMenu({
   trigger,
   onMoved,
 }: MoveToFolderMenuProps) {
+  const { t } = useTranslation()
   const folders = useAppSelector((state) => state.folders.folders)
   const moveDocument = useMoveDocumentToFolder()
   const [open, setOpen] = useState(false)
@@ -57,8 +59,8 @@ export function MoveToFolderMenu({
             variant="ghost"
             size="icon"
             className="h-7 w-7 hover:bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] hover:text-[var(--color-accent)]"
-            title="Presunúť do priečinka"
-            aria-label="Presunúť do priečinka"
+            title={t('library.moveToFolder')}
+            aria-label={t('library.moveToFolder')}
             onClick={(event) => event.stopPropagation()}
           >
             <FolderInput className="h-3.5 w-3.5" />
@@ -68,7 +70,7 @@ export function MoveToFolderMenu({
       <DropdownMenuContent align="start" className="max-h-80 min-w-[220px] overflow-y-auto">
         <DropdownMenuItem onClick={() => void handleMove(null)}>
           <Folder className="h-4 w-4 text-[var(--color-muted-foreground)]" />
-          <span className="flex-1">Koreň (bez priečinka)</span>
+          <span className="flex-1">{t('library.rootFolder')}</span>
           {folderId === null && <Check className="h-4 w-4 text-[var(--color-accent)]" />}
         </DropdownMenuItem>
         {folderItems.length > 0 && <DropdownMenuSeparator />}
@@ -107,6 +109,7 @@ export function MoveToFolderDialog({
   folderId,
   onOpenChange,
 }: MoveToFolderDialogProps) {
+  const { t } = useTranslation()
   const folders = useAppSelector((state) => state.folders.folders)
   const moveDocument = useMoveDocumentToFolder()
   const folderItems = useMemo(() => flattenFoldersForPicker(folders), [folders])
@@ -122,7 +125,7 @@ export function MoveToFolderDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md titlebar-no-drag" showClose>
         <DialogHeader>
-          <DialogTitle>Presunúť do priečinka</DialogTitle>
+          <DialogTitle>{t('library.moveToFolder')}</DialogTitle>
           <DialogDescription>
             Vyberte cieľový priečinok alebo presuňte dokument priamo v sidebari.
           </DialogDescription>
@@ -134,7 +137,7 @@ export function MoveToFolderDialog({
             onClick={() => void handleMove(null)}
           >
             <Folder className="h-4 w-4 text-[var(--color-muted-foreground)]" />
-            <span className="flex-1">Koreň (bez priečinka)</span>
+            <span className="flex-1">{t('library.rootFolder')}</span>
             {folderId === null && <Check className="h-4 w-4 text-[var(--color-accent)]" />}
           </button>
           {folderItems.map(({ folder, depth }) => (
