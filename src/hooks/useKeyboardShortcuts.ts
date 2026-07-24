@@ -3,6 +3,7 @@ import type { RegisterableHotkey } from '@tanstack/react-hotkeys'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { openQuickNote } from '@/lib/quick-note'
+import { openTodayNote } from '@/lib/journal-notes'
 import { pickAndImportFile } from '@/lib/db/api'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
@@ -41,6 +42,7 @@ function hotkey(id: string, overrides: Record<string, string>): RegisterableHotk
 export function useKeyboardShortcuts() {
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
   const documents = useAppSelector((state) => state.documents.documents)
+  const folders = useAppSelector((state) => state.folders.folders)
   const themeSettings = useAppSelector((state) => state.settings.themeSettings)
   const shortcutOverrides = useAppSelector((state) => state.settings.shortcutOverrides)
   const activeDocument = useAppSelector((state) => state.documents.activeDocument)
@@ -76,6 +78,23 @@ export function useKeyboardShortcuts() {
         },
         options: {
           meta: { name: t('shortcuts.quickNote.label'), description: t('shortcuts.quickNote.description') },
+        },
+      },
+      {
+        hotkey: hotkey('todayNote', shortcutOverrides),
+        callback: () => {
+          void openTodayNote({
+            documents,
+            folders,
+            dispatch,
+            navigate,
+            t: (key, options) => t(key, options),
+          }).catch((error) => {
+            toast.error(t('journal.openError'), String(error))
+          })
+        },
+        options: {
+          meta: { name: t('shortcuts.todayNote.label'), description: t('shortcuts.todayNote.description') },
         },
       },
       {

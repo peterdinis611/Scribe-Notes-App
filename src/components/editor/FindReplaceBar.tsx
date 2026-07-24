@@ -6,7 +6,11 @@ import { cn } from '@/lib/utils'
 import { searchPluginKey } from '@/lib/editor/search-extension'
 import { isEditorViewReady, runEditorCommand } from '@/lib/editor/view-ready'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { setFindReplaceOpen } from '@/store/documentsSlice'
+import {
+  setFindReplaceMode,
+  setFindReplaceOpen,
+  setPendingEditorSearch,
+} from '@/store/documentsSlice'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
@@ -36,6 +40,7 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
   const { t } = useTranslation()
   const open = useAppSelector((state) => state.documents.findReplaceOpen)
   const mode = useAppSelector((state) => state.documents.findReplaceMode)
+  const pendingEditorSearch = useAppSelector((state) => state.documents.pendingEditorSearch)
   const dispatch = useAppDispatch()
   const [term, setTerm] = useState('')
   const [replacement, setReplacement] = useState('')
@@ -43,6 +48,7 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
   const [showReplace, setShowReplace] = useState(false)
   const [status, setStatus] = useState({ total: 0, active: -1 })
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const pendingTermRef = useRef<string | null>(null)
 
   const scrollToActive = useCallback(() => {
     if (!editor) return
@@ -73,10 +79,25 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
   }, [editor])
 
   useEffect(() => {
+    if (!editor || !pendingEditorSearch || !isEditorViewReady(editor)) return
+
+    const searchTerm = pendingEditorSearch
+    pendingTermRef.current = searchTerm
+    dispatch(setPendingEditorSearch(null))
+    setTerm(searchTerm)
+    dispatch(setFindReplaceMode('find'))
+    dispatch(setFindReplaceOpen(true))
+  }, [dispatch, editor, pendingEditorSearch])
+
+  useEffect(() => {
     if (!open) return
 
     setShowReplace(mode === 'replace')
-    if (editor && !editor.isDestroyed) {
+    const pendingTerm = pendingTermRef.current
+    if (pendingTerm) {
+      pendingTermRef.current = null
+      setTerm(pendingTerm)
+    } else if (editor && !editor.isDestroyed) {
       const selected = editor.state.doc.textBetween(
         editor.state.selection.from,
         editor.state.selection.to,

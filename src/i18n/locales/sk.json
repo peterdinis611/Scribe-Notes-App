@@ -91,6 +91,8 @@
     "focusOff": "Vypnúť režim sústredenia",
     "duplicate": "Duplikovať dokument",
     "moveToFolder": "Presunúť do priečinka",
+    "pinDocument": "Pripnúť dokument",
+    "unpinDocument": "Odopnúť dokument",
     "settings": "Nastavenia",
     "toggleTheme": "Prepínať tému",
     "randomTheme": "Náhodná téma",
@@ -99,12 +101,43 @@
     "switchToSlovak": "Prepnúť na slovenčinu",
     "newFolder": "Nový priečinok",
     "newFolderTitle": "Nový priečinok",
-    "newFolderPlaceholder": "Názov priečinka"
+    "newFolderPlaceholder": "Názov priečinka",
+    "aiHint": "Vyžaduje označený text",
+    "ai": {
+      "rewrite": "AI: Prepísať",
+      "shorten": "AI: Skrátiť",
+      "expand": "AI: Rozšíriť",
+      "fixGrammar": "AI: Opraviť gramatiku",
+      "toneFormal": "AI: Formálny tón",
+      "toneCasual": "AI: Neformálny tón"
+    },
+    "todayNote": "Dnešná poznámka",
+    "weekNote": "Týždenná poznámka"
   },
   "editor": {
     "loading": "Načítavam dokument…",
     "loadingEditor": "Načítavam editor…",
     "page": "Strana {{page}}"
+  },
+  "ai": {
+    "menuTitle": "AI",
+    "noSelection": "Najprv označte text",
+    "error": "AI požiadavka zlyhala",
+    "actions": {
+      "rewrite": "Prepísať",
+      "shorten": "Skrátiť",
+      "expand": "Rozšíriť",
+      "fixGrammar": "Opraviť gramatiku",
+      "toneFormal": "Formálny tón",
+      "toneCasual": "Neformálny tón"
+    },
+    "dialog": {
+      "loading": "Generujem návrh…",
+      "working": "Pracujem…",
+      "preview": "Skontrolujte návrh pred použitím na označený text.",
+      "apply": "Použiť",
+      "discard": "Zahodiť"
+    }
   },
   "errors": {
     "title": "Niečo sa pokazilo",
@@ -152,6 +185,10 @@
       "about": {
         "label": "O aplikácii",
         "description": "Verzia a info"
+      },
+      "ai": {
+        "label": "AI",
+        "description": "Asistent pri písaní v texte"
       }
     },
     "language": {
@@ -160,6 +197,29 @@
       "rowDescription": "Prepína texty menu, dialógov a editora.",
       "sk": "Slovenčina",
       "en": "English"
+    },
+    "ai": {
+      "pageTitle": "AI asistent",
+      "pageDescription": "Voliteľná inline AI na úpravu označeného textu. Predvolene vypnutá.",
+      "enabledTitle": "Povoliť AI",
+      "enabledDescription": "Zobrazí AI akcie v bublinkovom menu editora a palete príkazov.",
+      "enabledOn": "Zapnuté",
+      "enabledOff": "Vypnuté",
+      "providerTitle": "Poskytovateľ",
+      "providerDescription": "Lokálny server Ollama alebo cloudové API.",
+      "providers": {
+        "ollama": "Ollama (lokálne)",
+        "openai": "OpenAI",
+        "anthropic": "Anthropic"
+      },
+      "baseUrlTitle": "Základná URL",
+      "baseUrlDescription": "API endpoint pre zvoleného poskytovateľa.",
+      "apiKeyTitle": "API kľúč",
+      "apiKeyDescription": "Uložený len v localStorage tohto prehliadača na vašom zariadení — nikdy neposielaný na servery Scribe.",
+      "apiKeyPlaceholder": "sk-…",
+      "modelTitle": "Model",
+      "modelDescription": "Názov modelu odosielaný poskytovateľovi API.",
+      "privacyNote": "Označený text a prompty sa odosielajú priamo z vášho zariadenia na nakonfigurovaného poskytovateľa. API kľúče zostávajú v localStorage na tomto zariadení."
     },
     "appearance": {
       "themeTitle": "Téma",
@@ -343,6 +403,10 @@
     "closePanel": {
       "label": "Zavrieť panel",
       "description": "Zavrie vyhľadávanie alebo režim"
+    },
+    "todayNote": {
+      "label": "Dnešná poznámka",
+      "description": "Otvorí alebo vytvorí dnešný denník"
     }
   },
   "quickNote": {
@@ -378,6 +442,9 @@
     "trashAllInFolder": "Presunúť všetky dokumenty do koša",
     "moveToTrash": "Presunúť do koša",
     "favorite": "Obľúbené",
+    "pin": "Pripnúť",
+    "unpin": "Odopnúť",
+    "pinnedSection": "Pripnuté",
     "tags": "Štítky",
     "documentTags": "Štítky dokumentu",
     "documentTagsHint": "Oddeľte štítky čiarkou",
@@ -545,7 +612,16 @@
   "linkGraph": {
     "loading": "Načítavam graf odkazov…",
     "empty": "Zatiaľ žiadne wiki odkazy medzi dokumentmi.",
-    "summary": "{{nodes}} dokumentov · {{edges}} odkazov"
+    "emptyOrphans": "Žiadne osirolené dokumenty — všetky sú prepojené.",
+    "summary": "{{nodes}} dokumentov · {{edges}} odkazov",
+    "showOrphans": "Osirolené",
+    "orphanCount": "{{count}} osirolených",
+    "orphanHint": "{{count}} neprepojených dokumentov — zapnite Osirolené.",
+    "filterAround": "Zobraziť len aktívny dokument a jeho susedov",
+    "filterAroundShort": "Okolo",
+    "zoomIn": "Priblížiť",
+    "zoomOut": "Oddialiť",
+    "resetView": "Resetovať pohľad"
   },
   "diagnostics": {
     "loadError": "Nepodarilo sa načítať diagnostiku",
@@ -604,6 +680,7 @@
     "folderDeleteError": "Nepodarilo sa vymazať priečinok",
     "folderEmpty": "Priečinok neobsahuje žiadne dokumenty",
     "favoriteError": "Nepodarilo sa zmeniť obľúbené",
+    "pinError": "Nepodarilo sa zmeniť pripnutie",
     "tagsError": "Nepodarilo sa uložiť štítky",
     "saveError": "Ukladanie zlyhalo",
     "exportDone": "Export dokončený",
@@ -975,5 +1052,13 @@
     "preview": "Náhľad",
     "zoom": "Zoom",
     "moveToFolder": "Presunúť do priečinka"
+  },
+  "journal": {
+    "today": "Dnes",
+    "thisWeek": "Tento týždeň",
+    "folderName": "Denník",
+    "todayTitle": "{{date}}",
+    "weekTitle": "Týždeň {{week}}",
+    "openError": "Nepodarilo sa otvoriť denník"
   }
 }

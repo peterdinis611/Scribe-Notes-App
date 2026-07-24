@@ -91,6 +91,8 @@
     "focusOff": "Disable focus mode",
     "duplicate": "Duplicate document",
     "moveToFolder": "Move to folder",
+    "pinDocument": "Pin document",
+    "unpinDocument": "Unpin document",
     "settings": "Settings",
     "toggleTheme": "Toggle theme",
     "randomTheme": "Random theme",
@@ -99,12 +101,43 @@
     "switchToSlovak": "Switch to Slovak",
     "newFolder": "New folder",
     "newFolderTitle": "New folder",
-    "newFolderPlaceholder": "Folder name"
+    "newFolderPlaceholder": "Folder name",
+    "aiHint": "Requires text selection",
+    "ai": {
+      "rewrite": "AI: Rewrite",
+      "shorten": "AI: Shorten",
+      "expand": "AI: Expand",
+      "fixGrammar": "AI: Fix grammar",
+      "toneFormal": "AI: Formal tone",
+      "toneCasual": "AI: Casual tone"
+    },
+    "todayNote": "Today note",
+    "weekNote": "Weekly note"
   },
   "editor": {
     "loading": "Loading document…",
     "loadingEditor": "Loading editor…",
     "page": "Page {{page}}"
+  },
+  "ai": {
+    "menuTitle": "AI",
+    "noSelection": "Select text first",
+    "error": "AI request failed",
+    "actions": {
+      "rewrite": "Rewrite",
+      "shorten": "Shorten",
+      "expand": "Expand",
+      "fixGrammar": "Fix grammar",
+      "toneFormal": "Formal tone",
+      "toneCasual": "Casual tone"
+    },
+    "dialog": {
+      "loading": "Generating a suggestion…",
+      "working": "Working…",
+      "preview": "Review the suggestion before applying it to your selection.",
+      "apply": "Apply",
+      "discard": "Discard"
+    }
   },
   "errors": {
     "title": "Something went wrong",
@@ -152,6 +185,10 @@
       "about": {
         "label": "About",
         "description": "Version and info"
+      },
+      "ai": {
+        "label": "AI",
+        "description": "Inline writing assistant"
       }
     },
     "language": {
@@ -160,6 +197,29 @@
       "rowDescription": "Switches menus, dialogs, and editor UI text.",
       "sk": "Slovenčina",
       "en": "English"
+    },
+    "ai": {
+      "pageTitle": "AI assistant",
+      "pageDescription": "Optional inline AI for rewriting selected text. Disabled by default.",
+      "enabledTitle": "Enable AI",
+      "enabledDescription": "Shows AI actions in the editor bubble menu and command palette.",
+      "enabledOn": "On",
+      "enabledOff": "Off",
+      "providerTitle": "Provider",
+      "providerDescription": "Choose a local Ollama server or a cloud API.",
+      "providers": {
+        "ollama": "Ollama (local)",
+        "openai": "OpenAI",
+        "anthropic": "Anthropic"
+      },
+      "baseUrlTitle": "Base URL",
+      "baseUrlDescription": "API endpoint for the selected provider.",
+      "apiKeyTitle": "API key",
+      "apiKeyDescription": "Stored only in this browser's localStorage on your device — never sent to Scribe servers.",
+      "apiKeyPlaceholder": "sk-…",
+      "modelTitle": "Model",
+      "modelDescription": "Model name passed to the provider API.",
+      "privacyNote": "Selected text and prompts are sent directly from your device to the configured provider. API keys stay in localStorage on this device."
     },
     "appearance": {
       "themeTitle": "Theme",
@@ -343,6 +403,10 @@
     "closePanel": {
       "label": "Close panel",
       "description": "Closes search or reading/focus mode"
+    },
+    "todayNote": {
+      "label": "Today note",
+      "description": "Opens or creates today’s journal entry"
     }
   },
   "quickNote": {
@@ -376,6 +440,9 @@
     "trashAllInFolder": "Move all documents to trash",
     "moveToTrash": "Move to trash",
     "favorite": "Favorite",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "pinnedSection": "Pinned",
     "tags": "Tags",
     "documentTags": "Document tags",
     "documentTagsHint": "Separate tags with commas",
@@ -537,7 +604,16 @@
   "linkGraph": {
     "loading": "Loading link graph…",
     "empty": "No wiki links between documents yet.",
-    "summary": "{{nodes}} documents · {{edges}} links"
+    "emptyOrphans": "No orphan documents — every document is linked.",
+    "summary": "{{nodes}} documents · {{edges}} links",
+    "showOrphans": "Orphans",
+    "orphanCount": "{{count}} orphans",
+    "orphanHint": "{{count}} unlinked documents — enable Orphans to show them.",
+    "filterAround": "Show only the active document and its neighbors",
+    "filterAroundShort": "Around",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "resetView": "Reset view"
   },
   "diagnostics": {
     "loadError": "Failed to load diagnostics",
@@ -596,6 +672,7 @@
     "folderDeleteError": "Failed to delete folder",
     "folderEmpty": "Folder contains no documents",
     "favoriteError": "Failed to update favorite",
+    "pinError": "Failed to update pin",
     "tagsError": "Failed to save tags",
     "saveError": "Save failed",
     "exportDone": "Export completed",
@@ -963,5 +1040,13 @@
     "preview": "Preview",
     "zoom": "Zoom",
     "moveToFolder": "Move to folder"
+  },
+  "journal": {
+    "today": "Today",
+    "thisWeek": "This week",
+    "folderName": "Journal",
+    "todayTitle": "{{date}}",
+    "weekTitle": "Week {{week}}",
+    "openError": "Failed to open journal note"
   }
 }

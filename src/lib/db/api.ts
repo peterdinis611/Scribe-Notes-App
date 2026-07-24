@@ -8,6 +8,7 @@ export interface DocumentSummary {
   filePath: string | null
   updatedAt: number
   isFavorite: boolean
+  isPinned: boolean
   tags: string[]
   deletedAt: number | null
 }
@@ -18,6 +19,7 @@ export interface Folder {
   parentId: string | null
   createdAt: number
   updatedAt: number
+  isPinned: boolean
 }
 
 export interface SearchHit {
@@ -110,6 +112,12 @@ export const emptyTrash = () => invoke<number>('empty_trash')
 
 export const setDocumentFavorite = (id: string, favorite: boolean) =>
   invoke<void>('set_document_favorite', { id, favorite })
+
+export const setDocumentPinned = (id: string, pinned: boolean) =>
+  invoke<void>('set_document_pinned', { id, pinned })
+
+export const setFolderPinned = (id: string, pinned: boolean) =>
+  invoke<void>('set_folder_pinned', { id, pinned })
 
 export const setDocumentTags = (id: string, tags: string[]) =>
   invoke<void>('set_document_tags', { id, tags })
@@ -311,6 +319,16 @@ export interface LinkGraphEdge {
   targetTitle: string
 }
 
+export interface LinkGraphOrphan {
+  id: string
+  title: string
+}
+
+export interface LinkGraph {
+  edges: LinkGraphEdge[]
+  orphans: LinkGraphOrphan[]
+}
+
 export interface BackupExportResult {
   path: string
   documentsIncluded: number
@@ -321,7 +339,7 @@ export interface BackupImportResult {
   message: string
 }
 
-export const listLinkGraph = () => invoke<LinkGraphEdge[]>('list_link_graph')
+export const listLinkGraph = () => invoke<LinkGraph>('list_link_graph')
 
 export const exportLibraryArchive = () =>
   invoke<BackupExportResult | null>('export_library_archive')

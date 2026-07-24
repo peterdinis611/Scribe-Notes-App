@@ -1,6 +1,7 @@
-import { FolderPlus, Search, Trash2 } from 'lucide-react'
+import { FolderPlus, CalendarDays, Search, Trash2 } from 'lucide-react'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from '@tanstack/react-router'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { FolderTree } from '@/components/FolderTree'
 import { LibraryFavoritesView } from '@/components/LibraryFavoritesView'
@@ -11,6 +12,7 @@ import { LibraryViewTabs, type LibraryView } from '@/components/LibraryViewTabs'
 import { SidebarRail } from '@/components/layout/SidebarRail'
 import { SidebarSearchResults } from '@/components/SidebarSearchResults'
 import { createFolder } from '@/lib/db/api'
+import { openTodayNote } from '@/lib/journal-notes'
 import { promptInput } from '@/lib/input-dialog'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
@@ -37,7 +39,9 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
   const [libraryView, setLibraryView] = useState<LibraryView>('folders')
   const scrollRef = useRef<HTMLDivElement>(null)
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
   const documents = useAppSelector((state) => state.documents.documents)
+  const folders = useAppSelector((state) => state.folders.folders)
   const isContentSearch = query.trim().length >= 2
 
   const favoriteCount = useMemo(
@@ -141,6 +145,25 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                       {t('library.allDocuments')}
                     </h2>
                     <div className="inline-flex items-center gap-0.5">
+                      <button
+                        type="button"
+                        className={libraryActionClass}
+                        onClick={() => {
+                          void openTodayNote({
+                            documents,
+                            folders,
+                            dispatch,
+                            navigate,
+                            t: (key, options) => t(key, options),
+                          }).catch((error) => {
+                            toast.error(t('journal.openError'), String(error))
+                          })
+                        }}
+                        title={t('journal.today')}
+                        aria-label={t('journal.today')}
+                      >
+                        <CalendarDays className="h-3.5 w-3.5" />
+                      </button>
                       <button
                         type="button"
                         className={libraryActionClass}

@@ -4,7 +4,9 @@ import type { AppLocale } from '@/i18n'
 import type { PageSetup } from '@/lib/editor/page-setup'
 import { applyThemeSettings } from '@/lib/themes/apply'
 import type { ThemeSettings } from '@/lib/themes/types'
+import type { AiSettings } from '@/lib/ai/types'
 import {
+  persistAiSettings,
   persistEditorViewMode,
   persistPageSetup,
   persistPrintColumns,
@@ -13,6 +15,7 @@ import {
   persistSpellCheckEnabled,
   persistThemeSettings,
   persistLocale,
+  readAiSettings,
   readEditorViewMode,
   readLocale,
   readPageSetup,
@@ -46,6 +49,7 @@ export interface SettingsState {
   printZoom: number
   printLayoutColumns: PrintLayoutColumns
   spellCheckEnabled: boolean
+  aiSettings: AiSettings
   shortcutOverrides: ShortcutOverrides
 }
 
@@ -60,6 +64,7 @@ const initialState: SettingsState = {
   printZoom: readPrintZoom(),
   printLayoutColumns: readPrintColumns(),
   spellCheckEnabled: readSpellCheckEnabled(),
+  aiSettings: readAiSettings(),
   shortcutOverrides: readShortcutOverrides(),
 }
 
@@ -107,6 +112,10 @@ const settingsSlice = createSlice({
       state.spellCheckEnabled = action.payload
       persistSpellCheckEnabled(action.payload)
     },
+    setAiSettings(state, action: PayloadAction<AiSettings>) {
+      state.aiSettings = action.payload
+      persistAiSettings(action.payload)
+    },
     setShortcutOverride(state, action: PayloadAction<{ id: string; hotkey: string | null }>) {
       const next = { ...state.shortcutOverrides }
       if (action.payload.hotkey) {
@@ -135,6 +144,7 @@ export const {
   setPrintZoom,
   setPrintLayoutColumns,
   setSpellCheckEnabled,
+  setAiSettings,
   setShortcutOverride,
   resetShortcutOverrides,
 } = settingsSlice.actions

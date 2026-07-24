@@ -31,6 +31,13 @@ export const APP_SHORTCUT_BINDINGS: AppShortcutBinding[] = [
     descriptionKey: 'shortcuts.quickNote.description',
   },
   {
+    id: 'todayNote',
+    scope: 'app',
+    defaultHotkey: 'Mod+Shift+D',
+    labelKey: 'shortcuts.todayNote.label',
+    descriptionKey: 'shortcuts.todayNote.description',
+  },
+  {
     id: 'save',
     scope: 'app',
     defaultHotkey: 'Mod+S',
@@ -78,6 +85,7 @@ export interface ShortcutDef {
   id:
     | 'newDocument'
     | 'quickNote'
+    | 'todayNote'
     | 'save'
     | 'commandPalette'
     | 'undo'
@@ -95,6 +103,7 @@ export interface ShortcutDef {
 export const APP_SHORTCUTS: ShortcutDef[] = [
   { id: 'newDocument', keys: ['⌘', 'N'] },
   { id: 'quickNote', keys: ['⌘', '⇧', 'N'] },
+  { id: 'todayNote', keys: ['⌘', '⇧', 'D'] },
   { id: 'save', keys: ['⌘', 'S'] },
   { id: 'commandPalette', keys: ['⌘', 'K'] },
   { id: 'undo', keys: ['⌘', 'Z'] },

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import {
+  CalendarDays,
   Copy,
   FileText,
   Focus,
@@ -16,17 +17,24 @@ import {
   Shuffle,
   Sparkles,
   StickyNote,
+  Pin,
 } from 'lucide-react'
+import { AI_ACTION_IDS } from '@/lib/ai/actions'
+import { isAiAvailable } from '@/lib/ai/config'
+import { runAiEditorAction } from '@/lib/ai/run-action'
+import { editorRefs } from '@/store/editorRefs'
 import { openQuickNote } from '@/lib/quick-note'
+import { openTodayNote, openThisWeekNote } from '@/lib/journal-notes'
 import { getDisplayKeysForShortcut } from '@/lib/shortcuts'
 import type { AppLocale } from '@/i18n'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { createFolder, duplicateDocument, searchDocuments } from '@/lib/db/api'
+import { createFolder, duplicateDocument, searchDocuments, setDocumentPinned } from '@/lib/db/api'
 import type { SearchHit } from '@/lib/db/api'
 import { promptInput } from '@/lib/input-dialog'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
 import { cn, debounce } from '@/lib/utils'
+import { sanitizeSnippet } from '@/lib/search-snippet'
 import { toast } from '@/lib/toast'
 import { cycleThemeId } from '@/lib/themes/apply'
 import { generateRandomTheme } from '@/lib/themes/generate-random-theme'
@@ -35,6 +43,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
   setActiveDocument,
   setActiveDocumentId,
+  setPendingEditorSearch,
   toggleFocusMode,
   toggleReadingMode,
   updateDocuments,
@@ -61,10 +70,6 @@ type PaletteItem =
       run: () => void
     }
 
-function sanitizeSnippet(html: string): string {
-  return html.replace(/<(?!\/?mark>)[^>]+>/gi, '')
-}
-
 export function CommandPalette() {
   const open = useAppSelector((state) => state.folders.commandPaletteOpen)
   const { t } = useTranslation()
@@ -76,12 +81,15 @@ export function CommandPalette() {
   const dispatch = useAppDispatch()
   const activeDocumentId = useAppSelector((state) => state.documents.activeDocumentId)
   const documents = useAppSelector((state) => state.documents.documents)
+  const folders = useAppSelector((state) => state.folders.folders)
   const themeSettings = useAppSelector((state) => state.settings.themeSettings)
   const focusMode = useAppSelector((state) => state.documents.focusMode)
   const readingMode = useAppSelector((state) => state.documents.readingMode)
   const shortcutOverrides = useAppSelector((state) => state.settings.shortcutOverrides)
   const locale = useAppSelector((state) => state.settings.locale)
+  const aiSettings = useAppSelector((state) => state.settings.aiSettings)
   const openDemoGuide = useOpenDemoGuide()
+  const aiEnabled = isAiAvailable(aiSettings)
 
   const activeDocument = useMemo(
     () => documents.find((doc) => doc.id === activeDocumentId) ?? null,
@@ -98,6 +106,20 @@ export function CommandPalette() {
         icon: <Plus className="h-4 w-4" />,
         run: () => dispatch(setTemplatePickerOpen(true)),
       },
+      ...(aiEnabled
+        ? AI_ACTION_IDS.map(
+            (action): PaletteItem => ({
+              type: 'action',
+              id: `ai-${action}`,
+              label: t(`commandPalette.ai.${action}`),
+              hint: t('commandPalette.aiHint'),
+              icon: <Sparkles className="h-4 w-4" />,
+              run: () => {
+                void runAiEditorAction(editorRefs.editor, action)
+              },
+            }),
+          )
+        : []),
       {
         type: 'action',
         id: 'quick-note',
@@ -106,6 +128,37 @@ export function CommandPalette() {
         icon: <StickyNote className="h-4 w-4" />,
         run: () => {
           void openQuickNote(documents, dispatch, navigate, (key) => t(key))
+        },
+      },
+      {
+        type: 'action',
+        id: 'today-note',
+        label: t('commandPalette.todayNote'),
+        hint: getDisplayKeysForShortcut('todayNote', shortcutOverrides).join(''),
+        icon: <CalendarDays className="h-4 w-4" />,
+        run: () => {
+          void openTodayNote({
+            documents,
+            folders,
+            dispatch,
+            navigate,
+            t: (key, options) => t(key, options),
+          }).catch((error) => toast.error(t('journal.openError'), String(error)))
+        },
+      },
+      {
+        type: 'action',
+        id: 'week-note',
+        label: t('commandPalette.weekNote'),
+        icon: <CalendarDays className="h-4 w-4" />,
+        run: () => {
+          void openThisWeekNote({
+            documents,
+            folders,
+            dispatch,
+            navigate,
+            t: (key, options) => t(key, options),
+          }).catch((error) => toast.error(t('journal.openError'), String(error)))
         },
       },
       {
@@ -170,6 +223,32 @@ export function CommandPalette() {
               run: () => {
                 dispatch(setCommandPaletteOpen(false))
                 dispatch(setMoveDocumentPickerOpen(true))
+              },
+            },
+            {
+              type: 'action' as const,
+              id: 'pin-document',
+              label: activeDocument.isPinned
+                ? t('commandPalette.unpinDocument')
+                : t('commandPalette.pinDocument'),
+              hint: activeDocument.title,
+              icon: <Pin className="h-4 w-4" />,
+              run: () => {
+                const id = activeDocument.id
+                const next = !activeDocument.isPinned
+                dispatch(
+                  updateDocuments((prev) =>
+                    prev.map((doc) => (doc.id === id ? { ...doc, isPinned: next } : doc)),
+                  ),
+                )
+                void setDocumentPinned(id, next).catch((error) => {
+                  dispatch(
+                    updateDocuments((prev) =>
+                      prev.map((doc) => (doc.id === id ? { ...doc, isPinned: !next } : doc)),
+                    ),
+                  )
+                  toast.error(t('toasts.pinError'), String(error))
+                })
               },
             },
           ]
@@ -240,9 +319,11 @@ export function CommandPalette() {
       },
     ],
     [
+      aiEnabled,
       activeDocument,
       dispatch,
       documents,
+      folders,
       focusMode,
       navigate,
       openDemoGuide,
@@ -263,11 +344,13 @@ export function CommandPalette() {
         snippetHtml: hit.snippet,
         icon: <FileText className="h-4 w-4" />,
         run: () => {
+          const q = query.trim()
+          if (q) dispatch(setPendingEditorSearch(q))
           dispatch(setActiveDocumentId(hit.documentId))
           navigate(ROUTES.document(hit.documentId))
         },
       })),
-    [dispatch, hits, navigate],
+    [dispatch, hits, navigate, query],
   )
 
   const filteredActions = useMemo(() => {

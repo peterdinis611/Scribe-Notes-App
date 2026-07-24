@@ -9,6 +9,7 @@ const folders: Folder[] = [
     parentId: null,
     createdAt: 1,
     updatedAt: 1,
+    isPinned: false,
   },
   {
     id: 'f2',
@@ -16,6 +17,7 @@ const folders: Folder[] = [
     parentId: 'f1',
     createdAt: 1,
     updatedAt: 1,
+    isPinned: false,
   },
 ]
 
@@ -27,6 +29,7 @@ const documents: DocumentSummary[] = [
     filePath: null,
     updatedAt: 2,
     isFavorite: false,
+    isPinned: false,
     tags: [],
     deletedAt: null,
   },
@@ -37,6 +40,7 @@ const documents: DocumentSummary[] = [
     filePath: null,
     updatedAt: 3,
     isFavorite: false,
+    isPinned: false,
     tags: [],
     deletedAt: null,
   },

@@ -135,6 +135,7 @@ export function DocumentEditor() {
   }, [extensions])
 
   editorRef.current = editor
+  editorRefs.editor = editor
   const editorReady = useEditorReady(editor)
 
   const { queueSave, flushSave, editorContentHashRef, lastPersistedHashRef } = useDocumentAutoSave({
@@ -197,6 +198,12 @@ export function DocumentEditor() {
       editorRefs.modeActions = null
     }
   }, [switchToMarkdown, switchToRich, viewMode])
+
+  useEffect(() => {
+    return () => {
+      editorRefs.editor = null
+    }
+  }, [])
 
   useEditorHotkeys(editor)
 

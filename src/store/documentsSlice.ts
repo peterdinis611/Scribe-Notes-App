@@ -29,6 +29,7 @@ export interface DocumentsState {
   manualTitleDocumentIds: string[]
   findReplaceOpen: boolean
   findReplaceMode: 'find' | 'replace'
+  pendingEditorSearch: string | null
   trashOpen: boolean
   favoritesOnlyFilter: boolean
   activeTagFilter: string | null
@@ -53,6 +54,7 @@ const initialState: DocumentsState = {
   manualTitleDocumentIds: readManualTitleIds(),
   findReplaceOpen: false,
   findReplaceMode: 'find',
+  pendingEditorSearch: null,
   trashOpen: false,
   favoritesOnlyFilter: false,
   activeTagFilter: null,
@@ -151,6 +153,9 @@ const documentsSlice = createSlice({
     setFindReplaceMode(state, action: PayloadAction<'find' | 'replace'>) {
       state.findReplaceMode = action.payload
     },
+    setPendingEditorSearch(state, action: PayloadAction<string | null>) {
+      state.pendingEditorSearch = action.payload
+    },
     setTrashOpen(state, action: PayloadAction<boolean>) {
       state.trashOpen = action.payload
     },
@@ -198,6 +203,7 @@ export const {
   setFindReplaceOpen,
   toggleFindReplaceOpen,
   setFindReplaceMode,
+  setPendingEditorSearch,
   setTrashOpen,
   setFavoritesOnlyFilter,
   toggleFavoritesOnlyFilter,

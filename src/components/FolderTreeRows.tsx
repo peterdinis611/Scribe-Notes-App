@@ -1,6 +1,6 @@
 import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChevronRight, FileText, Folder, FolderMinus, FolderPlus, Star, Tag, Trash2 } from 'lucide-react'
+import { ChevronRight, FileText, Folder, FolderMinus, FolderPlus, Pin, Star, Tag, Trash2 } from 'lucide-react'
 import { MoveToFolderMenu } from '@/components/MoveToFolderMenu'
 import { DocumentTitleField } from '@/components/DocumentTitleField'
 import { Button } from '@/components/ui/button'
@@ -21,6 +21,7 @@ type FolderTreeFolderRowProps = {
   onCreateChild: (parentId: string) => void
   onTrashDocuments: (id: string, name: string, event: React.MouseEvent) => void
   onDelete: (id: string, name: string, event: React.MouseEvent) => void
+  onTogglePin: (id: string, event: React.MouseEvent) => void
   onDragStart: (id: string, event: React.DragEvent) => void
   onDragOver: (id: string, event: React.DragEvent) => void
   onDragLeave: (id: string) => void
@@ -38,6 +39,7 @@ export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
   onCreateChild,
   onTrashDocuments,
   onDelete,
+  onTogglePin,
   onDragStart,
   onDragOver,
   onDragLeave,
@@ -78,6 +80,15 @@ export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
       >
         <FolderPlus className="h-3.5 w-3.5" />
       </button>
+      <button
+        type="button"
+        className={cn(treeActionClass, folder.isPinned && 'opacity-100 text-[var(--color-accent)]')}
+        title={folder.isPinned ? t('library.unpin') : t('library.pin')}
+        aria-label={folder.isPinned ? t('library.unpin') : t('library.pin')}
+        onClick={(event) => onTogglePin(folder.id, event)}
+      >
+        <Pin className={cn('h-3.5 w-3.5', folder.isPinned && 'fill-current')} />
+      </button>
       {documentCount > 0 && (
         <button
           type="button"
@@ -109,6 +120,7 @@ type FolderTreeDocumentRowProps = {
   onOpen: (id: string) => void
   onDelete: (id: string, event: React.MouseEvent) => void
   onToggleFavorite: (id: string, event: React.MouseEvent) => void
+  onTogglePin: (id: string, event: React.MouseEvent) => void
   onEditTags: (id: string, event: React.MouseEvent) => void
   onDragStart: (id: string, event: React.DragEvent) => void
 }
@@ -120,6 +132,7 @@ export const FolderTreeDocumentRow = memo(function FolderTreeDocumentRow({
   onOpen,
   onDelete,
   onToggleFavorite,
+  onTogglePin,
   onEditTags,
   onDragStart,
 }: FolderTreeDocumentRowProps) {
@@ -165,11 +178,27 @@ export const FolderTreeDocumentRow = memo(function FolderTreeDocumentRow({
         </span>
       </div>
 
-      {document.isFavorite && (
-        <Star className="h-3.5 w-3.5 text-[var(--color-accent)] group-hover:opacity-0" aria-hidden="true" />
-      )}
+      <div className="flex items-center gap-0.5 opacity-100 group-hover:opacity-0">
+        {document.isPinned && (
+          <Pin className="h-3.5 w-3.5 text-[var(--color-accent)]" aria-hidden="true" />
+        )}
+        {document.isFavorite && (
+          <Star className="h-3.5 w-3.5 text-[var(--color-accent)]" aria-hidden="true" />
+        )}
+      </div>
 
       <div className="flex items-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className={cn('h-7 w-7', document.isPinned && 'text-[var(--color-accent)]')}
+          onClick={(event) => onTogglePin(document.id, event)}
+          aria-label={document.isPinned ? t('library.unpin') : t('library.pin')}
+          title={document.isPinned ? t('library.unpin') : t('library.pin')}
+        >
+          <Pin className={cn('h-3.5 w-3.5', document.isPinned && 'fill-current')} />
+        </Button>
         <Button
           type="button"
           variant="ghost"

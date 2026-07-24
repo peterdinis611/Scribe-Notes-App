@@ -1,3 +1,5 @@
+import type { AiSettings } from '@/lib/ai/types'
+import { DEFAULT_AI_SETTINGS } from '@/lib/ai/defaults'
 import type { AppLocale } from '@/i18n'
 import type { PageSetup } from '@/lib/editor/page-setup'
 import { DEFAULT_PAGE_SETUP } from '@/lib/editor/page-setup'
@@ -26,6 +28,8 @@ const ACTIVE_DOCUMENT_ID_KEY = 'scribe-active-document-id'
 const ONBOARDING_DISMISSED_KEY = 'scribe-onboarding-dismissed'
 const SCRATCH_DOCUMENT_ID_KEY = 'scribe-scratch-document-id'
 const SHORTCUT_OVERRIDES_KEY = 'scribe-shortcut-overrides'
+const AI_SETTINGS_KEY = 'scribe-ai-settings'
+export const AI_API_KEY_STORAGE_KEY = 'scribe-ai-api-key'
 
 export function readLocale(): AppLocale {
   try {
@@ -306,4 +310,52 @@ export function readCustomTemplateCategories(): CustomTemplateCategory[] {
 
 export function persistCustomTemplateCategories(categories: CustomTemplateCategory[]) {
   localStorage.setItem(CUSTOM_TEMPLATE_CATEGORIES_KEY, JSON.stringify(categories))
+}
+
+export function readAiSettings(): AiSettings {
+  try {
+    const raw = localStorage.getItem(AI_SETTINGS_KEY)
+    if (!raw) return DEFAULT_AI_SETTINGS
+    const parsed = JSON.parse(raw) as Partial<AiSettings>
+    const provider =
+      parsed.provider === 'openai' || parsed.provider === 'anthropic' || parsed.provider === 'ollama'
+        ? parsed.provider
+        : DEFAULT_AI_SETTINGS.provider
+    return {
+      enabled: parsed.enabled === true,
+      provider,
+      baseUrl:
+        typeof parsed.baseUrl === 'string' && parsed.baseUrl.trim()
+          ? parsed.baseUrl.trim()
+          : DEFAULT_AI_SETTINGS.baseUrl,
+      model:
+        typeof parsed.model === 'string' && parsed.model.trim()
+          ? parsed.model.trim()
+          : DEFAULT_AI_SETTINGS.model,
+    }
+  } catch {
+    return DEFAULT_AI_SETTINGS
+  }
+}
+
+export function persistAiSettings(settings: AiSettings) {
+  localStorage.setItem(AI_SETTINGS_KEY, JSON.stringify(settings))
+}
+
+export function readAiApiKey(): string | null {
+  try {
+    const raw = localStorage.getItem(AI_API_KEY_STORAGE_KEY)
+    return raw && raw.trim() ? raw : null
+  } catch {
+    return null
+  }
+}
+
+export function persistAiApiKey(apiKey: string) {
+  const trimmed = apiKey.trim()
+  if (trimmed) {
+    localStorage.setItem(AI_API_KEY_STORAGE_KEY, trimmed)
+    return
+  }
+  localStorage.removeItem(AI_API_KEY_STORAGE_KEY)
 }

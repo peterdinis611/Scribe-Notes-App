@@ -11,7 +11,9 @@ import {
   moveFolder,
   renameFolder,
   setDocumentFavorite,
+  setDocumentPinned,
   setDocumentTags,
+  setFolderPinned,
   trashFolderDocuments,
 } from '@/lib/db/api'
 import { useMoveDocumentToFolder } from '@/hooks/useMoveDocumentToFolder'
@@ -324,6 +326,62 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     }
   }, [dispatch, documents, t])
 
+  const handleToggleDocumentPin = useCallback(async (id: string, event: React.MouseEvent) => {
+    event.stopPropagation()
+    const current = documents.find((doc) => doc.id === id)
+    if (!current) return
+    const next = !current.isPinned
+    dispatch(
+      updateDocuments((prev) =>
+        prev.map((doc) => (doc.id === id ? { ...doc, isPinned: next } : doc)),
+      ),
+    )
+    try {
+      await setDocumentPinned(id, next)
+    } catch (error) {
+      dispatch(
+        updateDocuments((prev) =>
+          prev.map((doc) => (doc.id === id ? { ...doc, isPinned: !next } : doc)),
+        ),
+      )
+      toast.error(t('toasts.pinError'), String(error))
+    }
+  }, [dispatch, documents, t])
+
+  const handleToggleFolderPin = useCallback(async (id: string, event: React.MouseEvent) => {
+    event.stopPropagation()
+    const current = folders.find((folder) => folder.id === id)
+    if (!current) return
+    const next = !current.isPinned
+    dispatch(
+      updateFolders((prev) =>
+        prev.map((folder) => (folder.id === id ? { ...folder, isPinned: next } : folder)),
+      ),
+    )
+    try {
+      await setFolderPinned(id, next)
+    } catch (error) {
+      dispatch(
+        updateFolders((prev) =>
+          prev.map((folder) => (folder.id === id ? { ...folder, isPinned: !next } : folder)),
+        ),
+      )
+      toast.error(t('toasts.pinError'), String(error))
+    }
+  }, [dispatch, folders, t])
+
+  const pinnedFolders = useMemo(
+    () => folders.filter((folder) => folder.isPinned).sort((a, b) => a.name.localeCompare(b.name)),
+    [folders],
+  )
+  const pinnedDocuments = useMemo(
+    () =>
+      documents
+        .filter((doc) => doc.isPinned && doc.deletedAt == null)
+        .sort((a, b) => b.updatedAt - a.updatedAt),
+    [documents],
+  )
+
   const handleEditTags = useCallback(async (id: string, event: React.MouseEvent) => {
     event.stopPropagation()
     const current = documents.find((doc) => doc.id === id)
@@ -421,6 +479,52 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
 
   return (
     <div className="min-h-full">
+      {!query && (pinnedFolders.length > 0 || pinnedDocuments.length > 0) && (
+        <div className="mb-2 border-b border-[var(--color-border)] pb-2">
+          <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.04em] text-[var(--color-muted-foreground)]">
+            {t('library.pinnedSection')}
+          </p>
+          {pinnedFolders.map((folder) => (
+            <FolderTreeFolderRow
+              key={`pin-folder-${folder.id}`}
+              folder={folder}
+              depth={0}
+              documentCount={countDocumentsInFolders(
+                documents,
+                collectFolderSubtreeIds(folders, folder.id),
+              )}
+              isExpanded={expandedIds.includes(folder.id)}
+              isDragOver={dragOverId === folder.id}
+              onToggle={toggleFolder}
+              onRename={(id, name) => void handleRenameFolder(id, name)}
+              onCreateChild={(parentId) => void handleCreateFolder(parentId)}
+              onTrashDocuments={(id, folderName, event) =>
+                void handleTrashFolderDocuments(id, folderName, event)
+              }
+              onDelete={(id, folderName, event) => void handleDeleteFolder(id, folderName, event)}
+              onTogglePin={(id, event) => void handleToggleFolderPin(id, event)}
+              onDragStart={handleFolderDragStart}
+              onDragOver={handleFolderDragOver}
+              onDragLeave={handleFolderDragLeave}
+              onDrop={(folderId, event) => void handleDropOnFolder(folderId, event)}
+            />
+          ))}
+          {pinnedDocuments.map((document) => (
+            <FolderTreeDocumentRow
+              key={`pin-doc-${document.id}`}
+              document={document}
+              depth={0}
+              isActive={activeId === document.id}
+              onOpen={openDocument}
+              onDelete={(id, event) => void handleDeleteDocument(id, event)}
+              onToggleFavorite={(id, event) => void handleToggleFavorite(id, event)}
+              onTogglePin={(id, event) => void handleToggleDocumentPin(id, event)}
+              onEditTags={(id, event) => void handleEditTags(id, event)}
+              onDragStart={handleDocumentDragStart}
+            />
+          ))}
+        </div>
+      )}
       <div
         className={cn(
           'titlebar-no-drag',
@@ -480,6 +584,7 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
                         void handleTrashFolderDocuments(id, folderName, event)
                       }
                       onDelete={(id, folderName, event) => void handleDeleteFolder(id, folderName, event)}
+                      onTogglePin={(id, event) => void handleToggleFolderPin(id, event)}
                       onDragStart={handleFolderDragStart}
                       onDragOver={handleFolderDragOver}
                       onDragLeave={handleFolderDragLeave}
@@ -493,6 +598,7 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
                       onOpen={openDocument}
                       onDelete={(id, event) => void handleDeleteDocument(id, event)}
                       onToggleFavorite={(id, event) => void handleToggleFavorite(id, event)}
+                      onTogglePin={(id, event) => void handleToggleDocumentPin(id, event)}
                       onEditTags={(id, event) => void handleEditTags(id, event)}
                       onDragStart={handleDocumentDragStart}
                     />
