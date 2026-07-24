@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { FileText, Settings2 } from 'lucide-react'
+import { BookOpen, FileText, Settings2 } from 'lucide-react'
 import { Link, useRouterState } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { ROUTES } from '@/lib/routes'
@@ -16,6 +16,7 @@ export function SidebarRail({ onNavigate }: SidebarRailProps) {
   const activeDocumentId = useAppSelector((state) => state.documents.activeDocumentId)
   const documents = useAppSelector((state) => state.documents.documents)
   const onSettingsPage = pathname.startsWith('/settings')
+  const onDocsPage = pathname === '/docs' || pathname.startsWith('/docs/')
   const onEditorPage = pathname === '/' || pathname.startsWith('/doc/')
 
   const editorLink = useMemo(() => {
@@ -45,6 +46,16 @@ export function SidebarRail({ onNavigate }: SidebarRailProps) {
         className={cn('app-rail-btn titlebar-no-drag', onEditorPage && 'is-active')}
       >
         <FileText className="h-[18px] w-[18px]" />
+      </Link>
+
+      <Link
+        {...ROUTES.docs()}
+        title={t('nav.docs')}
+        aria-label={t('nav.docs')}
+        onClick={() => onNavigate?.()}
+        className={cn('app-rail-btn titlebar-no-drag', onDocsPage && 'is-active')}
+      >
+        <BookOpen className="h-[18px] w-[18px]" />
       </Link>
 
       <Link

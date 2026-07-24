@@ -2,7 +2,13 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { LucideIcon } from 'lucide-react'
 import { Activity, FolderOpen, Info, Keyboard, Palette, Sparkles } from 'lucide-react'
-export type SettingsSection = 'appearance' | 'ai' | 'storage' | 'shortcuts' | 'diagnostics' | 'about'
+export type SettingsSection =
+  | 'appearance'
+  | 'ai'
+  | 'storage'
+  | 'shortcuts'
+  | 'diagnostics'
+  | 'about'
 
 export function isSettingsSection(value: string | undefined): value is SettingsSection {
   return (
@@ -57,6 +63,7 @@ export const ROUTES = {
     to: '/doc/$documentId' as const,
     params: { documentId: id },
   }),
+  docs: () => ({ to: '/docs' as const }),
   settingsSection: (section: SettingsSection) => ({
     to: SETTINGS_PATHS[section],
   }),

@@ -263,6 +263,13 @@ export function CommandPalette() {
       },
       {
         type: 'action',
+        id: 'docs',
+        label: t('commandPalette.docs'),
+        icon: <BookOpen className="h-4 w-4" />,
+        run: () => navigate(ROUTES.docs()),
+      },
+      {
+        type: 'action',
         id: 'language',
         label:
           locale === 'sk'

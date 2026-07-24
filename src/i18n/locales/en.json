@@ -39,6 +39,7 @@
   "nav": {
     "editor": "Editor",
     "settings": "Settings",
+    "docs": "Docs",
     "settingsSections": "Settings sections",
     "closeLibrary": "Close library",
     "openLibrary": "Open library",
@@ -94,6 +95,7 @@
     "pinDocument": "Pin document",
     "unpinDocument": "Unpin document",
     "settings": "Settings",
+    "docs": "Documentation",
     "toggleTheme": "Toggle theme",
     "randomTheme": "Random theme",
     "randomThemeHint": "Generate a custom palette",
@@ -290,6 +292,56 @@
       "platform": "Platform",
       "fileFormat": "File format",
       "export": "Export"
+    },
+    "docs": {
+      "pageTitle": "Documentation",
+      "pageDescription": "How Scribe stores, links, and edits documents on your Mac.",
+      "topics": {
+        "overview": {
+          "title": "What is Scribe?",
+          "body": "Scribe is a local-first document editor for macOS. Your library lives in an on-device SQLite database, with optional .scribe backup files on disk. Nothing is required from a cloud account to write or open notes."
+        },
+        "documents": {
+          "title": "Documents and saving",
+          "body": "Create documents from New, templates, Demo, Quick note, or Journal.\n\nEdits auto-save to the app database. A green Saved indicator means the in-app copy is current. Disk .scribe writes can fail without losing your work — check Settings → Storage if you see a disk warning."
+        },
+        "library": {
+          "title": "Library",
+          "body": "The left Library sidebar organizes your notes:\n• Folders — nested folder tree; pin important folders to the top\n• Favorites — starred documents\n• Tags — filter by tags\n• Link graph — visual map of wiki links\n\nPin documents or folders from the tree or command palette so they stay easy to reach."
+        },
+        "linkGraph": {
+          "title": "Link graph",
+          "body": "Library → Link graph shows documents connected by wiki links.\n\n• Around — only the active document and its neighbors\n• Orphans — documents with no wiki links (they appear off the linked cluster)\n• Zoom / Reset — pan and zoom the canvas; reset restores the default view\n\nThe summary line reports documents, links, and orphans. An empty canvas with orphans enabled usually means you only have unlinked notes and no edges between documents yet."
+        },
+        "wikiLinks": {
+          "title": "Wiki links",
+          "body": "Type [[Title]] (or use the wiki-link insert) to link to another document by title. Clicking a wiki link opens that document. Links power the graph, backlinks, and related navigation in the right utility rail."
+        },
+        "editor": {
+          "title": "Editor",
+          "body": "The center page is a TipTap rich-text editor with a formatting toolbar (styles, lists, tables, images, colors).\n\nToggle Text vs MD for rich text or Markdown view. SK / EN switches the UI language. Reading mode and focus mode hide chrome so you can read or write with fewer distractions. Layout / Page at the bottom switches continuous vs paginated layout."
+        },
+        "search": {
+          "title": "Search",
+          "body": "⌘K opens the command palette: jump to documents, run commands, and search inside content.\n\nFind (and Find & Replace) searches within the open document. Choosing a content hit from the palette opens that document and jumps to the first match."
+        },
+        "journal": {
+          "title": "Journal and quick note",
+          "body": "Today note and Weekly note create dated entries under a Journal folder (also available from the sidebar calendar and ⌘⇧D).\n\nQuick note opens a scratch document for fleeting thoughts without setting up a new titled page first."
+        },
+        "ai": {
+          "title": "AI assistant",
+          "body": "Optional and off by default. Enable it in Settings → AI and choose Ollama (local) or OpenAI / Anthropic.\n\nWith text selected, use the bubble menu or command palette to rewrite, shorten, expand, fix grammar, or change tone. Selected text is sent only to the provider you configure; API keys stay in localStorage on this device."
+        },
+        "backup": {
+          "title": "Backup and restore",
+          "body": "Settings → Storage can export or import a full library archive (.scribe-backup.zip), including the database and on-disk files. Import replaces the current library (the previous database is kept as a .bak file).\n\nYou can also change the documents folder, sync with disk, or clear all data from the same page."
+        },
+        "shortcuts": {
+          "title": "Shortcuts and settings",
+          "body": "Settings → Shortcuts lists and remaps keyboard shortcuts (new document, save, palette, find, journal, theme, and more).\n\nAppearance controls themes and language. Diagnostics shows database health, paths, and pending disk writes."
+        }
+      }
     }
   },
   "storageAccess": {

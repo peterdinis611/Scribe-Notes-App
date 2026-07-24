@@ -9,6 +9,7 @@ import { AppLayout } from '@/layouts/AppLayout'
 import { SettingsLayout } from '@/layouts/SettingsLayout'
 import { HomePage } from '@/pages/HomePage'
 import { DocumentPage } from '@/pages/DocumentPage'
+import { DocsPage } from '@/pages/DocsPage'
 import { ErrorPage } from '@/pages/ErrorPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { AppearancePage } from '@/pages/settings/AppearancePage'
@@ -40,6 +41,12 @@ const documentRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/doc/$documentId',
   component: DocumentPage,
+})
+
+const docsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/docs',
+  component: DocsPage,
 })
 
 const settingsLayoutRoute = createRoute({
@@ -92,10 +99,20 @@ const settingsAboutRoute = createRoute({
   component: AboutPage,
 })
 
+/** Legacy path from when Docs lived under Settings. */
+const settingsDocsRedirectRoute = createRoute({
+  getParentRoute: () => settingsLayoutRoute,
+  path: 'docs',
+  beforeLoad: () => {
+    throw redirect({ to: '/docs' })
+  },
+})
+
 const routeTree = rootRoute.addChildren([
   appRoute.addChildren([
     homeRoute,
     documentRoute,
+    docsRoute,
     settingsLayoutRoute.addChildren([
       settingsIndexRoute,
       settingsAppearanceRoute,
@@ -103,6 +120,7 @@ const routeTree = rootRoute.addChildren([
       settingsStorageRoute,
       settingsShortcutsRoute,
       settingsDiagnosticsRoute,
+      settingsDocsRedirectRoute,
       settingsAboutRoute,
     ]),
   ]),

@@ -112,6 +112,21 @@ function SettingsChrome() {
   )
 }
 
+function DocsChrome() {
+  const { t } = useTranslation()
+
+  return (
+    <header className="app-chrome titlebar-drag [[data-sidebar-drawer=true]_&]:pl-[78px]">
+      <div className="titlebar-no-drag titlebar-interactive flex min-w-0 flex-1 items-center gap-2">
+        <SidebarToggle />
+        <div className="flex min-w-0 items-center gap-1.5 text-[13px]">
+          <span className="font-semibold text-[var(--color-foreground)]">{t('nav.docs')}</span>
+        </div>
+      </div>
+    </header>
+  )
+}
+
 function EditorChrome() {
   const document = useAppSelector((state) => state.documents.activeDocument)
   const pageSetup = useAppSelector((state) => state.settings.pageSetup)
@@ -242,5 +257,6 @@ export function AppHeader() {
 
   if (focusMode) return null
   if (pathname.startsWith('/settings')) return <SettingsChrome />
+  if (pathname === '/docs' || pathname.startsWith('/docs/')) return <DocsChrome />
   return <EditorChrome />
 }

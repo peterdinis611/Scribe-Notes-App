@@ -645,6 +645,51 @@ export function AboutSection() {
   )
 }
 
+const DOCS_TOPIC_IDS = [
+  'overview',
+  'documents',
+  'library',
+  'linkGraph',
+  'wikiLinks',
+  'editor',
+  'search',
+  'journal',
+  'ai',
+  'backup',
+  'shortcuts',
+] as const
+
+export function DocsSection() {
+  const { t } = useTranslation()
+
+  return (
+    <div>
+      <SettingsSection>
+        <SettingsSectionHeader
+          title={t('settings.docs.pageTitle')}
+          description={t('settings.docs.pageDescription')}
+        />
+      </SettingsSection>
+
+      <div className="space-y-4">
+        {DOCS_TOPIC_IDS.map((id) => (
+          <article
+            key={id}
+            className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-4"
+          >
+            <h3 className="m-0 text-[14px] font-semibold text-[var(--color-foreground)]">
+              {t(`settings.docs.topics.${id}.title`)}
+            </h3>
+            <p className="mt-2 whitespace-pre-line text-[13px] leading-relaxed text-[var(--color-muted-foreground)]">
+              {t(`settings.docs.topics.${id}.body`)}
+            </p>
+          </article>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function SettingsSectionContent({ section }: { section: SettingsSectionId }) {
   switch (section) {
     case 'appearance':

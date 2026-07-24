@@ -39,6 +39,7 @@
   "nav": {
     "editor": "Editor",
     "settings": "Nastavenia",
+    "docs": "Dokumentácia",
     "settingsSections": "Sekcie nastavení",
     "closeLibrary": "Zavrieť knižnicu",
     "openLibrary": "Otvoriť knižnicu",
@@ -94,6 +95,7 @@
     "pinDocument": "Pripnúť dokument",
     "unpinDocument": "Odopnúť dokument",
     "settings": "Nastavenia",
+    "docs": "Dokumentácia",
     "toggleTheme": "Prepínať tému",
     "randomTheme": "Náhodná téma",
     "randomThemeHint": "Vygenerovať vlastnú paletu",
@@ -290,6 +292,56 @@
       "platform": "Platforma",
       "fileFormat": "Formát súborov",
       "export": "Export"
+    },
+    "docs": {
+      "pageTitle": "Dokumentácia",
+      "pageDescription": "Ako Scribe ukladá, prepojuje a upravuje dokumenty na Macu.",
+      "topics": {
+        "overview": {
+          "title": "Čo je Scribe?",
+          "body": "Scribe je local-first editor dokumentov pre macOS. Knižnica žije v SQLite databáze na zariadení, s voliteľnými záložnými súbormi .scribe na disku. Na písanie ani otváranie poznámok nepotrebujete cloudový účet."
+        },
+        "documents": {
+          "title": "Dokumenty a ukladanie",
+          "body": "Dokumenty vytvoríte cez Nový, šablóny, Demo, Rýchlu poznámku alebo Denník.\n\nÚpravy sa automaticky ukladajú do databázy aplikácie. Zelený indikátor Uložené znamená, že kópia v aplikácii je aktuálna. Zápis .scribe na disk môže zlyhať bez straty práce — pri upozornení na disk skontrolujte Nastavenia → Úložisko."
+        },
+        "library": {
+          "title": "Knižnica",
+          "body": "Ľavý panel Knižnica organizuje poznámky:\n• Priečinky — strom priečinkov; dôležité priečinky môžete pripnúť navrch\n• Obľúbené — označené dokumenty\n• Značky — filter podľa tagov\n• Graf odkazov — vizuálna mapa wiki odkazov\n\nDokumenty alebo priečinky pripnete zo stromu alebo z príkazovej palety, aby boli vždy po ruke."
+        },
+        "linkGraph": {
+          "title": "Graf odkazov",
+          "body": "Knižnica → Graf odkazov zobrazí dokumenty prepojené wiki odkazmi.\n\n• Okolie (Around) — iba aktívny dokument a jeho susedia\n• Osirotelé (Orphans) — dokumenty bez wiki odkazov (mimo prepojeného zhluku)\n• Zoom / Reset — približovanie a posúvanie; reset vráti predvolený pohľad\n\nRiadok so štatistikami ukazuje počet dokumentov, odkazov a osirelých. Prázdne plátno so zapnutými Orphans obvykle znamená, že máte len neprepojené poznámky a medzi dokumentmi ešte nie sú žiadne hrany."
+        },
+        "wikiLinks": {
+          "title": "Wiki odkazy",
+          "body": "Napíšte [[Názov]] (alebo použite vloženie wiki odkazu) a prepojte dokument podľa názvu. Kliknutím na wiki odkaz dokument otvoríte. Odkazy poháňajú graf, späťodkazy a súvisiacu navigáciu v pravom utility paneli."
+        },
+        "editor": {
+          "title": "Editor",
+          "body": "Stredná stránka je TipTap rich-text editor s lištou formátovania (štýly, zoznamy, tabuľky, obrázky, farby).\n\nPrepínač Text / MD mení rich text a Markdown. SK / EN mení jazyk rozhrania. Režim čítania a focus skryjú chrome, aby ste mohli čítať alebo písať s menej rušivými prvkami. Layout / Page dole prepína spojitý a stránkovaný layout."
+        },
+        "search": {
+          "title": "Vyhľadávanie",
+          "body": "⌘K otvorí príkazovú paletu: skok na dokumenty, príkazy a vyhľadávanie v obsahu.\n\nNájsť (a Nájsť a nahradiť) hľadá v otvorenom dokumente. Výber zásahu z obsahu v palete dokument otvorí a skočí na prvý výskyt."
+        },
+        "journal": {
+          "title": "Denník a rýchla poznámka",
+          "body": "Poznámka dňa a Týždenná poznámka vytvoria datované záznamy v priečinku Denník (aj z kalendára v sidebare a cez ⌘⇧D).\n\nRýchla poznámka otvorí scratch dokument na rýchle myšlienky bez vytvárania novej pomenovanej stránky."
+        },
+        "ai": {
+          "title": "AI asistent",
+          "body": "Voliteľný a predvolene vypnutý. Zapnite ho v Nastavenia → AI a vyberte Ollama (lokálne) alebo OpenAI / Anthropic.\n\nPri vybranom texte použite bubble menu alebo príkazovú paletu na prepis, skrátenie, rozšírenie, opravu gramatiky alebo zmenu tónu. Označený text ide len k poskytovateľovi, ktorého nastavíte; API kľúče zostávajú v localStorage na tomto zariadení."
+        },
+        "backup": {
+          "title": "Záloha a obnovenie",
+          "body": "Nastavenia → Úložisko dokáže exportovať alebo importovať celý archív knižnice (.scribe-backup.zip) vrátane databázy a súborov na disku. Import nahradí aktuálnu knižnicu (predchádzajúca databáza sa uloží ako .bak).\n\nNa tej istej stránke môžete zmeniť priečinok dokumentov, synchronizovať s diskom alebo vymazať všetky dáta."
+        },
+        "shortcuts": {
+          "title": "Skratky a nastavenia",
+          "body": "Nastavenia → Skratky zobrazia a upravia klávesové skratky (nový dokument, uložiť, paleta, nájsť, denník, téma a ďalšie).\n\nVzhľad riadi témy a jazyk. Diagnostika ukazuje zdravie databázy, cesty a čakajúce zápisy na disk."
+        }
+      }
     }
   },
   "storageAccess": {
