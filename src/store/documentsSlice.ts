@@ -87,7 +87,7 @@ const documentsSlice = createSlice({
     statsPanelOpen: readBoolStorage('scribe-stats-open', false),
     backlinksPanelOpen: readBoolStorage('scribe-backlinks-open', false),
     focusMode: readBoolStorage('scribe-focus-mode', false),
-    readingMode: readBoolStorage('scribe-reading-mode', false),
+    readingMode: false,
     manualTitleDocumentIds: readManualTitleIds(),
     findReplaceOpen: false,
     findReplaceMode: 'find',
@@ -146,6 +146,14 @@ const documentsSlice = createSlice({
     setActiveDocumentId(state, action: PayloadAction<string | null>) {
       const prev = state.activeDocumentId
       const next = action.payload
+
+      if (prev === next) {
+        if (next && !state.openDocumentIds.includes(next)) {
+          state.openDocumentIds = [...state.openDocumentIds, next]
+          persistOpenDocumentIds(state.openDocumentIds)
+        }
+        return
+      }
 
       if (prev && prev !== next) {
         // Switching between open tabs should not mark the previous doc as closed.

@@ -47,6 +47,11 @@ type EditorExtensionsOptions = {
   onInsertImages?: (files: File[], pos?: number) => void | Promise<void>
 }
 
+/**
+ * Always return fresh extension instances. Reusing TipTap extension singletons
+ * across editor create/destroy cycles (Strict Mode, HMR, split pane) leaves the
+ * editor looking fine but unable to accept input.
+ */
 export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
   const { onInsertImages } = options
 
@@ -57,7 +62,7 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
       codeBlock: false,
       listItem: false,
     }),
-    ListItemWithBlocks,
+    ListItemWithBlocks.configure({}),
     CodeBlockLowlight.configure({
       lowlight,
       defaultLanguage: null,
@@ -65,15 +70,15 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
         class: 'hljs',
       },
     }),
-    TextStyle,
-    FontSize,
-    FontFamily,
-    BlockSpacing,
-    Color,
-    CommentMark,
-    Underline,
-    Subscript,
-    Superscript,
+    TextStyle.configure({}),
+    FontSize.configure({}),
+    FontFamily.configure({}),
+    BlockSpacing.configure({}),
+    Color.configure({}),
+    CommentMark.configure({}),
+    Underline.configure({}),
+    Subscript.configure({}),
+    Superscript.configure({}),
     Highlight.configure({
       multicolor: true,
     }),
@@ -86,42 +91,42 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
       types: ['heading', 'paragraph'],
       alignments: ['left', 'center', 'right', 'justify'],
     }),
-    TaskList,
+    TaskList.configure({}),
     TaskItem.configure({ nested: true }),
     Table.configure({
       resizable: true,
     }),
-    TableRow,
-    CustomTableHeader,
-    CustomTableCell,
+    TableRow.configure({}),
+    CustomTableHeader.configure({}),
+    CustomTableCell.configure({}),
     Details.configure({
       persist: true,
       HTMLAttributes: { class: 'details-block' },
     }),
-    DetailsContent,
-    DetailsSummary,
+    DetailsContent.configure({}),
+    DetailsSummary.configure({}),
     Emoji.configure({
       emojis: gitHubEmojis,
       enableEmoticons: true,
       suggestion: createEmojiSuggestion(),
     }),
-    MathJs,
+    MathJs.configure({}),
     Youtube.configure({
       width: 640,
       height: 360,
       nocookie: true,
     }),
-    PageBreak,
-    Callout,
+    PageBreak.configure({}),
+    Callout.configure({}),
     Footnote.configure({ onEdit: createFootnoteEditHandler() }),
-    WikiLink,
-    SearchReplace,
-    TableOfContents,
+    WikiLink.configure({}),
+    SearchReplace.configure({}),
+    TableOfContents.configure({}),
     ResizableImage.configure({
       allowBase64: true,
       inline: false,
     }),
-    CharacterCount,
+    CharacterCount.configure({}),
     Focus.configure({
       className: 'has-focus',
       mode: 'deepest',
@@ -145,8 +150,8 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
       width: 3,
       class: 'editor-drop-indicator',
     }),
-    Gapcursor,
-    Typography,
+    Gapcursor.configure({}),
+    Typography.configure({}),
     SlashCommands.configure({
       onInsertImages: (files) => {
         if (files.length) void onInsertImages?.(files)

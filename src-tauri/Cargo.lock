@@ -116,7 +116,6 @@ dependencies = [
  "tauri-plugin-log",
  "tauri-plugin-opener",
  "uuid",
- "window-vibrancy",
  "zip",
 ]
 

@@ -22,8 +22,10 @@ export function SecondaryDocumentPane({ documentId }: SecondaryDocumentPaneProps
   const [ready, setReady] = useState(false)
   const saveRef = useRef<(json: string) => void>(() => {})
 
+  const extensions = useMemo(() => getEditorExtensions(), [])
+
   const editor = useEditor({
-    extensions: getEditorExtensions(),
+    extensions,
     editable: true,
     editorProps: {
       attributes: {

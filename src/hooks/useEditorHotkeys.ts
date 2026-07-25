@@ -184,7 +184,6 @@ export function useEditorHotkeys(editor: Editor | null) {
     ],
     {
       preventDefault: true,
-      ignoreInputs: false,
     },
   )
 }

@@ -119,13 +119,38 @@ export function DocumentEditor() {
   const editor = useEditor({
     extensions,
     content: initialContent,
-    immediatelyRender: true,
+    editable: !readingMode && viewMode === 'rich',
+    autofocus: false,
+    immediatelyRender: false,
     shouldRerenderOnTransaction: false,
     editorProps: {
       attributes: {
         class: cn('tiptap', printLayoutEnabled && 'tiptap--print-accurate'),
         spellcheck: spellCheckEnabled ? 'true' : 'false',
         lang: locale,
+        'data-gramm': 'false',
+        'data-gramm_editor': 'false',
+        'data-enable-grammarly': 'false',
+      },
+      // Native contenteditable insertion is unreliable in this Tauri/WebKit setup
+      // (programmatic insertContent works, keyboard typing does not). Insert via
+      // ProseMirror transactions instead — same path as the debug "probe" button.
+      handleKeyDown: (view, event) => {
+        if (event.defaultPrevented || event.isComposing || event.key === 'Dead') return false
+        if (event.metaKey || event.ctrlKey || event.altKey) return false
+        if (event.key.length !== 1) return false
+        if (!view.editable) return false
+
+        const { state } = view
+        const { from, to } = state.selection
+        const text = event.key
+
+        if (view.someProp('handleTextInput', (f) => f(view, from, to, text))) {
+          return true
+        }
+
+        view.dispatch(state.tr.insertText(text, from, to).scrollIntoView())
+        return true
       },
     },
     onUpdate: () => {
@@ -279,6 +304,18 @@ export function DocumentEditor() {
     })
   }, [activeDocument, pageSetup])
 
+  const saveStatus = useAppSelector((state) => state.documents.saveStatus)
+
+  // Clear content hashes before syncing so a later effect cannot wipe in-progress edits.
+  useEffect(() => {
+    editorContentHashRef.current = null
+    lastPersistedHashRef.current = null
+  }, [activeId, editorContentHashRef, lastPersistedHashRef])
+
+  useEffect(() => {
+    dispatch(setFindReplaceOpen(false))
+  }, [activeId, dispatch])
+
   useEditorViewEffect(
     editor,
     (currentEditor) => {
@@ -286,6 +323,17 @@ export function DocumentEditor() {
 
       const incomingHash = getCachedContentHash(activeDocument)
       if (incomingHash === editorContentHashRef.current) return
+
+      // Never replace live document content while the user is typing in it.
+      if (currentEditor.isFocused) return
+
+      // Local edits already tracked for this session — don't clobber them.
+      if (
+        editorContentHashRef.current != null &&
+        (saveStatus === 'dirty' || saveStatus === 'saving')
+      ) {
+        return
+      }
 
       if (
         !setEditorContent(currentEditor, getCachedParsedContent(activeDocument), {
@@ -303,17 +351,8 @@ export function DocumentEditor() {
       setMarkdownDraft(markdown)
       dispatch(setSaveStatus('saved'))
     },
-    [activeDocument, activeId, dispatch, editorContentHashRef, lastPersistedHashRef],
+    [activeDocument, activeId, dispatch, editorContentHashRef, lastPersistedHashRef, saveStatus],
   )
-
-  useEffect(() => {
-    dispatch(setFindReplaceOpen(false))
-  }, [activeId, dispatch])
-
-  useEffect(() => {
-    editorContentHashRef.current = null
-    lastPersistedHashRef.current = null
-  }, [activeId, editorContentHashRef, lastPersistedHashRef])
 
   const isMarkdown = viewMode === 'markdown'
 
@@ -321,6 +360,16 @@ export function DocumentEditor() {
     if (!editor) return
     editor.setEditable(!readingMode && viewMode === 'rich')
   }, [editor, readingMode, viewMode])
+
+  useEffect(() => {
+    if (!editor || !editorReady || readingMode || viewMode !== 'rich') return
+    const frame = requestAnimationFrame(() => {
+      if (!editor.isDestroyed && !editor.isFocused) {
+        editor.commands.focus('end')
+      }
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [editor, editorReady, readingMode, viewMode])
 
   useEffect(() => {
     if (isMarkdown || focusMode || readingMode) {
@@ -498,7 +547,16 @@ export function DocumentEditor() {
                     spellCheck={spellCheckEnabled}
                   />
                 ) : (
-                  <EditorContent editor={editor} />
+                  <div
+                    className="editor-content-host"
+                    onMouseDown={() => {
+                      if (!editor || editor.isDestroyed || readingMode) return
+                      if (!editor.isEditable) editor.setEditable(true)
+                      if (!editor.isFocused) editor.commands.focus()
+                    }}
+                  >
+                    <EditorContent editor={editor} />
+                  </div>
                 )}
 
                 {isMarkdown && editor && (

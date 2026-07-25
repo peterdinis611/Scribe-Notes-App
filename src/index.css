@@ -2241,7 +2241,6 @@
   line-height: 1.7;
   letter-spacing: -0.011em;
   color: var(--color-foreground);
-  contain: layout style;
   -webkit-user-select: text;
   user-select: text;
 }

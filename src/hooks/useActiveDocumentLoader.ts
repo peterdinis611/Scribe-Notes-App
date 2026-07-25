@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { fetchDocumentFresh } from '@/lib/db/api'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
@@ -9,7 +9,10 @@ import {
 
 export function useActiveDocumentLoader() {
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
+  const saveStatus = useAppSelector((state) => state.documents.saveStatus)
+  const saveStatusRef = useRef(saveStatus)
   const dispatch = useAppDispatch()
+  saveStatusRef.current = saveStatus
 
   useEffect(() => {
     if (!activeId) {
@@ -33,10 +36,12 @@ export function useActiveDocumentLoader() {
         const doc = await fetchDocumentFresh(documentId)
         if (cancelled) return
 
-        const fresh = doc
+        // Avoid overwriting in-progress edits if the user already typed.
+        const status = saveStatusRef.current
+        if (status === 'dirty' || status === 'saving') return
 
-        if (!cached || cached.updatedAt !== fresh.updatedAt) {
-          dispatch(setActiveDocument(fresh))
+        if (!cached || cached.updatedAt !== doc.updatedAt) {
+          dispatch(setActiveDocument(doc))
         }
 
         dispatch(setSaveStatus('saved'))

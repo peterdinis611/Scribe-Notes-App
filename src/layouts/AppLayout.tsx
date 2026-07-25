@@ -27,6 +27,7 @@ import { StorageAccessDialogHost } from '@/components/StorageAccessDialogHost'
 import { SaveCustomTemplateDialogHost } from '@/components/SaveCustomTemplateDialogHost'
 import { ToastHost } from '@/components/ToastHost'
 import { TrashDialog } from '@/components/TrashDialog'
+import { EditorDebugPanel } from '@/components/editor/EditorDebugPanel'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
   setActiveDocument,
@@ -145,6 +146,7 @@ export function AppLayout() {
       <TrashDialog />
       <OnboardingTour />
       <ToastHost />
+      {import.meta.env.DEV && <EditorDebugPanel />}
     </div>
   )
 }

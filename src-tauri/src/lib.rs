@@ -10,8 +10,6 @@ use tauri::Manager;
 
 #[cfg(target_os = "macos")]
 use tauri::menu::{MenuBuilder, SubmenuBuilder};
-#[cfg(target_os = "macos")]
-use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -70,16 +68,6 @@ pub fn run() {
                     .item(&edit_menu)
                     .build()?;
                 app.set_menu(menu)?;
-            }
-
-            #[cfg(target_os = "macos")]
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = apply_vibrancy(
-                    &window,
-                    NSVisualEffectMaterial::Sidebar,
-                    None,
-                    None,
-                );
             }
 
             Ok(())

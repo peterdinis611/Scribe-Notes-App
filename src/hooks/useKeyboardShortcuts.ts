@@ -34,7 +34,6 @@ import { toggleCommandPaletteOpen } from '@/store/foldersSlice'
 
 const APP_HOTKEY_OPTIONS = {
   preventDefault: true,
-  ignoreInputs: false,
 } as const
 
 function hotkey(id: string, overrides: Record<string, string>): RegisterableHotkey {

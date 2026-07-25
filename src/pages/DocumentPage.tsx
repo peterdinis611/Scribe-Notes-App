@@ -72,16 +72,20 @@ export function DocumentPage() {
 
   const split = Boolean(secondaryDocumentId && secondaryDocumentId !== documentId)
 
+  const editor = (
+    <Suspense fallback={<DocumentEditorFallback />}>
+      <DocumentEditor key={documentId} />
+    </Suspense>
+  )
+
+  if (!split || !secondaryDocumentId) {
+    return editor
+  }
+
   return (
-    <div className="flex min-h-0 flex-1">
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <Suspense fallback={<DocumentEditorFallback />}>
-          <DocumentEditor key={documentId} />
-        </Suspense>
-      </div>
-      {split && secondaryDocumentId && (
-        <SecondaryDocumentPane key={secondaryDocumentId} documentId={secondaryDocumentId} />
-      )}
+    <div className="flex h-full min-h-0 flex-1">
+      <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">{editor}</div>
+      <SecondaryDocumentPane key={secondaryDocumentId} documentId={secondaryDocumentId} />
     </div>
   )
 }
