@@ -157,7 +157,10 @@ function shouldIncludeNode(node: PMNode, doc: PMNode, pos: number) {
     node.type.name === 'image' ||
     node.type.name === 'youtube' ||
     node.type.name === 'table' ||
-    node.type.name === 'taskItem'
+    node.type.name === 'taskItem' ||
+    node.type.name === 'mathBlock' ||
+    node.type.name === 'mathInline' ||
+    node.type.name === 'mermaidDiagram'
   ) {
     return true
   }

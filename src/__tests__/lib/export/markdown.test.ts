@@ -36,4 +36,20 @@ describe('tiptapJsonToMarkdown', () => {
     expect(markdown).toContain('**Tučný** text')
     expect(markdown).toContain('- Položka')
   })
+
+  it('exports math and mermaid blocks as fenced code', () => {
+    const markdown = tiptapJsonToMarkdown(
+      JSON.stringify({
+        type: 'doc',
+        content: [
+          { type: 'mathBlock', attrs: { expression: '1 + 2' } },
+          { type: 'mermaidDiagram', attrs: { source: 'sequenceDiagram\n  A->>B: Hi' } },
+        ],
+      }),
+      'Doc',
+    )
+
+    expect(markdown).toContain('```math\n1 + 2\n```')
+    expect(markdown).toContain('```mermaid\nsequenceDiagram\n  A->>B: Hi\n```')
+  })
 })

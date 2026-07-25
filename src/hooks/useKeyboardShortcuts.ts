@@ -10,6 +10,7 @@ import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
 import { getResolvedHotkey } from '@/lib/shortcuts'
 import { toast } from '@/lib/toast'
+import { runManualSave } from '@/lib/manual-save'
 import { cycleThemeId } from '@/lib/themes/apply'
 import { createThemeSelection } from '@/store/settings-helpers'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
@@ -104,15 +105,11 @@ export function useKeyboardShortcuts() {
         hotkey: hotkey('save', shortcutOverrides),
         callback: async () => {
           if (!activeId || !activeDocument) return
-          if (!editorRefs.flushAutoSave) return
-          try {
-            const ok = await editorRefs.flushAutoSave()
-            if (ok) {
-              toast.success(t('toasts.documentSaved'), activeDocument.title)
-            }
-          } catch {
-            dispatch(setSaveStatus('error'))
-          }
+          await runManualSave({
+            flush: editorRefs.flushAutoSave,
+            onSaved: () => toast.success(t('toasts.documentSaved'), activeDocument.title),
+            onError: () => dispatch(setSaveStatus('error')),
+          })
         },
         options: {
           meta: { name: t('shortcuts.save.label'), description: t('shortcuts.save.description') },
