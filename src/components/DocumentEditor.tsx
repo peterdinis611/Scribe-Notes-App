@@ -132,26 +132,7 @@ export function DocumentEditor() {
         'data-gramm_editor': 'false',
         'data-enable-grammarly': 'false',
       },
-      // Native contenteditable insertion is unreliable in this Tauri/WebKit setup
-      // (programmatic insertContent works, keyboard typing does not). Insert via
-      // ProseMirror transactions instead — same path as the debug "probe" button.
-      handleKeyDown: (view, event) => {
-        if (event.defaultPrevented || event.isComposing || event.key === 'Dead') return false
-        if (event.metaKey || event.ctrlKey || event.altKey) return false
-        if (event.key.length !== 1) return false
-        if (!view.editable) return false
-
-        const { state } = view
-        const { from, to } = state.selection
-        const text = event.key
-
-        if (view.someProp('handleTextInput', (f) => f(view, from, to, text))) {
-          return true
-        }
-
-        view.dispatch(state.tr.insertText(text, from, to).scrollIntoView())
-        return true
-      },
+      // Keyboard input is handled by TauriInputFix (ProseMirror transactions).
     },
     onUpdate: () => {
       if (!activeIdRef.current || viewModeRef.current !== 'rich') return

@@ -41,6 +41,7 @@ import { SlashCommands } from '@/lib/editor/slash-commands'
 import { TableOfContents } from '@/lib/editor/table-of-contents'
 import { CustomTableCell, CustomTableHeader } from '@/lib/editor/table-extensions'
 import { ClipboardPaste } from '@/lib/editor/paste-handler'
+import { TauriInputFix } from '@/lib/editor/tauri-input-fix'
 import { WikiLink } from '@/lib/editor/wiki-link'
 
 type EditorExtensionsOptions = {
@@ -56,6 +57,7 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
   const { onInsertImages } = options
 
   return [
+    TauriInputFix,
     StarterKit.configure({
       heading: { levels: [1, 2, 3, 4, 5, 6] },
       horizontalRule: {},

@@ -144,6 +144,13 @@ export function EditorDebugPanel() {
     editor.chain().focus('end').insertContent(' [probe] ').run()
   }
 
+  function enterProbe() {
+    const editor = editorRefs.editor
+    if (!editor || editor.isDestroyed) return
+    editor.setEditable(true)
+    editor.chain().focus('end').splitBlock().run()
+  }
+
   const problem =
     !snap.hasEditor
       ? 'Editor neexistuje'
@@ -264,6 +271,10 @@ export function EditorDebugPanel() {
         <Button type="button" size="sm" variant="outline" className="h-7 gap-1 px-2 text-[11px]" onClick={insertProbe}>
           <Type className="h-3 w-3" />
           Vlož [probe]
+        </Button>
+        <Button type="button" size="sm" variant="outline" className="h-7 gap-1 px-2 text-[11px]" onClick={enterProbe}>
+          <Type className="h-3 w-3" />
+          Enter [probe]
         </Button>
         <Button
           type="button"
