@@ -14,6 +14,7 @@ import {
   Table2,
   X,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { pickImageFiles } from '@/lib/editor/image-utils'
 import {
@@ -37,6 +38,7 @@ type EditorFloatingMenuProps = {
 }
 
 export function EditorFloatingMenu({ editor, onInsertImages }: EditorFloatingMenuProps) {
+  const { t } = useTranslation()
   const menuRef = useRef<HTMLDivElement>(null)
   const [expanded, setExpanded] = useState(false)
 
@@ -100,8 +102,8 @@ export function EditorFloatingMenu({ editor, onInsertImages }: EditorFloatingMen
   const quickInsertItems: QuickInsertItem[] = [
     {
       id: 'heading',
-      label: 'Nadpis',
-      hint: 'H2',
+      label: t('floatingMenu.heading'),
+      hint: t('floatingMenu.headingHint'),
       icon: Heading2,
       run: (currentEditor) => {
         currentEditor.chain().focus().toggleHeading({ level: 2 }).run()
@@ -109,8 +111,8 @@ export function EditorFloatingMenu({ editor, onInsertImages }: EditorFloatingMen
     },
     {
       id: 'list',
-      label: 'Zoznam',
-      hint: 'Odrážky',
+      label: t('floatingMenu.list'),
+      hint: t('floatingMenu.listHint'),
       icon: List,
       run: (currentEditor) => {
         insertBulletList(currentEditor)
@@ -118,8 +120,8 @@ export function EditorFloatingMenu({ editor, onInsertImages }: EditorFloatingMen
     },
     {
       id: 'ordered',
-      label: 'Číslovaný',
-      hint: '1. 2. 3.',
+      label: t('floatingMenu.ordered'),
+      hint: t('floatingMenu.orderedHint'),
       icon: ListOrdered,
       run: (currentEditor) => {
         insertOrderedList(currentEditor)
@@ -127,8 +129,8 @@ export function EditorFloatingMenu({ editor, onInsertImages }: EditorFloatingMen
     },
     {
       id: 'tasks',
-      label: 'Úlohy',
-      hint: 'Checklist',
+      label: t('floatingMenu.tasks'),
+      hint: t('floatingMenu.tasksHint'),
       icon: CheckSquare,
       run: (currentEditor) => {
         insertTaskList(currentEditor)
@@ -136,8 +138,8 @@ export function EditorFloatingMenu({ editor, onInsertImages }: EditorFloatingMen
     },
     {
       id: 'quote',
-      label: 'Citácia',
-      hint: 'Blok',
+      label: t('floatingMenu.quote'),
+      hint: t('floatingMenu.quoteHint'),
       icon: Quote,
       run: (currentEditor) => {
         currentEditor.chain().focus().toggleBlockquote().run()
@@ -145,8 +147,8 @@ export function EditorFloatingMenu({ editor, onInsertImages }: EditorFloatingMen
     },
     {
       id: 'code',
-      label: 'Kód',
-      hint: 'Blok',
+      label: t('floatingMenu.code'),
+      hint: t('floatingMenu.codeHint'),
       icon: SquareCode,
       run: (currentEditor) => {
         currentEditor.chain().focus().toggleCodeBlock().run()
@@ -154,8 +156,8 @@ export function EditorFloatingMenu({ editor, onInsertImages }: EditorFloatingMen
     },
     {
       id: 'table',
-      label: 'Tabuľka',
-      hint: '3×3',
+      label: t('floatingMenu.table'),
+      hint: t('floatingMenu.tableHint'),
       icon: Table2,
       run: (currentEditor) => {
         currentEditor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
@@ -163,8 +165,8 @@ export function EditorFloatingMenu({ editor, onInsertImages }: EditorFloatingMen
     },
     {
       id: 'image',
-      label: 'Obrázok',
-      hint: 'Súbor',
+      label: t('floatingMenu.image'),
+      hint: t('floatingMenu.imageHint'),
       icon: ImagePlus,
       run: async () => {
         await handlePickImage()
@@ -194,8 +196,8 @@ export function EditorFloatingMenu({ editor, onInsertImages }: EditorFloatingMen
         <button
           type="button"
           className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-transparent bg-transparent text-[var(--color-muted-foreground)] opacity-55 transition-[opacity,background,color,border-color] duration-120 hover:border-[var(--color-border)] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)] hover:opacity-100 focus-visible:border-[var(--color-border)] focus-visible:bg-[var(--color-hover)] focus-visible:text-[var(--color-foreground)] focus-visible:opacity-100"
-          aria-label="Vložiť blok"
-          title="Vložiť blok alebo napíšte /"
+          aria-label={t('editorActions.insertBlock')}
+          title={t('editorActions.insertBlockHint')}
           onClick={() => setExpanded(true)}
         >
           <Plus className="h-4 w-4" />
@@ -205,16 +207,16 @@ export function EditorFloatingMenu({ editor, onInsertImages }: EditorFloatingMen
           <div className="flex items-start justify-between gap-2.5 px-0.5 pt-0.5">
             <div className="min-w-0">
               <p className="m-0 text-[12px] font-bold tracking-[-0.01em] text-[var(--color-foreground)]">
-                Vložiť blok
+                {t('editorActions.insertBlock')}
               </p>
               <p className="mt-0.5 text-[11px] leading-snug text-[var(--color-muted-foreground)]">
-                Alebo napíšte / pre všetky príkazy
+                {t('floatingMenu.slashHint')}
               </p>
             </div>
             <button
               type="button"
               className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-none bg-transparent text-[var(--color-muted-foreground)] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
-              aria-label="Zavrieť"
+              aria-label={t('common.close')}
               onClick={collapseMenu}
             >
               <X className="h-3.5 w-3.5" />

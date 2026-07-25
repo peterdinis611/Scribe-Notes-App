@@ -15,6 +15,7 @@ pub struct DocumentSummary {
     pub file_path: Option<String>,
     pub updated_at: i64,
     pub is_favorite: bool,
+    pub is_pinned: bool,
     pub tags: Vec<String>,
     pub deleted_at: Option<i64>,
 }
@@ -105,7 +106,7 @@ pub const DOCUMENT_SELECT: &str =
     "SELECT id, title, content_json, folder_id, file_path, created_at, updated_at FROM documents";
 
 const SUMMARY_SELECT: &str =
-    "SELECT id, title, folder_id, file_path, updated_at, is_favorite, tags, deleted_at FROM documents";
+    "SELECT id, title, folder_id, file_path, updated_at, is_favorite, is_pinned, tags, deleted_at FROM documents";
 
 fn map_summary(row: &rusqlite::Row<'_>) -> rusqlite::Result<DocumentSummary> {
     Ok(DocumentSummary {
@@ -115,8 +116,9 @@ fn map_summary(row: &rusqlite::Row<'_>) -> rusqlite::Result<DocumentSummary> {
         file_path: row.get(3)?,
         updated_at: row.get(4)?,
         is_favorite: row.get::<_, i64>(5)? != 0,
-        tags: parse_tags(row.get::<_, Option<String>>(6)?),
-        deleted_at: row.get(7)?,
+        is_pinned: row.get::<_, i64>(6)? != 0,
+        tags: parse_tags(row.get::<_, Option<String>>(7)?),
+        deleted_at: row.get(8)?,
     })
 }
 
@@ -448,7 +450,7 @@ pub fn list_backlinks(
     let mut stmt = conn
         .prepare(
             "SELECT d.id, d.title, d.folder_id, d.file_path, d.updated_at, \
-                    d.is_favorite, d.tags, d.deleted_at \
+                    d.is_favorite, d.is_pinned, d.tags, d.deleted_at \
              FROM document_links l \
              JOIN documents d ON d.id = l.source_id \
              WHERE l.target_id = ?1 AND d.deleted_at IS NULL \
@@ -473,7 +475,7 @@ pub fn list_outgoing_links(
     let mut stmt = conn
         .prepare(
             "SELECT d.id, d.title, d.folder_id, d.file_path, d.updated_at, \
-                    d.is_favorite, d.tags, d.deleted_at \
+                    d.is_favorite, d.is_pinned, d.tags, d.deleted_at \
              FROM document_links l \
              JOIN documents d ON d.id = l.target_id \
              WHERE l.source_id = ?1 AND d.deleted_at IS NULL \
@@ -551,6 +553,21 @@ pub fn set_document_favorite(
     conn.execute(
         "UPDATE documents SET is_favorite = ?1 WHERE id = ?2",
         params![if favorite { 1 } else { 0 }, id],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn set_document_pinned(
+    state: State<'_, DbState>,
+    id: String,
+    pinned: bool,
+) -> Result<(), String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "UPDATE documents SET is_pinned = ?1 WHERE id = ?2",
+        params![if pinned { 1 } else { 0 }, id],
     )
     .map_err(|e| e.to_string())?;
     Ok(())

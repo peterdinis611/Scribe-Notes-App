@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import { Clock, FileText, Star } from 'lucide-react'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
@@ -12,6 +13,7 @@ type LibraryFavoritesViewProps = {
 }
 
 export function LibraryFavoritesView({ onNavigate }: LibraryFavoritesViewProps) {
+  const { t } = useTranslation()
   const documents = useAppSelector((state) => state.documents.documents)
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
   const dispatch = useAppDispatch()
@@ -39,9 +41,9 @@ export function LibraryFavoritesView({ onNavigate }: LibraryFavoritesViewProps) 
         <div className="library-empty-state-icon">
           <Star className="h-5 w-5" />
         </div>
-        <p className="library-empty-state-title">Žiadne obľúbené</p>
+        <p className="library-empty-state-title">{t('library.noFavorites')}</p>
         <p className="library-empty-state-text">
-          Kliknite na hviezdičku pri dokumente v záložke Priečinky.
+          {t('library.noFavoritesHint')}
         </p>
       </div>
     )

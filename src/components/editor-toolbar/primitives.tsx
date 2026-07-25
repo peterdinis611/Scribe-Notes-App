@@ -1,5 +1,6 @@
 import type { Editor } from '@tiptap/react'
 import { ChevronDown } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -7,15 +8,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
-import { HEADING_LEVELS, headingLabel } from '@/lib/editor/heading-levels'
+import { HEADING_LEVELS, type HeadingLevel } from '@/lib/editor/heading-levels'
 
-export type BlockType = 'paragraph' | 'blockquote' | `h${(typeof HEADING_LEVELS)[number]}`
-
-const BLOCK_TYPES: { id: BlockType; label: string }[] = [
-  { id: 'paragraph', label: 'Odsek' },
-  ...HEADING_LEVELS.map((level) => ({ id: `h${level}` as BlockType, label: headingLabel(level) })),
-  { id: 'blockquote', label: 'Citácia' },
-]
+export type BlockType = 'paragraph' | 'blockquote' | `h${HeadingLevel}`
 
 function getBlockType(editor: Editor): BlockType {
   for (const level of HEADING_LEVELS) {
@@ -38,24 +33,36 @@ function setBlockType(editor: Editor, type: BlockType) {
     return
   }
 
-  const level = Number(type.slice(1)) as (typeof HEADING_LEVELS)[number]
+  const level = Number(type.slice(1)) as HeadingLevel
   chain.toggleHeading({ level }).run()
 }
 
 export function BlockTypeSelect({ editor }: { editor: Editor }) {
+  const { t } = useTranslation()
   const current = getBlockType(editor)
-  const label = BLOCK_TYPES.find((item) => item.id === current)?.label ?? 'Odsek'
+
+  const blockTypes: { id: BlockType; label: string }[] = [
+    { id: 'paragraph', label: t('toolbar.blockTypes.paragraph') },
+    ...HEADING_LEVELS.map((level) => ({
+      id: `h${level}` as BlockType,
+      label: t('toolbar.blockTypes.heading', { level }),
+    })),
+    { id: 'blockquote', label: t('toolbar.blockTypes.blockquote') },
+  ]
+
+  const label =
+    blockTypes.find((item) => item.id === current)?.label ?? t('toolbar.blockTypes.paragraph')
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button type="button" className="toolbar-select" title="Typ bloku">
+        <button type="button" className="toolbar-select" title={t('toolbar.blockTypes.title')}>
           <span>{label}</span>
           <ChevronDown className="h-3.5 w-3.5 opacity-60" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="min-w-[160px] max-h-[320px] overflow-y-auto">
-        {BLOCK_TYPES.map(({ id, label: itemLabel }) => (
+        {blockTypes.map(({ id, label: itemLabel }) => (
           <DropdownMenuItem
             key={id}
             className={cn(current === id && 'is-selected')}

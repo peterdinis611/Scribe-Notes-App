@@ -2,12 +2,15 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import {
+  Columns2,
+  CalendarDays,
   Copy,
   FileText,
   Focus,
   BookOpen,
   FolderInput,
   FolderPlus,
+  Languages,
   Moon,
   Plus,
   Search,
@@ -15,16 +18,26 @@ import {
   Shuffle,
   Sparkles,
   StickyNote,
+  Pin,
+  RotateCcw,
 } from 'lucide-react'
+import { AI_ACTION_IDS } from '@/lib/ai/actions'
+import { isAiAvailable } from '@/lib/ai/config'
+import { runAiEditorAction } from '@/lib/ai/run-action'
+import { editorRefs } from '@/store/editorRefs'
 import { openQuickNote } from '@/lib/quick-note'
+import { openTodayNote, openThisWeekNote } from '@/lib/journal-notes'
 import { getDisplayKeysForShortcut } from '@/lib/shortcuts'
+import type { AppLocale } from '@/i18n'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { createFolder, duplicateDocument, searchDocuments } from '@/lib/db/api'
+import { createFolder, duplicateDocument, searchDocuments, setDocumentPinned } from '@/lib/db/api'
 import type { SearchHit } from '@/lib/db/api'
 import { promptInput } from '@/lib/input-dialog'
+import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
 import { cn, debounce } from '@/lib/utils'
+import { sanitizeSnippet } from '@/lib/search-snippet'
 import { toast } from '@/lib/toast'
 import { cycleThemeId } from '@/lib/themes/apply'
 import { generateRandomTheme } from '@/lib/themes/generate-random-theme'
@@ -33,6 +46,8 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
   setActiveDocument,
   setActiveDocumentId,
+  setPendingEditorSearch,
+  setSecondaryDocumentId,
   toggleFocusMode,
   toggleReadingMode,
   updateDocuments,
@@ -42,7 +57,7 @@ import {
   setMoveDocumentPickerOpen,
   updateFolders,
 } from '@/store/foldersSlice'
-import { setTemplatePickerOpen, setThemeSettings } from '@/store/settingsSlice'
+import { setTemplatePickerOpen, setThemeSettings, setLocale } from '@/store/settingsSlice'
 import {
   createCustomThemeSelection,
   createThemeSelection,
@@ -59,10 +74,6 @@ type PaletteItem =
       run: () => void
     }
 
-function sanitizeSnippet(html: string): string {
-  return html.replace(/<(?!\/?mark>)[^>]+>/gi, '')
-}
-
 export function CommandPalette() {
   const open = useAppSelector((state) => state.folders.commandPaletteOpen)
   const { t } = useTranslation()
@@ -74,11 +85,19 @@ export function CommandPalette() {
   const dispatch = useAppDispatch()
   const activeDocumentId = useAppSelector((state) => state.documents.activeDocumentId)
   const documents = useAppSelector((state) => state.documents.documents)
+  const recentDocumentIds = useAppSelector((state) => state.documents.recentDocumentIds)
+  const recentlyClosedIds = useAppSelector((state) => state.documents.recentlyClosedIds)
+  const secondaryDocumentId = useAppSelector((state) => state.documents.secondaryDocumentId)
+  const openDocumentIds = useAppSelector((state) => state.documents.openDocumentIds)
+  const folders = useAppSelector((state) => state.folders.folders)
   const themeSettings = useAppSelector((state) => state.settings.themeSettings)
   const focusMode = useAppSelector((state) => state.documents.focusMode)
   const readingMode = useAppSelector((state) => state.documents.readingMode)
   const shortcutOverrides = useAppSelector((state) => state.settings.shortcutOverrides)
+  const locale = useAppSelector((state) => state.settings.locale)
+  const aiSettings = useAppSelector((state) => state.settings.aiSettings)
   const openDemoGuide = useOpenDemoGuide()
+  const aiEnabled = isAiAvailable(aiSettings)
 
   const activeDocument = useMemo(
     () => documents.find((doc) => doc.id === activeDocumentId) ?? null,
@@ -95,6 +114,20 @@ export function CommandPalette() {
         icon: <Plus className="h-4 w-4" />,
         run: () => dispatch(setTemplatePickerOpen(true)),
       },
+      ...(aiEnabled
+        ? AI_ACTION_IDS.map(
+            (action): PaletteItem => ({
+              type: 'action',
+              id: `ai-${action}`,
+              label: t(`commandPalette.ai.${action}`),
+              hint: t('commandPalette.aiHint'),
+              icon: <Sparkles className="h-4 w-4" />,
+              run: () => {
+                void runAiEditorAction(editorRefs.editor, action)
+              },
+            }),
+          )
+        : []),
       {
         type: 'action',
         id: 'quick-note',
@@ -103,6 +136,58 @@ export function CommandPalette() {
         icon: <StickyNote className="h-4 w-4" />,
         run: () => {
           void openQuickNote(documents, dispatch, navigate, (key) => t(key))
+        },
+      },
+      ...(recentlyClosedIds[0]
+        ? [
+            {
+              type: 'action' as const,
+              id: 'reopen-closed',
+              label: t('commandPalette.reopenClosed'),
+              hint:
+                documents.find((doc) => doc.id === recentlyClosedIds[0])?.title ??
+                t('commandPalette.reopenClosedHint'),
+              icon: <RotateCcw className="h-4 w-4" />,
+              run: () => {
+                const id = recentlyClosedIds[0]
+                if (!id) return
+                dispatch(setActiveDocumentId(id))
+                const cached = peekCachedDocument(id)
+                if (cached) dispatch(setActiveDocument(cached))
+                navigate(ROUTES.document(id))
+              },
+            },
+          ]
+        : []),
+      {
+        type: 'action',
+        id: 'today-note',
+        label: t('commandPalette.todayNote'),
+        hint: getDisplayKeysForShortcut('todayNote', shortcutOverrides).join(''),
+        icon: <CalendarDays className="h-4 w-4" />,
+        run: () => {
+          void openTodayNote({
+            documents,
+            folders,
+            dispatch,
+            navigate,
+            t: (key, options) => t(key, options),
+          }).catch((error) => toast.error(t('journal.openError'), String(error)))
+        },
+      },
+      {
+        type: 'action',
+        id: 'week-note',
+        label: t('commandPalette.weekNote'),
+        icon: <CalendarDays className="h-4 w-4" />,
+        run: () => {
+          void openThisWeekNote({
+            documents,
+            folders,
+            dispatch,
+            navigate,
+            t: (key, options) => t(key, options),
+          }).catch((error) => toast.error(t('journal.openError'), String(error)))
         },
       },
       {
@@ -131,6 +216,33 @@ export function CommandPalette() {
               icon: <BookOpen className="h-4 w-4" />,
               run: () => dispatch(toggleReadingMode()),
             },
+            ...(secondaryDocumentId
+              ? [
+                  {
+                    type: 'action' as const,
+                    id: 'close-split',
+                    label: t('commandPalette.closeSplit'),
+                    icon: <Columns2 className="h-4 w-4" />,
+                    run: () => dispatch(setSecondaryDocumentId(null)),
+                  },
+                ]
+              : (() => {
+                  const candidateId =
+                    openDocumentIds.find((id) => id !== activeDocument.id) ??
+                    recentDocumentIds.find((id) => id !== activeDocument.id) ??
+                    null
+                  if (!candidateId) return []
+                  return [
+                    {
+                      type: 'action' as const,
+                      id: 'open-split',
+                      label: t('commandPalette.openSplit'),
+                      hint: documents.find((doc) => doc.id === candidateId)?.title,
+                      icon: <Columns2 className="h-4 w-4" />,
+                      run: () => dispatch(setSecondaryDocumentId(candidateId)),
+                    },
+                  ]
+                })()),
             {
               type: 'action' as const,
               id: 'duplicate',
@@ -169,6 +281,32 @@ export function CommandPalette() {
                 dispatch(setMoveDocumentPickerOpen(true))
               },
             },
+            {
+              type: 'action' as const,
+              id: 'pin-document',
+              label: activeDocument.isPinned
+                ? t('commandPalette.unpinDocument')
+                : t('commandPalette.pinDocument'),
+              hint: activeDocument.title,
+              icon: <Pin className="h-4 w-4" />,
+              run: () => {
+                const id = activeDocument.id
+                const next = !activeDocument.isPinned
+                dispatch(
+                  updateDocuments((prev) =>
+                    prev.map((doc) => (doc.id === id ? { ...doc, isPinned: next } : doc)),
+                  ),
+                )
+                void setDocumentPinned(id, next).catch((error) => {
+                  dispatch(
+                    updateDocuments((prev) =>
+                      prev.map((doc) => (doc.id === id ? { ...doc, isPinned: !next } : doc)),
+                    ),
+                  )
+                  toast.error(t('toasts.pinError'), String(error))
+                })
+              },
+            },
           ]
         : []),
       {
@@ -178,6 +316,28 @@ export function CommandPalette() {
         hint: getDisplayKeysForShortcut('settings', shortcutOverrides).join(''),
         icon: <Settings2 className="h-4 w-4" />,
         run: () => navigate(ROUTES.settingsSection('appearance')),
+      },
+      {
+        type: 'action',
+        id: 'docs',
+        label: t('commandPalette.docs'),
+        icon: <BookOpen className="h-4 w-4" />,
+        run: () => navigate(ROUTES.docs()),
+      },
+      {
+        type: 'action',
+        id: 'language',
+        label:
+          locale === 'sk'
+            ? t('commandPalette.switchToEnglish')
+            : t('commandPalette.switchToSlovak'),
+        hint: locale === 'sk' ? 'EN' : 'SK',
+        icon: <Languages className="h-4 w-4" />,
+        run: () => {
+          const next: AppLocale = locale === 'sk' ? 'en' : 'sk'
+          dispatch(setLocale(next))
+          toast.success(t('toasts.localeChanged'), t(`settings.language.${next}`))
+        },
       },
       {
         type: 'action',
@@ -222,34 +382,65 @@ export function CommandPalette() {
       },
     ],
     [
+      aiEnabled,
       activeDocument,
       dispatch,
       documents,
+      folders,
       focusMode,
       navigate,
       openDemoGuide,
       readingMode,
+      recentlyClosedIds,
+      recentDocumentIds,
+      secondaryDocumentId,
+      openDocumentIds,
+      locale,
       shortcutOverrides,
       t,
       themeSettings,
     ],
   )
 
-  const documentItems: PaletteItem[] = useMemo(
-    () =>
-      hits.map((hit) => ({
+  const documentItems: PaletteItem[] = useMemo(() => {
+    if (hits.length > 0) {
+      return hits.map((hit) => ({
         type: 'document' as const,
         id: hit.documentId,
         label: hit.title,
         snippetHtml: hit.snippet,
         icon: <FileText className="h-4 w-4" />,
         run: () => {
+          const q = query.trim()
+          if (q) dispatch(setPendingEditorSearch(q))
           dispatch(setActiveDocumentId(hit.documentId))
           navigate(ROUTES.document(hit.documentId))
         },
-      })),
-    [dispatch, hits, navigate],
-  )
+      }))
+    }
+
+    if (query.trim().length > 0) return []
+
+    const byId = new Map(
+      documents.filter((doc) => doc.deletedAt == null).map((doc) => [doc.id, doc]),
+    )
+    return recentDocumentIds
+      .map((id) => byId.get(id))
+      .filter((doc): doc is NonNullable<typeof doc> => doc != null)
+      .slice(0, 8)
+      .map((doc) => ({
+        type: 'document' as const,
+        id: doc.id,
+        label: doc.title,
+        icon: <FileText className="h-4 w-4" />,
+        run: () => {
+          dispatch(setActiveDocumentId(doc.id))
+          const cached = peekCachedDocument(doc.id)
+          if (cached) dispatch(setActiveDocument(cached))
+          navigate(ROUTES.document(doc.id))
+        },
+      }))
+  }, [dispatch, documents, hits, navigate, query, recentDocumentIds])
 
   const filteredActions = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -363,7 +554,11 @@ export function CommandPalette() {
               )}
               {documentItems.length > 0 && (
                 <>
-                  <p className="command-palette-section-label">{t('commandPalette.sectionDocuments')}</p>
+                  <p className="command-palette-section-label">
+                    {hits.length > 0
+                      ? t('commandPalette.sectionDocuments')
+                      : t('commandPalette.sectionRecent')}
+                  </p>
                   {documentItems.map((item, index) => {
                     const flatIndex = filteredActions.length + index
                     return (

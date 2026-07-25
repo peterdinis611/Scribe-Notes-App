@@ -4,6 +4,7 @@ import { Outlet, useNavigate, useParams } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { CommandPalette } from '@/components/CommandPalette'
 import { AppHeader } from '@/components/layout/AppHeader'
+import { DocumentTabsBar } from '@/components/layout/DocumentTabsBar'
 import { FocusModeExitBar } from '@/components/editor/FocusModeExitBar'
 import { ReadingModeExitBar } from '@/components/editor/ReadingModeExitBar'
 import { MoveToFolderDialog } from '@/components/MoveToFolderMenu'
@@ -20,6 +21,7 @@ import { toast } from '@/lib/toast'
 import { ROUTES } from '@/lib/routes'
 import type { DocumentTemplate } from '@/lib/templates'
 import { InputDialogHost } from '@/components/InputDialogHost'
+import { AiResultDialogHost } from '@/components/AiResultDialogHost'
 import { OnboardingTour } from '@/components/OnboardingTour'
 import { StorageAccessDialogHost } from '@/components/StorageAccessDialogHost'
 import { SaveCustomTemplateDialogHost } from '@/components/SaveCustomTemplateDialogHost'
@@ -115,6 +117,7 @@ export function AppLayout() {
         <FocusModeExitBar />
         <ReadingModeExitBar />
         <AppHeader />
+        <DocumentTabsBar />
         <main
           ref={mainRef}
           className="app-main relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
@@ -136,6 +139,7 @@ export function AppLayout() {
         onOpenChange={(open) => dispatch(setMoveDocumentPickerOpen(open))}
       />
       <InputDialogHost />
+      <AiResultDialogHost />
       <StorageAccessDialogHost />
       <SaveCustomTemplateDialogHost />
       <TrashDialog />

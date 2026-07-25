@@ -1,5 +1,6 @@
 import type { Editor } from '@tiptap/react'
 import { MATH_JS_EXAMPLES, promptMathExpression } from '@/lib/editor/math-js'
+import { MERMAID_DEFAULT_SOURCE } from '@/lib/editor/mermaid'
 
 export function insertInlineMath(editor: Editor) {
   const expression = promptMathExpression('Matematický výraz v riadku', '', MATH_JS_EXAMPLES.inline)
@@ -11,6 +12,10 @@ export function insertBlockMath(editor: Editor) {
   const expression = promptMathExpression('Matematický blok', '', MATH_JS_EXAMPLES.block)
   if (!expression) return
   editor.chain().focus().insertMathBlock({ expression }).run()
+}
+
+export function insertMermaidDiagram(editor: Editor) {
+  editor.chain().focus().insertMermaidDiagram({ source: MERMAID_DEFAULT_SOURCE }).run()
 }
 
 export function insertYoutubeVideo(editor: Editor) {

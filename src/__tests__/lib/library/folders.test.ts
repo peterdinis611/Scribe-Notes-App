@@ -11,9 +11,9 @@ import {
 import type { Folder } from '@/lib/db/api'
 
 const folders: Folder[] = [
-  { id: 'f1', name: 'Projekty', parentId: null, createdAt: 1, updatedAt: 1 },
-  { id: 'f2', name: 'Archív', parentId: 'f1', createdAt: 1, updatedAt: 1 },
-  { id: 'f3', name: 'Osobné', parentId: null, createdAt: 1, updatedAt: 1 },
+  { id: 'f1', name: 'Projekty', parentId: null, createdAt: 1, updatedAt: 1, isPinned: false },
+  { id: 'f2', name: 'Archív', parentId: 'f1', createdAt: 1, updatedAt: 1, isPinned: false },
+  { id: 'f3', name: 'Osobné', parentId: null, createdAt: 1, updatedAt: 1, isPinned: false },
 ]
 
 const documents = [

@@ -1,4 +1,3 @@
-import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Provider } from 'react-redux'
 import { HotkeysProvider } from '@tanstack/react-hotkeys'
@@ -11,20 +10,18 @@ import App from './App.tsx'
 
 bootstrapTheme()
 
+// TipTap + React StrictMode double-mount can leave ProseMirror non-editable on WebKit.
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <Provider store={store}>
-      <HotkeysProvider
-        defaultOptions={{
-          hotkey: {
-            preventDefault: true,
-            ignoreInputs: false,
-            platform: 'mac',
-          },
-        }}
-      >
-        <App />
-      </HotkeysProvider>
-    </Provider>
-  </StrictMode>,
+  <Provider store={store}>
+    <HotkeysProvider
+      defaultOptions={{
+        hotkey: {
+          preventDefault: true,
+          platform: 'mac',
+        },
+      }}
+    >
+      <App />
+    </HotkeysProvider>
+  </Provider>,
 )

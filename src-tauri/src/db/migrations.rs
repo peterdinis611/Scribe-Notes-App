@@ -1,6 +1,6 @@
 use rusqlite::Connection;
 
-const SCHEMA_VERSION: i32 = 10;
+const SCHEMA_VERSION: i32 = 11;
 
 pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     conn.execute_batch(
@@ -241,6 +241,28 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
                 ON custom_templates(category);
             CREATE INDEX IF NOT EXISTS idx_documents_folder_deleted
                 ON documents(folder_id, deleted_at);
+            "#,
+        )?;
+
+        conn.execute(
+            "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
+            ["10".to_string()],
+        )?;
+    }
+
+    if current < 11 {
+        let _ = conn.execute(
+            "ALTER TABLE documents ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE folders ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0",
+            [],
+        );
+        conn.execute_batch(
+            r#"
+            CREATE INDEX IF NOT EXISTS idx_documents_pinned ON documents(is_pinned);
+            CREATE INDEX IF NOT EXISTS idx_folders_pinned ON folders(is_pinned);
             "#,
         )?;
 

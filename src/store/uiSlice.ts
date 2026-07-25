@@ -18,16 +18,28 @@ export type StorageAccessDialogState =
   | { open: false }
   | { open: true; intent: StorageAccessDialogIntent }
 
+export type AiResultDialogState =
+  | { open: false }
+  | {
+      open: true
+      title: string
+      loading: boolean
+      result: string
+      onCancel: (() => void) | null
+    }
+
 export interface UiState {
   toasts: ToastItem[]
   inputDialog: InputDialogState
   storageAccessDialog: StorageAccessDialogState
+  aiResultDialog: AiResultDialogState
 }
 
 const initialState: UiState = {
   toasts: [],
   inputDialog: { open: false },
   storageAccessDialog: { open: false },
+  aiResultDialog: { open: false },
 }
 
 const uiSlice = createSlice({
@@ -46,9 +58,18 @@ const uiSlice = createSlice({
     setStorageAccessDialog(state, action: PayloadAction<StorageAccessDialogState>) {
       state.storageAccessDialog = action.payload
     },
+    setAiResultDialog(state, action: PayloadAction<AiResultDialogState>) {
+      state.aiResultDialog = action.payload
+    },
   },
 })
 
-export const { pushToast, dismissToast, setInputDialog, setStorageAccessDialog } = uiSlice.actions
+export const {
+  pushToast,
+  dismissToast,
+  setInputDialog,
+  setStorageAccessDialog,
+  setAiResultDialog,
+} = uiSlice.actions
 
 export default uiSlice.reducer

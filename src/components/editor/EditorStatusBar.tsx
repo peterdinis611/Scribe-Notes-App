@@ -1,4 +1,5 @@
 import { Columns2, FileText, LayoutGrid, Minus, Plus, Printer, Rows2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { countWords } from '@/lib/utils'
 import { cn } from '@/lib/utils'
@@ -25,6 +26,7 @@ export function EditorStatusBar({
   onPrint,
   onOpenPageSetup,
 }: EditorStatusBarProps) {
+  const { t } = useTranslation()
   const document = useAppSelector((state) => state.documents.activeDocument)
   const printLayoutEnabled = useAppSelector((state) => state.settings.printLayoutEnabled)
   const printZoom = useAppSelector((state) => state.settings.printZoom)
@@ -48,11 +50,11 @@ export function EditorStatusBar({
           onClick={() => dispatch(setPrintLayoutEnabled(!printLayoutEnabled))}
         >
           <LayoutGrid className="h-3.5 w-3.5" />
-          <span>Rozloženie</span>
+          <span>{t('printLayout.layout')}</span>
         </button>
         <button type="button" className="editor-status-chip" onClick={onOpenPageSetup}>
           <FileText className="h-3.5 w-3.5" />
-          <span>Stránka</span>
+          <span>{t('printLayout.page')}</span>
         </button>
 
         {printLayoutEnabled && (
@@ -62,7 +64,7 @@ export function EditorStatusBar({
               <button
                 type="button"
                 className={cn('editor-status-segment', printColumns === 1 && 'is-active')}
-                title="Jeden stĺpec"
+                title={t('printLayout.oneColumn')}
                 aria-pressed={printColumns === 1}
                 onClick={() => dispatch(setPrintLayoutColumns(1))}
               >
@@ -71,7 +73,7 @@ export function EditorStatusBar({
               <button
                 type="button"
                 className={cn('editor-status-segment', printColumns === 2 && 'is-active')}
-                title="Dva stĺpce"
+                title={t('printLayout.twoColumns')}
                 aria-pressed={printColumns === 2}
                 onClick={() => dispatch(setPrintLayoutColumns(2))}
               >
@@ -102,13 +104,11 @@ export function EditorStatusBar({
 
       <div className="editor-status-bar-right">
         {document && (
-          <span className="editor-status-meta">
-            {words} {words === 1 ? 'slovo' : words < 5 ? 'slová' : 'slov'}
-          </span>
+          <span className="editor-status-meta">{t('toolbar.stats.word', { count: words })}</span>
         )}
         <Button variant="ghost" size="sm" className="h-7 gap-1.5 px-2.5 text-[12px]" onClick={onPrint}>
           <Printer className="h-3.5 w-3.5" />
-          Tlačiť
+          {t('fileMenu.print')}
         </Button>
       </div>
     </footer>

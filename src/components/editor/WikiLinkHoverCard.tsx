@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import type { Editor } from '@tiptap/react'
+import { useTranslation } from 'react-i18next'
 import { useEditorViewEffect } from '@/lib/editor/view-ready'
 import { getDocument } from '@/lib/db/api'
 import { formatRelativeTime } from '@/lib/utils'
@@ -42,6 +43,7 @@ function snippetFromContent(contentJson: string): string {
 }
 
 export function WikiLinkHoverCard({ editor }: { editor: Editor | null }) {
+  const { t } = useTranslation()
   const documents = useAppSelector((state) => state.documents.documents)
   const [hover, setHover] = useState<HoverState | null>(null)
   const timerRef = useRef<number | null>(null)
@@ -75,7 +77,7 @@ export function WikiLinkHoverCard({ editor }: { editor: Editor | null }) {
               if (tokenRef.current !== token) return
               setHover({
                 targetId,
-                title: doc.title || summary?.title || 'Bez názvu',
+                title: doc.title || summary?.title || t('common.untitled'),
                 snippet: snippetFromContent(doc.contentJson),
                 updatedAt: doc.updatedAt ?? summary?.updatedAt ?? null,
                 x: rect.left,
@@ -86,7 +88,7 @@ export function WikiLinkHoverCard({ editor }: { editor: Editor | null }) {
               if (tokenRef.current !== token) return
               setHover({
                 targetId,
-                title: summary?.title ?? 'Dokument sa nenašiel',
+                title: summary?.title ?? t('editorActions.documentNotFound'),
                 snippet: '',
                 updatedAt: summary?.updatedAt ?? null,
                 x: rect.left,
@@ -110,7 +112,7 @@ export function WikiLinkHoverCard({ editor }: { editor: Editor | null }) {
         if (timerRef.current) window.clearTimeout(timerRef.current)
       }
     },
-    [documents],
+    [documents, t],
   )
 
   if (!hover) return null
@@ -126,12 +128,12 @@ export function WikiLinkHoverCard({ editor }: { editor: Editor | null }) {
     >
       <div className="wiki-link-hover-title">{hover.title}</div>
       {hover.updatedAt != null && (
-        <div className="wiki-link-hover-time">Upravené {formatRelativeTime(hover.updatedAt)}</div>
+        <div className="wiki-link-hover-time">{t('wikiLink.modified', { time: formatRelativeTime(hover.updatedAt) })}</div>
       )}
       {hover.snippet ? (
         <p className="wiki-link-hover-snippet">{hover.snippet}</p>
       ) : (
-        <p className="wiki-link-hover-snippet wiki-link-hover-snippet--empty">Prázdny dokument</p>
+        <p className="wiki-link-hover-snippet wiki-link-hover-snippet--empty">{t('wikiLink.emptyDocument')}</p>
       )}
     </div>
   )

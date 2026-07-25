@@ -22,6 +22,10 @@ export function createEmojiSuggestion() {
   return {
     char: ':',
     items: ({ query }: { query: string }) => filterEmojis(query),
+    placement: 'bottom-start' as const,
+    floatingUi: {
+      strategy: 'fixed' as const,
+    },
     render: () => {
       let component: ReactRenderer | null = null
       let unmount: (() => void) | null = null
@@ -31,22 +35,24 @@ export function createEmojiSuggestion() {
           component = new ReactRenderer(EmojiSuggestionList, {
             props,
             editor: props.editor as never,
+            className: 'emoji-suggestion-popup',
           })
-          unmount = props.mount(component.element)
+          unmount = props.mount(component.element as HTMLElement)
         },
         onUpdate: (props: SuggestionProps<EmojiItem, EmojiItem>) => {
           component?.updateProps(props)
         },
         onKeyDown: (props: { event: KeyboardEvent }) => {
-          if (props.event.key === 'Escape') {
-            component?.destroy()
-            return true
+          if (props.event.key === 'Escape' || props.event.key === 'Esc') {
+            return false
           }
           return (component?.ref as { onKeyDown?: (props: unknown) => boolean } | null)?.onKeyDown?.(props) ?? false
         },
         onExit: () => {
           unmount?.()
+          unmount = null
           component?.destroy()
+          component = null
         },
       }
     },

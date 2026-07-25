@@ -8,6 +8,7 @@ import {
   setActiveDocument,
   setActiveDocumentId,
 } from '@/store/documentsSlice'
+import { SecondaryDocumentPane } from '@/components/SecondaryDocumentPane'
 
 const DocumentEditor = lazy(() =>
   import('@/components/DocumentEditor').then((module) => ({
@@ -33,6 +34,7 @@ export function DocumentPage() {
   const { t } = useTranslation()
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
   const activeDocument = useAppSelector((state) => state.documents.activeDocument)
+  const secondaryDocumentId = useAppSelector((state) => state.documents.secondaryDocumentId)
   const saveStatus = useAppSelector((state) => state.documents.saveStatus)
   const dispatch = useAppDispatch()
 
@@ -68,9 +70,22 @@ export function DocumentPage() {
     )
   }
 
-  return (
+  const split = Boolean(secondaryDocumentId && secondaryDocumentId !== documentId)
+
+  const editor = (
     <Suspense fallback={<DocumentEditorFallback />}>
       <DocumentEditor key={documentId} />
     </Suspense>
+  )
+
+  if (!split || !secondaryDocumentId) {
+    return editor
+  }
+
+  return (
+    <div className="flex h-full min-h-0 flex-1">
+      <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">{editor}</div>
+      <SecondaryDocumentPane key={secondaryDocumentId} documentId={secondaryDocumentId} />
+    </div>
   )
 }

@@ -1,4 +1,5 @@
 import { Columns2, FileText, LayoutGrid, Minus, Plus, Printer, Rows2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
@@ -14,6 +15,7 @@ type EditorPrintLayoutBarProps = {
 }
 
 export function EditorPrintLayoutBar({ onPrint, onOpenPageSetup }: EditorPrintLayoutBarProps) {
+  const { t } = useTranslation()
   const printLayoutEnabled = useAppSelector((state) => state.settings.printLayoutEnabled)
   const printZoom = useAppSelector((state) => state.settings.printZoom)
   const printColumns = useAppSelector((state) => state.settings.printLayoutColumns)
@@ -34,13 +36,13 @@ export function EditorPrintLayoutBar({ onPrint, onOpenPageSetup }: EditorPrintLa
           onClick={() => dispatch(setPrintLayoutEnabled(!printLayoutEnabled))}
         >
           <LayoutGrid className="h-4 w-4 shrink-0" />
-          <span>Rozloženie strán</span>
+          <span>{t('printLayout.pageLayout')}</span>
           <span className={cn('editor-print-mode-indicator', printLayoutEnabled && 'is-on')} />
         </button>
 
         <Button variant="outline" size="sm" onClick={onOpenPageSetup}>
           <FileText className="h-3.5 w-3.5" />
-          Nastavenie stránky
+          {t('printLayout.pageSetup')}
         </Button>
       </div>
 
@@ -49,12 +51,12 @@ export function EditorPrintLayoutBar({ onPrint, onOpenPageSetup }: EditorPrintLa
           <div className="editor-print-bar-divider" aria-hidden="true" />
 
           <div className="editor-print-bar-group">
-            <span className="editor-print-bar-label">Náhľad</span>
+            <span className="editor-print-bar-label">{t('printLayout.preview')}</span>
             <div className="editor-print-bar-segmented">
               <button
                 type="button"
                 className={cn('editor-print-bar-segment', printColumns === 1 && 'is-active')}
-                title="Jeden stĺpec"
+                title={t('printLayout.oneColumn')}
                 aria-pressed={printColumns === 1}
                 onClick={() => dispatch(setPrintLayoutColumns(1))}
               >
@@ -63,7 +65,7 @@ export function EditorPrintLayoutBar({ onPrint, onOpenPageSetup }: EditorPrintLa
               <button
                 type="button"
                 className={cn('editor-print-bar-segment', printColumns === 2 && 'is-active')}
-                title="Dva stĺpce (spred)"
+                title={t('printLayout.twoColumnsSpread')}
                 aria-pressed={printColumns === 2}
                 onClick={() => dispatch(setPrintLayoutColumns(2))}
               >
@@ -73,7 +75,7 @@ export function EditorPrintLayoutBar({ onPrint, onOpenPageSetup }: EditorPrintLa
           </div>
 
           <div className="editor-print-bar-group">
-            <span className="editor-print-bar-label">Zoom</span>
+            <span className="editor-print-bar-label">{t('printLayout.zoom')}</span>
             <div className="editor-print-bar-zoom-controls">
               <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => adjustZoom(-0.1)}>
                 <Minus className="h-3.5 w-3.5" />
@@ -90,7 +92,7 @@ export function EditorPrintLayoutBar({ onPrint, onOpenPageSetup }: EditorPrintLa
       <div className={cn('editor-print-bar-group', 'editor-print-bar-group--end')}>
         <Button variant="outline" size="sm" onClick={onPrint}>
           <Printer className="h-3.5 w-3.5" />
-          Tlačiť…
+          {t('fileMenu.print')}
         </Button>
       </div>
     </div>

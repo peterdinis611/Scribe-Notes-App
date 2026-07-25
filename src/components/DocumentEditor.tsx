@@ -31,6 +31,7 @@ import { useEditorViewEffect, setEditorContent, useEditorReady } from '@/lib/edi
 import { resolvePageLayout } from '@/lib/editor/page-layout'
 import { normalizePageSetup, PAPER_SIZES } from '@/lib/editor/page-setup'
 import { getEditorExtensions } from '@/lib/editor/extensions'
+import { handleTauriEditorKeyDown } from '@/lib/editor/tauri-input-fix'
 import { getEditorMarkdown } from '@/lib/editor/markdown-content'
 import { insertImagesFromFiles } from '@/lib/editor/image-utils'
 import { printDocumentFromContent } from '@/lib/export/print-document'
@@ -96,6 +97,8 @@ export function DocumentEditor() {
   const insertImagesRef = useRef(handleInsertImages)
   insertImagesRef.current = handleInsertImages
 
+  // Bump when extension set changes so HMR recreates the editor (useMemo [] is sticky).
+  const EDITOR_EXTENSIONS_REV = 5
   const extensions = useMemo(
     () =>
       getEditorExtensions({
@@ -103,7 +106,7 @@ export function DocumentEditor() {
           void insertImagesRef.current(files, pos)
         },
       }),
-    [],
+    [EDITOR_EXTENSIONS_REV],
   )
 
   const pageSetup = useAppSelector((state) => state.settings.pageSetup)
@@ -116,17 +119,29 @@ export function DocumentEditor() {
   const pageLayout = useMemo(() => resolvePageLayout(pageSetup), [pageSetup])
   const paper = PAPER_SIZES[normalizedPageSetup.paperSize]
 
+  const editorAttributes = useMemo(
+    () => ({
+      class: cn('tiptap', printLayoutEnabled && 'tiptap--print-accurate'),
+      spellcheck: spellCheckEnabled ? 'true' : 'false',
+      lang: locale,
+      'data-gramm': 'false',
+      'data-gramm_editor': 'false',
+      'data-enable-grammarly': 'false',
+    }),
+    [printLayoutEnabled, spellCheckEnabled, locale],
+  )
+
   const editor = useEditor({
     extensions,
     content: initialContent,
-    immediatelyRender: true,
+    editable: !readingMode && viewMode === 'rich',
+    autofocus: false,
+    immediatelyRender: false,
     shouldRerenderOnTransaction: false,
     editorProps: {
-      attributes: {
-        class: cn('tiptap', printLayoutEnabled && 'tiptap--print-accurate'),
-        spellcheck: spellCheckEnabled ? 'true' : 'false',
-        lang: locale,
-      },
+      // Checked before plugins — required so Enter applies immediately in Tauri/WebKit.
+      attributes: editorAttributes,
+      handleKeyDown: handleTauriEditorKeyDown,
     },
     onUpdate: () => {
       if (!activeIdRef.current || viewModeRef.current !== 'rich') return
@@ -135,7 +150,21 @@ export function DocumentEditor() {
   }, [extensions])
 
   editorRef.current = editor
+  editorRefs.editor = editor
   const editorReady = useEditorReady(editor)
+
+  // useEditor only syncs editorProps automatically when deps === []. We depend on
+  // [extensions], so push keyboard/attribute props explicitly or Enter stays dead.
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return
+    editor.setOptions({
+      editable: !readingMode && viewMode === 'rich',
+      editorProps: {
+        attributes: editorAttributes,
+        handleKeyDown: handleTauriEditorKeyDown,
+      },
+    })
+  }, [editor, editorAttributes, readingMode, viewMode])
 
   const { queueSave, flushSave, editorContentHashRef, lastPersistedHashRef } = useDocumentAutoSave({
     editor,
@@ -197,6 +226,12 @@ export function DocumentEditor() {
       editorRefs.modeActions = null
     }
   }, [switchToMarkdown, switchToRich, viewMode])
+
+  useEffect(() => {
+    return () => {
+      editorRefs.editor = null
+    }
+  }, [])
 
   useEditorHotkeys(editor)
 
@@ -272,6 +307,18 @@ export function DocumentEditor() {
     })
   }, [activeDocument, pageSetup])
 
+  const saveStatus = useAppSelector((state) => state.documents.saveStatus)
+
+  // Clear content hashes before syncing so a later effect cannot wipe in-progress edits.
+  useEffect(() => {
+    editorContentHashRef.current = null
+    lastPersistedHashRef.current = null
+  }, [activeId, editorContentHashRef, lastPersistedHashRef])
+
+  useEffect(() => {
+    dispatch(setFindReplaceOpen(false))
+  }, [activeId, dispatch])
+
   useEditorViewEffect(
     editor,
     (currentEditor) => {
@@ -279,6 +326,17 @@ export function DocumentEditor() {
 
       const incomingHash = getCachedContentHash(activeDocument)
       if (incomingHash === editorContentHashRef.current) return
+
+      // Never replace live document content while the user is typing in it.
+      if (currentEditor.isFocused) return
+
+      // Local edits already tracked for this session — don't clobber them.
+      if (
+        editorContentHashRef.current != null &&
+        (saveStatus === 'dirty' || saveStatus === 'saving')
+      ) {
+        return
+      }
 
       if (
         !setEditorContent(currentEditor, getCachedParsedContent(activeDocument), {
@@ -296,17 +354,8 @@ export function DocumentEditor() {
       setMarkdownDraft(markdown)
       dispatch(setSaveStatus('saved'))
     },
-    [activeDocument, activeId, dispatch, editorContentHashRef, lastPersistedHashRef],
+    [activeDocument, activeId, dispatch, editorContentHashRef, lastPersistedHashRef, saveStatus],
   )
-
-  useEffect(() => {
-    dispatch(setFindReplaceOpen(false))
-  }, [activeId, dispatch])
-
-  useEffect(() => {
-    editorContentHashRef.current = null
-    lastPersistedHashRef.current = null
-  }, [activeId, editorContentHashRef, lastPersistedHashRef])
 
   const isMarkdown = viewMode === 'markdown'
 
@@ -314,6 +363,16 @@ export function DocumentEditor() {
     if (!editor) return
     editor.setEditable(!readingMode && viewMode === 'rich')
   }, [editor, readingMode, viewMode])
+
+  useEffect(() => {
+    if (!editor || !editorReady || readingMode || viewMode !== 'rich') return
+    const frame = requestAnimationFrame(() => {
+      if (!editor.isDestroyed && !editor.isFocused) {
+        editor.commands.focus('end')
+      }
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [editor, editorReady, readingMode, viewMode])
 
   useEffect(() => {
     if (isMarkdown || focusMode || readingMode) {
@@ -466,7 +525,7 @@ export function DocumentEditor() {
                     <PageHeaderFooterOverlays
                       pageSetup={pageSetup}
                       pageSegments={pageSegments}
-                      documentTitle={activeDocument?.title ?? 'Dokument'}
+                      documentTitle={activeDocument?.title ?? t('common.document')}
                       paddingTop={pageLayout.paddingTop}
                       printLayout={printLayoutConfig}
                     />
@@ -491,7 +550,16 @@ export function DocumentEditor() {
                     spellCheck={spellCheckEnabled}
                   />
                 ) : (
-                  <EditorContent editor={editor} />
+                  <div
+                    className="editor-content-host"
+                    onMouseDown={() => {
+                      if (!editor || editor.isDestroyed || readingMode) return
+                      if (!editor.isEditable) editor.setEditable(true)
+                      if (!editor.isFocused) editor.commands.focus()
+                    }}
+                  >
+                    <EditorContent editor={editor} />
+                  </div>
                 )}
 
                 {isMarkdown && editor && (

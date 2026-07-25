@@ -44,6 +44,7 @@ function summary(id: string, title: string): DocumentSummary {
     folderId: null,
     filePath: null,
     isFavorite: false,
+    isPinned: false,
   }
 }
 

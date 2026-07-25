@@ -1,9 +1,11 @@
+import { useTranslation } from 'react-i18next'
 import { FileCode2, Type } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { editorRefs } from '@/store/editorRefs'
 
 export function EditorViewModeToggle({ className }: { className?: string }) {
+  const { t } = useTranslation()
   const actions = editorRefs.modeActions
   if (!actions) return null
 
@@ -21,7 +23,7 @@ export function EditorViewModeToggle({ className }: { className?: string }) {
         variant={isMarkdown ? 'ghost' : 'default'}
         size="sm"
         className="h-7 gap-1 px-2 text-[12px] [[data-layout-tier=medium]_&]:w-8 [[data-layout-tier=medium]_&]:min-w-8 [[data-layout-tier=medium]_&]:px-0 [[data-layout-tier=narrow]_&]:w-8 [[data-layout-tier=narrow]_&]:min-w-8 [[data-layout-tier=narrow]_&]:px-0 [[data-layout-tier=tight]_&]:w-8 [[data-layout-tier=tight]_&]:min-w-8 [[data-layout-tier=tight]_&]:px-0"
-        title="Formátovaný text"
+        title={t('viewMode.rich')}
         onClick={actions.switchToRich}
         aria-pressed={!isMarkdown}
       >
@@ -35,7 +37,7 @@ export function EditorViewModeToggle({ className }: { className?: string }) {
         variant={isMarkdown ? 'default' : 'ghost'}
         size="sm"
         className="h-7 gap-1 px-2 text-[12px] [[data-layout-tier=medium]_&]:w-8 [[data-layout-tier=medium]_&]:min-w-8 [[data-layout-tier=medium]_&]:px-0 [[data-layout-tier=narrow]_&]:w-8 [[data-layout-tier=narrow]_&]:min-w-8 [[data-layout-tier=narrow]_&]:px-0 [[data-layout-tier=tight]_&]:w-8 [[data-layout-tier=tight]_&]:min-w-8 [[data-layout-tier=tight]_&]:px-0"
-        title="Markdown"
+        title={t('viewMode.markdown')}
         onClick={actions.switchToMarkdown}
         aria-pressed={isMarkdown}
       >

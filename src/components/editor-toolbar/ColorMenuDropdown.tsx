@@ -1,4 +1,5 @@
 import { ChevronDown } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +27,7 @@ export function ColorMenuDropdown({
   onCustomPick,
   onClear,
 }: ColorMenuDropdownProps) {
+  const { t } = useTranslation()
   const previewColor = activeValue || 'var(--color-foreground)'
 
   return (
@@ -41,10 +43,10 @@ export function ColorMenuDropdown({
         <p className="toolbar-color-menu-title">{label}</p>
         <ColorSwatchGrid colors={colors} activeValue={activeValue} onPick={onPick} />
         <div className="toolbar-color-menu-footer">
-          <CustomColorPicker label="Vlastná" onPick={onCustomPick} />
+          <CustomColorPicker label={t('toolbar.actions.customColor')} onPick={onCustomPick} />
           {onClear ? (
             <button type="button" className={cn('toolbar-color-clear')} onClick={onClear}>
-              Reset
+              {t('common.reset')}
             </button>
           ) : null}
         </div>

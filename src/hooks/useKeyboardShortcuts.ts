@@ -3,16 +3,20 @@ import type { RegisterableHotkey } from '@tanstack/react-hotkeys'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { openQuickNote } from '@/lib/quick-note'
+import { openTodayNote } from '@/lib/journal-notes'
+import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { pickAndImportFile } from '@/lib/db/api'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
 import { getResolvedHotkey } from '@/lib/shortcuts'
 import { toast } from '@/lib/toast'
+import { runManualSave } from '@/lib/manual-save'
 import { cycleThemeId } from '@/lib/themes/apply'
 import { createThemeSelection } from '@/store/settings-helpers'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { editorRefs } from '@/store/editorRefs'
 import {
+  closeOpenDocument,
   setActiveDocument,
   setActiveDocumentId,
   setFindReplaceOpen,
@@ -31,7 +35,6 @@ import { toggleCommandPaletteOpen } from '@/store/foldersSlice'
 
 const APP_HOTKEY_OPTIONS = {
   preventDefault: true,
-  ignoreInputs: false,
 } as const
 
 function hotkey(id: string, overrides: Record<string, string>): RegisterableHotkey {
@@ -40,7 +43,10 @@ function hotkey(id: string, overrides: Record<string, string>): RegisterableHotk
 
 export function useKeyboardShortcuts() {
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
+  const openDocumentIds = useAppSelector((state) => state.documents.openDocumentIds)
+  const recentlyClosedIds = useAppSelector((state) => state.documents.recentlyClosedIds)
   const documents = useAppSelector((state) => state.documents.documents)
+  const folders = useAppSelector((state) => state.folders.folders)
   const themeSettings = useAppSelector((state) => state.settings.themeSettings)
   const shortcutOverrides = useAppSelector((state) => state.settings.shortcutOverrides)
   const activeDocument = useAppSelector((state) => state.documents.activeDocument)
@@ -59,14 +65,14 @@ export function useKeyboardShortcuts() {
         hotkey: hotkey('commandPalette', shortcutOverrides),
         callback: () => dispatch(toggleCommandPaletteOpen()),
         options: {
-          meta: { name: 'Príkazová paleta', description: 'Vyhľadávanie a príkazy' },
+          meta: { name: t('shortcuts.commandPalette.label'), description: t('shortcuts.commandPalette.description') },
         },
       },
       {
         hotkey: hotkey('newDocument', shortcutOverrides),
         callback: () => dispatch(setTemplatePickerOpen(true)),
         options: {
-          meta: { name: 'Nový dokument', description: 'Otvorí výber šablóny' },
+          meta: { name: t('shortcuts.newDocument.label'), description: t('shortcuts.newDocument.description') },
         },
       },
       {
@@ -75,22 +81,38 @@ export function useKeyboardShortcuts() {
           void openQuickNote(documents, dispatch, navigate, (key) => t(key))
         },
         options: {
-          meta: { name: 'Rýchla poznámka', description: 'Otvorí scratch dokument' },
+          meta: { name: t('shortcuts.quickNote.label'), description: t('shortcuts.quickNote.description') },
+        },
+      },
+      {
+        hotkey: hotkey('todayNote', shortcutOverrides),
+        callback: () => {
+          void openTodayNote({
+            documents,
+            folders,
+            dispatch,
+            navigate,
+            t: (key, options) => t(key, options),
+          }).catch((error) => {
+            toast.error(t('journal.openError'), String(error))
+          })
+        },
+        options: {
+          meta: { name: t('shortcuts.todayNote.label'), description: t('shortcuts.todayNote.description') },
         },
       },
       {
         hotkey: hotkey('save', shortcutOverrides),
         callback: async () => {
           if (!activeId || !activeDocument) return
-          if (!editorRefs.flushAutoSave) return
-          try {
-            await editorRefs.flushAutoSave()
-          } catch {
-            dispatch(setSaveStatus('error'))
-          }
+          await runManualSave({
+            flush: editorRefs.flushAutoSave,
+            onSaved: () => toast.success(t('toasts.documentSaved'), activeDocument.title),
+            onError: () => dispatch(setSaveStatus('error')),
+          })
         },
         options: {
-          meta: { name: 'Uložiť', description: 'Okamžite uloží aktuálny obsah dokumentu' },
+          meta: { name: t('shortcuts.save.label'), description: t('shortcuts.save.description') },
         },
       },
       {
@@ -106,7 +128,7 @@ export function useKeyboardShortcuts() {
           navigate(ROUTES.document(imported.id))
         },
         options: {
-          meta: { name: 'Importovať', description: 'Import .scribe, .pages, .md, .txt, .docx' },
+          meta: { name: t('shortcuts.import.label'), description: t('shortcuts.import.description') },
         },
       },
       {
@@ -116,28 +138,66 @@ export function useKeyboardShortcuts() {
           dispatch(setThemeSettings(createThemeSelection(themeSettings, next)))
         },
         options: {
-          meta: { name: 'Téma', description: 'Prepína medzi témami' },
+          meta: { name: t('shortcuts.toggleTheme.label'), description: t('shortcuts.toggleTheme.description') },
         },
       },
       {
         hotkey: hotkey('settings', shortcutOverrides),
         callback: () => navigate(ROUTES.settingsSection('appearance')),
         options: {
-          meta: { name: 'Nastavenia', description: 'Otvorí stránku nastavení' },
+          meta: { name: t('shortcuts.settings.label'), description: t('shortcuts.settings.description') },
         },
       },
       {
         hotkey: hotkey('focusMode', shortcutOverrides),
         callback: () => dispatch(toggleFocusMode()),
         options: {
-          meta: { name: 'Režim sústredenia', description: 'Zapne alebo vypne režim sústredenia' },
+          meta: { name: t('shortcuts.focusMode.label'), description: t('shortcuts.focusMode.description') },
         },
       },
       {
         hotkey: hotkey('readingMode', shortcutOverrides),
         callback: () => dispatch(toggleReadingMode()),
         options: {
-          meta: { name: 'Čítací režim', description: 'Čistý náhľad bez úprav' },
+          meta: { name: t('shortcuts.readingMode.label'), description: t('shortcuts.readingMode.description') },
+        },
+      },
+      {
+        hotkey: hotkey('closeTab', shortcutOverrides),
+        callback: () => {
+          if (!activeId) return
+          const index = openDocumentIds.indexOf(activeId)
+          const remaining = openDocumentIds.filter((id) => id !== activeId)
+          const nextId = remaining[index] ?? remaining[index - 1] ?? null
+          dispatch(closeOpenDocument(activeId))
+          if (nextId) {
+            const cached = peekCachedDocument(nextId)
+            if (cached) dispatch(setActiveDocument(cached))
+            void navigate(ROUTES.document(nextId))
+            return
+          }
+          dispatch(setActiveDocument(null))
+          void navigate(ROUTES.home())
+        },
+        options: {
+          meta: { name: t('shortcuts.closeTab.label'), description: t('shortcuts.closeTab.description') },
+        },
+      },
+      {
+        hotkey: hotkey('reopenClosedTab', shortcutOverrides),
+        callback: () => {
+          const id = recentlyClosedIds[0]
+          if (!id) return
+          dispatch(setActiveDocumentId(id))
+          const cached = peekCachedDocument(id)
+          if (cached) dispatch(setActiveDocument(cached))
+          void navigate(ROUTES.document(id))
+        },
+        options: {
+          meta: {
+            name: t('shortcuts.reopenClosedTab.label'),
+            description: t('shortcuts.reopenClosedTab.description'),
+          },
         },
       },
       {
@@ -155,7 +215,7 @@ export function useKeyboardShortcuts() {
           dispatch(setFocusMode(false))
         },
         options: {
-          meta: { name: 'Zavrieť panel', description: 'Zavrie vyhľadávanie alebo režim' },
+          meta: { name: t('shortcuts.closePanel.label'), description: t('shortcuts.closePanel.description') },
         },
       },
     ],

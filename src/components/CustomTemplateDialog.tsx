@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { JSONContent } from '@tiptap/core'
 import { Plus } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -40,7 +41,7 @@ const defaultValues: CustomTemplateDialogValues = {
   name: '',
   description: '',
   category: 'general',
-  title: 'Nový dokument',
+  title: '',
 }
 
 export function CustomTemplateDialog({
@@ -50,6 +51,7 @@ export function CustomTemplateDialog({
   initialValues,
   onSave,
 }: CustomTemplateDialogProps) {
+  const { t } = useTranslation()
   const { categories: customCategories } = useCustomCategoriesLive()
   const [values, setValues] = useState<CustomTemplateDialogValues>(defaultValues)
   const [showNewCategoryInput, setShowNewCategoryInput] = useState(false)
@@ -65,7 +67,7 @@ export function CustomTemplateDialog({
 
     if (wasOpenRef.current) return
 
-    const title = initialValues?.title?.trim() || defaultValues.title
+    const title = initialValues?.title?.trim() || t('templates.defaultDocumentTitle')
     const category = initialValues?.category ?? defaultValues.category
     setValues({
       name: initialValues?.name?.trim() || title,
@@ -83,6 +85,7 @@ export function CustomTemplateDialog({
     initialValues?.title,
     initialValues?.description,
     initialValues?.category,
+    t,
   ])
 
   function update<K extends keyof CustomTemplateDialogValues>(
@@ -106,9 +109,9 @@ export function CustomTemplateDialog({
     try {
       const created = await createAndStoreCategory(name, customCategories)
       selectCategory(created.id)
-      toast.success('Kategória vytvorená', created.name)
+      toast.success(t('templates.categoryCreated'), created.name)
     } catch (error) {
-      toast.error('Nepodarilo sa vytvoriť kategóriu', String(error))
+      toast.error(t('templates.categoryCreateError'), String(error))
     } finally {
       setCreatingCategory(false)
     }
@@ -138,21 +141,23 @@ export function CustomTemplateDialog({
         <DialogContent className="titlebar-no-drag z-[80] max-w-[440px]">
           <form onSubmit={handleSubmit}>
             <DialogHeader>
-              <DialogTitle>Vlastná šablóna</DialogTitle>
+              <DialogTitle>{t('templates.customTemplate')}</DialogTitle>
               <DialogDescription>
-                Uloží sa lokálne do tohto počítača. Obsah má {paragraphCount}{' '}
-                {paragraphCount === 1 ? 'blok' : paragraphCount < 5 ? 'bloky' : 'blokov'}.
+                {t('templates.dialogDescription', {
+                  count: paragraphCount,
+                  blocks: t('templates.blockCount', { count: paragraphCount }),
+                })}
               </DialogDescription>
             </DialogHeader>
 
             <div className="grid gap-3 py-1">
               <label className="grid gap-1.5">
                 <span className="text-[12px] font-medium text-[var(--color-foreground)]">
-                  Názov šablóny
+                  {t('templates.nameLabel')}
                 </span>
                 <Input
                   value={values.name}
-                  placeholder="napr. Týždenný report"
+                  placeholder={t('templates.namePlaceholder')}
                   onChange={(event) => update('name', event.target.value)}
                   autoFocus
                 />
@@ -160,29 +165,29 @@ export function CustomTemplateDialog({
 
               <label className="grid gap-1.5">
                 <span className="text-[12px] font-medium text-[var(--color-foreground)]">
-                  Predvolený názov dokumentu
+                  {t('templates.documentTitleLabel')}
                 </span>
                 <Input
                   value={values.title}
-                  placeholder="Nový dokument"
+                  placeholder={t('templates.defaultDocumentTitle')}
                   onChange={(event) => update('title', event.target.value)}
                 />
               </label>
 
               <label className="grid gap-1.5">
                 <span className="text-[12px] font-medium text-[var(--color-foreground)]">
-                  Popis
+                  {t('templates.descriptionLabel')}
                 </span>
                 <Input
                   value={values.description}
-                  placeholder="Krátky popis účelu šablóny"
+                  placeholder={t('templates.descriptionPlaceholder')}
                   onChange={(event) => update('description', event.target.value)}
                 />
               </label>
 
               <div className="grid gap-1.5">
                 <span className="text-[12px] font-medium text-[var(--color-foreground)]">
-                  Kategória
+                  {t('templates.categoryLabel')}
                 </span>
 
                 <div className="flex flex-wrap gap-1.5">
@@ -209,7 +214,7 @@ export function CustomTemplateDialog({
                     onClick={() => setShowNewCategoryInput((current) => !current)}
                   >
                     <Plus className="h-3 w-3" />
-                    Nová
+                    {t('templates.newCategoryChip')}
                   </CategoryChip>
                 </div>
 
@@ -217,7 +222,7 @@ export function CustomTemplateDialog({
                   <div className="flex gap-2">
                     <Input
                       value={newCategoryName}
-                      placeholder="napr. Marketing"
+                      placeholder={t('templates.newCategoryPlaceholder')}
                       onChange={(event) => setNewCategoryName(event.target.value)}
                       onKeyDown={(event) => {
                         if (event.key === 'Enter') {
@@ -235,7 +240,7 @@ export function CustomTemplateDialog({
                       disabled={!newCategoryName.trim() || creatingCategory}
                       onClick={() => void handleCreateCategory()}
                     >
-                      {creatingCategory ? 'Ukladám…' : 'Pridať'}
+                      {creatingCategory ? t('templates.saving') : t('templates.addCategory')}
                     </Button>
                   </div>
                 )}
@@ -244,10 +249,10 @@ export function CustomTemplateDialog({
 
             <DialogFooter>
               <Button type="button" variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
-                Zrušiť
+                {t('common.cancel')}
               </Button>
               <Button type="submit" variant="default" size="sm" disabled={!canSave}>
-                Uložiť šablónu
+                {t('templates.saveTemplate')}
               </Button>
             </DialogFooter>
           </form>

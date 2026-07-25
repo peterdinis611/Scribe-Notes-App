@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { Editor } from '@tiptap/react'
 import { useEditorState } from '@tiptap/react'
 import { PanelRightClose, Target } from 'lucide-react'
@@ -25,14 +26,9 @@ function readGoal(documentId: string | null): number {
   return Number.isFinite(value) && value > 0 ? value : 0
 }
 
-function formatReadingTime(words: number): string {
-  if (words === 0) return '0 min'
-  const minutes = words / WORDS_PER_MINUTE
-  if (minutes < 1) return '< 1 min'
-  return `${Math.round(minutes)} min`
-}
-
 export function StatsPanel({ editor, onClose }: StatsPanelProps) {
+  const { t, i18n } = useTranslation()
+  const numberLocale = i18n.language === 'sk' ? 'sk-SK' : 'en-US'
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
   const [goal, setGoal] = useState(() => readGoal(activeId))
 
@@ -86,22 +82,37 @@ export function StatsPanel({ editor, onClose }: StatsPanelProps) {
     return Math.min(100, Math.round((data.words / goal) * 100))
   }, [data.words, goal])
 
+  const formatReadingTime = useCallback(
+    (words: number): string => {
+      if (words === 0) return t('panels.stats.readingTimeZero')
+      const minutes = words / WORDS_PER_MINUTE
+      if (minutes < 1) return t('panels.stats.readingTimeUnderOne')
+      return t('panels.stats.readingTimeMinutes', { count: Math.round(minutes) })
+    },
+    [t],
+  )
+
+  const formatNumber = useCallback(
+    (value: number) => value.toLocaleString(numberLocale),
+    [numberLocale],
+  )
+
   const rows: Array<{ label: string; value: string }> = [
-    { label: 'Slová', value: data.words.toLocaleString('sk-SK') },
-    { label: 'Znaky', value: data.characters.toLocaleString('sk-SK') },
-    { label: 'Znaky (bez medzier)', value: data.charactersNoSpaces.toLocaleString('sk-SK') },
-    { label: 'Odseky', value: data.paragraphs.toLocaleString('sk-SK') },
-    { label: 'Vety', value: data.sentences.toLocaleString('sk-SK') },
-    { label: 'Čas čítania', value: formatReadingTime(data.words) },
+    { label: t('panels.stats.words'), value: formatNumber(data.words) },
+    { label: t('panels.stats.characters'), value: formatNumber(data.characters) },
+    { label: t('panels.stats.charactersNoSpaces'), value: formatNumber(data.charactersNoSpaces) },
+    { label: t('panels.stats.paragraphs'), value: formatNumber(data.paragraphs) },
+    { label: t('panels.stats.sentences'), value: formatNumber(data.sentences) },
+    { label: t('panels.stats.readingTime'), value: formatReadingTime(data.words) },
   ]
 
   return (
-    <EditorSidePanel className="titlebar-no-drag" aria-label="Štatistika dokumentu">
+    <EditorSidePanel className="titlebar-no-drag" aria-label={t('editorPanels.stats')}>
       <EditorSidePanelHeader
-        title="Štatistika"
-        subtitle="Prehľad dokumentu"
+        title={t('editorPanels.stats')}
+        subtitle={t('panels.stats.subtitle')}
         actions={
-          <EditorSidePanelIconButton aria-label="Skryť štatistiku" onClick={onClose}>
+          <EditorSidePanelIconButton aria-label={t('panels.stats.hide')} onClick={onClose}>
             <PanelRightClose className="h-4 w-4" />
           </EditorSidePanelIconButton>
         }
@@ -122,14 +133,14 @@ export function StatsPanel({ editor, onClose }: StatsPanelProps) {
       <div className="mx-3 mb-4 mt-1 flex flex-col gap-2 rounded-[10px] border border-[var(--color-border)] p-3">
         <div className="flex items-center gap-1.5 text-[12px] font-semibold text-[var(--color-muted-foreground)]">
           <Target className="h-4 w-4" />
-          <span>Cieľ počtu slov</span>
+          <span>{t('panels.stats.wordGoal')}</span>
         </div>
         <Input
           type="number"
           min={0}
           step={50}
           className="h-8 text-[13px]"
-          placeholder="napr. 500"
+          placeholder={t('panels.stats.goalPlaceholder')}
           value={goal || ''}
           onChange={(event) => handleGoalChange(Number(event.target.value))}
         />
@@ -142,8 +153,12 @@ export function StatsPanel({ editor, onClose }: StatsPanelProps) {
               />
             </div>
             <p className="m-0 text-[11px] text-[var(--color-muted-foreground)]">
-              {data.words.toLocaleString('sk-SK')} / {goal.toLocaleString('sk-SK')} slov · {progress}%
-              {data.words >= goal ? ' · Hotovo!' : ''}
+              {t('panels.stats.goalProgress', {
+                current: formatNumber(data.words),
+                goal: formatNumber(goal),
+                percent: progress,
+              })}
+              {data.words >= goal ? t('panels.stats.goalComplete') : ''}
             </p>
           </>
         )}

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Download, Loader2, X } from 'lucide-react'
 import { PDFViewer } from '@embedpdf/react-pdf-viewer'
 import { Button } from '@/components/ui/button'
@@ -26,6 +27,7 @@ export function PdfPreviewDialog({
   pageSetup,
   onExport,
 }: PdfPreviewDialogProps) {
+  const { t } = useTranslation()
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -62,7 +64,7 @@ export function PdfPreviewDialog({
       .catch((cause: unknown) => {
         if (cancelled) return
         const message = cause instanceof Error ? cause.message : String(cause)
-        setError(message || 'Nepodarilo sa vygenerovať náhľad PDF.')
+        setError(message || t('pdfPreview.errorFallback'))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -71,7 +73,7 @@ export function PdfPreviewDialog({
     return () => {
       cancelled = true
     }
-  }, [open, html, plainText, title, pageSetup])
+  }, [open, html, plainText, title, pageSetup, t])
 
   useEffect(() => {
     if (!open) return
@@ -93,26 +95,31 @@ export function PdfPreviewDialog({
       aria-hidden={!open}
       role="dialog"
       aria-modal="true"
-      aria-label={`Náhľad PDF: ${title}`}
+      aria-label={t('pdfPreview.ariaLabel', { title })}
     >
       {open && (
-        <button type="button" className="pdf-preview-backdrop" aria-label="Zavrieť" onClick={close} />
+        <button
+          type="button"
+          className="pdf-preview-backdrop"
+          aria-label={t('common.close')}
+          onClick={close}
+        />
       )}
 
       <div className={cn('pdf-preview-sheet pdf-preview-sheet--embedpdf', open && 'is-open')}>
         <header className="pdf-preview-header">
           <div className="pdf-preview-header-text">
-            <p className="pdf-preview-eyebrow">Náhľad PDF</p>
+            <p className="pdf-preview-eyebrow">{t('pdfPreview.title')}</p>
             <h2 className="pdf-preview-title">{title}</h2>
           </div>
 
           <div className="pdf-preview-toolbar">
             <Button variant="outline" size="sm" disabled={loading || !!error} onClick={onExport}>
               <Download className="h-3.5 w-3.5 shrink-0" />
-              Exportovať
+              {t('pdfPreview.export')}
             </Button>
 
-            <Button variant="ghost" size="icon" aria-label="Zavrieť" onClick={close}>
+            <Button variant="ghost" size="icon" aria-label={t('common.close')} onClick={close}>
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -122,16 +129,14 @@ export function PdfPreviewDialog({
           {loading && (
             <div className="pdf-preview-state">
               <Loader2 className="h-8 w-8 animate-spin text-[var(--color-muted-foreground)]" />
-              <p>Generujem PDF náhľad…</p>
+              <p>{t('pdfPreview.generating')}</p>
             </div>
           )}
 
           {!loading && error && (
             <div className="pdf-preview-state is-error">
               <p>{error}</p>
-              <p className="pdf-preview-state-hint">
-                Skúste znova alebo exportujte priamo do súboru cez menu Súbor.
-              </p>
+              <p className="pdf-preview-state-hint">{t('pdfPreview.errorHint')}</p>
             </div>
           )}
 

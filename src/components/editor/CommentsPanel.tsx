@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { Editor } from '@tiptap/react'
 import { Check, MessageSquare, PanelRightClose, RotateCcw, Send, Trash2 } from 'lucide-react'
 import {
@@ -28,6 +29,7 @@ type CommentsPanelProps = {
 }
 
 export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
+  const { t } = useTranslation()
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
   const author = useAppSelector((state) => state.documents.commentAuthor)
   const version = useAppSelector((state) => state.documents.commentsVersion)
@@ -49,7 +51,7 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
         if (!cancelled) setThreads(result)
       })
       .catch((error) => {
-        if (!cancelled) toast.error('Nepodarilo sa načítať komentáre', String(error))
+        if (!cancelled) toast.error(t('panels.comments.loadError'), String(error))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -57,7 +59,7 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
     return () => {
       cancelled = true
     }
-  }, [activeId, version])
+  }, [activeId, version, t])
 
   const refresh = useCallback(() => dispatch(bumpCommentsVersion()), [dispatch])
 
@@ -74,9 +76,9 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
     (thread: CommentThread) => {
       if (!editor) return
       const found = focusComment(editor, thread.id)
-      if (!found) toast.info('Ukotvenie komentára sa v texte nenašlo')
+      if (!found) toast.info(t('panels.comments.anchorNotFound'))
     },
-    [editor],
+    [editor, t],
   )
 
   const handleResolve = useCallback(
@@ -95,10 +97,10 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
         setThreads((prev) =>
           prev.map((item) => (item.id === thread.id ? { ...item, resolved: previous } : item)),
         )
-        toast.error('Nepodarilo sa zmeniť stav', String(error))
+        toast.error(t('panels.comments.resolveError'), String(error))
       }
     },
-    [editor],
+    [editor, t],
   )
 
   const handleDelete = useCallback(
@@ -119,10 +121,10 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
             .setComment({ commentId: thread.id })
             .run()
         }
-        toast.error('Nepodarilo sa vymazať komentár', String(error))
+        toast.error(t('panels.comments.deleteError'), String(error))
       }
     },
-    [editor],
+    [editor, t],
   )
 
   const handleReply = useCallback(
@@ -174,27 +176,27 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
           ),
         )
         setReplyDrafts((prev) => ({ ...prev, [thread.id]: body }))
-        toast.error('Nepodarilo sa pridať odpoveď', String(error))
+        toast.error(t('panels.comments.replyError'), String(error))
       }
     },
-    [author, replyDrafts],
+    [author, replyDrafts, t],
   )
 
   return (
-    <EditorSidePanel className="titlebar-no-drag" aria-label="Komentáre">
+    <EditorSidePanel className="titlebar-no-drag" aria-label={t('editorPanels.comments')}>
       <EditorSidePanelHeader
-        title="Komentáre"
+        title={t('editorPanels.comments')}
         subtitle={
           threads.length === 0
-            ? 'Žiadne komentáre'
-            : `${threads.length} ${threads.length === 1 ? 'vlákno' : 'vlákien'}`
+            ? t('panels.comments.noComments')
+            : t('panels.comments.threadCount', { count: threads.length })
         }
         actions={
           <div className="inline-flex gap-0.5">
-            <EditorSidePanelIconButton title="Obnoviť" onClick={refresh}>
+            <EditorSidePanelIconButton title={t('common.refresh')} onClick={refresh}>
               <RotateCcw className="h-4 w-4" />
             </EditorSidePanelIconButton>
-            <EditorSidePanelIconButton aria-label="Skryť komentáre" onClick={onClose}>
+            <EditorSidePanelIconButton aria-label={t('panels.comments.hide')} onClick={onClose}>
               <PanelRightClose className="h-4 w-4" />
             </EditorSidePanelIconButton>
           </div>
@@ -207,17 +209,17 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
           className="mx-3 mt-2 rounded-lg border border-dashed border-[var(--color-border)] bg-transparent px-2.5 py-1.5 text-[11px] text-[var(--color-muted-foreground)] hover:border-[color-mix(in_srgb,var(--color-accent)_35%,var(--color-border))] hover:text-[var(--color-accent)]"
           onClick={() => setShowResolved((value) => !value)}
         >
-          {showResolved ? 'Skryť vyriešené' : `Zobraziť vyriešené (${resolvedCount})`}
+          {showResolved ? t('panels.comments.hideResolved') : t('panels.comments.showResolved', { count: resolvedCount })}
         </button>
       )}
 
       <EditorSidePanelList>
         {loading && threads.length === 0 ? (
-          <EditorSidePanelEmpty>Načítavam…</EditorSidePanelEmpty>
+          <EditorSidePanelEmpty>{t('common.loading')}</EditorSidePanelEmpty>
         ) : visibleThreads.length === 0 ? (
           <EditorSidePanelEmpty>
             <MessageSquare className="h-5 w-5 opacity-40" />
-            Označte text a pridajte komentár cez plávajúcu lištu.
+            {t('panels.comments.emptyHint')}
           </EditorSidePanelEmpty>
         ) : (
           visibleThreads.map((thread) => (
@@ -233,7 +235,7 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
                   type="button"
                   className="border-l-[3px] border-[color-mix(in_srgb,var(--color-accent)_55%,transparent)] bg-transparent py-0.5 pl-2 text-left text-[11px] italic text-[var(--color-muted-foreground)] hover:text-[var(--color-accent)]"
                   onClick={() => handleJump(thread)}
-                  title="Prejsť na miesto v texte"
+                  title={t('panels.comments.jumpToAnchor')}
                 >
                   “{thread.quote}”
                 </button>
@@ -265,7 +267,7 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
                   onClick={() => handleResolve(thread)}
                 >
                   <Check className="h-3.5 w-3.5" />
-                  {thread.resolved ? 'Znovu otvoriť' : 'Vyriešiť'}
+                  {thread.resolved ? t('panels.comments.reopen') : t('panels.comments.resolve')}
                 </button>
                 <button
                   type="button"
@@ -273,7 +275,7 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
                   onClick={() => handleDelete(thread)}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
-                  Vymazať
+                  {t('common.delete')}
                 </button>
               </div>
 
@@ -286,7 +288,7 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
               >
                 <Input
                   className="h-8 min-w-0 flex-1 text-[12px]"
-                  placeholder="Odpovedať…"
+                  placeholder={t('panels.comments.replyPlaceholder')}
                   value={replyDrafts[thread.id] ?? ''}
                   onChange={(event) =>
                     setReplyDrafts((prev) => ({ ...prev, [thread.id]: event.target.value }))
@@ -295,7 +297,7 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
                 <button
                   type="submit"
                   className="inline-flex w-[30px] items-center justify-center rounded-[7px] border-none bg-[var(--color-accent)] text-white disabled:opacity-40"
-                  aria-label="Odoslať odpoveď"
+                  aria-label={t('panels.comments.sendReply')}
                   disabled={!(replyDrafts[thread.id] ?? '').trim()}
                 >
                   <Send className="h-3.5 w-3.5" />
@@ -307,12 +309,12 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
       </EditorSidePanelList>
 
       <label className="flex items-center gap-2 border-t border-[var(--color-border)] px-3.5 py-2.5 text-[11px] text-[var(--color-muted-foreground)]">
-        <span>Podpísané ako</span>
+        <span>{t('panels.comments.signedAs')}</span>
         <Input
           className="h-7 min-w-0 flex-1 text-[12px]"
           value={author}
           onChange={(event) => dispatch(setCommentAuthor(event.target.value))}
-          placeholder="Vaše meno"
+          placeholder={t('panels.comments.authorPlaceholder')}
         />
       </label>
     </EditorSidePanel>

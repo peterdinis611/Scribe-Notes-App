@@ -1,6 +1,7 @@
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { store } from '@/store/index'
 import { moveDocumentToFolder } from '@/lib/db/api'
+import i18n from '@/i18n'
 import { toast } from '@/lib/toast'
 import { updateDocuments } from '@/store/documentsSlice'
 import { updateExpandedFolderIds } from '@/store/foldersSlice'
@@ -31,9 +32,9 @@ export function useMoveDocumentToFolder() {
     try {
       await moveDocumentToFolder(documentId, folderId)
       const folderName = folderId
-        ? folders.find((folder) => folder.id === folderId)?.name ?? 'Priečinok'
-        : 'Koreň knižnice'
-      toast.success('Dokument presunutý', folderName)
+        ? folders.find((folder) => folder.id === folderId)?.name ?? i18n.t('common.folder')
+        : i18n.t('library.rootLibrary')
+      toast.success(i18n.t('toasts.documentMoved'), folderName)
     } catch (error) {
       dispatch(
         updateDocuments((prev) =>
@@ -42,7 +43,7 @@ export function useMoveDocumentToFolder() {
           ),
         ),
       )
-      toast.error('Nepodarilo sa presunúť dokument', String(error))
+      toast.error(i18n.t('toasts.moveError'), String(error))
     }
   }
 }

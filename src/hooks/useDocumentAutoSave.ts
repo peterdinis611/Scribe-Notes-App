@@ -143,17 +143,18 @@ export function useDocumentAutoSave({
   )
 
   const flushSave = useCallback(async () => {
-    if (!activeId || !editor) return
+    if (!activeId || !editor) return false
 
     scheduleSave.flush()
     await saveInFlightRef.current
-    await saveNow(activeId)
+    const ok = await saveNow(activeId)
     try {
       const result = await flushPendingWrites(activeId)
       applyDiskPersistResult(dispatch, result)
     } catch {
       // Disk flush failures should not roll back the in-app save.
     }
+    return ok
   }, [activeId, dispatch, editor, saveNow, scheduleSave])
 
   const markDirty = useCallback(() => {

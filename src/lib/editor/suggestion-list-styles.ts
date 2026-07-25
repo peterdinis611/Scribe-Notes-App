@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils'
 
 export const suggestionListClass =
-  'z-50 min-w-[220px] overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-1 shadow-[0_8px_24px_rgba(0,0,0,0.12)]'
+  'slash-suggestion-list z-[300] max-h-[min(360px,50vh)] min-w-[240px] overflow-y-auto overflow-x-hidden rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-1 shadow-[0_8px_24px_rgba(0,0,0,0.18)]'
 
 export const suggestionEmptyClass =
   'px-3 py-2 text-[12px] text-[var(--color-muted-foreground)]'

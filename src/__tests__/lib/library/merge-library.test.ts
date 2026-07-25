@@ -12,6 +12,7 @@ function summary(id: string, updatedAt: number): DocumentSummary {
     folderId: null,
     filePath: null,
     isFavorite: false,
+    isPinned: false,
   }
 }
 

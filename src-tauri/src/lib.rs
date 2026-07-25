@@ -10,8 +10,6 @@ use tauri::Manager;
 
 #[cfg(target_os = "macos")]
 use tauri::menu::{MenuBuilder, SubmenuBuilder};
-#[cfg(target_os = "macos")]
-use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -72,16 +70,6 @@ pub fn run() {
                 app.set_menu(menu)?;
             }
 
-            #[cfg(target_os = "macos")]
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = apply_vibrancy(
-                    &window,
-                    NSVisualEffectMaterial::Sidebar,
-                    None,
-                    None,
-                );
-            }
-
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -96,6 +84,7 @@ pub fn run() {
             commands::documents::empty_trash,
             commands::documents::list_trashed_documents,
             commands::documents::set_document_favorite,
+            commands::documents::set_document_pinned,
             commands::documents::set_document_tags,
             commands::documents::list_backlinks,
             commands::documents::list_outgoing_links,
@@ -112,6 +101,7 @@ pub fn run() {
             commands::folders::trash_folder_documents,
             commands::folders::move_folder,
             commands::folders::move_document_to_folder,
+            commands::folders::set_folder_pinned,
             commands::templates::list_custom_template_categories,
             commands::templates::create_custom_template_category,
             commands::templates::delete_custom_template_category,

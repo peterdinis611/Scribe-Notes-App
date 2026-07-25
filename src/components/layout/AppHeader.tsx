@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { DocumentTitleField } from '@/components/DocumentTitleField'
 import { DemoGuideButton } from '@/components/DemoGuideButton'
+import { LocaleToggle } from '@/components/LocaleToggle'
 import { EditorDocumentToolsMenu } from '@/components/editor/EditorDocumentToolsMenu'
 import { EditorFileMenu } from '@/components/editor/EditorFileMenu'
 import { EditorViewModeToggle } from '@/components/editor/EditorViewModeToggle'
@@ -105,6 +106,21 @@ function SettingsChrome() {
           <span className="font-semibold text-[var(--color-foreground)]">{t('nav.settings')}</span>
           <ChevronRight className="h-3.5 w-3.5 text-[var(--color-muted-foreground)]" />
           <span className="truncate text-[var(--color-muted-foreground)]">{active.label}</span>
+        </div>
+      </div>
+    </header>
+  )
+}
+
+function DocsChrome() {
+  const { t } = useTranslation()
+
+  return (
+    <header className="app-chrome titlebar-drag [[data-sidebar-drawer=true]_&]:pl-[78px]">
+      <div className="titlebar-no-drag titlebar-interactive flex min-w-0 flex-1 items-center gap-2">
+        <SidebarToggle />
+        <div className="flex min-w-0 items-center gap-1.5 text-[13px]">
+          <span className="font-semibold text-[var(--color-foreground)]">{t('nav.docs')}</span>
         </div>
       </div>
     </header>
@@ -213,6 +229,7 @@ function EditorChrome() {
         <div className="editor-header-right titlebar-no-drag titlebar-interactive flex shrink-0 flex-nowrap items-center justify-end gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0">
           {document && <EditorDocumentToolsMenu viewMode={viewMode} />}
           {document && <EditorViewModeToggle />}
+          <LocaleToggle size="sm" />
           {document && <SaveStatus />}
         </div>
       </header>
@@ -240,5 +257,6 @@ export function AppHeader() {
 
   if (focusMode) return null
   if (pathname.startsWith('/settings')) return <SettingsChrome />
+  if (pathname === '/docs' || pathname.startsWith('/docs/')) return <DocsChrome />
   return <EditorChrome />
 }

@@ -13,6 +13,7 @@ pub struct Folder {
     pub parent_id: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
+    pub is_pinned: bool,
 }
 
 fn now_ts() -> i64 {
@@ -26,6 +27,7 @@ fn map_folder(row: &rusqlite::Row<'_>) -> rusqlite::Result<Folder> {
         parent_id: row.get(2)?,
         created_at: row.get(3)?,
         updated_at: row.get(4)?,
+        is_pinned: row.get::<_, i64>(5).unwrap_or(0) != 0,
     })
 }
 
@@ -34,7 +36,8 @@ pub fn list_folders(state: State<'_, DbState>) -> Result<Vec<Folder>, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     let mut stmt = conn
         .prepare(
-            "SELECT id, name, parent_id, created_at, updated_at FROM folders ORDER BY name COLLATE NOCASE ASC",
+            "SELECT id, name, parent_id, created_at, updated_at, COALESCE(is_pinned, 0) \
+             FROM folders ORDER BY name COLLATE NOCASE ASC",
         )
         .map_err(|e| e.to_string())?;
 
@@ -74,6 +77,7 @@ pub fn create_folder(state: State<'_, DbState>, input: CreateFolderInput) -> Res
         parent_id: input.parent_id,
         created_at: now,
         updated_at: now,
+        is_pinned: false,
     })
 }
 
@@ -100,7 +104,7 @@ pub fn rename_folder(state: State<'_, DbState>, input: RenameFolderInput) -> Res
     .map_err(|e| e.to_string())?;
 
     conn.query_row(
-        "SELECT id, name, parent_id, created_at, updated_at FROM folders WHERE id = ?1",
+        "SELECT id, name, parent_id, created_at, updated_at, COALESCE(is_pinned, 0) FROM folders WHERE id = ?1",
         params![input.id],
         map_folder,
     )
@@ -265,7 +269,7 @@ pub fn move_folder(state: State<'_, DbState>, input: MoveFolderInput) -> Result<
     .map_err(|e| e.to_string())?;
 
     conn.query_row(
-        "SELECT id, name, parent_id, created_at, updated_at FROM folders WHERE id = ?1",
+        "SELECT id, name, parent_id, created_at, updated_at, COALESCE(is_pinned, 0) FROM folders WHERE id = ?1",
         params![input.id],
         map_folder,
     )
@@ -308,6 +312,21 @@ pub fn move_document_to_folder(
     )
     .map_err(|e| e.to_string())?;
 
+    Ok(())
+}
+
+#[tauri::command]
+pub fn set_folder_pinned(
+    state: State<'_, DbState>,
+    id: String,
+    pinned: bool,
+) -> Result<(), String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "UPDATE folders SET is_pinned = ?1, updated_at = ?2 WHERE id = ?3",
+        params![if pinned { 1 } else { 0 }, now_ts(), id],
+    )
+    .map_err(|e| e.to_string())?;
     Ok(())
 }
 

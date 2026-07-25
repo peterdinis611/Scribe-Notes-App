@@ -1,22 +1,18 @@
 import { getVersion } from '@tauri-apps/api/app'
 import { confirm } from '@tauri-apps/plugin-dialog'
-import { Archive, ArchiveRestore, FolderOpen, FolderSearch, Shuffle, Trash2 } from 'lucide-react'
+import { Archive, ArchiveRestore, FolderOpen, FolderSearch, Shuffle, Sparkles, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import { requestStorageAccessDialog } from '@/components/StorageAccessDialogHost'
+import { LocaleToggle } from '@/components/LocaleToggle'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { DiagnosticsSection } from '@/components/settings/DiagnosticsSection'
 import {
+  SettingsGroup,
   SettingsKbd,
+  SettingsRow,
   SettingsSection,
   SettingsSectionHeader,
 } from '@/components/settings/SettingsPrimitives'
@@ -41,6 +37,11 @@ import {
   revealInFinder,
 } from '@/lib/db/api'
 import { toast } from '@/lib/toast'
+import {
+  defaultBaseUrlForProvider,
+  defaultModelForProvider,
+} from '@/lib/ai/defaults'
+import type { AiProvider } from '@/lib/ai/types'
 import type { SettingsSection as SettingsSectionId } from '@/lib/routes'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
@@ -50,9 +51,8 @@ import {
   setDocuments,
   setSaveStatus,
 } from '@/store/documentsSlice'
-import { setStorageSettings, setLocale, setThemeSettings, setShortcutOverride, resetShortcutOverrides } from '@/store/settingsSlice'
-import { persistStorageFolderAccessGranted } from '@/store/persistence'
-import type { AppLocale } from '@/i18n'
+import { setStorageSettings, setThemeSettings, setShortcutOverride, resetShortcutOverrides, setAiSettings } from '@/store/settingsSlice'
+import { persistAiApiKey, persistStorageFolderAccessGranted, readAiApiKey } from '@/store/persistence'
 import {
   createCustomThemeSelection,
   createResetCustomTheme,
@@ -61,7 +61,6 @@ import {
 
 export function AppearanceSection() {
   const themeSettings = useAppSelector((state) => state.settings.themeSettings)
-  const locale = useAppSelector((state) => state.settings.locale)
   const dispatch = useAppDispatch()
   const { t } = useTranslation()
 
@@ -89,15 +88,14 @@ export function AppearanceSection() {
           description={t('settings.language.description')}
         />
 
-        <Select value={locale} onValueChange={(value) => dispatch(setLocale(value as AppLocale))}>
-          <SelectTrigger className="h-9 w-[220px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="sk">{t('settings.language.sk')}</SelectItem>
-            <SelectItem value="en">{t('settings.language.en')}</SelectItem>
-          </SelectContent>
-        </Select>
+        <SettingsGroup>
+          <SettingsRow
+            title={t('settings.language.title')}
+            description={t('settings.language.rowDescription')}
+          >
+            <LocaleToggle showLabels />
+          </SettingsRow>
+        </SettingsGroup>
       </SettingsSection>
 
       <SettingsSection>
@@ -180,6 +178,129 @@ export function AppearanceSection() {
         </SettingsSection>
       )}
     </>
+  )
+}
+
+export function AiSection() {
+  const aiSettings = useAppSelector((state) => state.settings.aiSettings)
+  const dispatch = useAppDispatch()
+  const { t } = useTranslation()
+  const [apiKey, setApiKey] = useState(() => readAiApiKey() ?? '')
+
+  function patchAiSettings(patch: Partial<typeof aiSettings>) {
+    dispatch(setAiSettings({ ...aiSettings, ...patch }))
+  }
+
+  function handleProviderChange(provider: AiProvider) {
+    const previousDefault = defaultBaseUrlForProvider(aiSettings.provider)
+    const nextBaseUrl =
+      aiSettings.baseUrl === previousDefault || !aiSettings.baseUrl.trim()
+        ? defaultBaseUrlForProvider(provider)
+        : aiSettings.baseUrl
+    const previousModelDefault = defaultModelForProvider(aiSettings.provider)
+    const nextModel =
+      aiSettings.model === previousModelDefault || !aiSettings.model.trim()
+        ? defaultModelForProvider(provider)
+        : aiSettings.model
+
+    patchAiSettings({
+      provider,
+      baseUrl: nextBaseUrl,
+      model: nextModel,
+    })
+  }
+
+  function handleApiKeyBlur() {
+    persistAiApiKey(apiKey)
+  }
+
+  const showApiKey = aiSettings.provider === 'openai' || aiSettings.provider === 'anthropic'
+
+  return (
+    <SettingsSection>
+      <SettingsSectionHeader
+        title={t('settings.ai.pageTitle')}
+        description={t('settings.ai.pageDescription')}
+      />
+
+      <SettingsGroup>
+        <SettingsRow
+          title={t('settings.ai.enabledTitle')}
+          description={t('settings.ai.enabledDescription')}
+        >
+          <label className="inline-flex cursor-pointer items-center gap-2 text-[13px]">
+            <input
+              type="checkbox"
+              checked={aiSettings.enabled}
+              onChange={(event) => patchAiSettings({ enabled: event.target.checked })}
+            />
+            {aiSettings.enabled ? t('settings.ai.enabledOn') : t('settings.ai.enabledOff')}
+          </label>
+        </SettingsRow>
+
+        <SettingsRow
+          title={t('settings.ai.providerTitle')}
+          description={t('settings.ai.providerDescription')}
+        >
+          <select
+            className="h-8 min-w-[140px] rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-2.5 text-[13px] text-[var(--color-foreground)] outline-none"
+            value={aiSettings.provider}
+            onChange={(event) => handleProviderChange(event.target.value as AiProvider)}
+          >
+            <option value="ollama">{t('settings.ai.providers.ollama')}</option>
+            <option value="openai">{t('settings.ai.providers.openai')}</option>
+            <option value="anthropic">{t('settings.ai.providers.anthropic')}</option>
+          </select>
+        </SettingsRow>
+
+        <SettingsRow
+          title={t('settings.ai.baseUrlTitle')}
+          description={t('settings.ai.baseUrlDescription')}
+        >
+          <Input
+            className="h-8 w-full min-w-[220px] max-w-[320px] font-mono text-[12px]"
+            value={aiSettings.baseUrl}
+            onChange={(event) => patchAiSettings({ baseUrl: event.target.value })}
+            placeholder={defaultBaseUrlForProvider(aiSettings.provider)}
+          />
+        </SettingsRow>
+
+        {showApiKey && (
+          <SettingsRow
+            title={t('settings.ai.apiKeyTitle')}
+            description={t('settings.ai.apiKeyDescription')}
+          >
+            <Input
+              type="password"
+              className="h-8 w-full min-w-[220px] max-w-[320px] font-mono text-[12px]"
+              value={apiKey}
+              autoComplete="off"
+              spellCheck={false}
+              placeholder={t('settings.ai.apiKeyPlaceholder')}
+              onChange={(event) => setApiKey(event.target.value)}
+              onBlur={handleApiKeyBlur}
+            />
+          </SettingsRow>
+        )}
+
+        <SettingsRow
+          title={t('settings.ai.modelTitle')}
+          description={t('settings.ai.modelDescription')}
+        >
+          <Input
+            className="h-8 w-full min-w-[220px] max-w-[320px] font-mono text-[12px]"
+            value={aiSettings.model}
+            onChange={(event) => patchAiSettings({ model: event.target.value })}
+            placeholder={defaultModelForProvider(aiSettings.provider)}
+          />
+        </SettingsRow>
+      </SettingsGroup>
+
+      <p className="mt-3 flex items-start gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
+        <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+        {t('settings.ai.privacyNote')}
+      </p>
+    </SettingsSection>
   )
 }
 
@@ -301,78 +422,66 @@ export function StorageSection() {
   const shortPath = settings?.documentsDir.replace(/^\/Users\/[^/]+/, '~') ?? '…'
 
   return (
-    <>
-      <SettingsSection>
-        <SettingsSectionHeader
+    <SettingsSection>
+      <SettingsSectionHeader
+        title={t('settings.storage.pageTitle')}
+        description={t('settings.storage.pageDescription')}
+      />
+
+      <SettingsGroup>
+        <SettingsRow
           title={t('settings.storage.folderTitle')}
-          description={t('settings.storage.folderDescription')}
-        />
+          description={
+            <>
+              <p className="m-0 font-mono text-[11px] text-[var(--color-foreground)]" title={settings?.documentsDir}>
+                {shortPath}
+              </p>
+              <p className="m-0 mt-1">
+                {t('settings.storage.folderDescriptionShort')}{' '}
+                <button
+                  type="button"
+                  className="text-[var(--color-accent)] underline-offset-2 hover:underline"
+                  onClick={handleShowStorageExplainer}
+                >
+                  {t('settings.storage.whyAccessLink')}
+                </button>
+              </p>
+              {reconcileMessage && <p className="m-0 mt-1">{reconcileMessage}</p>}
+            </>
+          }
+        >
+          <Button variant="outline" size="sm" onClick={() => void handlePickFolder()}>
+            <FolderSearch className="h-3.5 w-3.5" />
+            {t('settings.storage.changeFolder')}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => void handleRevealFolder()} disabled={!settings}>
+            <FolderOpen className="h-3.5 w-3.5" />
+            {t('settings.storage.openInFinder')}
+          </Button>
+          <Button variant="ghost" size="sm" disabled={reconciling} onClick={() => void handleReconcile()}>
+            {reconciling ? t('settings.storage.reconciling') : t('settings.storage.reconcile')}
+          </Button>
+        </SettingsRow>
 
-        <p className="settings-storage-note mb-3 text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
-          {t('settings.storage.folderNote')}{' '}
-          <button
-            type="button"
-            className="text-[var(--color-accent)] underline-offset-2 hover:underline"
-            onClick={handleShowStorageExplainer}
-          >
-            {t('settings.storage.whyAccessLink')}
-          </button>
-        </p>
-
-        <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-          <div className="mb-3 flex items-center gap-2.5">
-            <FolderOpen className="h-4 w-4 shrink-0 opacity-50" />
-            <p className="m-0 truncate font-mono text-[12px] text-[var(--color-foreground)]" title={settings?.documentsDir}>
-              {shortPath}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => void handlePickFolder()}>
-              <FolderSearch className="h-3.5 w-3.5" />
-              {t('settings.storage.changeFolder')}
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => void handleRevealFolder()} disabled={!settings}>
-              {t('settings.storage.openInFinder')}
-            </Button>
-            <Button variant="ghost" size="sm" disabled={reconciling} onClick={() => void handleReconcile()}>
-              {reconciling ? t('settings.storage.reconciling') : t('settings.storage.reconcile')}
-            </Button>
-          </div>
-          {reconcileMessage && (
-            <p className="mt-2.5 text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
-              {reconcileMessage}
-            </p>
-          )}
-        </div>
-      </SettingsSection>
-
-      <SettingsSection>
-        <SettingsSectionHeader
+        <SettingsRow
           title={t('settings.storage.backupTitle')}
-          description={t('settings.storage.backupDescription')}
-        />
+          description={t('settings.storage.backupDescriptionShort')}
+        >
+          <Button variant="outline" size="sm" disabled={exporting} onClick={() => void handleExportBackup()}>
+            <Archive className="h-3.5 w-3.5" />
+            {exporting ? t('settings.storage.backupExporting') : t('settings.storage.backupExport')}
+          </Button>
+          <Button variant="outline" size="sm" disabled={importing} onClick={() => void handleImportBackup()}>
+            <ArchiveRestore className="h-3.5 w-3.5" />
+            {importing ? t('settings.storage.backupImporting') : t('settings.storage.backupImport')}
+          </Button>
+        </SettingsRow>
 
-        <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" disabled={exporting} onClick={() => void handleExportBackup()}>
-              <Archive className="h-3.5 w-3.5" />
-              {exporting ? t('settings.storage.backupExporting') : t('settings.storage.backupExport')}
-            </Button>
-            <Button variant="outline" size="sm" disabled={importing} onClick={() => void handleImportBackup()}>
-              <ArchiveRestore className="h-3.5 w-3.5" />
-              {importing ? t('settings.storage.backupImporting') : t('settings.storage.backupImport')}
-            </Button>
-          </div>
-        </div>
-      </SettingsSection>
-
-      <SettingsSection>
-        <SettingsSectionHeader
+        <SettingsRow
           title={t('settings.storage.clearTitle')}
-          description={t('settings.storage.clearDescription')}
-        />
-
-        <div className="rounded-[var(--radius-md)] border border-[color-mix(in_srgb,var(--color-destructive)_25%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-destructive)_4%,var(--color-surface))] p-4">
+          description={t('settings.storage.clearDescriptionShort')}
+          danger
+        >
           <Button
             variant="outline"
             size="sm"
@@ -383,9 +492,9 @@ export function StorageSection() {
             <Trash2 className="h-3.5 w-3.5" />
             {clearing ? t('settings.storage.clearing') : t('settings.storage.clearAll')}
           </Button>
-        </div>
-      </SettingsSection>
-    </>
+        </SettingsRow>
+      </SettingsGroup>
+    </SettingsSection>
   )
 }
 
@@ -540,6 +649,8 @@ export function SettingsSectionContent({ section }: { section: SettingsSectionId
   switch (section) {
     case 'appearance':
       return <AppearanceSection />
+    case 'ai':
+      return <AiSection />
     case 'storage':
       return <StorageSection />
     case 'shortcuts':

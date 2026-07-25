@@ -1,6 +1,7 @@
 import { Activity, Copy, RefreshCw } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { getVersion } from '@tauri-apps/api/app'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { Button } from '@/components/ui/button'
 import {
@@ -17,7 +18,7 @@ import { toast } from '@/lib/toast'
 import { useAppDispatch } from '@/store/hooks'
 import { applyDiskPersistResult } from '@/lib/disk-sync'
 
-const RELEASES_URL = 'https://github.com/scribe-app/scribe/releases/latest'
+const RELEASES_URL = 'https://github.com/peterdinis611/Scribe-Notes-App/releases'
 
 function StatRow({ label, value }: { label: string; value: string | number }) {
   return (
@@ -36,6 +37,7 @@ export function DiagnosticsSection() {
   const [stats, setStats] = useState<BackendStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
+  const [checkingUpdates, setCheckingUpdates] = useState(false)
 
   async function refresh() {
     setLoading(true)
@@ -56,7 +58,11 @@ export function DiagnosticsSection() {
     try {
       const result = await flushPendingWrites()
       applyDiskPersistResult(dispatch, result)
-      toast.success(t('diagnostics.flushDone'))
+      if (result.flushed === 0) {
+        toast.success(t('diagnostics.flushEmpty'))
+      } else {
+        toast.success(t('diagnostics.flushDone'), t('diagnostics.flushCount', { count: result.flushed }))
+      }
       await refresh()
     } catch (error) {
       toast.error(t('diagnostics.flushError'), String(error))
@@ -77,10 +83,33 @@ export function DiagnosticsSection() {
   }
 
   async function copyDiagnostics() {
-    if (!stats) return
-    const payload = JSON.stringify(stats, null, 2)
-    await navigator.clipboard.writeText(payload)
-    toast.success(t('diagnostics.copied'))
+    if (!stats) {
+      toast.error(t('diagnostics.copyEmpty'))
+      return
+    }
+    try {
+      const payload = JSON.stringify(stats, null, 2)
+      await navigator.clipboard.writeText(payload)
+      toast.success(t('diagnostics.copied'))
+    } catch (error) {
+      toast.error(t('diagnostics.copyError'), String(error))
+    }
+  }
+
+  async function handleCheckUpdates() {
+    setCheckingUpdates(true)
+    try {
+      const version = stats?.appVersion ?? (await getVersion().catch(() => '—'))
+      await openUrl(RELEASES_URL)
+      toast.success(
+        t('diagnostics.updatesOpened'),
+        t('diagnostics.updatesOpenedHint', { version }),
+      )
+    } catch (error) {
+      toast.error(t('diagnostics.updatesError'), String(error))
+    } finally {
+      setCheckingUpdates(false)
+    }
   }
 
   return (
@@ -126,8 +155,13 @@ export function DiagnosticsSection() {
           <Copy className="h-3.5 w-3.5" />
           {t('diagnostics.copy')}
         </Button>
-        <Button variant="outline" size="sm" onClick={() => void openUrl(RELEASES_URL)}>
-          {t('diagnostics.checkUpdates')}
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={checkingUpdates}
+          onClick={() => void handleCheckUpdates()}
+        >
+          {checkingUpdates ? t('diagnostics.updatesChecking') : t('diagnostics.checkUpdates')}
         </Button>
       </div>
     </SettingsSection>

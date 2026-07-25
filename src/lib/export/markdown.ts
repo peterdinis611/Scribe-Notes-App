@@ -79,6 +79,10 @@ function renderNodes(nodes?: TipTapNode[]): string {
           const expr = String(node.attrs?.expression ?? '')
           return `\`\`\`math\n${expr}\n\`\`\`\n\n`
         }
+        case 'mermaidDiagram': {
+          const source = String(node.attrs?.source ?? '')
+          return `\`\`\`mermaid\n${source}\n\`\`\`\n\n`
+        }
         case 'image': {
           const alt = String(node.attrs?.alt ?? 'image')
           const src = String(node.attrs?.src ?? '')

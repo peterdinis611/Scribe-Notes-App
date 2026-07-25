@@ -9,9 +9,11 @@ import { AppLayout } from '@/layouts/AppLayout'
 import { SettingsLayout } from '@/layouts/SettingsLayout'
 import { HomePage } from '@/pages/HomePage'
 import { DocumentPage } from '@/pages/DocumentPage'
+import { DocsPage } from '@/pages/DocsPage'
 import { ErrorPage } from '@/pages/ErrorPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { AppearancePage } from '@/pages/settings/AppearancePage'
+import { AiPage } from '@/pages/settings/AiPage'
 import { StoragePage } from '@/pages/settings/StoragePage'
 import { ShortcutsPage } from '@/pages/settings/ShortcutsPage'
 import { AboutPage } from '@/pages/settings/AboutPage'
@@ -41,6 +43,12 @@ const documentRoute = createRoute({
   component: DocumentPage,
 })
 
+const docsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/docs',
+  component: DocsPage,
+})
+
 const settingsLayoutRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/settings',
@@ -59,6 +67,12 @@ const settingsAppearanceRoute = createRoute({
   getParentRoute: () => settingsLayoutRoute,
   path: 'appearance',
   component: AppearancePage,
+})
+
+const settingsAiRoute = createRoute({
+  getParentRoute: () => settingsLayoutRoute,
+  path: 'ai',
+  component: AiPage,
 })
 
 const settingsStorageRoute = createRoute({
@@ -85,16 +99,28 @@ const settingsAboutRoute = createRoute({
   component: AboutPage,
 })
 
+/** Legacy path from when Docs lived under Settings. */
+const settingsDocsRedirectRoute = createRoute({
+  getParentRoute: () => settingsLayoutRoute,
+  path: 'docs',
+  beforeLoad: () => {
+    throw redirect({ to: '/docs' })
+  },
+})
+
 const routeTree = rootRoute.addChildren([
   appRoute.addChildren([
     homeRoute,
     documentRoute,
+    docsRoute,
     settingsLayoutRoute.addChildren([
       settingsIndexRoute,
       settingsAppearanceRoute,
+      settingsAiRoute,
       settingsStorageRoute,
       settingsShortcutsRoute,
       settingsDiagnosticsRoute,
+      settingsDocsRedirectRoute,
       settingsAboutRoute,
     ]),
   ]),

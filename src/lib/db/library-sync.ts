@@ -11,6 +11,7 @@ export function documentToSummary(
     filePath: doc.filePath,
     updatedAt: doc.updatedAt,
     isFavorite: previous?.isFavorite ?? false,
+    isPinned: previous?.isPinned ?? false,
     tags: previous?.tags ?? [],
     deletedAt: previous?.deletedAt ?? null,
   }

@@ -184,6 +184,10 @@ export const WikiLink = Node.create({
         startOfLine: false,
         allowSpaces: true,
         items: ({ query }) => filterDocuments(query),
+        placement: 'bottom-start',
+        floatingUi: {
+          strategy: 'fixed',
+        },
         command: ({ editor, range, props }) => {
           if (props.isCreate) {
             void createAndInsert(editor, range, props.query ?? props.title)
@@ -200,16 +204,16 @@ export const WikiLink = Node.create({
               component = new ReactRenderer(WikiLinkSuggestionList, {
                 props,
                 editor: props.editor,
+                className: 'wiki-suggestion-popup',
               })
-              unmount = props.mount(component.element)
+              unmount = props.mount(component.element as HTMLElement)
             },
             onUpdate: (props: SuggestionProps<WikiLinkItem, WikiLinkItem>) => {
               component?.updateProps(props)
             },
             onKeyDown: (props) => {
-              if (props.event.key === 'Escape') {
-                component?.destroy()
-                return true
+              if (props.event.key === 'Escape' || props.event.key === 'Esc') {
+                return false
               }
               return (
                 (component?.ref as { onKeyDown?: (props: unknown) => boolean } | null)?.onKeyDown?.(
@@ -219,7 +223,9 @@ export const WikiLink = Node.create({
             },
             onExit: () => {
               unmount?.()
+              unmount = null
               component?.destroy()
+              component = null
             },
           }
         },

@@ -2,6 +2,7 @@ import { CustomTemplateDialog } from '@/components/CustomTemplateDialog'
 import { insertStoredTemplate } from '@/lib/db/template-collections'
 import { createCustomTemplate } from '@/lib/templates'
 import { toast } from '@/lib/toast'
+import i18n from '@/i18n'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setSaveCustomTemplateDialog } from '@/store/templatesSlice'
 
@@ -30,9 +31,9 @@ export function SaveCustomTemplateDialogHost() {
               content: dialog.content,
             })
             await insertStoredTemplate(created)
-            toast.success('Šablóna uložená', values.name)
+            toast.success(i18n.t('templates.templateSaved'), values.name)
           } catch (error) {
-            toast.error('Nepodarilo sa uložiť šablónu', String(error))
+            toast.error(i18n.t('templates.templateSaveError'), String(error))
           }
         })()
       }}

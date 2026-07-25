@@ -33,6 +33,7 @@ import { FontSize } from '@/lib/editor/font-size'
 import { BlockSpacing } from '@/lib/editor/block-spacing'
 import { ListItemWithBlocks } from '@/lib/editor/list-item'
 import { MathJs } from '@/lib/editor/math-js-extension'
+import { MermaidDiagram } from '@/lib/editor/mermaid-extension'
 import { lowlight } from '@/lib/editor/lowlight'
 import { PageBreak } from '@/lib/editor/page-break'
 import { ResizableImage } from '@/lib/editor/resizable-image'
@@ -41,23 +42,31 @@ import { SlashCommands } from '@/lib/editor/slash-commands'
 import { TableOfContents } from '@/lib/editor/table-of-contents'
 import { CustomTableCell, CustomTableHeader } from '@/lib/editor/table-extensions'
 import { ClipboardPaste } from '@/lib/editor/paste-handler'
+import { MarkdownShortcuts } from '@/lib/editor/markdown-shortcuts'
+import { TauriInputFix } from '@/lib/editor/tauri-input-fix'
 import { WikiLink } from '@/lib/editor/wiki-link'
 
 type EditorExtensionsOptions = {
   onInsertImages?: (files: File[], pos?: number) => void | Promise<void>
 }
 
+/**
+ * Always return fresh extension instances. Reusing TipTap extension singletons
+ * across editor create/destroy cycles (Strict Mode, HMR, split pane) leaves the
+ * editor looking fine but unable to accept input.
+ */
 export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
   const { onInsertImages } = options
 
   return [
+    TauriInputFix.configure({}),
     StarterKit.configure({
       heading: { levels: [1, 2, 3, 4, 5, 6] },
       horizontalRule: {},
       codeBlock: false,
       listItem: false,
     }),
-    ListItemWithBlocks,
+    ListItemWithBlocks.configure({}),
     CodeBlockLowlight.configure({
       lowlight,
       defaultLanguage: null,
@@ -65,15 +74,15 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
         class: 'hljs',
       },
     }),
-    TextStyle,
-    FontSize,
-    FontFamily,
-    BlockSpacing,
-    Color,
-    CommentMark,
-    Underline,
-    Subscript,
-    Superscript,
+    TextStyle.configure({}),
+    FontSize.configure({}),
+    FontFamily.configure({}),
+    BlockSpacing.configure({}),
+    Color.configure({}),
+    CommentMark.configure({}),
+    Underline.configure({}),
+    Subscript.configure({}),
+    Superscript.configure({}),
     Highlight.configure({
       multicolor: true,
     }),
@@ -86,42 +95,43 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
       types: ['heading', 'paragraph'],
       alignments: ['left', 'center', 'right', 'justify'],
     }),
-    TaskList,
+    TaskList.configure({}),
     TaskItem.configure({ nested: true }),
     Table.configure({
       resizable: true,
     }),
-    TableRow,
-    CustomTableHeader,
-    CustomTableCell,
+    TableRow.configure({}),
+    CustomTableHeader.configure({}),
+    CustomTableCell.configure({}),
     Details.configure({
       persist: true,
       HTMLAttributes: { class: 'details-block' },
     }),
-    DetailsContent,
-    DetailsSummary,
+    DetailsContent.configure({}),
+    DetailsSummary.configure({}),
     Emoji.configure({
       emojis: gitHubEmojis,
       enableEmoticons: true,
       suggestion: createEmojiSuggestion(),
     }),
-    MathJs,
+    MathJs.configure({}),
+    MermaidDiagram.configure({}),
     Youtube.configure({
       width: 640,
       height: 360,
       nocookie: true,
     }),
-    PageBreak,
-    Callout,
+    PageBreak.configure({}),
+    Callout.configure({}),
     Footnote.configure({ onEdit: createFootnoteEditHandler() }),
-    WikiLink,
-    SearchReplace,
-    TableOfContents,
+    WikiLink.configure({}),
+    SearchReplace.configure({}),
+    TableOfContents.configure({}),
     ResizableImage.configure({
       allowBase64: true,
       inline: false,
     }),
-    CharacterCount,
+    CharacterCount.configure({}),
     Focus.configure({
       className: 'has-focus',
       mode: 'deepest',
@@ -145,15 +155,19 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
       width: 3,
       class: 'editor-drop-indicator',
     }),
-    Gapcursor,
-    Typography,
+    Gapcursor.configure({}),
+    Typography.configure({
+      // `--` → em dash would break markdown `---` horizontal rules
+      emDash: false,
+    }),
+    MarkdownShortcuts.configure({}),
     SlashCommands.configure({
       onInsertImages: (files) => {
         if (files.length) void onInsertImages?.(files)
       },
     }),
     Placeholder.configure({
-      placeholder: 'Píšte text, stlačte / pre príkazy alebo + pre bloky…',
+      placeholder: 'Píšte text, / príkazy, - alebo . medzera pre zoznam, --- čiara…',
     }),
     Markdown.configure({
       indentation: { style: 'space', size: 2 },

@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { getVisiblePageNumbers } from '@/lib/editor/page-layout'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -16,13 +17,14 @@ export function EditorPagination({
   onPageChange,
   compact = false,
 }: EditorPaginationProps) {
+  const { t } = useTranslation()
   const visiblePages = getVisiblePageNumbers(currentPage, pageCount)
 
   return (
     <div
       className={cn('editor-pagination titlebar-no-drag', compact && 'editor-pagination--compact')}
       role="navigation"
-      aria-label="Stránkovanie dokumentu"
+      aria-label={t('pagination.ariaLabel')}
     >
       <Button
         variant="ghost"
@@ -30,7 +32,7 @@ export function EditorPagination({
         className="editor-pagination-arrow"
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage <= 1}
-        aria-label="Predchádzajúca strana"
+        aria-label={t('pagination.previousPage')}
       >
         <ChevronLeft className="h-4 w-4" />
       </Button>
@@ -47,7 +49,7 @@ export function EditorPagination({
                 type="button"
                 className={cn('editor-pagination-page', page === currentPage && 'is-active')}
                 onClick={() => onPageChange(page)}
-                aria-label={`Strana ${page}`}
+                aria-label={t('pagination.page', { page })}
                 aria-current={page === currentPage ? 'page' : undefined}
               >
                 {page}
@@ -63,13 +65,13 @@ export function EditorPagination({
         className="editor-pagination-arrow"
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage >= pageCount}
-        aria-label="Ďalšia strana"
+        aria-label={t('pagination.nextPage')}
       >
         <ChevronRight className="h-4 w-4" />
       </Button>
 
       <span className="editor-pagination-summary">
-        Strana {currentPage} / {pageCount}
+        {t('pagination.summary', { current: currentPage, total: pageCount })}
       </span>
     </div>
   )

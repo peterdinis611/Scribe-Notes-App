@@ -1,11 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { Editor } from '@tiptap/react'
 import { ArrowDown, ArrowUp, CaseSensitive, Replace, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { searchPluginKey } from '@/lib/editor/search-extension'
 import { isEditorViewReady, runEditorCommand } from '@/lib/editor/view-ready'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { setFindReplaceOpen } from '@/store/documentsSlice'
+import {
+  setFindReplaceMode,
+  setFindReplaceOpen,
+  setPendingEditorSearch,
+} from '@/store/documentsSlice'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
@@ -32,8 +37,10 @@ type FindReplaceBarProps = {
 }
 
 export function FindReplaceBar({ editor }: FindReplaceBarProps) {
+  const { t } = useTranslation()
   const open = useAppSelector((state) => state.documents.findReplaceOpen)
   const mode = useAppSelector((state) => state.documents.findReplaceMode)
+  const pendingEditorSearch = useAppSelector((state) => state.documents.pendingEditorSearch)
   const dispatch = useAppDispatch()
   const [term, setTerm] = useState('')
   const [replacement, setReplacement] = useState('')
@@ -41,6 +48,7 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
   const [showReplace, setShowReplace] = useState(false)
   const [status, setStatus] = useState({ total: 0, active: -1 })
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const pendingTermRef = useRef<string | null>(null)
 
   const scrollToActive = useCallback(() => {
     if (!editor) return
@@ -71,10 +79,25 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
   }, [editor])
 
   useEffect(() => {
+    if (!editor || !pendingEditorSearch || !isEditorViewReady(editor)) return
+
+    const searchTerm = pendingEditorSearch
+    pendingTermRef.current = searchTerm
+    dispatch(setPendingEditorSearch(null))
+    setTerm(searchTerm)
+    dispatch(setFindReplaceMode('find'))
+    dispatch(setFindReplaceOpen(true))
+  }, [dispatch, editor, pendingEditorSearch])
+
+  useEffect(() => {
     if (!open) return
 
     setShowReplace(mode === 'replace')
-    if (editor && !editor.isDestroyed) {
+    const pendingTerm = pendingTermRef.current
+    if (pendingTerm) {
+      pendingTermRef.current = null
+      setTerm(pendingTerm)
+    } else if (editor && !editor.isDestroyed) {
       const selected = editor.state.doc.textBetween(
         editor.state.selection.from,
         editor.state.selection.to,
@@ -138,7 +161,7 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
           <Input
             ref={searchInputRef}
             className="h-8 pr-12 text-[13px]"
-            placeholder="Hľadať v dokumente…"
+            placeholder={t('findReplace.findPlaceholder')}
             value={term}
             onChange={(event) => setTerm(event.target.value)}
             onKeyDown={(event) => {
@@ -161,7 +184,7 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
         <button
           type="button"
           className={cn(iconBtnClass, caseSensitive && 'bg-[color-mix(in_srgb,var(--color-accent)_14%,transparent)] text-[var(--color-accent)]')}
-          title="Rozlišovať veľkosť písmen"
+          title={t('findReplace.matchCase')}
           onClick={() => setCaseSensitive((value) => !value)}
         >
           <CaseSensitive className="h-4 w-4" />
@@ -169,7 +192,7 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
         <button
           type="button"
           className={iconBtnClass}
-          title="Predchádzajúca (⇧⏎)"
+          title={t('findReplace.previous')}
           onClick={goPrev}
           disabled={status.total === 0}
         >
@@ -178,7 +201,7 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
         <button
           type="button"
           className={iconBtnClass}
-          title="Ďalšia (⏎)"
+          title={t('findReplace.next')}
           onClick={goNext}
           disabled={status.total === 0}
         >
@@ -187,7 +210,7 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
         <button
           type="button"
           className={cn(iconBtnClass, showReplace && 'bg-[color-mix(in_srgb,var(--color-accent)_14%,transparent)] text-[var(--color-accent)]')}
-          title="Nahradiť"
+          title={t('findReplace.replace')}
           onClick={() => setShowReplace((value) => !value)}
         >
           <Replace className="h-4 w-4" />
@@ -195,8 +218,8 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
         <button
           type="button"
           className={iconBtnClass}
-          title="Zavrieť (Esc)"
-          aria-label="Zavrieť vyhľadávanie"
+          title={t('findReplace.close')}
+          aria-label={t('findReplace.closeAria')}
           onClick={(event) => {
             event.preventDefault()
             event.stopPropagation()
@@ -212,7 +235,7 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
           <div className="relative flex min-w-[220px] items-center">
             <Input
               className="h-8 text-[13px]"
-              placeholder="Nahradiť za…"
+              placeholder={t('findReplace.replaceWith')}
               value={replacement}
               onChange={(event) => setReplacement(event.target.value)}
               onKeyDown={(event) => {
@@ -235,7 +258,7 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
             }}
             disabled={status.total === 0}
           >
-            Nahradiť
+            {t('findReplace.replace')}
           </Button>
           <Button
             variant="outline"
@@ -248,7 +271,7 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
             }}
             disabled={status.total === 0}
           >
-            Všetko
+            {t('findReplace.replaceAll')}
           </Button>
         </div>
       )}
