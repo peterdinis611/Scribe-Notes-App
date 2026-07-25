@@ -38,6 +38,7 @@ function buildLayout(
   documentFallback: string,
   showOrphans: boolean,
   aroundActive: boolean,
+  titleById: Map<string, string>,
 ): { nodes: GraphNode[]; nodeMap: Map<string, GraphNode>; visibleEdges: LinkGraphEdge[] } {
   const focusIds =
     aroundActive && centerId ? neighborIds(edges, centerId) : null
@@ -49,49 +50,69 @@ function buildLayout(
     : edges
 
   const ids = new Set<string>()
-  const titles = new Map<string, string>()
+  const titles = new Map<string, string>(titleById)
   for (const edge of visibleEdges) {
     ids.add(edge.sourceId)
     ids.add(edge.targetId)
     titles.set(edge.sourceId, edge.sourceTitle)
     titles.set(edge.targetId, edge.targetTitle)
   }
+  for (const orphan of orphans) {
+    titles.set(orphan.id, orphan.title || documentFallback)
+  }
+
+  // Around + isolated active doc (e.g. orphan): still show the center node.
+  if (aroundActive && centerId && !ids.has(centerId)) {
+    ids.add(centerId)
+  }
 
   const linkedIds = [...ids]
   const cx = size / 2
   const cy = size / 2
   const radius = size * 0.36
+  const orphanIds = new Set(orphans.map((orphan) => orphan.id))
 
   const nodes: GraphNode[] = linkedIds.map((id, index) => {
     const angle = (index / Math.max(linkedIds.length, 1)) * Math.PI * 2 - Math.PI / 2
+    const isLoneCenter = linkedIds.length === 1
     return {
       id,
       title: titles.get(id) ?? documentFallback,
-      x: cx + Math.cos(angle) * radius,
-      y: cy + Math.sin(angle) * radius,
-      orphan: false,
+      x: isLoneCenter ? cx : cx + Math.cos(angle) * radius,
+      y: isLoneCenter ? cy : cy + Math.sin(angle) * radius,
+      orphan: orphanIds.has(id) && !visibleEdges.some(
+        (edge) => edge.sourceId === id || edge.targetId === id,
+      ),
     }
   })
 
   if (centerId) {
     const center = nodes.find((node) => node.id === centerId)
-    if (center) {
+    if (center && linkedIds.length > 1) {
       center.x = cx
       center.y = cy
     }
   }
 
-  if (showOrphans && !aroundActive) {
+  if (showOrphans) {
+    const placed = new Set(nodes.map((node) => node.id))
+    const visibleOrphans = orphans.filter((orphan) => {
+      if (placed.has(orphan.id)) return false
+      // Around mode: only the active orphan belongs in the focused neighborhood.
+      if (aroundActive && centerId) return orphan.id === centerId
+      return true
+    })
+
     const orphanRadius = size * 0.46
-    const visibleOrphans = orphans.filter((orphan) => !ids.has(orphan.id))
     visibleOrphans.forEach((orphan, index) => {
+      const alone = nodes.length === 0 && visibleOrphans.length === 1
       const angle =
         (index / Math.max(visibleOrphans.length, 1)) * Math.PI * 2 - Math.PI / 2
       nodes.push({
         id: orphan.id,
         title: orphan.title || documentFallback,
-        x: cx + Math.cos(angle) * orphanRadius,
-        y: cy + Math.sin(angle) * orphanRadius,
+        x: alone ? cx : cx + Math.cos(angle) * orphanRadius,
+        y: alone ? cy : cy + Math.sin(angle) * orphanRadius,
         orphan: true,
       })
     })
@@ -111,6 +132,7 @@ export function LibraryLinkGraphView() {
   const dragRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null)
 
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
+  const documents = useAppSelector((state) => state.documents.documents)
   const documentsVersion = useAppSelector((state) => {
     const docs = state.documents.documents
     const active = state.documents.activeDocument
@@ -119,6 +141,14 @@ export function LibraryLinkGraphView() {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const { t } = useTranslation()
+
+  const titleById = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const doc of documents) {
+      if (doc.deletedAt == null) map.set(doc.id, doc.title)
+    }
+    return map
+  }, [documents])
 
   useEffect(() => {
     let cancelled = false
@@ -153,8 +183,9 @@ export function LibraryLinkGraphView() {
         t('common.document'),
         showOrphans,
         aroundActive,
+        titleById,
       ),
-    [activeId, aroundActive, edges, orphans, showOrphans, t],
+    [activeId, aroundActive, edges, orphans, showOrphans, t, titleById],
   )
 
   const openDocument = useCallback(
@@ -307,9 +338,22 @@ export function LibraryLinkGraphView() {
           edges: visibleEdges.length,
           nodes: nodes.length,
         })}
-        {showOrphans ? ` · ${t('linkGraph.orphanCount', { count: orphans.length })}` : ''}
+        {showOrphans
+          ? ` · ${t('linkGraph.orphanCount', {
+              count: orphans.length,
+            })}`
+          : ''}
       </p>
 
+      {nodes.length === 0 ? (
+        <p className="rounded-xl border border-[var(--color-border)] bg-[var(--color-canvas)] px-3 py-10 text-center text-[12px] text-[var(--color-muted-foreground)]">
+          {aroundActive
+            ? t('linkGraph.emptyAround')
+            : showOrphans
+              ? t('linkGraph.emptyOrphans')
+              : t('linkGraph.empty')}
+        </p>
+      ) : (
       <div
         className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-canvas)] touch-none"
         onWheel={handleWheel}
@@ -376,6 +420,7 @@ export function LibraryLinkGraphView() {
           </g>
         </svg>
       </div>
+      )}
     </div>
   )
 }

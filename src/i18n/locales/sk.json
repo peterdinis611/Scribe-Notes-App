@@ -82,7 +82,12 @@
     "documents": "Dokumenty",
     "sectionActions": "Príkazy",
     "sectionDocuments": "V obsahu dokumentov",
+    "sectionRecent": "Nedávne",
     "quickNote": "Rýchla poznámka",
+    "reopenClosed": "Znova otvoriť posledný zatvorený",
+    "reopenClosedHint": "Nedávno zatvorený dokument",
+    "openSplit": "Otvoriť v split view",
+    "closeSplit": "Zavrieť split view",
     "readingOn": "Zapnúť čítací režim",
     "readingOff": "Vypnúť čítací režim",
     "newDocument": "Nový dokument",
@@ -296,50 +301,142 @@
     "docs": {
       "pageTitle": "Dokumentácia",
       "pageDescription": "Ako Scribe ukladá, prepojuje a upravuje dokumenty na Macu.",
+      "searchPlaceholder": "Hľadať témy…",
+      "onThisPage": "Na tejto stránke",
+      "quickStart": "Prejsť na",
+      "clearSearch": "Vymazať hľadanie",
+      "noResults": "Žiadne zodpovedajúce témy",
+      "noResultsHint": "Skúste iné kľúčové slovo alebo vymažte hľadanie.",
+      "tipLabel": "Tip",
+      "searchTip": "otvorí príkazovú paletu kdekoľvek v aplikácii.",
+      "journalTip": "otvorí dnešnú denníkovú poznámku.",
+      "shortcutsTip": "otvorí Nastavenia na úpravu skratiek.",
+      "groups": {
+        "basics": "Základy",
+        "organize": "Organizácia",
+        "write": "Písanie",
+        "power": "Pokročilé"
+      },
       "topics": {
         "overview": {
           "title": "Čo je Scribe?",
-          "body": "Scribe je local-first editor dokumentov pre macOS. Knižnica žije v SQLite databáze na zariadení, s voliteľnými záložnými súbormi .scribe na disku. Na písanie ani otváranie poznámok nepotrebujete cloudový účet."
+          "summary": "Local-first písanie na Macu",
+          "paragraphs": [
+            "Scribe je local-first editor dokumentov pre macOS. Knižnica žije v SQLite databáze na zariadení, s voliteľnými záložnými súbormi .scribe na disku.",
+            "Na písanie ani otváranie poznámok nepotrebujete cloudový účet."
+          ],
+          "points": []
         },
         "documents": {
           "title": "Dokumenty a ukladanie",
-          "body": "Dokumenty vytvoríte cez Nový, šablóny, Demo, Rýchlu poznámku alebo Denník.\n\nÚpravy sa automaticky ukladajú do databázy aplikácie. Zelený indikátor Uložené znamená, že kópia v aplikácii je aktuálna. Zápis .scribe na disk môže zlyhať bez straty práce — pri upozornení na disk skontrolujte Nastavenia → Úložisko."
+          "summary": "Vytvárajte poznámky a spoľahnite sa na auto-save",
+          "paragraphs": [
+            "Dokumenty vytvoríte cez Nový, šablóny, Demo, Rýchlu poznámku alebo Denník. Úpravy sa automaticky ukladajú do databázy aplikácie."
+          ],
+          "points": [
+            "Zelený indikátor Uložené znamená, že kópia v aplikácii je aktuálna.",
+            "Zápis .scribe na disk môže zlyhať bez straty práce — pri upozornení skontrolujte Nastavenia → Úložisko."
+          ]
         },
         "library": {
           "title": "Knižnica",
-          "body": "Ľavý panel Knižnica organizuje poznámky:\n• Priečinky — strom priečinkov; dôležité priečinky môžete pripnúť navrch\n• Obľúbené — označené dokumenty\n• Značky — filter podľa tagov\n• Graf odkazov — vizuálna mapa wiki odkazov\n\nDokumenty alebo priečinky pripnete zo stromu alebo z príkazovej palety, aby boli vždy po ruke."
+          "summary": "Priečinky, obľúbené, značky a pripnutia",
+          "paragraphs": [
+            "Ľavý panel Knižnica organizuje poznámky. Dokumenty alebo priečinky pripnete zo stromu alebo z príkazovej palety."
+          ],
+          "points": [
+            "Priečinky — strom priečinkov; dôležité môžete pripnúť navrch",
+            "Obľúbené — označené dokumenty",
+            "Značky — filter podľa tagov",
+            "Graf odkazov — vizuálna mapa wiki odkazov"
+          ]
         },
         "linkGraph": {
           "title": "Graf odkazov",
-          "body": "Knižnica → Graf odkazov zobrazí dokumenty prepojené wiki odkazmi.\n\n• Okolie (Around) — iba aktívny dokument a jeho susedia\n• Osirotelé (Orphans) — dokumenty bez wiki odkazov (mimo prepojeného zhluku)\n• Zoom / Reset — približovanie a posúvanie; reset vráti predvolený pohľad\n\nRiadok so štatistikami ukazuje počet dokumentov, odkazov a osirelých. Prázdne plátno so zapnutými Orphans obvykle znamená, že máte len neprepojené poznámky a medzi dokumentmi ešte nie sú žiadne hrany."
+          "summary": "Ako sú dokumenty prepojené",
+          "paragraphs": [
+            "Knižnica → Graf odkazov zobrazí dokumenty prepojené wiki odkazmi. Riadok so štatistikami ukazuje dokumenty, odkazy a osirelé."
+          ],
+          "points": [
+            "Okolie (Around) — iba aktívny dokument a jeho susedia",
+            "Osirotelé (Orphans) — dokumenty bez wiki odkazov",
+            "Zoom / Reset — približovanie a posúvanie; reset vráti predvolený pohľad",
+            "Prázdne plátno so zapnutými Orphans obvykle znamená len neprepojené poznámky bez hrán"
+          ]
         },
         "wikiLinks": {
           "title": "Wiki odkazy",
-          "body": "Napíšte [[Názov]] (alebo použite vloženie wiki odkazu) a prepojte dokument podľa názvu. Kliknutím na wiki odkaz dokument otvoríte. Odkazy poháňajú graf, späťodkazy a súvisiacu navigáciu v pravom utility paneli."
+          "summary": "Prepojte poznámky podľa názvu",
+          "paragraphs": [
+            "Napíšte [[Názov]] (alebo použite vloženie wiki odkazu) a prepojte dokument podľa názvu. Kliknutím na wiki odkaz dokument otvoríte.",
+            "Odkazy poháňajú graf, späťodkazy a súvisiacu navigáciu v pravom utility paneli."
+          ],
+          "points": []
         },
         "editor": {
           "title": "Editor",
-          "body": "Stredná stránka je TipTap rich-text editor s lištou formátovania (štýly, zoznamy, tabuľky, obrázky, farby).\n\nPrepínač Text / MD mení rich text a Markdown. SK / EN mení jazyk rozhrania. Režim čítania a focus skryjú chrome, aby ste mohli čítať alebo písať s menej rušivými prvkami. Layout / Page dole prepína spojitý a stránkovaný layout."
+          "summary": "Rich text, Markdown a sústredenie",
+          "paragraphs": [
+            "Stredná stránka je TipTap rich-text editor s lištou formátovania pre štýly, zoznamy, tabuľky, obrázky a farby."
+          ],
+          "points": [
+            "Text / MD — prepínač medzi rich textom a Markdownom",
+            "SK / EN — jazyk rozhrania",
+            "Režim čítania a focus skryjú chrome",
+            "Layout / Page — spojitý alebo stránkovaný layout"
+          ]
         },
         "search": {
           "title": "Vyhľadávanie",
-          "body": "⌘K otvorí príkazovú paletu: skok na dokumenty, príkazy a vyhľadávanie v obsahu.\n\nNájsť (a Nájsť a nahradiť) hľadá v otvorenom dokumente. Výber zásahu z obsahu v palete dokument otvorí a skočí na prvý výskyt."
+          "summary": "Skok na dokumenty a výskyty",
+          "paragraphs": [
+            "Príkazová paleta skáče na dokumenty, spúšťa príkazy a hľadá v obsahu. Nájsť a Nájsť a nahradiť hľadajú v otvorenom dokumente.",
+            "Výber zásahu z obsahu dokument otvorí a skočí na prvý výskyt."
+          ],
+          "points": []
         },
         "journal": {
           "title": "Denník a rýchla poznámka",
-          "body": "Poznámka dňa a Týždenná poznámka vytvoria datované záznamy v priečinku Denník (aj z kalendára v sidebare a cez ⌘⇧D).\n\nRýchla poznámka otvorí scratch dokument na rýchle myšlienky bez vytvárania novej pomenovanej stránky."
+          "summary": "Datované záznamy a scratch poznámky",
+          "paragraphs": [
+            "Poznámka dňa a Týždenná poznámka vytvoria datované záznamy v priečinku Denník — aj z kalendára v sidebare.",
+            "Rýchla poznámka otvorí scratch dokument na rýchle myšlienky bez novej pomenovanej stránky."
+          ],
+          "points": []
         },
         "ai": {
           "title": "AI asistent",
-          "body": "Voliteľný a predvolene vypnutý. Zapnite ho v Nastavenia → AI a vyberte Ollama (lokálne) alebo OpenAI / Anthropic.\n\nPri vybranom texte použite bubble menu alebo príkazovú paletu na prepis, skrátenie, rozšírenie, opravu gramatiky alebo zmenu tónu. Označený text ide len k poskytovateľovi, ktorého nastavíte; API kľúče zostávajú v localStorage na tomto zariadení."
+          "summary": "Voliteľná pomoc pri prepise",
+          "paragraphs": [
+            "AI je voliteľná a predvolene vypnutá. Zapnite ju v Nastavenia → AI a vyberte Ollama (lokálne) alebo OpenAI / Anthropic."
+          ],
+          "points": [
+            "Pri vybranom texte: prepis, skrátenie, rozšírenie, gramatika alebo tón",
+            "Označený text ide len k nastavenému poskytovateľovi",
+            "API kľúče zostávajú v localStorage na tomto zariadení"
+          ]
         },
         "backup": {
           "title": "Záloha a obnovenie",
-          "body": "Nastavenia → Úložisko dokáže exportovať alebo importovať celý archív knižnice (.scribe-backup.zip) vrátane databázy a súborov na disku. Import nahradí aktuálnu knižnicu (predchádzajúca databáza sa uloží ako .bak).\n\nNa tej istej stránke môžete zmeniť priečinok dokumentov, synchronizovať s diskom alebo vymazať všetky dáta."
+          "summary": "Celý archív knižnice",
+          "paragraphs": [
+            "Nastavenia → Úložisko dokáže exportovať alebo importovať celý archív knižnice (.scribe-backup.zip) vrátane databázy a súborov na disku."
+          ],
+          "points": [
+            "Import nahradí aktuálnu knižnicu; predchádzajúca databáza sa uloží ako .bak",
+            "Na tej istej stránke zmeníte priečinok, synchronizáciu s diskom alebo vymazanie dát"
+          ]
         },
         "shortcuts": {
           "title": "Skratky a nastavenia",
-          "body": "Nastavenia → Skratky zobrazia a upravia klávesové skratky (nový dokument, uložiť, paleta, nájsť, denník, téma a ďalšie).\n\nVzhľad riadi témy a jazyk. Diagnostika ukazuje zdravie databázy, cesty a čakajúce zápisy na disk."
+          "summary": "Prispôsobte si workflow",
+          "paragraphs": [
+            "Nastavenia → Skratky zobrazia a upravia klávesové skratky pre nový dokument, uloženie, paletu, hľadanie, denník, tému a ďalšie."
+          ],
+          "points": [
+            "Vzhľad — témy a jazyk",
+            "Diagnostika — zdravie databázy, cesty a čakajúce zápisy na disk"
+          ]
         }
       }
     }
@@ -412,6 +509,14 @@
       "labelOff": "Vypnúť čítací režim",
       "description": "Čistý náhľad bez úprav"
     },
+    "closeTab": {
+      "label": "Zavrieť tab",
+      "description": "Zavrie aktuálny tab dokumentu"
+    },
+    "reopenClosedTab": {
+      "label": "Znova otvoriť tab",
+      "description": "Otvorí posledný zatvorený dokument"
+    },
     "closeFind": {
       "label": "Zavrieť vyhľadávanie",
       "description": "Zavrie panel hľadať a nahradiť"
@@ -468,6 +573,13 @@
     "exit": "Ukončiť čítanie",
     "exitHint": "Ukončiť čítací režim (Esc)"
   },
+  "tabs": {
+    "ariaLabel": "Otvorené dokumenty",
+    "close": "Zavrieť tab"
+  },
+  "split": {
+    "close": "Zavrieť split panel"
+  },
   "library": {
     "title": "Knižnica",
     "allDocuments": "Všetky dokumenty",
@@ -479,6 +591,7 @@
     "tabs": {
       "ariaLabel": "Zobrazenie knižnice",
       "folders": "Priečinky",
+      "recent": "Nedávne",
       "favorites": "Obľúbené",
       "tags": "Štítky",
       "graph": "Graf odkazov"
@@ -505,6 +618,10 @@
     "noDocumentsYet": "Zatiaľ žiadne dokumenty.",
     "noFavorites": "Žiadne obľúbené",
     "noFavoritesHint": "Kliknite na hviezdičku pri dokumente v záložke Priečinky.",
+    "noRecent": "Žiadne nedávne dokumenty",
+    "noRecentHint": "Otvorte dokument a zobrazí sa tu na rýchly návrat.",
+    "recentOpened": "Nedávno otvorené",
+    "recentClosed": "Nedávno zatvorené",
     "noTags": "Žiadne štítky",
     "noTagsHint": "Pridajte štítky k dokumentu v knižnici.",
     "selectTag": "Vyberte štítok…",
@@ -665,6 +782,7 @@
     "loading": "Načítavam graf odkazov…",
     "empty": "Zatiaľ žiadne wiki odkazy medzi dokumentmi.",
     "emptyOrphans": "Žiadne osirolené dokumenty — všetky sú prepojené.",
+    "emptyAround": "Aktívny dokument nemá susedov. Vypnite Okolie, alebo zapnite Osirotelé.",
     "summary": "{{nodes}} dokumentov · {{edges}} odkazov",
     "showOrphans": "Osirolené",
     "orphanCount": "{{count}} osirolených",

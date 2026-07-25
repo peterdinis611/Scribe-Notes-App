@@ -4,6 +4,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { openQuickNote } from '@/lib/quick-note'
 import { openTodayNote } from '@/lib/journal-notes'
+import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { pickAndImportFile } from '@/lib/db/api'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
@@ -14,6 +15,7 @@ import { createThemeSelection } from '@/store/settings-helpers'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { editorRefs } from '@/store/editorRefs'
 import {
+  closeOpenDocument,
   setActiveDocument,
   setActiveDocumentId,
   setFindReplaceOpen,
@@ -41,6 +43,8 @@ function hotkey(id: string, overrides: Record<string, string>): RegisterableHotk
 
 export function useKeyboardShortcuts() {
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
+  const openDocumentIds = useAppSelector((state) => state.documents.openDocumentIds)
+  const recentlyClosedIds = useAppSelector((state) => state.documents.recentlyClosedIds)
   const documents = useAppSelector((state) => state.documents.documents)
   const folders = useAppSelector((state) => state.folders.folders)
   const themeSettings = useAppSelector((state) => state.settings.themeSettings)
@@ -157,6 +161,44 @@ export function useKeyboardShortcuts() {
         callback: () => dispatch(toggleReadingMode()),
         options: {
           meta: { name: t('shortcuts.readingMode.label'), description: t('shortcuts.readingMode.description') },
+        },
+      },
+      {
+        hotkey: hotkey('closeTab', shortcutOverrides),
+        callback: () => {
+          if (!activeId) return
+          const index = openDocumentIds.indexOf(activeId)
+          const remaining = openDocumentIds.filter((id) => id !== activeId)
+          const nextId = remaining[index] ?? remaining[index - 1] ?? null
+          dispatch(closeOpenDocument(activeId))
+          if (nextId) {
+            const cached = peekCachedDocument(nextId)
+            if (cached) dispatch(setActiveDocument(cached))
+            void navigate(ROUTES.document(nextId))
+            return
+          }
+          dispatch(setActiveDocument(null))
+          void navigate(ROUTES.home())
+        },
+        options: {
+          meta: { name: t('shortcuts.closeTab.label'), description: t('shortcuts.closeTab.description') },
+        },
+      },
+      {
+        hotkey: hotkey('reopenClosedTab', shortcutOverrides),
+        callback: () => {
+          const id = recentlyClosedIds[0]
+          if (!id) return
+          dispatch(setActiveDocumentId(id))
+          const cached = peekCachedDocument(id)
+          if (cached) dispatch(setActiveDocument(cached))
+          void navigate(ROUTES.document(id))
+        },
+        options: {
+          meta: {
+            name: t('shortcuts.reopenClosedTab.label'),
+            description: t('shortcuts.reopenClosedTab.description'),
+          },
         },
       },
       {

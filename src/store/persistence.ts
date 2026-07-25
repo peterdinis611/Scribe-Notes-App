@@ -359,3 +359,53 @@ export function persistAiApiKey(apiKey: string) {
   }
   localStorage.removeItem(AI_API_KEY_STORAGE_KEY)
 }
+
+const RECENT_DOCUMENT_IDS_KEY = 'scribe-recent-document-ids'
+const RECENTLY_CLOSED_IDS_KEY = 'scribe-recently-closed-ids'
+const OPEN_DOCUMENT_IDS_KEY = 'scribe-open-document-ids'
+export const RECENT_DOCUMENT_IDS_MAX = 20
+
+function readIdList(key: string): string[] {
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as unknown
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((id): id is string => typeof id === 'string' && id.trim().length > 0)
+  } catch {
+    return []
+  }
+}
+
+function persistIdList(key: string, ids: string[], max = RECENT_DOCUMENT_IDS_MAX) {
+  localStorage.setItem(key, JSON.stringify(ids.slice(0, max)))
+}
+
+export function readRecentDocumentIds(): string[] {
+  return readIdList(RECENT_DOCUMENT_IDS_KEY).slice(0, RECENT_DOCUMENT_IDS_MAX)
+}
+
+export function persistRecentDocumentIds(ids: string[]) {
+  persistIdList(RECENT_DOCUMENT_IDS_KEY, ids)
+}
+
+export function readRecentlyClosedIds(): string[] {
+  return readIdList(RECENTLY_CLOSED_IDS_KEY).slice(0, RECENT_DOCUMENT_IDS_MAX)
+}
+
+export function persistRecentlyClosedIds(ids: string[]) {
+  persistIdList(RECENTLY_CLOSED_IDS_KEY, ids)
+}
+
+export function readOpenDocumentIds(): string[] {
+  return readIdList(OPEN_DOCUMENT_IDS_KEY)
+}
+
+export function persistOpenDocumentIds(ids: string[]) {
+  persistIdList(OPEN_DOCUMENT_IDS_KEY, ids, 40)
+}
+
+/** Prepend `id` and dedupe, capped at max. */
+export function pushRecentId(ids: string[], id: string, max = RECENT_DOCUMENT_IDS_MAX): string[] {
+  return [id, ...ids.filter((existing) => existing !== id)].slice(0, max)
+}

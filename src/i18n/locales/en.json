@@ -82,7 +82,12 @@
     "documents": "Documents",
     "sectionActions": "Commands",
     "sectionDocuments": "In document content",
+    "sectionRecent": "Recent",
     "quickNote": "Quick note",
+    "reopenClosed": "Reopen last closed",
+    "reopenClosedHint": "Recently closed document",
+    "openSplit": "Open in split view",
+    "closeSplit": "Close split view",
     "readingOn": "Enable reading mode",
     "readingOff": "Disable reading mode",
     "newDocument": "New document",
@@ -296,50 +301,142 @@
     "docs": {
       "pageTitle": "Documentation",
       "pageDescription": "How Scribe stores, links, and edits documents on your Mac.",
+      "searchPlaceholder": "Search topics…",
+      "onThisPage": "On this page",
+      "quickStart": "Jump to",
+      "clearSearch": "Clear search",
+      "noResults": "No matching topics",
+      "noResultsHint": "Try another keyword, or clear the search.",
+      "tipLabel": "Tip",
+      "searchTip": "opens the command palette anywhere in the app.",
+      "journalTip": "opens today’s journal note.",
+      "shortcutsTip": "opens Settings to remap shortcuts.",
+      "groups": {
+        "basics": "Basics",
+        "organize": "Organize",
+        "write": "Write",
+        "power": "Power tools"
+      },
       "topics": {
         "overview": {
           "title": "What is Scribe?",
-          "body": "Scribe is a local-first document editor for macOS. Your library lives in an on-device SQLite database, with optional .scribe backup files on disk. Nothing is required from a cloud account to write or open notes."
+          "summary": "Local-first writing on your Mac",
+          "paragraphs": [
+            "Scribe is a local-first document editor for macOS. Your library lives in an on-device SQLite database, with optional .scribe backup files on disk.",
+            "Nothing is required from a cloud account to write or open notes."
+          ],
+          "points": []
         },
         "documents": {
           "title": "Documents and saving",
-          "body": "Create documents from New, templates, Demo, Quick note, or Journal.\n\nEdits auto-save to the app database. A green Saved indicator means the in-app copy is current. Disk .scribe writes can fail without losing your work — check Settings → Storage if you see a disk warning."
+          "summary": "Create notes and trust auto-save",
+          "paragraphs": [
+            "Create documents from New, templates, Demo, Quick note, or Journal. Edits auto-save to the app database."
+          ],
+          "points": [
+            "A green Saved indicator means the in-app copy is current.",
+            "Disk .scribe writes can fail without losing your work — check Settings → Storage if you see a disk warning."
+          ]
         },
         "library": {
           "title": "Library",
-          "body": "The left Library sidebar organizes your notes:\n• Folders — nested folder tree; pin important folders to the top\n• Favorites — starred documents\n• Tags — filter by tags\n• Link graph — visual map of wiki links\n\nPin documents or folders from the tree or command palette so they stay easy to reach."
+          "summary": "Folders, favorites, tags, and pins",
+          "paragraphs": [
+            "The left Library sidebar organizes your notes. Pin documents or folders from the tree or command palette so they stay easy to reach."
+          ],
+          "points": [
+            "Folders — nested folder tree; pin important folders to the top",
+            "Favorites — starred documents",
+            "Tags — filter by tags",
+            "Link graph — visual map of wiki links"
+          ]
         },
         "linkGraph": {
           "title": "Link graph",
-          "body": "Library → Link graph shows documents connected by wiki links.\n\n• Around — only the active document and its neighbors\n• Orphans — documents with no wiki links (they appear off the linked cluster)\n• Zoom / Reset — pan and zoom the canvas; reset restores the default view\n\nThe summary line reports documents, links, and orphans. An empty canvas with orphans enabled usually means you only have unlinked notes and no edges between documents yet."
+          "summary": "See how documents connect",
+          "paragraphs": [
+            "Library → Link graph shows documents connected by wiki links. The summary line reports documents, links, and orphans."
+          ],
+          "points": [
+            "Around — only the active document and its neighbors",
+            "Orphans — documents with no wiki links (shown off the linked cluster)",
+            "Zoom / Reset — pan and zoom the canvas; reset restores the default view",
+            "An empty canvas with Orphans on usually means you only have unlinked notes and no edges yet"
+          ]
         },
         "wikiLinks": {
           "title": "Wiki links",
-          "body": "Type [[Title]] (or use the wiki-link insert) to link to another document by title. Clicking a wiki link opens that document. Links power the graph, backlinks, and related navigation in the right utility rail."
+          "summary": "Connect notes by title",
+          "paragraphs": [
+            "Type [[Title]] (or use the wiki-link insert) to link to another document by title. Clicking a wiki link opens that document.",
+            "Links power the graph, backlinks, and related navigation in the right utility rail."
+          ],
+          "points": []
         },
         "editor": {
           "title": "Editor",
-          "body": "The center page is a TipTap rich-text editor with a formatting toolbar (styles, lists, tables, images, colors).\n\nToggle Text vs MD for rich text or Markdown view. SK / EN switches the UI language. Reading mode and focus mode hide chrome so you can read or write with fewer distractions. Layout / Page at the bottom switches continuous vs paginated layout."
+          "summary": "Rich text, Markdown, and focus",
+          "paragraphs": [
+            "The center page is a TipTap rich-text editor with a formatting toolbar for styles, lists, tables, images, and colors."
+          ],
+          "points": [
+            "Text vs MD — switch between rich text and Markdown",
+            "SK / EN — change the UI language",
+            "Reading mode and focus mode hide chrome for fewer distractions",
+            "Layout / Page — continuous vs paginated layout"
+          ]
         },
         "search": {
           "title": "Search",
-          "body": "⌘K opens the command palette: jump to documents, run commands, and search inside content.\n\nFind (and Find & Replace) searches within the open document. Choosing a content hit from the palette opens that document and jumps to the first match."
+          "summary": "Jump to documents and matches",
+          "paragraphs": [
+            "The command palette jumps to documents, runs commands, and searches inside content. Find and Find & Replace search within the open document.",
+            "Choosing a content hit from the palette opens that document and jumps to the first match."
+          ],
+          "points": []
         },
         "journal": {
           "title": "Journal and quick note",
-          "body": "Today note and Weekly note create dated entries under a Journal folder (also available from the sidebar calendar and ⌘⇧D).\n\nQuick note opens a scratch document for fleeting thoughts without setting up a new titled page first."
+          "summary": "Dated entries and scratch notes",
+          "paragraphs": [
+            "Today note and Weekly note create dated entries under a Journal folder — also available from the sidebar calendar.",
+            "Quick note opens a scratch document for fleeting thoughts without creating a new titled page first."
+          ],
+          "points": []
         },
         "ai": {
           "title": "AI assistant",
-          "body": "Optional and off by default. Enable it in Settings → AI and choose Ollama (local) or OpenAI / Anthropic.\n\nWith text selected, use the bubble menu or command palette to rewrite, shorten, expand, fix grammar, or change tone. Selected text is sent only to the provider you configure; API keys stay in localStorage on this device."
+          "summary": "Optional rewrite help",
+          "paragraphs": [
+            "AI is optional and off by default. Enable it in Settings → AI and choose Ollama (local) or OpenAI / Anthropic."
+          ],
+          "points": [
+            "With text selected, use the bubble menu or command palette to rewrite, shorten, expand, fix grammar, or change tone",
+            "Selected text is sent only to the provider you configure",
+            "API keys stay in localStorage on this device"
+          ]
         },
         "backup": {
           "title": "Backup and restore",
-          "body": "Settings → Storage can export or import a full library archive (.scribe-backup.zip), including the database and on-disk files. Import replaces the current library (the previous database is kept as a .bak file).\n\nYou can also change the documents folder, sync with disk, or clear all data from the same page."
+          "summary": "Full library archives",
+          "paragraphs": [
+            "Settings → Storage can export or import a full library archive (.scribe-backup.zip), including the database and on-disk files."
+          ],
+          "points": [
+            "Import replaces the current library; the previous database is kept as a .bak file",
+            "Change the documents folder, sync with disk, or clear all data from the same page"
+          ]
         },
         "shortcuts": {
           "title": "Shortcuts and settings",
-          "body": "Settings → Shortcuts lists and remaps keyboard shortcuts (new document, save, palette, find, journal, theme, and more).\n\nAppearance controls themes and language. Diagnostics shows database health, paths, and pending disk writes."
+          "summary": "Customize how you work",
+          "paragraphs": [
+            "Settings → Shortcuts lists and remaps keyboard shortcuts for new document, save, palette, find, journal, theme, and more."
+          ],
+          "points": [
+            "Appearance — themes and language",
+            "Diagnostics — database health, paths, and pending disk writes"
+          ]
         }
       }
     }
@@ -412,6 +509,14 @@
       "labelOff": "Exit reading mode",
       "description": "Clean read-only preview"
     },
+    "closeTab": {
+      "label": "Close tab",
+      "description": "Closes the current document tab"
+    },
+    "reopenClosedTab": {
+      "label": "Reopen closed tab",
+      "description": "Reopens the last closed document"
+    },
     "closeFind": {
       "label": "Close search",
       "description": "Closes the find and replace panel"
@@ -468,6 +573,13 @@
     "exit": "Exit reading",
     "exitHint": "Exit reading mode (Esc)"
   },
+  "tabs": {
+    "ariaLabel": "Open documents",
+    "close": "Close tab"
+  },
+  "split": {
+    "close": "Close split pane"
+  },
   "library": {
     "title": "Library",
     "allDocuments": "All documents",
@@ -477,6 +589,7 @@
     "tabs": {
       "ariaLabel": "Library view",
       "folders": "Folders",
+      "recent": "Recent",
       "favorites": "Favorites",
       "tags": "Tags",
       "graph": "Link graph"
@@ -503,6 +616,10 @@
     "noDocumentsYet": "No documents yet.",
     "noFavorites": "No favorites",
     "noFavoritesHint": "Click the star next to a document in the Folders tab.",
+    "noRecent": "No recent documents",
+    "noRecentHint": "Open a document and it will show up here for quick return.",
+    "recentOpened": "Recently opened",
+    "recentClosed": "Recently closed",
     "noTags": "No tags",
     "noTagsHint": "Add tags to a document in the library.",
     "selectTag": "Select a tag…",
@@ -657,6 +774,7 @@
     "loading": "Loading link graph…",
     "empty": "No wiki links between documents yet.",
     "emptyOrphans": "No orphan documents — every document is linked.",
+    "emptyAround": "No neighbors for the active document. Turn off Around, or enable Orphans.",
     "summary": "{{nodes}} documents · {{edges}} links",
     "showOrphans": "Orphans",
     "orphanCount": "{{count}} orphans",

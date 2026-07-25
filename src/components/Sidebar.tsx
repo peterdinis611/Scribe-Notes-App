@@ -6,6 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { FolderTree } from '@/components/FolderTree'
 import { LibraryFavoritesView } from '@/components/LibraryFavoritesView'
 import { LibraryFilterBanner } from '@/components/LibraryFilterBanner'
+import { LibraryRecentView } from '@/components/LibraryRecentView'
 import { LibraryTagsView } from '@/components/LibraryTagsView'
 import { LibraryLinkGraphView } from '@/components/LibraryLinkGraphView'
 import { LibraryViewTabs, type LibraryView } from '@/components/LibraryViewTabs'
@@ -42,12 +43,22 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
   const navigate = useNavigate()
   const documents = useAppSelector((state) => state.documents.documents)
   const folders = useAppSelector((state) => state.folders.folders)
+  const recentDocumentIds = useAppSelector((state) => state.documents.recentDocumentIds)
+  const recentlyClosedIds = useAppSelector((state) => state.documents.recentlyClosedIds)
   const isContentSearch = query.trim().length >= 2
 
   const favoriteCount = useMemo(
     () => documents.filter((doc) => doc.isFavorite).length,
     [documents],
   )
+
+  const recentCount = useMemo(() => {
+    const alive = new Set(documents.filter((doc) => doc.deletedAt == null).map((doc) => doc.id))
+    const unique = new Set(
+      [...recentDocumentIds, ...recentlyClosedIds].filter((id) => alive.has(id)),
+    )
+    return unique.size
+  }, [documents, recentDocumentIds, recentlyClosedIds])
 
   const tagCount = useMemo(() => {
     const tags = new Set<string>()
@@ -131,6 +142,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                   value={libraryView}
                   favoriteCount={favoriteCount}
                   tagCount={tagCount}
+                  recentCount={recentCount}
                   onChange={setLibraryView}
                 />
               </div>
@@ -190,6 +202,14 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                     </div>
                   </ScrollArea>
                 </>
+              )}
+
+              {libraryView === 'recent' && (
+                <ScrollArea className="min-h-0 flex-1">
+                  <div className="px-1 pb-3 pt-1">
+                    <LibraryRecentView onNavigate={onClose} />
+                  </div>
+                </ScrollArea>
               )}
 
               {libraryView === 'favorites' && (

@@ -1,21 +1,29 @@
-import { FolderTree, GitBranch, Star, Tag as TagIcon } from 'lucide-react'
+import { FolderTree, GitBranch, History, Star, Tag as TagIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 
-export type LibraryView = 'folders' | 'favorites' | 'tags' | 'graph'
+export type LibraryView = 'folders' | 'recent' | 'favorites' | 'tags' | 'graph'
 
 type LibraryViewTabsProps = {
   value: LibraryView
   favoriteCount: number
   tagCount: number
+  recentCount?: number
   onChange: (view: LibraryView) => void
 }
 
-export function LibraryViewTabs({ value, favoriteCount, tagCount, onChange }: LibraryViewTabsProps) {
+export function LibraryViewTabs({
+  value,
+  favoriteCount,
+  tagCount,
+  recentCount = 0,
+  onChange,
+}: LibraryViewTabsProps) {
   const { t } = useTranslation()
 
   const tabs: { id: LibraryView; label: string; icon: typeof FolderTree }[] = [
     { id: 'folders', label: t('library.tabs.folders'), icon: FolderTree },
+    { id: 'recent', label: t('library.tabs.recent'), icon: History },
     { id: 'favorites', label: t('library.tabs.favorites'), icon: Star },
     { id: 'tags', label: t('library.tabs.tags'), icon: TagIcon },
     { id: 'graph', label: t('library.tabs.graph'), icon: GitBranch },
@@ -24,6 +32,7 @@ export function LibraryViewTabs({ value, favoriteCount, tagCount, onChange }: Li
   function countFor(view: LibraryView) {
     if (view === 'favorites') return favoriteCount
     if (view === 'tags') return tagCount
+    if (view === 'recent') return recentCount
     return null
   }
 

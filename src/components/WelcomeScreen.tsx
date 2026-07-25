@@ -21,14 +21,23 @@ import { setTemplatePickerOpen } from '@/store/settingsSlice'
 
 export function WelcomeScreen() {
   const documents = useAppSelector((state) => state.documents.documents)
+  const recentDocumentIds = useAppSelector((state) => state.documents.recentDocumentIds)
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const { t } = useTranslation()
 
-  const recentDocuments = useMemo(
-    () => [...documents].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 8),
-    [documents],
-  )
+  const recentDocuments = useMemo(() => {
+    const alive = documents.filter((doc) => doc.deletedAt == null)
+    const byId = new Map(alive.map((doc) => [doc.id, doc]))
+    const fromHistory = recentDocumentIds
+      .map((id) => byId.get(id))
+      .filter((doc): doc is (typeof alive)[number] => doc != null)
+      .slice(0, 8)
+
+    if (fromHistory.length > 0) return fromHistory
+
+    return [...alive].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 8)
+  }, [documents, recentDocumentIds])
 
   async function handleImport() {
     const doc = await pickAndImportFile()

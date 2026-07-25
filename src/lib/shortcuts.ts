@@ -79,6 +79,20 @@ export const APP_SHORTCUT_BINDINGS: AppShortcutBinding[] = [
     labelKey: 'shortcuts.readingMode.label',
     descriptionKey: 'shortcuts.readingMode.description',
   },
+  {
+    id: 'closeTab',
+    scope: 'app',
+    defaultHotkey: 'Mod+W',
+    labelKey: 'shortcuts.closeTab.label',
+    descriptionKey: 'shortcuts.closeTab.description',
+  },
+  {
+    id: 'reopenClosedTab',
+    scope: 'app',
+    defaultHotkey: 'Mod+Shift+T',
+    labelKey: 'shortcuts.reopenClosedTab.label',
+    descriptionKey: 'shortcuts.reopenClosedTab.description',
+  },
 ]
 
 export interface ShortcutDef {
@@ -97,6 +111,8 @@ export interface ShortcutDef {
     | 'settings'
     | 'focusMode'
     | 'readingMode'
+    | 'closeTab'
+    | 'reopenClosedTab'
   keys: string[]
 }
 
@@ -115,6 +131,8 @@ export const APP_SHORTCUTS: ShortcutDef[] = [
   { id: 'settings', keys: ['⌘', ','] },
   { id: 'focusMode', keys: ['⌘', '⇧', 'F'] },
   { id: 'readingMode', keys: ['⌘', '⇧', 'R'] },
+  { id: 'closeTab', keys: ['⌘', 'W'] },
+  { id: 'reopenClosedTab', keys: ['⌘', '⇧', 'T'] },
 ]
 
 import type { ShortcutOverrides } from '@/store/persistence'

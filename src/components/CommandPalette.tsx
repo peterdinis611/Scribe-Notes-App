@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import {
+  Columns2,
   CalendarDays,
   Copy,
   FileText,
@@ -18,6 +19,7 @@ import {
   Sparkles,
   StickyNote,
   Pin,
+  RotateCcw,
 } from 'lucide-react'
 import { AI_ACTION_IDS } from '@/lib/ai/actions'
 import { isAiAvailable } from '@/lib/ai/config'
@@ -31,6 +33,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { createFolder, duplicateDocument, searchDocuments, setDocumentPinned } from '@/lib/db/api'
 import type { SearchHit } from '@/lib/db/api'
 import { promptInput } from '@/lib/input-dialog'
+import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
 import { cn, debounce } from '@/lib/utils'
@@ -44,6 +47,7 @@ import {
   setActiveDocument,
   setActiveDocumentId,
   setPendingEditorSearch,
+  setSecondaryDocumentId,
   toggleFocusMode,
   toggleReadingMode,
   updateDocuments,
@@ -81,6 +85,10 @@ export function CommandPalette() {
   const dispatch = useAppDispatch()
   const activeDocumentId = useAppSelector((state) => state.documents.activeDocumentId)
   const documents = useAppSelector((state) => state.documents.documents)
+  const recentDocumentIds = useAppSelector((state) => state.documents.recentDocumentIds)
+  const recentlyClosedIds = useAppSelector((state) => state.documents.recentlyClosedIds)
+  const secondaryDocumentId = useAppSelector((state) => state.documents.secondaryDocumentId)
+  const openDocumentIds = useAppSelector((state) => state.documents.openDocumentIds)
   const folders = useAppSelector((state) => state.folders.folders)
   const themeSettings = useAppSelector((state) => state.settings.themeSettings)
   const focusMode = useAppSelector((state) => state.documents.focusMode)
@@ -130,6 +138,27 @@ export function CommandPalette() {
           void openQuickNote(documents, dispatch, navigate, (key) => t(key))
         },
       },
+      ...(recentlyClosedIds[0]
+        ? [
+            {
+              type: 'action' as const,
+              id: 'reopen-closed',
+              label: t('commandPalette.reopenClosed'),
+              hint:
+                documents.find((doc) => doc.id === recentlyClosedIds[0])?.title ??
+                t('commandPalette.reopenClosedHint'),
+              icon: <RotateCcw className="h-4 w-4" />,
+              run: () => {
+                const id = recentlyClosedIds[0]
+                if (!id) return
+                dispatch(setActiveDocumentId(id))
+                const cached = peekCachedDocument(id)
+                if (cached) dispatch(setActiveDocument(cached))
+                navigate(ROUTES.document(id))
+              },
+            },
+          ]
+        : []),
       {
         type: 'action',
         id: 'today-note',
@@ -187,6 +216,33 @@ export function CommandPalette() {
               icon: <BookOpen className="h-4 w-4" />,
               run: () => dispatch(toggleReadingMode()),
             },
+            ...(secondaryDocumentId
+              ? [
+                  {
+                    type: 'action' as const,
+                    id: 'close-split',
+                    label: t('commandPalette.closeSplit'),
+                    icon: <Columns2 className="h-4 w-4" />,
+                    run: () => dispatch(setSecondaryDocumentId(null)),
+                  },
+                ]
+              : (() => {
+                  const candidateId =
+                    openDocumentIds.find((id) => id !== activeDocument.id) ??
+                    recentDocumentIds.find((id) => id !== activeDocument.id) ??
+                    null
+                  if (!candidateId) return []
+                  return [
+                    {
+                      type: 'action' as const,
+                      id: 'open-split',
+                      label: t('commandPalette.openSplit'),
+                      hint: documents.find((doc) => doc.id === candidateId)?.title,
+                      icon: <Columns2 className="h-4 w-4" />,
+                      run: () => dispatch(setSecondaryDocumentId(candidateId)),
+                    },
+                  ]
+                })()),
             {
               type: 'action' as const,
               id: 'duplicate',
@@ -335,6 +391,10 @@ export function CommandPalette() {
       navigate,
       openDemoGuide,
       readingMode,
+      recentlyClosedIds,
+      recentDocumentIds,
+      secondaryDocumentId,
+      openDocumentIds,
       locale,
       shortcutOverrides,
       t,
@@ -342,9 +402,9 @@ export function CommandPalette() {
     ],
   )
 
-  const documentItems: PaletteItem[] = useMemo(
-    () =>
-      hits.map((hit) => ({
+  const documentItems: PaletteItem[] = useMemo(() => {
+    if (hits.length > 0) {
+      return hits.map((hit) => ({
         type: 'document' as const,
         id: hit.documentId,
         label: hit.title,
@@ -356,9 +416,31 @@ export function CommandPalette() {
           dispatch(setActiveDocumentId(hit.documentId))
           navigate(ROUTES.document(hit.documentId))
         },
-      })),
-    [dispatch, hits, navigate, query],
-  )
+      }))
+    }
+
+    if (query.trim().length > 0) return []
+
+    const byId = new Map(
+      documents.filter((doc) => doc.deletedAt == null).map((doc) => [doc.id, doc]),
+    )
+    return recentDocumentIds
+      .map((id) => byId.get(id))
+      .filter((doc): doc is NonNullable<typeof doc> => doc != null)
+      .slice(0, 8)
+      .map((doc) => ({
+        type: 'document' as const,
+        id: doc.id,
+        label: doc.title,
+        icon: <FileText className="h-4 w-4" />,
+        run: () => {
+          dispatch(setActiveDocumentId(doc.id))
+          const cached = peekCachedDocument(doc.id)
+          if (cached) dispatch(setActiveDocument(cached))
+          navigate(ROUTES.document(doc.id))
+        },
+      }))
+  }, [dispatch, documents, hits, navigate, query, recentDocumentIds])
 
   const filteredActions = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -472,7 +554,11 @@ export function CommandPalette() {
               )}
               {documentItems.length > 0 && (
                 <>
-                  <p className="command-palette-section-label">{t('commandPalette.sectionDocuments')}</p>
+                  <p className="command-palette-section-label">
+                    {hits.length > 0
+                      ? t('commandPalette.sectionDocuments')
+                      : t('commandPalette.sectionRecent')}
+                  </p>
                   {documentItems.map((item, index) => {
                     const flatIndex = filteredActions.length + index
                     return (
