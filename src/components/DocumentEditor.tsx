@@ -31,6 +31,7 @@ import { useEditorViewEffect, setEditorContent, useEditorReady } from '@/lib/edi
 import { resolvePageLayout } from '@/lib/editor/page-layout'
 import { normalizePageSetup, PAPER_SIZES } from '@/lib/editor/page-setup'
 import { getEditorExtensions } from '@/lib/editor/extensions'
+import { handleTauriEditorKeyDown } from '@/lib/editor/tauri-input-fix'
 import { getEditorMarkdown } from '@/lib/editor/markdown-content'
 import { insertImagesFromFiles } from '@/lib/editor/image-utils'
 import { printDocumentFromContent } from '@/lib/export/print-document'
@@ -96,6 +97,8 @@ export function DocumentEditor() {
   const insertImagesRef = useRef(handleInsertImages)
   insertImagesRef.current = handleInsertImages
 
+  // Bump when extension set changes so HMR recreates the editor (useMemo [] is sticky).
+  const EDITOR_EXTENSIONS_REV = 3
   const extensions = useMemo(
     () =>
       getEditorExtensions({
@@ -103,7 +106,7 @@ export function DocumentEditor() {
           void insertImagesRef.current(files, pos)
         },
       }),
-    [],
+    [EDITOR_EXTENSIONS_REV],
   )
 
   const pageSetup = useAppSelector((state) => state.settings.pageSetup)
@@ -116,6 +119,18 @@ export function DocumentEditor() {
   const pageLayout = useMemo(() => resolvePageLayout(pageSetup), [pageSetup])
   const paper = PAPER_SIZES[normalizedPageSetup.paperSize]
 
+  const editorAttributes = useMemo(
+    () => ({
+      class: cn('tiptap', printLayoutEnabled && 'tiptap--print-accurate'),
+      spellcheck: spellCheckEnabled ? 'true' : 'false',
+      lang: locale,
+      'data-gramm': 'false',
+      'data-gramm_editor': 'false',
+      'data-enable-grammarly': 'false',
+    }),
+    [printLayoutEnabled, spellCheckEnabled, locale],
+  )
+
   const editor = useEditor({
     extensions,
     content: initialContent,
@@ -124,15 +139,9 @@ export function DocumentEditor() {
     immediatelyRender: false,
     shouldRerenderOnTransaction: false,
     editorProps: {
-      attributes: {
-        class: cn('tiptap', printLayoutEnabled && 'tiptap--print-accurate'),
-        spellcheck: spellCheckEnabled ? 'true' : 'false',
-        lang: locale,
-        'data-gramm': 'false',
-        'data-gramm_editor': 'false',
-        'data-enable-grammarly': 'false',
-      },
-      // Keyboard input is handled by TauriInputFix (ProseMirror transactions).
+      // Checked before plugins — required so Enter applies immediately in Tauri/WebKit.
+      attributes: editorAttributes,
+      handleKeyDown: handleTauriEditorKeyDown,
     },
     onUpdate: () => {
       if (!activeIdRef.current || viewModeRef.current !== 'rich') return
@@ -143,6 +152,19 @@ export function DocumentEditor() {
   editorRef.current = editor
   editorRefs.editor = editor
   const editorReady = useEditorReady(editor)
+
+  // useEditor only syncs editorProps automatically when deps === []. We depend on
+  // [extensions], so push keyboard/attribute props explicitly or Enter stays dead.
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return
+    editor.setOptions({
+      editable: !readingMode && viewMode === 'rich',
+      editorProps: {
+        attributes: editorAttributes,
+        handleKeyDown: handleTauriEditorKeyDown,
+      },
+    })
+  }, [editor, editorAttributes, readingMode, viewMode])
 
   const { queueSave, flushSave, editorContentHashRef, lastPersistedHashRef } = useDocumentAutoSave({
     editor,

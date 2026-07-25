@@ -2243,6 +2243,8 @@
   color: var(--color-foreground);
   -webkit-user-select: text;
   user-select: text;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
 }
 
 .tiptap p.is-editor-empty:first-child::before {

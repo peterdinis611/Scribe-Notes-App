@@ -179,6 +179,8 @@ export const SlashCommands = Extension.create<SlashCommandsOptions>({
         pluginKey: new PluginKey('slashCommandsSuggestion'),
         char: '/',
         startOfLine: false,
+        // Allow `/` at the start of a block and after any character (not only spaces).
+        allowedPrefixes: null,
         items: ({ query }) => filterCommands(query),
         command: ({ editor, range, props }) => {
           editor.chain().focus().deleteRange(range).run()

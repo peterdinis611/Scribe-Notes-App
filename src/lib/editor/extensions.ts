@@ -41,6 +41,7 @@ import { SlashCommands } from '@/lib/editor/slash-commands'
 import { TableOfContents } from '@/lib/editor/table-of-contents'
 import { CustomTableCell, CustomTableHeader } from '@/lib/editor/table-extensions'
 import { ClipboardPaste } from '@/lib/editor/paste-handler'
+import { MarkdownShortcuts } from '@/lib/editor/markdown-shortcuts'
 import { TauriInputFix } from '@/lib/editor/tauri-input-fix'
 import { WikiLink } from '@/lib/editor/wiki-link'
 
@@ -57,7 +58,7 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
   const { onInsertImages } = options
 
   return [
-    TauriInputFix,
+    TauriInputFix.configure({}),
     StarterKit.configure({
       heading: { levels: [1, 2, 3, 4, 5, 6] },
       horizontalRule: {},
@@ -153,14 +154,18 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
       class: 'editor-drop-indicator',
     }),
     Gapcursor.configure({}),
-    Typography.configure({}),
+    Typography.configure({
+      // `--` → em dash would break markdown `---` horizontal rules
+      emDash: false,
+    }),
+    MarkdownShortcuts.configure({}),
     SlashCommands.configure({
       onInsertImages: (files) => {
         if (files.length) void onInsertImages?.(files)
       },
     }),
     Placeholder.configure({
-      placeholder: 'Píšte text, stlačte / pre príkazy alebo + pre bloky…',
+      placeholder: 'Píšte text, / príkazy, - alebo . medzera pre zoznam, --- čiara…',
     }),
     Markdown.configure({
       indentation: { style: 'space', size: 2 },

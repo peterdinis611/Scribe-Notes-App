@@ -73,39 +73,41 @@ const initialOpen =
         ? [initialActiveId]
         : []
 
+const initialState: DocumentsState = {
+  documents: [],
+  activeDocumentId: initialActiveId,
+  activeDocument: null,
+  saveStatus: 'idle',
+  sidebarOpen: true,
+  documentOutlineOpen: readBoolStorage('scribe-document-outline-open', false),
+  revisionHistoryOpen: readBoolStorage('scribe-revision-history-open', false),
+  commentsPanelOpen: readBoolStorage('scribe-comments-open', false),
+  statsPanelOpen: readBoolStorage('scribe-stats-open', false),
+  backlinksPanelOpen: readBoolStorage('scribe-backlinks-open', false),
+  focusMode: readBoolStorage('scribe-focus-mode', false),
+  readingMode: false,
+  manualTitleDocumentIds: readManualTitleIds(),
+  findReplaceOpen: false,
+  findReplaceMode: 'find',
+  pendingEditorSearch: null,
+  trashOpen: false,
+  favoritesOnlyFilter: false,
+  activeTagFilter: null,
+  commentsVersion: 0,
+  commentAuthor: readCommentAuthor(),
+  diskSyncWarning: null,
+  recentDocumentIds:
+    initialActiveId && !initialRecent.includes(initialActiveId)
+      ? pushRecentId(initialRecent, initialActiveId)
+      : initialRecent,
+  recentlyClosedIds: initialClosed,
+  openDocumentIds: initialOpen,
+  secondaryDocumentId: null,
+}
+
 const documentsSlice = createSlice({
   name: 'documents',
-  initialState: {
-    documents: [],
-    activeDocumentId: initialActiveId,
-    activeDocument: null,
-    saveStatus: 'idle',
-    sidebarOpen: true,
-    documentOutlineOpen: readBoolStorage('scribe-document-outline-open', false),
-    revisionHistoryOpen: readBoolStorage('scribe-revision-history-open', false),
-    commentsPanelOpen: readBoolStorage('scribe-comments-open', false),
-    statsPanelOpen: readBoolStorage('scribe-stats-open', false),
-    backlinksPanelOpen: readBoolStorage('scribe-backlinks-open', false),
-    focusMode: readBoolStorage('scribe-focus-mode', false),
-    readingMode: false,
-    manualTitleDocumentIds: readManualTitleIds(),
-    findReplaceOpen: false,
-    findReplaceMode: 'find',
-    pendingEditorSearch: null,
-    trashOpen: false,
-    favoritesOnlyFilter: false,
-    activeTagFilter: null,
-    commentsVersion: 0,
-    commentAuthor: readCommentAuthor(),
-    diskSyncWarning: null,
-    recentDocumentIds:
-      initialActiveId && !initialRecent.includes(initialActiveId)
-        ? pushRecentId(initialRecent, initialActiveId)
-        : initialRecent,
-    recentlyClosedIds: initialClosed,
-    openDocumentIds: initialOpen,
-    secondaryDocumentId: null,
-  } satisfies DocumentsState,
+  initialState,
   reducers: {
     setDocuments(state, action: PayloadAction<DocumentSummary[]>) {
       state.documents = action.payload
