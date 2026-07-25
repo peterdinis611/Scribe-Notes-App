@@ -3,7 +3,7 @@ import type { EditorModeActions } from '@/store/settingsSlice'
 
 export const editorRefs = {
   editor: null as Editor | null,
-  flushAutoSave: null as (() => Promise<void>) | null,
+  flushAutoSave: null as (() => Promise<boolean>) | null,
   printHandler: null as (() => void) | null,
   modeActions: null as EditorModeActions | null,
 }

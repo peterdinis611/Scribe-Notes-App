@@ -1,6 +1,6 @@
 import type { Editor } from '@tiptap/react'
 import { useEditorState } from '@tiptap/react'
-import { ChevronDown, Code, FunctionSquare, ImagePlus, Play, Sigma, SplitSquareHorizontal, Table2, Trash2 } from 'lucide-react'
+import { ChevronDown, Code, FunctionSquare, GitBranch, ImagePlus, Play, Sigma, SplitSquareHorizontal, Table2, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import {
   DropdownMenu,
@@ -11,7 +11,7 @@ import {
 import { ToolbarButton, ToolbarGroup } from '@/components/editor-toolbar/primitives'
 import { CODE_LANGUAGES, getCodeLanguageLabel } from '@/lib/editor/code-languages'
 import { deleteCurrentBlock } from '@/lib/editor/delete-content'
-import { insertBlockMath, insertInlineMath, insertYoutubeVideo } from '@/lib/editor/insert-helpers'
+import { insertBlockMath, insertInlineMath, insertMermaidDiagram, insertYoutubeVideo } from '@/lib/editor/insert-helpers'
 import { pickImageFiles } from '@/lib/editor/image-utils'
 import { cn } from '@/lib/utils'
 
@@ -79,6 +79,9 @@ export function InsertTab({ editor, onInsertImages }: InsertTabProps) {
         </ToolbarButton>
         <ToolbarButton label={t('toolbar.actions.blockMathFull')} onClick={() => insertBlockMath(editor)}>
           <Sigma className="h-4 w-4 stroke-[1.75]" />
+        </ToolbarButton>
+        <ToolbarButton label={t('toolbar.actions.mermaid')} onClick={() => insertMermaidDiagram(editor)}>
+          <GitBranch className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
       </ToolbarGroup>
 

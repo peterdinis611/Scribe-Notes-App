@@ -644,6 +644,9 @@
     "emptyConfirm": "All documents in the trash will be permanently deleted. This cannot be undone.",
     "emptyOk": "Empty",
     "hint": "Deleted documents will appear here.",
+    "emptyStateTitle": "Trash is empty",
+    "emptyStateHint": "Documents you delete will show up here so you can restore them.",
+    "footerHint": "Restored documents return to your library.",
     "deletedAt": "Deleted {{time}}",
     "purgeTitle": "Delete permanently?",
     "purgeConfirm": "Document “{{title}}” will be permanently deleted. This cannot be undone.",
@@ -845,6 +848,7 @@
     "pinError": "Failed to update pin",
     "tagsError": "Failed to save tags",
     "saveError": "Save failed",
+    "documentSaved": "Document saved",
     "exportDone": "Export completed",
     "exportError": "Export failed",
     "demoOpened": "Demo document opened",
@@ -921,6 +925,10 @@
     "math-block": {
       "label": "Formula block",
       "hint": "math.js block"
+    },
+    "mermaid": {
+      "label": "Mermaid",
+      "hint": "Flowchart / sequence diagram"
     },
     "hr": {
       "label": "Divider",
@@ -1102,6 +1110,7 @@
       "inlineMathFull": "Inline formula (math.js)",
       "blockMath": "Formula block",
       "blockMathFull": "Formula block (math.js)",
+      "mermaid": "Mermaid diagram",
       "codeBlock": "Code block",
       "paragraphFormat": "Paragraph format",
       "moreTools": "More tools",

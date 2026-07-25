@@ -33,6 +33,7 @@ import { FontSize } from '@/lib/editor/font-size'
 import { BlockSpacing } from '@/lib/editor/block-spacing'
 import { ListItemWithBlocks } from '@/lib/editor/list-item'
 import { MathJs } from '@/lib/editor/math-js-extension'
+import { MermaidDiagram } from '@/lib/editor/mermaid-extension'
 import { lowlight } from '@/lib/editor/lowlight'
 import { PageBreak } from '@/lib/editor/page-break'
 import { ResizableImage } from '@/lib/editor/resizable-image'
@@ -114,6 +115,7 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
       suggestion: createEmojiSuggestion(),
     }),
     MathJs.configure({}),
+    MermaidDiagram.configure({}),
     Youtube.configure({
       width: 640,
       height: 360,

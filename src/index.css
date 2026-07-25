@@ -1519,6 +1519,14 @@
   -webkit-app-region: no-drag;
 }
 
+/* TipTap Suggestion popups (slash / emoji / wiki) — portaled to body via props.mount */
+.react-renderer.slash-suggestion-popup,
+.react-renderer.emoji-suggestion-popup,
+.react-renderer.wiki-suggestion-popup {
+  z-index: 300;
+  -webkit-app-region: no-drag;
+}
+
 .editor-canvas--paginated {
   min-height: calc(var(--page-padding-top) + var(--page-content-height) + 72px);
 }
@@ -2887,6 +2895,92 @@ body.is-block-dragging .tiptap {
   font-weight: 600;
 }
 
+.tiptap .mermaid-diagram {
+  position: relative;
+  margin: 16px 0;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+}
+
+.tiptap .mermaid-diagram--selected,
+.tiptap .mermaid-diagram--editable:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-border));
+}
+
+.tiptap .mermaid-diagram__toolbar,
+.tiptap .mermaid-diagram__actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.tiptap .mermaid-diagram__actions {
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+.tiptap .mermaid-diagram__btn {
+  appearance: none;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-foreground);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.tiptap .mermaid-diagram__btn:hover {
+  background: var(--color-selection);
+}
+
+.tiptap .mermaid-diagram__btn--primary {
+  border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
+  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
+}
+
+.tiptap .mermaid-diagram__preview {
+  overflow-x: auto;
+  text-align: center;
+  min-height: 48px;
+}
+
+.tiptap .mermaid-diagram__preview svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.tiptap .mermaid-diagram__preview--error {
+  color: var(--color-destructive);
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+.tiptap .mermaid-diagram__source {
+  width: 100%;
+  min-height: 140px;
+  resize: vertical;
+  box-sizing: border-box;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-foreground);
+  background: var(--color-canvas);
+}
+
+.tiptap .mermaid-diagram__source:focus {
+  outline: 2px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
+  outline-offset: 1px;
+}
+
 .tiptap [data-type='inline-math'],
 .tiptap [data-type='block-math'] {
   color: var(--color-foreground);
@@ -3738,6 +3832,228 @@ body.is-block-dragging .tiptap {
 }
 
 /* Trash dialog */
+.trash-dialog {
+  display: flex;
+  flex-direction: column;
+  max-width: 480px;
+  max-height: min(78vh, 560px);
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+}
+
+.trash-dialog-header {
+  margin: 0;
+  padding: 18px 44px 14px 18px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.trash-dialog-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.trash-dialog-icon {
+  display: flex;
+  height: 36px;
+  width: 36px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-muted-foreground) 8%, var(--color-surface));
+  color: var(--color-muted-foreground);
+}
+
+.trash-dialog-heading-text {
+  min-width: 0;
+}
+
+.trash-dialog-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.trash-dialog-count {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--color-muted-foreground);
+}
+
+.trash-dialog-scroll {
+  flex: 1;
+  min-height: 0;
+  max-height: min(52vh, 360px);
+}
+
+.trash-dialog-body {
+  padding: 10px 12px 12px;
+}
+
+.trash-dialog-loading {
+  margin: 0;
+  padding: 40px 12px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-muted-foreground);
+}
+
+.trash-dialog-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 36px 20px 40px;
+  text-align: center;
+}
+
+.trash-dialog-empty-icon {
+  display: flex;
+  height: 48px;
+  width: 48px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--color-border);
+  background: var(--color-canvas);
+  color: var(--color-muted-foreground);
+}
+
+.trash-dialog-empty-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+.trash-dialog-empty-text {
+  margin: 6px 0 0;
+  max-width: 28ch;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-muted-foreground);
+}
+
+.trash-dialog-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.trash-dialog-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px 8px 10px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease,
+    opacity 120ms ease;
+}
+
+.trash-dialog-item:hover {
+  background: var(--color-hover);
+  border-color: color-mix(in srgb, var(--color-border) 70%, transparent);
+}
+
+.trash-dialog-item.is-busy {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.trash-dialog-item-icon {
+  display: flex;
+  height: 32px;
+  width: 32px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-accent) 10%, var(--color-surface));
+  color: var(--color-accent);
+}
+
+.trash-dialog-item-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.trash-dialog-item-title {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--color-foreground);
+}
+
+.trash-dialog-item-meta {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+}
+
+.trash-dialog-item-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+}
+
+.trash-dialog-restore {
+  height: 28px;
+  gap: 5px;
+  padding-inline: 8px;
+  font-size: 11px;
+}
+
+.trash-dialog-purge {
+  color: var(--color-muted-foreground);
+}
+
+.trash-dialog-purge:hover {
+  background: color-mix(in srgb, var(--color-destructive) 12%, transparent);
+  color: var(--color-destructive);
+}
+
+.trash-dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px 14px;
+  border-top: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-canvas) 55%, var(--color-surface-elevated));
+}
+
+.trash-dialog-footer-hint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--color-muted-foreground);
+}
+
+.trash-dialog-empty-btn {
+  flex-shrink: 0;
+  gap: 6px;
+  color: var(--color-destructive);
+  border-color: color-mix(in srgb, var(--color-destructive) 28%, var(--color-border));
+}
+
+.trash-dialog-empty-btn:hover {
+  background: color-mix(in srgb, var(--color-destructive) 10%, transparent);
+  color: var(--color-destructive);
+}
 
 /* ── Docs page ── */
 .docs-page {

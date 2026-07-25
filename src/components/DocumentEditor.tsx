@@ -98,7 +98,7 @@ export function DocumentEditor() {
   insertImagesRef.current = handleInsertImages
 
   // Bump when extension set changes so HMR recreates the editor (useMemo [] is sticky).
-  const EDITOR_EXTENSIONS_REV = 3
+  const EDITOR_EXTENSIONS_REV = 5
   const extensions = useMemo(
     () =>
       getEditorExtensions({

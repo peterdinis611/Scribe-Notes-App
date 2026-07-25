@@ -298,9 +298,26 @@ export function handleEditorPrintable(view: EditorView, event: KeyboardEvent): b
 }
 
 /** Shared keydown path for editorProps (checked first) and the extension plugin. */
+/** TipTap Suggestion decorations — let the palette handle Enter/arrows/Esc. */
+function hasActiveSuggestion(view: EditorView) {
+  return Boolean(view.dom.querySelector('[data-decoration-id]'))
+}
+
 export function handleTauriEditorKeyDown(view: EditorView, event: KeyboardEvent) {
   if (event.defaultPrevented || event.isComposing || event.key === 'Dead') return false
   if (!view.editable) return false
+
+  // Don't steal keys the slash/emoji/wiki suggestion UI needs.
+  if (
+    hasActiveSuggestion(view) &&
+    (isEnterKey(event) ||
+      event.key === 'ArrowUp' ||
+      event.key === 'ArrowDown' ||
+      event.key === 'Escape' ||
+      event.key === 'Esc')
+  ) {
+    return false
+  }
 
   if (isEnterKey(event)) {
     if (event.metaKey || event.ctrlKey || event.altKey) return false

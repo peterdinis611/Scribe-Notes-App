@@ -64,6 +64,7 @@ import {
   insertBlockMath,
   insertDetailsBlock,
   insertInlineMath,
+  insertMermaidDiagram,
   insertYoutubeVideo,
 } from '@/lib/editor/insert-helpers'
 import { insertBulletList, insertOrderedList, insertTaskList } from '@/lib/editor/list-commands'
@@ -337,6 +338,7 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => insertInlineMath(editor)}>{t('toolbar.actions.inlineMath')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => insertBlockMath(editor)}>{t('toolbar.actions.blockMath')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => insertMermaidDiagram(editor)}>{t('toolbar.actions.mermaid')}</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => editor.chain().focus().toggleCodeBlock().run()}>
               <Code className="h-4 w-4" />

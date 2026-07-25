@@ -106,7 +106,10 @@ export function useKeyboardShortcuts() {
           if (!activeId || !activeDocument) return
           if (!editorRefs.flushAutoSave) return
           try {
-            await editorRefs.flushAutoSave()
+            const ok = await editorRefs.flushAutoSave()
+            if (ok) {
+              toast.success(t('toasts.documentSaved'), activeDocument.title)
+            }
           } catch {
             dispatch(setSaveStatus('error'))
           }

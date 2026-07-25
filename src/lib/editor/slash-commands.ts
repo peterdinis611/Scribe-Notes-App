@@ -8,7 +8,7 @@ import {
   SlashSuggestionList,
   type SlashCommandItem,
 } from '@/components/editor/SlashSuggestionList'
-import { insertBlockMath, insertInlineMath } from '@/lib/editor/insert-helpers'
+import { insertBlockMath, insertInlineMath, insertMermaidDiagram } from '@/lib/editor/insert-helpers'
 import { pickImageFiles } from '@/lib/editor/image-utils'
 import { insertBulletList, insertOrderedList, insertTaskList } from '@/lib/editor/list-commands'
 import { createCommentForSelection } from '@/lib/editor/comments'
@@ -36,6 +36,7 @@ export const SLASH_COMMAND_DEFS: SlashCommandDef[] = [
   { id: 'image', icon: '🖼' },
   { id: 'math-inline', icon: 'ƒ' },
   { id: 'math-block', icon: '∑' },
+  { id: 'mermaid', icon: '⬡' },
   { id: 'hr', icon: '—' },
   { id: 'callout-info', icon: 'ℹ️' },
   { id: 'callout-tip', icon: '💡' },
@@ -126,6 +127,9 @@ export function runSlashCommand(
     case 'math-block':
       insertBlockMath(editor)
       break
+    case 'mermaid':
+      insertMermaidDiagram(editor)
+      break
     case 'hr':
       editor.chain().focus().setHorizontalRule().run()
       break
@@ -172,6 +176,7 @@ export const SlashCommands = Extension.create<SlashCommandsOptions>({
 
   addProseMirrorPlugins() {
     const onInsertImages = this.options.onInsertImages
+    const initialItems = SLASH_COMMAND_DEFS.map(localizeSlashCommand)
 
     return [
       Suggestion({
@@ -181,7 +186,14 @@ export const SlashCommands = Extension.create<SlashCommandsOptions>({
         startOfLine: false,
         // Allow `/` at the start of a block and after any character (not only spaces).
         allowedPrefixes: null,
+        // Show commands immediately; async fetch then refreshes the filtered list.
+        initialItems,
         items: ({ query }) => filterCommands(query),
+        placement: 'bottom-start',
+        floatingUi: {
+          strategy: 'fixed',
+        },
+        offset: { mainAxis: 6, crossAxis: 0 },
         command: ({ editor, range, props }) => {
           editor.chain().focus().deleteRange(range).run()
           runSlashCommand(editor, props as SlashCommandItem, onInsertImages)
@@ -193,18 +205,24 @@ export const SlashCommands = Extension.create<SlashCommandsOptions>({
           return {
             onStart: (props) => {
               component = new ReactRenderer(SlashSuggestionList, {
-                props,
+                props: {
+                  ...props,
+                  items: props.items?.length ? props.items : initialItems,
+                },
                 editor: props.editor,
+                className: 'slash-suggestion-popup',
               })
-              unmount = props.mount(component.element)
+              unmount = props.mount(component.element as HTMLElement)
             },
             onUpdate: (props: SuggestionProps<SlashCommandItem, SlashCommandItem>) => {
-              component?.updateProps(props)
+              component?.updateProps({
+                ...props,
+                items: props.items?.length ? props.items : filterCommands(props.query ?? ''),
+              })
             },
             onKeyDown: (props) => {
-              if (props.event.key === 'Escape') {
-                component?.destroy()
-                return true
+              if (props.event.key === 'Escape' || props.event.key === 'Esc') {
+                return false
               }
               return (
                 (component?.ref as { onKeyDown?: (props: unknown) => boolean } | null)?.onKeyDown?.(
@@ -214,7 +232,9 @@ export const SlashCommands = Extension.create<SlashCommandsOptions>({
             },
             onExit: () => {
               unmount?.()
+              unmount = null
               component?.destroy()
+              component = null
             },
           }
         },

@@ -648,6 +648,9 @@
     "emptyConfirm": "Všetky dokumenty v koši sa natrvalo odstránia. Túto akciu nie je možné vrátiť.",
     "emptyOk": "Vysypať",
     "hint": "Vymazané dokumenty sa zobrazia tu.",
+    "emptyStateTitle": "Kôš je prázdny",
+    "emptyStateHint": "Dokumenty, ktoré vymažete, sa zobrazia tu a budete ich môcť obnoviť.",
+    "footerHint": "Obnovené dokumenty sa vrátia do knižnice.",
     "deletedAt": "Vymazané {{time}}",
     "purgeTitle": "Odstrániť natrvalo?",
     "purgeConfirm": "Dokument „{{title}}“ sa natrvalo odstráni. Túto akciu nie je možné vrátiť.",
@@ -853,6 +856,7 @@
     "pinError": "Nepodarilo sa zmeniť pripnutie",
     "tagsError": "Nepodarilo sa uložiť štítky",
     "saveError": "Ukladanie zlyhalo",
+    "documentSaved": "Dokument uložený",
     "exportDone": "Export dokončený",
     "exportError": "Export zlyhal",
     "demoOpened": "Ukážkový dokument otvorený",
@@ -929,6 +933,10 @@
     "math-block": {
       "label": "Vzorec blok",
       "hint": "math.js blok"
+    },
+    "mermaid": {
+      "label": "Mermaid",
+      "hint": "Diagram flowchart / sequence"
     },
     "hr": {
       "label": "Oddeľovač",
@@ -1112,6 +1120,7 @@
       "inlineMathFull": "Vzorec v riadku (math.js)",
       "blockMath": "Vzorec blok",
       "blockMathFull": "Vzorec blok (math.js)",
+      "mermaid": "Mermaid diagram",
       "codeBlock": "Blok kódu",
       "paragraphFormat": "Formát odseku",
       "moreTools": "Ďalšie nástroje",

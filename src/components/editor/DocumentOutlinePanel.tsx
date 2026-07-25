@@ -5,6 +5,7 @@ import {
   CheckSquare,
   ChevronRight,
   Code2,
+  GitBranch,
   Heading,
   Image,
   List,
@@ -52,6 +53,7 @@ const OUTLINE_ICONS: Record<DocumentOutlineKind, LucideIcon> = {
   pageBreak: SquareSplitVertical,
   mathInline: Calculator,
   mathBlock: Calculator,
+  mermaidDiagram: GitBranch,
 }
 
 function OutlineRow({

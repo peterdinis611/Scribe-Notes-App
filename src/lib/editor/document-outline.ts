@@ -17,6 +17,7 @@ export type DocumentOutlineKind =
   | 'pageBreak'
   | 'mathInline'
   | 'mathBlock'
+  | 'mermaidDiagram'
 
 export type DocumentOutlineItem = {
   id: string
@@ -42,6 +43,7 @@ const OUTLINE_NODE_TYPES = new Set<string>([
   'pageBreak',
   'mathInline',
   'mathBlock',
+  'mermaidDiagram',
 ])
 
 function truncate(text: string, max = 52) {
@@ -84,6 +86,8 @@ function getNodeLabel(node: PMNode) {
       return 'Vzorec'
     case 'mathBlock':
       return 'Vzorec (blok)'
+    case 'mermaidDiagram':
+      return 'Mermaid'
     default:
       return node.type.name
   }
@@ -96,6 +100,8 @@ function getNodePreview(node: PMNode) {
     case 'mathInline':
     case 'mathBlock':
       return truncate(String(node.attrs.expression ?? ''), 44)
+    case 'mermaidDiagram':
+      return truncate(String(node.attrs.source ?? ''), 44) || 'Diagram'
     case 'image':
       return truncate(String(node.attrs.alt || node.attrs.title || ''), 44) || 'Bez popisu'
     case 'youtube':

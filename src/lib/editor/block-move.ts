@@ -25,6 +25,7 @@ const MOVABLE_TOP_LEVEL = new Set([
   'details',
   'pageBreak',
   'mathBlock',
+  'mermaidDiagram',
 ])
 
 function getOffsetTopWithin(element: HTMLElement, container: HTMLElement): number {

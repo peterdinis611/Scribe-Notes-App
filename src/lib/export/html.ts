@@ -155,6 +155,10 @@ function renderNodes(nodes?: TipTapNode[]): string {
           const result = evaluation.ok ? ` = ${evaluation.result}` : ''
           return `<div class="math-block" style="margin:12pt 0;text-align:center;font-family:ui-monospace,monospace;">${escapeHtml(expression)}${escapeHtml(result)}</div>`
         }
+        case 'mermaidDiagram': {
+          const source = String(node.attrs?.source ?? '')
+          return `<figure class="mermaid-diagram" style="margin:16pt 0;"><pre style="white-space:pre-wrap;font-family:ui-monospace,monospace;font-size:10pt;padding:12pt;background:#f5f5f7;border-radius:8pt;">${escapeHtml(source)}</pre></figure>`
+        }
         case 'table':
           return `<table style="border-collapse:collapse;width:100%;margin:12pt 0;">${renderNodes(node.content)}</table>`
         case 'tableRow':
