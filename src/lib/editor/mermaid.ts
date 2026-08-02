@@ -6,7 +6,8 @@ export const MERMAID_DEFAULT_SOURCE = `flowchart TD
 let mermaidReady: Promise<typeof import('mermaid').default> | null = null
 let renderSeq = 0
 
-function resolveTheme(): MermaidConfig['theme'] {
+function resolveTheme(explicit?: MermaidConfig['theme']): MermaidConfig['theme'] {
+  if (explicit) return explicit
   return document.documentElement.classList.contains('dark') ? 'dark' : 'neutral'
 }
 
@@ -30,7 +31,15 @@ export type MermaidRenderResult =
   | { ok: true; svg: string }
   | { ok: false; error: string }
 
-export async function renderMermaidSource(source: string): Promise<MermaidRenderResult> {
+export type RenderMermaidOptions = {
+  /** Force a theme (use `neutral` for print/PDF/DOCX). */
+  theme?: MermaidConfig['theme']
+}
+
+export async function renderMermaidSource(
+  source: string,
+  options?: RenderMermaidOptions,
+): Promise<MermaidRenderResult> {
   const trimmed = source.trim()
   if (!trimmed) {
     return { ok: false, error: 'Prázdny diagram' }
@@ -38,10 +47,11 @@ export async function renderMermaidSource(source: string): Promise<MermaidRender
 
   try {
     const mermaid = await getMermaid()
+    const theme = resolveTheme(options?.theme)
     mermaid.initialize({
       startOnLoad: false,
       securityLevel: 'strict',
-      theme: resolveTheme(),
+      theme,
       fontFamily: 'ui-sans-serif, system-ui, sans-serif',
     })
     const id = `scribe-mermaid-${++renderSeq}`

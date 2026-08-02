@@ -24,6 +24,7 @@ import { Markdown } from '@tiptap/markdown'
 import Dropcursor from '@tiptap/extension-dropcursor'
 import Gapcursor from '@tiptap/extension-gapcursor'
 import StarterKit from '@tiptap/starter-kit'
+import i18n from '@/i18n'
 import { createEmojiSuggestion } from '@/lib/editor/emoji-suggestion'
 import { Callout } from '@/lib/editor/callout'
 import { CommentMark } from '@/lib/editor/comment-mark'
@@ -167,7 +168,7 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
       },
     }),
     Placeholder.configure({
-      placeholder: 'Píšte text, / príkazy, - alebo . medzera pre zoznam, --- čiara…',
+      placeholder: i18n.t('editor.placeholder'),
     }),
     Markdown.configure({
       indentation: { style: 'space', size: 2 },

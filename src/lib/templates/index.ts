@@ -1,4 +1,5 @@
 import type { JSONContent } from '@tiptap/core'
+import i18n from '@/i18n'
 import type { TemplateCategoryId } from '@/lib/templates/categories'
 
 import { SCRIBE_DEMO_GUIDE_TEMPLATE } from '@/lib/templates/demo-guide'
@@ -17,6 +18,7 @@ export {
   BUILT_IN_TEMPLATE_CATEGORIES,
   builtInCategoryLabels,
   createCustomCategory,
+  getBuiltInCategoryLabel,
   getCategoryLabel,
   isBuiltInCategory,
   isCustomCategoryId,
@@ -714,8 +716,23 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
   academicPaper,
 ]
 
+export function localizeTemplate(template: DocumentTemplate): DocumentTemplate {
+  const key = `templates.builtin.${template.id}`
+  return {
+    ...template,
+    name: i18n.t(`${key}.name`, { defaultValue: template.name }),
+    description: i18n.t(`${key}.description`, { defaultValue: template.description }),
+    title: i18n.t(`${key}.title`, { defaultValue: template.title }),
+  }
+}
+
+export function getLocalizedDocumentTemplates(): DocumentTemplate[] {
+  return DOCUMENT_TEMPLATES.map(localizeTemplate)
+}
+
 export function getTemplateById(id: string): DocumentTemplate | undefined {
-  return DOCUMENT_TEMPLATES.find((t) => t.id === id)
+  const template = DOCUMENT_TEMPLATES.find((t) => t.id === id)
+  return template ? localizeTemplate(template) : undefined
 }
 
 export { mergeTemplates, isCustomTemplate, createCustomTemplate } from '@/lib/templates/custom'

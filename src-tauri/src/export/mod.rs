@@ -45,6 +45,69 @@ pub fn export_html_to_docx(html: &str, output: &Path) -> Result<(), String> {
     result
 }
 
+/// Export rich HTML to Pages by converting HTML → DOCX, then opening in Pages and saving as .pages.
+pub fn export_html_to_pages(html: &str, output: &Path) -> Result<(), String> {
+    if !pages_app_installed() {
+        return Err(
+            "Na export .pages je potrebná aplikácia Apple Pages (nainštalujte z App Store)."
+                .to_string(),
+        );
+    }
+
+    let temp_dir = std::env::temp_dir().join(format!("scribe-pages-{}", uuid::Uuid::new_v4()));
+    std::fs::create_dir_all(&temp_dir).map_err(|e| e.to_string())?;
+    let html_path = temp_dir.join("export.html");
+    let docx_path = temp_dir.join("export.docx");
+    std::fs::write(&html_path, html).map_err(|e| e.to_string())?;
+
+    if let Err(error) = textutil_convert(&html_path, "docx", &docx_path) {
+        let _ = std::fs::remove_dir_all(&temp_dir);
+        return Err(error);
+    }
+
+    let docx_str = docx_path.to_string_lossy();
+    let output_str = output.to_string_lossy();
+    let escaped_docx = escape_applescript_string(&docx_str);
+    let escaped_out = escape_applescript_string(&output_str);
+
+    let script = format!(
+        r#"set inPath to POSIX file "{escaped_docx}"
+set outPath to POSIX file "{escaped_out}"
+tell application "Pages"
+    set newDoc to open inPath
+    save newDoc in outPath
+    close newDoc saving no
+end tell"#
+    );
+
+    let temp_script = temp_dir.join("export.scpt");
+    if let Err(error) = std::fs::write(&temp_script, script) {
+        let _ = std::fs::remove_dir_all(&temp_dir);
+        return Err(error.to_string());
+    }
+
+    let output_cmd = Command::new("/usr/bin/osascript")
+        .arg(&temp_script)
+        .output()
+        .map_err(|e| format!("osascript zlyhal: {e}"))?;
+
+    let _ = std::fs::remove_dir_all(&temp_dir);
+
+    if !output_cmd.status.success() {
+        let stderr = String::from_utf8_lossy(&output_cmd.stderr);
+        // Fallback: plain-text Pages export if rich open fails
+        return Err(format!(
+            "Export do .pages cez HTML zlyhal. {stderr}"
+        ));
+    }
+
+    if !output.exists() {
+        return Err("Súbor .pages sa nepodarilo vytvoriť.".to_string());
+    }
+
+    Ok(())
+}
+
 pub fn export_plain_text(text: &str, output: &Path) -> Result<(), String> {
     std::fs::write(output, text).map_err(|e| e.to_string())
 }

@@ -1,6 +1,7 @@
 import type { JSONContent } from '@tiptap/core'
 import { MarkdownManager } from '@tiptap/markdown'
 import { getEditorExtensions } from '@/lib/editor/extensions'
+import { promoteMarkdownSpecialBlocks } from '@/lib/editor/markdown-promote'
 
 let markdownManager: MarkdownManager | null = null
 
@@ -14,7 +15,7 @@ function getMarkdownManager(): MarkdownManager {
 }
 
 export function parseMarkdownToContentJson(markdown: string): string {
-  const doc = getMarkdownManager().parse(markdown)
+  const doc = promoteMarkdownSpecialBlocks(getMarkdownManager().parse(markdown) as JSONContent)
   return JSON.stringify(doc)
 }
 
@@ -37,7 +38,10 @@ export function titleFromMarkdown(markdown: string, fallback: string): string {
 }
 
 /** TipTap editor with Markdown extension exposes getMarkdown(). */
-export function getEditorMarkdown(editor: { getMarkdown?: () => string; getJSON: () => JSONContent }): string {
+export function getEditorMarkdown(editor: {
+  getMarkdown?: () => string
+  getJSON: () => JSONContent
+}): string {
   if (typeof editor.getMarkdown === 'function') {
     return editor.getMarkdown().trimEnd()
   }

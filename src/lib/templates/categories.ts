@@ -1,3 +1,5 @@
+import i18n from '@/i18n'
+
 export const BUILT_IN_TEMPLATE_CATEGORIES = [
   'general',
   'business',
@@ -14,6 +16,7 @@ export interface CustomTemplateCategory {
   createdAt: number
 }
 
+/** @deprecated Prefer getBuiltInCategoryLabel() for locale-aware labels. */
 export const builtInCategoryLabels: Record<BuiltInTemplateCategory, string> = {
   general: 'Všeobecné',
   business: 'Biznis',
@@ -43,12 +46,21 @@ export function createCustomCategory(name: string): CustomTemplateCategory {
   }
 }
 
+export function getBuiltInCategoryLabel(id: BuiltInTemplateCategory): string {
+  return i18n.t(`templates.categories.${id}`, {
+    defaultValue: builtInCategoryLabels[id],
+  })
+}
+
 export function getCategoryLabel(
   id: TemplateCategoryId,
   customCategories: CustomTemplateCategory[],
 ): string {
-  if (isBuiltInCategory(id)) return builtInCategoryLabels[id]
-  return customCategories.find((category) => category.id === id)?.name ?? 'Vlastná kategória'
+  if (isBuiltInCategory(id)) return getBuiltInCategoryLabel(id)
+  return (
+    customCategories.find((category) => category.id === id)?.name ??
+    i18n.t('templates.customCategory', { defaultValue: 'Custom category' })
+  )
 }
 
 export function parseStoredCustomCategories(raw: unknown): CustomTemplateCategory[] {

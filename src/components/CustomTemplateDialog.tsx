@@ -16,7 +16,7 @@ import { createAndStoreCategory } from '@/lib/db/template-collections'
 import { useCustomCategoriesLive } from '@/hooks/useTemplateCollections'
 import {
   BUILT_IN_TEMPLATE_CATEGORIES,
-  builtInCategoryLabels,
+  getBuiltInCategoryLabel,
   type TemplateCategoryId,
 } from '@/lib/templates'
 import { cn } from '@/lib/utils'
@@ -197,7 +197,7 @@ export function CustomTemplateDialog({
                       active={values.category === key}
                       onClick={() => selectCategory(key)}
                     >
-                      {builtInCategoryLabels[key]}
+                      {getBuiltInCategoryLabel(key)}
                     </CategoryChip>
                   ))}
                   {customCategories.map((category) => (

@@ -4,6 +4,7 @@ import type { Node as PMNode } from '@tiptap/pm/model'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
 import type { EditorView } from '@tiptap/pm/view'
+import i18n from '@/i18n'
 
 function generateId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID()
@@ -209,7 +210,7 @@ function buildFootnotesSection(
 
     const text = document.createElement('span')
     text.className = 'footnotes-item-text'
-    text.textContent = item.content || '(prázdna poznámka)'
+    text.textContent = item.content || i18n.t('footnotes.emptyNote')
     if (!item.content) text.classList.add('footnotes-item-text--empty')
     li.appendChild(text)
 
@@ -226,7 +227,7 @@ function buildFootnotesSection(
       const edit = document.createElement('button')
       edit.type = 'button'
       edit.className = 'footnotes-item-edit'
-      edit.textContent = 'Upraviť'
+      edit.textContent = i18n.t('footnotes.edit')
       edit.addEventListener('mousedown', (event) => {
         event.preventDefault()
         event.stopPropagation()

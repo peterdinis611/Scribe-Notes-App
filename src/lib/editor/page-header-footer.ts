@@ -1,3 +1,4 @@
+import i18n from '@/i18n'
 import type { PageHeaderFooter } from '@/lib/editor/page-setup'
 
 export type HeaderFooterContext = {
@@ -29,14 +30,20 @@ export function buildHeaderFooterLines(
 
   const header = resolveHeaderFooterTemplate(config.headerText, context)
   const footerBase = resolveHeaderFooterTemplate(config.footerText, context)
-  const pageLabel = config.showPageNumber ? `Strana ${context.page} / ${context.pages}` : ''
+  const pageLabel = config.showPageNumber
+    ? i18n.t('pagination.summary', {
+        current: context.page,
+        total: context.pages,
+      })
+    : ''
   const footer = [footerBase, pageLabel].filter(Boolean).join(' · ')
 
   return { header, footer }
 }
 
 export function formatExportDate(date = new Date()): string {
-  return date.toLocaleDateString('sk-SK', {
+  const locale = i18n.language?.startsWith('sk') ? 'sk-SK' : 'en-US'
+  return date.toLocaleDateString(locale, {
     day: 'numeric',
     month: 'long',
     year: 'numeric',

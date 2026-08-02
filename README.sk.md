@@ -13,7 +13,7 @@ Scribe beží lokálne na vašom Macu. Žiadne účty, žiadny cloud — dokumen
 - Prepínanie medzi formátovaným textom a **Markdown** zdrojákom
 - Formátovanie: nadpisy, zoznamy, checklisty, tabuľky, obrázky, odkazy, poznámky pod čiarou
 - Slash príkazy (`/`), bubble menu, drag & drop blokov a obrázkov
-- Wiki odkazy (`[[dokument]]`), komentáre, matematika (KaTeX), code bloky (highlight.js)
+- Wiki odkazy (`[[dokument]]`), komentáre, matematika (math.js), Mermaid diagramy, code bloky (highlight.js)
 - Náhľad tlače, rozloženie strán, hlavičky/päty, vodotlač, stránkovanie
 - **Režim sústredenia** — minimal UI pre nerušené písanie (`⌘⇧F`, ukončenie cez `Esc`)
 

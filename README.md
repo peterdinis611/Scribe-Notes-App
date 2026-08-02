@@ -13,7 +13,7 @@ Scribe runs locally on your Mac. No accounts, no cloud — documents, the databa
 - Switch between formatted text and **Markdown** source
 - Formatting: headings, lists, checklists, tables, images, links, footnotes
 - Slash commands (`/`), bubble menu, drag & drop blocks and images
-- Wiki links (`[[document]]`), comments, math (KaTeX), code blocks (highlight.js)
+- Wiki links (`[[document]]`), comments, math (math.js), Mermaid diagrams, code blocks (highlight.js)
 - Print preview, page layout, headers/footers, watermarks, pagination
 - **Focus mode** — minimal UI for distraction-free writing (`⌘⇧F`, exit with `Esc`)
 

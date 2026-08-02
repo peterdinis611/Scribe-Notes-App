@@ -110,13 +110,17 @@
     "newFolderTitle": "New folder",
     "newFolderPlaceholder": "Folder name",
     "aiHint": "Requires text selection",
+    "aiDocumentHint": "Uses the whole document",
     "ai": {
       "rewrite": "AI: Rewrite",
       "shorten": "AI: Shorten",
       "expand": "AI: Expand",
       "fixGrammar": "AI: Fix grammar",
       "toneFormal": "AI: Formal tone",
-      "toneCasual": "AI: Casual tone"
+      "toneCasual": "AI: Casual tone",
+      "summarize": "AI: Summarize",
+      "outline": "AI: Outline",
+      "continueWriting": "AI: Continue writing"
     },
     "todayNote": "Today note",
     "weekNote": "Weekly note"
@@ -124,11 +128,26 @@
   "editor": {
     "loading": "Loading document…",
     "loadingEditor": "Loading editor…",
-    "page": "Page {{page}}"
+    "page": "Page {{page}}",
+    "placeholder": "Start typing, / for commands, - or . space for lists, --- for a rule…",
+    "markdownAria": "Markdown editor",
+    "markdownPlaceholder": "# Heading\n\nWrite in **Markdown** — headings, lists, `code`, tables…"
+  },
+  "mermaid": {
+    "edit": "Edit",
+    "editTitle": "Edit Mermaid source",
+    "done": "Done",
+    "cancel": "Cancel",
+    "rendering": "Rendering…"
+  },
+  "footnotes": {
+    "edit": "Edit",
+    "emptyNote": "(empty note)"
   },
   "ai": {
     "menuTitle": "AI",
     "noSelection": "Select text first",
+    "noDocumentText": "Document is empty",
     "error": "AI request failed",
     "actions": {
       "rewrite": "Rewrite",
@@ -136,7 +155,10 @@
       "expand": "Expand",
       "fixGrammar": "Fix grammar",
       "toneFormal": "Formal tone",
-      "toneCasual": "Casual tone"
+      "toneCasual": "Casual tone",
+      "summarize": "Summarize document",
+      "outline": "Create outline",
+      "continueWriting": "Continue writing"
     },
     "dialog": {
       "loading": "Generating a suggestion…",
@@ -1005,7 +1027,71 @@
     "subtitle": "Choose a template or start from a blank page",
     "searchPlaceholder": "Search templates…",
     "customTemplate": "Custom template",
+    "customCategory": "Custom category",
     "all": "All",
+    "categories": {
+      "general": "General",
+      "business": "Business",
+      "personal": "Personal",
+      "creative": "Creative"
+    },
+    "builtin": {
+      "blank": {
+        "name": "Blank page",
+        "description": "Empty document with no formatting",
+        "title": "New document"
+      },
+      "scribe-demo-guide": {
+        "name": "Scribe guide",
+        "description": "Full demo of app features with examples",
+        "title": "Scribe guide — demo"
+      },
+      "modern-report": {
+        "name": "Modern report",
+        "description": "Title page, TOC and structured sections",
+        "title": "Report"
+      },
+      "business-letter": {
+        "name": "Business letter",
+        "description": "Formal letter layout",
+        "title": "Letter"
+      },
+      "resume": {
+        "name": "Resume / CV",
+        "description": "Professional resume structure",
+        "title": "Resume"
+      },
+      "newsletter": {
+        "name": "Newsletter",
+        "description": "Sections for a short newsletter",
+        "title": "Newsletter"
+      },
+      "meeting-notes": {
+        "name": "Meeting notes",
+        "description": "Agenda, notes and action items",
+        "title": "Meeting notes"
+      },
+      "essay": {
+        "name": "Essay",
+        "description": "Introduction, body and conclusion",
+        "title": "Essay"
+      },
+      "project-proposal": {
+        "name": "Project proposal",
+        "description": "Goals, scope and timeline",
+        "title": "Project proposal"
+      },
+      "invoice": {
+        "name": "Invoice",
+        "description": "Simple invoice layout",
+        "title": "Invoice"
+      },
+      "academic-paper": {
+        "name": "Academic paper",
+        "description": "Abstract, sections and references",
+        "title": "Paper"
+      }
+    },
     "customTemplates": "Custom templates",
     "myCategories": "My categories",
     "addCategory": "Add",

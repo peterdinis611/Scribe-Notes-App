@@ -289,7 +289,14 @@ pub async fn export_document(
     match format.as_str() {
         "docx" => export::export_html_to_docx(&input.html, &output)?,
         "txt" => export::export_plain_text(&input.plain_text, &output)?,
-        "pages" => export::export_text_to_pages(&input.plain_text, &output)?,
+        "pages" => {
+            if let Err(html_error) = export::export_html_to_pages(&input.html, &output) {
+                // Fallback to plain text if rich HTML→Pages path fails.
+                export::export_text_to_pages(&input.plain_text, &output).map_err(|text_error| {
+                    format!("{html_error} | fallback: {text_error}")
+                })?;
+            }
+        }
         "md" | "markdown" => export::export_markdown(&input.plain_text, &output)?,
         _ => unreachable!(),
     }

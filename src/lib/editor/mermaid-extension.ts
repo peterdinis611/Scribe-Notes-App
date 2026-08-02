@@ -1,6 +1,7 @@
 import { mergeAttributes, Node } from '@tiptap/core'
 import type { Editor } from '@tiptap/core'
 import type { Node as PMNode } from '@tiptap/pm/model'
+import i18n from '@/i18n'
 import { MERMAID_DEFAULT_SOURCE, renderMermaidSource } from '@/lib/editor/mermaid'
 
 declare module '@tiptap/core' {
@@ -48,8 +49,8 @@ function createMermaidNodeView() {
     const editBtn = document.createElement('button')
     editBtn.type = 'button'
     editBtn.className = 'mermaid-diagram__btn'
-    editBtn.textContent = 'Upraviť'
-    editBtn.title = 'Upraviť Mermaid zdroj'
+    editBtn.textContent = i18n.t('mermaid.edit')
+    editBtn.title = i18n.t('mermaid.editTitle')
 
     const preview = document.createElement('div')
     preview.className = 'mermaid-diagram__preview'
@@ -67,12 +68,12 @@ function createMermaidNodeView() {
     const doneBtn = document.createElement('button')
     doneBtn.type = 'button'
     doneBtn.className = 'mermaid-diagram__btn mermaid-diagram__btn--primary'
-    doneBtn.textContent = 'Hotovo'
+    doneBtn.textContent = i18n.t('mermaid.done')
 
     const cancelBtn = document.createElement('button')
     cancelBtn.type = 'button'
     cancelBtn.className = 'mermaid-diagram__btn'
-    cancelBtn.textContent = 'Zrušiť'
+    cancelBtn.textContent = i18n.t('mermaid.cancel')
 
     toolbar.appendChild(editBtn)
     actions.append(doneBtn, cancelBtn)
@@ -87,7 +88,7 @@ function createMermaidNodeView() {
     const renderPreview = async (source: string) => {
       const token = ++renderToken
       preview.classList.remove('mermaid-diagram__preview--error')
-      preview.textContent = 'Renderujem…'
+      preview.textContent = i18n.t('mermaid.rendering')
 
       const result = await renderMermaidSource(source)
       if (token !== renderToken) return

@@ -301,7 +301,7 @@ export function DocumentEditor() {
 
   const handlePrint = useCallback(() => {
     if (!activeDocument) return
-    printDocumentFromContent(activeDocument.contentJson, activeDocument.title, {
+    void printDocumentFromContent(activeDocument.contentJson, activeDocument.title, {
       pageSetup,
       includeTitleHeading: true,
     })

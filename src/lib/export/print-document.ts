@@ -1,4 +1,4 @@
-import { tiptapJsonToHtml, type HtmlExportOptions } from '@/lib/export/html'
+import { tiptapJsonToHtmlAsync, type HtmlExportOptions } from '@/lib/export/html'
 
 export function printDocumentHtml(html: string, title: string): void {
   const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=1024,height=768')
@@ -21,12 +21,12 @@ export function printDocumentHtml(html: string, title: string): void {
   window.setTimeout(triggerPrint, 500)
 }
 
-export function printDocumentFromContent(
+export async function printDocumentFromContent(
   contentJson: string,
   title: string,
   options?: HtmlExportOptions,
-): void {
-  const html = tiptapJsonToHtml(contentJson, title, {
+): Promise<void> {
+  const html = await tiptapJsonToHtmlAsync(contentJson, title, {
     ...options,
     forPrint: true,
   })

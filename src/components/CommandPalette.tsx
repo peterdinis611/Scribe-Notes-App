@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import { AI_ACTION_IDS } from '@/lib/ai/actions'
 import { isAiAvailable } from '@/lib/ai/config'
+import { DOCUMENT_AI_ACTION_IDS } from '@/lib/ai/types'
 import { runAiEditorAction } from '@/lib/ai/run-action'
 import { editorRefs } from '@/store/editorRefs'
 import { openQuickNote } from '@/lib/quick-note'
@@ -119,8 +120,10 @@ export function CommandPalette() {
             (action): PaletteItem => ({
               type: 'action',
               id: `ai-${action}`,
-              label: t(`commandPalette.ai.${action}`),
-              hint: t('commandPalette.aiHint'),
+              label: t(`commandPalette.ai.${action}`, { defaultValue: t(`ai.actions.${action}`) }),
+              hint: DOCUMENT_AI_ACTION_IDS.includes(action)
+                ? t('commandPalette.aiDocumentHint')
+                : t('commandPalette.aiHint'),
               icon: <Sparkles className="h-4 w-4" />,
               run: () => {
                 void runAiEditorAction(editorRefs.editor, action)

@@ -110,13 +110,17 @@
     "newFolderTitle": "Nový priečinok",
     "newFolderPlaceholder": "Názov priečinka",
     "aiHint": "Vyžaduje označený text",
+    "aiDocumentHint": "Použije celý dokument",
     "ai": {
       "rewrite": "AI: Prepísať",
       "shorten": "AI: Skrátiť",
       "expand": "AI: Rozšíriť",
       "fixGrammar": "AI: Opraviť gramatiku",
       "toneFormal": "AI: Formálny tón",
-      "toneCasual": "AI: Neformálny tón"
+      "toneCasual": "AI: Neformálny tón",
+      "summarize": "AI: Zhrnúť",
+      "outline": "AI: Osnova",
+      "continueWriting": "AI: Pokračovať"
     },
     "todayNote": "Dnešná poznámka",
     "weekNote": "Týždenná poznámka"
@@ -124,11 +128,26 @@
   "editor": {
     "loading": "Načítavam dokument…",
     "loadingEditor": "Načítavam editor…",
-    "page": "Strana {{page}}"
+    "page": "Strana {{page}}",
+    "placeholder": "Píšte text, / príkazy, - alebo . medzera pre zoznam, --- čiara…",
+    "markdownAria": "Markdown editor",
+    "markdownPlaceholder": "# Nadpis\n\nPíšte v **Markdown** — nadpisy, zoznamy, `kód`, tabuľky…"
+  },
+  "mermaid": {
+    "edit": "Upraviť",
+    "editTitle": "Upraviť Mermaid zdroj",
+    "done": "Hotovo",
+    "cancel": "Zrušiť",
+    "rendering": "Renderujem…"
+  },
+  "footnotes": {
+    "edit": "Upraviť",
+    "emptyNote": "(prázdna poznámka)"
   },
   "ai": {
     "menuTitle": "AI",
     "noSelection": "Najprv označte text",
+    "noDocumentText": "Dokument je prázdny",
     "error": "AI požiadavka zlyhala",
     "actions": {
       "rewrite": "Prepísať",
@@ -136,7 +155,10 @@
       "expand": "Rozšíriť",
       "fixGrammar": "Opraviť gramatiku",
       "toneFormal": "Formálny tón",
-      "toneCasual": "Neformálny tón"
+      "toneCasual": "Neformálny tón",
+      "summarize": "Zhrnúť dokument",
+      "outline": "Vytvoriť osnovu",
+      "continueWriting": "Pokračovať v texte"
     },
     "dialog": {
       "loading": "Generujem návrh…",
@@ -1013,7 +1035,71 @@
     "subtitle": "Vyberte šablónu alebo začnite od prázdnej stránky",
     "searchPlaceholder": "Hľadať šablóny…",
     "customTemplate": "Vlastná šablóna",
+    "customCategory": "Vlastná kategória",
     "all": "Všetky",
+    "categories": {
+      "general": "Všeobecné",
+      "business": "Biznis",
+      "personal": "Osobné",
+      "creative": "Kreatívne"
+    },
+    "builtin": {
+      "blank": {
+        "name": "Prázdna stránka",
+        "description": "Prázdny dokument bez predformátovania",
+        "title": "Nový dokument"
+      },
+      "scribe-demo-guide": {
+        "name": "Sprievodca Scribe",
+        "description": "Kompletné demo všetkých funkcií aplikácie s príkladmi",
+        "title": "Sprievodca Scribe — demo"
+      },
+      "modern-report": {
+        "name": "Moderný report",
+        "description": "Titulná strana, obsah a štruktúrované sekcie",
+        "title": "Report"
+      },
+      "business-letter": {
+        "name": "Obchodný list",
+        "description": "Formálna štruktúra listu",
+        "title": "List"
+      },
+      "resume": {
+        "name": "Životopis / CV",
+        "description": "Profesionálna štruktúra životopisu",
+        "title": "Životopis"
+      },
+      "newsletter": {
+        "name": "Newsletter",
+        "description": "Sekcie pre krátky newsletter",
+        "title": "Newsletter"
+      },
+      "meeting-notes": {
+        "name": "Zápisnica zo stretnutia",
+        "description": "Agenda, poznámky a úlohy",
+        "title": "Zápisnica"
+      },
+      "essay": {
+        "name": "Esej",
+        "description": "Úvod, jadro a záver",
+        "title": "Esej"
+      },
+      "project-proposal": {
+        "name": "Projektový návrh",
+        "description": "Ciele, rozsah a harmonogram",
+        "title": "Projektový návrh"
+      },
+      "invoice": {
+        "name": "Faktúra",
+        "description": "Jednoduchá štruktúra faktúry",
+        "title": "Faktúra"
+      },
+      "academic-paper": {
+        "name": "Akademická práca",
+        "description": "Abstrakt, sekcie a zdroje",
+        "title": "Práca"
+      }
+    },
     "customTemplates": "Vlastné šablóny",
     "myCategories": "Moje kategórie",
     "addCategory": "Pridať",

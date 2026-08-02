@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import '@/i18n'
+import i18n from '@/i18n'
 import { buildHeaderFooterLines, resolveHeaderFooterTemplate } from '@/lib/editor/page-header-footer'
 import { DEFAULT_PAGE_HEADER_FOOTER } from '@/lib/editor/page-setup'
 
@@ -14,7 +16,8 @@ describe('page header/footer templates', () => {
     ).toBe('Dokument · str. 2/5 · 21. jún 2026')
   })
 
-  it('builds footer with page number', () => {
+  it('builds footer with localized page number', async () => {
+    await i18n.changeLanguage('sk')
     const lines = buildHeaderFooterLines(
       { ...DEFAULT_PAGE_HEADER_FOOTER, enabled: true, footerText: 'Poznámka' },
       { title: 'Test', page: 1, pages: 3, date: '21. jún 2026' },

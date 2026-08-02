@@ -24,9 +24,10 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   BUILT_IN_TEMPLATE_CATEGORIES,
   DOCUMENT_TEMPLATES,
-  builtInCategoryLabels,
   createCustomTemplate,
+  getBuiltInCategoryLabel,
   getCategoryLabel,
+  getLocalizedDocumentTemplates,
   isBuiltInCategory,
   isCustomTemplate,
   mergeTemplates,
@@ -79,20 +80,24 @@ const builtInCategoryPreviewClass: Record<
 const customCategoryPreviewClass =
   'bg-[color-mix(in_srgb,#5856d6_10%,var(--color-canvas))] text-[#4f46e5] dark:text-[#a5b4fc]'
 
-const BLANK_TEMPLATE = DOCUMENT_TEMPLATES.find((template) => template.id === 'blank')!
+const BLANK_TEMPLATE_ID = 'blank'
 
 export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { templates: customTemplates } = useCustomTemplatesLive()
   const { categories: customCategories } = useCustomCategoriesLive()
   const allTemplates = useMemo(
-    () => mergeTemplates(DOCUMENT_TEMPLATES, customTemplates),
-    [customTemplates],
+    () => mergeTemplates(getLocalizedDocumentTemplates(), customTemplates),
+    [customTemplates, i18n.language],
+  )
+  const blankTemplate = useMemo(
+    () => allTemplates.find((template) => template.id === BLANK_TEMPLATE_ID) ?? DOCUMENT_TEMPLATES[0]!,
+    [allTemplates],
   )
 
   const [category, setCategory] = useState<TemplateCategoryFilter>('all')
   const [query, setQuery] = useState('')
-  const [selectedId, setSelectedId] = useState(BLANK_TEMPLATE.id)
+  const [selectedId, setSelectedId] = useState(BLANK_TEMPLATE_ID)
   const [creating, setCreating] = useState(false)
   const [customDialogOpen, setCustomDialogOpen] = useState(false)
 
@@ -100,7 +105,7 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
     if (!open) return
     setCategory('all')
     setQuery('')
-    setSelectedId(BLANK_TEMPLATE.id)
+    setSelectedId(BLANK_TEMPLATE_ID)
     setCreating(false)
     setCustomDialogOpen(false)
   }, [open])
@@ -142,11 +147,11 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
     : filtered
 
   const selectedTemplate =
-    allTemplates.find((template) => template.id === selectedId) ?? BLANK_TEMPLATE
+    allTemplates.find((template) => template.id === selectedId) ?? blankTemplate
 
   useEffect(() => {
     if (filtered.some((template) => template.id === selectedId)) return
-    setSelectedId(filtered[0]?.id ?? BLANK_TEMPLATE.id)
+    setSelectedId(filtered[0]?.id ?? blankTemplate.id)
   }, [filtered, selectedId])
 
   async function handleCreate() {
@@ -175,7 +180,7 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
     if (!confirmed) return
     try {
       await deleteStoredTemplate(selectedTemplate.id)
-      setSelectedId(BLANK_TEMPLATE.id)
+      setSelectedId(blankTemplate.id)
     } catch (error) {
       toast.error(t('templates.deleteTemplateError'), String(error))
     }
@@ -272,7 +277,7 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
                 </FilterChip>
                 {BUILT_IN_TEMPLATE_CATEGORIES.map((key) => (
                   <FilterChip key={key} active={category === key} onClick={() => setCategory(key)}>
-                    {builtInCategoryLabels[key]}
+                    {getBuiltInCategoryLabel(key)}
                     <span className="ml-1 opacity-60">{categoryCounts[key] ?? 0}</span>
                   </FilterChip>
                 ))}
@@ -326,11 +331,11 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
               <div className="space-y-3 p-5">
                 {showBlankHero && (
                   <TemplateCard
-                    template={BLANK_TEMPLATE}
+                    template={blankTemplate}
                     customCategories={customCategories}
-                    selected={selectedId === BLANK_TEMPLATE.id}
+                    selected={selectedId === blankTemplate.id}
                     variant="hero"
-                    onSelect={() => setSelectedId(BLANK_TEMPLATE.id)}
+                    onSelect={() => setSelectedId(blankTemplate.id)}
                   />
                 )}
 

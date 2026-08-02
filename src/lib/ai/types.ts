@@ -7,6 +7,12 @@ export type AiActionId =
   | 'fixGrammar'
   | 'toneFormal'
   | 'toneCasual'
+  | 'summarize'
+  | 'outline'
+  | 'continueWriting'
+
+/** Actions that can run on the whole document when nothing is selected. */
+export const DOCUMENT_AI_ACTION_IDS: AiActionId[] = ['summarize', 'outline', 'continueWriting']
 
 export type AiSettings = {
   enabled: boolean

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import {
@@ -21,7 +21,7 @@ import { exportDocument, pickAndImportFile, revealInFinder } from '@/lib/db/api'
 import { getCachedParsedContent } from '@/lib/cache/document-cache'
 import { fileBasename, toast } from '@/lib/toast'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
-import { tiptapJsonToHtml } from '@/lib/export/html'
+import { tiptapJsonToHtmlAsync } from '@/lib/export/html'
 import { tiptapJsonToMarkdown } from '@/lib/export/markdown'
 import { tiptapToPlainText } from '@/lib/export/plain-text'
 import { ROUTES, useSettingsSections } from '@/lib/routes'
@@ -135,22 +135,42 @@ function EditorChrome() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false)
+  const [exportHtml, setExportHtml] = useState('')
 
   const pdfPreviewPayload = useMemo(() => {
     if (!document) return null
     return {
       title: document.title,
-      html: tiptapJsonToHtml(document.contentJson, document.title, { pageSetup }),
       plainText: tiptapToPlainText(document.contentJson),
       markdown: tiptapJsonToMarkdown(document.contentJson, document.title),
       pageSetup,
+      contentJson: document.contentJson,
     }
   }, [document, pageSetup])
 
+  useEffect(() => {
+    if (!pdfPreviewPayload) {
+      setExportHtml('')
+      return
+    }
+    let cancelled = false
+    void tiptapJsonToHtmlAsync(pdfPreviewPayload.contentJson, pdfPreviewPayload.title, {
+      pageSetup: pdfPreviewPayload.pageSetup,
+    }).then((html) => {
+      if (!cancelled) setExportHtml(html)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [pdfPreviewPayload])
+
   async function handleExport(format: 'pdf' | 'docx' | 'txt' | 'pages' | 'md') {
     if (!pdfPreviewPayload) return
-    const { html, plainText, title, markdown, pageSetup: exportPageSetup } = pdfPreviewPayload
+    const { plainText, title, markdown, pageSetup: exportPageSetup, contentJson } = pdfPreviewPayload
     try {
+      const html =
+        exportHtml ||
+        (await tiptapJsonToHtmlAsync(contentJson, title, { pageSetup: exportPageSetup }))
       const result = await exportDocument(html, plainText, title, format, markdown, exportPageSetup)
       if (result?.path) {
         toast.success(t('toasts.exportDone'), fileBasename(result.path))
@@ -240,7 +260,7 @@ function EditorChrome() {
             open={pdfPreviewOpen}
             onOpenChange={setPdfPreviewOpen}
             title={pdfPreviewPayload.title}
-            html={pdfPreviewPayload.html}
+            html={exportHtml}
             plainText={pdfPreviewPayload.plainText}
             pageSetup={pdfPreviewPayload.pageSetup}
             onExport={() => void handleExport('pdf')}
