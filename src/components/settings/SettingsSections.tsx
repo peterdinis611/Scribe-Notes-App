@@ -616,7 +616,7 @@ export function ShortcutsSection() {
 }
 
 export function AboutSection() {
-  const [version, setVersion] = useState('0.4.0')
+  const [version, setVersion] = useState('0.5.0')
   const { t } = useTranslation()
 
   useEffect(() => {
