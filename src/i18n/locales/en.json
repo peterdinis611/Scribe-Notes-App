@@ -192,6 +192,10 @@
         "label": "Diagnostics",
         "description": "Database and storage health"
       },
+      "mcp": {
+        "label": "MCP",
+        "description": "Scribe Memory for Cursor"
+      },
       "about": {
         "label": "About",
         "description": "Version and info"
@@ -265,6 +269,24 @@
     "diagnostics": {
       "title": "Diagnostics",
       "description": "SQLite status, paths, and recent disk operations."
+    },
+    "mcp": {
+      "title": "Scribe Memory MCP",
+      "description": "Connect Cursor or Claude Desktop to your local Scribe library.",
+      "intro": "The Scribe Memory MCP server lets an AI client search notes, load documents, follow wiki links, and optionally create or append notes in your library.",
+      "installTitle": "Install",
+      "installDescription": "From the Scribe repo root, install MCP package dependencies once.",
+      "configTitle": "Cursor config",
+      "configDescription": "Paste into Cursor MCP settings or .cursor/mcp.json. Replace __SCRIBE/mcp with the absolute path to this repo’s mcp/ folder.",
+      "copyConfig": "Copy Cursor config",
+      "configCopied": "Cursor config copied",
+      "promptTitle": "Prompt template",
+      "promptDescription": "Optional instruction so the model prefers library facts over guesses.",
+      "copyPrompt": "Copy prompt template",
+      "promptCopied": "Prompt template copied",
+      "copyError": "Could not copy to clipboard",
+      "pathHint": "After npm run mcp:install, set an absolute --prefix path (see mcp/README.md). Example: npm run start --prefix /Users/YOU/path/to/scribe/mcp",
+      "lockHint": "Write tools need a writable DB open. If Scribe has the database locked, retry create/append shortly or check scribe_status for writable: false."
     },
     "shortcuts": {
       "title": "Keyboard shortcuts",

@@ -2,7 +2,7 @@
 
 Turn your local **Scribe** library into on-demand memory for **Claude Desktop** and **Cursor** using [MCP](https://modelcontextprotocol.io/).
 
-The server opens Scribe’s SQLite database **read-only**. It never writes notes — Scribe remains the source of truth.
+The server prefers a **writable** SQLite connection (`create_note` / `append_to_note`). If the DB is locked (e.g. Scribe is running), it falls back to **read-only**.
 
 ## What you get
 
@@ -99,11 +99,19 @@ cd mcp && npm run build
 3. Fully quit Claude Desktop (Cmd+Q) and reopen.
 4. Confirm MCP tools are listed, then ask Claude to search your notes.
 
+## Write tools
+
+- **`create_note`** — new note (`title`, optional `content`, `folderId`)
+- **`append_to_note`** — append plain text to an existing note (`id`, `text`)
+
+**Warning:** the running Scribe app may lock the database. If you see a lock/busy error or `writable: false` from `scribe_status`, retry shortly (or temporarily quit Scribe). Force readonly with `SCRIBE_MCP_WRITE=0`.
+
 ## Environment
 
 | Variable | Meaning |
 |----------|---------|
 | `SCRIBE_DB_PATH` | Absolute path to `scribe.db` when not using the default |
+| `SCRIBE_MCP_WRITE` | `0` = force read-only |
 
 ```bash
 SCRIBE_DB_PATH="/path/to/scribe.db" npm start
@@ -152,6 +160,8 @@ Full argument reference: **[tools.md](tools.md)**.
 | `list_backlinks` | Incoming links |
 | `list_outgoing_links` | Outgoing links |
 | `list_link_graph` | Full map |
+| `create_note` | Create a note (write) |
+| `append_to_note` | Append text (write) |
 
 ## Troubleshooting
 
@@ -163,12 +173,13 @@ Full argument reference: **[tools.md](tools.md)**.
 | Wrong library | Call `scribe_status` and check `dbPath` |
 | `better-sqlite3` errors | Node 20+; reinstall in `mcp/` |
 | Process “hangs” in terminal | Normal for stdio — waiting for a client |
+| Writes fail / `writable: false` | Scribe may hold a lock — retry; check `SCRIBE_MCP_WRITE` |
 
 ## Privacy
 
 - Stays on your Mac  
 - Local stdio process (this server does not upload by itself)  
-- SQLite `query_only`  
+- Writable when possible; otherwise `query_only`  
 - Only content the model **fetches via tools** enters the chat (then subject to the host app’s cloud policy)
 
 ## Development

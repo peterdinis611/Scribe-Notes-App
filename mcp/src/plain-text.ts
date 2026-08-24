@@ -86,3 +86,29 @@ export function tiptapToPlainText(contentJson: string): string {
     return ''
   }
 }
+
+function paragraphNode(line: string): TipTapNode {
+  const text = line.trimEnd()
+  if (!text) return { type: 'paragraph' }
+  return {
+    type: 'paragraph',
+    content: [{ type: 'text', text }],
+  }
+}
+
+/** Wrap plain text lines as TipTap doc paragraphs. */
+export function plainTextToTipTap(text: string): string {
+  const lines = text.replace(/\r\n/g, '\n').split('\n')
+  const content =
+    lines.length === 0 || (lines.length === 1 && lines[0] === '')
+      ? [{ type: 'paragraph' }]
+      : lines.map(paragraphNode)
+  return JSON.stringify({ type: 'doc', content })
+}
+
+/** TipTap paragraph nodes for appending plain text (split on newlines). */
+export function plainTextToParagraphNodes(text: string): TipTapNode[] {
+  const lines = text.replace(/\r\n/g, '\n').split('\n')
+  if (lines.length === 0) return [{ type: 'paragraph' }]
+  return lines.map(paragraphNode)
+}

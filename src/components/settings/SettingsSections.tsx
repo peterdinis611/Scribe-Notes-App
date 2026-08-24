@@ -571,6 +571,8 @@ export function SettingsSectionContent({ section }: { section: SettingsSectionId
       return <ShortcutsSection />
     case 'diagnostics':
       return <DiagnosticsSection />
+    case 'mcp':
+      return <McpSection />
     case 'about':
       return <AboutSection />
   }

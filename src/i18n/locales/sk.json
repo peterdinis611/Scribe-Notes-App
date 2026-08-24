@@ -192,6 +192,10 @@
         "label": "Diagnostika",
         "description": "Stav databázy a úložiska"
       },
+      "mcp": {
+        "label": "MCP",
+        "description": "Scribe Memory pre Cursor"
+      },
       "about": {
         "label": "O aplikácii",
         "description": "Verzia a info"

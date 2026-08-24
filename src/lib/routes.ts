@@ -1,12 +1,13 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { LucideIcon } from 'lucide-react'
-import { Activity, FolderOpen, Info, Keyboard, Palette } from 'lucide-react'
+import { Activity, Cable, FolderOpen, Info, Keyboard, Palette } from 'lucide-react'
 export type SettingsSection =
   | 'appearance'
   | 'storage'
   | 'shortcuts'
   | 'diagnostics'
+  | 'mcp'
   | 'about'
 
 export function isSettingsSection(value: string | undefined): value is SettingsSection {
@@ -15,6 +16,7 @@ export function isSettingsSection(value: string | undefined): value is SettingsS
     value === 'storage' ||
     value === 'shortcuts' ||
     value === 'diagnostics' ||
+    value === 'mcp' ||
     value === 'about'
   )
 }
@@ -27,6 +29,7 @@ const SETTINGS_SECTION_META: {
   { id: 'storage', icon: FolderOpen },
   { id: 'shortcuts', icon: Keyboard },
   { id: 'diagnostics', icon: Activity },
+  { id: 'mcp', icon: Cable },
   { id: 'about', icon: Info },
 ]
 
@@ -50,6 +53,7 @@ const SETTINGS_PATHS = {
   storage: '/settings/storage',
   shortcuts: '/settings/shortcuts',
   diagnostics: '/settings/diagnostics',
+  mcp: '/settings/mcp',
   about: '/settings/about',
 } as const satisfies Record<SettingsSection, string>
 

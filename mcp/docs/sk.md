@@ -2,7 +2,7 @@
 
 Lokálna knižnica **Scribe** ako pamäť pre **Claude Desktop** a **Cursor** cez [MCP](https://modelcontextprotocol.io/).
 
-Server databázu **len číta**. Claude do Scribe nič nezapisuje — poznámky ostávajú zdrojom pravdy v aplikácii.
+Server sa snaží otvoriť DB **na zápis** (nástroje `create_note` / `append_to_note`). Ak je DB zamknutá (napr. beží Scribe), prepne sa do **read-only**.
 
 ## Čo tým získate
 
@@ -99,11 +99,19 @@ cd mcp && npm run build
 3. Claude Desktop **úplne ukončite** (Cmd+Q) a znova spustite.
 4. V novom chate skontrolujte dostupné MCP nástroje a skúste vyhľadávanie.
 
+## Write tools
+
+- **`create_note`** — nová poznámka (`title`, voliteľne `content`, `folderId`)
+- **`append_to_note`** — doplnenie textu do existujúcej poznámky (`id`, `text`)
+
+**Upozornenie:** bežiaca aplikácia Scribe môže DB zamknúť. Pri chybe „locked / busy“ alebo `writable: false` v `scribe_status` skúste znova o chvíľu (alebo dočasne zatvorte Scribe). Force readonly: `SCRIBE_MCP_WRITE=0`.
+
 ## Premenné prostredia
 
 | Premenná | Význam |
 |----------|--------|
 | `SCRIBE_DB_PATH` | Absolútna cesta k `scribe.db`, ak nie je predvolená |
+| `SCRIBE_MCP_WRITE` | `0` = vynútiť read-only |
 
 Príklad:
 
@@ -156,6 +164,8 @@ Prehľad argumentov a príkladov: **[tools.md](tools.md)**.
 | `list_backlinks` | Prichádzajúce odkazy |
 | `list_outgoing_links` | Odchádzajúce odkazy |
 | `list_link_graph` | Celá mapa |
+| `create_note` | Nová poznámka (zápis) |
+| `append_to_note` | Doplnenie textu (zápis) |
 
 ## Riešenie problémov
 
@@ -167,12 +177,13 @@ Prehľad argumentov a príkladov: **[tools.md](tools.md)**.
 | Zlá knižnica | Zavolajte `scribe_status` a skontrolujte `dbPath` |
 | Chyba `better-sqlite3` | Node 20+, znova `npm install` v `mcp/` |
 | Server „visí“ v termináli | Normálne pri stdio — čaká na klienta; ukončite Ctrl+C |
+| Zápis zlyhá / `writable: false` | Scribe môže držať zámok — retry; skontrolujte `SCRIBE_MCP_WRITE` |
 
 ## Súkromie a bezpečnosť
 
 - Všetko zostáva na vašom Macu  
 - Pripojenie je lokálny proces (stdio), nie cloud API tohto servera  
-- Režim SQLite je read-only  
+- Zápis len keď je DB otvorená writable; inak read-only  
 - Do Claude chatu sa dostane len to, čo model **zámerne** načíta toolmi (a čo klient odošle do cloudu podľa svojich pravidiel)
 
 ## Vývoj

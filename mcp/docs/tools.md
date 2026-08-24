@@ -18,11 +18,43 @@ Health check for the configured database.
 {
   "ok": true,
   "dbPath": "/Users/…/com.scribe.app/scribe.db",
+  "writable": true,
   "sampleDocumentCount": 1,
   "edgeCount": 3,
   "orphanCount": 12
 }
 ```
+
+`writable` is `true` when create/append tools can mutate the DB.
+
+---
+
+## `create_note`
+
+Create a new document. Plain text becomes TipTap paragraphs. Requires a writable connection.
+
+| Arg | Type | Required | Default | Notes |
+|-----|------|----------|---------|--------|
+| `title` | string | yes | — | Note title |
+| `content` | string | no | empty doc | Initial body (plain text) |
+| `folderId` | string | no | `null` | Folder id |
+
+**Example result:** `{ "id": "…", "title": "Meeting notes" }`
+
+If Scribe holds a lock, the tool returns an error — retry shortly.
+
+---
+
+## `append_to_note`
+
+Append plain-text paragraphs to an existing document. Requires a writable connection.
+
+| Arg | Type | Required | Notes |
+|-----|------|----------|--------|
+| `id` | string | yes | Document id |
+| `text` | string | yes | Newlines become separate paragraphs |
+
+**Example result:** `{ "id": "…", "title": "Meeting notes" }`
 
 ---
 

@@ -3,6 +3,8 @@ export type ForceNode = {
   title: string
   orphan: boolean
   degree: number
+  /** CSS fill color (tag/folder tint). */
+  color?: string
   x: number
   y: number
   vx: number

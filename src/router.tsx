@@ -18,6 +18,7 @@ import { StoragePage } from '@/pages/settings/StoragePage'
 import { ShortcutsPage } from '@/pages/settings/ShortcutsPage'
 import { AboutPage } from '@/pages/settings/AboutPage'
 import { DiagnosticsPage } from '@/pages/settings/DiagnosticsPage'
+import { McpPage } from '@/pages/settings/McpPage'
 
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
@@ -104,6 +105,12 @@ const settingsDiagnosticsRoute = createRoute({
   component: DiagnosticsPage,
 })
 
+const settingsMcpRoute = createRoute({
+  getParentRoute: () => settingsLayoutRoute,
+  path: 'mcp',
+  component: McpPage,
+})
+
 const settingsAboutRoute = createRoute({
   getParentRoute: () => settingsLayoutRoute,
   path: 'about',
@@ -132,6 +139,7 @@ const routeTree = rootRoute.addChildren([
       settingsStorageRoute,
       settingsShortcutsRoute,
       settingsDiagnosticsRoute,
+      settingsMcpRoute,
       settingsDocsRedirectRoute,
       settingsAboutRoute,
     ]),

@@ -2,7 +2,7 @@
 
 Use your local **Scribe** notes as memory for **Claude Desktop** and **Cursor** via the [Model Context Protocol](https://modelcontextprotocol.io/).
 
-The server reads the Scribe SQLite database **read-only** (safe while the app is open). Claude does not write to your library — it only searches and loads notes on demand.
+The server prefers a **writable** SQLite connection so it can create/append notes; if the DB is locked it falls back to **read-only** (common while the Scribe app is open). Set `SCRIBE_MCP_WRITE=0` to force readonly.
 
 | | |
 |--|--|
@@ -86,6 +86,7 @@ Example file in the repo: [`cursor.mcp.example.json`](cursor.mcp.example.json).
 | Variable | Meaning |
 |----------|---------|
 | `SCRIBE_DB_PATH` | Absolute path to `scribe.db` if not using the default |
+| `SCRIBE_MCP_WRITE` | Set to `0` to force read-only (default: try writable first) |
 
 ```bash
 SCRIBE_DB_PATH="/path/to/scribe.db" npm start
@@ -97,7 +98,7 @@ SCRIBE_DB_PATH="/path/to/scribe.db" npm start
 
 | Tool | Use when… |
 |------|-----------|
-| `scribe_status` | Check that the DB is reachable |
+| `scribe_status` | Check that the DB is reachable (`writable` flag) |
 | `search_documents` | Recall by keyword / phrase |
 | `find_documents_by_title` | You know a note title or `[[wiki]]` label |
 | `get_document` | Need full note text as context |
@@ -106,6 +107,8 @@ SCRIBE_DB_PATH="/path/to/scribe.db" npm start
 | `list_backlinks` | What links **to** this note |
 | `list_outgoing_links` | What this note links **to** |
 | `list_link_graph` | Whole connection map |
+| `create_note` | Create a new note (writable) |
+| `append_to_note` | Append text to an existing note (writable) |
 
 Full schemas and examples: **[docs/tools.md](docs/tools.md)**.
 
@@ -117,7 +120,7 @@ Full schemas and examples: **[docs/tools.md](docs/tools.md)**.
 2. `get_document` on the best hit(s)
 3. Optionally `list_backlinks` / `list_outgoing_links` / `list_link_graph` to follow wiki connections
 
-Scribe remains the source of truth. Keep writing and linking with `[[Title]]` in the app; Claude only reads.
+Prefer writing and linking with `[[Title]]` in the app. Use `create_note` / `append_to_note` when the model should add notes; if the DB is locked by Scribe, retry.
 
 ---
 
@@ -141,6 +144,7 @@ Scribe remains the source of truth. Keep writing and linking with `[[Title]]` in
 | Tools missing in Claude | Restart Claude Desktop; check JSON commas/paths |
 | Empty search | Write/save notes in Scribe; FTS indexes on save |
 | Wrong library | Confirm path via `scribe_status` |
+| Write tools fail / `writable: false` | Scribe may lock the DB — close the app or retry; check `SCRIBE_MCP_WRITE` |
 | `better-sqlite3` build errors | Use Node 20+; re-run `npm install` in `mcp/` |
 
 More detail: [docs/en.md](docs/en.md) · [docs/sk.md](docs/sk.md).
@@ -150,5 +154,5 @@ More detail: [docs/en.md](docs/en.md) · [docs/sk.md](docs/sk.md).
 ## Privacy
 
 - Local only — no cloud upload from this server
-- Read-only SQL (`query_only`)
+- Writable when possible; otherwise `query_only` readonly
 - No API keys required for the MCP process itself

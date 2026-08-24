@@ -1,8 +1,13 @@
 import Database from 'better-sqlite3'
+import { randomUUID } from 'node:crypto'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { existsSync } from 'node:fs'
-import { tiptapToPlainText } from './plain-text.js'
+import {
+  plainTextToParagraphNodes,
+  plainTextToTipTap,
+  tiptapToPlainText,
+} from './plain-text.js'
 
 export type DocumentSummary = {
   id: string
@@ -94,24 +99,172 @@ export function defaultDbPath(): string {
   return join(homedir(), 'Library', 'Application Support', 'com.scribe.app', 'scribe.db')
 }
 
-export function openScribeDb(dbPath = defaultDbPath()): Database.Database {
+function assertDbExists(dbPath: string) {
   if (!existsSync(dbPath)) {
     throw new Error(
       `Scribe database not found at ${dbPath}. Open Scribe once to create it, or set SCRIBE_DB_PATH.`,
     )
   }
+}
 
-  // Read-only so we coexist with the running Scribe app (WAL mode).
+/** Read-only open — safe while the Scribe app holds the DB (WAL). */
+export function openScribeDb(dbPath = defaultDbPath()): Database.Database {
+  assertDbExists(dbPath)
   const db = new Database(dbPath, { readonly: true, fileMustExist: true })
   db.pragma('query_only = ON')
   return db
 }
 
+/** Writable open for create / append tools. May fail if Scribe holds an exclusive lock. */
+export function openScribeDbWritable(dbPath = defaultDbPath()): Database.Database {
+  assertDbExists(dbPath)
+  const db = new Database(dbPath, { fileMustExist: true })
+  db.pragma('journal_mode = WAL')
+  return db
+}
+
+export type OpenStoreResult = {
+  store: ScribeMemoryStore
+  writable: boolean
+}
+
+/**
+ * Prefer a writable connection so create/append work.
+ * Falls back to readonly if the DB is locked (e.g. Scribe app open).
+ * Set SCRIBE_MCP_WRITE=0 to force readonly.
+ */
+export function openScribeStore(dbPath = defaultDbPath()): OpenStoreResult {
+  const forceReadonly = process.env.SCRIBE_MCP_WRITE === '0'
+  if (!forceReadonly) {
+    try {
+      const db = openScribeDbWritable(dbPath)
+      return { store: new ScribeMemoryStore(db, true), writable: true }
+    } catch (error) {
+      console.error(
+        `[scribe-mcp] Writable open failed (falling back to readonly):`,
+        error instanceof Error ? error.message : error,
+      )
+    }
+  }
+
+  const db = openScribeDb(dbPath)
+  return { store: new ScribeMemoryStore(db, false), writable: false }
+}
+
+type TipTapDoc = {
+  type?: string
+  content?: Array<Record<string, unknown>>
+}
+
 export class ScribeMemoryStore {
-  constructor(private readonly db: Database.Database) {}
+  constructor(
+    private readonly db: Database.Database,
+    readonly writable = false,
+  ) {}
 
   close() {
     this.db.close()
+  }
+
+  private requireWritable() {
+    if (!this.writable) {
+      throw new Error(
+        'Database is open read-only. Close Scribe (or retry) so MCP can open a writable connection, or unset SCRIBE_MCP_WRITE=0.',
+      )
+    }
+  }
+
+  private syncFts(documentId: string, title: string, contentJson: string) {
+    const body = tiptapToPlainText(contentJson)
+    this.db.prepare('DELETE FROM documents_fts WHERE document_id = ?').run(documentId)
+    this.db
+      .prepare('INSERT INTO documents_fts (document_id, title, body) VALUES (?, ?, ?)')
+      .run(documentId, title, body)
+  }
+
+  createNote(input: {
+    title: string
+    content?: string
+    folderId?: string | null
+  }): { id: string; title: string } {
+    this.requireWritable()
+    const title = input.title.trim()
+    if (!title) throw new Error('title is required')
+
+    const id = randomUUID()
+    const now = Date.now()
+    const contentJson = plainTextToTipTap(input.content ?? '')
+    const folderId = input.folderId ?? null
+
+    try {
+      this.db
+        .prepare(
+          `INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at)
+           VALUES (?, ?, ?, ?, NULL, ?, ?)`,
+        )
+        .run(id, title, contentJson, folderId, now, now)
+      this.syncFts(id, title, contentJson)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (/locked|busy/i.test(message)) {
+        throw new Error(
+          `Scribe database is locked (app may be open). Retry in a moment. (${message})`,
+        )
+      }
+      throw error
+    }
+
+    return { id, title }
+  }
+
+  appendToNote(input: { id: string; text: string }): { id: string; title: string } {
+    this.requireWritable()
+    const id = input.id.trim()
+    const text = input.text
+    if (!id) throw new Error('id is required')
+    if (!text) throw new Error('text is required')
+
+    const row = this.db
+      .prepare(
+        `SELECT id, title, content_json, deleted_at FROM documents WHERE id = ?`,
+      )
+      .get(id) as
+      | { id: string; title: string; content_json: string; deleted_at: number | null }
+      | undefined
+
+    if (!row || row.deleted_at != null) {
+      throw new Error(`Document not found: ${id}`)
+    }
+
+    let doc: TipTapDoc
+    try {
+      doc = JSON.parse(row.content_json) as TipTapDoc
+    } catch {
+      doc = { type: 'doc', content: [] }
+    }
+    if (!Array.isArray(doc.content)) doc.content = []
+    doc.type = doc.type ?? 'doc'
+    doc.content.push(...(plainTextToParagraphNodes(text) as Array<Record<string, unknown>>))
+
+    const contentJson = JSON.stringify(doc)
+    const now = Date.now()
+
+    try {
+      this.db
+        .prepare(`UPDATE documents SET content_json = ?, updated_at = ? WHERE id = ?`)
+        .run(contentJson, now, id)
+      this.syncFts(id, row.title, contentJson)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (/locked|busy/i.test(message)) {
+        throw new Error(
+          `Scribe database is locked (app may be open). Retry in a moment. (${message})`,
+        )
+      }
+      throw error
+    }
+
+    return { id, title: row.title }
   }
 
   searchDocuments(query: string, limit = 10): SearchHit[] {

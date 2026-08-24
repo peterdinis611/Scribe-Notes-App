@@ -2,7 +2,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
-import { defaultDbPath, openScribeDb, ScribeMemoryStore } from './db.js'
+import { defaultDbPath, openScribeStore, ScribeMemoryStore } from './db.js'
 
 function textResult(data: unknown) {
   return {
@@ -25,8 +25,11 @@ function errorResult(message: string) {
 function createServer(): McpServer {
   const dbPath = defaultDbPath()
   let store: ScribeMemoryStore | null = null
+  let writable = false
   try {
-    store = new ScribeMemoryStore(openScribeDb(dbPath))
+    const opened = openScribeStore(dbPath)
+    store = opened.store
+    writable = opened.writable
   } catch (error) {
     console.error(`[scribe-mcp] Failed to open DB at ${dbPath}:`, error)
   }
@@ -183,8 +186,47 @@ function createServer(): McpServer {
   )
 
   server.tool(
+    'create_note',
+    'Create a new Scribe note (writable mode). Plain text becomes TipTap paragraphs. May fail if the Scribe app locks the DB — retry.',
+    {
+      title: z.string().describe('Note title'),
+      content: z.string().optional().describe('Optional initial body (plain text)'),
+      folderId: z.string().optional().describe('Optional folder id'),
+    },
+    async ({ title, content, folderId }) => {
+      try {
+        const note = requireStore().createNote({
+          title,
+          content,
+          folderId: folderId ?? null,
+        })
+        return textResult(note)
+      } catch (error) {
+        return errorResult(String(error))
+      }
+    },
+  )
+
+  server.tool(
+    'append_to_note',
+    'Append plain text paragraphs to an existing Scribe note. May fail if the Scribe app locks the DB — retry.',
+    {
+      id: z.string().describe('Document id'),
+      text: z.string().describe('Plain text to append (newlines become paragraphs)'),
+    },
+    async ({ id, text }) => {
+      try {
+        const note = requireStore().appendToNote({ id, text })
+        return textResult(note)
+      } catch (error) {
+        return errorResult(String(error))
+      }
+    },
+  )
+
+  server.tool(
     'scribe_status',
-    'Health check: which Scribe database file is being used as memory.',
+    'Health check: which Scribe database file is being used as memory, and whether writes are enabled.',
     async () => {
       try {
         const s = requireStore()
@@ -193,6 +235,7 @@ function createServer(): McpServer {
         return textResult({
           ok: true,
           dbPath,
+          writable,
           sampleDocumentCount: docs.length,
           edgeCount: graph.edges.length,
           orphanCount: graph.orphans.length,
