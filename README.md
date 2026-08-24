@@ -11,18 +11,20 @@ Scribe runs locally on your Mac. No accounts, no cloud — documents, the databa
 ### Editor
 - Rich-text editor built on **TipTap** / ProseMirror
 - Switch between formatted text and **Markdown** source
-- Formatting: headings, lists, checklists, tables, images, links, footnotes
+- Formatting: headings, lists, checklists, tables, images (caption, crop, full-width), links, footnotes
 - Slash commands (`/`), bubble menu, drag & drop blocks and images
-- Wiki links (`[[document]]`), comments, math (math.js), Mermaid diagrams, code blocks (highlight.js)
+- Block **snippets** via slash (meeting notes, decision, …)
+- Wiki links (`[[document]]`), embeds (`![[document]]`), comments, math (math.js), Mermaid diagrams, code blocks (highlight.js)
 - Print preview, page layout, headers/footers, watermarks, pagination
 - **Focus mode** — minimal UI for distraction-free writing (`⌘⇧F`, exit with `Esc`)
 
 ### Library
 - Tree-structured **folders** with drag & drop
 - Full-text document search (**SQLite FTS5**)
-- Favorites, trash, recent documents
-- Wiki **connection map** (`/graph`) and backlinks panel
-- Command palette (`⌘K`) for quick access to documents and actions
+- Favorites, trash, recent documents, **daily notes** with calendar heat map
+- Wiki **connection map** (`/graph`): local graph (double-click node), filters, tag/folder colors
+- Backlinks panel + **unlinked mentions**
+- Command palette (`⌘K`) with fuzzy matching, recent docs, and wiki targets
 - Optional **Memory MCP** for Claude / Cursor — see [`mcp/`](mcp/)
 
 ### Documents
@@ -37,6 +39,7 @@ Scribe runs locally on your Mac. No accounts, no cloud — documents, the databa
 - Random theme generation
 - Configurable documents folder
 - **Interface language:** Slovak or English (Settings → Appearance → Language)
+- **MCP setup** in Settings — copy Cursor config + Claude prompt template
 
 ## Tech stack
 
@@ -94,7 +97,7 @@ The dev server runs at `http://localhost:5174`. On first launch, Tauri downloads
 
 ## Scribe Memory MCP (Claude / Cursor)
 
-Expose your local notes to Claude Desktop or Cursor as an on-demand knowledge base (read-only SQLite via MCP).
+Expose your local notes to Claude Desktop or Cursor as an on-demand knowledge base (SQLite via MCP). The server prefers a **writable** connection (`create_note` / `append_to_note`) and falls back to **read-only** if the DB is locked (e.g. while Scribe is open). In-app wizard: **Settings → MCP**.
 
 - Overview & quick start: [`mcp/README.md`](mcp/README.md)
 - Full docs: [`mcp/docs/`](mcp/docs/README.md) ([EN](mcp/docs/en.md) · [SK](mcp/docs/sk.md) · [tools](mcp/docs/tools.md))

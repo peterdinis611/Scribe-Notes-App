@@ -11,18 +11,20 @@ Scribe beží lokálne na vašom Macu. Žiadne účty, žiadny cloud — dokumen
 ### Editor
 - Rich-text editor postavený na **TipTap** / ProseMirror
 - Prepínanie medzi formátovaným textom a **Markdown** zdrojákom
-- Formátovanie: nadpisy, zoznamy, checklisty, tabuľky, obrázky, odkazy, poznámky pod čiarou
+- Formátovanie: nadpisy, zoznamy, checklisty, tabuľky, obrázky (popisok, orezanie, full-width), odkazy, poznámky pod čiarou
 - Slash príkazy (`/`), bubble menu, drag & drop blokov a obrázkov
-- Wiki odkazy (`[[dokument]]`), komentáre, matematika (math.js), Mermaid diagramy, code bloky (highlight.js)
+- Blokové **snipety** cez slash (meeting notes, decision, …)
+- Wiki odkazy (`[[dokument]]`), embedy (`![[dokument]]`), komentáre, matematika (math.js), Mermaid diagramy, code bloky (highlight.js)
 - Náhľad tlače, rozloženie strán, hlavičky/päty, vodotlač, stránkovanie
 - **Režim sústredenia** — minimal UI pre nerušené písanie (`⌘⇧F`, ukončenie cez `Esc`)
 
 ### Knižnica
 - Stromová štruktúra **priečinkov** s drag & drop
 - Fulltextové vyhľadávanie dokumentov (**SQLite FTS5**)
-- Obľúbené, kôš, nedávne dokumenty
-- **Mapa prepojení** (`/graph`) a panel backlinkov
-- Príkazová paleta (`⌘K`) pre rýchly prístup k dokumentom a akciám
+- Obľúbené, kôš, nedávne dokumenty, **denné poznámky** s calendar heat map
+- **Mapa prepojení** (`/graph`): lokálny graf (dvojklik na uzol), filtre, farby podľa tagu/priečinka
+- Panel backlinkov + **unlinked mentions**
+- Príkazová paleta (`⌘K`) s fuzzy matchingom, nedávnymi dokumentmi a wiki cieľmi
 - Voliteľný **Memory MCP** pre Claude / Cursor — pozri [`mcp/`](mcp/)
 
 ### Dokumenty
@@ -37,6 +39,7 @@ Scribe beží lokálne na vašom Macu. Žiadne účty, žiadny cloud — dokumen
 - Náhodná generácia témy
 - Konfigurovateľný priečinok dokumentov
 - **Jazyk rozhrania:** slovenčina alebo angličtina (Nastavenia → Vzhľad → Jazyk)
+- **MCP setup** v Nastaveniach — skopírovať Cursor config + Claude prompt šablónu
 
 ## Tech stack
 
@@ -94,7 +97,7 @@ Dev server beží na `http://localhost:5174`. Pri prvom spustení Tauri stiahne 
 
 ## Scribe Memory MCP (Claude / Cursor)
 
-Lokálne poznámky ako knowledge base pre Claude Desktop alebo Cursor (read-only SQLite cez MCP).
+Lokálne poznámky ako knowledge base pre Claude Desktop alebo Cursor (SQLite cez MCP). Server preferuje **zápis** (`create_note` / `append_to_note`) a pri zamknutej DB (napr. bežiaci Scribe) prejde do **read-only**. In-app wizard: **Nastavenia → MCP**.
 
 - Prehľad a quick start: [`mcp/README.md`](mcp/README.md)
 - Dokumentácia: [`mcp/docs/`](mcp/docs/README.md) ([SK](mcp/docs/sk.md) · [EN](mcp/docs/en.md) · [nástroje](mcp/docs/tools.md))
