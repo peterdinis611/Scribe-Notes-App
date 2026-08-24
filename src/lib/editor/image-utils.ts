@@ -22,6 +22,16 @@ export function resolveImageSrc(src: string | null | undefined): string {
   return convertFileSrc(src)
 }
 
+function guessExtension(src: string, mime?: string): string {
+  if (mime?.includes('png')) return 'png'
+  if (mime?.includes('webp')) return 'webp'
+  if (mime?.includes('gif')) return 'gif'
+  if (mime?.includes('svg')) return 'svg'
+  if (mime?.includes('jpeg') || mime?.includes('jpg')) return 'jpg'
+  const match = src.match(/\.(png|jpe?g|gif|webp|svg)(?:\?|$)/i)
+  return match?.[1]?.toLowerCase().replace('jpeg', 'jpg') ?? 'png'
+}
+
 export async function insertImageFromFile(
   editor: Editor,
   documentId: string,
@@ -65,12 +75,41 @@ export async function insertImagesFromFiles(
   }
 }
 
-export function pickImageFiles(): Promise<File[]> {
+export async function replaceImageFromFile(documentId: string, file: File): Promise<string> {
+  const base64 = await fileToBase64(file)
+  return saveDocumentImage(documentId, file.name, base64)
+}
+
+export async function saveCroppedImage(documentId: string, dataUrl: string): Promise<string> {
+  return saveDocumentImage(documentId, `cropped-${Date.now()}.png`, dataUrl)
+}
+
+export async function downloadImageSrc(src: string, baseName = 'image'): Promise<void> {
+  const resolved = resolveImageSrc(src)
+  const response = await fetch(resolved)
+  const blob = await response.blob()
+  const ext = guessExtension(src, blob.type)
+  const safeName = baseName.replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '') || 'image'
+  const objectUrl = URL.createObjectURL(blob)
+  try {
+    const link = document.createElement('a')
+    link.href = objectUrl
+    link.download = `${safeName}.${ext}`
+    link.rel = 'noopener'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+  } finally {
+    URL.revokeObjectURL(objectUrl)
+  }
+}
+
+export function pickImageFiles(options?: { multiple?: boolean }): Promise<File[]> {
   return new Promise((resolve) => {
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = 'image/png,image/jpeg,image/gif,image/webp,image/svg+xml'
-    input.multiple = true
+    input.multiple = options?.multiple ?? true
     input.onchange = () => resolve(Array.from(input.files ?? []))
     input.click()
   })

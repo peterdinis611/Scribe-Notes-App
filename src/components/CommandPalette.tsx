@@ -10,6 +10,7 @@ import {
   BookOpen,
   FolderInput,
   FolderPlus,
+  GitBranch,
   Languages,
   LayoutTemplate,
   Moon,
@@ -325,6 +326,13 @@ export function CommandPalette() {
         label: t('commandPalette.docs'),
         icon: <BookOpen className="h-4 w-4" />,
         run: () => navigate(ROUTES.docs()),
+      },
+      {
+        type: 'action',
+        id: 'link-graph',
+        label: t('commandPalette.linkGraph'),
+        icon: <GitBranch className="h-4 w-4" />,
+        run: () => navigate(ROUTES.graph()),
       },
       {
         type: 'action',

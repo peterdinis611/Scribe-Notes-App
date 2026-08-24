@@ -21,7 +21,7 @@ import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
 import { cn, formatRelativeTime } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { setActiveDocumentId, setPendingLibraryView } from '@/store/documentsSlice'
+import { setActiveDocumentId } from '@/store/documentsSlice'
 import {
   EditorSidePanel,
   EditorSidePanelEmpty,
@@ -133,8 +133,8 @@ export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
   }, [activeId, activeTitle, backlinks, outgoing, t])
 
   const openFullGraph = useCallback(() => {
-    dispatch(setPendingLibraryView({ view: 'graph', aroundActive: true }))
-  }, [dispatch])
+    void navigate(ROUTES.graph({ around: true }))
+  }, [navigate])
 
   const renderList = (docs: DocumentSummary[], emptyText: string) => {
     if (docs.length === 0) {

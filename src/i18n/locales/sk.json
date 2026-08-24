@@ -41,6 +41,7 @@
     "editor": "Editor",
     "settings": "Nastavenia",
     "docs": "Dokumentácia",
+    "graph": "Mapa prepojení",
     "settingsSections": "Sekcie nastavení",
     "closeLibrary": "Zavrieť knižnicu",
     "openLibrary": "Otvoriť knižnicu",
@@ -51,6 +52,7 @@
     "brandTagline": "Lokálny editor dokumentov. Vytvorte nový, importujte súbor alebo pokračujte v písaní.",
     "newDocument": "Nový dokument",
     "import": "Importovať",
+    "connectionMap": "Mapa prepojení",
     "recentDocuments": "Nedávne dokumenty",
     "noDocuments": "Zatiaľ žiadne dokumenty",
     "noDocumentsHint": "Začnite novým dokumentom, ukážkou alebo importom.",
@@ -116,6 +118,7 @@
     "unpinDocument": "Odopnúť dokument",
     "settings": "Nastavenia",
     "docs": "Dokumentácia",
+    "linkGraph": "Mapa prepojení",
     "toggleTheme": "Prepínať tému",
     "randomTheme": "Náhodná téma",
     "randomThemeHint": "Vygenerovať vlastnú paletu",
@@ -562,7 +565,7 @@
       "favorites": "Obľúbené",
       "journal": "Denník",
       "tags": "Štítky",
-      "graph": "Graf odkazov"
+      "graph": "Mapa prepojení"
     },
     "trash": "Kôš",
     "newFolder": "Nový priečinok",
@@ -690,7 +693,7 @@
       "outgoingEmpty": "Tento dokument zatiaľ na nič neodkazuje.",
       "loadError": "Nepodarilo sa načítať odkazy",
       "neighborhood": "Okolo",
-      "openGraph": "Otvoriť graf odkazov",
+      "openGraph": "Otvoriť mapu prepojení",
       "edgeSummary": "{{count}} odkazov v okolí"
     },
     "stats": {
@@ -769,8 +772,9 @@
     "markdown": "Markdown"
   },
   "linkGraph": {
-    "loading": "Načítavam graf odkazov…",
+    "loading": "Načítavam mapu prepojení…",
     "empty": "Zatiaľ žiadne wiki odkazy medzi dokumentmi.",
+    "emptyHint": "V dokumente napíšte [[Názov]] a dokumenty sa tu zobrazia ako mapa.",
     "emptyOrphans": "Žiadne osirolené dokumenty — všetky sú prepojené.",
     "emptyAround": "Aktívny dokument nemá susedov. Vypnite Okolie, alebo zapnite Osirotelé.",
     "summary": "{{nodes}} dokumentov · {{edges}} odkazov",
@@ -781,7 +785,12 @@
     "filterAroundShort": "Okolo",
     "zoomIn": "Priblížiť",
     "zoomOut": "Oddialiť",
-    "resetView": "Resetovať pohľad"
+    "resetView": "Resetovať pohľad",
+    "eyebrow": "Wiki odkazy",
+    "pageTitle": "Mapa prepojení",
+    "pageSubtitle": "Vizualizácia dokumentov spojených cez [[wiki odkazy]]. Kliknutím na uzol dokument otvoríte.",
+    "openFullMap": "Otvoriť celú mapu prepojení",
+    "openFullMapShort": "Celá mapa"
   },
   "diagnostics": {
     "loadError": "Nepodarilo sa načítať diagnostiku",
@@ -1339,13 +1348,20 @@
     "alignLeft": "Zarovnať vľavo",
     "alignCenter": "Na stred",
     "alignRight": "Zarovnať vpravo",
+    "fullWidth": "Na celú šírku",
     "floatLeft": "Obtekanie vpravo",
     "floatRight": "Obtekanie vľavo",
-    "properties": "Vlastnosti obrázka",
+    "alignGroup": "Zarovnanie obrázka",
+    "wrapGroup": "Obtekanie textu",
+    "properties": "Alt text",
     "crop": "Orezať",
     "cropTitle": "Orezať obrázok",
     "cropHint": "Presuňte výber a potom aplikujte orezanie.",
     "applyCrop": "Aplikovať orez",
+    "replace": "Nahradiť obrázok",
+    "download": "Stiahnuť",
+    "delete": "Zmazať obrázok",
+    "missing": "Obrázok nie je dostupný",
     "alt": "Alt text",
     "altPlaceholder": "Popíšte obrázok pre prístupnosť",
     "caption": "Popisok",

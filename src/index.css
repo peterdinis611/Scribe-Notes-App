@@ -1062,15 +1062,9 @@ html[data-ui-skin='press'] .editor-shell--home {
   background: color-mix(in srgb, var(--welcome-plate) 70%, white);
 }
 
-.welcome-recent-body {
-  display: flex;
+.welcome-recent-title {
   min-width: 0;
   flex: 1;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.welcome-recent-title {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1082,8 +1076,10 @@ html[data-ui-skin='press'] .editor-shell--home {
 
 .welcome-recent-meta {
   display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 0.3rem;
+  margin-left: 0.75rem;
   font-family: var(--welcome-mono);
   font-size: 11px;
   color: var(--welcome-slate);
@@ -3658,6 +3654,7 @@ body.is-block-dragging .tiptap {
 .tiptap .image-block {
   position: relative;
   clear: both;
+  margin: 1.25rem 0;
 }
 
 .tiptap .image-block-inner {
@@ -3666,26 +3663,85 @@ body.is-block-dragging .tiptap {
   max-width: 100%;
 }
 
+.tiptap .image-block.is-full .image-block-inner {
+  display: block;
+  width: 100%;
+}
+
+.tiptap .image-media {
+  position: relative;
+  display: block;
+  border-radius: 10px;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--color-hover) 80%, transparent), transparent 60%),
+    var(--color-hover);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-border) 80%, transparent),
+    0 10px 28px rgba(0, 0, 0, 0.06);
+  transition:
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.tiptap .image-block.is-selected .image-media {
+  box-shadow:
+    0 0 0 2px var(--color-selection-strong),
+    0 14px 36px rgba(0, 0, 0, 0.1);
+}
+
 .tiptap .image-block img {
   display: block;
   max-width: 100%;
+  width: 100%;
   height: auto;
-  border-radius: 8px;
-  border: 1px solid var(--color-border);
-  background: var(--color-hover);
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  user-select: none;
 }
 
-.tiptap .image-block.is-selected img {
-  outline: 2px solid var(--color-selection-strong);
-  outline-offset: 2px;
+.tiptap .image-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 160px;
+  padding: 24px;
+  color: var(--color-muted-foreground);
+  font-size: 13px;
+}
+
+.tiptap .image-caption-wrap {
+  margin-top: 8px;
 }
 
 .tiptap .image-caption {
-  margin: 6px 0 0;
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  resize: none;
+  overflow: hidden;
+  background: transparent;
   text-align: center;
-  font-size: 12px;
-  line-height: 1.4;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.45;
   color: var(--color-muted-foreground);
+  font-style: italic;
+  outline: none;
+  box-shadow: none;
+}
+
+.tiptap .image-caption.is-empty:not(:focus) {
+  opacity: 0.72;
+}
+
+.tiptap .image-caption::placeholder {
+  color: color-mix(in srgb, var(--color-muted-foreground) 70%, transparent);
   font-style: italic;
 }
 
@@ -3693,10 +3749,11 @@ body.is-block-dragging .tiptap {
   margin-top: 8px;
   display: grid;
   gap: 6px;
-  padding: 8px;
-  border-radius: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
   border: 1px solid var(--color-border);
   background: var(--color-surface-elevated);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
 }
 
 .tiptap .image-props-field {
@@ -3721,7 +3778,8 @@ body.is-block-dragging .tiptap {
   margin-left: 0;
 }
 
-.tiptap .image-align-center .image-block-inner {
+.tiptap .image-align-center .image-block-inner,
+.tiptap .image-align-full .image-block-inner {
   margin-left: auto;
   margin-right: auto;
 }
@@ -3733,14 +3791,16 @@ body.is-block-dragging .tiptap {
 
 .tiptap .image-align-float-left {
   float: left;
-  margin: 0 16px 12px 0;
+  margin: 0.2rem 1.1rem 0.9rem 0;
   clear: none;
+  max-width: min(52%, 420px);
 }
 
 .tiptap .image-align-float-right {
   float: right;
-  margin: 0 0 12px 16px;
+  margin: 0.2rem 0 0.9rem 1.1rem;
   clear: none;
+  max-width: min(52%, 420px);
 }
 
 .tiptap .image-drag-handle {
@@ -3770,53 +3830,113 @@ body.is-block-dragging .tiptap {
   cursor: grabbing;
 }
 
-.tiptap .image-align-bar {
+.tiptap .image-toolbar {
   position: absolute;
-  top: -34px;
+  top: -44px;
   left: 50%;
+  z-index: 5;
   transform: translateX(-50%);
   display: flex;
+  align-items: center;
   gap: 2px;
-  padding: 3px;
-  border-radius: 8px;
+  padding: 4px;
+  border-radius: 12px;
   border: 1px solid var(--color-border);
-  background: var(--color-background);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  background: color-mix(in srgb, var(--color-background) 92%, transparent);
+  backdrop-filter: blur(10px);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, #fff 40%, transparent) inset,
+    0 10px 28px rgba(0, 0, 0, 0.12);
+  animation: image-toolbar-in 140ms ease-out;
 }
 
-.tiptap .image-align-btn {
+@keyframes image-toolbar-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.tiptap .image-toolbar-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.tiptap .image-toolbar-sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 3px;
+  background: var(--color-border);
+}
+
+.tiptap .image-toolbar-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  min-width: 24px;
-  height: 24px;
-  padding: 0 4px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   background: transparent;
-  font-size: 10px;
   color: var(--color-foreground);
   cursor: default;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
 }
 
-.tiptap .image-align-btn:hover,
-.tiptap .image-align-btn.is-active {
+.tiptap .image-toolbar-btn:hover:not(:disabled),
+.tiptap .image-toolbar-btn.is-active {
   background: var(--color-selection);
   color: var(--color-selection-strong);
 }
 
-.tiptap .image-resize-handle {
+.tiptap .image-toolbar-btn:disabled {
+  opacity: 0.45;
+}
+
+.tiptap .image-toolbar-btn--danger:hover:not(:disabled) {
+  background: color-mix(in srgb, #ef4444 16%, transparent);
+  color: #dc2626;
+}
+
+.tiptap .image-resize-edge {
   position: absolute;
-  right: -4px;
-  bottom: -4px;
-  width: 12px;
-  height: 12px;
-  border: 2px solid #fff;
+  top: 12%;
+  bottom: 12%;
+  width: 10px;
   border-radius: 999px;
-  background: var(--color-selection-strong);
-  cursor: nwse-resize;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  background: color-mix(in srgb, var(--color-background) 70%, transparent);
+  box-shadow:
+    0 0 0 1px var(--color-selection-strong),
+    0 4px 12px rgba(0, 0, 0, 0.12);
+  opacity: 0;
+  transition: opacity 120ms ease;
+  cursor: ew-resize;
+}
+
+.tiptap .image-block.is-selected .image-resize-edge,
+.tiptap .image-block.is-resizing .image-resize-edge {
+  opacity: 1;
+}
+
+.tiptap .image-resize-edge--left {
+  left: 6px;
+}
+
+.tiptap .image-resize-edge--right {
+  right: 6px;
+}
+
+.tiptap .image-block.is-busy {
+  opacity: 0.72;
+  pointer-events: none;
 }
 
 .tiptap .ProseMirror-selectednode .image-block-inner {

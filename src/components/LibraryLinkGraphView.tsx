@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { Focus, Minus, Plus, RotateCcw } from 'lucide-react'
+import { Focus, Maximize2, Minus, Plus, RotateCcw } from 'lucide-react'
 import {
   listLinkGraph,
   type LinkGraphEdge,
@@ -124,10 +124,13 @@ function buildLayout(
 export function LibraryLinkGraphView({
   initialAroundActive = false,
   onAroundActiveConsumed,
+  variant = 'sidebar',
 }: {
   initialAroundActive?: boolean
   onAroundActiveConsumed?: () => void
+  variant?: 'sidebar' | 'page'
 } = {}) {
+  const isPage = variant === 'page'
   const [edges, setEdges] = useState<LinkGraphEdge[]>([])
   const [orphans, setOrphans] = useState<LinkGraphOrphan[]>([])
   const [loading, setLoading] = useState(true)
@@ -184,7 +187,8 @@ export function LibraryLinkGraphView({
     }
   }, [documentsVersion])
 
-  const size = 320
+  const size = isPage ? 720 : 320
+  const labelMax = isPage ? 28 : 16
   const { nodes, nodeMap, visibleEdges } = useMemo(
     () =>
       buildLayout(
@@ -197,7 +201,7 @@ export function LibraryLinkGraphView({
         aroundActive,
         titleById,
       ),
-    [activeId, aroundActive, edges, orphans, showOrphans, t, titleById],
+    [activeId, aroundActive, edges, orphans, showOrphans, size, t, titleById],
   )
 
   const openDocument = useCallback(
@@ -253,9 +257,16 @@ export function LibraryLinkGraphView({
     }
   }
 
+  const shellClass = isPage ? 'link-graph-page-body px-6 py-5 sm:px-8' : 'px-3 py-3'
+
   if (loading) {
     return (
-      <p className="px-3 py-6 text-center text-[12px] text-[var(--color-muted-foreground)]">
+      <p
+        className={cn(
+          'text-center text-[12px] text-[var(--color-muted-foreground)]',
+          isPage ? 'px-6 py-16' : 'px-3 py-6',
+        )}
+      >
         {t('linkGraph.loading')}
       </p>
     )
@@ -263,87 +274,98 @@ export function LibraryLinkGraphView({
 
   const hasContent = edges.length > 0 || (showOrphans && orphans.length > 0)
 
+  const toolbar = (
+    <div className={cn('mb-2 flex flex-wrap items-center gap-1', isPage && 'mb-3 gap-1.5')}>
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        className="h-7 w-7"
+        title={t('linkGraph.zoomOut')}
+        onClick={() => zoomBy(-0.15)}
+      >
+        <Minus className="h-3.5 w-3.5" />
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        className="h-7 w-7"
+        title={t('linkGraph.zoomIn')}
+        onClick={() => zoomBy(0.15)}
+      >
+        <Plus className="h-3.5 w-3.5" />
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        className="h-7 w-7"
+        title={t('linkGraph.resetView')}
+        onClick={resetView}
+      >
+        <RotateCcw className="h-3.5 w-3.5" />
+      </Button>
+      <Button
+        type="button"
+        variant={aroundActive ? 'default' : 'outline'}
+        size="sm"
+        className="h-7 gap-1 text-[11px]"
+        disabled={!activeId}
+        title={t('linkGraph.filterAround')}
+        onClick={() => setAroundActive((value) => !value)}
+      >
+        <Focus className="h-3 w-3" />
+        {t('linkGraph.filterAroundShort')}
+      </Button>
+      <Button
+        type="button"
+        variant={showOrphans ? 'default' : 'outline'}
+        size="sm"
+        className="h-7 text-[11px]"
+        onClick={() => setShowOrphans((value) => !value)}
+      >
+        {t('linkGraph.showOrphans')}
+      </Button>
+      {!isPage && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-7 gap-1 text-[11px]"
+          title={t('linkGraph.openFullMap')}
+          onClick={() => void navigate(ROUTES.graph({ around: aroundActive }))}
+        >
+          <Maximize2 className="h-3 w-3" />
+          {t('linkGraph.openFullMapShort')}
+        </Button>
+      )}
+    </div>
+  )
+
   if (!hasContent) {
     return (
-      <div className="px-3 py-4">
-        <div className="mb-2 flex flex-wrap gap-1">
-          <Button
-            type="button"
-            variant={showOrphans ? 'default' : 'outline'}
-            size="sm"
-            className="h-7 text-[11px]"
-            onClick={() => setShowOrphans((value) => !value)}
-          >
-            {t('linkGraph.showOrphans')}
-          </Button>
-        </div>
-        <p className="py-4 text-center text-[12px] text-[var(--color-muted-foreground)]">
+      <div className={shellClass}>
+        {toolbar}
+        <p className={cn('text-center text-[12px] text-[var(--color-muted-foreground)]', isPage ? 'py-16' : 'py-4')}>
           {showOrphans && orphans.length === 0 ? t('linkGraph.emptyOrphans') : t('linkGraph.empty')}
         </p>
         {showOrphans && orphans.length > 0 ? null : orphans.length > 0 ? (
           <p className="text-center text-[11px] text-[var(--color-muted-foreground)]">
             {t('linkGraph.orphanHint', { count: orphans.length })}
           </p>
-        ) : null}
+        ) : (
+          <p className="mx-auto max-w-[42ch] text-center text-[12px] text-[var(--color-muted-foreground)]">
+            {t('linkGraph.emptyHint')}
+          </p>
+        )}
       </div>
     )
   }
 
   return (
-    <div className="px-3 py-3">
-      <div className="mb-2 flex flex-wrap items-center gap-1">
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          className="h-7 w-7"
-          title={t('linkGraph.zoomOut')}
-          onClick={() => zoomBy(-0.15)}
-        >
-          <Minus className="h-3.5 w-3.5" />
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          className="h-7 w-7"
-          title={t('linkGraph.zoomIn')}
-          onClick={() => zoomBy(0.15)}
-        >
-          <Plus className="h-3.5 w-3.5" />
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          className="h-7 w-7"
-          title={t('linkGraph.resetView')}
-          onClick={resetView}
-        >
-          <RotateCcw className="h-3.5 w-3.5" />
-        </Button>
-        <Button
-          type="button"
-          variant={aroundActive ? 'default' : 'outline'}
-          size="sm"
-          className="h-7 gap-1 text-[11px]"
-          disabled={!activeId}
-          title={t('linkGraph.filterAround')}
-          onClick={() => setAroundActive((value) => !value)}
-        >
-          <Focus className="h-3 w-3" />
-          {t('linkGraph.filterAroundShort')}
-        </Button>
-        <Button
-          type="button"
-          variant={showOrphans ? 'default' : 'outline'}
-          size="sm"
-          className="h-7 text-[11px]"
-          onClick={() => setShowOrphans((value) => !value)}
-        >
-          {t('linkGraph.showOrphans')}
-        </Button>
-      </div>
+    <div className={shellClass}>
+      {toolbar}
 
       <p className="mb-2 text-[11px] text-[var(--color-muted-foreground)]">
         {t('linkGraph.summary', {
@@ -366,72 +388,95 @@ export function LibraryLinkGraphView({
               : t('linkGraph.empty')}
         </p>
       ) : (
-      <div
-        className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-canvas)] touch-none"
-        onWheel={handleWheel}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-      >
-        <svg viewBox={`0 0 ${size} ${size}`} className="h-auto w-full select-none">
-          <g transform={`translate(${pan.x / scale} ${pan.y / scale}) scale(${scale})`}>
-            {visibleEdges.map((edge) => {
-              const source = nodeMap.get(edge.sourceId)
-              const target = nodeMap.get(edge.targetId)
-              if (!source || !target) return null
-              const isActive = activeId === edge.sourceId || activeId === edge.targetId
-              return (
-                <line
-                  key={`${edge.sourceId}-${edge.targetId}`}
-                  x1={source.x}
-                  y1={source.y}
-                  x2={target.x}
-                  y2={target.y}
-                  stroke={
-                    isActive
-                      ? 'color-mix(in srgb, var(--color-accent) 70%, transparent)'
-                      : 'color-mix(in srgb, var(--color-border) 90%, transparent)'
-                  }
-                  strokeWidth={isActive ? 2 : 1}
-                />
-              )
-            })}
-            {nodes.map((node) => (
-              <g
-                key={node.id}
-                data-graph-node=""
-                className="cursor-pointer"
-                onClick={() => openDocument(node.id)}
-              >
-                <circle
-                  cx={node.x}
-                  cy={node.y}
-                  r={activeId === node.id ? 10 : node.orphan ? 5.5 : 7}
-                  className={cn(
-                    activeId === node.id
-                      ? 'fill-[var(--color-accent)]'
-                      : node.orphan
-                        ? 'fill-[color-mix(in_srgb,var(--color-muted-foreground)_35%,transparent)]'
-                        : 'fill-[var(--color-surface-elevated)]',
-                  )}
-                  stroke="var(--color-border)"
-                  strokeWidth={1.5}
-                  strokeDasharray={node.orphan ? '2 2' : undefined}
-                />
-                <text
-                  x={node.x}
-                  y={node.y + 18}
-                  textAnchor="middle"
-                  className="fill-[var(--color-muted-foreground)] text-[8px]"
+        <div
+          className={cn(
+            'overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-canvas)] touch-none',
+            isPage && 'min-h-[min(70vh,720px)] shadow-[inset_0_1px_0_color-mix(in_srgb,#fff_6%,transparent)]',
+          )}
+          onWheel={handleWheel}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+        >
+          <svg
+            viewBox={`0 0 ${size} ${size}`}
+            className={cn('h-auto w-full select-none', isPage && 'min-h-[min(70vh,720px)]')}
+          >
+            <g transform={`translate(${pan.x / scale} ${pan.y / scale}) scale(${scale})`}>
+              {visibleEdges.map((edge) => {
+                const source = nodeMap.get(edge.sourceId)
+                const target = nodeMap.get(edge.targetId)
+                if (!source || !target) return null
+                const isActive = activeId === edge.sourceId || activeId === edge.targetId
+                return (
+                  <line
+                    key={`${edge.sourceId}-${edge.targetId}`}
+                    x1={source.x}
+                    y1={source.y}
+                    x2={target.x}
+                    y2={target.y}
+                    stroke={
+                      isActive
+                        ? 'color-mix(in srgb, var(--color-accent) 70%, transparent)'
+                        : 'color-mix(in srgb, var(--color-border) 90%, transparent)'
+                    }
+                    strokeWidth={isActive ? (isPage ? 2.5 : 2) : isPage ? 1.5 : 1}
+                  />
+                )
+              })}
+              {nodes.map((node) => (
+                <g
+                  key={node.id}
+                  data-graph-node=""
+                  className="cursor-pointer"
+                  onClick={() => openDocument(node.id)}
                 >
-                  {node.title.length > 16 ? `${node.title.slice(0, 15)}…` : node.title}
-                </text>
-              </g>
-            ))}
-          </g>
-        </svg>
-      </div>
+                  <circle
+                    cx={node.x}
+                    cy={node.y}
+                    r={
+                      activeId === node.id
+                        ? isPage
+                          ? 14
+                          : 10
+                        : node.orphan
+                          ? isPage
+                            ? 8
+                            : 5.5
+                          : isPage
+                            ? 10
+                            : 7
+                    }
+                    className={cn(
+                      activeId === node.id
+                        ? 'fill-[var(--color-accent)]'
+                        : node.orphan
+                          ? 'fill-[color-mix(in_srgb,var(--color-muted-foreground)_35%,transparent)]'
+                          : 'fill-[var(--color-surface-elevated)]',
+                    )}
+                    stroke="var(--color-border)"
+                    strokeWidth={isPage ? 2 : 1.5}
+                    strokeDasharray={node.orphan ? '2 2' : undefined}
+                  />
+                  <text
+                    x={node.x}
+                    y={node.y + (isPage ? 24 : 18)}
+                    textAnchor="middle"
+                    className={cn(
+                      'fill-[var(--color-muted-foreground)]',
+                      isPage ? 'text-[11px]' : 'text-[8px]',
+                    )}
+                  >
+                    {node.title.length > labelMax
+                      ? `${node.title.slice(0, labelMax - 1)}…`
+                      : node.title}
+                  </text>
+                </g>
+              ))}
+            </g>
+          </svg>
+        </div>
       )}
     </div>
   )

@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { ArrowRight, Clock, FileText, FolderInput, Plus } from 'lucide-react'
+import { ArrowRight, Clock, FileText, FolderInput, GitBranch, Plus } from 'lucide-react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
@@ -79,6 +79,15 @@ export function WelcomeScreen() {
         {t('welcome.import')}
       </Button>
       <DemoGuideButton />
+      <Button
+        variant="outline"
+        size="default"
+        className={uiSkin === 'press' ? 'welcome-cta-secondary' : undefined}
+        onClick={() => void navigate(ROUTES.graph())}
+      >
+        <GitBranch className="h-4 w-4" />
+        {t('welcome.connectionMap')}
+      </Button>
     </div>
   )
 
@@ -145,28 +154,22 @@ export function WelcomeScreen() {
                 </span>
                 <span
                   className={
-                    uiSkin === 'press' ? 'welcome-recent-body' : 'min-w-0 flex-1'
+                    uiSkin === 'press'
+                      ? 'welcome-recent-title'
+                      : 'm-0 min-w-0 flex-1 truncate text-[14px] font-semibold text-[var(--color-foreground)]'
                   }
                 >
-                  <span
-                    className={
-                      uiSkin === 'press'
-                        ? 'welcome-recent-title'
-                        : 'm-0 truncate text-[14px] font-semibold text-[var(--color-foreground)]'
-                    }
-                  >
-                    {doc.title}
-                  </span>
-                  <span
-                    className={
-                      uiSkin === 'press'
-                        ? 'welcome-recent-meta'
-                        : 'mt-0.5 inline-flex items-center gap-1 text-[11px] text-[var(--color-muted-foreground)]'
-                    }
-                  >
-                    <Clock className="h-3 w-3" />
-                    {formatRelativeTime(doc.updatedAt)}
-                  </span>
+                  {doc.title}
+                </span>
+                <span
+                  className={
+                    uiSkin === 'press'
+                      ? 'welcome-recent-meta'
+                      : 'ml-3 inline-flex shrink-0 items-center gap-1 text-[11px] text-[var(--color-muted-foreground)]'
+                  }
+                >
+                  <Clock className="h-3 w-3" />
+                  {formatRelativeTime(doc.updatedAt)}
                 </span>
                 <ArrowRight
                   className={

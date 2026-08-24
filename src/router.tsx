@@ -10,6 +10,7 @@ import { SettingsLayout } from '@/layouts/SettingsLayout'
 import { HomePage } from '@/pages/HomePage'
 import { DocumentPage } from '@/pages/DocumentPage'
 import { DocsPage } from '@/pages/DocsPage'
+import { GraphPage } from '@/pages/GraphPage'
 import { ErrorPage } from '@/pages/ErrorPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { AppearancePage } from '@/pages/settings/AppearancePage'
@@ -46,6 +47,15 @@ const docsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/docs',
   component: DocsPage,
+})
+
+const graphRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/graph',
+  validateSearch: (search: Record<string, unknown>): { around?: boolean } => ({
+    around: search.around === true || search.around === 'true' ? true : undefined,
+  }),
+  component: GraphPage,
 })
 
 const settingsLayoutRoute = createRoute({
@@ -114,6 +124,7 @@ const routeTree = rootRoute.addChildren([
     homeRoute,
     documentRoute,
     docsRoute,
+    graphRoute,
     settingsLayoutRoute.addChildren([
       settingsIndexRoute,
       settingsAppearanceRoute,

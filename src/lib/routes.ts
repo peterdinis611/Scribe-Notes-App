@@ -60,6 +60,10 @@ export const ROUTES = {
     params: { documentId: id },
   }),
   docs: () => ({ to: '/docs' as const }),
+  graph: (options?: { around?: boolean }) => ({
+    to: '/graph' as const,
+    search: options?.around ? { around: true as const } : {},
+  }),
   settingsSection: (section: SettingsSection) => ({
     to: SETTINGS_PATHS[section],
   }),
