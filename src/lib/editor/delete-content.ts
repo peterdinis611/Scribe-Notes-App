@@ -46,5 +46,7 @@ export function deleteCurrentBlock(editor: Editor): boolean {
 }
 
 export function shouldShowBlockBubble(editor: Editor): boolean {
+  // Image blocks have their own Notion-style toolbar with delete.
+  if (editor.isActive('image')) return false
   return canDeleteCurrentBlock(editor)
 }

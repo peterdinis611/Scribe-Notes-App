@@ -223,10 +223,16 @@ function renderNodes(nodes: TipTapNode[] | undefined, ctx: RenderContext): strin
             ? ` width="${node.attrs.width}" style="width:${node.attrs.width}"`
             : ''
           const align = String(node.attrs?.align ?? 'center')
+          const textAlign =
+            align === 'full'
+              ? 'center'
+              : align.includes('float')
+                ? 'left'
+                : align
           const captionHtml = caption
             ? `<figcaption>${escapeHtml(caption)}</figcaption>`
             : ''
-          return `<figure data-align="${align}" style="text-align:${align.includes('float') ? 'left' : align.replace('float-', '')}"><img src="${escapeHtml(src)}" alt="${alt}"${width} />${captionHtml}</figure>`
+          return `<figure data-align="${align}" style="text-align:${textAlign}"><img src="${escapeHtml(src)}" alt="${alt}"${width} />${captionHtml}</figure>`
         }
         case 'taskList':
           return `<ul data-type="taskList">${renderNodes(node.content, ctx)}</ul>`

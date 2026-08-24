@@ -66,7 +66,8 @@ export function AppLayout() {
   const focusMode = useAppSelector((state) => state.documents.focusMode)
   const pathname = useRouterState({ select: (state) => state.location.pathname })
   const onHomePage = pathname === '/'
-  const showSidebar = !focusMode && !onHomePage
+  const onGraphPage = pathname === '/graph'
+  const showSidebar = !focusMode && !onHomePage && !onGraphPage
   const dispatch = useAppDispatch()
   const { t } = useTranslation()
 
@@ -145,7 +146,7 @@ export function AppLayout() {
       data-layout-tier={layoutTier}
       data-sidebar-drawer={isCompact && showSidebar ? 'true' : 'false'}
       data-focus-mode={focusMode ? 'true' : 'false'}
-      data-home={onHomePage ? 'true' : 'false'}
+      data-home={onHomePage || onGraphPage ? 'true' : 'false'}
       data-sidebar-hidden={showSidebar ? 'false' : 'true'}
     >
       {showSidebar && (

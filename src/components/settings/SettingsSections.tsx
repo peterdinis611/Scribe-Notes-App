@@ -9,6 +9,7 @@ import { LocaleToggle } from '@/components/LocaleToggle'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DiagnosticsSection } from '@/components/settings/DiagnosticsSection'
+import { McpSection } from '@/components/settings/McpSection'
 import {
   SettingsGroup,
   SettingsKbd,
@@ -571,6 +572,8 @@ export function SettingsSectionContent({ section }: { section: SettingsSectionId
       return <ShortcutsSection />
     case 'diagnostics':
       return <DiagnosticsSection />
+    case 'mcp':
+      return <McpSection />
     case 'about':
       return <AboutSection />
   }

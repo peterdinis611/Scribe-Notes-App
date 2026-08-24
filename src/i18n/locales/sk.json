@@ -41,6 +41,7 @@
     "editor": "Editor",
     "settings": "Nastavenia",
     "docs": "Dokumentácia",
+    "graph": "Mapa prepojení",
     "settingsSections": "Sekcie nastavení",
     "closeLibrary": "Zavrieť knižnicu",
     "openLibrary": "Otvoriť knižnicu",
@@ -51,6 +52,7 @@
     "brandTagline": "Lokálny editor dokumentov. Vytvorte nový, importujte súbor alebo pokračujte v písaní.",
     "newDocument": "Nový dokument",
     "import": "Importovať",
+    "connectionMap": "Mapa prepojení",
     "recentDocuments": "Nedávne dokumenty",
     "noDocuments": "Zatiaľ žiadne dokumenty",
     "noDocumentsHint": "Začnite novým dokumentom, ukážkou alebo importom.",
@@ -116,6 +118,7 @@
     "unpinDocument": "Odopnúť dokument",
     "settings": "Nastavenia",
     "docs": "Dokumentácia",
+    "linkGraph": "Mapa prepojení",
     "toggleTheme": "Prepínať tému",
     "randomTheme": "Náhodná téma",
     "randomThemeHint": "Vygenerovať vlastnú paletu",
@@ -188,6 +191,10 @@
       "diagnostics": {
         "label": "Diagnostika",
         "description": "Stav databázy a úložiska"
+      },
+      "mcp": {
+        "label": "MCP",
+        "description": "Scribe Memory pre Cursor"
       },
       "about": {
         "label": "O aplikácii",
@@ -262,6 +269,24 @@
     "diagnostics": {
       "title": "Diagnostika",
       "description": "Stav SQLite, cesty a posledné operácie na disku."
+    },
+    "mcp": {
+      "title": "Scribe Memory MCP",
+      "description": "Prepojte Cursor alebo Claude Desktop s lokálnou knižnicou Scribe.",
+      "intro": "MCP server Scribe Memory umožňuje AI klientovi vyhľadávať poznámky, načítavať dokumenty, sledovať wiki odkazy a voliteľne vytvárať alebo dopĺňať poznámky v knižnici.",
+      "installTitle": "Inštalácia",
+      "installDescription": "Z koreňa repozitára Scribe raz nainštalujte závislosti balíka MCP.",
+      "configTitle": "Cursor konfigurácia",
+      "configDescription": "Vložte do nastavení MCP v Cursor alebo do .cursor/mcp.json. __SCRIBE/mcp nahraďte absolútnou cestou k priečinku mcp/ v tomto repo.",
+      "copyConfig": "Kopírovať Cursor config",
+      "configCopied": "Cursor config skopírovaný",
+      "promptTitle": "Šablóna promptu",
+      "promptDescription": "Voliteľná inštrukcia, aby model preferoval fakty z knižnice pred dohadmi.",
+      "copyPrompt": "Kopírovať šablónu promptu",
+      "promptCopied": "Šablóna promptu skopírovaná",
+      "copyError": "Nepodarilo sa skopírovať do schránky",
+      "pathHint": "Po npm run mcp:install nastavte absolútnu --prefix cestu (pozri mcp/README.md). Príklad: npm run start --prefix /Users/VAS/cesta/k/scribe/mcp",
+      "lockHint": "Nástroje na zápis potrebujú writable DB. Ak Scribe drží zámok, skúste create/append znova o chvíľu alebo skontrolujte scribe_status (writable: false)."
     },
     "shortcuts": {
       "title": "Klávesové skratky",
@@ -562,7 +587,7 @@
       "favorites": "Obľúbené",
       "journal": "Denník",
       "tags": "Štítky",
-      "graph": "Graf odkazov"
+      "graph": "Mapa prepojení"
     },
     "trash": "Kôš",
     "newFolder": "Nový priečinok",
@@ -688,9 +713,12 @@
       "outgoing": "Odkazy odtiaľto",
       "incomingEmpty": "Zatiaľ sem neodkazuje žiadny dokument.",
       "outgoingEmpty": "Tento dokument zatiaľ na nič neodkazuje.",
+      "unlinked": "Nespomenuté odkazy",
+      "unlinkedHint": "Dokumenty, ktoré spomínajú tento názov, ale ešte nemajú [[wiki odkaz]].",
+      "unlinkedEmpty": "Žiadne nespomenuté výskyty.",
       "loadError": "Nepodarilo sa načítať odkazy",
       "neighborhood": "Okolo",
-      "openGraph": "Otvoriť graf odkazov",
+      "openGraph": "Otvoriť mapu prepojení",
       "edgeSummary": "{{count}} odkazov v okolí"
     },
     "stats": {
@@ -769,8 +797,9 @@
     "markdown": "Markdown"
   },
   "linkGraph": {
-    "loading": "Načítavam graf odkazov…",
+    "loading": "Načítavam mapu prepojení…",
     "empty": "Zatiaľ žiadne wiki odkazy medzi dokumentmi.",
+    "emptyHint": "V dokumente napíšte [[Názov]] a dokumenty sa tu zobrazia ako mapa.",
     "emptyOrphans": "Žiadne osirolené dokumenty — všetky sú prepojené.",
     "emptyAround": "Aktívny dokument nemá susedov. Vypnite Okolie, alebo zapnite Osirotelé.",
     "summary": "{{nodes}} dokumentov · {{edges}} odkazov",
@@ -779,9 +808,25 @@
     "orphanHint": "{{count}} neprepojených dokumentov — zapnite Osirolené.",
     "filterAround": "Zobraziť len aktívny dokument a jeho susedov",
     "filterAroundShort": "Okolo",
+    "favoritesOnly": "Len obľúbené dokumenty",
+    "favoritesOnlyShort": "Obľúbené",
+    "colorMode": "Farba uzlov podľa štítku / priečinka",
+    "colorNone": "Farby off",
+    "colorTag": "Štítky",
+    "colorFolder": "Priečinky",
+    "tagFilter": "Filter podľa štítku",
+    "tagFilterAll": "Všetky štítky",
+    "localGraphHint": "Lokálny graf — dvojklik na uzol",
     "zoomIn": "Priblížiť",
     "zoomOut": "Oddialiť",
-    "resetView": "Resetovať pohľad"
+    "resetView": "Resetovať pohľad",
+    "fitView": "Prispôsobiť mapu (dvojklik na pozadie)",
+    "eyebrow": "Wiki odkazy",
+    "pageTitle": "Mapa prepojení",
+    "pageSubtitle": "Vizualizácia dokumentov spojených cez [[wiki odkazy]]. Kliknutím na uzol dokument otvoríte.",
+    "openFullMap": "Otvoriť celú mapu prepojení",
+    "openFullMapShort": "Celá mapa",
+    "obsidianHint": "Zoom na kurzor · % / reset = celá mapa · dvojklik na pozadie"
   },
   "diagnostics": {
     "loadError": "Nepodarilo sa načítať diagnostiku",
@@ -956,6 +1001,18 @@
     "wiki-link": {
       "label": "Prepojiť dokument",
       "hint": "Odkaz [[ na dokument"
+    },
+    "wiki-embed": {
+      "label": "Vložená poznámka",
+      "hint": "![[Názov]] — náhľad"
+    },
+    "snippet-meeting": {
+      "label": "Snippet: Meeting",
+      "hint": "Agenda a úlohy"
+    },
+    "snippet-decision": {
+      "label": "Snippet: Decision",
+      "hint": "Kontext a rozhodnutie"
     },
     "toc": {
       "label": "Obsah",
@@ -1325,6 +1382,8 @@
     "prevMonth": "Predchádzajúci mesiac",
     "nextMonth": "Nasledujúci mesiac",
     "calendarHint": "Kliknite na deň a otvoríte alebo vytvoríte denný zápis.",
+    "heatLess": "Menej",
+    "heatMore": "Viac",
     "weekday": {
       "mon": "Po",
       "tue": "Ut",
@@ -1335,17 +1394,29 @@
       "sun": "Ne"
     }
   },
+  "wikiEmbed": {
+    "open": "Otvoriť dokument",
+    "missing": "Dokument sa nenašiel — skontrolujte ![[Názov]].",
+    "empty": "Prázdna poznámka"
+  },
   "image": {
     "alignLeft": "Zarovnať vľavo",
     "alignCenter": "Na stred",
     "alignRight": "Zarovnať vpravo",
+    "fullWidth": "Na celú šírku",
     "floatLeft": "Obtekanie vpravo",
     "floatRight": "Obtekanie vľavo",
-    "properties": "Vlastnosti obrázka",
+    "alignGroup": "Zarovnanie obrázka",
+    "wrapGroup": "Obtekanie textu",
+    "properties": "Alt text",
     "crop": "Orezať",
     "cropTitle": "Orezať obrázok",
     "cropHint": "Presuňte výber a potom aplikujte orezanie.",
     "applyCrop": "Aplikovať orez",
+    "replace": "Nahradiť obrázok",
+    "download": "Stiahnuť",
+    "delete": "Zmazať obrázok",
+    "missing": "Obrázok nie je dostupný",
     "alt": "Alt text",
     "altPlaceholder": "Popíšte obrázok pre prístupnosť",
     "caption": "Popisok",

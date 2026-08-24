@@ -14,14 +14,16 @@ import {
   listBacklinks,
   listLinkGraph,
   listOutgoingLinks,
+  searchDocuments,
   type DocumentSummary,
   type LinkGraphEdge,
+  type SearchHit,
 } from '@/lib/db/api'
 import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
 import { cn, formatRelativeTime } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { setActiveDocumentId, setPendingLibraryView } from '@/store/documentsSlice'
+import { setActiveDocumentId } from '@/store/documentsSlice'
 import {
   EditorSidePanel,
   EditorSidePanelEmpty,
@@ -82,6 +84,7 @@ export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
   const navigate = useNavigate()
   const [backlinks, setBacklinks] = useState<DocumentSummary[]>([])
   const [outgoing, setOutgoing] = useState<DocumentSummary[]>([])
+  const [unlinked, setUnlinked] = useState<SearchHit[]>([])
   const [graphEdges, setGraphEdges] = useState<LinkGraphEdge[]>([])
   const [loading, setLoading] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
@@ -91,16 +94,29 @@ export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
     if (!activeId) {
       setBacklinks([])
       setOutgoing([])
+      setUnlinked([])
       setGraphEdges([])
       return
     }
     setLoading(true)
-    Promise.all([listBacklinks(activeId), listOutgoingLinks(activeId), listLinkGraph()])
-      .then(([incoming, outbound, graph]) => {
+    const title = activeTitle.trim()
+    Promise.all([
+      listBacklinks(activeId),
+      listOutgoingLinks(activeId),
+      listLinkGraph(),
+      title.length >= 2 ? searchDocuments(title, 24) : Promise.resolve([] as SearchHit[]),
+    ])
+      .then(([incoming, outbound, graph, hits]) => {
         if (cancelled) return
         setBacklinks(incoming)
         setOutgoing(outbound)
         setGraphEdges(graph.edges)
+        const linkedIds = new Set(incoming.map((doc) => doc.id))
+        setUnlinked(
+          hits.filter(
+            (hit) => hit.documentId !== activeId && !linkedIds.has(hit.documentId),
+          ),
+        )
       })
       .catch((error) => {
         if (!cancelled) toast.error(t('panels.backlinks.loadError'), String(error))
@@ -111,7 +127,7 @@ export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
     return () => {
       cancelled = true
     }
-  }, [activeId, reloadKey, t])
+  }, [activeId, activeTitle, reloadKey, t])
 
   const handleOpen = useCallback(
     (id: string) => {
@@ -133,8 +149,8 @@ export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
   }, [activeId, activeTitle, backlinks, outgoing, t])
 
   const openFullGraph = useCallback(() => {
-    dispatch(setPendingLibraryView({ view: 'graph', aroundActive: true }))
-  }, [dispatch])
+    void navigate(ROUTES.graph({ around: true }))
+  }, [navigate])
 
   const renderList = (docs: DocumentSummary[], emptyText: string) => {
     if (docs.length === 0) {
@@ -296,6 +312,44 @@ export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
               </span>
             </h3>
             {renderList(outgoing, t('panels.backlinks.outgoingEmpty'))}
+          </div>
+
+          <div className="mt-3.5 border-t border-[var(--color-border)] pt-3">
+            <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.03em] text-[var(--color-muted-foreground)]">
+              <Link2 className="h-3.5 w-3.5" />
+              {t('panels.backlinks.unlinked')}
+              <span className="ml-auto rounded-full bg-[var(--color-hover)] px-1.5 text-[10px] font-semibold">
+                {unlinked.length}
+              </span>
+            </h3>
+            <p className="m-0 mb-1.5 text-[10.5px] text-[var(--color-muted-foreground)]">
+              {t('panels.backlinks.unlinkedHint')}
+            </p>
+            {unlinked.length === 0 ? (
+              <p className="m-0 mt-0.5 text-[11.5px] text-[var(--color-muted-foreground)]">
+                {t('panels.backlinks.unlinkedEmpty')}
+              </p>
+            ) : (
+              unlinked.map((hit) => (
+                <button
+                  key={hit.documentId}
+                  type="button"
+                  className="flex w-full items-center gap-2.5 rounded-[9px] border border-transparent bg-transparent px-2.5 py-2 text-left transition-[background,border-color] duration-120 hover:border-[var(--color-border)] hover:bg-[var(--color-surface-elevated)]"
+                  onClick={() => handleOpen(hit.documentId)}
+                  title={hit.title}
+                >
+                  <FileText className="h-4 w-4 shrink-0 opacity-60" />
+                  <span className="flex min-w-0 flex-col gap-px">
+                    <span className="truncate text-[12.5px] font-medium text-[var(--color-foreground)]">
+                      {hit.title || t('common.untitled')}
+                    </span>
+                    <span className="truncate text-[10.5px] text-[var(--color-muted-foreground)]">
+                      {hit.snippet.replace(/<\/?mark>/g, '')}
+                    </span>
+                  </span>
+                </button>
+              ))
+            )}
           </div>
         </EditorSidePanelList>
       )}

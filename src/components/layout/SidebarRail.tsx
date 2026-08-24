@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { BookOpen, FileText, Home, Settings2 } from 'lucide-react'
+import { BookOpen, FileText, GitBranch, Home, Settings2 } from 'lucide-react'
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { goToHome } from '@/lib/navigation'
@@ -20,6 +20,7 @@ export function SidebarRail({ onNavigate }: SidebarRailProps) {
   const documents = useAppSelector((state) => state.documents.documents)
   const onSettingsPage = pathname.startsWith('/settings')
   const onDocsPage = pathname === '/docs' || pathname.startsWith('/docs/')
+  const onGraphPage = pathname === '/graph'
   const onHomePage = pathname === '/'
   const onEditorPage = pathname === '/' || pathname.startsWith('/doc/')
 
@@ -72,6 +73,16 @@ export function SidebarRail({ onNavigate }: SidebarRailProps) {
         )}
       >
         <FileText className="h-[18px] w-[18px]" />
+      </Link>
+
+      <Link
+        {...ROUTES.graph()}
+        title={t('nav.graph')}
+        aria-label={t('nav.graph')}
+        onClick={() => onNavigate?.()}
+        className={cn('app-rail-btn titlebar-no-drag', onGraphPage && 'is-active')}
+      >
+        <GitBranch className="h-[18px] w-[18px]" />
       </Link>
 
       <Link

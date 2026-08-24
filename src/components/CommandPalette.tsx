@@ -10,6 +10,7 @@ import {
   BookOpen,
   FolderInput,
   FolderPlus,
+  GitBranch,
   Languages,
   LayoutTemplate,
   Moon,
@@ -328,6 +329,13 @@ export function CommandPalette() {
       },
       {
         type: 'action',
+        id: 'link-graph',
+        label: t('commandPalette.linkGraph'),
+        icon: <GitBranch className="h-4 w-4" />,
+        run: () => navigate(ROUTES.graph()),
+      },
+      {
+        type: 'action',
         id: 'language',
         label:
           locale === 'sk'
@@ -404,6 +412,10 @@ export function CommandPalette() {
   )
 
   const documentItems: PaletteItem[] = useMemo(() => {
+    const byId = new Map(
+      documents.filter((doc) => doc.deletedAt == null).map((doc) => [doc.id, doc]),
+    )
+
     if (hits.length > 0) {
       return hits.map((hit) => ({
         type: 'document' as const,
@@ -420,36 +432,77 @@ export function CommandPalette() {
       }))
     }
 
-    if (query.trim().length > 0) return []
+    const q = query.trim().toLowerCase()
+    if (q.length > 0) {
+      // Fuzzy title match when FTS has no hits yet / short query.
+      return [...byId.values()]
+        .map((doc) => {
+          const title = doc.title.toLowerCase()
+          let points = 0
+          if (title === q) points = 100
+          else if (title.startsWith(q)) points = 80
+          else if (title.includes(q)) points = 50
+          else if (q.split(/\s+/).every((token) => title.includes(token))) points = 30
+          return { doc, points }
+        })
+        .filter((entry) => entry.points > 0)
+        .sort((a, b) => b.points - a.points || b.doc.updatedAt - a.doc.updatedAt)
+        .slice(0, 10)
+        .map(({ doc }) => ({
+          type: 'document' as const,
+          id: doc.id,
+          label: doc.title,
+          icon: <FileText className="h-4 w-4" />,
+          run: () => {
+            dispatch(setActiveDocumentId(doc.id))
+            const cached = peekCachedDocument(doc.id)
+            if (cached) dispatch(setActiveDocument(cached))
+            navigate(ROUTES.document(doc.id))
+          },
+        }))
+    }
 
-    const byId = new Map(
-      documents.filter((doc) => doc.deletedAt == null).map((doc) => [doc.id, doc]),
-    )
-    return recentDocumentIds
+    const recent = recentDocumentIds
       .map((id) => byId.get(id))
       .filter((doc): doc is NonNullable<typeof doc> => doc != null)
       .slice(0, 8)
-      .map((doc) => ({
-        type: 'document' as const,
-        id: doc.id,
-        label: doc.title,
-        icon: <FileText className="h-4 w-4" />,
-        run: () => {
-          dispatch(setActiveDocumentId(doc.id))
-          const cached = peekCachedDocument(doc.id)
-          if (cached) dispatch(setActiveDocument(cached))
-          navigate(ROUTES.document(doc.id))
-        },
-      }))
+
+    return recent.map((doc) => ({
+      type: 'document' as const,
+      id: doc.id,
+      label: doc.title,
+      icon: <FileText className="h-4 w-4" />,
+      run: () => {
+        dispatch(setActiveDocumentId(doc.id))
+        const cached = peekCachedDocument(doc.id)
+        if (cached) dispatch(setActiveDocument(cached))
+        navigate(ROUTES.document(doc.id))
+      },
+    }))
   }, [dispatch, documents, hits, navigate, query, recentDocumentIds])
 
   const filteredActions = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return actions
-    return actions.filter((item) => {
-      const hint = item.type === 'action' ? item.hint : undefined
-      return item.label.toLowerCase().includes(q) || hint?.toLowerCase().includes(q)
-    })
+    const tokens = q.split(/\s+/).filter(Boolean)
+    function score(label: string, hint?: string) {
+      const hay = `${label} ${hint ?? ''}`.toLowerCase()
+      if (hay.includes(q)) return 100 - hay.indexOf(q)
+      let points = 0
+      for (const token of tokens) {
+        if (hay.includes(token)) points += 20
+        else if (label.toLowerCase().split(/\s+/).some((part) => part.startsWith(token))) points += 12
+      }
+      return points
+    }
+    return actions
+      .map((item) => {
+        const hint = item.type === 'action' ? item.hint : undefined
+        return { item, points: score(item.label, hint) }
+      })
+      .filter((entry) => entry.points > 0)
+      .sort((a, b) => b.points - a.points)
+      .map((entry) => entry.item)
   }, [actions, query])
 
   const items = useMemo(

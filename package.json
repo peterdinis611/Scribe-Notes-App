@@ -18,7 +18,9 @@
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:dev:clean": "rm -rf node_modules/.vite && tauri dev",
-    "tauri:build": "tauri build"
+    "tauri:build": "tauri build",
+    "mcp": "npm run start --prefix mcp",
+    "mcp:install": "npm install --prefix mcp"
   },
   "dependencies": {
     "@embedpdf/react-pdf-viewer": "^2.14.4",

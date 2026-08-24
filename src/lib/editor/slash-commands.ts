@@ -12,6 +12,7 @@ import { insertBlockMath, insertInlineMath, insertMermaidDiagram } from '@/lib/e
 import { pickImageFiles } from '@/lib/editor/image-utils'
 import { insertBulletList, insertOrderedList, insertTaskList } from '@/lib/editor/list-commands'
 import { createCommentForSelection } from '@/lib/editor/comments'
+import { listBlockSnippets, plainTextToTipTapContent } from '@/lib/editor/block-snippets'
 import i18n from '@/i18n'
 
 type SlashCommandDef = {
@@ -45,6 +46,9 @@ export const SLASH_COMMAND_DEFS: SlashCommandDef[] = [
   { id: 'footnote', icon: '⁽¹⁾' },
   { id: 'comment', icon: '💬' },
   { id: 'wiki-link', icon: '🔗' },
+  { id: 'wiki-embed', icon: '⧉' },
+  { id: 'snippet-meeting', icon: '📝' },
+  { id: 'snippet-decision', icon: '⚖' },
   { id: 'toc', icon: '≡' },
 ]
 
@@ -155,6 +159,23 @@ export function runSlashCommand(
     case 'wiki-link':
       editor.chain().focus().insertContent('[[').run()
       break
+    case 'wiki-embed':
+      editor.chain().focus().insertContent('![[').run()
+      break
+    case 'snippet-meeting':
+    case 'snippet-decision': {
+      const snippets = listBlockSnippets()
+      const id = item.id === 'snippet-meeting' ? 'meeting-notes' : 'decision'
+      const snippet = snippets.find((entry) => entry.id === id)
+      if (snippet) {
+        editor
+          .chain()
+          .focus()
+          .insertContent(plainTextToTipTapContent(snippet.plainText))
+          .run()
+      }
+      break
+    }
     case 'toc':
       editor.chain().focus().insertTableOfContents().run()
       break
