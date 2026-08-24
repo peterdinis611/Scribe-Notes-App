@@ -7,19 +7,16 @@ import {
   type LinkGraphEdge,
   type LinkGraphOrphan,
 } from '@/lib/db/api'
+import {
+  createForceSimulation,
+  degreeById,
+  type ForceNode,
+} from '@/lib/link-graph/force-layout'
 import { ROUTES } from '@/lib/routes'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setActiveDocumentId } from '@/store/documentsSlice'
 import { Button } from '@/components/ui/button'
-
-type GraphNode = {
-  id: string
-  title: string
-  x: number
-  y: number
-  orphan: boolean
-}
 
 function neighborIds(edges: LinkGraphEdge[], centerId: string): Set<string> {
   const ids = new Set<string>([centerId])
@@ -30,27 +27,29 @@ function neighborIds(edges: LinkGraphEdge[], centerId: string): Set<string> {
   return ids
 }
 
-function buildLayout(
+function collectVisible(
   edges: LinkGraphEdge[],
   orphans: LinkGraphOrphan[],
   centerId: string | null,
-  size: number,
-  documentFallback: string,
   showOrphans: boolean,
   aroundActive: boolean,
   titleById: Map<string, string>,
-): { nodes: GraphNode[]; nodeMap: Map<string, GraphNode>; visibleEdges: LinkGraphEdge[] } {
-  const focusIds =
-    aroundActive && centerId ? neighborIds(edges, centerId) : null
-
+  documentFallback: string,
+): {
+  nodes: Array<{ id: string; title: string; orphan: boolean; degree: number }>
+  visibleEdges: LinkGraphEdge[]
+} {
+  const focusIds = aroundActive && centerId ? neighborIds(edges, centerId) : null
   const visibleEdges = focusIds
-    ? edges.filter(
-        (edge) => focusIds.has(edge.sourceId) && focusIds.has(edge.targetId),
-      )
+    ? edges.filter((edge) => focusIds.has(edge.sourceId) && focusIds.has(edge.targetId))
     : edges
 
+  const degrees = degreeById(
+    visibleEdges.map((edge) => ({ sourceId: edge.sourceId, targetId: edge.targetId })),
+  )
   const ids = new Set<string>()
   const titles = new Map<string, string>(titleById)
+
   for (const edge of visibleEdges) {
     ids.add(edge.sourceId)
     ids.add(edge.targetId)
@@ -60,65 +59,43 @@ function buildLayout(
   for (const orphan of orphans) {
     titles.set(orphan.id, orphan.title || documentFallback)
   }
+  if (aroundActive && centerId && !ids.has(centerId)) ids.add(centerId)
 
-  // Around + isolated active doc (e.g. orphan): still show the center node.
-  if (aroundActive && centerId && !ids.has(centerId)) {
-    ids.add(centerId)
-  }
-
-  const linkedIds = [...ids]
-  const cx = size / 2
-  const cy = size / 2
-  const radius = size * 0.36
   const orphanIds = new Set(orphans.map((orphan) => orphan.id))
-
-  const nodes: GraphNode[] = linkedIds.map((id, index) => {
-    const angle = (index / Math.max(linkedIds.length, 1)) * Math.PI * 2 - Math.PI / 2
-    const isLoneCenter = linkedIds.length === 1
-    return {
-      id,
-      title: titles.get(id) ?? documentFallback,
-      x: isLoneCenter ? cx : cx + Math.cos(angle) * radius,
-      y: isLoneCenter ? cy : cy + Math.sin(angle) * radius,
-      orphan: orphanIds.has(id) && !visibleEdges.some(
-        (edge) => edge.sourceId === id || edge.targetId === id,
-      ),
-    }
-  })
-
-  if (centerId) {
-    const center = nodes.find((node) => node.id === centerId)
-    if (center && linkedIds.length > 1) {
-      center.x = cx
-      center.y = cy
-    }
-  }
+  const nodes: Array<{ id: string; title: string; orphan: boolean; degree: number }> = [
+    ...ids,
+  ].map((id) => ({
+    id,
+    title: titles.get(id) ?? documentFallback,
+    orphan:
+      orphanIds.has(id) &&
+      !visibleEdges.some((edge) => edge.sourceId === id || edge.targetId === id),
+    degree: degrees.get(id) ?? 0,
+  }))
 
   if (showOrphans) {
     const placed = new Set(nodes.map((node) => node.id))
-    const visibleOrphans = orphans.filter((orphan) => {
-      if (placed.has(orphan.id)) return false
-      // Around mode: only the active orphan belongs in the focused neighborhood.
-      if (aroundActive && centerId) return orphan.id === centerId
-      return true
-    })
-
-    const orphanRadius = size * 0.46
-    visibleOrphans.forEach((orphan, index) => {
-      const alone = nodes.length === 0 && visibleOrphans.length === 1
-      const angle =
-        (index / Math.max(visibleOrphans.length, 1)) * Math.PI * 2 - Math.PI / 2
+    for (const orphan of orphans) {
+      if (placed.has(orphan.id)) continue
+      if (aroundActive && centerId && orphan.id !== centerId) continue
       nodes.push({
         id: orphan.id,
         title: orphan.title || documentFallback,
-        x: alone ? cx : cx + Math.cos(angle) * orphanRadius,
-        y: alone ? cy : cy + Math.sin(angle) * orphanRadius,
         orphan: true,
+        degree: 0,
       })
-    })
+    }
   }
 
-  return { nodes, nodeMap: new Map(nodes.map((node) => [node.id, node])), visibleEdges }
+  return { nodes, visibleEdges }
+}
+
+function nodeRadius(node: ForceNode, isPage: boolean, isActive: boolean): number {
+  const base = isPage ? 7 : 5.5
+  const byDegree = Math.min(isPage ? 10 : 7, node.degree * (isPage ? 1.6 : 1.2))
+  const orphanShrink = node.orphan ? 0.72 : 1
+  const activeBoost = isActive ? (isPage ? 4 : 3) : 0
+  return (base + byDegree) * orphanShrink + activeBoost
 }
 
 export function LibraryLinkGraphView({
@@ -138,7 +115,17 @@ export function LibraryLinkGraphView({
   const [aroundActive, setAroundActive] = useState(initialAroundActive)
   const [scale, setScale] = useState(1)
   const [pan, setPan] = useState({ x: 0, y: 0 })
-  const dragRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null)
+  const [tick, setTick] = useState(0)
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
+
+  const simRef = useRef<ReturnType<typeof createForceSimulation> | null>(null)
+  const panDragRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null)
+  const nodeDragRef = useRef<{
+    id: string
+    pointerId: number
+    moved: boolean
+  } | null>(null)
+  const svgRef = useRef<SVGSVGElement>(null)
 
   useEffect(() => {
     if (!initialAroundActive) return
@@ -187,22 +174,71 @@ export function LibraryLinkGraphView({
     }
   }, [documentsVersion])
 
-  const size = isPage ? 720 : 320
-  const labelMax = isPage ? 28 : 16
-  const { nodes, nodeMap, visibleEdges } = useMemo(
+  const size = isPage ? 900 : 320
+  const labelMax = isPage ? 26 : 14
+
+  const { nodes: seedNodes, visibleEdges } = useMemo(
     () =>
-      buildLayout(
+      collectVisible(
         edges,
         orphans,
         activeId,
-        size,
-        t('common.document'),
         showOrphans,
         aroundActive,
         titleById,
+        t('common.document'),
       ),
-    [activeId, aroundActive, edges, orphans, showOrphans, size, t, titleById],
+    [activeId, aroundActive, edges, orphans, showOrphans, t, titleById],
   )
+
+  const graphKey = useMemo(
+    () =>
+      `${size}:${aroundActive}:${showOrphans}:${seedNodes.map((node) => node.id).join(',')}:${visibleEdges.length}`,
+    [aroundActive, seedNodes, showOrphans, size, visibleEdges.length],
+  )
+
+  useEffect(() => {
+    if (seedNodes.length === 0) {
+      simRef.current = null
+      setTick((value) => value + 1)
+      return
+    }
+
+    const sim = createForceSimulation(seedNodes, visibleEdges, {
+      width: size,
+      height: size,
+      tight: aroundActive,
+    })
+    simRef.current = sim
+
+    let frame = 0
+    let running = true
+    const loop = () => {
+      if (!running || !simRef.current) return
+      const keepGoing = simRef.current.step()
+      setTick((value) => value + 1)
+      if (keepGoing) frame = requestAnimationFrame(loop)
+    }
+    frame = requestAnimationFrame(loop)
+
+    return () => {
+      running = false
+      cancelAnimationFrame(frame)
+    }
+  }, [graphKey]) // eslint-disable-line react-hooks/exhaustive-deps -- restart only when topology changes
+
+  const simNodes = simRef.current?.nodes ?? []
+  const nodeMap = useMemo(() => new Map(simNodes.map((node) => [node.id, node])), [simNodes, tick])
+
+  const hoverNeighbors = useMemo(() => {
+    if (!hoveredId) return null
+    const ids = new Set<string>([hoveredId])
+    for (const edge of visibleEdges) {
+      if (edge.sourceId === hoveredId) ids.add(edge.targetId)
+      if (edge.targetId === hoveredId) ids.add(edge.sourceId)
+    }
+    return ids
+  }, [hoveredId, visibleEdges])
 
   const openDocument = useCallback(
     (id: string) => {
@@ -215,11 +251,24 @@ export function LibraryLinkGraphView({
   const resetView = useCallback(() => {
     setScale(1)
     setPan({ x: 0, y: 0 })
+    simRef.current?.reheat(0.55)
   }, [])
 
   const zoomBy = useCallback((delta: number) => {
-    setScale((current) => Math.min(3, Math.max(0.4, Number((current + delta).toFixed(2)))))
+    setScale((current) => Math.min(3.2, Math.max(0.35, Number((current + delta).toFixed(2)))))
   }, [])
+
+  function clientToGraph(clientX: number, clientY: number) {
+    const svg = svgRef.current
+    if (!svg) return { x: 0, y: 0 }
+    const rect = svg.getBoundingClientRect()
+    const viewX = ((clientX - rect.left) / rect.width) * size
+    const viewY = ((clientY - rect.top) / rect.height) * size
+    return {
+      x: (viewX - pan.x / scale) / scale,
+      y: (viewY - pan.y / scale) / scale,
+    }
+  }
 
   function handleWheel(event: React.WheelEvent) {
     event.preventDefault()
@@ -229,8 +278,19 @@ export function LibraryLinkGraphView({
   function handlePointerDown(event: React.PointerEvent) {
     if (event.button !== 0) return
     const target = event.target as Element
-    if (target.closest('[data-graph-node]')) return
-    dragRef.current = {
+    const nodeEl = target.closest('[data-graph-node]') as HTMLElement | null
+    if (nodeEl?.dataset.nodeId) {
+      const id = nodeEl.dataset.nodeId
+      const node = simRef.current?.nodeById.get(id)
+      if (!node) return
+      node.fixed = true
+      nodeDragRef.current = { id, pointerId: event.pointerId, moved: false }
+      ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
+      event.stopPropagation()
+      return
+    }
+
+    panDragRef.current = {
       x: event.clientX,
       y: event.clientY,
       panX: pan.x,
@@ -240,7 +300,23 @@ export function LibraryLinkGraphView({
   }
 
   function handlePointerMove(event: React.PointerEvent) {
-    const drag = dragRef.current
+    const nodeDrag = nodeDragRef.current
+    if (nodeDrag && simRef.current) {
+      const node = simRef.current.nodeById.get(nodeDrag.id)
+      if (node) {
+        const point = clientToGraph(event.clientX, event.clientY)
+        node.x = point.x
+        node.y = point.y
+        node.vx = 0
+        node.vy = 0
+        nodeDrag.moved = true
+        simRef.current.reheat(0.2)
+        setTick((value) => value + 1)
+      }
+      return
+    }
+
+    const drag = panDragRef.current
     if (!drag) return
     setPan({
       x: drag.panX + (event.clientX - drag.x),
@@ -249,7 +325,15 @@ export function LibraryLinkGraphView({
   }
 
   function handlePointerUp(event: React.PointerEvent) {
-    dragRef.current = null
+    const nodeDrag = nodeDragRef.current
+    if (nodeDrag && simRef.current) {
+      const node = simRef.current.nodeById.get(nodeDrag.id)
+      if (node) node.fixed = false
+      if (!nodeDrag.moved) openDocument(nodeDrag.id)
+      nodeDragRef.current = null
+      simRef.current.reheat(0.25)
+    }
+    panDragRef.current = null
     try {
       ;(event.currentTarget as HTMLElement).releasePointerCapture(event.pointerId)
     } catch {
@@ -257,25 +341,17 @@ export function LibraryLinkGraphView({
     }
   }
 
-  const shellClass = isPage ? 'link-graph-page-body px-6 py-5 sm:px-8' : 'px-3 py-3'
-
-  if (loading) {
-    return (
-      <p
-        className={cn(
-          'text-center text-[12px] text-[var(--color-muted-foreground)]',
-          isPage ? 'px-6 py-16' : 'px-3 py-6',
-        )}
-      >
-        {t('linkGraph.loading')}
-      </p>
-    )
-  }
-
+  const shellClass = isPage ? 'link-graph-page-body' : 'px-3 py-3'
   const hasContent = edges.length > 0 || (showOrphans && orphans.length > 0)
 
   const toolbar = (
-    <div className={cn('mb-2 flex flex-wrap items-center gap-1', isPage && 'mb-3 gap-1.5')}>
+    <div
+      className={cn(
+        'link-graph-toolbar flex flex-wrap items-center gap-1',
+        isPage ? 'link-graph-toolbar--overlay' : 'mb-2',
+        isPage && 'mb-0 gap-1.5',
+      )}
+    >
       <Button
         type="button"
         variant="outline"
@@ -343,9 +419,22 @@ export function LibraryLinkGraphView({
     </div>
   )
 
+  if (loading) {
+    return (
+      <p
+        className={cn(
+          'text-center text-[12px] text-[var(--color-muted-foreground)]',
+          isPage ? 'px-6 py-16' : 'px-3 py-6',
+        )}
+      >
+        {t('linkGraph.loading')}
+      </p>
+    )
+  }
+
   if (!hasContent) {
     return (
-      <div className={shellClass}>
+      <div className={cn(shellClass, isPage && 'px-6 py-5 sm:px-8')}>
         {toolbar}
         <p className={cn('text-center text-[12px] text-[var(--color-muted-foreground)]', isPage ? 'py-16' : 'py-4')}>
           {showOrphans && orphans.length === 0 ? t('linkGraph.emptyOrphans') : t('linkGraph.empty')}
@@ -364,22 +453,24 @@ export function LibraryLinkGraphView({
   }
 
   return (
-    <div className={shellClass}>
+    <div className={cn(shellClass, isPage && 'relative flex min-h-0 flex-1 flex-col')}>
       {toolbar}
 
-      <p className="mb-2 text-[11px] text-[var(--color-muted-foreground)]">
-        {t('linkGraph.summary', {
-          edges: visibleEdges.length,
-          nodes: nodes.length,
-        })}
-        {showOrphans
-          ? ` · ${t('linkGraph.orphanCount', {
-              count: orphans.length,
-            })}`
-          : ''}
-      </p>
+      {!isPage && (
+        <p className="mb-2 text-[11px] text-[var(--color-muted-foreground)]">
+          {t('linkGraph.summary', {
+            edges: visibleEdges.length,
+            nodes: seedNodes.length,
+          })}
+          {showOrphans
+            ? ` · ${t('linkGraph.orphanCount', {
+                count: orphans.length,
+              })}`
+            : ''}
+        </p>
+      )}
 
-      {nodes.length === 0 ? (
+      {seedNodes.length === 0 ? (
         <p className="rounded-xl border border-[var(--color-border)] bg-[var(--color-canvas)] px-3 py-10 text-center text-[12px] text-[var(--color-muted-foreground)]">
           {aroundActive
             ? t('linkGraph.emptyAround')
@@ -390,8 +481,8 @@ export function LibraryLinkGraphView({
       ) : (
         <div
           className={cn(
-            'overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-canvas)] touch-none',
-            isPage && 'min-h-[min(70vh,720px)] shadow-[inset_0_1px_0_color-mix(in_srgb,#fff_6%,transparent)]',
+            'link-graph-canvas touch-none overflow-hidden',
+            isPage ? 'link-graph-canvas--page min-h-0 flex-1' : 'rounded-xl border border-[var(--color-border)]',
           )}
           onWheel={handleWheel}
           onPointerDown={handlePointerDown}
@@ -399,81 +490,111 @@ export function LibraryLinkGraphView({
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
         >
+          {isPage && (
+            <p className="link-graph-canvas-meta">
+              {t('linkGraph.summary', {
+                edges: visibleEdges.length,
+                nodes: seedNodes.length,
+              })}
+              {showOrphans
+                ? ` · ${t('linkGraph.orphanCount', { count: orphans.length })}`
+                : ''}
+              {' · '}
+              {t('linkGraph.obsidianHint')}
+            </p>
+          )}
           <svg
+            ref={svgRef}
             viewBox={`0 0 ${size} ${size}`}
-            className={cn('h-auto w-full select-none', isPage && 'min-h-[min(70vh,720px)]')}
+            className={cn('link-graph-svg h-auto w-full select-none', isPage && 'h-full min-h-[min(78vh,900px)]')}
           >
+            <defs>
+              <radialGradient id="link-graph-void" cx="50%" cy="45%" r="65%">
+                <stop offset="0%" stopColor="var(--link-graph-void-center)" />
+                <stop offset="100%" stopColor="var(--link-graph-void-edge)" />
+              </radialGradient>
+            </defs>
+            <rect width={size} height={size} fill="url(#link-graph-void)" />
             <g transform={`translate(${pan.x / scale} ${pan.y / scale}) scale(${scale})`}>
               {visibleEdges.map((edge) => {
                 const source = nodeMap.get(edge.sourceId)
                 const target = nodeMap.get(edge.targetId)
                 if (!source || !target) return null
-                const isActive = activeId === edge.sourceId || activeId === edge.targetId
+                const relatedToActive =
+                  activeId === edge.sourceId || activeId === edge.targetId
+                const relatedToHover =
+                  !hoverNeighbors ||
+                  (hoverNeighbors.has(edge.sourceId) && hoverNeighbors.has(edge.targetId))
+                const dimmed = Boolean(hoverNeighbors && !relatedToHover)
                 return (
                   <line
                     key={`${edge.sourceId}-${edge.targetId}`}
+                    className={cn(
+                      'link-graph-edge',
+                      relatedToActive && 'is-active',
+                      relatedToHover && hoveredId && 'is-hot',
+                      dimmed && 'is-dim',
+                    )}
                     x1={source.x}
                     y1={source.y}
                     x2={target.x}
                     y2={target.y}
-                    stroke={
-                      isActive
-                        ? 'color-mix(in srgb, var(--color-accent) 70%, transparent)'
-                        : 'color-mix(in srgb, var(--color-border) 90%, transparent)'
-                    }
-                    strokeWidth={isActive ? (isPage ? 2.5 : 2) : isPage ? 1.5 : 1}
                   />
                 )
               })}
-              {nodes.map((node) => (
-                <g
-                  key={node.id}
-                  data-graph-node=""
-                  className="cursor-pointer"
-                  onClick={() => openDocument(node.id)}
-                >
-                  <circle
-                    cx={node.x}
-                    cy={node.y}
-                    r={
-                      activeId === node.id
-                        ? isPage
-                          ? 14
-                          : 10
-                        : node.orphan
-                          ? isPage
-                            ? 8
-                            : 5.5
-                          : isPage
-                            ? 10
-                            : 7
+              {simNodes.map((node) => {
+                const isActive = activeId === node.id
+                const isHovered = hoveredId === node.id
+                const related =
+                  !hoverNeighbors || hoverNeighbors.has(node.id)
+                const dimmed = Boolean(hoverNeighbors && !related)
+                const showLabel =
+                  isPage || isActive || isHovered || Boolean(hoverNeighbors?.has(node.id))
+                const r = nodeRadius(node, isPage, isActive)
+                const label =
+                  node.title.length > labelMax
+                    ? `${node.title.slice(0, labelMax - 1)}…`
+                    : node.title
+
+                return (
+                  <g
+                    key={node.id}
+                    data-graph-node=""
+                    data-node-id={node.id}
+                    className={cn(
+                      'link-graph-node',
+                      isActive && 'is-active',
+                      node.orphan && 'is-orphan',
+                      isHovered && 'is-hovered',
+                      dimmed && 'is-dim',
+                    )}
+                    onPointerEnter={() => setHoveredId(node.id)}
+                    onPointerLeave={() =>
+                      setHoveredId((current) => (current === node.id ? null : current))
                     }
-                    className={cn(
-                      activeId === node.id
-                        ? 'fill-[var(--color-accent)]'
-                        : node.orphan
-                          ? 'fill-[color-mix(in_srgb,var(--color-muted-foreground)_35%,transparent)]'
-                          : 'fill-[var(--color-surface-elevated)]',
-                    )}
-                    stroke="var(--color-border)"
-                    strokeWidth={isPage ? 2 : 1.5}
-                    strokeDasharray={node.orphan ? '2 2' : undefined}
-                  />
-                  <text
-                    x={node.x}
-                    y={node.y + (isPage ? 24 : 18)}
-                    textAnchor="middle"
-                    className={cn(
-                      'fill-[var(--color-muted-foreground)]',
-                      isPage ? 'text-[11px]' : 'text-[8px]',
-                    )}
                   >
-                    {node.title.length > labelMax
-                      ? `${node.title.slice(0, labelMax - 1)}…`
-                      : node.title}
-                  </text>
-                </g>
-              ))}
+                    {(isActive || isHovered) && (
+                      <circle
+                        className="link-graph-node-glow"
+                        cx={node.x}
+                        cy={node.y}
+                        r={r + (isPage ? 10 : 7)}
+                      />
+                    )}
+                    <circle className="link-graph-node-core" cx={node.x} cy={node.y} r={r} />
+                    {showLabel && (
+                      <text
+                        className="link-graph-node-label"
+                        x={node.x}
+                        y={node.y + r + (isPage ? 14 : 11)}
+                        textAnchor="middle"
+                      >
+                        {label}
+                      </text>
+                    )}
+                  </g>
+                )
+              })}
             </g>
           </svg>
         </div>

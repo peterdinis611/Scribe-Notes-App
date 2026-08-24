@@ -21,7 +21,9 @@ Scribe runs locally on your Mac. No accounts, no cloud — documents, the databa
 - Tree-structured **folders** with drag & drop
 - Full-text document search (**SQLite FTS5**)
 - Favorites, trash, recent documents
+- Wiki **connection map** (`/graph`) and backlinks panel
 - Command palette (`⌘K`) for quick access to documents and actions
+- Optional **Memory MCP** for Claude / Cursor — see [`mcp/`](mcp/)
 
 ### Documents
 - Custom **`.scribe`** format + disk sync
@@ -87,6 +89,20 @@ The dev server runs at `http://localhost:5174`. On first launch, Tauri downloads
 | `bun run test:backend` | Rust tests |
 | `bun run test:all` | Both test suites |
 | `bun run lint` | ESLint |
+| `npm run mcp:install` | Install Scribe Memory MCP deps (`mcp/`) |
+| `npm run mcp` | Run the Memory MCP server (stdio) |
+
+## Scribe Memory MCP (Claude / Cursor)
+
+Expose your local notes to Claude Desktop or Cursor as an on-demand knowledge base (read-only SQLite via MCP).
+
+- Overview & quick start: [`mcp/README.md`](mcp/README.md)
+- Full docs: [`mcp/docs/`](mcp/docs/README.md) ([EN](mcp/docs/en.md) · [SK](mcp/docs/sk.md) · [tools](mcp/docs/tools.md))
+
+```bash
+npm run mcp:install
+npm run mcp
+```
 
 ## Data storage
 

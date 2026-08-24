@@ -790,7 +790,8 @@
     "pageTitle": "Mapa prepojení",
     "pageSubtitle": "Vizualizácia dokumentov spojených cez [[wiki odkazy]]. Kliknutím na uzol dokument otvoríte.",
     "openFullMap": "Otvoriť celú mapu prepojení",
-    "openFullMapShort": "Celá mapa"
+    "openFullMapShort": "Celá mapa",
+    "obsidianHint": "Ťahaj uzly · hover zvýrazní susedov · kolečko = zoom"
   },
   "diagnostics": {
     "loadError": "Nepodarilo sa načítať diagnostiku",

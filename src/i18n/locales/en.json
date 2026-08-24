@@ -782,7 +782,8 @@
     "pageTitle": "Connection map",
     "pageSubtitle": "A map of documents connected by [[wiki links]]. Click a node to open that document.",
     "openFullMap": "Open full connection map",
-    "openFullMapShort": "Full map"
+    "openFullMapShort": "Full map",
+    "obsidianHint": "Drag nodes · hover highlights neighbors · scroll to zoom"
   },
   "diagnostics": {
     "loadError": "Failed to load diagnostics",

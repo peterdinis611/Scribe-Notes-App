@@ -5199,3 +5199,178 @@ body.is-block-dragging .tiptap {
   border-color: var(--color-accent);
 }
 
+
+/* ——— Obsidian-style link graph ——— */
+
+:root {
+  --link-graph-void-center: color-mix(in srgb, var(--color-canvas) 88%, var(--color-foreground));
+  --link-graph-void-edge: color-mix(in srgb, var(--color-canvas) 96%, #000);
+  --link-graph-edge: color-mix(in srgb, var(--color-muted-foreground) 42%, transparent);
+  --link-graph-edge-hot: color-mix(in srgb, var(--color-accent) 55%, transparent);
+  --link-graph-node: color-mix(in srgb, var(--color-muted-foreground) 55%, var(--color-surface));
+  --link-graph-node-active: var(--color-accent);
+  --link-graph-label: color-mix(in srgb, var(--color-foreground) 72%, transparent);
+}
+
+.dark,
+html.dark {
+  --link-graph-void-center: #1a1c22;
+  --link-graph-void-edge: #0c0d10;
+  --link-graph-edge: rgba(180, 190, 210, 0.22);
+  --link-graph-edge-hot: color-mix(in srgb, var(--color-accent) 70%, #fff);
+  --link-graph-node: #8b93a7;
+  --link-graph-node-active: var(--color-accent);
+  --link-graph-label: rgba(230, 234, 242, 0.78);
+}
+
+.link-graph-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-background) 88%, transparent);
+  backdrop-filter: blur(10px);
+  z-index: 2;
+}
+
+.link-graph-page-eyebrow {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+
+.link-graph-page-title {
+  margin: 0.15rem 0 0;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--color-foreground);
+}
+
+.link-graph-page-body {
+  position: relative;
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.link-graph-toolbar--overlay {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 3;
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  background: color-mix(in srgb, var(--color-background) 82%, transparent);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+}
+
+.link-graph-canvas {
+  position: relative;
+  background: var(--link-graph-void-edge);
+}
+
+.link-graph-canvas--page {
+  border: none;
+  border-radius: 0;
+}
+
+.link-graph-canvas-meta {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  z-index: 2;
+  margin: 0;
+  max-width: min(52ch, 70%);
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-background) 72%, transparent);
+  backdrop-filter: blur(8px);
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+  pointer-events: none;
+}
+
+.link-graph-svg {
+  display: block;
+  cursor: grab;
+}
+
+.link-graph-canvas:active .link-graph-svg {
+  cursor: grabbing;
+}
+
+.link-graph-edge {
+  stroke: var(--link-graph-edge);
+  stroke-width: 1.25;
+  stroke-linecap: round;
+  transition: stroke 120ms ease, stroke-width 120ms ease, opacity 120ms ease;
+}
+
+.link-graph-edge.is-active,
+.link-graph-edge.is-hot {
+  stroke: var(--link-graph-edge-hot);
+  stroke-width: 2;
+}
+
+.link-graph-edge.is-dim {
+  opacity: 0.12;
+}
+
+.link-graph-node {
+  cursor: pointer;
+  transition: opacity 120ms ease;
+}
+
+.link-graph-node.is-dim {
+  opacity: 0.14;
+}
+
+.link-graph-node-core {
+  fill: var(--link-graph-node);
+  stroke: color-mix(in srgb, var(--color-background) 35%, transparent);
+  stroke-width: 1.5;
+  transition: fill 120ms ease, stroke 120ms ease;
+}
+
+.link-graph-node.is-orphan .link-graph-node-core {
+  fill: color-mix(in srgb, var(--link-graph-node) 45%, transparent);
+  stroke-dasharray: 2.5 2;
+}
+
+.link-graph-node.is-active .link-graph-node-core,
+.link-graph-node.is-hovered .link-graph-node-core {
+  fill: var(--link-graph-node-active);
+  stroke: color-mix(in srgb, #fff 55%, var(--link-graph-node-active));
+}
+
+.link-graph-node-glow {
+  fill: color-mix(in srgb, var(--color-accent) 28%, transparent);
+  pointer-events: none;
+}
+
+.link-graph-node-label {
+  fill: var(--link-graph-label);
+  font-size: 10px;
+  font-weight: 500;
+  paint-order: stroke;
+  stroke: color-mix(in srgb, var(--link-graph-void-edge) 80%, transparent);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.link-graph-node.is-active .link-graph-node-label,
+.link-graph-node.is-hovered .link-graph-node-label {
+  fill: var(--color-foreground);
+  font-weight: 600;
+}

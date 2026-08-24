@@ -21,7 +21,9 @@ Scribe beží lokálne na vašom Macu. Žiadne účty, žiadny cloud — dokumen
 - Stromová štruktúra **priečinkov** s drag & drop
 - Fulltextové vyhľadávanie dokumentov (**SQLite FTS5**)
 - Obľúbené, kôš, nedávne dokumenty
+- **Mapa prepojení** (`/graph`) a panel backlinkov
 - Príkazová paleta (`⌘K`) pre rýchly prístup k dokumentom a akciám
+- Voliteľný **Memory MCP** pre Claude / Cursor — pozri [`mcp/`](mcp/)
 
 ### Dokumenty
 - Vlastný formát **`.scribe`** + synchronizácia na disk
@@ -87,6 +89,20 @@ Dev server beží na `http://localhost:5174`. Pri prvom spustení Tauri stiahne 
 | `bun run test:backend` | Rust testy |
 | `bun run test:all` | Oba test suites |
 | `bun run lint` | ESLint |
+| `npm run mcp:install` | Inštalácia závislostí Scribe Memory MCP (`mcp/`) |
+| `npm run mcp` | Spustenie Memory MCP servera (stdio) |
+
+## Scribe Memory MCP (Claude / Cursor)
+
+Lokálne poznámky ako knowledge base pre Claude Desktop alebo Cursor (read-only SQLite cez MCP).
+
+- Prehľad a quick start: [`mcp/README.md`](mcp/README.md)
+- Dokumentácia: [`mcp/docs/`](mcp/docs/README.md) ([SK](mcp/docs/sk.md) · [EN](mcp/docs/en.md) · [nástroje](mcp/docs/tools.md))
+
+```bash
+npm run mcp:install
+npm run mcp
+```
 
 ## Úložisko dát
 
