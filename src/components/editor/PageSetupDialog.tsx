@@ -1,8 +1,14 @@
 import { FileText } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import {
+  applyDocumentStylePreset,
+  DOCUMENT_STYLE_PRESETS,
+  type DocumentStylePresetId,
+} from '@/lib/editor/document-style-presets'
 import {
   DEFAULT_PAGE_SETUP,
   PAGE_MARGIN_PRESETS,
@@ -43,15 +49,21 @@ function matchesMarginPreset(setup: PageSetup, presetId: string) {
 }
 
 export function PageSetupDialog({ open, onClose }: PageSetupDialogProps) {
+  const { t } = useTranslation()
   const pageSetup = useAppSelector((state) => state.settings.pageSetup)
   const dispatch = useAppDispatch()
   const normalized = normalizePageSetup(pageSetup)
   const headerFooter = normalized.headerFooter
   const watermark = normalized.watermark
   const firstPage = normalized.firstPage
+  const typography = normalized.typography
 
   function update(partial: Partial<PageSetup>) {
-    dispatch(setPageSetup({ ...pageSetup, ...partial }))
+    dispatch(setPageSetup(normalizePageSetup({ ...pageSetup, ...partial, stylePresetId: null })))
+  }
+
+  function applyPreset(id: DocumentStylePresetId) {
+    dispatch(setPageSetup(applyDocumentStylePreset(id)))
   }
 
   function resetDefaults() {
@@ -100,9 +112,9 @@ export function PageSetupDialog({ open, onClose }: PageSetupDialogProps) {
         <div className="flex items-start gap-3 border-b border-[var(--color-border)] px-5 py-4">
           <FileText className="mt-0.5 h-5 w-5 shrink-0 text-[var(--color-accent)]" />
           <div>
-            <h2 className="m-0 text-[16px] font-semibold">Nastavenie stránky</h2>
+            <h2 className="m-0 text-[16px] font-semibold">{t('pageStyles.title')}</h2>
             <p className="mt-1 text-[12px] text-[var(--color-muted-foreground)]">
-              Veľkosť papiera, okraje, hlavička, vodoznak a prvá strana.
+              {t('pageStyles.subtitle')}
             </p>
           </div>
         </div>
@@ -110,6 +122,94 @@ export function PageSetupDialog({ open, onClose }: PageSetupDialogProps) {
         <ScrollArea className="min-h-0 flex-1">
           <div className="grid gap-6 p-5 lg:grid-cols-[1fr_180px]">
             <div className="space-y-5">
+              <section>
+                <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--color-muted-foreground)]">
+                  {t('pageStyles.presetsHeading')}
+                </h3>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {DOCUMENT_STYLE_PRESETS.map((preset) => {
+                    const active = normalized.stylePresetId === preset.id
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        className={cn(
+                          'rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-left transition-colors hover:bg-[var(--color-hover)]',
+                          active &&
+                            'border-[var(--color-accent)] bg-[var(--color-selection)]',
+                        )}
+                        onClick={() => applyPreset(preset.id)}
+                      >
+                        <span className="block text-[13px] font-medium text-[var(--color-foreground)]">
+                          {t(preset.labelKey)}
+                        </span>
+                        <span className="mt-0.5 block text-[11px] text-[var(--color-muted-foreground)]">
+                          {t(preset.descriptionKey)}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </section>
+
+              <section>
+                <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--color-muted-foreground)]">
+                  {t('pageStyles.typography')}
+                </h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className={fieldClass}>
+                    <span>{t('pageStyles.fontSize')}</span>
+                    <Input
+                      type="number"
+                      min={12}
+                      max={28}
+                      value={typography.fontSize}
+                      onChange={(event) =>
+                        update({
+                          typography: {
+                            ...typography,
+                            fontSize: Number(event.target.value),
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                  <label className={fieldClass}>
+                    <span>{t('pageStyles.lineHeight')}</span>
+                    <Input
+                      type="number"
+                      min={1.2}
+                      max={2.4}
+                      step={0.05}
+                      value={typography.lineHeight}
+                      onChange={(event) =>
+                        update({
+                          typography: {
+                            ...typography,
+                            lineHeight: Number(event.target.value),
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                  <label className={cn(fieldClass, 'col-span-2')}>
+                    <span>{t('pageStyles.fontFamily')}</span>
+                    <Input
+                      value={typography.fontFamily}
+                      placeholder={t('pageStyles.fontFamilyPlaceholder')}
+                      onChange={(event) =>
+                        update({
+                          typography: {
+                            ...typography,
+                            fontFamily: event.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                </div>
+              </section>
+
               <section>
                 <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--color-muted-foreground)]">
                   Veľkosť papiera

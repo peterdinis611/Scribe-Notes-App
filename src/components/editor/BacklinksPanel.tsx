@@ -1,13 +1,27 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
-import { ArrowDownLeft, ArrowUpRight, FileText, Link2, PanelRightClose, RotateCcw } from 'lucide-react'
-import { listBacklinks, listOutgoingLinks, type DocumentSummary } from '@/lib/db/api'
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  FileText,
+  GitFork,
+  Link2,
+  PanelRightClose,
+  RotateCcw,
+} from 'lucide-react'
+import {
+  listBacklinks,
+  listLinkGraph,
+  listOutgoingLinks,
+  type DocumentSummary,
+  type LinkGraphEdge,
+} from '@/lib/db/api'
 import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
-import { formatRelativeTime } from '@/lib/utils'
+import { cn, formatRelativeTime } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { setActiveDocumentId } from '@/store/documentsSlice'
+import { setActiveDocumentId, setPendingLibraryView } from '@/store/documentsSlice'
 import {
   EditorSidePanel,
   EditorSidePanelEmpty,
@@ -20,13 +34,55 @@ type BacklinksPanelProps = {
   onClose: () => void
 }
 
+type MiniNode = { id: string; title: string; x: number; y: number }
+
+function buildMiniNeighborhood(
+  centerId: string,
+  centerTitle: string,
+  incoming: DocumentSummary[],
+  outgoing: DocumentSummary[],
+  size: number,
+): { nodes: MiniNode[]; edges: Array<{ from: string; to: string }> } {
+  const nodes: MiniNode[] = [
+    { id: centerId, title: centerTitle, x: size / 2, y: size / 2 },
+  ]
+  const edges: Array<{ from: string; to: string }> = []
+  const placed = new Set<string>([centerId])
+
+  const neighbors = [
+    ...incoming.map((doc) => ({ doc, direction: 'in' as const })),
+    ...outgoing.map((doc) => ({ doc, direction: 'out' as const })),
+  ].filter((item) => {
+    if (placed.has(item.doc.id)) return false
+    placed.add(item.doc.id)
+    return true
+  })
+
+  const radius = size * 0.34
+  neighbors.forEach((item, index) => {
+    const angle = (index / Math.max(neighbors.length, 1)) * Math.PI * 2 - Math.PI / 2
+    nodes.push({
+      id: item.doc.id,
+      title: item.doc.title,
+      x: size / 2 + Math.cos(angle) * radius,
+      y: size / 2 + Math.sin(angle) * radius,
+    })
+    if (item.direction === 'in') edges.push({ from: item.doc.id, to: centerId })
+    else edges.push({ from: centerId, to: item.doc.id })
+  })
+
+  return { nodes, edges }
+}
+
 export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
   const { t } = useTranslation()
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
+  const activeTitle = useAppSelector((state) => state.documents.activeDocument?.title ?? '')
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const [backlinks, setBacklinks] = useState<DocumentSummary[]>([])
   const [outgoing, setOutgoing] = useState<DocumentSummary[]>([])
+  const [graphEdges, setGraphEdges] = useState<LinkGraphEdge[]>([])
   const [loading, setLoading] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
 
@@ -35,14 +91,16 @@ export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
     if (!activeId) {
       setBacklinks([])
       setOutgoing([])
+      setGraphEdges([])
       return
     }
     setLoading(true)
-    Promise.all([listBacklinks(activeId), listOutgoingLinks(activeId)])
-      .then(([incoming, outbound]) => {
+    Promise.all([listBacklinks(activeId), listOutgoingLinks(activeId), listLinkGraph()])
+      .then(([incoming, outbound, graph]) => {
         if (cancelled) return
         setBacklinks(incoming)
         setOutgoing(outbound)
+        setGraphEdges(graph.edges)
       })
       .catch((error) => {
         if (!cancelled) toast.error(t('panels.backlinks.loadError'), String(error))
@@ -62,6 +120,21 @@ export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
     },
     [dispatch, navigate],
   )
+
+  const mini = useMemo(() => {
+    if (!activeId) return null
+    return buildMiniNeighborhood(
+      activeId,
+      activeTitle || t('common.untitled'),
+      backlinks,
+      outgoing,
+      180,
+    )
+  }, [activeId, activeTitle, backlinks, outgoing, t])
+
+  const openFullGraph = useCallback(() => {
+    dispatch(setPendingLibraryView({ view: 'graph', aroundActive: true }))
+  }, [dispatch])
 
   const renderList = (docs: DocumentSummary[], emptyText: string) => {
     if (docs.length === 0) {
@@ -89,6 +162,12 @@ export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
   }
 
   const total = backlinks.length + outgoing.length
+  const relatedEdgeCount = useMemo(() => {
+    if (!activeId) return 0
+    return graphEdges.filter(
+      (edge) => edge.sourceId === activeId || edge.targetId === activeId,
+    ).length
+  }, [activeId, graphEdges])
 
   return (
     <EditorSidePanel className="titlebar-no-drag" aria-label={t('panels.backlinks.title')}>
@@ -101,6 +180,12 @@ export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
         }
         actions={
           <div className="inline-flex gap-0.5">
+            <EditorSidePanelIconButton
+              title={t('panels.backlinks.openGraph')}
+              onClick={openFullGraph}
+            >
+              <GitFork className="h-4 w-4" />
+            </EditorSidePanelIconButton>
             <EditorSidePanelIconButton title={t('common.refresh')} onClick={() => setReloadKey((value) => value + 1)}>
               <RotateCcw className="h-4 w-4" />
             </EditorSidePanelIconButton>
@@ -125,6 +210,72 @@ export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
         </EditorSidePanelEmpty>
       ) : (
         <EditorSidePanelList className="gap-1">
+          {mini && mini.nodes.length > 1 && (
+            <div className="mb-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-2">
+              <div className="mb-1.5 flex items-center justify-between gap-2 px-0.5">
+                <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-[var(--color-muted-foreground)]">
+                  {t('panels.backlinks.neighborhood')}
+                </span>
+                <button
+                  type="button"
+                  className="text-[11px] font-medium text-[var(--color-accent)] hover:underline"
+                  onClick={openFullGraph}
+                >
+                  {t('panels.backlinks.openGraph')}
+                </button>
+              </div>
+              <svg viewBox="0 0 180 180" className="mx-auto block h-[160px] w-full" role="img" aria-label={t('panels.backlinks.neighborhood')}>
+                {mini.edges.map((edge) => {
+                  const from = mini.nodes.find((node) => node.id === edge.from)
+                  const to = mini.nodes.find((node) => node.id === edge.to)
+                  if (!from || !to) return null
+                  return (
+                    <line
+                      key={`${edge.from}-${edge.to}`}
+                      x1={from.x}
+                      y1={from.y}
+                      x2={to.x}
+                      y2={to.y}
+                      stroke="var(--color-border)"
+                      strokeWidth={1.5}
+                    />
+                  )
+                })}
+                {mini.nodes.map((node) => {
+                  const isCenter = node.id === activeId
+                  return (
+                    <g key={node.id}>
+                      <circle
+                        cx={node.x}
+                        cy={node.y}
+                        r={isCenter ? 10 : 7}
+                        className={cn(
+                          'cursor-pointer',
+                          isCenter ? 'fill-[var(--color-accent)]' : 'fill-[var(--color-muted-foreground)]',
+                        )}
+                        opacity={isCenter ? 1 : 0.75}
+                        onClick={() => !isCenter && handleOpen(node.id)}
+                      >
+                        <title>{node.title || t('common.untitled')}</title>
+                      </circle>
+                      <text
+                        x={node.x}
+                        y={node.y + (isCenter ? 22 : 18)}
+                        textAnchor="middle"
+                        className="fill-[var(--color-muted-foreground)] text-[8px]"
+                      >
+                        {(node.title || t('common.untitled')).slice(0, 14)}
+                      </text>
+                    </g>
+                  )
+                })}
+              </svg>
+              <p className="m-0 mt-1 text-center text-[10.5px] text-[var(--color-muted-foreground)]">
+                {t('panels.backlinks.edgeSummary', { count: relatedEdgeCount || mini.edges.length })}
+              </p>
+            </div>
+          )}
+
           <div>
             <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.03em] text-[var(--color-muted-foreground)]">
               <ArrowDownLeft className="h-3.5 w-3.5" />

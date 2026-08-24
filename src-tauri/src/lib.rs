@@ -6,16 +6,18 @@ mod storage;
 
 use db::{init_db, DbState};
 use storage::DiskPersistQueue;
-use tauri::Manager;
+use tauri::{Emitter, Manager, RunEvent};
 
 #[cfg(target_os = "macos")]
-use tauri::menu::{MenuBuilder, SubmenuBuilder};
+use tauri::menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder};
+#[cfg(target_os = "macos")]
+use tauri::tray::TrayIconBuilder;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-    .plugin(tauri_plugin_dialog::init())
-    .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
@@ -63,11 +65,68 @@ pub fn run() {
                     .select_all()
                     .build()?;
 
+                let quick_note = MenuItemBuilder::with_id("tray-quick-note", "Quick Note")
+                    .build(app)?;
+                let today_note =
+                    MenuItemBuilder::with_id("tray-today-note", "Today's journal").build(app)?;
+                let show_app = MenuItemBuilder::with_id("tray-show", "Show Scribe").build(app)?;
+                let quit = PredefinedMenuItem::quit(app, Some("Quit"))?;
+
+                let tray_menu = MenuBuilder::new(app)
+                    .item(&quick_note)
+                    .item(&today_note)
+                    .separator()
+                    .item(&show_app)
+                    .item(&quit)
+                    .build()?;
+
+                let tray_icon = app.default_window_icon().cloned();
+                if let Some(icon) = tray_icon {
+                    let _tray = TrayIconBuilder::new()
+                        .icon(icon)
+                        .menu(&tray_menu)
+                        .tooltip("Scribe")
+                        .on_menu_event(|app, event| match event.id.as_ref() {
+                            "tray-quick-note" => {
+                                let _ = app.emit("tray-quick-note", ());
+                                if let Some(window) = app.get_webview_window("main") {
+                                    let _ = window.show();
+                                    let _ = window.set_focus();
+                                }
+                            }
+                            "tray-today-note" => {
+                                let _ = app.emit("tray-today-note", ());
+                                if let Some(window) = app.get_webview_window("main") {
+                                    let _ = window.show();
+                                    let _ = window.set_focus();
+                                }
+                            }
+                            "tray-show" => {
+                                if let Some(window) = app.get_webview_window("main") {
+                                    let _ = window.show();
+                                    let _ = window.set_focus();
+                                }
+                            }
+                            _ => {}
+                        })
+                        .build(app)?;
+                }
+
                 let menu = MenuBuilder::new(app)
                     .item(&app_menu)
                     .item(&edit_menu)
                     .build()?;
                 app.set_menu(menu)?;
+            }
+
+            // Open .scribe paths passed on the command line (Open With / double-click).
+            for arg in std::env::args().skip(1) {
+                if arg.starts_with('-') {
+                    continue;
+                }
+                if arg.ends_with(".scribe") || arg.ends_with(".scribe.json") {
+                    let _ = app.handle().emit("open-file", arg);
+                }
             }
 
             Ok(())
@@ -130,6 +189,25 @@ pub fn run() {
             backup::export_library_archive,
             backup::import_library_archive,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app_handle, event| {
+            #[cfg(target_os = "macos")]
+            if let RunEvent::Opened { urls } = event {
+                for url in urls {
+                    let path = url
+                        .to_file_path()
+                        .ok()
+                        .map(|p| p.to_string_lossy().to_string())
+                        .unwrap_or_else(|| url.to_string());
+                    if path.ends_with(".scribe") || path.ends_with(".scribe.json") {
+                        let _ = app_handle.emit("open-file", path);
+                    }
+                }
+            }
+            #[cfg(not(target_os = "macos"))]
+            {
+                let _ = (app_handle, event);
+            }
+        });
 }

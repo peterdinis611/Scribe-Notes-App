@@ -1,14 +1,20 @@
 <!doctype html>
-<html lang="sk">
+<html lang="sk" data-ui-skin="classic">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
     <title>Scribe</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
     <script>
       ;(function () {
-        var presets = {
+        var classic = {
           light: {
             background: '#ffffff',
             foreground: '#1d1d1f',
@@ -42,10 +48,50 @@
             colorScheme: 'dark',
           },
         }
+        var press = {
+          light: {
+            background: '#eaeef2',
+            foreground: '#15202b',
+            mutedForeground: '#667484',
+            border: 'rgba(21, 32, 43, 0.12)',
+            sidebar: 'rgba(223, 229, 235, 0.92)',
+            sidebarSolid: '#dfe5eb',
+            toolbar: 'rgba(234, 238, 242, 0.94)',
+            selection: 'rgba(196, 92, 38, 0.16)',
+            selectionStrong: '#c45c26',
+            hover: 'rgba(21, 32, 43, 0.05)',
+            separator: 'rgba(21, 32, 43, 0.08)',
+            formatBar: 'rgba(248, 250, 252, 0.96)',
+            destructive: '#b42318',
+            colorScheme: 'light',
+          },
+          dark: {
+            background: '#14181e',
+            foreground: '#e8e4dc',
+            mutedForeground: '#8b939e',
+            border: 'rgba(232, 228, 220, 0.1)',
+            sidebar: 'rgba(26, 32, 40, 0.94)',
+            sidebarSolid: '#1a2028',
+            toolbar: 'rgba(20, 24, 30, 0.94)',
+            selection: 'rgba(212, 120, 74, 0.22)',
+            selectionStrong: '#d4784a',
+            hover: 'rgba(232, 228, 220, 0.06)',
+            separator: 'rgba(232, 228, 220, 0.08)',
+            formatBar: 'rgba(30, 36, 44, 0.96)',
+            destructive: '#f97066',
+            colorScheme: 'dark',
+          },
+        }
 
         var root = document.documentElement
         var themeId = 'system'
         var customTheme = null
+        var uiSkin = 'classic'
+
+        try {
+          var skinRaw = localStorage.getItem('scribe-ui-skin')
+          if (skinRaw === 'classic' || skinRaw === 'press') uiSkin = skinRaw
+        } catch (e) {}
 
         try {
           var raw = localStorage.getItem('scribe-theme-v2')
@@ -65,9 +111,12 @@
             : 'light'
         }
 
+        var presets = uiSkin === 'press' ? press : classic
         var colors = customTheme
-        if (!colors && presets[resolved]) colors = presets[resolved]
-        if (!colors) colors = presets.light
+        if (!colors && (resolved === 'light' || resolved === 'dark') && presets[resolved]) {
+          colors = presets[resolved]
+        }
+        if (!colors) colors = classic.light
 
         var map = {
           background: '--color-background',
@@ -89,8 +138,14 @@
           if (colors[key]) root.style.setProperty(map[key], colors[key])
         }
 
+        root.style.setProperty('--color-accent', colors.selectionStrong)
+        root.style.setProperty('--color-surface', colors.sidebarSolid)
+        root.style.setProperty('--color-surface-elevated', colors.background)
+        root.style.setProperty('--color-canvas', colors.sidebarSolid)
+
         var scheme = colors.colorScheme || (resolved === 'dark' ? 'dark' : 'light')
         root.dataset.theme = themeId === 'system' ? 'system' : resolved
+        root.dataset.uiSkin = uiSkin
         if (scheme === 'dark') root.classList.add('dark')
         root.style.colorScheme = scheme
       })()

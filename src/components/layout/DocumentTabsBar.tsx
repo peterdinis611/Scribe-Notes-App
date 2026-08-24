@@ -3,6 +3,7 @@ import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
+import { closeActiveDocumentAndMaybeHome } from '@/lib/navigation'
 import { ROUTES } from '@/lib/routes'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
@@ -45,30 +46,23 @@ export function DocumentTabsBar() {
   }
 
   function closeTab(id: string) {
-    const index = openIds.indexOf(id)
-    const remaining = openIds.filter((openId) => openId !== id)
-    const nextId =
-      id === activeId ? (remaining[index] ?? remaining[index - 1] ?? null) : null
-    const wasActive = id === activeId
-
-    dispatch(closeOpenDocument(id))
-
-    if (!wasActive) return
-
-    if (nextId) {
-      const cached = peekCachedDocument(nextId)
-      if (cached) dispatch(setActiveDocument(cached))
-      void navigate(ROUTES.document(nextId))
+    if (id === activeId) {
+      closeActiveDocumentAndMaybeHome({
+        activeId,
+        openDocumentIds: openIds,
+        dispatch,
+        navigate,
+      })
       return
     }
 
-    dispatch(setActiveDocument(null))
-    void navigate(ROUTES.home())
+    // Closing a background tab — keep the current document.
+    dispatch(closeOpenDocument(id))
   }
 
   return (
     <div
-      className="document-tabs titlebar-no-drag flex shrink-0 items-stretch gap-0.5 overflow-x-auto border-b border-[var(--color-border)] bg-[var(--color-surface)] px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [[data-sidebar-drawer=true]_&]:pl-[78px]"
+      className="document-tabs titlebar-no-drag flex shrink-0 items-stretch gap-0 overflow-x-auto border-b border-[var(--color-border)] bg-[var(--color-rail)] px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [[data-sidebar-drawer=true]_&]:pl-[78px]"
       role="tablist"
       aria-label={t('tabs.ariaLabel')}
     >
@@ -80,15 +74,15 @@ export function DocumentTabsBar() {
             role="tab"
             aria-selected={isActive}
             className={cn(
-              'group relative flex max-w-[200px] min-w-[96px] items-center gap-1 rounded-t-[8px] border border-b-0 px-2.5 py-1.5 text-left transition-colors',
+              'group relative flex max-w-[200px] min-w-[96px] items-center gap-1 border-x border-t px-2.5 py-1.5 text-left transition-colors',
               isActive
-                ? 'border-[var(--color-border)] bg-[var(--color-canvas)] text-[var(--color-foreground)]'
+                ? 'border-[var(--color-border)] bg-[var(--color-background)] text-[var(--color-foreground)] shadow-[inset_0_2px_0_0_var(--color-accent)]'
                 : 'border-transparent text-[var(--color-muted-foreground)] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]',
             )}
           >
             <button
               type="button"
-              className="min-w-0 flex-1 truncate border-none bg-transparent p-0 text-[12px] font-medium text-inherit"
+              className="min-w-0 flex-1 truncate border-none bg-transparent p-0 font-[family-name:var(--font-display)] text-[12px] font-semibold tracking-[-0.02em] text-inherit"
               onClick={() => activate(tab.id)}
               title={tab.title}
             >
@@ -97,8 +91,8 @@ export function DocumentTabsBar() {
             <button
               type="button"
               className={cn(
-                'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] border-none bg-transparent text-[var(--color-muted-foreground)] opacity-0 transition-opacity hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)] group-hover:opacity-100',
-                isActive && 'opacity-70',
+                'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border-none bg-transparent text-[var(--color-muted-foreground)] transition-opacity hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]',
+                isActive ? 'opacity-100' : 'opacity-60 group-hover:opacity-100',
               )}
               onClick={(event) => {
                 event.preventDefault()

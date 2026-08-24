@@ -263,15 +263,23 @@ pub async fn export_document(
         && format != "pages"
         && format != "md"
         && format != "markdown"
+        && format != "html"
+        && format != "html-zip"
+        && format != "epub"
     {
-        return Err("Podporované exporty: docx, txt, pages, md".to_string());
+        return Err("Podporované exporty: docx, txt, pages, md, html, html-zip, epub".to_string());
     }
 
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     let dir = storage::get_documents_dir(&app, &conn)?;
     drop(conn);
 
-    let default_path = export::default_export_path(&dir, &input.title, &format);
+    let ext = match format.as_str() {
+        "html-zip" => "zip",
+        "markdown" => "md",
+        other => other,
+    };
+    let default_path = export::default_export_path(&dir, &input.title, ext);
 
     let picked = app
         .dialog()
@@ -298,6 +306,9 @@ pub async fn export_document(
             }
         }
         "md" | "markdown" => export::export_markdown(&input.plain_text, &output)?,
+        "html" => export::export_html_file(&input.html, &output)?,
+        "html-zip" => export::export_html_package(&input.html, &input.title, &output)?,
+        "epub" => export::export_epub(&input.html, &input.title, &output)?,
         _ => unreachable!(),
     }
 

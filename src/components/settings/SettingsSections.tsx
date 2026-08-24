@@ -1,6 +1,6 @@
 import { getVersion } from '@tauri-apps/api/app'
 import { confirm } from '@tauri-apps/plugin-dialog'
-import { Archive, ArchiveRestore, FolderOpen, FolderSearch, Shuffle, Sparkles, Trash2 } from 'lucide-react'
+import { Archive, ArchiveRestore, FolderOpen, FolderSearch, Shuffle, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
@@ -37,11 +37,6 @@ import {
   revealInFinder,
 } from '@/lib/db/api'
 import { toast } from '@/lib/toast'
-import {
-  defaultBaseUrlForProvider,
-  defaultModelForProvider,
-} from '@/lib/ai/defaults'
-import type { AiProvider } from '@/lib/ai/types'
 import type { SettingsSection as SettingsSectionId } from '@/lib/routes'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
@@ -51,8 +46,8 @@ import {
   setDocuments,
   setSaveStatus,
 } from '@/store/documentsSlice'
-import { setStorageSettings, setThemeSettings, setShortcutOverride, resetShortcutOverrides, setAiSettings } from '@/store/settingsSlice'
-import { persistAiApiKey, persistStorageFolderAccessGranted, readAiApiKey } from '@/store/persistence'
+import { setStorageSettings, setThemeSettings, setUiSkin, setShortcutOverride, resetShortcutOverrides } from '@/store/settingsSlice'
+import { persistStorageFolderAccessGranted } from '@/store/persistence'
 import {
   createCustomThemeSelection,
   createResetCustomTheme,
@@ -61,6 +56,7 @@ import {
 
 export function AppearanceSection() {
   const themeSettings = useAppSelector((state) => state.settings.themeSettings)
+  const uiSkin = useAppSelector((state) => state.settings.uiSkin)
   const dispatch = useAppDispatch()
   const { t } = useTranslation()
 
@@ -96,6 +92,49 @@ export function AppearanceSection() {
             <LocaleToggle showLabels />
           </SettingsRow>
         </SettingsGroup>
+      </SettingsSection>
+
+      <SettingsSection>
+        <SettingsSectionHeader
+          title={t('settings.appearance.skinTitle')}
+          description={t('settings.appearance.skinDescription')}
+        />
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => dispatch(setUiSkin('classic'))}
+            className={cn(
+              'rounded-[var(--radius-md)] border px-4 py-3 text-left transition-colors',
+              uiSkin === 'classic'
+                ? 'border-[var(--color-accent)] bg-[var(--color-selection)]'
+                : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-hover)]',
+            )}
+          >
+            <p className="m-0 text-[13px] font-semibold text-[var(--color-foreground)]">
+              {t('settings.appearance.skinClassic')}
+            </p>
+            <p className="mt-1 text-[11px] leading-snug text-[var(--color-muted-foreground)]">
+              {t('settings.appearance.skinClassicDesc')}
+            </p>
+          </button>
+          <button
+            type="button"
+            onClick={() => dispatch(setUiSkin('press'))}
+            className={cn(
+              'rounded-[var(--radius-md)] border px-4 py-3 text-left transition-colors',
+              uiSkin === 'press'
+                ? 'border-[var(--color-accent)] bg-[var(--color-selection)]'
+                : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-hover)]',
+            )}
+          >
+            <p className="m-0 text-[13px] font-semibold text-[var(--color-foreground)]">
+              {t('settings.appearance.skinPress')}
+            </p>
+            <p className="mt-1 text-[11px] leading-snug text-[var(--color-muted-foreground)]">
+              {t('settings.appearance.skinPressDesc')}
+            </p>
+          </button>
+        </div>
       </SettingsSection>
 
       <SettingsSection>
@@ -178,129 +217,6 @@ export function AppearanceSection() {
         </SettingsSection>
       )}
     </>
-  )
-}
-
-export function AiSection() {
-  const aiSettings = useAppSelector((state) => state.settings.aiSettings)
-  const dispatch = useAppDispatch()
-  const { t } = useTranslation()
-  const [apiKey, setApiKey] = useState(() => readAiApiKey() ?? '')
-
-  function patchAiSettings(patch: Partial<typeof aiSettings>) {
-    dispatch(setAiSettings({ ...aiSettings, ...patch }))
-  }
-
-  function handleProviderChange(provider: AiProvider) {
-    const previousDefault = defaultBaseUrlForProvider(aiSettings.provider)
-    const nextBaseUrl =
-      aiSettings.baseUrl === previousDefault || !aiSettings.baseUrl.trim()
-        ? defaultBaseUrlForProvider(provider)
-        : aiSettings.baseUrl
-    const previousModelDefault = defaultModelForProvider(aiSettings.provider)
-    const nextModel =
-      aiSettings.model === previousModelDefault || !aiSettings.model.trim()
-        ? defaultModelForProvider(provider)
-        : aiSettings.model
-
-    patchAiSettings({
-      provider,
-      baseUrl: nextBaseUrl,
-      model: nextModel,
-    })
-  }
-
-  function handleApiKeyBlur() {
-    persistAiApiKey(apiKey)
-  }
-
-  const showApiKey = aiSettings.provider === 'openai' || aiSettings.provider === 'anthropic'
-
-  return (
-    <SettingsSection>
-      <SettingsSectionHeader
-        title={t('settings.ai.pageTitle')}
-        description={t('settings.ai.pageDescription')}
-      />
-
-      <SettingsGroup>
-        <SettingsRow
-          title={t('settings.ai.enabledTitle')}
-          description={t('settings.ai.enabledDescription')}
-        >
-          <label className="inline-flex cursor-pointer items-center gap-2 text-[13px]">
-            <input
-              type="checkbox"
-              checked={aiSettings.enabled}
-              onChange={(event) => patchAiSettings({ enabled: event.target.checked })}
-            />
-            {aiSettings.enabled ? t('settings.ai.enabledOn') : t('settings.ai.enabledOff')}
-          </label>
-        </SettingsRow>
-
-        <SettingsRow
-          title={t('settings.ai.providerTitle')}
-          description={t('settings.ai.providerDescription')}
-        >
-          <select
-            className="h-8 min-w-[140px] rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-2.5 text-[13px] text-[var(--color-foreground)] outline-none"
-            value={aiSettings.provider}
-            onChange={(event) => handleProviderChange(event.target.value as AiProvider)}
-          >
-            <option value="ollama">{t('settings.ai.providers.ollama')}</option>
-            <option value="openai">{t('settings.ai.providers.openai')}</option>
-            <option value="anthropic">{t('settings.ai.providers.anthropic')}</option>
-          </select>
-        </SettingsRow>
-
-        <SettingsRow
-          title={t('settings.ai.baseUrlTitle')}
-          description={t('settings.ai.baseUrlDescription')}
-        >
-          <Input
-            className="h-8 w-full min-w-[220px] max-w-[320px] font-mono text-[12px]"
-            value={aiSettings.baseUrl}
-            onChange={(event) => patchAiSettings({ baseUrl: event.target.value })}
-            placeholder={defaultBaseUrlForProvider(aiSettings.provider)}
-          />
-        </SettingsRow>
-
-        {showApiKey && (
-          <SettingsRow
-            title={t('settings.ai.apiKeyTitle')}
-            description={t('settings.ai.apiKeyDescription')}
-          >
-            <Input
-              type="password"
-              className="h-8 w-full min-w-[220px] max-w-[320px] font-mono text-[12px]"
-              value={apiKey}
-              autoComplete="off"
-              spellCheck={false}
-              placeholder={t('settings.ai.apiKeyPlaceholder')}
-              onChange={(event) => setApiKey(event.target.value)}
-              onBlur={handleApiKeyBlur}
-            />
-          </SettingsRow>
-        )}
-
-        <SettingsRow
-          title={t('settings.ai.modelTitle')}
-          description={t('settings.ai.modelDescription')}
-        >
-          <Input
-            className="h-8 w-full min-w-[220px] max-w-[320px] font-mono text-[12px]"
-            value={aiSettings.model}
-            onChange={(event) => patchAiSettings({ model: event.target.value })}
-            placeholder={defaultModelForProvider(aiSettings.provider)}
-          />
-        </SettingsRow>
-      </SettingsGroup>
-
-      <p className="mt-3 flex items-start gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
-        <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-        {t('settings.ai.privacyNote')}
-      </p>
-    </SettingsSection>
   )
 }
 
@@ -649,8 +565,6 @@ export function SettingsSectionContent({ section }: { section: SettingsSectionId
   switch (section) {
     case 'appearance':
       return <AppearanceSection />
-    case 'ai':
-      return <AiSection />
     case 'storage':
       return <StorageSection />
     case 'shortcuts':

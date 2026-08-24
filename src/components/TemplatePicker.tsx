@@ -72,13 +72,13 @@ const builtInCategoryPreviewClass: Record<
   string
 > = {
   general: 'bg-[color-mix(in_srgb,var(--color-accent)_10%,var(--color-canvas))] text-[var(--color-accent)]',
-  business: 'bg-[color-mix(in_srgb,#34c759_10%,var(--color-canvas))] text-[#248a3d]',
-  personal: 'bg-[color-mix(in_srgb,#af52de_10%,var(--color-canvas))] text-[#9b44c8]',
-  creative: 'bg-[color-mix(in_srgb,#ff9500_10%,var(--color-canvas))] text-[#c93400]',
+  business: 'bg-[color-mix(in_srgb,#2f6b4f_12%,var(--color-canvas))] text-[#2f6b4f] dark:text-[#7dba98]',
+  personal: 'bg-[color-mix(in_srgb,#3d5a80_12%,var(--color-canvas))] text-[#3d5a80] dark:text-[#9bb4d0]',
+  creative: 'bg-[color-mix(in_srgb,var(--color-accent)_14%,var(--color-canvas))] text-[var(--color-accent)]',
 }
 
 const customCategoryPreviewClass =
-  'bg-[color-mix(in_srgb,#5856d6_10%,var(--color-canvas))] text-[#4f46e5] dark:text-[#a5b4fc]'
+  'bg-[color-mix(in_srgb,var(--color-accent)_10%,var(--color-canvas))] text-[var(--color-accent)]'
 
 const BLANK_TEMPLATE_ID = 'blank'
 
@@ -236,11 +236,13 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
             className="flex h-[min(680px,calc(100vh-40px))] max-w-[720px] flex-col gap-0 overflow-hidden p-0"
             showClose
           >
-            <div className="flex shrink-0 flex-col gap-1 border-b border-[var(--color-border)] px-5 pb-3.5 pt-[18px] pr-12">
-              <h2 className="m-0 text-[18px] font-bold tracking-[-0.02em]">{t('templates.title')}</h2>
-              <p className="m-0 text-[12px] text-[var(--color-muted-foreground)]">
+            <div className="flex shrink-0 flex-col gap-1 border-b border-[var(--color-border)] px-5 pb-3.5 pt-[18px] pr-12 shadow-[inset_3px_0_0_0_var(--color-accent)]">
+              <p className="m-0 font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--color-accent)]">
                 {t('templates.subtitle')}
               </p>
+              <h2 className="m-0 font-[family-name:var(--font-display)] text-[22px] font-extrabold tracking-[-0.04em]">
+                {t('templates.title')}
+              </h2>
             </div>
 
             <div className="shrink-0 space-y-3 border-b border-[var(--color-border)] px-5 py-3">
@@ -283,12 +285,12 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
                 ))}
               </div>
 
-              <div className="rounded-[10px] border border-dashed border-[color-mix(in_srgb,var(--color-accent)_28%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-accent)_4%,var(--color-surface))] px-3 py-2.5">
+              <div className="rounded-[var(--radius-sm)] border border-dashed border-[color-mix(in_srgb,var(--color-accent)_28%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-accent)_4%,var(--color-surface))] px-3 py-2.5">
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <p className="m-0 text-[11px] font-semibold uppercase tracking-[0.04em] text-[var(--color-muted-foreground)]">
+                  <p className="m-0 font-mono text-[10px] font-medium uppercase tracking-[0.1em] text-[var(--color-muted-foreground)]">
                     {t('templates.myCategories')}
                     {customCategories.length > 0 && (
-                      <span className="ml-1.5 font-normal normal-case tracking-normal opacity-70">
+                      <span className="ml-1.5 font-sans text-[11px] font-normal normal-case tracking-normal opacity-70">
                         ({customCategories.length})
                       </span>
                     )}
@@ -471,31 +473,33 @@ function TemplateCard({
     <button
       type="button"
       className={cn(
-        'titlebar-no-drag flex w-full flex-col gap-2.5 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-left transition-[border-color,box-shadow,background]',
+        'titlebar-no-drag flex w-full flex-col gap-2.5 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-left transition-[border-color,box-shadow,background]',
         variant === 'hero' && 'sm:flex-row sm:items-center',
         selected &&
-          'border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-selection)_65%,var(--color-surface))] shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-accent)_35%,transparent)]',
+          'border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-selection)_65%,var(--color-surface))] shadow-[inset_3px_0_0_0_var(--color-accent)]',
         !selected && 'hover:border-[color-mix(in_srgb,var(--color-accent)_35%,var(--color-border))]',
       )}
       onClick={onSelect}
     >
       <div
         className={cn(
-          'flex h-[72px] w-full shrink-0 flex-col justify-between rounded-[10px] p-2.5',
+          'flex h-[72px] w-full shrink-0 flex-col justify-between rounded-[var(--radius-sm)] p-2.5',
           previewClass,
           variant === 'hero' && 'sm:h-20 sm:w-36',
         )}
       >
         <CategoryIcon className="h-4 w-4" />
         <div className="flex w-full flex-col gap-1" aria-hidden="true">
-          <span className="block h-[3px] w-[72%] rounded-full bg-current opacity-20" />
-          <span className="block h-[3px] w-[92%] rounded-full bg-current opacity-20" />
-          <span className="block h-[3px] w-[56%] rounded-full bg-current opacity-20" />
+          <span className="block h-[3px] w-[72%] rounded-[1px] bg-current opacity-20" />
+          <span className="block h-[3px] w-[92%] rounded-[1px] bg-current opacity-20" />
+          <span className="block h-[3px] w-[56%] rounded-[1px] bg-current opacity-20" />
         </div>
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
-          <p className="m-0 text-[13px] font-semibold text-[var(--color-foreground)]">{template.name}</p>
+          <p className="m-0 font-[family-name:var(--font-display)] text-[14px] font-bold tracking-[-0.02em] text-[var(--color-foreground)]">
+            {template.name}
+          </p>
           <Badge variant={selected ? 'accent' : 'muted'} className="shrink-0 text-[10px]">
             {categoryLabel}
           </Badge>
@@ -526,9 +530,9 @@ function CustomCategoryFilterChip({
   return (
     <div
       className={cn(
-        'titlebar-no-drag inline-flex h-7 max-w-full items-center rounded-full border text-[12px] transition-colors',
+        'titlebar-no-drag inline-flex h-7 max-w-full items-center rounded-[var(--radius-sm)] border text-[12px] transition-colors',
         !active &&
-          'border-[color-mix(in_srgb,#5856d6_35%,var(--color-border))] bg-[color-mix(in_srgb,#5856d6_6%,var(--color-surface))] text-[#4f46e5] dark:text-[#a5b4fc]',
+          'border-[color-mix(in_srgb,var(--color-accent)_28%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-accent)_6%,var(--color-surface))] text-[var(--color-accent)]',
         active &&
           'border-[var(--color-accent)] bg-[var(--color-selection)] font-medium text-[var(--color-accent)]',
       )}
@@ -536,7 +540,7 @@ function CustomCategoryFilterChip({
       <button
         type="button"
         onClick={onSelect}
-        className="inline-flex h-full max-w-full items-center rounded-l-full pl-3 pr-1.5 hover:opacity-90"
+        className="inline-flex h-full max-w-full items-center rounded-l-[var(--radius-sm)] pl-3 pr-1.5 hover:opacity-90"
       >
         <span className="truncate">{children}</span>
         <span className="ml-1 opacity-60">{count}</span>
@@ -549,7 +553,7 @@ function CustomCategoryFilterChip({
           onDelete()
         }}
         className={cn(
-          'inline-flex h-full items-center rounded-r-full pr-2 pl-1 transition-colors',
+          'inline-flex h-full items-center rounded-r-[var(--radius-sm)] pr-2 pl-1 transition-colors',
           active
             ? 'text-[var(--color-accent)] hover:bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)]'
             : 'text-[var(--color-muted-foreground)] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]',
@@ -577,8 +581,8 @@ function FilterChip({
       type="button"
       onClick={onClick}
       className={cn(
-        'titlebar-no-drag inline-flex h-7 max-w-full items-center rounded-full border px-3 text-[12px] transition-colors',
-        variant === 'custom' && !active && 'border-[color-mix(in_srgb,#5856d6_35%,var(--color-border))] bg-[color-mix(in_srgb,#5856d6_6%,var(--color-surface))] text-[#4f46e5] dark:text-[#a5b4fc]',
+        'titlebar-no-drag inline-flex h-7 max-w-full items-center rounded-[var(--radius-sm)] border px-3 text-[12px] transition-colors',
+        variant === 'custom' && !active && 'border-[color-mix(in_srgb,var(--color-accent)_28%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-accent)_6%,var(--color-surface))] text-[var(--color-accent)]',
         variant === 'default' && !active && 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-muted-foreground)]',
         active
           ? 'border-[var(--color-accent)] bg-[var(--color-selection)] font-medium text-[var(--color-accent)]'

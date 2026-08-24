@@ -16,21 +16,31 @@ export function HomePage() {
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
+  const openDocumentIds = useAppSelector((state) => state.documents.openDocumentIds)
   const documents = useAppSelector((state) => state.documents.documents)
-  const shouldRestoreDocument = activeId ? isOpenDocument(documents, activeId) : false
+
+  // Session restore only: reopen a still-open tab when landing on `/`.
+  // Do not bounce back when the user closed the last tab / went home (active cleared
+  // or removed from open tabs).
+  const shouldRestoreDocument = Boolean(
+    activeId &&
+      openDocumentIds.includes(activeId) &&
+      isOpenDocument(documents, activeId),
+  )
 
   useEffect(() => {
     if (!activeId) return
     if (documents.length === 0) return
 
-    if (isOpenDocument(documents, activeId)) {
+    if (openDocumentIds.includes(activeId) && isOpenDocument(documents, activeId)) {
       void navigate(ROUTES.document(activeId))
       return
     }
 
+    // Stale persisted active id with no open tab — clear and stay on welcome.
     dispatch(setActiveDocumentId(null))
     dispatch(setActiveDocument(null))
-  }, [activeId, documents, dispatch, navigate])
+  }, [activeId, documents, dispatch, navigate, openDocumentIds])
 
   if (shouldRestoreDocument) return null
 

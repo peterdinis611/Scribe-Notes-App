@@ -4,6 +4,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { openQuickNote } from '@/lib/quick-note'
 import { openTodayNote } from '@/lib/journal-notes'
+import { closeActiveDocumentAndMaybeHome } from '@/lib/navigation'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { pickAndImportFile } from '@/lib/db/api'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
@@ -16,7 +17,6 @@ import { createThemeSelection } from '@/store/settings-helpers'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { editorRefs } from '@/store/editorRefs'
 import {
-  closeOpenDocument,
   setActiveDocument,
   setActiveDocumentId,
   setFindReplaceOpen,
@@ -165,19 +165,12 @@ export function useKeyboardShortcuts() {
       {
         hotkey: hotkey('closeTab', shortcutOverrides),
         callback: () => {
-          if (!activeId) return
-          const index = openDocumentIds.indexOf(activeId)
-          const remaining = openDocumentIds.filter((id) => id !== activeId)
-          const nextId = remaining[index] ?? remaining[index - 1] ?? null
-          dispatch(closeOpenDocument(activeId))
-          if (nextId) {
-            const cached = peekCachedDocument(nextId)
-            if (cached) dispatch(setActiveDocument(cached))
-            void navigate(ROUTES.document(nextId))
-            return
-          }
-          dispatch(setActiveDocument(null))
-          void navigate(ROUTES.home())
+          closeActiveDocumentAndMaybeHome({
+            activeId,
+            openDocumentIds,
+            dispatch,
+            navigate,
+          })
         },
         options: {
           meta: { name: t('shortcuts.closeTab.label'), description: t('shortcuts.closeTab.description') },

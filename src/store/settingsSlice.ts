@@ -4,9 +4,8 @@ import type { AppLocale } from '@/i18n'
 import type { PageSetup } from '@/lib/editor/page-setup'
 import { applyThemeSettings } from '@/lib/themes/apply'
 import type { ThemeSettings } from '@/lib/themes/types'
-import type { AiSettings } from '@/lib/ai/types'
+import type { UiSkin } from '@/lib/ui-skin'
 import {
-  persistAiSettings,
   persistEditorViewMode,
   persistPageSetup,
   persistPrintColumns,
@@ -15,7 +14,7 @@ import {
   persistSpellCheckEnabled,
   persistThemeSettings,
   persistLocale,
-  readAiSettings,
+  persistUiSkin,
   readEditorViewMode,
   readLocale,
   readPageSetup,
@@ -25,6 +24,7 @@ import {
   readSpellCheckEnabled,
   readShortcutOverrides,
   readThemeSettings,
+  readUiSkin,
   persistShortcutOverrides,
   type ShortcutOverrides,
 } from '@/store/persistence'
@@ -40,6 +40,7 @@ export type EditorModeActions = {
 
 export interface SettingsState {
   themeSettings: ThemeSettings
+  uiSkin: UiSkin
   templatePickerOpen: boolean
   storageSettings: StorageSettings | null
   locale: AppLocale
@@ -49,12 +50,12 @@ export interface SettingsState {
   printZoom: number
   printLayoutColumns: PrintLayoutColumns
   spellCheckEnabled: boolean
-  aiSettings: AiSettings
   shortcutOverrides: ShortcutOverrides
 }
 
 const initialState: SettingsState = {
   themeSettings: readThemeSettings(),
+  uiSkin: readUiSkin(),
   templatePickerOpen: false,
   storageSettings: null,
   locale: readLocale(),
@@ -64,7 +65,6 @@ const initialState: SettingsState = {
   printZoom: readPrintZoom(),
   printLayoutColumns: readPrintColumns(),
   spellCheckEnabled: readSpellCheckEnabled(),
-  aiSettings: readAiSettings(),
   shortcutOverrides: readShortcutOverrides(),
 }
 
@@ -75,7 +75,12 @@ const settingsSlice = createSlice({
     setThemeSettings(state, action: PayloadAction<ThemeSettings>) {
       state.themeSettings = action.payload
       persistThemeSettings(action.payload)
-      applyThemeSettings(action.payload)
+      applyThemeSettings(action.payload, state.uiSkin)
+    },
+    setUiSkin(state, action: PayloadAction<UiSkin>) {
+      state.uiSkin = action.payload
+      persistUiSkin(action.payload)
+      applyThemeSettings(state.themeSettings, action.payload)
     },
     setTemplatePickerOpen(state, action: PayloadAction<boolean>) {
       state.templatePickerOpen = action.payload
@@ -112,10 +117,6 @@ const settingsSlice = createSlice({
       state.spellCheckEnabled = action.payload
       persistSpellCheckEnabled(action.payload)
     },
-    setAiSettings(state, action: PayloadAction<AiSettings>) {
-      state.aiSettings = action.payload
-      persistAiSettings(action.payload)
-    },
     setShortcutOverride(state, action: PayloadAction<{ id: string; hotkey: string | null }>) {
       const next = { ...state.shortcutOverrides }
       if (action.payload.hotkey) {
@@ -135,6 +136,7 @@ const settingsSlice = createSlice({
 
 export const {
   setThemeSettings,
+  setUiSkin,
   setTemplatePickerOpen,
   setStorageSettings,
   setLocale,
@@ -144,7 +146,6 @@ export const {
   setPrintZoom,
   setPrintLayoutColumns,
   setSpellCheckEnabled,
-  setAiSettings,
   setShortcutOverride,
   resetShortcutOverrides,
 } = settingsSlice.actions
@@ -152,5 +153,5 @@ export const {
 export default settingsSlice.reducer
 
 export function bootstrapTheme() {
-  applyThemeSettings(readThemeSettings())
+  applyThemeSettings(readThemeSettings(), readUiSkin())
 }

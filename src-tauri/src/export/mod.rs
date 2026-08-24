@@ -116,6 +116,154 @@ pub fn export_markdown(text: &str, output: &Path) -> Result<(), String> {
     std::fs::write(output, text).map_err(|e| e.to_string())
 }
 
+pub fn export_html_file(html: &str, output: &Path) -> Result<(), String> {
+    std::fs::write(output, html).map_err(|e| e.to_string())
+}
+
+fn xml_escape(value: &str) -> String {
+    value
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&apos;")
+}
+
+/// Standalone HTML package as a ZIP (`index.html` + optional assets folder placeholder).
+pub fn export_html_package(html: &str, title: &str, output: &Path) -> Result<(), String> {
+    use std::io::Write;
+    use zip::write::SimpleFileOptions;
+    use zip::CompressionMethod;
+
+    let file = std::fs::File::create(output).map_err(|e| e.to_string())?;
+    let mut zip = zip::ZipWriter::new(file);
+    let options = SimpleFileOptions::default().compression_method(CompressionMethod::Deflated);
+
+    zip.start_file("index.html", options)
+        .map_err(|e| e.to_string())?;
+    zip.write_all(html.as_bytes()).map_err(|e| e.to_string())?;
+
+    zip.start_file("README.txt", options)
+        .map_err(|e| e.to_string())?;
+    let readme = format!(
+        "Scribe HTML package\nTitle: {}\nOpen index.html in a browser.\n",
+        title
+    );
+    zip.write_all(readme.as_bytes()).map_err(|e| e.to_string())?;
+
+    zip.finish().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Minimal EPUB 3 from HTML body content.
+pub fn export_epub(html: &str, title: &str, output: &Path) -> Result<(), String> {
+    use std::io::Write;
+    use zip::write::SimpleFileOptions;
+    use zip::{CompressionMethod, ZipWriter};
+
+    let safe_title = xml_escape(title);
+    // Strip outer html/body if present — keep inner fragment for chapter.
+    let body = html.trim();
+
+    let container = r#"<?xml version="1.0" encoding="UTF-8"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
+  </rootfiles>
+</container>
+"#;
+
+    let opf = format!(
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" unique-identifier="bookid" version="3.0">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:identifier id="bookid">urn:uuid:{}</dc:identifier>
+    <dc:title>{}</dc:title>
+    <dc:language>sk</dc:language>
+    <meta property="dcterms:modified">{}</meta>
+  </metadata>
+  <manifest>
+    <item id="chapter" href="chapter.xhtml" media-type="application/xhtml+xml"/>
+    <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
+  </manifest>
+  <spine>
+    <itemref idref="chapter"/>
+  </spine>
+</package>
+"#,
+        uuid::Uuid::new_v4(),
+        safe_title,
+        chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ")
+    );
+
+    let nav = format!(
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="sk">
+<head><title>{}</title><meta charset="utf-8"/></head>
+<body>
+  <nav epub:type="toc"><ol><li><a href="chapter.xhtml">{}</a></li></ol></nav>
+</body>
+</html>
+"#,
+        safe_title, safe_title
+    );
+
+    let chapter = format!(
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="sk">
+<head>
+  <title>{}</title>
+  <meta charset="utf-8"/>
+  <style>
+    body {{ font-family: Georgia, serif; line-height: 1.6; margin: 1.2em; }}
+    img {{ max-width: 100%; height: auto; }}
+    figure {{ margin: 1em 0; }}
+    figcaption {{ font-size: 0.9em; color: #555; text-align: center; }}
+  </style>
+</head>
+<body>
+{}
+</body>
+</html>
+"#,
+        safe_title, body
+    );
+
+    let file = std::fs::File::create(output).map_err(|e| e.to_string())?;
+    let mut zip = ZipWriter::new(file);
+
+    // mimetype must be first and stored (no compression) for EPUB.
+    let stored = SimpleFileOptions::default().compression_method(CompressionMethod::Stored);
+    zip.start_file("mimetype", stored)
+        .map_err(|e| e.to_string())?;
+    zip.write_all(b"application/epub+zip")
+        .map_err(|e| e.to_string())?;
+
+    let deflated = SimpleFileOptions::default().compression_method(CompressionMethod::Deflated);
+    zip.start_file("META-INF/container.xml", deflated)
+        .map_err(|e| e.to_string())?;
+    zip.write_all(container.as_bytes())
+        .map_err(|e| e.to_string())?;
+
+    zip.start_file("OEBPS/content.opf", deflated)
+        .map_err(|e| e.to_string())?;
+    zip.write_all(opf.as_bytes()).map_err(|e| e.to_string())?;
+
+    zip.start_file("OEBPS/nav.xhtml", deflated)
+        .map_err(|e| e.to_string())?;
+    zip.write_all(nav.as_bytes()).map_err(|e| e.to_string())?;
+
+    zip.start_file("OEBPS/chapter.xhtml", deflated)
+        .map_err(|e| e.to_string())?;
+    zip.write_all(chapter.as_bytes())
+        .map_err(|e| e.to_string())?;
+
+    zip.finish().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 pub fn pages_app_installed() -> bool {
     Path::new("/Applications/Pages.app").exists()
 }
@@ -440,5 +588,27 @@ mod tests {
         assert!(path.parent().is_some_and(|parent| parent.ends_with("pdf")));
 
         let _ = std::fs::remove_dir_all(temp);
+    }
+
+    #[test]
+    fn export_epub_writes_valid_zip() {
+        let temp = std::env::temp_dir().join(format!("scribe-epub-{}.epub", uuid::Uuid::new_v4()));
+        export_epub("<p>Ahoj</p>", "Test", &temp).unwrap();
+        assert!(temp.is_file());
+        let file = std::fs::File::open(&temp).unwrap();
+        let mut archive = zip::ZipArchive::new(file).unwrap();
+        assert!(archive.by_name("mimetype").is_ok());
+        assert!(archive.by_name("OEBPS/chapter.xhtml").is_ok());
+        let _ = std::fs::remove_file(&temp);
+    }
+
+    #[test]
+    fn export_html_package_contains_index() {
+        let temp = std::env::temp_dir().join(format!("scribe-html-{}.zip", uuid::Uuid::new_v4()));
+        export_html_package("<html><body>Hi</body></html>", "Hi", &temp).unwrap();
+        let file = std::fs::File::open(&temp).unwrap();
+        let mut archive = zip::ZipArchive::new(file).unwrap();
+        assert!(archive.by_name("index.html").is_ok());
+        let _ = std::fs::remove_file(&temp);
     }
 }

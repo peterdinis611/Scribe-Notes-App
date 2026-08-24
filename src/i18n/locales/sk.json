@@ -37,6 +37,7 @@
     "all": "Všetko"
   },
   "nav": {
+    "home": "Domov",
     "editor": "Editor",
     "settings": "Nastavenia",
     "docs": "Dokumentácia",
@@ -53,7 +54,14 @@
     "recentDocuments": "Nedávne dokumenty",
     "noDocuments": "Zatiaľ žiadne dokumenty",
     "noDocumentsHint": "Začnite novým dokumentom, ukážkou alebo importom.",
-    "emptyStartHint": "Začnite novým dokumentom, ukážkou alebo importom."
+    "emptyStartHint": "Začnite novým dokumentom, ukážkou alebo importom.",
+    "press": {
+      "eyebrow": "Letterpress · lokálne na tomto Macu",
+      "brandTagline": "Píšte ako do tlače. Dokumenty ostávajú na disku — nová stránka, import, alebo pokračovanie tam, kde ste prestali.",
+      "recentDocuments": "Pokračovať",
+      "noDocuments": "Lis je prázdny",
+      "noDocumentsHint": "Začnite prázdnou stránkou, otvorte sprievodcu, alebo importujte súbor z Findera."
+    }
   },
   "demoGuide": {
     "badge": "Začnite tu",
@@ -65,6 +73,8 @@
   "fileMenu": {
     "label": "Súbor",
     "import": "Importovať…",
+    "goHome": "Prejsť na úvod",
+    "closeDocument": "Zatvoriť dokument",
     "revealInFinder": "Zobraziť v Finderi",
     "saveAsTemplate": "Uložiť ako šablónu…",
     "pdfPreview": "Náhľad PDF",
@@ -72,8 +82,13 @@
     "exportPdf": "Exportovať PDF",
     "exportDocx": "Word (DOCX)",
     "exportMd": "Markdown (MD)",
+    "exportHtml": "HTML",
+    "exportHtmlZip": "HTML balík (ZIP)",
+    "exportEpub": "EPUB",
     "exportTxt": "Text (TXT)",
-    "exportPages": "Apple Pages"
+    "exportPages": "Apple Pages",
+    "openedFromFinder": "Otvorené „{{title}}“",
+    "openFromFinderError": "Súbor sa nepodarilo otvoriť"
   },
   "commandPalette": {
     "placeholder": "Hľadať dokumenty a príkazy…",
@@ -109,19 +124,6 @@
     "newFolder": "Nový priečinok",
     "newFolderTitle": "Nový priečinok",
     "newFolderPlaceholder": "Názov priečinka",
-    "aiHint": "Vyžaduje označený text",
-    "aiDocumentHint": "Použije celý dokument",
-    "ai": {
-      "rewrite": "AI: Prepísať",
-      "shorten": "AI: Skrátiť",
-      "expand": "AI: Rozšíriť",
-      "fixGrammar": "AI: Opraviť gramatiku",
-      "toneFormal": "AI: Formálny tón",
-      "toneCasual": "AI: Neformálny tón",
-      "summarize": "AI: Zhrnúť",
-      "outline": "AI: Osnova",
-      "continueWriting": "AI: Pokračovať"
-    },
     "todayNote": "Dnešná poznámka",
     "weekNote": "Týždenná poznámka"
   },
@@ -143,30 +145,6 @@
   "footnotes": {
     "edit": "Upraviť",
     "emptyNote": "(prázdna poznámka)"
-  },
-  "ai": {
-    "menuTitle": "AI",
-    "noSelection": "Najprv označte text",
-    "noDocumentText": "Dokument je prázdny",
-    "error": "AI požiadavka zlyhala",
-    "actions": {
-      "rewrite": "Prepísať",
-      "shorten": "Skrátiť",
-      "expand": "Rozšíriť",
-      "fixGrammar": "Opraviť gramatiku",
-      "toneFormal": "Formálny tón",
-      "toneCasual": "Neformálny tón",
-      "summarize": "Zhrnúť dokument",
-      "outline": "Vytvoriť osnovu",
-      "continueWriting": "Pokračovať v texte"
-    },
-    "dialog": {
-      "loading": "Generujem návrh…",
-      "working": "Pracujem…",
-      "preview": "Skontrolujte návrh pred použitím na označený text.",
-      "apply": "Použiť",
-      "discard": "Zahodiť"
-    }
   },
   "errors": {
     "title": "Niečo sa pokazilo",
@@ -214,10 +192,6 @@
       "about": {
         "label": "O aplikácii",
         "description": "Verzia a info"
-      },
-      "ai": {
-        "label": "AI",
-        "description": "Asistent pri písaní v texte"
       }
     },
     "language": {
@@ -227,30 +201,13 @@
       "sk": "Slovenčina",
       "en": "English"
     },
-    "ai": {
-      "pageTitle": "AI asistent",
-      "pageDescription": "Voliteľná inline AI na úpravu označeného textu. Predvolene vypnutá.",
-      "enabledTitle": "Povoliť AI",
-      "enabledDescription": "Zobrazí AI akcie v bublinkovom menu editora a palete príkazov.",
-      "enabledOn": "Zapnuté",
-      "enabledOff": "Vypnuté",
-      "providerTitle": "Poskytovateľ",
-      "providerDescription": "Lokálny server Ollama alebo cloudové API.",
-      "providers": {
-        "ollama": "Ollama (lokálne)",
-        "openai": "OpenAI",
-        "anthropic": "Anthropic"
-      },
-      "baseUrlTitle": "Základná URL",
-      "baseUrlDescription": "API endpoint pre zvoleného poskytovateľa.",
-      "apiKeyTitle": "API kľúč",
-      "apiKeyDescription": "Uložený len v localStorage tohto prehliadača na vašom zariadení — nikdy neposielaný na servery Scribe.",
-      "apiKeyPlaceholder": "sk-…",
-      "modelTitle": "Model",
-      "modelDescription": "Názov modelu odosielaný poskytovateľovi API.",
-      "privacyNote": "Označený text a prompty sa odosielajú priamo z vášho zariadenia na nakonfigurovaného poskytovateľa. API kľúče zostávajú v localStorage na tomto zariadení."
-    },
     "appearance": {
+      "skinTitle": "Dizajn",
+      "skinDescription": "Klasický vzhľad Scribe, alebo Copper Press. Kedykoľvek prepnete späť.",
+      "skinClassic": "Klasický",
+      "skinClassicDesc": "Pôvodné čisté macOS rozhranie s modrým akcentom.",
+      "skinPress": "Copper Press",
+      "skinPressDesc": "Letterpress atmosféra — Syne, medené akcenty, press welcome.",
       "themeTitle": "Téma",
       "themeDescription": "Vyberte predvolenú tému, vygenerujte náhodnú alebo vytvorte vlastnú.",
       "randomTheme": "Náhodná téma",
@@ -425,18 +382,6 @@
             "Rýchla poznámka otvorí scratch dokument na rýchle myšlienky bez novej pomenovanej stránky."
           ],
           "points": []
-        },
-        "ai": {
-          "title": "AI asistent",
-          "summary": "Voliteľná pomoc pri prepise",
-          "paragraphs": [
-            "AI je voliteľná a predvolene vypnutá. Zapnite ju v Nastavenia → AI a vyberte Ollama (lokálne) alebo OpenAI / Anthropic."
-          ],
-          "points": [
-            "Pri vybranom texte: prepis, skrátenie, rozšírenie, gramatika alebo tón",
-            "Označený text ide len k nastavenému poskytovateľovi",
-            "API kľúče zostávajú v localStorage na tomto zariadení"
-          ]
         },
         "backup": {
           "title": "Záloha a obnovenie",
@@ -615,6 +560,7 @@
       "folders": "Priečinky",
       "recent": "Nedávne",
       "favorites": "Obľúbené",
+      "journal": "Denník",
       "tags": "Štítky",
       "graph": "Graf odkazov"
     },
@@ -649,6 +595,17 @@
     "selectTag": "Vyberte štítok…",
     "documentsWithTag": "Dokumenty so štítkom",
     "clearFilter": "Zrušiť filter",
+    "metaTagHint": "Tip: použite status:draft, project:Acme alebo year:2026 pre štruktúrované filtre.",
+    "filteredDocuments": "{{count}} zodpovedajúcich dokumentov",
+    "filters": {
+      "status": "Stav",
+      "project": "Projekt",
+      "year": "Rok",
+      "tags": "Štítky"
+    },
+    "addProject": "Pridať projekt",
+    "addProjectTag": "Filtrovať podľa projektu",
+    "projectPlaceholder": "Názov projektu",
     "searchResults": "Výsledky v obsahu",
     "searching": "Hľadám…",
     "searchEmpty": "Nič sa nenašlo",
@@ -731,7 +688,10 @@
       "outgoing": "Odkazy odtiaľto",
       "incomingEmpty": "Zatiaľ sem neodkazuje žiadny dokument.",
       "outgoingEmpty": "Tento dokument zatiaľ na nič neodkazuje.",
-      "loadError": "Nepodarilo sa načítať odkazy"
+      "loadError": "Nepodarilo sa načítať odkazy",
+      "neighborhood": "Okolo",
+      "openGraph": "Otvoriť graf odkazov",
+      "edgeSummary": "{{count}} odkazov v okolí"
     },
     "stats": {
       "subtitle": "Prehľad dokumentu",
@@ -789,9 +749,14 @@
   },
   "findReplace": {
     "findPlaceholder": "Hľadať v dokumente…",
+    "regexPlaceholder": "Hľadať regex…",
     "replacePlaceholder": "Nahradiť…",
     "replaceWith": "Nahradiť za…",
+    "replaceWithRegex": "Nahradiť za… ($1, $&)",
     "matchCase": "Rozlišovať veľkosť písmen",
+    "wholeWord": "Celé slovo",
+    "regex": "Regulárny výraz",
+    "invalidRegex": "Neplatný regulárny výraz",
     "previous": "Predchádzajúca (⇧⏎)",
     "next": "Ďalšia (⏎)",
     "replace": "Nahradiť",
@@ -1318,12 +1283,74 @@
     "zoom": "Zoom",
     "moveToFolder": "Presunúť do priečinka"
   },
+  "pageStyles": {
+    "title": "Nastavenie stránky",
+    "subtitle": "Štýly dokumentu, typografia, papier, okraje, hlavička a vodoznak.",
+    "presetsHeading": "Štýly dokumentu",
+    "typography": "Typografia",
+    "fontSize": "Veľkosť písma (px)",
+    "lineHeight": "Riadkovanie",
+    "fontFamily": "Písmo",
+    "fontFamilyPlaceholder": "Prázdne = predvolené",
+    "presets": {
+      "default": {
+        "label": "Predvolený",
+        "description": "Vyvážené A4 so systémovým písmom"
+      },
+      "academic": {
+        "label": "Akademický",
+        "description": "Serif, širšie okraje, čísla strán"
+      },
+      "letter": {
+        "label": "List",
+        "description": "US Letter, kompaktný text, dátum v päte"
+      },
+      "blog": {
+        "label": "Blog",
+        "description": "Väčšie sans-serif písmo na pohodlné čítanie"
+      },
+      "manuscript": {
+        "label": "Rukopis",
+        "description": "Monospace, dvojité riadkovanie"
+      }
+    }
+  },
   "journal": {
     "today": "Dnes",
     "thisWeek": "Tento týždeň",
     "folderName": "Denník",
     "todayTitle": "{{date}}",
     "weekTitle": "Týždeň {{week}}",
-    "openError": "Nepodarilo sa otvoriť denník"
+    "openError": "Nepodarilo sa otvoriť denník",
+    "prevMonth": "Predchádzajúci mesiac",
+    "nextMonth": "Nasledujúci mesiac",
+    "calendarHint": "Kliknite na deň a otvoríte alebo vytvoríte denný zápis.",
+    "weekday": {
+      "mon": "Po",
+      "tue": "Ut",
+      "wed": "St",
+      "thu": "Št",
+      "fri": "Pi",
+      "sat": "So",
+      "sun": "Ne"
+    }
+  },
+  "image": {
+    "alignLeft": "Zarovnať vľavo",
+    "alignCenter": "Na stred",
+    "alignRight": "Zarovnať vpravo",
+    "floatLeft": "Obtekanie vpravo",
+    "floatRight": "Obtekanie vľavo",
+    "properties": "Vlastnosti obrázka",
+    "crop": "Orezať",
+    "cropTitle": "Orezať obrázok",
+    "cropHint": "Presuňte výber a potom aplikujte orezanie.",
+    "applyCrop": "Aplikovať orez",
+    "alt": "Alt text",
+    "altPlaceholder": "Popíšte obrázok pre prístupnosť",
+    "caption": "Popisok",
+    "captionPlaceholder": "Voliteľný popisok",
+    "captionEmpty": "Pridať popisok…",
+    "resize": "Zmeniť veľkosť"
   }
 }

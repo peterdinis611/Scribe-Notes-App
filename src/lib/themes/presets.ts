@@ -1,5 +1,6 @@
 import type { ThemeColors, ThemePreset } from '@/lib/themes/types'
 
+/** Classic (default) light / dark — original Scribe look */
 const light: ThemeColors = {
   background: '#ffffff',
   foreground: '#1d1d1f',
@@ -30,6 +31,39 @@ const dark: ThemeColors = {
   separator: 'rgba(255, 255, 255, 0.06)',
   formatBar: 'rgba(44, 44, 46, 0.92)',
   destructive: '#ff453a',
+}
+
+/** Copper Press palette used when UI skin is “press” and theme is light/dark/system */
+export const PRESS_LIGHT: ThemeColors = {
+  background: '#eaeef2',
+  foreground: '#15202b',
+  mutedForeground: '#667484',
+  border: 'rgba(21, 32, 43, 0.12)',
+  sidebar: 'rgba(223, 229, 235, 0.92)',
+  sidebarSolid: '#dfe5eb',
+  toolbar: 'rgba(234, 238, 242, 0.94)',
+  selection: 'rgba(196, 92, 38, 0.16)',
+  selectionStrong: '#c45c26',
+  hover: 'rgba(21, 32, 43, 0.05)',
+  separator: 'rgba(21, 32, 43, 0.08)',
+  formatBar: 'rgba(248, 250, 252, 0.96)',
+  destructive: '#b42318',
+}
+
+export const PRESS_DARK: ThemeColors = {
+  background: '#14181e',
+  foreground: '#e8e4dc',
+  mutedForeground: '#8b939e',
+  border: 'rgba(232, 228, 220, 0.1)',
+  sidebar: 'rgba(26, 32, 40, 0.94)',
+  sidebarSolid: '#1a2028',
+  toolbar: 'rgba(20, 24, 30, 0.94)',
+  selection: 'rgba(212, 120, 74, 0.22)',
+  selectionStrong: '#d4784a',
+  hover: 'rgba(232, 228, 220, 0.06)',
+  separator: 'rgba(232, 228, 220, 0.08)',
+  formatBar: 'rgba(30, 36, 44, 0.96)',
+  destructive: '#f97066',
 }
 
 export const THEME_PRESETS: ThemePreset[] = [
@@ -81,12 +115,33 @@ export const THEME_PRESETS: ThemePreset[] = [
       sidebar: 'rgba(250, 249, 244, 0.9)',
       sidebarSolid: '#faf9f4',
       toolbar: 'rgba(255, 254, 249, 0.92)',
-      selection: 'rgba(0, 122, 255, 0.12)',
-      selectionStrong: '#007aff',
+      selection: 'rgba(196, 92, 38, 0.14)',
+      selectionStrong: '#c45c26',
       hover: 'rgba(0, 0, 0, 0.035)',
       separator: 'rgba(0, 0, 0, 0.05)',
       formatBar: 'rgba(255, 255, 255, 0.96)',
-      destructive: '#ff3b30',
+      destructive: '#b42318',
+    },
+  },
+  {
+    id: 'blotter',
+    name: 'Press',
+    description: 'Tmavý tlačiarenský stôl — atrament a meď',
+    colorScheme: 'dark',
+    colors: {
+      background: '#10141a',
+      foreground: '#e8e4dc',
+      mutedForeground: '#8b939e',
+      border: 'rgba(232, 228, 220, 0.1)',
+      sidebar: 'rgba(22, 28, 36, 0.95)',
+      sidebarSolid: '#161c24',
+      toolbar: 'rgba(16, 20, 26, 0.96)',
+      selection: 'rgba(196, 92, 38, 0.28)',
+      selectionStrong: '#c45c26',
+      hover: 'rgba(232, 228, 220, 0.06)',
+      separator: 'rgba(232, 228, 220, 0.08)',
+      formatBar: 'rgba(28, 34, 42, 0.97)',
+      destructive: '#f97066',
     },
   },
   {

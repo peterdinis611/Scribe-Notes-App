@@ -1,5 +1,5 @@
 import { FolderPlus, CalendarDays, Search, Trash2 } from 'lucide-react'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -8,6 +8,7 @@ import { LibraryFavoritesView } from '@/components/LibraryFavoritesView'
 import { LibraryFilterBanner } from '@/components/LibraryFilterBanner'
 import { LibraryRecentView } from '@/components/LibraryRecentView'
 import { LibraryTagsView } from '@/components/LibraryTagsView'
+import { LibraryJournalView } from '@/components/LibraryJournalView'
 import { LibraryLinkGraphView } from '@/components/LibraryLinkGraphView'
 import { LibraryViewTabs, type LibraryView } from '@/components/LibraryViewTabs'
 import { SidebarRail } from '@/components/layout/SidebarRail'
@@ -18,7 +19,7 @@ import { promptInput } from '@/lib/input-dialog'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { setTrashOpen } from '@/store/documentsSlice'
+import { setPendingLibraryView, setTrashOpen } from '@/store/documentsSlice'
 import {
   setCommandPaletteOpen,
   updateExpandedFolderIds,
@@ -38,6 +39,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
   const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [libraryView, setLibraryView] = useState<LibraryView>('folders')
+  const [graphAroundActive, setGraphAroundActive] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
@@ -45,7 +47,15 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
   const folders = useAppSelector((state) => state.folders.folders)
   const recentDocumentIds = useAppSelector((state) => state.documents.recentDocumentIds)
   const recentlyClosedIds = useAppSelector((state) => state.documents.recentlyClosedIds)
+  const pendingLibraryView = useAppSelector((state) => state.documents.pendingLibraryView)
   const isContentSearch = query.trim().length >= 2
+
+  useEffect(() => {
+    if (!pendingLibraryView) return
+    setLibraryView(pendingLibraryView.view)
+    setGraphAroundActive(Boolean(pendingLibraryView.aroundActive))
+    dispatch(setPendingLibraryView(null))
+  }, [dispatch, pendingLibraryView])
 
   const favoriteCount = useMemo(
     () => documents.filter((doc) => doc.isFavorite).length,
@@ -99,11 +109,11 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
         <SidebarRail onNavigate={onClose} />
 
         <div className="app-sidebar-panel titlebar-no-drag min-h-0">
-          <div className="px-3 pb-1 pt-3">
-            <p className="m-0 truncate px-1 text-[13px] font-semibold tracking-[-0.02em] text-[var(--color-foreground)]">
+          <div className="library-panel-head px-3 pb-1 pt-3">
+            <p className="library-panel-title m-0 truncate px-1">
               {t('library.title')}
             </p>
-            <p className="m-0 mt-0.5 truncate px-1 text-[11px] text-[var(--color-muted-foreground)]">
+            <p className="library-panel-meta m-0 mt-0.5 truncate px-1">
               {t('library.documentCount', { count: documents.length })}
             </p>
           </div>
@@ -228,9 +238,18 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                 </ScrollArea>
               )}
 
+              {libraryView === 'journal' && (
+                <ScrollArea className="min-h-0 flex-1">
+                  <LibraryJournalView onNavigate={onClose} />
+                </ScrollArea>
+              )}
+
               {libraryView === 'graph' && (
                 <ScrollArea className="min-h-0 flex-1">
-                  <LibraryLinkGraphView />
+                  <LibraryLinkGraphView
+                    initialAroundActive={graphAroundActive}
+                    onAroundActiveConsumed={() => setGraphAroundActive(false)}
+                  />
                 </ScrollArea>
               )}
             </>

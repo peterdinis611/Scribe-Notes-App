@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef } from 'react'
 import { useNavigate, useParams } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
@@ -37,6 +37,8 @@ export function DocumentPage() {
   const secondaryDocumentId = useAppSelector((state) => state.documents.secondaryDocumentId)
   const saveStatus = useAppSelector((state) => state.documents.saveStatus)
   const dispatch = useAppDispatch()
+  /** Tracks which route id we already adopted so close/home can clear activeId without revival. */
+  const adoptedRouteIdRef = useRef<string | null>(null)
 
   const resolvedDocument = useMemo(() => {
     if (!documentId) return null
@@ -46,7 +48,18 @@ export function DocumentPage() {
 
   useEffect(() => {
     if (!documentId) return
-    if (activeId !== documentId) dispatch(setActiveDocumentId(documentId))
+
+    if (activeId === null) {
+      // First open of this route (cold link / refresh). Skip if we already adopted
+      // this id — that means the user closed it or went home while URL still matched.
+      if (adoptedRouteIdRef.current === documentId) return
+      adoptedRouteIdRef.current = documentId
+      dispatch(setActiveDocumentId(documentId))
+    } else {
+      adoptedRouteIdRef.current = documentId
+      if (activeId !== documentId) dispatch(setActiveDocumentId(documentId))
+    }
+
     if (resolvedDocument && activeDocument?.id !== documentId) {
       dispatch(setActiveDocument(resolvedDocument))
     }

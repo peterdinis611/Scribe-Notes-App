@@ -33,7 +33,7 @@ const DialogContent = React.forwardRef<
       ref={ref}
       className={cn(
         'titlebar-no-drag fixed left-1/2 top-1/2 z-[51] w-full max-w-md -translate-x-1/2 -translate-y-1/2',
-        'rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-5 shadow-[0_16px_48px_rgba(0,0,0,0.18)]',
+        'rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-5 shadow-[0_20px_50px_rgba(0,0,0,0.22)]',
         'focus:outline-none',
         className,
       )}

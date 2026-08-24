@@ -1,8 +1,8 @@
-import { FolderTree, GitBranch, History, Star, Tag as TagIcon } from 'lucide-react'
+import { CalendarDays, FolderTree, GitBranch, History, Star, Tag as TagIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 
-export type LibraryView = 'folders' | 'recent' | 'favorites' | 'tags' | 'graph'
+export type LibraryView = 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal'
 
 type LibraryViewTabsProps = {
   value: LibraryView
@@ -25,6 +25,7 @@ export function LibraryViewTabs({
     { id: 'folders', label: t('library.tabs.folders'), icon: FolderTree },
     { id: 'recent', label: t('library.tabs.recent'), icon: History },
     { id: 'favorites', label: t('library.tabs.favorites'), icon: Star },
+    { id: 'journal', label: t('library.tabs.journal'), icon: CalendarDays },
     { id: 'tags', label: t('library.tabs.tags'), icon: TagIcon },
     { id: 'graph', label: t('library.tabs.graph'), icon: GitBranch },
   ]

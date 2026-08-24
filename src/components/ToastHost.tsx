@@ -7,7 +7,7 @@ import { useAppSelector } from '@/store/hooks'
 function ToastIcon({ variant }: { variant: ToastVariant }) {
   const className = 'h-4 w-4 shrink-0'
   if (variant === 'success') {
-    return <CheckCircle2 className={cn(className, 'text-[#34c759]')} aria-hidden="true" />
+    return <CheckCircle2 className={cn(className, 'text-[var(--color-accent)]')} aria-hidden="true" />
   }
   if (variant === 'error') {
     return <XCircle className={cn(className, 'text-[var(--color-destructive)]')} aria-hidden="true" />
@@ -19,10 +19,10 @@ function ToastIcon({ variant }: { variant: ToastVariant }) {
 }
 
 const toastVariantClass: Record<ToastVariant, string> = {
-  default: 'border-[var(--color-border)]',
-  success: 'border-[color-mix(in_srgb,#34c759_35%,var(--color-border))]',
-  error: 'border-[color-mix(in_srgb,var(--color-destructive)_35%,var(--color-border))]',
-  info: 'border-[color-mix(in_srgb,var(--color-accent)_35%,var(--color-border))]',
+  default: 'border-[var(--color-border)] shadow-[inset_3px_0_0_0_color-mix(in_srgb,var(--color-muted-foreground)_40%,transparent)]',
+  success: 'border-[color-mix(in_srgb,var(--color-accent)_35%,var(--color-border))] shadow-[inset_3px_0_0_0_var(--color-accent)]',
+  error: 'border-[color-mix(in_srgb,var(--color-destructive)_35%,var(--color-border))] shadow-[inset_3px_0_0_0_var(--color-destructive)]',
+  info: 'border-[color-mix(in_srgb,var(--color-accent)_35%,var(--color-border))] shadow-[inset_3px_0_0_0_var(--color-accent)]',
 }
 
 export function ToastHost() {
@@ -41,14 +41,14 @@ export function ToastHost() {
         <div
           key={item.id}
           className={cn(
-            'pointer-events-auto flex items-start gap-2.5 rounded-[var(--radius-lg)] border bg-[var(--color-surface-elevated)] p-3 shadow-[0_8px_24px_rgba(0,0,0,0.12)] backdrop-blur-xl',
+            'pointer-events-auto flex items-start gap-2.5 rounded-[var(--radius-sm)] border bg-[var(--color-surface-elevated)] p-3 shadow-[0_12px_32px_rgba(0,0,0,0.18)]',
             toastVariantClass[item.variant],
           )}
           role="status"
         >
           <ToastIcon variant={item.variant} />
           <div className="min-w-0 flex-1">
-            <p className="m-0 text-[13px] font-semibold text-[var(--color-foreground)]">
+            <p className="m-0 font-[family-name:var(--font-display)] text-[13px] font-bold tracking-[-0.02em] text-[var(--color-foreground)]">
               {item.title}
             </p>
             {item.description && (

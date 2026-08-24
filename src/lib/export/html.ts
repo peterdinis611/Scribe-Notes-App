@@ -14,10 +14,9 @@ import {
 } from '@/lib/editor/page-header-footer'
 import { getPageMargins, shouldShowHeaderFooter } from '@/lib/editor/page-segments'
 import {
-  DOCUMENT_BODY_FONT,
-  DOCUMENT_CONTENT_CSS,
   DOCUMENT_HIGHLIGHT_CSS,
   DOCUMENT_TIPTAP_CSS,
+  buildDocumentContentCss,
   buildWatermarkCss,
 } from '@/lib/export/document-styles'
 
@@ -219,11 +218,15 @@ function renderNodes(nodes: TipTapNode[] | undefined, ctx: RenderContext): strin
         case 'image': {
           const src = String(node.attrs?.src ?? '')
           const alt = escapeHtml(String(node.attrs?.alt ?? ''))
+          const caption = String(node.attrs?.caption ?? '').trim()
           const width = node.attrs?.width
             ? ` width="${node.attrs.width}" style="width:${node.attrs.width}"`
             : ''
           const align = String(node.attrs?.align ?? 'center')
-          return `<figure data-align="${align}" style="text-align:${align.includes('float') ? 'left' : align.replace('float-', '')}"><img src="${escapeHtml(src)}" alt="${alt}"${width} /></figure>`
+          const captionHtml = caption
+            ? `<figcaption>${escapeHtml(caption)}</figcaption>`
+            : ''
+          return `<figure data-align="${align}" style="text-align:${align.includes('float') ? 'left' : align.replace('float-', '')}"><img src="${escapeHtml(src)}" alt="${alt}"${width} />${captionHtml}</figure>`
         }
         case 'taskList':
           return `<ul data-type="taskList">${renderNodes(node.content, ctx)}</ul>`
@@ -388,8 +391,7 @@ function buildHtmlDocument(
       background: ${forPrint ? '#ffffff' : '#f3f4f6'};
     }
     body {
-      font-family: ${DOCUMENT_BODY_FONT};
-      ${DOCUMENT_CONTENT_CSS}
+      ${buildDocumentContentCss(pageSetup)}
       max-width: ${paper.width}px;
       margin: 0 auto;
       padding: ${forPrint ? '0' : `${pageSetup.marginTop}px ${pageSetup.marginRight}px ${pageSetup.marginBottom}px ${pageSetup.marginLeft}px`};

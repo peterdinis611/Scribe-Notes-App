@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { flushSync } from 'react-dom'
-import { Outlet, useNavigate, useParams } from '@tanstack/react-router'
+import { Outlet, useNavigate, useParams, useRouterState } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
+import { listen } from '@tauri-apps/api/event'
 import { CommandPalette } from '@/components/CommandPalette'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { DocumentTabsBar } from '@/components/layout/DocumentTabsBar'
@@ -14,14 +15,15 @@ import { useLayoutTier } from '@/hooks/useLayoutTier'
 import { useResponsiveSidebar } from '@/hooks/useResponsiveSidebar'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
-import { createDocument, flushPendingWrites } from '@/lib/db/api'
+import { createDocument, flushPendingWrites, importFile } from '@/lib/db/api'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { applyDiskPersistResult } from '@/lib/disk-sync'
+import { openTodayNote } from '@/lib/journal-notes'
+import { openQuickNote } from '@/lib/quick-note'
 import { toast } from '@/lib/toast'
 import { ROUTES } from '@/lib/routes'
 import type { DocumentTemplate } from '@/lib/templates'
 import { InputDialogHost } from '@/components/InputDialogHost'
-import { AiResultDialogHost } from '@/components/AiResultDialogHost'
 import { OnboardingTour } from '@/components/OnboardingTour'
 import { StorageAccessDialogHost } from '@/components/StorageAccessDialogHost'
 import { SaveCustomTemplateDialogHost } from '@/components/SaveCustomTemplateDialogHost'
@@ -44,6 +46,9 @@ function useDocumentRouteSync() {
 
   useEffect(() => {
     if (!documentId || documentId === activeId) return
+    // When activeId is cleared (close last tab / go home), do not revive from the
+    // still-mounted /doc/$id route — that race sent users straight back into the doc.
+    if (activeId === null) return
     dispatch(setActiveDocumentId(documentId))
     const cached = peekCachedDocument(documentId)
     if (cached) dispatch(setActiveDocument(cached))
@@ -56,7 +61,12 @@ export function AppLayout() {
   const templatePickerOpen = useAppSelector((state) => state.settings.templatePickerOpen)
   const movePickerOpen = useAppSelector((state) => state.folders.moveDocumentPickerOpen)
   const activeDocument = useAppSelector((state) => state.documents.activeDocument)
+  const documents = useAppSelector((state) => state.documents.documents)
+  const folders = useAppSelector((state) => state.folders.folders)
   const focusMode = useAppSelector((state) => state.documents.focusMode)
+  const pathname = useRouterState({ select: (state) => state.location.pathname })
+  const onHomePage = pathname === '/'
+  const showSidebar = !focusMode && !onHomePage
   const dispatch = useAppDispatch()
   const { t } = useTranslation()
 
@@ -64,6 +74,43 @@ export function AppLayout() {
   const mainRef = useRef<HTMLElement>(null)
   const layoutTier = useLayoutTier(mainRef)
   const { isCompact, sidebarOpen, setSidebarOpen } = useResponsiveSidebar()
+
+  useEffect(() => {
+    const unlisteners: Array<() => void> = []
+
+    void listen<string>('open-file', (event) => {
+      void importFile(event.payload)
+        .then((doc) => {
+          dispatch(updateDocuments((prev) => prependDocumentSummary(prev, doc)))
+          dispatch(setActiveDocumentId(doc.id))
+          dispatch(setActiveDocument(doc))
+          dispatch(setSaveStatus('saved'))
+          void navigate(ROUTES.document(doc.id))
+          toast.success(t('fileMenu.openedFromFinder', { title: doc.title }))
+        })
+        .catch((error) => toast.error(t('fileMenu.openFromFinderError'), String(error)))
+    }).then((unlisten) => unlisteners.push(unlisten))
+
+    void listen('tray-quick-note', () => {
+      void openQuickNote(documents, dispatch, navigate, (key) => t(key)).catch((error) =>
+        toast.error(String(error)),
+      )
+    }).then((unlisten) => unlisteners.push(unlisten))
+
+    void listen('tray-today-note', () => {
+      void openTodayNote({
+        documents,
+        folders,
+        dispatch,
+        navigate,
+        t: (key, options) => t(key, options),
+      }).catch((error) => toast.error(t('journal.openError'), String(error)))
+    }).then((unlisten) => unlisteners.push(unlisten))
+
+    return () => {
+      for (const unlisten of unlisteners) unlisten()
+    }
+  }, [dispatch, documents, folders, navigate, t])
 
   async function handleCreateFromTemplate(template: DocumentTemplate) {
     try {
@@ -96,10 +143,12 @@ export function AppLayout() {
     <div
       className="app-shell"
       data-layout-tier={layoutTier}
-      data-sidebar-drawer={isCompact ? 'true' : 'false'}
+      data-sidebar-drawer={isCompact && showSidebar ? 'true' : 'false'}
       data-focus-mode={focusMode ? 'true' : 'false'}
+      data-home={onHomePage ? 'true' : 'false'}
+      data-sidebar-hidden={showSidebar ? 'false' : 'true'}
     >
-      {!focusMode && (
+      {showSidebar && (
         <>
           {isCompact && sidebarOpen && (
             <button
@@ -139,7 +188,6 @@ export function AppLayout() {
         onOpenChange={(open) => dispatch(setMoveDocumentPickerOpen(open))}
       />
       <InputDialogHost />
-      <AiResultDialogHost />
       <StorageAccessDialogHost />
       <SaveCustomTemplateDialogHost />
       <TrashDialog />

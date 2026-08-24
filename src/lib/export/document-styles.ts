@@ -1,14 +1,28 @@
 /** Shared typography and layout CSS for editor print mode, HTML export, and print preview. */
+import type { PageSetup } from '@/lib/editor/page-setup'
+import { DEFAULT_PAGE_SETUP, normalizePageSetup } from '@/lib/editor/page-setup'
+import { resolveDocumentTypography } from '@/lib/editor/document-style-presets'
+
 export const DOCUMENT_BODY_FONT =
   '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif'
 
-export const DOCUMENT_CONTENT_CSS = `
-  font-family: ${DOCUMENT_BODY_FONT};
-  font-size: 12pt;
-  line-height: 1.6;
+export function buildDocumentContentCss(pageSetup?: PageSetup): string {
+  const typography = resolveDocumentTypography(
+    normalizePageSetup(pageSetup ?? DEFAULT_PAGE_SETUP),
+  )
+  const fontFamily = typography.fontFamily.trim() || DOCUMENT_BODY_FONT
+  // Approximate px → pt for print/export (96dpi CSS).
+  const fontSizePt = Math.round((typography.fontSize * 72) / 96)
+  return `
+  font-family: ${fontFamily};
+  font-size: ${fontSizePt}pt;
+  line-height: ${typography.lineHeight};
   letter-spacing: 0;
   color: #111111;
 `
+}
+
+export const DOCUMENT_CONTENT_CSS = buildDocumentContentCss()
 
 export const DOCUMENT_TIPTAP_CSS = `
   .document-content h1 { font-size: 24pt; font-weight: 700; margin: 0 0 12pt; line-height: 1.15; }

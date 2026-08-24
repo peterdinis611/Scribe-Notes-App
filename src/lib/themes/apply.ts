@@ -2,8 +2,12 @@ import {
   CYCLE_THEME_ORDER,
   getDefaultCustomTheme,
   getPresetById,
+  PRESS_DARK,
+  PRESS_LIGHT,
 } from '@/lib/themes/presets'
 import type { ThemeColors, ThemePresetId, ThemeSettings } from '@/lib/themes/types'
+import { applyUiSkin, type UiSkin } from '@/lib/ui-skin'
+import { readUiSkin } from '@/store/persistence'
 
 const CSS_VAR_MAP: Record<keyof ThemeColors, string> = {
   background: '--color-background',
@@ -100,9 +104,29 @@ function relativeLuminance(r: number, g: number, b: number): number {
   return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs
 }
 
-export function applyThemeSettings(settings: ThemeSettings) {
-  const { colors, colorScheme, resolvedId } = resolveThemeColors(settings)
+function colorsForSkin(
+  colors: ThemeColors,
+  resolvedId: Exclude<ThemePresetId, 'system'>,
+  colorScheme: 'light' | 'dark',
+  skin: UiSkin,
+): ThemeColors {
+  if (skin !== 'press') return colors
+  if (resolvedId === 'light' || resolvedId === 'dark') {
+    return resolvedId === 'dark' ? PRESS_DARK : PRESS_LIGHT
+  }
+  // system resolves to light|dark already; custom / named presets keep their colors
+  if (resolvedId !== 'custom' && (colorScheme === 'light' || colorScheme === 'dark')) {
+    // named presets like sepia keep own colors
+  }
+  return colors
+}
+
+export function applyThemeSettings(settings: ThemeSettings, skin: UiSkin = readUiSkin()) {
+  const { colors: baseColors, colorScheme, resolvedId } = resolveThemeColors(settings)
+  const colors = colorsForSkin(baseColors, resolvedId, colorScheme, skin)
   const root = document.documentElement
+
+  applyUiSkin(skin)
 
   for (const [key, cssVar] of Object.entries(CSS_VAR_MAP) as Array<
     [keyof ThemeColors, string]

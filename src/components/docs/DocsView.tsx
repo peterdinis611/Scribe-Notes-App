@@ -11,7 +11,6 @@ import {
   Link2,
   PenLine,
   Search,
-  Sparkles,
   X,
   type LucideIcon,
 } from 'lucide-react'
@@ -28,7 +27,6 @@ export const DOCS_TOPIC_IDS = [
   'editor',
   'search',
   'journal',
-  'ai',
   'backup',
   'shortcuts',
 ] as const
@@ -44,7 +42,6 @@ const TOPIC_ICONS: Record<DocsTopicId, LucideIcon> = {
   editor: PenLine,
   search: Search,
   journal: CalendarDays,
-  ai: Sparkles,
   backup: Archive,
   shortcuts: Keyboard,
 }
@@ -53,10 +50,10 @@ const DOC_GROUPS: { id: string; topics: DocsTopicId[] }[] = [
   { id: 'basics', topics: ['overview', 'documents'] },
   { id: 'organize', topics: ['library', 'linkGraph', 'wikiLinks'] },
   { id: 'write', topics: ['editor', 'search', 'journal'] },
-  { id: 'power', topics: ['ai', 'backup', 'shortcuts'] },
+  { id: 'power', topics: ['backup', 'shortcuts'] },
 ]
 
-const QUICK_LINKS: DocsTopicId[] = ['library', 'wikiLinks', 'search', 'ai']
+const QUICK_LINKS: DocsTopicId[] = ['library', 'wikiLinks', 'search', 'backup']
 
 const TOPIC_TIPS: Partial<Record<DocsTopicId, { keys: string; tipKey: string }>> = {
   search: { keys: '⌘K', tipKey: 'searchTip' },

@@ -17,7 +17,6 @@ import { ColorSwatchGrid, CustomColorPicker } from '@/components/editor-toolbar/
 import { HIGHLIGHT_COLORS, TEXT_COLORS } from '@/lib/editor/font-size'
 import { hasEditorSelection } from '@/lib/editor/delete-content'
 import { createCommentForSelection } from '@/lib/editor/comments'
-import { EditorAiBubbleMenu } from '@/components/editor/EditorAiBubbleMenu'
 import { cn } from '@/lib/utils'
 
 type EditorTextBubbleMenuProps = {
@@ -107,7 +106,6 @@ export function EditorTextBubbleMenu({ editor }: EditorTextBubbleMenuProps) {
       >
         <Highlighter className="h-3.5 w-3.5" />
       </button>
-      <EditorAiBubbleMenu editor={editor} />
     </BubbleMenu>
   )
 }

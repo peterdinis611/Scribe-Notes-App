@@ -11,6 +11,7 @@ import {
   FolderInput,
   FolderPlus,
   Languages,
+  LayoutTemplate,
   Moon,
   Plus,
   Search,
@@ -21,11 +22,6 @@ import {
   Pin,
   RotateCcw,
 } from 'lucide-react'
-import { AI_ACTION_IDS } from '@/lib/ai/actions'
-import { isAiAvailable } from '@/lib/ai/config'
-import { DOCUMENT_AI_ACTION_IDS } from '@/lib/ai/types'
-import { runAiEditorAction } from '@/lib/ai/run-action'
-import { editorRefs } from '@/store/editorRefs'
 import { openQuickNote } from '@/lib/quick-note'
 import { openTodayNote, openThisWeekNote } from '@/lib/journal-notes'
 import { getDisplayKeysForShortcut } from '@/lib/shortcuts'
@@ -34,7 +30,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { createFolder, duplicateDocument, searchDocuments, setDocumentPinned } from '@/lib/db/api'
 import type { SearchHit } from '@/lib/db/api'
 import { promptInput } from '@/lib/input-dialog'
-import { peekCachedDocument } from '@/lib/cache/document-cache'
+import { getCachedParsedContent, peekCachedDocument } from '@/lib/cache/document-cache'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
 import { cn, debounce } from '@/lib/utils'
@@ -63,6 +59,7 @@ import {
   createCustomThemeSelection,
   createThemeSelection,
 } from '@/store/settings-helpers'
+import { setSaveCustomTemplateDialog } from '@/store/templatesSlice'
 
 type PaletteItem =
   | { type: 'action'; id: string; label: string; hint?: string; icon: React.ReactNode; run: () => void }
@@ -96,9 +93,7 @@ export function CommandPalette() {
   const readingMode = useAppSelector((state) => state.documents.readingMode)
   const shortcutOverrides = useAppSelector((state) => state.settings.shortcutOverrides)
   const locale = useAppSelector((state) => state.settings.locale)
-  const aiSettings = useAppSelector((state) => state.settings.aiSettings)
   const openDemoGuide = useOpenDemoGuide()
-  const aiEnabled = isAiAvailable(aiSettings)
 
   const activeDocument = useMemo(
     () => documents.find((doc) => doc.id === activeDocumentId) ?? null,
@@ -115,22 +110,6 @@ export function CommandPalette() {
         icon: <Plus className="h-4 w-4" />,
         run: () => dispatch(setTemplatePickerOpen(true)),
       },
-      ...(aiEnabled
-        ? AI_ACTION_IDS.map(
-            (action): PaletteItem => ({
-              type: 'action',
-              id: `ai-${action}`,
-              label: t(`commandPalette.ai.${action}`, { defaultValue: t(`ai.actions.${action}`) }),
-              hint: DOCUMENT_AI_ACTION_IDS.includes(action)
-                ? t('commandPalette.aiDocumentHint')
-                : t('commandPalette.aiHint'),
-              icon: <Sparkles className="h-4 w-4" />,
-              run: () => {
-                void runAiEditorAction(editorRefs.editor, action)
-              },
-            }),
-          )
-        : []),
       {
         type: 'action',
         id: 'quick-note',
@@ -141,6 +120,26 @@ export function CommandPalette() {
           void openQuickNote(documents, dispatch, navigate, (key) => t(key))
         },
       },
+      ...(activeDocument
+        ? [
+            {
+              type: 'action' as const,
+              id: 'save-as-template',
+              label: t('fileMenu.saveAsTemplate'),
+              icon: <LayoutTemplate className="h-4 w-4" />,
+              run: () => {
+                dispatch(
+                  setSaveCustomTemplateDialog({
+                    open: true,
+                    content: getCachedParsedContent(activeDocument),
+                    suggestedName: activeDocument.title,
+                    suggestedTitle: activeDocument.title,
+                  }),
+                )
+              },
+            },
+          ]
+        : []),
       ...(recentlyClosedIds[0]
         ? [
             {
@@ -385,7 +384,6 @@ export function CommandPalette() {
       },
     ],
     [
-      aiEnabled,
       activeDocument,
       dispatch,
       documents,
@@ -516,17 +514,17 @@ export function CommandPalette() {
   return (
     <Dialog open={open} onOpenChange={(next) => dispatch(setCommandPaletteOpen(next))}>
       {open && (
-        <DialogContent className="top-[12vh] max-w-[560px] translate-y-0 gap-0 overflow-hidden p-0">
-        <div className="flex items-center gap-2.5 border-b border-[var(--color-border)] px-4 py-3.5">
-          <Search className="h-4 w-4 text-[var(--color-muted-foreground)]" />
+        <DialogContent className="command-palette-dialog top-[12vh] max-w-[560px] translate-y-0 gap-0 overflow-hidden p-0 shadow-[0_24px_60px_rgba(0,0,0,0.28)]">
+        <div className="flex items-center gap-2.5 border-b border-[var(--color-border)] px-4 py-3.5 shadow-[inset_3px_0_0_0_var(--color-accent)]">
+          <Search className="h-4 w-4 text-[var(--color-accent)]" />
           <input
             ref={inputRef}
-            className="flex-1 border-none bg-transparent text-[15px] text-[var(--color-foreground)] outline-none placeholder:text-[var(--color-muted-foreground)]"
+            className="flex-1 border-none bg-transparent font-[family-name:var(--font-display)] text-[16px] font-semibold tracking-[-0.02em] text-[var(--color-foreground)] outline-none placeholder:font-sans placeholder:font-normal placeholder:tracking-normal placeholder:text-[var(--color-muted-foreground)]"
             placeholder={t('commandPalette.placeholder')}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
-          <kbd className="rounded-md border border-[var(--color-border)] px-1.5 py-0.5 text-[11px] text-[var(--color-muted-foreground)]">
+          <kbd className="rounded-[var(--radius-sm)] border border-[var(--color-border)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--color-muted-foreground)]">
             ⌘K
           </kbd>
         </div>
@@ -603,25 +601,28 @@ function PaletteRow({
     <button
       type="button"
       className={cn(
-        'flex w-full items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-left transition-colors',
-        selected && 'bg-[var(--color-selection)]',
+        'flex w-full items-center gap-2.5 rounded-[var(--radius-sm)] border border-transparent px-3 py-2.5 text-left transition-colors',
+        selected &&
+          'border-[color-mix(in_srgb,var(--color-accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] shadow-[inset_2px_0_0_0_var(--color-accent)]',
         !selected && 'hover:bg-[var(--color-hover)]',
       )}
       onMouseEnter={onSelect}
       onClick={onRun}
     >
-      <span className="text-[var(--color-muted-foreground)]">{item.icon}</span>
+      <span className={cn(selected ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted-foreground)]')}>
+        {item.icon}
+      </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[13px] font-semibold text-[var(--color-foreground)]">
+        <span className="block text-[13px] font-semibold tracking-[-0.01em] text-[var(--color-foreground)]">
           {item.label}
         </span>
         {item.type === 'document' && item.snippetHtml ? (
           <span
-            className="command-palette-snippet block truncate text-[11px] text-[var(--color-muted-foreground)]"
+            className="command-palette-snippet block truncate font-mono text-[10px] text-[var(--color-muted-foreground)]"
             dangerouslySetInnerHTML={{ __html: sanitizeSnippet(item.snippetHtml) }}
           />
         ) : item.type === 'action' && item.hint ? (
-          <span className="block truncate text-[11px] text-[var(--color-muted-foreground)]">
+          <span className="block truncate font-mono text-[10px] text-[var(--color-muted-foreground)]">
             {item.hint}
           </span>
         ) : null}

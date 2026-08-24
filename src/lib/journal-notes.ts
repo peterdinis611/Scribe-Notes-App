@@ -131,9 +131,12 @@ async function openJournalNote(mapKey: string, title: string, args: OpenJournalA
 }
 
 export async function openTodayNote(args: OpenJournalArgs) {
-  const now = new Date()
-  const key = `daily:${formatDateKey(now)}`
-  const title = args.t('journal.todayTitle', { date: formatDateKey(now) })
+  return openJournalNoteForDate(new Date(), args)
+}
+
+export async function openJournalNoteForDate(date: Date, args: OpenJournalArgs) {
+  const key = `daily:${formatDateKey(date)}`
+  const title = args.t('journal.todayTitle', { date: formatDateKey(date) })
   return openJournalNote(key, title, args)
 }
 
@@ -143,4 +146,27 @@ export async function openThisWeekNote(args: OpenJournalArgs) {
   const key = `weekly:${week}`
   const title = args.t('journal.weekTitle', { week })
   return openJournalNote(key, title, args)
+}
+
+/** Dates that already have a daily journal note (from local map + journal folder titles). */
+export function listJournalDailyDates(documents: DocumentSummary[], folderId: string | null): string[] {
+  const map = readJournalMap()
+  const dates = new Set<string>()
+  for (const [key, docId] of Object.entries(map)) {
+    if (!key.startsWith('daily:')) continue
+    const alive = documents.some((doc) => doc.id === docId && doc.deletedAt == null)
+    if (alive) dates.add(key.slice('daily:'.length))
+  }
+  if (folderId) {
+    for (const doc of documents) {
+      if (doc.deletedAt != null || doc.folderId !== folderId) continue
+      const match = /^(\d{4}-\d{2}-\d{2})/.exec(doc.title)
+      if (match) dates.add(match[1]!)
+    }
+  }
+  return [...dates].sort()
+}
+
+export function getJournalFolderId(folders: Folder[], folderName: string): string | null {
+  return folders.find((folder) => folder.parentId == null && folder.name === folderName)?.id ?? null
 }

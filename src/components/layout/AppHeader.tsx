@@ -5,8 +5,10 @@ import {
   Check,
   ChevronRight,
   Circle,
+  Home,
   Loader2,
   Plus,
+  X,
 } from 'lucide-react'
 import { DocumentTitleField } from '@/components/DocumentTitleField'
 import { DemoGuideButton } from '@/components/DemoGuideButton'
@@ -25,6 +27,7 @@ import { tiptapJsonToHtmlAsync } from '@/lib/export/html'
 import { tiptapJsonToMarkdown } from '@/lib/export/markdown'
 import { tiptapToPlainText } from '@/lib/export/plain-text'
 import { ROUTES, useSettingsSections } from '@/lib/routes'
+import { closeActiveDocumentAndMaybeHome, goToHome } from '@/lib/navigation'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { editorRefs } from '@/store/editorRefs'
@@ -94,6 +97,8 @@ function SettingsChrome() {
   const pathname = useRouterState({ select: (state) => state.location.pathname })
   const settingsSections = useSettingsSections()
   const { t } = useTranslation()
+  const dispatch = useAppDispatch()
+  const navigate = useNavigate()
   const active =
     settingsSections.find((section) => pathname === `/settings/${section.id}`) ??
     settingsSections[0]
@@ -107,6 +112,20 @@ function SettingsChrome() {
           <ChevronRight className="h-3.5 w-3.5 text-[var(--color-muted-foreground)]" />
           <span className="truncate text-[var(--color-muted-foreground)]">{active.label}</span>
         </div>
+      </div>
+      <div className="titlebar-no-drag titlebar-interactive flex shrink-0 items-center gap-1.5">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => goToHome({ dispatch, navigate })}
+          title={t('fileMenu.goHome')}
+          aria-label={t('fileMenu.goHome')}
+        >
+          <Home className="h-3.5 w-3.5 shrink-0" />
+          <span className="[[data-layout-tier=medium]_&]:hidden [[data-layout-tier=narrow]_&]:hidden [[data-layout-tier=tight]_&]:hidden">
+            {t('nav.home')}
+          </span>
+        </Button>
       </div>
     </header>
   )
@@ -129,6 +148,8 @@ function DocsChrome() {
 
 function EditorChrome() {
   const document = useAppSelector((state) => state.documents.activeDocument)
+  const activeId = useAppSelector((state) => state.documents.activeDocumentId)
+  const openDocumentIds = useAppSelector((state) => state.documents.openDocumentIds)
   const pageSetup = useAppSelector((state) => state.settings.pageSetup)
   const viewMode = useAppSelector((state) => state.settings.editorViewMode)
   const dispatch = useAppDispatch()
@@ -164,7 +185,7 @@ function EditorChrome() {
     }
   }, [pdfPreviewPayload])
 
-  async function handleExport(format: 'pdf' | 'docx' | 'txt' | 'pages' | 'md') {
+  async function handleExport(format: 'pdf' | 'docx' | 'txt' | 'pages' | 'md' | 'html' | 'html-zip' | 'epub') {
     if (!pdfPreviewPayload) return
     const { plainText, title, markdown, pageSetup: exportPageSetup, contentJson } = pdfPreviewPayload
     try {
@@ -210,6 +231,19 @@ function EditorChrome() {
     )
   }
 
+  function handleGoHome() {
+    goToHome({ dispatch, navigate })
+  }
+
+  function handleCloseDocument() {
+    closeActiveDocumentAndMaybeHome({
+      activeId,
+      openDocumentIds,
+      dispatch,
+      navigate,
+    })
+  }
+
   return (
     <>
       <header className="app-chrome editor-header titlebar-drag [[data-sidebar-drawer=true]_&]:pl-[78px]">
@@ -232,6 +266,8 @@ function EditorChrome() {
             onPdfPreview={document ? () => setPdfPreviewOpen(true) : undefined}
             onPrint={document ? (editorRefs.printHandler ?? undefined) : undefined}
             onSaveAsTemplate={document ? handleSaveAsTemplate : undefined}
+            onGoHome={handleGoHome}
+            onCloseDocument={document ? handleCloseDocument : undefined}
             onExport={document ? (format) => void handleExport(format) : undefined}
           />
           {document ? (
@@ -247,6 +283,31 @@ function EditorChrome() {
         </div>
 
         <div className="editor-header-right titlebar-no-drag titlebar-interactive flex shrink-0 flex-nowrap items-center justify-end gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0">
+          {document && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGoHome}
+                title={t('fileMenu.goHome')}
+                aria-label={t('fileMenu.goHome')}
+              >
+                <Home className="h-3.5 w-3.5 shrink-0" />
+                <span className="editor-header-label [[data-layout-tier=medium]_&]:hidden [[data-layout-tier=narrow]_&]:hidden [[data-layout-tier=tight]_&]:hidden">
+                  {t('nav.home')}
+                </span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCloseDocument}
+                title={`${t('fileMenu.closeDocument')} (⌘W)`}
+                aria-label={t('fileMenu.closeDocument')}
+              >
+                <X className="h-3.5 w-3.5 shrink-0" />
+              </Button>
+            </>
+          )}
           {document && <EditorDocumentToolsMenu viewMode={viewMode} />}
           {document && <EditorViewModeToggle />}
           <LocaleToggle size="sm" />

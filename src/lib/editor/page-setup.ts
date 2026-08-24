@@ -23,6 +23,12 @@ export type FirstPageSetup = {
   marginRight?: number
 }
 
+export type DocumentTypography = {
+  fontFamily: string
+  fontSize: number
+  lineHeight: number
+}
+
 export type PageSetup = {
   paperSize: PaperSizeId
   marginTop: number
@@ -32,6 +38,10 @@ export type PageSetup = {
   headerFooter: PageHeaderFooter
   watermark: PageWatermark
   firstPage: FirstPageSetup
+  /** Editor body typography (font / size / line height). */
+  typography: DocumentTypography
+  /** Last applied named style preset, if any. */
+  stylePresetId?: string | null
 }
 
 export type ResolvedPageLayout = {
@@ -88,12 +98,20 @@ export const DEFAULT_PAGE_HEADER_FOOTER: PageHeaderFooter = {
   showPageNumber: true,
 }
 
+export const DEFAULT_DOCUMENT_TYPOGRAPHY: DocumentTypography = {
+  fontFamily: '',
+  fontSize: 16,
+  lineHeight: 1.7,
+}
+
 export const DEFAULT_PAGE_SETUP: PageSetup = {
   paperSize: 'a4',
   ...PAGE_MARGIN_PRESETS[0].setup,
   headerFooter: DEFAULT_PAGE_HEADER_FOOTER,
   watermark: DEFAULT_PAGE_WATERMARK,
   firstPage: DEFAULT_FIRST_PAGE,
+  typography: DEFAULT_DOCUMENT_TYPOGRAPHY,
+  stylePresetId: 'default',
 }
 
 export function normalizePageSetup(setup: PageSetup): PageSetup {
@@ -112,6 +130,11 @@ export function normalizePageSetup(setup: PageSetup): PageSetup {
       ...DEFAULT_FIRST_PAGE,
       ...setup.firstPage,
     },
+    typography: {
+      ...DEFAULT_DOCUMENT_TYPOGRAPHY,
+      ...(setup.typography ?? {}),
+    },
+    stylePresetId: setup.stylePresetId ?? null,
   }
 }
 

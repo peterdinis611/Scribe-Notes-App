@@ -25,6 +25,7 @@ import {
   countDocumentsInFolders,
 } from '@/lib/library/folders'
 import { buildTree, estimateFlatItemSize, flattenTree } from '@/lib/library/tree'
+import { documentMatchesMetaFilters } from '@/lib/library/tag-meta'
 import {
   readDocumentDragId,
   readFolderDragId,
@@ -57,6 +58,7 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
   const favoritesOnly = useAppSelector((state) => state.documents.favoritesOnlyFilter)
   const activeTag = useAppSelector((state) => state.documents.activeTagFilter)
+  const metaFilters = useAppSelector((state) => state.documents.metaFilters)
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const [dragOverId, setDragOverId] = useState<string | null>(null)
@@ -67,9 +69,10 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
       if (q && !doc.title.toLowerCase().includes(q)) return false
       if (favoritesOnly && !doc.isFavorite) return false
       if (activeTag && !doc.tags.includes(activeTag)) return false
+      if (!documentMatchesMetaFilters(doc.tags, metaFilters)) return false
       return true
     })
-  }, [documents, query, favoritesOnly, activeTag])
+  }, [documents, query, favoritesOnly, activeTag, metaFilters])
 
   const tree = useMemo(() => buildTree(folders, filteredDocuments), [folders, filteredDocuments])
   const flatItems = useMemo(() => flattenTree(tree, expandedIds), [tree, expandedIds])

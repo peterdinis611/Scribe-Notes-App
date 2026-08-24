@@ -9,13 +9,13 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          'rounded-lg bg-[var(--color-accent)] text-white hover:brightness-105 active:brightness-95 px-3.5 h-9 shadow-sm',
+          'rounded-[var(--radius-md)] bg-[var(--color-accent)] text-white hover:brightness-105 active:brightness-95 px-3.5 h-9 shadow-sm',
         outline:
-          'rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-foreground)] hover:bg-[var(--color-hover)] h-9 px-3.5',
+          'rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-foreground)] hover:bg-[var(--color-hover)] h-9 px-3.5',
         ghost:
-          'rounded-lg bg-transparent text-[var(--color-foreground)] hover:bg-[var(--color-hover)] h-8 px-2.5',
+          'rounded-[var(--radius-md)] bg-transparent text-[var(--color-foreground)] hover:bg-[var(--color-hover)] h-8 px-2.5',
         sidebar:
-          'rounded-lg bg-transparent hover:bg-[var(--color-hover)] h-8 w-8 p-0',
+          'rounded-[var(--radius-md)] bg-transparent hover:bg-[var(--color-hover)] h-8 w-8 p-0',
       },
       size: {
         default: 'h-9 px-3.5',

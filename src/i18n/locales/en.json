@@ -37,6 +37,7 @@
     "all": "All"
   },
   "nav": {
+    "home": "Home",
     "editor": "Editor",
     "settings": "Settings",
     "docs": "Docs",
@@ -53,7 +54,14 @@
     "recentDocuments": "Recent documents",
     "noDocuments": "No documents yet",
     "noDocumentsHint": "Start with a new document, the demo, or an import.",
-    "emptyStartHint": "Start with a new document, the demo, or an import."
+    "emptyStartHint": "Start with a new document, the demo, or an import.",
+    "press": {
+      "eyebrow": "Letterpress · local on this Mac",
+      "brandTagline": "Write like it goes to print. Files stay on disk — blank page, import, or pick up where you left off.",
+      "recentDocuments": "Continue",
+      "noDocuments": "The press is empty",
+      "noDocumentsHint": "Start a blank page, open the guide, or import a file from Finder."
+    }
   },
   "demoGuide": {
     "badge": "Start here",
@@ -65,6 +73,8 @@
   "fileMenu": {
     "label": "File",
     "import": "Import…",
+    "goHome": "Go to home",
+    "closeDocument": "Close document",
     "revealInFinder": "Reveal in Finder",
     "saveAsTemplate": "Save as template…",
     "pdfPreview": "PDF preview",
@@ -72,8 +82,13 @@
     "exportPdf": "Export PDF",
     "exportDocx": "Word (DOCX)",
     "exportMd": "Markdown (MD)",
+    "exportHtml": "HTML",
+    "exportHtmlZip": "HTML package (ZIP)",
+    "exportEpub": "EPUB",
     "exportTxt": "Text (TXT)",
-    "exportPages": "Apple Pages"
+    "exportPages": "Apple Pages",
+    "openedFromFinder": "Opened „{{title}}“",
+    "openFromFinderError": "Could not open file"
   },
   "commandPalette": {
     "placeholder": "Search documents and commands…",
@@ -109,19 +124,6 @@
     "newFolder": "New folder",
     "newFolderTitle": "New folder",
     "newFolderPlaceholder": "Folder name",
-    "aiHint": "Requires text selection",
-    "aiDocumentHint": "Uses the whole document",
-    "ai": {
-      "rewrite": "AI: Rewrite",
-      "shorten": "AI: Shorten",
-      "expand": "AI: Expand",
-      "fixGrammar": "AI: Fix grammar",
-      "toneFormal": "AI: Formal tone",
-      "toneCasual": "AI: Casual tone",
-      "summarize": "AI: Summarize",
-      "outline": "AI: Outline",
-      "continueWriting": "AI: Continue writing"
-    },
     "todayNote": "Today note",
     "weekNote": "Weekly note"
   },
@@ -143,30 +145,6 @@
   "footnotes": {
     "edit": "Edit",
     "emptyNote": "(empty note)"
-  },
-  "ai": {
-    "menuTitle": "AI",
-    "noSelection": "Select text first",
-    "noDocumentText": "Document is empty",
-    "error": "AI request failed",
-    "actions": {
-      "rewrite": "Rewrite",
-      "shorten": "Shorten",
-      "expand": "Expand",
-      "fixGrammar": "Fix grammar",
-      "toneFormal": "Formal tone",
-      "toneCasual": "Casual tone",
-      "summarize": "Summarize document",
-      "outline": "Create outline",
-      "continueWriting": "Continue writing"
-    },
-    "dialog": {
-      "loading": "Generating a suggestion…",
-      "working": "Working…",
-      "preview": "Review the suggestion before applying it to your selection.",
-      "apply": "Apply",
-      "discard": "Discard"
-    }
   },
   "errors": {
     "title": "Something went wrong",
@@ -214,10 +192,6 @@
       "about": {
         "label": "About",
         "description": "Version and info"
-      },
-      "ai": {
-        "label": "AI",
-        "description": "Inline writing assistant"
       }
     },
     "language": {
@@ -227,30 +201,13 @@
       "sk": "Slovenčina",
       "en": "English"
     },
-    "ai": {
-      "pageTitle": "AI assistant",
-      "pageDescription": "Optional inline AI for rewriting selected text. Disabled by default.",
-      "enabledTitle": "Enable AI",
-      "enabledDescription": "Shows AI actions in the editor bubble menu and command palette.",
-      "enabledOn": "On",
-      "enabledOff": "Off",
-      "providerTitle": "Provider",
-      "providerDescription": "Choose a local Ollama server or a cloud API.",
-      "providers": {
-        "ollama": "Ollama (local)",
-        "openai": "OpenAI",
-        "anthropic": "Anthropic"
-      },
-      "baseUrlTitle": "Base URL",
-      "baseUrlDescription": "API endpoint for the selected provider.",
-      "apiKeyTitle": "API key",
-      "apiKeyDescription": "Stored only in this browser's localStorage on your device — never sent to Scribe servers.",
-      "apiKeyPlaceholder": "sk-…",
-      "modelTitle": "Model",
-      "modelDescription": "Model name passed to the provider API.",
-      "privacyNote": "Selected text and prompts are sent directly from your device to the configured provider. API keys stay in localStorage on this device."
-    },
     "appearance": {
+      "skinTitle": "Design language",
+      "skinDescription": "Classic Scribe look, or Copper Press letterpress chrome. You can switch anytime.",
+      "skinClassic": "Classic",
+      "skinClassicDesc": "Original clean macOS-style interface with blue accents.",
+      "skinPress": "Copper Press",
+      "skinPressDesc": "Letterpress atmosphere — Syne typography, copper accents, press welcome.",
       "themeTitle": "Theme",
       "themeDescription": "Choose a default theme, generate a random one, or create your own.",
       "randomTheme": "Random theme",
@@ -425,18 +382,6 @@
             "Quick note opens a scratch document for fleeting thoughts without creating a new titled page first."
           ],
           "points": []
-        },
-        "ai": {
-          "title": "AI assistant",
-          "summary": "Optional rewrite help",
-          "paragraphs": [
-            "AI is optional and off by default. Enable it in Settings → AI and choose Ollama (local) or OpenAI / Anthropic."
-          ],
-          "points": [
-            "With text selected, use the bubble menu or command palette to rewrite, shorten, expand, fix grammar, or change tone",
-            "Selected text is sent only to the provider you configure",
-            "API keys stay in localStorage on this device"
-          ]
         },
         "backup": {
           "title": "Backup and restore",
@@ -613,6 +558,7 @@
       "folders": "Folders",
       "recent": "Recent",
       "favorites": "Favorites",
+      "journal": "Journal",
       "tags": "Tags",
       "graph": "Link graph"
     },
@@ -647,6 +593,17 @@
     "selectTag": "Select a tag…",
     "documentsWithTag": "Documents with tag",
     "clearFilter": "Clear filter",
+    "metaTagHint": "Tip: use status:draft, project:Acme, or year:2026 for structured filters.",
+    "filteredDocuments": "{{count}} matching documents",
+    "filters": {
+      "status": "Status",
+      "project": "Project",
+      "year": "Year",
+      "tags": "Tags"
+    },
+    "addProject": "Add project",
+    "addProjectTag": "Filter by project",
+    "projectPlaceholder": "Project name",
     "searchResults": "Content results",
     "searching": "Searching…",
     "searchEmpty": "Nothing found",
@@ -723,7 +680,10 @@
       "outgoing": "Links from here",
       "incomingEmpty": "No documents link here yet.",
       "outgoingEmpty": "This document doesn't link anywhere yet.",
-      "loadError": "Failed to load links"
+      "loadError": "Failed to load links",
+      "neighborhood": "Neighborhood",
+      "openGraph": "Open link graph",
+      "edgeSummary": "{{count}} links in neighborhood"
     },
     "stats": {
       "subtitle": "Document overview",
@@ -781,9 +741,14 @@
   },
   "findReplace": {
     "findPlaceholder": "Find in document…",
+    "regexPlaceholder": "Find regex…",
     "replacePlaceholder": "Replace…",
     "replaceWith": "Replace with…",
+    "replaceWithRegex": "Replace with… ($1, $&)",
     "matchCase": "Match case",
+    "wholeWord": "Whole word",
+    "regex": "Regular expression",
+    "invalidRegex": "Invalid regular expression",
     "previous": "Previous (⇧⏎)",
     "next": "Next (⏎)",
     "replace": "Replace",
@@ -1306,12 +1271,74 @@
     "zoom": "Zoom",
     "moveToFolder": "Move to folder"
   },
+  "pageStyles": {
+    "title": "Page setup",
+    "subtitle": "Style presets, typography, paper size, margins, header, and watermark.",
+    "presetsHeading": "Document styles",
+    "typography": "Typography",
+    "fontSize": "Font size (px)",
+    "lineHeight": "Line height",
+    "fontFamily": "Font family",
+    "fontFamilyPlaceholder": "Leave empty for default",
+    "presets": {
+      "default": {
+        "label": "Default",
+        "description": "Balanced A4 layout with system typography"
+      },
+      "academic": {
+        "label": "Academic",
+        "description": "Serif type, generous margins, page numbers"
+      },
+      "letter": {
+        "label": "Letter",
+        "description": "US Letter, compact body, date in footer"
+      },
+      "blog": {
+        "label": "Blog",
+        "description": "Larger sans-serif text for comfortable reading"
+      },
+      "manuscript": {
+        "label": "Manuscript",
+        "description": "Monospace, double-spaced draft layout"
+      }
+    }
+  },
   "journal": {
     "today": "Today",
     "thisWeek": "This week",
     "folderName": "Journal",
     "todayTitle": "{{date}}",
     "weekTitle": "Week {{week}}",
-    "openError": "Failed to open journal note"
+    "openError": "Failed to open journal note",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "calendarHint": "Click a day to open or create that daily note.",
+    "weekday": {
+      "mon": "Mo",
+      "tue": "Tu",
+      "wed": "We",
+      "thu": "Th",
+      "fri": "Fr",
+      "sat": "Sa",
+      "sun": "Su"
+    }
+  },
+  "image": {
+    "alignLeft": "Align left",
+    "alignCenter": "Align center",
+    "alignRight": "Align right",
+    "floatLeft": "Float left",
+    "floatRight": "Float right",
+    "properties": "Image properties",
+    "crop": "Crop",
+    "cropTitle": "Crop image",
+    "cropHint": "Drag the selection, then apply the crop.",
+    "applyCrop": "Apply crop",
+    "alt": "Alt text",
+    "altPlaceholder": "Describe the image for accessibility",
+    "caption": "Caption",
+    "captionPlaceholder": "Optional caption",
+    "captionEmpty": "Add a caption…",
+    "resize": "Resize"
   }
 }

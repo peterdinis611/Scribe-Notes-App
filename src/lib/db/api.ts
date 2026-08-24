@@ -202,7 +202,7 @@ export const exportDocument = async (
   html: string,
   plainText: string,
   title: string,
-  format: 'pdf' | 'docx' | 'txt' | 'pages' | 'md',
+  format: 'pdf' | 'docx' | 'txt' | 'pages' | 'md' | 'html' | 'html-zip' | 'epub',
   markdown?: string,
   pageSetup?: import('@/lib/editor/page-setup').PageSetup,
 ) => {

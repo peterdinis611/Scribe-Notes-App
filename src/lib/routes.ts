@@ -1,10 +1,9 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { LucideIcon } from 'lucide-react'
-import { Activity, FolderOpen, Info, Keyboard, Palette, Sparkles } from 'lucide-react'
+import { Activity, FolderOpen, Info, Keyboard, Palette } from 'lucide-react'
 export type SettingsSection =
   | 'appearance'
-  | 'ai'
   | 'storage'
   | 'shortcuts'
   | 'diagnostics'
@@ -13,7 +12,6 @@ export type SettingsSection =
 export function isSettingsSection(value: string | undefined): value is SettingsSection {
   return (
     value === 'appearance' ||
-    value === 'ai' ||
     value === 'storage' ||
     value === 'shortcuts' ||
     value === 'diagnostics' ||
@@ -26,7 +24,6 @@ const SETTINGS_SECTION_META: {
   icon: LucideIcon
 }[] = [
   { id: 'appearance', icon: Palette },
-  { id: 'ai', icon: Sparkles },
   { id: 'storage', icon: FolderOpen },
   { id: 'shortcuts', icon: Keyboard },
   { id: 'diagnostics', icon: Activity },
@@ -50,7 +47,6 @@ export function useSettingsSections() {
 
 const SETTINGS_PATHS = {
   appearance: '/settings/appearance',
-  ai: '/settings/ai',
   storage: '/settings/storage',
   shortcuts: '/settings/shortcuts',
   diagnostics: '/settings/diagnostics',

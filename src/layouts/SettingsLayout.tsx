@@ -11,7 +11,7 @@ export function SettingsLayout() {
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
       <nav
-        className="titlebar-no-drag flex w-[200px] shrink-0 flex-col gap-0.5 border-r border-[var(--color-border)] bg-[var(--color-surface)] p-3"
+        className="titlebar-no-drag flex w-[220px] shrink-0 flex-col gap-1 border-r border-[var(--color-border)] bg-[var(--color-sidebar-solid)] p-3"
         aria-label={t('nav.settingsSections')}
       >
         {settingsSections.map(({ id, label, description, icon: Icon }) => (
@@ -19,17 +19,16 @@ export function SettingsLayout() {
             key={id}
             {...ROUTES.settingsSection(id)}
             className={cn(
-              'flex items-start gap-2.5 rounded-[var(--radius-md)] px-3 py-2.5 no-underline transition-colors hover:bg-[var(--color-hover)]',
-              pathname === `/settings/${id}` &&
-                'bg-[var(--color-selection)] text-[var(--color-accent)]',
+              'settings-nav-item flex items-start gap-2.5 rounded-[var(--radius-sm)] border border-transparent px-3 py-2.5 no-underline transition-colors hover:bg-[var(--color-hover)]',
+              pathname === `/settings/${id}` && 'is-active',
             )}
           >
             <Icon className="mt-0.5 h-4 w-4 shrink-0 opacity-70" />
             <span className="min-w-0">
-              <span className="block text-[13px] font-semibold text-[var(--color-foreground)]">
+              <span className="block font-[family-name:var(--font-display)] text-[13px] font-bold tracking-[-0.02em] text-[var(--color-foreground)]">
                 {label}
               </span>
-              <span className="block text-[11px] leading-snug text-[var(--color-muted-foreground)]">
+              <span className="mt-0.5 block font-mono text-[10px] uppercase tracking-[0.06em] text-[var(--color-muted-foreground)]">
                 {description}
               </span>
             </span>

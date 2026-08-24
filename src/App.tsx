@@ -17,17 +17,18 @@ import { router } from '@/router'
 
 function useThemeSync() {
   const themeSettings = useAppSelector((state) => state.settings.themeSettings)
+  const uiSkin = useAppSelector((state) => state.settings.uiSkin)
 
   useEffect(() => {
-    applyThemeSettings(themeSettings)
+    applyThemeSettings(themeSettings, uiSkin)
 
     if (themeSettings.themeId !== 'system') return
 
     const media = window.matchMedia('(prefers-color-scheme: dark)')
-    const onChange = () => applyThemeSettings(themeSettings)
+    const onChange = () => applyThemeSettings(themeSettings, uiSkin)
     media.addEventListener('change', onChange)
     return () => media.removeEventListener('change', onChange)
-  }, [themeSettings])
+  }, [themeSettings, uiSkin])
 }
 
 function useDocumentBootstrap() {

@@ -68,19 +68,21 @@ export function OnboardingTour() {
         if (!next) closeTour()
       }}
     >
-      <DialogContent className="max-w-[460px]" showClose>
+      <DialogContent className="max-w-[460px] shadow-[inset_3px_0_0_0_var(--color-accent)]" showClose>
         <DialogHeader>
-          <div className="mb-1 inline-flex h-9 w-9 items-center justify-center rounded-[10px] bg-[color-mix(in_srgb,var(--color-accent)_12%,var(--color-surface))] text-[var(--color-accent)]">
+          <div className="mb-1 inline-flex h-9 w-9 items-center justify-center rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--color-accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--color-accent)_12%,var(--color-surface))] text-[var(--color-accent)]">
             <Icon className="h-4 w-4" />
           </div>
-          <DialogTitle>{t('onboarding.title')}</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="font-[family-name:var(--font-display)] text-[22px] font-extrabold tracking-[-0.03em]">
+            {t('onboarding.title')}
+          </DialogTitle>
+          <DialogDescription className="font-mono text-[10px] uppercase tracking-[0.1em]">
             {t('onboarding.stepOf', { current: step + 1, total: STEP_IDS.length })}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-2 py-1">
-          <h3 className="m-0 text-[15px] font-semibold text-[var(--color-foreground)]">
+          <h3 className="m-0 font-[family-name:var(--font-display)] text-[16px] font-bold tracking-[-0.02em] text-[var(--color-foreground)]">
             {t(`onboarding.${stepId}.title`)}
           </h3>
           <p className="m-0 text-[13px] leading-relaxed text-[var(--color-muted-foreground)]">
@@ -94,15 +96,15 @@ export function OnboardingTour() {
               key={id}
               className={
                 index === step
-                  ? 'h-1.5 w-5 rounded-full bg-[var(--color-accent)]'
-                  : 'h-1.5 w-1.5 rounded-full bg-[var(--color-border)]'
+                  ? 'h-1.5 w-5 rounded-[var(--radius-sm)] bg-[var(--color-accent)]'
+                  : 'h-1.5 w-1.5 rounded-[var(--radius-sm)] bg-[var(--color-border)]'
               }
               aria-hidden="true"
             />
           ))}
         </div>
 
-        <label className="flex cursor-pointer items-center gap-2.5 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5">
+        <label className="flex cursor-pointer items-center gap-2.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5">
           <input
             type="checkbox"
             className="h-3.5 w-3.5 accent-[var(--color-accent)]"

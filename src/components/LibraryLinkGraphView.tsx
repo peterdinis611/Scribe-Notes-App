@@ -121,15 +121,27 @@ function buildLayout(
   return { nodes, nodeMap: new Map(nodes.map((node) => [node.id, node])), visibleEdges }
 }
 
-export function LibraryLinkGraphView() {
+export function LibraryLinkGraphView({
+  initialAroundActive = false,
+  onAroundActiveConsumed,
+}: {
+  initialAroundActive?: boolean
+  onAroundActiveConsumed?: () => void
+} = {}) {
   const [edges, setEdges] = useState<LinkGraphEdge[]>([])
   const [orphans, setOrphans] = useState<LinkGraphOrphan[]>([])
   const [loading, setLoading] = useState(true)
   const [showOrphans, setShowOrphans] = useState(false)
-  const [aroundActive, setAroundActive] = useState(false)
+  const [aroundActive, setAroundActive] = useState(initialAroundActive)
   const [scale, setScale] = useState(1)
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const dragRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null)
+
+  useEffect(() => {
+    if (!initialAroundActive) return
+    setAroundActive(true)
+    onAroundActiveConsumed?.()
+  }, [initialAroundActive, onAroundActiveConsumed])
 
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
   const documents = useAppSelector((state) => state.documents.documents)

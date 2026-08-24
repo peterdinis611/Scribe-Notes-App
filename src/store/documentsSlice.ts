@@ -17,6 +17,8 @@ import {
   readRecentDocumentIds,
   readRecentlyClosedIds,
 } from '@/store/persistence'
+import type { MetaFilters } from '@/lib/library/tag-meta'
+import { EMPTY_META_FILTERS } from '@/lib/library/tag-meta'
 
 export type SaveStatus = 'idle' | 'dirty' | 'saving' | 'saved' | 'error'
 
@@ -37,9 +39,14 @@ export interface DocumentsState {
   findReplaceOpen: boolean
   findReplaceMode: 'find' | 'replace'
   pendingEditorSearch: string | null
+  pendingLibraryView: {
+    view: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal'
+    aroundActive?: boolean
+  } | null
   trashOpen: boolean
   favoritesOnlyFilter: boolean
   activeTagFilter: string | null
+  metaFilters: MetaFilters
   commentsVersion: number
   commentAuthor: string
   diskSyncWarning: string | null
@@ -90,9 +97,11 @@ const initialState: DocumentsState = {
   findReplaceOpen: false,
   findReplaceMode: 'find',
   pendingEditorSearch: null,
+  pendingLibraryView: null,
   trashOpen: false,
   favoritesOnlyFilter: false,
   activeTagFilter: null,
+  metaFilters: EMPTY_META_FILTERS,
   commentsVersion: 0,
   commentAuthor: readCommentAuthor(),
   diskSyncWarning: null,
@@ -292,6 +301,15 @@ const documentsSlice = createSlice({
     setPendingEditorSearch(state, action: PayloadAction<string | null>) {
       state.pendingEditorSearch = action.payload
     },
+    setPendingLibraryView(
+      state,
+      action: PayloadAction<{
+        view: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal'
+        aroundActive?: boolean
+      } | null>,
+    ) {
+      state.pendingLibraryView = action.payload
+    },
     setTrashOpen(state, action: PayloadAction<boolean>) {
       state.trashOpen = action.payload
     },
@@ -303,6 +321,12 @@ const documentsSlice = createSlice({
     },
     setActiveTagFilter(state, action: PayloadAction<string | null>) {
       state.activeTagFilter = action.payload
+    },
+    setMetaFilters(state, action: PayloadAction<Partial<MetaFilters>>) {
+      state.metaFilters = { ...state.metaFilters, ...action.payload }
+    },
+    clearMetaFilters(state) {
+      state.metaFilters = EMPTY_META_FILTERS
     },
     bumpCommentsVersion(state) {
       state.commentsVersion += 1
@@ -353,10 +377,13 @@ export const {
   toggleFindReplaceOpen,
   setFindReplaceMode,
   setPendingEditorSearch,
+  setPendingLibraryView,
   setTrashOpen,
   setFavoritesOnlyFilter,
   toggleFavoritesOnlyFilter,
   setActiveTagFilter,
+  setMetaFilters,
+  clearMetaFilters,
   bumpCommentsVersion,
   setCommentAuthor,
   setDiskSyncWarning,

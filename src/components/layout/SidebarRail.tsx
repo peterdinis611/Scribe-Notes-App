@@ -1,10 +1,11 @@
 import { useMemo } from 'react'
-import { BookOpen, FileText, Settings2 } from 'lucide-react'
-import { Link, useRouterState } from '@tanstack/react-router'
+import { BookOpen, FileText, Home, Settings2 } from 'lucide-react'
+import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
+import { goToHome } from '@/lib/navigation'
 import { ROUTES } from '@/lib/routes'
 import { cn } from '@/lib/utils'
-import { useAppSelector } from '@/store/hooks'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
 
 type SidebarRailProps = {
   onNavigate?: () => void
@@ -13,10 +14,13 @@ type SidebarRailProps = {
 export function SidebarRail({ onNavigate }: SidebarRailProps) {
   const pathname = useRouterState({ select: (state) => state.location.pathname })
   const { t } = useTranslation()
+  const dispatch = useAppDispatch()
+  const navigate = useNavigate()
   const activeDocumentId = useAppSelector((state) => state.documents.activeDocumentId)
   const documents = useAppSelector((state) => state.documents.documents)
   const onSettingsPage = pathname.startsWith('/settings')
   const onDocsPage = pathname === '/docs' || pathname.startsWith('/docs/')
+  const onHomePage = pathname === '/'
   const onEditorPage = pathname === '/' || pathname.startsWith('/doc/')
 
   const editorLink = useMemo(() => {
@@ -31,19 +35,41 @@ export function SidebarRail({ onNavigate }: SidebarRailProps) {
 
   return (
     <div className="app-sidebar-rail titlebar-no-drag">
-      <div
-        className="mb-1 flex h-7 w-7 items-center justify-center rounded-md text-[12px] font-semibold text-[var(--color-foreground)]"
-        aria-hidden="true"
+      <button
+        type="button"
+        className="app-rail-mark mb-1"
+        title={t('nav.home')}
+        aria-label={t('nav.home')}
+        onClick={() => {
+          goToHome({ dispatch, navigate })
+          onNavigate?.()
+        }}
       >
         S
-      </div>
+      </button>
+
+      <button
+        type="button"
+        title={t('nav.home')}
+        aria-label={t('nav.home')}
+        onClick={() => {
+          goToHome({ dispatch, navigate })
+          onNavigate?.()
+        }}
+        className={cn('app-rail-btn titlebar-no-drag', onHomePage && !activeDocumentId && 'is-active')}
+      >
+        <Home className="h-[18px] w-[18px]" />
+      </button>
 
       <Link
         {...editorLink}
         title={t('nav.editor')}
         aria-label={t('nav.editor')}
         onClick={() => onNavigate?.()}
-        className={cn('app-rail-btn titlebar-no-drag', onEditorPage && 'is-active')}
+        className={cn(
+          'app-rail-btn titlebar-no-drag',
+          onEditorPage && Boolean(activeDocumentId) && 'is-active',
+        )}
       >
         <FileText className="h-[18px] w-[18px]" />
       </Link>

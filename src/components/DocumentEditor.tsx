@@ -30,6 +30,7 @@ import {
 import { useEditorViewEffect, setEditorContent, useEditorReady } from '@/lib/editor/view-ready'
 import { resolvePageLayout } from '@/lib/editor/page-layout'
 import { normalizePageSetup, PAPER_SIZES } from '@/lib/editor/page-setup'
+import { resolveDocumentTypography } from '@/lib/editor/document-style-presets'
 import { getEditorExtensions } from '@/lib/editor/extensions'
 import { handleTauriEditorKeyDown } from '@/lib/editor/tauri-input-fix'
 import { getEditorMarkdown } from '@/lib/editor/markdown-content'
@@ -117,6 +118,10 @@ export function DocumentEditor() {
   const printColumns = useAppSelector((state) => state.settings.printLayoutColumns)
   const normalizedPageSetup = useMemo(() => normalizePageSetup(pageSetup), [pageSetup])
   const pageLayout = useMemo(() => resolvePageLayout(pageSetup), [pageSetup])
+  const documentTypography = useMemo(
+    () => resolveDocumentTypography(normalizedPageSetup),
+    [normalizedPageSetup],
+  )
   const paper = PAPER_SIZES[normalizedPageSetup.paperSize]
 
   const editorAttributes = useMemo(
@@ -481,6 +486,9 @@ export function DocumentEditor() {
                         '--page-padding-left': `${pageLayout.paddingLeft}px`,
                         '--page-padding-right': `${pageLayout.paddingRight}px`,
                         '--page-paper-height': `${pageLayout.paperHeight}px`,
+                        '--doc-font-family': documentTypography.fontFamily || 'inherit',
+                        '--doc-font-size': `${documentTypography.fontSize}px`,
+                        '--doc-line-height': String(documentTypography.lineHeight),
                         ...(printLayoutEnabled
                           ? {
                               width: pageLayout.width,

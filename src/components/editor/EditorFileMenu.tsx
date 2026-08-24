@@ -6,7 +6,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
-import { ChevronDown, Eye, FileDown, FileSymlink, FolderInput, LayoutTemplate, Printer } from 'lucide-react'
+import { ChevronDown, Eye, FileDown, FileSymlink, FolderInput, Home, LayoutTemplate, Printer, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 type EditorFileMenuProps = {
@@ -17,7 +17,9 @@ type EditorFileMenuProps = {
   onPdfPreview?: () => void
   onPrint?: () => void
   onSaveAsTemplate?: () => void
-  onExport?: (format: 'pdf' | 'docx' | 'txt' | 'pages' | 'md') => void
+  onCloseDocument?: () => void
+  onGoHome?: () => void
+  onExport?: (format: 'pdf' | 'docx' | 'txt' | 'pages' | 'md' | 'html' | 'html-zip' | 'epub') => void
 }
 
 export function EditorFileMenu({
@@ -28,6 +30,8 @@ export function EditorFileMenu({
   onPdfPreview,
   onPrint,
   onSaveAsTemplate,
+  onCloseDocument,
+  onGoHome,
   onExport,
 }: EditorFileMenuProps) {
   const { t } = useTranslation()
@@ -48,6 +52,18 @@ export function EditorFileMenu({
           <FolderInput className="h-3.5 w-3.5 shrink-0" />
           {t('fileMenu.import')}
         </DropdownMenuItem>
+        {onGoHome && (
+          <DropdownMenuItem onClick={onGoHome}>
+            <Home className="h-3.5 w-3.5 shrink-0" />
+            {t('fileMenu.goHome')}
+          </DropdownMenuItem>
+        )}
+        {hasDocument && onCloseDocument && (
+          <DropdownMenuItem onClick={onCloseDocument}>
+            <X className="h-3.5 w-3.5 shrink-0" />
+            {t('fileMenu.closeDocument')}
+          </DropdownMenuItem>
+        )}
         {hasDocument && hasFilePath && onRevealFile && (
           <DropdownMenuItem onClick={onRevealFile}>
             <FileSymlink className="h-3.5 w-3.5 shrink-0" />
@@ -81,6 +97,9 @@ export function EditorFileMenu({
             <DropdownMenuItem onClick={() => onExport('pdf')}>{t('fileMenu.exportPdf')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => onExport('docx')}>{t('fileMenu.exportDocx')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => onExport('md')}>{t('fileMenu.exportMd')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onExport('html')}>{t('fileMenu.exportHtml')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onExport('html-zip')}>{t('fileMenu.exportHtmlZip')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onExport('epub')}>{t('fileMenu.exportEpub')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => onExport('txt')}>{t('fileMenu.exportTxt')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => onExport('pages')}>{t('fileMenu.exportPages')}</DropdownMenuItem>
           </>

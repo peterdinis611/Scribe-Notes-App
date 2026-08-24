@@ -44,6 +44,18 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "fileAssociations": [
+      {
+        "ext": ["scribe"],
+        "name": "Scribe Document",
+        "description": "Scribe document",
+        "role": "Editor",
+        "mimeType": "application/x-scribe+json"
+      }
+    ],
+    "macOS": {
+      "minimumSystemVersion": "12.0"
+    },
     "android": {
       "debugApplicationIdSuffix": ".debug"
     }
