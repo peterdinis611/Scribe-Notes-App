@@ -47,6 +47,7 @@ export type ThemePresetId =
   | 'ink'
   | 'coral'
   | 'sage'
+  | 'blotter'
   | 'twilight'
   | 'custom'
 

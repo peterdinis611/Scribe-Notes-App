@@ -83,6 +83,7 @@ export function CommandPalette() {
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
   const activeDocumentId = useAppSelector((state) => state.documents.activeDocumentId)
+  const activeDocumentRecord = useAppSelector((state) => state.documents.activeDocument)
   const documents = useAppSelector((state) => state.documents.documents)
   const recentDocumentIds = useAppSelector((state) => state.documents.recentDocumentIds)
   const recentlyClosedIds = useAppSelector((state) => state.documents.recentlyClosedIds)
@@ -129,10 +130,14 @@ export function CommandPalette() {
               label: t('fileMenu.saveAsTemplate'),
               icon: <LayoutTemplate className="h-4 w-4" />,
               run: () => {
+                const doc =
+                  activeDocumentRecord ??
+                  (activeDocument ? peekCachedDocument(activeDocument.id) : null)
+                if (!doc) return
                 dispatch(
                   setSaveCustomTemplateDialog({
                     open: true,
-                    content: getCachedParsedContent(activeDocument),
+                    content: getCachedParsedContent(doc),
                     suggestedName: activeDocument.title,
                     suggestedTitle: activeDocument.title,
                   }),
@@ -393,6 +398,7 @@ export function CommandPalette() {
     ],
     [
       activeDocument,
+      activeDocumentRecord,
       dispatch,
       documents,
       folders,
