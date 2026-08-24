@@ -786,12 +786,13 @@
     "zoomIn": "Priblížiť",
     "zoomOut": "Oddialiť",
     "resetView": "Resetovať pohľad",
+    "fitView": "Prispôsobiť mapu (dvojklik na pozadie)",
     "eyebrow": "Wiki odkazy",
     "pageTitle": "Mapa prepojení",
     "pageSubtitle": "Vizualizácia dokumentov spojených cez [[wiki odkazy]]. Kliknutím na uzol dokument otvoríte.",
     "openFullMap": "Otvoriť celú mapu prepojení",
     "openFullMapShort": "Celá mapa",
-    "obsidianHint": "Ťahaj uzly · hover zvýrazní susedov · kolečko = zoom"
+    "obsidianHint": "Zoom na kurzor · % / reset = celá mapa · dvojklik na pozadie"
   },
   "diagnostics": {
     "loadError": "Nepodarilo sa načítať diagnostiku",

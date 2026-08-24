@@ -778,12 +778,13 @@
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
     "resetView": "Reset view",
+    "fitView": "Fit graph (double-click background)",
     "eyebrow": "Wiki links",
     "pageTitle": "Connection map",
     "pageSubtitle": "A map of documents connected by [[wiki links]]. Click a node to open that document.",
     "openFullMap": "Open full connection map",
     "openFullMapShort": "Full map",
-    "obsidianHint": "Drag nodes · hover highlights neighbors · scroll to zoom"
+    "obsidianHint": "Zoom toward cursor · % / reset fits all · double-click background"
   },
   "diagnostics": {
     "loadError": "Failed to load diagnostics",

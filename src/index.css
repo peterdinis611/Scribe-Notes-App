@@ -5374,3 +5374,25 @@ html.dark {
   fill: var(--color-foreground);
   font-weight: 600;
 }
+
+.link-graph-zoom-readout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.6rem;
+  height: 1.75rem;
+  padding: 0 0.4rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-background) 70%, transparent);
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.link-graph-zoom-readout:hover {
+  color: var(--color-foreground);
+  border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-border));
+}

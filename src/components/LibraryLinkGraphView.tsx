@@ -98,6 +98,48 @@ function nodeRadius(node: ForceNode, isPage: boolean, isActive: boolean): number
   return (base + byDegree) * orphanShrink + activeBoost
 }
 
+const MIN_SCALE = 0.45
+const MAX_SCALE = 2.35
+
+function clampScale(value: number): number {
+  return Math.min(MAX_SCALE, Math.max(MIN_SCALE, Number(value.toFixed(3))))
+}
+
+function fitCameraToNodes(
+  nodes: ForceNode[],
+  size: number,
+  padding: number,
+): { scale: number; pan: { x: number; y: number } } {
+  if (nodes.length === 0) return { scale: 1, pan: { x: 0, y: 0 } }
+
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
+  for (const node of nodes) {
+    minX = Math.min(minX, node.x)
+    minY = Math.min(minY, node.y)
+    maxX = Math.max(maxX, node.x)
+    maxY = Math.max(maxY, node.y)
+  }
+
+  const width = Math.max(maxX - minX, 48)
+  const height = Math.max(maxY - minY, 48)
+  const scale = clampScale(
+    Math.min((size - padding * 2) / width, (size - padding * 2) / height, 1.25),
+  )
+  const midX = (minX + maxX) / 2
+  const midY = (minY + maxY) / 2
+
+  return {
+    scale,
+    pan: {
+      x: size / 2 - midX * scale,
+      y: size / 2 - midY * scale,
+    },
+  }
+}
+
 export function LibraryLinkGraphView({
   initialAroundActive = false,
   onAroundActiveConsumed,
@@ -126,6 +168,10 @@ export function LibraryLinkGraphView({
     moved: boolean
   } | null>(null)
   const svgRef = useRef<SVGSVGElement>(null)
+  const viewRef = useRef({ scale: 1, pan: { x: 0, y: 0 } })
+  const autoFitDoneRef = useRef(false)
+
+  viewRef.current = { scale, pan }
 
   useEffect(() => {
     if (!initialAroundActive) return
@@ -204,6 +250,10 @@ export function LibraryLinkGraphView({
       return
     }
 
+    autoFitDoneRef.current = false
+    setScale(1)
+    setPan({ x: 0, y: 0 })
+
     const sim = createForceSimulation(seedNodes, visibleEdges, {
       width: size,
       height: size,
@@ -213,10 +263,21 @@ export function LibraryLinkGraphView({
 
     let frame = 0
     let running = true
+    const padding = isPage ? 80 : 52
+
     const loop = () => {
       if (!running || !simRef.current) return
       const keepGoing = simRef.current.step()
       setTick((value) => value + 1)
+
+      if (!keepGoing && !autoFitDoneRef.current) {
+        autoFitDoneRef.current = true
+        const camera = fitCameraToNodes(simRef.current.nodes, size, padding)
+        setScale(camera.scale)
+        setPan(camera.pan)
+        return
+      }
+
       if (keepGoing) frame = requestAnimationFrame(loop)
     }
     frame = requestAnimationFrame(loop)
@@ -248,31 +309,78 @@ export function LibraryLinkGraphView({
     [dispatch, navigate],
   )
 
-  const resetView = useCallback(() => {
-    setScale(1)
-    setPan({ x: 0, y: 0 })
-    simRef.current?.reheat(0.55)
-  }, [])
+  const clientToViewBox = useCallback(
+    (clientX: number, clientY: number) => {
+      const svg = svgRef.current
+      if (!svg) return { x: size / 2, y: size / 2 }
+      const rect = svg.getBoundingClientRect()
+      if (rect.width <= 0 || rect.height <= 0) return { x: size / 2, y: size / 2 }
+      return {
+        x: ((clientX - rect.left) / rect.width) * size,
+        y: ((clientY - rect.top) / rect.height) * size,
+      }
+    },
+    [size],
+  )
 
-  const zoomBy = useCallback((delta: number) => {
-    setScale((current) => Math.min(3.2, Math.max(0.35, Number((current + delta).toFixed(2)))))
-  }, [])
+  const clientToGraph = useCallback(
+    (clientX: number, clientY: number) => {
+      const view = clientToViewBox(clientX, clientY)
+      const { scale: currentScale, pan: currentPan } = viewRef.current
+      return {
+        x: (view.x - currentPan.x) / currentScale,
+        y: (view.y - currentPan.y) / currentScale,
+      }
+    },
+    [clientToViewBox],
+  )
 
-  function clientToGraph(clientX: number, clientY: number) {
-    const svg = svgRef.current
-    if (!svg) return { x: 0, y: 0 }
-    const rect = svg.getBoundingClientRect()
-    const viewX = ((clientX - rect.left) / rect.width) * size
-    const viewY = ((clientY - rect.top) / rect.height) * size
-    return {
-      x: (viewX - pan.x / scale) / scale,
-      y: (viewY - pan.y / scale) / scale,
+  const applyZoomAt = useCallback((nextScaleRaw: number, anchorViewX: number, anchorViewY: number) => {
+    const { scale: currentScale, pan: currentPan } = viewRef.current
+    const nextScale = clampScale(nextScaleRaw)
+    if (nextScale === currentScale) return
+
+    const graphX = (anchorViewX - currentPan.x) / currentScale
+    const graphY = (anchorViewY - currentPan.y) / currentScale
+    const nextPan = {
+      x: anchorViewX - graphX * nextScale,
+      y: anchorViewY - graphY * nextScale,
     }
-  }
+    setScale(nextScale)
+    setPan(nextPan)
+  }, [])
+
+  const fitToNodes = useCallback(() => {
+    const nodes = simRef.current?.nodes
+    if (!nodes?.length) {
+      setScale(1)
+      setPan({ x: 0, y: 0 })
+      return
+    }
+    const camera = fitCameraToNodes(nodes, size, isPage ? 80 : 52)
+    setScale(camera.scale)
+    setPan(camera.pan)
+  }, [isPage, size])
+
+  const zoomBy = useCallback(
+    (factor: number) => {
+      applyZoomAt(viewRef.current.scale * factor, size / 2, size / 2)
+    },
+    [applyZoomAt, size],
+  )
 
   function handleWheel(event: React.WheelEvent) {
     event.preventDefault()
-    zoomBy(event.deltaY > 0 ? -0.1 : 0.1)
+    const anchor = clientToViewBox(event.clientX, event.clientY)
+    // Multiplicative zoom toward cursor — gentler than fixed steps.
+    const factor = event.deltaY > 0 ? 0.9 : 1.11
+    applyZoomAt(viewRef.current.scale * factor, anchor.x, anchor.y)
+  }
+
+  function handleDoubleClick(event: React.MouseEvent) {
+    const target = event.target as Element
+    if (target.closest('[data-graph-node]')) return
+    fitToNodes()
   }
 
   function handlePointerDown(event: React.PointerEvent) {
@@ -343,6 +451,7 @@ export function LibraryLinkGraphView({
 
   const shellClass = isPage ? 'link-graph-page-body' : 'px-3 py-3'
   const hasContent = edges.length > 0 || (showOrphans && orphans.length > 0)
+  const zoomPercent = Math.round(scale * 100)
 
   const toolbar = (
     <div
@@ -358,17 +467,27 @@ export function LibraryLinkGraphView({
         size="icon"
         className="h-7 w-7"
         title={t('linkGraph.zoomOut')}
-        onClick={() => zoomBy(-0.15)}
+        disabled={scale <= MIN_SCALE}
+        onClick={() => zoomBy(0.85)}
       >
         <Minus className="h-3.5 w-3.5" />
       </Button>
+      <button
+        type="button"
+        className="link-graph-zoom-readout"
+        title={t('linkGraph.fitView')}
+        onClick={fitToNodes}
+      >
+        {zoomPercent}%
+      </button>
       <Button
         type="button"
         variant="outline"
         size="icon"
         className="h-7 w-7"
         title={t('linkGraph.zoomIn')}
-        onClick={() => zoomBy(0.15)}
+        disabled={scale >= MAX_SCALE}
+        onClick={() => zoomBy(1.18)}
       >
         <Plus className="h-3.5 w-3.5" />
       </Button>
@@ -377,8 +496,8 @@ export function LibraryLinkGraphView({
         variant="outline"
         size="icon"
         className="h-7 w-7"
-        title={t('linkGraph.resetView')}
-        onClick={resetView}
+        title={t('linkGraph.fitView')}
+        onClick={fitToNodes}
       >
         <RotateCcw className="h-3.5 w-3.5" />
       </Button>
@@ -485,6 +604,7 @@ export function LibraryLinkGraphView({
             isPage ? 'link-graph-canvas--page min-h-0 flex-1' : 'rounded-xl border border-[var(--color-border)]',
           )}
           onWheel={handleWheel}
+          onDoubleClick={handleDoubleClick}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -515,7 +635,7 @@ export function LibraryLinkGraphView({
               </radialGradient>
             </defs>
             <rect width={size} height={size} fill="url(#link-graph-void)" />
-            <g transform={`translate(${pan.x / scale} ${pan.y / scale}) scale(${scale})`}>
+            <g transform={`translate(${pan.x} ${pan.y}) scale(${scale})`}>
               {visibleEdges.map((edge) => {
                 const source = nodeMap.get(edge.sourceId)
                 const target = nodeMap.get(edge.targetId)
