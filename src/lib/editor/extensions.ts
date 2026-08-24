@@ -46,6 +46,7 @@ import { ClipboardPaste } from '@/lib/editor/paste-handler'
 import { MarkdownShortcuts } from '@/lib/editor/markdown-shortcuts'
 import { TauriInputFix } from '@/lib/editor/tauri-input-fix'
 import { WikiLink } from '@/lib/editor/wiki-link'
+import { WikiEmbed } from '@/lib/editor/wiki-embed'
 
 type EditorExtensionsOptions = {
   onInsertImages?: (files: File[], pos?: number) => void | Promise<void>
@@ -126,6 +127,7 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
     Callout.configure({}),
     Footnote.configure({ onEdit: createFootnoteEditHandler() }),
     WikiLink.configure({}),
+    WikiEmbed.configure({}),
     SearchReplace.configure({}),
     TableOfContents.configure({}),
     ResizableImage.configure({

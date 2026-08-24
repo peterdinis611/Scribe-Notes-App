@@ -705,6 +705,9 @@
       "outgoing": "Links from here",
       "incomingEmpty": "No documents link here yet.",
       "outgoingEmpty": "This document doesn't link anywhere yet.",
+      "unlinked": "Unlinked mentions",
+      "unlinkedHint": "Documents that mention this title but don't have a [[wiki link]] yet.",
+      "unlinkedEmpty": "No unlinked mentions.",
       "loadError": "Failed to load links",
       "neighborhood": "Neighborhood",
       "openGraph": "Open connection map",
@@ -797,6 +800,15 @@
     "orphanHint": "{{count}} unlinked documents — enable Orphans to show them.",
     "filterAround": "Show only the active document and its neighbors",
     "filterAroundShort": "Around",
+    "favoritesOnly": "Favorites only",
+    "favoritesOnlyShort": "Favorites",
+    "colorMode": "Color nodes by tag / folder",
+    "colorNone": "Colors off",
+    "colorTag": "Tags",
+    "colorFolder": "Folders",
+    "tagFilter": "Filter by tag",
+    "tagFilterAll": "All tags",
+    "localGraphHint": "Local graph — double-click a node",
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
     "resetView": "Reset view",
@@ -981,6 +993,18 @@
     "wiki-link": {
       "label": "Link document",
       "hint": "[[ link to document"
+    },
+    "wiki-embed": {
+      "label": "Embed note",
+      "hint": "![[Title]] preview"
+    },
+    "snippet-meeting": {
+      "label": "Snippet: Meeting",
+      "hint": "Agenda and actions"
+    },
+    "snippet-decision": {
+      "label": "Snippet: Decision",
+      "hint": "Context and decision"
     },
     "toc": {
       "label": "Table of contents",
@@ -1346,6 +1370,8 @@
     "prevMonth": "Previous month",
     "nextMonth": "Next month",
     "calendarHint": "Click a day to open or create that daily note.",
+    "heatLess": "Less",
+    "heatMore": "More",
     "weekday": {
       "mon": "Mo",
       "tue": "Tu",
@@ -1355,6 +1381,11 @@
       "sat": "Sa",
       "sun": "Su"
     }
+  },
+  "wikiEmbed": {
+    "open": "Open document",
+    "missing": "Document not found — check ![[Title]].",
+    "empty": "Empty note"
   },
   "image": {
     "alignLeft": "Align left",

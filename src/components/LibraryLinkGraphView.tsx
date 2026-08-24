@@ -27,6 +27,20 @@ function neighborIds(edges: LinkGraphEdge[], centerId: string): Set<string> {
   return ids
 }
 
+function hashHue(value: string): number {
+  let hash = 0
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 31 + value.charCodeAt(i)) >>> 0
+  }
+  return hash % 360
+}
+
+function colorForKey(key: string | null | undefined): string | undefined {
+  if (!key) return undefined
+  const hue = hashHue(key)
+  return `hsl(${hue} 52% 52%)`
+}
+
 function collectVisible(
   edges: LinkGraphEdge[],
   orphans: LinkGraphOrphan[],
@@ -35,14 +49,37 @@ function collectVisible(
   aroundActive: boolean,
   titleById: Map<string, string>,
   documentFallback: string,
+  options: {
+    favoritesOnly: boolean
+    tagFilter: string | null
+    colorMode: 'none' | 'tag' | 'folder'
+    metaById: Map<string, { tags: string[]; folderId: string | null; isFavorite: boolean }>
+  },
 ): {
-  nodes: Array<{ id: string; title: string; orphan: boolean; degree: number }>
+  nodes: Array<{ id: string; title: string; orphan: boolean; degree: number; color?: string }>
   visibleEdges: LinkGraphEdge[]
 } {
   const focusIds = aroundActive && centerId ? neighborIds(edges, centerId) : null
-  const visibleEdges = focusIds
+  let visibleEdges = focusIds
     ? edges.filter((edge) => focusIds.has(edge.sourceId) && focusIds.has(edge.targetId))
     : edges
+
+  const allowed = (id: string) => {
+    const meta = options.metaById.get(id)
+    if (options.favoritesOnly && !meta?.isFavorite) return false
+    if (options.tagFilter) {
+      if (!meta?.tags.some((tag) => tag.toLowerCase() === options.tagFilter!.toLowerCase())) {
+        return false
+      }
+    }
+    return true
+  }
+
+  if (options.favoritesOnly || options.tagFilter) {
+    visibleEdges = visibleEdges.filter(
+      (edge) => allowed(edge.sourceId) && allowed(edge.targetId),
+    )
+  }
 
   const degrees = degreeById(
     visibleEdges.map((edge) => ({ sourceId: edge.sourceId, targetId: edge.targetId })),
@@ -59,30 +96,47 @@ function collectVisible(
   for (const orphan of orphans) {
     titles.set(orphan.id, orphan.title || documentFallback)
   }
-  if (aroundActive && centerId && !ids.has(centerId)) ids.add(centerId)
+  if (aroundActive && centerId && !ids.has(centerId) && allowed(centerId)) ids.add(centerId)
 
   const orphanIds = new Set(orphans.map((orphan) => orphan.id))
-  const nodes: Array<{ id: string; title: string; orphan: boolean; degree: number }> = [
-    ...ids,
-  ].map((id) => ({
-    id,
-    title: titles.get(id) ?? documentFallback,
-    orphan:
-      orphanIds.has(id) &&
-      !visibleEdges.some((edge) => edge.sourceId === id || edge.targetId === id),
-    degree: degrees.get(id) ?? 0,
-  }))
+
+  function nodeColor(id: string): string | undefined {
+    const meta = options.metaById.get(id)
+    if (options.colorMode === 'tag') {
+      const tag = meta?.tags[0]
+      return colorForKey(tag)
+    }
+    if (options.colorMode === 'folder') {
+      return colorForKey(meta?.folderId)
+    }
+    return undefined
+  }
+
+  const nodes: Array<{ id: string; title: string; orphan: boolean; degree: number; color?: string }> =
+    [...ids]
+      .filter((id) => allowed(id))
+      .map((id) => ({
+        id,
+        title: titles.get(id) ?? documentFallback,
+        orphan:
+          orphanIds.has(id) &&
+          !visibleEdges.some((edge) => edge.sourceId === id || edge.targetId === id),
+        degree: degrees.get(id) ?? 0,
+        color: nodeColor(id),
+      }))
 
   if (showOrphans) {
     const placed = new Set(nodes.map((node) => node.id))
     for (const orphan of orphans) {
       if (placed.has(orphan.id)) continue
       if (aroundActive && centerId && orphan.id !== centerId) continue
+      if (!allowed(orphan.id)) continue
       nodes.push({
         id: orphan.id,
         title: orphan.title || documentFallback,
         orphan: true,
         degree: 0,
+        color: nodeColor(orphan.id),
       })
     }
   }
@@ -155,6 +209,9 @@ export function LibraryLinkGraphView({
   const [loading, setLoading] = useState(true)
   const [showOrphans, setShowOrphans] = useState(false)
   const [aroundActive, setAroundActive] = useState(initialAroundActive)
+  const [favoritesOnly, setFavoritesOnly] = useState(false)
+  const [colorMode, setColorMode] = useState<'none' | 'tag' | 'folder'>('tag')
+  const [localCenterId, setLocalCenterId] = useState<string | null>(null)
   const [scale, setScale] = useState(1)
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [tick, setTick] = useState(0)
@@ -170,6 +227,7 @@ export function LibraryLinkGraphView({
   const svgRef = useRef<SVGSVGElement>(null)
   const viewRef = useRef({ scale: 1, pan: { x: 0, y: 0 } })
   const autoFitDoneRef = useRef(false)
+  const openTimerRef = useRef<number | null>(null)
 
   viewRef.current = { scale, pan }
 
@@ -181,6 +239,7 @@ export function LibraryLinkGraphView({
 
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
   const documents = useAppSelector((state) => state.documents.documents)
+  const graphCenterId = localCenterId ?? activeId
   const documentsVersion = useAppSelector((state) => {
     const docs = state.documents.documents
     const active = state.documents.activeDocument
@@ -197,6 +256,29 @@ export function LibraryLinkGraphView({
     }
     return map
   }, [documents])
+
+  const metaById = useMemo(() => {
+    const map = new Map<string, { tags: string[]; folderId: string | null; isFavorite: boolean }>()
+    for (const doc of documents) {
+      if (doc.deletedAt != null) continue
+      map.set(doc.id, {
+        tags: doc.tags ?? [],
+        folderId: doc.folderId ?? null,
+        isFavorite: Boolean(doc.isFavorite),
+      })
+    }
+    return map
+  }, [documents])
+
+  const allTags = useMemo(() => {
+    const tags = new Set<string>()
+    for (const meta of metaById.values()) {
+      for (const tag of meta.tags) tags.add(tag)
+    }
+    return [...tags].sort((a, b) => a.localeCompare(b))
+  }, [metaById])
+
+  const [tagFilter, setTagFilter] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -228,19 +310,47 @@ export function LibraryLinkGraphView({
       collectVisible(
         edges,
         orphans,
-        activeId,
+        graphCenterId,
         showOrphans,
         aroundActive,
         titleById,
         t('common.document'),
+        {
+          favoritesOnly,
+          tagFilter,
+          colorMode,
+          metaById,
+        },
       ),
-    [activeId, aroundActive, edges, orphans, showOrphans, t, titleById],
+    [
+      aroundActive,
+      colorMode,
+      edges,
+      favoritesOnly,
+      graphCenterId,
+      metaById,
+      orphans,
+      showOrphans,
+      t,
+      tagFilter,
+      titleById,
+    ],
   )
 
   const graphKey = useMemo(
     () =>
-      `${size}:${aroundActive}:${showOrphans}:${seedNodes.map((node) => node.id).join(',')}:${visibleEdges.length}`,
-    [aroundActive, seedNodes, showOrphans, size, visibleEdges.length],
+      `${size}:${aroundActive}:${showOrphans}:${favoritesOnly}:${tagFilter ?? ''}:${colorMode}:${graphCenterId ?? ''}:${seedNodes.map((node) => node.id).join(',')}:${visibleEdges.length}`,
+    [
+      aroundActive,
+      colorMode,
+      favoritesOnly,
+      graphCenterId,
+      seedNodes,
+      showOrphans,
+      size,
+      tagFilter,
+      visibleEdges.length,
+    ],
   )
 
   useEffect(() => {
@@ -379,7 +489,20 @@ export function LibraryLinkGraphView({
 
   function handleDoubleClick(event: React.MouseEvent) {
     const target = event.target as Element
-    if (target.closest('[data-graph-node]')) return
+    const nodeEl = target.closest('[data-graph-node]') as HTMLElement | null
+    if (nodeEl?.dataset.nodeId) {
+      event.preventDefault()
+      event.stopPropagation()
+      if (openTimerRef.current != null) {
+        window.clearTimeout(openTimerRef.current)
+        openTimerRef.current = null
+      }
+      const id = nodeEl.dataset.nodeId
+      setLocalCenterId(id)
+      setAroundActive(true)
+      dispatch(setActiveDocumentId(id))
+      return
+    }
     fitToNodes()
   }
 
@@ -437,7 +560,14 @@ export function LibraryLinkGraphView({
     if (nodeDrag && simRef.current) {
       const node = simRef.current.nodeById.get(nodeDrag.id)
       if (node) node.fixed = false
-      if (!nodeDrag.moved) openDocument(nodeDrag.id)
+      if (!nodeDrag.moved) {
+        const id = nodeDrag.id
+        if (openTimerRef.current != null) window.clearTimeout(openTimerRef.current)
+        openTimerRef.current = window.setTimeout(() => {
+          openTimerRef.current = null
+          openDocument(id)
+        }, 240)
+      }
       nodeDragRef.current = null
       simRef.current.reheat(0.25)
     }
@@ -506,12 +636,27 @@ export function LibraryLinkGraphView({
         variant={aroundActive ? 'default' : 'outline'}
         size="sm"
         className="h-7 gap-1 text-[11px]"
-        disabled={!activeId}
+        disabled={!graphCenterId}
         title={t('linkGraph.filterAround')}
-        onClick={() => setAroundActive((value) => !value)}
+        onClick={() => {
+          setAroundActive((value) => {
+            if (value) setLocalCenterId(null)
+            return !value
+          })
+        }}
       >
         <Focus className="h-3 w-3" />
         {t('linkGraph.filterAroundShort')}
+      </Button>
+      <Button
+        type="button"
+        variant={favoritesOnly ? 'default' : 'outline'}
+        size="sm"
+        className="h-7 text-[11px]"
+        title={t('linkGraph.favoritesOnly')}
+        onClick={() => setFavoritesOnly((value) => !value)}
+      >
+        {t('linkGraph.favoritesOnlyShort')}
       </Button>
       <Button
         type="button"
@@ -522,6 +667,39 @@ export function LibraryLinkGraphView({
       >
         {t('linkGraph.showOrphans')}
       </Button>
+      <Button
+        type="button"
+        variant={colorMode !== 'none' ? 'default' : 'outline'}
+        size="sm"
+        className="h-7 text-[11px]"
+        title={t('linkGraph.colorMode')}
+        onClick={() =>
+          setColorMode((mode) =>
+            mode === 'none' ? 'tag' : mode === 'tag' ? 'folder' : 'none',
+          )
+        }
+      >
+        {colorMode === 'none'
+          ? t('linkGraph.colorNone')
+          : colorMode === 'tag'
+            ? t('linkGraph.colorTag')
+            : t('linkGraph.colorFolder')}
+      </Button>
+      {allTags.length > 0 && (
+        <select
+          className="link-graph-tag-filter"
+          value={tagFilter ?? ''}
+          title={t('linkGraph.tagFilter')}
+          onChange={(event) => setTagFilter(event.target.value || null)}
+        >
+          <option value="">{t('linkGraph.tagFilterAll')}</option>
+          {allTags.map((tag) => (
+            <option key={tag} value={tag}>
+              #{tag}
+            </option>
+          ))}
+        </select>
+      )}
       {!isPage && (
         <Button
           type="button"
@@ -621,6 +799,7 @@ export function LibraryLinkGraphView({
                 : ''}
               {' · '}
               {t('linkGraph.obsidianHint')}
+              {aroundActive ? ` · ${t('linkGraph.localGraphHint')}` : ''}
             </p>
           )}
           <svg
@@ -701,7 +880,17 @@ export function LibraryLinkGraphView({
                         r={r + (isPage ? 10 : 7)}
                       />
                     )}
-                    <circle className="link-graph-node-core" cx={node.x} cy={node.y} r={r} />
+                    <circle
+                      className="link-graph-node-core"
+                      cx={node.x}
+                      cy={node.y}
+                      r={r}
+                      style={
+                        !isActive && !isHovered && node.color
+                          ? { fill: node.color }
+                          : undefined
+                      }
+                    />
                     {showLabel && (
                       <text
                         className="link-graph-node-label"

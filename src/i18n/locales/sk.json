@@ -270,6 +270,24 @@
       "title": "Diagnostika",
       "description": "Stav SQLite, cesty a posledné operácie na disku."
     },
+    "mcp": {
+      "title": "Scribe Memory MCP",
+      "description": "Prepojte Cursor alebo Claude Desktop s lokálnou knižnicou Scribe.",
+      "intro": "MCP server Scribe Memory umožňuje AI klientovi vyhľadávať poznámky, načítavať dokumenty, sledovať wiki odkazy a voliteľne vytvárať alebo dopĺňať poznámky v knižnici.",
+      "installTitle": "Inštalácia",
+      "installDescription": "Z koreňa repozitára Scribe raz nainštalujte závislosti balíka MCP.",
+      "configTitle": "Cursor konfigurácia",
+      "configDescription": "Vložte do nastavení MCP v Cursor alebo do .cursor/mcp.json. __SCRIBE/mcp nahraďte absolútnou cestou k priečinku mcp/ v tomto repo.",
+      "copyConfig": "Kopírovať Cursor config",
+      "configCopied": "Cursor config skopírovaný",
+      "promptTitle": "Šablóna promptu",
+      "promptDescription": "Voliteľná inštrukcia, aby model preferoval fakty z knižnice pred dohadmi.",
+      "copyPrompt": "Kopírovať šablónu promptu",
+      "promptCopied": "Šablóna promptu skopírovaná",
+      "copyError": "Nepodarilo sa skopírovať do schránky",
+      "pathHint": "Po npm run mcp:install nastavte absolútnu --prefix cestu (pozri mcp/README.md). Príklad: npm run start --prefix /Users/VAS/cesta/k/scribe/mcp",
+      "lockHint": "Nástroje na zápis potrebujú writable DB. Ak Scribe drží zámok, skúste create/append znova o chvíľu alebo skontrolujte scribe_status (writable: false)."
+    },
     "shortcuts": {
       "title": "Klávesové skratky",
       "description": "Rýchle akcie dostupné kdekoľvek v aplikácii.",
@@ -695,6 +713,9 @@
       "outgoing": "Odkazy odtiaľto",
       "incomingEmpty": "Zatiaľ sem neodkazuje žiadny dokument.",
       "outgoingEmpty": "Tento dokument zatiaľ na nič neodkazuje.",
+      "unlinked": "Nespomenuté odkazy",
+      "unlinkedHint": "Dokumenty, ktoré spomínajú tento názov, ale ešte nemajú [[wiki odkaz]].",
+      "unlinkedEmpty": "Žiadne nespomenuté výskyty.",
       "loadError": "Nepodarilo sa načítať odkazy",
       "neighborhood": "Okolo",
       "openGraph": "Otvoriť mapu prepojení",
@@ -787,6 +808,15 @@
     "orphanHint": "{{count}} neprepojených dokumentov — zapnite Osirolené.",
     "filterAround": "Zobraziť len aktívny dokument a jeho susedov",
     "filterAroundShort": "Okolo",
+    "favoritesOnly": "Len obľúbené dokumenty",
+    "favoritesOnlyShort": "Obľúbené",
+    "colorMode": "Farba uzlov podľa štítku / priečinka",
+    "colorNone": "Farby off",
+    "colorTag": "Štítky",
+    "colorFolder": "Priečinky",
+    "tagFilter": "Filter podľa štítku",
+    "tagFilterAll": "Všetky štítky",
+    "localGraphHint": "Lokálny graf — dvojklik na uzol",
     "zoomIn": "Priblížiť",
     "zoomOut": "Oddialiť",
     "resetView": "Resetovať pohľad",
@@ -971,6 +1001,18 @@
     "wiki-link": {
       "label": "Prepojiť dokument",
       "hint": "Odkaz [[ na dokument"
+    },
+    "wiki-embed": {
+      "label": "Vložená poznámka",
+      "hint": "![[Názov]] — náhľad"
+    },
+    "snippet-meeting": {
+      "label": "Snippet: Meeting",
+      "hint": "Agenda a úlohy"
+    },
+    "snippet-decision": {
+      "label": "Snippet: Decision",
+      "hint": "Kontext a rozhodnutie"
     },
     "toc": {
       "label": "Obsah",
@@ -1340,6 +1382,8 @@
     "prevMonth": "Predchádzajúci mesiac",
     "nextMonth": "Nasledujúci mesiac",
     "calendarHint": "Kliknite na deň a otvoríte alebo vytvoríte denný zápis.",
+    "heatLess": "Menej",
+    "heatMore": "Viac",
     "weekday": {
       "mon": "Po",
       "tue": "Ut",
@@ -1349,6 +1393,11 @@
       "sat": "So",
       "sun": "Ne"
     }
+  },
+  "wikiEmbed": {
+    "open": "Otvoriť dokument",
+    "missing": "Dokument sa nenašiel — skontrolujte ![[Názov]].",
+    "empty": "Prázdna poznámka"
   },
   "image": {
     "alignLeft": "Zarovnať vľavo",

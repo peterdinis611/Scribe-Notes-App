@@ -159,25 +159,38 @@ export function LibraryJournalView({ onNavigate }: LibraryJournalViewProps) {
             }
             const hasNote = notedDates.has(cell.key)
             const isToday = cell.key === todayKey
+            const prevKey = formatDateKey(new Date(cell.date.getTime() - 86_400_000))
+            const nextKey = formatDateKey(new Date(cell.date.getTime() + 86_400_000))
+            const heat = hasNote
+              ? 1 + (notedDates.has(prevKey) ? 1 : 0) + (notedDates.has(nextKey) ? 1 : 0)
+              : 0
             return (
               <button
                 key={cell.key}
                 type="button"
                 className={cn(
-                  'relative flex h-8 items-center justify-center rounded-md text-[12px] transition-colors hover:bg-[var(--color-hover)]',
+                  'journal-heat-day relative flex h-8 items-center justify-center rounded-md text-[12px] transition-colors hover:bg-[var(--color-hover)]',
                   isToday && 'font-semibold text-[var(--color-accent)]',
-                  hasNote && 'bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)]',
+                  hasNote && 'journal-heat-day--on',
                 )}
+                data-heat={heat}
                 onClick={() => void openDate(cell.date!)}
                 title={cell.key}
               >
                 {cell.date.getDate()}
-                {hasNote && (
-                  <span className="absolute bottom-1 h-1 w-1 rounded-full bg-[var(--color-accent)]" />
-                )}
               </button>
             )
           })}
+        </div>
+
+        <div className="journal-heat-legend mt-2.5 flex items-center justify-between gap-2 px-0.5">
+          <span className="text-[10px] text-[var(--color-muted-foreground)]">{t('journal.heatLess')}</span>
+          <div className="flex gap-1">
+            {[0, 1, 2, 3].map((level) => (
+              <span key={level} className="journal-heat-swatch" data-heat={level} />
+            ))}
+          </div>
+          <span className="text-[10px] text-[var(--color-muted-foreground)]">{t('journal.heatMore')}</span>
         </div>
       </div>
 
