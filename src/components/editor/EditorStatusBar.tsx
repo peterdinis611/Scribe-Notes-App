@@ -1,6 +1,12 @@
 import { Columns2, FileText, LayoutGrid, Minus, Plus, Printer, Rows2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { countWords } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
@@ -41,76 +47,118 @@ export function EditorStatusBar({
   }
 
   return (
-    <footer className="editor-status-bar titlebar-no-drag">
-      <div className="editor-status-bar-left">
-        <button
-          type="button"
-          className={cn('editor-status-chip', printLayoutEnabled && 'is-active')}
-          aria-pressed={printLayoutEnabled}
-          onClick={() => dispatch(setPrintLayoutEnabled(!printLayoutEnabled))}
-        >
-          <LayoutGrid className="h-3.5 w-3.5" />
-          <span>{t('printLayout.layout')}</span>
-        </button>
-        <button type="button" className="editor-status-chip" onClick={onOpenPageSetup}>
-          <FileText className="h-3.5 w-3.5" />
-          <span>{t('printLayout.page')}</span>
-        </button>
-
-        {printLayoutEnabled && (
-          <>
-            <div className="editor-status-divider" aria-hidden="true" />
-            <div className="editor-status-segmented">
+    <TooltipProvider delayDuration={400}>
+      <footer className="editor-status-bar titlebar-no-drag">
+        <div className="editor-status-bar-left">
+          <Tooltip>
+            <TooltipTrigger asChild>
               <button
                 type="button"
-                className={cn('editor-status-segment', printColumns === 1 && 'is-active')}
-                title={t('printLayout.oneColumn')}
-                aria-pressed={printColumns === 1}
-                onClick={() => dispatch(setPrintLayoutColumns(1))}
+                className={cn('editor-status-chip', printLayoutEnabled && 'is-active')}
+                aria-pressed={printLayoutEnabled}
+                aria-label={t('printLayout.pageLayout')}
+                onClick={() => dispatch(setPrintLayoutEnabled(!printLayoutEnabled))}
               >
-                <Rows2 className="h-3.5 w-3.5" />
+                <LayoutGrid className="h-3.5 w-3.5" />
+                <span className="editor-status-chip-label">{t('printLayout.layout')}</span>
               </button>
+            </TooltipTrigger>
+            <TooltipContent side="top">{t('printLayout.pageLayout')}</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
               <button
                 type="button"
-                className={cn('editor-status-segment', printColumns === 2 && 'is-active')}
-                title={t('printLayout.twoColumns')}
-                aria-pressed={printColumns === 2}
-                onClick={() => dispatch(setPrintLayoutColumns(2))}
+                className="editor-status-icon-btn"
+                aria-label={t('printLayout.pageSetup')}
+                onClick={onOpenPageSetup}
               >
-                <Columns2 className="h-3.5 w-3.5" />
+                <FileText className="h-3.5 w-3.5" />
               </button>
-            </div>
-            <div className="editor-status-zoom">
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => adjustZoom(-0.1)}>
-                <Minus className="h-3 w-3" />
-              </Button>
-              <span>{Math.round(printZoom * 100)}%</span>
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => adjustZoom(0.1)}>
-                <Plus className="h-3 w-3" />
-              </Button>
-            </div>
-          </>
-        )}
-      </div>
+            </TooltipTrigger>
+            <TooltipContent side="top">{t('printLayout.pageSetup')}</TooltipContent>
+          </Tooltip>
 
-      <div className="editor-status-bar-center">
-        <EditorPagination
-          currentPage={currentPage}
-          pageCount={pageCount}
-          onPageChange={onPageChange}
-          compact
-        />
-      </div>
+          {printLayoutEnabled && (
+            <>
+              <div className="editor-status-divider" aria-hidden="true" />
+              <div className="editor-status-segmented" role="group" aria-label={t('printLayout.preview')}>
+                <button
+                  type="button"
+                  className={cn('editor-status-segment', printColumns === 1 && 'is-active')}
+                  title={t('printLayout.oneColumn')}
+                  aria-label={t('printLayout.oneColumn')}
+                  aria-pressed={printColumns === 1}
+                  onClick={() => dispatch(setPrintLayoutColumns(1))}
+                >
+                  <Rows2 className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  className={cn('editor-status-segment', printColumns === 2 && 'is-active')}
+                  title={t('printLayout.twoColumns')}
+                  aria-label={t('printLayout.twoColumns')}
+                  aria-pressed={printColumns === 2}
+                  onClick={() => dispatch(setPrintLayoutColumns(2))}
+                >
+                  <Columns2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <div className="editor-status-zoom">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  aria-label={t('printLayout.zoomOut')}
+                  onClick={() => adjustZoom(-0.1)}
+                >
+                  <Minus className="h-3 w-3" />
+                </Button>
+                <span aria-live="polite">{Math.round(printZoom * 100)}%</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  aria-label={t('printLayout.zoomIn')}
+                  onClick={() => adjustZoom(0.1)}
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
 
-      <div className="editor-status-bar-right">
-        {document && (
-          <span className="editor-status-meta">{t('toolbar.stats.word', { count: words })}</span>
-        )}
-        <Button variant="ghost" size="sm" className="h-7 gap-1.5 px-2.5 text-[12px]" onClick={onPrint}>
-          <Printer className="h-3.5 w-3.5" />
-          {t('fileMenu.print')}
-        </Button>
-      </div>
-    </footer>
+        <div className="editor-status-bar-center">
+          <EditorPagination
+            currentPage={currentPage}
+            pageCount={pageCount}
+            onPageChange={onPageChange}
+            mode="summary"
+          />
+        </div>
+
+        <div className="editor-status-bar-right">
+          {document && (
+            <span className="editor-status-meta">{t('toolbar.stats.word', { count: words })}</span>
+          )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="editor-status-icon-btn h-7 w-7"
+                aria-label={t('fileMenu.print')}
+                onClick={onPrint}
+              >
+                <Printer className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">{t('fileMenu.print')}</TooltipContent>
+          </Tooltip>
+        </div>
+      </footer>
+    </TooltipProvider>
   )
 }
