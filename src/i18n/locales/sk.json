@@ -49,26 +49,29 @@
   },
   "welcome": {
     "brand": "Scribe",
-    "brandTagline": "Lokálny editor dokumentov. Vytvorte nový, importujte súbor alebo pokračujte v písaní.",
+    "brandTagline": "Píšte dokumenty lokálne. Prepájajte poznámky, keď ich pribudne.",
     "newDocument": "Nový dokument",
+    "todayNote": "Dnešná poznámka",
     "import": "Importovať",
     "connectionMap": "Mapa prepojení",
+    "workflowHint": "Nový dokument → [[odkazy]] → export. Mapa a MCP prídu neskôr, keď ich budete potrebovať.",
     "recentDocuments": "Nedávne dokumenty",
     "noDocuments": "Zatiaľ žiadne dokumenty",
-    "noDocumentsHint": "Začnite novým dokumentom, ukážkou alebo importom.",
-    "emptyStartHint": "Začnite novým dokumentom, ukážkou alebo importom.",
+    "noDocumentsHint": "Začnite novým dokumentom alebo dnešnou poznámkou. Ukážka je voliteľná.",
+    "emptyStartHint": "Začnite novým dokumentom alebo dnešnou poznámkou.",
     "press": {
       "eyebrow": "Letterpress · lokálne na tomto Macu",
-      "brandTagline": "Píšte ako do tlače. Dokumenty ostávajú na disku — nová stránka, import, alebo pokračovanie tam, kde ste prestali.",
+      "brandTagline": "Píšte dokumenty. Prepájajte poznámky. Všetko ostáva na disku.",
+      "workflowHint": "Nová stránka → [[odkazy]] → export. Pokročilé nástroje nechajte na neskôr.",
       "recentDocuments": "Pokračovať",
       "noDocuments": "Lis je prázdny",
-      "noDocumentsHint": "Začnite prázdnou stránkou, otvorte sprievodcu, alebo importujte súbor z Findera."
+      "noDocumentsHint": "Začnite prázdnou stránkou alebo dnešnou poznámkou. Sprievodca je voliteľný."
     }
   },
   "demoGuide": {
     "badge": "Začnite tu",
     "title": "Sprievodca Scribe",
-    "description": "Interaktívne demo všetkých funkcií — formátovanie, wiki odkazy, export, šablóny a ďalšie.",
+    "description": "Krátka ukážka: písanie, potom wiki odkazy a export — nie všetky funkcie naraz.",
     "open": "Otvoriť ukážku",
     "shortLabel": "Ukážka"
   },
@@ -194,7 +197,7 @@
       },
       "mcp": {
         "label": "MCP",
-        "description": "Scribe Memory pre Cursor"
+        "description": "Voliteľné — Cursor / Claude"
       },
       "about": {
         "label": "O aplikácii",
@@ -272,8 +275,8 @@
     },
     "mcp": {
       "title": "Scribe Memory MCP",
-      "description": "Prepojte Cursor alebo Claude Desktop s lokálnou knižnicou Scribe.",
-      "intro": "MCP server Scribe Memory umožňuje AI klientovi vyhľadávať poznámky, načítavať dokumenty, sledovať wiki odkazy a voliteľne vytvárať alebo dopĺňať poznámky v knižnici.",
+      "description": "Voliteľné pre Cursor alebo Claude Desktop — Scribe funguje aj bez MCP.",
+      "intro": "MCP server Scribe Memory umožňuje AI klientovi vyhľadávať poznámky, načítavať dokumenty, sledovať wiki odkazy a voliteľne vytvárať alebo dopĺňať poznámky. Bežné písanie a export MCP nevyžadujú.",
       "installTitle": "Inštalácia",
       "installDescription": "Z koreňa repozitára Scribe raz nainštalujte závislosti balíka MCP.",
       "configTitle": "Cursor konfigurácia",
@@ -297,7 +300,7 @@
       "editorTitle": "Skratky v editore"
     },
     "about": {
-      "tagline": "Textový editor pre macOS",
+      "tagline": "Píšte dokumenty. Prepájajte poznámky.",
       "platform": "Platforma",
       "fileFormat": "Formát súborov",
       "export": "Export"
@@ -324,10 +327,10 @@
       "topics": {
         "overview": {
           "title": "Čo je Scribe?",
-          "summary": "Local-first písanie na Macu",
+          "summary": "Píšte dokumenty. Prepájajte poznámky.",
           "paragraphs": [
-            "Scribe je local-first editor dokumentov pre macOS. Knižnica žije v SQLite databáze na zariadení, s voliteľnými záložnými súbormi .scribe na disku.",
-            "Na písanie ani otváranie poznámok nepotrebujete cloudový účet."
+            "Scribe je lokálny editor dokumentov pre macOS. Píšte a exportujte súbory na tomto Macu — knižnica žije v SQLite, s voliteľnými .scribe zálohmi na disku.",
+            "Keď poznámok pribudne, prepájajte ich wiki odkazmi. Mapa prepojení a MCP (Cursor / Claude) sú pokročilé nástroje — nie povinný štart."
           ],
           "points": []
         },
@@ -663,6 +666,8 @@
   },
   "editorPanels": {
     "ariaLabel": "Panely dokumentu",
+    "expand": "Zobraziť panely",
+    "collapse": "Skryť panely",
     "outline": "Štruktúra dokumentu",
     "comments": "Komentáre",
     "backlinks": "Odkazy sem",

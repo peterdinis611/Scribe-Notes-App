@@ -7,6 +7,8 @@ import {
   Link2,
   ListTree,
   MessageSquare,
+  MoreVertical,
+  PanelRightClose,
   Search,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -23,6 +25,7 @@ import {
   setCommentsPanelOpen,
   setDocumentOutlineOpen,
   setFindReplaceMode,
+  setPanelRailExpanded,
   setRevisionHistoryOpen,
   setStatsPanelOpen,
   toggleFindReplaceOpen,
@@ -63,10 +66,15 @@ export function EditorPanelRail() {
   const statsOpen = useAppSelector((state) => state.documents.statsPanelOpen)
   const backlinksOpen = useAppSelector((state) => state.documents.backlinksPanelOpen)
   const findReplaceOpen = useAppSelector((state) => state.documents.findReplaceOpen)
+  const panelRailExpanded = useAppSelector((state) => state.documents.panelRailExpanded)
   const focusMode = useAppSelector((state) => state.documents.focusMode)
   const readingMode = useAppSelector((state) => state.documents.readingMode)
   const dispatch = useAppDispatch()
   const { t } = useTranslation()
+
+  const anyPanelOpen =
+    outlineOpen || historyOpen || commentsOpen || statsOpen || backlinksOpen || findReplaceOpen
+  const expanded = panelRailExpanded || anyPanelOpen
 
   function closeOtherPanels(except?: 'outline' | 'history' | 'comments' | 'stats' | 'backlinks') {
     if (except !== 'outline') dispatch(setDocumentOutlineOpen(false))
@@ -76,9 +84,40 @@ export function EditorPanelRail() {
     if (except !== 'backlinks') dispatch(setBacklinksPanelOpen(false))
   }
 
+  if (!expanded) {
+    return (
+      <TooltipProvider>
+        <div
+          className="editor-panel-rail editor-panel-rail--collapsed titlebar-no-drag"
+          aria-label={t('editorPanels.ariaLabel')}
+        >
+          <RailButton
+            label={t('editorPanels.expand')}
+            onClick={() => dispatch(setPanelRailExpanded(true))}
+          >
+            <MoreVertical className="h-4 w-4" />
+          </RailButton>
+        </div>
+      </TooltipProvider>
+    )
+  }
+
   return (
     <TooltipProvider>
       <div className="editor-panel-rail titlebar-no-drag" aria-label={t('editorPanels.ariaLabel')}>
+        <RailButton
+          label={t('editorPanels.collapse')}
+          onClick={() => {
+            closeOtherPanels()
+            if (findReplaceOpen) dispatch(toggleFindReplaceOpen())
+            dispatch(setPanelRailExpanded(false))
+          }}
+        >
+          <PanelRightClose className="h-4 w-4" />
+        </RailButton>
+
+        <div className="editor-panel-rail-sep" aria-hidden="true" />
+
         <RailButton
           label={t('editorPanels.outline')}
           active={outlineOpen}

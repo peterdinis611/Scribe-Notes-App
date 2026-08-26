@@ -1,6 +1,6 @@
 # Scribe
 
-Moderná macOS desktopová aplikácia pre písanie a organizáciu dokumentov — lokálny rich-text editor s knižnicou, šablónami a exportom do viacerých formátov.
+Píšte dokumenty. Prepájajte poznámky. Lokálny macOS rich-text editor s knižnicou, šablónami a exportom do viacerých formátov.
 
 Scribe beží lokálne na vašom Macu. Žiadne účty, žiadny cloud — dokumenty, databáza a nastavenia patria používateľovi macOS účtu, v ktorom je aplikácia spustená.
 
@@ -25,7 +25,7 @@ Scribe beží lokálne na vašom Macu. Žiadne účty, žiadny cloud — dokumen
 - **Mapa prepojení** (`/graph`): lokálny graf (dvojklik na uzol), filtre, farby podľa tagu/priečinka
 - Panel backlinkov + **unlinked mentions**
 - Príkazová paleta (`⌘K`) s fuzzy matchingom, nedávnymi dokumentmi a wiki cieľmi
-- Voliteľný **Memory MCP** pre Claude / Cursor — pozri [`mcp/`](mcp/)
+- Voliteľný MCP most pre AI nástroje (Cursor / Claude) — Nastavenia → MCP; pozri [`mcp/`](mcp/)
 
 ### Dokumenty
 - Vlastný formát **`.scribe`** + synchronizácia na disk
@@ -39,7 +39,7 @@ Scribe beží lokálne na vašom Macu. Žiadne účty, žiadny cloud — dokumen
 - Náhodná generácia témy
 - Konfigurovateľný priečinok dokumentov
 - **Jazyk rozhrania:** slovenčina alebo angličtina (Nastavenia → Vzhľad → Jazyk)
-- **MCP setup** v Nastaveniach — skopírovať Cursor config + Claude prompt šablónu
+- Voliteľný **MCP setup** v Nastaveniach (pre pokročilých)
 
 ## Tech stack
 
@@ -97,7 +97,7 @@ Dev server beží na `http://localhost:5174`. Pri prvom spustení Tauri stiahne 
 
 ## Scribe Memory MCP (Claude / Cursor)
 
-Lokálne poznámky ako knowledge base pre Claude Desktop alebo Cursor (SQLite cez MCP). Server preferuje **zápis** (`create_note` / `append_to_note`) a pri zamknutej DB (napr. bežiaci Scribe) prejde do **read-only**. In-app wizard: **Nastavenia → MCP**.
+Voliteľná power funkcia: lokálne poznámky cez MCP pre Claude Desktop alebo Cursor. Bežné písanie MCP nevyžaduje. Server preferuje **zápis** (`create_note` / `append_to_note`) a pri zamknutej DB prejde do **read-only**. In-app: **Nastavenia → MCP**.
 
 - Prehľad a quick start: [`mcp/README.md`](mcp/README.md)
 - Dokumentácia: [`mcp/docs/`](mcp/docs/README.md) ([SK](mcp/docs/sk.md) · [EN](mcp/docs/en.md) · [nástroje](mcp/docs/tools.md))

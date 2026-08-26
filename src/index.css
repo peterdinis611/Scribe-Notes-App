@@ -940,9 +940,54 @@ html[data-ui-skin='press'] .editor-shell--home {
 
 .welcome-actions {
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding-top: 0.35rem;
+}
+
+.welcome-actions-primary {
+  display: flex;
   flex-wrap: wrap;
   gap: 0.55rem;
-  padding-top: 0.35rem;
+}
+
+.welcome-workflow {
+  margin: 0;
+  max-width: 42ch;
+  font-family: var(--welcome-body);
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--welcome-ink) 58%, transparent);
+}
+
+.welcome-actions-more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.85rem 1.15rem;
+}
+
+.welcome-desk .welcome-link,
+.welcome-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-family: var(--welcome-body, inherit);
+  font-size: 13px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--welcome-ink, var(--color-muted-foreground)) 70%, transparent);
+  cursor: pointer;
+  text-underline-offset: 4px;
+}
+
+.welcome-desk .welcome-link:hover,
+.welcome-link:hover {
+  color: var(--welcome-copper, var(--color-foreground));
+  text-decoration: underline;
 }
 
 .welcome-cta-primary {
@@ -1271,10 +1316,17 @@ html[data-ui-skin='press'] .editor-shell--home {
   width: 100%;
   min-width: 0;
   flex-shrink: 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 55%, transparent);
+  background: color-mix(in srgb, var(--color-toolbar) 72%, transparent);
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.editor-toolbar:hover,
+.editor-toolbar:focus-within {
   background: color-mix(in srgb, var(--color-toolbar) 96%, transparent);
-  backdrop-filter: blur(10px) saturate(130%);
-  -webkit-backdrop-filter: blur(10px) saturate(130%);
+  border-bottom-color: color-mix(in srgb, var(--color-border) 80%, transparent);
 }
 
 .editor-toolbar-shell {
@@ -2492,8 +2544,15 @@ html[data-ui-skin='press'] .editor-shell--home {
   width: 44px;
   padding: 8px 4px;
   border-left: 1px solid var(--color-border);
-  background: color-mix(in srgb, var(--color-toolbar) 94%, transparent);
+  background: color-mix(in srgb, var(--color-toolbar) 88%, transparent);
   flex-shrink: 0;
+}
+
+.editor-panel-rail--collapsed {
+  width: 36px;
+  padding: 8px 2px;
+  background: transparent;
+  border-left-color: color-mix(in srgb, var(--color-border) 55%, transparent);
 }
 
 .editor-panel-rail-btn {
@@ -4423,9 +4482,19 @@ body.is-block-dragging .tiptap {
     align-items: stretch;
   }
 
-  .welcome-actions > * {
+  .welcome-actions-primary {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .welcome-actions-primary > * {
     width: 100%;
     justify-content: center;
+  }
+
+  .welcome-actions-more {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .settings-page-header-row {

@@ -1,6 +1,6 @@
 # Scribe
 
-Modern macOS desktop app for writing and organizing documents — a local rich-text editor with a library, templates, and multi-format export.
+Write documents. Link notes. A local macOS rich-text editor with a library, templates, and multi-format export.
 
 Scribe runs locally on your Mac. No accounts, no cloud — documents, the database, and settings belong to the macOS user account running the app.
 
@@ -25,7 +25,7 @@ Scribe runs locally on your Mac. No accounts, no cloud — documents, the databa
 - Wiki **connection map** (`/graph`): local graph (double-click node), filters, tag/folder colors
 - Backlinks panel + **unlinked mentions**
 - Command palette (`⌘K`) with fuzzy matching, recent docs, and wiki targets
-- Optional **Memory MCP** for Claude / Cursor — see [`mcp/`](mcp/)
+- Optional MCP bridge for AI tools (Cursor / Claude) — Settings → MCP; see [`mcp/`](mcp/)
 
 ### Documents
 - Custom **`.scribe`** format + disk sync
@@ -39,7 +39,7 @@ Scribe runs locally on your Mac. No accounts, no cloud — documents, the databa
 - Random theme generation
 - Configurable documents folder
 - **Interface language:** Slovak or English (Settings → Appearance → Language)
-- **MCP setup** in Settings — copy Cursor config + Claude prompt template
+- Optional **MCP setup** in Settings (power users)
 
 ## Tech stack
 
@@ -97,7 +97,7 @@ The dev server runs at `http://localhost:5174`. On first launch, Tauri downloads
 
 ## Scribe Memory MCP (Claude / Cursor)
 
-Expose your local notes to Claude Desktop or Cursor as an on-demand knowledge base (SQLite via MCP). The server prefers a **writable** connection (`create_note` / `append_to_note`) and falls back to **read-only** if the DB is locked (e.g. while Scribe is open). In-app wizard: **Settings → MCP**.
+Optional power feature: expose your local notes to Claude Desktop or Cursor via MCP. Everyday writing does not require it. The server prefers a **writable** connection (`create_note` / `append_to_note`) and falls back to **read-only** if the DB is locked. In-app: **Settings → MCP**.
 
 - Overview & quick start: [`mcp/README.md`](mcp/README.md)
 - Full docs: [`mcp/docs/`](mcp/docs/README.md) ([EN](mcp/docs/en.md) · [SK](mcp/docs/sk.md) · [tools](mcp/docs/tools.md))

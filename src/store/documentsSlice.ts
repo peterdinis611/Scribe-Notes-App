@@ -33,6 +33,8 @@ export interface DocumentsState {
   commentsPanelOpen: boolean
   statsPanelOpen: boolean
   backlinksPanelOpen: boolean
+  /** Right panel icon rail; collapsed by default for a quieter writing chrome. */
+  panelRailExpanded: boolean
   focusMode: boolean
   readingMode: boolean
   manualTitleDocumentIds: string[]
@@ -91,6 +93,7 @@ const initialState: DocumentsState = {
   commentsPanelOpen: readBoolStorage('scribe-comments-open', false),
   statsPanelOpen: readBoolStorage('scribe-stats-open', false),
   backlinksPanelOpen: readBoolStorage('scribe-backlinks-open', false),
+  panelRailExpanded: readBoolStorage('scribe-panel-rail-expanded', false),
   focusMode: readBoolStorage('scribe-focus-mode', false),
   readingMode: false,
   manualTitleDocumentIds: readManualTitleIds(),
@@ -234,22 +237,46 @@ const documentsSlice = createSlice({
     setDocumentOutlineOpen(state, action: PayloadAction<boolean>) {
       state.documentOutlineOpen = action.payload
       persistBoolStorage('scribe-document-outline-open', action.payload)
+      if (action.payload) {
+        state.panelRailExpanded = true
+        persistBoolStorage('scribe-panel-rail-expanded', true)
+      }
     },
     setRevisionHistoryOpen(state, action: PayloadAction<boolean>) {
       state.revisionHistoryOpen = action.payload
       persistBoolStorage('scribe-revision-history-open', action.payload)
+      if (action.payload) {
+        state.panelRailExpanded = true
+        persistBoolStorage('scribe-panel-rail-expanded', true)
+      }
     },
     setCommentsPanelOpen(state, action: PayloadAction<boolean>) {
       state.commentsPanelOpen = action.payload
       persistBoolStorage('scribe-comments-open', action.payload)
+      if (action.payload) {
+        state.panelRailExpanded = true
+        persistBoolStorage('scribe-panel-rail-expanded', true)
+      }
     },
     setStatsPanelOpen(state, action: PayloadAction<boolean>) {
       state.statsPanelOpen = action.payload
       persistBoolStorage('scribe-stats-open', action.payload)
+      if (action.payload) {
+        state.panelRailExpanded = true
+        persistBoolStorage('scribe-panel-rail-expanded', true)
+      }
     },
     setBacklinksPanelOpen(state, action: PayloadAction<boolean>) {
       state.backlinksPanelOpen = action.payload
       persistBoolStorage('scribe-backlinks-open', action.payload)
+      if (action.payload) {
+        state.panelRailExpanded = true
+        persistBoolStorage('scribe-panel-rail-expanded', true)
+      }
+    },
+    setPanelRailExpanded(state, action: PayloadAction<boolean>) {
+      state.panelRailExpanded = action.payload
+      persistBoolStorage('scribe-panel-rail-expanded', action.payload)
     },
     setFocusMode(state, action: PayloadAction<boolean>) {
       state.focusMode = action.payload
@@ -367,6 +394,7 @@ export const {
   setCommentsPanelOpen,
   setStatsPanelOpen,
   setBacklinksPanelOpen,
+  setPanelRailExpanded,
   setFocusMode,
   toggleFocusMode,
   setReadingMode,

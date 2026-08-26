@@ -49,26 +49,29 @@
   },
   "welcome": {
     "brand": "Scribe",
-    "brandTagline": "A local document editor. Create a new one, import a file, or continue writing.",
+    "brandTagline": "Write documents locally. Link notes when you need them.",
     "newDocument": "New document",
+    "todayNote": "Today’s note",
     "import": "Import",
     "connectionMap": "Connection map",
+    "workflowHint": "New document → [[links]] → export. The map and MCP can wait until you need them.",
     "recentDocuments": "Recent documents",
     "noDocuments": "No documents yet",
-    "noDocumentsHint": "Start with a new document, the demo, or an import.",
-    "emptyStartHint": "Start with a new document, the demo, or an import.",
+    "noDocumentsHint": "Start with a new document or today’s note. The demo is optional.",
+    "emptyStartHint": "Start with a new document or today’s note.",
     "press": {
       "eyebrow": "Letterpress · local on this Mac",
-      "brandTagline": "Write like it goes to print. Files stay on disk — blank page, import, or pick up where you left off.",
+      "brandTagline": "Write documents. Link notes. Everything stays on disk.",
+      "workflowHint": "Blank page → [[links]] → export. Leave advanced tools for later.",
       "recentDocuments": "Continue",
       "noDocuments": "The press is empty",
-      "noDocumentsHint": "Start a blank page, open the guide, or import a file from Finder."
+      "noDocumentsHint": "Start a blank page or today’s note. The guide is optional."
     }
   },
   "demoGuide": {
     "badge": "Start here",
     "title": "Scribe Guide",
-    "description": "Interactive demo of every feature — formatting, wiki links, export, templates, and more.",
+    "description": "A short walkthrough: writing first, then wiki links and export — not every feature at once.",
     "open": "Open demo",
     "shortLabel": "Demo"
   },
@@ -194,7 +197,7 @@
       },
       "mcp": {
         "label": "MCP",
-        "description": "Scribe Memory for Cursor"
+        "description": "Optional — Cursor / Claude"
       },
       "about": {
         "label": "About",
@@ -272,8 +275,8 @@
     },
     "mcp": {
       "title": "Scribe Memory MCP",
-      "description": "Connect Cursor or Claude Desktop to your local Scribe library.",
-      "intro": "The Scribe Memory MCP server lets an AI client search notes, load documents, follow wiki links, and optionally create or append notes in your library.",
+      "description": "Optional for Cursor or Claude Desktop — Scribe works fine without MCP.",
+      "intro": "The Scribe Memory MCP server lets an AI client search notes, load documents, follow wiki links, and optionally create or append notes. Everyday writing and export do not require MCP.",
       "installTitle": "Install",
       "installDescription": "From the Scribe repo root, install MCP package dependencies once.",
       "configTitle": "Cursor config",
@@ -297,7 +300,7 @@
       "editorTitle": "Editor shortcuts"
     },
     "about": {
-      "tagline": "Writing app for macOS",
+      "tagline": "Write documents. Link notes.",
       "platform": "Platform",
       "fileFormat": "File format",
       "export": "Export"
@@ -324,10 +327,10 @@
       "topics": {
         "overview": {
           "title": "What is Scribe?",
-          "summary": "Local-first writing on your Mac",
+          "summary": "Write documents. Link notes.",
           "paragraphs": [
-            "Scribe is a local-first document editor for macOS. Your library lives in an on-device SQLite database, with optional .scribe backup files on disk.",
-            "Nothing is required from a cloud account to write or open notes."
+            "Scribe is a local document editor for macOS. Write and export on this Mac — your library lives in SQLite, with optional .scribe backups on disk.",
+            "As notes grow, link them with wiki links. The connection map and MCP (Cursor / Claude) are power tools — not the starting point."
           ],
           "points": []
         },
@@ -659,6 +662,8 @@
   },
   "editorPanels": {
     "ariaLabel": "Document panels",
+    "expand": "Show panels",
+    "collapse": "Hide panels",
     "outline": "Document outline",
     "comments": "Comments",
     "backlinks": "Backlinks",
