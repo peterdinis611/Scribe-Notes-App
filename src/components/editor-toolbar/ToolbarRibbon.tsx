@@ -126,7 +126,7 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
     }),
   })
 
-  const currentFont = getCurrentFontFamilyLabel(editor)
+  const currentFont = getCurrentFontFamilyLabel(editor, t)
 
   function setLink() {
     void (async () => {

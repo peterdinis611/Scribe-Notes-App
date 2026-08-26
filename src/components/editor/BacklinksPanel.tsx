@@ -191,8 +191,8 @@ export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
         title={t('panels.backlinks.title')}
         subtitle={
           total === 0
-            ? t('panels.backlinks.noConnections')
-            : t('library.documentCount', { count: total })
+            ? t('panels.backlinks.subtitle')
+            : `${t('panels.backlinks.subtitle')} · ${t('library.documentCount', { count: total })}`
         }
         actions={
           <div className="inline-flex gap-0.5">
@@ -228,17 +228,22 @@ export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
         <EditorSidePanelList className="gap-1">
           {mini && mini.nodes.length > 1 && (
             <div className="mb-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-2">
-              <div className="mb-1.5 flex items-center justify-between gap-2 px-0.5">
-                <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-[var(--color-muted-foreground)]">
-                  {t('panels.backlinks.neighborhood')}
-                </span>
-                <button
-                  type="button"
-                  className="text-[11px] font-medium text-[var(--color-accent)] hover:underline"
-                  onClick={openFullGraph}
-                >
-                  {t('panels.backlinks.openGraph')}
-                </button>
+              <div className="mb-1.5 flex flex-col gap-0.5 px-0.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-[var(--color-muted-foreground)]">
+                    {t('panels.backlinks.neighborhood')}
+                  </span>
+                  <button
+                    type="button"
+                    className="text-[11px] font-medium text-[var(--color-accent)] hover:underline"
+                    onClick={openFullGraph}
+                  >
+                    {t('panels.backlinks.openGraph')}
+                  </button>
+                </div>
+                <p className="m-0 text-[10px] leading-snug text-[var(--color-muted-foreground)]">
+                  {t('panels.backlinks.neighborhoodHint')}
+                </p>
               </div>
               <svg viewBox="0 0 180 180" className="mx-auto block h-[160px] w-full" role="img" aria-label={t('panels.backlinks.neighborhood')}>
                 {mini.edges.map((edge) => {

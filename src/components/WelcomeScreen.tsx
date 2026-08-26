@@ -110,6 +110,7 @@ export function WelcomeScreen() {
         <DemoGuideButton variant="link" />
         <button
           type="button"
+          title={t('welcome.connectionMapHint')}
           className={
             isPress
               ? 'welcome-link'

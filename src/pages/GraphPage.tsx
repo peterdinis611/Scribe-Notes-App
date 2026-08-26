@@ -20,6 +20,9 @@ export function GraphPage() {
         <div className="min-w-0">
           <p className="link-graph-page-eyebrow">{t('linkGraph.eyebrow')}</p>
           <h1 className="link-graph-page-title">{t('linkGraph.pageTitle')}</h1>
+          <p className="link-graph-page-subtitle mt-1 max-w-[48ch] text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
+            {t('linkGraph.pageSubtitle')}
+          </p>
         </div>
         <Button
           type="button"

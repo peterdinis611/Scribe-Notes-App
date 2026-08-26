@@ -91,3 +91,19 @@ pub fn reconcile_storage(
     let conn = state.conn.lock().map_err(|error| error.to_string())?;
     storage::reconcile_storage(&app, &conn)
 }
+
+/// Installed font family names for the document font picker.
+#[tauri::command]
+pub fn list_system_font_families() -> Result<Vec<String>, String> {
+    let mut db = fontdb::Database::new();
+    db.load_system_fonts();
+
+    let mut names: Vec<String> = db
+        .faces()
+        .filter_map(|face| face.families.first().map(|(name, _)| name.clone()))
+        .collect();
+
+    names.sort_by(|a, b| a.to_lowercase().cmp(&b.to_lowercase()));
+    names.dedup_by(|a, b| a.eq_ignore_ascii_case(b));
+    Ok(names)
+}

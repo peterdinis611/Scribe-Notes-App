@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { ScrollArea } from '@/components/ui/scroll-area'
+import { FontFamilyField } from '@/components/editor/FontFamilyField'
 import {
   applyDocumentStylePreset,
   DOCUMENT_STYLE_PRESETS,
@@ -108,8 +108,11 @@ export function PageSetupDialog({ open, onClose }: PageSetupDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="flex max-h-[85vh] max-w-3xl flex-col gap-0 overflow-hidden p-0 titlebar-no-drag" showClose>
-        <div className="flex items-start gap-3 border-b border-[var(--color-border)] px-5 py-4">
+      <DialogContent
+        className="flex h-[min(85vh,720px)] max-h-[85vh] max-w-3xl flex-col gap-0 overflow-hidden p-0 titlebar-no-drag"
+        showClose
+      >
+        <div className="flex shrink-0 items-start gap-3 border-b border-[var(--color-border)] px-5 py-4">
           <FileText className="mt-0.5 h-5 w-5 shrink-0 text-[var(--color-accent)]" />
           <div>
             <h2 className="m-0 text-[16px] font-semibold">{t('pageStyles.title')}</h2>
@@ -119,13 +122,16 @@ export function PageSetupDialog({ open, onClose }: PageSetupDialogProps) {
           </div>
         </div>
 
-        <ScrollArea className="min-h-0 flex-1">
+        <div className="page-setup-dialog-body min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <div className="grid gap-6 p-5 lg:grid-cols-[1fr_180px]">
             <div className="space-y-5">
               <section>
-                <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--color-muted-foreground)]">
+                <h3 className="mb-1 text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--color-muted-foreground)]">
                   {t('pageStyles.presetsHeading')}
                 </h3>
+                <p className="mb-2 mt-0 text-[11px] leading-relaxed text-[var(--color-muted-foreground)]">
+                  {t('pageStyles.presetsHint')}
+                </p>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {DOCUMENT_STYLE_PRESETS.map((preset) => {
                     const active = normalized.stylePresetId === preset.id
@@ -153,9 +159,12 @@ export function PageSetupDialog({ open, onClose }: PageSetupDialogProps) {
               </section>
 
               <section>
-                <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--color-muted-foreground)]">
+                <h3 className="mb-1 text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--color-muted-foreground)]">
                   {t('pageStyles.typography')}
                 </h3>
+                <p className="mb-2 mt-0 text-[11px] leading-relaxed text-[var(--color-muted-foreground)]">
+                  {t('pageStyles.typographyHint')}
+                </p>
                 <div className="grid grid-cols-2 gap-3">
                   <label className={fieldClass}>
                     <span>{t('pageStyles.fontSize')}</span>
@@ -194,14 +203,13 @@ export function PageSetupDialog({ open, onClose }: PageSetupDialogProps) {
                   </label>
                   <label className={cn(fieldClass, 'col-span-2')}>
                     <span>{t('pageStyles.fontFamily')}</span>
-                    <Input
+                    <FontFamilyField
                       value={typography.fontFamily}
-                      placeholder={t('pageStyles.fontFamilyPlaceholder')}
-                      onChange={(event) =>
+                      onChange={(fontFamily) =>
                         update({
                           typography: {
                             ...typography,
-                            fontFamily: event.target.value,
+                            fontFamily,
                           },
                         })
                       }
@@ -211,9 +219,12 @@ export function PageSetupDialog({ open, onClose }: PageSetupDialogProps) {
               </section>
 
               <section>
-                <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--color-muted-foreground)]">
-                  Veľkosť papiera
+                <h3 className="mb-1 text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--color-muted-foreground)]">
+                  {t('pageStyles.paperHeading')}
                 </h3>
+                <p className="mb-2 mt-0 text-[11px] leading-relaxed text-[var(--color-muted-foreground)]">
+                  {t('pageStyles.paperHint')}
+                </p>
                 <div className="flex flex-wrap gap-1.5">
                   {(Object.keys(PAPER_SIZES) as PaperSizeId[]).map((sizeId) => (
                     <button
@@ -229,9 +240,12 @@ export function PageSetupDialog({ open, onClose }: PageSetupDialogProps) {
               </section>
 
               <section>
-                <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--color-muted-foreground)]">
-                  Okraje
+                <h3 className="mb-1 text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--color-muted-foreground)]">
+                  {t('pageStyles.marginsHeading')}
                 </h3>
+                <p className="mb-2 mt-0 text-[11px] leading-relaxed text-[var(--color-muted-foreground)]">
+                  {t('pageStyles.marginsHint')}
+                </p>
                 <div className="mb-3 flex flex-wrap gap-1.5">
                   {PAGE_MARGIN_PRESETS.map((preset) => (
                     <button
@@ -240,94 +254,108 @@ export function PageSetupDialog({ open, onClose }: PageSetupDialogProps) {
                       className={chipClass(matchesMarginPreset(pageSetup, preset.id))}
                       onClick={() => update(preset.setup)}
                     >
-                      {preset.label}
+                      {t(`pageStyles.marginPresets.${preset.id}`)}
                     </button>
                   ))}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <label className={fieldClass}>
-                    <span>Hore (px)</span>
+                    <span>{t('pageStyles.marginTop')}</span>
                     <Input type="number" min={24} max={160} value={pageSetup.marginTop} onChange={(event) => update({ marginTop: Number(event.target.value) })} />
                   </label>
                   <label className={fieldClass}>
-                    <span>Dole (px)</span>
+                    <span>{t('pageStyles.marginBottom')}</span>
                     <Input type="number" min={24} max={160} value={pageSetup.marginBottom} onChange={(event) => update({ marginBottom: Number(event.target.value) })} />
                   </label>
                   <label className={fieldClass}>
-                    <span>Vľavo (px)</span>
+                    <span>{t('pageStyles.marginLeft')}</span>
                     <Input type="number" min={24} max={160} value={pageSetup.marginLeft} onChange={(event) => update({ marginLeft: Number(event.target.value) })} />
                   </label>
                   <label className={fieldClass}>
-                    <span>Vpravo (px)</span>
+                    <span>{t('pageStyles.marginRight')}</span>
                     <Input type="number" min={24} max={160} value={pageSetup.marginRight} onChange={(event) => update({ marginRight: Number(event.target.value) })} />
                   </label>
                 </div>
               </section>
 
               <section>
-                <div className="mb-2 flex items-center justify-between gap-3">
+                <div className="mb-1 flex items-center justify-between gap-3">
                   <h3 className="m-0 text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--color-muted-foreground)]">
-                    Hlavička a pätička
+                    {t('pageStyles.headerFooterHeading')}
                   </h3>
                   <label className="inline-flex items-center gap-2 text-[12px]">
                     <input type="checkbox" checked={headerFooter.enabled} onChange={(event) => updateHeaderFooter({ enabled: event.target.checked })} />
-                    <span>Zapnúť</span>
+                    <span>{t('pageStyles.enable')}</span>
                   </label>
                 </div>
 
                 {headerFooter.enabled && (
                   <div className="space-y-3">
-                    <p className="m-0 text-[11px] text-[var(--color-muted-foreground)]">
-                      Premenné: {'{title}'}, {'{page}'}, {'{pages}'}, {'{date}'}
+                    <p className="m-0 text-[11px] leading-relaxed text-[var(--color-muted-foreground)]">
+                      {t('pageStyles.headerFooterHint')}
                     </p>
                     <label className={fieldClass}>
-                      <span>Hlavička</span>
+                      <span>{t('pageStyles.header')}</span>
                       <Input type="text" value={headerFooter.headerText} placeholder="{title}" onChange={(event) => updateHeaderFooter({ headerText: event.target.value })} />
                     </label>
                     <label className={fieldClass}>
-                      <span>Pätička</span>
-                      <Input type="text" value={headerFooter.footerText} placeholder="Voliteľný text pätičky" onChange={(event) => updateHeaderFooter({ footerText: event.target.value })} />
+                      <span>{t('pageStyles.footer')}</span>
+                      <Input type="text" value={headerFooter.footerText} placeholder={t('pageStyles.footerPlaceholder')} onChange={(event) => updateHeaderFooter({ footerText: event.target.value })} />
                     </label>
                     <label className="inline-flex items-center gap-2 text-[12px]">
                       <input type="checkbox" checked={headerFooter.showPageNumber} onChange={(event) => updateHeaderFooter({ showPageNumber: event.target.checked })} />
-                      <span>Zobraziť číslo strany</span>
+                      <span>{t('pageStyles.showPageNumber')}</span>
                     </label>
                   </div>
                 )}
               </section>
 
               <section>
-                <div className="mb-2 flex items-center justify-between gap-3">
+                <div className="mb-1 flex items-center justify-between gap-3">
                   <h3 className="m-0 text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--color-muted-foreground)]">
-                    Vodoznak
+                    {t('pageStyles.watermarkHeading')}
                   </h3>
                   <label className="inline-flex items-center gap-2 text-[12px]">
                     <input type="checkbox" checked={watermark.enabled} onChange={(event) => updateWatermark({ enabled: event.target.checked })} />
-                    <span>Zapnúť</span>
+                    <span>{t('pageStyles.enable')}</span>
                   </label>
                 </div>
+                <p className="mb-2 mt-0 text-[11px] leading-relaxed text-[var(--color-muted-foreground)]">
+                  {t('pageStyles.watermarkHint')}
+                </p>
 
                 {watermark.enabled && (
                   <div className="space-y-3">
                     <label className={fieldClass}>
-                      <span>Text</span>
-                      <Input type="text" value={watermark.text} placeholder="Koncept" onChange={(event) => updateWatermark({ text: event.target.value })} />
+                      <span>{t('pageStyles.watermarkText')}</span>
+                      <Input type="text" value={watermark.text} placeholder={t('pageStyles.watermarkTextPlaceholder')} onChange={(event) => updateWatermark({ text: event.target.value })} />
                     </label>
                     <div className="grid grid-cols-2 gap-3">
                       <label className={fieldClass}>
-                        <span>Priehľadnosť</span>
+                        <span>{t('pageStyles.opacity')}</span>
                         <Input type="number" min={0.05} max={0.35} step={0.01} value={watermark.opacity} onChange={(event) => updateWatermark({ opacity: Number(event.target.value) })} />
                       </label>
                       <label className={fieldClass}>
-                        <span>Uhol (°)</span>
+                        <span>{t('pageStyles.angle')}</span>
                         <Input type="number" min={-90} max={90} value={watermark.angle} onChange={(event) => updateWatermark({ angle: Number(event.target.value) })} />
                       </label>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                      {['Koncept', 'Dôverné', 'Návrh'].map((preset) => (
-                        <button key={preset} type="button" className={chipClass(false)} onClick={() => updateWatermark({ text: preset })}>
-                          {preset}
+                      {(
+                        [
+                          ['draft', t('pageStyles.watermarkPresets.draft')],
+                          ['confidential', t('pageStyles.watermarkPresets.confidential')],
+                          ['proposal', t('pageStyles.watermarkPresets.proposal')],
+                        ] as const
+                      ).map(([id, label]) => (
+                        <button
+                          key={id}
+                          type="button"
+                          className={chipClass(false)}
+                          onClick={() => updateWatermark({ text: label })}
+                        >
+                          {label}
                         </button>
                       ))}
                     </div>
@@ -336,29 +364,32 @@ export function PageSetupDialog({ open, onClose }: PageSetupDialogProps) {
               </section>
 
               <section>
-                <div className="mb-2 flex items-center justify-between gap-3">
+                <div className="mb-1 flex items-center justify-between gap-3">
                   <h3 className="m-0 text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--color-muted-foreground)]">
-                    Prvá strana odlišná
+                    {t('pageStyles.firstPageHeading')}
                   </h3>
                   <label className="inline-flex items-center gap-2 text-[12px]">
                     <input type="checkbox" checked={firstPage.different} onChange={(event) => updateFirstPage({ different: event.target.checked })} />
-                    <span>Zapnúť</span>
+                    <span>{t('pageStyles.enable')}</span>
                   </label>
                 </div>
+                <p className="mb-2 mt-0 text-[11px] leading-relaxed text-[var(--color-muted-foreground)]">
+                  {t('pageStyles.firstPageHint')}
+                </p>
 
                 {firstPage.different && (
                   <div className="space-y-3">
                     <label className="inline-flex items-center gap-2 text-[12px]">
                       <input type="checkbox" checked={firstPage.hideHeaderFooter} onChange={(event) => updateFirstPage({ hideHeaderFooter: event.target.checked })} />
-                      <span>Skryť hlavičku a pätičku na prvej strane</span>
+                      <span>{t('pageStyles.hideHeaderFooterFirst')}</span>
                     </label>
                     <div className="grid grid-cols-2 gap-3">
                       <label className={fieldClass}>
-                        <span>Hore prvá strana (px)</span>
+                        <span>{t('pageStyles.firstMarginTop')}</span>
                         <Input type="number" min={24} max={200} value={firstPage.marginTop ?? pageSetup.marginTop} onChange={(event) => updateFirstPage({ marginTop: Number(event.target.value) })} />
                       </label>
                       <label className={fieldClass}>
-                        <span>Dole prvá strana (px)</span>
+                        <span>{t('pageStyles.firstMarginBottom')}</span>
                         <Input type="number" min={24} max={200} value={firstPage.marginBottom ?? pageSetup.marginBottom} onChange={(event) => updateFirstPage({ marginBottom: Number(event.target.value) })} />
                       </label>
                     </div>
@@ -369,7 +400,7 @@ export function PageSetupDialog({ open, onClose }: PageSetupDialogProps) {
 
             <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.04em] text-[var(--color-muted-foreground)]">
-                Náhľad okrajov
+                {t('pageStyles.marginsPreview')}
               </p>
               <div
                 className="relative w-full rounded-md border border-[var(--color-border)] bg-white"
@@ -389,14 +420,14 @@ export function PageSetupDialog({ open, onClose }: PageSetupDialogProps) {
               </div>
             </div>
           </div>
-        </ScrollArea>
+        </div>
 
-        <div className="flex items-center justify-end gap-2 border-t border-[var(--color-border)] px-5 py-3">
+        <div className="flex shrink-0 items-center justify-end gap-2 border-t border-[var(--color-border)] px-5 py-3">
           <Button type="button" variant="ghost" size="sm" onClick={resetDefaults}>
-            Predvolené
+            {t('pageStyles.resetDefaults')}
           </Button>
           <Button type="button" variant="default" size="sm" onClick={onClose}>
-            Hotovo
+            {t('pageStyles.done')}
           </Button>
         </div>
       </DialogContent>

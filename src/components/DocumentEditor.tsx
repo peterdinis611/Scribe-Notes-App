@@ -32,6 +32,7 @@ import { resolvePageLayout } from '@/lib/editor/page-layout'
 import { normalizePageSetup, PAPER_SIZES } from '@/lib/editor/page-setup'
 import { resolveDocumentTypography } from '@/lib/editor/document-style-presets'
 import { getEditorExtensions } from '@/lib/editor/extensions'
+import { listGoogleFontFamilies, loadGoogleFontsForDocument } from '@/lib/editor/google-fonts'
 import { handleTauriEditorKeyDown } from '@/lib/editor/tauri-input-fix'
 import { getEditorMarkdown } from '@/lib/editor/markdown-content'
 import { insertImagesFromFiles } from '@/lib/editor/image-utils'
@@ -237,6 +238,16 @@ export function DocumentEditor() {
       editorRefs.editor = null
     }
   }, [])
+
+  useEffect(() => {
+    if (!activeDocument) return
+    void listGoogleFontFamilies().then(() => {
+      loadGoogleFontsForDocument(
+        activeDocument.contentJson,
+        pageSetup.typography.fontFamily,
+      )
+    })
+  }, [activeDocument?.id, pageSetup.typography.fontFamily])
 
   useEditorHotkeys(editor)
 

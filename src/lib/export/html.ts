@@ -19,6 +19,11 @@ import {
   buildDocumentContentCss,
   buildWatermarkCss,
 } from '@/lib/export/document-styles'
+import {
+  extractFontFamiliesFromContentJson,
+  googleFontsLinkTags,
+  primaryFontFamilyName,
+} from '@/lib/editor/google-fonts'
 
 type TipTapNode = {
   type?: string
@@ -380,11 +385,18 @@ function buildHtmlDocument(
       ? `<div class="export-watermark print-watermark"><span>${escapeHtml(pageSetup.watermark.text.trim())}</span></div>`
       : ''
 
+  const googleFamilies = [
+    ...extractFontFamiliesFromContentJson(contentJson),
+    primaryFontFamilyName(pageSetup.typography.fontFamily),
+  ].filter(Boolean)
+  const googleFontLinks = googleFontsLinkTags(googleFamilies)
+
   return `<!DOCTYPE html>
 <html lang="sk">
 <head>
   <meta charset="UTF-8" />
   <title>${escapeHtml(title)}</title>
+  ${googleFontLinks}
   <style>
     @page {
       size: ${pageSetup.paperSize === 'letter' ? 'letter' : pageSetup.paperSize};

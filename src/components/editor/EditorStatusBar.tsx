@@ -63,7 +63,7 @@ export function EditorStatusBar({
                 <span className="editor-status-chip-label">{t('printLayout.layout')}</span>
               </button>
             </TooltipTrigger>
-            <TooltipContent side="top">{t('printLayout.pageLayout')}</TooltipContent>
+            <TooltipContent side="top">{t('printLayout.pageLayoutHint')}</TooltipContent>
           </Tooltip>
 
           <Tooltip>
@@ -77,7 +77,7 @@ export function EditorStatusBar({
                 <FileText className="h-3.5 w-3.5" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="top">{t('printLayout.pageSetup')}</TooltipContent>
+            <TooltipContent side="top">{t('printLayout.pageSetupHint')}</TooltipContent>
           </Tooltip>
 
           {printLayoutEnabled && (

@@ -358,6 +358,15 @@ export const flushPendingWrites = (documentId?: string) =>
 
 export const getBackendStats = () => invoke<BackendStats>('get_backend_stats')
 
+/** Installed system font family names (empty when not in Tauri). */
+export async function listSystemFontFamilies(): Promise<string[]> {
+  try {
+    return await invoke<string[]>('list_system_font_families')
+  } catch {
+    return []
+  }
+}
+
 export const forceSaveDocument = async (id: string) =>
   cacheDocument(await invoke<Document>('force_save_document', { id }))
 

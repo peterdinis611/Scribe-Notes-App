@@ -40,6 +40,9 @@ export function McpSection() {
         description={t('settings.mcp.description')}
       />
 
+      <p className="mb-2 max-w-2xl text-[13px] leading-relaxed text-[var(--color-foreground)]">
+        {t('settings.mcp.whatIsMcp')}
+      </p>
       <p className="mb-4 max-w-2xl text-[13px] leading-relaxed text-[var(--color-muted-foreground)]">
         {t('settings.mcp.intro')}
       </p>

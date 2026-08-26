@@ -185,6 +185,7 @@ pub fn run() {
             commands::system::get_backend_stats,
             commands::system::flush_pending_writes,
             commands::system::reconcile_storage,
+            commands::system::list_system_font_families,
             commands::links::list_link_graph,
             backup::export_library_archive,
             backup::import_library_archive,

@@ -663,6 +663,7 @@ export function LibraryLinkGraphView({
         variant={showOrphans ? 'default' : 'outline'}
         size="sm"
         className="h-7 text-[11px]"
+        title={t('linkGraph.showOrphansTitle')}
         onClick={() => setShowOrphans((value) => !value)}
       >
         {t('linkGraph.showOrphans')}

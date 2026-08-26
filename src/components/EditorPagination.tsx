@@ -52,57 +52,44 @@ export function EditorPagination({
           {t('pagination.summary', { current: currentPage, total: pageCount })}
         </span>
       ) : (
-        <>
-          <div className="editor-pagination-pages">
-            {visiblePages.map((page, index) => {
-              const previous = visiblePages[index - 1]
-              const showEllipsis = previous !== undefined && page - previous > 1
+        <div className="editor-pagination-pages">
+          {visiblePages.map((page, index) => {
+            const previous = visiblePages[index - 1]
+            const showEllipsis = previous !== undefined && page - previous > 1
 
-              return (
-                <span key={page} className="editor-pagination-page-group">
-                  {showEllipsis && <span className="editor-pagination-ellipsis">…</span>}
-                  <button
-                    type="button"
-                    className={cn('editor-pagination-page', page === currentPage && 'is-active')}
-                    onClick={() => onPageChange(page)}
-                    aria-label={t('pagination.page', { page })}
-                    aria-current={page === currentPage ? 'page' : undefined}
-                  >
-                    {page}
-                  </button>
-                </span>
-              )
-            })}
-          </div>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            className="editor-pagination-arrow"
-            onClick={() => onPageChange(currentPage + 1)}
-            disabled={currentPage >= pageCount}
-            aria-label={t('pagination.nextPage')}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-
-          <span className="editor-pagination-summary">
-            {t('pagination.summary', { current: currentPage, total: pageCount })}
-          </span>
-        </>
+            return (
+              <span key={page} className="editor-pagination-page-group">
+                {showEllipsis && <span className="editor-pagination-ellipsis">…</span>}
+                <button
+                  type="button"
+                  className={cn('editor-pagination-page', page === currentPage && 'is-active')}
+                  onClick={() => onPageChange(page)}
+                  aria-label={t('pagination.page', { page })}
+                  aria-current={page === currentPage ? 'page' : undefined}
+                >
+                  {page}
+                </button>
+              </span>
+            )
+          })}
+        </div>
       )}
 
-      {summaryOnly && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="editor-pagination-arrow"
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage >= pageCount}
-          aria-label={t('pagination.nextPage')}
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="editor-pagination-arrow"
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage >= pageCount}
+        aria-label={t('pagination.nextPage')}
+      >
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+
+      {!summaryOnly && (
+        <span className="editor-pagination-summary">
+          {t('pagination.summary', { current: currentPage, total: pageCount })}
+        </span>
       )}
     </div>
   )

@@ -10,8 +10,8 @@ declare module '@tiptap/core' {
 }
 
 export const FONT_FAMILIES = [
-  { label: 'Predvolená', value: '' },
-  { label: 'Systémová', value: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif' },
+  { labelKey: 'toolbar.fonts.default', value: '' },
+  { labelKey: 'toolbar.fonts.system', value: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif' },
   { label: 'Helvetica', value: 'Helvetica, Arial, sans-serif' },
   { label: 'Arial', value: 'Arial, Helvetica, sans-serif' },
   { label: 'Inter', value: 'Inter, system-ui, sans-serif' },
@@ -29,6 +29,11 @@ export const FONT_FAMILIES = [
   { label: 'Consolas', value: 'Consolas, "Courier New", monospace' },
 ] as const
 
+export type FontFamilyPreset = (typeof FONT_FAMILIES)[number]
+
+const RECENT_FONTS_KEY = 'scribe-recent-fonts'
+const MAX_RECENT = 8
+
 export function normalizeFontFamily(value: string | null | undefined) {
   return (value ?? '').replaceAll('"', '').replace(/\s+/g, ' ').trim().toLowerCase()
 }
@@ -39,15 +44,23 @@ export function isPresetFontFamily(value: string | null | undefined) {
   return FONT_FAMILIES.some((item) => normalizeFontFamily(item.value) === normalized)
 }
 
-export function getFontFamilyLabel(editorValue: string | null | undefined) {
+export function getFontFamilyLabel(
+  editorValue: string | null | undefined,
+  t?: (key: string) => string,
+) {
   const normalized = normalizeFontFamily(editorValue)
-  if (!normalized) return 'Predvolená'
+  if (!normalized) return t ? t('toolbar.fonts.default') : 'Predvolená'
 
   const preset = FONT_FAMILIES.find((item) => normalizeFontFamily(item.value) === normalized)
-  if (preset) return preset.label
+  if (preset) {
+    if ('labelKey' in preset && preset.labelKey) {
+      return t ? t(preset.labelKey) : preset.labelKey === 'toolbar.fonts.default' ? 'Predvolená' : 'Systémová'
+    }
+    if ('label' in preset) return preset.label
+  }
 
   const firstFamily = (editorValue ?? '').split(',')[0]?.replaceAll('"', '').trim()
-  return firstFamily || 'Vlastný font'
+  return firstFamily || (t ? t('toolbar.fonts.custom') : 'Vlastný font')
 }
 
 export function formatCustomFontFamily(value: string) {
@@ -65,6 +78,32 @@ export function formatCustomFontFamily(value: string) {
   }
 
   return trimmed
+}
+
+export function readRecentFonts(): string[] {
+  try {
+    const raw = localStorage.getItem(RECENT_FONTS_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as unknown
+    if (!Array.isArray(parsed)) return []
+    return parsed
+      .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+      .slice(0, MAX_RECENT)
+  } catch {
+    return []
+  }
+}
+
+export function pushRecentFont(value: string) {
+  const formatted = formatCustomFontFamily(value)
+  if (!formatted || isPresetFontFamily(formatted)) return
+
+  const next = [
+    formatted,
+    ...readRecentFonts().filter((item) => normalizeFontFamily(item) !== normalizeFontFamily(formatted)),
+  ].slice(0, MAX_RECENT)
+
+  localStorage.setItem(RECENT_FONTS_KEY, JSON.stringify(next))
 }
 
 export const FontFamily = Extension.create({

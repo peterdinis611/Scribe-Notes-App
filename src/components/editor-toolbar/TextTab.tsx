@@ -44,7 +44,7 @@ export function TextTab({ editor }: { editor: Editor }) {
     }),
   })
 
-  const currentFont = getCurrentFontFamilyLabel(editor)
+  const currentFont = getCurrentFontFamilyLabel(editor, t)
   const currentTextColor = (editor.getAttributes('textStyle').color as string | undefined) ?? ''
 
   function setLink() {
