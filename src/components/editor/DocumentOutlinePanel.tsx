@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { LucideIcon } from 'lucide-react'
 import {
@@ -22,6 +23,7 @@ import type { Editor } from '@tiptap/react'
 import { cn } from '@/lib/utils'
 import {
   collectDocumentOutline,
+  collectHeadingOutline,
   focusOutlineItem,
   getActiveOutlineItemId,
   type DocumentOutlineItem,
@@ -36,6 +38,8 @@ import {
 type DocumentOutlinePanelProps = {
   editor: Editor | null
   onClose: () => void
+  /** Scroll-driven active heading id (preferred over caret when scrolling). */
+  scrollActiveId?: string | null
 }
 
 const OUTLINE_ICONS: Record<DocumentOutlineKind, LucideIcon> = {
@@ -60,15 +64,18 @@ function OutlineRow({
   item,
   active,
   onSelect,
+  rowRef,
 }: {
   item: DocumentOutlineItem
   active: boolean
   onSelect: () => void
+  rowRef?: (node: HTMLButtonElement | null) => void
 }) {
   const Icon = OUTLINE_ICONS[item.kind]
 
   return (
     <button
+      ref={rowRef}
       type="button"
       className={cn(
         'flex w-full items-start gap-2 rounded-lg border-none bg-transparent p-2 text-left hover:bg-[var(--color-selection)]',
@@ -104,31 +111,63 @@ function OutlineRow({
   )
 }
 
-export function DocumentOutlinePanel({ editor, onClose }: DocumentOutlinePanelProps) {
+export function DocumentOutlinePanel({
+  editor,
+  onClose,
+  scrollActiveId = null,
+}: DocumentOutlinePanelProps) {
   const { t } = useTranslation()
+  const [headingsOnly, setHeadingsOnly] = useState(true)
+  const activeRowRef = useRef<HTMLButtonElement | null>(null)
+
   const outlineState = useEditorState({
     editor,
     selector: ({ editor: currentEditor }) => {
       if (!currentEditor) {
-        return { items: [] as DocumentOutlineItem[], activeId: null as string | null }
+        return {
+          allItems: [] as DocumentOutlineItem[],
+          headingItems: [] as DocumentOutlineItem[],
+          caretActiveId: null as string | null,
+        }
       }
 
-      const outlineItems = collectDocumentOutline(currentEditor)
+      const allItems = collectDocumentOutline(currentEditor)
+      const headingItems = collectHeadingOutline(currentEditor)
       return {
-        items: outlineItems,
-        activeId: getActiveOutlineItemId(outlineItems, currentEditor.state.selection.from),
+        allItems,
+        headingItems,
+        caretActiveId: getActiveOutlineItemId(allItems, currentEditor.state.selection.from),
       }
     },
   })
 
-  const items = outlineState?.items ?? []
-  const activeId = outlineState?.activeId ?? null
+  const allItems = outlineState?.allItems ?? []
+  const headingItems = outlineState?.headingItems ?? []
+  const items = headingsOnly ? headingItems : allItems
+  const caretActiveId = outlineState?.caretActiveId ?? null
+
+  const activeId = useMemo(() => {
+    if (scrollActiveId && items.some((item) => item.id === scrollActiveId)) {
+      return scrollActiveId
+    }
+    if (headingsOnly && scrollActiveId) {
+      return scrollActiveId
+    }
+    if (caretActiveId && items.some((item) => item.id === caretActiveId)) {
+      return caretActiveId
+    }
+    return items[0]?.id ?? null
+  }, [caretActiveId, headingsOnly, items, scrollActiveId])
+
+  useEffect(() => {
+    activeRowRef.current?.scrollIntoView({ block: 'nearest' })
+  }, [activeId])
 
   return (
     <EditorSidePanel width={280} className="titlebar-no-drag" aria-label={t('editorPanels.outline')}>
       <EditorSidePanelHeader
         title={t('panels.outline.title')}
-        subtitle={t('panels.outline.elementCount', { count: items.length })}
+        subtitle={t('panels.outline.navHint')}
         actions={
           <EditorSidePanelIconButton aria-label={t('panels.outline.hide')} onClick={onClose}>
             <PanelRightClose className="h-4 w-4" />
@@ -136,10 +175,43 @@ export function DocumentOutlinePanel({ editor, onClose }: DocumentOutlinePanelPr
         }
       />
 
+      <div className="mx-3 mt-2 flex gap-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5">
+        <button
+          type="button"
+          className={cn(
+            'flex-1 rounded-md border-none px-2 py-1.5 text-[11px] font-semibold',
+            headingsOnly
+              ? 'bg-[var(--color-accent)] text-white'
+              : 'bg-transparent text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
+          )}
+          onClick={() => setHeadingsOnly(true)}
+        >
+          {t('panels.outline.headingsOnly')}
+        </button>
+        <button
+          type="button"
+          className={cn(
+            'flex-1 rounded-md border-none px-2 py-1.5 text-[11px] font-semibold',
+            !headingsOnly
+              ? 'bg-[var(--color-accent)] text-white'
+              : 'bg-transparent text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
+          )}
+          onClick={() => setHeadingsOnly(false)}
+        >
+          {t('panels.outline.allBlocks')}
+        </button>
+      </div>
+
+      <p className="m-0 mx-3 mt-2 text-[10px] leading-snug text-[var(--color-muted-foreground)]">
+        {headingsOnly
+          ? t('panels.outline.headingsHint')
+          : t('panels.outline.elementCount', { count: items.length })}
+      </p>
+
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
         {items.length === 0 ? (
           <p className="px-2 py-3 text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
-            {t('panels.outline.empty')}
+            {headingsOnly ? t('panels.outline.emptyHeadings') : t('panels.outline.empty')}
           </p>
         ) : (
           items.map((item) => (
@@ -147,6 +219,7 @@ export function DocumentOutlinePanel({ editor, onClose }: DocumentOutlinePanelPr
               key={item.id}
               item={item}
               active={activeId === item.id}
+              rowRef={activeId === item.id ? (node) => { activeRowRef.current = node } : undefined}
               onSelect={() => {
                 if (!editor) return
                 focusOutlineItem(editor, item)

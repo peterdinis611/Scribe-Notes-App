@@ -4,6 +4,7 @@ import type { Editor } from '@tiptap/react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { DocumentOutlinePanel } from '@/components/editor/DocumentOutlinePanel'
+import { EditorScrollLocation } from '@/components/editor/EditorScrollLocation'
 import { RevisionHistoryPanel } from '@/components/editor/RevisionHistoryPanel'
 import { CommentsPanel } from '@/components/editor/CommentsPanel'
 import { BacklinksPanel } from '@/components/editor/BacklinksPanel'
@@ -22,6 +23,7 @@ import { PageWatermarkOverlays } from '@/components/editor/PageWatermarkOverlays
 import { MarkdownSourceEditor } from '@/components/editor/MarkdownSourceEditor'
 import { useDocumentAutoSave } from '@/hooks/useDocumentAutoSave'
 import { useDocumentPagination } from '@/hooks/useDocumentPagination'
+import { useActiveScrollHeading } from '@/hooks/useActiveScrollHeading'
 import { useEditorHotkeys } from '@/hooks/useEditorHotkeys'
 import {
   getCachedContentHash,
@@ -31,6 +33,7 @@ import { useEditorViewEffect, setEditorContent, useEditorReady } from '@/lib/edi
 import { resolvePageLayout } from '@/lib/editor/page-layout'
 import { normalizePageSetup, PAPER_SIZES } from '@/lib/editor/page-setup'
 import { resolveDocumentTypography } from '@/lib/editor/document-style-presets'
+import { focusOutlineItem } from '@/lib/editor/document-outline'
 import { getEditorExtensions } from '@/lib/editor/extensions'
 import { listGoogleFontFamilies, loadGoogleFontsForDocument } from '@/lib/editor/google-fonts'
 import { handleTauriEditorKeyDown } from '@/lib/editor/tauri-input-fix'
@@ -375,6 +378,12 @@ export function DocumentEditor() {
 
   const isMarkdown = viewMode === 'markdown'
 
+  const { activeHeading, headingCount } = useActiveScrollHeading({
+    editor: editorReady ? editor : null,
+    scrollRef,
+    enabled: !isMarkdown && !readingMode,
+  })
+
   useEffect(() => {
     if (!editor) return
     editor.setEditable(!readingMode && viewMode === 'rich')
@@ -429,6 +438,23 @@ export function DocumentEditor() {
                 'editor-body--with-outline',
             )}
           >
+            <div className="editor-body-main">
+            {!isMarkdown && !focusMode && !readingMode && editorReady && headingCount > 0 && (
+              <EditorScrollLocation
+                heading={activeHeading}
+                headingCount={headingCount}
+                onOpenOutline={() => {
+                  dispatch(setDocumentOutlineOpen(true))
+                }}
+                onJumpToHeading={() => {
+                  if (!editor || !activeHeading) {
+                    dispatch(setDocumentOutlineOpen(true))
+                    return
+                  }
+                  focusOutlineItem(editor, activeHeading)
+                }}
+              />
+            )}
             <EditorDropZone
               className={cn(
                 'editor-scroll editor-stage',
@@ -590,9 +616,14 @@ export function DocumentEditor() {
             </div>
           </div>
         </EditorDropZone>
+            </div>
 
         {!isMarkdown && editorReady && !readingMode && outlineOpen && (
-          <DocumentOutlinePanel editor={editor} onClose={() => dispatch(setDocumentOutlineOpen(false))} />
+          <DocumentOutlinePanel
+            editor={editor}
+            scrollActiveId={activeHeading?.id ?? null}
+            onClose={() => dispatch(setDocumentOutlineOpen(false))}
+          />
         )}
         {!isMarkdown && editorReady && !readingMode && historyOpen && (
           <RevisionHistoryPanel onClose={() => dispatch(setRevisionHistoryOpen(false))} />
@@ -615,6 +646,8 @@ export function DocumentEditor() {
               onPageChange={scrollToPage}
               onPrint={handlePrint}
               onOpenPageSetup={() => setPageSetupOpen(true)}
+              sectionLabel={activeHeading?.preview || activeHeading?.label || null}
+              onOpenOutline={() => dispatch(setDocumentOutlineOpen(true))}
             />
           )}
         </div>

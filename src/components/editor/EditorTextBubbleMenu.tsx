@@ -72,15 +72,20 @@ export function EditorTextBubbleMenu({ editor }: EditorTextBubbleMenuProps) {
       <button type="button" className={cn('editor-bubble-icon-btn', editor.isActive('link') && 'is-active')} title={t('toolbar.actions.link')} onClick={setLink}>
         <Link2 className="h-3.5 w-3.5" />
       </button>
+      <span className="editor-bubble-divider" />
       <button
         type="button"
-        className={cn('editor-bubble-icon-btn', editor.isActive('comment') && 'is-active')}
+        className={cn(
+          'editor-bubble-icon-btn editor-bubble-icon-btn--labeled',
+          editor.isActive('comment') && 'is-active',
+        )}
         title={t('editorActions.comment')}
         onClick={() => {
           void createCommentForSelection(editor)
         }}
       >
         <MessageSquare className="h-3.5 w-3.5" />
+        {t('editorActions.comment')}
       </button>
       <span className="editor-bubble-divider" />
       <ColorSwatchGrid

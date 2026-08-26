@@ -23,6 +23,8 @@ type EditorStatusBarProps = {
   onPageChange: (page: number) => void
   onPrint: () => void
   onOpenPageSetup: () => void
+  sectionLabel?: string | null
+  onOpenOutline?: () => void
 }
 
 export function EditorStatusBar({
@@ -31,6 +33,8 @@ export function EditorStatusBar({
   onPageChange,
   onPrint,
   onOpenPageSetup,
+  sectionLabel = null,
+  onOpenOutline,
 }: EditorStatusBarProps) {
   const { t } = useTranslation()
   const document = useAppSelector((state) => state.documents.activeDocument)
@@ -131,6 +135,21 @@ export function EditorStatusBar({
         </div>
 
         <div className="editor-status-bar-center">
+          {sectionLabel && onOpenOutline ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="editor-status-section"
+                  onClick={onOpenOutline}
+                >
+                  <span className="editor-status-section-kicker">{t('panels.outline.youAreHere')}</span>
+                  <span className="editor-status-section-title">{sectionLabel}</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top">{t('panels.outline.youAreHereHint')}</TooltipContent>
+            </Tooltip>
+          ) : null}
           <EditorPagination
             currentPage={currentPage}
             pageCount={pageCount}

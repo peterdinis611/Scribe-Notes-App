@@ -17,11 +17,17 @@ function generateCommentId(): string {
 }
 
 /** Prompts for a comment, persists the thread and anchors a mark on the current selection. */
-export async function createCommentForSelection(editor: Editor): Promise<void> {
+export async function createCommentForSelection(editor: Editor): Promise<boolean> {
   const { activeDocumentId: documentId, commentAuthor: author } = store.getState().documents
-  if (!documentId) return
+  if (!documentId) return false
 
-  const { from, to } = editor.state.selection
+  const { from, to, empty } = editor.state.selection
+  if (empty) {
+    toast.info(i18n.t('panels.comments.selectTextFirst'))
+    editor.chain().focus().run()
+    return false
+  }
+
   const quote = editor.state.doc.textBetween(from, to, ' ').trim().slice(0, 280)
 
   const body = await promptInput({
@@ -30,7 +36,7 @@ export async function createCommentForSelection(editor: Editor): Promise<void> {
     placeholder: i18n.t('editorActions.commentPlaceholder'),
     confirmLabel: i18n.t('editorActions.addComment'),
   })
-  if (!body?.trim()) return
+  if (!body?.trim()) return false
 
   const commentId = generateCommentId()
 
@@ -40,9 +46,11 @@ export async function createCommentForSelection(editor: Editor): Promise<void> {
     await createCommentThread({ id: commentId, documentId, quote, author, body: body.trim() })
     store.dispatch(bumpCommentsVersion())
     store.dispatch(setCommentsPanelOpen(true))
+    return true
   } catch (error) {
     editor.chain().focus().removeCommentById({ commentId }).run()
     toast.error(i18n.t('editorActions.commentAddError'), String(error))
+    return false
   }
 }
 

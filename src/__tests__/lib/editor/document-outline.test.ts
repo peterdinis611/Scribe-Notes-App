@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { Editor } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
-import { collectDocumentOutline } from '@/lib/editor/document-outline'
+import { collectDocumentOutline, collectHeadingOutline } from '@/lib/editor/document-outline'
 
 describe('collectDocumentOutline', () => {
   it('collects headings, lists, and block elements', () => {
@@ -36,6 +36,8 @@ describe('collectDocumentOutline', () => {
     expect(items[0]?.preview).toBe('Úvod')
     expect(items[1]?.preview).toBe('Prvý odsek')
     expect(items[2]?.preview).toBe('Položka A')
+
+    expect(collectHeadingOutline(editor as never).map((item) => item.preview)).toEqual(['Úvod'])
 
     editor.destroy()
   })

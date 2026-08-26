@@ -201,6 +201,46 @@ export function getActiveOutlineItemId(items: DocumentOutlineItem[], selectionFr
   return null
 }
 
+/** Headings only — useful for scroll navigation without paragraph noise. */
+export function collectHeadingOutline(editor: Editor | null): DocumentOutlineItem[] {
+  return collectDocumentOutline(editor).filter((item) => item.kind === 'heading')
+}
+
+/**
+ * Finds the heading currently “in view” while scrolling: the last heading whose
+ * top edge is above the reading line inside the scroll container.
+ */
+export function getActiveHeadingAtViewport(
+  editor: Editor,
+  headings: DocumentOutlineItem[],
+  scrollEl: HTMLElement,
+  readingLineOffset = 88,
+): DocumentOutlineItem | null {
+  if (headings.length === 0) return null
+
+  const readingLine = scrollEl.getBoundingClientRect().top + readingLineOffset
+  let active: DocumentOutlineItem | null = null
+
+  for (const heading of headings) {
+    const dom = editor.view.nodeDOM(heading.pos)
+    const element =
+      dom instanceof HTMLElement
+        ? dom
+        : dom?.parentElement instanceof HTMLElement
+          ? dom.parentElement
+          : null
+    if (!element) continue
+
+    if (element.getBoundingClientRect().top <= readingLine) {
+      active = heading
+    } else if (active) {
+      break
+    }
+  }
+
+  return active ?? headings[0] ?? null
+}
+
 export function focusOutlineItem(editor: Editor, item: DocumentOutlineItem) {
   const node = editor.state.doc.nodeAt(item.pos)
   if (!node) return

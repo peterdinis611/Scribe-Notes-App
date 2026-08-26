@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Editor } from '@tiptap/react'
-import { Check, MessageSquare, PanelRightClose, RotateCcw, Send, Trash2 } from 'lucide-react'
+import { Check, MessageSquare, MessageSquarePlus, PanelRightClose, RotateCcw, Send, Trash2 } from 'lucide-react'
 import {
   addCommentReply,
   deleteCommentThread,
@@ -9,7 +9,7 @@ import {
   resolveCommentThread,
   type CommentThread,
 } from '@/lib/db/api'
-import { findCommentRange, focusComment } from '@/lib/editor/comments'
+import { createCommentForSelection, findCommentRange, focusComment } from '@/lib/editor/comments'
 import { cn, formatRelativeTime } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
@@ -38,6 +38,9 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
   const [showResolved, setShowResolved] = useState(false)
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
+  const [hasSelection, setHasSelection] = useState(false)
+  const [adding, setAdding] = useState(false)
+  const savedSelectionRef = useRef<{ from: number; to: number } | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -61,7 +64,52 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
     }
   }, [activeId, version, t])
 
+  useEffect(() => {
+    if (!editor) {
+      setHasSelection(false)
+      savedSelectionRef.current = null
+      return
+    }
+    const syncSelection = () => {
+      const { from, to, empty } = editor.state.selection
+      if (!empty) {
+        savedSelectionRef.current = { from, to }
+        setHasSelection(true)
+        return
+      }
+      const saved = savedSelectionRef.current
+      setHasSelection(Boolean(saved && saved.from !== saved.to))
+    }
+    syncSelection()
+    editor.on('selectionUpdate', syncSelection)
+    editor.on('transaction', syncSelection)
+    return () => {
+      editor.off('selectionUpdate', syncSelection)
+      editor.off('transaction', syncSelection)
+    }
+  }, [editor])
+
   const refresh = useCallback(() => dispatch(bumpCommentsVersion()), [dispatch])
+
+  const handleAddComment = useCallback(async () => {
+    if (!editor || adding) return
+    setAdding(true)
+    try {
+      const range =
+        !editor.state.selection.empty
+          ? { from: editor.state.selection.from, to: editor.state.selection.to }
+          : savedSelectionRef.current
+      if (!range || range.from === range.to) {
+        toast.info(t('panels.comments.selectTextFirst'))
+        editor.chain().focus().run()
+        return
+      }
+      editor.chain().focus().setTextSelection(range).run()
+      await createCommentForSelection(editor)
+    } finally {
+      setAdding(false)
+    }
+  }, [adding, editor, t])
 
   const visibleThreads = useMemo(
     () => threads.filter((thread) => showResolved || !thread.resolved),
@@ -193,6 +241,14 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
         }
         actions={
           <div className="inline-flex gap-0.5">
+            <EditorSidePanelIconButton
+              title={t('panels.comments.addComment')}
+              aria-label={t('panels.comments.addComment')}
+              onClick={() => void handleAddComment()}
+              disabled={!editor || adding}
+            >
+              <MessageSquarePlus className="h-4 w-4" />
+            </EditorSidePanelIconButton>
             <EditorSidePanelIconButton title={t('common.refresh')} onClick={refresh}>
               <RotateCcw className="h-4 w-4" />
             </EditorSidePanelIconButton>
@@ -202,6 +258,28 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
           </div>
         }
       />
+
+      <div className="mx-3 mt-2 flex flex-col gap-1.5">
+        <button
+          type="button"
+          className={cn(
+            'inline-flex items-center justify-center gap-1.5 rounded-lg border px-2.5 py-2 text-[12px] font-semibold transition-colors',
+            hasSelection
+              ? 'border-transparent bg-[var(--color-accent)] text-white hover:opacity-90'
+              : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-foreground)] hover:border-[color-mix(in_srgb,var(--color-accent)_40%,var(--color-border))] hover:text-[var(--color-accent)]',
+          )}
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => void handleAddComment()}
+          disabled={!editor || adding}
+          title={t('panels.comments.addCommentHint')}
+        >
+          <MessageSquarePlus className="h-3.5 w-3.5" />
+          {t('panels.comments.addComment')}
+        </button>
+        <p className="m-0 px-0.5 text-[10px] leading-snug text-[var(--color-muted-foreground)]">
+          {hasSelection ? t('panels.comments.selectionReady') : t('panels.comments.addCommentHint')}
+        </p>
+      </div>
 
       {resolvedCount > 0 && (
         <button
@@ -219,7 +297,14 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
         ) : visibleThreads.length === 0 ? (
           <EditorSidePanelEmpty>
             <MessageSquare className="h-5 w-5 opacity-40" />
-            {t('panels.comments.emptyHint')}
+            <span>{t('panels.comments.emptyHint')}</span>
+            <span className="text-[11px] leading-snug opacity-90">
+              {t('panels.comments.howToStep1')}
+              <br />
+              {t('panels.comments.howToStep2')}
+              <br />
+              {t('panels.comments.howToStep3')}
+            </span>
           </EditorSidePanelEmpty>
         ) : (
           visibleThreads.map((thread) => (

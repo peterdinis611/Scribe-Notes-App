@@ -2065,8 +2065,102 @@ html[data-ui-skin='press'] .editor-shell--home {
   min-width: 0;
 }
 
+.editor-body-main {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+.editor-body-main > .editor-drop-zone,
+.editor-body-main > .editor-scroll {
+  flex: 1;
+  min-width: 0;
+}
+
 .editor-body--with-outline .editor-drop-zone {
   min-width: 0;
+}
+
+.editor-scroll-location {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  z-index: 24;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: min(520px, calc(100% - 48px));
+  padding: 4px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-toolbar) 92%, transparent);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.14),
+    inset 0 1px 0 color-mix(in srgb, var(--color-foreground) 5%, transparent);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+
+.editor-scroll-location-main {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  max-width: 360px;
+  padding: 4px 12px 4px 14px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-foreground);
+  cursor: default;
+  text-align: left;
+}
+
+.editor-scroll-location-main:hover {
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+}
+
+.editor-scroll-location-kicker {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+.editor-scroll-location-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.editor-scroll-location-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  height: 28px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  color: var(--color-accent);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: default;
+}
+
+.editor-scroll-location-outline:hover {
+  background: color-mix(in srgb, var(--color-accent) 22%, transparent);
 }
 
 
@@ -2222,8 +2316,47 @@ html[data-ui-skin='press'] .editor-status-bar {
 
 .editor-status-bar-center {
   display: flex;
+  align-items: center;
   justify-content: center;
+  gap: 10px;
   flex-shrink: 0;
+  min-width: 0;
+}
+
+.editor-status-section {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  max-width: min(220px, 28vw);
+  height: 26px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-foreground);
+  cursor: default;
+}
+
+.editor-status-section:hover {
+  background: var(--color-hover);
+}
+
+.editor-status-section-kicker {
+  flex-shrink: 0;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+.editor-status-section-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 600;
 }
 
 .editor-status-bar-right {
@@ -2727,6 +2860,15 @@ html[data-ui-skin='press'] .editor-status-bar {
 .editor-bubble-icon-btn:disabled {
   opacity: 0.35;
   pointer-events: none;
+}
+
+.editor-bubble-icon-btn--labeled {
+  width: auto;
+  gap: 5px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 .editor-bubble-divider {
