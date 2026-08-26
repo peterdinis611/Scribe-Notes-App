@@ -50,6 +50,7 @@
   },
   "welcome": {
     "brand": "Scribe",
+    "eyebrow": "Lokálny editor dokumentov",
     "brandTagline": "Píšte dokumenty lokálne. Prepájajte poznámky, keď ich pribudne.",
     "newDocument": "Nový dokument",
     "todayNote": "Dnešná poznámka",
@@ -57,6 +58,10 @@
     "connectionMap": "Mapa prepojení",
     "connectionMapHint": "Poznámky spojené cez [[názov]]. Hodí sa, keď už máte pár odkazov.",
     "workflowHint": "Nový dokument → [[odkazy]] → export. Mapa prepojení pridáte, keď budete chcieť.",
+    "stepsLabel": "Ako začať",
+    "stepWrite": "Napíšte dokument — šablóna alebo prázdna stránka.",
+    "stepLink": "Prepojte poznámky cez [[názov]], keď to dáva zmysel.",
+    "stepExport": "Exportujte PDF, Word alebo Markdown.",
     "recentDocuments": "Nedávne dokumenty",
     "noDocuments": "Zatiaľ žiadne dokumenty",
     "noDocumentsHint": "Začnite novým dokumentom alebo dnešnou poznámkou. Ukážka je voliteľná.",

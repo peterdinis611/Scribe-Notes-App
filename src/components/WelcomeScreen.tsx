@@ -10,7 +10,7 @@ import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { openTodayNote } from '@/lib/journal-notes'
 import { toast } from '@/lib/toast'
 import { ROUTES } from '@/lib/routes'
-import { formatRelativeTime } from '@/lib/utils'
+import { cn, formatRelativeTime } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
   setActiveDocument,
@@ -19,6 +19,7 @@ import {
   updateDocuments,
 } from '@/store/documentsSlice'
 import { setTemplatePickerOpen } from '@/store/settingsSlice'
+import { APP_VERSION } from '@/lib/app-version'
 
 export function WelcomeScreen() {
   const documents = useAppSelector((state) => state.documents.documents)
@@ -72,145 +73,79 @@ export function WelcomeScreen() {
 
   const isPress = uiSkin === 'press'
 
-  const actions = (
-    <div className={isPress ? 'welcome-actions' : 'welcome-actions flex flex-col gap-3 pt-1'}>
-      <div className={isPress ? 'welcome-actions-primary' : 'flex flex-wrap gap-2.5'}>
-        <Button
-          variant="default"
-          size="default"
-          className={isPress ? 'welcome-cta-primary' : undefined}
-          onClick={() => dispatch(setTemplatePickerOpen(true))}
-        >
-          <Plus className="h-4 w-4" />
-          {t('welcome.newDocument')}
-        </Button>
-        <Button
-          variant="outline"
-          size="default"
-          className={isPress ? 'welcome-cta-secondary' : undefined}
-          onClick={handleToday}
-        >
-          <CalendarDays className="h-4 w-4" />
-          {t('welcome.todayNote')}
-        </Button>
-        <Button
-          variant="outline"
-          size="default"
-          className={isPress ? 'welcome-cta-secondary' : undefined}
-          onClick={() => void handleImport()}
-        >
-          <FolderInput className="h-4 w-4" />
-          {t('welcome.import')}
-        </Button>
-      </div>
-      <p className={isPress ? 'welcome-workflow' : 'm-0 max-w-[48ch] text-[12.5px] leading-relaxed text-[var(--color-muted-foreground)]'}>
-        {t(isPress ? 'welcome.press.workflowHint' : 'welcome.workflowHint')}
-      </p>
-      <div className={isPress ? 'welcome-actions-more' : 'flex flex-wrap items-center gap-x-4 gap-y-1'}>
-        <DemoGuideButton variant="link" />
-        <button
-          type="button"
-          title={t('welcome.connectionMapHint')}
-          className={
-            isPress
-              ? 'welcome-link'
-              : 'inline-flex items-center gap-1.5 border-0 bg-transparent p-0 text-[13px] font-medium text-[var(--color-muted-foreground)] underline-offset-4 hover:text-[var(--color-foreground)] hover:underline'
-          }
-          onClick={() => void navigate(ROUTES.graph())}
-        >
-          <GitBranch className="h-3.5 w-3.5" aria-hidden="true" />
-          {t('welcome.connectionMap')}
-        </button>
-      </div>
+  const steps = (
+    <ol className={isPress ? 'welcome-steps welcome-steps--press' : 'welcome-steps'} aria-label={t('welcome.stepsLabel')}>
+      <li>
+        <span className="welcome-step-index" aria-hidden="true">
+          01
+        </span>
+        <span>{t('welcome.stepWrite')}</span>
+      </li>
+      <li>
+        <span className="welcome-step-index" aria-hidden="true">
+          02
+        </span>
+        <span>{t('welcome.stepLink')}</span>
+      </li>
+      <li>
+        <span className="welcome-step-index" aria-hidden="true">
+          03
+        </span>
+        <span>{t('welcome.stepExport')}</span>
+      </li>
+    </ol>
+  )
+
+  const moreLinks = (
+    <div className={isPress ? 'welcome-actions-more' : 'welcome-more'}>
+      <DemoGuideButton variant="link" className={isPress ? 'welcome-link' : undefined} />
+      <button
+        type="button"
+        title={t('welcome.connectionMapHint')}
+        className={isPress ? 'welcome-link' : 'welcome-more-link'}
+        onClick={() => void navigate(ROUTES.graph())}
+      >
+        <GitBranch className="h-3.5 w-3.5" aria-hidden="true" />
+        {t('welcome.connectionMap')}
+      </button>
     </div>
   )
 
   const recentSection = (
     <section
-      className={isPress ? 'welcome-recent' : 'welcome-recent space-y-3'}
+      className={isPress ? 'welcome-recent' : 'welcome-rail'}
       aria-labelledby="welcome-recent-heading"
     >
-      <div className={isPress ? 'welcome-recent-head' : 'flex items-baseline justify-between gap-3'}>
-        <h2
-          id="welcome-recent-heading"
-          className={
-            isPress
-              ? 'welcome-recent-label'
-              : 'm-0 text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--color-muted-foreground)]'
-          }
-        >
+      <div className={isPress ? 'welcome-recent-head' : 'welcome-rail-head'}>
+        <h2 id="welcome-recent-heading" className={isPress ? 'welcome-recent-label' : 'welcome-rail-label'}>
           {t(isPress ? 'welcome.press.recentDocuments' : 'welcome.recentDocuments')}
         </h2>
         {documents.length > 0 && (
-          <span
-            className={
-              isPress
-                ? 'welcome-recent-count'
-                : 'text-[11px] text-[var(--color-muted-foreground)]'
-            }
-          >
+          <span className={isPress ? 'welcome-recent-count' : 'welcome-rail-count'}>
             {t('common.total', { count: documents.length })}
           </span>
         )}
       </div>
 
       {recentDocuments.length > 0 ? (
-        <ul
-          className={
-            isPress
-              ? 'welcome-recent-list'
-              : 'welcome-recent-list m-0 list-none divide-y divide-[var(--color-border)] border-y border-[var(--color-border)] p-0'
-          }
-        >
+        <ul className={isPress ? 'welcome-recent-list' : 'welcome-rail-list'}>
           {recentDocuments.map((doc, index) => (
-            <li
-              key={doc.id}
-              style={isPress ? { ['--welcome-i' as string]: String(index) } : undefined}
-            >
+            <li key={doc.id} style={{ ['--welcome-i' as string]: String(index) }}>
               <button
                 type="button"
-                className={
-                  isPress
-                    ? 'welcome-recent-row'
-                    : 'group flex w-full items-center gap-3 bg-transparent px-1 py-3.5 text-left transition-colors hover:bg-[var(--color-hover)] sm:px-2'
-                }
+                className={isPress ? 'welcome-recent-row' : 'welcome-rail-row'}
                 onClick={() => openDocument(doc.id)}
               >
-                <span
-                  className={
-                    isPress
-                      ? 'welcome-recent-icon'
-                      : 'flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-accent)]'
-                  }
-                  aria-hidden="true"
-                >
+                <span className={isPress ? 'welcome-recent-icon' : 'welcome-rail-icon'} aria-hidden="true">
                   <FileText className="h-4 w-4" />
                 </span>
-                <span
-                  className={
-                    isPress
-                      ? 'welcome-recent-title'
-                      : 'm-0 min-w-0 flex-1 truncate text-[14px] font-semibold text-[var(--color-foreground)]'
-                  }
-                >
-                  {doc.title}
-                </span>
-                <span
-                  className={
-                    isPress
-                      ? 'welcome-recent-meta'
-                      : 'ml-3 inline-flex shrink-0 items-center gap-1 text-[11px] text-[var(--color-muted-foreground)]'
-                  }
-                >
+                <span className={isPress ? 'welcome-recent-title' : 'welcome-rail-title'}>{doc.title}</span>
+                <span className={isPress ? 'welcome-recent-meta' : 'welcome-rail-meta'}>
                   <Clock className="h-3 w-3" />
                   {formatRelativeTime(doc.updatedAt)}
                 </span>
                 <ArrowRight
-                  className={
-                    isPress
-                      ? 'welcome-recent-arrow h-4 w-4'
-                      : 'h-4 w-4 shrink-0 text-[var(--color-muted-foreground)] opacity-0 transition-opacity group-hover:opacity-100'
-                  }
+                  className={cn(isPress ? 'welcome-recent-arrow' : 'welcome-rail-arrow', 'h-4 w-4')}
                   aria-hidden="true"
                 />
               </button>
@@ -218,26 +153,14 @@ export function WelcomeScreen() {
           ))}
         </ul>
       ) : (
-        <div className={isPress ? 'welcome-empty' : 'space-y-2 py-2'}>
-          <p
-            className={
-              isPress
-                ? 'welcome-empty-title'
-                : 'm-0 text-[14px] font-semibold text-[var(--color-foreground)]'
-            }
-          >
+        <div className={isPress ? 'welcome-empty' : 'welcome-rail-empty'}>
+          <p className={isPress ? 'welcome-empty-title' : 'welcome-rail-empty-title'}>
             {t(isPress ? 'welcome.press.noDocuments' : 'welcome.noDocuments')}
           </p>
-          <p
-            className={
-              isPress
-                ? 'welcome-empty-text'
-                : 'm-0 text-[13px] text-[var(--color-muted-foreground)]'
-            }
-          >
+          <p className={isPress ? 'welcome-empty-text' : 'welcome-rail-empty-text'}>
             {t(isPress ? 'welcome.press.noDocumentsHint' : 'welcome.noDocumentsHint')}
           </p>
-          <div className={isPress ? 'welcome-empty-actions' : undefined}>
+          <div className={isPress ? 'welcome-empty-actions' : 'welcome-rail-empty-actions'}>
             <DemoGuideButton size="sm" />
           </div>
         </div>
@@ -260,27 +183,91 @@ export function WelcomeScreen() {
             <p className="welcome-eyebrow">{t('welcome.press.eyebrow')}</p>
             <h1 className="welcome-brand">{t('welcome.brand')}</h1>
             <p className="welcome-tagline">{t('welcome.press.brandTagline')}</p>
-            {actions}
+            <div className="welcome-actions">
+              <div className="welcome-actions-primary">
+                <Button
+                  variant="default"
+                  size="default"
+                  className="welcome-cta-primary"
+                  onClick={() => dispatch(setTemplatePickerOpen(true))}
+                >
+                  <Plus className="h-4 w-4" />
+                  {t('welcome.newDocument')}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="default"
+                  className="welcome-cta-secondary"
+                  onClick={handleToday}
+                >
+                  <CalendarDays className="h-4 w-4" />
+                  {t('welcome.todayNote')}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="default"
+                  className="welcome-cta-secondary"
+                  onClick={() => void handleImport()}
+                >
+                  <FolderInput className="h-4 w-4" />
+                  {t('welcome.import')}
+                </Button>
+              </div>
+              {steps}
+              {moreLinks}
+            </div>
           </header>
 
           {recentSection}
+          <p className="welcome-version welcome-version--press">{t('common.version', { version: APP_VERSION })}</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="titlebar-no-drag flex min-h-0 flex-1 overflow-y-auto">
-      <div className="welcome-screen mx-auto flex w-full max-w-[760px] flex-col gap-10 px-6 py-12 max-[640px]:gap-8 max-[640px]:px-5 max-[640px]:py-8 sm:px-8">
-        <header className="welcome-hero space-y-4">
-          <h1 className="welcome-brand m-0 text-[clamp(40px,7vw,64px)] font-bold leading-none tracking-[-0.05em] text-[var(--color-foreground)]">
-            {t('welcome.brand')}
-          </h1>
-          <p className="m-0 max-w-[42ch] text-[15px] leading-relaxed text-[var(--color-muted-foreground)]">
-            {t('welcome.brandTagline')}
-          </p>
-          {actions}
+    <div className="welcome-atelier titlebar-no-drag">
+      <div className="welcome-atelier-glow" aria-hidden="true" />
+      <div className="welcome-atelier-grain" aria-hidden="true" />
+
+      <div className="welcome-compose">
+        <header className="welcome-lead">
+          <p className="welcome-atelier-eyebrow">{t('welcome.eyebrow')}</p>
+          <h1 className="welcome-atelier-brand">{t('welcome.brand')}</h1>
+          <p className="welcome-atelier-tagline">{t('welcome.brandTagline')}</p>
+
+          <div className="welcome-cta-stack">
+            <Button
+              variant="default"
+              size="default"
+              className="welcome-atelier-primary"
+              onClick={() => dispatch(setTemplatePickerOpen(true))}
+            >
+              <Plus className="h-4 w-4" />
+              {t('welcome.newDocument')}
+            </Button>
+            <div className="welcome-cta-secondary-row">
+              <Button variant="outline" size="default" className="welcome-atelier-secondary" onClick={handleToday}>
+                <CalendarDays className="h-4 w-4" />
+                {t('welcome.todayNote')}
+              </Button>
+              <Button
+                variant="outline"
+                size="default"
+                className="welcome-atelier-secondary"
+                onClick={() => void handleImport()}
+              >
+                <FolderInput className="h-4 w-4" />
+                {t('welcome.import')}
+              </Button>
+            </div>
+          </div>
+
+          {steps}
+          {moreLinks}
+          <p className="welcome-version">{t('common.version', { version: APP_VERSION })}</p>
         </header>
+
         {recentSection}
       </div>
     </div>

@@ -50,6 +50,7 @@
   },
   "welcome": {
     "brand": "Scribe",
+    "eyebrow": "Local document editor",
     "brandTagline": "Write documents locally. Link notes when you need them.",
     "newDocument": "New document",
     "todayNote": "Today’s note",
@@ -57,6 +58,10 @@
     "connectionMap": "Connection map",
     "connectionMapHint": "Notes linked with [[title]]. Useful after you have a few links.",
     "workflowHint": "New document → [[links]] → export. Add the connection map when you need it.",
+    "stepsLabel": "How to start",
+    "stepWrite": "Write a document — template or blank page.",
+    "stepLink": "Link notes with [[title]] when it helps.",
+    "stepExport": "Export to PDF, Word, or Markdown.",
     "recentDocuments": "Recent documents",
     "noDocuments": "No documents yet",
     "noDocumentsHint": "Start with a new document or today’s note. The demo is optional.",

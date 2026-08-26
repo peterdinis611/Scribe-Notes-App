@@ -27,6 +27,7 @@ import { reloadLibraryFromBackend } from '@/lib/library-reload'
 import { ROUTES } from '@/lib/routes'
 import { THEME_PRESETS } from '@/lib/themes/presets'
 import { generateRandomTheme } from '@/lib/themes/generate-random-theme'
+import { APP_VERSION } from '@/lib/app-version'
 import type { ThemeColors, ThemePresetId } from '@/lib/themes/types'
 import { THEME_COLOR_FIELDS } from '@/lib/themes/types'
 import {
@@ -533,7 +534,7 @@ export function ShortcutsSection() {
 }
 
 export function AboutSection() {
-  const [version, setVersion] = useState('0.5.0')
+  const [version, setVersion] = useState(APP_VERSION)
   const { t } = useTranslation()
 
   useEffect(() => {
