@@ -6,6 +6,8 @@ use std::sync::Mutex;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use tauri::path::BaseDirectory;
+use tauri::AppHandle;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -31,9 +33,7 @@ pub struct NlpSidecar {
 }
 
 impl NlpSidecar {
-    pub fn new() -> Self {
-        let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        let script_path = manifest_dir.join("../nlp/scribe_nlp/__main__.py");
+    pub fn new(script_path: PathBuf) -> Self {
         let python_bin = std::env::var("SCRIBE_NLP_PYTHON").unwrap_or_else(|_| "python3".to_string());
         Self {
             script_path,
@@ -41,6 +41,10 @@ impl NlpSidecar {
             process: Mutex::new(None),
             request_id: AtomicU64::new(1),
         }
+    }
+
+    pub fn script_path(&self) -> &Path {
+        &self.script_path
     }
 
     pub fn script_exists(&self) -> bool {
@@ -61,7 +65,12 @@ impl NlpSidecar {
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
             .spawn()
-            .map_err(|error| format!("Failed to start Python sidecar ({python}): {error}", python = self.python_bin))?;
+            .map_err(|error| {
+                format!(
+                    "Failed to start Python sidecar ({python}): {error}",
+                    python = self.python_bin
+                )
+            })?;
 
         let stdin = child.stdin.take().ok_or("Missing sidecar stdin")?;
         let stdout = child.stdout.take().ok_or("Missing sidecar stdout")?;
@@ -197,10 +206,32 @@ impl Drop for NlpSidecar {
     }
 }
 
-pub fn resolve_script_path() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../nlp/scribe_nlp/__main__.py")
+pub fn resolve_script_path(app: &AppHandle) -> PathBuf {
+    let dev_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../nlp/scribe_nlp/__main__.py");
+
+    if let Ok(resource_path) = app
+        .path()
+        .resolve("nlp/scribe_nlp/__main__.py", BaseDirectory::Resource)
+    {
+        if resource_path.exists() {
+            return resource_path;
+        }
+    }
+
+    dev_path
 }
 
 pub fn script_path_label(path: &Path) -> String {
     path.to_string_lossy().to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn script_path_label_formats_display_path() {
+        let path = PathBuf::from("/tmp/scribe_nlp/__main__.py");
+        assert!(script_path_label(&path).contains("__main__.py"));
+    }
 }

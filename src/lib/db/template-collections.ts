@@ -12,6 +12,7 @@ import {
 import type { CustomTemplateCategory } from '@/lib/templates/categories'
 import { createCustomCategory } from '@/lib/templates/categories'
 import type { CustomDocumentTemplate } from '@/lib/templates/custom'
+import { kvGet, kvRemove, kvSet } from '@/lib/storage/kv'
 import {
   readCustomTemplateCategories,
   readCustomTemplates,
@@ -106,12 +107,13 @@ export async function initTemplateCollections() {
 }
 
 async function migrateLegacyLocalStorage() {
-  if (localStorage.getItem('scribe-templates-db-migrated') === '1') return
+  const MIGRATION_KEY = 'scribe-templates-db-migrated'
+  if (kvGet(MIGRATION_KEY) === '1') return
 
   const legacyTemplates = readCustomTemplates()
   const legacyCategories = readCustomTemplateCategories()
   if (legacyTemplates.length === 0 && legacyCategories.length === 0) {
-    localStorage.setItem('scribe-templates-db-migrated', '1')
+    kvSet(MIGRATION_KEY, '1')
     return
   }
 
@@ -137,9 +139,9 @@ async function migrateLegacyLocalStorage() {
     })
   }
 
-  localStorage.removeItem('scribe-custom-templates')
-  localStorage.removeItem('scribe-custom-template-categories')
-  localStorage.setItem('scribe-templates-db-migrated', '1')
+  kvRemove('scribe-custom-templates')
+  kvRemove('scribe-custom-template-categories')
+  kvSet(MIGRATION_KEY, '1')
 }
 
 export function toStoredTemplate(template: CustomDocumentTemplate): StoredCustomTemplateRow {

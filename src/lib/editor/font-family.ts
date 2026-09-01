@@ -1,4 +1,5 @@
 import { Extension } from '@tiptap/core'
+import { kvGet, kvSet } from '@/lib/storage/kv'
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -82,7 +83,7 @@ export function formatCustomFontFamily(value: string) {
 
 export function readRecentFonts(): string[] {
   try {
-    const raw = localStorage.getItem(RECENT_FONTS_KEY)
+    const raw = kvGet(RECENT_FONTS_KEY)
     if (!raw) return []
     const parsed = JSON.parse(raw) as unknown
     if (!Array.isArray(parsed)) return []
@@ -103,7 +104,7 @@ export function pushRecentFont(value: string) {
     ...readRecentFonts().filter((item) => normalizeFontFamily(item) !== normalizeFontFamily(formatted)),
   ].slice(0, MAX_RECENT)
 
-  localStorage.setItem(RECENT_FONTS_KEY, JSON.stringify(next))
+  kvSet(RECENT_FONTS_KEY, JSON.stringify(next))
 }
 
 export const FontFamily = Extension.create({

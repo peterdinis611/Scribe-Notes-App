@@ -41,7 +41,7 @@ pub fn run() {
                 conn: std::sync::Mutex::new(conn),
                 persist_queue,
             });
-            app.manage(NlpSidecar::new());
+            app.manage(NlpSidecar::new(nlp::resolve_script_path(app.handle())));
 
             #[cfg(target_os = "macos")]
             {

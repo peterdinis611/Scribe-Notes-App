@@ -52,8 +52,12 @@ export const nlpIndexDocument = (documentId: string) =>
 
 export const nlpIndexAll = () => invoke<NlpIndexResult>('nlp_index_all')
 
-export const nlpJournalSummary = (fromDate: string, toDate: string) =>
-  invoke<NlpJournalSummary>('nlp_journal_summary', { fromDate, toDate })
+export const nlpJournalSummary = (input: {
+  fromDate: string
+  toDate: string
+  journalFolderId?: string | null
+  documentIds?: string[]
+}) => invoke<NlpJournalSummary>('nlp_journal_summary', { input })
 
 export const nlpSuggestTags = (documentId: string) =>
   invoke<NlpTagSuggestions>('nlp_suggest_tags', { documentId })

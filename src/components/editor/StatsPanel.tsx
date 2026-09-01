@@ -5,6 +5,7 @@ import { useEditorState } from '@tiptap/react'
 import { PanelRightClose, Target } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { useAppSelector } from '@/store/hooks'
+import { kvGet, kvRemove, kvSet } from '@/lib/storage/kv'
 import {
   EditorSidePanel,
   EditorSidePanelHeader,
@@ -21,7 +22,7 @@ const GOAL_KEY_PREFIX = 'scribe-word-goal-'
 
 function readGoal(documentId: string | null): number {
   if (!documentId) return 0
-  const raw = localStorage.getItem(`${GOAL_KEY_PREFIX}${documentId}`)
+  const raw = kvGet(`${GOAL_KEY_PREFIX}${documentId}`)
   const value = raw ? Number(raw) : 0
   return Number.isFinite(value) && value > 0 ? value : 0
 }
@@ -71,8 +72,8 @@ export function StatsPanel({ editor, onClose }: StatsPanelProps) {
       const safe = Number.isFinite(value) && value > 0 ? Math.round(value) : 0
       setGoal(safe)
       if (!activeId) return
-      if (safe > 0) localStorage.setItem(`${GOAL_KEY_PREFIX}${activeId}`, String(safe))
-      else localStorage.removeItem(`${GOAL_KEY_PREFIX}${activeId}`)
+      if (safe > 0) kvSet(`${GOAL_KEY_PREFIX}${activeId}`, String(safe))
+      else kvRemove(`${GOAL_KEY_PREFIX}${activeId}`)
     },
     [activeId],
   )

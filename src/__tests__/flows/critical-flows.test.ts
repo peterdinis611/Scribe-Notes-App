@@ -6,7 +6,12 @@ import settingsReducer, { setLocale } from '@/store/settingsSlice'
 import { getResolvedHotkey } from '@/lib/shortcuts'
 import { openQuickNote } from '@/lib/quick-note'
 import { reloadLibraryFromBackend } from '@/lib/library-reload'
-import { readLocale, persistLocale } from '@/store/persistence'
+import {
+  readLocale,
+  persistLocale,
+  persistScratchDocumentId,
+  readScratchDocumentId,
+} from '@/store/persistence'
 import type { Document, DocumentSummary } from '@/lib/db/api'
 
 vi.mock('@/lib/db/api', () => ({
@@ -54,11 +59,10 @@ function document(id: string, title: string): Document {
 describe('critical flows', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    localStorage.clear()
   })
 
   it('opens an existing scratch document instead of creating a new one', async () => {
-    localStorage.setItem('scribe-scratch-document-id', 'scratch-1')
+    persistScratchDocumentId('scratch-1')
     vi.mocked(getDocument).mockResolvedValue(document('scratch-1', 'Rýchla poznámka'))
 
     const store = configureStore({
@@ -96,7 +100,7 @@ describe('critical flows', () => {
     await openQuickNote([], store.dispatch, vi.fn(), () => 'Rýchla poznámka')
 
     expect(createDocument).toHaveBeenCalled()
-    expect(localStorage.getItem('scribe-scratch-document-id')).toBe('new-scratch')
+    expect(readScratchDocumentId()).toBe('new-scratch')
     expect(store.getState().documents.documents).toHaveLength(1)
   })
 

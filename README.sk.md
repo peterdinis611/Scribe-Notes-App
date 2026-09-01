@@ -138,7 +138,7 @@ Ako pridať alebo zmeniť texty:
 2. V React komponentoch použite `useTranslation()`: `t('settings.language.title')`
 3. Mimo React importujte `i18n` z `@/i18n` a volajte `i18n.t(...)`
 
-Zvolený jazyk sa ukladá do `localStorage` (`scribe-locale`) a mení sa v **Nastavenia → Vzhľad → Jazyk**.
+Zvolený jazyk sa ukladá do IndexedDB (`scribe-locale`) a mení sa v **Nastavenia → Vzhľad → Jazyk**.
 
 Zatiaľ nie je preložené celé UI — najprv nastavenia, navigácia, dialógy úložiska a skratky. Nové obrazovky by mali od začiatku používať prekladové kľúče.
 

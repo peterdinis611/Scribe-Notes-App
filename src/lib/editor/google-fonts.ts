@@ -1,4 +1,5 @@
 import { formatCustomFontFamily, normalizeFontFamily } from '@/lib/editor/font-family'
+import { kvGet, kvSet } from '@/lib/storage/kv'
 
 const GOOGLE_FONTS_CACHE_KEY = 'scribe-google-fonts-cache-v1'
 const LOADED_ATTR = 'data-scribe-google-font'
@@ -87,7 +88,7 @@ let fetchPromise: Promise<string[]> | null = null
 
 function readCachedFamilies(): string[] | null {
   try {
-    const raw = localStorage.getItem(GOOGLE_FONTS_CACHE_KEY)
+    const raw = kvGet(GOOGLE_FONTS_CACHE_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as { at?: number; families?: unknown }
     if (!parsed || !Array.isArray(parsed.families)) return null
@@ -105,7 +106,7 @@ function readCachedFamilies(): string[] | null {
 }
 
 function writeCachedFamilies(families: string[]) {
-  localStorage.setItem(
+  kvSet(
     GOOGLE_FONTS_CACHE_KEY,
     JSON.stringify({ at: Date.now(), families }),
   )

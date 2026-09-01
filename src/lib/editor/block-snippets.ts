@@ -5,6 +5,8 @@ export type BlockSnippet = {
   plainText: string
 }
 
+import { kvGet, kvSet } from '@/lib/storage/kv'
+
 const STORAGE_KEY = 'scribe-block-snippets'
 
 const DEFAULT_SNIPPETS: BlockSnippet[] = [
@@ -22,7 +24,7 @@ const DEFAULT_SNIPPETS: BlockSnippet[] = [
 
 export function listBlockSnippets(): BlockSnippet[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = kvGet(STORAGE_KEY)
     if (!raw) return DEFAULT_SNIPPETS
     const parsed = JSON.parse(raw) as unknown
     if (!Array.isArray(parsed) || parsed.length === 0) return DEFAULT_SNIPPETS
@@ -40,7 +42,7 @@ export function listBlockSnippets(): BlockSnippet[] {
 }
 
 export function saveBlockSnippets(snippets: BlockSnippet[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(snippets))
+  kvSet(STORAGE_KEY, JSON.stringify(snippets))
 }
 
 export function plainTextToTipTapContent(text: string): Array<Record<string, unknown>> {

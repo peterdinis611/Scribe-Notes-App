@@ -104,6 +104,9 @@ export function useDocumentAutoSave({
           dispatch(setSaveStatus('saved'))
         }
 
+        const { scheduleNlpDocumentIndex } = await import('@/lib/nlp/auto-index')
+        scheduleNlpDocumentIndex(docId)
+
         return true
       } catch {
         if (latestDocIdRef.current === docId) {

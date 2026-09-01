@@ -56,6 +56,8 @@ export function SecondaryDocumentPane({ documentId }: SecondaryDocumentPaneProps
               ),
             ),
           )
+          const { scheduleNlpDocumentIndex } = await import('@/lib/nlp/auto-index')
+          scheduleNlpDocumentIndex(documentId)
         } catch {
           // Keep editing; primary save path surfaces errors elsewhere.
         }

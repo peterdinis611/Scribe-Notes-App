@@ -36,6 +36,111 @@ pub struct NlpSetEnabledInput {
     pub enabled: bool,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpJournalSummaryInput {
+    pub from_date: String,
+    pub to_date: String,
+    pub journal_folder_id: Option<String>,
+    pub document_ids: Option<Vec<String>>,
+}
+
+fn parse_date_key(value: &str) -> Result<chrono::NaiveDate, String> {
+    chrono::NaiveDate::parse_from_str(value, "%Y-%m-%d")
+        .map_err(|error| format!("Neplatný dátum: {error}"))
+}
+
+fn date_key_bounds(from_date: &str, to_date: &str) -> Result<(i64, i64), String> {
+    use chrono::TimeZone;
+
+    let from = parse_date_key(from_date)?;
+    let to = parse_date_key(to_date)?;
+    let start = from
+        .and_hms_opt(0, 0, 0)
+        .ok_or_else(|| "Neplatný začiatok rozsahu".to_string())?
+        .and_utc()
+        .timestamp();
+    let end = to
+        .and_hms_opt(23, 59, 59)
+        .ok_or_else(|| "Neplatný koniec rozsahu".to_string())?
+        .and_utc()
+        .timestamp();
+    Ok((start, end))
+}
+
+fn load_journal_documents(
+    conn: &rusqlite::Connection,
+    input: &NlpJournalSummaryInput,
+) -> Result<Vec<(String, String)>, String> {
+    if let Some(ids) = &input.document_ids {
+        let unique = ids
+            .iter()
+            .map(|id| id.trim().to_string())
+            .filter(|id| !id.is_empty())
+            .collect::<Vec<_>>();
+        if !unique.is_empty() {
+            let placeholders = std::iter::repeat("?")
+                .take(unique.len())
+                .collect::<Vec<_>>()
+                .join(", ");
+            let sql = format!(
+                "SELECT title, content_json FROM documents
+                 WHERE deleted_at IS NULL AND id IN ({placeholders})
+                 ORDER BY updated_at DESC"
+            );
+            let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+            let rows = stmt
+                .query_map(rusqlite::params_from_iter(unique.iter()), |row| {
+                    Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+                })
+                .map_err(|e| e.to_string())?;
+
+            let mut docs = Vec::new();
+            for row in rows {
+                docs.push(row.map_err(|e| e.to_string())?);
+            }
+            return Ok(docs);
+        }
+    }
+
+    let (start_ts, end_ts) = date_key_bounds(&input.from_date, &input.to_date)?;
+    let mut stmt = conn
+        .prepare(
+            "SELECT title, content_json FROM documents
+             WHERE deleted_at IS NULL
+               AND updated_at BETWEEN ?1 AND ?2
+               AND (
+                 (?3 IS NOT NULL AND folder_id = ?3)
+                 OR (
+                   substr(title, 1, 10) GLOB '????-??-??'
+                   AND substr(title, 1, 10) >= ?4
+                   AND substr(title, 1, 10) <= ?5
+                 )
+               )
+             ORDER BY updated_at DESC",
+        )
+        .map_err(|e| e.to_string())?;
+
+    let rows = stmt
+        .query_map(
+            params![
+                start_ts,
+                end_ts,
+                input.journal_folder_id,
+                input.from_date,
+                input.to_date
+            ],
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+        )
+        .map_err(|e| e.to_string())?;
+
+    let mut docs = Vec::new();
+    for row in rows {
+        docs.push(row.map_err(|e| e.to_string())?);
+    }
+    Ok(docs)
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NlpIndexResult {
@@ -73,7 +178,7 @@ pub struct NlpLibraryReport {
 }
 
 fn sidecar_status(sidecar: &NlpSidecar, enabled: bool, indexed_count: i64) -> NlpStatus {
-    let script_path = crate::nlp::resolve_script_path();
+    let script_path = sidecar.script_path().to_path_buf();
     let python_bin = std::env::var("SCRIBE_NLP_PYTHON").unwrap_or_else(|_| "python3".to_string());
     let sidecar_available = sidecar.script_exists();
 
@@ -238,37 +343,29 @@ pub fn nlp_index_all(state: State<'_, DbState>, sidecar: State<'_, NlpSidecar>) 
 pub fn nlp_journal_summary(
     state: State<'_, DbState>,
     sidecar: State<'_, NlpSidecar>,
-    from_date: String,
-    to_date: String,
+    input: NlpJournalSummaryInput,
 ) -> Result<NlpJournalSummary, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     if !is_nlp_enabled(&conn)? {
         return Err("NLP is disabled".to_string());
     }
 
-    let mut stmt = conn
-        .prepare(
-            "SELECT title, content_json FROM documents
-             WHERE deleted_at IS NULL AND title >= ?1 AND title <= ?2
-             ORDER BY updated_at DESC",
-        )
-        .map_err(|e| e.to_string())?;
-
-    let rows = stmt
-        .query_map(params![from_date, to_date], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-        })
-        .map_err(|e| e.to_string())?;
-
+    let docs = load_journal_documents(&conn, &input)?;
     let mut combined = String::new();
-    let mut count = 0i64;
-    for row in rows {
-        let (title, content_json) = row.map_err(|e| e.to_string())?;
-        count += 1;
+    let mut count = docs.len() as i64;
+    for (title, content_json) in docs {
         combined.push_str(&title);
         combined.push_str("\n");
         combined.push_str(&extract_search_text(&content_json));
         combined.push_str("\n\n");
+    }
+
+    if combined.trim().is_empty() {
+        return Ok(NlpJournalSummary {
+            summary: String::new(),
+            bullets: Vec::new(),
+            document_count: 0,
+        });
     }
 
     let result = sidecar.summarize(&combined, 5)?;
@@ -289,15 +386,15 @@ pub fn nlp_journal_summary(
         .unwrap_or_default();
 
     let payload = json!({
-        "fromDate": from_date,
-        "toDate": to_date,
+        "fromDate": input.from_date,
+        "toDate": input.to_date,
         "summary": summary,
         "bullets": bullets,
         "documentCount": count,
     });
     save_artifact(
         &conn,
-        &format!("journal:{from_date}:{to_date}"),
+        &format!("journal:{}:{}", input.from_date, input.to_date),
         "journal_summary",
         &payload.to_string(),
         now_ts(),

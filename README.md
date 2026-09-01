@@ -138,7 +138,7 @@ To add or change UI strings:
 2. Use `useTranslation()` in React components: `t('settings.language.title')`
 3. Outside React, import `i18n` from `@/i18n` and call `i18n.t(...)`
 
-The selected language is persisted in `localStorage` (`scribe-locale`) and can be changed in **Settings → Appearance → Language**.
+The selected language is persisted in IndexedDB (`scribe-locale`) and can be changed in **Settings → Appearance → Language**.
 
 Not every screen is translated yet — settings, navigation, storage dialogs, and shortcuts are covered first. New UI should use translation keys from the start.
 

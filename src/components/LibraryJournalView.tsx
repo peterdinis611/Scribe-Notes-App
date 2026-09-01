@@ -5,6 +5,7 @@ import { CalendarDays, ChevronLeft, ChevronRight, Flame, Moon, Sparkles, Sun } f
 import { nlpJournalSummary } from '@/lib/db/nlp-api'
 import {
   computeJournalStreak,
+  collectJournalDocumentIdsForRange,
   formatDateKey,
   getJournalFolderId,
   listJournalDailyDates,
@@ -55,7 +56,13 @@ export function LibraryJournalView({ onNavigate }: LibraryJournalViewProps) {
     const { from, to } = currentWeekRange()
     setSummaryLoading(true)
     try {
-      const result = await nlpJournalSummary(from, to)
+      const documentIds = collectJournalDocumentIdsForRange(documents, folderId, from, to)
+      const result = await nlpJournalSummary({
+        fromDate: from,
+        toDate: to,
+        journalFolderId: folderId,
+        documentIds,
+      })
       setWeeklySummary(result.summary)
       setWeeklyBullets(result.bullets)
     } catch (error) {

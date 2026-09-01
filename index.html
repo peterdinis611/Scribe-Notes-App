@@ -88,22 +88,6 @@
         var customTheme = null
         var uiSkin = 'classic'
 
-        try {
-          var skinRaw = localStorage.getItem('scribe-ui-skin')
-          if (skinRaw === 'classic' || skinRaw === 'press') uiSkin = skinRaw
-        } catch (e) {}
-
-        try {
-          var raw = localStorage.getItem('scribe-theme-v2')
-          if (raw) {
-            var parsed = JSON.parse(raw)
-            themeId = parsed.themeId || 'system'
-            customTheme = parsed.customTheme || null
-          } else {
-            themeId = localStorage.getItem('scribe-theme') || 'system'
-          }
-        } catch (e) {}
-
         var resolved = themeId
         if (themeId === 'system') {
           resolved = window.matchMedia('(prefers-color-scheme: dark)').matches

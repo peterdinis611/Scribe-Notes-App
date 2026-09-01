@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
   persistActiveDocumentId,
   readActiveDocumentId,
@@ -9,10 +9,6 @@ import {
 } from '@/store/persistence'
 
 describe('session persistence', () => {
-  beforeEach(() => {
-    localStorage.clear()
-  })
-
   it('persists and reads active document id', () => {
     expect(readActiveDocumentId()).toBeNull()
     persistActiveDocumentId('doc-123')

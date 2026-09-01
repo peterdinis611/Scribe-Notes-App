@@ -10,6 +10,7 @@ import {
   updateDocuments,
 } from '@/store/documentsSlice'
 import { updateFolders } from '@/store/foldersSlice'
+import { kvGet, kvSet } from '@/lib/storage/kv'
 import type { DocumentSummary, Folder } from '@/lib/db/api'
 
 const JOURNAL_MAP_KEY = 'scribe-journal-map'
@@ -18,7 +19,7 @@ type JournalMap = Record<string, string>
 
 function readJournalMap(): JournalMap {
   try {
-    const raw = localStorage.getItem(JOURNAL_MAP_KEY)
+    const raw = kvGet(JOURNAL_MAP_KEY)
     if (!raw) return {}
     const parsed = JSON.parse(raw) as unknown
     if (!parsed || typeof parsed !== 'object') return {}
@@ -29,7 +30,7 @@ function readJournalMap(): JournalMap {
 }
 
 function persistJournalMap(map: JournalMap) {
-  localStorage.setItem(JOURNAL_MAP_KEY, JSON.stringify(map))
+  kvSet(JOURNAL_MAP_KEY, JSON.stringify(map))
 }
 
 export function formatDateKey(date: Date): string {
@@ -238,4 +239,53 @@ export function listJournalDailyDates(documents: DocumentSummary[], folderId: st
 
 export function getJournalFolderId(folders: Folder[], folderName: string): string | null {
   return folders.find((folder) => folder.parentId == null && folder.name === folderName)?.id ?? null
+}
+
+function dateKeyToStartTs(dateKey: string): number {
+  return Math.floor(new Date(`${dateKey}T00:00:00`).getTime() / 1000)
+}
+
+function dateKeyToEndTs(dateKey: string): number {
+  return Math.floor(new Date(`${dateKey}T23:59:59`).getTime() / 1000)
+}
+
+/** Collect journal document ids for a date range using map, folder, title dates, and updated_at. */
+export function collectJournalDocumentIdsForRange(
+  documents: DocumentSummary[],
+  folderId: string | null,
+  fromDate: string,
+  toDate: string,
+): string[] {
+  const fromTs = dateKeyToStartTs(fromDate)
+  const toTs = dateKeyToEndTs(toDate)
+  const ids = new Set<string>()
+  const map = readJournalMap()
+
+  for (const [key, docId] of Object.entries(map)) {
+    if (!key.startsWith('daily:')) continue
+    const datePart = key.slice('daily:'.length).split(':')[0] ?? ''
+    if (datePart >= fromDate && datePart <= toDate) {
+      if (documents.some((doc) => doc.id === docId && doc.deletedAt == null)) {
+        ids.add(docId)
+      }
+    }
+  }
+
+  for (const doc of documents) {
+    if (doc.deletedAt != null) continue
+    const titleDate = doc.title.match(/^(\d{4}-\d{2}-\d{2})/)?.[1]
+    const inTitleRange = Boolean(titleDate && titleDate >= fromDate && titleDate <= toDate)
+    const inUpdatedRange = doc.updatedAt >= fromTs && doc.updatedAt <= toTs
+    const inJournalFolder = Boolean(folderId && doc.folderId === folderId)
+
+    if (inJournalFolder && (inUpdatedRange || inTitleRange)) {
+      ids.add(doc.id)
+      continue
+    }
+    if (inTitleRange && inUpdatedRange) {
+      ids.add(doc.id)
+    }
+  }
+
+  return [...ids]
 }

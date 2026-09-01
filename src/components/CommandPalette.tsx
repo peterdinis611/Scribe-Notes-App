@@ -41,7 +41,9 @@ import { getDisplayKeysForShortcut } from '@/lib/shortcuts'
 import type { AppLocale } from '@/i18n'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { createFolder, duplicateDocument, listCommentThreads, listLinkGraph, searchDocuments, setDocumentPinned } from '@/lib/db/api'
-import { nlpSemanticSearch, nlpStatus } from '@/lib/db/nlp-api'
+import { nlpSemanticSearch, nlpStatus, type NlpStatus } from '@/lib/db/nlp-api'
+import { describeNlpSearchFailure } from '@/lib/nlp/errors'
+import { toast } from '@/lib/toast'
 import type { SearchHit } from '@/lib/db/api'
 import { promptInput } from '@/lib/input-dialog'
 import { collectHeadingOutline, focusOutlineItem } from '@/lib/editor/document-outline'
@@ -119,6 +121,8 @@ export function CommandPalette() {
   const [hits, setHits] = useState<SearchHit[]>([])
   const [semanticHits, setSemanticHits] = useState<SearchHit[]>([])
   const [nlpEnabled, setNlpEnabled] = useState(false)
+  const [nlpStatusState, setNlpStatusState] = useState<NlpStatus | null>(null)
+  const [semanticError, setSemanticError] = useState<string | null>(null)
   const [selected, setSelected] = useState(0)
   const [searchScope, setSearchScope] = useState<SearchScope>('all')
   const [folderOnly, setFolderOnly] = useState(false)
@@ -624,8 +628,14 @@ export function CommandPalette() {
   useEffect(() => {
     if (!open) return
     void nlpStatus()
-      .then((status) => setNlpEnabled(status.enabled && status.sidecarOk))
-      .catch(() => setNlpEnabled(false))
+      .then((status) => {
+        setNlpStatusState(status)
+        setNlpEnabled(status.enabled && status.sidecarOk)
+      })
+      .catch(() => {
+        setNlpStatusState(null)
+        setNlpEnabled(false)
+      })
   }, [open, documents.length])
 
   const documentItems: PaletteItem[] = useMemo(() => {
@@ -811,11 +821,26 @@ export function CommandPalette() {
         if (runSemantic && nlpEnabled) {
           try {
             setSemanticHits(await nlpSemanticSearch(q, 8))
-          } catch {
+            setSemanticError(null)
+          } catch (error) {
             setSemanticHits([])
+            const message = describeNlpSearchFailure(nlpStatusState, error)
+            setSemanticError(message)
+            if (searchScope === 'semantic') {
+              toast.error(
+                message.startsWith('nlp.')
+                  ? t(message)
+                  : t('commandPalette.semanticSearchError', { detail: message }),
+              )
+            }
           }
         } else {
           setSemanticHits([])
+          if (runSemantic && nlpStatusState?.enabled && !nlpStatusState.sidecarOk) {
+            setSemanticError('nlp.sidecarUnavailable')
+          } else {
+            setSemanticError(null)
+          }
         }
 
         if (scope === 'semantic') {
@@ -861,7 +886,7 @@ export function CommandPalette() {
           setHits([])
         }
       }, 200),
-    [documents, nlpEnabled],
+    [documents, nlpEnabled, nlpStatusState, searchScope, t],
   )
 
   useEffect(() => {

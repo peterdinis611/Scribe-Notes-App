@@ -1,6 +1,7 @@
 import type { AppLocale } from '@/i18n'
 import type { PageSetup } from '@/lib/editor/page-setup'
 import { DEFAULT_PAGE_SETUP, normalizePageSetup } from '@/lib/editor/page-setup'
+import { kvGet, kvRemove, kvSet } from '@/lib/storage/kv'
 import type { ThemeSettings } from '@/lib/themes/types'
 import type { CustomDocumentTemplate } from '@/lib/templates/custom'
 import { parseStoredCustomTemplates } from '@/lib/templates/custom'
@@ -32,7 +33,7 @@ const DOCUMENT_TOC_LEFT_KEY = 'scribe-document-toc-left-open'
 
 export function readLocale(): AppLocale {
   try {
-    const raw = localStorage.getItem(LOCALE_KEY)
+    const raw = kvGet(LOCALE_KEY)
     if (raw === 'en' || raw === 'sk') return raw
   } catch {
     // ignore
@@ -41,12 +42,12 @@ export function readLocale(): AppLocale {
 }
 
 export function persistLocale(locale: AppLocale) {
-  localStorage.setItem(LOCALE_KEY, locale)
+  kvSet(LOCALE_KEY, locale)
 }
 
 export function readUiSkin(): import('@/lib/ui-skin').UiSkin {
   try {
-    const raw = localStorage.getItem(UI_SKIN_KEY)
+    const raw = kvGet(UI_SKIN_KEY)
     if (raw === 'classic' || raw === 'press') return raw
   } catch {
     // ignore
@@ -55,12 +56,12 @@ export function readUiSkin(): import('@/lib/ui-skin').UiSkin {
 }
 
 export function persistUiSkin(skin: import('@/lib/ui-skin').UiSkin) {
-  localStorage.setItem(UI_SKIN_KEY, skin)
+  kvSet(UI_SKIN_KEY, skin)
 }
 
 export function readActiveDocumentId(): string | null {
   try {
-    const raw = localStorage.getItem(ACTIVE_DOCUMENT_ID_KEY)
+    const raw = kvGet(ACTIVE_DOCUMENT_ID_KEY)
     return raw && raw.trim() ? raw : null
   } catch {
     return null
@@ -69,15 +70,15 @@ export function readActiveDocumentId(): string | null {
 
 export function persistActiveDocumentId(id: string | null) {
   if (id) {
-    localStorage.setItem(ACTIVE_DOCUMENT_ID_KEY, id)
+    kvSet(ACTIVE_DOCUMENT_ID_KEY, id)
     return
   }
-  localStorage.removeItem(ACTIVE_DOCUMENT_ID_KEY)
+  kvRemove(ACTIVE_DOCUMENT_ID_KEY)
 }
 
 export function readOnboardingDismissed(): boolean {
   try {
-    return localStorage.getItem(ONBOARDING_DISMISSED_KEY) === '1'
+    return kvGet(ONBOARDING_DISMISSED_KEY) === '1'
   } catch {
     return false
   }
@@ -85,15 +86,15 @@ export function readOnboardingDismissed(): boolean {
 
 export function persistOnboardingDismissed(dismissed: boolean) {
   if (dismissed) {
-    localStorage.setItem(ONBOARDING_DISMISSED_KEY, '1')
+    kvSet(ONBOARDING_DISMISSED_KEY, '1')
     return
   }
-  localStorage.removeItem(ONBOARDING_DISMISSED_KEY)
+  kvRemove(ONBOARDING_DISMISSED_KEY)
 }
 
 export function readWhatsNewVersion(): string | null {
   try {
-    const raw = localStorage.getItem(WHATS_NEW_VERSION_KEY)
+    const raw = kvGet(WHATS_NEW_VERSION_KEY)
     return raw && raw.trim() ? raw : null
   } catch {
     return null
@@ -101,7 +102,7 @@ export function readWhatsNewVersion(): string | null {
 }
 
 export function persistWhatsNewVersion(version: string) {
-  localStorage.setItem(WHATS_NEW_VERSION_KEY, version)
+  kvSet(WHATS_NEW_VERSION_KEY, version)
 }
 
 export function readDocumentTocLeftOpen(): boolean {
@@ -114,7 +115,7 @@ export function persistDocumentTocLeftOpen(open: boolean) {
 
 export function readScratchDocumentId(): string | null {
   try {
-    const raw = localStorage.getItem(SCRATCH_DOCUMENT_ID_KEY)
+    const raw = kvGet(SCRATCH_DOCUMENT_ID_KEY)
     return raw && raw.trim() ? raw : null
   } catch {
     return null
@@ -123,17 +124,17 @@ export function readScratchDocumentId(): string | null {
 
 export function persistScratchDocumentId(id: string | null) {
   if (id) {
-    localStorage.setItem(SCRATCH_DOCUMENT_ID_KEY, id)
+    kvSet(SCRATCH_DOCUMENT_ID_KEY, id)
     return
   }
-  localStorage.removeItem(SCRATCH_DOCUMENT_ID_KEY)
+  kvRemove(SCRATCH_DOCUMENT_ID_KEY)
 }
 
 export type ShortcutOverrides = Record<string, string>
 
 export function readShortcutOverrides(): ShortcutOverrides {
   try {
-    const raw = localStorage.getItem(SHORTCUT_OVERRIDES_KEY)
+    const raw = kvGet(SHORTCUT_OVERRIDES_KEY)
     if (!raw) return {}
     const parsed = JSON.parse(raw) as ShortcutOverrides
     return parsed && typeof parsed === 'object' ? parsed : {}
@@ -143,12 +144,12 @@ export function readShortcutOverrides(): ShortcutOverrides {
 }
 
 export function persistShortcutOverrides(overrides: ShortcutOverrides) {
-  localStorage.setItem(SHORTCUT_OVERRIDES_KEY, JSON.stringify(overrides))
+  kvSet(SHORTCUT_OVERRIDES_KEY, JSON.stringify(overrides))
 }
 
 export function readStorageAccessExplainerDismissed(): boolean {
   try {
-    return localStorage.getItem(STORAGE_ACCESS_EXPLAINER_KEY) === '1'
+    return kvGet(STORAGE_ACCESS_EXPLAINER_KEY) === '1'
   } catch {
     return false
   }
@@ -156,15 +157,15 @@ export function readStorageAccessExplainerDismissed(): boolean {
 
 export function persistStorageAccessExplainerDismissed(dismissed: boolean) {
   if (dismissed) {
-    localStorage.setItem(STORAGE_ACCESS_EXPLAINER_KEY, '1')
+    kvSet(STORAGE_ACCESS_EXPLAINER_KEY, '1')
     return
   }
-  localStorage.removeItem(STORAGE_ACCESS_EXPLAINER_KEY)
+  kvRemove(STORAGE_ACCESS_EXPLAINER_KEY)
 }
 
 export function readStorageFolderAccessGranted(): boolean {
   try {
-    return localStorage.getItem(STORAGE_FOLDER_ACCESS_GRANTED_KEY) === '1'
+    return kvGet(STORAGE_FOLDER_ACCESS_GRANTED_KEY) === '1'
   } catch {
     return false
   }
@@ -172,11 +173,11 @@ export function readStorageFolderAccessGranted(): boolean {
 
 export function persistStorageFolderAccessGranted(granted: boolean) {
   if (granted) {
-    localStorage.setItem(STORAGE_FOLDER_ACCESS_GRANTED_KEY, '1')
+    kvSet(STORAGE_FOLDER_ACCESS_GRANTED_KEY, '1')
     persistStorageAccessExplainerDismissed(true)
     return
   }
-  localStorage.removeItem(STORAGE_FOLDER_ACCESS_GRANTED_KEY)
+  kvRemove(STORAGE_FOLDER_ACCESS_GRANTED_KEY)
 }
 
 export function hasStorageFolderAccess(): boolean {
@@ -185,7 +186,7 @@ export function hasStorageFolderAccess(): boolean {
 
 export function readThemeSettings(): ThemeSettings {
   try {
-    const raw = localStorage.getItem(THEME_KEY_V2)
+    const raw = kvGet(THEME_KEY_V2)
     if (raw) {
       const parsed = JSON.parse(raw) as ThemeSettings
       if (parsed.themeId) {
@@ -199,7 +200,7 @@ export function readThemeSettings(): ThemeSettings {
     // ignore
   }
 
-  const legacy = localStorage.getItem(THEME_KEY_LEGACY)
+  const legacy = kvGet(THEME_KEY_LEGACY)
   if (legacy === 'light' || legacy === 'dark' || legacy === 'system') {
     return { themeId: legacy }
   }
@@ -208,21 +209,21 @@ export function readThemeSettings(): ThemeSettings {
 }
 
 export function persistThemeSettings(settings: ThemeSettings) {
-  localStorage.setItem(THEME_KEY_V2, JSON.stringify(settings))
-  localStorage.setItem(THEME_KEY_LEGACY, settings.themeId)
+  kvSet(THEME_KEY_V2, JSON.stringify(settings))
+  kvSet(THEME_KEY_LEGACY, settings.themeId)
 }
 
 export function readEditorViewMode(): 'rich' | 'markdown' {
-  return localStorage.getItem(EDITOR_VIEW_MODE_KEY) === 'markdown' ? 'markdown' : 'rich'
+  return kvGet(EDITOR_VIEW_MODE_KEY) === 'markdown' ? 'markdown' : 'rich'
 }
 
 export function persistEditorViewMode(mode: 'rich' | 'markdown') {
-  localStorage.setItem(EDITOR_VIEW_MODE_KEY, mode)
+  kvSet(EDITOR_VIEW_MODE_KEY, mode)
 }
 
 export function readPageSetup(): PageSetup {
   try {
-    const raw = localStorage.getItem(PAGE_SETUP_KEY)
+    const raw = kvGet(PAGE_SETUP_KEY)
     if (raw) return normalizePageSetup(JSON.parse(raw) as PageSetup)
   } catch {
     // ignore
@@ -231,12 +232,12 @@ export function readPageSetup(): PageSetup {
 }
 
 export function persistPageSetup(pageSetup: PageSetup) {
-  localStorage.setItem(PAGE_SETUP_KEY, JSON.stringify(pageSetup))
+  kvSet(PAGE_SETUP_KEY, JSON.stringify(pageSetup))
 }
 
 export function readSpellCheckEnabled(): boolean {
   try {
-    const raw = localStorage.getItem(SPELL_CHECK_KEY)
+    const raw = kvGet(SPELL_CHECK_KEY)
     if (raw === 'false') return false
     if (raw === 'true') return true
   } catch {
@@ -246,38 +247,38 @@ export function readSpellCheckEnabled(): boolean {
 }
 
 export function persistSpellCheckEnabled(enabled: boolean) {
-  localStorage.setItem(SPELL_CHECK_KEY, String(enabled))
+  kvSet(SPELL_CHECK_KEY, String(enabled))
 }
 
 export function readPrintLayoutEnabled(): boolean {
-  return localStorage.getItem(PRINT_LAYOUT_KEY) === 'true'
+  return kvGet(PRINT_LAYOUT_KEY) === 'true'
 }
 
 export function persistPrintLayoutEnabled(enabled: boolean) {
-  localStorage.setItem(PRINT_LAYOUT_KEY, String(enabled))
+  kvSet(PRINT_LAYOUT_KEY, String(enabled))
 }
 
 export function readPrintZoom(): number {
-  const raw = localStorage.getItem(PRINT_ZOOM_KEY)
+  const raw = kvGet(PRINT_ZOOM_KEY)
   const value = raw ? Number(raw) : 0.85
   return Number.isFinite(value) ? Math.min(1, Math.max(0.5, value)) : 0.85
 }
 
 export function persistPrintZoom(zoom: number) {
-  localStorage.setItem(PRINT_ZOOM_KEY, String(zoom))
+  kvSet(PRINT_ZOOM_KEY, String(zoom))
 }
 
 export function readPrintColumns(): 1 | 2 {
-  return localStorage.getItem(PRINT_COLUMNS_KEY) === '2' ? 2 : 1
+  return kvGet(PRINT_COLUMNS_KEY) === '2' ? 2 : 1
 }
 
 export function persistPrintColumns(columns: 1 | 2) {
-  localStorage.setItem(PRINT_COLUMNS_KEY, String(columns))
+  kvSet(PRINT_COLUMNS_KEY, String(columns))
 }
 
 export function readManualTitleIds(): string[] {
   try {
-    const raw = localStorage.getItem(MANUAL_TITLES_KEY)
+    const raw = kvGet(MANUAL_TITLES_KEY)
     if (raw) return JSON.parse(raw) as string[]
   } catch {
     // ignore
@@ -286,12 +287,12 @@ export function readManualTitleIds(): string[] {
 }
 
 export function persistManualTitleIds(ids: string[]) {
-  localStorage.setItem(MANUAL_TITLES_KEY, JSON.stringify(ids))
+  kvSet(MANUAL_TITLES_KEY, JSON.stringify(ids))
 }
 
 export function readCommentAuthor(): string {
   try {
-    const raw = localStorage.getItem(COMMENT_AUTHOR_KEY)
+    const raw = kvGet(COMMENT_AUTHOR_KEY)
     if (raw && raw.trim()) return raw
   } catch {
     // ignore
@@ -300,12 +301,12 @@ export function readCommentAuthor(): string {
 }
 
 export function persistCommentAuthor(name: string) {
-  localStorage.setItem(COMMENT_AUTHOR_KEY, name)
+  kvSet(COMMENT_AUTHOR_KEY, name)
 }
 
 export function readBoolStorage(key: string, fallback: boolean): boolean {
   try {
-    const raw = localStorage.getItem(key)
+    const raw = kvGet(key)
     if (raw === 'true') return true
     if (raw === 'false') return false
   } catch {
@@ -315,12 +316,12 @@ export function readBoolStorage(key: string, fallback: boolean): boolean {
 }
 
 export function persistBoolStorage(key: string, value: boolean) {
-  localStorage.setItem(key, String(value))
+  kvSet(key, String(value))
 }
 
 export function readCustomTemplates(): CustomDocumentTemplate[] {
   try {
-    const raw = localStorage.getItem(CUSTOM_TEMPLATES_KEY)
+    const raw = kvGet(CUSTOM_TEMPLATES_KEY)
     if (!raw) return []
     return parseStoredCustomTemplates(JSON.parse(raw))
   } catch {
@@ -329,12 +330,12 @@ export function readCustomTemplates(): CustomDocumentTemplate[] {
 }
 
 export function persistCustomTemplates(templates: CustomDocumentTemplate[]) {
-  localStorage.setItem(CUSTOM_TEMPLATES_KEY, JSON.stringify(templates))
+  kvSet(CUSTOM_TEMPLATES_KEY, JSON.stringify(templates))
 }
 
 export function readCustomTemplateCategories(): CustomTemplateCategory[] {
   try {
-    const raw = localStorage.getItem(CUSTOM_TEMPLATE_CATEGORIES_KEY)
+    const raw = kvGet(CUSTOM_TEMPLATE_CATEGORIES_KEY)
     if (!raw) return []
     return parseStoredCustomCategories(JSON.parse(raw))
   } catch {
@@ -343,7 +344,7 @@ export function readCustomTemplateCategories(): CustomTemplateCategory[] {
 }
 
 export function persistCustomTemplateCategories(categories: CustomTemplateCategory[]) {
-  localStorage.setItem(CUSTOM_TEMPLATE_CATEGORIES_KEY, JSON.stringify(categories))
+  kvSet(CUSTOM_TEMPLATE_CATEGORIES_KEY, JSON.stringify(categories))
 }
 
 const RECENT_DOCUMENT_IDS_KEY = 'scribe-recent-document-ids'
@@ -353,7 +354,7 @@ export const RECENT_DOCUMENT_IDS_MAX = 20
 
 function readIdList(key: string): string[] {
   try {
-    const raw = localStorage.getItem(key)
+    const raw = kvGet(key)
     if (!raw) return []
     const parsed = JSON.parse(raw) as unknown
     if (!Array.isArray(parsed)) return []
@@ -364,7 +365,7 @@ function readIdList(key: string): string[] {
 }
 
 function persistIdList(key: string, ids: string[], max = RECENT_DOCUMENT_IDS_MAX) {
-  localStorage.setItem(key, JSON.stringify(ids.slice(0, max)))
+  kvSet(key, JSON.stringify(ids.slice(0, max)))
 }
 
 export function readRecentDocumentIds(): string[] {
