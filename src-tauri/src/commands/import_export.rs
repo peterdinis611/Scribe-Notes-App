@@ -60,6 +60,52 @@ pub fn pick_and_import_file(
     Ok(Some(doc))
 }
 
+#[derive(Debug, Serialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum PagesImportPrepared {
+    Docx { path: String },
+    Html { html: String },
+    Text { text: String },
+}
+
+#[tauri::command]
+pub fn prepare_pages_import(path: String) -> Result<PagesImportPrepared, String> {
+    let path = PathBuf::from(path);
+
+    if export::pages_app_installed() {
+        if let Ok(docx_path) = export::export_pages_to_docx(&path) {
+            return Ok(PagesImportPrepared::Docx {
+                path: docx_path.to_string_lossy().to_string(),
+            });
+        }
+    }
+
+    if let Ok(html) = export::extract_pages_html(&path) {
+        if !html.trim().is_empty() {
+            return Ok(PagesImportPrepared::Html { html });
+        }
+    }
+
+    let text = export::extract_pages_text(&path)?;
+    Ok(PagesImportPrepared::Text { text })
+}
+
+#[tauri::command]
+pub fn cleanup_temp_import_file(path: String) -> Result<(), String> {
+    let path = PathBuf::from(path);
+    let temp_dir = std::env::temp_dir();
+
+    if !path.starts_with(&temp_dir) {
+        return Err("Dočasný import súbor mimo temp priečinka.".to_string());
+    }
+
+    if path.is_file() {
+        std::fs::remove_file(path).map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
+}
+
 #[tauri::command]
 pub fn import_file(
     app: AppHandle,

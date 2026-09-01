@@ -190,6 +190,8 @@ pub fn run() {
             commands::import_export::read_binary_file,
             commands::import_export::pick_and_import_file,
             commands::import_export::import_file,
+            commands::import_export::prepare_pages_import,
+            commands::import_export::cleanup_temp_import_file,
             commands::import_export::export_document,
             commands::import_export::export_pdf_bytes,
             commands::import_export::scan_scribe_files,

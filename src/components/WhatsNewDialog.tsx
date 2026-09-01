@@ -1,4 +1,4 @@
-import { LayoutGrid, MessageSquare, Sparkles } from 'lucide-react'
+import { FileSpreadsheet, FileText, Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
@@ -13,9 +13,9 @@ import { APP_VERSION } from '@/lib/app-version'
 import { persistWhatsNewVersion } from '@/store/persistence'
 
 const HIGHLIGHTS = [
-  { id: 'welcome', icon: Sparkles },
-  { id: 'comments', icon: MessageSquare },
-  { id: 'scrollNav', icon: LayoutGrid },
+  { id: 'pagesImport', icon: FileSpreadsheet },
+  { id: 'wordImport', icon: FileText },
+  { id: 'importPipeline', icon: Sparkles },
 ] as const
 
 type WhatsNewDialogProps = {

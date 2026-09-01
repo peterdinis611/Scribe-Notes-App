@@ -214,6 +214,18 @@
     "scrollNav": {
       "title": "Orientácia pri scrollovaní",
       "description": "„Si tu“ ukazuje aktuálnu sekciu, štruktúra sleduje scroll a wiki odkazy majú náhľad a tlačidlo Späť."
+    },
+    "pagesImport": {
+      "title": "Import z Apple Pages",
+      "description": "Načítajte .pages dokumenty s formátovaním — cez Apple Pages, HTML alebo textový fallback."
+    },
+    "wordImport": {
+      "title": "Import z Wordu",
+      "description": "Podpora .docx s nadpismi, tabuľkami a obrázkami uloženými do priečinka dokumentu."
+    },
+    "importPipeline": {
+      "title": "Rýchlejší import",
+      "description": "Optimalizované čítanie súborov a konverzia na rich text bez zbytočného zaťaženia editora."
     }
   },
   "wikiNav": {

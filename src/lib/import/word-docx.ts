@@ -7,7 +7,13 @@ import {
   isZipArchive,
   readScopedBinaryFile,
 } from '@/lib/fs/read-scoped-binary'
+import {
+  EMPTY_DOC_JSON,
+  normalizeDocJson,
+  titleFromHtml,
+} from '@/lib/import/html-content'
 import { getImportExtensions } from '@/lib/import/import-extensions'
+import { importTitleFromPath } from '@/lib/import/import-path'
 import {
   createImportImageToken,
   materializeImportImages,
@@ -15,43 +21,12 @@ import {
 } from '@/lib/import/word-images'
 
 const DOCX_EXTENSION = /\.docx$/i
-const EMPTY_DOC_JSON = JSON.stringify({ type: 'doc', content: [{ type: 'paragraph' }] })
 
 export function isWordDocxPath(path: string) {
   return DOCX_EXTENSION.test(path)
 }
 
-export function importTitleFromPath(path: string, fallback: string) {
-  const fileName = path.split(/[/\\]/).pop() ?? fallback
-  const stem = fileName.replace(/\.[^.]+$/, '').trim()
-  return stem || fallback
-}
-
-function stripHtmlTags(value: string) {
-  return value.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
-}
-
-export function titleFromWordHtml(html: string, fallback: string) {
-  const heading = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1]
-  if (heading) {
-    const title = stripHtmlTags(heading)
-    if (title) return title
-  }
-  return fallback
-}
-
-function normalizeDocJson(json: unknown): string {
-  if (!json || typeof json !== 'object') {
-    return EMPTY_DOC_JSON
-  }
-
-  const doc = json as { type?: string; content?: unknown[] }
-  if (doc.type !== 'doc' || !Array.isArray(doc.content) || doc.content.length === 0) {
-    return EMPTY_DOC_JSON
-  }
-
-  return JSON.stringify(doc)
-}
+export { importTitleFromPath, titleFromHtml as titleFromWordHtml }
 
 function yieldToMain() {
   return new Promise<void>((resolve) => {
@@ -141,7 +116,7 @@ export async function importWordDocumentFromPath(path: string): Promise<Document
 
   try {
     const { contentJson, html, pendingImages } = await convertDocxBytesToContentJson(bytes)
-    const title = titleFromWordHtml(html, fallbackTitle)
+    const title = titleFromHtml(html, fallbackTitle)
 
     const created = await createDocument({
       title,

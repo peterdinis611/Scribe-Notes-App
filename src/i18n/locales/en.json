@@ -214,6 +214,18 @@
     "scrollNav": {
       "title": "Scroll orientation",
       "description": "“You are here” shows the current section, outline follows scroll, and wiki links have preview + Back."
+    },
+    "pagesImport": {
+      "title": "Import from Apple Pages",
+      "description": "Open .pages documents with formatting — via Apple Pages, HTML, or a plain-text fallback."
+    },
+    "wordImport": {
+      "title": "Import from Word",
+      "description": ".docx support with headings, tables, and images saved into the document folder."
+    },
+    "importPipeline": {
+      "title": "Faster imports",
+      "description": "Optimized file reading and rich-text conversion without overloading the editor."
     }
   },
   "wikiNav": {

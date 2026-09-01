@@ -6,6 +6,10 @@ import {
   titleFromMarkdown,
 } from '@/lib/editor/markdown-content'
 import {
+  importPagesDocumentFromPath,
+  isPagesPath,
+} from '@/lib/import/pages'
+import {
   importWordDocumentFromPath,
   isWordDocxPath,
 } from '@/lib/import/word-docx'
@@ -62,6 +66,10 @@ export async function pickAndImportDocument(): Promise<Document | null> {
 
     if (isWordDocxPath(selected)) {
       return await importWordDocumentFromPath(selected)
+    }
+
+    if (isPagesPath(selected)) {
+      return await importPagesDocumentFromPath(selected)
     }
 
     if (isLegacyWordPath(selected)) {

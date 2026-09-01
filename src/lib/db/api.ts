@@ -199,10 +199,20 @@ export const pickAndImportFile = async () => {
 }
 
 export const importFile = async (path: string) => {
-  const { isWordDocxPath, importWordDocumentFromPath } = await import('@/lib/import/word-docx')
+  const [{ isWordDocxPath, importWordDocumentFromPath }, { isPagesPath, importPagesDocumentFromPath }] =
+    await Promise.all([
+      import('@/lib/import/word-docx'),
+      import('@/lib/import/pages'),
+    ])
+
   if (isWordDocxPath(path)) {
     return importWordDocumentFromPath(path)
   }
+
+  if (isPagesPath(path)) {
+    return importPagesDocumentFromPath(path)
+  }
+
   return cacheDocument(await invoke<Document>('import_file', { path }))
 }
 

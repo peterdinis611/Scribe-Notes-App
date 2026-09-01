@@ -338,6 +338,73 @@ end tell"#
     Ok(())
 }
 
+pub fn extract_pages_html(path: &Path) -> Result<String, String> {
+    if let Ok(html) = textutil_to_stdout(path, "html") {
+        let trimmed = html.trim();
+        if !trimmed.is_empty() {
+            return Ok(trimmed.to_string());
+        }
+    }
+
+    Err("Nepodarilo sa získať HTML z .pages súboru.".to_string())
+}
+
+/// Export a Pages document to a temporary DOCX via Apple Pages (richest import path).
+pub fn export_pages_to_docx(path: &Path) -> Result<PathBuf, String> {
+    if !pages_app_installed() {
+        return Err("Apple Pages nie je nainštalovaný.".to_string());
+    }
+
+    let temp_docx = std::env::temp_dir().join(format!(
+        "scribe-pages-import-{}.docx",
+        uuid::Uuid::new_v4()
+    ));
+    let path_str = path.to_string_lossy();
+    let out_str = temp_docx.to_string_lossy();
+    let escaped_in = escape_applescript_string(&path_str);
+    let escaped_out = escape_applescript_string(&out_str);
+
+    let script = format!(
+        r#"set inPath to POSIX file "{escaped_in}"
+set outPath to POSIX file "{escaped_out}"
+tell application "Pages"
+    set openedDoc to open inPath
+    try
+        export openedDoc to outPath as Microsoft Word
+        close openedDoc saving no
+    on error errMsg number errNum
+        try
+            close openedDoc saving no
+        end try
+        error errMsg number errNum
+    end try
+end tell"#
+    );
+
+    let temp_script =
+        std::env::temp_dir().join(format!("scribe-pages-export-{}.scpt", uuid::Uuid::new_v4()));
+    std::fs::write(&temp_script, script).map_err(|e| e.to_string())?;
+
+    let output = Command::new("/usr/bin/osascript")
+        .arg(&temp_script)
+        .output()
+        .map_err(|e| format!("osascript zlyhal: {e}"))?;
+
+    let _ = std::fs::remove_file(&temp_script);
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let _ = std::fs::remove_file(&temp_docx);
+        return Err(format!("Export Pages → DOCX zlyhal: {stderr}"));
+    }
+
+    if !temp_docx.is_file() {
+        return Err("Pages neexportoval dočasný .docx súbor.".to_string());
+    }
+
+    Ok(temp_docx)
+}
+
 pub fn extract_pages_text(path: &Path) -> Result<String, String> {
     // 1) macOS textutil (works for many .pages versions, including bundles)
     if let Ok(text) = textutil_to_stdout(path, "txt") {
@@ -610,5 +677,18 @@ mod tests {
         let mut archive = zip::ZipArchive::new(file).unwrap();
         assert!(archive.by_name("index.html").is_ok());
         let _ = std::fs::remove_file(&temp);
+    }
+
+    #[test]
+    fn extract_text_from_pages_xml_pulls_text_nodes() {
+        let xml = r#"<text>Prvý</text><text>Druhý</text>"#;
+        let text = extract_text_from_pages_xml(xml);
+        assert!(text.contains("Prvý"));
+        assert!(text.contains("Druhý"));
+    }
+
+    #[test]
+    fn extract_pages_html_requires_existing_file() {
+        assert!(extract_pages_html(Path::new("/definitely/missing.pages")).is_err());
     }
 }
