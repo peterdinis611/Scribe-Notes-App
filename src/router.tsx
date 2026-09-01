@@ -19,6 +19,7 @@ import { ShortcutsPage } from '@/pages/settings/ShortcutsPage'
 import { AboutPage } from '@/pages/settings/AboutPage'
 import { DiagnosticsPage } from '@/pages/settings/DiagnosticsPage'
 import { McpPage } from '@/pages/settings/McpPage'
+import { NlpPage } from '@/pages/settings/NlpPage'
 
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
@@ -83,7 +84,7 @@ const settingsAiRedirectRoute = createRoute({
   getParentRoute: () => settingsLayoutRoute,
   path: 'ai',
   beforeLoad: () => {
-    throw redirect({ to: '/settings/appearance' })
+    throw redirect({ to: '/settings/nlp' })
   },
 })
 
@@ -109,6 +110,12 @@ const settingsMcpRoute = createRoute({
   getParentRoute: () => settingsLayoutRoute,
   path: 'mcp',
   component: McpPage,
+})
+
+const settingsNlpRoute = createRoute({
+  getParentRoute: () => settingsLayoutRoute,
+  path: 'nlp',
+  component: NlpPage,
 })
 
 const settingsAboutRoute = createRoute({
@@ -140,6 +147,7 @@ const routeTree = rootRoute.addChildren([
       settingsShortcutsRoute,
       settingsDiagnosticsRoute,
       settingsMcpRoute,
+      settingsNlpRoute,
       settingsDocsRedirectRoute,
       settingsAboutRoute,
     ]),

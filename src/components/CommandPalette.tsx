@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import {
@@ -9,10 +9,14 @@ import {
   Focus,
   BookOpen,
   FolderInput,
+  FolderOpen,
   FolderPlus,
   GitBranch,
+  Heading,
   Languages,
   LayoutTemplate,
+  Link2,
+  MessageSquare,
   Moon,
   Plus,
   Search,
@@ -22,15 +26,28 @@ import {
   StickyNote,
   Pin,
   RotateCcw,
+  Tag,
 } from 'lucide-react'
 import { openQuickNote } from '@/lib/quick-note'
-import { openTodayNote, openThisWeekNote } from '@/lib/journal-notes'
+import {
+  openEveningNote,
+  openMorningNote,
+  openThisWeekNote,
+  openTodayNote,
+  openTomorrowNote,
+  openYesterdayNote,
+} from '@/lib/journal-notes'
 import { getDisplayKeysForShortcut } from '@/lib/shortcuts'
 import type { AppLocale } from '@/i18n'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { createFolder, duplicateDocument, searchDocuments, setDocumentPinned } from '@/lib/db/api'
+import { createFolder, duplicateDocument, listCommentThreads, listLinkGraph, searchDocuments, setDocumentPinned } from '@/lib/db/api'
+import { nlpSemanticSearch, nlpStatus } from '@/lib/db/nlp-api'
 import type { SearchHit } from '@/lib/db/api'
 import { promptInput } from '@/lib/input-dialog'
+import { collectHeadingOutline, focusOutlineItem } from '@/lib/editor/document-outline'
+import { focusComment } from '@/lib/editor/comments'
+import { collectHeadingsFromJson } from '@/lib/search/palette-headings'
+import { editorRefs } from '@/store/editorRefs'
 import { getCachedParsedContent, peekCachedDocument } from '@/lib/cache/document-cache'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
@@ -44,6 +61,8 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
   setActiveDocument,
   setActiveDocumentId,
+  setActiveTagFilter,
+  setCommentsPanelOpen,
   setPendingEditorSearch,
   setSecondaryDocumentId,
   toggleFocusMode,
@@ -62,6 +81,8 @@ import {
 } from '@/store/settings-helpers'
 import { setSaveCustomTemplateDialog } from '@/store/templatesSlice'
 
+type SearchScope = 'all' | 'titles' | 'headings' | 'tags' | 'content' | 'wiki' | 'comments' | 'semantic'
+
 type PaletteItem =
   | { type: 'action'; id: string; label: string; hint?: string; icon: React.ReactNode; run: () => void }
   | {
@@ -72,13 +93,39 @@ type PaletteItem =
       icon: React.ReactNode
       run: () => void
     }
+  | {
+      type: 'heading'
+      id: string
+      label: string
+      hint?: string
+      icon: React.ReactNode
+      run: () => void
+    }
+  | {
+      type: 'tag'
+      id: string
+      label: string
+      hint?: string
+      icon: React.ReactNode
+      run: () => void
+    }
+
+const SEARCH_SCOPES: SearchScope[] = ['all', 'titles', 'headings', 'tags', 'content', 'semantic', 'wiki', 'comments']
 
 export function CommandPalette() {
   const open = useAppSelector((state) => state.folders.commandPaletteOpen)
   const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [hits, setHits] = useState<SearchHit[]>([])
+  const [semanticHits, setSemanticHits] = useState<SearchHit[]>([])
+  const [nlpEnabled, setNlpEnabled] = useState(false)
   const [selected, setSelected] = useState(0)
+  const [searchScope, setSearchScope] = useState<SearchScope>('all')
+  const [folderOnly, setFolderOnly] = useState(false)
+  const [linkedTargetIds, setLinkedTargetIds] = useState<Set<string>>(new Set())
+  const [commentHits, setCommentHits] = useState<
+    Array<{ id: string; body: string; quote: string; documentId: string; documentTitle: string }>
+  >([])
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
@@ -101,6 +148,35 @@ export function CommandPalette() {
     () => documents.find((doc) => doc.id === activeDocumentId) ?? null,
     [activeDocumentId, documents],
   )
+
+  const journalArgs = useMemo(
+    () => ({
+      documents,
+      folders,
+      dispatch,
+      navigate,
+      t: (key: string, options?: Record<string, unknown>) => t(key, options),
+    }),
+    [dispatch, documents, folders, navigate, t],
+  )
+
+  useEffect(() => {
+    if (!open) return
+    let cancelled = false
+    void listLinkGraph()
+      .then((graph) => {
+        if (cancelled) return
+        const ids = new Set<string>()
+        for (const edge of graph.edges) ids.add(edge.targetId)
+        setLinkedTargetIds(ids)
+      })
+      .catch(() => {
+        if (!cancelled) setLinkedTargetIds(new Set())
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [open, documents.length])
 
   const actions: PaletteItem[] = useMemo(
     () => [
@@ -174,13 +250,43 @@ export function CommandPalette() {
         hint: getDisplayKeysForShortcut('todayNote', shortcutOverrides).join(''),
         icon: <CalendarDays className="h-4 w-4" />,
         run: () => {
-          void openTodayNote({
-            documents,
-            folders,
-            dispatch,
-            navigate,
-            t: (key, options) => t(key, options),
-          }).catch((error) => toast.error(t('journal.openError'), String(error)))
+          void openTodayNote(journalArgs).catch((error) => toast.error(t('journal.openError'), String(error)))
+        },
+      },
+      {
+        type: 'action',
+        id: 'yesterday-note',
+        label: t('commandPalette.yesterdayNote'),
+        icon: <CalendarDays className="h-4 w-4" />,
+        run: () => {
+          void openYesterdayNote(journalArgs).catch((error) => toast.error(t('journal.openError'), String(error)))
+        },
+      },
+      {
+        type: 'action',
+        id: 'tomorrow-note',
+        label: t('commandPalette.tomorrowNote'),
+        icon: <CalendarDays className="h-4 w-4" />,
+        run: () => {
+          void openTomorrowNote(journalArgs).catch((error) => toast.error(t('journal.openError'), String(error)))
+        },
+      },
+      {
+        type: 'action',
+        id: 'morning-note',
+        label: t('commandPalette.morningNote'),
+        icon: <CalendarDays className="h-4 w-4" />,
+        run: () => {
+          void openMorningNote(journalArgs).catch((error) => toast.error(t('journal.openError'), String(error)))
+        },
+      },
+      {
+        type: 'action',
+        id: 'evening-note',
+        label: t('commandPalette.eveningNote'),
+        icon: <CalendarDays className="h-4 w-4" />,
+        run: () => {
+          void openEveningNote(journalArgs).catch((error) => toast.error(t('journal.openError'), String(error)))
         },
       },
       {
@@ -189,13 +295,7 @@ export function CommandPalette() {
         label: t('commandPalette.weekNote'),
         icon: <CalendarDays className="h-4 w-4" />,
         run: () => {
-          void openThisWeekNote({
-            documents,
-            folders,
-            dispatch,
-            navigate,
-            t: (key, options) => t(key, options),
-          }).catch((error) => toast.error(t('journal.openError'), String(error)))
+          void openThisWeekNote(journalArgs).catch((error) => toast.error(t('journal.openError'), String(error)))
         },
       },
       {
@@ -403,6 +503,7 @@ export function CommandPalette() {
       documents,
       folders,
       focusMode,
+      journalArgs,
       navigate,
       openDemoGuide,
       readingMode,
@@ -417,56 +518,219 @@ export function CommandPalette() {
     ],
   )
 
-  const documentItems: PaletteItem[] = useMemo(() => {
-    const byId = new Map(
-      documents.filter((doc) => doc.deletedAt == null).map((doc) => [doc.id, doc]),
-    )
+  const folderFilterId = folderOnly ? activeDocument?.folderId ?? '__none__' : null
 
-    if (hits.length > 0) {
-      return hits.map((hit) => ({
-        type: 'document' as const,
-        id: hit.documentId,
-        label: hit.title,
-        snippetHtml: hit.snippet,
-        icon: <FileText className="h-4 w-4" />,
+  const matchesFolder = useCallback(
+    (doc: { folderId: string | null }) => {
+      if (!folderFilterId) return true
+      if (folderFilterId === '__none__') return false
+      return doc.folderId === folderFilterId
+    },
+    [folderFilterId],
+  )
+
+  const headingItems: PaletteItem[] = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q || (searchScope !== 'all' && searchScope !== 'headings')) return []
+    if (!activeDocumentRecord && !activeDocument) return []
+
+    const editor = editorRefs.editor
+    const headings =
+      editor && !editor.isDestroyed
+        ? collectHeadingOutline(editor).map((item) => item.preview || item.label)
+        : collectHeadingsFromJson(activeDocumentRecord?.contentJson ?? '')
+
+    return headings
+      .filter((label) => label.toLowerCase().includes(q))
+      .slice(0, 8)
+      .map((label) => ({
+        type: 'heading' as const,
+        id: `heading:${label}`,
+        label,
+        hint: activeDocument?.title,
+        icon: <Heading className="h-4 w-4" />,
         run: () => {
-          const q = query.trim()
-          if (q) dispatch(setPendingEditorSearch(q))
-          dispatch(setActiveDocumentId(hit.documentId))
-          navigate(ROUTES.document(hit.documentId))
+          const currentEditor = editorRefs.editor
+          if (!currentEditor || currentEditor.isDestroyed) {
+            dispatch(setPendingEditorSearch(label))
+            return
+          }
+          const item = collectHeadingOutline(currentEditor).find(
+            (entry) => (entry.preview || entry.label) === label,
+          )
+          if (item) {
+            focusOutlineItem(currentEditor, item)
+          } else {
+            dispatch(setPendingEditorSearch(label))
+          }
         },
       }))
+  }, [activeDocument, activeDocumentRecord, dispatch, query, searchScope])
+
+  const tagItems: PaletteItem[] = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q || (searchScope !== 'all' && searchScope !== 'tags')) return []
+    const tags = new Set<string>()
+    for (const doc of documents) {
+      if (doc.deletedAt != null) continue
+      if (!matchesFolder(doc)) continue
+      for (const tag of doc.tags) tags.add(tag)
+    }
+    return [...tags]
+      .filter((tag) => tag.toLowerCase().includes(q))
+      .sort()
+      .slice(0, 8)
+      .map((tag) => ({
+        type: 'tag' as const,
+        id: `tag:${tag}`,
+        label: tag,
+        hint: t('commandPalette.filterTags'),
+        icon: <Tag className="h-4 w-4" />,
+        run: () => {
+          dispatch(setActiveTagFilter(tag))
+          dispatch(setCommandPaletteOpen(false))
+        },
+      }))
+  }, [dispatch, documents, matchesFolder, query, searchScope, t])
+
+  const commentItems: PaletteItem[] = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q || (searchScope !== 'all' && searchScope !== 'comments')) return []
+    return commentHits
+      .filter((hit) => hit.body.toLowerCase().includes(q) || hit.quote.toLowerCase().includes(q))
+      .slice(0, 8)
+      .map((hit) => ({
+        type: 'action' as const,
+        id: `comment:${hit.id}`,
+        label: hit.body.slice(0, 80) || hit.quote.slice(0, 80),
+        hint: hit.documentTitle,
+        icon: <MessageSquare className="h-4 w-4" />,
+        run: () => {
+          dispatch(setActiveDocumentId(hit.documentId))
+          const cached = peekCachedDocument(hit.documentId)
+          if (cached) dispatch(setActiveDocument(cached))
+          navigate(ROUTES.document(hit.documentId))
+          window.setTimeout(() => {
+            const editor = editorRefs.editor
+            if (editor && !editor.isDestroyed) {
+              focusComment(editor, hit.id)
+              dispatch(setCommentsPanelOpen(true))
+            }
+          }, 120)
+        },
+      }))
+  }, [commentHits, dispatch, navigate, query, searchScope])
+
+  useEffect(() => {
+    if (!open) return
+    void nlpStatus()
+      .then((status) => setNlpEnabled(status.enabled && status.sidecarOk))
+      .catch(() => setNlpEnabled(false))
+  }, [open, documents.length])
+
+  const documentItems: PaletteItem[] = useMemo(() => {
+    if (searchScope === 'headings' || searchScope === 'tags' || searchScope === 'comments') {
+      return []
+    }
+
+    const byId = new Map(
+      documents
+        .filter((doc) => doc.deletedAt == null && matchesFolder(doc))
+        .map((doc) => [doc.id, doc]),
+    )
+
+    const mapHit = (hit: SearchHit, icon: React.ReactNode): PaletteItem => ({
+      type: 'document' as const,
+      id: hit.documentId,
+      label: hit.title,
+      snippetHtml: hit.snippet,
+      icon,
+      run: () => {
+        const q = query.trim()
+        if (q) dispatch(setPendingEditorSearch(q))
+        dispatch(setActiveDocumentId(hit.documentId))
+        const cached = peekCachedDocument(hit.documentId)
+        if (cached) dispatch(setActiveDocument(cached))
+        navigate(ROUTES.document(hit.documentId))
+      },
+    })
+
+    if (searchScope === 'semantic') {
+      return semanticHits
+        .filter((hit) => byId.has(hit.documentId))
+        .map((hit) => mapHit(hit, <Sparkles className="h-4 w-4" />))
+    }
+
+    const merged = new Map<string, PaletteItem>()
+    if (hits.length > 0 && (searchScope === 'all' || searchScope === 'content')) {
+      for (const hit of hits.filter((item) => byId.has(item.documentId))) {
+        merged.set(hit.documentId, mapHit(hit, <FileText className="h-4 w-4" />))
+      }
+    }
+    if (semanticHits.length > 0 && (searchScope === 'all' || searchScope === 'content')) {
+      for (const hit of semanticHits.filter((item) => byId.has(item.documentId))) {
+        if (!merged.has(hit.documentId)) {
+          merged.set(hit.documentId, mapHit(hit, <Sparkles className="h-4 w-4" />))
+        }
+      }
+    }
+    if (merged.size > 0) {
+      return [...merged.values()]
     }
 
     const q = query.trim().toLowerCase()
     if (q.length > 0) {
-      // Fuzzy title match when FTS has no hits yet / short query.
-      return [...byId.values()]
-        .map((doc) => {
-          const title = doc.title.toLowerCase()
-          let points = 0
-          if (title === q) points = 100
-          else if (title.startsWith(q)) points = 80
-          else if (title.includes(q)) points = 50
-          else if (q.split(/\s+/).every((token) => title.includes(token))) points = 30
-          return { doc, points }
-        })
-        .filter((entry) => entry.points > 0)
-        .sort((a, b) => b.points - a.points || b.doc.updatedAt - a.doc.updatedAt)
-        .slice(0, 10)
-        .map(({ doc }) => ({
-          type: 'document' as const,
-          id: doc.id,
-          label: doc.title,
-          icon: <FileText className="h-4 w-4" />,
-          run: () => {
-            dispatch(setActiveDocumentId(doc.id))
-            const cached = peekCachedDocument(doc.id)
-            if (cached) dispatch(setActiveDocument(cached))
-            navigate(ROUTES.document(doc.id))
-          },
-        }))
+      if (searchScope === 'wiki') {
+        return [...byId.values()]
+          .filter((doc) => linkedTargetIds.has(doc.id) && doc.title.toLowerCase().includes(q))
+          .sort((a, b) => b.updatedAt - a.updatedAt)
+          .slice(0, 10)
+          .map((doc) => ({
+            type: 'document' as const,
+            id: doc.id,
+            label: doc.title,
+            icon: <Link2 className="h-4 w-4" />,
+            run: () => {
+              dispatch(setActiveDocumentId(doc.id))
+              const cached = peekCachedDocument(doc.id)
+              if (cached) dispatch(setActiveDocument(cached))
+              navigate(ROUTES.document(doc.id))
+            },
+          }))
+      }
+
+      if (searchScope === 'all' || searchScope === 'titles') {
+        return [...byId.values()]
+          .map((doc) => {
+            const title = doc.title.toLowerCase()
+            let points = 0
+            if (title === q) points = 100
+            else if (title.startsWith(q)) points = 80
+            else if (title.includes(q)) points = 50
+            else if (q.split(/\s+/).every((token) => title.includes(token))) points = 30
+            return { doc, points }
+          })
+          .filter((entry) => entry.points > 0)
+          .sort((a, b) => b.points - a.points || b.doc.updatedAt - a.doc.updatedAt)
+          .slice(0, 10)
+          .map(({ doc }) => ({
+            type: 'document' as const,
+            id: doc.id,
+            label: doc.title,
+            icon: <FileText className="h-4 w-4" />,
+            run: () => {
+              dispatch(setActiveDocumentId(doc.id))
+              const cached = peekCachedDocument(doc.id)
+              if (cached) dispatch(setActiveDocument(cached))
+              navigate(ROUTES.document(doc.id))
+            },
+          }))
+      }
+
+      return []
     }
+
+    if (searchScope !== 'all' && searchScope !== 'titles') return []
 
     const recent = recentDocumentIds
       .map((id) => byId.get(id))
@@ -485,7 +749,18 @@ export function CommandPalette() {
         navigate(ROUTES.document(doc.id))
       },
     }))
-  }, [dispatch, documents, hits, navigate, query, recentDocumentIds])
+  }, [
+    dispatch,
+    documents,
+    hits,
+    linkedTargetIds,
+    matchesFolder,
+    navigate,
+    query,
+    recentDocumentIds,
+    searchScope,
+    semanticHits,
+  ])
 
   const filteredActions = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -511,16 +786,71 @@ export function CommandPalette() {
       .map((entry) => entry.item)
   }, [actions, query])
 
+  const searchItems = useMemo(
+    () => [...headingItems, ...tagItems, ...commentItems],
+    [commentItems, headingItems, tagItems],
+  )
+
   const items = useMemo(
-    () => [...filteredActions, ...documentItems],
-    [filteredActions, documentItems],
+    () => [...filteredActions, ...searchItems, ...documentItems],
+    [documentItems, filteredActions, searchItems],
   )
 
   const runSearch = useMemo(
     () =>
-      debounce(async (value: string) => {
+      debounce(async (value: string, scope: SearchScope) => {
         const q = value.trim()
-        if (q.length < 2) {
+        if (q.length < 2 || scope === 'headings' || scope === 'tags' || scope === 'wiki' || scope === 'titles') {
+          setHits([])
+          setSemanticHits([])
+          return
+        }
+
+        const runSemantic =
+          scope === 'semantic' || (scope === 'all' || scope === 'content')
+        if (runSemantic && nlpEnabled) {
+          try {
+            setSemanticHits(await nlpSemanticSearch(q, 8))
+          } catch {
+            setSemanticHits([])
+          }
+        } else {
+          setSemanticHits([])
+        }
+
+        if (scope === 'semantic') {
+          setHits([])
+          setCommentHits([])
+          return
+        }
+
+        if (scope === 'comments') {
+          const docs = documents.filter((doc) => doc.deletedAt == null)
+          const rows: Array<{
+            id: string
+            body: string
+            quote: string
+            documentId: string
+            documentTitle: string
+          }> = []
+          for (const doc of docs.slice(0, 24)) {
+            try {
+              const threads = await listCommentThreads(doc.id)
+              for (const thread of threads) {
+                const body = thread.comments.map((comment) => comment.body).join(' ')
+                rows.push({
+                  id: thread.id,
+                  body,
+                  quote: thread.quote,
+                  documentId: doc.id,
+                  documentTitle: doc.title,
+                })
+              }
+            } catch {
+              // skip
+            }
+          }
+          setCommentHits(rows)
           setHits([])
           return
         }
@@ -531,21 +861,25 @@ export function CommandPalette() {
           setHits([])
         }
       }, 200),
-    [],
+    [documents, nlpEnabled],
   )
 
   useEffect(() => {
     if (!open) return
     setQuery('')
     setHits([])
+    setSemanticHits([])
+    setCommentHits([])
     setSelected(0)
+    setSearchScope('all')
+    setFolderOnly(false)
     window.setTimeout(() => inputRef.current?.focus(), 0)
   }, [open])
 
   useEffect(() => {
     setSelected(0)
-    runSearch(query)
-  }, [query, runSearch])
+    runSearch(query, searchScope)
+  }, [query, runSearch, searchScope])
 
   useEffect(() => {
     if (!open) return
@@ -588,6 +922,31 @@ export function CommandPalette() {
           </kbd>
         </div>
 
+        <div className="command-palette-filters titlebar-no-drag">
+          <div className="command-palette-filter-row">
+            {SEARCH_SCOPES.map((scope) => (
+              <button
+                key={scope}
+                type="button"
+                className={cn('command-palette-filter-chip', searchScope === scope && 'is-active')}
+                onClick={() => setSearchScope(scope)}
+              >
+                {t(`commandPalette.scope.${scope}`)}
+              </button>
+            ))}
+          </div>
+          {activeDocument && (
+            <button
+              type="button"
+              className={cn('command-palette-filter-chip', folderOnly && 'is-active')}
+              onClick={() => setFolderOnly((value) => !value)}
+            >
+              <FolderOpen className="h-3 w-3" />
+              {t('commandPalette.filterFolder')}
+            </button>
+          )}
+        </div>
+
         <div className="max-h-[360px] overflow-y-auto p-2">
           {items.length === 0 ? (
             <p className="px-3 py-6 text-center text-[13px] text-[var(--color-muted-foreground)]">
@@ -612,6 +971,26 @@ export function CommandPalette() {
                   ))}
                 </>
               )}
+              {searchItems.length > 0 && (
+                <>
+                  <p className="command-palette-section-label">{t('commandPalette.sectionSearch')}</p>
+                  {searchItems.map((item, index) => {
+                    const flatIndex = filteredActions.length + index
+                    return (
+                      <PaletteRow
+                        key={`${item.type}-${item.id}`}
+                        item={item}
+                        selected={selected === flatIndex}
+                        onSelect={() => setSelected(flatIndex)}
+                        onRun={() => {
+                          item.run()
+                          dispatch(setCommandPaletteOpen(false))
+                        }}
+                      />
+                    )
+                  })}
+                </>
+              )}
               {documentItems.length > 0 && (
                 <>
                   <p className="command-palette-section-label">
@@ -620,7 +999,7 @@ export function CommandPalette() {
                       : t('commandPalette.sectionRecent')}
                   </p>
                   {documentItems.map((item, index) => {
-                    const flatIndex = filteredActions.length + index
+                    const flatIndex = filteredActions.length + searchItems.length + index
                     return (
                       <PaletteRow
                         key={`${item.type}-${item.id}`}
@@ -681,6 +1060,10 @@ function PaletteRow({
             dangerouslySetInnerHTML={{ __html: sanitizeSnippet(item.snippetHtml) }}
           />
         ) : item.type === 'action' && item.hint ? (
+          <span className="block truncate font-mono text-[10px] text-[var(--color-muted-foreground)]">
+            {item.hint}
+          </span>
+        ) : (item.type === 'heading' || item.type === 'tag') && item.hint ? (
           <span className="block truncate font-mono text-[10px] text-[var(--color-muted-foreground)]">
             {item.hint}
           </span>

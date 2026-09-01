@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
-import { CalendarDays, ChevronLeft, ChevronRight, Flame, Moon, Sun } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight, Flame, Moon, Sparkles, Sun } from 'lucide-react'
+import { nlpJournalSummary } from '@/lib/db/nlp-api'
 import {
   computeJournalStreak,
   formatDateKey,
@@ -37,6 +38,32 @@ export function LibraryJournalView({ onNavigate }: LibraryJournalViewProps) {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const [cursor, setCursor] = useState(() => startOfMonth(new Date()))
+  const [weeklySummary, setWeeklySummary] = useState<string | null>(null)
+  const [weeklyBullets, setWeeklyBullets] = useState<string[]>([])
+  const [summaryLoading, setSummaryLoading] = useState(false)
+
+  function currentWeekRange() {
+    const start = new Date()
+    const mondayOffset = (start.getDay() + 6) % 7
+    start.setDate(start.getDate() - mondayOffset)
+    const end = new Date(start)
+    end.setDate(end.getDate() + 6)
+    return { from: formatDateKey(start), to: formatDateKey(end) }
+  }
+
+  async function loadWeeklySummary() {
+    const { from, to } = currentWeekRange()
+    setSummaryLoading(true)
+    try {
+      const result = await nlpJournalSummary(from, to)
+      setWeeklySummary(result.summary)
+      setWeeklyBullets(result.bullets)
+    } catch (error) {
+      toast.error(t('journal.summaryError'), String(error))
+    } finally {
+      setSummaryLoading(false)
+    }
+  }
 
   const folderId = useMemo(
     () => getJournalFolderId(folders, t('journal.folderName')),
@@ -149,7 +176,33 @@ export function LibraryJournalView({ onNavigate }: LibraryJournalViewProps) {
         >
           {t('journal.thisWeek')}
         </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 gap-1"
+          disabled={summaryLoading}
+          onClick={() => void loadWeeklySummary()}
+        >
+          <Sparkles className="h-3 w-3" />
+          {summaryLoading ? t('journal.summaryLoading') : t('journal.weeklySummary')}
+        </Button>
       </div>
+
+      {weeklySummary && (
+        <div className="journal-weekly-summary mb-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+          <p className="m-0 mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
+            {t('journal.weeklySummaryTitle')}
+          </p>
+          <p className="m-0 text-[12px] leading-relaxed text-[var(--color-foreground)]">{weeklySummary}</p>
+          {weeklyBullets.length > 0 && (
+            <ul className="mt-2 space-y-1 pl-4 text-[12px] text-[var(--color-muted-foreground)]">
+              {weeklyBullets.map((bullet) => (
+                <li key={bullet}>{bullet}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-2.5">
         <div className="mb-2 flex items-center justify-between gap-2">

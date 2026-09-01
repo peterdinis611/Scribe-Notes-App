@@ -12,7 +12,6 @@ export function LibraryBulkBar() {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
   const selected = useAppSelector((state) => state.documents.selectedDocumentIds)
-  const documents = useAppSelector((state) => state.documents.documents)
 
   if (selected.length === 0) return null
 

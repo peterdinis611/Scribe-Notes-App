@@ -138,7 +138,23 @@
     "newFolderTitle": "New folder",
     "newFolderPlaceholder": "Folder name",
     "todayNote": "Today note",
-    "weekNote": "Weekly note"
+    "yesterdayNote": "Yesterday's journal",
+    "tomorrowNote": "Tomorrow's journal",
+    "morningNote": "Morning journal",
+    "eveningNote": "Evening journal",
+    "weekNote": "Weekly note",
+    "sectionSearch": "Matches",
+    "filterFolder": "This folder only",
+    "filterTags": "Filter by tag",
+    "scope": {
+      "all": "All",
+      "titles": "Document titles",
+      "headings": "Sections",
+      "tags": "Tags",
+      "content": "Content",
+      "wiki": "Wiki links",
+      "comments": "Comments"
+    }
   },
   "editor": {
     "loading": "Loading document…",
@@ -671,7 +687,38 @@
     "tagCount_other": "{{count}} tags",
     "deleteFolderWithDocs": "Deleting folder “{{name}}” will also move {{docs}} in it and its subfolders to trash. The folder itself will be removed.",
     "deleteFolderEmpty": "Deleting folder “{{name}}” will also remove all subfolders.",
-    "trashFolderConfirm": "Move {{docs}} from folder “{{name}}” (including subfolders) to trash? The folder will be kept."
+    "trashFolderConfirm": "Move {{docs}} from folder “{{name}}” (including subfolders) to trash? The folder will be kept.",
+    "smartFilters": {
+      "label": "Filters",
+      "all": "All",
+      "unlinked": "No links",
+      "untagged": "Untagged",
+      "unread": "Unread"
+    },
+    "bulk": {
+      "selected": "{{count}} selected",
+      "move": "Move",
+      "clear": "Clear selection",
+      "selectOne": "Select document",
+      "deleteTitle": "Delete selected?",
+      "deleteConfirm": "Move {{count}} documents to trash?",
+      "deleted": "Moved {{count}} documents to trash",
+      "deleteError": "Bulk delete failed"
+    },
+    "tagManage": {
+      "manage": "Manage",
+      "manageTitle": "Manage tags",
+      "manageHint": "Rename or merge tags across the library.",
+      "empty": "No tags",
+      "renameLabel": "New name",
+      "mergeInto": "Merge into",
+      "merge": "Merge",
+      "rename": "Rename",
+      "renamed": "Updated {{count}} documents",
+      "merged": "Merged {{count}} documents",
+      "renameError": "Rename failed",
+      "mergeError": "Merge failed"
+    }
   },
   "trash": {
     "title": "Trash",
@@ -699,7 +746,9 @@
     "stats": "Statistics",
     "revisions": "Version history",
     "findReplace": "Find and replace",
-    "findReplaceClose": "Close search"
+    "findReplaceClose": "Close search",
+    "leftOutline": "Left outline",
+    "leftOutlineOff": "Hide left outline"
   },
   "panels": {
     "comments": {
@@ -741,6 +790,9 @@
       "youAreHere": "You are here",
       "youAreHereHint": "Current section based on scroll — open the outline to jump.",
       "openOutline": "Outline",
+      "hideLeft": "Hide left outline",
+      "leftHint": "Click a heading — use the button below to return.",
+      "returnToPlace": "Back to place",
       "topOfDocument": "Top of document",
       "elementCount_one": "{{count}} element",
       "elementCount_other": "{{count}} elements",
@@ -1478,6 +1530,12 @@
   },
   "journal": {
     "today": "Today",
+    "morning": "Morning",
+    "evening": "Evening",
+    "morningTitle": "{{date}} — morning",
+    "eveningTitle": "{{date}} — evening",
+    "streak": "{{count}} day streak",
+    "heatWorkflowHint": "Darker days = more consecutive entries. Click a day or use ⌘K for yesterday / tomorrow.",
     "thisWeek": "This week",
     "folderName": "Journal",
     "todayTitle": "{{date}}",

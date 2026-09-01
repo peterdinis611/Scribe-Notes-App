@@ -34,6 +34,7 @@ import {
   setDocumentDragData,
   setFolderDragData,
 } from '@/lib/library/folder-tree-drag'
+import { nlpSuggestTags } from '@/lib/db/nlp-api'
 import { ROUTES } from '@/lib/routes'
 import { promptInput } from '@/lib/input-dialog'
 import { toast } from '@/lib/toast'
@@ -75,7 +76,7 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     void listLinkGraph()
       .then((graph) => {
         if (cancelled) return
-        setOrphanIds(new Set(graph.orphans.map((item) => item.documentId)))
+        setOrphanIds(new Set(graph.orphans.map((item) => item.id)))
       })
       .catch(() => {
         if (!cancelled) setOrphanIds(new Set())
@@ -419,9 +420,18 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     event.stopPropagation()
     const current = documents.find((doc) => doc.id === id)
     if (!current) return
+    let description = t('library.documentTagsHint')
+    try {
+      const suggestions = await nlpSuggestTags(id)
+      if (suggestions.tagSuggestions.length > 0) {
+        description = `${description}\n\n${t('library.nlpTagSuggestions')}: ${suggestions.tagSuggestions.join(', ')}`
+      }
+    } catch {
+      // NLP optional
+    }
     const value = await promptInput({
       title: t('library.documentTags'),
-      description: t('library.documentTagsHint'),
+      description,
       defaultValue: current.tags.join(', '),
       placeholder: t('library.documentTagsHint'),
       confirmLabel: t('common.save'),

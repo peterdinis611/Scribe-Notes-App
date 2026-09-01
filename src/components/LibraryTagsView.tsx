@@ -129,7 +129,7 @@ export function LibraryTagsView({ onNavigate }: LibraryTagsViewProps) {
           onClick={() => setManageOpen(true)}
         >
           <Settings2 className="h-3 w-3" />
-          {t('library.tags.manage')}
+          {t('library.tagManage.manage')}
         </Button>
       </div>
 

@@ -138,7 +138,23 @@
     "newFolderTitle": "Nový priečinok",
     "newFolderPlaceholder": "Názov priečinka",
     "todayNote": "Dnešná poznámka",
-    "weekNote": "Týždenná poznámka"
+    "yesterdayNote": "Včerajší denník",
+    "tomorrowNote": "Zajtrajší denník",
+    "morningNote": "Ranný denník",
+    "eveningNote": "Večerný denník",
+    "weekNote": "Týždenná poznámka",
+    "sectionSearch": "Výsledky",
+    "filterFolder": "Iba v tomto priečinku",
+    "filterTags": "Filtrovať podľa štítku",
+    "scope": {
+      "all": "Všetko",
+      "titles": "Nadpisy dokumentov",
+      "headings": "Sekcie",
+      "tags": "Štítky",
+      "content": "Obsah",
+      "wiki": "Wiki odkazy",
+      "comments": "Komentáre"
+    }
   },
   "editor": {
     "loading": "Načítavam dokument…",
@@ -675,7 +691,38 @@
     "tagCount_other": "{{count}} štítkov",
     "deleteFolderWithDocs": "Vymazaním priečinka „{{name}}“ sa presunú do koša aj {{docs}} v ňom a v podpriečinkoch. Samotný priečinok sa odstráni.",
     "deleteFolderEmpty": "Vymazaním priečinka „{{name}}“ sa odstránia aj všetky podpriečinky.",
-    "trashFolderConfirm": "Presunúť {{docs}} z priečinka „{{name}}“ (vrátane podpriečinkov) do koša? Priečinok ostane zachovaný."
+    "trashFolderConfirm": "Presunúť {{docs}} z priečinka „{{name}}“ (vrátane podpriečinkov) do koša? Priečinok ostane zachovaný.",
+    "smartFilters": {
+      "label": "Filtre",
+      "all": "Všetko",
+      "unlinked": "Bez odkazov",
+      "untagged": "Bez štítkov",
+      "unread": "Neprečítané"
+    },
+    "bulk": {
+      "selected": "{{count}} vybraných",
+      "move": "Presunúť",
+      "clear": "Zrušiť výber",
+      "selectOne": "Vybrať dokument",
+      "deleteTitle": "Vymazať vybrané?",
+      "deleteConfirm": "Presunúť {{count}} dokumentov do koša?",
+      "deleted": "{{count}} dokumentov presunutých do koša",
+      "deleteError": "Hromadné mazanie zlyhalo"
+    },
+    "tagManage": {
+      "manage": "Spravovať",
+      "manageTitle": "Správa štítkov",
+      "manageHint": "Premenujte alebo zlúčte štítky naprieč knižnicou.",
+      "empty": "Žiadne štítky",
+      "renameLabel": "Nový názov",
+      "mergeInto": "Zlúčiť do",
+      "merge": "Zlúčiť",
+      "rename": "Premenovať",
+      "renamed": "Aktualizovaných {{count}} dokumentov",
+      "merged": "Zlúčených {{count}} dokumentov",
+      "renameError": "Premenovanie zlyhalo",
+      "mergeError": "Zlúčenie zlyhalo"
+    }
   },
   "trash": {
     "title": "Kôš",
@@ -703,7 +750,9 @@
     "stats": "Štatistika",
     "revisions": "História verzií",
     "findReplace": "Nájsť a nahradiť",
-    "findReplaceClose": "Zavrieť vyhľadávanie"
+    "findReplaceClose": "Zavrieť vyhľadávanie",
+    "leftOutline": "Obsah vľavo",
+    "leftOutlineOff": "Skryť obsah vľavo"
   },
   "panels": {
     "comments": {
@@ -747,6 +796,9 @@
       "youAreHere": "Si tu",
       "youAreHereHint": "Aktuálna sekcia podľa scrollovania — otvorte štruktúru pre skok.",
       "openOutline": "Štruktúra",
+      "hideLeft": "Skryť obsah vľavo",
+      "leftHint": "Kliknite na nadpis — vrátite sa tlačidlom nižšie.",
+      "returnToPlace": "Späť na miesto",
       "topOfDocument": "Začiatok dokumentu",
       "elementCount_one": "{{count}} element",
       "elementCount_few": "{{count}} elementy",
@@ -1490,6 +1542,12 @@
   },
   "journal": {
     "today": "Dnes",
+    "morning": "Ráno",
+    "evening": "Večer",
+    "morningTitle": "{{date}} — ráno",
+    "eveningTitle": "{{date}} — večer",
+    "streak": "{{count}} dní po sebe",
+    "heatWorkflowHint": "Tmavšie dni = viac zápisov v rade. Kliknite na deň alebo použite ⌘K pre včera / zajtra.",
     "thisWeek": "Tento týždeň",
     "folderName": "Denník",
     "todayTitle": "{{date}}",

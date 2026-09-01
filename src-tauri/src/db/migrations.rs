@@ -1,6 +1,6 @@
 use rusqlite::Connection;
 
-const SCHEMA_VERSION: i32 = 11;
+const SCHEMA_VERSION: i32 = 12;
 
 pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     conn.execute_batch(
@@ -263,6 +263,37 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
             r#"
             CREATE INDEX IF NOT EXISTS idx_documents_pinned ON documents(is_pinned);
             CREATE INDEX IF NOT EXISTS idx_folders_pinned ON folders(is_pinned);
+            "#,
+        )?;
+
+        conn.execute(
+            "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
+            [SCHEMA_VERSION.to_string()],
+        )?;
+    }
+
+    if current < 12 {
+        conn.execute_batch(
+            r#"
+            CREATE TABLE IF NOT EXISTS document_embeddings (
+                document_id TEXT PRIMARY KEY,
+                embedding BLOB NOT NULL,
+                dims INTEGER NOT NULL,
+                model TEXT NOT NULL,
+                updated_at INTEGER NOT NULL,
+                FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_embeddings_updated ON document_embeddings(updated_at);
+
+            CREATE TABLE IF NOT EXISTS nlp_artifacts (
+                id TEXT PRIMARY KEY,
+                kind TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                created_at INTEGER NOT NULL
+            );
+
+            INSERT OR IGNORE INTO meta (key, value) VALUES ('nlp_enabled', '0');
             "#,
         )?;
 

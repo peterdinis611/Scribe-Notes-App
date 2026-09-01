@@ -2,9 +2,11 @@ mod commands;
 mod backup;
 mod db;
 mod export;
+mod nlp;
 mod storage;
 
 use db::{init_db, DbState};
+use nlp::NlpSidecar;
 use storage::DiskPersistQueue;
 use tauri::{Emitter, Manager, RunEvent};
 
@@ -38,6 +40,7 @@ pub fn run() {
                 conn: std::sync::Mutex::new(conn),
                 persist_queue,
             });
+            app.manage(NlpSidecar::new());
 
             #[cfg(target_os = "macos")]
             {
@@ -168,6 +171,14 @@ pub fn run() {
             commands::templates::create_custom_template,
             commands::templates::delete_custom_template,
             commands::search::search_documents,
+            commands::nlp::nlp_status,
+            commands::nlp::nlp_set_enabled,
+            commands::nlp::nlp_semantic_search,
+            commands::nlp::nlp_index_document,
+            commands::nlp::nlp_index_all,
+            commands::nlp::nlp_journal_summary,
+            commands::nlp::nlp_suggest_tags,
+            commands::nlp::nlp_library_report,
             commands::revisions::list_document_revisions,
             commands::revisions::get_document_revision,
             commands::revisions::restore_document_revision,

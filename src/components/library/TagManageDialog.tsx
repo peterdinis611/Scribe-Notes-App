@@ -56,11 +56,11 @@ export function TagManageDialog({ open, onClose, tags }: TagManageDialogProps) {
           ),
         ),
       )
-      toast.success(t('library.tags.renamed', { count }))
+      toast.success(t('library.tagManage.renamed', { count }))
       setSelected(null)
       setRenameTo('')
     } catch (error) {
-      toast.error(t('library.tags.renameError'), String(error))
+      toast.error(t('library.tagManage.renameError'), String(error))
     } finally {
       setBusy(false)
     }
@@ -79,11 +79,11 @@ export function TagManageDialog({ open, onClose, tags }: TagManageDialogProps) {
           }),
         ),
       )
-      toast.success(t('library.tags.merged', { count }))
+      toast.success(t('library.tagManage.merged', { count }))
       setSelected(null)
       setMergeTarget('')
     } catch (error) {
-      toast.error(t('library.tags.mergeError'), String(error))
+      toast.error(t('library.tagManage.mergeError'), String(error))
     } finally {
       setBusy(false)
     }
@@ -93,15 +93,15 @@ export function TagManageDialog({ open, onClose, tags }: TagManageDialogProps) {
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent className="max-w-[420px]" showClose>
         <DialogHeader>
-          <DialogTitle>{t('library.tags.manageTitle')}</DialogTitle>
+          <DialogTitle>{t('library.tagManage.manageTitle')}</DialogTitle>
         </DialogHeader>
         <p className="m-0 text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
-          {t('library.tags.manageHint')}
+          {t('library.tagManage.manageHint')}
         </p>
         <div className="max-h-40 overflow-y-auto rounded-[var(--radius-sm)] border border-[var(--color-border)] p-1">
           {tags.length === 0 ? (
             <p className="m-0 px-2 py-3 text-[12px] text-[var(--color-muted-foreground)]">
-              {t('library.tags.empty')}
+              {t('library.tagManage.empty')}
             </p>
           ) : (
             tags.map((tag) => (
@@ -126,13 +126,13 @@ export function TagManageDialog({ open, onClose, tags }: TagManageDialogProps) {
           <div className="space-y-3">
             <label className="block space-y-1">
               <span className="text-[11px] font-semibold text-[var(--color-muted-foreground)]">
-                {t('library.tags.renameLabel')}
+                {t('library.tagManage.renameLabel')}
               </span>
               <Input value={renameTo} onChange={(e) => setRenameTo(e.target.value)} className="h-8 text-[12px]" />
             </label>
             <label className="block space-y-1">
               <span className="text-[11px] font-semibold text-[var(--color-muted-foreground)]">
-                {t('library.tags.mergeInto')}
+                {t('library.tagManage.mergeInto')}
               </span>
               <Input value={mergeTarget} onChange={(e) => setMergeTarget(e.target.value)} className="h-8 text-[12px]" />
             </label>
@@ -145,10 +145,10 @@ export function TagManageDialog({ open, onClose, tags }: TagManageDialogProps) {
           {selected && (
             <>
               <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => void handleMerge()}>
-                {t('library.tags.merge')}
+                {t('library.tagManage.merge')}
               </Button>
               <Button type="button" variant="default" size="sm" disabled={busy} onClick={() => void handleRename()}>
-                {t('library.tags.rename')}
+                {t('library.tagManage.rename')}
               </Button>
             </>
           )}
