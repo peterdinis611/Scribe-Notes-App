@@ -28,17 +28,20 @@ export function FocusModeExitBar() {
 
   return (
     <div className="editor-focus-exit-bar titlebar-no-drag">
-      <Button
-        variant="outline"
-        size="sm"
-        className="editor-focus-exit shadow-md"
-        title={t('focusMode.exitHint')}
-        onClick={() => dispatch(setFocusMode(false))}
-      >
-        <Focus className="h-3.5 w-3.5 shrink-0" />
-        {t('focusMode.exit')}
-        <kbd className="editor-focus-exit-kbd">Esc</kbd>
-      </Button>
+      <div className="editor-focus-exit-wrap">
+        <Button
+          variant="outline"
+          size="sm"
+          className="editor-focus-exit shadow-md"
+          title={t('focusMode.exitHint')}
+          onClick={() => dispatch(setFocusMode(false))}
+        >
+          <Focus className="h-3.5 w-3.5 shrink-0" />
+          {t('focusMode.exit')}
+          <kbd className="editor-focus-exit-kbd">Esc</kbd>
+        </Button>
+        <p className="editor-focus-exit-hint">{t('focusMode.activeHint')}</p>
+      </div>
     </div>
   )
 }

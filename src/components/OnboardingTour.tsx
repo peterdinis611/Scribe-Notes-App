@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BookOpen, Focus, FolderInput, Sparkles } from 'lucide-react'
+import { FilePlus, Link2, ListTree, Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
@@ -10,19 +10,27 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { useOpenDemoGuide } from '@/hooks/useOpenDemoGuide'
 import { persistOnboardingDismissed, readOnboardingDismissed } from '@/store/persistence'
+import { setTemplatePickerOpen } from '@/store/settingsSlice'
+import { useAppDispatch } from '@/store/hooks'
 
-const STEP_IDS = ['library', 'export', 'focus', 'demo'] as const
+const STEP_IDS = ['newDocument', 'wikiLink', 'structure'] as const
 
 const STEP_ICONS = {
-  library: BookOpen,
-  export: FolderInput,
-  focus: Focus,
-  demo: Sparkles,
+  newDocument: FilePlus,
+  wikiLink: Link2,
+  structure: ListTree,
 } as const
 
-export function OnboardingTour() {
+type OnboardingTourProps = {
+  onFinished?: () => void
+}
+
+export function OnboardingTour({ onFinished }: OnboardingTourProps) {
   const { t } = useTranslation()
+  const dispatch = useAppDispatch()
+  const openDemoGuide = useOpenDemoGuide()
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState(0)
   const [dontShowAgain, setDontShowAgain] = useState(true)
@@ -38,6 +46,7 @@ export function OnboardingTour() {
       persistOnboardingDismissed(true)
     }
     setOpen(false)
+    onFinished?.()
   }
 
   function handleSkip() {
@@ -56,10 +65,21 @@ export function OnboardingTour() {
     setStep((value) => Math.max(0, value - 1))
   }
 
+  function handleNewDocument() {
+    dispatch(setTemplatePickerOpen(true))
+    closeTour()
+  }
+
+  function handleOpenDemo() {
+    closeTour()
+    void openDemoGuide()
+  }
+
   if (!open) return null
 
   const stepId = STEP_IDS[step]!
   const Icon = STEP_ICONS[stepId]
+  const isLast = step >= STEP_IDS.length - 1
 
   return (
     <Dialog
@@ -68,7 +88,7 @@ export function OnboardingTour() {
         if (!next) closeTour()
       }}
     >
-      <DialogContent className="max-w-[460px] shadow-[inset_3px_0_0_0_var(--color-accent)]" showClose>
+      <DialogContent className="max-w-[480px] shadow-[inset_3px_0_0_0_var(--color-accent)]" showClose>
         <DialogHeader>
           <div className="mb-1 inline-flex h-9 w-9 items-center justify-center rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--color-accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--color-accent)_12%,var(--color-surface))] text-[var(--color-accent)]">
             <Icon className="h-4 w-4" />
@@ -89,6 +109,24 @@ export function OnboardingTour() {
             {t(`onboarding.${stepId}.description`)}
           </p>
         </div>
+
+        {isLast && (
+          <div className="rounded-[var(--radius-sm)] border border-dashed border-[color-mix(in_srgb,var(--color-accent)_28%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-accent)_5%,var(--color-surface))] px-3 py-2.5">
+            <p className="m-0 text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
+              {t('onboarding.demoOptional')}
+            </p>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="mt-2 h-8 px-2 text-[var(--color-accent)] hover:text-[var(--color-accent)]"
+              onClick={handleOpenDemo}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              {t('demoGuide.open')}
+            </Button>
+          </div>
+        )}
 
         <div className="flex items-center justify-center gap-1.5 py-1">
           {STEP_IDS.map((id, index) => (
@@ -116,18 +154,27 @@ export function OnboardingTour() {
           </span>
         </label>
 
-        <DialogFooter>
-          <Button type="button" variant="ghost" size="sm" onClick={handleSkip}>
-            {t('common.skip')}
-          </Button>
-          {step > 0 && (
-            <Button type="button" variant="outline" size="sm" onClick={handleBack}>
-              {t('common.back')}
+        <DialogFooter className="flex-wrap gap-2 sm:justify-between">
+          <div className="flex gap-2">
+            <Button type="button" variant="ghost" size="sm" onClick={handleSkip}>
+              {t('common.skip')}
             </Button>
-          )}
-          <Button type="button" variant="default" size="sm" onClick={handleNext}>
-            {step >= STEP_IDS.length - 1 ? t('common.done') : t('common.next')}
-          </Button>
+            {step > 0 && (
+              <Button type="button" variant="outline" size="sm" onClick={handleBack}>
+                {t('common.back')}
+              </Button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            {stepId === 'newDocument' && (
+              <Button type="button" variant="outline" size="sm" onClick={handleNewDocument}>
+                {t('welcome.newDocument')}
+              </Button>
+            )}
+            <Button type="button" variant="default" size="sm" onClick={handleNext}>
+              {isLast ? t('common.done') : t('common.next')}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

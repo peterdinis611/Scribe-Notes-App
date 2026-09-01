@@ -1,10 +1,13 @@
 import { useRef, useState } from 'react'
 import type { Editor } from '@tiptap/react'
+import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
+import { ArrowUpRight } from 'lucide-react'
 import { useEditorViewEffect } from '@/lib/editor/view-ready'
 import { getDocument } from '@/lib/db/api'
+import { navigateViaWikiLink } from '@/lib/navigation'
 import { formatRelativeTime } from '@/lib/utils'
-import { useAppSelector } from '@/store/hooks'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
 
 type HoverState = {
   targetId: string
@@ -44,10 +47,24 @@ function snippetFromContent(contentJson: string): string {
 
 export function WikiLinkHoverCard({ editor }: { editor: Editor | null }) {
   const { t } = useTranslation()
+  const dispatch = useAppDispatch()
+  const navigate = useNavigate()
+  const activeId = useAppSelector((state) => state.documents.activeDocumentId)
   const documents = useAppSelector((state) => state.documents.documents)
   const [hover, setHover] = useState<HoverState | null>(null)
   const timerRef = useRef<number | null>(null)
   const tokenRef = useRef(0)
+
+  function openHovered(targetId: string) {
+    navigateViaWikiLink({
+      fromId: activeId,
+      targetId,
+      dispatch,
+      navigate: (route) => void navigate(route),
+    })
+    tokenRef.current += 1
+    setHover(null)
+  }
 
   useEditorViewEffect(
     editor,
@@ -100,6 +117,7 @@ export function WikiLinkHoverCard({ editor }: { editor: Editor | null }) {
 
       const handleOut = (event: MouseEvent) => {
         const related = event.relatedTarget as HTMLElement | null
+        if (related?.closest?.('.wiki-link-hover-card')) return
         if (related?.closest?.('a[data-wiki-link]')) return
         clear()
       }
@@ -118,13 +136,14 @@ export function WikiLinkHoverCard({ editor }: { editor: Editor | null }) {
   if (!hover) return null
 
   const left = Math.min(hover.x, window.innerWidth - 320)
-  const top = Math.min(hover.y, window.innerHeight - 140)
+  const top = Math.min(hover.y, window.innerHeight - 160)
 
   return (
     <div
       className="wiki-link-hover-card"
       style={{ left: Math.max(8, left), top: Math.max(8, top) }}
       role="tooltip"
+      onMouseLeave={() => setHover(null)}
     >
       <div className="wiki-link-hover-title">{hover.title}</div>
       {hover.updatedAt != null && (
@@ -135,6 +154,15 @@ export function WikiLinkHoverCard({ editor }: { editor: Editor | null }) {
       ) : (
         <p className="wiki-link-hover-snippet wiki-link-hover-snippet--empty">{t('wikiLink.emptyDocument')}</p>
       )}
+      <p className="wiki-link-hover-hint">{t('wikiLink.previewHint')}</p>
+      <button
+        type="button"
+        className="wiki-link-hover-open"
+        onClick={() => openHovered(hover.targetId)}
+      >
+        {t('wikiLink.openDocument')}
+        <ArrowUpRight className="h-3.5 w-3.5" />
+      </button>
     </div>
   )
 }

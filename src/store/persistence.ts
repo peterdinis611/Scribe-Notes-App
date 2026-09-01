@@ -24,6 +24,7 @@ const STORAGE_FOLDER_ACCESS_GRANTED_KEY = 'scribe-storage-folder-access-granted'
 const LOCALE_KEY = 'scribe-locale'
 const ACTIVE_DOCUMENT_ID_KEY = 'scribe-active-document-id'
 const ONBOARDING_DISMISSED_KEY = 'scribe-onboarding-dismissed'
+const WHATS_NEW_VERSION_KEY = 'scribe-whats-new-version'
 const SCRATCH_DOCUMENT_ID_KEY = 'scribe-scratch-document-id'
 const SHORTCUT_OVERRIDES_KEY = 'scribe-shortcut-overrides'
 const UI_SKIN_KEY = 'scribe-ui-skin'
@@ -87,6 +88,19 @@ export function persistOnboardingDismissed(dismissed: boolean) {
     return
   }
   localStorage.removeItem(ONBOARDING_DISMISSED_KEY)
+}
+
+export function readWhatsNewVersion(): string | null {
+  try {
+    const raw = localStorage.getItem(WHATS_NEW_VERSION_KEY)
+    return raw && raw.trim() ? raw : null
+  } catch {
+    return null
+  }
+}
+
+export function persistWhatsNewVersion(version: string) {
+  localStorage.setItem(WHATS_NEW_VERSION_KEY, version)
 }
 
 export function readScratchDocumentId(): string | null {

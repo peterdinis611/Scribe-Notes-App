@@ -4,6 +4,8 @@ import {
   readActiveDocumentId,
   persistOnboardingDismissed,
   readOnboardingDismissed,
+  persistWhatsNewVersion,
+  readWhatsNewVersion,
 } from '@/store/persistence'
 
 describe('session persistence', () => {
@@ -25,5 +27,11 @@ describe('session persistence', () => {
     expect(readOnboardingDismissed()).toBe(true)
     persistOnboardingDismissed(false)
     expect(readOnboardingDismissed()).toBe(false)
+  })
+
+  it('persists whats new version', () => {
+    expect(readWhatsNewVersion()).toBeNull()
+    persistWhatsNewVersion('0.6.0')
+    expect(readWhatsNewVersion()).toBe('0.6.0')
   })
 })

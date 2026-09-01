@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { Outlet, useNavigate, useParams, useRouterState } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
@@ -9,11 +9,14 @@ import { DocumentTabsBar } from '@/components/layout/DocumentTabsBar'
 import { FocusModeExitBar } from '@/components/editor/FocusModeExitBar'
 import { ReadingModeExitBar } from '@/components/editor/ReadingModeExitBar'
 import { MoveToFolderDialog } from '@/components/MoveToFolderMenu'
+import { OnboardingTour } from '@/components/OnboardingTour'
 import { Sidebar } from '@/components/Sidebar'
 import { TemplatePicker } from '@/components/TemplatePicker'
+import { WhatsNewDialog } from '@/components/WhatsNewDialog'
 import { useLayoutTier } from '@/hooks/useLayoutTier'
 import { useResponsiveSidebar } from '@/hooks/useResponsiveSidebar'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
+import { APP_VERSION } from '@/lib/app-version'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { createDocument, flushPendingWrites, importFile } from '@/lib/db/api'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
@@ -24,11 +27,11 @@ import { toast } from '@/lib/toast'
 import { ROUTES } from '@/lib/routes'
 import type { DocumentTemplate } from '@/lib/templates'
 import { InputDialogHost } from '@/components/InputDialogHost'
-import { OnboardingTour } from '@/components/OnboardingTour'
 import { StorageAccessDialogHost } from '@/components/StorageAccessDialogHost'
 import { SaveCustomTemplateDialogHost } from '@/components/SaveCustomTemplateDialogHost'
 import { ToastHost } from '@/components/ToastHost'
 import { TrashDialog } from '@/components/TrashDialog'
+import { readOnboardingDismissed, readWhatsNewVersion } from '@/store/persistence'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
   setActiveDocument,
@@ -75,6 +78,19 @@ export function AppLayout() {
   const mainRef = useRef<HTMLElement>(null)
   const layoutTier = useLayoutTier(mainRef)
   const { isCompact, sidebarOpen, setSidebarOpen } = useResponsiveSidebar()
+  const [whatsNewOpen, setWhatsNewOpen] = useState(false)
+
+  function maybeOpenWhatsNew() {
+    if (readWhatsNewVersion() !== APP_VERSION) {
+      setWhatsNewOpen(true)
+    }
+  }
+
+  useEffect(() => {
+    if (readOnboardingDismissed() && readWhatsNewVersion() !== APP_VERSION) {
+      setWhatsNewOpen(true)
+    }
+  }, [])
 
   useEffect(() => {
     const unlisteners: Array<() => void> = []
@@ -192,7 +208,8 @@ export function AppLayout() {
       <StorageAccessDialogHost />
       <SaveCustomTemplateDialogHost />
       <TrashDialog />
-      <OnboardingTour />
+      <OnboardingTour onFinished={maybeOpenWhatsNew} />
+      <WhatsNewDialog open={whatsNewOpen} onClose={() => setWhatsNewOpen(false)} />
       <ToastHost />
     </div>
   )

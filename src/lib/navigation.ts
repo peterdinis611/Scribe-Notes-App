@@ -2,9 +2,13 @@ import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { ROUTES } from '@/lib/routes'
 import type { AppDispatch } from '@/store/index'
 import {
+  clearDocumentNav,
   closeOpenDocument,
+  popDocumentNav,
+  pushDocumentNav,
   setActiveDocument,
   setActiveDocumentId,
+  trimDocumentNavTo,
 } from '@/store/documentsSlice'
 
 type NavigateFn = (route: ReturnType<typeof ROUTES.home> | ReturnType<typeof ROUTES.document>) => void | Promise<void>
@@ -20,6 +24,7 @@ export function closeActiveDocumentAndMaybeHome(args: {
   if (!activeId) {
     dispatch(setActiveDocumentId(null))
     dispatch(setActiveDocument(null))
+    dispatch(clearDocumentNav())
     void navigate(ROUTES.home())
     return
   }
@@ -36,10 +41,9 @@ export function closeActiveDocumentAndMaybeHome(args: {
     return
   }
 
-  // Explicitly clear — closeOpenDocument already nulls activeId, but setActiveDocument
-  // + home navigation must win over any in-flight /doc/$id route sync.
   dispatch(setActiveDocumentId(null))
   dispatch(setActiveDocument(null))
+  dispatch(clearDocumentNav())
   void navigate(ROUTES.home())
 }
 
@@ -47,5 +51,50 @@ export function closeActiveDocumentAndMaybeHome(args: {
 export function goToHome(args: { dispatch: AppDispatch; navigate: NavigateFn }) {
   args.dispatch(setActiveDocumentId(null))
   args.dispatch(setActiveDocument(null))
+  args.dispatch(clearDocumentNav())
   void args.navigate(ROUTES.home())
+}
+
+/** Follow a wiki link — records the current document on the back trail. */
+export function navigateViaWikiLink(args: {
+  fromId: string | null
+  targetId: string
+  dispatch: AppDispatch
+  navigate: NavigateFn
+}) {
+  if (args.fromId && args.fromId !== args.targetId) {
+    args.dispatch(pushDocumentNav(args.fromId))
+  }
+  args.dispatch(setActiveDocumentId(args.targetId))
+  const cached = peekCachedDocument(args.targetId)
+  if (cached) args.dispatch(setActiveDocument(cached))
+  void args.navigate(ROUTES.document(args.targetId))
+}
+
+/** Go back along the wiki-link trail. */
+export function navigateWikiBack(args: {
+  documentNavStack: string[]
+  dispatch: AppDispatch
+  navigate: NavigateFn
+}) {
+  const prev = args.documentNavStack[args.documentNavStack.length - 1]
+  if (!prev) return
+  args.dispatch(popDocumentNav())
+  args.dispatch(setActiveDocumentId(prev))
+  const cached = peekCachedDocument(prev)
+  if (cached) args.dispatch(setActiveDocument(cached))
+  void args.navigate(ROUTES.document(prev))
+}
+
+/** Jump to an intermediate breadcrumb and trim the trail. */
+export function navigateToBreadcrumb(args: {
+  targetId: string
+  dispatch: AppDispatch
+  navigate: NavigateFn
+}) {
+  args.dispatch(trimDocumentNavTo(args.targetId))
+  args.dispatch(setActiveDocumentId(args.targetId))
+  const cached = peekCachedDocument(args.targetId)
+  if (cached) args.dispatch(setActiveDocument(cached))
+  void args.navigate(ROUTES.document(args.targetId))
 }

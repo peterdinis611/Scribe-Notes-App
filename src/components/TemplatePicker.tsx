@@ -243,6 +243,9 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
               <h2 className="m-0 font-[family-name:var(--font-display)] text-[22px] font-extrabold tracking-[-0.04em]">
                 {t('templates.title')}
               </h2>
+              <p className="m-0 text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
+                {t('templates.introHint')}
+              </p>
             </div>
 
             <div className="shrink-0 space-y-3 border-b border-[var(--color-border)] px-5 py-3">

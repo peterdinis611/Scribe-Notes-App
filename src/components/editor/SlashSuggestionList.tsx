@@ -52,11 +52,17 @@ export const SlashSuggestionList = forwardRef<
   }))
 
   if (!items.length) {
-    return <div className={suggestionEmptyClass}>{t('slash.empty')}</div>
+    return (
+      <div className={`${suggestionListClass} titlebar-no-drag`}>
+        <p className="slash-menu-hint">{t('slash.menuHint')}</p>
+        <div className={suggestionEmptyClass}>{t('slash.empty')}</div>
+      </div>
+    )
   }
 
   return (
     <div className={`${suggestionListClass} titlebar-no-drag`}>
+      <p className="slash-menu-hint">{t('slash.menuHint')}</p>
       {items.map((item, index) => (
         <button
           key={item.id}

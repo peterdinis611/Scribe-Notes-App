@@ -167,22 +167,43 @@
     "title": "Welcome to Scribe",
     "stepOf": "Step {{current}} of {{total}}",
     "dontShowAgain": "Don't show again on next launch",
-    "library": {
-      "title": "Document library",
-      "description": "Use the sidebar to organize documents into folders, mark favorites, and switch between them quickly."
+    "demoOptional": "Want a deeper tour? The demo document is optional — open it anytime from the header.",
+    "newDocument": {
+      "title": "New document",
+      "description": "Start with a blank page or template. Documents stay on your Mac — no account, no cloud."
     },
-    "export": {
-      "title": "Export and files",
-      "description": "The File menu lets you import, preview PDF, print, and export to PDF, Word, Markdown, or Pages."
+    "wikiLink": {
+      "title": "Link your notes",
+      "description": "Type [[Title]] or use a slash command. Click a link to jump to another document."
     },
-    "focus": {
-      "title": "Focus mode",
-      "description": "Press ⌘⇧F for distraction-free writing — the sidebar and toolbar hide. Press Esc to exit."
-    },
-    "demo": {
-      "title": "Demo guide",
-      "description": "The Demo button opens an interactive document with every editor feature. A great starting point for new users."
+    "structure": {
+      "title": "Stay oriented while scrolling",
+      "description": "The Outline panel (right) tracks headings. The status bar shows your current section and page."
     }
+  },
+  "whatsNew": {
+    "badge": "What's new in {{version}}",
+    "title": "What's new",
+    "subtitle": "A quick overview of changes in this release.",
+    "gotIt": "Got it",
+    "welcome": {
+      "title": "Clearer welcome screen",
+      "description": "A redesigned home with clear steps and quick access to recent documents."
+    },
+    "comments": {
+      "title": "Comments",
+      "description": "Select text, add a comment from the panel or floating bar, and track threads on the right."
+    },
+    "scrollNav": {
+      "title": "Scroll orientation",
+      "description": "“You are here” shows the current section, outline follows scroll, and wiki links have preview + Back."
+    }
+  },
+  "wikiNav": {
+    "back": "Back",
+    "backHint": "Return to the previous document (wiki link trail)",
+    "breadcrumbLabel": "Document navigation",
+    "trail": "Trail"
   },
   "settings": {
     "sections": {
@@ -796,7 +817,8 @@
   },
   "focusMode": {
     "exit": "Exit focus",
-    "exitHint": "Exit focus mode (Esc)"
+    "exitHint": "Exit focus mode (Esc)",
+    "activeHint": "Focus mode hides the sidebar and toolbar — just writing. ⌘⇧F toggles it back."
   },
   "findReplace": {
     "findPlaceholder": "Find in document…",
@@ -848,6 +870,7 @@
     "eyebrow": "Wiki links",
     "pageTitle": "Connection map",
     "pageSubtitle": "A map of documents connected by [[wiki links]]. Click a node to open that document.",
+    "howToHint": "Double-click a node to open it. The Around filter shows neighbors of the active note.",
     "openFullMap": "Open full connection map",
     "openFullMapShort": "Full map",
     "obsidianHint": "Zoom toward cursor · % / reset fits all · double-click background"
@@ -926,6 +949,7 @@
   },
   "slash": {
     "empty": "No commands",
+    "menuHint": "Type / in an empty line — insert blocks, headings, tables, or wiki links.",
     "h1": {
       "label": "Heading 1",
       "hint": "Large heading"
@@ -1074,11 +1098,14 @@
   },
   "wikiLink": {
     "modified": "Edited {{time}}",
-    "emptyDocument": "Empty document"
+    "emptyDocument": "Empty document",
+    "previewHint": "Preview of the target document — click the link or use the button below.",
+    "openDocument": "Open document"
   },
   "templates": {
     "title": "New document",
     "subtitle": "Choose a template or start from a blank page",
+    "introHint": "Templates speed up common starts — report, journal, letter. Save your own from an existing document.",
     "searchPlaceholder": "Search templates…",
     "customTemplate": "Custom template",
     "customCategory": "Custom category",

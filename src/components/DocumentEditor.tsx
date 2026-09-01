@@ -40,12 +40,11 @@ import { handleTauriEditorKeyDown } from '@/lib/editor/tauri-input-fix'
 import { getEditorMarkdown } from '@/lib/editor/markdown-content'
 import { insertImagesFromFiles } from '@/lib/editor/image-utils'
 import { printDocumentFromContent } from '@/lib/export/print-document'
-import { ROUTES } from '@/lib/routes'
+import { navigateViaWikiLink } from '@/lib/navigation'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { editorRefs } from '@/store/editorRefs'
 import {
-  setActiveDocumentId,
   setBacklinksPanelOpen,
   setCommentsPanelOpen,
   setDocumentOutlineOpen,
@@ -273,13 +272,17 @@ export function DocumentEditor() {
         event.preventDefault()
         const targetId = anchor.getAttribute('data-target-id')
         if (!targetId) return
-        dispatch(setActiveDocumentId(targetId))
-        navigate(ROUTES.document(targetId))
+        navigateViaWikiLink({
+          fromId: activeId,
+          targetId,
+          dispatch,
+          navigate: (route) => void navigate(route),
+        })
       }
       dom.addEventListener('click', handleClick)
       return () => dom.removeEventListener('click', handleClick)
     },
-    [dispatch, navigate],
+    [activeId, dispatch, navigate],
   )
 
   const {

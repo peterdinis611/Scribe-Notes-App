@@ -60,6 +60,8 @@ export interface DocumentsState {
   openDocumentIds: string[]
   /** Document shown in the right split pane (null = no split). */
   secondaryDocumentId: string | null
+  /** Wiki-link back trail (session only, newest last). */
+  documentNavStack: string[]
 }
 
 function pruneIds(ids: string[], documents: DocumentSummary[]): string[] {
@@ -115,6 +117,7 @@ const initialState: DocumentsState = {
   recentlyClosedIds: initialClosed,
   openDocumentIds: initialOpen,
   secondaryDocumentId: null,
+  documentNavStack: [],
 }
 
 const documentsSlice = createSlice({
@@ -378,6 +381,25 @@ const documentsSlice = createSlice({
         persistOpenDocumentIds(state.openDocumentIds)
       }
     },
+    pushDocumentNav(state, action: PayloadAction<string>) {
+      const fromId = action.payload
+      if (!fromId || fromId === state.activeDocumentId) return
+      const last = state.documentNavStack[state.documentNavStack.length - 1]
+      if (last === fromId) return
+      state.documentNavStack = [...state.documentNavStack, fromId]
+    },
+    popDocumentNav(state) {
+      state.documentNavStack = state.documentNavStack.slice(0, -1)
+    },
+    trimDocumentNavTo(state, action: PayloadAction<string>) {
+      const index = state.documentNavStack.indexOf(action.payload)
+      if (index >= 0) {
+        state.documentNavStack = state.documentNavStack.slice(0, index)
+      }
+    },
+    clearDocumentNav(state) {
+      state.documentNavStack = []
+    },
   },
 })
 
@@ -416,6 +438,10 @@ export const {
   setCommentAuthor,
   setDiskSyncWarning,
   setSecondaryDocumentId,
+  pushDocumentNav,
+  popDocumentNav,
+  trimDocumentNavTo,
+  clearDocumentNav,
 } = documentsSlice.actions
 
 export default documentsSlice.reducer

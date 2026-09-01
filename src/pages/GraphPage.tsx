@@ -23,6 +23,9 @@ export function GraphPage() {
           <p className="link-graph-page-subtitle mt-1 max-w-[48ch] text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
             {t('linkGraph.pageSubtitle')}
           </p>
+          <p className="link-graph-page-hint mt-1 max-w-[52ch] text-[11px] leading-relaxed text-[var(--color-muted-foreground)]">
+            {t('linkGraph.howToHint')}
+          </p>
         </div>
         <Button
           type="button"

@@ -167,22 +167,43 @@
     "title": "Vitajte v Scribe",
     "stepOf": "Krok {{current}} z {{total}}",
     "dontShowAgain": "Pri ďalšom spustení už nezobrazovať",
-    "library": {
-      "title": "Knižnica dokumentov",
-      "description": "V bočnom paneli organizujete dokumenty do priečinkov, označujete obľúbené a rýchlo prepínate medzi nimi."
+    "demoOptional": "Chcete hlbší prehľad? Ukážkový dokument je voliteľný — otvorte ho kedykoľvek z hlavičky.",
+    "newDocument": {
+      "title": "Nový dokument",
+      "description": "Začnite prázdnou stránkou alebo šablónou. Dokumenty sa ukladajú lokálne na váš Mac — bez účtu a cloudu."
     },
-    "export": {
-      "title": "Export a súbory",
-      "description": "Menu Súbor umožňuje import, náhľad PDF, tlač a export do PDF, Word, Markdown alebo Pages."
+    "wikiLink": {
+      "title": "Prepojte poznámky",
+      "description": "Napíšte [[Názov]] alebo použite slash príkaz. Kliknutím na odkaz prejdete do druhého dokumentu."
     },
-    "focus": {
-      "title": "Režim sústredenia",
-      "description": "Stlačte ⌘⇧F pre nerušené písanie — skryje sa bočný panel aj toolbar. Ukončite klávesom Esc."
-    },
-    "demo": {
-      "title": "Ukážkový sprievodca",
-      "description": "Tlačidlo Ukážka otvorí interaktívny dokument so všetkými funkciami editora. Ideálny štart pre nových používateľov."
+    "structure": {
+      "title": "Orientácia v dlhom texte",
+      "description": "Panel Štruktúra (vpravo) sleduje nadpisy a scroll. V spodnom paneli vidíte aktuálnu sekciu a stránku."
     }
+  },
+  "whatsNew": {
+    "badge": "Novinky {{version}}",
+    "title": "Čo je nové",
+    "subtitle": "Krátky prehľad zmien v tejto verzii.",
+    "gotIt": "Rozumiem",
+    "welcome": {
+      "title": "Prehľadnejší úvod",
+      "description": "Nová úvodná obrazovka s jasnými krokmi a rýchlym prístupom k nedávnym dokumentom."
+    },
+    "comments": {
+      "title": "Komentáre",
+      "description": "Označte text, pridajte komentár z panelu alebo plávajúcej lišty a sledujte vlákna vpravo."
+    },
+    "scrollNav": {
+      "title": "Orientácia pri scrollovaní",
+      "description": "„Si tu“ ukazuje aktuálnu sekciu, štruktúra sleduje scroll a wiki odkazy majú náhľad a tlačidlo Späť."
+    }
+  },
+  "wikiNav": {
+    "back": "Späť",
+    "backHint": "Vrátiť sa na predchádzajúci dokument (wiki odkaz)",
+    "breadcrumbLabel": "Navigácia dokumentov",
+    "trail": "Cesta"
   },
   "settings": {
     "sections": {
@@ -804,7 +825,8 @@
   },
   "focusMode": {
     "exit": "Ukončiť sústredenie",
-    "exitHint": "Ukončiť režim sústredenia (Esc)"
+    "exitHint": "Ukončiť režim sústredenia (Esc)",
+    "activeHint": "Režim sústredenia skrýva bočný panel a toolbar — len písanie. ⌘⇧F prepína späť."
   },
   "findReplace": {
     "findPlaceholder": "Hľadať v dokumente…",
@@ -856,6 +878,7 @@
     "eyebrow": "Wiki odkazy",
     "pageTitle": "Mapa prepojení",
     "pageSubtitle": "Vizualizácia dokumentov spojených cez [[wiki odkazy]]. Kliknutím na uzol dokument otvoríte.",
+    "howToHint": "Dvojklik na uzol otvorí dokument. Filter Okolo zobrazí susedov aktívnej poznámky.",
     "openFullMap": "Otvoriť celú mapu prepojení",
     "openFullMapShort": "Celá mapa",
     "obsidianHint": "Zoom na kurzor · % / reset = celá mapa · dvojklik na pozadie"
@@ -934,6 +957,7 @@
   },
   "slash": {
     "empty": "Žiadne príkazy",
+    "menuHint": "Napíšte / v prázdnom riadku — vložte bloky, nadpisy, tabuľky alebo wiki odkaz.",
     "h1": {
       "label": "Nadpis 1",
       "hint": "Veľký nadpis"
@@ -1082,11 +1106,14 @@
   },
   "wikiLink": {
     "modified": "Upravené {{time}}",
-    "emptyDocument": "Prázdny dokument"
+    "emptyDocument": "Prázdny dokument",
+    "previewHint": "Náhľad cieľového dokumentu — kliknutím na odkaz alebo tlačidlom nižšie.",
+    "openDocument": "Otvoriť dokument"
   },
   "templates": {
     "title": "Nový dokument",
     "subtitle": "Vyberte šablónu alebo začnite od prázdnej stránky",
+    "introHint": "Šablóny urýchlia štart — report, denník, list. Vlastnú šablónu uložíte z existujúceho dokumentu.",
     "searchPlaceholder": "Hľadať šablóny…",
     "customTemplate": "Vlastná šablóna",
     "customCategory": "Vlastná kategória",

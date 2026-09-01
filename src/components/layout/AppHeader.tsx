@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { DocumentTitleField } from '@/components/DocumentTitleField'
 import { DemoGuideButton } from '@/components/DemoGuideButton'
+import { DocumentNavBreadcrumb } from '@/components/layout/DocumentNavBreadcrumb'
 import { LocaleToggle } from '@/components/LocaleToggle'
 import { EditorDocumentToolsMenu } from '@/components/editor/EditorDocumentToolsMenu'
 import { EditorFileMenu } from '@/components/editor/EditorFileMenu'
@@ -272,6 +273,7 @@ function EditorChrome() {
           />
           {document ? (
             <>
+              <DocumentNavBreadcrumb />
               <div className="editor-header-divider" aria-hidden="true" />
               <DocumentTitleField documentId={document.id} title={document.title} variant="header" />
             </>
