@@ -1,3 +1,3 @@
 mod sidecar;
 
-pub use sidecar::{NlpHealth, NlpSidecar, resolve_script_path, script_path_label};
+pub use sidecar::{script_path_label, NlpSidecar, resolve_script_path};

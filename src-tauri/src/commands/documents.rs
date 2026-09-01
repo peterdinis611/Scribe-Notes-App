@@ -505,6 +505,7 @@ fn purge_document_row(conn: &rusqlite::Connection, id: &str) -> Result<(), Strin
         .map_err(|e| e.to_string())?;
 
     crate::db::remove_document_fts(conn, id)?;
+    crate::db::remove_embedding(conn, id)?;
 
     if let Some(path) = file_path {
         storage::delete_document_file(&path)?;

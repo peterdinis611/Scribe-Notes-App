@@ -1,5 +1,4 @@
 import html2pdf from 'html2pdf.js'
-import { resolveImageSrc } from '@/lib/editor/image-utils'
 import {
   buildHeaderFooterLines,
   formatExportDate,
@@ -35,39 +34,38 @@ function blobToBase64(blob: Blob): Promise<string> {
   })
 }
 
-function prepareRenderContainer(html: string, pageSetup: PageSetup): HTMLDivElement {
-  const parsed = new DOMParser().parseFromString(html, 'text/html')
+function createRenderFrame(html: string, pageSetup: PageSetup): HTMLIFrameElement {
   const paper = PAPER_SIZES[pageSetup.paperSize]
+  const frame = document.createElement('iframe')
+  frame.setAttribute('aria-hidden', 'true')
+  frame.tabIndex = -1
+  frame.style.cssText = [
+    'position:fixed',
+    'left:-10000px',
+    'top:0',
+    `width:${paper.width}px`,
+    'border:0',
+    'visibility:hidden',
+    'pointer-events:none',
+  ].join(';')
 
-  parsed.querySelectorAll('img').forEach((img) => {
-    const src = img.getAttribute('src')
-    if (src) img.setAttribute('src', resolveImageSrc(src))
-  })
+  document.body.appendChild(frame)
 
-  const styles = parsed.querySelector('style')?.textContent ?? ''
-  const bodyHtml = parsed.body?.innerHTML ?? html
+  const doc = frame.contentDocument
+  if (!doc) {
+    document.body.removeChild(frame)
+    throw new Error('Nepodarilo sa pripraviť PDF náhľad.')
+  }
 
-  const container = document.createElement('div')
-  container.style.position = 'fixed'
-  container.style.left = '-10000px'
-  container.style.top = '0'
-  container.style.width = `${paper.width}px`
-  container.style.background = '#ffffff'
-  container.style.color = '#111111'
+  doc.open()
+  doc.write(html)
+  doc.close()
 
-  const styleEl = document.createElement('style')
-  styleEl.textContent = styles
-  container.appendChild(styleEl)
-
-  const content = document.createElement('div')
-  content.innerHTML = bodyHtml
-  container.appendChild(content)
-
-  return container
+  return frame
 }
 
-async function waitForImages(container: HTMLElement): Promise<void> {
-  const images = Array.from(container.querySelectorAll('img'))
+async function waitForImages(root: ParentNode): Promise<void> {
+  const images = Array.from(root.querySelectorAll('img'))
   await Promise.all(
     images.map(
       (img) =>
@@ -81,6 +79,39 @@ async function waitForImages(container: HTMLElement): Promise<void> {
         }),
     ),
   )
+}
+
+async function prepareRenderRoot(html: string, pageSetup: PageSetup): Promise<{
+  root: HTMLElement
+  frame: HTMLIFrameElement
+}> {
+  const frame = createRenderFrame(html, pageSetup)
+  const doc = frame.contentDocument
+  if (!doc) {
+    frame.remove()
+    throw new Error('Nepodarilo sa pripraviť PDF náhľad.')
+  }
+
+  try {
+    await doc.fonts.ready
+    await waitForImages(doc)
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+    })
+
+    const height = Math.max(
+      doc.body.scrollHeight,
+      doc.documentElement.scrollHeight,
+      doc.body.offsetHeight,
+      1,
+    )
+    frame.style.height = `${height}px`
+
+    return { root: doc.body, frame }
+  } catch (error) {
+    frame.remove()
+    throw error
+  }
 }
 
 function applyHeaderFooterToPdf(
@@ -177,8 +208,8 @@ export async function generatePdfFromHtml(
 ): Promise<{ blob: Blob; dataBase64: string }> {
   const pageSetup = normalizePageSetup(options?.pageSetup ?? DEFAULT_PAGE_SETUP)
   const title = options?.title ?? 'Dokument'
-  const container = prepareRenderContainer(html, pageSetup)
-  document.body.appendChild(container)
+  const { root, frame } = await prepareRenderRoot(html, pageSetup)
+  const doc = frame.contentDocument!
 
   const marginTop = pxToPt(pageSetup.marginTop)
   const marginBottom = pxToPt(pageSetup.marginBottom)
@@ -187,13 +218,14 @@ export async function generatePdfFromHtml(
   const jsPdfFormat =
     pageSetup.paperSize === 'letter' ? 'letter' : pageSetup.paperSize
 
-  try {
-    await document.fonts.ready
-    await waitForImages(container)
-    await new Promise<void>((resolve) => {
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
-    })
+  const captureWidth = Math.max(
+    root.scrollWidth,
+    doc.documentElement.scrollWidth,
+    PAPER_SIZES[pageSetup.paperSize].width,
+  )
+  const captureHeight = Math.max(root.scrollHeight, doc.documentElement.scrollHeight)
 
+  try {
     const worker = html2pdf()
       .set({
         margin: [marginTop, marginRight, marginBottom, marginLeft],
@@ -205,10 +237,22 @@ export async function generatePdfFromHtml(
           allowTaint: true,
           logging: false,
           backgroundColor: '#ffffff',
+          scrollX: 0,
+          scrollY: 0,
+          windowWidth: captureWidth,
+          windowHeight: captureHeight,
         },
         jsPDF: { unit: 'pt', format: jsPdfFormat, orientation: 'portrait' },
+        pagebreak: { mode: ['css', 'legacy'] },
+      } as {
+        margin: [number, number, number, number]
+        filename: string
+        image: { type: 'jpeg'; quality: number }
+        html2canvas: Record<string, unknown>
+        jsPDF: { unit: string; format: string; orientation: 'portrait' }
+        pagebreak: { mode: string[] }
       })
-      .from(container)
+      .from(root)
       .toPdf()
 
     const pdf = await worker.get('pdf')
@@ -219,6 +263,6 @@ export async function generatePdfFromHtml(
     const dataBase64 = await blobToBase64(blob)
     return { blob, dataBase64 }
   } finally {
-    document.body.removeChild(container)
+    frame.remove()
   }
 }

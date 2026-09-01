@@ -2524,6 +2524,377 @@ html[data-ui-skin='press'] .editor-shell--home {
   background: color-mix(in srgb, var(--color-accent) 22%, transparent);
 }
 
+.editor-canvas {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: min(var(--page-width, 820px), 100%);
+  margin: 0 auto;
+  padding: var(--page-padding-top, 56px) var(--page-padding-right, 64px) var(--page-padding-bottom, 72px) var(--page-padding-left, 64px);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-elevated);
+  border: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-border) 30%, transparent),
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    0 16px 40px rgba(0, 0, 0, 0.06);
+  -webkit-app-region: no-drag;
+}
+
+.react-renderer.slash-suggestion-popup,
+.react-renderer.emoji-suggestion-popup,
+.react-renderer.wiki-suggestion-popup {
+  z-index: 300;
+  -webkit-app-region: no-drag;
+}
+
+.editor-canvas--paginated {
+  min-height: calc(var(--page-padding-top) + var(--page-content-height) + 72px);
+}
+
+.editor-canvas--markdown {
+  max-width: min(920px, 100%);
+  padding: 28px 36px 40px;
+  min-height: min(70vh, 760px);
+}
+
+.markdown-source-editor {
+  display: block;
+  width: 100%;
+  min-height: min(58vh, 680px);
+  border: none;
+  background: transparent;
+  resize: vertical;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--color-foreground);
+  outline: none;
+}
+
+.markdown-source-editor::placeholder {
+  color: var(--color-muted-foreground);
+}
+
+.editor-markdown-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.editor-tools-trigger {
+  gap: 4px;
+}
+
+.editor-page-label {
+  position: absolute;
+  top: 16px;
+  right: 18px;
+  padding: 3px 9px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-background) 88%, transparent);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-muted-foreground);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.editor-page-break {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  height: 0;
+  border-top: 1px dashed color-mix(in srgb, var(--color-border) 80%, var(--color-accent));
+  pointer-events: none;
+}
+
+.editor-page-chrome {
+  pointer-events: none;
+}
+
+.editor-page-header,
+.editor-page-footer {
+  position: absolute;
+  left: var(--page-padding-left);
+  right: var(--page-padding-right);
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.editor-page-header {
+  text-align: center;
+  padding-bottom: 4px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+}
+
+.editor-page-footer {
+  text-align: center;
+  padding-top: 4px;
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+}
+
+.editor-page-chrome--sheet {
+  position: absolute;
+  z-index: 1;
+}
+
+.editor-page-chrome--sheet .editor-page-header {
+  top: 10px;
+  bottom: auto;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+}
+
+.editor-page-chrome--sheet .editor-page-footer {
+  top: auto;
+  bottom: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+}
+
+.editor-page-watermark {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.editor-page-watermark span {
+  transform: rotate(var(--watermark-angle, -35deg));
+  font-size: 42px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-muted-foreground) calc(var(--watermark-opacity, 0.12) * 100%), transparent);
+  user-select: none;
+}
+
+.editor-print-host {
+  width: 100%;
+}
+
+.editor-scroll--print-layout {
+  background: color-mix(in srgb, var(--color-sidebar) 70%, var(--color-background));
+  overflow: auto;
+}
+
+.editor-print-host--active {
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+  padding: 8px 0 24px;
+}
+
+.editor-print-stage {
+  position: relative;
+  transform-origin: top center;
+  max-width: 100%;
+}
+
+.editor-page-sheets {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.editor-page-sheet {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 4px;
+  background: #ffffff;
+  border: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 12px 32px rgba(0, 0, 0, 0.05);
+}
+
+.dark .editor-page-sheet {
+  background: var(--color-surface-elevated);
+}
+
+.editor-page-sheet-label {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-muted-foreground);
+}
+
+.editor-canvas--print-layout {
+  position: relative;
+  z-index: 2;
+  margin: 0 auto;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  min-height: auto;
+  max-width: 100%;
+}
+
+.editor-print-page-gap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 28px;
+  pointer-events: none;
+  background: transparent;
+}
+
+.editor-print-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-toolbar);
+}
+
+.editor-print-bar-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.editor-print-bar-group--primary {
+  flex-wrap: wrap;
+}
+
+.editor-print-bar-group--end {
+  margin-left: auto;
+}
+
+.editor-print-bar-divider {
+  width: 1px;
+  height: 28px;
+  background: var(--color-border);
+  flex-shrink: 0;
+}
+
+.editor-print-bar-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-muted-foreground);
+}
+
+.editor-print-bar-zoom {
+  min-width: 44px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.editor-print-bar-zoom-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.editor-print-mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.editor-print-mode-toggle:hover {
+  background: var(--color-hover);
+}
+
+.editor-print-mode-toggle.is-active {
+  border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-border));
+  background: color-mix(in srgb, var(--color-selection) 70%, var(--color-background));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 20%, transparent);
+}
+
+.editor-print-mode-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-muted-foreground);
+  opacity: 0.45;
+}
+
+.editor-print-mode-indicator.is-on {
+  background: var(--color-accent);
+  opacity: 1;
+}
+
+.editor-print-bar-segmented {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-sidebar);
+}
+
+.editor-print-bar-segment {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 28px;
+  border: none;
+  border-radius: calc(var(--radius-md) - 2px);
+  background: transparent;
+  color: var(--color-muted-foreground);
+  cursor: pointer;
+}
+
+.editor-print-bar-segment.is-active {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.tiptap--print-accurate {
+  font-size: 12pt;
+  line-height: 1.6;
+  letter-spacing: 0;
+}
+
+.tiptap--print-accurate h1 {
+  font-size: 24pt;
+  line-height: 1.15;
+  margin: 0 0 12pt;
+}
+
+.tiptap--print-accurate h2 {
+  font-size: 18pt;
+  line-height: 1.2;
+  margin: 18pt 0 8pt;
+}
+
+.tiptap--print-accurate h3 {
+  font-size: 14pt;
+  line-height: 1.25;
+  margin: 14pt 0 6pt;
+}
+
+.tiptap--print-accurate p {
+  margin: 0 0 10pt;
+}
 
 .editor-shell--reading .editor-panel-rail,
 .editor-shell--reading .editor-toolbar,
@@ -4791,13 +5162,27 @@ body.is-block-dragging .tiptap {
 }
 
 .pdf-preview-viewport--embedpdf {
+  position: relative;
   padding: 0;
-  background: var(--color-background);
+  background: var(--color-canvas);
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .pdf-preview-embedpdf {
+  position: absolute;
+  inset: 0;
   min-height: 0;
-  flex: 1;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.pdf-preview-embedpdf > div {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
 }
 
 .pdf-preview-state {

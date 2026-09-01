@@ -19,6 +19,7 @@ import {
   buildDocumentContentCss,
   buildWatermarkCss,
 } from '@/lib/export/document-styles'
+import { colorForExport } from '@/lib/export/export-colors'
 import {
   extractFontFamiliesFromContentJson,
   googleFontsLinkTags,
@@ -74,7 +75,7 @@ function renderMarks(text: string, marks?: TipTapNode['marks']): string {
         return `<sup>${acc}</sup>`
       case 'textStyle': {
         const styles: string[] = []
-        if (mark.attrs?.color) styles.push(`color:${mark.attrs.color}`)
+        if (mark.attrs?.color) styles.push(`color:${colorForExport(String(mark.attrs.color))}`)
         if (mark.attrs?.fontSize) styles.push(`font-size:${mark.attrs.fontSize}`)
         if (mark.attrs?.fontFamily) styles.push(`font-family:${mark.attrs.fontFamily}`)
         if (!styles.length) return acc

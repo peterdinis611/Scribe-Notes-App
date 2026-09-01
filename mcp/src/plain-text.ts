@@ -5,6 +5,50 @@ type TipTapNode = {
   content?: TipTapNode[]
 }
 
+export type WikiTargetResolver = (label: string) => string | null
+
+function inlineContentFromText(text: string, resolveWikiTarget?: WikiTargetResolver): TipTapNode[] {
+  if (!text) return []
+
+  if (!resolveWikiTarget || !text.includes('[[')) {
+    return [{ type: 'text', text }]
+  }
+
+  const nodes: TipTapNode[] = []
+  const pattern = /\[\[([^\]]+)\]\]/g
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+
+  while ((match = pattern.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      nodes.push({ type: 'text', text: text.slice(lastIndex, match.index) })
+    }
+    const label = match[1]!.trim()
+    if (label) {
+      nodes.push({
+        type: 'wikiLink',
+        attrs: { targetId: resolveWikiTarget(label), label },
+      })
+    }
+    lastIndex = pattern.lastIndex
+  }
+
+  if (lastIndex < text.length) {
+    nodes.push({ type: 'text', text: text.slice(lastIndex) })
+  }
+
+  return nodes.length > 0 ? nodes : [{ type: 'text', text }]
+}
+
+function paragraphNode(line: string, resolveWikiTarget?: WikiTargetResolver): TipTapNode {
+  const text = line.trimEnd()
+  if (!text) return { type: 'paragraph' }
+  return {
+    type: 'paragraph',
+    content: inlineContentFromText(text, resolveWikiTarget),
+  }
+}
+
 function inlineText(nodes?: TipTapNode[]): string {
   return (nodes ?? [])
     .map((node) => {
@@ -87,28 +131,22 @@ export function tiptapToPlainText(contentJson: string): string {
   }
 }
 
-function paragraphNode(line: string): TipTapNode {
-  const text = line.trimEnd()
-  if (!text) return { type: 'paragraph' }
-  return {
-    type: 'paragraph',
-    content: [{ type: 'text', text }],
-  }
-}
-
 /** Wrap plain text lines as TipTap doc paragraphs. */
-export function plainTextToTipTap(text: string): string {
+export function plainTextToTipTap(text: string, resolveWikiTarget?: WikiTargetResolver): string {
   const lines = text.replace(/\r\n/g, '\n').split('\n')
   const content =
     lines.length === 0 || (lines.length === 1 && lines[0] === '')
       ? [{ type: 'paragraph' }]
-      : lines.map(paragraphNode)
+      : lines.map((line) => paragraphNode(line, resolveWikiTarget))
   return JSON.stringify({ type: 'doc', content })
 }
 
 /** TipTap paragraph nodes for appending plain text (split on newlines). */
-export function plainTextToParagraphNodes(text: string): TipTapNode[] {
+export function plainTextToParagraphNodes(
+  text: string,
+  resolveWikiTarget?: WikiTargetResolver,
+): TipTapNode[] {
   const lines = text.replace(/\r\n/g, '\n').split('\n')
   if (lines.length === 0) return [{ type: 'paragraph' }]
-  return lines.map(paragraphNode)
+  return lines.map((line) => paragraphNode(line, resolveWikiTarget))
 }

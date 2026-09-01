@@ -1,5 +1,5 @@
 use chrono::Utc;
-use rusqlite::{params, OptionalExtension};
+use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tauri::State;
@@ -85,7 +85,7 @@ fn sidecar_status(sidecar: &NlpSidecar, enabled: bool, indexed_count: i64) -> Nl
             version: None,
             model: None,
             indexed_count,
-            script_path: script_path.to_string_lossy().to_string(),
+            script_path: crate::nlp::script_path_label(&script_path),
             python_bin,
             error: None,
         };
@@ -99,7 +99,7 @@ fn sidecar_status(sidecar: &NlpSidecar, enabled: bool, indexed_count: i64) -> Nl
             version: Some(health.version),
             model: Some(health.model),
             indexed_count,
-            script_path: script_path.to_string_lossy().to_string(),
+            script_path: crate::nlp::script_path_label(&script_path),
             python_bin,
             error: None,
         },
@@ -110,7 +110,7 @@ fn sidecar_status(sidecar: &NlpSidecar, enabled: bool, indexed_count: i64) -> Nl
             version: None,
             model: None,
             indexed_count,
-            script_path: script_path.to_string_lossy().to_string(),
+            script_path: crate::nlp::script_path_label(&script_path),
             python_bin,
             error: Some(error),
         },

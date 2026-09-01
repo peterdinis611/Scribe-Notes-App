@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { existsSync } from 'node:fs'
+import { syncDocumentLinks } from './links.js'
 import {
   plainTextToParagraphNodes,
   plainTextToTipTap,
@@ -18,6 +19,54 @@ export type DocumentSummary = {
   isFavorite: boolean
   isPinned: boolean
   tags: string[]
+  deletedAt?: number | null
+}
+
+export type CommentRow = {
+  id: string
+  threadId: string
+  documentId: string
+  author: string
+  body: string
+  createdAt: number
+}
+
+export type CommentThreadRow = {
+  id: string
+  documentId: string
+  quote: string
+  resolved: boolean
+  createdAt: number
+  comments: CommentRow[]
+}
+
+export type CommentSearchHit = {
+  commentId: string
+  threadId: string
+  documentId: string
+  documentTitle: string
+  author: string
+  body: string
+  quote: string
+  resolved: boolean
+  createdAt: number
+}
+
+export type TagCount = {
+  tag: string
+  count: number
+}
+
+export type DocumentRevisionSummary = {
+  id: string
+  documentId: string
+  title: string
+  createdAt: number
+}
+
+export type DocumentRevisionDetail = DocumentRevisionSummary & {
+  plainText: string
+  contentJson: string
 }
 
 export type SearchHit = {
@@ -80,6 +129,7 @@ function mapSummary(row: {
   is_favorite: number
   is_pinned: number
   tags: string | null
+  deleted_at?: number | null
 }): DocumentSummary {
   return {
     id: row.id,
@@ -90,7 +140,20 @@ function mapSummary(row: {
     isFavorite: row.is_favorite !== 0,
     isPinned: row.is_pinned !== 0,
     tags: parseTags(row.tags),
+    ...(row.deleted_at != null ? { deletedAt: row.deleted_at } : {}),
   }
+}
+
+function normalizeTags(tags: string[]): string[] {
+  const cleaned = tags
+    .map((tag) => tag.trim())
+    .filter(Boolean)
+  cleaned.sort()
+  return [...new Set(cleaned)]
+}
+
+function encodeTags(tags: string[]): string {
+  return JSON.stringify(normalizeTags(tags))
 }
 
 /** Default Scribe DB path on macOS (Tauri app_data_dir for com.scribe.app). */
@@ -182,21 +245,45 @@ export class ScribeMemoryStore {
       .run(documentId, title, body)
   }
 
+  private syncLinks(documentId: string, contentJson: string) {
+    syncDocumentLinks(this.db, documentId, contentJson)
+  }
+
+  private resolveWikiTarget = (label: string): string | null => {
+    const docs = this.findDocumentsByTitle(label, 5)
+    const exact = docs.find((doc) => doc.title.toLowerCase() === label.toLowerCase())
+    return exact?.id ?? null
+  }
+
+  private runWritable<T>(operation: () => T): T {
+    this.requireWritable()
+    try {
+      return operation()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (/locked|busy/i.test(message)) {
+        throw new Error(
+          `Scribe database is locked (app may be open). Retry in a moment. (${message})`,
+        )
+      }
+      throw error
+    }
+  }
+
   createNote(input: {
     title: string
     content?: string
     folderId?: string | null
   }): { id: string; title: string } {
-    this.requireWritable()
     const title = input.title.trim()
     if (!title) throw new Error('title is required')
 
-    const id = randomUUID()
-    const now = Date.now()
-    const contentJson = plainTextToTipTap(input.content ?? '')
-    const folderId = input.folderId ?? null
+    return this.runWritable(() => {
+      const id = randomUUID()
+      const now = Date.now()
+      const contentJson = plainTextToTipTap(input.content ?? '', this.resolveWikiTarget)
+      const folderId = input.folderId ?? null
 
-    try {
       this.db
         .prepare(
           `INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at)
@@ -204,67 +291,54 @@ export class ScribeMemoryStore {
         )
         .run(id, title, contentJson, folderId, now, now)
       this.syncFts(id, title, contentJson)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      if (/locked|busy/i.test(message)) {
-        throw new Error(
-          `Scribe database is locked (app may be open). Retry in a moment. (${message})`,
-        )
-      }
-      throw error
-    }
+      this.syncLinks(id, contentJson)
 
-    return { id, title }
+      return { id, title }
+    })
   }
 
   appendToNote(input: { id: string; text: string }): { id: string; title: string } {
-    this.requireWritable()
     const id = input.id.trim()
     const text = input.text
     if (!id) throw new Error('id is required')
     if (!text) throw new Error('text is required')
 
-    const row = this.db
-      .prepare(
-        `SELECT id, title, content_json, deleted_at FROM documents WHERE id = ?`,
+    return this.runWritable(() => {
+      const row = this.db
+        .prepare(
+          `SELECT id, title, content_json, deleted_at FROM documents WHERE id = ?`,
+        )
+        .get(id) as
+        | { id: string; title: string; content_json: string; deleted_at: number | null }
+        | undefined
+
+      if (!row || row.deleted_at != null) {
+        throw new Error(`Document not found: ${id}`)
+      }
+
+      let doc: TipTapDoc
+      try {
+        doc = JSON.parse(row.content_json) as TipTapDoc
+      } catch {
+        doc = { type: 'doc', content: [] }
+      }
+      if (!Array.isArray(doc.content)) doc.content = []
+      doc.type = doc.type ?? 'doc'
+      doc.content.push(
+        ...(plainTextToParagraphNodes(text, this.resolveWikiTarget) as Array<Record<string, unknown>>),
       )
-      .get(id) as
-      | { id: string; title: string; content_json: string; deleted_at: number | null }
-      | undefined
 
-    if (!row || row.deleted_at != null) {
-      throw new Error(`Document not found: ${id}`)
-    }
+      const contentJson = JSON.stringify(doc)
+      const now = Date.now()
 
-    let doc: TipTapDoc
-    try {
-      doc = JSON.parse(row.content_json) as TipTapDoc
-    } catch {
-      doc = { type: 'doc', content: [] }
-    }
-    if (!Array.isArray(doc.content)) doc.content = []
-    doc.type = doc.type ?? 'doc'
-    doc.content.push(...(plainTextToParagraphNodes(text) as Array<Record<string, unknown>>))
-
-    const contentJson = JSON.stringify(doc)
-    const now = Date.now()
-
-    try {
       this.db
         .prepare(`UPDATE documents SET content_json = ?, updated_at = ? WHERE id = ?`)
         .run(contentJson, now, id)
       this.syncFts(id, row.title, contentJson)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      if (/locked|busy/i.test(message)) {
-        throw new Error(
-          `Scribe database is locked (app may be open). Retry in a moment. (${message})`,
-        )
-      }
-      throw error
-    }
+      this.syncLinks(id, contentJson)
 
-    return { id, title: row.title }
+      return { id, title: row.title }
+    })
   }
 
   searchDocuments(query: string, limit = 10): SearchHit[] {
