@@ -1,17 +1,21 @@
-import mammoth from 'mammoth'
-import { generateJSON } from '@tiptap/html'
 import { invoke } from '@tauri-apps/api/core'
 import type { Document } from '@/lib/db/api'
-import { createDocument } from '@/lib/db/api'
+import { createDocument, updateDocument } from '@/lib/db/api'
 import { cacheDocument } from '@/lib/cache/document-cache'
-import { getEditorExtensions } from '@/lib/editor/extensions'
 import {
   isOleWordDoc,
   isZipArchive,
   readScopedBinaryFile,
 } from '@/lib/fs/read-scoped-binary'
+import { getImportExtensions } from '@/lib/import/import-extensions'
+import {
+  createImportImageToken,
+  materializeImportImages,
+  type PendingImportImage,
+} from '@/lib/import/word-images'
 
 const DOCX_EXTENSION = /\.docx$/i
+const EMPTY_DOC_JSON = JSON.stringify({ type: 'doc', content: [{ type: 'paragraph' }] })
 
 export function isWordDocxPath(path: string) {
   return DOCX_EXTENSION.test(path)
@@ -36,64 +40,77 @@ export function titleFromWordHtml(html: string, fallback: string) {
   return fallback
 }
 
-function bufferToBase64(buffer: ArrayBuffer) {
-  const bytes = new Uint8Array(buffer)
-  let binary = ''
-  for (let index = 0; index < bytes.length; index += 1) {
-    binary += String.fromCharCode(bytes[index]!)
-  }
-  return btoa(binary)
-}
-
 function normalizeDocJson(json: unknown): string {
   if (!json || typeof json !== 'object') {
-    return JSON.stringify({ type: 'doc', content: [{ type: 'paragraph' }] })
+    return EMPTY_DOC_JSON
   }
 
   const doc = json as { type?: string; content?: unknown[] }
   if (doc.type !== 'doc' || !Array.isArray(doc.content) || doc.content.length === 0) {
-    return JSON.stringify({ type: 'doc', content: [{ type: 'paragraph' }] })
+    return EMPTY_DOC_JSON
   }
 
   return JSON.stringify(doc)
 }
 
+function yieldToMain() {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, 0)
+  })
+}
+
 export async function convertDocxBytesToContentJson(bytes: Uint8Array): Promise<{
   contentJson: string
   html: string
+  pendingImages: Map<string, PendingImportImage>
 }> {
+  const [{ default: mammoth }, { generateJSON }] = await Promise.all([
+    import('mammoth'),
+    import('@tiptap/html'),
+  ])
+
   const arrayBuffer = bytes.buffer.slice(
     bytes.byteOffset,
     bytes.byteOffset + bytes.byteLength,
   ) as ArrayBuffer
 
+  const pendingImages = new Map<string, PendingImportImage>()
+  let nextImageIndex = 0
+
   const result = await mammoth.convertToHtml(
     { arrayBuffer },
     {
+      ignoreEmptyParagraphs: false,
       convertImage: mammoth.images.imgElement(async (image) => {
-        const imageBuffer = await image.read()
-        const base64 = bufferToBase64(imageBuffer)
-        return {
-          src: `data:${image.contentType};base64,${base64}`,
-        }
+        const token = createImportImageToken(nextImageIndex)
+        nextImageIndex += 1
+        pendingImages.set(token, {
+          buffer: await image.read(),
+          contentType: image.contentType,
+        })
+        return { src: token }
       }),
     },
   )
 
-  const html = result.value.trim()
-  if (!html) {
+  const html = result.value
+  if (!html.trim()) {
     return {
       html: '',
-      contentJson: JSON.stringify({ type: 'doc', content: [{ type: 'paragraph' }] }),
+      contentJson: EMPTY_DOC_JSON,
+      pendingImages,
     }
   }
 
-  const extensions = getEditorExtensions({ onInsertImages: () => {} })
+  await yieldToMain()
+
+  const extensions = getImportExtensions()
   const doc = generateJSON(`<div class="document-content">${html}</div>`, extensions)
 
   return {
     html,
     contentJson: normalizeDocJson(doc),
+    pendingImages,
   }
 }
 
@@ -123,12 +140,34 @@ export async function importWordDocumentFromPath(path: string): Promise<Document
   const fallbackTitle = importTitleFromPath(path, 'Import z Wordu')
 
   try {
-    const { contentJson, html } = await convertDocxBytesToContentJson(bytes)
-    const doc = await createDocument({
-      title: titleFromWordHtml(html, fallbackTitle),
+    const { contentJson, html, pendingImages } = await convertDocxBytesToContentJson(bytes)
+    const title = titleFromWordHtml(html, fallbackTitle)
+
+    const created = await createDocument({
+      title,
       contentJson,
     })
-    return cacheDocument(doc)
+
+    if (pendingImages.size === 0) {
+      return cacheDocument(created)
+    }
+
+    const materialized = await materializeImportImages(
+      created.id,
+      contentJson,
+      pendingImages,
+    )
+
+    if (materialized === contentJson) {
+      return cacheDocument(created)
+    }
+
+    return cacheDocument(
+      await updateDocument({
+        id: created.id,
+        contentJson: materialized,
+      }),
+    )
   } catch {
     return importLegacyWordViaRust(path)
   }
