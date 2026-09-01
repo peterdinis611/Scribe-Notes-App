@@ -153,7 +153,8 @@
       "tags": "Tags",
       "content": "Content",
       "wiki": "Wiki links",
-      "comments": "Comments"
+      "comments": "Comments",
+      "semantic": "Semantic"
     }
   },
   "editor": {
@@ -242,6 +243,10 @@
       "mcp": {
         "label": "MCP",
         "description": "Optional AI bridge — Cursor / Claude"
+      },
+      "nlp": {
+        "label": "Local AI",
+        "description": "Python add-on — semantics & analysis"
       },
       "about": {
         "label": "About",
@@ -335,6 +340,42 @@
       "copyError": "Could not copy to clipboard",
       "pathHint": "After npm run mcp:install, set an absolute --prefix path (see mcp/README.md). Example: npm run start --prefix /Users/YOU/path/to/scribe/mcp",
       "lockHint": "Write tools need a writable DB open. If Scribe has the database locked, retry create/append shortly or check scribe_status for writable: false."
+    },
+    "nlp": {
+      "title": "Local AI (Python)",
+      "description": "Optional add-on — Rust core stays, Python adds intelligence.",
+      "intro": "Semantic search, weekly journal overview, tag suggestions, and library analysis. All local via Python sidecar (no cloud). Requires Python 3.10+.",
+      "enableTitle": "Enable local AI",
+      "enableDescription": "When enabled, documents are indexed for semantic search in ⌘K.",
+      "enable": "Enable",
+      "enabled": "Enabled",
+      "enabledToast": "Local AI enabled",
+      "disabledToast": "Local AI disabled",
+      "toggleError": "Failed to toggle AI",
+      "indexTitle": "Index documents",
+      "indexDescription": "Rebuild embeddings for the whole library.",
+      "reindex": "Reindex",
+      "indexing": "Indexing…",
+      "indexError": "Indexing failed",
+      "indexedToast": "Indexed {{count}} documents",
+      "reportTitle": "Library analysis",
+      "reportDescription": "Generate a markdown report with themes and tags.",
+      "runReport": "Run analysis",
+      "reporting": "Analyzing…",
+      "reportDone": "Analysis complete",
+      "reportError": "Analysis failed",
+      "reportHeading": "Analysis result",
+      "refreshTitle": "Sidecar status",
+      "refreshDescription": "Check the Python process and indexed document count.",
+      "loadError": "Failed to load AI status",
+      "statusEnabled": "Enabled",
+      "statusSidecar": "Sidecar OK",
+      "statusModel": "Model",
+      "statusIndexed": "Indexed",
+      "statusPython": "Python",
+      "statusError": "Error",
+      "yes": "Yes",
+      "no": "No"
     },
     "shortcuts": {
       "title": "Keyboard shortcuts",
@@ -652,6 +693,7 @@
     "tags": "Tags",
     "documentTags": "Document tags",
     "documentTagsHint": "Separate tags with commas",
+    "nlpTagSuggestions": "AI tag suggestions",
     "folderNamePlaceholder": "Folder name",
     "noResults": "No results.",
     "noDocumentsYet": "No documents yet.",
@@ -1535,6 +1577,10 @@
     "morningTitle": "{{date}} — morning",
     "eveningTitle": "{{date}} — evening",
     "streak": "{{count}} day streak",
+    "weeklySummary": "Weekly overview",
+    "weeklySummaryTitle": "Week in review",
+    "summaryLoading": "Generating overview…",
+    "summaryError": "Failed to generate overview",
     "heatWorkflowHint": "Darker days = more consecutive entries. Click a day or use ⌘K for yesterday / tomorrow.",
     "thisWeek": "This week",
     "folderName": "Journal",

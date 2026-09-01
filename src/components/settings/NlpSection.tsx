@@ -171,8 +171,8 @@ export function NlpSection() {
 
       {status && (
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
-          <StatRow label={t('settings.nlp.statusEnabled')} value={status.enabled ? t('common.yes') : t('common.no')} />
-          <StatRow label={t('settings.nlp.statusSidecar')} value={status.sidecarOk ? t('common.yes') : t('common.no')} />
+          <StatRow label={t('settings.nlp.statusEnabled')} value={status.enabled ? t('settings.nlp.yes') : t('settings.nlp.no')} />
+          <StatRow label={t('settings.nlp.statusSidecar')} value={status.sidecarOk ? t('settings.nlp.yes') : t('settings.nlp.no')} />
           <StatRow label={t('settings.nlp.statusModel')} value={status.model ?? '—'} />
           <StatRow label={t('settings.nlp.statusIndexed')} value={status.indexedCount} />
           <StatRow label={t('settings.nlp.statusPython')} value={status.pythonBin} />

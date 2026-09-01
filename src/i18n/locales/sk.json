@@ -153,7 +153,8 @@
       "tags": "Štítky",
       "content": "Obsah",
       "wiki": "Wiki odkazy",
-      "comments": "Komentáre"
+      "comments": "Komentáre",
+      "semantic": "Sémanticky"
     }
   },
   "editor": {
@@ -242,6 +243,10 @@
       "mcp": {
         "label": "MCP",
         "description": "Voliteľný AI most — Cursor / Claude"
+      },
+      "nlp": {
+        "label": "Lokálna AI",
+        "description": "Python doplnok — sémantika a analýza"
       },
       "about": {
         "label": "O aplikácii",
@@ -335,6 +340,42 @@
       "copyError": "Nepodarilo sa skopírovať do schránky",
       "pathHint": "Po npm run mcp:install nastavte absolútnu --prefix cestu (pozri mcp/README.md). Príklad: npm run start --prefix /Users/VAS/cesta/k/scribe/mcp",
       "lockHint": "Nástroje na zápis potrebujú writable DB. Ak Scribe drží zámok, skúste create/append znova o chvíľu alebo skontrolujte scribe_status (writable: false)."
+    },
+    "nlp": {
+      "title": "Lokálna AI (Python)",
+      "description": "Voliteľný doplnok — Rust jadro ostáva, Python rozširuje inteligentné funkcie.",
+      "intro": "Sémantické vyhľadávanie, týždenný prehľad denníka, návrhy tagov a analýza knižnice. Všetko lokálne cez Python sidecar (žiadny cloud). Vyžaduje Python 3.10+.",
+      "enableTitle": "Zapnúť lokálnu AI",
+      "enableDescription": "Po zapnutí sa indexujú dokumenty pre sémantické vyhľadávanie v ⌘K.",
+      "enable": "Zapnúť",
+      "enabled": "Zapnuté",
+      "enabledToast": "Lokálna AI zapnutá",
+      "disabledToast": "Lokálna AI vypnutá",
+      "toggleError": "Nepodarilo sa zmeniť stav AI",
+      "indexTitle": "Index dokumentov",
+      "indexDescription": "Prepočíta embeddings pre celú knižnicu.",
+      "reindex": "Preindexovať",
+      "indexing": "Indexujem…",
+      "indexError": "Indexovanie zlyhalo",
+      "indexedToast": "Indexovaných {{count}} dokumentov",
+      "reportTitle": "Analýza knižnice",
+      "reportDescription": "Vygeneruje markdown report s témami a tagmi.",
+      "runReport": "Spustiť analýzu",
+      "reporting": "Analyzujem…",
+      "reportDone": "Analýza hotová",
+      "reportError": "Analýza zlyhala",
+      "reportHeading": "Výsledok analýzy",
+      "refreshTitle": "Stav sidecaru",
+      "refreshDescription": "Skontroluje Python proces a počet indexovaných dokumentov.",
+      "loadError": "Nepodarilo sa načítať stav AI",
+      "statusEnabled": "Zapnuté",
+      "statusSidecar": "Sidecar OK",
+      "statusModel": "Model",
+      "statusIndexed": "Indexovaných",
+      "statusPython": "Python",
+      "statusError": "Chyba",
+      "yes": "Áno",
+      "no": "Nie"
     },
     "shortcuts": {
       "title": "Klávesové skratky",
@@ -654,6 +695,7 @@
     "tags": "Štítky",
     "documentTags": "Štítky dokumentu",
     "documentTagsHint": "Oddeľte štítky čiarkou",
+    "nlpTagSuggestions": "Návrhy AI tagov",
     "folderNamePlaceholder": "Názov priečinka",
     "noResults": "Žiadne výsledky.",
     "noDocumentsYet": "Zatiaľ žiadne dokumenty.",
@@ -1547,6 +1589,10 @@
     "morningTitle": "{{date}} — ráno",
     "eveningTitle": "{{date}} — večer",
     "streak": "{{count}} dní po sebe",
+    "weeklySummary": "Týždenný prehľad",
+    "weeklySummaryTitle": "Prehľad týždňa",
+    "summaryLoading": "Generujem prehľad…",
+    "summaryError": "Nepodarilo sa vygenerovať prehľad",
     "heatWorkflowHint": "Tmavšie dni = viac zápisov v rade. Kliknite na deň alebo použite ⌘K pre včera / zajtra.",
     "thisWeek": "Tento týždeň",
     "folderName": "Denník",
