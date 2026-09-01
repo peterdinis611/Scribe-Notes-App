@@ -292,7 +292,7 @@ function EditorChrome() {
           )}
         </div>
 
-        <div className="editor-header-right titlebar-no-drag titlebar-interactive flex shrink-0 flex-nowrap items-center justify-end gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0">
+        <div className="editor-header-right titlebar-no-drag titlebar-interactive flex shrink-0 flex-nowrap items-center justify-end overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0">
           {document && readingMode && (
             <Button
               variant="default"
@@ -309,10 +309,11 @@ function EditorChrome() {
             </Button>
           )}
           {document && !readingMode && (
-            <>
+            <div className="editor-header-doc-actions">
               <Button
                 variant="outline"
                 size="sm"
+                className="shrink-0"
                 onClick={handleGoHome}
                 title={t('fileMenu.goHome')}
                 aria-label={t('fileMenu.goHome')}
@@ -324,14 +325,15 @@ function EditorChrome() {
               </Button>
               <Button
                 variant="outline"
-                size="sm"
+                size="icon"
+                className="shrink-0"
                 onClick={handleCloseDocument}
                 title={`${t('fileMenu.closeDocument')} (⌘W)`}
                 aria-label={t('fileMenu.closeDocument')}
               >
                 <X className="h-3.5 w-3.5 shrink-0" />
               </Button>
-            </>
+            </div>
           )}
           {document && !readingMode && <EditorDocumentToolsMenu viewMode={viewMode} />}
           {document && !readingMode && <EditorViewModeToggle />}

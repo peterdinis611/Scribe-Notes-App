@@ -33,6 +33,10 @@ function fallbackTitleFromPath(path: string) {
   return fileName.replace(/\.(md|markdown)$/i, '').trim() || 'Importovaný dokument'
 }
 
+function isLegacyWordPath(path: string) {
+  return /\.(doc|rtf)$/i.test(path) && !isWordDocxPath(path)
+}
+
 export async function pickAndImportDocument(): Promise<Document | null> {
   const selected = await open({
     multiple: false,
@@ -54,6 +58,14 @@ export async function pickAndImportDocument(): Promise<Document | null> {
         contentJson: parseMarkdownToContentJson(markdown),
       })
       return cacheDocument(doc)
+    }
+
+    if (isWordDocxPath(selected)) {
+      return await importWordDocumentFromPath(selected)
+    }
+
+    if (isLegacyWordPath(selected)) {
+      return await importFile(selected)
     }
 
     return await importFile(selected)

@@ -19,6 +19,7 @@ use tauri::tray::TrayIconBuilder;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             if cfg!(debug_assertions) {
@@ -213,7 +214,14 @@ pub fn run() {
                         .ok()
                         .map(|p| p.to_string_lossy().to_string())
                         .unwrap_or_else(|| url.to_string());
-                    if path.ends_with(".scribe") || path.ends_with(".scribe.json") {
+                    if path.ends_with(".scribe")
+                        || path.ends_with(".scribe.json")
+                        || path.ends_with(".docx")
+                        || path.ends_with(".pages")
+                        || path.ends_with(".md")
+                        || path.ends_with(".markdown")
+                        || path.ends_with(".txt")
+                    {
                         let _ = app_handle.emit("open-file", path);
                     }
                 }

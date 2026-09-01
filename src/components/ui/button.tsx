@@ -9,18 +9,18 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          'rounded-[var(--radius-md)] bg-[var(--color-accent)] text-white hover:brightness-105 active:brightness-95 px-3.5 h-9 shadow-sm',
+          'rounded-[var(--radius-md)] bg-[var(--color-accent)] text-white hover:brightness-105 active:brightness-95 shadow-sm',
         outline:
-          'rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-foreground)] hover:bg-[var(--color-hover)] h-9 px-3.5',
+          'rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-foreground)] hover:bg-[var(--color-hover)]',
         ghost:
-          'rounded-[var(--radius-md)] bg-transparent text-[var(--color-foreground)] hover:bg-[var(--color-hover)] h-8 px-2.5',
+          'rounded-[var(--radius-md)] bg-transparent text-[var(--color-foreground)] hover:bg-[var(--color-hover)]',
         sidebar:
-          'rounded-[var(--radius-md)] bg-transparent hover:bg-[var(--color-hover)] h-8 w-8 p-0',
+          'rounded-[var(--radius-md)] bg-transparent hover:bg-[var(--color-hover)] p-0',
       },
       size: {
         default: 'h-9 px-3.5',
         sm: 'h-8 px-2.5 text-[12px]',
-        icon: 'h-8 w-8 p-0',
+        icon: 'h-8 w-8 shrink-0 p-0',
       },
     },
     defaultVariants: {

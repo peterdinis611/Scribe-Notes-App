@@ -1,9 +1,15 @@
 import mammoth from 'mammoth'
 import { generateJSON } from '@tiptap/html'
+import { invoke } from '@tauri-apps/api/core'
 import type { Document } from '@/lib/db/api'
-import { createDocument, readBinaryFile } from '@/lib/db/api'
+import { createDocument } from '@/lib/db/api'
 import { cacheDocument } from '@/lib/cache/document-cache'
 import { getEditorExtensions } from '@/lib/editor/extensions'
+import {
+  isOleWordDoc,
+  isZipArchive,
+  readScopedBinaryFile,
+} from '@/lib/fs/read-scoped-binary'
 
 const DOCX_EXTENSION = /\.docx$/i
 
@@ -56,7 +62,10 @@ export async function convertDocxBytesToContentJson(bytes: Uint8Array): Promise<
   contentJson: string
   html: string
 }> {
-  const arrayBuffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
+  const arrayBuffer = bytes.buffer.slice(
+    bytes.byteOffset,
+    bytes.byteOffset + bytes.byteLength,
+  ) as ArrayBuffer
 
   const result = await mammoth.convertToHtml(
     { arrayBuffer },
@@ -88,15 +97,39 @@ export async function convertDocxBytesToContentJson(bytes: Uint8Array): Promise<
   }
 }
 
+async function importLegacyWordViaRust(path: string): Promise<Document> {
+  return cacheDocument(await invoke<Document>('import_file', { path }))
+}
+
 export async function importWordDocumentFromPath(path: string): Promise<Document> {
-  const bytes = new Uint8Array(await readBinaryFile(path))
-  const { contentJson, html } = await convertDocxBytesToContentJson(bytes)
+  const bytes = await readScopedBinaryFile(path)
+
+  if (bytes.length === 0) {
+    throw new Error('Súbor sa nepodarilo prečítať alebo je prázdny.')
+  }
+
+  if (isOleWordDoc(bytes)) {
+    throw new Error(
+      'Toto je starý formát Word (.doc). Uložte ho v Microsoft Word ako .docx a skúste znova.',
+    )
+  }
+
+  if (!isZipArchive(bytes)) {
+    throw new Error(
+      'Súbor nie je platný dokument Word (.docx). Otvorte ho vo Worde a uložte ako .docx.',
+    )
+  }
+
   const fallbackTitle = importTitleFromPath(path, 'Import z Wordu')
 
-  const doc = await createDocument({
-    title: titleFromWordHtml(html, fallbackTitle),
-    contentJson,
-  })
-
-  return cacheDocument(doc)
+  try {
+    const { contentJson, html } = await convertDocxBytesToContentJson(bytes)
+    const doc = await createDocument({
+      title: titleFromWordHtml(html, fallbackTitle),
+      contentJson,
+    })
+    return cacheDocument(doc)
+  } catch {
+    return importLegacyWordViaRust(path)
+  }
 }

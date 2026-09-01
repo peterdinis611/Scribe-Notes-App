@@ -42,6 +42,7 @@
     "@tanstack/react-virtual": "^3.14.8",
     "@tauri-apps/api": "^2.11.1",
     "@tauri-apps/plugin-dialog": "^2.7.2",
+    "@tauri-apps/plugin-fs": "^2.5.2",
     "@tauri-apps/plugin-opener": "^2.5.4",
     "@tiptap/extension-character-count": "^3.29.0",
     "@tiptap/extension-code-block-lowlight": "^3.29.0",

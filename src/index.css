@@ -1671,6 +1671,14 @@ html[data-ui-skin='press'] .editor-shell--home {
   justify-content: flex-end;
   flex-wrap: nowrap;
   flex-shrink: 0;
+  gap: 8px;
+}
+
+.editor-header-doc-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .editor-header-title {
@@ -5021,7 +5029,7 @@ body.is-block-dragging .tiptap {
 
   .editor-header-left,
   .editor-header-right {
-    gap: 2px;
+    gap: 6px;
   }
 
   .editor-header-divider {
