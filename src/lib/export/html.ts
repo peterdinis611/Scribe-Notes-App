@@ -16,6 +16,7 @@ import { getPageMargins, shouldShowHeaderFooter } from '@/lib/editor/page-segmen
 import {
   DOCUMENT_HIGHLIGHT_CSS,
   DOCUMENT_TIPTAP_CSS,
+  PDF_CAPTURE_CSS,
   buildDocumentContentCss,
   buildWatermarkCss,
 } from '@/lib/export/document-styles'
@@ -325,7 +326,10 @@ export async function buildMermaidSvgMap(
 export type HtmlExportOptions = {
   pageSetup?: PageSetup
   includeTitleHeading?: boolean
+  /** Strip preview chrome; use paper margins once. */
   forPrint?: boolean
+  /** PDF pipeline: light capture CSS, no inline header/footer/watermark (added by jsPDF). */
+  forPdf?: boolean
   mermaidSvgBySource?: Map<string, string>
 }
 
@@ -359,7 +363,8 @@ function buildHtmlDocument(
 ): string {
   const pageSetup = normalizePageSetup(options?.pageSetup ?? DEFAULT_PAGE_SETUP)
   const includeTitleHeading = options?.includeTitleHeading ?? true
-  const forPrint = options?.forPrint ?? false
+  const forPdf = options?.forPdf ?? false
+  const forPrint = forPdf || (options?.forPrint ?? false)
   const paper = PAPER_SIZES[pageSetup.paperSize]
   let doc: TipTapNode = { type: 'doc', content: [] }
   try {
@@ -371,7 +376,7 @@ function buildHtmlDocument(
   const body = renderNodes(doc.content, ctx)
   const footnotes = renderFootnotesSection(collectFootnotes(doc.content))
   const exportDate = formatExportDate()
-  const showHeaderFooter = shouldShowHeaderFooter(pageSetup, 1)
+  const showHeaderFooter = !forPdf && shouldShowHeaderFooter(pageSetup, 1)
   const headerFooter = showHeaderFooter
     ? buildHeaderFooterLines(pageSetup.headerFooter, {
         title,
@@ -382,7 +387,7 @@ function buildHtmlDocument(
     : { header: '', footer: '' }
 
   const watermarkHtml =
-    pageSetup.watermark.enabled && pageSetup.watermark.text.trim()
+    !forPdf && pageSetup.watermark.enabled && pageSetup.watermark.text.trim()
       ? `<div class="export-watermark print-watermark"><span>${escapeHtml(pageSetup.watermark.text.trim())}</span></div>`
       : ''
 
@@ -433,7 +438,8 @@ function buildHtmlDocument(
     .mermaid-diagram svg { max-width: 100%; height: auto; }
     ${DOCUMENT_TIPTAP_CSS}
     ${DOCUMENT_HIGHLIGHT_CSS}
-    ${buildWatermarkCss(pageSetup.watermark.opacity, pageSetup.watermark.angle)}
+    ${forPdf ? PDF_CAPTURE_CSS : ''}
+    ${forPdf ? '' : buildWatermarkCss(pageSetup.watermark.opacity, pageSetup.watermark.angle)}
     @media print {
       html, body { background: #ffffff; }
       body { padding: 0; }

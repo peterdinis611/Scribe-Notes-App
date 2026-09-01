@@ -178,7 +178,7 @@ function EditorChrome() {
     let cancelled = false
     void tiptapJsonToHtmlAsync(pdfPreviewPayload.contentJson, pdfPreviewPayload.title, {
       pageSetup: pdfPreviewPayload.pageSetup,
-      forPrint: true,
+      forPdf: true,
     }).then((html) => {
       if (!cancelled) setExportHtml(html)
     })
@@ -193,7 +193,11 @@ function EditorChrome() {
     try {
       const html =
         exportHtml ||
-        (await tiptapJsonToHtmlAsync(contentJson, title, { pageSetup: exportPageSetup, forPrint: true }))
+        (await tiptapJsonToHtmlAsync(contentJson, title, {
+          pageSetup: exportPageSetup,
+          forPdf: format === 'pdf',
+          forPrint: format !== 'pdf' ? true : undefined,
+        }))
       const result = await exportDocument(html, plainText, title, format, markdown, exportPageSetup)
       if (result?.path) {
         toast.success(t('toasts.exportDone'), fileBasename(result.path))

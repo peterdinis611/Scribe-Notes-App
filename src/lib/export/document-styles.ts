@@ -55,6 +55,26 @@ export const DOCUMENT_HIGHLIGHT_CSS = `
   .hljs-attr, .hljs-variable { color: #79c0ff; }
 `
 
+/** Extra rules for html2pdf capture — force readable light paper regardless of app theme. */
+export const PDF_CAPTURE_CSS = `
+  html {
+    color-scheme: light only;
+    background: #ffffff;
+  }
+  body,
+  .document-content {
+    background: #ffffff !important;
+    color: #111111 !important;
+  }
+  .document-content p,
+  .document-content li,
+  .document-content blockquote,
+  .document-content td,
+  .document-content th {
+    color: inherit;
+  }
+`
+
 export function buildWatermarkCss(opacity: number, angle: number): string {
   return `
     .export-watermark, .print-watermark {

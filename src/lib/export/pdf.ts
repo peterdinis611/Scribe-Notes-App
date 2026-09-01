@@ -11,6 +11,7 @@ import {
   type PageSetup,
 } from '@/lib/editor/page-setup'
 import { shouldShowHeaderFooter } from '@/lib/editor/page-segments'
+import { colorForExport } from '@/lib/export/export-colors'
 
 export type PdfExportOptions = {
   pageSetup?: PageSetup
@@ -39,14 +40,16 @@ function createRenderFrame(html: string, pageSetup: PageSetup): HTMLIFrameElemen
   const frame = document.createElement('iframe')
   frame.setAttribute('aria-hidden', 'true')
   frame.tabIndex = -1
+  // Do NOT use visibility:hidden — html2canvas/WebKit renders it as a broken dark slab.
   frame.style.cssText = [
     'position:fixed',
-    'left:-10000px',
+    'left:-12000px',
     'top:0',
     `width:${paper.width}px`,
     'border:0',
-    'visibility:hidden',
+    'opacity:1',
     'pointer-events:none',
+    'z-index:-1',
   ].join(';')
 
   document.body.appendChild(frame)
@@ -81,6 +84,18 @@ async function waitForImages(root: ParentNode): Promise<void> {
   )
 }
 
+function normalizeCloneForCapture(root: HTMLElement): void {
+  root.style.background = '#ffffff'
+  root.style.color = '#111111'
+
+  root.querySelectorAll<HTMLElement>('[style*="color"]').forEach((element) => {
+    const inlineColor = element.style.color
+    if (inlineColor) {
+      element.style.color = colorForExport(inlineColor)
+    }
+  })
+}
+
 async function prepareRenderRoot(html: string, pageSetup: PageSetup): Promise<{
   root: HTMLElement
   frame: HTMLIFrameElement
@@ -99,15 +114,20 @@ async function prepareRenderRoot(html: string, pageSetup: PageSetup): Promise<{
       requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
     })
 
+    const root =
+      doc.querySelector<HTMLElement>('.document-content') ??
+      doc.body
+
     const height = Math.max(
+      root.scrollHeight,
+      root.offsetHeight,
       doc.body.scrollHeight,
       doc.documentElement.scrollHeight,
-      doc.body.offsetHeight,
       1,
     )
     frame.style.height = `${height}px`
 
-    return { root: doc.body, frame }
+    return { root, frame }
   } catch (error) {
     frame.remove()
     throw error
@@ -209,7 +229,6 @@ export async function generatePdfFromHtml(
   const pageSetup = normalizePageSetup(options?.pageSetup ?? DEFAULT_PAGE_SETUP)
   const title = options?.title ?? 'Dokument'
   const { root, frame } = await prepareRenderRoot(html, pageSetup)
-  const doc = frame.contentDocument!
 
   const marginTop = pxToPt(pageSetup.marginTop)
   const marginBottom = pxToPt(pageSetup.marginBottom)
@@ -217,13 +236,6 @@ export async function generatePdfFromHtml(
   const marginRight = pxToPt(pageSetup.marginRight)
   const jsPdfFormat =
     pageSetup.paperSize === 'letter' ? 'letter' : pageSetup.paperSize
-
-  const captureWidth = Math.max(
-    root.scrollWidth,
-    doc.documentElement.scrollWidth,
-    PAPER_SIZES[pageSetup.paperSize].width,
-  )
-  const captureHeight = Math.max(root.scrollHeight, doc.documentElement.scrollHeight)
 
   try {
     const worker = html2pdf()
@@ -238,9 +250,16 @@ export async function generatePdfFromHtml(
           logging: false,
           backgroundColor: '#ffffff',
           scrollX: 0,
-          scrollY: 0,
-          windowWidth: captureWidth,
-          windowHeight: captureHeight,
+          scrollY: -root.getBoundingClientRect().top,
+          onclone: (clonedDoc: Document) => {
+            const clonedRoot =
+              (clonedDoc.querySelector('.document-content') as HTMLElement | null) ??
+              clonedDoc.body
+            normalizeCloneForCapture(clonedRoot)
+            clonedDoc.documentElement.style.colorScheme = 'light only'
+            clonedDoc.documentElement.style.background = '#ffffff'
+            clonedDoc.body.style.background = '#ffffff'
+          },
         },
         jsPDF: { unit: 'pt', format: jsPdfFormat, orientation: 'portrait' },
         pagebreak: { mode: ['css', 'legacy'] },
