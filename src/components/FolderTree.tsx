@@ -35,7 +35,8 @@ import {
   setDocumentDragData,
   setFolderDragData,
 } from '@/lib/library/folder-tree-drag'
-import { nlpSuggestTags } from '@/lib/db/nlp-api'
+import { nlpStatus, nlpSuggestTags } from '@/lib/db/nlp-api'
+import { describeNlpTagSuggestionFailure } from '@/lib/nlp/errors'
 import { ROUTES } from '@/lib/routes'
 import { promptInput } from '@/lib/input-dialog'
 import { toast } from '@/lib/toast'
@@ -425,12 +426,20 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     if (!current) return
     let description = t('library.documentTagsHint')
     try {
-      const suggestions = await nlpSuggestTags(id)
-      if (suggestions.tagSuggestions.length > 0) {
-        description = `${description}\n\n${t('library.nlpTagSuggestions')}: ${suggestions.tagSuggestions.join(', ')}`
+      const status = await nlpStatus()
+      if (!status.enabled || !status.sidecarOk) {
+        const hint = describeNlpTagSuggestionFailure(status, null)
+        description = `${description}\n\n${hint.startsWith('nlp.') ? t(hint) : hint}`
+      } else {
+        const suggestions = await nlpSuggestTags(id)
+        if (suggestions.tagSuggestions.length > 0) {
+          description = `${description}\n\n${t('library.nlpTagSuggestions')}: ${suggestions.tagSuggestions.join(', ')}`
+        }
       }
-    } catch {
-      // NLP optional
+    } catch (error) {
+      const status = await nlpStatus().catch(() => null)
+      const hint = describeNlpTagSuggestionFailure(status, error)
+      toast.error(t('library.nlpTagSuggestionsError'), hint.startsWith('nlp.') ? t(hint) : hint)
     }
     const value = await promptInput({
       title: t('library.documentTags'),

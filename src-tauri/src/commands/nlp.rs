@@ -352,7 +352,7 @@ pub fn nlp_journal_summary(
 
     let docs = load_journal_documents(&conn, &input)?;
     let mut combined = String::new();
-    let mut count = docs.len() as i64;
+    let count = docs.len() as i64;
     for (title, content_json) in docs {
         combined.push_str(&title);
         combined.push_str("\n");

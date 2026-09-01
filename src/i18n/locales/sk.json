@@ -146,6 +146,7 @@
     "sectionSearch": "Výsledky",
     "filterFolder": "Iba v tomto priečinku",
     "filterTags": "Filtrovať podľa štítku",
+    "semanticSearchError": "Sémantické vyhľadávanie zlyhalo: {{detail}}",
     "scope": {
       "all": "Všetko",
       "titles": "Nadpisy dokumentov",
@@ -175,6 +176,14 @@
   "footnotes": {
     "edit": "Upraviť",
     "emptyNote": "(prázdna poznámka)"
+  },
+  "nlp": {
+    "searchDisabled": "Sémantické vyhľadávanie je vypnuté. Zapnite ho v Nastavenia → Lokálna AI.",
+    "sidecarScriptMissing": "Python skript pre AI sa nenašiel.",
+    "sidecarUnavailable": "Python sidecar nebeží. Skontrolujte Python 3.10+ v Nastaveniach → Lokálna AI.",
+    "searchFailed": "Sémantické vyhľadávanie zlyhalo.",
+    "tagsDisabled": "Návrhy tagov sú vypnuté — zapnite Lokálnu AI v nastaveniach.",
+    "tagsFailed": "Nepodarilo sa načítať návrhy tagov."
   },
   "errors": {
     "title": "Niečo sa pokazilo",
@@ -386,6 +395,10 @@
       "statusIndexed": "Indexovaných",
       "statusPython": "Python",
       "statusError": "Chyba",
+      "statusScript": "Skript",
+      "sidecarUnavailableTitle": "Python sidecar nie je dostupný",
+      "sidecarUnavailableHint": "Skontrolujte, či máte nainštalovaný Python 3.10+ a spustite obnovu stavu.",
+      "sidecarScriptMissing": "Balík nlp/ sa nenašiel. V release builde musí byť súčasťou aplikácie; vo vývoji spustite z koreňa repozitára.",
       "yes": "Áno",
       "no": "Nie"
     },
@@ -708,6 +721,7 @@
     "documentTags": "Štítky dokumentu",
     "documentTagsHint": "Oddeľte štítky čiarkou",
     "nlpTagSuggestions": "Návrhy AI tagov",
+    "nlpTagSuggestionsError": "Návrhy tagov nedostupné",
     "folderNamePlaceholder": "Názov priečinka",
     "noResults": "Žiadne výsledky.",
     "noDocumentsYet": "Zatiaľ žiadne dokumenty.",

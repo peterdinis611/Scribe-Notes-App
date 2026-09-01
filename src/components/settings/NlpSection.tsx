@@ -112,6 +112,24 @@ export function NlpSection() {
         {t('settings.nlp.intro')}
       </p>
 
+      {status?.enabled && !status.sidecarOk && (
+        <div className="mb-4 rounded-xl border border-[color-mix(in_srgb,var(--color-destructive)_35%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-destructive)_8%,var(--color-surface))] px-3 py-2.5 text-[12px] leading-relaxed text-[var(--color-foreground)]">
+          <p className="m-0 font-medium">{t('settings.nlp.sidecarUnavailableTitle')}</p>
+          <p className="mt-1 mb-0 text-[var(--color-muted-foreground)]">
+            {status.error ?? t('settings.nlp.sidecarUnavailableHint')}
+          </p>
+          <p className="mt-1 mb-0 break-all text-[11px] text-[var(--color-muted-foreground)]">
+            {status.scriptPath}
+          </p>
+        </div>
+      )}
+
+      {!status?.sidecarAvailable && (
+        <div className="mb-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
+          {t('settings.nlp.sidecarScriptMissing')}
+        </div>
+      )}
+
       <SettingsGroup className="mb-4">
         <SettingsRow
           title={t('settings.nlp.enableTitle')}
@@ -173,6 +191,7 @@ export function NlpSection() {
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
           <StatRow label={t('settings.nlp.statusEnabled')} value={status.enabled ? t('settings.nlp.yes') : t('settings.nlp.no')} />
           <StatRow label={t('settings.nlp.statusSidecar')} value={status.sidecarOk ? t('settings.nlp.yes') : t('settings.nlp.no')} />
+          <StatRow label={t('settings.nlp.statusScript')} value={status.scriptPath} />
           <StatRow label={t('settings.nlp.statusModel')} value={status.model ?? '—'} />
           <StatRow label={t('settings.nlp.statusIndexed')} value={status.indexedCount} />
           <StatRow label={t('settings.nlp.statusPython')} value={status.pythonBin} />

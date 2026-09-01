@@ -146,6 +146,7 @@
     "sectionSearch": "Matches",
     "filterFolder": "This folder only",
     "filterTags": "Filter by tag",
+    "semanticSearchError": "Semantic search failed: {{detail}}",
     "scope": {
       "all": "All",
       "titles": "Document titles",
@@ -175,6 +176,14 @@
   "footnotes": {
     "edit": "Edit",
     "emptyNote": "(empty note)"
+  },
+  "nlp": {
+    "searchDisabled": "Semantic search is disabled. Turn it on in Settings → Local AI.",
+    "sidecarScriptMissing": "The Python AI script was not found.",
+    "sidecarUnavailable": "The Python sidecar is not running. Check Python 3.10+ in Settings → Local AI.",
+    "searchFailed": "Semantic search failed.",
+    "tagsDisabled": "Tag suggestions are disabled — enable Local AI in settings.",
+    "tagsFailed": "Could not load tag suggestions."
   },
   "errors": {
     "title": "Something went wrong",
@@ -386,6 +395,10 @@
       "statusIndexed": "Indexed",
       "statusPython": "Python",
       "statusError": "Error",
+      "statusScript": "Script",
+      "sidecarUnavailableTitle": "Python sidecar unavailable",
+      "sidecarUnavailableHint": "Check that Python 3.10+ is installed, then refresh status.",
+      "sidecarScriptMissing": "The nlp/ package was not found. In release builds it must ship with the app; in development run from the repo root.",
       "yes": "Yes",
       "no": "No"
     },
@@ -706,6 +719,7 @@
     "documentTags": "Document tags",
     "documentTagsHint": "Separate tags with commas",
     "nlpTagSuggestions": "AI tag suggestions",
+    "nlpTagSuggestionsError": "Tag suggestions unavailable",
     "folderNamePlaceholder": "Folder name",
     "noResults": "No results.",
     "noDocumentsYet": "No documents yet.",

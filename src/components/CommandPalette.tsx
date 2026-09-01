@@ -55,7 +55,6 @@ import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
 import { cn, debounce } from '@/lib/utils'
 import { sanitizeSnippet } from '@/lib/search-snippet'
-import { toast } from '@/lib/toast'
 import { cycleThemeId } from '@/lib/themes/apply'
 import { generateRandomTheme } from '@/lib/themes/generate-random-theme'
 import { useOpenDemoGuide } from '@/hooks/useOpenDemoGuide'
@@ -971,6 +970,13 @@ export function CommandPalette() {
             </button>
           )}
         </div>
+
+        {semanticError &&
+          (searchScope === 'semantic' || searchScope === 'all' || searchScope === 'content') && (
+            <p className="border-t border-[var(--color-border)] px-4 py-2 text-[12px] leading-relaxed text-[var(--color-destructive)]">
+              {semanticError.startsWith('nlp.') ? t(semanticError) : semanticError}
+            </p>
+          )}
 
         <div className="max-h-[360px] overflow-y-auto p-2">
           {items.length === 0 ? (

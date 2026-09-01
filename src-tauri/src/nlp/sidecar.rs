@@ -7,7 +7,7 @@ use std::sync::Mutex;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tauri::path::BaseDirectory;
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
