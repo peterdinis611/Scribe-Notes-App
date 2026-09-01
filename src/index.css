@@ -1617,6 +1617,21 @@ html[data-ui-skin='press'] .editor-shell--home {
   max-width: 100%;
 }
 
+.editor-focus-exit-bar {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  left: 50%;
+  z-index: 120;
+  display: flex;
+  justify-content: center;
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+
+.app-shell[data-reading-mode='true'] .editor-panel-rail {
+  display: none;
+}
+
 .app-main {
   min-width: 0;
   overflow: hidden;
@@ -2574,6 +2589,16 @@ html[data-ui-skin='press'] .editor-shell--home {
 
 .markdown-source-editor::placeholder {
   color: var(--color-muted-foreground);
+}
+
+.editor-content-host--hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .editor-markdown-hidden {
@@ -4663,6 +4688,18 @@ body.is-block-dragging .tiptap {
   text-align: center;
   font-size: 11px;
   line-height: 1.4;
+  color: var(--color-muted-foreground);
+}
+
+.editor-focus-exit-kbd {
+  margin-left: 0.15rem;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 80%, transparent);
+  padding: 0.05rem 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.3;
   color: var(--color-muted-foreground);
 }
 

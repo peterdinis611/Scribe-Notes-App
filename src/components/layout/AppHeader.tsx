@@ -8,6 +8,7 @@ import {
   Home,
   Loader2,
   Plus,
+  BookOpen,
   X,
 } from 'lucide-react'
 import { DocumentTitleField } from '@/components/DocumentTitleField'
@@ -36,6 +37,7 @@ import {
   setActiveDocument,
   setActiveDocumentId,
   setSaveStatus,
+  setReadingMode,
   updateDocuments,
 } from '@/store/documentsSlice'
 import { setTemplatePickerOpen } from '@/store/settingsSlice'
@@ -153,6 +155,7 @@ function EditorChrome() {
   const openDocumentIds = useAppSelector((state) => state.documents.openDocumentIds)
   const pageSetup = useAppSelector((state) => state.settings.pageSetup)
   const viewMode = useAppSelector((state) => state.settings.editorViewMode)
+  const readingMode = useAppSelector((state) => state.documents.readingMode)
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const { t } = useTranslation()
@@ -255,7 +258,7 @@ function EditorChrome() {
       <header className="app-chrome editor-header titlebar-drag [[data-sidebar-drawer=true]_&]:pl-[78px]">
         <div className="editor-header-left titlebar-no-drag titlebar-interactive flex min-w-0 flex-1 items-center justify-start gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0">
           <SidebarToggle />
-          {document && (
+          {document && !readingMode && (
             <Button variant="default" size="sm" onClick={() => dispatch(setTemplatePickerOpen(true))}>
               <Plus className="h-3.5 w-3.5 shrink-0" />
               <span className="editor-header-label [[data-layout-tier=medium]_&]:hidden [[data-layout-tier=narrow]_&]:hidden [[data-layout-tier=tight]_&]:hidden">
@@ -263,7 +266,7 @@ function EditorChrome() {
               </span>
             </Button>
           )}
-          <DemoGuideButton size="sm" />
+          {document && !readingMode && <DemoGuideButton size="sm" />}
           <EditorFileMenu
             hasDocument={!!document}
             hasFilePath={!!document?.filePath}
@@ -290,7 +293,22 @@ function EditorChrome() {
         </div>
 
         <div className="editor-header-right titlebar-no-drag titlebar-interactive flex shrink-0 flex-nowrap items-center justify-end gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0">
-          {document && (
+          {document && readingMode && (
+            <Button
+              variant="default"
+              size="sm"
+              className="shrink-0 gap-1.5"
+              title={t('readingMode.exitHint')}
+              onClick={() => dispatch(setReadingMode(false))}
+            >
+              <BookOpen className="h-3.5 w-3.5 shrink-0" />
+              <span className="editor-header-label [[data-layout-tier=medium]_&]:hidden [[data-layout-tier=narrow]_&]:hidden [[data-layout-tier=tight]_&]:hidden">
+                {t('readingMode.exit')}
+              </span>
+              <kbd className="editor-focus-exit-kbd">Esc</kbd>
+            </Button>
+          )}
+          {document && !readingMode && (
             <>
               <Button
                 variant="outline"
@@ -315,8 +333,8 @@ function EditorChrome() {
               </Button>
             </>
           )}
-          {document && <EditorDocumentToolsMenu viewMode={viewMode} />}
-          {document && <EditorViewModeToggle />}
+          {document && !readingMode && <EditorDocumentToolsMenu viewMode={viewMode} />}
+          {document && !readingMode && <EditorViewModeToggle />}
           <LocaleToggle size="sm" />
           {document && <SaveStatus />}
         </div>

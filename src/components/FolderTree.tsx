@@ -19,6 +19,7 @@ import {
 } from '@/lib/db/api'
 import { useMoveDocumentToFolder } from '@/hooks/useMoveDocumentToFolder'
 import { invalidateDocumentCache, peekCachedDocument } from '@/lib/cache/document-cache'
+import { isLibraryDocumentVisible } from '@/lib/db/library-sync'
 import {
   buildDeleteFolderConfirmMessage,
   buildTrashFolderConfirmMessage,
@@ -89,6 +90,7 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
   const filteredDocuments = useMemo(() => {
     const q = query.trim().toLowerCase()
     return documents.filter((doc) => {
+      if (!isLibraryDocumentVisible(doc)) return false
       if (q && !doc.title.toLowerCase().includes(q)) return false
       if (favoritesOnly && !doc.isFavorite) return false
       if (activeTag && !doc.tags.includes(activeTag)) return false
@@ -317,6 +319,7 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
 
     try {
       await deleteDocument(id)
+      invalidateDocumentCache(id)
       toast.success(t('toasts.documentTrashed'), deleted.title)
     } catch (error) {
       dispatch(updateDocuments((prev) => [...prev, deleted]))

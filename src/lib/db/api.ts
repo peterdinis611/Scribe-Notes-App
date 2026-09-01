@@ -191,12 +191,20 @@ export const revealInFinder = (path: string) =>
 
 export const readTextFile = (path: string) => invoke<string>('read_text_file', { path })
 
+export const readBinaryFile = (path: string) => invoke<number[]>('read_binary_file', { path })
+
 export const pickAndImportFile = async () => {
   const { pickAndImportDocument } = await import('@/lib/import-document')
   return pickAndImportDocument()
 }
 
-export const importFile = async (path: string) => cacheDocument(await invoke<Document>('import_file', { path }))
+export const importFile = async (path: string) => {
+  const { isWordDocxPath, importWordDocumentFromPath } = await import('@/lib/import/word-docx')
+  if (isWordDocxPath(path)) {
+    return importWordDocumentFromPath(path)
+  }
+  return cacheDocument(await invoke<Document>('import_file', { path }))
+}
 
 export const exportDocument = async (
   html: string,

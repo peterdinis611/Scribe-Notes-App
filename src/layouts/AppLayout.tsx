@@ -67,6 +67,7 @@ export function AppLayout() {
   const documents = useAppSelector((state) => state.documents.documents)
   const folders = useAppSelector((state) => state.folders.folders)
   const focusMode = useAppSelector((state) => state.documents.focusMode)
+  const readingMode = useAppSelector((state) => state.documents.readingMode)
   const pathname = useRouterState({ select: (state) => state.location.pathname })
   const onHomePage = pathname === '/'
   const onGraphPage = pathname === '/graph'
@@ -162,6 +163,7 @@ export function AppLayout() {
       data-layout-tier={layoutTier}
       data-sidebar-drawer={isCompact && showSidebar ? 'true' : 'false'}
       data-focus-mode={focusMode ? 'true' : 'false'}
+      data-reading-mode={readingMode ? 'true' : 'false'}
       data-home={onHomePage || onGraphPage ? 'true' : 'false'}
       data-sidebar-hidden={showSidebar ? 'false' : 'true'}
     >

@@ -32,6 +32,11 @@ pub fn read_text_file(path: String) -> Result<String, String> {
 }
 
 #[tauri::command]
+pub fn read_binary_file(path: String) -> Result<Vec<u8>, String> {
+    std::fs::read(&path).map_err(|e| format!("Nepodarilo sa prečítať súbor: {e}"))
+}
+
+#[tauri::command]
 pub fn pick_and_import_file(
     app: AppHandle,
     state: State<'_, DbState>,

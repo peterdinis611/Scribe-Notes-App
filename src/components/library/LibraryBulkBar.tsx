@@ -3,6 +3,7 @@ import { FolderInput, Trash2, X } from 'lucide-react'
 import { confirm } from '@tauri-apps/plugin-dialog'
 import { Button } from '@/components/ui/button'
 import { deleteDocument } from '@/lib/db/api'
+import { invalidateDocumentCache } from '@/lib/cache/document-cache'
 import { toast } from '@/lib/toast'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { clearSelectedDocuments, updateDocuments } from '@/store/documentsSlice'
@@ -27,11 +28,10 @@ export function LibraryBulkBar() {
     try {
       for (const id of selected) {
         await deleteDocument(id)
+        invalidateDocumentCache(id)
       }
       dispatch(
-        updateDocuments((prev) =>
-          prev.map((doc) => (selected.includes(doc.id) ? { ...doc, deletedAt: Date.now() } : doc)),
-        ),
+        updateDocuments((prev) => prev.filter((doc) => !selected.includes(doc.id))),
       )
       dispatch(clearSelectedDocuments())
       toast.success(t('library.bulk.deleted', { count: selected.length }))

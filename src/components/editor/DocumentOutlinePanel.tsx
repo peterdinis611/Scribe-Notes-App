@@ -28,6 +28,7 @@ import {
   type DocumentOutlineItem,
   type DocumentOutlineKind,
 } from '@/lib/editor/document-outline'
+import { collectMarkdownHeadingOutline } from '@/lib/editor/markdown-outline'
 import { jumpToOutlineItem } from '@/lib/editor/outline-jump'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
@@ -42,6 +43,9 @@ type DocumentOutlinePanelProps = {
   onClose: () => void
   /** Scroll-driven active heading id (preferred over caret when scrolling). */
   scrollActiveId?: string | null
+  /** Markdown source mode — headings parsed from raw markdown instead of TipTap. */
+  markdownSource?: string
+  onMarkdownJump?: (item: DocumentOutlineItem) => void
 }
 
 const OUTLINE_ICONS: Record<DocumentOutlineKind, LucideIcon> = {
@@ -118,15 +122,21 @@ export function DocumentOutlinePanel({
   scrollRef,
   onClose,
   scrollActiveId = null,
+  markdownSource,
+  onMarkdownJump,
 }: DocumentOutlinePanelProps) {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
   const activeDocumentId = useAppSelector((state) => state.documents.activeDocumentId)
   const [headingsOnly, setHeadingsOnly] = useState(true)
   const activeRowRef = useRef<HTMLButtonElement | null>(null)
+  const markdownItems = useMemo(
+    () => (markdownSource != null ? collectMarkdownHeadingOutline(markdownSource) : []),
+    [markdownSource],
+  )
 
   const outlineState = useEditorState({
-    editor,
+    editor: markdownSource != null ? null : editor,
     selector: ({ editor: currentEditor }) => {
       if (!currentEditor) {
         return {
@@ -146,8 +156,8 @@ export function DocumentOutlinePanel({
     },
   })
 
-  const allItems = outlineState?.allItems ?? []
-  const headingItems = outlineState?.headingItems ?? []
+  const allItems = markdownSource != null ? markdownItems : (outlineState?.allItems ?? [])
+  const headingItems = markdownSource != null ? markdownItems : (outlineState?.headingItems ?? [])
   const items = headingsOnly ? headingItems : allItems
   const caretActiveId = outlineState?.caretActiveId ?? null
 
@@ -193,18 +203,20 @@ export function DocumentOutlinePanel({
         >
           {t('panels.outline.headingsOnly')}
         </button>
-        <button
-          type="button"
-          className={cn(
-            'flex-1 rounded-md border-none px-2 py-1.5 text-[11px] font-semibold',
-            !headingsOnly
-              ? 'bg-[var(--color-accent)] text-white'
-              : 'bg-transparent text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
-          )}
-          onClick={() => setHeadingsOnly(false)}
-        >
-          {t('panels.outline.allBlocks')}
-        </button>
+        {markdownSource == null && (
+          <button
+            type="button"
+            className={cn(
+              'flex-1 rounded-md border-none px-2 py-1.5 text-[11px] font-semibold',
+              !headingsOnly
+                ? 'bg-[var(--color-accent)] text-white'
+                : 'bg-transparent text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
+            )}
+            onClick={() => setHeadingsOnly(false)}
+          >
+            {t('panels.outline.allBlocks')}
+          </button>
+        )}
       </div>
 
       <p className="m-0 mx-3 mt-2 text-[10px] leading-snug text-[var(--color-muted-foreground)]">
@@ -226,6 +238,10 @@ export function DocumentOutlinePanel({
               active={activeId === item.id}
               rowRef={activeId === item.id ? (node) => { activeRowRef.current = node } : undefined}
               onSelect={() => {
+                if (onMarkdownJump) {
+                  onMarkdownJump(item)
+                  return
+                }
                 if (!editor) return
                 jumpToOutlineItem(editor, scrollRef, item, activeDocumentId, dispatch)
               }}

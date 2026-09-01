@@ -1,5 +1,13 @@
 import { listDocuments, listFolders, type Document, type DocumentSummary } from '@/lib/db/api'
 
+export function isLibraryDocumentVisible(doc: DocumentSummary): boolean {
+  return doc.deletedAt == null
+}
+
+export function visibleLibraryDocuments(documents: DocumentSummary[]): DocumentSummary[] {
+  return documents.filter(isLibraryDocumentVisible)
+}
+
 export function documentToSummary(
   doc: Document,
   previous?: DocumentSummary,
@@ -36,7 +44,9 @@ export function mergeLibrarySummaries(
     }
   }
 
-  return [...merged.values()].sort((a, b) => b.updatedAt - a.updatedAt)
+  return [...merged.values()]
+    .filter(isLibraryDocumentVisible)
+    .sort((a, b) => b.updatedAt - a.updatedAt)
 }
 
 export async function fetchLibrarySnapshot() {

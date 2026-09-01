@@ -5,6 +5,10 @@ import {
   parseMarkdownToContentJson,
   titleFromMarkdown,
 } from '@/lib/editor/markdown-content'
+import {
+  importWordDocumentFromPath,
+  isWordDocxPath,
+} from '@/lib/import/word-docx'
 
 const IMPORT_FILTERS = [
   {

@@ -32,7 +32,7 @@ import {
   getCachedContentHash,
   getCachedParsedContent,
 } from '@/lib/cache/document-cache'
-import { useEditorViewEffect, setEditorContent, useEditorReady } from '@/lib/editor/view-ready'
+import { useEditorViewEffect, setEditorContent, useEditorReady, isEditorViewReady } from '@/lib/editor/view-ready'
 import { resolvePageLayout } from '@/lib/editor/page-layout'
 import { normalizePageSetup, PAPER_SIZES } from '@/lib/editor/page-setup'
 import { resolveDocumentTypography } from '@/lib/editor/document-style-presets'
@@ -40,10 +40,13 @@ import { jumpToOutlineItem } from '@/lib/editor/outline-jump'
 import { getEditorExtensions } from '@/lib/editor/extensions'
 import { listGoogleFontFamilies, loadGoogleFontsForDocument } from '@/lib/editor/google-fonts'
 import { handleTauriEditorKeyDown } from '@/lib/editor/tauri-input-fix'
-import { getEditorMarkdown } from '@/lib/editor/markdown-content'
+import { getEditorMarkdown, parseMarkdownToContentJson } from '@/lib/editor/markdown-content'
+import type { DocumentOutlineItem } from '@/lib/editor/document-outline'
+import { jumpToMarkdownOutlineItem } from '@/lib/editor/markdown-outline'
 import { insertImagesFromFiles } from '@/lib/editor/image-utils'
 import { printDocumentFromContent } from '@/lib/export/print-document'
 import { navigateViaWikiLink } from '@/lib/navigation'
+import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { editorRefs } from '@/store/editorRefs'
@@ -80,6 +83,7 @@ export function DocumentEditor() {
   const manualTitleIdsRef = useRef(new Set(manualTitleIds))
   const editorRef = useRef<Editor | null>(null)
   const markdownDraftRef = useRef('')
+  const markdownTextareaRef = useRef<HTMLTextAreaElement | null>(null)
   const queueSaveRef = useRef<(docId: string) => void>(() => {})
   const activeIdRef = useRef(activeId)
   const viewModeRef = useRef(viewMode)
@@ -202,21 +206,45 @@ export function DocumentEditor() {
     persistViewMode('markdown')
   }, [editor, persistViewMode])
 
-  const switchToRich = useCallback(() => {
+  const switchToRich = useCallback(async () => {
     if (!editor) return
-    if (
-      !setEditorContent(editor, markdownDraftRef.current, {
-        contentType: 'markdown',
-        emitUpdate: false,
-      })
-    ) {
+
+    const markdown = markdownDraftRef.current
+
+    const applyMarkdown = (): boolean => {
+      if (
+        setEditorContent(editor, markdown, {
+          contentType: 'markdown',
+          emitUpdate: false,
+        })
+      ) {
+        return true
+      }
+
+      try {
+        const contentJson = parseMarkdownToContentJson(markdown)
+        return setEditorContent(editor, JSON.parse(contentJson) as object, { emitUpdate: false })
+      } catch {
+        return false
+      }
+    }
+
+    let ready = isEditorViewReady(editor)
+    for (let attempt = 0; !ready && attempt < 24; attempt += 1) {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+      ready = isEditorViewReady(editor)
+    }
+
+    if (!applyMarkdown()) {
+      toast.error(t('editor.markdownSwitchError', { defaultValue: 'Nepodarilo sa prepnúť do textového režimu.' }))
       return
     }
+
     if (activeId) {
-      void flushSave()
+      await flushSave()
     }
     persistViewMode('rich')
-  }, [activeId, editor, flushSave, persistViewMode])
+  }, [activeId, editor, flushSave, persistViewMode, t])
 
   const handleMarkdownChange = useCallback(
     (value: string) => {
@@ -383,6 +411,28 @@ export function DocumentEditor() {
     [activeDocument, activeId, dispatch, editorContentHashRef, lastPersistedHashRef, saveStatus],
   )
 
+  const handleMarkdownOutlineJump = useCallback(
+    (item: DocumentOutlineItem) => {
+      const textarea = markdownTextareaRef.current
+      if (!textarea) return
+      jumpToMarkdownOutlineItem(textarea, scrollRef, item)
+    },
+    [scrollRef],
+  )
+
+  useEffect(() => {
+    if (viewMode !== 'markdown' || !editor || !editorReady || !activeDocument) return
+
+    const syncMarkdownFromEditor = () => {
+      const markdown = getEditorMarkdown(editor)
+      if (markdown === markdownDraftRef.current) return
+      markdownDraftRef.current = markdown
+      setMarkdownDraft(markdown)
+    }
+
+    syncMarkdownFromEditor()
+  }, [activeDocument?.id, activeDocument?.updatedAt, editor, editorReady, viewMode])
+
   const isMarkdown = viewMode === 'markdown'
 
   const { activeHeading, headingCount } = useActiveScrollHeading({
@@ -447,7 +497,6 @@ export function DocumentEditor() {
             className={cn(
               'editor-body',
               (outlineOpen || historyOpen || commentsOpen || statsOpen || backlinksOpen) &&
-                !isMarkdown &&
                 'editor-body--with-outline',
               tocLeftOpen && !isMarkdown && headingCount > 0 && 'editor-body--with-toc-left',
             )}
@@ -612,41 +661,39 @@ export function DocumentEditor() {
                   </>
                 )}
 
-                {isMarkdown ? (
+                {isMarkdown && (
                   <MarkdownSourceEditor
+                    ref={markdownTextareaRef}
                     value={markdownDraft}
                     onChange={handleMarkdownChange}
                     spellCheck={spellCheckEnabled}
                   />
-                ) : (
-                  <div
-                    className="editor-content-host"
-                    onMouseDown={() => {
-                      if (!editor || editor.isDestroyed || readingMode) return
-                      if (!editor.isEditable) editor.setEditable(true)
-                      if (!editor.isFocused) editor.commands.focus()
-                    }}
-                  >
-                    <EditorContent editor={editor} />
-                  </div>
                 )}
 
-                {isMarkdown && editor && (
-                  <div className="editor-markdown-hidden" aria-hidden="true">
-                    <EditorContent editor={editor} />
-                  </div>
-                )}
+                <div
+                  className={cn('editor-content-host', isMarkdown && 'editor-content-host--hidden')}
+                  aria-hidden={isMarkdown}
+                  onMouseDown={() => {
+                    if (!editor || editor.isDestroyed || readingMode || isMarkdown) return
+                    if (!editor.isEditable) editor.setEditable(true)
+                    if (!editor.isFocused) editor.commands.focus()
+                  }}
+                >
+                  <EditorContent editor={editor} />
+                </div>
               </div>
             </div>
           </div>
         </EditorDropZone>
             </div>
 
-        {!isMarkdown && editorReady && !readingMode && outlineOpen && (
+        {editorReady && !readingMode && outlineOpen && (
           <DocumentOutlinePanel
             editor={editor}
             scrollRef={scrollRef}
             scrollActiveId={activeHeading?.id ?? null}
+            markdownSource={isMarkdown ? markdownDraft : undefined}
+            onMarkdownJump={isMarkdown ? handleMarkdownOutlineJump : undefined}
             onClose={() => dispatch(setDocumentOutlineOpen(false))}
           />
         )}
@@ -677,7 +724,7 @@ export function DocumentEditor() {
           )}
         </div>
 
-        {!isMarkdown && !focusMode && !readingMode && <EditorPanelRail />}
+        {!focusMode && !readingMode && <EditorPanelRail />}
       </div>
 
       <PageSetupDialog open={pageSetupOpen} onClose={() => setPageSetupOpen(false)} />

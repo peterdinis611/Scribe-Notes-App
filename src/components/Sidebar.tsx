@@ -15,6 +15,7 @@ import { LibraryLinkGraphView } from '@/components/LibraryLinkGraphView'
 import { LibraryViewTabs, type LibraryView } from '@/components/LibraryViewTabs'
 import { SidebarRail } from '@/components/layout/SidebarRail'
 import { SidebarSearchResults } from '@/components/SidebarSearchResults'
+import { visibleLibraryDocuments } from '@/lib/db/library-sync'
 import { createFolder } from '@/lib/db/api'
 import { openTodayNote } from '@/lib/journal-notes'
 import { promptInput } from '@/lib/input-dialog'
@@ -59,26 +60,28 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
     dispatch(setPendingLibraryView(null))
   }, [dispatch, pendingLibraryView])
 
+  const visibleDocuments = useMemo(() => visibleLibraryDocuments(documents), [documents])
+
   const favoriteCount = useMemo(
-    () => documents.filter((doc) => doc.isFavorite).length,
-    [documents],
+    () => visibleDocuments.filter((doc) => doc.isFavorite).length,
+    [visibleDocuments],
   )
 
   const recentCount = useMemo(() => {
-    const alive = new Set(documents.filter((doc) => doc.deletedAt == null).map((doc) => doc.id))
+    const alive = new Set(visibleDocuments.map((doc) => doc.id))
     const unique = new Set(
       [...recentDocumentIds, ...recentlyClosedIds].filter((id) => alive.has(id)),
     )
     return unique.size
-  }, [documents, recentDocumentIds, recentlyClosedIds])
+  }, [visibleDocuments, recentDocumentIds, recentlyClosedIds])
 
   const tagCount = useMemo(() => {
     const tags = new Set<string>()
-    for (const doc of documents) {
+    for (const doc of visibleDocuments) {
       for (const tag of doc.tags) tags.add(tag)
     }
     return tags.size
-  }, [documents])
+  }, [visibleDocuments])
 
   const handleCreateFolder = useCallback(async () => {
     const name = await promptInput({
@@ -116,7 +119,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
               {t('library.title')}
             </p>
             <p className="library-panel-meta m-0 mt-0.5 truncate px-1">
-              {t('library.documentCount', { count: documents.length })}
+              {t('library.documentCount', { count: visibleDocuments.length })}
             </p>
           </div>
 

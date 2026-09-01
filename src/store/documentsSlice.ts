@@ -1,5 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import type { Document, DocumentSummary } from '@/lib/db/api'
+import { isLibraryDocumentVisible } from '@/lib/db/library-sync'
 import {
   persistBoolStorage,
   persistCommentAuthor,
@@ -108,7 +109,7 @@ const initialState: DocumentsState = {
   backlinksPanelOpen: readBoolStorage('scribe-backlinks-open', false),
   panelRailExpanded: readBoolStorage('scribe-panel-rail-expanded', false),
   focusMode: readBoolStorage('scribe-focus-mode', false),
-  readingMode: false,
+  readingMode: readBoolStorage('scribe-reading-mode', false),
   manualTitleDocumentIds: readManualTitleIds(),
   findReplaceOpen: false,
   findReplaceMode: 'find',
@@ -158,7 +159,7 @@ const documentsSlice = createSlice({
       }
     },
     updateDocuments(state, action: PayloadAction<(prev: DocumentSummary[]) => DocumentSummary[]>) {
-      state.documents = action.payload(state.documents)
+      state.documents = action.payload(state.documents).filter(isLibraryDocumentVisible)
       const nextRecent = pruneIds(state.recentDocumentIds, state.documents)
       const nextClosed = pruneIds(state.recentlyClosedIds, state.documents)
       const nextOpen = pruneIds(state.openDocumentIds, state.documents)
