@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, Mutex, mpsc::{self, Receiver, Sender}};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -49,19 +50,26 @@ enum Command {
 pub struct DiskPersistQueue {
     tx: Sender<Command>,
     errors: Arc<Mutex<HashMap<String, String>>>,
+    pending_count: Arc<AtomicU32>,
 }
 
 impl DiskPersistQueue {
     pub fn spawn(db_path: PathBuf) -> Self {
         let errors = Arc::new(Mutex::new(HashMap::new()));
+        let pending_count = Arc::new(AtomicU32::new(0));
         let worker_errors = Arc::clone(&errors);
+        let worker_pending_count = Arc::clone(&pending_count);
         let (tx, rx) = mpsc::channel();
         thread::Builder::new()
             .name("scribe-disk-persist".into())
-            .spawn(move || worker_loop(db_path, rx, worker_errors))
+            .spawn(move || worker_loop(db_path, rx, worker_errors, worker_pending_count))
             .expect("failed to spawn disk persist worker");
 
-        Self { tx, errors }
+        Self {
+            tx,
+            errors,
+            pending_count,
+        }
     }
 
     pub fn schedule(&self, job: PersistJob) {
@@ -112,14 +120,16 @@ impl DiskPersistQueue {
     }
 
     pub fn pending_count(&self) -> u32 {
-        self.errors
-            .lock()
-            .map(|errors| errors.len() as u32)
-            .unwrap_or(0)
+        self.pending_count.load(Ordering::Relaxed)
     }
 }
 
-fn worker_loop(db_path: PathBuf, rx: Receiver<Command>, errors: Arc<Mutex<HashMap<String, String>>>) {
+fn worker_loop(
+    db_path: PathBuf,
+    rx: Receiver<Command>,
+    errors: Arc<Mutex<HashMap<String, String>>>,
+    pending_count: Arc<AtomicU32>,
+) {
     let conn = match Connection::open(&db_path) {
         Ok(conn) => conn,
         Err(error) => {
@@ -135,15 +145,25 @@ fn worker_loop(db_path: PathBuf, rx: Receiver<Command>, errors: Arc<Mutex<HashMa
     loop {
         match rx.recv_timeout(Duration::from_millis(POLL_MS)) {
             Ok(Command::Schedule(job)) => {
+                let was_new = !pending.contains_key(&job.id);
                 pending.insert(job.id.clone(), (job, Instant::now()));
+                if was_new {
+                    pending_count.fetch_add(1, Ordering::Relaxed);
+                }
             }
             Ok(Command::Flush { id, reply }) => {
-                let result = flush_jobs(&mut pending, &conn, &errors, id.as_deref());
+                let result = flush_jobs(
+                    &mut pending,
+                    &conn,
+                    &errors,
+                    &pending_count,
+                    id.as_deref(),
+                );
                 let _ = reply.send(result);
             }
             Err(mpsc::RecvTimeoutError::Timeout) => {}
             Err(mpsc::RecvTimeoutError::Disconnected) => {
-                let _ = flush_jobs(&mut pending, &conn, &errors, None);
+                let _ = flush_jobs(&mut pending, &conn, &errors, &pending_count, None);
                 break;
             }
         }
@@ -159,6 +179,7 @@ fn worker_loop(db_path: PathBuf, rx: Receiver<Command>, errors: Arc<Mutex<HashMa
 
         for id in ready {
             if let Some((job, _)) = pending.remove(&id) {
+                pending_count.fetch_sub(1, Ordering::Relaxed);
                 persist_job(&conn, &errors, job);
             }
         }
@@ -191,6 +212,7 @@ fn flush_jobs(
     pending: &mut HashMap<String, (PersistJob, Instant)>,
     conn: &Connection,
     errors: &Arc<Mutex<HashMap<String, String>>>,
+    pending_count: &Arc<AtomicU32>,
     id: Option<&str>,
 ) -> FlushPendingWritesResult {
     let ids: Vec<String> = match id {
@@ -208,6 +230,7 @@ fn flush_jobs(
         let Some((job, _)) = pending.remove(&document_id) else {
             continue;
         };
+        pending_count.fetch_sub(1, Ordering::Relaxed);
         match execute_job(conn, job) {
             Ok(true) => {
                 flushed += 1;

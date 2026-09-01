@@ -1,4 +1,5 @@
 use crate::db::DbState;
+use crate::security::safe_join_under;
 use crate::storage;
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
@@ -250,7 +251,7 @@ pub async fn import_library_archive(
 
     for (name, bytes) in document_files {
         let rel = name.strip_prefix(DOCUMENTS_PREFIX).unwrap_or(&name);
-        let target = documents_dir.join(rel);
+        let target = safe_join_under(&documents_dir, rel)?;
         if let Some(parent) = target.parent() {
             fs::create_dir_all(parent).map_err(|e| e.to_string())?;
         }

@@ -189,9 +189,18 @@ export const pickDocumentsDirectory = () =>
 export const revealInFinder = (path: string) =>
   invoke<void>('reveal_in_finder', { path })
 
-export const readTextFile = (path: string) => invoke<string>('read_text_file', { path })
+export const grantScopedPath = (path: string) =>
+  invoke<void>('grant_scoped_path', { path })
 
-export const readBinaryFile = (path: string) => invoke<number[]>('read_binary_file', { path })
+export const readTextFile = async (path: string) => {
+  await grantScopedPath(path)
+  return invoke<string>('read_text_file', { path })
+}
+
+export const readBinaryFile = async (path: string) => {
+  await grantScopedPath(path)
+  return invoke<number[]>('read_binary_file', { path })
+}
 
 export const pickAndImportFile = async () => {
   const { pickAndImportDocument } = await import('@/lib/import-document')
@@ -199,6 +208,8 @@ export const pickAndImportFile = async () => {
 }
 
 export const importFile = async (path: string) => {
+  await grantScopedPath(path)
+
   const [{ isWordDocxPath, importWordDocumentFromPath }, { isPagesPath, importPagesDocumentFromPath }] =
     await Promise.all([
       import('@/lib/import/word-docx'),

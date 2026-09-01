@@ -1,6 +1,7 @@
 use crate::commands::storage::persist_document;
 use crate::db::DbState;
 use crate::export;
+use crate::security::PathAccessGate;
 use crate::storage;
 use rusqlite::{params, OptionalExtension};
 use serde::{Deserialize, Serialize};
@@ -27,19 +28,44 @@ pub struct ExportResult {
 }
 
 #[tauri::command]
-pub fn read_text_file(path: String) -> Result<String, String> {
-    std::fs::read_to_string(&path).map_err(|e| format!("Nepodarilo sa prečítať súbor: {e}"))
+pub fn grant_scoped_path(gate: State<'_, PathAccessGate>, path: String) -> Result<(), String> {
+    gate.grant(Path::new(&path));
+    Ok(())
 }
 
 #[tauri::command]
-pub fn read_binary_file(path: String) -> Result<Vec<u8>, String> {
-    std::fs::read(&path).map_err(|e| format!("Nepodarilo sa prečítať súbor: {e}"))
+pub fn read_text_file(
+    app: AppHandle,
+    state: State<'_, DbState>,
+    gate: State<'_, PathAccessGate>,
+    path: String,
+) -> Result<String, String> {
+    let path = PathBuf::from(path);
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let validated = gate.validate_read(&app, &conn, &path)?;
+    drop(conn);
+    std::fs::read_to_string(&validated).map_err(|e| format!("Nepodarilo sa prečítať súbor: {e}"))
+}
+
+#[tauri::command]
+pub fn read_binary_file(
+    app: AppHandle,
+    state: State<'_, DbState>,
+    gate: State<'_, PathAccessGate>,
+    path: String,
+) -> Result<Vec<u8>, String> {
+    let path = PathBuf::from(path);
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let validated = gate.validate_read(&app, &conn, &path)?;
+    drop(conn);
+    std::fs::read(&validated).map_err(|e| format!("Nepodarilo sa prečítať súbor: {e}"))
 }
 
 #[tauri::command]
 pub fn pick_and_import_file(
     app: AppHandle,
     state: State<'_, DbState>,
+    gate: State<'_, PathAccessGate>,
 ) -> Result<Option<Document>, String> {
     let picked = app
         .dialog()
@@ -56,7 +82,8 @@ pub fn pick_and_import_file(
     };
 
     let path = PathBuf::from(path.to_string());
-    let doc = import_file_at_path(&app, &state, &path)?;
+    gate.grant(&path);
+    let doc = import_file_at_path(&app, &state, &gate, &path)?;
     Ok(Some(doc))
 }
 
@@ -69,8 +96,17 @@ pub enum PagesImportPrepared {
 }
 
 #[tauri::command]
-pub fn prepare_pages_import(path: String) -> Result<PagesImportPrepared, String> {
+pub fn prepare_pages_import(
+    app: AppHandle,
+    state: State<'_, DbState>,
+    gate: State<'_, PathAccessGate>,
+    path: String,
+) -> Result<PagesImportPrepared, String> {
     let path = PathBuf::from(path);
+    gate.grant(&path);
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    gate.validate_read(&app, &conn, &path)?;
+    drop(conn);
 
     if export::pages_app_installed() {
         if let Ok(docx_path) = export::export_pages_to_docx(&path) {
@@ -93,14 +129,10 @@ pub fn prepare_pages_import(path: String) -> Result<PagesImportPrepared, String>
 #[tauri::command]
 pub fn cleanup_temp_import_file(path: String) -> Result<(), String> {
     let path = PathBuf::from(path);
-    let temp_dir = std::env::temp_dir();
+    let validated = PathAccessGate::validate_temp_file(&path)?;
 
-    if !path.starts_with(&temp_dir) {
-        return Err("Dočasný import súbor mimo temp priečinka.".to_string());
-    }
-
-    if path.is_file() {
-        std::fs::remove_file(path).map_err(|e| e.to_string())?;
+    if validated.is_file() {
+        std::fs::remove_file(validated).map_err(|e| e.to_string())?;
     }
 
     Ok(())
@@ -110,22 +142,30 @@ pub fn cleanup_temp_import_file(path: String) -> Result<(), String> {
 pub fn import_file(
     app: AppHandle,
     state: State<'_, DbState>,
+    gate: State<'_, PathAccessGate>,
     path: String,
 ) -> Result<Document, String> {
-    import_file_at_path(&app, &state, Path::new(&path))
+    let path = Path::new(&path);
+    gate.grant(path);
+    import_file_at_path(&app, &state, &gate, path)
 }
 
 fn import_file_at_path(
     app: &AppHandle,
     state: &State<'_, DbState>,
+    gate: &State<'_, PathAccessGate>,
     path: &Path,
 ) -> Result<Document, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let validated = gate.validate_read(app, &conn, path)?;
+    drop(conn);
+
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
     let now = chrono::Utc::now().timestamp();
 
-    let (id, title, content_json, created_at) = match detect_import_format(path)? {
+    let (id, title, content_json, created_at) = match detect_import_format(&validated)? {
         ImportFormat::Scribe => {
-            let disk = storage::read_scribe_file(path)?;
+            let disk = storage::read_scribe_file(&validated)?;
             let created_at = if disk.created_at > 0 {
                 disk.created_at
             } else {
@@ -139,8 +179,8 @@ fn import_file_at_path(
             )
         }
         ImportFormat::Pages => {
-            let text = export::extract_pages_text(path)?;
-            let title = import_title_from_path(path, "Import z Pages");
+            let text = export::extract_pages_text(&validated)?;
+            let title = import_title_from_path(&validated, "Import z Pages");
             (
                 Uuid::new_v4().to_string(),
                 title,
@@ -149,8 +189,8 @@ fn import_file_at_path(
             )
         }
         ImportFormat::Text => {
-            let text = export::import_text_from_file(path)?;
-            let title = import_title_from_path(path, "Importovaný dokument");
+            let text = export::import_text_from_file(&validated)?;
+            let title = import_title_from_path(&validated, "Importovaný dokument");
             (
                 Uuid::new_v4().to_string(),
                 title,

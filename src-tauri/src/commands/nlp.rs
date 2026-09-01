@@ -249,8 +249,11 @@ pub fn nlp_semantic_search(
     query: String,
     limit: Option<i64>,
 ) -> Result<Vec<SearchHit>, String> {
-    let conn = state.conn.lock().map_err(|e| e.to_string())?;
-    if !is_nlp_enabled(&conn)? {
+    let enabled = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        is_nlp_enabled(&conn)?
+    };
+    if !enabled {
         return Ok(Vec::new());
     }
 
@@ -260,6 +263,7 @@ pub fn nlp_semantic_search(
     }
 
     let (vector, _model) = sidecar.embed_text(q)?;
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
     semantic_search(&conn, &vector, limit.unwrap_or(12))
 }
 
@@ -269,22 +273,28 @@ pub fn nlp_index_document(
     sidecar: State<'_, NlpSidecar>,
     document_id: String,
 ) -> Result<NlpIndexResult, String> {
-    let conn = state.conn.lock().map_err(|e| e.to_string())?;
-    if !is_nlp_enabled(&conn)? {
-        return Err("NLP is disabled".to_string());
-    }
+    let text = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        if !is_nlp_enabled(&conn)? {
+            return Err("NLP is disabled".to_string());
+        }
 
-    let (title, content_json): (String, String) = conn
-        .query_row(
-            "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL",
-            params![document_id],
-            |row| Ok((row.get(0)?, row.get(1)?)),
-        )
-        .map_err(|e| e.to_string())?;
+        let (title, content_json): (String, String) = conn
+            .query_row(
+                "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL",
+                params![document_id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .map_err(|e| e.to_string())?;
 
-    let text = format!("{title}\n{}", extract_search_text(&content_json));
+        format!("{title}\n{}", extract_search_text(&content_json))
+    };
+
     let (vector, model) = sidecar.embed_text(&text)?;
-    upsert_embedding(&conn, &document_id, &vector, &model, now_ts())?;
+    {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        upsert_embedding(&conn, &document_id, &vector, &model, now_ts())?;
+    }
 
     Ok(NlpIndexResult {
         indexed: 1,
@@ -294,30 +304,33 @@ pub fn nlp_index_document(
 
 #[tauri::command]
 pub fn nlp_index_all(state: State<'_, DbState>, sidecar: State<'_, NlpSidecar>) -> Result<NlpIndexResult, String> {
-    let conn = state.conn.lock().map_err(|e| e.to_string())?;
-    if !is_nlp_enabled(&conn)? {
-        return Err("NLP is disabled".to_string());
-    }
+    let docs = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        if !is_nlp_enabled(&conn)? {
+            return Err("NLP is disabled".to_string());
+        }
 
-    let mut stmt = conn
-        .prepare("SELECT id, title, content_json FROM documents WHERE deleted_at IS NULL")
-        .map_err(|e| e.to_string())?;
-    let rows = stmt
-        .query_map([], |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, String>(2)?,
-            ))
-        })
-        .map_err(|e| e.to_string())?;
+        let mut stmt = conn
+            .prepare("SELECT id, title, content_json FROM documents WHERE deleted_at IS NULL")
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            })
+            .map_err(|e| e.to_string())?;
 
-    let mut docs: Vec<(String, String)> = Vec::new();
-    for row in rows {
-        let (id, title, content_json) = row.map_err(|e| e.to_string())?;
-        let text = format!("{title}\n{}", extract_search_text(&content_json));
-        docs.push((id, text));
-    }
+        let mut docs: Vec<(String, String)> = Vec::new();
+        for row in rows {
+            let (id, title, content_json) = row.map_err(|e| e.to_string())?;
+            let text = format!("{title}\n{}", extract_search_text(&content_json));
+            docs.push((id, text));
+        }
+        docs
+    };
 
     if docs.is_empty() {
         return Ok(NlpIndexResult {
@@ -332,8 +345,11 @@ pub fn nlp_index_all(state: State<'_, DbState>, sidecar: State<'_, NlpSidecar>) 
     let now = now_ts();
     let indexed = vectors.len() as i64;
 
-    for (document_id, vector) in ids.into_iter().zip(vectors.into_iter()) {
-        upsert_embedding(&conn, &document_id, &vector, &model, now)?;
+    {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        for (document_id, vector) in ids.into_iter().zip(vectors.into_iter()) {
+            upsert_embedding(&conn, &document_id, &vector, &model, now)?;
+        }
     }
 
     Ok(NlpIndexResult { indexed, model })
@@ -345,14 +361,18 @@ pub fn nlp_journal_summary(
     sidecar: State<'_, NlpSidecar>,
     input: NlpJournalSummaryInput,
 ) -> Result<NlpJournalSummary, String> {
-    let conn = state.conn.lock().map_err(|e| e.to_string())?;
-    if !is_nlp_enabled(&conn)? {
-        return Err("NLP is disabled".to_string());
-    }
+    let (docs, count) = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        if !is_nlp_enabled(&conn)? {
+            return Err("NLP is disabled".to_string());
+        }
 
-    let docs = load_journal_documents(&conn, &input)?;
+        let docs = load_journal_documents(&conn, &input)?;
+        let count = docs.len() as i64;
+        (docs, count)
+    };
+
     let mut combined = String::new();
-    let count = docs.len() as i64;
     for (title, content_json) in docs {
         combined.push_str(&title);
         combined.push_str("\n");
@@ -392,13 +412,16 @@ pub fn nlp_journal_summary(
         "bullets": bullets,
         "documentCount": count,
     });
-    save_artifact(
-        &conn,
-        &format!("journal:{}:{}", input.from_date, input.to_date),
-        "journal_summary",
-        &payload.to_string(),
-        now_ts(),
-    )?;
+    {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        save_artifact(
+            &conn,
+            &format!("journal:{}:{}", input.from_date, input.to_date),
+            "journal_summary",
+            &payload.to_string(),
+            now_ts(),
+        )?;
+    }
 
     Ok(NlpJournalSummary {
         summary,
@@ -413,20 +436,23 @@ pub fn nlp_suggest_tags(
     sidecar: State<'_, NlpSidecar>,
     document_id: String,
 ) -> Result<NlpTagSuggestions, String> {
-    let conn = state.conn.lock().map_err(|e| e.to_string())?;
-    if !is_nlp_enabled(&conn)? {
-        return Err("NLP is disabled".to_string());
-    }
+    let text = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        if !is_nlp_enabled(&conn)? {
+            return Err("NLP is disabled".to_string());
+        }
 
-    let (title, content_json): (String, String) = conn
-        .query_row(
-            "SELECT title, content_json FROM documents WHERE id = ?1",
-            params![document_id],
-            |row| Ok((row.get(0)?, row.get(1)?)),
-        )
-        .map_err(|e| e.to_string())?;
+        let (title, content_json): (String, String) = conn
+            .query_row(
+                "SELECT title, content_json FROM documents WHERE id = ?1",
+                params![document_id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .map_err(|e| e.to_string())?;
 
-    let text = format!("{title}\n{}", extract_search_text(&content_json));
+        format!("{title}\n{}", extract_search_text(&content_json))
+    };
+
     let result = sidecar.extract_entities(&text)?;
 
     let entities = result
@@ -467,42 +493,45 @@ pub fn nlp_library_report(
     state: State<'_, DbState>,
     sidecar: State<'_, NlpSidecar>,
 ) -> Result<NlpLibraryReport, String> {
-    let conn = state.conn.lock().map_err(|e| e.to_string())?;
-    if !is_nlp_enabled(&conn)? {
-        return Err("NLP is disabled".to_string());
-    }
+    let documents = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        if !is_nlp_enabled(&conn)? {
+            return Err("NLP is disabled".to_string());
+        }
 
-    let mut stmt = conn
-        .prepare(
-            "SELECT id, title, content_json, tags, updated_at
-             FROM documents WHERE deleted_at IS NULL",
-        )
-        .map_err(|e| e.to_string())?;
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, title, content_json, tags, updated_at
+                 FROM documents WHERE deleted_at IS NULL",
+            )
+            .map_err(|e| e.to_string())?;
 
-    let rows = stmt
-        .query_map([], |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, String>(2)?,
-                row.get::<_, String>(3)?,
-                row.get::<_, i64>(4)?,
-            ))
-        })
-        .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, String>(3)?,
+                    row.get::<_, i64>(4)?,
+                ))
+            })
+            .map_err(|e| e.to_string())?;
 
-    let mut documents = Vec::new();
-    for row in rows {
-        let (id, title, content_json, tags_json, updated_at) = row.map_err(|e| e.to_string())?;
-        let tags: Vec<String> = serde_json::from_str(&tags_json).unwrap_or_default();
-        documents.push(json!({
-            "id": id,
-            "title": title,
-            "text": extract_search_text(&content_json),
-            "tags": tags,
-            "updatedAt": updated_at,
-        }));
-    }
+        let mut documents = Vec::new();
+        for row in rows {
+            let (id, title, content_json, tags_json, updated_at) = row.map_err(|e| e.to_string())?;
+            let tags: Vec<String> = serde_json::from_str(&tags_json).unwrap_or_default();
+            documents.push(json!({
+                "id": id,
+                "title": title,
+                "text": extract_search_text(&content_json),
+                "tags": tags,
+                "updatedAt": updated_at,
+            }));
+        }
+        documents
+    };
 
     let result = sidecar.library_report(json!(documents))?;
     let markdown = result
@@ -512,13 +541,16 @@ pub fn nlp_library_report(
         .to_string();
     let stats = result.get("stats").cloned().unwrap_or(json!({}));
 
-    save_artifact(
-        &conn,
-        &format!("library-report:{}", now_ts()),
-        "library_report",
-        &result.to_string(),
-        now_ts(),
-    )?;
+    {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        save_artifact(
+            &conn,
+            &format!("library-report:{}", now_ts()),
+            "library_report",
+            &result.to_string(),
+            now_ts(),
+        )?;
+    }
 
     Ok(NlpLibraryReport { markdown, stats })
 }

@@ -1,4 +1,5 @@
 use crate::storage::{self, DiskDocument, DiskPersistQueue, PersistJob};
+use crate::security::PathAccessGate;
 use rusqlite::Connection;
 use std::path::PathBuf;
 use tauri::AppHandle;
@@ -53,9 +54,19 @@ pub async fn pick_documents_directory(
 }
 
 #[tauri::command]
-pub fn reveal_in_finder(app: AppHandle, path: String) -> Result<(), String> {
+pub fn reveal_in_finder(
+    app: AppHandle,
+    state: tauri::State<'_, crate::db::DbState>,
+    gate: tauri::State<'_, PathAccessGate>,
+    path: String,
+) -> Result<(), String> {
+    let path_buf = PathBuf::from(path);
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let validated = gate.validate_reveal(&app, &conn, &path_buf)?;
+    drop(conn);
+
     app.opener()
-        .reveal_item_in_dir(path)
+        .reveal_item_in_dir(validated.to_string_lossy().to_string())
         .map_err(|e| e.to_string())
 }
 

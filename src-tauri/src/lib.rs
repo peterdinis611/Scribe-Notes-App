@@ -3,10 +3,12 @@ mod backup;
 mod db;
 mod export;
 mod nlp;
+mod security;
 mod storage;
 
 use db::{init_db, DbState};
 use nlp::NlpSidecar;
+use security::PathAccessGate;
 use storage::DiskPersistQueue;
 use tauri::{Emitter, Manager, RunEvent};
 
@@ -41,6 +43,7 @@ pub fn run() {
                 conn: std::sync::Mutex::new(conn),
                 persist_queue,
             });
+            app.manage(PathAccessGate::new());
             app.manage(NlpSidecar::new(nlp::resolve_script_path(app.handle())));
 
             #[cfg(target_os = "macos")]
@@ -186,6 +189,7 @@ pub fn run() {
             commands::storage::get_storage_settings,
             commands::storage::pick_documents_directory,
             commands::storage::reveal_in_finder,
+            commands::import_export::grant_scoped_path,
             commands::import_export::read_text_file,
             commands::import_export::read_binary_file,
             commands::import_export::pick_and_import_file,

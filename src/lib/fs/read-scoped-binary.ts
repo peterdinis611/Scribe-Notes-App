@@ -1,12 +1,12 @@
-import { invoke } from '@tauri-apps/api/core'
 import { readFile } from '@tauri-apps/plugin-fs'
+import { readBinaryFile } from '@/lib/db/api'
 
 /** Read bytes from a user-picked path (scoped dialog) or fall back to the Rust command. */
 export async function readScopedBinaryFile(path: string): Promise<Uint8Array> {
   try {
     return await readFile(path)
   } catch {
-    const bytes = await invoke<number[]>('read_binary_file', { path })
+    const bytes = await readBinaryFile(path)
     return new Uint8Array(bytes)
   }
 }
