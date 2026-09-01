@@ -8,6 +8,7 @@ import {
   ListTree,
   MessageSquare,
   MoreVertical,
+  PanelLeft,
   PanelRightClose,
   Search,
 } from 'lucide-react'
@@ -28,6 +29,7 @@ import {
   setPanelRailExpanded,
   setRevisionHistoryOpen,
   setStatsPanelOpen,
+  toggleDocumentTocLeftOpen,
   toggleFindReplaceOpen,
   toggleFocusMode,
   toggleReadingMode,
@@ -61,6 +63,7 @@ function RailButton({ active, label, onClick, children }: RailButtonProps) {
 
 export function EditorPanelRail() {
   const outlineOpen = useAppSelector((state) => state.documents.documentOutlineOpen)
+  const tocLeftOpen = useAppSelector((state) => state.documents.documentTocLeftOpen)
   const historyOpen = useAppSelector((state) => state.documents.revisionHistoryOpen)
   const commentsOpen = useAppSelector((state) => state.documents.commentsPanelOpen)
   const statsOpen = useAppSelector((state) => state.documents.statsPanelOpen)
@@ -118,6 +121,13 @@ export function EditorPanelRail() {
 
         <div className="editor-panel-rail-sep" aria-hidden="true" />
 
+        <RailButton
+          label={tocLeftOpen ? t('editorPanels.leftOutlineOff') : t('editorPanels.leftOutline')}
+          active={tocLeftOpen}
+          onClick={() => dispatch(toggleDocumentTocLeftOpen())}
+        >
+          <PanelLeft className="h-4 w-4" />
+        </RailButton>
         <RailButton
           label={t('editorPanels.outline')}
           active={outlineOpen}

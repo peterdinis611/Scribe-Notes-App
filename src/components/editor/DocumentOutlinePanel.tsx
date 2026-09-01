@@ -24,11 +24,12 @@ import { cn } from '@/lib/utils'
 import {
   collectDocumentOutline,
   collectHeadingOutline,
-  focusOutlineItem,
   getActiveOutlineItemId,
   type DocumentOutlineItem,
   type DocumentOutlineKind,
 } from '@/lib/editor/document-outline'
+import { jumpToOutlineItem } from '@/lib/editor/outline-jump'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
   EditorSidePanel,
   EditorSidePanelHeader,
@@ -37,6 +38,7 @@ import {
 
 type DocumentOutlinePanelProps = {
   editor: Editor | null
+  scrollRef: React.RefObject<HTMLElement | null>
   onClose: () => void
   /** Scroll-driven active heading id (preferred over caret when scrolling). */
   scrollActiveId?: string | null
@@ -113,10 +115,13 @@ function OutlineRow({
 
 export function DocumentOutlinePanel({
   editor,
+  scrollRef,
   onClose,
   scrollActiveId = null,
 }: DocumentOutlinePanelProps) {
   const { t } = useTranslation()
+  const dispatch = useAppDispatch()
+  const activeDocumentId = useAppSelector((state) => state.documents.activeDocumentId)
   const [headingsOnly, setHeadingsOnly] = useState(true)
   const activeRowRef = useRef<HTMLButtonElement | null>(null)
 
@@ -222,7 +227,7 @@ export function DocumentOutlinePanel({
               rowRef={activeId === item.id ? (node) => { activeRowRef.current = node } : undefined}
               onSelect={() => {
                 if (!editor) return
-                focusOutlineItem(editor, item)
+                jumpToOutlineItem(editor, scrollRef, item, activeDocumentId, dispatch)
               }}
             />
           ))

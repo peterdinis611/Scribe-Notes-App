@@ -4,6 +4,8 @@ import type { Editor } from '@tiptap/react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { DocumentOutlinePanel } from '@/components/editor/DocumentOutlinePanel'
+import { DocumentTocRail } from '@/components/editor/DocumentTocRail'
+import { OutlineReturnButton } from '@/components/editor/OutlineReturnButton'
 import { EditorScrollLocation } from '@/components/editor/EditorScrollLocation'
 import { RevisionHistoryPanel } from '@/components/editor/RevisionHistoryPanel'
 import { CommentsPanel } from '@/components/editor/CommentsPanel'
@@ -24,6 +26,7 @@ import { MarkdownSourceEditor } from '@/components/editor/MarkdownSourceEditor'
 import { useDocumentAutoSave } from '@/hooks/useDocumentAutoSave'
 import { useDocumentPagination } from '@/hooks/useDocumentPagination'
 import { useActiveScrollHeading } from '@/hooks/useActiveScrollHeading'
+import { useActiveHeadingHighlight } from '@/hooks/useActiveHeadingHighlight'
 import { useEditorHotkeys } from '@/hooks/useEditorHotkeys'
 import {
   getCachedContentHash,
@@ -33,7 +36,7 @@ import { useEditorViewEffect, setEditorContent, useEditorReady } from '@/lib/edi
 import { resolvePageLayout } from '@/lib/editor/page-layout'
 import { normalizePageSetup, PAPER_SIZES } from '@/lib/editor/page-setup'
 import { resolveDocumentTypography } from '@/lib/editor/document-style-presets'
-import { focusOutlineItem } from '@/lib/editor/document-outline'
+import { jumpToOutlineItem } from '@/lib/editor/outline-jump'
 import { getEditorExtensions } from '@/lib/editor/extensions'
 import { listGoogleFontFamilies, loadGoogleFontsForDocument } from '@/lib/editor/google-fonts'
 import { handleTauriEditorKeyDown } from '@/lib/editor/tauri-input-fix'
@@ -64,6 +67,7 @@ export function DocumentEditor() {
   const manualTitleIds = useAppSelector((state) => state.documents.manualTitleDocumentIds)
   const viewMode = useAppSelector((state) => state.settings.editorViewMode)
   const outlineOpen = useAppSelector((state) => state.documents.documentOutlineOpen)
+  const tocLeftOpen = useAppSelector((state) => state.documents.documentTocLeftOpen)
   const historyOpen = useAppSelector((state) => state.documents.revisionHistoryOpen)
   const commentsOpen = useAppSelector((state) => state.documents.commentsPanelOpen)
   const statsOpen = useAppSelector((state) => state.documents.statsPanelOpen)
@@ -387,6 +391,12 @@ export function DocumentEditor() {
     enabled: !isMarkdown && !readingMode,
   })
 
+  useActiveHeadingHighlight(
+    editorReady ? editor : null,
+    activeHeading,
+    !isMarkdown && !readingMode && headingCount > 0,
+  )
+
   useEffect(() => {
     if (!editor) return
     editor.setEditable(!readingMode && viewMode === 'rich')
@@ -439,9 +449,20 @@ export function DocumentEditor() {
               (outlineOpen || historyOpen || commentsOpen || statsOpen || backlinksOpen) &&
                 !isMarkdown &&
                 'editor-body--with-outline',
+              tocLeftOpen && !isMarkdown && headingCount > 0 && 'editor-body--with-toc-left',
             )}
           >
+            {!isMarkdown && editorReady && !readingMode && tocLeftOpen && headingCount > 0 && (
+              <DocumentTocRail
+                editor={editor}
+                scrollRef={scrollRef}
+                scrollActiveId={activeHeading?.id ?? null}
+              />
+            )}
             <div className="editor-body-main">
+            {!isMarkdown && !focusMode && !readingMode && editorReady && (
+              <OutlineReturnButton scrollRef={scrollRef} />
+            )}
             {!isMarkdown && !focusMode && !readingMode && editorReady && headingCount > 0 && (
               <EditorScrollLocation
                 heading={activeHeading}
@@ -454,7 +475,7 @@ export function DocumentEditor() {
                     dispatch(setDocumentOutlineOpen(true))
                     return
                   }
-                  focusOutlineItem(editor, activeHeading)
+                  jumpToOutlineItem(editor, scrollRef, activeHeading, activeId, dispatch)
                 }}
               />
             )}
@@ -624,6 +645,7 @@ export function DocumentEditor() {
         {!isMarkdown && editorReady && !readingMode && outlineOpen && (
           <DocumentOutlinePanel
             editor={editor}
+            scrollRef={scrollRef}
             scrollActiveId={activeHeading?.id ?? null}
             onClose={() => dispatch(setDocumentOutlineOpen(false))}
           />

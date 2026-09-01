@@ -1,7 +1,9 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
-import { Clock, FileText, Plus, Tag as TagIcon } from 'lucide-react'
+import { Clock, FileText, Plus, Settings2, Tag as TagIcon } from 'lucide-react'
+import { TagManageDialog } from '@/components/library/TagManageDialog'
+import { colorForTag } from '@/lib/library/tag-colors'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { promptInput } from '@/lib/input-dialog'
 import {
@@ -33,6 +35,7 @@ export function LibraryTagsView({ onNavigate }: LibraryTagsViewProps) {
   const metaFilters = useAppSelector((state) => state.documents.metaFilters)
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
+  const [manageOpen, setManageOpen] = useState(false)
 
   const allTags = useMemo(() => {
     const tags: string[] = []
@@ -93,6 +96,8 @@ export function LibraryTagsView({ onNavigate }: LibraryTagsViewProps) {
     dispatch(setMetaFilters({ project: value.trim() }))
   }
 
+  const uniqueTags = useMemo(() => [...new Set(allTags)].sort(), [allTags])
+
   const hasAnyTags = allTags.length > 0
 
   if (!hasAnyTags) {
@@ -112,6 +117,22 @@ export function LibraryTagsView({ onNavigate }: LibraryTagsViewProps) {
 
   return (
     <div className="library-tags-view">
+      <div className="mb-3 flex items-center justify-between gap-2 px-0.5">
+        <h3 className="m-0 text-[11px] font-bold uppercase tracking-[0.03em] text-[var(--color-muted-foreground)]">
+          {t('library.filters.tags')}
+        </h3>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="h-7 gap-1 px-2 text-[11px]"
+          onClick={() => setManageOpen(true)}
+        >
+          <Settings2 className="h-3 w-3" />
+          {t('library.tags.manage')}
+        </Button>
+      </div>
+
       <section className="mb-3">
         <h3 className="mb-1.5 px-0.5 text-[11px] font-bold uppercase tracking-[0.03em] text-[var(--color-muted-foreground)]">
           {t('library.filters.status')}
@@ -193,6 +214,7 @@ export function LibraryTagsView({ onNavigate }: LibraryTagsViewProps) {
                   className={cn('library-tag-chip', isActive && 'is-active')}
                   aria-pressed={isActive}
                   onClick={() => togglePlainTag(raw)}
+                  style={{ '--tag-color': colorForTag(raw) } as React.CSSProperties}
                 >
                   <span className="library-tag-chip-name">{value}</span>
                   <span className="library-tag-chip-count">{count}</span>
@@ -245,6 +267,7 @@ export function LibraryTagsView({ onNavigate }: LibraryTagsViewProps) {
           </ul>
         </div>
       )}
+      <TagManageDialog open={manageOpen} onClose={() => setManageOpen(false)} tags={uniqueTags} />
     </div>
   )
 }

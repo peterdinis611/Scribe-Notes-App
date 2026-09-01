@@ -3,6 +3,7 @@ import type { Document, DocumentSummary } from '@/lib/db/api'
 import {
   persistBoolStorage,
   persistCommentAuthor,
+  persistDocumentTocLeftOpen,
   persistManualTitleIds,
   persistActiveDocumentId,
   persistOpenDocumentIds,
@@ -12,6 +13,7 @@ import {
   readActiveDocumentId,
   readBoolStorage,
   readCommentAuthor,
+  readDocumentTocLeftOpen,
   readManualTitleIds,
   readOpenDocumentIds,
   readRecentDocumentIds,
@@ -19,6 +21,7 @@ import {
 } from '@/store/persistence'
 import type { MetaFilters } from '@/lib/library/tag-meta'
 import { EMPTY_META_FILTERS } from '@/lib/library/tag-meta'
+import type { LibrarySmartFilter } from '@/lib/library/smart-filters'
 
 export type SaveStatus = 'idle' | 'dirty' | 'saving' | 'saved' | 'error'
 
@@ -62,6 +65,14 @@ export interface DocumentsState {
   secondaryDocumentId: string | null
   /** Wiki-link back trail (session only, newest last). */
   documentNavStack: string[]
+  /** Left margin TOC rail (headings). */
+  documentTocLeftOpen: boolean
+  /** Scroll position to restore after outline jump. */
+  outlineReturnPoint: { docId: string; scrollTop: number } | null
+  /** Sidebar smart filter. */
+  librarySmartFilter: LibrarySmartFilter
+  /** Multi-select in library views. */
+  selectedDocumentIds: string[]
 }
 
 function pruneIds(ids: string[], documents: DocumentSummary[]): string[] {
@@ -118,6 +129,10 @@ const initialState: DocumentsState = {
   openDocumentIds: initialOpen,
   secondaryDocumentId: null,
   documentNavStack: [],
+  documentTocLeftOpen: readDocumentTocLeftOpen(),
+  outlineReturnPoint: null,
+  librarySmartFilter: 'none',
+  selectedDocumentIds: [],
 }
 
 const documentsSlice = createSlice({
@@ -400,6 +415,37 @@ const documentsSlice = createSlice({
     clearDocumentNav(state) {
       state.documentNavStack = []
     },
+    setDocumentTocLeftOpen(state, action: PayloadAction<boolean>) {
+      state.documentTocLeftOpen = action.payload
+      persistDocumentTocLeftOpen(action.payload)
+    },
+    toggleDocumentTocLeftOpen(state) {
+      state.documentTocLeftOpen = !state.documentTocLeftOpen
+      persistDocumentTocLeftOpen(state.documentTocLeftOpen)
+    },
+    setOutlineReturnPoint(
+      state,
+      action: PayloadAction<{ docId: string; scrollTop: number } | null>,
+    ) {
+      state.outlineReturnPoint = action.payload
+    },
+    setLibrarySmartFilter(state, action: PayloadAction<LibrarySmartFilter>) {
+      state.librarySmartFilter = action.payload
+    },
+    setSelectedDocumentIds(state, action: PayloadAction<string[]>) {
+      state.selectedDocumentIds = action.payload
+    },
+    toggleSelectedDocument(state, action: PayloadAction<string>) {
+      const id = action.payload
+      if (state.selectedDocumentIds.includes(id)) {
+        state.selectedDocumentIds = state.selectedDocumentIds.filter((item) => item !== id)
+      } else {
+        state.selectedDocumentIds = [...state.selectedDocumentIds, id]
+      }
+    },
+    clearSelectedDocuments(state) {
+      state.selectedDocumentIds = []
+    },
   },
 })
 
@@ -442,6 +488,13 @@ export const {
   popDocumentNav,
   trimDocumentNavTo,
   clearDocumentNav,
+  setDocumentTocLeftOpen,
+  toggleDocumentTocLeftOpen,
+  setOutlineReturnPoint,
+  setLibrarySmartFilter,
+  setSelectedDocumentIds,
+  toggleSelectedDocument,
+  clearSelectedDocuments,
 } = documentsSlice.actions
 
 export default documentsSlice.reducer

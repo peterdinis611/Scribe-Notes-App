@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type RefObject } from 'react'
+import { useCallback, useEffect, useMemo, useState, type RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useNavigate } from '@tanstack/react-router'
@@ -8,6 +8,7 @@ import {
   createFolder,
   deleteDocument,
   deleteFolder,
+  listLinkGraph,
   moveFolder,
   renameFolder,
   setDocumentFavorite,
@@ -26,6 +27,7 @@ import {
 } from '@/lib/library/folders'
 import { buildTree, estimateFlatItemSize, flattenTree } from '@/lib/library/tree'
 import { documentMatchesMetaFilters } from '@/lib/library/tag-meta'
+import { documentMatchesSmartFilter } from '@/lib/library/smart-filters'
 import {
   readDocumentDragId,
   readFolderDragId,
@@ -40,6 +42,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
   setActiveDocument,
   setActiveDocumentId,
+  toggleSelectedDocument,
   updateDocuments,
 } from '@/store/documentsSlice'
 import { updateExpandedFolderIds, updateFolders } from '@/store/foldersSlice'
@@ -59,9 +62,28 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
   const favoritesOnly = useAppSelector((state) => state.documents.favoritesOnlyFilter)
   const activeTag = useAppSelector((state) => state.documents.activeTagFilter)
   const metaFilters = useAppSelector((state) => state.documents.metaFilters)
+  const librarySmartFilter = useAppSelector((state) => state.documents.librarySmartFilter)
+  const recentDocumentIds = useAppSelector((state) => state.documents.recentDocumentIds)
+  const selectedDocumentIds = useAppSelector((state) => state.documents.selectedDocumentIds)
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const [dragOverId, setDragOverId] = useState<string | null>(null)
+  const [orphanIds, setOrphanIds] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    let cancelled = false
+    void listLinkGraph()
+      .then((graph) => {
+        if (cancelled) return
+        setOrphanIds(new Set(graph.orphans.map((item) => item.documentId)))
+      })
+      .catch(() => {
+        if (!cancelled) setOrphanIds(new Set())
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [documents.length])
 
   const filteredDocuments = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -70,9 +92,17 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
       if (favoritesOnly && !doc.isFavorite) return false
       if (activeTag && !doc.tags.includes(activeTag)) return false
       if (!documentMatchesMetaFilters(doc.tags, metaFilters)) return false
+      if (
+        !documentMatchesSmartFilter(doc, librarySmartFilter, {
+          orphanIds,
+          recentDocumentIds,
+        })
+      ) {
+        return false
+      }
       return true
     })
-  }, [documents, query, favoritesOnly, activeTag, metaFilters])
+  }, [documents, query, favoritesOnly, activeTag, metaFilters, librarySmartFilter, orphanIds, recentDocumentIds])
 
   const tree = useMemo(() => buildTree(folders, filteredDocuments), [folders, filteredDocuments])
   const flatItems = useMemo(() => flattenTree(tree, expandedIds), [tree, expandedIds])
@@ -469,6 +499,19 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     setDocumentDragData(event, id)
   }, [])
 
+  const handleToggleSelect = useCallback(
+    (id: string, event: React.MouseEvent) => {
+      event.stopPropagation()
+      dispatch(toggleSelectedDocument(id))
+    },
+    [dispatch],
+  )
+
+  const selectionProps = {
+    isSelected: (id: string) => selectedDocumentIds.includes(id),
+    onToggleSelect: handleToggleSelect,
+  }
+
   const handleFolderDragOver = useCallback((id: string, event: React.DragEvent) => {
     event.preventDefault()
     event.stopPropagation()
@@ -518,11 +561,13 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
               document={document}
               depth={0}
               isActive={activeId === document.id}
+              isSelected={selectionProps.isSelected(document.id)}
               onOpen={openDocument}
               onDelete={(id, event) => void handleDeleteDocument(id, event)}
               onToggleFavorite={(id, event) => void handleToggleFavorite(id, event)}
               onTogglePin={(id, event) => void handleToggleDocumentPin(id, event)}
               onEditTags={(id, event) => void handleEditTags(id, event)}
+              onToggleSelect={selectionProps.onToggleSelect}
               onDragStart={handleDocumentDragStart}
             />
           ))}
@@ -598,11 +643,13 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
                       document={item.document}
                       depth={item.depth}
                       isActive={activeId === item.document.id}
+                      isSelected={selectionProps.isSelected(item.document.id)}
                       onOpen={openDocument}
                       onDelete={(id, event) => void handleDeleteDocument(id, event)}
                       onToggleFavorite={(id, event) => void handleToggleFavorite(id, event)}
                       onTogglePin={(id, event) => void handleToggleDocumentPin(id, event)}
                       onEditTags={(id, event) => void handleEditTags(id, event)}
+                      onToggleSelect={selectionProps.onToggleSelect}
                       onDragStart={handleDocumentDragStart}
                     />
                   )}

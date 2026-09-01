@@ -6,6 +6,8 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { FolderTree } from '@/components/FolderTree'
 import { LibraryFavoritesView } from '@/components/LibraryFavoritesView'
 import { LibraryFilterBanner } from '@/components/LibraryFilterBanner'
+import { LibraryBulkBar } from '@/components/library/LibraryBulkBar'
+import { LibrarySmartFilters } from '@/components/library/LibrarySmartFilters'
 import { LibraryRecentView } from '@/components/LibraryRecentView'
 import { LibraryTagsView } from '@/components/LibraryTagsView'
 import { LibraryJournalView } from '@/components/LibraryJournalView'
@@ -162,6 +164,8 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
               {libraryView === 'folders' && (
                 <>
                   <LibraryFilterBanner />
+                  <LibrarySmartFilters />
+                  <LibraryBulkBar />
                   <div className="flex items-center justify-between gap-2 px-3 pb-1 pt-2">
                     <h2 className="m-0 text-[11px] font-medium text-[var(--color-muted-foreground)]">
                       {t('library.allDocuments')}

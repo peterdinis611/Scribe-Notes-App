@@ -1,12 +1,15 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
-import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight, Flame, Moon, Sun } from 'lucide-react'
 import {
+  computeJournalStreak,
   formatDateKey,
   getJournalFolderId,
   listJournalDailyDates,
+  openEveningNote,
   openJournalNoteForDate,
+  openMorningNote,
   openThisWeekNote,
   openTodayNote,
 } from '@/lib/journal-notes'
@@ -40,9 +43,19 @@ export function LibraryJournalView({ onNavigate }: LibraryJournalViewProps) {
     [folders, t],
   )
   const notedDates = useMemo(
-    () => new Set(listJournalDailyDates(documents, folderId)),
+    () => listJournalDailyDates(documents, folderId),
     [documents, folderId],
   )
+  const streak = useMemo(() => computeJournalStreak(notedDates), [notedDates])
+  const notedDateSet = useMemo(() => new Set(notedDates), [notedDates])
+
+  const journalArgs = {
+    documents,
+    folders,
+    dispatch,
+    navigate,
+    t: (key: string, options?: Record<string, unknown>) => t(key, options),
+  }
 
   const todayKey = formatDateKey(new Date())
   const monthLabel = cursor.toLocaleDateString(i18n.language === 'sk' ? 'sk-SK' : 'en-US', {
@@ -79,19 +92,19 @@ export function LibraryJournalView({ onNavigate }: LibraryJournalViewProps) {
 
   return (
     <div className="px-2 pb-3 pt-1">
+      {streak > 0 && (
+        <div className="journal-streak-badge mb-2">
+          <Flame className="h-3.5 w-3.5" aria-hidden="true" />
+          <span>{t('journal.streak', { count: streak })}</span>
+        </div>
+      )}
       <div className="mb-3 flex flex-wrap gap-1.5">
         <Button
           size="sm"
           variant="default"
           className="h-7"
           onClick={() =>
-            void openTodayNote({
-              documents,
-              folders,
-              dispatch,
-              navigate,
-              t: (key, options) => t(key, options),
-            })
+            void openTodayNote(journalArgs)
               .then(() => onNavigate?.())
               .catch((error) => toast.error(t('journal.openError'), String(error)))
           }
@@ -101,15 +114,35 @@ export function LibraryJournalView({ onNavigate }: LibraryJournalViewProps) {
         <Button
           size="sm"
           variant="outline"
+          className="h-7 gap-1"
+          onClick={() =>
+            void openMorningNote(journalArgs)
+              .then(() => onNavigate?.())
+              .catch((error) => toast.error(t('journal.openError'), String(error)))
+          }
+        >
+          <Sun className="h-3 w-3" />
+          {t('journal.morning')}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 gap-1"
+          onClick={() =>
+            void openEveningNote(journalArgs)
+              .then(() => onNavigate?.())
+              .catch((error) => toast.error(t('journal.openError'), String(error)))
+          }
+        >
+          <Moon className="h-3 w-3" />
+          {t('journal.evening')}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
           className="h-7"
           onClick={() =>
-            void openThisWeekNote({
-              documents,
-              folders,
-              dispatch,
-              navigate,
-              t: (key, options) => t(key, options),
-            })
+            void openThisWeekNote(journalArgs)
               .then(() => onNavigate?.())
               .catch((error) => toast.error(t('journal.openError'), String(error)))
           }
@@ -157,12 +190,12 @@ export function LibraryJournalView({ onNavigate }: LibraryJournalViewProps) {
             if (!cell.date || !cell.key) {
               return <span key={`empty-${index}`} className="h-8" />
             }
-            const hasNote = notedDates.has(cell.key)
+            const hasNote = notedDateSet.has(cell.key)
             const isToday = cell.key === todayKey
             const prevKey = formatDateKey(new Date(cell.date.getTime() - 86_400_000))
             const nextKey = formatDateKey(new Date(cell.date.getTime() + 86_400_000))
             const heat = hasNote
-              ? 1 + (notedDates.has(prevKey) ? 1 : 0) + (notedDates.has(nextKey) ? 1 : 0)
+              ? 1 + (notedDateSet.has(prevKey) ? 1 : 0) + (notedDateSet.has(nextKey) ? 1 : 0)
               : 0
             return (
               <button
@@ -195,6 +228,9 @@ export function LibraryJournalView({ onNavigate }: LibraryJournalViewProps) {
       </div>
 
       <p className="mt-2 px-0.5 text-[11px] text-[var(--color-muted-foreground)]">
+        {t('journal.heatWorkflowHint')}
+      </p>
+      <p className="mt-1 px-0.5 text-[11px] text-[var(--color-muted-foreground)]">
         {t('journal.calendarHint')}
       </p>
     </div>

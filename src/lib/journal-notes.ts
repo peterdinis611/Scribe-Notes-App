@@ -49,14 +49,32 @@ export function formatWeekKey(date: Date): string {
   return `${target.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`
 }
 
-function journalContent(heading: string): string {
-  return JSON.stringify({
-    type: 'doc',
-    content: [
-      { type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text: heading }] },
+export type JournalSlot = 'day' | 'morning' | 'evening'
+
+function journalContent(heading: string, slot: JournalSlot = 'day'): string {
+  const blocks: Array<Record<string, unknown>> = [
+    { type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text: heading }] },
+  ]
+
+  if (slot === 'morning') {
+    blocks.push(
+      { type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: 'Intentions' }] },
+      { type: 'taskList', content: [{ type: 'taskItem', attrs: { checked: false }, content: [{ type: 'paragraph' }] }] },
+      { type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: 'Notes' }] },
       { type: 'paragraph' },
-    ],
-  })
+    )
+  } else if (slot === 'evening') {
+    blocks.push(
+      { type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: 'Highlights' }] },
+      { type: 'paragraph' },
+      { type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: 'Reflection' }] },
+      { type: 'paragraph' },
+    )
+  } else {
+    blocks.push({ type: 'paragraph' })
+  }
+
+  return JSON.stringify({ type: 'doc', content: blocks })
 }
 
 async function ensureJournalFolder(
@@ -82,7 +100,12 @@ type OpenJournalArgs = {
   t: (key: string, options?: Record<string, unknown>) => string
 }
 
-async function openJournalNote(mapKey: string, title: string, args: OpenJournalArgs) {
+async function openJournalNote(
+  mapKey: string,
+  title: string,
+  args: OpenJournalArgs,
+  slot: JournalSlot = 'day',
+) {
   const { documents, folders, dispatch, navigate, t } = args
   const map = readJournalMap()
   const storedId = map[mapKey]
@@ -116,7 +139,7 @@ async function openJournalNote(mapKey: string, title: string, args: OpenJournalA
     await createDocument({
       title,
       folderId,
-      contentJson: journalContent(title),
+      contentJson: journalContent(title, slot),
     }),
   )
 
@@ -134,10 +157,56 @@ export async function openTodayNote(args: OpenJournalArgs) {
   return openJournalNoteForDate(new Date(), args)
 }
 
-export async function openJournalNoteForDate(date: Date, args: OpenJournalArgs) {
-  const key = `daily:${formatDateKey(date)}`
-  const title = args.t('journal.todayTitle', { date: formatDateKey(date) })
-  return openJournalNote(key, title, args)
+export async function openJournalNoteForDate(
+  date: Date,
+  args: OpenJournalArgs,
+  slot: JournalSlot = 'day',
+) {
+  const dateKey = formatDateKey(date)
+  const key =
+    slot === 'day' ? `daily:${dateKey}` : `daily:${dateKey}:${slot}`
+  const title =
+    slot === 'morning'
+      ? args.t('journal.morningTitle', { date: dateKey })
+      : slot === 'evening'
+        ? args.t('journal.eveningTitle', { date: dateKey })
+        : args.t('journal.todayTitle', { date: dateKey })
+  return openJournalNote(key, title, args, slot)
+}
+
+export async function openYesterdayNote(args: OpenJournalArgs) {
+  const date = new Date()
+  date.setDate(date.getDate() - 1)
+  return openJournalNoteForDate(date, args)
+}
+
+export async function openTomorrowNote(args: OpenJournalArgs) {
+  const date = new Date()
+  date.setDate(date.getDate() + 1)
+  return openJournalNoteForDate(date, args)
+}
+
+export async function openMorningNote(args: OpenJournalArgs) {
+  return openJournalNoteForDate(new Date(), args, 'morning')
+}
+
+export async function openEveningNote(args: OpenJournalArgs) {
+  return openJournalNoteForDate(new Date(), args, 'evening')
+}
+
+/** Consecutive calendar days with a daily journal note ending today. */
+export function computeJournalStreak(notedDates: string[]): number {
+  if (notedDates.length === 0) return 0
+  const set = new Set(notedDates)
+  let streak = 0
+  const cursor = new Date()
+  for (;;) {
+    const key = formatDateKey(cursor)
+    if (!set.has(key)) break
+    streak += 1
+    cursor.setDate(cursor.getDate() - 1)
+  }
+  return streak
 }
 
 export async function openThisWeekNote(args: OpenJournalArgs) {

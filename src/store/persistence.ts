@@ -28,6 +28,7 @@ const WHATS_NEW_VERSION_KEY = 'scribe-whats-new-version'
 const SCRATCH_DOCUMENT_ID_KEY = 'scribe-scratch-document-id'
 const SHORTCUT_OVERRIDES_KEY = 'scribe-shortcut-overrides'
 const UI_SKIN_KEY = 'scribe-ui-skin'
+const DOCUMENT_TOC_LEFT_KEY = 'scribe-document-toc-left-open'
 
 export function readLocale(): AppLocale {
   try {
@@ -101,6 +102,14 @@ export function readWhatsNewVersion(): string | null {
 
 export function persistWhatsNewVersion(version: string) {
   localStorage.setItem(WHATS_NEW_VERSION_KEY, version)
+}
+
+export function readDocumentTocLeftOpen(): boolean {
+  return readBoolStorage(DOCUMENT_TOC_LEFT_KEY, false)
+}
+
+export function persistDocumentTocLeftOpen(open: boolean) {
+  persistBoolStorage(DOCUMENT_TOC_LEFT_KEY, open)
 }
 
 export function readScratchDocumentId(): string | null {

@@ -117,11 +117,13 @@ type FolderTreeDocumentRowProps = {
   document: DocumentSummary
   depth: number
   isActive: boolean
+  isSelected?: boolean
   onOpen: (id: string) => void
   onDelete: (id: string, event: React.MouseEvent) => void
   onToggleFavorite: (id: string, event: React.MouseEvent) => void
   onTogglePin: (id: string, event: React.MouseEvent) => void
   onEditTags: (id: string, event: React.MouseEvent) => void
+  onToggleSelect?: (id: string, event: React.MouseEvent) => void
   onDragStart: (id: string, event: React.DragEvent) => void
 }
 
@@ -129,11 +131,13 @@ export const FolderTreeDocumentRow = memo(function FolderTreeDocumentRow({
   document,
   depth,
   isActive,
+  isSelected = false,
   onOpen,
   onDelete,
   onToggleFavorite,
   onTogglePin,
   onEditTags,
+  onToggleSelect,
   onDragStart,
 }: FolderTreeDocumentRowProps) {
   const { t } = useTranslation()
@@ -154,9 +158,23 @@ export const FolderTreeDocumentRow = memo(function FolderTreeDocumentRow({
       className={cn(
         'group titlebar-no-drag relative mx-1 mb-px flex w-[calc(100%-8px)] cursor-default items-center gap-2 rounded-md border-none px-2 py-1 transition-colors hover:bg-[var(--color-hover)] active:cursor-grabbing',
         isActive && 'bg-[var(--color-selection)]',
+        isSelected && 'ring-1 ring-[var(--color-accent)]',
       )}
       style={{ paddingLeft: 12 + depth * 14 }}
     >
+      {onToggleSelect && (
+        <input
+          type="checkbox"
+          className="folder-tree-select-checkbox titlebar-no-drag"
+          checked={isSelected}
+          aria-label={t('library.bulk.selectOne')}
+          onClick={(event) => event.stopPropagation()}
+          onChange={(event) => {
+            event.stopPropagation()
+            onToggleSelect(document.id, event as unknown as React.MouseEvent)
+          }}
+        />
+      )}
       <FileText
         className={cn(
           'h-4 w-4 shrink-0 stroke-[1.5] text-[var(--color-muted-foreground)]',
