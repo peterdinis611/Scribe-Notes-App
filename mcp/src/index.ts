@@ -36,7 +36,7 @@ function createServer(): McpServer {
 
   const server = new McpServer({
     name: 'scribe-memory',
-    version: '0.1.0',
+    version: '0.2.0',
   })
 
   function requireStore(): ScribeMemoryStore {
@@ -218,6 +218,257 @@ function createServer(): McpServer {
       try {
         const note = requireStore().appendToNote({ id, text })
         return textResult(note)
+      } catch (error) {
+        return errorResult(String(error))
+      }
+    },
+  )
+
+  server.tool(
+    'list_favorites',
+    'List favorite (starred) documents.',
+    {
+      limit: z.number().int().min(1).max(200).optional().describe('Max documents (default 50)'),
+    },
+    async ({ limit }) => {
+      try {
+        const documents = requireStore().listFavorites(limit ?? 50)
+        return textResult({ count: documents.length, documents })
+      } catch (error) {
+        return errorResult(String(error))
+      }
+    },
+  )
+
+  server.tool(
+    'list_pinned',
+    'List pinned documents.',
+    {
+      limit: z.number().int().min(1).max(200).optional().describe('Max documents (default 50)'),
+    },
+    async ({ limit }) => {
+      try {
+        const documents = requireStore().listPinned(limit ?? 50)
+        return textResult({ count: documents.length, documents })
+      } catch (error) {
+        return errorResult(String(error))
+      }
+    },
+  )
+
+  server.tool(
+    'list_trashed_documents',
+    'List documents in trash (soft-deleted), newest first.',
+    {
+      limit: z.number().int().min(1).max(200).optional().describe('Max documents (default 50)'),
+    },
+    async ({ limit }) => {
+      try {
+        const documents = requireStore().listTrashedDocuments(limit ?? 50)
+        return textResult({ count: documents.length, documents })
+      } catch (error) {
+        return errorResult(String(error))
+      }
+    },
+  )
+
+  server.tool(
+    'restore_document',
+    'Restore a trashed document back to the library. Writable mode required.',
+    {
+      id: z.string().describe('Document id'),
+    },
+    async ({ id }) => {
+      try {
+        const result = requireStore().restoreDocument(id)
+        return textResult(result)
+      } catch (error) {
+        return errorResult(String(error))
+      }
+    },
+  )
+
+  server.tool(
+    'purge_document',
+    'Permanently delete a document from trash. Writable mode required.',
+    {
+      id: z.string().describe('Document id'),
+    },
+    async ({ id }) => {
+      try {
+        const result = requireStore().purgeDocument(id)
+        return textResult(result)
+      } catch (error) {
+        return errorResult(String(error))
+      }
+    },
+  )
+
+  server.tool(
+    'list_tags',
+    'List all tags used in the library with document counts.',
+    async () => {
+      try {
+        const tags = requireStore().listTags()
+        return textResult({ count: tags.length, tags })
+      } catch (error) {
+        return errorResult(String(error))
+      }
+    },
+  )
+
+  server.tool(
+    'search_by_tag',
+    'Find open documents that have an exact tag.',
+    {
+      tag: z.string().describe('Exact tag name'),
+      limit: z.number().int().min(1).max(200).optional().describe('Max documents (default 50)'),
+    },
+    async ({ tag, limit }) => {
+      try {
+        const documents = requireStore().searchByTag(tag, limit ?? 50)
+        return textResult({ tag, count: documents.length, documents })
+      } catch (error) {
+        return errorResult(String(error))
+      }
+    },
+  )
+
+  server.tool(
+    'set_document_tags',
+    'Replace tags on a document. Writable mode required.',
+    {
+      id: z.string().describe('Document id'),
+      tags: z.array(z.string()).describe('Full tag list (replaces existing tags)'),
+    },
+    async ({ id, tags }) => {
+      try {
+        const result = requireStore().setDocumentTags(id, tags)
+        return textResult(result)
+      } catch (error) {
+        return errorResult(String(error))
+      }
+    },
+  )
+
+  server.tool(
+    'create_folder',
+    'Create a new folder. Writable mode required.',
+    {
+      name: z.string().describe('Folder name'),
+      parentId: z.string().optional().describe('Optional parent folder id'),
+    },
+    async ({ name, parentId }) => {
+      try {
+        const folder = requireStore().createFolder({
+          name,
+          parentId: parentId ?? null,
+        })
+        return textResult(folder)
+      } catch (error) {
+        return errorResult(String(error))
+      }
+    },
+  )
+
+  server.tool(
+    'rename_folder',
+    'Rename a folder. Writable mode required.',
+    {
+      id: z.string().describe('Folder id'),
+      name: z.string().describe('New folder name'),
+    },
+    async ({ id, name }) => {
+      try {
+        const folder = requireStore().renameFolder({ id, name })
+        return textResult(folder)
+      } catch (error) {
+        return errorResult(String(error))
+      }
+    },
+  )
+
+  server.tool(
+    'move_document_to_folder',
+    'Move a document to a folder (or root when folderId omitted). Writable mode required.',
+    {
+      documentId: z.string().describe('Document id'),
+      folderId: z.string().optional().describe('Target folder id; omit for root'),
+    },
+    async ({ documentId, folderId }) => {
+      try {
+        const result = requireStore().moveDocumentToFolder({
+          documentId,
+          folderId: folderId ?? null,
+        })
+        return textResult(result)
+      } catch (error) {
+        return errorResult(String(error))
+      }
+    },
+  )
+
+  server.tool(
+    'list_comment_threads',
+    'List comment threads (with replies) on a document.',
+    {
+      documentId: z.string().describe('Document id'),
+    },
+    async ({ documentId }) => {
+      try {
+        const threads = requireStore().listCommentThreads(documentId)
+        return textResult({ documentId, count: threads.length, threads })
+      } catch (error) {
+        return errorResult(String(error))
+      }
+    },
+  )
+
+  server.tool(
+    'search_comments',
+    'Search comment bodies and quoted text across the library.',
+    {
+      query: z.string().describe('Search string'),
+      limit: z.number().int().min(1).max(100).optional().describe('Max hits (default 20)'),
+    },
+    async ({ query, limit }) => {
+      try {
+        const hits = requireStore().searchComments(query, limit ?? 20)
+        return textResult({ query, count: hits.length, hits })
+      } catch (error) {
+        return errorResult(String(error))
+      }
+    },
+  )
+
+  server.tool(
+    'list_document_revisions',
+    'List saved revision snapshots for a document (newest first).',
+    {
+      documentId: z.string().describe('Document id'),
+      limit: z.number().int().min(1).max(50).optional().describe('Max revisions (default 20)'),
+    },
+    async ({ documentId, limit }) => {
+      try {
+        const revisions = requireStore().listDocumentRevisions(documentId, limit ?? 20)
+        return textResult({ documentId, count: revisions.length, revisions })
+      } catch (error) {
+        return errorResult(String(error))
+      }
+    },
+  )
+
+  server.tool(
+    'get_document_revision',
+    'Load one revision snapshot (plain text + TipTap JSON).',
+    {
+      revisionId: z.string().describe('Revision id'),
+    },
+    async ({ revisionId }) => {
+      try {
+        const revision = requireStore().getDocumentRevision(revisionId)
+        if (!revision) return errorResult(`Revision not found: ${revisionId}`)
+        return textResult(revision)
       } catch (error) {
         return errorResult(String(error))
       }

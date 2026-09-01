@@ -212,3 +212,167 @@ Orphans = open documents with no incoming or outgoing wiki links.
 
 1. `find_documents_by_title`  
 2. `get_document`
+
+---
+
+## `list_favorites`
+
+Favorite (starred) open documents.
+
+| Arg | Type | Required | Default |
+|-----|------|----------|---------|
+| `limit` | number | no | `50` |
+
+---
+
+## `list_pinned`
+
+Pinned open documents.
+
+| Arg | Type | Required | Default |
+|-----|------|----------|---------|
+| `limit` | number | no | `50` |
+
+---
+
+## `list_trashed_documents`
+
+Soft-deleted documents in trash.
+
+| Arg | Type | Required | Default |
+|-----|------|----------|---------|
+| `limit` | number | no | `50` |
+
+Each item includes `deletedAt`.
+
+---
+
+## `restore_document`
+
+Restore a trashed document. **Writable mode required.**
+
+| Arg | Type | Required |
+|-----|------|----------|
+| `id` | string | yes |
+
+---
+
+## `purge_document`
+
+Permanently delete a document. **Writable mode required.**
+
+| Arg | Type | Required |
+|-----|------|----------|
+| `id` | string | yes |
+
+---
+
+## `list_tags`
+
+All tags in the library with usage counts.
+
+**Arguments:** none
+
+---
+
+## `search_by_tag`
+
+Documents with an exact tag match.
+
+| Arg | Type | Required | Default |
+|-----|------|----------|---------|
+| `tag` | string | yes | — |
+| `limit` | number | no | `50` |
+
+---
+
+## `set_document_tags`
+
+Replace tags on a document. **Writable mode required.**
+
+| Arg | Type | Required |
+|-----|------|----------|
+| `id` | string | yes |
+| `tags` | string[] | yes |
+
+---
+
+## `create_folder`
+
+Create a folder. **Writable mode required.**
+
+| Arg | Type | Required |
+|-----|------|----------|
+| `name` | string | yes |
+| `parentId` | string | no |
+
+---
+
+## `rename_folder`
+
+Rename a folder. **Writable mode required.**
+
+| Arg | Type | Required |
+|-----|------|----------|
+| `id` | string | yes |
+| `name` | string | yes |
+
+---
+
+## `move_document_to_folder`
+
+Move a document. **Writable mode required.**
+
+| Arg | Type | Required |
+|-----|------|----------|
+| `documentId` | string | yes |
+| `folderId` | string | no (root when omitted) |
+
+---
+
+## `list_comment_threads`
+
+Comment threads and replies for one document.
+
+| Arg | Type | Required |
+|-----|------|----------|
+| `documentId` | string | yes |
+
+---
+
+## `search_comments`
+
+Search comment bodies and quoted passages library-wide.
+
+| Arg | Type | Required | Default |
+|-----|------|----------|---------|
+| `query` | string | yes | — |
+| `limit` | number | no | `20` |
+
+---
+
+## `list_document_revisions`
+
+Revision history for a document (metadata only).
+
+| Arg | Type | Required | Default |
+|-----|------|----------|---------|
+| `documentId` | string | yes | — |
+| `limit` | number | no | `20` |
+
+---
+
+## `get_document_revision`
+
+Load one revision snapshot (`plainText` + `contentJson`).
+
+| Arg | Type | Required |
+|-----|------|----------|
+| `revisionId` | string | yes |
+
+---
+
+## Write behaviour notes
+
+- `create_note` / `append_to_note` sync FTS and wiki-link edges (`document_links`).
+- Plain-text `[[Wiki labels]]` are resolved to wiki-link nodes when a matching title exists.

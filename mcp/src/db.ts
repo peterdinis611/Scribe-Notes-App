@@ -525,4 +525,389 @@ export class ScribeMemoryStore {
       orphans,
     }
   }
+
+  listFavorites(limit = 50): DocumentSummary[] {
+    const max = Math.min(200, Math.max(1, limit))
+    const rows = this.db
+      .prepare(
+        `${SUMMARY_SELECT}
+         WHERE deleted_at IS NULL AND is_favorite = 1
+         ORDER BY updated_at DESC LIMIT ?`,
+      )
+      .all(max) as Array<Parameters<typeof mapSummary>[0]>
+    return rows.map(mapSummary)
+  }
+
+  listPinned(limit = 50): DocumentSummary[] {
+    const max = Math.min(200, Math.max(1, limit))
+    const rows = this.db
+      .prepare(
+        `${SUMMARY_SELECT}
+         WHERE deleted_at IS NULL AND is_pinned = 1
+         ORDER BY updated_at DESC LIMIT ?`,
+      )
+      .all(max) as Array<Parameters<typeof mapSummary>[0]>
+    return rows.map(mapSummary)
+  }
+
+  listTrashedDocuments(limit = 50): DocumentSummary[] {
+    const max = Math.min(200, Math.max(1, limit))
+    const rows = this.db
+      .prepare(
+        `${SUMMARY_SELECT}
+         WHERE deleted_at IS NOT NULL
+         ORDER BY deleted_at DESC LIMIT ?`,
+      )
+      .all(max) as Array<Parameters<typeof mapSummary>[0]>
+    return rows.map(mapSummary)
+  }
+
+  restoreDocument(id: string): { id: string; title: string } {
+    return this.runWritable(() => {
+      const row = this.db
+        .prepare(
+          `SELECT id, title, content_json, deleted_at FROM documents WHERE id = ?`,
+        )
+        .get(id) as
+        | { id: string; title: string; content_json: string; deleted_at: number | null }
+        | undefined
+
+      if (!row) throw new Error(`Document not found: ${id}`)
+      if (row.deleted_at == null) throw new Error(`Document is not in trash: ${id}`)
+
+      this.db.prepare(`UPDATE documents SET deleted_at = NULL WHERE id = ?`).run(id)
+      this.syncFts(id, row.title, row.content_json)
+      this.syncLinks(id, row.content_json)
+
+      return { id: row.id, title: row.title }
+    })
+  }
+
+  purgeDocument(id: string): { id: string } {
+    return this.runWritable(() => {
+      const row = this.db
+        .prepare(`SELECT id FROM documents WHERE id = ?`)
+        .get(id) as { id: string } | undefined
+      if (!row) throw new Error(`Document not found: ${id}`)
+
+      this.db.prepare('DELETE FROM documents WHERE id = ?').run(id)
+      this.db.prepare('DELETE FROM documents_fts WHERE document_id = ?').run(id)
+
+      return { id }
+    })
+  }
+
+  listTags(): TagCount[] {
+    const rows = this.db
+      .prepare(`SELECT tags FROM documents WHERE deleted_at IS NULL AND tags IS NOT NULL`)
+      .all() as Array<{ tags: string | null }>
+
+    const counts = new Map<string, number>()
+    for (const row of rows) {
+      for (const tag of parseTags(row.tags)) {
+        counts.set(tag, (counts.get(tag) ?? 0) + 1)
+      }
+    }
+
+    return [...counts.entries()]
+      .map(([tag, count]) => ({ tag, count }))
+      .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag))
+  }
+
+  searchByTag(tag: string, limit = 50): DocumentSummary[] {
+    const needle = tag.trim()
+    if (!needle) return []
+    const max = Math.min(200, Math.max(1, limit))
+
+    const rows = this.db
+      .prepare(
+        `${SUMMARY_SELECT}
+         WHERE deleted_at IS NULL
+           AND EXISTS (
+             SELECT 1 FROM json_each(documents.tags)
+             WHERE value = ?
+           )
+         ORDER BY updated_at DESC
+         LIMIT ?`,
+      )
+      .all(needle, max) as Array<Parameters<typeof mapSummary>[0]>
+
+    return rows.map(mapSummary)
+  }
+
+  setDocumentTags(id: string, tags: string[]): { id: string; tags: string[] } {
+    return this.runWritable(() => {
+      const row = this.db
+        .prepare(`SELECT id, deleted_at FROM documents WHERE id = ?`)
+        .get(id) as { id: string; deleted_at: number | null } | undefined
+
+      if (!row || row.deleted_at != null) {
+        throw new Error(`Document not found: ${id}`)
+      }
+
+      const normalized = normalizeTags(tags)
+      this.db
+        .prepare(`UPDATE documents SET tags = ? WHERE id = ?`)
+        .run(encodeTags(normalized), id)
+
+      return { id, tags: normalized }
+    })
+  }
+
+  createFolder(input: { name: string; parentId?: string | null }): FolderRow & {
+    createdAt: number
+    updatedAt: number
+  } {
+    const name = input.name.trim()
+    if (!name) throw new Error('name is required')
+
+    return this.runWritable(() => {
+      if (input.parentId) {
+        const parent = this.db
+          .prepare(`SELECT id FROM folders WHERE id = ?`)
+          .get(input.parentId) as { id: string } | undefined
+        if (!parent) throw new Error(`Parent folder not found: ${input.parentId}`)
+      }
+
+      const id = randomUUID()
+      const now = Date.now()
+      this.db
+        .prepare(
+          `INSERT INTO folders (id, name, parent_id, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?)`,
+        )
+        .run(id, name, input.parentId ?? null, now, now)
+
+      return {
+        id,
+        name,
+        parentId: input.parentId ?? null,
+        isPinned: false,
+        createdAt: now,
+        updatedAt: now,
+      }
+    })
+  }
+
+  renameFolder(input: { id: string; name: string }): FolderRow & {
+    createdAt: number
+    updatedAt: number
+  } {
+    const name = input.name.trim()
+    if (!name) throw new Error('name is required')
+
+    return this.runWritable(() => {
+      const now = Date.now()
+      const updated = this.db
+        .prepare(`UPDATE folders SET name = ?, updated_at = ? WHERE id = ?`)
+        .run(name, now, input.id)
+
+      if (updated.changes === 0) throw new Error(`Folder not found: ${input.id}`)
+
+      const row = this.db
+        .prepare(
+          `SELECT id, name, parent_id, created_at, updated_at, is_pinned FROM folders WHERE id = ?`,
+        )
+        .get(input.id) as {
+        id: string
+        name: string
+        parent_id: string | null
+        created_at: number
+        updated_at: number
+        is_pinned: number
+      }
+
+      return {
+        id: row.id,
+        name: row.name,
+        parentId: row.parent_id,
+        isPinned: row.is_pinned !== 0,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      }
+    })
+  }
+
+  moveDocumentToFolder(input: { documentId: string; folderId?: string | null }): {
+    documentId: string
+    folderId: string | null
+  } {
+    return this.runWritable(() => {
+      const doc = this.db
+        .prepare(`SELECT id, deleted_at FROM documents WHERE id = ?`)
+        .get(input.documentId) as { id: string; deleted_at: number | null } | undefined
+
+      if (!doc || doc.deleted_at != null) {
+        throw new Error(`Document not found: ${input.documentId}`)
+      }
+
+      if (input.folderId) {
+        const folder = this.db
+          .prepare(`SELECT id FROM folders WHERE id = ?`)
+          .get(input.folderId) as { id: string } | undefined
+        if (!folder) throw new Error(`Folder not found: ${input.folderId}`)
+      }
+
+      const now = Date.now()
+      this.db
+        .prepare(`UPDATE documents SET folder_id = ?, updated_at = ? WHERE id = ?`)
+        .run(input.folderId ?? null, now, input.documentId)
+
+      return { documentId: input.documentId, folderId: input.folderId ?? null }
+    })
+  }
+
+  listCommentThreads(documentId: string): CommentThreadRow[] {
+    const threads = this.db
+      .prepare(
+        `SELECT id, document_id, quote, resolved, created_at
+         FROM comment_threads
+         WHERE document_id = ?
+         ORDER BY created_at ASC`,
+      )
+      .all(documentId) as Array<{
+      id: string
+      document_id: string
+      quote: string
+      resolved: number
+      created_at: number
+    }>
+
+    if (threads.length === 0) return []
+
+    const comments = this.db
+      .prepare(
+        `SELECT id, thread_id, document_id, author, body, created_at
+         FROM comments
+         WHERE document_id = ?
+         ORDER BY thread_id ASC, created_at ASC`,
+      )
+      .all(documentId) as Array<{
+      id: string
+      thread_id: string
+      document_id: string
+      author: string
+      body: string
+      created_at: number
+    }>
+
+    const grouped = new Map<string, CommentRow[]>()
+    for (const comment of comments) {
+      const bucket = grouped.get(comment.thread_id) ?? []
+      bucket.push({
+        id: comment.id,
+        threadId: comment.thread_id,
+        documentId: comment.document_id,
+        author: comment.author,
+        body: comment.body,
+        createdAt: comment.created_at,
+      })
+      grouped.set(comment.thread_id, bucket)
+    }
+
+    return threads.map((thread) => ({
+      id: thread.id,
+      documentId: thread.document_id,
+      quote: thread.quote,
+      resolved: thread.resolved !== 0,
+      createdAt: thread.created_at,
+      comments: grouped.get(thread.id) ?? [],
+    }))
+  }
+
+  searchComments(query: string, limit = 20): CommentSearchHit[] {
+    const q = query.trim()
+    if (!q) return []
+    const max = Math.min(100, Math.max(1, limit))
+    const pattern = `%${q.replaceAll('%', '')}%`
+
+    const rows = this.db
+      .prepare(
+        `SELECT c.id AS comment_id, c.thread_id, c.document_id, c.author, c.body, c.created_at,
+                t.quote, t.resolved, d.title AS document_title
+         FROM comments c
+         JOIN comment_threads t ON t.id = c.thread_id
+         JOIN documents d ON d.id = c.document_id
+         WHERE d.deleted_at IS NULL
+           AND (c.body LIKE ? OR t.quote LIKE ?)
+         ORDER BY c.created_at DESC
+         LIMIT ?`,
+      )
+      .all(pattern, pattern, max) as Array<{
+      comment_id: string
+      thread_id: string
+      document_id: string
+      author: string
+      body: string
+      created_at: number
+      quote: string
+      resolved: number
+      document_title: string
+    }>
+
+    return rows.map((row) => ({
+      commentId: row.comment_id,
+      threadId: row.thread_id,
+      documentId: row.document_id,
+      documentTitle: row.document_title,
+      author: row.author,
+      body: row.body,
+      quote: row.quote,
+      resolved: row.resolved !== 0,
+      createdAt: row.created_at,
+    }))
+  }
+
+  listDocumentRevisions(documentId: string, limit = 20): DocumentRevisionSummary[] {
+    const max = Math.min(50, Math.max(1, limit))
+    const rows = this.db
+      .prepare(
+        `SELECT id, document_id, title, created_at
+         FROM document_revisions
+         WHERE document_id = ?
+         ORDER BY created_at DESC
+         LIMIT ?`,
+      )
+      .all(documentId, max) as Array<{
+      id: string
+      document_id: string
+      title: string
+      created_at: number
+    }>
+
+    return rows.map((row) => ({
+      id: row.id,
+      documentId: row.document_id,
+      title: row.title,
+      createdAt: row.created_at,
+    }))
+  }
+
+  getDocumentRevision(revisionId: string): DocumentRevisionDetail | null {
+    const row = this.db
+      .prepare(
+        `SELECT id, document_id, title, content_json, created_at
+         FROM document_revisions WHERE id = ?`,
+      )
+      .get(revisionId) as
+      | {
+          id: string
+          document_id: string
+          title: string
+          content_json: string
+          created_at: number
+        }
+      | undefined
+
+    if (!row) return null
+
+    return {
+      id: row.id,
+      documentId: row.document_id,
+      title: row.title,
+      createdAt: row.created_at,
+      contentJson: row.content_json,
+      plainText: tiptapToPlainText(row.content_json),
+    }
+  }
 }

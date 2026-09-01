@@ -1,3 +1,5 @@
+import type Database from 'better-sqlite3'
+
 type TipTapNode = {
   type?: string
   attrs?: Record<string, unknown>
@@ -39,15 +41,9 @@ function collectTargets(value: unknown, targets: string[]): void {
   if (record.content) collectTargets(record.content, targets)
 }
 
-type SqliteDatabase = {
-  prepare: (sql: string) => {
-    run: (...args: unknown[]) => unknown
-  }
-}
-
 /** Rebuild outgoing wiki-link edges for a document (mirrors Rust `sync_document_links`). */
 export function syncDocumentLinks(
-  db: SqliteDatabase,
+  db: Database.Database,
   sourceId: string,
   contentJson: string,
 ): void {
