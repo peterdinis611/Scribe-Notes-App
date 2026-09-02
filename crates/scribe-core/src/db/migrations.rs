@@ -1,6 +1,6 @@
 use rusqlite::Connection;
 
-const SCHEMA_VERSION: i32 = 12;
+const SCHEMA_VERSION: i32 = 13;
 
 pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     conn.execute_batch(
@@ -303,6 +303,50 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         )?;
     }
 
+    if current < 13 {
+        conn.execute_batch(
+            r#"
+            CREATE INDEX IF NOT EXISTS idx_documents_active_updated
+                ON documents(updated_at DESC) WHERE deleted_at IS NULL;
+
+            CREATE INDEX IF NOT EXISTS idx_documents_active_folder_updated
+                ON documents(folder_id, updated_at DESC) WHERE deleted_at IS NULL;
+
+            CREATE INDEX IF NOT EXISTS idx_documents_trash_deleted
+                ON documents(deleted_at DESC) WHERE deleted_at IS NOT NULL;
+
+            CREATE INDEX IF NOT EXISTS idx_documents_active_favorite_updated
+                ON documents(updated_at DESC) WHERE deleted_at IS NULL AND is_favorite = 1;
+
+            CREATE INDEX IF NOT EXISTS idx_documents_active_pinned_updated
+                ON documents(updated_at DESC) WHERE deleted_at IS NULL AND is_pinned = 1;
+
+            CREATE INDEX IF NOT EXISTS idx_embeddings_model
+                ON document_embeddings(model);
+
+            CREATE INDEX IF NOT EXISTS idx_nlp_artifacts_kind
+                ON nlp_artifacts(kind, created_at DESC);
+            "#,
+        )?;
+
+        let comments_table: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'comments'",
+            [],
+            |row| row.get(0),
+        )?;
+        if comments_table > 0 {
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_comments_document ON comments(document_id, created_at)",
+                [],
+            )?;
+        }
+
+        conn.execute(
+            "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
+            [SCHEMA_VERSION.to_string()],
+        )?;
+    }
+
     Ok(())
 }
 
@@ -576,6 +620,14 @@ mod tests {
             "idx_document_links_source",
             "idx_custom_templates_category",
             "idx_documents_folder_deleted",
+            "idx_documents_active_updated",
+            "idx_documents_active_folder_updated",
+            "idx_documents_trash_deleted",
+            "idx_documents_active_favorite_updated",
+            "idx_documents_active_pinned_updated",
+            "idx_comments_document",
+            "idx_embeddings_model",
+            "idx_nlp_artifacts_kind",
         ] {
             let exists: i64 = conn
                 .query_row(
