@@ -9,13 +9,14 @@ import {
   SettingsSectionHeader,
 } from '@/components/settings/SettingsPrimitives'
 import {
-  nlpIndexAll,
   nlpLibraryReport,
   nlpSetEnabled,
   nlpStatus,
+  type NlpIndexProgress,
   type NlpLibraryReport,
   type NlpStatus,
 } from '@/lib/db/nlp-api'
+import { runNlpIndexAllWithProgress } from '@/lib/nlp/index-progress'
 import { toast } from '@/lib/toast'
 
 function StatRow({ label, value }: { label: string; value: string | number }) {
@@ -34,6 +35,7 @@ export function NlpSection() {
   const [status, setStatus] = useState<NlpStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [indexing, setIndexing] = useState(false)
+  const [indexProgress, setIndexProgress] = useState<NlpIndexProgress | null>(null)
   const [reporting, setReporting] = useState(false)
   const [report, setReport] = useState<NlpLibraryReport | null>(null)
 
@@ -52,6 +54,21 @@ export function NlpSection() {
     void refresh()
   }, [refresh])
 
+  async function runFullReindex() {
+    setIndexing(true)
+    setIndexProgress({ current: 0, total: 0, phase: 'starting' })
+    try {
+      const result = await runNlpIndexAllWithProgress(setIndexProgress)
+      toast.success(t('settings.nlp.indexedToast', { count: result.indexed }))
+      await refresh()
+    } catch (error) {
+      toast.error(t('settings.nlp.indexError'), String(error))
+    } finally {
+      setIndexing(false)
+      setIndexProgress(null)
+    }
+  }
+
   async function toggleEnabled() {
     if (!status) return
     try {
@@ -61,14 +78,7 @@ export function NlpSection() {
         next.enabled ? t('settings.nlp.enabledToast') : t('settings.nlp.disabledToast'),
       )
       if (next.enabled && next.sidecarOk) {
-        setIndexing(true)
-        try {
-          const result = await nlpIndexAll()
-          toast.success(t('settings.nlp.indexedToast', { count: result.indexed }))
-          await refresh()
-        } finally {
-          setIndexing(false)
-        }
+        await runFullReindex()
       }
     } catch (error) {
       toast.error(t('settings.nlp.toggleError'), String(error))
@@ -76,16 +86,7 @@ export function NlpSection() {
   }
 
   async function handleIndexAll() {
-    setIndexing(true)
-    try {
-      const result = await nlpIndexAll()
-      toast.success(t('settings.nlp.indexedToast', { count: result.indexed }))
-      await refresh()
-    } catch (error) {
-      toast.error(t('settings.nlp.indexError'), String(error))
-    } finally {
-      setIndexing(false)
-    }
+    await runFullReindex()
   }
 
   async function handleReport() {
@@ -127,6 +128,53 @@ export function NlpSection() {
       {!status?.sidecarAvailable && (
         <div className="mb-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
           {t('settings.nlp.sidecarScriptMissing')}
+        </div>
+      )}
+
+      {status?.enabled && status.sidecarOk && status.indexStale && (
+        <div className="mb-4 rounded-xl border border-[color-mix(in_srgb,var(--color-accent)_35%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-accent)_8%,var(--color-surface))] px-3 py-3 text-[12px] leading-relaxed text-[var(--color-foreground)]">
+          <p className="m-0 font-medium">{t('settings.nlp.staleIndexTitle')}</p>
+          <p className="mt-1 mb-3 text-[var(--color-muted-foreground)]">
+            {t('settings.nlp.staleIndexDescription', {
+              stored: status.storedModel ?? '—',
+              current: status.model ?? '—',
+              count: status.staleIndexCount,
+            })}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={indexing || loading}
+            onClick={() => void handleIndexAll()}
+          >
+            <Database className="mr-1.5 h-3.5 w-3.5" />
+            {indexing ? t('settings.nlp.indexing') : t('settings.nlp.reindexNow')}
+          </Button>
+        </div>
+      )}
+
+      {indexing && indexProgress && indexProgress.total > 0 && (
+        <div className="mb-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3">
+          <div className="mb-2 flex items-center justify-between gap-3 text-[12px]">
+            <span className="font-medium text-[var(--color-foreground)]">
+              {t('settings.nlp.indexProgressLabel')}
+            </span>
+            <span className="tabular-nums text-[var(--color-muted-foreground)]">
+              {t('settings.nlp.indexProgressCount', {
+                current: indexProgress.current,
+                total: indexProgress.total,
+              })}
+            </span>
+          </div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-[var(--color-border)]">
+            <div
+              className="h-full rounded-full bg-[var(--color-accent)] transition-[width] duration-200"
+              style={{
+                width: `${Math.min(100, Math.round((indexProgress.current / indexProgress.total) * 100))}%`,
+              }}
+            />
+          </div>
         </div>
       )}
 
@@ -193,7 +241,14 @@ export function NlpSection() {
           <StatRow label={t('settings.nlp.statusSidecar')} value={status.sidecarOk ? t('settings.nlp.yes') : t('settings.nlp.no')} />
           <StatRow label={t('settings.nlp.statusScript')} value={status.scriptPath} />
           <StatRow label={t('settings.nlp.statusModel')} value={status.model ?? '—'} />
+          <StatRow label={t('settings.nlp.statusStoredModel')} value={status.storedModel ?? '—'} />
           <StatRow label={t('settings.nlp.statusIndexed')} value={status.indexedCount} />
+          {status.indexStale && (
+            <StatRow
+              label={t('settings.nlp.statusStaleCount')}
+              value={status.staleIndexCount}
+            />
+          )}
           <StatRow label={t('settings.nlp.statusPython')} value={status.pythonBin} />
           {status.error && <StatRow label={t('settings.nlp.statusError')} value={status.error} />}
         </div>

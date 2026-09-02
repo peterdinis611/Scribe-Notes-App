@@ -8,9 +8,18 @@ export interface NlpStatus {
   version: string | null
   model: string | null
   indexedCount: number
+  storedModel: string | null
+  indexStale: boolean
+  staleIndexCount: number
   scriptPath: string
   pythonBin: string
   error: string | null
+}
+
+export interface NlpIndexProgress {
+  current: number
+  total: number
+  phase: 'starting' | 'indexing' | 'done'
 }
 
 export interface NlpIndexResult {

@@ -9,8 +9,8 @@ pub(crate) mod test_helpers;
 
 pub use fts::{backfill_fts, extract_search_text, remove_document_fts, sync_document_fts};
 pub use embeddings::{
-    count_embeddings, is_nlp_enabled, remove_embedding, save_artifact, semantic_search,
-    set_nlp_enabled, upsert_embedding,
+    count_embeddings, count_stale_embeddings, dominant_embedding_model, is_nlp_enabled,
+    remove_embedding, save_artifact, semantic_search, set_nlp_enabled, upsert_embedding,
 };
 pub use links::{backfill_links, sync_document_links};
 pub use revisions::{fetch_revision, restore_document_content, save_revision};

@@ -43,6 +43,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { createFolder, duplicateDocument, listCommentThreads, listLinkGraph, searchDocuments, setDocumentPinned } from '@/lib/db/api'
 import { nlpSemanticSearch, nlpStatus, type NlpStatus } from '@/lib/db/nlp-api'
 import { describeNlpSearchFailure } from '@/lib/nlp/errors'
+import { fuseSearchHits, isHybridSearchScope } from '@/lib/nlp/hybrid-search'
 import { toast } from '@/lib/toast'
 import type { SearchHit } from '@/lib/db/api'
 import { promptInput } from '@/lib/input-dialog'
@@ -671,6 +672,13 @@ export function CommandPalette() {
     }
 
     const merged = new Map<string, PaletteItem>()
+    if (isHybridSearchScope(searchScope) && hits.length > 0 && semanticHits.length > 0) {
+      const semanticIds = new Set(semanticHits.map((item) => item.documentId))
+      const fused = fuseSearchHits(hits, semanticHits, 12).filter((item) => byId.has(item.documentId))
+      return fused.map((hit) =>
+        mapHit(hit, semanticIds.has(hit.documentId) ? <Sparkles className="h-4 w-4" /> : <FileText className="h-4 w-4" />),
+      )
+    }
     if (hits.length > 0 && (searchScope === 'all' || searchScope === 'content')) {
       for (const hit of hits.filter((item) => byId.has(item.documentId))) {
         merged.set(hit.documentId, mapHit(hit, <FileText className="h-4 w-4" />))

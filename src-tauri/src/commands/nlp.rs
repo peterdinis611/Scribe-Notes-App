@@ -2,11 +2,11 @@ use chrono::Utc;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use tauri::State;
+use tauri::{AppHandle, Emitter, State};
 
 use crate::db::{
-    count_embeddings, extract_search_text, is_nlp_enabled, save_artifact, semantic_search,
-    set_nlp_enabled, upsert_embedding,
+    count_embeddings, count_stale_embeddings, dominant_embedding_model, extract_search_text,
+    is_nlp_enabled, save_artifact, semantic_search, set_nlp_enabled, upsert_embedding,
 };
 use crate::db::search::SearchHit;
 use crate::db::DbState;
@@ -25,6 +25,9 @@ pub struct NlpStatus {
     pub version: Option<String>,
     pub model: Option<String>,
     pub indexed_count: i64,
+    pub stored_model: Option<String>,
+    pub index_stale: bool,
+    pub stale_index_count: i64,
     pub script_path: String,
     pub python_bin: String,
     pub error: Option<String>,
@@ -177,7 +180,14 @@ pub struct NlpLibraryReport {
     pub stats: serde_json::Value,
 }
 
-fn sidecar_status(sidecar: &NlpSidecar, enabled: bool, indexed_count: i64) -> NlpStatus {
+fn sidecar_status(
+    sidecar: &NlpSidecar,
+    enabled: bool,
+    indexed_count: i64,
+    stored_model: Option<String>,
+    index_stale: bool,
+    stale_index_count: i64,
+) -> NlpStatus {
     let script_path = sidecar.script_path().to_path_buf();
     let python_bin = std::env::var("SCRIBE_NLP_PYTHON").unwrap_or_else(|_| "python3".to_string());
     let sidecar_available = sidecar.script_exists();
@@ -190,6 +200,9 @@ fn sidecar_status(sidecar: &NlpSidecar, enabled: bool, indexed_count: i64) -> Nl
             version: None,
             model: None,
             indexed_count,
+            stored_model,
+            index_stale,
+            stale_index_count,
             script_path: crate::nlp::script_path_label(&script_path),
             python_bin,
             error: None,
@@ -204,6 +217,9 @@ fn sidecar_status(sidecar: &NlpSidecar, enabled: bool, indexed_count: i64) -> Nl
             version: Some(health.version),
             model: Some(health.model),
             indexed_count,
+            stored_model,
+            index_stale,
+            stale_index_count,
             script_path: crate::nlp::script_path_label(&script_path),
             python_bin,
             error: None,
@@ -215,6 +231,9 @@ fn sidecar_status(sidecar: &NlpSidecar, enabled: bool, indexed_count: i64) -> Nl
             version: None,
             model: None,
             indexed_count,
+            stored_model,
+            index_stale,
+            stale_index_count,
             script_path: crate::nlp::script_path_label(&script_path),
             python_bin,
             error: Some(error),
@@ -222,12 +241,41 @@ fn sidecar_status(sidecar: &NlpSidecar, enabled: bool, indexed_count: i64) -> Nl
     }
 }
 
+fn build_nlp_status(
+    sidecar: &NlpSidecar,
+    conn: &rusqlite::Connection,
+    enabled: bool,
+) -> Result<NlpStatus, String> {
+    let indexed_count = count_embeddings(conn)?;
+    let stored_model = dominant_embedding_model(conn)?;
+    let current_model = if enabled && sidecar.script_exists() {
+        sidecar.health().ok().map(|health| health.model)
+    } else {
+        None
+    };
+    let stale_index_count = match current_model.as_deref() {
+        Some(model) if indexed_count > 0 => count_stale_embeddings(conn, model)?,
+        _ => 0,
+    };
+    let index_stale = indexed_count > 0
+        && stale_index_count > 0
+        && current_model.is_some();
+
+    Ok(sidecar_status(
+        sidecar,
+        enabled,
+        indexed_count,
+        stored_model,
+        index_stale,
+        stale_index_count,
+    ))
+}
+
 #[tauri::command]
 pub fn nlp_status(state: State<'_, DbState>, sidecar: State<'_, NlpSidecar>) -> Result<NlpStatus, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     let enabled = is_nlp_enabled(&conn)?;
-    let indexed_count = count_embeddings(&conn)?;
-    Ok(sidecar_status(&sidecar, enabled, indexed_count))
+    build_nlp_status(&sidecar, &conn, enabled)
 }
 
 #[tauri::command]
@@ -238,8 +286,7 @@ pub fn nlp_set_enabled(
 ) -> Result<NlpStatus, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     set_nlp_enabled(&conn, input.enabled)?;
-    let indexed_count = count_embeddings(&conn)?;
-    Ok(sidecar_status(&sidecar, input.enabled, indexed_count))
+    build_nlp_status(&sidecar, &conn, input.enabled)
 }
 
 #[tauri::command]
@@ -262,9 +309,9 @@ pub fn nlp_semantic_search(
         return Ok(Vec::new());
     }
 
-    let (vector, _model) = sidecar.embed_text(q)?;
+    let (vector, model) = sidecar.embed_text(q)?;
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
-    semantic_search(&conn, &vector, limit.unwrap_or(12))
+    semantic_search(&conn, &vector, limit.unwrap_or(12), Some(&model))
 }
 
 #[tauri::command]
@@ -303,7 +350,13 @@ pub fn nlp_index_document(
 }
 
 #[tauri::command]
-pub fn nlp_index_all(state: State<'_, DbState>, sidecar: State<'_, NlpSidecar>) -> Result<NlpIndexResult, String> {
+pub fn nlp_index_all(
+    app: AppHandle,
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+) -> Result<NlpIndexResult, String> {
+    const BATCH_SIZE: usize = 24;
+
     let docs = {
         let conn = state.conn.lock().map_err(|e| e.to_string())?;
         if !is_nlp_enabled(&conn)? {
@@ -332,25 +385,67 @@ pub fn nlp_index_all(state: State<'_, DbState>, sidecar: State<'_, NlpSidecar>) 
         docs
     };
 
+    let total = docs.len();
+    let _ = app.emit(
+        "nlp-index-progress",
+        json!({
+            "current": 0,
+            "total": total,
+            "phase": "starting",
+        }),
+    );
+
     if docs.is_empty() {
+        let _ = app.emit(
+            "nlp-index-progress",
+            json!({
+                "current": 0,
+                "total": 0,
+                "phase": "done",
+            }),
+        );
         return Ok(NlpIndexResult {
             indexed: 0,
             model: "none".to_string(),
         });
     }
 
-    let ids: Vec<String> = docs.iter().map(|(id, _)| id.clone()).collect();
-    let texts: Vec<String> = docs.into_iter().map(|(_, text)| text).collect();
-    let (vectors, model) = sidecar.embed_batch(&texts)?;
+    let mut indexed = 0i64;
+    let mut model = "none".to_string();
     let now = now_ts();
-    let indexed = vectors.len() as i64;
 
-    {
-        let conn = state.conn.lock().map_err(|e| e.to_string())?;
-        for (document_id, vector) in ids.into_iter().zip(vectors.into_iter()) {
-            upsert_embedding(&conn, &document_id, &vector, &model, now)?;
+    for chunk in docs.chunks(BATCH_SIZE) {
+        let ids: Vec<String> = chunk.iter().map(|(id, _)| id.clone()).collect();
+        let texts: Vec<String> = chunk.iter().map(|(_, text)| text.clone()).collect();
+        let (vectors, batch_model) = sidecar.embed_batch(&texts)?;
+        model = batch_model;
+
+        {
+            let conn = state.conn.lock().map_err(|e| e.to_string())?;
+            for (document_id, vector) in ids.into_iter().zip(vectors.into_iter()) {
+                upsert_embedding(&conn, &document_id, &vector, &model, now)?;
+                indexed += 1;
+            }
         }
+
+        let _ = app.emit(
+            "nlp-index-progress",
+            json!({
+                "current": indexed,
+                "total": total,
+                "phase": "indexing",
+            }),
+        );
     }
+
+    let _ = app.emit(
+        "nlp-index-progress",
+        json!({
+            "current": total,
+            "total": total,
+            "phase": "done",
+        }),
+    );
 
     Ok(NlpIndexResult { indexed, model })
 }

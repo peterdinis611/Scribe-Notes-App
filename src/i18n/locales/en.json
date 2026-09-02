@@ -399,6 +399,13 @@
       "sidecarUnavailableTitle": "Python sidecar unavailable",
       "sidecarUnavailableHint": "Check that Python 3.10+ is installed, then refresh status.",
       "sidecarScriptMissing": "The nlp/ package was not found. In release builds it must ship with the app; in development run from the repo root.",
+      "staleIndexTitle": "Index needs updating",
+      "staleIndexDescription": "{{count}} documents were indexed with an older model ({{stored}}). Current model is {{current}} — reindex for accurate semantic search.",
+      "reindexNow": "Reindex now",
+      "indexProgressLabel": "Indexing documents…",
+      "indexProgressCount": "{{current}} / {{total}}",
+      "statusStoredModel": "Indexed model",
+      "statusStaleCount": "Stale records",
       "yes": "Yes",
       "no": "No"
     },

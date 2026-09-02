@@ -42,6 +42,28 @@ pub fn count_embeddings(conn: &Connection) -> Result<i64, String> {
         .map_err(|e| e.to_string())
 }
 
+pub fn dominant_embedding_model(conn: &Connection) -> Result<Option<String>, String> {
+    conn.query_row(
+        "SELECT model FROM document_embeddings
+         GROUP BY model
+         ORDER BY COUNT(*) DESC
+         LIMIT 1",
+        [],
+        |row| row.get(0),
+    )
+    .optional()
+    .map_err(|e| e.to_string())
+}
+
+pub fn count_stale_embeddings(conn: &Connection, current_model: &str) -> Result<i64, String> {
+    conn.query_row(
+        "SELECT COUNT(*) FROM document_embeddings WHERE model != ?1",
+        params![current_model],
+        |row| row.get(0),
+    )
+    .map_err(|e| e.to_string())
+}
+
 fn vector_to_blob(vector: &[f32]) -> Vec<u8> {
     vector.iter().flat_map(|value| value.to_le_bytes()).collect()
 }
@@ -144,10 +166,12 @@ pub fn semantic_search(
     conn: &Connection,
     query_vector: &[f32],
     limit: i64,
+    model: Option<&str>,
 ) -> Result<Vec<SearchHit>, String> {
     let max = limit.clamp(1, 50);
     let mut scored: Vec<(f64, StoredEmbedding)> = list_embeddings(conn)?
         .into_iter()
+        .filter(|item| model.map_or(true, |expected| item.model == expected))
         .filter(|item| item.vector.len() == query_vector.len())
         .map(|item| {
             let score = cosine_similarity(query_vector, &item.vector);
@@ -217,8 +241,32 @@ mod tests {
 
         let vector = vec![1.0f32, 0.0, 0.0];
         upsert_embedding(&conn, "d1", &vector, "test", 1).unwrap();
-        let hits = semantic_search(&conn, &vector, 5).unwrap();
+        let hits = semantic_search(&conn, &vector, 5, Some("test")).unwrap();
         assert_eq!(hits.len(), 1);
         assert_eq!(hits[0].document_id, "d1");
+    }
+
+    #[test]
+    fn dominant_model_and_stale_counts() {
+        let conn = in_memory_conn();
+        run_migrations(&conn).unwrap();
+        conn.execute(
+            "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at)
+             VALUES ('d1', 'One', '{}', NULL, NULL, 1, 1),
+                    ('d2', 'Two', '{}', NULL, NULL, 1, 1),
+                    ('d3', 'Three', '{}', NULL, NULL, 1, 1)",
+            [],
+        )
+        .unwrap();
+        let vector = vec![1.0f32, 0.0, 0.0];
+        upsert_embedding(&conn, "d1", &vector, "scribe-hash-v1", 1).unwrap();
+        upsert_embedding(&conn, "d2", &vector, "scribe-hash-v1", 1).unwrap();
+        upsert_embedding(&conn, "d3", &vector, "scribe-hash-v2", 1).unwrap();
+
+        assert_eq!(
+            dominant_embedding_model(&conn).unwrap().as_deref(),
+            Some("scribe-hash-v1")
+        );
+        assert_eq!(count_stale_embeddings(&conn, "scribe-hash-v2").unwrap(), 2);
     }
 }

@@ -399,6 +399,13 @@
       "sidecarUnavailableTitle": "Python sidecar nie je dostupný",
       "sidecarUnavailableHint": "Skontrolujte, či máte nainštalovaný Python 3.10+ a spustite obnovu stavu.",
       "sidecarScriptMissing": "Balík nlp/ sa nenašiel. V release builde musí byť súčasťou aplikácie; vo vývoji spustite z koreňa repozitára.",
+      "staleIndexTitle": "Index vyžaduje aktualizáciu",
+      "staleIndexDescription": "{{count}} dokumentov je indexovaných starým modelom ({{stored}}). Aktuálny model je {{current}} — pre presné sémantické vyhľadávanie spustite preindexovanie.",
+      "reindexNow": "Preindexovať teraz",
+      "indexProgressLabel": "Indexujem dokumenty…",
+      "indexProgressCount": "{{current}} / {{total}}",
+      "statusStoredModel": "Indexovaný model",
+      "statusStaleCount": "Zastarané záznamy",
       "yes": "Áno",
       "no": "Nie"
     },
