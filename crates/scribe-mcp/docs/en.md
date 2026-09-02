@@ -131,19 +131,24 @@ Full argument reference: **[tools.md](tools.md)**.
 |------|---------|
 | `scribe_status` | DB health |
 | `search_documents` | Hybrid FTS + semantic (when Local AI enabled) |
-| `search` | Unified search with `mode` |
-| `search_documents_fts` | Full-text search only |
-| `semantic_search` | Embedding search |
-| `similar_documents` | Related notes by embedding |
-| `extract_document_tasks` | Open tasks from a note |
-| `journal_tasks` | Tasks across journal docs |
+| `search` | Unified search with `mode` and optional folder/tag/date filters |
+| `list_open_tasks` | Open tasks across the library |
+| `toggle_task` | Check/uncheck a task |
 | `journal_summary` | AI journal recap |
+| `summarize_document` | AI summary of one note |
+| `get_or_create_journal` | Today's journal (day / morning / evening) |
+| `list_nlp_artifacts` | Cached AI summaries/reports |
 | `suggest_tags` | Tag suggestions |
 | `library_report` | Library AI overview |
 | `index_document` / `index_all_documents` | Embedding index |
 | `nlp_status` | Local AI sidecar status |
-| `trash_document` / `rename_document` / `replace_document_content` | Edit lifecycle |
-| `set_document_favorite` / `set_document_pinned` | Flags |
+| `trash_document` / `empty_trash` / `rename_document` / `replace_document_content` | Edit lifecycle |
+| `restore_document_revision` | Restore a snapshot |
+| `duplicate_document` / `export_document` | Copy / markdown export |
+| `get_document_outline` | Heading TOC |
+| `list_unresolved_wiki_links` / `list_graph_hubs` | Wiki insight |
+| `delete_folder` / `move_folder` / `set_folder_pinned` | Folder write |
+| `create_comment_thread` / `add_comment_reply` | Comments |
 | `find_documents_by_title` | Title / wiki label |
 | `get_document` | Full note text |
 | `list_documents` | Recent notes |

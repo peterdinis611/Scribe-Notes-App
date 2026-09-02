@@ -246,3 +246,250 @@ fn block_to_plain(value: &Value) -> String {
             .unwrap_or_default(),
     }
 }
+
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OutlineItem {
+    pub kind: String,
+    pub level: i64,
+    pub text: String,
+}
+
+pub fn document_outline(content_json: &str) -> Vec<OutlineItem> {
+    let Ok(doc) = serde_json::from_str::<Value>(content_json) else {
+        return Vec::new();
+    };
+    let mut items = Vec::new();
+    collect_outline(&doc, &mut items);
+    items
+}
+
+fn collect_outline(value: &Value, items: &mut Vec<OutlineItem>) {
+    if let Some(obj) = value.as_object() {
+        if obj.get("type").and_then(Value::as_str) == Some("heading") {
+            let level = obj
+                .get("attrs")
+                .and_then(|attrs| attrs.get("level"))
+                .and_then(Value::as_i64)
+                .unwrap_or(1);
+            let text = inline_text(value).trim().to_string();
+            if !text.is_empty() {
+                items.push(OutlineItem {
+                    kind: "heading".to_string(),
+                    level,
+                    text,
+                });
+            }
+        }
+        if let Some(content) = obj.get("content").and_then(Value::as_array) {
+            for child in content {
+                collect_outline(child, items);
+            }
+        }
+    } else if let Some(items_arr) = value.as_array() {
+        for child in items_arr {
+            collect_outline(child, items);
+        }
+    }
+}
+
+pub fn tiptap_to_markdown(content_json: &str) -> String {
+    let Ok(doc) = serde_json::from_str::<Value>(content_json) else {
+        return String::new();
+    };
+    let markdown = block_to_markdown(&doc).trim().to_string();
+    markdown
+}
+
+fn block_to_markdown(value: &Value) -> String {
+    match value.get("type").and_then(Value::as_str) {
+        Some("doc") => value
+            .get("content")
+            .and_then(Value::as_array)
+            .map(|items| {
+                items
+                    .iter()
+                    .map(block_to_markdown)
+                    .collect::<Vec<_>>()
+                    .join("")
+            })
+            .unwrap_or_default(),
+        Some("heading") => {
+            let level = value
+                .pointer("/attrs/level")
+                .and_then(Value::as_u64)
+                .unwrap_or(1)
+                .clamp(1, 6) as usize;
+            format!("{} {}\n\n", "#".repeat(level), inline_text(value).trim())
+        }
+        Some("paragraph") => format!("{}\n\n", inline_text(value)),
+        Some("blockquote") => value
+            .get("content")
+            .and_then(Value::as_array)
+            .map(|items| {
+                items
+                    .iter()
+                    .map(|child| format!("> {}\n", inline_text(child).trim()))
+                    .collect::<String>()
+                    + "\n"
+            })
+            .unwrap_or_default(),
+        Some("codeBlock") => {
+            let lang = value
+                .pointer("/attrs/language")
+                .and_then(Value::as_str)
+                .unwrap_or("");
+            format!("```{lang}\n{}\n```\n\n", inline_text(value))
+        }
+        Some("horizontalRule") => "---\n\n".to_string(),
+        Some("bulletList") => list_to_markdown(value, false),
+        Some("orderedList") => list_to_markdown(value, true),
+        Some("taskList") => value
+            .get("content")
+            .and_then(Value::as_array)
+            .map(|items| {
+                items
+                    .iter()
+                    .map(|item| {
+                        let checked = item
+                            .pointer("/attrs/checked")
+                            .and_then(Value::as_bool)
+                            .unwrap_or(false);
+                        let mark = if checked { "x" } else { " " };
+                        let text = item
+                            .get("content")
+                            .and_then(Value::as_array)
+                            .map(|children| {
+                                children
+                                    .iter()
+                                    .map(block_to_plain)
+                                    .filter(|part| !part.is_empty())
+                                    .collect::<Vec<_>>()
+                                    .join(" ")
+                            })
+                            .unwrap_or_default();
+                        format!("- [{mark}] {text}\n")
+                    })
+                    .collect::<String>()
+                    + "\n"
+            })
+            .unwrap_or_default(),
+        _ => value
+            .get("content")
+            .and_then(Value::as_array)
+            .map(|items| items.iter().map(block_to_markdown).collect::<String>())
+            .unwrap_or_default(),
+    }
+}
+
+fn list_to_markdown(value: &Value, ordered: bool) -> String {
+    value
+        .get("content")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .enumerate()
+                .map(|(index, item)| {
+                    let text = item
+                        .get("content")
+                        .and_then(Value::as_array)
+                        .map(|children| {
+                            children
+                                .iter()
+                                .map(block_to_plain)
+                                .filter(|part| !part.is_empty())
+                                .collect::<Vec<_>>()
+                                .join(" ")
+                        })
+                        .unwrap_or_default();
+                    if ordered {
+                        format!("{}. {text}\n", index + 1)
+                    } else {
+                        format!("- {text}\n")
+                    }
+                })
+                .collect::<String>()
+                + "\n"
+        })
+        .unwrap_or_default()
+}
+
+/// Toggle or set the first task item whose text matches `needle` (case-insensitive).
+/// Returns the new JSON and the resulting checked flag.
+pub fn toggle_matching_task(
+    content_json: &str,
+    needle: &str,
+    checked: Option<bool>,
+) -> Result<(String, bool, String), String> {
+    let needle = needle.trim();
+    if needle.is_empty() {
+        return Err("task text is required".to_string());
+    }
+    let mut doc: Value = serde_json::from_str(content_json).map_err(|e| e.to_string())?;
+    let mut found = None;
+    apply_task_toggle(&mut doc, needle, checked, &mut found);
+    let Some((new_checked, matched_text)) = found else {
+        return Err(format!("Open task not found: {needle}"));
+    };
+    let json = serde_json::to_string(&doc).map_err(|e| e.to_string())?;
+    Ok((json, new_checked, matched_text))
+}
+
+fn apply_task_toggle(
+    value: &mut Value,
+    needle: &str,
+    checked: Option<bool>,
+    found: &mut Option<(bool, String)>,
+) {
+    if found.is_some() {
+        return;
+    }
+    if value.get("type").and_then(Value::as_str) == Some("taskItem") {
+        let text = node_plain_for_task(value);
+        if text.trim().to_lowercase() == needle.to_lowercase() {
+            let current = value
+                .pointer("/attrs/checked")
+                .and_then(Value::as_bool)
+                .unwrap_or(false);
+            let next = checked.unwrap_or(!current);
+            if let Some(attrs) = value
+                .as_object_mut()
+                .and_then(|obj| obj.get_mut("attrs"))
+                .and_then(Value::as_object_mut)
+            {
+                attrs.insert("checked".to_string(), json!(next));
+            } else if let Some(obj) = value.as_object_mut() {
+                obj.insert("attrs".to_string(), json!({ "checked": next }));
+            }
+            *found = Some((next, text));
+            return;
+        }
+    }
+    if let Some(content) = value.get_mut("content").and_then(Value::as_array_mut) {
+        for child in content {
+            apply_task_toggle(child, needle, checked, found);
+            if found.is_some() {
+                return;
+            }
+        }
+    }
+}
+
+fn node_plain_for_task(value: &Value) -> String {
+    if let Some(text) = value.get("text").and_then(Value::as_str) {
+        return text.to_string();
+    }
+    value
+        .get("content")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .map(node_plain_for_task)
+                .filter(|part| !part.is_empty())
+                .collect::<Vec<_>>()
+                .join("")
+        })
+        .unwrap_or_default()
+}

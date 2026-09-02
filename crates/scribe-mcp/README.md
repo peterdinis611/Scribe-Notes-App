@@ -42,21 +42,33 @@ Example: [`cursor.mcp.example.json`](cursor.mcp.example.json)
 |------|-------------|
 | `search_documents` | Hybrid FTS + semantic search when Local AI is enabled |
 | `search_documents_fts` | Full-text search only |
-| `search` | Unified search with `mode`: hybrid, semantic, fts |
+| `search` | Unified search with `mode` + optional `folderId`/`tag`/`fromDate`/`toDate` |
 | `semantic_search` | Embedding-based search |
 | `similar_documents` | Semantically similar notes |
 | `extract_document_tasks` | Checkboxes + NLP phrase tasks |
+| `list_open_tasks` | Open tasks across the whole library |
+| `toggle_task` | Check or uncheck a task by text |
 | `journal_tasks` | Tasks from multiple journal documents |
 | `journal_summary` | AI summary of journal date range |
+| `summarize_document` | AI summary of one note |
+| `get_or_create_journal` | Open today's journal (day / morning / evening) |
+| `list_nlp_artifacts` | Cached journal summaries and library reports |
 | `suggest_tags` | Tag and entity suggestions for a note |
 | `library_report` | AI overview of entire library |
 | `index_document` / `index_all_documents` | (Re)build embedding index |
 | `nlp_status` | Sidecar health, model, index counts |
-| `trash_document` / `restore_document` / `purge_document` | Trash lifecycle |
-| `rename_document` / `replace_document_content` | Edit notes |
-| `set_document_favorite` / `set_document_pinned` | Flags |
+| `trash_document` / `restore_document` / `purge_document` / `empty_trash` | Trash lifecycle |
+| `restore_document_revision` | Restore a note to a snapshot |
+| `duplicate_document` / `rename_document` / `replace_document_content` | Edit notes |
+| `export_document` | Markdown or plain text |
+| `get_document_outline` | Heading TOC |
+| `list_unresolved_wiki_links` / `list_graph_hubs` | Wiki graph insight |
+| `delete_folder` / `move_folder` / `set_folder_pinned` | Folder write |
+| `create_comment_thread` / `add_comment_reply` | Comments |
 
 Plus legacy tools: `scribe_status`, `get_document`, wiki links, folders, revisions, `create_note`, `append_to_note`, …
+
+Resources: `scribe://doc/{id}`, `scribe://artifact/{id}`. Prompts: `weekly_journal_review`, `capture_today`, `open_tasks_triage`, `wiki_health`.
 
 Full reference: [docs/tools.md](docs/tools.md) · guides: [docs/en.md](docs/en.md), [docs/sk.md](docs/sk.md)
 

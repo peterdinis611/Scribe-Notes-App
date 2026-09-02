@@ -1,10 +1,22 @@
 use crate::tools;
+use std::future::ready;
 use std::path::PathBuf;
 use std::sync::Mutex;
 
-use rmcp::{tool, tool_router};
+use rmcp::handler::server::wrapper::Parameters;
+use rmcp::model::{
+    ErrorData, GetPromptResult, ListResourceTemplatesResult, ListResourcesResult, PromptMessage,
+    ReadResourceRequestParams, ReadResourceResponse, ReadResourceResult, Resource, ResourceContents,
+    ResourceTemplate, Role, ServerCapabilities, ServerInfo,
+};
+use rmcp::service::RequestContext;
+use rmcp::{
+    prompt, prompt_handler, prompt_router, tool, tool_handler, tool_router, RoleServer, ServerHandler,
+};
 use scribe_core::nlp::{resolve_script_path, NlpSidecar};
-use scribe_core::store::{open_scribe_store, JournalSummaryInput, ScribeStore};
+use scribe_core::store::{
+    open_scribe_store, JournalSlot, JournalSummaryInput, ScribeStore, SearchFilter,
+};
 
 pub struct ScribeMcp {
     store: Mutex<ScribeStore>,
@@ -30,7 +42,21 @@ impl ScribeMcp {
     }
 }
 
-#[tool_router(server_handler)]
+fn search_filter(
+    folder_id: Option<String>,
+    tag: Option<String>,
+    from_date: Option<String>,
+    to_date: Option<String>,
+) -> SearchFilter {
+    SearchFilter {
+        folder_id,
+        tag,
+        from_date,
+        to_date,
+    }
+}
+
+#[tool_router]
 impl ScribeMcp {
     #[tool(description = "Health check: database path, writable flag, sample counts.")]
     fn scribe_status(&self) -> Result<String, String> {
@@ -56,7 +82,19 @@ impl ScribeMcp {
         >,
     ) -> Result<String, String> {
         self.with_store(|store| {
-            let hits = store.search_documents(&self.sidecar, &params.query, params.limit.unwrap_or(10))?;
+            let filter = search_filter(
+                params.folder_id,
+                params.tag,
+                params.from_date,
+                params.to_date,
+            );
+            let hits = store.search_with_mode(
+                &self.sidecar,
+                &params.query,
+                params.limit.unwrap_or(10),
+                Some("hybrid"),
+                Some(&filter),
+            )?;
             Ok(tools::json(&serde_json::json!({
                 "query": params.query,
                 "count": hits.len(),
@@ -507,6 +545,16 @@ impl ScribeMcp {
         })
     }
 
+    #[tool(description = "Restore a document to a revision snapshot. Current content is saved as a new revision. Requires writable DB.")]
+    fn restore_document_revision(
+        &self,
+        rmcp::handler::server::wrapper::Parameters(params): rmcp::handler::server::wrapper::Parameters<
+            tools::RevisionParams,
+        >,
+    ) -> Result<String, String> {
+        self.with_store(|store| Ok(tools::json(&store.restore_document_revision(&params.revision_id)?)))
+    }
+
     #[tool(description = "Unified search with mode: hybrid (default), semantic, or fts.")]
     fn search(
         &self,
@@ -515,11 +563,18 @@ impl ScribeMcp {
         >,
     ) -> Result<String, String> {
         self.with_store(|store| {
+            let filter = search_filter(
+                params.folder_id,
+                params.tag,
+                params.from_date,
+                params.to_date,
+            );
             let hits = store.search_with_mode(
                 &self.sidecar,
                 &params.query,
                 params.limit.unwrap_or(10),
                 params.mode.as_deref(),
+                Some(&filter),
             )?;
             Ok(tools::json(&serde_json::json!({
                 "query": params.query,
@@ -547,6 +602,19 @@ impl ScribeMcp {
                     document_ids: params.document_ids,
                 },
             )?;
+            Ok(tools::json(&summary))
+        })
+    }
+
+    #[tool(description = "Summarize one document using Local AI. Requires Local AI enabled.")]
+    fn summarize_document(
+        &self,
+        rmcp::handler::server::wrapper::Parameters(params): rmcp::handler::server::wrapper::Parameters<
+            tools::SummarizeDocumentParams,
+        >,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            let summary = store.summarize_document(&self.sidecar, &params.id, params.max_sentences)?;
             Ok(tools::json(&summary))
         })
     }
@@ -585,6 +653,43 @@ impl ScribeMcp {
                 "count": tasks.len(),
                 "tasks": tasks,
             })))
+        })
+    }
+
+    #[tool(description = "List open tasks (unchecked checkboxes, plus NLP phrases when includePhrases is true) across the library.")]
+    fn list_open_tasks(
+        &self,
+        rmcp::handler::server::wrapper::Parameters(params): rmcp::handler::server::wrapper::Parameters<
+            tools::ListOpenTasksParams,
+        >,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            let include_phrases = params.include_phrases.unwrap_or(false);
+            let tasks = store.list_open_tasks(
+                &self.sidecar,
+                params.folder_id.as_deref(),
+                params.limit.unwrap_or(200),
+                include_phrases,
+            )?;
+            Ok(tools::json(&serde_json::json!({
+                "count": tasks.len(),
+                "includePhrases": include_phrases,
+                "tasks": tasks,
+            })))
+        })
+    }
+
+    #[tool(description = "Get today's journal note, or create it. Slot: day (default), morning, or evening. Date YYYY-MM-DD defaults to today.")]
+    fn get_or_create_journal(
+        &self,
+        rmcp::handler::server::wrapper::Parameters(params): rmcp::handler::server::wrapper::Parameters<
+            tools::GetOrCreateJournalParams,
+        >,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            let slot = JournalSlot::parse(params.slot.as_deref())?;
+            let note = store.get_or_create_journal(slot, params.date.as_deref())?;
+            Ok(tools::json(&note))
         })
     }
 
@@ -665,5 +770,318 @@ impl ScribeMcp {
         self.with_store(|store| {
             Ok(tools::json(&store.set_document_pinned(&params.id, params.value)?))
         })
+    }
+
+    #[tool(description = "List cached Local AI artifacts (journal summaries, library reports).")]
+    fn list_nlp_artifacts(
+        &self,
+        Parameters(params): Parameters<tools::ListArtifactsParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            let artifacts = store.list_nlp_artifacts(params.kind.as_deref(), params.limit.unwrap_or(20))?;
+            Ok(tools::json(&serde_json::json!({
+                "count": artifacts.len(),
+                "artifacts": artifacts,
+            })))
+        })
+    }
+
+    #[tool(description = "Duplicate a document (optional new title). Requires writable DB.")]
+    fn duplicate_document(
+        &self,
+        Parameters(params): Parameters<tools::DuplicateDocumentParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.duplicate_document(&params.id, params.title.as_deref())?))
+        })
+    }
+
+    #[tool(description = "Permanently delete all trashed documents.")]
+    fn empty_trash(&self) -> Result<String, String> {
+        self.with_store(|store| Ok(tools::json(&store.empty_trash()?)))
+    }
+
+    #[tool(description = "Delete a folder (trashes documents in the subtree).")]
+    fn delete_folder(
+        &self,
+        Parameters(params): Parameters<tools::IdParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| Ok(tools::json(&store.delete_folder(&params.id)?)))
+    }
+
+    #[tool(description = "Move a folder (omit parentId for root).")]
+    fn move_folder(
+        &self,
+        Parameters(params): Parameters<tools::MoveFolderParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.move_folder(&params.id, params.parent_id.as_deref())?))
+        })
+    }
+
+    #[tool(description = "Pin or unpin a folder.")]
+    fn set_folder_pinned(
+        &self,
+        Parameters(params): Parameters<tools::SetFlagParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| Ok(tools::json(&store.set_folder_pinned(&params.id, params.value)?)))
+    }
+
+    #[tool(description = "Start a comment thread on a document.")]
+    fn create_comment_thread(
+        &self,
+        Parameters(params): Parameters<tools::CreateCommentThreadParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.create_comment_thread(
+                &params.document_id,
+                params.quote.as_deref().unwrap_or(""),
+                &params.body,
+                params.author.as_deref(),
+            )?))
+        })
+    }
+
+    #[tool(description = "Reply to a comment thread.")]
+    fn add_comment_reply(
+        &self,
+        Parameters(params): Parameters<tools::AddCommentReplyParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.add_comment_reply(
+                &params.thread_id,
+                &params.body,
+                params.author.as_deref(),
+            )?))
+        })
+    }
+
+    #[tool(description = "Export a document as markdown or plain text.")]
+    fn export_document(
+        &self,
+        Parameters(params): Parameters<tools::ExportDocumentParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.export_document(
+                &params.id,
+                params.format.as_deref().unwrap_or("markdown"),
+            )?))
+        })
+    }
+
+    #[tool(description = "Toggle or set a checkbox/task by its text.")]
+    fn toggle_task(
+        &self,
+        Parameters(params): Parameters<tools::ToggleTaskParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.toggle_task(&params.id, &params.text, params.checked)?))
+        })
+    }
+
+    #[tool(description = "Heading outline / TOC for a document.")]
+    fn get_document_outline(
+        &self,
+        Parameters(params): Parameters<tools::IdParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| Ok(tools::json(&store.get_document_outline(&params.id)?)))
+    }
+
+    #[tool(description = "Wiki links ([[label]]) whose target document is missing.")]
+    fn list_unresolved_wiki_links(
+        &self,
+        Parameters(params): Parameters<tools::LimitParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            let links = store.list_unresolved_wiki_links(params.limit.unwrap_or(50))?;
+            Ok(tools::json(&serde_json::json!({
+                "count": links.len(),
+                "links": links,
+            })))
+        })
+    }
+
+    #[tool(description = "Most connected notes by backlinks and outgoing wiki links.")]
+    fn list_graph_hubs(
+        &self,
+        Parameters(params): Parameters<tools::LimitParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            let hubs = store.list_graph_hubs(params.limit.unwrap_or(12))?;
+            Ok(tools::json(&serde_json::json!({
+                "count": hubs.len(),
+                "hubs": hubs,
+            })))
+        })
+    }
+}
+
+#[prompt_router]
+impl ScribeMcp {
+    #[prompt(description = "Review journal notes for a week using Scribe tools.")]
+    fn weekly_journal_review(
+        &self,
+        Parameters(params): Parameters<tools::DateRangePromptParams>,
+    ) -> GetPromptResult {
+        let from = params
+            .from_date
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| "7 days ago as YYYY-MM-DD".to_string());
+        let to = params
+            .to_date
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| "today as YYYY-MM-DD".to_string());
+        GetPromptResult::new(vec![PromptMessage::new_text(
+            Role::User,
+            format!(
+                "Review my Scribe journal from {from} to {to}.\n\
+                 1. Call get_or_create_journal if today is in range.\n\
+                 2. Call list_nlp_artifacts with kind journal_summary — reuse a cached summary if it matches this range.\n\
+                 3. Otherwise call journal_summary with fromDate={from} and toDate={to}.\n\
+                 4. Call list_open_tasks (optionally includePhrases true).\n\
+                 Write a concise weekly review: themes, unfinished tasks, and what to carry forward."
+            ),
+        )])
+        .with_description("Weekly journal review")
+    }
+
+    #[prompt(description = "Capture a thought into today's journal note.")]
+    fn capture_today(&self) -> GetPromptResult {
+        GetPromptResult::new(vec![PromptMessage::new_text(
+            Role::User,
+            "Capture this into my Scribe daily journal.\n\
+             1. Call get_or_create_journal (slot day unless I said morning/evening).\n\
+             2. Append the note with append_to_note using the returned id.\n\
+             Confirm the document id and quote what you wrote.",
+        )])
+        .with_description("Write into today's journal")
+    }
+
+    #[prompt(description = "Triage open tasks across the library.")]
+    fn open_tasks_triage(&self) -> GetPromptResult {
+        GetPromptResult::new(vec![PromptMessage::new_text(
+            Role::User,
+            "Triage open tasks in my Scribe library.\n\
+             1. Call list_open_tasks.\n\
+             2. Group by document. Suggest what to do today vs later.\n\
+             3. If I mark something done, call toggle_task with the document id and task text.\n\
+             Do not invent tasks that were not returned.",
+        )])
+        .with_description("Inbox-zero for checkboxes")
+    }
+
+    #[prompt(description = "Inspect wiki graph health: hubs and broken [[links]].")]
+    fn wiki_health(&self) -> GetPromptResult {
+        GetPromptResult::new(vec![PromptMessage::new_text(
+            Role::User,
+            "Audit my Scribe wiki graph.\n\
+             1. Call list_graph_hubs.\n\
+             2. Call list_unresolved_wiki_links.\n\
+             Summarize the most connected notes and list broken [[labels]] with source document titles.\n\
+             Suggest which missing notes are worth creating with create_note.",
+        )])
+        .with_description("Wiki hubs and unresolved links")
+    }
+}
+
+#[tool_handler]
+#[prompt_handler]
+impl ServerHandler for ScribeMcp {
+    fn get_info(&self) -> ServerInfo {
+        ServerInfo::new(
+            ServerCapabilities::builder()
+                .enable_tools()
+                .enable_prompts()
+                .enable_resources()
+                .build(),
+        )
+        .with_instructions(
+            "Scribe local notes. Prefer search (with folderId/tag/fromDate/toDate), \
+             get_document_outline, then get_document or export_document. \
+             Documents are also readable as resources scribe://doc/{id}.",
+        )
+    }
+
+    fn list_resources(
+        &self,
+        _request: Option<rmcp::model::PaginatedRequestParams>,
+        _context: RequestContext<RoleServer>,
+    ) -> impl std::future::Future<Output = Result<ListResourcesResult, ErrorData>> + Send {
+        let resources = self.list_document_resources();
+        ready(resources.map(ListResourcesResult::with_all_items))
+    }
+
+    fn list_resource_templates(
+        &self,
+        _request: Option<rmcp::model::PaginatedRequestParams>,
+        _context: RequestContext<RoleServer>,
+    ) -> impl std::future::Future<Output = Result<ListResourceTemplatesResult, ErrorData>> + Send {
+        ready(Ok(ListResourceTemplatesResult::with_all_items(vec![
+            ResourceTemplate::new("scribe://doc/{id}", "scribe-document")
+                .with_title("Scribe document")
+                .with_description("Plain-text body of a note")
+                .with_mime_type("text/plain"),
+            ResourceTemplate::new("scribe://artifact/{id}", "scribe-artifact")
+                .with_title("NLP artifact")
+                .with_description("Cached journal_summary or library_report JSON")
+                .with_mime_type("application/json"),
+        ])))
+    }
+
+    fn read_resource(
+        &self,
+        request: ReadResourceRequestParams,
+        _context: RequestContext<RoleServer>,
+    ) -> impl std::future::Future<Output = Result<ReadResourceResponse, ErrorData>> + Send {
+        ready(self.read_scribe_resource(&request.uri).map(|contents| {
+            ReadResourceResponse::from(ReadResourceResult::new(vec![contents]))
+        }))
+    }
+}
+
+impl ScribeMcp {
+    fn list_document_resources(&self) -> Result<Vec<Resource>, ErrorData> {
+        self.with_store(|store| {
+            let docs = store.list_documents(None, Some(40))?;
+            Ok(docs
+                .into_iter()
+                .map(|doc| {
+                    Resource::new(format!("scribe://doc/{}", doc.id), doc.title.clone())
+                        .with_title(doc.title)
+                        .with_mime_type("text/plain")
+                        .with_description("Scribe note")
+                })
+                .collect())
+        })
+        .map_err(|error| ErrorData::internal_error(error, None))
+    }
+
+    fn read_scribe_resource(&self, uri: &str) -> Result<ResourceContents, ErrorData> {
+        let uri = uri.trim();
+        if let Some(id) = uri.strip_prefix("scribe://doc/") {
+            let doc = self
+                .with_store(|store| {
+                    store
+                        .get_document(id, false)?
+                        .ok_or_else(|| format!("Document not found: {id}"))
+                })
+                .map_err(|error| ErrorData::resource_not_found(error, None))?;
+            return Ok(ResourceContents::text(doc.plain_text, uri).with_mime_type("text/plain"));
+        }
+        if let Some(id) = uri.strip_prefix("scribe://artifact/") {
+            let artifact = self
+                .with_store(|store| {
+                    store
+                        .get_nlp_artifact(id)?
+                        .ok_or_else(|| format!("Artifact not found: {id}"))
+                })
+                .map_err(|error| ErrorData::resource_not_found(error, None))?;
+            let text = serde_json::to_string_pretty(&artifact.payload).unwrap_or_default();
+            return Ok(ResourceContents::text(text, uri).with_mime_type("application/json"));
+        }
+        Err(ErrorData::resource_not_found(
+            format!("Unknown resource URI: {uri}. Use scribe://doc/{{id}} or scribe://artifact/{{id}}."),
+            None,
+        ))
     }
 }

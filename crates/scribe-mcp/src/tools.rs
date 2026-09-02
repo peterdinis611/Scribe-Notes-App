@@ -9,6 +9,10 @@ pub fn json<T: serde::Serialize>(value: &T) -> String {
 pub struct SearchParams {
     pub query: String,
     pub limit: Option<i64>,
+    pub folder_id: Option<String>,
+    pub tag: Option<String>,
+    pub from_date: Option<String>,
+    pub to_date: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -116,6 +120,10 @@ pub struct SearchModeParams {
     pub limit: Option<i64>,
     /// hybrid | semantic | fts
     pub mode: Option<String>,
+    pub folder_id: Option<String>,
+    pub tag: Option<String>,
+    pub from_date: Option<String>,
+    pub to_date: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -147,4 +155,89 @@ pub struct ReplaceContentParams {
 pub struct SetFlagParams {
     pub id: String,
     pub value: bool,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SummarizeDocumentParams {
+    pub id: String,
+    pub max_sentences: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ListOpenTasksParams {
+    pub folder_id: Option<String>,
+    pub limit: Option<i64>,
+    pub include_phrases: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct GetOrCreateJournalParams {
+    /// day (default) | morning | evening
+    pub slot: Option<String>,
+    /// YYYY-MM-DD (default: today, local timezone)
+    pub date: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ListArtifactsParams {
+    pub kind: Option<String>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct DuplicateDocumentParams {
+    pub id: String,
+    pub title: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct MoveFolderParams {
+    pub id: String,
+    pub parent_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateCommentThreadParams {
+    pub document_id: String,
+    pub quote: Option<String>,
+    pub body: String,
+    pub author: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct AddCommentReplyParams {
+    pub thread_id: String,
+    pub body: String,
+    pub author: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ExportDocumentParams {
+    pub id: String,
+    /// markdown | plain
+    pub format: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ToggleTaskParams {
+    pub id: String,
+    pub text: String,
+    pub checked: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct DateRangePromptParams {
+    pub from_date: Option<String>,
+    pub to_date: Option<String>,
 }

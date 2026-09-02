@@ -66,6 +66,10 @@ Hybrid search: FTS5 + semantic RRF fusion when Local AI is enabled in Scribe. Fa
 |-----|------|----------|---------|--------|
 | `query` | string | yes | — | Search string |
 | `limit` | number | no | `10` | 1–50 |
+| `folderId` | string | no | — | Only this folder |
+| `tag` | string | no | — | Exact tag |
+| `fromDate` | string | no | — | `YYYY-MM-DD` (updated_at) |
+| `toDate` | string | no | — | `YYYY-MM-DD` (updated_at) |
 
 **Example call:** `{ "query": "report", "limit": 5 }`
 
@@ -408,6 +412,18 @@ Load one revision snapshot (`plainText` + `contentJson`).
 
 ---
 
+## `restore_document_revision`
+
+Restore a document to a revision snapshot. The current title/body is saved as a new revision first. **Writable mode required.** Cannot restore a trashed document — call `restore_document` first.
+
+| Arg | Type | Required |
+|-----|------|----------|
+| `revisionId` | string | yes |
+
+**Example result:** `{ "id": "…", "title": "Memo" }`
+
+---
+
 ## `semantic_search`
 
 Embedding-based search. Requires **Local AI** enabled in Scribe and an indexed library.
@@ -457,6 +473,10 @@ Unified search with explicit mode.
 | `query` | string | yes | — | Search string |
 | `limit` | number | no | `10` | 1–50 |
 | `mode` | string | no | `hybrid` | `hybrid`, `semantic`, or `fts` |
+| `folderId` | string | no | — | Only this folder |
+| `tag` | string | no | — | Exact tag |
+| `fromDate` | string | no | — | `YYYY-MM-DD` |
+| `toDate` | string | no | — | `YYYY-MM-DD` |
 
 ---
 
@@ -472,6 +492,19 @@ Summarize journal entries in a date range (title prefix `YYYY-MM-DD` or folder +
 | `documentIds` | string[] | no | Explicit ids (skips date filter) |
 
 **Example result:** `{ "summary": "…", "bullets": ["…"], "documentCount": 3 }`
+
+---
+
+## `summarize_document`
+
+Summarize one note. Requires **Local AI**.
+
+| Arg | Type | Required | Default | Notes |
+|-----|------|----------|---------|--------|
+| `id` | string | yes | — | Document id |
+| `maxSentences` | number | no | `4` | 1–12 |
+
+**Example result:** `{ "documentId": "…", "title": "Memo", "summary": "…", "bullets": ["…"] }`
 
 ---
 
@@ -500,6 +533,51 @@ Open tasks from multiple documents (checkboxes + NLP phrases).
 | Arg | Type | Required |
 |-----|------|----------|
 | `documentIds` | string[] | yes |
+
+---
+
+## `list_open_tasks`
+
+Open (unchecked) tasks across the library. Checkboxes always; NLP phrases (`todo:`, `treba:`, …) only when `includePhrases` is true and Local AI is enabled.
+
+| Arg | Type | Required | Default | Notes |
+|-----|------|----------|---------|--------|
+| `folderId` | string | no | — | Limit to one folder |
+| `limit` | number | no | `200` | Max documents to scan (1–500) |
+| `includePhrases` | boolean | no | `false` | Run NLP phrase extraction |
+
+**Example result:**
+
+```json
+{
+  "count": 2,
+  "includePhrases": false,
+  "tasks": [
+    {
+      "text": "Buy milk",
+      "checked": false,
+      "source": "checkbox",
+      "documentId": "…",
+      "documentTitle": "Shopping"
+    }
+  ]
+}
+```
+
+---
+
+## `get_or_create_journal`
+
+Return today's journal note, or create it. Reuses the app's `Journal` / `Denník` folder and title patterns (`YYYY-MM-DD`, `YYYY-MM-DD — morning` / `ráno`, `YYYY-MM-DD — evening` / `večer`). Existing notes are readable without write access; creating requires a writable DB.
+
+| Arg | Type | Required | Default | Notes |
+|-----|------|----------|---------|--------|
+| `slot` | string | no | `day` | `day`, `morning`, or `evening` |
+| `date` | string | no | today (local) | `YYYY-MM-DD` |
+
+**Example result:** `{ "id": "…", "title": "2026-09-02", "folderId": "…", "date": "2026-09-02", "slot": "day", "created": true, "plainText": "…" }`
+
+After this, use `append_to_note` to write into the journal.
 
 ---
 
@@ -559,5 +637,119 @@ Toggle favorite or pinned flag.
 
 ## Write behaviour notes
 
-- `create_note` / `append_to_note` sync FTS and wiki-link edges (`document_links`).
+- `create_note` / `append_to_note` / `get_or_create_journal` / `restore_document_revision` / `duplicate_document` / `toggle_task` / `delete_folder` sync FTS and wiki-link edges (`document_links`).
 - Plain-text `[[Wiki labels]]` are resolved to wiki-link nodes when a matching title exists.
+
+---
+
+## `list_nlp_artifacts`
+
+Cached Local AI outputs (`journal_summary`, `library_report`). Includes parsed `payload`.
+
+| Arg | Type | Required | Default |
+|-----|------|----------|---------|
+| `kind` | string | no | all kinds |
+| `limit` | number | no | `20` |
+
+---
+
+## `duplicate_document`
+
+Copy a note. **Writable.** Default title `{title} (copy)`.
+
+| Arg | Type | Required |
+|-----|------|----------|
+| `id` | string | yes |
+| `title` | string | no |
+
+---
+
+## `empty_trash`
+
+Permanently delete every trashed document. **Writable.**
+
+---
+
+## `delete_folder` / `move_folder` / `set_folder_pinned`
+
+Folder write parity with the app. `delete_folder` soft-deletes documents in the subtree first.
+
+| Tool | Args |
+|------|------|
+| `delete_folder` | `id` |
+| `move_folder` | `id`, optional `parentId` |
+| `set_folder_pinned` | `id`, `value` |
+
+---
+
+## `create_comment_thread` / `add_comment_reply`
+
+| Tool | Args |
+|------|------|
+| `create_comment_thread` | `documentId`, `body`, optional `quote`, `author` |
+| `add_comment_reply` | `threadId`, `body`, optional `author` |
+
+Default `author` is `scribe-mcp`.
+
+---
+
+## `export_document`
+
+| Arg | Type | Required | Default |
+|-----|------|----------|---------|
+| `id` | string | yes | — |
+| `format` | string | no | `markdown` | `markdown` or `plain` |
+
+Result: `{ "id", "title", "format", "content" }`.
+
+---
+
+## `toggle_task`
+
+Find the first checkbox whose text matches `text` (case-insensitive) and toggle or set `checked`.
+
+| Arg | Type | Required |
+|-----|------|----------|
+| `id` | string | yes |
+| `text` | string | yes |
+| `checked` | boolean | no (toggle) |
+
+---
+
+## `get_document_outline`
+
+Heading TOC for one note (`level` + `text`). Prefer this over loading full `plainText`.
+
+---
+
+## `list_unresolved_wiki_links`
+
+`[[label]]` / wiki-link nodes whose `targetId` is missing or points at a deleted/unknown document.
+
+---
+
+## `list_graph_hubs`
+
+Notes ranked by backlinks + outgoing wiki links. Use instead of dumping `list_link_graph`.
+
+---
+
+## Resources
+
+| URI | Content |
+|-----|---------|
+| `scribe://doc/{id}` | Plain-text note body |
+| `scribe://artifact/{id}` | Cached NLP JSON |
+
+`resources/list` returns recent notes. Template: `scribe://doc/{id}`.
+
+---
+
+## Prompts
+
+| Prompt | Purpose |
+|--------|---------|
+| `weekly_journal_review` | Optional `fromDate` / `toDate` — reuse artifacts, then journal_summary + tasks |
+| `capture_today` | get_or_create_journal + append_to_note |
+| `open_tasks_triage` | list_open_tasks, then toggle_task |
+| `wiki_health` | hubs + unresolved wiki links |

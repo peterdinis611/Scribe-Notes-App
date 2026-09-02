@@ -135,19 +135,24 @@ Prehľad argumentov a príkladov: **[tools.md](tools.md)**.
 |---------|------|
 | `scribe_status` | Kontrola DB |
 | `search_documents` | Hybrid FTS + sémantika (ak je Lokálne AI zapnuté) |
-| `search` | Jednotné vyhľadávanie s `mode` |
-| `search_documents_fts` | Len fulltext |
-| `semantic_search` | Vyhľadávanie cez embeddingy |
-| `similar_documents` | Podobné poznámky |
-| `extract_document_tasks` | Otvorené úlohy z poznámky |
-| `journal_tasks` | Úlohy z viacerých denníkových záznamov |
+| `search` | Jednotné vyhľadávanie s `mode` a filtrami priečinok/tag/dátum |
+| `list_open_tasks` | Otvorené úlohy v celej knižnici |
+| `toggle_task` | Zaškrtnúť / odškrtnúť úlohu |
 | `journal_summary` | AI zhrnutie denníka |
+| `summarize_document` | AI zhrnutie jednej poznámky |
+| `get_or_create_journal` | Dnešný denník (deň / ráno / večer) |
+| `list_nlp_artifacts` | Cache zhrnutí a reportov |
 | `suggest_tags` | Návrhy tagov |
 | `library_report` | AI prehľad knižnice |
 | `index_document` / `index_all_documents` | Index embeddingov |
 | `nlp_status` | Stav NLP sidecaru |
-| `trash_document` / `rename_document` / `replace_document_content` | Úpravy poznámok |
-| `set_document_favorite` / `set_document_pinned` | Príznaky |
+| `trash_document` / `empty_trash` / `rename_document` / `replace_document_content` | Úpravy poznámok |
+| `restore_document_revision` | Obnova snapshotu |
+| `duplicate_document` / `export_document` | Kópia / markdown export |
+| `get_document_outline` | Osnova nadpisov |
+| `list_unresolved_wiki_links` / `list_graph_hubs` | Wiki graf |
+| `delete_folder` / `move_folder` / `set_folder_pinned` | Zápis priečinkov |
+| `create_comment_thread` / `add_comment_reply` | Komentáre |
 | `find_documents_by_title` | Titulok / wiki label |
 | `get_document` | Celý text poznámky |
 | `list_documents` | Zoznam nedávnych |
