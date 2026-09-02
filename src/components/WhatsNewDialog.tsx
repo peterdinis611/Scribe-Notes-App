@@ -1,4 +1,4 @@
-import { CheckSquare, Sparkles, Zap } from 'lucide-react'
+import { Cable, PanelTop, Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
@@ -13,9 +13,9 @@ import { APP_VERSION } from '@/lib/app-version'
 import { persistWhatsNewVersion } from '@/store/persistence'
 
 const HIGHLIGHTS = [
-  { id: 'similarDocs', icon: Sparkles },
-  { id: 'taskExtraction', icon: CheckSquare },
-  { id: 'qualityEmbeddings', icon: Zap },
+  { id: 'rustMcp', icon: Cable },
+  { id: 'hybridSearch', icon: Sparkles },
+  { id: 'tabScrollbar', icon: PanelTop },
 ] as const
 
 type WhatsNewDialogProps = {

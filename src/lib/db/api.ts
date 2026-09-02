@@ -123,6 +123,12 @@ export const setFolderPinned = (id: string, pinned: boolean) =>
 export const setDocumentTags = (id: string, tags: string[]) =>
   invoke<void>('set_document_tags', { id, tags })
 
+export const addDocumentTag = (id: string, tag: string) =>
+  invoke<string[]>('add_document_tag', { id, tag })
+
+export const removeDocumentTag = (id: string, tag: string) =>
+  invoke<string[]>('remove_document_tag', { id, tag })
+
 export const listBacklinks = (id: string) =>
   invoke<DocumentSummary[]>('list_backlinks', { id })
 

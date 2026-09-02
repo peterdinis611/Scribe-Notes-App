@@ -921,6 +921,24 @@ impl ScribeStore {
         })
     }
 
+    pub fn add_document_tag(&self, id: &str, tag: &str) -> Result<IdTags, String> {
+        let tag = tag.trim();
+        if tag.is_empty() {
+            return Err("tag is required".to_string());
+        }
+
+        self.run_writable(|db| add_document_tag_in_conn(db, id, tag))
+    }
+
+    pub fn remove_document_tag(&self, id: &str, tag: &str) -> Result<IdTags, String> {
+        let tag = tag.trim();
+        if tag.is_empty() {
+            return Err("tag is required".to_string());
+        }
+
+        self.run_writable(|db| remove_document_tag_in_conn(db, id, tag))
+    }
+
     pub fn create_folder(
         &self,
         name: &str,
@@ -1974,6 +1992,93 @@ fn load_journal_documents(
         docs.push(row.map_err(|e| e.to_string())?);
     }
     Ok(docs)
+}
+
+fn add_document_tag_in_conn(db: &Connection, id: &str, tag: &str) -> Result<IdTags, String> {
+    let row: Option<(Option<String>, Option<i64>)> = db
+        .query_row(
+            "SELECT tags, deleted_at FROM documents WHERE id = ?1",
+            params![id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .optional()
+        .map_err(|e| e.to_string())?;
+
+    let Some((tags_raw, deleted_at)) = row else {
+        return Err(format!("Document not found: {id}"));
+    };
+    if deleted_at.is_some() {
+        return Err(format!("Document not found: {id}"));
+    }
+
+    let mut tags = ScribeStore::parse_tags(tags_raw);
+    if !tags.iter().any(|existing| existing == tag) {
+        tags.push(tag.to_string());
+        tags = ScribeStore::normalize_tags(&tags);
+        db.execute(
+            "UPDATE documents SET tags = ?1 WHERE id = ?2",
+            params![ScribeStore::encode_tags(&tags), id],
+        )
+        .map_err(|e| e.to_string())?;
+    }
+
+    Ok(IdTags {
+        id: id.to_string(),
+        tags,
+    })
+}
+
+fn remove_document_tag_in_conn(db: &Connection, id: &str, tag: &str) -> Result<IdTags, String> {
+    let row: Option<(Option<String>, Option<i64>)> = db
+        .query_row(
+            "SELECT tags, deleted_at FROM documents WHERE id = ?1",
+            params![id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .optional()
+        .map_err(|e| e.to_string())?;
+
+    let Some((tags_raw, deleted_at)) = row else {
+        return Err(format!("Document not found: {id}"));
+    };
+    if deleted_at.is_some() {
+        return Err(format!("Document not found: {id}"));
+    }
+
+    let mut tags = ScribeStore::parse_tags(tags_raw);
+    let before = tags.len();
+    tags.retain(|existing| existing != tag);
+    if tags.len() != before {
+        tags = ScribeStore::normalize_tags(&tags);
+        db.execute(
+            "UPDATE documents SET tags = ?1 WHERE id = ?2",
+            params![ScribeStore::encode_tags(&tags), id],
+        )
+        .map_err(|e| e.to_string())?;
+    }
+
+    Ok(IdTags {
+        id: id.to_string(),
+        tags,
+    })
+}
+
+/// Append one tag to a document (no-op if the tag is already present).
+pub fn add_document_tag(conn: &Connection, id: &str, tag: &str) -> Result<IdTags, String> {
+    let tag = tag.trim();
+    if tag.is_empty() {
+        return Err("tag is required".to_string());
+    }
+    add_document_tag_in_conn(conn, id, tag)
+}
+
+/// Remove one tag from a document.
+pub fn remove_document_tag(conn: &Connection, id: &str, tag: &str) -> Result<IdTags, String> {
+    let tag = tag.trim();
+    if tag.is_empty() {
+        return Err("tag is required".to_string());
+    }
+    remove_document_tag_in_conn(conn, id, tag)
 }
 
 pub fn sync_sidecar_backend(sidecar: &NlpSidecar, conn: &Connection) -> Result<(), String> {

@@ -584,6 +584,26 @@ pub fn set_document_tags(
     store_document_tags(&conn, &id, tags)
 }
 
+#[tauri::command]
+pub fn add_document_tag(
+    state: State<'_, DbState>,
+    id: String,
+    tag: String,
+) -> Result<Vec<String>, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    Ok(scribe_core::add_document_tag(&conn, &id, &tag)?.tags)
+}
+
+#[tauri::command]
+pub fn remove_document_tag(
+    state: State<'_, DbState>,
+    id: String,
+    tag: String,
+) -> Result<Vec<String>, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    Ok(scribe_core::remove_document_tag(&conn, &id, &tag)?.tags)
+}
+
 pub(crate) fn store_document_tags(
     conn: &rusqlite::Connection,
     id: &str,
@@ -717,5 +737,23 @@ mod tests {
             .query_row("SELECT tags FROM documents WHERE id = 'd1'", [], |row| row.get(0))
             .unwrap();
         assert_eq!(tags, r#"["alpha","beta"]"#);
+    }
+
+    #[test]
+    fn add_and_remove_document_tag() {
+        let conn = in_memory_conn();
+        seed_document(&conn, "d1", "Doc", r#"{"type":"doc","content":[]}"#, None);
+
+        let added = scribe_core::add_document_tag(&conn, "d1", "work").unwrap();
+        assert_eq!(added.tags, vec!["work".to_string()]);
+
+        let again = scribe_core::add_document_tag(&conn, "d1", "work").unwrap();
+        assert_eq!(again.tags, vec!["work".to_string()]);
+
+        let with_second = scribe_core::add_document_tag(&conn, "d1", "urgent").unwrap();
+        assert_eq!(with_second.tags, vec!["urgent".to_string(), "work".to_string()]);
+
+        let removed = scribe_core::remove_document_tag(&conn, "d1", "work").unwrap();
+        assert_eq!(removed.tags, vec!["urgent".to_string()]);
     }
 }

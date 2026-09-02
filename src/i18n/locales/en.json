@@ -212,6 +212,18 @@
     "title": "What's new",
     "subtitle": "A quick overview of changes in this release.",
     "gotIt": "Got it",
+    "rustMcp": {
+      "title": "Rust MCP server",
+      "description": "Scribe Memory MCP is now pure Rust — hybrid search, tasks, tags, journal summary, and more tools for Cursor and Claude."
+    },
+    "hybridSearch": {
+      "title": "Smarter search",
+      "description": "⌘K and MCP combine full-text and semantic search in one call when Local AI is enabled."
+    },
+    "tabScrollbar": {
+      "title": "Scrollable document tabs",
+      "description": "When many notes are open, the tab bar scrolls horizontally so titles stay readable."
+    },
     "similarDocs": {
       "title": "Similar documents",
       "description": "The AI insights panel in the editor shows semantically similar notes from your existing index."

@@ -309,6 +309,30 @@ Replace tags on a document. **Writable mode required.**
 
 ---
 
+## `add_document_tag`
+
+Append one tag to a document (existing tags are kept; duplicate tags are ignored). **Writable mode required.**
+
+| Arg | Type | Required |
+|-----|------|----------|
+| `id` | string | yes |
+| `tag` | string | yes |
+
+**Example result:** `{ "id": "…", "tags": ["work", "urgent"] }`
+
+---
+
+## `remove_document_tag`
+
+Remove one tag from a document. **Writable mode required.**
+
+| Arg | Type | Required |
+|-----|------|----------|
+| `id` | string | yes |
+| `tag` | string | yes |
+
+---
+
 ## `create_folder`
 
 Create a folder. **Writable mode required.**

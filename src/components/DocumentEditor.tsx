@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next'
 import { DocumentOutlinePanel } from '@/components/editor/DocumentOutlinePanel'
 import { DocumentTocRail } from '@/components/editor/DocumentTocRail'
 import { OutlineReturnButton } from '@/components/editor/OutlineReturnButton'
-import { EditorScrollLocation } from '@/components/editor/EditorScrollLocation'
 import { RevisionHistoryPanel } from '@/components/editor/RevisionHistoryPanel'
 import { CommentsPanel } from '@/components/editor/CommentsPanel'
 import { BacklinksPanel } from '@/components/editor/BacklinksPanel'
@@ -37,7 +36,6 @@ import { useEditorViewEffect, setEditorContent, useEditorReady, isEditorViewRead
 import { resolvePageLayout } from '@/lib/editor/page-layout'
 import { normalizePageSetup, PAPER_SIZES } from '@/lib/editor/page-setup'
 import { resolveDocumentTypography } from '@/lib/editor/document-style-presets'
-import { jumpToOutlineItem } from '@/lib/editor/outline-jump'
 import { getEditorExtensions } from '@/lib/editor/extensions'
 import { listGoogleFontFamilies, loadGoogleFontsForDocument } from '@/lib/editor/google-fonts'
 import { handleTauriEditorKeyDown } from '@/lib/editor/tauri-input-fix'
@@ -515,22 +513,6 @@ export function DocumentEditor() {
             {!isMarkdown && !focusMode && !readingMode && editorReady && (
               <OutlineReturnButton scrollRef={scrollRef} />
             )}
-            {!isMarkdown && !focusMode && !readingMode && editorReady && headingCount > 0 && (
-              <EditorScrollLocation
-                heading={activeHeading}
-                headingCount={headingCount}
-                onOpenOutline={() => {
-                  dispatch(setDocumentOutlineOpen(true))
-                }}
-                onJumpToHeading={() => {
-                  if (!editor || !activeHeading) {
-                    dispatch(setDocumentOutlineOpen(true))
-                    return
-                  }
-                  jumpToOutlineItem(editor, scrollRef, activeHeading, activeId, dispatch)
-                }}
-              />
-            )}
             <EditorDropZone
               className={cn(
                 'editor-scroll editor-stage',
@@ -549,13 +531,27 @@ export function DocumentEditor() {
             }
           >
             <div
+              className={cn(
+                'editor-print-stage-wrap',
+                printLayoutEnabled && !isMarkdown && 'editor-print-stage-wrap--active',
+              )}
+              style={
+                printLayoutEnabled && !isMarkdown
+                  ? {
+                      width: Math.round(stageSize.width * printZoom),
+                      minHeight: Math.round(stageSize.height * printZoom),
+                    }
+                  : undefined
+              }
+            >
+            <div
               className="editor-print-stage"
               style={
                 printLayoutEnabled && !isMarkdown
                   ? {
                       width: stageSize.width,
                       minHeight: stageSize.height,
-                      zoom: printZoom,
+                      transform: `translateX(-50%) scale(${printZoom})`,
                     }
                   : undefined
               }
@@ -686,6 +682,7 @@ export function DocumentEditor() {
                 </div>
               </div>
             </div>
+          </div>
           </div>
         </EditorDropZone>
             </div>

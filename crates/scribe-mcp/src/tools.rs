@@ -71,6 +71,12 @@ pub struct TagParams {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
+pub struct AddTagParams {
+    pub id: String,
+    pub tag: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
 pub struct SetTagsParams {
     pub id: String,
     pub tags: Vec<String>,

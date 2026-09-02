@@ -152,6 +152,8 @@ pub fn run() {
             commands::documents::set_document_favorite,
             commands::documents::set_document_pinned,
             commands::documents::set_document_tags,
+            commands::documents::add_document_tag,
+            commands::documents::remove_document_tag,
             commands::documents::list_backlinks,
             commands::documents::list_outgoing_links,
             commands::documents::clear_all_documents,

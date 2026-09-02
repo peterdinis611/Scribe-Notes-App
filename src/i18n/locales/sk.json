@@ -212,6 +212,18 @@
     "title": "Čo je nové",
     "subtitle": "Krátky prehľad zmien v tejto verzii.",
     "gotIt": "Rozumiem",
+    "rustMcp": {
+      "title": "Rust MCP server",
+      "description": "Scribe Memory MCP je teraz čisto v Ruste — hybridné vyhľadávanie, úlohy, štítky, zhrnutie denníka a ďalšie nástroje pre Cursor a Claude."
+    },
+    "hybridSearch": {
+      "title": "Inteligentnejšie vyhľadávanie",
+      "description": "⌘K a MCP spájajú fulltext a sémantiku v jednom volaní, keď je zapnutá Lokálna AI."
+    },
+    "tabScrollbar": {
+      "title": "Posúvateľné karty dokumentov",
+      "description": "Pri viacerých otvorených poznámkach sa lišta kariet posúva vodorovne — názvy zostanú čitateľné."
+    },
     "similarDocs": {
       "title": "Podobné dokumenty",
       "description": "Panel AI prehľad v editore ukáže sémanticky podobné poznámky z existujúceho indexu."

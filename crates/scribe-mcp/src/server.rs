@@ -379,6 +379,26 @@ impl ScribeMcp {
         self.with_store(|store| Ok(tools::json(&store.set_document_tags(&params.id, &params.tags)?)))
     }
 
+    #[tool(description = "Add a single tag to a document (keeps existing tags).")]
+    fn add_document_tag(
+        &self,
+        rmcp::handler::server::wrapper::Parameters(params): rmcp::handler::server::wrapper::Parameters<
+            tools::AddTagParams,
+        >,
+    ) -> Result<String, String> {
+        self.with_store(|store| Ok(tools::json(&store.add_document_tag(&params.id, &params.tag)?)))
+    }
+
+    #[tool(description = "Remove a single tag from a document.")]
+    fn remove_document_tag(
+        &self,
+        rmcp::handler::server::wrapper::Parameters(params): rmcp::handler::server::wrapper::Parameters<
+            tools::AddTagParams,
+        >,
+    ) -> Result<String, String> {
+        self.with_store(|store| Ok(tools::json(&store.remove_document_tag(&params.id, &params.tag)?)))
+    }
+
     #[tool(description = "Create a folder.")]
     fn create_folder(
         &self,

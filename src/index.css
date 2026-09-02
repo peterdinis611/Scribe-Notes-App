@@ -762,6 +762,48 @@ html[data-ui-skin='press'] .app-chrome::after {
   padding-left: calc(var(--titlebar-traffic-lights-width, 78px) + 8px);
 }
 
+.document-tabs-shell {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.document-tabs-shell::before,
+.document-tabs-shell::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 18px;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.document-tabs-shell::before {
+  left: 0;
+  background: linear-gradient(to right, var(--color-rail) 15%, transparent);
+}
+
+.document-tabs-shell::after {
+  right: 0;
+  background: linear-gradient(to left, var(--color-rail) 15%, transparent);
+}
+
+.document-tabs-shell.can-scroll-left::before,
+.document-tabs-shell.can-scroll-right::after {
+  opacity: 1;
+}
+
+.document-tabs {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.document-tabs::-webkit-scrollbar {
+  display: none;
+}
+
 .settings-nav-item.is-active {
   border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
   background: var(--color-selection);
@@ -2718,13 +2760,27 @@ html[data-ui-skin='press'] .editor-shell--home {
 .editor-scroll--print-layout {
   background: color-mix(in srgb, var(--color-sidebar) 70%, var(--color-background));
   overflow: auto;
+  padding-bottom: 112px;
 }
 
 .editor-print-host--active {
   display: flex;
   justify-content: center;
   min-width: 0;
-  padding: 8px 0 24px;
+  padding: 8px 0 32px;
+}
+
+.editor-print-stage-wrap--active {
+  position: relative;
+  flex-shrink: 0;
+  max-width: 100%;
+}
+
+.editor-print-stage-wrap--active .editor-print-stage {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform-origin: top center;
 }
 
 .editor-print-stage {
