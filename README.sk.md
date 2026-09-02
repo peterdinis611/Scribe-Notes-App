@@ -25,7 +25,7 @@ Scribe beží lokálne na vašom Macu. Žiadne účty, žiadny cloud — dokumen
 - **Mapa prepojení** (`/graph`): lokálny graf (dvojklik na uzol), filtre, farby podľa tagu/priečinka
 - Panel backlinkov + **unlinked mentions**
 - Príkazová paleta (`⌘K`) s fuzzy matchingom, nedávnymi dokumentmi a wiki cieľmi
-- Voliteľný MCP most pre AI nástroje (Cursor / Claude) — Nastavenia → MCP; pozri [`mcp/`](mcp/)
+- Voliteľný MCP most pre AI nástroje (Cursor / Claude) — Nastavenia → MCP; pozri [`crates/scribe-mcp/`](crates/scribe-mcp/)
 
 ### Dokumenty
 - Vlastný formát **`.scribe`** + synchronizácia na disk
@@ -92,15 +92,14 @@ Dev server beží na `http://localhost:5174`. Pri prvom spustení Tauri stiahne 
 | `bun run test:backend` | Rust testy |
 | `bun run test:all` | Oba test suites |
 | `bun run lint` | ESLint |
-| `npm run mcp:install` | Inštalácia závislostí Scribe Memory MCP (`mcp/`) |
-| `npm run mcp` | Spustenie Memory MCP servera (stdio) |
+| `npm run mcp:install` | Skompiluje Rust Scribe Memory MCP (`scribe-mcp`) |
+| `npm run mcp` | Spustí MCP server (stdio) |
 
 ## Scribe Memory MCP (Claude / Cursor)
 
 Voliteľná power funkcia: lokálne poznámky cez MCP pre Claude Desktop alebo Cursor. Bežné písanie MCP nevyžaduje. Server preferuje **zápis** (`create_note` / `append_to_note`) a pri zamknutej DB prejde do **read-only**. In-app: **Nastavenia → MCP**.
 
-- Prehľad a quick start: [`mcp/README.md`](mcp/README.md)
-- Dokumentácia: [`mcp/docs/`](mcp/docs/README.md) ([SK](mcp/docs/sk.md) · [EN](mcp/docs/en.md) · [nástroje](mcp/docs/tools.md))
+- Prehľad: [`crates/scribe-mcp/README.md`](crates/scribe-mcp/README.md) · docs [`crates/scribe-mcp/docs/`](crates/scribe-mcp/docs/README.md)
 
 ```bash
 npm run mcp:install

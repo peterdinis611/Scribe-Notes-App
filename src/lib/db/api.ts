@@ -27,6 +27,7 @@ export interface SearchHit {
   title: string
   snippet: string
   rank: number
+  matchKind?: 'fts' | 'semantic' | 'both'
 }
 
 export interface DocumentRevision {

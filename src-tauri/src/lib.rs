@@ -178,6 +178,7 @@ pub fn run() {
             commands::nlp::nlp_status,
             commands::nlp::nlp_set_enabled,
             commands::nlp::nlp_semantic_search,
+            commands::nlp::nlp_search,
             commands::nlp::nlp_index_document,
             commands::nlp::nlp_index_all,
             commands::nlp::nlp_journal_summary,

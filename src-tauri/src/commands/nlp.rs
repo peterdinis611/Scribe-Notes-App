@@ -6,10 +6,12 @@ use tauri::{AppHandle, Emitter, State};
 
 use crate::db::{
     count_embeddings, count_stale_embeddings, dominant_embedding_model, extract_search_text,
-    get_embed_backend, is_nlp_enabled, save_artifact, semantic_search, set_embed_backend,
-    set_nlp_enabled, similar_documents, upsert_embedding,
+    fuse_search_hits, get_embed_backend, is_nlp_enabled, save_artifact, search_documents_in_conn,
+    semantic_search, set_embed_backend, set_nlp_enabled, similar_documents, upsert_embedding,
+    SearchMode,
 };
-use crate::db::search::SearchHit;
+use scribe_core::sync_sidecar_backend;
+use crate::db::SearchHit;
 use crate::db::DbState;
 use crate::nlp::NlpSidecar;
 
@@ -269,12 +271,6 @@ fn sidecar_status(
     }
 }
 
-fn sync_sidecar_backend(sidecar: &NlpSidecar, conn: &rusqlite::Connection) -> Result<(), String> {
-    let backend = get_embed_backend(conn)?;
-    let _ = sidecar.configure_embed_backend(&backend);
-    Ok(())
-}
-
 fn extract_checkbox_tasks(content_json: &str) -> Vec<DocumentTask> {
     let Ok(value) = serde_json::from_str::<serde_json::Value>(content_json) else {
         return Vec::new();
@@ -454,28 +450,81 @@ pub fn nlp_set_enabled(
 }
 
 #[tauri::command]
+pub fn nlp_search(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    query: String,
+    limit: Option<i64>,
+    mode: Option<String>,
+) -> Result<Vec<SearchHit>, String> {
+    let limit = limit.unwrap_or(12);
+    let q = query.trim();
+    if q.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let (search_mode, nlp_enabled) = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        let enabled = is_nlp_enabled(&conn)?;
+        (SearchMode::parse(mode.as_deref(), enabled), enabled)
+    };
+
+    match search_mode {
+        SearchMode::Fts => {
+            let conn = state.conn.lock().map_err(|e| e.to_string())?;
+            scribe_core::search_library(&conn, &sidecar, q, limit, SearchMode::Fts)
+        }
+        SearchMode::Semantic => {
+            if !nlp_enabled {
+                let conn = state.conn.lock().map_err(|e| e.to_string())?;
+                return scribe_core::search_library(&conn, &sidecar, q, limit, SearchMode::Fts);
+            }
+            {
+                let conn = state.conn.lock().map_err(|e| e.to_string())?;
+                sync_sidecar_backend(&sidecar, &conn)?;
+            }
+            let (vector, model) = sidecar.embed_text(q)?;
+            let conn = state.conn.lock().map_err(|e| e.to_string())?;
+            semantic_search(&conn, &vector, limit, Some(&model))
+        }
+        SearchMode::Hybrid => {
+            let fts_hits = {
+                let conn = state.conn.lock().map_err(|e| e.to_string())?;
+                search_documents_in_conn(&conn, q, limit)?
+            };
+            if !nlp_enabled {
+                return Ok(fts_hits
+                    .into_iter()
+                    .map(|mut hit| {
+                        hit.match_kind = Some("fts".to_string());
+                        hit
+                    })
+                    .collect());
+            }
+            {
+                let conn = state.conn.lock().map_err(|e| e.to_string())?;
+                sync_sidecar_backend(&sidecar, &conn)?;
+            }
+            let semantic_hits = match sidecar.embed_text(q) {
+                Ok((vector, model)) => {
+                    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+                    semantic_search(&conn, &vector, limit, Some(&model)).unwrap_or_default()
+                }
+                Err(_) => Vec::new(),
+            };
+            Ok(fuse_search_hits(&fts_hits, &semantic_hits, limit))
+        }
+    }
+}
+
+#[tauri::command]
 pub fn nlp_semantic_search(
     state: State<'_, DbState>,
     sidecar: State<'_, NlpSidecar>,
     query: String,
     limit: Option<i64>,
 ) -> Result<Vec<SearchHit>, String> {
-    let enabled = {
-        let conn = state.conn.lock().map_err(|e| e.to_string())?;
-        is_nlp_enabled(&conn)?
-    };
-    if !enabled {
-        return Ok(Vec::new());
-    }
-
-    let q = query.trim();
-    if q.is_empty() {
-        return Ok(Vec::new());
-    }
-
-    let (vector, model) = sidecar.embed_text(q)?;
-    let conn = state.conn.lock().map_err(|e| e.to_string())?;
-    semantic_search(&conn, &vector, limit.unwrap_or(12), Some(&model))
+    nlp_search(state, sidecar, query, limit, Some("semantic".to_string()))
 }
 
 #[tauri::command]

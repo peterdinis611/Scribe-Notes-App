@@ -67,8 +67,18 @@ export const nlpSetEnabled = (enabled: boolean) =>
 export const nlpSetEmbedBackend = (backend: 'hash' | 'quality') =>
   invoke<NlpStatus>('nlp_set_embed_backend', { input: { backend } })
 
+export const nlpSearch = (
+  query: string,
+  options?: { limit?: number; mode?: 'hybrid' | 'semantic' | 'fts' },
+) =>
+  invoke<SearchHit[]>('nlp_search', {
+    query,
+    limit: options?.limit,
+    mode: options?.mode,
+  })
+
 export const nlpSemanticSearch = (query: string, limit = 12) =>
-  invoke<SearchHit[]>('nlp_semantic_search', { query, limit })
+  nlpSearch(query, { limit, mode: 'semantic' })
 
 export const nlpSimilarDocuments = (documentId: string, limit = 8) =>
   invoke<SearchHit[]>('nlp_similar_documents', { documentId, limit })

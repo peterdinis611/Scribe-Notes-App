@@ -25,7 +25,7 @@ Scribe runs locally on your Mac. No accounts, no cloud — documents, the databa
 - Wiki **connection map** (`/graph`): local graph (double-click node), filters, tag/folder colors
 - Backlinks panel + **unlinked mentions**
 - Command palette (`⌘K`) with fuzzy matching, recent docs, and wiki targets
-- Optional MCP bridge for AI tools (Cursor / Claude) — Settings → MCP; see [`mcp/`](mcp/)
+- Optional MCP bridge for AI tools (Cursor / Claude) — Settings → MCP; see [`crates/scribe-mcp/`](crates/scribe-mcp/)
 
 ### Documents
 - Custom **`.scribe`** format + disk sync
@@ -92,15 +92,14 @@ The dev server runs at `http://localhost:5174`. On first launch, Tauri downloads
 | `bun run test:backend` | Rust tests |
 | `bun run test:all` | Both test suites |
 | `bun run lint` | ESLint |
-| `npm run mcp:install` | Install Scribe Memory MCP deps (`mcp/`) |
-| `npm run mcp` | Run the Memory MCP server (stdio) |
+| `npm run mcp:install` | Build Rust Scribe Memory MCP (`scribe-mcp`) |
+| `npm run mcp` | Run MCP server (stdio) |
 
 ## Scribe Memory MCP (Claude / Cursor)
 
 Optional power feature: expose your local notes to Claude Desktop or Cursor via MCP. Everyday writing does not require it. The server prefers a **writable** connection (`create_note` / `append_to_note`) and falls back to **read-only** if the DB is locked. In-app: **Settings → MCP**.
 
-- Overview & quick start: [`mcp/README.md`](mcp/README.md)
-- Full docs: [`mcp/docs/`](mcp/docs/README.md) ([EN](mcp/docs/en.md) · [SK](mcp/docs/sk.md) · [tools](mcp/docs/tools.md))
+- Overview: [`crates/scribe-mcp/README.md`](crates/scribe-mcp/README.md) · docs [`crates/scribe-mcp/docs/`](crates/scribe-mcp/docs/README.md)
 
 ```bash
 npm run mcp:install

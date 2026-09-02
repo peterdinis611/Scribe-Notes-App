@@ -41,7 +41,7 @@ import { getDisplayKeysForShortcut } from '@/lib/shortcuts'
 import type { AppLocale } from '@/i18n'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { createFolder, duplicateDocument, listCommentThreads, listLinkGraph, searchDocuments, setDocumentPinned } from '@/lib/db/api'
-import { nlpSemanticSearch, nlpStatus, type NlpStatus } from '@/lib/db/nlp-api'
+import { nlpSearch, nlpStatus, type NlpStatus } from '@/lib/db/nlp-api'
 import { describeNlpSearchFailure } from '@/lib/nlp/errors'
 import { fuseSearchHits, isHybridSearchScope } from '@/lib/nlp/hybrid-search'
 import { toast } from '@/lib/toast'
@@ -672,6 +672,21 @@ export function CommandPalette() {
     }
 
     const merged = new Map<string, PaletteItem>()
+    if (isHybridSearchScope(searchScope) && hits.length > 0 && hits.some((hit) => hit.matchKind)) {
+      return hits
+        .filter((hit) => byId.has(hit.documentId))
+        .map((hit) =>
+          mapHit(
+            hit,
+            hit.matchKind === 'semantic' || hit.matchKind === 'both' ? (
+              <Sparkles className="h-4 w-4" />
+            ) : (
+              <FileText className="h-4 w-4" />
+            ),
+          ),
+        )
+    }
+
     if (isHybridSearchScope(searchScope) && hits.length > 0 && semanticHits.length > 0) {
       const semanticIds = new Set(semanticHits.map((item) => item.documentId))
       const fused = fuseSearchHits(hits, semanticHits, 12).filter((item) => byId.has(item.documentId))
@@ -827,10 +842,23 @@ export function CommandPalette() {
           scope === 'semantic' || (scope === 'all' || scope === 'content')
         if (runSemantic && nlpEnabled) {
           try {
-            setSemanticHits(await nlpSemanticSearch(q, 8))
+            const mode = scope === 'semantic' ? 'semantic' : 'hybrid'
+            const results = await nlpSearch(q, { limit: 12, mode })
+            if (mode === 'semantic') {
+              setSemanticHits(results)
+              setHits([])
+            } else {
+              setHits(results)
+              setSemanticHits(
+                results.filter(
+                  (hit) => hit.matchKind === 'semantic' || hit.matchKind === 'both',
+                ),
+              )
+            }
             setSemanticError(null)
           } catch (error) {
             setSemanticHits([])
+            setHits([])
             const message = describeNlpSearchFailure(nlpStatusState, error)
             setSemanticError(message)
             if (searchScope === 'semantic') {
@@ -851,7 +879,6 @@ export function CommandPalette() {
         }
 
         if (scope === 'semantic') {
-          setHits([])
           setCommentHits([])
           return
         }
@@ -886,6 +913,11 @@ export function CommandPalette() {
           setHits([])
           return
         }
+
+        if (runSemantic && nlpEnabled && (scope === 'all' || scope === 'content')) {
+          return
+        }
+
         try {
           const results = await searchDocuments(q, 12)
           setHits(results)

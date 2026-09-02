@@ -1,20 +1,7 @@
-mod embeddings;
-mod fts;
-mod links;
-mod migrations;
-mod revisions;
-pub mod search;
-#[cfg(test)]
-pub(crate) mod test_helpers;
+pub use scribe_core::db::*;
 
-pub use fts::{backfill_fts, extract_search_text, remove_document_fts, sync_document_fts};
-pub use embeddings::{
-    count_embeddings, count_stale_embeddings, dominant_embedding_model, get_document_embedding,
-    get_embed_backend, is_nlp_enabled, remove_embedding, save_artifact, semantic_search,
-    set_embed_backend, set_nlp_enabled, similar_documents, upsert_embedding,
-};
-pub use links::{backfill_links, sync_document_links};
-pub use revisions::{fetch_revision, restore_document_content, save_revision};
+#[cfg(test)]
+pub use scribe_core::db::test_helpers;
 
 use rusqlite::Connection;
 use std::path::PathBuf;
@@ -50,8 +37,8 @@ pub fn init_db(app: &AppHandle) -> Result<(Connection, PathBuf), Box<dyn std::er
     )
     .map_err(|e| format!("Failed to configure database: {e}"))?;
 
-    migrations::run_migrations(&conn)?;
-    migrations::seed_if_empty(&conn)?;
+    scribe_core::db::migrations::run_migrations(&conn)?;
+    scribe_core::db::migrations::seed_if_empty(&conn)?;
 
     Ok((conn, db_path))
 }

@@ -359,11 +359,11 @@
       "title": "Scribe Memory MCP",
       "description": "Voliteľné pre Cursor alebo Claude Desktop — Scribe funguje aj bez MCP.",
       "whatIsMcp": "MCP je malý lokálny server, cez ktorý AI appka môže čítať (a voliteľne dopĺňať) vašu knižnicu. Pri bežnom písaní ho nepotrebujete.",
-      "intro": "MCP server Scribe Memory umožňuje AI klientovi vyhľadávať poznámky, načítavať dokumenty, sledovať wiki odkazy a voliteľne vytvárať alebo dopĺňať poznámky. Bežné písanie a export MCP nevyžadujú.",
+      "intro": "Rust MCP server Scribe Memory umožňuje AI klientovi vyhľadávať poznámky (fulltext aj sémanticky), načítavať dokumenty, sledovať wiki odkazy, extrahovať úlohy a voliteľne vytvárať alebo dopĺňať poznámky.",
       "installTitle": "Inštalácia",
-      "installDescription": "Z koreňa repozitára Scribe raz nainštalujte závislosti balíka MCP.",
+      "installDescription": "Z koreňa repozitára raz skompilujte Rust MCP server.",
       "configTitle": "Cursor konfigurácia",
-      "configDescription": "Vložte do nastavení MCP v Cursor alebo do .cursor/mcp.json. __SCRIBE/mcp nahraďte absolútnou cestou k priečinku mcp/ v tomto repo.",
+      "configDescription": "Vložte do nastavení MCP v Cursor. __SCRIBE nahraďte absolútnou cestou k repozitáru (binárka: target/release/scribe-mcp).",
       "copyConfig": "Kopírovať Cursor config",
       "configCopied": "Cursor config skopírovaný",
       "promptTitle": "Šablóna promptu",
@@ -371,7 +371,7 @@
       "copyPrompt": "Kopírovať šablónu promptu",
       "promptCopied": "Šablóna promptu skopírovaná",
       "copyError": "Nepodarilo sa skopírovať do schránky",
-      "pathHint": "Po npm run mcp:install nastavte absolútnu --prefix cestu (pozri mcp/README.md). Príklad: npm run start --prefix /Users/VAS/cesta/k/scribe/mcp",
+      "pathHint": "Po npm run mcp:install použite absolútnu cestu k target/release/scribe-mcp (pozri crates/scribe-mcp/README.md).",
       "lockHint": "Nástroje na zápis potrebujú writable DB. Ak Scribe drží zámok, skúste create/append znova o chvíľu alebo skontrolujte scribe_status (writable: false)."
     },
     "nlp": {

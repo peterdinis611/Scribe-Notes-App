@@ -3,9 +3,9 @@ mod fts;
 mod links;
 pub mod migrations;
 mod revisions;
-pub mod search;
-#[cfg(test)]
-pub(crate) mod test_helpers;
+mod search;
+pub use search::{build_fts_query, fuse_search_hits, search_documents_in_conn, SearchHit, SearchMode};
+pub mod test_helpers;
 
 pub use embeddings::{
     count_embeddings, count_stale_embeddings, dominant_embedding_model, get_document_embedding,

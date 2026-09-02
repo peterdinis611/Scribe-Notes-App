@@ -98,6 +98,7 @@ dependencies = [
  "log",
  "regex",
  "rusqlite",
+ "scribe-core",
  "serde",
  "serde_json",
  "tauri",
@@ -3441,7 +3442,7 @@ version = "0.8.0"
 dependencies = [
  "anyhow",
  "rmcp",
- "schemars 0.8.22",
+ "schemars 1.2.2",
  "scribe-core",
  "serde",
  "serde_json",

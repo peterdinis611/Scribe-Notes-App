@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "scribe-memory": {
+      "command": "__SCRIBE/target/release/scribe-mcp",
+      "args": []
+    }
+  }
+}

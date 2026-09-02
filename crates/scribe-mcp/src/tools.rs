@@ -1,4 +1,4 @@
-use schemars::JsonSchema;
+use rmcp::schemars::JsonSchema;
 use serde::Deserialize;
 
 pub fn json<T: serde::Serialize>(value: &T) -> String {
@@ -102,4 +102,43 @@ pub struct DocumentIdParams {
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct RevisionParams {
     pub revision_id: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct SearchModeParams {
+    pub query: String,
+    pub limit: Option<i64>,
+    /// hybrid | semantic | fts
+    pub mode: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct JournalSummaryParams {
+    pub from_date: String,
+    pub to_date: String,
+    pub journal_folder_id: Option<String>,
+    pub document_ids: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct JournalTasksParams {
+    pub document_ids: Vec<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct RenameDocumentParams {
+    pub id: String,
+    pub title: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct ReplaceContentParams {
+    pub id: String,
+    pub content: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct SetFlagParams {
+    pub id: String,
+    pub value: bool,
 }

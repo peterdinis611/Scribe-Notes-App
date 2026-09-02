@@ -678,7 +678,7 @@ mod tests {
         ]}"#;
         insert_document_record(&conn, "src", "Source doc", content, None, 100).unwrap();
 
-        let hits = crate::db::search::search_documents_in_conn(&conn, "Source", 10).unwrap();
+        let hits = crate::db::search_documents_in_conn(&conn, "Source", 10).unwrap();
         assert_eq!(hits.len(), 1);
         assert_eq!(hits[0].document_id, "src");
 

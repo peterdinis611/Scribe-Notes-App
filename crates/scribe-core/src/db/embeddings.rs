@@ -265,6 +265,7 @@ pub fn semantic_search(
             title,
             snippet,
             rank: -score,
+            match_kind: Some("semantic".to_string()),
         });
     }
 

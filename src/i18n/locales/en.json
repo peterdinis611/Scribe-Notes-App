@@ -359,11 +359,11 @@
       "title": "Scribe Memory MCP",
       "description": "Optional for Cursor or Claude Desktop — Scribe works fine without MCP.",
       "whatIsMcp": "MCP is a small local server so an AI app can read (and optionally update) your library. You don’t need it for everyday writing.",
-      "intro": "The Scribe Memory MCP server lets an AI client search notes, load documents, follow wiki links, and optionally create or append notes. Everyday writing and export do not require MCP.",
+      "intro": "The Rust Scribe Memory MCP server lets an AI client search notes (full-text and semantic), load documents, follow wiki links, extract tasks, and optionally create or append notes.",
       "installTitle": "Install",
-      "installDescription": "From the Scribe repo root, install MCP package dependencies once.",
+      "installDescription": "From the Scribe repo root, build the Rust MCP server once.",
       "configTitle": "Cursor config",
-      "configDescription": "Paste into Cursor MCP settings or .cursor/mcp.json. Replace __SCRIBE/mcp with the absolute path to this repo’s mcp/ folder.",
+      "configDescription": "Paste into Cursor MCP settings. Replace __SCRIBE with the absolute repo path (binary: target/release/scribe-mcp).",
       "copyConfig": "Copy Cursor config",
       "configCopied": "Cursor config copied",
       "promptTitle": "Prompt template",
@@ -371,7 +371,7 @@
       "copyPrompt": "Copy prompt template",
       "promptCopied": "Prompt template copied",
       "copyError": "Could not copy to clipboard",
-      "pathHint": "After npm run mcp:install, set an absolute --prefix path (see mcp/README.md). Example: npm run start --prefix /Users/YOU/path/to/scribe/mcp",
+      "pathHint": "After npm run mcp:install, point command at target/release/scribe-mcp with an absolute path (see crates/scribe-mcp/README.md).",
       "lockHint": "Write tools need a writable DB open. If Scribe has the database locked, retry create/append shortly or check scribe_status for writable: false."
     },
     "nlp": {

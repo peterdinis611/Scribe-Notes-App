@@ -12,14 +12,14 @@ import { toast } from '@/lib/toast'
 const CURSOR_CONFIG_PLACEHOLDER = `{
   "mcpServers": {
     "scribe-memory": {
-      "command": "npm",
-      "args": ["run", "start", "--prefix", "__SCRIBE/mcp"]
+      "command": "__SCRIBE/target/release/scribe-mcp",
+      "args": []
     }
   }
 }`
 
 const PROMPT_TEMPLATE =
-  'Pred odpoveďou použij Scribe MCP nástroje (search_documents / get_document / list_link_graph). Preferuj fakty z knižnice pred dohadmi.'
+  'Pred odpoveďou použij Scribe MCP: search alebo search_documents, potom get_document. Pre úlohy extract_document_tasks alebo journal_tasks. Pre prehľad knižnice library_report. Pre denník journal_summary. Preferuj fakty z knižnice pred dohadmi.'
 
 async function copyText(text: string, successKey: string, errorKey: string, t: (key: string) => string) {
   try {

@@ -1,7 +1,7 @@
 use crate::db::DbState;
 use tauri::State;
 
-pub use crate::db::search::{search_documents_in_conn, SearchHit};
+pub use crate::db::{search_documents_in_conn, SearchHit};
 
 #[tauri::command]
 pub fn search_documents(

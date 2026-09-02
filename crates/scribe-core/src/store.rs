@@ -9,11 +9,14 @@ use serde_json::{json, Value};
 use uuid::Uuid;
 
 use crate::db::migrations;
-use crate::db::search::{search_documents_in_conn, SearchHit};
+use crate::db::{
+    fuse_search_hits, search_documents_in_conn, SearchHit, SearchMode,
+};
 use crate::db::{
     count_embeddings, count_stale_embeddings, dominant_embedding_model, extract_search_text,
     get_document_embedding, get_embed_backend, is_nlp_enabled, remove_document_fts,
-    semantic_search, similar_documents, sync_document_fts, sync_document_links,
+    save_artifact, save_revision, semantic_search, similar_documents, sync_document_fts,
+    sync_document_links, upsert_embedding,
 };
 use crate::nlp::{script_path_label, NlpSidecar};
 use crate::path::default_db_path;
@@ -185,6 +188,49 @@ pub struct MoveDocumentResult {
 #[serde(rename_all = "camelCase")]
 pub struct PurgeResult {
     pub id: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JournalSummary {
+    pub summary: String,
+    pub bullets: Vec<String>,
+    pub document_count: i64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpEntity {
+    pub text: String,
+    pub kind: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TagSuggestions {
+    pub entities: Vec<NlpEntity>,
+    pub tag_suggestions: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryReport {
+    pub markdown: String,
+    pub stats: Value,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IndexResult {
+    pub indexed: i64,
+    pub model: String,
+}
+
+pub struct JournalSummaryInput {
+    pub from_date: String,
+    pub to_date: String,
+    pub journal_folder_id: Option<String>,
+    pub document_ids: Option<Vec<String>>,
 }
 
 pub struct ScribeStore {
@@ -416,8 +462,29 @@ impl ScribeStore {
         })
     }
 
-    pub fn search_documents(&self, query: &str, limit: i64) -> Result<Vec<SearchHit>, String> {
-        search_documents_in_conn(&self.db, query, limit)
+    pub fn search_documents_fts(&self, query: &str, limit: i64) -> Result<Vec<SearchHit>, String> {
+        let hits = search_documents_in_conn(&self.db, query, limit)?;
+        Ok(hits
+            .into_iter()
+            .map(|mut hit| {
+                hit.match_kind = Some("fts".to_string());
+                hit
+            })
+            .collect())
+    }
+
+    pub fn search_documents(
+        &self,
+        sidecar: &NlpSidecar,
+        query: &str,
+        limit: i64,
+    ) -> Result<Vec<SearchHit>, String> {
+        let mode = if is_nlp_enabled(&self.db)? {
+            SearchMode::Hybrid
+        } else {
+            SearchMode::Fts
+        };
+        search_library(&self.db, sidecar, query, limit, mode)
     }
 
     pub fn list_documents(
@@ -1176,16 +1243,7 @@ impl ScribeStore {
         query: &str,
         limit: i64,
     ) -> Result<Vec<SearchHit>, String> {
-        if !is_nlp_enabled(&self.db)? {
-            return Ok(Vec::new());
-        }
-        let q = query.trim();
-        if q.is_empty() {
-            return Ok(Vec::new());
-        }
-        sync_sidecar_backend(sidecar, &self.db)?;
-        let (vector, model) = sidecar.embed_text(q)?;
-        semantic_search(&self.db, &vector, limit, Some(&model))
+        search_library(&self.db, sidecar, query, limit, SearchMode::Semantic)
     }
 
     pub fn similar_documents_for(
@@ -1333,12 +1391,647 @@ impl ScribeStore {
             }))
         }
     }
+
+    pub fn trash_document(&self, id: &str) -> Result<IdTitle, String> {
+        let id = id.trim();
+        if id.is_empty() {
+            return Err("id is required".to_string());
+        }
+
+        self.run_writable(|db| {
+            let row: Option<(String, Option<i64>)> = db
+                .query_row(
+                    "SELECT title, deleted_at FROM documents WHERE id = ?1",
+                    params![id],
+                    |row| Ok((row.get(0)?, row.get(1)?)),
+                )
+                .optional()
+                .map_err(|e| e.to_string())?;
+
+            let Some((title, deleted_at)) = row else {
+                return Err(format!("Document not found: {id}"));
+            };
+            if deleted_at.is_some() {
+                return Err(format!("Document is already in trash: {id}"));
+            }
+
+            let now = Self::now_ms();
+            db.execute(
+                "UPDATE documents SET deleted_at = ?1 WHERE id = ?2",
+                params![now, id],
+            )
+            .map_err(|e| e.to_string())?;
+            remove_document_fts(db, id)?;
+
+            Ok(IdTitle {
+                id: id.to_string(),
+                title,
+            })
+        })
+    }
+
+    pub fn rename_document(&self, id: &str, title: &str) -> Result<IdTitle, String> {
+        let id = id.trim();
+        let title = title.trim();
+        if id.is_empty() {
+            return Err("id is required".to_string());
+        }
+        if title.is_empty() {
+            return Err("title is required".to_string());
+        }
+
+        self.run_writable(|db| {
+            let row: Option<(String, String, Option<i64>)> = db
+                .query_row(
+                    "SELECT title, content_json, deleted_at FROM documents WHERE id = ?1",
+                    params![id],
+                    |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+                )
+                .optional()
+                .map_err(|e| e.to_string())?;
+
+            let Some((_, content_json, deleted_at)) = row else {
+                return Err(format!("Document not found: {id}"));
+            };
+            if deleted_at.is_some() {
+                return Err(format!("Document not found: {id}"));
+            }
+
+            let now = Self::now_ms();
+            db.execute(
+                "UPDATE documents SET title = ?1, updated_at = ?2 WHERE id = ?3",
+                params![title, now, id],
+            )
+            .map_err(|e| e.to_string())?;
+            sync_document_fts(db, id, title, &content_json)?;
+
+            Ok(IdTitle {
+                id: id.to_string(),
+                title: title.to_string(),
+            })
+        })
+    }
+
+    pub fn replace_document_content(&self, id: &str, content: &str) -> Result<IdTitle, String> {
+        let id = id.trim();
+        if id.is_empty() {
+            return Err("id is required".to_string());
+        }
+
+        let wiki_map: &'static HashMap<String, Option<String>> =
+            Box::leak(Box::new(self.resolve_wiki_labels(content)));
+        let resolver = Self::wiki_resolver_from_map(wiki_map);
+        let content_json = plain_text_to_tiptap(content, Some(&resolver));
+
+        self.run_writable(|db| {
+            let row: Option<(String, String, Option<i64>)> = db
+                .query_row(
+                    "SELECT title, content_json, deleted_at FROM documents WHERE id = ?1",
+                    params![id],
+                    |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+                )
+                .optional()
+                .map_err(|e| e.to_string())?;
+
+            let Some((title, existing_json, deleted_at)) = row else {
+                return Err(format!("Document not found: {id}"));
+            };
+            if deleted_at.is_some() {
+                return Err(format!("Document not found: {id}"));
+            }
+
+            if existing_json != content_json {
+                save_revision(db, id, &title, &existing_json)?;
+            }
+
+            let now = Self::now_ms();
+            db.execute(
+                "UPDATE documents SET content_json = ?1, updated_at = ?2 WHERE id = ?3",
+                params![content_json, now, id],
+            )
+            .map_err(|e| e.to_string())?;
+            sync_document_fts(db, id, &title, &content_json)?;
+            sync_document_links(db, id, &content_json)?;
+
+            Ok(IdTitle {
+                id: id.to_string(),
+                title,
+            })
+        })
+    }
+
+    pub fn set_document_favorite(&self, id: &str, favorite: bool) -> Result<IdTitle, String> {
+        self.set_document_flag(id, "is_favorite", favorite)
+    }
+
+    pub fn set_document_pinned(&self, id: &str, pinned: bool) -> Result<IdTitle, String> {
+        self.set_document_flag(id, "is_pinned", pinned)
+    }
+
+    fn set_document_flag(&self, id: &str, column: &str, value: bool) -> Result<IdTitle, String> {
+        let id = id.trim();
+        if id.is_empty() {
+            return Err("id is required".to_string());
+        }
+        if column != "is_favorite" && column != "is_pinned" {
+            return Err("invalid flag column".to_string());
+        }
+
+        self.run_writable(|db| {
+            let row: Option<(String, Option<i64>)> = db
+                .query_row(
+                    "SELECT title, deleted_at FROM documents WHERE id = ?1",
+                    params![id],
+                    |row| Ok((row.get(0)?, row.get(1)?)),
+                )
+                .optional()
+                .map_err(|e| e.to_string())?;
+
+            let Some((title, deleted_at)) = row else {
+                return Err(format!("Document not found: {id}"));
+            };
+            if deleted_at.is_some() {
+                return Err(format!("Document not found: {id}"));
+            }
+
+            let sql = format!("UPDATE documents SET {column} = ?1, updated_at = ?2 WHERE id = ?3");
+            db.execute(&sql, params![value as i64, Self::now_ms(), id])
+                .map_err(|e| e.to_string())?;
+
+            Ok(IdTitle {
+                id: id.to_string(),
+                title,
+            })
+        })
+    }
+
+    pub fn search_with_mode(
+        &self,
+        sidecar: &NlpSidecar,
+        query: &str,
+        limit: i64,
+        mode: Option<&str>,
+    ) -> Result<Vec<SearchHit>, String> {
+        let enabled = is_nlp_enabled(&self.db)?;
+        let search_mode = SearchMode::parse(mode, enabled);
+        search_library(&self.db, sidecar, query, limit, search_mode)
+    }
+
+    pub fn journal_summary(
+        &self,
+        sidecar: &NlpSidecar,
+        input: &JournalSummaryInput,
+    ) -> Result<JournalSummary, String> {
+        require_nlp(&self.db)?;
+
+        let docs = load_journal_documents(&self.db, input)?;
+        let count = docs.len() as i64;
+
+        let mut combined = String::new();
+        for (title, content_json) in docs {
+            combined.push_str(&title);
+            combined.push('\n');
+            combined.push_str(&extract_search_text(&content_json));
+            combined.push_str("\n\n");
+        }
+
+        if combined.trim().is_empty() {
+            return Ok(JournalSummary {
+                summary: String::new(),
+                bullets: Vec::new(),
+                document_count: 0,
+            });
+        }
+
+        sync_sidecar_backend(sidecar, &self.db)?;
+        let result = sidecar.summarize(&combined, 5)?;
+        let summary = result
+            .get("summary")
+            .and_then(|value| value.as_str())
+            .unwrap_or("")
+            .to_string();
+        let bullets = result
+            .get("bullets")
+            .and_then(|value| value.as_array())
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(|item| item.as_str().map(str::to_string))
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+
+        let payload = json!({
+            "fromDate": input.from_date,
+            "toDate": input.to_date,
+            "summary": summary,
+            "bullets": bullets,
+            "documentCount": count,
+        });
+        save_artifact(
+            &self.db,
+            &format!("journal:{}:{}", input.from_date, input.to_date),
+            "journal_summary",
+            &payload.to_string(),
+            chrono::Utc::now().timestamp(),
+        )?;
+
+        Ok(JournalSummary {
+            summary,
+            bullets,
+            document_count: count,
+        })
+    }
+
+    pub fn suggest_tags(&self, sidecar: &NlpSidecar, document_id: &str) -> Result<TagSuggestions, String> {
+        require_nlp(&self.db)?;
+
+        let (title, content_json): (String, String) = self
+            .db
+            .query_row(
+                "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL",
+                params![document_id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .map_err(|e| e.to_string())?;
+
+        let text = format!("{title}\n{}", extract_search_text(&content_json));
+        sync_sidecar_backend(sidecar, &self.db)?;
+        let result = sidecar.extract_entities(&text)?;
+
+        let entities = result
+            .get("entities")
+            .and_then(|value| value.as_array())
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(|item| {
+                        Some(NlpEntity {
+                            text: item.get("text")?.as_str()?.to_string(),
+                            kind: item.get("kind")?.as_str()?.to_string(),
+                        })
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+
+        let tag_suggestions = result
+            .get("tagSuggestions")
+            .and_then(|value| value.as_array())
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(|item| item.as_str().map(str::to_string))
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+
+        Ok(TagSuggestions {
+            entities,
+            tag_suggestions,
+        })
+    }
+
+    pub fn library_report(&self, sidecar: &NlpSidecar) -> Result<LibraryReport, String> {
+        require_nlp(&self.db)?;
+
+        let mut stmt = self
+            .db
+            .prepare(
+                "SELECT id, title, content_json, tags, updated_at
+                 FROM documents WHERE deleted_at IS NULL",
+            )
+            .map_err(|e| e.to_string())?;
+
+        let rows = stmt
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, Option<String>>(3)?,
+                    row.get::<_, i64>(4)?,
+                ))
+            })
+            .map_err(|e| e.to_string())?;
+
+        let mut documents = Vec::new();
+        for row in rows {
+            let (id, title, content_json, tags_json, updated_at) = row.map_err(|e| e.to_string())?;
+            let tags = Self::parse_tags(tags_json);
+            documents.push(json!({
+                "id": id,
+                "title": title,
+                "text": extract_search_text(&content_json),
+                "tags": tags,
+                "updatedAt": updated_at,
+            }));
+        }
+
+        sync_sidecar_backend(sidecar, &self.db)?;
+        let result = sidecar.library_report(json!(documents))?;
+        let markdown = result
+            .get("markdown")
+            .and_then(|value| value.as_str())
+            .unwrap_or("")
+            .to_string();
+        let stats = result.get("stats").cloned().unwrap_or(json!({}));
+
+        let now = chrono::Utc::now().timestamp();
+        save_artifact(
+            &self.db,
+            &format!("library-report:{now}"),
+            "library_report",
+            &result.to_string(),
+            now,
+        )?;
+
+        Ok(LibraryReport { markdown, stats })
+    }
+
+    pub fn journal_tasks(
+        &self,
+        sidecar: &NlpSidecar,
+        document_ids: &[String],
+    ) -> Result<Vec<DocumentTask>, String> {
+        let nlp_enabled = is_nlp_enabled(&self.db)?;
+        let mut combined = Vec::new();
+
+        for document_id in document_ids {
+            let row: Option<(String, String)> = self
+                .db
+                .query_row(
+                    "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL",
+                    params![document_id],
+                    |row| Ok((row.get(0)?, row.get(1)?)),
+                )
+                .optional()
+                .map_err(|e| e.to_string())?;
+
+            let Some((title, content_json)) = row else {
+                continue;
+            };
+
+            let mut tasks = extract_checkbox_tasks(&content_json);
+            for task in &mut tasks {
+                task.document_id = Some(document_id.clone());
+                task.document_title = Some(title.clone());
+            }
+
+            if nlp_enabled {
+                sync_sidecar_backend(sidecar, &self.db)?;
+                let text = format!("{title}\n{}", extract_search_text(&content_json));
+                if let Ok(result) = sidecar.extract_tasks(&text) {
+                    append_phrase_tasks(&mut tasks, &result, document_id, &title);
+                }
+            }
+
+            combined.extend(tasks);
+        }
+
+        Ok(merge_document_tasks(combined))
+    }
+
+    pub fn index_document(&self, sidecar: &NlpSidecar, document_id: &str) -> Result<IndexResult, String> {
+        require_nlp(&self.db)?;
+
+        let (title, content_json): (String, String) = self
+            .db
+            .query_row(
+                "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL",
+                params![document_id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .map_err(|e| e.to_string())?;
+
+        let text = format!("{title}\n{}", extract_search_text(&content_json));
+        sync_sidecar_backend(sidecar, &self.db)?;
+        let (vector, model) = sidecar.embed_text(&text)?;
+        upsert_embedding(
+            &self.db,
+            document_id,
+            &vector,
+            &model,
+            chrono::Utc::now().timestamp(),
+        )?;
+
+        Ok(IndexResult {
+            indexed: 1,
+            model,
+        })
+    }
+
+    pub fn index_all_documents(&self, sidecar: &NlpSidecar) -> Result<IndexResult, String> {
+        const BATCH_SIZE: usize = 24;
+
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+
+        let mut stmt = self
+            .db
+            .prepare("SELECT id, title, content_json FROM documents WHERE deleted_at IS NULL")
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            })
+            .map_err(|e| e.to_string())?;
+
+        let mut docs: Vec<(String, String)> = Vec::new();
+        for row in rows {
+            let (id, title, content_json) = row.map_err(|e| e.to_string())?;
+            let text = format!("{title}\n{}", extract_search_text(&content_json));
+            docs.push((id, text));
+        }
+
+        if docs.is_empty() {
+            return Ok(IndexResult {
+                indexed: 0,
+                model: "none".to_string(),
+            });
+        }
+
+        let mut indexed = 0i64;
+        let mut model = "none".to_string();
+        let now = chrono::Utc::now().timestamp();
+
+        for chunk in docs.chunks(BATCH_SIZE) {
+            let ids: Vec<String> = chunk.iter().map(|(id, _)| id.clone()).collect();
+            let texts: Vec<String> = chunk.iter().map(|(_, text)| text.clone()).collect();
+            let (vectors, batch_model) = sidecar.embed_batch(&texts)?;
+            model = batch_model;
+
+            for (document_id, vector) in ids.into_iter().zip(vectors.into_iter()) {
+                upsert_embedding(&self.db, &document_id, &vector, &model, now)?;
+                indexed += 1;
+            }
+        }
+
+        Ok(IndexResult { indexed, model })
+    }
 }
 
-fn sync_sidecar_backend(sidecar: &NlpSidecar, conn: &Connection) -> Result<(), String> {
+fn require_nlp(conn: &Connection) -> Result<(), String> {
+    if !is_nlp_enabled(conn)? {
+        return Err("NLP is disabled".to_string());
+    }
+    Ok(())
+}
+
+fn parse_date_key(value: &str) -> Result<chrono::NaiveDate, String> {
+    chrono::NaiveDate::parse_from_str(value, "%Y-%m-%d")
+        .map_err(|error| format!("Invalid date: {error}"))
+}
+
+fn date_key_bounds(from_date: &str, to_date: &str) -> Result<(i64, i64), String> {
+    let from = parse_date_key(from_date)?;
+    let to = parse_date_key(to_date)?;
+    let start = from
+        .and_hms_opt(0, 0, 0)
+        .ok_or_else(|| "Invalid range start".to_string())?
+        .and_utc()
+        .timestamp();
+    let end = to
+        .and_hms_opt(23, 59, 59)
+        .ok_or_else(|| "Invalid range end".to_string())?
+        .and_utc()
+        .timestamp();
+    Ok((start, end))
+}
+
+fn load_journal_documents(
+    conn: &Connection,
+    input: &JournalSummaryInput,
+) -> Result<Vec<(String, String)>, String> {
+    if let Some(ids) = &input.document_ids {
+        let unique = ids
+            .iter()
+            .map(|id| id.trim().to_string())
+            .filter(|id| !id.is_empty())
+            .collect::<Vec<_>>();
+        if !unique.is_empty() {
+            let placeholders = std::iter::repeat("?")
+                .take(unique.len())
+                .collect::<Vec<_>>()
+                .join(", ");
+            let sql = format!(
+                "SELECT title, content_json FROM documents
+                 WHERE deleted_at IS NULL AND id IN ({placeholders})
+                 ORDER BY updated_at DESC"
+            );
+            let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+            let rows = stmt
+                .query_map(rusqlite::params_from_iter(unique.iter()), |row| {
+                    Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+                })
+                .map_err(|e| e.to_string())?;
+
+            let mut docs = Vec::new();
+            for row in rows {
+                docs.push(row.map_err(|e| e.to_string())?);
+            }
+            return Ok(docs);
+        }
+    }
+
+    let (start_ts, end_ts) = date_key_bounds(&input.from_date, &input.to_date)?;
+    let mut stmt = conn
+        .prepare(
+            "SELECT title, content_json FROM documents
+             WHERE deleted_at IS NULL
+               AND updated_at BETWEEN ?1 AND ?2
+               AND (
+                 (?3 IS NOT NULL AND folder_id = ?3)
+                 OR (
+                   substr(title, 1, 10) GLOB '????-??-??'
+                   AND substr(title, 1, 10) >= ?4
+                   AND substr(title, 1, 10) <= ?5
+                 )
+               )
+             ORDER BY updated_at DESC",
+        )
+        .map_err(|e| e.to_string())?;
+
+    let rows = stmt
+        .query_map(
+            params![
+                start_ts,
+                end_ts,
+                input.journal_folder_id,
+                input.from_date,
+                input.to_date
+            ],
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+        )
+        .map_err(|e| e.to_string())?;
+
+    let mut docs = Vec::new();
+    for row in rows {
+        docs.push(row.map_err(|e| e.to_string())?);
+    }
+    Ok(docs)
+}
+
+pub fn sync_sidecar_backend(sidecar: &NlpSidecar, conn: &Connection) -> Result<(), String> {
     let backend = get_embed_backend(conn)?;
     let _ = sidecar.configure_embed_backend(&backend);
     Ok(())
+}
+
+pub fn search_library(
+    conn: &Connection,
+    sidecar: &NlpSidecar,
+    query: &str,
+    limit: i64,
+    mode: SearchMode,
+) -> Result<Vec<SearchHit>, String> {
+    let q = query.trim();
+    if q.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    match mode {
+        SearchMode::Fts => {
+            let hits = search_documents_in_conn(conn, q, limit)?;
+            Ok(hits
+                .into_iter()
+                .map(|mut hit| {
+                    hit.match_kind = Some("fts".to_string());
+                    hit
+                })
+                .collect())
+        }
+        SearchMode::Semantic => {
+            if !is_nlp_enabled(conn)? {
+                return search_library(conn, sidecar, q, limit, SearchMode::Fts);
+            }
+            sync_sidecar_backend(sidecar, conn)?;
+            let (vector, model) = sidecar.embed_text(q)?;
+            Ok(semantic_search(conn, &vector, limit, Some(&model))?)
+        }
+        SearchMode::Hybrid => {
+            let fts_hits = search_documents_in_conn(conn, q, limit)?;
+            if !is_nlp_enabled(conn)? {
+                return Ok(fts_hits
+                    .into_iter()
+                    .map(|mut hit| {
+                        hit.match_kind = Some("fts".to_string());
+                        hit
+                    })
+                    .collect());
+            }
+            sync_sidecar_backend(sidecar, conn)?;
+            let semantic_hits = match sidecar.embed_text(q) {
+                Ok((vector, model)) => semantic_search(conn, &vector, limit, Some(&model)).unwrap_or_default(),
+                Err(_) => Vec::new(),
+            };
+            Ok(fuse_search_hits(&fts_hits, &semantic_hits, limit))
+        }
+    }
 }
 
 fn assert_db_exists(db_path: &Path) -> Result<(), String> {

@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "scribe-memory": {
-      "command": "npm",
-      "args": ["run", "start", "--prefix", "mcp"],
-      "env": {}
-    }
-  }
-}
