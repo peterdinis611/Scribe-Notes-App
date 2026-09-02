@@ -212,6 +212,18 @@
     "title": "Čo je nové",
     "subtitle": "Krátky prehľad zmien v tejto verzii.",
     "gotIt": "Rozumiem",
+    "similarDocs": {
+      "title": "Podobné dokumenty",
+      "description": "Panel AI prehľad v editore ukáže sémanticky podobné poznámky z existujúceho indexu."
+    },
+    "taskExtraction": {
+      "title": "Extrakcia úloh",
+      "description": "Checkboxy a frázy typu „treba:“ sa zobrazia v dokumente aj v týždennom prehľade denníka."
+    },
+    "qualityEmbeddings": {
+      "title": "Kvalitnejšia sémantika",
+      "description": "Voliteľný MiniLM model cez pip zlepší podobné dokumenty a vyhľadávanie — prepnite v Nastavenia → Lokálna AI."
+    },
     "welcome": {
       "title": "Prehľadnejší úvod",
       "description": "Nová úvodná obrazovka s jasnými krokmi a rýchlym prístupom k nedávnym dokumentom."

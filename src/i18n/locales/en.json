@@ -212,6 +212,18 @@
     "title": "What's new",
     "subtitle": "A quick overview of changes in this release.",
     "gotIt": "Got it",
+    "similarDocs": {
+      "title": "Similar documents",
+      "description": "The AI insights panel in the editor shows semantically similar notes from your existing index."
+    },
+    "taskExtraction": {
+      "title": "Task extraction",
+      "description": "Checkboxes and phrases like “todo:” appear in the document panel and in the journal’s weekly overview."
+    },
+    "qualityEmbeddings": {
+      "title": "Better semantics",
+      "description": "Optional MiniLM model via pip improves similar-doc ranking and search — switch in Settings → Local AI."
+    },
     "welcome": {
       "title": "Clearer welcome screen",
       "description": "A redesigned home with clear steps and quick access to recent documents."

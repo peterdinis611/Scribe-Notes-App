@@ -27,7 +27,7 @@ describe('session persistence', () => {
 
   it('persists whats new version', () => {
     expect(readWhatsNewVersion()).toBeNull()
-    persistWhatsNewVersion('0.7.0')
-    expect(readWhatsNewVersion()).toBe('0.7.0')
+    persistWhatsNewVersion('0.8.0')
+    expect(readWhatsNewVersion()).toBe('0.8.0')
   })
 })
