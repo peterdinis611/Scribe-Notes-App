@@ -1,0 +1,20 @@
+[package]
+name = "scribe-mcp"
+version = "0.8.0"
+edition = "2021"
+rust-version = "1.77.2"
+
+[[bin]]
+name = "scribe-mcp"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+rmcp = { version = "3.2", features = ["server", "transport-io", "macros"] }
+schemars = { version = "0.8", features = ["derive"] }
+scribe-core = { path = "../scribe-core" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

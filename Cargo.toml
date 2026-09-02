@@ -1,0 +1,3 @@
+[workspace]
+members = ["src-tauri", "crates/scribe-core", "crates/scribe-mcp"]
+resolver = "2"
