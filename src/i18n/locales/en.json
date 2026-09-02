@@ -365,7 +365,7 @@
     "nlp": {
       "title": "Local AI (Python)",
       "description": "Optional add-on — Rust core stays, Python adds intelligence.",
-      "intro": "Semantic search, weekly journal overview, tag suggestions, and library analysis. All local via Python sidecar (no cloud). Requires Python 3.10+.",
+      "intro": "Optional add-on that runs only on this Mac. Scribe starts a local Python process (sidecar) — no cloud, no text sent to the internet. When enabled you get semantic search in ⌘K, tag suggestions, weekly journal overview, and library analysis. Requires Python 3.10+.",
       "enableTitle": "Enable local AI",
       "enableDescription": "When enabled, documents are indexed for semantic search in ⌘K.",
       "enable": "Enable",
@@ -406,6 +406,15 @@
       "indexProgressCount": "{{current}} / {{total}}",
       "statusStoredModel": "Indexed model",
       "statusStaleCount": "Stale records",
+      "statusEmbedBackend": "Embedding backend",
+      "embedBackendTitle": "Semantic quality",
+      "embedBackendDescription": "Hash is fast with no extra deps. The quality model improves similar-doc ranking and search.",
+      "embedBackendInstallHint": "For the quality model install: pip install scribe-nlp[quality] or pip install sentence-transformers",
+      "embedBackendHash": "Hash (fast)",
+      "embedBackendQuality": "Quality (MiniLM)",
+      "embedBackendError": "Could not switch embedding backend",
+      "hashEnabledToast": "Using fast hash embeddings",
+      "qualityEnabledToast": "Using quality embedding model — reindex your library",
       "yes": "Yes",
       "no": "No"
     },
@@ -520,6 +529,22 @@
           ],
           "points": []
         },
+        "localAi": {
+          "title": "Local AI",
+          "summary": "Optional intelligence without the cloud",
+          "paragraphs": [
+            "Local AI is not a chatbot or an online service. When you enable it in Settings → Local AI, Scribe starts a small Python process (sidecar) on this Mac. All processing — indexing, search, summarization — happens in your computer's memory. Your text is never sent anywhere.",
+            "The Rust core remains primary: database, editor, saving, and full-text search work without AI. The Python add-on adds semantics (meaning similarity), tag suggestions, weekly journal overview, and library analysis.",
+            "After enabling, documents are indexed into vectors (model scribe-hash-v2). If you update Scribe and the model changes, a reindex banner appears — mixing old and new vectors would give inconsistent results."
+          ],
+          "points": [
+            "⌘K All scope — combines full-text (FTS) and semantic hits via hybrid ranking",
+            "⌘K Semantic scope — meaning-based results only, not exact word matches",
+            "Library analysis — markdown report with themes, tags, and recent documents",
+            "Tag suggestions — in a document's context menu in the library (right-click)",
+            "Requires Python 3.10+ on your system; no pip packages needed"
+          ]
+        },
         "journal": {
           "title": "Journal and quick note",
           "summary": "Dated entries and scratch notes",
@@ -551,7 +576,8 @@
             "Diagnostics — database health, paths, and pending disk writes"
           ]
         }
-      }
+      },
+      "localAiTip": "in All scope combines full-text and semantic hits when Local AI is enabled."
     }
   },
   "storageAccess": {
@@ -818,6 +844,7 @@
     "outline": "Document outline",
     "comments": "Comments",
     "backlinks": "Backlinks",
+    "insights": "AI insights",
     "stats": "Statistics",
     "revisions": "Version history",
     "findReplace": "Find and replace",
@@ -891,6 +918,22 @@
       "neighborhoodHint": "Nearby linked notes — open the full map for the whole library.",
       "openGraph": "Open connection map",
       "edgeSummary": "{{count}} links in neighborhood"
+    },
+    "insights": {
+      "title": "AI insights",
+      "subtitle": "Similar notes and open tasks",
+      "hide": "Hide AI insights",
+      "loadError": "Could not load AI insights",
+      "similar": "Similar documents",
+      "similarHint": "Based on your existing semantic index.",
+      "similarDisabled": "Enable Local AI in Settings for similar documents.",
+      "similarEmpty": "No similar documents — this note may not be indexed yet.",
+      "tasks": "Open tasks",
+      "tasksHint": "Checkboxes in the text and phrases like “todo:” or “treba:”.",
+      "tasksEmpty": "No open tasks in this document.",
+      "sourceCheckbox": "checkbox",
+      "sourcePhrase": "phrase",
+      "dueHint": "due {{date}}"
     },
     "stats": {
       "subtitle": "Document overview",
@@ -1612,6 +1655,9 @@
     "streak": "{{count}} day streak",
     "weeklySummary": "Weekly overview",
     "weeklySummaryTitle": "Week in review",
+    "openTasksTitle": "Open tasks this week",
+    "openTasksEmpty": "No open tasks in your journal this week.",
+    "tasksLoading": "Loading tasks…",
     "summaryLoading": "Generating overview…",
     "summaryError": "Failed to generate overview",
     "heatWorkflowHint": "Darker days = more consecutive entries. Click a day or use ⌘K for yesterday / tomorrow.",

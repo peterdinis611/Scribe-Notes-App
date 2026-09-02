@@ -5,6 +5,7 @@ use crate::db::fts::extract_search_text;
 use crate::db::search::SearchHit;
 
 pub const META_NLP_ENABLED: &str = "nlp_enabled";
+pub const META_NLP_EMBED_BACKEND: &str = "nlp_embed_backend";
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -35,6 +36,70 @@ pub fn set_nlp_enabled(conn: &Connection, enabled: bool) -> Result<(), String> {
     )
     .map_err(|e| e.to_string())?;
     Ok(())
+}
+
+pub fn get_embed_backend(conn: &Connection) -> Result<String, String> {
+    let value: Option<String> = conn
+        .query_row(
+            "SELECT value FROM meta WHERE key = ?1",
+            params![META_NLP_EMBED_BACKEND],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|e| e.to_string())?;
+    Ok(value.unwrap_or_else(|| "hash".to_string()))
+}
+
+pub fn set_embed_backend(conn: &Connection, backend: &str) -> Result<(), String> {
+    let normalized = if backend == "quality" { "quality" } else { "hash" };
+    conn.execute(
+        "INSERT OR REPLACE INTO meta (key, value) VALUES (?1, ?2)",
+        params![META_NLP_EMBED_BACKEND, normalized],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+pub fn get_document_embedding(
+    conn: &Connection,
+    document_id: &str,
+) -> Result<Option<StoredEmbedding>, String> {
+    conn.query_row(
+        "SELECT document_id, embedding, model, dims, updated_at
+         FROM document_embeddings WHERE document_id = ?1",
+        params![document_id],
+        |row| {
+            let blob: Vec<u8> = row.get(1)?;
+            Ok(StoredEmbedding {
+                document_id: row.get(0)?,
+                vector: blob_to_vector(&blob).map_err(|error| {
+                    rusqlite::Error::ToSqlConversionFailure(Box::from(error))
+                })?,
+                model: row.get(2)?,
+                dims: row.get(3)?,
+                updated_at: row.get(4)?,
+            })
+        },
+    )
+    .optional()
+    .map_err(|e| e.to_string())
+}
+
+pub fn similar_documents(
+    conn: &Connection,
+    document_id: &str,
+    limit: i64,
+    model: Option<&str>,
+) -> Result<Vec<SearchHit>, String> {
+    let Some(embedding) = get_document_embedding(conn, document_id)? else {
+        return Ok(Vec::new());
+    };
+
+    let max = limit.clamp(1, 20);
+    let mut hits = semantic_search(conn, &embedding.vector, max + 1, model)?;
+    hits.retain(|hit| hit.document_id != document_id);
+    hits.truncate(max as usize);
+    Ok(hits)
 }
 
 pub fn count_embeddings(conn: &Connection) -> Result<i64, String> {
@@ -268,5 +333,27 @@ mod tests {
             Some("scribe-hash-v1")
         );
         assert_eq!(count_stale_embeddings(&conn, "scribe-hash-v2").unwrap(), 2);
+    }
+
+    #[test]
+    fn similar_documents_excludes_self() {
+        let conn = in_memory_conn();
+        run_migrations(&conn).unwrap();
+        conn.execute(
+            "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at)
+             VALUES ('d1', 'Alpha', '{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"alpha topic\"}]}]}', NULL, NULL, 1, 1),
+                    ('d2', 'Beta', '{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"beta topic\"}]}]}', NULL, NULL, 1, 1)",
+            [],
+        )
+        .unwrap();
+
+        let vector_a = vec![1.0f32, 0.0, 0.0];
+        let vector_b = vec![0.9f32, 0.1, 0.0];
+        upsert_embedding(&conn, "d1", &vector_a, "test", 1).unwrap();
+        upsert_embedding(&conn, "d2", &vector_b, "test", 1).unwrap();
+
+        let hits = similar_documents(&conn, "d1", 8, Some("test")).unwrap();
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].document_id, "d2");
     }
 }

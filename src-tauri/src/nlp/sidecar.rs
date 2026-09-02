@@ -16,6 +16,10 @@ pub struct NlpHealth {
     pub version: String,
     pub model: String,
     pub features: Vec<String>,
+    #[serde(default)]
+    pub embed_backend: Option<String>,
+    #[serde(default)]
+    pub quality_available: Option<bool>,
 }
 
 #[derive(Debug)]
@@ -82,13 +86,18 @@ impl NlpSidecar {
         })
     }
 
-    fn reset_process(&self) {
+    pub fn reset_process(&self) {
         if let Ok(mut guard) = self.process.lock() {
             if let Some(mut process) = guard.take() {
                 let _ = process.child.kill();
                 let _ = process.child.wait();
             }
         }
+    }
+
+    pub fn configure_embed_backend(&self, backend: &str) -> Result<(), String> {
+        self.call_method("set_embed_backend", json!({ "backend": backend }))?;
+        Ok(())
     }
 
     fn call_method(&self, method: &str, params: Value) -> Result<Value, String> {
@@ -193,6 +202,10 @@ impl NlpSidecar {
 
     pub fn extract_entities(&self, text: &str) -> Result<Value, String> {
         self.call_method("extract_entities", json!({ "text": text }))
+    }
+
+    pub fn extract_tasks(&self, text: &str) -> Result<Value, String> {
+        self.call_method("extract_tasks", json!({ "text": text }))
     }
 
     pub fn library_report(&self, documents: Value) -> Result<Value, String> {

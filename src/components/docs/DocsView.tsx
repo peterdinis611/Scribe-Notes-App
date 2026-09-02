@@ -11,6 +11,7 @@ import {
   Link2,
   PenLine,
   Search,
+  Sparkles,
   X,
   type LucideIcon,
 } from 'lucide-react'
@@ -26,6 +27,7 @@ export const DOCS_TOPIC_IDS = [
   'wikiLinks',
   'editor',
   'search',
+  'localAi',
   'journal',
   'backup',
   'shortcuts',
@@ -41,6 +43,7 @@ const TOPIC_ICONS: Record<DocsTopicId, LucideIcon> = {
   wikiLinks: Link2,
   editor: PenLine,
   search: Search,
+  localAi: Sparkles,
   journal: CalendarDays,
   backup: Archive,
   shortcuts: Keyboard,
@@ -49,14 +52,15 @@ const TOPIC_ICONS: Record<DocsTopicId, LucideIcon> = {
 const DOC_GROUPS: { id: string; topics: DocsTopicId[] }[] = [
   { id: 'basics', topics: ['overview', 'documents'] },
   { id: 'organize', topics: ['library', 'linkGraph', 'wikiLinks'] },
-  { id: 'write', topics: ['editor', 'search', 'journal'] },
+  { id: 'write', topics: ['editor', 'search', 'localAi', 'journal'] },
   { id: 'power', topics: ['backup', 'shortcuts'] },
 ]
 
-const QUICK_LINKS: DocsTopicId[] = ['library', 'wikiLinks', 'search', 'backup']
+const QUICK_LINKS: DocsTopicId[] = ['library', 'wikiLinks', 'search', 'localAi']
 
 const TOPIC_TIPS: Partial<Record<DocsTopicId, { keys: string; tipKey: string }>> = {
   search: { keys: '⌘K', tipKey: 'searchTip' },
+  localAi: { keys: '⌘K', tipKey: 'localAiTip' },
   journal: { keys: '⌘⇧D', tipKey: 'journalTip' },
   shortcuts: { keys: '⌘,', tipKey: 'shortcutsTip' },
 }

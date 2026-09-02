@@ -11,6 +11,8 @@ export interface NlpStatus {
   storedModel: string | null
   indexStale: boolean
   staleIndexCount: number
+  embedBackend: string
+  qualityAvailable: boolean
   scriptPath: string
   pythonBin: string
   error: string | null
@@ -48,13 +50,34 @@ export interface NlpLibraryReport {
   stats: Record<string, unknown>
 }
 
+export interface DocumentTask {
+  text: string
+  checked: boolean
+  source: string
+  dueHint: string | null
+  documentId: string | null
+  documentTitle: string | null
+}
+
 export const nlpStatus = () => invoke<NlpStatus>('nlp_status')
 
 export const nlpSetEnabled = (enabled: boolean) =>
   invoke<NlpStatus>('nlp_set_enabled', { input: { enabled } })
 
+export const nlpSetEmbedBackend = (backend: 'hash' | 'quality') =>
+  invoke<NlpStatus>('nlp_set_embed_backend', { input: { backend } })
+
 export const nlpSemanticSearch = (query: string, limit = 12) =>
   invoke<SearchHit[]>('nlp_semantic_search', { query, limit })
+
+export const nlpSimilarDocuments = (documentId: string, limit = 8) =>
+  invoke<SearchHit[]>('nlp_similar_documents', { documentId, limit })
+
+export const nlpDocumentTasks = (documentId: string) =>
+  invoke<DocumentTask[]>('nlp_document_tasks', { documentId })
+
+export const nlpJournalTasks = (documentIds: string[]) =>
+  invoke<DocumentTask[]>('nlp_journal_tasks', { input: { documentIds } })
 
 export const nlpIndexDocument = (documentId: string) =>
   invoke<NlpIndexResult>('nlp_index_document', { documentId })

@@ -37,6 +37,36 @@ class ServerTests(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertEqual(result["model"], "scribe-hash-v2")
         self.assertIn("limits", result)
+        self.assertIn("embedBackend", result)
+        self.assertIn("qualityAvailable", result)
+
+    def test_extract_tasks_method(self) -> None:
+        response = handle_request(
+            {
+                "jsonrpc": "2.0",
+                "id": 4,
+                "method": "extract_tasks",
+                "params": {"text": "- [ ] Finish notes\nTreba: review PR"},
+            }
+        )
+        result = response["result"]
+        self.assertIn("tasks", result)
+        self.assertGreaterEqual(len(result["tasks"]), 1)
+
+    def test_set_embed_backend(self) -> None:
+        response = handle_request(
+            {
+                "jsonrpc": "2.0",
+                "id": 5,
+                "method": "set_embed_backend",
+                "params": {"backend": "hash"},
+            }
+        )
+        self.assertNotIn("error", response)
+        health = handle_request(
+            {"jsonrpc": "2.0", "id": 6, "method": "health", "params": {}}
+        )["result"]
+        self.assertEqual(health["embedBackend"], "hash")
 
     def test_rejects_oversized_batch(self) -> None:
         response = handle_request(

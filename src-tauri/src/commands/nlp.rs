@@ -6,7 +6,8 @@ use tauri::{AppHandle, Emitter, State};
 
 use crate::db::{
     count_embeddings, count_stale_embeddings, dominant_embedding_model, extract_search_text,
-    is_nlp_enabled, save_artifact, semantic_search, set_nlp_enabled, upsert_embedding,
+    get_embed_backend, is_nlp_enabled, save_artifact, semantic_search, set_embed_backend,
+    set_nlp_enabled, similar_documents, upsert_embedding,
 };
 use crate::db::search::SearchHit;
 use crate::db::DbState;
@@ -28,6 +29,8 @@ pub struct NlpStatus {
     pub stored_model: Option<String>,
     pub index_stale: bool,
     pub stale_index_count: i64,
+    pub embed_backend: String,
+    pub quality_available: bool,
     pub script_path: String,
     pub python_bin: String,
     pub error: Option<String>,
@@ -37,6 +40,23 @@ pub struct NlpStatus {
 #[serde(rename_all = "camelCase")]
 pub struct NlpSetEnabledInput {
     pub enabled: bool,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpSetEmbedBackendInput {
+    pub backend: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentTask {
+    pub text: String,
+    pub checked: bool,
+    pub source: String,
+    pub due_hint: Option<String>,
+    pub document_id: Option<String>,
+    pub document_title: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -54,8 +74,6 @@ fn parse_date_key(value: &str) -> Result<chrono::NaiveDate, String> {
 }
 
 fn date_key_bounds(from_date: &str, to_date: &str) -> Result<(i64, i64), String> {
-    use chrono::TimeZone;
-
     let from = parse_date_key(from_date)?;
     let to = parse_date_key(to_date)?;
     let start = from
@@ -187,6 +205,10 @@ fn sidecar_status(
     stored_model: Option<String>,
     index_stale: bool,
     stale_index_count: i64,
+    embed_backend: String,
+    quality_available: bool,
+    health: Option<crate::nlp::NlpHealth>,
+    health_error: Option<String>,
 ) -> NlpStatus {
     let script_path = sidecar.script_path().to_path_buf();
     let python_bin = std::env::var("SCRIBE_NLP_PYTHON").unwrap_or_else(|_| "python3".to_string());
@@ -203,14 +225,16 @@ fn sidecar_status(
             stored_model,
             index_stale,
             stale_index_count,
+            embed_backend,
+            quality_available,
             script_path: crate::nlp::script_path_label(&script_path),
             python_bin,
             error: None,
         };
     }
 
-    match sidecar.health() {
-        Ok(health) => NlpStatus {
+    match health {
+        Some(health) => NlpStatus {
             enabled,
             sidecar_available,
             sidecar_ok: health.ok,
@@ -220,11 +244,13 @@ fn sidecar_status(
             stored_model,
             index_stale,
             stale_index_count,
+            embed_backend: health.embed_backend.unwrap_or(embed_backend),
+            quality_available: health.quality_available.unwrap_or(quality_available),
             script_path: crate::nlp::script_path_label(&script_path),
             python_bin,
             error: None,
         },
-        Err(error) => NlpStatus {
+        None => NlpStatus {
             enabled,
             sidecar_available,
             sidecar_ok: false,
@@ -234,11 +260,135 @@ fn sidecar_status(
             stored_model,
             index_stale,
             stale_index_count,
+            embed_backend,
+            quality_available,
             script_path: crate::nlp::script_path_label(&script_path),
             python_bin,
-            error: Some(error),
+            error: health_error,
         },
     }
+}
+
+fn sync_sidecar_backend(sidecar: &NlpSidecar, conn: &rusqlite::Connection) -> Result<(), String> {
+    let backend = get_embed_backend(conn)?;
+    let _ = sidecar.configure_embed_backend(&backend);
+    Ok(())
+}
+
+fn extract_checkbox_tasks(content_json: &str) -> Vec<DocumentTask> {
+    let Ok(value) = serde_json::from_str::<serde_json::Value>(content_json) else {
+        return Vec::new();
+    };
+    let mut tasks = Vec::new();
+    collect_checkbox_tasks(&value, &mut tasks);
+    tasks
+}
+
+fn collect_checkbox_tasks(value: &serde_json::Value, tasks: &mut Vec<DocumentTask>) {
+    if let Some(obj) = value.as_object() {
+        if obj.get("type").and_then(|item| item.as_str()) == Some("taskItem") {
+            let checked = obj
+                .get("attrs")
+                .and_then(|attrs| attrs.get("checked"))
+                .and_then(|checked| checked.as_bool())
+                .unwrap_or(false);
+            let text = node_plain_text(value);
+            if !text.trim().is_empty() {
+                tasks.push(DocumentTask {
+                    text,
+                    checked,
+                    source: "checkbox".to_string(),
+                    due_hint: None,
+                    document_id: None,
+                    document_title: None,
+                });
+            }
+        }
+        if let Some(content) = obj.get("content").and_then(|item| item.as_array()) {
+            for child in content {
+                collect_checkbox_tasks(child, tasks);
+            }
+        }
+    }
+}
+
+fn node_plain_text(value: &serde_json::Value) -> String {
+    if let Some(text) = value.get("text").and_then(|item| item.as_str()) {
+        return text.to_string();
+    }
+    let mut parts = Vec::new();
+    if let Some(content) = value.get("content").and_then(|item| item.as_array()) {
+        for child in content {
+            let part = node_plain_text(child);
+            if !part.is_empty() {
+                parts.push(part);
+            }
+        }
+    }
+    parts.join("")
+}
+
+fn collect_document_tasks(
+    sidecar: &NlpSidecar,
+    conn: &rusqlite::Connection,
+    document_id: &str,
+    title: &str,
+    content_json: &str,
+    nlp_enabled: bool,
+) -> Result<Vec<DocumentTask>, String> {
+    let mut tasks = extract_checkbox_tasks(content_json);
+    for task in &mut tasks {
+        task.document_id = Some(document_id.to_string());
+        task.document_title = Some(title.to_string());
+    }
+
+    if nlp_enabled {
+        sync_sidecar_backend(sidecar, conn)?;
+        let text = format!("{title}\n{}", extract_search_text(content_json));
+        if let Ok(result) = sidecar.extract_tasks(&text) {
+            if let Some(items) = result.get("tasks").and_then(|value| value.as_array()) {
+                for item in items {
+                    let Some(body) = item.get("text").and_then(|value| value.as_str()) else {
+                        continue;
+                    };
+                    tasks.push(DocumentTask {
+                        text: body.to_string(),
+                        checked: item
+                            .get("checked")
+                            .and_then(|value| value.as_bool())
+                            .unwrap_or(false),
+                        source: item
+                            .get("source")
+                            .and_then(|value| value.as_str())
+                            .unwrap_or("phrase")
+                            .to_string(),
+                        due_hint: item
+                            .get("dueHint")
+                            .and_then(|value| value.as_str())
+                            .map(str::to_string),
+                        document_id: Some(document_id.to_string()),
+                        document_title: Some(title.to_string()),
+                    });
+                }
+            }
+        }
+    }
+
+    Ok(merge_document_tasks(tasks))
+}
+
+fn merge_document_tasks(mut tasks: Vec<DocumentTask>) -> Vec<DocumentTask> {
+    let mut seen = std::collections::HashSet::new();
+    tasks.retain(|task| {
+        let key = task.text.to_lowercase();
+        if seen.contains(&key) {
+            false
+        } else {
+            seen.insert(key);
+            true
+        }
+    });
+    tasks
 }
 
 fn build_nlp_status(
@@ -248,10 +398,20 @@ fn build_nlp_status(
 ) -> Result<NlpStatus, String> {
     let indexed_count = count_embeddings(conn)?;
     let stored_model = dominant_embedding_model(conn)?;
-    let current_model = if enabled && sidecar.script_exists() {
-        sidecar.health().ok().map(|health| health.model)
+    let embed_backend = get_embed_backend(conn)?;
+    let (health, health_error, quality_available, current_model) = if enabled && sidecar.script_exists() {
+        let _ = sync_sidecar_backend(sidecar, conn);
+        match sidecar.health() {
+            Ok(health) => (
+                Some(health.clone()),
+                None,
+                health.quality_available.unwrap_or(false),
+                Some(health.model),
+            ),
+            Err(error) => (None, Some(error), false, None),
+        }
     } else {
-        None
+        (None, None, false, None)
     };
     let stale_index_count = match current_model.as_deref() {
         Some(model) if indexed_count > 0 => count_stale_embeddings(conn, model)?,
@@ -268,6 +428,10 @@ fn build_nlp_status(
         stored_model,
         index_stale,
         stale_index_count,
+        embed_backend,
+        quality_available,
+        health,
+        health_error,
     ))
 }
 
@@ -607,7 +771,7 @@ pub fn nlp_library_report(
                     row.get::<_, String>(0)?,
                     row.get::<_, String>(1)?,
                     row.get::<_, String>(2)?,
-                    row.get::<_, String>(3)?,
+                    row.get::<_, Option<String>>(3)?,
                     row.get::<_, i64>(4)?,
                 ))
             })
@@ -616,7 +780,10 @@ pub fn nlp_library_report(
         let mut documents = Vec::new();
         for row in rows {
             let (id, title, content_json, tags_json, updated_at) = row.map_err(|e| e.to_string())?;
-            let tags: Vec<String> = serde_json::from_str(&tags_json).unwrap_or_default();
+            let tags: Vec<String> = tags_json
+                .as_deref()
+                .and_then(|value| serde_json::from_str(value).ok())
+                .unwrap_or_default();
             documents.push(json!({
                 "id": id,
                 "title": title,
@@ -648,4 +815,105 @@ pub fn nlp_library_report(
     }
 
     Ok(NlpLibraryReport { markdown, stats })
+}
+
+#[tauri::command]
+pub fn nlp_similar_documents(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    document_id: String,
+    limit: Option<i64>,
+) -> Result<Vec<SearchHit>, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    if !is_nlp_enabled(&conn)? {
+        return Ok(Vec::new());
+    }
+    sync_sidecar_backend(&sidecar, &conn)?;
+    drop(conn);
+
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let model = crate::db::get_document_embedding(&conn, &document_id)?
+        .map(|item| item.model);
+    similar_documents(&conn, &document_id, limit.unwrap_or(8), model.as_deref())
+}
+
+#[tauri::command]
+pub fn nlp_document_tasks(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    document_id: String,
+) -> Result<Vec<DocumentTask>, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let nlp_enabled = is_nlp_enabled(&conn)?;
+    let (title, content_json): (String, String) = conn
+        .query_row(
+            "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL",
+            params![document_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .map_err(|e| e.to_string())?;
+    collect_document_tasks(
+        &sidecar,
+        &conn,
+        &document_id,
+        &title,
+        &content_json,
+        nlp_enabled,
+    )
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpJournalTasksInput {
+    pub document_ids: Vec<String>,
+}
+
+#[tauri::command]
+pub fn nlp_journal_tasks(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpJournalTasksInput,
+) -> Result<Vec<DocumentTask>, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let nlp_enabled = is_nlp_enabled(&conn)?;
+    let mut combined = Vec::new();
+
+    for document_id in input.document_ids {
+        let (title, content_json): (String, String) = match conn.query_row(
+            "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL",
+            params![document_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        ) {
+            Ok(row) => row,
+            Err(_) => continue,
+        };
+        combined.extend(collect_document_tasks(
+            &sidecar,
+            &conn,
+            &document_id,
+            &title,
+            &content_json,
+            nlp_enabled,
+        )?);
+    }
+
+    Ok(merge_document_tasks(combined))
+}
+
+#[tauri::command]
+pub fn nlp_set_embed_backend(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpSetEmbedBackendInput,
+) -> Result<NlpStatus, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let backend = if input.backend == "quality" {
+        "quality"
+    } else {
+        "hash"
+    };
+    set_embed_backend(&conn, backend)?;
+    sidecar.reset_process();
+    let _ = sidecar.configure_embed_backend(backend);
+    build_nlp_status(&sidecar, &conn, is_nlp_enabled(&conn)?)
 }

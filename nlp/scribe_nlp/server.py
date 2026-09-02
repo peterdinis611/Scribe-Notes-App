@@ -13,9 +13,11 @@ from .config import (
     MAX_TEXT_CHARS,
 )
 from .embed import MODEL_ID, embed_batch, embed_text
+from .embed_backend import active_backend, configure_backend, current_model_id, quality_available
 from .ner import extract_entities
 from .report import library_report
 from .summarize import summarize_text
+from .tasks import extract_tasks
 from .text_utils import truncate_text
 
 
@@ -55,18 +57,28 @@ def handle_request(request: dict[str, Any]) -> dict[str, Any]:
             result = {
                 "ok": True,
                 "version": __version__,
-                "model": MODEL_ID,
-                "features": ["embed", "summarize", "ner", "report"],
+                "model": current_model_id(),
+                "embedBackend": active_backend(),
+                "qualityAvailable": quality_available(),
+                "features": ["embed", "summarize", "ner", "report", "tasks"],
                 "limits": {
                     "maxTextChars": MAX_TEXT_CHARS,
                     "maxEmbedBatch": MAX_EMBED_BATCH,
                     "maxReportDocuments": MAX_REPORT_DOCUMENTS,
                 },
             }
+        elif method == "set_embed_backend":
+            backend = str(params.get("backend") or "hash")
+            configured = configure_backend(backend)
+            result = {
+                "embedBackend": configured,
+                "model": current_model_id(),
+                "qualityAvailable": quality_available(),
+            }
         elif method == "embed":
             text = _validate_text(str(params.get("text") or ""))
             vector = _embed_cached(text)
-            result = {"vector": vector, "model": MODEL_ID, "dims": len(vector)}
+            result = {"vector": vector, "model": current_model_id(), "dims": len(vector)}
         elif method == "embed_batch":
             raw_texts = params.get("texts") or []
             if not isinstance(raw_texts, list):
@@ -79,7 +91,7 @@ def handle_request(request: dict[str, Any]) -> dict[str, Any]:
             texts = [_validate_text(str(item), field="texts[]") for item in raw_texts]
             vectors = [_embed_cached(text) for text in texts]
             dims = len(vectors[0]) if vectors else 0
-            result = {"vectors": vectors, "model": MODEL_ID, "dims": dims}
+            result = {"vectors": vectors, "model": current_model_id(), "dims": dims}
         elif method == "summarize":
             text = _validate_text(str(params.get("text") or ""))
             max_sentences = int(params.get("maxSentences") or 4)
@@ -88,6 +100,9 @@ def handle_request(request: dict[str, Any]) -> dict[str, Any]:
         elif method == "extract_entities":
             text = _validate_text(str(params.get("text") or ""))
             result = extract_entities(text)
+        elif method == "extract_tasks":
+            text = _validate_text(str(params.get("text") or ""))
+            result = extract_tasks(text)
         elif method == "library_report":
             documents = list(params.get("documents") or [])
             if len(documents) > MAX_REPORT_DOCUMENTS:

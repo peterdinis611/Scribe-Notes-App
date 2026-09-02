@@ -1,5 +1,5 @@
 import { Sparkles, RefreshCw, Database, FileBarChart } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
@@ -10,6 +10,7 @@ import {
 } from '@/components/settings/SettingsPrimitives'
 import {
   nlpLibraryReport,
+  nlpSetEmbedBackend,
   nlpSetEnabled,
   nlpStatus,
   type NlpIndexProgress,
@@ -38,6 +39,7 @@ export function NlpSection() {
   const [indexProgress, setIndexProgress] = useState<NlpIndexProgress | null>(null)
   const [reporting, setReporting] = useState(false)
   const [report, setReport] = useState<NlpLibraryReport | null>(null)
+  const reportRef = useRef<HTMLDivElement>(null)
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -89,6 +91,11 @@ export function NlpSection() {
     await runFullReindex()
   }
 
+  useEffect(() => {
+    if (!report) return
+    reportRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [report])
+
   async function handleReport() {
     setReporting(true)
     try {
@@ -99,6 +106,21 @@ export function NlpSection() {
       toast.error(t('settings.nlp.reportError'), String(error))
     } finally {
       setReporting(false)
+    }
+  }
+
+  async function handleEmbedBackend(next: 'hash' | 'quality') {
+    if (!status || status.embedBackend === next) return
+    try {
+      const updated = await nlpSetEmbedBackend(next)
+      setStatus(updated)
+      toast.success(
+        next === 'quality'
+          ? t('settings.nlp.qualityEnabledToast')
+          : t('settings.nlp.hashEnabledToast'),
+      )
+    } catch (error) {
+      toast.error(t('settings.nlp.embedBackendError'), String(error))
     }
   }
 
@@ -212,6 +234,36 @@ export function NlpSection() {
         </SettingsRow>
 
         <SettingsRow
+          title={t('settings.nlp.embedBackendTitle')}
+          description={
+            status?.qualityAvailable
+              ? t('settings.nlp.embedBackendDescription')
+              : t('settings.nlp.embedBackendInstallHint')
+          }
+        >
+          <div className="flex flex-wrap justify-end gap-1.5">
+            <Button
+              type="button"
+              variant={status?.embedBackend === 'hash' ? 'default' : 'outline'}
+              size="sm"
+              disabled={!status?.enabled || loading || indexing}
+              onClick={() => void handleEmbedBackend('hash')}
+            >
+              {t('settings.nlp.embedBackendHash')}
+            </Button>
+            <Button
+              type="button"
+              variant={status?.embedBackend === 'quality' ? 'default' : 'outline'}
+              size="sm"
+              disabled={!status?.enabled || !status?.qualityAvailable || loading || indexing}
+              onClick={() => void handleEmbedBackend('quality')}
+            >
+              {t('settings.nlp.embedBackendQuality')}
+            </Button>
+          </div>
+        </SettingsRow>
+
+        <SettingsRow
           title={t('settings.nlp.reportTitle')}
           description={t('settings.nlp.reportDescription')}
         >
@@ -241,6 +293,14 @@ export function NlpSection() {
           <StatRow label={t('settings.nlp.statusSidecar')} value={status.sidecarOk ? t('settings.nlp.yes') : t('settings.nlp.no')} />
           <StatRow label={t('settings.nlp.statusScript')} value={status.scriptPath} />
           <StatRow label={t('settings.nlp.statusModel')} value={status.model ?? '—'} />
+          <StatRow
+            label={t('settings.nlp.statusEmbedBackend')}
+            value={
+              status.embedBackend === 'quality'
+                ? t('settings.nlp.embedBackendQuality')
+                : t('settings.nlp.embedBackendHash')
+            }
+          />
           <StatRow label={t('settings.nlp.statusStoredModel')} value={status.storedModel ?? '—'} />
           <StatRow label={t('settings.nlp.statusIndexed')} value={status.indexedCount} />
           {status.indexStale && (
@@ -255,9 +315,12 @@ export function NlpSection() {
       )}
 
       {report && (
-        <div className="mt-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+        <div
+          ref={reportRef}
+          className="mt-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4"
+        >
           <h3 className="mb-2 text-[13px] font-semibold">{t('settings.nlp.reportHeading')}</h3>
-          <pre className="m-0 whitespace-pre-wrap text-[12px] leading-relaxed text-[var(--color-foreground)]">
+          <pre className="m-0 max-h-[420px] overflow-y-auto whitespace-pre-wrap text-[12px] leading-relaxed text-[var(--color-foreground)]">
             {report.markdown}
           </pre>
         </div>

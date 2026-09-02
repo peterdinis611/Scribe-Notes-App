@@ -4,11 +4,18 @@ import hashlib
 import math
 import re
 
+from .embed_backend import (
+    active_backend,
+    current_model_id,
+    embed_quality,
+    quality_available,
+)
 from .text_utils import tokenize
 
-MODEL_ID = "scribe-hash-v2"
 DEFAULT_DIMS = 384
 CHAR_NGRAM = 3
+
+MODEL_ID = current_model_id()
 
 
 def _hash_features(text: str) -> list[str]:
@@ -40,7 +47,7 @@ def _add_feature(vec: list[float], feature: str, dims: int) -> None:
         vec[idx] += sign
 
 
-def embed_text(text: str, dims: int = DEFAULT_DIMS) -> list[float]:
+def _hash_embed(text: str, dims: int = DEFAULT_DIMS) -> list[float]:
     vec = [0.0] * dims
     features = _hash_features(text)
     if not features:
@@ -55,5 +62,17 @@ def embed_text(text: str, dims: int = DEFAULT_DIMS) -> list[float]:
     return [value / norm for value in vec]
 
 
+def embed_text(text: str, dims: int = DEFAULT_DIMS) -> list[float]:
+    if active_backend() == "quality" and quality_available():
+        return embed_quality(text)
+    return _hash_embed(text, dims=dims)
+
+
 def embed_batch(texts: list[str], dims: int = DEFAULT_DIMS) -> list[list[float]]:
-    return [embed_text(text, dims=dims) for text in texts]
+    if active_backend() == "quality" and quality_available():
+        from .embed_backend import _load_quality_model
+
+        model = _load_quality_model()
+        vectors = model.encode(texts, normalize_embeddings=True)
+        return [[float(value) for value in row.tolist()] for row in vectors]
+    return [_hash_embed(text, dims=dims) for text in texts]

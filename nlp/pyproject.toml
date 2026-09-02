@@ -5,6 +5,9 @@ description = "Optional local NLP sidecar for Scribe"
 requires-python = ">=3.10"
 dependencies = []
 
+[project.optional-dependencies]
+quality = ["sentence-transformers>=3.0.0"]
+
 [project.scripts]
 scribe-nlp = "scribe_nlp.__main__:main"
 

@@ -11,6 +11,7 @@ import {
   PanelLeft,
   PanelRightClose,
   Search,
+  Sparkles,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -26,6 +27,7 @@ import {
   setCommentsPanelOpen,
   setDocumentOutlineOpen,
   setFindReplaceMode,
+  setInsightsPanelOpen,
   setPanelRailExpanded,
   setRevisionHistoryOpen,
   setStatsPanelOpen,
@@ -68,6 +70,7 @@ export function EditorPanelRail() {
   const commentsOpen = useAppSelector((state) => state.documents.commentsPanelOpen)
   const statsOpen = useAppSelector((state) => state.documents.statsPanelOpen)
   const backlinksOpen = useAppSelector((state) => state.documents.backlinksPanelOpen)
+  const insightsOpen = useAppSelector((state) => state.documents.insightsPanelOpen)
   const findReplaceOpen = useAppSelector((state) => state.documents.findReplaceOpen)
   const panelRailExpanded = useAppSelector((state) => state.documents.panelRailExpanded)
   const focusMode = useAppSelector((state) => state.documents.focusMode)
@@ -76,15 +79,16 @@ export function EditorPanelRail() {
   const { t } = useTranslation()
 
   const anyPanelOpen =
-    outlineOpen || historyOpen || commentsOpen || statsOpen || backlinksOpen || findReplaceOpen
+    outlineOpen || historyOpen || commentsOpen || statsOpen || backlinksOpen || insightsOpen || findReplaceOpen
   const expanded = panelRailExpanded || anyPanelOpen
 
-  function closeOtherPanels(except?: 'outline' | 'history' | 'comments' | 'stats' | 'backlinks') {
+  function closeOtherPanels(except?: 'outline' | 'history' | 'comments' | 'stats' | 'backlinks' | 'insights') {
     if (except !== 'outline') dispatch(setDocumentOutlineOpen(false))
     if (except !== 'history') dispatch(setRevisionHistoryOpen(false))
     if (except !== 'comments') dispatch(setCommentsPanelOpen(false))
     if (except !== 'stats') dispatch(setStatsPanelOpen(false))
     if (except !== 'backlinks') dispatch(setBacklinksPanelOpen(false))
+    if (except !== 'insights') dispatch(setInsightsPanelOpen(false))
   }
 
   if (!expanded) {
@@ -157,6 +161,16 @@ export function EditorPanelRail() {
           }}
         >
           <Link2 className="h-4 w-4" />
+        </RailButton>
+        <RailButton
+          label={t('editorPanels.insights')}
+          active={insightsOpen}
+          onClick={() => {
+            closeOtherPanels('insights')
+            dispatch(setInsightsPanelOpen(!insightsOpen))
+          }}
+        >
+          <Sparkles className="h-4 w-4" />
         </RailButton>
         <RailButton
           label={t('editorPanels.stats')}

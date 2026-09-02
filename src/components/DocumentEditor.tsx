@@ -10,6 +10,7 @@ import { EditorScrollLocation } from '@/components/editor/EditorScrollLocation'
 import { RevisionHistoryPanel } from '@/components/editor/RevisionHistoryPanel'
 import { CommentsPanel } from '@/components/editor/CommentsPanel'
 import { BacklinksPanel } from '@/components/editor/BacklinksPanel'
+import { DocumentInsightsPanel } from '@/components/editor/DocumentInsightsPanel'
 import { WikiLinkHoverCard } from '@/components/editor/WikiLinkHoverCard'
 import { StatsPanel } from '@/components/editor/StatsPanel'
 import { FindReplaceBar } from '@/components/editor/FindReplaceBar'
@@ -55,6 +56,7 @@ import {
   setCommentsPanelOpen,
   setDocumentOutlineOpen,
   setFindReplaceOpen,
+  setInsightsPanelOpen,
   setRevisionHistoryOpen,
   setSaveStatus,
   setStatsPanelOpen,
@@ -75,6 +77,7 @@ export function DocumentEditor() {
   const commentsOpen = useAppSelector((state) => state.documents.commentsPanelOpen)
   const statsOpen = useAppSelector((state) => state.documents.statsPanelOpen)
   const backlinksOpen = useAppSelector((state) => state.documents.backlinksPanelOpen)
+  const insightsOpen = useAppSelector((state) => state.documents.insightsPanelOpen)
   const focusMode = useAppSelector((state) => state.documents.focusMode)
   const readingMode = useAppSelector((state) => state.documents.readingMode)
   const [markdownDraft, setMarkdownDraft] = useState('')
@@ -496,7 +499,7 @@ export function DocumentEditor() {
           <div
             className={cn(
               'editor-body',
-              (outlineOpen || historyOpen || commentsOpen || statsOpen || backlinksOpen) &&
+              (outlineOpen || historyOpen || commentsOpen || statsOpen || backlinksOpen || insightsOpen) &&
                 'editor-body--with-outline',
               tocLeftOpen && !isMarkdown && headingCount > 0 && 'editor-body--with-toc-left',
             )}
@@ -708,6 +711,9 @@ export function DocumentEditor() {
         )}
         {!isMarkdown && !readingMode && backlinksOpen && (
           <BacklinksPanel onClose={() => dispatch(setBacklinksPanelOpen(false))} />
+        )}
+        {!isMarkdown && !readingMode && insightsOpen && (
+          <DocumentInsightsPanel onClose={() => dispatch(setInsightsPanelOpen(false))} />
         )}
           </div>
 

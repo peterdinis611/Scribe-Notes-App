@@ -365,7 +365,7 @@
     "nlp": {
       "title": "Lokálna AI (Python)",
       "description": "Voliteľný doplnok — Rust jadro ostáva, Python rozširuje inteligentné funkcie.",
-      "intro": "Sémantické vyhľadávanie, týždenný prehľad denníka, návrhy tagov a analýza knižnice. Všetko lokálne cez Python sidecar (žiadny cloud). Vyžaduje Python 3.10+.",
+      "intro": "Voliteľný doplnok, ktorý beží len na tomto Macu. Scribe spustí lokálny Python proces (sidecar) — žiadny cloud, žiadne odosielanie textu na internet. Zapnutím získate sémantické vyhľadávanie v ⌘K, návrhy tagov, týždenný prehľad denníka a analýzu knižnice. Vyžaduje Python 3.10+.",
       "enableTitle": "Zapnúť lokálnu AI",
       "enableDescription": "Po zapnutí sa indexujú dokumenty pre sémantické vyhľadávanie v ⌘K.",
       "enable": "Zapnúť",
@@ -406,6 +406,15 @@
       "indexProgressCount": "{{current}} / {{total}}",
       "statusStoredModel": "Indexovaný model",
       "statusStaleCount": "Zastarané záznamy",
+      "statusEmbedBackend": "Embedding backend",
+      "embedBackendTitle": "Kvalita sémantiky",
+      "embedBackendDescription": "Hash je rýchly a bez závislostí. Quality model dáva presnejšie podobné dokumenty a vyhľadávanie.",
+      "embedBackendInstallHint": "Pre kvalitný model nainštalujte: pip install scribe-nlp[quality] alebo pip install sentence-transformers",
+      "embedBackendHash": "Hash (rýchly)",
+      "embedBackendQuality": "Quality (MiniLM)",
+      "embedBackendError": "Nepodarilo sa zmeniť embedding backend",
+      "hashEnabledToast": "Používa sa rýchly hash embedding",
+      "qualityEnabledToast": "Používa sa kvalitný embedding model — preindexujte knižnicu",
       "yes": "Áno",
       "no": "Nie"
     },
@@ -434,6 +443,7 @@
       "noResultsHint": "Skúste iné kľúčové slovo alebo vymažte hľadanie.",
       "tipLabel": "Tip",
       "searchTip": "otvorí príkazovú paletu kdekoľvek v aplikácii.",
+      "localAiTip": "v scope Všetko kombinuje fulltext a sémantiku, ak je Lokálna AI zapnutá.",
       "journalTip": "otvorí dnešnú denníkovú poznámku.",
       "shortcutsTip": "otvorí Nastavenia na úpravu skratiek.",
       "groups": {
@@ -519,6 +529,22 @@
             "Výber zásahu z obsahu dokument otvorí a skočí na prvý výskyt."
           ],
           "points": []
+        },
+        "localAi": {
+          "title": "Lokálna AI",
+          "summary": "Voliteľná inteligencia bez cloudu",
+          "paragraphs": [
+            "Lokálna AI nie je chatbot ani online služba. Keď ju zapnete v Nastaveniach → Lokálna AI, Scribe spustí na pozadí malý Python proces (sidecar) priamo na tomto Macu. Všetko spracovanie — indexovanie, vyhľadávanie, sumarizácia — prebieha v pamäti vášho počítača. Text sa nikam neodosiela.",
+            "Rust jadro aplikácie ostáva hlavné: databáza, editor, ukladanie a fulltextové vyhľadávanie fungujú aj bez AI. Python doplnok pridáva sémantiku (význam podobnosti), návrhy tagov, týždenný prehľad denníka a analýzu knižnice.",
+            "Po zapnutí sa dokumenty indexujú do vektorov (model scribe-hash-v2). Ak Scribe aktualizujete a model sa zmení, zobrazí sa upozornenie na preindexovanie — staré a nové vektory by inak dávali nekonzistentné výsledky."
+          ],
+          "points": [
+            "⌘K scope Všetko — kombinuje fulltext (FTS) a sémantiku cez hybridné zlučovanie",
+            "⌘K scope Sémanticky — len výsledky podľa významu, nie presného slova",
+            "Analýza knižnice — markdown report s témami, tagmi a nedávnymi dokumentmi",
+            "Návrhy tagov — v kontextovom menu dokumentu v knižnici (pravý klik)",
+            "Vyžaduje Python 3.10+ nainštalovaný v systéme; pip balíčky nie sú potrebné"
+          ]
         },
         "journal": {
           "title": "Denník a rýchla poznámka",
@@ -822,6 +848,7 @@
     "outline": "Štruktúra dokumentu",
     "comments": "Komentáre",
     "backlinks": "Odkazy sem",
+    "insights": "AI prehľad",
     "stats": "Štatistika",
     "revisions": "História verzií",
     "findReplace": "Nájsť a nahradiť",
@@ -899,6 +926,22 @@
       "neighborhoodHint": "Blízke prepojené poznámky — celú knižnicu uvidíte na mape.",
       "openGraph": "Otvoriť mapu prepojení",
       "edgeSummary": "{{count}} odkazov v okolí"
+    },
+    "insights": {
+      "title": "AI prehľad",
+      "subtitle": "Podobné poznámky a otvorené úlohy",
+      "hide": "Skryť AI prehľad",
+      "loadError": "Nepodarilo sa načítať AI prehľad",
+      "similar": "Podobné dokumenty",
+      "similarHint": "Na základe existujúceho sémantického indexu.",
+      "similarDisabled": "Zapnite Lokálnu AI v nastaveniach pre podobné dokumenty.",
+      "similarEmpty": "Žiadne podobné dokumenty — dokument ešte nemusí byť indexovaný.",
+      "tasks": "Otvorené úlohy",
+      "tasksHint": "Checkboxy v texte a frázy typu „treba:“ alebo „todo:“.",
+      "tasksEmpty": "V tomto dokumente nie sú otvorené úlohy.",
+      "sourceCheckbox": "checkbox",
+      "sourcePhrase": "fráza",
+      "dueHint": "termín {{date}}"
     },
     "stats": {
       "subtitle": "Prehľad dokumentu",
@@ -1624,6 +1667,9 @@
     "streak": "{{count}} dní po sebe",
     "weeklySummary": "Týždenný prehľad",
     "weeklySummaryTitle": "Prehľad týždňa",
+    "openTasksTitle": "Otvorené úlohy týždňa",
+    "openTasksEmpty": "Tento týždeň nemáte otvorené úlohy v denníku.",
+    "tasksLoading": "Načítavam úlohy…",
     "summaryLoading": "Generujem prehľad…",
     "summaryError": "Nepodarilo sa vygenerovať prehľad",
     "heatWorkflowHint": "Tmavšie dni = viac zápisov v rade. Kliknite na deň alebo použite ⌘K pre včera / zajtra.",
