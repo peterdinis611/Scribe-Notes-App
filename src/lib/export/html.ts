@@ -326,9 +326,9 @@ export async function buildMermaidSvgMap(
 export type HtmlExportOptions = {
   pageSetup?: PageSetup
   includeTitleHeading?: boolean
-  /** Strip preview chrome; use paper margins once. */
+  /** Strip preview chrome; use paper margins once. Same path as native PDF. */
   forPrint?: boolean
-  /** PDF pipeline: light capture CSS, no inline header/footer/watermark (added by jsPDF). */
+  /** @deprecated Prefer `forPrint`. Kept as an alias for native PDF / light capture. */
   forPdf?: boolean
   mermaidSvgBySource?: Map<string, string>
 }
@@ -376,7 +376,8 @@ function buildHtmlDocument(
   const body = renderNodes(doc.content, ctx)
   const footnotes = renderFootnotesSection(collectFootnotes(doc.content))
   const exportDate = formatExportDate()
-  const showHeaderFooter = !forPdf && shouldShowHeaderFooter(pageSetup, 1)
+  // Native PDF uses the print pipeline, so keep header/footer/watermark in HTML.
+  const showHeaderFooter = shouldShowHeaderFooter(pageSetup, 1)
   const headerFooter = showHeaderFooter
     ? buildHeaderFooterLines(pageSetup.headerFooter, {
         title,
@@ -387,7 +388,7 @@ function buildHtmlDocument(
     : { header: '', footer: '' }
 
   const watermarkHtml =
-    !forPdf && pageSetup.watermark.enabled && pageSetup.watermark.text.trim()
+    pageSetup.watermark.enabled && pageSetup.watermark.text.trim()
       ? `<div class="export-watermark print-watermark"><span>${escapeHtml(pageSetup.watermark.text.trim())}</span></div>`
       : ''
 
@@ -438,8 +439,8 @@ function buildHtmlDocument(
     .mermaid-diagram svg { max-width: 100%; height: auto; }
     ${DOCUMENT_TIPTAP_CSS}
     ${DOCUMENT_HIGHLIGHT_CSS}
-    ${forPdf ? PDF_CAPTURE_CSS : ''}
-    ${forPdf ? '' : buildWatermarkCss(pageSetup.watermark.opacity, pageSetup.watermark.angle)}
+    ${forPrint ? PDF_CAPTURE_CSS : ''}
+    ${buildWatermarkCss(pageSetup.watermark.opacity, pageSetup.watermark.angle)}
     @media print {
       html, body { background: #ffffff; }
       body { padding: 0; }

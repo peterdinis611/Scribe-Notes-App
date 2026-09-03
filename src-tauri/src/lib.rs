@@ -3,6 +3,7 @@ mod backup;
 mod db;
 mod export;
 mod nlp;
+mod pdf_native;
 mod security;
 mod storage;
 
@@ -205,6 +206,7 @@ pub fn run() {
             commands::import_export::cleanup_temp_import_file,
             commands::import_export::export_document,
             commands::import_export::export_pdf_bytes,
+            pdf_native::render_html_to_pdf,
             commands::import_export::scan_scribe_files,
             commands::import_export::force_save_document,
             commands::images::save_document_image,

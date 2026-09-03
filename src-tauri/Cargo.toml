@@ -35,3 +35,9 @@ regex = "1"
 base64 = "0.22"
 fontdb = "0.23"
 scribe-core = { path = "../crates/scribe-core" }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+objc2-foundation = { version = "0.3", features = ["NSString", "NSURL", "NSGeometry", "NSObject", "NSValue"] }
+objc2-app-kit = { version = "0.3", features = ["NSPrintInfo", "NSPrintOperation", "NSWindow", "NSView", "NSResponder"] }
+objc2-web-kit = { version = "0.3", features = ["WKWebView"] }

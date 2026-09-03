@@ -12,12 +12,8 @@ from .config import (
     MAX_REPORT_DOCUMENTS,
     MAX_TEXT_CHARS,
 )
-from .embed import MODEL_ID, embed_batch, embed_text
+from .embed import embed_text
 from .embed_backend import active_backend, configure_backend, current_model_id, quality_available
-from .ner import extract_entities
-from .report import library_report
-from .summarize import summarize_text
-from .tasks import extract_tasks
 from .text_utils import truncate_text
 
 
@@ -93,17 +89,25 @@ def handle_request(request: dict[str, Any]) -> dict[str, Any]:
             dims = len(vectors[0]) if vectors else 0
             result = {"vectors": vectors, "model": current_model_id(), "dims": dims}
         elif method == "summarize":
+            from .summarize import summarize_text
+
             text = _validate_text(str(params.get("text") or ""))
             max_sentences = int(params.get("maxSentences") or 4)
             max_sentences = max(1, min(max_sentences, 12))
             result = summarize_text(text, max_sentences=max_sentences)
         elif method == "extract_entities":
+            from .ner import extract_entities
+
             text = _validate_text(str(params.get("text") or ""))
             result = extract_entities(text)
         elif method == "extract_tasks":
+            from .tasks import extract_tasks
+
             text = _validate_text(str(params.get("text") or ""))
             result = extract_tasks(text)
         elif method == "library_report":
+            from .report import library_report
+
             documents = list(params.get("documents") or [])
             if len(documents) > MAX_REPORT_DOCUMENTS:
                 raise SidecarError(

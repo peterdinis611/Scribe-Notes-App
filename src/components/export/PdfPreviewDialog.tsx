@@ -1,17 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Download, Loader2, X } from 'lucide-react'
-import { PDFViewer, type PDFViewerRef } from '@embedpdf/react-pdf-viewer'
 import { Button } from '@/components/ui/button'
 import { previewPdfExport } from '@/lib/db/api'
-import {
-  base64ToPdfUrl,
-  buildEmbedPdfThemeConfig,
-  createPdfViewerConfig,
-} from '@/lib/pdf/pdf-viewer-config'
+import { base64ToPdfUrl } from '@/lib/pdf/pdf-viewer-config'
 import type { PageSetup } from '@/lib/editor/page-setup'
 import { cn } from '@/lib/utils'
-import { useAppSelector } from '@/store/hooks'
 
 type PdfPreviewDialogProps = {
   open: boolean
@@ -33,23 +27,11 @@ export function PdfPreviewDialog({
   onExport,
 }: PdfPreviewDialogProps) {
   const { t } = useTranslation()
-  const themeSettings = useAppSelector((state) => state.settings.themeSettings)
-  const viewerRef = useRef<PDFViewerRef>(null)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const close = useCallback(() => onOpenChange(false), [onOpenChange])
-
-  const viewerConfig = useMemo(
-    () => (pdfUrl ? createPdfViewerConfig(pdfUrl, themeSettings) : null),
-    [pdfUrl, themeSettings],
-  )
-
-  useEffect(() => {
-    if (!open || !viewerRef.current?.container) return
-    viewerRef.current.container.setTheme(buildEmbedPdfThemeConfig(themeSettings))
-  }, [open, themeSettings])
 
   useEffect(() => {
     if (!open) {
@@ -118,7 +100,7 @@ export function PdfPreviewDialog({
         />
       )}
 
-      <div className={cn('pdf-preview-sheet pdf-preview-sheet--embedpdf', open && 'is-open')}>
+      <div className={cn('pdf-preview-sheet pdf-preview-sheet--native', open && 'is-open')}>
         <header className="pdf-preview-header">
           <div className="pdf-preview-header-text">
             <p className="pdf-preview-eyebrow">{t('pdfPreview.title')}</p>
@@ -137,7 +119,7 @@ export function PdfPreviewDialog({
           </div>
         </header>
 
-        <div className="pdf-preview-viewport pdf-preview-viewport--embedpdf">
+        <div className="pdf-preview-viewport pdf-preview-viewport--native">
           {loading && (
             <div className="pdf-preview-state">
               <Loader2 className="h-8 w-8 animate-spin text-[var(--color-muted-foreground)]" />
@@ -152,16 +134,12 @@ export function PdfPreviewDialog({
             </div>
           )}
 
-          {!loading && !error && viewerConfig && (
-            <PDFViewer
-              ref={viewerRef}
+          {!loading && !error && pdfUrl && (
+            <iframe
               key={pdfUrl}
-              config={viewerConfig}
-              className="pdf-preview-embedpdf"
-              style={{ width: '100%', height: '100%' }}
-              onInit={(container) => {
-                container.setTheme(buildEmbedPdfThemeConfig(themeSettings))
-              }}
+              src={pdfUrl}
+              title={t('pdfPreview.ariaLabel', { title })}
+              className="pdf-preview-native-frame"
             />
           )}
         </div>

@@ -5257,12 +5257,12 @@ body.is-block-dragging .tiptap {
   flex-shrink: 0;
 }
 
-.pdf-preview-sheet--embedpdf {
+.pdf-preview-sheet--native {
   width: min(1120px, calc(100vw - 24px));
   height: min(92vh, 980px);
 }
 
-.pdf-preview-viewport--embedpdf {
+.pdf-preview-viewport--native {
   position: relative;
   padding: 0;
   background: var(--color-canvas);
@@ -5271,19 +5271,13 @@ body.is-block-dragging .tiptap {
   overflow: hidden;
 }
 
-.pdf-preview-embedpdf {
+.pdf-preview-native-frame {
   position: absolute;
   inset: 0;
-  min-height: 0;
   width: 100%;
   height: 100%;
-  overflow: hidden;
-}
-
-.pdf-preview-embedpdf > div {
-  width: 100%;
-  height: 100%;
-  min-height: 0;
+  border: 0;
+  background: #525659;
 }
 
 .pdf-preview-state {

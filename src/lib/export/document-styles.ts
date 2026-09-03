@@ -55,7 +55,7 @@ export const DOCUMENT_HIGHLIGHT_CSS = `
   .hljs-attr, .hljs-variable { color: #79c0ff; }
 `
 
-/** Extra rules for html2pdf capture — force readable light paper regardless of app theme. */
+/** Extra rules for print / native PDF — force readable light paper regardless of app theme. */
 export const PDF_CAPTURE_CSS = `
   html {
     color-scheme: light only;
