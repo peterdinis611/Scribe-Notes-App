@@ -40,4 +40,3 @@ scribe-core = { path = "../crates/scribe-core" }
 objc2 = "0.6"
 objc2-foundation = { version = "0.3", features = ["NSString", "NSURL", "NSGeometry", "NSObject", "NSValue"] }
 objc2-app-kit = { version = "0.3", features = ["NSPrintInfo", "NSPrintOperation", "NSWindow", "NSView", "NSResponder"] }
-objc2-web-kit = { version = "0.3", features = ["WKWebView"] }

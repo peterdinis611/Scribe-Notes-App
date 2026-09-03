@@ -3,14 +3,14 @@
 //! Replaces the frontend html2pdf/html2canvas pipeline with WebKit's print
 //! engine so the shipped app no longer embeds ~1 MB of JS PDF libraries.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{mpsc, Mutex};
 use std::time::{Duration, Instant};
 
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use serde::Deserialize;
-use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, WebviewUrl, WebviewWindowBuilder};
 
 static EXPORT_SEQ: AtomicU64 = AtomicU64::new(0);
 
@@ -76,7 +76,6 @@ pub async fn render_html_to_pdf(
 
     let mut temp_pdf = std::env::temp_dir();
     temp_pdf.push(format!("scribe-export-{pid}-{seq}.pdf"));
-    // Ensure we never pick up a stale file from a previous interrupted run.
     let _ = std::fs::remove_file(&temp_pdf);
 
     let url = tauri::Url::from_file_path(&temp_html)
@@ -108,7 +107,6 @@ pub async fn render_html_to_pdf(
         return Err("Časový limit pri renderovaní dokumentu pre PDF vypršal.".into());
     }
 
-    // Allow fonts / images / layout to settle after load.
     std::thread::sleep(Duration::from_millis(350));
 
     let pdf_path = temp_pdf.to_string_lossy().to_string();
@@ -176,28 +174,30 @@ unsafe fn print_to_pdf(
     path: &str,
     margins: &PrintMargins,
 ) -> Result<(), String> {
-    use objc2::runtime::{AnyObject, ProtocolObject};
+    use objc2::msg_send;
+    use objc2::runtime::{AnyObject, Bool, ProtocolObject, Sel};
     use objc2_app_kit::{
-        NSPrintInfo, NSPrintJobSavingURL, NSPrintSaveJob, NSPrintingPaginationMode, NSWindow,
+        NSPrintInfo, NSPrintJobSavingURL, NSPrintOperation, NSPrintSaveJob,
+        NSPrintingPaginationMode, NSWindow,
     };
-    use objc2_foundation::{NSObjectProtocol, NSString, NSURL, NSSize};
-    use objc2_web_kit::WKWebView;
+    use objc2_foundation::{NSString, NSURL, NSSize};
 
-    let webview = (platform.inner() as *mut WKWebView)
+    let webview = (platform.inner() as *mut AnyObject)
         .as_ref()
         .ok_or("WKWebView nie je dostupný")?;
     let ns_window = (platform.ns_window() as *mut NSWindow)
         .as_ref()
         .ok_or("Export okno nie je dostupné")?;
 
-    if !webview.respondsToSelector(objc2::sel!(printOperationWithPrintInfo:)) {
+    let selector = Sel::register(c"printOperationWithPrintInfo:");
+    let responds: Bool = msg_send![webview, respondsToSelector: selector];
+    if !responds.as_bool() {
         return Err("PDF export vyžaduje macOS 11 alebo novší".into());
     }
 
     let print_info = NSPrintInfo::new();
     print_info.setJobDisposition(NSPrintSaveJob);
     let url = NSURL::fileURLWithPath(&NSString::from_str(path));
-    // NSURL is an NSObject; the print dictionary stores it under NSPrintJobSavingURL.
     let url_obj: &AnyObject = &*url;
     print_info
         .dictionary()
@@ -214,11 +214,19 @@ unsafe fn print_to_pdf(
     print_info.setHorizontalPagination(NSPrintingPaginationMode::Fit);
     print_info.setVerticalPagination(NSPrintingPaginationMode::Automatic);
 
-    let op = webview.printOperationWithPrintInfo(&print_info);
+    // WKWebView.printOperationWithPrintInfo: — typed via msg_send to avoid
+    // pulling objc2-web-kit (and its optional JSCore deps) into the crate graph.
+    let op: *const NSPrintOperation =
+        msg_send![webview, printOperationWithPrintInfo: &*print_info];
+    let op = op
+        .as_ref()
+        .ok_or("Nepodarilo sa vytvoriť NSPrintOperation")?;
+
     op.setShowsPrintPanel(false);
     op.setShowsProgressPanel(false);
     if let Some(view) = op.view() {
-        view.setFrame(webview.frame());
+        let frame: objc2_foundation::NSRect = msg_send![webview, frame];
+        view.setFrame(frame);
     }
 
     op.runOperationModalForWindow_delegate_didRunSelector_contextInfo(
@@ -238,11 +246,4 @@ unsafe fn print_to_pdf(
     _margins: &PrintMargins,
 ) -> Result<(), String> {
     Err("Natívny PDF export je dostupný len na macOS.".into())
-}
-
-#[allow(dead_code)]
-pub fn default_temp_pdf_path(title: &str) -> PathBuf {
-    let mut path = std::env::temp_dir();
-    path.push(format!("{title}.pdf"));
-    path
 }
