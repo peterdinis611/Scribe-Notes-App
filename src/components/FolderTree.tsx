@@ -19,7 +19,7 @@ import {
 import { useMoveDocumentToFolder } from '@/hooks/useMoveDocumentToFolder'
 import { invalidateDocumentCache, peekCachedDocument } from '@/lib/cache/document-cache'
 import { isLibraryDocumentVisible } from '@/lib/db/library-sync'
-import { trashDocuments } from '@/lib/trash-document'
+import { trashDocuments, removeDocumentsFromLibraryUi } from '@/lib/trash-document'
 import {
   buildDeleteFolderConfirmMessage,
   buildTrashFolderConfirmMessage,
@@ -198,22 +198,17 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     const trashedDocuments = documents.filter(
       (doc) => doc.folderId && subtreeIds.has(doc.folderId),
     )
-    const trashedIds = new Set(trashedDocuments.map((doc) => doc.id))
-    const previousActiveId = activeId
+    const trashedIds = trashedDocuments.map((doc) => doc.id)
 
-    dispatch(updateDocuments((prev) => prev.filter((doc) => !trashedIds.has(doc.id))))
-
-    if (activeId && trashedIds.has(activeId)) {
-      const remaining = documents.filter((doc) => !trashedIds.has(doc.id))
-      const nextId = remaining[0]?.id ?? null
-      dispatch(setActiveDocumentId(nextId))
-      if (!nextId) {
-        dispatch(setActiveDocument(null))
-        navigate(ROUTES.home())
-      } else {
-        navigate(ROUTES.document(nextId))
-      }
-    }
+    removeDocumentsFromLibraryUi({
+      ids: trashedIds,
+      documents,
+      activeId,
+      openDocumentIds,
+      secondaryDocumentId,
+      dispatch,
+      navigate,
+    })
 
     try {
       const result = await trashFolderDocuments(id)
@@ -228,15 +223,15 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
       )
     } catch (error) {
       dispatch(updateDocuments((prev) => [...prev, ...trashedDocuments]))
-      if (previousActiveId && trashedIds.has(previousActiveId)) {
-        dispatch(setActiveDocumentId(previousActiveId))
-        const cached = peekCachedDocument(previousActiveId)
+      if (activeId && trashedIds.includes(activeId)) {
+        dispatch(setActiveDocumentId(activeId))
+        const cached = peekCachedDocument(activeId)
         if (cached) dispatch(setActiveDocument(cached))
-        navigate(ROUTES.document(previousActiveId))
+        navigate(ROUTES.document(activeId))
       }
       toast.error(t('toasts.trashError'), String(error))
     }
-  }, [activeId, dispatch, documents, folders, navigate, t])
+  }, [activeId, dispatch, documents, folders, navigate, openDocumentIds, secondaryDocumentId, t])
 
   const handleDeleteFolder = useCallback(async (id: string, name: string, event: React.MouseEvent) => {
     event.stopPropagation()
@@ -256,27 +251,23 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
       (doc) => doc.folderId && subtreeIds.has(doc.folderId),
     )
     const deletedFolderIds = new Set(deletedFolders.map((item) => item.id))
-    const deletedDocumentIds = new Set(deletedDocuments.map((doc) => doc.id))
+    const deletedDocumentIds = deletedDocuments.map((doc) => doc.id)
     const previousExpandedIds = expandedIds
     const previousActiveId = activeId
 
     dispatch(updateFolders((prev) => prev.filter((item) => !deletedFolderIds.has(item.id))))
-    dispatch(updateDocuments((prev) => prev.filter((doc) => !deletedDocumentIds.has(doc.id))))
+    removeDocumentsFromLibraryUi({
+      ids: deletedDocumentIds,
+      documents,
+      activeId,
+      openDocumentIds,
+      secondaryDocumentId,
+      dispatch,
+      navigate,
+    })
     dispatch(
       updateExpandedFolderIds((prev) => prev.filter((folderId) => !deletedFolderIds.has(folderId))),
     )
-
-    if (activeId && deletedDocumentIds.has(activeId)) {
-      const remaining = documents.filter((doc) => !deletedDocumentIds.has(doc.id))
-      const nextId = remaining[0]?.id ?? null
-      dispatch(setActiveDocumentId(nextId))
-      if (!nextId) {
-        dispatch(setActiveDocument(null))
-        navigate(ROUTES.home())
-      } else {
-        navigate(ROUTES.document(nextId))
-      }
-    }
 
     try {
       const result = await deleteFolder(id)
@@ -290,7 +281,7 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
       dispatch(updateFolders((prev) => [...prev, ...deletedFolders]))
       dispatch(updateDocuments((prev) => [...prev, ...deletedDocuments]))
       dispatch(updateExpandedFolderIds(() => previousExpandedIds))
-      if (previousActiveId && deletedDocumentIds.has(previousActiveId)) {
+      if (previousActiveId && deletedDocumentIds.includes(previousActiveId)) {
         dispatch(setActiveDocumentId(previousActiveId))
         const cached = peekCachedDocument(previousActiveId)
         if (cached) dispatch(setActiveDocument(cached))
@@ -298,7 +289,7 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
       }
       toast.error(t('toasts.folderDeleteError'), String(error))
     }
-  }, [activeId, dispatch, documents, expandedIds, folders, navigate, t])
+  }, [activeId, dispatch, documents, expandedIds, folders, navigate, openDocumentIds, secondaryDocumentId, t])
 
   const handleDeleteDocument = useCallback(async (id: string, event: React.MouseEvent) => {
     event.preventDefault()

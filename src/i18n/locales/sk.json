@@ -209,9 +209,21 @@
   },
   "whatsNew": {
     "badge": "Novinky {{version}}",
-    "title": "Čo je nové",
-    "subtitle": "Krátky prehľad zmien v tejto verzii.",
+    "title": "Scribe 1.0",
+    "subtitle": "Prvá stabilná verzia — menší balík, spoľahlivejší editor a natívny export.",
     "gotIt": "Rozumiem",
+    "v1Release": {
+      "title": "Stabilné 1.0",
+      "description": "Scribe je pripravený na každodenné písanie: knižnica, denník, šablóny, komentáre a Lokálna AI na jednom mieste."
+    },
+    "nativePdf": {
+      "title": "Natívny PDF export",
+      "description": "PDF ide cez macOS WebKit print — bez ťažkého html2pdf a s menším inštalátorom."
+    },
+    "reliableTrash": {
+      "title": "Spoľahlivejší kôš",
+      "description": "Zmazané dokumenty zmiznú zo sidebaru aj z otvorených kariet — bez oživenia po autosave."
+    },
     "rustMcp": {
       "title": "Rust MCP server",
       "description": "Scribe Memory MCP je teraz čisto v Ruste — hybridné vyhľadávanie, úlohy, štítky, zhrnutie denníka a ďalšie nástroje pre Cursor a Claude."

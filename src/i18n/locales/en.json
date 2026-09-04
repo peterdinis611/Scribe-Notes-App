@@ -209,9 +209,21 @@
   },
   "whatsNew": {
     "badge": "What's new in {{version}}",
-    "title": "What's new",
-    "subtitle": "A quick overview of changes in this release.",
+    "title": "Scribe 1.0",
+    "subtitle": "First stable release — smaller bundle, more reliable editing, and native export.",
     "gotIt": "Got it",
+    "v1Release": {
+      "title": "Stable 1.0",
+      "description": "Scribe is ready for daily writing: library, journal, templates, comments, and Local AI in one place."
+    },
+    "nativePdf": {
+      "title": "Native PDF export",
+      "description": "PDF goes through macOS WebKit print — no heavy html2pdf, and a smaller installer."
+    },
+    "reliableTrash": {
+      "title": "Reliable trash",
+      "description": "Deleted documents leave the sidebar and open tabs — no revive-after-autosave glitches."
+    },
     "rustMcp": {
       "title": "Rust MCP server",
       "description": "Scribe Memory MCP is now pure Rust — hybrid search, tasks, tags, journal summary, and more tools for Cursor and Claude."

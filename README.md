@@ -215,4 +215,4 @@ The SQLite schema is versioned in `src-tauri/src/db/migrations.rs`. Migrations r
 
 ## Version
 
-Current version: **0.9.0**
+Current version: **1.0.0**
