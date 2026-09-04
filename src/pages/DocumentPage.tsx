@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef } from 'react'
 import { useNavigate, useParams } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
+import { isCanvasContent } from '@/lib/canvas/types'
 import { ROUTES } from '@/lib/routes'
 import { isOpenLibraryDocumentId } from '@/lib/trash-document'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
@@ -14,6 +15,12 @@ import { SecondaryDocumentPane } from '@/components/SecondaryDocumentPane'
 const DocumentEditor = lazy(() =>
   import('@/components/DocumentEditor').then((module) => ({
     default: module.DocumentEditor,
+  })),
+)
+
+const CanvasEditor = lazy(() =>
+  import('@/components/canvas/CanvasEditor').then((module) => ({
+    default: module.CanvasEditor,
   })),
 )
 
@@ -107,9 +114,21 @@ export function DocumentPage() {
 
   const split = Boolean(secondaryDocumentId && secondaryDocumentId !== documentId)
 
+  const isCanvas = useMemo(() => {
+    try {
+      return isCanvasContent(JSON.parse(resolvedDocument.contentJson))
+    } catch {
+      return false
+    }
+  }, [resolvedDocument.contentJson])
+
   const editor = (
     <Suspense fallback={<DocumentEditorFallback />}>
-      <DocumentEditor key={documentId} />
+      {isCanvas ? (
+        <CanvasEditor key={documentId} />
+      ) : (
+        <DocumentEditor key={documentId} />
+      )}
     </Suspense>
   )
 

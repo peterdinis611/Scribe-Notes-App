@@ -27,6 +27,7 @@
     "copySuffix": "(copy)",
     "delete": "Delete",
     "restore": "Restore",
+    "undo": "Undo",
     "rename": "Rename",
     "untitled": "Untitled",
     "loading": "Loading…",
@@ -94,6 +95,9 @@
     "exportPdf": "Export PDF",
     "exportDocx": "Word (DOCX)",
     "exportMd": "Markdown (MD)",
+    "exportSelectionMd": "Export selection → Markdown",
+    "exportSelectionPdf": "Export selection → PDF",
+    "exportSelectionEmpty": "Select text in the editor first",
     "exportHtml": "HTML",
     "exportHtmlZip": "HTML package (ZIP)",
     "exportEpub": "EPUB",
@@ -111,6 +115,7 @@
     "sectionDocuments": "In document content",
     "sectionRecent": "Recent",
     "quickNote": "Quick note",
+    "newCanvas": "New canvas note",
     "reopenClosed": "Reopen last closed",
     "reopenClosedHint": "Recently closed document",
     "openSplit": "Open in split view",
@@ -129,6 +134,7 @@
     "settings": "Settings",
     "docs": "Documentation",
     "linkGraph": "Connection map",
+    "libraryFindReplace": "Find and replace in library",
     "toggleTheme": "Toggle theme",
     "randomTheme": "Random theme",
     "randomThemeHint": "Generate a custom palette",
@@ -143,6 +149,7 @@
     "morningNote": "Morning journal",
     "eveningNote": "Evening journal",
     "weekNote": "Weekly note",
+    "weeklyDigest": "Create weekly digest",
     "sectionSearch": "Matches",
     "filterFolder": "This folder only",
     "filterTags": "Filter by tag",
@@ -162,9 +169,25 @@
     "loading": "Loading document…",
     "loadingEditor": "Loading editor…",
     "page": "Page {{page}}",
-    "placeholder": "Start typing…",
+    "placeholder": "Start writing on a blank page…",
     "markdownAria": "Markdown editor",
     "markdownPlaceholder": "# Heading\n\nWrite in **Markdown** — headings, lists, `code`, tables…"
+  },
+  "canvas": {
+    "defaultTitle": "Canvas note",
+    "toolbar": "Canvas tools",
+    "addCard": "Add card",
+    "linkCards": "Link",
+    "deleteSelected": "Delete",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "resetView": "Reset view",
+    "cardPlaceholder": "Card text…",
+    "emptyHint": "Double-click to add a card. Drag empty space to pan. Scroll to zoom.",
+    "linkHint": "Select a card first, then link to another.",
+    "linkPickSource": "Click the first card…",
+    "linkPickTarget": "Click the second card to connect…",
+    "saveAsTemplateUnavailable": "Canvas notes can’t be saved as text templates yet."
   },
   "mermaid": {
     "edit": "Edit",
@@ -692,6 +715,10 @@
       "label": "Reopen closed tab",
       "description": "Reopens the last closed document"
     },
+    "libraryFindReplace": {
+      "label": "Library find and replace",
+      "description": "Find and replace across all documents"
+    },
     "closeFind": {
       "label": "Close search",
       "description": "Closes the find and replace panel"
@@ -750,7 +777,9 @@
   },
   "tabs": {
     "ariaLabel": "Open documents",
-    "close": "Close tab"
+    "close": "Close tab",
+    "pin": "Pin tab",
+    "unpin": "Unpin tab"
   },
   "split": {
     "close": "Close split pane"
@@ -1043,6 +1072,27 @@
     "close": "Close (Esc)",
     "closeAria": "Close search"
   },
+  "libraryFindReplace": {
+    "title": "Find and replace in library",
+    "description": "Search and replace text across documents. Only TipTap text nodes are changed — links and attributes stay intact.",
+    "findPlaceholder": "Find in library…",
+    "replacePlaceholder": "Replace with…",
+    "matchCase": "Match case",
+    "preview": "Preview",
+    "previewHint": "Enter a search term to preview matches.",
+    "previewSummary": "{{matches}} matches in {{documents}} documents",
+    "scanning": "Scanning library…",
+    "noMatches": "No matches found.",
+    "matchCount": "{{count}}",
+    "scopeHint": "Applies to open (non-trashed) documents. Titles and body text are included.",
+    "replaceAll": "Replace all",
+    "replacing": "Replacing…",
+    "confirmTitle": "Replace across library?",
+    "confirmMessage": "Replace {{matches}} matches in {{documents}} documents for “{{query}}”? This cannot be undone easily.",
+    "replacedToast": "Replaced {{matches}} matches in {{documents}} documents",
+    "previewError": "Preview failed",
+    "replaceError": "Replace failed"
+  },
   "viewMode": {
     "rich": "Rich text",
     "markdown": "Markdown"
@@ -1126,8 +1176,10 @@
     "documentMoved": "Document moved",
     "moveError": "Failed to move document",
     "documentTrashed": "Document moved to trash",
+    "documentsTrashed": "{{count}} documents moved to trash",
     "trashError": "Failed to move document to trash",
     "documentRestored": "Document restored",
+    "undoTrashError": "Failed to undo trash",
     "restoreError": "Failed to restore document",
     "folderCreated": "Folder created",
     "folderRenamed": "Folder renamed",
@@ -1328,6 +1380,11 @@
         "description": "Empty document with no formatting",
         "title": "New document"
       },
+      "canvas": {
+        "name": "Canvas note",
+        "description": "Whiteboard with cards and connections",
+        "title": "Canvas"
+      },
       "scribe-demo-guide": {
         "name": "Scribe guide",
         "description": "Full demo of app features with examples",
@@ -1420,7 +1477,27 @@
     "categoryLabel": "Category",
     "newCategoryChip": "New",
     "saving": "Saving…",
-    "saveTemplate": "Save template"
+    "saveTemplate": "Save template",
+    "packs": {
+      "import": "Import pack",
+      "export": "Export pack",
+      "addBundled": "Add pack…",
+      "importDialogTitle": "Import template pack",
+      "exportDialogTitle": "Export template pack",
+      "defaultExportName": "My templates",
+      "templateCount_one": "{{count}} template",
+      "templateCount_other": "{{count}} templates",
+      "importSuccess_one": "Imported {{count}} template",
+      "importSuccess_other": "Imported {{count}} templates",
+      "importError": "Failed to import template pack",
+      "exportSuccess": "Template pack exported",
+      "exportError": "Failed to export template pack",
+      "exportEmpty": "No custom templates to export",
+      "bundled": {
+        "skZapisnice": "SK Meeting minutes",
+        "skSkolaAZmluvy": "SK School & contracts"
+      }
+    }
   },
   "pdfPreview": {
     "title": "PDF preview",
@@ -1696,6 +1773,11 @@
     "tasksLoading": "Loading tasks…",
     "summaryLoading": "Generating overview…",
     "summaryError": "Failed to generate overview",
+    "createDigest": "Create digest",
+    "digestCreating": "Creating digest…",
+    "digestTitle": "Weekly digest {{week}}",
+    "digestSummaryPlaceholder": "Summary unavailable — Local AI is off or no journal entries were found for this week.",
+    "digestError": "Failed to create weekly digest",
     "heatWorkflowHint": "Darker days = more consecutive entries. Click a day or use ⌘K for yesterday / tomorrow.",
     "thisWeek": "This week",
     "folderName": "Journal",

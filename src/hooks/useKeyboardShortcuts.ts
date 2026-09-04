@@ -21,6 +21,7 @@ import {
   setActiveDocumentId,
   setFindReplaceOpen,
   setFocusMode,
+  setLibraryFindReplaceOpen,
   setReadingMode,
   setSaveStatus,
   toggleFocusMode,
@@ -44,6 +45,7 @@ function hotkey(id: string, overrides: Record<string, string>): RegisterableHotk
 export function useKeyboardShortcuts() {
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
   const openDocumentIds = useAppSelector((state) => state.documents.openDocumentIds)
+  const pinnedDocumentIds = useAppSelector((state) => state.documents.pinnedDocumentIds)
   const recentlyClosedIds = useAppSelector((state) => state.documents.recentlyClosedIds)
   const documents = useAppSelector((state) => state.documents.documents)
   const folders = useAppSelector((state) => state.folders.folders)
@@ -168,6 +170,7 @@ export function useKeyboardShortcuts() {
           closeActiveDocumentAndMaybeHome({
             activeId,
             openDocumentIds,
+            pinnedDocumentIds,
             dispatch,
             navigate,
           })
@@ -190,6 +193,16 @@ export function useKeyboardShortcuts() {
           meta: {
             name: t('shortcuts.reopenClosedTab.label'),
             description: t('shortcuts.reopenClosedTab.description'),
+          },
+        },
+      },
+      {
+        hotkey: hotkey('libraryFindReplace', shortcutOverrides),
+        callback: () => dispatch(setLibraryFindReplaceOpen(true)),
+        options: {
+          meta: {
+            name: t('shortcuts.libraryFindReplace.label'),
+            description: t('shortcuts.libraryFindReplace.description'),
           },
         },
       },

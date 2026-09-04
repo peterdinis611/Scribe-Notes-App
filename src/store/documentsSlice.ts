@@ -8,6 +8,7 @@ import {
   persistManualTitleIds,
   persistActiveDocumentId,
   persistOpenDocumentIds,
+  persistPinnedDocumentIds,
   persistRecentDocumentIds,
   persistRecentlyClosedIds,
   pushRecentId,
@@ -17,6 +18,7 @@ import {
   readDocumentTocLeftOpen,
   readManualTitleIds,
   readOpenDocumentIds,
+  readPinnedDocumentIds,
   readRecentDocumentIds,
   readRecentlyClosedIds,
 } from '@/store/persistence'
@@ -45,6 +47,7 @@ export interface DocumentsState {
   manualTitleDocumentIds: string[]
   findReplaceOpen: boolean
   findReplaceMode: 'find' | 'replace'
+  libraryFindReplaceOpen: boolean
   pendingEditorSearch: string | null
   pendingLibraryView: {
     view: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal'
@@ -63,6 +66,8 @@ export interface DocumentsState {
   recentlyClosedIds: string[]
   /** Open editor tabs (left-to-right order). */
   openDocumentIds: string[]
+  /** Tabs that stay open until unpinned (subset of openDocumentIds). */
+  pinnedDocumentIds: string[]
   /** Document shown in the right split pane (null = no split). */
   secondaryDocumentId: string | null
   /** Wiki-link back trail (session only, newest last). */
@@ -115,6 +120,7 @@ const initialState: DocumentsState = {
   manualTitleDocumentIds: readManualTitleIds(),
   findReplaceOpen: false,
   findReplaceMode: 'find',
+  libraryFindReplaceOpen: false,
   pendingEditorSearch: null,
   pendingLibraryView: null,
   trashOpen: false,
@@ -130,6 +136,7 @@ const initialState: DocumentsState = {
       : initialRecent,
   recentlyClosedIds: initialClosed,
   openDocumentIds: initialOpen,
+  pinnedDocumentIds: readPinnedDocumentIds(),
   secondaryDocumentId: null,
   documentNavStack: [],
   documentTocLeftOpen: readDocumentTocLeftOpen(),
@@ -147,6 +154,7 @@ const documentsSlice = createSlice({
       const nextRecent = pruneIds(state.recentDocumentIds, action.payload)
       const nextClosed = pruneIds(state.recentlyClosedIds, action.payload)
       const nextOpen = pruneIds(state.openDocumentIds, action.payload)
+      const nextPinned = pruneIds(state.pinnedDocumentIds, action.payload)
       if (nextRecent.length !== state.recentDocumentIds.length) {
         state.recentDocumentIds = nextRecent
         persistRecentDocumentIds(nextRecent)
@@ -158,6 +166,10 @@ const documentsSlice = createSlice({
       if (nextOpen.length !== state.openDocumentIds.length) {
         state.openDocumentIds = nextOpen
         persistOpenDocumentIds(nextOpen)
+      }
+      if (nextPinned.length !== state.pinnedDocumentIds.length) {
+        state.pinnedDocumentIds = nextPinned
+        persistPinnedDocumentIds(nextPinned)
       }
     },
     updateDocuments(state, action: PayloadAction<(prev: DocumentSummary[]) => DocumentSummary[]>) {
@@ -165,6 +177,7 @@ const documentsSlice = createSlice({
       const nextRecent = pruneIds(state.recentDocumentIds, state.documents)
       const nextClosed = pruneIds(state.recentlyClosedIds, state.documents)
       const nextOpen = pruneIds(state.openDocumentIds, state.documents)
+      const nextPinned = pruneIds(state.pinnedDocumentIds, state.documents)
       if (nextRecent.length !== state.recentDocumentIds.length) {
         state.recentDocumentIds = nextRecent
         persistRecentDocumentIds(nextRecent)
@@ -176,6 +189,10 @@ const documentsSlice = createSlice({
       if (nextOpen.length !== state.openDocumentIds.length) {
         state.openDocumentIds = nextOpen
         persistOpenDocumentIds(nextOpen)
+      }
+      if (nextPinned.length !== state.pinnedDocumentIds.length) {
+        state.pinnedDocumentIds = nextPinned
+        persistPinnedDocumentIds(nextPinned)
       }
     },
     setActiveDocumentId(state, action: PayloadAction<string | null>) {
@@ -213,9 +230,11 @@ const documentsSlice = createSlice({
       state.activeDocumentId = next
       persistActiveDocumentId(next)
     },
-    /** Close a tab. If it was active, activates a neighbor (or clears active). */
+    /** Close a tab. If it was active, activates a neighbor (or clears active). Pinned tabs are ignored. */
     closeOpenDocument(state, action: PayloadAction<string>) {
       const id = action.payload
+      if (state.pinnedDocumentIds.includes(id)) return
+
       const index = state.openDocumentIds.indexOf(id)
       if (index === -1) return
 
@@ -245,6 +264,23 @@ const documentsSlice = createSlice({
         state.recentlyClosedIds = state.recentlyClosedIds.filter((closedId) => closedId !== nextId)
         persistRecentlyClosedIds(state.recentlyClosedIds)
       }
+    },
+    togglePinnedDocument(state, action: PayloadAction<string>) {
+      const id = action.payload
+      if (state.pinnedDocumentIds.includes(id)) {
+        state.pinnedDocumentIds = state.pinnedDocumentIds.filter((item) => item !== id)
+      } else {
+        if (!state.openDocumentIds.includes(id)) {
+          state.openDocumentIds = [...state.openDocumentIds, id]
+          persistOpenDocumentIds(state.openDocumentIds)
+        }
+        state.pinnedDocumentIds = [...state.pinnedDocumentIds, id]
+      }
+      persistPinnedDocumentIds(state.pinnedDocumentIds)
+    },
+    setPinnedDocumentIds(state, action: PayloadAction<string[]>) {
+      state.pinnedDocumentIds = action.payload
+      persistPinnedDocumentIds(action.payload)
     },
     setActiveDocument(state, action: PayloadAction<Document | null>) {
       state.activeDocument = action.payload
@@ -353,6 +389,9 @@ const documentsSlice = createSlice({
     },
     setFindReplaceMode(state, action: PayloadAction<'find' | 'replace'>) {
       state.findReplaceMode = action.payload
+    },
+    setLibraryFindReplaceOpen(state, action: PayloadAction<boolean>) {
+      state.libraryFindReplaceOpen = action.payload
     },
     setPendingEditorSearch(state, action: PayloadAction<string | null>) {
       state.pendingEditorSearch = action.payload
@@ -465,6 +504,8 @@ export const {
   updateDocuments,
   setActiveDocumentId,
   closeOpenDocument,
+  togglePinnedDocument,
+  setPinnedDocumentIds,
   setActiveDocument,
   setSaveStatus,
   setSidebarOpen,
@@ -484,6 +525,7 @@ export const {
   setFindReplaceOpen,
   toggleFindReplaceOpen,
   setFindReplaceMode,
+  setLibraryFindReplaceOpen,
   setPendingEditorSearch,
   setPendingLibraryView,
   setTrashOpen,

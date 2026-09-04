@@ -1,4 +1,10 @@
 import { createDocument, createFolder, getDocument } from '@/lib/db/api'
+import {
+  nlpJournalSummary,
+  nlpJournalTasks,
+  type DocumentTask,
+  type NlpJournalSummary,
+} from '@/lib/db/nlp-api'
 import { cacheDocument } from '@/lib/cache/document-cache'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
@@ -216,6 +222,134 @@ export async function openThisWeekNote(args: OpenJournalArgs) {
   const key = `weekly:${week}`
   const title = args.t('journal.weekTitle', { week })
   return openJournalNote(key, title, args)
+}
+
+/** Monday–Sunday date keys for the week containing `date` (local time). */
+export function currentWeekRange(date: Date = new Date()): { from: string; to: string } {
+  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  const mondayOffset = (start.getDay() + 6) % 7
+  start.setDate(start.getDate() - mondayOffset)
+  const end = new Date(start)
+  end.setDate(end.getDate() + 6)
+  return { from: formatDateKey(start), to: formatDateKey(end) }
+}
+
+type TipTapNode = Record<string, unknown>
+
+function textParagraph(text: string): TipTapNode {
+  return { type: 'paragraph', content: [{ type: 'text', text }] }
+}
+
+function emptyParagraph(): TipTapNode {
+  return { type: 'paragraph' }
+}
+
+function headingNode(level: 1 | 2, text: string): TipTapNode {
+  return { type: 'heading', attrs: { level }, content: [{ type: 'text', text }] }
+}
+
+function taskItemNode(text: string, checked = false): TipTapNode {
+  return {
+    type: 'taskItem',
+    attrs: { checked },
+    content: [{ type: 'paragraph', content: [{ type: 'text', text }] }],
+  }
+}
+
+function buildWeeklyDigestContent(args: {
+  title: string
+  summaryHeading: string
+  tasksHeading: string
+  summaryText: string
+  bullets: string[]
+  tasks: DocumentTask[]
+  summaryPlaceholder: string
+  tasksEmpty: string
+}): string {
+  const blocks: TipTapNode[] = [headingNode(1, args.title), headingNode(2, args.summaryHeading)]
+
+  const summary = args.summaryText.trim()
+  if (summary) {
+    for (const paragraph of summary.split(/\n+/).map((part) => part.trim()).filter(Boolean)) {
+      blocks.push(textParagraph(paragraph))
+    }
+  } else {
+    blocks.push(textParagraph(args.summaryPlaceholder))
+  }
+
+  for (const bullet of args.bullets) {
+    const trimmed = bullet.trim()
+    if (trimmed) blocks.push(textParagraph(`• ${trimmed}`))
+  }
+
+  blocks.push(headingNode(2, args.tasksHeading))
+
+  const openTasks = args.tasks.filter((task) => !task.checked && task.text.trim())
+  if (openTasks.length > 0) {
+    blocks.push({
+      type: 'taskList',
+      content: openTasks.map((task) => taskItemNode(task.text.trim(), false)),
+    })
+  } else {
+    blocks.push(textParagraph(args.tasksEmpty))
+  }
+
+  blocks.push(emptyParagraph())
+  return JSON.stringify({ type: 'doc', content: blocks })
+}
+
+/** Create a weekly digest document from this week's journal notes (NLP when available). */
+export async function createWeeklyDigestDocument(args: OpenJournalArgs) {
+  const { documents, folders, dispatch, navigate, t } = args
+  const now = new Date()
+  const week = formatWeekKey(now)
+  const { from, to } = currentWeekRange(now)
+  const folderId = await ensureJournalFolder(folders, dispatch, t('journal.folderName'))
+  const documentIds = collectJournalDocumentIdsForRange(documents, folderId, from, to)
+
+  let summary: NlpJournalSummary | null = null
+  let tasks: DocumentTask[] = []
+
+  if (documentIds.length > 0) {
+    const [summaryResult, tasksResult] = await Promise.allSettled([
+      nlpJournalSummary({
+        fromDate: from,
+        toDate: to,
+        journalFolderId: folderId,
+        documentIds,
+      }),
+      nlpJournalTasks(documentIds),
+    ])
+    if (summaryResult.status === 'fulfilled') summary = summaryResult.value
+    if (tasksResult.status === 'fulfilled') tasks = tasksResult.value
+  }
+
+  const title = t('journal.digestTitle', { week })
+  const contentJson = buildWeeklyDigestContent({
+    title,
+    summaryHeading: t('journal.weeklySummaryTitle'),
+    tasksHeading: t('journal.openTasksTitle'),
+    summaryText: summary?.summary ?? '',
+    bullets: summary?.bullets ?? [],
+    tasks,
+    summaryPlaceholder: t('journal.digestSummaryPlaceholder'),
+    tasksEmpty: t('journal.openTasksEmpty'),
+  })
+
+  const document = cacheDocument(
+    await createDocument({
+      title,
+      folderId,
+      contentJson,
+    }),
+  )
+
+  dispatch(updateDocuments((prev) => prependDocumentSummary(prev, document)))
+  dispatch(setActiveDocumentId(document.id))
+  dispatch(setActiveDocument(document))
+  dispatch(setSaveStatus('saved'))
+  await navigate(ROUTES.document(document.id))
+  return document
 }
 
 /** Dates that already have a daily journal note (from local map + journal folder titles). */

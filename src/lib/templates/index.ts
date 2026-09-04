@@ -1,6 +1,7 @@
 import type { JSONContent } from '@tiptap/core'
 import i18n from '@/i18n'
 import type { TemplateCategoryId } from '@/lib/templates/categories'
+import { emptyCanvasDocument, type CanvasDocument } from '@/lib/canvas/types'
 
 import { SCRIBE_DEMO_GUIDE_TEMPLATE } from '@/lib/templates/demo-guide'
 
@@ -10,7 +11,7 @@ export interface DocumentTemplate {
   description: string
   category: TemplateCategoryId
   title: string
-  content: JSONContent
+  content: JSONContent | CanvasDocument
 }
 
 export type { TemplateCategoryId, BuiltInTemplateCategory, CustomTemplateCategory } from '@/lib/templates/categories'
@@ -36,6 +37,15 @@ const blank: DocumentTemplate = {
     type: 'doc',
     content: [{ type: 'paragraph' }],
   },
+}
+
+const canvasNote: DocumentTemplate = {
+  id: 'canvas',
+  name: 'Canvas poznámka',
+  description: 'Tabuľa s kartami a prepojeniami',
+  category: 'creative',
+  title: 'Canvas',
+  content: emptyCanvasDocument(),
 }
 
 const modernReport: DocumentTemplate = {
@@ -704,6 +714,7 @@ const academicPaper: DocumentTemplate = {
 
 export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
   blank,
+  canvasNote,
   SCRIBE_DEMO_GUIDE_TEMPLATE,
   modernReport,
   businessLetter,
@@ -737,3 +748,19 @@ export function getTemplateById(id: string): DocumentTemplate | undefined {
 
 export { mergeTemplates, isCustomTemplate, createCustomTemplate } from '@/lib/templates/custom'
 export type { CustomDocumentTemplate, CustomTemplateInput } from '@/lib/templates/custom'
+
+export {
+  TEMPLATE_PACK_VERSION,
+  TEMPLATE_PACK_EXTENSION,
+  parseTemplatePack,
+  serializeTemplatePack,
+  buildTemplatePackFromCustoms,
+  importTemplatePack,
+} from '@/lib/templates/packs'
+export type {
+  TemplatePack,
+  TemplatePackItem,
+  BundledTemplatePackMeta,
+  ImportTemplatePackResult,
+} from '@/lib/templates/packs'
+export { BUNDLED_TEMPLATE_PACKS, getBundledTemplatePack } from '@/lib/templates/bundled-packs'

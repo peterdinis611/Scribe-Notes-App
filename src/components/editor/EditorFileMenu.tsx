@@ -20,6 +20,8 @@ type EditorFileMenuProps = {
   onCloseDocument?: () => void
   onGoHome?: () => void
   onExport?: (format: 'pdf' | 'docx' | 'txt' | 'pages' | 'md' | 'html' | 'html-zip' | 'epub') => void
+  onExportSelection?: (format: 'md' | 'pdf') => void
+  hasSelection?: boolean
 }
 
 export function EditorFileMenu({
@@ -33,6 +35,8 @@ export function EditorFileMenu({
   onCloseDocument,
   onGoHome,
   onExport,
+  onExportSelection,
+  hasSelection = false,
 }: EditorFileMenuProps) {
   const { t } = useTranslation()
 
@@ -102,6 +106,23 @@ export function EditorFileMenu({
             <DropdownMenuItem onClick={() => onExport('epub')}>{t('fileMenu.exportEpub')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => onExport('txt')}>{t('fileMenu.exportTxt')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => onExport('pages')}>{t('fileMenu.exportPages')}</DropdownMenuItem>
+          </>
+        )}
+        {hasDocument && onExportSelection && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              disabled={!hasSelection}
+              onClick={() => onExportSelection('md')}
+            >
+              {t('fileMenu.exportSelectionMd')}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={!hasSelection}
+              onClick={() => onExportSelection('pdf')}
+            >
+              {t('fileMenu.exportSelectionPdf')}
+            </DropdownMenuItem>
           </>
         )}
       </DropdownMenuContent>

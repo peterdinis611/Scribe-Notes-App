@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { X } from 'lucide-react'
+import { Pin, X } from 'lucide-react'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { closeActiveDocumentAndMaybeHome } from '@/lib/navigation'
 import { ROUTES } from '@/lib/routes'
@@ -11,6 +11,7 @@ import {
   closeOpenDocument,
   setActiveDocument,
   setActiveDocumentId,
+  togglePinnedDocument,
 } from '@/store/documentsSlice'
 
 export function DocumentTabsBar() {
@@ -19,6 +20,7 @@ export function DocumentTabsBar() {
   const navigate = useNavigate()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
   const openIds = useAppSelector((state) => state.documents.openDocumentIds)
+  const pinnedIds = useAppSelector((state) => state.documents.pinnedDocumentIds)
   const documents = useAppSelector((state) => state.documents.documents)
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
   const focusMode = useAppSelector((state) => state.documents.focusMode)
@@ -29,14 +31,24 @@ export function DocumentTabsBar() {
 
   const tabs = useMemo(() => {
     const byId = new Map(documents.map((doc) => [doc.id, doc]))
-    return openIds
+    const pinnedSet = new Set(pinnedIds)
+    const mapped = openIds
       .map((id) => {
         const doc = byId.get(id)
         if (!doc || doc.deletedAt != null) return null
-        return { id, title: doc.title || t('common.untitled') }
+        return {
+          id,
+          title: doc.title || t('common.untitled'),
+          pinned: pinnedSet.has(id),
+        }
       })
-      .filter((tab): tab is { id: string; title: string } => tab != null)
-  }, [documents, openIds, t])
+      .filter((tab): tab is { id: string; title: string; pinned: boolean } => tab != null)
+
+    return [
+      ...mapped.filter((tab) => tab.pinned),
+      ...mapped.filter((tab) => !tab.pinned),
+    ]
+  }, [documents, openIds, pinnedIds, t])
 
   const updateScrollHints = useCallback(() => {
     const el = listRef.current
@@ -82,10 +94,13 @@ export function DocumentTabsBar() {
   }
 
   function closeTab(id: string) {
+    if (pinnedIds.includes(id)) return
+
     if (id === activeId) {
       closeActiveDocumentAndMaybeHome({
         activeId,
         openDocumentIds: openIds,
+        pinnedDocumentIds: pinnedIds,
         dispatch,
         navigate,
       })
@@ -126,28 +141,48 @@ export function DocumentTabsBar() {
             >
               <button
                 type="button"
+                className={cn(
+                  'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border-none bg-transparent transition-opacity hover:bg-[var(--color-hover)]',
+                  tab.pinned
+                    ? 'text-[var(--color-accent)] opacity-100'
+                    : 'text-[var(--color-muted-foreground)] opacity-0 group-hover:opacity-100',
+                )}
+                onClick={(event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  dispatch(togglePinnedDocument(tab.id))
+                }}
+                title={tab.pinned ? t('tabs.unpin') : t('tabs.pin')}
+                aria-label={tab.pinned ? t('tabs.unpin') : t('tabs.pin')}
+              >
+                <Pin className={cn('h-3 w-3', tab.pinned && 'fill-current')} />
+              </button>
+              <button
+                type="button"
                 className="min-w-0 flex-1 truncate border-none bg-transparent p-0 font-[family-name:var(--font-display)] text-[12px] font-semibold tracking-[-0.02em] text-inherit"
                 onClick={() => activate(tab.id)}
                 title={tab.title}
               >
                 {tab.title}
               </button>
-              <button
-                type="button"
-                className={cn(
-                  'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border-none bg-transparent text-[var(--color-muted-foreground)] transition-opacity hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]',
-                  isActive ? 'opacity-100' : 'opacity-60 group-hover:opacity-100',
-                )}
-                onClick={(event) => {
-                  event.preventDefault()
-                  event.stopPropagation()
-                  closeTab(tab.id)
-                }}
-                title={t('tabs.close')}
-                aria-label={t('tabs.close')}
-              >
-                <X className="h-3 w-3" />
-              </button>
+              {!tab.pinned && (
+                <button
+                  type="button"
+                  className={cn(
+                    'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border-none bg-transparent text-[var(--color-muted-foreground)] transition-opacity hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]',
+                    isActive ? 'opacity-100' : 'opacity-60 group-hover:opacity-100',
+                  )}
+                  onClick={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    closeTab(tab.id)
+                  }}
+                  title={t('tabs.close')}
+                  aria-label={t('tabs.close')}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
             </div>
           )
         })}

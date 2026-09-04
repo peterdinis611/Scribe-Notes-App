@@ -28,6 +28,7 @@ import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { tiptapJsonToHtmlAsync } from '@/lib/export/html'
 import { tiptapJsonToMarkdown } from '@/lib/export/markdown'
 import { tiptapToPlainText } from '@/lib/export/plain-text'
+import { exportEditorSelection } from '@/lib/export/selection'
 import { ROUTES, useSettingsSections } from '@/lib/routes'
 import { closeActiveDocumentAndMaybeHome, goToHome } from '@/lib/navigation'
 import { cn } from '@/lib/utils'
@@ -153,6 +154,7 @@ function EditorChrome() {
   const document = useAppSelector((state) => state.documents.activeDocument)
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
   const openDocumentIds = useAppSelector((state) => state.documents.openDocumentIds)
+  const pinnedDocumentIds = useAppSelector((state) => state.documents.pinnedDocumentIds)
   const pageSetup = useAppSelector((state) => state.settings.pageSetup)
   const viewMode = useAppSelector((state) => state.settings.editorViewMode)
   const readingMode = useAppSelector((state) => state.documents.readingMode)
@@ -210,6 +212,25 @@ function EditorChrome() {
     }
   }
 
+  async function handleExportSelection(format: 'md' | 'pdf') {
+    if (!document) return
+    try {
+      const ok = await exportEditorSelection({
+        editor: editorRefs.editor,
+        title: document.title,
+        format,
+        pageSetup,
+      })
+      if (!ok) {
+        toast.info(t('fileMenu.exportSelectionEmpty'))
+        return
+      }
+      toast.success(t('toasts.exportDone'))
+    } catch {
+      toast.error(t('toasts.exportError'))
+    }
+  }
+
   async function handleImport() {
     const doc = await pickAndImportFile()
     if (!doc) return
@@ -247,6 +268,7 @@ function EditorChrome() {
     closeActiveDocumentAndMaybeHome({
       activeId,
       openDocumentIds,
+      pinnedDocumentIds,
       dispatch,
       navigate,
     })
@@ -277,6 +299,8 @@ function EditorChrome() {
             onGoHome={handleGoHome}
             onCloseDocument={document ? handleCloseDocument : undefined}
             onExport={document ? (format) => void handleExport(format) : undefined}
+            onExportSelection={document ? (format) => void handleExportSelection(format) : undefined}
+            hasSelection
           />
           {document ? (
             <>

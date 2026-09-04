@@ -3,7 +3,7 @@ import { FolderInput, Trash2, X } from 'lucide-react'
 import { confirm } from '@tauri-apps/plugin-dialog'
 import { Button } from '@/components/ui/button'
 import { toast } from '@/lib/toast'
-import { trashDocuments } from '@/lib/trash-document'
+import { restoreTrashedDocuments, trashDocuments } from '@/lib/trash-document'
 import { useNavigate } from '@tanstack/react-router'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { clearSelectedDocuments } from '@/store/documentsSlice'
@@ -31,7 +31,7 @@ export function LibraryBulkBar() {
     if (!ok) return
 
     try {
-      await trashDocuments({
+      const removed = await trashDocuments({
         ids: selected,
         documents,
         activeId,
@@ -41,7 +41,17 @@ export function LibraryBulkBar() {
         navigate,
       })
       dispatch(clearSelectedDocuments())
-      toast.success(t('library.bulk.deleted', { count: selected.length }))
+      toast.success(t('library.bulk.deleted', { count: removed.length }), undefined, {
+        action: {
+          label: t('common.undo'),
+          onClick: () => {
+            void restoreTrashedDocuments({
+              documents: removed,
+              dispatch,
+            }).catch((error) => toast.error(t('toasts.undoTrashError'), String(error)))
+          },
+        },
+      })
     } catch (error) {
       toast.error(t('library.bulk.deleteError'), String(error))
     }

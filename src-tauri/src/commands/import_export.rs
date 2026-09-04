@@ -62,6 +62,27 @@ pub fn read_binary_file(
 }
 
 #[tauri::command]
+pub fn write_text_file(
+    app: AppHandle,
+    state: State<'_, DbState>,
+    gate: State<'_, PathAccessGate>,
+    path: String,
+    contents: String,
+) -> Result<(), String> {
+    let path = PathBuf::from(path);
+    gate.grant(&path);
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let validated = gate.validate_read(&app, &conn, &path)?;
+    drop(conn);
+    if let Some(parent) = validated.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("Nepodarilo sa vytvoriť priečinok: {e}"))?;
+    }
+    std::fs::write(&validated, contents)
+        .map_err(|e| format!("Nepodarilo sa zapísať súbor: {e}"))
+}
+
+#[tauri::command]
 pub fn pick_and_import_file(
     app: AppHandle,
     state: State<'_, DbState>,

@@ -4064,9 +4064,24 @@ body.is-block-dragging .tiptap {
 }
 
 .tiptap--print-accurate p.is-editor-empty:first-child::before {
-  color: color-mix(in srgb, var(--color-muted-foreground) 55%, transparent);
-  font-style: italic;
-  letter-spacing: 0.01em;
+  display: block;
+  margin-top: 12vh;
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 2.4vw, 1.85rem);
+  font-style: normal;
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  line-height: 1.25;
+  color: color-mix(in srgb, var(--color-muted-foreground) 52%, transparent);
+  pointer-events: none;
+}
+
+.tiptap--print-accurate.is-empty-doc::before {
+  content: none;
+}
+
+.editor-canvas--print-layout .tiptap--print-accurate:has(> p.is-editor-empty:only-child) {
+  min-height: 55vh;
 }
 
 .editor-scroll--print-layout .editor-block-drag-handle {
@@ -6532,3 +6547,250 @@ html.dark {
   background: color-mix(in srgb, var(--color-accent) 10%, transparent);
   color: var(--color-accent);
 }
+
+/* —— Canvas / whiteboard document —— */
+.canvas-shell {
+  background: var(--color-canvas);
+}
+
+.canvas-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-toolbar) 92%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.canvas-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-foreground);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.canvas-toolbar-btn:hover:not(:disabled) {
+  background: var(--color-hover);
+}
+
+.canvas-toolbar-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.canvas-toolbar-btn.is-active {
+  border-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
+  color: var(--color-accent);
+}
+
+.canvas-toolbar-btn--icon {
+  width: 30px;
+  padding: 0;
+  justify-content: center;
+}
+
+.canvas-toolbar-spacer {
+  flex: 1;
+  min-width: 8px;
+}
+
+.canvas-toolbar-meta {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-muted-foreground);
+  min-width: 3ch;
+  text-align: right;
+}
+
+.canvas-surface {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  background:
+    radial-gradient(
+      900px 420px at 12% -8%,
+      color-mix(in srgb, var(--color-accent) 7%, transparent),
+      transparent 60%
+    ),
+    var(--color-canvas);
+}
+
+.canvas-surface:active,
+.canvas-surface.is-panning {
+  cursor: grabbing;
+}
+
+.canvas-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.55;
+  background-image:
+    linear-gradient(to right, var(--color-separator) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-separator) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(ellipse 75% 70% at 50% 45%, #000 20%, transparent 75%);
+}
+
+.canvas-world {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.canvas-edges {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.canvas-edge {
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-muted-foreground) 70%, var(--color-accent));
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.canvas-edge.is-selected {
+  stroke: var(--color-accent);
+  stroke-width: 2.5;
+}
+
+.canvas-edge-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 14;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+
+.canvas-card {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-elevated);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-foreground) 4%, transparent),
+    0 8px 24px color-mix(in srgb, #000 8%, transparent);
+  color: var(--color-foreground);
+  cursor: grab;
+  user-select: none;
+  overflow: hidden;
+}
+
+.canvas-card:active {
+  cursor: grabbing;
+}
+
+.canvas-card.is-selected {
+  border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-border));
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--color-accent) 28%, transparent),
+    0 10px 28px color-mix(in srgb, #000 10%, transparent);
+}
+
+.canvas-card.is-link-source {
+  border-color: var(--color-accent);
+  outline: 1px dashed color-mix(in srgb, var(--color-accent) 55%, transparent);
+  outline-offset: 3px;
+}
+
+.canvas-card-text {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-foreground);
+}
+
+.canvas-card-text.is-placeholder {
+  color: var(--color-muted-foreground);
+}
+
+.canvas-card-input {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  resize: none;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--color-foreground);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.45;
+  padding: 0;
+}
+
+.canvas-card-input::placeholder {
+  color: var(--color-muted-foreground);
+}
+
+.canvas-empty-hint {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  padding: 24px;
+}
+
+.canvas-empty-hint p {
+  max-width: 28rem;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-muted-foreground);
+}
+
+.canvas-link-banner {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: 2;
+  padding: 8px 14px;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 35%, var(--color-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-surface) 92%, var(--color-accent));
+  color: var(--color-accent);
+  font-size: 12px;
+  font-weight: 550;
+  box-shadow: 0 8px 24px color-mix(in srgb, #000 12%, transparent);
+  pointer-events: none;
+}
+
+.dark .canvas-card {
+  box-shadow:
+    0 1px 0 color-mix(in srgb, #fff 4%, transparent),
+    0 10px 28px color-mix(in srgb, #000 35%, transparent);
+}
+

@@ -1,0 +1,404 @@
+{
+  "version": 1,
+  "name": "SK Škola a zmluvy",
+  "locale": "sk",
+  "templates": [
+    {
+      "name": "Školská úloha",
+      "title": "Školská úloha",
+      "description": "Jednoduchá osnova školskej / seminárnej úlohy",
+      "categoryId": "personal",
+      "content": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "heading",
+            "attrs": { "level": 1 },
+            "content": [{ "type": "text", "text": "Školská úloha" }]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Predmet: …………………………… · Trieda / ročník: …………………………… · Dátum odovzdania: ……………………………"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Meno žiaka / študenta: ……………………………"
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": { "level": 2 },
+            "content": [{ "type": "text", "text": "Zadanie" }]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Stručne opíšte, čo má byť výsledkom úlohy (rozsah, forma, povinné časti)."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": { "level": 2 },
+            "content": [{ "type": "text", "text": "Cieľ" }]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Čo sa má žiak naučiť alebo preukázať."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": { "level": 2 },
+            "content": [{ "type": "text", "text": "Osnova práce" }]
+          },
+          {
+            "type": "orderedList",
+            "content": [
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [{ "type": "text", "text": "Úvod — motivácia a otázka" }]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [{ "type": "text", "text": "Hlavná časť — body / kapitoly" }]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [{ "type": "text", "text": "Záver — zhrnutie a vlastný názor" }]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [{ "type": "text", "text": "Zdroje" }]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": { "level": 2 },
+            "content": [{ "type": "text", "text": "Poznámky a podklady" }]
+          },
+          {
+            "type": "bulletList",
+            "content": [
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [{ "type": "text", "text": "Kľúčový fakt / citát" }]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [{ "type": "text", "text": "Vlastná myšlienka" }]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": { "level": 2 },
+            "content": [{ "type": "text", "text": "Kontrolný zoznam pred odovzdaním" }]
+          },
+          {
+            "type": "taskList",
+            "content": [
+              {
+                "type": "taskItem",
+                "attrs": { "checked": false },
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Splnený požadovaný rozsah"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "taskItem",
+                "attrs": { "checked": false },
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Uvedené zdroje"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "taskItem",
+                "attrs": { "checked": false },
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Skontrolovaný pravopis a formátovanie"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "Osnova krátkej zmluvy",
+      "title": "Krátka zmluva — osnova",
+      "description": "Jednoduchá osnova krátkej dohody / zmluvy (nie právna rada)",
+      "categoryId": "business",
+      "content": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "heading",
+            "attrs": { "level": 1 },
+            "content": [{ "type": "text", "text": "Krátka zmluva / dohoda" }]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "marks": [{ "type": "italic" }],
+                "text": "Toto je len osnova na doplnenie. Pri právne záväzných dokumentoch konzultujte odborníka."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": { "level": 2 },
+            "content": [{ "type": "text", "text": "1. Zmluvné strany" }]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Strana A: meno / názov · adresa · IČO (ak ide o firmu)"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Strana B: meno / názov · adresa · IČO (ak ide o firmu)"
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": { "level": 2 },
+            "content": [{ "type": "text", "text": "2. Predmet dohody" }]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Čo je predmetom — služba, dielo, prenájom, spolupráca…"
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": { "level": 2 },
+            "content": [{ "type": "text", "text": "3. Odmena a splatnosť" }]
+          },
+          {
+            "type": "bulletList",
+            "content": [
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Suma / spôsob výpočtu: ……………………………"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Termín splatnosti / fakturácia: ……………………………"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": { "level": 2 },
+            "content": [{ "type": "text", "text": "4. Termíny a miesto plnenia" }]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Začiatok · koniec · miesto alebo spôsob dodania"
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": { "level": 2 },
+            "content": [{ "type": "text", "text": "5. Povinnosti strán" }]
+          },
+          {
+            "type": "bulletList",
+            "content": [
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [{ "type": "text", "text": "Povinnosti strany A" }]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [{ "type": "text", "text": "Povinnosti strany B" }]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": { "level": 2 },
+            "content": [{ "type": "text", "text": "6. Ukončenie a odstúpenie" }]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Podmienky ukončenia, výpovedná lehota, vrátenie podkladov."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": { "level": 2 },
+            "content": [{ "type": "text", "text": "7. Záverečné ustanovenia" }]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Počet vyhotovení, rozhodné právo, dátum a podpisy."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [{ "type": "text", "text": "" }]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "V …………………………… dňa ……………………………"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [{ "type": "text", "text": "" }]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "……………………………………          ……………………………………"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Strana A                                          Strana B"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

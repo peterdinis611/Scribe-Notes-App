@@ -93,6 +93,13 @@ export const APP_SHORTCUT_BINDINGS: AppShortcutBinding[] = [
     labelKey: 'shortcuts.reopenClosedTab.label',
     descriptionKey: 'shortcuts.reopenClosedTab.description',
   },
+  {
+    id: 'libraryFindReplace',
+    scope: 'app',
+    defaultHotkey: 'Mod+Shift+H',
+    labelKey: 'shortcuts.libraryFindReplace.label',
+    descriptionKey: 'shortcuts.libraryFindReplace.description',
+  },
 ]
 
 export interface ShortcutDef {
@@ -113,6 +120,7 @@ export interface ShortcutDef {
     | 'readingMode'
     | 'closeTab'
     | 'reopenClosedTab'
+    | 'libraryFindReplace'
   keys: string[]
 }
 
@@ -133,6 +141,7 @@ export const APP_SHORTCUTS: ShortcutDef[] = [
   { id: 'readingMode', keys: ['⌘', '⇧', 'R'] },
   { id: 'closeTab', keys: ['⌘', 'W'] },
   { id: 'reopenClosedTab', keys: ['⌘', '⇧', 'T'] },
+  { id: 'libraryFindReplace', keys: ['⌘', '⇧', 'H'] },
 ]
 
 import type { ShortcutOverrides } from '@/store/persistence'

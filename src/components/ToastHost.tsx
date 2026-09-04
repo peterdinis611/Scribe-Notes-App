@@ -1,6 +1,6 @@
 import { CheckCircle2, Info, X, XCircle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { dismissToast, type ToastVariant } from '@/lib/toast'
+import { dismissToast, runToastAction, type ToastVariant } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { useAppSelector } from '@/store/hooks'
 
@@ -55,6 +55,15 @@ export function ToastHost() {
               <p className="mt-0.5 text-[12px] leading-snug text-[var(--color-muted-foreground)]">
                 {item.description}
               </p>
+            )}
+            {item.actionLabel && (
+              <button
+                type="button"
+                className="mt-2 inline-flex h-7 items-center rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-background)] px-2.5 text-[11px] font-semibold text-[var(--color-accent)] transition-colors hover:bg-[var(--color-hover)]"
+                onClick={() => runToastAction(item.id)}
+              >
+                {item.actionLabel}
+              </button>
             )}
           </div>
           <button

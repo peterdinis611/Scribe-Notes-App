@@ -6,6 +6,8 @@ import { nlpJournalSummary, nlpJournalTasks, type DocumentTask } from '@/lib/db/
 import {
   computeJournalStreak,
   collectJournalDocumentIdsForRange,
+  createWeeklyDigestDocument,
+  currentWeekRange,
   formatDateKey,
   getJournalFolderId,
   listJournalDailyDates,
@@ -46,15 +48,7 @@ export function LibraryJournalView({ onNavigate }: LibraryJournalViewProps) {
   const [weeklyTasks, setWeeklyTasks] = useState<DocumentTask[]>([])
   const [summaryLoading, setSummaryLoading] = useState(false)
   const [tasksLoading, setTasksLoading] = useState(false)
-
-  function currentWeekRange() {
-    const start = new Date()
-    const mondayOffset = (start.getDay() + 6) % 7
-    start.setDate(start.getDate() - mondayOffset)
-    const end = new Date(start)
-    end.setDate(end.getDate() + 6)
-    return { from: formatDateKey(start), to: formatDateKey(end) }
-  }
+  const [digestLoading, setDigestLoading] = useState(false)
 
   async function loadWeeklySummary() {
     const { from, to } = currentWeekRange()
@@ -227,6 +221,21 @@ export function LibraryJournalView({ onNavigate }: LibraryJournalViewProps) {
         >
           <Sparkles className="h-3 w-3" />
           {summaryLoading ? t('journal.summaryLoading') : t('journal.weeklySummary')}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7"
+          disabled={digestLoading}
+          onClick={() => {
+            setDigestLoading(true)
+            void createWeeklyDigestDocument(journalArgs)
+              .then(() => onNavigate?.())
+              .catch((error) => toast.error(t('journal.digestError'), String(error)))
+              .finally(() => setDigestLoading(false))
+          }}
+        >
+          {digestLoading ? t('journal.digestCreating') : t('journal.createDigest')}
         </Button>
       </div>
 

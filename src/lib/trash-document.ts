@@ -1,5 +1,11 @@
 import { invalidateDocumentCache, peekCachedDocument } from '@/lib/cache/document-cache'
-import { deleteDocument, type DocumentSummary } from '@/lib/db/api'
+import {
+  deleteDocument,
+  fetchDocumentFresh,
+  restoreDocument,
+  type DocumentSummary,
+} from '@/lib/db/api'
+import { documentToSummary } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
 import type { AppDispatch } from '@/store/index'
 import {
@@ -95,5 +101,37 @@ export async function trashDocuments(args: {
       void args.navigate(ROUTES.document(restoredActive.id))
     }
     throw error
+  }
+}
+
+/** Restore soft-deleted documents back into the library (undo trash). */
+export async function restoreTrashedDocuments(args: {
+  documents: DocumentSummary[]
+  dispatch: AppDispatch
+  navigate?: NavigateFn
+  reopenId?: string | null
+}): Promise<void> {
+  for (const item of args.documents) {
+    const optimistic = { ...item, deletedAt: null }
+    args.dispatch(
+      updateDocuments((prev) => [optimistic, ...prev.filter((doc) => doc.id !== item.id)]),
+    )
+    await restoreDocument(item.id)
+    invalidateDocumentCache(item.id)
+    const fresh = await fetchDocumentFresh(item.id)
+    args.dispatch(
+      updateDocuments((prev) => {
+        const summary = documentToSummary(fresh, optimistic)
+        return [summary, ...prev.filter((doc) => doc.id !== item.id)]
+      }),
+    )
+  }
+
+  const reopenId = args.reopenId ?? args.documents[0]?.id ?? null
+  if (reopenId && args.navigate) {
+    args.dispatch(setActiveDocumentId(reopenId))
+    const cached = peekCachedDocument(reopenId)
+    if (cached) args.dispatch(setActiveDocument(cached))
+    void args.navigate(ROUTES.document(reopenId))
   }
 }

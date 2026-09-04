@@ -27,6 +27,7 @@
     "copySuffix": "(kópia)",
     "delete": "Vymazať",
     "restore": "Obnoviť",
+    "undo": "Vrátiť",
     "rename": "Premenovať",
     "untitled": "Bez názvu",
     "loading": "Načítavam…",
@@ -94,6 +95,9 @@
     "exportPdf": "Exportovať PDF",
     "exportDocx": "Word (DOCX)",
     "exportMd": "Markdown (MD)",
+    "exportSelectionMd": "Exportovať výber → Markdown",
+    "exportSelectionPdf": "Exportovať výber → PDF",
+    "exportSelectionEmpty": "Najprv označte text vo editore",
     "exportHtml": "HTML",
     "exportHtmlZip": "HTML balík (ZIP)",
     "exportEpub": "EPUB",
@@ -111,6 +115,7 @@
     "sectionDocuments": "V obsahu dokumentov",
     "sectionRecent": "Nedávne",
     "quickNote": "Rýchla poznámka",
+    "newCanvas": "Nová canvas poznámka",
     "reopenClosed": "Znova otvoriť posledný zatvorený",
     "reopenClosedHint": "Nedávno zatvorený dokument",
     "openSplit": "Otvoriť v split view",
@@ -129,6 +134,7 @@
     "settings": "Nastavenia",
     "docs": "Dokumentácia",
     "linkGraph": "Mapa prepojení",
+    "libraryFindReplace": "Nájsť a nahradiť v knižnici",
     "toggleTheme": "Prepínať tému",
     "randomTheme": "Náhodná téma",
     "randomThemeHint": "Vygenerovať vlastnú paletu",
@@ -143,6 +149,7 @@
     "morningNote": "Ranný denník",
     "eveningNote": "Večerný denník",
     "weekNote": "Týždenná poznámka",
+    "weeklyDigest": "Vytvoriť týždenný digest",
     "sectionSearch": "Výsledky",
     "filterFolder": "Iba v tomto priečinku",
     "filterTags": "Filtrovať podľa štítku",
@@ -162,9 +169,25 @@
     "loading": "Načítavam dokument…",
     "loadingEditor": "Načítavam editor…",
     "page": "Strana {{page}}",
-    "placeholder": "Začnite písať…",
+    "placeholder": "Začnite písať na čistú stránku…",
     "markdownAria": "Markdown editor",
     "markdownPlaceholder": "# Nadpis\n\nPíšte v **Markdown** — nadpisy, zoznamy, `kód`, tabuľky…"
+  },
+  "canvas": {
+    "defaultTitle": "Canvas poznámka",
+    "toolbar": "Nástroje canvasu",
+    "addCard": "Pridať kartu",
+    "linkCards": "Prepojiť",
+    "deleteSelected": "Zmazať",
+    "zoomIn": "Priblížiť",
+    "zoomOut": "Oddialiť",
+    "resetView": "Resetovať pohľad",
+    "cardPlaceholder": "Text karty…",
+    "emptyHint": "Dvojklikom pridáte kartu. Ťahaním prázdneho miesta posúvate. Kolieskom zoomujete.",
+    "linkHint": "Najprv vyberte kartu, potom ju prepojte s ďalšou.",
+    "linkPickSource": "Kliknite na prvú kartu…",
+    "linkPickTarget": "Kliknite na druhú kartu na prepojenie…",
+    "saveAsTemplateUnavailable": "Canvas poznámky zatiaľ nie je možné uložiť ako textové šablóny."
   },
   "mermaid": {
     "edit": "Upraviť",
@@ -692,6 +715,10 @@
       "label": "Znova otvoriť tab",
       "description": "Otvorí posledný zatvorený dokument"
     },
+    "libraryFindReplace": {
+      "label": "Hľadať a nahradiť v knižnici",
+      "description": "Nájsť a nahradiť text vo všetkých dokumentoch"
+    },
     "closeFind": {
       "label": "Zavrieť vyhľadávanie",
       "description": "Zavrie panel hľadať a nahradiť"
@@ -750,7 +777,9 @@
   },
   "tabs": {
     "ariaLabel": "Otvorené dokumenty",
-    "close": "Zavrieť tab"
+    "close": "Zavrieť tab",
+    "pin": "Pripnúť kartu",
+    "unpin": "Odopnúť kartu"
   },
   "split": {
     "close": "Zavrieť split panel"
@@ -1051,6 +1080,27 @@
     "close": "Zavrieť (Esc)",
     "closeAria": "Zavrieť vyhľadávanie"
   },
+  "libraryFindReplace": {
+    "title": "Nájsť a nahradiť v knižnici",
+    "description": "Vyhľadávanie a nahradenie textu naprieč dokumentmi. Mení sa len text v TipTap textových uzloch — odkazy a atribúty ostávajú nedotknuté.",
+    "findPlaceholder": "Hľadať v knižnici…",
+    "replacePlaceholder": "Nahradiť za…",
+    "matchCase": "Rozlišovať veľkosť písmen",
+    "preview": "Náhľad",
+    "previewHint": "Zadajte hľadaný výraz pre náhľad zhôd.",
+    "previewSummary": "{{matches}} zhôd v {{documents}} dokumentoch",
+    "scanning": "Prehľadávam knižnicu…",
+    "noMatches": "Žiadne zhody.",
+    "matchCount": "{{count}}",
+    "scopeHint": "Platí pre otvorené (nevymazané) dokumenty. Zahŕňa názvy aj telo textu.",
+    "replaceAll": "Nahradiť všetko",
+    "replacing": "Nahrádzam…",
+    "confirmTitle": "Nahradiť v celej knižnici?",
+    "confirmMessage": "Nahradiť {{matches}} zhôd v {{documents}} dokumentoch pre „{{query}}“? Túto akciu nie je ľahké vrátiť.",
+    "replacedToast": "Nahradených {{matches}} zhôd v {{documents}} dokumentoch",
+    "previewError": "Náhľad zlyhal",
+    "replaceError": "Nahradenie zlyhalo"
+  },
   "viewMode": {
     "rich": "Formátovaný text",
     "markdown": "Markdown"
@@ -1134,8 +1184,10 @@
     "documentMoved": "Dokument presunutý",
     "moveError": "Nepodarilo sa presunúť dokument",
     "documentTrashed": "Dokument presunutý do koša",
+    "documentsTrashed": "{{count}} dokumentov v koši",
     "trashError": "Nepodarilo sa presunúť dokument do koša",
     "documentRestored": "Dokument obnovený",
+    "undoTrashError": "Nepodarilo sa vrátiť dokument z koša",
     "restoreError": "Nepodarilo sa obnoviť dokument",
     "folderCreated": "Priečinok vytvorený",
     "folderRenamed": "Priečinok premenovaný",
@@ -1336,6 +1388,11 @@
         "description": "Prázdny dokument bez predformátovania",
         "title": "Nový dokument"
       },
+      "canvas": {
+        "name": "Canvas poznámka",
+        "description": "Tabuľa s kartami a prepojeniami",
+        "title": "Canvas"
+      },
       "scribe-demo-guide": {
         "name": "Sprievodca Scribe",
         "description": "Kompletné demo všetkých funkcií aplikácie s príkladmi",
@@ -1430,7 +1487,31 @@
     "categoryLabel": "Kategória",
     "newCategoryChip": "Nová",
     "saving": "Ukladám…",
-    "saveTemplate": "Uložiť šablónu"
+    "saveTemplate": "Uložiť šablónu",
+    "packs": {
+      "import": "Importovať balík",
+      "export": "Exportovať balík",
+      "addBundled": "Pridať balík…",
+      "importDialogTitle": "Importovať balík šablón",
+      "exportDialogTitle": "Exportovať balík šablón",
+      "defaultExportName": "Moje šablóny",
+      "templateCount_one": "{{count}} šablóna",
+      "templateCount_few": "{{count}} šablóny",
+      "templateCount_many": "{{count}} šablón",
+      "templateCount_other": "{{count}} šablón",
+      "importSuccess_one": "Importovaná {{count}} šablóna",
+      "importSuccess_few": "Importované {{count}} šablóny",
+      "importSuccess_many": "Importovaných {{count}} šablón",
+      "importSuccess_other": "Importovaných {{count}} šablón",
+      "importError": "Nepodarilo sa importovať balík šablón",
+      "exportSuccess": "Balík šablón exportovaný",
+      "exportError": "Nepodarilo sa exportovať balík šablón",
+      "exportEmpty": "Žiadne vlastné šablóny na export",
+      "bundled": {
+        "skZapisnice": "SK Zápisnice",
+        "skSkolaAZmluvy": "SK Škola a zmluvy"
+      }
+    }
   },
   "pdfPreview": {
     "title": "Náhľad PDF",
@@ -1708,6 +1789,11 @@
     "tasksLoading": "Načítavam úlohy…",
     "summaryLoading": "Generujem prehľad…",
     "summaryError": "Nepodarilo sa vygenerovať prehľad",
+    "createDigest": "Vytvoriť digest",
+    "digestCreating": "Vytváram digest…",
+    "digestTitle": "Týždenný digest {{week}}",
+    "digestSummaryPlaceholder": "Prehľad nie je dostupný — lokálne AI je vypnuté alebo tento týždeň nemáte zápisy v denníku.",
+    "digestError": "Nepodarilo sa vytvoriť týždenný digest",
     "heatWorkflowHint": "Tmavšie dni = viac zápisov v rade. Kliknite na deň alebo použite ⌘K pre včera / zajtra.",
     "thisWeek": "Tento týždeň",
     "folderName": "Denník",

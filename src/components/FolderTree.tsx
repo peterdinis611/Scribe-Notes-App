@@ -19,7 +19,7 @@ import {
 import { useMoveDocumentToFolder } from '@/hooks/useMoveDocumentToFolder'
 import { invalidateDocumentCache, peekCachedDocument } from '@/lib/cache/document-cache'
 import { isLibraryDocumentVisible } from '@/lib/db/library-sync'
-import { trashDocuments, removeDocumentsFromLibraryUi } from '@/lib/trash-document'
+import { trashDocuments, removeDocumentsFromLibraryUi, restoreTrashedDocuments } from '@/lib/trash-document'
 import {
   buildDeleteFolderConfirmMessage,
   buildTrashFolderConfirmMessage,
@@ -298,7 +298,7 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     if (!deleted) return
 
     try {
-      await trashDocuments({
+      const removed = await trashDocuments({
         ids: [id],
         documents,
         activeId,
@@ -307,7 +307,23 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
         dispatch,
         navigate,
       })
-      toast.success(t('toasts.documentTrashed'), deleted.title.trim() || t('common.untitled'))
+      toast.success(
+        t('toasts.documentTrashed'),
+        deleted.title.trim() || t('common.untitled'),
+        {
+          action: {
+            label: t('common.undo'),
+            onClick: () => {
+              void restoreTrashedDocuments({
+                documents: removed,
+                dispatch,
+                navigate,
+                reopenId: id,
+              }).catch((error) => toast.error(t('toasts.undoTrashError'), String(error)))
+            },
+          },
+        },
+      )
     } catch (error) {
       toast.error(t('toasts.trashError'), String(error))
     }

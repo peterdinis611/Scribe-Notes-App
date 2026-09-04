@@ -328,6 +328,7 @@ export function persistCustomTemplateCategories(categories: CustomTemplateCatego
 const RECENT_DOCUMENT_IDS_KEY = 'scribe-recent-document-ids'
 const RECENTLY_CLOSED_IDS_KEY = 'scribe-recently-closed-ids'
 const OPEN_DOCUMENT_IDS_KEY = 'scribe-open-document-ids'
+const PINNED_DOCUMENT_IDS_KEY = 'scribe-pinned-document-ids'
 export const RECENT_DOCUMENT_IDS_MAX = 20
 
 function readIdList(key: string): string[] {
@@ -368,6 +369,14 @@ export function readOpenDocumentIds(): string[] {
 
 export function persistOpenDocumentIds(ids: string[]) {
   persistIdList(OPEN_DOCUMENT_IDS_KEY, ids, 40)
+}
+
+export function readPinnedDocumentIds(): string[] {
+  return readIdList(PINNED_DOCUMENT_IDS_KEY)
+}
+
+export function persistPinnedDocumentIds(ids: string[]) {
+  persistIdList(PINNED_DOCUMENT_IDS_KEY, ids, 40)
 }
 
 /** Prepend `id` and dedupe, capped at max. */

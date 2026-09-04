@@ -63,6 +63,21 @@ export interface UpdateDocumentInput {
   contentJson?: string
 }
 
+export interface LibraryFindReplaceInput {
+  query: string
+  replacement: string
+  dryRun: boolean
+  folderId?: string | null
+  matchCase?: boolean
+}
+
+export interface LibraryFindReplaceHit {
+  documentId: string
+  title: string
+  matchCount: number
+  preview: string
+}
+
 export interface StorageSettings {
   documentsDir: string
   folderAccessGranted: boolean
@@ -91,6 +106,9 @@ export const duplicateDocument = async (id: string, title?: string) =>
 
 export const updateDocument = async (input: UpdateDocumentInput) =>
   cacheDocument(await invoke<Document>('update_document', { input }))
+
+export const libraryFindReplace = (input: LibraryFindReplaceInput) =>
+  invoke<LibraryFindReplaceHit[]>('library_find_replace', { input })
 
 export const deleteDocument = async (id: string) => {
   await invoke<void>('delete_document', { id })
@@ -207,6 +225,11 @@ export const readTextFile = async (path: string) => {
 export const readBinaryFile = async (path: string) => {
   await grantScopedPath(path)
   return invoke<number[]>('read_binary_file', { path })
+}
+
+export const writeTextFile = async (path: string, contents: string) => {
+  await grantScopedPath(path)
+  return invoke<void>('write_text_file', { path, contents })
 }
 
 export const pickAndImportFile = async () => {

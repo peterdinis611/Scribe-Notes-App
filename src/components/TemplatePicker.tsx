@@ -3,13 +3,16 @@ import { useTranslation } from 'react-i18next'
 import {
   Bookmark,
   Briefcase,
+  Download,
   FileText,
   Loader2,
+  PackagePlus,
   Palette,
   Plus,
   Search,
   Sparkles,
   Trash2,
+  Upload,
   User,
   X,
 } from 'lucide-react'
@@ -19,9 +22,16 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CustomTemplateDialog } from '@/components/CustomTemplateDialog'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
+  BUNDLED_TEMPLATE_PACKS,
   BUILT_IN_TEMPLATE_CATEGORIES,
   DOCUMENT_TEMPLATES,
   createCustomTemplate,
@@ -33,11 +43,17 @@ import {
   mergeTemplates,
   type DocumentTemplate,
   type TemplateCategoryId,
+  type TemplatePack,
 } from '@/lib/templates'
 import type { CustomTemplateCategory } from '@/lib/templates/categories'
+import {
+  exportCustomTemplatesPack,
+  importBundledTemplatePack,
+  pickAndImportTemplatePack,
+} from '@/lib/templates/pack-io'
 import { cn } from '@/lib/utils'
 import { promptInput } from '@/lib/input-dialog'
-import { toast } from '@/lib/toast'
+import { fileBasename, toast } from '@/lib/toast'
 import {
   createAndStoreCategory,
   deleteStoredCategory,
@@ -100,6 +116,7 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
   const [selectedId, setSelectedId] = useState(BLANK_TEMPLATE_ID)
   const [creating, setCreating] = useState(false)
   const [customDialogOpen, setCustomDialogOpen] = useState(false)
+  const [packBusy, setPackBusy] = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -108,6 +125,7 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
     setSelectedId(BLANK_TEMPLATE_ID)
     setCreating(false)
     setCustomDialogOpen(false)
+    setPackBusy(false)
   }, [open])
 
   const categoryCounts = useMemo(() => {
@@ -228,6 +246,72 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
     }
   }
 
+  async function applyImportedPack(result: {
+    packName: string
+    importedCount: number
+    templates: { id: string }[]
+  }) {
+    setCategory('custom')
+    const firstId = result.templates[0]?.id
+    if (firstId) setSelectedId(firstId)
+    toast.success(
+      t('templates.packs.importSuccess', { count: result.importedCount }),
+      result.packName,
+    )
+  }
+
+  async function handleImportPack() {
+    if (packBusy) return
+    setPackBusy(true)
+    try {
+      const result = await pickAndImportTemplatePack(customCategories, {
+        title: t('templates.packs.importDialogTitle'),
+      })
+      if (!result) return
+      await applyImportedPack(result)
+    } catch (error) {
+      toast.error(t('templates.packs.importError'), String(error))
+    } finally {
+      setPackBusy(false)
+    }
+  }
+
+  async function handleExportPack() {
+    if (packBusy) return
+    if (customTemplates.length === 0) {
+      toast.error(t('templates.packs.exportEmpty'))
+      return
+    }
+    setPackBusy(true)
+    try {
+      const path = await exportCustomTemplatesPack({
+        name: t('templates.packs.defaultExportName'),
+        locale: i18n.language,
+        templates: customTemplates,
+        dialogTitle: t('templates.packs.exportDialogTitle'),
+      })
+      if (!path) return
+      toast.success(t('templates.packs.exportSuccess'), fileBasename(path))
+    } catch (error) {
+      toast.error(t('templates.packs.exportError'), String(error))
+    } finally {
+      setPackBusy(false)
+    }
+  }
+
+  async function handleAddBundledPack(pack: TemplatePack) {
+    if (packBusy) return
+    setPackBusy(true)
+    try {
+      const result = await importBundledTemplatePack(pack, customCategories)
+      await applyImportedPack(result)
+    } catch (error) {
+      toast.error(t('templates.packs.importError'), String(error))
+    } finally {
+      setPackBusy(false)
+    }
+  }
+
   return (
     <>
       <Dialog open={open} onOpenChange={(next) => !next && onClose()} modal={!customDialogOpen}>
@@ -249,7 +333,7 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
             </div>
 
             <div className="shrink-0 space-y-3 border-b border-[var(--color-border)] px-5 py-3">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <label className="flex min-w-0 flex-1 items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2">
                   <Search className="h-3.5 w-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
                   <Input
@@ -269,6 +353,63 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
                   <Plus className="h-3.5 w-3.5" />
                   {t('templates.customTemplate')}
                 </Button>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-[11px]"
+                  disabled={packBusy}
+                  onClick={() => void handleImportPack()}
+                >
+                  <Upload className="h-3 w-3" />
+                  {t('templates.packs.import')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-[11px]"
+                  disabled={packBusy || customTemplates.length === 0}
+                  onClick={() => void handleExportPack()}
+                >
+                  <Download className="h-3 w-3" />
+                  {t('templates.packs.export')}
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-[11px] text-[var(--color-accent)] hover:text-[var(--color-accent)]"
+                      disabled={packBusy}
+                    >
+                      <PackagePlus className="h-3 w-3" />
+                      {t('templates.packs.addBundled')}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="min-w-[240px]">
+                    {BUNDLED_TEMPLATE_PACKS.map((item) => (
+                      <DropdownMenuItem
+                        key={item.id}
+                        disabled={packBusy}
+                        onSelect={() => void handleAddBundledPack(item.pack)}
+                      >
+                        <span className="flex min-w-0 flex-col gap-0.5">
+                          <span className="truncate font-medium">{t(item.labelKey)}</span>
+                          <span className="truncate text-[11px] text-[var(--color-muted-foreground)]">
+                            {t('templates.packs.templateCount', {
+                              count: item.pack.templates.length,
+                            })}
+                          </span>
+                        </span>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
               <div className="flex flex-wrap gap-1.5">

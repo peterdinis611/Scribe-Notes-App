@@ -637,6 +637,422 @@ pub(crate) fn store_document_tags(
     Ok(())
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryFindReplaceInput {
+    pub query: String,
+    pub replacement: String,
+    pub dry_run: bool,
+    pub folder_id: Option<String>,
+    pub match_case: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryFindReplaceHit {
+    pub document_id: String,
+    pub title: String,
+    pub match_count: u32,
+    pub preview: String,
+}
+
+fn chars_eq_ignore_case(a: char, b: char) -> bool {
+    a == b || a.to_lowercase().eq(b.to_lowercase())
+}
+
+fn replace_occurrences(haystack: &str, needle: &str, replacement: &str, match_case: bool) -> String {
+    if needle.is_empty() {
+        return haystack.to_string();
+    }
+    if match_case {
+        return haystack.replace(needle, replacement);
+    }
+
+    let needle_chars: Vec<char> = needle.chars().collect();
+    let needle_len = needle_chars.len();
+    if needle_len == 0 {
+        return haystack.to_string();
+    }
+
+    let hay_chars: Vec<(usize, char)> = haystack.char_indices().collect();
+    let mut result = String::with_capacity(haystack.len());
+    let mut last_byte = 0usize;
+    let mut i = 0usize;
+    while i + needle_len <= hay_chars.len() {
+        let matched = hay_chars[i..i + needle_len]
+            .iter()
+            .zip(needle_chars.iter())
+            .all(|((_, hc), nc)| chars_eq_ignore_case(*hc, *nc));
+        if matched {
+            let start = hay_chars[i].0;
+            let end = if i + needle_len < hay_chars.len() {
+                hay_chars[i + needle_len].0
+            } else {
+                haystack.len()
+            };
+            result.push_str(&haystack[last_byte..start]);
+            result.push_str(replacement);
+            last_byte = end;
+            i += needle_len;
+        } else {
+            i += 1;
+        }
+    }
+    result.push_str(&haystack[last_byte..]);
+    result
+}
+
+fn count_occurrences(haystack: &str, needle: &str, match_case: bool) -> usize {
+    if needle.is_empty() {
+        return 0;
+    }
+    if match_case {
+        return haystack.matches(needle).count();
+    }
+
+    let needle_chars: Vec<char> = needle.chars().collect();
+    let needle_len = needle_chars.len();
+    if needle_len == 0 {
+        return 0;
+    }
+    let hay_chars: Vec<char> = haystack.chars().collect();
+    let mut count = 0usize;
+    let mut i = 0usize;
+    while i + needle_len <= hay_chars.len() {
+        let matched = hay_chars[i..i + needle_len]
+            .iter()
+            .zip(needle_chars.iter())
+            .all(|(hc, nc)| chars_eq_ignore_case(*hc, *nc));
+        if matched {
+            count += 1;
+            i += needle_len;
+        } else {
+            i += 1;
+        }
+    }
+    count
+}
+
+/// Replace `query` only inside TipTap text nodes `{"type":"text","text":"..."}`.
+/// Skips `attrs` and other non-text fields. Returns number of substring replacements.
+fn replace_in_tiptap_text_nodes(
+    value: &mut serde_json::Value,
+    query: &str,
+    replacement: &str,
+    match_case: bool,
+) -> usize {
+    let mut count = 0usize;
+    match value {
+        serde_json::Value::Object(map) => {
+            let is_text_node = map
+                .get("type")
+                .and_then(|v| v.as_str())
+                == Some("text");
+
+            if is_text_node {
+                if let Some(serde_json::Value::String(text)) = map.get_mut("text") {
+                    let n = count_occurrences(text, query, match_case);
+                    if n > 0 {
+                        *text = replace_occurrences(text, query, replacement, match_case);
+                        count += n;
+                    }
+                }
+            }
+
+            for (key, child) in map.iter_mut() {
+                if key == "attrs" {
+                    continue;
+                }
+                if is_text_node && key == "text" {
+                    continue;
+                }
+                count += replace_in_tiptap_text_nodes(child, query, replacement, match_case);
+            }
+        }
+        serde_json::Value::Array(items) => {
+            for item in items {
+                count += replace_in_tiptap_text_nodes(item, query, replacement, match_case);
+            }
+        }
+        _ => {}
+    }
+    count
+}
+
+fn count_in_tiptap_text_nodes(value: &serde_json::Value, query: &str, match_case: bool) -> usize {
+    let mut count = 0usize;
+    match value {
+        serde_json::Value::Object(map) => {
+            let is_text_node = map.get("type").and_then(|v| v.as_str()) == Some("text");
+            if is_text_node {
+                if let Some(serde_json::Value::String(text)) = map.get("text") {
+                    count += count_occurrences(text, query, match_case);
+                }
+            }
+            for (key, child) in map.iter() {
+                if key == "attrs" {
+                    continue;
+                }
+                if is_text_node && key == "text" {
+                    continue;
+                }
+                count += count_in_tiptap_text_nodes(child, query, match_case);
+            }
+        }
+        serde_json::Value::Array(items) => {
+            for item in items {
+                count += count_in_tiptap_text_nodes(item, query, match_case);
+            }
+        }
+        _ => {}
+    }
+    count
+}
+
+fn preview_around_match(haystack: &str, query: &str, match_case: bool) -> Option<String> {
+    if query.is_empty() || haystack.is_empty() {
+        return None;
+    }
+    let (start, end) = if match_case {
+        let idx = haystack.find(query)?;
+        (idx, idx + query.len())
+    } else {
+        let needle_chars: Vec<char> = query.chars().collect();
+        let needle_len = needle_chars.len();
+        let hay_chars: Vec<(usize, char)> = haystack.char_indices().collect();
+        let mut found = None;
+        let mut i = 0usize;
+        while i + needle_len <= hay_chars.len() {
+            let matched = hay_chars[i..i + needle_len]
+                .iter()
+                .zip(needle_chars.iter())
+                .all(|((_, hc), nc)| chars_eq_ignore_case(*hc, *nc));
+            if matched {
+                let start = hay_chars[i].0;
+                let end = if i + needle_len < hay_chars.len() {
+                    hay_chars[i + needle_len].0
+                } else {
+                    haystack.len()
+                };
+                found = Some((start, end));
+                break;
+            }
+            i += 1;
+        }
+        found?
+    };
+    let context = 36usize;
+    let from = floor_char_boundary(haystack, start.saturating_sub(context));
+    let to = ceil_char_boundary(haystack, (end + context).min(haystack.len()));
+    let mut preview = String::new();
+    if from > 0 {
+        preview.push('…');
+    }
+    preview.push_str(haystack[from..to].trim());
+    if to < haystack.len() {
+        preview.push('…');
+    }
+    Some(preview)
+}
+
+fn floor_char_boundary(s: &str, mut index: usize) -> usize {
+    if index >= s.len() {
+        return s.len();
+    }
+    while index > 0 && !s.is_char_boundary(index) {
+        index -= 1;
+    }
+    index
+}
+
+fn ceil_char_boundary(s: &str, mut index: usize) -> usize {
+    if index >= s.len() {
+        return s.len();
+    }
+    while index < s.len() && !s.is_char_boundary(index) {
+        index += 1;
+    }
+    index
+}
+
+fn library_find_replace_preview(
+    title: &str,
+    content_json: &str,
+    query: &str,
+    match_case: bool,
+) -> String {
+    let body = crate::db::extract_search_text(content_json);
+    preview_around_match(&body, query, match_case)
+        .or_else(|| preview_around_match(title, query, match_case))
+        .unwrap_or_else(|| title.to_string())
+}
+
+#[tauri::command]
+pub fn library_find_replace(
+    app: AppHandle,
+    state: State<'_, DbState>,
+    input: LibraryFindReplaceInput,
+) -> Result<Vec<LibraryFindReplaceHit>, String> {
+    let query = input.query;
+    if query.is_empty() {
+        return Ok(Vec::new());
+    }
+    let match_case = input.match_case.unwrap_or(false);
+    let replacement = input.replacement;
+    let dry_run = input.dry_run;
+
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+
+    let mut stmt = match &input.folder_id {
+        Some(_) => conn
+            .prepare(&format!(
+                "{DOCUMENT_SELECT} WHERE deleted_at IS NULL AND folder_id = ?1 ORDER BY updated_at DESC"
+            ))
+            .map_err(|e| e.to_string())?,
+        None => conn
+            .prepare(&format!(
+                "{DOCUMENT_SELECT} WHERE deleted_at IS NULL ORDER BY updated_at DESC"
+            ))
+            .map_err(|e| e.to_string())?,
+    };
+
+    let docs: Vec<Document> = match &input.folder_id {
+        Some(folder_id) => {
+            let rows = stmt
+                .query_map(params![folder_id], map_document)
+                .map_err(|e| e.to_string())?;
+            rows.collect::<Result<Vec<_>, _>>()
+                .map_err(|e| e.to_string())?
+        }
+        None => {
+            let rows = stmt
+                .query_map([], map_document)
+                .map_err(|e| e.to_string())?;
+            rows.collect::<Result<Vec<_>, _>>()
+                .map_err(|e| e.to_string())?
+        }
+    };
+
+    let mut hits: Vec<LibraryFindReplaceHit> = Vec::new();
+    let mut pending_persists: Vec<(Document, i64)> = Vec::new();
+
+    if !dry_run {
+        conn.execute("BEGIN IMMEDIATE", [])
+            .map_err(|e| e.to_string())?;
+    }
+
+    let apply_result = (|| -> Result<(), String> {
+        for doc in docs {
+            let title_matches = count_occurrences(&doc.title, &query, match_case);
+            let mut parsed: serde_json::Value =
+                serde_json::from_str(&doc.content_json).unwrap_or(serde_json::json!({
+                    "type": "doc",
+                    "content": [{"type": "paragraph"}]
+                }));
+
+            let content_matches = if dry_run {
+                count_in_tiptap_text_nodes(&parsed, &query, match_case)
+            } else {
+                replace_in_tiptap_text_nodes(&mut parsed, &query, &replacement, match_case)
+            };
+
+            let match_count = title_matches + content_matches;
+            if match_count == 0 {
+                continue;
+            }
+
+            let preview =
+                library_find_replace_preview(&doc.title, &doc.content_json, &query, match_case);
+
+            if dry_run {
+                hits.push(LibraryFindReplaceHit {
+                    document_id: doc.id,
+                    title: doc.title,
+                    match_count: match_count as u32,
+                    preview,
+                });
+                continue;
+            }
+
+            let new_title = if title_matches > 0 {
+                normalize_document_title(&replace_occurrences(
+                    &doc.title,
+                    &query,
+                    &replacement,
+                    match_case,
+                ))
+            } else {
+                doc.title.clone()
+            };
+
+            let new_content = serde_json::to_string(&parsed).map_err(|e| e.to_string())?;
+            let content_changed = new_content != doc.content_json || new_title != doc.title;
+            if !content_changed {
+                continue;
+            }
+
+            let now = now_ts();
+            crate::db::save_revision(&conn, &doc.id, &doc.title, &doc.content_json)?;
+            conn.execute(
+                "UPDATE documents SET title = ?1, content_json = ?2, updated_at = ?3 WHERE id = ?4",
+                params![new_title, new_content, now, doc.id],
+            )
+            .map_err(|e| e.to_string())?;
+            crate::db::sync_document_fts(&conn, &doc.id, &new_title, &new_content)?;
+            crate::db::sync_document_links(&conn, &doc.id, &new_content)?;
+
+            hits.push(LibraryFindReplaceHit {
+                document_id: doc.id.clone(),
+                title: new_title.clone(),
+                match_count: match_count as u32,
+                preview,
+            });
+
+            let created_at = doc.created_at;
+            pending_persists.push((
+                Document {
+                    id: doc.id,
+                    title: new_title,
+                    content_json: new_content,
+                    folder_id: doc.folder_id,
+                    file_path: doc.file_path,
+                    created_at,
+                    updated_at: now,
+                },
+                created_at,
+            ));
+        }
+        Ok(())
+    })();
+
+    if !dry_run {
+        if let Err(error) = apply_result {
+            let _ = conn.execute("ROLLBACK", []);
+            return Err(error);
+        }
+        conn.execute("COMMIT", []).map_err(|e| e.to_string())?;
+
+        for (doc, created_at) in pending_persists {
+            if let Err(error) = queue_document_persist(
+                &app,
+                &conn,
+                &state.persist_queue,
+                &doc.id,
+                &doc.title,
+                &doc.content_json,
+                created_at,
+                doc.updated_at,
+            ) {
+                state.persist_queue.record_error(&doc.id, error);
+            }
+        }
+    } else {
+        apply_result?;
+    }
+
+    Ok(hits)
+}
+
 #[tauri::command]
 pub fn clear_all_documents(app: AppHandle, state: State<'_, DbState>) -> Result<u32, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
@@ -766,5 +1182,43 @@ mod tests {
 
         let removed = scribe_core::remove_document_tag(&conn, "d1", "work").unwrap();
         assert_eq!(removed.tags, vec!["urgent".to_string()]);
+    }
+
+    #[test]
+    fn replace_in_tiptap_skips_attrs() {
+        let mut doc = serde_json::json!({
+            "type": "doc",
+            "content": [{
+                "type": "paragraph",
+                "content": [
+                    {"type": "text", "text": "Hello foo world"},
+                    {
+                        "type": "wikiLink",
+                        "attrs": {"targetId": "foo-id", "label": "foo"},
+                        "content": [{"type": "text", "text": "foo link"}]
+                    }
+                ]
+            }]
+        });
+
+        let count = replace_in_tiptap_text_nodes(&mut doc, "foo", "bar", true);
+        assert_eq!(count, 2);
+        let json = doc.to_string();
+        assert!(json.contains("Hello bar world"));
+        assert!(json.contains("bar link"));
+        assert!(json.contains("\"targetId\":\"foo-id\""));
+        assert!(json.contains("\"label\":\"foo\""));
+    }
+
+    #[test]
+    fn replace_occurrences_case_insensitive() {
+        assert_eq!(
+            replace_occurrences("Foo FOO foo", "foo", "x", false),
+            "x x x"
+        );
+        assert_eq!(
+            replace_occurrences("Foo FOO foo", "foo", "x", true),
+            "Foo FOO x"
+        );
     }
 }

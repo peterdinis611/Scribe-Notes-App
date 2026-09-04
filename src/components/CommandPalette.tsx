@@ -25,11 +25,15 @@ import {
   Sparkles,
   StickyNote,
   Pin,
+  Replace,
   RotateCcw,
   Tag,
+  LayoutGrid,
 } from 'lucide-react'
 import { openQuickNote } from '@/lib/quick-note'
+import { openNewCanvasNote } from '@/lib/canvas/create-canvas'
 import {
+  createWeeklyDigestDocument,
   openEveningNote,
   openMorningNote,
   openThisWeekNote,
@@ -52,6 +56,7 @@ import { focusComment } from '@/lib/editor/comments'
 import { collectHeadingsFromJson } from '@/lib/search/palette-headings'
 import { editorRefs } from '@/store/editorRefs'
 import { getCachedParsedContent, peekCachedDocument } from '@/lib/cache/document-cache'
+import { isCanvasContent } from '@/lib/canvas/types'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
 import { cn, debounce } from '@/lib/utils'
@@ -65,6 +70,7 @@ import {
   setActiveDocumentId,
   setActiveTagFilter,
   setCommentsPanelOpen,
+  setLibraryFindReplaceOpen,
   setPendingEditorSearch,
   setSecondaryDocumentId,
   toggleFocusMode,
@@ -202,6 +208,17 @@ export function CommandPalette() {
           void openQuickNote(documents, dispatch, navigate, (key) => t(key))
         },
       },
+      {
+        type: 'action',
+        id: 'new-canvas',
+        label: t('commandPalette.newCanvas'),
+        icon: <LayoutGrid className="h-4 w-4" />,
+        run: () => {
+          void openNewCanvasNote(dispatch, navigate, (key) => t(key)).catch((error) =>
+            toast.error(t('toasts.documentCreateError'), String(error)),
+          )
+        },
+      },
       ...(activeDocument
         ? [
             {
@@ -214,10 +231,15 @@ export function CommandPalette() {
                   activeDocumentRecord ??
                   (activeDocument ? peekCachedDocument(activeDocument.id) : null)
                 if (!doc) return
+                const parsed = getCachedParsedContent(doc)
+                if (isCanvasContent(parsed)) {
+                  toast.info(t('canvas.saveAsTemplateUnavailable'))
+                  return
+                }
                 dispatch(
                   setSaveCustomTemplateDialog({
                     open: true,
-                    content: getCachedParsedContent(doc),
+                    content: parsed,
                     suggestedName: activeDocument.title,
                     suggestedTitle: activeDocument.title,
                   }),
@@ -300,6 +322,17 @@ export function CommandPalette() {
         icon: <CalendarDays className="h-4 w-4" />,
         run: () => {
           void openThisWeekNote(journalArgs).catch((error) => toast.error(t('journal.openError'), String(error)))
+        },
+      },
+      {
+        type: 'action',
+        id: 'weekly-digest',
+        label: t('commandPalette.weeklyDigest'),
+        icon: <Sparkles className="h-4 w-4" />,
+        run: () => {
+          void createWeeklyDigestDocument(journalArgs).catch((error) =>
+            toast.error(t('journal.digestError'), String(error)),
+          )
         },
       },
       {
@@ -421,6 +454,17 @@ export function CommandPalette() {
             },
           ]
         : []),
+      {
+        type: 'action',
+        id: 'library-find-replace',
+        label: t('commandPalette.libraryFindReplace'),
+        hint: getDisplayKeysForShortcut('libraryFindReplace', shortcutOverrides).join(''),
+        icon: <Replace className="h-4 w-4" />,
+        run: () => {
+          dispatch(setCommandPaletteOpen(false))
+          dispatch(setLibraryFindReplaceOpen(true))
+        },
+      },
       {
         type: 'action',
         id: 'settings',

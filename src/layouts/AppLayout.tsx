@@ -32,6 +32,7 @@ import { StorageAccessDialogHost } from '@/components/StorageAccessDialogHost'
 import { SaveCustomTemplateDialogHost } from '@/components/SaveCustomTemplateDialogHost'
 import { ToastHost } from '@/components/ToastHost'
 import { TrashDialog } from '@/components/TrashDialog'
+import { LibraryFindReplaceDialog } from '@/components/LibraryFindReplaceDialog'
 import { readOnboardingDismissed, readWhatsNewVersion } from '@/store/persistence'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
@@ -214,6 +215,7 @@ export function AppLayout() {
       <StorageAccessDialogHost />
       <SaveCustomTemplateDialogHost />
       <TrashDialog />
+      <LibraryFindReplaceDialog />
       <OnboardingTour onFinished={maybeOpenWhatsNew} />
       <WhatsNewDialog open={whatsNewOpen} onClose={() => setWhatsNewOpen(false)} />
       <ToastHost />

@@ -17,15 +17,22 @@ type NavigateFn = (route: ReturnType<typeof ROUTES.home> | ReturnType<typeof ROU
 export function closeActiveDocumentAndMaybeHome(args: {
   activeId: string | null
   openDocumentIds: string[]
+  pinnedDocumentIds?: string[]
   dispatch: AppDispatch
   navigate: NavigateFn
 }) {
   const { activeId, openDocumentIds, dispatch, navigate } = args
+  const pinned = new Set(args.pinnedDocumentIds ?? [])
+
   if (!activeId) {
     dispatch(setActiveDocumentId(null))
     dispatch(setActiveDocument(null))
     dispatch(clearDocumentNav())
     void navigate(ROUTES.home())
+    return
+  }
+
+  if (pinned.has(activeId)) {
     return
   }
 
