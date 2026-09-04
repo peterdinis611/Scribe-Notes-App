@@ -29,6 +29,10 @@ import { tiptapJsonToHtmlAsync } from '@/lib/export/html'
 import { tiptapJsonToMarkdown } from '@/lib/export/markdown'
 import { tiptapToPlainText } from '@/lib/export/plain-text'
 import { exportEditorSelection } from '@/lib/export/selection'
+import {
+  shareDocumentPackage,
+  type SharePackageFormat,
+} from '@/lib/export/share-package'
 import { ROUTES, useSettingsSections } from '@/lib/routes'
 import { closeActiveDocumentAndMaybeHome, goToHome } from '@/lib/navigation'
 import { cn } from '@/lib/utils'
@@ -231,6 +235,23 @@ function EditorChrome() {
     }
   }
 
+  async function handleSharePackage(format: SharePackageFormat) {
+    if (!document) return
+    try {
+      const result = await shareDocumentPackage({
+        contentJson: document.contentJson,
+        title: document.title,
+        format,
+        pageSetup,
+      })
+      if (result?.path) {
+        toast.success(t('toasts.sharePackageDone'), result.path)
+      }
+    } catch {
+      toast.error(t('toasts.sharePackageError'))
+    }
+  }
+
   async function handleImport() {
     const doc = await pickAndImportFile()
     if (!doc) return
@@ -300,6 +321,7 @@ function EditorChrome() {
             onCloseDocument={document ? handleCloseDocument : undefined}
             onExport={document ? (format) => void handleExport(format) : undefined}
             onExportSelection={document ? (format) => void handleExportSelection(format) : undefined}
+            onSharePackage={document ? (format) => void handleSharePackage(format) : undefined}
             hasSelection
           />
           {document ? (

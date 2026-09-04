@@ -11,12 +11,11 @@ import {
 import {
   flushPendingWrites,
   getBackendStats,
-  reconcileStorage,
   type BackendStats,
 } from '@/lib/db/api'
 import { toast } from '@/lib/toast'
 import { useAppDispatch } from '@/store/hooks'
-import { applyDiskPersistResult } from '@/lib/disk-sync'
+import { applyDiskPersistResult, runFolderReconcile } from '@/lib/disk-sync'
 
 const RELEASES_URL = 'https://github.com/peterdinis611/Scribe-Notes-App/releases'
 
@@ -72,9 +71,8 @@ export function DiagnosticsSection() {
   async function handleReconcile() {
     setSyncing(true)
     try {
-      await reconcileStorage()
-      toast.success(t('toasts.reconcileSuccess'))
-      await refresh()
+      const result = await runFolderReconcile(dispatch, { force: true, announceSuccess: true })
+      if (result) await refresh()
     } catch (error) {
       toast.error(t('toasts.reconcileError'), String(error))
     } finally {

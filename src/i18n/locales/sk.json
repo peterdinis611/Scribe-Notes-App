@@ -103,6 +103,9 @@
     "exportEpub": "EPUB",
     "exportTxt": "Text (TXT)",
     "exportPages": "Apple Pages",
+    "sharePackage": "Zdieľať balík…",
+    "sharePackagePdf": "Zdieľať ako PDF",
+    "sharePackageHtmlZip": "Zdieľať ako HTML ZIP",
     "openedFromFinder": "Otvorené „{{title}}“",
     "openFromFinderError": "Súbor sa nepodarilo otvoriť"
   },
@@ -362,10 +365,10 @@
     },
     "storage": {
       "pageTitle": "Úložisko",
-      "pageDescription": "Priečinok na disku, záloha knižnice a vymazanie údajov.",
+      "pageDescription": "Priečinok na disku pre .scribe súbory. Na sync medzi Macmi použite iCloud Drive alebo Dropbox — Scribe nemá vlastný cloud.",
       "folderTitle": "Priečinok dokumentov",
       "folderDescription": "Všetky dokumenty sa ukladajú do lokálnej databázy aplikácie. Tento priečinok drží zálohu vo formáte .scribe.",
-      "folderDescriptionShort": "Lokálna databáza + .scribe súbory na disku.",
+      "folderDescriptionShort": "Lokálna databáza + .scribe súbory na disku. Pre sync medzi Macmi nastavte priečinok v iCloud Drive alebo Dropboxe.",
       "folderNote": "Ak zápis na disk zlyhá, editor naďalej funguje a dokument zostane uložený v aplikácii. V takom prípade zmeňte priečinok alebo skontrolujte oprávnenia k disku.",
       "whyAccessLink": "Prečo prístup?",
       "changeFolder": "Zmeniť",
@@ -374,6 +377,12 @@
       "reconciling": "Synchronizujem…",
       "reconcileSuccess": "Synchronizované: {{toDisk}} na disk, {{fromDisk}} z disku, {{imported}} nových.",
       "reconcileFailed": "Synchronizácia zlyhala.",
+      "syncTipTitle": "Sync medzi Macmi",
+      "syncTipDescription": "Scribe nesynchronizuje cez internet. Uložte priečinok dokumentov do iCloud Drive alebo Dropboxu a na každom Macu otvorte Scribe (auto-sync alebo Synchronizovať).",
+      "autoSyncTitle": "Automatická sync priečinka",
+      "autoSyncDescription": "Pri focus okna a približne každých 5 minút zosúladí priečinok s knižnicou.",
+      "autoSyncOn": "Zapnuté",
+      "autoSyncOff": "Vypnuté",
       "clearTitle": "Vyčistiť údaje",
       "clearDescription": "Vymaže všetky dokumenty z aplikácie, príslušné .scribe súbory na disku a uložené obrázky.",
       "clearDescriptionShort": "Natrvalo zmaže dokumenty, .scribe súbory a obrázky.",
@@ -650,7 +659,9 @@
   },
   "diskSync": {
     "warning": "Zápis .scribe súboru na disk zlyhal. Dokument je uložený v aplikácii. Skontrolujte Nastavenia → Úložisko.",
-    "toastTitle": "Uložené iba v aplikácii"
+    "toastTitle": "Uložené iba v aplikácii",
+    "updatedFromDiskTitle": "Aktualizované z priečinka",
+    "updatedFromDiskDescription": "{{count}} dokument(ov) obnovených z disku."
   },
   "shortcuts": {
     "newDocument": {
@@ -1204,6 +1215,8 @@
     "documentSaved": "Dokument uložený",
     "exportDone": "Export dokončený",
     "exportError": "Export zlyhal",
+    "sharePackageDone": "Balík na zdieľanie je pripravený",
+    "sharePackageError": "Nepodarilo sa vytvoriť balík na zdieľanie",
     "demoOpened": "Ukážkový dokument otvorený",
     "demoCreated": "Ukážkový dokument vytvorený",
     "demoError": "Nepodarilo sa načítať ukážkový dokument",

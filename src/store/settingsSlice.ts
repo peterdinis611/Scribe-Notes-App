@@ -7,6 +7,7 @@ import type { ThemeSettings } from '@/lib/themes/types'
 import type { UiSkin } from '@/lib/ui-skin'
 import {
   persistEditorViewMode,
+  persistFolderAutoSyncEnabled,
   persistPageSetup,
   persistPrintColumns,
   persistPrintLayoutEnabled,
@@ -16,6 +17,7 @@ import {
   persistLocale,
   persistUiSkin,
   readEditorViewMode,
+  readFolderAutoSyncEnabled,
   readLocale,
   readPageSetup,
   readPrintColumns,
@@ -50,6 +52,7 @@ export interface SettingsState {
   printZoom: number
   printLayoutColumns: PrintLayoutColumns
   spellCheckEnabled: boolean
+  folderAutoSyncEnabled: boolean
   shortcutOverrides: ShortcutOverrides
 }
 
@@ -65,6 +68,7 @@ const initialState: SettingsState = {
   printZoom: readPrintZoom(),
   printLayoutColumns: readPrintColumns(),
   spellCheckEnabled: readSpellCheckEnabled(),
+  folderAutoSyncEnabled: readFolderAutoSyncEnabled(),
   shortcutOverrides: readShortcutOverrides(),
 }
 
@@ -117,6 +121,10 @@ const settingsSlice = createSlice({
       state.spellCheckEnabled = action.payload
       persistSpellCheckEnabled(action.payload)
     },
+    setFolderAutoSyncEnabled(state, action: PayloadAction<boolean>) {
+      state.folderAutoSyncEnabled = action.payload
+      persistFolderAutoSyncEnabled(action.payload)
+    },
     setShortcutOverride(state, action: PayloadAction<{ id: string; hotkey: string | null }>) {
       const next = { ...state.shortcutOverrides }
       if (action.payload.hotkey) {
@@ -146,6 +154,7 @@ export const {
   setPrintZoom,
   setPrintLayoutColumns,
   setSpellCheckEnabled,
+  setFolderAutoSyncEnabled,
   setShortcutOverride,
   resetShortcutOverrides,
 } = settingsSlice.actions

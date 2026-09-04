@@ -102,6 +102,15 @@ export function DocumentPage() {
     }
   }, [activeId, documentId, resolvedDocument, saveStatus, navigate, dispatch])
 
+  const isCanvas = useMemo(() => {
+    if (!resolvedDocument) return false
+    try {
+      return isCanvasContent(JSON.parse(resolvedDocument.contentJson))
+    } catch {
+      return false
+    }
+  }, [resolvedDocument])
+
   if (!documentId || !resolvedDocument || resolvedDocument.id !== documentId) {
     return (
       <div className="editor-shell">
@@ -113,14 +122,6 @@ export function DocumentPage() {
   }
 
   const split = Boolean(secondaryDocumentId && secondaryDocumentId !== documentId)
-
-  const isCanvas = useMemo(() => {
-    try {
-      return isCanvasContent(JSON.parse(resolvedDocument.contentJson))
-    } catch {
-      return false
-    }
-  }, [resolvedDocument.contentJson])
 
   const editor = (
     <Suspense fallback={<DocumentEditorFallback />}>

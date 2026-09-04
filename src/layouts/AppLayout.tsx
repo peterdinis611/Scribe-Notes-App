@@ -16,6 +16,7 @@ import { WhatsNewDialog } from '@/components/WhatsNewDialog'
 import { useLayoutTier } from '@/hooks/useLayoutTier'
 import { useResponsiveSidebar } from '@/hooks/useResponsiveSidebar'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
+import { useFolderAutoSync } from '@/hooks/useFolderAutoSync'
 import { APP_VERSION } from '@/lib/app-version'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { createDocument, flushPendingWrites, importFile } from '@/lib/db/api'
@@ -66,6 +67,7 @@ function useDocumentRouteSync() {
 export function AppLayout() {
   useDocumentRouteSync()
   useKeyboardShortcuts()
+  useFolderAutoSync()
   const templatePickerOpen = useAppSelector((state) => state.settings.templatePickerOpen)
   const movePickerOpen = useAppSelector((state) => state.folders.moveDocumentPickerOpen)
   const activeDocument = useAppSelector((state) => state.documents.activeDocument)

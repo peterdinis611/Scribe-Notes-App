@@ -12,6 +12,7 @@ const CUSTOM_TEMPLATES_KEY = 'scribe-custom-templates'
 const CUSTOM_TEMPLATE_CATEGORIES_KEY = 'scribe-custom-template-categories'
 const STORAGE_ACCESS_EXPLAINER_KEY = 'scribe-storage-access-explainer-dismissed'
 const STORAGE_FOLDER_ACCESS_GRANTED_KEY = 'scribe-storage-folder-access-granted'
+const FOLDER_AUTO_SYNC_KEY = 'scribe-folder-auto-sync'
 const LOCALE_KEY = 'scribe-locale'
 const ACTIVE_DOCUMENT_ID_KEY = 'scribe-active-document-id'
 const ONBOARDING_DISMISSED_KEY = 'scribe-onboarding-dismissed'
@@ -37,6 +38,7 @@ export {
     PRINT_ZOOM_KEY,
     SCRATCH_DOCUMENT_ID_KEY,
     SHORTCUT_OVERRIDES_KEY,
+    FOLDER_AUTO_SYNC_KEY,
     STORAGE_ACCESS_EXPLAINER_KEY,
     STORAGE_FOLDER_ACCESS_GRANTED_KEY,
     THEME_KEY_LEGACY,

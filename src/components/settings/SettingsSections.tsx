@@ -24,6 +24,7 @@ import {
   getDisplayKeysForShortcut,
 } from '@/lib/shortcuts'
 import { reloadLibraryFromBackend } from '@/lib/library-reload'
+import { runFolderReconcile } from '@/lib/disk-sync'
 import { ROUTES } from '@/lib/routes'
 import { THEME_PRESETS } from '@/lib/themes/presets'
 import { generateRandomTheme } from '@/lib/themes/generate-random-theme'
@@ -35,7 +36,6 @@ import {
   exportLibraryArchive,
   getStorageSettings,
   importLibraryArchive,
-  reconcileStorage,
   revealInFinder,
 } from '@/lib/db/api'
 import { toast } from '@/lib/toast'
@@ -48,7 +48,7 @@ import {
   setDocuments,
   setSaveStatus,
 } from '@/store/documentsSlice'
-import { setStorageSettings, setThemeSettings, setUiSkin, setShortcutOverride, resetShortcutOverrides } from '@/store/settingsSlice'
+import { setStorageSettings, setThemeSettings, setUiSkin, setShortcutOverride, resetShortcutOverrides, setFolderAutoSyncEnabled } from '@/store/settingsSlice'
 import { persistStorageFolderAccessGranted } from '@/store/persistence'
 import {
   createCustomThemeSelection,
@@ -224,6 +224,7 @@ export function AppearanceSection() {
 
 export function StorageSection() {
   const settings = useAppSelector((state) => state.settings.storageSettings)
+  const folderAutoSyncEnabled = useAppSelector((state) => state.settings.folderAutoSyncEnabled)
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const { t } = useTranslation()
@@ -262,7 +263,11 @@ export function StorageSection() {
     setReconciling(true)
     setReconcileMessage(null)
     try {
-      const result = await reconcileStorage()
+      const result = await runFolderReconcile(dispatch, { force: true, announceSuccess: true })
+      if (!result) {
+        setReconcileMessage(t('settings.storage.reconcileFailed'))
+        return
+      }
       setReconcileMessage(
         t('settings.storage.reconcileSuccess', {
           toDisk: result.syncedToDiskCount,
@@ -270,7 +275,6 @@ export function StorageSection() {
           imported: result.importedCount,
         }),
       )
-      toast.success(t('toasts.reconcileSuccess'))
     } catch {
       setReconcileMessage(t('settings.storage.reconcileFailed'))
       toast.error(t('toasts.reconcileError'))
@@ -378,6 +382,25 @@ export function StorageSection() {
           </Button>
           <Button variant="ghost" size="sm" disabled={reconciling} onClick={() => void handleReconcile()}>
             {reconciling ? t('settings.storage.reconciling') : t('settings.storage.reconcile')}
+          </Button>
+        </SettingsRow>
+
+        <SettingsRow
+          title={t('settings.storage.syncTipTitle')}
+          description={t('settings.storage.syncTipDescription')}
+        />
+
+        <SettingsRow
+          title={t('settings.storage.autoSyncTitle')}
+          description={t('settings.storage.autoSyncDescription')}
+        >
+          <Button
+            type="button"
+            variant={folderAutoSyncEnabled ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => dispatch(setFolderAutoSyncEnabled(!folderAutoSyncEnabled))}
+          >
+            {folderAutoSyncEnabled ? t('settings.storage.autoSyncOn') : t('settings.storage.autoSyncOff')}
           </Button>
         </SettingsRow>
 

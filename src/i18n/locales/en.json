@@ -103,6 +103,9 @@
     "exportEpub": "EPUB",
     "exportTxt": "Text (TXT)",
     "exportPages": "Apple Pages",
+    "sharePackage": "Share package…",
+    "sharePackagePdf": "Share as PDF",
+    "sharePackageHtmlZip": "Share as HTML ZIP",
     "openedFromFinder": "Opened „{{title}}“",
     "openFromFinderError": "Could not open file"
   },
@@ -362,10 +365,10 @@
     },
     "storage": {
       "pageTitle": "Storage",
-      "pageDescription": "Disk folder, library backup, and clearing data.",
+      "pageDescription": "Choose a disk folder for .scribe files. Prefer iCloud Drive or Dropbox for multi-Mac sync — Scribe has no cloud of its own.",
       "folderTitle": "Documents folder",
       "folderDescription": "All documents are stored in the app's local database. This folder holds .scribe backups.",
-      "folderDescriptionShort": "Local database + .scribe files on disk.",
+      "folderDescriptionShort": "Local database + .scribe files on disk. Point this at iCloud Drive or Dropbox to sync across Macs.",
       "folderNote": "If disk writes fail, the editor keeps working and the document stays saved in the app. Change the folder or check disk permissions.",
       "whyAccessLink": "Why access?",
       "changeFolder": "Change",
@@ -374,6 +377,12 @@
       "reconciling": "Syncing…",
       "reconcileSuccess": "Synced: {{toDisk}} to disk, {{fromDisk}} from disk, {{imported}} new.",
       "reconcileFailed": "Sync failed.",
+      "syncTipTitle": "Multi-Mac sync",
+      "syncTipDescription": "Scribe does not sync over the internet. Put the documents folder in iCloud Drive or Dropbox, then open Scribe on each Mac (auto-sync or Sync).",
+      "autoSyncTitle": "Auto-sync folder",
+      "autoSyncDescription": "On window focus and about every 5 minutes, reconcile the folder with the library.",
+      "autoSyncOn": "On",
+      "autoSyncOff": "Off",
       "clearTitle": "Clear data",
       "clearDescription": "Deletes all documents from the app, related .scribe files on disk, and stored images.",
       "clearDescriptionShort": "Permanently deletes documents, .scribe files, and images.",
@@ -650,7 +659,9 @@
   },
   "diskSync": {
     "warning": "Writing the .scribe file to disk failed. The document is saved in the app. Check Settings → Storage.",
-    "toastTitle": "Saved in app only"
+    "toastTitle": "Saved in app only",
+    "updatedFromDiskTitle": "Updated from folder",
+    "updatedFromDiskDescription": "{{count}} document(s) refreshed from disk."
   },
   "shortcuts": {
     "newDocument": {
@@ -1196,6 +1207,8 @@
     "documentSaved": "Document saved",
     "exportDone": "Export completed",
     "exportError": "Export failed",
+    "sharePackageDone": "Share package ready",
+    "sharePackageError": "Could not create share package",
     "demoOpened": "Demo document opened",
     "demoCreated": "Demo document created",
     "demoError": "Failed to load demo document",

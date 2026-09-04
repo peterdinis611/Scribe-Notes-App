@@ -6,8 +6,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
-import { ChevronDown, Eye, FileDown, FileSymlink, FolderInput, Home, LayoutTemplate, Printer, X } from 'lucide-react'
+import { ChevronDown, Eye, FileDown, FileSymlink, FolderInput, Home, LayoutTemplate, Printer, Share2, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import type { SharePackageFormat } from '@/lib/export/share-package'
 
 type EditorFileMenuProps = {
   hasDocument?: boolean
@@ -21,6 +22,7 @@ type EditorFileMenuProps = {
   onGoHome?: () => void
   onExport?: (format: 'pdf' | 'docx' | 'txt' | 'pages' | 'md' | 'html' | 'html-zip' | 'epub') => void
   onExportSelection?: (format: 'md' | 'pdf') => void
+  onSharePackage?: (format: SharePackageFormat) => void
   hasSelection?: boolean
 }
 
@@ -36,6 +38,7 @@ export function EditorFileMenu({
   onGoHome,
   onExport,
   onExportSelection,
+  onSharePackage,
   hasSelection = false,
 }: EditorFileMenuProps) {
   const { t } = useTranslation()
@@ -94,6 +97,19 @@ export function EditorFileMenu({
             <Printer className="h-3.5 w-3.5 shrink-0" />
             {t('fileMenu.print')}
           </DropdownMenuItem>
+        )}
+        {hasDocument && onSharePackage && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => onSharePackage('pdf')}>
+              <Share2 className="h-3.5 w-3.5 shrink-0" />
+              {t('fileMenu.sharePackagePdf')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onSharePackage('html-zip')}>
+              <Share2 className="h-3.5 w-3.5 shrink-0" />
+              {t('fileMenu.sharePackageHtmlZip')}
+            </DropdownMenuItem>
+          </>
         )}
         {hasDocument && onExport && (
           <>
