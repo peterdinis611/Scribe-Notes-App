@@ -3,6 +3,8 @@ from __future__ import annotations
 import re
 from collections import Counter
 
+from .stopwords import STOP_WORDS, STOP_WORDS_EN, STOP_WORDS_SK
+
 WORD_RE = re.compile(r"[\w\u00C0-\u024F]+", re.UNICODE)
 SENTENCE_SPLIT = re.compile(r"(?<=[.!?…])\s+")
 WHITESPACE_RE = re.compile(r"\s+")
@@ -19,88 +21,19 @@ URL_RE = re.compile(r"https?://[^\s<>\"']+", re.IGNORECASE)
 WIKI_LINK_RE = re.compile(r"\[\[([^\]|]+)(?:\|[^\]]+)?\]\]")
 PHONE_RE = re.compile(r"(?<!\d)(?:\+421|0)\s?\d{2,3}\s?\d{3}\s?\d{3}(?:\s?\d{3})?(?!\d)")
 
-STOP_WORDS = frozenset(
-    {
-        "a",
-        "an",
-        "the",
-        "and",
-        "or",
-        "to",
-        "of",
-        "in",
-        "on",
-        "for",
-        "with",
-        "is",
-        "are",
-        "was",
-        "were",
-        "be",
-        "been",
-        "je",
-        "sa",
-        "na",
-        "do",
-        "od",
-        "po",
-        "pre",
-        "aby",
-        "som",
-        "si",
-        "sme",
-        "ste",
-        "sú",
-        "že",
-        "ako",
-        "ale",
-        "pri",
-        "už",
-        "nie",
-        "tak",
-        "to",
-        "ta",
-        "ten",
-        "tá",
-        "toto",
-        "táto",
-        "ktorý",
-        "ktorá",
-        "ktoré",
-        "ktorí",
-        "ktorých",
-        "ktorým",
-        "tento",
-        "táto",
-        "toto",
-        "tieto",
-        "tam",
-        "tu",
-        "potom",
-        "potom",
-        "keď",
-        "kedy",
-        "kde",
-        "preto",
-        "pretože",
-        "lebo",
-        "aby",
-        "veľmi",
-        "viac",
-        "menej",
-        "len",
-        "ešte",
-        "už",
-        "iba",
-        "možno",
-        "proste",
-        "vlastne",
-        "prosím",
-        "dnes",
-        "včera",
-        "zajtra",
-    }
-)
+# Re-export for callers that imported STOP_WORDS from text_utils.
+__all__ = [
+    "STOP_WORDS",
+    "STOP_WORDS_EN",
+    "STOP_WORDS_SK",
+    "normalize_text",
+    "tokenize",
+    "content_tokens",
+    "split_sentences",
+    "jaccard_similarity",
+    "top_terms",
+    "truncate_text",
+]
 
 
 def normalize_text(text: str) -> str:
@@ -109,6 +42,15 @@ def normalize_text(text: str) -> str:
 
 def tokenize(text: str) -> list[str]:
     return [token.lower() for token in WORD_RE.findall(text or "") if len(token) > 1]
+
+
+def content_tokens(text: str) -> list[str]:
+    """Tokens with stopwords and ultra-short noise removed."""
+    return [
+        token
+        for token in tokenize(text)
+        if token not in STOP_WORDS and len(token) > 2
+    ]
 
 
 def split_sentences(text: str) -> list[str]:
@@ -120,8 +62,8 @@ def split_sentences(text: str) -> list[str]:
 
 
 def jaccard_similarity(left: str, right: str) -> float:
-    left_tokens = set(tokenize(left))
-    right_tokens = set(tokenize(right))
+    left_tokens = set(content_tokens(left))
+    right_tokens = set(content_tokens(right))
     if not left_tokens or not right_tokens:
         return 0.0
     intersection = len(left_tokens & right_tokens)
@@ -132,7 +74,7 @@ def jaccard_similarity(left: str, right: str) -> float:
 def top_terms(texts: list[str], limit: int = 12) -> list[tuple[str, int]]:
     counter: Counter[str] = Counter()
     for text in texts:
-        counter.update(token for token in tokenize(text) if token not in STOP_WORDS)
+        counter.update(content_tokens(text))
     return counter.most_common(limit)
 
 

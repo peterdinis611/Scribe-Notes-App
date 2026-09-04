@@ -1,3 +1,3 @@
 """Scribe local NLP sidecar — stdlib only, no cloud."""
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"

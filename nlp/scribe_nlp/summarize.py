@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import Counter
 
-from .text_utils import jaccard_similarity, split_sentences, tokenize
+from .text_utils import content_tokens, jaccard_similarity, split_sentences
 
 
 def _sentence_weight(
@@ -11,11 +11,11 @@ def _sentence_weight(
     total_sentences: int,
     doc_freq: Counter[str],
 ) -> float:
-    tokens = tokenize(sentence)
+    tokens = content_tokens(sentence)
     if not tokens:
         return 0.0
 
-    # Rare terms in the document score higher (IDF-lite).
+    # Rare content terms in the document score higher (IDF-lite).
     score = sum(1.0 / max(doc_freq[token], 1) for token in tokens) / len(tokens)
 
     if index == 0:
@@ -23,9 +23,8 @@ def _sentence_weight(
     elif index == total_sentences - 1:
         score *= 1.1
 
-    # Prefer informative sentences over very short fragments.
-    if len(tokens) >= 6:
-        score *= 1.05
+    if len(tokens) >= 5:
+        score *= 1.08
 
     return score
 
@@ -79,7 +78,7 @@ def summarize_text(text: str, max_sentences: int = 4) -> dict[str, object]:
     if len(sentences) <= max_sentences:
         return {"summary": " ".join(sentences), "bullets": sentences[:max_sentences]}
 
-    doc_freq = Counter(tokenize(" ".join(sentences)))
+    doc_freq = Counter(content_tokens(" ".join(sentences)))
     weights = [
         _sentence_weight(index, sentence, len(sentences), doc_freq)
         for index, sentence in enumerate(sentences)

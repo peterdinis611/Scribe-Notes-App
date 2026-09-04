@@ -30,6 +30,7 @@ Scribe runs locally on your Mac. No accounts, no cloud — documents, the databa
 - Command palette (`⌘K`) with fuzzy matching, recent docs, and wiki targets
 - **Pinned tabs** — keep documents open until you unpin them
 - Optional MCP bridge for AI tools (Cursor / Claude) — Settings → MCP; see [`crates/scribe-mcp/`](crates/scribe-mcp/)
+- Optional **Local AI** (Python sidecar): semantic search, tag suggestions, keywords/language, journal digest, library report — see [`nlp/README.md`](nlp/README.md)
 
 ### Documents
 - Custom **`.scribe`** format + disk sync
@@ -224,4 +225,4 @@ The SQLite schema is versioned in `src-tauri/src/db/migrations.rs`. Migrations r
 
 ## Version
 
-Current version: **1.0.0**
+Current version: **1.1.0**

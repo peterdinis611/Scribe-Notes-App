@@ -30,6 +30,7 @@ Scribe beží lokálne na vašom Macu. Žiadne účty, žiadny cloud — dokumen
 - Príkazová paleta (`⌘K`) s fuzzy matchingom, nedávnymi dokumentmi a wiki cieľmi
 - **Pripnuté taby** — dokumenty ostanú otvorené, kým ich neodopneš
 - Voliteľný MCP most pre AI nástroje (Cursor / Claude) — Nastavenia → MCP; pozri [`crates/scribe-mcp/`](crates/scribe-mcp/)
+- Voliteľná **Lokálna AI** (Python sidecar): sémantické hľadanie, tagy, kľúčové slová/jazyk, denníkový digest, analýza knižnice — pozri [`nlp/README.md`](nlp/README.md)
 
 ### Dokumenty
 - Vlastný formát **`.scribe`** + synchronizácia na disk
@@ -224,4 +225,4 @@ Schéma SQLite je verzovaná v `src-tauri/src/db/migrations.rs`. Pri štarte apl
 
 ## Verzia
 
-Aktuálna verzia: **1.0.0**
+Aktuálna verzia: **1.1.0**

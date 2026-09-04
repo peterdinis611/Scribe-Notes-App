@@ -237,9 +237,21 @@
   },
   "whatsNew": {
     "badge": "Novinky {{version}}",
-    "title": "Scribe 1.0",
-    "subtitle": "Prvá stabilná verzia — menší balík, spoľahlivejší editor a natívny export.",
+    "title": "Scribe 1.1",
+    "subtitle": "Silnejšia Lokálna AI, pokojnejší print layout a nástroje na každodenné písanie.",
     "gotIt": "Rozumiem",
+    "localAiKeywords": {
+      "title": "Chytrejšia Lokálna AI",
+      "description": "Kľúčové slová, detekcia jazyka a lepšie SK stopwords — offline v paneli AI prehľad."
+    },
+    "printLayout": {
+      "title": "Print layout",
+      "description": "Papier ostáva papierom na stole, jemnejší hero prázdnej stránky a jasnejšie dark sheet."
+    },
+    "powerTools": {
+      "title": "Piny a ďalšie",
+      "description": "Pripnuté taby, undo kôš, knižničné nájsť/nahradiť, canvas, balíky šablón a lokálny share."
+    },
     "v1Release": {
       "title": "Stabilné 1.0",
       "description": "Scribe je pripravený na každodenné písanie: knižnica, denník, šablóny, komentáre a Lokálna AI na jednom mieste."
@@ -1007,9 +1019,16 @@
     },
     "insights": {
       "title": "AI prehľad",
-      "subtitle": "Podobné poznámky a otvorené úlohy",
+      "subtitle": "Kľúčové slová, podobné poznámky a otvorené úlohy",
       "hide": "Skryť AI prehľad",
       "loadError": "Nepodarilo sa načítať AI prehľad",
+      "keywords": "Kľúčové slová",
+      "keywordsEmpty": "Zatiaľ žiadne silné kľúčové slová — napíšte viac textu.",
+      "keywordsDisabled": "Zapnite Lokálnu AI v nastaveniach pre kľúčové slová.",
+      "languageLine": "Detegovaný jazyk: {{language}}",
+      "languageSk": "slovenčina",
+      "languageEn": "angličtina",
+      "languageUnknown": "neznámy",
       "similar": "Podobné dokumenty",
       "similarHint": "Na základe existujúceho sémantického indexu.",
       "similarDisabled": "Zapnite Lokálnu AI v nastaveniach pre podobné dokumenty.",

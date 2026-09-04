@@ -1,4 +1,4 @@
-import { FileDown, Package, Trash2 } from 'lucide-react'
+import { FileText, Pin, Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
@@ -13,9 +13,9 @@ import { APP_VERSION } from '@/lib/app-version'
 import { persistWhatsNewVersion } from '@/store/persistence'
 
 const HIGHLIGHTS = [
-  { id: 'v1Release', icon: Package },
-  { id: 'nativePdf', icon: FileDown },
-  { id: 'reliableTrash', icon: Trash2 },
+  { id: 'localAiKeywords', icon: Sparkles },
+  { id: 'printLayout', icon: FileText },
+  { id: 'powerTools', icon: Pin },
 ] as const
 
 type WhatsNewDialogProps = {

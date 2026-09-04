@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import re
 
+from .keywords import keywords_as_tags
+from .language import detect_language
 from .text_utils import (
     CAP_PHRASE_RE,
     DATE_RE,
@@ -70,4 +72,14 @@ def extract_entities(text: str) -> dict[str, object]:
         entities.append({"text": phrase, "kind": "phrase"})
         _append_unique(suggestions, seen_suggestions, _slugify(phrase))
 
-    return {"entities": entities, "tagSuggestions": suggestions[:12]}
+    for tag in keywords_as_tags(source, limit=8):
+        _append_unique(suggestions, seen_suggestions, tag)
+
+    language = detect_language(source)
+
+    return {
+        "entities": entities,
+        "tagSuggestions": suggestions[:16],
+        "language": language.get("language"),
+        "languageConfidence": language.get("confidence"),
+    }

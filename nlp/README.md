@@ -11,19 +11,20 @@ Optional **local** Python service for semantic search, journal summaries, tag su
 | Vrstva | Čo robí |
 |--------|---------|
 | **Rust jadro** | Editor, SQLite databáza, fulltext (FTS), ukladanie, export — funguje vždy |
-| **Python sidecar** | Embeddings, sémantické vyhľadávanie, sumarizácia, NER, analýza knižnice — voliteľné |
+| **Python sidecar** | Embeddings, sémantické vyhľadávanie, sumarizácia, NER, keywords, jazyk, outline — voliteľné |
 
 ### Čo získate po zapnutí
 
 - **Sémantické vyhľadávanie** v ⌘K (scope „Sémanticky“ alebo hybrid v „Všetko“)
 - **Návrhy tagov** v kontextovom menu dokumentu
+- **Kľúčové slová + jazyk** v AI prehľade dokumentu
 - **Týždenný prehľad denníka** (Library → Journal)
 - **Analýza knižnice** v Nastaveniach → Lokálna AI
 
 ### Požiadavky
 
 - Python **3.10+** (`python3` v PATH)
-- **Žiadne pip závislosti** — len štandardná knižnica Pythonu
+- **Žiadne pip závislosti** — len štandardná knižnica Pythonu (voliteľne `sentence-transformers` pre quality embed)
 - Po upgrade modelu (`scribe-hash-v1` → `v2`) spustite **Preindexovať**
 
 ## Models
@@ -47,11 +48,16 @@ npm run nlp:test
 
 | Method | Purpose |
 |--------|---------|
-| `health` | Sidecar status + limits |
+| `health` | Sidecar status + limits + features |
 | `embed` | Single text → vector (LRU cached) |
 | `embed_batch` | Batch embeddings (max 128) |
 | `summarize` | Extractive summary with MMR diversity |
-| `extract_entities` | NER-lite: email, URL, phone, dates, wiki links, hashtags |
+| `extract_entities` | NER-lite + keyword tag suggestions + language hint |
+| `extract_tasks` | Checkboxes + imperative task phrases |
+| `extract_keywords` | TF-lite keywords + bigram keyphrases (SK/EN stopwords) |
+| `detect_language` | Heuristic `sk` / `en` / `unknown` |
+| `extract_outline` | Markdown headings / numbered sections |
+| `similar_notes` | Rank notes by keyword overlap (no embeddings required) |
 | `library_report` | Markdown library analysis |
 
 ## Limits
@@ -59,3 +65,7 @@ npm run nlp:test
 - Text inputs: 120 000 characters
 - Embed batch: 128 texts
 - Library report: 5 000 documents
+
+## Version
+
+Current sidecar: **0.4.0**

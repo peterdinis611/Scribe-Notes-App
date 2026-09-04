@@ -56,7 +56,17 @@ def handle_request(request: dict[str, Any]) -> dict[str, Any]:
                 "model": current_model_id(),
                 "embedBackend": active_backend(),
                 "qualityAvailable": quality_available(),
-                "features": ["embed", "summarize", "ner", "report", "tasks"],
+                "features": [
+                    "embed",
+                    "summarize",
+                    "ner",
+                    "report",
+                    "tasks",
+                    "keywords",
+                    "language",
+                    "outline",
+                    "similar",
+                ],
                 "limits": {
                     "maxTextChars": MAX_TEXT_CHARS,
                     "maxEmbedBatch": MAX_EMBED_BATCH,
@@ -105,6 +115,35 @@ def handle_request(request: dict[str, Any]) -> dict[str, Any]:
 
             text = _validate_text(str(params.get("text") or ""))
             result = extract_tasks(text)
+        elif method == "extract_keywords":
+            from .keywords import extract_keywords
+
+            text = _validate_text(str(params.get("text") or ""))
+            limit = max(1, min(int(params.get("limit") or 12), 32))
+            result = extract_keywords(text, limit=limit)
+        elif method == "detect_language":
+            from .language import detect_language
+
+            text = _validate_text(str(params.get("text") or ""))
+            result = detect_language(text)
+        elif method == "extract_outline":
+            from .outline import extract_outline
+
+            text = _validate_text(str(params.get("text") or ""))
+            limit = max(1, min(int(params.get("limit") or 40), 80))
+            result = extract_outline(text, limit=limit)
+        elif method == "similar_notes":
+            from .similar import similar_notes
+
+            query = _validate_text(str(params.get("text") or params.get("query") or ""))
+            documents = list(params.get("documents") or [])
+            if len(documents) > MAX_REPORT_DOCUMENTS:
+                raise SidecarError(
+                    f"documents exceeds limit ({MAX_REPORT_DOCUMENTS})",
+                    code=-32602,
+                )
+            limit = max(1, min(int(params.get("limit") or 8), 32))
+            result = similar_notes(query, documents, limit=limit)
         elif method == "library_report":
             from .report import library_report
 

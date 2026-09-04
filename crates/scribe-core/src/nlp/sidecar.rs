@@ -206,6 +206,31 @@ impl NlpSidecar {
         self.call_method("extract_tasks", json!({ "text": text }))
     }
 
+    pub fn extract_keywords(&self, text: &str, limit: i64) -> Result<Value, String> {
+        self.call_method(
+            "extract_keywords",
+            json!({ "text": text, "limit": limit }),
+        )
+    }
+
+    pub fn detect_language(&self, text: &str) -> Result<Value, String> {
+        self.call_method("detect_language", json!({ "text": text }))
+    }
+
+    pub fn extract_outline(&self, text: &str, limit: i64) -> Result<Value, String> {
+        self.call_method(
+            "extract_outline",
+            json!({ "text": text, "limit": limit }),
+        )
+    }
+
+    pub fn similar_notes(&self, text: &str, documents: Value, limit: i64) -> Result<Value, String> {
+        self.call_method(
+            "similar_notes",
+            json!({ "text": text, "documents": documents, "limit": limit }),
+        )
+    }
+
     pub fn library_report(&self, documents: Value) -> Result<Value, String> {
         self.call_method("library_report", json!({ "documents": documents }))
     }

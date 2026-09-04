@@ -4,6 +4,8 @@ import { useNavigate } from '@tanstack/react-router'
 import {
   CheckSquare,
   FileText,
+  Hash,
+  Languages,
   PanelRightClose,
   RotateCcw,
   Sparkles,
@@ -11,10 +13,12 @@ import {
 } from 'lucide-react'
 import type { SearchHit } from '@/lib/db/api'
 import {
+  nlpDocumentAnalysis,
   nlpDocumentTasks,
   nlpSimilarDocuments,
   nlpStatus,
   type DocumentTask,
+  type NlpDocumentAnalysis,
 } from '@/lib/db/nlp-api'
 import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
@@ -40,6 +44,7 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
   const navigate = useNavigate()
   const [similar, setSimilar] = useState<SearchHit[]>([])
   const [tasks, setTasks] = useState<DocumentTask[]>([])
+  const [analysis, setAnalysis] = useState<NlpDocumentAnalysis | null>(null)
   const [nlpEnabled, setNlpEnabled] = useState(false)
   const [loading, setLoading] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
@@ -49,6 +54,7 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
     if (!activeId) {
       setSimilar([])
       setTasks([])
+      setAnalysis(null)
       return
     }
     setLoading(true)
@@ -56,12 +62,14 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
       nlpStatus().catch(() => null),
       nlpSimilarDocuments(activeId, 8).catch(() => [] as SearchHit[]),
       nlpDocumentTasks(activeId).catch(() => [] as DocumentTask[]),
+      nlpDocumentAnalysis(activeId).catch(() => null),
     ])
-      .then(([status, similarHits, documentTasks]) => {
+      .then(([status, similarHits, documentTasks, documentAnalysis]) => {
         if (cancelled) return
         setNlpEnabled(Boolean(status?.enabled))
         setSimilar(similarHits)
         setTasks(documentTasks)
+        setAnalysis(documentAnalysis)
       })
       .catch((error) => {
         if (!cancelled) toast.error(t('panels.insights.loadError'), String(error))
@@ -87,7 +95,17 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
     [dispatch, navigate],
   )
 
-  const total = similar.length + openTasks.length
+  const keywordCount = analysis?.keywords.length ?? 0
+  const total = similar.length + openTasks.length + keywordCount
+
+  const languageLabel = useMemo(() => {
+    if (!analysis?.language || analysis.language === 'unknown') {
+      return t('panels.insights.languageUnknown')
+    }
+    if (analysis.language === 'sk') return t('panels.insights.languageSk')
+    if (analysis.language === 'en') return t('panels.insights.languageEn')
+    return analysis.language
+  }, [analysis?.language, t])
 
   return (
     <EditorSidePanel className="titlebar-no-drag" aria-label={t('panels.insights.title')}>
@@ -115,6 +133,39 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
       ) : (
         <EditorSidePanelList className="gap-1">
           <div>
+            <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.03em] text-[var(--color-muted-foreground)]">
+              <Hash className="h-3.5 w-3.5" />
+              {t('panels.insights.keywords')}
+              <span className="ml-auto rounded-full bg-[var(--color-hover)] px-1.5 text-[10px] font-semibold">
+                {keywordCount}
+              </span>
+            </h3>
+            <p className="m-0 mb-1.5 flex items-center gap-1.5 text-[10.5px] text-[var(--color-muted-foreground)]">
+              <Languages className="h-3 w-3 shrink-0" />
+              {nlpEnabled
+                ? t('panels.insights.languageLine', { language: languageLabel })
+                : t('panels.insights.keywordsDisabled')}
+            </p>
+            {!nlpEnabled || keywordCount === 0 ? (
+              <p className="m-0 mt-0.5 text-[11.5px] text-[var(--color-muted-foreground)]">
+                {nlpEnabled ? t('panels.insights.keywordsEmpty') : t('panels.insights.keywordsDisabled')}
+              </p>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {analysis?.keywords.slice(0, 10).map((item) => (
+                  <span
+                    key={item.term}
+                    className="rounded-md bg-[var(--color-hover)] px-2 py-1 text-[11px] font-medium text-[var(--color-foreground)]"
+                    title={`${item.count}×`}
+                  >
+                    {item.term}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-3.5 border-t border-[var(--color-border)] pt-3">
             <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.03em] text-[var(--color-muted-foreground)]">
               <Sparkles className="h-3.5 w-3.5" />
               {t('panels.insights.similar')}

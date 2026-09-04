@@ -966,3 +966,124 @@ pub fn nlp_set_embed_backend(
     let _ = sidecar.configure_embed_backend(backend);
     build_nlp_status(&sidecar, &conn, is_nlp_enabled(&conn)?)
 }
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpKeyword {
+    pub term: String,
+    pub score: f64,
+    pub count: i64,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpOutlineItem {
+    pub title: String,
+    pub level: i64,
+    pub kind: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpDocumentAnalysis {
+    pub language: String,
+    pub language_confidence: f64,
+    pub keywords: Vec<NlpKeyword>,
+    pub keyphrases: Vec<String>,
+    pub outline: Vec<NlpOutlineItem>,
+}
+
+#[tauri::command]
+pub fn nlp_document_analysis(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    document_id: String,
+) -> Result<NlpDocumentAnalysis, String> {
+    let text = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        if !is_nlp_enabled(&conn)? {
+            return Err("NLP is disabled".to_string());
+        }
+
+        let (title, content_json): (String, String) = conn
+            .query_row(
+                "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL",
+                params![document_id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .map_err(|e| e.to_string())?;
+
+        format!("{title}\n{}", extract_search_text(&content_json))
+    };
+
+    let language_value = sidecar.detect_language(&text)?;
+    let keywords_value = sidecar.extract_keywords(&text, 12)?;
+    let outline_value = sidecar.extract_outline(&text, 24)?;
+
+    let language = language_value
+        .get("language")
+        .and_then(|value| value.as_str())
+        .unwrap_or("unknown")
+        .to_string();
+    let language_confidence = language_value
+        .get("confidence")
+        .and_then(|value| value.as_f64())
+        .unwrap_or(0.0);
+
+    let keywords = keywords_value
+        .get("keywords")
+        .and_then(|value| value.as_array())
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| {
+                    Some(NlpKeyword {
+                        term: item.get("term")?.as_str()?.to_string(),
+                        score: item.get("score")?.as_f64().unwrap_or(0.0),
+                        count: item.get("count")?.as_i64().unwrap_or(0),
+                    })
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+
+    let keyphrases = keywords_value
+        .get("keyphrases")
+        .and_then(|value| value.as_array())
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| item.get("phrase")?.as_str().map(str::to_string))
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+
+    let outline = outline_value
+        .get("items")
+        .and_then(|value| value.as_array())
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| {
+                    Some(NlpOutlineItem {
+                        title: item.get("title")?.as_str()?.to_string(),
+                        level: item.get("level")?.as_i64().unwrap_or(1),
+                        kind: item
+                            .get("kind")
+                            .and_then(|value| value.as_str())
+                            .unwrap_or("heading")
+                            .to_string(),
+                    })
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+
+    Ok(NlpDocumentAnalysis {
+        language,
+        language_confidence,
+        keywords,
+        keyphrases,
+        outline,
+    })
+}

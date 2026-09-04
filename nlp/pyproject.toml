@@ -1,6 +1,6 @@
 [project]
 name = "scribe-nlp"
-version = "0.3.0"
+version = "0.4.0"
 description = "Optional local NLP sidecar for Scribe"
 requires-python = ">=3.10"
 dependencies = []

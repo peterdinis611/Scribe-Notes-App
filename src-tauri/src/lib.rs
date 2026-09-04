@@ -192,6 +192,7 @@ pub fn run() {
             commands::nlp::nlp_document_tasks,
             commands::nlp::nlp_journal_tasks,
             commands::nlp::nlp_set_embed_backend,
+            commands::nlp::nlp_document_analysis,
             commands::revisions::list_document_revisions,
             commands::revisions::get_document_revision,
             commands::revisions::restore_document_revision,

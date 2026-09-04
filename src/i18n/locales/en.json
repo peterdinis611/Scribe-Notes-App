@@ -237,9 +237,21 @@
   },
   "whatsNew": {
     "badge": "What's new in {{version}}",
-    "title": "Scribe 1.0",
-    "subtitle": "First stable release — smaller bundle, more reliable editing, and native export.",
+    "title": "Scribe 1.1",
+    "subtitle": "Stronger Local AI, calmer print layout, and power tools for everyday writing.",
     "gotIt": "Got it",
+    "localAiKeywords": {
+      "title": "Smarter Local AI",
+      "description": "Keywords, language detection, and better Slovak stopwords — all offline in the AI insights panel."
+    },
+    "printLayout": {
+      "title": "Print layout polish",
+      "description": "Paper stays paper-sized on the desk, with a quieter blank-page cue and clearer dark-mode sheets."
+    },
+    "powerTools": {
+      "title": "Pinned tabs & more",
+      "description": "Pin tabs, undo trash, library-wide find/replace, canvas notes, template packs, and local share packages."
+    },
     "v1Release": {
       "title": "Stable 1.0",
       "description": "Scribe is ready for daily writing: library, journal, templates, comments, and Local AI in one place."
@@ -999,9 +1011,16 @@
     },
     "insights": {
       "title": "AI insights",
-      "subtitle": "Similar notes and open tasks",
+      "subtitle": "Keywords, similar notes and open tasks",
       "hide": "Hide AI insights",
       "loadError": "Could not load AI insights",
+      "keywords": "Keywords",
+      "keywordsEmpty": "No strong keywords yet — write a bit more.",
+      "keywordsDisabled": "Enable Local AI in Settings for keywords.",
+      "languageLine": "Detected language: {{language}}",
+      "languageSk": "Slovak",
+      "languageEn": "English",
+      "languageUnknown": "unknown",
       "similar": "Similar documents",
       "similarHint": "Based on your existing semantic index.",
       "similarDisabled": "Enable Local AI in Settings for similar documents.",

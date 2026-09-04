@@ -59,6 +59,26 @@ export interface DocumentTask {
   documentTitle: string | null
 }
 
+export interface NlpKeyword {
+  term: string
+  score: number
+  count: number
+}
+
+export interface NlpOutlineItem {
+  title: string
+  level: number
+  kind: string
+}
+
+export interface NlpDocumentAnalysis {
+  language: string
+  languageConfidence: number
+  keywords: NlpKeyword[]
+  keyphrases: string[]
+  outline: NlpOutlineItem[]
+}
+
 export const nlpStatus = () => invoke<NlpStatus>('nlp_status')
 
 export const nlpSetEnabled = (enabled: boolean) =>
@@ -105,3 +125,6 @@ export const nlpSuggestTags = (documentId: string) =>
   invoke<NlpTagSuggestions>('nlp_suggest_tags', { documentId })
 
 export const nlpLibraryReport = () => invoke<NlpLibraryReport>('nlp_library_report')
+
+export const nlpDocumentAnalysis = (documentId: string) =>
+  invoke<NlpDocumentAnalysis>('nlp_document_analysis', { documentId })
