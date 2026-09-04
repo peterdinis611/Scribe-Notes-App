@@ -8,6 +8,7 @@ import { flushPendingWrites, updateDocument } from '@/lib/db/api'
 import { applyDiskPersistResult } from '@/lib/disk-sync'
 import { toast } from '@/lib/toast'
 import { debounce, extractTitleFromContent } from '@/lib/utils'
+import { store } from '@/store/index'
 import { useAppDispatch } from '@/store/hooks'
 import {
   setActiveDocument,
@@ -18,6 +19,7 @@ import { setEditorContent } from '@/lib/editor/view-ready'
 import i18n from '@/i18n'
 import { editorRefs } from '@/store/editorRefs'
 import type { Document } from '@/lib/db/api'
+import { isOpenLibraryDocumentId } from '@/lib/trash-document'
 
 const AUTO_SAVE_DELAY_MS = 600
 
@@ -62,6 +64,11 @@ export function useDocumentAutoSave({
 
   const persistContent = useCallback(
     async (docId: string, contentJson: string): Promise<boolean> => {
+      // Don't resurrect trashed docs via the flush-on-switch race.
+      if (!isOpenLibraryDocumentId(store.getState().documents.documents, docId)) {
+        return false
+      }
+
       const contentHash = hashContent(contentJson)
       if (contentHash === lastPersistedHashRef.current) return true
 
@@ -78,6 +85,10 @@ export function useDocumentAutoSave({
             contentJson,
           }),
         )
+
+        if (!isOpenLibraryDocumentId(store.getState().documents.documents, docId)) {
+          return false
+        }
 
         if (latestDocIdRef.current === docId) {
           lastPersistedHashRef.current = contentHash

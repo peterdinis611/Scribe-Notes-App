@@ -23,6 +23,7 @@ import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { applyDiskPersistResult } from '@/lib/disk-sync'
 import { openTodayNote } from '@/lib/journal-notes'
 import { openQuickNote } from '@/lib/quick-note'
+import { isOpenLibraryDocumentId } from '@/lib/trash-document'
 import { toast } from '@/lib/toast'
 import { ROUTES } from '@/lib/routes'
 import type { DocumentTemplate } from '@/lib/templates'
@@ -45,6 +46,7 @@ import { setMoveDocumentPickerOpen } from '@/store/foldersSlice'
 function useDocumentRouteSync() {
   const { documentId } = useParams({ strict: false })
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
+  const documents = useAppSelector((state) => state.documents.documents)
   const dispatch = useAppDispatch()
 
   useEffect(() => {
@@ -52,10 +54,12 @@ function useDocumentRouteSync() {
     // When activeId is cleared (close last tab / go home), do not revive from the
     // still-mounted /doc/$id route — that race sent users straight back into the doc.
     if (activeId === null) return
+    // Trash switches activeId before the router URL updates — don't revive the trashed id.
+    if (!isOpenLibraryDocumentId(documents, documentId)) return
     dispatch(setActiveDocumentId(documentId))
     const cached = peekCachedDocument(documentId)
     if (cached) dispatch(setActiveDocument(cached))
-  }, [activeId, dispatch, documentId])
+  }, [activeId, dispatch, documentId, documents])
 }
 
 export function AppLayout() {

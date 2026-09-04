@@ -1,6 +1,7 @@
 import { updateDocument } from '@/lib/db/api'
 import i18n from '@/i18n'
 import { toast } from '@/lib/toast'
+import { isOpenLibraryDocumentId } from '@/lib/trash-document'
 import { store } from '@/store/index'
 import { useAppDispatch } from '@/store/hooks'
 import {
@@ -14,6 +15,10 @@ export function useRenameDocument() {
   const dispatch = useAppDispatch()
 
   return async function renameDocument(id: string, title: string) {
+    if (!isOpenLibraryDocumentId(store.getState().documents.documents, id)) {
+      return null
+    }
+
     const trimmed = title.trim() || i18n.t('common.untitled')
     const { activeDocument, documents } = store.getState().documents
     const previousSummary = documents.find((item) => item.id === id)
@@ -31,6 +36,9 @@ export function useRenameDocument() {
 
     try {
       const updated = await updateDocument({ id, title: trimmed })
+      if (!isOpenLibraryDocumentId(store.getState().documents.documents, id)) {
+        return null
+      }
       dispatch(markDocumentTitleManual(id))
       const currentActive = store.getState().documents.activeDocument
       dispatch(setActiveDocument(currentActive?.id === id ? updated : currentActive))

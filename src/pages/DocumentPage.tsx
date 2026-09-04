@@ -3,6 +3,7 @@ import { useNavigate, useParams } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { ROUTES } from '@/lib/routes'
+import { isOpenLibraryDocumentId } from '@/lib/trash-document'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
   setActiveDocument,
@@ -34,6 +35,7 @@ export function DocumentPage() {
   const { t } = useTranslation()
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
   const activeDocument = useAppSelector((state) => state.documents.activeDocument)
+  const documents = useAppSelector((state) => state.documents.documents)
   const secondaryDocumentId = useAppSelector((state) => state.documents.secondaryDocumentId)
   const saveStatus = useAppSelector((state) => state.documents.saveStatus)
   const dispatch = useAppDispatch()
@@ -49,10 +51,22 @@ export function DocumentPage() {
   useEffect(() => {
     if (!documentId) return
 
+    const routeInLibrary = isOpenLibraryDocumentId(documents, documentId)
+    // After trash, activeId moves first while the URL briefly still points at the
+    // trashed doc — never fight that by re-adopting the stale route id.
+    if (activeId != null && activeId !== documentId && !routeInLibrary) {
+      return
+    }
+
     if (activeId === null) {
       // First open of this route (cold link / refresh). Skip if we already adopted
       // this id — that means the user closed it or went home while URL still matched.
       if (adoptedRouteIdRef.current === documentId) return
+      // Library already loaded and this id is gone (trashed) — go home instead of reviving.
+      if (documents.length > 0 && !routeInLibrary) {
+        void navigate(ROUTES.home())
+        return
+      }
       adoptedRouteIdRef.current = documentId
       dispatch(setActiveDocumentId(documentId))
     } else {
@@ -63,7 +77,15 @@ export function DocumentPage() {
     if (resolvedDocument && activeDocument?.id !== documentId) {
       dispatch(setActiveDocument(resolvedDocument))
     }
-  }, [activeDocument?.id, activeId, dispatch, documentId, resolvedDocument])
+  }, [
+    activeDocument?.id,
+    activeId,
+    dispatch,
+    documentId,
+    documents,
+    navigate,
+    resolvedDocument,
+  ])
 
   useEffect(() => {
     if (activeId === documentId && saveStatus === 'error' && !resolvedDocument) {

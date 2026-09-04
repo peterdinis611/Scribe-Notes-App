@@ -2,17 +2,22 @@ import { useTranslation } from 'react-i18next'
 import { FolderInput, Trash2, X } from 'lucide-react'
 import { confirm } from '@tauri-apps/plugin-dialog'
 import { Button } from '@/components/ui/button'
-import { deleteDocument } from '@/lib/db/api'
-import { invalidateDocumentCache } from '@/lib/cache/document-cache'
 import { toast } from '@/lib/toast'
+import { trashDocuments } from '@/lib/trash-document'
+import { useNavigate } from '@tanstack/react-router'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { clearSelectedDocuments, updateDocuments } from '@/store/documentsSlice'
+import { clearSelectedDocuments } from '@/store/documentsSlice'
 import { setMoveDocumentPickerOpen } from '@/store/foldersSlice'
 
 export function LibraryBulkBar() {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
   const selected = useAppSelector((state) => state.documents.selectedDocumentIds)
+  const documents = useAppSelector((state) => state.documents.documents)
+  const activeId = useAppSelector((state) => state.documents.activeDocumentId)
+  const openDocumentIds = useAppSelector((state) => state.documents.openDocumentIds)
+  const secondaryDocumentId = useAppSelector((state) => state.documents.secondaryDocumentId)
 
   if (selected.length === 0) return null
 
@@ -26,13 +31,15 @@ export function LibraryBulkBar() {
     if (!ok) return
 
     try {
-      for (const id of selected) {
-        await deleteDocument(id)
-        invalidateDocumentCache(id)
-      }
-      dispatch(
-        updateDocuments((prev) => prev.filter((doc) => !selected.includes(doc.id))),
-      )
+      await trashDocuments({
+        ids: selected,
+        documents,
+        activeId,
+        openDocumentIds,
+        secondaryDocumentId,
+        dispatch,
+        navigate,
+      })
       dispatch(clearSelectedDocuments())
       toast.success(t('library.bulk.deleted', { count: selected.length }))
     } catch (error) {

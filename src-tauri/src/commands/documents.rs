@@ -267,7 +267,7 @@ pub fn update_document(
 
     let existing = conn
         .query_row(
-            &format!("{DOCUMENT_SELECT} WHERE id = ?1"),
+            &format!("{DOCUMENT_SELECT} WHERE id = ?1 AND deleted_at IS NULL"),
             params![input.id],
             map_document,
         )

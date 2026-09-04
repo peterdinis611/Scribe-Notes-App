@@ -6,7 +6,6 @@ import { confirm } from '@tauri-apps/plugin-dialog'
 import { FolderTreeDocumentRow, FolderTreeFolderRow } from '@/components/FolderTreeRows'
 import {
   createFolder,
-  deleteDocument,
   deleteFolder,
   listLinkGraph,
   moveFolder,
@@ -20,6 +19,7 @@ import {
 import { useMoveDocumentToFolder } from '@/hooks/useMoveDocumentToFolder'
 import { invalidateDocumentCache, peekCachedDocument } from '@/lib/cache/document-cache'
 import { isLibraryDocumentVisible } from '@/lib/db/library-sync'
+import { trashDocuments } from '@/lib/trash-document'
 import {
   buildDeleteFolderConfirmMessage,
   buildTrashFolderConfirmMessage,
@@ -62,6 +62,8 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
   const documents = useAppSelector((state) => state.documents.documents)
   const expandedIds = useAppSelector((state) => state.folders.expandedFolderIds)
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
+  const openDocumentIds = useAppSelector((state) => state.documents.openDocumentIds)
+  const secondaryDocumentId = useAppSelector((state) => state.documents.secondaryDocumentId)
   const favoritesOnly = useAppSelector((state) => state.documents.favoritesOnlyFilter)
   const activeTag = useAppSelector((state) => state.documents.activeTagFilter)
   const metaFilters = useAppSelector((state) => state.documents.metaFilters)
@@ -299,40 +301,26 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
   }, [activeId, dispatch, documents, expandedIds, folders, navigate, t])
 
   const handleDeleteDocument = useCallback(async (id: string, event: React.MouseEvent) => {
+    event.preventDefault()
     event.stopPropagation()
     const deleted = documents.find((doc) => doc.id === id)
     if (!deleted) return
 
-    const remaining = documents.filter((doc) => doc.id !== id)
-    const previousActiveId = activeId
-
-    dispatch(updateDocuments(() => remaining))
-    if (activeId === id) {
-      const nextId = remaining[0]?.id ?? null
-      dispatch(setActiveDocumentId(nextId))
-      if (!nextId) {
-        dispatch(setActiveDocument(null))
-        navigate(ROUTES.home())
-      } else {
-        navigate(ROUTES.document(nextId))
-      }
-    }
-
     try {
-      await deleteDocument(id)
-      invalidateDocumentCache(id)
+      await trashDocuments({
+        ids: [id],
+        documents,
+        activeId,
+        openDocumentIds,
+        secondaryDocumentId,
+        dispatch,
+        navigate,
+      })
       toast.success(t('toasts.documentTrashed'), deleted.title.trim() || t('common.untitled'))
     } catch (error) {
-      dispatch(updateDocuments((prev) => [...prev, deleted]))
-      if (previousActiveId === id) {
-        dispatch(setActiveDocumentId(id))
-        const cached = peekCachedDocument(id)
-        if (cached) dispatch(setActiveDocument(cached))
-        navigate(ROUTES.document(id))
-      }
       toast.error(t('toasts.trashError'), String(error))
     }
-  }, [activeId, dispatch, documents, navigate, t])
+  }, [activeId, dispatch, documents, navigate, openDocumentIds, secondaryDocumentId, t])
 
   const openDocument = useCallback((id: string) => {
     dispatch(setActiveDocumentId(id))

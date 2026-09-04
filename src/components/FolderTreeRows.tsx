@@ -248,8 +248,15 @@ export const FolderTreeDocumentRow = memo(function FolderTreeDocumentRow({
           variant="ghost"
           size="icon"
           className="h-7 w-7 hover:bg-[color-mix(in_srgb,var(--color-destructive)_12%,transparent)] hover:text-[var(--color-destructive)]"
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={(event) => onDelete(document.id, event)}
+          onMouseDown={(event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            onDelete(document.id, event)
+          }}
+          onClick={(event) => {
+            event.preventDefault()
+            event.stopPropagation()
+          }}
           aria-label={t('library.moveToTrash')}
           title={t('library.moveToTrash')}
         >
