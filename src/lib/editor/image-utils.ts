@@ -1,4 +1,4 @@
-import { convertFileSrc } from '@tauri-apps/api/core'
+import { convertFileSrc } from '@/lib/tauri'
 import type { Editor } from '@tiptap/react'
 import { saveDocumentImage } from '@/lib/db/api'
 

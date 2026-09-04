@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/lib/tauri'
 import { cacheDocument, clearDocumentCache, invalidateDocumentCache, peekCachedDocument } from '@/lib/cache/document-cache'
 
 export interface DocumentSummary {

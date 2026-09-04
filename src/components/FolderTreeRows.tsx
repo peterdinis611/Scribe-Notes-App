@@ -205,12 +205,13 @@ export const FolderTreeDocumentRow = memo(function FolderTreeDocumentRow({
         )}
       </div>
 
-      <div className="flex items-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+      <div className="relative z-10 flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
         <Button
           type="button"
           variant="ghost"
           size="icon"
           className={cn('h-7 w-7', document.isPinned && 'text-[var(--color-accent)]')}
+          onMouseDown={(event) => event.preventDefault()}
           onClick={(event) => onTogglePin(document.id, event)}
           aria-label={document.isPinned ? t('library.unpin') : t('library.pin')}
           title={document.isPinned ? t('library.unpin') : t('library.pin')}
@@ -222,6 +223,7 @@ export const FolderTreeDocumentRow = memo(function FolderTreeDocumentRow({
           variant="ghost"
           size="icon"
           className={cn('h-7 w-7', document.isFavorite && 'text-[var(--color-accent)]')}
+          onMouseDown={(event) => event.preventDefault()}
           onClick={(event) => onToggleFavorite(document.id, event)}
           aria-label={t('library.favorite')}
           title={t('library.favorite')}
@@ -233,6 +235,7 @@ export const FolderTreeDocumentRow = memo(function FolderTreeDocumentRow({
           variant="ghost"
           size="icon"
           className="h-7 w-7"
+          onMouseDown={(event) => event.preventDefault()}
           onClick={(event) => onEditTags(document.id, event)}
           aria-label={t('library.tags')}
           title={t('library.tags')}
@@ -245,6 +248,7 @@ export const FolderTreeDocumentRow = memo(function FolderTreeDocumentRow({
           variant="ghost"
           size="icon"
           className="h-7 w-7 hover:bg-[color-mix(in_srgb,var(--color-destructive)_12%,transparent)] hover:text-[var(--color-destructive)]"
+          onMouseDown={(event) => event.preventDefault()}
           onClick={(event) => onDelete(document.id, event)}
           aria-label={t('library.moveToTrash')}
           title={t('library.moveToTrash')}

@@ -80,12 +80,15 @@ export function TrashDialog() {
 
   const handlePurge = useCallback(
     async (item: DocumentSummary) => {
-      const confirmed = await confirm(t('trash.purgeConfirm', { title: item.title }), {
+      const confirmed = await confirm(
+        t('trash.purgeConfirm', { title: item.title.trim() || t('common.untitled') }),
+        {
         title: t('trash.purgeTitle'),
         kind: 'warning',
         okLabel: t('trash.purgeOk'),
         cancelLabel: t('common.cancel'),
-      })
+      },
+      )
       if (!confirmed) return
 
       setBusyId(item.id)

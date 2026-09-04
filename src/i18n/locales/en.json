@@ -162,7 +162,7 @@
     "loading": "Loading document…",
     "loadingEditor": "Loading editor…",
     "page": "Page {{page}}",
-    "placeholder": "Start typing, / for commands, - or . space for lists, --- for a rule…",
+    "placeholder": "Start typing…",
     "markdownAria": "Markdown editor",
     "markdownPlaceholder": "# Heading\n\nWrite in **Markdown** — headings, lists, `code`, tables…"
   },

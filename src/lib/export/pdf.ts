@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/lib/tauri'
 import {
   DEFAULT_PAGE_SETUP,
   PAPER_SIZES,

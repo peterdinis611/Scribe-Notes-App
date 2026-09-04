@@ -321,7 +321,7 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     try {
       await deleteDocument(id)
       invalidateDocumentCache(id)
-      toast.success(t('toasts.documentTrashed'), deleted.title)
+      toast.success(t('toasts.documentTrashed'), deleted.title.trim() || t('common.untitled'))
     } catch (error) {
       dispatch(updateDocuments((prev) => [...prev, deleted]))
       if (previousActiveId === id) {

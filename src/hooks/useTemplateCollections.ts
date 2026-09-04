@@ -37,9 +37,21 @@ export function useTemplateCollectionsBootstrap() {
   const ready = useCollectionsReady()
 
   useEffect(() => {
-    initTemplateCollections().catch((nextError: unknown) => {
-      setError(nextError instanceof Error ? nextError : new Error(String(nextError)))
-    })
+    let cancelled = false
+
+    initTemplateCollections()
+      .then(() => {
+        if (!cancelled) setError(null)
+      })
+      .catch((nextError: unknown) => {
+        if (!cancelled) {
+          setError(nextError instanceof Error ? nextError : new Error(String(nextError)))
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   return { ready, error }

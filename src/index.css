@@ -2668,14 +2668,15 @@ html[data-ui-skin='press'] .editor-shell--home {
   position: absolute;
   top: 16px;
   right: 18px;
-  padding: 3px 9px;
-  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-background) 88%, transparent);
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
   font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--color-muted-foreground);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-muted-foreground) 72%, transparent);
   pointer-events: none;
   z-index: 1;
 }
@@ -2699,21 +2700,22 @@ html[data-ui-skin='press'] .editor-shell--home {
   left: var(--page-padding-left);
   right: var(--page-padding-right);
   font-size: 11px;
-  color: var(--color-muted-foreground);
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--color-muted-foreground) 88%, transparent);
   pointer-events: none;
   z-index: 1;
 }
 
 .editor-page-header {
   text-align: center;
-  padding-bottom: 4px;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
 .editor-page-footer {
   text-align: center;
-  padding-top: 4px;
-  border-top: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  padding-top: 0;
+  border-top: none;
 }
 
 .editor-page-chrome--sheet {
@@ -2722,15 +2724,23 @@ html[data-ui-skin='press'] .editor-shell--home {
 }
 
 .editor-page-chrome--sheet .editor-page-header {
-  top: 10px;
+  top: 18px;
   bottom: auto;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  border-bottom: none;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: color-mix(in srgb, var(--color-muted-foreground) 78%, transparent);
 }
 
 .editor-page-chrome--sheet .editor-page-footer {
   top: auto;
-  bottom: 10px;
-  border-top: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  bottom: 16px;
+  border-top: none;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .editor-page-watermark {
@@ -2758,7 +2768,9 @@ html[data-ui-skin='press'] .editor-shell--home {
 }
 
 .editor-scroll--print-layout {
-  background: color-mix(in srgb, var(--color-sidebar) 70%, var(--color-background));
+  background:
+    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--color-accent) 6%, transparent), transparent 42%),
+    color-mix(in srgb, var(--color-sidebar) 55%, var(--color-background));
   overflow: auto;
   padding-bottom: 112px;
 }
@@ -2767,7 +2779,7 @@ html[data-ui-skin='press'] .editor-shell--home {
   display: flex;
   justify-content: center;
   min-width: 0;
-  padding: 8px 0 32px;
+  padding: 20px 0 40px;
 }
 
 .editor-print-stage-wrap--active {
@@ -2800,23 +2812,32 @@ html[data-ui-skin='press'] .editor-shell--home {
   position: absolute;
   top: 0;
   left: 0;
-  border-radius: 4px;
-  background: #ffffff;
-  border: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 12px 32px rgba(0, 0, 0, 0.05);
+  border-radius: 0;
+  background: #fbfaf7;
+  border: 1px solid color-mix(in srgb, var(--color-border) 55%, transparent);
+  box-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.04),
+    0 10px 28px rgba(0, 0, 0, 0.08);
 }
 
 .dark .editor-page-sheet {
-  background: var(--color-surface-elevated);
+  background: color-mix(in srgb, var(--color-surface-elevated) 92%, #1a1a1a);
+  border-color: color-mix(in srgb, var(--color-border) 45%, transparent);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.03) inset,
+    0 12px 36px rgba(0, 0, 0, 0.28);
 }
 
 .editor-page-sheet-label {
   position: absolute;
-  top: 8px;
-  right: 10px;
+  top: auto;
+  right: 0;
+  bottom: -22px;
   font-size: 10px;
-  font-weight: 600;
-  color: var(--color-muted-foreground);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-muted-foreground) 70%, transparent);
 }
 
 .editor-canvas--print-layout {
@@ -4031,9 +4052,37 @@ body.is-block-dragging .tiptap {
 }
 
 .tiptap .has-focus {
-  border-radius: 6px;
-  outline: 2px solid color-mix(in srgb, var(--color-accent) 25%, transparent);
-  outline-offset: 4px;
+  border-radius: 0;
+  outline: none;
+}
+
+/* Keep a quiet cue only for structured blocks — never a form-like box on empty paragraphs. */
+.tiptap :is(blockquote, pre, table, .details-block, .callout, .math-js-node, .mermaid-diagram, .image-block).has-focus {
+  outline: 1px solid color-mix(in srgb, var(--color-accent) 28%, transparent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.tiptap--print-accurate p.is-editor-empty:first-child::before {
+  color: color-mix(in srgb, var(--color-muted-foreground) 55%, transparent);
+  font-style: italic;
+  letter-spacing: 0.01em;
+}
+
+.editor-scroll--print-layout .editor-block-drag-handle {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  opacity: 0;
+}
+
+.editor-scroll--print-layout .editor-block-drag-handle.is-active,
+.editor-scroll--print-layout .editor-block-drag-handle:hover,
+.editor-scroll--print-layout .editor-block-drag-handle:focus-visible {
+  opacity: 0.7;
+  background: color-mix(in srgb, var(--color-background) 80%, transparent);
+  border-color: color-mix(in srgb, var(--color-border) 60%, transparent);
+  box-shadow: none;
 }
 
 .tiptap details.details-block {

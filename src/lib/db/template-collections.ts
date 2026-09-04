@@ -101,7 +101,13 @@ export async function initTemplateCollections() {
         createdAt: row.createdAt,
       })),
     )
-  })()
+  })().catch((error: unknown) => {
+    // Allow a later retry after Tauri IPC becomes available.
+    initPromise = null
+    customCategoriesCollection = null
+    customTemplatesCollection = null
+    throw error
+  })
 
   return initPromise
 }

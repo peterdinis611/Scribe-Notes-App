@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { useRenameDocument } from '@/hooks/useRenameDocument'
@@ -10,16 +11,24 @@ interface DocumentTitleFieldProps {
   className?: string
 }
 
+function displayTitle(title: string, untitled: string) {
+  const trimmed = title.trim()
+  return trimmed || untitled
+}
+
 export function DocumentTitleField({
   documentId,
   title,
   variant,
   className,
 }: DocumentTitleFieldProps) {
+  const { t } = useTranslation()
+  const untitled = t('common.untitled')
   const renameDocument = useRenameDocument()
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(title)
   const inputRef = useRef<HTMLInputElement>(null)
+  const label = displayTitle(title, untitled)
 
   useEffect(() => {
     if (!editing) setDraft(title)
@@ -33,14 +42,15 @@ export function DocumentTitleField({
   }, [editing])
 
   function startEditing() {
-    setDraft(title)
+    setDraft(title.trim() ? title : '')
     setEditing(true)
   }
 
   async function commit() {
     setEditing(false)
-    if (draft.trim() === title.trim()) return
-    await renameDocument(documentId, draft)
+    const next = draft.trim() || untitled
+    if (next === displayTitle(title, untitled)) return
+    await renameDocument(documentId, next)
   }
 
   function cancel() {
@@ -60,6 +70,7 @@ export function DocumentTitleField({
           className,
         )}
         value={draft}
+        placeholder={untitled}
         onChange={(event) => setDraft(event.target.value)}
         onBlur={() => void commit()}
         onClick={(event) => event.stopPropagation()}
@@ -84,12 +95,13 @@ export function DocumentTitleField({
         type="button"
         className={cn(
           'max-w-full truncate border-none bg-transparent px-2 py-1 text-[15px] font-semibold text-[var(--color-foreground)] transition-colors hover:text-[var(--color-accent)]',
+          !title.trim() && 'text-[var(--color-muted-foreground)]',
           className,
         )}
         onClick={startEditing}
-        title="Kliknite pre premenovanie"
+        title={t('editor.renameTitleHint', { defaultValue: 'Kliknite pre premenovanie' })}
       >
-        {title}
+        {label}
       </button>
     )
   }
@@ -98,15 +110,16 @@ export function DocumentTitleField({
     <p
       className={cn(
         'm-0 truncate text-[13px] font-medium leading-snug text-[var(--color-foreground)]',
+        !title.trim() && 'text-[var(--color-muted-foreground)]',
         className,
       )}
       onDoubleClick={(event) => {
         event.stopPropagation()
         startEditing()
       }}
-      title="Dvojklik pre premenovanie"
+      title={t('editor.renameTitleHintDouble', { defaultValue: 'Dvojklik pre premenovanie' })}
     >
-      {title}
+      {label}
     </p>
   )
 }

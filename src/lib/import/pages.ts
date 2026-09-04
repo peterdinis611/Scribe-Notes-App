@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/lib/tauri'
 import type { Document } from '@/lib/db/api'
 import { createDocument } from '@/lib/db/api'
 import { cacheDocument } from '@/lib/cache/document-cache'

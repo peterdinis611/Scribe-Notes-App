@@ -62,6 +62,7 @@ export function MoveToFolderMenu({
             title={t('library.moveToFolder')}
             aria-label={t('library.moveToFolder')}
             onClick={(event) => event.stopPropagation()}
+            onMouseDown={(event) => event.preventDefault()}
           >
             <FolderInput className="h-3.5 w-3.5" />
           </Button>

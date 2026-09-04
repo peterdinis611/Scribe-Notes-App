@@ -162,7 +162,7 @@
     "loading": "Načítavam dokument…",
     "loadingEditor": "Načítavam editor…",
     "page": "Strana {{page}}",
-    "placeholder": "Píšte text, / príkazy, - alebo . medzera pre zoznam, --- čiara…",
+    "placeholder": "Začnite písať…",
     "markdownAria": "Markdown editor",
     "markdownPlaceholder": "# Nadpis\n\nPíšte v **Markdown** — nadpisy, zoznamy, `kód`, tabuľky…"
   },

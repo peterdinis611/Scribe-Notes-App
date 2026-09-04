@@ -57,6 +57,15 @@ fn now_ts() -> i64 {
     chrono::Utc::now().timestamp()
 }
 
+fn normalize_document_title(title: &str) -> String {
+    let trimmed = title.trim();
+    if trimmed.is_empty() {
+        "Untitled".to_string()
+    } else {
+        trimmed.to_string()
+    }
+}
+
 /// Soft-deletes a document into trash. Returns true when a row was updated.
 pub(crate) fn soft_delete_document_row(
     conn: &rusqlite::Connection,
@@ -213,10 +222,12 @@ pub fn create_document(
         None => super::folders::default_folder_id(&conn)?,
     };
 
+    let title = normalize_document_title(&input.title);
+
     insert_document_record(
         &conn,
         &id,
-        &input.title,
+        &title,
         &content_json,
         folder_id.clone(),
         now,
@@ -227,7 +238,7 @@ pub fn create_document(
         &conn,
         &state.persist_queue,
         &id,
-        &input.title,
+        &title,
         &content_json,
         now,
         now,
@@ -237,7 +248,7 @@ pub fn create_document(
 
     Ok(Document {
         id,
-        title: input.title,
+        title,
         content_json,
         folder_id,
         file_path: None,
@@ -264,7 +275,7 @@ pub fn update_document(
         .map_err(|e| e.to_string())?
         .ok_or_else(|| format!("Document not found: {}", input.id))?;
 
-    let title = input.title.unwrap_or(existing.title.clone());
+    let title = normalize_document_title(&input.title.unwrap_or(existing.title.clone()));
     let content_json = input
         .content_json
         .unwrap_or_else(|| existing.content_json.clone());
