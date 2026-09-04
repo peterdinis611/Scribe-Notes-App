@@ -1,5 +1,6 @@
 import { normalizePageSetup, PAPER_SIZES, type PageSetup } from '@/lib/editor/page-setup'
 import {
+  computePageSegments,
   getAlignedSheetTop,
   getSheetPosition,
   resolvePrintStageSize,
@@ -23,10 +24,11 @@ export function EditorPageSheets({
 }: EditorPageSheetsProps) {
   const normalized = normalizePageSetup(pageSetup)
   const paper = PAPER_SIZES[normalized.paperSize]
+  const segments = pageSegments.length > 0 ? pageSegments : computePageSegments(pageSetup, 0)
 
   return (
     <div className="editor-page-sheets" aria-hidden="true">
-      {pageSegments.map((segment, index) => {
+      {segments.map((segment, index) => {
         const alignedTop = getAlignedSheetTop(index, segment, paddingTop, PAGE_GAP)
         const spread = getSheetPosition(index, columns, paper.width, paper.height, PAGE_GAP)
 

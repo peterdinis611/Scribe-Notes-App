@@ -172,7 +172,9 @@
     "loading": "Loading document…",
     "loadingEditor": "Loading editor…",
     "page": "Page {{page}}",
-    "placeholder": "Start writing on a blank page…",
+    "placeholder": "Start typing…",
+    "printEmptyHero": "Blank page",
+    "printEmptyHint": "Start writing — or / for commands",
     "markdownAria": "Markdown editor",
     "markdownPlaceholder": "# Heading\n\nWrite in **Markdown** — headings, lists, `code`, tables…"
   },

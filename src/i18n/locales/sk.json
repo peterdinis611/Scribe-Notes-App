@@ -172,7 +172,9 @@
     "loading": "Načítavam dokument…",
     "loadingEditor": "Načítavam editor…",
     "page": "Strana {{page}}",
-    "placeholder": "Začnite písať na čistú stránku…",
+    "placeholder": "Začnite písať…",
+    "printEmptyHero": "Čistá stránka",
+    "printEmptyHint": "Píšte — alebo / pre príkazy",
     "markdownAria": "Markdown editor",
     "markdownPlaceholder": "# Nadpis\n\nPíšte v **Markdown** — nadpisy, zoznamy, `kód`, tabuľky…"
   },

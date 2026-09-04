@@ -15,23 +15,29 @@ Scribe beží lokálne na vašom Macu. Žiadne účty, žiadny cloud — dokumen
 - Slash príkazy (`/`), bubble menu, drag & drop blokov a obrázkov
 - Blokové **snipety** cez slash (meeting notes, decision, …)
 - Wiki odkazy (`[[dokument]]`), embedy (`![[dokument]]`), komentáre, matematika (math.js), Mermaid diagramy, code bloky (highlight.js)
-- Náhľad tlače, rozloženie strán, hlavičky/päty, vodotlač, stránkovanie
+- **Print layout** — stránkovaný náhľad s okrajmi, hlavičkami/pätami, vodotlačou; jemný hero na prázdnej stránke
 - **Režim sústredenia** — minimal UI pre nerušené písanie (`⌘⇧F`, ukončenie cez `Esc`)
+- **Canvas poznámky** — voľné karty a spojenia (`type: canvas`) pre ľahké whiteboard myslenie
 
 ### Knižnica
 - Stromová štruktúra **priečinkov** s drag & drop
 - Fulltextové vyhľadávanie dokumentov (**SQLite FTS5**)
-- Obľúbené, kôš, nedávne dokumenty, **denné poznámky** s calendar heat map
+- Obľúbené, kôš s toastom **Vrátiť**, nedávne dokumenty, **denné poznámky** s calendar heat map
+- **Týždenný digest** — súhrn z denníka/NLP do dokumentu (`⌘K`)
+- **Nájsť a nahradiť** v celej knižnici cez TipTap text (`⌘⇧H`)
 - **Mapa prepojení** (`/graph`): lokálny graf (dvojklik na uzol), filtre, farby podľa tagu/priečinka
 - Panel backlinkov + **unlinked mentions**
 - Príkazová paleta (`⌘K`) s fuzzy matchingom, nedávnymi dokumentmi a wiki cieľmi
+- **Pripnuté taby** — dokumenty ostanú otvorené, kým ich neodopneš
 - Voliteľný MCP most pre AI nástroje (Cursor / Claude) — Nastavenia → MCP; pozri [`crates/scribe-mcp/`](crates/scribe-mcp/)
 
 ### Dokumenty
 - Vlastný formát **`.scribe`** + synchronizácia na disk
-- Šablóny (report, list, životopis, faktúra, esej, …)
+- Šablóny (report, list, životopis, faktúra, esej, …) plus **balíky šablón** (import/export `.scribe-templates.json`, SK balíky)
 - Import: `.scribe`, `.pages`, `.md`, `.txt`, `.docx`, `.rtf`, `.doc`
-- Export: **PDF**, **DOCX**, **Markdown**, **TXT**, **Pages**
+- Export: **PDF**, **DOCX**, **Markdown**, **TXT**, **Pages**; export **výberu** do MD/PDF
+- **Share balík** — lokálne PDF alebo HTML-ZIP otvorené vo Finderi (vhodné na AirDrop; bez cloud hostingu)
+- **Auto-sync** priečinka, ak dokumenty ležia v iCloud Drive / Dropboxe (tip pre viac Macov v Nastaveniach)
 - Automatické ukladanie a **história verzií** s porovnaním diff
 
 ### Vzhľad a nastavenia
@@ -150,7 +156,8 @@ Zatiaľ nie je preložené celé UI — najprv nastavenia, navigácia, dialógy 
 | `⌘K` | Príkazová paleta |
 | `⌘O` | Importovať súbor |
 | `⌘F` | Hľadať v dokumente |
-| `⌘H` | Hľadať a nahradiť |
+| `⌘H` | Hľadať a nahradiť (aktuálny dokument) |
+| `⌘⇧H` | Hľadať a nahradiť v knižnici |
 | `⌘Z` / `⌘⇧Z` | Späť / Znovu |
 | `⌘⇧F` | Režim sústredenia |
 | `⌘⇧L` | Prepínať tému |
@@ -165,18 +172,20 @@ Kompletný zoznam je v aplikácii pod **Nastavenia → Skratky**.
 scribe/
 ├── src/                          # React frontend
 │   ├── components/
+│   │   ├── canvas/               # Canvas / whiteboard poznámky
 │   │   ├── editor/               # Panely, menu, stránkovanie, diff
 │   │   ├── editor-toolbar/       # Formátovací toolbar
-│   │   ├── layout/               # AppHeader, SidebarRail
+│   │   ├── layout/               # AppHeader, SidebarRail, taby
 │   │   ├── settings/             # Nastavenia UI
 │   │   └── ui/                   # shadcn-style primitívy
 │   ├── hooks/                    # Auto-save, hotkeys, pagination, …
 │   ├── i18n/                     # Preklady (en, sk)
 │   ├── layouts/                  # AppLayout, SettingsLayout
 │   ├── lib/
+│   │   ├── canvas/               # Helpery pre canvas dokumenty
 │   │   ├── db/                   # Tauri invoke API
 │   │   ├── editor/               # TipTap extensions a helpery
-│   │   ├── export/               # HTML, PDF, DOCX, Markdown
+│   │   ├── export/               # HTML, PDF, DOCX, Markdown, share balíky
 │   │   ├── revisions/            # Porovnanie verzií
 │   │   └── themes/               # Témy a preset farby
 │   ├── pages/                    # Home, Document, Settings
@@ -195,7 +204,7 @@ scribe/
 ### Testy
 
 ```bash
-bun run test          # 77+ frontend testov
+bun run test          # 158+ frontend testov
 bun run test:backend  # Rust unit testy (migrácie, export, storage)
 ```
 
@@ -207,7 +216,7 @@ Aplikácia používa trojstĺpcový shell:
 Icon rail (52px) | Knižnica (252px) | Header + obsah
 ```
 
-Editor obsahuje formátovací toolbar, plátno s „papierovým“ náhľadom, pravý panel rail (štruktúra, komentáre, odkazy, štatistiky, história) a spodný status bar so stránkovaním a tlačou.
+Editor obsahuje formátovací toolbar, taby dokumentov (s pinom), „papierový“ print-layout náhľad, pravý panel rail (štruktúra, komentáre, odkazy, štatistiky, história) a spodný status bar so stránkovaním a tlačou.
 
 ### Databázové migrácie
 

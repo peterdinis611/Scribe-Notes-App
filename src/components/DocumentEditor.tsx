@@ -286,6 +286,27 @@ export function DocumentEditor() {
 
   useEditorHotkeys(editor)
 
+  const [printDocEmpty, setPrintDocEmpty] = useState(true)
+
+  useEffect(() => {
+    if (!editor) return
+    const syncEmpty = () => setPrintDocEmpty(editor.isEmpty)
+    syncEmpty()
+    editor.on('update', syncEmpty)
+    editor.on('selectionUpdate', syncEmpty)
+    return () => {
+      editor.off('update', syncEmpty)
+      editor.off('selectionUpdate', syncEmpty)
+    }
+  }, [editor])
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('scribe-print-layout', printLayoutEnabled)
+    return () => {
+      document.documentElement.classList.remove('scribe-print-layout')
+    }
+  }, [printLayoutEnabled])
+
   useEditorViewEffect(
     editor,
     (_editor, dom) => {
@@ -583,6 +604,7 @@ export function DocumentEditor() {
                   'editor-canvas',
                   !isMarkdown && 'editor-canvas--paginated',
                   !isMarkdown && printLayoutEnabled && 'editor-canvas--print-layout',
+                  !isMarkdown && printLayoutEnabled && printDocEmpty && 'editor-canvas--print-empty',
                   isMarkdown && 'editor-canvas--markdown',
                 )}
                 style={
@@ -601,10 +623,13 @@ export function DocumentEditor() {
                         ...(printLayoutEnabled
                           ? {
                               width: pageLayout.width,
-                              maxWidth: '100%',
+                              minWidth: pageLayout.width,
+                              maxWidth: pageLayout.width,
                               paddingBottom: `${pageLayout.paddingBottom + Math.max(0, pageCount - 1) * EDITOR_PAGE_GAP}px`,
                             }
-                          : {}),
+                          : {
+                              maxWidth: pageLayout.width,
+                            }),
                       } as CSSProperties)
                     : undefined
                 }
@@ -639,13 +664,21 @@ export function DocumentEditor() {
                           aria-hidden="true"
                         />
                       ))}
-                    <PageHeaderFooterOverlays
-                      pageSetup={pageSetup}
-                      pageSegments={pageSegments}
-                      documentTitle={activeDocument?.title ?? t('common.document')}
-                      paddingTop={pageLayout.paddingTop}
-                      printLayout={printLayoutConfig}
-                    />
+                    {(!printLayoutEnabled || !printDocEmpty) && (
+                      <PageHeaderFooterOverlays
+                        pageSetup={pageSetup}
+                        pageSegments={pageSegments}
+                        documentTitle={activeDocument?.title ?? t('common.document')}
+                        paddingTop={pageLayout.paddingTop}
+                        printLayout={printLayoutConfig}
+                      />
+                    )}
+                    {printLayoutEnabled && printDocEmpty && (
+                      <div className="editor-print-empty-hero" aria-hidden="true">
+                        <p className="editor-print-empty-hero-title">{t('editor.printEmptyHero')}</p>
+                        <p className="editor-print-empty-hero-hint">{t('editor.printEmptyHint')}</p>
+                      </div>
+                    )}
                     {!printLayoutEnabled && (
                       <PageWatermarkOverlays
                         pageSetup={pageSetup}

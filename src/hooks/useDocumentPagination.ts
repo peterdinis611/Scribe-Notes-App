@@ -33,7 +33,10 @@ export function useDocumentPagination({
   const [pageCount, setPageCount] = useState(1)
   const [currentPage, setCurrentPage] = useState(1)
   const [contentHeight, setContentHeight] = useState(0)
-  const [pageSegments, setPageSegments] = useState<PageSegment[]>([])
+  // Always keep at least page 1 — empty [] hides print sheets and breaks the empty state.
+  const [pageSegments, setPageSegments] = useState<PageSegment[]>(() =>
+    computePageSegments(pageSetup, 0),
+  )
 
   const measureNow = useCallback(() => {
     const content = contentRef.current
@@ -98,12 +101,14 @@ export function useDocumentPagination({
     setCurrentPage(1)
     setPageCount(1)
     setContentHeight(0)
-    setPageSegments([])
+    setPageSegments(computePageSegments(pageSetup, 0))
 
     const scrollEl = scrollRef.current
     if (scrollEl) {
       scrollEl.scrollTop = 0
     }
+    // Seed sheets for the new doc; pageSetup is read for the initial segment only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset on document switch
   }, [documentId])
 
   useEffect(() => {

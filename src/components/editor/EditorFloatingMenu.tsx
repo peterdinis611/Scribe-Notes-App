@@ -35,9 +35,15 @@ type QuickInsertItem = {
 type EditorFloatingMenuProps = {
   editor: Editor | null
   onInsertImages: (files: File[]) => Promise<void>
+  /** Hide the + insert control on an empty print-layout page (hero owns the cue). */
+  hideWhenPrintEmpty?: boolean
 }
 
-export function EditorFloatingMenu({ editor, onInsertImages }: EditorFloatingMenuProps) {
+export function EditorFloatingMenu({
+  editor,
+  onInsertImages,
+  hideWhenPrintEmpty = false,
+}: EditorFloatingMenuProps) {
   const { t } = useTranslation()
   const menuRef = useRef<HTMLDivElement>(null)
   const [expanded, setExpanded] = useState(false)
@@ -190,7 +196,10 @@ export function EditorFloatingMenu({ editor, onInsertImages }: EditorFloatingMen
         flip: { padding: 12 },
         shift: { padding: 12 },
       }}
-      shouldShow={({ editor: currentEditor }) => shouldShowInsertMenu(currentEditor, null)}
+      shouldShow={({ editor: currentEditor }) => {
+        if (hideWhenPrintEmpty && currentEditor.isEmpty) return false
+        return shouldShowInsertMenu(currentEditor, null)
+      }}
     >
       {!expanded ? (
         <button

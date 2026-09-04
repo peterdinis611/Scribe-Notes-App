@@ -15,23 +15,29 @@ Scribe runs locally on your Mac. No accounts, no cloud — documents, the databa
 - Slash commands (`/`), bubble menu, drag & drop blocks and images
 - Block **snippets** via slash (meeting notes, decision, …)
 - Wiki links (`[[document]]`), embeds (`![[document]]`), comments, math (math.js), Mermaid diagrams, code blocks (highlight.js)
-- Print preview, page layout, headers/footers, watermarks, pagination
+- **Print layout** — paginated page preview with margins, headers/footers, watermarks; quiet blank-page hero when empty
 - **Focus mode** — minimal UI for distraction-free writing (`⌘⇧F`, exit with `Esc`)
+- **Canvas notes** — freeform cards and connectors (`type: canvas`) for light whiteboard-style thinking
 
 ### Library
 - Tree-structured **folders** with drag & drop
 - Full-text document search (**SQLite FTS5**)
-- Favorites, trash, recent documents, **daily notes** with calendar heat map
+- Favorites, trash with **Undo** toast, recent documents, **daily notes** with calendar heat map
+- **Weekly digest** — turn journal/NLP summary into a document (`⌘K`)
+- Library-wide **find & replace** across TipTap text (`⌘⇧H`)
 - Wiki **connection map** (`/graph`): local graph (double-click node), filters, tag/folder colors
 - Backlinks panel + **unlinked mentions**
 - Command palette (`⌘K`) with fuzzy matching, recent docs, and wiki targets
+- **Pinned tabs** — keep documents open until you unpin them
 - Optional MCP bridge for AI tools (Cursor / Claude) — Settings → MCP; see [`crates/scribe-mcp/`](crates/scribe-mcp/)
 
 ### Documents
 - Custom **`.scribe`** format + disk sync
-- Templates (report, letter, resume, invoice, essay, …)
+- Templates (report, letter, resume, invoice, essay, …) plus **template packs** (import/export `.scribe-templates.json`, Slovak bundles)
 - Import: `.scribe`, `.pages`, `.md`, `.txt`, `.docx`, `.rtf`, `.doc`
-- Export: **PDF**, **DOCX**, **Markdown**, **TXT**, **Pages**
+- Export: **PDF**, **DOCX**, **Markdown**, **TXT**, **Pages**; export **selection** to MD/PDF
+- **Share package** — local PDF or HTML-ZIP revealed in Finder (AirDrop-friendly; no cloud hosting)
+- Folder **auto-sync** when the documents directory lives in iCloud Drive / Dropbox (multi-Mac tip in Settings)
 - Auto-save and **revision history** with diff comparison
 
 ### Appearance & settings
@@ -150,7 +156,8 @@ Not every screen is translated yet — settings, navigation, storage dialogs, an
 | `⌘K` | Command palette |
 | `⌘O` | Import file |
 | `⌘F` | Find in document |
-| `⌘H` | Find and replace |
+| `⌘H` | Find and replace (current document) |
+| `⌘⇧H` | Find and replace in library |
 | `⌘Z` / `⌘⇧Z` | Undo / Redo |
 | `⌘⇧F` | Focus mode |
 | `⌘⇧L` | Toggle theme |
@@ -165,18 +172,20 @@ The full list is in the app under **Settings → Shortcuts**.
 scribe/
 ├── src/                          # React frontend
 │   ├── components/
+│   │   ├── canvas/               # Canvas / whiteboard notes
 │   │   ├── editor/               # Panels, menus, pagination, diff
 │   │   ├── editor-toolbar/       # Formatting toolbar
-│   │   ├── layout/               # AppHeader, SidebarRail
+│   │   ├── layout/               # AppHeader, SidebarRail, tabs
 │   │   ├── settings/             # Settings UI
 │   │   └── ui/                   # shadcn-style primitives
 │   ├── hooks/                    # Auto-save, hotkeys, pagination, …
 │   ├── i18n/                     # Translations (en, sk)
 │   ├── layouts/                  # AppLayout, SettingsLayout
 │   ├── lib/
+│   │   ├── canvas/               # Canvas document helpers
 │   │   ├── db/                   # Tauri invoke API
 │   │   ├── editor/               # TipTap extensions and helpers
-│   │   ├── export/               # HTML, PDF, DOCX, Markdown
+│   │   ├── export/               # HTML, PDF, DOCX, Markdown, share packs
 │   │   ├── revisions/            # Version comparison
 │   │   └── themes/               # Themes and preset colors
 │   ├── pages/                    # Home, Document, Settings
@@ -195,7 +204,7 @@ scribe/
 ### Tests
 
 ```bash
-bun run test          # 77+ frontend tests
+bun run test          # 158+ frontend tests
 bun run test:backend  # Rust unit tests (migrations, export, storage)
 ```
 
@@ -207,7 +216,7 @@ The app uses a three-column shell:
 Icon rail (52px) | Library (252px) | Header + content
 ```
 
-The editor includes a formatting toolbar, a “paper” canvas preview, a right panel rail (outline, comments, backlinks, stats, history), and a bottom status bar with pagination and print.
+The editor includes a formatting toolbar, document tabs (with pin), a “paper” print-layout preview, a right panel rail (outline, comments, backlinks, stats, history), and a bottom status bar with pagination and print.
 
 ### Database migrations
 

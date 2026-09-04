@@ -3,6 +3,7 @@ import { EditorDragHandle } from '@/components/editor/EditorDragHandle'
 import { EditorFloatingMenu } from '@/components/editor/EditorFloatingMenu'
 import { EditorTableBubbleMenu } from '@/components/editor/EditorTableBubbleMenu'
 import { EditorTextBubbleMenu } from '@/components/editor/EditorTextBubbleMenu'
+import { useAppSelector } from '@/store/hooks'
 
 type EditorMenusProps = {
   editor: import('@tiptap/react').Editor | null
@@ -10,15 +11,21 @@ type EditorMenusProps = {
 }
 
 export function EditorMenus({ editor, onInsertImages }: EditorMenusProps) {
+  const printLayoutEnabled = useAppSelector((state) => state.settings.printLayoutEnabled)
+
   if (!editor) return null
 
   return (
     <>
-      <EditorDragHandle editor={editor} />
+      {!printLayoutEnabled && <EditorDragHandle editor={editor} />}
       <EditorTextBubbleMenu editor={editor} />
       <EditorTableBubbleMenu editor={editor} />
       <EditorBlockBubbleMenu editor={editor} />
-      <EditorFloatingMenu editor={editor} onInsertImages={onInsertImages} />
+      <EditorFloatingMenu
+        editor={editor}
+        onInsertImages={onInsertImages}
+        hideWhenPrintEmpty={printLayoutEnabled}
+      />
     </>
   )
 }

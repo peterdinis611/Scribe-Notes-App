@@ -2592,8 +2592,8 @@ html[data-ui-skin='press'] .editor-shell--home {
 .editor-canvas {
   position: relative;
   box-sizing: border-box;
-  width: 100%;
-  max-width: min(var(--page-width, 820px), 100%);
+  width: min(100%, var(--page-width, 820px));
+  max-width: var(--page-width, 820px);
   margin: 0 auto;
   padding: var(--page-padding-top, 56px) var(--page-padding-right, 64px) var(--page-padding-bottom, 72px) var(--page-padding-left, 64px);
   border-radius: var(--radius-lg);
@@ -2724,7 +2724,7 @@ html[data-ui-skin='press'] .editor-shell--home {
 }
 
 .editor-page-chrome--sheet .editor-page-header {
-  top: 18px;
+  top: 22px;
   bottom: auto;
   border-bottom: none;
   font-family: var(--font-display);
@@ -2732,6 +2732,7 @@ html[data-ui-skin='press'] .editor-shell--home {
   font-weight: 600;
   letter-spacing: -0.01em;
   color: color-mix(in srgb, var(--color-muted-foreground) 78%, transparent);
+  opacity: 0.72;
 }
 
 .editor-page-chrome--sheet .editor-page-footer {
@@ -2767,10 +2768,16 @@ html[data-ui-skin='press'] .editor-shell--home {
   width: 100%;
 }
 
-.editor-scroll--print-layout {
+/* Beat `.dark .editor-stage` dotted canvas — print needs a clear desk behind paper. */
+.editor-scroll--print-layout,
+.dark .editor-stage.editor-scroll--print-layout {
   background:
-    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--color-accent) 6%, transparent), transparent 42%),
-    color-mix(in srgb, var(--color-sidebar) 55%, var(--color-background));
+    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--color-accent) 5%, transparent), transparent 40%),
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--color-background) 88%, #000) 0%,
+      color-mix(in srgb, var(--color-sidebar) 35%, var(--color-background)) 100%
+    );
   overflow: auto;
   padding-bottom: 112px;
 }
@@ -2778,13 +2785,16 @@ html[data-ui-skin='press'] .editor-shell--home {
 .editor-print-host--active {
   display: flex;
   justify-content: center;
+  align-items: flex-start;
   min-width: 0;
-  padding: 20px 0 40px;
+  min-height: 100%;
+  padding: 36px 32px 80px;
 }
 
 .editor-print-stage-wrap--active {
   position: relative;
-  flex-shrink: 0;
+  flex: 0 0 auto;
+  width: auto;
   max-width: 100%;
 }
 
@@ -2793,12 +2803,14 @@ html[data-ui-skin='press'] .editor-shell--home {
   top: 0;
   left: 50%;
   transform-origin: top center;
+  max-width: none;
 }
 
 .editor-print-stage {
   position: relative;
   transform-origin: top center;
-  max-width: 100%;
+  /* Sized in JS to paper stage — never stretch to the desk width. */
+  max-width: none;
 }
 
 .editor-page-sheets {
@@ -2812,20 +2824,23 @@ html[data-ui-skin='press'] .editor-shell--home {
   position: absolute;
   top: 0;
   left: 0;
-  border-radius: 0;
-  background: #fbfaf7;
+  box-sizing: border-box;
+  border-radius: 2px;
+  background: #f7f4ee;
   border: 1px solid color-mix(in srgb, var(--color-border) 55%, transparent);
   box-shadow:
     0 1px 1px rgba(0, 0, 0, 0.04),
-    0 10px 28px rgba(0, 0, 0, 0.08);
+    0 14px 40px rgba(0, 0, 0, 0.12);
 }
 
+/* Paper must read clearly against the print desk in dark mode. */
 .dark .editor-page-sheet {
-  background: color-mix(in srgb, var(--color-surface-elevated) 92%, #1a1a1a);
-  border-color: color-mix(in srgb, var(--color-border) 45%, transparent);
+  background: color-mix(in srgb, var(--color-surface-elevated) 55%, #2c3038);
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.03) inset,
-    0 12px 36px rgba(0, 0, 0, 0.28);
+    0 0 0 1px color-mix(in srgb, #000 35%, transparent),
+    0 1px 0 color-mix(in srgb, #fff 6%, transparent) inset,
+    0 18px 48px rgba(0, 0, 0, 0.42);
 }
 
 .editor-page-sheet-label {
@@ -2843,12 +2858,31 @@ html[data-ui-skin='press'] .editor-shell--home {
 .editor-canvas--print-layout {
   position: relative;
   z-index: 2;
-  margin: 0 auto;
+  box-sizing: border-box;
+  /* Lock to paper width — do not inherit width:100% / max-width:100% from desk. */
+  width: var(--page-width, 794px);
+  min-width: var(--page-width, 794px);
+  max-width: var(--page-width, 794px);
+  margin: 0;
   background: transparent;
   border: none;
+  border-radius: 0;
   box-shadow: none;
-  min-height: auto;
-  max-width: 100%;
+  min-height: var(--page-paper-height, 1123px);
+  overflow-x: clip;
+}
+
+.editor-canvas--print-empty {
+  min-height: var(--page-paper-height, 1123px);
+}
+
+.editor-canvas--print-empty .tiptap {
+  min-height: var(--page-content-height, 900px);
+}
+
+.editor-scroll--print-layout .tiptap {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .editor-print-page-gap {
@@ -4063,41 +4097,57 @@ body.is-block-dragging .tiptap {
   border-radius: 4px;
 }
 
+/* Print empty: TipTap caret placeholder stays invisible — hero overlay handles the cue. */
 .tiptap--print-accurate p.is-editor-empty:first-child::before {
-  display: block;
-  margin-top: 12vh;
-  font-family: var(--font-display);
-  font-size: clamp(1.35rem, 2.4vw, 1.85rem);
-  font-style: normal;
-  font-weight: 650;
-  letter-spacing: -0.035em;
-  line-height: 1.25;
-  color: color-mix(in srgb, var(--color-muted-foreground) 52%, transparent);
-  pointer-events: none;
-}
-
-.tiptap--print-accurate.is-empty-doc::before {
   content: none;
 }
 
-.editor-canvas--print-layout .tiptap--print-accurate:has(> p.is-editor-empty:only-child) {
-  min-height: 55vh;
+/*
+  Soft empty cue — optically centered in the upper half of the first sheet
+  so it reads as centered in a typical viewport (full mid-A4 sits too low).
+*/
+.editor-print-empty-hero {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 1;
+  box-sizing: border-box;
+  height: var(--page-paper-height, 1123px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding-inline: var(--page-padding-left, 72px) var(--page-padding-right, 72px);
+  padding-bottom: 32%;
+  pointer-events: none;
+  text-align: center;
 }
 
-.editor-scroll--print-layout .editor-block-drag-handle {
-  border-color: transparent;
-  background: transparent;
-  box-shadow: none;
-  opacity: 0;
+.editor-print-empty-hero-title {
+  margin: 0;
+  max-width: 16em;
+  font-family: var(--font-display);
+  font-size: clamp(1.05rem, 1.8vw, 1.35rem);
+  font-weight: 600;
+  letter-spacing: -0.028em;
+  line-height: 1.3;
+  color: color-mix(in srgb, var(--color-muted-foreground) 52%, transparent);
 }
 
-.editor-scroll--print-layout .editor-block-drag-handle.is-active,
-.editor-scroll--print-layout .editor-block-drag-handle:hover,
-.editor-scroll--print-layout .editor-block-drag-handle:focus-visible {
-  opacity: 0.7;
-  background: color-mix(in srgb, var(--color-background) 80%, transparent);
-  border-color: color-mix(in srgb, var(--color-border) 60%, transparent);
-  box-shadow: none;
+.editor-print-empty-hero-hint {
+  margin: 0;
+  font-size: 11.5px;
+  letter-spacing: 0.015em;
+  color: color-mix(in srgb, var(--color-muted-foreground) 36%, transparent);
+}
+
+/* Drag handle is portaled to document.body — match via root flag. */
+html.scribe-print-layout .editor-block-drag-handle {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 .tiptap details.details-block {
