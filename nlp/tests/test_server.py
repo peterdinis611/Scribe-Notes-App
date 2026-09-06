@@ -35,7 +35,7 @@ class ServerTests(unittest.TestCase):
         )
         result = response["result"]
         self.assertTrue(result["ok"])
-        self.assertEqual(result["model"], "scribe-hash-v2")
+        self.assertEqual(result["model"], "scribe-hash-v3")
         self.assertIn("limits", result)
         self.assertIn("embedBackend", result)
         self.assertIn("qualityAvailable", result)

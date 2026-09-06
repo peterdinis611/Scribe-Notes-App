@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from collections import Counter
 
-from .text_utils import normalize_text, top_terms
+from .keywords import extract_keywords
+from .language import detect_language
+from .text_utils import top_terms
 
 
 def _sort_by_updated(documents: list[dict[str, object]]) -> list[dict[str, object]]:
@@ -32,6 +34,21 @@ def library_report(documents: list[dict[str, object]]) -> dict[str, object]:
         if not doc.get("tags")
     ][:8]
 
+    language_counter: Counter[str] = Counter()
+    phrase_counter: Counter[str] = Counter()
+    # Sample up to 80 docs for language / keyphrase stats (keeps report fast).
+    sample = sorted_docs[:80]
+    for doc in sample:
+        blob = f"{doc.get('title') or ''}\n{doc.get('text') or ''}".strip()
+        if not blob:
+            continue
+        lang = str(detect_language(blob).get("language") or "unknown")
+        language_counter[lang] += 1
+        for item in extract_keywords(blob, limit=6).get("keyphrases") or []:
+            phrase = str(item.get("phrase") or "").strip()
+            if phrase:
+                phrase_counter[phrase] += 1
+
     lines = [
         "# Analýza knižnice",
         "",
@@ -39,11 +56,26 @@ def library_report(documents: list[dict[str, object]]) -> dict[str, object]:
         f"- **Otagované:** {tagged}",
         f"- **Bez tagov:** {total - tagged}",
         "",
-        "## Časté výrazy",
+        "## Jazyky (vzorka)",
     ]
+    if language_counter:
+        for lang, count in language_counter.most_common():
+            label = {"sk": "slovenčina", "en": "angličtina"}.get(lang, lang)
+            lines.append(f"- {label} ({count})")
+    else:
+        lines.append("- —")
+
+    lines.extend(["", "## Časté výrazy"])
     if terms:
         for word, count in terms:
             lines.append(f"- {word} ({count})")
+    else:
+        lines.append("- —")
+
+    lines.extend(["", "## Časté frázy"])
+    if phrase_counter:
+        for phrase, count in phrase_counter.most_common(8):
+            lines.append(f"- {phrase} ({count})")
     else:
         lines.append("- —")
 
@@ -70,6 +102,14 @@ def library_report(documents: list[dict[str, object]]) -> dict[str, object]:
             "documentCount": total,
             "taggedCount": tagged,
             "topTerms": [{"term": term, "count": count} for term, count in terms],
+            "topPhrases": [
+                {"phrase": phrase, "count": count}
+                for phrase, count in phrase_counter.most_common(8)
+            ],
+            "languages": [
+                {"language": lang, "count": count}
+                for lang, count in language_counter.most_common()
+            ],
             "topTags": [
                 {"tag": tag, "count": count}
                 for tag, count in tag_counter.most_common(10)

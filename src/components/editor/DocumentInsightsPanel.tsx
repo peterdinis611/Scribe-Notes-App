@@ -6,6 +6,7 @@ import {
   FileText,
   Hash,
   Languages,
+  ListTree,
   PanelRightClose,
   RotateCcw,
   Sparkles,
@@ -96,7 +97,10 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
   )
 
   const keywordCount = analysis?.keywords.length ?? 0
-  const total = similar.length + openTasks.length + keywordCount
+  const outlineCount = analysis?.outline.length ?? 0
+  const hasSummary = Boolean(analysis?.summary?.trim())
+  const total =
+    similar.length + openTasks.length + keywordCount + outlineCount + (hasSummary ? 1 : 0)
 
   const languageLabel = useMemo(() => {
     if (!analysis?.language || analysis.language === 'unknown') {
@@ -134,11 +138,8 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
         <EditorSidePanelList className="gap-1">
           <div>
             <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.03em] text-[var(--color-muted-foreground)]">
-              <Hash className="h-3.5 w-3.5" />
-              {t('panels.insights.keywords')}
-              <span className="ml-auto rounded-full bg-[var(--color-hover)] px-1.5 text-[10px] font-semibold">
-                {keywordCount}
-              </span>
+              <Sparkles className="h-3.5 w-3.5" />
+              {t('panels.insights.summary')}
             </h3>
             <p className="m-0 mb-1.5 flex items-center gap-1.5 text-[10.5px] text-[var(--color-muted-foreground)]">
               <Languages className="h-3 w-3 shrink-0" />
@@ -146,6 +147,25 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
                 ? t('panels.insights.languageLine', { language: languageLabel })
                 : t('panels.insights.keywordsDisabled')}
             </p>
+            {!nlpEnabled || !hasSummary ? (
+              <p className="m-0 mt-0.5 text-[11.5px] text-[var(--color-muted-foreground)]">
+                {nlpEnabled ? t('panels.insights.summaryEmpty') : t('panels.insights.keywordsDisabled')}
+              </p>
+            ) : (
+              <p className="m-0 text-[12.5px] leading-snug text-[var(--color-foreground)]">
+                {analysis?.summary}
+              </p>
+            )}
+          </div>
+
+          <div className="mt-3.5 border-t border-[var(--color-border)] pt-3">
+            <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.03em] text-[var(--color-muted-foreground)]">
+              <Hash className="h-3.5 w-3.5" />
+              {t('panels.insights.keywords')}
+              <span className="ml-auto rounded-full bg-[var(--color-hover)] px-1.5 text-[10px] font-semibold">
+                {keywordCount}
+              </span>
+            </h3>
             {!nlpEnabled || keywordCount === 0 ? (
               <p className="m-0 mt-0.5 text-[11.5px] text-[var(--color-muted-foreground)]">
                 {nlpEnabled ? t('panels.insights.keywordsEmpty') : t('panels.insights.keywordsDisabled')}
@@ -162,6 +182,34 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
                   </span>
                 ))}
               </div>
+            )}
+          </div>
+
+          <div className="mt-3.5 border-t border-[var(--color-border)] pt-3">
+            <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.03em] text-[var(--color-muted-foreground)]">
+              <ListTree className="h-3.5 w-3.5" />
+              {t('panels.insights.outline')}
+              <span className="ml-auto rounded-full bg-[var(--color-hover)] px-1.5 text-[10px] font-semibold">
+                {outlineCount}
+              </span>
+            </h3>
+            {!nlpEnabled || outlineCount === 0 ? (
+              <p className="m-0 mt-0.5 text-[11.5px] text-[var(--color-muted-foreground)]">
+                {nlpEnabled ? t('panels.insights.outlineEmpty') : t('panels.insights.keywordsDisabled')}
+              </p>
+            ) : (
+              <ul className="m-0 list-none space-y-1 p-0">
+                {analysis?.outline.slice(0, 12).map((item, index) => (
+                  <li
+                    key={`${item.title}-${index}`}
+                    className="truncate text-[12px] text-[var(--color-foreground)]"
+                    style={{ paddingLeft: `${Math.max(0, item.level - 1) * 10}px` }}
+                    title={item.title}
+                  >
+                    {item.title}
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
 

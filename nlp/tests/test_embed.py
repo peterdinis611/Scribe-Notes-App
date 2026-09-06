@@ -7,8 +7,8 @@ from scribe_nlp.text_utils import jaccard_similarity
 
 
 class EmbedTests(unittest.TestCase):
-    def test_model_id_is_v2(self) -> None:
-        self.assertEqual(MODEL_ID, "scribe-hash-v2")
+    def test_model_id_is_v3(self) -> None:
+        self.assertEqual(MODEL_ID, "scribe-hash-v3")
 
     def test_empty_text_returns_zero_vector(self) -> None:
         vector = embed_text("")

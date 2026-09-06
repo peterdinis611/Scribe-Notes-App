@@ -237,9 +237,21 @@
   },
   "whatsNew": {
     "badge": "Novinky {{version}}",
-    "title": "Scribe 1.1",
-    "subtitle": "Silnejšia Lokálna AI, pokojnejší print layout a nástroje na každodenné písanie.",
+    "title": "Scribe {{version}}",
+    "subtitle": "Lokálna AI 0.5 — lepšie embeddings, jednotná analýza dokumentu a bohatší prehľad.",
     "gotIt": "Rozumiem",
+    "localAiV3": {
+      "title": "Hash embeddings v3",
+      "description": "Vektory bez stopwords a s boostom začiatku textu — ostnejšie sémantické hľadanie, stále offline."
+    },
+    "insightsSummary": {
+      "title": "Bohatší AI prehľad",
+      "description": "Výťažkové zhrnutie, osnova, kľúčové slová a jazyk v jednom paneli — plus chytrejšie SK úlohy."
+    },
+    "reindexHint": {
+      "title": "Raz preindexovať",
+      "description": "Po aktualizácii otvorte Nastavenia → Lokálna AI a spustite Preindexovať, aby nový model nahradil staré vektory."
+    },
     "localAiKeywords": {
       "title": "Chytrejšia Lokálna AI",
       "description": "Kľúčové slová, detekcia jazyka a lepšie SK stopwords — offline v paneli AI prehľad."
@@ -618,7 +630,7 @@
           "paragraphs": [
             "Lokálna AI nie je chatbot ani online služba. Keď ju zapnete v Nastaveniach → Lokálna AI, Scribe spustí na pozadí malý Python proces (sidecar) priamo na tomto Macu. Všetko spracovanie — indexovanie, vyhľadávanie, sumarizácia — prebieha v pamäti vášho počítača. Text sa nikam neodosiela.",
             "Rust jadro aplikácie ostáva hlavné: databáza, editor, ukladanie a fulltextové vyhľadávanie fungujú aj bez AI. Python doplnok pridáva sémantiku (význam podobnosti), návrhy tagov, týždenný prehľad denníka a analýzu knižnice.",
-            "Po zapnutí sa dokumenty indexujú do vektorov (model scribe-hash-v2). Ak Scribe aktualizujete a model sa zmení, zobrazí sa upozornenie na preindexovanie — staré a nové vektory by inak dávali nekonzistentné výsledky."
+            "Po zapnutí sa dokumenty indexujú do vektorov (model scribe-hash-v3). Ak Scribe aktualizujete a model sa zmení, zobrazí sa upozornenie na preindexovanie — staré a nové vektory by inak dávali nekonzistentné výsledky."
           ],
           "points": [
             "⌘K scope Všetko — kombinuje fulltext (FTS) a sémantiku cez hybridné zlučovanie",
@@ -1019,9 +1031,13 @@
     },
     "insights": {
       "title": "AI prehľad",
-      "subtitle": "Kľúčové slová, podobné poznámky a otvorené úlohy",
+      "subtitle": "Zhrnutie, kľúčové slová, podobné poznámky a otvorené úlohy",
       "hide": "Skryť AI prehľad",
       "loadError": "Nepodarilo sa načítať AI prehľad",
+      "summary": "Zhrnutie",
+      "summaryEmpty": "Napíšte viac textu pre výťažkové zhrnutie.",
+      "outline": "Osnova",
+      "outlineEmpty": "Zatiaľ žiadne nadpisy.",
       "keywords": "Kľúčové slová",
       "keywordsEmpty": "Zatiaľ žiadne silné kľúčové slová — napíšte viac textu.",
       "keywordsDisabled": "Zapnite Lokálnu AI v nastaveniach pre kľúčové slová.",
@@ -1034,7 +1050,7 @@
       "similarDisabled": "Zapnite Lokálnu AI v nastaveniach pre podobné dokumenty.",
       "similarEmpty": "Žiadne podobné dokumenty — dokument ešte nemusí byť indexovaný.",
       "tasks": "Otvorené úlohy",
-      "tasksHint": "Checkboxy v texte a frázy typu „treba:“ alebo „todo:“.",
+      "tasksHint": "Checkboxy a frázy typu „treba:“, „todo:“ alebo „musím …“.",
       "tasksEmpty": "V tomto dokumente nie sú otvorené úlohy.",
       "sourceCheckbox": "checkbox",
       "sourcePhrase": "fráza",

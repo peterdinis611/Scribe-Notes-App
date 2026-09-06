@@ -13,7 +13,13 @@ from .config import (
     MAX_TEXT_CHARS,
 )
 from .embed import embed_text
-from .embed_backend import active_backend, configure_backend, current_model_id, quality_available
+from .embed_backend import (
+    active_backend,
+    configure_backend,
+    current_model_id,
+    quality_available,
+    set_backend_change_hook,
+)
 from .text_utils import truncate_text
 
 
@@ -27,7 +33,14 @@ class SidecarError(Exception):
 def _cached_embed(text: str) -> tuple[float, ...]:
     return tuple(embed_text(text))
 
-@lru_cache(maxsize=EMBED_CACHE_SIZE)
+
+def _clear_embed_cache() -> None:
+    _cached_embed.cache_clear()
+
+
+set_backend_change_hook(_clear_embed_cache)
+
+
 def _embed_cached(text: str) -> list[float]:
     return list(_cached_embed(truncate_text(text, MAX_TEXT_CHARS)))
 
@@ -66,6 +79,7 @@ def handle_request(request: dict[str, Any]) -> dict[str, Any]:
                     "language",
                     "outline",
                     "similar",
+                    "analyze",
                 ],
                 "limits": {
                     "maxTextChars": MAX_TEXT_CHARS,
@@ -132,6 +146,19 @@ def handle_request(request: dict[str, Any]) -> dict[str, Any]:
             text = _validate_text(str(params.get("text") or ""))
             limit = max(1, min(int(params.get("limit") or 40), 80))
             result = extract_outline(text, limit=limit)
+        elif method == "analyze_document":
+            from .analyze import analyze_document
+
+            text = _validate_text(str(params.get("text") or ""))
+            keyword_limit = max(1, min(int(params.get("keywordLimit") or 12), 32))
+            outline_limit = max(1, min(int(params.get("outlineLimit") or 24), 80))
+            summary_sentences = max(1, min(int(params.get("summarySentences") or 3), 8))
+            result = analyze_document(
+                text,
+                keyword_limit=keyword_limit,
+                outline_limit=outline_limit,
+                summary_sentences=summary_sentences,
+            )
         elif method == "similar_notes":
             from .similar import similar_notes
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from .embed import cosine_similarity, embed_text
 from .keywords import extract_keywords
 from .text_utils import content_tokens, jaccard_similarity, normalize_text
 
@@ -14,8 +15,10 @@ def similar_notes(
     query_text: str,
     documents: list[dict[str, object]],
     limit: int = 8,
+    *,
+    use_embeddings: bool = True,
 ) -> dict[str, object]:
-    """Rank notes by keyword / content-token overlap (no embeddings required)."""
+    """Rank notes by keyword overlap, optionally blended with hash embeddings."""
     query = normalize_text(query_text)
     if not query or not documents:
         return {"matches": []}
@@ -26,6 +29,10 @@ def similar_notes(
         for item in (extract_keywords(query, limit=16).get("keywords") or [])
     }
     limit = max(1, min(int(limit or 8), 32))
+
+    query_vec: list[float] | None = None
+    if use_embeddings and len(query) >= 12:
+        query_vec = embed_text(query)
 
     scored: list[dict[str, object]] = []
     for document in documents:
@@ -51,7 +58,20 @@ def similar_notes(
                     len(title_tokens & query_tokens) / max(len(title_tokens), 1)
                 )
 
-        score = 0.55 * token_score + 0.30 * keyword_overlap + title_boost
+        embed_score = 0.0
+        if query_vec is not None and len(blob) >= 12:
+            embed_score = max(0.0, cosine_similarity(query_vec, embed_text(blob)))
+
+        if query_vec is not None:
+            score = (
+                0.35 * token_score
+                + 0.22 * keyword_overlap
+                + 0.28 * embed_score
+                + title_boost
+            )
+        else:
+            score = 0.55 * token_score + 0.30 * keyword_overlap + title_boost
+
         if score <= 0.02:
             continue
 

@@ -10,10 +10,11 @@ class TaskExtractionTests(unittest.TestCase):
         text = "- [ ] Buy milk\n- [x] Done item\nTodo: ship release"
         result = extract_tasks(text)
         tasks = result["tasks"]
-        self.assertEqual(len(tasks), 2)
+        self.assertEqual(len(tasks), 3)
         self.assertFalse(tasks[0]["checked"])
         self.assertEqual(tasks[0]["source"], "markdown")
         self.assertEqual(tasks[0]["text"], "Buy milk")
+        self.assertEqual(tasks[2]["text"], "ship release")
 
     def test_imperative_phrases(self) -> None:
         text = "Treba: zavolať klientovi do 2026-03-01"
@@ -22,6 +23,12 @@ class TaskExtractionTests(unittest.TestCase):
         self.assertEqual(len(tasks), 1)
         self.assertEqual(tasks[0]["source"], "phrase")
         self.assertEqual(tasks[0]["dueHint"], "2026-03-01")
+
+    def test_inline_slovak_task(self) -> None:
+        text = "Dnes musím dokončiť report pre tím."
+        result = extract_tasks(text)
+        self.assertGreaterEqual(result["openCount"], 1)
+        self.assertTrue(any("dokončiť report" in task["text"].lower() for task in result["tasks"]))
 
     def test_open_count_excludes_checked(self) -> None:
         text = "- [x] done\n- [ ] open"

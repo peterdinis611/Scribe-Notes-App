@@ -5,20 +5,30 @@ from typing import Literal
 
 EmbedBackend = Literal["hash", "quality"]
 
-HASH_MODEL_ID = "scribe-hash-v2"
+HASH_MODEL_ID = "scribe-hash-v3"
 QUALITY_MODEL_ID = "scribe-minilm-v1"
 QUALITY_MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
 
 _active_backend: EmbedBackend = "hash"
 _quality_model = None
+_on_backend_change = None
+
+
+def set_backend_change_hook(callback) -> None:
+    """Register a callback (e.g. clear embed LRU) when backend switches."""
+    global _on_backend_change
+    _on_backend_change = callback
 
 
 def configure_backend(value: str | None) -> EmbedBackend:
     global _active_backend
+    previous = _active_backend
     if value == "quality" and quality_available():
         _active_backend = "quality"
     else:
         _active_backend = "hash"
+    if _active_backend != previous and _on_backend_change is not None:
+        _on_backend_change()
     return _active_backend
 
 

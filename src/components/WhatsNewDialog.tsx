@@ -1,4 +1,4 @@
-import { FileText, Pin, Sparkles } from 'lucide-react'
+import { ListTree, RefreshCw, Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
@@ -13,10 +13,13 @@ import { APP_VERSION } from '@/lib/app-version'
 import { persistWhatsNewVersion } from '@/store/persistence'
 
 const HIGHLIGHTS = [
-  { id: 'localAiKeywords', icon: Sparkles },
-  { id: 'printLayout', icon: FileText },
-  { id: 'powerTools', icon: Pin },
+  { id: 'localAiV3', icon: Sparkles },
+  { id: 'insightsSummary', icon: ListTree },
+  { id: 'reindexHint', icon: RefreshCw },
 ] as const
+
+/** Major.minor for “Scribe 1.2” style titles. */
+const APP_SHORT_VERSION = APP_VERSION.split('.').slice(0, 2).join('.')
 
 type WhatsNewDialogProps = {
   open: boolean
@@ -39,7 +42,7 @@ export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
             {t('whatsNew.badge', { version: APP_VERSION })}
           </p>
           <DialogTitle className="font-[family-name:var(--font-display)] text-[22px] font-extrabold tracking-[-0.03em]">
-            {t('whatsNew.title')}
+            {t('whatsNew.title', { version: APP_SHORT_VERSION })}
           </DialogTitle>
           <DialogDescription className="text-[13px] leading-relaxed">
             {t('whatsNew.subtitle')}

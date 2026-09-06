@@ -77,6 +77,7 @@ export interface NlpDocumentAnalysis {
   keywords: NlpKeyword[]
   keyphrases: string[]
   outline: NlpOutlineItem[]
+  summary?: string | null
 }
 
 export const nlpStatus = () => invoke<NlpStatus>('nlp_status')

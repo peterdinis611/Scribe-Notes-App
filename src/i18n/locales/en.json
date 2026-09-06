@@ -237,9 +237,21 @@
   },
   "whatsNew": {
     "badge": "What's new in {{version}}",
-    "title": "Scribe 1.1",
-    "subtitle": "Stronger Local AI, calmer print layout, and power tools for everyday writing.",
+    "title": "Scribe {{version}}",
+    "subtitle": "Local AI 0.5 — better embeddings, one-shot document analysis, and richer insights.",
     "gotIt": "Got it",
+    "localAiV3": {
+      "title": "Hash embeddings v3",
+      "description": "Stopword-aware vectors with lead-text boost — sharper semantic search, still fully offline."
+    },
+    "insightsSummary": {
+      "title": "Richer AI insights",
+      "description": "Extractive summary, outline, keywords, and language in one panel — plus smarter Slovak task phrases."
+    },
+    "reindexHint": {
+      "title": "Reindex once",
+      "description": "After updating, open Settings → Local AI and run Reindex so the new model replaces older vectors."
+    },
     "localAiKeywords": {
       "title": "Smarter Local AI",
       "description": "Keywords, language detection, and better Slovak stopwords — all offline in the AI insights panel."
@@ -617,7 +629,7 @@
           "paragraphs": [
             "Local AI is not a chatbot or an online service. When you enable it in Settings → Local AI, Scribe starts a small Python process (sidecar) on this Mac. All processing — indexing, search, summarization — happens in your computer's memory. Your text is never sent anywhere.",
             "The Rust core remains primary: database, editor, saving, and full-text search work without AI. The Python add-on adds semantics (meaning similarity), tag suggestions, weekly journal overview, and library analysis.",
-            "After enabling, documents are indexed into vectors (model scribe-hash-v2). If you update Scribe and the model changes, a reindex banner appears — mixing old and new vectors would give inconsistent results."
+            "After enabling, documents are indexed into vectors (model scribe-hash-v3). If you update Scribe and the model changes, a reindex banner appears — mixing old and new vectors would give inconsistent results."
           ],
           "points": [
             "⌘K All scope — combines full-text (FTS) and semantic hits via hybrid ranking",
@@ -1011,9 +1023,13 @@
     },
     "insights": {
       "title": "AI insights",
-      "subtitle": "Keywords, similar notes and open tasks",
+      "subtitle": "Summary, keywords, similar notes and open tasks",
       "hide": "Hide AI insights",
       "loadError": "Could not load AI insights",
+      "summary": "Summary",
+      "summaryEmpty": "Write a bit more for an extractive summary.",
+      "outline": "Outline",
+      "outlineEmpty": "No headings detected yet.",
       "keywords": "Keywords",
       "keywordsEmpty": "No strong keywords yet — write a bit more.",
       "keywordsDisabled": "Enable Local AI in Settings for keywords.",
@@ -1026,7 +1042,7 @@
       "similarDisabled": "Enable Local AI in Settings for similar documents.",
       "similarEmpty": "No similar documents — this note may not be indexed yet.",
       "tasks": "Open tasks",
-      "tasksHint": "Checkboxes in the text and phrases like “todo:” or “treba:”.",
+      "tasksHint": "Checkboxes and phrases like “todo:”, “treba:”, or “musím …”.",
       "tasksEmpty": "No open tasks in this document.",
       "sourceCheckbox": "checkbox",
       "sourcePhrase": "phrase",

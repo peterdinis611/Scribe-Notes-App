@@ -347,17 +347,21 @@ fn collect_document_tasks(
                     let Some(body) = item.get("text").and_then(|value| value.as_str()) else {
                         continue;
                     };
+                    let raw_source = item
+                        .get("source")
+                        .and_then(|value| value.as_str())
+                        .unwrap_or("phrase");
+                    let source = match raw_source {
+                        "markdown" => "checkbox",
+                        other => other,
+                    };
                     tasks.push(DocumentTask {
                         text: body.to_string(),
                         checked: item
                             .get("checked")
                             .and_then(|value| value.as_bool())
                             .unwrap_or(false),
-                        source: item
-                            .get("source")
-                            .and_then(|value| value.as_str())
-                            .unwrap_or("phrase")
-                            .to_string(),
+                        source: source.to_string(),
                         due_hint: item
                             .get("dueHint")
                             .and_then(|value| value.as_str())
@@ -991,6 +995,7 @@ pub struct NlpDocumentAnalysis {
     pub keywords: Vec<NlpKeyword>,
     pub keyphrases: Vec<String>,
     pub outline: Vec<NlpOutlineItem>,
+    pub summary: Option<String>,
 }
 
 #[tauri::command]
@@ -1016,21 +1021,19 @@ pub fn nlp_document_analysis(
         format!("{title}\n{}", extract_search_text(&content_json))
     };
 
-    let language_value = sidecar.detect_language(&text)?;
-    let keywords_value = sidecar.extract_keywords(&text, 12)?;
-    let outline_value = sidecar.extract_outline(&text, 24)?;
+    let result = sidecar.analyze_document(&text, 12, 24, 3)?;
 
-    let language = language_value
+    let language = result
         .get("language")
         .and_then(|value| value.as_str())
         .unwrap_or("unknown")
         .to_string();
-    let language_confidence = language_value
-        .get("confidence")
+    let language_confidence = result
+        .get("languageConfidence")
         .and_then(|value| value.as_f64())
         .unwrap_or(0.0);
 
-    let keywords = keywords_value
+    let keywords = result
         .get("keywords")
         .and_then(|value| value.as_array())
         .map(|items| {
@@ -1047,19 +1050,19 @@ pub fn nlp_document_analysis(
         })
         .unwrap_or_default();
 
-    let keyphrases = keywords_value
+    let keyphrases = result
         .get("keyphrases")
         .and_then(|value| value.as_array())
         .map(|items| {
             items
                 .iter()
-                .filter_map(|item| item.get("phrase")?.as_str().map(str::to_string))
+                .filter_map(|item| item.as_str().map(str::to_string))
                 .collect::<Vec<_>>()
         })
         .unwrap_or_default();
 
-    let outline = outline_value
-        .get("items")
+    let outline = result
+        .get("outline")
         .and_then(|value| value.as_array())
         .map(|items| {
             items
@@ -1079,11 +1082,18 @@ pub fn nlp_document_analysis(
         })
         .unwrap_or_default();
 
+    let summary = result
+        .get("summary")
+        .and_then(|value| value.as_str())
+        .map(str::to_string)
+        .filter(|value| !value.trim().is_empty());
+
     Ok(NlpDocumentAnalysis {
         language,
         language_confidence,
         keywords,
         keyphrases,
         outline,
+        summary,
     })
 }

@@ -224,6 +224,24 @@ impl NlpSidecar {
         )
     }
 
+    pub fn analyze_document(
+        &self,
+        text: &str,
+        keyword_limit: i64,
+        outline_limit: i64,
+        summary_sentences: i64,
+    ) -> Result<Value, String> {
+        self.call_method(
+            "analyze_document",
+            json!({
+                "text": text,
+                "keywordLimit": keyword_limit,
+                "outlineLimit": outline_limit,
+                "summarySentences": summary_sentences,
+            }),
+        )
+    }
+
     pub fn similar_notes(&self, text: &str, documents: Value, limit: i64) -> Result<Value, String> {
         self.call_method(
             "similar_notes",
