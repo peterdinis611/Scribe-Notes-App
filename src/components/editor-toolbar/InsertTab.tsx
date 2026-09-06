@@ -1,6 +1,6 @@
 import type { Editor } from '@tiptap/react'
 import { useEditorState } from '@tiptap/react'
-import { ChevronDown, Code, FunctionSquare, GitBranch, ImagePlus, Play, Sigma, SplitSquareHorizontal, Table2, Trash2 } from 'lucide-react'
+import { ChevronDown, Code, FunctionSquare, GitBranch, ImagePlus, Play, ScanLine, Sigma, SplitSquareHorizontal, Table2, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import {
   DropdownMenu,
@@ -11,8 +11,10 @@ import {
 import { ToolbarButton, ToolbarGroup } from '@/components/editor-toolbar/primitives'
 import { CODE_LANGUAGES, getCodeLanguageLabel } from '@/lib/editor/code-languages'
 import { deleteCurrentBlock } from '@/lib/editor/delete-content'
-import { insertBlockMath, insertInlineMath, insertMermaidDiagram, insertYoutubeVideo } from '@/lib/editor/insert-helpers'
+import { insertBlockMath, insertInlineMath, insertMermaidDiagram, insertScannedBarcode, insertYoutubeVideo } from '@/lib/editor/insert-helpers'
 import { pickImageFiles } from '@/lib/editor/image-utils'
+import { isBarcodeScannerSupported } from '@/lib/barcode-scanner'
+import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 
 type InsertTabProps = {
@@ -22,6 +24,7 @@ type InsertTabProps = {
 
 export function InsertTab({ editor, onInsertImages }: InsertTabProps) {
   const { t } = useTranslation()
+  const scannerAvailable = isBarcodeScannerSupported()
   const codeBlockState = useEditorState({
     editor,
     selector: ({ editor: currentEditor }) => ({
@@ -52,6 +55,15 @@ export function InsertTab({ editor, onInsertImages }: InsertTabProps) {
     if (files.length) await onInsertImages(files)
   }
 
+  async function handleScanBarcode() {
+    try {
+      const inserted = await insertScannedBarcode(editor)
+      if (inserted) toast.success(t('toasts.barcodeInserted'))
+    } catch (error) {
+      toast.error(t('toasts.barcodeScanError'), String(error))
+    }
+  }
+
   function insertTable() {
     editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
   }
@@ -65,6 +77,11 @@ export function InsertTab({ editor, onInsertImages }: InsertTabProps) {
         <ToolbarButton label={t('toolbar.actions.youtube')} onClick={() => insertYoutubeVideo(editor)}>
           <Play className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
+        {scannerAvailable && (
+          <ToolbarButton label={t('toolbar.actions.scanBarcode')} onClick={() => void handleScanBarcode()}>
+            <ScanLine className="h-4 w-4 stroke-[1.75]" />
+          </ToolbarButton>
+        )}
         <ToolbarButton label={t('toolbar.actions.table')} active={codeBlockState.isTable} onClick={insertTable}>
           <Table2 className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>

@@ -8,6 +8,7 @@ use serde::Serialize;
 use serde_json::{json, Value};
 use uuid::Uuid;
 
+use crate::dates::{date_key_bounds, date_key_bounds_ms, parse_date_key};
 use crate::db::migrations;
 use crate::db::{
     fuse_search_hits, search_documents_in_conn, SearchHit, SearchMode,
@@ -3055,32 +3056,6 @@ fn find_journal_note(
     }
 
     Ok(best.map(|(_, _, note)| note))
-}
-
-fn parse_date_key(value: &str) -> Result<chrono::NaiveDate, String> {
-    chrono::NaiveDate::parse_from_str(value, "%Y-%m-%d")
-        .map_err(|error| format!("Invalid date: {error}"))
-}
-
-fn date_key_bounds(from_date: &str, to_date: &str) -> Result<(i64, i64), String> {
-    let from = parse_date_key(from_date)?;
-    let to = parse_date_key(to_date)?;
-    let start = from
-        .and_hms_opt(0, 0, 0)
-        .ok_or_else(|| "Invalid range start".to_string())?
-        .and_utc()
-        .timestamp();
-    let end = to
-        .and_hms_opt(23, 59, 59)
-        .ok_or_else(|| "Invalid range end".to_string())?
-        .and_utc()
-        .timestamp();
-    Ok((start, end))
-}
-
-fn date_key_bounds_ms(from_date: &str, to_date: &str) -> Result<(i64, i64), String> {
-    let (start, end) = date_key_bounds(from_date, to_date)?;
-    Ok((start * 1000, end * 1000 + 999))
 }
 
 fn map_nlp_artifact_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<NlpArtifact> {

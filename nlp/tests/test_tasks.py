@@ -24,6 +24,19 @@ class TaskExtractionTests(unittest.TestCase):
         self.assertEqual(tasks[0]["source"], "phrase")
         self.assertEqual(tasks[0]["dueHint"], "2026-03-01")
 
+    def test_relative_due_hint(self) -> None:
+        from datetime import date
+
+        from scribe_nlp.dates import resolve_due_hint
+
+        self.assertEqual(
+            resolve_due_hint("Dokončiť report zajtra", today=date(2026, 9, 6)),
+            "2026-09-07",
+        )
+        text = "- [ ] Call client do 1.4.2026"
+        result = extract_tasks(text)
+        self.assertEqual(result["tasks"][0]["dueHint"], "2026-04-01")
+
     def test_inline_slovak_task(self) -> None:
         text = "Dnes musím dokončiť report pre tím."
         result = extract_tasks(text)

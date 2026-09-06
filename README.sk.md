@@ -52,7 +52,7 @@ Scribe beží lokálne na vašom Macu. Žiadne účty, žiadny cloud — dokumen
 
 | Vrstva | Technológia |
 |--------|-------------|
-| Desktop shell | [Tauri 2](https://v2.tauri.app/) (Rust) |
+| Desktop shell | [Tauri 2](https://v2.tauri.app/) (Rust) + pluginy: dialog, fs, opener, [persisted-scope](https://v2.tauri.app/plugin/persisted-scope/), [positioner](https://v2.tauri.app/plugin/positioner/) |
 | Frontend | React 19, TypeScript, Vite 8 |
 | Editor | TipTap 3 (ProseMirror) |
 | UI | Tailwind CSS v4, Radix UI, shadcn-style komponenty |
@@ -61,6 +61,7 @@ Scribe beží lokálne na vašom Macu. Žiadne účty, žiadny cloud — dokumen
 | i18n | i18next + react-i18next |
 | Databáza | SQLite (rusqlite, WAL mode) |
 | Lokálna AI | Python **3.10+** stdlib sidecar ([`nlp/`](nlp/)) — voliteľne `sentence-transformers` |
+| Mobile (iOS/Android) | [`@tauri-apps/plugin-barcode-scanner`](https://v2.tauri.app/plugin/barcode-scanner/) — QR / čiarový kód → vložiť do poznámky |
 | Testy | Vitest, Testing Library, `cargo test`, `nlp:test` |
 
 ## Požiadavky

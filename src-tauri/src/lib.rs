@@ -54,8 +54,15 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        // persisted-scope must come after fs so runtime FS/asset scopes survive restarts
+        .plugin(tauri_plugin_persisted_scope::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
+            #[cfg(desktop)]
+            {
+                app.handle().plugin(tauri_plugin_positioner::init())?;
+            }
+
             if cfg!(debug_assertions) {
                 let level = rust_debug_level();
                 app.handle().plugin(
@@ -66,6 +73,12 @@ pub fn run() {
                 if level == log::LevelFilter::Debug || level == log::LevelFilter::Trace {
                     log::debug!("Scribe Rust debug logging enabled (level={level})");
                 }
+            }
+
+            #[cfg(mobile)]
+            {
+                app.handle()
+                    .plugin(tauri_plugin_barcode_scanner::init())?;
             }
 
             let (conn, db_path) = init_db(&app.handle())?;
@@ -129,6 +142,9 @@ pub fn run() {
                         .icon(icon)
                         .menu(&tray_menu)
                         .tooltip("Scribe")
+                        .on_tray_icon_event(|tray, event| {
+                            tauri_plugin_positioner::on_tray_event(tray.app_handle(), &event);
+                        })
                         .on_menu_event(|app, event| match event.id.as_ref() {
                             "tray-quick-note" => {
                                 let _ = app.emit("tray-quick-note", ());

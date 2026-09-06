@@ -29,9 +29,13 @@ import {
   RotateCcw,
   Tag,
   LayoutGrid,
+  Move,
+  PanelTop,
 } from 'lucide-react'
 import { openQuickNote } from '@/lib/quick-note'
 import { openNewCanvasNote } from '@/lib/canvas/create-canvas'
+import { Position, moveAppWindow } from '@/lib/window-position'
+import { isTauriRuntime } from '@/lib/tauri'
 import {
   createWeeklyDigestDocument,
   openEveningNote,
@@ -473,6 +477,32 @@ export function CommandPalette() {
         icon: <Settings2 className="h-4 w-4" />,
         run: () => navigate(ROUTES.settingsSection('appearance')),
       },
+      ...(isTauriRuntime()
+        ? [
+            {
+              type: 'action' as const,
+              id: 'window-center',
+              label: t('commandPalette.windowCenter'),
+              icon: <Move className="h-4 w-4" />,
+              run: () => {
+                void moveAppWindow(Position.Center).catch((error) =>
+                  toast.error(t('toasts.windowMoveError'), String(error)),
+                )
+              },
+            },
+            {
+              type: 'action' as const,
+              id: 'window-top-right',
+              label: t('commandPalette.windowTopRight'),
+              icon: <PanelTop className="h-4 w-4" />,
+              run: () => {
+                void moveAppWindow(Position.TopRight).catch((error) =>
+                  toast.error(t('toasts.windowMoveError'), String(error)),
+                )
+              },
+            },
+          ]
+        : []),
       {
         type: 'action',
         id: 'docs',

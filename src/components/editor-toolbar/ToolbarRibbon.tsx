@@ -24,6 +24,7 @@ import {
   PlusSquare,
   Quote,
   Redo,
+  ScanLine,
   Strikethrough,
   Subscript,
   Superscript,
@@ -65,11 +66,14 @@ import {
   insertDetailsBlock,
   insertInlineMath,
   insertMermaidDiagram,
+  insertScannedBarcode,
   insertYoutubeVideo,
 } from '@/lib/editor/insert-helpers'
 import { insertBulletList, insertOrderedList, insertTaskList } from '@/lib/editor/list-commands'
 import { PARAGRAPH_STYLES, applyParagraphStyle, type ParagraphStyleId } from '@/lib/editor/paragraph-styles'
 import { promptInput } from '@/lib/input-dialog'
+import { isBarcodeScannerSupported } from '@/lib/barcode-scanner'
+import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 
 type ToolbarRibbonProps = {
@@ -110,6 +114,7 @@ function spacingLabel(t: (key: string) => string, value: string) {
 
 export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
   const { t } = useTranslation()
+  const scannerAvailable = isBarcodeScannerSupported()
   const state = useEditorState({
     editor,
     selector: ({ editor: currentEditor }) => ({
@@ -127,6 +132,20 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
   })
 
   const currentFont = getCurrentFontFamilyLabel(editor, t)
+
+  async function handlePickImage() {
+    const files = await pickImageFiles()
+    if (files.length) await onInsertImages(files)
+  }
+
+  async function handleScanBarcode() {
+    try {
+      const inserted = await insertScannedBarcode(editor)
+      if (inserted) toast.success(t('toasts.barcodeInserted'))
+    } catch (error) {
+      toast.error(t('toasts.barcodeScanError'), String(error))
+    }
+  }
 
   function setLink() {
     void (async () => {
@@ -158,11 +177,6 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
       return
     }
     editor.chain().focus().toggleCodeBlock({ language }).run()
-  }
-
-  async function handlePickImage() {
-    const files = await pickImageFiles()
-    if (files.length) await onInsertImages(files)
   }
 
   return (
@@ -324,6 +338,12 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
               <ImagePlus className="h-4 w-4" />
               {t('toolbar.actions.image')}
             </DropdownMenuItem>
+            {scannerAvailable && (
+              <DropdownMenuItem onClick={() => void handleScanBarcode()}>
+                <ScanLine className="h-4 w-4" />
+                {t('toolbar.actions.scanBarcode')}
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>
               <Table2 className="h-4 w-4" />
               {t('toolbar.actions.table')}

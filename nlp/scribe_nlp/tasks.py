@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 
+from .dates import resolve_due_hint
 from .text_utils import split_sentences
 
 CHECKBOX_LINE = re.compile(r"^\s*(?:[-*+]|•)\s*\[([ xX✓✔])\]\s*(.+)$", re.MULTILINE)
@@ -12,9 +13,6 @@ IMPERATIVE = re.compile(
 # Inline task cues: "Treba X", "Musím X", "Don't forget to X"
 INLINE_TASK = re.compile(
     r"(?i)\b(?:treba|musím|musime|musíme|nezabudni(?:te)?|don't forget to|remember to)\s+(.{4,120})"
-)
-DATE_HINT = re.compile(
-    r"\b(\d{4}-\d{2}-\d{2}|\d{1,2}[./]\d{1,2}(?:[./]\d{2,4})?)\b"
 )
 
 
@@ -36,7 +34,7 @@ def extract_tasks(text: str) -> dict[str, object]:
                 "text": cleaned,
                 "checked": checked,
                 "source": source_kind,
-                "dueHint": _due_hint(cleaned),
+                "dueHint": resolve_due_hint(cleaned),
             }
         )
 
@@ -60,8 +58,3 @@ def extract_tasks(text: str) -> dict[str, object]:
 
     open_tasks = [task for task in tasks if not task.get("checked")]
     return {"tasks": tasks, "openCount": len(open_tasks)}
-
-
-def _due_hint(text: str) -> str | None:
-    match = DATE_HINT.search(text)
-    return match.group(1) if match else None

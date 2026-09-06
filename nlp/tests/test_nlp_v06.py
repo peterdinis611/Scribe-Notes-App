@@ -77,6 +77,23 @@ class DatesTests(unittest.TestCase):
         texts = {item["text"].lower() for item in result["events"]}
         self.assertTrue(any("zajtra" in text for text in texts))
         self.assertTrue(any("15.3.2026" in text or "do 15.3.2026" in text for text in texts))
+        resolved = {item.get("resolvedDate") for item in result["events"]}
+        self.assertIn("2026-09-07", resolved)
+        self.assertIn("2026-03-15", resolved)
+        # Absolute duplicate of deadline day should be collapsed.
+        absolute_hits = [
+            item
+            for item in result["events"]
+            if item.get("kind") == "absolute" and item.get("resolvedDate") == "2026-03-15"
+        ]
+        self.assertEqual(absolute_hits, [])
+
+    def test_offset_and_due_hint(self) -> None:
+        from scribe_nlp.dates import resolve_due_hint
+
+        base = date(2026, 9, 6)
+        self.assertEqual(resolve_due_hint("Ship o 3 dni", today=base), "2026-09-09")
+        self.assertEqual(resolve_due_hint("Call do zajtra", today=base), "2026-09-07")
 
 
 class DiffTests(unittest.TestCase):

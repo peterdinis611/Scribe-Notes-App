@@ -24,6 +24,29 @@ export function insertYoutubeVideo(editor: Editor) {
   editor.chain().focus().setYoutubeVideo({ src: url.trim() }).run()
 }
 
+export async function insertScannedBarcode(editor: Editor): Promise<boolean> {
+  const { scanBarcode } = await import('@/lib/barcode-scanner')
+  const scanned = await scanBarcode()
+  if (!scanned?.content) return false
+
+  const content = scanned.content
+  const looksLikeUrl = /^https?:\/\//i.test(content)
+  if (looksLikeUrl) {
+    editor
+      .chain()
+      .focus()
+      .insertContent({
+        type: 'text',
+        text: content,
+        marks: [{ type: 'link', attrs: { href: content, target: '_blank' } }],
+      })
+      .run()
+  } else {
+    editor.chain().focus().insertContent(content).run()
+  }
+  return true
+}
+
 export function insertDetailsBlock(editor: Editor) {
   editor.chain().focus().setDetails().run()
 }

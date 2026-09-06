@@ -10,7 +10,7 @@ use crate::db::{
     semantic_search, set_embed_backend, set_nlp_enabled, similar_documents, upsert_embedding,
     SearchMode,
 };
-use scribe_core::sync_sidecar_backend;
+use scribe_core::{date_key_bounds, extract_due_hint, sync_sidecar_backend};
 use crate::db::SearchHit;
 use crate::db::DbState;
 use crate::nlp::NlpSidecar;
@@ -68,27 +68,6 @@ pub struct NlpJournalSummaryInput {
     pub to_date: String,
     pub journal_folder_id: Option<String>,
     pub document_ids: Option<Vec<String>>,
-}
-
-fn parse_date_key(value: &str) -> Result<chrono::NaiveDate, String> {
-    chrono::NaiveDate::parse_from_str(value, "%Y-%m-%d")
-        .map_err(|error| format!("Neplatný dátum: {error}"))
-}
-
-fn date_key_bounds(from_date: &str, to_date: &str) -> Result<(i64, i64), String> {
-    let from = parse_date_key(from_date)?;
-    let to = parse_date_key(to_date)?;
-    let start = from
-        .and_hms_opt(0, 0, 0)
-        .ok_or_else(|| "Neplatný začiatok rozsahu".to_string())?
-        .and_utc()
-        .timestamp();
-    let end = to
-        .and_hms_opt(23, 59, 59)
-        .ok_or_else(|| "Neplatný koniec rozsahu".to_string())?
-        .and_utc()
-        .timestamp();
-    Ok((start, end))
 }
 
 fn load_journal_documents(
@@ -292,11 +271,12 @@ fn collect_checkbox_tasks(value: &serde_json::Value, tasks: &mut Vec<DocumentTas
                 .unwrap_or(false);
             let text = node_plain_text(value);
             if !text.trim().is_empty() {
+                let due_hint = extract_due_hint(&text);
                 tasks.push(DocumentTask {
                     text,
                     checked,
                     source: "checkbox".to_string(),
-                    due_hint: None,
+                    due_hint,
                     document_id: None,
                     document_title: None,
                 });
@@ -357,6 +337,11 @@ fn collect_document_tasks(
                         "markdown" => "checkbox",
                         other => other,
                     };
+                    let due_hint = item
+                        .get("dueHint")
+                        .and_then(|value| value.as_str())
+                        .map(str::to_string)
+                        .or_else(|| extract_due_hint(body));
                     tasks.push(DocumentTask {
                         text: body.to_string(),
                         checked: item
@@ -364,10 +349,7 @@ fn collect_document_tasks(
                             .and_then(|value| value.as_bool())
                             .unwrap_or(false),
                         source: source.to_string(),
-                        due_hint: item
-                            .get("dueHint")
-                            .and_then(|value| value.as_str())
-                            .map(str::to_string),
+                        due_hint,
                         document_id: Some(document_id.to_string()),
                         document_title: Some(title.to_string()),
                     });
@@ -380,17 +362,20 @@ fn collect_document_tasks(
 }
 
 fn merge_document_tasks(mut tasks: Vec<DocumentTask>) -> Vec<DocumentTask> {
-    let mut seen = std::collections::HashSet::new();
-    tasks.retain(|task| {
+    let mut index_by_key = std::collections::HashMap::<String, usize>::new();
+    let mut merged: Vec<DocumentTask> = Vec::new();
+    for task in tasks.drain(..) {
         let key = task.text.to_lowercase();
-        if seen.contains(&key) {
-            false
-        } else {
-            seen.insert(key);
-            true
+        if let Some(&idx) = index_by_key.get(&key) {
+            if merged[idx].due_hint.is_none() && task.due_hint.is_some() {
+                merged[idx].due_hint = task.due_hint;
+            }
+            continue;
         }
-    });
-    tasks
+        index_by_key.insert(key, merged.len());
+        merged.push(task);
+    }
+    merged
 }
 
 fn build_nlp_status(
