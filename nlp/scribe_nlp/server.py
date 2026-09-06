@@ -56,6 +56,38 @@ def _validate_text(text: str, *, field: str = "text") -> str:
     return text
 
 
+def _validate_documents(params: dict[str, Any]) -> list[Any]:
+    documents = list(params.get("documents") or [])
+    if len(documents) > MAX_REPORT_DOCUMENTS:
+        raise SidecarError(
+            f"documents exceeds limit ({MAX_REPORT_DOCUMENTS})",
+            code=-32602,
+        )
+    return documents
+
+
+FEATURES = [
+    "embed",
+    "summarize",
+    "ner",
+    "report",
+    "tasks",
+    "keywords",
+    "language",
+    "outline",
+    "similar",
+    "analyze",
+    "readability",
+    "duplicates",
+    "title",
+    "mentions",
+    "sentiment",
+    "dates",
+    "diff",
+    "template",
+]
+
+
 def handle_request(request: dict[str, Any]) -> dict[str, Any]:
     request_id = request.get("id")
     method = request.get("method")
@@ -69,18 +101,7 @@ def handle_request(request: dict[str, Any]) -> dict[str, Any]:
                 "model": current_model_id(),
                 "embedBackend": active_backend(),
                 "qualityAvailable": quality_available(),
-                "features": [
-                    "embed",
-                    "summarize",
-                    "ner",
-                    "report",
-                    "tasks",
-                    "keywords",
-                    "language",
-                    "outline",
-                    "similar",
-                    "analyze",
-                ],
+                "features": FEATURES,
                 "limits": {
                     "maxTextChars": MAX_TEXT_CHARS,
                     "maxEmbedBatch": MAX_EMBED_BATCH,
@@ -116,19 +137,16 @@ def handle_request(request: dict[str, Any]) -> dict[str, Any]:
             from .summarize import summarize_text
 
             text = _validate_text(str(params.get("text") or ""))
-            max_sentences = int(params.get("maxSentences") or 4)
-            max_sentences = max(1, min(max_sentences, 12))
+            max_sentences = max(1, min(int(params.get("maxSentences") or 4), 12))
             result = summarize_text(text, max_sentences=max_sentences)
         elif method == "extract_entities":
             from .ner import extract_entities
 
-            text = _validate_text(str(params.get("text") or ""))
-            result = extract_entities(text)
+            result = extract_entities(_validate_text(str(params.get("text") or "")))
         elif method == "extract_tasks":
             from .tasks import extract_tasks
 
-            text = _validate_text(str(params.get("text") or ""))
-            result = extract_tasks(text)
+            result = extract_tasks(_validate_text(str(params.get("text") or "")))
         elif method == "extract_keywords":
             from .keywords import extract_keywords
 
@@ -138,8 +156,7 @@ def handle_request(request: dict[str, Any]) -> dict[str, Any]:
         elif method == "detect_language":
             from .language import detect_language
 
-            text = _validate_text(str(params.get("text") or ""))
-            result = detect_language(text)
+            result = detect_language(_validate_text(str(params.get("text") or "")))
         elif method == "extract_outline":
             from .outline import extract_outline
 
@@ -150,37 +167,66 @@ def handle_request(request: dict[str, Any]) -> dict[str, Any]:
             from .analyze import analyze_document
 
             text = _validate_text(str(params.get("text") or ""))
-            keyword_limit = max(1, min(int(params.get("keywordLimit") or 12), 32))
-            outline_limit = max(1, min(int(params.get("outlineLimit") or 24), 80))
-            summary_sentences = max(1, min(int(params.get("summarySentences") or 3), 8))
             result = analyze_document(
                 text,
-                keyword_limit=keyword_limit,
-                outline_limit=outline_limit,
-                summary_sentences=summary_sentences,
+                keyword_limit=max(1, min(int(params.get("keywordLimit") or 12), 32)),
+                outline_limit=max(1, min(int(params.get("outlineLimit") or 24), 80)),
+                summary_sentences=max(1, min(int(params.get("summarySentences") or 3), 8)),
             )
         elif method == "similar_notes":
             from .similar import similar_notes
 
             query = _validate_text(str(params.get("text") or params.get("query") or ""))
-            documents = list(params.get("documents") or [])
-            if len(documents) > MAX_REPORT_DOCUMENTS:
-                raise SidecarError(
-                    f"documents exceeds limit ({MAX_REPORT_DOCUMENTS})",
-                    code=-32602,
-                )
+            documents = _validate_documents(params)
             limit = max(1, min(int(params.get("limit") or 8), 32))
             result = similar_notes(query, documents, limit=limit)
         elif method == "library_report":
             from .report import library_report
 
-            documents = list(params.get("documents") or [])
-            if len(documents) > MAX_REPORT_DOCUMENTS:
-                raise SidecarError(
-                    f"documents exceeds limit ({MAX_REPORT_DOCUMENTS})",
-                    code=-32602,
-                )
-            result = library_report(documents)
+            result = library_report(_validate_documents(params))
+        elif method == "reading_stats":
+            from .readability import reading_stats
+
+            result = reading_stats(_validate_text(str(params.get("text") or "")))
+        elif method == "find_duplicates":
+            from .duplicates import find_duplicates
+
+            documents = _validate_documents(params)
+            limit = max(1, min(int(params.get("limit") or 20), 100))
+            min_score = float(params.get("minScore") or 0.72)
+            result = find_duplicates(documents, limit=limit, min_score=min_score)
+        elif method == "suggest_title":
+            from .title import suggest_title
+
+            text = _validate_text(str(params.get("text") or ""))
+            max_chars = max(16, min(int(params.get("maxChars") or 72), 120))
+            result = suggest_title(text, max_chars=max_chars)
+        elif method == "extract_mentions":
+            from .mentions import extract_mentions
+
+            result = extract_mentions(_validate_text(str(params.get("text") or "")))
+        elif method == "analyze_sentiment":
+            from .sentiment import analyze_sentiment
+
+            result = analyze_sentiment(_validate_text(str(params.get("text") or "")))
+        elif method == "extract_dates":
+            from .dates import extract_dates
+
+            result = extract_dates(_validate_text(str(params.get("text") or "")))
+        elif method == "summarize_diff":
+            from .diff_summary import summarize_diff
+
+            old_text = _validate_text(str(params.get("oldText") or ""), field="oldText")
+            new_text = _validate_text(str(params.get("newText") or ""), field="newText")
+            max_bullets = max(1, min(int(params.get("maxBullets") or 5), 12))
+            result = summarize_diff(old_text, new_text, max_bullets=max_bullets)
+        elif method == "template_fill_hints":
+            from .template_hints import template_fill_hints
+
+            text = _validate_text(str(params.get("text") or ""))
+            sections = params.get("expectedSections")
+            expected = [str(item) for item in sections] if isinstance(sections, list) else None
+            result = template_fill_hints(text, expected)
         else:
             return {
                 "jsonrpc": "2.0",

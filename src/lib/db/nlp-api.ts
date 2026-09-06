@@ -33,6 +33,8 @@ export interface NlpJournalSummary {
   summary: string
   bullets: string[]
   documentCount: number
+  tone?: string | null
+  toneScore?: number | null
 }
 
 export interface NlpEntity {
@@ -71,6 +73,12 @@ export interface NlpOutlineItem {
   kind: string
 }
 
+export interface NlpDateEvent {
+  text: string
+  kind: string
+  resolvedDate?: string | null
+}
+
 export interface NlpDocumentAnalysis {
   language: string
   languageConfidence: number
@@ -78,6 +86,16 @@ export interface NlpDocumentAnalysis {
   keyphrases: string[]
   outline: NlpOutlineItem[]
   summary?: string | null
+  suggestedTitle?: string | null
+  readabilityLabel?: string | null
+  readingTimeMinutes?: number | null
+  flesch?: number | null
+  tone?: string | null
+  toneScore?: number | null
+  wikiLinks?: string[]
+  mentions?: string[]
+  hosts?: string[]
+  dates?: NlpDateEvent[]
 }
 
 export const nlpStatus = () => invoke<NlpStatus>('nlp_status')
@@ -129,3 +147,22 @@ export const nlpLibraryReport = () => invoke<NlpLibraryReport>('nlp_library_repo
 
 export const nlpDocumentAnalysis = (documentId: string) =>
   invoke<NlpDocumentAnalysis>('nlp_document_analysis', { documentId })
+
+export const nlpFindDuplicates = (limit = 20) =>
+  invoke<{ pairs: Array<Record<string, unknown>>; compared: number }>('nlp_find_duplicates', {
+    limit,
+  })
+
+export const nlpSuggestTitle = (documentId: string) =>
+  invoke<{ title: string; slug: string; source: string }>('nlp_suggest_title', { documentId })
+
+export const nlpSummarizeDiff = (input: {
+  oldText: string
+  newText: string
+  maxBullets?: number
+}) => invoke<Record<string, unknown>>('nlp_summarize_diff', { input })
+
+export const nlpTemplateFillHints = (input: {
+  documentId: string
+  expectedSections?: string[]
+}) => invoke<Record<string, unknown>>('nlp_template_fill_hints', { input })

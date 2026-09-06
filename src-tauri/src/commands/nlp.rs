@@ -177,6 +177,8 @@ pub struct NlpJournalSummary {
     pub summary: String,
     pub bullets: Vec<String>,
     pub document_count: i64,
+    pub tone: Option<String>,
+    pub tone_score: Option<f64>,
 }
 
 #[derive(Debug, Serialize)]
@@ -697,6 +699,8 @@ pub fn nlp_journal_summary(
             summary: String::new(),
             bullets: Vec::new(),
             document_count: 0,
+            tone: None,
+            tone_score: None,
         });
     }
 
@@ -717,12 +721,25 @@ pub fn nlp_journal_summary(
         })
         .unwrap_or_default();
 
+    let (tone, tone_score) = match sidecar.analyze_sentiment(&combined) {
+        Ok(sentiment) => (
+            sentiment
+                .get("label")
+                .and_then(|value| value.as_str())
+                .map(str::to_string),
+            sentiment.get("score").and_then(|value| value.as_f64()),
+        ),
+        Err(_) => (None, None),
+    };
+
     let payload = json!({
         "fromDate": input.from_date,
         "toDate": input.to_date,
         "summary": summary,
         "bullets": bullets,
         "documentCount": count,
+        "tone": tone,
+        "toneScore": tone_score,
     });
     {
         let conn = state.conn.lock().map_err(|e| e.to_string())?;
@@ -739,6 +756,8 @@ pub fn nlp_journal_summary(
         summary,
         bullets,
         document_count: count,
+        tone,
+        tone_score,
     })
 }
 
@@ -989,6 +1008,14 @@ pub struct NlpOutlineItem {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct NlpDateEvent {
+    pub text: String,
+    pub kind: String,
+    pub resolved_date: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NlpDocumentAnalysis {
     pub language: String,
     pub language_confidence: f64,
@@ -996,6 +1023,16 @@ pub struct NlpDocumentAnalysis {
     pub keyphrases: Vec<String>,
     pub outline: Vec<NlpOutlineItem>,
     pub summary: Option<String>,
+    pub suggested_title: Option<String>,
+    pub readability_label: Option<String>,
+    pub reading_time_minutes: Option<f64>,
+    pub flesch: Option<f64>,
+    pub tone: Option<String>,
+    pub tone_score: Option<f64>,
+    pub wiki_links: Vec<String>,
+    pub mentions: Vec<String>,
+    pub hosts: Vec<String>,
+    pub dates: Vec<NlpDateEvent>,
 }
 
 #[tauri::command]
@@ -1088,6 +1125,40 @@ pub fn nlp_document_analysis(
         .map(str::to_string)
         .filter(|value| !value.trim().is_empty());
 
+    let suggested_title = result
+        .get("suggestedTitle")
+        .and_then(|value| value.as_str())
+        .map(str::to_string)
+        .filter(|value| !value.trim().is_empty());
+
+    let readability = result.get("readability");
+    let sentiment = result.get("sentiment");
+    let mentions = result.get("mentions");
+
+    let dates = result
+        .get("dates")
+        .and_then(|value| value.as_array())
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| {
+                    Some(NlpDateEvent {
+                        text: item.get("text")?.as_str()?.to_string(),
+                        kind: item
+                            .get("kind")
+                            .and_then(|value| value.as_str())
+                            .unwrap_or("absolute")
+                            .to_string(),
+                        resolved_date: item
+                            .get("resolvedDate")
+                            .and_then(|value| value.as_str())
+                            .map(str::to_string),
+                    })
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+
     Ok(NlpDocumentAnalysis {
         language,
         language_confidence,
@@ -1095,5 +1166,180 @@ pub fn nlp_document_analysis(
         keyphrases,
         outline,
         summary,
+        suggested_title,
+        readability_label: readability
+            .and_then(|value| value.get("readabilityLabel"))
+            .and_then(|value| value.as_str())
+            .map(str::to_string),
+        reading_time_minutes: readability
+            .and_then(|value| value.get("readingTimeMinutes"))
+            .and_then(|value| value.as_f64()),
+        flesch: readability
+            .and_then(|value| value.get("flesch"))
+            .and_then(|value| value.as_f64()),
+        tone: sentiment
+            .and_then(|value| value.get("label"))
+            .and_then(|value| value.as_str())
+            .map(str::to_string),
+        tone_score: sentiment
+            .and_then(|value| value.get("score"))
+            .and_then(|value| value.as_f64()),
+        wiki_links: mentions
+            .and_then(|value| value.get("wikiLinks"))
+            .and_then(|value| value.as_array())
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(|item| item.as_str().map(str::to_string))
+                    .collect()
+            })
+            .unwrap_or_default(),
+        mentions: mentions
+            .and_then(|value| value.get("mentions"))
+            .and_then(|value| value.as_array())
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(|item| item.as_str().map(str::to_string))
+                    .collect()
+            })
+            .unwrap_or_default(),
+        hosts: mentions
+            .and_then(|value| value.get("hosts"))
+            .and_then(|value| value.as_array())
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(|item| item.as_str().map(str::to_string))
+                    .collect()
+            })
+            .unwrap_or_default(),
+        dates,
     })
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpSummarizeDiffInput {
+    pub old_text: String,
+    pub new_text: String,
+    pub max_bullets: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpTemplateHintsInput {
+    pub document_id: String,
+    pub expected_sections: Option<Vec<String>>,
+}
+
+#[tauri::command]
+pub fn nlp_find_duplicates(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    limit: Option<i64>,
+) -> Result<serde_json::Value, String> {
+    let documents = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        if !is_nlp_enabled(&conn)? {
+            return Err("NLP is disabled".to_string());
+        }
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, title, content_json FROM documents
+                 WHERE deleted_at IS NULL
+                 ORDER BY updated_at DESC
+                 LIMIT 80",
+            )
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            })
+            .map_err(|e| e.to_string())?;
+        let mut documents = Vec::new();
+        for row in rows {
+            let (id, title, content_json) = row.map_err(|e| e.to_string())?;
+            documents.push(json!({
+                "id": id,
+                "title": title,
+                "text": extract_search_text(&content_json),
+            }));
+        }
+        documents
+    };
+
+    sidecar.find_duplicates(json!(documents), limit.unwrap_or(20), 0.72)
+}
+
+#[tauri::command]
+pub fn nlp_suggest_title(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    document_id: String,
+) -> Result<serde_json::Value, String> {
+    let text = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        if !is_nlp_enabled(&conn)? {
+            return Err("NLP is disabled".to_string());
+        }
+        let (title, content_json): (String, String) = conn
+            .query_row(
+                "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL",
+                params![document_id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .map_err(|e| e.to_string())?;
+        format!("{title}\n{}", extract_search_text(&content_json))
+    };
+    sidecar.suggest_title(&text, 72)
+}
+
+#[tauri::command]
+pub fn nlp_summarize_diff(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpSummarizeDiffInput,
+) -> Result<serde_json::Value, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    if !is_nlp_enabled(&conn)? {
+        return Err("NLP is disabled".to_string());
+    }
+    drop(conn);
+    sidecar.summarize_diff(
+        &input.old_text,
+        &input.new_text,
+        input.max_bullets.unwrap_or(5),
+    )
+}
+
+#[tauri::command]
+pub fn nlp_template_fill_hints(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpTemplateHintsInput,
+) -> Result<serde_json::Value, String> {
+    let text = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        if !is_nlp_enabled(&conn)? {
+            return Err("NLP is disabled".to_string());
+        }
+        let (title, content_json): (String, String) = conn
+            .query_row(
+                "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL",
+                params![input.document_id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .map_err(|e| e.to_string())?;
+        format!("{title}\n{}", extract_search_text(&content_json))
+    };
+    let sections = input
+        .expected_sections
+        .map(|items| json!(items))
+        .unwrap_or(json!(null));
+    sidecar.template_fill_hints(&text, sections)
 }

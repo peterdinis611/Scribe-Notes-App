@@ -252,6 +252,68 @@ impl NlpSidecar {
     pub fn library_report(&self, documents: Value) -> Result<Value, String> {
         self.call_method("library_report", json!({ "documents": documents }))
     }
+
+    pub fn reading_stats(&self, text: &str) -> Result<Value, String> {
+        self.call_method("reading_stats", json!({ "text": text }))
+    }
+
+    pub fn find_duplicates(
+        &self,
+        documents: Value,
+        limit: i64,
+        min_score: f64,
+    ) -> Result<Value, String> {
+        self.call_method(
+            "find_duplicates",
+            json!({ "documents": documents, "limit": limit, "minScore": min_score }),
+        )
+    }
+
+    pub fn suggest_title(&self, text: &str, max_chars: i64) -> Result<Value, String> {
+        self.call_method(
+            "suggest_title",
+            json!({ "text": text, "maxChars": max_chars }),
+        )
+    }
+
+    pub fn extract_mentions(&self, text: &str) -> Result<Value, String> {
+        self.call_method("extract_mentions", json!({ "text": text }))
+    }
+
+    pub fn analyze_sentiment(&self, text: &str) -> Result<Value, String> {
+        self.call_method("analyze_sentiment", json!({ "text": text }))
+    }
+
+    pub fn extract_dates(&self, text: &str) -> Result<Value, String> {
+        self.call_method("extract_dates", json!({ "text": text }))
+    }
+
+    pub fn summarize_diff(
+        &self,
+        old_text: &str,
+        new_text: &str,
+        max_bullets: i64,
+    ) -> Result<Value, String> {
+        self.call_method(
+            "summarize_diff",
+            json!({
+                "oldText": old_text,
+                "newText": new_text,
+                "maxBullets": max_bullets,
+            }),
+        )
+    }
+
+    pub fn template_fill_hints(
+        &self,
+        text: &str,
+        expected_sections: Value,
+    ) -> Result<Value, String> {
+        self.call_method(
+            "template_fill_hints",
+            json!({ "text": text, "expectedSections": expected_sections }),
+        )
+    }
 }
 
 impl Drop for NlpSidecar {

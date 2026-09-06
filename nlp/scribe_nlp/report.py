@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from collections import Counter
 
+from .duplicates import find_duplicates
 from .keywords import extract_keywords
 from .language import detect_language
+from .sentiment import analyze_sentiment
 from .text_utils import top_terms
 
 
@@ -36,7 +38,8 @@ def library_report(documents: list[dict[str, object]]) -> dict[str, object]:
 
     language_counter: Counter[str] = Counter()
     phrase_counter: Counter[str] = Counter()
-    # Sample up to 80 docs for language / keyphrase stats (keeps report fast).
+    sentiment_counter: Counter[str] = Counter()
+    # Sample up to 80 docs for language / keyphrase / tone stats.
     sample = sorted_docs[:80]
     for doc in sample:
         blob = f"{doc.get('title') or ''}\n{doc.get('text') or ''}".strip()
@@ -44,10 +47,23 @@ def library_report(documents: list[dict[str, object]]) -> dict[str, object]:
             continue
         lang = str(detect_language(blob).get("language") or "unknown")
         language_counter[lang] += 1
+        sentiment_counter[str(analyze_sentiment(blob).get("label") or "neutral")] += 1
         for item in extract_keywords(blob, limit=6).get("keyphrases") or []:
             phrase = str(item.get("phrase") or "").strip()
             if phrase:
                 phrase_counter[phrase] += 1
+
+    # Near-duplicates on a smaller recent sample (O(n²)).
+    dup_sample = [
+        {
+            "id": str(doc.get("id") or f"idx-{index}"),
+            "title": str(doc.get("title") or "Bez názvu"),
+            "text": str(doc.get("text") or "")[:4_000],
+        }
+        for index, doc in enumerate(sorted_docs[:40])
+        if doc.get("id") or doc.get("text") or doc.get("title")
+    ]
+    duplicates = find_duplicates(dup_sample, limit=8, min_score=0.78, use_embeddings=True)
 
     lines = [
         "# Analýza knižnice",
@@ -65,6 +81,19 @@ def library_report(documents: list[dict[str, object]]) -> dict[str, object]:
     else:
         lines.append("- —")
 
+    lines.extend(["", "## Tón (vzorka)"])
+    if sentiment_counter:
+        label_map = {
+            "positive": "pozitívny",
+            "negative": "negatívny",
+            "mixed": "zmiešaný",
+            "neutral": "neutrálny",
+        }
+        for label, count in sentiment_counter.most_common():
+            lines.append(f"- {label_map.get(label, label)} ({count})")
+    else:
+        lines.append("- —")
+
     lines.extend(["", "## Časté výrazy"])
     if terms:
         for word, count in terms:
@@ -76,6 +105,17 @@ def library_report(documents: list[dict[str, object]]) -> dict[str, object]:
     if phrase_counter:
         for phrase, count in phrase_counter.most_common(8):
             lines.append(f"- {phrase} ({count})")
+    else:
+        lines.append("- —")
+
+    lines.extend(["", "## Možné duplikáty"])
+    dup_pairs = duplicates.get("pairs") or []
+    if dup_pairs:
+        for pair in dup_pairs[:6]:
+            lines.append(
+                f"- {pair.get('leftTitle')} ↔ {pair.get('rightTitle')} "
+                f"({pair.get('score')})"
+            )
     else:
         lines.append("- —")
 
@@ -110,6 +150,11 @@ def library_report(documents: list[dict[str, object]]) -> dict[str, object]:
                 {"language": lang, "count": count}
                 for lang, count in language_counter.most_common()
             ],
+            "sentiments": [
+                {"label": label, "count": count}
+                for label, count in sentiment_counter.most_common()
+            ],
+            "duplicatePairs": dup_pairs,
             "topTags": [
                 {"tag": tag, "count": count}
                 for tag, count in tag_counter.most_common(10)
