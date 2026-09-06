@@ -630,7 +630,7 @@ export function DocumentEditor() {
                           : {
                               maxWidth: pageLayout.width,
                             }),
-                      } as CSSProperties)
+                      } as unknown as CSSProperties)
                     : undefined
                 }
               >

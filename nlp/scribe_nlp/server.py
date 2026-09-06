@@ -27,7 +27,7 @@ class SidecarError(Exception):
 def _cached_embed(text: str) -> tuple[float, ...]:
     return tuple(embed_text(text))
 
-
+@lru_cache(maxsize=EMBED_CACHE_SIZE)
 def _embed_cached(text: str) -> list[float]:
     return list(_cached_embed(truncate_text(text, MAX_TEXT_CHARS)))
 

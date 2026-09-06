@@ -36,6 +36,12 @@ class LanguageTests(unittest.TestCase):
         self.assertEqual(result["language"], "en")
         self.assertGreater(result["confidence"], 0.4)
 
+    def test_unknown_for_tiny_or_ambiguous_text(self) -> None:
+        tiny = detect_language("ok")
+        self.assertEqual(tiny["language"], "unknown")
+        empty = detect_language("")
+        self.assertEqual(empty["language"], "unknown")
+
 
 class OutlineTests(unittest.TestCase):
     def test_extracts_markdown_headings(self) -> None:
@@ -43,6 +49,13 @@ class OutlineTests(unittest.TestCase):
         result = extract_outline(text)
         titles = [item["title"] for item in result["items"]]
         self.assertEqual(titles[:3], ["Úvod", "Plán", "Detail"])
+
+    def test_falls_back_to_numbered_sections(self) -> None:
+        text = "1. Prvý bod\n2. Druhý bod\n3. Tretí bod\n"
+        result = extract_outline(text)
+        titles = [item["title"] for item in result["items"]]
+        self.assertIn("Prvý bod", titles)
+        self.assertTrue(all(item["kind"] in {"section", "heading", "label", "sentence"} for item in result["items"]))
 
 
 class SimilarTests(unittest.TestCase):
@@ -57,6 +70,10 @@ class SimilarTests(unittest.TestCase):
         self.assertIn("1", ids)
         self.assertIn("3", ids)
         self.assertNotIn("2", ids[:1] if ids[:1] == ["2"] else ids)
+
+    def test_empty_query_or_docs(self) -> None:
+        self.assertEqual(similar_notes("", [{"id": "1", "title": "A", "text": "B"}], 5)["matches"], [])
+        self.assertEqual(similar_notes("Scribe", [], 5)["matches"], [])
 
 
 class ServerMethodTests(unittest.TestCase):
@@ -76,6 +93,27 @@ class ServerMethodTests(unittest.TestCase):
             }
         )
         self.assertIn("keywords", response["result"])
+
+    def test_detect_language_and_outline_rpc(self) -> None:
+        language = handle_request(
+            {
+                "jsonrpc": "2.0",
+                "id": 3,
+                "method": "detect_language",
+                "params": {"text": "This is an English paragraph about writing notes."},
+            }
+        )["result"]
+        self.assertEqual(language["language"], "en")
+
+        outline = handle_request(
+            {
+                "jsonrpc": "2.0",
+                "id": 4,
+                "method": "extract_outline",
+                "params": {"text": "# One\n\n## Two\n"},
+            }
+        )["result"]
+        self.assertEqual(outline["count"], 2)
 
 
 if __name__ == "__main__":

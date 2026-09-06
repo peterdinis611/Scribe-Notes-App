@@ -205,7 +205,7 @@ scribe/
 ### Tests
 
 ```bash
-bun run test          # 158+ frontend tests
+bun run test          # 200+ frontend tests
 bun run test:backend  # Rust unit tests (migrations, export, storage)
 ```
 
