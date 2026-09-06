@@ -27,7 +27,10 @@ Optional **local** Python service for semantic search, journal summaries, tag su
 ```bash
 npm run nlp:health
 npm run nlp:test
+npm run nlp:debug   # SCRIBE_NLP_DEBUG=1 sample RPCs + timings on stderr
 ```
+
+Set `SCRIBE_NLP_DEBUG=1` (or `SCRIBE_DEBUG=1` via Tauri) to log each RPC to stderr without breaking JSON-RPC on stdout.
 
 ## Methods (0.7)
 

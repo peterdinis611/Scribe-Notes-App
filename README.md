@@ -93,18 +93,25 @@ The dev server runs at `http://localhost:5174`. On first launch, Tauri downloads
 
 | Command | Description |
 |--------|-------------|
-| `bun run tauri:dev` | Run the app in dev mode |
+| `bun run tauri:dev` | Run the app in dev mode (+ build MCP release binary in parallel) |
+| `bun run tauri:dev:debug` | Same + Rust/NLP/frontend debug logging |
 | `bun run tauri:dev:clean` | Dev mode with cleared Vite cache |
+| `bun run tauri:dev:app` | Tauri only (skip MCP build) |
+| `bun run tauri:dev:app:debug` | Tauri only with debug env flags |
 | `bun run tauri:build` | Production `.app` / installer build |
 | `bun run build` | Frontend build only |
+| `bun run dev` | Vite only (browser, no Tauri IPC) |
+| `bun run dev:debug` | Vite only with `VITE_DEBUG=1` |
 | `bun run test` | Frontend tests (Vitest) |
 | `bun run test:backend` | Rust tests |
 | `bun run test:all` | Frontend + Rust + NLP tests |
 | `bun run lint` | ESLint |
 | `npm run nlp:health` | Ping Local AI sidecar (JSON-RPC health) |
+| `npm run nlp:debug` | Local AI debug CLI (stderr timings + sample analyze) |
 | `npm run nlp:test` | Python NLP unit tests |
 | `npm run mcp:install` | Build Rust Scribe Memory MCP (`scribe-mcp`) |
-| `npm run mcp` | Run MCP server (stdio) |
+| `npm run mcp` | Run MCP server (stdio, release) |
+| `npm run mcp:debug` | Run MCP server (debug build + `RUST_LOG=debug`) |
 
 ## Local AI (Python)
 
@@ -131,6 +138,16 @@ pip install 'sentence-transformers>=3'
 ```
 
 Full method list and design notes: [`nlp/README.md`](nlp/README.md). After a model bump (e.g. `v3` → `v4`), run **Reindex** in settings.
+
+## Debug modes
+
+| Layer | Command / env | What you get |
+|-------|----------------|--------------|
+| All (recommended) | `npm run tauri:dev:debug` | Rust + NLP + Vite debug flags together |
+| Frontend | `npm run dev:debug` or `VITE_DEBUG=1` | Console `[scribe-fe]` logs, sourcemaps via `TAURI_DEBUG` |
+| Rust | `SCRIBE_RUST_LOG=debug` / `RUST_LOG=debug` / `SCRIBE_DEBUG=1` | `tauri-plugin-log` at Debug + NLP RPC traces |
+| NLP | `SCRIBE_NLP_DEBUG=1` or `npm run nlp:debug` | Sidecar stderr timings per RPC (stdout stays JSON-RPC) |
+| MCP | `npm run mcp:debug` | Debug cargo build of `scribe-mcp` |
 
 ## Scribe Memory MCP (Claude / Cursor)
 

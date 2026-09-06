@@ -12,6 +12,7 @@ from .config import (
     MAX_REPORT_DOCUMENTS,
     MAX_TEXT_CHARS,
 )
+from .debug import nlp_debug_enabled
 from .embed import embed_text
 from .embed_backend import (
     active_backend,
@@ -93,10 +94,34 @@ FEATURES = [
 
 
 def handle_request(request: dict[str, Any]) -> dict[str, Any]:
+    from .debug import debug_log, nlp_debug_enabled, timed_debug
+
     request_id = request.get("id")
     method = request.get("method")
     params = request.get("params") or {}
 
+    timer = timed_debug("rpc", method=method, id=request_id) if nlp_debug_enabled() else None
+    if timer is not None:
+        timer.__enter__()
+
+    try:
+        response = _handle_request_inner(request_id, method, params)
+        if timer is not None:
+            timer.__exit__(None, None, None)
+        if nlp_debug_enabled() and "error" in response:
+            debug_log("rpc:error-payload", method=method, error=response.get("error"))
+        return response
+    except Exception as error:  # noqa: BLE001
+        if timer is not None:
+            timer.__exit__(type(error), error, error.__traceback__)
+        raise
+
+
+def _handle_request_inner(
+    request_id: Any,
+    method: Any,
+    params: dict[str, Any],
+) -> dict[str, Any]:
     try:
         if method == "health":
             result = {
@@ -106,6 +131,7 @@ def handle_request(request: dict[str, Any]) -> dict[str, Any]:
                 "embedBackend": active_backend(),
                 "qualityAvailable": quality_available(),
                 "features": FEATURES,
+                "debug": nlp_debug_enabled(),
                 "limits": {
                     "maxTextChars": MAX_TEXT_CHARS,
                     "maxEmbedBatch": MAX_EMBED_BATCH,

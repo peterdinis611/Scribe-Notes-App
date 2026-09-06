@@ -1,9 +1,15 @@
 import { createRoot } from 'react-dom/client'
+import { feDebug, isFrontendDebug } from '@/lib/debug'
 import { hydrateKvStore } from '@/lib/storage/kv'
 import 'highlight.js/styles/github-dark.min.css'
 import './index.css'
 
 async function bootstrap() {
+  if (isFrontendDebug()) {
+    feDebug('bootstrap:start', { mode: import.meta.env.MODE })
+    ;(window as Window & { __SCRIBEDebug?: boolean }).__SCRIBEDebug = true
+  }
+
   await hydrateKvStore()
 
   const { Provider } = await import('react-redux')
@@ -30,6 +36,8 @@ async function bootstrap() {
       </HotkeysProvider>
     </Provider>,
   )
+
+  feDebug('bootstrap:ready')
 }
 
 void bootstrap()

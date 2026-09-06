@@ -15,7 +15,7 @@ export default defineConfig({
     port: 5174,
     strictPort: true,
   },
-  envPrefix: ['VITE_', 'TAURI_'],
+  envPrefix: ['VITE_', 'TAURI_', 'SCRIBE_'],
   optimizeDeps: {
     include: [
       '@tanstack/pacer/debouncer',

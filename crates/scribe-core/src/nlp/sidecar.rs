@@ -7,6 +7,16 @@ use std::sync::Mutex;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
+fn nlp_rpc_debug_enabled() -> bool {
+    matches!(
+        std::env::var("SCRIBE_NLP_DEBUG")
+            .or_else(|_| std::env::var("SCRIBE_DEBUG"))
+            .ok()
+            .as_deref(),
+        Some("1" | "true" | "yes" | "on" | "debug")
+    )
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NlpHealth {
@@ -66,6 +76,15 @@ impl NlpSidecar {
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
+            .env(
+                "SCRIBE_NLP_DEBUG",
+                std::env::var("SCRIBE_NLP_DEBUG").unwrap_or_else(|_| {
+                    match std::env::var("SCRIBE_DEBUG").as_deref() {
+                        Ok("1" | "true" | "yes" | "on" | "debug") => "1".to_string(),
+                        _ => "0".to_string(),
+                    }
+                }),
+            )
             .spawn()
             .map_err(|error| {
                 format!(
@@ -115,6 +134,9 @@ impl NlpSidecar {
         let response = (|| -> Result<Value, String> {
             let process = guard.as_mut().ok_or("Sidecar unavailable")?;
             let payload = serde_json::to_string(&request).map_err(|e| e.to_string())?;
+            if nlp_rpc_debug_enabled() {
+                log::debug!("NLP RPC → {method} id={id}");
+            }
             writeln!(process.stdin, "{payload}").map_err(|e| e.to_string())?;
             process.stdin.flush().map_err(|e| e.to_string())?;
 
@@ -126,11 +148,17 @@ impl NlpSidecar {
 
             let value: Value = serde_json::from_str(&line).map_err(|e| e.to_string())?;
             if let Some(error) = value.get("error") {
+                if nlp_rpc_debug_enabled() {
+                    log::debug!("NLP RPC ← error id={id}: {error}");
+                }
                 return Err(error
                     .get("message")
                     .and_then(|item| item.as_str())
                     .unwrap_or("NLP sidecar error")
                     .to_string());
+            }
+            if nlp_rpc_debug_enabled() {
+                log::debug!("NLP RPC ← ok id={id}");
             }
             value
                 .get("result")

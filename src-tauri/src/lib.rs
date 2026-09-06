@@ -18,6 +18,37 @@ use tauri::menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem, SubmenuBuild
 #[cfg(target_os = "macos")]
 use tauri::tray::TrayIconBuilder;
 
+fn rust_debug_level() -> log::LevelFilter {
+    let raw = std::env::var("SCRIBE_RUST_LOG")
+        .or_else(|_| std::env::var("RUST_LOG"))
+        .or_else(|_| std::env::var("SCRIBE_DEBUG"))
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+
+    if raw.is_empty() {
+        return log::LevelFilter::Info;
+    }
+    if raw == "1" || raw == "true" || raw == "yes" || raw == "on" || raw == "debug" {
+        return log::LevelFilter::Debug;
+    }
+    if raw == "trace" {
+        return log::LevelFilter::Trace;
+    }
+    if raw == "warn" {
+        return log::LevelFilter::Warn;
+    }
+    if raw == "error" {
+        return log::LevelFilter::Error;
+    }
+    if raw.contains("trace") {
+        return log::LevelFilter::Trace;
+    }
+    if raw.contains("debug") {
+        return log::LevelFilter::Debug;
+    }
+    log::LevelFilter::Info
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -26,11 +57,15 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             if cfg!(debug_assertions) {
+                let level = rust_debug_level();
                 app.handle().plugin(
                     tauri_plugin_log::Builder::default()
-                        .level(log::LevelFilter::Info)
+                        .level(level)
                         .build(),
                 )?;
+                if level == log::LevelFilter::Debug || level == log::LevelFilter::Trace {
+                    log::debug!("Scribe Rust debug logging enabled (level={level})");
+                }
             }
 
             let (conn, db_path) = init_db(&app.handle())?;

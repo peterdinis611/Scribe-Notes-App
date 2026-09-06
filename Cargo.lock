@@ -3454,6 +3454,7 @@ version = "1.2.0"
 dependencies = [
  "chrono",
  "dirs",
+ "log",
  "regex",
  "rusqlite",
  "serde",

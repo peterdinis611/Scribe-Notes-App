@@ -8,8 +8,8 @@
  * This script is a safety net for npm/bun installs that still nest copies.
  *
  * Usage:
- *   node scripts/ensure-prosemirror-singleton.mjs        # remove nested copies
- *   node scripts/ensure-prosemirror-singleton.mjs --check # exit 1 if nested remain
+ *   npm run pm:check                         # exit 1 if nested remain
+ *   node --experimental-strip-types scripts/ensure-prosemirror-singleton.ts
  */
 import { readdirSync, rmSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url'
 const checkOnly = process.argv.includes('--check')
 const root = join(fileURLToPath(new URL('..', import.meta.url)), 'node_modules')
 
-const PACKAGE_NAMES = new Set([
+const PACKAGE_NAMES = new Set<string>([
   'prosemirror-model',
   'prosemirror-state',
   'prosemirror-view',
@@ -34,17 +34,12 @@ const PACKAGE_NAMES = new Set([
   'prosemirror-changeset',
 ])
 
-/** @type {string[]} */
-const nested = []
+const nested: string[] = []
 
-/**
- * @param {string} dir
- * @param {number} depth
- */
-function walk(dir, depth = 0) {
+function walk(dir: string, depth = 0): void {
   if (depth > 8) return
 
-  let entries
+  let entries: string[]
   try {
     entries = readdirSync(dir)
   } catch {
@@ -77,8 +72,9 @@ function walk(dir, depth = 0) {
 
 try {
   walk(root)
-} catch (error) {
-  console.warn('[prosemirror] skip: node_modules not ready', error instanceof Error ? error.message : error)
+} catch (error: unknown) {
+  const message = error instanceof Error ? error.message : String(error)
+  console.warn('[prosemirror] skip: node_modules not ready', message)
   process.exit(0)
 }
 

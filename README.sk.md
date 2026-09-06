@@ -93,18 +93,25 @@ Dev server beží na `http://localhost:5174`. Pri prvom spustení Tauri stiahne 
 
 | Príkaz | Popis |
 |--------|-------|
-| `bun run tauri:dev` | Spustí aplikáciu v dev režime |
+| `bun run tauri:dev` | Spustí aplikáciu v dev režime (+ paralelne build MCP release binárky) |
+| `bun run tauri:dev:debug` | To isté + Rust/NLP/frontend debug logy |
 | `bun run tauri:dev:clean` | Dev režim s vyčisteným Vite cache |
+| `bun run tauri:dev:app` | Len Tauri (bez MCP buildu) |
+| `bun run tauri:dev:app:debug` | Len Tauri s debug env |
 | `bun run tauri:build` | Produkčný build `.app` / inštalátora |
 | `bun run build` | Len frontend build |
+| `bun run dev` | Len Vite (prehliadač, bez Tauri IPC) |
+| `bun run dev:debug` | Vite s `VITE_DEBUG=1` |
 | `bun run test` | Frontend testy (Vitest) |
 | `bun run test:backend` | Rust testy |
 | `bun run test:all` | Frontend + Rust + NLP testy |
 | `bun run lint` | ESLint |
 | `npm run nlp:health` | Ping Lokálnej AI (JSON-RPC health) |
+| `npm run nlp:debug` | Debug CLI Lokálnej AI (stderr timing + sample analyze) |
 | `npm run nlp:test` | Python NLP unit testy |
 | `npm run mcp:install` | Skompiluje Rust Scribe Memory MCP (`scribe-mcp`) |
-| `npm run mcp` | Spustí MCP server (stdio) |
+| `npm run mcp` | Spustí MCP server (stdio, release) |
+| `npm run mcp:debug` | MCP server (debug build + `RUST_LOG=debug`) |
 
 ## Lokálna AI (Python)
 
@@ -131,6 +138,16 @@ pip install 'sentence-transformers>=3'
 ```
 
 Kompletný zoznam metód: [`nlp/README.md`](nlp/README.md). Po zmene modelu (napr. `v3` → `v4`) spustite **Preindexovať**.
+
+## Debug režimy
+
+| Vrstva | Príkaz / env | Čo dostanete |
+|--------|--------------|--------------|
+| Všetko | `npm run tauri:dev:debug` | Rust + NLP + Vite debug naraz |
+| Frontend | `npm run dev:debug` alebo `VITE_DEBUG=1` | Console `[scribe-fe]` logy |
+| Rust | `SCRIBE_RUST_LOG=debug` / `RUST_LOG=debug` / `SCRIBE_DEBUG=1` | Debug logy + NLP RPC stopy |
+| NLP | `SCRIBE_NLP_DEBUG=1` alebo `npm run nlp:debug` | Sidecar stderr timing (stdout ostáva JSON-RPC) |
+| MCP | `npm run mcp:debug` | Debug build `scribe-mcp` |
 
 ## Scribe Memory MCP (Claude / Cursor)
 
