@@ -8,66 +8,35 @@ Optional **local** Python service for semantic search, journal summaries, tag su
 
 **Je to** malý Python proces, ktorý Scribe spustí na vašom Macu, keď zapnete **Nastavenia → Lokálna AI**. Komunikuje s aplikáciou cez stdin/stdout (JSON-RPC) — text dokumentov **nikdy neopustí počítač**.
 
-| Vrstva | Čo robí |
-|--------|---------|
-| **Rust jadro** | Editor, SQLite databáza, fulltext (FTS), ukladanie, export — funguje vždy |
-| **Python sidecar** | Embeddings, sémantické vyhľadávanie, sumarizácia, NER, keywords, jazyk, outline — voliteľné |
-
-### Čo získate po zapnutí
-
-- **Sémantické vyhľadávanie** v ⌘K (scope „Sémanticky“ alebo hybrid v „Všetko“)
-- **Návrhy tagov** v kontextovom menu dokumentu
-- **Zhrnutie + kľúčové slová + osnova + jazyk** v AI prehľade dokumentu
-- **Týždenný prehľad denníka** (Library → Journal)
-- **Analýza knižnice** v Nastaveniach → Lokálna AI (jazyky, frázy, tagy)
-
 ### Požiadavky
 
-- Python **3.10+** (`python3` v PATH)
-- **Žiadne pip závislosti** — len štandardná knižnica Pythonu (voliteľne `sentence-transformers` pre quality embed)
-- Po upgrade modelu (`scribe-hash-v2` → `v3`) spustite **Preindexovať**
+- Python **3.10+**
+- **Žiadne pip závislosti** (voliteľne `pip install 'scribe-nlp[quality]'` / `sentence-transformers`)
+- Po upgrade modelu (`v3` → `v4`) spustite **Preindexovať**
 
 ## Models
 
 | Model | Description |
 |-------|-------------|
-| `scribe-hash-v1` | Legacy word-hash embeddings |
-| `scribe-hash-v2` | Word + bigram + char n-gram features |
-| `scribe-hash-v3` | Stopword-aware content tokens, lead boost, weighted char n-grams (current) |
+| `scribe-hash-v3` | Stopword-aware + lead boost |
+| `scribe-hash-v4` | + stem/diacritic features, chunk mean-pool for long docs (current) |
+| `scribe-minilm-v1` | Optional quality MiniLM (disk cache in `~/.cache/scribe-nlp/models`) |
 
 ## Dev
 
 ```bash
-# health check
 npm run nlp:health
-
-# unit tests
 npm run nlp:test
 ```
 
-## Methods
+## Methods (0.7)
 
-| Method | Purpose |
-|--------|---------|
-| `health` | Sidecar status + limits + features |
-| `embed` | Single text → vector (LRU cached) |
-| `embed_batch` | Batch embeddings (max 128) |
-| `summarize` | Extractive summary with MMR diversity |
-| `extract_entities` | NER-lite + keyword tag suggestions + language hint |
-| `extract_tasks` | Checkboxes + imperative / inline SK–EN task phrases |
-| `extract_keywords` | TF-lite keywords + bigram keyphrases (SK/EN stopwords) |
-| `detect_language` | Heuristic `sk` / `en` / `unknown` |
-| `extract_outline` | Markdown headings / numbered sections |
-| `analyze_document` | One-shot: language + keywords + outline + summary + task counts |
-| `similar_notes` | Rank notes by keyword overlap + hash embed blend |
-| `library_report` | Markdown library analysis (languages, phrases, tags) |
+Core: `health`, `embed`, `embed_batch`, `summarize`, `extract_*`, `analyze_document`, `similar_notes`, `library_report`
 
-## Limits
+0.6+: `reading_stats`, `find_duplicates`, `suggest_title`, `extract_mentions`, `analyze_sentiment`, `extract_dates`, `summarize_diff`, `template_fill_hints`
 
-- Text inputs: 120 000 characters
-- Embed batch: 128 texts
-- Library report: 5 000 documents
+0.7+: `chunk_text`, `rewrite_query` · keywords use KeyBERT-lite when quality backend is on
 
 ## Version
 
-Current sidecar: **0.5.0**
+Current sidecar: **0.7.0**

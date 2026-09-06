@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from .embed import cosine_similarity, embed_text
 from .keywords import extract_keywords
-from .text_utils import content_tokens, jaccard_similarity, normalize_text
+from .normalize import stem_lite
+from .text_utils import content_stems, jaccard_similarity, normalize_text
 
 
 def _doc_blob(document: dict[str, object]) -> str:
@@ -23,10 +24,11 @@ def similar_notes(
     if not query or not documents:
         return {"matches": []}
 
-    query_tokens = set(content_tokens(query))
+    query_stems = set(content_stems(query))
     query_keywords = {
-        str(item.get("term") or "")
+        stem_lite(str(item.get("term") or ""))
         for item in (extract_keywords(query, limit=16).get("keywords") or [])
+        if item.get("term")
     }
     limit = max(1, min(int(limit or 8), 32))
 
@@ -44,18 +46,18 @@ def similar_notes(
             continue
 
         token_score = jaccard_similarity(query, blob)
-        doc_tokens = set(content_tokens(blob))
+        doc_stems = set(content_stems(blob))
         keyword_overlap = 0.0
-        if query_keywords and doc_tokens:
-            keyword_overlap = len(query_keywords & doc_tokens) / max(len(query_keywords), 1)
+        if query_keywords and doc_stems:
+            keyword_overlap = len(query_keywords & doc_stems) / max(len(query_keywords), 1)
 
         title = str(document.get("title") or "")
         title_boost = 0.0
         if title:
-            title_tokens = set(content_tokens(title))
-            if title_tokens and query_tokens:
+            title_stems = set(content_stems(title))
+            if title_stems and query_stems:
                 title_boost = 0.15 * (
-                    len(title_tokens & query_tokens) / max(len(title_tokens), 1)
+                    len(title_stems & query_stems) / max(len(title_stems), 1)
                 )
 
         embed_score = 0.0

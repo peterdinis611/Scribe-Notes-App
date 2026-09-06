@@ -45,6 +45,7 @@ export function LibraryJournalView({ onNavigate }: LibraryJournalViewProps) {
   const [cursor, setCursor] = useState(() => startOfMonth(new Date()))
   const [weeklySummary, setWeeklySummary] = useState<string | null>(null)
   const [weeklyBullets, setWeeklyBullets] = useState<string[]>([])
+  const [weeklyTone, setWeeklyTone] = useState<string | null>(null)
   const [weeklyTasks, setWeeklyTasks] = useState<DocumentTask[]>([])
   const [summaryLoading, setSummaryLoading] = useState(false)
   const [tasksLoading, setTasksLoading] = useState(false)
@@ -63,6 +64,7 @@ export function LibraryJournalView({ onNavigate }: LibraryJournalViewProps) {
       })
       setWeeklySummary(result.summary)
       setWeeklyBullets(result.bullets)
+      setWeeklyTone(result.tone ?? null)
     } catch (error) {
       toast.error(t('journal.summaryError'), String(error))
     } finally {
@@ -244,6 +246,13 @@ export function LibraryJournalView({ onNavigate }: LibraryJournalViewProps) {
           <p className="m-0 mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
             {t('journal.weeklySummaryTitle')}
           </p>
+          {weeklyTone && (
+            <p className="m-0 mb-2 text-[11px] text-[var(--color-muted-foreground)]">
+              {t('journal.weeklyTone', {
+                tone: t(`journal.tone.${weeklyTone}`, { defaultValue: weeklyTone }),
+              })}
+            </p>
+          )}
           <p className="m-0 text-[12px] leading-relaxed text-[var(--color-foreground)]">{weeklySummary}</p>
           {weeklyBullets.length > 0 && (
             <ul className="mt-2 space-y-1 pl-4 text-[12px] text-[var(--color-muted-foreground)]">

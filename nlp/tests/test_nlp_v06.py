@@ -100,7 +100,7 @@ class ServerFeatureTests(unittest.TestCase):
         result = handle_request(
             {"jsonrpc": "2.0", "id": 1, "method": "health", "params": {}}
         )["result"]
-        self.assertEqual(result["version"], "0.6.0")
+        self.assertEqual(result["version"], "0.7.0")
         for feature in ("readability", "duplicates", "sentiment", "dates", "diff", "template"):
             self.assertIn(feature, result["features"])
 

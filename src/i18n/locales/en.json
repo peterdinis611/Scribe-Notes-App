@@ -629,7 +629,7 @@
           "paragraphs": [
             "Local AI is not a chatbot or an online service. When you enable it in Settings → Local AI, Scribe starts a small Python process (sidecar) on this Mac. All processing — indexing, search, summarization — happens in your computer's memory. Your text is never sent anywhere.",
             "The Rust core remains primary: database, editor, saving, and full-text search work without AI. The Python add-on adds semantics (meaning similarity), tag suggestions, weekly journal overview, and library analysis.",
-            "After enabling, documents are indexed into vectors (model scribe-hash-v3). If you update Scribe and the model changes, a reindex banner appears — mixing old and new vectors would give inconsistent results."
+            "After enabling, documents are indexed into vectors (model scribe-hash-v4). If you update Scribe and the model changes, a reindex banner appears — mixing old and new vectors would give inconsistent results."
           ],
           "points": [
             "⌘K All scope — combines full-text (FTS) and semantic hits via hybrid ranking",
@@ -1028,6 +1028,26 @@
       "loadError": "Could not load AI insights",
       "summary": "Summary",
       "summaryEmpty": "Write a bit more for an extractive summary.",
+      "toneLine": "Tone: {{tone}}",
+      "tone": {
+        "positive": "positive",
+        "negative": "negative",
+        "mixed": "mixed",
+        "neutral": "neutral"
+      },
+      "readabilityLine": "Readability: {{label}} · ~{{minutes}} min",
+      "readability": {
+        "veryEasy": "very easy",
+        "easy": "easy",
+        "plain": "plain",
+        "dense": "dense",
+        "hard": "hard"
+      },
+      "suggestedTitle": "Suggested title: {{title}}",
+      "dates": "Dates & events",
+      "datesEmpty": "No dates or relative cues detected.",
+      "links": "Links & mentions",
+      "linksEmpty": "No wiki links, @mentions, or URL hosts yet.",
       "outline": "Outline",
       "outlineEmpty": "No headings detected yet.",
       "keywords": "Keywords",
@@ -1083,6 +1103,7 @@
       "restoreSuccess": "Version restored",
       "restoreError": "Failed to restore version",
       "compareError": "Version comparison failed",
+      "nlpDiffSummary": "AI change summary",
       "selectTwoVersions": "Select two different versions",
       "currentVersion": "Current version",
       "diffTitle": "Version comparison",
@@ -1818,6 +1839,13 @@
     "streak": "{{count}} day streak",
     "weeklySummary": "Weekly overview",
     "weeklySummaryTitle": "Week in review",
+    "weeklyTone": "This week felt mostly {{tone}}.",
+    "tone": {
+      "positive": "positive",
+      "negative": "negative",
+      "mixed": "mixed",
+      "neutral": "neutral"
+    },
     "openTasksTitle": "Open tasks this week",
     "openTasksEmpty": "No open tasks in your journal this week.",
     "tasksLoading": "Loading tasks…",

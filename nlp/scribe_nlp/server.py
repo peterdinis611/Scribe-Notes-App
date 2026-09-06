@@ -85,6 +85,10 @@ FEATURES = [
     "dates",
     "diff",
     "template",
+    "chunking",
+    "queryRewrite",
+    "stemming",
+    "keybert",
 ]
 
 
@@ -148,11 +152,15 @@ def handle_request(request: dict[str, Any]) -> dict[str, Any]:
 
             result = extract_tasks(_validate_text(str(params.get("text") or "")))
         elif method == "extract_keywords":
+            from .keybert_lite import keybert_keywords
             from .keywords import extract_keywords
 
             text = _validate_text(str(params.get("text") or ""))
             limit = max(1, min(int(params.get("limit") or 12), 32))
-            result = extract_keywords(text, limit=limit)
+            quality_keywords = keybert_keywords(text, limit=limit)
+            result = quality_keywords if quality_keywords is not None else extract_keywords(
+                text, limit=limit
+            )
         elif method == "detect_language":
             from .language import detect_language
 
@@ -227,6 +235,23 @@ def handle_request(request: dict[str, Any]) -> dict[str, Any]:
             sections = params.get("expectedSections")
             expected = [str(item) for item in sections] if isinstance(sections, list) else None
             result = template_fill_hints(text, expected)
+        elif method == "chunk_text":
+            from .chunking import chunk_text
+
+            text = _validate_text(str(params.get("text") or ""))
+            chunks = chunk_text(
+                text,
+                max_chars=int(params.get("maxChars") or 1200),
+                overlap=int(params.get("overlap") or 180),
+                max_chunks=int(params.get("maxChunks") or 24),
+            )
+            result = {"chunks": chunks, "count": len(chunks)}
+        elif method == "rewrite_query":
+            from .query_rewrite import rewrite_query
+
+            query = _validate_text(str(params.get("query") or params.get("text") or ""))
+            max_expansions = max(0, min(int(params.get("maxExpansions") or 8), 16))
+            result = rewrite_query(query, max_expansions=max_expansions)
         else:
             return {
                 "jsonrpc": "2.0",

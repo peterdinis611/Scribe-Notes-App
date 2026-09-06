@@ -101,9 +101,20 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
 
   const keywordCount = analysis?.keywords.length ?? 0
   const outlineCount = analysis?.outline.length ?? 0
+  const dateCount = analysis?.dates?.length ?? 0
+  const mentionCount =
+    (analysis?.wikiLinks?.length ?? 0) +
+    (analysis?.mentions?.length ?? 0) +
+    (analysis?.hosts?.length ?? 0)
   const hasSummary = Boolean(analysis?.summary?.trim())
   const total =
-    similar.length + openTasks.length + keywordCount + outlineCount + (hasSummary ? 1 : 0)
+    similar.length +
+    openTasks.length +
+    keywordCount +
+    outlineCount +
+    dateCount +
+    mentionCount +
+    (hasSummary ? 1 : 0)
 
   const languageLabel = useMemo(() => {
     if (!analysis?.language || analysis.language === 'unknown') {
@@ -113,6 +124,18 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
     if (analysis.language === 'en') return t('panels.insights.languageEn')
     return analysis.language
   }, [analysis?.language, t])
+
+  const toneLabel = useMemo(() => {
+    const tone = analysis?.tone
+    if (!tone) return null
+    return t(`panels.insights.tone.${tone}`, { defaultValue: tone })
+  }, [analysis?.tone, t])
+
+  const readabilityLabel = useMemo(() => {
+    const label = analysis?.readabilityLabel
+    if (!label) return null
+    return t(`panels.insights.readability.${label}`, { defaultValue: label })
+  }, [analysis?.readabilityLabel, t])
 
   return (
     <EditorSidePanel className="titlebar-no-drag" aria-label={t('panels.insights.title')}>
@@ -158,6 +181,100 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
               <p className="m-0 text-[12.5px] leading-snug text-[var(--color-foreground)]">
                 {analysis?.summary}
               </p>
+            )}
+            {nlpEnabled && (toneLabel || readabilityLabel || analysis?.suggestedTitle) && (
+              <div className="mt-2 flex flex-col gap-1 text-[10.5px] text-[var(--color-muted-foreground)]">
+                {toneLabel && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Sparkles className="h-3 w-3 shrink-0" />
+                    {t('panels.insights.toneLine', { tone: toneLabel })}
+                  </span>
+                )}
+                {readabilityLabel && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Gauge className="h-3 w-3 shrink-0" />
+                    {t('panels.insights.readabilityLine', {
+                      label: readabilityLabel,
+                      minutes: Math.max(1, Math.round(analysis?.readingTimeMinutes ?? 1)),
+                    })}
+                  </span>
+                )}
+                {analysis?.suggestedTitle && (
+                  <span className="truncate" title={analysis.suggestedTitle}>
+                    {t('panels.insights.suggestedTitle', { title: analysis.suggestedTitle })}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-3.5 border-t border-[var(--color-border)] pt-3">
+            <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.03em] text-[var(--color-muted-foreground)]">
+              <CalendarDays className="h-3.5 w-3.5" />
+              {t('panels.insights.dates')}
+              <span className="ml-auto rounded-full bg-[var(--color-hover)] px-1.5 text-[10px] font-semibold">
+                {dateCount}
+              </span>
+            </h3>
+            {!nlpEnabled || dateCount === 0 ? (
+              <p className="m-0 mt-0.5 text-[11.5px] text-[var(--color-muted-foreground)]">
+                {nlpEnabled ? t('panels.insights.datesEmpty') : t('panels.insights.keywordsDisabled')}
+              </p>
+            ) : (
+              <ul className="m-0 list-none space-y-1 p-0">
+                {analysis?.dates?.slice(0, 8).map((item, index) => (
+                  <li key={`${item.text}-${index}`} className="text-[12px] text-[var(--color-foreground)]">
+                    {item.text}
+                    {item.resolvedDate ? (
+                      <span className="ml-1.5 text-[10px] text-[var(--color-muted-foreground)]">
+                        → {item.resolvedDate}
+                      </span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="mt-3.5 border-t border-[var(--color-border)] pt-3">
+            <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.03em] text-[var(--color-muted-foreground)]">
+              <AtSign className="h-3.5 w-3.5" />
+              {t('panels.insights.links')}
+              <span className="ml-auto rounded-full bg-[var(--color-hover)] px-1.5 text-[10px] font-semibold">
+                {mentionCount}
+              </span>
+            </h3>
+            {!nlpEnabled || mentionCount === 0 ? (
+              <p className="m-0 mt-0.5 text-[11.5px] text-[var(--color-muted-foreground)]">
+                {nlpEnabled ? t('panels.insights.linksEmpty') : t('panels.insights.keywordsDisabled')}
+              </p>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {analysis?.wikiLinks?.slice(0, 6).map((item) => (
+                  <span
+                    key={`wiki-${item}`}
+                    className="rounded-md bg-[var(--color-hover)] px-2 py-1 text-[11px] font-medium"
+                  >
+                    [[{item}]]
+                  </span>
+                ))}
+                {analysis?.mentions?.slice(0, 6).map((item) => (
+                  <span
+                    key={`mention-${item}`}
+                    className="rounded-md bg-[var(--color-hover)] px-2 py-1 text-[11px] font-medium"
+                  >
+                    @{item}
+                  </span>
+                ))}
+                {analysis?.hosts?.slice(0, 4).map((item) => (
+                  <span
+                    key={`host-${item}`}
+                    className="rounded-md bg-[var(--color-hover)] px-2 py-1 text-[11px] font-medium"
+                  >
+                    {item}
+                  </span>
+                ))}
+              </div>
             )}
           </div>
 

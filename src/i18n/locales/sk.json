@@ -630,7 +630,7 @@
           "paragraphs": [
             "Lokálna AI nie je chatbot ani online služba. Keď ju zapnete v Nastaveniach → Lokálna AI, Scribe spustí na pozadí malý Python proces (sidecar) priamo na tomto Macu. Všetko spracovanie — indexovanie, vyhľadávanie, sumarizácia — prebieha v pamäti vášho počítača. Text sa nikam neodosiela.",
             "Rust jadro aplikácie ostáva hlavné: databáza, editor, ukladanie a fulltextové vyhľadávanie fungujú aj bez AI. Python doplnok pridáva sémantiku (význam podobnosti), návrhy tagov, týždenný prehľad denníka a analýzu knižnice.",
-            "Po zapnutí sa dokumenty indexujú do vektorov (model scribe-hash-v3). Ak Scribe aktualizujete a model sa zmení, zobrazí sa upozornenie na preindexovanie — staré a nové vektory by inak dávali nekonzistentné výsledky."
+            "Po zapnutí sa dokumenty indexujú do vektorov (model scribe-hash-v4). Ak Scribe aktualizujete a model sa zmení, zobrazí sa upozornenie na preindexovanie — staré a nové vektory by inak dávali nekonzistentné výsledky."
           ],
           "points": [
             "⌘K scope Všetko — kombinuje fulltext (FTS) a sémantiku cez hybridné zlučovanie",
@@ -1036,6 +1036,26 @@
       "loadError": "Nepodarilo sa načítať AI prehľad",
       "summary": "Zhrnutie",
       "summaryEmpty": "Napíšte viac textu pre výťažkové zhrnutie.",
+      "toneLine": "Tón: {{tone}}",
+      "tone": {
+        "positive": "pozitívny",
+        "negative": "negatívny",
+        "mixed": "zmiešaný",
+        "neutral": "neutrálny"
+      },
+      "readabilityLine": "Čitateľnosť: {{label}} · ~{{minutes}} min",
+      "readability": {
+        "veryEasy": "veľmi ľahká",
+        "easy": "ľahká",
+        "plain": "bežná",
+        "dense": "hustá",
+        "hard": "náročná"
+      },
+      "suggestedTitle": "Návrh názvu: {{title}}",
+      "dates": "Dátumy a udalosti",
+      "datesEmpty": "Žiadne dátumy ani relatívne frázy.",
+      "links": "Odkazy a zmienky",
+      "linksEmpty": "Zatiaľ žiadne [[wiki]], @zmienky ani URL hosty.",
       "outline": "Osnova",
       "outlineEmpty": "Zatiaľ žiadne nadpisy.",
       "keywords": "Kľúčové slová",
@@ -1091,6 +1111,7 @@
       "restoreSuccess": "Verzia obnovená",
       "restoreError": "Obnovenie verzie zlyhalo",
       "compareError": "Porovnanie verzií zlyhalo",
+      "nlpDiffSummary": "AI zhrnutie zmien",
       "selectTwoVersions": "Vyberte dve rôzne verzie",
       "currentVersion": "Aktuálna verzia",
       "diffTitle": "Porovnanie verzií",
@@ -1834,6 +1855,13 @@
     "streak": "{{count}} dní po sebe",
     "weeklySummary": "Týždenný prehľad",
     "weeklySummaryTitle": "Prehľad týždňa",
+    "weeklyTone": "Tento týždeň pôsobil skôr {{tone}}.",
+    "tone": {
+      "positive": "pozitívne",
+      "negative": "negatívne",
+      "mixed": "zmiešane",
+      "neutral": "neutrálne"
+    },
     "openTasksTitle": "Otvorené úlohy týždňa",
     "openTasksEmpty": "Tento týždeň nemáte otvorené úlohy v denníku.",
     "tasksLoading": "Načítavam úlohy…",

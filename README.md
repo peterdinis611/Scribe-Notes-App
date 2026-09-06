@@ -30,7 +30,7 @@ Scribe runs locally on your Mac. No accounts, no cloud — documents, the databa
 - Command palette (`⌘K`) with fuzzy matching, recent docs, and wiki targets
 - **Pinned tabs** — keep documents open until you unpin them
 - Optional MCP bridge for AI tools (Cursor / Claude) — Settings → MCP; see [`crates/scribe-mcp/`](crates/scribe-mcp/)
-- Optional **Local AI** (Python sidecar): semantic search, extractive summary, keywords/outline/language, tag suggestions, journal digest, library report — see [`nlp/README.md`](nlp/README.md)
+- Optional **Local AI** (Python sidecar **0.7**): semantic search, summary, keywords/outline/tone/dates, duplicates, journal digest, library report — see below and [`nlp/README.md`](nlp/README.md)
 
 ### Documents
 - Custom **`.scribe`** format + disk sync
@@ -60,7 +60,8 @@ Scribe runs locally on your Mac. No accounts, no cloud — documents, the databa
 | State | Redux Toolkit |
 | i18n | i18next + react-i18next |
 | Database | SQLite (rusqlite, WAL mode) |
-| Tests | Vitest, Testing Library, `cargo test` |
+| Local AI | Python **3.10+** stdlib sidecar ([`nlp/`](nlp/)) — optional `sentence-transformers` |
+| Tests | Vitest, Testing Library, `cargo test`, `nlp:test` |
 
 ## Requirements
 
@@ -68,6 +69,7 @@ Scribe runs locally on your Mac. No accounts, no cloud — documents, the databa
 - [Bun](https://bun.sh/) or Node.js 20+
 - [Rust](https://rustup.rs/) 1.77+
 - Xcode Command Line Tools (for Tauri build)
+- **Python 3.10+** (`python3` on `PATH`) — only required when using **Local AI**
 
 ## Getting started
 
@@ -97,10 +99,38 @@ The dev server runs at `http://localhost:5174`. On first launch, Tauri downloads
 | `bun run build` | Frontend build only |
 | `bun run test` | Frontend tests (Vitest) |
 | `bun run test:backend` | Rust tests |
-| `bun run test:all` | Both test suites |
+| `bun run test:all` | Frontend + Rust + NLP tests |
 | `bun run lint` | ESLint |
+| `npm run nlp:health` | Ping Local AI sidecar (JSON-RPC health) |
+| `npm run nlp:test` | Python NLP unit tests |
 | `npm run mcp:install` | Build Rust Scribe Memory MCP (`scribe-mcp`) |
 | `npm run mcp` | Run MCP server (stdio) |
+
+## Local AI (Python)
+
+Optional offline intelligence. Enable in **Settings → Local AI**. Scribe starts a small Python process (`nlp/scribe_nlp/`) over stdin/stdout JSON-RPC — document text **never leaves your Mac**.
+
+| | |
+|--|--|
+| **Runtime** | Python **3.10+**, standard library only by default |
+| **Sidecar version** | **0.7.0** |
+| **Default embed model** | `scribe-hash-v4` (stem/diacritic-aware; chunk mean-pool for long notes) |
+| **Optional quality** | `pip install sentence-transformers` → MiniLM (`scribe-minilm-v1`), cached under `~/.cache/scribe-nlp/models` |
+| **What you get** | Semantic ⌘K search, AI insights (summary, tone, dates, links, keywords), tag suggestions, journal week tone, library report, revision diff summary |
+
+```bash
+# health check
+npm run nlp:health
+
+# unit tests (~50)
+npm run nlp:test
+
+# optional better embeddings
+pip install 'sentence-transformers>=3'
+# then Settings → Local AI → quality backend + Reindex
+```
+
+Full method list and design notes: [`nlp/README.md`](nlp/README.md). After a model bump (e.g. `v3` → `v4`), run **Reindex** in settings.
 
 ## Scribe Memory MCP (Claude / Cursor)
 
@@ -193,10 +223,15 @@ scribe/
 │   └── store/                    # Redux slices + persistence
 ├── src-tauri/                    # Rust backend
 │   └── src/
-│       ├── commands/             # Tauri commands (documents, folders, …)
+│       ├── commands/             # Tauri commands (documents, folders, NLP, …)
 │       ├── db/                   # SQLite, migrations, FTS, revisions
 │       ├── export/               # File export
 │       └── storage/              # .scribe files, sync, persist queue
+├── nlp/                          # Local AI Python sidecar (stdlib JSON-RPC)
+│   ├── scribe_nlp/               # embed, summarize, analyze, NER, …
+│   └── tests/                    # unittest suite (`npm run nlp:test`)
+├── crates/scribe-core/           # Shared Rust DB / NLP bridge
+├── crates/scribe-mcp/            # Optional MCP server
 └── src/__tests__/                # Vitest tests
 ```
 
@@ -207,6 +242,8 @@ scribe/
 ```bash
 bun run test          # 200+ frontend tests
 bun run test:backend  # Rust unit tests (migrations, export, storage)
+npm run nlp:test      # Python Local AI sidecar tests
+bun run test:all      # frontend + Rust + NLP
 ```
 
 ### UI architecture

@@ -314,6 +314,31 @@ impl NlpSidecar {
             json!({ "text": text, "expectedSections": expected_sections }),
         )
     }
+
+    pub fn rewrite_query(&self, query: &str, max_expansions: i64) -> Result<Value, String> {
+        self.call_method(
+            "rewrite_query",
+            json!({ "query": query, "maxExpansions": max_expansions }),
+        )
+    }
+
+    pub fn chunk_text(
+        &self,
+        text: &str,
+        max_chars: i64,
+        overlap: i64,
+        max_chunks: i64,
+    ) -> Result<Value, String> {
+        self.call_method(
+            "chunk_text",
+            json!({
+                "text": text,
+                "maxChars": max_chars,
+                "overlap": overlap,
+                "maxChunks": max_chunks,
+            }),
+        )
+    }
 }
 
 impl Drop for NlpSidecar {

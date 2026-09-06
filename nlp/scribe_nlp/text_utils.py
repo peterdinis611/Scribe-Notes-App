@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from collections import Counter
 
+from .normalize import fold_diacritics, stem_lite
 from .stopwords import STOP_WORDS, STOP_WORDS_EN, STOP_WORDS_SK
 
 WORD_RE = re.compile(r"[\w\u00C0-\u024F]+", re.UNICODE)
@@ -21,7 +22,6 @@ URL_RE = re.compile(r"https?://[^\s<>\"']+", re.IGNORECASE)
 WIKI_LINK_RE = re.compile(r"\[\[([^\]|]+)(?:\|[^\]]+)?\]\]")
 PHONE_RE = re.compile(r"(?<!\d)(?:\+421|0)\s?\d{2,3}\s?\d{3}\s?\d{3}(?:\s?\d{3})?(?!\d)")
 
-# Re-export for callers that imported STOP_WORDS from text_utils.
 __all__ = [
     "STOP_WORDS",
     "STOP_WORDS_EN",
@@ -29,10 +29,13 @@ __all__ = [
     "normalize_text",
     "tokenize",
     "content_tokens",
+    "content_stems",
     "split_sentences",
     "jaccard_similarity",
     "top_terms",
     "truncate_text",
+    "fold_diacritics",
+    "stem_lite",
 ]
 
 
@@ -53,6 +56,11 @@ def content_tokens(text: str) -> list[str]:
     ]
 
 
+def content_stems(text: str) -> list[str]:
+    """Stemmed content tokens for matching (keywords / similar / embed)."""
+    return [stem_lite(token) for token in content_tokens(text)]
+
+
 def split_sentences(text: str) -> list[str]:
     cleaned = normalize_text(text)
     if not cleaned:
@@ -62,8 +70,8 @@ def split_sentences(text: str) -> list[str]:
 
 
 def jaccard_similarity(left: str, right: str) -> float:
-    left_tokens = set(content_tokens(left))
-    right_tokens = set(content_tokens(right))
+    left_tokens = set(content_stems(left))
+    right_tokens = set(content_stems(right))
     if not left_tokens or not right_tokens:
         return 0.0
     intersection = len(left_tokens & right_tokens)
@@ -72,10 +80,19 @@ def jaccard_similarity(left: str, right: str) -> float:
 
 
 def top_terms(texts: list[str], limit: int = 12) -> list[tuple[str, int]]:
-    counter: Counter[str] = Counter()
+    """Return most common surface forms, counted via stems."""
+    stem_counts: Counter[str] = Counter()
+    surface: dict[str, Counter[str]] = {}
     for text in texts:
-        counter.update(content_tokens(text))
-    return counter.most_common(limit)
+        for token in content_tokens(text):
+            stem = stem_lite(token)
+            stem_counts[stem] += 1
+            surface.setdefault(stem, Counter())[token] += 1
+    result: list[tuple[str, int]] = []
+    for stem, count in stem_counts.most_common(limit):
+        form = surface[stem].most_common(1)[0][0]
+        result.append((form, count))
+    return result
 
 
 def truncate_text(text: str, max_chars: int) -> str:

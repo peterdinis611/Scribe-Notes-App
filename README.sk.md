@@ -30,7 +30,7 @@ Scribe beží lokálne na vašom Macu. Žiadne účty, žiadny cloud — dokumen
 - Príkazová paleta (`⌘K`) s fuzzy matchingom, nedávnymi dokumentmi a wiki cieľmi
 - **Pripnuté taby** — dokumenty ostanú otvorené, kým ich neodopneš
 - Voliteľný MCP most pre AI nástroje (Cursor / Claude) — Nastavenia → MCP; pozri [`crates/scribe-mcp/`](crates/scribe-mcp/)
-- Voliteľná **Lokálna AI** (Python sidecar): sémantické hľadanie, výťažkové zhrnutie, kľúčové slová/osnova/jazyk, tagy, denníkový digest, analýza knižnice — pozri [`nlp/README.md`](nlp/README.md)
+- Voliteľná **Lokálna AI** (Python sidecar **0.7**): sémantické hľadanie, zhrnutie, kľúčové slová/osnova/tón/dátumy, duplikáty, denníkový digest, analýza knižnice — pozri nižšie a [`nlp/README.md`](nlp/README.md)
 
 ### Dokumenty
 - Vlastný formát **`.scribe`** + synchronizácia na disk
@@ -60,7 +60,8 @@ Scribe beží lokálne na vašom Macu. Žiadne účty, žiadny cloud — dokumen
 | State | Redux Toolkit |
 | i18n | i18next + react-i18next |
 | Databáza | SQLite (rusqlite, WAL mode) |
-| Testy | Vitest, Testing Library, `cargo test` |
+| Lokálna AI | Python **3.10+** stdlib sidecar ([`nlp/`](nlp/)) — voliteľne `sentence-transformers` |
+| Testy | Vitest, Testing Library, `cargo test`, `nlp:test` |
 
 ## Požiadavky
 
@@ -68,6 +69,7 @@ Scribe beží lokálne na vašom Macu. Žiadne účty, žiadny cloud — dokumen
 - [Bun](https://bun.sh/) alebo Node.js 20+
 - [Rust](https://rustup.rs/) 1.77+
 - Xcode Command Line Tools (pre Tauri build)
+- **Python 3.10+** (`python3` v `PATH`) — len ak používate **Lokálnu AI**
 
 ## Spustenie
 
@@ -97,10 +99,38 @@ Dev server beží na `http://localhost:5174`. Pri prvom spustení Tauri stiahne 
 | `bun run build` | Len frontend build |
 | `bun run test` | Frontend testy (Vitest) |
 | `bun run test:backend` | Rust testy |
-| `bun run test:all` | Oba test suites |
+| `bun run test:all` | Frontend + Rust + NLP testy |
 | `bun run lint` | ESLint |
+| `npm run nlp:health` | Ping Lokálnej AI (JSON-RPC health) |
+| `npm run nlp:test` | Python NLP unit testy |
 | `npm run mcp:install` | Skompiluje Rust Scribe Memory MCP (`scribe-mcp`) |
 | `npm run mcp` | Spustí MCP server (stdio) |
+
+## Lokálna AI (Python)
+
+Voliteľná offline inteligencia. Zapnite v **Nastavenia → Lokálna AI**. Scribe spustí malý Python proces (`nlp/scribe_nlp/`) cez stdin/stdout JSON-RPC — text dokumentov **nikdy neopustí Mac**.
+
+| | |
+|--|--|
+| **Runtime** | Python **3.10+**, predvolene len štandardná knižnica |
+| **Verzia sidecaru** | **0.7.0** |
+| **Predvolený embed model** | `scribe-hash-v4` (stem/diakritika; chunk mean-pool pre dlhé poznámky) |
+| **Voliteľná kvalita** | `pip install sentence-transformers` → MiniLM (`scribe-minilm-v1`), cache v `~/.cache/scribe-nlp/models` |
+| **Čo získate** | Sémantické ⌘K, AI prehľad (zhrnutie, tón, dátumy, odkazy, keywords), návrhy tagov, tón týždňa v denníku, analýza knižnice, AI zhrnutie diffu revízií |
+
+```bash
+# health check
+npm run nlp:health
+
+# unit testy (~50)
+npm run nlp:test
+
+# voliteľne lepšie embeddings
+pip install 'sentence-transformers>=3'
+# potom Nastavenia → Lokálna AI → quality backend + Preindexovať
+```
+
+Kompletný zoznam metód: [`nlp/README.md`](nlp/README.md). Po zmene modelu (napr. `v3` → `v4`) spustite **Preindexovať**.
 
 ## Scribe Memory MCP (Claude / Cursor)
 
@@ -193,10 +223,15 @@ scribe/
 │   └── store/                    # Redux slices + persistence
 ├── src-tauri/                    # Rust backend
 │   └── src/
-│       ├── commands/             # Tauri commands (documents, folders, …)
+│       ├── commands/             # Tauri commands (documents, folders, NLP, …)
 │       ├── db/                   # SQLite, migrácie, FTS, revízie
 │       ├── export/               # Export do súborov
 │       └── storage/              # .scribe súbory, sync, persist queue
+├── nlp/                          # Lokálna AI — Python sidecar (stdlib JSON-RPC)
+│   ├── scribe_nlp/               # embed, summarize, analyze, NER, …
+│   └── tests/                    # unittest (`npm run nlp:test`)
+├── crates/scribe-core/           # Zdieľaný Rust DB / NLP most
+├── crates/scribe-mcp/            # Voliteľný MCP server
 └── src/__tests__/                # Vitest testy
 ```
 
@@ -207,6 +242,8 @@ scribe/
 ```bash
 bun run test          # 200+ frontend testov
 bun run test:backend  # Rust unit testy (migrácie, export, storage)
+npm run nlp:test      # Python testy Lokálnej AI
+bun run test:all      # frontend + Rust + NLP
 ```
 
 ### Architektúra UI

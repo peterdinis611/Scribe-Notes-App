@@ -24,7 +24,7 @@ import {
   findRevisionOption,
   normalizeComparePair,
 } from '@/lib/revisions/revision-compare'
-import { formatRelativeTime } from '@/lib/utils'
+import { nlpSummarizeDiff } from '@/lib/db/nlp-api'
 import { toast } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 import {
@@ -48,6 +48,7 @@ type CompareState = {
   right: { id: string; label: string; createdAt: number }
   lines: DiffLine[]
   sideBySideRows: SideBySideRow[]
+  nlpSummary?: string | null
 }
 
 export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
@@ -132,6 +133,18 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
       const newerOption = findRevisionOption(newerId, compareOptions)
       if (!olderOption || !newerOption) return
 
+      let nlpSummary: string | null = null
+      try {
+        const diffSummary = await nlpSummarizeDiff({
+          oldText: olderText,
+          newText: newerText,
+          maxBullets: 4,
+        })
+        nlpSummary = typeof diffSummary.summary === 'string' ? diffSummary.summary : null
+      } catch {
+        nlpSummary = null
+      }
+
       setCompareState({
         left: {
           id: olderOption.id,
@@ -145,6 +158,7 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
         },
         lines: diffLines(olderText, newerText),
         sideBySideRows: diffSideBySide(olderText, newerText),
+        nlpSummary,
       })
       setVersionAId(olderId)
       setVersionBId(newerId)
@@ -378,7 +392,16 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
       </div>
 
       {compareState && (
-        <RevisionDiffView
+        <>
+          {compareState.nlpSummary ? (
+            <p className="mx-3 mb-2 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[12px] leading-snug text-[var(--color-foreground)]">
+              <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
+                {t('panels.revisions.nlpDiffSummary')}
+              </span>
+              {compareState.nlpSummary}
+            </p>
+          ) : null}
+          <RevisionDiffView
           left={{
             label: compareState.left.label,
             createdAt: compareState.left.createdAt,
@@ -395,6 +418,7 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
           onChangesOnlyChange={setChangesOnly}
           onClose={() => setCompareState(null)}
         />
+        </>
       )}
     </EditorSidePanel>
   )

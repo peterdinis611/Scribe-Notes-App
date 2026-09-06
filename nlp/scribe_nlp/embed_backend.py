@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import Literal
 
 EmbedBackend = Literal["hash", "quality"]
 
-HASH_MODEL_ID = "scribe-hash-v3"
+HASH_MODEL_ID = "scribe-hash-v4"
 QUALITY_MODEL_ID = "scribe-minilm-v1"
 QUALITY_MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
 
@@ -53,13 +54,26 @@ def quality_available() -> bool:
         return False
 
 
+def quality_cache_dir() -> Path:
+    override = os.environ.get("SCRIBE_ST_CACHE", "").strip()
+    if override:
+        path = Path(override).expanduser()
+    else:
+        path = Path.home() / ".cache" / "scribe-nlp" / "models"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
 def _load_quality_model():
     global _quality_model
     if _quality_model is not None:
         return _quality_model
     from sentence_transformers import SentenceTransformer
 
-    _quality_model = SentenceTransformer(QUALITY_MODEL_NAME)
+    _quality_model = SentenceTransformer(
+        QUALITY_MODEL_NAME,
+        cache_folder=str(quality_cache_dir()),
+    )
     return _quality_model
 
 
@@ -67,3 +81,11 @@ def embed_quality(text: str) -> list[float]:
     model = _load_quality_model()
     vector = model.encode(text or "", normalize_embeddings=True)
     return [float(value) for value in vector.tolist()]
+
+
+def embed_quality_batch(texts: list[str]) -> list[list[float]]:
+    if not texts:
+        return []
+    model = _load_quality_model()
+    vectors = model.encode(texts, normalize_embeddings=True, batch_size=min(32, len(texts)))
+    return [[float(value) for value in row.tolist()] for row in vectors]

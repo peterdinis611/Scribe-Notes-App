@@ -489,7 +489,8 @@ pub fn nlp_search(
                 let conn = state.conn.lock().map_err(|e| e.to_string())?;
                 sync_sidecar_backend(&sidecar, &conn)?;
             }
-            let (vector, model) = sidecar.embed_text(q)?;
+            let embed_query = rewrite_query_for_embed(&sidecar, q);
+            let (vector, model) = sidecar.embed_text(&embed_query)?;
             let conn = state.conn.lock().map_err(|e| e.to_string())?;
             semantic_search(&conn, &vector, limit, Some(&model))
         }
@@ -511,7 +512,8 @@ pub fn nlp_search(
                 let conn = state.conn.lock().map_err(|e| e.to_string())?;
                 sync_sidecar_backend(&sidecar, &conn)?;
             }
-            let semantic_hits = match sidecar.embed_text(q) {
+            let embed_query = rewrite_query_for_embed(&sidecar, q);
+            let semantic_hits = match sidecar.embed_text(&embed_query) {
                 Ok((vector, model)) => {
                     let conn = state.conn.lock().map_err(|e| e.to_string())?;
                     semantic_search(&conn, &vector, limit, Some(&model)).unwrap_or_default()
@@ -520,6 +522,18 @@ pub fn nlp_search(
             };
             Ok(fuse_search_hits(&fts_hits, &semantic_hits, limit))
         }
+    }
+}
+
+fn rewrite_query_for_embed(sidecar: &NlpSidecar, query: &str) -> String {
+    match sidecar.rewrite_query(query, 8) {
+        Ok(value) => value
+            .get("rewritten")
+            .and_then(|item| item.as_str())
+            .filter(|item| !item.trim().is_empty())
+            .unwrap_or(query)
+            .to_string(),
+        Err(_) => query.to_string(),
     }
 }
 

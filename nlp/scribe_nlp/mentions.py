@@ -31,7 +31,9 @@ def extract_mentions(text: str) -> dict[str, object]:
             wiki.append(target)
 
     for match in MENTION_RE.finditer(source):
-        name = match.group(1)
+        name = match.group(1).rstrip(".,;:!?")
+        if len(name) < 2:
+            continue
         key = name.lower()
         if key not in seen_mentions:
             seen_mentions.add(key)
