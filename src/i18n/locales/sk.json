@@ -240,8 +240,20 @@
   "whatsNew": {
     "badge": "Novinky {{version}}",
     "title": "Scribe {{version}}",
-    "subtitle": "Lokálna AI 0.5 — lepšie embeddings, jednotná analýza dokumentu a bohatší prehľad.",
+    "subtitle": "Lepšie dátumy, zjednotený debug a nové Tauri pluginy pre desktop aj mobil.",
     "gotIt": "Rozumiem",
+    "smarterDates": {
+      "title": "Chytrejšie dátumy a termíny",
+      "description": "Relatívne SK/EN dátumy, deadliny a offsety sa preložia na ISO — v AI prehľade aj v checkbox úlohách."
+    },
+    "debugModes": {
+      "title": "Debug všade",
+      "description": "`tauri:dev:debug` zapne frontend, Rust aj NLP logy naraz — plus samostatné NLP a MCP debug skripty."
+    },
+    "tauriPlugins": {
+      "title": "Barcode, scope a pozícia okna",
+      "description": "Skenovanie QR na mobile, zachovanie FS/asset scope po reštarte a posun okna z command palette."
+    },
     "localAiV3": {
       "title": "Hash embeddings v3",
       "description": "Vektory bez stopwords a s boostom začiatku textu — ostnejšie sémantické hľadanie, stále offline."

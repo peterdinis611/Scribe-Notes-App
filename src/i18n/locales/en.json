@@ -240,8 +240,20 @@
   "whatsNew": {
     "badge": "What's new in {{version}}",
     "title": "Scribe {{version}}",
-    "subtitle": "Local AI 0.5 — better embeddings, one-shot document analysis, and richer insights.",
+    "subtitle": "Sharper dates, unified debug modes, and new Tauri plugins for desktop and mobile.",
     "gotIt": "Got it",
+    "smarterDates": {
+      "title": "Smarter dates & due hints",
+      "description": "Relative SK/EN dates, deadlines, and offsets resolve to ISO — in Local AI insights and checkbox tasks."
+    },
+    "debugModes": {
+      "title": "Debug everywhere",
+      "description": "`tauri:dev:debug` turns on frontend, Rust, and NLP logging together — plus dedicated NLP and MCP debug scripts."
+    },
+    "tauriPlugins": {
+      "title": "Barcode, scopes & window placement",
+      "description": "Scan QR codes on mobile, keep FS/asset scopes across restarts, and snap the window from the command palette."
+    },
     "localAiV3": {
       "title": "Hash embeddings v3",
       "description": "Stopword-aware vectors with lead-text boost — sharper semantic search, still fully offline."

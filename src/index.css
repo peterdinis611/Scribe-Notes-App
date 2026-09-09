@@ -3525,6 +3525,7 @@ html[data-ui-skin='press'] .editor-status-bar {
   color: var(--color-foreground);
   -webkit-user-select: text;
   user-select: text;
+  -webkit-app-region: no-drag;
   overflow-wrap: break-word;
   word-wrap: break-word;
 }

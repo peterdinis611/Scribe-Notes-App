@@ -705,11 +705,6 @@ export function DocumentEditor() {
                 <div
                   className={cn('editor-content-host', isMarkdown && 'editor-content-host--hidden')}
                   aria-hidden={isMarkdown}
-                  onMouseDown={() => {
-                    if (!editor || editor.isDestroyed || readingMode || isMarkdown) return
-                    if (!editor.isEditable) editor.setEditable(true)
-                    if (!editor.isFocused) editor.commands.focus()
-                  }}
                 >
                   <EditorContent editor={editor} />
                 </div>

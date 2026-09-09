@@ -1,4 +1,4 @@
-import { ListTree, RefreshCw, Sparkles } from 'lucide-react'
+import { Bug, CalendarDays, ScanLine } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
@@ -13,12 +13,12 @@ import { APP_VERSION } from '@/lib/app-version'
 import { persistWhatsNewVersion } from '@/store/persistence'
 
 const HIGHLIGHTS = [
-  { id: 'localAiV3', icon: Sparkles },
-  { id: 'insightsSummary', icon: ListTree },
-  { id: 'reindexHint', icon: RefreshCw },
+  { id: 'smarterDates', icon: CalendarDays },
+  { id: 'debugModes', icon: Bug },
+  { id: 'tauriPlugins', icon: ScanLine },
 ] as const
 
-/** Major.minor for “Scribe 1.2” style titles. */
+/** Major.minor for “Scribe 1.3” style titles. */
 const APP_SHORT_VERSION = APP_VERSION.split('.').slice(0, 2).join('.')
 
 type WhatsNewDialogProps = {
