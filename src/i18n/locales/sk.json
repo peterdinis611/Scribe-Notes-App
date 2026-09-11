@@ -155,6 +155,8 @@
     "eveningNote": "Večerný denník",
     "weekNote": "Týždenná poznámka",
     "weeklyDigest": "Vytvoriť týždenný digest",
+    "dailyBriefing": "Denný briefing",
+    "applySuggestedTags": "Použiť návrhy AI tagov",
     "sectionSearch": "Výsledky",
     "filterFolder": "Iba v tomto priečinku",
     "filterTags": "Filtrovať podľa štítku",
@@ -240,8 +242,24 @@
   "whatsNew": {
     "badge": "Novinky {{version}}",
     "title": "Scribe {{version}}",
-    "subtitle": "Lepšie dátumy, zjednotený debug a nové Tauri pluginy pre desktop aj mobil.",
+    "subtitle": "Offline kontrola pravopisu v Lokálnej AI, plus pomenované verzie, stav syncu a denný briefing z 1.4.",
     "gotIt": "Rozumiem",
+    "offlineSpellcheck": {
+      "title": "Offline kontrola pravopisu",
+      "description": "AI prehľad skontroluje SK/EN preklepy lokálne cez Python sidecar — klik na slovo ho nájde v dokumente."
+    },
+    "namedVersions": {
+      "title": "Pomenované verzie",
+      "description": "Označte a pripnite dôležité revízie v histórii — pripnuté verzie prežijú automatické prerezávanie."
+    },
+    "syncConflicts": {
+      "title": "Stav syncu a konflikty",
+      "description": "Výsledky iCloud/Dropbox syncu v Nastaveniach. Keď vyhrá disk, lokálna kópia sa uloží ako pripnutá verzia."
+    },
+    "dailyBriefing": {
+      "title": "Denný briefing a tagy",
+      "description": "⌘K zloží dnešné úlohy a termíny, aplikuje AI tagy a vloží tabuľky z Excelu/Sheets do editora."
+    },
     "smarterDates": {
       "title": "Chytrejšie dátumy a termíny",
       "description": "Relatívne SK/EN dátumy, deadliny a offsety sa preložia na ISO — v AI prehľade aj v checkbox úlohách."
@@ -415,8 +433,12 @@
       "openInFinder": "Finder",
       "reconcile": "Synchronizovať",
       "reconciling": "Synchronizujem…",
-      "reconcileSuccess": "Synchronizované: {{toDisk}} na disk, {{fromDisk}} z disku, {{imported}} nových.",
+      "reconcileSuccess": "Synchronizované: {{toDisk}} na disk, {{fromDisk}} z disku, {{imported}} nových, {{conflicts}} konfliktov zachovaných.",
       "reconcileFailed": "Synchronizácia zlyhala.",
+      "syncStatusTitle": "Stav syncu",
+      "syncStatusEmpty": "V tejto session ešte nebol sync. Použite Synchronizovať alebo zapnite auto-sync.",
+      "syncStatusDescription": "Posledný sync {{time}}: {{scanned}} skenovaných · {{toDisk}} → disk · {{fromDisk}} ← disk · {{imported}} nových · {{conflicts}} konfliktov",
+      "syncConflictsBadge": "{{count}} konflikt(ov) — lokálne kópie uložené ako pomenované verzie",
       "syncTipTitle": "Sync medzi Macmi",
       "syncTipDescription": "Scribe nesynchronizuje cez internet. Uložte priečinok dokumentov do iCloud Drive alebo Dropboxu a na každom Macu otvorte Scribe (auto-sync alebo Synchronizovať).",
       "autoSyncTitle": "Automatická sync priečinka",
@@ -445,7 +467,22 @@
       "backupImportError": "Import zálohy zlyhal",
       "backupImportConfirmTitle": "Obnoviť zálohu?",
       "backupImportConfirm": "Aktuálna knižnica bude nahradená obsahom archívu. Existujúca databáza sa zálohuje do .bak súboru.",
-      "backupImportConfirmOk": "Importovať"
+      "backupImportConfirmOk": "Importovať",
+      "autoBackupTitle": "Plánovaná záloha",
+      "autoBackupDescription": "Automaticky uloží .scribe-backup.zip do priečinka, ktorý zvolíte.",
+      "autoBackupOn": "Zapnuté",
+      "autoBackupOff": "Vypnuté",
+      "autoBackupInterval": "Ako často",
+      "autoBackupIntervalHint": "Scribe kontroluje raz za hodinu a zálohuje, keď uplynie interval.",
+      "autoBackupEvery1": "Denne",
+      "autoBackupEvery7": "Týždenne",
+      "autoBackupEvery30": "Mesačne",
+      "autoBackupFolder": "Priečinok záloh",
+      "autoBackupFolderHint": "Vyberte priečinok (napr. iCloud Drive alebo externý disk).",
+      "autoBackupFolderPick": "Vybrať priečinok záloh",
+      "autoBackupChooseFolder": "Vybrať…",
+      "autoBackupNow": "Zálohovať teraz",
+      "autoBackupLast": "Posledná automatická záloha"
     },
     "diagnostics": {
       "title": "Diagnostika",
@@ -528,11 +565,12 @@
     },
     "shortcuts": {
       "title": "Klávesové skratky",
-      "description": "Rýchle akcie dostupné kdekoľvek v aplikácii.",
+      "description": "Skratky v aplikácii. Rýchla poznámka a Dnešný denník fungujú aj systémovo, keď je Scribe na pozadí.",
       "reset": "Obnoviť predvolené",
       "edit": "Upraviť skratku: {{action}}",
       "pressKeys": "Stlačte kombináciu…",
-      "editorTitle": "Skratky v editore"
+      "editorTitle": "Skratky v editore",
+      "globalBadge": "Systémová"
     },
     "about": {
       "tagline": "Píšte dokumenty. Prepájajte poznámky.",
@@ -701,7 +739,9 @@
     "warning": "Zápis .scribe súboru na disk zlyhal. Dokument je uložený v aplikácii. Skontrolujte Nastavenia → Úložisko.",
     "toastTitle": "Uložené iba v aplikácii",
     "updatedFromDiskTitle": "Aktualizované z priečinka",
-    "updatedFromDiskDescription": "{{count}} dokument(ov) obnovených z disku."
+    "updatedFromDiskDescription": "{{count}} dokument(ov) obnovených z disku.",
+    "conflictsTitle": "Konflikty syncu zachované",
+    "conflictsDescription": "{{count}} dokument(ov) malo lokálne úpravy prepísané novším súborom na disku. Predošlý obsah bol uložený ako pripnutá verzia („Before sync conflict“)."
   },
   "shortcuts": {
     "newDocument": {
@@ -746,7 +786,11 @@
     },
     "quickNote": {
       "label": "Rýchla poznámka",
-      "description": "Otvorí scratch dokument"
+      "description": "Otvorí scratch dokument (funguje aj systémovo)"
+    },
+    "todayNote": {
+      "label": "Dnešný denník",
+      "description": "Otvorí dnešnú denníkovú poznámku (funguje aj systémovo)"
     },
     "focusMode": {
       "label": "Režim sústredenia",
@@ -871,6 +915,12 @@
     "documentTagsHint": "Oddeľte štítky čiarkou",
     "nlpTagSuggestions": "Návrhy AI tagov",
     "nlpTagSuggestionsError": "Návrhy tagov nedostupné",
+    "nlpTagsApplied": "Štítky aktualizované",
+    "nlpTagsAppliedDetail": "Pridané: {{tags}}",
+    "nlpTagsNone": "Žiadne nové návrhy štítkov",
+    "nlpFolderSuggestion": "Navrhovaný priečinok",
+    "nlpFolderSuggestionDetail": "Najbližšia zhoda: {{folder}}",
+    "nlpFolderNone": "Žiadny zodpovedajúci priečinok",
     "folderNamePlaceholder": "Názov priečinka",
     "noResults": "Žiadne výsledky.",
     "noDocumentsYet": "Zatiaľ žiadne dokumenty.",
@@ -901,6 +951,8 @@
     "searchEmpty": "Nič sa nenašlo",
     "moveToFolder": "Presunúť do priečinka",
     "rootFolder": "Koreň (bez priečinka)",
+    "noFoldersYet": "Najprv vytvorte priečinok v sidebari.",
+    "openDocument": "Otvoriť",
     "rootLibrary": "Koreň knižnice",
     "tagCount_one": "{{count}} štítok",
     "tagCount_few": "{{count}} štítky",
@@ -1088,7 +1140,16 @@
       "tasksEmpty": "V tomto dokumente nie sú otvorené úlohy.",
       "sourceCheckbox": "checkbox",
       "sourcePhrase": "fráza",
-      "dueHint": "termín {{date}}"
+      "dueHint": "termín {{date}}",
+      "spellcheck": "Pravopis",
+      "spellcheckRun": "Skontrolovať pravopis",
+      "spellcheckRunning": "Kontrolujem…",
+      "spellcheckHint": "Offline kontrola preklepov (SK/EN). Hlási slová s blízkym návrhom zo slovníka.",
+      "spellcheckEmpty": "Žiadne pravdepodobné preklepy.",
+      "spellcheckDisabled": "Zapnite Lokálnu AI v nastaveniach pre kontrolu pravopisu.",
+      "spellcheckError": "Kontrola pravopisu zlyhala",
+      "spellcheckSuggestions": "Návrhy: {{list}}",
+      "spellcheckFind": "Nájsť v dokumente"
     },
     "stats": {
       "subtitle": "Prehľad dokumentu",
@@ -1138,7 +1199,20 @@
       "viewModeAria": "Režim zobrazenia",
       "viewSplit": "Vedľa seba",
       "viewUnified": "Zjednotený diff",
-      "noDiffToShow": "Žiadne rozdiely na zobrazenie."
+      "noDiffToShow": "Žiadne rozdiely na zobrazenie.",
+      "nameVersion": "Pomenovať verziu",
+      "naming": "Ukladám…",
+      "nameVersionTitle": "Pomenovať túto verziu",
+      "nameVersionPlaceholder": "napr. Návrh na review",
+      "nameVersionConfirm": "Uložiť",
+      "nameVersionSuccess": "Pomenovaná verzia uložená",
+      "nameVersionError": "Pomenovanú verziu sa nepodarilo uložiť",
+      "rename": "Premenovať",
+      "renameTitle": "Premenovať verziu",
+      "renameError": "Premenovanie verzie zlyhalo",
+      "pin": "Pripnúť",
+      "unpin": "Odopnúť",
+      "pinError": "Pripnutie sa nepodarilo zmeniť"
     }
   },
   "focusMode": {
@@ -1891,6 +1965,15 @@
     "digestTitle": "Týždenný digest {{week}}",
     "digestSummaryPlaceholder": "Prehľad nie je dostupný — lokálne AI je vypnuté alebo tento týždeň nemáte zápisy v denníku.",
     "digestError": "Nepodarilo sa vytvoriť týždenný digest",
+    "dailyBriefing": "Denný briefing",
+    "dailyBriefingTitle": "Dnes — {{date}}",
+    "dailyBriefingSummaryTitle": "Fokus",
+    "dailyBriefingTasksTitle": "Otvorené úlohy",
+    "dailyBriefingDueTitle": "Termín dnes",
+    "dailyBriefingJournalTitle": "Denník",
+    "dailyBriefingJournalHint": "Dnešnú poznámku otvoríte cez ⌘K → Dnes, alebo píšte nižšie.",
+    "dailyBriefingSummaryPlaceholder": "Krátky prehľad toho, čo dnes treba vyriešiť.",
+    "dailyBriefingError": "Nepodarilo sa vytvoriť denný briefing",
     "heatWorkflowHint": "Tmavšie dni = viac zápisov v rade. Kliknite na deň alebo použite ⌘K pre včera / zajtra.",
     "thisWeek": "Tento týždeň",
     "folderName": "Denník",

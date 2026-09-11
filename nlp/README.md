@@ -32,7 +32,7 @@ npm run nlp:debug   # SCRIBE_NLP_DEBUG=1 sample RPCs + timings on stderr
 
 Set `SCRIBE_NLP_DEBUG=1` (or `SCRIBE_DEBUG=1` via Tauri) to log each RPC to stderr without breaking JSON-RPC on stdout.
 
-## Methods (0.7)
+## Methods (0.8)
 
 Core: `health`, `embed`, `embed_batch`, `summarize`, `extract_*`, `analyze_document`, `similar_notes`, `library_report`
 
@@ -40,6 +40,8 @@ Core: `health`, `embed`, `embed_batch`, `summarize`, `extract_*`, `analyze_docum
 
 0.7+: `chunk_text`, `rewrite_query` · keywords use KeyBERT-lite when quality backend is on
 
+0.8+: `spellcheck` — offline SK/EN typo check (bundled wordlists, edit-distance suggestions)
+
 ## Version
 
-Current sidecar: **0.7.0**
+Current sidecar: **0.8.0**

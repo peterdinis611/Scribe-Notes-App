@@ -60,6 +60,15 @@ export interface DocumentsState {
   commentsVersion: number
   commentAuthor: string
   diskSyncWarning: string | null
+  /** Last folder reconcile summary (iCloud / Dropbox). */
+  folderSyncStatus: {
+    at: number
+    scannedCount: number
+    importedCount: number
+    updatedFromDiskCount: number
+    syncedToDiskCount: number
+    conflictCount: number
+  } | null
   /** Most-recently activated document ids (newest first). */
   recentDocumentIds: string[]
   /** Documents left when switching away (newest first). */
@@ -130,6 +139,7 @@ const initialState: DocumentsState = {
   commentsVersion: 0,
   commentAuthor: readCommentAuthor(),
   diskSyncWarning: null,
+  folderSyncStatus: null,
   recentDocumentIds:
     initialActiveId && !initialRecent.includes(initialActiveId)
       ? pushRecentId(initialRecent, initialActiveId)
@@ -434,6 +444,12 @@ const documentsSlice = createSlice({
     setDiskSyncWarning(state, action: PayloadAction<string | null>) {
       state.diskSyncWarning = action.payload
     },
+    setFolderSyncStatus(
+      state,
+      action: PayloadAction<DocumentsState['folderSyncStatus']>,
+    ) {
+      state.folderSyncStatus = action.payload
+    },
     setSecondaryDocumentId(state, action: PayloadAction<string | null>) {
       const id = action.payload
       if (id && id === state.activeDocumentId) {
@@ -537,6 +553,7 @@ export const {
   bumpCommentsVersion,
   setCommentAuthor,
   setDiskSyncWarning,
+  setFolderSyncStatus,
   setSecondaryDocumentId,
   pushDocumentNav,
   popDocumentNav,

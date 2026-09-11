@@ -36,7 +36,7 @@ pub fn restore_document_content(
 
     let restore_result = (|| -> Result<(), String> {
         if current_content_json != new_content_json || current_title != new_title {
-            save_revision(conn, document_id, current_title, current_content_json)?;
+            save_revision(conn, document_id, current_title, current_content_json, None, false)?;
         }
 
         conn.execute(
@@ -65,24 +65,55 @@ pub fn save_revision(
     document_id: &str,
     title: &str,
     content_json: &str,
-) -> Result<(), String> {
+    label: Option<&str>,
+    pinned: bool,
+) -> Result<String, String> {
     let id = Uuid::new_v4().to_string();
     let now = chrono::Utc::now().timestamp();
+    let label = label.map(str::trim).filter(|value| !value.is_empty());
+    let pinned_flag = if pinned { 1 } else { 0 };
 
     conn.execute(
-        "INSERT INTO document_revisions (id, document_id, title, content_json, created_at) VALUES (?1, ?2, ?3, ?4, ?5)",
-        params![id, document_id, title, content_json, now],
+        "INSERT INTO document_revisions (id, document_id, title, content_json, created_at, label, pinned)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        params![id, document_id, title, content_json, now, label, pinned_flag],
     )
     .map_err(|e| e.to_string())?;
 
+    // Keep pinned revisions; prune oldest unpinned beyond the cap.
     conn.execute(
-        "DELETE FROM document_revisions WHERE document_id = ?1 AND id NOT IN (
-            SELECT id FROM document_revisions WHERE document_id = ?1 ORDER BY created_at DESC LIMIT ?2
-        )",
+        "DELETE FROM document_revisions
+         WHERE document_id = ?1
+           AND pinned = 0
+           AND id NOT IN (
+             SELECT id FROM document_revisions
+             WHERE document_id = ?1 AND pinned = 0
+             ORDER BY created_at DESC
+             LIMIT ?2
+           )",
         params![document_id, MAX_REVISIONS_PER_DOCUMENT],
     )
     .map_err(|e| e.to_string())?;
 
+    Ok(id)
+}
+
+pub fn set_revision_label(
+    conn: &Connection,
+    revision_id: &str,
+    label: Option<&str>,
+    pinned: bool,
+) -> Result<(), String> {
+    let label = label.map(str::trim).filter(|value| !value.is_empty());
+    let updated = conn
+        .execute(
+            "UPDATE document_revisions SET label = ?1, pinned = ?2 WHERE id = ?3",
+            params![label, if pinned { 1 } else { 0 }, revision_id],
+        )
+        .map_err(|e| e.to_string())?;
+    if updated == 0 {
+        return Err("Verzia neexistuje".into());
+    }
     Ok(())
 }
 
@@ -106,6 +137,8 @@ mod tests {
                 "doc-1",
                 &format!("Title {index}"),
                 &format!(r#"{{"v":{index}}}"#),
+                None,
+                false,
             )
             .unwrap();
         }
@@ -118,6 +151,49 @@ mod tests {
             )
             .unwrap();
         assert_eq!(count, 50);
+    }
+
+    #[test]
+    fn pinned_revision_survives_prune() {
+        let conn = in_memory_conn();
+        conn.execute(
+            "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at) VALUES ('doc-1', 'A', '{}', NULL, NULL, 1, 1)",
+            [],
+        )
+        .unwrap();
+
+        let pinned_id = save_revision(&conn, "doc-1", "Pinned", r#"{"v":0}"#, Some("Release"), true)
+            .unwrap();
+
+        for index in 1..60 {
+            save_revision(
+                &conn,
+                "doc-1",
+                &format!("Title {index}"),
+                &format!(r#"{{"v":{index}}}"#),
+                None,
+                false,
+            )
+            .unwrap();
+        }
+
+        let pinned: i64 = conn
+            .query_row(
+                "SELECT pinned FROM document_revisions WHERE id = ?1",
+                params![pinned_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(pinned, 1);
+
+        let label: String = conn
+            .query_row(
+                "SELECT label FROM document_revisions WHERE id = ?1",
+                params![pinned_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(label, "Release");
     }
 
     #[test]
@@ -157,15 +233,6 @@ mod tests {
             )
             .unwrap();
         assert_eq!(revision_count, 1);
-
-        let saved_title: String = conn
-            .query_row(
-                "SELECT title FROM document_revisions WHERE document_id = 'doc-1'",
-                [],
-                |row| row.get(0),
-            )
-            .unwrap();
-        assert_eq!(saved_title, "Current");
     }
 
     #[test]

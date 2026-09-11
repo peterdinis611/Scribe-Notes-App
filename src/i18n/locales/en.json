@@ -155,6 +155,8 @@
     "eveningNote": "Evening journal",
     "weekNote": "Weekly note",
     "weeklyDigest": "Create weekly digest",
+    "dailyBriefing": "Daily briefing",
+    "applySuggestedTags": "Apply AI tag suggestions",
     "sectionSearch": "Matches",
     "filterFolder": "This folder only",
     "filterTags": "Filter by tag",
@@ -240,8 +242,24 @@
   "whatsNew": {
     "badge": "What's new in {{version}}",
     "title": "Scribe {{version}}",
-    "subtitle": "Sharper dates, unified debug modes, and new Tauri plugins for desktop and mobile.",
+    "subtitle": "Offline spell check in Local AI, plus named versions, sync status, and daily briefing from 1.4.",
     "gotIt": "Got it",
+    "offlineSpellcheck": {
+      "title": "Offline spell check",
+      "description": "AI insights can check SK/EN typos locally via the Python sidecar — click a word to find it in the document."
+    },
+    "namedVersions": {
+      "title": "Named version snapshots",
+      "description": "Label and pin important revisions in history — pinned versions survive automatic pruning."
+    },
+    "syncConflicts": {
+      "title": "Sync status & conflicts",
+      "description": "See iCloud/Dropbox sync results in Settings. When disk wins, your local copy is saved as a pinned version."
+    },
+    "dailyBriefing": {
+      "title": "Daily briefing & tags",
+      "description": "⌘K builds today’s tasks + due dates, applies AI tags, and pastes Excel/Sheets tables into the editor."
+    },
     "smarterDates": {
       "title": "Smarter dates & due hints",
       "description": "Relative SK/EN dates, deadlines, and offsets resolve to ISO — in Local AI insights and checkbox tasks."
@@ -415,8 +433,12 @@
       "openInFinder": "Finder",
       "reconcile": "Sync",
       "reconciling": "Syncing…",
-      "reconcileSuccess": "Synced: {{toDisk}} to disk, {{fromDisk}} from disk, {{imported}} new.",
+      "reconcileSuccess": "Synced: {{toDisk}} to disk, {{fromDisk}} from disk, {{imported}} new, {{conflicts}} conflicts preserved.",
       "reconcileFailed": "Sync failed.",
+      "syncStatusTitle": "Sync status",
+      "syncStatusEmpty": "No sync yet this session. Use Sync or enable auto-sync.",
+      "syncStatusDescription": "Last sync {{time}}: {{scanned}} scanned · {{toDisk}} → disk · {{fromDisk}} ← disk · {{imported}} new · {{conflicts}} conflicts",
+      "syncConflictsBadge": "{{count}} conflict(s) — local copies saved as named versions",
       "syncTipTitle": "Multi-Mac sync",
       "syncTipDescription": "Scribe does not sync over the internet. Put the documents folder in iCloud Drive or Dropbox, then open Scribe on each Mac (auto-sync or Sync).",
       "autoSyncTitle": "Auto-sync folder",
@@ -445,7 +467,22 @@
       "backupImportError": "Backup import failed",
       "backupImportConfirmTitle": "Restore backup?",
       "backupImportConfirm": "The current library will be replaced by the archive contents. The existing database is backed up to a .bak file.",
-      "backupImportConfirmOk": "Import"
+      "backupImportConfirmOk": "Import",
+      "autoBackupTitle": "Scheduled backup",
+      "autoBackupDescription": "Automatically write a .scribe-backup.zip into a folder you choose.",
+      "autoBackupOn": "On",
+      "autoBackupOff": "Off",
+      "autoBackupInterval": "How often",
+      "autoBackupIntervalHint": "Scribe checks once an hour and backs up when the interval has passed.",
+      "autoBackupEvery1": "Daily",
+      "autoBackupEvery7": "Weekly",
+      "autoBackupEvery30": "Monthly",
+      "autoBackupFolder": "Backup folder",
+      "autoBackupFolderHint": "Pick a folder (e.g. iCloud Drive or an external disk).",
+      "autoBackupFolderPick": "Choose backup folder",
+      "autoBackupChooseFolder": "Choose…",
+      "autoBackupNow": "Backup now",
+      "autoBackupLast": "Last automatic backup"
     },
     "diagnostics": {
       "title": "Diagnostics",
@@ -528,11 +565,12 @@
     },
     "shortcuts": {
       "title": "Keyboard shortcuts",
-      "description": "Quick actions available anywhere in the app.",
+      "description": "In-app shortcuts. Quick note and Today’s journal also work system-wide while Scribe is in the background.",
       "reset": "Reset to defaults",
       "edit": "Edit shortcut: {{action}}",
       "pressKeys": "Press a key combination…",
-      "editorTitle": "Editor shortcuts"
+      "editorTitle": "Editor shortcuts",
+      "globalBadge": "System-wide"
     },
     "about": {
       "tagline": "Write documents. Link notes.",
@@ -701,7 +739,9 @@
     "warning": "Writing the .scribe file to disk failed. The document is saved in the app. Check Settings → Storage.",
     "toastTitle": "Saved in app only",
     "updatedFromDiskTitle": "Updated from folder",
-    "updatedFromDiskDescription": "{{count}} document(s) refreshed from disk."
+    "updatedFromDiskDescription": "{{count}} document(s) refreshed from disk.",
+    "conflictsTitle": "Sync conflicts preserved",
+    "conflictsDescription": "{{count}} document(s) had local edits overwritten by a newer file on disk. Previous content was saved as a pinned version (“Before sync conflict”)."
   },
   "shortcuts": {
     "newDocument": {
@@ -746,7 +786,11 @@
     },
     "quickNote": {
       "label": "Quick note",
-      "description": "Opens a scratch document"
+      "description": "Opens a scratch document (also works system-wide)"
+    },
+    "todayNote": {
+      "label": "Today's journal",
+      "description": "Opens today's daily note (also works system-wide)"
     },
     "focusMode": {
       "label": "Focus mode",
@@ -869,6 +913,12 @@
     "documentTagsHint": "Separate tags with commas",
     "nlpTagSuggestions": "AI tag suggestions",
     "nlpTagSuggestionsError": "Tag suggestions unavailable",
+    "nlpTagsApplied": "Tags updated",
+    "nlpTagsAppliedDetail": "Added: {{tags}}",
+    "nlpTagsNone": "No new tag suggestions",
+    "nlpFolderSuggestion": "Suggested folder",
+    "nlpFolderSuggestionDetail": "Closest match: {{folder}}",
+    "nlpFolderNone": "No matching folder",
     "folderNamePlaceholder": "Folder name",
     "noResults": "No results.",
     "noDocumentsYet": "No documents yet.",
@@ -899,6 +949,8 @@
     "searchEmpty": "Nothing found",
     "moveToFolder": "Move to folder",
     "rootFolder": "Root (no folder)",
+    "noFoldersYet": "Create a folder in the sidebar first.",
+    "openDocument": "Open",
     "rootLibrary": "Library root",
     "tagCount_one": "{{count}} tag",
     "tagCount_other": "{{count}} tags",
@@ -1080,7 +1132,16 @@
       "tasksEmpty": "No open tasks in this document.",
       "sourceCheckbox": "checkbox",
       "sourcePhrase": "phrase",
-      "dueHint": "due {{date}}"
+      "dueHint": "due {{date}}",
+      "spellcheck": "Spell check",
+      "spellcheckRun": "Check spelling",
+      "spellcheckRunning": "Checking…",
+      "spellcheckHint": "Offline typo check (SK/EN). Reports words with a close dictionary match.",
+      "spellcheckEmpty": "No likely typos found.",
+      "spellcheckDisabled": "Enable Local AI in Settings for spell check.",
+      "spellcheckError": "Spell check failed",
+      "spellcheckSuggestions": "Suggestions: {{list}}",
+      "spellcheckFind": "Find in document"
     },
     "stats": {
       "subtitle": "Document overview",
@@ -1130,7 +1191,20 @@
       "viewModeAria": "Display mode",
       "viewSplit": "Side by side",
       "viewUnified": "Unified diff",
-      "noDiffToShow": "No differences to display."
+      "noDiffToShow": "No differences to display.",
+      "nameVersion": "Name version",
+      "naming": "Saving…",
+      "nameVersionTitle": "Name this version",
+      "nameVersionPlaceholder": "e.g. Draft for review",
+      "nameVersionConfirm": "Save",
+      "nameVersionSuccess": "Named version saved",
+      "nameVersionError": "Could not save named version",
+      "rename": "Rename",
+      "renameTitle": "Rename version",
+      "renameError": "Could not rename version",
+      "pin": "Pin",
+      "unpin": "Unpin",
+      "pinError": "Could not update pin"
     }
   },
   "focusMode": {
@@ -1875,6 +1949,15 @@
     "digestTitle": "Weekly digest {{week}}",
     "digestSummaryPlaceholder": "Summary unavailable — Local AI is off or no journal entries were found for this week.",
     "digestError": "Failed to create weekly digest",
+    "dailyBriefing": "Daily briefing",
+    "dailyBriefingTitle": "Today — {{date}}",
+    "dailyBriefingSummaryTitle": "Focus",
+    "dailyBriefingTasksTitle": "Open tasks",
+    "dailyBriefingDueTitle": "Due today",
+    "dailyBriefingJournalTitle": "Journal",
+    "dailyBriefingJournalHint": "Open today’s note from ⌘K → Today, or write below.",
+    "dailyBriefingSummaryPlaceholder": "Brief overview of what needs attention today.",
+    "dailyBriefingError": "Failed to create daily briefing",
     "heatWorkflowHint": "Darker days = more consecutive entries. Click a day or use ⌘K for yesterday / tomorrow.",
     "thisWeek": "This week",
     "folderName": "Journal",

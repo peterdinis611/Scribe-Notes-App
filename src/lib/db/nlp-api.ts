@@ -166,3 +166,21 @@ export const nlpTemplateFillHints = (input: {
   documentId: string
   expectedSections?: string[]
 }) => invoke<Record<string, unknown>>('nlp_template_fill_hints', { input })
+
+export interface SpellIssue {
+  word: string
+  offset: number
+  length: number
+  suggestions: string[]
+}
+
+export interface SpellcheckResult {
+  language: string
+  checkedLanguage: string
+  issueCount: number
+  issues: SpellIssue[]
+  dictionarySize: number
+}
+
+export const nlpSpellcheck = (documentId: string) =>
+  invoke<SpellcheckResult>('nlp_spellcheck', { documentId })

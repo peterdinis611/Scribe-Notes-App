@@ -1,16 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Clock, GitCompare, RotateCcw } from 'lucide-react'
+import { BookmarkPlus, Clock, GitCompare, Pencil, Pin, RotateCcw } from 'lucide-react'
 import { confirm } from '@tauri-apps/plugin-dialog'
 import { RevisionDiffView } from '@/components/editor/RevisionDiffView'
 import { cacheDocument } from '@/lib/cache/document-cache'
 import {
+  createNamedRevision,
   getDocumentRevision,
   listDocumentRevisions,
+  renameDocumentRevision,
   restoreDocumentRevision,
   type DocumentRevision,
 } from '@/lib/db/api'
 import { tiptapToPlainText } from '@/lib/export/plain-text'
+import { promptInput } from '@/lib/input-dialog'
 import {
   CURRENT_REVISION_ID,
   diffLines,
@@ -59,6 +62,7 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
   const [revisions, setRevisions] = useState<DocumentRevision[]>([])
   const [loading, setLoading] = useState(true)
   const [restoringId, setRestoringId] = useState<string | null>(null)
+  const [naming, setNaming] = useState(false)
   const [compareLoading, setCompareLoading] = useState(false)
   const [versionAId, setVersionAId] = useState(CURRENT_REVISION_ID)
   const [versionBId, setVersionBId] = useState(CURRENT_REVISION_ID)
@@ -75,6 +79,12 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
     )
   }, [activeDocument?.updatedAt, revisions, t])
 
+  async function refreshRevisions(documentId: string) {
+    const next = await listDocumentRevisions(documentId, 30)
+    setRevisions(next)
+    return next
+  }
+
   useEffect(() => {
     if (!activeId) {
       setRevisions([])
@@ -83,8 +93,7 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
     }
 
     setLoading(true)
-    void listDocumentRevisions(activeId, 30)
-      .then(setRevisions)
+    void refreshRevisions(activeId)
       .catch(() => setRevisions([]))
       .finally(() => setLoading(false))
   }, [activeId])
@@ -169,10 +178,57 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
     }
   }
 
+  async function handleNameCurrent() {
+    if (!activeId) return
+    const label = await promptInput({
+      title: t('panels.revisions.nameVersionTitle'),
+      placeholder: t('panels.revisions.nameVersionPlaceholder'),
+      confirmLabel: t('panels.revisions.nameVersionConfirm'),
+    })
+    if (!label?.trim()) return
+
+    setNaming(true)
+    try {
+      await createNamedRevision(activeId, label.trim(), true)
+      await refreshRevisions(activeId)
+      toast.success(t('panels.revisions.nameVersionSuccess'))
+    } catch {
+      toast.error(t('panels.revisions.nameVersionError'))
+    } finally {
+      setNaming(false)
+    }
+  }
+
+  async function handleRename(revision: DocumentRevision) {
+    const label = await promptInput({
+      title: t('panels.revisions.renameTitle'),
+      placeholder: t('panels.revisions.nameVersionPlaceholder'),
+      defaultValue: revision.label ?? '',
+      confirmLabel: t('common.save'),
+    })
+    if (label === null) return
+
+    try {
+      await renameDocumentRevision(revision.id, label.trim() || null, revision.pinned)
+      if (activeId) await refreshRevisions(activeId)
+    } catch {
+      toast.error(t('panels.revisions.renameError'))
+    }
+  }
+
+  async function handleTogglePin(revision: DocumentRevision) {
+    try {
+      await renameDocumentRevision(revision.id, revision.label, !revision.pinned)
+      if (activeId) await refreshRevisions(activeId)
+    } catch {
+      toast.error(t('panels.revisions.pinError'))
+    }
+  }
+
   async function handleRestore(revision: DocumentRevision) {
     const confirmed = await confirm(
       t('panels.revisions.restoreConfirm', {
-        title: revision.title,
+        title: revision.label?.trim() || revision.title,
         time: formatRelativeTime(revision.createdAt),
       }),
       {
@@ -204,6 +260,7 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
       )
       toast.success(t('panels.revisions.restoreSuccess'), formatRelativeTime(revision.createdAt))
       setCompareState(null)
+      if (activeId) await refreshRevisions(activeId)
     } catch {
       toast.error(t('panels.revisions.restoreError'))
     } finally {
@@ -238,9 +295,20 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
         title={t('editorPanels.revisions')}
         subtitle={t('panels.revisions.subtitle')}
         actions={
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            {t('common.close')}
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!activeId || naming}
+              onClick={() => void handleNameCurrent()}
+            >
+              <BookmarkPlus className="h-3.5 w-3.5" />
+              {naming ? t('panels.revisions.naming') : t('panels.revisions.nameVersion')}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              {t('common.close')}
+            </Button>
+          </div>
         }
       />
 
@@ -327,6 +395,7 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
           revisions.map((revision) => {
             const isSelectedA = versionAId === revision.id
             const isSelectedB = versionBId === revision.id
+            const displayTitle = revision.label?.trim() || revision.title
 
             return (
               <div
@@ -335,14 +404,21 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
                   'flex flex-col gap-2.5 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2.5',
                   (isSelectedA || isSelectedB) &&
                     'border-[var(--color-selection-strong)] bg-[color-mix(in_srgb,var(--color-selection)_35%,var(--color-surface-elevated))]',
+                  revision.pinned && 'border-[color-mix(in_srgb,var(--color-accent)_45%,var(--color-border))]',
                 )}
               >
                 <div className="flex min-w-0 items-start gap-2">
                   <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 opacity-50" />
-                  <div className="min-w-0">
-                    <p className="m-0 truncate text-[12px] font-semibold">{revision.title}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="m-0 flex items-center gap-1.5 truncate text-[12px] font-semibold">
+                      {revision.pinned ? (
+                        <Pin className="h-3 w-3 shrink-0 text-[var(--color-accent)]" aria-hidden />
+                      ) : null}
+                      <span className="truncate">{displayTitle}</span>
+                    </p>
                     <p className="mt-0.5 text-[11px] text-[var(--color-muted-foreground)]">
                       {formatRelativeTime(revision.createdAt)}
+                      {revision.label?.trim() ? ` · ${revision.title}` : ''}
                     </p>
                   </div>
                 </div>
@@ -375,6 +451,19 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
                   >
                     <GitCompare className="h-3.5 w-3.5" />
                     {t('panels.revisions.vsCurrent')}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => void handleRename(revision)}>
+                    <Pencil className="h-3.5 w-3.5" />
+                    {t('panels.revisions.rename')}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void handleTogglePin(revision)}
+                    title={revision.pinned ? t('panels.revisions.unpin') : t('panels.revisions.pin')}
+                  >
+                    <Pin className="h-3.5 w-3.5" />
+                    {revision.pinned ? t('panels.revisions.unpin') : t('panels.revisions.pin')}
                   </Button>
                   <Button
                     variant="outline"

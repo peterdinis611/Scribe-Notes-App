@@ -61,6 +61,9 @@ pub fn run() {
             #[cfg(desktop)]
             {
                 app.handle().plugin(tauri_plugin_positioner::init())?;
+                app.handle().plugin(
+                    tauri_plugin_global_shortcut::Builder::new().build(),
+                )?;
             }
 
             if cfg!(debug_assertions) {
@@ -248,8 +251,11 @@ pub fn run() {
             commands::nlp::nlp_suggest_title,
             commands::nlp::nlp_summarize_diff,
             commands::nlp::nlp_template_fill_hints,
+            commands::nlp::nlp_spellcheck,
             commands::revisions::list_document_revisions,
             commands::revisions::get_document_revision,
+            commands::revisions::create_named_revision,
+            commands::revisions::rename_document_revision,
             commands::revisions::restore_document_revision,
             commands::storage::get_storage_settings,
             commands::storage::pick_documents_directory,
@@ -274,6 +280,7 @@ pub fn run() {
             commands::system::list_system_font_families,
             commands::links::list_link_graph,
             backup::export_library_archive,
+            backup::export_library_archive_to_dir,
             backup::import_library_archive,
         ])
         .build(tauri::generate_context!())

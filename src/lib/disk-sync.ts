@@ -6,7 +6,7 @@ import { reloadLibraryFromBackend } from '@/lib/library-reload'
 import { toast } from '@/lib/toast'
 import type { AppDispatch } from '@/store/index'
 import { store } from '@/store/index'
-import { setDiskSyncWarning } from '@/store/documentsSlice'
+import { setDiskSyncWarning, setFolderSyncStatus } from '@/store/documentsSlice'
 import { hasStorageFolderAccess } from '@/store/persistence'
 
 /** Minimum gap between auto reconciles (focus / interval). Manual Sync can force. */
@@ -72,6 +72,17 @@ export async function runFolderReconcile(
       const pulled =
         result.updatedFromDiskCount > 0 || result.importedCount > 0
 
+      dispatch(
+        setFolderSyncStatus({
+          at: Date.now(),
+          scannedCount: result.scannedCount,
+          importedCount: result.importedCount,
+          updatedFromDiskCount: result.updatedFromDiskCount,
+          syncedToDiskCount: result.syncedToDiskCount,
+          conflictCount: result.conflictCount,
+        }),
+      )
+
       if (pulled) {
         await reloadLibraryFromBackend(dispatch, {
           preserveActive: true,
@@ -80,7 +91,12 @@ export async function runFolderReconcile(
         })
       }
 
-      if (result.updatedFromDiskCount > 0) {
+      if (result.conflictCount > 0) {
+        toast.info(
+          i18n.t('diskSync.conflictsTitle'),
+          i18n.t('diskSync.conflictsDescription', { count: result.conflictCount }),
+        )
+      } else if (result.updatedFromDiskCount > 0) {
         toast.info(
           i18n.t('diskSync.updatedFromDiskTitle'),
           i18n.t('diskSync.updatedFromDiskDescription', {

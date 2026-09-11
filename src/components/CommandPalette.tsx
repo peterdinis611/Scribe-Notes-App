@@ -37,6 +37,7 @@ import { openNewCanvasNote } from '@/lib/canvas/create-canvas'
 import { Position, moveAppWindow } from '@/lib/window-position'
 import { isTauriRuntime } from '@/lib/tauri'
 import {
+  createDailyBriefingDocument,
   createWeeklyDigestDocument,
   openEveningNote,
   openMorningNote,
@@ -341,6 +342,17 @@ export function CommandPalette() {
       },
       {
         type: 'action',
+        id: 'daily-briefing',
+        label: t('commandPalette.dailyBriefing'),
+        icon: <CalendarDays className="h-4 w-4" />,
+        run: () => {
+          void createDailyBriefingDocument(journalArgs).catch((error) =>
+            toast.error(t('journal.dailyBriefingError'), String(error)),
+          )
+        },
+      },
+      {
+        type: 'action',
         id: 'demo-guide',
         label: t('commandPalette.demoDocument'),
         hint: t('commandPalette.demoHint'),
@@ -349,6 +361,45 @@ export function CommandPalette() {
       },
       ...(activeDocument
         ? [
+            {
+              type: 'action' as const,
+              id: 'apply-ai-tags',
+              label: t('commandPalette.applySuggestedTags'),
+              icon: <Tag className="h-4 w-4" />,
+              run: () => {
+                const summary = documents.find((doc) => doc.id === activeDocument.id)
+                if (!summary) return
+                void import('@/lib/library/auto-organize')
+                  .then(({ applySuggestedTagsAndFolderHint }) =>
+                    applySuggestedTagsAndFolderHint(summary, folders, dispatch),
+                  )
+                  .then((result) => {
+                    if (result.added.length > 0) {
+                      toast.success(
+                        t('library.nlpTagsApplied'),
+                        t('library.nlpTagsAppliedDetail', { tags: result.added.join(', ') }),
+                      )
+                    } else {
+                      toast.info(t('library.nlpTagsNone'))
+                    }
+                    if (result.folderSuggestion) {
+                      toast.info(
+                        t('library.nlpFolderSuggestion'),
+                        t('library.nlpFolderSuggestionDetail', {
+                          folder: result.folderSuggestion,
+                        }),
+                      )
+                    }
+                  })
+                  .catch((error) => {
+                    const message = String(error?.message ?? error)
+                    toast.error(
+                      t('library.nlpTagSuggestionsError'),
+                      message.startsWith('nlp.') ? t(message) : message,
+                    )
+                  })
+              },
+            },
             {
               type: 'action' as const,
               id: 'focus-mode',

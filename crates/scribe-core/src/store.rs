@@ -97,6 +97,8 @@ pub struct DocumentRevisionSummary {
     pub document_id: String,
     pub title: String,
     pub created_at: i64,
+    pub label: Option<String>,
+    pub pinned: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -1357,10 +1359,10 @@ impl ScribeStore {
         let mut stmt = self
             .db
             .prepare(
-                "SELECT id, document_id, title, created_at
+                "SELECT id, document_id, title, created_at, label, pinned
                  FROM document_revisions
                  WHERE document_id = ?1
-                 ORDER BY created_at DESC
+                 ORDER BY pinned DESC, created_at DESC
                  LIMIT ?2",
             )
             .map_err(|e| e.to_string())?;
@@ -1372,6 +1374,8 @@ impl ScribeStore {
                     document_id: row.get(1)?,
                     title: row.get(2)?,
                     created_at: row.get(3)?,
+                    label: row.get(4)?,
+                    pinned: row.get::<_, i64>(5)? != 0,
                 })
             })
             .map_err(|e| e.to_string())?;
@@ -1812,7 +1816,7 @@ impl ScribeStore {
             }
 
             if existing_json != content_json {
-                save_revision(db, id, &title, &existing_json)?;
+                save_revision(db, id, &title, &existing_json, None, false)?;
             }
 
             let now = Self::now_ms();
@@ -2731,7 +2735,7 @@ impl ScribeStore {
             let (new_json, new_checked, matched_text) =
                 toggle_matching_task(&content_json, text, checked)?;
             if new_json != content_json {
-                save_revision(db, id, &title, &content_json)?;
+                save_revision(db, id, &title, &content_json, None, false)?;
             }
             let now = Self::now_ms();
             db.execute(

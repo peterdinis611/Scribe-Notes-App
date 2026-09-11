@@ -90,6 +90,7 @@ FEATURES = [
     "queryRewrite",
     "stemming",
     "keybert",
+    "spellcheck",
 ]
 
 
@@ -278,6 +279,14 @@ def _handle_request_inner(
             query = _validate_text(str(params.get("query") or params.get("text") or ""))
             max_expansions = max(0, min(int(params.get("maxExpansions") or 8), 16))
             result = rewrite_query(query, max_expansions=max_expansions)
+        elif method == "spellcheck":
+            from .spellcheck import spellcheck_text
+
+            text = _validate_text(str(params.get("text") or ""))
+            language = params.get("language")
+            language_value = str(language).lower() if language else None
+            max_issues = max(1, min(int(params.get("maxIssues") or 80), 200))
+            result = spellcheck_text(text, language=language_value, max_issues=max_issues)
         else:
             return {
                 "jsonrpc": "2.0",

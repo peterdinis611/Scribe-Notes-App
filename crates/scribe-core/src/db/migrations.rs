@@ -1,6 +1,6 @@
 use rusqlite::Connection;
 
-const SCHEMA_VERSION: i32 = 13;
+const SCHEMA_VERSION: i32 = 14;
 
 pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     conn.execute_batch(
@@ -341,6 +341,21 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
             )?;
         }
 
+        conn.execute(
+            "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
+            [SCHEMA_VERSION.to_string()],
+        )?;
+    }
+
+    if current < 14 {
+        let _ = conn.execute(
+            "ALTER TABLE document_revisions ADD COLUMN label TEXT",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE document_revisions ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0",
+            [],
+        );
         conn.execute(
             "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
             [SCHEMA_VERSION.to_string()],

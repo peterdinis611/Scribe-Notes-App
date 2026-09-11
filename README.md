@@ -30,7 +30,7 @@ Scribe runs locally on your Mac. No accounts, no cloud — documents, the databa
 - Command palette (`⌘K`) with fuzzy matching, recent docs, and wiki targets
 - **Pinned tabs** — keep documents open until you unpin them
 - Optional MCP bridge for AI tools (Cursor / Claude) — Settings → MCP; see [`crates/scribe-mcp/`](crates/scribe-mcp/)
-- Optional **Local AI** (Python sidecar **0.7**): semantic search, summary, keywords/outline/tone/dates, duplicates, journal digest, library report — see below and [`nlp/README.md`](nlp/README.md)
+- Optional **Local AI** (Python sidecar **0.8**): semantic search, summary, keywords/outline/tone/dates, duplicates, journal digest, library report, spell check — see below and [`nlp/README.md`](nlp/README.md)
 
 ### Documents
 - Custom **`.scribe`** format + disk sync
@@ -52,7 +52,7 @@ Scribe runs locally on your Mac. No accounts, no cloud — documents, the databa
 
 | Layer | Technology |
 |--------|-------------|
-| Desktop shell | [Tauri 2](https://v2.tauri.app/) (Rust) + plugins: dialog, fs, opener, [persisted-scope](https://v2.tauri.app/plugin/persisted-scope/), [positioner](https://v2.tauri.app/plugin/positioner/) |
+| Desktop shell | [Tauri 2](https://v2.tauri.app/) (Rust) + plugins: dialog, fs, opener, [persisted-scope](https://v2.tauri.app/plugin/persisted-scope/), [positioner](https://v2.tauri.app/plugin/positioner/), [global-shortcut](https://v2.tauri.app/plugin/global-shortcut/) |
 | Frontend | React 19, TypeScript, Vite 8 |
 | Editor | TipTap 3 (ProseMirror) |
 | UI | Tailwind CSS v4, Radix UI, shadcn-style components |
@@ -121,7 +121,7 @@ Optional offline intelligence. Enable in **Settings → Local AI**. Scribe start
 | | |
 |--|--|
 | **Runtime** | Python **3.10+**, standard library only by default |
-| **Sidecar version** | **0.7.0** |
+| **Sidecar version** | **0.8.0** |
 | **Default embed model** | `scribe-hash-v4` (stem/diacritic-aware; chunk mean-pool for long notes) |
 | **Optional quality** | `pip install sentence-transformers` → MiniLM (`scribe-minilm-v1`), cached under `~/.cache/scribe-nlp/models` |
 | **What you get** | Semantic ⌘K search, AI insights (summary, tone, dates, links, keywords), tag suggestions, journal week tone, library report, revision diff summary |
@@ -280,4 +280,8 @@ The SQLite schema is versioned in `src-tauri/src/db/migrations.rs`. Migrations r
 
 ## Version
 
-Current version: **1.3.0**
+Current version: **1.4.1**
+
+## License
+
+[MIT](LICENSE) © 2026 Peter Dinis

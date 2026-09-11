@@ -1,8 +1,10 @@
 [project]
 name = "scribe-nlp"
-version = "0.7.0"
+version = "0.8.0"
 description = "Optional local NLP sidecar for Scribe"
 requires-python = ">=3.10"
+license = "MIT"
+authors = [{ name = "Peter Dinis" }]
 dependencies = []
 
 [project.optional-dependencies]
@@ -18,3 +20,6 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["scribe_nlp*"]
+
+[tool.setuptools.package-data]
+scribe_nlp = ["data/*.txt"]

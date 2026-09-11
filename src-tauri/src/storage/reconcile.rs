@@ -1,7 +1,10 @@
 use rusqlite::{params, Connection, OptionalExtension};
 use tauri::AppHandle;
 
-use super::{collect_scribe_files, get_documents_dir, read_scribe_file, write_document_file_if_changed, DiskDocument};
+use super::{
+    collect_scribe_files, get_documents_dir, read_scribe_file, write_document_file_if_changed,
+    DiskDocument,
+};
 
 #[derive(Debug, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -10,6 +13,7 @@ pub struct ReconcileResult {
     pub imported_count: u32,
     pub updated_from_disk_count: u32,
     pub synced_to_disk_count: u32,
+    pub conflict_count: u32,
 }
 
 pub fn reconcile_storage(app: &AppHandle, conn: &Connection) -> Result<ReconcileResult, String> {
@@ -22,6 +26,7 @@ pub fn reconcile_storage(app: &AppHandle, conn: &Connection) -> Result<Reconcile
         imported_count: 0,
         updated_from_disk_count: 0,
         synced_to_disk_count: 0,
+        conflict_count: 0,
     };
 
     conn.execute("BEGIN IMMEDIATE", [])
@@ -36,11 +41,11 @@ pub fn reconcile_storage(app: &AppHandle, conn: &Connection) -> Result<Reconcile
             };
 
             let path_str = path.to_string_lossy().to_string();
-            let existing: Option<(String, i64)> = conn
+            let existing: Option<(String, String, String, i64)> = conn
                 .query_row(
-                    "SELECT id, updated_at FROM documents WHERE id = ?1",
+                    "SELECT id, title, content_json, updated_at FROM documents WHERE id = ?1",
                     params![disk.id],
-                    |row| Ok((row.get(0)?, row.get(1)?)),
+                    |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
                 )
                 .optional()
                 .map_err(|error| error.to_string())?;
@@ -62,7 +67,22 @@ pub fn reconcile_storage(app: &AppHandle, conn: &Connection) -> Result<Reconcile
                     crate::db::sync_document_fts(&conn, &disk.id, &disk.title, &disk.content_json)?;
                     result.imported_count += 1;
                 }
-                Some((_, db_updated_at)) if disk.updated_at > db_updated_at => {
+                Some((_, db_title, db_content, db_updated_at)) if disk.updated_at > db_updated_at => {
+                    let content_diverged =
+                        db_content != disk.content_json || db_title != disk.title;
+                    if content_diverged {
+                        // Keep local copy before cloud/folder overwrite (iCloud / Dropbox).
+                        let _ = crate::db::save_revision(
+                            conn,
+                            &disk.id,
+                            &db_title,
+                            &db_content,
+                            Some("Before sync conflict"),
+                            true,
+                        )?;
+                        result.conflict_count += 1;
+                    }
+
                     conn.execute(
                         "UPDATE documents SET title = ?1, content_json = ?2, updated_at = ?3, file_path = ?4 WHERE id = ?5",
                         params![
@@ -77,7 +97,7 @@ pub fn reconcile_storage(app: &AppHandle, conn: &Connection) -> Result<Reconcile
                     crate::db::sync_document_fts(&conn, &disk.id, &disk.title, &disk.content_json)?;
                     result.updated_from_disk_count += 1;
                 }
-                Some((_, _)) => {
+                Some((_, _, _, _)) => {
                     conn.execute(
                         "UPDATE documents SET file_path = ?1 WHERE id = ?2 AND (file_path IS NULL OR file_path = '')",
                         params![path_str, disk.id],

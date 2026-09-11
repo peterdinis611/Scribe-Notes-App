@@ -352,6 +352,90 @@ export async function createWeeklyDigestDocument(args: OpenJournalArgs) {
   return document
 }
 
+/** Create a daily briefing: due tasks + open journal tasks + focus note. */
+export async function createDailyBriefingDocument(args: OpenJournalArgs) {
+  const { documents, folders, dispatch, navigate, t } = args
+  const now = new Date()
+  const dateKey = formatDateKey(now)
+  const folderId = await ensureJournalFolder(folders, dispatch, t('journal.folderName'))
+  const journalIds = collectJournalDocumentIdsForRange(documents, folderId, dateKey, dateKey)
+
+  const recentIds = [...documents]
+    .filter((doc) => doc.deletedAt == null)
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .slice(0, 25)
+    .map((doc) => doc.id)
+
+  const taskSourceIds = [...new Set([...journalIds, ...recentIds])]
+
+  let tasks: DocumentTask[] = []
+  if (taskSourceIds.length > 0) {
+    try {
+      tasks = await nlpJournalTasks(taskSourceIds)
+    } catch {
+      tasks = []
+    }
+  }
+
+  const openTasks = tasks.filter((task) => !task.checked && task.text.trim())
+  const dueToday = openTasks.filter((task) => task.dueHint === dateKey)
+  const otherOpen = openTasks.filter((task) => task.dueHint !== dateKey).slice(0, 20)
+
+  const title = t('journal.dailyBriefingTitle', { date: dateKey })
+  const blocks: TipTapNode[] = [
+    headingNode(1, title),
+    headingNode(2, t('journal.dailyBriefingSummaryTitle')),
+    textParagraph(t('journal.dailyBriefingSummaryPlaceholder')),
+    headingNode(2, t('journal.dailyBriefingDueTitle')),
+  ]
+
+  if (dueToday.length > 0) {
+    blocks.push({
+      type: 'taskList',
+      content: dueToday.map((task) => taskItemNode(task.text.trim(), false)),
+    })
+  } else {
+    blocks.push(textParagraph(t('journal.openTasksEmpty')))
+  }
+
+  blocks.push(headingNode(2, t('journal.dailyBriefingTasksTitle')))
+  if (otherOpen.length > 0) {
+    blocks.push({
+      type: 'taskList',
+      content: otherOpen.map((task) => {
+        const label = task.documentTitle
+          ? `${task.text.trim()} (${task.documentTitle})`
+          : task.text.trim()
+        return taskItemNode(label, false)
+      }),
+    })
+  } else {
+    blocks.push(textParagraph(t('journal.openTasksEmpty')))
+  }
+
+  blocks.push(
+    headingNode(2, t('journal.dailyBriefingJournalTitle')),
+    textParagraph(t('journal.dailyBriefingJournalHint')),
+    emptyParagraph(),
+  )
+
+  const contentJson = JSON.stringify({ type: 'doc', content: blocks })
+  const document = cacheDocument(
+    await createDocument({
+      title,
+      folderId,
+      contentJson,
+    }),
+  )
+
+  dispatch(updateDocuments((prev) => prependDocumentSummary(prev, document)))
+  dispatch(setActiveDocumentId(document.id))
+  dispatch(setActiveDocument(document))
+  dispatch(setSaveStatus('saved'))
+  await navigate(ROUTES.document(document.id))
+  return document
+}
+
 /** Dates that already have a daily journal note (from local map + journal folder titles). */
 export function listJournalDailyDates(documents: DocumentSummary[], folderId: string | null): string[] {
   const map = readJournalMap()

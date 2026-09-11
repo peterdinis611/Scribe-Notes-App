@@ -7,7 +7,7 @@ import type { CustomDocumentTemplate } from '@/lib/templates/custom'
 import { parseStoredCustomTemplates } from '@/lib/templates/custom'
 import type { CustomTemplateCategory } from '@/lib/templates/categories'
 import { parseStoredCustomCategories } from '@/lib/templates/categories'
-import { LOCALE_KEY, UI_SKIN_KEY, ACTIVE_DOCUMENT_ID_KEY, ONBOARDING_DISMISSED_KEY, WHATS_NEW_VERSION_KEY, DOCUMENT_TOC_LEFT_KEY, SCRATCH_DOCUMENT_ID_KEY, SHORTCUT_OVERRIDES_KEY, STORAGE_ACCESS_EXPLAINER_KEY, STORAGE_FOLDER_ACCESS_GRANTED_KEY, FOLDER_AUTO_SYNC_KEY, THEME_KEY_V2, THEME_KEY_LEGACY, EDITOR_VIEW_MODE_KEY, PAGE_SETUP_KEY, SPELL_CHECK_KEY, PRINT_LAYOUT_KEY, PRINT_ZOOM_KEY, PRINT_COLUMNS_KEY, MANUAL_TITLES_KEY, COMMENT_AUTHOR_KEY, CUSTOM_TEMPLATES_KEY, CUSTOM_TEMPLATE_CATEGORIES_KEY } from './keys'
+import { LOCALE_KEY, UI_SKIN_KEY, ACTIVE_DOCUMENT_ID_KEY, ONBOARDING_DISMISSED_KEY, WHATS_NEW_VERSION_KEY, DOCUMENT_TOC_LEFT_KEY, SCRATCH_DOCUMENT_ID_KEY, SHORTCUT_OVERRIDES_KEY, STORAGE_ACCESS_EXPLAINER_KEY, STORAGE_FOLDER_ACCESS_GRANTED_KEY, FOLDER_AUTO_SYNC_KEY, AUTO_BACKUP_ENABLED_KEY, AUTO_BACKUP_INTERVAL_DAYS_KEY, AUTO_BACKUP_DIR_KEY, LAST_AUTO_BACKUP_AT_KEY, THEME_KEY_V2, THEME_KEY_LEGACY, EDITOR_VIEW_MODE_KEY, PAGE_SETUP_KEY, SPELL_CHECK_KEY, PRINT_LAYOUT_KEY, PRINT_ZOOM_KEY, PRINT_COLUMNS_KEY, MANUAL_TITLES_KEY, COMMENT_AUTHOR_KEY, CUSTOM_TEMPLATES_KEY, CUSTOM_TEMPLATE_CATEGORIES_KEY } from './keys'
 
 export function readLocale(): AppLocale {
   try {
@@ -164,6 +164,64 @@ export function readFolderAutoSyncEnabled(): boolean {
 
 export function persistFolderAutoSyncEnabled(enabled: boolean) {
   persistBoolStorage(FOLDER_AUTO_SYNC_KEY, enabled)
+}
+
+export type AutoBackupIntervalDays = 1 | 7 | 30
+
+export function readAutoBackupEnabled(): boolean {
+  return readBoolStorage(AUTO_BACKUP_ENABLED_KEY, false)
+}
+
+export function persistAutoBackupEnabled(enabled: boolean) {
+  persistBoolStorage(AUTO_BACKUP_ENABLED_KEY, enabled)
+}
+
+export function readAutoBackupIntervalDays(): AutoBackupIntervalDays {
+  try {
+    const raw = Number(kvGet(AUTO_BACKUP_INTERVAL_DAYS_KEY))
+    if (raw === 1 || raw === 7 || raw === 30) return raw
+  } catch {
+    /* ignore */
+  }
+  return 7
+}
+
+export function persistAutoBackupIntervalDays(days: AutoBackupIntervalDays) {
+  kvSet(AUTO_BACKUP_INTERVAL_DAYS_KEY, String(days))
+}
+
+export function readAutoBackupDirectory(): string | null {
+  try {
+    const raw = kvGet(AUTO_BACKUP_DIR_KEY)
+    return raw && raw.trim() ? raw : null
+  } catch {
+    return null
+  }
+}
+
+export function persistAutoBackupDirectory(path: string | null) {
+  if (path && path.trim()) {
+    kvSet(AUTO_BACKUP_DIR_KEY, path.trim())
+    return
+  }
+  kvRemove(AUTO_BACKUP_DIR_KEY)
+}
+
+export function readLastAutoBackupAt(): number | null {
+  try {
+    const raw = Number(kvGet(LAST_AUTO_BACKUP_AT_KEY))
+    return Number.isFinite(raw) && raw > 0 ? raw : null
+  } catch {
+    return null
+  }
+}
+
+export function persistLastAutoBackupAt(timestamp: number | null) {
+  if (timestamp && timestamp > 0) {
+    kvSet(LAST_AUTO_BACKUP_AT_KEY, String(timestamp))
+    return
+  }
+  kvRemove(LAST_AUTO_BACKUP_AT_KEY)
 }
 
 export function hasStorageFolderAccess(): boolean {

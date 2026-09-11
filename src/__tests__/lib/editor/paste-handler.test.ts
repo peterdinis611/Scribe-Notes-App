@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { getImageOnlyClipboardFiles } from '@/lib/editor/paste-handler'
+import {
+  getImageOnlyClipboardFiles,
+  parseTsvTable,
+  tsvGridToTableHtml,
+} from '@/lib/editor/paste-handler'
 
 function createDataTransfer(init: {
   html?: string
@@ -48,5 +52,38 @@ describe('getImageOnlyClipboardFiles', () => {
     })
 
     expect(getImageOnlyClipboardFiles(data)).toEqual([])
+  })
+})
+
+describe('parseTsvTable', () => {
+  it('parses Excel-style TSV into a grid', () => {
+    expect(parseTsvTable('Name\tQty\nApples\t3\nPears\t2')).toEqual([
+      ['Name', 'Qty'],
+      ['Apples', '3'],
+      ['Pears', '2'],
+    ])
+  })
+
+  it('pads short rows to the widest column count', () => {
+    expect(parseTsvTable('A\tB\tC\n1\t2')).toEqual([
+      ['A', 'B', 'C'],
+      ['1', '2', ''],
+    ])
+  })
+
+  it('rejects plain text without tabs', () => {
+    expect(parseTsvTable('just a sentence')).toBeNull()
+  })
+})
+
+describe('tsvGridToTableHtml', () => {
+  it('builds a header row for multi-row grids', () => {
+    const html = tsvGridToTableHtml([
+      ['A', 'B'],
+      ['1', '2'],
+    ])
+    expect(html).toContain('<thead>')
+    expect(html).toContain('<th><p>A</p></th>')
+    expect(html).toContain('<td><p>1</p></td>')
   })
 })

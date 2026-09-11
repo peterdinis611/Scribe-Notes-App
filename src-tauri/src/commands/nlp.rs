@@ -1342,3 +1342,95 @@ pub fn nlp_template_fill_hints(
         .unwrap_or(json!(null));
     sidecar.template_fill_hints(&text, sections)
 }
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SpellIssue {
+    pub word: String,
+    pub offset: i64,
+    pub length: i64,
+    pub suggestions: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SpellcheckResult {
+    pub language: String,
+    pub checked_language: String,
+    pub issue_count: i64,
+    pub issues: Vec<SpellIssue>,
+    pub dictionary_size: i64,
+}
+
+#[tauri::command]
+pub fn nlp_spellcheck(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    document_id: String,
+) -> Result<SpellcheckResult, String> {
+    let text = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        if !is_nlp_enabled(&conn)? {
+            return Err("NLP is disabled".to_string());
+        }
+        let (title, content_json): (String, String) = conn
+            .query_row(
+                "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL",
+                params![document_id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .map_err(|e| e.to_string())?;
+        format!("{title}\n{}", extract_search_text(&content_json))
+    };
+
+    let result = sidecar.spellcheck(&text, None, 80)?;
+
+    let issues = result
+        .get("issues")
+        .and_then(|value| value.as_array())
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| {
+                    Some(SpellIssue {
+                        word: item.get("word")?.as_str()?.to_string(),
+                        offset: item.get("offset")?.as_i64().unwrap_or(0),
+                        length: item.get("length")?.as_i64().unwrap_or(0),
+                        suggestions: item
+                            .get("suggestions")
+                            .and_then(|value| value.as_array())
+                            .map(|suggestions| {
+                                suggestions
+                                    .iter()
+                                    .filter_map(|suggestion| suggestion.as_str().map(str::to_string))
+                                    .collect::<Vec<_>>()
+                            })
+                            .unwrap_or_default(),
+                    })
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+
+    Ok(SpellcheckResult {
+        language: result
+            .get("language")
+            .and_then(|value| value.as_str())
+            .unwrap_or("unknown")
+            .to_string(),
+        checked_language: result
+            .get("checkedLanguage")
+            .and_then(|value| value.as_str())
+            .unwrap_or("both")
+            .to_string(),
+        issue_count: result
+            .get("issueCount")
+            .and_then(|value| value.as_i64())
+            .unwrap_or(issues.len() as i64),
+        issues,
+        dictionary_size: result
+            .get("dictionarySize")
+            .and_then(|value| value.as_i64())
+            .unwrap_or(0),
+    })
+}

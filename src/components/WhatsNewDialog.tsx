@@ -1,4 +1,4 @@
-import { Bug, CalendarDays, ScanLine } from 'lucide-react'
+import { Bookmark, CalendarDays, SpellCheck } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
@@ -13,12 +13,12 @@ import { APP_VERSION } from '@/lib/app-version'
 import { persistWhatsNewVersion } from '@/store/persistence'
 
 const HIGHLIGHTS = [
-  { id: 'smarterDates', icon: CalendarDays },
-  { id: 'debugModes', icon: Bug },
-  { id: 'tauriPlugins', icon: ScanLine },
+  { id: 'offlineSpellcheck', icon: SpellCheck },
+  { id: 'namedVersions', icon: Bookmark },
+  { id: 'dailyBriefing', icon: CalendarDays },
 ] as const
 
-/** Major.minor for “Scribe 1.3” style titles. */
+/** Major.minor for “Scribe 1.4” style titles. */
 const APP_SHORT_VERSION = APP_VERSION.split('.').slice(0, 2).join('.')
 
 type WhatsNewDialogProps = {

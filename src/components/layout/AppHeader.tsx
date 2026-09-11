@@ -57,7 +57,9 @@ const PdfPreviewDialog = lazy(() =>
 function SaveStatus() {
   const status = useAppSelector((state) => state.documents.saveStatus)
   const diskSyncWarning = useAppSelector((state) => state.documents.diskSyncWarning)
+  const folderSyncStatus = useAppSelector((state) => state.documents.folderSyncStatus)
   const { t } = useTranslation()
+  const navigate = useNavigate()
 
   if (status === 'saving') {
     return (
@@ -85,19 +87,32 @@ function SaveStatus() {
     )
   }
 
+  const conflicts = folderSyncStatus?.conflictCount ?? 0
+
   return (
-    <Badge
-      className={cn(
-        'status-pill h-6 gap-1 border-transparent px-2 text-[11px] font-medium',
-        diskSyncWarning
-          ? 'bg-[color-mix(in_srgb,#ff9500_14%,transparent)] text-[#c93400] dark:text-[#ff9f0a]'
-          : 'bg-[color-mix(in_srgb,#34c759_14%,transparent)] text-[#248a3d] dark:text-[#30d158]',
-      )}
-      title={diskSyncWarning ?? undefined}
-    >
-      <Check className="h-3 w-3" />
-      {diskSyncWarning ? t('common.savedNoDisk') : t('common.saved')}
-    </Badge>
+    <>
+      {conflicts > 0 ? (
+        <Badge
+          className="status-pill h-6 cursor-pointer gap-1 border-transparent bg-[color-mix(in_srgb,#ff9500_14%,transparent)] px-2 text-[11px] font-medium text-[#c93400] dark:text-[#ff9f0a]"
+          title={t('diskSync.conflictsDescription', { count: conflicts })}
+          onClick={() => void navigate(ROUTES.settingsSection('storage'))}
+        >
+          {t('settings.storage.syncConflictsBadge', { count: conflicts })}
+        </Badge>
+      ) : null}
+      <Badge
+        className={cn(
+          'status-pill h-6 gap-1 border-transparent px-2 text-[11px] font-medium',
+          diskSyncWarning
+            ? 'bg-[color-mix(in_srgb,#ff9500_14%,transparent)] text-[#c93400] dark:text-[#ff9f0a]'
+            : 'bg-[color-mix(in_srgb,#34c759_14%,transparent)] text-[#248a3d] dark:text-[#30d158]',
+        )}
+        title={diskSyncWarning ?? undefined}
+      >
+        <Check className="h-3 w-3" />
+        {diskSyncWarning ? t('common.savedNoDisk') : t('common.saved')}
+      </Badge>
+    </>
   )
 }
 

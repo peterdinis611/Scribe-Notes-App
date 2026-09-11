@@ -13,6 +13,7 @@ import {
   PanelRightClose,
   RotateCcw,
   Sparkles,
+  SpellCheck,
   Square,
 } from 'lucide-react'
 import type { SearchHit } from '@/lib/db/api'
@@ -20,15 +21,17 @@ import {
   nlpDocumentAnalysis,
   nlpDocumentTasks,
   nlpSimilarDocuments,
+  nlpSpellcheck,
   nlpStatus,
   type DocumentTask,
   type NlpDocumentAnalysis,
+  type SpellcheckResult,
 } from '@/lib/db/nlp-api'
 import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { setActiveDocumentId } from '@/store/documentsSlice'
+import { setActiveDocumentId, setFindReplaceOpen, setPendingEditorSearch } from '@/store/documentsSlice'
 import {
   EditorSidePanel,
   EditorSidePanelEmpty,
@@ -52,6 +55,8 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
   const [nlpEnabled, setNlpEnabled] = useState(false)
   const [loading, setLoading] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
+  const [spellResult, setSpellResult] = useState<SpellcheckResult | null>(null)
+  const [spellLoading, setSpellLoading] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -59,6 +64,7 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
       setSimilar([])
       setTasks([])
       setAnalysis(null)
+      setSpellResult(null)
       return
     }
     setLoading(true)
@@ -97,6 +103,28 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
       navigate(ROUTES.document(id))
     },
     [dispatch, navigate],
+  )
+
+  const handleSpellcheck = useCallback(async () => {
+    if (!activeId || !nlpEnabled) return
+    setSpellLoading(true)
+    try {
+      const result = await nlpSpellcheck(activeId)
+      setSpellResult(result)
+    } catch (error) {
+      setSpellResult(null)
+      toast.error(t('panels.insights.spellcheckError'), String(error))
+    } finally {
+      setSpellLoading(false)
+    }
+  }, [activeId, nlpEnabled, t])
+
+  const handleFindWord = useCallback(
+    (word: string) => {
+      dispatch(setFindReplaceOpen(true))
+      dispatch(setPendingEditorSearch(word))
+    },
+    [dispatch],
   )
 
   const keywordCount = analysis?.keywords.length ?? 0
@@ -205,6 +233,67 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
                   </span>
                 )}
               </div>
+            )}
+          </div>
+
+          <div className="mt-3.5 border-t border-[var(--color-border)] pt-3">
+            <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.03em] text-[var(--color-muted-foreground)]">
+              <SpellCheck className="h-3.5 w-3.5" />
+              {t('panels.insights.spellcheck')}
+              {spellResult ? (
+                <span className="ml-auto rounded-full bg-[var(--color-hover)] px-1.5 text-[10px] font-semibold">
+                  {spellResult.issueCount}
+                </span>
+              ) : null}
+            </h3>
+            <p className="m-0 mb-2 text-[10.5px] leading-snug text-[var(--color-muted-foreground)]">
+              {t('panels.insights.spellcheckHint')}
+            </p>
+            {!nlpEnabled ? (
+              <p className="m-0 text-[11.5px] text-[var(--color-muted-foreground)]">
+                {t('panels.insights.spellcheckDisabled')}
+              </p>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="mb-2 inline-flex h-7 items-center rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 text-[11px] font-medium text-[var(--color-foreground)] hover:bg-[var(--color-hover)]"
+                  disabled={spellLoading || !activeId}
+                  onClick={() => void handleSpellcheck()}
+                >
+                  {spellLoading
+                    ? t('panels.insights.spellcheckRunning')
+                    : t('panels.insights.spellcheckRun')}
+                </button>
+                {spellResult && spellResult.issueCount === 0 ? (
+                  <p className="m-0 text-[11.5px] text-[var(--color-muted-foreground)]">
+                    {t('panels.insights.spellcheckEmpty')}
+                  </p>
+                ) : null}
+                {spellResult && spellResult.issues.length > 0 ? (
+                  <ul className="m-0 list-none space-y-2 p-0">
+                    {spellResult.issues.slice(0, 24).map((issue) => (
+                      <li key={`${issue.word}-${issue.offset}`} className="text-[12px]">
+                        <button
+                          type="button"
+                          className="font-semibold text-[var(--color-accent)] hover:underline"
+                          title={t('panels.insights.spellcheckFind')}
+                          onClick={() => handleFindWord(issue.word)}
+                        >
+                          {issue.word}
+                        </button>
+                        {issue.suggestions.length > 0 ? (
+                          <span className="mt-0.5 block text-[10.5px] text-[var(--color-muted-foreground)]">
+                            {t('panels.insights.spellcheckSuggestions', {
+                              list: issue.suggestions.slice(0, 4).join(', '),
+                            })}
+                          </span>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </>
             )}
           </div>
 

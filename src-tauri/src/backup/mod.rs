@@ -98,33 +98,76 @@ fn walkdir_light(root: &Path) -> Result<Vec<PathBuf>, String> {
     Ok(files)
 }
 
+fn write_library_archive(
+    out_path: &Path,
+    db_path: &Path,
+    documents_dir: &Path,
+    schema_version: i32,
+) -> Result<BackupExportResult, String> {
+    if let Some(parent) = out_path.parent() {
+        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+
+    let file = File::create(out_path).map_err(|e| e.to_string())?;
+    let mut zip = ZipWriter::new(file);
+    let options = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+
+    let manifest = BackupManifest {
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        schema_version,
+        created_at: chrono::Utc::now().timestamp(),
+        documents_dir: documents_dir.to_string_lossy().to_string(),
+    };
+    let manifest_json = serde_json::to_string_pretty(&manifest).map_err(|e| e.to_string())?;
+    zip.start_file(MANIFEST_NAME, options)
+        .map_err(|e| e.to_string())?;
+    zip.write_all(manifest_json.as_bytes())
+        .map_err(|e| e.to_string())?;
+
+    zip.start_file(DB_NAME, options).map_err(|e| e.to_string())?;
+    let mut db_file = File::open(db_path).map_err(|e| e.to_string())?;
+    let mut db_bytes = Vec::new();
+    db_file.read_to_end(&mut db_bytes).map_err(|e| e.to_string())?;
+    zip.write_all(&db_bytes).map_err(|e| e.to_string())?;
+
+    let documents_included = add_dir_to_zip(&mut zip, documents_dir, DOCUMENTS_PREFIX, options)?;
+
+    zip.finish().map_err(|e| e.to_string())?;
+
+    Ok(BackupExportResult {
+        path: out_path.to_string_lossy().to_string(),
+        documents_included,
+    })
+}
+
+fn prepare_backup_paths(
+    app: &AppHandle,
+    state: &tauri::State<'_, DbState>,
+) -> Result<(PathBuf, PathBuf, i32), String> {
+    let _ = crate::commands::storage::flush_document_persist(&state.persist_queue, None);
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    checkpoint_wal(&conn)?;
+    let schema_version: i32 = conn
+        .query_row(
+            "SELECT value FROM meta WHERE key = 'schema_version'",
+            [],
+            |row| row.get::<_, String>(0),
+        )
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(0);
+    let app_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let db_path = app_dir.join(DB_NAME);
+    let documents_dir = storage::get_documents_dir(app, &conn)?;
+    Ok((db_path, documents_dir, schema_version))
+}
+
 #[tauri::command]
 pub async fn export_library_archive(
     app: AppHandle,
     state: tauri::State<'_, DbState>,
 ) -> Result<Option<BackupExportResult>, String> {
-    let _ = crate::commands::storage::flush_document_persist(&state.persist_queue, None);
-
-    let (db_path, documents_dir, schema_version) = {
-        let conn = state.conn.lock().map_err(|e| e.to_string())?;
-        checkpoint_wal(&conn)?;
-        let schema_version: i32 = conn
-            .query_row(
-                "SELECT value FROM meta WHERE key = 'schema_version'",
-                [],
-                |row| row.get::<_, String>(0),
-            )
-            .ok()
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(0);
-        let app_dir = app
-            .path()
-            .app_data_dir()
-            .map_err(|e| e.to_string())?;
-        let db_path = app_dir.join(DB_NAME);
-        let documents_dir = storage::get_documents_dir(&app, &conn)?;
-        (db_path, documents_dir, schema_version)
-    };
+    let (db_path, documents_dir, schema_version) = prepare_backup_paths(&app, &state)?;
 
     let save_path = app
         .dialog()
@@ -142,37 +185,32 @@ pub async fn export_library_archive(
     };
 
     let out_path = PathBuf::from(save_path.to_string());
-    let file = File::create(&out_path).map_err(|e| e.to_string())?;
-    let mut zip = ZipWriter::new(file);
-    let options = SimpleFileOptions::default()
-        .compression_method(zip::CompressionMethod::Deflated);
-
-    let manifest = BackupManifest {
-        version: env!("CARGO_PKG_VERSION").to_string(),
+    Ok(Some(write_library_archive(
+        &out_path,
+        &db_path,
+        &documents_dir,
         schema_version,
-        created_at: chrono::Utc::now().timestamp(),
-        documents_dir: documents_dir.to_string_lossy().to_string(),
-    };
-    let manifest_json = serde_json::to_string_pretty(&manifest).map_err(|e| e.to_string())?;
-    zip.start_file(MANIFEST_NAME, options)
-        .map_err(|e| e.to_string())?;
-    zip.write_all(manifest_json.as_bytes())
-        .map_err(|e| e.to_string())?;
+    )?))
+}
 
-    zip.start_file(DB_NAME, options).map_err(|e| e.to_string())?;
-    let mut db_file = File::open(&db_path).map_err(|e| e.to_string())?;
-    let mut db_bytes = Vec::new();
-    db_file.read_to_end(&mut db_bytes).map_err(|e| e.to_string())?;
-    zip.write_all(&db_bytes).map_err(|e| e.to_string())?;
+#[tauri::command]
+pub async fn export_library_archive_to_dir(
+    app: AppHandle,
+    state: tauri::State<'_, DbState>,
+    directory: String,
+) -> Result<BackupExportResult, String> {
+    let dir = PathBuf::from(directory.trim());
+    if dir.as_os_str().is_empty() {
+        return Err("Backup directory is empty".into());
+    }
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
 
-    let documents_included = add_dir_to_zip(&mut zip, &documents_dir, DOCUMENTS_PREFIX, options)?;
-
-    zip.finish().map_err(|e| e.to_string())?;
-
-    Ok(Some(BackupExportResult {
-        path: out_path.to_string_lossy().to_string(),
-        documents_included,
-    }))
+    let (db_path, documents_dir, schema_version) = prepare_backup_paths(&app, &state)?;
+    let out_path = dir.join(format!(
+        "scribe-backup-{}.zip",
+        chrono::Utc::now().format("%Y%m%d-%H%M%S")
+    ));
+    write_library_archive(&out_path, &db_path, &documents_dir, schema_version)
 }
 
 #[tauri::command]

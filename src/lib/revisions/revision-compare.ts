@@ -21,7 +21,7 @@ export function buildRevisionCompareOptions(
 
   const saved = revisions.map((revision) => ({
     id: revision.id,
-    label: revision.title,
+    label: revision.label?.trim() || revision.title,
     createdAt: revision.createdAt,
   }))
 

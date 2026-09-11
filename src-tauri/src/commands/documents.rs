@@ -292,6 +292,8 @@ pub fn update_document(
                 &existing.id,
                 &existing.title,
                 &existing.content_json,
+                None,
+                false,
             )?;
         }
 
@@ -992,7 +994,7 @@ pub fn library_find_replace(
             }
 
             let now = now_ts();
-            crate::db::save_revision(&conn, &doc.id, &doc.title, &doc.content_json)?;
+            crate::db::save_revision(&conn, &doc.id, &doc.title, &doc.content_json, None, false)?;
             conn.execute(
                 "UPDATE documents SET title = ?1, content_json = ?2, updated_at = ?3 WHERE id = ?4",
                 params![new_title, new_content, now, doc.id],

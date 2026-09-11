@@ -350,6 +350,22 @@ impl NlpSidecar {
         )
     }
 
+    pub fn spellcheck(
+        &self,
+        text: &str,
+        language: Option<&str>,
+        max_issues: i64,
+    ) -> Result<Value, String> {
+        let mut params = json!({
+            "text": text,
+            "maxIssues": max_issues,
+        });
+        if let Some(lang) = language {
+            params["language"] = json!(lang);
+        }
+        self.call_method("spellcheck", params)
+    }
+
     pub fn chunk_text(
         &self,
         text: &str,

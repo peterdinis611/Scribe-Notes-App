@@ -13,6 +13,10 @@ const CUSTOM_TEMPLATE_CATEGORIES_KEY = 'scribe-custom-template-categories'
 const STORAGE_ACCESS_EXPLAINER_KEY = 'scribe-storage-access-explainer-dismissed'
 const STORAGE_FOLDER_ACCESS_GRANTED_KEY = 'scribe-storage-folder-access-granted'
 const FOLDER_AUTO_SYNC_KEY = 'scribe-folder-auto-sync'
+const AUTO_BACKUP_ENABLED_KEY = 'scribe-auto-backup-enabled'
+const AUTO_BACKUP_INTERVAL_DAYS_KEY = 'scribe-auto-backup-interval-days'
+const AUTO_BACKUP_DIR_KEY = 'scribe-auto-backup-dir'
+const LAST_AUTO_BACKUP_AT_KEY = 'scribe-last-auto-backup-at'
 const LOCALE_KEY = 'scribe-locale'
 const ACTIVE_DOCUMENT_ID_KEY = 'scribe-active-document-id'
 const ONBOARDING_DISMISSED_KEY = 'scribe-onboarding-dismissed'
@@ -39,6 +43,10 @@ export {
     SCRATCH_DOCUMENT_ID_KEY,
     SHORTCUT_OVERRIDES_KEY,
     FOLDER_AUTO_SYNC_KEY,
+    AUTO_BACKUP_ENABLED_KEY,
+    AUTO_BACKUP_INTERVAL_DAYS_KEY,
+    AUTO_BACKUP_DIR_KEY,
+    LAST_AUTO_BACKUP_AT_KEY,
     STORAGE_ACCESS_EXPLAINER_KEY,
     STORAGE_FOLDER_ACCESS_GRANTED_KEY,
     THEME_KEY_LEGACY,

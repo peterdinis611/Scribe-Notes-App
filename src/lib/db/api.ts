@@ -35,6 +35,8 @@ export interface DocumentRevision {
   documentId: string
   title: string
   createdAt: number
+  label: string | null
+  pinned: boolean
 }
 
 export interface DocumentRevisionDetail extends DocumentRevision {
@@ -331,6 +333,20 @@ export const listDocumentRevisions = (documentId: string, limit = 20) =>
 export const getDocumentRevision = (revisionId: string) =>
   invoke<DocumentRevisionDetail>('get_document_revision', { revisionId })
 
+export const createNamedRevision = (documentId: string, label: string, pinned = true) =>
+  invoke<DocumentRevision>('create_named_revision', {
+    input: { documentId, label, pinned },
+  })
+
+export const renameDocumentRevision = (
+  revisionId: string,
+  label: string | null,
+  pinned?: boolean,
+) =>
+  invoke<DocumentRevision>('rename_document_revision', {
+    input: { revisionId, label, pinned },
+  })
+
 export const restoreDocumentRevision = (revisionId: string) =>
   invoke<Document>('restore_document_revision', { revisionId })
 
@@ -345,6 +361,7 @@ export interface ReconcileResult {
   importedCount: number
   updatedFromDiskCount: number
   syncedToDiskCount: number
+  conflictCount: number
 }
 
 export interface DiskPersistError {
@@ -402,6 +419,9 @@ export const listLinkGraph = () => invoke<LinkGraph>('list_link_graph')
 
 export const exportLibraryArchive = () =>
   invoke<BackupExportResult | null>('export_library_archive')
+
+export const exportLibraryArchiveToDir = (directory: string) =>
+  invoke<BackupExportResult>('export_library_archive_to_dir', { directory })
 
 export const importLibraryArchive = () =>
   invoke<BackupImportResult | null>('import_library_archive')

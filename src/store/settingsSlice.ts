@@ -16,6 +16,10 @@ import {
   persistThemeSettings,
   persistLocale,
   persistUiSkin,
+  persistAutoBackupEnabled,
+  persistAutoBackupIntervalDays,
+  persistAutoBackupDirectory,
+  persistLastAutoBackupAt,
   readEditorViewMode,
   readFolderAutoSyncEnabled,
   readLocale,
@@ -27,7 +31,12 @@ import {
   readShortcutOverrides,
   readThemeSettings,
   readUiSkin,
+  readAutoBackupEnabled,
+  readAutoBackupIntervalDays,
+  readAutoBackupDirectory,
+  readLastAutoBackupAt,
   persistShortcutOverrides,
+  type AutoBackupIntervalDays,
   type ShortcutOverrides,
 } from '@/store/persistence'
 
@@ -53,6 +62,10 @@ export interface SettingsState {
   printLayoutColumns: PrintLayoutColumns
   spellCheckEnabled: boolean
   folderAutoSyncEnabled: boolean
+  autoBackupEnabled: boolean
+  autoBackupIntervalDays: AutoBackupIntervalDays
+  autoBackupDirectory: string | null
+  lastAutoBackupAt: number | null
   shortcutOverrides: ShortcutOverrides
 }
 
@@ -69,6 +82,10 @@ const initialState: SettingsState = {
   printLayoutColumns: readPrintColumns(),
   spellCheckEnabled: readSpellCheckEnabled(),
   folderAutoSyncEnabled: readFolderAutoSyncEnabled(),
+  autoBackupEnabled: readAutoBackupEnabled(),
+  autoBackupIntervalDays: readAutoBackupIntervalDays(),
+  autoBackupDirectory: readAutoBackupDirectory(),
+  lastAutoBackupAt: readLastAutoBackupAt(),
   shortcutOverrides: readShortcutOverrides(),
 }
 
@@ -125,6 +142,22 @@ const settingsSlice = createSlice({
       state.folderAutoSyncEnabled = action.payload
       persistFolderAutoSyncEnabled(action.payload)
     },
+    setAutoBackupEnabled(state, action: PayloadAction<boolean>) {
+      state.autoBackupEnabled = action.payload
+      persistAutoBackupEnabled(action.payload)
+    },
+    setAutoBackupIntervalDays(state, action: PayloadAction<AutoBackupIntervalDays>) {
+      state.autoBackupIntervalDays = action.payload
+      persistAutoBackupIntervalDays(action.payload)
+    },
+    setAutoBackupDirectory(state, action: PayloadAction<string | null>) {
+      state.autoBackupDirectory = action.payload
+      persistAutoBackupDirectory(action.payload)
+    },
+    setLastAutoBackupAt(state, action: PayloadAction<number | null>) {
+      state.lastAutoBackupAt = action.payload
+      persistLastAutoBackupAt(action.payload)
+    },
     setShortcutOverride(state, action: PayloadAction<{ id: string; hotkey: string | null }>) {
       const next = { ...state.shortcutOverrides }
       if (action.payload.hotkey) {
@@ -155,6 +188,10 @@ export const {
   setPrintLayoutColumns,
   setSpellCheckEnabled,
   setFolderAutoSyncEnabled,
+  setAutoBackupEnabled,
+  setAutoBackupIntervalDays,
+  setAutoBackupDirectory,
+  setLastAutoBackupAt,
   setShortcutOverride,
   resetShortcutOverrides,
 } = settingsSlice.actions

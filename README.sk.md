@@ -30,7 +30,7 @@ Scribe beží lokálne na vašom Macu. Žiadne účty, žiadny cloud — dokumen
 - Príkazová paleta (`⌘K`) s fuzzy matchingom, nedávnymi dokumentmi a wiki cieľmi
 - **Pripnuté taby** — dokumenty ostanú otvorené, kým ich neodopneš
 - Voliteľný MCP most pre AI nástroje (Cursor / Claude) — Nastavenia → MCP; pozri [`crates/scribe-mcp/`](crates/scribe-mcp/)
-- Voliteľná **Lokálna AI** (Python sidecar **0.7**): sémantické hľadanie, zhrnutie, kľúčové slová/osnova/tón/dátumy, duplikáty, denníkový digest, analýza knižnice — pozri nižšie a [`nlp/README.md`](nlp/README.md)
+- Voliteľná **Lokálna AI** (Python sidecar **0.8**): sémantické hľadanie, zhrnutie, kľúčové slová/osnova/tón/dátumy, duplikáty, denníkový digest, analýza knižnice, kontrola pravopisu — pozri nižšie a [`nlp/README.md`](nlp/README.md)
 
 ### Dokumenty
 - Vlastný formát **`.scribe`** + synchronizácia na disk
@@ -52,7 +52,7 @@ Scribe beží lokálne na vašom Macu. Žiadne účty, žiadny cloud — dokumen
 
 | Vrstva | Technológia |
 |--------|-------------|
-| Desktop shell | [Tauri 2](https://v2.tauri.app/) (Rust) + pluginy: dialog, fs, opener, [persisted-scope](https://v2.tauri.app/plugin/persisted-scope/), [positioner](https://v2.tauri.app/plugin/positioner/) |
+| Desktop shell | [Tauri 2](https://v2.tauri.app/) (Rust) + pluginy: dialog, fs, opener, [persisted-scope](https://v2.tauri.app/plugin/persisted-scope/), [positioner](https://v2.tauri.app/plugin/positioner/), [global-shortcut](https://v2.tauri.app/plugin/global-shortcut/) |
 | Frontend | React 19, TypeScript, Vite 8 |
 | Editor | TipTap 3 (ProseMirror) |
 | UI | Tailwind CSS v4, Radix UI, shadcn-style komponenty |
@@ -121,7 +121,7 @@ Voliteľná offline inteligencia. Zapnite v **Nastavenia → Lokálna AI**. Scri
 | | |
 |--|--|
 | **Runtime** | Python **3.10+**, predvolene len štandardná knižnica |
-| **Verzia sidecaru** | **0.7.0** |
+| **Verzia sidecaru** | **0.8.0** |
 | **Predvolený embed model** | `scribe-hash-v4` (stem/diakritika; chunk mean-pool pre dlhé poznámky) |
 | **Voliteľná kvalita** | `pip install sentence-transformers` → MiniLM (`scribe-minilm-v1`), cache v `~/.cache/scribe-nlp/models` |
 | **Čo získate** | Sémantické ⌘K, AI prehľad (zhrnutie, tón, dátumy, odkazy, keywords), návrhy tagov, tón týždňa v denníku, analýza knižnice, AI zhrnutie diffu revízií |
@@ -280,4 +280,8 @@ Schéma SQLite je verzovaná v `src-tauri/src/db/migrations.rs`. Pri štarte apl
 
 ## Verzia
 
-Aktuálna verzia: **1.3.0**
+Aktuálna verzia: **1.4.1**
+
+## Licencia
+
+[MIT](LICENSE) © 2026 Peter Dinis

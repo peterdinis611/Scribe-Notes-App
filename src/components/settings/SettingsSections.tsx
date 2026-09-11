@@ -1,5 +1,5 @@
 import { getVersion } from '@tauri-apps/api/app'
-import { confirm } from '@tauri-apps/plugin-dialog'
+import { confirm, open } from '@tauri-apps/plugin-dialog'
 import { Archive, ArchiveRestore, FolderOpen, FolderSearch, Shuffle, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -23,6 +23,7 @@ import {
   eventToHotkey,
   getDisplayKeysForShortcut,
 } from '@/lib/shortcuts'
+import { GLOBAL_SHORTCUT_IDS } from '@/lib/global-shortcuts'
 import { reloadLibraryFromBackend } from '@/lib/library-reload'
 import { runFolderReconcile } from '@/lib/disk-sync'
 import { ROUTES } from '@/lib/routes'
@@ -34,13 +35,14 @@ import { THEME_COLOR_FIELDS } from '@/lib/themes/types'
 import {
   clearAllDocuments,
   exportLibraryArchive,
+  exportLibraryArchiveToDir,
   getStorageSettings,
   importLibraryArchive,
   revealInFinder,
 } from '@/lib/db/api'
 import { toast } from '@/lib/toast'
 import type { SettingsSection as SettingsSectionId } from '@/lib/routes'
-import { cn } from '@/lib/utils'
+import { cn, formatRelativeTime } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
   setActiveDocument,
@@ -48,7 +50,19 @@ import {
   setDocuments,
   setSaveStatus,
 } from '@/store/documentsSlice'
-import { setStorageSettings, setThemeSettings, setUiSkin, setShortcutOverride, resetShortcutOverrides, setFolderAutoSyncEnabled } from '@/store/settingsSlice'
+import {
+  setStorageSettings,
+  setThemeSettings,
+  setUiSkin,
+  setShortcutOverride,
+  resetShortcutOverrides,
+  setFolderAutoSyncEnabled,
+  setAutoBackupEnabled,
+  setAutoBackupIntervalDays,
+  setAutoBackupDirectory,
+  setLastAutoBackupAt,
+} from '@/store/settingsSlice'
+import type { AutoBackupIntervalDays } from '@/store/persistence'
 import { persistStorageFolderAccessGranted } from '@/store/persistence'
 import {
   createCustomThemeSelection,
@@ -225,6 +239,11 @@ export function AppearanceSection() {
 export function StorageSection() {
   const settings = useAppSelector((state) => state.settings.storageSettings)
   const folderAutoSyncEnabled = useAppSelector((state) => state.settings.folderAutoSyncEnabled)
+  const folderSyncStatus = useAppSelector((state) => state.documents.folderSyncStatus)
+  const autoBackupEnabled = useAppSelector((state) => state.settings.autoBackupEnabled)
+  const autoBackupIntervalDays = useAppSelector((state) => state.settings.autoBackupIntervalDays)
+  const autoBackupDirectory = useAppSelector((state) => state.settings.autoBackupDirectory)
+  const lastAutoBackupAt = useAppSelector((state) => state.settings.lastAutoBackupAt)
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const { t } = useTranslation()
@@ -232,6 +251,7 @@ export function StorageSection() {
   const [reconciling, setReconciling] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [importing, setImporting] = useState(false)
+  const [autoBackingUp, setAutoBackingUp] = useState(false)
   const [reconcileMessage, setReconcileMessage] = useState<string | null>(null)
 
   useEffect(() => {
@@ -273,6 +293,7 @@ export function StorageSection() {
           toDisk: result.syncedToDiskCount,
           fromDisk: result.updatedFromDiskCount,
           imported: result.importedCount,
+          conflicts: result.conflictCount,
         }),
       )
     } catch {
@@ -386,6 +407,30 @@ export function StorageSection() {
         </SettingsRow>
 
         <SettingsRow
+          title={t('settings.storage.syncStatusTitle')}
+          description={
+            folderSyncStatus
+              ? t('settings.storage.syncStatusDescription', {
+                  time: formatRelativeTime(Math.floor(folderSyncStatus.at / 1000)),
+                  scanned: folderSyncStatus.scannedCount,
+                  toDisk: folderSyncStatus.syncedToDiskCount,
+                  fromDisk: folderSyncStatus.updatedFromDiskCount,
+                  imported: folderSyncStatus.importedCount,
+                  conflicts: folderSyncStatus.conflictCount,
+                })
+              : t('settings.storage.syncStatusEmpty')
+          }
+        >
+          {folderSyncStatus && folderSyncStatus.conflictCount > 0 ? (
+            <span className="text-[12px] font-medium text-[#c93400] dark:text-[#ff9f0a]">
+              {t('settings.storage.syncConflictsBadge', {
+                count: folderSyncStatus.conflictCount,
+              })}
+            </span>
+          ) : null}
+        </SettingsRow>
+
+        <SettingsRow
           title={t('settings.storage.syncTipTitle')}
           description={t('settings.storage.syncTipDescription')}
         />
@@ -417,6 +462,104 @@ export function StorageSection() {
             {importing ? t('settings.storage.backupImporting') : t('settings.storage.backupImport')}
           </Button>
         </SettingsRow>
+
+        <SettingsRow
+          title={t('settings.storage.autoBackupTitle')}
+          description={t('settings.storage.autoBackupDescription')}
+        >
+          <Button
+            type="button"
+            variant={autoBackupEnabled ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => dispatch(setAutoBackupEnabled(!autoBackupEnabled))}
+          >
+            {autoBackupEnabled ? t('settings.storage.autoBackupOn') : t('settings.storage.autoBackupOff')}
+          </Button>
+        </SettingsRow>
+
+        {autoBackupEnabled && (
+          <>
+            <SettingsRow
+              title={t('settings.storage.autoBackupInterval')}
+              description={t('settings.storage.autoBackupIntervalHint')}
+            >
+              {([1, 7, 30] as AutoBackupIntervalDays[]).map((days) => (
+                <Button
+                  key={days}
+                  type="button"
+                  size="sm"
+                  variant={autoBackupIntervalDays === days ? 'default' : 'outline'}
+                  onClick={() => dispatch(setAutoBackupIntervalDays(days))}
+                >
+                  {t(`settings.storage.autoBackupEvery${days}`)}
+                </Button>
+              ))}
+            </SettingsRow>
+
+            <SettingsRow
+              title={t('settings.storage.autoBackupFolder')}
+              description={
+                autoBackupDirectory
+                  ? autoBackupDirectory
+                  : t('settings.storage.autoBackupFolderHint')
+              }
+            >
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  void (async () => {
+                    const picked = await open({
+                      directory: true,
+                      multiple: false,
+                      title: t('settings.storage.autoBackupFolderPick'),
+                    })
+                    if (typeof picked === 'string' && picked) {
+                      dispatch(setAutoBackupDirectory(picked))
+                    }
+                  })()
+                }}
+              >
+                <FolderOpen className="h-3.5 w-3.5" />
+                {t('settings.storage.autoBackupChooseFolder')}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={!autoBackupDirectory || autoBackingUp}
+                onClick={() => {
+                  if (!autoBackupDirectory) return
+                  void (async () => {
+                    setAutoBackingUp(true)
+                    try {
+                      const result = await exportLibraryArchiveToDir(autoBackupDirectory)
+                      dispatch(setLastAutoBackupAt(Date.now()))
+                      toast.success(t('settings.storage.backupExportDone'), result.path)
+                    } catch (error) {
+                      toast.error(t('settings.storage.backupExportError'), String(error))
+                    } finally {
+                      setAutoBackingUp(false)
+                    }
+                  })()
+                }}
+              >
+                <Archive className="h-3.5 w-3.5" />
+                {autoBackingUp
+                  ? t('settings.storage.backupExporting')
+                  : t('settings.storage.autoBackupNow')}
+              </Button>
+            </SettingsRow>
+
+            {lastAutoBackupAt ? (
+              <SettingsRow
+                title={t('settings.storage.autoBackupLast')}
+                description={formatRelativeTime(Math.floor(lastAutoBackupAt / 1000))}
+              />
+            ) : null}
+          </>
+        )}
 
         <SettingsRow
           title={t('settings.storage.clearTitle')}
@@ -493,6 +636,11 @@ export function ShortcutsSection() {
               <div>
                 <p className="m-0 text-[13px] font-medium text-[var(--color-foreground)]">
                   {t(shortcut.labelKey)}
+                  {(GLOBAL_SHORTCUT_IDS as readonly string[]).includes(shortcut.id) ? (
+                    <span className="ml-2 rounded-[var(--radius-sm)] bg-[color-mix(in_srgb,var(--color-accent)_14%,transparent)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-accent)]">
+                      {t('settings.shortcuts.globalBadge')}
+                    </span>
+                  ) : null}
                 </p>
                 <p className="mt-0.5 text-[11px] text-[var(--color-muted-foreground)]">
                   {t(shortcut.descriptionKey)}
