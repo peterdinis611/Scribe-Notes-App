@@ -250,6 +250,32 @@ function EditorChrome() {
     }
   }
 
+  async function handleExportStructuredPdf(kind: 'invoice' | 'library-report') {
+    try {
+      const {
+        exportInvoicePdf,
+        exportLibraryReportPdf,
+        exportStructuredPdfAndReveal,
+      } = await import('@/lib/export/structured-pdf')
+      const result =
+        kind === 'invoice'
+          ? await exportInvoicePdf({
+              description:
+                document?.title?.trim() || t('structuredPdf.invoiceDefaultDescription'),
+              notes: t('structuredPdf.invoiceNotes'),
+            })
+          : await exportLibraryReportPdf({
+              title: t('structuredPdf.libraryReportTitle'),
+              footerNote: t('structuredPdf.libraryReportFooter'),
+            })
+      const path = await exportStructuredPdfAndReveal(result)
+      if (path) toast.success(t('toasts.exportDone'), fileBasename(path))
+      else toast.info(t('structuredPdf.exportCancelled'))
+    } catch {
+      toast.error(t('structuredPdf.exportError'))
+    }
+  }
+
   async function handleSharePackage(format: SharePackageFormat) {
     if (!document) return
     try {
@@ -336,6 +362,7 @@ function EditorChrome() {
             onCloseDocument={document ? handleCloseDocument : undefined}
             onExport={document ? (format) => void handleExport(format) : undefined}
             onExportSelection={document ? (format) => void handleExportSelection(format) : undefined}
+            onExportStructuredPdf={(kind) => void handleExportStructuredPdf(kind)}
             onSharePackage={document ? (format) => void handleSharePackage(format) : undefined}
             hasSelection
           />

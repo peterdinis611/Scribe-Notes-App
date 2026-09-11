@@ -264,6 +264,11 @@ npm run nlp:test      # Python testy Lokálnej AI
 bun run test:all      # frontend + Rust + NLP
 ```
 
+GitHub Actions (`.github/workflows/`):
+
+- **CI** — push/PR na `main`: frontend lint (advisory) + Vitest + Vite build; NLP testy; Rust testy na **macOS**, **Ubuntu** a **Windows**
+- **Build** — manuálne alebo tag `v*`: Tauri build (macOS `.app`/`.dmg` artefakty; Linux/Windows zatiaľ `--no-bundle`, kým nie sú produktové inštalátory)
+
 ### Architektúra UI
 
 Aplikácia používa trojstĺpcový shell:

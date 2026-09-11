@@ -9,6 +9,7 @@ import {
   createWeeklyDigestDocument,
   currentWeekRange,
   formatDateKey,
+  formatWeekKey,
   getJournalFolderId,
   listJournalDailyDates,
   openEveningNote,
@@ -50,6 +51,7 @@ export function LibraryJournalView({ onNavigate }: LibraryJournalViewProps) {
   const [summaryLoading, setSummaryLoading] = useState(false)
   const [tasksLoading, setTasksLoading] = useState(false)
   const [digestLoading, setDigestLoading] = useState(false)
+  const [digestPdfLoading, setDigestPdfLoading] = useState(false)
 
   async function loadWeeklySummary() {
     const { from, to } = currentWeekRange()
@@ -238,6 +240,34 @@ export function LibraryJournalView({ onNavigate }: LibraryJournalViewProps) {
           }}
         >
           {digestLoading ? t('journal.digestCreating') : t('journal.createDigest')}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7"
+          disabled={digestPdfLoading}
+          onClick={() => {
+            setDigestPdfLoading(true)
+            void import('@/lib/export/structured-pdf')
+              .then(async ({ exportJournalDigestPdf, exportStructuredPdfAndReveal }) => {
+                const result = await exportJournalDigestPdf({
+                  documents,
+                  folders,
+                  journalFolderName: t('journal.folderName'),
+                  title: t('journal.digestTitle', { week: formatWeekKey(new Date()) }),
+                  weekLabel: t('journal.weeklySummaryTitle'),
+                  summaryPlaceholder: t('journal.digestSummaryPlaceholder'),
+                  footerNote: t('structuredPdf.digestFooter'),
+                })
+                const path = await exportStructuredPdfAndReveal(result)
+                if (path) toast.success(t('toasts.exportDone'), path.split('/').pop() ?? path)
+                else toast.info(t('structuredPdf.exportCancelled'))
+              })
+              .catch((error) => toast.error(t('structuredPdf.exportError'), String(error)))
+              .finally(() => setDigestPdfLoading(false))
+          }}
+        >
+          {digestPdfLoading ? t('journal.digestPdfExporting') : t('journal.exportDigestPdf')}
         </Button>
       </div>
 

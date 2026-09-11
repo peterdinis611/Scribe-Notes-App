@@ -257,6 +257,19 @@ scribe/
 
 ### Tests
 
+| Command | Description |
+|--------|-------------|
+| `bun run test` | Frontend (Vitest) |
+| `bun run test:backend` | Rust workspace |
+| `bun run nlp:test` | Python NLP |
+| `bun run test:all` | All of the above |
+
+GitHub Actions (`.github/workflows/`):
+
+- **CI** — on push/PR to `main`: frontend lint (advisory) + Vitest + Vite build; NLP tests; Rust tests on **macOS**, **Ubuntu**, and **Windows**
+- **Build** — manual or on `v*` tags: Tauri build (macOS ships `.app`/`.dmg` artifacts; Linux/Windows compile with `--no-bundle` until those platforms are productized)
+
+
 ```bash
 bun run test          # 200+ frontend tests
 bun run test:backend  # Rust unit tests (migrations, export, storage)

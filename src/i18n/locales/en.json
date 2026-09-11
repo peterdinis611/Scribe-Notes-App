@@ -103,6 +103,8 @@
     "exportEpub": "EPUB",
     "exportTxt": "Text (TXT)",
     "exportPages": "Apple Pages",
+    "exportInvoicePdf": "Export invoice PDF (template)",
+    "exportLibraryReportPdf": "Export library report PDF",
     "sharePackage": "Share package…",
     "sharePackagePdf": "Share as PDF",
     "sharePackageHtmlZip": "Share as HTML ZIP",
@@ -155,6 +157,9 @@
     "eveningNote": "Evening journal",
     "weekNote": "Weekly note",
     "weeklyDigest": "Create weekly digest",
+    "exportDigestPdf": "Export weekly digest PDF",
+    "exportLibraryReportPdf": "Export library report PDF",
+    "exportInvoicePdf": "Export invoice PDF",
     "dailyBriefing": "Daily briefing",
     "applySuggestedTags": "Apply AI tag suggestions",
     "sectionSearch": "Matches",
@@ -531,6 +536,8 @@
       "reportDone": "Analysis complete",
       "reportError": "Analysis failed",
       "reportHeading": "Analysis result",
+      "exportReportPdf": "Export report PDF",
+      "exportingReportPdf": "Exporting PDF…",
       "refreshTitle": "Sidecar status",
       "refreshDescription": "Check the Python process and indexed document count.",
       "loadError": "Failed to load AI status",
@@ -1946,6 +1953,8 @@
     "summaryError": "Failed to generate overview",
     "createDigest": "Create digest",
     "digestCreating": "Creating digest…",
+    "exportDigestPdf": "Export digest PDF",
+    "digestPdfExporting": "Exporting digest PDF…",
     "digestTitle": "Weekly digest {{week}}",
     "digestSummaryPlaceholder": "Summary unavailable — Local AI is off or no journal entries were found for this week.",
     "digestError": "Failed to create weekly digest",
@@ -2008,5 +2017,14 @@
     "captionPlaceholder": "Optional caption",
     "captionEmpty": "Add a caption…",
     "resize": "Resize"
+  },
+  "structuredPdf": {
+    "digestFooter": "Scribe · Journal digest",
+    "libraryReportTitle": "Library report",
+    "libraryReportFooter": "Scribe · Library report",
+    "invoiceDefaultDescription": "Professional services",
+    "invoiceNotes": "Generated from Scribe. Edit amounts and parties before sending.",
+    "exportError": "Structured PDF export failed",
+    "exportCancelled": "Export cancelled"
   }
 }

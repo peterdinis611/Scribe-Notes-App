@@ -22,6 +22,7 @@ type EditorFileMenuProps = {
   onGoHome?: () => void
   onExport?: (format: 'pdf' | 'docx' | 'txt' | 'pages' | 'md' | 'html' | 'html-zip' | 'epub') => void
   onExportSelection?: (format: 'md' | 'pdf') => void
+  onExportStructuredPdf?: (kind: 'invoice' | 'library-report') => void
   onSharePackage?: (format: SharePackageFormat) => void
   hasSelection?: boolean
 }
@@ -38,6 +39,7 @@ export function EditorFileMenu({
   onGoHome,
   onExport,
   onExportSelection,
+  onExportStructuredPdf,
   onSharePackage,
   hasSelection = false,
 }: EditorFileMenuProps) {
@@ -122,6 +124,17 @@ export function EditorFileMenu({
             <DropdownMenuItem onClick={() => onExport('epub')}>{t('fileMenu.exportEpub')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => onExport('txt')}>{t('fileMenu.exportTxt')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => onExport('pages')}>{t('fileMenu.exportPages')}</DropdownMenuItem>
+          </>
+        )}
+        {onExportStructuredPdf && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => onExportStructuredPdf('invoice')}>
+              {t('fileMenu.exportInvoicePdf')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onExportStructuredPdf('library-report')}>
+              {t('fileMenu.exportLibraryReportPdf')}
+            </DropdownMenuItem>
           </>
         )}
         {hasDocument && onExportSelection && (

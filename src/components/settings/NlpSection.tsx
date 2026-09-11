@@ -38,6 +38,7 @@ export function NlpSection() {
   const [indexing, setIndexing] = useState(false)
   const [indexProgress, setIndexProgress] = useState<NlpIndexProgress | null>(null)
   const [reporting, setReporting] = useState(false)
+  const [exportingPdf, setExportingPdf] = useState(false)
   const [report, setReport] = useState<NlpLibraryReport | null>(null)
   const reportRef = useRef<HTMLDivElement>(null)
 
@@ -106,6 +107,26 @@ export function NlpSection() {
       toast.error(t('settings.nlp.reportError'), String(error))
     } finally {
       setReporting(false)
+    }
+  }
+
+  async function handleExportReportPdf() {
+    setExportingPdf(true)
+    try {
+      const { exportLibraryReportPdf, exportStructuredPdfAndReveal } = await import(
+        '@/lib/export/structured-pdf'
+      )
+      const result = await exportLibraryReportPdf({
+        title: t('structuredPdf.libraryReportTitle'),
+        footerNote: t('structuredPdf.libraryReportFooter'),
+      })
+      const path = await exportStructuredPdfAndReveal(result)
+      if (path) toast.success(t('toasts.exportDone'), path.split('/').pop() ?? path)
+      else toast.info(t('structuredPdf.exportCancelled'))
+    } catch (error) {
+      toast.error(t('structuredPdf.exportError'), String(error))
+    } finally {
+      setExportingPdf(false)
     }
   }
 
@@ -267,16 +288,28 @@ export function NlpSection() {
           title={t('settings.nlp.reportTitle')}
           description={t('settings.nlp.reportDescription')}
         >
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={!status?.enabled || reporting || loading}
-            onClick={() => void handleReport()}
-          >
-            <FileBarChart className="mr-1.5 h-3.5 w-3.5" />
-            {reporting ? t('settings.nlp.reporting') : t('settings.nlp.runReport')}
-          </Button>
+          <div className="flex flex-wrap justify-end gap-1.5">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!status?.enabled || reporting || loading}
+              onClick={() => void handleReport()}
+            >
+              <FileBarChart className="mr-1.5 h-3.5 w-3.5" />
+              {reporting ? t('settings.nlp.reporting') : t('settings.nlp.runReport')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!status?.enabled || exportingPdf || loading}
+              onClick={() => void handleExportReportPdf()}
+            >
+              <FileBarChart className="mr-1.5 h-3.5 w-3.5" />
+              {exportingPdf ? t('settings.nlp.exportingReportPdf') : t('settings.nlp.exportReportPdf')}
+            </Button>
+          </div>
         </SettingsRow>
 
         <SettingsRow title={t('settings.nlp.refreshTitle')} description={t('settings.nlp.refreshDescription')}>

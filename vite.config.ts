@@ -27,7 +27,9 @@ export default defineConfig({
       'effect/Data',
       'effect/Function',
     ],
+    exclude: ['takumi-pdf'],
   },
+  assetsInclude: ['**/*.wasm'],
   build: {
     target: 'es2021',
     minify: !process.env.TAURI_DEBUG ? 'esbuild' : false,

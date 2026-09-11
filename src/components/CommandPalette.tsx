@@ -5,6 +5,7 @@ import {
   Columns2,
   CalendarDays,
   Copy,
+  FileDown,
   FileText,
   Focus,
   BookOpen,
@@ -39,6 +40,7 @@ import { isTauriRuntime } from '@/lib/tauri'
 import {
   createDailyBriefingDocument,
   createWeeklyDigestDocument,
+  formatWeekKey,
   openEveningNote,
   openMorningNote,
   openThisWeekNote,
@@ -338,6 +340,70 @@ export function CommandPalette() {
           void createWeeklyDigestDocument(journalArgs).catch((error) =>
             toast.error(t('journal.digestError'), String(error)),
           )
+        },
+      },
+      {
+        type: 'action',
+        id: 'export-digest-pdf',
+        label: t('commandPalette.exportDigestPdf'),
+        icon: <FileDown className="h-4 w-4" />,
+        run: () => {
+          void import('@/lib/export/structured-pdf')
+            .then(async ({ exportJournalDigestPdf, exportStructuredPdfAndReveal }) => {
+              const result = await exportJournalDigestPdf({
+                documents,
+                folders,
+                journalFolderName: t('journal.folderName'),
+                title: t('journal.digestTitle', { week: formatWeekKey(new Date()) }),
+                weekLabel: t('journal.weeklySummaryTitle'),
+                summaryPlaceholder: t('journal.digestSummaryPlaceholder'),
+                footerNote: t('structuredPdf.digestFooter'),
+              })
+              const path = await exportStructuredPdfAndReveal(result)
+              if (path) toast.success(t('toasts.exportDone'), path.split('/').pop() ?? path)
+              else toast.info(t('structuredPdf.exportCancelled'))
+            })
+            .catch((error) => toast.error(t('structuredPdf.exportError'), String(error)))
+        },
+      },
+      {
+        type: 'action',
+        id: 'export-library-report-pdf',
+        label: t('commandPalette.exportLibraryReportPdf'),
+        icon: <FileDown className="h-4 w-4" />,
+        run: () => {
+          void import('@/lib/export/structured-pdf')
+            .then(async ({ exportLibraryReportPdf, exportStructuredPdfAndReveal }) => {
+              const result = await exportLibraryReportPdf({
+                title: t('structuredPdf.libraryReportTitle'),
+                footerNote: t('structuredPdf.libraryReportFooter'),
+              })
+              const path = await exportStructuredPdfAndReveal(result)
+              if (path) toast.success(t('toasts.exportDone'), path.split('/').pop() ?? path)
+              else toast.info(t('structuredPdf.exportCancelled'))
+            })
+            .catch((error) => toast.error(t('structuredPdf.exportError'), String(error)))
+        },
+      },
+      {
+        type: 'action',
+        id: 'export-invoice-pdf',
+        label: t('commandPalette.exportInvoicePdf'),
+        icon: <FileDown className="h-4 w-4" />,
+        run: () => {
+          void import('@/lib/export/structured-pdf')
+            .then(async ({ exportInvoicePdf, exportStructuredPdfAndReveal }) => {
+              const description =
+                activeDocument?.title?.trim() || t('structuredPdf.invoiceDefaultDescription')
+              const result = await exportInvoicePdf({
+                description,
+                notes: t('structuredPdf.invoiceNotes'),
+              })
+              const path = await exportStructuredPdfAndReveal(result)
+              if (path) toast.success(t('toasts.exportDone'), path.split('/').pop() ?? path)
+              else toast.info(t('structuredPdf.exportCancelled'))
+            })
+            .catch((error) => toast.error(t('structuredPdf.exportError'), String(error)))
         },
       },
       {

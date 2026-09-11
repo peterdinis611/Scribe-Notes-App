@@ -103,6 +103,8 @@
     "exportEpub": "EPUB",
     "exportTxt": "Text (TXT)",
     "exportPages": "Apple Pages",
+    "exportInvoicePdf": "Exportovať faktúru PDF (šablóna)",
+    "exportLibraryReportPdf": "Exportovať report knižnice PDF",
     "sharePackage": "Zdieľať balík…",
     "sharePackagePdf": "Zdieľať ako PDF",
     "sharePackageHtmlZip": "Zdieľať ako HTML ZIP",
@@ -155,6 +157,9 @@
     "eveningNote": "Večerný denník",
     "weekNote": "Týždenná poznámka",
     "weeklyDigest": "Vytvoriť týždenný digest",
+    "exportDigestPdf": "Exportovať týždenný digest PDF",
+    "exportLibraryReportPdf": "Exportovať report knižnice PDF",
+    "exportInvoicePdf": "Exportovať faktúru PDF",
     "dailyBriefing": "Denný briefing",
     "applySuggestedTags": "Použiť návrhy AI tagov",
     "sectionSearch": "Výsledky",
@@ -531,6 +536,8 @@
       "reportDone": "Analýza hotová",
       "reportError": "Analýza zlyhala",
       "reportHeading": "Výsledok analýzy",
+      "exportReportPdf": "Exportovať report PDF",
+      "exportingReportPdf": "Exportujem PDF…",
       "refreshTitle": "Stav sidecaru",
       "refreshDescription": "Skontroluje Python proces a počet indexovaných dokumentov.",
       "loadError": "Nepodarilo sa načítať stav AI",
@@ -1962,6 +1969,8 @@
     "summaryError": "Nepodarilo sa vygenerovať prehľad",
     "createDigest": "Vytvoriť digest",
     "digestCreating": "Vytváram digest…",
+    "exportDigestPdf": "Exportovať digest PDF",
+    "digestPdfExporting": "Exportujem digest PDF…",
     "digestTitle": "Týždenný digest {{week}}",
     "digestSummaryPlaceholder": "Prehľad nie je dostupný — lokálne AI je vypnuté alebo tento týždeň nemáte zápisy v denníku.",
     "digestError": "Nepodarilo sa vytvoriť týždenný digest",
@@ -2024,5 +2033,14 @@
     "captionPlaceholder": "Voliteľný popisok",
     "captionEmpty": "Pridať popisok…",
     "resize": "Zmeniť veľkosť"
+  },
+  "structuredPdf": {
+    "digestFooter": "Scribe · Denníkový digest",
+    "libraryReportTitle": "Report knižnice",
+    "libraryReportFooter": "Scribe · Report knižnice",
+    "invoiceDefaultDescription": "Odborné služby",
+    "invoiceNotes": "Vygenerované zo Scribe. Pred odoslaním upravte sumy a strany.",
+    "exportError": "Export štruktúrovaného PDF zlyhal",
+    "exportCancelled": "Export zrušený"
   }
 }
