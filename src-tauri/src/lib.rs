@@ -1,5 +1,6 @@
 mod commands;
 mod backup;
+mod capture;
 mod db;
 mod export;
 mod nlp;
@@ -97,6 +98,7 @@ pub fn run() {
             });
             app.manage(PathAccessGate::new());
             app.manage(NlpSidecar::new(nlp::resolve_script_path(app.handle())));
+            app.manage(capture::CaptureServerState::new());
 
             #[cfg(target_os = "macos")]
             {
@@ -279,6 +281,9 @@ pub fn run() {
             commands::system::reconcile_storage,
             commands::system::list_system_font_families,
             commands::links::list_link_graph,
+            capture::capture_status,
+            capture::capture_start,
+            capture::capture_stop,
             backup::export_library_archive,
             backup::export_library_archive_to_dir,
             backup::import_library_archive,

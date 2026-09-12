@@ -1,11 +1,8 @@
 import { useEffect, useRef } from 'react'
-import { fetchDocumentFresh } from '@/lib/db/api'
+import { fetchDocumentFresh, getDocument } from '@/lib/db/api'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import {
-  setActiveDocument,
-  setSaveStatus,
-} from '@/store/documentsSlice'
+import { setActiveDocument, setSaveStatus } from '@/store/documentsSlice'
 
 export function useActiveDocumentLoader() {
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
@@ -31,16 +28,22 @@ export function useActiveDocumentLoader() {
       dispatch(setActiveDocument(null))
     }
 
-    async function loadFresh() {
+    async function load() {
       try {
-        const doc = await fetchDocumentFresh(documentId)
+        // Cache hit: soft-revalidate in background. Miss: load once via getDocument.
+        const doc = cached
+          ? await fetchDocumentFresh(documentId)
+          : await getDocument(documentId)
         if (cancelled) return
 
-        // Avoid overwriting in-progress edits if the user already typed.
         const status = saveStatusRef.current
         if (status === 'dirty' || status === 'saving') return
 
-        if (!cached || cached.updatedAt !== doc.updatedAt) {
+        if (
+          !cached ||
+          cached.updatedAt !== doc.updatedAt ||
+          cached.contentJson !== doc.contentJson
+        ) {
           dispatch(setActiveDocument(doc))
         }
 
@@ -50,7 +53,7 @@ export function useActiveDocumentLoader() {
       }
     }
 
-    void loadFresh()
+    void load()
 
     return () => {
       cancelled = true

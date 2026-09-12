@@ -138,6 +138,8 @@
     "pinDocument": "Pin document",
     "unpinDocument": "Unpin document",
     "settings": "Settings",
+    "mobileCapture": "Mobile capture…",
+    "mobileCaptureHint": "QR → Inbox over Wi‑Fi",
     "windowCenter": "Center window",
     "windowTopRight": "Move window to top right",
     "docs": "Documentation",
@@ -408,6 +410,10 @@
       "nlp": {
         "label": "Local AI",
         "description": "Python add-on — semantics & analysis"
+      },
+      "capture": {
+        "label": "Mobile capture",
+        "description": "Phone → Inbox over Wi‑Fi"
       },
       "about": {
         "label": "About",
@@ -2109,6 +2115,28 @@
     "tax": "Tax",
     "total": "Total",
     "export": "Export PDF"
+  },
+  "capture": {
+    "title": "Mobile capture",
+    "description": "While Scribe is open, start a local capture page on your Wi‑Fi. Scan the QR from your phone and send notes into the Inbox folder — no cloud account.",
+    "lanTitle": "LAN capture server",
+    "lanDescription": "Phone and Mac must be on the same network. The link includes a one-time token.",
+    "start": "Start capture",
+    "starting": "Starting…",
+    "stop": "Stop",
+    "started": "Capture server started",
+    "stopped": "Capture server stopped",
+    "startError": "Could not start capture server",
+    "stopError": "Could not stop capture server",
+    "copyUrl": "Copy URL",
+    "urlCopied": "URL copied",
+    "urlCopyError": "Could not copy URL",
+    "qrAlt": "QR code for mobile capture",
+    "scanHint": "Scan with your phone camera, then write and send.",
+    "localhostWarning": "Could not detect a LAN IP — phones on Wi‑Fi won’t reach 127.0.0.1. Connect this Mac to Wi‑Fi and restart capture.",
+    "inboxTitle": "Inbox folder",
+    "inboxDescription": "Captures create notes in a top-level Inbox folder (or Schránka if it already exists). Triage them later like any other note.",
+    "noteReceived": "Note from phone"
   },
   "vault": {
     "createTitle": "Encrypted vault?",

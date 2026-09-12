@@ -19,6 +19,7 @@ import { ShortcutsPage } from '@/pages/settings/ShortcutsPage'
 import { AboutPage } from '@/pages/settings/AboutPage'
 import { DiagnosticsPage } from '@/pages/settings/DiagnosticsPage'
 import { McpPage } from '@/pages/settings/McpPage'
+import { CapturePage } from '@/pages/settings/CapturePage'
 import { NlpPage } from '@/pages/settings/NlpPage'
 
 const rootRoute = createRootRoute({
@@ -118,6 +119,12 @@ const settingsNlpRoute = createRoute({
   component: NlpPage,
 })
 
+const settingsCaptureRoute = createRoute({
+  getParentRoute: () => settingsLayoutRoute,
+  path: 'capture',
+  component: CapturePage,
+})
+
 const settingsAboutRoute = createRoute({
   getParentRoute: () => settingsLayoutRoute,
   path: 'about',
@@ -148,6 +155,7 @@ const routeTree = rootRoute.addChildren([
       settingsDiagnosticsRoute,
       settingsMcpRoute,
       settingsNlpRoute,
+      settingsCaptureRoute,
       settingsDocsRedirectRoute,
       settingsAboutRoute,
     ]),

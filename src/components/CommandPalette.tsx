@@ -23,6 +23,7 @@ import {
   Search,
   Settings2,
   Shuffle,
+  Smartphone,
   Sparkles,
   StickyNote,
   Pin,
@@ -622,6 +623,14 @@ export function CommandPalette() {
         hint: getDisplayKeysForShortcut('settings', shortcutOverrides).join(''),
         icon: <Settings2 className="h-4 w-4" />,
         run: () => navigate(ROUTES.settingsSection('appearance')),
+      },
+      {
+        type: 'action',
+        id: 'mobile-capture',
+        label: t('commandPalette.mobileCapture'),
+        hint: t('commandPalette.mobileCaptureHint'),
+        icon: <Smartphone className="h-4 w-4" />,
+        run: () => navigate(ROUTES.settingsSection('capture')),
       },
       ...(isTauriRuntime()
         ? [

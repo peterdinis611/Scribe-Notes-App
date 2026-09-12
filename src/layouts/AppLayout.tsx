@@ -19,6 +19,7 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts'
 import { useFolderAutoSync } from '@/hooks/useFolderAutoSync'
 import { useAutoBackup } from '@/hooks/useAutoBackup'
+import { useDocumentCacheRetention } from '@/hooks/useDocumentCacheRetention'
 import { APP_VERSION } from '@/lib/app-version'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { createDocument, flushPendingWrites, importFile } from '@/lib/db/api'
@@ -74,6 +75,7 @@ export function AppLayout() {
   useGlobalShortcuts()
   useFolderAutoSync()
   useAutoBackup()
+  useDocumentCacheRetention()
   const templatePickerOpen = useAppSelector((state) => state.settings.templatePickerOpen)
   const movePickerOpen = useAppSelector((state) => state.folders.moveDocumentPickerOpen)
   const activeDocument = useAppSelector((state) => state.documents.activeDocument)

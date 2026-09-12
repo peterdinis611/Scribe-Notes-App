@@ -5,6 +5,7 @@ describe('isSettingsSection', () => {
   it('accepts known sections', () => {
     expect(isSettingsSection('appearance')).toBe(true)
     expect(isSettingsSection('nlp')).toBe(true)
+    expect(isSettingsSection('capture')).toBe(true)
     expect(isSettingsSection('about')).toBe(true)
   })
 

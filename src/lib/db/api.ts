@@ -1,5 +1,6 @@
 import { invoke } from '@/lib/tauri'
 import { cacheDocument, clearDocumentCache, invalidateDocumentCache, peekCachedDocument } from '@/lib/cache/document-cache'
+import { isVaultCipherJson } from '@/lib/vault/crypto'
 import { maybeDecryptDocument, maybeEncryptContentJson } from '@/lib/vault/document-crypto'
 
 export interface DocumentSummary {
@@ -105,19 +106,37 @@ async function vaultContext() {
 
 export const getDocument = async (id: string) => {
   const { folders } = await vaultContext()
-  let raw = peekCachedDocument(id)
-  if (!raw) {
-    raw = await invoke<Document>('get_document', { id })
-    cacheDocument(raw)
+  const cached = peekCachedDocument(id)
+
+  // Prefer warm plaintext cache (typical after unlock / save).
+  if (cached && !isVaultCipherJson(cached.contentJson)) {
+    return cached
   }
-  return maybeDecryptDocument(raw, folders)
+
+  const raw =
+    cached ??
+    (await (async () => {
+      const fetched = await invoke<Document>('get_document', { id })
+      cacheDocument(fetched)
+      return fetched
+    })())
+
+  const decrypted = await maybeDecryptDocument(raw, folders)
+  // While unlocked, keep plaintext warm so tab switches skip decrypt + IPC.
+  if (!isVaultCipherJson(decrypted.contentJson)) {
+    cacheDocument(decrypted)
+  }
+  return decrypted
 }
 
 export const fetchDocumentFresh = async (id: string) => {
   const { folders } = await vaultContext()
+  // Do not invalidate first — overwrite after fetch so UI can keep using the
+  // warm entry until the IPC round-trip completes.
   const raw = await invoke<Document>('get_document', { id })
-  cacheDocument(raw)
-  return maybeDecryptDocument(raw, folders)
+  const decrypted = await maybeDecryptDocument(raw, folders)
+  cacheDocument(isVaultCipherJson(decrypted.contentJson) ? raw : decrypted)
+  return decrypted
 }
 
 export const createDocument = async (input: CreateDocumentInput) =>
@@ -133,8 +152,10 @@ export const updateDocument = async (input: UpdateDocumentInput) => {
     next.contentJson = await maybeEncryptContentJson(next.id, next.contentJson, folders, documents)
   }
   const saved = await invoke<Document>('update_document', { input: next })
-  cacheDocument(saved)
-  return maybeDecryptDocument(saved, folders)
+  const decrypted = await maybeDecryptDocument(saved, folders)
+  // Cache what the UI needs: plaintext when unlocked, ciphertext only when locked.
+  cacheDocument(isVaultCipherJson(decrypted.contentJson) ? saved : decrypted)
+  return decrypted
 }
 
 export const libraryFindReplace = (input: LibraryFindReplaceInput) =>

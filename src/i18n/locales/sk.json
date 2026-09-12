@@ -138,6 +138,8 @@
     "pinDocument": "Pripnúť dokument",
     "unpinDocument": "Odopnúť dokument",
     "settings": "Nastavenia",
+    "mobileCapture": "Mobilný zápis…",
+    "mobileCaptureHint": "QR → Inbox cez Wi‑Fi",
     "windowCenter": "Vycentrovať okno",
     "windowTopRight": "Presunúť okno vpravo hore",
     "docs": "Dokumentácia",
@@ -408,6 +410,10 @@
       "nlp": {
         "label": "Lokálna AI",
         "description": "Python doplnok — sémantika a analýza"
+      },
+      "capture": {
+        "label": "Mobilný zápis",
+        "description": "Telefón → Schránka cez Wi‑Fi"
       },
       "about": {
         "label": "O aplikácii",
@@ -2124,6 +2130,28 @@
     "tax": "DPH",
     "total": "Celkom",
     "export": "Exportovať PDF"
+  },
+  "capture": {
+    "title": "Mobilný zápis",
+    "description": "Kým beží Scribe, spustite lokálnu capture stránku vo Wi‑Fi. Naskenujte QR telefónom a pošlite poznámky do priečinka Inbox — bez cloud účtu.",
+    "lanTitle": "LAN capture server",
+    "lanDescription": "Telefón a Mac musia byť v rovnakej sieti. Odkaz obsahuje jednorazový token.",
+    "start": "Spustiť capture",
+    "starting": "Spúšťam…",
+    "stop": "Zastaviť",
+    "started": "Capture server beží",
+    "stopped": "Capture server zastavený",
+    "startError": "Nepodarilo sa spustiť capture server",
+    "stopError": "Nepodarilo sa zastaviť capture server",
+    "copyUrl": "Kopírovať URL",
+    "urlCopied": "URL skopírované",
+    "urlCopyError": "Nepodarilo sa skopírovať URL",
+    "qrAlt": "QR kód pre mobilný zápis",
+    "scanHint": "Naskenujte kamerou telefónu, napíšte a odošlite.",
+    "localhostWarning": "Nepodarilo sa zistiť LAN IP — telefón na Wi‑Fi nedosiahne 127.0.0.1. Pripojte Mac na Wi‑Fi a spustite capture znova.",
+    "inboxTitle": "Priečinok Inbox",
+    "inboxDescription": "Zápisy vytvárajú poznámky v priečinku Inbox (alebo Schránka, ak už existuje). Potom ich triedením spracujete ako bežné poznámky.",
+    "noteReceived": "Poznámka z telefónu"
   },
   "vault": {
     "createTitle": "Šifrovaný trezor?",

@@ -60,7 +60,7 @@ export async function convertDocxBytesToContentJson(bytes: Uint8Array): Promise<
         const token = createImportImageToken(nextImageIndex)
         nextImageIndex += 1
         pendingImages.set(token, {
-          buffer: await image.read(),
+          buffer: Uint8Array.from(await image.read()).buffer as ArrayBuffer,
           contentType: image.contentType,
         })
         return { src: token }
