@@ -21,6 +21,7 @@ LEAD_TOKEN_BOOST = 1.35
 LEAD_TOKEN_COUNT = 24
 CHUNK_POOL_THRESHOLD = 1_600
 
+# Frozen at import for hash-default unit tests; runtime paths use current_model_id().
 MODEL_ID = current_model_id()
 
 
@@ -118,7 +119,57 @@ def embed_text(text: str, dims: int = DEFAULT_DIMS) -> list[float]:
     return _mean_pool(vectors)
 
 
+def _quality_units(texts: list[str]) -> tuple[list[str], list[tuple[int, int, int]]]:
+    """Flatten documents into MiniLM encode units.
+
+    Returns (flat_texts, owners) where each owner is
+    (document_index, start_inclusive, end_exclusive) into flat_texts.
+    """
+    flat: list[str] = []
+    owners: list[tuple[int, int, int]] = []
+    for doc_index, text in enumerate(texts):
+        source = text or ""
+        if len(source) < CHUNK_POOL_THRESHOLD:
+            start = len(flat)
+            flat.append(source)
+            owners.append((doc_index, start, start + 1))
+            continue
+
+        chunks = chunk_text(source)
+        if not chunks:
+            start = len(flat)
+            flat.append(source)
+            owners.append((doc_index, start, start + 1))
+            continue
+
+        start = len(flat)
+        flat.extend(chunks)
+        owners.append((doc_index, start, len(flat)))
+    return flat, owners
+
+
+def _embed_batch_quality(texts: list[str]) -> list[list[float]]:
+    flat, owners = _quality_units(texts)
+    if not flat:
+        return [[0.0] * DEFAULT_DIMS for _ in texts]
+
+    vectors = embed_quality_batch(flat)
+    results: list[list[float]] = [[0.0] * DEFAULT_DIMS for _ in texts]
+    for doc_index, start, end in owners:
+        slice_vecs = vectors[start:end]
+        if len(slice_vecs) == 1:
+            results[doc_index] = slice_vecs[0]
+        else:
+            results[doc_index] = _mean_pool(slice_vecs)
+    return results
+
+
 def embed_batch(texts: list[str], dims: int = DEFAULT_DIMS) -> list[list[float]]:
+    """Embed many texts. Quality backend uses one MiniLM encode pass (plus chunk pooling)."""
+    if not texts:
+        return []
+    if active_backend() == "quality" and quality_available():
+        return _embed_batch_quality(texts)
     return [embed_text(text, dims=dims) for text in texts]
 
 

@@ -1,6 +1,8 @@
 import type { Editor } from '@tiptap/react'
 import { MATH_JS_EXAMPLES, promptMathExpression } from '@/lib/editor/math-js'
 import { MERMAID_DEFAULT_SOURCE } from '@/lib/editor/mermaid'
+import { generateLoremIpsum, saveLoremOptions } from '@/lib/editor/lorem-ipsum'
+import { promptLoremOptions } from '@/lib/lorem-dialog'
 
 export function insertInlineMath(editor: Editor) {
   const expression = promptMathExpression('Matematický výraz v riadku', '', MATH_JS_EXAMPLES.inline)
@@ -22,6 +24,29 @@ export function insertYoutubeVideo(editor: Editor) {
   const url = window.prompt('YouTube URL', 'https://www.youtube.com/watch?v=')
   if (!url?.trim()) return
   editor.chain().focus().setYoutubeVideo({ src: url.trim() }).run()
+}
+
+/** Opens options dialog, then inserts configured lorem ipsum at the cursor. */
+export async function insertLoremIpsum(editor: Editor): Promise<boolean> {
+  if (editor.isDestroyed) return false
+  const options = await promptLoremOptions()
+  if (!options || editor.isDestroyed) return false
+  const saved = saveLoremOptions(options)
+  const text = generateLoremIpsum(saved)
+  if (!text.trim()) return false
+
+  const blocks = text
+    .split(/\n\n+/)
+    .map((block) => block.trim())
+    .filter(Boolean)
+    .map((block) => ({
+      type: 'paragraph' as const,
+      content: [{ type: 'text' as const, text: block }],
+    }))
+
+  if (blocks.length === 0) return false
+  editor.chain().focus().insertContent(blocks).run()
+  return true
 }
 
 export async function insertScannedBarcode(editor: Editor): Promise<boolean> {

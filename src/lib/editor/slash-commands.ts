@@ -8,7 +8,7 @@ import {
   SlashSuggestionList,
   type SlashCommandItem,
 } from '@/components/editor/SlashSuggestionList'
-import { insertBlockMath, insertInlineMath, insertMermaidDiagram } from '@/lib/editor/insert-helpers'
+import { insertBlockMath, insertInlineMath, insertLoremIpsum, insertMermaidDiagram } from '@/lib/editor/insert-helpers'
 import { pickImageFiles } from '@/lib/editor/image-utils'
 import { insertBulletList, insertOrderedList, insertTaskList } from '@/lib/editor/list-commands'
 import { createCommentForSelection } from '@/lib/editor/comments'
@@ -49,6 +49,7 @@ export const SLASH_COMMAND_DEFS: SlashCommandDef[] = [
   { id: 'wiki-embed', icon: '⧉' },
   { id: 'snippet-meeting', icon: '📝' },
   { id: 'snippet-decision', icon: '⚖' },
+  { id: 'lorem', icon: '¶' },
   { id: 'toc', icon: '≡' },
 ]
 
@@ -133,6 +134,9 @@ export function runSlashCommand(
       break
     case 'mermaid':
       insertMermaidDiagram(editor)
+      break
+    case 'lorem':
+      void insertLoremIpsum(editor)
       break
     case 'hr':
       editor.chain().focus().setHorizontalRule().run()

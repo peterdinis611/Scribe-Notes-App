@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .embed import cosine_similarity, embed_text
+from .embed import cosine_similarity, embed_batch, embed_text
 from .embed_backend import active_backend, quality_available
 from .keywords import extract_keywords
 from .text_utils import truncate_text
@@ -37,11 +37,12 @@ def keybert_keywords(text: str, limit: int = 12) -> dict[str, object] | None:
     if not pool:
         return None
 
-    doc_vec = embed_text(source)
+    # One MiniLM pass for the document + all candidates.
+    vectors = embed_batch([source, *pool])
+    doc_vec = vectors[0]
     scored: list[tuple[str, float]] = []
-    for candidate in pool:
-        score = cosine_similarity(doc_vec, embed_text(candidate))
-        scored.append((candidate, score))
+    for candidate, vector in zip(pool, vectors[1:]):
+        scored.append((candidate, cosine_similarity(doc_vec, vector)))
     scored.sort(key=lambda item: (-item[1], item[0]))
 
     keywords = [

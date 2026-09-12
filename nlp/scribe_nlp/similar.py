@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .embed import cosine_similarity, embed_text
+from .embed import cosine_similarity, embed_batch, embed_text
 from .keywords import extract_keywords
 from .normalize import stem_lite
 from .text_utils import content_stems, jaccard_similarity, normalize_text
@@ -19,7 +19,7 @@ def similar_notes(
     *,
     use_embeddings: bool = True,
 ) -> dict[str, object]:
-    """Rank notes by keyword overlap, optionally blended with hash embeddings."""
+    """Rank notes by keyword overlap, optionally blended with embeddings (batched)."""
     query = normalize_text(query_text)
     if not query or not documents:
         return {"matches": []}
@@ -32,11 +32,7 @@ def similar_notes(
     }
     limit = max(1, min(int(limit or 8), 32))
 
-    query_vec: list[float] | None = None
-    if use_embeddings and len(query) >= 12:
-        query_vec = embed_text(query)
-
-    scored: list[dict[str, object]] = []
+    candidates: list[tuple[str, str, str]] = []
     for document in documents:
         doc_id = str(document.get("id") or "")
         if not doc_id:
@@ -44,14 +40,33 @@ def similar_notes(
         blob = _doc_blob(document)
         if not blob:
             continue
+        candidates.append((doc_id, str(document.get("title") or ""), blob))
 
+    if not candidates:
+        return {"matches": []}
+
+    query_vec: list[float] | None = None
+    doc_vectors: list[list[float] | None] = [None] * len(candidates)
+    if use_embeddings and len(query) >= 12:
+        embed_inputs = [query]
+        embed_map: list[int] = []
+        for index, (_doc_id, _title, blob) in enumerate(candidates):
+            if len(blob) >= 12:
+                embed_map.append(index)
+                embed_inputs.append(blob)
+        encoded = embed_batch(embed_inputs)
+        query_vec = encoded[0]
+        for map_index, vector in zip(embed_map, encoded[1:]):
+            doc_vectors[map_index] = vector
+
+    scored: list[dict[str, object]] = []
+    for index, (doc_id, title, blob) in enumerate(candidates):
         token_score = jaccard_similarity(query, blob)
         doc_stems = set(content_stems(blob))
         keyword_overlap = 0.0
         if query_keywords and doc_stems:
             keyword_overlap = len(query_keywords & doc_stems) / max(len(query_keywords), 1)
 
-        title = str(document.get("title") or "")
         title_boost = 0.0
         if title:
             title_stems = set(content_stems(title))
@@ -61,8 +76,9 @@ def similar_notes(
                 )
 
         embed_score = 0.0
-        if query_vec is not None and len(blob) >= 12:
-            embed_score = max(0.0, cosine_similarity(query_vec, embed_text(blob)))
+        doc_vec = doc_vectors[index]
+        if query_vec is not None and doc_vec is not None:
+            embed_score = max(0.0, cosine_similarity(query_vec, doc_vec))
 
         if query_vec is not None:
             score = (
@@ -77,8 +93,10 @@ def similar_notes(
         if score <= 0.02:
             continue
 
-        snippet_source = str(document.get("text") or title)
-        snippet = normalize_text(snippet_source)
+        snippet_source = blob if blob else title
+        # Prefer body-only snippet when title was prepended.
+        body = blob[len(title) :].lstrip("\n") if title and blob.startswith(title) else blob
+        snippet = normalize_text(body or title)
         if len(snippet) > 140:
             snippet = f"{snippet[:137].rstrip()}…"
 

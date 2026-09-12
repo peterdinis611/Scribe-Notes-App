@@ -65,6 +65,7 @@ import {
   insertBlockMath,
   insertDetailsBlock,
   insertInlineMath,
+  insertLoremIpsum,
   insertMermaidDiagram,
   insertScannedBarcode,
   insertYoutubeVideo,
@@ -355,6 +356,10 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => editor.chain().focus().setPageBreak().run()}>
               {t('toolbar.actions.pageBreak')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void insertLoremIpsum(editor)}>
+              <Type className="h-4 w-4" />
+              {t('toolbar.actions.lorem')}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => insertInlineMath(editor)}>{t('toolbar.actions.inlineMath')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => insertBlockMath(editor)}>{t('toolbar.actions.blockMath')}</DropdownMenuItem>

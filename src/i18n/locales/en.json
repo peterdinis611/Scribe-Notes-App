@@ -160,6 +160,8 @@
     "exportDigestPdf": "Export weekly digest PDF",
     "exportLibraryReportPdf": "Export library report PDF",
     "exportInvoicePdf": "Export invoice PDF",
+    "insertLorem": "Insert lorem ipsum…",
+    "insertLoremHint": "Configure paragraphs, sentences, or words",
     "dailyBriefing": "Daily briefing",
     "applySuggestedTags": "Apply AI tag suggestions",
     "sectionSearch": "Matches",
@@ -1490,6 +1492,10 @@
       "label": "Snippet: Decision",
       "hint": "Context and decision"
     },
+    "lorem": {
+      "label": "Lorem ipsum",
+      "hint": "Placeholder text…"
+    },
     "toc": {
       "label": "Table of contents",
       "hint": "Automatic TOC"
@@ -1727,6 +1733,7 @@
       "scanBarcode": "Scan QR / barcode",
       "tableOfContents": "Table of contents (TOC)",
       "pageBreak": "Page break",
+      "lorem": "Lorem ipsum…",
       "inlineMath": "Inline formula",
       "inlineMathFull": "Inline formula (math.js)",
       "blockMath": "Formula block",
@@ -2026,5 +2033,20 @@
     "invoiceNotes": "Generated from Scribe. Edit amounts and parties before sending.",
     "exportError": "Structured PDF export failed",
     "exportCancelled": "Export cancelled"
+  },
+  "lorem": {
+    "title": "Insert lorem ipsum",
+    "description": "Choose how much placeholder text to generate. Your last choice is remembered.",
+    "unit": "Generate",
+    "count": "Amount",
+    "units": {
+      "paragraphs": "Paragraphs",
+      "sentences": "Sentences",
+      "words": "Words"
+    },
+    "startWithLorem": "Start with classic “Lorem ipsum…”",
+    "preview": "Preview",
+    "insert": "Insert",
+    "noEditor": "Open a document first"
   }
 }

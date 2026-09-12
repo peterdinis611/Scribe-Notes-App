@@ -9,6 +9,7 @@ EmbedBackend = Literal["hash", "quality"]
 HASH_MODEL_ID = "scribe-hash-v4"
 QUALITY_MODEL_ID = "scribe-minilm-v1"
 QUALITY_MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
+QUALITY_BATCH_SIZE = 64
 
 _active_backend: EmbedBackend = "hash"
 _quality_model = None
@@ -64,6 +65,22 @@ def quality_cache_dir() -> Path:
     return path
 
 
+def _resolve_device() -> str:
+    override = os.environ.get("SCRIBE_ST_DEVICE", "").strip().lower()
+    if override in {"cpu", "cuda", "mps"}:
+        return override
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            return "cuda"
+        if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+            return "mps"
+    except Exception:
+        pass
+    return "cpu"
+
+
 def _load_quality_model():
     global _quality_model
     if _quality_model is not None:
@@ -73,8 +90,17 @@ def _load_quality_model():
     _quality_model = SentenceTransformer(
         QUALITY_MODEL_NAME,
         cache_folder=str(quality_cache_dir()),
+        device=_resolve_device(),
     )
     return _quality_model
+
+
+def warmup_quality_model() -> bool:
+    """Eager-load MiniLM when quality is active. Returns True if loaded."""
+    if active_backend() != "quality" or not quality_available():
+        return False
+    _load_quality_model()
+    return True
 
 
 def embed_quality(text: str) -> list[float]:
@@ -87,5 +113,11 @@ def embed_quality_batch(texts: list[str]) -> list[list[float]]:
     if not texts:
         return []
     model = _load_quality_model()
-    vectors = model.encode(texts, normalize_embeddings=True, batch_size=min(32, len(texts)))
+    batch_size = min(QUALITY_BATCH_SIZE, max(1, len(texts)))
+    vectors = model.encode(
+        texts,
+        normalize_embeddings=True,
+        batch_size=batch_size,
+        show_progress_bar=False,
+    )
     return [[float(value) for value in row.tolist()] for row in vectors]

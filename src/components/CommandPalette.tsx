@@ -32,6 +32,7 @@ import {
   LayoutGrid,
   Move,
   PanelTop,
+  Type,
 } from 'lucide-react'
 import { openQuickNote } from '@/lib/quick-note'
 import { openNewCanvasNote } from '@/lib/canvas/create-canvas'
@@ -427,6 +428,23 @@ export function CommandPalette() {
       },
       ...(activeDocument
         ? [
+            {
+              type: 'action' as const,
+              id: 'insert-lorem',
+              label: t('commandPalette.insertLorem'),
+              hint: t('commandPalette.insertLoremHint'),
+              icon: <Type className="h-4 w-4" />,
+              run: () => {
+                const editor = editorRefs.editor
+                if (!editor || editor.isDestroyed) {
+                  toast.info(t('lorem.noEditor'))
+                  return
+                }
+                void import('@/lib/editor/insert-helpers').then(({ insertLoremIpsum }) =>
+                  insertLoremIpsum(editor),
+                )
+              },
+            },
             {
               type: 'action' as const,
               id: 'apply-ai-tags',

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .embed import cosine_similarity, embed_text
+from .embed import cosine_similarity, embed_batch, embed_text
 from .text_utils import jaccard_similarity, normalize_text
 
 
@@ -17,7 +17,7 @@ def find_duplicates(
     min_score: float = 0.72,
     use_embeddings: bool = True,
 ) -> dict[str, object]:
-    """Near-duplicate pairs via Jaccard + optional hash-embed cosine."""
+    """Near-duplicate pairs via Jaccard + optional embed cosine (batched MiniLM when quality)."""
     prepared: list[tuple[str, str, str]] = []
     for document in documents:
         doc_id = str(document.get("id") or "")
@@ -32,9 +32,11 @@ def find_duplicates(
     pairs: list[dict[str, object]] = []
 
     vectors: dict[str, list[float]] = {}
-    if use_embeddings:
-        for doc_id, _title, blob in prepared:
-            vectors[doc_id] = embed_text(blob[:8_000])
+    if use_embeddings and prepared:
+        blobs = [blob[:8_000] for _doc_id, _title, blob in prepared]
+        encoded = embed_batch(blobs)
+        for (doc_id, _title, _blob), vector in zip(prepared, encoded):
+            vectors[doc_id] = vector
 
     for index, (left_id, left_title, left_blob) in enumerate(prepared):
         for right_id, right_title, right_blob in prepared[index + 1 :]:

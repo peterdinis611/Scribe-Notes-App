@@ -160,6 +160,8 @@
     "exportDigestPdf": "Exportovať týždenný digest PDF",
     "exportLibraryReportPdf": "Exportovať report knižnice PDF",
     "exportInvoicePdf": "Exportovať faktúru PDF",
+    "insertLorem": "Vložiť lorem ipsum…",
+    "insertLoremHint": "Nastavte odseky, vety alebo slová",
     "dailyBriefing": "Denný briefing",
     "applySuggestedTags": "Použiť návrhy AI tagov",
     "sectionSearch": "Výsledky",
@@ -1498,6 +1500,10 @@
       "label": "Snippet: Decision",
       "hint": "Kontext a rozhodnutie"
     },
+    "lorem": {
+      "label": "Lorem ipsum",
+      "hint": "Zástupný text…"
+    },
     "toc": {
       "label": "Obsah",
       "hint": "Automatický TOC"
@@ -1741,6 +1747,7 @@
       "scanBarcode": "Skenovať QR / čiarový kód",
       "tableOfContents": "Obsah (TOC)",
       "pageBreak": "Zalomenie strany",
+      "lorem": "Lorem ipsum…",
       "inlineMath": "Vzorec v riadku",
       "inlineMathFull": "Vzorec v riadku (math.js)",
       "blockMath": "Vzorec blok",
@@ -2042,5 +2049,20 @@
     "invoiceNotes": "Vygenerované zo Scribe. Pred odoslaním upravte sumy a strany.",
     "exportError": "Export štruktúrovaného PDF zlyhal",
     "exportCancelled": "Export zrušený"
+  },
+  "lorem": {
+    "title": "Vložiť lorem ipsum",
+    "description": "Zvoľte, koľko zástupného textu vygenerovať. Posledná voľba sa zapamätá.",
+    "unit": "Generovať",
+    "count": "Množstvo",
+    "units": {
+      "paragraphs": "Odseky",
+      "sentences": "Vety",
+      "words": "Slová"
+    },
+    "startWithLorem": "Začať klasickým „Lorem ipsum…“",
+    "preview": "Náhľad",
+    "insert": "Vložiť",
+    "noEditor": "Najprv otvorte dokument"
   }
 }

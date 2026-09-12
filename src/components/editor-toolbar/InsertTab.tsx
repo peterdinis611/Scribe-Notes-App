@@ -1,6 +1,6 @@
 import type { Editor } from '@tiptap/react'
 import { useEditorState } from '@tiptap/react'
-import { ChevronDown, Code, FunctionSquare, GitBranch, ImagePlus, Play, ScanLine, Sigma, SplitSquareHorizontal, Table2, Trash2 } from 'lucide-react'
+import { ChevronDown, Code, FunctionSquare, GitBranch, ImagePlus, Play, ScanLine, Sigma, SplitSquareHorizontal, Table2, TextQuote, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import {
   DropdownMenu,
@@ -11,7 +11,7 @@ import {
 import { ToolbarButton, ToolbarGroup } from '@/components/editor-toolbar/primitives'
 import { CODE_LANGUAGES, getCodeLanguageLabel } from '@/lib/editor/code-languages'
 import { deleteCurrentBlock } from '@/lib/editor/delete-content'
-import { insertBlockMath, insertInlineMath, insertMermaidDiagram, insertScannedBarcode, insertYoutubeVideo } from '@/lib/editor/insert-helpers'
+import { insertBlockMath, insertInlineMath, insertLoremIpsum, insertMermaidDiagram, insertScannedBarcode, insertYoutubeVideo } from '@/lib/editor/insert-helpers'
 import { pickImageFiles } from '@/lib/editor/image-utils'
 import { isBarcodeScannerSupported } from '@/lib/barcode-scanner'
 import { toast } from '@/lib/toast'
@@ -87,6 +87,9 @@ export function InsertTab({ editor, onInsertImages }: InsertTabProps) {
         </ToolbarButton>
         <ToolbarButton label={t('toolbar.actions.pageBreak')} onClick={() => editor.chain().focus().setPageBreak().run()}>
           <SplitSquareHorizontal className="h-4 w-4 stroke-[1.75]" />
+        </ToolbarButton>
+        <ToolbarButton label={t('toolbar.actions.lorem')} onClick={() => void insertLoremIpsum(editor)}>
+          <TextQuote className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
       </ToolbarGroup>
 
