@@ -1,6 +1,6 @@
 use rusqlite::Connection;
 
-const SCHEMA_VERSION: i32 = 15;
+const SCHEMA_VERSION: i32 = 16;
 
 pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     conn.execute_batch(
@@ -371,6 +371,31 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
             "ALTER TABLE folders ADD COLUMN vault_verifier TEXT",
             [],
         );
+        conn.execute(
+            "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
+            [SCHEMA_VERSION.to_string()],
+        )?;
+    }
+
+    if current < 16 {
+        conn.execute_batch(
+            r#"
+            CREATE TABLE IF NOT EXISTS document_embedding_chunks (
+                document_id TEXT NOT NULL,
+                chunk_index INTEGER NOT NULL,
+                embedding BLOB NOT NULL,
+                dims INTEGER NOT NULL,
+                model TEXT NOT NULL,
+                snippet TEXT NOT NULL,
+                updated_at INTEGER NOT NULL,
+                PRIMARY KEY (document_id, chunk_index),
+                FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_embedding_chunks_model
+                ON document_embedding_chunks(model);
+            "#,
+        )?;
         conn.execute(
             "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
             [SCHEMA_VERSION.to_string()],

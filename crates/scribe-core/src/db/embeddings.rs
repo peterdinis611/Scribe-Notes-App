@@ -1,5 +1,6 @@
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::Serialize;
+use std::collections::HashMap;
 
 use crate::db::fts::extract_search_text;
 use crate::db::search::SearchHit;
@@ -15,6 +16,26 @@ pub struct StoredEmbedding {
     pub model: String,
     pub dims: i32,
     pub updated_at: i64,
+}
+
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub struct StoredChunkEmbedding {
+    pub document_id: String,
+    pub chunk_index: i32,
+    pub vector: Vec<f32>,
+    pub model: String,
+    pub dims: i32,
+    pub snippet: String,
+    pub updated_at: i64,
+}
+
+/// Chunk payload for upsert (keeps `db` free of NLP types).
+#[derive(Debug, Clone)]
+pub struct EmbeddingChunkInput {
+    pub index: i32,
+    pub text: String,
+    pub vector: Vec<f32>,
 }
 
 pub fn is_nlp_enabled(conn: &Connection) -> Result<bool, String> {
@@ -172,7 +193,48 @@ pub fn upsert_embedding(
     Ok(())
 }
 
+pub fn upsert_embedding_with_chunks(
+    conn: &Connection,
+    document_id: &str,
+    document_vector: &[f32],
+    chunks: &[EmbeddingChunkInput],
+    model: &str,
+    updated_at: i64,
+) -> Result<(), String> {
+    upsert_embedding(conn, document_id, document_vector, model, updated_at)?;
+    conn.execute(
+        "DELETE FROM document_embedding_chunks WHERE document_id = ?1",
+        params![document_id],
+    )
+    .map_err(|e| e.to_string())?;
+
+    for chunk in chunks {
+        let snippet: String = chunk.text.chars().take(240).collect();
+        conn.execute(
+            "INSERT INTO document_embedding_chunks
+             (document_id, chunk_index, embedding, dims, model, snippet, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                document_id,
+                chunk.index,
+                vector_to_blob(&chunk.vector),
+                chunk.vector.len() as i32,
+                model,
+                snippet,
+                updated_at
+            ],
+        )
+        .map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
 pub fn remove_embedding(conn: &Connection, document_id: &str) -> Result<(), String> {
+    conn.execute(
+        "DELETE FROM document_embedding_chunks WHERE document_id = ?1",
+        params![document_id],
+    )
+    .map_err(|e| e.to_string())?;
     conn.execute(
         "DELETE FROM document_embeddings WHERE document_id = ?1",
         params![document_id],
@@ -207,6 +269,34 @@ pub fn list_embeddings(conn: &Connection) -> Result<Vec<StoredEmbedding>, String
     rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
 }
 
+fn list_chunk_embeddings(conn: &Connection) -> Result<Vec<StoredChunkEmbedding>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT document_id, chunk_index, embedding, model, dims, snippet, updated_at
+             FROM document_embedding_chunks",
+        )
+        .map_err(|e| e.to_string())?;
+
+    let rows = stmt
+        .query_map([], |row| {
+            let blob: Vec<u8> = row.get(2)?;
+            Ok(StoredChunkEmbedding {
+                document_id: row.get(0)?,
+                chunk_index: row.get(1)?,
+                vector: blob_to_vector(&blob).map_err(|error| {
+                    rusqlite::Error::ToSqlConversionFailure(Box::from(error))
+                })?,
+                model: row.get(3)?,
+                dims: row.get(4)?,
+                snippet: row.get(5)?,
+                updated_at: row.get(6)?,
+            })
+        })
+        .map_err(|e| e.to_string())?;
+
+    rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+}
+
 fn cosine_similarity(a: &[f32], b: &[f32]) -> f64 {
     if a.len() != b.len() || a.is_empty() {
         return 0.0;
@@ -234,6 +324,88 @@ pub fn semantic_search(
     model: Option<&str>,
 ) -> Result<Vec<SearchHit>, String> {
     let max = limit.clamp(1, 50);
+    let chunks = list_chunk_embeddings(conn)?;
+    if !chunks.is_empty() {
+        return semantic_search_chunks(conn, query_vector, max, model, &chunks);
+    }
+    semantic_search_documents(conn, query_vector, max, model)
+}
+
+fn semantic_search_chunks(
+    conn: &Connection,
+    query_vector: &[f32],
+    max: i64,
+    model: Option<&str>,
+    chunks: &[StoredChunkEmbedding],
+) -> Result<Vec<SearchHit>, String> {
+    let mut best: HashMap<String, (f64, String)> = HashMap::new();
+    for chunk in chunks {
+        if model.is_some_and(|expected| chunk.model != expected) {
+            continue;
+        }
+        if chunk.vector.len() != query_vector.len() {
+            continue;
+        }
+        let score = cosine_similarity(query_vector, &chunk.vector);
+        if score <= 0.05 {
+            continue;
+        }
+        let snippet = if chunk.snippet.trim().is_empty() {
+            String::new()
+        } else {
+            chunk.snippet.clone()
+        };
+        match best.get(&chunk.document_id) {
+            Some((prev, _)) if *prev >= score => {}
+            _ => {
+                best.insert(chunk.document_id.clone(), (score, snippet));
+            }
+        }
+    }
+
+    let mut scored: Vec<(f64, String, String)> = best
+        .into_iter()
+        .map(|(document_id, (score, snippet))| (score, document_id, snippet))
+        .collect();
+    scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
+    scored.truncate(max as usize);
+
+    let mut hits = Vec::with_capacity(scored.len());
+    for (score, document_id, snippet) in scored {
+        let (title, content_json): (String, String) = conn
+            .query_row(
+                "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL",
+                params![document_id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .map_err(|e| e.to_string())?;
+
+        let body_snippet = if snippet.trim().is_empty() {
+            extract_search_text(&content_json)
+                .chars()
+                .take(120)
+                .collect::<String>()
+        } else {
+            snippet.chars().take(160).collect()
+        };
+        hits.push(SearchHit {
+            document_id,
+            title,
+            snippet: body_snippet,
+            rank: -score,
+            match_kind: Some("semantic".to_string()),
+        });
+    }
+
+    Ok(hits)
+}
+
+fn semantic_search_documents(
+    conn: &Connection,
+    query_vector: &[f32],
+    max: i64,
+    model: Option<&str>,
+) -> Result<Vec<SearchHit>, String> {
     let mut scored: Vec<(f64, StoredEmbedding)> = list_embeddings(conn)?
         .into_iter()
         .filter(|item| model.map_or(true, |expected| item.model == expected))
@@ -310,6 +482,37 @@ mod tests {
         let hits = semantic_search(&conn, &vector, 5, Some("test")).unwrap();
         assert_eq!(hits.len(), 1);
         assert_eq!(hits[0].document_id, "d1");
+    }
+
+    #[test]
+    fn chunk_search_uses_best_snippet() {
+        let conn = in_memory_conn();
+        run_migrations(&conn).unwrap();
+        conn.execute(
+            "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at)
+             VALUES ('d1', 'Long note', '{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"alpha beta\"}]}]}', NULL, NULL, 1, 1)",
+            [],
+        )
+        .unwrap();
+
+        let doc_vector = vec![0.5f32, 0.5, 0.0];
+        let chunks = vec![
+            EmbeddingChunkInput {
+                index: 0,
+                text: "unrelated intro fluff".into(),
+                vector: vec![0.0f32, 1.0, 0.0],
+            },
+            EmbeddingChunkInput {
+                index: 1,
+                text: "memory safety systems programming".into(),
+                vector: vec![1.0f32, 0.0, 0.0],
+            },
+        ];
+        upsert_embedding_with_chunks(&conn, "d1", &doc_vector, &chunks, "test", 1).unwrap();
+
+        let hits = semantic_search(&conn, &[1.0f32, 0.0, 0.0], 5, Some("test")).unwrap();
+        assert_eq!(hits.len(), 1);
+        assert!(hits[0].snippet.contains("memory safety"));
     }
 
     #[test]

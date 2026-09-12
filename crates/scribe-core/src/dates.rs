@@ -1,4 +1,7 @@
-//! Shared calendar helpers: journal date keys + lightweight due-date extraction for tasks.
+//! Shared calendar helpers: journal date keys + offline due-date fallback for tasks.
+//!
+//! When Local AI (NLP sidecar) is enabled, prefer Python `resolve_due_hint` /
+//! `resolve_due_hints` — this module stays as a thin offline path for checkboxes.
 
 use chrono::{Datelike, Duration, Local, NaiveDate};
 use regex::Regex;

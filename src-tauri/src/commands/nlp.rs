@@ -7,8 +7,8 @@ use tauri::{AppHandle, Emitter, State};
 use crate::db::{
     count_embeddings, count_stale_embeddings, dominant_embedding_model, extract_search_text,
     fuse_search_hits, get_embed_backend, is_nlp_enabled, save_artifact, search_documents_in_conn,
-    semantic_search, set_embed_backend, set_nlp_enabled, similar_documents, upsert_embedding,
-    SearchMode,
+    semantic_search, set_embed_backend, set_nlp_enabled, similar_documents,
+    upsert_embedding_with_chunks, EmbeddingChunkInput, SearchMode,
 };
 use scribe_core::{date_key_bounds, extract_due_hint, sync_sidecar_backend};
 use crate::db::SearchHit;
@@ -252,16 +252,20 @@ fn sidecar_status(
     }
 }
 
-fn extract_checkbox_tasks(content_json: &str) -> Vec<DocumentTask> {
+fn extract_checkbox_tasks(content_json: &str, apply_offline_due: bool) -> Vec<DocumentTask> {
     let Ok(value) = serde_json::from_str::<serde_json::Value>(content_json) else {
         return Vec::new();
     };
     let mut tasks = Vec::new();
-    collect_checkbox_tasks(&value, &mut tasks);
+    collect_checkbox_tasks(&value, &mut tasks, apply_offline_due);
     tasks
 }
 
-fn collect_checkbox_tasks(value: &serde_json::Value, tasks: &mut Vec<DocumentTask>) {
+fn collect_checkbox_tasks(
+    value: &serde_json::Value,
+    tasks: &mut Vec<DocumentTask>,
+    apply_offline_due: bool,
+) {
     if let Some(obj) = value.as_object() {
         if obj.get("type").and_then(|item| item.as_str()) == Some("taskItem") {
             let checked = obj
@@ -271,7 +275,11 @@ fn collect_checkbox_tasks(value: &serde_json::Value, tasks: &mut Vec<DocumentTas
                 .unwrap_or(false);
             let text = node_plain_text(value);
             if !text.trim().is_empty() {
-                let due_hint = extract_due_hint(&text);
+                let due_hint = if apply_offline_due {
+                    extract_due_hint(&text)
+                } else {
+                    None
+                };
                 tasks.push(DocumentTask {
                     text,
                     checked,
@@ -284,7 +292,7 @@ fn collect_checkbox_tasks(value: &serde_json::Value, tasks: &mut Vec<DocumentTas
         }
         if let Some(content) = obj.get("content").and_then(|item| item.as_array()) {
             for child in content {
-                collect_checkbox_tasks(child, tasks);
+                collect_checkbox_tasks(child, tasks, apply_offline_due);
             }
         }
     }
@@ -314,7 +322,7 @@ fn collect_document_tasks(
     content_json: &str,
     nlp_enabled: bool,
 ) -> Result<Vec<DocumentTask>, String> {
-    let mut tasks = extract_checkbox_tasks(content_json);
+    let mut tasks = extract_checkbox_tasks(content_json, !nlp_enabled);
     for task in &mut tasks {
         task.document_id = Some(document_id.to_string());
         task.document_title = Some(title.to_string());
@@ -340,8 +348,7 @@ fn collect_document_tasks(
                     let due_hint = item
                         .get("dueHint")
                         .and_then(|value| value.as_str())
-                        .map(str::to_string)
-                        .or_else(|| extract_due_hint(body));
+                        .map(str::to_string);
                     tasks.push(DocumentTask {
                         text: body.to_string(),
                         checked: item
@@ -353,6 +360,16 @@ fn collect_document_tasks(
                         document_id: Some(document_id.to_string()),
                         document_title: Some(title.to_string()),
                     });
+                }
+            }
+        }
+        let texts: Vec<String> = tasks.iter().map(|task| task.text.clone()).collect();
+        if let Ok(hints) = sidecar.resolve_due_hints(&texts) {
+            for (task, hint) in tasks.iter_mut().zip(hints.into_iter()) {
+                if let Some(value) = hint {
+                    task.due_hint = Some(value);
+                } else if task.due_hint.is_none() {
+                    task.due_hint = extract_due_hint(&task.text);
                 }
             }
         }
@@ -562,15 +579,31 @@ pub fn nlp_index_document(
         format!("{title}\n{}", extract_search_text(&content_json))
     };
 
-    let (vector, model) = sidecar.embed_text(&text)?;
+    let embedded = sidecar.embed_with_chunks(&text)?;
+    let chunks: Vec<EmbeddingChunkInput> = embedded
+        .chunks
+        .into_iter()
+        .map(|chunk| EmbeddingChunkInput {
+            index: chunk.index,
+            text: chunk.text,
+            vector: chunk.vector,
+        })
+        .collect();
     {
         let conn = state.conn.lock().map_err(|e| e.to_string())?;
-        upsert_embedding(&conn, &document_id, &vector, &model, now_ts())?;
+        upsert_embedding_with_chunks(
+            &conn,
+            &document_id,
+            &embedded.vector,
+            &chunks,
+            &embedded.model,
+            now_ts(),
+        )?;
     }
 
     Ok(NlpIndexResult {
         indexed: 1,
-        model,
+        model: embedded.model,
     })
 }
 
@@ -646,13 +679,29 @@ pub fn nlp_index_all(
     for chunk in docs.chunks(BATCH_SIZE) {
         let ids: Vec<String> = chunk.iter().map(|(id, _)| id.clone()).collect();
         let texts: Vec<String> = chunk.iter().map(|(_, text)| text.clone()).collect();
-        let (vectors, batch_model) = sidecar.embed_batch(&texts)?;
+        let (results, batch_model) = sidecar.embed_batch_with_chunks(&texts)?;
         model = batch_model;
 
         {
             let conn = state.conn.lock().map_err(|e| e.to_string())?;
-            for (document_id, vector) in ids.into_iter().zip(vectors.into_iter()) {
-                upsert_embedding(&conn, &document_id, &vector, &model, now)?;
+            for (document_id, embedded) in ids.into_iter().zip(results.into_iter()) {
+                let chunks: Vec<EmbeddingChunkInput> = embedded
+                    .chunks
+                    .into_iter()
+                    .map(|chunk| EmbeddingChunkInput {
+                        index: chunk.index,
+                        text: chunk.text,
+                        vector: chunk.vector,
+                    })
+                    .collect();
+                upsert_embedding_with_chunks(
+                    &conn,
+                    &document_id,
+                    &embedded.vector,
+                    &chunks,
+                    &model,
+                    now,
+                )?;
                 indexed += 1;
             }
         }
@@ -1443,5 +1492,116 @@ pub fn nlp_spellcheck(
             .get("dictionarySize")
             .and_then(|value| value.as_i64())
             .unwrap_or(0),
+    })
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryChatCitation {
+    pub document_id: String,
+    pub title: String,
+    pub snippet: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryChatResult {
+    pub answer: String,
+    pub citations: Vec<LibraryChatCitation>,
+}
+
+#[tauri::command]
+pub fn nlp_library_answer(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    question: String,
+    limit: Option<i64>,
+) -> Result<LibraryChatResult, String> {
+    let trimmed = question.trim().to_string();
+    if trimmed.is_empty() {
+        return Err("libraryChat.emptyQuestion".to_string());
+    }
+
+    {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        if !is_nlp_enabled(&conn)? {
+            return Err("libraryChat.nlpDisabled".to_string());
+        }
+        if !sidecar.script_exists() {
+            return Err("libraryChat.sidecarUnavailable".to_string());
+        }
+        sync_sidecar_backend(&sidecar, &conn)?;
+    }
+
+    let hits = {
+        let limit = limit.unwrap_or(6);
+        let q = trimmed.as_str();
+        let fts_hits = {
+            let conn = state.conn.lock().map_err(|e| e.to_string())?;
+            search_documents_in_conn(&conn, q, limit)?
+        };
+        let embed_query = rewrite_query_for_embed(&sidecar, q);
+        let semantic_hits = match sidecar.embed_text(&embed_query) {
+            Ok((vector, model)) => {
+                let conn = state.conn.lock().map_err(|e| e.to_string())?;
+                semantic_search(&conn, &vector, limit, Some(&model)).unwrap_or_default()
+            }
+            Err(_) => Vec::new(),
+        };
+        fuse_search_hits(&fts_hits, &semantic_hits, limit)
+    };
+
+    let passages = json!(hits
+        .iter()
+        .map(|hit| {
+            json!({
+                "documentId": hit.document_id,
+                "title": hit.title,
+                "snippet": hit.snippet,
+            })
+        })
+        .collect::<Vec<_>>());
+
+    let result = sidecar.library_answer(&trimmed, passages, 4)?;
+    let citations = result
+        .get("citations")
+        .and_then(|value| value.as_array())
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| {
+                    Some(LibraryChatCitation {
+                        document_id: item.get("documentId")?.as_str()?.to_string(),
+                        title: item
+                            .get("title")
+                            .and_then(|value| value.as_str())
+                            .unwrap_or("Untitled")
+                            .to_string(),
+                        snippet: item
+                            .get("snippet")
+                            .and_then(|value| value.as_str())
+                            .unwrap_or("")
+                            .to_string(),
+                    })
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_else(|| {
+            hits.iter()
+                .map(|hit| LibraryChatCitation {
+                    document_id: hit.document_id.clone(),
+                    title: hit.title.clone(),
+                    snippet: hit.snippet.clone(),
+                })
+                .collect()
+        });
+
+    Ok(LibraryChatResult {
+        answer: result
+            .get("answer")
+            .and_then(|value| value.as_str())
+            .unwrap_or("Based on your notes: No matching passages were found in your indexed library.")
+            .to_string(),
+        citations,
     })
 }

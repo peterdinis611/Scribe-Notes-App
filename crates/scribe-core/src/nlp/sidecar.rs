@@ -30,6 +30,79 @@ pub struct NlpHealth {
     pub quality_available: Option<bool>,
 }
 
+#[derive(Debug, Clone)]
+pub struct EmbedChunk {
+    pub index: i32,
+    pub text: String,
+    pub vector: Vec<f32>,
+}
+
+#[derive(Debug, Clone)]
+pub struct EmbedChunksResult {
+    pub vector: Vec<f32>,
+    pub chunks: Vec<EmbedChunk>,
+    pub model: String,
+}
+
+fn parse_f32_vector(value: &Value) -> Vec<f32> {
+    value
+        .as_array()
+        .unwrap_or(&Vec::new())
+        .iter()
+        .map(|item| item.as_f64().unwrap_or(0.0) as f32)
+        .collect()
+}
+
+fn parse_embed_chunks_result(value: &Value) -> Result<EmbedChunksResult, String> {
+    let vector = value
+        .get("vector")
+        .map(parse_f32_vector)
+        .ok_or("Invalid embed chunks response: missing vector")?;
+    let model = value
+        .get("model")
+        .and_then(|item| item.as_str())
+        .unwrap_or("unknown")
+        .to_string();
+    let mut chunks = Vec::new();
+    if let Some(items) = value.get("chunks").and_then(|item| item.as_array()) {
+        for entry in items {
+            let index = entry
+                .get("index")
+                .and_then(|item| item.as_i64())
+                .unwrap_or(chunks.len() as i64) as i32;
+            let text = entry
+                .get("text")
+                .and_then(|item| item.as_str())
+                .unwrap_or("")
+                .to_string();
+            let chunk_vector = entry
+                .get("vector")
+                .map(parse_f32_vector)
+                .unwrap_or_default();
+            if chunk_vector.is_empty() {
+                continue;
+            }
+            chunks.push(EmbedChunk {
+                index,
+                text,
+                vector: chunk_vector,
+            });
+        }
+    }
+    if chunks.is_empty() && !vector.is_empty() {
+        chunks.push(EmbedChunk {
+            index: 0,
+            text: String::new(),
+            vector: vector.clone(),
+        });
+    }
+    Ok(EmbedChunksResult {
+        vector,
+        chunks,
+        model,
+    })
+}
+
 #[derive(Debug)]
 struct SidecarProcess {
     child: Child,
@@ -217,6 +290,67 @@ impl NlpSidecar {
             })
             .collect();
         Ok((vectors, model))
+    }
+
+    pub fn embed_with_chunks(&self, text: &str) -> Result<EmbedChunksResult, String> {
+        let result = self.call_method("embed_with_chunks", json!({ "text": text }))?;
+        parse_embed_chunks_result(&result)
+    }
+
+    pub fn embed_batch_with_chunks(
+        &self,
+        texts: &[String],
+    ) -> Result<(Vec<EmbedChunksResult>, String), String> {
+        let result = self.call_method("embed_batch_with_chunks", json!({ "texts": texts }))?;
+        let model = result
+            .get("model")
+            .and_then(|value| value.as_str())
+            .unwrap_or("unknown")
+            .to_string();
+        let documents = result
+            .get("documents")
+            .and_then(|value| value.as_array())
+            .ok_or("Invalid embed_batch_with_chunks response")?;
+        let mut out = Vec::with_capacity(documents.len());
+        for entry in documents {
+            let mut parsed = parse_embed_chunks_result(entry)?;
+            parsed.model = model.clone();
+            out.push(parsed);
+        }
+        Ok((out, model))
+    }
+
+    pub fn resolve_due_hints(&self, texts: &[String]) -> Result<Vec<Option<String>>, String> {
+        let result = self.call_method("resolve_due_hints", json!({ "texts": texts }))?;
+        let hints = result
+            .get("hints")
+            .and_then(|value| value.as_array())
+            .ok_or("Invalid resolve_due_hints response")?;
+        Ok(hints
+            .iter()
+            .map(|value| {
+                value
+                    .as_str()
+                    .map(str::to_string)
+                    .filter(|item| !item.is_empty())
+            })
+            .collect())
+    }
+
+    pub fn library_answer(
+        &self,
+        question: &str,
+        passages: Value,
+        max_sentences: i64,
+    ) -> Result<Value, String> {
+        self.call_method(
+            "library_answer",
+            json!({
+                "question": question,
+                "passages": passages,
+                "maxSentences": max_sentences,
+            }),
+        )
     }
 
     pub fn summarize(&self, text: &str, max_sentences: i64) -> Result<Value, String> {

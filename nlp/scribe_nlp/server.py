@@ -13,7 +13,7 @@ from .config import (
     MAX_TEXT_CHARS,
 )
 from .debug import nlp_debug_enabled
-from .embed import embed_batch, embed_text
+from .embed import embed_batch, embed_batch_with_chunks, embed_text, embed_with_chunks
 from .embed_backend import (
     active_backend,
     configure_backend,
@@ -88,10 +88,13 @@ FEATURES = [
     "diff",
     "template",
     "chunking",
+    "chunkEmbeddings",
     "queryRewrite",
     "stemming",
     "keybert",
     "spellcheck",
+    "libraryAnswer",
+    "dueHints",
 ]
 
 
@@ -171,6 +174,23 @@ def _handle_request_inner(
             vectors = embed_batch(texts)
             dims = len(vectors[0]) if vectors else 0
             result = {"vectors": vectors, "model": current_model_id(), "dims": dims}
+        elif method == "embed_with_chunks":
+            text = _validate_text(str(params.get("text") or ""))
+            result = embed_with_chunks(truncate_text(text, MAX_TEXT_CHARS))
+        elif method == "embed_batch_with_chunks":
+            raw_texts = params.get("texts") or []
+            if not isinstance(raw_texts, list):
+                raise SidecarError("texts must be an array", code=-32602)
+            if len(raw_texts) > MAX_EMBED_BATCH:
+                raise SidecarError(
+                    f"texts exceeds batch limit ({MAX_EMBED_BATCH})",
+                    code=-32602,
+                )
+            texts = [
+                truncate_text(_validate_text(str(item), field="texts[]"), MAX_TEXT_CHARS)
+                for item in raw_texts
+            ]
+            result = embed_batch_with_chunks(texts)
         elif method == "summarize":
             from .summarize import summarize_text
 
@@ -255,6 +275,42 @@ def _handle_request_inner(
             from .dates import extract_dates
 
             result = extract_dates(_validate_text(str(params.get("text") or "")))
+        elif method == "resolve_due_hints":
+            from datetime import date as date_cls
+
+            from .dates import resolve_due_hint
+
+            raw_texts = params.get("texts") or []
+            if not isinstance(raw_texts, list):
+                raise SidecarError("texts must be an array", code=-32602)
+            if len(raw_texts) > 200:
+                raise SidecarError("texts exceeds limit (200)", code=-32602)
+            today_raw = params.get("today")
+            today = None
+            if isinstance(today_raw, str) and today_raw.strip():
+                try:
+                    today = date_cls.fromisoformat(today_raw.strip()[:10])
+                except ValueError as error:
+                    raise SidecarError(f"Invalid today date: {error}", code=-32602) from error
+            hints: list[str | None] = []
+            for item in raw_texts:
+                text = truncate_text(_validate_text(str(item), field="texts[]"), 4_000)
+                hints.append(resolve_due_hint(text, today=today))
+            result = {"hints": hints, "count": len(hints)}
+        elif method == "library_answer":
+            from .library_answer import library_answer
+
+            question = _validate_text(
+                str(params.get("question") or params.get("query") or ""),
+                field="question",
+            )
+            passages = params.get("passages") or params.get("hits") or []
+            if not isinstance(passages, list):
+                raise SidecarError("passages must be an array", code=-32602)
+            if len(passages) > 24:
+                raise SidecarError("passages exceeds limit (24)", code=-32602)
+            max_sentences = max(1, min(int(params.get("maxSentences") or 4), 8))
+            result = library_answer(question, passages, max_sentences=max_sentences)
         elif method == "summarize_diff":
             from .diff_summary import summarize_diff
 

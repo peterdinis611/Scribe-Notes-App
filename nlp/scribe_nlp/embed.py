@@ -173,6 +173,90 @@ def embed_batch(texts: list[str], dims: int = DEFAULT_DIMS) -> list[list[float]]
     return [embed_text(text, dims=dims) for text in texts]
 
 
+def _embed_units(texts: list[str], dims: int = DEFAULT_DIMS) -> list[list[float]]:
+    """Embed pre-chunked strings without further chunk pooling."""
+    if not texts:
+        return []
+    if active_backend() == "quality" and quality_available():
+        return embed_quality_batch(texts)
+    return [_hash_embed(text, dims=dims) for text in texts]
+
+
+def _document_chunks(text: str) -> list[str]:
+    source = text or ""
+    if not source.strip():
+        return [""]
+    if len(source) < CHUNK_POOL_THRESHOLD:
+        return [source]
+    chunks = chunk_text(source)
+    return chunks if chunks else [source]
+
+
+def embed_with_chunks(text: str, dims: int = DEFAULT_DIMS) -> dict[str, object]:
+    """Document vector (mean-pooled) plus per-chunk vectors for indexed search."""
+    chunks = _document_chunks(text)
+    vectors = _embed_units(chunks, dims=dims)
+    document_vector = vectors[0] if len(vectors) == 1 else _mean_pool(vectors)
+    return {
+        "vector": document_vector,
+        "chunks": [
+            {
+                "index": index,
+                "text": chunk,
+                "vector": vector,
+            }
+            for index, (chunk, vector) in enumerate(zip(chunks, vectors))
+        ],
+        "model": current_model_id(),
+        "dims": len(document_vector),
+    }
+
+
+def embed_batch_with_chunks(
+    texts: list[str],
+    dims: int = DEFAULT_DIMS,
+) -> dict[str, object]:
+    """Batch variant of embed_with_chunks — one encode pass for quality backend."""
+    owners: list[tuple[int, int, int]] = []
+    flat: list[str] = []
+    for doc_index, text in enumerate(texts):
+        chunks = _document_chunks(text)
+        start = len(flat)
+        flat.extend(chunks)
+        owners.append((doc_index, start, len(flat)))
+
+    flat_vectors = _embed_units(flat, dims=dims) if flat else []
+    documents: list[dict[str, object]] = []
+    for doc_index, start, end in owners:
+        chunk_texts = flat[start:end]
+        vectors = flat_vectors[start:end]
+        document_vector = vectors[0] if len(vectors) == 1 else _mean_pool(vectors)
+        documents.append(
+            {
+                "vector": document_vector,
+                "chunks": [
+                    {
+                        "index": index,
+                        "text": chunk,
+                        "vector": vector,
+                    }
+                    for index, (chunk, vector) in enumerate(zip(chunk_texts, vectors))
+                ],
+            }
+        )
+
+    dims_out = 0
+    if documents:
+        first_vector = documents[0].get("vector")
+        if isinstance(first_vector, list):
+            dims_out = len(first_vector)
+    return {
+        "documents": documents,
+        "model": current_model_id(),
+        "dims": dims_out or dims,
+    }
+
+
 def cosine_similarity(left: list[float], right: list[float]) -> float:
     if not left or not right or len(left) != len(right):
         return 0.0

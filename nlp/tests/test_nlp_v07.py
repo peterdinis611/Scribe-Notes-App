@@ -53,9 +53,9 @@ class ServerV07Tests(unittest.TestCase):
         result = handle_request(
             {"jsonrpc": "2.0", "id": 1, "method": "health", "params": {}}
         )["result"]
-        self.assertEqual(result["version"], "0.8.1")
+        self.assertEqual(result["version"], "0.9.0")
         self.assertEqual(result["model"], "scribe-hash-v4")
-        for feature in ("chunking", "queryRewrite", "stemming"):
+        for feature in ("chunking", "queryRewrite", "stemming", "chunkEmbeddings"):
             self.assertIn(feature, result["features"])
 
     def test_rewrite_query_rpc(self) -> None:

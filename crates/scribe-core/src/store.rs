@@ -17,7 +17,8 @@ use crate::db::{
     count_embeddings, count_stale_embeddings, dominant_embedding_model, extract_search_text,
     fetch_revision, get_document_embedding, get_embed_backend, is_nlp_enabled, remove_document_fts,
     restore_document_content, save_artifact, save_revision, semantic_search, similar_documents,
-    sync_document_fts, sync_document_links, upsert_embedding,
+    sync_document_fts, sync_document_links, upsert_embedding_with_chunks,
+    EmbeddingChunkInput,
 };
 use crate::nlp::{script_path_label, NlpSidecar};
 use crate::path::default_db_path;
@@ -26,7 +27,8 @@ use crate::plain_text::{
     tiptap_to_plain_text, toggle_matching_task, OutlineItem,
 };
 use crate::tasks::{
-    append_phrase_tasks, extract_checkbox_tasks, merge_document_tasks, DocumentTask,
+    append_phrase_tasks, enrich_due_hints_from_sidecar, extract_checkbox_tasks_with_due,
+    merge_document_tasks, DocumentTask,
 };
 
 const SUMMARY_SELECT: &str =
@@ -1520,19 +1522,20 @@ impl ScribeStore {
             return Err(format!("Document not found: {document_id}"));
         }
 
-        let mut tasks = extract_checkbox_tasks(&content_json);
+        let nlp_enabled = is_nlp_enabled(&self.db)?;
+        let mut tasks = extract_checkbox_tasks_with_due(&content_json, !nlp_enabled);
         for task in &mut tasks {
             task.document_id = Some(document_id.to_string());
             task.document_title = Some(title.clone());
         }
 
-        let nlp_enabled = is_nlp_enabled(&self.db)?;
         if nlp_enabled {
             sync_sidecar_backend(sidecar, &self.db)?;
             let text = format!("{title}\n{}", extract_search_text(&content_json));
             if let Ok(result) = sidecar.extract_tasks(&text) {
                 append_phrase_tasks(&mut tasks, &result, document_id, &title);
             }
+            let _ = enrich_due_hints_from_sidecar(sidecar, &mut tasks);
         }
 
         Ok(merge_document_tasks(tasks))
@@ -1601,7 +1604,7 @@ impl ScribeStore {
 
         let mut tasks_out = Vec::new();
         for (document_id, title, content_json) in combined {
-            let mut tasks = extract_checkbox_tasks(&content_json);
+            let mut tasks = extract_checkbox_tasks_with_due(&content_json, !nlp_phrases);
             for task in &mut tasks {
                 task.document_id = Some(document_id.clone());
                 task.document_title = Some(title.clone());
@@ -1612,6 +1615,7 @@ impl ScribeStore {
                 if let Ok(result) = sidecar.extract_tasks(&text) {
                     append_phrase_tasks(&mut tasks, &result, &document_id, &title);
                 }
+                let _ = enrich_due_hints_from_sidecar(sidecar, &mut tasks);
             }
 
             tasks_out.extend(tasks.into_iter().filter(|task| !task.checked));
@@ -2176,7 +2180,7 @@ impl ScribeStore {
                 continue;
             };
 
-            let mut tasks = extract_checkbox_tasks(&content_json);
+            let mut tasks = extract_checkbox_tasks_with_due(&content_json, !nlp_enabled);
             for task in &mut tasks {
                 task.document_id = Some(document_id.clone());
                 task.document_title = Some(title.clone());
@@ -2188,6 +2192,7 @@ impl ScribeStore {
                 if let Ok(result) = sidecar.extract_tasks(&text) {
                     append_phrase_tasks(&mut tasks, &result, document_id, &title);
                 }
+                let _ = enrich_due_hints_from_sidecar(sidecar, &mut tasks);
             }
 
             combined.extend(tasks);
@@ -2210,18 +2215,28 @@ impl ScribeStore {
 
         let text = format!("{title}\n{}", extract_search_text(&content_json));
         sync_sidecar_backend(sidecar, &self.db)?;
-        let (vector, model) = sidecar.embed_text(&text)?;
-        upsert_embedding(
+        let embedded = sidecar.embed_with_chunks(&text)?;
+        let chunks: Vec<EmbeddingChunkInput> = embedded
+            .chunks
+            .into_iter()
+            .map(|chunk| EmbeddingChunkInput {
+                index: chunk.index,
+                text: chunk.text,
+                vector: chunk.vector,
+            })
+            .collect();
+        upsert_embedding_with_chunks(
             &self.db,
             document_id,
-            &vector,
-            &model,
+            &embedded.vector,
+            &chunks,
+            &embedded.model,
             chrono::Utc::now().timestamp(),
         )?;
 
         Ok(IndexResult {
             indexed: 1,
-            model,
+            model: embedded.model,
         })
     }
 
@@ -2266,11 +2281,27 @@ impl ScribeStore {
         for chunk in docs.chunks(BATCH_SIZE) {
             let ids: Vec<String> = chunk.iter().map(|(id, _)| id.clone()).collect();
             let texts: Vec<String> = chunk.iter().map(|(_, text)| text.clone()).collect();
-            let (vectors, batch_model) = sidecar.embed_batch(&texts)?;
+            let (results, batch_model) = sidecar.embed_batch_with_chunks(&texts)?;
             model = batch_model;
 
-            for (document_id, vector) in ids.into_iter().zip(vectors.into_iter()) {
-                upsert_embedding(&self.db, &document_id, &vector, &model, now)?;
+            for (document_id, embedded) in ids.into_iter().zip(results.into_iter()) {
+                let chunks: Vec<EmbeddingChunkInput> = embedded
+                    .chunks
+                    .into_iter()
+                    .map(|chunk| EmbeddingChunkInput {
+                        index: chunk.index,
+                        text: chunk.text,
+                        vector: chunk.vector,
+                    })
+                    .collect();
+                upsert_embedding_with_chunks(
+                    &self.db,
+                    &document_id,
+                    &embedded.vector,
+                    &chunks,
+                    &model,
+                    now,
+                )?;
                 indexed += 1;
             }
         }

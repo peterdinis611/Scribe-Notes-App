@@ -11,6 +11,7 @@ pub use embeddings::{
     count_embeddings, count_stale_embeddings, dominant_embedding_model, get_document_embedding,
     get_embed_backend, is_nlp_enabled, remove_embedding, save_artifact, semantic_search,
     set_embed_backend, set_nlp_enabled, similar_documents, upsert_embedding,
+    upsert_embedding_with_chunks, EmbeddingChunkInput,
 };
 pub use fts::{backfill_fts, extract_search_text, remove_document_fts, sync_document_fts};
 pub use links::{backfill_links, sync_document_links};

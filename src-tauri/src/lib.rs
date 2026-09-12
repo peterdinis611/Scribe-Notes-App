@@ -254,6 +254,7 @@ pub fn run() {
             commands::nlp::nlp_summarize_diff,
             commands::nlp::nlp_template_fill_hints,
             commands::nlp::nlp_spellcheck,
+            commands::nlp::nlp_library_answer,
             commands::revisions::list_document_revisions,
             commands::revisions::get_document_revision,
             commands::revisions::create_named_revision,

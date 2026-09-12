@@ -184,3 +184,9 @@ export interface SpellcheckResult {
 
 export const nlpSpellcheck = (documentId: string) =>
   invoke<SpellcheckResult>('nlp_spellcheck', { documentId })
+
+export const nlpLibraryAnswer = (question: string, limit = 6) =>
+  invoke<{ answer: string; citations: Array<{ documentId: string; title: string; snippet: string }> }>(
+    'nlp_library_answer',
+    { question, limit },
+  )

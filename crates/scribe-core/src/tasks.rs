@@ -2,6 +2,7 @@ use serde::Serialize;
 use serde_json::Value;
 
 use crate::dates::extract_due_hint;
+use crate::nlp::NlpSidecar;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -15,15 +16,20 @@ pub struct DocumentTask {
 }
 
 pub fn extract_checkbox_tasks(content_json: &str) -> Vec<DocumentTask> {
+    extract_checkbox_tasks_with_due(content_json, true)
+}
+
+/// Checkbox tasks; set `apply_offline_due` false when NLP will enrich due hints.
+pub fn extract_checkbox_tasks_with_due(content_json: &str, apply_offline_due: bool) -> Vec<DocumentTask> {
     let Ok(value) = serde_json::from_str::<Value>(content_json) else {
         return Vec::new();
     };
     let mut tasks = Vec::new();
-    collect_checkbox_tasks(&value, &mut tasks);
+    collect_checkbox_tasks(&value, &mut tasks, apply_offline_due);
     tasks
 }
 
-fn collect_checkbox_tasks(value: &Value, tasks: &mut Vec<DocumentTask>) {
+fn collect_checkbox_tasks(value: &Value, tasks: &mut Vec<DocumentTask>, apply_offline_due: bool) {
     let Some(obj) = value.as_object() else {
         return;
     };
@@ -35,7 +41,11 @@ fn collect_checkbox_tasks(value: &Value, tasks: &mut Vec<DocumentTask>) {
             .unwrap_or(false);
         let text = node_plain_text(value);
         if !text.trim().is_empty() {
-            let due_hint = extract_due_hint(&text);
+            let due_hint = if apply_offline_due {
+                extract_due_hint(&text)
+            } else {
+                None
+            };
             tasks.push(DocumentTask {
                 text,
                 checked,
@@ -48,7 +58,7 @@ fn collect_checkbox_tasks(value: &Value, tasks: &mut Vec<DocumentTask>) {
     }
     if let Some(content) = obj.get("content").and_then(|item| item.as_array()) {
         for child in content {
-            collect_checkbox_tasks(child, tasks);
+            collect_checkbox_tasks(child, tasks, apply_offline_due);
         }
     }
 }
@@ -99,6 +109,7 @@ pub fn append_phrase_tasks(
         let Some(body) = item.get("text").and_then(|value| value.as_str()) else {
             continue;
         };
+        // Prefer Python dueHint; offline Rust only if NLP omitted it.
         let due_hint = item
             .get("dueHint")
             .and_then(|value| value.as_str())
@@ -120,6 +131,24 @@ pub fn append_phrase_tasks(
             document_title: Some(document_title.to_string()),
         });
     }
+}
+
+/// Prefer Python `resolve_due_hints` for all task lines; keep existing when RPC fails.
+pub fn enrich_due_hints_from_sidecar(
+    sidecar: &NlpSidecar,
+    tasks: &mut [DocumentTask],
+) -> Result<(), String> {
+    if tasks.is_empty() {
+        return Ok(());
+    }
+    let texts: Vec<String> = tasks.iter().map(|task| task.text.clone()).collect();
+    let hints = sidecar.resolve_due_hints(&texts)?;
+    for (task, hint) in tasks.iter_mut().zip(hints.into_iter()) {
+        if let Some(value) = hint {
+            task.due_hint = Some(value);
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]
