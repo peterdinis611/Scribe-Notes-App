@@ -1,7 +1,8 @@
 """Offline spell / typo check for Scribe notes (stdlib only).
 
-Uses bundled EN/SK wordlists. Unknown words are reported only when a close
-suggestion exists (edit distance 1–2), so rare proper nouns stay quiet.
+Uses bundled EN/SK wordlists (google-10k English + LibreOffice/Hunspell-derived
+Slovak forms). Unknown words are reported only when a close suggestion exists
+(edit distance 1–2), so rare proper nouns stay quiet.
 """
 
 from __future__ import annotations

@@ -1,4 +1,4 @@
-import { Bookmark, CalendarDays, SpellCheck } from 'lucide-react'
+import { Code2, FileText, Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
@@ -13,9 +13,9 @@ import { APP_VERSION } from '@/lib/app-version'
 import { persistWhatsNewVersion } from '@/store/persistence'
 
 const HIGHLIGHTS = [
-  { id: 'offlineSpellcheck', icon: SpellCheck },
-  { id: 'namedVersions', icon: Bookmark },
-  { id: 'dailyBriefing', icon: CalendarDays },
+  { id: 'structuredPdf', icon: FileText },
+  { id: 'codeHighlightAll', icon: Code2 },
+  { id: 'minilmBatch', icon: Sparkles },
 ] as const
 
 /** Major.minor for “Scribe 1.4” style titles. */

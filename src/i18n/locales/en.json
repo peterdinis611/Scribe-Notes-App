@@ -249,8 +249,20 @@
   "whatsNew": {
     "badge": "What's new in {{version}}",
     "title": "Scribe {{version}}",
-    "subtitle": "Offline spell check in Local AI, plus named versions, sync status, and daily briefing from 1.4.",
+    "subtitle": "Structured PDF templates, full code highlighting, and faster MiniLM Local AI.",
     "gotIt": "Got it",
+    "structuredPdf": {
+      "title": "Structured PDF templates",
+      "description": "Export journal digests, library reports, and invoices as JSX PDF templates — alongside the usual note PDF."
+    },
+    "codeHighlightAll": {
+      "title": "All highlight.js languages",
+      "description": "Code blocks support ~192 languages with a searchable language picker."
+    },
+    "minilmBatch": {
+      "title": "Faster MiniLM indexing",
+      "description": "Quality embeddings batch-encode on reindex, duplicates, and keywords — Local AI sidecar 0.8.1."
+    },
     "offlineSpellcheck": {
       "title": "Offline spell check",
       "description": "AI insights can check SK/EN typos locally via the Python sidecar — click a word to find it in the document."
@@ -1761,6 +1773,10 @@
       "syntaxLanguageEmpty": "No matching language",
       "addRow": "Add row",
       "addColumn": "Add column",
+      "sortAsc": "Sort column A→Z",
+      "sortDesc": "Sort column Z→A",
+      "fillDown": "Fill down",
+      "sumColumn": "Sum column into cell",
       "showInvisible": "Show invisible characters",
       "hideInvisible": "Hide invisible characters",
       "spellcheckOn": "Enable spell check",
@@ -1770,6 +1786,11 @@
       "textLabel": "Text",
       "highlightLabel": "Highlight",
       "customColor": "Custom"
+    },
+    "table": {
+      "needColumn": "Place the cursor in a table column first.",
+      "fillEmpty": "Nothing to fill — select a cell with a value above empty cells.",
+      "needNumbers": "No numbers found in this column to sum."
     },
     "fonts": {
       "default": "Default",
@@ -2035,6 +2056,33 @@
     "invoiceNotes": "Generated from Scribe. Edit amounts and parties before sending.",
     "exportError": "Structured PDF export failed",
     "exportCancelled": "Export cancelled"
+  },
+  "invoiceDialog": {
+    "title": "Export invoice PDF",
+    "description": "Fill in parties, line items, and tax. Last values are remembered for next time.",
+    "invoiceNumber": "Invoice number",
+    "invoiceNumberPlaceholder": "Auto if empty",
+    "from": "From",
+    "billTo": "Bill to",
+    "companyName": "Company name",
+    "clientName": "Client name",
+    "email": "Email",
+    "address": "Address",
+    "phone": "Phone",
+    "items": "Line items",
+    "itemDescription": "Description",
+    "quantity": "Qty",
+    "unitPrice": "Unit price",
+    "addItem": "Add item",
+    "removeItem": "Remove item",
+    "taxPercent": "Tax %",
+    "dueInDays": "Due in (days)",
+    "paymentMethod": "Payment method",
+    "notes": "Notes",
+    "subtotal": "Subtotal",
+    "tax": "Tax",
+    "total": "Total",
+    "export": "Export PDF"
   },
   "lorem": {
     "title": "Insert lorem ipsum",

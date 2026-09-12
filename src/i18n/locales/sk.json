@@ -249,8 +249,20 @@
   "whatsNew": {
     "badge": "Novinky {{version}}",
     "title": "Scribe {{version}}",
-    "subtitle": "Offline kontrola pravopisu v Lokálnej AI, plus pomenované verzie, stav syncu a denný briefing z 1.4.",
+    "subtitle": "Štruktúrované PDF šablóny, plné zvýraznenie kódu a rýchlejší MiniLM v Lokálnej AI.",
     "gotIt": "Rozumiem",
+    "structuredPdf": {
+      "title": "Štruktúrované PDF šablóny",
+      "description": "Export denníkových digestov, reportov knižnice a faktúr ako JSX PDF — vedľa klasického PDF z poznámky."
+    },
+    "codeHighlightAll": {
+      "title": "Všetky highlight.js jazyky",
+      "description": "Bloky kódu podporujú ~192 jazykov s vyhľadávateľným výberom."
+    },
+    "minilmBatch": {
+      "title": "Rýchlejší MiniLM index",
+      "description": "Quality embeddingy idú batch-encode pri reindexe, duplikátoch a kľúčových slovách — sidecar 0.8.1."
+    },
     "offlineSpellcheck": {
       "title": "Offline kontrola pravopisu",
       "description": "AI prehľad skontroluje SK/EN preklepy lokálne cez Python sidecar — klik na slovo ho nájde v dokumente."
@@ -1775,6 +1787,10 @@
       "syntaxLanguageEmpty": "Žiadny jazyk",
       "addRow": "Pridať riadok",
       "addColumn": "Pridať stĺpec",
+      "sortAsc": "Zoradiť stĺpec A→Z",
+      "sortDesc": "Zoradiť stĺpec Z→A",
+      "fillDown": "Vyplniť nadol",
+      "sumColumn": "Súčet stĺpca do bunky",
       "showInvisible": "Zobraziť neviditeľné znaky",
       "hideInvisible": "Skryť neviditeľné znaky",
       "spellcheckOn": "Zapnúť kontrolu pravopisu",
@@ -1784,6 +1800,11 @@
       "textLabel": "Text",
       "highlightLabel": "Zvýraznenie",
       "customColor": "Vlastná"
+    },
+    "table": {
+      "needColumn": "Najprv klikni do stĺpca tabuľky.",
+      "fillEmpty": "Nie je čo vyplniť — vyber bunku s hodnotou nad prázdnymi bunkami.",
+      "needNumbers": "V tomto stĺpci nie sú čísla na súčet."
     },
     "fonts": {
       "default": "Predvolená",
@@ -2051,6 +2072,33 @@
     "invoiceNotes": "Vygenerované zo Scribe. Pred odoslaním upravte sumy a strany.",
     "exportError": "Export štruktúrovaného PDF zlyhal",
     "exportCancelled": "Export zrušený"
+  },
+  "invoiceDialog": {
+    "title": "Export faktúry PDF",
+    "description": "Vyplň strany, položky a DPH. Posledné hodnoty sa zapamätajú.",
+    "invoiceNumber": "Číslo faktúry",
+    "invoiceNumberPlaceholder": "Automaticky, ak je prázdne",
+    "from": "Dodávateľ",
+    "billTo": "Odberateľ",
+    "companyName": "Názov firmy",
+    "clientName": "Meno klienta",
+    "email": "E-mail",
+    "address": "Adresa",
+    "phone": "Telefón",
+    "items": "Položky",
+    "itemDescription": "Popis",
+    "quantity": "Množstvo",
+    "unitPrice": "Jedn. cena",
+    "addItem": "Pridať položku",
+    "removeItem": "Odstrániť položku",
+    "taxPercent": "DPH %",
+    "dueInDays": "Splatnosť (dni)",
+    "paymentMethod": "Spôsob platby",
+    "notes": "Poznámky",
+    "subtotal": "Medzisúčet",
+    "tax": "DPH",
+    "total": "Celkom",
+    "export": "Exportovať PDF"
   },
   "lorem": {
     "title": "Vložiť lorem ipsum",

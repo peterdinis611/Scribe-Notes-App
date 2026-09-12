@@ -4,7 +4,7 @@ const DB_VERSION = 1
 
 const memoryBackend = new Map<string, string>()
 
-function useMemoryBackend() {
+function shouldUseMemoryBackend() {
   return import.meta.env.VITEST === true || typeof indexedDB === 'undefined'
 }
 
@@ -38,7 +38,7 @@ function withStore<T>(mode: IDBTransactionMode, run: (store: IDBObjectStore) => 
 }
 
 export async function idbGetAll(): Promise<Map<string, string>> {
-  if (useMemoryBackend()) {
+  if (shouldUseMemoryBackend()) {
     return new Map(memoryBackend)
   }
 
@@ -64,7 +64,7 @@ export async function idbGetAll(): Promise<Map<string, string>> {
 }
 
 export async function idbSet(key: string, value: string): Promise<void> {
-  if (useMemoryBackend()) {
+  if (shouldUseMemoryBackend()) {
     memoryBackend.set(key, value)
     return
   }
@@ -72,7 +72,7 @@ export async function idbSet(key: string, value: string): Promise<void> {
 }
 
 export async function idbRemove(key: string): Promise<void> {
-  if (useMemoryBackend()) {
+  if (shouldUseMemoryBackend()) {
     memoryBackend.delete(key)
     return
   }
@@ -80,7 +80,7 @@ export async function idbRemove(key: string): Promise<void> {
 }
 
 export async function idbClear(): Promise<void> {
-  if (useMemoryBackend()) {
+  if (shouldUseMemoryBackend()) {
     memoryBackend.clear()
     return
   }

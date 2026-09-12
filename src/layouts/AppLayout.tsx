@@ -32,6 +32,7 @@ import { ROUTES } from '@/lib/routes'
 import type { DocumentTemplate } from '@/lib/templates'
 import { InputDialogHost } from '@/components/InputDialogHost'
 import { LoremIpsumDialogHost } from '@/components/LoremIpsumDialogHost'
+import { InvoiceDialogHost } from '@/components/InvoiceDialogHost'
 import { StorageAccessDialogHost } from '@/components/StorageAccessDialogHost'
 import { SaveCustomTemplateDialogHost } from '@/components/SaveCustomTemplateDialogHost'
 import { ToastHost } from '@/components/ToastHost'
@@ -220,6 +221,7 @@ export function AppLayout() {
       />
       <InputDialogHost />
       <LoremIpsumDialogHost />
+      <InvoiceDialogHost />
       <StorageAccessDialogHost />
       <SaveCustomTemplateDialogHost />
       <TrashDialog />

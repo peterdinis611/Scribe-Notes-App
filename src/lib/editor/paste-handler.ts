@@ -78,25 +78,23 @@ export const ClipboardPaste = Extension.create<ClipboardPasteOptions>({
   },
 
   addProseMirrorPlugins() {
-    const extension = this
-
     return [
       new Plugin({
         props: {
-          handlePaste(_view, event) {
+          handlePaste: (_view, event) => {
             const files = getImageOnlyClipboardFiles(event.clipboardData)
-            if (files.length && extension.options.onInsertImages) {
+            if (files.length && this.options.onInsertImages) {
               event.preventDefault()
-              void extension.options.onInsertImages(files)
+              void this.options.onInsertImages(files)
               return true
             }
 
             const text = event.clipboardData?.getData('text/plain') ?? ''
             const grid = parseTsvTable(text)
-            if (!grid || !extension.editor) return false
+            if (!grid || !this.editor) return false
 
             event.preventDefault()
-            extension.editor.chain().focus().insertContent(tsvGridToTableHtml(grid)).run()
+            this.editor.chain().focus().insertContent(tsvGridToTableHtml(grid)).run()
             return true
           },
         },

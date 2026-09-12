@@ -12,7 +12,14 @@ export type InputDialogOptions = {
 
 export type InputDialogState = ({ open: true } & InputDialogOptions) | { open: false }
 
+import type { InvoiceDialogDraft } from '@/lib/invoice-dialog'
+
 export type LoremDialogState = { open: boolean }
+
+export type InvoiceDialogState = {
+  open: boolean
+  seed?: Partial<InvoiceDialogDraft> | null
+}
 
 export type StorageAccessDialogIntent = 'info' | 'pick'
 
@@ -24,6 +31,7 @@ export interface UiState {
   toasts: ToastItem[]
   inputDialog: InputDialogState
   loremDialog: LoremDialogState
+  invoiceDialog: InvoiceDialogState
   storageAccessDialog: StorageAccessDialogState
 }
 
@@ -31,6 +39,7 @@ const initialState: UiState = {
   toasts: [],
   inputDialog: { open: false },
   loremDialog: { open: false },
+  invoiceDialog: { open: false },
   storageAccessDialog: { open: false },
 }
 
@@ -50,6 +59,9 @@ const uiSlice = createSlice({
     setLoremDialog(state, action: PayloadAction<LoremDialogState>) {
       state.loremDialog = action.payload
     },
+    setInvoiceDialog(state, action: PayloadAction<InvoiceDialogState>) {
+      state.invoiceDialog = action.payload
+    },
     setStorageAccessDialog(state, action: PayloadAction<StorageAccessDialogState>) {
       state.storageAccessDialog = action.payload
     },
@@ -61,6 +73,7 @@ export const {
   dismissToast,
   setInputDialog,
   setLoremDialog,
+  setInvoiceDialog,
   setStorageAccessDialog,
 } = uiSlice.actions
 

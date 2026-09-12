@@ -257,17 +257,30 @@ function EditorChrome() {
         exportLibraryReportPdf,
         exportStructuredPdfAndReveal,
       } = await import('@/lib/export/structured-pdf')
-      const result =
-        kind === 'invoice'
-          ? await exportInvoicePdf({
+      if (kind === 'invoice') {
+        const { promptInvoiceOptions } = await import('@/lib/invoice-dialog')
+        const input = await promptInvoiceOptions({
+          items: [
+            {
               description:
                 document?.title?.trim() || t('structuredPdf.invoiceDefaultDescription'),
-              notes: t('structuredPdf.invoiceNotes'),
-            })
-          : await exportLibraryReportPdf({
-              title: t('structuredPdf.libraryReportTitle'),
-              footerNote: t('structuredPdf.libraryReportFooter'),
-            })
+              quantity: 1,
+              unitPrice: 0,
+            },
+          ],
+          notes: t('structuredPdf.invoiceNotes'),
+        })
+        if (!input) return
+        const result = await exportInvoicePdf(input)
+        const path = await exportStructuredPdfAndReveal(result)
+        if (path) toast.success(t('toasts.exportDone'), fileBasename(path))
+        else toast.info(t('structuredPdf.exportCancelled'))
+        return
+      }
+      const result = await exportLibraryReportPdf({
+        title: t('structuredPdf.libraryReportTitle'),
+        footerNote: t('structuredPdf.libraryReportFooter'),
+      })
       const path = await exportStructuredPdfAndReveal(result)
       if (path) toast.success(t('toasts.exportDone'), fileBasename(path))
       else toast.info(t('structuredPdf.exportCancelled'))

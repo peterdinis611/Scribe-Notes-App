@@ -1,12 +1,17 @@
 import type { Editor } from '@tiptap/react'
 import { useEditorState } from '@tiptap/react'
-import { Code, FunctionSquare, GitBranch, ImagePlus, Play, ScanLine, Sigma, SplitSquareHorizontal, Table2, TextQuote, Trash2 } from 'lucide-react'
+import { ArrowDownAZ, ArrowUpAZ, Code, FunctionSquare, GitBranch, ImagePlus, Play, ScanLine, Sigma, SplitSquareHorizontal, Table2, TextQuote, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { CodeLanguageMenu } from '@/components/editor-toolbar/CodeLanguageMenu'
 import { ToolbarButton, ToolbarGroup } from '@/components/editor-toolbar/primitives'
 import { deleteCurrentBlock } from '@/lib/editor/delete-content'
 import { insertBlockMath, insertInlineMath, insertLoremIpsum, insertMermaidDiagram, insertScannedBarcode, insertYoutubeVideo } from '@/lib/editor/insert-helpers'
 import { pickImageFiles } from '@/lib/editor/image-utils'
+import {
+  fillDownActiveColumn,
+  insertColumnTotalBelow,
+  sortTableByActiveColumn,
+} from '@/lib/editor/table-commands'
 import { isBarcodeScannerSupported } from '@/lib/barcode-scanner'
 import { toast } from '@/lib/toast'
 
@@ -125,6 +130,38 @@ export function InsertTab({ editor, onInsertImages }: InsertTabProps) {
           </ToolbarButton>
           <ToolbarButton label={t('toolbar.actions.addColumn')} onClick={() => editor.chain().focus().addColumnAfter().run()}>
             +S
+          </ToolbarButton>
+          <ToolbarButton
+            label={t('toolbar.actions.sortAsc')}
+            onClick={() => {
+              if (!sortTableByActiveColumn(editor, 'asc')) toast.info(t('toolbar.table.needColumn'))
+            }}
+          >
+            <ArrowDownAZ className="h-4 w-4 stroke-[1.75]" />
+          </ToolbarButton>
+          <ToolbarButton
+            label={t('toolbar.actions.sortDesc')}
+            onClick={() => {
+              if (!sortTableByActiveColumn(editor, 'desc')) toast.info(t('toolbar.table.needColumn'))
+            }}
+          >
+            <ArrowUpAZ className="h-4 w-4 stroke-[1.75]" />
+          </ToolbarButton>
+          <ToolbarButton
+            label={t('toolbar.actions.fillDown')}
+            onClick={() => {
+              if (!fillDownActiveColumn(editor)) toast.info(t('toolbar.table.fillEmpty'))
+            }}
+          >
+            ↓=
+          </ToolbarButton>
+          <ToolbarButton
+            label={t('toolbar.actions.sumColumn')}
+            onClick={() => {
+              if (!insertColumnTotalBelow(editor)) toast.info(t('toolbar.table.needNumbers'))
+            }}
+          >
+            Σ
           </ToolbarButton>
           <ToolbarButton label={t('editorActions.deleteTable')} onClick={() => editor.chain().focus().deleteTable().run()}>
             <Trash2 className="h-4 w-4 stroke-[1.75]" />

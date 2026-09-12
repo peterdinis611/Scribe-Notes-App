@@ -89,7 +89,7 @@ export async function downloadImageSrc(src: string, baseName = 'image'): Promise
   const response = await fetch(resolved)
   const blob = await response.blob()
   const ext = guessExtension(src, blob.type)
-  const safeName = baseName.replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '') || 'image'
+  const safeName = baseName.replace(/[^\w-]+/g, '_').replace(/^_+|_+$/g, '') || 'image'
   const objectUrl = URL.createObjectURL(blob)
   try {
     const link = document.createElement('a')

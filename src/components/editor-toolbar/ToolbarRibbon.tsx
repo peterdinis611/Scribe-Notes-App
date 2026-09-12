@@ -1,6 +1,8 @@
 import type { Editor } from '@tiptap/react'
 import { useEditorState } from '@tiptap/react'
 import {
+  ArrowDownAZ,
+  ArrowUpAZ,
   AlignCenter,
   AlignJustify,
   AlignLeft,
@@ -61,6 +63,11 @@ import { CodeLanguageMenu } from '@/components/editor-toolbar/CodeLanguageMenu'
 import { LINE_HEIGHTS, PARAGRAPH_SPACING } from '@/lib/editor/block-spacing'
 import { FONT_SIZES, HIGHLIGHT_COLORS, TEXT_COLORS } from '@/lib/editor/font-size'
 import { pickImageFiles } from '@/lib/editor/image-utils'
+import {
+  fillDownActiveColumn,
+  insertColumnTotalBelow,
+  sortTableByActiveColumn,
+} from '@/lib/editor/table-commands'
 import {
   insertBlockMath,
   insertDetailsBlock,
@@ -488,6 +495,38 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
               </ToolbarButton>
               <ToolbarButton label={t('toolbar.actions.addColumn')} onClick={() => editor.chain().focus().addColumnAfter().run()}>
                 +S
+              </ToolbarButton>
+              <ToolbarButton
+                label={t('toolbar.actions.sortAsc')}
+                onClick={() => {
+                  if (!sortTableByActiveColumn(editor, 'asc')) toast.info(t('toolbar.table.needColumn'))
+                }}
+              >
+                <ArrowDownAZ className="h-4 w-4 stroke-[1.75]" />
+              </ToolbarButton>
+              <ToolbarButton
+                label={t('toolbar.actions.sortDesc')}
+                onClick={() => {
+                  if (!sortTableByActiveColumn(editor, 'desc')) toast.info(t('toolbar.table.needColumn'))
+                }}
+              >
+                <ArrowUpAZ className="h-4 w-4 stroke-[1.75]" />
+              </ToolbarButton>
+              <ToolbarButton
+                label={t('toolbar.actions.fillDown')}
+                onClick={() => {
+                  if (!fillDownActiveColumn(editor)) toast.info(t('toolbar.table.fillEmpty'))
+                }}
+              >
+                ↓=
+              </ToolbarButton>
+              <ToolbarButton
+                label={t('toolbar.actions.sumColumn')}
+                onClick={() => {
+                  if (!insertColumnTotalBelow(editor)) toast.info(t('toolbar.table.needNumbers'))
+                }}
+              >
+                Σ
               </ToolbarButton>
               <ToolbarButton label={t('editorActions.deleteTable')} onClick={() => editor.chain().focus().deleteTable().run()}>
                 <Trash2 className="h-4 w-4 stroke-[1.75]" />

@@ -106,8 +106,8 @@ export function createForceSimulation(
     // Springs along edges.
     for (const link of links) {
       const { source, target } = link
-      let dx = target.x - source.x
-      let dy = target.y - source.y
+      const dx = target.x - source.x
+      const dy = target.y - source.y
       const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 0.01)
       const delta = ((dist - linkDistance) / dist) * linkStrength * alpha
       const fx = dx * delta

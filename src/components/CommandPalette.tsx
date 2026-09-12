@@ -392,14 +392,25 @@ export function CommandPalette() {
         label: t('commandPalette.exportInvoicePdf'),
         icon: <FileDown className="h-4 w-4" />,
         run: () => {
-          void import('@/lib/export/structured-pdf')
-            .then(async ({ exportInvoicePdf, exportStructuredPdfAndReveal }) => {
-              const description =
-                activeDocument?.title?.trim() || t('structuredPdf.invoiceDefaultDescription')
-              const result = await exportInvoicePdf({
-                description,
+          void import('@/lib/invoice-dialog')
+            .then(async ({ promptInvoiceOptions }) => {
+              const input = await promptInvoiceOptions({
+                items: [
+                  {
+                    description:
+                      activeDocument?.title?.trim() ||
+                      t('structuredPdf.invoiceDefaultDescription'),
+                    quantity: 1,
+                    unitPrice: 0,
+                  },
+                ],
                 notes: t('structuredPdf.invoiceNotes'),
               })
+              if (!input) return
+              const { exportInvoicePdf, exportStructuredPdfAndReveal } = await import(
+                '@/lib/export/structured-pdf'
+              )
+              const result = await exportInvoicePdf(input)
               const path = await exportStructuredPdfAndReveal(result)
               if (path) toast.success(t('toasts.exportDone'), path.split('/').pop() ?? path)
               else toast.info(t('structuredPdf.exportCancelled'))
