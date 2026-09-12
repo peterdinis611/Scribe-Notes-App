@@ -2413,8 +2413,14 @@ html[data-ui-skin='press'] .editor-shell--home {
 }
 
 .code-lang-menu {
+  max-height: none;
+  overflow: hidden;
+  min-width: 240px;
+  padding: 0;
+}
+
+.code-lang-menu__list {
   max-height: 280px;
-  overflow-y: auto;
 }
 
 .code-lang-menu .is-selected {

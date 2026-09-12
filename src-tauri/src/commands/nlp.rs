@@ -543,6 +543,7 @@ pub fn nlp_index_document(
         if !is_nlp_enabled(&conn)? {
             return Err("NLP is disabled".to_string());
         }
+        sync_sidecar_backend(&sidecar, &conn)?;
 
         let (title, content_json): (String, String) = conn
             .query_row(
@@ -580,6 +581,7 @@ pub fn nlp_index_all(
         if !is_nlp_enabled(&conn)? {
             return Err("NLP is disabled".to_string());
         }
+        sync_sidecar_backend(&sidecar, &conn)?;
 
         let mut stmt = conn
             .prepare("SELECT id, title, content_json FROM documents WHERE deleted_at IS NULL")

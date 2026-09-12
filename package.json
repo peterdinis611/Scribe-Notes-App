@@ -94,7 +94,7 @@
     "clsx": "^2.1.1",
     "effect": "^3.22.0",
     "emoji-picker-react": "^4.19.1",
-    "highlight.js": "^11.11.1",
+    "highlight.js": "^11.12.0",
     "i18next": "^26.3.6",
     "lowlight": "^3.3.0",
     "lucide-react": "^1.26.0",

@@ -13,13 +13,14 @@ from .config import (
     MAX_TEXT_CHARS,
 )
 from .debug import nlp_debug_enabled
-from .embed import embed_text
+from .embed import embed_batch, embed_text
 from .embed_backend import (
     active_backend,
     configure_backend,
     current_model_id,
     quality_available,
     set_backend_change_hook,
+    warmup_quality_model,
 )
 from .text_utils import truncate_text
 
@@ -142,6 +143,8 @@ def _handle_request_inner(
         elif method == "set_embed_backend":
             backend = str(params.get("backend") or "hash")
             configured = configure_backend(backend)
+            if configured == "quality":
+                warmup_quality_model()
             result = {
                 "embedBackend": configured,
                 "model": current_model_id(),
@@ -160,8 +163,12 @@ def _handle_request_inner(
                     f"texts exceeds batch limit ({MAX_EMBED_BATCH})",
                     code=-32602,
                 )
-            texts = [_validate_text(str(item), field="texts[]") for item in raw_texts]
-            vectors = [_embed_cached(text) for text in texts]
+            texts = [
+                truncate_text(_validate_text(str(item), field="texts[]"), MAX_TEXT_CHARS)
+                for item in raw_texts
+            ]
+            # Real MiniLM batch encode when quality is active (not N× single embeds).
+            vectors = embed_batch(texts)
             dims = len(vectors[0]) if vectors else 0
             result = {"vectors": vectors, "model": current_model_id(), "dims": dims}
         elif method == "summarize":

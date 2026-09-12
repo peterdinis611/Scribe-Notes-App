@@ -49,7 +49,6 @@ import {
   ToolbarButton,
 } from '@/components/editor-toolbar/primitives'
 import { EmojiPickerPanel } from '@/components/editor/EmojiPickerPanel'
-import { CODE_LANGUAGES, getCodeLanguageLabel } from '@/lib/editor/code-languages'
 import { safeEditorCanRedo, safeEditorCanUndo } from '@/lib/editor/view-ready'
 import {
   canDeleteCurrentBlock,
@@ -58,6 +57,7 @@ import {
   getActiveBlockDeleteLabel,
   hasEditorSelection,
 } from '@/lib/editor/delete-content'
+import { CodeLanguageMenu } from '@/components/editor-toolbar/CodeLanguageMenu'
 import { LINE_HEIGHTS, PARAGRAPH_SPACING } from '@/lib/editor/block-spacing'
 import { FONT_SIZES, HIGHLIGHT_COLORS, TEXT_COLORS } from '@/lib/editor/font-size'
 import { pickImageFiles } from '@/lib/editor/image-utils'
@@ -475,31 +475,12 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
               >
                 <Code className="h-4 w-4 stroke-[1.75]" />
               </ToolbarButton>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button type="button" className="toolbar-menu-trigger" title={t('toolbar.actions.syntaxLanguage')}>
-                    <span>{getCodeLanguageLabel(state.codeLanguage)}</span>
-                    <ChevronDown className="h-3 w-3 opacity-50" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="code-lang-menu">
-                  {CODE_LANGUAGES.map(({ id, label }) => (
-                    <DropdownMenuItem
-                      key={id}
-                      className={cn((state.codeLanguage ?? 'auto') === id && 'is-selected')}
-                      onClick={() => setCodeLanguage(id)}
-                    >
-                      {label}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <CodeLanguageMenu language={state.codeLanguage} onSelect={setCodeLanguage} />
               <ToolbarButton label={t('editorActions.deleteCodeBlock')} onClick={() => deleteCurrentBlock(editor)}>
                 <Trash2 className="h-4 w-4 stroke-[1.75]" />
               </ToolbarButton>
             </>
           )}
-
           {state.isTable && (
             <>
               <ToolbarButton label={t('toolbar.actions.addRow')} onClick={() => editor.chain().focus().addRowAfter().run()}>

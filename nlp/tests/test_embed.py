@@ -35,6 +35,14 @@ class EmbedTests(unittest.TestCase):
         self.assertEqual(batch[0], embed_text(texts[0]))
         self.assertEqual(batch[1], embed_text(texts[1]))
 
+    def test_embed_batch_handles_long_docs_without_crash(self) -> None:
+        long = ("poznámka " * 400).strip()
+        self.assertGreaterEqual(len(long), 1_600)
+        vectors = embed_batch([long, "krátky text"])
+        self.assertEqual(len(vectors), 2)
+        self.assertEqual(len(vectors[0]), 384)
+        self.assertEqual(len(vectors[1]), 384)
+
 
 class TextUtilsTests(unittest.TestCase):
     def test_jaccard_detects_overlap(self) -> None:

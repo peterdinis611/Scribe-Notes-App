@@ -35,7 +35,7 @@ def find_duplicates(
     if use_embeddings and prepared:
         blobs = [blob[:8_000] for _doc_id, _title, blob in prepared]
         encoded = embed_batch(blobs)
-        for (doc_id, _title, _blob), vector in zip(prepared, encoded):
+        for (doc_id, _title, _text), vector in zip(prepared, encoded):
             vectors[doc_id] = vector
 
     for index, (left_id, left_title, left_blob) in enumerate(prepared):

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .embed import cosine_similarity, embed_batch, embed_text
+from .embed import cosine_similarity, embed_batch
 from .embed_backend import active_backend, quality_available
 from .keywords import extract_keywords
 from .text_utils import truncate_text

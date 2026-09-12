@@ -42,6 +42,8 @@ Core: `health`, `embed`, `embed_batch`, `summarize`, `extract_*`, `analyze_docum
 
 0.8+: `spellcheck` — offline SK/EN typo check (bundled wordlists, edit-distance suggestions)
 
+0.8.1+: MiniLM `embed_batch` is a real ST encode (reindex / duplicates / similar / KeyBERT); device auto-detect (CUDA/MPS/CPU); index syncs quality backend before encode
+
 ## Version
 
-Current sidecar: **0.8.0**
+Current sidecar: **0.8.1**

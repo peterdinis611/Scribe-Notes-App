@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .embed import cosine_similarity, embed_batch, embed_text
+from .embed import cosine_similarity, embed_batch
 from .keywords import extract_keywords
 from .normalize import stem_lite
 from .text_utils import content_stems, jaccard_similarity, normalize_text
@@ -32,15 +32,17 @@ def similar_notes(
     }
     limit = max(1, min(int(limit or 8), 32))
 
-    candidates: list[tuple[str, str, str]] = []
+    candidates: list[tuple[str, str, str, str]] = []
     for document in documents:
         doc_id = str(document.get("id") or "")
         if not doc_id:
             continue
+        title = str(document.get("title") or "")
+        body = str(document.get("text") or "")
         blob = _doc_blob(document)
         if not blob:
             continue
-        candidates.append((doc_id, str(document.get("title") or ""), blob))
+        candidates.append((doc_id, title, body, blob))
 
     if not candidates:
         return {"matches": []}
@@ -50,7 +52,7 @@ def similar_notes(
     if use_embeddings and len(query) >= 12:
         embed_inputs = [query]
         embed_map: list[int] = []
-        for index, (_doc_id, _title, blob) in enumerate(candidates):
+        for index, (_doc_id, _title, _body, blob) in enumerate(candidates):
             if len(blob) >= 12:
                 embed_map.append(index)
                 embed_inputs.append(blob)
@@ -60,7 +62,7 @@ def similar_notes(
             doc_vectors[map_index] = vector
 
     scored: list[dict[str, object]] = []
-    for index, (doc_id, title, blob) in enumerate(candidates):
+    for index, (doc_id, title, body, blob) in enumerate(candidates):
         token_score = jaccard_similarity(query, blob)
         doc_stems = set(content_stems(blob))
         keyword_overlap = 0.0
@@ -93,9 +95,6 @@ def similar_notes(
         if score <= 0.02:
             continue
 
-        snippet_source = blob if blob else title
-        # Prefer body-only snippet when title was prepended.
-        body = blob[len(title) :].lstrip("\n") if title and blob.startswith(title) else blob
         snippet = normalize_text(body or title)
         if len(snippet) > 140:
             snippet = f"{snippet[:137].rstrip()}…"

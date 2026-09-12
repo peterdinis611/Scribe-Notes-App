@@ -121,7 +121,7 @@ Optional offline intelligence. Enable in **Settings → Local AI**. Scribe start
 | | |
 |--|--|
 | **Runtime** | Python **3.10+**, standard library only by default |
-| **Sidecar version** | **0.8.0** |
+| **Sidecar version** | **0.8.1** |
 | **Default embed model** | `scribe-hash-v4` (stem/diacritic-aware; chunk mean-pool for long notes) |
 | **Optional quality** | `pip install sentence-transformers` → MiniLM (`scribe-minilm-v1`), cached under `~/.cache/scribe-nlp/models` |
 | **What you get** | Semantic ⌘K search, AI insights (summary, tone, dates, links, keywords), tag suggestions, journal week tone, library report, revision diff summary |

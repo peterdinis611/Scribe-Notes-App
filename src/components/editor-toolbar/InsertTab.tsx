@@ -1,21 +1,14 @@
 import type { Editor } from '@tiptap/react'
 import { useEditorState } from '@tiptap/react'
-import { ChevronDown, Code, FunctionSquare, GitBranch, ImagePlus, Play, ScanLine, Sigma, SplitSquareHorizontal, Table2, TextQuote, Trash2 } from 'lucide-react'
+import { Code, FunctionSquare, GitBranch, ImagePlus, Play, ScanLine, Sigma, SplitSquareHorizontal, Table2, TextQuote, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { CodeLanguageMenu } from '@/components/editor-toolbar/CodeLanguageMenu'
 import { ToolbarButton, ToolbarGroup } from '@/components/editor-toolbar/primitives'
-import { CODE_LANGUAGES, getCodeLanguageLabel } from '@/lib/editor/code-languages'
 import { deleteCurrentBlock } from '@/lib/editor/delete-content'
 import { insertBlockMath, insertInlineMath, insertLoremIpsum, insertMermaidDiagram, insertScannedBarcode, insertYoutubeVideo } from '@/lib/editor/insert-helpers'
 import { pickImageFiles } from '@/lib/editor/image-utils'
 import { isBarcodeScannerSupported } from '@/lib/barcode-scanner'
 import { toast } from '@/lib/toast'
-import { cn } from '@/lib/utils'
 
 type InsertTabProps = {
   editor: Editor
@@ -118,29 +111,11 @@ export function InsertTab({ editor, onInsertImages }: InsertTabProps) {
             <Trash2 className="h-4 w-4 stroke-[1.75]" />
           </ToolbarButton>
         )}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              className={cn('toolbar-select', codeBlockState.isCodeBlock && 'is-active')}
-              title={t('toolbar.actions.syntaxLanguage')}
-            >
-              <span>{getCodeLanguageLabel(codeBlockState.language)}</span>
-              <ChevronDown className="h-3.5 w-3.5 opacity-60" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="code-lang-menu">
-            {CODE_LANGUAGES.map(({ id, label }) => (
-              <DropdownMenuItem
-                key={id}
-                className={cn((codeBlockState.language ?? 'auto') === id && 'is-selected')}
-                onClick={() => setCodeLanguage(id)}
-              >
-                {label}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <CodeLanguageMenu
+          language={codeBlockState.language}
+          onSelect={setCodeLanguage}
+          triggerClassName={codeBlockState.isCodeBlock ? 'is-active' : undefined}
+        />
       </ToolbarGroup>
 
       {codeBlockState.isTable && (

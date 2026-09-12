@@ -1,32 +1,14 @@
-import { createLowlight, common } from 'lowlight'
-import hljs from 'highlight.js/lib/common'
-import dart from 'highlight.js/lib/languages/dart'
-import dockerfile from 'highlight.js/lib/languages/dockerfile'
-import elixir from 'highlight.js/lib/languages/elixir'
-import haskell from 'highlight.js/lib/languages/haskell'
-import powershell from 'highlight.js/lib/languages/powershell'
-import scala from 'highlight.js/lib/languages/scala'
-import xml from 'highlight.js/lib/languages/xml'
+import { createLowlight, all } from 'lowlight'
+import hljs from 'highlight.js'
 import { resolveCodeLanguage } from '@/lib/editor/code-languages'
 
-const lowlight = createLowlight(common)
+/**
+ * Full [highlight.js](https://highlightjs.org/) grammar set (~192 languages)
+ * for TipTap CodeBlockLowlight + HTML export highlighting.
+ */
+const lowlight = createLowlight(all)
 
-const extraLanguages = {
-  dart,
-  dockerfile,
-  elixir,
-  haskell,
-  powershell,
-  scala,
-  html: xml,
-} as const
-
-for (const [name, grammar] of Object.entries(extraLanguages)) {
-  lowlight.register(name, grammar)
-  hljs.registerLanguage(name, grammar)
-}
-
-export { lowlight }
+export { lowlight, hljs }
 
 export function highlightCode(code: string, language?: string | null): string {
   const resolved = resolveCodeLanguage(language)

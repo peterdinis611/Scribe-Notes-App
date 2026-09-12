@@ -1757,6 +1757,8 @@
       "divider": "Divider",
       "detailsBlock": "Collapsible section",
       "syntaxLanguage": "Syntax language",
+      "syntaxLanguageSearch": "Search languages…",
+      "syntaxLanguageEmpty": "No matching language",
       "addRow": "Add row",
       "addColumn": "Add column",
       "showInvisible": "Show invisible characters",

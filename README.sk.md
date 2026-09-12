@@ -121,7 +121,7 @@ Voliteľná offline inteligencia. Zapnite v **Nastavenia → Lokálna AI**. Scri
 | | |
 |--|--|
 | **Runtime** | Python **3.10+**, predvolene len štandardná knižnica |
-| **Verzia sidecaru** | **0.8.0** |
+| **Verzia sidecaru** | **0.8.1** |
 | **Predvolený embed model** | `scribe-hash-v4` (stem/diakritika; chunk mean-pool pre dlhé poznámky) |
 | **Voliteľná kvalita** | `pip install sentence-transformers` → MiniLM (`scribe-minilm-v1`), cache v `~/.cache/scribe-nlp/models` |
 | **Čo získate** | Sémantické ⌘K, AI prehľad (zhrnutie, tón, dátumy, odkazy, keywords), návrhy tagov, tón týždňa v denníku, analýza knižnice, AI zhrnutie diffu revízií |
