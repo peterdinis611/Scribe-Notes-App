@@ -317,6 +317,26 @@ function EditorChrome() {
     navigate(ROUTES.document(doc.id))
   }
 
+  async function handleImportPdfHighlights() {
+    try {
+      const { pickAndImportPdfHighlights } = await import('@/lib/import/pdf-highlights-pick')
+      const result = await pickAndImportPdfHighlights()
+      if (!result) return
+      const { document: doc, highlightCount } = result
+      dispatch(updateDocuments((prev) => prependDocumentSummary(prev, doc)))
+      dispatch(setActiveDocumentId(doc.id))
+      dispatch(setActiveDocument(doc))
+      dispatch(setSaveStatus('saved'))
+      toast.success(
+        t('toasts.pdfHighlightsImported'),
+        t('toasts.pdfHighlightsCount', { count: highlightCount }),
+      )
+      navigate(ROUTES.document(doc.id))
+    } catch (error) {
+      toast.error(t('toasts.pdfHighlightsError'), String(error))
+    }
+  }
+
   async function handleRevealFile() {
     if (document?.filePath) {
       await revealInFinder(document.filePath)
@@ -367,6 +387,7 @@ function EditorChrome() {
             hasDocument={!!document}
             hasFilePath={!!document?.filePath}
             onImport={() => void handleImport()}
+            onImportPdfHighlights={() => void handleImportPdfHighlights()}
             onRevealFile={() => void handleRevealFile()}
             onPdfPreview={document ? () => setPdfPreviewOpen(true) : undefined}
             onPrint={document ? (editorRefs.printHandler ?? undefined) : undefined}

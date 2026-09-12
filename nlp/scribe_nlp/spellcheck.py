@@ -1,7 +1,8 @@
 """Offline spell / typo check for Scribe notes (stdlib only).
 
-Uses bundled EN/SK wordlists (google-10k English + LibreOffice/Hunspell-derived
-Slovak forms). Unknown words are reported only when a close suggestion exists
+English uses a bundled google-10k wordlist. Slovak uses LibreOffice/Hunspell
+`sk_SK.dic` + `sk_SK.aff` when present (morphology-aware), with a small wordlist
+fallback. Unknown words are reported only when a close suggestion exists
 (edit distance 1–2), so rare proper nouns stay quiet.
 """
 
@@ -10,8 +11,9 @@ from __future__ import annotations
 from functools import lru_cache
 from importlib import resources
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Protocol
 
+from .hunspell_dict import load_slovak_hunspell
 from .language import detect_language
 from .stopwords import STOP_WORDS_EN, STOP_WORDS_SK
 from .text_utils import EMAIL_RE, URL_RE, WORD_RE, truncate_text
@@ -26,6 +28,12 @@ SKIP_RE_PARTS = (
     "www",
     "scribe",
 )
+
+
+class WordDictionary(Protocol):
+    def __contains__(self, item: object) -> bool: ...
+
+    def __len__(self) -> int: ...
 
 
 def _load_wordlist(name: str) -> frozenset[str]:
@@ -44,13 +52,24 @@ def _load_wordlist(name: str) -> frozenset[str]:
     )
 
 
+class _UnionDict:
+    def __init__(self, *parts: WordDictionary) -> None:
+        self._parts = parts
+
+    def __contains__(self, item: object) -> bool:
+        return any(item in part for part in self._parts)
+
+    def __len__(self) -> int:
+        # Approximate (overlaps ignored) — for diagnostics only.
+        return sum(len(part) for part in self._parts)
+
+
 @lru_cache(maxsize=1)
-def _dictionaries() -> dict[str, frozenset[str]]:
+def _dictionaries() -> dict[str, WordDictionary]:
     en = set(_load_wordlist("words_en.txt"))
     en.update(STOP_WORDS_EN)
-    sk = set(_load_wordlist("words_sk.txt"))
-    sk.update(STOP_WORDS_SK)
-    # Shared tech / product vocabulary used in the app itself.
+    sk_list = set(_load_wordlist("words_sk.txt"))
+    sk_list.update(STOP_WORDS_SK)
     shared = {
         "scribe",
         "markdown",
@@ -70,11 +89,19 @@ def _dictionaries() -> dict[str, frozenset[str]]:
         "sqlite",
     }
     en.update(shared)
-    sk.update(shared)
+    sk_list.update(shared)
+
+    en_dict: WordDictionary = frozenset(en)
+    hunspell = load_slovak_hunspell()
+    if hunspell is not None:
+        sk_dict: WordDictionary = _UnionDict(hunspell, frozenset(sk_list))
+    else:
+        sk_dict = frozenset(sk_list)
+
     return {
-        "en": frozenset(en),
-        "sk": frozenset(sk),
-        "both": frozenset(en | sk),
+        "en": en_dict,
+        "sk": sk_dict,
+        "both": _UnionDict(en_dict, sk_dict),
     }
 
 
@@ -124,7 +151,7 @@ def _edits1(word: str) -> set[str]:
     return deletes | transposes | replaces | inserts
 
 
-def _suggest(word: str, dictionary: frozenset[str], *, limit: int = MAX_SUGGESTIONS) -> list[str]:
+def _suggest(word: str, dictionary: WordDictionary, *, limit: int = MAX_SUGGESTIONS) -> list[str]:
     lower = word.lower()
     if lower in dictionary:
         return []

@@ -12,13 +12,12 @@ export type InputDialogOptions = {
 
 export type InputDialogState = ({ open: true } & InputDialogOptions) | { open: false }
 
-import type { InvoiceDialogDraft } from '@/lib/invoice-dialog'
-
 export type LoremDialogState = { open: boolean }
 
 export type InvoiceDialogState = {
   open: boolean
-  seed?: Partial<InvoiceDialogDraft> | null
+  /** Partial invoice draft seed; shaped like InvoiceDialogDraft. */
+  seed?: Record<string, unknown> | null
 }
 
 export type StorageAccessDialogIntent = 'info' | 'pick'

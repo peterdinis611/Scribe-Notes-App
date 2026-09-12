@@ -12,6 +12,7 @@ import { LibraryRecentView } from '@/components/LibraryRecentView'
 import { LibraryTagsView } from '@/components/LibraryTagsView'
 import { LibraryJournalView } from '@/components/LibraryJournalView'
 import { LibraryLinkGraphView } from '@/components/LibraryLinkGraphView'
+import { LibraryChatPanel } from '@/components/LibraryChatPanel'
 import { LibraryViewTabs, type LibraryView } from '@/components/LibraryViewTabs'
 import { SidebarRail } from '@/components/layout/SidebarRail'
 import { SidebarSearchResults } from '@/components/SidebarSearchResults'
@@ -259,6 +260,8 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                   />
                 </ScrollArea>
               )}
+
+              {libraryView === 'chat' && <LibraryChatPanel onNavigate={onClose} />}
             </>
           )}
         </div>

@@ -86,6 +86,7 @@
   "fileMenu": {
     "label": "Súbor",
     "import": "Importovať…",
+    "importPdfHighlights": "Importovať zvýraznenia z PDF…",
     "goHome": "Prejsť na úvod",
     "closeDocument": "Zatvoriť dokument",
     "revealInFinder": "Zobraziť v Finderi",
@@ -915,7 +916,8 @@
       "favorites": "Obľúbené",
       "journal": "Denník",
       "tags": "Štítky",
-      "graph": "Mapa prepojení"
+      "graph": "Mapa prepojení",
+      "chat": "Opýtať sa knižnice"
     },
     "trash": "Kôš",
     "newFolder": "Nový priečinok",
@@ -1013,6 +1015,22 @@
       "renameError": "Premenovanie zlyhalo",
       "mergeError": "Zlúčenie zlyhalo"
     }
+  },
+  "libraryChat": {
+    "emptyTitle": "Opýtajte sa poznámok",
+    "emptyHint": "Odpovede pochádzajú iba z lokálnych AI embeddingov vašej knižnice — bez cloudu. Zapnite Lokálne AI v Nastaveniach.",
+    "openSettings": "Otvoriť nastavenia Lokálneho AI",
+    "placeholder": "Opýtajte sa na svoje poznámky…",
+    "send": "Opýtať sa",
+    "thinking": "Prehľadávam poznámky…",
+    "citations": "Zdroje",
+    "you": "Vy",
+    "assistant": "Knižnica",
+    "untitled": "Bez názvu",
+    "errorTitle": "Nepodarilo sa odpovedať",
+    "emptyQuestion": "Najprv napíšte otázku.",
+    "nlpDisabled": "Lokálne AI je vypnuté. Zapnite ho v Nastaveniach → Lokálne AI.",
+    "sidecarUnavailable": "Sidecar Lokálneho AI nie je pripravený. Skontrolujte Nastavenia → Lokálne AI."
   },
   "trash": {
     "title": "Kôš",
@@ -1315,7 +1333,10 @@
     "howToHint": "Dvojklik na uzol otvorí dokument. Filter Okolo zobrazí susedov aktívnej poznámky.",
     "openFullMap": "Otvoriť celú mapu prepojení",
     "openFullMapShort": "Celá mapa",
-    "obsidianHint": "Zoom na kurzor · % / reset = celá mapa · dvojklik na pozadie"
+    "obsidianHint": "Zoom na kurzor · % / reset = celá mapa · dvojklik na pozadie",
+    "showEntities": "Zobraziť štítky a NLP entity ako uzly prepojené s dokumentmi",
+    "showEntitiesShort": "Entity",
+    "entitiesHint": "Štítky vždy · NLP entity keď je dostupná Lokálna AI (max. 24 poznámok)"
   },
   "diagnostics": {
     "loadError": "Nepodarilo sa načítať diagnostiku",
@@ -1359,6 +1380,9 @@
     "barcodeUnavailable": "Skenovanie QR/čiarových kódov je dostupné na iOS a Androide",
     "windowMoveError": "Nepodarilo sa presunúť okno",
     "documentImported": "Dokument importovaný",
+    "pdfHighlightsImported": "Zvýraznenia z PDF importované",
+    "pdfHighlightsCount": "{{count}} zvýraznení",
+    "pdfHighlightsError": "Nepodarilo sa importovať zvýraznenia z PDF",
     "documentDuplicated": "Dokument duplikovaný",
     "duplicateError": "Duplikovanie zlyhalo",
     "documentRenamed": "Dokument premenovaný",
@@ -1372,6 +1396,7 @@
     "undoTrashError": "Nepodarilo sa vrátiť dokument z koša",
     "restoreError": "Nepodarilo sa obnoviť dokument",
     "folderCreated": "Priečinok vytvorený",
+    "vaultFolderCreated": "Šifrovaný trezor vytvorený",
     "folderRenamed": "Priečinok premenovaný",
     "folderRenameError": "Nepodarilo sa premenovať priečinok",
     "folderMoved": "Priečinok presunutý",
@@ -2099,6 +2124,23 @@
     "tax": "DPH",
     "total": "Celkom",
     "export": "Exportovať PDF"
+  },
+  "vault": {
+    "createTitle": "Šifrovaný trezor?",
+    "createConfirm": "Chrániť tento priečinok heslom? Poznámky vnútri sa šifrujú na tomto zariadení. Lokálna AI ich neindexuje, kým je trezor zamknutý.",
+    "createOk": "Vytvoriť trezor",
+    "createSkip": "Bežný priečinok",
+    "setPasswordTitle": "Heslo trezoru",
+    "setPasswordDescription": "Zvoľte heslo (min. 4 znaky). Nikam sa neposiela — zostáva len v pamäti, kým je trezor odomknutý.",
+    "passwordPlaceholder": "Heslo",
+    "passwordTooShort": "Heslo musí mať aspoň 4 znaky",
+    "unlock": "Odomknúť trezor",
+    "lock": "Zamknúť trezor",
+    "unlockTitle": "Odomknúť trezor",
+    "unlockDescription": "Zadajte heslo pre „{{name}}“.",
+    "unlockFailed": "Nesprávne heslo",
+    "unlocked": "Trezor odomknutý",
+    "locked": "Trezor zamknutý"
   },
   "lorem": {
     "title": "Vložiť lorem ipsum",

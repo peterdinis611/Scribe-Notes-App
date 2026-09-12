@@ -1,3 +1,5 @@
+export type ForceNodeKind = 'document' | 'tag' | 'entity'
+
 export type ForceNode = {
   id: string
   title: string
@@ -5,6 +7,8 @@ export type ForceNode = {
   degree: number
   /** CSS fill color (tag/folder tint). */
   color?: string
+  /** Document wiki node vs synthetic tag/NLP entity overlay. */
+  kind?: ForceNodeKind
   x: number
   y: number
   vx: number

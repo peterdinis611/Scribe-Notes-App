@@ -39,6 +39,7 @@ import { nlpStatus, nlpSuggestTags } from '@/lib/db/nlp-api'
 import { describeNlpTagSuggestionFailure } from '@/lib/nlp/errors'
 import { ROUTES } from '@/lib/routes'
 import { promptInput } from '@/lib/input-dialog'
+import { isVaultUnlocked } from '@/lib/vault/session'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
@@ -139,12 +140,49 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
       confirmLabel: t('common.create'),
     })
     if (!name) return
-    const folder = await createFolder({ name, parentId })
+
+    const makeVault = await confirm(t('vault.createConfirm'), {
+      title: t('vault.createTitle'),
+      kind: 'info',
+      okLabel: t('vault.createOk'),
+      cancelLabel: t('vault.createSkip'),
+    })
+
+    let vaultVerifier: string | null = null
+    let password: string | null = null
+    if (makeVault) {
+      password = await promptInput({
+        title: t('vault.setPasswordTitle'),
+        description: t('vault.setPasswordDescription'),
+        placeholder: t('vault.passwordPlaceholder'),
+        confirmLabel: t('common.create'),
+      })
+      if (!password || password.length < 4) {
+        toast.error(t('vault.passwordTooShort'))
+        return
+      }
+      const { createVaultVerifier } = await import('@/lib/vault/session')
+      vaultVerifier = await createVaultVerifier(password)
+    }
+
+    const folder = await createFolder({
+      name,
+      parentId,
+      isVault: Boolean(makeVault),
+      vaultVerifier,
+    })
     if (parentId) {
       dispatch(updateExpandedFolderIds((prev) => (prev.includes(parentId) ? prev : [...prev, parentId])))
     }
     dispatch(updateFolders((prev) => [...prev, folder]))
-    toast.success(t('toasts.folderCreated'), folder.name)
+    if (makeVault && password && vaultVerifier) {
+      const { unlockVault } = await import('@/lib/vault/session')
+      await unlockVault(folder.id, password, vaultVerifier)
+    }
+    toast.success(
+      makeVault ? t('toasts.vaultFolderCreated') : t('toasts.folderCreated'),
+      folder.name,
+    )
   }, [dispatch, t])
 
   const handleRenameFolder = useCallback(async (id: string, currentName: string) => {
@@ -540,8 +578,47 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     setDragOverId((current) => (current === id ? null : current))
   }, [])
 
+  const [vaultTick, setVaultTick] = useState(0)
+
+  const handleUnlockVault = useCallback(
+    async (id: string) => {
+      const folder = folders.find((item) => item.id === id)
+      if (!folder?.isVault) return
+      const password = await promptInput({
+        title: t('vault.unlockTitle'),
+        description: t('vault.unlockDescription', { name: folder.name }),
+        placeholder: t('vault.passwordPlaceholder'),
+        confirmLabel: t('vault.unlock'),
+      })
+      if (!password) return
+      const { unlockVault } = await import('@/lib/vault/session')
+      const ok = await unlockVault(id, password, folder.vaultVerifier)
+      if (!ok) {
+        toast.error(t('vault.unlockFailed'))
+        return
+      }
+      const { clearDocumentCache } = await import('@/lib/cache/document-cache')
+      clearDocumentCache()
+      setVaultTick((n) => n + 1)
+      toast.success(t('vault.unlocked'), folder.name)
+    },
+    [folders, t],
+  )
+
+  const handleLockVault = useCallback(
+    async (id: string) => {
+      const { lockVault } = await import('@/lib/vault/session')
+      lockVault(id)
+      const { clearDocumentCache } = await import('@/lib/cache/document-cache')
+      clearDocumentCache()
+      setVaultTick((n) => n + 1)
+      toast.info(t('vault.locked'))
+    },
+    [t],
+  )
+
   return (
-    <div className="min-h-full">
+    <div className="min-h-full" data-vault-tick={vaultTick}>
       {!query && (pinnedFolders.length > 0 || pinnedDocuments.length > 0) && (
         <div className="mb-2 border-b border-[var(--color-border)] pb-2">
           <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.04em] text-[var(--color-muted-foreground)]">
@@ -566,6 +643,9 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
               }
               onDelete={(id, folderName, event) => void handleDeleteFolder(id, folderName, event)}
               onTogglePin={(id, event) => void handleToggleFolderPin(id, event)}
+              onUnlockVault={(id) => void handleUnlockVault(id)}
+              onLockVault={(id) => void handleLockVault(id)}
+              vaultUnlocked={isVaultUnlocked(folder.id)}
               onDragStart={handleFolderDragStart}
               onDragOver={handleFolderDragOver}
               onDragLeave={handleFolderDragLeave}
@@ -650,6 +730,9 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
                       }
                       onDelete={(id, folderName, event) => void handleDeleteFolder(id, folderName, event)}
                       onTogglePin={(id, event) => void handleToggleFolderPin(id, event)}
+                      onUnlockVault={(id) => void handleUnlockVault(id)}
+                      onLockVault={(id) => void handleLockVault(id)}
+                      vaultUnlocked={isVaultUnlocked(item.folder.id)}
                       onDragStart={handleFolderDragStart}
                       onDragOver={handleFolderDragOver}
                       onDragLeave={handleFolderDragLeave}

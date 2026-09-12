@@ -1,22 +1,35 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { Focus, Maximize2, Minus, Plus, RotateCcw } from 'lucide-react'
+import { Focus, Loader2, Maximize2, Minus, Plus, RotateCcw, Tags } from 'lucide-react'
 import {
   listLinkGraph,
   type LinkGraphEdge,
   type LinkGraphOrphan,
 } from '@/lib/db/api'
+import { nlpStatus, nlpSuggestTags, type NlpEntity } from '@/lib/db/nlp-api'
 import {
   createForceSimulation,
   degreeById,
   type ForceNode,
+  type ForceNodeKind,
 } from '@/lib/link-graph/force-layout'
 import { ROUTES } from '@/lib/routes'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setActiveDocumentId } from '@/store/documentsSlice'
 import { Button } from '@/components/ui/button'
+
+const NLP_ENTITY_DOC_CAP = 24
+
+type GraphSeedNode = {
+  id: string
+  title: string
+  orphan: boolean
+  degree: number
+  color?: string
+  kind?: ForceNodeKind
+}
 
 function neighborIds(edges: LinkGraphEdge[], centerId: string): Set<string> {
   const ids = new Set<string>([centerId])
@@ -41,6 +54,28 @@ function colorForKey(key: string | null | undefined): string | undefined {
   return `hsl(${hue} 52% 52%)`
 }
 
+function normalizeKey(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, ' ')
+}
+
+function tagNodeId(tag: string): string {
+  return `tag:${normalizeKey(tag)}`
+}
+
+function entityNodeId(kind: string, text: string): string {
+  return `entity:${normalizeKey(kind)}:${normalizeKey(text)}`
+}
+
+function isSyntheticNodeId(id: string): boolean {
+  return id.startsWith('tag:') || id.startsWith('entity:')
+}
+
+function parseTagFromNodeId(id: string, title: string): string | null {
+  if (!id.startsWith('tag:')) return null
+  const fromTitle = title.startsWith('#') ? title.slice(1).trim() : title.trim()
+  return fromTitle || id.slice(4)
+}
+
 function collectVisible(
   edges: LinkGraphEdge[],
   orphans: LinkGraphOrphan[],
@@ -56,7 +91,7 @@ function collectVisible(
     metaById: Map<string, { tags: string[]; folderId: string | null; isFavorite: boolean }>
   },
 ): {
-  nodes: Array<{ id: string; title: string; orphan: boolean; degree: number; color?: string }>
+  nodes: GraphSeedNode[]
   visibleEdges: LinkGraphEdge[]
 } {
   const focusIds = aroundActive && centerId ? neighborIds(edges, centerId) : null
@@ -112,18 +147,18 @@ function collectVisible(
     return undefined
   }
 
-  const nodes: Array<{ id: string; title: string; orphan: boolean; degree: number; color?: string }> =
-    [...ids]
-      .filter((id) => allowed(id))
-      .map((id) => ({
-        id,
-        title: titles.get(id) ?? documentFallback,
-        orphan:
-          orphanIds.has(id) &&
-          !visibleEdges.some((edge) => edge.sourceId === id || edge.targetId === id),
-        degree: degrees.get(id) ?? 0,
-        color: nodeColor(id),
-      }))
+  const nodes: GraphSeedNode[] = [...ids]
+    .filter((id) => allowed(id))
+    .map((id) => ({
+      id,
+      title: titles.get(id) ?? documentFallback,
+      orphan:
+        orphanIds.has(id) &&
+        !visibleEdges.some((edge) => edge.sourceId === id || edge.targetId === id),
+      degree: degrees.get(id) ?? 0,
+      color: nodeColor(id),
+      kind: 'document' as const,
+    }))
 
   if (showOrphans) {
     const placed = new Set(nodes.map((node) => node.id))
@@ -137,6 +172,7 @@ function collectVisible(
         orphan: true,
         degree: 0,
         color: nodeColor(orphan.id),
+        kind: 'document',
       })
     }
   }
@@ -144,7 +180,123 @@ function collectVisible(
   return { nodes, visibleEdges }
 }
 
+function filterGraphAround(
+  nodes: GraphSeedNode[],
+  edges: LinkGraphEdge[],
+  centerId: string,
+): { nodes: GraphSeedNode[]; visibleEdges: LinkGraphEdge[] } {
+  const focusIds = neighborIds(edges, centerId)
+  const visibleEdges = edges.filter(
+    (edge) => focusIds.has(edge.sourceId) && focusIds.has(edge.targetId),
+  )
+  const degrees = degreeById(
+    visibleEdges.map((edge) => ({ sourceId: edge.sourceId, targetId: edge.targetId })),
+  )
+  const filtered = nodes
+    .filter((node) => focusIds.has(node.id))
+    .map((node) => ({
+      ...node,
+      degree: degrees.get(node.id) ?? 0,
+      orphan: node.orphan && (degrees.get(node.id) ?? 0) === 0,
+    }))
+
+  if (filtered.some((node) => node.id === centerId)) {
+    return { nodes: filtered, visibleEdges }
+  }
+
+  const center = nodes.find((node) => node.id === centerId)
+  if (center) {
+    filtered.push({ ...center, degree: degrees.get(center.id) ?? 0 })
+  }
+  return { nodes: filtered, visibleEdges }
+}
+
+function buildEntityOverlay(
+  documentNodes: GraphSeedNode[],
+  metaById: Map<string, { tags: string[]; folderId: string | null; isFavorite: boolean }>,
+  nlpByDocId: Map<string, NlpEntity[]>,
+): { nodes: GraphSeedNode[]; edges: LinkGraphEdge[]; tagByNodeId: Map<string, string> } {
+  const entityNodes = new Map<string, GraphSeedNode>()
+  const edges: LinkGraphEdge[] = []
+  const edgeKeys = new Set<string>()
+  const tagByNodeId = new Map<string, string>()
+
+  function addEdge(sourceId: string, sourceTitle: string, targetId: string, targetTitle: string) {
+    const key = `${sourceId}->${targetId}`
+    if (edgeKeys.has(key)) return
+    edgeKeys.add(key)
+    edges.push({ sourceId, targetId, sourceTitle, targetTitle })
+  }
+
+  for (const doc of documentNodes) {
+    if (doc.kind && doc.kind !== 'document') continue
+    const meta = metaById.get(doc.id)
+    const tags = meta?.tags ?? []
+    for (const tag of tags) {
+      const trimmed = tag.trim()
+      if (!trimmed) continue
+      const id = tagNodeId(trimmed)
+      tagByNodeId.set(id, trimmed)
+      if (!entityNodes.has(id)) {
+        entityNodes.set(id, {
+          id,
+          title: `#${trimmed}`,
+          orphan: false,
+          degree: 0,
+          color: colorForKey(trimmed),
+          kind: 'tag',
+        })
+      }
+      addEdge(doc.id, doc.title, id, `#${trimmed}`)
+    }
+
+    const entities = nlpByDocId.get(doc.id) ?? []
+    for (const entity of entities) {
+      const text = entity.text?.trim()
+      const kind = entity.kind?.trim() || 'other'
+      if (!text) continue
+      const id = entityNodeId(kind, text)
+      if (!entityNodes.has(id)) {
+        entityNodes.set(id, {
+          id,
+          title: text,
+          orphan: false,
+          degree: 0,
+          color: colorForKey(kind),
+          kind: 'entity',
+        })
+      }
+      addEdge(doc.id, doc.title, id, text)
+    }
+  }
+
+  return { nodes: [...entityNodes.values()], edges, tagByNodeId }
+}
+
+function mergeWithDegrees(
+  documentNodes: GraphSeedNode[],
+  entityNodes: GraphSeedNode[],
+  wikiEdges: LinkGraphEdge[],
+  entityEdges: LinkGraphEdge[],
+): { nodes: GraphSeedNode[]; visibleEdges: LinkGraphEdge[] } {
+  const visibleEdges = [...wikiEdges, ...entityEdges]
+  const degrees = degreeById(
+    visibleEdges.map((edge) => ({ sourceId: edge.sourceId, targetId: edge.targetId })),
+  )
+  const nodes = [...documentNodes, ...entityNodes].map((node) => ({
+    ...node,
+    degree: degrees.get(node.id) ?? 0,
+  }))
+  return { nodes, visibleEdges }
+}
+
 function nodeRadius(node: ForceNode, isPage: boolean, isActive: boolean): number {
+  if (node.kind === 'tag' || node.kind === 'entity') {
+    const base = isPage ? 5 : 3.75
+    const byDegree = Math.min(isPage ? 5 : 3.5, node.degree * 0.7)
+    const activeBoost = isActive ? 2 : 0
+    return base + byDegree + activeBoost
+  }
   const base = isPage ? 7 : 5.5
   const byDegree = Math.min(isPage ? 10 : 7, node.degree * (isPage ? 1.6 : 1.2))
   const orphanShrink = node.orphan ? 0.72 : 1
@@ -208,6 +360,11 @@ export function LibraryLinkGraphView({
   const [orphans, setOrphans] = useState<LinkGraphOrphan[]>([])
   const [loading, setLoading] = useState(true)
   const [showOrphans, setShowOrphans] = useState(false)
+  const [showEntities, setShowEntities] = useState(false)
+  const [entitiesLoading, setEntitiesLoading] = useState(false)
+  const [nlpEntitiesByDoc, setNlpEntitiesByDoc] = useState<Map<string, NlpEntity[]>>(
+    () => new Map(),
+  )
   const [aroundActive, setAroundActive] = useState(initialAroundActive)
   const [favoritesOnly, setFavoritesOnly] = useState(false)
   const [colorMode, setColorMode] = useState<'none' | 'tag' | 'folder'>('tag')
@@ -228,6 +385,8 @@ export function LibraryLinkGraphView({
   const viewRef = useRef({ scale: 1, pan: { x: 0, y: 0 } })
   const autoFitDoneRef = useRef(false)
   const openTimerRef = useRef<number | null>(null)
+  const nlpCacheRef = useRef<Map<string, NlpEntity[]>>(new Map())
+  const tagByNodeIdRef = useRef<Map<string, string>>(new Map())
 
   viewRef.current = { scale, pan }
 
@@ -304,15 +463,18 @@ export function LibraryLinkGraphView({
 
   const size = isPage ? 900 : 320
   const labelMax = isPage ? 26 : 14
+  const centerIsSynthetic = Boolean(graphCenterId && isSyntheticNodeId(graphCenterId))
 
-  const { nodes: seedNodes, visibleEdges } = useMemo(
+  const { nodes: wikiNodes, visibleEdges: wikiEdges } = useMemo(
     () =>
       collectVisible(
         edges,
         orphans,
         graphCenterId,
         showOrphans,
-        aroundActive,
+        // Synthetic centers (tag/entity) need the full filtered wiki set first;
+        // neighborhood is applied after entity overlay merge.
+        aroundActive && !centerIsSynthetic,
         titleById,
         t('common.document'),
         {
@@ -324,6 +486,7 @@ export function LibraryLinkGraphView({
       ),
     [
       aroundActive,
+      centerIsSynthetic,
       colorMode,
       edges,
       favoritesOnly,
@@ -337,15 +500,161 @@ export function LibraryLinkGraphView({
     ],
   )
 
+  // Docs used for NLP fetch / tag overlay: ignore Around so entity focus can resolve neighbors.
+  const overlaySourceNodes = useMemo(() => {
+    if (!showEntities) return wikiNodes
+    if (!aroundActive || !centerIsSynthetic) return wikiNodes
+    return collectVisible(
+      edges,
+      orphans,
+      graphCenterId,
+      showOrphans,
+      false,
+      titleById,
+      t('common.document'),
+      {
+        favoritesOnly,
+        tagFilter,
+        colorMode,
+        metaById,
+      },
+    ).nodes
+  }, [
+    aroundActive,
+    centerIsSynthetic,
+    colorMode,
+    edges,
+    favoritesOnly,
+    graphCenterId,
+    metaById,
+    orphans,
+    showEntities,
+    showOrphans,
+    t,
+    tagFilter,
+    titleById,
+    wikiNodes,
+  ])
+
+  useEffect(() => {
+    if (!showEntities) {
+      setEntitiesLoading(false)
+      return
+    }
+
+    let cancelled = false
+    const docIds = overlaySourceNodes
+      .filter((node) => !isSyntheticNodeId(node.id))
+      .map((node) => node.id)
+      .slice(0, NLP_ENTITY_DOC_CAP)
+
+    void (async () => {
+      setEntitiesLoading(true)
+      try {
+        const status = await nlpStatus().catch(() => null)
+        if (cancelled) return
+        if (!status?.enabled || !status.sidecarOk) {
+          setNlpEntitiesByDoc(new Map(nlpCacheRef.current))
+          return
+        }
+
+        const missing = docIds.filter((id) => !nlpCacheRef.current.has(id))
+        if (missing.length > 0) {
+          const results = await Promise.allSettled(
+            missing.map(async (documentId) => {
+              const suggestions = await nlpSuggestTags(documentId)
+              return { documentId, entities: suggestions.entities ?? [] }
+            }),
+          )
+          if (cancelled) return
+          for (const result of results) {
+            if (result.status !== 'fulfilled') continue
+            nlpCacheRef.current.set(result.value.documentId, result.value.entities)
+          }
+        }
+
+        const next = new Map<string, NlpEntity[]>()
+        for (const id of docIds) {
+          next.set(id, nlpCacheRef.current.get(id) ?? [])
+        }
+        setNlpEntitiesByDoc(next)
+      } finally {
+        if (!cancelled) setEntitiesLoading(false)
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [overlaySourceNodes, showEntities])
+
+  const { nodes: seedNodes, visibleEdges } = useMemo(() => {
+    if (!showEntities) {
+      tagByNodeIdRef.current = new Map()
+      return { nodes: wikiNodes, visibleEdges: wikiEdges }
+    }
+
+    const baseDocs =
+      aroundActive && centerIsSynthetic ? overlaySourceNodes : wikiNodes
+    const baseWikiEdges =
+      aroundActive && centerIsSynthetic
+        ? collectVisible(
+            edges,
+            orphans,
+            graphCenterId,
+            showOrphans,
+            false,
+            titleById,
+            t('common.document'),
+            {
+              favoritesOnly,
+              tagFilter,
+              colorMode,
+              metaById,
+            },
+          ).visibleEdges
+        : wikiEdges
+
+    const overlay = buildEntityOverlay(baseDocs, metaById, nlpEntitiesByDoc)
+    tagByNodeIdRef.current = overlay.tagByNodeId
+    let merged = mergeWithDegrees(baseDocs, overlay.nodes, baseWikiEdges, overlay.edges)
+
+    if (aroundActive && graphCenterId && centerIsSynthetic) {
+      merged = filterGraphAround(merged.nodes, merged.visibleEdges, graphCenterId)
+    }
+
+    return merged
+  }, [
+    aroundActive,
+    centerIsSynthetic,
+    colorMode,
+    edges,
+    favoritesOnly,
+    graphCenterId,
+    metaById,
+    nlpEntitiesByDoc,
+    orphans,
+    overlaySourceNodes,
+    showEntities,
+    showOrphans,
+    t,
+    tagFilter,
+    titleById,
+    wikiEdges,
+    wikiNodes,
+  ])
+
   const graphKey = useMemo(
     () =>
-      `${size}:${aroundActive}:${showOrphans}:${favoritesOnly}:${tagFilter ?? ''}:${colorMode}:${graphCenterId ?? ''}:${seedNodes.map((node) => node.id).join(',')}:${visibleEdges.length}`,
+      `${size}:${aroundActive}:${showOrphans}:${showEntities}:${favoritesOnly}:${tagFilter ?? ''}:${colorMode}:${graphCenterId ?? ''}:${seedNodes.map((node) => `${node.id}:${node.kind ?? 'd'}`).join(',')}:${visibleEdges.length}:${nlpEntitiesByDoc.size}`,
     [
       aroundActive,
       colorMode,
       favoritesOnly,
       graphCenterId,
+      nlpEntitiesByDoc.size,
       seedNodes,
+      showEntities,
       showOrphans,
       size,
       tagFilter,
@@ -487,6 +796,21 @@ export function LibraryLinkGraphView({
     applyZoomAt(viewRef.current.scale * factor, anchor.x, anchor.y)
   }
 
+  function handleSyntheticNodeActivate(id: string) {
+    if (id.startsWith('tag:')) {
+      const fromMap = tagByNodeIdRef.current.get(id)
+      const node = simRef.current?.nodeById.get(id)
+      const tag = fromMap ?? parseTagFromNodeId(id, node?.title ?? '')
+      if (tag) setTagFilter(tag)
+      setLocalCenterId(null)
+      return
+    }
+    if (id.startsWith('entity:')) {
+      setLocalCenterId(id)
+      setAroundActive(true)
+    }
+  }
+
   function handleDoubleClick(event: React.MouseEvent) {
     const target = event.target as Element
     const nodeEl = target.closest('[data-graph-node]') as HTMLElement | null
@@ -498,6 +822,10 @@ export function LibraryLinkGraphView({
         openTimerRef.current = null
       }
       const id = nodeEl.dataset.nodeId
+      if (isSyntheticNodeId(id)) {
+        handleSyntheticNodeActivate(id)
+        return
+      }
       setLocalCenterId(id)
       setAroundActive(true)
       dispatch(setActiveDocumentId(id))
@@ -563,10 +891,14 @@ export function LibraryLinkGraphView({
       if (!nodeDrag.moved) {
         const id = nodeDrag.id
         if (openTimerRef.current != null) window.clearTimeout(openTimerRef.current)
-        openTimerRef.current = window.setTimeout(() => {
-          openTimerRef.current = null
-          openDocument(id)
-        }, 240)
+        if (isSyntheticNodeId(id)) {
+          handleSyntheticNodeActivate(id)
+        } else {
+          openTimerRef.current = window.setTimeout(() => {
+            openTimerRef.current = null
+            openDocument(id)
+          }, 240)
+        }
       }
       nodeDragRef.current = null
       simRef.current.reheat(0.25)
@@ -670,6 +1002,31 @@ export function LibraryLinkGraphView({
       </Button>
       <Button
         type="button"
+        variant={showEntities ? 'default' : 'outline'}
+        size="sm"
+        className="h-7 gap-1 text-[11px]"
+        title={showEntities ? t('linkGraph.entitiesHint') : t('linkGraph.showEntities')}
+        aria-pressed={showEntities}
+        onClick={() => {
+          setShowEntities((value) => {
+            if (value) {
+              if (localCenterId && isSyntheticNodeId(localCenterId)) {
+                setLocalCenterId(null)
+              }
+            }
+            return !value
+          })
+        }}
+      >
+        {entitiesLoading ? (
+          <Loader2 className="h-3 w-3 animate-spin" />
+        ) : (
+          <Tags className="h-3 w-3" />
+        )}
+        {t('linkGraph.showEntitiesShort')}
+      </Button>
+      <Button
+        type="button"
         variant={colorMode !== 'none' ? 'default' : 'outline'}
         size="sm"
         className="h-7 text-[11px]"
@@ -765,6 +1122,8 @@ export function LibraryLinkGraphView({
                 count: orphans.length,
               })}`
             : ''}
+          {showEntities ? ` · ${t('linkGraph.entitiesHint')}` : ''}
+          {entitiesLoading ? ` · ${t('linkGraph.loading')}` : ''}
         </p>
       )}
 
@@ -798,6 +1157,8 @@ export function LibraryLinkGraphView({
               {showOrphans
                 ? ` · ${t('linkGraph.orphanCount', { count: orphans.length })}`
                 : ''}
+              {showEntities ? ` · ${t('linkGraph.entitiesHint')}` : ''}
+              {entitiesLoading ? ` · ${t('linkGraph.loading')}` : ''}
               {' · '}
               {t('linkGraph.obsidianHint')}
               {aroundActive ? ` · ${t('linkGraph.localGraphHint')}` : ''}
@@ -843,7 +1204,9 @@ export function LibraryLinkGraphView({
                 )
               })}
               {simNodes.map((node) => {
-                const isActive = activeId === node.id
+                const isFocusedCenter = graphCenterId === node.id
+                const isActive =
+                  activeId === node.id || (isSyntheticNodeId(node.id) && isFocusedCenter)
                 const isHovered = hoveredId === node.id
                 const related =
                   !hoverNeighbors || hoverNeighbors.has(node.id)
@@ -855,18 +1218,22 @@ export function LibraryLinkGraphView({
                   node.title.length > labelMax
                     ? `${node.title.slice(0, labelMax - 1)}…`
                     : node.title
+                const kind = node.kind ?? 'document'
 
                 return (
                   <g
                     key={node.id}
                     data-graph-node=""
                     data-node-id={node.id}
+                    data-node-kind={kind}
                     className={cn(
                       'link-graph-node',
                       isActive && 'is-active',
                       node.orphan && 'is-orphan',
                       isHovered && 'is-hovered',
                       dimmed && 'is-dim',
+                      kind === 'tag' && 'is-tag',
+                      kind === 'entity' && 'is-entity',
                     )}
                     onPointerEnter={() => setHoveredId(node.id)}
                     onPointerLeave={() =>

@@ -36,7 +36,7 @@ export function InvoiceDialogHost() {
 
   useEffect(() => {
     if (!open) return
-    setDraft(normalizeInvoiceDraft({ ...loadInvoiceDraft(), ...(seed ?? {}) }))
+    setDraft(normalizeInvoiceDraft({ ...loadInvoiceDraft(), ...(seed ?? {}) } as Partial<InvoiceDialogDraft>))
   }, [open, seed])
 
   const totals = useMemo(() => {

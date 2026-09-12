@@ -50,7 +50,7 @@ export interface DocumentsState {
   libraryFindReplaceOpen: boolean
   pendingEditorSearch: string | null
   pendingLibraryView: {
-    view: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal'
+    view: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal' | 'chat'
     aroundActive?: boolean
   } | null
   trashOpen: boolean
@@ -409,7 +409,7 @@ const documentsSlice = createSlice({
     setPendingLibraryView(
       state,
       action: PayloadAction<{
-        view: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal'
+        view: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal' | 'chat'
         aroundActive?: boolean
       } | null>,
     ) {

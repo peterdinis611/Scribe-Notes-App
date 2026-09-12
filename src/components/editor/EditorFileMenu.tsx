@@ -14,6 +14,7 @@ type EditorFileMenuProps = {
   hasDocument?: boolean
   hasFilePath?: boolean
   onImport: () => void
+  onImportPdfHighlights?: () => void
   onRevealFile?: () => void
   onPdfPreview?: () => void
   onPrint?: () => void
@@ -31,6 +32,7 @@ export function EditorFileMenu({
   hasDocument = true,
   hasFilePath = false,
   onImport,
+  onImportPdfHighlights,
   onRevealFile,
   onPdfPreview,
   onPrint,
@@ -61,6 +63,12 @@ export function EditorFileMenu({
           <FolderInput className="h-3.5 w-3.5 shrink-0" />
           {t('fileMenu.import')}
         </DropdownMenuItem>
+        {onImportPdfHighlights && (
+          <DropdownMenuItem onClick={onImportPdfHighlights}>
+            <FolderInput className="h-3.5 w-3.5 shrink-0" />
+            {t('fileMenu.importPdfHighlights')}
+          </DropdownMenuItem>
+        )}
         {onGoHome && (
           <DropdownMenuItem onClick={onGoHome}>
             <Home className="h-3.5 w-3.5 shrink-0" />

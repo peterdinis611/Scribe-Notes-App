@@ -115,7 +115,7 @@ export function getActiveColumnNumbers(editor: Editor): TableColumnStats | null 
   }
   if (values.length === 0) return { count: 0, sum: 0, avg: 0, values }
   const sum = values.reduce((a, b) => a + b, 0)
-  return { count: values.length, sum, avg: sum / values.length }
+  return { count: values.length, sum, avg: sum / values.length, values }
 }
 
 export function sortTableByActiveColumn(editor: Editor, direction: 'asc' | 'desc' = 'asc'): boolean {

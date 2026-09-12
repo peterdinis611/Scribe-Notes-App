@@ -545,13 +545,19 @@ pub fn nlp_index_document(
         }
         sync_sidecar_backend(&sidecar, &conn)?;
 
-        let (title, content_json): (String, String) = conn
+        let (title, content_json, folder_vault): (String, String, i64) = conn
             .query_row(
-                "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL",
+                "SELECT d.title, d.content_json, COALESCE(f.is_vault, 0) \
+                 FROM documents d LEFT JOIN folders f ON f.id = d.folder_id \
+                 WHERE d.id = ?1 AND d.deleted_at IS NULL",
                 params![document_id],
-                |row| Ok((row.get(0)?, row.get(1)?)),
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
             )
             .map_err(|e| e.to_string())?;
+
+        if folder_vault != 0 || content_json.contains("\"type\":\"scribe-vault-v1\"") {
+            return Err("Encrypted vault notes are not indexed".to_string());
+        }
 
         format!("{title}\n{}", extract_search_text(&content_json))
     };
@@ -599,6 +605,9 @@ pub fn nlp_index_all(
         let mut docs: Vec<(String, String)> = Vec::new();
         for row in rows {
             let (id, title, content_json) = row.map_err(|e| e.to_string())?;
+            if content_json.contains("\"type\":\"scribe-vault-v1\"") {
+                continue;
+            }
             let text = format!("{title}\n{}", extract_search_text(&content_json));
             docs.push((id, text));
         }

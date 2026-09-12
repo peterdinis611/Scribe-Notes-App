@@ -11,6 +11,8 @@ import {
   Pin,
   Star,
   Tag,
+  Lock,
+  Unlock,
   Trash2,
 } from 'lucide-react'
 import { DocumentTitleField } from '@/components/DocumentTitleField'
@@ -45,6 +47,9 @@ type FolderTreeFolderRowProps = {
   onTrashDocuments: (id: string, name: string, event: React.MouseEvent) => void
   onDelete: (id: string, name: string, event: React.MouseEvent) => void
   onTogglePin: (id: string, event: React.MouseEvent) => void
+  onUnlockVault?: (id: string) => void
+  onLockVault?: (id: string) => void
+  vaultUnlocked?: boolean
   onDragStart: (id: string, event: React.DragEvent) => void
   onDragOver: (id: string, event: React.DragEvent) => void
   onDragLeave: (id: string) => void
@@ -63,6 +68,9 @@ export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
   onTrashDocuments,
   onDelete,
   onTogglePin,
+  onUnlockVault,
+  onLockVault,
+  vaultUnlocked = false,
   onDragStart,
   onDragOver,
   onDragLeave,
@@ -94,6 +102,13 @@ export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
             <ChevronRight className={cn('h-3.5 w-3.5 transition-transform', isExpanded && 'rotate-90')} />
           </button>
           <Folder className="h-4 w-4 shrink-0 text-[var(--color-accent)]" />
+          {folder.isVault ? (
+            vaultUnlocked ? (
+              <Unlock className="h-3.5 w-3.5 shrink-0 text-[var(--color-muted-foreground)]" aria-hidden />
+            ) : (
+              <Lock className="h-3.5 w-3.5 shrink-0 text-[var(--color-muted-foreground)]" aria-hidden />
+            )
+          ) : null}
           <button
             type="button"
             className="min-w-0 flex-1 truncate border-none bg-transparent text-left text-[12px] font-semibold text-[var(--color-foreground)]"
@@ -115,6 +130,18 @@ export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
         <ContextMenuItem onSelect={() => onRename(folder.id, folder.name)}>
           {t('library.renameFolder')}
         </ContextMenuItem>
+        {folder.isVault && !vaultUnlocked && onUnlockVault ? (
+          <ContextMenuItem onSelect={() => onUnlockVault(folder.id)}>
+            <Unlock className="h-4 w-4" />
+            {t('vault.unlock')}
+          </ContextMenuItem>
+        ) : null}
+        {folder.isVault && vaultUnlocked && onLockVault ? (
+          <ContextMenuItem onSelect={() => onLockVault(folder.id)}>
+            <Lock className="h-4 w-4" />
+            {t('vault.lock')}
+          </ContextMenuItem>
+        ) : null}
         <ContextMenuItem
           onSelect={() => onTogglePin(folder.id, { stopPropagation() {} } as React.MouseEvent)}
         >

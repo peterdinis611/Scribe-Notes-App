@@ -86,6 +86,7 @@
   "fileMenu": {
     "label": "File",
     "import": "Import…",
+    "importPdfHighlights": "Import PDF highlights…",
     "goHome": "Go to home",
     "closeDocument": "Close document",
     "revealInFinder": "Reveal in Finder",
@@ -913,8 +914,10 @@
       "favorites": "Favorites",
       "journal": "Journal",
       "tags": "Tags",
-      "graph": "Connection map"
+      "graph": "Connection map",
+      "chat": "Ask library"
     },
+
     "trash": "Trash",
     "newFolder": "New folder",
     "newSubfolder": "New subfolder",
@@ -1009,6 +1012,22 @@
       "renameError": "Rename failed",
       "mergeError": "Merge failed"
     }
+  },
+  "libraryChat": {
+    "emptyTitle": "Ask your notes",
+    "emptyHint": "Answers come only from Local AI embeddings of your library — no cloud. Turn on Local AI in Settings.",
+    "openSettings": "Open Local AI settings",
+    "placeholder": "Ask about your notes…",
+    "send": "Ask",
+    "thinking": "Searching notes…",
+    "citations": "Sources",
+    "you": "You",
+    "assistant": "Library",
+    "untitled": "Untitled",
+    "errorTitle": "Could not answer",
+    "emptyQuestion": "Type a question first.",
+    "nlpDisabled": "Local AI is off. Enable it in Settings → Local AI.",
+    "sidecarUnavailable": "Local AI sidecar is not ready. Check Settings → Local AI."
   },
   "trash": {
     "title": "Trash",
@@ -1307,7 +1326,10 @@
     "howToHint": "Double-click a node to open it. The Around filter shows neighbors of the active note.",
     "openFullMap": "Open full connection map",
     "openFullMapShort": "Full map",
-    "obsidianHint": "Zoom toward cursor · % / reset fits all · double-click background"
+    "obsidianHint": "Zoom toward cursor · % / reset fits all · double-click background",
+    "showEntities": "Show tags and NLP entities as nodes connected to documents",
+    "showEntitiesShort": "Entities",
+    "entitiesHint": "Tags always · NLP entities when Local AI is available (up to 24 notes)"
   },
   "diagnostics": {
     "loadError": "Failed to load diagnostics",
@@ -1351,6 +1373,9 @@
     "barcodeUnavailable": "Barcode scanning is available on iOS and Android",
     "windowMoveError": "Could not move the window",
     "documentImported": "Document imported",
+    "pdfHighlightsImported": "PDF highlights imported",
+    "pdfHighlightsCount": "{{count}} highlights",
+    "pdfHighlightsError": "Could not import PDF highlights",
     "documentDuplicated": "Document duplicated",
     "duplicateError": "Duplication failed",
     "documentRenamed": "Document renamed",
@@ -1364,6 +1389,7 @@
     "undoTrashError": "Failed to undo trash",
     "restoreError": "Failed to restore document",
     "folderCreated": "Folder created",
+    "vaultFolderCreated": "Encrypted vault created",
     "folderRenamed": "Folder renamed",
     "folderRenameError": "Failed to rename folder",
     "folderMoved": "Folder moved",
@@ -2083,6 +2109,23 @@
     "tax": "Tax",
     "total": "Total",
     "export": "Export PDF"
+  },
+  "vault": {
+    "createTitle": "Encrypted vault?",
+    "createConfirm": "Protect this folder with a password? Notes inside are encrypted on this device. Local AI will not index them while locked.",
+    "createOk": "Make vault",
+    "createSkip": "Normal folder",
+    "setPasswordTitle": "Vault password",
+    "setPasswordDescription": "Choose a password (min. 4 characters). It is never sent anywhere — only kept in memory while unlocked.",
+    "passwordPlaceholder": "Password",
+    "passwordTooShort": "Password must be at least 4 characters",
+    "unlock": "Unlock vault",
+    "lock": "Lock vault",
+    "unlockTitle": "Unlock vault",
+    "unlockDescription": "Enter the password for “{{name}}”.",
+    "unlockFailed": "Wrong password",
+    "unlocked": "Vault unlocked",
+    "locked": "Vault locked"
   },
   "lorem": {
     "title": "Insert lorem ipsum",

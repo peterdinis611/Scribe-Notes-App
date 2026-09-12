@@ -14,6 +14,8 @@ pub struct Folder {
     pub created_at: i64,
     pub updated_at: i64,
     pub is_pinned: bool,
+    pub is_vault: bool,
+    pub vault_verifier: Option<String>,
 }
 
 fn now_ts() -> i64 {
@@ -28,6 +30,8 @@ fn map_folder(row: &rusqlite::Row<'_>) -> rusqlite::Result<Folder> {
         created_at: row.get(3)?,
         updated_at: row.get(4)?,
         is_pinned: row.get::<_, i64>(5).unwrap_or(0) != 0,
+        is_vault: row.get::<_, i64>(6).unwrap_or(0) != 0,
+        vault_verifier: row.get(7)?,
     })
 }
 
@@ -36,7 +40,8 @@ pub fn list_folders(state: State<'_, DbState>) -> Result<Vec<Folder>, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     let mut stmt = conn
         .prepare(
-            "SELECT id, name, parent_id, created_at, updated_at, COALESCE(is_pinned, 0) \
+            "SELECT id, name, parent_id, created_at, updated_at, COALESCE(is_pinned, 0), \
+             COALESCE(is_vault, 0), vault_verifier \
              FROM folders ORDER BY name COLLATE NOCASE ASC",
         )
         .map_err(|e| e.to_string())?;
@@ -53,6 +58,8 @@ pub fn list_folders(state: State<'_, DbState>) -> Result<Vec<Folder>, String> {
 pub struct CreateFolderInput {
     pub name: String,
     pub parent_id: Option<String>,
+    pub is_vault: Option<bool>,
+    pub vault_verifier: Option<String>,
 }
 
 #[tauri::command]
@@ -64,10 +71,22 @@ pub fn create_folder(state: State<'_, DbState>, input: CreateFolderInput) -> Res
     if name.is_empty() {
         return Err("Názov priečinka nemôže byť prázdny".to_string());
     }
+    let is_vault = input.is_vault.unwrap_or(false);
+    if is_vault && input.vault_verifier.as_ref().map(|v| v.trim().is_empty()).unwrap_or(true) {
+        return Err("Vault folder requires a password verifier".to_string());
+    }
 
     conn.execute(
-        "INSERT INTO folders (id, name, parent_id, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?4)",
-        params![id, name, input.parent_id, now],
+        "INSERT INTO folders (id, name, parent_id, created_at, updated_at, is_vault, vault_verifier) \
+         VALUES (?1, ?2, ?3, ?4, ?4, ?5, ?6)",
+        params![
+            id,
+            name,
+            input.parent_id,
+            now,
+            if is_vault { 1 } else { 0 },
+            input.vault_verifier
+        ],
     )
     .map_err(|e| e.to_string())?;
 
@@ -78,6 +97,8 @@ pub fn create_folder(state: State<'_, DbState>, input: CreateFolderInput) -> Res
         created_at: now,
         updated_at: now,
         is_pinned: false,
+        is_vault,
+        vault_verifier: input.vault_verifier,
     })
 }
 
@@ -104,7 +125,8 @@ pub fn rename_folder(state: State<'_, DbState>, input: RenameFolderInput) -> Res
     .map_err(|e| e.to_string())?;
 
     conn.query_row(
-        "SELECT id, name, parent_id, created_at, updated_at, COALESCE(is_pinned, 0) FROM folders WHERE id = ?1",
+        "SELECT id, name, parent_id, created_at, updated_at, COALESCE(is_pinned, 0), \
+         COALESCE(is_vault, 0), vault_verifier FROM folders WHERE id = ?1",
         params![input.id],
         map_folder,
     )
@@ -269,7 +291,8 @@ pub fn move_folder(state: State<'_, DbState>, input: MoveFolderInput) -> Result<
     .map_err(|e| e.to_string())?;
 
     conn.query_row(
-        "SELECT id, name, parent_id, created_at, updated_at, COALESCE(is_pinned, 0) FROM folders WHERE id = ?1",
+        "SELECT id, name, parent_id, created_at, updated_at, COALESCE(is_pinned, 0), \
+         COALESCE(is_vault, 0), vault_verifier FROM folders WHERE id = ?1",
         params![input.id],
         map_folder,
     )

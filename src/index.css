@@ -6216,6 +6216,27 @@ html.dark {
   stroke-dasharray: 2.5 2;
 }
 
+.link-graph-node.is-tag .link-graph-node-core,
+.link-graph-node.is-entity .link-graph-node-core {
+  stroke-width: 2;
+  stroke-dasharray: 3 2.5;
+}
+
+.link-graph-node.is-tag .link-graph-node-core {
+  stroke: color-mix(in srgb, var(--color-accent) 55%, var(--color-border));
+}
+
+.link-graph-node.is-entity .link-graph-node-core {
+  stroke: color-mix(in srgb, var(--color-foreground) 35%, var(--color-border));
+}
+
+.link-graph-node.is-tag .link-graph-node-label,
+.link-graph-node.is-entity .link-graph-node-label {
+  font-size: 9px;
+  font-weight: 600;
+  opacity: 0.92;
+}
+
 .link-graph-node.is-active .link-graph-node-core,
 .link-graph-node.is-hovered .link-graph-node-core {
   fill: var(--link-graph-node-active);

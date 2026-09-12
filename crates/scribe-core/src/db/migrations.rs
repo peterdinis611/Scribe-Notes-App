@@ -1,6 +1,6 @@
 use rusqlite::Connection;
 
-const SCHEMA_VERSION: i32 = 14;
+const SCHEMA_VERSION: i32 = 15;
 
 pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     conn.execute_batch(
@@ -354,6 +354,21 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         );
         let _ = conn.execute(
             "ALTER TABLE document_revisions ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0",
+            [],
+        );
+        conn.execute(
+            "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
+            [SCHEMA_VERSION.to_string()],
+        )?;
+    }
+
+    if current < 15 {
+        let _ = conn.execute(
+            "ALTER TABLE folders ADD COLUMN is_vault INTEGER NOT NULL DEFAULT 0",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE folders ADD COLUMN vault_verifier TEXT",
             [],
         );
         conn.execute(

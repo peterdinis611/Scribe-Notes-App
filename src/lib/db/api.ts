@@ -1,5 +1,6 @@
 import { invoke } from '@/lib/tauri'
 import { cacheDocument, clearDocumentCache, invalidateDocumentCache, peekCachedDocument } from '@/lib/cache/document-cache'
+import { maybeDecryptDocument, maybeEncryptContentJson } from '@/lib/vault/document-crypto'
 
 export interface DocumentSummary {
   id: string
@@ -20,6 +21,8 @@ export interface Folder {
   createdAt: number
   updatedAt: number
   isPinned: boolean
+  isVault?: boolean
+  vaultVerifier?: string | null
 }
 
 export interface SearchHit {
@@ -91,14 +94,31 @@ export interface ExportResult {
 
 export const listDocuments = () => invoke<DocumentSummary[]>('list_documents')
 
-export const getDocument = async (id: string) => {
-  const cached = peekCachedDocument(id)
-  if (cached) return cached
-  return cacheDocument(await invoke<Document>('get_document', { id }))
+async function vaultContext() {
+  const { store } = await import('@/store/index')
+  const state = store.getState()
+  return {
+    folders: state.folders.folders,
+    documents: state.documents.documents,
+  }
 }
 
-export const fetchDocumentFresh = async (id: string) =>
-  cacheDocument(await invoke<Document>('get_document', { id }))
+export const getDocument = async (id: string) => {
+  const { folders } = await vaultContext()
+  let raw = peekCachedDocument(id)
+  if (!raw) {
+    raw = await invoke<Document>('get_document', { id })
+    cacheDocument(raw)
+  }
+  return maybeDecryptDocument(raw, folders)
+}
+
+export const fetchDocumentFresh = async (id: string) => {
+  const { folders } = await vaultContext()
+  const raw = await invoke<Document>('get_document', { id })
+  cacheDocument(raw)
+  return maybeDecryptDocument(raw, folders)
+}
 
 export const createDocument = async (input: CreateDocumentInput) =>
   cacheDocument(await invoke<Document>('create_document', { input }))
@@ -106,8 +126,16 @@ export const createDocument = async (input: CreateDocumentInput) =>
 export const duplicateDocument = async (id: string, title?: string) =>
   cacheDocument(await invoke<Document>('duplicate_document', { input: { id, title } }))
 
-export const updateDocument = async (input: UpdateDocumentInput) =>
-  cacheDocument(await invoke<Document>('update_document', { input }))
+export const updateDocument = async (input: UpdateDocumentInput) => {
+  const next = { ...input }
+  const { folders, documents } = await vaultContext()
+  if (typeof next.contentJson === 'string') {
+    next.contentJson = await maybeEncryptContentJson(next.id, next.contentJson, folders, documents)
+  }
+  const saved = await invoke<Document>('update_document', { input: next })
+  cacheDocument(saved)
+  return maybeDecryptDocument(saved, folders)
+}
 
 export const libraryFindReplace = (input: LibraryFindReplaceInput) =>
   invoke<LibraryFindReplaceHit[]>('library_find_replace', { input })
@@ -298,8 +326,20 @@ export const previewPdfExport = async (
 
 export const listFolders = () => invoke<Folder[]>('list_folders')
 
-export const createFolder = (input: { name: string; parentId?: string | null }) =>
-  invoke<Folder>('create_folder', { input: { name: input.name, parentId: input.parentId ?? null } })
+export const createFolder = (input: {
+  name: string
+  parentId?: string | null
+  isVault?: boolean
+  vaultVerifier?: string | null
+}) =>
+  invoke<Folder>('create_folder', {
+    input: {
+      name: input.name,
+      parentId: input.parentId ?? null,
+      isVault: input.isVault ?? false,
+      vaultVerifier: input.vaultVerifier ?? null,
+    },
+  })
 
 export const renameFolder = (id: string, name: string) =>
   invoke<Folder>('rename_folder', { input: { id, name } })
