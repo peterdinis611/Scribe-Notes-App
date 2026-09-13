@@ -132,12 +132,98 @@ export async function insertImagesFromFiles(
 ) {
   let insertPos = pos
   for (const file of files) {
-    if (!file.type.startsWith('image/')) continue
+    if (!isImageFile(file)) continue
     await insertImageFromFile(editor, documentId, file, insertPos)
     if (insertPos !== undefined) {
       insertPos += 1
     }
   }
+}
+
+export function isLottieFile(file: File): boolean {
+  const name = file.name.toLowerCase()
+  if (name.endsWith('.lottie') || name.endsWith('.json')) return true
+  // Some OS paste/drop paths omit a filename extension.
+  if (!/\.[a-z0-9]+$/i.test(file.name)) {
+    return (
+      file.type === 'application/json' ||
+      file.type === 'application/zip' ||
+      file.type === 'application/x-zip-compressed'
+    )
+  }
+  return false
+}
+
+export function isImageFile(file: File): boolean {
+  if (file.type.startsWith('image/')) return true
+  return /\.(?:png|jpe?g|gif|webp|svg)$/i.test(file.name)
+}
+
+export function isDocumentMediaFile(file: File): boolean {
+  return isImageFile(file) || isLottieFile(file)
+}
+
+export function insertEmptyLottieBlock(editor: Editor, pos?: number) {
+  editor.chain().focus().insertLottieAnimation({ pos, src: null }).run()
+}
+
+export async function insertLottieFromFile(
+  editor: Editor,
+  documentId: string,
+  file: File,
+  pos?: number,
+) {
+  const base64 = await fileToBase64(file)
+  const path = await saveDocumentImage(documentId, file.name, base64)
+
+  editor
+    .chain()
+    .focus()
+    .insertLottieAnimation({
+      pos,
+      src: path,
+      width: '480px',
+      align: 'center',
+    })
+    .run()
+}
+
+/** Insert images and/or Lottie animations from a mixed file list. */
+export async function insertDocumentMediaFromFiles(
+  editor: Editor,
+  documentId: string,
+  files: File[],
+  pos?: number,
+) {
+  let insertPos = pos
+  for (const file of files) {
+    if (isLottieFile(file) && !file.type.startsWith('image/')) {
+      await insertLottieFromFile(editor, documentId, file, insertPos)
+    } else if (isImageFile(file)) {
+      await insertImageFromFile(editor, documentId, file, insertPos)
+    } else {
+      continue
+    }
+    if (insertPos !== undefined) {
+      insertPos += 1
+    }
+  }
+}
+
+/** Paste raw SVG markup as a saved document image. */
+export function svgMarkupToFile(markup: string, fileName = `pasted-${Date.now()}.svg`): File {
+  const trimmed = markup.trim()
+  return new File([trimmed], fileName, { type: 'image/svg+xml' })
+}
+
+export function extractSvgMarkup(text: string, html = ''): string | null {
+  for (const candidate of [text, html]) {
+    const trimmed = candidate.trim()
+    if (!trimmed) continue
+    const match = trimmed.match(/<svg\b[\s\S]*?<\/svg>/i)
+    if (match) return match[0]
+  }
+  return null
 }
 
 export async function replaceImageFromFile(documentId: string, file: File): Promise<string> {
@@ -199,13 +285,37 @@ export function pickImageFiles(options?: { multiple?: boolean }): Promise<File[]
   return new Promise((resolve) => {
     const input = document.createElement('input')
     input.type = 'file'
-    input.accept = 'image/png,image/jpeg,image/gif,image/webp,image/svg+xml'
+    input.accept = 'image/png,image/jpeg,image/gif,image/webp,image/svg+xml,.svg'
     input.multiple = options?.multiple ?? true
     input.onchange = () => resolve(Array.from(input.files ?? []))
     input.click()
   })
 }
 
+export function pickLottieFiles(options?: { multiple?: boolean }): Promise<File[]> {
+  return new Promise((resolve) => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.json,.lottie,application/json,application/zip'
+    input.multiple = options?.multiple ?? false
+    input.onchange = () => resolve(Array.from(input.files ?? []))
+    input.click()
+  })
+}
+
+/** Images + Lottie in one picker (Insert toolbar / drop). */
+export function pickDocumentMediaFiles(options?: { multiple?: boolean }): Promise<File[]> {
+  return new Promise((resolve) => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept =
+      'image/png,image/jpeg,image/gif,image/webp,image/svg+xml,.svg,.json,.lottie,application/json'
+    input.multiple = options?.multiple ?? true
+    input.onchange = () => resolve(Array.from(input.files ?? []).filter(isDocumentMediaFile))
+    input.click()
+  })
+}
+
 export function extractImageFiles(dataTransfer: DataTransfer): File[] {
-  return Array.from(dataTransfer.files).filter((file) => file.type.startsWith('image/'))
+  return Array.from(dataTransfer.files).filter(isDocumentMediaFile)
 }

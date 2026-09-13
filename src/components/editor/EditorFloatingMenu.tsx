@@ -10,13 +10,14 @@ import {
   ListOrdered,
   Plus,
   Quote,
+  Sparkles,
   SquareCode,
   Table2,
   X,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
-import { insertEmptyImageBlock } from '@/lib/editor/image-utils'
+import { insertEmptyImageBlock, insertEmptyLottieBlock } from '@/lib/editor/image-utils'
 import {
   insertBulletList,
   insertOrderedList,
@@ -173,6 +174,15 @@ export function EditorFloatingMenu({
       icon: ImagePlus,
       run: (currentEditor) => {
         insertEmptyImageBlock(currentEditor)
+      },
+    },
+    {
+      id: 'lottie',
+      label: t('floatingMenu.lottie'),
+      hint: t('floatingMenu.lottieHint'),
+      icon: Sparkles,
+      run: (currentEditor) => {
+        insertEmptyLottieBlock(currentEditor)
       },
     },
   ]

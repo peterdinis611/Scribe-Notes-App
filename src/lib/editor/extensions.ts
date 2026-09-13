@@ -3,7 +3,6 @@ import Color from '@tiptap/extension-color'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import { Details, DetailsContent, DetailsSummary } from '@tiptap/extension-details'
 import Emoji, { gitHubEmojis } from '@tiptap/extension-emoji'
-import FileHandler from '@tiptap/extension-file-handler'
 import Focus from '@tiptap/extension-focus'
 import Highlight from '@tiptap/extension-highlight'
 import InvisibleCharacters from '@tiptap/extension-invisible-characters'
@@ -35,6 +34,7 @@ import { BlockSpacing } from '@/lib/editor/block-spacing'
 import { ListItemWithBlocks } from '@/lib/editor/list-item'
 import { MathJs } from '@/lib/editor/math-js-extension'
 import { MermaidDiagram } from '@/lib/editor/mermaid-extension'
+import { LottieAnimation } from '@/lib/editor/lottie-extension'
 import { lowlight } from '@/lib/editor/lowlight'
 import { PageBreak } from '@/lib/editor/page-break'
 import { ResizableImage } from '@/lib/editor/resizable-image'
@@ -118,6 +118,7 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
     }),
     MathJs.configure({}),
     MermaidDiagram.configure({}),
+    LottieAnimation.configure({}),
     Youtube.configure({
       width: 640,
       height: 360,
@@ -142,15 +143,12 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
     InvisibleCharacters.configure({
       visible: false,
     }),
-    FileHandler.configure({
-      allowedMimeTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'],
-      onDrop: (_editor, files, pos) => {
-        if (files.length) void onInsertImages?.(files, pos)
-      },
-    }),
     ClipboardPaste.configure({
       onInsertImages: (files) => {
         if (files.length) void onInsertImages?.(files)
+      },
+      onDropImages: (files, pos) => {
+        if (files.length) void onInsertImages?.(files, pos)
       },
     }),
     Dropcursor.configure({

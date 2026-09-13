@@ -1515,6 +1515,10 @@
       "label": "Image URL",
       "hint": "Embed image from a link"
     },
+    "lottie": {
+      "label": "Lottie",
+      "hint": "Lottie / DotLottie animation (.json, .lottie)"
+    },
     "math-inline": {
       "label": "Formula",
       "hint": "Inline math.js"
@@ -1597,7 +1601,9 @@
     "table": "Table",
     "tableHint": "3×3",
     "image": "Image",
-    "imageHint": "Upload or link"
+    "imageHint": "Upload or link",
+    "lottie": "Lottie",
+    "lottieHint": ".json / .lottie"
   },
   "emojiPicker": {
     "searchPlaceholder": "Search emoji…"
@@ -1807,6 +1813,7 @@
       "insert": "Insert",
       "image": "Image",
       "imageUrl": "Image from URL",
+      "lottie": "Lottie animation",
       "table": "Table",
       "youtube": "YouTube",
       "youtubeVideo": "YouTube video",
@@ -1919,6 +1926,7 @@
     "deleteBlockquote": "Delete quote",
     "deleteHr": "Delete divider",
     "deleteImage": "Delete image",
+    "deleteLottie": "Delete Lottie",
     "deleteList": "Delete list",
     "deleteChecklist": "Delete checklist",
     "deleteHighlight": "Remove highlight",
@@ -2131,6 +2139,16 @@
     "captionPlaceholder": "Optional caption",
     "captionEmpty": "Add a caption…",
     "resize": "Resize"
+  },
+  "lottie": {
+    "alignGroup": "Lottie alignment",
+    "loop": "Loop",
+    "autoplay": "Autoplay",
+    "replace": "Replace animation",
+    "delete": "Delete Lottie",
+    "emptyTitle": "Add a Lottie animation",
+    "emptyHint": "Upload a .json or .lottie file",
+    "upload": "Upload"
   },
   "structuredPdf": {
     "digestFooter": "Scribe · Journal digest",

@@ -9,7 +9,12 @@ import {
   type SlashCommandItem,
 } from '@/components/editor/SlashSuggestionList'
 import { insertBlockMath, insertInlineMath, insertLoremIpsum, insertMermaidDiagram } from '@/lib/editor/insert-helpers'
-import { insertEmptyImageBlock, insertImageFromUrl, isLikelyImageUrl } from '@/lib/editor/image-utils'
+import {
+  insertEmptyImageBlock,
+  insertEmptyLottieBlock,
+  insertImageFromUrl,
+  isLikelyImageUrl,
+} from '@/lib/editor/image-utils'
 import { insertBulletList, insertOrderedList, insertTaskList } from '@/lib/editor/list-commands'
 import { createCommentForSelection } from '@/lib/editor/comments'
 import { listBlockSnippets, plainTextToTipTapContent } from '@/lib/editor/block-snippets'
@@ -36,6 +41,7 @@ export const SLASH_COMMAND_DEFS: SlashCommandDef[] = [
   { id: 'table', icon: '⊞' },
   { id: 'image', icon: '🖼' },
   { id: 'image-url', icon: '🔗🖼' },
+  { id: 'lottie', icon: '✦' },
   { id: 'math-inline', icon: 'ƒ' },
   { id: 'math-block', icon: '∑' },
   { id: 'mermaid', icon: '⬡' },
@@ -132,6 +138,9 @@ export function runSlashCommand(
       }
       break
     }
+    case 'lottie':
+      insertEmptyLottieBlock(editor)
+      break
     case 'math-inline':
       insertInlineMath(editor)
       break

@@ -1,6 +1,6 @@
 import type { Editor } from '@tiptap/react'
 import { useEditorState } from '@tiptap/react'
-import { ArrowDownAZ, ArrowUpAZ, Code, FunctionSquare, GitBranch, ImagePlus, Link2, Play, ScanLine, Sigma, SplitSquareHorizontal, Table2, TextQuote, Trash2 } from 'lucide-react'
+import { ArrowDownAZ, ArrowUpAZ, Code, FunctionSquare, GitBranch, ImagePlus, Link2, Play, ScanLine, Sigma, Sparkles, SplitSquareHorizontal, Table2, TextQuote, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CodeLanguageMenu } from '@/components/editor-toolbar/CodeLanguageMenu'
@@ -8,7 +8,7 @@ import { ToolbarButton, ToolbarGroup } from '@/components/editor-toolbar/primiti
 import { ImageUrlDialog } from '@/components/editor/ImageUrlDialog'
 import { deleteCurrentBlock } from '@/lib/editor/delete-content'
 import { insertBlockMath, insertInlineMath, insertLoremIpsum, insertMermaidDiagram, insertScannedBarcode, insertYoutubeVideo } from '@/lib/editor/insert-helpers'
-import { insertImageFromUrl, pickImageFiles } from '@/lib/editor/image-utils'
+import { insertEmptyLottieBlock, insertImageFromUrl, pickDocumentMediaFiles } from '@/lib/editor/image-utils'
 import {
   fillDownActiveColumn,
   insertColumnTotalBelow,
@@ -52,7 +52,7 @@ export function InsertTab({ editor, onInsertImages }: InsertTabProps) {
   }
 
   async function handlePickImage() {
-    const files = await pickImageFiles()
+    const files = await pickDocumentMediaFiles()
     if (files.length) await onInsertImages(files)
   }
 
@@ -77,6 +77,9 @@ export function InsertTab({ editor, onInsertImages }: InsertTabProps) {
         </ToolbarButton>
         <ToolbarButton label={t('toolbar.actions.imageUrl')} onClick={() => setImageUrlOpen(true)}>
           <Link2 className="h-4 w-4 stroke-[1.75]" />
+        </ToolbarButton>
+        <ToolbarButton label={t('toolbar.actions.lottie')} onClick={() => insertEmptyLottieBlock(editor)}>
+          <Sparkles className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
         <ToolbarButton label={t('toolbar.actions.youtube')} onClick={() => insertYoutubeVideo(editor)}>
           <Play className="h-4 w-4 stroke-[1.75]" />

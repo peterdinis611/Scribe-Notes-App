@@ -18,6 +18,7 @@ export type DocumentOutlineKind =
   | 'mathInline'
   | 'mathBlock'
   | 'mermaidDiagram'
+  | 'lottieAnimation'
 
 export type DocumentOutlineItem = {
   id: string
@@ -44,6 +45,7 @@ const OUTLINE_NODE_TYPES = new Set<string>([
   'mathInline',
   'mathBlock',
   'mermaidDiagram',
+  'lottieAnimation',
 ])
 
 function truncate(text: string, max = 52) {
@@ -88,6 +90,8 @@ function getNodeLabel(node: PMNode) {
       return 'Vzorec (blok)'
     case 'mermaidDiagram':
       return 'Mermaid'
+    case 'lottieAnimation':
+      return 'Lottie'
     default:
       return node.type.name
   }
@@ -102,6 +106,8 @@ function getNodePreview(node: PMNode) {
       return truncate(String(node.attrs.expression ?? ''), 44)
     case 'mermaidDiagram':
       return truncate(String(node.attrs.source ?? ''), 44) || 'Diagram'
+    case 'lottieAnimation':
+      return truncate(String(node.attrs.caption || node.attrs.src || ''), 44) || 'Animácia'
     case 'image':
       return truncate(String(node.attrs.alt || node.attrs.title || ''), 44) || 'Bez popisu'
     case 'youtube':
@@ -160,7 +166,8 @@ function shouldIncludeNode(node: PMNode, doc: PMNode, pos: number) {
     node.type.name === 'taskItem' ||
     node.type.name === 'mathBlock' ||
     node.type.name === 'mathInline' ||
-    node.type.name === 'mermaidDiagram'
+    node.type.name === 'mermaidDiagram' ||
+    node.type.name === 'lottieAnimation'
   ) {
     return true
   }

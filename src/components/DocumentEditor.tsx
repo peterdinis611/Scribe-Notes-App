@@ -42,7 +42,7 @@ import { handleTauriEditorKeyDown } from '@/lib/editor/tauri-input-fix'
 import { getEditorMarkdown, parseMarkdownToContentJson } from '@/lib/editor/markdown-content'
 import type { DocumentOutlineItem } from '@/lib/editor/document-outline'
 import { jumpToMarkdownOutlineItem } from '@/lib/editor/markdown-outline'
-import { insertImagesFromFiles } from '@/lib/editor/image-utils'
+import { insertDocumentMediaFromFiles } from '@/lib/editor/image-utils'
 import { printDocumentFromContent } from '@/lib/export/print-document'
 import { navigateViaWikiLink } from '@/lib/navigation'
 import { toast } from '@/lib/toast'
@@ -102,7 +102,7 @@ export function DocumentEditor() {
   const handleInsertImages = useCallback(
     async (files: File[], pos?: number) => {
       if (!editorRef.current || !activeId) return
-      await insertImagesFromFiles(editorRef.current, activeId, files, pos)
+      await insertDocumentMediaFromFiles(editorRef.current, activeId, files, pos)
     },
     [activeId],
   )
@@ -111,7 +111,7 @@ export function DocumentEditor() {
   insertImagesRef.current = handleInsertImages
 
   // Bump when extension set changes so HMR recreates the editor (useMemo [] is sticky).
-  const EDITOR_EXTENSIONS_REV = 5
+  const EDITOR_EXTENSIONS_REV = 6
   const extensions = useMemo(
     () =>
       getEditorExtensions({

@@ -1,6 +1,11 @@
 import { Extension } from '@tiptap/core'
 import { Plugin } from '@tiptap/pm/state'
-import { isLikelyImageUrl } from '@/lib/editor/image-utils'
+import {
+  extractSvgMarkup,
+  isDocumentMediaFile,
+  isLikelyImageUrl,
+  svgMarkupToFile,
+} from '@/lib/editor/image-utils'
 
 export const PASTE_IMAGE_MIME_TYPES = [
   'image/jpeg',
@@ -15,11 +20,10 @@ export function getImageOnlyClipboardFiles(data: DataTransfer | null): File[] {
 
   const html = data.getData('text/html').trim()
   const text = data.getData('text/plain').trim()
+  // Allow SVG markup paste to be handled separately; otherwise file-only pastes.
   if (html || text) return []
 
-  return Array.from(data.files).filter((file) =>
-    PASTE_IMAGE_MIME_TYPES.includes(file.type as (typeof PASTE_IMAGE_MIME_TYPES)[number]),
-  )
+  return Array.from(data.files).filter((file) => isDocumentMediaFile(file))
 }
 
 /** Parse Excel / Sheets / TSV clipboard into a rectangular grid. */
@@ -67,6 +71,7 @@ export function tsvGridToTableHtml(grid: string[][]): string {
 
 type ClipboardPasteOptions = {
   onInsertImages?: (files: File[]) => void | Promise<void>
+  onDropImages?: (files: File[], pos?: number) => void | Promise<void>
 }
 
 export const ClipboardPaste = Extension.create<ClipboardPasteOptions>({
@@ -75,6 +80,7 @@ export const ClipboardPaste = Extension.create<ClipboardPasteOptions>({
   addOptions() {
     return {
       onInsertImages: undefined,
+      onDropImages: undefined,
     }
   },
 
@@ -82,6 +88,20 @@ export const ClipboardPaste = Extension.create<ClipboardPasteOptions>({
     return [
       new Plugin({
         props: {
+          handleDrop: (view, event) => {
+            if (!this.options.onDropImages) return false
+            if (event.dataTransfer?.types.includes('application/x-prosemirror-slice')) {
+              return false
+            }
+            const files = Array.from(event.dataTransfer?.files ?? []).filter(isDocumentMediaFile)
+            if (!files.length) return false
+
+            const dropPos = view.posAtCoords({ left: event.clientX, top: event.clientY })
+            event.preventDefault()
+            event.stopPropagation()
+            void this.options.onDropImages(files, dropPos?.pos)
+            return true
+          },
           handlePaste: (_view, event) => {
             const files = getImageOnlyClipboardFiles(event.clipboardData)
             if (files.length && this.options.onInsertImages) {
@@ -91,6 +111,14 @@ export const ClipboardPaste = Extension.create<ClipboardPasteOptions>({
             }
 
             const text = (event.clipboardData?.getData('text/plain') ?? '').trim()
+            const html = (event.clipboardData?.getData('text/html') ?? '').trim()
+            const svgMarkup = extractSvgMarkup(text, html)
+            if (svgMarkup && this.options.onInsertImages) {
+              event.preventDefault()
+              void this.options.onInsertImages([svgMarkupToFile(svgMarkup)])
+              return true
+            }
+
             if (text && isLikelyImageUrl(text) && this.editor) {
               event.preventDefault()
               this.editor

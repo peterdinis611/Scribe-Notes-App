@@ -3818,14 +3818,14 @@ body.is-block-dragging .editor-block-drag-handle {
   cursor: grabbing;
 }
 
-.tiptap > *:is(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, pre, table, hr, .details-block, .table-of-contents-block, .image-block, li).is-block-drag-hover,
-.tiptap > *:is(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, pre, table, hr, .details-block, .table-of-contents-block, .image-block, li).is-block-drag-source {
+.tiptap > *:is(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, pre, table, hr, .details-block, .table-of-contents-block, .image-block, .lottie-block, li).is-block-drag-hover,
+.tiptap > *:is(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, pre, table, hr, .details-block, .table-of-contents-block, .image-block, .lottie-block, li).is-block-drag-source {
   outline: 2px solid color-mix(in srgb, var(--color-accent) 45%, transparent);
   outline-offset: 3px;
   border-radius: 4px;
 }
 
-.tiptap > *:is(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, pre, table, hr, .details-block, .table-of-contents-block, .image-block, li).is-block-drag-source {
+.tiptap > *:is(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, pre, table, hr, .details-block, .table-of-contents-block, .image-block, .lottie-block, li).is-block-drag-source {
   opacity: 0.35;
 }
 
@@ -4098,7 +4098,7 @@ body.is-block-dragging .tiptap {
 }
 
 /* Keep a quiet cue only for structured blocks — never a form-like box on empty paragraphs. */
-.tiptap :is(blockquote, pre, table, .details-block, .callout, .math-js-node, .mermaid-diagram, .image-block).has-focus {
+.tiptap :is(blockquote, pre, table, .details-block, .callout, .math-js-node, .mermaid-diagram, .image-block, .lottie-block).has-focus {
   outline: 1px solid color-mix(in srgb, var(--color-accent) 28%, transparent);
   outline-offset: 3px;
   border-radius: 4px;
@@ -4837,6 +4837,17 @@ html.scribe-print-layout .editor-block-drag-handle {
 .tiptap .image-block.is-busy {
   opacity: 0.72;
   pointer-events: none;
+}
+
+.tiptap .lottie-block .lottie-media {
+  min-height: 120px;
+}
+
+.tiptap .lottie-block .lottie-media canvas {
+  display: block;
+  width: 100% !important;
+  height: auto !important;
+  max-width: 100%;
 }
 
 .tiptap .ProseMirror-selectednode .image-block-inner {

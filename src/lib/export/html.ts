@@ -210,6 +210,22 @@ function renderNodes(nodes: TipTapNode[] | undefined, ctx: RenderContext): strin
           const source = String(node.attrs?.source ?? '')
           return renderMermaidFigure(source, ctx)
         }
+        case 'lottieAnimation': {
+          const src = String(node.attrs?.src ?? '')
+          const caption = String(node.attrs?.caption ?? '').trim()
+          const width = node.attrs?.width
+            ? ` width="${escapeHtml(String(node.attrs.width))}" style="width:${escapeHtml(String(node.attrs.width))}"`
+            : ''
+          const align = String(node.attrs?.align ?? 'center')
+          const captionHtml = caption
+            ? `<figcaption>${escapeHtml(caption)}</figcaption>`
+            : ''
+          if (!src) {
+            return `<figure data-type="lottie-animation" data-align="${escapeHtml(align)}"><p>Lottie</p>${captionHtml}</figure>`
+          }
+          // Static export: link to the animation asset (HTML viewers won't play .json/.lottie inline).
+          return `<figure data-type="lottie-animation" data-align="${escapeHtml(align)}" style="text-align:${escapeHtml(align)}"><a href="${escapeHtml(src)}"${width}>Lottie animation</a>${captionHtml}</figure>`
+        }
         case 'table':
           return `<table style="border-collapse:collapse;width:100%;margin:12pt 0;">${renderNodes(node.content, ctx)}</table>`
         case 'tableRow':

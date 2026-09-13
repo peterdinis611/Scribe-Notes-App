@@ -62,7 +62,7 @@ import {
 import { CodeLanguageMenu } from '@/components/editor-toolbar/CodeLanguageMenu'
 import { LINE_HEIGHTS, PARAGRAPH_SPACING } from '@/lib/editor/block-spacing'
 import { FONT_SIZES, HIGHLIGHT_COLORS, TEXT_COLORS } from '@/lib/editor/font-size'
-import { pickImageFiles } from '@/lib/editor/image-utils'
+import { pickDocumentMediaFiles } from '@/lib/editor/image-utils'
 import {
   fillDownActiveColumn,
   insertColumnTotalBelow,
@@ -142,7 +142,7 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
   const currentFont = getCurrentFontFamilyLabel(editor, t)
 
   async function handlePickImage() {
-    const files = await pickImageFiles()
+    const files = await pickDocumentMediaFiles()
     if (files.length) await onInsertImages(files)
   }
 

@@ -1522,6 +1522,10 @@
       "label": "Obrázok z URL",
       "hint": "Vložiť obrázok z odkazu"
     },
+    "lottie": {
+      "label": "Lottie",
+      "hint": "Lottie / DotLottie animácia (.json, .lottie)"
+    },
     "math-inline": {
       "label": "Vzorec",
       "hint": "math.js v riadku"
@@ -1604,7 +1608,9 @@
     "table": "Tabuľka",
     "tableHint": "3×3",
     "image": "Obrázok",
-    "imageHint": "Súbor alebo odkaz"
+    "imageHint": "Súbor alebo odkaz",
+    "lottie": "Lottie",
+    "lottieHint": ".json / .lottie"
   },
   "emojiPicker": {
     "searchPlaceholder": "Hľadať emoji…"
@@ -1820,6 +1826,7 @@
       "insert": "Vložiť",
       "image": "Obrázok",
       "imageUrl": "Obrázok z URL",
+      "lottie": "Lottie animácia",
       "table": "Tabuľka",
       "youtube": "YouTube",
       "youtubeVideo": "YouTube video",
@@ -1934,6 +1941,7 @@
     "deleteBlockquote": "Odstrániť citáciu",
     "deleteHr": "Odstrániť oddeľovač",
     "deleteImage": "Odstrániť obrázok",
+    "deleteLottie": "Odstrániť Lottie",
     "deleteList": "Odstrániť zoznam",
     "deleteChecklist": "Odstrániť checklist",
     "deleteHighlight": "Odstrániť zvýraznenie",
@@ -2146,6 +2154,16 @@
     "captionPlaceholder": "Voliteľný popisok",
     "captionEmpty": "Pridať popisok…",
     "resize": "Zmeniť veľkosť"
+  },
+  "lottie": {
+    "alignGroup": "Zarovnanie Lottie",
+    "loop": "Opakovať",
+    "autoplay": "Prehrať automaticky",
+    "replace": "Nahradiť animáciu",
+    "delete": "Odstrániť Lottie",
+    "emptyTitle": "Pridať Lottie animáciu",
+    "emptyHint": "Nahrajte súbor .json alebo .lottie",
+    "upload": "Nahrať"
   },
   "structuredPdf": {
     "digestFooter": "Scribe · Denníkový digest",

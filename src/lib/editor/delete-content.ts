@@ -6,6 +6,7 @@ const DELETABLE_NODE_TYPES = [
   'blockquote',
   'horizontalRule',
   'image',
+  'lottieAnimation',
   'bulletList',
   'orderedList',
   'taskList',
@@ -20,6 +21,7 @@ export function getActiveBlockDeleteLabel(editor: Editor): string | null {
   if (editor.isActive('blockquote')) return i18n.t('editorActions.deleteBlockquote')
   if (editor.isActive('horizontalRule')) return i18n.t('editorActions.deleteHr')
   if (editor.isActive('image')) return i18n.t('editorActions.deleteImage')
+  if (editor.isActive('lottieAnimation')) return i18n.t('editorActions.deleteLottie')
   if (editor.isActive('bulletList')) return i18n.t('editorActions.deleteList')
   if (editor.isActive('orderedList')) return i18n.t('editorActions.deleteList')
   if (editor.isActive('taskList')) return i18n.t('editorActions.deleteChecklist')
@@ -46,7 +48,7 @@ export function deleteCurrentBlock(editor: Editor): boolean {
 }
 
 export function shouldShowBlockBubble(editor: Editor): boolean {
-  // Image blocks have their own Notion-style toolbar with delete.
-  if (editor.isActive('image')) return false
+  // Image / Lottie blocks have their own Notion-style toolbar with delete.
+  if (editor.isActive('image') || editor.isActive('lottieAnimation')) return false
   return canDeleteCurrentBlock(editor)
 }
