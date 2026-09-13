@@ -1,11 +1,11 @@
 import { getVersion } from '@tauri-apps/api/app'
 import { confirm, open } from '@tauri-apps/plugin-dialog'
-import { Archive, ArchiveRestore, FolderOpen, FolderSearch, Shuffle, Trash2 } from 'lucide-react'
+import { Archive, ArchiveRestore, FolderOpen, FolderSearch, Languages, Shuffle, Trash2, Upload } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import { requestStorageAccessDialog } from '@/components/StorageAccessDialogHost'
-import { LocaleToggle } from '@/components/LocaleToggle'
+import { LocaleToggle, useCustomLocaleRefresh } from '@/components/LocaleToggle'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DiagnosticsSection } from '@/components/settings/DiagnosticsSection'
@@ -62,12 +62,18 @@ import {
   setAutoBackupIntervalHours,
   setAutoBackupDirectory,
   setLastAutoBackupAt,
+  setLocale,
 } from '@/store/settingsSlice'
 import {
   AUTO_BACKUP_INTERVAL_PRESETS,
   clampAutoBackupIntervalHours,
+  readCustomLocales,
+  removeCustomLocale,
+  upsertCustomLocale,
 } from '@/store/persistence'
 import { persistStorageFolderAccessGranted } from '@/store/persistence'
+import { registerCustomLocaleBundle, unregisterCustomLocaleBundle } from '@/i18n'
+import { exportEnglishLanguageTemplate, pickAndParseCustomLocale } from '@/lib/i18n/custom-locale-io'
 import {
   createCustomThemeSelection,
   createResetCustomTheme,
@@ -77,8 +83,12 @@ import {
 export function AppearanceSection() {
   const themeSettings = useAppSelector((state) => state.settings.themeSettings)
   const uiSkin = useAppSelector((state) => state.settings.uiSkin)
+  const locale = useAppSelector((state) => state.settings.locale)
   const dispatch = useAppDispatch()
   const { t } = useTranslation()
+  const { refreshToken, bump } = useCustomLocaleRefresh()
+  const [customLocales, setCustomLocales] = useState(() => readCustomLocales())
+  const [localeBusy, setLocaleBusy] = useState(false)
 
   function chooseTheme(themeId: ThemePresetId) {
     dispatch(setThemeSettings(createThemeSelection(themeSettings, themeId)))
@@ -91,6 +101,49 @@ export function AppearanceSection() {
 
   function applyRandomTheme() {
     dispatch(setThemeSettings(createCustomThemeSelection(themeSettings, generateRandomTheme())))
+  }
+
+  async function handleImportLanguage() {
+    if (localeBusy) return
+    setLocaleBusy(true)
+    try {
+      const pack = await pickAndParseCustomLocale()
+      if (!pack) return
+      registerCustomLocaleBundle(pack)
+      const next = upsertCustomLocale(pack)
+      setCustomLocales(next)
+      bump()
+      dispatch(setLocale(pack.code))
+      toast.success(t('toasts.localeImported', { name: pack.name }))
+    } catch (error) {
+      toast.error(t('toasts.localeImportError'), String(error))
+    } finally {
+      setLocaleBusy(false)
+    }
+  }
+
+  async function handleExportLanguageTemplate() {
+    if (localeBusy) return
+    setLocaleBusy(true)
+    try {
+      const path = await exportEnglishLanguageTemplate()
+      if (path) toast.success(t('toasts.localeTemplateExported'))
+    } catch (error) {
+      toast.error(t('toasts.localeTemplateExportError'), String(error))
+    } finally {
+      setLocaleBusy(false)
+    }
+  }
+
+  function handleRemoveCustomLocale(code: string) {
+    const next = removeCustomLocale(code)
+    unregisterCustomLocaleBundle(code)
+    setCustomLocales(next)
+    bump()
+    if (locale === code) {
+      dispatch(setLocale('sk'))
+    }
+    toast.success(t('toasts.localeRemoved'))
   }
 
   const customTheme = themeSettings.customTheme ?? THEME_PRESETS[0].colors
@@ -109,8 +162,74 @@ export function AppearanceSection() {
             title={t('settings.language.title')}
             description={t('settings.language.rowDescription')}
           >
-            <LocaleToggle showLabels />
+            <LocaleToggle showLabels refreshToken={refreshToken} />
           </SettingsRow>
+          <SettingsRow
+            title={t('settings.language.customTitle')}
+            description={t('settings.language.customDescription')}
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={localeBusy}
+                onClick={() => void handleImportLanguage()}
+              >
+                <Upload className="mr-1.5 h-3.5 w-3.5" />
+                {t('settings.language.importJson')}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={localeBusy}
+                onClick={() => void handleExportLanguageTemplate()}
+              >
+                <Languages className="mr-1.5 h-3.5 w-3.5" />
+                {t('settings.language.exportTemplate')}
+              </Button>
+            </div>
+          </SettingsRow>
+          {customLocales.length > 0 && (
+            <SettingsRow
+              title={t('settings.language.installedTitle')}
+              description={t('settings.language.installedDescription')}
+            >
+              <ul className="flex w-full max-w-md flex-col gap-1.5">
+                {customLocales.map((pack) => (
+                  <li
+                    key={pack.code}
+                    className="flex items-center justify-between gap-2 rounded-md border border-[var(--color-border)] px-2.5 py-1.5 text-[13px]"
+                  >
+                    <button
+                      type="button"
+                      className={cn(
+                        'min-w-0 flex-1 truncate text-left',
+                        locale === pack.code
+                          ? 'font-medium text-[var(--color-foreground)]'
+                          : 'text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
+                      )}
+                      onClick={() => dispatch(setLocale(pack.code))}
+                    >
+                      {pack.name}
+                      <span className="ml-1.5 text-[11px] opacity-60">{pack.code}</span>
+                    </button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-[var(--color-muted-foreground)]"
+                      title={t('settings.language.remove')}
+                      onClick={() => handleRemoveCustomLocale(pack.code)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </SettingsRow>
+          )}
         </SettingsGroup>
       </SettingsSection>
 

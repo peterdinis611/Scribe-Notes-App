@@ -2624,18 +2624,59 @@ html[data-ui-skin='press'] .editor-shell--home {
 }
 
 .editor-canvas--markdown {
-  max-width: min(920px, 100%);
-  padding: 28px 36px 40px;
+  max-width: min(1280px, 100%);
+  padding: 20px 24px 32px;
   min-height: min(70vh, 760px);
+}
+
+.markdown-workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0;
+  min-height: min(58vh, 680px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-surface);
+}
+
+.markdown-workbench__pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.markdown-workbench__pane--source {
+  border-right: 1px solid var(--color-border);
+  background: color-mix(in oklab, var(--color-background) 88%, var(--color-surface));
+}
+
+.markdown-workbench__pane--preview {
+  background: var(--color-background);
+}
+
+.markdown-workbench__label {
+  margin: 0;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--color-border);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
 }
 
 .markdown-source-editor {
   display: block;
   width: 100%;
-  min-height: min(58vh, 680px);
+  flex: 1;
+  min-height: min(52vh, 620px);
   border: none;
   background: transparent;
-  resize: vertical;
+  resize: none;
+  padding: 14px 16px;
   font-family: var(--font-mono);
   font-size: 14px;
   line-height: 1.7;
@@ -2645,6 +2686,188 @@ html[data-ui-skin='press'] .editor-shell--home {
 
 .markdown-source-editor::placeholder {
   color: var(--color-muted-foreground);
+}
+
+.markdown-preview-scroll {
+  flex: 1;
+  min-height: min(52vh, 620px);
+  overflow: auto;
+  padding: 14px 18px 24px;
+}
+
+.markdown-preview-body {
+  max-width: 100%;
+}
+
+.markdown-preview-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-muted-foreground);
+}
+
+@media (max-width: 900px) {
+  .markdown-workbench {
+    grid-template-columns: 1fr;
+  }
+
+  .markdown-workbench__pane--source {
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .markdown-source-editor,
+  .markdown-preview-scroll {
+    min-height: min(36vh, 360px);
+  }
+}
+
+/* TanStack Markdown rendered output */
+.scribe-markdown {
+  font-family: var(--doc-font-family, inherit);
+  font-size: var(--doc-font-size, 15px);
+  line-height: var(--doc-line-height, 1.7);
+  color: var(--color-foreground);
+  overflow-wrap: break-word;
+}
+
+.scribe-markdown > :first-child {
+  margin-top: 0;
+}
+
+.scribe-markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.scribe-markdown h1,
+.scribe-markdown h2,
+.scribe-markdown h3,
+.scribe-markdown h4,
+.scribe-markdown h5,
+.scribe-markdown h6 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 1.1em 0 0.45em;
+}
+
+.scribe-markdown h1 {
+  font-size: 1.75em;
+  font-weight: 800;
+}
+
+.scribe-markdown h2 {
+  font-size: 1.35em;
+  font-weight: 700;
+}
+
+.scribe-markdown h3 {
+  font-size: 1.15em;
+  font-weight: 700;
+}
+
+.scribe-markdown p {
+  margin: 0 0 0.75em;
+}
+
+.scribe-markdown ul,
+.scribe-markdown ol {
+  margin: 0 0 0.75em;
+  padding-left: 1.35em;
+}
+
+.scribe-markdown li {
+  margin: 0.2em 0;
+}
+
+.scribe-markdown li > p {
+  margin: 0;
+}
+
+.scribe-markdown blockquote {
+  margin: 0 0 0.75em;
+  padding: 0.15em 0 0.15em 0.9em;
+  border-left: 3px solid var(--color-accent);
+  color: var(--color-muted-foreground);
+}
+
+.scribe-markdown a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.scribe-markdown code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  padding: 0.12em 0.35em;
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklab, var(--color-muted) 55%, transparent);
+}
+
+.scribe-markdown pre {
+  margin: 0 0 0.85em;
+  padding: 12px 14px;
+  overflow-x: auto;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: color-mix(in oklab, var(--color-surface) 70%, var(--color-background));
+  font-size: 0.85em;
+  line-height: 1.55;
+}
+
+.scribe-markdown pre code {
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  font-size: inherit;
+}
+
+.scribe-markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 0.85em;
+  font-size: 0.92em;
+}
+
+.scribe-markdown th,
+.scribe-markdown td {
+  border: 1px solid var(--color-border);
+  padding: 6px 10px;
+  text-align: left;
+}
+
+.scribe-markdown th {
+  background: color-mix(in oklab, var(--color-muted) 40%, transparent);
+  font-weight: 600;
+}
+
+.scribe-markdown hr {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 1.25em 0;
+}
+
+.scribe-markdown img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+}
+
+.scribe-markdown--chat {
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.scribe-markdown--chat h1,
+.scribe-markdown--chat h2,
+.scribe-markdown--chat h3 {
+  font-size: 1.05em;
+  margin: 0.6em 0 0.3em;
+}
+
+.scribe-markdown--chat pre {
+  padding: 8px 10px;
+  font-size: 11px;
 }
 
 .editor-content-host--hidden {

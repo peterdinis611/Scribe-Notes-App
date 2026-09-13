@@ -51,7 +51,7 @@ import {
   openYesterdayNote,
 } from '@/lib/journal-notes'
 import { getDisplayKeysForShortcut } from '@/lib/shortcuts'
-import type { AppLocale } from '@/i18n'
+import type { BuiltInLocale } from '@/i18n'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { createFolder, duplicateDocument, listCommentThreads, listLinkGraph, searchDocuments, setDocumentPinned } from '@/lib/db/api'
 import { nlpSearch, nlpStatus, type NlpStatus } from '@/lib/db/nlp-api'
@@ -682,7 +682,7 @@ export function CommandPalette() {
         hint: locale === 'sk' ? 'EN' : 'SK',
         icon: <Languages className="h-4 w-4" />,
         run: () => {
-          const next: AppLocale = locale === 'sk' ? 'en' : 'sk'
+          const next: BuiltInLocale = locale === 'sk' ? 'en' : 'sk'
           dispatch(setLocale(next))
           toast.success(t('toasts.localeChanged'), t(`settings.language.${next}`))
         },

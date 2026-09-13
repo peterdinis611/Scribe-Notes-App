@@ -446,10 +446,17 @@
     },
     "language": {
       "title": "Jazyk",
-      "description": "Jazyk rozhrania aplikácie.",
+      "description": "Jazyk rozhrania aplikácie. Vlastný jazyk pridáte importom JSON súboru.",
       "rowDescription": "Prepína texty menu, dialógov a editora.",
       "sk": "Slovenčina",
-      "en": "English"
+      "en": "English",
+      "customTitle": "Vlastný jazyk",
+      "customDescription": "Nahrajte JSON preklad (rovnaká štruktúra ako en.json). Chýbajúce kľúče padnú na slovenčinu.",
+      "importJson": "Importovať JSON",
+      "exportTemplate": "Anglická šablóna",
+      "installedTitle": "Nainštalované balíky",
+      "installedDescription": "Kliknutím jazyk aktivujete. Odstrániť zmaže balík z tohto Macu.",
+      "remove": "Odstrániť jazykový balík"
     },
     "appearance": {
       "skinTitle": "Dizajn",
@@ -1336,7 +1343,10 @@
   },
   "viewMode": {
     "rich": "Formátovaný text",
-    "markdown": "Markdown"
+    "markdown": "Markdown",
+    "markdownSource": "Zdroj",
+    "markdownPreview": "Náhľad",
+    "markdownPreviewEmpty": "Náhľad sa zobrazí počas písania."
   },
   "linkGraph": {
     "loading": "Načítavam mapu prepojení…",
@@ -1454,6 +1464,11 @@
     "demoCreated": "Ukážkový dokument vytvorený",
     "demoError": "Nepodarilo sa načítať ukážkový dokument",
     "localeChanged": "Jazyk zmenený",
+    "localeImported": "Jazyk „{{name}}“ importovaný",
+    "localeImportError": "Jazykový JSON sa nepodarilo importovať",
+    "localeRemoved": "Jazykový balík odstránený",
+    "localeTemplateExported": "Anglická šablóna exportovaná",
+    "localeTemplateExportError": "Šablónu jazyka sa nepodarilo exportovať",
     "trashLoadError": "Nepodarilo sa načítať kôš",
     "trashEmptied": "Kôš vysypaný",
     "trashEmptyError": "Nepodarilo sa vysypať kôš",

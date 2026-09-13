@@ -10,6 +10,7 @@ const MANUAL_TITLES_KEY = 'scribe-manual-titles'
 const COMMENT_AUTHOR_KEY = 'scribe-comment-author'
 const CUSTOM_TEMPLATES_KEY = 'scribe-custom-templates'
 const CUSTOM_TEMPLATE_CATEGORIES_KEY = 'scribe-custom-template-categories'
+const CUSTOM_LOCALES_KEY = 'scribe-custom-locales'
 const STORAGE_ACCESS_EXPLAINER_KEY = 'scribe-storage-access-explainer-dismissed'
 const STORAGE_FOLDER_ACCESS_GRANTED_KEY = 'scribe-storage-folder-access-granted'
 const FOLDER_AUTO_SYNC_KEY = 'scribe-folder-auto-sync'
@@ -32,6 +33,7 @@ export {
     COMMENT_AUTHOR_KEY,
     CUSTOM_TEMPLATE_CATEGORIES_KEY,
     CUSTOM_TEMPLATES_KEY,
+    CUSTOM_LOCALES_KEY,
     DOCUMENT_TOC_LEFT_KEY,
     EDITOR_VIEW_MODE_KEY,
     LOCALE_KEY,

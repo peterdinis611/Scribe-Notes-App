@@ -1,0 +1,27 @@
+{
+  "code": "de",
+  "name": "Deutsch",
+  "messages": {
+    "settings": {
+      "language": {
+        "title": "Sprache",
+        "description": "Oberflächensprache der App. Eigenes JSON importieren.",
+        "rowDescription": "Menüs, Dialoge und Editortexte.",
+        "sk": "Slowakisch",
+        "en": "Englisch",
+        "customTitle": "Eigene Sprache",
+        "customDescription": "JSON-Übersetzungspaket hochladen (gleiche Struktur wie en.json).",
+        "importJson": "JSON importieren",
+        "exportTemplate": "Englische Vorlage",
+        "installedTitle": "Installierte Pakete",
+        "installedDescription": "Klicken zum Aktivieren. Entfernen löscht das Paket.",
+        "remove": "Sprachpaket entfernen"
+      }
+    },
+    "common": {
+      "save": "Speichern",
+      "cancel": "Abbrechen",
+      "close": "Schließen"
+    }
+  }
+}

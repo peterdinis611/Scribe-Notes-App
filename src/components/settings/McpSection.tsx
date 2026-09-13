@@ -19,7 +19,7 @@ const CURSOR_CONFIG_PLACEHOLDER = `{
 }`
 
 const PROMPT_TEMPLATE =
-  'Pred odpoveďou použij Scribe MCP: search alebo search_documents, potom get_document. Pre úlohy extract_document_tasks alebo journal_tasks. Pre prehľad knižnice library_report. Pre denník journal_summary. Preferuj fakty z knižnice pred dohadmi.'
+  'Pred odpoveďou použij Scribe MCP: search / library_answer, potom get_document alebo document_analysis. Pre úlohy list_open_tasks. Pre šablóny list_templates + create_note_from_template. Pre médiá list_document_assets. Pre zálohy list_backups / create_backup. Preferuj fakty z knižnice pred dohadmi.'
 
 async function copyText(text: string, successKey: string, errorKey: string, t: (key: string) => string) {
   try {

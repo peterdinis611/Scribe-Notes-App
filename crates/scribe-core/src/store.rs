@@ -393,7 +393,7 @@ pub struct GraphHub {
 }
 
 pub struct ScribeStore {
-    db: Connection,
+    pub(crate) db: Connection,
     writable: bool,
 }
 
@@ -418,7 +418,7 @@ impl ScribeStore {
 
     pub fn close(self) {}
 
-    fn require_writable(&self) -> Result<(), String> {
+    pub(crate) fn require_writable(&self) -> Result<(), String> {
         if !self.writable {
             return Err(
                 "Database is open read-only. Close Scribe (or retry) so MCP can open a writable connection, or unset SCRIBE_MCP_WRITE=0.".to_string(),
@@ -427,7 +427,7 @@ impl ScribeStore {
         Ok(())
     }
 
-    fn run_writable<T, F>(&self, operation: F) -> Result<T, String>
+    pub(crate) fn run_writable<T, F>(&self, operation: F) -> Result<T, String>
     where
         F: FnOnce(&Connection) -> Result<T, String>,
     {
@@ -446,7 +446,7 @@ impl ScribeStore {
         }
     }
 
-    fn now_ms() -> i64 {
+    pub(crate) fn now_ms() -> i64 {
         chrono::Utc::now().timestamp_millis()
     }
 
@@ -2932,7 +2932,7 @@ impl ScribeStore {
     }
 }
 
-fn require_nlp(conn: &Connection) -> Result<(), String> {
+pub(crate) fn require_nlp(conn: &Connection) -> Result<(), String> {
     if !is_nlp_enabled(conn)? {
         return Err("NLP is disabled".to_string());
     }

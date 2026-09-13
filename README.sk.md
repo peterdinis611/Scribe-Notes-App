@@ -19,16 +19,48 @@ Scribe beží lokálne na vašom Macu. Žiadne účty, žiadny cloud — dokumen
 <p align="center"><em>Domov — nový dokument, dnešná poznámka, import</em></p>
 
 <p align="center">
+  <img src="docs/screenshots/editor.png" alt="Editor dokumentov Scribe" width="820" />
+</p>
+
+<p align="center"><em>Editor — print layout, knižnica, wiki odkazy</em></p>
+
+<p align="center">
   <img src="docs/screenshots/templates.png" alt="Výber šablón v Scribe" width="820" />
 </p>
 
 <p align="center"><em>Šablóny — prázdna stránka, canvas, report, faktúra a ďalšie</em></p>
 
 <p align="center">
+  <img src="docs/screenshots/graph.png" alt="Mapa prepojení Scribe" width="820" />
+</p>
+
+<p align="center"><em>Mapa prepojení — wiki odkazy medzi poznámkami</em></p>
+
+<p align="center">
+  <img src="docs/screenshots/docs.png" alt="Dokumentácia v Scribe" width="820" />
+</p>
+
+<p align="center"><em>Dokumentácia — knižnica, wiki, Lokálna AI, zálohy</em></p>
+
+<p align="center">
   <img src="docs/screenshots/onboarding.png" alt="Úvodný sprievodca Scribe" width="820" />
 </p>
 
 <p align="center"><em>Vitajte v Scribe — prvý štart</em></p>
+
+<p align="center">
+  <img src="docs/screenshots/settings-appearance.png" alt="Nastavenia vzhľadu Scribe" width="400" />
+  &nbsp;
+  <img src="docs/screenshots/settings-nlp.png" alt="Nastavenia Lokálnej AI" width="400" />
+</p>
+
+<p align="center"><em>Nastavenia — Vzhľad · Lokálna AI</em></p>
+
+<p align="center">
+  <img src="docs/screenshots/settings-mcp.png" alt="Nastavenia MCP v Scribe" width="820" />
+</p>
+
+<p align="center"><em>Nastavenia — voliteľný MCP most pre Cursor / Claude</em></p>
 
 ## Funkcie
 

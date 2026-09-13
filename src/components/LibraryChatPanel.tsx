@@ -162,9 +162,13 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
               <p className="m-0 mb-1 [font-family:var(--font-mono)] text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--color-muted-foreground)]">
                 {message.role === 'user' ? t('libraryChat.you') : t('libraryChat.assistant')}
               </p>
-              <p className="m-0 whitespace-pre-wrap text-[12px] leading-relaxed text-[var(--color-foreground)]">
-                {message.text}
-              </p>
+              {message.role === 'assistant' ? (
+                <MarkdownView source={message.text} className="scribe-markdown--chat" />
+              ) : (
+                <p className="m-0 whitespace-pre-wrap text-[12px] leading-relaxed text-[var(--color-foreground)]">
+                  {message.text}
+                </p>
+              )}
               {message.citations && message.citations.length > 0 && (
                 <div className="mt-2 border-t border-[var(--color-border)] pt-1.5">
                   <p className="m-0 mb-1 text-[10px] font-medium uppercase tracking-wide text-[var(--color-muted-foreground)]">

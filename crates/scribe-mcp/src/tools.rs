@@ -241,3 +241,40 @@ pub struct DateRangePromptParams {
     pub from_date: Option<String>,
     pub to_date: Option<String>,
 }
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryAnswerParams {
+    pub question: String,
+    pub limit: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct KeywordLimitParams {
+    pub id: String,
+    pub limit: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CalendarEventsParams {
+    pub limit: Option<i64>,
+    pub from_date: Option<String>,
+    pub to_date: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateFromTemplateParams {
+    pub template_id: String,
+    pub folder_id: Option<String>,
+    pub title: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct BackupDirParams {
+    /// Optional backup folder; default ~/Documents/Scribe/Backups
+    pub directory: Option<String>,
+}

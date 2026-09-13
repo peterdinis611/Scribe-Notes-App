@@ -734,6 +734,83 @@ Notes ranked by backlinks + outgoing wiki links. Use instead of dumping `list_li
 
 ---
 
+## `library_answer`
+
+Answer a natural-language question from the library (hybrid FTS + semantic + Local AI extractive answer).
+
+| Arg | Type | Required | Default |
+|-----|------|----------|---------|
+| `question` | string | yes | — |
+| `limit` | number | no | `6` |
+
+Result: `{ answer, citations[{ documentId, title, snippet }], hitCount }`.
+
+---
+
+## `document_analysis`
+
+Full Local AI pass on one note (keywords, outline, summary, tone, readability, dates, mentions). Arg: `id`.
+
+---
+
+## `suggest_title` / `extract_keywords` / `analyze_sentiment` / `spellcheck`
+
+| Tool | Args |
+|------|------|
+| `suggest_title` | `id` → `{ title, slug, source }` |
+| `extract_keywords` | `id`, optional `limit` |
+| `analyze_sentiment` | `id` |
+| `spellcheck` | `id` |
+
+---
+
+## `find_duplicates`
+
+Near-duplicate pairs across recent notes. Optional `limit` (default 20).
+
+---
+
+## `suggest_wiki_links`
+
+| Arg | Type | Required | Default |
+|-----|------|----------|---------|
+| `id` | string | yes | — |
+| `limit` | number | no | `8` |
+
+---
+
+## `calendar_events`
+
+| Arg | Type | Required | Default |
+|-----|------|----------|---------|
+| `limit` | number | no | `80` |
+| `fromDate` | string | no | — |
+| `toDate` | string | no | — |
+
+---
+
+## `list_templates` / `create_note_from_template`
+
+`list_templates` — custom templates from SQLite (builtin packs are app-only).
+
+`create_note_from_template` — `templateId`, optional `folderId`, optional `title`. Requires writable DB.
+
+---
+
+## `list_backups` / `create_backup`
+
+Default directory: `~/Documents/Scribe/Backups`. Optional `directory` override.
+
+`create_backup` writes `scribe-backup-{timestamp}.zip` (DB + documents) and prunes older auto backups.
+
+---
+
+## `list_document_assets`
+
+Lists files under `{documentsDir}/assets/{id}/` with `kind`: `image` | `svg` | `lottie` | `other`.
+
+---
+
 ## Resources
 
 | URI | Content |

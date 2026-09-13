@@ -1,4 +1,6 @@
 import type { AppLocale } from '@/i18n'
+import type { CustomLocalePack } from '@/lib/i18n/custom-locales'
+import { isBuiltInLocaleCode, normalizeLocaleCode } from '@/lib/i18n/custom-locales'
 import type { PageSetup } from '@/lib/editor/page-setup'
 import { DEFAULT_PAGE_SETUP, normalizePageSetup } from '@/lib/editor/page-setup'
 import { kvGet, kvRemove, kvSet } from '@/lib/storage/kv'
@@ -7,12 +9,62 @@ import type { CustomDocumentTemplate } from '@/lib/templates/custom'
 import { parseStoredCustomTemplates } from '@/lib/templates/custom'
 import type { CustomTemplateCategory } from '@/lib/templates/categories'
 import { parseStoredCustomCategories } from '@/lib/templates/categories'
-import { LOCALE_KEY, UI_SKIN_KEY, ACTIVE_DOCUMENT_ID_KEY, ONBOARDING_DISMISSED_KEY, WHATS_NEW_VERSION_KEY, DOCUMENT_TOC_LEFT_KEY, SCRATCH_DOCUMENT_ID_KEY, SHORTCUT_OVERRIDES_KEY, STORAGE_ACCESS_EXPLAINER_KEY, STORAGE_FOLDER_ACCESS_GRANTED_KEY, FOLDER_AUTO_SYNC_KEY, AUTO_BACKUP_ENABLED_KEY, AUTO_BACKUP_INTERVAL_DAYS_KEY, AUTO_BACKUP_INTERVAL_HOURS_KEY, AUTO_BACKUP_DIR_KEY, LAST_AUTO_BACKUP_AT_KEY, THEME_KEY_V2, THEME_KEY_LEGACY, EDITOR_VIEW_MODE_KEY, PAGE_SETUP_KEY, SPELL_CHECK_KEY, PRINT_LAYOUT_KEY, PRINT_ZOOM_KEY, PRINT_COLUMNS_KEY, MANUAL_TITLES_KEY, COMMENT_AUTHOR_KEY, CUSTOM_TEMPLATES_KEY, CUSTOM_TEMPLATE_CATEGORIES_KEY } from './keys'
+import { LOCALE_KEY, UI_SKIN_KEY, ACTIVE_DOCUMENT_ID_KEY, ONBOARDING_DISMISSED_KEY, WHATS_NEW_VERSION_KEY, DOCUMENT_TOC_LEFT_KEY, SCRATCH_DOCUMENT_ID_KEY, SHORTCUT_OVERRIDES_KEY, STORAGE_ACCESS_EXPLAINER_KEY, STORAGE_FOLDER_ACCESS_GRANTED_KEY, FOLDER_AUTO_SYNC_KEY, AUTO_BACKUP_ENABLED_KEY, AUTO_BACKUP_INTERVAL_DAYS_KEY, AUTO_BACKUP_INTERVAL_HOURS_KEY, AUTO_BACKUP_DIR_KEY, LAST_AUTO_BACKUP_AT_KEY, THEME_KEY_V2, THEME_KEY_LEGACY, EDITOR_VIEW_MODE_KEY, PAGE_SETUP_KEY, SPELL_CHECK_KEY, PRINT_LAYOUT_KEY, PRINT_ZOOM_KEY, PRINT_COLUMNS_KEY, MANUAL_TITLES_KEY, COMMENT_AUTHOR_KEY, CUSTOM_TEMPLATES_KEY, CUSTOM_TEMPLATE_CATEGORIES_KEY, CUSTOM_LOCALES_KEY } from './keys'
+
+export function readCustomLocales(): CustomLocalePack[] {
+  try {
+    const raw = kvGet(CUSTOM_LOCALES_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as unknown
+    if (!Array.isArray(parsed)) return []
+    return parsed
+      .filter((item): item is CustomLocalePack => {
+        if (!item || typeof item !== 'object') return false
+        const pack = item as CustomLocalePack
+        return (
+          typeof pack.code === 'string' &&
+          typeof pack.name === 'string' &&
+          Boolean(pack.messages) &&
+          typeof pack.messages === 'object' &&
+          !isBuiltInLocaleCode(pack.code)
+        )
+      })
+      .map((pack) => ({
+        code: normalizeLocaleCode(pack.code),
+        name: pack.name.trim().slice(0, 64) || pack.code.toUpperCase(),
+        messages: pack.messages,
+      }))
+  } catch {
+    return []
+  }
+}
+
+export function persistCustomLocales(locales: CustomLocalePack[]) {
+  kvSet(CUSTOM_LOCALES_KEY, JSON.stringify(locales))
+}
+
+export function upsertCustomLocale(pack: CustomLocalePack): CustomLocalePack[] {
+  const next = readCustomLocales().filter((item) => item.code !== pack.code)
+  next.push(pack)
+  next.sort((a, b) => a.name.localeCompare(b.name))
+  persistCustomLocales(next)
+  return next
+}
+
+export function removeCustomLocale(code: string): CustomLocalePack[] {
+  const normalized = normalizeLocaleCode(code)
+  const next = readCustomLocales().filter((item) => item.code !== normalized)
+  persistCustomLocales(next)
+  return next
+}
 
 export function readLocale(): AppLocale {
   try {
     const raw = kvGet(LOCALE_KEY)
-    if (raw === 'en' || raw === 'sk') return raw
+    if (!raw || typeof raw !== 'string') return 'sk'
+    const code = normalizeLocaleCode(raw)
+    if (isBuiltInLocaleCode(code)) return code
+    if (readCustomLocales().some((item) => item.code === code)) return code
   } catch {
     // ignore
   }
@@ -20,7 +72,7 @@ export function readLocale(): AppLocale {
 }
 
 export function persistLocale(locale: AppLocale) {
-  kvSet(LOCALE_KEY, locale)
+  kvSet(LOCALE_KEY, normalizeLocaleCode(locale) || 'sk')
 }
 
 export function readUiSkin(): import('@/lib/ui-skin').UiSkin {

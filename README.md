@@ -19,16 +19,48 @@ Scribe runs locally on your Mac. No accounts, no cloud — documents, the databa
 <p align="center"><em>Home — new document, daily note, import</em></p>
 
 <p align="center">
+  <img src="docs/screenshots/editor.png" alt="Scribe document editor" width="820" />
+</p>
+
+<p align="center"><em>Editor — print layout, library sidebar, wiki links</em></p>
+
+<p align="center">
   <img src="docs/screenshots/templates.png" alt="Scribe template picker" width="820" />
 </p>
 
 <p align="center"><em>Templates — blank page, canvas, report, invoice, and more</em></p>
 
 <p align="center">
+  <img src="docs/screenshots/graph.png" alt="Scribe wiki connection map" width="820" />
+</p>
+
+<p align="center"><em>Connection map — wiki links between notes</em></p>
+
+<p align="center">
+  <img src="docs/screenshots/docs.png" alt="Scribe in-app documentation" width="820" />
+</p>
+
+<p align="center"><em>In-app docs — library, wiki, Local AI, backups</em></p>
+
+<p align="center">
   <img src="docs/screenshots/onboarding.png" alt="Scribe onboarding" width="820" />
 </p>
 
 <p align="center"><em>First-run welcome (Slovak UI shown)</em></p>
+
+<p align="center">
+  <img src="docs/screenshots/settings-appearance.png" alt="Scribe appearance settings" width="400" />
+  &nbsp;
+  <img src="docs/screenshots/settings-nlp.png" alt="Scribe Local AI settings" width="400" />
+</p>
+
+<p align="center"><em>Settings — Appearance · Local AI</em></p>
+
+<p align="center">
+  <img src="docs/screenshots/settings-mcp.png" alt="Scribe MCP settings" width="820" />
+</p>
+
+<p align="center"><em>Settings — optional MCP bridge for Cursor / Claude</em></p>
 
 ## Features
 

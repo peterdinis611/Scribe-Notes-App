@@ -8,6 +8,12 @@ App screenshots used in the root README files.
 | `home.png` | Home / welcome screen |
 | `templates.png` | New document · template picker |
 | `onboarding.png` | First-run onboarding dialog |
+| `editor.png` | Document editor (print layout + library) |
+| `docs.png` | In-app documentation |
+| `graph.png` | Wiki connection map |
+| `settings-appearance.png` | Settings · Appearance |
+| `settings-nlp.png` | Settings · Local AI |
+| `settings-mcp.png` | Settings · MCP |
 
 Captured from the running UI (v1.4.4). To refresh:
 

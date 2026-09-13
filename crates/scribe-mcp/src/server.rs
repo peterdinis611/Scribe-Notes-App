@@ -914,6 +914,193 @@ impl ScribeMcp {
             })))
         })
     }
+
+    #[tool(description = "Answer a question from the local library (hybrid search + Local AI). Requires Local AI.")]
+    fn library_answer(
+        &self,
+        Parameters(params): Parameters<tools::LibraryAnswerParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.library_answer(
+                &self.sidecar,
+                &params.question,
+                params.limit,
+            )?))
+        })
+    }
+
+    #[tool(description = "Full Local AI analysis of a note: keywords, outline, summary, tone, dates, mentions.")]
+    fn document_analysis(
+        &self,
+        Parameters(params): Parameters<tools::IdParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.document_analysis(&self.sidecar, &params.id)?))
+        })
+    }
+
+    #[tool(description = "Suggest a title (and slug) for a document using Local AI.")]
+    fn suggest_title(
+        &self,
+        Parameters(params): Parameters<tools::IdParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.suggest_document_title(
+                &self.sidecar,
+                &params.id,
+            )?))
+        })
+    }
+
+    #[tool(description = "Find near-duplicate notes in the library (Local AI).")]
+    fn find_duplicates(
+        &self,
+        Parameters(params): Parameters<tools::LimitParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.find_duplicate_documents(
+                &self.sidecar,
+                params.limit,
+            )?))
+        })
+    }
+
+    #[tool(description = "Suggest [[wiki links]] for phrases in a document that match other note titles.")]
+    fn suggest_wiki_links(
+        &self,
+        Parameters(params): Parameters<tools::IdLimitParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.suggest_wiki_links(
+                &self.sidecar,
+                &params.id,
+                params.limit,
+            )?))
+        })
+    }
+
+    #[tool(description = "Extract calendar-like date events from recent notes. Optional fromDate/toDate (YYYY-MM-DD).")]
+    fn calendar_events(
+        &self,
+        Parameters(params): Parameters<tools::CalendarEventsParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.calendar_events(
+                &self.sidecar,
+                params.limit,
+                params.from_date.as_deref(),
+                params.to_date.as_deref(),
+            )?))
+        })
+    }
+
+    #[tool(description = "Spellcheck a document (SK/EN dictionaries via Local AI sidecar).")]
+    fn spellcheck(
+        &self,
+        Parameters(params): Parameters<tools::IdParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.spellcheck_document(
+                &self.sidecar,
+                &params.id,
+            )?))
+        })
+    }
+
+    #[tool(description = "Extract keywords and keyphrases from a document.")]
+    fn extract_keywords(
+        &self,
+        Parameters(params): Parameters<tools::KeywordLimitParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.extract_document_keywords(
+                &self.sidecar,
+                &params.id,
+                params.limit,
+            )?))
+        })
+    }
+
+    #[tool(description = "Analyze sentiment / tone of a document.")]
+    fn analyze_sentiment(
+        &self,
+        Parameters(params): Parameters<tools::IdParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.analyze_document_sentiment(
+                &self.sidecar,
+                &params.id,
+            )?))
+        })
+    }
+
+    #[tool(description = "List custom note templates saved in Scribe (id, name, title, category).")]
+    fn list_templates(&self) -> Result<String, String> {
+        self.with_store(|store| {
+            let templates = store.list_custom_templates()?;
+            Ok(tools::json(&serde_json::json!({
+                "count": templates.len(),
+                "templates": templates,
+            })))
+        })
+    }
+
+    #[tool(description = "Create a new note from a custom template id. Requires writable DB.")]
+    fn create_note_from_template(
+        &self,
+        Parameters(params): Parameters<tools::CreateFromTemplateParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            let created = store.create_note_from_template(
+                &params.template_id,
+                params.folder_id.as_deref(),
+                params.title.as_deref(),
+            )?;
+            Ok(tools::json(&created))
+        })
+    }
+
+    #[tool(description = "List zip backups in the backup folder (default ~/Documents/Scribe/Backups).")]
+    fn list_backups(
+        &self,
+        Parameters(params): Parameters<tools::BackupDirParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            let backups = store.list_backups(params.directory.as_deref())?;
+            Ok(tools::json(&serde_json::json!({
+                "count": backups.len(),
+                "backups": backups,
+            })))
+        })
+    }
+
+    #[tool(description = "Create a library zip backup (DB + documents/assets). Optional directory override.")]
+    fn create_backup(
+        &self,
+        Parameters(params): Parameters<tools::BackupDirParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.create_backup(
+                &self.db_path,
+                params.directory.as_deref(),
+            )?))
+        })
+    }
+
+    #[tool(description = "List media assets for a document (images, SVG, Lottie .json/.lottie) under assets/{id}/.")]
+    fn list_document_assets(
+        &self,
+        Parameters(params): Parameters<tools::IdParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            let assets = store.list_document_assets(&params.id)?;
+            Ok(tools::json(&serde_json::json!({
+                "documentId": params.id,
+                "count": assets.len(),
+                "assets": assets,
+            })))
+        })
+    }
 }
 
 #[prompt_router]
@@ -998,6 +1185,10 @@ impl ServerHandler for ScribeMcp {
         .with_instructions(
             "Scribe local notes. Prefer search (with folderId/tag/fromDate/toDate), \
              get_document_outline, then get_document or export_document. \
+             For Q&A over the library use library_answer. \
+             For note insights use document_analysis / extract_keywords / analyze_sentiment. \
+             Templates: list_templates then create_note_from_template. \
+             Media: list_document_assets. Backups: list_backups / create_backup. \
              Documents are also readable as resources scribe://doc/{id}.",
         )
     }

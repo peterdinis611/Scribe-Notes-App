@@ -62,9 +62,21 @@ Example: [`cursor.mcp.example.json`](cursor.mcp.example.json)
 | `duplicate_document` / `rename_document` / `replace_document_content` | Edit notes |
 | `export_document` | Markdown or plain text |
 | `get_document_outline` | Heading TOC |
-| `list_unresolved_wiki_links` / `list_graph_hubs` | Wiki graph insight |
-| `delete_folder` / `move_folder` / `set_folder_pinned` | Folder write |
-| `create_comment_thread` / `add_comment_reply` | Comments |
+| `list_graph_hubs` | Most connected notes by backlinks and outgoing wiki links |
+| `library_answer` | Answer a question from the local library (hybrid + Local AI) |
+| `document_analysis` | Keywords, outline, summary, tone, dates, mentions |
+| `suggest_title` | Suggest a title/slug for a note |
+| `find_duplicates` | Near-duplicate notes |
+| `suggest_wiki_links` | Suggested `[[wiki links]]` for a note |
+| `calendar_events` | Date events from recent notes |
+| `spellcheck` | Spellcheck a document |
+| `extract_keywords` | Keywords / keyphrases |
+| `analyze_sentiment` | Tone / sentiment |
+| `list_templates` | Custom note templates |
+| `create_note_from_template` | Create a note from a template (writable) |
+| `list_backups` | List zip backups |
+| `create_backup` | Create a library zip backup |
+| `list_document_assets` | Images / SVG / Lottie under `assets/{id}/` |
 
 Plus legacy tools: `scribe_status`, `get_document`, wiki links, folders, revisions, `create_note`, `append_to_note`, …
 

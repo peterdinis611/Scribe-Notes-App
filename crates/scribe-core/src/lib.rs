@@ -4,6 +4,7 @@ pub mod nlp;
 pub mod path;
 pub mod plain_text;
 pub mod store;
+pub mod store_ext;
 pub mod tasks;
 
 pub use dates::{date_key_bounds, date_key_bounds_ms, extract_due_hint, parse_date_key};
