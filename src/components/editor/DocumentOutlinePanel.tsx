@@ -13,6 +13,7 @@ import {
   Minus,
   PanelRightClose,
   Quote,
+  Sparkles,
   SquareSplitVertical,
   Table2,
   Text,
@@ -64,6 +65,7 @@ const OUTLINE_ICONS: Record<DocumentOutlineKind, LucideIcon> = {
   mathInline: Calculator,
   mathBlock: Calculator,
   mermaidDiagram: GitBranch,
+  lottieAnimation: Sparkles,
 }
 
 function OutlineRow({

@@ -86,7 +86,7 @@ function filterCommands(query: string) {
 export function runSlashCommand(
   editor: Editor,
   item: SlashCommandItem,
-  onInsertImages?: (files: File[]) => void | Promise<void>,
+  _onInsertImages?: (files: File[]) => void | Promise<void>,
 ) {
   switch (item.id) {
     case 'h1':
