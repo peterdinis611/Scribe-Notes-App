@@ -252,8 +252,20 @@
   "whatsNew": {
     "badge": "What's new in {{version}}",
     "title": "Scribe {{version}}",
-    "subtitle": "Excel import, chunk-level Local AI search, and library Q&A in the sidecar.",
+    "subtitle": "Automatic library backups, optimized images, and Notion-style image blocks.",
     "gotIt": "Got it",
+    "autoBackup": {
+      "title": "Automatic backups",
+      "description": "On by default — scheduled .zip archives to Documents/Scribe/Backups, with an interval you choose."
+    },
+    "imageOptimize": {
+      "title": "Image optimization",
+      "description": "Uploads are resized and compressed in Rust (JPEG / PNG / WebP) so notes stay lean."
+    },
+    "notionImages": {
+      "title": "Notion-style images",
+      "description": "Empty image blocks, embed from URL, lightbox, captions, and corner resize — like Notion."
+    },
     "excelImport": {
       "title": "Import from Excel",
       "description": "Open .xlsx / .csv as editable tables (first row as header; multi-sheet workbooks get section headings)."

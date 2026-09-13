@@ -13,9 +13,9 @@ import { APP_VERSION } from '@/lib/app-version'
 import { persistWhatsNewVersion } from '@/store/persistence'
 
 const HIGHLIGHTS = [
-  { id: 'excelImport', icon: FileText },
-  { id: 'chunkSearch', icon: Sparkles },
-  { id: 'libraryAnswer', icon: Code2 },
+  { id: 'autoBackup', icon: FileText },
+  { id: 'imageOptimize', icon: Sparkles },
+  { id: 'notionImages', icon: Code2 },
 ] as const
 
 /** Major.minor for “Scribe 1.4” style titles. */

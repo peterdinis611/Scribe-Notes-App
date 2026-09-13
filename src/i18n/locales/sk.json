@@ -252,8 +252,20 @@
   "whatsNew": {
     "badge": "Novinky {{version}}",
     "title": "Scribe {{version}}",
-    "subtitle": "Import z Excelu, chunk-level Local AI vyhľadávanie a otázky knižnice v sidecare.",
+    "subtitle": "Automatické zálohy knižnice, optimalizované obrázky a Notion-like image bloky.",
     "gotIt": "Rozumiem",
+    "autoBackup": {
+      "title": "Automatické zálohy",
+      "description": "Zapnuté predvolene — plánované .zip archívy do Documents/Scribe/Backups s intervalom podľa vás."
+    },
+    "imageOptimize": {
+      "title": "Optimalizácia obrázkov",
+      "description": "Nahraté obrázky sa v Ruste zmenšia a skomprimujú (JPEG / PNG / WebP), aby poznámky ostali ľahké."
+    },
+    "notionImages": {
+      "title": "Obrázky ako v Notion",
+      "description": "Prázdny blok, vložiť z URL, lightbox, popisky a resize v rohoch — ako v Notion."
+    },
     "excelImport": {
       "title": "Import z Excelu",
       "description": "Otvorí .xlsx / .csv ako editovateľné tabuľky (prvý riadok ako hlavička; viac listov = nadpisy sekcií)."

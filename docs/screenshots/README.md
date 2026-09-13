@@ -9,7 +9,7 @@ App screenshots used in the root README files.
 | `templates.png` | New document · template picker |
 | `onboarding.png` | First-run onboarding dialog |
 
-Captured from the running UI (v1.4.3). To refresh:
+Captured from the running UI (v1.4.4). To refresh:
 
 ```bash
 npm run tauri:dev
