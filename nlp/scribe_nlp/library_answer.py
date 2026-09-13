@@ -12,12 +12,18 @@ def library_answer(
     passages: list[dict[str, object]],
     *,
     max_sentences: int = MAX_SENTENCES,
+    scope: str = "library",
 ) -> dict[str, object]:
     """Extractive multi-doc answer + citations (no cloud LLM)."""
     query = normalize_text(question)
+    prefix = (
+        "Based on this document"
+        if scope == "document"
+        else "Based on your notes"
+    )
     if not query:
         return {
-            "answer": "Based on your notes: No matching passages were found in your indexed library.",
+            "answer": f"{prefix}: No matching passages were found.",
             "citations": [],
             "sentences": [],
         }
@@ -43,7 +49,7 @@ def library_answer(
 
     query_terms = _query_terms(query)
     sentences = _pick_sentences(query_terms, cleaned, max_sentences=max_sentences)
-    answer = _format_answer(sentences)
+    answer = _format_answer(sentences, prefix=prefix)
     citations = [
         {
             "documentId": item["documentId"],
@@ -125,10 +131,10 @@ def _score_sentence(sentence: str, query_terms: set[str]) -> float:
     return overlap / len(query_terms) + length_bonus
 
 
-def _format_answer(sentences: list[str]) -> str:
+def _format_answer(sentences: list[str], *, prefix: str = "Based on your notes") -> str:
     if not sentences:
-        return "Based on your notes: No matching passages were found in your indexed library."
+        return f"{prefix}: No matching passages were found."
     if len(sentences) == 1:
-        return f"Based on your notes: {sentences[0]}"
+        return f"{prefix}: {sentences[0]}"
     bullets = "\n".join(f"• {sentence}" for sentence in sentences)
-    return f"Based on your notes:\n{bullets}"
+    return f"{prefix}:\n{bullets}"

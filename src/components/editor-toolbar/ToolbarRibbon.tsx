@@ -368,8 +368,8 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
               <Type className="h-4 w-4" />
               {t('toolbar.actions.lorem')}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => insertInlineMath(editor)}>{t('toolbar.actions.inlineMath')}</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => insertBlockMath(editor)}>{t('toolbar.actions.blockMath')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void insertInlineMath(editor)}>{t('toolbar.actions.inlineMath')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void insertBlockMath(editor)}>{t('toolbar.actions.blockMath')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => insertMermaidDiagram(editor)}>{t('toolbar.actions.mermaid')}</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => editor.chain().focus().toggleCodeBlock().run()}>

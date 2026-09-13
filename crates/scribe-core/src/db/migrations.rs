@@ -1,6 +1,6 @@
 use rusqlite::Connection;
 
-const SCHEMA_VERSION: i32 = 16;
+const SCHEMA_VERSION: i32 = 17;
 
 pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     conn.execute_batch(
@@ -394,6 +394,30 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
 
             CREATE INDEX IF NOT EXISTS idx_embedding_chunks_model
                 ON document_embedding_chunks(model);
+            "#,
+        )?;
+        conn.execute(
+            "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
+            [SCHEMA_VERSION.to_string()],
+        )?;
+    }
+
+    if current < 17 {
+        conn.execute_batch(
+            r#"
+            CREATE TABLE IF NOT EXISTS document_chat_messages (
+                id TEXT PRIMARY KEY,
+                document_id TEXT NOT NULL,
+                role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+                text TEXT NOT NULL,
+                created_at INTEGER NOT NULL,
+                action TEXT,
+                citations_json TEXT,
+                FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_document_chat_messages_doc
+                ON document_chat_messages(document_id, created_at ASC);
             "#,
         )?;
         conn.execute(

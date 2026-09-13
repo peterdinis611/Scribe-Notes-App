@@ -193,6 +193,16 @@ export const nlpLibraryAnswer = (question: string, limit = 6) =>
     { question, limit },
   )
 
+export const nlpDocumentAnswer = (
+  documentId: string,
+  question: string,
+  context?: Array<{ role: string; text: string }> | null,
+) =>
+  invoke<{ answer: string; citations: Array<{ documentId: string; title: string; snippet: string }> }>(
+    'nlp_document_answer',
+    { documentId, question, context: context ?? null },
+  )
+
 export interface WikiLinkSuggestion {
   phrase: string
   documentId: string

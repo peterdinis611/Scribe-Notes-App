@@ -22,6 +22,7 @@ const LAST_AUTO_BACKUP_AT_KEY = 'scribe-last-auto-backup-at'
 const LOCALE_KEY = 'scribe-locale'
 const ACTIVE_DOCUMENT_ID_KEY = 'scribe-active-document-id'
 const ONBOARDING_DISMISSED_KEY = 'scribe-onboarding-dismissed'
+const SETUP_COMPLETED_KEY = 'scribe-setup-completed'
 const WHATS_NEW_VERSION_KEY = 'scribe-whats-new-version'
 const SCRATCH_DOCUMENT_ID_KEY = 'scribe-scratch-document-id'
 const SHORTCUT_OVERRIDES_KEY = 'scribe-shortcut-overrides'
@@ -39,6 +40,7 @@ export {
     LOCALE_KEY,
     MANUAL_TITLES_KEY,
     ONBOARDING_DISMISSED_KEY,
+    SETUP_COMPLETED_KEY,
     PAGE_SETUP_KEY,
     PRINT_COLUMNS_KEY,
     PRINT_LAYOUT_KEY,

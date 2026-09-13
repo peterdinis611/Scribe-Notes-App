@@ -249,6 +249,24 @@
       "description": "The Outline panel (right) tracks headings. The status bar shows your current section and page."
     }
   },
+  "setup": {
+    "title": "Set up Scribe",
+    "stepOf": "Step {{current}} of {{total}}",
+    "finish": "Continue",
+    "language": {
+      "title": "Language",
+      "description": "Choose the interface language. You can import a custom JSON language pack anytime.",
+      "importHint": "Have your own translations? Upload a locale pack JSON (same shape as en.json)."
+    },
+    "skin": {
+      "title": "Look & feel",
+      "description": "Pick the overall chrome style. You can change this later in Settings → Appearance."
+    },
+    "theme": {
+      "title": "Theme",
+      "description": "Colors apply instantly. More themes and a custom palette are in Settings."
+    }
+  },
   "whatsNew": {
     "badge": "What's new in {{version}}",
     "title": "Scribe {{version}}",
@@ -1059,19 +1077,60 @@
   },
   "libraryChat": {
     "emptyTitle": "Ask your notes",
+    "emptyTitleDocument": "Ask this document",
     "emptyHint": "Answers come only from Local AI embeddings of your library — no cloud. Turn on Local AI in Settings.",
+    "emptyHintDocument": "Ask about the open note, or tap an action chip. Local AI only — extractive, no cloud.",
     "openSettings": "Open Local AI settings",
     "placeholder": "Ask about your notes…",
+    "placeholderDocument": "Ask about this document…",
     "send": "Ask",
     "thinking": "Searching notes…",
     "citations": "Sources",
     "you": "You",
     "assistant": "Library",
+    "assistantDocument": "Document",
     "untitled": "Untitled",
     "errorTitle": "Could not answer",
     "emptyQuestion": "Type a question first.",
     "nlpDisabled": "Local AI is off. Enable it in Settings → Local AI.",
-    "sidecarUnavailable": "Local AI sidecar is not ready. Check Settings → Local AI."
+    "sidecarUnavailable": "Local AI sidecar is not ready. Check Settings → Local AI.",
+    "noActiveDocument": "Open a document first to ask about it.",
+    "documentMissing": "Document not found.",
+    "documentVault": "Vault documents can’t be analyzed while locked.",
+    "documentEmpty": "This document has too little text to analyze.",
+    "analysisFailed": "Could not analyze this document.",
+    "scopeLabel": "Chat scope",
+    "scopeLibrary": "Library",
+    "scopeDocument": "This note",
+    "scopeDocumentHint": "Ask about “{{title}}”",
+    "askingAbout": "Asking about: {{title}}",
+    "memoryHint": "saved in this note",
+    "memoryLoading": "Loading chat memory…",
+    "memoryLoadError": "Could not load chat memory",
+    "memoryCleared": "Chat memory cleared",
+    "memoryClearError": "Could not clear chat memory",
+    "clearMemory": "Clear",
+    "prompts": {
+      "recent": "What did I write about recently?",
+      "deadlines": "Any deadlines or dates in my notes?",
+      "themes": "What themes come up across my notes?"
+    },
+    "actions": {
+      "summarize": "Summarize",
+      "outline": "Outline",
+      "keywords": "Keywords",
+      "tasks": "Open tasks",
+      "title": "Suggest title",
+      "wiki": "Wiki links",
+      "dates": "Dates",
+      "tone": "Tone & reading",
+      "spellcheck": "Spellcheck"
+    }
+  },
+  "documentChat": {
+    "invalidRole": "Invalid chat role.",
+    "emptyText": "Message is empty.",
+    "documentMissing": "Document not found."
   },
   "trash": {
     "title": "Trash",
@@ -1176,6 +1235,9 @@
       "subtitle": "Summary, keywords, similar notes and open tasks",
       "hide": "Hide AI insights",
       "loadError": "Could not load AI insights",
+      "askTitle": "Ask this note",
+      "askHint": "Local AI actions and questions about the open document — no cloud.",
+      "openChat": "Open full chat →",
       "summary": "Summary",
       "summaryEmpty": "Write a bit more for an extractive summary.",
       "toneLine": "Tone: {{tone}}",
@@ -2239,6 +2301,18 @@
     "unlockFailed": "Wrong password",
     "unlocked": "Vault unlocked",
     "locked": "Vault locked"
+  },
+  "math": {
+    "insertInlineTitle": "Inline formula",
+    "insertBlockTitle": "Formula block",
+    "editInlineTitle": "Edit inline formula",
+    "editBlockTitle": "Edit formula block",
+    "description": "Write a math.js expression. Supports arithmetic, units, matrices, fractions, derivatives, and numeric integrals.",
+    "expressionLabel": "Expression",
+    "previewEmpty": "Result preview appears here",
+    "result": "Result:",
+    "insert": "Insert",
+    "remove": "Remove"
   },
   "lorem": {
     "title": "Insert lorem ipsum",

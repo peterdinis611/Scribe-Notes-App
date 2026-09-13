@@ -313,7 +313,15 @@ def _handle_request_inner(
             if len(passages) > 24:
                 raise SidecarError("passages exceeds limit (24)", code=-32602)
             max_sentences = max(1, min(int(params.get("maxSentences") or 4), 8))
-            result = library_answer(question, passages, max_sentences=max_sentences)
+            scope = str(params.get("scope") or "library").strip().lower()
+            if scope not in {"library", "document"}:
+                scope = "library"
+            result = library_answer(
+                question,
+                passages,
+                max_sentences=max_sentences,
+                scope=scope,
+            )
         elif method == "suggest_wiki_links":
             from .wiki_suggest import suggest_wiki_links
 

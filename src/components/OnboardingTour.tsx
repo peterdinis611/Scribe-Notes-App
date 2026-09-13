@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useOpenDemoGuide } from '@/hooks/useOpenDemoGuide'
-import { persistOnboardingDismissed, readOnboardingDismissed } from '@/store/persistence'
+import { persistOnboardingDismissed, readOnboardingDismissed, readSetupCompleted } from '@/store/persistence'
 import { setTemplatePickerOpen } from '@/store/settingsSlice'
 import { useAppDispatch } from '@/store/hooks'
 
@@ -24,10 +24,12 @@ const STEP_ICONS = {
 } as const
 
 type OnboardingTourProps = {
+  /** When false, the tour stays closed (e.g. setup wizard still running). */
+  enabled?: boolean
   onFinished?: () => void
 }
 
-export function OnboardingTour({ onFinished }: OnboardingTourProps) {
+export function OnboardingTour({ enabled = true, onFinished }: OnboardingTourProps) {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
   const openDemoGuide = useOpenDemoGuide()
@@ -36,10 +38,14 @@ export function OnboardingTour({ onFinished }: OnboardingTourProps) {
   const [dontShowAgain, setDontShowAgain] = useState(true)
 
   useEffect(() => {
-    if (!readOnboardingDismissed()) {
+    if (!enabled) {
+      setOpen(false)
+      return
+    }
+    if (!readOnboardingDismissed() && readSetupCompleted()) {
       setOpen(true)
     }
-  }, [])
+  }, [enabled])
 
   function closeTour() {
     if (dontShowAgain) {

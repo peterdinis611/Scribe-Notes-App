@@ -10,6 +10,7 @@ import {
   Hash,
   Languages,
   ListTree,
+  MessageCircle,
   PanelRightClose,
   RotateCcw,
   Sparkles,
@@ -27,11 +28,26 @@ import {
   type NlpDocumentAnalysis,
   type SpellcheckResult,
 } from '@/lib/db/nlp-api'
+import {
+  appendDocumentChatMessage,
+  listDocumentChatMessages,
+} from '@/lib/db/api'
+import {
+  askDocument,
+  runDocumentChatAction,
+  type DocumentChatAction,
+} from '@/lib/library/library-chat'
+import { MarkdownView } from '@/components/MarkdownView'
 import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { setActiveDocumentId, setFindReplaceOpen, setPendingEditorSearch } from '@/store/documentsSlice'
+import {
+  setActiveDocumentId,
+  setFindReplaceOpen,
+  setPendingEditorSearch,
+  setPendingLibraryView,
+} from '@/store/documentsSlice'
 import {
   EditorSidePanel,
   EditorSidePanelEmpty,
@@ -57,6 +73,9 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
   const [reloadKey, setReloadKey] = useState(0)
   const [spellResult, setSpellResult] = useState<SpellcheckResult | null>(null)
   const [spellLoading, setSpellLoading] = useState(false)
+  const [askInput, setAskInput] = useState('')
+  const [askBusy, setAskBusy] = useState(false)
+  const [askReply, setAskReply] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -65,6 +84,7 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
       setTasks([])
       setAnalysis(null)
       setSpellResult(null)
+      setAskReply(null)
       return
     }
     setLoading(true)
@@ -118,6 +138,81 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
       setSpellLoading(false)
     }
   }, [activeId, nlpEnabled, t])
+
+  const handleAskAction = useCallback(
+    async (action: DocumentChatAction) => {
+      if (!activeId || !nlpEnabled || askBusy) return
+      setAskBusy(true)
+      try {
+        const label = t(`libraryChat.actions.${action}`)
+        const result = await runDocumentChatAction(activeId, action)
+        setAskReply(result.answer)
+        await appendDocumentChatMessage({
+          documentId: activeId,
+          role: 'user',
+          text: label,
+          action,
+        })
+        await appendDocumentChatMessage({
+          documentId: activeId,
+          role: 'assistant',
+          text: result.answer,
+          citations: result.citations,
+          action,
+        })
+      } catch (error) {
+        toast.error(t('libraryChat.errorTitle'), String(error))
+      } finally {
+        setAskBusy(false)
+      }
+    },
+    [activeId, askBusy, nlpEnabled, t],
+  )
+
+  const handleAskQuestion = useCallback(async () => {
+    const question = askInput.trim()
+    if (!activeId || !nlpEnabled || !question || askBusy) return
+    setAskBusy(true)
+    try {
+      const history = await listDocumentChatMessages(activeId)
+      const context = history.slice(-8).map((item) => ({ role: item.role, text: item.text }))
+      const result = await askDocument(activeId, question, context)
+      setAskReply(result.answer)
+      setAskInput('')
+      await appendDocumentChatMessage({
+        documentId: activeId,
+        role: 'user',
+        text: question,
+      })
+      await appendDocumentChatMessage({
+        documentId: activeId,
+        role: 'assistant',
+        text: result.answer,
+        citations: result.citations,
+      })
+    } catch (error) {
+      const raw = error instanceof Error ? error.message : String(error)
+      toast.error(
+        t('libraryChat.errorTitle'),
+        raw.startsWith('libraryChat.') || raw.startsWith('documentChat.') ? t(raw) : raw,
+      )
+    } finally {
+      setAskBusy(false)
+    }
+  }, [activeId, askBusy, askInput, nlpEnabled, t])
+
+  const openLibraryChat = useCallback(() => {
+    dispatch(setPendingLibraryView({ view: 'chat' }))
+  }, [dispatch])
+
+  const INSIGHT_ACTIONS: DocumentChatAction[] = [
+    'summarize',
+    'outline',
+    'keywords',
+    'tasks',
+    'wiki',
+    'tone',
+  ]
 
   const handleFindWord = useCallback(
     (word: string) => {
@@ -191,6 +286,77 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
       ) : (
         <EditorSidePanelList className="gap-1">
           <div>
+            <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.03em] text-[var(--color-muted-foreground)]">
+              <MessageCircle className="h-3.5 w-3.5" />
+              {t('panels.insights.askTitle')}
+            </h3>
+            <p className="m-0 mb-2 text-[10.5px] leading-snug text-[var(--color-muted-foreground)]">
+              {t('panels.insights.askHint')}
+            </p>
+            {!nlpEnabled ? (
+              <p className="m-0 text-[11.5px] text-[var(--color-muted-foreground)]">
+                {t('panels.insights.keywordsDisabled')}
+              </p>
+            ) : (
+              <>
+                <div className="mb-2 flex flex-wrap gap-1">
+                  {INSIGHT_ACTIONS.map((action) => (
+                    <button
+                      key={action}
+                      type="button"
+                      disabled={askBusy || !activeId}
+                      className="rounded-full border border-[var(--color-border)] bg-transparent px-2 py-0.5 text-[10px] text-[var(--color-muted-foreground)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-foreground)] disabled:opacity-50"
+                      onClick={() => void handleAskAction(action)}
+                    >
+                      {t(`libraryChat.actions.${action}`)}
+                    </button>
+                  ))}
+                </div>
+                <form
+                  className="mb-2 flex items-center gap-1.5"
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    void handleAskQuestion()
+                  }}
+                >
+                  <input
+                    type="text"
+                    className="h-7 min-w-0 flex-1 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-background)] px-2 text-[11px] text-[var(--color-foreground)] outline-none placeholder:text-[var(--color-muted-foreground)] focus:border-[var(--color-accent)]"
+                    placeholder={t('libraryChat.placeholderDocument')}
+                    value={askInput}
+                    disabled={askBusy}
+                    onChange={(event) => setAskInput(event.target.value)}
+                  />
+                  <button
+                    type="submit"
+                    disabled={askBusy || !askInput.trim()}
+                    className="inline-flex h-7 items-center rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] px-2 text-[11px] font-medium text-[var(--color-foreground)] hover:bg-[var(--color-hover)] disabled:opacity-50"
+                  >
+                    {t('libraryChat.send')}
+                  </button>
+                </form>
+                {askBusy ? (
+                  <p className="m-0 text-[11px] text-[var(--color-muted-foreground)]">
+                    {t('libraryChat.thinking')}
+                  </p>
+                ) : null}
+                {askReply ? (
+                  <div className="rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-2">
+                    <MarkdownView source={askReply} className="scribe-markdown--chat" />
+                  </div>
+                ) : null}
+                <button
+                  type="button"
+                  className="mt-2 text-[11px] font-medium text-[var(--color-accent)] hover:underline"
+                  onClick={openLibraryChat}
+                >
+                  {t('panels.insights.openChat')}
+                </button>
+              </>
+            )}
+          </div>
+
+          <div className="mt-3.5 border-t border-[var(--color-border)] pt-3">
             <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.03em] text-[var(--color-muted-foreground)]">
               <Sparkles className="h-3.5 w-3.5" />
               {t('panels.insights.summary')}

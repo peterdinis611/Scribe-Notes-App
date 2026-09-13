@@ -1,4 +1,5 @@
 pub mod comments;
+pub mod document_chat;
 pub mod documents;
 pub mod folders;
 pub mod templates;

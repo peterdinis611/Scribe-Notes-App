@@ -101,10 +101,10 @@ export function InsertTab({ editor, onInsertImages }: InsertTabProps) {
       </ToolbarGroup>
 
       <ToolbarGroup label={t('toolbar.groups.math')}>
-        <ToolbarButton label={t('toolbar.actions.inlineMathFull')} onClick={() => insertInlineMath(editor)}>
+        <ToolbarButton label={t('toolbar.actions.inlineMathFull')} onClick={() => void insertInlineMath(editor)}>
           <FunctionSquare className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
-        <ToolbarButton label={t('toolbar.actions.blockMathFull')} onClick={() => insertBlockMath(editor)}>
+        <ToolbarButton label={t('toolbar.actions.blockMathFull')} onClick={() => void insertBlockMath(editor)}>
           <Sigma className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
         <ToolbarButton label={t('toolbar.actions.mermaid')} onClick={() => insertMermaidDiagram(editor)}>

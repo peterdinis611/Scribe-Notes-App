@@ -1,7 +1,7 @@
 use chrono::Utc;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, State};
 
 use crate::db::{
@@ -1657,6 +1657,215 @@ pub fn nlp_library_answer(
             .get("answer")
             .and_then(|value| value.as_str())
             .unwrap_or("Based on your notes: No matching passages were found in your indexed library.")
+            .to_string(),
+        citations,
+    })
+}
+
+fn chunk_document_passages(document_id: &str, title: &str, text: &str) -> Value {
+    const TARGET_CHARS: usize = 480;
+    const MAX_PASSAGES: usize = 12;
+
+    let mut chunks: Vec<String> = Vec::new();
+    let paragraphs: Vec<&str> = text
+        .split("\n\n")
+        .map(str::trim)
+        .filter(|part| !part.is_empty())
+        .collect();
+
+    if paragraphs.is_empty() {
+        let trimmed = text.trim();
+        if !trimmed.is_empty() {
+            chunks.push(trimmed.to_string());
+        }
+    } else {
+        let mut buffer = String::new();
+        for paragraph in paragraphs {
+            if buffer.is_empty() {
+                buffer.push_str(paragraph);
+                continue;
+            }
+            if buffer.len() + paragraph.len() + 1 <= TARGET_CHARS {
+                buffer.push('\n');
+                buffer.push_str(paragraph);
+            } else {
+                chunks.push(std::mem::take(&mut buffer));
+                buffer.push_str(paragraph);
+            }
+        }
+        if !buffer.trim().is_empty() {
+            chunks.push(buffer);
+        }
+    }
+
+    // Split oversized chunks on sentence-ish boundaries.
+    let mut refined: Vec<String> = Vec::new();
+    for chunk in chunks {
+        if chunk.len() <= TARGET_CHARS * 2 {
+            refined.push(chunk);
+            continue;
+        }
+        let mut current = String::new();
+        for part in chunk.split_inclusive(['.', '!', '?', '\n']) {
+            let piece = part.trim();
+            if piece.is_empty() {
+                continue;
+            }
+            if current.is_empty() {
+                current.push_str(piece);
+            } else if current.len() + piece.len() + 1 <= TARGET_CHARS {
+                current.push(' ');
+                current.push_str(piece);
+            } else {
+                refined.push(std::mem::take(&mut current));
+                current.push_str(piece);
+            }
+        }
+        if !current.trim().is_empty() {
+            refined.push(current);
+        }
+    }
+
+    json!(refined
+        .into_iter()
+        .take(MAX_PASSAGES)
+        .map(|snippet| {
+            json!({
+                "documentId": document_id,
+                "title": title,
+                "snippet": snippet,
+            })
+        })
+        .collect::<Vec<_>>())
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentAnswerContextMessage {
+    pub role: String,
+    pub text: String,
+}
+
+#[tauri::command]
+pub fn nlp_document_answer(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    document_id: String,
+    question: String,
+    context: Option<Vec<DocumentAnswerContextMessage>>,
+) -> Result<LibraryChatResult, String> {
+    let trimmed = question.trim().to_string();
+    if trimmed.is_empty() {
+        return Err("libraryChat.emptyQuestion".to_string());
+    }
+
+    let (title, mut passages) = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        if !is_nlp_enabled(&conn)? {
+            return Err("libraryChat.nlpDisabled".to_string());
+        }
+        if !sidecar.script_exists() {
+            return Err("libraryChat.sidecarUnavailable".to_string());
+        }
+        sync_sidecar_backend(&sidecar, &conn)?;
+
+        let (title, content_json): (String, String) = conn
+            .query_row(
+                "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL",
+                params![document_id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .map_err(|_| "libraryChat.documentMissing".to_string())?;
+
+        if content_json.contains("\"type\":\"scribe-vault-v1\"") {
+            return Err("libraryChat.documentVault".to_string());
+        }
+
+        let text = format!("{title}\n{}", extract_search_text(&content_json));
+        if text.trim().len() < 8 {
+            return Err("libraryChat.documentEmpty".to_string());
+        }
+        let passages = chunk_document_passages(&document_id, &title, &text);
+        (title, passages)
+    };
+
+    // Fold recent chat memory into passages so follow-ups can reference prior turns.
+    if let Some(messages) = context {
+        if let Some(list) = passages.as_array_mut() {
+            let recent: Vec<_> = messages
+                .into_iter()
+                .rev()
+                .take(6)
+                .collect::<Vec<_>>()
+                .into_iter()
+                .rev()
+                .collect();
+            for message in recent {
+                let role = message.role.trim().to_lowercase();
+                let text = message.text.trim();
+                if text.is_empty() {
+                    continue;
+                }
+                let label = if role == "assistant" {
+                    "Earlier assistant reply"
+                } else {
+                    "Earlier user question"
+                };
+                list.push(json!({
+                    "documentId": document_id,
+                    "title": format!("{title} · chat memory"),
+                    "snippet": format!("{label}: {text}"),
+                }));
+            }
+        }
+    }
+
+    let result = sidecar.library_answer_scoped(&trimmed, passages.clone(), 5, "document")?;
+    let fallback_title = title.clone();
+    let citations = result
+        .get("citations")
+        .and_then(|value| value.as_array())
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| {
+                    Some(LibraryChatCitation {
+                        document_id: item.get("documentId")?.as_str()?.to_string(),
+                        title: item
+                            .get("title")
+                            .and_then(|value| value.as_str())
+                            .unwrap_or(fallback_title.as_str())
+                            .to_string(),
+                        snippet: item
+                            .get("snippet")
+                            .and_then(|value| value.as_str())
+                            .unwrap_or("")
+                            .to_string(),
+                    })
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_else(|| {
+            passages
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(|item| {
+                    Some(LibraryChatCitation {
+                        document_id: document_id.clone(),
+                        title: title.clone(),
+                        snippet: item.get("snippet")?.as_str()?.to_string(),
+                    })
+                })
+                .take(4)
+                .collect()
+        });
+
+    Ok(LibraryChatResult {
+        answer: result
+            .get("answer")
+            .and_then(|value| value.as_str())
+            .unwrap_or("Based on this document: No matching passages were found.")
             .to_string(),
         citations,
     })

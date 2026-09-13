@@ -250,6 +250,36 @@ export const resolveCommentThread = (threadId: string, resolved: boolean) =>
 export const deleteCommentThread = (threadId: string) =>
   invoke<void>('delete_comment_thread', { threadId })
 
+export type DocumentChatCitation = {
+  documentId: string
+  title: string
+  snippet: string
+}
+
+export type DocumentChatMessage = {
+  id: string
+  documentId: string
+  role: 'user' | 'assistant' | string
+  text: string
+  createdAt: number
+  action?: string | null
+  citations: DocumentChatCitation[]
+}
+
+export const listDocumentChatMessages = (documentId: string) =>
+  invoke<DocumentChatMessage[]>('list_document_chat_messages', { documentId })
+
+export const appendDocumentChatMessage = (input: {
+  documentId: string
+  role: 'user' | 'assistant'
+  text: string
+  action?: string | null
+  citations?: DocumentChatCitation[]
+}) => invoke<DocumentChatMessage>('append_document_chat_message', { input })
+
+export const clearDocumentChatMessages = (documentId: string) =>
+  invoke<number>('clear_document_chat_messages', { documentId })
+
 export const clearAllDocuments = async () => {
   const count = await invoke<number>('clear_all_documents')
   clearDocumentCache()

@@ -343,12 +343,23 @@ impl NlpSidecar {
         passages: Value,
         max_sentences: i64,
     ) -> Result<Value, String> {
+        self.library_answer_scoped(question, passages, max_sentences, "library")
+    }
+
+    pub fn library_answer_scoped(
+        &self,
+        question: &str,
+        passages: Value,
+        max_sentences: i64,
+        scope: &str,
+    ) -> Result<Value, String> {
         self.call_method(
             "library_answer",
             json!({
                 "question": question,
                 "passages": passages,
                 "maxSentences": max_sentences,
+                "scope": scope,
             }),
         )
     }

@@ -249,6 +249,24 @@
       "description": "Panel Štruktúra (vpravo) sleduje nadpisy a scroll. V spodnom paneli vidíte aktuálnu sekciu a stránku."
     }
   },
+  "setup": {
+    "title": "Nastavenie Scribe",
+    "stepOf": "Krok {{current}} z {{total}}",
+    "finish": "Pokračovať",
+    "language": {
+      "title": "Jazyk",
+      "description": "Zvoľte jazyk rozhrania. Vlastný JSON jazykový balík môžete nahrať hneď alebo neskôr.",
+      "importHint": "Máte vlastné preklady? Nahrajte locale pack JSON (rovnaká štruktúra ako en.json)."
+    },
+    "skin": {
+      "title": "Vzhľad aplikácie",
+      "description": "Vyberte celkový štýl chrome. Neskôr to zmeníte v Nastavenia → Vzhľad."
+    },
+    "theme": {
+      "title": "Téma",
+      "description": "Farby sa aplikujú hneď. Ďalšie témy a vlastnú paletu nájdete v nastaveniach."
+    }
+  },
   "whatsNew": {
     "badge": "Novinky {{version}}",
     "title": "Scribe {{version}}",
@@ -1062,19 +1080,60 @@
   },
   "libraryChat": {
     "emptyTitle": "Opýtajte sa poznámok",
+    "emptyTitleDocument": "Opýtajte sa tohto dokumentu",
     "emptyHint": "Odpovede pochádzajú iba z lokálnych AI embeddingov vašej knižnice — bez cloudu. Zapnite Lokálne AI v Nastaveniach.",
+    "emptyHintDocument": "Pýtajte sa na otvorenú poznámku alebo použite akčné chipy. Len Lokálne AI — extraktívne, bez cloudu.",
     "openSettings": "Otvoriť nastavenia Lokálneho AI",
     "placeholder": "Opýtajte sa na svoje poznámky…",
+    "placeholderDocument": "Opýtajte sa na tento dokument…",
     "send": "Opýtať sa",
     "thinking": "Prehľadávam poznámky…",
     "citations": "Zdroje",
     "you": "Vy",
     "assistant": "Knižnica",
+    "assistantDocument": "Dokument",
     "untitled": "Bez názvu",
     "errorTitle": "Nepodarilo sa odpovedať",
     "emptyQuestion": "Najprv napíšte otázku.",
     "nlpDisabled": "Lokálne AI je vypnuté. Zapnite ho v Nastaveniach → Lokálne AI.",
-    "sidecarUnavailable": "Sidecar Lokálneho AI nie je pripravený. Skontrolujte Nastavenia → Lokálne AI."
+    "sidecarUnavailable": "Sidecar Lokálneho AI nie je pripravený. Skontrolujte Nastavenia → Lokálne AI.",
+    "noActiveDocument": "Najprv otvorte dokument, aby ste sa naň mohli pýtať.",
+    "documentMissing": "Dokument sa nenašiel.",
+    "documentVault": "Trezorové dokumenty nie je možné analyzovať, kým sú zamknuté.",
+    "documentEmpty": "Dokument má príliš málo textu na analýzu.",
+    "analysisFailed": "Dokument sa nepodarilo analyzovať.",
+    "scopeLabel": "Rozsah chatu",
+    "scopeLibrary": "Knižnica",
+    "scopeDocument": "Táto poznámka",
+    "scopeDocumentHint": "Pýtať sa na „{{title}}“",
+    "askingAbout": "Pýtam sa na: {{title}}",
+    "memoryHint": "uložené v tejto poznámke",
+    "memoryLoading": "Načítavam pamäť chatu…",
+    "memoryLoadError": "Nepodarilo sa načítať pamäť chatu",
+    "memoryCleared": "Pamäť chatu vymazaná",
+    "memoryClearError": "Nepodarilo sa vymazať pamäť chatu",
+    "clearMemory": "Vymazať",
+    "prompts": {
+      "recent": "O čom som naposledy písal?",
+      "deadlines": "Mám v poznámkach termíny alebo dátumy?",
+      "themes": "Aké témy sa v poznámkach opakujú?"
+    },
+    "actions": {
+      "summarize": "Zhrnúť",
+      "outline": "Osnova",
+      "keywords": "Kľúčové slová",
+      "tasks": "Otvorené úlohy",
+      "title": "Navrhnúť názov",
+      "wiki": "Wiki odkazy",
+      "dates": "Dátumy",
+      "tone": "Tón a čítanie",
+      "spellcheck": "Kontrola pravopisu"
+    }
+  },
+  "documentChat": {
+    "invalidRole": "Neplatná rola správy.",
+    "emptyText": "Správa je prázdna.",
+    "documentMissing": "Dokument sa nenašiel."
   },
   "trash": {
     "title": "Kôš",
@@ -1183,6 +1242,9 @@
       "subtitle": "Zhrnutie, kľúčové slová, podobné poznámky a otvorené úlohy",
       "hide": "Skryť AI prehľad",
       "loadError": "Nepodarilo sa načítať AI prehľad",
+      "askTitle": "Opýtať sa poznámky",
+      "askHint": "Lokálne AI akcie a otázky k otvorenému dokumentu — bez cloudu.",
+      "openChat": "Otvoriť plný chat →",
       "summary": "Zhrnutie",
       "summaryEmpty": "Napíšte viac textu pre výťažkové zhrnutie.",
       "toneLine": "Tón: {{tone}}",
@@ -2254,6 +2316,18 @@
     "unlockFailed": "Nesprávne heslo",
     "unlocked": "Trezor odomknutý",
     "locked": "Trezor zamknutý"
+  },
+  "math": {
+    "insertInlineTitle": "Vzorec v riadku",
+    "insertBlockTitle": "Blokový vzorec",
+    "editInlineTitle": "Upraviť vzorec v riadku",
+    "editBlockTitle": "Upraviť blokový vzorec",
+    "description": "Napíšte math.js výraz. Podporuje aritmetiku, jednotky, matice, zlomky, derivácie a numerické integrály.",
+    "expressionLabel": "Výraz",
+    "previewEmpty": "Tu sa zobrazí náhľad výsledku",
+    "result": "Výsledok:",
+    "insert": "Vložiť",
+    "remove": "Odstrániť"
   },
   "lorem": {
     "title": "Vložiť lorem ipsum",

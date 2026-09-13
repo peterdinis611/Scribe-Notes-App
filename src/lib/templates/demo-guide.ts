@@ -233,7 +233,8 @@ export function buildScribeDemoContent(wikiTargetId: string | null = null): JSON
 
       h(2, '8. Matematika (math.js)'),
       p(t('Vložte vzorec v riadku '), mathInline('2 + 2 * 5'), t(' alebo ako blok:')),
-      mathBlock('sum = 0\nfor i in 1..10\n  sum = sum + i\nsum'),
+      mathBlock('f(x) = x^2\nintegrate(f, 0, 1)'),
+      p(t('Ďalšie príklady: '), mathInline('derivative("sin(x)", "x")'), t(', '), mathInline('sum(1:10)'), t('.')),
 
       h(2, '9. Wiki odkazy medzi dokumentmi'),
       p(

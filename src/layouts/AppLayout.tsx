@@ -10,6 +10,7 @@ import { FocusModeExitBar } from '@/components/editor/FocusModeExitBar'
 import { ReadingModeExitBar } from '@/components/editor/ReadingModeExitBar'
 import { MoveToFolderDialog } from '@/components/MoveToFolderMenu'
 import { OnboardingTour } from '@/components/OnboardingTour'
+import { SetupWizard } from '@/components/SetupWizard'
 import { Sidebar } from '@/components/Sidebar'
 import { TemplatePicker } from '@/components/TemplatePicker'
 import { WhatsNewDialog } from '@/components/WhatsNewDialog'
@@ -33,13 +34,14 @@ import { ROUTES } from '@/lib/routes'
 import type { DocumentTemplate } from '@/lib/templates'
 import { InputDialogHost } from '@/components/InputDialogHost'
 import { LoremIpsumDialogHost } from '@/components/LoremIpsumDialogHost'
+import { MathExpressionDialogHost } from '@/components/MathExpressionDialogHost'
 import { InvoiceDialogHost } from '@/components/InvoiceDialogHost'
 import { StorageAccessDialogHost } from '@/components/StorageAccessDialogHost'
 import { SaveCustomTemplateDialogHost } from '@/components/SaveCustomTemplateDialogHost'
 import { ToastHost } from '@/components/ToastHost'
 import { TrashDialog } from '@/components/TrashDialog'
 import { LibraryFindReplaceDialog } from '@/components/LibraryFindReplaceDialog'
-import { readOnboardingDismissed, readWhatsNewVersion } from '@/store/persistence'
+import { ensureSetupCompletedForExistingUsers, readOnboardingDismissed, readSetupCompleted, readWhatsNewVersion } from '@/store/persistence'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
   setActiveDocument,
@@ -95,6 +97,9 @@ export function AppLayout() {
   const layoutTier = useLayoutTier(mainRef)
   const { isCompact, sidebarOpen, setSidebarOpen } = useResponsiveSidebar()
   const [whatsNewOpen, setWhatsNewOpen] = useState(false)
+  const [setupReady, setSetupReady] = useState(
+    () => ensureSetupCompletedForExistingUsers() || readSetupCompleted(),
+  )
 
   function maybeOpenWhatsNew() {
     if (readWhatsNewVersion() !== APP_VERSION) {
@@ -103,10 +108,10 @@ export function AppLayout() {
   }
 
   useEffect(() => {
-    if (readOnboardingDismissed() && readWhatsNewVersion() !== APP_VERSION) {
+    if (setupReady && readOnboardingDismissed() && readWhatsNewVersion() !== APP_VERSION) {
       setWhatsNewOpen(true)
     }
-  }, [])
+  }, [setupReady])
 
   useEffect(() => {
     const unlisteners: Array<() => void> = []
@@ -223,12 +228,18 @@ export function AppLayout() {
       />
       <InputDialogHost />
       <LoremIpsumDialogHost />
+      <MathExpressionDialogHost />
       <InvoiceDialogHost />
       <StorageAccessDialogHost />
       <SaveCustomTemplateDialogHost />
       <TrashDialog />
       <LibraryFindReplaceDialog />
-      <OnboardingTour onFinished={maybeOpenWhatsNew} />
+      <SetupWizard
+        onFinished={() => {
+          setSetupReady(true)
+        }}
+      />
+      <OnboardingTour enabled={setupReady} onFinished={maybeOpenWhatsNew} />
       <WhatsNewDialog open={whatsNewOpen} onClose={() => setWhatsNewOpen(false)} />
       <ToastHost />
     </div>

@@ -244,19 +244,25 @@ export const MathBlock = Node.create<MathNodeOptions>({
 
 function createMathEditHandler(type: 'inline' | 'block') {
   return (editor: Editor, _node: PMNode, pos: number, expression: string) => {
-    const next = window.prompt(
-      type === 'inline' ? 'Math.js výraz (v riadku)' : 'Math.js výraz (blok)',
-      expression,
-    )
-    if (next === null) return
-    const trimmed = next.trim()
-    if (!trimmed) {
-      if (type === 'inline') editor.chain().focus().deleteMathInline({ pos }).run()
-      else editor.chain().focus().deleteMathBlock({ pos }).run()
-      return
-    }
-    if (type === 'inline') editor.chain().focus().updateMathInline({ expression: trimmed, pos }).run()
-    else editor.chain().focus().updateMathBlock({ expression: trimmed, pos }).run()
+    void (async () => {
+      const { promptMathExpressionDialog } = await import('@/lib/math-dialog')
+      const next = await promptMathExpressionDialog({
+        mode: type,
+        intent: 'edit',
+        initialExpression: expression,
+      })
+      if (next === null || editor.isDestroyed) return
+      if (next.clear || !next.expression.trim()) {
+        if (type === 'inline') editor.chain().focus().deleteMathInline({ pos }).run()
+        else editor.chain().focus().deleteMathBlock({ pos }).run()
+        return
+      }
+      if (type === 'inline') {
+        editor.chain().focus().updateMathInline({ expression: next.expression.trim(), pos }).run()
+      } else {
+        editor.chain().focus().updateMathBlock({ expression: next.expression.trim(), pos }).run()
+      }
+    })()
   }
 }
 

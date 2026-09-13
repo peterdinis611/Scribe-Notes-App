@@ -4,6 +4,9 @@ import {
   readActiveDocumentId,
   persistOnboardingDismissed,
   readOnboardingDismissed,
+  persistSetupCompleted,
+  readSetupCompleted,
+  ensureSetupCompletedForExistingUsers,
   persistWhatsNewVersion,
   readWhatsNewVersion,
 } from '@/store/persistence'
@@ -23,6 +26,20 @@ describe('session persistence', () => {
     expect(readOnboardingDismissed()).toBe(true)
     persistOnboardingDismissed(false)
     expect(readOnboardingDismissed()).toBe(false)
+  })
+
+  it('persists setup completed and migrates existing onboarding users', () => {
+    persistSetupCompleted(false)
+    persistOnboardingDismissed(false)
+    expect(readSetupCompleted()).toBe(false)
+    expect(ensureSetupCompletedForExistingUsers()).toBe(false)
+
+    persistOnboardingDismissed(true)
+    expect(ensureSetupCompletedForExistingUsers()).toBe(true)
+    expect(readSetupCompleted()).toBe(true)
+
+    persistSetupCompleted(false)
+    persistOnboardingDismissed(false)
   })
 
   it('persists whats new version', () => {

@@ -14,6 +14,17 @@ export type InputDialogState = ({ open: true } & InputDialogOptions) | { open: f
 
 export type LoremDialogState = { open: boolean }
 
+export type MathDialogMode = 'inline' | 'block'
+
+export type MathDialogState =
+  | { open: false }
+  | {
+      open: true
+      mode: MathDialogMode
+      intent: 'insert' | 'edit'
+      initialExpression: string
+    }
+
 export type InvoiceDialogState = {
   open: boolean
   /** Partial invoice draft seed; shaped like InvoiceDialogDraft. */
@@ -30,6 +41,7 @@ export interface UiState {
   toasts: ToastItem[]
   inputDialog: InputDialogState
   loremDialog: LoremDialogState
+  mathDialog: MathDialogState
   invoiceDialog: InvoiceDialogState
   storageAccessDialog: StorageAccessDialogState
 }
@@ -38,6 +50,7 @@ const initialState: UiState = {
   toasts: [],
   inputDialog: { open: false },
   loremDialog: { open: false },
+  mathDialog: { open: false },
   invoiceDialog: { open: false },
   storageAccessDialog: { open: false },
 }
@@ -58,6 +71,9 @@ const uiSlice = createSlice({
     setLoremDialog(state, action: PayloadAction<LoremDialogState>) {
       state.loremDialog = action.payload
     },
+    setMathDialog(state, action: PayloadAction<MathDialogState>) {
+      state.mathDialog = action.payload
+    },
     setInvoiceDialog(state, action: PayloadAction<InvoiceDialogState>) {
       state.invoiceDialog = action.payload
     },
@@ -72,6 +88,7 @@ export const {
   dismissToast,
   setInputDialog,
   setLoremDialog,
+  setMathDialog,
   setInvoiceDialog,
   setStorageAccessDialog,
 } = uiSlice.actions

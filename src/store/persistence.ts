@@ -9,7 +9,7 @@ import type { CustomDocumentTemplate } from '@/lib/templates/custom'
 import { parseStoredCustomTemplates } from '@/lib/templates/custom'
 import type { CustomTemplateCategory } from '@/lib/templates/categories'
 import { parseStoredCustomCategories } from '@/lib/templates/categories'
-import { LOCALE_KEY, UI_SKIN_KEY, ACTIVE_DOCUMENT_ID_KEY, ONBOARDING_DISMISSED_KEY, WHATS_NEW_VERSION_KEY, DOCUMENT_TOC_LEFT_KEY, SCRATCH_DOCUMENT_ID_KEY, SHORTCUT_OVERRIDES_KEY, STORAGE_ACCESS_EXPLAINER_KEY, STORAGE_FOLDER_ACCESS_GRANTED_KEY, FOLDER_AUTO_SYNC_KEY, AUTO_BACKUP_ENABLED_KEY, AUTO_BACKUP_INTERVAL_DAYS_KEY, AUTO_BACKUP_INTERVAL_HOURS_KEY, AUTO_BACKUP_DIR_KEY, LAST_AUTO_BACKUP_AT_KEY, THEME_KEY_V2, THEME_KEY_LEGACY, EDITOR_VIEW_MODE_KEY, PAGE_SETUP_KEY, SPELL_CHECK_KEY, PRINT_LAYOUT_KEY, PRINT_ZOOM_KEY, PRINT_COLUMNS_KEY, MANUAL_TITLES_KEY, COMMENT_AUTHOR_KEY, CUSTOM_TEMPLATES_KEY, CUSTOM_TEMPLATE_CATEGORIES_KEY, CUSTOM_LOCALES_KEY } from './keys'
+import { LOCALE_KEY, UI_SKIN_KEY, ACTIVE_DOCUMENT_ID_KEY, ONBOARDING_DISMISSED_KEY, SETUP_COMPLETED_KEY, WHATS_NEW_VERSION_KEY, DOCUMENT_TOC_LEFT_KEY, SCRATCH_DOCUMENT_ID_KEY, SHORTCUT_OVERRIDES_KEY, STORAGE_ACCESS_EXPLAINER_KEY, STORAGE_FOLDER_ACCESS_GRANTED_KEY, FOLDER_AUTO_SYNC_KEY, AUTO_BACKUP_ENABLED_KEY, AUTO_BACKUP_INTERVAL_DAYS_KEY, AUTO_BACKUP_INTERVAL_HOURS_KEY, AUTO_BACKUP_DIR_KEY, LAST_AUTO_BACKUP_AT_KEY, THEME_KEY_V2, THEME_KEY_LEGACY, EDITOR_VIEW_MODE_KEY, PAGE_SETUP_KEY, SPELL_CHECK_KEY, PRINT_LAYOUT_KEY, PRINT_ZOOM_KEY, PRINT_COLUMNS_KEY, MANUAL_TITLES_KEY, COMMENT_AUTHOR_KEY, CUSTOM_TEMPLATES_KEY, CUSTOM_TEMPLATE_CATEGORIES_KEY, CUSTOM_LOCALES_KEY } from './keys'
 
 export function readCustomLocales(): CustomLocalePack[] {
   try {
@@ -120,6 +120,32 @@ export function persistOnboardingDismissed(dismissed: boolean) {
     return
   }
   kvRemove(ONBOARDING_DISMISSED_KEY)
+}
+
+export function readSetupCompleted(): boolean {
+  try {
+    return kvGet(SETUP_COMPLETED_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+export function persistSetupCompleted(completed: boolean) {
+  if (completed) {
+    kvSet(SETUP_COMPLETED_KEY, '1')
+    return
+  }
+  kvRemove(SETUP_COMPLETED_KEY)
+}
+
+/** Existing installs already past onboarding should skip the new setup wizard once. */
+export function ensureSetupCompletedForExistingUsers(): boolean {
+  if (readSetupCompleted()) return true
+  if (readOnboardingDismissed()) {
+    persistSetupCompleted(true)
+    return true
+  }
+  return false
 }
 
 export function readWhatsNewVersion(): string | null {

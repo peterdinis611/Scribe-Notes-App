@@ -142,10 +142,10 @@ export function runSlashCommand(
       insertEmptyLottieBlock(editor)
       break
     case 'math-inline':
-      insertInlineMath(editor)
+      void insertInlineMath(editor)
       break
     case 'math-block':
-      insertBlockMath(editor)
+      void insertBlockMath(editor)
       break
     case 'mermaid':
       insertMermaidDiagram(editor)

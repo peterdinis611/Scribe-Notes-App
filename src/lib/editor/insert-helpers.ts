@@ -1,19 +1,28 @@
 import type { Editor } from '@tiptap/react'
-import { MATH_JS_EXAMPLES, promptMathExpression } from '@/lib/editor/math-js'
+import { MATH_JS_EXAMPLES } from '@/lib/editor/math-js'
 import { MERMAID_DEFAULT_SOURCE } from '@/lib/editor/mermaid'
 import { generateLoremIpsum, saveLoremOptions } from '@/lib/editor/lorem-ipsum'
 import { promptLoremOptions } from '@/lib/lorem-dialog'
+import { promptMathExpressionDialog } from '@/lib/math-dialog'
 
-export function insertInlineMath(editor: Editor) {
-  const expression = promptMathExpression('Matematický výraz v riadku', '', MATH_JS_EXAMPLES.inline)
-  if (!expression) return
-  editor.chain().focus().insertMathInline({ expression }).run()
+export async function insertInlineMath(editor: Editor) {
+  const result = await promptMathExpressionDialog({
+    mode: 'inline',
+    intent: 'insert',
+    initialExpression: MATH_JS_EXAMPLES.inline,
+  })
+  if (!result || result.clear || !result.expression || editor.isDestroyed) return
+  editor.chain().focus().insertMathInline({ expression: result.expression }).run()
 }
 
-export function insertBlockMath(editor: Editor) {
-  const expression = promptMathExpression('Matematický blok', '', MATH_JS_EXAMPLES.block)
-  if (!expression) return
-  editor.chain().focus().insertMathBlock({ expression }).run()
+export async function insertBlockMath(editor: Editor) {
+  const result = await promptMathExpressionDialog({
+    mode: 'block',
+    intent: 'insert',
+    initialExpression: MATH_JS_EXAMPLES.block,
+  })
+  if (!result || result.clear || !result.expression || editor.isDestroyed) return
+  editor.chain().focus().insertMathBlock({ expression: result.expression }).run()
 }
 
 export function insertMermaidDiagram(editor: Editor) {
