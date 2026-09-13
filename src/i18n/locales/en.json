@@ -345,8 +345,32 @@
   "whatsNew": {
     "badge": "What's new in {{version}}",
     "title": "Scribe {{version}}",
-    "subtitle": "Automatic library backups, optimized images, and Notion-style image blocks.",
+    "subtitle": "A richer library analysis, a clearer document tree, and fuzzy find across the app.",
     "gotIt": "Got it",
+    "libraryReport": {
+      "title": "Library analysis, redesigned",
+      "description": "Stats cards, meters, and a Documentation section that lists every library folder — not just raw markdown."
+    },
+    "libraryTree": {
+      "title": "Clearer library tree",
+      "description": "Quieter rows, hover checkboxes, folder counts, and stronger hierarchy in All documents."
+    },
+    "fuzzyFind": {
+      "title": "Fuzzy find",
+      "description": "Approximate matching in Find (⌘F) and the command palette — typos still land on the right note."
+    },
+    "customFonts": {
+      "title": "Custom fonts",
+      "description": "Upload TTF/OTF/WOFF fonts for documents. They stay local and load with your notes."
+    },
+    "connectionMap": {
+      "title": "Connection map polish",
+      "description": "A clearer empty state and denser atlas layout for wiki-link graphs — including orphan reveal."
+    },
+    "appTour": {
+      "title": "Guided app tour",
+      "description": "Replay the product tour from Settings or ⌘K whenever you want a refresher."
+    },
     "autoBackup": {
       "title": "Automatic backups",
       "description": "On by default — scheduled .zip archives to Documents/Scribe/Backups, with an interval you choose."
@@ -688,6 +712,21 @@
       "reportDone": "Analysis complete",
       "reportError": "Analysis failed",
       "reportHeading": "Analysis result",
+      "reportResultTitle": "Library overview",
+      "reportStatDocuments": "Documents",
+      "reportStatTagged": "Tagged",
+      "reportStatUntagged": "Untagged",
+      "reportStatLibraries": "Libraries",
+      "reportDocumentation": "Documentation",
+      "reportLanguages": "Languages (sample)",
+      "reportTone": "Tone (sample)",
+      "reportTerms": "Frequent terms",
+      "reportTags": "Top tags",
+      "reportRecent": "Recent documents",
+      "reportVault": "Vault",
+      "reportEmptySection": "Nothing to show yet.",
+      "reportShowMarkdown": "Show raw markdown",
+      "reportHideMarkdown": "Hide raw markdown",
       "exportReportPdf": "Export report PDF",
       "exportingReportPdf": "Exporting PDF…",
       "refreshTitle": "Sidecar status",
@@ -1042,6 +1081,8 @@
   "library": {
     "title": "Library",
     "allDocuments": "All documents",
+    "expandFolder": "Expand folder",
+    "collapseFolder": "Collapse folder",
     "documentCount_one": "{{count}} document",
     "documentCount_other": "{{count}} documents",
     "searchPlaceholder": "Search documents…",
@@ -1080,6 +1121,7 @@
     "nlpTagsNone": "No new tag suggestions",
     "nlpFolderSuggestion": "Suggested folder",
     "nlpFolderSuggestionDetail": "Closest match: {{folder}}",
+    "nlpFolderMove": "Move there",
     "nlpFolderNone": "No matching folder",
     "folderNamePlaceholder": "Folder name",
     "noResults": "No results.",
@@ -1366,7 +1408,19 @@
       "spellcheckDisabled": "Enable Local AI in Settings for spell check.",
       "spellcheckError": "Spell check failed",
       "spellcheckSuggestions": "Suggestions: {{list}}",
-      "spellcheckFind": "Find in document"
+      "spellcheckFind": "Find in document",
+      "organize": "Organize",
+      "organizeHint": "Suggested folder from Local AI",
+      "organizeSuggestion": "Closest folder: {{folder}}",
+      "organizeMove": "Move to {{folder}}",
+      "organizeEmpty": "No better folder match for this note.",
+      "template": "Template sections",
+      "templateHint": "Missing Goal / Context / Next steps headings",
+      "templateRun": "Check sections",
+      "templateRunning": "Checking…",
+      "templateComplete": "Expected sections look filled.",
+      "templateCoverage": "{{percent}}% of expected sections present",
+      "templateError": "Template check failed"
     },
     "stats": {
       "subtitle": "Document overview",
@@ -1404,6 +1458,7 @@
       "restoreError": "Failed to restore version",
       "compareError": "Version comparison failed",
       "nlpDiffSummary": "AI change summary",
+      "nlpDiffChange": "{{percent}}% changed",
       "selectTwoVersions": "Select two different versions",
       "currentVersion": "Current version",
       "diffTitle": "Version comparison",
@@ -1440,12 +1495,15 @@
   "findReplace": {
     "findPlaceholder": "Find in document…",
     "regexPlaceholder": "Find regex…",
+    "fuzzyPlaceholder": "Fuzzy find…",
     "replacePlaceholder": "Replace…",
     "replaceWith": "Replace with…",
     "replaceWithRegex": "Replace with… ($1, $&)",
     "matchCase": "Match case",
     "wholeWord": "Whole word",
     "regex": "Regular expression",
+    "fuzzy": "Fuzzy match",
+    "fuzzyHint": "Approximate matches — replace is disabled in fuzzy mode.",
     "invalidRegex": "Invalid regular expression",
     "previous": "Previous (⇧⏎)",
     "next": "Next (⏎)",

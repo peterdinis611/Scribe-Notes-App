@@ -3,6 +3,7 @@ import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
 import type { EditorState, Transaction } from '@tiptap/pm/state'
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model'
+import { findFuzzyTextMatches } from '@/lib/search/fuzzy'
 
 export type SearchMatch = { from: number; to: number }
 
@@ -10,6 +11,7 @@ export type SearchOptions = {
   caseSensitive?: boolean
   wholeWord?: boolean
   regex?: boolean
+  fuzzy?: boolean
 }
 
 export type SearchState = {
@@ -17,6 +19,7 @@ export type SearchState = {
   caseSensitive: boolean
   wholeWord: boolean
   regex: boolean
+  fuzzy: boolean
   regexError: string | null
   matches: SearchMatch[]
   activeIndex: number
@@ -75,12 +78,30 @@ export function buildSearchRegExp(
   }
 }
 
+function collectTextChunks(doc: ProseMirrorNode) {
+  const chunks: Array<{ text: string; from: number }> = []
+  doc.descendants((node, pos) => {
+    if (!node.isText || !node.text) return
+    chunks.push({ text: node.text, from: pos })
+  })
+  return chunks
+}
+
 export function findMatches(
   doc: ProseMirrorNode,
   term: string,
-  options: { caseSensitive: boolean; wholeWord: boolean; regex: boolean },
+  options: { caseSensitive: boolean; wholeWord: boolean; regex: boolean; fuzzy?: boolean },
 ): { matches: SearchMatch[]; regexError: string | null } {
   if (!term) return { matches: [], regexError: null }
+
+  if (options.fuzzy) {
+    return {
+      matches: findFuzzyTextMatches(collectTextChunks(doc), term, {
+        caseSensitive: options.caseSensitive,
+      }),
+      regexError: null,
+    }
+  }
 
   const { pattern, error } = buildSearchRegExp(term, options)
   if (!pattern) return { matches: [], regexError: error }
@@ -144,12 +165,14 @@ function recompute(
   caseSensitive: boolean,
   wholeWord: boolean,
   regex: boolean,
+  fuzzy: boolean,
   preferredIndex: number,
 ): SearchState {
   const { matches, regexError } = findMatches(state.doc, term, {
     caseSensitive,
-    wholeWord,
-    regex,
+    wholeWord: fuzzy ? false : wholeWord,
+    regex: fuzzy ? false : regex,
+    fuzzy,
   })
   const activeIndex =
     matches.length === 0 ? -1 : Math.min(Math.max(0, preferredIndex), matches.length - 1)
@@ -158,6 +181,7 @@ function recompute(
     caseSensitive,
     wholeWord,
     regex,
+    fuzzy,
     regexError,
     matches,
     activeIndex,
@@ -166,7 +190,14 @@ function recompute(
 }
 
 type SearchMeta =
-  | { type: 'set'; term: string; caseSensitive: boolean; wholeWord: boolean; regex: boolean }
+  | {
+      type: 'set'
+      term: string
+      caseSensitive: boolean
+      wholeWord: boolean
+      regex: boolean
+      fuzzy: boolean
+    }
   | { type: 'clear' }
   | { type: 'setActive'; activeIndex: number }
 
@@ -183,6 +214,7 @@ export const SearchReplace = Extension.create({
             caseSensitive: false,
             wholeWord: false,
             regex: false,
+            fuzzy: false,
             regexError: null,
             matches: [],
             activeIndex: -1,
@@ -197,6 +229,7 @@ export const SearchReplace = Extension.create({
                 caseSensitive: value.caseSensitive,
                 wholeWord: value.wholeWord,
                 regex: value.regex,
+                fuzzy: value.fuzzy,
                 regexError: null,
                 matches: [],
                 activeIndex: -1,
@@ -211,6 +244,7 @@ export const SearchReplace = Extension.create({
                 meta.caseSensitive,
                 meta.wholeWord,
                 meta.regex,
+                meta.fuzzy,
                 0,
               )
             }
@@ -230,6 +264,7 @@ export const SearchReplace = Extension.create({
                 value.caseSensitive,
                 value.wholeWord,
                 value.regex,
+                value.fuzzy,
                 value.activeIndex,
               )
             }
@@ -259,6 +294,7 @@ export const SearchReplace = Extension.create({
                 caseSensitive: options?.caseSensitive ?? false,
                 wholeWord: options?.wholeWord ?? false,
                 regex: options?.regex ?? false,
+                fuzzy: options?.fuzzy ?? false,
               }),
             )
           }
@@ -298,7 +334,7 @@ export const SearchReplace = Extension.create({
         (replacement) =>
         ({ state, dispatch, tr }) => {
           const search = searchPluginKey.getState(state)
-          if (!search || search.activeIndex < 0) return false
+          if (!search || search.activeIndex < 0 || search.fuzzy) return false
           const match = search.matches[search.activeIndex]
           if (!match) return false
           if (dispatch) {
@@ -318,7 +354,7 @@ export const SearchReplace = Extension.create({
         (replacement) =>
         ({ state, dispatch, tr }) => {
           const search = searchPluginKey.getState(state)
-          if (!search || search.matches.length === 0) return false
+          if (!search || search.matches.length === 0 || search.fuzzy) return false
           if (dispatch) {
             // Replace from last to first so earlier positions stay valid.
             for (let index = search.matches.length - 1; index >= 0; index -= 1) {

@@ -58,6 +58,20 @@ class LibraryAnswerTests(unittest.TestCase):
         )
         self.assertIn("embeddings", result["answer"].lower())
         self.assertEqual(result["citations"][0]["documentId"], "d1")
+        self.assertGreaterEqual(len(result.get("followups") or []), 1)
+
+    def test_stem_aware_matching(self) -> None:
+        result = library_answer(
+            "projects",
+            [
+                {
+                    "documentId": "d1",
+                    "title": "Work",
+                    "snippet": "The project ships next month with new features.",
+                }
+            ],
+        )
+        self.assertIn("project", result["answer"].lower())
 
     def test_library_answer_rpc(self) -> None:
         response = handle_request(
@@ -116,7 +130,7 @@ class VersionTests(unittest.TestCase):
         result = handle_request(
             {"jsonrpc": "2.0", "id": 9, "method": "health", "params": {}}
         )["result"]
-        self.assertEqual(result["version"], "0.9.1")
+        self.assertEqual(result["version"], "0.9.2")
         for feature in ("chunkEmbeddings", "libraryAnswer", "dueHints"):
             self.assertIn(feature, result["features"])
 

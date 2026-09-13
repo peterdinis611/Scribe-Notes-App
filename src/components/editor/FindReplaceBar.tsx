@@ -1,7 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Editor } from '@tiptap/react'
-import { ArrowDown, ArrowUp, CaseSensitive, Regex, Replace, WholeWord, X } from 'lucide-react'
+import {
+  ArrowDown,
+  ArrowUp,
+  CaseSensitive,
+  Regex,
+  Replace,
+  Sparkles,
+  WholeWord,
+  X,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { searchPluginKey } from '@/lib/editor/search-extension'
 import { isEditorViewReady, runEditorCommand } from '@/lib/editor/view-ready'
@@ -47,6 +56,7 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
   const [caseSensitive, setCaseSensitive] = useState(false)
   const [wholeWord, setWholeWord] = useState(false)
   const [regex, setRegex] = useState(false)
+  const [fuzzy, setFuzzy] = useState(false)
   const [showReplace, setShowReplace] = useState(false)
   const [status, setStatus] = useState({ total: 0, active: -1, regexError: null as string | null })
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -127,10 +137,15 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
     if (!isEditorViewReady(editor)) return
 
     runEditorCommand(editor, (currentEditor) => {
-      currentEditor.commands.setSearchTerm(term, { caseSensitive, wholeWord, regex })
+      currentEditor.commands.setSearchTerm(term, {
+        caseSensitive,
+        wholeWord: fuzzy ? false : wholeWord,
+        regex: fuzzy ? false : regex,
+        fuzzy,
+      })
     })
     requestAnimationFrame(scrollToActive)
-  }, [editor, open, term, caseSensitive, wholeWord, regex, scrollToActive])
+  }, [editor, open, term, caseSensitive, wholeWord, regex, fuzzy, scrollToActive])
 
   const handleClose = useCallback(() => {
     dispatch(setFindReplaceOpen(false))
@@ -160,9 +175,15 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
   const toggleActive = (active: boolean) =>
     active && 'bg-[color-mix(in_srgb,var(--color-accent)_14%,transparent)] text-[var(--color-accent)]'
 
+  const placeholder = fuzzy
+    ? t('findReplace.fuzzyPlaceholder')
+    : regex
+      ? t('findReplace.regexPlaceholder')
+      : t('findReplace.findPlaceholder')
+
   return (
     <div
-      className="absolute right-5 top-2 z-30 flex flex-col gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2 shadow-[0_12px_32px_rgba(0,0,0,0.18)] titlebar-no-drag"
+      className="find-replace-bar absolute right-5 top-2 z-30 flex flex-col gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2 shadow-[0_12px_32px_rgba(0,0,0,0.18)] titlebar-no-drag"
       role="search"
     >
       <div className="flex items-center gap-1">
@@ -170,7 +191,7 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
           <Input
             ref={searchInputRef}
             className={cn('h-8 pr-12 text-[13px]', status.regexError && 'border-[var(--color-danger,#c44)]')}
-            placeholder={regex ? t('findReplace.regexPlaceholder') : t('findReplace.findPlaceholder')}
+            placeholder={placeholder}
             value={term}
             onChange={(event) => setTerm(event.target.value)}
             onKeyDown={(event) => {
@@ -210,6 +231,7 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
           type="button"
           className={cn(iconBtnClass, toggleActive(wholeWord))}
           title={t('findReplace.wholeWord')}
+          disabled={fuzzy}
           onClick={() => setWholeWord((value) => !value)}
         >
           <WholeWord className="h-4 w-4" />
@@ -218,9 +240,31 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
           type="button"
           className={cn(iconBtnClass, toggleActive(regex))}
           title={t('findReplace.regex')}
-          onClick={() => setRegex((value) => !value)}
+          disabled={fuzzy}
+          onClick={() => {
+            setRegex((value) => !value)
+            setFuzzy(false)
+          }}
         >
           <Regex className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          className={cn(iconBtnClass, toggleActive(fuzzy))}
+          title={t('findReplace.fuzzy')}
+          onClick={() => {
+            setFuzzy((value) => {
+              const next = !value
+              if (next) {
+                setRegex(false)
+                setWholeWord(false)
+                setShowReplace(false)
+              }
+              return next
+            })
+          }}
+        >
+          <Sparkles className="h-4 w-4" />
         </button>
         <button
           type="button"
@@ -244,6 +288,7 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
           type="button"
           className={cn(iconBtnClass, toggleActive(showReplace))}
           title={t('findReplace.replace')}
+          disabled={fuzzy}
           onClick={() => setShowReplace((value) => !value)}
         >
           <Replace className="h-4 w-4" />
@@ -269,7 +314,13 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
         </p>
       )}
 
-      {showReplace && (
+      {fuzzy && (
+        <p className="m-0 max-w-[420px] px-1 text-[11px] text-[var(--color-muted-foreground)]">
+          {t('findReplace.fuzzyHint')}
+        </p>
+      )}
+
+      {showReplace && !fuzzy && (
         <div className="flex items-center gap-1">
           <div className="relative flex min-w-[220px] items-center">
             <Input

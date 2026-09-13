@@ -15,7 +15,7 @@ App screenshots used in the root README files.
 | `settings-nlp.png` | Settings · Local AI |
 | `settings-mcp.png` | Settings · MCP |
 
-Captured from the running UI (v1.6.0). To refresh:
+Captured from the running UI (v1.8.0). To refresh:
 
 ```bash
 npm run tauri:dev

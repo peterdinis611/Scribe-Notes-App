@@ -64,10 +64,20 @@ Example: [`cursor.mcp.example.json`](cursor.mcp.example.json)
 | `get_document_outline` | Heading TOC |
 | `list_graph_hubs` | Most connected notes by backlinks and outgoing wiki links |
 | `library_answer` | Answer a question from the local library (hybrid + Local AI) |
+| `document_answer` | Answer a question from one note (optional chat context) |
 | `document_analysis` | Keywords, outline, summary, tone, dates, mentions |
 | `suggest_title` | Suggest a title/slug for a note |
 | `find_duplicates` | Near-duplicate notes |
 | `suggest_wiki_links` | Suggested `[[wiki links]]` for a note |
+| `suggest_organize` | Folder / organize hints for a note |
+| `summarize_diff` | Diff bullets between two plain texts |
+| `summarize_revision_diff` | Diff bullets: revision → current note |
+| `template_fill_hints` | Missing / filled template sections |
+| `reading_stats` | Reading time / readability |
+| `detect_language` | Detect note language |
+| `rewrite_query` | Expand a search query |
+| `set_nlp_enabled` | Enable/disable Local AI (writable) |
+| `set_embed_backend` | `hash` or `quality` embeddings (writable) |
 | `calendar_events` | Date events from recent notes |
 | `spellcheck` | Spellcheck a document |
 | `extract_keywords` | Keywords / keyphrases |

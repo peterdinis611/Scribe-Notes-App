@@ -17,12 +17,63 @@ def _sort_by_updated(documents: list[dict[str, object]]) -> list[dict[str, objec
     )
 
 
-def library_report(documents: list[dict[str, object]]) -> dict[str, object]:
+def _folder_rows(
+    folders: list[dict[str, object]] | None,
+    documents: list[dict[str, object]],
+) -> list[dict[str, object]]:
+    """Build documentation entries for each library folder (+ root)."""
+    docs_by_folder: Counter[str | None] = Counter()
+    for doc in documents:
+        folder_id = doc.get("folderId")
+        key = str(folder_id) if folder_id not in (None, "") else None
+        docs_by_folder[key] += 1
+
+    rows: list[dict[str, object]] = []
+    root_count = int(docs_by_folder.get(None, 0))
+    if root_count or not folders:
+        rows.append(
+            {
+                "id": None,
+                "name": "Koreň knižnice",
+                "documentCount": root_count,
+                "isVault": False,
+            }
+        )
+
+    for folder in folders or []:
+        folder_id = str(folder.get("id") or "").strip()
+        if not folder_id:
+            continue
+        rows.append(
+            {
+                "id": folder_id,
+                "name": str(folder.get("name") or "Bez názvu"),
+                "documentCount": int(docs_by_folder.get(folder_id, 0)),
+                "isVault": bool(folder.get("isVault")),
+                "parentId": folder.get("parentId"),
+            }
+        )
+
+    rows.sort(
+        key=lambda row: (
+            0 if row.get("id") is None else 1,
+            -int(row.get("documentCount") or 0),
+            str(row.get("name") or "").lower(),
+        )
+    )
+    return rows
+
+
+def library_report(
+    documents: list[dict[str, object]],
+    folders: list[dict[str, object]] | None = None,
+) -> dict[str, object]:
     total = len(documents)
     tagged = sum(1 for doc in documents if doc.get("tags"))
     texts = [str(doc.get("text") or "") for doc in documents]
     sorted_docs = _sort_by_updated(documents)
     titles = [str(doc.get("title") or "Bez názvu") for doc in sorted_docs]
+    documentation = _folder_rows(folders, documents)
 
     tag_counter: Counter[str] = Counter()
     for doc in documents:
@@ -71,9 +122,20 @@ def library_report(documents: list[dict[str, object]]) -> dict[str, object]:
         f"- **Dokumenty:** {total}",
         f"- **Otagované:** {tagged}",
         f"- **Bez tagov:** {total - tagged}",
+        f"- **Knižnice:** {len([row for row in documentation if row.get('id') is not None])}",
         "",
-        "## Jazyky (vzorka)",
+        "## Dokumentácia",
     ]
+    if documentation:
+        for row in documentation:
+            vault = " · trezor" if row.get("isVault") else ""
+            name = str(row.get("name") or "Bez názvu")
+            count = int(row.get("documentCount") or 0)
+            lines.append(f"- {name} ({count}){vault}")
+    else:
+        lines.append("- —")
+
+    lines.extend(["", "## Jazyky (vzorka)"])
     if language_counter:
         for lang, count in language_counter.most_common():
             label = {"sk": "slovenčina", "en": "angličtina"}.get(lang, lang)
@@ -141,6 +203,7 @@ def library_report(documents: list[dict[str, object]]) -> dict[str, object]:
         "stats": {
             "documentCount": total,
             "taggedCount": tagged,
+            "folderCount": len([row for row in documentation if row.get("id") is not None]),
             "topTerms": [{"term": term, "count": count} for term, count in terms],
             "topPhrases": [
                 {"phrase": phrase, "count": count}
@@ -160,5 +223,7 @@ def library_report(documents: list[dict[str, object]]) -> dict[str, object]:
                 for tag, count in tag_counter.most_common(10)
             ],
             "untaggedSample": untagged_titles,
+            "documentation": documentation,
+            "recentTitles": titles[:12],
         },
     }

@@ -37,7 +37,7 @@ type SidebarProps = {
 }
 
 const libraryActionClass =
-  'inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-none bg-transparent text-[var(--color-muted-foreground)] transition-[background,color] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]'
+  'library-docs-action inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-transparent bg-transparent text-[var(--color-muted-foreground)] transition-[background,color,border-color] hover:border-[var(--color-border)] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]'
 
 export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarProps) {
   const { t } = useTranslation()
@@ -170,11 +170,9 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                   <LibraryFilterBanner />
                   <LibrarySmartFilters />
                   <LibraryBulkBar />
-                  <div className="flex items-center justify-between gap-2 px-3 pb-1 pt-2">
-                    <h2 className="m-0 text-[11px] font-medium text-[var(--color-muted-foreground)]">
-                      {t('library.allDocuments')}
-                    </h2>
-                    <div className="inline-flex items-center gap-0.5">
+                  <div className="library-docs-header">
+                    <h2 className="library-docs-heading">{t('library.allDocuments')}</h2>
+                    <div className="library-docs-actions">
                       <button
                         type="button"
                         className={libraryActionClass}
@@ -215,7 +213,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                     </div>
                   </div>
                   <ScrollArea className="min-h-0 flex-1" viewportRef={scrollRef}>
-                    <div className="px-1 pb-3" data-tour="library-tree">
+                    <div className="folder-tree px-1.5 pb-3" data-tour="library-tree">
                       <FolderTree query={query} scrollRef={scrollRef} onNavigate={onClose} />
                     </div>
                   </ScrollArea>

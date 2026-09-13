@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from .normalize import fold_diacritics
+from .normalize import fold_diacritics, stem_lite
 from .text_utils import STOP_WORDS, normalize_text, split_sentences, tokenize
 
 MAX_SENTENCES = 4
 MAX_PASSAGES = 12
+MAX_FOLLOWUPS = 4
 
 
 def library_answer(
@@ -26,6 +27,7 @@ def library_answer(
             "answer": f"{prefix}: No matching passages were found.",
             "citations": [],
             "sentences": [],
+            "followups": [],
         }
 
     cleaned: list[dict[str, str]] = []
@@ -58,7 +60,67 @@ def library_answer(
         }
         for item in cleaned
     ]
-    return {"answer": answer, "citations": citations, "sentences": sentences}
+    followups = suggest_followups(question, sentences, cleaned, scope=scope)
+    return {
+        "answer": answer,
+        "citations": citations,
+        "sentences": sentences,
+        "followups": followups,
+    }
+
+
+def suggest_followups(
+    question: str,
+    sentences: list[str],
+    passages: list[dict[str, str]],
+    *,
+    scope: str = "library",
+    limit: int = MAX_FOLLOWUPS,
+) -> list[str]:
+    """Heuristic follow-up questions from answer sentences / passage titles (offline)."""
+    limit = max(1, min(int(limit), 8))
+    asked = {stem_lite(token) for token in tokenize(fold_diacritics(question).lower())}
+    candidates: list[str] = []
+
+    for sentence in sentences:
+        for cue in ("because", "pretože", "lebo", "when", "keď", "ak ", "if "):
+            if cue in sentence.lower() and len(sentence) >= 24:
+                candidates.append(f"What else is known about: {sentence[:96].rstrip('.')}?")
+                break
+
+    titles = []
+    for item in passages:
+        title = (item.get("title") or "").strip()
+        if not title or "· chat memory" in title:
+            continue
+        titles.append(title)
+
+    for title in titles[:6]:
+        stems = {stem_lite(token) for token in tokenize(fold_diacritics(title).lower())}
+        if stems and stems.isdisjoint(asked):
+            if scope == "document":
+                candidates.append(f"Where in this note is {title} explained?")
+            else:
+                candidates.append(f"What do my notes say about {title}?")
+
+    if scope == "document":
+        candidates.append("What are the key action items in this document?")
+        candidates.append("Which dates or deadlines are mentioned?")
+    else:
+        candidates.append("Which related notes should I open next?")
+        candidates.append("Are there open tasks connected to this?")
+
+    seen: set[str] = set()
+    picked: list[str] = []
+    for item in candidates:
+        key = fold_diacritics(item).lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        picked.append(item)
+        if len(picked) >= limit:
+            break
+    return picked
 
 
 def _query_terms(question: str) -> set[str]:
@@ -120,13 +182,25 @@ def _score_sentence(sentence: str, query_terms: set[str]) -> float:
     if not query_terms:
         return 0.0
     tokens = set(tokenize(fold_diacritics(sentence).lower()))
+    token_stems = {stem_lite(token) for token in tokens}
     overlap = 0.0
     for term in query_terms:
+        term_stem = stem_lite(term)
         if term in tokens:
             overlap += 1.0
             continue
+        if term_stem in token_stems:
+            overlap += 0.85
+            continue
         if any(term in token or token in term for token in tokens):
             overlap += 0.45
+            continue
+        if any(
+            term_stem in stem or stem in term_stem
+            for stem in token_stems
+            if len(stem) >= 4 and len(term_stem) >= 4
+        ):
+            overlap += 0.35
     length_bonus = 0.08 if 40 <= len(sentence) <= 220 else 0.0
     return overlap / len(query_terms) + length_bonus
 

@@ -1034,6 +1034,160 @@ impl ScribeMcp {
         })
     }
 
+    #[tool(description = "Answer a question using one document only (chunked passages + Local AI). Optional context for follow-ups.")]
+    fn document_answer(
+        &self,
+        Parameters(params): Parameters<tools::DocumentAnswerParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            let context = params.context.as_ref().map(|messages| {
+                messages
+                    .iter()
+                    .map(|message| {
+                        serde_json::json!({
+                            "role": message.role,
+                            "text": message.text,
+                        })
+                    })
+                    .collect::<Vec<_>>()
+            });
+            Ok(tools::json(&store.document_answer(
+                &self.sidecar,
+                &params.id,
+                &params.question,
+                context.as_deref(),
+            )?))
+        })
+    }
+
+    #[tool(description = "Summarize what changed between two plain-text versions (Local AI diff bullets).")]
+    fn summarize_diff(
+        &self,
+        Parameters(params): Parameters<tools::SummarizeDiffParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.summarize_diff(
+                &self.sidecar,
+                &params.old_text,
+                &params.new_text,
+                params.max_bullets,
+            )?))
+        })
+    }
+
+    #[tool(description = "Summarize changes between a saved revision and the current document body.")]
+    fn summarize_revision_diff(
+        &self,
+        Parameters(params): Parameters<tools::SummarizeRevisionDiffParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.summarize_revision_diff(
+                &self.sidecar,
+                &params.id,
+                &params.revision_id,
+                params.max_bullets,
+            )?))
+        })
+    }
+
+    #[tool(description = "Check which expected template sections are missing or filled in a document.")]
+    fn template_fill_hints(
+        &self,
+        Parameters(params): Parameters<tools::TemplateFillHintsParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.template_fill_hints(
+                &self.sidecar,
+                &params.id,
+                params.expected_sections,
+            )?))
+        })
+    }
+
+    #[tool(description = "Suggest a folder (and related organize hints) for a document based on content and existing folders.")]
+    fn suggest_organize(
+        &self,
+        Parameters(params): Parameters<tools::IdLimitParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.suggest_organize_document(
+                &self.sidecar,
+                &params.id,
+                params.limit,
+            )?))
+        })
+    }
+
+    #[tool(description = "Reading time / readability stats for a document (Local AI).")]
+    fn reading_stats(
+        &self,
+        Parameters(params): Parameters<tools::IdParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.document_reading_stats(
+                &self.sidecar,
+                &params.id,
+            )?))
+        })
+    }
+
+    #[tool(description = "Detect document language (sk/en/…) via Local AI.")]
+    fn detect_language(
+        &self,
+        Parameters(params): Parameters<tools::IdParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.detect_document_language(
+                &self.sidecar,
+                &params.id,
+            )?))
+        })
+    }
+
+    #[tool(description = "Expand / rewrite a search query for better hybrid/semantic retrieval.")]
+    fn rewrite_query(
+        &self,
+        Parameters(params): Parameters<tools::RewriteQueryParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.rewrite_search_query(
+                &self.sidecar,
+                &params.query,
+                params.max_expansions,
+            )?))
+        })
+    }
+
+    #[tool(description = "Enable or disable Local AI (NLP) in Scribe settings. Requires writable DB.")]
+    fn set_nlp_enabled(
+        &self,
+        Parameters(params): Parameters<tools::SetNlpEnabledParams>,
+    ) -> Result<String, String> {
+        if !self.writable {
+            return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
+        }
+        self.with_store(|store| {
+            Ok(tools::json(
+                &store.set_nlp_enabled_flag(&self.sidecar, params.enabled)?,
+            ))
+        })
+    }
+
+    #[tool(description = "Set embedding backend: hash (fast, default) or quality (MiniLM). Requires writable DB; reindex after switching.")]
+    fn set_embed_backend(
+        &self,
+        Parameters(params): Parameters<tools::SetEmbedBackendParams>,
+    ) -> Result<String, String> {
+        if !self.writable {
+            return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
+        }
+        self.with_store(|store| {
+            Ok(tools::json(
+                &store.set_nlp_embed_backend(&self.sidecar, &params.backend)?,
+            ))
+        })
+    }
+
     #[tool(description = "List custom note templates saved in Scribe (id, name, title, category).")]
     fn list_templates(&self) -> Result<String, String> {
         self.with_store(|store| {

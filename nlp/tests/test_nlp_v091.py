@@ -73,8 +73,8 @@ class ServerRpcTests(unittest.TestCase):
         health = handle_request(
             {"jsonrpc": "2.0", "id": 1, "method": "health", "params": {}}
         )["result"]
-        self.assertEqual(health["version"], "0.9.1")
-        for feature in ("wikiSuggest", "organize", "calendarEvents"):
+        self.assertEqual(health["version"], "0.9.2")
+        for feature in ("wikiSuggest", "organize", "calendarEvents", "answerFollowups"):
             self.assertIn(feature, health["features"])
 
         wiki = handle_request(

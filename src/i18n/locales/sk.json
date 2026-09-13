@@ -345,8 +345,32 @@
   "whatsNew": {
     "badge": "Novinky {{version}}",
     "title": "Scribe {{version}}",
-    "subtitle": "Automatické zálohy knižnice, optimalizované obrázky a Notion-like image bloky.",
+    "subtitle": "Bohatšia analýza knižnice, prehľadnejší strom dokumentov a približné hľadanie.",
     "gotIt": "Rozumiem",
+    "libraryReport": {
+      "title": "Analýza knižnice nanovo",
+      "description": "Štatistiky, metry a sekcia Dokumentácia so všetkými priečinkami — nie len surový markdown."
+    },
+    "libraryTree": {
+      "title": "Prehľadnejší strom knižnice",
+      "description": "Tichšie riadky, checkbox na hover, počty v priečinkoch a jasnejšia hierarchia vo Všetkých dokumentoch."
+    },
+    "fuzzyFind": {
+      "title": "Približné hľadanie",
+      "description": "Približná zhoda vo Find (⌘F) aj v command palette — aj s preklepom nájdete správnu poznámku."
+    },
+    "customFonts": {
+      "title": "Vlastné fonty",
+      "description": "Nahrajte TTF/OTF/WOFF fonty do dokumentov. Ostávajú lokálne a načítajú sa s poznámkami."
+    },
+    "connectionMap": {
+      "title": "Krajšia mapa prepojení",
+      "description": "Výraznejší empty state a prehľadnejší atlas wiki odkazov — vrátane zobrazenia osirolených dokumentov."
+    },
+    "appTour": {
+      "title": "Sprievodca aplikáciou",
+      "description": "Tour môžete znova spustiť v Nastaveniach alebo cez ⌘K."
+    },
     "autoBackup": {
       "title": "Automatické zálohy",
       "description": "Zapnuté predvolene — plánované .zip archívy do Documents/Scribe/Backups s intervalom podľa vás."
@@ -688,6 +712,21 @@
       "reportDone": "Analýza hotová",
       "reportError": "Analýza zlyhala",
       "reportHeading": "Výsledok analýzy",
+      "reportResultTitle": "Prehľad knižnice",
+      "reportStatDocuments": "Dokumenty",
+      "reportStatTagged": "Otagované",
+      "reportStatUntagged": "Bez tagov",
+      "reportStatLibraries": "Knižnice",
+      "reportDocumentation": "Dokumentácia",
+      "reportLanguages": "Jazyky (vzorka)",
+      "reportTone": "Tón (vzorka)",
+      "reportTerms": "Časté výrazy",
+      "reportTags": "Najpoužívanejšie tagy",
+      "reportRecent": "Nedávne dokumenty",
+      "reportVault": "Trezor",
+      "reportEmptySection": "Zatiaľ nič na zobrazenie.",
+      "reportShowMarkdown": "Zobraziť raw markdown",
+      "reportHideMarkdown": "Skryť raw markdown",
       "exportReportPdf": "Exportovať report PDF",
       "exportingReportPdf": "Exportujem PDF…",
       "refreshTitle": "Stav sidecaru",
@@ -1042,6 +1081,8 @@
   "library": {
     "title": "Knižnica",
     "allDocuments": "Všetky dokumenty",
+    "expandFolder": "Rozbaliť priečinok",
+    "collapseFolder": "Zbaliť priečinok",
     "documentCount_one": "{{count}} dokument",
     "documentCount_few": "{{count}} dokumenty",
     "documentCount_many": "{{count}} dokumentov",
@@ -1081,6 +1122,7 @@
     "nlpTagsNone": "Žiadne nové návrhy štítkov",
     "nlpFolderSuggestion": "Navrhovaný priečinok",
     "nlpFolderSuggestionDetail": "Najbližšia zhoda: {{folder}}",
+    "nlpFolderMove": "Presunúť tam",
     "nlpFolderNone": "Žiadny zodpovedajúci priečinok",
     "folderNamePlaceholder": "Názov priečinka",
     "noResults": "Žiadne výsledky.",
@@ -1373,7 +1415,19 @@
       "spellcheckDisabled": "Zapnite Lokálnu AI v nastaveniach pre kontrolu pravopisu.",
       "spellcheckError": "Kontrola pravopisu zlyhala",
       "spellcheckSuggestions": "Návrhy: {{list}}",
-      "spellcheckFind": "Nájsť v dokumente"
+      "spellcheckFind": "Nájsť v dokumente",
+      "organize": "Organizácia",
+      "organizeHint": "Navrhovaný priečinok z Lokálnej AI",
+      "organizeSuggestion": "Najbližší priečinok: {{folder}}",
+      "organizeMove": "Presunúť do {{folder}}",
+      "organizeEmpty": "Pre túto poznámku nie je lepší priečinok.",
+      "template": "Sekcie šablóny",
+      "templateHint": "Chýbajúce nadpisy Cieľ / Kontext / Ďalšie kroky",
+      "templateRun": "Skontrolovať sekcie",
+      "templateRunning": "Kontrolujem…",
+      "templateComplete": "Očakávané sekcie vyzerajú vyplnené.",
+      "templateCoverage": "{{percent}} % očakávaných sekcií je prítomných",
+      "templateError": "Kontrola šablóny zlyhala"
     },
     "stats": {
       "subtitle": "Prehľad dokumentu",
@@ -1411,6 +1465,7 @@
       "restoreError": "Obnovenie verzie zlyhalo",
       "compareError": "Porovnanie verzií zlyhalo",
       "nlpDiffSummary": "AI zhrnutie zmien",
+      "nlpDiffChange": "{{percent}} % zmenené",
       "selectTwoVersions": "Vyberte dve rôzne verzie",
       "currentVersion": "Aktuálna verzia",
       "diffTitle": "Porovnanie verzií",
@@ -1447,12 +1502,15 @@
   "findReplace": {
     "findPlaceholder": "Hľadať v dokumente…",
     "regexPlaceholder": "Hľadať regex…",
+    "fuzzyPlaceholder": "Približné hľadanie…",
     "replacePlaceholder": "Nahradiť…",
     "replaceWith": "Nahradiť za…",
     "replaceWithRegex": "Nahradiť za… ($1, $&)",
     "matchCase": "Rozlišovať veľkosť písmen",
     "wholeWord": "Celé slovo",
     "regex": "Regulárny výraz",
+    "fuzzy": "Približná zhoda",
+    "fuzzyHint": "Približné zhody — nahrádzanie je vo fuzzy režime vypnuté.",
     "invalidRegex": "Neplatný regulárny výraz",
     "previous": "Predchádzajúca (⇧⏎)",
     "next": "Ďalšia (⏎)",

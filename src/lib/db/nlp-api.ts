@@ -158,16 +158,35 @@ export const nlpFindDuplicates = (limit = 20) =>
 export const nlpSuggestTitle = (documentId: string) =>
   invoke<{ title: string; slug: string; source: string }>('nlp_suggest_title', { documentId })
 
+export interface NlpDiffSummary {
+  summary: string
+  addedSentences: string[]
+  removedSentences: string[]
+  gainedTerms: string[]
+  lostTerms: string[]
+  changeRatio: number
+  oldWordCount: number
+  newWordCount: number
+}
+
 export const nlpSummarizeDiff = (input: {
   oldText: string
   newText: string
   maxBullets?: number
-}) => invoke<Record<string, unknown>>('nlp_summarize_diff', { input })
+}) => invoke<NlpDiffSummary>('nlp_summarize_diff', { input })
+
+export interface NlpTemplateFillHints {
+  expected: string[]
+  present: string[]
+  missing: string[]
+  coverage: number
+  complete: boolean
+}
 
 export const nlpTemplateFillHints = (input: {
   documentId: string
   expectedSections?: string[]
-}) => invoke<Record<string, unknown>>('nlp_template_fill_hints', { input })
+}) => invoke<NlpTemplateFillHints>('nlp_template_fill_hints', { input })
 
 export interface SpellIssue {
   word: string

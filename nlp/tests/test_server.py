@@ -15,17 +15,34 @@ class ReportTests(unittest.TestCase):
                 "text": "text",
                 "tags": [],
                 "updatedAt": 10,
+                "folderId": "folder-a",
             },
             {
                 "title": "Nový",
                 "text": "text",
                 "tags": ["journal"],
                 "updatedAt": 99,
+                "folderId": None,
             },
         ]
-        result = library_report(documents)
+        folders = [
+            {"id": "folder-a", "name": "Denník", "parentId": None, "isVault": False},
+            {"id": "folder-b", "name": "Archív", "parentId": None, "isVault": True},
+        ]
+        result = library_report(documents, folders)
         self.assertIn("Nový", result["markdown"])
         self.assertIn("Bez tagov", result["markdown"])
+        self.assertIn("## Dokumentácia", result["markdown"])
+        self.assertIn("Denník", result["markdown"])
+        self.assertIn("Archív", result["markdown"])
+        self.assertIn("Koreň knižnice", result["markdown"])
+        docs = result["stats"]["documentation"]
+        names = {row["name"] for row in docs}
+        self.assertIn("Denník", names)
+        self.assertIn("Archív", names)
+        dennik = next(row for row in docs if row["name"] == "Denník")
+        self.assertEqual(dennik["documentCount"], 1)
+        self.assertTrue(next(row for row in docs if row["name"] == "Archív")["isVault"])
 
 
 class ServerTests(unittest.TestCase):

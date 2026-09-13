@@ -474,8 +474,11 @@ impl NlpSidecar {
         )
     }
 
-    pub fn library_report(&self, documents: Value) -> Result<Value, String> {
-        self.call_method("library_report", json!({ "documents": documents }))
+    pub fn library_report(&self, documents: Value, folders: Value) -> Result<Value, String> {
+        self.call_method(
+            "library_report",
+            json!({ "documents": documents, "folders": folders }),
+        )
     }
 
     pub fn reading_stats(&self, text: &str) -> Result<Value, String> {

@@ -146,6 +146,10 @@ Prehľad argumentov a príkladov: **[tools.md](tools.md)**.
 | `library_report` | AI prehľad knižnice |
 | `index_document` / `index_all_documents` | Index embeddingov |
 | `nlp_status` | Stav NLP sidecaru |
+| `document_answer` / `library_answer` | Otázky nad poznámkou alebo knižnicou |
+| `suggest_organize` / `template_fill_hints` | Návrhy priečinka a sekcií šablóny |
+| `summarize_diff` / `summarize_revision_diff` | Zhrnutie zmien |
+| `set_nlp_enabled` / `set_embed_backend` | Zapnutie NLP / backend (zápis) |
 | `trash_document` / `empty_trash` / `rename_document` / `replace_document_content` | Úpravy poznámok |
 | `restore_document_revision` | Obnova snapshotu |
 | `duplicate_document` / `export_document` | Kópia / markdown export |

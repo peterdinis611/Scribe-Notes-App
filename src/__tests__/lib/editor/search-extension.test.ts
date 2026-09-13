@@ -1,6 +1,6 @@
+import { describe, expect, it } from 'vitest'
 import { Node } from '@tiptap/pm/model'
 import { Schema } from '@tiptap/pm/model'
-import { describe, expect, it } from 'vitest'
 import { buildSearchRegExp, findMatches } from '@/lib/editor/search-extension'
 
 const schema = new Schema({
@@ -13,6 +13,14 @@ const schema = new Schema({
 
 function docFromText(text: string) {
   return schema.node('doc', null, [schema.node('paragraph', null, [schema.text(text)])])
+}
+
+function docFromParagraphs(paragraphs: string[]) {
+  return schema.node(
+    'doc',
+    null,
+    paragraphs.map((text) => schema.node('paragraph', null, text ? [schema.text(text)] : [])),
+  )
 }
 
 describe('search-extension matching', () => {
@@ -71,7 +79,55 @@ describe('search-extension matching', () => {
     expect(pattern?.test('a+b')).toBe(true)
     expect(pattern?.test('ab')).toBe(false)
   })
+
+  it('supports fuzzy matching for approximate terms', () => {
+    const doc = docFromText('The quick brown fox')
+    const { matches, regexError } = findMatches(doc, 'qick brwn', {
+      caseSensitive: false,
+      wholeWord: false,
+      regex: false,
+      fuzzy: true,
+    })
+    expect(regexError).toBeNull()
+    expect(matches.length).toBeGreaterThan(0)
+    expect(matches[0]!.from).toBeGreaterThanOrEqual(1)
+  })
+
+  it('fuzzy mode skips regex validation errors', () => {
+    const doc = docFromText('regular expression practice')
+    const { matches, regexError } = findMatches(doc, '(unclosed', {
+      caseSensitive: false,
+      wholeWord: false,
+      regex: true,
+      fuzzy: true,
+    })
+    expect(regexError).toBeNull()
+    // Fuse may not score raw regex punctuation highly — just ensure it does not crash.
+    expect(Array.isArray(matches)).toBe(true)
+  })
+
+  it('finds fuzzy matches across multiple paragraphs', () => {
+    const doc = docFromParagraphs(['First paragraph here', 'Second paragaph with typo', 'Third'])
+    const { matches } = findMatches(doc, 'paragaph', {
+      caseSensitive: false,
+      wholeWord: false,
+      regex: false,
+      fuzzy: true,
+    })
+    expect(matches.length).toBeGreaterThan(0)
+  })
+
+  it('returns no matches for empty search term', () => {
+    const doc = docFromText('anything')
+    expect(
+      findMatches(doc, '', {
+        caseSensitive: false,
+        wholeWord: false,
+        regex: false,
+        fuzzy: true,
+      }).matches,
+    ).toEqual([])
+  })
 })
 
-// Keep Node import used for typing clarity in editors that drop unused imports.
 void Node

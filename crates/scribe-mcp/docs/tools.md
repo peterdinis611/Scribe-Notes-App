@@ -811,6 +811,52 @@ Lists files under `{documentsDir}/assets/{id}/` with `kind`: `image` | `svg` | `
 
 ---
 
+## `document_answer`
+
+Answer a question from **one** document (chunked passages + Local AI). Optional `context` turns (`role`, `text`) for follow-ups.
+
+| Arg | Type | Required | Notes |
+|-----|------|----------|--------|
+| `id` | string | yes | Document id |
+| `question` | string | yes | Question |
+| `context` | array | no | Prior `{ role, text }` (last 6) |
+
+Returns `answer`, `citations`, `followups`, `documentId`, `title`.
+
+---
+
+## `summarize_diff` / `summarize_revision_diff`
+
+`summarize_diff`: plain `oldText` / `newText` (+ optional `maxBullets`).
+
+`summarize_revision_diff`: compare saved `revisionId` to current body of `id`.
+
+---
+
+## `template_fill_hints`
+
+Checks expected section headings against a document outline. Optional `expectedSections` string array.
+
+---
+
+## `suggest_organize`
+
+Folder placement hints for a document (`id`, optional `limit`).
+
+---
+
+## `reading_stats` / `detect_language` / `rewrite_query`
+
+Document readability, language detection, and search-query expansion (Local AI).
+
+---
+
+## `set_nlp_enabled` / `set_embed_backend`
+
+Persist Local AI on/off and embedding backend (`hash` | `quality`). Requires writable MCP. After `quality`, reindex the library.
+
+---
+
 ## Resources
 
 | URI | Content |

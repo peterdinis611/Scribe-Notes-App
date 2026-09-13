@@ -25,4 +25,12 @@ describe('suggestFolderFromTags', () => {
   it('returns null when nothing matches', () => {
     expect(suggestFolderFromTags([folder({ id: '1', name: 'Inbox' })], ['travel'])).toBeNull()
   })
+
+  it('prefers exact folder name matches', () => {
+    const folders = [
+      folder({ id: '1', name: 'Travel tips' }),
+      folder({ id: '2', name: 'Travel' }),
+    ]
+    expect(suggestFolderFromTags(folders, ['travel'])?.id).toBe('2')
+  })
 })

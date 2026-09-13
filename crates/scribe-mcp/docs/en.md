@@ -142,6 +142,10 @@ Full argument reference: **[tools.md](tools.md)**.
 | `library_report` | Library AI overview |
 | `index_document` / `index_all_documents` | Embedding index |
 | `nlp_status` | Local AI sidecar status |
+| `document_answer` / `library_answer` | Q&A over one note or the library |
+| `suggest_organize` / `template_fill_hints` | Folder + template section hints |
+| `summarize_diff` / `summarize_revision_diff` | Change summaries |
+| `set_nlp_enabled` / `set_embed_backend` | Local AI controls (writable) |
 | `trash_document` / `empty_trash` / `rename_document` / `replace_document_content` | Edit lifecycle |
 | `restore_document_revision` | Restore a snapshot |
 | `duplicate_document` / `export_document` | Copy / markdown export |

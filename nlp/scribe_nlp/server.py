@@ -98,6 +98,7 @@ FEATURES = [
     "wikiSuggest",
     "organize",
     "calendarEvents",
+    "answerFollowups",
 ]
 
 
@@ -248,7 +249,12 @@ def _handle_request_inner(
         elif method == "library_report":
             from .report import library_report
 
-            result = library_report(_validate_documents(params))
+            folders = params.get("folders") or []
+            if not isinstance(folders, list):
+                raise SidecarError("folders must be an array", code=-32602)
+            if len(folders) > 500:
+                raise SidecarError("folders exceeds limit (500)", code=-32602)
+            result = library_report(_validate_documents(params), folders)
         elif method == "reading_stats":
             from .readability import reading_stats
 

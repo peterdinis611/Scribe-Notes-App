@@ -17,6 +17,7 @@ import {
   type NlpLibraryReport,
   type NlpStatus,
 } from '@/lib/db/nlp-api'
+import { LibraryReportView } from '@/components/settings/LibraryReportView'
 import { runNlpIndexAllWithProgress } from '@/lib/nlp/index-progress'
 import { toast } from '@/lib/toast'
 
@@ -348,14 +349,8 @@ export function NlpSection() {
       )}
 
       {report && (
-        <div
-          ref={reportRef}
-          className="mt-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4"
-        >
-          <h3 className="mb-2 text-[13px] font-semibold">{t('settings.nlp.reportHeading')}</h3>
-          <pre className="m-0 max-h-[420px] overflow-y-auto whitespace-pre-wrap text-[12px] leading-relaxed text-[var(--color-foreground)]">
-            {report.markdown}
-          </pre>
+        <div ref={reportRef} className="mt-4">
+          <LibraryReportView report={report} />
         </div>
       )}
     </SettingsSection>

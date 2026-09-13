@@ -8,11 +8,17 @@ function normalizeTag(value: string): string {
   return value.trim().toLowerCase()
 }
 
+export type OrganizeSuggestion = {
+  added: string[]
+  folderSuggestion: string | null
+  folderSuggestionId: string | null
+}
+
 /** Merge AI tag suggestions into the document; returns newly added tags + folder hint. */
 export async function applySuggestedTagsToDocument(
   document: DocumentSummary,
   dispatch: AppDispatch,
-): Promise<{ added: string[]; folderSuggestion: string | null }> {
+): Promise<OrganizeSuggestion> {
   const status = await nlpStatus()
   if (!status.enabled || !status.sidecarOk) {
     const hint = describeNlpTagSuggestionFailure(status, null)
@@ -37,14 +43,16 @@ export async function applySuggestedTagsToDocument(
     await setDocumentTags(document.id, tags)
   }
 
-  const folderHint =
+  const folderId =
     suggestions.folderSuggestionId && suggestions.folderSuggestionId !== document.folderId
-      ? suggestions.folderSuggestion ?? null
+      ? suggestions.folderSuggestionId
       : null
+  const folderHint = folderId ? (suggestions.folderSuggestion ?? null) : null
 
   return {
     added,
     folderSuggestion: folderHint,
+    folderSuggestionId: folderId,
   }
 }
 
@@ -52,17 +60,19 @@ export async function applySuggestedTagsAndFolderHint(
   document: DocumentSummary,
   folders: Folder[],
   dispatch: AppDispatch,
-): Promise<{ added: string[]; folderSuggestion: string | null }> {
+): Promise<OrganizeSuggestion> {
   const result = await applySuggestedTagsToDocument(document, dispatch)
-  if (result.folderSuggestion) {
+  if (result.folderSuggestionId) {
     return result
   }
   // Offline / sidecar-miss fallback: local tag↔folder name matching.
   const terms = [...document.tags, ...result.added]
   const folder = suggestFolderFromTags(folders, terms)
+  const matches = Boolean(folder && folder.id !== document.folderId)
   return {
     ...result,
-    folderSuggestion: folder && folder.id !== document.folderId ? folder.name : null,
+    folderSuggestion: matches ? folder!.name : null,
+    folderSuggestionId: matches ? folder!.id : null,
   }
 }
 

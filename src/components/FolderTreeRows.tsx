@@ -32,9 +32,6 @@ import { cn, formatRelativeTime } from '@/lib/utils'
 import type { DocumentSummary, Folder as FolderType } from '@/lib/db/api'
 import { useAppSelector } from '@/store/hooks'
 
-const treeActionClass =
-  'inline-flex h-6 w-6 items-center justify-center rounded-md border-none bg-transparent text-[var(--color-muted-foreground)] opacity-0 transition-[opacity,background,color] group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]'
-
 type FolderTreeFolderRowProps = {
   folder: FolderType
   depth: number
@@ -83,11 +80,11 @@ export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
       <ContextMenuTrigger asChild>
         <div
           className={cn(
-            'group titlebar-no-drag mx-1 flex min-h-[28px] items-center gap-1 rounded-md pr-1 transition-colors hover:bg-[var(--color-hover)]',
-            isDragOver &&
-              'bg-[var(--color-selection)] outline outline-1 outline-dashed outline-[var(--color-accent)]',
+            'folder-tree-row folder-tree-row--folder group titlebar-no-drag',
+            isExpanded && 'is-expanded',
+            isDragOver && 'is-drop-target',
           )}
-          style={{ paddingLeft: 8 + depth * 14 }}
+          style={{ '--folder-depth': depth } as React.CSSProperties}
           draggable
           onDragStart={(event) => onDragStart(folder.id, event)}
           onDragOver={(event) => onDragOver(folder.id, event)}
@@ -96,29 +93,36 @@ export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
         >
           <button
             type="button"
-            className={cn(treeActionClass, 'opacity-100')}
+            className="folder-tree-chevron"
             onClick={() => onToggle(folder.id)}
+            aria-expanded={isExpanded}
+            aria-label={isExpanded ? t('library.collapseFolder') : t('library.expandFolder')}
           >
             <ChevronRight className={cn('h-3.5 w-3.5 transition-transform', isExpanded && 'rotate-90')} />
           </button>
-          <Folder className="h-4 w-4 shrink-0 text-[var(--color-accent)]" />
+          <span className="folder-tree-folder-mark" aria-hidden="true">
+            <Folder className="h-3.5 w-3.5" />
+          </span>
           {folder.isVault ? (
             vaultUnlocked ? (
-              <Unlock className="h-3.5 w-3.5 shrink-0 text-[var(--color-muted-foreground)]" aria-hidden />
+              <Unlock className="folder-tree-vault-icon" aria-hidden />
             ) : (
-              <Lock className="h-3.5 w-3.5 shrink-0 text-[var(--color-muted-foreground)]" aria-hidden />
+              <Lock className="folder-tree-vault-icon" aria-hidden />
             )
           ) : null}
           <button
             type="button"
-            className="min-w-0 flex-1 truncate border-none bg-transparent text-left text-[12px] font-semibold text-[var(--color-foreground)]"
+            className="folder-tree-folder-name"
             onClick={() => onToggle(folder.id)}
             onDoubleClick={() => onRename(folder.id, folder.name)}
           >
             {folder.name}
           </button>
+          {documentCount > 0 ? (
+            <span className="folder-tree-count">{documentCount}</span>
+          ) : null}
           {folder.isPinned ? (
-            <Pin className="h-3.5 w-3.5 shrink-0 text-[var(--color-accent)]" aria-hidden />
+            <Pin className="folder-tree-pin" aria-hidden />
           ) : null}
         </div>
       </ContextMenuTrigger>
@@ -175,6 +179,7 @@ export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
   )
 })
 
+
 type FolderTreeDocumentRowProps = {
   document: DocumentSummary
   depth: number
@@ -225,53 +230,58 @@ export const FolderTreeDocumentRow = memo(function FolderTreeDocumentRow({
             }
           }}
           className={cn(
-            'group titlebar-no-drag relative mx-1 mb-px flex w-[calc(100%-8px)] cursor-default items-center gap-2 rounded-md border-none px-2 py-1 transition-colors hover:bg-[var(--color-hover)] active:cursor-grabbing',
-            isActive && 'bg-[var(--color-selection)]',
-            isSelected && 'ring-1 ring-[var(--color-accent)]',
+            'folder-tree-row folder-tree-row--doc group titlebar-no-drag',
+            isActive && 'is-active',
+            isSelected && 'is-selected',
           )}
-          style={{ paddingLeft: 12 + depth * 14 }}
+          style={{ '--folder-depth': depth } as React.CSSProperties}
         >
-          {onToggleSelect && (
-            <input
-              type="checkbox"
-              className="folder-tree-select-checkbox titlebar-no-drag"
-              checked={isSelected}
-              aria-label={t('library.bulk.selectOne')}
+          {onToggleSelect ? (
+            <label
+              className={cn('folder-tree-select', isSelected && 'is-visible')}
               onClick={(event) => event.stopPropagation()}
-              onChange={(event) => {
-                event.stopPropagation()
-                onToggleSelect(document.id, event as unknown as React.MouseEvent)
-              }}
-            />
-          )}
-          <FileText
-            className={cn(
-              'h-4 w-4 shrink-0 stroke-[1.5] text-[var(--color-muted-foreground)]',
-              isActive && 'text-[var(--color-accent)]',
-            )}
-          />
-          <div className="min-w-0 flex-1">
-            <DocumentTitleField documentId={document.id} title={document.title} variant="sidebar" />
-            <span
-              className={cn(
-                'mt-0.5 block text-[11px] text-[var(--color-muted-foreground)]',
-                isActive && 'text-[color-mix(in_srgb,var(--color-accent)_70%,transparent)]',
-              )}
             >
+              <input
+                type="checkbox"
+                className="folder-tree-select-checkbox titlebar-no-drag"
+                checked={isSelected}
+                aria-label={t('library.bulk.selectOne')}
+                onChange={(event) => {
+                  event.stopPropagation()
+                  onToggleSelect(document.id, event as unknown as React.MouseEvent)
+                }}
+              />
+            </label>
+          ) : null}
+
+          <span className={cn('folder-tree-doc-mark', isActive && 'is-active')} aria-hidden="true">
+            <FileText className="h-3.5 w-3.5" />
+          </span>
+
+          <div className="folder-tree-doc-body">
+            <DocumentTitleField
+              documentId={document.id}
+              title={document.title}
+              variant="sidebar"
+              className="folder-tree-doc-title"
+            />
+            <span className="folder-tree-doc-meta">
               {formatRelativeTime(document.updatedAt)}
-              {document.tags.length > 0 && (
-                <span className="opacity-70"> · {t('library.tagCount', { count: document.tags.length })}</span>
-              )}
+              {document.tags.length > 0 ? (
+                <span className="folder-tree-doc-tags">
+                  · {t('library.tagCount', { count: document.tags.length })}
+                </span>
+              ) : null}
             </span>
           </div>
 
-          <div className="flex items-center gap-0.5">
-            {document.isPinned && (
-              <Pin className="h-3.5 w-3.5 text-[var(--color-accent)]" aria-hidden="true" />
-            )}
-            {document.isFavorite && (
-              <Star className="h-3.5 w-3.5 text-[var(--color-accent)]" aria-hidden="true" />
-            )}
+          <div className="folder-tree-doc-badges">
+            {document.isPinned ? (
+              <Pin className="folder-tree-pin" aria-hidden="true" />
+            ) : null}
+            {document.isFavorite ? (
+              <Star className="folder-tree-star" aria-hidden="true" />
+            ) : null}
           </div>
         </div>
       </ContextMenuTrigger>

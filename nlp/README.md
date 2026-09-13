@@ -32,7 +32,7 @@ npm run nlp:debug   # SCRIBE_NLP_DEBUG=1 sample RPCs + timings on stderr
 
 Set `SCRIBE_NLP_DEBUG=1` (or `SCRIBE_DEBUG=1` via Tauri) to log each RPC to stderr without breaking JSON-RPC on stdout.
 
-## Methods (0.8)
+## Methods
 
 Core: `health`, `embed`, `embed_batch`, `summarize`, `extract_*`, `analyze_document`, `similar_notes`, `library_report`
 
@@ -44,6 +44,10 @@ Core: `health`, `embed`, `embed_batch`, `summarize`, `extract_*`, `analyze_docum
 
 0.8.1+: MiniLM `embed_batch` is a real ST encode (reindex / duplicates / similar / KeyBERT); device auto-detect (CUDA/MPS/CPU); index syncs quality backend before encode
 
+0.9+: `library_answer` (library + document scope), `suggest_wiki_links`, `suggest_organize`, `extract_dates_batch` (calendar)
+
+0.9.2+: stem-aware answer ranking + heuristic `followups` on `library_answer`
+
 ## Version
 
-Current sidecar: **0.8.1**
+Current sidecar: **0.9.2**

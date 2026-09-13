@@ -12,13 +12,13 @@ use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
 
 use crate::db::{
-    extract_search_text, sync_document_fts, sync_document_links,
+    extract_search_text, set_embed_backend, set_nlp_enabled, sync_document_fts,
+    sync_document_links, SearchMode,
 };
 use crate::nlp::NlpSidecar;
 use crate::store::{
     require_nlp, search_library, sync_sidecar_backend, IdTitle, ScribeStore,
 };
-use crate::db::SearchMode;
 
 const META_DOCUMENTS_DIR: &str = "documents_dir";
 const BACKUP_FILE_PREFIX: &str = "scribe-backup-";
@@ -155,6 +155,7 @@ impl ScribeStore {
             ),
             "citations": citations,
             "hitCount": hits.len(),
+            "followups": result.get("followups").cloned().unwrap_or_else(|| json!([])),
         }))
     }
 
@@ -369,6 +370,267 @@ impl ScribeStore {
         let (_title, text) = self.document_title_and_text(document_id)?;
         sync_sidecar_backend(sidecar, &self.db)?;
         sidecar.analyze_sentiment(&text)
+    }
+
+    pub fn document_reading_stats(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: &str,
+    ) -> Result<Value, String> {
+        require_nlp(&self.db)?;
+        let (_title, text) = self.document_title_and_text(document_id)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        sidecar.reading_stats(&text)
+    }
+
+    pub fn detect_document_language(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: &str,
+    ) -> Result<Value, String> {
+        require_nlp(&self.db)?;
+        let (_title, text) = self.document_title_and_text(document_id)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        sidecar.detect_language(&text)
+    }
+
+    pub fn rewrite_search_query(
+        &self,
+        sidecar: &NlpSidecar,
+        query: &str,
+        max_expansions: Option<i64>,
+    ) -> Result<Value, String> {
+        let trimmed = query.trim();
+        if trimmed.is_empty() {
+            return Err("query is required".to_string());
+        }
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        sidecar.rewrite_query(trimmed, max_expansions.unwrap_or(8).clamp(1, 16))
+    }
+
+    pub fn document_answer(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: &str,
+        question: &str,
+        context: Option<&[Value]>,
+    ) -> Result<Value, String> {
+        let trimmed = question.trim();
+        if trimmed.is_empty() {
+            return Err("question is required".to_string());
+        }
+        require_nlp(&self.db)?;
+        if !sidecar.script_exists() {
+            return Err("NLP sidecar unavailable".to_string());
+        }
+        sync_sidecar_backend(sidecar, &self.db)?;
+
+        let (title, content_json): (String, String) = self
+            .db
+            .query_row(
+                "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL",
+                params![document_id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .map_err(|_| format!("Document not found: {document_id}"))?;
+
+        if content_json.contains("\"type\":\"scribe-vault-v1\"") {
+            return Err("vault documents cannot be answered".to_string());
+        }
+
+        let text = format!("{title}\n{}", extract_search_text(&content_json));
+        if text.trim().len() < 8 {
+            return Err("document is empty".to_string());
+        }
+
+        let mut passages = chunk_document_passages(document_id, &title, &text);
+        if let Some(messages) = context {
+            if let Some(list) = passages.as_array_mut() {
+                let recent: Vec<&Value> = messages.iter().rev().take(6).collect::<Vec<_>>();
+                for message in recent.into_iter().rev() {
+                    let role = message
+                        .get("role")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("user")
+                        .trim()
+                        .to_lowercase();
+                    let text = message
+                        .get("text")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .trim();
+                    if text.is_empty() {
+                        continue;
+                    }
+                    let label = if role == "assistant" {
+                        "Earlier assistant reply"
+                    } else {
+                        "Earlier user question"
+                    };
+                    list.push(json!({
+                        "documentId": document_id,
+                        "title": format!("{title} · chat memory"),
+                        "snippet": format!("{label}: {text}"),
+                    }));
+                }
+            }
+        }
+
+        let result = sidecar.library_answer_scoped(trimmed, passages.clone(), 5, "document")?;
+        let citations = result.get("citations").cloned().unwrap_or_else(|| {
+            json!(passages
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(|item| {
+                    Some(json!({
+                        "documentId": document_id,
+                        "title": title,
+                        "snippet": item.get("snippet")?.as_str()?,
+                    }))
+                })
+                .take(4)
+                .collect::<Vec<_>>())
+        });
+
+        Ok(json!({
+            "answer": result.get("answer").and_then(|v| v.as_str()).unwrap_or(
+                "Based on this document: No matching passages were found."
+            ),
+            "citations": citations,
+            "documentId": document_id,
+            "title": title,
+            "followups": result.get("followups").cloned().unwrap_or_else(|| json!([])),
+        }))
+    }
+
+    pub fn summarize_diff(
+        &self,
+        sidecar: &NlpSidecar,
+        old_text: &str,
+        new_text: &str,
+        max_bullets: Option<i64>,
+    ) -> Result<Value, String> {
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        sidecar.summarize_diff(old_text, new_text, max_bullets.unwrap_or(5).clamp(1, 12))
+    }
+
+    pub fn summarize_revision_diff(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: &str,
+        revision_id: &str,
+        max_bullets: Option<i64>,
+    ) -> Result<Value, String> {
+        require_nlp(&self.db)?;
+        let revision = self
+            .get_document_revision(revision_id)?
+            .ok_or_else(|| format!("Revision not found: {revision_id}"))?;
+        if revision.document_id != document_id {
+            return Err("revision does not belong to document".to_string());
+        }
+        let (title, current_text) = self.document_title_and_text(document_id)?;
+        let old_text = format!("{}\n{}", revision.title, revision.plain_text);
+        sync_sidecar_backend(sidecar, &self.db)?;
+        let mut result =
+            sidecar.summarize_diff(&old_text, &current_text, max_bullets.unwrap_or(5).clamp(1, 12))?;
+        if let Some(obj) = result.as_object_mut() {
+            obj.insert("documentId".into(), json!(document_id));
+            obj.insert("title".into(), json!(title));
+            obj.insert("revisionId".into(), json!(revision_id));
+        }
+        Ok(result)
+    }
+
+    pub fn template_fill_hints(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: &str,
+        expected_sections: Option<Vec<String>>,
+    ) -> Result<Value, String> {
+        require_nlp(&self.db)?;
+        let (_title, text) = self.document_title_and_text(document_id)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        let sections = expected_sections
+            .map(|items| json!(items))
+            .unwrap_or(Value::Null);
+        sidecar.template_fill_hints(&text, sections)
+    }
+
+    pub fn suggest_organize_document(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: &str,
+        limit: Option<i64>,
+    ) -> Result<Value, String> {
+        require_nlp(&self.db)?;
+        let (_title, text) = self.document_title_and_text(document_id)?;
+        let (folder_id, tags_json): (Option<String>, Option<String>) = self
+            .db
+            .query_row(
+                "SELECT folder_id, tags FROM documents WHERE id = ?1 AND deleted_at IS NULL",
+                params![document_id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .map_err(|_| format!("Document not found: {document_id}"))?;
+
+        let tags: Vec<String> = tags_json
+            .as_deref()
+            .and_then(|raw| serde_json::from_str(raw).ok())
+            .unwrap_or_default();
+        let folders = self
+            .list_folders()?
+            .into_iter()
+            .map(|folder| {
+                json!({
+                    "id": folder.id,
+                    "name": folder.name,
+                    "parentId": folder.parent_id,
+                })
+            })
+            .collect::<Vec<_>>();
+
+        sync_sidecar_backend(sidecar, &self.db)?;
+        let mut result = sidecar.suggest_organize(
+            &text,
+            json!(folders),
+            json!(tags),
+            folder_id.as_deref(),
+            limit.unwrap_or(3).clamp(1, 8),
+        )?;
+        if let Some(obj) = result.as_object_mut() {
+            obj.insert("documentId".into(), json!(document_id));
+            obj.insert("currentFolderId".into(), json!(folder_id));
+            obj.insert("currentTags".into(), json!(tags));
+        }
+        Ok(result)
+    }
+
+    pub fn set_nlp_enabled_flag(
+        &self,
+        sidecar: &NlpSidecar,
+        enabled: bool,
+    ) -> Result<Value, String> {
+        set_nlp_enabled(&self.db, enabled)?;
+        self.nlp_status(sidecar)
+    }
+
+    pub fn set_nlp_embed_backend(
+        &self,
+        sidecar: &NlpSidecar,
+        backend: &str,
+    ) -> Result<Value, String> {
+        let normalized = if backend.trim().eq_ignore_ascii_case("quality") {
+            "quality"
+        } else {
+            "hash"
+        };
+        set_embed_backend(&self.db, normalized)?;
+        sidecar.reset_process();
+        let _ = sidecar.configure_embed_backend(normalized);
+        self.nlp_status(sidecar)
     }
 
     pub fn list_custom_templates(&self) -> Result<Vec<CustomTemplateSummary>, String> {
@@ -694,4 +956,80 @@ fn add_dir_to_zip(
         }
     }
     Ok(count)
+}
+
+fn chunk_document_passages(document_id: &str, title: &str, text: &str) -> Value {
+    const TARGET_CHARS: usize = 480;
+    const MAX_PASSAGES: usize = 12;
+
+    let mut chunks: Vec<String> = Vec::new();
+    let paragraphs: Vec<&str> = text
+        .split("\n\n")
+        .map(str::trim)
+        .filter(|part| !part.is_empty())
+        .collect();
+
+    if paragraphs.is_empty() {
+        let trimmed = text.trim();
+        if !trimmed.is_empty() {
+            chunks.push(trimmed.to_string());
+        }
+    } else {
+        let mut buffer = String::new();
+        for paragraph in paragraphs {
+            if buffer.is_empty() {
+                buffer.push_str(paragraph);
+                continue;
+            }
+            if buffer.len() + paragraph.len() + 1 <= TARGET_CHARS {
+                buffer.push('\n');
+                buffer.push_str(paragraph);
+            } else {
+                chunks.push(std::mem::take(&mut buffer));
+                buffer.push_str(paragraph);
+            }
+        }
+        if !buffer.trim().is_empty() {
+            chunks.push(buffer);
+        }
+    }
+
+    let mut refined: Vec<String> = Vec::new();
+    for chunk in chunks {
+        if chunk.len() <= TARGET_CHARS * 2 {
+            refined.push(chunk);
+            continue;
+        }
+        let mut current = String::new();
+        for part in chunk.split_inclusive(['.', '!', '?', '\n']) {
+            let piece = part.trim();
+            if piece.is_empty() {
+                continue;
+            }
+            if current.is_empty() {
+                current.push_str(piece);
+            } else if current.len() + piece.len() + 1 <= TARGET_CHARS {
+                current.push(' ');
+                current.push_str(piece);
+            } else {
+                refined.push(std::mem::take(&mut current));
+                current.push_str(piece);
+            }
+        }
+        if !current.trim().is_empty() {
+            refined.push(current);
+        }
+    }
+
+    json!(refined
+        .into_iter()
+        .take(MAX_PASSAGES)
+        .map(|snippet| {
+            json!({
+                "documentId": document_id,
+                "title": title,
+                "snippet": snippet,
+            })
+        })
+        .collect::<Vec<_>>())
 }

@@ -1,7 +1,7 @@
 {
   "name": "scribe",
   "private": true,
-  "version": "1.6.0",
+  "version": "1.8.0",
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -100,6 +100,7 @@
     "driver.js": "^1.8.0",
     "effect": "^3.22.0",
     "emoji-picker-react": "^4.19.1",
+    "fuse.js": "^7.5.0",
     "highlight.js": "^11.12.0",
     "i18next": "^26.3.6",
     "lowlight": "^3.3.0",

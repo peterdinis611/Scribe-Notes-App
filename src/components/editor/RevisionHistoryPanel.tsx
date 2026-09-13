@@ -27,7 +27,7 @@ import {
   findRevisionOption,
   normalizeComparePair,
 } from '@/lib/revisions/revision-compare'
-import { nlpSummarizeDiff } from '@/lib/db/nlp-api'
+import { nlpSummarizeDiff, type NlpDiffSummary } from '@/lib/db/nlp-api'
 import { toast } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 import {
@@ -52,6 +52,9 @@ type CompareState = {
   lines: DiffLine[]
   sideBySideRows: SideBySideRow[]
   nlpSummary?: string | null
+  nlpAdded?: string[]
+  nlpRemoved?: string[]
+  nlpChangeRatio?: number | null
 }
 
 export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
@@ -143,15 +146,29 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
       if (!olderOption || !newerOption) return
 
       let nlpSummary: string | null = null
+      let nlpAdded: string[] = []
+      let nlpRemoved: string[] = []
+      let nlpChangeRatio: number | null = null
       try {
-        const diffSummary = await nlpSummarizeDiff({
+        const diffSummary: NlpDiffSummary = await nlpSummarizeDiff({
           oldText: olderText,
           newText: newerText,
           maxBullets: 4,
         })
         nlpSummary = typeof diffSummary.summary === 'string' ? diffSummary.summary : null
+        nlpAdded = Array.isArray(diffSummary.addedSentences)
+          ? diffSummary.addedSentences.filter(Boolean).slice(0, 4)
+          : []
+        nlpRemoved = Array.isArray(diffSummary.removedSentences)
+          ? diffSummary.removedSentences.filter(Boolean).slice(0, 4)
+          : []
+        nlpChangeRatio =
+          typeof diffSummary.changeRatio === 'number' ? diffSummary.changeRatio : null
       } catch {
         nlpSummary = null
+        nlpAdded = []
+        nlpRemoved = []
+        nlpChangeRatio = null
       }
 
       setCompareState({
@@ -168,6 +185,9 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
         lines: diffLines(olderText, newerText),
         sideBySideRows: diffSideBySide(olderText, newerText),
         nlpSummary,
+        nlpAdded,
+        nlpRemoved,
+        nlpChangeRatio,
       })
       setVersionAId(olderId)
       setVersionBId(newerId)
@@ -482,13 +502,42 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
 
       {compareState && (
         <>
-          {compareState.nlpSummary ? (
-            <p className="mx-3 mb-2 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[12px] leading-snug text-[var(--color-foreground)]">
-              <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
-                {t('panels.revisions.nlpDiffSummary')}
+          {compareState.nlpSummary ||
+          (compareState.nlpAdded && compareState.nlpAdded.length > 0) ||
+          (compareState.nlpRemoved && compareState.nlpRemoved.length > 0) ? (
+            <div className="mx-3 mb-2 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[12px] leading-snug text-[var(--color-foreground)]">
+              <span className="mb-1 flex items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
+                <span>{t('panels.revisions.nlpDiffSummary')}</span>
+                {typeof compareState.nlpChangeRatio === 'number' ? (
+                  <span className="normal-case tracking-normal font-medium opacity-80">
+                    {t('panels.revisions.nlpDiffChange', {
+                      percent: Math.round(compareState.nlpChangeRatio * 100),
+                    })}
+                  </span>
+                ) : null}
               </span>
-              {compareState.nlpSummary}
-            </p>
+              {compareState.nlpSummary ? <p className="mb-2">{compareState.nlpSummary}</p> : null}
+              {compareState.nlpAdded && compareState.nlpAdded.length > 0 ? (
+                <ul className="mb-1 space-y-1 text-[11px] text-[var(--color-foreground)]">
+                  {compareState.nlpAdded.map((item) => (
+                    <li key={`add-${item.slice(0, 48)}`} className="flex gap-1.5">
+                      <span className="shrink-0 text-emerald-600 dark:text-emerald-400">+</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {compareState.nlpRemoved && compareState.nlpRemoved.length > 0 ? (
+                <ul className="space-y-1 text-[11px] text-[var(--color-muted-foreground)]">
+                  {compareState.nlpRemoved.map((item) => (
+                    <li key={`rm-${item.slice(0, 48)}`} className="flex gap-1.5">
+                      <span className="shrink-0 text-rose-600 dark:text-rose-400">−</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
           ) : null}
           <RevisionDiffView
           left={{

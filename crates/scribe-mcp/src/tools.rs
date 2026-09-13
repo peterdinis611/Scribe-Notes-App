@@ -278,3 +278,62 @@ pub struct BackupDirParams {
     /// Optional backup folder; default ~/Documents/Scribe/Backups
     pub directory: Option<String>,
 }
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ChatContextMessage {
+    pub role: String,
+    pub text: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentAnswerParams {
+    pub id: String,
+    pub question: String,
+    /// Optional prior turns `{ role, text }` for follow-ups (last 6 used).
+    pub context: Option<Vec<ChatContextMessage>>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SummarizeDiffParams {
+    pub old_text: String,
+    pub new_text: String,
+    pub max_bullets: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SummarizeRevisionDiffParams {
+    pub id: String,
+    pub revision_id: String,
+    pub max_bullets: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct TemplateFillHintsParams {
+    pub id: String,
+    pub expected_sections: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SetNlpEnabledParams {
+    pub enabled: bool,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SetEmbedBackendParams {
+    /// `hash` (default) or `quality` (MiniLM when installed)
+    pub backend: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct RewriteQueryParams {
+    pub query: String,
+    pub max_expansions: Option<i64>,
+}

@@ -54,7 +54,15 @@ import {
 import { getDisplayKeysForShortcut } from '@/lib/shortcuts'
 import type { BuiltInLocale } from '@/i18n'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { createFolder, duplicateDocument, listCommentThreads, listLinkGraph, searchDocuments, setDocumentPinned } from '@/lib/db/api'
+import {
+  createFolder,
+  duplicateDocument,
+  listCommentThreads,
+  listLinkGraph,
+  moveDocumentToFolder,
+  searchDocuments,
+  setDocumentPinned,
+} from '@/lib/db/api'
 import { nlpSearch, nlpStatus, type NlpStatus } from '@/lib/db/nlp-api'
 import { describeNlpSearchFailure } from '@/lib/nlp/errors'
 import { fuseSearchHits, isHybridSearchScope } from '@/lib/nlp/hybrid-search'
@@ -64,6 +72,7 @@ import { promptInput } from '@/lib/input-dialog'
 import { collectHeadingOutline, focusOutlineItem } from '@/lib/editor/document-outline'
 import { focusComment } from '@/lib/editor/comments'
 import { collectHeadingsFromJson } from '@/lib/search/palette-headings'
+import { fuzzyFilter } from '@/lib/search/fuzzy'
 import { editorRefs } from '@/store/editorRefs'
 import { getCachedParsedContent, peekCachedDocument } from '@/lib/cache/document-cache'
 import { isCanvasContent } from '@/lib/canvas/types'
@@ -90,6 +99,7 @@ import {
 import {
   setCommandPaletteOpen,
   setMoveDocumentPickerOpen,
+  updateExpandedFolderIds,
   updateFolders,
 } from '@/store/foldersSlice'
 import { setTemplatePickerOpen, setThemeSettings, setLocale } from '@/store/settingsSlice'
@@ -479,12 +489,38 @@ export function CommandPalette() {
                     } else {
                       toast.info(t('library.nlpTagsNone'))
                     }
-                    if (result.folderSuggestion) {
+                    if (result.folderSuggestion && result.folderSuggestionId) {
+                      const folderId = result.folderSuggestionId
+                      const folderName = result.folderSuggestion
                       toast.info(
                         t('library.nlpFolderSuggestion'),
-                        t('library.nlpFolderSuggestionDetail', {
-                          folder: result.folderSuggestion,
-                        }),
+                        t('library.nlpFolderSuggestionDetail', { folder: folderName }),
+                        {
+                          action: {
+                            label: t('library.nlpFolderMove'),
+                            onClick: () => {
+                              dispatch(
+                                updateDocuments((prev) =>
+                                  prev.map((doc) =>
+                                    doc.id === summary.id ? { ...doc, folderId } : doc,
+                                  ),
+                                ),
+                              )
+                              dispatch(
+                                updateExpandedFolderIds((prev) =>
+                                  prev.includes(folderId) ? prev : [...prev, folderId],
+                                ),
+                              )
+                              void moveDocumentToFolder(summary.id, folderId)
+                                .then(() => {
+                                  toast.success(t('toasts.documentMoved'), folderName)
+                                })
+                                .catch((error) => {
+                                  toast.error(t('toasts.moveError'), String(error))
+                                })
+                            },
+                          },
+                        },
                       )
                     }
                   })
@@ -784,10 +820,7 @@ export function CommandPalette() {
         ? collectHeadingOutline(editor).map((item) => item.preview || item.label)
         : collectHeadingsFromJson(activeDocumentRecord?.contentJson ?? '')
 
-    return headings
-      .filter((label) => label.toLowerCase().includes(q))
-      .slice(0, 8)
-      .map((label) => ({
+    return fuzzyFilter(headings, q, (label) => label, { limit: 8 }).map((label) => ({
         type: 'heading' as const,
         id: `heading:${label}`,
         label,
@@ -820,11 +853,7 @@ export function CommandPalette() {
       if (!matchesFolder(doc)) continue
       for (const tag of doc.tags) tags.add(tag)
     }
-    return [...tags]
-      .filter((tag) => tag.toLowerCase().includes(q))
-      .sort()
-      .slice(0, 8)
-      .map((tag) => ({
+    return fuzzyFilter([...tags], q, (tag) => tag, { limit: 8 }).map((tag) => ({
         type: 'tag' as const,
         id: `tag:${tag}`,
         label: tag,
@@ -840,10 +869,12 @@ export function CommandPalette() {
   const commentItems: PaletteItem[] = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q || (searchScope !== 'all' && searchScope !== 'comments')) return []
-    return commentHits
-      .filter((hit) => hit.body.toLowerCase().includes(q) || hit.quote.toLowerCase().includes(q))
-      .slice(0, 8)
-      .map((hit) => ({
+    return fuzzyFilter(
+      commentHits,
+      q,
+      (hit) => [hit.body, hit.quote, hit.documentTitle],
+      { limit: 8 },
+    ).map((hit) => ({
         type: 'action' as const,
         id: `comment:${hit.id}`,
         label: hit.body.slice(0, 80) || hit.quote.slice(0, 80),
@@ -953,50 +984,34 @@ export function CommandPalette() {
     const q = query.trim().toLowerCase()
     if (q.length > 0) {
       if (searchScope === 'wiki') {
-        return [...byId.values()]
-          .filter((doc) => linkedTargetIds.has(doc.id) && doc.title.toLowerCase().includes(q))
-          .sort((a, b) => b.updatedAt - a.updatedAt)
-          .slice(0, 10)
-          .map((doc) => ({
-            type: 'document' as const,
-            id: doc.id,
-            label: doc.title,
-            icon: <Link2 className="h-4 w-4" />,
-            run: () => {
-              dispatch(setActiveDocumentId(doc.id))
-              const cached = peekCachedDocument(doc.id)
-              if (cached) dispatch(setActiveDocument(cached))
-              navigate(ROUTES.document(doc.id))
-            },
-          }))
+        const wikiDocs = [...byId.values()].filter((doc) => linkedTargetIds.has(doc.id))
+        return fuzzyFilter(wikiDocs, q, (doc) => doc.title, { limit: 10 }).map((doc) => ({
+          type: 'document' as const,
+          id: doc.id,
+          label: doc.title,
+          icon: <Link2 className="h-4 w-4" />,
+          run: () => {
+            dispatch(setActiveDocumentId(doc.id))
+            const cached = peekCachedDocument(doc.id)
+            if (cached) dispatch(setActiveDocument(cached))
+            navigate(ROUTES.document(doc.id))
+          },
+        }))
       }
 
       if (searchScope === 'all' || searchScope === 'titles') {
-        return [...byId.values()]
-          .map((doc) => {
-            const title = doc.title.toLowerCase()
-            let points = 0
-            if (title === q) points = 100
-            else if (title.startsWith(q)) points = 80
-            else if (title.includes(q)) points = 50
-            else if (q.split(/\s+/).every((token) => title.includes(token))) points = 30
-            return { doc, points }
-          })
-          .filter((entry) => entry.points > 0)
-          .sort((a, b) => b.points - a.points || b.doc.updatedAt - a.doc.updatedAt)
-          .slice(0, 10)
-          .map(({ doc }) => ({
-            type: 'document' as const,
-            id: doc.id,
-            label: doc.title,
-            icon: <FileText className="h-4 w-4" />,
-            run: () => {
-              dispatch(setActiveDocumentId(doc.id))
-              const cached = peekCachedDocument(doc.id)
-              if (cached) dispatch(setActiveDocument(cached))
-              navigate(ROUTES.document(doc.id))
-            },
-          }))
+        return fuzzyFilter([...byId.values()], q, (doc) => doc.title, { limit: 10 }).map((doc) => ({
+          type: 'document' as const,
+          id: doc.id,
+          label: doc.title,
+          icon: <FileText className="h-4 w-4" />,
+          run: () => {
+            dispatch(setActiveDocumentId(doc.id))
+            const cached = peekCachedDocument(doc.id)
+            if (cached) dispatch(setActiveDocument(cached))
+            navigate(ROUTES.document(doc.id))
+          },
+        }))
       }
 
       return []
@@ -1035,27 +1050,12 @@ export function CommandPalette() {
   ])
 
   const filteredActions = useMemo(() => {
-    const q = query.trim().toLowerCase()
+    const q = query.trim()
     if (!q) return actions
-    const tokens = q.split(/\s+/).filter(Boolean)
-    function score(label: string, hint?: string) {
-      const hay = `${label} ${hint ?? ''}`.toLowerCase()
-      if (hay.includes(q)) return 100 - hay.indexOf(q)
-      let points = 0
-      for (const token of tokens) {
-        if (hay.includes(token)) points += 20
-        else if (label.toLowerCase().split(/\s+/).some((part) => part.startsWith(token))) points += 12
-      }
-      return points
-    }
-    return actions
-      .map((item) => {
-        const hint = item.type === 'action' ? item.hint : undefined
-        return { item, points: score(item.label, hint) }
-      })
-      .filter((entry) => entry.points > 0)
-      .sort((a, b) => b.points - a.points)
-      .map((entry) => entry.item)
+    return fuzzyFilter(actions, q, (item) => [
+      item.label,
+      item.type === 'action' ? (item.hint ?? '') : '',
+    ])
   }, [actions, query])
 
   const searchItems = useMemo(

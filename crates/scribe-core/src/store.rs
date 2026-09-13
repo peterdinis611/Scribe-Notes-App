@@ -2161,7 +2161,7 @@ impl ScribeStore {
         let mut stmt = self
             .db
             .prepare(
-                "SELECT id, title, content_json, tags, updated_at
+                "SELECT id, title, content_json, tags, updated_at, folder_id
                  FROM documents WHERE deleted_at IS NULL",
             )
             .map_err(|e| e.to_string())?;
@@ -2174,13 +2174,15 @@ impl ScribeStore {
                     row.get::<_, String>(2)?,
                     row.get::<_, Option<String>>(3)?,
                     row.get::<_, i64>(4)?,
+                    row.get::<_, Option<String>>(5)?,
                 ))
             })
             .map_err(|e| e.to_string())?;
 
         let mut documents = Vec::new();
         for row in rows {
-            let (id, title, content_json, tags_json, updated_at) = row.map_err(|e| e.to_string())?;
+            let (id, title, content_json, tags_json, updated_at, folder_id) =
+                row.map_err(|e| e.to_string())?;
             let tags = Self::parse_tags(tags_json);
             documents.push(json!({
                 "id": id,
@@ -2188,11 +2190,40 @@ impl ScribeStore {
                 "text": extract_search_text(&content_json),
                 "tags": tags,
                 "updatedAt": updated_at,
+                "folderId": folder_id,
+            }));
+        }
+
+        let mut folder_stmt = self
+            .db
+            .prepare(
+                "SELECT id, name, parent_id, COALESCE(is_vault, 0)
+                 FROM folders ORDER BY name COLLATE NOCASE ASC",
+            )
+            .map_err(|e| e.to_string())?;
+        let folder_rows = folder_stmt
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, Option<String>>(2)?,
+                    row.get::<_, i64>(3)?,
+                ))
+            })
+            .map_err(|e| e.to_string())?;
+        let mut folders = Vec::new();
+        for row in folder_rows {
+            let (id, name, parent_id, is_vault) = row.map_err(|e| e.to_string())?;
+            folders.push(json!({
+                "id": id,
+                "name": name,
+                "parentId": parent_id,
+                "isVault": is_vault != 0,
             }));
         }
 
         sync_sidecar_backend(sidecar, &self.db)?;
-        let result = sidecar.library_report(json!(documents))?;
+        let result = sidecar.library_report(json!(documents), json!(folders))?;
         let markdown = result
             .get("markdown")
             .and_then(|value| value.as_str())

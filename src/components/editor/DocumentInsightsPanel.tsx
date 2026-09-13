@@ -8,9 +8,11 @@ import {
   CheckSquare,
   ChevronDown,
   FileText,
+  FolderInput,
   Gauge,
   Hash,
   Languages,
+  LayoutTemplate,
   ListTree,
   LoaderCircle,
   MessageCircle,
@@ -28,8 +30,11 @@ import {
   nlpSimilarDocuments,
   nlpSpellcheck,
   nlpStatus,
+  nlpSuggestTags,
+  nlpTemplateFillHints,
   type DocumentTask,
   type NlpDocumentAnalysis,
+  type NlpTemplateFillHints,
   type SpellcheckResult,
 } from '@/lib/db/nlp-api'
 import {
@@ -52,6 +57,7 @@ import {
   setPendingEditorSearch,
   setPendingLibraryView,
 } from '@/store/documentsSlice'
+import { useMoveDocumentToFolder } from '@/hooks/useMoveDocumentToFolder'
 import {
   EditorSidePanel,
   EditorSidePanelEmpty,
@@ -138,8 +144,12 @@ function InsightSection({
 export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
   const { t } = useTranslation()
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
+  const activeSummary = useAppSelector((state) =>
+    state.documents.documents.find((doc) => doc.id === state.documents.activeDocumentId),
+  )
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
+  const moveDocument = useMoveDocumentToFolder()
   const [similar, setSimilar] = useState<SearchHit[]>([])
   const [tasks, setTasks] = useState<DocumentTask[]>([])
   const [analysis, setAnalysis] = useState<NlpDocumentAnalysis | null>(null)
@@ -151,6 +161,10 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
   const [askInput, setAskInput] = useState('')
   const [askBusy, setAskBusy] = useState(false)
   const [askReply, setAskReply] = useState<string | null>(null)
+  const [folderSuggestion, setFolderSuggestion] = useState<string | null>(null)
+  const [folderSuggestionId, setFolderSuggestionId] = useState<string | null>(null)
+  const [templateHints, setTemplateHints] = useState<NlpTemplateFillHints | null>(null)
+  const [templateLoading, setTemplateLoading] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -160,21 +174,34 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
       setAnalysis(null)
       setSpellResult(null)
       setAskReply(null)
+      setFolderSuggestion(null)
+      setFolderSuggestionId(null)
+      setTemplateHints(null)
       return
     }
+    const currentFolderId = activeSummary?.folderId ?? null
     setLoading(true)
     Promise.all([
       nlpStatus().catch(() => null),
       nlpSimilarDocuments(activeId, 8).catch(() => [] as SearchHit[]),
       nlpDocumentTasks(activeId).catch(() => [] as DocumentTask[]),
       nlpDocumentAnalysis(activeId).catch(() => null),
+      nlpSuggestTags(activeId).catch(() => null),
+      nlpTemplateFillHints({ documentId: activeId }).catch(() => null),
     ])
-      .then(([status, similarHits, documentTasks, documentAnalysis]) => {
+      .then(([status, similarHits, documentTasks, documentAnalysis, tags, template]) => {
         if (cancelled) return
         setNlpEnabled(Boolean(status?.enabled))
         setSimilar(similarHits)
         setTasks(documentTasks)
         setAnalysis(documentAnalysis)
+        const nextFolderId =
+          tags?.folderSuggestionId && tags.folderSuggestionId !== currentFolderId
+            ? tags.folderSuggestionId
+            : null
+        setFolderSuggestionId(nextFolderId)
+        setFolderSuggestion(nextFolderId ? (tags?.folderSuggestion ?? null) : null)
+        setTemplateHints(template)
       })
       .catch((error) => {
         if (!cancelled) toast.error(t('panels.insights.loadError'), String(error))
@@ -185,7 +212,16 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
     return () => {
       cancelled = true
     }
+    // activeSummary folder is snapshotted at load; move clears suggestion separately
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload on document / refresh only
   }, [activeId, reloadKey, t])
+
+  useEffect(() => {
+    if (folderSuggestionId && activeSummary?.folderId === folderSuggestionId) {
+      setFolderSuggestion(null)
+      setFolderSuggestionId(null)
+    }
+  }, [activeSummary?.folderId, folderSuggestionId])
 
   const openTasks = useMemo(
     () => tasks.filter((task) => !task.checked),
@@ -213,6 +249,27 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
       setSpellLoading(false)
     }
   }, [activeId, nlpEnabled, t])
+
+  const handleTemplateCheck = useCallback(async () => {
+    if (!activeId || !nlpEnabled) return
+    setTemplateLoading(true)
+    try {
+      const result = await nlpTemplateFillHints({ documentId: activeId })
+      setTemplateHints(result)
+    } catch (error) {
+      setTemplateHints(null)
+      toast.error(t('panels.insights.templateError'), String(error))
+    } finally {
+      setTemplateLoading(false)
+    }
+  }, [activeId, nlpEnabled, t])
+
+  const handleMoveToSuggestedFolder = useCallback(async () => {
+    if (!activeId || !folderSuggestionId) return
+    await moveDocument(activeId, folderSuggestionId)
+    setFolderSuggestion(null)
+    setFolderSuggestionId(null)
+  }, [activeId, folderSuggestionId, moveDocument])
 
   const handleAskAction = useCallback(
     async (action: DocumentChatAction) => {
@@ -296,6 +353,7 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
     (analysis?.mentions?.length ?? 0) +
     (analysis?.hosts?.length ?? 0)
   const hasSummary = Boolean(analysis?.summary?.trim())
+  const templateMissingCount = templateHints?.missing.length ?? 0
   const signalCount =
     similar.length +
     openTasks.length +
@@ -304,7 +362,9 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
     dateCount +
     mentionCount +
     (hasSummary ? 1 : 0) +
-    (spellResult?.issueCount ?? 0)
+    (spellResult?.issueCount ?? 0) +
+    (folderSuggestionId ? 1 : 0) +
+    templateMissingCount
 
   const languageLabel = useMemo(() => {
     if (!analysis?.language || analysis.language === 'unknown') {
@@ -528,6 +588,102 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
                       </li>
                     ))}
                   </ul>
+                ) : null}
+              </>
+            )}
+          </div>
+
+          <div className="insights-tool insights-rise" style={{ animationDelay: '145ms' }}>
+            <div className="insights-tool__row">
+              <div className="insights-tool__copy">
+                <FolderInput className="h-3.5 w-3.5 opacity-70" aria-hidden />
+                <div>
+                  <div className="insights-tool__title">{t('panels.insights.organize')}</div>
+                  <div className="insights-tool__hint">{t('panels.insights.organizeHint')}</div>
+                </div>
+              </div>
+              {folderSuggestionId ? (
+                <span className="insights-count has-items">1</span>
+              ) : null}
+            </div>
+
+            {!nlpEnabled ? (
+              <p className="insights-quiet">{t('panels.insights.keywordsDisabled')}</p>
+            ) : folderSuggestion && folderSuggestionId ? (
+              <>
+                <p className="insights-quiet mb-2">
+                  {t('panels.insights.organizeSuggestion', { folder: folderSuggestion })}
+                </p>
+                <button
+                  type="button"
+                  className="insights-primary-btn"
+                  onClick={() => void handleMoveToSuggestedFolder()}
+                >
+                  {t('panels.insights.organizeMove', { folder: folderSuggestion })}
+                </button>
+              </>
+            ) : (
+              <p className="insights-quiet">{t('panels.insights.organizeEmpty')}</p>
+            )}
+          </div>
+
+          <div className="insights-tool insights-rise" style={{ animationDelay: '155ms' }}>
+            <div className="insights-tool__row">
+              <div className="insights-tool__copy">
+                <LayoutTemplate className="h-3.5 w-3.5 opacity-70" aria-hidden />
+                <div>
+                  <div className="insights-tool__title">{t('panels.insights.template')}</div>
+                  <div className="insights-tool__hint">{t('panels.insights.templateHint')}</div>
+                </div>
+              </div>
+              {templateHints ? (
+                <span className={cn('insights-count', templateMissingCount > 0 && 'has-items')}>
+                  {Math.round((templateHints.coverage ?? 0) * 100)}%
+                </span>
+              ) : null}
+            </div>
+
+            {!nlpEnabled ? (
+              <p className="insights-quiet">{t('panels.insights.keywordsDisabled')}</p>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="insights-primary-btn"
+                  disabled={templateLoading || !activeId}
+                  onClick={() => void handleTemplateCheck()}
+                >
+                  {templateLoading ? (
+                    <>
+                      <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                      {t('panels.insights.templateRunning')}
+                    </>
+                  ) : (
+                    t('panels.insights.templateRun')
+                  )}
+                </button>
+
+                {templateHints?.complete ? (
+                  <p className="insights-quiet insights-quiet--ok">{t('panels.insights.templateComplete')}</p>
+                ) : null}
+
+                {templateHints && !templateHints.complete ? (
+                  <>
+                    <p className="insights-quiet mb-2">
+                      {t('panels.insights.templateCoverage', {
+                        percent: Math.round(templateHints.coverage * 100),
+                      })}
+                    </p>
+                    {templateHints.missing.length > 0 ? (
+                      <div className="insights-tag-row">
+                        {templateHints.missing.slice(0, 8).map((section) => (
+                          <InsightChip key={section} className="insights-chip--strong" title={section}>
+                            {section}
+                          </InsightChip>
+                        ))}
+                      </div>
+                    ) : null}
+                  </>
                 ) : null}
               </>
             )}
