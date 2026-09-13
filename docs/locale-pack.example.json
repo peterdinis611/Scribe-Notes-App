@@ -1,27 +1,81 @@
 {
-  "code": "de",
-  "name": "Deutsch",
+  "code": "cs",
+  "name": "Čeština",
   "messages": {
+    "common": {
+      "save": "Uložit",
+      "cancel": "Zrušit",
+      "close": "Zavřít",
+      "reset": "Obnovit",
+      "delete": "Smazat",
+      "undo": "Zpět",
+      "rename": "Přejmenovat",
+      "untitled": "Bez názvu",
+      "loading": "Načítám…",
+      "version": "Verze {{version}}",
+      "total": "{{count}} celkem",
+      "ok": "OK",
+      "done": "Hotovo"
+    },
+    "nav": {
+      "home": "Domů",
+      "editor": "Editor",
+      "settings": "Nastavení",
+      "docs": "Dokumentace",
+      "graph": "Mapa propojení",
+      "library": "Knihovna"
+    },
+    "welcome": {
+      "brand": "Scribe",
+      "eyebrow": "Lokální editor dokumentů",
+      "brandTagline": "Pište dokumenty lokálně. Propojujte poznámky, když potřebujete.",
+      "newDocument": "Nový dokument",
+      "todayNote": "Poznámka dne",
+      "import": "Import",
+      "recentDocuments": "Nedávné dokumenty",
+      "noDocuments": "Zatím žádné dokumenty",
+      "noDocumentsHint": "Začněte novým dokumentem nebo poznámkou dne."
+    },
     "settings": {
       "language": {
-        "title": "Sprache",
-        "description": "Oberflächensprache der App. Eigenes JSON importieren.",
-        "rowDescription": "Menüs, Dialoge und Editortexte.",
-        "sk": "Slowakisch",
-        "en": "Englisch",
-        "customTitle": "Eigene Sprache",
-        "customDescription": "JSON-Übersetzungspaket hochladen (gleiche Struktur wie en.json).",
-        "importJson": "JSON importieren",
-        "exportTemplate": "Englische Vorlage",
-        "installedTitle": "Installierte Pakete",
-        "installedDescription": "Klicken zum Aktivieren. Entfernen löscht das Paket.",
-        "remove": "Sprachpaket entfernen"
+        "title": "Jazyk",
+        "description": "Jazyk rozhraní aplikace. Vlastní JSON můžete importovat.",
+        "rowDescription": "Menu, dialogy a texty editoru.",
+        "sk": "Slovenština",
+        "en": "Angličtina",
+        "customTitle": "Vlastní jazyk",
+        "customDescription": "Nahrajte JSON překladový balíček (stejná struktura jako en.json).",
+        "importJson": "Importovat JSON",
+        "exportTemplate": "Anglická šablona",
+        "installedTitle": "Nainstalované balíčky",
+        "installedDescription": "Kliknutím aktivujete. Odebrání balíček smaže.",
+        "remove": "Odebrat jazykový balíček"
+      },
+      "appearance": {
+        "title": "Vzhled",
+        "description": "Motivy, hustota a jazyk rozhraní."
       }
     },
-    "common": {
-      "save": "Speichern",
-      "cancel": "Abbrechen",
-      "close": "Schließen"
+    "viewMode": {
+      "rich": "Formátovaný text",
+      "markdown": "Markdown",
+      "markdownSource": "Zdroj",
+      "markdownPreview": "Náhled",
+      "markdownPreviewEmpty": "Náhled se zobrazí při psaní."
+    },
+    "libraryChat": {
+      "you": "Vy",
+      "assistant": "Asistent",
+      "citations": "Citace",
+      "untitled": "Bez názvu",
+      "openSettings": "Nastavení NLP"
+    },
+    "toasts": {
+      "localeImported": "Jazyk „{{name}}“ byl naimportován",
+      "localeImportError": "Import jazyka selhal",
+      "localeTemplateExported": "Šablona byla exportována",
+      "localeTemplateExportError": "Export šablony selhal",
+      "localeRemoved": "Jazykový balíček byl odebrán"
     }
   }
 }

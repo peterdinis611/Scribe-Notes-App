@@ -322,8 +322,8 @@ bun run test:all      # frontend + Rust + NLP
 
 GitHub Actions (`.github/workflows/`):
 
-- **CI** — push/PR na `main`: frontend lint (advisory) + Vitest + Vite build; NLP testy; Rust testy na **macOS**, **Ubuntu** a **Windows**
-- **Build** — manuálne alebo tag `v*`: Tauri build (macOS `.app`/`.dmg` artefakty; Linux/Windows zatiaľ `--no-bundle`, kým nie sú produktové inštalátory)
+- **CI** — na tagoch `v*` (alebo manuálny dispatch): kontrola synchronizácie verzie; frontend lint + Vitest + Vite build; NLP testy; Rust testy na **macOS**, **Ubuntu** a **Windows**
+- **Build** — na tagoch `v*` (alebo manuálny dispatch): kontrola synchronizácie verzie; Tauri build (macOS `.app`/`.dmg` artefakty; Linux/Windows zatiaľ `--no-bundle`, kým nie sú produktové inštalátory)
 
 ### Architektúra UI
 
@@ -341,7 +341,7 @@ Schéma SQLite je verzovaná v `src-tauri/src/db/migrations.rs`. Pri štarte apl
 
 ## Verzia
 
-Aktuálna verzia: **1.4.4**
+Aktuálna verzia: **1.5.0**
 
 ## Licencia
 

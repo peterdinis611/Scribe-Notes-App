@@ -60,6 +60,12 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Version sync
+        run: npm run version:check
+        env:
+          GITHUB_REF_TYPE: ${{ github.ref_type }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v1
         env:
@@ -68,3 +74,4 @@ jobs:
           projectPath: .
           args: ${{ matrix.args }}
           uploadWorkflowArtifacts: ${{ matrix.artifacts }}
+

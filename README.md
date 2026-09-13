@@ -322,8 +322,8 @@ scribe/
 
 GitHub Actions (`.github/workflows/`):
 
-- **CI** — on `v*` version tags (or manual dispatch): frontend lint + Vitest + Vite build; NLP tests; Rust tests on **macOS**, **Ubuntu**, and **Windows**
-- **Build** — on `v*` version tags (or manual dispatch): Tauri build (macOS ships `.app`/`.dmg` artifacts; Linux/Windows compile with `--no-bundle` until those platforms are productized)
+- **CI** — on `v*` version tags (or manual dispatch): version sync check; frontend lint + Vitest + Vite build; NLP tests; Rust tests on **macOS**, **Ubuntu**, and **Windows**
+- **Build** — on `v*` version tags (or manual dispatch): version sync check; Tauri build (macOS ships `.app`/`.dmg` artifacts; Linux/Windows compile with `--no-bundle` until those platforms are productized)
 
 
 ```bash
@@ -349,7 +349,7 @@ The SQLite schema is versioned in `src-tauri/src/db/migrations.rs`. Migrations r
 
 ## Version
 
-Current version: **1.4.4**
+Current version: **1.5.0**
 
 ## License
 
