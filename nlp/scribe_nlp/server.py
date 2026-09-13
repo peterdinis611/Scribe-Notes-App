@@ -95,6 +95,9 @@ FEATURES = [
     "spellcheck",
     "libraryAnswer",
     "dueHints",
+    "wikiSuggest",
+    "organize",
+    "calendarEvents",
 ]
 
 
@@ -311,6 +314,60 @@ def _handle_request_inner(
                 raise SidecarError("passages exceeds limit (24)", code=-32602)
             max_sentences = max(1, min(int(params.get("maxSentences") or 4), 8))
             result = library_answer(question, passages, max_sentences=max_sentences)
+        elif method == "suggest_wiki_links":
+            from .wiki_suggest import suggest_wiki_links
+
+            text = _validate_text(str(params.get("text") or ""))
+            documents = _validate_documents(params)
+            limit = max(1, min(int(params.get("limit") or 8), 12))
+            exclude = params.get("excludeDocumentId") or params.get("documentId")
+            exclude_id = str(exclude).strip() if exclude else None
+            result = suggest_wiki_links(
+                text,
+                documents,
+                limit=limit,
+                exclude_document_id=exclude_id,
+            )
+        elif method == "suggest_organize":
+            from .organize import suggest_organize
+
+            text = _validate_text(str(params.get("text") or ""))
+            folders = params.get("folders") or []
+            if not isinstance(folders, list):
+                raise SidecarError("folders must be an array", code=-32602)
+            if len(folders) > 500:
+                raise SidecarError("folders exceeds limit (500)", code=-32602)
+            tags = params.get("tags") or []
+            tag_list = [str(item) for item in tags] if isinstance(tags, list) else []
+            current = params.get("currentFolderId")
+            current_id = str(current).strip() if current else None
+            limit = max(1, min(int(params.get("limit") or 3), 8))
+            result = suggest_organize(
+                text,
+                folders,
+                tags=tag_list,
+                current_folder_id=current_id,
+                limit=limit,
+            )
+        elif method == "extract_dates_batch":
+            from datetime import date as date_cls
+
+            from .dates import extract_dates_batch
+
+            documents = _validate_documents(params)
+            today_raw = params.get("today")
+            today = None
+            if isinstance(today_raw, str) and today_raw.strip():
+                try:
+                    today = date_cls.fromisoformat(today_raw.strip()[:10])
+                except ValueError as error:
+                    raise SidecarError(f"Invalid today date: {error}", code=-32602) from error
+            limit_per_doc = max(1, min(int(params.get("limitPerDoc") or 12), 40))
+            result = extract_dates_batch(
+                documents,
+                today=today,
+                limit_per_doc=limit_per_doc,
+            )
         elif method == "summarize_diff":
             from .diff_summary import summarize_diff
 

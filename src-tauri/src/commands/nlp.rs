@@ -165,6 +165,10 @@ pub struct NlpJournalSummary {
 pub struct NlpTagSuggestions {
     pub entities: Vec<NlpEntity>,
     pub tag_suggestions: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub folder_suggestion: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub folder_suggestion_id: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -826,21 +830,43 @@ pub fn nlp_suggest_tags(
     sidecar: State<'_, NlpSidecar>,
     document_id: String,
 ) -> Result<NlpTagSuggestions, String> {
-    let text = {
+    let (text, folder_id, tags_json, folders) = {
         let conn = state.conn.lock().map_err(|e| e.to_string())?;
         if !is_nlp_enabled(&conn)? {
             return Err("NLP is disabled".to_string());
         }
+        sync_sidecar_backend(&sidecar, &conn)?;
 
-        let (title, content_json): (String, String) = conn
-            .query_row(
-                "SELECT title, content_json FROM documents WHERE id = ?1",
-                params![document_id],
-                |row| Ok((row.get(0)?, row.get(1)?)),
-            )
+        let (title, content_json, folder_id, tags_json): (String, String, Option<String>, Option<String>) =
+            conn
+                .query_row(
+                    "SELECT title, content_json, folder_id, tags FROM documents WHERE id = ?1 AND deleted_at IS NULL",
+                    params![document_id],
+                    |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+                )
+                .map_err(|e| e.to_string())?;
+
+        let mut folder_stmt = conn
+            .prepare("SELECT id, name FROM folders ORDER BY name COLLATE NOCASE")
+            .map_err(|e| e.to_string())?;
+        let folder_rows = folder_stmt
+            .query_map([], |row| {
+                Ok(json!({
+                    "id": row.get::<_, String>(0)?,
+                    "name": row.get::<_, String>(1)?,
+                }))
+            })
+            .map_err(|e| e.to_string())?;
+        let folders = folder_rows
+            .collect::<Result<Vec<_>, _>>()
             .map_err(|e| e.to_string())?;
 
-        format!("{title}\n{}", extract_search_text(&content_json))
+        (
+            format!("{title}\n{}", extract_search_text(&content_json)),
+            folder_id,
+            tags_json,
+            folders,
+        )
     };
 
     let result = sidecar.extract_entities(&text)?;
@@ -872,9 +898,39 @@ pub fn nlp_suggest_tags(
         })
         .unwrap_or_default();
 
+    let existing_tags: Vec<String> = tags_json
+        .as_deref()
+        .and_then(|raw| serde_json::from_str::<Vec<String>>(raw).ok())
+        .unwrap_or_default();
+    let mut organize_tags = existing_tags;
+    organize_tags.extend(tag_suggestions.iter().cloned());
+
+    let (folder_suggestion, folder_suggestion_id) =
+        match sidecar.suggest_organize(
+            &text,
+            json!(folders),
+            json!(organize_tags),
+            folder_id.as_deref(),
+            3,
+        ) {
+            Ok(value) => (
+                value
+                    .get("bestFolderName")
+                    .and_then(|item| item.as_str())
+                    .map(str::to_string),
+                value
+                    .get("bestFolderId")
+                    .and_then(|item| item.as_str())
+                    .map(str::to_string),
+            ),
+            Err(_) => (None, None),
+        };
+
     Ok(NlpTagSuggestions {
         entities,
         tag_suggestions,
+        folder_suggestion,
+        folder_suggestion_id,
     })
 }
 
@@ -1604,4 +1660,204 @@ pub fn nlp_library_answer(
             .to_string(),
         citations,
     })
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WikiLinkSuggestion {
+    pub phrase: String,
+    pub document_id: String,
+    pub title: String,
+    pub score: f64,
+    pub reason: String,
+}
+
+#[tauri::command]
+pub fn nlp_suggest_wiki_links(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    document_id: String,
+    limit: Option<i64>,
+) -> Result<Vec<WikiLinkSuggestion>, String> {
+    let (text, documents) = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        if !is_nlp_enabled(&conn)? {
+            return Err("NLP is disabled".to_string());
+        }
+        sync_sidecar_backend(&sidecar, &conn)?;
+
+        let (title, content_json): (String, String) = conn
+            .query_row(
+                "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL",
+                params![document_id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .map_err(|e| e.to_string())?;
+
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, title FROM documents
+                 WHERE deleted_at IS NULL AND id != ?1
+                 ORDER BY updated_at DESC
+                 LIMIT 800",
+            )
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map(params![document_id], |row| {
+                Ok(json!({
+                    "id": row.get::<_, String>(0)?,
+                    "title": row.get::<_, String>(1)?,
+                }))
+            })
+            .map_err(|e| e.to_string())?;
+        let documents = rows
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?;
+
+        (
+            format!("{title}\n{}", extract_search_text(&content_json)),
+            documents,
+        )
+    };
+
+    let result = sidecar.suggest_wiki_links(
+        &text,
+        json!(documents),
+        limit.unwrap_or(8),
+        Some(&document_id),
+    )?;
+
+    Ok(result
+        .get("suggestions")
+        .and_then(|value| value.as_array())
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| {
+                    Some(WikiLinkSuggestion {
+                        phrase: item.get("phrase")?.as_str()?.to_string(),
+                        document_id: item.get("documentId")?.as_str()?.to_string(),
+                        title: item.get("title")?.as_str()?.to_string(),
+                        score: item.get("score")?.as_f64().unwrap_or(0.0),
+                        reason: item
+                            .get("reason")
+                            .and_then(|value| value.as_str())
+                            .unwrap_or("title_match")
+                            .to_string(),
+                    })
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default())
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CalendarEvent {
+    pub document_id: Option<String>,
+    pub document_title: Option<String>,
+    pub text: String,
+    pub kind: String,
+    pub resolved_date: Option<String>,
+}
+
+#[tauri::command]
+pub fn nlp_calendar_events(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    limit: Option<i64>,
+    from_date: Option<String>,
+    to_date: Option<String>,
+) -> Result<Vec<CalendarEvent>, String> {
+    let max_docs = limit.unwrap_or(80).clamp(1, 200);
+    let documents = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        if !is_nlp_enabled(&conn)? {
+            return Err("NLP is disabled".to_string());
+        }
+        sync_sidecar_backend(&sidecar, &conn)?;
+
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, title, content_json FROM documents
+                 WHERE deleted_at IS NULL
+                 ORDER BY updated_at DESC
+                 LIMIT ?1",
+            )
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map(params![max_docs], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            })
+            .map_err(|e| e.to_string())?;
+
+        let mut docs = Vec::new();
+        for row in rows {
+            let (id, title, content_json) = row.map_err(|e| e.to_string())?;
+            if content_json.contains("\"type\":\"scribe-vault-v1\"") {
+                continue;
+            }
+            let text = extract_search_text(&content_json);
+            if text.trim().is_empty() && title.trim().is_empty() {
+                continue;
+            }
+            docs.push(json!({
+                "id": id,
+                "title": title,
+                "text": text.chars().take(8_000).collect::<String>(),
+            }));
+        }
+        docs
+    };
+
+    let result = sidecar.extract_dates_batch(json!(documents), 10)?;
+    let from = from_date.as_deref().filter(|value| !value.is_empty());
+    let to = to_date.as_deref().filter(|value| !value.is_empty());
+
+    Ok(result
+        .get("events")
+        .and_then(|value| value.as_array())
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| {
+                    let resolved = item
+                        .get("resolvedDate")
+                        .and_then(|value| value.as_str())
+                        .map(str::to_string);
+                    if let (Some(from), Some(day)) = (from, resolved.as_deref()) {
+                        if day < from {
+                            return None;
+                        }
+                    }
+                    if let (Some(to), Some(day)) = (to, resolved.as_deref()) {
+                        if day > to {
+                            return None;
+                        }
+                    }
+                    Some(CalendarEvent {
+                        document_id: item
+                            .get("documentId")
+                            .and_then(|value| value.as_str())
+                            .map(str::to_string),
+                        document_title: item
+                            .get("documentTitle")
+                            .and_then(|value| value.as_str())
+                            .map(str::to_string),
+                        text: item.get("text")?.as_str()?.to_string(),
+                        kind: item
+                            .get("kind")
+                            .and_then(|value| value.as_str())
+                            .unwrap_or("absolute")
+                            .to_string(),
+                        resolved_date: resolved,
+                    })
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default())
 }

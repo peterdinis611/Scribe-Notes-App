@@ -8,7 +8,7 @@ function normalizeTag(value: string): string {
   return value.trim().toLowerCase()
 }
 
-/** Merge AI tag suggestions into the document; returns newly added tags. */
+/** Merge AI tag suggestions into the document; returns newly added tags + folder hint. */
 export async function applySuggestedTagsToDocument(
   document: DocumentSummary,
   dispatch: AppDispatch,
@@ -37,9 +37,14 @@ export async function applySuggestedTagsToDocument(
     await setDocumentTags(document.id, tags)
   }
 
+  const folderHint =
+    suggestions.folderSuggestionId && suggestions.folderSuggestionId !== document.folderId
+      ? suggestions.folderSuggestion ?? null
+      : null
+
   return {
     added,
-    folderSuggestion: null,
+    folderSuggestion: folderHint,
   }
 }
 
@@ -49,6 +54,10 @@ export async function applySuggestedTagsAndFolderHint(
   dispatch: AppDispatch,
 ): Promise<{ added: string[]; folderSuggestion: string | null }> {
   const result = await applySuggestedTagsToDocument(document, dispatch)
+  if (result.folderSuggestion) {
+    return result
+  }
+  // Offline / sidecar-miss fallback: local tag↔folder name matching.
   const terms = [...document.tags, ...result.added]
   const folder = suggestFolderFromTags(folders, terms)
   return {
@@ -57,7 +66,7 @@ export async function applySuggestedTagsAndFolderHint(
   }
 }
 
-/** Suggest a folder by matching suggestion/tag terms to folder names. */
+/** Suggest a folder by matching suggestion/tag terms to folder names (offline fallback). */
 export function suggestFolderFromTags(
   folders: Folder[],
   terms: string[],

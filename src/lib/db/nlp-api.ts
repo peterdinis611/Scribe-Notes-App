@@ -45,6 +45,8 @@ export interface NlpEntity {
 export interface NlpTagSuggestions {
   entities: NlpEntity[]
   tagSuggestions: string[]
+  folderSuggestion?: string | null
+  folderSuggestionId?: string | null
 }
 
 export interface NlpLibraryReport {
@@ -190,3 +192,33 @@ export const nlpLibraryAnswer = (question: string, limit = 6) =>
     'nlp_library_answer',
     { question, limit },
   )
+
+export interface WikiLinkSuggestion {
+  phrase: string
+  documentId: string
+  title: string
+  score: number
+  reason: string
+}
+
+export const nlpSuggestWikiLinks = (documentId: string, limit = 8) =>
+  invoke<WikiLinkSuggestion[]>('nlp_suggest_wiki_links', { documentId, limit })
+
+export interface CalendarEvent {
+  documentId: string | null
+  documentTitle: string | null
+  text: string
+  kind: string
+  resolvedDate: string | null
+}
+
+export const nlpCalendarEvents = (options?: {
+  limit?: number
+  fromDate?: string
+  toDate?: string
+}) =>
+  invoke<CalendarEvent[]>('nlp_calendar_events', {
+    limit: options?.limit,
+    fromDate: options?.fromDate,
+    toDate: options?.toDate,
+  })

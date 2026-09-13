@@ -218,6 +218,10 @@ pub struct NlpEntity {
 pub struct TagSuggestions {
     pub entities: Vec<NlpEntity>,
     pub tag_suggestions: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub folder_suggestion: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub folder_suggestion_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -2094,9 +2098,60 @@ impl ScribeStore {
             })
             .unwrap_or_default();
 
+        let (folder_id, tags_json): (Option<String>, Option<String>) = self
+            .db
+            .query_row(
+                "SELECT folder_id, tags FROM documents WHERE id = ?1",
+                params![document_id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()
+            .map_err(|e| e.to_string())?
+            .unwrap_or((None, None));
+
+        let mut folder_stmt = self
+            .db
+            .prepare("SELECT id, name FROM folders ORDER BY name COLLATE NOCASE")
+            .map_err(|e| e.to_string())?;
+        let folder_rows = folder_stmt
+            .query_map([], |row| {
+                Ok(json!({
+                    "id": row.get::<_, String>(0)?,
+                    "name": row.get::<_, String>(1)?,
+                }))
+            })
+            .map_err(|e| e.to_string())?;
+        let folders = folder_rows
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?;
+
+        let mut organize_tags = Self::parse_tags(tags_json);
+        organize_tags.extend(tag_suggestions.iter().cloned());
+        let (folder_suggestion, folder_suggestion_id) = match sidecar.suggest_organize(
+            &text,
+            json!(folders),
+            json!(organize_tags),
+            folder_id.as_deref(),
+            3,
+        ) {
+            Ok(value) => (
+                value
+                    .get("bestFolderName")
+                    .and_then(|item| item.as_str())
+                    .map(str::to_string),
+                value
+                    .get("bestFolderId")
+                    .and_then(|item| item.as_str())
+                    .map(str::to_string),
+            ),
+            Err(_) => (None, None),
+        };
+
         Ok(TagSuggestions {
             entities,
             tag_suggestions,
+            folder_suggestion,
+            folder_suggestion_id,
         })
     }
 

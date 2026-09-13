@@ -252,8 +252,20 @@
   "whatsNew": {
     "badge": "What's new in {{version}}",
     "title": "Scribe {{version}}",
-    "subtitle": "Structured PDF templates, full code highlighting, and faster MiniLM Local AI.",
+    "subtitle": "Excel import, chunk-level Local AI search, and library Q&A in the sidecar.",
     "gotIt": "Got it",
+    "excelImport": {
+      "title": "Import from Excel",
+      "description": "Open .xlsx / .csv as editable tables (first row as header; multi-sheet workbooks get section headings)."
+    },
+    "chunkSearch": {
+      "title": "Chunk embeddings",
+      "description": "Local AI indexes notes in overlapping chunks for sharper semantic search — reindex after updating."
+    },
+    "libraryAnswer": {
+      "title": "Ask the library",
+      "description": "Extractive answers with citations run in the Python sidecar — no cloud LLM."
+    },
     "structuredPdf": {
       "title": "Structured PDF templates",
       "description": "Export journal digests, library reports, and invoices as JSX PDF templates — alongside the usual note PDF."
@@ -264,7 +276,7 @@
     },
     "minilmBatch": {
       "title": "Faster MiniLM indexing",
-      "description": "Quality embeddings batch-encode on reindex, duplicates, and keywords — Local AI sidecar 0.8.1."
+      "description": "Quality embeddings batch-encode on reindex, duplicates, and keywords — Local AI sidecar 0.9.0."
     },
     "offlineSpellcheck": {
       "title": "Offline spell check",
@@ -802,7 +814,7 @@
     },
     "import": {
       "label": "Import",
-      "description": "Import .scribe, .pages, .md, .txt, .docx"
+      "description": "Import .scribe, .pages, .md, .txt, .docx, .xlsx"
     },
     "toggleTheme": {
       "label": "Toggle theme",

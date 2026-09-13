@@ -116,7 +116,7 @@ class VersionTests(unittest.TestCase):
         result = handle_request(
             {"jsonrpc": "2.0", "id": 9, "method": "health", "params": {}}
         )["result"]
-        self.assertEqual(result["version"], "0.9.0")
+        self.assertEqual(result["version"], "0.9.1")
         for feature in ("chunkEmbeddings", "libraryAnswer", "dueHints"):
             self.assertIn(feature, result["features"])
 

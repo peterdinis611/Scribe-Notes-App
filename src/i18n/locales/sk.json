@@ -252,8 +252,20 @@
   "whatsNew": {
     "badge": "Novinky {{version}}",
     "title": "Scribe {{version}}",
-    "subtitle": "Štruktúrované PDF šablóny, plné zvýraznenie kódu a rýchlejší MiniLM v Lokálnej AI.",
+    "subtitle": "Import z Excelu, chunk-level Local AI vyhľadávanie a otázky knižnice v sidecare.",
     "gotIt": "Rozumiem",
+    "excelImport": {
+      "title": "Import z Excelu",
+      "description": "Otvorí .xlsx / .csv ako editovateľné tabuľky (prvý riadok ako hlavička; viac listov = nadpisy sekcií)."
+    },
+    "chunkSearch": {
+      "title": "Chunk embeddingy",
+      "description": "Lokálna AI indexuje poznámky v prekrývajúcich sa chunkoch pre presnejšie sémantické hľadanie — po aktualizácii znova indexuj."
+    },
+    "libraryAnswer": {
+      "title": "Opýtaj sa knižnice",
+      "description": "Extractive odpovede s citáciami bežia v Python sidecare — bez cloud LLM."
+    },
     "structuredPdf": {
       "title": "Štruktúrované PDF šablóny",
       "description": "Export denníkových digestov, reportov knižnice a faktúr ako JSX PDF — vedľa klasického PDF z poznámky."
@@ -264,7 +276,7 @@
     },
     "minilmBatch": {
       "title": "Rýchlejší MiniLM index",
-      "description": "Quality embeddingy idú batch-encode pri reindexe, duplikátoch a kľúčových slovách — sidecar 0.8.1."
+      "description": "Quality embeddingy idú batch-encode pri reindexe, duplikátoch a kľúčových slovách — sidecar 0.9.0."
     },
     "offlineSpellcheck": {
       "title": "Offline kontrola pravopisu",
@@ -802,7 +814,7 @@
     },
     "import": {
       "label": "Importovať",
-      "description": "Import .scribe, .pages, .md, .txt, .docx"
+      "description": "Import .scribe, .pages, .md, .txt, .docx, .xlsx"
     },
     "toggleTheme": {
       "label": "Prepínať tému",

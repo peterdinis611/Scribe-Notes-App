@@ -10,6 +10,11 @@ import {
   isPagesPath,
 } from '@/lib/import/pages'
 import {
+  importExcelDocumentFromPath,
+  isExcelPath,
+  isLegacyExcelPath,
+} from '@/lib/import/excel-xlsx'
+import {
   importWordDocumentFromPath,
   isWordDocxPath,
 } from '@/lib/import/word-docx'
@@ -21,11 +26,25 @@ const IMPORT_FILTERS = [
   },
   {
     name: 'Podporované dokumenty',
-    extensions: ['scribe', 'pages', 'md', 'markdown', 'txt', 'docx', 'rtf', 'doc'],
+    extensions: [
+      'scribe',
+      'pages',
+      'md',
+      'markdown',
+      'txt',
+      'docx',
+      'rtf',
+      'doc',
+      'xlsx',
+      'xlsm',
+      'csv',
+      'xls',
+    ],
   },
   { name: 'Scribe', extensions: ['scribe'] },
   { name: 'Text a Markdown', extensions: ['md', 'markdown', 'txt'] },
   { name: 'Word', extensions: ['docx', 'doc', 'rtf'] },
+  { name: 'Excel', extensions: ['xlsx', 'xlsm', 'csv', 'xls'] },
 ]
 
 function isMarkdownPath(path: string) {
@@ -66,6 +85,10 @@ export async function pickAndImportDocument(): Promise<Document | null> {
 
     if (isWordDocxPath(selected)) {
       return await importWordDocumentFromPath(selected)
+    }
+
+    if (isExcelPath(selected) || isLegacyExcelPath(selected)) {
+      return await importExcelDocumentFromPath(selected)
     }
 
     if (isPagesPath(selected)) {

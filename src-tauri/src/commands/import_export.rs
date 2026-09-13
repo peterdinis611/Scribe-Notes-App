@@ -94,7 +94,10 @@ pub fn pick_and_import_file(
         .set_title("Importovať dokument")
         .add_filter(
             "Podporované dokumenty",
-            &["scribe", "pages", "md", "markdown", "txt", "docx", "rtf", "doc"],
+            &[
+                "scribe", "pages", "md", "markdown", "txt", "docx", "rtf", "doc", "xlsx", "xlsm",
+                "csv", "xls",
+            ],
         )
         .blocking_pick_file();
 

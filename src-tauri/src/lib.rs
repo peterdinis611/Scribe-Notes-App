@@ -255,6 +255,8 @@ pub fn run() {
             commands::nlp::nlp_template_fill_hints,
             commands::nlp::nlp_spellcheck,
             commands::nlp::nlp_library_answer,
+            commands::nlp::nlp_suggest_wiki_links,
+            commands::nlp::nlp_calendar_events,
             commands::revisions::list_document_revisions,
             commands::revisions::get_document_revision,
             commands::revisions::create_named_revision,
@@ -303,6 +305,9 @@ pub fn run() {
                     if path.ends_with(".scribe")
                         || path.ends_with(".scribe.json")
                         || path.ends_with(".docx")
+                        || path.ends_with(".xlsx")
+                        || path.ends_with(".xlsm")
+                        || path.ends_with(".csv")
                         || path.ends_with(".pages")
                         || path.ends_with(".md")
                         || path.ends_with(".markdown")

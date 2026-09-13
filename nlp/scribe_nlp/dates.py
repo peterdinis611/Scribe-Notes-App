@@ -153,6 +153,49 @@ def resolve_due_hint(
     return str(text_value) if text_value else None
 
 
+def extract_dates_batch(
+    documents: list[dict[str, object]],
+    *,
+    today: date | None = None,
+    limit_per_doc: int = 12,
+) -> dict[str, object]:
+    """Extract dated events across many notes for a library calendar / briefing."""
+    base = today or date.today()
+    limit_per_doc = max(1, min(int(limit_per_doc or 12), 40))
+    aggregated: list[dict[str, object]] = []
+
+    for document in documents[:500]:
+        doc_id = str(document.get("id") or document.get("documentId") or "").strip()
+        title = str(document.get("title") or "").strip()
+        text = str(document.get("text") or document.get("snippet") or "")
+        if not text.strip() and not title:
+            continue
+        blob = f"{title}\n{text}".strip()
+        result = extract_dates(blob, today=base)
+        events = list(result.get("events") or [])[:limit_per_doc]
+        for event in events:
+            if not isinstance(event, dict):
+                continue
+            aggregated.append(
+                {
+                    "documentId": doc_id or None,
+                    "documentTitle": title or None,
+                    "text": event.get("text"),
+                    "kind": event.get("kind"),
+                    "resolvedDate": event.get("resolvedDate"),
+                }
+            )
+
+    aggregated.sort(
+        key=lambda item: (
+            item.get("resolvedDate") is None,
+            str(item.get("resolvedDate") or "9999"),
+            str(item.get("documentTitle") or ""),
+        )
+    )
+    return {"events": aggregated, "count": len(aggregated)}
+
+
 def _overlaps(ranges: list[tuple[int, int]], start: int, end: int) -> bool:
     for left, right in ranges:
         if start < right and end > left:

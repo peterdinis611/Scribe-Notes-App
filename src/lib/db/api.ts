@@ -291,14 +291,22 @@ export const pickAndImportFile = async () => {
 export const importFile = async (path: string) => {
   await grantScopedPath(path)
 
-  const [{ isWordDocxPath, importWordDocumentFromPath }, { isPagesPath, importPagesDocumentFromPath }] =
-    await Promise.all([
-      import('@/lib/import/word-docx'),
-      import('@/lib/import/pages'),
-    ])
+  const [
+    { isWordDocxPath, importWordDocumentFromPath },
+    { isPagesPath, importPagesDocumentFromPath },
+    { isExcelPath, isLegacyExcelPath, importExcelDocumentFromPath },
+  ] = await Promise.all([
+    import('@/lib/import/word-docx'),
+    import('@/lib/import/pages'),
+    import('@/lib/import/excel-xlsx'),
+  ])
 
   if (isWordDocxPath(path)) {
     return importWordDocumentFromPath(path)
+  }
+
+  if (isExcelPath(path) || isLegacyExcelPath(path)) {
+    return importExcelDocumentFromPath(path)
   }
 
   if (isPagesPath(path)) {

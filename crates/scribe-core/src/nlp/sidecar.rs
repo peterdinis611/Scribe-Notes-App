@@ -353,6 +353,58 @@ impl NlpSidecar {
         )
     }
 
+    pub fn suggest_wiki_links(
+        &self,
+        text: &str,
+        documents: Value,
+        limit: i64,
+        exclude_document_id: Option<&str>,
+    ) -> Result<Value, String> {
+        let mut params = json!({
+            "text": text,
+            "documents": documents,
+            "limit": limit,
+        });
+        if let Some(document_id) = exclude_document_id {
+            params["excludeDocumentId"] = json!(document_id);
+        }
+        self.call_method("suggest_wiki_links", params)
+    }
+
+    pub fn suggest_organize(
+        &self,
+        text: &str,
+        folders: Value,
+        tags: Value,
+        current_folder_id: Option<&str>,
+        limit: i64,
+    ) -> Result<Value, String> {
+        let mut params = json!({
+            "text": text,
+            "folders": folders,
+            "tags": tags,
+            "limit": limit,
+        });
+        if let Some(folder_id) = current_folder_id {
+            params["currentFolderId"] = json!(folder_id);
+        }
+        self.call_method("suggest_organize", params)
+    }
+
+    pub fn extract_dates_batch(
+        &self,
+        documents: Value,
+        limit_per_doc: i64,
+    ) -> Result<Value, String> {
+        self.call_method(
+            "extract_dates_batch",
+            json!({
+                "documents": documents,
+                "limitPerDoc": limit_per_doc,
+            }),
+        )
+    }
+
     pub fn summarize(&self, text: &str, max_sentences: i64) -> Result<Value, String> {
         self.call_method(
             "summarize",
