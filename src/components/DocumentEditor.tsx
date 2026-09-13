@@ -23,6 +23,7 @@ import { PageSetupDialog } from '@/components/editor/PageSetupDialog'
 import { PageHeaderFooterOverlays } from '@/components/editor/PageHeaderFooterOverlays'
 import { PageWatermarkOverlays } from '@/components/editor/PageWatermarkOverlays'
 import { MarkdownSourceEditor } from '@/components/editor/MarkdownSourceEditor'
+import { PrintEmptyHero } from '@/components/editor/PrintEmptyHero'
 import { useDocumentAutoSave } from '@/hooks/useDocumentAutoSave'
 import { useDocumentPagination } from '@/hooks/useDocumentPagination'
 import { useActiveScrollHeading } from '@/hooks/useActiveScrollHeading'
@@ -38,6 +39,7 @@ import { normalizePageSetup, PAPER_SIZES } from '@/lib/editor/page-setup'
 import { resolveDocumentTypography } from '@/lib/editor/document-style-presets'
 import { getEditorExtensions } from '@/lib/editor/extensions'
 import { listGoogleFontFamilies, loadGoogleFontsForDocument } from '@/lib/editor/google-fonts'
+import { ensureAllCustomFontsLoaded, loadCustomFontsForDocument } from '@/lib/editor/custom-fonts'
 import { handleTauriEditorKeyDown } from '@/lib/editor/tauri-input-fix'
 import { getEditorMarkdown, parseMarkdownToContentJson } from '@/lib/editor/markdown-content'
 import type { DocumentOutlineItem } from '@/lib/editor/document-outline'
@@ -278,6 +280,12 @@ export function DocumentEditor() {
     if (!activeDocument) return
     void listGoogleFontFamilies().then(() => {
       loadGoogleFontsForDocument(
+        activeDocument.contentJson,
+        pageSetup.typography.fontFamily,
+      )
+    })
+    void ensureAllCustomFontsLoaded().then(() => {
+      loadCustomFontsForDocument(
         activeDocument.contentJson,
         pageSetup.typography.fontFamily,
       )
@@ -600,6 +608,7 @@ export function DocumentEditor() {
 
               <div
                 ref={canvasRef}
+                data-tour="editor-canvas"
                 className={cn(
                   'editor-canvas',
                   !isMarkdown && 'editor-canvas--paginated',
@@ -673,12 +682,7 @@ export function DocumentEditor() {
                         printLayout={printLayoutConfig}
                       />
                     )}
-                    {printLayoutEnabled && printDocEmpty && (
-                      <div className="editor-print-empty-hero" aria-hidden="true">
-                        <p className="editor-print-empty-hero-title">{t('editor.printEmptyHero')}</p>
-                        <p className="editor-print-empty-hero-hint">{t('editor.printEmptyHint')}</p>
-                      </div>
-                    )}
+                    {printLayoutEnabled && printDocEmpty && <PrintEmptyHero />}
                     {!printLayoutEnabled && (
                       <PageWatermarkOverlays
                         pageSetup={pageSetup}

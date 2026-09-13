@@ -11,6 +11,8 @@ async function bootstrap() {
   }
 
   await hydrateKvStore()
+  const { ensureAllCustomFontsLoaded } = await import('@/lib/editor/custom-fonts')
+  void ensureAllCustomFontsLoaded()
 
   const { Provider } = await import('react-redux')
   const { HotkeysProvider } = await import('@tanstack/react-hotkeys')

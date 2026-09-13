@@ -188,7 +188,7 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
   }
 
   return (
-    <div className="editor-toolbar-shell">
+    <div className="editor-toolbar-shell" data-tour="editor-toolbar">
       <div className="editor-toolbar-ribbon">
         <ToolbarCluster className="toolbar-cluster--flat">
           <ToolbarButton

@@ -52,7 +52,7 @@ export function EditorStatusBar({
 
   return (
     <TooltipProvider delayDuration={400}>
-      <footer className="editor-status-bar titlebar-no-drag">
+      <footer className="editor-status-bar titlebar-no-drag" data-tour="status-bar">
         <div className="editor-status-bar-left">
           <Tooltip>
             <TooltipTrigger asChild>

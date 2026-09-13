@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setActiveDocumentId } from '@/store/documentsSlice'
 import { Button } from '@/components/ui/button'
+import { LinkGraphEmptyState } from '@/components/LinkGraphEmptyState'
 
 const NLP_ENTITY_DOC_CAP = 24
 
@@ -1089,20 +1090,14 @@ export function LibraryLinkGraphView({
 
   if (!hasContent) {
     return (
-      <div className={cn(shellClass, isPage && 'px-6 py-5 sm:px-8')}>
+      <div className={cn(shellClass, isPage && 'relative flex min-h-0 flex-1 flex-col')}>
         {toolbar}
-        <p className={cn('text-center text-[12px] text-[var(--color-muted-foreground)]', isPage ? 'py-16' : 'py-4')}>
-          {showOrphans && orphans.length === 0 ? t('linkGraph.emptyOrphans') : t('linkGraph.empty')}
-        </p>
-        {showOrphans && orphans.length > 0 ? null : orphans.length > 0 ? (
-          <p className="text-center text-[11px] text-[var(--color-muted-foreground)]">
-            {t('linkGraph.orphanHint', { count: orphans.length })}
-          </p>
-        ) : (
-          <p className="mx-auto max-w-[42ch] text-center text-[12px] text-[var(--color-muted-foreground)]">
-            {t('linkGraph.emptyHint')}
-          </p>
-        )}
+        <LinkGraphEmptyState
+          orphanCount={orphans.length}
+          showOrphans={showOrphans}
+          compact={!isPage}
+          onShowOrphans={() => setShowOrphans(true)}
+        />
       </div>
     )
   }

@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Upload } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { listSystemFontFamilies } from '@/lib/db/api'
+import {
+  applyCustomFontFamily,
+  ensureCustomFontLoaded,
+  listCustomFonts,
+  registerCustomFontFromPicker,
+  type CustomFontRecord,
+} from '@/lib/editor/custom-fonts'
 import {
   FONT_FAMILIES,
   formatCustomFontFamily,
@@ -14,6 +22,7 @@ import {
   filterGoogleFonts,
   listGoogleFontFamilies,
 } from '@/lib/editor/google-fonts'
+import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 
 type FontFamilyFieldProps = {
@@ -34,8 +43,10 @@ export function FontFamilyField({ value, onChange, className }: FontFamilyFieldP
   const [query, setQuery] = useState('')
   const [systemFonts, setSystemFonts] = useState<string[]>([])
   const [googleFonts, setGoogleFonts] = useState<string[]>([])
+  const [uploadedFonts, setUploadedFonts] = useState<CustomFontRecord[]>(() => listCustomFonts())
   const [customDraft, setCustomDraft] = useState(value)
   const [recentFonts, setRecentFonts] = useState(() => readRecentFonts())
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     setCustomDraft(value)
@@ -49,15 +60,22 @@ export function FontFamilyField({ value, onChange, className }: FontFamilyFieldP
     void listGoogleFontFamilies().then((fonts) => {
       if (!cancelled) setGoogleFonts(fonts)
     })
+    setUploadedFonts(listCustomFonts())
+    for (const font of listCustomFonts()) {
+      void ensureCustomFontLoaded(font.family)
+    }
     return () => {
       cancelled = true
     }
   }, [])
 
-  function apply(next: string, options?: { google?: boolean }) {
-    const formatted = options?.google
-      ? applyGoogleFontFamily(next)
-      : formatCustomFontFamily(next)
+  function apply(next: string, options?: { google?: boolean; uploaded?: boolean }) {
+    const formatted = options?.uploaded
+      ? applyCustomFontFamily(next)
+      : options?.google
+        ? applyGoogleFontFamily(next)
+        : formatCustomFontFamily(next)
+    if (options?.uploaded) void ensureCustomFontLoaded(next)
     onChange(formatted)
     if (formatted) {
       pushRecentFont(formatted)
@@ -65,9 +83,35 @@ export function FontFamilyField({ value, onChange, className }: FontFamilyFieldP
     }
   }
 
+  async function handleUpload() {
+    if (uploading) return
+    setUploading(true)
+    try {
+      const result = await registerCustomFontFromPicker()
+      if (!result.ok) {
+        if (result.error === 'cancelled') return
+        const key =
+          result.error === 'unsupported'
+            ? 'toolbar.fonts.uploadUnsupported'
+            : result.error === 'tooLarge'
+              ? 'toolbar.fonts.uploadTooLarge'
+              : result.error === 'limit'
+                ? 'toolbar.fonts.uploadLimit'
+                : 'toolbar.fonts.uploadFailed'
+        toast.error(t('toolbar.fonts.uploadError'), t(key))
+        return
+      }
+      setUploadedFonts(listCustomFonts())
+      apply(result.record.family, { uploaded: true })
+      toast.success(t('toolbar.fonts.uploadDone'), result.record.family)
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const q = query.trim().toLowerCase()
   const options = useMemo(() => {
-    const rows: Array<{ id: string; label: string; value: string; google?: boolean }> = []
+    const rows: Array<{ id: string; label: string; value: string; google?: boolean; uploaded?: boolean }> = []
 
     for (const item of FONT_FAMILIES) {
       const label = presetLabel(item, t)
@@ -75,6 +119,18 @@ export function FontFamilyField({ value, onChange, className }: FontFamilyFieldP
         continue
       }
       rows.push({ id: `preset:${item.value || 'default'}`, label, value: item.value })
+    }
+
+    for (const font of uploadedFonts) {
+      if (q && !font.family.toLowerCase().includes(q) && !font.fileName.toLowerCase().includes(q)) {
+        continue
+      }
+      rows.push({
+        id: `uploaded:${font.id}`,
+        label: font.family,
+        value: font.family,
+        uploaded: true,
+      })
     }
 
     for (const font of recentFonts) {
@@ -100,7 +156,7 @@ export function FontFamilyField({ value, onChange, className }: FontFamilyFieldP
     }
 
     return rows
-  }, [googleFonts, q, query, recentFonts, systemFonts, t])
+  }, [googleFonts, q, query, recentFonts, systemFonts, t, uploadedFonts])
 
   const currentLabel = getFontFamilyLabel(value, t)
 
@@ -109,6 +165,16 @@ export function FontFamilyField({ value, onChange, className }: FontFamilyFieldP
       <div className="font-family-field-current" style={{ fontFamily: value || undefined }}>
         {currentLabel || t('toolbar.fonts.default')}
       </div>
+      <button
+        type="button"
+        className="font-family-upload-btn font-family-upload-btn--field"
+        disabled={uploading}
+        onClick={() => void handleUpload()}
+      >
+        <Upload className="h-3.5 w-3.5" aria-hidden />
+        {uploading ? t('toolbar.fonts.uploading') : t('toolbar.fonts.upload')}
+      </button>
+      <p className="font-family-hint m-0 px-0.5">{t('toolbar.fonts.uploadHint')}</p>
       <input
         type="search"
         className="font-family-search-input"
@@ -131,7 +197,7 @@ export function FontFamilyField({ value, onChange, className }: FontFamilyFieldP
               aria-selected={active}
               className={cn('font-family-field-option', active && 'is-active')}
               style={{ fontFamily: option.value || undefined }}
-              onClick={() => apply(option.value, { google: option.google })}
+              onClick={() => apply(option.value, { google: option.google, uploaded: option.uploaded })}
             >
               <span>{option.label}</span>
               {active && <span className="font-family-option-check">✓</span>}

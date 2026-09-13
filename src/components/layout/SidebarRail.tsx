@@ -35,7 +35,7 @@ export function SidebarRail({ onNavigate }: SidebarRailProps) {
   }, [activeDocumentId, documents])
 
   return (
-    <div className="app-sidebar-rail titlebar-no-drag">
+    <div className="app-sidebar-rail titlebar-no-drag" data-tour="sidebar-rail">
       <button
         type="button"
         className="app-rail-mark mb-1"
@@ -99,6 +99,7 @@ export function SidebarRail({ onNavigate }: SidebarRailProps) {
         to="/settings/appearance"
         title={t('nav.settings')}
         aria-label={t('nav.settings')}
+        data-tour="settings-nav"
         onClick={() => onNavigate?.()}
         className={cn('app-rail-btn titlebar-no-drag', onSettingsPage && 'is-active')}
       >

@@ -149,6 +149,10 @@ class HunspellDictionary:
     def __len__(self) -> int:
         return len(self.stems)
 
+    def suggestion_vocab(self) -> frozenset[str]:
+        """Stem set for fast edit-distance suggestions (no affix walk)."""
+        return frozenset(self.stems)
+
     def lookup(self, word: str) -> bool:
         lower = word.lower()
         if lower in self.stems:

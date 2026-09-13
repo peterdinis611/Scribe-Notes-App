@@ -131,6 +131,8 @@
     "newDocument": "New document",
     "demoDocument": "Demo document",
     "demoHint": "Scribe Guide",
+    "appTour": "App tour",
+    "appTourHint": "Highlight the main parts of Scribe",
     "focusOn": "Enable focus mode",
     "focusOff": "Disable focus mode",
     "duplicate": "Duplicate document",
@@ -189,6 +191,11 @@
     "placeholder": "Start typing…",
     "printEmptyHero": "Blank page",
     "printEmptyHint": "Start writing — or / for commands",
+    "printEmptyEyebrow": "Ready to write",
+    "printEmptyHintLead": "Start typing — or",
+    "printEmptyHintTrail": "for commands",
+    "printEmptyTipSlash": "Insert blocks",
+    "printEmptyTipWiki": "Link a note",
     "markdownAria": "Markdown editor",
     "markdownPlaceholder": "# Heading\n\nWrite in **Markdown** — headings, lists, `code`, tables…"
   },
@@ -247,6 +254,74 @@
     "structure": {
       "title": "Stay oriented while scrolling",
       "description": "The Outline panel (right) tracks headings. The status bar shows your current section and page."
+    }
+  },
+  "appTour": {
+    "steps": {
+      "welcome": {
+        "title": "Welcome to Scribe",
+        "description": "A short walkthrough of the library, editor, and panels. Everything stays on this Mac."
+      },
+      "sidebarRail": {
+        "title": "Navigation rail",
+        "description": "Jump between Home, the open note, the link graph, docs, and Settings."
+      },
+      "librarySearch": {
+        "title": "Library search",
+        "description": "Find notes by title or content. ⌘K opens the command palette for faster actions."
+      },
+      "libraryViews": {
+        "title": "Library views",
+        "description": "Switch between folders, favorites, tags, recent notes, journal, graph, and chat."
+      },
+      "libraryTree": {
+        "title": "Your documents",
+        "description": "Browse folders and notes. Drag to reorganize, right-click for more actions."
+      },
+      "newDocument": {
+        "title": "New document",
+        "description": "Create a blank note or start from a template."
+      },
+      "appHeader": {
+        "title": "Document chrome",
+        "description": "Title, file menu, export, and view tools live here while you write."
+      },
+      "documentTabs": {
+        "title": "Open tabs",
+        "description": "Keep several notes open at once. Pin important ones so they stay put."
+      },
+      "editorToolbar": {
+        "title": "Formatting toolbar",
+        "description": "Typography, lists, inserts, and layout controls — familiar, keyboard-friendly."
+      },
+      "editorCanvas": {
+        "title": "The page",
+        "description": "Write freely. Type / for slash commands, [[ for wiki links, and drop images onto the page."
+      },
+      "panelRail": {
+        "title": "Side tools",
+        "description": "Outline, comments, backlinks, AI insights, stats, history, find, focus, and reading mode."
+      },
+      "panelOutline": {
+        "title": "Outline",
+        "description": "Jump through headings and blocks in long documents."
+      },
+      "panelInsights": {
+        "title": "AI insights",
+        "description": "Local summary, keywords, spell check, and ask-this-note — no cloud LLM."
+      },
+      "statusBar": {
+        "title": "Status bar",
+        "description": "Word count, page layout, and print helpers at a glance."
+      },
+      "settingsNav": {
+        "title": "Settings",
+        "description": "Appearance, storage, shortcuts, Local AI, MCP, and About — including replaying this tour."
+      },
+      "done": {
+        "title": "You’re ready",
+        "description": "Press ⌘K anytime for the command palette, or reopen this tour from Settings → About."
+      }
     }
   },
   "setup": {
@@ -660,7 +735,8 @@
       "tagline": "Write documents. Link notes.",
       "platform": "Platform",
       "fileFormat": "File format",
-      "export": "Export"
+      "export": "Export",
+      "replayTour": "Replay app tour"
     },
     "docs": {
       "pageTitle": "Documentation",
@@ -1232,11 +1308,13 @@
     },
     "insights": {
       "title": "AI insights",
-      "subtitle": "Summary, keywords, similar notes and open tasks",
+      "subtitle": "Local overview of the open note",
+      "subtitleWithCount": "{{count}} signals in this note",
       "hide": "Hide AI insights",
       "loadError": "Could not load AI insights",
       "askTitle": "Ask this note",
       "askHint": "Local AI actions and questions about the open document — no cloud.",
+      "localBadge": "offline",
       "openChat": "Open full chat →",
       "summary": "Summary",
       "summaryEmpty": "Write a bit more for an extractive summary.",
@@ -1283,6 +1361,7 @@
       "spellcheckRun": "Check spelling",
       "spellcheckRunning": "Checking…",
       "spellcheckHint": "Offline typo check (SK/EN). Reports words with a close dictionary match.",
+      "spellcheckHintShort": "Offline SK/EN · close typos only",
       "spellcheckEmpty": "No likely typos found.",
       "spellcheckDisabled": "Enable Local AI in Settings for spell check.",
       "spellcheckError": "Spell check failed",
@@ -1407,6 +1486,8 @@
     "loading": "Loading connection map…",
     "empty": "No wiki links between documents yet.",
     "emptyHint": "Type [[Title]] in a document and linked notes will appear here as a map.",
+    "emptyHintLinked": "Every document is already part of the map. Keep linking to densify the constellation.",
+    "emptyTipWiki": "Write [[Title]] in a note to grow the map.",
     "emptyOrphans": "No orphan documents — every document is linked.",
     "emptyAround": "No neighbors for the active document. Turn off Around, or enable Orphans.",
     "summary": "{{nodes}} documents · {{edges}} links",
@@ -1431,6 +1512,7 @@
     "fitView": "Fit graph (double-click background)",
     "eyebrow": "Wiki links",
     "pageTitle": "Connection map",
+    "pageLede": "Documents linked by [[wiki links]] — click a node to open it.",
     "pageSubtitle": "A map of documents connected by [[wiki links]]. Click a node to open that document.",
     "howToHint": "Double-click a node to open it. The Around filter shows neighbors of the active note.",
     "openFullMap": "Open full connection map",
@@ -1951,6 +2033,16 @@
       "customPlaceholder": "e.g. Comic Sans MS",
       "searchPlaceholder": "Search fonts…",
       "recent": "Recent",
+      "uploaded": "Uploaded fonts",
+      "upload": "Upload font…",
+      "uploading": "Uploading…",
+      "uploadHint": "TTF, OTF, WOFF or WOFF2 — stored locally on this Mac.",
+      "uploadDone": "Font uploaded",
+      "uploadError": "Could not upload font",
+      "uploadUnsupported": "Use a .ttf, .otf, .woff, or .woff2 file.",
+      "uploadTooLarge": "Font is too large (max 4 MB).",
+      "uploadLimit": "You already have 24 uploaded fonts.",
+      "uploadFailed": "Something went wrong while saving the font.",
       "systemFonts": "System fonts",
       "googleFonts": "Google Fonts",
       "googleHint": "Loads from Google when selected — needs network.",

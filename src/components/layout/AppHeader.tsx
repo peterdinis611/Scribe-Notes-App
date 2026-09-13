@@ -371,11 +371,19 @@ function EditorChrome() {
 
   return (
     <>
-      <header className="app-chrome editor-header titlebar-drag [[data-sidebar-drawer=true]_&]:pl-[78px]">
+      <header
+        className="app-chrome editor-header titlebar-drag [[data-sidebar-drawer=true]_&]:pl-[78px]"
+        data-tour="app-header"
+      >
         <div className="editor-header-left titlebar-no-drag titlebar-interactive flex min-w-0 flex-1 items-center justify-start gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0">
           <SidebarToggle />
           {document && !readingMode && (
-            <Button variant="default" size="sm" onClick={() => dispatch(setTemplatePickerOpen(true))}>
+            <Button
+              variant="default"
+              size="sm"
+              data-tour="new-document"
+              onClick={() => dispatch(setTemplatePickerOpen(true))}
+            >
               <Plus className="h-3.5 w-3.5 shrink-0" />
               <span className="editor-header-label [[data-layout-tier=medium]_&]:hidden [[data-layout-tier=narrow]_&]:hidden [[data-layout-tier=tight]_&]:hidden">
                 {t('common.new')}

@@ -117,6 +117,7 @@ export function DocumentTabsBar() {
         scrollHints.left && 'can-scroll-left',
         scrollHints.right && 'can-scroll-right',
       )}
+      data-tour="document-tabs"
     >
       <div
         ref={listRef}

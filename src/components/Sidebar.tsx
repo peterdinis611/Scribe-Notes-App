@@ -114,7 +114,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
         />
         <SidebarRail onNavigate={onClose} />
 
-        <div className="app-sidebar-panel titlebar-no-drag min-h-0">
+        <div className="app-sidebar-panel titlebar-no-drag min-h-0" data-tour="library-panel">
           <div className="library-panel-head px-3 pb-1 pt-3">
             <p className="library-panel-title m-0 truncate px-1">
               {t('library.title')}
@@ -124,7 +124,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
             </p>
           </div>
 
-          <div className="px-2 py-1.5">
+          <div className="px-2 py-1.5" data-tour="library-search">
             <div className="library-search relative flex items-center">
               <Search
                 className="pointer-events-none absolute left-2.5 top-1/2 z-1 h-3.5 w-3.5 -translate-y-1/2 text-[var(--color-muted-foreground)]"
@@ -153,7 +153,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
 
           {!isContentSearch && (
             <>
-              <div className="px-2 pb-1 pt-0.5">
+              <div className="px-2 pb-1 pt-0.5" data-tour="library-views">
                 <LibraryViewTabs
                   value={libraryView}
                   favoriteCount={favoriteCount}
@@ -215,7 +215,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                     </div>
                   </div>
                   <ScrollArea className="min-h-0 flex-1" viewportRef={scrollRef}>
-                    <div className="px-1 pb-3">
+                    <div className="px-1 pb-3" data-tour="library-tree">
                       <FolderTree query={query} scrollRef={scrollRef} onNavigate={onClose} />
                     </div>
                   </ScrollArea>

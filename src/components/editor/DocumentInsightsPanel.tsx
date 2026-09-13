@@ -1,16 +1,20 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import {
+  ArrowUpRight,
   AtSign,
   CalendarDays,
   CheckSquare,
+  ChevronDown,
   FileText,
   Gauge,
   Hash,
   Languages,
   ListTree,
+  LoaderCircle,
   MessageCircle,
+  Network,
   PanelRightClose,
   RotateCcw,
   Sparkles,
@@ -58,6 +62,77 @@ import {
 
 type DocumentInsightsPanelProps = {
   onClose: () => void
+}
+
+const INSIGHT_ACTIONS: DocumentChatAction[] = [
+  'summarize',
+  'outline',
+  'keywords',
+  'tasks',
+  'wiki',
+  'tone',
+]
+
+function InsightChip({
+  children,
+  className,
+  title,
+}: {
+  children: ReactNode
+  className?: string
+  title?: string
+}) {
+  return (
+    <span className={cn('insights-chip', className)} title={title}>
+      {children}
+    </span>
+  )
+}
+
+function InsightSection({
+  icon: Icon,
+  title,
+  count,
+  defaultOpen,
+  children,
+  className,
+}: {
+  icon: typeof Sparkles
+  title: string
+  count?: number
+  defaultOpen?: boolean
+  children: ReactNode
+  className?: string
+}) {
+  const hasItems = (count ?? 0) > 0
+  const [open, setOpen] = useState(defaultOpen ?? hasItems)
+
+  useEffect(() => {
+    if (hasItems) setOpen(true)
+  }, [hasItems])
+
+  return (
+    <section className={cn('insights-section', open && 'is-open', className)}>
+      <button
+        type="button"
+        className="insights-section__head"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <span className="insights-section__title">
+          <Icon className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
+          {title}
+        </span>
+        <span className="insights-section__meta">
+          {typeof count === 'number' ? (
+            <span className={cn('insights-count', hasItems && 'has-items')}>{count}</span>
+          ) : null}
+          <ChevronDown className={cn('insights-section__chevron', open && 'is-open')} aria-hidden />
+        </span>
+      </button>
+      {open ? <div className="insights-section__body">{children}</div> : null}
+    </section>
+  )
 }
 
 export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
@@ -205,15 +280,6 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
     dispatch(setPendingLibraryView({ view: 'chat' }))
   }, [dispatch])
 
-  const INSIGHT_ACTIONS: DocumentChatAction[] = [
-    'summarize',
-    'outline',
-    'keywords',
-    'tasks',
-    'wiki',
-    'tone',
-  ]
-
   const handleFindWord = useCallback(
     (word: string) => {
       dispatch(setFindReplaceOpen(true))
@@ -230,14 +296,15 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
     (analysis?.mentions?.length ?? 0) +
     (analysis?.hosts?.length ?? 0)
   const hasSummary = Boolean(analysis?.summary?.trim())
-  const total =
+  const signalCount =
     similar.length +
     openTasks.length +
     keywordCount +
     outlineCount +
     dateCount +
     mentionCount +
-    (hasSummary ? 1 : 0)
+    (hasSummary ? 1 : 0) +
+    (spellResult?.issueCount ?? 0)
 
   const languageLabel = useMemo(() => {
     if (!analysis?.language || analysis.language === 'unknown') {
@@ -260,14 +327,16 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
     return t(`panels.insights.readability.${label}`, { defaultValue: label })
   }, [analysis?.readabilityLabel, t])
 
+  const readingMinutes = Math.max(1, Math.round(analysis?.readingTimeMinutes ?? 1))
+
   return (
-    <EditorSidePanel className="titlebar-no-drag" aria-label={t('panels.insights.title')}>
+    <EditorSidePanel className="titlebar-no-drag insights-panel" aria-label={t('panels.insights.title')}>
       <EditorSidePanelHeader
         title={t('panels.insights.title')}
         subtitle={
-          total === 0
-            ? t('panels.insights.subtitle')
-            : `${t('panels.insights.subtitle')} · ${total}`
+          signalCount > 0
+            ? t('panels.insights.subtitleWithCount', { count: signalCount })
+            : t('panels.insights.subtitle')
         }
         actions={
           <div className="inline-flex gap-0.5">
@@ -281,39 +350,37 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
         }
       />
 
-      {loading && total === 0 ? (
+      {loading && signalCount === 0 && !askReply ? (
         <EditorSidePanelEmpty>{t('common.loading')}</EditorSidePanelEmpty>
       ) : (
-        <EditorSidePanelList className="gap-1">
-          <div>
-            <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.03em] text-[var(--color-muted-foreground)]">
-              <MessageCircle className="h-3.5 w-3.5" />
-              {t('panels.insights.askTitle')}
-            </h3>
-            <p className="m-0 mb-2 text-[10.5px] leading-snug text-[var(--color-muted-foreground)]">
-              {t('panels.insights.askHint')}
-            </p>
+        <EditorSidePanelList className="insights-panel__list">
+          <div className="insights-ask insights-rise" style={{ animationDelay: '40ms' }}>
+            <div className="insights-ask__label">
+              <MessageCircle className="h-3.5 w-3.5" aria-hidden />
+              <span>{t('panels.insights.askTitle')}</span>
+              <span className="insights-ask__local">{t('panels.insights.localBadge')}</span>
+            </div>
+
             {!nlpEnabled ? (
-              <p className="m-0 text-[11.5px] text-[var(--color-muted-foreground)]">
-                {t('panels.insights.keywordsDisabled')}
-              </p>
+              <p className="insights-quiet">{t('panels.insights.keywordsDisabled')}</p>
             ) : (
               <>
-                <div className="mb-2 flex flex-wrap gap-1">
+                <div className="insights-actions">
                   {INSIGHT_ACTIONS.map((action) => (
                     <button
                       key={action}
                       type="button"
                       disabled={askBusy || !activeId}
-                      className="rounded-full border border-[var(--color-border)] bg-transparent px-2 py-0.5 text-[10px] text-[var(--color-muted-foreground)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-foreground)] disabled:opacity-50"
+                      className="insights-action"
                       onClick={() => void handleAskAction(action)}
                     >
                       {t(`libraryChat.actions.${action}`)}
                     </button>
                   ))}
                 </div>
+
                 <form
-                  className="mb-2 flex items-center gap-1.5"
+                  className="insights-ask__form"
                   onSubmit={(event) => {
                     event.preventDefault()
                     void handleAskQuestion()
@@ -321,7 +388,7 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
                 >
                   <input
                     type="text"
-                    className="h-7 min-w-0 flex-1 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-background)] px-2 text-[11px] text-[var(--color-foreground)] outline-none placeholder:text-[var(--color-muted-foreground)] focus:border-[var(--color-accent)]"
+                    className="insights-ask__input"
                     placeholder={t('libraryChat.placeholderDocument')}
                     value={askInput}
                     disabled={askBusy}
@@ -330,129 +397,132 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
                   <button
                     type="submit"
                     disabled={askBusy || !askInput.trim()}
-                    className="inline-flex h-7 items-center rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] px-2 text-[11px] font-medium text-[var(--color-foreground)] hover:bg-[var(--color-hover)] disabled:opacity-50"
+                    className="insights-ask__send"
+                    aria-label={t('libraryChat.send')}
                   >
-                    {t('libraryChat.send')}
+                    {askBusy ? (
+                      <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                    ) : (
+                      <ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
+                    )}
                   </button>
                 </form>
-                {askBusy ? (
-                  <p className="m-0 text-[11px] text-[var(--color-muted-foreground)]">
-                    {t('libraryChat.thinking')}
-                  </p>
+
+                {askBusy && !askReply ? (
+                  <p className="insights-quiet">{t('libraryChat.thinking')}</p>
                 ) : null}
+
                 {askReply ? (
-                  <div className="rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-2">
+                  <div className="insights-reply">
                     <MarkdownView source={askReply} className="scribe-markdown--chat" />
                   </div>
                 ) : null}
-                <button
-                  type="button"
-                  className="mt-2 text-[11px] font-medium text-[var(--color-accent)] hover:underline"
-                  onClick={openLibraryChat}
-                >
+
+                <button type="button" className="insights-link" onClick={openLibraryChat}>
                   {t('panels.insights.openChat')}
                 </button>
               </>
             )}
           </div>
 
-          <div className="mt-3.5 border-t border-[var(--color-border)] pt-3">
-            <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.03em] text-[var(--color-muted-foreground)]">
-              <Sparkles className="h-3.5 w-3.5" />
-              {t('panels.insights.summary')}
-            </h3>
-            <p className="m-0 mb-1.5 flex items-center gap-1.5 text-[10.5px] text-[var(--color-muted-foreground)]">
-              <Languages className="h-3 w-3 shrink-0" />
-              {nlpEnabled
-                ? t('panels.insights.languageLine', { language: languageLabel })
-                : t('panels.insights.keywordsDisabled')}
-            </p>
+          <div className="insights-snapshot insights-rise" style={{ animationDelay: '90ms' }}>
+            <div className="insights-snapshot__head">
+              <Sparkles className="h-3.5 w-3.5 opacity-70" aria-hidden />
+              <span>{t('panels.insights.summary')}</span>
+            </div>
+
+            {nlpEnabled ? (
+              <div className="insights-chips">
+                <InsightChip>
+                  <Languages className="h-3 w-3" aria-hidden />
+                  {languageLabel}
+                </InsightChip>
+                {toneLabel ? (
+                  <InsightChip>
+                    <Sparkles className="h-3 w-3" aria-hidden />
+                    {toneLabel}
+                  </InsightChip>
+                ) : null}
+                {readabilityLabel ? (
+                  <InsightChip>
+                    <Gauge className="h-3 w-3" aria-hidden />
+                    {readabilityLabel}
+                    <span className="opacity-60">· ~{readingMinutes} min</span>
+                  </InsightChip>
+                ) : null}
+              </div>
+            ) : null}
+
             {!nlpEnabled || !hasSummary ? (
-              <p className="m-0 mt-0.5 text-[11.5px] text-[var(--color-muted-foreground)]">
+              <p className="insights-quiet">
                 {nlpEnabled ? t('panels.insights.summaryEmpty') : t('panels.insights.keywordsDisabled')}
               </p>
             ) : (
-              <p className="m-0 text-[12.5px] leading-snug text-[var(--color-foreground)]">
-                {analysis?.summary}
+              <p className="insights-summary">{analysis?.summary}</p>
+            )}
+
+            {nlpEnabled && analysis?.suggestedTitle ? (
+              <p className="insights-suggested" title={analysis.suggestedTitle}>
+                {t('panels.insights.suggestedTitle', { title: analysis.suggestedTitle })}
               </p>
-            )}
-            {nlpEnabled && (toneLabel || readabilityLabel || analysis?.suggestedTitle) && (
-              <div className="mt-2 flex flex-col gap-1 text-[10.5px] text-[var(--color-muted-foreground)]">
-                {toneLabel && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Sparkles className="h-3 w-3 shrink-0" />
-                    {t('panels.insights.toneLine', { tone: toneLabel })}
-                  </span>
-                )}
-                {readabilityLabel && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Gauge className="h-3 w-3 shrink-0" />
-                    {t('panels.insights.readabilityLine', {
-                      label: readabilityLabel,
-                      minutes: Math.max(1, Math.round(analysis?.readingTimeMinutes ?? 1)),
-                    })}
-                  </span>
-                )}
-                {analysis?.suggestedTitle && (
-                  <span className="truncate" title={analysis.suggestedTitle}>
-                    {t('panels.insights.suggestedTitle', { title: analysis.suggestedTitle })}
-                  </span>
-                )}
-              </div>
-            )}
+            ) : null}
           </div>
 
-          <div className="mt-3.5 border-t border-[var(--color-border)] pt-3">
-            <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.03em] text-[var(--color-muted-foreground)]">
-              <SpellCheck className="h-3.5 w-3.5" />
-              {t('panels.insights.spellcheck')}
+          <div className="insights-tool insights-rise" style={{ animationDelay: '130ms' }}>
+            <div className="insights-tool__row">
+              <div className="insights-tool__copy">
+                <SpellCheck className="h-3.5 w-3.5 opacity-70" aria-hidden />
+                <div>
+                  <div className="insights-tool__title">{t('panels.insights.spellcheck')}</div>
+                  <div className="insights-tool__hint">{t('panels.insights.spellcheckHintShort')}</div>
+                </div>
+              </div>
               {spellResult ? (
-                <span className="ml-auto rounded-full bg-[var(--color-hover)] px-1.5 text-[10px] font-semibold">
+                <span className={cn('insights-count', spellResult.issueCount > 0 && 'has-items')}>
                   {spellResult.issueCount}
                 </span>
               ) : null}
-            </h3>
-            <p className="m-0 mb-2 text-[10.5px] leading-snug text-[var(--color-muted-foreground)]">
-              {t('panels.insights.spellcheckHint')}
-            </p>
+            </div>
+
             {!nlpEnabled ? (
-              <p className="m-0 text-[11.5px] text-[var(--color-muted-foreground)]">
-                {t('panels.insights.spellcheckDisabled')}
-              </p>
+              <p className="insights-quiet">{t('panels.insights.spellcheckDisabled')}</p>
             ) : (
               <>
                 <button
                   type="button"
-                  className="mb-2 inline-flex h-7 items-center rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 text-[11px] font-medium text-[var(--color-foreground)] hover:bg-[var(--color-hover)]"
+                  className="insights-primary-btn"
                   disabled={spellLoading || !activeId}
                   onClick={() => void handleSpellcheck()}
                 >
-                  {spellLoading
-                    ? t('panels.insights.spellcheckRunning')
-                    : t('panels.insights.spellcheckRun')}
+                  {spellLoading ? (
+                    <>
+                      <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                      {t('panels.insights.spellcheckRunning')}
+                    </>
+                  ) : (
+                    t('panels.insights.spellcheckRun')
+                  )}
                 </button>
+
                 {spellResult && spellResult.issueCount === 0 ? (
-                  <p className="m-0 text-[11.5px] text-[var(--color-muted-foreground)]">
-                    {t('panels.insights.spellcheckEmpty')}
-                  </p>
+                  <p className="insights-quiet insights-quiet--ok">{t('panels.insights.spellcheckEmpty')}</p>
                 ) : null}
+
                 {spellResult && spellResult.issues.length > 0 ? (
-                  <ul className="m-0 list-none space-y-2 p-0">
+                  <ul className="insights-issue-list">
                     {spellResult.issues.slice(0, 24).map((issue) => (
-                      <li key={`${issue.word}-${issue.offset}`} className="text-[12px]">
+                      <li key={`${issue.word}-${issue.offset}`}>
                         <button
                           type="button"
-                          className="font-semibold text-[var(--color-accent)] hover:underline"
+                          className="insights-issue-word"
                           title={t('panels.insights.spellcheckFind')}
                           onClick={() => handleFindWord(issue.word)}
                         >
                           {issue.word}
                         </button>
                         {issue.suggestions.length > 0 ? (
-                          <span className="mt-0.5 block text-[10.5px] text-[var(--color-muted-foreground)]">
-                            {t('panels.insights.spellcheckSuggestions', {
-                              list: issue.suggestions.slice(0, 4).join(', '),
-                            })}
+                          <span className="insights-issue-suggestions">
+                            {issue.suggestions.slice(0, 3).join(' · ')}
                           </span>
                         ) : null}
                       </li>
@@ -463,216 +533,172 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
             )}
           </div>
 
-          <div className="mt-3.5 border-t border-[var(--color-border)] pt-3">
-            <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.03em] text-[var(--color-muted-foreground)]">
-              <CalendarDays className="h-3.5 w-3.5" />
-              {t('panels.insights.dates')}
-              <span className="ml-auto rounded-full bg-[var(--color-hover)] px-1.5 text-[10px] font-semibold">
-                {dateCount}
-              </span>
-            </h3>
-            {!nlpEnabled || dateCount === 0 ? (
-              <p className="m-0 mt-0.5 text-[11.5px] text-[var(--color-muted-foreground)]">
-                {nlpEnabled ? t('panels.insights.datesEmpty') : t('panels.insights.keywordsDisabled')}
-              </p>
-            ) : (
-              <ul className="m-0 list-none space-y-1 p-0">
-                {analysis?.dates?.slice(0, 8).map((item, index) => (
-                  <li key={`${item.text}-${index}`} className="text-[12px] text-[var(--color-foreground)]">
-                    {item.text}
-                    {item.resolvedDate ? (
-                      <span className="ml-1.5 text-[10px] text-[var(--color-muted-foreground)]">
-                        → {item.resolvedDate}
-                      </span>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <div className="insights-stack insights-rise" style={{ animationDelay: '170ms' }}>
+            <InsightSection
+              icon={CalendarDays}
+              title={t('panels.insights.dates')}
+              count={dateCount}
+              defaultOpen={dateCount > 0}
+            >
+              {!nlpEnabled || dateCount === 0 ? (
+                <p className="insights-quiet">
+                  {nlpEnabled ? t('panels.insights.datesEmpty') : t('panels.insights.keywordsDisabled')}
+                </p>
+              ) : (
+                <ul className="insights-plain-list">
+                  {analysis?.dates?.slice(0, 8).map((item, index) => (
+                    <li key={`${item.text}-${index}`}>
+                      <span>{item.text}</span>
+                      {item.resolvedDate ? (
+                        <span className="insights-dim">→ {item.resolvedDate}</span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </InsightSection>
 
-          <div className="mt-3.5 border-t border-[var(--color-border)] pt-3">
-            <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.03em] text-[var(--color-muted-foreground)]">
-              <AtSign className="h-3.5 w-3.5" />
-              {t('panels.insights.links')}
-              <span className="ml-auto rounded-full bg-[var(--color-hover)] px-1.5 text-[10px] font-semibold">
-                {mentionCount}
-              </span>
-            </h3>
-            {!nlpEnabled || mentionCount === 0 ? (
-              <p className="m-0 mt-0.5 text-[11.5px] text-[var(--color-muted-foreground)]">
-                {nlpEnabled ? t('panels.insights.linksEmpty') : t('panels.insights.keywordsDisabled')}
-              </p>
-            ) : (
-              <div className="flex flex-wrap gap-1.5">
-                {analysis?.wikiLinks?.slice(0, 6).map((item) => (
-                  <span
-                    key={`wiki-${item}`}
-                    className="rounded-md bg-[var(--color-hover)] px-2 py-1 text-[11px] font-medium"
-                  >
-                    [[{item}]]
-                  </span>
-                ))}
-                {analysis?.mentions?.slice(0, 6).map((item) => (
-                  <span
-                    key={`mention-${item}`}
-                    className="rounded-md bg-[var(--color-hover)] px-2 py-1 text-[11px] font-medium"
-                  >
-                    @{item}
-                  </span>
-                ))}
-                {analysis?.hosts?.slice(0, 4).map((item) => (
-                  <span
-                    key={`host-${item}`}
-                    className="rounded-md bg-[var(--color-hover)] px-2 py-1 text-[11px] font-medium"
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="mt-3.5 border-t border-[var(--color-border)] pt-3">
-            <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.03em] text-[var(--color-muted-foreground)]">
-              <Hash className="h-3.5 w-3.5" />
-              {t('panels.insights.keywords')}
-              <span className="ml-auto rounded-full bg-[var(--color-hover)] px-1.5 text-[10px] font-semibold">
-                {keywordCount}
-              </span>
-            </h3>
-            {!nlpEnabled || keywordCount === 0 ? (
-              <p className="m-0 mt-0.5 text-[11.5px] text-[var(--color-muted-foreground)]">
-                {nlpEnabled ? t('panels.insights.keywordsEmpty') : t('panels.insights.keywordsDisabled')}
-              </p>
-            ) : (
-              <div className="flex flex-wrap gap-1.5">
-                {analysis?.keywords.slice(0, 10).map((item) => (
-                  <span
-                    key={item.term}
-                    className="rounded-md bg-[var(--color-hover)] px-2 py-1 text-[11px] font-medium text-[var(--color-foreground)]"
-                    title={`${item.count}×`}
-                  >
-                    {item.term}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="mt-3.5 border-t border-[var(--color-border)] pt-3">
-            <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.03em] text-[var(--color-muted-foreground)]">
-              <ListTree className="h-3.5 w-3.5" />
-              {t('panels.insights.outline')}
-              <span className="ml-auto rounded-full bg-[var(--color-hover)] px-1.5 text-[10px] font-semibold">
-                {outlineCount}
-              </span>
-            </h3>
-            {!nlpEnabled || outlineCount === 0 ? (
-              <p className="m-0 mt-0.5 text-[11.5px] text-[var(--color-muted-foreground)]">
-                {nlpEnabled ? t('panels.insights.outlineEmpty') : t('panels.insights.keywordsDisabled')}
-              </p>
-            ) : (
-              <ul className="m-0 list-none space-y-1 p-0">
-                {analysis?.outline.slice(0, 12).map((item, index) => (
-                  <li
-                    key={`${item.title}-${index}`}
-                    className="truncate text-[12px] text-[var(--color-foreground)]"
-                    style={{ paddingLeft: `${Math.max(0, item.level - 1) * 10}px` }}
-                    title={item.title}
-                  >
-                    {item.title}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          <div className="mt-3.5 border-t border-[var(--color-border)] pt-3">
-            <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.03em] text-[var(--color-muted-foreground)]">
-              <Sparkles className="h-3.5 w-3.5" />
-              {t('panels.insights.similar')}
-              <span className="ml-auto rounded-full bg-[var(--color-hover)] px-1.5 text-[10px] font-semibold">
-                {similar.length}
-              </span>
-            </h3>
-            <p className="m-0 mb-1.5 text-[10.5px] text-[var(--color-muted-foreground)]">
-              {nlpEnabled ? t('panels.insights.similarHint') : t('panels.insights.similarDisabled')}
-            </p>
-            {similar.length === 0 ? (
-              <p className="m-0 mt-0.5 text-[11.5px] text-[var(--color-muted-foreground)]">
-                {t('panels.insights.similarEmpty')}
-              </p>
-            ) : (
-              similar.map((hit) => (
-                <button
-                  key={hit.documentId}
-                  type="button"
-                  className="flex w-full items-center gap-2.5 rounded-[9px] border border-transparent bg-transparent px-2.5 py-2 text-left transition-[background,border-color] duration-120 hover:border-[var(--color-border)] hover:bg-[var(--color-surface-elevated)]"
-                  onClick={() => handleOpen(hit.documentId)}
-                  title={hit.title}
-                >
-                  <FileText className="h-4 w-4 shrink-0 opacity-60" />
-                  <span className="flex min-w-0 flex-col gap-px">
-                    <span className="truncate text-[12.5px] font-medium text-[var(--color-foreground)]">
-                      {hit.title || t('common.untitled')}
-                    </span>
-                    <span className="truncate text-[10.5px] text-[var(--color-muted-foreground)]">
-                      {hit.snippet}
-                    </span>
-                  </span>
-                </button>
-              ))
-            )}
-          </div>
-
-          <div className="mt-3.5 border-t border-[var(--color-border)] pt-3">
-            <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.03em] text-[var(--color-muted-foreground)]">
-              <CheckSquare className="h-3.5 w-3.5" />
-              {t('panels.insights.tasks')}
-              <span className="ml-auto rounded-full bg-[var(--color-hover)] px-1.5 text-[10px] font-semibold">
-                {openTasks.length}
-              </span>
-            </h3>
-            <p className="m-0 mb-1.5 text-[10.5px] text-[var(--color-muted-foreground)]">
-              {t('panels.insights.tasksHint')}
-            </p>
-            {openTasks.length === 0 ? (
-              <p className="m-0 mt-0.5 text-[11.5px] text-[var(--color-muted-foreground)]">
-                {t('panels.insights.tasksEmpty')}
-              </p>
-            ) : (
-              openTasks.map((task, index) => (
-                <div
-                  key={`${task.text}-${index}`}
-                  className="flex items-start gap-2 rounded-[9px] px-2.5 py-2 text-left"
-                >
-                  <Square className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[12.5px] leading-snug text-[var(--color-foreground)]">
-                      {task.text}
-                    </span>
-                    <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-[var(--color-muted-foreground)]">
-                      <span
-                        className={cn(
-                          'rounded px-1 py-px uppercase tracking-wide',
-                          task.source === 'checkbox'
-                            ? 'bg-[var(--color-hover)]'
-                            : 'bg-[color-mix(in_srgb,var(--color-accent)_12%,var(--color-hover))]',
-                        )}
-                      >
-                        {task.source === 'checkbox'
-                          ? t('panels.insights.sourceCheckbox')
-                          : t('panels.insights.sourcePhrase')}
-                      </span>
-                      {task.dueHint && (
-                        <span>{t('panels.insights.dueHint', { date: task.dueHint })}</span>
-                      )}
-                    </span>
-                  </span>
+            <InsightSection
+              icon={AtSign}
+              title={t('panels.insights.links')}
+              count={mentionCount}
+              defaultOpen={mentionCount > 0}
+            >
+              {!nlpEnabled || mentionCount === 0 ? (
+                <p className="insights-quiet">
+                  {nlpEnabled ? t('panels.insights.linksEmpty') : t('panels.insights.keywordsDisabled')}
+                </p>
+              ) : (
+                <div className="insights-tag-row">
+                  {analysis?.wikiLinks?.slice(0, 6).map((item) => (
+                    <InsightChip key={`wiki-${item}`}>[[{item}]]</InsightChip>
+                  ))}
+                  {analysis?.mentions?.slice(0, 6).map((item) => (
+                    <InsightChip key={`mention-${item}`}>@{item}</InsightChip>
+                  ))}
+                  {analysis?.hosts?.slice(0, 4).map((item) => (
+                    <InsightChip key={`host-${item}`}>{item}</InsightChip>
+                  ))}
                 </div>
-              ))
-            )}
+              )}
+            </InsightSection>
+
+            <InsightSection
+              icon={Hash}
+              title={t('panels.insights.keywords')}
+              count={keywordCount}
+              defaultOpen={keywordCount > 0}
+            >
+              {!nlpEnabled || keywordCount === 0 ? (
+                <p className="insights-quiet">
+                  {nlpEnabled ? t('panels.insights.keywordsEmpty') : t('panels.insights.keywordsDisabled')}
+                </p>
+              ) : (
+                <div className="insights-tag-row">
+                  {analysis?.keywords.slice(0, 10).map((item) => (
+                    <InsightChip key={item.term} className="insights-chip--strong" title={`${item.count}×`}>
+                      {item.term}
+                    </InsightChip>
+                  ))}
+                </div>
+              )}
+            </InsightSection>
+
+            <InsightSection
+              icon={ListTree}
+              title={t('panels.insights.outline')}
+              count={outlineCount}
+              defaultOpen={outlineCount > 0}
+            >
+              {!nlpEnabled || outlineCount === 0 ? (
+                <p className="insights-quiet">
+                  {nlpEnabled ? t('panels.insights.outlineEmpty') : t('panels.insights.keywordsDisabled')}
+                </p>
+              ) : (
+                <ul className="insights-plain-list">
+                  {analysis?.outline.slice(0, 12).map((item, index) => (
+                    <li
+                      key={`${item.title}-${index}`}
+                      className="truncate"
+                      style={{ paddingLeft: `${Math.max(0, item.level - 1) * 10}px` }}
+                      title={item.title}
+                    >
+                      {item.title}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </InsightSection>
+
+            <InsightSection
+              icon={Network}
+              title={t('panels.insights.similar')}
+              count={similar.length}
+              defaultOpen={similar.length > 0}
+            >
+              <p className="insights-quiet mb-2">
+                {nlpEnabled ? t('panels.insights.similarHint') : t('panels.insights.similarDisabled')}
+              </p>
+              {similar.length === 0 ? (
+                <p className="insights-quiet">{t('panels.insights.similarEmpty')}</p>
+              ) : (
+                <div className="insights-hit-list">
+                  {similar.map((hit) => (
+                    <button
+                      key={hit.documentId}
+                      type="button"
+                      className="insights-hit"
+                      onClick={() => handleOpen(hit.documentId)}
+                      title={hit.title}
+                    >
+                      <FileText className="h-4 w-4 shrink-0 opacity-55" aria-hidden />
+                      <span className="min-w-0">
+                        <span className="insights-hit__title">{hit.title || t('common.untitled')}</span>
+                        <span className="insights-hit__snippet">{hit.snippet}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </InsightSection>
+
+            <InsightSection
+              icon={CheckSquare}
+              title={t('panels.insights.tasks')}
+              count={openTasks.length}
+              defaultOpen={openTasks.length > 0}
+            >
+              <p className="insights-quiet mb-2">{t('panels.insights.tasksHint')}</p>
+              {openTasks.length === 0 ? (
+                <p className="insights-quiet">{t('panels.insights.tasksEmpty')}</p>
+              ) : (
+                <div className="insights-task-list">
+                  {openTasks.map((task, index) => (
+                    <div key={`${task.text}-${index}`} className="insights-task">
+                      <Square className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--color-muted-foreground)]" aria-hidden />
+                      <span className="min-w-0 flex-1">
+                        <span className="insights-task__text">{task.text}</span>
+                        <span className="insights-task__meta">
+                          <span
+                            className={cn(
+                              'insights-source',
+                              task.source === 'phrase' && 'insights-source--phrase',
+                            )}
+                          >
+                            {task.source === 'checkbox'
+                              ? t('panels.insights.sourceCheckbox')
+                              : t('panels.insights.sourcePhrase')}
+                          </span>
+                          {task.dueHint ? (
+                            <span>{t('panels.insights.dueHint', { date: task.dueHint })}</span>
+                          ) : null}
+                        </span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </InsightSection>
           </div>
         </EditorSidePanelList>
       )}

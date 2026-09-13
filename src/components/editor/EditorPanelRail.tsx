@@ -42,9 +42,10 @@ type RailButtonProps = {
   label: string
   onClick: () => void
   children: ReactNode
+  tourId?: string
 }
 
-function RailButton({ active, label, onClick, children }: RailButtonProps) {
+function RailButton({ active, label, onClick, children, tourId }: RailButtonProps) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -53,6 +54,7 @@ function RailButton({ active, label, onClick, children }: RailButtonProps) {
           className={cn('editor-panel-rail-btn titlebar-no-drag', active && 'is-active')}
           aria-label={label}
           aria-pressed={active}
+          data-tour={tourId}
           onClick={onClick}
         >
           {children}
@@ -111,7 +113,7 @@ export function EditorPanelRail() {
 
   return (
     <TooltipProvider>
-      <div className="editor-panel-rail titlebar-no-drag" aria-label={t('editorPanels.ariaLabel')}>
+      <div className="editor-panel-rail titlebar-no-drag" aria-label={t('editorPanels.ariaLabel')} data-tour="panel-rail">
         <RailButton
           label={t('editorPanels.collapse')}
           onClick={() => {
@@ -135,6 +137,7 @@ export function EditorPanelRail() {
         <RailButton
           label={t('editorPanels.outline')}
           active={outlineOpen}
+          tourId="panel-outline"
           onClick={() => {
             closeOtherPanels('outline')
             dispatch(setDocumentOutlineOpen(!outlineOpen))
@@ -165,6 +168,7 @@ export function EditorPanelRail() {
         <RailButton
           label={t('editorPanels.insights')}
           active={insightsOpen}
+          tourId="panel-insights"
           onClick={() => {
             closeOtherPanels('insights')
             dispatch(setInsightsPanelOpen(!insightsOpen))

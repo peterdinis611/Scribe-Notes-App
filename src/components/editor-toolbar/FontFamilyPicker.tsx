@@ -1,9 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Editor } from '@tiptap/react'
+import { Upload } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
-import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
+import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
 import { listSystemFontFamilies } from '@/lib/db/api'
+import {
+  applyCustomFontFamily,
+  ensureCustomFontLoaded,
+  listCustomFonts,
+  registerCustomFontFromPicker,
+  type CustomFontRecord,
+} from '@/lib/editor/custom-fonts'
 import {
   FONT_FAMILIES,
   formatCustomFontFamily,
@@ -19,6 +26,7 @@ import {
   listGoogleFontFamilies,
   matchesGoogleFontValue,
 } from '@/lib/editor/google-fonts'
+import { toast } from '@/lib/toast'
 
 type FontFamilyMenuItemsProps = {
   editor: Editor
@@ -44,7 +52,9 @@ export function FontFamilyMenuItems({ editor, onApplied }: FontFamilyMenuItemsPr
   const [query, setQuery] = useState('')
   const [systemFonts, setSystemFonts] = useState<string[]>([])
   const [googleFonts, setGoogleFonts] = useState<string[]>([])
+  const [uploadedFonts, setUploadedFonts] = useState<CustomFontRecord[]>(() => listCustomFonts())
   const [recentFonts, setRecentFonts] = useState(() => readRecentFonts())
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -54,22 +64,55 @@ export function FontFamilyMenuItems({ editor, onApplied }: FontFamilyMenuItemsPr
     void listGoogleFontFamilies().then((fonts) => {
       if (!cancelled) setGoogleFonts(fonts)
     })
+    setUploadedFonts(listCustomFonts())
+    for (const font of listCustomFonts()) {
+      void ensureCustomFontLoaded(font.family)
+    }
     return () => {
       cancelled = true
     }
   }, [])
 
-  function applyFont(value: string, options?: { google?: boolean }) {
-    const formatted = options?.google
-      ? applyGoogleFontFamily(value)
-      : formatCustomFontFamily(value)
+  function applyFont(value: string, options?: { google?: boolean; uploaded?: boolean }) {
+    const formatted = options?.uploaded
+      ? applyCustomFontFamily(value)
+      : options?.google
+        ? applyGoogleFontFamily(value)
+        : formatCustomFontFamily(value)
     if (!formatted) editor.chain().focus().unsetFontFamily().run()
     else {
+      if (options?.uploaded) void ensureCustomFontLoaded(value)
       editor.chain().focus().setFontFamily(formatted).run()
       pushRecentFont(formatted)
       setRecentFonts(readRecentFonts())
     }
     onApplied?.()
+  }
+
+  async function handleUpload() {
+    if (uploading) return
+    setUploading(true)
+    try {
+      const result = await registerCustomFontFromPicker()
+      if (!result.ok) {
+        if (result.error === 'cancelled') return
+        const key =
+          result.error === 'unsupported'
+            ? 'toolbar.fonts.uploadUnsupported'
+            : result.error === 'tooLarge'
+              ? 'toolbar.fonts.uploadTooLarge'
+              : result.error === 'limit'
+                ? 'toolbar.fonts.uploadLimit'
+                : 'toolbar.fonts.uploadFailed'
+        toast.error(t('toolbar.fonts.uploadError'), t(key))
+        return
+      }
+      setUploadedFonts(listCustomFonts())
+      applyFont(result.record.family, { uploaded: true })
+      toast.success(t('toolbar.fonts.uploadDone'), result.record.family)
+    } finally {
+      setUploading(false)
+    }
   }
 
   const q = query.trim().toLowerCase()
@@ -89,6 +132,13 @@ export function FontFamilyMenuItems({ editor, onApplied }: FontFamilyMenuItemsPr
       return normalizeFontFamily(font).includes(q)
     })
   }, [q, recentFonts])
+
+  const filteredUploaded = useMemo(() => {
+    return uploadedFonts.filter((font) => {
+      if (!q) return true
+      return font.family.toLowerCase().includes(q) || font.fileName.toLowerCase().includes(q)
+    })
+  }, [q, uploadedFonts])
 
   const filteredSystem = useMemo(() => {
     if (!q) return systemFonts.slice(0, 40)
@@ -119,6 +169,23 @@ export function FontFamilyMenuItems({ editor, onApplied }: FontFamilyMenuItemsPr
         />
       </div>
 
+      <div
+        className="font-family-upload"
+        onPointerDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button
+          type="button"
+          className="font-family-upload-btn"
+          disabled={uploading}
+          onClick={() => void handleUpload()}
+        >
+          <Upload className="h-3.5 w-3.5" aria-hidden />
+          {uploading ? t('toolbar.fonts.uploading') : t('toolbar.fonts.upload')}
+        </button>
+        <p className="font-family-hint m-0">{t('toolbar.fonts.uploadHint')}</p>
+      </div>
+
       {presets.map((item) => {
         const label = presetLabel(item, t)
         return (
@@ -135,6 +202,26 @@ export function FontFamilyMenuItems({ editor, onApplied }: FontFamilyMenuItemsPr
           </DropdownMenuItem>
         )
       })}
+
+      {filteredUploaded.length > 0 && (
+        <>
+          <DropdownMenuSeparator />
+          <p className="font-family-section-label">{t('toolbar.fonts.uploaded')}</p>
+          {filteredUploaded.map((font) => (
+            <DropdownMenuItem
+              key={`uploaded:${font.id}`}
+              className="font-family-option"
+              style={{ fontFamily: `"${font.family}", sans-serif` }}
+              onClick={() => applyFont(font.family, { uploaded: true })}
+            >
+              <span>{font.family}</span>
+              {normalizeFontFamily(font.family) === normalizedCurrentFont && (
+                <span className="font-family-option-check">✓</span>
+              )}
+            </DropdownMenuItem>
+          ))}
+        </>
+      )}
 
       {filteredRecent.length > 0 && (
         <>

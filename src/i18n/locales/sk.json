@@ -131,6 +131,8 @@
     "newDocument": "Nový dokument",
     "demoDocument": "Ukážkový dokument",
     "demoHint": "Sprievodca Scribe",
+    "appTour": "Sprievodca aplikáciou",
+    "appTourHint": "Zvýrazní hlavné časti Scribe",
     "focusOn": "Zapnúť režim sústredenia",
     "focusOff": "Vypnúť režim sústredenia",
     "duplicate": "Duplikovať dokument",
@@ -189,6 +191,11 @@
     "placeholder": "Začnite písať…",
     "printEmptyHero": "Čistá stránka",
     "printEmptyHint": "Píšte — alebo / pre príkazy",
+    "printEmptyEyebrow": "Pripravené na text",
+    "printEmptyHintLead": "Píšte — alebo",
+    "printEmptyHintTrail": "pre príkazy",
+    "printEmptyTipSlash": "Vložiť bloky",
+    "printEmptyTipWiki": "Prepojiť poznámku",
     "markdownAria": "Markdown editor",
     "markdownPlaceholder": "# Nadpis\n\nPíšte v **Markdown** — nadpisy, zoznamy, `kód`, tabuľky…"
   },
@@ -247,6 +254,74 @@
     "structure": {
       "title": "Orientácia v dlhom texte",
       "description": "Panel Štruktúra (vpravo) sleduje nadpisy a scroll. V spodnom paneli vidíte aktuálnu sekciu a stránku."
+    }
+  },
+  "appTour": {
+    "steps": {
+      "welcome": {
+        "title": "Vitajte v Scribe",
+        "description": "Krátky prehľad knižnice, editora a panelov. Všetko ostáva na tomto Macu."
+      },
+      "sidebarRail": {
+        "title": "Navigačná lišta",
+        "description": "Prepínajte Domov, otvorenú poznámku, mapu odkazov, dokumentáciu a Nastavenia."
+      },
+      "librarySearch": {
+        "title": "Hľadanie v knižnici",
+        "description": "Nájdite poznámky podľa názvu alebo obsahu. ⌘K otvorí príkazovú paletu."
+      },
+      "libraryViews": {
+        "title": "Pohľady knižnice",
+        "description": "Priečinky, obľúbené, tagy, nedávne, denník, graf a chat."
+      },
+      "libraryTree": {
+        "title": "Vaše dokumenty",
+        "description": "Prechádzajte priečinky a poznámky. Presúvajte myšou, pravý klik otvorí ďalšie akcie."
+      },
+      "newDocument": {
+        "title": "Nový dokument",
+        "description": "Vytvorte prázdnu poznámku alebo začnite zo šablóny."
+      },
+      "appHeader": {
+        "title": "Hlavička dokumentu",
+        "description": "Názov, súborové menu, export a nástroje zobrazenia pri písaní."
+      },
+      "documentTabs": {
+        "title": "Otvorené karty",
+        "description": "Majte otvorených viac poznámok naraz. Dôležité pripnite, aby ostali na mieste."
+      },
+      "editorToolbar": {
+        "title": "Formátovací panel",
+        "description": "Typografia, zoznamy, vkladanie a rozloženie — s podporou skratiek."
+      },
+      "editorCanvas": {
+        "title": "Stránka",
+        "description": "Píšte voľne. / spustí slash príkazy, [[ wiki odkazy; obrázky môžete pretiahnuť na stránku."
+      },
+      "panelRail": {
+        "title": "Bočné nástroje",
+        "description": "Osnova, komentáre, spätné odkazy, AI prehľad, štatistiky, história, hľadanie, focus a režim čítania."
+      },
+      "panelOutline": {
+        "title": "Osnova",
+        "description": "Skáčte medzi nadpismi a blokmi v dlhých dokumentoch."
+      },
+      "panelInsights": {
+        "title": "AI prehľad",
+        "description": "Lokálne zhrnutie, kľúčové slová, pravopis a otázky k poznámke — bez cloud LLM."
+      },
+      "statusBar": {
+        "title": "Stavový riadok",
+        "description": "Počet slov, rozloženie stránky a tlač na prvý pohľad."
+      },
+      "settingsNav": {
+        "title": "Nastavenia",
+        "description": "Vzhľad, úložisko, skratky, Lokálna AI, MCP a O aplikácii — vrátane opätovného spustenia tohto sprievodcu."
+      },
+      "done": {
+        "title": "Hotovo",
+        "description": "⌘K kedykoľvek otvorí príkazovú paletu. Sprievodcu znova spustíte v Nastavenia → O aplikácii."
+      }
     }
   },
   "setup": {
@@ -660,7 +735,8 @@
       "tagline": "Píšte dokumenty. Prepájajte poznámky.",
       "platform": "Platforma",
       "fileFormat": "Formát súborov",
-      "export": "Export"
+      "export": "Export",
+      "replayTour": "Znova prejsť sprievodcom"
     },
     "docs": {
       "pageTitle": "Dokumentácia",
@@ -1239,11 +1315,13 @@
     },
     "insights": {
       "title": "AI prehľad",
-      "subtitle": "Zhrnutie, kľúčové slová, podobné poznámky a otvorené úlohy",
+      "subtitle": "Lokálny prehľad otvorenej poznámky",
+      "subtitleWithCount": "{{count}} signálov v poznámke",
       "hide": "Skryť AI prehľad",
       "loadError": "Nepodarilo sa načítať AI prehľad",
       "askTitle": "Opýtať sa poznámky",
       "askHint": "Lokálne AI akcie a otázky k otvorenému dokumentu — bez cloudu.",
+      "localBadge": "offline",
       "openChat": "Otvoriť plný chat →",
       "summary": "Zhrnutie",
       "summaryEmpty": "Napíšte viac textu pre výťažkové zhrnutie.",
@@ -1290,6 +1368,7 @@
       "spellcheckRun": "Skontrolovať pravopis",
       "spellcheckRunning": "Kontrolujem…",
       "spellcheckHint": "Offline kontrola preklepov (SK/EN). Hlási slová s blízkym návrhom zo slovníka.",
+      "spellcheckHintShort": "Offline SK/EN · len blízke preklepy",
       "spellcheckEmpty": "Žiadne pravdepodobné preklepy.",
       "spellcheckDisabled": "Zapnite Lokálnu AI v nastaveniach pre kontrolu pravopisu.",
       "spellcheckError": "Kontrola pravopisu zlyhala",
@@ -1414,6 +1493,8 @@
     "loading": "Načítavam mapu prepojení…",
     "empty": "Zatiaľ žiadne wiki odkazy medzi dokumentmi.",
     "emptyHint": "V dokumente napíšte [[Názov]] a dokumenty sa tu zobrazia ako mapa.",
+    "emptyHintLinked": "Každý dokument už je súčasťou mapy. Ďalšími odkazmi hviezdokopu zahustíte.",
+    "emptyTipWiki": "Napíšte [[Názov]] v poznámke a mapa narastie.",
     "emptyOrphans": "Žiadne osirolené dokumenty — všetky sú prepojené.",
     "emptyAround": "Aktívny dokument nemá susedov. Vypnite Okolie, alebo zapnite Osirotelé.",
     "summary": "{{nodes}} dokumentov · {{edges}} odkazov",
@@ -1438,6 +1519,7 @@
     "fitView": "Prispôsobiť mapu (dvojklik na pozadie)",
     "eyebrow": "Wiki odkazy",
     "pageTitle": "Mapa prepojení",
+    "pageLede": "Dokumenty spojené cez [[wiki odkazy]] — kliknutím na uzol dokument otvoríte.",
     "pageSubtitle": "Vizualizácia dokumentov spojených cez [[wiki odkazy]]. Kliknutím na uzol dokument otvoríte.",
     "howToHint": "Dvojklik na uzol otvorí dokument. Filter Okolo zobrazí susedov aktívnej poznámky.",
     "openFullMap": "Otvoriť celú mapu prepojení",
@@ -1964,6 +2046,16 @@
       "customPlaceholder": "napr. Comic Sans MS",
       "searchPlaceholder": "Hľadať písmo…",
       "recent": "Nedávne",
+      "uploaded": "Nahraté fonty",
+      "upload": "Nahrať font…",
+      "uploading": "Nahrávam…",
+      "uploadHint": "TTF, OTF, WOFF alebo WOFF2 — uložené lokálne na tomto Macu.",
+      "uploadDone": "Font nahratý",
+      "uploadError": "Font sa nepodarilo nahrať",
+      "uploadUnsupported": "Použite súbor .ttf, .otf, .woff alebo .woff2.",
+      "uploadTooLarge": "Font je príliš veľký (max 4 MB).",
+      "uploadLimit": "Už máte 24 nahratých fontov.",
+      "uploadFailed": "Pri ukladaní fontu sa niečo pokazilo.",
       "systemFonts": "Systémové fonty",
       "googleFonts": "Google Fonts",
       "googleHint": "Pri výbere sa načítajú z Google — potrebný internet.",

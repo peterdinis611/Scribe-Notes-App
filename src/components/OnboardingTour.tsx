@@ -1,27 +1,20 @@
-import { useEffect, useState } from 'react'
-import { FilePlus, Link2, ListTree, Sparkles } from 'lucide-react'
+import { useCallback, useEffect, useRef } from 'react'
+import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
+import { navigateToDemoGuide } from '@/lib/demo/load-demo-guide'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { useOpenDemoGuide } from '@/hooks/useOpenDemoGuide'
+  destroyAppTour,
+  runAppTour,
+  subscribeAppTourRequest,
+} from '@/lib/app-tour'
+import { ROUTES } from '@/lib/routes'
 import { persistOnboardingDismissed, readOnboardingDismissed, readSetupCompleted } from '@/store/persistence'
-import { setTemplatePickerOpen } from '@/store/settingsSlice'
-import { useAppDispatch } from '@/store/hooks'
-
-const STEP_IDS = ['newDocument', 'wikiLink', 'structure'] as const
-
-const STEP_ICONS = {
-  newDocument: FilePlus,
-  wikiLink: Link2,
-  structure: ListTree,
-} as const
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import {
+  setFocusMode,
+  setPanelRailExpanded,
+  setReadingMode,
+} from '@/store/documentsSlice'
 
 type OnboardingTourProps = {
   /** When false, the tour stays closed (e.g. setup wizard still running). */
@@ -29,160 +22,102 @@ type OnboardingTourProps = {
   onFinished?: () => void
 }
 
+function wait(ms: number) {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, ms)
+  })
+}
+
+async function waitForSelector(selector: string, timeoutMs = 5000) {
+  const start = Date.now()
+  while (Date.now() - start < timeoutMs) {
+    if (document.querySelector(selector)) return true
+    await wait(50)
+  }
+  return false
+}
+
+/**
+ * Product tour host powered by driver.js.
+ * Auto-starts once after setup for first-run users; can be replayed via `requestAppTour()`.
+ */
 export function OnboardingTour({ enabled = true, onFinished }: OnboardingTourProps) {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
-  const openDemoGuide = useOpenDemoGuide()
-  const [open, setOpen] = useState(false)
-  const [step, setStep] = useState(0)
-  const [dontShowAgain, setDontShowAgain] = useState(true)
+  const navigate = useNavigate()
+  const documents = useAppSelector((state) => state.documents.documents)
+  const activeId = useAppSelector((state) => state.documents.activeDocumentId)
+  const runningRef = useRef(false)
+  const autoStartedRef = useRef(false)
+
+  const finish = useCallback(() => {
+    persistOnboardingDismissed(true)
+    runningRef.current = false
+    onFinished?.()
+  }, [onFinished])
+
+  const prepareWorkspace = useCallback(async () => {
+    dispatch(setFocusMode(false))
+    dispatch(setReadingMode(false))
+    dispatch(setPanelRailExpanded(true))
+
+    const hasOpenDoc =
+      Boolean(activeId) &&
+      documents.some((doc) => doc.id === activeId && doc.deletedAt == null)
+
+    if (!hasOpenDoc) {
+      try {
+        await navigateToDemoGuide(documents, dispatch, navigate)
+      } catch {
+        await navigate(ROUTES.home())
+      }
+    }
+
+    await waitForSelector('[data-tour="sidebar-rail"]')
+    await waitForSelector('[data-tour="editor-canvas"], [data-tour="library-search"]')
+    await wait(180)
+  }, [activeId, dispatch, documents, navigate])
+
+  const startTour = useCallback(
+    async (options?: { force?: boolean }) => {
+      if (!enabled && !options?.force) return
+      if (runningRef.current) {
+        destroyAppTour()
+        runningRef.current = false
+      }
+      runningRef.current = true
+      try {
+        await prepareWorkspace()
+        runAppTour({
+          t: (key, opts) => t(key, opts),
+          onDestroyed: finish,
+        })
+      } catch {
+        finish()
+      }
+    },
+    [enabled, finish, prepareWorkspace, t],
+  )
 
   useEffect(() => {
-    if (!enabled) {
-      setOpen(false)
-      return
+    if (!enabled) return
+    if (autoStartedRef.current) return
+    if (!readSetupCompleted() || readOnboardingDismissed()) return
+    autoStartedRef.current = true
+    void startTour()
+  }, [enabled, startTour])
+
+  useEffect(() => {
+    return subscribeAppTourRequest(() => {
+      void startTour({ force: true })
+    })
+  }, [startTour])
+
+  useEffect(() => {
+    return () => {
+      destroyAppTour()
     }
-    if (!readOnboardingDismissed() && readSetupCompleted()) {
-      setOpen(true)
-    }
-  }, [enabled])
+  }, [])
 
-  function closeTour() {
-    if (dontShowAgain) {
-      persistOnboardingDismissed(true)
-    }
-    setOpen(false)
-    onFinished?.()
-  }
-
-  function handleSkip() {
-    closeTour()
-  }
-
-  function handleNext() {
-    if (step >= STEP_IDS.length - 1) {
-      closeTour()
-      return
-    }
-    setStep((value) => value + 1)
-  }
-
-  function handleBack() {
-    setStep((value) => Math.max(0, value - 1))
-  }
-
-  function handleNewDocument() {
-    dispatch(setTemplatePickerOpen(true))
-    closeTour()
-  }
-
-  function handleOpenDemo() {
-    closeTour()
-    void openDemoGuide()
-  }
-
-  if (!open) return null
-
-  const stepId = STEP_IDS[step]!
-  const Icon = STEP_ICONS[stepId]
-  const isLast = step >= STEP_IDS.length - 1
-
-  return (
-    <Dialog
-      open
-      onOpenChange={(next) => {
-        if (!next) closeTour()
-      }}
-    >
-      <DialogContent className="max-w-[480px] shadow-[inset_3px_0_0_0_var(--color-accent)]" showClose>
-        <DialogHeader>
-          <div className="mb-1 inline-flex h-9 w-9 items-center justify-center rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--color-accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--color-accent)_12%,var(--color-surface))] text-[var(--color-accent)]">
-            <Icon className="h-4 w-4" />
-          </div>
-          <DialogTitle className="font-[family-name:var(--font-display)] text-[22px] font-extrabold tracking-[-0.03em]">
-            {t('onboarding.title')}
-          </DialogTitle>
-          <DialogDescription className="font-mono text-[10px] uppercase tracking-[0.1em]">
-            {t('onboarding.stepOf', { current: step + 1, total: STEP_IDS.length })}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-2 py-1">
-          <h3 className="m-0 font-[family-name:var(--font-display)] text-[16px] font-bold tracking-[-0.02em] text-[var(--color-foreground)]">
-            {t(`onboarding.${stepId}.title`)}
-          </h3>
-          <p className="m-0 text-[13px] leading-relaxed text-[var(--color-muted-foreground)]">
-            {t(`onboarding.${stepId}.description`)}
-          </p>
-        </div>
-
-        {isLast && (
-          <div className="rounded-[var(--radius-sm)] border border-dashed border-[color-mix(in_srgb,var(--color-accent)_28%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-accent)_5%,var(--color-surface))] px-3 py-2.5">
-            <p className="m-0 text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
-              {t('onboarding.demoOptional')}
-            </p>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="mt-2 h-8 px-2 text-[var(--color-accent)] hover:text-[var(--color-accent)]"
-              onClick={handleOpenDemo}
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              {t('demoGuide.open')}
-            </Button>
-          </div>
-        )}
-
-        <div className="flex items-center justify-center gap-1.5 py-1">
-          {STEP_IDS.map((id, index) => (
-            <span
-              key={id}
-              className={
-                index === step
-                  ? 'h-1.5 w-5 rounded-[var(--radius-sm)] bg-[var(--color-accent)]'
-                  : 'h-1.5 w-1.5 rounded-[var(--radius-sm)] bg-[var(--color-border)]'
-              }
-              aria-hidden="true"
-            />
-          ))}
-        </div>
-
-        <label className="flex cursor-pointer items-center gap-2.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5">
-          <input
-            type="checkbox"
-            className="h-3.5 w-3.5 accent-[var(--color-accent)]"
-            checked={dontShowAgain}
-            onChange={(event) => setDontShowAgain(event.target.checked)}
-          />
-          <span className="text-[12px] text-[var(--color-muted-foreground)]">
-            {t('onboarding.dontShowAgain')}
-          </span>
-        </label>
-
-        <DialogFooter className="flex-wrap gap-2 sm:justify-between">
-          <div className="flex gap-2">
-            <Button type="button" variant="ghost" size="sm" onClick={handleSkip}>
-              {t('common.skip')}
-            </Button>
-            {step > 0 && (
-              <Button type="button" variant="outline" size="sm" onClick={handleBack}>
-                {t('common.back')}
-              </Button>
-            )}
-          </div>
-          <div className="flex gap-2">
-            {stepId === 'newDocument' && (
-              <Button type="button" variant="outline" size="sm" onClick={handleNewDocument}>
-                {t('welcome.newDocument')}
-              </Button>
-            )}
-            <Button type="button" variant="default" size="sm" onClick={handleNext}>
-              {isLast ? t('common.done') : t('common.next')}
-            </Button>
-          </div>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
+  return null
 }

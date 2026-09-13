@@ -36,6 +36,24 @@ class WordDictionary(Protocol):
     def __len__(self) -> int: ...
 
 
+def _suggestion_vocab(dictionary: WordDictionary) -> frozenset[str]:
+    """O(1) membership set for generating suggestions.
+
+    Hunspell membership walks affix rules and is far too slow to run against
+    hundreds of thousands of edit candidates. Stems (+ plain wordlists) are enough
+    for typo suggestions; full Hunspell is still used to accept valid words.
+    """
+    custom = getattr(dictionary, "suggestion_vocab", None)
+    if callable(custom):
+        vocab = custom()
+        if isinstance(vocab, frozenset):
+            return vocab
+    if isinstance(dictionary, frozenset):
+        return dictionary
+    # Last resort: materialize (only for tiny dicts).
+    return frozenset(str(item) for item in dictionary)  # type: ignore[arg-type]
+
+
 def _load_wordlist(name: str) -> frozenset[str]:
     try:
         root = resources.files("scribe_nlp.data")
@@ -55,6 +73,7 @@ def _load_wordlist(name: str) -> frozenset[str]:
 class _UnionDict:
     def __init__(self, *parts: WordDictionary) -> None:
         self._parts = parts
+        self._suggestion_vocab: frozenset[str] | None = None
 
     def __contains__(self, item: object) -> bool:
         return any(item in part for part in self._parts)
@@ -62,6 +81,14 @@ class _UnionDict:
     def __len__(self) -> int:
         # Approximate (overlaps ignored) — for diagnostics only.
         return sum(len(part) for part in self._parts)
+
+    def suggestion_vocab(self) -> frozenset[str]:
+        if self._suggestion_vocab is None:
+            merged: set[str] = set()
+            for part in self._parts:
+                merged.update(_suggestion_vocab(part))
+            self._suggestion_vocab = frozenset(merged)
+        return self._suggestion_vocab
 
 
 @lru_cache(maxsize=1)
@@ -156,25 +183,35 @@ def _suggest(word: str, dictionary: WordDictionary, *, limit: int = MAX_SUGGESTI
     if lower in dictionary:
         return []
 
+    vocab = _suggestion_vocab(dictionary)
     max_dist = 1 if len(lower) <= 5 else 2
     candidates: list[tuple[int, str]] = []
 
-    # Fast path: generate edits and intersect dictionary.
+    # Fast path: generate edits and intersect a plain vocabulary set.
     edits = _edits1(lower)
     for item in edits:
-        if item in dictionary:
+        if item in vocab:
             dist = _levenshtein(lower, item, max_dist=max_dist)
             if dist <= max_dist:
                 candidates.append((dist, item))
 
-    if max_dist >= 2 and len(candidates) < limit:
-        # One more edit from the edit-1 set (bounded).
-        for item in list(edits)[:400]:
+    # edits2 is expensive; only run when edits1 found nothing and the word is short enough.
+    if max_dist >= 2 and not candidates and len(lower) <= 12:
+        seen_seconds: set[str] = set()
+        for item in list(edits)[:120]:
             for second in _edits1(item):
-                if second in dictionary:
-                    dist = _levenshtein(lower, second, max_dist=max_dist)
-                    if dist <= max_dist:
-                        candidates.append((dist, second))
+                if second in seen_seconds:
+                    continue
+                seen_seconds.add(second)
+                if second not in vocab:
+                    continue
+                dist = _levenshtein(lower, second, max_dist=max_dist)
+                if dist <= max_dist:
+                    candidates.append((dist, second))
+                    if len(candidates) >= limit * 4:
+                        break
+            if len(candidates) >= limit * 4:
+                break
 
     # Prefer shorter distance, then similar length, then alpha.
     ranked: dict[str, int] = {}
@@ -187,7 +224,7 @@ def _suggest(word: str, dictionary: WordDictionary, *, limit: int = MAX_SUGGESTI
         ranked.items(),
         key=lambda pair: (pair[1], abs(len(pair[0]) - len(lower)), pair[0]),
     )
-    return [word for word, _ in ordered[:limit]]
+    return [item for item, _ in ordered[:limit]]
 
 
 def _should_skip(token: str) -> bool:

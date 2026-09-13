@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import {
   Columns2,
   CalendarDays,
+  Compass,
   Copy,
   FileDown,
   FileText,
@@ -658,6 +659,16 @@ export function CommandPalette() {
             },
           ]
         : []),
+      {
+        type: 'action',
+        id: 'app-tour',
+        label: t('commandPalette.appTour'),
+        hint: t('commandPalette.appTourHint'),
+        icon: <Compass className="h-4 w-4" />,
+        run: () => {
+          void import('@/lib/app-tour').then(({ requestAppTour }) => requestAppTour())
+        },
+      },
       {
         type: 'action',
         id: 'docs',
