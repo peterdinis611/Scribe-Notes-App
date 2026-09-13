@@ -1,4 +1,5 @@
 use crate::db::DbState;
+use crate::images::{optimize_image_bytes, OptimizeOptions};
 use crate::storage;
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use std::path::Path;
@@ -38,9 +39,20 @@ pub fn save_document_image(
         .decode(payload)
         .map_err(|e| format!("Neplatný obrázok: {e}"))?;
 
-    let unique = format!("{}.{}", Uuid::new_v4(), ext);
+    let optimized = optimize_image_bytes(&bytes, &ext, OptimizeOptions::default())?;
+
+    let unique = format!("{}.{}", Uuid::new_v4(), optimized.extension);
     let path = assets_dir.join(unique);
-    std::fs::write(&path, bytes).map_err(|e| e.to_string())?;
+    std::fs::write(&path, &optimized.bytes).map_err(|e| e.to_string())?;
+
+    if optimized.changed {
+        log::debug!(
+            "image optimized: {} → {} bytes ({})",
+            bytes.len(),
+            optimized.bytes.len(),
+            optimized.extension
+        );
+    }
 
     Ok(path.to_string_lossy().to_string())
 }

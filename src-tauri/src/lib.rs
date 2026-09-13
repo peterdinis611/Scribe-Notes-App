@@ -3,6 +3,7 @@ mod backup;
 mod capture;
 mod db;
 mod export;
+mod images;
 mod nlp;
 mod pdf_native;
 mod security;
@@ -289,6 +290,7 @@ pub fn run() {
             capture::capture_stop,
             backup::export_library_archive,
             backup::export_library_archive_to_dir,
+            backup::get_default_auto_backup_dir,
             backup::import_library_archive,
         ])
         .build(tauri::generate_context!())

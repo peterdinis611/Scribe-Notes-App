@@ -1,5 +1,4 @@
-# Native Tauri builds. macOS ships app/dmg. Win/Linux use --no-bundle
-# to verify the shell compiles until those installers are productized.
+# Native Tauri builds — only on version tags (v*) or manual dispatch.
 name: Build
 
 on:

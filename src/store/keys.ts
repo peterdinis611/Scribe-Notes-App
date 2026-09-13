@@ -15,6 +15,7 @@ const STORAGE_FOLDER_ACCESS_GRANTED_KEY = 'scribe-storage-folder-access-granted'
 const FOLDER_AUTO_SYNC_KEY = 'scribe-folder-auto-sync'
 const AUTO_BACKUP_ENABLED_KEY = 'scribe-auto-backup-enabled'
 const AUTO_BACKUP_INTERVAL_DAYS_KEY = 'scribe-auto-backup-interval-days'
+const AUTO_BACKUP_INTERVAL_HOURS_KEY = 'scribe-auto-backup-interval-hours'
 const AUTO_BACKUP_DIR_KEY = 'scribe-auto-backup-dir'
 const LAST_AUTO_BACKUP_AT_KEY = 'scribe-last-auto-backup-at'
 const LOCALE_KEY = 'scribe-locale'
@@ -45,6 +46,7 @@ export {
     FOLDER_AUTO_SYNC_KEY,
     AUTO_BACKUP_ENABLED_KEY,
     AUTO_BACKUP_INTERVAL_DAYS_KEY,
+    AUTO_BACKUP_INTERVAL_HOURS_KEY,
     AUTO_BACKUP_DIR_KEY,
     LAST_AUTO_BACKUP_AT_KEY,
     STORAGE_ACCESS_EXPLAINER_KEY,

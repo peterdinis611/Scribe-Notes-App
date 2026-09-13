@@ -169,7 +169,8 @@ export function persistFolderAutoSyncEnabled(enabled: boolean) {
 export type AutoBackupIntervalDays = 1 | 7 | 30
 
 export function readAutoBackupEnabled(): boolean {
-  return readBoolStorage(AUTO_BACKUP_ENABLED_KEY, false)
+  // On by default so notes are backed up without a settings visit.
+  return readBoolStorage(AUTO_BACKUP_ENABLED_KEY, true)
 }
 
 export function persistAutoBackupEnabled(enabled: boolean) {

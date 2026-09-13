@@ -34,6 +34,7 @@ zip = "2"
 regex = "1"
 base64 = "0.22"
 fontdb = "0.23"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "webp", "bmp"] }
 scribe-core = { path = "../crates/scribe-core" }
 tauri-plugin-persisted-scope = { version = "2.3.7", features = ["protocol-asset"] }
 tauri-plugin-positioner = { version = "2.3.3", features = ["tray-icon"] }

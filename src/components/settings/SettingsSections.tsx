@@ -36,6 +36,7 @@ import {
   clearAllDocuments,
   exportLibraryArchive,
   exportLibraryArchiveToDir,
+  getDefaultAutoBackupDir,
   getStorageSettings,
   importLibraryArchive,
   revealInFinder,
@@ -253,6 +254,7 @@ export function StorageSection() {
   const [importing, setImporting] = useState(false)
   const [autoBackingUp, setAutoBackingUp] = useState(false)
   const [reconcileMessage, setReconcileMessage] = useState<string | null>(null)
+  const [defaultAutoBackupDir, setDefaultAutoBackupDir] = useState<string | null>(null)
 
   useEffect(() => {
     getStorageSettings()
@@ -264,6 +266,12 @@ export function StorageSection() {
       })
       .catch(() => undefined)
   }, [dispatch])
+
+  useEffect(() => {
+    getDefaultAutoBackupDir()
+      .then(setDefaultAutoBackupDir)
+      .catch(() => setDefaultAutoBackupDir(null))
+  }, [])
 
   function handlePickFolder() {
     requestStorageAccessDialog(dispatch, 'pick')
@@ -501,7 +509,7 @@ export function StorageSection() {
               description={
                 autoBackupDirectory
                   ? autoBackupDirectory
-                  : t('settings.storage.autoBackupFolderHint')
+                  : (defaultAutoBackupDir ?? t('settings.storage.autoBackupFolderHint'))
               }
             >
               <Button
@@ -524,17 +532,26 @@ export function StorageSection() {
                 <FolderOpen className="h-3.5 w-3.5" />
                 {t('settings.storage.autoBackupChooseFolder')}
               </Button>
+              {autoBackupDirectory ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => dispatch(setAutoBackupDirectory(null))}
+                >
+                  {t('settings.storage.autoBackupUseDefault')}
+                </Button>
+              ) : null}
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                disabled={!autoBackupDirectory || autoBackingUp}
+                disabled={autoBackingUp}
                 onClick={() => {
-                  if (!autoBackupDirectory) return
                   void (async () => {
                     setAutoBackingUp(true)
                     try {
-                      const result = await exportLibraryArchiveToDir(autoBackupDirectory)
+                      const result = await exportLibraryArchiveToDir(autoBackupDirectory ?? '')
                       dispatch(setLastAutoBackupAt(Date.now()))
                       toast.success(t('settings.storage.backupExportDone'), result.path)
                     } catch (error) {

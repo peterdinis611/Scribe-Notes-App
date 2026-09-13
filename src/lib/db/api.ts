@@ -492,6 +492,10 @@ export const exportLibraryArchive = () =>
 export const exportLibraryArchiveToDir = (directory: string) =>
   invoke<BackupExportResult>('export_library_archive_to_dir', { directory })
 
+/** Default folder for automatic backups (~/Documents/Scribe/Backups). */
+export const getDefaultAutoBackupDir = () =>
+  invoke<string>('get_default_auto_backup_dir')
+
 export const importLibraryArchive = () =>
   invoke<BackupImportResult | null>('import_library_archive')
 

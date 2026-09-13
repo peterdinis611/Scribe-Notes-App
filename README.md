@@ -266,8 +266,8 @@ scribe/
 
 GitHub Actions (`.github/workflows/`):
 
-- **CI** — on push/PR to `main`: frontend lint (advisory) + Vitest + Vite build; NLP tests; Rust tests on **macOS**, **Ubuntu**, and **Windows**
-- **Build** — manual or on `v*` tags: Tauri build (macOS ships `.app`/`.dmg` artifacts; Linux/Windows compile with `--no-bundle` until those platforms are productized)
+- **CI** — on `v*` version tags (or manual dispatch): frontend lint + Vitest + Vite build; NLP tests; Rust tests on **macOS**, **Ubuntu**, and **Windows**
+- **Build** — on `v*` version tags (or manual dispatch): Tauri build (macOS ships `.app`/`.dmg` artifacts; Linux/Windows compile with `--no-bundle` until those platforms are productized)
 
 
 ```bash

@@ -6,13 +6,16 @@ import { setLastAutoBackupAt } from '@/store/settingsSlice'
 
 const CHECK_EVERY_MS = 60 * 60 * 1000 // hourly
 
-function isBackupDue(lastAt: number | null, intervalDays: number): boolean {
+export function isBackupDue(lastAt: number | null, intervalDays: number): boolean {
   if (!lastAt) return true
   const elapsed = Date.now() - lastAt
   return elapsed >= intervalDays * 24 * 60 * 60 * 1000
 }
 
-/** Quiet scheduled library backups to a user-chosen folder. */
+/**
+ * Quiet scheduled library backups.
+ * Uses the chosen folder when set; otherwise ~/Documents/Scribe/Backups.
+ */
 export function useAutoBackup() {
   const dispatch = useAppDispatch()
   const enabled = useAppSelector((state) => state.settings.autoBackupEnabled)
@@ -22,16 +25,16 @@ export function useAutoBackup() {
   const running = useRef(false)
 
   useEffect(() => {
-    if (!enabled || !directory || !isTauriRuntime()) return
+    if (!enabled || !isTauriRuntime()) return
 
     async function maybeBackup() {
       if (running.current) return
       if (!isBackupDue(lastAt, intervalDays)) return
-      if (!directory) return
 
       running.current = true
       try {
-        await exportLibraryArchiveToDir(directory)
+        // Empty string → Rust resolves to Documents/Scribe/Backups
+        await exportLibraryArchiveToDir(directory ?? '')
         dispatch(setLastAutoBackupAt(Date.now()))
       } catch (error) {
         console.warn('[scribe] auto-backup failed', error)
@@ -42,6 +45,17 @@ export function useAutoBackup() {
 
     void maybeBackup()
     const timer = window.setInterval(() => void maybeBackup(), CHECK_EVERY_MS)
-    return () => window.clearInterval(timer)
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        void maybeBackup()
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+
+    return () => {
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
   }, [directory, dispatch, enabled, intervalDays, lastAt])
 }

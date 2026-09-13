@@ -14,6 +14,63 @@ use zip::{ZipArchive, ZipWriter};
 const MANIFEST_NAME: &str = "manifest.json";
 const DB_NAME: &str = "scribe.db";
 const DOCUMENTS_PREFIX: &str = "documents/";
+const BACKUP_FILE_PREFIX: &str = "scribe-backup-";
+const BACKUP_FILE_SUFFIX: &str = ".zip";
+/// Keep the newest N automatic zip backups in a folder.
+const AUTO_BACKUP_KEEP: usize = 14;
+
+/// Default automatic backup folder: ~/Documents/Scribe/Backups
+pub fn default_auto_backup_dir() -> PathBuf {
+    storage::default_documents_dir().join("Backups")
+}
+
+fn is_auto_backup_zip(name: &str) -> bool {
+    name.starts_with(BACKUP_FILE_PREFIX) && name.ends_with(BACKUP_FILE_SUFFIX)
+}
+
+/// Delete older `scribe-backup-*.zip` files, keeping the newest `keep` archives.
+pub fn prune_old_auto_backups(dir: &Path, keep: usize) -> Result<u32, String> {
+    if keep == 0 || !dir.is_dir() {
+        return Ok(0);
+    }
+
+    let mut archives: Vec<(PathBuf, std::time::SystemTime)> = Vec::new();
+    for entry in fs::read_dir(dir).map_err(|e| e.to_string())? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let path = entry.path();
+        let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
+            continue;
+        };
+        if !path.is_file() || !is_auto_backup_zip(name) {
+            continue;
+        }
+        let modified = entry
+            .metadata()
+            .and_then(|m| m.modified())
+            .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+        archives.push((path, modified));
+    }
+
+    archives.sort_by(|a, b| b.1.cmp(&a.1));
+    let mut removed = 0u32;
+    for (path, _) in archives.into_iter().skip(keep) {
+        if fs::remove_file(&path).is_ok() {
+            removed += 1;
+        }
+    }
+    Ok(removed)
+}
+
+fn resolve_auto_backup_dir(directory: &str) -> Result<PathBuf, String> {
+    let trimmed = directory.trim();
+    let dir = if trimmed.is_empty() {
+        default_auto_backup_dir()
+    } else {
+        PathBuf::from(trimmed)
+    };
+    fs::create_dir_all(&dir).map_err(|e| format!("Nepodarilo sa vytvoriť priečinok záloh: {e}"))?;
+    Ok(dir)
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -194,23 +251,28 @@ pub async fn export_library_archive(
 }
 
 #[tauri::command]
+pub fn get_default_auto_backup_dir() -> Result<String, String> {
+    let dir = default_auto_backup_dir();
+    fs::create_dir_all(&dir).map_err(|e| format!("Nepodarilo sa vytvoriť priečinok záloh: {e}"))?;
+    Ok(dir.to_string_lossy().to_string())
+}
+
+#[tauri::command]
 pub async fn export_library_archive_to_dir(
     app: AppHandle,
     state: tauri::State<'_, DbState>,
     directory: String,
 ) -> Result<BackupExportResult, String> {
-    let dir = PathBuf::from(directory.trim());
-    if dir.as_os_str().is_empty() {
-        return Err("Backup directory is empty".into());
-    }
-    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let dir = resolve_auto_backup_dir(&directory)?;
 
     let (db_path, documents_dir, schema_version) = prepare_backup_paths(&app, &state)?;
     let out_path = dir.join(format!(
-        "scribe-backup-{}.zip",
+        "{BACKUP_FILE_PREFIX}{}.zip",
         chrono::Utc::now().format("%Y%m%d-%H%M%S")
     ));
-    write_library_archive(&out_path, &db_path, &documents_dir, schema_version)
+    let result = write_library_archive(&out_path, &db_path, &documents_dir, schema_version)?;
+    let _ = prune_old_auto_backups(&dir, AUTO_BACKUP_KEEP);
+    Ok(result)
 }
 
 #[tauri::command]
@@ -313,4 +375,44 @@ pub async fn import_library_archive(
             manifest.version, manifest.schema_version
         ),
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn prune_keeps_newest_archives() {
+        let dir = std::env::temp_dir().join(format!(
+            "scribe-backup-prune-{}",
+            chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0)
+        ));
+        fs::create_dir_all(&dir).unwrap();
+
+        for name in [
+            "scribe-backup-old.zip",
+            "scribe-backup-mid.zip",
+            "scribe-backup-new.zip",
+            "notes.txt",
+        ] {
+            fs::write(dir.join(name), b"x").unwrap();
+            std::thread::sleep(std::time::Duration::from_millis(15));
+        }
+
+        let removed = prune_old_auto_backups(&dir, 2).unwrap();
+        assert_eq!(removed, 1);
+        assert!(!dir.join("scribe-backup-old.zip").exists());
+        assert!(dir.join("scribe-backup-mid.zip").exists());
+        assert!(dir.join("scribe-backup-new.zip").exists());
+        assert!(dir.join("notes.txt").exists());
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn empty_directory_resolves_to_default() {
+        let dir = resolve_auto_backup_dir("").expect("default backup dir");
+        assert!(dir.ends_with("Backups"));
+        assert!(dir.is_dir());
+    }
 }
