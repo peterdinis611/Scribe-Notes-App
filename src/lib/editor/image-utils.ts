@@ -2,6 +2,9 @@ import { convertFileSrc } from '@/lib/tauri'
 import type { Editor } from '@tiptap/react'
 import { saveDocumentImage } from '@/lib/db/api'
 
+const IMAGE_URL_EXT =
+  /\.(?:png|jpe?g|gif|webp|svg|avif|bmp|heic|heif)(?:\?[^#]*)?(?:#.*)?$/i
+
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -22,6 +25,29 @@ export function resolveImageSrc(src: string | null | undefined): string {
   return convertFileSrc(src)
 }
 
+/** Notion-style: bare image URL or known CDN image host. */
+export function isLikelyImageUrl(value: string): boolean {
+  const trimmed = value.trim()
+  if (!/^https?:\/\//i.test(trimmed)) return false
+  try {
+    const url = new URL(trimmed)
+    if (IMAGE_URL_EXT.test(url.pathname)) return true
+    const host = url.hostname.toLowerCase()
+    return (
+      host.includes('imgur.com') ||
+      host.includes('cloudinary.com') ||
+      host.includes('unsplash.com') ||
+      host.includes('images.unsplash.com') ||
+      host.includes('googleusercontent.com') ||
+      host.includes('twimg.com') ||
+      host.endsWith('notion.so') ||
+      host.endsWith('notion.site')
+    )
+  } catch {
+    return false
+  }
+}
+
 function guessExtension(src: string, mime?: string): string {
   if (mime?.includes('png')) return 'png'
   if (mime?.includes('webp')) return 'webp'
@@ -30,6 +56,45 @@ function guessExtension(src: string, mime?: string): string {
   if (mime?.includes('jpeg') || mime?.includes('jpg')) return 'jpg'
   const match = src.match(/\.(png|jpe?g|gif|webp|svg)(?:\?|$)/i)
   return match?.[1]?.toLowerCase().replace('jpeg', 'jpg') ?? 'png'
+}
+
+export function insertEmptyImageBlock(editor: Editor, pos?: number) {
+  let chain = editor.chain().focus()
+  if (pos !== undefined) {
+    chain = chain.setTextSelection(pos)
+  }
+  chain
+    .insertContent({
+      type: 'image',
+      attrs: {
+        src: null,
+        alt: null,
+        caption: null,
+        width: '480px',
+        align: 'center',
+      },
+    })
+    .run()
+}
+
+export function insertImageFromUrl(editor: Editor, url: string, pos?: number) {
+  const src = url.trim()
+  if (!src) return false
+  let chain = editor.chain().focus()
+  if (pos !== undefined) {
+    chain = chain.setTextSelection(pos)
+  }
+  return chain
+    .insertContent({
+      type: 'image',
+      attrs: {
+        src,
+        alt: null,
+        width: '480px',
+        align: 'center',
+      },
+    })
+    .run()
 }
 
 export async function insertImageFromFile(
@@ -101,6 +166,32 @@ export async function downloadImageSrc(src: string, baseName = 'image'): Promise
     link.remove()
   } finally {
     URL.revokeObjectURL(objectUrl)
+  }
+}
+
+export async function copyImageToClipboard(src: string): Promise<boolean> {
+  const resolved = resolveImageSrc(src)
+  try {
+    if (typeof ClipboardItem === 'undefined' || !navigator.clipboard?.write) {
+      await navigator.clipboard.writeText(src)
+      return true
+    }
+    const response = await fetch(resolved)
+    const blob = await response.blob()
+    const type = blob.type || 'image/png'
+    if (!type.startsWith('image/') || type === 'image/svg+xml') {
+      await navigator.clipboard.writeText(src)
+      return true
+    }
+    await navigator.clipboard.write([new ClipboardItem({ [type]: blob })])
+    return true
+  } catch {
+    try {
+      await navigator.clipboard.writeText(src)
+      return true
+    } catch {
+      return false
+    }
   }
 }
 

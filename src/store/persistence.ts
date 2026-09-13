@@ -7,7 +7,7 @@ import type { CustomDocumentTemplate } from '@/lib/templates/custom'
 import { parseStoredCustomTemplates } from '@/lib/templates/custom'
 import type { CustomTemplateCategory } from '@/lib/templates/categories'
 import { parseStoredCustomCategories } from '@/lib/templates/categories'
-import { LOCALE_KEY, UI_SKIN_KEY, ACTIVE_DOCUMENT_ID_KEY, ONBOARDING_DISMISSED_KEY, WHATS_NEW_VERSION_KEY, DOCUMENT_TOC_LEFT_KEY, SCRATCH_DOCUMENT_ID_KEY, SHORTCUT_OVERRIDES_KEY, STORAGE_ACCESS_EXPLAINER_KEY, STORAGE_FOLDER_ACCESS_GRANTED_KEY, FOLDER_AUTO_SYNC_KEY, AUTO_BACKUP_ENABLED_KEY, AUTO_BACKUP_INTERVAL_DAYS_KEY, AUTO_BACKUP_DIR_KEY, LAST_AUTO_BACKUP_AT_KEY, THEME_KEY_V2, THEME_KEY_LEGACY, EDITOR_VIEW_MODE_KEY, PAGE_SETUP_KEY, SPELL_CHECK_KEY, PRINT_LAYOUT_KEY, PRINT_ZOOM_KEY, PRINT_COLUMNS_KEY, MANUAL_TITLES_KEY, COMMENT_AUTHOR_KEY, CUSTOM_TEMPLATES_KEY, CUSTOM_TEMPLATE_CATEGORIES_KEY } from './keys'
+import { LOCALE_KEY, UI_SKIN_KEY, ACTIVE_DOCUMENT_ID_KEY, ONBOARDING_DISMISSED_KEY, WHATS_NEW_VERSION_KEY, DOCUMENT_TOC_LEFT_KEY, SCRATCH_DOCUMENT_ID_KEY, SHORTCUT_OVERRIDES_KEY, STORAGE_ACCESS_EXPLAINER_KEY, STORAGE_FOLDER_ACCESS_GRANTED_KEY, FOLDER_AUTO_SYNC_KEY, AUTO_BACKUP_ENABLED_KEY, AUTO_BACKUP_INTERVAL_DAYS_KEY, AUTO_BACKUP_INTERVAL_HOURS_KEY, AUTO_BACKUP_DIR_KEY, LAST_AUTO_BACKUP_AT_KEY, THEME_KEY_V2, THEME_KEY_LEGACY, EDITOR_VIEW_MODE_KEY, PAGE_SETUP_KEY, SPELL_CHECK_KEY, PRINT_LAYOUT_KEY, PRINT_ZOOM_KEY, PRINT_COLUMNS_KEY, MANUAL_TITLES_KEY, COMMENT_AUTHOR_KEY, CUSTOM_TEMPLATES_KEY, CUSTOM_TEMPLATE_CATEGORIES_KEY } from './keys'
 
 export function readLocale(): AppLocale {
   try {
@@ -166,7 +166,19 @@ export function persistFolderAutoSyncEnabled(enabled: boolean) {
   persistBoolStorage(FOLDER_AUTO_SYNC_KEY, enabled)
 }
 
-export type AutoBackupIntervalDays = 1 | 7 | 30
+/** Preset intervals shown in Settings (hours). */
+export const AUTO_BACKUP_INTERVAL_PRESETS = [1, 6, 12, 24, 168, 720] as const
+
+/** Backup cadence in hours (1 hour … 90 days). */
+export type AutoBackupIntervalHours = number
+
+const MIN_BACKUP_INTERVAL_HOURS = 1
+const MAX_BACKUP_INTERVAL_HOURS = 24 * 90
+
+export function clampAutoBackupIntervalHours(hours: number): AutoBackupIntervalHours {
+  if (!Number.isFinite(hours)) return 168
+  return Math.min(MAX_BACKUP_INTERVAL_HOURS, Math.max(MIN_BACKUP_INTERVAL_HOURS, Math.round(hours)))
+}
 
 export function readAutoBackupEnabled(): boolean {
   // On by default so notes are backed up without a settings visit.
@@ -177,18 +189,50 @@ export function persistAutoBackupEnabled(enabled: boolean) {
   persistBoolStorage(AUTO_BACKUP_ENABLED_KEY, enabled)
 }
 
-export function readAutoBackupIntervalDays(): AutoBackupIntervalDays {
+export function readAutoBackupIntervalHours(): AutoBackupIntervalHours {
   try {
-    const raw = Number(kvGet(AUTO_BACKUP_INTERVAL_DAYS_KEY))
-    if (raw === 1 || raw === 7 || raw === 30) return raw
+    const hoursRaw = Number(kvGet(AUTO_BACKUP_INTERVAL_HOURS_KEY))
+    if (Number.isFinite(hoursRaw) && hoursRaw > 0) {
+      return clampAutoBackupIntervalHours(hoursRaw)
+    }
   } catch {
     /* ignore */
   }
-  return 7
+
+  // Migrate legacy day-based setting (1 / 7 / 30).
+  try {
+    const daysRaw = Number(kvGet(AUTO_BACKUP_INTERVAL_DAYS_KEY))
+    if (daysRaw === 1 || daysRaw === 7 || daysRaw === 30) {
+      const hours = clampAutoBackupIntervalHours(daysRaw * 24)
+      persistAutoBackupIntervalHours(hours)
+      return hours
+    }
+  } catch {
+    /* ignore */
+  }
+
+  return 168 // weekly
 }
 
+export function persistAutoBackupIntervalHours(hours: AutoBackupIntervalHours) {
+  const value = clampAutoBackupIntervalHours(hours)
+  kvSet(AUTO_BACKUP_INTERVAL_HOURS_KEY, String(value))
+}
+
+/** @deprecated Use readAutoBackupIntervalHours — kept for older imports. */
+export type AutoBackupIntervalDays = 1 | 7 | 30
+
+/** @deprecated Use readAutoBackupIntervalHours */
+export function readAutoBackupIntervalDays(): AutoBackupIntervalDays {
+  const hours = readAutoBackupIntervalHours()
+  if (hours <= 24) return 1
+  if (hours <= 168) return 7
+  return 30
+}
+
+/** @deprecated Use persistAutoBackupIntervalHours */
 export function persistAutoBackupIntervalDays(days: AutoBackupIntervalDays) {
-  kvSet(AUTO_BACKUP_INTERVAL_DAYS_KEY, String(days))
+  persistAutoBackupIntervalHours(days * 24)
 }
 
 export function readAutoBackupDirectory(): string | null {

@@ -1,12 +1,14 @@
 import type { Editor } from '@tiptap/react'
 import { useEditorState } from '@tiptap/react'
-import { ArrowDownAZ, ArrowUpAZ, Code, FunctionSquare, GitBranch, ImagePlus, Play, ScanLine, Sigma, SplitSquareHorizontal, Table2, TextQuote, Trash2 } from 'lucide-react'
+import { ArrowDownAZ, ArrowUpAZ, Code, FunctionSquare, GitBranch, ImagePlus, Link2, Play, ScanLine, Sigma, SplitSquareHorizontal, Table2, TextQuote, Trash2 } from 'lucide-react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CodeLanguageMenu } from '@/components/editor-toolbar/CodeLanguageMenu'
 import { ToolbarButton, ToolbarGroup } from '@/components/editor-toolbar/primitives'
+import { ImageUrlDialog } from '@/components/editor/ImageUrlDialog'
 import { deleteCurrentBlock } from '@/lib/editor/delete-content'
 import { insertBlockMath, insertInlineMath, insertLoremIpsum, insertMermaidDiagram, insertScannedBarcode, insertYoutubeVideo } from '@/lib/editor/insert-helpers'
-import { pickImageFiles } from '@/lib/editor/image-utils'
+import { insertImageFromUrl, pickImageFiles } from '@/lib/editor/image-utils'
 import {
   fillDownActiveColumn,
   insertColumnTotalBelow,
@@ -22,6 +24,7 @@ type InsertTabProps = {
 
 export function InsertTab({ editor, onInsertImages }: InsertTabProps) {
   const { t } = useTranslation()
+  const [imageUrlOpen, setImageUrlOpen] = useState(false)
   const scannerAvailable = isBarcodeScannerSupported()
   const codeBlockState = useEditorState({
     editor,
@@ -71,6 +74,9 @@ export function InsertTab({ editor, onInsertImages }: InsertTabProps) {
       <ToolbarGroup label={t('toolbar.groups.media')}>
         <ToolbarButton label={t('toolbar.actions.image')} onClick={() => void handlePickImage()}>
           <ImagePlus className="h-4 w-4 stroke-[1.75]" />
+        </ToolbarButton>
+        <ToolbarButton label={t('toolbar.actions.imageUrl')} onClick={() => setImageUrlOpen(true)}>
+          <Link2 className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
         <ToolbarButton label={t('toolbar.actions.youtube')} onClick={() => insertYoutubeVideo(editor)}>
           <Play className="h-4 w-4 stroke-[1.75]" />
@@ -168,6 +174,14 @@ export function InsertTab({ editor, onInsertImages }: InsertTabProps) {
           </ToolbarButton>
         </ToolbarGroup>
       )}
+
+      <ImageUrlDialog
+        open={imageUrlOpen}
+        onClose={() => setImageUrlOpen(false)}
+        onSubmit={(url) => {
+          insertImageFromUrl(editor, url)
+        }}
+      />
     </div>
   )
 }

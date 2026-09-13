@@ -59,11 +59,14 @@ import {
   resetShortcutOverrides,
   setFolderAutoSyncEnabled,
   setAutoBackupEnabled,
-  setAutoBackupIntervalDays,
+  setAutoBackupIntervalHours,
   setAutoBackupDirectory,
   setLastAutoBackupAt,
 } from '@/store/settingsSlice'
-import type { AutoBackupIntervalDays } from '@/store/persistence'
+import {
+  AUTO_BACKUP_INTERVAL_PRESETS,
+  clampAutoBackupIntervalHours,
+} from '@/store/persistence'
 import { persistStorageFolderAccessGranted } from '@/store/persistence'
 import {
   createCustomThemeSelection,
@@ -242,7 +245,7 @@ export function StorageSection() {
   const folderAutoSyncEnabled = useAppSelector((state) => state.settings.folderAutoSyncEnabled)
   const folderSyncStatus = useAppSelector((state) => state.documents.folderSyncStatus)
   const autoBackupEnabled = useAppSelector((state) => state.settings.autoBackupEnabled)
-  const autoBackupIntervalDays = useAppSelector((state) => state.settings.autoBackupIntervalDays)
+  const autoBackupIntervalHours = useAppSelector((state) => state.settings.autoBackupIntervalHours)
   const autoBackupDirectory = useAppSelector((state) => state.settings.autoBackupDirectory)
   const lastAutoBackupAt = useAppSelector((state) => state.settings.lastAutoBackupAt)
   const dispatch = useAppDispatch()
@@ -255,6 +258,9 @@ export function StorageSection() {
   const [autoBackingUp, setAutoBackingUp] = useState(false)
   const [reconcileMessage, setReconcileMessage] = useState<string | null>(null)
   const [defaultAutoBackupDir, setDefaultAutoBackupDir] = useState<string | null>(null)
+  const [customDaysDraft, setCustomDaysDraft] = useState(() =>
+    String(Math.max(1, Math.round(autoBackupIntervalHours / 24))),
+  )
 
   useEffect(() => {
     getStorageSettings()
@@ -491,17 +497,50 @@ export function StorageSection() {
               title={t('settings.storage.autoBackupInterval')}
               description={t('settings.storage.autoBackupIntervalHint')}
             >
-              {([1, 7, 30] as AutoBackupIntervalDays[]).map((days) => (
-                <Button
-                  key={days}
-                  type="button"
-                  size="sm"
-                  variant={autoBackupIntervalDays === days ? 'default' : 'outline'}
-                  onClick={() => dispatch(setAutoBackupIntervalDays(days))}
-                >
-                  {t(`settings.storage.autoBackupEvery${days}`)}
-                </Button>
-              ))}
+              <div className="flex max-w-md flex-wrap gap-1.5">
+                {AUTO_BACKUP_INTERVAL_PRESETS.map((hours) => (
+                  <Button
+                    key={hours}
+                    type="button"
+                    size="sm"
+                    variant={autoBackupIntervalHours === hours ? 'default' : 'outline'}
+                    onClick={() => {
+                      dispatch(setAutoBackupIntervalHours(hours))
+                      setCustomDaysDraft(String(Math.max(1, Math.round(hours / 24))))
+                    }}
+                  >
+                    {t(`settings.storage.autoBackupEvery${hours}h`)}
+                  </Button>
+                ))}
+              </div>
+            </SettingsRow>
+
+            <SettingsRow
+              title={t('settings.storage.autoBackupCustomDays')}
+              description={t('settings.storage.autoBackupCustomDaysHint')}
+            >
+              <Input
+                type="number"
+                min={1}
+                max={90}
+                inputMode="numeric"
+                className="w-20"
+                value={customDaysDraft}
+                onChange={(event) => setCustomDaysDraft(event.target.value)}
+                onBlur={() => {
+                  const days = Number(customDaysDraft)
+                  if (!Number.isFinite(days) || days < 1) {
+                    setCustomDaysDraft(String(Math.max(1, Math.round(autoBackupIntervalHours / 24))))
+                    return
+                  }
+                  const hours = clampAutoBackupIntervalHours(Math.round(days) * 24)
+                  dispatch(setAutoBackupIntervalHours(hours))
+                  setCustomDaysDraft(String(Math.round(hours / 24)))
+                }}
+              />
+              <span className="text-sm text-[var(--color-muted)]">
+                {t('settings.storage.autoBackupCustomDaysUnit')}
+              </span>
             </SettingsRow>
 
             <SettingsRow

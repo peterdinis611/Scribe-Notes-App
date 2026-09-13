@@ -9,7 +9,7 @@ import {
   type SlashCommandItem,
 } from '@/components/editor/SlashSuggestionList'
 import { insertBlockMath, insertInlineMath, insertLoremIpsum, insertMermaidDiagram } from '@/lib/editor/insert-helpers'
-import { pickImageFiles } from '@/lib/editor/image-utils'
+import { insertEmptyImageBlock, insertImageFromUrl, isLikelyImageUrl } from '@/lib/editor/image-utils'
 import { insertBulletList, insertOrderedList, insertTaskList } from '@/lib/editor/list-commands'
 import { createCommentForSelection } from '@/lib/editor/comments'
 import { listBlockSnippets, plainTextToTipTapContent } from '@/lib/editor/block-snippets'
@@ -35,6 +35,7 @@ export const SLASH_COMMAND_DEFS: SlashCommandDef[] = [
   { id: 'code', icon: '</>' },
   { id: 'table', icon: '⊞' },
   { id: 'image', icon: '🖼' },
+  { id: 'image-url', icon: '🔗🖼' },
   { id: 'math-inline', icon: 'ƒ' },
   { id: 'math-block', icon: '∑' },
   { id: 'mermaid', icon: '⬡' },
@@ -122,10 +123,15 @@ export function runSlashCommand(
       editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
       break
     case 'image':
-      void pickImageFiles().then((files) => {
-        if (files.length) void onInsertImages?.(files)
-      })
+      insertEmptyImageBlock(editor)
       break
+    case 'image-url': {
+      const url = window.prompt(i18n.t('image.urlPrompt'))
+      if (url && (isLikelyImageUrl(url) || /^https?:\/\//i.test(url.trim()))) {
+        insertImageFromUrl(editor, url)
+      }
+      break
+    }
     case 'math-inline':
       insertInlineMath(editor)
       break

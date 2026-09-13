@@ -511,10 +511,16 @@
       "autoBackupOn": "Zapnuté",
       "autoBackupOff": "Vypnuté",
       "autoBackupInterval": "Ako často",
-      "autoBackupIntervalHint": "Scribe kontroluje raz za hodinu a zálohuje, keď uplynie interval.",
-      "autoBackupEvery1": "Denne",
-      "autoBackupEvery7": "Týždenne",
-      "autoBackupEvery30": "Mesačne",
+      "autoBackupIntervalHint": "Scribe kontroluje priebežne a zálohuje, keď uplynie zvolený interval.",
+      "autoBackupEvery1h": "Každú hodinu",
+      "autoBackupEvery6h": "Každých 6 h",
+      "autoBackupEvery12h": "Každých 12 h",
+      "autoBackupEvery24h": "Denne",
+      "autoBackupEvery168h": "Týždenne",
+      "autoBackupEvery720h": "Mesačne",
+      "autoBackupCustomDays": "Vlastný interval",
+      "autoBackupCustomDaysHint": "Alebo nastavte ľubovoľný počet dní (1–90).",
+      "autoBackupCustomDaysUnit": "dní",
       "autoBackupFolder": "Priečinok záloh",
       "autoBackupFolderHint": "Predvolené: Documents/Scribe/Backups. Voliteľne iCloud alebo externý disk.",
       "autoBackupFolderPick": "Vybrať priečinok záloh",
@@ -1498,7 +1504,11 @@
     },
     "image": {
       "label": "Obrázok",
-      "hint": "Vložiť obrázok"
+      "hint": "Nahrať alebo vložiť odkaz — ako v Notion"
+    },
+    "image-url": {
+      "label": "Obrázok z URL",
+      "hint": "Vložiť obrázok z odkazu"
     },
     "math-inline": {
       "label": "Vzorec",
@@ -1582,7 +1592,7 @@
     "table": "Tabuľka",
     "tableHint": "3×3",
     "image": "Obrázok",
-    "imageHint": "Súbor"
+    "imageHint": "Súbor alebo odkaz"
   },
   "emojiPicker": {
     "searchPlaceholder": "Hľadať emoji…"
@@ -1797,6 +1807,7 @@
       "emoji": "Emoji",
       "insert": "Vložiť",
       "image": "Obrázok",
+      "imageUrl": "Obrázok z URL",
       "table": "Tabuľka",
       "youtube": "YouTube",
       "youtubeVideo": "YouTube video",
@@ -2101,6 +2112,22 @@
     "download": "Stiahnuť",
     "delete": "Zmazať obrázok",
     "missing": "Obrázok nie je dostupný",
+    "emptyTitle": "Pridať obrázok",
+    "emptyHint": "Nahrajte súbor alebo vložte odkaz — ako v Notion.",
+    "upload": "Nahrať",
+    "fromUrl": "Vložiť odkaz",
+    "urlTitle": "Vložiť obrázok",
+    "urlHint": "Vložte verejnú URL obrázka (https).",
+    "urlLabel": "URL obrázka",
+    "urlInvalid": "Zadajte platnú http(s) URL obrázka.",
+    "urlInsert": "Vložiť",
+    "urlPrompt": "URL obrázka",
+    "expand": "Zobraziť na celú obrazovku",
+    "lightbox": "Náhľad obrázka",
+    "copy": "Kopírovať obrázok",
+    "copied": "Skopírované",
+    "copyFailed": "Obrázok sa nepodarilo skopírovať",
+    "duplicate": "Duplikovať",
     "alt": "Alt text",
     "altPlaceholder": "Popíšte obrázok pre prístupnosť",
     "caption": "Popisok",

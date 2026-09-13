@@ -17,7 +17,7 @@ import {
   persistLocale,
   persistUiSkin,
   persistAutoBackupEnabled,
-  persistAutoBackupIntervalDays,
+  persistAutoBackupIntervalHours,
   persistAutoBackupDirectory,
   persistLastAutoBackupAt,
   readEditorViewMode,
@@ -32,11 +32,11 @@ import {
   readThemeSettings,
   readUiSkin,
   readAutoBackupEnabled,
-  readAutoBackupIntervalDays,
+  readAutoBackupIntervalHours,
   readAutoBackupDirectory,
   readLastAutoBackupAt,
   persistShortcutOverrides,
-  type AutoBackupIntervalDays,
+  type AutoBackupIntervalHours,
   type ShortcutOverrides,
 } from '@/store/persistence'
 
@@ -63,7 +63,7 @@ export interface SettingsState {
   spellCheckEnabled: boolean
   folderAutoSyncEnabled: boolean
   autoBackupEnabled: boolean
-  autoBackupIntervalDays: AutoBackupIntervalDays
+  autoBackupIntervalHours: AutoBackupIntervalHours
   autoBackupDirectory: string | null
   lastAutoBackupAt: number | null
   shortcutOverrides: ShortcutOverrides
@@ -83,7 +83,7 @@ const initialState: SettingsState = {
   spellCheckEnabled: readSpellCheckEnabled(),
   folderAutoSyncEnabled: readFolderAutoSyncEnabled(),
   autoBackupEnabled: readAutoBackupEnabled(),
-  autoBackupIntervalDays: readAutoBackupIntervalDays(),
+  autoBackupIntervalHours: readAutoBackupIntervalHours(),
   autoBackupDirectory: readAutoBackupDirectory(),
   lastAutoBackupAt: readLastAutoBackupAt(),
   shortcutOverrides: readShortcutOverrides(),
@@ -146,9 +146,10 @@ const settingsSlice = createSlice({
       state.autoBackupEnabled = action.payload
       persistAutoBackupEnabled(action.payload)
     },
-    setAutoBackupIntervalDays(state, action: PayloadAction<AutoBackupIntervalDays>) {
-      state.autoBackupIntervalDays = action.payload
-      persistAutoBackupIntervalDays(action.payload)
+    setAutoBackupIntervalHours(state, action: PayloadAction<AutoBackupIntervalHours>) {
+      const hours = action.payload
+      state.autoBackupIntervalHours = hours
+      persistAutoBackupIntervalHours(hours)
     },
     setAutoBackupDirectory(state, action: PayloadAction<string | null>) {
       state.autoBackupDirectory = action.payload
@@ -189,7 +190,7 @@ export const {
   setSpellCheckEnabled,
   setFolderAutoSyncEnabled,
   setAutoBackupEnabled,
-  setAutoBackupIntervalDays,
+  setAutoBackupIntervalHours,
   setAutoBackupDirectory,
   setLastAutoBackupAt,
   setShortcutOverride,

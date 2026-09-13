@@ -6,18 +6,24 @@ import {
   AlignCenter,
   AlignLeft,
   AlignRight,
+  Copy,
   Crop,
   Download,
+  Expand,
   ImageIcon,
+  Link2,
   Maximize2,
   PanelLeft,
   PanelRight,
   Replace,
   Settings2,
   Trash2,
+  Upload,
+  CopyPlus,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
+  copyImageToClipboard,
   downloadImageSrc,
   pickImageFiles,
   replaceImageFromFile,
@@ -25,6 +31,9 @@ import {
   saveCroppedImage,
 } from '@/lib/editor/image-utils'
 import { ImageCropDialog } from '@/components/editor/ImageCropDialog'
+import { ImageLightbox } from '@/components/editor/ImageLightbox'
+import { ImageUrlDialog } from '@/components/editor/ImageUrlDialog'
+import { toast } from '@/lib/toast'
 import { useAppSelector } from '@/store/hooks'
 
 const MIN_WIDTH = 120
@@ -38,6 +47,7 @@ export function ImageBlock({
   selected,
   editor,
   deleteNode,
+  getPos,
 }: NodeViewProps) {
   const { t } = useTranslation()
   const documentId = useAppSelector((state) => state.documents.activeDocumentId)
@@ -47,19 +57,27 @@ export function ImageBlock({
   const [resizing, setResizing] = useState(false)
   const [showAlt, setShowAlt] = useState(false)
   const [cropOpen, setCropOpen] = useState(false)
+  const [urlOpen, setUrlOpen] = useState(false)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [broken, setBroken] = useState(false)
   const [captionFocused, setCaptionFocused] = useState(false)
   const [altDraft, setAltDraft] = useState((node.attrs.alt as string) ?? '')
   const [captionDraft, setCaptionDraft] = useState((node.attrs.caption as string) ?? '')
 
-  const src = resolveImageSrc(node.attrs.src as string)
   const rawSrc = (node.attrs.src as string) ?? ''
+  const src = resolveImageSrc(rawSrc)
   const align = ((node.attrs.align as Align) ?? 'center') as Align
   const width = (node.attrs.width as string) ?? DEFAULT_WIDTH
   const caption = (node.attrs.caption as string) ?? ''
   const editable = editor.isEditable
   const isFull = align === 'full'
-  const showChrome = (selected || captionFocused || showAlt) && editable
+  const isEmpty = !rawSrc || broken
+  const showChrome = (selected || captionFocused || showAlt || isEmpty) && editable
+
+  useEffect(() => {
+    setBroken(false)
+  }, [rawSrc])
 
   useEffect(() => {
     setAltDraft((node.attrs.alt as string) ?? '')
@@ -84,8 +102,8 @@ export function ImageBlock({
   }, [])
 
   const onResizeStart = useCallback(
-    (edge: 'left' | 'right') => (event: MouseEvent) => {
-      if (!editable || isFull) return
+    (edge: 'left' | 'right' | 'corner') => (event: MouseEvent) => {
+      if (!editable || isFull || isEmpty) return
       event.preventDefault()
       event.stopPropagation()
       setResizing(true)
@@ -96,7 +114,7 @@ export function ImageBlock({
 
       function onMove(moveEvent: globalThis.MouseEvent) {
         const delta =
-          edge === 'right' ? moveEvent.clientX - startX : startX - moveEvent.clientX
+          edge === 'left' ? startX - moveEvent.clientX : moveEvent.clientX - startX
         const next = Math.max(MIN_WIDTH, Math.min(maxWidth, startWidth + delta))
         updateAttributes({
           width: `${Math.round(next)}px`,
@@ -113,7 +131,7 @@ export function ImageBlock({
       window.addEventListener('mousemove', onMove)
       window.addEventListener('mouseup', onUp)
     },
-    [align, editable, isFull, maxWidthForEditor, updateAttributes],
+    [align, editable, isEmpty, isFull, maxWidthForEditor, updateAttributes],
   )
 
   useEffect(() => {
@@ -139,7 +157,7 @@ export function ImageBlock({
     updateAttributes({ align: next, width: nextWidth })
   }
 
-  async function handleReplace() {
+  async function handleUpload() {
     if (!documentId || busy) return
     const files = await pickImageFiles({ multiple: false })
     const file = files[0]
@@ -148,9 +166,14 @@ export function ImageBlock({
     try {
       const path = await replaceImageFromFile(documentId, file)
       updateAttributes({ src: path, alt: file.name })
+      setBroken(false)
     } finally {
       setBusy(false)
     }
+  }
+
+  async function handleReplace() {
+    await handleUpload()
   }
 
   async function handleDownload() {
@@ -162,6 +185,28 @@ export function ImageBlock({
     } finally {
       setBusy(false)
     }
+  }
+
+  async function handleCopy() {
+    if (!rawSrc || busy) return
+    setBusy(true)
+    try {
+      const ok = await copyImageToClipboard(rawSrc)
+      if (ok) toast.success(t('image.copied'))
+      else toast.error(t('image.copyFailed'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function handleDuplicate() {
+    const pos = typeof getPos === 'function' ? getPos() : null
+    if (typeof pos !== 'number') return
+    editor
+      .chain()
+      .focus()
+      .insertContentAt(pos + node.nodeSize, node.toJSON())
+      .run()
   }
 
   function commitCaption() {
@@ -184,39 +229,24 @@ export function ImageBlock({
         resizing && 'is-resizing',
         isFull && 'is-full',
         busy && 'is-busy',
+        isEmpty && 'is-empty',
       )}
       data-align={align}
     >
       <div ref={frameRef} className="image-block-inner">
-        {showChrome && (
+        {showChrome && !isEmpty && (
           <div className="image-toolbar" contentEditable={false}>
             <div className="image-toolbar-group" role="group" aria-label={t('image.alignGroup')}>
-              <ToolbarBtn
-                active={align === 'left'}
-                onClick={() => setAlign('left')}
-                title={t('image.alignLeft')}
-              >
+              <ToolbarBtn active={align === 'left'} onClick={() => setAlign('left')} title={t('image.alignLeft')}>
                 <AlignLeft className="h-3.5 w-3.5" />
               </ToolbarBtn>
-              <ToolbarBtn
-                active={align === 'center'}
-                onClick={() => setAlign('center')}
-                title={t('image.alignCenter')}
-              >
+              <ToolbarBtn active={align === 'center'} onClick={() => setAlign('center')} title={t('image.alignCenter')}>
                 <AlignCenter className="h-3.5 w-3.5" />
               </ToolbarBtn>
-              <ToolbarBtn
-                active={align === 'right'}
-                onClick={() => setAlign('right')}
-                title={t('image.alignRight')}
-              >
+              <ToolbarBtn active={align === 'right'} onClick={() => setAlign('right')} title={t('image.alignRight')}>
                 <AlignRight className="h-3.5 w-3.5" />
               </ToolbarBtn>
-              <ToolbarBtn
-                active={align === 'full'}
-                onClick={() => setAlign('full')}
-                title={t('image.fullWidth')}
-              >
+              <ToolbarBtn active={align === 'full'} onClick={() => setAlign('full')} title={t('image.fullWidth')}>
                 <Maximize2 className="h-3.5 w-3.5" />
               </ToolbarBtn>
             </div>
@@ -224,18 +254,10 @@ export function ImageBlock({
             <span className="image-toolbar-sep" />
 
             <div className="image-toolbar-group" role="group" aria-label={t('image.wrapGroup')}>
-              <ToolbarBtn
-                active={align === 'float-left'}
-                onClick={() => setAlign('float-left')}
-                title={t('image.floatLeft')}
-              >
+              <ToolbarBtn active={align === 'float-left'} onClick={() => setAlign('float-left')} title={t('image.floatLeft')}>
                 <PanelLeft className="h-3.5 w-3.5" />
               </ToolbarBtn>
-              <ToolbarBtn
-                active={align === 'float-right'}
-                onClick={() => setAlign('float-right')}
-                title={t('image.floatRight')}
-              >
+              <ToolbarBtn active={align === 'float-right'} onClick={() => setAlign('float-right')} title={t('image.floatRight')}>
                 <PanelRight className="h-3.5 w-3.5" />
               </ToolbarBtn>
             </div>
@@ -243,11 +265,23 @@ export function ImageBlock({
             <span className="image-toolbar-sep" />
 
             <div className="image-toolbar-group">
+              <ToolbarBtn onClick={() => setLightboxOpen(true)} title={t('image.expand')}>
+                <Expand className="h-3.5 w-3.5" />
+              </ToolbarBtn>
               <ToolbarBtn onClick={() => setCropOpen(true)} title={t('image.crop')}>
                 <Crop className="h-3.5 w-3.5" />
               </ToolbarBtn>
               <ToolbarBtn onClick={() => void handleReplace()} title={t('image.replace')} disabled={busy}>
                 <Replace className="h-3.5 w-3.5" />
+              </ToolbarBtn>
+              <ToolbarBtn onClick={() => setUrlOpen(true)} title={t('image.fromUrl')}>
+                <Link2 className="h-3.5 w-3.5" />
+              </ToolbarBtn>
+              <ToolbarBtn onClick={() => void handleCopy()} title={t('image.copy')} disabled={busy}>
+                <Copy className="h-3.5 w-3.5" />
+              </ToolbarBtn>
+              <ToolbarBtn onClick={handleDuplicate} title={t('image.duplicate')}>
+                <CopyPlus className="h-3.5 w-3.5" />
               </ToolbarBtn>
               <ToolbarBtn onClick={() => void handleDownload()} title={t('image.download')} disabled={busy}>
                 <Download className="h-3.5 w-3.5" />
@@ -263,18 +297,32 @@ export function ImageBlock({
 
             <span className="image-toolbar-sep" />
 
-            <ToolbarBtn
-              className="image-toolbar-btn--danger"
-              onClick={() => deleteNode()}
-              title={t('image.delete')}
-            >
+            <ToolbarBtn className="image-toolbar-btn--danger" onClick={() => deleteNode()} title={t('image.delete')}>
               <Trash2 className="h-3.5 w-3.5" />
             </ToolbarBtn>
           </div>
         )}
 
-        <div className="image-media" contentEditable={false}>
-          {src ? (
+        <div className="image-media" contentEditable={false} {...(!isEmpty ? { 'data-drag-handle': '' } : {})}>
+          {isEmpty ? (
+            <div className="image-placeholder image-placeholder--notion">
+              <ImageIcon className="h-8 w-8" />
+              <span>{broken ? t('image.missing') : t('image.emptyTitle')}</span>
+              <span className="image-placeholder-hint">{t('image.emptyHint')}</span>
+              {editable ? (
+                <div className="image-placeholder-actions">
+                  <button type="button" className="image-placeholder-btn" onClick={() => void handleUpload()} disabled={busy}>
+                    <Upload className="h-3.5 w-3.5" />
+                    {t('image.upload')}
+                  </button>
+                  <button type="button" className="image-placeholder-btn" onClick={() => setUrlOpen(true)} disabled={busy}>
+                    <Link2 className="h-3.5 w-3.5" />
+                    {t('image.fromUrl')}
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          ) : (
             <img
               ref={imgRef}
               src={src}
@@ -282,15 +330,12 @@ export function ImageBlock({
               title={(node.attrs.title as string) ?? undefined}
               style={{ width: isFull ? '100%' : width }}
               draggable={false}
+              onDoubleClick={() => setLightboxOpen(true)}
+              onError={() => setBroken(true)}
             />
-          ) : (
-            <div className="image-placeholder">
-              <ImageIcon className="h-8 w-8" />
-              <span>{t('image.missing')}</span>
-            </div>
           )}
 
-          {showChrome && !isFull && (
+          {showChrome && !isFull && !isEmpty && (
             <>
               <span
                 className="image-resize-edge image-resize-edge--left"
@@ -302,11 +347,21 @@ export function ImageBlock({
                 onMouseDown={onResizeStart('right')}
                 title={t('image.resize')}
               />
+              <span
+                className="image-resize-corner image-resize-corner--se"
+                onMouseDown={onResizeStart('corner')}
+                title={t('image.resize')}
+              />
+              <span
+                className="image-resize-corner image-resize-corner--sw"
+                onMouseDown={onResizeStart('left')}
+                title={t('image.resize')}
+              />
             </>
           )}
         </div>
 
-        {(editable || caption) && (
+        {(editable || caption) && !isEmpty && (
           <div className="image-caption-wrap" contentEditable={false}>
             <textarea
               ref={captionRef}
@@ -335,7 +390,7 @@ export function ImageBlock({
           </div>
         )}
 
-        {showChrome && showAlt && (
+        {showChrome && showAlt && !isEmpty && (
           <div className="image-props-panel" contentEditable={false}>
             <label className="image-props-field">
               <span>{t('image.alt')}</span>
@@ -373,6 +428,23 @@ export function ImageBlock({
             }
           })()
         }}
+      />
+
+      <ImageUrlDialog
+        open={urlOpen}
+        initialUrl={rawSrc.startsWith('http') ? rawSrc : ''}
+        onClose={() => setUrlOpen(false)}
+        onSubmit={(url) => {
+          updateAttributes({ src: url })
+          setBroken(false)
+        }}
+      />
+
+      <ImageLightbox
+        open={lightboxOpen}
+        src={rawSrc}
+        alt={(node.attrs.alt as string) ?? undefined}
+        onClose={() => setLightboxOpen(false)}
       />
     </NodeViewWrapper>
   )

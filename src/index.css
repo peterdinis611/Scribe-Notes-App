@@ -4479,6 +4479,140 @@ html.scribe-print-layout .editor-block-drag-handle {
   font-size: 13px;
 }
 
+.tiptap .image-placeholder--notion {
+  min-height: 180px;
+  width: min(100%, 480px);
+  border: 1px dashed color-mix(in srgb, var(--color-border) 90%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-hover) 55%, transparent);
+}
+
+.tiptap .image-placeholder-hint {
+  font-size: 12px;
+  opacity: 0.8;
+  text-align: center;
+  max-width: 28ch;
+}
+
+.tiptap .image-placeholder-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.tiptap .image-placeholder-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+.tiptap .image-placeholder-btn:hover:not(:disabled) {
+  background: var(--color-selection);
+  border-color: var(--color-selection-strong);
+}
+
+.tiptap .image-placeholder-btn:disabled {
+  opacity: 0.5;
+}
+
+.tiptap .image-block.is-empty .image-block-inner {
+  display: block;
+  width: 100%;
+}
+
+.tiptap .image-resize-corner {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--color-background);
+  box-shadow:
+    0 0 0 1.5px var(--color-selection-strong),
+    0 4px 10px rgba(0, 0, 0, 0.14);
+  opacity: 0;
+  transition: opacity 120ms ease;
+  z-index: 2;
+}
+
+.tiptap .image-block.is-selected .image-resize-corner,
+.tiptap .image-block.is-resizing .image-resize-corner {
+  opacity: 1;
+}
+
+.tiptap .image-resize-corner--se {
+  right: 4px;
+  bottom: 4px;
+  cursor: nwse-resize;
+}
+
+.tiptap .image-resize-corner--sw {
+  left: 4px;
+  bottom: 4px;
+  cursor: nesw-resize;
+}
+
+.image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: rgba(8, 10, 14, 0.78);
+  backdrop-filter: blur(6px);
+  animation: image-lightbox-in 140ms ease-out;
+}
+
+@keyframes image-lightbox-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.image-lightbox-img {
+  max-width: min(96vw, 1400px);
+  max-height: 92vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+}
+
+.image-lightbox-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  cursor: pointer;
+}
+
+.image-lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
 .tiptap .image-caption-wrap {
   margin-top: 8px;
 }

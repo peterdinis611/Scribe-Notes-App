@@ -511,10 +511,16 @@
       "autoBackupOn": "On",
       "autoBackupOff": "Off",
       "autoBackupInterval": "How often",
-      "autoBackupIntervalHint": "Scribe checks once an hour and backs up when the interval has passed.",
-      "autoBackupEvery1": "Daily",
-      "autoBackupEvery7": "Weekly",
-      "autoBackupEvery30": "Monthly",
+      "autoBackupIntervalHint": "Scribe checks periodically and backs up when your chosen interval has passed.",
+      "autoBackupEvery1h": "Hourly",
+      "autoBackupEvery6h": "Every 6 h",
+      "autoBackupEvery12h": "Every 12 h",
+      "autoBackupEvery24h": "Daily",
+      "autoBackupEvery168h": "Weekly",
+      "autoBackupEvery720h": "Monthly",
+      "autoBackupCustomDays": "Custom interval",
+      "autoBackupCustomDaysHint": "Or set any number of days (1–90).",
+      "autoBackupCustomDaysUnit": "days",
       "autoBackupFolder": "Backup folder",
       "autoBackupFolderHint": "Default: Documents/Scribe/Backups. Optionally pick iCloud or an external disk.",
       "autoBackupFolderPick": "Choose backup folder",
@@ -1491,7 +1497,11 @@
     },
     "image": {
       "label": "Image",
-      "hint": "Insert image"
+      "hint": "Upload or embed — Notion-style block"
+    },
+    "image-url": {
+      "label": "Image URL",
+      "hint": "Embed image from a link"
     },
     "math-inline": {
       "label": "Formula",
@@ -1575,7 +1585,7 @@
     "table": "Table",
     "tableHint": "3×3",
     "image": "Image",
-    "imageHint": "File"
+    "imageHint": "Upload or link"
   },
   "emojiPicker": {
     "searchPlaceholder": "Search emoji…"
@@ -1784,6 +1794,7 @@
       "emoji": "Emoji",
       "insert": "Insert",
       "image": "Image",
+      "imageUrl": "Image from URL",
       "table": "Table",
       "youtube": "YouTube",
       "youtubeVideo": "YouTube video",
@@ -2086,6 +2097,22 @@
     "download": "Download",
     "delete": "Delete image",
     "missing": "Image unavailable",
+    "emptyTitle": "Add an image",
+    "emptyHint": "Upload a file or embed a link — like in Notion.",
+    "upload": "Upload",
+    "fromUrl": "Embed link",
+    "urlTitle": "Embed image",
+    "urlHint": "Paste a public image URL (https).",
+    "urlLabel": "Image URL",
+    "urlInvalid": "Enter a valid http(s) image URL.",
+    "urlInsert": "Embed",
+    "urlPrompt": "Image URL",
+    "expand": "View full size",
+    "lightbox": "Image preview",
+    "copy": "Copy image",
+    "copied": "Copied",
+    "copyFailed": "Could not copy image",
+    "duplicate": "Duplicate",
     "alt": "Alt text",
     "altPlaceholder": "Describe the image for accessibility",
     "caption": "Caption",

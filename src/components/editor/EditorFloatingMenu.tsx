@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
-import { pickImageFiles } from '@/lib/editor/image-utils'
+import { insertEmptyImageBlock } from '@/lib/editor/image-utils'
 import {
   insertBulletList,
   insertOrderedList,
@@ -95,15 +95,12 @@ export function EditorFloatingMenu({
 
   if (!editor) return null
 
-  async function handlePickImage() {
-    const files = await pickImageFiles()
-    if (files.length) await onInsertImages(files)
-  }
-
   async function runInsertItem(item: QuickInsertItem) {
     await item.run(editor!)
     setExpanded(false)
   }
+
+  void onInsertImages
 
   const quickInsertItems: QuickInsertItem[] = [
     {
@@ -174,8 +171,8 @@ export function EditorFloatingMenu({
       label: t('floatingMenu.image'),
       hint: t('floatingMenu.imageHint'),
       icon: ImagePlus,
-      run: async () => {
-        await handlePickImage()
+      run: (currentEditor) => {
+        insertEmptyImageBlock(currentEditor)
       },
     },
   ]

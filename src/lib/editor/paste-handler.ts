@@ -1,5 +1,6 @@
 import { Extension } from '@tiptap/core'
 import { Plugin } from '@tiptap/pm/state'
+import { isLikelyImageUrl } from '@/lib/editor/image-utils'
 
 export const PASTE_IMAGE_MIME_TYPES = [
   'image/jpeg',
@@ -89,7 +90,24 @@ export const ClipboardPaste = Extension.create<ClipboardPasteOptions>({
               return true
             }
 
-            const text = event.clipboardData?.getData('text/plain') ?? ''
+            const text = (event.clipboardData?.getData('text/plain') ?? '').trim()
+            if (text && isLikelyImageUrl(text) && this.editor) {
+              event.preventDefault()
+              this.editor
+                .chain()
+                .focus()
+                .insertContent({
+                  type: 'image',
+                  attrs: {
+                    src: text,
+                    width: '480px',
+                    align: 'center',
+                  },
+                })
+                .run()
+              return true
+            }
+
             const grid = parseTsvTable(text)
             if (!grid || !this.editor) return false
 

@@ -1,10 +1,34 @@
 # Scribe
 
+<p align="center">
+  <img src="docs/screenshots/icon.png" alt="Ikona Scribe" width="96" height="96" />
+</p>
+
 Píšte dokumenty. Prepájajte poznámky. Lokálny macOS rich-text editor s knižnicou, šablónami a exportom do viacerých formátov.
 
 Scribe beží lokálne na vašom Macu. Žiadne účty, žiadny cloud — dokumenty, databáza a nastavenia patria používateľovi macOS účtu, v ktorom je aplikácia spustená.
 
 **Jazyky:** [English](README.md) · [Slovenčina](README.sk.md)
+
+## Screenshoty
+
+<p align="center">
+  <img src="docs/screenshots/home.png" alt="Domovská obrazovka Scribe" width="820" />
+</p>
+
+<p align="center"><em>Domov — nový dokument, dnešná poznámka, import</em></p>
+
+<p align="center">
+  <img src="docs/screenshots/templates.png" alt="Výber šablón v Scribe" width="820" />
+</p>
+
+<p align="center"><em>Šablóny — prázdna stránka, canvas, report, faktúra a ďalšie</em></p>
+
+<p align="center">
+  <img src="docs/screenshots/onboarding.png" alt="Úvodný sprievodca Scribe" width="820" />
+</p>
+
+<p align="center"><em>Vitajte v Scribe — prvý štart</em></p>
 
 ## Funkcie
 

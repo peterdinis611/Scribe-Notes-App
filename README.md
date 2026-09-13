@@ -1,10 +1,34 @@
 # Scribe
 
+<p align="center">
+  <img src="docs/screenshots/icon.png" alt="Scribe icon" width="96" height="96" />
+</p>
+
 Write documents. Link notes. A local macOS rich-text editor with a library, templates, and multi-format export.
 
 Scribe runs locally on your Mac. No accounts, no cloud — documents, the database, and settings belong to the macOS user account running the app.
 
 **Languages:** [English](README.md) · [Slovenčina](README.sk.md)
+
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/home.png" alt="Scribe home screen" width="820" />
+</p>
+
+<p align="center"><em>Home — new document, daily note, import</em></p>
+
+<p align="center">
+  <img src="docs/screenshots/templates.png" alt="Scribe template picker" width="820" />
+</p>
+
+<p align="center"><em>Templates — blank page, canvas, report, invoice, and more</em></p>
+
+<p align="center">
+  <img src="docs/screenshots/onboarding.png" alt="Scribe onboarding" width="820" />
+</p>
+
+<p align="center"><em>First-run welcome (Slovak UI shown)</em></p>
 
 ## Features
 
