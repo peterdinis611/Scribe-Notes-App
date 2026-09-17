@@ -3416,6 +3416,7 @@ html[data-ui-skin='press'] .editor-shell--home {
 .editor-panel-rail--collapsed {
   width: 36px;
   padding: 8px 2px;
+  gap: 4px;
   background: transparent;
   border-left-color: color-mix(in srgb, var(--color-border) 55%, transparent);
 }
@@ -3999,8 +4000,34 @@ html[data-ui-skin='press'] .editor-status-bar {
 }
 
 .editor-bubble-menu--text {
+  flex-wrap: nowrap;
+  max-width: min(92vw, 280px);
+}
+
+.editor-bubble-more {
+  min-width: 220px;
+  padding: 8px !important;
+}
+
+.editor-bubble-more-label {
+  margin: 8px 4px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+
+.editor-bubble-more-label:first-child {
+  margin-top: 2px;
+}
+
+.editor-bubble-more-swatches {
+  display: flex;
+  align-items: center;
   flex-wrap: wrap;
-  max-width: min(92vw, 520px);
+  gap: 4px;
+  padding: 0 4px 6px;
 }
 
 .editor-bubble-menu--table {
@@ -4071,6 +4098,14 @@ html[data-ui-skin='press'] .editor-status-bar {
   cursor: default;
 }
 
+.editor-block-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  z-index: 40;
+}
+
 .editor-block-drag-handle {
   display: flex;
   align-items: center;
@@ -4084,7 +4119,6 @@ html[data-ui-skin='press'] .editor-status-bar {
   color: var(--color-muted-foreground);
   cursor: grab;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  z-index: 40;
   opacity: 0.72;
   transition:
     opacity 140ms ease,
@@ -4092,6 +4126,49 @@ html[data-ui-skin='press'] .editor-status-bar {
     border-color 140ms ease,
     transform 140ms ease,
     box-shadow 140ms ease;
+}
+
+.editor-block-delete-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 0;
+  margin-top: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: var(--color-background);
+  color: var(--color-destructive);
+  cursor: default;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition:
+    height 160ms ease,
+    margin-top 160ms ease,
+    opacity 160ms ease,
+    transform 160ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    background 140ms ease;
+}
+
+.editor-block-controls.has-delete.is-expanded .editor-block-delete-handle {
+  height: 28px;
+  margin-top: 4px;
+  border-color: var(--color-border);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.editor-block-delete-handle:hover,
+.editor-block-delete-handle:focus-visible {
+  background: color-mix(in srgb, var(--color-destructive) 10%, var(--color-background));
+  border-color: color-mix(in srgb, var(--color-destructive) 35%, var(--color-border));
 }
 
 .editor-block-drag-handle.is-active,
@@ -4579,6 +4656,7 @@ body.is-block-dragging .tiptap {
 }
 
 /* Drag handle is portaled to document.body — match via root flag. */
+html.scribe-print-layout .editor-block-controls,
 html.scribe-print-layout .editor-block-drag-handle {
   opacity: 0 !important;
   visibility: hidden !important;

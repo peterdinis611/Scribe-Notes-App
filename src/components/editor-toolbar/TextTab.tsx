@@ -32,7 +32,7 @@ import {
 } from '@/components/editor-toolbar/primitives'
 import { safeEditorCanRedo, safeEditorCanUndo } from '@/lib/editor/view-ready'
 import { FONT_SIZES, HIGHLIGHT_COLORS, TEXT_COLORS } from '@/lib/editor/font-size'
-import { EmojiPickerPanel } from '@/components/editor/EmojiPickerPanel'
+import { promptAndApplyEditorLink } from '@/lib/editor/link-prompt'
 
 export function TextTab({ editor }: { editor: Editor }) {
   const { t } = useTranslation()
@@ -48,14 +48,7 @@ export function TextTab({ editor }: { editor: Editor }) {
   const currentTextColor = (editor.getAttributes('textStyle').color as string | undefined) ?? ''
 
   function setLink() {
-    const previous = editor.getAttributes('link').href as string | undefined
-    const url = window.prompt(t('editorActions.linkUrlPrompt'), previous ?? 'https://')
-    if (url === null) return
-    if (url === '') {
-      editor.chain().focus().extendMarkRange('link').unsetLink().run()
-      return
-    }
-    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
+    void promptAndApplyEditorLink(editor)
   }
 
   return (

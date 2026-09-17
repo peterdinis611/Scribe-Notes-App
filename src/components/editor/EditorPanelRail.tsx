@@ -93,6 +93,23 @@ export function EditorPanelRail() {
     if (except !== 'insights') dispatch(setInsightsPanelOpen(false))
   }
 
+  function openFind() {
+    if (!findReplaceOpen) {
+      dispatch(setFindReplaceMode('find'))
+    }
+    dispatch(toggleFindReplaceOpen())
+  }
+
+  function openOutline() {
+    closeOtherPanels('outline')
+    dispatch(setDocumentOutlineOpen(!outlineOpen))
+  }
+
+  function openInsights() {
+    closeOtherPanels('insights')
+    dispatch(setInsightsPanelOpen(!insightsOpen))
+  }
+
   if (!expanded) {
     return (
       <TooltipProvider>
@@ -100,6 +117,30 @@ export function EditorPanelRail() {
           className="editor-panel-rail editor-panel-rail--collapsed titlebar-no-drag"
           aria-label={t('editorPanels.ariaLabel')}
         >
+          <RailButton
+            label={findReplaceOpen ? t('editorPanels.findReplaceClose') : t('editorPanels.findReplace')}
+            active={findReplaceOpen}
+            onClick={openFind}
+          >
+            <Search className="h-4 w-4" />
+          </RailButton>
+          <RailButton
+            label={t('editorPanels.outline')}
+            active={outlineOpen}
+            tourId="panel-outline"
+            onClick={openOutline}
+          >
+            <ListTree className="h-4 w-4" />
+          </RailButton>
+          <RailButton
+            label={t('editorPanels.insights')}
+            active={insightsOpen}
+            tourId="panel-insights"
+            onClick={openInsights}
+          >
+            <Sparkles className="h-4 w-4" />
+          </RailButton>
+          <div className="editor-panel-rail-sep" aria-hidden="true" />
           <RailButton
             label={t('editorPanels.expand')}
             onClick={() => dispatch(setPanelRailExpanded(true))}
@@ -138,10 +179,7 @@ export function EditorPanelRail() {
           label={t('editorPanels.outline')}
           active={outlineOpen}
           tourId="panel-outline"
-          onClick={() => {
-            closeOtherPanels('outline')
-            dispatch(setDocumentOutlineOpen(!outlineOpen))
-          }}
+          onClick={openOutline}
         >
           <ListTree className="h-4 w-4" />
         </RailButton>
@@ -169,10 +207,7 @@ export function EditorPanelRail() {
           label={t('editorPanels.insights')}
           active={insightsOpen}
           tourId="panel-insights"
-          onClick={() => {
-            closeOtherPanels('insights')
-            dispatch(setInsightsPanelOpen(!insightsOpen))
-          }}
+          onClick={openInsights}
         >
           <Sparkles className="h-4 w-4" />
         </RailButton>
@@ -202,12 +237,7 @@ export function EditorPanelRail() {
         <RailButton
           label={findReplaceOpen ? t('editorPanels.findReplaceClose') : t('editorPanels.findReplace')}
           active={findReplaceOpen}
-          onClick={() => {
-            if (!findReplaceOpen) {
-              dispatch(setFindReplaceMode('find'))
-            }
-            dispatch(toggleFindReplaceOpen())
-          }}
+          onClick={openFind}
         >
           <Search className="h-4 w-4" />
         </RailButton>

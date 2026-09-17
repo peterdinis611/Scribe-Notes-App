@@ -33,8 +33,21 @@ Example: [`cursor.mcp.example.json`](cursor.mcp.example.json)
 |----------|---------|
 | `SCRIBE_DB_PATH` | Path to `scribe.db` (default: `~/Library/Application Support/com.scribe.app/scribe.db`) |
 | `SCRIBE_MCP_WRITE` | Set to `0` to force read-only |
+| `SCRIBE_MCP_SCOPE` | Vault access: `no-vault` (default), `meta-only`, or `full` |
 | `SCRIBE_NLP_SCRIPT` | Path to Python NLP `__main__.py` for semantic tools |
 | `SCRIBE_NLP_PYTHON` | Python binary (default `python3`) |
+
+### Vault scope (`SCRIBE_MCP_SCOPE`)
+
+Encrypted vault notes are stored as AES-GCM ciphertext in SQLite. The unlock password never leaves the Scribe UI.
+
+| Value | Behavior |
+|-------|----------|
+| `no-vault` (default) | Vault notes excluded from search hits, `get_document`, export, outline, and NLP tools |
+| `meta-only` | Vault notes may appear as id/title/folder only — body and ciphertext stay hidden |
+| `full` | Allow raw ciphertext JSON (not recommended for agents) |
+
+`scribe_status` reports the active `vaultScope`. Local AI never indexes vault ciphertext; the app can optionally analyze an **unlocked** vault note in memory via the AI insights panel.
 
 ## Tools
 

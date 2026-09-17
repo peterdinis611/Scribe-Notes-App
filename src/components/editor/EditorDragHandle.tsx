@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { Editor } from '@tiptap/react'
-import { GripVertical } from 'lucide-react'
+import { GripVertical, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cleanupDragArtifacts, findBlockFromCoords, findBlockFromSelection, type BlockDragTarget } from '@/lib/editor/block-drag-handle'
+import { deleteHandleTarget, getHandleDeleteLabel } from '@/lib/editor/delete-content'
 import { getEditorViewDom } from '@/lib/editor/view-ready'
 import { useBlockDragSession } from '@/hooks/useBlockDragSession'
+import { cn } from '@/lib/utils'
 
 type EditorDragHandleProps = {
   editor: Editor | null
@@ -17,6 +19,7 @@ const HIDE_DELAY_MS = 280
 export function EditorDragHandle({ editor }: EditorDragHandleProps) {
   const { t } = useTranslation()
   const handleRef = useRef<HTMLButtonElement>(null)
+  const clusterRef = useRef<HTMLDivElement>(null)
   const blockRef = useRef<BlockDragTarget | null>(null)
   const pinnedBlockRef = useRef<BlockDragTarget | null>(null)
   const draggingRef = useRef(false)
@@ -26,6 +29,8 @@ export function EditorDragHandle({ editor }: EditorDragHandleProps) {
   const [handleVisible, setHandleVisible] = useState(false)
   const [handleActive, setHandleActive] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
+  const [deleteLabel, setDeleteLabel] = useState<string | null>(null)
+  const [clusterHovered, setClusterHovered] = useState(false)
   const [handleStyle, setHandleStyle] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
 
   const { beginDrag } = useBlockDragSession(editor, {
@@ -33,6 +38,7 @@ export function EditorDragHandle({ editor }: EditorDragHandleProps) {
       draggingRef.current = true
       setIsDragging(true)
       setHandleVisible(false)
+      setClusterHovered(false)
       blockRef.current?.dom.classList.remove('is-block-drag-hover')
     },
     onEnd: () => {
@@ -67,6 +73,7 @@ export function EditorDragHandle({ editor }: EditorDragHandleProps) {
     if (block.dom.classList.contains('is-editor-empty')) {
       clearHoverHighlight()
       blockRef.current = null
+      setDeleteLabel(null)
       setHandleVisible(false)
       return false
     }
@@ -80,6 +87,7 @@ export function EditorDragHandle({ editor }: EditorDragHandleProps) {
 
     blockRef.current = block
     block.dom.classList.add('is-block-drag-hover')
+    setDeleteLabel(getHandleDeleteLabel(block.range.node.type.name))
     setHandleStyle({
       top: rect.top + Math.min(24, Math.max(8, rect.height * 0.12)),
       left: Math.max(8, rect.left - 28),
@@ -95,16 +103,18 @@ export function EditorDragHandle({ editor }: EditorDragHandleProps) {
       if (draggingRef.current || overHandleRef.current) return
       clearHoverHighlight()
       blockRef.current = null
+      setDeleteLabel(null)
+      setClusterHovered(false)
       setHandleVisible(false)
       setHandleActive(false)
     }, HIDE_DELAY_MS)
   }, [clearHideTimer, clearHoverHighlight])
 
   const isNearHandle = useCallback((x: number, y: number) => {
-    const handle = handleRef.current
-    if (!handle || !handleVisible) return false
+    const cluster = clusterRef.current
+    if (!cluster || !handleVisible) return false
 
-    const rect = handle.getBoundingClientRect()
+    const rect = cluster.getBoundingClientRect()
     return (
       x >= rect.left - HANDLE_HIT_PADDING &&
       x <= rect.right + HANDLE_HIT_PADDING &&
@@ -147,14 +157,16 @@ export function EditorDragHandle({ editor }: EditorDragHandleProps) {
       const onMouseMove = (event: MouseEvent) => {
         if (draggingRef.current) return
 
-        if (isNearHandle(event.clientX, event.clientY) || handleRef.current?.contains(event.target as Node)) {
+        if (isNearHandle(event.clientX, event.clientY) || clusterRef.current?.contains(event.target as Node)) {
           overHandleRef.current = true
+          setClusterHovered(true)
           setHandleActive(true)
           clearHideTimer()
           return
         }
 
         overHandleRef.current = false
+        setClusterHovered(false)
 
         if (editorDom.contains(event.target as Node)) {
           const block = findBlockFromCoords(editor, event.clientX, event.clientY)
@@ -167,6 +179,7 @@ export function EditorDragHandle({ editor }: EditorDragHandleProps) {
 
         if (pinnedBlockRef.current && editor.isFocused) {
           setHandleActive(false)
+          setClusterHovered(false)
           syncActiveBlock(pinnedBlockRef.current)
           return
         }
@@ -258,13 +271,23 @@ export function EditorDragHandle({ editor }: EditorDragHandleProps) {
     return () => handle.removeEventListener('pointerdown', onPointerDown)
   }, [editor, beginDrag, mounted, syncPinnedBlock])
 
+  function handleDeleteBlock() {
+    const block = blockRef.current ?? pinnedBlockRef.current
+    if (!editor || !block) return
+    deleteHandleTarget(editor, block.range.start, block.range.end, block.range.node.type.name)
+  }
+
   if (!mounted) return null
 
   return createPortal(
-    <button
-      ref={handleRef}
-      type="button"
-      className={handleActive ? 'editor-block-drag-handle is-active titlebar-no-drag' : 'editor-block-drag-handle titlebar-no-drag'}
+    <div
+      ref={clusterRef}
+      className={cn(
+        'editor-block-controls titlebar-no-drag',
+        handleActive && 'is-active',
+        clusterHovered && 'is-expanded',
+        Boolean(deleteLabel) && 'has-delete',
+      )}
       style={{
         position: 'fixed',
         top: handleStyle.top,
@@ -273,21 +296,45 @@ export function EditorDragHandle({ editor }: EditorDragHandleProps) {
         pointerEvents: handleVisible && !isDragging ? 'auto' : 'none',
         zIndex: 60,
       }}
-      aria-label={t('editorActions.moveBlock')}
       aria-hidden={!handleVisible}
-      title={t('editorActions.moveBlockHint')}
       onMouseEnter={() => {
         overHandleRef.current = true
+        setClusterHovered(true)
         setHandleActive(true)
         clearHideTimer()
       }}
       onMouseLeave={() => {
         overHandleRef.current = false
+        setClusterHovered(false)
         setHandleActive(false)
       }}
     >
-      <GripVertical className="h-3.5 w-3.5" aria-hidden="true" />
-    </button>,
+      <button
+        ref={handleRef}
+        type="button"
+        className={cn('editor-block-drag-handle', handleActive && 'is-active')}
+        aria-label={t('editorActions.moveBlock')}
+        title={t('editorActions.moveBlockHint')}
+      >
+        <GripVertical className="h-3.5 w-3.5" aria-hidden="true" />
+      </button>
+      {deleteLabel && (
+        <button
+          type="button"
+          className="editor-block-delete-handle"
+          aria-label={deleteLabel}
+          title={deleteLabel}
+          tabIndex={clusterHovered ? 0 : -1}
+          onClick={(event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            handleDeleteBlock()
+          }}
+        >
+          <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+        </button>
+      )}
+    </div>,
     document.body,
   )
 }

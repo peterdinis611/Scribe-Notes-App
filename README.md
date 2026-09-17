@@ -208,7 +208,7 @@ Full method list and design notes: [`nlp/README.md`](nlp/README.md). After a mod
 
 ## Scribe Memory MCP (Claude / Cursor)
 
-Optional power feature: expose your local notes to Claude Desktop or Cursor via MCP. Everyday writing does not require it. The server prefers a **writable** connection (`create_note` / `append_to_note`) and falls back to **read-only** if the DB is locked. In-app: **Settings → MCP**.
+Optional power feature: expose your local notes to Claude Desktop or Cursor via MCP. Everyday writing does not require it. The server prefers a **writable** connection (`create_note` / `append_to_note`) and falls back to **read-only** if the DB is locked. Encrypted **vault** notes are excluded by default (`SCRIBE_MCP_SCOPE=no-vault`). In-app: **Settings → MCP**.
 
 - Overview: [`crates/scribe-mcp/README.md`](crates/scribe-mcp/README.md) · docs [`crates/scribe-mcp/docs/`](crates/scribe-mcp/docs/README.md)
 

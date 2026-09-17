@@ -10,7 +10,10 @@ use crate::db::{
     semantic_search, set_embed_backend, set_nlp_enabled, similar_documents,
     upsert_embedding_with_chunks, EmbeddingChunkInput, SearchMode,
 };
-use scribe_core::{date_key_bounds, extract_due_hint, sync_sidecar_backend};
+use scribe_core::{
+    content_is_vault_cipher, date_key_bounds, extract_due_hint, require_document_not_vault,
+    sync_sidecar_backend, ERR_VAULT_NLP,
+};
 use crate::db::SearchHit;
 use crate::db::DbState;
 use crate::nlp::NlpSidecar;
@@ -576,7 +579,7 @@ pub fn nlp_index_document(
             )
             .map_err(|e| e.to_string())?;
 
-        if folder_vault != 0 || content_json.contains("\"type\":\"scribe-vault-v1\"") {
+        if folder_vault != 0 || content_is_vault_cipher(&content_json) {
             return Err("Encrypted vault notes are not indexed".to_string());
         }
 
@@ -642,7 +645,7 @@ pub fn nlp_index_all(
         let mut docs: Vec<(String, String)> = Vec::new();
         for row in rows {
             let (id, title, content_json) = row.map_err(|e| e.to_string())?;
-            if content_json.contains("\"type\":\"scribe-vault-v1\"") {
+            if content_is_vault_cipher(&content_json) {
                 continue;
             }
             let text = format!("{title}\n{}", extract_search_text(&content_json));
@@ -1192,6 +1195,7 @@ pub fn nlp_document_analysis(
         if !is_nlp_enabled(&conn)? {
             return Err("NLP is disabled".to_string());
         }
+        require_document_not_vault(&conn, &document_id)?;
 
         let (title, content_json): (String, String) = conn
             .query_row(
@@ -1200,11 +1204,43 @@ pub fn nlp_document_analysis(
                 |row| Ok((row.get(0)?, row.get(1)?)),
             )
             .map_err(|e| e.to_string())?;
+        if content_is_vault_cipher(&content_json) {
+            return Err(ERR_VAULT_NLP.to_string());
+        }
 
         format!("{title}\n{}", extract_search_text(&content_json))
     };
 
-    let result = sidecar.analyze_document(&text, 12, 24, 3)?;
+    run_document_analysis(&sidecar, &text)
+}
+
+/// Ephemeral Local AI analysis of plaintext (unlocked vault note in the UI).
+/// Text is never written to SQLite / FTS / embeddings.
+#[tauri::command]
+pub fn nlp_analyze_plaintext(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    text: String,
+) -> Result<NlpDocumentAnalysis, String> {
+    {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        if !is_nlp_enabled(&conn)? {
+            return Err("NLP is disabled".to_string());
+        }
+        sync_sidecar_backend(&sidecar, &conn)?;
+    }
+    let trimmed = text.trim();
+    if trimmed.len() < 8 {
+        return Err("text is empty".to_string());
+    }
+    run_document_analysis(&sidecar, trimmed)
+}
+
+fn run_document_analysis(
+    sidecar: &NlpSidecar,
+    text: &str,
+) -> Result<NlpDocumentAnalysis, String> {
+    let result = sidecar.analyze_document(text, 12, 24, 3)?;
 
     let language = result
         .get("language")
@@ -1808,8 +1844,8 @@ pub fn nlp_document_answer(
             )
             .map_err(|_| "libraryChat.documentMissing".to_string())?;
 
-        if content_json.contains("\"type\":\"scribe-vault-v1\"") {
-            return Err("libraryChat.documentVault".to_string());
+        if content_is_vault_cipher(&content_json) {
+            return Err(ERR_VAULT_NLP.to_string());
         }
 
         let text = format!("{title}\n{}", extract_search_text(&content_json));
@@ -2038,7 +2074,7 @@ pub fn nlp_calendar_events(
         let mut docs = Vec::new();
         for row in rows {
             let (id, title, content_json) = row.map_err(|e| e.to_string())?;
-            if content_json.contains("\"type\":\"scribe-vault-v1\"") {
+            if content_is_vault_cipher(&content_json) {
                 continue;
             }
             let text = extract_search_text(&content_json);

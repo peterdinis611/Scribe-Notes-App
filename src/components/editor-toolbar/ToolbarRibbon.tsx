@@ -2,11 +2,14 @@ import type { Editor } from '@tiptap/react'
 import { useEditorState } from '@tiptap/react'
 import {
   ArrowDownAZ,
+  ArrowDownToLine,
   ArrowUpAZ,
   AlignCenter,
   AlignJustify,
   AlignLeft,
   AlignRight,
+  BetweenHorizontalEnd,
+  BetweenVerticalEnd,
   Bold,
   CheckSquare,
   ChevronDown,
@@ -27,6 +30,7 @@ import {
   Quote,
   Redo,
   ScanLine,
+  Sigma,
   Strikethrough,
   Subscript,
   Superscript,
@@ -79,7 +83,7 @@ import {
 } from '@/lib/editor/insert-helpers'
 import { insertBulletList, insertOrderedList, insertTaskList } from '@/lib/editor/list-commands'
 import { PARAGRAPH_STYLES, applyParagraphStyle, type ParagraphStyleId } from '@/lib/editor/paragraph-styles'
-import { promptInput } from '@/lib/input-dialog'
+import { promptAndApplyEditorLink } from '@/lib/editor/link-prompt'
 import { isBarcodeScannerSupported } from '@/lib/barcode-scanner'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
@@ -156,22 +160,7 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
   }
 
   function setLink() {
-    void (async () => {
-      const previous = editor.getAttributes('link').href as string | undefined
-      const url = await promptInput({
-        title: t('toolbar.linkDialog.title'),
-        description: t('toolbar.linkDialog.description'),
-        defaultValue: previous ?? 'https://',
-        placeholder: 'https://',
-        confirmLabel: t('toolbar.linkDialog.confirm'),
-      })
-      if (url === null) return
-      if (url === '') {
-        editor.chain().focus().extendMarkRange('link').unsetLink().run()
-        return
-      }
-      editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
-    })()
+    void promptAndApplyEditorLink(editor)
   }
 
   function setCodeLanguage(language: string) {
@@ -356,7 +345,7 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
               <Table2 className="h-4 w-4" />
               {t('toolbar.actions.table')}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => insertYoutubeVideo(editor)}>{t('toolbar.actions.youtubeVideo')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void insertYoutubeVideo(editor)}>{t('toolbar.actions.youtubeVideo')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => editor.chain().focus().insertTableOfContents().run()}>
               <ListTree className="h-4 w-4" />
               {t('toolbar.actions.tableOfContents')}
@@ -483,18 +472,15 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
                 <Code className="h-4 w-4 stroke-[1.75]" />
               </ToolbarButton>
               <CodeLanguageMenu language={state.codeLanguage} onSelect={setCodeLanguage} />
-              <ToolbarButton label={t('editorActions.deleteCodeBlock')} onClick={() => deleteCurrentBlock(editor)}>
-                <Trash2 className="h-4 w-4 stroke-[1.75]" />
-              </ToolbarButton>
             </>
           )}
           {state.isTable && (
             <>
               <ToolbarButton label={t('toolbar.actions.addRow')} onClick={() => editor.chain().focus().addRowAfter().run()}>
-                +R
+                <BetweenHorizontalEnd className="h-4 w-4 stroke-[1.75]" />
               </ToolbarButton>
               <ToolbarButton label={t('toolbar.actions.addColumn')} onClick={() => editor.chain().focus().addColumnAfter().run()}>
-                +S
+                <BetweenVerticalEnd className="h-4 w-4 stroke-[1.75]" />
               </ToolbarButton>
               <ToolbarButton
                 label={t('toolbar.actions.sortAsc')}
@@ -518,7 +504,7 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
                   if (!fillDownActiveColumn(editor)) toast.info(t('toolbar.table.fillEmpty'))
                 }}
               >
-                ↓=
+                <ArrowDownToLine className="h-4 w-4 stroke-[1.75]" />
               </ToolbarButton>
               <ToolbarButton
                 label={t('toolbar.actions.sumColumn')}
@@ -526,7 +512,7 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
                   if (!insertColumnTotalBelow(editor)) toast.info(t('toolbar.table.needNumbers'))
                 }}
               >
-                Σ
+                <Sigma className="h-4 w-4 stroke-[1.75]" />
               </ToolbarButton>
               <ToolbarButton label={t('editorActions.deleteTable')} onClick={() => editor.chain().focus().deleteTable().run()}>
                 <Trash2 className="h-4 w-4 stroke-[1.75]" />

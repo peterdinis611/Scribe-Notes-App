@@ -81,7 +81,7 @@ export function InsertTab({ editor, onInsertImages }: InsertTabProps) {
         <ToolbarButton label={t('toolbar.actions.lottie')} onClick={() => insertEmptyLottieBlock(editor)}>
           <Sparkles className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
-        <ToolbarButton label={t('toolbar.actions.youtube')} onClick={() => insertYoutubeVideo(editor)}>
+        <ToolbarButton label={t('toolbar.actions.youtube')} onClick={() => void insertYoutubeVideo(editor)}>
           <Play className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
         {scannerAvailable && (

@@ -4,6 +4,8 @@ import { MERMAID_DEFAULT_SOURCE } from '@/lib/editor/mermaid'
 import { generateLoremIpsum, saveLoremOptions } from '@/lib/editor/lorem-ipsum'
 import { promptLoremOptions } from '@/lib/lorem-dialog'
 import { promptMathExpressionDialog } from '@/lib/math-dialog'
+import { promptInput } from '@/lib/input-dialog'
+import i18n from '@/i18n'
 
 export async function insertInlineMath(editor: Editor) {
   const result = await promptMathExpressionDialog({
@@ -29,9 +31,16 @@ export function insertMermaidDiagram(editor: Editor) {
   editor.chain().focus().insertMermaidDiagram({ source: MERMAID_DEFAULT_SOURCE }).run()
 }
 
-export function insertYoutubeVideo(editor: Editor) {
-  const url = window.prompt('YouTube URL', 'https://www.youtube.com/watch?v=')
-  if (!url?.trim()) return
+export async function insertYoutubeVideo(editor: Editor) {
+  if (editor.isDestroyed) return
+  const url = await promptInput({
+    title: i18n.t('toolbar.youtubeDialog.title'),
+    description: i18n.t('toolbar.youtubeDialog.description'),
+    defaultValue: 'https://www.youtube.com/watch?v=',
+    placeholder: 'https://www.youtube.com/watch?v=',
+    confirmLabel: i18n.t('toolbar.youtubeDialog.confirm'),
+  })
+  if (!url?.trim() || editor.isDestroyed) return
   editor.chain().focus().setYoutubeVideo({ src: url.trim() }).run()
 }
 

@@ -17,28 +17,44 @@ use scribe_core::nlp::{resolve_script_path, NlpSidecar};
 use scribe_core::store::{
     open_scribe_store, JournalSlot, JournalSummaryInput, ScribeStore, SearchFilter,
 };
+use scribe_core::vault::McpVaultScope;
 
 pub struct ScribeMcp {
     store: Mutex<ScribeStore>,
     sidecar: NlpSidecar,
     pub db_path: PathBuf,
     pub writable: bool,
+    pub vault_scope: McpVaultScope,
 }
 
 impl ScribeMcp {
     pub fn new() -> anyhow::Result<Self> {
         let opened = open_scribe_store(None).map_err(|error| anyhow::anyhow!(error))?;
+        let vault_scope = McpVaultScope::from_env();
+        eprintln!(
+            "[scribe-mcp] vault scope={} (SCRIBE_MCP_SCOPE)",
+            vault_scope.as_str()
+        );
         Ok(Self {
             store: Mutex::new(opened.store),
             sidecar: NlpSidecar::new(resolve_script_path()),
             db_path: opened.db_path,
             writable: opened.writable,
+            vault_scope,
         })
     }
 
     fn with_store<T, F: FnOnce(&ScribeStore) -> Result<T, String>>(&self, f: F) -> Result<T, String> {
         let guard = self.store.lock().map_err(|e| e.to_string())?;
         f(&guard)
+    }
+
+    fn filter_hits(
+        &self,
+        store: &ScribeStore,
+        hits: Vec<scribe_core::db::SearchHit>,
+    ) -> Result<Vec<scribe_core::db::SearchHit>, String> {
+        store.filter_search_hits_for_scope(hits, self.vault_scope)
     }
 }
 
@@ -67,6 +83,7 @@ impl ScribeMcp {
                 "ok": true,
                 "dbPath": self.db_path,
                 "writable": self.writable,
+                "vaultScope": self.vault_scope.as_str(),
                 "sampleDocumentCount": docs.len(),
                 "edgeCount": graph.edges.len(),
                 "orphanCount": graph.orphans.len(),
@@ -95,11 +112,13 @@ impl ScribeMcp {
                 Some("hybrid"),
                 Some(&filter),
             )?;
+            let hits = self.filter_hits(store, hits)?;
             Ok(tools::json(&serde_json::json!({
                 "query": params.query,
                 "count": hits.len(),
                 "hits": hits,
-                "mode": "hybrid"
+                "mode": "hybrid",
+                "vaultScope": self.vault_scope.as_str(),
             })))
         })
     }
@@ -113,11 +132,13 @@ impl ScribeMcp {
     ) -> Result<String, String> {
         self.with_store(|store| {
             let hits = store.search_documents_fts(&params.query, params.limit.unwrap_or(10))?;
+            let hits = self.filter_hits(store, hits)?;
             Ok(tools::json(&serde_json::json!({
                 "query": params.query,
                 "count": hits.len(),
                 "hits": hits,
-                "mode": "fts"
+                "mode": "fts",
+                "vaultScope": self.vault_scope.as_str(),
             })))
         })
     }
@@ -131,11 +152,13 @@ impl ScribeMcp {
     ) -> Result<String, String> {
         self.with_store(|store| {
             let hits = store.semantic_search_documents(&self.sidecar, &params.query, params.limit.unwrap_or(10))?;
+            let hits = self.filter_hits(store, hits)?;
             Ok(tools::json(&serde_json::json!({
                 "query": params.query,
                 "count": hits.len(),
                 "hits": hits,
-                "mode": "semantic"
+                "mode": "semantic",
+                "vaultScope": self.vault_scope.as_str(),
             })))
         })
     }
@@ -149,10 +172,12 @@ impl ScribeMcp {
     ) -> Result<String, String> {
         self.with_store(|store| {
             let hits = store.similar_documents_for(&params.id, params.limit.unwrap_or(8))?;
+            let hits = self.filter_hits(store, hits)?;
             Ok(tools::json(&serde_json::json!({
                 "documentId": params.id,
                 "count": hits.len(),
                 "hits": hits,
+                "vaultScope": self.vault_scope.as_str(),
             })))
         })
     }
@@ -208,7 +233,11 @@ impl ScribeMcp {
     ) -> Result<String, String> {
         self.with_store(|store| {
             let doc = store
-                .get_document(&params.id, params.include_json.unwrap_or(false))?
+                .get_document_scoped(
+                    &params.id,
+                    params.include_json.unwrap_or(false),
+                    self.vault_scope,
+                )?
                 .ok_or_else(|| format!("Document not found: {}", params.id))?;
             Ok(tools::json(&doc))
         })
@@ -576,11 +605,13 @@ impl ScribeMcp {
                 params.mode.as_deref(),
                 Some(&filter),
             )?;
+            let hits = self.filter_hits(store, hits)?;
             Ok(tools::json(&serde_json::json!({
                 "query": params.query,
                 "mode": params.mode.unwrap_or_else(|| "hybrid".to_string()),
                 "count": hits.len(),
                 "hits": hits,
+                "vaultScope": self.vault_scope.as_str(),
             })))
         })
     }
@@ -1407,7 +1438,7 @@ impl ScribeMcp {
             let doc = self
                 .with_store(|store| {
                     store
-                        .get_document(id, false)?
+                        .get_document_scoped(id, false, self.vault_scope)?
                         .ok_or_else(|| format!("Document not found: {id}"))
                 })
                 .map_err(|error| ErrorData::resource_not_found(error, None))?;

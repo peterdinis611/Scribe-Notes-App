@@ -55,6 +55,7 @@ import {
   setBacklinksPanelOpen,
   setCommentsPanelOpen,
   setDocumentOutlineOpen,
+  setDocumentTocLeftOpen,
   setFindReplaceOpen,
   setInsightsPanelOpen,
   setRevisionHistoryOpen,
@@ -754,7 +755,7 @@ export function DocumentEditor() {
               onPrint={handlePrint}
               onOpenPageSetup={() => setPageSetupOpen(true)}
               sectionLabel={activeHeading?.preview || activeHeading?.label || null}
-              onOpenOutline={() => dispatch(setDocumentOutlineOpen(true))}
+              onOpenOutline={() => dispatch(setDocumentTocLeftOpen(true))}
             />
           )}
         </div>

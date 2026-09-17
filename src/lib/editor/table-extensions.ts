@@ -4,13 +4,13 @@ import { findParentNode } from '@tiptap/core'
 import type { Editor } from '@tiptap/react'
 
 export const TABLE_CELL_COLORS = [
-  { label: 'Bez farby', value: '' },
-  { label: 'Žltá', value: '#fff3a3' },
-  { label: 'Zelená', value: '#d1fae5' },
-  { label: 'Modrá', value: '#dbeafe' },
-  { label: 'Ružová', value: '#fce7f3' },
-  { label: 'Oranžová', value: '#ffedd5' },
-  { label: 'Fialová', value: '#ede9fe' },
+  { id: 'none', value: '' },
+  { id: 'yellow', value: '#fff3a3' },
+  { id: 'green', value: '#d1fae5' },
+  { id: 'blue', value: '#dbeafe' },
+  { id: 'pink', value: '#fce7f3' },
+  { id: 'orange', value: '#ffedd5' },
+  { id: 'purple', value: '#ede9fe' },
 ] as const
 
 const backgroundColorAttr = {

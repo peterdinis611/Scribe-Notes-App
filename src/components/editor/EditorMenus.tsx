@@ -1,4 +1,3 @@
-import { EditorBlockBubbleMenu } from '@/components/editor/EditorBlockBubbleMenu'
 import { EditorDragHandle } from '@/components/editor/EditorDragHandle'
 import { EditorFloatingMenu } from '@/components/editor/EditorFloatingMenu'
 import { EditorTableBubbleMenu } from '@/components/editor/EditorTableBubbleMenu'
@@ -20,7 +19,6 @@ export function EditorMenus({ editor, onInsertImages }: EditorMenusProps) {
       {!printLayoutEnabled && <EditorDragHandle editor={editor} />}
       <EditorTextBubbleMenu editor={editor} />
       <EditorTableBubbleMenu editor={editor} />
-      <EditorBlockBubbleMenu editor={editor} />
       <EditorFloatingMenu
         editor={editor}
         onInsertImages={onInsertImages}

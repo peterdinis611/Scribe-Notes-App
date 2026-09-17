@@ -224,7 +224,11 @@
   },
   "footnotes": {
     "edit": "Upraviť",
-    "emptyNote": "(prázdna poznámka)"
+    "emptyNote": "(prázdna poznámka)",
+    "editTitle": "Poznámka pod čiarou",
+    "editDescription": "Nechajte prázdne, ak chcete poznámku odstrániť.",
+    "editPlaceholder": "Text poznámky",
+    "editConfirm": "Uložiť"
   },
   "nlp": {
     "searchDisabled": "Sémantické vyhľadávanie je vypnuté. Zapnite ho v Nastavenia → Lokálna AI.",
@@ -1324,7 +1328,7 @@
       "headingsHint": "Kliknite na nadpis a skočte na sekciu. Aktívna sekcia sleduje scroll.",
       "emptyHeadings": "Zatiaľ žiadne nadpisy. Pridajte Nadpis 1–3 a štruktúra sa tu objaví.",
       "youAreHere": "Si tu",
-      "youAreHereHint": "Aktuálna sekcia podľa scrollovania — otvorte štruktúru pre skok.",
+      "youAreHereHint": "Aktuálny nadpis podľa scrollovania — kliknutím otvoríte obsah vľavo.",
       "openOutline": "Štruktúra",
       "hideLeft": "Skryť obsah vľavo",
       "leftHint": "Kliknite na nadpis — vrátite sa tlačidlom nižšie.",
@@ -1389,6 +1393,8 @@
       "linksEmpty": "Zatiaľ žiadne [[wiki]], @zmienky ani URL hosty.",
       "outline": "Osnova",
       "outlineEmpty": "Zatiaľ žiadne nadpisy.",
+      "outlineOpenPanel": "Otvoriť štruktúru dokumentu",
+      "outlineOpenHint": "Nadpisy a bloky sú v paneli štruktúry — tu ich znova nevypisujeme.",
       "keywords": "Kľúčové slová",
       "keywordsEmpty": "Zatiaľ žiadne silné kľúčové slová — napíšte viac textu.",
       "keywordsDisabled": "Zapnite Lokálnu AI v nastaveniach pre kľúčové slová.",
@@ -1427,7 +1433,15 @@
       "templateRunning": "Kontrolujem…",
       "templateComplete": "Očakávané sekcie vyzerajú vyplnené.",
       "templateCoverage": "{{percent}} % očakávaných sekcií je prítomných",
-      "templateError": "Kontrola šablóny zlyhala"
+      "templateError": "Kontrola šablóny zlyhala",
+      "vaultTitle": "Šifrovaný trezor",
+      "vaultLockedHint": "Poznámky v trezore zostávajú mimo indexu Lokálnej AI, kým sú uložené šifrovane.",
+      "vaultUnlockedHint": "Analyzovať odomknutú poznámku v pamäti — nič sa nezapisuje do indexu.",
+      "vaultAnalyze": "Analyzovať odomknutú poznámku",
+      "vaultAnalyzeRunning": "Analyzujem…",
+      "vaultAnalyzeDone": "Poznámka z trezora analyzovaná",
+      "vaultAnalyzeError": "Analýza trezora zlyhala",
+      "vaultDenied": "Odomknite tento trezor, aby ste mohli analyzovať otvorenú poznámku."
     },
     "stats": {
       "subtitle": "Prehľad dokumentu",
@@ -2059,6 +2073,7 @@
       "codeBlock": "Blok kódu",
       "paragraphFormat": "Formát odseku",
       "moreTools": "Ďalšie nástroje",
+      "moreFormatting": "Ďalšie formátovanie",
       "alignment": "Zarovnanie",
       "typography": "Typografia · {{font}}",
       "fontSize": "Veľkosť",
@@ -2095,7 +2110,20 @@
     "table": {
       "needColumn": "Najprv klikni do stĺpca tabuľky.",
       "fillEmpty": "Nie je čo vyplniť — vyber bunku s hodnotou nad prázdnymi bunkami.",
-      "needNumbers": "V tomto stĺpci nie sú čísla na súčet."
+      "needNumbers": "V tomto stĺpci nie sú čísla na súčet.",
+      "cellColor": "Farba bunky",
+      "jumpToCell": "Prejsť na bunku",
+      "cellTitle": "Riadok {{row}}, stĺpec {{col}}",
+      "headerMark": "H",
+      "colors": {
+        "none": "Bez farby",
+        "yellow": "Žltá",
+        "green": "Zelená",
+        "blue": "Modrá",
+        "pink": "Ružová",
+        "orange": "Oranžová",
+        "purple": "Fialová"
+      }
     },
     "fonts": {
       "default": "Predvolená",
@@ -2123,6 +2151,11 @@
       "title": "Odkaz",
       "description": "Zadajte URL adresu odkazu.",
       "confirm": "Použiť"
+    },
+    "youtubeDialog": {
+      "title": "YouTube video",
+      "description": "Vložte URL videa z YouTube.",
+      "confirm": "Vložiť"
     },
     "paragraphStyles": {
       "title": "Titulok",
@@ -2170,13 +2203,14 @@
     "deleteImage": "Odstrániť obrázok",
     "deleteLottie": "Odstrániť Lottie",
     "deleteList": "Odstrániť zoznam",
+    "deleteListItem": "Odstrániť položku",
     "deleteChecklist": "Odstrániť checklist",
     "deleteHighlight": "Odstrániť zvýraznenie",
     "deleteTable": "Odstrániť tabuľku",
     "moveBlock": "Presunúť blok",
     "moveBlockHint": "Presuňte blok myšou",
     "insertBlock": "Vložiť blok",
-    "insertBlockHint": "Vložiť blok alebo napíšte /",
+    "insertBlockHint": "Otvoriť príkazy na vloženie, alebo napíšte /",
     "comment": "Komentár",
     "linkUrlPrompt": "URL odkazu",
     "documentNotFound": "Dokument sa nenašiel",

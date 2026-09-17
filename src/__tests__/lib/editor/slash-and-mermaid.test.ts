@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import '@/i18n'
 import { MermaidDiagram } from '@/lib/editor/mermaid-extension'
 import { MERMAID_DEFAULT_SOURCE } from '@/lib/editor/mermaid'
-import { runSlashCommand, SLASH_COMMAND_DEFS, SlashCommands } from '@/lib/editor/slash-commands'
+import { runSlashCommand, openSlashPalette, SLASH_COMMAND_DEFS, SlashCommands } from '@/lib/editor/slash-commands'
 import { handleTauriEditorKeyDown, TauriInputFix } from '@/lib/editor/tauri-input-fix'
 import { tiptapJsonToMarkdown } from '@/lib/export/markdown'
 import { collectDocumentOutline } from '@/lib/editor/document-outline'
@@ -12,6 +12,17 @@ import { collectDocumentOutline } from '@/lib/editor/document-outline'
 describe('slash command catalog', () => {
   it('includes mermaid among slash defs', () => {
     expect(SLASH_COMMAND_DEFS.some((item) => item.id === 'mermaid')).toBe(true)
+  })
+
+  it('opens the slash palette by inserting / into an empty block', () => {
+    const editor = new Editor({
+      extensions: [StarterKit],
+      content: '<p></p>',
+    })
+
+    openSlashPalette(editor)
+    expect(editor.state.doc.textContent).toBe('/')
+    editor.destroy()
   })
 })
 

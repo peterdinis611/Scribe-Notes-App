@@ -25,6 +25,7 @@ import {
 } from 'lucide-react'
 import type { SearchHit } from '@/lib/db/api'
 import {
+  nlpAnalyzePlaintext,
   nlpDocumentAnalysis,
   nlpDocumentTasks,
   nlpSimilarDocuments,
@@ -37,6 +38,9 @@ import {
   type NlpTemplateFillHints,
   type SpellcheckResult,
 } from '@/lib/db/nlp-api'
+import { isVaultCipherJson } from '@/lib/vault/crypto'
+import { isVaultUnlocked } from '@/lib/vault/session'
+import { tiptapToPlainText } from '@/lib/export/plain-text'
 import {
   appendDocumentChatMessage,
   listDocumentChatMessages,
@@ -53,6 +57,7 @@ import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
   setActiveDocumentId,
+  setDocumentOutlineOpen,
   setFindReplaceOpen,
   setPendingEditorSearch,
   setPendingLibraryView,
@@ -144,9 +149,11 @@ function InsightSection({
 export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
   const { t } = useTranslation()
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
+  const activeDocument = useAppSelector((state) => state.documents.activeDocument)
   const activeSummary = useAppSelector((state) =>
     state.documents.documents.find((doc) => doc.id === state.documents.activeDocumentId),
   )
+  const folders = useAppSelector((state) => state.folders.folders)
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const moveDocument = useMoveDocumentToFolder()
@@ -165,6 +172,22 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
   const [folderSuggestionId, setFolderSuggestionId] = useState<string | null>(null)
   const [templateHints, setTemplateHints] = useState<NlpTemplateFillHints | null>(null)
   const [templateLoading, setTemplateLoading] = useState(false)
+  const [vaultAnalyzeBusy, setVaultAnalyzeBusy] = useState(false)
+  const [vaultDenied, setVaultDenied] = useState(false)
+
+  const vaultFolder = useMemo(() => {
+    const folderId = activeSummary?.folderId ?? activeDocument?.folderId
+    if (!folderId) return null
+    return folders.find((folder) => folder.id === folderId && folder.isVault) ?? null
+  }, [activeDocument?.folderId, activeSummary?.folderId, folders])
+
+  const vaultUnlockedPlaintext = useMemo(() => {
+    if (!vaultFolder || !activeDocument?.contentJson) return null
+    if (!isVaultUnlocked(vaultFolder.id)) return null
+    if (isVaultCipherJson(activeDocument.contentJson)) return null
+    const plain = tiptapToPlainText(activeDocument.contentJson).trim()
+    return plain.length >= 8 ? `${activeDocument.title}\n${plain}` : null
+  }, [activeDocument, vaultFolder])
 
   useEffect(() => {
     let cancelled = false
@@ -177,15 +200,25 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
       setFolderSuggestion(null)
       setFolderSuggestionId(null)
       setTemplateHints(null)
+      setVaultDenied(false)
       return
     }
     const currentFolderId = activeSummary?.folderId ?? null
     setLoading(true)
+    setVaultDenied(false)
+    let analysisVaultError = false
     Promise.all([
       nlpStatus().catch(() => null),
       nlpSimilarDocuments(activeId, 8).catch(() => [] as SearchHit[]),
       nlpDocumentTasks(activeId).catch(() => [] as DocumentTask[]),
-      nlpDocumentAnalysis(activeId).catch(() => null),
+      nlpDocumentAnalysis(activeId).catch((error) => {
+        const message = String(error)
+        analysisVaultError =
+          message.includes('vault') ||
+          message.includes('access.vaultDenied') ||
+          message.includes('Encrypted vault')
+        return null
+      }),
       nlpSuggestTags(activeId).catch(() => null),
       nlpTemplateFillHints({ documentId: activeId }).catch(() => null),
     ])
@@ -195,6 +228,7 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
         setSimilar(similarHits)
         setTasks(documentTasks)
         setAnalysis(documentAnalysis)
+        setVaultDenied(analysisVaultError)
         const nextFolderId =
           tags?.folderSuggestionId && tags.folderSuggestionId !== currentFolderId
             ? tags.folderSuggestionId
@@ -270,6 +304,21 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
     setFolderSuggestion(null)
     setFolderSuggestionId(null)
   }, [activeId, folderSuggestionId, moveDocument])
+
+  const handleAnalyzeUnlockedVault = useCallback(async () => {
+    if (!nlpEnabled || !vaultUnlockedPlaintext || vaultAnalyzeBusy) return
+    setVaultAnalyzeBusy(true)
+    try {
+      const result = await nlpAnalyzePlaintext(vaultUnlockedPlaintext)
+      setAnalysis(result)
+      setVaultDenied(false)
+      toast.success(t('panels.insights.vaultAnalyzeDone'))
+    } catch (error) {
+      toast.error(t('panels.insights.vaultAnalyzeError'), String(error))
+    } finally {
+      setVaultAnalyzeBusy(false)
+    }
+  }, [nlpEnabled, t, vaultAnalyzeBusy, vaultUnlockedPlaintext])
 
   const handleAskAction = useCallback(
     async (action: DocumentChatAction) => {
@@ -414,6 +463,43 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
         <EditorSidePanelEmpty>{t('common.loading')}</EditorSidePanelEmpty>
       ) : (
         <EditorSidePanelList className="insights-panel__list">
+          {nlpEnabled && (vaultDenied || vaultFolder) ? (
+            <div className="insights-tool insights-rise" style={{ animationDelay: '20ms' }}>
+              <div className="insights-tool__row">
+                <div className="insights-tool__copy">
+                  <Sparkles className="h-3.5 w-3.5 opacity-70" aria-hidden />
+                  <div>
+                    <div className="insights-tool__title">{t('panels.insights.vaultTitle')}</div>
+                    <div className="insights-tool__hint">
+                      {vaultUnlockedPlaintext
+                        ? t('panels.insights.vaultUnlockedHint')
+                        : t('panels.insights.vaultLockedHint')}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {vaultUnlockedPlaintext ? (
+                <button
+                  type="button"
+                  className="insights-primary-btn"
+                  disabled={vaultAnalyzeBusy}
+                  onClick={() => void handleAnalyzeUnlockedVault()}
+                >
+                  {vaultAnalyzeBusy ? (
+                    <>
+                      <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                      {t('panels.insights.vaultAnalyzeRunning')}
+                    </>
+                  ) : (
+                    t('panels.insights.vaultAnalyze')
+                  )}
+                </button>
+              ) : (
+                <p className="insights-quiet">{t('panels.insights.vaultDenied')}</p>
+              )}
+            </div>
+          ) : null}
+
           <div className="insights-ask insights-rise" style={{ animationDelay: '40ms' }}>
             <div className="insights-ask__label">
               <MessageCircle className="h-3.5 w-3.5" aria-hidden />
@@ -764,26 +850,20 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
               icon={ListTree}
               title={t('panels.insights.outline')}
               count={outlineCount}
-              defaultOpen={outlineCount > 0}
+              defaultOpen={false}
             >
-              {!nlpEnabled || outlineCount === 0 ? (
-                <p className="insights-quiet">
-                  {nlpEnabled ? t('panels.insights.outlineEmpty') : t('panels.insights.keywordsDisabled')}
-                </p>
-              ) : (
-                <ul className="insights-plain-list">
-                  {analysis?.outline.slice(0, 12).map((item, index) => (
-                    <li
-                      key={`${item.title}-${index}`}
-                      className="truncate"
-                      style={{ paddingLeft: `${Math.max(0, item.level - 1) * 10}px` }}
-                      title={item.title}
-                    >
-                      {item.title}
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <p className="insights-quiet mb-2">{t('panels.insights.outlineOpenHint')}</p>
+              <button
+                type="button"
+                className="insights-hit"
+                onClick={() => {
+                  onClose()
+                  dispatch(setDocumentOutlineOpen(true))
+                }}
+              >
+                <ListTree className="h-4 w-4 shrink-0 opacity-55" aria-hidden />
+                <span className="insights-hit__title">{t('panels.insights.outlineOpenPanel')}</span>
+              </button>
             </InsightSection>
 
             <InsightSection

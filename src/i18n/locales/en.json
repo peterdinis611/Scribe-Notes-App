@@ -224,7 +224,11 @@
   },
   "footnotes": {
     "edit": "Edit",
-    "emptyNote": "(empty note)"
+    "emptyNote": "(empty note)",
+    "editTitle": "Footnote",
+    "editDescription": "Leave empty to remove this footnote.",
+    "editPlaceholder": "Footnote text",
+    "editConfirm": "Save"
   },
   "nlp": {
     "searchDisabled": "Semantic search is disabled. Turn it on in Settings → Local AI.",
@@ -1319,7 +1323,7 @@
       "headingsHint": "Click a heading to jump. The active section follows your scroll.",
       "emptyHeadings": "No headings yet. Add Heading 1–3 and the outline will appear here.",
       "youAreHere": "You are here",
-      "youAreHereHint": "Current section based on scroll — open the outline to jump.",
+      "youAreHereHint": "Current heading from scroll — click to open the left outline.",
       "openOutline": "Outline",
       "hideLeft": "Hide left outline",
       "leftHint": "Click a heading — use the button below to return.",
@@ -1382,6 +1386,8 @@
       "linksEmpty": "No wiki links, @mentions, or URL hosts yet.",
       "outline": "Outline",
       "outlineEmpty": "No headings detected yet.",
+      "outlineOpenPanel": "Open document outline",
+      "outlineOpenHint": "Headings and blocks are in the outline panel — this view doesn’t duplicate that list.",
       "keywords": "Keywords",
       "keywordsEmpty": "No strong keywords yet — write a bit more.",
       "keywordsDisabled": "Enable Local AI in Settings for keywords.",
@@ -1420,7 +1426,15 @@
       "templateRunning": "Checking…",
       "templateComplete": "Expected sections look filled.",
       "templateCoverage": "{{percent}}% of expected sections present",
-      "templateError": "Template check failed"
+      "templateError": "Template check failed",
+      "vaultTitle": "Encrypted vault",
+      "vaultLockedHint": "Vault notes stay out of the Local AI index while stored encrypted.",
+      "vaultUnlockedHint": "Analyze the unlocked note in memory — nothing is written to the index.",
+      "vaultAnalyze": "Analyze unlocked note",
+      "vaultAnalyzeRunning": "Analyzing…",
+      "vaultAnalyzeDone": "Vault note analyzed",
+      "vaultAnalyzeError": "Vault analysis failed",
+      "vaultDenied": "Unlock this vault folder to analyze the open note."
     },
     "stats": {
       "subtitle": "Document overview",
@@ -2046,6 +2060,7 @@
       "codeBlock": "Code block",
       "paragraphFormat": "Paragraph format",
       "moreTools": "More tools",
+      "moreFormatting": "More formatting",
       "alignment": "Alignment",
       "typography": "Typography · {{font}}",
       "fontSize": "Size",
@@ -2082,7 +2097,20 @@
     "table": {
       "needColumn": "Place the cursor in a table column first.",
       "fillEmpty": "Nothing to fill — select a cell with a value above empty cells.",
-      "needNumbers": "No numbers found in this column to sum."
+      "needNumbers": "No numbers found in this column to sum.",
+      "cellColor": "Cell color",
+      "jumpToCell": "Go to cell",
+      "cellTitle": "Row {{row}}, column {{col}}",
+      "headerMark": "H",
+      "colors": {
+        "none": "No color",
+        "yellow": "Yellow",
+        "green": "Green",
+        "blue": "Blue",
+        "pink": "Pink",
+        "orange": "Orange",
+        "purple": "Purple"
+      }
     },
     "fonts": {
       "default": "Default",
@@ -2110,6 +2138,11 @@
       "title": "Link",
       "description": "Enter the link URL.",
       "confirm": "Apply"
+    },
+    "youtubeDialog": {
+      "title": "YouTube video",
+      "description": "Paste a YouTube watch or share URL.",
+      "confirm": "Insert"
     },
     "paragraphStyles": {
       "title": "Title",
@@ -2155,13 +2188,14 @@
     "deleteImage": "Delete image",
     "deleteLottie": "Delete Lottie",
     "deleteList": "Delete list",
+    "deleteListItem": "Delete list item",
     "deleteChecklist": "Delete checklist",
     "deleteHighlight": "Remove highlight",
     "deleteTable": "Delete table",
     "moveBlock": "Move block",
     "moveBlockHint": "Drag to move the block",
     "insertBlock": "Insert block",
-    "insertBlockHint": "Insert a block or type /",
+    "insertBlockHint": "Open insert commands, or type /",
     "comment": "Comment",
     "linkUrlPrompt": "Link URL",
     "documentNotFound": "Document not found",

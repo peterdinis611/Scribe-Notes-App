@@ -88,6 +88,7 @@ Príklad v repo: [`../cursor.mcp.example.json`](../cursor.mcp.example.json).
 |----------|--------|
 | `SCRIBE_DB_PATH` | Absolútna cesta k `scribe.db`, ak nie je predvolená |
 | `SCRIBE_MCP_WRITE` | `0` = vynútiť read-only |
+| `SCRIBE_MCP_SCOPE` | Prístup k trezoru: `no-vault` (predvolené), `meta-only`, `full` |
 | `SCRIBE_NLP_SCRIPT` | Cesta k Python NLP `__main__.py` pre sémantické nástroje |
 | `SCRIBE_NLP_PYTHON` | Python binárka (predvolene `python3`) |
 

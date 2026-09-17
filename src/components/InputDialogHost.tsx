@@ -35,7 +35,7 @@ export function InputDialogHost() {
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
-    close(value.trim() || null)
+    close(value.trim())
   }
 
   return (

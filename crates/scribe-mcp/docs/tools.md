@@ -19,6 +19,7 @@ Health check for the configured database.
   "ok": true,
   "dbPath": "/Users/…/com.scribe.app/scribe.db",
   "writable": true,
+  "vaultScope": "no-vault",
   "sampleDocumentCount": 1,
   "edgeCount": 3,
   "orphanCount": 12
@@ -26,6 +27,8 @@ Health check for the configured database.
 ```
 
 `writable` is `true` when create/append tools can mutate the DB.
+
+Encrypted **vault** notes are gated by `SCRIBE_MCP_SCOPE` (default `no-vault`). See the MCP README for `no-vault` / `meta-only` / `full`.
 
 ---
 

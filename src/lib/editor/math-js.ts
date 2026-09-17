@@ -173,15 +173,4 @@ export function evaluateMathExpression(expression: string): MathEvaluation {
   }
 }
 
-/** @deprecated Prefer promptMathExpressionDialog — kept for non-UI callers. */
-export function promptMathExpression(
-  label: string,
-  initialValue = '',
-  placeholder: string = MATH_JS_EXAMPLES.inline,
-): string | null {
-  const value = window.prompt(`${label}\n(math.js, e.g. ${placeholder})`, initialValue)
-  if (value === null) return null
-  return value.trim()
-}
-
 export { math }

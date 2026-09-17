@@ -3,6 +3,7 @@ import { BubbleMenu } from '@tiptap/react/menus'
 import type { Editor } from '@tiptap/react'
 import { useEditorState } from '@tiptap/react'
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from '@tanstack/react-table'
+import { useTranslation } from 'react-i18next'
 import {
   focusTableCell,
   getTableMatrix,
@@ -17,6 +18,7 @@ type EditorTableBubbleMenuProps = {
 }
 
 export function EditorTableBubbleMenu({ editor }: EditorTableBubbleMenuProps) {
+  const { t } = useTranslation()
   const tableState = useEditorState({
     editor,
     selector: ({ editor: currentEditor }) => ({
@@ -42,14 +44,14 @@ export function EditorTableBubbleMenu({ editor }: EditorTableBubbleMenuProps) {
             className={cn('table-matrix-cell', cell.isHeader && 'is-header')}
             style={{ backgroundColor: cell.backgroundColor ?? undefined }}
             onClick={() => focusTableCell(editor, cell.row, cell.col)}
-            title={`Riadok ${cell.row + 1}, stĺpec ${cell.col + 1}`}
+            title={t('toolbar.table.cellTitle', { row: cell.row + 1, col: cell.col + 1 })}
           >
-            {cell.isHeader ? 'H' : cell.col + 1}
+            {cell.isHeader ? t('toolbar.table.headerMark') : cell.col + 1}
           </button>
         )
       },
     }))
-  }, [editor, tableState.matrix])
+  }, [editor, t, tableState.matrix])
 
   const table = useReactTable({
     data: tableState.matrix ?? [],
@@ -65,14 +67,14 @@ export function EditorTableBubbleMenu({ editor }: EditorTableBubbleMenuProps) {
     >
       <div className="table-bubble-layout">
         <div className="table-bubble-colors">
-          <span className="table-bubble-label">Farba bunky</span>
+          <span className="table-bubble-label">{t('toolbar.table.cellColor')}</span>
           <div className="table-bubble-swatches">
-            {TABLE_CELL_COLORS.map(({ label, value }) => (
+            {TABLE_CELL_COLORS.map(({ id, value }) => (
               <button
-                key={label}
+                key={id}
                 type="button"
                 className={cn('toolbar-swatch', tableState.currentColor === value && 'is-active')}
-                title={label}
+                title={t(`toolbar.table.colors.${id}`)}
                 onClick={() => setTableCellBackground(editor, value)}
               >
                 <span
@@ -86,7 +88,7 @@ export function EditorTableBubbleMenu({ editor }: EditorTableBubbleMenuProps) {
 
         {(tableState.matrix?.length ?? 0) > 0 && (
           <div className="table-bubble-matrix">
-            <span className="table-bubble-label">Tabuľka (TanStack Table)</span>
+            <span className="table-bubble-label">{t('toolbar.table.jumpToCell')}</span>
             <div className="table-matrix-table-wrap">
               <table className="table-matrix-table">
                 <thead>

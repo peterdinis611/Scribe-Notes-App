@@ -130,7 +130,7 @@ export function DocumentOutlinePanel({
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
   const activeDocumentId = useAppSelector((state) => state.documents.activeDocumentId)
-  const [headingsOnly, setHeadingsOnly] = useState(true)
+  const [headingsOnly, setHeadingsOnly] = useState(false)
   const activeRowRef = useRef<HTMLButtonElement | null>(null)
   const markdownItems = useMemo(
     () => (markdownSource != null ? collectMarkdownHeadingOutline(markdownSource) : []),

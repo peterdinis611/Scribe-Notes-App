@@ -19,6 +19,7 @@ use crate::nlp::NlpSidecar;
 use crate::store::{
     require_nlp, search_library, sync_sidecar_backend, IdTitle, ScribeStore,
 };
+use crate::vault::{content_is_vault_cipher, require_document_not_vault};
 
 const META_DOCUMENTS_DIR: &str = "documents_dir";
 const BACKUP_FILE_PREFIX: &str = "scribe-backup-";
@@ -74,6 +75,7 @@ pub struct BackupExportResult {
 
 impl ScribeStore {
     fn document_title_and_text(&self, document_id: &str) -> Result<(String, String), String> {
+        require_document_not_vault(&self.db, document_id)?;
         let (title, content_json): (String, String) = self
             .db
             .query_row(
@@ -82,6 +84,9 @@ impl ScribeStore {
                 |row| Ok((row.get(0)?, row.get(1)?)),
             )
             .map_err(|e| e.to_string())?;
+        if content_is_vault_cipher(&content_json) {
+            return Err(crate::vault::ERR_VAULT_NLP.to_string());
+        }
         let text = format!("{title}\n{}", extract_search_text(&content_json));
         Ok((title, text))
     }
@@ -121,6 +126,17 @@ impl ScribeStore {
         sync_sidecar_backend(sidecar, &self.db)?;
 
         let hits = search_library(&self.db, sidecar, trimmed, limit, SearchMode::Hybrid)?;
+        let vault_ids = crate::vault::vault_document_ids_among(
+            &self.db,
+            &hits
+                .iter()
+                .map(|hit| hit.document_id.clone())
+                .collect::<Vec<_>>(),
+        )?;
+        let hits: Vec<_> = hits
+            .into_iter()
+            .filter(|hit| !vault_ids.contains(&hit.document_id))
+            .collect();
         let passages = json!(hits
             .iter()
             .map(|hit| {
@@ -208,6 +224,9 @@ impl ScribeStore {
         let mut documents = Vec::new();
         for row in rows {
             let (id, title, content_json) = row.map_err(|e| e.to_string())?;
+            if content_is_vault_cipher(&content_json) {
+                continue;
+            }
             documents.push(json!({
                 "id": id,
                 "title": title,
@@ -290,7 +309,7 @@ impl ScribeStore {
         let mut docs = Vec::new();
         for row in rows {
             let (id, title, content_json) = row.map_err(|e| e.to_string())?;
-            if content_json.contains("\"type\":\"scribe-vault-v1\"") {
+            if content_is_vault_cipher(&content_json) {
                 continue;
             }
             let text = extract_search_text(&content_json);
@@ -424,6 +443,7 @@ impl ScribeStore {
         if !sidecar.script_exists() {
             return Err("NLP sidecar unavailable".to_string());
         }
+        require_document_not_vault(&self.db, document_id)?;
         sync_sidecar_backend(sidecar, &self.db)?;
 
         let (title, content_json): (String, String) = self
@@ -435,8 +455,8 @@ impl ScribeStore {
             )
             .map_err(|_| format!("Document not found: {document_id}"))?;
 
-        if content_json.contains("\"type\":\"scribe-vault-v1\"") {
-            return Err("vault documents cannot be answered".to_string());
+        if content_is_vault_cipher(&content_json) {
+            return Err(crate::vault::ERR_VAULT_NLP.to_string());
         }
 
         let text = format!("{title}\n{}", extract_search_text(&content_json));

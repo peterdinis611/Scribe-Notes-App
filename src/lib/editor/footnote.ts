@@ -4,6 +4,7 @@ import type { Node as PMNode } from '@tiptap/pm/model'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
 import type { EditorView } from '@tiptap/pm/view'
+import { promptInput } from '@/lib/input-dialog'
 import i18n from '@/i18n'
 
 function generateId(): string {
@@ -248,28 +249,36 @@ function buildFootnotesSection(
   return section
 }
 
-/** Prompt-based editor for footnote content, wired via the extension options. */
+/** Dialog-based editor for footnote content, wired via the extension options. */
 export function createFootnoteEditHandler() {
   return (editor: Editor, pos: number, content: string) => {
-    const next = window.prompt('Text poznámky pod čiarou', content)
-    if (next === null) return
-    const trimmed = next.trim()
-    const node = editor.state.doc.nodeAt(pos)
-    if (!node || node.type.name !== 'footnote') return
-    if (!trimmed) {
-      editor.chain().focus().command(({ tr }) => {
-        tr.delete(pos, pos + node.nodeSize)
-        return true
-      }).run()
-      return
-    }
-    editor
-      .chain()
-      .focus()
-      .command(({ tr }) => {
-        tr.setNodeMarkup(pos, undefined, { ...node.attrs, content: trimmed })
-        return true
+    void (async () => {
+      const next = await promptInput({
+        title: i18n.t('footnotes.editTitle'),
+        description: i18n.t('footnotes.editDescription'),
+        defaultValue: content,
+        placeholder: i18n.t('footnotes.editPlaceholder'),
+        confirmLabel: i18n.t('footnotes.editConfirm'),
       })
-      .run()
+      if (next === null || editor.isDestroyed) return
+      const trimmed = next.trim()
+      const node = editor.state.doc.nodeAt(pos)
+      if (!node || node.type.name !== 'footnote') return
+      if (!trimmed) {
+        editor.chain().focus().command(({ tr }) => {
+          tr.delete(pos, pos + node.nodeSize)
+          return true
+        }).run()
+        return
+      }
+      editor
+        .chain()
+        .focus()
+        .command(({ tr }) => {
+          tr.setNodeMarkup(pos, undefined, { ...node.attrs, content: trimmed })
+          return true
+        })
+        .run()
+    })()
   }
 }

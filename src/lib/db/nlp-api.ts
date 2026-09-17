@@ -150,6 +150,10 @@ export const nlpLibraryReport = () => invoke<NlpLibraryReport>('nlp_library_repo
 export const nlpDocumentAnalysis = (documentId: string) =>
   invoke<NlpDocumentAnalysis>('nlp_document_analysis', { documentId })
 
+/** Ephemeral analysis of plaintext (unlocked vault note). Never persists to DB. */
+export const nlpAnalyzePlaintext = (text: string) =>
+  invoke<NlpDocumentAnalysis>('nlp_analyze_plaintext', { text })
+
 export const nlpFindDuplicates = (limit = 20) =>
   invoke<{ pairs: Array<Record<string, unknown>>; compared: number }>('nlp_find_duplicates', {
     limit,

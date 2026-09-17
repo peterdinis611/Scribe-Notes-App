@@ -88,6 +88,7 @@ See also [`../cursor.mcp.example.json`](../cursor.mcp.example.json).
 |----------|---------|
 | `SCRIBE_DB_PATH` | Absolute path to `scribe.db` when not using the default |
 | `SCRIBE_MCP_WRITE` | `0` = force read-only |
+| `SCRIBE_MCP_SCOPE` | Vault access: `no-vault` (default), `meta-only`, `full` |
 | `SCRIBE_NLP_SCRIPT` | Path to Python NLP `__main__.py` for semantic tools |
 | `SCRIBE_NLP_PYTHON` | Python binary (default `python3`) |
 

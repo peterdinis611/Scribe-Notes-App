@@ -1,6 +1,7 @@
 import { useHotkeys } from '@tanstack/react-hotkeys'
 import type { Editor } from '@tiptap/react'
 import i18n from '@/i18n'
+import { promptAndApplyEditorLink } from '@/lib/editor/link-prompt'
 import { insertBulletList, insertOrderedList, insertTaskList } from '@/lib/editor/list-commands'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setFindReplaceMode, setFindReplaceOpen } from '@/store/documentsSlice'
@@ -167,14 +168,7 @@ export function useEditorHotkeys(editor: Editor | null) {
         hotkey: 'Mod+K',
         callback: () => {
           if (!editor) return
-          const previous = editor.getAttributes('link').href as string | undefined
-          const url = window.prompt(i18n.t('editorActions.linkUrlPrompt'), previous ?? 'https://')
-          if (url === null) return
-          if (url === '') {
-            editor.chain().focus().extendMarkRange('link').unsetLink().run()
-            return
-          }
-          editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
+          void promptAndApplyEditorLink(editor)
         },
         options: {
           enabled: !!editor,

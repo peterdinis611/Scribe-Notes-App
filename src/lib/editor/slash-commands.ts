@@ -18,6 +18,7 @@ import {
 import { insertBulletList, insertOrderedList, insertTaskList } from '@/lib/editor/list-commands'
 import { createCommentForSelection } from '@/lib/editor/comments'
 import { listBlockSnippets, plainTextToTipTapContent } from '@/lib/editor/block-snippets'
+import { promptInput } from '@/lib/input-dialog'
 import i18n from '@/i18n'
 
 type SlashCommandDef = {
@@ -132,10 +133,18 @@ export function runSlashCommand(
       insertEmptyImageBlock(editor)
       break
     case 'image-url': {
-      const url = window.prompt(i18n.t('image.urlPrompt'))
-      if (url && (isLikelyImageUrl(url) || /^https?:\/\//i.test(url.trim()))) {
-        insertImageFromUrl(editor, url)
-      }
+      void (async () => {
+        const url = await promptInput({
+          title: i18n.t('image.urlTitle'),
+          description: i18n.t('image.urlHint'),
+          defaultValue: 'https://',
+          placeholder: 'https://',
+          confirmLabel: i18n.t('image.urlInsert'),
+        })
+        if (url && (isLikelyImageUrl(url) || /^https?:\/\//i.test(url.trim()))) {
+          insertImageFromUrl(editor, url.trim())
+        }
+      })()
       break
     }
     case 'lottie':
@@ -201,6 +210,21 @@ export function runSlashCommand(
     default:
       break
   }
+}
+
+export function openSlashPalette(editor: Editor) {
+  const { $from } = editor.state.selection
+  if (!$from.parent.isTextblock) {
+    editor.chain().focus().insertContent('/').run()
+    return
+  }
+
+  if ($from.parent.textContent.startsWith('/')) {
+    editor.commands.focus()
+    return
+  }
+
+  editor.chain().focus().insertContent('/').run()
 }
 
 type SlashCommandsOptions = {

@@ -30,6 +30,10 @@ use crate::tasks::{
     append_phrase_tasks, enrich_due_hints_from_sidecar, extract_checkbox_tasks_with_due,
     merge_document_tasks, DocumentTask,
 };
+use crate::vault::{
+    content_is_vault_cipher, document_is_vault, mcp_vault_denied_message, require_document_not_vault,
+    vault_document_ids_among, McpVaultScope,
+};
 
 const SUMMARY_SELECT: &str =
     "SELECT id, title, folder_id, file_path, updated_at, is_favorite, is_pinned, tags, deleted_at FROM documents";
@@ -135,6 +139,7 @@ pub struct FolderRow {
     pub name: String,
     pub parent_id: Option<String>,
     pub is_pinned: bool,
+    pub is_vault: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -724,6 +729,16 @@ impl ScribeStore {
         id: &str,
         include_json: bool,
     ) -> Result<Option<DocumentDetail>, String> {
+        self.get_document_scoped(id, include_json, McpVaultScope::Full)
+    }
+
+    /// Like `get_document`, but applies MCP vault scope (default agents use `NoVault`).
+    pub fn get_document_scoped(
+        &self,
+        id: &str,
+        include_json: bool,
+        scope: McpVaultScope,
+    ) -> Result<Option<DocumentDetail>, String> {
         let row = self
             .db
             .query_row(
@@ -763,6 +778,28 @@ impl ScribeStore {
             return Ok(None);
         }
 
+        let is_vault = document_is_vault(&self.db, &id)?;
+        if is_vault {
+            match scope {
+                McpVaultScope::NoVault => {
+                    return Err(mcp_vault_denied_message(scope));
+                }
+                McpVaultScope::MetaOnly => {
+                    return Ok(Some(DocumentDetail {
+                        id,
+                        title,
+                        folder_id,
+                        created_at,
+                        updated_at,
+                        tags: Self::parse_tags(tags_raw),
+                        plain_text: String::new(),
+                        content_json: None,
+                    }));
+                }
+                McpVaultScope::Full => {}
+            }
+        }
+
         Ok(Some(DocumentDetail {
             id,
             title,
@@ -779,11 +816,40 @@ impl ScribeStore {
         }))
     }
 
+    pub fn filter_search_hits_for_scope(
+        &self,
+        hits: Vec<SearchHit>,
+        scope: McpVaultScope,
+    ) -> Result<Vec<SearchHit>, String> {
+        if matches!(scope, McpVaultScope::Full) {
+            return Ok(hits);
+        }
+        let ids: Vec<String> = hits.iter().map(|hit| hit.document_id.clone()).collect();
+        let vault_ids = vault_document_ids_among(&self.db, &ids)?;
+        if matches!(scope, McpVaultScope::NoVault) {
+            return Ok(hits
+                .into_iter()
+                .filter(|hit| !vault_ids.contains(&hit.document_id))
+                .collect());
+        }
+        // MetaOnly: keep vault hits but strip snippets.
+        Ok(hits
+            .into_iter()
+            .map(|mut hit| {
+                if vault_ids.contains(&hit.document_id) {
+                    hit.snippet = "[vault]".to_string();
+                }
+                hit
+            })
+            .collect())
+    }
+
     pub fn list_folders(&self) -> Result<Vec<FolderRow>, String> {
         let mut stmt = self
             .db
             .prepare(
-                "SELECT id, name, parent_id, is_pinned FROM folders ORDER BY name COLLATE NOCASE",
+                "SELECT id, name, parent_id, is_pinned, COALESCE(is_vault, 0)
+                 FROM folders ORDER BY name COLLATE NOCASE",
             )
             .map_err(|e| e.to_string())?;
 
@@ -794,6 +860,7 @@ impl ScribeStore {
                     name: row.get(1)?,
                     parent_id: row.get(2)?,
                     is_pinned: row.get::<_, i64>(3)? != 0,
+                    is_vault: row.get::<_, i64>(4)? != 0,
                 })
             })
             .map_err(|e| e.to_string())?;
@@ -2014,6 +2081,7 @@ impl ScribeStore {
         max_sentences: Option<i64>,
     ) -> Result<DocumentNlpSummary, String> {
         require_nlp(&self.db)?;
+        require_document_not_vault(&self.db, document_id)?;
 
         let row: Option<(String, String, Option<i64>)> = self
             .db
@@ -2030,6 +2098,9 @@ impl ScribeStore {
         };
         if deleted_at.is_some() {
             return Err(format!("Document not found: {document_id}"));
+        }
+        if content_is_vault_cipher(&content_json) {
+            return Err(crate::vault::ERR_VAULT_NLP.to_string());
         }
 
         let text = format!("{title}\n{}", extract_search_text(&content_json));
@@ -2057,6 +2128,7 @@ impl ScribeStore {
 
     pub fn suggest_tags(&self, sidecar: &NlpSidecar, document_id: &str) -> Result<TagSuggestions, String> {
         require_nlp(&self.db)?;
+        require_document_not_vault(&self.db, document_id)?;
 
         let (title, content_json): (String, String) = self
             .db
@@ -2066,6 +2138,9 @@ impl ScribeStore {
                 |row| Ok((row.get(0)?, row.get(1)?)),
             )
             .map_err(|e| e.to_string())?;
+        if content_is_vault_cipher(&content_json) {
+            return Err(crate::vault::ERR_VAULT_NLP.to_string());
+        }
 
         let text = format!("{title}\n{}", extract_search_text(&content_json));
         sync_sidecar_backend(sidecar, &self.db)?;
@@ -2797,6 +2872,7 @@ impl ScribeStore {
     }
 
     pub fn export_document(&self, id: &str, format: &str) -> Result<ExportDocument, String> {
+        require_document_not_vault(&self.db, id)?;
         let doc = self
             .get_document(id, true)?
             .ok_or_else(|| format!("Document not found: {id}"))?;
@@ -2872,6 +2948,7 @@ impl ScribeStore {
     }
 
     pub fn get_document_outline(&self, id: &str) -> Result<DocumentOutline, String> {
+        require_document_not_vault(&self.db, id)?;
         let doc = self
             .get_document(id, true)?
             .ok_or_else(|| format!("Document not found: {id}"))?;

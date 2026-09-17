@@ -208,7 +208,7 @@ Kompletný zoznam metód: [`nlp/README.md`](nlp/README.md). Po zmene modelu (nap
 
 ## Scribe Memory MCP (Claude / Cursor)
 
-Voliteľná power funkcia: lokálne poznámky cez MCP pre Claude Desktop alebo Cursor. Bežné písanie MCP nevyžaduje. Server preferuje **zápis** (`create_note` / `append_to_note`) a pri zamknutej DB prejde do **read-only**. In-app: **Nastavenia → MCP**.
+Voliteľná power funkcia: lokálne poznámky cez MCP pre Claude Desktop alebo Cursor. Bežné písanie MCP nevyžaduje. Server preferuje **zápis** (`create_note` / `append_to_note`) a pri zamknutej DB prejde do **read-only**. Šifrované **trezorové** poznámky sú predvolene vylúčené (`SCRIBE_MCP_SCOPE=no-vault`). In-app: **Nastavenia → MCP**.
 
 - Prehľad: [`crates/scribe-mcp/README.md`](crates/scribe-mcp/README.md) · docs [`crates/scribe-mcp/docs/`](crates/scribe-mcp/docs/README.md)
 
