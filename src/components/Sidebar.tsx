@@ -97,12 +97,13 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
       className={cn(
         'app-sidebar',
         resizing && 'is-resizing',
+        isCompact && !isOpen && 'hidden',
         isCompact &&
-          'max-xl:fixed max-xl:inset-y-0 max-xl:left-0 max-xl:z-40 max-xl:w-[min(calc(var(--sidebar-rail-width)+var(--sidebar-width)),92vw)] max-xl:-translate-x-[105%] max-xl:shadow-none max-xl:transition-transform max-xl:duration-200',
+          'max-xl:fixed max-xl:inset-y-0 max-xl:left-0 max-xl:z-40 max-xl:h-svh max-xl:max-h-svh max-xl:w-[min(calc(var(--sidebar-rail-width)+var(--sidebar-width)),92vw)] max-xl:shadow-none max-xl:transition-transform max-xl:duration-200',
         isCompact && isOpen && 'max-xl:translate-x-0 max-xl:shadow-[16px_0_48px_rgba(0,0,0,0.22)]',
       )}
     >
-      <div className="relative flex h-full min-h-0 flex-1">
+      <div className="relative flex h-full min-h-0 w-full flex-1">
         <div
           className="sidebar-brand-drag titlebar-drag absolute left-[var(--sidebar-rail-width)] right-0 top-0 z-0 h-12"
           aria-hidden="true"

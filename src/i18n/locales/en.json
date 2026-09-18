@@ -1316,7 +1316,9 @@
     "findReplaceClose": "Close search",
     "clipboard": "Clipboard",
     "leftOutline": "Left outline",
-    "leftOutlineOff": "Hide left outline"
+    "leftOutlineOff": "Hide left outline",
+    "resize": "Resize panel",
+    "resizeHint": "Drag to widen. Double-click to reset."
   },
   "panels": {
     "comments": {

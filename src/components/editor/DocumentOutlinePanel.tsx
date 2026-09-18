@@ -181,7 +181,7 @@ export function DocumentOutlinePanel({
   }, [activeId])
 
   return (
-    <EditorSidePanel width={280} className="titlebar-no-drag" aria-label={t('editorPanels.outline')}>
+    <EditorSidePanel className="titlebar-no-drag" aria-label={t('editorPanels.outline')}>
       <EditorSidePanelHeader
         title={t('panels.outline.title')}
         subtitle={t('panels.outline.navHint')}

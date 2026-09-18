@@ -1319,7 +1319,9 @@
     "findReplaceClose": "Zavrieť vyhľadávanie",
     "clipboard": "Schránka",
     "leftOutline": "Obsah vľavo",
-    "leftOutlineOff": "Skryť obsah vľavo"
+    "leftOutlineOff": "Skryť obsah vľavo",
+    "resize": "Zmeniť šírku panela",
+    "resizeHint": "Ťahaním rozšírite. Dvojklik vráti predvolenú šírku."
   },
   "panels": {
     "comments": {
