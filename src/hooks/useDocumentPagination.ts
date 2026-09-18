@@ -10,6 +10,7 @@ import {
 } from '@/lib/editor/page-segments'
 import { throttle } from '@/lib/utils'
 import { getEditorViewDom } from '@/lib/editor/view-ready'
+import { recallEditorSession, rememberEditorSession } from '@/lib/editor/editor-session'
 
 type UseDocumentPaginationOptions = {
   editor: Editor | null
@@ -29,6 +30,8 @@ export function useDocumentPagination({
   const contentRef = useRef<HTMLElement | null>(null)
   const isProgrammaticScrollRef = useRef(false)
   const measureFrameRef = useRef<number | null>(null)
+  const editorRef = useRef(editor)
+  editorRef.current = editor
 
   const [pageCount, setPageCount] = useState(1)
   const [currentPage, setCurrentPage] = useState(1)
@@ -98,14 +101,28 @@ export function useDocumentPagination({
   )
 
   useEffect(() => {
+    const scrollEl = scrollRef.current
+    const saved = recallEditorSession(documentId)
+
     setCurrentPage(1)
     setPageCount(1)
     setContentHeight(0)
     setPageSegments(computePageSegments(pageSetup, 0))
 
-    const scrollEl = scrollRef.current
     if (scrollEl) {
-      scrollEl.scrollTop = 0
+      scrollEl.scrollTop = saved?.scrollTop ?? 0
+    }
+
+    return () => {
+      const el = scrollRef.current
+      const currentEditor = editorRef.current
+      if (!el || !documentId) return
+      const selection = currentEditor && !currentEditor.isDestroyed ? currentEditor.state.selection : null
+      rememberEditorSession(documentId, {
+        scrollTop: el.scrollTop,
+        from: selection?.from ?? 1,
+        to: selection?.to ?? 1,
+      })
     }
     // Seed sheets for the new doc; pageSetup is read for the initial segment only.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset on document switch

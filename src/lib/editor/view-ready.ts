@@ -63,6 +63,19 @@ export function runEditorCommand(editor: Editor | null, run: (editor: Editor) =>
   }
 }
 
+/** Keep the writing caret after a dropdown closes with Escape. */
+export function keepEditorSelectionFocus(editor: Editor | null) {
+  return (event: Event) => {
+    event.preventDefault()
+    if (!isEditorViewReady(editor)) return
+    try {
+      editor.view.focus()
+    } catch {
+      // view not mounted
+    }
+  }
+}
+
 export function useEditorReady(editor: Editor | null): boolean {
   const [ready, setReady] = useState(() => isEditorViewReady(editor))
 

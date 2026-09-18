@@ -129,10 +129,8 @@ export function EditorDragHandle({ editor }: EditorDragHandleProps) {
     const block = findBlockFromSelection(editor)
     if (block) {
       pinnedBlockRef.current = block
-      showHandleForBlock(block)
-      clearHideTimer()
     }
-  }, [editor, showHandleForBlock, clearHideTimer])
+  }, [editor])
 
   useEffect(() => {
     if (!editor || editor.isDestroyed) return
@@ -177,24 +175,17 @@ export function EditorDragHandle({ editor }: EditorDragHandleProps) {
           }
         }
 
-        if (pinnedBlockRef.current && editor.isFocused) {
-          setHandleActive(false)
-          setClusterHovered(false)
-          syncActiveBlock(pinnedBlockRef.current)
-          return
-        }
-
         scheduleHide()
       }
 
       const onScroll = () => {
         if (draggingRef.current) return
-        const block = blockRef.current ?? pinnedBlockRef.current
+        if (!overHandleRef.current) return
+        const block = blockRef.current
         if (block) showHandleForBlock(block)
       }
 
       const onFocus = () => {
-        clearHideTimer()
         syncPinnedBlock()
       }
 

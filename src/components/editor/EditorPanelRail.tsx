@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import {
   BarChart3,
   BookOpen,
+  ClipboardList,
   Focus,
   History,
   Link2,
@@ -24,6 +25,7 @@ import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
   setBacklinksPanelOpen,
+  setClipboardHistoryPanelOpen,
   setCommentsPanelOpen,
   setDocumentOutlineOpen,
   setFindReplaceMode,
@@ -73,6 +75,7 @@ export function EditorPanelRail() {
   const statsOpen = useAppSelector((state) => state.documents.statsPanelOpen)
   const backlinksOpen = useAppSelector((state) => state.documents.backlinksPanelOpen)
   const insightsOpen = useAppSelector((state) => state.documents.insightsPanelOpen)
+  const clipboardOpen = useAppSelector((state) => state.documents.clipboardHistoryPanelOpen)
   const findReplaceOpen = useAppSelector((state) => state.documents.findReplaceOpen)
   const panelRailExpanded = useAppSelector((state) => state.documents.panelRailExpanded)
   const focusMode = useAppSelector((state) => state.documents.focusMode)
@@ -81,16 +84,26 @@ export function EditorPanelRail() {
   const { t } = useTranslation()
 
   const anyPanelOpen =
-    outlineOpen || historyOpen || commentsOpen || statsOpen || backlinksOpen || insightsOpen || findReplaceOpen
+    outlineOpen ||
+    historyOpen ||
+    commentsOpen ||
+    statsOpen ||
+    backlinksOpen ||
+    insightsOpen ||
+    clipboardOpen ||
+    findReplaceOpen
   const expanded = panelRailExpanded || anyPanelOpen
 
-  function closeOtherPanels(except?: 'outline' | 'history' | 'comments' | 'stats' | 'backlinks' | 'insights') {
+  function closeOtherPanels(
+    except?: 'outline' | 'history' | 'comments' | 'stats' | 'backlinks' | 'insights' | 'clipboard',
+  ) {
     if (except !== 'outline') dispatch(setDocumentOutlineOpen(false))
     if (except !== 'history') dispatch(setRevisionHistoryOpen(false))
     if (except !== 'comments') dispatch(setCommentsPanelOpen(false))
     if (except !== 'stats') dispatch(setStatsPanelOpen(false))
     if (except !== 'backlinks') dispatch(setBacklinksPanelOpen(false))
     if (except !== 'insights') dispatch(setInsightsPanelOpen(false))
+    if (except !== 'clipboard') dispatch(setClipboardHistoryPanelOpen(false))
   }
 
   function openFind() {
@@ -210,6 +223,16 @@ export function EditorPanelRail() {
           onClick={openInsights}
         >
           <Sparkles className="h-4 w-4" />
+        </RailButton>
+        <RailButton
+          label={t('editorPanels.clipboard')}
+          active={clipboardOpen}
+          onClick={() => {
+            closeOtherPanels('clipboard')
+            dispatch(setClipboardHistoryPanelOpen(!clipboardOpen))
+          }}
+        >
+          <ClipboardList className="h-4 w-4" />
         </RailButton>
         <RailButton
           label={t('editorPanels.stats')}

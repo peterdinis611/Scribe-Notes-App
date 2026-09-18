@@ -241,14 +241,16 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
         }
         actions={
           <div className="inline-flex gap-0.5">
-            <EditorSidePanelIconButton
-              title={t('panels.comments.addComment')}
-              aria-label={t('panels.comments.addComment')}
-              onClick={() => void handleAddComment()}
-              disabled={!editor || adding}
-            >
-              <MessageSquarePlus className="h-4 w-4" />
-            </EditorSidePanelIconButton>
+            {threads.length > 0 && (
+              <EditorSidePanelIconButton
+                title={t('panels.comments.addComment')}
+                aria-label={t('panels.comments.addComment')}
+                onClick={() => void handleAddComment()}
+                disabled={!editor || adding}
+              >
+                <MessageSquarePlus className="h-4 w-4" />
+              </EditorSidePanelIconButton>
+            )}
             <EditorSidePanelIconButton title={t('common.refresh')} onClick={refresh}>
               <RotateCcw className="h-4 w-4" />
             </EditorSidePanelIconButton>
@@ -259,6 +261,7 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
         }
       />
 
+      {threads.length > 0 && (
       <div className="mx-3 mt-2 flex flex-col gap-1.5">
         <button
           type="button"
@@ -276,10 +279,13 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
           <MessageSquarePlus className="h-3.5 w-3.5" />
           {t('panels.comments.addComment')}
         </button>
-        <p className="m-0 px-0.5 text-[10px] leading-snug text-[var(--color-muted-foreground)]">
-          {hasSelection ? t('panels.comments.selectionReady') : t('panels.comments.addCommentHint')}
-        </p>
+        {hasSelection ? (
+          <p className="m-0 px-0.5 text-[10px] leading-snug text-[var(--color-muted-foreground)]">
+            {t('panels.comments.selectionReady')}
+          </p>
+        ) : null}
       </div>
+      )}
 
       {resolvedCount > 0 && (
         <button
@@ -298,13 +304,21 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
           <EditorSidePanelEmpty>
             <MessageSquare className="h-5 w-5 opacity-40" />
             <span>{t('panels.comments.emptyHint')}</span>
-            <span className="text-[11px] leading-snug opacity-90">
-              {t('panels.comments.howToStep1')}
-              <br />
-              {t('panels.comments.howToStep2')}
-              <br />
-              {t('panels.comments.howToStep3')}
-            </span>
+            <button
+              type="button"
+              className={cn(
+                'inline-flex items-center justify-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold',
+                hasSelection
+                  ? 'border-transparent bg-[var(--color-accent)] text-white'
+                  : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-foreground)]',
+              )}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => void handleAddComment()}
+              disabled={!editor || adding}
+            >
+              <MessageSquarePlus className="h-3.5 w-3.5" />
+              {t('panels.comments.addComment')}
+            </button>
           </EditorSidePanelEmpty>
         ) : (
           visibleThreads.map((thread) => (

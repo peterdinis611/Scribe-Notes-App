@@ -183,7 +183,7 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
 
   return (
     <div
-      className="find-replace-bar absolute right-5 top-2 z-30 flex flex-col gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2 shadow-[0_12px_32px_rgba(0,0,0,0.18)] titlebar-no-drag"
+      className="find-replace-bar titlebar-no-drag"
       role="search"
     >
       <div className="flex items-center gap-1">

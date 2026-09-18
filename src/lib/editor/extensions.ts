@@ -168,7 +168,7 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
       },
     }),
     Placeholder.configure({
-      placeholder: i18n.t('editor.placeholder'),
+      placeholder: () => i18n.t('editor.placeholder'),
     }),
     Markdown.configure({
       indentation: { style: 'space', size: 2 },

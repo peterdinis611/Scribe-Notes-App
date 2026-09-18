@@ -3,7 +3,21 @@ import { BubbleMenu } from '@tiptap/react/menus'
 import type { Editor } from '@tiptap/react'
 import { useEditorState } from '@tiptap/react'
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from '@tanstack/react-table'
+import {
+  ArrowDownAZ,
+  ArrowDownToLine,
+  ArrowUpAZ,
+  BetweenHorizontalEnd,
+  BetweenVerticalEnd,
+  Sigma,
+  Trash2,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import {
+  fillDownActiveColumn,
+  insertColumnTotalBelow,
+  sortTableByActiveColumn,
+} from '@/lib/editor/table-commands'
 import {
   focusTableCell,
   getTableMatrix,
@@ -11,6 +25,7 @@ import {
   TABLE_CELL_COLORS,
   type TableMatrixRow,
 } from '@/lib/editor/table-extensions'
+import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 
 type EditorTableBubbleMenuProps = {
@@ -66,6 +81,74 @@ export function EditorTableBubbleMenu({ editor }: EditorTableBubbleMenuProps) {
       shouldShow={() => tableState.isTable}
     >
       <div className="table-bubble-layout">
+        <div className="table-bubble-actions">
+          <button
+            type="button"
+            className="editor-bubble-icon-btn"
+            title={t('toolbar.actions.addRow')}
+            onClick={() => editor.chain().focus().addRowAfter().run()}
+          >
+            <BetweenHorizontalEnd className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            className="editor-bubble-icon-btn"
+            title={t('toolbar.actions.addColumn')}
+            onClick={() => editor.chain().focus().addColumnAfter().run()}
+          >
+            <BetweenVerticalEnd className="h-3.5 w-3.5" />
+          </button>
+          <span className="editor-bubble-divider" />
+          <button
+            type="button"
+            className="editor-bubble-icon-btn"
+            title={t('toolbar.actions.sortAsc')}
+            onClick={() => {
+              if (!sortTableByActiveColumn(editor, 'asc')) toast.info(t('toolbar.table.needColumn'))
+            }}
+          >
+            <ArrowDownAZ className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            className="editor-bubble-icon-btn"
+            title={t('toolbar.actions.sortDesc')}
+            onClick={() => {
+              if (!sortTableByActiveColumn(editor, 'desc')) toast.info(t('toolbar.table.needColumn'))
+            }}
+          >
+            <ArrowUpAZ className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            className="editor-bubble-icon-btn"
+            title={t('toolbar.actions.fillDown')}
+            onClick={() => {
+              if (!fillDownActiveColumn(editor)) toast.info(t('toolbar.table.fillEmpty'))
+            }}
+          >
+            <ArrowDownToLine className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            className="editor-bubble-icon-btn"
+            title={t('toolbar.actions.sumColumn')}
+            onClick={() => {
+              if (!insertColumnTotalBelow(editor)) toast.info(t('toolbar.table.needNumbers'))
+            }}
+          >
+            <Sigma className="h-3.5 w-3.5" />
+          </button>
+          <span className="editor-bubble-divider" />
+          <button
+            type="button"
+            className="editor-bubble-icon-btn"
+            title={t('editorActions.deleteTable')}
+            onClick={() => editor.chain().focus().deleteTable().run()}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
         <div className="table-bubble-colors">
           <span className="table-bubble-label">{t('toolbar.table.cellColor')}</span>
           <div className="table-bubble-swatches">

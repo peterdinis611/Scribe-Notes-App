@@ -1,5 +1,5 @@
 import { Extension } from '@tiptap/core'
-import { Plugin, PluginKey, TextSelection, Selection } from '@tiptap/pm/state'
+import { NodeSelection, Plugin, PluginKey, TextSelection, Selection } from '@tiptap/pm/state'
 import type { EditorView } from '@tiptap/pm/view'
 import {
   createParagraphNear,
@@ -8,8 +8,6 @@ import {
   joinForward,
   liftEmptyBlock,
   newlineInCode,
-  selectNodeBackward,
-  selectNodeForward,
   setBlockType,
   splitBlock,
 } from '@tiptap/pm/commands'
@@ -136,6 +134,72 @@ function deleteRange(view: EditorView, from: number, to: number) {
   return true
 }
 
+/**
+ * Delete the block before/after the caret instead of only selecting it.
+ * Selecting first + Escape left a caret that could not finish the delete.
+ */
+function isAtomicBlock(node: { isAtom: boolean; isLeaf: boolean; isTextblock: boolean }) {
+  return node.isAtom || (node.isLeaf && !node.isTextblock)
+}
+
+function deleteAdjacentBlock(view: EditorView, direction: 'backward' | 'forward') {
+  const { state, dispatch } = view
+  const { $head, empty } = state.selection
+  if (!empty) return false
+
+  const backward = direction === 'backward'
+  if ($head.parent.isTextblock) {
+    const atEdge = backward
+      ? view.endOfTextblock('backward', state) || $head.parentOffset === 0
+      : view.endOfTextblock('forward', state) || $head.parentOffset === $head.parent.content.size
+    if (!atEdge) return false
+  }
+
+  const $cut = $head.parent.isTextblock
+    ? state.doc.resolve(backward ? $head.before() : $head.after())
+    : $head
+  const node = backward ? $cut.nodeBefore : $cut.nodeAfter
+  if (!node || !isAtomicBlock(node)) return false
+
+  const from = backward ? $cut.pos - node.nodeSize : $cut.pos
+  const to = backward ? $cut.pos : $cut.pos + node.nodeSize
+  dispatch(state.tr.delete(from, to).scrollIntoView())
+  return true
+}
+
+function finishJoinIfNodeSelected(view: EditorView, joined: boolean) {
+  if (!joined) return false
+  if (view.state.selection instanceof NodeSelection) {
+    return deleteSelection(view.state, view.dispatch.bind(view))
+  }
+  return true
+}
+
+function deleteEmptyTextblockBackward(view: EditorView) {
+  const { state, dispatch } = view
+  const { $from, empty } = state.selection
+  if (!empty || $from.parentOffset !== 0) return false
+  if (!$from.parent.isTextblock || $from.parent.content.size > 0) return false
+
+  const from = $from.before()
+  const to = $from.after()
+  if (from <= 0 && to >= state.doc.content.size) return false
+
+  const tr = state.tr.delete(from, to)
+  const pos = Math.min(Math.max(from, 1), tr.doc.content.size)
+  tr.setSelection(TextSelection.near(tr.doc.resolve(pos), -1))
+  dispatch(tr.scrollIntoView())
+  return true
+}
+
+function collapseNodeSelection(view: EditorView) {
+  const { state, dispatch } = view
+  if (!(state.selection instanceof NodeSelection)) return false
+  dispatch(state.tr.setSelection(TextSelection.near(state.doc.resolve(state.selection.to))))
+  view.focus()
+  return true
+}
+
 /** Delete one code point / atom node before the cursor. */
 function deleteCharBackward(view: EditorView) {
   const { state } = view
@@ -244,9 +308,10 @@ export function handleEditorBackspace(view: EditorView, event?: KeyboardEvent): 
   const { $from } = state.selection
   if ($from.parentOffset === 0) {
     if (clearBlockTypeAtStart(view)) return true
+    if (deleteAdjacentBlock(view, 'backward')) return true
+    if (finishJoinIfNodeSelected(view, joinBackward(state, dispatch))) return true
+    if (deleteEmptyTextblockBackward(view)) return true
     if (liftActiveListItem(view)) return true
-    if (joinBackward(state, dispatch)) return true
-    if (selectNodeBackward(state, dispatch)) return true
     return false
   }
 
@@ -269,9 +334,8 @@ export function handleEditorDelete(view: EditorView, event?: KeyboardEvent): boo
 
   const { $from } = state.selection
   if ($from.parentOffset === $from.parent.content.size) {
-    if (joinForward(state, dispatch)) return true
-    if (selectNodeForward(state, dispatch)) return true
-    return false
+    if (deleteAdjacentBlock(view, 'forward')) return true
+    return finishJoinIfNodeSelected(view, joinForward(state, dispatch))
   }
 
   return deleteCharForward(view)
@@ -319,6 +383,10 @@ export function handleTauriEditorKeyDown(view: EditorView, event: KeyboardEvent)
     return false
   }
 
+  if (event.key === 'Escape' || event.key === 'Esc') {
+    return collapseNodeSelection(view)
+  }
+
   if (isEnterKey(event)) {
     if (event.metaKey || event.ctrlKey || event.altKey) return false
     if (event.shiftKey) return insertHardBreak(view)
@@ -363,7 +431,9 @@ export const TauriInputFix = Extension.create({
   priority: 10_000,
 
   addProseMirrorPlugins() {
+    let lastEnterSource: 'keydown' | 'beforeinput' | null = null
     let lastEnterHandledAt = 0
+    let lastDeleteSource: 'keydown' | 'beforeinput' | null = null
     let lastDeleteHandledAt = 0
     const recently = (at: number) => Date.now() - at < 50
 
@@ -377,23 +447,26 @@ export const TauriInputFix = Extension.create({
               const inputType = (event as InputEvent).inputType
 
               if (inputType === 'insertParagraph') {
-                if (!recently(lastEnterHandledAt)) {
+                if (!(lastEnterSource === 'keydown' && recently(lastEnterHandledAt))) {
                   splitOrInsertBlock(view)
+                  lastEnterSource = 'beforeinput'
                   lastEnterHandledAt = Date.now()
                 }
                 return true
               }
               if (inputType === 'insertLineBreak') {
-                if (!recently(lastEnterHandledAt)) {
+                if (!(lastEnterSource === 'keydown' && recently(lastEnterHandledAt))) {
                   insertHardBreak(view)
+                  lastEnterSource = 'beforeinput'
                   lastEnterHandledAt = Date.now()
                 }
                 return true
               }
 
               if (inputType.startsWith('delete')) {
-                if (recently(lastDeleteHandledAt)) return true
+                if (lastDeleteSource === 'keydown' && recently(lastDeleteHandledAt)) return true
                 if (handleDeleteInput(view, inputType)) {
+                  lastDeleteSource = 'beforeinput'
                   lastDeleteHandledAt = Date.now()
                   return true
                 }
@@ -403,9 +476,12 @@ export const TauriInputFix = Extension.create({
             },
           },
           handleKeyDown(view, event) {
-            if (isEnterKey(event) && recently(lastEnterHandledAt)) return true
+            if (isEnterKey(event) && lastEnterSource === 'beforeinput' && recently(lastEnterHandledAt)) {
+              return true
+            }
             if (
               (event.key === 'Backspace' || event.key === 'Delete') &&
+              lastDeleteSource === 'beforeinput' &&
               recently(lastDeleteHandledAt)
             ) {
               return true
@@ -414,8 +490,12 @@ export const TauriInputFix = Extension.create({
             const handled = handleTauriEditorKeyDown(view, event)
             if (!handled) return false
 
-            if (isEnterKey(event)) lastEnterHandledAt = Date.now()
+            if (isEnterKey(event)) {
+              lastEnterSource = 'keydown'
+              lastEnterHandledAt = Date.now()
+            }
             if (event.key === 'Backspace' || event.key === 'Delete') {
+              lastDeleteSource = 'keydown'
               lastDeleteHandledAt = Date.now()
             }
             return true

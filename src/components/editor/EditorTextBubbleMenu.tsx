@@ -26,6 +26,7 @@ import { HIGHLIGHT_COLORS, TEXT_COLORS } from '@/lib/editor/font-size'
 import { hasEditorSelection } from '@/lib/editor/delete-content'
 import { createCommentForSelection } from '@/lib/editor/comments'
 import { promptAndApplyEditorLink } from '@/lib/editor/link-prompt'
+import { keepEditorSelectionFocus } from '@/lib/editor/view-ready'
 import { cn } from '@/lib/utils'
 
 type EditorTextBubbleMenuProps = {
@@ -35,11 +36,12 @@ type EditorTextBubbleMenuProps = {
 export function EditorTextBubbleMenu({ editor }: EditorTextBubbleMenuProps) {
   const { t } = useTranslation()
   if (!editor) return null
+  const activeEditor = editor
 
-  const currentTextColor = (editor.getAttributes('textStyle').color as string | undefined) ?? ''
+  const currentTextColor = (activeEditor.getAttributes('textStyle').color as string | undefined) ?? ''
 
   function setLink() {
-    void promptAndApplyEditorLink(editor)
+    void promptAndApplyEditorLink(activeEditor)
   }
 
   return (
@@ -87,7 +89,11 @@ export function EditorTextBubbleMenu({ editor }: EditorTextBubbleMenuProps) {
             <Ellipsis className="h-3.5 w-3.5" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="editor-bubble-more" onCloseAutoFocus={(event) => event.preventDefault()}>
+        <DropdownMenuContent
+          align="end"
+          className="editor-bubble-more"
+          onCloseAutoFocus={keepEditorSelectionFocus(editor)}
+        >
           <DropdownMenuItem onClick={() => editor.chain().focus().toggleStrike().run()}>
             <Strikethrough className="h-3.5 w-3.5" />
             {t('toolbar.actions.strike')}

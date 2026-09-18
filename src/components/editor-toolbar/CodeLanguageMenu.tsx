@@ -9,15 +9,18 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { filterCodeLanguages, getCodeLanguageLabel } from '@/lib/editor/code-languages'
+import { keepEditorSelectionFocus } from '@/lib/editor/view-ready'
 import { cn } from '@/lib/utils'
+import type { Editor } from '@tiptap/react'
 
 type CodeLanguageMenuProps = {
   language: string | null
   onSelect: (languageId: string) => void
   triggerClassName?: string
+  editor?: Editor | null
 }
 
-export function CodeLanguageMenu({ language, onSelect, triggerClassName }: CodeLanguageMenuProps) {
+export function CodeLanguageMenu({ language, onSelect, triggerClassName, editor }: CodeLanguageMenuProps) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -49,7 +52,7 @@ export function CodeLanguageMenu({ language, onSelect, triggerClassName }: CodeL
       <DropdownMenuContent
         align="start"
         className="code-lang-menu"
-        onCloseAutoFocus={(event) => event.preventDefault()}
+        onCloseAutoFocus={keepEditorSelectionFocus(editor ?? null)}
       >
         <div className="code-lang-menu__search sticky top-0 z-[1] border-b border-[var(--color-border)] bg-[var(--color-surface)] p-1.5">
           <Input

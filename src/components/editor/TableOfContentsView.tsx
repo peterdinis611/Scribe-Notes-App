@@ -1,9 +1,11 @@
 import { useEditorState, NodeViewWrapper, type NodeViewProps } from '@tiptap/react'
 import { ListTree } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { collectHeadingEntries } from '@/lib/editor/table-of-contents'
 import { cn } from '@/lib/utils'
 
 export function TableOfContentsView({ editor, node, selected }: NodeViewProps) {
+  const { t } = useTranslation()
   const maxLevel = Number(node.attrs.maxLevel ?? 3)
 
   const headings = useEditorState({
@@ -25,11 +27,11 @@ export function TableOfContentsView({ editor, node, selected }: NodeViewProps) {
     >
       <div className="table-of-contents-header">
         <ListTree className="h-4 w-4" />
-        <span>Obsah</span>
+        <span>{t('tableOfContents.title')}</span>
       </div>
 
       {headings.length === 0 ? (
-        <p className="table-of-contents-empty">Pridajte nadpisy (H1–H3) a obsah sa aktualizuje automaticky.</p>
+        <p className="table-of-contents-empty">{t('tableOfContents.empty')}</p>
       ) : (
         <ol className="table-of-contents-list">
           {headings.map((entry) => (

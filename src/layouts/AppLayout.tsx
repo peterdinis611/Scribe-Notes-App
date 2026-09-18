@@ -17,6 +17,7 @@ import { WhatsNewDialog } from '@/components/WhatsNewDialog'
 import { useLayoutTier } from '@/hooks/useLayoutTier'
 import { useResponsiveSidebar } from '@/hooks/useResponsiveSidebar'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
+import { useClipboardHistoryCapture } from '@/hooks/useClipboardHistory'
 import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts'
 import { useFolderAutoSync } from '@/hooks/useFolderAutoSync'
 import { useAutoBackup } from '@/hooks/useAutoBackup'
@@ -74,6 +75,7 @@ function useDocumentRouteSync() {
 export function AppLayout() {
   useDocumentRouteSync()
   useKeyboardShortcuts()
+  useClipboardHistoryCapture(true)
   useGlobalShortcuts()
   useFolderAutoSync()
   useAutoBackup()

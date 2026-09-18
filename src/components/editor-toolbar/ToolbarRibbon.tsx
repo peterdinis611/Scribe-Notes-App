@@ -1,15 +1,10 @@
 import type { Editor } from '@tiptap/react'
 import { useEditorState } from '@tiptap/react'
 import {
-  ArrowDownAZ,
-  ArrowDownToLine,
-  ArrowUpAZ,
   AlignCenter,
   AlignJustify,
   AlignLeft,
   AlignRight,
-  BetweenHorizontalEnd,
-  BetweenVerticalEnd,
   Bold,
   CheckSquare,
   ChevronDown,
@@ -18,7 +13,6 @@ import {
   Highlighter,
   ImagePlus,
   Italic,
-  LayoutTemplate,
   Link2,
   List,
   ListChevronsDownUp,
@@ -30,12 +24,11 @@ import {
   Quote,
   Redo,
   ScanLine,
-  Sigma,
+  Smile,
   Strikethrough,
   Subscript,
   Superscript,
   Table2,
-  Trash2,
   Type,
   Underline,
   Undo,
@@ -46,16 +39,20 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { ColorMenuDropdown } from '@/components/editor-toolbar/ColorMenuDropdown'
 import { FontFamilyMenuItems, getCurrentFontFamilyLabel } from '@/components/editor-toolbar/FontFamilyPicker'
 import {
   BlockTypeSelect,
+  ColorSwatchGrid,
+  CustomColorPicker,
   ToolbarButton,
 } from '@/components/editor-toolbar/primitives'
 import { EmojiPickerPanel } from '@/components/editor/EmojiPickerPanel'
-import { safeEditorCanRedo, safeEditorCanUndo } from '@/lib/editor/view-ready'
+import { keepEditorSelectionFocus, safeEditorCanRedo, safeEditorCanUndo } from '@/lib/editor/view-ready'
 import {
   canDeleteCurrentBlock,
   deleteCurrentBlock,
@@ -67,11 +64,6 @@ import { CodeLanguageMenu } from '@/components/editor-toolbar/CodeLanguageMenu'
 import { LINE_HEIGHTS, PARAGRAPH_SPACING } from '@/lib/editor/block-spacing'
 import { FONT_SIZES, HIGHLIGHT_COLORS, TEXT_COLORS } from '@/lib/editor/font-size'
 import { pickDocumentMediaFiles } from '@/lib/editor/image-utils'
-import {
-  fillDownActiveColumn,
-  insertColumnTotalBelow,
-  sortTableByActiveColumn,
-} from '@/lib/editor/table-commands'
 import {
   insertBlockMath,
   insertDetailsBlock,
@@ -135,7 +127,6 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
       currentTextColor: (currentEditor.getAttributes('textStyle').color as string | undefined) ?? '',
       isCodeBlock: currentEditor.isActive('codeBlock'),
       codeLanguage: (currentEditor.getAttributes('codeBlock').language as string | null) ?? null,
-      isTable: currentEditor.isActive('table'),
       hasSelection: hasEditorSelection(currentEditor),
       canDeleteBlock: canDeleteCurrentBlock(currentEditor),
       blockDeleteLabel: getActiveBlockDeleteLabel(currentEditor),
@@ -212,9 +203,6 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
           <ToolbarButton label={t('toolbar.actions.underline')} active={editor.isActive('underline')} onClick={() => editor.chain().focus().toggleUnderline().run()}>
             <Underline className="h-4 w-4 stroke-[1.75]" />
           </ToolbarButton>
-          <ToolbarButton label={t('toolbar.actions.strike')} active={editor.isActive('strike')} onClick={() => editor.chain().focus().toggleStrike().run()}>
-            <Strikethrough className="h-4 w-4 stroke-[1.75]" />
-          </ToolbarButton>
         </ToolbarCluster>
 
         <ToolbarSep />
@@ -233,95 +221,9 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
 
         <ToolbarSep />
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button type="button" className="toolbar-menu-trigger toolbar-menu-trigger--icon" title={t('toolbar.actions.alignment')}>
-              <AlignLeft className="h-4 w-4 stroke-[1.75]" />
-              <ChevronDown className="h-3 w-3 opacity-50" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="toolbar-section-menu min-w-[180px]">
-            <div className="toolbar-section-menu-row">
-              <ToolbarButton label={t('toolbar.actions.alignLeft')} active={editor.isActive({ textAlign: 'left' })} onClick={() => editor.chain().focus().setTextAlign('left').run()}>
-                <AlignLeft className="h-4 w-4 stroke-[1.75]" />
-              </ToolbarButton>
-              <ToolbarButton label={t('toolbar.actions.alignCenter')} active={editor.isActive({ textAlign: 'center' })} onClick={() => editor.chain().focus().setTextAlign('center').run()}>
-                <AlignCenter className="h-4 w-4 stroke-[1.75]" />
-              </ToolbarButton>
-              <ToolbarButton label={t('toolbar.actions.alignRight')} active={editor.isActive({ textAlign: 'right' })} onClick={() => editor.chain().focus().setTextAlign('right').run()}>
-                <AlignRight className="h-4 w-4 stroke-[1.75]" />
-              </ToolbarButton>
-              <ToolbarButton label={t('toolbar.actions.alignJustify')} active={editor.isActive({ textAlign: 'justify' })} onClick={() => editor.chain().focus().setTextAlign('justify').run()}>
-                <AlignJustify className="h-4 w-4 stroke-[1.75]" />
-              </ToolbarButton>
-            </div>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <ToolbarSep />
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button type="button" className="toolbar-menu-trigger" title={t('toolbar.actions.typography', { font: currentFont })}>
-              <Type className="h-3.5 w-3.5 opacity-70" />
-              <span className="toolbar-menu-label">Aa</span>
-              <ChevronDown className="h-3 w-3 opacity-50" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="min-w-[220px] max-h-[360px] overflow-y-auto">
-            <p className="toolbar-section-menu-label">{t('toolbar.actions.fontSize')}</p>
-            {FONT_SIZES.map((size) => (
-              <DropdownMenuItem key={size} onClick={() => editor.chain().focus().setFontSize(size).run()}>
-                {size}
-              </DropdownMenuItem>
-            ))}
-            <DropdownMenuItem onClick={() => editor.chain().focus().unsetFontSize().run()}>
-              {t('toolbar.actions.resetFontSize')}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <p className="toolbar-section-menu-label">{t('toolbar.actions.fontFamily')}</p>
-            <FontFamilyMenuItems editor={editor} />
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <ColorMenuDropdown
-          label={t('toolbar.actions.textColor')}
-          icon={<Palette className="h-3.5 w-3.5" />}
-          colors={TEXT_COLORS}
-          activeValue={state.currentTextColor}
-          onPick={(value) => {
-            if (!value) editor.chain().focus().unsetColor().run()
-            else editor.chain().focus().setColor(value).run()
-          }}
-          onCustomPick={(value) => editor.chain().focus().setColor(value).run()}
-          onClear={() => editor.chain().focus().unsetColor().run()}
-        />
-
-        <ColorMenuDropdown
-          label={t('toolbar.actions.highlight')}
-          icon={<Highlighter className="h-3.5 w-3.5" />}
-          colors={HIGHLIGHT_COLORS}
-          onPick={(value) => editor.chain().focus().toggleHighlight({ color: value }).run()}
-          onCustomPick={(value) => editor.chain().focus().toggleHighlight({ color: value }).run()}
-          onClear={() => editor.chain().focus().unsetHighlight().run()}
-        />
-
         <ToolbarButton label={t('toolbar.actions.link')} active={editor.isActive('link')} onClick={setLink}>
           <Link2 className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button type="button" className="toolbar-btn toolbar-item-optional" title={t('toolbar.actions.emoji')}>
-              <span className="toolbar-emoji-trigger" aria-hidden="true">☺</span>
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="emoji-picker-menu p-0">
-            <EmojiPickerPanel editor={editor} />
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <ToolbarSep />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -330,7 +232,7 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
               <ChevronDown className="h-3 w-3 opacity-50" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="min-w-[200px]">
+          <DropdownMenuContent align="start" className="min-w-[200px]" onCloseAutoFocus={keepEditorSelectionFocus(editor)}>
             <DropdownMenuItem onClick={() => void handlePickImage()}>
               <ImagePlus className="h-4 w-4" />
               {t('toolbar.actions.image')}
@@ -365,17 +267,106 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
               <Code className="h-4 w-4" />
               {t('toolbar.actions.codeBlock')}
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <Smile className="h-4 w-4" />
+                {t('toolbar.actions.emoji')}
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="emoji-picker-menu p-0">
+                <EmojiPickerPanel editor={editor} />
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
           </DropdownMenuContent>
         </DropdownMenu>
 
+        <span className="toolbar-spacer" aria-hidden="true" />
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button type="button" className="toolbar-menu-trigger toolbar-menu-trigger--icon" title={t('toolbar.actions.paragraphFormat')}>
-              <LayoutTemplate className="h-4 w-4 stroke-[1.75]" />
-              <ChevronDown className="h-3 w-3 opacity-50" />
+            <button type="button" className="toolbar-btn" title={t('toolbar.actions.moreTools')}>
+              <Ellipsis className="h-4 w-4 stroke-[1.75]" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="toolbar-section-menu min-w-[220px]">
+          <DropdownMenuContent align="end" className="editor-toolbar-more min-w-[240px]" onCloseAutoFocus={keepEditorSelectionFocus(editor)}>
+            <p className="toolbar-section-menu-label">{t('toolbar.actions.moreFormatting')}</p>
+            <DropdownMenuItem onClick={() => editor.chain().focus().toggleStrike().run()}>
+              <Strikethrough className="h-4 w-4" />
+              {t('toolbar.actions.strike')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => editor.chain().focus().toggleSuperscript().run()}>
+              <Superscript className="h-4 w-4" />
+              {t('toolbar.actions.superscript')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => editor.chain().focus().toggleSubscript().run()}>
+              <Subscript className="h-4 w-4" />
+              {t('toolbar.actions.subscript')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => editor.chain().focus().toggleCode().run()}>
+              <Code className="h-4 w-4" />
+              {t('toolbar.actions.inlineCode')}
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+            <p className="toolbar-section-menu-label">{t('toolbar.actions.alignment')}</p>
+            <div className="toolbar-section-menu-row">
+              <ToolbarButton label={t('toolbar.actions.alignLeft')} active={editor.isActive({ textAlign: 'left' })} onClick={() => editor.chain().focus().setTextAlign('left').run()}>
+                <AlignLeft className="h-4 w-4 stroke-[1.75]" />
+              </ToolbarButton>
+              <ToolbarButton label={t('toolbar.actions.alignCenter')} active={editor.isActive({ textAlign: 'center' })} onClick={() => editor.chain().focus().setTextAlign('center').run()}>
+                <AlignCenter className="h-4 w-4 stroke-[1.75]" />
+              </ToolbarButton>
+              <ToolbarButton label={t('toolbar.actions.alignRight')} active={editor.isActive({ textAlign: 'right' })} onClick={() => editor.chain().focus().setTextAlign('right').run()}>
+                <AlignRight className="h-4 w-4 stroke-[1.75]" />
+              </ToolbarButton>
+              <ToolbarButton label={t('toolbar.actions.alignJustify')} active={editor.isActive({ textAlign: 'justify' })} onClick={() => editor.chain().focus().setTextAlign('justify').run()}>
+                <AlignJustify className="h-4 w-4 stroke-[1.75]" />
+              </ToolbarButton>
+            </div>
+
+            <DropdownMenuSeparator />
+            <p className="toolbar-section-menu-label">{t('toolbar.actions.typography', { font: currentFont })}</p>
+            {FONT_SIZES.map((size) => (
+              <DropdownMenuItem key={size} onClick={() => editor.chain().focus().setFontSize(size).run()}>
+                {size}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuItem onClick={() => editor.chain().focus().unsetFontSize().run()}>
+              {t('toolbar.actions.resetFontSize')}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <p className="toolbar-section-menu-label">{t('toolbar.actions.fontFamily')}</p>
+            <FontFamilyMenuItems editor={editor} />
+
+            <DropdownMenuSeparator />
+            <p className="toolbar-section-menu-label">{t('toolbar.actions.textColor')}</p>
+            <div className="editor-bubble-more-swatches px-1 py-1">
+              <ColorSwatchGrid
+                colors={TEXT_COLORS}
+                activeValue={state.currentTextColor}
+                onPick={(value) => {
+                  if (!value) editor.chain().focus().unsetColor().run()
+                  else editor.chain().focus().setColor(value).run()
+                }}
+              />
+              <CustomColorPicker label="+" onPick={(value) => editor.chain().focus().setColor(value).run()} />
+              <ToolbarButton label={t('common.reset')} onClick={() => editor.chain().focus().unsetColor().run()}>
+                <Palette className="h-3.5 w-3.5" />
+              </ToolbarButton>
+            </div>
+            <p className="toolbar-section-menu-label">{t('toolbar.actions.highlight')}</p>
+            <div className="editor-bubble-more-swatches px-1 py-1">
+              <ColorSwatchGrid
+                colors={HIGHLIGHT_COLORS}
+                onPick={(value) => editor.chain().focus().toggleHighlight({ color: value }).run()}
+              />
+              <CustomColorPicker label="+" onPick={(value) => editor.chain().focus().toggleHighlight({ color: value }).run()} />
+              <ToolbarButton label={t('editorActions.deleteHighlight')} onClick={() => editor.chain().focus().unsetHighlight().run()}>
+                <Highlighter className="h-3.5 w-3.5" />
+              </ToolbarButton>
+            </div>
+
+            <DropdownMenuSeparator />
             <p className="toolbar-section-menu-label">{t('toolbar.actions.paragraphStyles')}</p>
             {PARAGRAPH_STYLES.map((style) => (
               <DropdownMenuItem key={style.id} onClick={() => applyParagraphStyle(editor, style.id)}>
@@ -412,30 +403,7 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
               <ListChevronsDownUp className="h-4 w-4" />
               {t('toolbar.actions.detailsBlock')}
             </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
 
-        <span className="toolbar-spacer" aria-hidden="true" />
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button type="button" className="toolbar-btn" title={t('toolbar.actions.moreTools')}>
-              <Ellipsis className="h-4 w-4 stroke-[1.75]" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-[220px]">
-            <DropdownMenuItem onClick={() => editor.chain().focus().toggleSuperscript().run()}>
-              <Superscript className="h-4 w-4" />
-              {t('toolbar.actions.superscript')}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => editor.chain().focus().toggleSubscript().run()}>
-              <Subscript className="h-4 w-4" />
-              {t('toolbar.actions.subscript')}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => editor.chain().focus().toggleCode().run()}>
-              <Code className="h-4 w-4" />
-              {t('toolbar.actions.inlineCode')}
-            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => editor.chain().focus().toggleInvisibleCharacters().run()}>
               {state.showInvisible ? t('toolbar.actions.hideInvisible') : t('toolbar.actions.showInvisible')}
@@ -460,65 +428,16 @@ export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
         </DropdownMenu>
       </div>
 
-      {(state.isCodeBlock || state.isTable) && (
+      {state.isCodeBlock && (
         <div className="editor-toolbar-context">
-          {state.isCodeBlock && (
-            <>
-              <ToolbarButton
-                label={t('toolbar.actions.codeBlock')}
-                active
-                onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-              >
-                <Code className="h-4 w-4 stroke-[1.75]" />
-              </ToolbarButton>
-              <CodeLanguageMenu language={state.codeLanguage} onSelect={setCodeLanguage} />
-            </>
-          )}
-          {state.isTable && (
-            <>
-              <ToolbarButton label={t('toolbar.actions.addRow')} onClick={() => editor.chain().focus().addRowAfter().run()}>
-                <BetweenHorizontalEnd className="h-4 w-4 stroke-[1.75]" />
-              </ToolbarButton>
-              <ToolbarButton label={t('toolbar.actions.addColumn')} onClick={() => editor.chain().focus().addColumnAfter().run()}>
-                <BetweenVerticalEnd className="h-4 w-4 stroke-[1.75]" />
-              </ToolbarButton>
-              <ToolbarButton
-                label={t('toolbar.actions.sortAsc')}
-                onClick={() => {
-                  if (!sortTableByActiveColumn(editor, 'asc')) toast.info(t('toolbar.table.needColumn'))
-                }}
-              >
-                <ArrowDownAZ className="h-4 w-4 stroke-[1.75]" />
-              </ToolbarButton>
-              <ToolbarButton
-                label={t('toolbar.actions.sortDesc')}
-                onClick={() => {
-                  if (!sortTableByActiveColumn(editor, 'desc')) toast.info(t('toolbar.table.needColumn'))
-                }}
-              >
-                <ArrowUpAZ className="h-4 w-4 stroke-[1.75]" />
-              </ToolbarButton>
-              <ToolbarButton
-                label={t('toolbar.actions.fillDown')}
-                onClick={() => {
-                  if (!fillDownActiveColumn(editor)) toast.info(t('toolbar.table.fillEmpty'))
-                }}
-              >
-                <ArrowDownToLine className="h-4 w-4 stroke-[1.75]" />
-              </ToolbarButton>
-              <ToolbarButton
-                label={t('toolbar.actions.sumColumn')}
-                onClick={() => {
-                  if (!insertColumnTotalBelow(editor)) toast.info(t('toolbar.table.needNumbers'))
-                }}
-              >
-                <Sigma className="h-4 w-4 stroke-[1.75]" />
-              </ToolbarButton>
-              <ToolbarButton label={t('editorActions.deleteTable')} onClick={() => editor.chain().focus().deleteTable().run()}>
-                <Trash2 className="h-4 w-4 stroke-[1.75]" />
-              </ToolbarButton>
-            </>
-          )}
+          <ToolbarButton
+            label={t('toolbar.actions.codeBlock')}
+            active
+            onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+          >
+            <Code className="h-4 w-4 stroke-[1.75]" />
+          </ToolbarButton>
+          <CodeLanguageMenu editor={editor} language={state.codeLanguage} onSelect={setCodeLanguage} />
         </div>
       )}
     </div>

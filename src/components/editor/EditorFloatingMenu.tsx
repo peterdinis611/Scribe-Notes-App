@@ -7,15 +7,9 @@ import { openSlashPalette } from '@/lib/editor/slash-commands'
 
 type EditorFloatingMenuProps = {
   editor: Editor | null
-  onInsertImages: (files: File[]) => Promise<void>
-  /** Hide the + insert control on an empty print-layout page (hero owns the cue). */
-  hideWhenPrintEmpty?: boolean
 }
 
-export function EditorFloatingMenu({
-  editor,
-  hideWhenPrintEmpty = false,
-}: EditorFloatingMenuProps) {
+export function EditorFloatingMenu({ editor }: EditorFloatingMenuProps) {
   const { t } = useTranslation()
   if (!editor) return null
 
@@ -30,7 +24,8 @@ export function EditorFloatingMenu({
         shift: { padding: 12 },
       }}
       shouldShow={({ editor: currentEditor }) => {
-        if (hideWhenPrintEmpty && currentEditor.isEmpty) return false
+        // Empty document already has the placeholder / print hero — keep the + for later empty lines.
+        if (currentEditor.isEmpty) return false
         return shouldShowInsertMenu(currentEditor, null)
       }}
     >

@@ -40,6 +40,7 @@ export interface DocumentsState {
   statsPanelOpen: boolean
   backlinksPanelOpen: boolean
   insightsPanelOpen: boolean
+  clipboardHistoryPanelOpen: boolean
   /** Right panel icon rail; collapsed by default for a quieter writing chrome. */
   panelRailExpanded: boolean
   focusMode: boolean
@@ -123,6 +124,7 @@ const initialState: DocumentsState = {
   statsPanelOpen: readBoolStorage('scribe-stats-open', false),
   backlinksPanelOpen: readBoolStorage('scribe-backlinks-open', false),
   insightsPanelOpen: readBoolStorage('scribe-insights-open', false),
+  clipboardHistoryPanelOpen: readBoolStorage('scribe-clipboard-history-open', false),
   panelRailExpanded: readBoolStorage('scribe-panel-rail-expanded', false),
   focusMode: readBoolStorage('scribe-focus-mode', false),
   readingMode: readBoolStorage('scribe-reading-mode', false),
@@ -349,6 +351,14 @@ const documentsSlice = createSlice({
         persistBoolStorage('scribe-panel-rail-expanded', true)
       }
     },
+    setClipboardHistoryPanelOpen(state, action: PayloadAction<boolean>) {
+      state.clipboardHistoryPanelOpen = action.payload
+      persistBoolStorage('scribe-clipboard-history-open', action.payload)
+      if (action.payload) {
+        state.panelRailExpanded = true
+        persistBoolStorage('scribe-panel-rail-expanded', true)
+      }
+    },
     setPanelRailExpanded(state, action: PayloadAction<boolean>) {
       state.panelRailExpanded = action.payload
       persistBoolStorage('scribe-panel-rail-expanded', action.payload)
@@ -531,6 +541,7 @@ export const {
   setStatsPanelOpen,
   setBacklinksPanelOpen,
   setInsightsPanelOpen,
+  setClipboardHistoryPanelOpen,
   setPanelRailExpanded,
   setFocusMode,
   toggleFocusMode,

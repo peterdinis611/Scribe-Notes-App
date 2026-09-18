@@ -28,6 +28,7 @@ export function LottieBlock({
   selected,
   editor,
   deleteNode,
+  getPos,
 }: NodeViewProps) {
   const { t } = useTranslation()
   const documentId = useAppSelector((state) => state.documents.activeDocumentId)
@@ -104,6 +105,16 @@ export function LottieBlock({
     function onKey(event: KeyboardEvent) {
       const target = event.target as HTMLElement | null
       if (target?.closest('input, textarea')) return
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        const pos = getPos()
+        if (typeof pos === 'number') {
+          editor.chain().focus().setTextSelection(pos + node.nodeSize).run()
+        } else {
+          editor.commands.focus()
+        }
+        return
+      }
       if (event.key === 'Delete' || event.key === 'Backspace') {
         event.preventDefault()
         deleteNode()
@@ -111,7 +122,7 @@ export function LottieBlock({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [deleteNode, editable, selected])
+  }, [deleteNode, editable, editor, getPos, node.nodeSize, selected])
 
   function setAlign(next: Align) {
     if (next === 'full') {

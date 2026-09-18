@@ -100,6 +100,13 @@ export const APP_SHORTCUT_BINDINGS: AppShortcutBinding[] = [
     labelKey: 'shortcuts.libraryFindReplace.label',
     descriptionKey: 'shortcuts.libraryFindReplace.description',
   },
+  {
+    id: 'clipboardHistory',
+    scope: 'app',
+    defaultHotkey: 'Mod+Shift+V',
+    labelKey: 'shortcuts.clipboardHistory.label',
+    descriptionKey: 'shortcuts.clipboardHistory.description',
+  },
 ]
 
 export interface ShortcutDef {
@@ -121,6 +128,7 @@ export interface ShortcutDef {
     | 'closeTab'
     | 'reopenClosedTab'
     | 'libraryFindReplace'
+    | 'clipboardHistory'
   keys: string[]
 }
 
@@ -142,6 +150,7 @@ export const APP_SHORTCUTS: ShortcutDef[] = [
   { id: 'closeTab', keys: ['⌘', 'W'] },
   { id: 'reopenClosedTab', keys: ['⌘', '⇧', 'T'] },
   { id: 'libraryFindReplace', keys: ['⌘', '⇧', 'H'] },
+  { id: 'clipboardHistory', keys: ['⌘', '⇧', 'V'] },
 ]
 
 import type { ShortcutOverrides } from '@/store/persistence'

@@ -1762,6 +1762,16 @@ html[data-ui-skin='press'] .editor-shell--home {
   min-width: 0;
 }
 
+.find-replace-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 6px 12px 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 55%, transparent);
+  background: color-mix(in srgb, var(--color-toolbar) 88%, var(--color-surface));
+}
+
 .editor-toolbar-ribbon {
   display: flex;
   align-items: center;
@@ -1779,6 +1789,11 @@ html[data-ui-skin='press'] .editor-shell--home {
 
 .editor-toolbar-ribbon::-webkit-scrollbar {
   display: none;
+}
+
+.editor-toolbar-more {
+  max-height: min(70vh, 480px);
+  overflow-y: auto;
 }
 
 .editor-toolbar-context {
@@ -3453,6 +3468,91 @@ html[data-ui-skin='press'] .editor-shell--home {
   background: var(--color-border);
 }
 
+.clipboard-history-list {
+  gap: 8px;
+}
+
+.clipboard-history-slip {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 4px 6px;
+  padding: 9px 8px 9px 36px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
+  border-radius: 10px;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-surface-elevated) 92%, var(--color-accent) 8%),
+      var(--color-surface-elevated)
+    );
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-background) 55%, transparent);
+}
+
+.clipboard-history-slip:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
+}
+
+.clipboard-history-index {
+  position: absolute;
+  left: 10px;
+  top: 11px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--color-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.clipboard-history-paste {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: default;
+}
+
+.clipboard-history-preview {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--color-foreground);
+}
+
+.clipboard-history-meta {
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  color: var(--color-muted-foreground);
+}
+
+.clipboard-history-copy {
+  display: inline-flex;
+  height: 24px;
+  width: 24px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-muted-foreground);
+}
+
+.clipboard-history-copy:hover {
+  background: var(--color-hover);
+  color: var(--color-foreground);
+}
+
 
 .editor-status-bar {
   display: flex;
@@ -4255,6 +4355,12 @@ body.is-block-dragging .tiptap {
   gap: 10px;
 }
 
+.table-bubble-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
 .table-bubble-label {
   display: block;
   margin-bottom: 6px;
@@ -4655,13 +4761,7 @@ body.is-block-dragging .tiptap {
   display: none;
 }
 
-/* Drag handle is portaled to document.body — match via root flag. */
-html.scribe-print-layout .editor-block-controls,
-html.scribe-print-layout .editor-block-drag-handle {
-  opacity: 0 !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
-}
+/* Drag handle stays available in print layout — shown on hover only. */
 
 .tiptap details.details-block {
   margin: 16px 0;

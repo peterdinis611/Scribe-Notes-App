@@ -8,6 +8,7 @@ import { DocumentTocRail } from '@/components/editor/DocumentTocRail'
 import { OutlineReturnButton } from '@/components/editor/OutlineReturnButton'
 import { RevisionHistoryPanel } from '@/components/editor/RevisionHistoryPanel'
 import { CommentsPanel } from '@/components/editor/CommentsPanel'
+import { ClipboardHistoryPanel } from '@/components/editor/ClipboardHistoryPanel'
 import { BacklinksPanel } from '@/components/editor/BacklinksPanel'
 import { DocumentInsightsPanel } from '@/components/editor/DocumentInsightsPanel'
 import { WikiLinkHoverCard } from '@/components/editor/WikiLinkHoverCard'
@@ -44,6 +45,7 @@ import { handleTauriEditorKeyDown } from '@/lib/editor/tauri-input-fix'
 import { getEditorMarkdown, parseMarkdownToContentJson } from '@/lib/editor/markdown-content'
 import type { DocumentOutlineItem } from '@/lib/editor/document-outline'
 import { jumpToMarkdownOutlineItem } from '@/lib/editor/markdown-outline'
+import { recallEditorSession } from '@/lib/editor/editor-session'
 import { insertDocumentMediaFromFiles } from '@/lib/editor/image-utils'
 import { printDocumentFromContent } from '@/lib/export/print-document'
 import { navigateViaWikiLink } from '@/lib/navigation'
@@ -53,6 +55,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { editorRefs } from '@/store/editorRefs'
 import {
   setBacklinksPanelOpen,
+  setClipboardHistoryPanelOpen,
   setCommentsPanelOpen,
   setDocumentOutlineOpen,
   setDocumentTocLeftOpen,
@@ -79,6 +82,7 @@ export function DocumentEditor() {
   const statsOpen = useAppSelector((state) => state.documents.statsPanelOpen)
   const backlinksOpen = useAppSelector((state) => state.documents.backlinksPanelOpen)
   const insightsOpen = useAppSelector((state) => state.documents.insightsPanelOpen)
+  const clipboardOpen = useAppSelector((state) => state.documents.clipboardHistoryPanelOpen)
   const focusMode = useAppSelector((state) => state.documents.focusMode)
   const readingMode = useAppSelector((state) => state.documents.readingMode)
   const [markdownDraft, setMarkdownDraft] = useState('')
@@ -240,7 +244,7 @@ export function DocumentEditor() {
     }
 
     if (!applyMarkdown()) {
-      toast.error(t('editor.markdownSwitchError', { defaultValue: 'Nepodarilo sa prepnúť do textového režimu.' }))
+      toast.error(t('editor.markdownSwitchError'))
       return
     }
 
@@ -294,6 +298,27 @@ export function DocumentEditor() {
   }, [activeDocument?.id, pageSetup.typography.fontFamily])
 
   useEditorHotkeys(editor)
+
+  const insertClipboardPlain = useCallback(
+    (text: string) => {
+      const el = markdownTextareaRef.current
+      const current = markdownDraftRef.current
+      if (!el) {
+        handleMarkdownChange(current + text)
+        return
+      }
+      const start = el.selectionStart
+      const end = el.selectionEnd
+      const next = `${current.slice(0, start)}${text}${current.slice(end)}`
+      handleMarkdownChange(next)
+      requestAnimationFrame(() => {
+        el.focus()
+        const pos = start + text.length
+        el.setSelectionRange(pos, pos)
+      })
+    },
+    [handleMarkdownChange],
+  )
 
   const [printDocEmpty, setPrintDocEmpty] = useState(true)
 
@@ -438,6 +463,20 @@ export function DocumentEditor() {
       markdownDraftRef.current = markdown
       setMarkdownDraft(markdown)
       dispatch(setSaveStatus('saved'))
+
+      const session = recallEditorSession(activeId)
+      if (session) {
+        const size = currentEditor.state.doc.content.size
+        const from = Math.min(session.from, size)
+        const to = Math.min(session.to, size)
+        if (from >= 1 && to >= from) {
+          currentEditor.commands.setTextSelection({ from, to })
+        }
+      }
+
+      if (currentEditor.isEmpty) {
+        currentEditor.commands.focus('start')
+      }
     },
     [activeDocument, activeId, dispatch, editorContentHashRef, lastPersistedHashRef, saveStatus],
   )
@@ -485,9 +524,10 @@ export function DocumentEditor() {
 
   useEffect(() => {
     if (!editor || !editorReady || readingMode || viewMode !== 'rich') return
+    if (!editor.isEmpty) return
     const frame = requestAnimationFrame(() => {
       if (!editor.isDestroyed && !editor.isFocused) {
-        editor.commands.focus('end')
+        editor.commands.focus('start')
       }
     })
     return () => cancelAnimationFrame(frame)
@@ -517,17 +557,25 @@ export function DocumentEditor() {
         <EditorToolbar editor={editor} onInsertImages={handleInsertImages} />
       )}
       {!isMarkdown && !readingMode && editorReady && (
-        <EditorMenus editor={editor} onInsertImages={handleInsertImages} />
+        <EditorMenus editor={editor} />
       )}
 
-      {!isMarkdown && !readingMode && editorReady && <FindReplaceBar editor={editor} />}
+      {!isMarkdown && !focusMode && !readingMode && editorReady && (
+        <FindReplaceBar editor={editor} />
+      )}
 
       <div className="editor-workspace">
         <div className="editor-main">
           <div
             className={cn(
               'editor-body',
-              (outlineOpen || historyOpen || commentsOpen || statsOpen || backlinksOpen || insightsOpen) &&
+              (outlineOpen ||
+                historyOpen ||
+                commentsOpen ||
+                statsOpen ||
+                backlinksOpen ||
+                insightsOpen ||
+                clipboardOpen) &&
                 'editor-body--with-outline',
               tocLeftOpen && !isMarkdown && headingCount > 0 && 'editor-body--with-toc-left',
             )}
@@ -744,6 +792,13 @@ export function DocumentEditor() {
         )}
         {!isMarkdown && !readingMode && insightsOpen && (
           <DocumentInsightsPanel onClose={() => dispatch(setInsightsPanelOpen(false))} />
+        )}
+        {!readingMode && clipboardOpen && (
+          <ClipboardHistoryPanel
+            editor={isMarkdown ? null : editor}
+            onInsertPlain={isMarkdown ? insertClipboardPlain : undefined}
+            onClose={() => dispatch(setClipboardHistoryPanelOpen(false))}
+          />
         )}
           </div>
 

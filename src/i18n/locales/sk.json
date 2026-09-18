@@ -167,6 +167,8 @@
     "exportInvoicePdf": "Exportovať faktúru PDF",
     "insertLorem": "Vložiť lorem ipsum…",
     "insertLoremHint": "Nastavte odseky, vety alebo slová",
+    "clipboardHistory": "História schránky",
+    "clipboardHistoryOff": "Skryť históriu schránky",
     "dailyBriefing": "Denný briefing",
     "applySuggestedTags": "Použiť návrhy AI tagov",
     "sectionSearch": "Výsledky",
@@ -188,7 +190,7 @@
     "loading": "Načítavam dokument…",
     "loadingEditor": "Načítavam editor…",
     "page": "Strana {{page}}",
-    "placeholder": "Začnite písať…",
+    "placeholder": "Píšte — alebo / pre príkazy",
     "printEmptyHero": "Čistá stránka",
     "printEmptyHint": "Píšte — alebo / pre príkazy",
     "printEmptyEyebrow": "Pripravené na text",
@@ -197,7 +199,12 @@
     "printEmptyTipSlash": "Vložiť bloky",
     "printEmptyTipWiki": "Prepojiť poznámku",
     "markdownAria": "Markdown editor",
-    "markdownPlaceholder": "# Nadpis\n\nPíšte v **Markdown** — nadpisy, zoznamy, `kód`, tabuľky…"
+    "markdownPlaceholder": "# Nadpis\n\nPíšte v **Markdown** — nadpisy, zoznamy, `kód`, tabuľky…",
+    "markdownSwitchError": "Nepodarilo sa prepnúť do textového režimu."
+  },
+  "tableOfContents": {
+    "title": "Obsah",
+    "empty": "Pridajte nadpisy (H1–H3) a obsah sa aktualizuje automaticky."
   },
   "canvas": {
     "defaultTitle": "Canvas poznámka",
@@ -1017,6 +1024,10 @@
       "label": "Hľadať a nahradiť v knižnici",
       "description": "Nájsť a nahradiť text vo všetkých dokumentoch"
     },
+    "clipboardHistory": {
+      "label": "História schránky",
+      "description": "Zobrazí posledných 10 skopírovaných úryvkov"
+    },
     "closeFind": {
       "label": "Zavrieť vyhľadávanie",
       "description": "Zavrie panel hľadať a nahradiť"
@@ -1285,6 +1296,7 @@
     "revisions": "História verzií",
     "findReplace": "Nájsť a nahradiť",
     "findReplaceClose": "Zavrieť vyhľadávanie",
+    "clipboard": "Schránka",
     "leftOutline": "Obsah vľavo",
     "leftOutlineOff": "Skryť obsah vľavo"
   },
@@ -1298,7 +1310,7 @@
       "threadCount_other": "{{count}} vláken",
       "hideResolved": "Skryť vyriešené",
       "showResolved": "Zobraziť vyriešené ({{count}})",
-      "emptyHint": "Komentár je vždy viazaný na označený text.",
+      "emptyHint": "Označte text v dokumente a pridajte komentár z lišty pri výbere, alebo tu.",
       "howToStep1": "1. V dokumente označte text.",
       "howToStep2": "2. Na plávajúcej lište kliknite na ikonu komentára,",
       "howToStep3": "alebo použite tlačidlo nižšie.",
@@ -1318,6 +1330,17 @@
       "resolveError": "Nepodarilo sa zmeniť stav",
       "deleteError": "Nepodarilo sa vymazať komentár",
       "replyError": "Nepodarilo sa pridať odpoveď"
+    },
+    "clipboard": {
+      "hide": "Skryť schránku",
+      "subtitle": "{{count}} / {{limit}} úryvkov",
+      "empty": "Zatiaľ nič skopírované",
+      "emptyHint": "Skopírujte alebo vystrihnite text v dokumente. Ostane tu posledných 10 úryvkov — staršie sa prepisujú.",
+      "clear": "Vymazať históriu schránky",
+      "copy": "Kopírovať do schránky",
+      "copied": "Skopírované",
+      "copyError": "Nepodarilo sa skopírovať do systémovej schránky",
+      "rich": "formátované"
     },
     "outline": {
       "title": "Štruktúra",

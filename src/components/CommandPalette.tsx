@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import {
   Columns2,
   CalendarDays,
+  ClipboardList,
   Compass,
   Copy,
   FileDown,
@@ -88,10 +89,16 @@ import {
   setActiveDocument,
   setActiveDocumentId,
   setActiveTagFilter,
+  setBacklinksPanelOpen,
+  setClipboardHistoryPanelOpen,
   setCommentsPanelOpen,
+  setDocumentOutlineOpen,
+  setInsightsPanelOpen,
   setLibraryFindReplaceOpen,
   setPendingEditorSearch,
+  setRevisionHistoryOpen,
   setSecondaryDocumentId,
+  setStatsPanelOpen,
   toggleFocusMode,
   toggleReadingMode,
   updateDocuments,
@@ -170,6 +177,7 @@ export function CommandPalette() {
   const themeSettings = useAppSelector((state) => state.settings.themeSettings)
   const focusMode = useAppSelector((state) => state.documents.focusMode)
   const readingMode = useAppSelector((state) => state.documents.readingMode)
+  const clipboardHistoryOpen = useAppSelector((state) => state.documents.clipboardHistoryPanelOpen)
   const shortcutOverrides = useAppSelector((state) => state.settings.shortcutOverrides)
   const locale = useAppSelector((state) => state.settings.locale)
   const openDemoGuide = useOpenDemoGuide()
@@ -535,6 +543,28 @@ export function CommandPalette() {
             },
             {
               type: 'action' as const,
+              id: 'clipboard-history',
+              label: clipboardHistoryOpen
+                ? t('commandPalette.clipboardHistoryOff')
+                : t('commandPalette.clipboardHistory'),
+              hint: getDisplayKeysForShortcut('clipboardHistory', shortcutOverrides).join(''),
+              icon: <ClipboardList className="h-4 w-4" />,
+              run: () => {
+                if (clipboardHistoryOpen) {
+                  dispatch(setClipboardHistoryPanelOpen(false))
+                  return
+                }
+                dispatch(setDocumentOutlineOpen(false))
+                dispatch(setRevisionHistoryOpen(false))
+                dispatch(setCommentsPanelOpen(false))
+                dispatch(setStatsPanelOpen(false))
+                dispatch(setBacklinksPanelOpen(false))
+                dispatch(setInsightsPanelOpen(false))
+                dispatch(setClipboardHistoryPanelOpen(true))
+              },
+            },
+            {
+              type: 'action' as const,
               id: 'focus-mode',
               label: focusMode ? t('commandPalette.focusOff') : t('commandPalette.focusOn'),
               hint: getDisplayKeysForShortcut('focusMode', shortcutOverrides).join(''),
@@ -790,6 +820,7 @@ export function CommandPalette() {
       recentlyClosedIds,
       recentDocumentIds,
       secondaryDocumentId,
+      clipboardHistoryOpen,
       openDocumentIds,
       locale,
       shortcutOverrides,

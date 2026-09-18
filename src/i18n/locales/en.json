@@ -167,6 +167,8 @@
     "exportInvoicePdf": "Export invoice PDF",
     "insertLorem": "Insert lorem ipsum…",
     "insertLoremHint": "Configure paragraphs, sentences, or words",
+    "clipboardHistory": "Clipboard history",
+    "clipboardHistoryOff": "Hide clipboard history",
     "dailyBriefing": "Daily briefing",
     "applySuggestedTags": "Apply AI tag suggestions",
     "sectionSearch": "Matches",
@@ -188,7 +190,7 @@
     "loading": "Loading document…",
     "loadingEditor": "Loading editor…",
     "page": "Page {{page}}",
-    "placeholder": "Start typing…",
+    "placeholder": "Start typing, or / for commands",
     "printEmptyHero": "Blank page",
     "printEmptyHint": "Start writing — or / for commands",
     "printEmptyEyebrow": "Ready to write",
@@ -197,7 +199,12 @@
     "printEmptyTipSlash": "Insert blocks",
     "printEmptyTipWiki": "Link a note",
     "markdownAria": "Markdown editor",
-    "markdownPlaceholder": "# Heading\n\nWrite in **Markdown** — headings, lists, `code`, tables…"
+    "markdownPlaceholder": "# Heading\n\nWrite in **Markdown** — headings, lists, `code`, tables…",
+    "markdownSwitchError": "Could not switch to text mode."
+  },
+  "tableOfContents": {
+    "title": "Contents",
+    "empty": "Add headings (H1–H3) and this list updates automatically."
   },
   "canvas": {
     "defaultTitle": "Canvas note",
@@ -1017,6 +1024,10 @@
       "label": "Library find and replace",
       "description": "Find and replace across all documents"
     },
+    "clipboardHistory": {
+      "label": "Clipboard history",
+      "description": "Show the last 10 copied snippets"
+    },
     "closeFind": {
       "label": "Close search",
       "description": "Closes the find and replace panel"
@@ -1282,6 +1293,7 @@
     "revisions": "Version history",
     "findReplace": "Find and replace",
     "findReplaceClose": "Close search",
+    "clipboard": "Clipboard",
     "leftOutline": "Left outline",
     "leftOutlineOff": "Hide left outline"
   },
@@ -1293,7 +1305,7 @@
       "threadCount_other": "{{count}} threads",
       "hideResolved": "Hide resolved",
       "showResolved": "Show resolved ({{count}})",
-      "emptyHint": "A comment is always attached to selected text.",
+      "emptyHint": "Select text in the document, then comment from the selection bar or here.",
       "howToStep1": "1. Select text in the document.",
       "howToStep2": "2. On the floating bar, click the comment icon,",
       "howToStep3": "or use the button below.",
@@ -1313,6 +1325,17 @@
       "resolveError": "Failed to change status",
       "deleteError": "Failed to delete comment",
       "replyError": "Failed to add reply"
+    },
+    "clipboard": {
+      "hide": "Hide clipboard",
+      "subtitle": "{{count}} / {{limit}} slips",
+      "empty": "Nothing copied yet",
+      "emptyHint": "Copy or cut text in the document. The last 10 snippets stay here — older ones are overwritten.",
+      "clear": "Clear clipboard history",
+      "copy": "Copy to clipboard",
+      "copied": "Copied",
+      "copyError": "Could not copy to the system clipboard",
+      "rich": "formatted"
     },
     "outline": {
       "title": "Outline",

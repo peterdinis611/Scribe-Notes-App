@@ -19,11 +19,18 @@ import { editorRefs } from '@/store/editorRefs'
 import {
   setActiveDocument,
   setActiveDocumentId,
+  setBacklinksPanelOpen,
+  setClipboardHistoryPanelOpen,
+  setCommentsPanelOpen,
+  setDocumentOutlineOpen,
   setFindReplaceOpen,
   setFocusMode,
+  setInsightsPanelOpen,
   setLibraryFindReplaceOpen,
   setReadingMode,
+  setRevisionHistoryOpen,
   setSaveStatus,
+  setStatsPanelOpen,
   toggleFocusMode,
   toggleReadingMode,
   updateDocuments,
@@ -55,6 +62,7 @@ export function useKeyboardShortcuts() {
   const focusMode = useAppSelector((state) => state.documents.focusMode)
   const readingMode = useAppSelector((state) => state.documents.readingMode)
   const findReplaceOpen = useAppSelector((state) => state.documents.findReplaceOpen)
+  const clipboardHistoryOpen = useAppSelector((state) => state.documents.clipboardHistoryPanelOpen)
   const commandPaletteOpen = useAppSelector((state) => state.folders.commandPaletteOpen)
   const templatePickerOpen = useAppSelector((state) => state.settings.templatePickerOpen)
   const dispatch = useAppDispatch()
@@ -207,10 +215,35 @@ export function useKeyboardShortcuts() {
         },
       },
       {
+        hotkey: hotkey('clipboardHistory', shortcutOverrides),
+        callback: () => {
+          if (!activeId) return
+          if (clipboardHistoryOpen) {
+            dispatch(setClipboardHistoryPanelOpen(false))
+            return
+          }
+          dispatch(setDocumentOutlineOpen(false))
+          dispatch(setRevisionHistoryOpen(false))
+          dispatch(setCommentsPanelOpen(false))
+          dispatch(setStatsPanelOpen(false))
+          dispatch(setBacklinksPanelOpen(false))
+          dispatch(setInsightsPanelOpen(false))
+          dispatch(setClipboardHistoryPanelOpen(true))
+        },
+        options: {
+          enabled: !!activeId,
+          meta: {
+            name: t('shortcuts.clipboardHistory.label'),
+            description: t('shortcuts.clipboardHistory.description'),
+          },
+        },
+      },
+      {
         hotkey: 'Escape',
         callback: () => {
           if (findReplaceOpen) {
             dispatch(setFindReplaceOpen(false))
+            editorRefs.editor?.commands.focus()
             return
           }
           if (readingMode) {
@@ -221,6 +254,7 @@ export function useKeyboardShortcuts() {
           dispatch(setFocusMode(false))
         },
         options: {
+          preventDefault: false,
           meta: { name: t('shortcuts.closePanel.label'), description: t('shortcuts.closePanel.description') },
         },
       },

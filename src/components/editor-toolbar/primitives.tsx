@@ -7,6 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { keepEditorSelectionFocus } from '@/lib/editor/view-ready'
 import { cn } from '@/lib/utils'
 import { HEADING_LEVELS, type HeadingLevel } from '@/lib/editor/heading-levels'
 
@@ -61,7 +62,11 @@ export function BlockTypeSelect({ editor }: { editor: Editor }) {
           <ChevronDown className="h-3.5 w-3.5 opacity-60" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="min-w-[160px] max-h-[320px] overflow-y-auto">
+      <DropdownMenuContent
+        align="start"
+        className="min-w-[160px] max-h-[320px] overflow-y-auto"
+        onCloseAutoFocus={keepEditorSelectionFocus(editor)}
+      >
         {blockTypes.map(({ id, label: itemLabel }) => (
           <DropdownMenuItem
             key={id}
@@ -103,30 +108,6 @@ export function ToolbarButton({
       {children}
     </button>
   )
-}
-
-export function ToolbarGroup({
-  children,
-  label,
-  className,
-}: {
-  children: React.ReactNode
-  label: string
-  className?: string
-}) {
-  return (
-    <div className={cn('toolbar-group', className)} aria-label={label}>
-      {children}
-    </div>
-  )
-}
-
-export function ToolbarDivider() {
-  return <div className="toolbar-divider" aria-hidden="true" />
-}
-
-export function ToolbarLabel({ children }: { children: React.ReactNode }) {
-  return <span className="toolbar-label">{children}</span>
 }
 
 export function ColorSwatchGrid({
