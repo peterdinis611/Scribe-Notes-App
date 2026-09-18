@@ -356,8 +356,20 @@
   "whatsNew": {
     "badge": "What's new in {{version}}",
     "title": "Scribe {{version}}",
-    "subtitle": "A richer library analysis, a clearer document tree, and fuzzy find across the app.",
+    "subtitle": "Clipboard history, a quieter writing chrome, and more reliable deletes in the editor.",
     "gotIt": "Got it",
+    "clipboardHistory": {
+      "title": "Clipboard history",
+      "description": "The last 10 copies stay in a side panel (⌘⇧V). Newer clips overwrite the oldest; repeating a copy just brings it back to the top."
+    },
+    "editorCalm": {
+      "title": "Calmer writing chrome",
+      "description": "A slimmer ribbon, hover-only drag handle, docked find, and a quieter right rail so the page stays the focus."
+    },
+    "editorDelete": {
+      "title": "Deletes that keep up",
+      "description": "Backspace after Escape and deleting consecutive empty lines now behave as expected in the Tauri editor."
+    },
     "libraryReport": {
       "title": "Library analysis, redesigned",
       "description": "Stats cards, meters, and a Documentation section that lists every library folder — not just raw markdown."
@@ -1095,6 +1107,8 @@
   },
   "library": {
     "title": "Library",
+    "resize": "Resize library",
+    "resizeHint": "Drag to widen. Double-click to reset.",
     "allDocuments": "All documents",
     "expandFolder": "Expand folder",
     "collapseFolder": "Collapse folder",
@@ -1238,6 +1252,8 @@
     "scopeDocumentHint": "Ask about “{{title}}”",
     "askingAbout": "Asking about: {{title}}",
     "memoryHint": "saved in this note",
+    "memoryTurns": "{{count}} saved turns",
+    "followups": "Suggested follow-ups",
     "memoryLoading": "Loading chat memory…",
     "memoryLoadError": "Could not load chat memory",
     "memoryCleared": "Chat memory cleared",
@@ -1246,7 +1262,8 @@
     "prompts": {
       "recent": "What did I write about recently?",
       "deadlines": "Any deadlines or dates in my notes?",
-      "themes": "What themes come up across my notes?"
+      "themes": "What themes come up across my notes?",
+      "openLoops": "What open tasks or unfinished threads do I have?"
     },
     "actions": {
       "summarize": "Summarize",
@@ -1257,7 +1274,11 @@
       "wiki": "Wiki links",
       "dates": "Dates",
       "tone": "Tone & reading",
-      "spellcheck": "Spellcheck"
+      "spellcheck": "Spellcheck",
+      "similar": "Related notes",
+      "mentions": "People & links",
+      "quotes": "Key claims",
+      "questions": "Ask next"
     }
   },
   "documentChat": {

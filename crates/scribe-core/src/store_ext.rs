@@ -15,7 +15,9 @@ use crate::db::{
     extract_search_text, set_embed_backend, set_nlp_enabled, sync_document_fts,
     sync_document_links, SearchMode,
 };
-use crate::nlp::NlpSidecar;
+use crate::nlp::{
+    followups_from_sidecar, merge_chat_memory_passages, ChatTurn, NlpSidecar,
+};
 use crate::store::{
     require_nlp, search_library, sync_sidecar_backend, IdTitle, ScribeStore,
 };
@@ -171,7 +173,7 @@ impl ScribeStore {
             ),
             "citations": citations,
             "hitCount": hits.len(),
-            "followups": result.get("followups").cloned().unwrap_or_else(|| json!([])),
+            "followups": followups_from_sidecar(&result),
         }))
     }
 
@@ -464,40 +466,27 @@ impl ScribeStore {
             return Err("document is empty".to_string());
         }
 
-        let mut passages = chunk_document_passages(document_id, &title, &text);
-        if let Some(messages) = context {
-            if let Some(list) = passages.as_array_mut() {
-                let recent: Vec<&Value> = messages.iter().rev().take(6).collect::<Vec<_>>();
-                for message in recent.into_iter().rev() {
-                    let role = message
-                        .get("role")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("user")
-                        .trim()
-                        .to_lowercase();
-                    let text = message
-                        .get("text")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("")
-                        .trim();
-                    if text.is_empty() {
-                        continue;
-                    }
-                    let label = if role == "assistant" {
-                        "Earlier assistant reply"
-                    } else {
-                        "Earlier user question"
-                    };
-                    list.push(json!({
-                        "documentId": document_id,
-                        "title": format!("{title} · chat memory"),
-                        "snippet": format!("{label}: {text}"),
-                    }));
-                }
-            }
-        }
+        let passages = chunk_document_passages(document_id, &title, &text);
+        let passages = if let Some(messages) = context {
+            let turns: Vec<ChatTurn> = messages
+                .iter()
+                .filter_map(|message| {
+                    Some(ChatTurn {
+                        role: message
+                            .get("role")
+                            .and_then(|value| value.as_str())
+                            .unwrap_or("user")
+                            .to_string(),
+                        text: message.get("text").and_then(|value| value.as_str())?.to_string(),
+                    })
+                })
+                .collect();
+            merge_chat_memory_passages(document_id, &title, passages, &turns)
+        } else {
+            passages
+        };
 
-        let result = sidecar.library_answer_scoped(trimmed, passages.clone(), 5, "document")?;
+        let result = sidecar.library_answer_scoped(trimmed, passages.clone(), 6, "document")?;
         let citations = result.get("citations").cloned().unwrap_or_else(|| {
             json!(passages
                 .as_array()
@@ -521,7 +510,7 @@ impl ScribeStore {
             "citations": citations,
             "documentId": document_id,
             "title": title,
-            "followups": result.get("followups").cloned().unwrap_or_else(|| json!([])),
+            "followups": followups_from_sidecar(&result),
         }))
     }
 

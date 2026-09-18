@@ -1,5 +1,5 @@
 import { FolderPlus, CalendarDays, Search, Trash2 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -13,7 +13,7 @@ import { LibraryTagsView } from '@/components/LibraryTagsView'
 import { LibraryJournalView } from '@/components/LibraryJournalView'
 import { LibraryLinkGraphView } from '@/components/LibraryLinkGraphView'
 import { LibraryChatPanel } from '@/components/LibraryChatPanel'
-import { LibraryViewTabs, type LibraryView } from '@/components/LibraryViewTabs'
+import { LibraryViewTabs } from '@/components/LibraryViewTabs'
 import { SidebarRail } from '@/components/layout/SidebarRail'
 import { SidebarSearchResults } from '@/components/SidebarSearchResults'
 import { visibleLibraryDocuments } from '@/lib/db/library-sync'
@@ -23,12 +23,13 @@ import { promptInput } from '@/lib/input-dialog'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { setPendingLibraryView, setTrashOpen } from '@/store/documentsSlice'
+import { setLibraryGraphAroundActive, setLibraryView, setTrashOpen } from '@/store/documentsSlice'
 import {
   setCommandPaletteOpen,
   updateExpandedFolderIds,
   updateFolders,
 } from '@/store/foldersSlice'
+import { useResizableSidebar } from '@/hooks/useResizableSidebar'
 
 type SidebarProps = {
   isCompact?: boolean
@@ -42,8 +43,6 @@ const libraryActionClass =
 export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarProps) {
   const { t } = useTranslation()
   const [query, setQuery] = useState('')
-  const [libraryView, setLibraryView] = useState<LibraryView>('folders')
-  const [graphAroundActive, setGraphAroundActive] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
@@ -51,15 +50,9 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
   const folders = useAppSelector((state) => state.folders.folders)
   const recentDocumentIds = useAppSelector((state) => state.documents.recentDocumentIds)
   const recentlyClosedIds = useAppSelector((state) => state.documents.recentlyClosedIds)
-  const pendingLibraryView = useAppSelector((state) => state.documents.pendingLibraryView)
-  const isContentSearch = query.trim().length >= 2
-
-  useEffect(() => {
-    if (!pendingLibraryView) return
-    setLibraryView(pendingLibraryView.view)
-    setGraphAroundActive(Boolean(pendingLibraryView.aroundActive))
-    dispatch(setPendingLibraryView(null))
-  }, [dispatch, pendingLibraryView])
+  const libraryView = useAppSelector((state) => state.documents.libraryView)
+  const graphAroundActive = useAppSelector((state) => state.documents.libraryGraphAroundActive)
+  const isContentSearch = libraryView !== 'chat' && query.trim().length >= 2
 
   const visibleDocuments = useMemo(() => visibleLibraryDocuments(documents), [documents])
 
@@ -83,6 +76,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
     }
     return tags.size
   }, [visibleDocuments])
+  const { resizing, onResizePointerDown, resetWidth } = useResizableSidebar()
 
   const handleCreateFolder = useCallback(async () => {
     const name = await promptInput({
@@ -102,12 +96,13 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
     <aside
       className={cn(
         'app-sidebar',
+        resizing && 'is-resizing',
         isCompact &&
           'max-xl:fixed max-xl:inset-y-0 max-xl:left-0 max-xl:z-40 max-xl:w-[min(calc(var(--sidebar-rail-width)+var(--sidebar-width)),92vw)] max-xl:-translate-x-[105%] max-xl:shadow-none max-xl:transition-transform max-xl:duration-200',
         isCompact && isOpen && 'max-xl:translate-x-0 max-xl:shadow-[16px_0_48px_rgba(0,0,0,0.22)]',
       )}
     >
-      <div className="relative flex min-h-0 flex-1">
+      <div className="relative flex h-full min-h-0 flex-1">
         <div
           className="sidebar-brand-drag titlebar-drag absolute left-[var(--sidebar-rail-width)] right-0 top-0 z-0 h-12"
           aria-hidden="true"
@@ -159,7 +154,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                   favoriteCount={favoriteCount}
                   tagCount={tagCount}
                   recentCount={recentCount}
-                  onChange={setLibraryView}
+                  onChange={(view) => dispatch(setLibraryView(view))}
                 />
               </div>
 
@@ -254,7 +249,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                 <ScrollArea className="min-h-0 flex-1">
                   <LibraryLinkGraphView
                     initialAroundActive={graphAroundActive}
-                    onAroundActiveConsumed={() => setGraphAroundActive(false)}
+                    onAroundActiveConsumed={() => dispatch(setLibraryGraphAroundActive(false))}
                   />
                 </ScrollArea>
               )}
@@ -264,6 +259,14 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
           )}
         </div>
       </div>
+      <button
+        type="button"
+        className="sidebar-resize-handle titlebar-no-drag"
+        aria-label={t('library.resize')}
+        title={t('library.resizeHint')}
+        onPointerDown={onResizePointerDown}
+        onDoubleClick={resetWidth}
+      />
     </aside>
   )
 }

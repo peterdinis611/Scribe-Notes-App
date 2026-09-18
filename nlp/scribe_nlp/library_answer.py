@@ -4,7 +4,7 @@ from .normalize import fold_diacritics, stem_lite
 from .text_utils import STOP_WORDS, normalize_text, split_sentences, tokenize
 
 MAX_SENTENCES = 4
-MAX_PASSAGES = 12
+MAX_PASSAGES = 24
 MAX_FOLLOWUPS = 4
 
 
@@ -144,6 +144,9 @@ def _pick_sentences(
         parts = split_sentences(source)
         candidates = parts if parts else [source]
         rank_boost = 0.12 / (hit_index + 1)
+        title = (passage.get("title") or "").lower()
+        if "chat memory" in title or "earlier chat" in title:
+            rank_boost += 0.22
         for sentence in candidates:
             cleaned = normalize_text(sentence)
             if len(cleaned) < 8:

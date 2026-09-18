@@ -16,7 +16,10 @@ use scribe_core::{
 };
 use crate::db::SearchHit;
 use crate::db::DbState;
-use crate::nlp::NlpSidecar;
+use crate::nlp::{
+    followups_from_sidecar, is_chat_memory_citation_title, merge_chat_memory_passages, ChatTurn,
+    NlpSidecar,
+};
 
 fn now_ts() -> i64 {
     Utc::now().timestamp()
@@ -1631,6 +1634,7 @@ pub struct LibraryChatCitation {
 pub struct LibraryChatResult {
     pub answer: String,
     pub citations: Vec<LibraryChatCitation>,
+    pub followups: Vec<String>,
 }
 
 #[tauri::command]
@@ -1726,6 +1730,7 @@ pub fn nlp_library_answer(
             .unwrap_or("Based on your notes: No matching passages were found in your indexed library.")
             .to_string(),
         citations,
+        followups: followups_from_sidecar(&result),
     })
 }
 
@@ -1826,7 +1831,7 @@ pub fn nlp_document_answer(
         return Err("libraryChat.emptyQuestion".to_string());
     }
 
-    let (title, mut passages) = {
+    let (title, passages) = {
         let conn = state.conn.lock().map_err(|e| e.to_string())?;
         if !is_nlp_enabled(&conn)? {
             return Err("libraryChat.nlpDisabled".to_string());
@@ -1856,38 +1861,20 @@ pub fn nlp_document_answer(
         (title, passages)
     };
 
-    // Fold recent chat memory into passages so follow-ups can reference prior turns.
-    if let Some(messages) = context {
-        if let Some(list) = passages.as_array_mut() {
-            let recent: Vec<_> = messages
-                .into_iter()
-                .rev()
-                .take(6)
-                .collect::<Vec<_>>()
-                .into_iter()
-                .rev()
-                .collect();
-            for message in recent {
-                let role = message.role.trim().to_lowercase();
-                let text = message.text.trim();
-                if text.is_empty() {
-                    continue;
-                }
-                let label = if role == "assistant" {
-                    "Earlier assistant reply"
-                } else {
-                    "Earlier user question"
-                };
-                list.push(json!({
-                    "documentId": document_id,
-                    "title": format!("{title} · chat memory"),
-                    "snippet": format!("{label}: {text}"),
-                }));
-            }
-        }
-    }
+    let passages = if let Some(messages) = context {
+        let turns: Vec<ChatTurn> = messages
+            .into_iter()
+            .map(|message| ChatTurn {
+                role: message.role,
+                text: message.text,
+            })
+            .collect();
+        merge_chat_memory_passages(&document_id, &title, passages, &turns)
+    } else {
+        passages
+    };
 
-    let result = sidecar.library_answer_scoped(&trimmed, passages.clone(), 5, "document")?;
+    let result = sidecar.library_answer_scoped(&trimmed, passages.clone(), 6, "document")?;
     let fallback_title = title.clone();
     let citations = result
         .get("citations")
@@ -1896,13 +1883,17 @@ pub fn nlp_document_answer(
             items
                 .iter()
                 .filter_map(|item| {
+                    let title = item
+                        .get("title")
+                        .and_then(|value| value.as_str())
+                        .unwrap_or(fallback_title.as_str())
+                        .to_string();
+                    if is_chat_memory_citation_title(&title) {
+                        return None;
+                    }
                     Some(LibraryChatCitation {
                         document_id: item.get("documentId")?.as_str()?.to_string(),
-                        title: item
-                            .get("title")
-                            .and_then(|value| value.as_str())
-                            .unwrap_or(fallback_title.as_str())
-                            .to_string(),
+                        title,
                         snippet: item
                             .get("snippet")
                             .and_then(|value| value.as_str())
@@ -1918,9 +1909,17 @@ pub fn nlp_document_answer(
                 .into_iter()
                 .flatten()
                 .filter_map(|item| {
+                    let title = item
+                        .get("title")
+                        .and_then(|value| value.as_str())
+                        .unwrap_or(title.as_str())
+                        .to_string();
+                    if is_chat_memory_citation_title(&title) {
+                        return None;
+                    }
                     Some(LibraryChatCitation {
                         document_id: document_id.clone(),
-                        title: title.clone(),
+                        title,
                         snippet: item.get("snippet")?.as_str()?.to_string(),
                     })
                 })
@@ -1935,6 +1934,7 @@ pub fn nlp_document_answer(
             .unwrap_or("Based on this document: No matching passages were found.")
             .to_string(),
         citations,
+        followups: followups_from_sidecar(&result),
     })
 }
 

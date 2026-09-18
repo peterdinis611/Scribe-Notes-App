@@ -50,6 +50,8 @@ export interface DocumentsState {
   findReplaceMode: 'find' | 'replace'
   libraryFindReplaceOpen: boolean
   pendingEditorSearch: string | null
+  libraryView: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal' | 'chat'
+  libraryGraphAroundActive: boolean
   pendingLibraryView: {
     view: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal' | 'chat'
     aroundActive?: boolean
@@ -133,6 +135,8 @@ const initialState: DocumentsState = {
   findReplaceMode: 'find',
   libraryFindReplaceOpen: false,
   pendingEditorSearch: null,
+  libraryView: 'folders',
+  libraryGraphAroundActive: false,
   pendingLibraryView: null,
   trashOpen: false,
   favoritesOnlyFilter: false,
@@ -416,6 +420,20 @@ const documentsSlice = createSlice({
     setPendingEditorSearch(state, action: PayloadAction<string | null>) {
       state.pendingEditorSearch = action.payload
     },
+    setLibraryView(
+      state,
+      action: PayloadAction<
+        DocumentsState['libraryView']
+      >,
+    ) {
+      state.libraryView = action.payload
+      if (action.payload !== 'graph') {
+        state.libraryGraphAroundActive = false
+      }
+    },
+    setLibraryGraphAroundActive(state, action: PayloadAction<boolean>) {
+      state.libraryGraphAroundActive = action.payload
+    },
     setPendingLibraryView(
       state,
       action: PayloadAction<{
@@ -424,6 +442,10 @@ const documentsSlice = createSlice({
       } | null>,
     ) {
       state.pendingLibraryView = action.payload
+      if (action.payload) {
+        state.libraryView = action.payload.view
+        state.libraryGraphAroundActive = Boolean(action.payload.aroundActive)
+      }
     },
     setTrashOpen(state, action: PayloadAction<boolean>) {
       state.trashOpen = action.payload
@@ -554,6 +576,8 @@ export const {
   setFindReplaceMode,
   setLibraryFindReplaceOpen,
   setPendingEditorSearch,
+  setLibraryView,
+  setLibraryGraphAroundActive,
   setPendingLibraryView,
   setTrashOpen,
   setFavoritesOnlyFilter,

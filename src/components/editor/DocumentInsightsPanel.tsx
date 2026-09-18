@@ -47,6 +47,7 @@ import {
 } from '@/lib/db/api'
 import {
   askDocument,
+  documentChatContext,
   runDocumentChatAction,
   type DocumentChatAction,
 } from '@/lib/library/library-chat'
@@ -61,6 +62,7 @@ import {
   setFindReplaceOpen,
   setPendingEditorSearch,
   setPendingLibraryView,
+  setSidebarOpen,
 } from '@/store/documentsSlice'
 import { useMoveDocumentToFolder } from '@/hooks/useMoveDocumentToFolder'
 import {
@@ -78,9 +80,13 @@ type DocumentInsightsPanelProps = {
 const INSIGHT_ACTIONS: DocumentChatAction[] = [
   'summarize',
   'outline',
+  'quotes',
   'keywords',
   'tasks',
   'wiki',
+  'mentions',
+  'similar',
+  'questions',
   'tone',
 ]
 
@@ -356,7 +362,12 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
     setAskBusy(true)
     try {
       const history = await listDocumentChatMessages(activeId)
-      const context = history.slice(-8).map((item) => ({ role: item.role, text: item.text }))
+      const context = documentChatContext(
+        history.map((item) => ({
+          role: item.role === 'assistant' ? 'assistant' : 'user',
+          text: item.text,
+        })),
+      )
       const result = await askDocument(activeId, question, context)
       setAskReply(result.answer)
       setAskInput('')
@@ -384,6 +395,7 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
 
   const openLibraryChat = useCallback(() => {
     dispatch(setPendingLibraryView({ view: 'chat' }))
+    dispatch(setSidebarOpen(true))
   }, [dispatch])
 
   const handleFindWord = useCallback(
@@ -560,7 +572,7 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
 
                 {askReply ? (
                   <div className="insights-reply">
-                    <MarkdownView source={askReply} className="scribe-markdown--chat" />
+                    <MarkdownView source={askReply} headingIds={false} className="scribe-markdown--chat" />
                   </div>
                 ) : null}
 

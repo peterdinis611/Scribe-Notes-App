@@ -1,4 +1,7 @@
-pub use scribe_core::nlp::{script_path_label, NlpHealth, NlpSidecar};
+pub use scribe_core::nlp::{
+    followups_from_sidecar, is_chat_memory_citation_title, merge_chat_memory_passages,
+    script_path_label, ChatTurn, NlpHealth, NlpSidecar,
+};
 
 use std::path::PathBuf;
 use tauri::path::BaseDirectory;

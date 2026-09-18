@@ -1,10 +1,17 @@
-import { Eraser, FileText, Library, MessageCircle, Send, Settings2 } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Eraser, FileText, Library, Send, Settings2, Sparkles } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import { MarkdownView } from '@/components/MarkdownView'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Bubble, BubbleContent } from '@/components/ui/bubble'
 import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
+import {
+  Message,
+  MessageAvatar,
+  MessageContent,
+  MessageFooter,
+} from '@/components/ui/message'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
 import {
   appendDocumentChatMessage,
@@ -14,6 +21,7 @@ import {
 import { nlpStatus } from '@/lib/db/nlp-api'
 import {
   askChat,
+  documentChatContext,
   runDocumentChatAction,
   type ChatScope,
   type DocumentChatAction,
@@ -31,6 +39,7 @@ type ChatMessage = {
   text: string
   citations?: LibraryChatCitation[]
   action?: string | null
+  followups?: string[]
 }
 
 type LibraryChatPanelProps = {
@@ -41,16 +50,21 @@ const LIBRARY_PROMPTS = [
   'libraryChat.prompts.recent',
   'libraryChat.prompts.deadlines',
   'libraryChat.prompts.themes',
+  'libraryChat.prompts.openLoops',
 ] as const
 
 const DOCUMENT_ACTIONS: Array<{ id: DocumentChatAction; labelKey: string }> = [
   { id: 'summarize', labelKey: 'libraryChat.actions.summarize' },
   { id: 'outline', labelKey: 'libraryChat.actions.outline' },
   { id: 'keywords', labelKey: 'libraryChat.actions.keywords' },
+  { id: 'quotes', labelKey: 'libraryChat.actions.quotes' },
   { id: 'tasks', labelKey: 'libraryChat.actions.tasks' },
   { id: 'title', labelKey: 'libraryChat.actions.title' },
   { id: 'wiki', labelKey: 'libraryChat.actions.wiki' },
+  { id: 'mentions', labelKey: 'libraryChat.actions.mentions' },
   { id: 'dates', labelKey: 'libraryChat.actions.dates' },
+  { id: 'similar', labelKey: 'libraryChat.actions.similar' },
+  { id: 'questions', labelKey: 'libraryChat.actions.questions' },
   { id: 'tone', labelKey: 'libraryChat.actions.tone' },
   { id: 'spellcheck', labelKey: 'libraryChat.actions.spellcheck' },
 ]
@@ -84,6 +98,8 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
   const navigate = useNavigate()
   const activeDocumentId = useAppSelector((state) => state.documents.activeDocumentId)
   const activeDocument = useAppSelector((state) => state.documents.activeDocument)
+  const commentAuthor = useAppSelector((state) => state.documents.commentAuthor)
+  const sidebarOpen = useAppSelector((state) => state.documents.sidebarOpen)
   const [scope, setScope] = useState<ChatScope>(() => (activeDocumentId ? 'document' : 'library'))
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
@@ -109,6 +125,12 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    if (!sidebarOpen) return
+    const timer = window.setTimeout(() => inputRef.current?.focus(), 80)
+    return () => window.clearTimeout(timer)
+  }, [sidebarOpen])
 
   const prevDocIdRef = useRef<string | null>(activeDocumentId)
 
@@ -229,9 +251,7 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
       }
 
       const context =
-        scope === 'document'
-          ? messagesRef.current.slice(-8).map((item) => ({ role: item.role, text: item.text }))
-          : undefined
+        scope === 'document' ? documentChatContext(messagesRef.current) : undefined
 
       setInput('')
       setLoading(true)
@@ -252,7 +272,11 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
           })
           setMessages((prev) => {
             const withoutOptimistic = prev.filter((item) => item.id !== optimisticUser.id)
-            return [...withoutOptimistic, saved.savedUser, saved.savedAssistant]
+            return [
+              ...withoutOptimistic,
+              saved.savedUser,
+              { ...saved.savedAssistant, followups: result.followups },
+            ]
           })
         } else {
           setMessages((prev) => [
@@ -262,6 +286,7 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
               role: 'assistant',
               text: result.answer,
               citations: result.citations,
+              followups: result.followups,
             },
           ])
         }
@@ -310,7 +335,11 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
         })
         setMessages((prev) => {
           const withoutOptimistic = prev.filter((item) => item.id !== optimisticUser.id)
-          return [...withoutOptimistic, saved.savedUser, saved.savedAssistant]
+          return [
+            ...withoutOptimistic,
+            saved.savedUser,
+            { ...saved.savedAssistant, followups: result.followups },
+          ]
         })
       } catch (error) {
         const raw = error instanceof Error ? error.message : String(error)
@@ -334,9 +363,13 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
   const docTitle =
     activeDocument?.title?.trim() ||
     (activeDocumentId ? t('libraryChat.untitled') : null)
+  const userInitial = useMemo(() => {
+    const name = commentAuthor.trim()
+    return name ? name.slice(0, 1).toUpperCase() : t('libraryChat.you').slice(0, 1)
+  }, [commentAuthor, t])
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="library-chat-panel">
       <div className="shrink-0 border-b border-[var(--color-border)] px-2 py-2">
         <div
           className="inline-flex w-full rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5"
@@ -383,7 +416,13 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
           <div className="mt-1.5 flex items-center gap-2 px-0.5">
             <p className="m-0 min-w-0 flex-1 truncate text-[10px] text-[var(--color-muted-foreground)]">
               {t('libraryChat.askingAbout', { title: docTitle })}
-              <span className="opacity-70"> · {t('libraryChat.memoryHint')}</span>
+              <span className="opacity-70">
+                {' '}
+                ·{' '}
+                {messages.length > 0
+                  ? t('libraryChat.memoryTurns', { count: messages.length })
+                  : t('libraryChat.memoryHint')}
+              </span>
             </p>
             {messages.length > 0 ? (
               <button
@@ -400,8 +439,8 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
         ) : null}
       </div>
 
-      <ScrollArea className="min-h-0 flex-1">
-        <div className="flex flex-col gap-2.5 px-2 pb-3 pt-1">
+      <div className="library-chat-thread">
+        <div className="flex flex-col gap-3 px-2.5 pb-3 pt-2">
           {historyLoading && messages.length === 0 ? (
             <p className="m-0 px-1 text-[11px] text-[var(--color-muted-foreground)]">
               {t('libraryChat.memoryLoading')}
@@ -411,7 +450,7 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
           {messages.length === 0 && !historyLoading && (
             <div className="library-empty-state">
               <div className="library-empty-state-icon">
-                <MessageCircle className="h-5 w-5" />
+                <Sparkles className="h-5 w-5" />
               </div>
               <p className="library-empty-state-title">
                 {scope === 'document'
@@ -441,72 +480,110 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
             </div>
           )}
 
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={cn(
-                'rounded-[var(--radius-sm)] border px-2.5 py-2',
-                message.role === 'user'
-                  ? 'ml-4 border-transparent bg-[var(--color-selection)]'
-                  : 'mr-2 border-[var(--color-border)] bg-[var(--color-surface)]',
-              )}
-            >
-              <p className="m-0 mb-1 [font-family:var(--font-mono)] text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--color-muted-foreground)]">
-                {message.role === 'user'
-                  ? t('libraryChat.you')
-                  : scope === 'document'
-                    ? t('libraryChat.assistantDocument')
-                    : t('libraryChat.assistant')}
-              </p>
-              {message.role === 'assistant' ? (
-                <MarkdownView source={message.text} className="scribe-markdown--chat" />
-              ) : (
-                <p className="m-0 whitespace-pre-wrap text-[12px] leading-relaxed text-[var(--color-foreground)]">
-                  {message.text}
-                </p>
-              )}
-              {message.citations && message.citations.length > 0 && (
-                <div className="mt-2 border-t border-[var(--color-border)] pt-1.5">
-                  <p className="m-0 mb-1 text-[10px] font-medium uppercase tracking-wide text-[var(--color-muted-foreground)]">
-                    {t('libraryChat.citations')}
-                  </p>
-                  <ul className="m-0 flex list-none flex-col gap-1 p-0">
-                    {message.citations.map((citation) => (
-                      <li key={`${message.id}-${citation.documentId}-${citation.snippet.slice(0, 24)}`}>
-                        <button
-                          type="button"
-                          className="w-full rounded-[var(--radius-sm)] border border-transparent bg-transparent px-1.5 py-1 text-left transition-colors hover:border-[var(--color-border)] hover:bg-[var(--color-hover)]"
-                          onClick={() => openDocument(citation.documentId)}
-                          title={citation.snippet}
-                        >
-                          <span className="block truncate text-[12px] font-semibold text-[var(--color-accent)]">
+          {messages.map((message) => {
+            const isUser = message.role === 'user'
+            return (
+              <Message key={message.id} align={isUser ? 'end' : 'start'}>
+                <MessageAvatar>
+                  <Avatar
+                    className={
+                      isUser
+                        ? 'border-transparent bg-[var(--color-accent)] text-white'
+                        : 'border-[color-mix(in_srgb,var(--color-accent)_35%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-accent)_14%,var(--color-surface))] text-[var(--color-accent)]'
+                    }
+                  >
+                    <AvatarFallback>
+                      {isUser ? userInitial : <Sparkles className="h-3.5 w-3.5" />}
+                    </AvatarFallback>
+                  </Avatar>
+                </MessageAvatar>
+                <MessageContent>
+                  <Bubble variant={isUser ? 'primary' : 'muted'} className="max-w-[min(100%,320px)]">
+                    <BubbleContent>
+                      {isUser ? (
+                        <p className="m-0 whitespace-pre-wrap">{message.text}</p>
+                      ) : (
+                        <MarkdownView
+                          source={message.text}
+                          headingIds={false}
+                          className="scribe-markdown--chat"
+                        />
+                      )}
+                    </BubbleContent>
+                  </Bubble>
+                  {message.citations && message.citations.length > 0 ? (
+                    <MessageFooter aria-label={t('libraryChat.citations')}>
+                      <div className="library-chat-sources">
+                        {message.citations.map((citation) => (
+                          <button
+                            key={`${message.id}-${citation.documentId}-${citation.snippet.slice(0, 16)}`}
+                            type="button"
+                            className="library-chat-source"
+                            title={citation.snippet}
+                            onClick={() => openDocument(citation.documentId)}
+                          >
                             {citation.title || t('libraryChat.untitled')}
-                          </span>
-                          {citation.snippet && (
-                            <span className="mt-0.5 line-clamp-2 block text-[10px] leading-snug text-[var(--color-muted-foreground)]">
-                              {citation.snippet}
-                            </span>
-                          )}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          ))}
+                          </button>
+                        ))}
+                      </div>
+                    </MessageFooter>
+                  ) : null}
+                  {message.followups && message.followups.length > 0 ? (
+                    <MessageFooter aria-label={t('libraryChat.followups')}>
+                      <div className="library-chat-followups">
+                        {message.followups.map((question) => (
+                          <button
+                            key={`${message.id}-${question}`}
+                            type="button"
+                            className="library-chat-followup"
+                            disabled={loading}
+                            onClick={() => void sendQuestion(question)}
+                          >
+                            {question}
+                          </button>
+                        ))}
+                      </div>
+                    </MessageFooter>
+                  ) : null}
+                </MessageContent>
+              </Message>
+            )
+          })}
 
-          {loading && (
-            <p className="m-0 px-1 text-[11px] text-[var(--color-muted-foreground)]">
-              {t('libraryChat.thinking')}
-            </p>
-          )}
+          {loading ? (
+            <Message align="start">
+              <MessageAvatar>
+                <Avatar className="border-[color-mix(in_srgb,var(--color-accent)_35%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-accent)_14%,var(--color-surface))] text-[var(--color-accent)]">
+                  <AvatarFallback>
+                    <Sparkles className="h-3.5 w-3.5" />
+                  </AvatarFallback>
+                </Avatar>
+              </MessageAvatar>
+              <MessageContent>
+                <Bubble variant="muted">
+                  <BubbleContent>
+                    <span className="library-chat-typing" role="status">
+                      <span className="library-chat-typing-dot" />
+                      <span className="library-chat-typing-dot" />
+                      <span className="library-chat-typing-dot" />
+                      <span className="sr-only">{t('libraryChat.thinking')}</span>
+                    </span>
+                  </BubbleContent>
+                </Bubble>
+                <MessageFooter>
+                  <p className="m-0 px-1 text-[10px] text-[var(--color-muted-foreground)]">
+                    {t('libraryChat.thinking')}
+                  </p>
+                </MessageFooter>
+              </MessageContent>
+            </Message>
+          ) : null}
           <div ref={bottomRef} />
         </div>
-      </ScrollArea>
+      </div>
 
-      <div className="shrink-0 border-t border-[var(--color-border)] px-2 py-2">
-        <div className="mb-2 flex flex-wrap gap-1">
+      <div className="library-chat-composer">
+        <div className="library-chat-actions">
           {scope === 'library'
             ? LIBRARY_PROMPTS.map((key) => (
                 <button
@@ -541,7 +618,7 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
           <input
             ref={inputRef}
             type="text"
-            className="h-8 min-w-0 flex-1 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-background)] px-2.5 text-[12px] text-[var(--color-foreground)] outline-none placeholder:text-[var(--color-muted-foreground)] focus:border-[var(--color-accent)]"
+            className="h-9 min-w-0 flex-1 rounded-full border border-[var(--color-border)] bg-[var(--color-background)] px-3.5 text-[13px] text-[var(--color-foreground)] outline-none placeholder:text-[var(--color-muted-foreground)] focus:border-[var(--color-accent)]"
             placeholder={
               scope === 'document'
                 ? t('libraryChat.placeholderDocument')
@@ -556,7 +633,7 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
             type="submit"
             variant="default"
             size="icon"
-            className="h-8 w-8"
+            className="h-9 w-9 rounded-full"
             disabled={loading || !input.trim()}
             aria-label={t('libraryChat.send')}
             title={t('libraryChat.send')}

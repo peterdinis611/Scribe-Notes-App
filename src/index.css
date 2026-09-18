@@ -187,6 +187,7 @@ html[data-ui-skin='press'] .dark .app-shell::before {
 }
 
 .app-sidebar {
+  position: relative;
   display: flex;
   height: 100%;
   width: calc(var(--sidebar-rail-width) + var(--sidebar-width));
@@ -222,12 +223,56 @@ html[data-ui-skin='press'] .app-sidebar-rail {
 .app-sidebar-panel {
   display: flex;
   min-width: 0;
+  min-height: 0;
   width: var(--sidebar-width);
   flex: 1;
   flex-direction: column;
+  overflow: hidden;
   background: transparent;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+}
+
+.sidebar-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  z-index: 30;
+  width: 10px;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: col-resize;
+}
+
+.sidebar-resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 22%;
+  bottom: 22%;
+  left: 4px;
+  width: 1px;
+  border-radius: 1px;
+  background: transparent;
+  transition: background 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+
+.sidebar-resize-handle:hover::after,
+.app-sidebar.is-resizing .sidebar-resize-handle::after {
+  background: var(--color-accent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--color-accent) 55%, transparent);
+  transform: scaleX(2);
+}
+
+body.is-sidebar-resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
+body.is-sidebar-resizing iframe,
+body.is-sidebar-resizing .tiptap {
+  pointer-events: none;
 }
 
 .library-panel-title {
@@ -549,9 +594,9 @@ html[data-ui-skin='press'] .library-doc-card.is-active {
   width: 44px;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-  background: var(--color-canvas);
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 35%, var(--color-border));
+  background: color-mix(in srgb, var(--color-accent) 14%, var(--color-surface));
   color: var(--color-accent);
   margin-bottom: 10px;
 }
@@ -2908,16 +2953,196 @@ html[data-ui-skin='press'] .editor-shell--home {
   line-height: 1.55;
 }
 
-.scribe-markdown--chat h1,
-.scribe-markdown--chat h2,
-.scribe-markdown--chat h3 {
-  font-size: 1.05em;
-  margin: 0.6em 0 0.3em;
+.scribe-markdown.scribe-markdown--chat {
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
-.scribe-markdown--chat pre {
+.scribe-markdown.scribe-markdown--chat h1,
+.scribe-markdown.scribe-markdown--chat h2,
+.scribe-markdown.scribe-markdown--chat h3,
+.scribe-markdown.scribe-markdown--chat h4,
+.scribe-markdown.scribe-markdown--chat h5,
+.scribe-markdown.scribe-markdown--chat h6 {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1.35;
+  margin: 0.55em 0 0.2em;
+  color: inherit;
+  text-transform: none;
+}
+
+.scribe-markdown.scribe-markdown--chat h1:first-child,
+.scribe-markdown.scribe-markdown--chat h2:first-child,
+.scribe-markdown.scribe-markdown--chat h3:first-child {
+  margin-top: 0;
+}
+
+.scribe-markdown.scribe-markdown--chat a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.scribe-markdown.scribe-markdown--chat p {
+  margin: 0 0 0.45em;
+}
+
+.scribe-markdown.scribe-markdown--chat p:last-child {
+  margin-bottom: 0;
+}
+
+.scribe-markdown.scribe-markdown--chat ul,
+.scribe-markdown.scribe-markdown--chat ol {
+  margin: 0 0 0.45em;
+  padding-left: 1.1em;
+}
+
+.scribe-markdown.scribe-markdown--chat pre {
   padding: 8px 10px;
   font-size: 11px;
+  max-width: 100%;
+}
+
+.scribe-markdown.scribe-markdown--chat table {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.library-chat-panel {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.library-chat-thread {
+  min-height: 0;
+  flex: 1;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.library-chat-composer {
+  flex-shrink: 0;
+  min-width: 0;
+  overflow: hidden;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-sidebar-solid);
+  padding: 8px 12px 10px 8px;
+}
+
+.library-chat-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 100%;
+  margin-bottom: 8px;
+}
+
+.library-chat-actions button {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.library-chat-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 100%;
+}
+
+.library-chat-source {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  padding: 3px 8px;
+  color: var(--color-accent);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.library-chat-source:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
+  background: var(--color-hover);
+}
+
+.library-chat-followups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: min(100%, 320px);
+}
+
+.library-chat-followup {
+  max-width: 100%;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  border: 1px dashed color-mix(in srgb, var(--color-accent) 38%, var(--color-border));
+  border-radius: 999px;
+  background: transparent;
+  padding: 4px 9px;
+  color: var(--color-foreground);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.library-chat-followup:hover:not(:disabled) {
+  border-style: solid;
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+}
+
+.library-chat-typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 18px;
+  padding: 2px 4px;
+}
+
+.library-chat-typing-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--color-muted-foreground);
+  animation: library-chat-dot 1s ease-in-out infinite;
+}
+
+.library-chat-typing-dot:nth-child(2) {
+  animation-delay: 140ms;
+}
+
+.library-chat-typing-dot:nth-child(3) {
+  animation-delay: 280ms;
+}
+
+@keyframes library-chat-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.28;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
 }
 
 .editor-content-host--hidden {
@@ -8365,6 +8590,7 @@ html.dark .link-graph-toolbar--overlay {
   background: transparent;
   padding: 0;
   color: var(--color-accent);
+  cursor: pointer;
   font-size: 11px;
   font-weight: 600;
 }

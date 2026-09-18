@@ -8,6 +8,8 @@ type MarkdownViewProps = {
   className?: string
   /** Prefer deferred parsing for live typing previews. */
   deferred?: boolean
+  /** Anchor ids on headings. Off in chat so titles do not render as accent links. */
+  headingIds?: boolean
   emptyFallback?: ReactNode
 }
 
@@ -19,6 +21,7 @@ export function MarkdownView({
   source,
   className,
   deferred = false,
+  headingIds = true,
   emptyFallback = null,
 }: MarkdownViewProps) {
   const deferredSource = useDeferredValue(source)
@@ -28,11 +31,11 @@ export function MarkdownView({
   const content = useMemo(() => {
     if (!trimmed) return null
     return (
-      <Markdown highlighter={highlight} headingIds>
+      <Markdown highlighter={highlight} headingIds={headingIds}>
         {text}
       </Markdown>
     )
-  }, [text, trimmed])
+  }, [headingIds, text, trimmed])
 
   if (!trimmed) {
     return emptyFallback ? <div className={cn('scribe-markdown', className)}>{emptyFallback}</div> : null

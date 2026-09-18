@@ -356,8 +356,20 @@
   "whatsNew": {
     "badge": "Novinky {{version}}",
     "title": "Scribe {{version}}",
-    "subtitle": "Bohatšia analýza knižnice, prehľadnejší strom dokumentov a približné hľadanie.",
+    "subtitle": "História schránky, pokojnejší editor a spoľahlivejšie mazanie.",
     "gotIt": "Rozumiem",
+    "clipboardHistory": {
+      "title": "História schránky",
+      "description": "Posledných 10 kópií ostane v bočnom paneli (⌘⇧V). Novšie úryvky prepíšu najstaršie; rovnaký text sa len vráti navrch."
+    },
+    "editorCalm": {
+      "title": "Pokojnejší editor",
+      "description": "Tenší ribbon, úchyt len na hover, dokované hľadanie a tichší pravý rail — stránka ostáva v centre."
+    },
+    "editorDelete": {
+      "title": "Mazanie, ktoré stíha",
+      "description": "Backspace po Escape a mazanie po sebe idúcich prázdnych riadkov v Tauri editore už fungujú ako treba."
+    },
     "libraryReport": {
       "title": "Analýza knižnice nanovo",
       "description": "Štatistiky, metry a sekcia Dokumentácia so všetkými priečinkami — nie len surový markdown."
@@ -1095,6 +1107,8 @@
   },
   "library": {
     "title": "Knižnica",
+    "resize": "Zmeniť šírku knižnice",
+    "resizeHint": "Ťahaním rozšírite. Dvojklik vráti predvolenú šírku.",
     "allDocuments": "Všetky dokumenty",
     "expandFolder": "Rozbaliť priečinok",
     "collapseFolder": "Zbaliť priečinok",
@@ -1241,6 +1255,8 @@
     "scopeDocumentHint": "Pýtať sa na „{{title}}“",
     "askingAbout": "Pýtam sa na: {{title}}",
     "memoryHint": "uložené v tejto poznámke",
+    "memoryTurns": "{{count}} uložených ťahov",
+    "followups": "Ďalšie otázky",
     "memoryLoading": "Načítavam pamäť chatu…",
     "memoryLoadError": "Nepodarilo sa načítať pamäť chatu",
     "memoryCleared": "Pamäť chatu vymazaná",
@@ -1249,7 +1265,8 @@
     "prompts": {
       "recent": "O čom som naposledy písal?",
       "deadlines": "Mám v poznámkach termíny alebo dátumy?",
-      "themes": "Aké témy sa v poznámkach opakujú?"
+      "themes": "Aké témy sa v poznámkach opakujú?",
+      "openLoops": "Aké otvorené úlohy alebo nedokončené vlákna mám?"
     },
     "actions": {
       "summarize": "Zhrnúť",
@@ -1260,7 +1277,11 @@
       "wiki": "Wiki odkazy",
       "dates": "Dátumy",
       "tone": "Tón a čítanie",
-      "spellcheck": "Kontrola pravopisu"
+      "spellcheck": "Kontrola pravopisu",
+      "similar": "Súvisiace poznámky",
+      "mentions": "Ľudia a odkazy",
+      "quotes": "Kľúčové tvrdenia",
+      "questions": "Ďalšie otázky"
     }
   },
   "documentChat": {

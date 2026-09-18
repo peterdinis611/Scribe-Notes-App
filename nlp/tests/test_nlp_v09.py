@@ -73,6 +73,31 @@ class LibraryAnswerTests(unittest.TestCase):
         )
         self.assertIn("project", result["answer"].lower())
 
+    def test_chat_memory_passages_can_answer_followups(self) -> None:
+        result = library_answer(
+            "what was the deadline",
+            [
+                {
+                    "documentId": "d1",
+                    "title": "Guide",
+                    "snippet": "Tables are editable. Use the command palette.",
+                },
+                {
+                    "documentId": "d1",
+                    "title": "Guide · chat memory",
+                    "snippet": "Earlier user question: When is the deadline?",
+                },
+                {
+                    "documentId": "d1",
+                    "title": "Guide · chat memory",
+                    "snippet": "Earlier assistant reply: The deadline is Friday.",
+                },
+            ],
+            scope="document",
+        )
+        self.assertIn("friday", result["answer"].lower())
+        self.assertGreaterEqual(len(result.get("followups") or []), 1)
+
     def test_library_answer_rpc(self) -> None:
         response = handle_request(
             {

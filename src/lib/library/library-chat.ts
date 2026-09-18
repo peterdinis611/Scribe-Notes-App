@@ -2,6 +2,7 @@ import { invoke } from '@/lib/tauri'
 import {
   nlpDocumentAnalysis,
   nlpDocumentTasks,
+  nlpSimilarDocuments,
   nlpSpellcheck,
   nlpStatus,
   nlpSuggestWikiLinks,
@@ -16,6 +17,7 @@ export type LibraryChatCitation = {
 export type LibraryChatResult = {
   answer: string
   citations: LibraryChatCitation[]
+  followups?: string[]
 }
 
 export type ChatScope = 'library' | 'document'
@@ -30,6 +32,21 @@ export type DocumentChatAction =
   | 'spellcheck'
   | 'dates'
   | 'tone'
+  | 'similar'
+  | 'mentions'
+  | 'quotes'
+  | 'questions'
+
+export const DOCUMENT_CHAT_CONTEXT_LIMIT = 16
+
+export function documentChatContext(
+  messages: Array<{ role: 'user' | 'assistant'; text: string }>,
+): Array<{ role: string; text: string }> {
+  return messages.slice(-DOCUMENT_CHAT_CONTEXT_LIMIT).map((item) => ({
+    role: item.role,
+    text: item.text.length > 1200 ? `${item.text.slice(0, 1199)}…` : item.text,
+  }))
+}
 
 async function assertNlpReady() {
   const status = await nlpStatus()
@@ -50,7 +67,7 @@ export async function askLibrary(question: string): Promise<LibraryChatResult> {
   await assertNlpReady()
   return invoke<LibraryChatResult>('nlp_library_answer', {
     question: trimmed,
-    limit: 6,
+    limit: 8,
   })
 }
 
@@ -89,6 +106,21 @@ export async function askChat(
 
 function bullets(lines: string[]): string {
   return lines.map((line) => `• ${line}`).join('\n')
+}
+
+function uniqueStrings(values: Array<string | null | undefined>, limit: number): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const value of values) {
+    const trimmed = value?.trim()
+    if (!trimmed) continue
+    const key = trimmed.toLocaleLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(trimmed)
+    if (out.length >= limit) break
+  }
+  return out
 }
 
 /** Structured Local AI actions for the active document (extractive / heuristic). */
@@ -165,6 +197,24 @@ export async function runDocumentChatAction(
     }
   }
 
+  if (action === 'similar') {
+    const hits = await nlpSimilarDocuments(documentId, 8)
+    if (hits.length === 0) {
+      return {
+        answer: 'No related notes found yet. Index the library in Settings → Local AI.',
+        citations: [],
+      }
+    }
+    return {
+      answer: `**Related notes**\n\n${bullets(hits.map((hit) => hit.title || 'Untitled'))}`,
+      citations: hits.map((hit) => ({
+        documentId: hit.documentId,
+        title: hit.title,
+        snippet: hit.snippet,
+      })),
+    }
+  }
+
   const analysis = await nlpDocumentAnalysis(documentId)
   if (!analysis) {
     throw new Error('libraryChat.analysisFailed')
@@ -175,6 +225,7 @@ export async function runDocumentChatAction(
     title: analysis.suggestedTitle || 'Document',
     snippet: analysis.summary?.slice(0, 200) || '',
   }
+  const slovak = analysis.language === 'sk'
 
   switch (action) {
     case 'summarize': {
@@ -249,6 +300,59 @@ export async function runDocumentChatAction(
           .filter(Boolean)
           .join('\n'),
         citations: [citation],
+      }
+    }
+    case 'mentions': {
+      const people = analysis.mentions ?? []
+      const wiki = analysis.wikiLinks ?? []
+      const hosts = analysis.hosts ?? []
+      if (!people.length && !wiki.length && !hosts.length) {
+        return {
+          answer: 'No people, wiki links, or sites detected in this document.',
+          citations: [],
+        }
+      }
+      const lines = [
+        ...people.map((item) => `@${item.replace(/^@/, '')}`),
+        ...wiki.map((item) => `[[${item}]]`),
+        ...hosts,
+      ]
+      return {
+        answer: `**People & links**\n\n${bullets(lines.slice(0, 16))}`,
+        citations: [citation],
+      }
+    }
+    case 'quotes': {
+      const phrases = uniqueStrings(analysis.keyphrases ?? [], 8)
+      if (!phrases.length) {
+        return { answer: 'No key claims extracted from this document yet.', citations: [] }
+      }
+      return {
+        answer: `**Key claims**\n\n${bullets(phrases.map((item) => `“${item}”`))}`,
+        citations: [citation],
+      }
+    }
+    case 'questions': {
+      const topics = uniqueStrings(
+        [
+          ...(analysis.outline ?? []).map((item) => item.title),
+          ...(analysis.keyphrases ?? []),
+          ...(analysis.keywords ?? []).map((item) => item.term),
+        ],
+        6,
+      )
+      if (!topics.length) {
+        return { answer: 'Not enough signal to suggest follow-up questions.', citations: [] }
+      }
+      const lines = topics.map((topic) =>
+        slovak
+          ? `Čo hovorí táto poznámka o „${topic}“?`
+          : `What does this note say about “${topic}”?`,
+      )
+      return {
+        answer: `**${slovak ? 'Ďalšie otázky' : 'Suggested questions'}**\n\n${bullets(lines)}`,
+        citations: [citation],
+        followups: lines,
       }
     }
     default:

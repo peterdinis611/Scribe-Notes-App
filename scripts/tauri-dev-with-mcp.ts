@@ -89,6 +89,7 @@ console.log(
     ? `[dev] starting tauri + refreshing MCP release binary${debugRequested ? ' (debug)' : ''}…`
     : `[dev] MCP binary missing — building scribe-mcp (release) in parallel with tauri${debugRequested ? ' (debug)' : ''}…`,
 )
+console.log('[dev] editor file changes reload the webview — keep this process running (npm run dev:reload to force)')
 
 if (debugRequested) {
   console.log(

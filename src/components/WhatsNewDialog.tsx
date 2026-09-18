@@ -1,4 +1,4 @@
-import { BarChart3, FolderTree, Sparkles } from 'lucide-react'
+import { ClipboardList, Eraser, Focus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
@@ -13,9 +13,9 @@ import { APP_VERSION } from '@/lib/app-version'
 import { persistWhatsNewVersion } from '@/store/persistence'
 
 const HIGHLIGHTS = [
-  { id: 'libraryReport', icon: BarChart3 },
-  { id: 'libraryTree', icon: FolderTree },
-  { id: 'fuzzyFind', icon: Sparkles },
+  { id: 'clipboardHistory', icon: ClipboardList },
+  { id: 'editorCalm', icon: Focus },
+  { id: 'editorDelete', icon: Eraser },
 ] as const
 
 /** Major.minor for “Scribe 1.4” style titles. */

@@ -3,11 +3,13 @@ import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { scribeEditorFullReload } from './scripts/vite-editor-full-reload'
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url))
+const tauriHost = process.env.TAURI_DEV_HOST
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), scribeEditorFullReload()],
   resolve: {
     alias: {
       '@': path.resolve(rootDir, './src'),
@@ -17,6 +19,11 @@ export default defineConfig({
   server: {
     port: 5174,
     strictPort: true,
+    host: tauriHost || '127.0.0.1',
+    hmr: tauriHost ? { protocol: 'ws', host: tauriHost, port: 5175 } : undefined,
+    watch: {
+      ignored: ['**/src-tauri/**', '**/target/**'],
+    },
   },
   envPrefix: ['VITE_', 'TAURI_', 'SCRIBE_'],
   optimizeDeps: {
