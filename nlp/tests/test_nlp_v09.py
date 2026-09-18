@@ -60,6 +60,26 @@ class LibraryAnswerTests(unittest.TestCase):
         self.assertEqual(result["citations"][0]["documentId"], "d1")
         self.assertGreaterEqual(len(result.get("followups") or []), 1)
 
+    def test_skips_table_noise_in_extractive_answer(self) -> None:
+        result = library_answer(
+            "What about embeddings?",
+            [
+                {
+                    "documentId": "d1",
+                    "title": "Tables",
+                    "snippet": "| col | val |\n| --- | --- |\n| 12 | 34 | 56 | 78 |",
+                },
+                {
+                    "documentId": "d2",
+                    "title": "Search notes",
+                    "snippet": "Local embeddings power semantic search in Scribe.",
+                },
+            ],
+        )
+        self.assertIn("embeddings", result["answer"].lower())
+        self.assertNotIn("| col |", result["answer"])
+        self.assertEqual(result["citations"][0]["documentId"], "d2")
+
     def test_stem_aware_matching(self) -> None:
         result = library_answer(
             "projects",

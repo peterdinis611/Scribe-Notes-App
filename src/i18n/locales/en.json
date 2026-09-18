@@ -1342,7 +1342,10 @@
       "replyPlaceholder": "Reply…",
       "sendReply": "Send reply",
       "signedAs": "Signed as",
+      "authorLabel": "Your name",
       "authorPlaceholder": "Your name",
+      "bodyLabel": "Comment",
+      "composerHint": "Sign the note with your name — it stays on this Mac.",
       "anchorNotFound": "Comment anchor not found in text",
       "loadError": "Failed to load comments",
       "resolveError": "Failed to change status",
@@ -2428,7 +2431,7 @@
     "delete": "Delete image",
     "missing": "Image unavailable",
     "emptyTitle": "Add an image",
-    "emptyHint": "Upload a file or embed a link — like in Notion.",
+    "emptyHint": "Upload a file or embed a link — PNG, JPEG, GIF, WebP.",
     "upload": "Upload",
     "fromUrl": "Embed link",
     "urlTitle": "Embed image",
@@ -2448,7 +2451,9 @@
     "caption": "Caption",
     "captionPlaceholder": "Optional caption",
     "captionEmpty": "Add a caption…",
-    "resize": "Resize"
+    "resize": "Resize",
+    "animatedBadge": "GIF",
+    "animatedHint": "Animated image"
   },
   "lottie": {
     "alignGroup": "Lottie alignment",

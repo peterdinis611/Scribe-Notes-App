@@ -1,6 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import type { Document, DocumentSummary } from '@/lib/db/api'
 import { isLibraryDocumentVisible } from '@/lib/db/library-sync'
+import { resolveCommentAuthor } from '@/lib/editor/comment-author'
 import {
   persistBoolStorage,
   persistCommentAuthor,
@@ -469,9 +470,14 @@ const documentsSlice = createSlice({
       state.commentsVersion += 1
     },
     setCommentAuthor(state, action: PayloadAction<string>) {
-      const trimmed = action.payload.trim() || 'Ja'
-      state.commentAuthor = trimmed
-      persistCommentAuthor(trimmed)
+      state.commentAuthor = action.payload
+      const trimmed = action.payload.trim()
+      if (trimmed) persistCommentAuthor(trimmed)
+    },
+    commitCommentAuthor(state) {
+      const next = resolveCommentAuthor(state.commentAuthor)
+      state.commentAuthor = next
+      persistCommentAuthor(next)
     },
     setDiskSyncWarning(state, action: PayloadAction<string | null>) {
       state.diskSyncWarning = action.payload
@@ -587,6 +593,7 @@ export const {
   clearMetaFilters,
   bumpCommentsVersion,
   setCommentAuthor,
+  commitCommentAuthor,
   setDiskSyncWarning,
   setFolderSyncStatus,
   setSecondaryDocumentId,

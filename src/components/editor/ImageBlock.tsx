@@ -22,12 +22,12 @@ import {
   CopyPlus,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAnimatedImageSrc } from '@/hooks/useAnimatedImageSrc'
 import {
   copyImageToClipboard,
   downloadImageSrc,
   pickImageFiles,
   replaceImageFromFile,
-  resolveImageSrc,
   saveCroppedImage,
 } from '@/lib/editor/image-utils'
 import { ImageCropDialog } from '@/components/editor/ImageCropDialog'
@@ -66,7 +66,8 @@ export function ImageBlock({
   const [captionDraft, setCaptionDraft] = useState((node.attrs.caption as string) ?? '')
 
   const rawSrc = (node.attrs.src as string) ?? ''
-  const src = resolveImageSrc(rawSrc)
+  const { displaySrc, animated, kind: animatedKind } = useAnimatedImageSrc(rawSrc)
+  const src = displaySrc
   const align = ((node.attrs.align as Align) ?? 'center') as Align
   const width = (node.attrs.width as string) ?? DEFAULT_WIDTH
   const caption = (node.attrs.caption as string) ?? ''
@@ -240,6 +241,7 @@ export function ImageBlock({
         isFull && 'is-full',
         busy && 'is-busy',
         isEmpty && 'is-empty',
+        animated && 'is-animated',
       )}
       data-align={align}
     >
@@ -278,9 +280,11 @@ export function ImageBlock({
               <ToolbarBtn onClick={() => setLightboxOpen(true)} title={t('image.expand')}>
                 <Expand className="h-3.5 w-3.5" />
               </ToolbarBtn>
-              <ToolbarBtn onClick={() => setCropOpen(true)} title={t('image.crop')}>
-                <Crop className="h-3.5 w-3.5" />
-              </ToolbarBtn>
+              {!animated ? (
+                <ToolbarBtn onClick={() => setCropOpen(true)} title={t('image.crop')}>
+                  <Crop className="h-3.5 w-3.5" />
+                </ToolbarBtn>
+              ) : null}
               <ToolbarBtn onClick={() => void handleReplace()} title={t('image.replace')} disabled={busy}>
                 <Replace className="h-3.5 w-3.5" />
               </ToolbarBtn>
@@ -333,16 +337,25 @@ export function ImageBlock({
               ) : null}
             </div>
           ) : (
-            <img
-              ref={imgRef}
-              src={src}
-              alt={(node.attrs.alt as string) ?? ''}
-              title={(node.attrs.title as string) ?? undefined}
-              style={{ width: isFull ? '100%' : width }}
-              draggable={false}
-              onDoubleClick={() => setLightboxOpen(true)}
-              onError={() => setBroken(true)}
-            />
+            <>
+              <img
+                ref={imgRef}
+                src={src}
+                alt={(node.attrs.alt as string) ?? ''}
+                title={(node.attrs.title as string) ?? undefined}
+                style={{ width: isFull ? '100%' : width }}
+                draggable={false}
+                decoding={animated ? 'sync' : 'async'}
+                loading="eager"
+                onDoubleClick={() => setLightboxOpen(true)}
+                onError={() => setBroken(true)}
+              />
+              {animated && animatedKind ? (
+                <span className="image-animated-badge" aria-label={t('image.animatedHint')}>
+                  {animatedKind === 'gif' ? t('image.animatedBadge') : animatedKind.toUpperCase()}
+                </span>
+              ) : null}
+            </>
           )}
 
           {showChrome && !isFull && !isEmpty && (
@@ -453,6 +466,8 @@ export function ImageBlock({
       <ImageLightbox
         open={lightboxOpen}
         src={rawSrc}
+        displaySrc={src}
+        animated={animated}
         alt={(node.attrs.alt as string) ?? undefined}
         onClose={() => setLightboxOpen(false)}
       />

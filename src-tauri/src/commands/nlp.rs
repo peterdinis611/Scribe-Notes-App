@@ -6,9 +6,10 @@ use tauri::{AppHandle, Emitter, State};
 
 use crate::db::{
     count_embeddings, count_stale_embeddings, dominant_embedding_model, extract_search_text,
-    fuse_search_hits, get_embed_backend, is_nlp_enabled, save_artifact, search_documents_in_conn,
-    semantic_search, set_embed_backend, set_nlp_enabled, similar_documents,
-    upsert_embedding_with_chunks, EmbeddingChunkInput, SearchMode,
+    fuse_search_hits, get_embed_backend, is_nlp_enabled, rank_document_chunks, save_artifact,
+    search_documents_in_conn, semantic_search, semantic_search_filtered, set_embed_backend,
+    set_nlp_enabled, similar_documents, upsert_embedding_with_chunks, EmbeddingChunkInput,
+    SearchMode,
 };
 use scribe_core::{
     content_is_vault_cipher, date_key_bounds, extract_due_hint, require_document_not_vault,
@@ -528,7 +529,10 @@ pub fn nlp_search(
             let semantic_hits = match sidecar.embed_text(&embed_query) {
                 Ok((vector, model)) => {
                     let conn = state.conn.lock().map_err(|e| e.to_string())?;
-                    semantic_search(&conn, &vector, limit, Some(&model)).unwrap_or_default()
+                    let extra: Vec<String> =
+                        fts_hits.iter().map(|hit| hit.document_id.clone()).collect();
+                    semantic_search_filtered(&conn, &vector, limit, Some(&model), Some(&extra))
+                        .unwrap_or_default()
                 }
                 Err(_) => Vec::new(),
             };
@@ -1671,7 +1675,10 @@ pub fn nlp_library_answer(
         let semantic_hits = match sidecar.embed_text(&embed_query) {
             Ok((vector, model)) => {
                 let conn = state.conn.lock().map_err(|e| e.to_string())?;
-                semantic_search(&conn, &vector, limit, Some(&model)).unwrap_or_default()
+                let extra: Vec<String> =
+                    fts_hits.iter().map(|hit| hit.document_id.clone()).collect();
+                semantic_search_filtered(&conn, &vector, limit, Some(&model), Some(&extra))
+                    .unwrap_or_default()
             }
             Err(_) => Vec::new(),
         };
@@ -1831,7 +1838,7 @@ pub fn nlp_document_answer(
         return Err("libraryChat.emptyQuestion".to_string());
     }
 
-    let (title, passages) = {
+    let (title, fallback) = {
         let conn = state.conn.lock().map_err(|e| e.to_string())?;
         if !is_nlp_enabled(&conn)? {
             return Err("libraryChat.nlpDisabled".to_string());
@@ -1857,8 +1864,32 @@ pub fn nlp_document_answer(
         if text.trim().len() < 8 {
             return Err("libraryChat.documentEmpty".to_string());
         }
-        let passages = chunk_document_passages(&document_id, &title, &text);
-        (title, passages)
+        let fallback = chunk_document_passages(&document_id, &title, &text);
+        (title, fallback)
+    };
+
+    let passages = match sidecar.embed_text(&trimmed) {
+        Ok((vector, model)) => {
+            let conn = state.conn.lock().map_err(|e| e.to_string())?;
+            let ranked =
+                rank_document_chunks(&conn, &document_id, &vector, 8, Some(&model)).unwrap_or_default();
+            if ranked.len() >= 2 {
+                json!(ranked
+                    .into_iter()
+                    .map(|chunk| {
+                        json!({
+                            "documentId": document_id,
+                            "title": title,
+                            "snippet": chunk.snippet,
+                            "score": chunk.score,
+                        })
+                    })
+                    .collect::<Vec<_>>())
+            } else {
+                fallback
+            }
+        }
+        Err(_) => fallback,
     };
 
     let passages = if let Some(messages) = context {

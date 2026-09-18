@@ -158,6 +158,15 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                     <div className="library-docs-actions">
                       <button
                         type="button"
+                        className="library-new-folder-btn"
+                        onClick={() => void handleCreateFolder()}
+                        title={t('library.newFolder')}
+                      >
+                        <FolderPlus className="h-3.5 w-3.5" />
+                        {t('library.newFolder')}
+                      </button>
+                      <button
+                        type="button"
                         className={libraryActionClass}
                         onClick={() => {
                           void openTodayNote({
@@ -183,15 +192,6 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                         aria-label={t('library.trash')}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        className={libraryActionClass}
-                        onClick={() => void handleCreateFolder()}
-                        title={t('library.newFolder')}
-                        aria-label={t('library.newFolder')}
-                      >
-                        <FolderPlus className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   </div>

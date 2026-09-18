@@ -37,7 +37,7 @@ import {
 import { nlpStatus, nlpSuggestTags } from '@/lib/db/nlp-api'
 import { describeNlpTagSuggestionFailure } from '@/lib/nlp/errors'
 import { ROUTES } from '@/lib/routes'
-import { createLibraryFolder } from '@/lib/library/create-folder'
+import { promptAndCreateFolder } from '@/lib/library/create-folder'
 import { promptInput } from '@/lib/input-dialog'
 import { isVaultUnlocked } from '@/lib/vault/session'
 import { toast } from '@/lib/toast'
@@ -133,65 +133,7 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
   }, [dispatch])
 
   const handleCreateFolder = useCallback(async (parentId: string | null) => {
-    const name = await promptInput({
-      title: parentId ? t('library.newSubfolder') : t('library.newFolder'),
-      placeholder: t('library.folderNamePlaceholder'),
-      confirmLabel: t('common.create'),
-    })
-    if (!name) return
-
-    let makeVault = false
-    try {
-      makeVault = Boolean(
-        await confirm(t('vault.createConfirm'), {
-          title: t('vault.createTitle'),
-          kind: 'info',
-          okLabel: t('vault.createOk'),
-          cancelLabel: t('vault.createSkip'),
-        }),
-      )
-    } catch {
-      makeVault = false
-    }
-
-    let vaultVerifier: string | null = null
-    let password: string | null = null
-    if (makeVault) {
-      password = await promptInput({
-        title: t('vault.setPasswordTitle'),
-        description: t('vault.setPasswordDescription'),
-        placeholder: t('vault.passwordPlaceholder'),
-        confirmLabel: t('common.create'),
-      })
-      if (!password || password.length < 4) {
-        toast.error(t('vault.passwordTooShort'))
-        return
-      }
-      const { createVaultVerifier } = await import('@/lib/vault/session')
-      vaultVerifier = await createVaultVerifier(password)
-    }
-
-    try {
-      const folder = await createLibraryFolder(
-        {
-          name,
-          parentId,
-          isVault: makeVault,
-          vaultVerifier,
-        },
-        dispatch,
-      )
-      if (makeVault && password && vaultVerifier) {
-        const { unlockVault } = await import('@/lib/vault/session')
-        await unlockVault(folder.id, password, vaultVerifier)
-      }
-      toast.success(
-        makeVault ? t('toasts.vaultFolderCreated') : t('toasts.folderCreated'),
-        folder.name,
-      )
-    } catch (error) {
-      toast.error(t('toasts.folderCreateError'), String(error))
-    }
+    await promptAndCreateFolder({ t, dispatch, parentId })
   }, [dispatch, t])
 
   const handleRenameFolder = useCallback(async (id: string, currentName: string) => {

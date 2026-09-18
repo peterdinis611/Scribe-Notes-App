@@ -1,11 +1,13 @@
 import type { Editor } from '@tiptap/react'
 import i18n from '@/i18n'
 import { createCommentThread } from '@/lib/db/api'
-import { promptInput } from '@/lib/input-dialog'
+import { promptComment } from '@/lib/comment-dialog'
+import { resolveCommentAuthor } from '@/lib/editor/comment-author'
 import { toast } from '@/lib/toast'
 import { store } from '@/store/index'
 import {
   bumpCommentsVersion,
+  setCommentAuthor,
   setCommentsPanelOpen,
 } from '@/store/documentsSlice'
 
@@ -30,20 +32,27 @@ export async function createCommentForSelection(editor: Editor): Promise<boolean
 
   const quote = editor.state.doc.textBetween(from, to, ' ').trim().slice(0, 280)
 
-  const body = await promptInput({
-    title: i18n.t('editorActions.newComment'),
-    description: quote ? `“${quote.slice(0, 120)}”` : undefined,
-    placeholder: i18n.t('editorActions.commentPlaceholder'),
-    confirmLabel: i18n.t('editorActions.addComment'),
+  const drafted = await promptComment({
+    open: true,
+    quote: quote || undefined,
+    defaultAuthor: author,
   })
-  if (!body?.trim()) return false
+  if (!drafted?.body.trim()) return false
+  const signedAuthor = resolveCommentAuthor(drafted.author)
+  store.dispatch(setCommentAuthor(signedAuthor))
 
   const commentId = generateCommentId()
 
   editor.chain().focus().setComment({ commentId }).run()
 
   try {
-    await createCommentThread({ id: commentId, documentId, quote, author, body: body.trim() })
+    await createCommentThread({
+      id: commentId,
+      documentId,
+      quote,
+      author: signedAuthor,
+      body: drafted.body.trim(),
+    })
     store.dispatch(bumpCommentsVersion())
     store.dispatch(setCommentsPanelOpen(true))
     return true

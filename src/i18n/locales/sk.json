@@ -1347,7 +1347,10 @@
       "replyPlaceholder": "Odpovedať…",
       "sendReply": "Odoslať odpoveď",
       "signedAs": "Podpísané ako",
+      "authorLabel": "Vaše meno",
       "authorPlaceholder": "Vaše meno",
+      "bodyLabel": "Komentár",
+      "composerHint": "Podpíšte poznámku svojím menom — ostane na tomto Macu.",
       "anchorNotFound": "Ukotvenie komentára sa v texte nenašlo",
       "loadError": "Nepodarilo sa načítať komentáre",
       "resolveError": "Nepodarilo sa zmeniť stav",
@@ -2443,7 +2446,7 @@
     "delete": "Zmazať obrázok",
     "missing": "Obrázok nie je dostupný",
     "emptyTitle": "Pridať obrázok",
-    "emptyHint": "Nahrajte súbor alebo vložte odkaz — ako v Notion.",
+    "emptyHint": "Nahrajte súbor alebo vložte odkaz — PNG, JPEG, GIF, WebP.",
     "upload": "Nahrať",
     "fromUrl": "Vložiť odkaz",
     "urlTitle": "Vložiť obrázok",
@@ -2463,7 +2466,9 @@
     "caption": "Popisok",
     "captionPlaceholder": "Voliteľný popisok",
     "captionEmpty": "Pridať popisok…",
-    "resize": "Zmeniť veľkosť"
+    "resize": "Zmeniť veľkosť",
+    "animatedBadge": "GIF",
+    "animatedHint": "Animovaný obrázok"
   },
   "lottie": {
     "alignGroup": "Zarovnanie Lottie",

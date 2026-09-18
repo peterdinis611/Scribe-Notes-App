@@ -2,6 +2,7 @@ import type { AppLocale } from '@/i18n'
 import type { CustomLocalePack } from '@/lib/i18n/custom-locales'
 import { isBuiltInLocaleCode, normalizeLocaleCode } from '@/lib/i18n/custom-locales'
 import type { PageSetup } from '@/lib/editor/page-setup'
+import { defaultCommentAuthor } from '@/lib/editor/comment-author'
 import { DEFAULT_PAGE_SETUP, normalizePageSetup } from '@/lib/editor/page-setup'
 import { kvGet, kvRemove, kvSet } from '@/lib/storage/kv'
 import type { ThemeSettings } from '@/lib/themes/types'
@@ -460,11 +461,11 @@ export function persistManualTitleIds(ids: string[]) {
 export function readCommentAuthor(): string {
   try {
     const raw = kvGet(COMMENT_AUTHOR_KEY)
-    if (raw && raw.trim()) return raw
+    if (raw && raw.trim()) return raw.trim()
   } catch {
     // ignore
   }
-  return 'Ja'
+  return defaultCommentAuthor()
 }
 
 export function persistCommentAuthor(name: string) {

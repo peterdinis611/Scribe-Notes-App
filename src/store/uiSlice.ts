@@ -31,6 +31,20 @@ export type InvoiceDialogState = {
   seed?: Record<string, unknown> | null
 }
 
+export type CommentDialogState =
+  | { open: false }
+  | {
+      open: true
+      quote?: string
+      defaultAuthor: string
+      defaultBody?: string
+    }
+
+export type CommentDialogResult = {
+  author: string
+  body: string
+}
+
 export type StorageAccessDialogIntent = 'info' | 'pick'
 
 export type StorageAccessDialogState =
@@ -43,6 +57,7 @@ export interface UiState {
   loremDialog: LoremDialogState
   mathDialog: MathDialogState
   invoiceDialog: InvoiceDialogState
+  commentDialog: CommentDialogState
   storageAccessDialog: StorageAccessDialogState
 }
 
@@ -52,6 +67,7 @@ const initialState: UiState = {
   loremDialog: { open: false },
   mathDialog: { open: false },
   invoiceDialog: { open: false },
+  commentDialog: { open: false },
   storageAccessDialog: { open: false },
 }
 
@@ -77,6 +93,9 @@ const uiSlice = createSlice({
     setInvoiceDialog(state, action: PayloadAction<InvoiceDialogState>) {
       state.invoiceDialog = action.payload
     },
+    setCommentDialog(state, action: PayloadAction<CommentDialogState>) {
+      state.commentDialog = action.payload
+    },
     setStorageAccessDialog(state, action: PayloadAction<StorageAccessDialogState>) {
       state.storageAccessDialog = action.payload
     },
@@ -90,6 +109,7 @@ export const {
   setLoremDialog,
   setMathDialog,
   setInvoiceDialog,
+  setCommentDialog,
   setStorageAccessDialog,
 } = uiSlice.actions
 

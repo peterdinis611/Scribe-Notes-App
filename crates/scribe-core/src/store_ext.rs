@@ -12,7 +12,7 @@ use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
 
 use crate::db::{
-    extract_search_text, set_embed_backend, set_nlp_enabled, sync_document_fts,
+    extract_search_text, rank_document_chunks, set_embed_backend, set_nlp_enabled, sync_document_fts,
     sync_document_links, SearchMode,
 };
 use crate::nlp::{
@@ -466,7 +466,29 @@ impl ScribeStore {
             return Err("document is empty".to_string());
         }
 
-        let passages = chunk_document_passages(document_id, &title, &text);
+        let fallback = chunk_document_passages(document_id, &title, &text);
+        let passages = match sidecar.embed_text(trimmed) {
+            Ok((vector, model)) => {
+                let ranked = rank_document_chunks(&self.db, document_id, &vector, 8, Some(&model))
+                    .unwrap_or_default();
+                if ranked.len() >= 2 {
+                    json!(ranked
+                        .into_iter()
+                        .map(|chunk| {
+                            json!({
+                                "documentId": document_id,
+                                "title": title,
+                                "snippet": chunk.snippet,
+                                "score": chunk.score,
+                            })
+                        })
+                        .collect::<Vec<_>>())
+                } else {
+                    fallback
+                }
+            }
+            Err(_) => fallback,
+        };
         let passages = if let Some(messages) = context {
             let turns: Vec<ChatTurn> = messages
                 .iter()

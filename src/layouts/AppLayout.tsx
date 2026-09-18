@@ -34,6 +34,7 @@ import { toast } from '@/lib/toast'
 import { ROUTES } from '@/lib/routes'
 import type { DocumentTemplate } from '@/lib/templates'
 import { InputDialogHost } from '@/components/InputDialogHost'
+import { CommentDialogHost } from '@/components/CommentDialogHost'
 import { LoremIpsumDialogHost } from '@/components/LoremIpsumDialogHost'
 import { MathExpressionDialogHost } from '@/components/MathExpressionDialogHost'
 import { InvoiceDialogHost } from '@/components/InvoiceDialogHost'
@@ -229,6 +230,7 @@ export function AppLayout() {
         onOpenChange={(open) => dispatch(setMoveDocumentPickerOpen(open))}
       />
       <InputDialogHost />
+      <CommentDialogHost />
       <LoremIpsumDialogHost />
       <MathExpressionDialogHost />
       <InvoiceDialogHost />

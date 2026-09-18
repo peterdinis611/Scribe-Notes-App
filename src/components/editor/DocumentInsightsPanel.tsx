@@ -217,7 +217,6 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
     Promise.all([
       nlpStatus().catch(() => null),
       nlpSimilarDocuments(activeId, 8).catch(() => [] as SearchHit[]),
-      nlpDocumentTasks(activeId).catch(() => [] as DocumentTask[]),
       nlpDocumentAnalysis(activeId).catch((error) => {
         const message = String(error)
         analysisVaultError =
@@ -226,23 +225,36 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
           message.includes('Encrypted vault')
         return null
       }),
-      nlpSuggestTags(activeId).catch(() => null),
-      nlpTemplateFillHints({ documentId: activeId }).catch(() => null),
     ])
-      .then(([status, similarHits, documentTasks, documentAnalysis, tags, template]) => {
+      .then(([status, similarHits, documentAnalysis]) => {
         if (cancelled) return
         setNlpEnabled(Boolean(status?.enabled))
         setSimilar(similarHits)
-        setTasks(documentTasks)
         setAnalysis(documentAnalysis)
         setVaultDenied(analysisVaultError)
-        const nextFolderId =
-          tags?.folderSuggestionId && tags.folderSuggestionId !== currentFolderId
-            ? tags.folderSuggestionId
-            : null
-        setFolderSuggestionId(nextFolderId)
-        setFolderSuggestion(tags?.folderSuggestion?.trim() || null)
-        setTemplateHints(template)
+        setLoading(false)
+        if (!status?.enabled || !documentAnalysis) {
+          setTasks([])
+          setTemplateHints(null)
+          setFolderSuggestion(null)
+          setFolderSuggestionId(null)
+          return
+        }
+        void Promise.all([
+          nlpDocumentTasks(activeId).catch(() => [] as DocumentTask[]),
+          nlpSuggestTags(activeId).catch(() => null),
+          nlpTemplateFillHints({ documentId: activeId }).catch(() => null),
+        ]).then(([documentTasks, tags, template]) => {
+          if (cancelled) return
+          setTasks(documentTasks)
+          const nextFolderId =
+            tags?.folderSuggestionId && tags.folderSuggestionId !== currentFolderId
+              ? tags.folderSuggestionId
+              : null
+          setFolderSuggestionId(nextFolderId)
+          setFolderSuggestion(tags?.folderSuggestion?.trim() || null)
+          setTemplateHints(template)
+        })
       })
       .catch((error) => {
         if (!cancelled) toast.error(t('panels.insights.loadError'), String(error))

@@ -53,7 +53,7 @@ pub fn save_document_image(
         .unwrap_or("png")
         .to_lowercase();
 
-    let allowed = ["png", "jpg", "jpeg", "gif", "webp", "svg", "json", "lottie"];
+    let allowed = ["png", "jpg", "jpeg", "gif", "webp", "svg", "json", "lottie", "apng"];
     if !allowed.contains(&ext.as_str()) {
         return Err("Podporované formáty: PNG, JPG, GIF, WEBP, SVG, Lottie (.json / .lottie)".to_string());
     }

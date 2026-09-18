@@ -18,10 +18,11 @@ pub fn merge_chat_memory_passages(
     passages: Value,
     turns: &[ChatTurn],
 ) -> Value {
-    let mut combined = chat_memory_passages(document_id, title, turns);
+    let mut combined = Vec::new();
     if let Some(docs) = passages.as_array() {
         combined.extend(docs.iter().cloned());
     }
+    combined.extend(chat_memory_passages(document_id, title, turns));
     combined.truncate(MERGED_PASSAGE_LIMIT);
     json!(combined)
 }
@@ -116,7 +117,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn prepends_memory_before_document_chunks() {
+    fn keeps_document_chunks_ahead_of_memory() {
         let docs = json!([{
             "documentId": "d",
             "title": "Note",
@@ -134,9 +135,18 @@ mod tests {
         ];
         let merged = merge_chat_memory_passages("d", "Note", docs, &turns);
         let list = merged.as_array().expect("array");
-        assert!(list[0]["title"].as_str().unwrap().contains("chat memory"));
-        assert!(list[0]["snippet"].as_str().unwrap().contains("deadline"));
-        assert_eq!(list.last().unwrap()["snippet"], "body chunk");
+        assert_eq!(list[0]["snippet"], "body chunk");
+        let memory = list
+            .iter()
+            .filter_map(|item| item["title"].as_str())
+            .any(|title| title.contains("chat memory"));
+        assert!(memory);
+        let joined = list
+            .iter()
+            .filter_map(|item| item["snippet"].as_str())
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert!(joined.contains("deadline"));
     }
 
     #[test]

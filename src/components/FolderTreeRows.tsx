@@ -121,6 +121,19 @@ export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
           {documentCount > 0 ? (
             <span className="folder-tree-count">{documentCount}</span>
           ) : null}
+          <button
+            type="button"
+            className="folder-tree-add"
+            title={t('library.newSubfolder')}
+            aria-label={t('library.newSubfolder')}
+            onClick={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              onCreateChild(folder.id)
+            }}
+          >
+            <FolderPlus className="h-3.5 w-3.5" />
+          </button>
           {folder.isPinned ? (
             <Pin className="folder-tree-pin" aria-hidden />
           ) : null}

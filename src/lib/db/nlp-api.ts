@@ -100,13 +100,49 @@ export interface NlpDocumentAnalysis {
   dates?: NlpDateEvent[]
 }
 
-export const nlpStatus = () => invoke<NlpStatus>('nlp_status')
+const STATUS_TTL_MS = 20_000
+const ANALYSIS_TTL_MS = 30_000
+let statusCache: { value: NlpStatus; at: number } | null = null
+let statusInflight: Promise<NlpStatus> | null = null
+let analysisCache: { id: string; value: NlpDocumentAnalysis; at: number } | null = null
+let analysisInflight: { id: string; promise: Promise<NlpDocumentAnalysis> } | null = null
 
-export const nlpSetEnabled = (enabled: boolean) =>
-  invoke<NlpStatus>('nlp_set_enabled', { input: { enabled } })
+export const nlpStatus = (options?: { fresh?: boolean }) => {
+  const now = Date.now()
+  if (!options?.fresh && statusCache && now - statusCache.at < STATUS_TTL_MS) {
+    return Promise.resolve(statusCache.value)
+  }
+  if (!options?.fresh && statusInflight) return statusInflight
+  statusInflight = invoke<NlpStatus>('nlp_status')
+    .then((value) => {
+      statusCache = { value, at: Date.now() }
+      return value
+    })
+    .finally(() => {
+      statusInflight = null
+    })
+  return statusInflight
+}
 
-export const nlpSetEmbedBackend = (backend: 'hash' | 'quality') =>
-  invoke<NlpStatus>('nlp_set_embed_backend', { input: { backend } })
+export function invalidateNlpCaches(documentId?: string) {
+  statusCache = null
+  if (!documentId || analysisCache?.id === documentId) {
+    analysisCache = null
+  }
+}
+
+export const nlpSetEnabled = async (enabled: boolean) => {
+  const value = await invoke<NlpStatus>('nlp_set_enabled', { input: { enabled } })
+  statusCache = { value, at: Date.now() }
+  return value
+}
+
+export const nlpSetEmbedBackend = async (backend: 'hash' | 'quality') => {
+  const value = await invoke<NlpStatus>('nlp_set_embed_backend', { input: { backend } })
+  statusCache = { value, at: Date.now() }
+  analysisCache = null
+  return value
+}
 
 export const nlpSearch = (
   query: string,
@@ -130,10 +166,18 @@ export const nlpDocumentTasks = (documentId: string) =>
 export const nlpJournalTasks = (documentIds: string[]) =>
   invoke<DocumentTask[]>('nlp_journal_tasks', { input: { documentIds } })
 
-export const nlpIndexDocument = (documentId: string) =>
-  invoke<NlpIndexResult>('nlp_index_document', { documentId })
+export const nlpIndexDocument = async (documentId: string) => {
+  const result = await invoke<NlpIndexResult>('nlp_index_document', { documentId })
+  if (analysisCache?.id === documentId) analysisCache = null
+  return result
+}
 
-export const nlpIndexAll = () => invoke<NlpIndexResult>('nlp_index_all')
+export const nlpIndexAll = async () => {
+  const result = await invoke<NlpIndexResult>('nlp_index_all')
+  analysisCache = null
+  statusCache = null
+  return result
+}
 
 export const nlpJournalSummary = (input: {
   fromDate: string
@@ -147,8 +191,23 @@ export const nlpSuggestTags = (documentId: string) =>
 
 export const nlpLibraryReport = () => invoke<NlpLibraryReport>('nlp_library_report')
 
-export const nlpDocumentAnalysis = (documentId: string) =>
-  invoke<NlpDocumentAnalysis>('nlp_document_analysis', { documentId })
+export const nlpDocumentAnalysis = (documentId: string) => {
+  const now = Date.now()
+  if (analysisCache && analysisCache.id === documentId && now - analysisCache.at < ANALYSIS_TTL_MS) {
+    return Promise.resolve(analysisCache.value)
+  }
+  if (analysisInflight?.id === documentId) return analysisInflight.promise
+  const promise = invoke<NlpDocumentAnalysis>('nlp_document_analysis', { documentId })
+    .then((value) => {
+      analysisCache = { id: documentId, value, at: Date.now() }
+      return value
+    })
+    .finally(() => {
+      if (analysisInflight?.id === documentId) analysisInflight = null
+    })
+  analysisInflight = { id: documentId, promise }
+  return promise
+}
 
 /** Ephemeral analysis of plaintext (unlocked vault note). Never persists to DB. */
 export const nlpAnalyzePlaintext = (text: string) =>

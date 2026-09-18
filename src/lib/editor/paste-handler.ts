@@ -1,5 +1,6 @@
 import { Extension } from '@tiptap/core'
 import { Plugin } from '@tiptap/pm/state'
+import { isLikelyAnimatedImageFile } from '@/lib/editor/animated-image'
 import {
   extractSvgMarkup,
   isDocumentMediaFile,
@@ -12,18 +13,22 @@ export const PASTE_IMAGE_MIME_TYPES = [
   'image/png',
   'image/gif',
   'image/webp',
+  'image/apng',
   'image/svg+xml',
 ] as const
 
 export function getImageOnlyClipboardFiles(data: DataTransfer | null): File[] {
   if (!data) return []
 
+  const files = Array.from(data.files).filter((file) => isDocumentMediaFile(file))
+  if (!files.length) return []
+
   const html = data.getData('text/html').trim()
   const text = data.getData('text/plain').trim()
-  // Allow SVG markup paste to be handled separately; otherwise file-only pastes.
-  if (html || text) return []
+  // Browsers often attach HTML alongside a GIF file. Prefer the file so frames stay intact.
+  if ((html || text) && !files.some(isLikelyAnimatedImageFile)) return []
 
-  return Array.from(data.files).filter((file) => isDocumentMediaFile(file))
+  return files
 }
 
 /** Parse Excel / Sheets / TSV clipboard into a rectangular grid. */

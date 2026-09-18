@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from .normalize import fold_diacritics, stem_lite
 from .text_utils import STOP_WORDS, normalize_text, split_sentences, tokenize
 
@@ -30,7 +32,7 @@ def library_answer(
             "followups": [],
         }
 
-    cleaned: list[dict[str, str]] = []
+    cleaned: list[dict[str, Any]] = []
     for item in passages[:MAX_PASSAGES]:
         if not isinstance(item, dict):
             continue
@@ -41,25 +43,37 @@ def library_answer(
             continue
         if not snippet and not title:
             continue
-        cleaned.append(
-            {
-                "documentId": document_id,
-                "title": title or "Untitled",
-                "snippet": snippet or title,
-            }
-        )
+        entry: dict[str, Any] = {
+            "documentId": document_id,
+            "title": title or "Untitled",
+            "snippet": snippet or title,
+        }
+        if item.get("score") is not None:
+            entry["score"] = item.get("score")
+        cleaned.append(entry)
 
     query_terms = _query_terms(query)
-    sentences = _pick_sentences(query_terms, cleaned, max_sentences=max_sentences)
+    sentences, used = _pick_sentences(query_terms, cleaned, max_sentences=max_sentences)
     answer = _format_answer(sentences, prefix=prefix)
-    citations = [
-        {
-            "documentId": item["documentId"],
-            "title": item["title"],
-            "snippet": item["snippet"][:240],
-        }
-        for item in cleaned
-    ]
+    citations = []
+    seen_ids: set[str] = set()
+    for item in used:
+        document_id = item["documentId"]
+        title = item.get("title") or "Untitled"
+        if "chat memory" in title.lower() or "earlier chat" in title.lower():
+            continue
+        if document_id in seen_ids:
+            continue
+        seen_ids.add(document_id)
+        citations.append(
+            {
+                "documentId": document_id,
+                "title": title,
+                "snippet": item["snippet"][:240],
+            }
+        )
+        if len(citations) >= 4:
+            break
     followups = suggest_followups(question, sentences, cleaned, scope=scope)
     return {
         "answer": answer,
@@ -134,11 +148,11 @@ def _query_terms(question: str) -> set[str]:
 
 def _pick_sentences(
     query_terms: set[str],
-    passages: list[dict[str, str]],
+    passages: list[dict[str, Any]],
     *,
     max_sentences: int,
-) -> list[str]:
-    scored: list[tuple[float, str]] = []
+) -> tuple[list[str], list[dict[str, Any]]]:
+    scored: list[tuple[float, str, dict[str, Any]]] = []
     for hit_index, passage in enumerate(passages):
         source = passage["snippet"] or passage["title"]
         parts = split_sentences(source)
@@ -146,17 +160,22 @@ def _pick_sentences(
         rank_boost = 0.12 / (hit_index + 1)
         title = (passage.get("title") or "").lower()
         if "chat memory" in title or "earlier chat" in title:
-            rank_boost += 0.22
+            rank_boost += 0.08
+        try:
+            rank_boost += min(0.35, max(0.0, float(passage.get("score") or 0))) * 0.25
+        except (TypeError, ValueError):
+            pass
         for sentence in candidates:
             cleaned = normalize_text(sentence)
-            if len(cleaned) < 8:
+            if len(cleaned) < 8 or _is_noisy_sentence(cleaned):
                 continue
             score = _score_sentence(cleaned, query_terms) + rank_boost
-            scored.append((score, cleaned))
+            scored.append((score, cleaned, passage))
 
     scored.sort(key=lambda item: item[0], reverse=True)
     picked: list[str] = []
-    for score, sentence in scored:
+    used: list[dict[str, Any]] = []
+    for score, sentence, passage in scored:
         if len(picked) >= max_sentences:
             break
         lower = sentence.lower()
@@ -171,14 +190,35 @@ def _pick_sentences(
         if picked and score < 0.12 and scored and scored[0][0] >= 0.2:
             continue
         picked.append(sentence)
+        used.append(passage)
 
     if len(picked) >= 1:
-        return picked[:max_sentences]
-    return [
-        normalize_text(item["snippet"] or item["title"])
-        for item in passages
-        if (item["snippet"] or item["title"]).strip()
-    ][:2]
+        return picked[:max_sentences], used
+
+    fallback: list[str] = []
+    fallback_used: list[dict[str, Any]] = []
+    for item in passages:
+        text = normalize_text(item["snippet"] or item["title"])
+        if not text.strip() or _is_noisy_sentence(text):
+            continue
+        fallback.append(text)
+        fallback_used.append(item)
+        if len(fallback) >= 2:
+            break
+    return fallback, fallback_used
+
+
+def _is_noisy_sentence(sentence: str) -> bool:
+    stripped = sentence.strip()
+    if stripped.count("|") >= 2 or "\t\t" in stripped:
+        return True
+    if set(stripped) <= {"|", "-", ":", " "}:
+        return True
+    letters = sum(1 for char in stripped if char.isalpha())
+    digits = sum(1 for char in stripped if char.isdigit())
+    if len(stripped) >= 24 and digits > letters and digits / max(len(stripped), 1) >= 0.35:
+        return True
+    return False
 
 
 def _score_sentence(sentence: str, query_terms: set[str]) -> float:

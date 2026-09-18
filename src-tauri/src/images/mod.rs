@@ -152,9 +152,60 @@ fn normalize_ext(ext: &str) -> String {
     }
 }
 
+fn looks_like_gif(bytes: &[u8]) -> bool {
+    bytes.len() >= 6 && (bytes.starts_with(b"GIF87a") || bytes.starts_with(b"GIF89a"))
+}
+
+fn looks_like_animated_webp(bytes: &[u8]) -> bool {
+    if bytes.len() < 16 || &bytes[0..4] != b"RIFF" || &bytes[8..12] != b"WEBP" {
+        return false;
+    }
+    let mut i = 12usize;
+    while i + 8 <= bytes.len() {
+        let tag = &bytes[i..i + 4];
+        let size = u32::from_le_bytes(bytes[i + 4..i + 8].try_into().unwrap_or([0; 4])) as usize;
+        if tag == b"ANIM" {
+            return true;
+        }
+        if tag == b"VP8X" && i + 9 <= bytes.len() && bytes[i + 8] & 0x02 != 0 {
+            return true;
+        }
+        let chunk = 8 + size + (size % 2);
+        if chunk == 0 {
+            break;
+        }
+        i = i.saturating_add(chunk);
+    }
+    false
+}
+
+fn looks_like_apng(bytes: &[u8]) -> bool {
+    const PNG: &[u8] = &[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+    if bytes.len() < 24 || !bytes.starts_with(PNG) {
+        return false;
+    }
+    let mut i = 8usize;
+    while i + 12 <= bytes.len() {
+        let size = u32::from_be_bytes(bytes[i..i + 4].try_into().unwrap_or([0; 4])) as usize;
+        let ty = &bytes[i + 4..i + 8];
+        if ty == b"acTL" {
+            return true;
+        }
+        if ty == b"IDAT" || ty == b"IEND" {
+            return false;
+        }
+        let chunk = 12 + size;
+        if chunk == 0 {
+            break;
+        }
+        i = i.saturating_add(chunk);
+    }
+    false
+}
+
 /// Optimize raster image bytes for document storage.
 ///
-/// SVG and GIF are stored as-is (vectors / possible animation).
+/// SVG, GIF, APNG and animated WebP are stored as-is so animation survives.
 /// Other formats are decoded, downscaled, re-encoded (JPEG / PNG / lossless WebP),
 /// and the smallest result that beats the original is kept.
 pub fn optimize_image_bytes(
@@ -183,10 +234,26 @@ pub fn optimize_image_bytes(
     }
 
     let format = image::guess_format(bytes).ok();
-    if matches!(format, Some(ImageFormat::Gif)) || preferred_ext == "gif" {
+    if looks_like_gif(bytes) || matches!(format, Some(ImageFormat::Gif)) || preferred_ext == "gif" {
         return Ok(OptimizedImage {
             bytes: bytes.to_vec(),
             extension: "gif".into(),
+            changed: false,
+        });
+    }
+
+    if looks_like_animated_webp(bytes) {
+        return Ok(OptimizedImage {
+            bytes: bytes.to_vec(),
+            extension: "webp".into(),
+            changed: false,
+        });
+    }
+
+    if looks_like_apng(bytes) {
+        return Ok(OptimizedImage {
+            bytes: bytes.to_vec(),
+            extension: "png".into(),
             changed: false,
         });
     }
@@ -286,5 +353,27 @@ mod tests {
         let huge = vec![0u8; MAX_INPUT_BYTES + 1];
         let err = optimize_image_bytes(&huge, "png", OptimizeOptions::default()).unwrap_err();
         assert!(err.contains("veľký"));
+    }
+
+    #[test]
+    fn gif_passthrough_even_when_named_png() {
+        let gif: &[u8] = b"GIF89a\x01\x00\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02L\x01\x00;";
+        let result = optimize_image_bytes(gif, "png", OptimizeOptions::default()).unwrap();
+        assert_eq!(result.extension, "gif");
+        assert!(!result.changed);
+        assert_eq!(result.bytes, gif);
+    }
+
+    #[test]
+    fn animated_webp_passthrough() {
+        let mut webp = b"RIFF".to_vec();
+        webp.extend_from_slice(&[16, 0, 0, 0]);
+        webp.extend_from_slice(b"WEBP");
+        webp.extend_from_slice(b"ANIM");
+        webp.extend_from_slice(&[0, 0, 0, 0]);
+        let result = optimize_image_bytes(&webp, "webp", OptimizeOptions::default()).unwrap();
+        assert_eq!(result.extension, "webp");
+        assert!(!result.changed);
+        assert_eq!(result.bytes, webp);
     }
 }
