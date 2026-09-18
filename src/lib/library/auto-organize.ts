@@ -47,7 +47,7 @@ export async function applySuggestedTagsToDocument(
     suggestions.folderSuggestionId && suggestions.folderSuggestionId !== document.folderId
       ? suggestions.folderSuggestionId
       : null
-  const folderHint = folderId ? (suggestions.folderSuggestion ?? null) : null
+  const folderHint = suggestions.folderSuggestion?.trim() || null
 
   return {
     added,
@@ -62,7 +62,7 @@ export async function applySuggestedTagsAndFolderHint(
   dispatch: AppDispatch,
 ): Promise<OrganizeSuggestion> {
   const result = await applySuggestedTagsToDocument(document, dispatch)
-  if (result.folderSuggestionId) {
+  if (result.folderSuggestionId || result.folderSuggestion) {
     return result
   }
   // Offline / sidecar-miss fallback: local tag↔folder name matching.

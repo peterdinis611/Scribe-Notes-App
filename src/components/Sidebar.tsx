@@ -1,4 +1,4 @@
-import { FolderPlus, CalendarDays, Search, Trash2 } from 'lucide-react'
+import { CalendarDays, FolderPlus, Search, Trash2 } from 'lucide-react'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
@@ -17,17 +17,14 @@ import { LibraryViewTabs } from '@/components/LibraryViewTabs'
 import { SidebarRail } from '@/components/layout/SidebarRail'
 import { SidebarSearchResults } from '@/components/SidebarSearchResults'
 import { visibleLibraryDocuments } from '@/lib/db/library-sync'
-import { createFolder } from '@/lib/db/api'
 import { openTodayNote } from '@/lib/journal-notes'
-import { promptInput } from '@/lib/input-dialog'
+import { promptAndCreateFolder } from '@/lib/library/create-folder'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setLibraryGraphAroundActive, setLibraryView, setTrashOpen } from '@/store/documentsSlice'
 import {
   setCommandPaletteOpen,
-  updateExpandedFolderIds,
-  updateFolders,
 } from '@/store/foldersSlice'
 import { useResizableSidebar } from '@/hooks/useResizableSidebar'
 
@@ -79,17 +76,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
   const { resizing, onResizePointerDown, resetWidth } = useResizableSidebar()
 
   const handleCreateFolder = useCallback(async () => {
-    const name = await promptInput({
-      title: t('library.newFolder'),
-      defaultValue: t('library.newFolder'),
-      placeholder: t('library.folderNamePlaceholder'),
-      confirmLabel: t('common.create'),
-    })
-    if (!name) return
-    const folder = await createFolder({ name })
-    dispatch(updateFolders((prev) => [...prev, folder]))
-    dispatch(updateExpandedFolderIds((prev) => [...prev, folder.id]))
-    toast.success(t('toasts.folderCreated'), folder.name)
+    await promptAndCreateFolder({ t, dispatch })
   }, [dispatch, t])
 
   return (

@@ -5,7 +5,6 @@ import { useNavigate } from '@tanstack/react-router'
 import { confirm } from '@tauri-apps/plugin-dialog'
 import { FolderTreeDocumentRow, FolderTreeFolderRow } from '@/components/FolderTreeRows'
 import {
-  createFolder,
   deleteFolder,
   listLinkGraph,
   moveFolder,
@@ -38,6 +37,7 @@ import {
 import { nlpStatus, nlpSuggestTags } from '@/lib/db/nlp-api'
 import { describeNlpTagSuggestionFailure } from '@/lib/nlp/errors'
 import { ROUTES } from '@/lib/routes'
+import { createLibraryFolder } from '@/lib/library/create-folder'
 import { promptInput } from '@/lib/input-dialog'
 import { isVaultUnlocked } from '@/lib/vault/session'
 import { toast } from '@/lib/toast'
@@ -134,19 +134,25 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
 
   const handleCreateFolder = useCallback(async (parentId: string | null) => {
     const name = await promptInput({
-      title: t('library.newFolder'),
-      defaultValue: t('library.newFolder'),
+      title: parentId ? t('library.newSubfolder') : t('library.newFolder'),
       placeholder: t('library.folderNamePlaceholder'),
       confirmLabel: t('common.create'),
     })
     if (!name) return
 
-    const makeVault = await confirm(t('vault.createConfirm'), {
-      title: t('vault.createTitle'),
-      kind: 'info',
-      okLabel: t('vault.createOk'),
-      cancelLabel: t('vault.createSkip'),
-    })
+    let makeVault = false
+    try {
+      makeVault = Boolean(
+        await confirm(t('vault.createConfirm'), {
+          title: t('vault.createTitle'),
+          kind: 'info',
+          okLabel: t('vault.createOk'),
+          cancelLabel: t('vault.createSkip'),
+        }),
+      )
+    } catch {
+      makeVault = false
+    }
 
     let vaultVerifier: string | null = null
     let password: string | null = null
@@ -165,24 +171,27 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
       vaultVerifier = await createVaultVerifier(password)
     }
 
-    const folder = await createFolder({
-      name,
-      parentId,
-      isVault: Boolean(makeVault),
-      vaultVerifier,
-    })
-    if (parentId) {
-      dispatch(updateExpandedFolderIds((prev) => (prev.includes(parentId) ? prev : [...prev, parentId])))
+    try {
+      const folder = await createLibraryFolder(
+        {
+          name,
+          parentId,
+          isVault: makeVault,
+          vaultVerifier,
+        },
+        dispatch,
+      )
+      if (makeVault && password && vaultVerifier) {
+        const { unlockVault } = await import('@/lib/vault/session')
+        await unlockVault(folder.id, password, vaultVerifier)
+      }
+      toast.success(
+        makeVault ? t('toasts.vaultFolderCreated') : t('toasts.folderCreated'),
+        folder.name,
+      )
+    } catch (error) {
+      toast.error(t('toasts.folderCreateError'), String(error))
     }
-    dispatch(updateFolders((prev) => [...prev, folder]))
-    if (makeVault && password && vaultVerifier) {
-      const { unlockVault } = await import('@/lib/vault/session')
-      await unlockVault(folder.id, password, vaultVerifier)
-    }
-    toast.success(
-      makeVault ? t('toasts.vaultFolderCreated') : t('toasts.folderCreated'),
-      folder.name,
-    )
   }, [dispatch, t])
 
   const handleRenameFolder = useCallback(async (id: string, currentName: string) => {
@@ -688,9 +697,20 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
         onDrop={(event) => void handleDropOnFolder(null, event)}
       >
         {flatItems.length === 0 ? (
-          <p className="px-3 py-6 text-center text-[12px] text-[var(--color-muted-foreground)]">
-            {query ? t('library.noResults') : t('library.noDocumentsYet')}
-          </p>
+          <div className="px-3 py-6 text-center">
+            <p className="m-0 text-[12px] text-[var(--color-muted-foreground)]">
+              {query ? t('library.noResults') : t('library.noDocumentsYet')}
+            </p>
+            {!query ? (
+              <button
+                type="button"
+                className="mt-3 inline-flex items-center rounded-lg border border-[var(--color-border)] bg-transparent px-3 py-1.5 text-[12px] text-[var(--color-foreground)] hover:bg-[var(--color-hover)]"
+                onClick={() => void handleCreateFolder(null)}
+              >
+                {t('library.newFolder')}
+              </button>
+            ) : null}
+          </div>
         ) : (
           <div
             className="w-full"

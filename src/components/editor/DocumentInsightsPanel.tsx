@@ -65,6 +65,7 @@ import {
   setSidebarOpen,
 } from '@/store/documentsSlice'
 import { useMoveDocumentToFolder } from '@/hooks/useMoveDocumentToFolder'
+import { createLibraryFolder } from '@/lib/library/create-folder'
 import {
   EditorSidePanel,
   EditorSidePanelEmpty,
@@ -240,7 +241,7 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
             ? tags.folderSuggestionId
             : null
         setFolderSuggestionId(nextFolderId)
-        setFolderSuggestion(nextFolderId ? (tags?.folderSuggestion ?? null) : null)
+        setFolderSuggestion(tags?.folderSuggestion?.trim() || null)
         setTemplateHints(template)
       })
       .catch((error) => {
@@ -310,6 +311,19 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
     setFolderSuggestion(null)
     setFolderSuggestionId(null)
   }, [activeId, folderSuggestionId, moveDocument])
+
+  const handleCreateSuggestedFolder = useCallback(async () => {
+    if (!activeId || !folderSuggestion) return
+    try {
+      const folder = await createLibraryFolder({ name: folderSuggestion }, dispatch)
+      await moveDocument(activeId, folder.id)
+      toast.success(t('toasts.folderCreated'), folder.name)
+      setFolderSuggestion(null)
+      setFolderSuggestionId(null)
+    } catch (error) {
+      toast.error(t('toasts.folderCreateError'), String(error))
+    }
+  }, [activeId, dispatch, folderSuggestion, moveDocument, t])
 
   const handleAnalyzeUnlockedVault = useCallback(async () => {
     if (!nlpEnabled || !vaultUnlockedPlaintext || vaultAnalyzeBusy) return
@@ -718,6 +732,19 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
                   onClick={() => void handleMoveToSuggestedFolder()}
                 >
                   {t('panels.insights.organizeMove', { folder: folderSuggestion })}
+                </button>
+              </>
+            ) : folderSuggestion ? (
+              <>
+                <p className="insights-quiet mb-2">
+                  {t('panels.insights.organizeCreateHint', { folder: folderSuggestion })}
+                </p>
+                <button
+                  type="button"
+                  className="insights-primary-btn"
+                  onClick={() => void handleCreateSuggestedFolder()}
+                >
+                  {t('panels.insights.organizeCreate', { folder: folderSuggestion })}
                 </button>
               </>
             ) : (

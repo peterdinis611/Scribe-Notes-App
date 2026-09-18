@@ -1,4 +1,4 @@
-import { createDocument, createFolder, getDocument } from '@/lib/db/api'
+import { createDocument, getDocument } from '@/lib/db/api'
 import {
   nlpJournalSummary,
   nlpJournalTasks,
@@ -7,6 +7,7 @@ import {
 } from '@/lib/db/nlp-api'
 import { cacheDocument } from '@/lib/cache/document-cache'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
+import { createLibraryFolder } from '@/lib/library/create-folder'
 import { ROUTES } from '@/lib/routes'
 import type { AppDispatch } from '@/store/index'
 import {
@@ -15,7 +16,6 @@ import {
   setSaveStatus,
   updateDocuments,
 } from '@/store/documentsSlice'
-import { updateFolders } from '@/store/foldersSlice'
 import { kvGet, kvSet } from '@/lib/storage/kv'
 import type { DocumentSummary, Folder } from '@/lib/db/api'
 
@@ -94,8 +94,7 @@ async function ensureJournalFolder(
   )
   if (existing) return existing.id
 
-  const created = await createFolder({ name: folderName, parentId: null })
-  dispatch(updateFolders((prev) => [...prev, created]))
+  const created = await createLibraryFolder({ name: folderName, parentId: null }, dispatch)
   return created.id
 }
 

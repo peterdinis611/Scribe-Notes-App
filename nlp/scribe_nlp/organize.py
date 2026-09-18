@@ -22,9 +22,6 @@ def suggest_organize(
         for folder in (folders or [])[:MAX_FOLDERS]
         if str(folder.get("id") or "").strip() and str(folder.get("name") or "").strip()
     ]
-    if not folder_rows:
-        return {"suggestions": [], "count": 0, "bestFolderId": None, "bestFolderName": None}
-
     limit = max(1, min(int(limit or 3), 8))
     tag_terms = [normalize_text(tag) for tag in (tags or []) if normalize_text(tag)]
     keyword_terms = [
@@ -32,6 +29,16 @@ def suggest_organize(
         for item in (extract_keywords(source, limit=16).get("keywords") or [])
         if item.get("term")
     ]
+    if not folder_rows:
+        proposed = _propose_folder_name(tag_terms, keyword_terms, _titleish_tokens(source))
+        return {
+            "suggestions": [],
+            "count": 0,
+            "bestFolderId": None,
+            "bestFolderName": proposed,
+            "createNew": bool(proposed),
+        }
+
     needles = _needle_stems(tag_terms + keyword_terms + _titleish_tokens(source))
     if not needles:
         return {"suggestions": [], "count": 0, "bestFolderId": None, "bestFolderName": None}
@@ -78,17 +85,62 @@ def suggest_organize(
     scored.sort(key=lambda item: float(item.get("score") or 0), reverse=True)
     suggestions = scored[:limit]
     best = suggestions[0] if suggestions else None
+    if best:
+        return {
+            "suggestions": suggestions,
+            "count": len(suggestions),
+            "bestFolderId": best.get("folderId"),
+            "bestFolderName": best.get("name"),
+            "createNew": False,
+        }
+
+    proposed = _propose_folder_name(tag_terms, keyword_terms, _titleish_tokens(source))
     return {
-        "suggestions": suggestions,
-        "count": len(suggestions),
-        "bestFolderId": best.get("folderId") if best else None,
-        "bestFolderName": best.get("name") if best else None,
+        "suggestions": [],
+        "count": 0,
+        "bestFolderId": None,
+        "bestFolderName": proposed,
+        "createNew": bool(proposed),
     }
 
 
 def _titleish_tokens(text: str) -> list[str]:
     first_line = (text.split("\n", 1)[0] if text else "").strip()
     return [token for token in first_line.split() if len(token) >= 3][:8]
+
+
+_STOP_NAMES = {
+    "the",
+    "and",
+    "for",
+    "with",
+    "from",
+    "this",
+    "that",
+    "untitled",
+    "document",
+    "note",
+    "notes",
+    "poznamka",
+    "poznámka",
+    "dokument",
+    "inbox",
+    "trash",
+}
+
+
+def _propose_folder_name(
+    tag_terms: list[str],
+    keyword_terms: list[str],
+    title_tokens: list[str],
+) -> str | None:
+    for term in [*tag_terms, *keyword_terms, *title_tokens]:
+        cleaned = normalize_text(term)
+        folded = fold_diacritics(cleaned).lower().strip()
+        if len(folded) < 3 or folded in _STOP_NAMES:
+            continue
+        return cleaned[:1].upper() + cleaned[1:]
+    return None
 
 
 def _needle_stems(terms: list[str]) -> dict[str, float]:

@@ -56,7 +56,6 @@ import { getDisplayKeysForShortcut } from '@/lib/shortcuts'
 import type { BuiltInLocale } from '@/i18n'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import {
-  createFolder,
   duplicateDocument,
   listCommentThreads,
   listLinkGraph,
@@ -69,7 +68,7 @@ import { describeNlpSearchFailure } from '@/lib/nlp/errors'
 import { fuseSearchHits, isHybridSearchScope } from '@/lib/nlp/hybrid-search'
 import { toast } from '@/lib/toast'
 import type { SearchHit } from '@/lib/db/api'
-import { promptInput } from '@/lib/input-dialog'
+import { promptAndCreateFolder } from '@/lib/library/create-folder'
 import { collectHeadingOutline, focusOutlineItem } from '@/lib/editor/document-outline'
 import { focusComment } from '@/lib/editor/comments'
 import { collectHeadingsFromJson } from '@/lib/search/palette-headings'
@@ -107,7 +106,6 @@ import {
   setCommandPaletteOpen,
   setMoveDocumentPickerOpen,
   updateExpandedFolderIds,
-  updateFolders,
 } from '@/store/foldersSlice'
 import { setTemplatePickerOpen, setThemeSettings, setLocale } from '@/store/settingsSlice'
 import {
@@ -791,18 +789,7 @@ export function CommandPalette() {
         label: t('commandPalette.newFolder'),
         icon: <FolderPlus className="h-4 w-4" />,
         run: () => {
-          void (async () => {
-            const name = await promptInput({
-              title: t('commandPalette.newFolderTitle'),
-              defaultValue: t('commandPalette.newFolderTitle'),
-              placeholder: t('commandPalette.newFolderPlaceholder'),
-              confirmLabel: t('common.create'),
-            })
-            if (!name) return
-            const folder = await createFolder({ name })
-            dispatch(updateFolders((prev) => [...prev, folder]))
-            toast.success(t('toasts.folderCreated'), folder.name)
-          })()
+          void promptAndCreateFolder({ t, dispatch })
         },
       },
     ],
