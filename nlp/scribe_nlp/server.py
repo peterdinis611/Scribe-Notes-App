@@ -99,6 +99,7 @@ FEATURES = [
     "organize",
     "calendarEvents",
     "answerFollowups",
+    "rewriteSelection",
 ]
 
 
@@ -421,6 +422,14 @@ def _handle_request_inner(
             language_value = str(language).lower() if language else None
             max_issues = max(1, min(int(params.get("maxIssues") or 80), 200))
             result = spellcheck_text(text, language=language_value, max_issues=max_issues)
+        elif method == "rewrite_selection":
+            from .rewrite import rewrite_selection
+
+            text = _validate_text(str(params.get("text") or ""))
+            mode = str(params.get("mode") or "rephrase_professional")
+            custom_instruction = params.get("customInstruction")
+            custom_value = str(custom_instruction) if custom_instruction else None
+            result = rewrite_selection(text, mode=mode, custom_instruction=custom_value)
         else:
             return {
                 "jsonrpc": "2.0",

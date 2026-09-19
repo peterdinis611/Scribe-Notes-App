@@ -2184,3 +2184,49 @@ pub fn nlp_calendar_events(
         })
         .unwrap_or_default())
 }
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpRewriteResult {
+    pub output: String,
+    pub mode: String,
+    pub original: String,
+}
+
+#[tauri::command]
+pub fn nlp_rewrite_selection(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    text: String,
+    mode: Option<String>,
+    custom_instruction: Option<String>,
+) -> Result<NlpRewriteResult, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    if !is_nlp_enabled(&conn)? {
+        return Err("NLP is disabled".to_string());
+    }
+    let mode = mode.unwrap_or_else(|| "rephrase_professional".to_string());
+    let res = sidecar.rewrite_selection(&text, &mode, custom_instruction.as_deref())?;
+    let output = res
+        .get("output")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let mode_out = res
+        .get("mode")
+        .and_then(|v| v.as_str())
+        .unwrap_or(&mode)
+        .to_string();
+    let original = res
+        .get("original")
+        .and_then(|v| v.as_str())
+        .unwrap_or(&text)
+        .to_string();
+
+    Ok(NlpRewriteResult {
+        output,
+        mode: mode_out,
+        original,
+    })
+}
+
