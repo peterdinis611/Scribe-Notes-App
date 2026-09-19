@@ -1,10 +1,10 @@
-# Scribe
+# Scribe 2.0
 
 <p align="center">
   <img src="docs/screenshots/icon.png" alt="Scribe icon" width="96" height="96" />
 </p>
 
-Write documents. Link notes. A local macOS rich-text editor with a library, templates, and multi-format export.
+Write documents. Link notes. **Scribe 2.0** is a local macOS rich-text editor with a library, templates, and multi-format export.
 
 Scribe runs locally on your Mac. No accounts, no cloud — documents, the database, and settings belong to the macOS user account running the app.
 

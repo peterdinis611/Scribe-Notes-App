@@ -1,11 +1,8 @@
 import { useTranslation } from 'react-i18next'
-import { APP_VERSION } from '@/lib/app-version'
+import { APP_VERSION, APP_SHORT_VERSION } from '@/lib/app-version'
 import { persistWhatsNewVersion } from '@/store/persistence'
 
 const HIGHLIGHTS = ['libraries', 'syncConflicts', 'compile'] as const
-
-/** Major.minor for “Scribe 1.4” style titles. */
-const APP_SHORT_VERSION = APP_VERSION.split('.').slice(0, 2).join('.')
 
 type WhatsNewDialogProps = {
   open: boolean
@@ -27,7 +24,7 @@ export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
       <button type="button" className="setup-folio-scrim" aria-label={t('whatsNew.gotIt')} onClick={handleClose} />
       <div className="setup-folio setup-folio--news">
         <aside className="setup-folio-margin" aria-hidden="true">
-          <p className="setup-folio-brand">{t('welcome.brand')}</p>
+          <p className="setup-folio-brand">{t('welcome.brandWithEdition', { version: APP_SHORT_VERSION })}</p>
           <span className="setup-folio-numeral">{APP_SHORT_VERSION}</span>
           <p className="setup-folio-count">{t('whatsNew.badge', { version: APP_VERSION })}</p>
         </aside>

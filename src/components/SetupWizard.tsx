@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCustomLocaleRefresh } from '@/components/LocaleToggle'
 import { registerCustomLocaleBundle } from '@/i18n'
+import { APP_SHORT_VERSION } from '@/lib/app-version'
 import { pickAndParseCustomLocale } from '@/lib/i18n/custom-locale-io'
 import { THEME_PRESETS } from '@/lib/themes/presets'
 import type { ThemePresetId } from '@/lib/themes/types'
@@ -150,16 +151,18 @@ export function SetupWizard({ onFinished }: SetupWizardProps) {
       <div className="setup-folio-scrim" />
       <div className="setup-folio">
         <aside className="setup-folio-margin" aria-hidden="true">
-          <p className="setup-folio-brand">{t('welcome.brand')}</p>
+          <p className="setup-folio-brand">{t('welcome.brandWithEdition', { version: APP_SHORT_VERSION })}</p>
           <span className="setup-folio-numeral">{folio}</span>
           <p className="setup-folio-count">{t('setup.stepOf', { current: step + 1, total: STEP_IDS.length })}</p>
         </aside>
 
         <div className="setup-folio-page">
           <header className="setup-folio-head">
-            <p className="setup-folio-kicker">{t('setup.kicker')}</p>
+            <p className="setup-folio-kicker">{t('setup.kicker', { version: APP_SHORT_VERSION })}</p>
             <h1 id="setup-folio-title" className="setup-folio-title">
-              {stepId === 'welcome' ? t('onboarding.title') : t(`setup.${stepId}.title`)}
+              {stepId === 'welcome'
+                ? t('onboarding.title', { version: APP_SHORT_VERSION })
+                : t(`setup.${stepId}.title`)}
             </h1>
             <p className="setup-folio-lead">
               {stepId === 'welcome' ? t('setup.welcome.lead') : t(`setup.${stepId}.description`)}

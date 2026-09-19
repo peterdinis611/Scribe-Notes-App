@@ -105,7 +105,13 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             {
                 let app_menu = SubmenuBuilder::new(app, "Scribe")
-                    .about(None)
+                    .about(Some(tauri::menu::AboutMetadata {
+                        name: Some("Scribe 2.0".into()),
+                        version: Some(env!("CARGO_PKG_VERSION").into()),
+                        short_version: Some("2.0".into()),
+                        copyright: Some("© 2026 Peter Dinis".into()),
+                        ..Default::default()
+                    }))
                     .separator()
                     .services()
                     .separator()

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { invoke } from '@/lib/tauri'
+import { APP_SHORT_VERSION } from '@/lib/app-version'
 import type { ExportResult } from '@/lib/db/api'
 
 let initPromise: Promise<void> | null = null
@@ -44,7 +45,7 @@ export async function renderTakumiDocument(
     metadata: options?.title
       ? {
           title: options.title,
-          authors: ['Scribe'],
+          authors: [`Scribe ${APP_SHORT_VERSION}`],
         }
       : undefined,
   })

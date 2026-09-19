@@ -19,6 +19,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { SettingsKbd } from '@/components/settings/SettingsPrimitives'
 import { cn } from '@/lib/utils'
+import { APP_SHORT_VERSION } from '@/lib/app-version'
 
 export const DOCS_TOPIC_IDS = [
   'overview',
@@ -107,8 +108,8 @@ function useActiveTopic(ids: DocsTopicId[], root: HTMLElement | null, enabled: b
 function TopicBody({ topicId }: { topicId: DocsTopicId }) {
   const { t, i18n } = useTranslation()
   const base = `settings.docs.topics.${topicId}`
-  const paragraphs = t(`${base}.paragraphs`, { returnObjects: true })
-  const points = t(`${base}.points`, { returnObjects: true })
+  const paragraphs = t(`${base}.paragraphs`, { returnObjects: true, version: APP_SHORT_VERSION })
+  const points = t(`${base}.points`, { returnObjects: true, version: APP_SHORT_VERSION })
   const paragraphList = Array.isArray(paragraphs) ? (paragraphs as string[]) : []
   const pointList = Array.isArray(points) ? (points as string[]) : []
   const tip = TOPIC_TIPS[topicId]
@@ -168,10 +169,16 @@ export function DocsView() {
     if (!q) return [...DOCS_TOPIC_IDS]
 
     return DOCS_TOPIC_IDS.filter((id) => {
-      const title = t(`settings.docs.topics.${id}.title`).toLowerCase()
-      const summary = t(`settings.docs.topics.${id}.summary`).toLowerCase()
-      const paragraphs = t(`settings.docs.topics.${id}.paragraphs`, { returnObjects: true })
-      const points = t(`settings.docs.topics.${id}.points`, { returnObjects: true })
+      const title = t(`settings.docs.topics.${id}.title`, { version: APP_SHORT_VERSION }).toLowerCase()
+      const summary = t(`settings.docs.topics.${id}.summary`, { version: APP_SHORT_VERSION }).toLowerCase()
+      const paragraphs = t(`settings.docs.topics.${id}.paragraphs`, {
+        returnObjects: true,
+        version: APP_SHORT_VERSION,
+      })
+      const points = t(`settings.docs.topics.${id}.points`, {
+        returnObjects: true,
+        version: APP_SHORT_VERSION,
+      })
       const blob = [
         title,
         summary,
@@ -198,9 +205,9 @@ export function DocsView() {
         <div className="docs-shell mx-auto w-full max-w-[1040px] px-5 py-7 sm:px-8 lg:px-10 lg:py-9">
           <header className="docs-hero">
             <div className="docs-hero-copy">
-              <p className="docs-hero-eyebrow">{t('nav.docs')}</p>
-              <h1 className="docs-hero-title">{t('settings.docs.pageTitle')}</h1>
-              <p className="docs-hero-desc">{t('settings.docs.pageDescription')}</p>
+              <p className="docs-hero-eyebrow">{t('welcome.brandWithEdition', { version: APP_SHORT_VERSION })}</p>
+              <h1 className="docs-hero-title">{t('settings.docs.pageTitle', { version: APP_SHORT_VERSION })}</h1>
+              <p className="docs-hero-desc">{t('settings.docs.pageDescription', { version: APP_SHORT_VERSION })}</p>
             </div>
 
             <div className="docs-search-wrap">
@@ -238,7 +245,7 @@ export function DocsView() {
                         onClick={() => scrollToTopic(id)}
                       >
                         <Icon className="h-3.5 w-3.5 shrink-0 opacity-80" />
-                        <span>{t(`settings.docs.topics.${id}.title`)}</span>
+                        <span>{t(`settings.docs.topics.${id}.title`, { version: APP_SHORT_VERSION })}</span>
                       </button>
                     )
                   })}
@@ -270,7 +277,7 @@ export function DocsView() {
                             className={cn('docs-toc-item', isActive && 'is-active')}
                           >
                             <Icon className="h-3.5 w-3.5 shrink-0 opacity-70" />
-                            <span className="truncate">{t(`settings.docs.topics.${id}.title`)}</span>
+                            <span className="truncate">{t(`settings.docs.topics.${id}.title`, { version: APP_SHORT_VERSION })}</span>
                           </button>
                         )
                       })}
@@ -320,10 +327,10 @@ export function DocsView() {
                                   </div>
                                   <div className="min-w-0">
                                     <h3 className="docs-topic-title">
-                                      {t(`settings.docs.topics.${id}.title`)}
+                                      {t(`settings.docs.topics.${id}.title`, { version: APP_SHORT_VERSION })}
                                     </h3>
                                     <p className="docs-topic-summary">
-                                      {t(`settings.docs.topics.${id}.summary`)}
+                                      {t(`settings.docs.topics.${id}.summary`, { version: APP_SHORT_VERSION })}
                                     </p>
                                   </div>
                                 </div>

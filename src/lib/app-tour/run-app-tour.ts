@@ -1,6 +1,7 @@
 import { driver, type DriveStep, type Driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import { TOUR } from '@/lib/app-tour/selectors'
+import { APP_SHORT_VERSION } from '@/lib/app-version'
 
 export type AppTourTranslate = (key: string, options?: Record<string, unknown>) => string
 
@@ -17,7 +18,7 @@ function step(t: AppTourTranslate, id: string, element?: string, side: PopoverSi
   return {
     ...(element ? { element } : {}),
     popover: {
-      title: t(`appTour.steps.${id}.title`),
+      title: t(`appTour.steps.${id}.title`, { version: APP_SHORT_VERSION }),
       description: t(`appTour.steps.${id}.description`),
       side,
       align: 'start',

@@ -12,7 +12,7 @@
     "saveError": "Chyba ukladania",
     "saved": "Uložené",
     "savedNoDisk": "Uložené · bez disku",
-    "version": "Verzia {{version}}",
+    "version": "Scribe {{version}}",
     "new": "Nový",
     "import": "Importovať",
     "create": "Vytvoriť",
@@ -51,7 +51,8 @@
   },
   "welcome": {
     "brand": "Scribe",
-    "eyebrow": "Lokálny editor dokumentov",
+    "brandWithEdition": "Scribe {{version}}",
+    "eyebrow": "Lokálny editor dokumentov · {{version}}",
     "brandTagline": "Píšte dokumenty lokálne. Prepájajte poznámky, keď ich pribudne.",
     "newDocument": "Nový dokument",
     "todayNote": "Dnešná poznámka",
@@ -68,7 +69,7 @@
     "noDocumentsHint": "Začnite novým dokumentom alebo dnešnou poznámkou. Ukážka je voliteľná.",
     "emptyStartHint": "Začnite novým dokumentom alebo dnešnou poznámkou.",
     "press": {
-      "eyebrow": "Letterpress · lokálne na tomto Macu",
+      "eyebrow": "Letterpress · Scribe {{version}} · lokálne na tomto Macu",
       "brandTagline": "Píšte dokumenty. Prepájajte poznámky. Všetko ostáva na disku.",
       "workflowHint": "Nová stránka → [[odkazy]] → export. Pokročilé nástroje nechajte na neskôr.",
       "recentDocuments": "Pokračovať",
@@ -258,7 +259,7 @@
     "generic": "Nastala neočakávaná chyba. Skúste to znova alebo sa vráťte na úvod."
   },
   "onboarding": {
-    "title": "Vitajte v Scribe",
+    "title": "Vitajte v Scribe {{version}}",
     "stepOf": "Krok {{current}} z {{total}}",
     "dontShowAgain": "Pri ďalšom spustení už nezobrazovať",
     "demoOptional": "Chcete hlbší prehľad? Ukážkový dokument je voliteľný — otvorte ho kedykoľvek z hlavičky.",
@@ -278,7 +279,7 @@
   "appTour": {
     "steps": {
       "welcome": {
-        "title": "Vitajte v Scribe",
+        "title": "Vitajte v Scribe {{version}}",
         "description": "Krátky prehľad knižnice, editora a panelov. Všetko ostáva na tomto Macu."
       },
       "sidebarRail": {
@@ -344,8 +345,8 @@
     }
   },
   "setup": {
-    "title": "Nastavenie Scribe",
-    "kicker": "Prvý zošit",
+    "title": "Nastavenie Scribe {{version}}",
+    "kicker": "Scribe {{version}}",
     "stepOf": "{{current}} / {{total}}",
     "finish": "Pokračovať",
     "startWriting": "Začať písať",
@@ -825,7 +826,7 @@
       "globalBadge": "Systémová"
     },
     "about": {
-      "tagline": "Píšte dokumenty. Prepájajte poznámky.",
+      "tagline": "Scribe {{version}} — píšte dokumenty. Prepájajte poznámky.",
       "platform": "Platforma",
       "fileFormat": "Formát súborov",
       "export": "Export",
@@ -904,8 +905,8 @@
       }
     },
     "docs": {
-      "pageTitle": "Dokumentácia",
-      "pageDescription": "Ako Scribe ukladá, prepojuje a upravuje dokumenty na Macu.",
+      "pageTitle": "Scribe {{version}}",
+      "pageDescription": "Ako Scribe {{version}} ukladá, prepojuje a upravuje dokumenty na Macu.",
       "searchPlaceholder": "Hľadať témy…",
       "onThisPage": "Na tejto stránke",
       "quickStart": "Prejsť na",
@@ -925,10 +926,10 @@
       },
       "topics": {
         "overview": {
-          "title": "Čo je Scribe?",
+          "title": "Čo je Scribe {{version}}?",
           "summary": "Píšte dokumenty. Prepájajte poznámky.",
           "paragraphs": [
-            "Scribe je lokálny editor dokumentov pre macOS. Píšte a exportujte súbory na tomto Macu — knižnica žije v SQLite, s voliteľnými .scribe zálohmi na disku.",
+            "Scribe {{version}} je lokálny editor dokumentov pre macOS. Píšte a exportujte súbory na tomto Macu — knižnica žije v SQLite, s voliteľnými .scribe zálohmi na disku.",
             "Keď poznámok pribudne, prepájajte ich wiki odkazmi. Mapa prepojení a MCP (Cursor / Claude) sú pokročilé nástroje — nie povinný štart."
           ],
           "points": []

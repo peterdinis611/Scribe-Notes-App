@@ -1275,12 +1275,41 @@ html[data-ui-skin='press'] .editor-shell--home {
 
 .welcome-atelier-brand {
   margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.18em 0.28em;
   font-family: var(--font-display);
   font-size: clamp(52px, 9vw, 84px);
   font-weight: 800;
   line-height: 0.9;
   letter-spacing: -0.055em;
   color: var(--color-foreground);
+}
+
+.scribe-edition {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 55%, var(--color-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  color: var(--color-accent);
+}
+
+.welcome-atelier-brand .scribe-edition,
+.welcome-brand .scribe-edition {
+  height: 1.15em;
+  padding: 0 0.38em;
+  font-size: 0.28em;
+  transform: translateY(0.08em);
 }
 
 .welcome-atelier-tagline {
@@ -1690,6 +1719,10 @@ html[data-ui-skin='press'] .editor-shell--home {
 
 .welcome-brand {
   margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.16em 0.26em;
   font-family: var(--welcome-display);
   font-size: clamp(44px, 8vw, 64px);
   font-weight: 800;

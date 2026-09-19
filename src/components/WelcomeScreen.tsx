@@ -19,7 +19,7 @@ import {
   updateDocuments,
 } from '@/store/documentsSlice'
 import { setTemplatePickerOpen } from '@/store/settingsSlice'
-import { APP_VERSION } from '@/lib/app-version'
+import { APP_VERSION, APP_SHORT_VERSION } from '@/lib/app-version'
 
 export function WelcomeScreen() {
   const documents = useAppSelector((state) => state.documents.documents)
@@ -173,15 +173,18 @@ export function WelcomeScreen() {
       <div className="welcome-desk titlebar-no-drag">
         <div className="welcome-desk-grain" aria-hidden="true" />
         <p className="welcome-stamp" aria-hidden="true">
-          {t('welcome.brand')}
+          {t('welcome.brandWithEdition', { version: APP_SHORT_VERSION })}
         </p>
 
         <div className="welcome-sheet">
           <div className="welcome-margin-rule" aria-hidden="true" />
 
           <header className="welcome-hero">
-            <p className="welcome-eyebrow">{t('welcome.press.eyebrow')}</p>
-            <h1 className="welcome-brand">{t('welcome.brand')}</h1>
+            <p className="welcome-eyebrow">{t('welcome.press.eyebrow', { version: APP_SHORT_VERSION })}</p>
+            <h1 className="welcome-brand">
+              {t('welcome.brand')}
+              <span className="scribe-edition">{APP_SHORT_VERSION}</span>
+            </h1>
             <p className="welcome-tagline">{t('welcome.press.brandTagline')}</p>
             <div className="welcome-actions">
               <div className="welcome-actions-primary">
@@ -232,8 +235,11 @@ export function WelcomeScreen() {
 
       <div className="welcome-compose">
         <header className="welcome-lead">
-          <p className="welcome-atelier-eyebrow">{t('welcome.eyebrow')}</p>
-          <h1 className="welcome-atelier-brand">{t('welcome.brand')}</h1>
+          <p className="welcome-atelier-eyebrow">{t('welcome.eyebrow', { version: APP_SHORT_VERSION })}</p>
+          <h1 className="welcome-atelier-brand">
+            {t('welcome.brand')}
+            <span className="scribe-edition">{APP_SHORT_VERSION}</span>
+          </h1>
           <p className="welcome-atelier-tagline">{t('welcome.brandTagline')}</p>
 
           <div className="welcome-cta-stack">

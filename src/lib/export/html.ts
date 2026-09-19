@@ -1,4 +1,5 @@
 import { highlightCode } from '@/lib/editor/lowlight'
+import { APP_SHORT_VERSION } from '@/lib/app-version'
 import { resolveCodeLanguage } from '@/lib/editor/code-languages'
 import { evaluateMathExpression } from '@/lib/editor/math-js'
 import { renderD3ChartSource } from '@/lib/editor/d3-chart'
@@ -497,6 +498,7 @@ function buildHtmlDocument(
 <head>
   <meta charset="UTF-8" />
   <title>${escapeHtml(title)}</title>
+  <meta name="generator" content="Scribe ${APP_SHORT_VERSION}" />
   ${googleFontLinks}
   <style>
     @page {
