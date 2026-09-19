@@ -355,6 +355,20 @@ pub struct AnalyzePlaintextParams {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+pub struct CreateLibraryParams {
+    pub name: String,
+    pub root_path: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct TextOrDocumentParams {
+    pub id: Option<String>,
+    pub text: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct UpsertManuscriptParams {
     pub id: Option<String>,
     pub title: String,

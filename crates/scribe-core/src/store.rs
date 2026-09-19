@@ -20,7 +20,7 @@ use crate::db::{
     sync_document_fts, sync_document_links, upsert_embedding_with_chunks,
     EmbeddingChunkInput,
 };
-use crate::nlp::{script_path_label, NlpSidecar};
+use crate::nlp::{parse_entities, script_path_label, NlpSidecar};
 use crate::path::default_db_path;
 use crate::plain_text::{
     document_outline, plain_text_to_paragraph_nodes, plain_text_to_tiptap, tiptap_to_markdown,
@@ -211,12 +211,7 @@ pub struct JournalSummary {
     pub document_count: i64,
 }
 
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct NlpEntity {
-    pub text: String,
-    pub kind: String,
-}
+pub use crate::nlp::NlpEntity;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -2150,34 +2145,9 @@ impl ScribeStore {
 
         let text = format!("{title}\n{}", extract_search_text(&content_json));
         sync_sidecar_backend(sidecar, &self.db)?;
-        let result = sidecar.extract_entities(&text)?;
-
-        let entities = result
-            .get("entities")
-            .and_then(|value| value.as_array())
-            .map(|items| {
-                items
-                    .iter()
-                    .filter_map(|item| {
-                        Some(NlpEntity {
-                            text: item.get("text")?.as_str()?.to_string(),
-                            kind: item.get("kind")?.as_str()?.to_string(),
-                        })
-                    })
-                    .collect::<Vec<_>>()
-            })
-            .unwrap_or_default();
-
-        let tag_suggestions = result
-            .get("tagSuggestions")
-            .and_then(|value| value.as_array())
-            .map(|items| {
-                items
-                    .iter()
-                    .filter_map(|item| item.as_str().map(str::to_string))
-                    .collect::<Vec<_>>()
-            })
-            .unwrap_or_default();
+        let parsed = parse_entities(&sidecar.extract_entities(&text)?);
+        let entities = parsed.entities;
+        let tag_suggestions = parsed.tag_suggestions;
 
         let (folder_id, tags_json): (Option<String>, Option<String>) = self
             .db

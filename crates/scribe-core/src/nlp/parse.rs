@@ -1,9 +1,12 @@
 use serde_json::Value;
 
 use super::types::{
-    NlpDateEvent, NlpDocumentAnalysis, NlpKeyword, NlpKeywordsResult, NlpLanguage,
+    NlpAnswer, NlpCitation, NlpDateEvent, NlpDates, NlpDiffSummary, NlpDocumentAnalysis,
+    NlpEntities, NlpEntity, NlpExtractedTask, NlpKeyword, NlpKeywordsResult, NlpLanguage,
+    NlpMentionEdge, NlpMentionLink, NlpMentions, NlpOrganize, NlpOrganizeSuggestion, NlpOutline,
     NlpOutlineItem, NlpQueryRewrite, NlpReadingStats, NlpRewriteResult, NlpSentiment,
-    NlpSpellIssue, NlpSpellcheck, NlpTitleSuggestion,
+    NlpSpellIssue, NlpSpellcheck, NlpSummary, NlpTasks, NlpTitleSuggestion, NlpWikiSuggestion,
+    NlpWikiSuggestions,
 };
 
 fn as_str(value: &Value) -> Option<&str> {
@@ -279,6 +282,305 @@ pub fn parse_query_rewrite(result: &Value) -> NlpQueryRewrite {
     }
 }
 
+pub fn parse_entities(result: &Value) -> NlpEntities {
+    let entities = result
+        .get("entities")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| {
+                    Some(NlpEntity {
+                        text: as_str(item.get("text")?)?.to_string(),
+                        kind: as_str(item.get("kind")?)?.to_string(),
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    NlpEntities {
+        entities,
+        tag_suggestions: string_list(result.get("tagSuggestions")),
+        language: result.get("language").and_then(as_str).map(str::to_string),
+    }
+}
+
+pub fn parse_mentions(result: &Value) -> NlpMentions {
+    let markdown_links = result
+        .get("markdownLinks")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| {
+                    Some(NlpMentionLink {
+                        label: item
+                            .get("label")
+                            .and_then(Value::as_str)
+                            .unwrap_or("")
+                            .to_string(),
+                        href: as_str(item.get("href")?)?.to_string(),
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    let edges: Vec<NlpMentionEdge> = result
+        .get("edges")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| {
+                    Some(NlpMentionEdge {
+                        kind: as_str(item.get("kind")?)?.to_string(),
+                        target: as_str(item.get("target")?)?.to_string(),
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    let edge_count = result
+        .get("edgeCount")
+        .and_then(Value::as_i64)
+        .unwrap_or(edges.len() as i64);
+    NlpMentions {
+        wiki_links: string_list(result.get("wikiLinks")),
+        mentions: string_list(result.get("mentions")),
+        hosts: string_list(result.get("hosts")),
+        markdown_links,
+        edges,
+        edge_count,
+    }
+}
+
+pub fn parse_tasks(result: &Value) -> NlpTasks {
+    let tasks: Vec<NlpExtractedTask> = result
+        .get("tasks")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| {
+                    Some(NlpExtractedTask {
+                        text: as_str(item.get("text")?)?.to_string(),
+                        checked: item
+                            .get("checked")
+                            .and_then(Value::as_bool)
+                            .unwrap_or(false),
+                        source: item
+                            .get("source")
+                            .and_then(as_str)
+                            .unwrap_or("phrase")
+                            .to_string(),
+                        due_hint: item.get("dueHint").and_then(as_str).map(str::to_string),
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    let open_count = result
+        .get("openCount")
+        .and_then(Value::as_i64)
+        .unwrap_or_else(|| tasks.iter().filter(|task| !task.checked).count() as i64);
+    NlpTasks { tasks, open_count }
+}
+
+pub fn parse_outline_result(result: &Value) -> NlpOutline {
+    let items = parse_outline(result.get("items"));
+    NlpOutline {
+        count: result
+            .get("count")
+            .and_then(Value::as_i64)
+            .unwrap_or(items.len() as i64),
+        items,
+    }
+}
+
+pub fn parse_dates_result(result: &Value) -> NlpDates {
+    let events = parse_dates(Some(result));
+    NlpDates {
+        count: result
+            .get("count")
+            .and_then(Value::as_i64)
+            .unwrap_or(events.len() as i64),
+        events,
+    }
+}
+
+pub fn parse_summary(result: &Value) -> NlpSummary {
+    NlpSummary {
+        summary: result
+            .get("summary")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string(),
+        bullets: string_list(result.get("bullets")),
+    }
+}
+
+pub fn parse_diff_summary(result: &Value) -> NlpDiffSummary {
+    NlpDiffSummary {
+        summary: result
+            .get("summary")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string(),
+        added_sentences: string_list(result.get("addedSentences")),
+        removed_sentences: string_list(result.get("removedSentences")),
+        gained_terms: string_list(result.get("gainedTerms")),
+        lost_terms: string_list(result.get("lostTerms")),
+        change_ratio: result
+            .get("changeRatio")
+            .and_then(Value::as_f64)
+            .unwrap_or(0.0),
+        old_word_count: result
+            .get("oldWordCount")
+            .and_then(Value::as_i64)
+            .unwrap_or(0),
+        new_word_count: result
+            .get("newWordCount")
+            .and_then(Value::as_i64)
+            .unwrap_or(0),
+        document_id: result
+            .get("documentId")
+            .and_then(as_str)
+            .map(str::to_string),
+        title: result.get("title").and_then(as_str).map(str::to_string),
+        revision_id: result
+            .get("revisionId")
+            .and_then(as_str)
+            .map(str::to_string),
+    }
+}
+
+pub fn parse_library_answer(result: &Value) -> NlpAnswer {
+    let citations = result
+        .get("citations")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| {
+                    Some(NlpCitation {
+                        document_id: as_str(item.get("documentId")?)?.to_string(),
+                        title: item
+                            .get("title")
+                            .and_then(Value::as_str)
+                            .unwrap_or("Untitled")
+                            .to_string(),
+                        snippet: item
+                            .get("snippet")
+                            .and_then(Value::as_str)
+                            .unwrap_or("")
+                            .to_string(),
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    NlpAnswer {
+        answer: result
+            .get("answer")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string(),
+        citations,
+        sentences: string_list(result.get("sentences")),
+        followups: string_list(result.get("followups")),
+        hit_count: result.get("hitCount").and_then(Value::as_i64),
+        document_id: result
+            .get("documentId")
+            .and_then(as_str)
+            .map(str::to_string),
+        title: result.get("title").and_then(as_str).map(str::to_string),
+    }
+}
+
+pub fn parse_wiki_suggestions(result: &Value) -> NlpWikiSuggestions {
+    let suggestions: Vec<NlpWikiSuggestion> = result
+        .get("suggestions")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| {
+                    Some(NlpWikiSuggestion {
+                        phrase: as_str(item.get("phrase")?)?.to_string(),
+                        document_id: as_str(item.get("documentId")?)?.to_string(),
+                        title: as_str(item.get("title")?)?.to_string(),
+                        score: item.get("score").and_then(Value::as_f64).unwrap_or(0.0),
+                        reason: item
+                            .get("reason")
+                            .and_then(as_str)
+                            .unwrap_or("title_match")
+                            .to_string(),
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    NlpWikiSuggestions {
+        count: result
+            .get("count")
+            .and_then(Value::as_i64)
+            .unwrap_or(suggestions.len() as i64),
+        suggestions,
+    }
+}
+
+pub fn parse_organize(result: &Value) -> NlpOrganize {
+    let suggestions: Vec<NlpOrganizeSuggestion> = result
+        .get("suggestions")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| {
+                    Some(NlpOrganizeSuggestion {
+                        folder_id: as_str(item.get("folderId")?)?.to_string(),
+                        name: as_str(item.get("name")?)?.to_string(),
+                        score: item.get("score").and_then(Value::as_f64).unwrap_or(0.0),
+                        reason: item
+                            .get("reason")
+                            .and_then(as_str)
+                            .unwrap_or("match")
+                            .to_string(),
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    NlpOrganize {
+        count: result
+            .get("count")
+            .and_then(Value::as_i64)
+            .unwrap_or(suggestions.len() as i64),
+        suggestions,
+        best_folder_id: result
+            .get("bestFolderId")
+            .and_then(as_str)
+            .map(str::to_string),
+        best_folder_name: result
+            .get("bestFolderName")
+            .and_then(as_str)
+            .map(str::to_string),
+        create_new: result
+            .get("createNew")
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
+        document_id: result
+            .get("documentId")
+            .and_then(as_str)
+            .map(str::to_string),
+        current_folder_id: result
+            .get("currentFolderId")
+            .and_then(as_str)
+            .map(str::to_string),
+        current_tags: string_list(result.get("currentTags")),
+    }
+}
+
 pub fn parse_spellcheck(result: &Value) -> NlpSpellcheck {
     let issues = result
         .get("issues")
@@ -408,5 +710,104 @@ mod tests {
             "issues": [{"word": "teh", "offset": 0, "suggestions": ["the"]}]
         }));
         assert_eq!(spell.issues[0].suggestions, vec!["the"]);
+    }
+
+    #[test]
+    fn parse_entities_mentions_tasks_and_dates() {
+        let entities = parse_entities(&json!({
+            "entities": [{"text": "Peter", "kind": "person"}],
+            "tagSuggestions": ["osoba"],
+            "language": "sk"
+        }));
+        assert_eq!(entities.entities[0].kind, "person");
+        assert_eq!(entities.tag_suggestions, vec!["osoba"]);
+
+        let mentions = parse_mentions(&json!({
+            "wikiLinks": ["Cieľ"],
+            "mentions": ["peter"],
+            "hosts": ["example.com"],
+            "markdownLinks": [{"label": "Site", "href": "https://example.com"}],
+            "edges": [{"kind": "wiki", "target": "Cieľ"}],
+            "edgeCount": 1
+        }));
+        assert_eq!(mentions.wiki_links, vec!["Cieľ"]);
+        assert_eq!(mentions.markdown_links[0].href, "https://example.com");
+
+        let tasks = parse_tasks(&json!({
+            "tasks": [{
+                "text": "Buy milk",
+                "checked": false,
+                "source": "markdown",
+                "dueHint": "2026-09-20"
+            }],
+            "openCount": 1
+        }));
+        assert_eq!(tasks.open_count, 1);
+        assert_eq!(tasks.tasks[0].due_hint.as_deref(), Some("2026-09-20"));
+
+        let dates = parse_dates_result(&json!({
+            "events": [{"text": "zajtra", "kind": "relative", "resolvedDate": "2026-09-20"}],
+            "count": 1
+        }));
+        assert_eq!(dates.events[0].kind, "relative");
+    }
+
+    #[test]
+    fn parse_summary_diff_answer_wiki_organize() {
+        let summary = parse_summary(&json!({
+            "summary": "Hello world.",
+            "bullets": ["Hello world."]
+        }));
+        assert_eq!(summary.bullets.len(), 1);
+
+        let diff = parse_diff_summary(&json!({
+            "summary": "Added a sentence.",
+            "addedSentences": ["New line."],
+            "removedSentences": ["Old line."],
+            "gainedTerms": ["new"],
+            "lostTerms": ["old"],
+            "changeRatio": 0.5,
+            "oldWordCount": 2,
+            "newWordCount": 2
+        }));
+        assert_eq!(diff.added_sentences, vec!["New line."]);
+
+        let answer = parse_library_answer(&json!({
+            "answer": "Based on your notes: Friday.",
+            "citations": [{
+                "documentId": "d1",
+                "title": "Plan",
+                "snippet": "due Friday"
+            }],
+            "sentences": ["due Friday"],
+            "followups": ["What else?"]
+        }));
+        assert_eq!(answer.citations[0].document_id, "d1");
+
+        let wiki = parse_wiki_suggestions(&json!({
+            "suggestions": [{
+                "phrase": "Target",
+                "documentId": "t1",
+                "title": "Target",
+                "score": 0.9,
+                "reason": "title_match"
+            }],
+            "count": 1
+        }));
+        assert_eq!(wiki.suggestions[0].document_id, "t1");
+
+        let organize = parse_organize(&json!({
+            "suggestions": [{
+                "folderId": "f1",
+                "name": "Work",
+                "score": 3.0,
+                "reason": "exact"
+            }],
+            "count": 1,
+            "bestFolderId": "f1",
+            "bestFolderName": "Work",
+            "createNew": false
+        }));
+        assert_eq!(organize.best_folder_id.as_deref(), Some("f1"));
     }
 }

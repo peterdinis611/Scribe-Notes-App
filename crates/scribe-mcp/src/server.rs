@@ -1349,6 +1349,63 @@ impl ScribeMcp {
         self.with_store(|store| Ok(tools::json(&store.switch_library(&params.id)?)))
     }
 
+    #[tool(description = "Create a new Scribe library (name + optional rootPath). Does not switch to it. Requires writable DB.")]
+    fn create_library(
+        &self,
+        Parameters(params): Parameters<tools::CreateLibraryParams>,
+    ) -> Result<String, String> {
+        if !self.writable {
+            return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
+        }
+        self.with_store(|store| {
+            Ok(tools::json(
+                &store.create_library(&params.name, params.root_path.as_deref())?,
+            ))
+        })
+    }
+
+    #[tool(description = "Extract named entities and tag suggestions from a note id or plaintext.")]
+    fn extract_entities(
+        &self,
+        Parameters(params): Parameters<tools::TextOrDocumentParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.extract_entities_text(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.text.as_deref(),
+            )?))
+        })
+    }
+
+    #[tool(description = "Extract wiki links, @mentions, hosts, and URL edges from a note id or plaintext.")]
+    fn extract_mentions(
+        &self,
+        Parameters(params): Parameters<tools::TextOrDocumentParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.extract_mentions_text(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.text.as_deref(),
+            )?))
+        })
+    }
+
+    #[tool(description = "Extract calendar-like date events from a note id or plaintext.")]
+    fn extract_dates(
+        &self,
+        Parameters(params): Parameters<tools::TextOrDocumentParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.extract_dates_text(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.text.as_deref(),
+            )?))
+        })
+    }
+
     #[tool(description = "List manuscripts (compiled chapter sets) in the active library.")]
     fn list_manuscripts(&self) -> Result<String, String> {
         self.with_store(|store| {
@@ -1548,6 +1605,8 @@ impl ServerHandler for ScribeMcp {
              get_document_outline, then get_document or export_document. \
              list_documents / create_note / search are scoped to the active library — \
              call list_libraries / switch_library first if the user names another library. \
+             create_library adds a library without switching. \
+             extract_entities / extract_mentions / extract_dates accept id or text. \
              For Q&A over the library use library_answer. \
              For one-note Q&A use document_answer; persist turns with list/append_document_chat. \
              For note insights use document_analysis / extract_keywords / analyze_sentiment. \

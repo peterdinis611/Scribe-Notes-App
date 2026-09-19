@@ -657,4 +657,51 @@ mod tests {
         let path = PathBuf::from("/tmp/scribe_nlp/__main__.py");
         assert!(script_path_label(&path).contains("__main__.py"));
     }
+
+    fn live_sidecar() -> Option<NlpSidecar> {
+        let path = std::env::var("SCRIBE_NLP_SCRIPT")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| resolve_script_path());
+        if !path.exists() {
+            eprintln!("skip live sidecar: missing {}", path.display());
+            return None;
+        }
+        Some(NlpSidecar::new(path))
+    }
+
+    #[test]
+    fn live_sidecar_health_analyze_rewrite() {
+        let Some(sidecar) = live_sidecar() else {
+            return;
+        };
+        let health = match sidecar.health() {
+            Ok(health) => health,
+            Err(error) => {
+                eprintln!("skip live sidecar: {error}");
+                return;
+            }
+        };
+        assert!(health.ok, "sidecar health not ok: {health:?}");
+        assert!(!health.version.is_empty());
+
+        let analysis = sidecar
+            .analyze_document_typed(
+                "Meeting tomorrow in Bratislava. Need to finish the report and email Peter.",
+                8,
+                8,
+                2,
+            )
+            .expect("analyze_document");
+        assert!(!analysis.language.is_empty());
+
+        let rewritten = sidecar
+            .rewrite_selection_typed(
+                "this is kinda messy notes",
+                "rephrase_professional",
+                None,
+            )
+            .expect("rewrite_selection");
+        assert!(!rewritten.output.trim().is_empty());
+        assert_eq!(rewritten.mode, "rephrase_professional");
+    }
 }

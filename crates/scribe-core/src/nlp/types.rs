@@ -147,6 +147,193 @@ pub struct NlpSpellcheck {
     pub issues: Vec<NlpSpellIssue>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpEntity {
+    pub text: String,
+    pub kind: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpEntities {
+    pub entities: Vec<NlpEntity>,
+    #[serde(default)]
+    pub tag_suggestions: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub language: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpMentionLink {
+    pub label: String,
+    pub href: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpMentionEdge {
+    pub kind: String,
+    pub target: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpMentions {
+    #[serde(default)]
+    pub wiki_links: Vec<String>,
+    #[serde(default)]
+    pub mentions: Vec<String>,
+    #[serde(default)]
+    pub hosts: Vec<String>,
+    #[serde(default)]
+    pub markdown_links: Vec<NlpMentionLink>,
+    #[serde(default)]
+    pub edges: Vec<NlpMentionEdge>,
+    #[serde(default)]
+    pub edge_count: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpExtractedTask {
+    pub text: String,
+    pub checked: bool,
+    pub source: String,
+    pub due_hint: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpTasks {
+    pub tasks: Vec<NlpExtractedTask>,
+    pub open_count: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpOutline {
+    pub items: Vec<NlpOutlineItem>,
+    pub count: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpDates {
+    pub events: Vec<NlpDateEvent>,
+    pub count: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpSummary {
+    pub summary: String,
+    #[serde(default)]
+    pub bullets: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpDiffSummary {
+    pub summary: String,
+    #[serde(default)]
+    pub added_sentences: Vec<String>,
+    #[serde(default)]
+    pub removed_sentences: Vec<String>,
+    #[serde(default)]
+    pub gained_terms: Vec<String>,
+    #[serde(default)]
+    pub lost_terms: Vec<String>,
+    #[serde(default)]
+    pub change_ratio: f64,
+    #[serde(default)]
+    pub old_word_count: i64,
+    #[serde(default)]
+    pub new_word_count: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub document_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub revision_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpCitation {
+    pub document_id: String,
+    pub title: String,
+    pub snippet: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpAnswer {
+    pub answer: String,
+    #[serde(default)]
+    pub citations: Vec<NlpCitation>,
+    #[serde(default)]
+    pub sentences: Vec<String>,
+    #[serde(default)]
+    pub followups: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hit_count: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub document_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpWikiSuggestion {
+    pub phrase: String,
+    pub document_id: String,
+    pub title: String,
+    #[serde(default)]
+    pub score: f64,
+    #[serde(default)]
+    pub reason: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpWikiSuggestions {
+    pub suggestions: Vec<NlpWikiSuggestion>,
+    pub count: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpOrganizeSuggestion {
+    pub folder_id: String,
+    pub name: String,
+    #[serde(default)]
+    pub score: f64,
+    #[serde(default)]
+    pub reason: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpOrganize {
+    #[serde(default)]
+    pub suggestions: Vec<NlpOrganizeSuggestion>,
+    #[serde(default)]
+    pub count: i64,
+    pub best_folder_id: Option<String>,
+    pub best_folder_name: Option<String>,
+    #[serde(default)]
+    pub create_new: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub document_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub current_folder_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub current_tags: Vec<String>,
+}
+
 pub fn normalize_rewrite_mode(mode: Option<&str>) -> String {
     match mode
         .map(str::trim)

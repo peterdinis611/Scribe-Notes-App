@@ -151,7 +151,8 @@ Full argument reference: **[tools.md](tools.md)**.
 | `set_nlp_enabled` / `set_embed_backend` | Local AI controls (writable) |
 | `rewrite_selection` / `analyze_plaintext` | Rewrite or analyze unsaved text |
 | `get_nlp_artifact` | Cached AI artifact by id |
-| `list_libraries` / `switch_library` | Libraries (switch is writable) |
+| `list_libraries` / `switch_library` / `create_library` | Libraries (switch/create are writable) |
+| `extract_entities` / `extract_mentions` / `extract_dates` | Entities, mentions, dates from `id` or `text` |
 | `list_manuscripts` / `upsert_manuscript` | Chapter compilations |
 | `list_document_chat` / `append_document_chat` / `clear_document_chat` | Persisted note chat |
 | `trash_document` / `empty_trash` / `rename_document` / `replace_document_content` | Edit lifecycle |

@@ -16,10 +16,13 @@ use crate::db::{
     sync_document_fts, sync_document_links, SearchMode, DEFAULT_LIBRARY_ID, META_ACTIVE_LIBRARY,
 };
 use crate::nlp::{
-    followups_from_sidecar, merge_chat_memory_passages, normalize_rewrite_mode, parse_keywords_result,
-    parse_language, parse_query_rewrite, parse_reading_stats, parse_sentiment, parse_spellcheck,
-    ChatTurn, NlpDocumentAnalysis, NlpKeywordsResult, NlpLanguage, NlpQueryRewrite, NlpReadingStats,
-    NlpRewriteResult, NlpSentiment, NlpSidecar, NlpSpellcheck,
+    followups_from_sidecar, merge_chat_memory_passages, normalize_rewrite_mode, parse_dates_result,
+    parse_diff_summary, parse_entities, parse_keywords_result, parse_language, parse_library_answer,
+    parse_mentions, parse_organize, parse_query_rewrite, parse_reading_stats, parse_sentiment,
+    parse_spellcheck, parse_title_suggestion, parse_wiki_suggestions, ChatTurn, NlpAnswer, NlpDates,
+    NlpDiffSummary, NlpDocumentAnalysis, NlpEntities, NlpKeywordsResult, NlpLanguage, NlpMentions,
+    NlpOrganize, NlpQueryRewrite, NlpReadingStats, NlpRewriteResult, NlpSentiment, NlpSidecar,
+    NlpSpellcheck, NlpTitleSuggestion, NlpWikiSuggestions,
 };
 use crate::store::{
     require_nlp, search_library, sync_sidecar_backend, IdTitle, ScribeStore,
@@ -161,7 +164,7 @@ impl ScribeStore {
         sidecar: &NlpSidecar,
         question: &str,
         limit: Option<i64>,
-    ) -> Result<Value, String> {
+    ) -> Result<NlpAnswer, String> {
         let trimmed = question.trim();
         if trimmed.is_empty() {
             return Err("question is required".to_string());
@@ -197,52 +200,49 @@ impl ScribeStore {
             .collect::<Vec<_>>());
 
         let result = sidecar.library_answer(trimmed, passages, 4)?;
-        let citations = result
-            .get("citations")
-            .cloned()
-            .unwrap_or_else(|| {
-                json!(hits
-                    .iter()
-                    .map(|hit| {
-                        json!({
-                            "documentId": hit.document_id,
-                            "title": hit.title,
-                            "snippet": hit.snippet,
-                        })
-                    })
-                    .collect::<Vec<_>>())
-            });
-
-        Ok(json!({
-            "answer": result.get("answer").and_then(|v| v.as_str()).unwrap_or(
+        let mut parsed = parse_library_answer(&result);
+        if parsed.answer.is_empty() {
+            parsed.answer =
                 "Based on your notes: No matching passages were found in your indexed library."
-            ),
-            "citations": citations,
-            "hitCount": hits.len(),
-            "followups": followups_from_sidecar(&result),
-        }))
+                    .to_string();
+        }
+        if parsed.citations.is_empty() {
+            parsed.citations = hits
+                .iter()
+                .map(|hit| crate::nlp::NlpCitation {
+                    document_id: hit.document_id.clone(),
+                    title: hit.title.clone(),
+                    snippet: hit.snippet.clone(),
+                })
+                .collect();
+        }
+        if parsed.followups.is_empty() {
+            parsed.followups = followups_from_sidecar(&result);
+        }
+        parsed.hit_count = Some(hits.len() as i64);
+        Ok(parsed)
     }
 
     pub fn document_analysis(
         &self,
         sidecar: &NlpSidecar,
         document_id: &str,
-    ) -> Result<Value, String> {
+    ) -> Result<NlpDocumentAnalysis, String> {
         require_nlp(&self.db)?;
         let (_title, text) = self.document_title_and_text(document_id)?;
         sync_sidecar_backend(sidecar, &self.db)?;
-        sidecar.analyze_document(&text, 12, 24, 3)
+        sidecar.analyze_document_typed(&text, 12, 24, 3)
     }
 
     pub fn suggest_document_title(
         &self,
         sidecar: &NlpSidecar,
         document_id: &str,
-    ) -> Result<Value, String> {
+    ) -> Result<NlpTitleSuggestion, String> {
         require_nlp(&self.db)?;
         let (_title, text) = self.document_title_and_text(document_id)?;
         sync_sidecar_backend(sidecar, &self.db)?;
-        sidecar.suggest_title(&text, 72)
+        Ok(parse_title_suggestion(&sidecar.suggest_title(&text, 72)?))
     }
 
     pub fn find_duplicate_documents(
@@ -290,7 +290,7 @@ impl ScribeStore {
         sidecar: &NlpSidecar,
         document_id: &str,
         limit: Option<i64>,
-    ) -> Result<Value, String> {
+    ) -> Result<NlpWikiSuggestions, String> {
         require_nlp(&self.db)?;
         sync_sidecar_backend(sidecar, &self.db)?;
         let (_title, text) = self.document_title_and_text(document_id)?;
@@ -316,12 +316,12 @@ impl ScribeStore {
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| e.to_string())?;
 
-        sidecar.suggest_wiki_links(
+        Ok(parse_wiki_suggestions(&sidecar.suggest_wiki_links(
             &text,
             json!(documents),
             limit.unwrap_or(8),
             Some(document_id),
-        )
+        )?))
     }
 
     pub fn calendar_events(
@@ -486,7 +486,7 @@ impl ScribeStore {
         document_id: &str,
         question: &str,
         context: Option<&[Value]>,
-    ) -> Result<Value, String> {
+    ) -> Result<NlpAnswer, String> {
         let trimmed = question.trim();
         if trimmed.is_empty() {
             return Err("question is required".to_string());
@@ -563,15 +563,31 @@ impl ScribeStore {
                 .collect::<Vec<_>>())
         });
 
-        Ok(json!({
-            "answer": result.get("answer").and_then(|v| v.as_str()).unwrap_or(
-                "Based on this document: No matching passages were found."
-            ),
-            "citations": citations,
-            "documentId": document_id,
-            "title": title,
-            "followups": followups_from_sidecar(&result),
-        }))
+        let mut parsed = parse_library_answer(&result);
+        if parsed.answer.is_empty() {
+            parsed.answer = "Based on this document: No matching passages were found.".to_string();
+        }
+        if parsed.citations.is_empty() {
+            parsed.citations = citations
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(|item| {
+                    Some(crate::nlp::NlpCitation {
+                        document_id: document_id.to_string(),
+                        title: title.clone(),
+                        snippet: item.get("snippet")?.as_str()?.to_string(),
+                    })
+                })
+                .take(4)
+                .collect();
+        }
+        if parsed.followups.is_empty() {
+            parsed.followups = followups_from_sidecar(&result);
+        }
+        parsed.document_id = Some(document_id.to_string());
+        parsed.title = Some(title);
+        Ok(parsed)
     }
 
     pub fn summarize_diff(
@@ -580,10 +596,14 @@ impl ScribeStore {
         old_text: &str,
         new_text: &str,
         max_bullets: Option<i64>,
-    ) -> Result<Value, String> {
+    ) -> Result<NlpDiffSummary, String> {
         require_nlp(&self.db)?;
         sync_sidecar_backend(sidecar, &self.db)?;
-        sidecar.summarize_diff(old_text, new_text, max_bullets.unwrap_or(5).clamp(1, 12))
+        Ok(parse_diff_summary(&sidecar.summarize_diff(
+            old_text,
+            new_text,
+            max_bullets.unwrap_or(5).clamp(1, 12),
+        )?))
     }
 
     pub fn summarize_revision_diff(
@@ -592,7 +612,7 @@ impl ScribeStore {
         document_id: &str,
         revision_id: &str,
         max_bullets: Option<i64>,
-    ) -> Result<Value, String> {
+    ) -> Result<NlpDiffSummary, String> {
         require_nlp(&self.db)?;
         let revision = self
             .get_document_revision(revision_id)?
@@ -603,14 +623,15 @@ impl ScribeStore {
         let (title, current_text) = self.document_title_and_text(document_id)?;
         let old_text = format!("{}\n{}", revision.title, revision.plain_text);
         sync_sidecar_backend(sidecar, &self.db)?;
-        let mut result =
-            sidecar.summarize_diff(&old_text, &current_text, max_bullets.unwrap_or(5).clamp(1, 12))?;
-        if let Some(obj) = result.as_object_mut() {
-            obj.insert("documentId".into(), json!(document_id));
-            obj.insert("title".into(), json!(title));
-            obj.insert("revisionId".into(), json!(revision_id));
-        }
-        Ok(result)
+        let mut parsed = parse_diff_summary(&sidecar.summarize_diff(
+            &old_text,
+            &current_text,
+            max_bullets.unwrap_or(5).clamp(1, 12),
+        )?);
+        parsed.document_id = Some(document_id.to_string());
+        parsed.title = Some(title);
+        parsed.revision_id = Some(revision_id.to_string());
+        Ok(parsed)
     }
 
     pub fn template_fill_hints(
@@ -633,7 +654,7 @@ impl ScribeStore {
         sidecar: &NlpSidecar,
         document_id: &str,
         limit: Option<i64>,
-    ) -> Result<Value, String> {
+    ) -> Result<NlpOrganize, String> {
         require_nlp(&self.db)?;
         let (_title, text) = self.document_title_and_text(document_id)?;
         let (folder_id, tags_json): (Option<String>, Option<String>) = self
@@ -662,19 +683,17 @@ impl ScribeStore {
             .collect::<Vec<_>>();
 
         sync_sidecar_backend(sidecar, &self.db)?;
-        let mut result = sidecar.suggest_organize(
+        let mut parsed = parse_organize(&sidecar.suggest_organize(
             &text,
             json!(folders),
             json!(tags),
             folder_id.as_deref(),
             limit.unwrap_or(3).clamp(1, 8),
-        )?;
-        if let Some(obj) = result.as_object_mut() {
-            obj.insert("documentId".into(), json!(document_id));
-            obj.insert("currentFolderId".into(), json!(folder_id));
-            obj.insert("currentTags".into(), json!(tags));
-        }
-        Ok(result)
+        )?);
+        parsed.document_id = Some(document_id.to_string());
+        parsed.current_folder_id = folder_id;
+        parsed.current_tags = tags;
+        Ok(parsed)
     }
 
     pub fn set_nlp_enabled_flag(
@@ -941,6 +960,58 @@ impl ScribeStore {
         sidecar.analyze_document_typed(trimmed, 12, 24, 3)
     }
 
+    fn nlp_source_text(
+        &self,
+        document_id: Option<&str>,
+        text: Option<&str>,
+    ) -> Result<String, String> {
+        if let Some(plain) = text.map(str::trim).filter(|value| !value.is_empty()) {
+            return Ok(plain.to_string());
+        }
+        let id = document_id
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .ok_or_else(|| "id or text is required".to_string())?;
+        let (_title, body) = self.document_title_and_text(id)?;
+        Ok(body)
+    }
+
+    pub fn extract_entities_text(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+    ) -> Result<NlpEntities, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        Ok(parse_entities(&sidecar.extract_entities(&source)?))
+    }
+
+    pub fn extract_mentions_text(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+    ) -> Result<NlpMentions, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        Ok(parse_mentions(&sidecar.extract_mentions(&source)?))
+    }
+
+    pub fn extract_dates_text(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+    ) -> Result<NlpDates, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        Ok(parse_dates_result(&sidecar.extract_dates(&source)?))
+    }
+
     pub fn list_libraries(&self) -> Result<Vec<LibraryRecord>, String> {
         let active = active_library_id(&self.db);
         let mut stmt = self
@@ -1022,6 +1093,55 @@ impl ScribeStore {
             .map_err(|e| e.to_string())?;
             library.last_opened_at = now;
             Ok(library)
+        })
+    }
+
+    pub fn create_library(&self, name: &str, root_path: Option<&str>) -> Result<LibraryRecord, String> {
+        let name = name.trim();
+        if name.is_empty() {
+            return Err("name is required".to_string());
+        }
+        let dir = match root_path.map(str::trim).filter(|value| !value.is_empty()) {
+            Some(path) => PathBuf::from(path),
+            None => {
+                let base = self.documents_dir().unwrap_or_else(|_| default_documents_dir());
+                base.parent()
+                    .unwrap_or(&base)
+                    .join(format!("Scribe {name}"))
+            }
+        };
+        fs::create_dir_all(&dir).map_err(|e| format!("Could not create library folder: {e}"))?;
+        let root = dir
+            .canonicalize()
+            .unwrap_or(dir)
+            .to_string_lossy()
+            .to_string();
+
+        self.run_writable(|db| {
+            let now = chrono::Utc::now().timestamp();
+            let max_order: i32 = db
+                .query_row(
+                    "SELECT COALESCE(MAX(sort_order), 0) FROM libraries",
+                    [],
+                    |row| row.get(0),
+                )
+                .unwrap_or(0);
+            let id = Uuid::new_v4().to_string();
+            db.execute(
+                "INSERT INTO libraries (id, name, root_path, created_at, last_opened_at, sort_order) \
+                 VALUES (?1, ?2, ?3, ?4, ?4, ?5)",
+                params![id, name, root, now, max_order + 1],
+            )
+            .map_err(|e| e.to_string())?;
+            Ok(LibraryRecord {
+                id,
+                name: name.to_string(),
+                root_path: root,
+                created_at: now,
+                last_opened_at: now,
+                sort_order: max_order + 1,
+                is_active: false,
+            })
         })
     }
 
@@ -1574,5 +1694,30 @@ mod tests {
         assert_eq!(artifact.kind, "library_report");
         assert_eq!(artifact.payload["ok"], true);
         assert!(store.get_nlp_artifact("missing").unwrap().is_none());
+    }
+
+    #[test]
+    fn extract_text_requires_id_or_body() {
+        let store = ScribeStore::from_memory();
+        let sidecar = dummy_sidecar();
+        let err = store
+            .extract_entities_text(&sidecar, None, Some("   "))
+            .unwrap_err();
+        assert_eq!(err, "id or text is required");
+    }
+
+    #[test]
+    fn create_library_adds_inactive_row() {
+        let store = ScribeStore::from_memory();
+        let root = std::env::temp_dir().join(format!("scribe-lib-{}", Uuid::new_v4()));
+        let created = store
+            .create_library("Work", Some(root.to_str().unwrap()))
+            .unwrap();
+        assert_eq!(created.name, "Work");
+        assert!(!created.is_active);
+        let libraries = store.list_libraries().unwrap();
+        assert!(libraries.iter().any(|library| library.id == created.id));
+        assert_eq!(store.active_library().unwrap().id, DEFAULT_LIBRARY_ID);
+        let _ = fs::remove_dir_all(root);
     }
 }

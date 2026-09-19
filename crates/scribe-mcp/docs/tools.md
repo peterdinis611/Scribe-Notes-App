@@ -895,11 +895,25 @@ Load one cached artifact by `id` (from `list_nlp_artifacts` or `scribe://artifac
 
 ---
 
-## `list_libraries` / `switch_library`
+## `list_libraries` / `switch_library` / `create_library`
 
 `list_libraries` — all libraries, with `isActive` for the current one.
 
 `switch_library` — `id`. Requires writable MCP. After a switch, `list_documents` / `create_note` / search / manuscripts use that library.
+
+`create_library` — `name`, optional `rootPath`. Creates the folder; does **not** switch. Writable.
+
+---
+
+## `extract_entities` / `extract_mentions` / `extract_dates`
+
+Pass either `id` (saved note) or `text` (ephemeral). Same sidecar methods as the app.
+
+| Tool | Result |
+|------|--------|
+| `extract_entities` | `entities`, `tagSuggestions`, `language` |
+| `extract_mentions` | `wikiLinks`, `mentions`, `hosts`, `markdownLinks`, `edges` |
+| `extract_dates` | `events` + `count` (`text`, `kind`, `resolvedDate`) |
 
 ---
 

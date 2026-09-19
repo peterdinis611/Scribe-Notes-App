@@ -155,7 +155,8 @@ Prehľad argumentov a príkladov: **[tools.md](tools.md)**.
 | `set_nlp_enabled` / `set_embed_backend` | Zapnutie NLP / backend (zápis) |
 | `rewrite_selection` / `analyze_plaintext` | Prepísať alebo analyzovať neuložený text |
 | `get_nlp_artifact` | Cached AI artifact podľa id |
-| `list_libraries` / `switch_library` | Knižnice (prepnutie je zápis) |
+| `list_libraries` / `switch_library` / `create_library` | Knižnice (prepnutie/vytvorenie je zápis) |
+| `extract_entities` / `extract_mentions` / `extract_dates` | Entity, zmienky, dátumy z `id` alebo `text` |
 | `list_manuscripts` / `upsert_manuscript` | Zostavenia kapitol |
 | `list_document_chat` / `append_document_chat` / `clear_document_chat` | Uložený chat pri poznámke |
 | `trash_document` / `empty_trash` / `rename_document` / `replace_document_content` | Úpravy poznámok |
