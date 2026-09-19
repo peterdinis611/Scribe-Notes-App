@@ -13,6 +13,7 @@ import {
   persistRecentDocumentIds,
   persistRecentlyClosedIds,
   pushRecentId,
+  type LibrarySessionSnapshot,
   readActiveDocumentId,
   readBoolStorage,
   readCommentAuthor,
@@ -550,6 +551,20 @@ const documentsSlice = createSlice({
     clearSelectedDocuments(state) {
       state.selectedDocumentIds = []
     },
+    restoreLibrarySession(state, action: PayloadAction<LibrarySessionSnapshot>) {
+      const next = action.payload
+      state.openDocumentIds = next.openDocumentIds
+      state.pinnedDocumentIds = next.pinnedDocumentIds
+      state.recentDocumentIds = next.recentDocumentIds
+      state.recentlyClosedIds = next.recentlyClosedIds
+      state.activeDocumentId = next.activeDocumentId
+      state.secondaryDocumentId = null
+      persistOpenDocumentIds(next.openDocumentIds)
+      persistPinnedDocumentIds(next.pinnedDocumentIds)
+      persistRecentDocumentIds(next.recentDocumentIds)
+      persistRecentlyClosedIds(next.recentlyClosedIds)
+      persistActiveDocumentId(next.activeDocumentId)
+    },
   },
 })
 
@@ -608,6 +623,7 @@ export const {
   setSelectedDocumentIds,
   toggleSelectedDocument,
   clearSelectedDocuments,
+  restoreLibrarySession,
 } = documentsSlice.actions
 
 export default documentsSlice.reducer

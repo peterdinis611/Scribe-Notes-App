@@ -114,16 +114,18 @@ pub fn list_custom_templates(state: State<'_, DbState>) -> Result<Vec<CustomTemp
 }
 
 fn list_templates(conn: &Connection) -> Result<Vec<CustomTemplateRow>, String> {
+    let library_id = crate::libraries::active_library_id(conn);
     let mut stmt = conn
         .prepare(
             "SELECT id, name, description, category, title, content_json, created_at
              FROM custom_templates
+             WHERE library_id = ?1
              ORDER BY name COLLATE NOCASE ASC",
         )
         .map_err(|e| e.to_string())?;
 
     let rows = stmt
-        .query_map([], map_template)
+        .query_map([library_id], map_template)
         .map_err(|e| e.to_string())?;
 
     rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
@@ -157,9 +159,10 @@ pub fn create_custom_template(
         return Err("Názov dokumentu nemôže byť prázdny".to_string());
     }
 
+    let library_id = crate::libraries::active_library_id(&conn);
     conn.execute(
-        "INSERT INTO custom_templates (id, name, description, category, title, content_json, created_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        "INSERT INTO custom_templates (id, name, description, category, title, content_json, created_at, library_id)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
         params![
             input.id,
             name,
@@ -168,6 +171,7 @@ pub fn create_custom_template(
             title,
             input.content_json,
             input.created_at,
+            library_id,
         ],
     )
     .map_err(|e| e.to_string())?;

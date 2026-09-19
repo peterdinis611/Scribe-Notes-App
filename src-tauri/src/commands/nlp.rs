@@ -7,7 +7,7 @@ use tauri::{AppHandle, Emitter, State};
 use crate::db::{
     count_embeddings, count_stale_embeddings, dominant_embedding_model, extract_search_text,
     fuse_search_hits, get_embed_backend, is_nlp_enabled, rank_document_chunks, save_artifact,
-    search_documents_in_conn, semantic_search, semantic_search_filtered, set_embed_backend,
+    search_documents_for_library, semantic_search, semantic_search_filtered, set_embed_backend,
     set_nlp_enabled, similar_documents, upsert_embedding_with_chunks, EmbeddingChunkInput,
     SearchMode,
 };
@@ -92,14 +92,18 @@ fn load_journal_documents(
                 .take(unique.len())
                 .collect::<Vec<_>>()
                 .join(", ");
+            let library_id = crate::libraries::active_library_id(conn);
             let sql = format!(
                 "SELECT title, content_json FROM documents
-                 WHERE deleted_at IS NULL AND id IN ({placeholders})
+                 WHERE deleted_at IS NULL AND library_id = ? AND id IN ({placeholders})
                  ORDER BY updated_at DESC"
             );
             let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+            let mut values: Vec<String> = Vec::with_capacity(unique.len() + 1);
+            values.push(library_id);
+            values.extend(unique);
             let rows = stmt
-                .query_map(rusqlite::params_from_iter(unique.iter()), |row| {
+                .query_map(rusqlite::params_from_iter(values.iter()), |row| {
                     Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
                 })
                 .map_err(|e| e.to_string())?;
@@ -113,10 +117,12 @@ fn load_journal_documents(
     }
 
     let (start_ts, end_ts) = date_key_bounds(&input.from_date, &input.to_date)?;
+    let library_id = crate::libraries::active_library_id(conn);
     let mut stmt = conn
         .prepare(
             "SELECT title, content_json FROM documents
              WHERE deleted_at IS NULL
+               AND library_id = ?6
                AND updated_at BETWEEN ?1 AND ?2
                AND (
                  (?3 IS NOT NULL AND folder_id = ?3)
@@ -137,7 +143,8 @@ fn load_journal_documents(
                 end_ts,
                 input.journal_folder_id,
                 input.from_date,
-                input.to_date
+                input.to_date,
+                library_id
             ],
             |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
         )
@@ -510,7 +517,10 @@ pub fn nlp_search(
         SearchMode::Hybrid => {
             let fts_hits = {
                 let conn = state.conn.lock().map_err(|e| e.to_string())?;
-                search_documents_in_conn(&conn, q, limit)?
+                {
+                    let library_id = crate::libraries::active_library_id(&conn);
+                    search_documents_for_library(&conn, q, limit, &library_id)?
+                }
             };
             if !nlp_enabled {
                 return Ok(fts_hits
@@ -635,12 +645,13 @@ pub fn nlp_index_all(
             return Err("NLP is disabled".to_string());
         }
         sync_sidecar_backend(&sidecar, &conn)?;
+        let library_id = crate::libraries::active_library_id(&conn);
 
         let mut stmt = conn
-            .prepare("SELECT id, title, content_json FROM documents WHERE deleted_at IS NULL")
+            .prepare("SELECT id, title, content_json FROM documents WHERE deleted_at IS NULL AND library_id = ?1")
             .map_err(|e| e.to_string())?;
         let rows = stmt
-            .query_map([], |row| {
+            .query_map([library_id], |row| {
                 Ok((
                     row.get::<_, String>(0)?,
                     row.get::<_, String>(1)?,
@@ -856,11 +867,12 @@ pub fn nlp_suggest_tags(
                 )
                 .map_err(|e| e.to_string())?;
 
+        let library_id = crate::libraries::active_library_id(&conn);
         let mut folder_stmt = conn
-            .prepare("SELECT id, name FROM folders ORDER BY name COLLATE NOCASE")
+            .prepare("SELECT id, name FROM folders WHERE library_id = ?1 ORDER BY name COLLATE NOCASE")
             .map_err(|e| e.to_string())?;
         let folder_rows = folder_stmt
-            .query_map([], |row| {
+            .query_map([library_id], |row| {
                 Ok(json!({
                     "id": row.get::<_, String>(0)?,
                     "name": row.get::<_, String>(1)?,
@@ -955,15 +967,16 @@ pub fn nlp_library_report(
             return Err("NLP is disabled".to_string());
         }
 
+        let library_id = crate::libraries::active_library_id(&conn);
         let mut stmt = conn
             .prepare(
                 "SELECT id, title, content_json, tags, updated_at, folder_id
-                 FROM documents WHERE deleted_at IS NULL",
+                 FROM documents WHERE deleted_at IS NULL AND library_id = ?1",
             )
             .map_err(|e| e.to_string())?;
 
         let rows = stmt
-            .query_map([], |row| {
+            .query_map([library_id.clone()], |row| {
                 Ok((
                     row.get::<_, String>(0)?,
                     row.get::<_, String>(1)?,
@@ -996,11 +1009,11 @@ pub fn nlp_library_report(
         let mut folder_stmt = conn
             .prepare(
                 "SELECT id, name, parent_id, COALESCE(is_vault, 0)
-                 FROM folders ORDER BY name COLLATE NOCASE ASC",
+                 FROM folders WHERE library_id = ?1 ORDER BY name COLLATE NOCASE ASC",
             )
             .map_err(|e| e.to_string())?;
         let folder_rows = folder_stmt
-            .query_map([], |row| {
+            .query_map([library_id], |row| {
                 Ok((
                     row.get::<_, String>(0)?,
                     row.get::<_, String>(1)?,
@@ -1669,7 +1682,10 @@ pub fn nlp_library_answer(
         let q = trimmed.as_str();
         let fts_hits = {
             let conn = state.conn.lock().map_err(|e| e.to_string())?;
-            search_documents_in_conn(&conn, q, limit)?
+            {
+                let library_id = crate::libraries::active_library_id(&conn);
+                search_documents_for_library(&conn, q, limit, &library_id)?
+            }
         };
         let embed_query = rewrite_query_for_embed(&sidecar, q);
         let semantic_hits = match sidecar.embed_text(&embed_query) {

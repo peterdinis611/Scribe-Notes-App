@@ -7,6 +7,7 @@ describe('isSettingsSection', () => {
     expect(isSettingsSection('nlp')).toBe(true)
     expect(isSettingsSection('capture')).toBe(true)
     expect(isSettingsSection('about')).toBe(true)
+    expect(isSettingsSection('privacy')).toBe(true)
   })
 
   it('rejects unknown values', () => {

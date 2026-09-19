@@ -3,6 +3,7 @@ use serde::Serialize;
 use std::collections::HashMap;
 
 use crate::db::fts::extract_search_text;
+use crate::db::library_scope::active_library_id;
 use crate::db::search::SearchHit;
 
 pub const META_NLP_ENABLED: &str = "nlp_enabled";
@@ -483,13 +484,14 @@ fn semantic_search_chunks(
 
     let mut hits = Vec::with_capacity(scored.len());
     for (score, document_id, snippet) in scored {
-        let (title, content_json): (String, String) = conn
-            .query_row(
-                "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL",
-                params![document_id],
-                |row| Ok((row.get(0)?, row.get(1)?)),
-            )
-            .map_err(|e| e.to_string())?;
+        let library_id = active_library_id(conn);
+        let Ok((title, content_json)) = conn.query_row(
+            "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL AND library_id = ?2",
+            params![document_id, library_id],
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+        ) else {
+            continue;
+        };
 
         let body_snippet = if snippet.trim().is_empty() {
             extract_search_text(&content_json)
@@ -533,13 +535,14 @@ pub fn semantic_search_documents(
 
     let mut hits = Vec::with_capacity(scored.len());
     for (score, embedding) in scored {
-        let (title, content_json): (String, String) = conn
-            .query_row(
-                "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL",
-                params![embedding.document_id],
-                |row| Ok((row.get(0)?, row.get(1)?)),
-            )
-            .map_err(|e| e.to_string())?;
+        let library_id = active_library_id(conn);
+        let Ok((title, content_json)) = conn.query_row(
+            "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL AND library_id = ?2",
+            params![embedding.document_id, library_id],
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+        ) else {
+            continue;
+        };
 
         let body = extract_search_text(&content_json);
         let snippet = body.chars().take(120).collect::<String>();

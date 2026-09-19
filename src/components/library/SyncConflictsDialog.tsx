@@ -8,28 +8,39 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { useNavigate } from '@tanstack/react-router'
 import { listSyncConflicts, resolveSyncConflict, type SyncConflict } from '@/lib/db/libraries-api'
 import { reloadLibraryFromBackend } from '@/lib/library-reload'
+import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { setActiveDocumentId } from '@/store/documentsSlice'
+import { setOpenConflictCount } from '@/store/librariesSlice'
 import { setSyncConflictsOpen } from '@/store/uiSlice'
 
 export function SyncConflictsDialog() {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
   const open = useAppSelector((state) => state.ui.syncConflictsOpen)
   const [conflicts, setConflicts] = useState<SyncConflict[]>([])
 
   useEffect(() => {
     if (!open) return
-    void listSyncConflicts().then(setConflicts).catch(() => setConflicts([]))
-  }, [open])
+    void listSyncConflicts()
+      .then((rows) => {
+        setConflicts(rows)
+        dispatch(setOpenConflictCount(rows.length))
+      })
+      .catch(() => setConflicts([]))
+  }, [dispatch, open])
 
   async function resolve(id: string, keep: 'app' | 'disk') {
     try {
       await resolveSyncConflict(id, keep)
       const next = await listSyncConflicts()
       setConflicts(next)
+      dispatch(setOpenConflictCount(next.length))
       await reloadLibraryFromBackend(dispatch, { preserveActive: true })
       if (next.length === 0) dispatch(setSyncConflictsOpen(false))
     } catch (error) {
@@ -61,6 +72,18 @@ export function SyncConflictsDialog() {
                     </p>
                   </div>
                   <div className="sync-conflicts-actions">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        dispatch(setActiveDocumentId(item.documentId))
+                        void navigate(ROUTES.document(item.documentId))
+                        dispatch(setSyncConflictsOpen(false))
+                      }}
+                    >
+                      {t('syncConflicts.openDocument')}
+                    </Button>
                     <Button type="button" size="sm" variant="ghost" onClick={() => void resolve(item.id, 'app')}>
                       {t('syncConflicts.keepApp')}
                     </Button>

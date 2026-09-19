@@ -906,16 +906,17 @@ pub fn library_find_replace(
     let dry_run = input.dry_run;
 
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let library_id = crate::libraries::active_library_id(&conn);
 
     let mut stmt = match &input.folder_id {
         Some(_) => conn
             .prepare(&format!(
-                "{DOCUMENT_SELECT} WHERE deleted_at IS NULL AND folder_id = ?1 ORDER BY updated_at DESC"
+                "{DOCUMENT_SELECT} WHERE deleted_at IS NULL AND library_id = ?1 AND folder_id = ?2 ORDER BY updated_at DESC"
             ))
             .map_err(|e| e.to_string())?,
         None => conn
             .prepare(&format!(
-                "{DOCUMENT_SELECT} WHERE deleted_at IS NULL ORDER BY updated_at DESC"
+                "{DOCUMENT_SELECT} WHERE deleted_at IS NULL AND library_id = ?1 ORDER BY updated_at DESC"
             ))
             .map_err(|e| e.to_string())?,
     };
@@ -923,14 +924,14 @@ pub fn library_find_replace(
     let docs: Vec<Document> = match &input.folder_id {
         Some(folder_id) => {
             let rows = stmt
-                .query_map(params![folder_id], map_document)
+                .query_map(params![library_id, folder_id], map_document)
                 .map_err(|e| e.to_string())?;
             rows.collect::<Result<Vec<_>, _>>()
                 .map_err(|e| e.to_string())?
         }
         None => {
             let rows = stmt
-                .query_map([], map_document)
+                .query_map(params![library_id], map_document)
                 .map_err(|e| e.to_string())?;
             rows.collect::<Result<Vec<_>, _>>()
                 .map_err(|e| e.to_string())?

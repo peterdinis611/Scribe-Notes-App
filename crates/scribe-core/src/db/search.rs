@@ -152,6 +152,24 @@ pub fn search_documents_in_conn(
     query: &str,
     limit: i64,
 ) -> Result<Vec<SearchHit>, String> {
+    search_documents_scoped(conn, query, limit, None)
+}
+
+pub fn search_documents_for_library(
+    conn: &Connection,
+    query: &str,
+    limit: i64,
+    library_id: &str,
+) -> Result<Vec<SearchHit>, String> {
+    search_documents_scoped(conn, query, limit, Some(library_id))
+}
+
+fn search_documents_scoped(
+    conn: &Connection,
+    query: &str,
+    limit: i64,
+    library_id: Option<&str>,
+) -> Result<Vec<SearchHit>, String> {
     let q = query.trim();
     if q.is_empty() {
         return Ok(Vec::new());
@@ -163,27 +181,40 @@ pub fn search_documents_in_conn(
         return Ok(Vec::new());
     }
 
-    let mut stmt = conn
-        .prepare(
-            "SELECT document_id, title, snippet(documents_fts, 2, '<mark>', '</mark>', '…', 32) AS snippet, bm25(documents_fts) AS rank
+    let sql = if library_id.is_some() {
+        "SELECT f.document_id, f.title, snippet(documents_fts, 2, '<mark>', '</mark>', '…', 32) AS snippet, bm25(documents_fts) AS rank
+             FROM documents_fts f
+             JOIN documents d ON d.id = f.document_id
+             WHERE documents_fts MATCH ?1 AND d.deleted_at IS NULL AND d.library_id = ?3
+             ORDER BY rank
+             LIMIT ?2"
+    } else {
+        "SELECT document_id, title, snippet(documents_fts, 2, '<mark>', '</mark>', '…', 32) AS snippet, bm25(documents_fts) AS rank
              FROM documents_fts
              WHERE documents_fts MATCH ?1
              ORDER BY rank
-             LIMIT ?2",
-        )
-        .map_err(|e| e.to_string())?;
+             LIMIT ?2"
+    };
 
-    let rows = stmt
-        .query_map(params![fts_query, max], |row| {
-            Ok(SearchHit {
-                document_id: row.get(0)?,
-                title: row.get(1)?,
-                snippet: row.get(2)?,
-                rank: row.get(3)?,
-                match_kind: None,
-            })
+    let mut stmt = conn.prepare(sql).map_err(|e| e.to_string())?;
+
+    let map_hit = |row: &rusqlite::Row<'_>| {
+        Ok(SearchHit {
+            document_id: row.get(0)?,
+            title: row.get(1)?,
+            snippet: row.get(2)?,
+            rank: row.get(3)?,
+            match_kind: None,
         })
-        .map_err(|e| e.to_string())?;
+    };
+
+    let rows = if let Some(library_id) = library_id {
+        stmt.query_map(params![fts_query, max, library_id], map_hit)
+            .map_err(|e| e.to_string())?
+    } else {
+        stmt.query_map(params![fts_query, max], map_hit)
+            .map_err(|e| e.to_string())?
+    };
 
     rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
 }
@@ -231,6 +262,42 @@ mod tests {
         assert_eq!(hits.len(), 1);
         assert_eq!(hits[0].document_id, "doc-1");
         assert!(hits[0].title.contains("Poznámky"));
+    }
+
+    #[test]
+    fn library_search_excludes_other_libraries() {
+        let conn = in_memory_conn();
+        let now = 1_700_000_000i64;
+        conn.execute(
+            "INSERT INTO documents (id, title, content_json, created_at, updated_at, library_id)
+             VALUES ('doc-work', 'Work note', '{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"alpha secret\"}]}]}', ?1, ?1, 'work')",
+            rusqlite::params![now],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO documents (id, title, content_json, created_at, updated_at, library_id)
+             VALUES ('doc-home', 'Home note', '{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"alpha secret\"}]}]}', ?1, ?1, 'home')",
+            rusqlite::params![now],
+        )
+        .unwrap();
+        crate::db::sync_document_fts(
+            &conn,
+            "doc-work",
+            "Work note",
+            r#"{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"alpha secret"}]}]}"#,
+        )
+        .unwrap();
+        crate::db::sync_document_fts(
+            &conn,
+            "doc-home",
+            "Home note",
+            r#"{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"alpha secret"}]}]}"#,
+        )
+        .unwrap();
+
+        let work = search_documents_for_library(&conn, "alpha", 10, "work").unwrap();
+        assert_eq!(work.len(), 1);
+        assert_eq!(work[0].document_id, "doc-work");
     }
 
     #[test]

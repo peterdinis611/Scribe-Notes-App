@@ -1,6 +1,6 @@
 use rusqlite::Connection;
 
-const SCHEMA_VERSION: i32 = 18;
+const SCHEMA_VERSION: i32 = 19;
 
 pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     conn.execute_batch(
@@ -483,6 +483,27 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
             "INSERT OR IGNORE INTO meta (key, value) VALUES ('active_library_id', 'default')",
             [],
         )?;
+        conn.execute(
+            "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
+            ["18".to_string()],
+        )?;
+    }
+
+    if current < 19 {
+        let _ = conn.execute(
+            "ALTER TABLE sync_conflicts ADD COLUMN library_id TEXT NOT NULL DEFAULT 'default'",
+            [],
+        );
+        let _ = conn.execute(
+            "UPDATE sync_conflicts SET library_id = COALESCE((
+                SELECT library_id FROM documents WHERE documents.id = sync_conflicts.document_id
+            ), 'default')",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE custom_templates ADD COLUMN library_id TEXT NOT NULL DEFAULT 'default'",
+            [],
+        );
         conn.execute(
             "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
             [SCHEMA_VERSION.to_string()],

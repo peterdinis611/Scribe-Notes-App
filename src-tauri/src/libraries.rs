@@ -155,14 +155,15 @@ pub struct SyncConflict {
 }
 
 pub fn list_open_conflicts(conn: &Connection) -> Result<Vec<SyncConflict>, String> {
+    let library_id = active_library_id(conn);
     let mut stmt = conn
         .prepare(
             "SELECT id, document_id, title, disk_updated_at, db_updated_at, created_at \
-             FROM sync_conflicts WHERE resolved = 0 ORDER BY created_at DESC",
+             FROM sync_conflicts WHERE resolved = 0 AND library_id = ?1 ORDER BY created_at DESC",
         )
         .map_err(|e| e.to_string())?;
     let rows = stmt
-        .query_map([], |row| {
+        .query_map([library_id], |row| {
             Ok(SyncConflict {
                 id: row.get(0)?,
                 document_id: row.get(1)?,
@@ -184,10 +185,11 @@ pub fn record_conflict(
     db_updated_at: i64,
 ) -> Result<(), String> {
     let now = now_ts();
+    let library_id = active_library_id(conn);
     conn.execute(
-        "INSERT INTO sync_conflicts (id, document_id, title, disk_updated_at, db_updated_at, created_at, resolved) \
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, 0)",
-        params![Uuid::new_v4().to_string(), document_id, title, disk_updated_at, db_updated_at, now],
+        "INSERT INTO sync_conflicts (id, document_id, title, disk_updated_at, db_updated_at, created_at, resolved, library_id) \
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, 0, ?7)",
+        params![Uuid::new_v4().to_string(), document_id, title, disk_updated_at, db_updated_at, now, library_id],
     )
     .map_err(|e| e.to_string())?;
     Ok(())

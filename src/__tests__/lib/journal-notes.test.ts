@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { collectJournalDocumentIdsForRange } from '@/lib/journal-notes'
 import type { DocumentSummary } from '@/lib/db/api'
 import { kvSet } from '@/lib/storage/kv'
+import { setPersistLibraryId } from '@/store/persistence'
 
 function summary(
   id: string,
@@ -48,5 +49,39 @@ describe('collectJournalDocumentIdsForRange', () => {
       '2026-09-07',
     )
     expect(ids).toContain('doc-b')
+  })
+
+  it('keeps journal maps isolated per library', () => {
+    kvSet(
+      'scribe-journal-map',
+      JSON.stringify({
+        v: 2,
+        byLibrary: {
+          work: { 'daily:2026-09-01': 'doc-work' },
+          home: { 'daily:2026-09-01': 'doc-home' },
+        },
+      }),
+    )
+    setPersistLibraryId('work')
+    expect(
+      collectJournalDocumentIdsForRange(
+        [summary('doc-work', 'A'), summary('doc-home', 'B')],
+        null,
+        '2026-09-01',
+        '2026-09-01',
+      ),
+    ).toEqual(['doc-work'])
+
+    setPersistLibraryId('home')
+    expect(
+      collectJournalDocumentIdsForRange(
+        [summary('doc-work', 'A'), summary('doc-home', 'B')],
+        null,
+        '2026-09-01',
+        '2026-09-01',
+      ),
+    ).toEqual(['doc-home'])
+
+    setPersistLibraryId('default')
   })
 })

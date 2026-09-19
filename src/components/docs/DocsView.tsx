@@ -11,6 +11,7 @@ import {
   Link2,
   PenLine,
   Search,
+  Shield,
   Sparkles,
   X,
   type LucideIcon,
@@ -21,6 +22,7 @@ import { cn } from '@/lib/utils'
 
 export const DOCS_TOPIC_IDS = [
   'overview',
+  'privacy',
   'documents',
   'library',
   'linkGraph',
@@ -37,6 +39,7 @@ export type DocsTopicId = (typeof DOCS_TOPIC_IDS)[number]
 
 const TOPIC_ICONS: Record<DocsTopicId, LucideIcon> = {
   overview: BookOpen,
+  privacy: Shield,
   documents: FileText,
   library: FolderTree,
   linkGraph: GitFork,
@@ -50,7 +53,7 @@ const TOPIC_ICONS: Record<DocsTopicId, LucideIcon> = {
 }
 
 const DOC_GROUPS: { id: string; topics: DocsTopicId[] }[] = [
-  { id: 'basics', topics: ['overview', 'documents'] },
+  { id: 'basics', topics: ['overview', 'privacy', 'documents'] },
   { id: 'organize', topics: ['library', 'linkGraph', 'wikiLinks'] },
   { id: 'write', topics: ['editor', 'search', 'localAi', 'journal'] },
   { id: 'power', topics: ['backup', 'shortcuts'] },

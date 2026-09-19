@@ -25,6 +25,7 @@ import {
   Plus,
   Search,
   Settings2,
+  Shield,
   Shuffle,
   Smartphone,
   Sparkles,
@@ -714,6 +715,14 @@ export function CommandPalette() {
         hint: t('commandPalette.mobileCaptureHint'),
         icon: <Smartphone className="h-4 w-4" />,
         run: () => navigate(ROUTES.settingsSection('capture')),
+      },
+      {
+        type: 'action',
+        id: 'privacy',
+        label: t('commandPalette.privacy'),
+        hint: t('commandPalette.privacyHint'),
+        icon: <Shield className="h-4 w-4" />,
+        run: () => navigate(ROUTES.settingsSection('privacy')),
       },
       ...(isTauriRuntime()
         ? [

@@ -351,6 +351,10 @@ The SQLite schema is versioned in `src-tauri/src/db/migrations.rs`. Migrations r
 
 Current version: **2.0.0**
 
+## Privacy
+
+Scribe is local-first: notes stay on your Mac. Optional features you start (fonts, embeds, MCP hosts, LAN capture) are described in [Privacy Policy](PRIVACY.md) ([Slovenčina](PRIVACY.sk.md)). The same notice is in the app under Settings → Privacy.
+
 ## License
 
 [MIT](LICENSE) © 2026 Peter Dinis

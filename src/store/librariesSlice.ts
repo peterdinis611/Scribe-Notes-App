@@ -3,10 +3,12 @@ import type { Library } from '@/lib/db/libraries-api'
 
 export interface LibrariesState {
   libraries: Library[]
+  openConflictCount: number
 }
 
 const initialState: LibrariesState = {
   libraries: [],
+  openConflictCount: 0,
 }
 
 const librariesSlice = createSlice({
@@ -16,8 +18,11 @@ const librariesSlice = createSlice({
     setLibraries(state, action: PayloadAction<Library[]>) {
       state.libraries = action.payload
     },
+    setOpenConflictCount(state, action: PayloadAction<number>) {
+      state.openConflictCount = action.payload
+    },
   },
 })
 
-export const { setLibraries } = librariesSlice.actions
+export const { setLibraries, setOpenConflictCount } = librariesSlice.actions
 export default librariesSlice.reducer

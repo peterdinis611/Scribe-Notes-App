@@ -11,7 +11,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { createDocument, getDocument } from '@/lib/db/api'
+import { createDocument, exportDocument, getDocument, revealInFinder } from '@/lib/db/api'
+import { tiptapJsonToHtmlAsync } from '@/lib/export/html'
+import { tiptapJsonToMarkdown } from '@/lib/export/markdown'
+import { tiptapToPlainText } from '@/lib/export/plain-text'
 import { upsertManuscript } from '@/lib/db/libraries-api'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { visibleLibraryDocuments } from '@/lib/db/library-sync'
@@ -54,11 +57,13 @@ export function CompileDialog() {
   const [title, setTitle] = useState('')
   const [selected, setSelected] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
+  const [exportFormat, setExportFormat] = useState<'none' | 'pdf' | 'docx'>('none')
 
   function close() {
     dispatch(setCompileDialogOpen(false))
     setSelected([])
     setTitle('')
+    setExportFormat('none')
   }
 
   function toggle(id: string) {
@@ -85,7 +90,29 @@ export function CompileDialog() {
       dispatch(updateDocuments((prev) => prependDocumentSummary(prev, created)))
       dispatch(setActiveDocumentId(created.id))
       void navigate(ROUTES.document(created.id))
-      toast.success(t('compile.doneTitle'), t('compile.doneHint', { count: selected.length }))
+      if (exportFormat !== 'none') {
+        const html = await tiptapJsonToHtmlAsync(created.contentJson, created.title, {
+          forPrint: true,
+        })
+        const result = await exportDocument(
+          html,
+          tiptapToPlainText(created.contentJson),
+          created.title,
+          exportFormat,
+          tiptapJsonToMarkdown(created.contentJson, created.title),
+        )
+        if (result?.path) {
+          toast.success(
+            t('compile.exportedTitle'),
+            t('compile.exportedHint', { count: selected.length, format: exportFormat.toUpperCase() }),
+          )
+          await revealInFinder(result.path)
+        } else {
+          toast.success(t('compile.doneTitle'), t('compile.doneHint', { count: selected.length }))
+        }
+      } else {
+        toast.success(t('compile.doneTitle'), t('compile.doneHint', { count: selected.length }))
+      }
       close()
     } catch (error) {
       toast.error(t('compile.error'), String(error))
@@ -121,6 +148,36 @@ export function CompileDialog() {
               </li>
             ))}
           </ol>
+          <fieldset className="compile-export">
+            <legend>{t('compile.exportLabel')}</legend>
+            <label>
+              <input
+                type="radio"
+                name="compile-export"
+                checked={exportFormat === 'none'}
+                onChange={() => setExportFormat('none')}
+              />
+              {t('compile.exportOpen')}
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="compile-export"
+                checked={exportFormat === 'pdf'}
+                onChange={() => setExportFormat('pdf')}
+              />
+              PDF
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="compile-export"
+                checked={exportFormat === 'docx'}
+                onChange={() => setExportFormat('docx')}
+              />
+              DOCX
+            </label>
+          </fieldset>
           <DialogFooter>
             <Button type="button" variant="ghost" size="sm" onClick={close}>
               {t('common.cancel')}
@@ -131,7 +188,7 @@ export function CompileDialog() {
               disabled={busy || selected.length === 0}
               onClick={() => void compile()}
             >
-              {t('compile.action')}
+              {exportFormat === 'none' ? t('compile.action') : t('compile.actionExport')}
             </Button>
           </DialogFooter>
         </DialogContent>

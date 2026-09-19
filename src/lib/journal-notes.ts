@@ -18,25 +18,44 @@ import {
 } from '@/store/documentsSlice'
 import { kvGet, kvSet } from '@/lib/storage/kv'
 import type { DocumentSummary, Folder } from '@/lib/db/api'
+import { DEFAULT_PERSIST_LIBRARY_ID, getPersistLibraryId } from '@/store/persistence'
 
 const JOURNAL_MAP_KEY = 'scribe-journal-map'
 
 type JournalMap = Record<string, string>
+type JournalStoreV2 = { v: 2; byLibrary: Record<string, JournalMap> }
 
-function readJournalMap(): JournalMap {
+function isFlatJournalMap(value: Record<string, unknown>): boolean {
+  return Object.keys(value).some((key) => key.startsWith('daily:') || key.startsWith('weekly:'))
+}
+
+function readJournalStore(): JournalStoreV2 {
   try {
     const raw = kvGet(JOURNAL_MAP_KEY)
-    if (!raw) return {}
+    if (!raw) return { v: 2, byLibrary: {} }
     const parsed = JSON.parse(raw) as unknown
-    if (!parsed || typeof parsed !== 'object') return {}
-    return parsed as JournalMap
+    if (!parsed || typeof parsed !== 'object') return { v: 2, byLibrary: {} }
+    const record = parsed as Record<string, unknown>
+    if (record.v === 2 && record.byLibrary && typeof record.byLibrary === 'object') {
+      return parsed as JournalStoreV2
+    }
+    if (isFlatJournalMap(record)) {
+      return { v: 2, byLibrary: { [DEFAULT_PERSIST_LIBRARY_ID]: record as JournalMap } }
+    }
+    return { v: 2, byLibrary: {} }
   } catch {
-    return {}
+    return { v: 2, byLibrary: {} }
   }
 }
 
+function readJournalMap(): JournalMap {
+  return { ...(readJournalStore().byLibrary[getPersistLibraryId()] ?? {}) }
+}
+
 function persistJournalMap(map: JournalMap) {
-  kvSet(JOURNAL_MAP_KEY, JSON.stringify(map))
+  const store = readJournalStore()
+  store.byLibrary[getPersistLibraryId()] = map
+  kvSet(JOURNAL_MAP_KEY, JSON.stringify(store))
 }
 
 export function formatDateKey(date: Date): string {

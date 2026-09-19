@@ -343,6 +343,10 @@ Schéma SQLite je verzovaná v `src-tauri/src/db/migrations.rs`. Pri štarte apl
 
 Aktuálna verzia: **2.0.0**
 
+## Súkromie
+
+Scribe je local-first: poznámky ostávajú na Macu. Voliteľné funkcie, ktoré spustíš (písma, vloženia, MCP hostitelia, zápis v LAN), sú v [zásadách ochrany súkromia](PRIVACY.sk.md) ([English](PRIVACY.md)). Rovnaký text je v aplikácii v Nastavenia → Súkromie.
+
 ## Licencia
 
 [MIT](LICENSE) © 2026 Peter Dinis

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DiagnosticsSection } from '@/components/settings/DiagnosticsSection'
 import { McpSection } from '@/components/settings/McpSection'
+import { PrivacySection } from '@/components/settings/PrivacySection'
 import {
   SettingsGroup,
   SettingsKbd,
@@ -882,6 +883,7 @@ export function ShortcutsSection() {
 export function AboutSection() {
   const [version, setVersion] = useState(APP_VERSION)
   const { t } = useTranslation()
+  const navigate = useNavigate()
 
   useEffect(() => {
     getVersion()
@@ -914,6 +916,14 @@ export function AboutSection() {
         <AboutRow label={t('settings.about.fileFormat')} value=".scribe" />
         <AboutRow label={t('settings.about.export')} value="PDF, DOCX, TXT, Pages" />
       </div>
+
+      <button
+        type="button"
+        className="privacy-notice-about-link mt-4 w-full"
+        onClick={() => navigate(ROUTES.settingsSection('privacy'))}
+      >
+        {t('settings.about.privacy')}
+      </button>
     </SettingsSection>
   )
 }
@@ -930,8 +940,13 @@ export function SettingsSectionContent({ section }: { section: SettingsSectionId
       return <DiagnosticsSection />
     case 'mcp':
       return <McpSection />
+    case 'privacy':
+      return <PrivacySection />
     case 'about':
       return <AboutSection />
+    case 'nlp':
+    case 'capture':
+      return null
   }
 }
 

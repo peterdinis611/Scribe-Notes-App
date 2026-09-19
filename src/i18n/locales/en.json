@@ -142,6 +142,8 @@
     "settings": "Settings",
     "mobileCapture": "Mobile capture…",
     "mobileCaptureHint": "QR → Inbox over Wi‑Fi",
+    "privacy": "Privacy policy",
+    "privacyHint": "What stays on this Mac",
     "windowCenter": "Center window",
     "windowTopRight": "Move window to top right",
     "docs": "Documentation",
@@ -598,6 +600,10 @@
         "label": "Mobile capture",
         "description": "Phone → Inbox over Wi‑Fi"
       },
+      "privacy": {
+        "label": "Privacy",
+        "description": "What stays on this Mac"
+      },
       "about": {
         "label": "About",
         "description": "Version and info"
@@ -817,7 +823,79 @@
       "platform": "Platform",
       "fileFormat": "File format",
       "export": "Export",
-      "replayTour": "Replay app tour"
+      "replayTour": "Replay app tour",
+      "privacy": "Privacy policy"
+    },
+    "privacy": {
+      "kicker": "Publisher’s notice",
+      "title": "Privacy policy",
+      "effective": "Effective 19 September 2026 · Scribe {{version}}",
+      "lead": "Scribe is a local document editor for macOS. This notice describes what stays on your Mac, what is not sent to the developer, and when a feature you turn on may talk to another machine.",
+      "colophon": "Questions: open an issue on the Scribe GitHub repository. Slovak and English texts live with the app source as PRIVACY.md.",
+      "articles": {
+        "localFirst": {
+          "title": "Local first",
+          "paragraphs": [
+            "Documents, the SQLite library, settings, revisions, and optional .scribe backups stay on the Mac user account that runs Scribe. There is no Scribe sign-in and no Scribe cloud."
+          ]
+        },
+        "storedData": {
+          "title": "What stays on this Mac",
+          "paragraphs": [
+            "Depending on how you use the app, Scribe may store document content, titles, folders, tags, comments, version history, interface settings, optional Local AI indexes, clipboard history, and sync-conflict revisions.",
+            "macOS file permissions still apply. Scribe writes to the library you choose and to its application data — it does not scan your whole disk."
+          ]
+        },
+        "noCollection": {
+          "title": "What we do not collect",
+          "paragraphs": [
+            "The app does not create an account with the developer. It does not send your notes, usage analytics, advertising identifiers, or crash telemetry to Peter Dinis."
+          ]
+        },
+        "optionalNetwork": {
+          "title": "Optional network use you start",
+          "paragraphs": [
+            "Google Fonts, a remote image or YouTube embed you insert, and opening GitHub Releases from Diagnostics contact other servers only when you use those features. Those hosts may see a typical web request.",
+            "Scribe does not phone home on a schedule to report how you write."
+          ]
+        },
+        "mcp": {
+          "title": "MCP (Cursor / Claude)",
+          "paragraphs": [
+            "The MCP bridge is optional and runs as a local process on this Mac. It does not upload notes by itself. If Cursor, Claude, or another host reads Scribe through tools, that host’s privacy policy applies to any content the model fetches."
+          ]
+        },
+        "capture": {
+          "title": "Mobile capture",
+          "paragraphs": [
+            "Mobile capture is a local Wi‑Fi listener on your Mac. Your phone talks to that Mac on the LAN. Scribe does not relay capture notes through a developer-operated server."
+          ]
+        },
+        "yourControl": {
+          "title": "Your control",
+          "paragraphs": [
+            "You can change the documents folder, export or delete the library, turn optional features off, and uninstall the app. Deleting Scribe’s application data and the documents folder removes the local library from that Mac."
+          ]
+        },
+        "children": {
+          "title": "Children",
+          "paragraphs": [
+            "Scribe is a general writing tool. It is not directed at children under 13, and we do not knowingly collect personal information from children."
+          ]
+        },
+        "changes": {
+          "title": "Changes",
+          "paragraphs": [
+            "When this policy changes, the in-app notice is updated with the app version. Continued use after an update means the current notice applies."
+          ]
+        },
+        "contact": {
+          "title": "Contact",
+          "paragraphs": [
+            "Questions about this policy: open an issue on the Scribe-Notes-App GitHub repository."
+          ]
+        }
+      }
     },
     "docs": {
       "pageTitle": "Documentation",
@@ -845,6 +923,15 @@
           "paragraphs": [
             "Scribe is a local document editor for macOS. Write and export on this Mac — your library lives in SQLite, with optional .scribe backups on disk.",
             "As notes grow, link them with wiki links. The connection map and MCP (Cursor / Claude) are power tools — not the starting point."
+          ],
+          "points": []
+        },
+        "privacy": {
+          "title": "Privacy",
+          "summary": "What stays on this Mac",
+          "paragraphs": [
+            "Scribe stores your library locally. There is no Scribe account and no analytics sent to the developer.",
+            "Optional features you start — Google Fonts, remote embeds, MCP hosts, or mobile capture on your LAN — are described in Settings → Privacy."
           ],
           "points": []
         },
@@ -1138,13 +1225,18 @@
   "compile": {
     "action": "Compile",
     "title": "Compile a long text",
-    "hint": "Pick chapters in order. Scribe creates one new document with shared headings.",
+    "hint": "Pick chapters in order. Scribe builds one document — open it, or export PDF/DOCX in the same step.",
     "titlePlaceholder": "Book or report title",
     "untitled": "Compiled manuscript",
     "doneTitle": "Compiled",
     "doneHint": "{{count}} chapters in one document.",
     "error": "Compile failed",
-    "paletteHint": "Chapters → one document"
+    "paletteHint": "Chapters → one document",
+    "exportLabel": "After compile",
+    "exportOpen": "Open the new document",
+    "actionExport": "Compile and export",
+    "exportedTitle": "Compiled and exported",
+    "exportedHint": "{{count}} chapters exported as {{format}}."
   },
   "syncConflicts": {
     "title": "Sync conflicts",
@@ -1154,7 +1246,9 @@
     "keepApp": "Keep app",
     "keepDisk": "Keep disk",
     "resolveError": "Could not resolve the conflict",
-    "paletteHint": "Choose disk or app"
+    "paletteHint": "Choose disk or app",
+    "badge": "{{count}} sync conflicts",
+    "openDocument": "Open"
   },
   "library": {
     "title": "Library",

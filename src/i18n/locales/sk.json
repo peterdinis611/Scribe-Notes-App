@@ -142,6 +142,8 @@
     "settings": "Nastavenia",
     "mobileCapture": "Mobilný zápis…",
     "mobileCaptureHint": "QR → Inbox cez Wi‑Fi",
+    "privacy": "Zásady ochrany súkromia",
+    "privacyHint": "Čo ostáva na tomto Macu",
     "windowCenter": "Vycentrovať okno",
     "windowTopRight": "Presunúť okno vpravo hore",
     "docs": "Dokumentácia",
@@ -598,6 +600,10 @@
         "label": "Mobilný zápis",
         "description": "Telefón → Schránka cez Wi‑Fi"
       },
+      "privacy": {
+        "label": "Súkromie",
+        "description": "Čo ostáva na tomto Macu"
+      },
       "about": {
         "label": "O aplikácii",
         "description": "Verzia a info"
@@ -817,7 +823,79 @@
       "platform": "Platforma",
       "fileFormat": "Formát súborov",
       "export": "Export",
-      "replayTour": "Znova prejsť sprievodcom"
+      "replayTour": "Znova prejsť sprievodcom",
+      "privacy": "Zásady ochrany súkromia"
+    },
+    "privacy": {
+      "kicker": "Oznámenie vydavateľa",
+      "title": "Zásady ochrany súkromia",
+      "effective": "Účinné od 19. septembra 2026 · Scribe {{version}}",
+      "lead": "Scribe je lokálny editor dokumentov pre macOS. Tento text popisuje, čo ostáva na Macu, čo neodosiela vývojárovi a kedy funkcia, ktorú zapneš, môže hovoriť s iným zariadením.",
+      "colophon": "Otázky: issue v GitHub repozitári Scribe. Slovenský a anglický text sú v zdroji aplikácie ako PRIVACY.md.",
+      "articles": {
+        "localFirst": {
+          "title": "Najprv lokálne",
+          "paragraphs": [
+            "Dokumenty, knižnica SQLite, nastavenia, revízie a voliteľné zálohy .scribe ostávajú na používateľskom účte macOS, ktorý Scribe spúšťa. Neexistuje prihlásenie do Scribe ani Scribe cloud."
+          ]
+        },
+        "storedData": {
+          "title": "Čo ostáva na tomto Macu",
+          "paragraphs": [
+            "Podľa toho, ako aplikáciu používaš, môže Scribe uložiť obsah dokumentov, názvy, priečinky, tagy, komentáre, históriu verzií, nastavenia rozhrania, voliteľné indexy Lokálnej AI, históriu schránky a revízie sync konfliktov.",
+            "Stále platia oprávnenia súborov macOS. Scribe zapisuje do knižnice, ktorú zvolíš, a do dát aplikácie — neprehľadáva celý disk."
+          ]
+        },
+        "noCollection": {
+          "title": "Čo nezbierame",
+          "paragraphs": [
+            "Aplikácia si u vývojára nevytvára účet. Neodosiela poznámky, analytiku používania, reklamné identifikátory ani telemetriu pádov Petrovi Dinisovi."
+          ]
+        },
+        "optionalNetwork": {
+          "title": "Voliteľná sieť, ktorú spustíš ty",
+          "paragraphs": [
+            "Google Fonts, vzdialený obrázok alebo YouTube vložené tebou a otvorenie GitHub Releases z Diagnostiky kontaktujú iné servery len vtedy, keď tie funkcie použiješ. Tí hostitelia môžu vidieť bežnú webovú požiadavku.",
+            "Scribe sa v pravidelných intervaloch nehlási vývojárovi, aby hlásil, ako píšeš."
+          ]
+        },
+        "mcp": {
+          "title": "MCP (Cursor / Claude)",
+          "paragraphs": [
+            "Most MCP je voliteľný a beží ako lokálny proces na tomto Macu. Sám poznámky neodosiela. Ak Cursor, Claude alebo iný hostiteľ číta Scribe cez nástroje, platí politika toho hostiteľa pre obsah, ktorý model stiahne."
+          ]
+        },
+        "capture": {
+          "title": "Mobilný zápis",
+          "paragraphs": [
+            "Mobilný zápis je lokálny Wi‑Fi poslucháč na Macu. Telefón sa rozpráva s tým Macom v LAN. Scribe neposiela zápisy cez server vývojára."
+          ]
+        },
+        "yourControl": {
+          "title": "Tvoja kontrola",
+          "paragraphs": [
+            "Môžeš zmeniť priečinok dokumentov, exportovať alebo zmazať knižnicu, vypnúť voliteľné funkcie a odinštalovať aplikáciu. Zmazanie dát aplikácie a priečinka dokumentov odstráni lokálnu knižnicu z toho Macu."
+          ]
+        },
+        "children": {
+          "title": "Deti",
+          "paragraphs": [
+            "Scribe je všeobecný nástroj na písanie. Nie je určený deťom do 13 rokov a vedome od detí nezbierame osobné údaje."
+          ]
+        },
+        "changes": {
+          "title": "Zmeny",
+          "paragraphs": [
+            "Keď sa táto politika zmení, aktualizuje sa oznámenie v aplikácii s verziou aplikácie. Ďalšie používanie po aktualizácii znamená, že platí aktuálne znenie."
+          ]
+        },
+        "contact": {
+          "title": "Kontakt",
+          "paragraphs": [
+            "Otázky k tejto politike: issue v GitHub repozitári Scribe-Notes-App."
+          ]
+        }
+      }
     },
     "docs": {
       "pageTitle": "Dokumentácia",
@@ -846,6 +924,15 @@
           "paragraphs": [
             "Scribe je lokálny editor dokumentov pre macOS. Píšte a exportujte súbory na tomto Macu — knižnica žije v SQLite, s voliteľnými .scribe zálohmi na disku.",
             "Keď poznámok pribudne, prepájajte ich wiki odkazmi. Mapa prepojení a MCP (Cursor / Claude) sú pokročilé nástroje — nie povinný štart."
+          ],
+          "points": []
+        },
+        "privacy": {
+          "title": "Súkromie",
+          "summary": "Čo ostáva na tomto Macu",
+          "paragraphs": [
+            "Scribe ukladá knižnicu lokálne. Nie je účet Scribe ani analytika odosielaná vývojárovi.",
+            "Voliteľné funkcie, ktoré spustíš — Google Fonts, vzdialené vloženia, MCP hostitelia alebo mobilný zápis v LAN — sú popísané v Nastavenia → Súkromie."
           ],
           "points": []
         },
@@ -1138,13 +1225,18 @@
   "compile": {
     "action": "Zostaviť",
     "title": "Zostavenie dlhého textu",
-    "hint": "Vyberte kapitoly v poradí. Scribe z nich spraví jeden nový dokument so spoločnými nadpismi.",
+    "hint": "Vyber kapitoly v poradí. Scribe z nich spraví jeden dokument — otvorí ho, alebo v tom istom kroku exportuje PDF/DOCX.",
     "titlePlaceholder": "Názov knihy alebo reportu",
     "untitled": "Zostavený rukopis",
     "doneTitle": "Zostavené",
     "doneHint": "{{count}} kapitol v jednom dokumente.",
     "error": "Zostavenie zlyhalo",
-    "paletteHint": "Kapitoly → jeden dokument"
+    "paletteHint": "Kapitoly → jeden dokument",
+    "exportLabel": "Po zostavení",
+    "exportOpen": "Otvoriť nový dokument",
+    "actionExport": "Zostaviť a exportovať",
+    "exportedTitle": "Zostavené a exportované",
+    "exportedHint": "{{count}} kapitol ako {{format}}."
   },
   "syncConflicts": {
     "title": "Konflikty synchronizácie",
@@ -1154,7 +1246,9 @@
     "keepApp": "Ponechať v apke",
     "keepDisk": "Ponechať z disku",
     "resolveError": "Konflikt sa nepodarilo vyriešiť",
-    "paletteHint": "Disk alebo aplikácia"
+    "paletteHint": "Disk alebo aplikácia",
+    "badge": "{{count}} sync konfliktov",
+    "openDocument": "Otvoriť"
   },
   "library": {
     "title": "Knižnica",

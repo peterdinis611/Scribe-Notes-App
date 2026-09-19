@@ -27,12 +27,31 @@ import { setLibraryGraphAroundActive, setLibraryView, setTrashOpen } from '@/sto
 import {
   setCommandPaletteOpen,
 } from '@/store/foldersSlice'
+import { setSyncConflictsOpen } from '@/store/uiSlice'
 import { useResizableSidebar } from '@/hooks/useResizableSidebar'
 
 type SidebarProps = {
   isCompact?: boolean
   isOpen?: boolean
   onClose?: () => void
+}
+
+function ConflictBadge() {
+  const { t } = useTranslation()
+  const dispatch = useAppDispatch()
+  const count = useAppSelector((state) => state.libraries.openConflictCount)
+  if (count < 1) return null
+
+  return (
+    <button
+      type="button"
+      className="library-conflict-badge"
+      onClick={() => dispatch(setSyncConflictsOpen(true))}
+      title={t('syncConflicts.badge', { count })}
+    >
+      {t('syncConflicts.badge', { count })}
+    </button>
+  )
 }
 
 const libraryActionClass =
@@ -107,6 +126,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
               {t('library.documentCount', { count: visibleDocuments.length })}
             </p>
             <LibrarySwitcher />
+            <ConflictBadge />
           </div>
 
           <div className="px-2 py-1.5" data-tour="library-search">
