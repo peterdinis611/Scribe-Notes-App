@@ -12,3 +12,4 @@ pub mod storage;
 pub mod system;
 pub mod links;
 pub mod nlp;
+pub mod ocr;

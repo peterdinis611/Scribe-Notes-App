@@ -1,6 +1,6 @@
 use rusqlite::Connection;
 
-const SCHEMA_VERSION: i32 = 19;
+const SCHEMA_VERSION: i32 = 20;
 
 pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     conn.execute_batch(
@@ -504,6 +504,40 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
             "ALTER TABLE custom_templates ADD COLUMN library_id TEXT NOT NULL DEFAULT 'default'",
             [],
         );
+        conn.execute(
+            "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
+            ["19".to_string()],
+        )?;
+    }
+
+    if current < 20 {
+        conn.execute_batch(
+            r#"
+            CREATE TABLE IF NOT EXISTS smart_folders (
+                id TEXT PRIMARY KEY,
+                library_id TEXT NOT NULL DEFAULT 'default',
+                name TEXT NOT NULL,
+                query_rule TEXT NOT NULL,
+                icon TEXT,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS document_ocr (
+                id TEXT PRIMARY KEY,
+                document_id TEXT NOT NULL,
+                image_path TEXT NOT NULL,
+                ocr_text TEXT NOT NULL,
+                created_at INTEGER NOT NULL,
+                FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_smart_folders_library
+                ON smart_folders(library_id, updated_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_document_ocr_doc
+                ON document_ocr(document_id);
+            "#,
+        )?;
         conn.execute(
             "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
             [SCHEMA_VERSION.to_string()],

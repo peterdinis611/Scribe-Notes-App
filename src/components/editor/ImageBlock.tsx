@@ -20,6 +20,7 @@ import {
   Trash2,
   Upload,
   CopyPlus,
+  Scan,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAnimatedImageSrc } from '@/hooks/useAnimatedImageSrc'
@@ -64,6 +65,8 @@ export function ImageBlock({
   const [captionFocused, setCaptionFocused] = useState(false)
   const [altDraft, setAltDraft] = useState((node.attrs.alt as string) ?? '')
   const [captionDraft, setCaptionDraft] = useState((node.attrs.caption as string) ?? '')
+  const [ocrText, setOcrText] = useState<string | null>(null)
+  const [ocrLoading, setOcrLoading] = useState(false)
 
   const rawSrc = (node.attrs.src as string) ?? ''
   const { displaySrc, animated, kind: animatedKind } = useAnimatedImageSrc(rawSrc)
