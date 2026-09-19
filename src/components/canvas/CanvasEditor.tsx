@@ -21,7 +21,7 @@ import {
   type NodeTypes,
 } from '@xyflow/react'
 import { openUrl } from '@tauri-apps/plugin-opener'
-import { Link2, Minus, Plus, Square, Trash2, ZoomIn, ZoomOut } from 'lucide-react'
+import { Link2, Minus, Plus, Square, Trash2, ZoomIn, ZoomOut, Download } from 'lucide-react'
 import '@xyflow/react/dist/style.css'
 import { CanvasNoteActions, CanvasNoteNode } from '@/components/canvas/CanvasNoteNode'
 import {
@@ -310,6 +310,27 @@ function CanvasFlow() {
         >
           <Trash2 className="h-3.5 w-3.5" />
           <span>{t('canvas.deleteSelected')}</span>
+        </button>
+        <button
+          type="button"
+          className="canvas-toolbar-btn"
+          onClick={() => {
+            const el = surfaceRef.current
+            if (!el) return
+            const svgData = `<svg xmlns="http://www.w3.org/2000/svg" width="${el.clientWidth}" height="${el.clientHeight}"><foreignObject width="100%" height="100%">${new XMLSerializer().serializeToString(el)}</foreignObject></svg>`
+            const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' })
+            const url = URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.href = url
+            link.download = `${activeDocument?.title || 'canvas'}.svg`
+            link.click()
+            URL.revokeObjectURL(url)
+            toast.success('Canvas exported as SVG')
+          }}
+          title="Export Canvas SVG"
+        >
+          <Download className="h-3.5 w-3.5" />
+          <span>Export SVG</span>
         </button>
         <div className="canvas-toolbar-spacer" />
         <button
