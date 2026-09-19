@@ -2607,6 +2607,11 @@
     "missing": "Dokument sa nenašiel — skontrolujte ![[Názov]].",
     "empty": "Prázdna poznámka"
   },
+  "codeBlock": {
+    "copy": "Kopírovať kód",
+    "copied": "Skopírované",
+    "auto": "Auto"
+  },
   "image": {
     "alignLeft": "Zarovnať vľavo",
     "alignCenter": "Na stred",
@@ -2619,7 +2624,14 @@
     "properties": "Alt text",
     "crop": "Orezať",
     "cropTitle": "Orezať obrázok",
-    "cropHint": "Presuňte výber a potom aplikujte orezanie.",
+    "cropHint": "Ťahajte úchyty, potom aplikujte orezanie.",
+    "cropAspect": "Pomer strán",
+    "aspect": {
+      "free": "Voľný",
+      "square": "1:1",
+      "photo": "4:3",
+      "wide": "16:9"
+    },
     "applyCrop": "Aplikovať orez",
     "replace": "Nahradiť obrázok",
     "download": "Stiahnuť",

@@ -2592,6 +2592,11 @@
     "missing": "Document not found — check ![[Title]].",
     "empty": "Empty note"
   },
+  "codeBlock": {
+    "copy": "Copy code",
+    "copied": "Copied",
+    "auto": "Auto"
+  },
   "image": {
     "alignLeft": "Align left",
     "alignCenter": "Align center",
@@ -2604,7 +2609,14 @@
     "properties": "Alt text",
     "crop": "Crop",
     "cropTitle": "Crop image",
-    "cropHint": "Drag the selection, then apply the crop.",
+    "cropHint": "Drag the handles to crop, then apply.",
+    "cropAspect": "Aspect ratio",
+    "aspect": {
+      "free": "Free",
+      "square": "1:1",
+      "photo": "4:3",
+      "wide": "16:9"
+    },
     "applyCrop": "Apply crop",
     "replace": "Replace image",
     "download": "Download",

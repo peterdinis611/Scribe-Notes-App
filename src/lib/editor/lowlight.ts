@@ -4,7 +4,7 @@ import { resolveCodeLanguage } from '@/lib/editor/code-languages'
 
 /**
  * Full [highlight.js](https://highlightjs.org/) grammar set (~192 languages)
- * for TipTap CodeBlockLowlight + HTML export highlighting.
+ * for HTML export highlighting and the language picker.
  */
 const lowlight = createLowlight(all)
 

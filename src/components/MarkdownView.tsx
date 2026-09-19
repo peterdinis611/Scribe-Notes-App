@@ -1,6 +1,13 @@
 import { Markdown } from '@tanstack/markdown/react'
-import { useDeferredValue, useMemo, type ReactNode } from 'react'
-import { highlightCode } from '@/lib/editor/lowlight'
+import {
+  Children,
+  isValidElement,
+  useDeferredValue,
+  useMemo,
+  type ComponentPropsWithoutRef,
+  type ReactNode,
+} from 'react'
+import { ScribeSyntaxHighlighter } from '@/components/editor/ScribeSyntaxHighlighter'
 import { cn } from '@/lib/utils'
 
 type MarkdownViewProps = {
@@ -13,8 +20,19 @@ type MarkdownViewProps = {
   emptyFallback?: ReactNode
 }
 
-function highlight(code: string, lang?: string) {
-  return highlightCode(code, lang ?? null)
+function MarkdownPre({ children, className, ...props }: ComponentPropsWithoutRef<'pre'>) {
+  const child = Children.toArray(children)[0]
+  if (!isValidElement<{ className?: string; children?: ReactNode }>(child)) {
+    return (
+      <pre className={className} {...props}>
+        {children}
+      </pre>
+    )
+  }
+
+  const lang = /(?:^|\s)language-([\w+-]+)/.exec(child.props.className ?? '')?.[1]
+  const code = String(child.props.children ?? '').replace(/\n$/, '')
+  return <ScribeSyntaxHighlighter code={code} language={lang} className={cn('scribe-markdown__code', className)} />
 }
 
 export function MarkdownView({
@@ -31,7 +49,7 @@ export function MarkdownView({
   const content = useMemo(() => {
     if (!trimmed) return null
     return (
-      <Markdown highlighter={highlight} headingIds={headingIds}>
+      <Markdown headingIds={headingIds} components={{ pre: MarkdownPre }}>
         {text}
       </Markdown>
     )

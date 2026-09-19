@@ -58,6 +58,8 @@ export default defineConfig({
             { name: 'react-player', test: /\/node_modules\/react-player/ },
             { name: 'leaflet', test: /\/node_modules\/(leaflet|react-leaflet|@react-leaflet)\// },
             { name: 'react-dnd', test: /\/node_modules\/(react-dnd|react-dnd-html5-backend|dnd-core)\// },
+            { name: 'react-syntax-highlighter', test: /\/node_modules\/react-syntax-highlighter\// },
+            { name: 'react-image-crop', test: /\/node_modules\/react-image-crop\// },
             { name: 'emoji-picker', test: /\/node_modules\/emoji-picker-react\// },
           ],
         },

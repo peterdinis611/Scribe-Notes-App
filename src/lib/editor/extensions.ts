@@ -1,6 +1,6 @@
 import CharacterCount from '@tiptap/extension-character-count'
 import Color from '@tiptap/extension-color'
-import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
+import { SyntaxCodeBlock } from '@/lib/editor/code-block-extension'
 import { Details, DetailsContent, DetailsSummary } from '@tiptap/extension-details'
 import Emoji, { gitHubEmojis } from '@tiptap/extension-emoji'
 import Focus from '@tiptap/extension-focus'
@@ -37,7 +37,6 @@ import { MathJs } from '@/lib/editor/math-js-extension'
 import { D3Chart } from '@/lib/editor/d3-chart-extension'
 import { MermaidDiagram } from '@/lib/editor/mermaid-extension'
 import { LottieAnimation } from '@/lib/editor/lottie-extension'
-import { lowlight } from '@/lib/editor/lowlight'
 import { PageBreak } from '@/lib/editor/page-break'
 import { ResizableImage } from '@/lib/editor/resizable-image'
 import { SearchReplace } from '@/lib/editor/search-extension'
@@ -71,11 +70,10 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
       listItem: false,
     }),
     ListItemWithBlocks.configure({}),
-    CodeBlockLowlight.configure({
-      lowlight,
+    SyntaxCodeBlock.configure({
       defaultLanguage: null,
       HTMLAttributes: {
-        class: 'hljs',
+        class: 'scribe-code-block',
       },
     }),
     TextStyle.configure({}),

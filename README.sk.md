@@ -67,10 +67,10 @@ Scribe beží lokálne na vašom Macu. Žiadne účty, žiadny cloud — dokumen
 ### Editor
 - Rich-text editor postavený na **TipTap** / ProseMirror
 - Prepínanie medzi formátovaným textom a **Markdown** zdrojákom
-- Formátovanie: nadpisy, zoznamy, checklisty, tabuľky, obrázky (popisok, orezanie, full-width), odkazy, poznámky pod čiarou
+- Formátovanie: nadpisy, zoznamy, checklisty, tabuľky, obrázky (popisok, [React Image Crop](https://github.com/dominictobias/react-image-crop), full-width), odkazy, poznámky pod čiarou
 - Slash príkazy (`/`), bubble menu, drag & drop blokov a obrázkov; priečinky knižnice a karty editora cez React DnD
 - Blokové **snipety** cez slash (meeting notes, decision, …)
-- Wiki odkazy (`[[dokument]]`), embedy (`![[dokument]]`), komentáre, matematika (math.js), Mermaid diagramy, D3 grafy (JSON špecifikácia: stĺpcový / čiarový / area / koláč), videá (React Player), mapy (React Leaflet / OpenStreetMap), code bloky (highlight.js)
+- Wiki odkazy (`[[dokument]]`), embedy (`![[dokument]]`), komentáre, matematika (math.js), Mermaid diagramy, D3 grafy (JSON špecifikácia: stĺpcový / čiarový / area / koláč), videá (React Player), mapy (React Leaflet / OpenStreetMap), code bloky (React Syntax Highlighter)
 - **Print layout** — stránkovaný náhľad s okrajmi, hlavičkami/pätami, vodotlačou; jemný hero na prázdnej stránke
 - **Režim sústredenia** — minimal UI pre nerušené písanie (`⌘⇧F`, ukončenie cez `Esc`)
 - **Canvas poznámky** — voľné karty a spojenia (`type: canvas`) na [React Flow](https://reactflow.dev/)

@@ -67,10 +67,10 @@ Scribe runs locally on your Mac. No accounts, no cloud — documents, the databa
 ### Editor
 - Rich-text editor built on **TipTap** / ProseMirror
 - Switch between formatted text and **Markdown** source
-- Formatting: headings, lists, checklists, tables, images (caption, crop, full-width), links, footnotes
+- Formatting: headings, lists, checklists, tables, images (caption, [React Image Crop](https://github.com/dominictobias/react-image-crop), full-width), links, footnotes
 - Slash commands (`/`), bubble menu, drag & drop blocks and images; library folders and editor tabs use React DnD
 - Block **snippets** via slash (meeting notes, decision, …)
-- Wiki links (`[[document]]`), embeds (`![[document]]`), comments, math (math.js), Mermaid diagrams, D3 charts (JSON spec: bar / line / area / pie), videos (React Player), maps (React Leaflet / OpenStreetMap), code blocks (highlight.js)
+- Wiki links (`[[document]]`), embeds (`![[document]]`), comments, math (math.js), Mermaid diagrams, D3 charts (JSON spec: bar / line / area / pie), videos (React Player), maps (React Leaflet / OpenStreetMap), code blocks (React Syntax Highlighter)
 - **Print layout** — paginated page preview with margins, headers/footers, watermarks; quiet blank-page hero when empty
 - **Focus mode** — minimal UI for distraction-free writing (`⌘⇧F`, exit with `Esc`)
 - **Canvas notes** — freeform cards and connectors (`type: canvas`) on [React Flow](https://reactflow.dev/) for whiteboard-style thinking
