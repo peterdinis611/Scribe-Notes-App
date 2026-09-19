@@ -342,7 +342,7 @@ pub struct RewriteQueryParams {
 #[serde(rename_all = "camelCase")]
 pub struct RewriteSelectionParams {
     pub text: String,
-    /// rephrase_professional | shorten | expand | simplify | custom
+    /// rephrase_professional | summarize_bullets | translate_sk | translate_en | custom_prompt
     pub mode: Option<String>,
     pub custom_instruction: Option<String>,
 }

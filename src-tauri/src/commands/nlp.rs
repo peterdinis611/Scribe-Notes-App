@@ -18,8 +18,9 @@ use scribe_core::{
 use crate::db::SearchHit;
 use crate::db::DbState;
 use crate::nlp::{
-    followups_from_sidecar, is_chat_memory_citation_title, merge_chat_memory_passages, ChatTurn,
-    NlpSidecar,
+    followups_from_sidecar, is_chat_memory_citation_title, merge_chat_memory_passages,
+    normalize_rewrite_mode, parse_document_analysis, parse_rewrite_result, ChatTurn,
+    NlpDocumentAnalysis, NlpRewriteResult, NlpSidecar,
 };
 
 fn now_ts() -> i64 {
@@ -1159,51 +1160,6 @@ pub fn nlp_set_embed_backend(
     build_nlp_status(&sidecar, &conn, is_nlp_enabled(&conn)?)
 }
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct NlpKeyword {
-    pub term: String,
-    pub score: f64,
-    pub count: i64,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct NlpOutlineItem {
-    pub title: String,
-    pub level: i64,
-    pub kind: String,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct NlpDateEvent {
-    pub text: String,
-    pub kind: String,
-    pub resolved_date: Option<String>,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct NlpDocumentAnalysis {
-    pub language: String,
-    pub language_confidence: f64,
-    pub keywords: Vec<NlpKeyword>,
-    pub keyphrases: Vec<String>,
-    pub outline: Vec<NlpOutlineItem>,
-    pub summary: Option<String>,
-    pub suggested_title: Option<String>,
-    pub readability_label: Option<String>,
-    pub reading_time_minutes: Option<f64>,
-    pub flesch: Option<f64>,
-    pub tone: Option<String>,
-    pub tone_score: Option<f64>,
-    pub wiki_links: Vec<String>,
-    pub mentions: Vec<String>,
-    pub hosts: Vec<String>,
-    pub dates: Vec<NlpDateEvent>,
-}
-
 #[tauri::command]
 pub fn nlp_document_analysis(
     state: State<'_, DbState>,
@@ -1261,163 +1217,7 @@ fn run_document_analysis(
     text: &str,
 ) -> Result<NlpDocumentAnalysis, String> {
     let result = sidecar.analyze_document(text, 12, 24, 3)?;
-
-    let language = result
-        .get("language")
-        .and_then(|value| value.as_str())
-        .unwrap_or("unknown")
-        .to_string();
-    let language_confidence = result
-        .get("languageConfidence")
-        .and_then(|value| value.as_f64())
-        .unwrap_or(0.0);
-
-    let keywords = result
-        .get("keywords")
-        .and_then(|value| value.as_array())
-        .map(|items| {
-            items
-                .iter()
-                .filter_map(|item| {
-                    Some(NlpKeyword {
-                        term: item.get("term")?.as_str()?.to_string(),
-                        score: item.get("score")?.as_f64().unwrap_or(0.0),
-                        count: item.get("count")?.as_i64().unwrap_or(0),
-                    })
-                })
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
-
-    let keyphrases = result
-        .get("keyphrases")
-        .and_then(|value| value.as_array())
-        .map(|items| {
-            items
-                .iter()
-                .filter_map(|item| item.as_str().map(str::to_string))
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
-
-    let outline = result
-        .get("outline")
-        .and_then(|value| value.as_array())
-        .map(|items| {
-            items
-                .iter()
-                .filter_map(|item| {
-                    Some(NlpOutlineItem {
-                        title: item.get("title")?.as_str()?.to_string(),
-                        level: item.get("level")?.as_i64().unwrap_or(1),
-                        kind: item
-                            .get("kind")
-                            .and_then(|value| value.as_str())
-                            .unwrap_or("heading")
-                            .to_string(),
-                    })
-                })
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
-
-    let summary = result
-        .get("summary")
-        .and_then(|value| value.as_str())
-        .map(str::to_string)
-        .filter(|value| !value.trim().is_empty());
-
-    let suggested_title = result
-        .get("suggestedTitle")
-        .and_then(|value| value.as_str())
-        .map(str::to_string)
-        .filter(|value| !value.trim().is_empty());
-
-    let readability = result.get("readability");
-    let sentiment = result.get("sentiment");
-    let mentions = result.get("mentions");
-
-    let dates = result
-        .get("dates")
-        .and_then(|value| value.as_array())
-        .map(|items| {
-            items
-                .iter()
-                .filter_map(|item| {
-                    Some(NlpDateEvent {
-                        text: item.get("text")?.as_str()?.to_string(),
-                        kind: item
-                            .get("kind")
-                            .and_then(|value| value.as_str())
-                            .unwrap_or("absolute")
-                            .to_string(),
-                        resolved_date: item
-                            .get("resolvedDate")
-                            .and_then(|value| value.as_str())
-                            .map(str::to_string),
-                    })
-                })
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
-
-    Ok(NlpDocumentAnalysis {
-        language,
-        language_confidence,
-        keywords,
-        keyphrases,
-        outline,
-        summary,
-        suggested_title,
-        readability_label: readability
-            .and_then(|value| value.get("readabilityLabel"))
-            .and_then(|value| value.as_str())
-            .map(str::to_string),
-        reading_time_minutes: readability
-            .and_then(|value| value.get("readingTimeMinutes"))
-            .and_then(|value| value.as_f64()),
-        flesch: readability
-            .and_then(|value| value.get("flesch"))
-            .and_then(|value| value.as_f64()),
-        tone: sentiment
-            .and_then(|value| value.get("label"))
-            .and_then(|value| value.as_str())
-            .map(str::to_string),
-        tone_score: sentiment
-            .and_then(|value| value.get("score"))
-            .and_then(|value| value.as_f64()),
-        wiki_links: mentions
-            .and_then(|value| value.get("wikiLinks"))
-            .and_then(|value| value.as_array())
-            .map(|items| {
-                items
-                    .iter()
-                    .filter_map(|item| item.as_str().map(str::to_string))
-                    .collect()
-            })
-            .unwrap_or_default(),
-        mentions: mentions
-            .and_then(|value| value.get("mentions"))
-            .and_then(|value| value.as_array())
-            .map(|items| {
-                items
-                    .iter()
-                    .filter_map(|item| item.as_str().map(str::to_string))
-                    .collect()
-            })
-            .unwrap_or_default(),
-        hosts: mentions
-            .and_then(|value| value.get("hosts"))
-            .and_then(|value| value.as_array())
-            .map(|items| {
-                items
-                    .iter()
-                    .filter_map(|item| item.as_str().map(str::to_string))
-                    .collect()
-            })
-            .unwrap_or_default(),
-        dates,
-    })
+    Ok(parse_document_analysis(&result))
 }
 
 #[derive(Debug, Deserialize)]
@@ -2185,14 +1985,6 @@ pub fn nlp_calendar_events(
         .unwrap_or_default())
 }
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct NlpRewriteResult {
-    pub output: String,
-    pub mode: String,
-    pub original: String,
-}
-
 #[tauri::command]
 pub fn nlp_rewrite_selection(
     state: State<'_, DbState>,
@@ -2205,28 +1997,8 @@ pub fn nlp_rewrite_selection(
     if !is_nlp_enabled(&conn)? {
         return Err("NLP is disabled".to_string());
     }
-    let mode = mode.unwrap_or_else(|| "rephrase_professional".to_string());
+    let mode = normalize_rewrite_mode(mode.as_deref());
     let res = sidecar.rewrite_selection(&text, &mode, custom_instruction.as_deref())?;
-    let output = res
-        .get("output")
-        .and_then(|v| v.as_str())
-        .unwrap_or("")
-        .to_string();
-    let mode_out = res
-        .get("mode")
-        .and_then(|v| v.as_str())
-        .unwrap_or(&mode)
-        .to_string();
-    let original = res
-        .get("original")
-        .and_then(|v| v.as_str())
-        .unwrap_or(&text)
-        .to_string();
-
-    Ok(NlpRewriteResult {
-        output,
-        mode: mode_out,
-        original,
-    })
+    Ok(parse_rewrite_result(&res, &mode, &text))
 }
 

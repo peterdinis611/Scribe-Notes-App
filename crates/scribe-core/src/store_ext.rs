@@ -16,7 +16,10 @@ use crate::db::{
     sync_document_fts, sync_document_links, SearchMode, DEFAULT_LIBRARY_ID, META_ACTIVE_LIBRARY,
 };
 use crate::nlp::{
-    followups_from_sidecar, merge_chat_memory_passages, ChatTurn, NlpSidecar,
+    followups_from_sidecar, merge_chat_memory_passages, normalize_rewrite_mode, parse_keywords_result,
+    parse_language, parse_query_rewrite, parse_reading_stats, parse_sentiment, parse_spellcheck,
+    ChatTurn, NlpDocumentAnalysis, NlpKeywordsResult, NlpLanguage, NlpQueryRewrite, NlpReadingStats,
+    NlpRewriteResult, NlpSentiment, NlpSidecar, NlpSpellcheck,
 };
 use crate::store::{
     require_nlp, search_library, sync_sidecar_backend, IdTitle, ScribeStore,
@@ -406,11 +409,11 @@ impl ScribeStore {
         &self,
         sidecar: &NlpSidecar,
         document_id: &str,
-    ) -> Result<Value, String> {
+    ) -> Result<NlpSpellcheck, String> {
         require_nlp(&self.db)?;
         let (_title, text) = self.document_title_and_text(document_id)?;
         sync_sidecar_backend(sidecar, &self.db)?;
-        sidecar.spellcheck(&text, None, 80)
+        Ok(parse_spellcheck(&sidecar.spellcheck(&text, None, 80)?))
     }
 
     pub fn extract_document_keywords(
@@ -418,44 +421,46 @@ impl ScribeStore {
         sidecar: &NlpSidecar,
         document_id: &str,
         limit: Option<i64>,
-    ) -> Result<Value, String> {
+    ) -> Result<NlpKeywordsResult, String> {
         require_nlp(&self.db)?;
         let (_title, text) = self.document_title_and_text(document_id)?;
         sync_sidecar_backend(sidecar, &self.db)?;
-        sidecar.extract_keywords(&text, limit.unwrap_or(12).clamp(1, 40))
+        Ok(parse_keywords_result(
+            &sidecar.extract_keywords(&text, limit.unwrap_or(12).clamp(1, 40))?,
+        ))
     }
 
     pub fn analyze_document_sentiment(
         &self,
         sidecar: &NlpSidecar,
         document_id: &str,
-    ) -> Result<Value, String> {
+    ) -> Result<NlpSentiment, String> {
         require_nlp(&self.db)?;
         let (_title, text) = self.document_title_and_text(document_id)?;
         sync_sidecar_backend(sidecar, &self.db)?;
-        sidecar.analyze_sentiment(&text)
+        Ok(parse_sentiment(&sidecar.analyze_sentiment(&text)?))
     }
 
     pub fn document_reading_stats(
         &self,
         sidecar: &NlpSidecar,
         document_id: &str,
-    ) -> Result<Value, String> {
+    ) -> Result<NlpReadingStats, String> {
         require_nlp(&self.db)?;
         let (_title, text) = self.document_title_and_text(document_id)?;
         sync_sidecar_backend(sidecar, &self.db)?;
-        sidecar.reading_stats(&text)
+        Ok(parse_reading_stats(&sidecar.reading_stats(&text)?))
     }
 
     pub fn detect_document_language(
         &self,
         sidecar: &NlpSidecar,
         document_id: &str,
-    ) -> Result<Value, String> {
+    ) -> Result<NlpLanguage, String> {
         require_nlp(&self.db)?;
         let (_title, text) = self.document_title_and_text(document_id)?;
         sync_sidecar_backend(sidecar, &self.db)?;
-        sidecar.detect_language(&text)
+        Ok(parse_language(&sidecar.detect_language(&text)?))
     }
 
     pub fn rewrite_search_query(
@@ -463,14 +468,16 @@ impl ScribeStore {
         sidecar: &NlpSidecar,
         query: &str,
         max_expansions: Option<i64>,
-    ) -> Result<Value, String> {
+    ) -> Result<NlpQueryRewrite, String> {
         let trimmed = query.trim();
         if trimmed.is_empty() {
             return Err("query is required".to_string());
         }
         require_nlp(&self.db)?;
         sync_sidecar_backend(sidecar, &self.db)?;
-        sidecar.rewrite_query(trimmed, max_expansions.unwrap_or(8).clamp(1, 16))
+        Ok(parse_query_rewrite(
+            &sidecar.rewrite_query(trimmed, max_expansions.unwrap_or(8).clamp(1, 16))?,
+        ))
     }
 
     pub fn document_answer(
@@ -533,19 +540,7 @@ impl ScribeStore {
             Err(_) => fallback,
         };
         let passages = if let Some(messages) = context {
-            let turns: Vec<ChatTurn> = messages
-                .iter()
-                .filter_map(|message| {
-                    Some(ChatTurn {
-                        role: message
-                            .get("role")
-                            .and_then(|value| value.as_str())
-                            .unwrap_or("user")
-                            .to_string(),
-                        text: message.get("text").and_then(|value| value.as_str())?.to_string(),
-                    })
-                })
-                .collect();
+            let turns = ChatTurn::from_json_list(messages);
             merge_chat_memory_passages(document_id, &title, passages, &turns)
         } else {
             passages
@@ -915,7 +910,7 @@ impl ScribeStore {
         text: &str,
         mode: Option<&str>,
         custom_instruction: Option<&str>,
-    ) -> Result<Value, String> {
+    ) -> Result<NlpRewriteResult, String> {
         let trimmed = text.trim();
         if trimmed.is_empty() {
             return Err("text is required".to_string());
@@ -925,14 +920,15 @@ impl ScribeStore {
             return Err("NLP sidecar unavailable".to_string());
         }
         sync_sidecar_backend(sidecar, &self.db)?;
-        let mode = mode
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-            .unwrap_or("rephrase_professional");
-        sidecar.rewrite_selection(trimmed, mode, custom_instruction)
+        let mode = normalize_rewrite_mode(mode);
+        sidecar.rewrite_selection_typed(trimmed, &mode, custom_instruction)
     }
 
-    pub fn analyze_plaintext(&self, sidecar: &NlpSidecar, text: &str) -> Result<Value, String> {
+    pub fn analyze_plaintext(
+        &self,
+        sidecar: &NlpSidecar,
+        text: &str,
+    ) -> Result<NlpDocumentAnalysis, String> {
         let trimmed = text.trim();
         if trimmed.len() < 8 {
             return Err("text is empty".to_string());
@@ -942,7 +938,7 @@ impl ScribeStore {
             return Err("NLP sidecar unavailable".to_string());
         }
         sync_sidecar_backend(sidecar, &self.db)?;
-        sidecar.analyze_document(trimmed, 12, 24, 3)
+        sidecar.analyze_document_typed(trimmed, 12, 24, 3)
     }
 
     pub fn list_libraries(&self) -> Result<Vec<LibraryRecord>, String> {

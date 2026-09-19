@@ -1,6 +1,7 @@
 pub use scribe_core::nlp::{
     followups_from_sidecar, is_chat_memory_citation_title, merge_chat_memory_passages,
-    script_path_label, ChatTurn, NlpHealth, NlpSidecar,
+    normalize_rewrite_mode, parse_document_analysis, parse_rewrite_result, script_path_label,
+    ChatTurn, NlpDocumentAnalysis, NlpHealth, NlpRewriteResult, NlpSidecar,
 };
 
 use std::path::PathBuf;

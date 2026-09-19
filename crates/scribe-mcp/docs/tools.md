@@ -878,7 +878,7 @@ Rewrite unsaved text via Local AI. Does **not** write the document.
 | Arg | Type | Required | Default | Notes |
 |-----|------|----------|---------|--------|
 | `text` | string | yes | — | Selection / draft |
-| `mode` | string | no | `rephrase_professional` | `rephrase_professional` · `shorten` · `expand` · `simplify` · `custom` |
+| `mode` | string | no | `rephrase_professional` | `rephrase_professional` · `summarize_bullets` · `translate_sk` · `translate_en` · `custom_prompt` (aliases: shorten, custom, sk, en) |
 | `customInstruction` | string | no | — | Used with `custom` |
 
 ---

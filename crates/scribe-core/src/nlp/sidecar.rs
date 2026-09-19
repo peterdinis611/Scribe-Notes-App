@@ -599,6 +599,27 @@ impl NlpSidecar {
         }
         self.call_method("rewrite_selection", params)
     }
+
+    pub fn rewrite_selection_typed(
+        &self,
+        text: &str,
+        mode: &str,
+        custom_instruction: Option<&str>,
+    ) -> Result<crate::nlp::NlpRewriteResult, String> {
+        let raw = self.rewrite_selection(text, mode, custom_instruction)?;
+        Ok(crate::nlp::parse_rewrite_result(&raw, mode, text))
+    }
+
+    pub fn analyze_document_typed(
+        &self,
+        text: &str,
+        keyword_limit: i64,
+        outline_limit: i64,
+        summary_sentences: i64,
+    ) -> Result<crate::nlp::NlpDocumentAnalysis, String> {
+        let raw = self.analyze_document(text, keyword_limit, outline_limit, summary_sentences)?;
+        Ok(crate::nlp::parse_document_analysis(&raw))
+    }
 }
 
 impl Drop for NlpSidecar {

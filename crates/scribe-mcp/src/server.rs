@@ -1289,7 +1289,7 @@ impl ScribeMcp {
         })
     }
 
-    #[tool(description = "Rewrite selected text via Local AI (rephrase, shorten, expand, simplify, or custom). Does not mutate the note.")]
+    #[tool(description = "Rewrite selected text via Local AI (rephrase_professional, summarize_bullets, translate_sk, translate_en, custom_prompt). Does not mutate the note.")]
     fn rewrite_selection(
         &self,
         Parameters(params): Parameters<tools::RewriteSelectionParams>,
@@ -1512,7 +1512,7 @@ impl ScribeMcp {
         GetPromptResult::new(vec![PromptMessage::new_text(
             Role::User,
             "Rewrite the selected Scribe text I provide.\n\
-             1. Call rewrite_selection with the text and a mode (rephrase_professional, shorten, expand, simplify, or custom + customInstruction).\n\
+             1. Call rewrite_selection with the text and a mode (rephrase_professional, summarize_bullets, translate_sk, translate_en, or custom_prompt + customInstruction).\n\
              2. Show the rewritten output. Do not call replace_document_content unless I explicitly ask to apply it.",
         )])
         .with_description("Rewrite selection (preview only)")
