@@ -76,9 +76,9 @@ export function runAppTour({ t, onDestroyed }: RunAppTourOptions) {
     showProgress: true,
     animate: true,
     allowClose: true,
-    overlayOpacity: 0.55,
-    stagePadding: 8,
-    stageRadius: 12,
+    overlayOpacity: 0.38,
+    stagePadding: 6,
+    stageRadius: 8,
     popoverClass: 'scribe-driver-popover',
     // Placeholders are substituted by driver.js, not i18next.
     progressText: '{{current}} / {{total}}',

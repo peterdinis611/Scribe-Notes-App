@@ -337,8 +337,14 @@
   },
   "setup": {
     "title": "Set up Scribe",
-    "stepOf": "Step {{current}} of {{total}}",
+    "kicker": "First folio",
+    "stepOf": "{{current}} / {{total}}",
     "finish": "Continue",
+    "startWriting": "Start writing",
+    "showTour": "Show me around",
+    "welcome": {
+      "lead": "A local document editor. Pick a language, then the paper you write on."
+    },
     "language": {
       "title": "Language",
       "description": "Choose the interface language. You can import a custom JSON language pack anytime.",
@@ -355,6 +361,7 @@
   },
   "whatsNew": {
     "badge": "What's new in {{version}}",
+    "kicker": "Edition notes",
     "title": "Scribe {{version}}",
     "subtitle": "Clipboard history, a quieter writing chrome, and more reliable deletes in the editor.",
     "gotIt": "Got it",
@@ -885,7 +892,8 @@
             "Text vs MD — switch between rich text and Markdown",
             "SK / EN — change the UI language",
             "Reading mode and focus mode hide chrome for fewer distractions",
-            "Layout / Page — continuous vs paginated layout"
+            "Layout / Page — continuous vs paginated layout",
+            "Microphone in the toolbar (⌘⇧M) dictates at the cursor using macOS speech recognition"
           ]
         },
         "search": {

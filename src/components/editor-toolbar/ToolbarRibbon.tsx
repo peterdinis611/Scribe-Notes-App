@@ -116,7 +116,10 @@ function spacingLabel(t: (key: string) => string, value: string) {
   return t(map[value] ?? 'toolbar.spacing.none')
 }
 
-export function ToolbarRibbon({ editor, onInsertImages }: ToolbarRibbonProps) {
+export function ToolbarRibbon({
+  editor,
+  onInsertImages,
+}: ToolbarRibbonProps) {
   const { t } = useTranslation()
   const scannerAvailable = isBarcodeScannerSupported()
   const state = useEditorState({

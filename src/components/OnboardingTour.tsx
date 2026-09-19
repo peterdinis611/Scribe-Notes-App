@@ -1,15 +1,12 @@
 import { useCallback, useEffect, useRef } from 'react'
-import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { navigateToDemoGuide } from '@/lib/demo/load-demo-guide'
 import {
   destroyAppTour,
   runAppTour,
   subscribeAppTourRequest,
 } from '@/lib/app-tour'
-import { ROUTES } from '@/lib/routes'
 import { persistOnboardingDismissed, readOnboardingDismissed, readSetupCompleted } from '@/store/persistence'
-import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { useAppDispatch } from '@/store/hooks'
 import {
   setFocusMode,
   setPanelRailExpanded,
@@ -28,7 +25,7 @@ function wait(ms: number) {
   })
 }
 
-async function waitForSelector(selector: string, timeoutMs = 5000) {
+async function waitForSelector(selector: string, timeoutMs = 4000) {
   const start = Date.now()
   while (Date.now() - start < timeoutMs) {
     if (document.querySelector(selector)) return true
@@ -44,9 +41,6 @@ async function waitForSelector(selector: string, timeoutMs = 5000) {
 export function OnboardingTour({ enabled = true, onFinished }: OnboardingTourProps) {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
-  const navigate = useNavigate()
-  const documents = useAppSelector((state) => state.documents.documents)
-  const activeId = useAppSelector((state) => state.documents.activeDocumentId)
   const runningRef = useRef(false)
   const autoStartedRef = useRef(false)
 
@@ -60,23 +54,9 @@ export function OnboardingTour({ enabled = true, onFinished }: OnboardingTourPro
     dispatch(setFocusMode(false))
     dispatch(setReadingMode(false))
     dispatch(setPanelRailExpanded(true))
-
-    const hasOpenDoc =
-      Boolean(activeId) &&
-      documents.some((doc) => doc.id === activeId && doc.deletedAt == null)
-
-    if (!hasOpenDoc) {
-      try {
-        await navigateToDemoGuide(documents, dispatch, navigate)
-      } catch {
-        await navigate(ROUTES.home())
-      }
-    }
-
     await waitForSelector('[data-tour="sidebar-rail"]')
-    await waitForSelector('[data-tour="editor-canvas"], [data-tour="library-search"]')
-    await wait(180)
-  }, [activeId, dispatch, documents, navigate])
+    await wait(120)
+  }, [dispatch])
 
   const startTour = useCallback(
     async (options?: { force?: boolean }) => {

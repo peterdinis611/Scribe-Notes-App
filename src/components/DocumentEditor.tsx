@@ -554,7 +554,10 @@ export function DocumentEditor() {
       )}
     >
       {!isMarkdown && !focusMode && !readingMode && editorReady && (
-        <EditorToolbar editor={editor} onInsertImages={handleInsertImages} />
+        <EditorToolbar
+          editor={editor}
+          onInsertImages={handleInsertImages}
+        />
       )}
       {!isMarkdown && !readingMode && editorReady && (
         <EditorMenus editor={editor} />

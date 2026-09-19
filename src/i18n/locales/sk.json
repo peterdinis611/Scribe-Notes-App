@@ -337,8 +337,14 @@
   },
   "setup": {
     "title": "Nastavenie Scribe",
-    "stepOf": "Krok {{current}} z {{total}}",
+    "kicker": "Prvý zošit",
+    "stepOf": "{{current}} / {{total}}",
     "finish": "Pokračovať",
+    "startWriting": "Začať písať",
+    "showTour": "Ukázať sprievodcu",
+    "welcome": {
+      "lead": "Lokálny editor dokumentov. Zvoľte jazyk a papier, na ktorý budete písať."
+    },
     "language": {
       "title": "Jazyk",
       "description": "Zvoľte jazyk rozhrania. Vlastný JSON jazykový balík môžete nahrať hneď alebo neskôr.",
@@ -355,6 +361,7 @@
   },
   "whatsNew": {
     "badge": "Novinky {{version}}",
+    "kicker": "Poznámky k vydaniu",
     "title": "Scribe {{version}}",
     "subtitle": "História schránky, pokojnejší editor a spoľahlivejšie mazanie.",
     "gotIt": "Rozumiem",
@@ -886,7 +893,8 @@
             "Text / MD — prepínač medzi rich textom a Markdownom",
             "SK / EN — jazyk rozhrania",
             "Režim čítania a focus skryjú chrome",
-            "Layout / Page — spojitý alebo stránkovaný layout"
+            "Layout / Page — spojitý alebo stránkovaný layout",
+            "Mikrofón v lište (⌘⇧M) diktuje na kurzor cez rozpoznávanie reči macOS"
           ]
         },
         "search": {
