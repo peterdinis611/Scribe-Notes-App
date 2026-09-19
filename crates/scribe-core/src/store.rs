@@ -414,7 +414,7 @@ impl ScribeStore {
     }
 
     #[cfg(test)]
-    fn from_memory() -> Self {
+    pub(crate) fn from_memory() -> Self {
         Self {
             db: crate::db::test_helpers::in_memory_conn(),
             writable: true,
@@ -557,10 +557,11 @@ impl ScribeStore {
         self.run_writable(|db| {
             let id = Uuid::new_v4().to_string();
             let now = Self::now_ms();
+            let library_id = active_library_id(db);
             db.execute(
-                "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at)
-                 VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?5)",
-                params![id, title, content_json, folder_id, now],
+                "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at, library_id)
+                 VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?5, ?6)",
+                params![id, title, content_json, folder_id, now, library_id],
             )
             .map_err(|e| e.to_string())?;
             sync_document_fts(db, &id, title, &content_json)?;
@@ -666,25 +667,26 @@ impl ScribeStore {
         limit: Option<i64>,
     ) -> Result<Vec<DocumentSummary>, String> {
         let limit = limit.unwrap_or(50).clamp(1, 200);
+        let library_id = active_library_id(&self.db);
         let filter_folder = folder_id.filter(|value| !value.is_empty());
         let mut stmt = if filter_folder.is_some() {
             self.db
                 .prepare(&format!(
-                    "{SUMMARY_SELECT} WHERE deleted_at IS NULL AND folder_id = ?1 ORDER BY updated_at DESC LIMIT ?2"
+                    "{SUMMARY_SELECT} WHERE deleted_at IS NULL AND COALESCE(library_id, 'default') = ?1 AND folder_id = ?2 ORDER BY updated_at DESC LIMIT ?3"
                 ))
                 .map_err(|e| e.to_string())?
         } else {
             self.db
                 .prepare(&format!(
-                    "{SUMMARY_SELECT} WHERE deleted_at IS NULL ORDER BY updated_at DESC LIMIT ?1"
+                    "{SUMMARY_SELECT} WHERE deleted_at IS NULL AND COALESCE(library_id, 'default') = ?1 ORDER BY updated_at DESC LIMIT ?2"
                 ))
                 .map_err(|e| e.to_string())?
         };
 
         let rows = if let Some(folder_id) = filter_folder {
-            stmt.query_map(params![folder_id, limit], Self::map_summary)
+            stmt.query_map(params![library_id, folder_id, limit], Self::map_summary)
         } else {
-            stmt.query_map(params![limit], Self::map_summary)
+            stmt.query_map(params![library_id, limit], Self::map_summary)
         }
         .map_err(|e| e.to_string())?;
 
@@ -961,17 +963,18 @@ impl ScribeStore {
 
     pub fn list_favorites(&self, limit: i64) -> Result<Vec<DocumentSummary>, String> {
         let max = limit.clamp(1, 200);
+        let library_id = active_library_id(&self.db);
         let mut stmt = self
             .db
             .prepare(&format!(
                 "{SUMMARY_SELECT}
-                 WHERE deleted_at IS NULL AND is_favorite = 1
-                 ORDER BY updated_at DESC LIMIT ?1"
+                 WHERE deleted_at IS NULL AND is_favorite = 1 AND COALESCE(library_id, 'default') = ?1
+                 ORDER BY updated_at DESC LIMIT ?2"
             ))
             .map_err(|e| e.to_string())?;
 
         let rows = stmt
-            .query_map(params![max], Self::map_summary)
+            .query_map(params![library_id, max], Self::map_summary)
             .map_err(|e| e.to_string())?;
 
         rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
@@ -979,17 +982,18 @@ impl ScribeStore {
 
     pub fn list_pinned(&self, limit: i64) -> Result<Vec<DocumentSummary>, String> {
         let max = limit.clamp(1, 200);
+        let library_id = active_library_id(&self.db);
         let mut stmt = self
             .db
             .prepare(&format!(
                 "{SUMMARY_SELECT}
-                 WHERE deleted_at IS NULL AND is_pinned = 1
-                 ORDER BY updated_at DESC LIMIT ?1"
+                 WHERE deleted_at IS NULL AND is_pinned = 1 AND COALESCE(library_id, 'default') = ?1
+                 ORDER BY updated_at DESC LIMIT ?2"
             ))
             .map_err(|e| e.to_string())?;
 
         let rows = stmt
-            .query_map(params![max], Self::map_summary)
+            .query_map(params![library_id, max], Self::map_summary)
             .map_err(|e| e.to_string())?;
 
         rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
@@ -997,17 +1001,18 @@ impl ScribeStore {
 
     pub fn list_trashed_documents(&self, limit: i64) -> Result<Vec<DocumentSummary>, String> {
         let max = limit.clamp(1, 200);
+        let library_id = active_library_id(&self.db);
         let mut stmt = self
             .db
             .prepare(&format!(
                 "{SUMMARY_SELECT}
-                 WHERE deleted_at IS NOT NULL
-                 ORDER BY deleted_at DESC LIMIT ?1"
+                 WHERE deleted_at IS NOT NULL AND COALESCE(library_id, 'default') = ?1
+                 ORDER BY deleted_at DESC LIMIT ?2"
             ))
             .map_err(|e| e.to_string())?;
 
         let rows = stmt
-            .query_map(params![max], Self::map_summary)
+            .query_map(params![library_id, max], Self::map_summary)
             .map_err(|e| e.to_string())?;
 
         rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
@@ -2500,10 +2505,11 @@ impl ScribeStore {
             let id = Uuid::new_v4().to_string();
             let now = Self::now_ms();
 
+            let library_id = active_library_id(db);
             db.execute(
-                "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at)
-                 VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?5)",
-                params![id, title, content_json, folder_id, now],
+                "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at, library_id)
+                 VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?5, ?6)",
+                params![id, title, content_json, folder_id, now, library_id],
             )
             .map_err(|e| e.to_string())?;
             sync_document_fts(db, &id, &title, &content_json)?;

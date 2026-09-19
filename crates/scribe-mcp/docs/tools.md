@@ -871,6 +871,60 @@ Persist Local AI on/off and embedding backend (`hash` | `quality`). Requires wri
 
 ---
 
+## `rewrite_selection`
+
+Rewrite unsaved text via Local AI. Does **not** write the document.
+
+| Arg | Type | Required | Default | Notes |
+|-----|------|----------|---------|--------|
+| `text` | string | yes | — | Selection / draft |
+| `mode` | string | no | `rephrase_professional` | `rephrase_professional` · `shorten` · `expand` · `simplify` · `custom` |
+| `customInstruction` | string | no | — | Used with `custom` |
+
+---
+
+## `analyze_plaintext`
+
+Same Local AI pass as `document_analysis`, but on ephemeral text (not saved). `text` must be at least 8 characters.
+
+---
+
+## `get_nlp_artifact`
+
+Load one cached artifact by `id` (from `list_nlp_artifacts` or `scribe://artifact/{id}`).
+
+---
+
+## `list_libraries` / `switch_library`
+
+`list_libraries` — all libraries, with `isActive` for the current one.
+
+`switch_library` — `id`. Requires writable MCP. After a switch, `list_documents` / `create_note` / search / manuscripts use that library.
+
+---
+
+## `list_manuscripts` / `upsert_manuscript`
+
+Manuscripts are compiled chapter sets for the **active** library.
+
+`upsert_manuscript` — optional `id`, required `title`, optional `chapterIds` (document ids). Writable.
+
+---
+
+## `list_document_chat` / `append_document_chat` / `clear_document_chat`
+
+Persisted per-note chat (same table as the app).
+
+| Tool | Args |
+|------|------|
+| `list_document_chat` | `documentId` |
+| `append_document_chat` | `documentId`, `role` (`user` \| `assistant`), `text`, optional `action`, optional `citations` `{ documentId, title, snippet }` |
+| `clear_document_chat` | `documentId` |
+
+`append` / `clear` require writable MCP.
+
+---
+
 ## Prompts
 
 | Prompt | Purpose |
@@ -879,3 +933,5 @@ Persist Local AI on/off and embedding backend (`hash` | `quality`). Requires wri
 | `capture_today` | get_or_create_journal + append_to_note |
 | `open_tasks_triage` | list_open_tasks, then toggle_task |
 | `wiki_health` | hubs + unresolved wiki links |
+| `rewrite_selection_draft` | rewrite_selection preview (do not apply unless asked) |
+| `continue_document_chat` | list_document_chat → document_answer → optional append |

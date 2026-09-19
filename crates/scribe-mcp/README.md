@@ -89,6 +89,12 @@ Encrypted vault notes are stored as AES-GCM ciphertext in SQLite. The unlock pas
 | `reading_stats` | Reading time / readability |
 | `detect_language` | Detect note language |
 | `rewrite_query` | Expand a search query |
+| `rewrite_selection` | Rewrite unsaved text (Local AI) |
+| `analyze_plaintext` | Analyze unsaved text (Local AI) |
+| `get_nlp_artifact` | Load one cached AI artifact |
+| `list_libraries` / `switch_library` | Libraries + active scope (switch is writable) |
+| `list_manuscripts` / `upsert_manuscript` | Compiled chapter sets (writable upsert) |
+| `list_document_chat` / `append_document_chat` / `clear_document_chat` | Persisted note chat |
 | `set_nlp_enabled` | Enable/disable Local AI (writable) |
 | `set_embed_backend` | `hash` or `quality` embeddings (writable) |
 | `calendar_events` | Date events from recent notes |
@@ -103,7 +109,7 @@ Encrypted vault notes are stored as AES-GCM ciphertext in SQLite. The unlock pas
 
 Plus legacy tools: `scribe_status`, `get_document`, wiki links, folders, revisions, `create_note`, `append_to_note`, …
 
-Resources: `scribe://doc/{id}`, `scribe://artifact/{id}`. Prompts: `weekly_journal_review`, `capture_today`, `open_tasks_triage`, `wiki_health`.
+Resources: `scribe://doc/{id}`, `scribe://artifact/{id}`. Prompts: `weekly_journal_review`, `capture_today`, `open_tasks_triage`, `wiki_health`, `rewrite_selection_draft`, `continue_document_chat`.
 
 Full reference: [docs/tools.md](docs/tools.md) · guides: [docs/en.md](docs/en.md), [docs/sk.md](docs/sk.md)
 

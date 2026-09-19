@@ -5,15 +5,15 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
 use rusqlite::{params, OptionalExtension};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use uuid::Uuid;
 use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
 
 use crate::db::{
-    extract_search_text, rank_document_chunks, set_embed_backend, set_nlp_enabled, sync_document_fts,
-    sync_document_links, SearchMode,
+    active_library_id, extract_search_text, rank_document_chunks, set_embed_backend, set_nlp_enabled,
+    sync_document_fts, sync_document_links, SearchMode, DEFAULT_LIBRARY_ID, META_ACTIVE_LIBRARY,
 };
 use crate::nlp::{
     followups_from_sidecar, merge_chat_memory_passages, ChatTurn, NlpSidecar,
@@ -73,6 +73,49 @@ pub struct BackupInfo {
 pub struct BackupExportResult {
     pub path: String,
     pub documents_included: u32,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryRecord {
+    pub id: String,
+    pub name: String,
+    pub root_path: String,
+    pub created_at: i64,
+    pub last_opened_at: i64,
+    pub sort_order: i32,
+    pub is_active: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ManuscriptRecord {
+    pub id: String,
+    pub library_id: String,
+    pub title: String,
+    pub chapter_ids: Vec<String>,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentChatCitation {
+    pub document_id: String,
+    pub title: String,
+    pub snippet: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentChatMessage {
+    pub id: String,
+    pub document_id: String,
+    pub role: String,
+    pub text: String,
+    pub created_at: i64,
+    pub action: Option<String>,
+    pub citations: Vec<DocumentChatCitation>,
 }
 
 impl ScribeStore {
@@ -865,6 +908,294 @@ impl ScribeStore {
         let _ = prune_old_auto_backups(&dir, AUTO_BACKUP_KEEP);
         Ok(result)
     }
+
+    pub fn rewrite_selection(
+        &self,
+        sidecar: &NlpSidecar,
+        text: &str,
+        mode: Option<&str>,
+        custom_instruction: Option<&str>,
+    ) -> Result<Value, String> {
+        let trimmed = text.trim();
+        if trimmed.is_empty() {
+            return Err("text is required".to_string());
+        }
+        require_nlp(&self.db)?;
+        if !sidecar.script_exists() {
+            return Err("NLP sidecar unavailable".to_string());
+        }
+        sync_sidecar_backend(sidecar, &self.db)?;
+        let mode = mode
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .unwrap_or("rephrase_professional");
+        sidecar.rewrite_selection(trimmed, mode, custom_instruction)
+    }
+
+    pub fn analyze_plaintext(&self, sidecar: &NlpSidecar, text: &str) -> Result<Value, String> {
+        let trimmed = text.trim();
+        if trimmed.len() < 8 {
+            return Err("text is empty".to_string());
+        }
+        require_nlp(&self.db)?;
+        if !sidecar.script_exists() {
+            return Err("NLP sidecar unavailable".to_string());
+        }
+        sync_sidecar_backend(sidecar, &self.db)?;
+        sidecar.analyze_document(trimmed, 12, 24, 3)
+    }
+
+    pub fn list_libraries(&self) -> Result<Vec<LibraryRecord>, String> {
+        let active = active_library_id(&self.db);
+        let mut stmt = self
+            .db
+            .prepare(
+                "SELECT id, name, root_path, created_at, last_opened_at, sort_order \
+                 FROM libraries ORDER BY sort_order ASC, name COLLATE NOCASE ASC",
+            )
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map([], |row| {
+                let id: String = row.get(0)?;
+                Ok(LibraryRecord {
+                    is_active: id == active,
+                    id,
+                    name: row.get(1)?,
+                    root_path: row.get(2)?,
+                    created_at: row.get(3)?,
+                    last_opened_at: row.get(4)?,
+                    sort_order: row.get(5)?,
+                })
+            })
+            .map_err(|e| e.to_string())?;
+        rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+    }
+
+    pub fn active_library(&self) -> Result<LibraryRecord, String> {
+        let libraries = self.list_libraries()?;
+        libraries
+            .into_iter()
+            .find(|library| library.is_active)
+            .ok_or_else(|| format!("Active library missing ({DEFAULT_LIBRARY_ID})"))
+    }
+
+    pub fn switch_library(&self, id: &str) -> Result<LibraryRecord, String> {
+        let id = id.trim();
+        if id.is_empty() {
+            return Err("id is required".to_string());
+        }
+        self.run_writable(|db| {
+            let now = chrono::Utc::now().timestamp();
+            db.execute(
+                "UPDATE libraries SET last_opened_at = ?1 WHERE id = ?2",
+                params![now, id],
+            )
+            .map_err(|e| e.to_string())?;
+            let mut library = db
+                .query_row(
+                    "SELECT id, name, root_path, created_at, last_opened_at, sort_order \
+                     FROM libraries WHERE id = ?1",
+                    [id],
+                    |row| {
+                        Ok(LibraryRecord {
+                            id: row.get(0)?,
+                            name: row.get(1)?,
+                            root_path: row.get(2)?,
+                            created_at: row.get(3)?,
+                            last_opened_at: row.get(4)?,
+                            sort_order: row.get(5)?,
+                            is_active: true,
+                        })
+                    },
+                )
+                .optional()
+                .map_err(|e| e.to_string())?
+                .ok_or_else(|| format!("Library not found: {id}"))?;
+
+            if !library.root_path.is_empty() {
+                db.execute(
+                    "INSERT OR REPLACE INTO meta (key, value) VALUES (?1, ?2)",
+                    params![META_DOCUMENTS_DIR, library.root_path],
+                )
+                .map_err(|e| e.to_string())?;
+            }
+            db.execute(
+                "INSERT OR REPLACE INTO meta (key, value) VALUES (?1, ?2)",
+                params![META_ACTIVE_LIBRARY, library.id],
+            )
+            .map_err(|e| e.to_string())?;
+            library.last_opened_at = now;
+            Ok(library)
+        })
+    }
+
+    pub fn list_manuscripts(&self) -> Result<Vec<ManuscriptRecord>, String> {
+        let library_id = active_library_id(&self.db);
+        let mut stmt = self
+            .db
+            .prepare(
+                "SELECT id, library_id, title, chapter_ids_json, created_at, updated_at \
+                 FROM manuscripts WHERE library_id = ?1 ORDER BY updated_at DESC",
+            )
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map([library_id], |row| {
+                let raw: String = row.get(3)?;
+                Ok(ManuscriptRecord {
+                    id: row.get(0)?,
+                    library_id: row.get(1)?,
+                    title: row.get(2)?,
+                    chapter_ids: serde_json::from_str(&raw).unwrap_or_default(),
+                    created_at: row.get(4)?,
+                    updated_at: row.get(5)?,
+                })
+            })
+            .map_err(|e| e.to_string())?;
+        rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+    }
+
+    pub fn upsert_manuscript(
+        &self,
+        id: Option<&str>,
+        title: &str,
+        chapter_ids: &[String],
+    ) -> Result<ManuscriptRecord, String> {
+        let title = title.trim();
+        if title.is_empty() {
+            return Err("title is required".to_string());
+        }
+        self.run_writable(|db| {
+            let library_id = active_library_id(db);
+            let now = chrono::Utc::now().timestamp();
+            let json = serde_json::to_string(chapter_ids).unwrap_or_else(|_| "[]".into());
+            let id = id
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(str::to_string)
+                .unwrap_or_else(|| Uuid::new_v4().to_string());
+            db.execute(
+                "INSERT INTO manuscripts (id, library_id, title, chapter_ids_json, created_at, updated_at) \
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?5) \
+                 ON CONFLICT(id) DO UPDATE SET title = excluded.title, chapter_ids_json = excluded.chapter_ids_json, \
+                 updated_at = excluded.updated_at",
+                params![id, library_id, title, json, now],
+            )
+            .map_err(|e| e.to_string())?;
+            Ok(ManuscriptRecord {
+                id,
+                library_id,
+                title: title.to_string(),
+                chapter_ids: chapter_ids.to_vec(),
+                created_at: now,
+                updated_at: now,
+            })
+        })
+    }
+
+    pub fn list_document_chat_messages(
+        &self,
+        document_id: &str,
+    ) -> Result<Vec<DocumentChatMessage>, String> {
+        let mut stmt = self
+            .db
+            .prepare(
+                "SELECT id, document_id, role, text, created_at, action, citations_json \
+                 FROM document_chat_messages \
+                 WHERE document_id = ?1 \
+                 ORDER BY created_at ASC, id ASC",
+            )
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map(params![document_id], |row| {
+                let raw: Option<String> = row.get(6)?;
+                let citations = raw
+                    .as_deref()
+                    .filter(|value| !value.trim().is_empty())
+                    .and_then(|json| serde_json::from_str(json).ok())
+                    .unwrap_or_default();
+                Ok(DocumentChatMessage {
+                    id: row.get(0)?,
+                    document_id: row.get(1)?,
+                    role: row.get(2)?,
+                    text: row.get(3)?,
+                    created_at: row.get(4)?,
+                    action: row.get(5)?,
+                    citations,
+                })
+            })
+            .map_err(|e| e.to_string())?;
+        rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+    }
+
+    pub fn append_document_chat_message(
+        &self,
+        document_id: &str,
+        role: &str,
+        text: &str,
+        action: Option<&str>,
+        citations: Option<&[DocumentChatCitation]>,
+    ) -> Result<DocumentChatMessage, String> {
+        let role = role.trim().to_lowercase();
+        if role != "user" && role != "assistant" {
+            return Err("role must be user or assistant".to_string());
+        }
+        let text = text.trim().to_string();
+        if text.is_empty() {
+            return Err("text is required".to_string());
+        }
+        self.run_writable(|db| {
+            let exists: i64 = db
+                .query_row(
+                    "SELECT COUNT(*) FROM documents WHERE id = ?1 AND deleted_at IS NULL",
+                    params![document_id],
+                    |row| row.get(0),
+                )
+                .map_err(|e| e.to_string())?;
+            if exists == 0 {
+                return Err(format!("Document not found: {document_id}"));
+            }
+            let citations = citations.unwrap_or(&[]).to_vec();
+            let citations_json = if citations.is_empty() {
+                None
+            } else {
+                Some(serde_json::to_string(&citations).map_err(|e| e.to_string())?)
+            };
+            let action = action
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(str::to_string);
+            let id = Uuid::new_v4().to_string();
+            let created_at = chrono::Utc::now().timestamp();
+            db.execute(
+                "INSERT INTO document_chat_messages \
+                 (id, document_id, role, text, created_at, action, citations_json) \
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                params![id, document_id, role, text, created_at, action, citations_json],
+            )
+            .map_err(|e| e.to_string())?;
+            Ok(DocumentChatMessage {
+                id,
+                document_id: document_id.to_string(),
+                role,
+                text,
+                created_at,
+                action,
+                citations,
+            })
+        })
+    }
+
+    pub fn clear_document_chat_messages(&self, document_id: &str) -> Result<u64, String> {
+        self.run_writable(|db| {
+            let deleted = db
+                .execute(
+                    "DELETE FROM document_chat_messages WHERE document_id = ?1",
+                    params![document_id],
+                )
+                .map_err(|e| e.to_string())?;
+            Ok(deleted as u64)
+        })
+    }
 }
 
 fn is_auto_backup_zip(name: &str) -> bool {
@@ -1063,4 +1394,189 @@ fn chunk_document_passages(document_id: &str, title: &str, text: &str) -> Value 
             })
         })
         .collect::<Vec<_>>())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::test_helpers::seed_document;
+    use crate::store::ScribeStore;
+    use rusqlite::params;
+
+    fn dummy_sidecar() -> NlpSidecar {
+        NlpSidecar::new(PathBuf::from("/tmp/scribe-nlp-missing.py"))
+    }
+
+    fn insert_library(store: &ScribeStore, id: &str, name: &str) {
+        store
+            .db
+            .execute(
+                "INSERT INTO libraries (id, name, root_path, created_at, last_opened_at, sort_order) \
+                 VALUES (?1, ?2, '', 1, 1, 1)",
+                params![id, name],
+            )
+            .unwrap();
+    }
+
+    #[test]
+    fn rewrite_selection_rejects_blank_text() {
+        let store = ScribeStore::from_memory();
+        let err = store
+            .rewrite_selection(&dummy_sidecar(), "   ", None, None)
+            .unwrap_err();
+        assert_eq!(err, "text is required");
+    }
+
+    #[test]
+    fn analyze_plaintext_rejects_short_text() {
+        let store = ScribeStore::from_memory();
+        let err = store
+            .analyze_plaintext(&dummy_sidecar(), "short")
+            .unwrap_err();
+        assert_eq!(err, "text is empty");
+    }
+
+    #[test]
+    fn list_libraries_marks_default_active() {
+        let store = ScribeStore::from_memory();
+        let libraries = store.list_libraries().unwrap();
+        assert!(!libraries.is_empty());
+        let active = libraries.iter().find(|library| library.is_active).unwrap();
+        assert_eq!(active.id, DEFAULT_LIBRARY_ID);
+        assert_eq!(store.active_library().unwrap().id, DEFAULT_LIBRARY_ID);
+    }
+
+    #[test]
+    fn switch_library_rejects_unknown_id() {
+        let store = ScribeStore::from_memory();
+        let err = store.switch_library("missing").unwrap_err();
+        assert!(err.contains("Library not found"));
+    }
+
+    #[test]
+    fn switch_library_scopes_list_and_create() {
+        let store = ScribeStore::from_memory();
+        insert_library(&store, "work", "Work");
+        let default_note = store.create_note("Home note", Some("home body"), None).unwrap();
+
+        let switched = store.switch_library("work").unwrap();
+        assert_eq!(switched.id, "work");
+        assert!(switched.is_active);
+
+        let listed = store.list_documents(None, Some(20)).unwrap();
+        assert!(listed.iter().all(|doc| doc.id != default_note.id));
+
+        let work_note = store.create_note("Work note", Some("office"), None).unwrap();
+        let listed = store.list_documents(None, Some(20)).unwrap();
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].id, work_note.id);
+
+        store.switch_library(DEFAULT_LIBRARY_ID).unwrap();
+        let home = store.list_documents(None, Some(20)).unwrap();
+        assert!(home.iter().any(|doc| doc.id == default_note.id));
+        assert!(home.iter().all(|doc| doc.id != work_note.id));
+    }
+
+    #[test]
+    fn manuscripts_round_trip_in_active_library() {
+        let store = ScribeStore::from_memory();
+        insert_library(&store, "work", "Work");
+        let created = store
+            .upsert_manuscript(None, "Draft", &["ch-1".to_string(), "ch-2".to_string()])
+            .unwrap();
+        assert_eq!(created.title, "Draft");
+        assert_eq!(created.chapter_ids, vec!["ch-1", "ch-2"]);
+        assert_eq!(created.library_id, DEFAULT_LIBRARY_ID);
+
+        store.switch_library("work").unwrap();
+        assert!(store.list_manuscripts().unwrap().is_empty());
+
+        store.switch_library(DEFAULT_LIBRARY_ID).unwrap();
+        let listed = store.list_manuscripts().unwrap();
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].id, created.id);
+
+        let updated = store
+            .upsert_manuscript(Some(&created.id), "Draft v2", &["ch-1".to_string()])
+            .unwrap();
+        assert_eq!(updated.id, created.id);
+        assert_eq!(updated.title, "Draft v2");
+        assert_eq!(store.list_manuscripts().unwrap()[0].chapter_ids, vec!["ch-1"]);
+    }
+
+    #[test]
+    fn upsert_manuscript_rejects_blank_title() {
+        let store = ScribeStore::from_memory();
+        let err = store.upsert_manuscript(None, "  ", &[]).unwrap_err();
+        assert_eq!(err, "title is required");
+    }
+
+    #[test]
+    fn document_chat_append_list_and_clear() {
+        let store = ScribeStore::from_memory();
+        seed_document(
+            &store.db,
+            "doc-1",
+            "Note",
+            r#"{"type":"doc","content":[]}"#,
+            None,
+        );
+        let user = store
+            .append_document_chat_message("doc-1", "user", "What is this?", None, None)
+            .unwrap();
+        assert_eq!(user.role, "user");
+        let citations = vec![DocumentChatCitation {
+            document_id: "doc-1".into(),
+            title: "Note".into(),
+            snippet: "body".into(),
+        }];
+        store
+            .append_document_chat_message(
+                "doc-1",
+                "assistant",
+                "A short answer.",
+                Some("answer"),
+                Some(&citations),
+            )
+            .unwrap();
+
+        let messages = store.list_document_chat_messages("doc-1").unwrap();
+        assert_eq!(messages.len(), 2);
+        assert!(messages.iter().any(|message| message.role == "user"));
+        let assistant = messages
+            .iter()
+            .find(|message| message.role == "assistant")
+            .expect("assistant turn");
+        assert_eq!(assistant.action.as_deref(), Some("answer"));
+        assert_eq!(assistant.citations[0].snippet, "body");
+
+        let deleted = store.clear_document_chat_messages("doc-1").unwrap();
+        assert_eq!(deleted, 2);
+        assert!(store.list_document_chat_messages("doc-1").unwrap().is_empty());
+    }
+
+    #[test]
+    fn document_chat_rejects_invalid_role_and_missing_doc() {
+        let store = ScribeStore::from_memory();
+        let err = store
+            .append_document_chat_message("missing", "system", "hi", None, None)
+            .unwrap_err();
+        assert_eq!(err, "role must be user or assistant");
+
+        let err = store
+            .append_document_chat_message("missing", "user", "hi", None, None)
+            .unwrap_err();
+        assert!(err.contains("Document not found"));
+    }
+
+    #[test]
+    fn get_nlp_artifact_returns_saved_row() {
+        let store = ScribeStore::from_memory();
+        crate::db::save_artifact(&store.db, "art-1", "library_report", r#"{"ok":true}"#, 1)
+            .unwrap();
+        let artifact = store.get_nlp_artifact("art-1").unwrap().unwrap();
+        assert_eq!(artifact.kind, "library_report");
+        assert_eq!(artifact.payload["ok"], true);
+        assert!(store.get_nlp_artifact("missing").unwrap().is_none());
+    }
 }

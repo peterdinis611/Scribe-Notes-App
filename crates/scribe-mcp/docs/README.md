@@ -18,6 +18,7 @@ Scribe stores documents in a local SQLite database. The MCP server opens that da
 - load a document as plain text
 - follow `[[wiki links]]` (backlinks, outgoing, full graph)
 - optionally **create** or **append** notes (`create_note`, `append_to_note`)
+- switch libraries, rewrite/analyze unsaved text, persist document chat, and manage manuscripts
 
 It does **not** replace Claude’s built-in Memory product. It gives Claude / Cursor **on-demand access** to your Scribe library — closer to a personal knowledge base than a chat-memory store.
 

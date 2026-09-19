@@ -582,6 +582,8 @@ impl NlpSidecar {
                 "maxChunks": max_chunks,
             }),
         )
+    }
+
     pub fn rewrite_selection(
         &self,
         text: &str,

@@ -5,7 +5,7 @@ mod links;
 pub mod migrations;
 mod revisions;
 mod search;
-pub use library_scope::{active_library_id, DEFAULT_LIBRARY_ID};
+pub use library_scope::{active_library_id, DEFAULT_LIBRARY_ID, META_ACTIVE_LIBRARY};
 pub use search::{
     build_fts_query, fuse_search_hits, search_documents_for_library, search_documents_in_conn,
     SearchHit, SearchMode,

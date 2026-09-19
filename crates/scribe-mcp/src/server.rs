@@ -79,6 +79,7 @@ impl ScribeMcp {
         self.with_store(|store| {
             let docs = store.list_documents(None, Some(1))?;
             let graph = store.list_link_graph()?;
+            let active_library = store.active_library().ok();
             Ok(tools::json(&serde_json::json!({
                 "ok": true,
                 "dbPath": self.db_path,
@@ -87,6 +88,7 @@ impl ScribeMcp {
                 "sampleDocumentCount": docs.len(),
                 "edgeCount": graph.edges.len(),
                 "orphanCount": graph.orphans.len(),
+                "activeLibrary": active_library,
             })))
         })
     }
@@ -1286,6 +1288,156 @@ impl ScribeMcp {
             })))
         })
     }
+
+    #[tool(description = "Rewrite selected text via Local AI (rephrase, shorten, expand, simplify, or custom). Does not mutate the note.")]
+    fn rewrite_selection(
+        &self,
+        Parameters(params): Parameters<tools::RewriteSelectionParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.rewrite_selection(
+                &self.sidecar,
+                &params.text,
+                params.mode.as_deref(),
+                params.custom_instruction.as_deref(),
+            )?))
+        })
+    }
+
+    #[tool(description = "Analyze plaintext with Local AI (keywords, outline, summary, tone). Text is not saved.")]
+    fn analyze_plaintext(
+        &self,
+        Parameters(params): Parameters<tools::AnalyzePlaintextParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.analyze_plaintext(&self.sidecar, &params.text)?))
+        })
+    }
+
+    #[tool(description = "Get one cached Local AI artifact by id (journal_summary, library_report, …).")]
+    fn get_nlp_artifact(
+        &self,
+        Parameters(params): Parameters<tools::IdParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            let artifact = store
+                .get_nlp_artifact(&params.id)?
+                .ok_or_else(|| format!("Artifact not found: {}", params.id))?;
+            Ok(tools::json(&artifact))
+        })
+    }
+
+    #[tool(description = "List Scribe libraries and which one is active.")]
+    fn list_libraries(&self) -> Result<String, String> {
+        self.with_store(|store| {
+            let libraries = store.list_libraries()?;
+            Ok(tools::json(&serde_json::json!({
+                "count": libraries.len(),
+                "libraries": libraries,
+            })))
+        })
+    }
+
+    #[tool(description = "Switch the active Scribe library. List/create/search then use this library. Requires writable DB.")]
+    fn switch_library(
+        &self,
+        Parameters(params): Parameters<tools::IdParams>,
+    ) -> Result<String, String> {
+        if !self.writable {
+            return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
+        }
+        self.with_store(|store| Ok(tools::json(&store.switch_library(&params.id)?)))
+    }
+
+    #[tool(description = "List manuscripts (compiled chapter sets) in the active library.")]
+    fn list_manuscripts(&self) -> Result<String, String> {
+        self.with_store(|store| {
+            let manuscripts = store.list_manuscripts()?;
+            Ok(tools::json(&serde_json::json!({
+                "count": manuscripts.len(),
+                "manuscripts": manuscripts,
+            })))
+        })
+    }
+
+    #[tool(description = "Create or update a manuscript (title + ordered chapter document ids) in the active library. Requires writable DB.")]
+    fn upsert_manuscript(
+        &self,
+        Parameters(params): Parameters<tools::UpsertManuscriptParams>,
+    ) -> Result<String, String> {
+        if !self.writable {
+            return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
+        }
+        self.with_store(|store| {
+            let chapter_ids = params.chapter_ids.unwrap_or_default();
+            Ok(tools::json(&store.upsert_manuscript(
+                params.id.as_deref(),
+                &params.title,
+                &chapter_ids,
+            )?))
+        })
+    }
+
+    #[tool(description = "List persisted document-chat messages for a note.")]
+    fn list_document_chat(
+        &self,
+        Parameters(params): Parameters<tools::DocumentIdParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            let messages = store.list_document_chat_messages(&params.document_id)?;
+            Ok(tools::json(&serde_json::json!({
+                "documentId": params.document_id,
+                "count": messages.len(),
+                "messages": messages,
+            })))
+        })
+    }
+
+    #[tool(description = "Append a user or assistant message to a document chat. Requires writable DB.")]
+    fn append_document_chat(
+        &self,
+        Parameters(params): Parameters<tools::AppendDocumentChatParams>,
+    ) -> Result<String, String> {
+        if !self.writable {
+            return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
+        }
+        self.with_store(|store| {
+            let citations = params
+                .citations
+                .unwrap_or_default()
+                .into_iter()
+                .map(|item| scribe_core::store_ext::DocumentChatCitation {
+                    document_id: item.document_id,
+                    title: item.title,
+                    snippet: item.snippet,
+                })
+                .collect::<Vec<_>>();
+            Ok(tools::json(&store.append_document_chat_message(
+                &params.document_id,
+                &params.role,
+                &params.text,
+                params.action.as_deref(),
+                Some(citations.as_slice()),
+            )?))
+        })
+    }
+
+    #[tool(description = "Clear persisted document-chat messages for a note. Requires writable DB.")]
+    fn clear_document_chat(
+        &self,
+        Parameters(params): Parameters<tools::DocumentIdParams>,
+    ) -> Result<String, String> {
+        if !self.writable {
+            return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
+        }
+        self.with_store(|store| {
+            let deleted = store.clear_document_chat_messages(&params.document_id)?;
+            Ok(tools::json(&serde_json::json!({
+                "documentId": params.document_id,
+                "deleted": deleted,
+            })))
+        })
+    }
 }
 
 #[prompt_router]
@@ -1354,6 +1506,30 @@ impl ScribeMcp {
         )])
         .with_description("Wiki hubs and unresolved links")
     }
+
+    #[prompt(description = "Rewrite selected text with Local AI without changing the note.")]
+    fn rewrite_selection_draft(&self) -> GetPromptResult {
+        GetPromptResult::new(vec![PromptMessage::new_text(
+            Role::User,
+            "Rewrite the selected Scribe text I provide.\n\
+             1. Call rewrite_selection with the text and a mode (rephrase_professional, shorten, expand, simplify, or custom + customInstruction).\n\
+             2. Show the rewritten output. Do not call replace_document_content unless I explicitly ask to apply it.",
+        )])
+        .with_description("Rewrite selection (preview only)")
+    }
+
+    #[prompt(description = "Continue a persisted document chat using saved turns.")]
+    fn continue_document_chat(&self) -> GetPromptResult {
+        GetPromptResult::new(vec![PromptMessage::new_text(
+            Role::User,
+            "Continue the Scribe document chat for the note I name or give by id.\n\
+             1. Call list_document_chat for that documentId.\n\
+             2. Answer with document_answer (pass recent turns as context).\n\
+             3. If I want it saved, append_document_chat for my question (role user) and your answer (role assistant).\n\
+             Do not invent prior messages that were not returned.",
+        )])
+        .with_description("Resume saved document chat")
+    }
 }
 
 #[tool_handler]
@@ -1370,8 +1546,14 @@ impl ServerHandler for ScribeMcp {
         .with_instructions(
             "Scribe local notes. Prefer search (with folderId/tag/fromDate/toDate), \
              get_document_outline, then get_document or export_document. \
+             list_documents / create_note / search are scoped to the active library — \
+             call list_libraries / switch_library first if the user names another library. \
              For Q&A over the library use library_answer. \
+             For one-note Q&A use document_answer; persist turns with list/append_document_chat. \
              For note insights use document_analysis / extract_keywords / analyze_sentiment. \
+             For unsaved text use rewrite_selection / analyze_plaintext. \
+             Cached AI: list_nlp_artifacts then get_nlp_artifact or scribe://artifact/{id}. \
+             Manuscripts: list_manuscripts / upsert_manuscript. \
              Templates: list_templates then create_note_from_template. \
              Media: list_document_assets. Backups: list_backups / create_backup. \
              Documents are also readable as resources scribe://doc/{id}.",

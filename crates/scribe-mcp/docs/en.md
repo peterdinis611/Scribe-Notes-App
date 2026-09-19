@@ -77,8 +77,10 @@ See also [`../cursor.mcp.example.json`](../cursor.mcp.example.json).
 
 ## Write tools
 
-- **`create_note`** — new note (`title`, optional `content`, `folderId`)
+- **`create_note`** — new note (`title`, optional `content`, `folderId`) in the **active library**
 - **`append_to_note`** — append plain text to an existing note (`id`, `text`)
+- **`switch_library`** — change which library list/create/search use
+- **`upsert_manuscript`** / **`append_document_chat`** / **`clear_document_chat`** — compilations and note chat
 
 **Warning:** the running Scribe app may lock the database. If you see a lock/busy error or `writable: false` from `scribe_status`, retry shortly (or temporarily quit Scribe). Force readonly with `SCRIBE_MCP_WRITE=0`.
 
@@ -147,6 +149,11 @@ Full argument reference: **[tools.md](tools.md)**.
 | `suggest_organize` / `template_fill_hints` | Folder + template section hints |
 | `summarize_diff` / `summarize_revision_diff` | Change summaries |
 | `set_nlp_enabled` / `set_embed_backend` | Local AI controls (writable) |
+| `rewrite_selection` / `analyze_plaintext` | Rewrite or analyze unsaved text |
+| `get_nlp_artifact` | Cached AI artifact by id |
+| `list_libraries` / `switch_library` | Libraries (switch is writable) |
+| `list_manuscripts` / `upsert_manuscript` | Chapter compilations |
+| `list_document_chat` / `append_document_chat` / `clear_document_chat` | Persisted note chat |
 | `trash_document` / `empty_trash` / `rename_document` / `replace_document_content` | Edit lifecycle |
 | `restore_document_revision` | Restore a snapshot |
 | `duplicate_document` / `export_document` | Copy / markdown export |

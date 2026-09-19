@@ -337,3 +337,45 @@ pub struct RewriteQueryParams {
     pub query: String,
     pub max_expansions: Option<i64>,
 }
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct RewriteSelectionParams {
+    pub text: String,
+    /// rephrase_professional | shorten | expand | simplify | custom
+    pub mode: Option<String>,
+    pub custom_instruction: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct AnalyzePlaintextParams {
+    pub text: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct UpsertManuscriptParams {
+    pub id: Option<String>,
+    pub title: String,
+    pub chapter_ids: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentChatCitationParams {
+    pub document_id: String,
+    pub title: String,
+    pub snippet: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct AppendDocumentChatParams {
+    pub document_id: String,
+    /// user | assistant
+    pub role: String,
+    pub text: String,
+    pub action: Option<String>,
+    pub citations: Option<Vec<DocumentChatCitationParams>>,
+}
