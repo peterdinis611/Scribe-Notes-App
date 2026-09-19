@@ -22,6 +22,11 @@ class AnalyzeTests(unittest.TestCase):
         self.assertTrue(result.get("summary"))
         self.assertIn("outline", result)
 
+    def test_short_text_skips_summary(self) -> None:
+        result = analyze_document("Hi there.")
+        self.assertIsNone(result["summary"])
+        self.assertEqual(result["summaryBullets"], [])
+
     def test_analyze_document_rpc(self) -> None:
         response = handle_request(
             {

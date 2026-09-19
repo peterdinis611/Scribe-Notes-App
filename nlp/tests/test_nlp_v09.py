@@ -59,6 +59,26 @@ class LibraryAnswerTests(unittest.TestCase):
         self.assertIn("embeddings", result["answer"].lower())
         self.assertEqual(result["citations"][0]["documentId"], "d1")
         self.assertGreaterEqual(len(result.get("followups") or []), 1)
+        self.assertTrue(result["answer"].startswith("Based on your notes"))
+
+    def test_document_scope_uses_document_prefix(self) -> None:
+        result = library_answer(
+            "What about embeddings?",
+            [
+                {
+                    "documentId": "d1",
+                    "title": "Search notes",
+                    "snippet": "Local embeddings power semantic search in Scribe.",
+                }
+            ],
+            scope="document",
+        )
+        self.assertTrue(result["answer"].startswith("Based on this document"))
+
+    def test_empty_question_returns_fallback(self) -> None:
+        result = library_answer("", [])
+        self.assertIn("No matching passages were found", result["answer"])
+        self.assertEqual(result["citations"], [])
 
     def test_skips_table_noise_in_extractive_answer(self) -> None:
         result = library_answer(

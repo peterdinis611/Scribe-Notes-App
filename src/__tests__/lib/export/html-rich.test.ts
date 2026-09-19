@@ -95,4 +95,16 @@ describe('tiptapJsonToHtml rich blocks', () => {
     expect(html).toContain('mermaid-diagram')
     expect(html).toContain('flowchart TD')
   })
+
+  it('stamps the Scribe 2.0 generator meta', () => {
+    const html = tiptapJsonToHtml(
+      JSON.stringify({
+        type: 'doc',
+        content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Hello' }] }],
+      }),
+      'Export',
+    )
+    expect(html).toContain('name="generator"')
+    expect(html).toContain('content="Scribe 2.0"')
+  })
 })

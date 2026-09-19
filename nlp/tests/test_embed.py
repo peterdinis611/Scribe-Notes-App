@@ -44,6 +44,25 @@ class EmbedTests(unittest.TestCase):
         self.assertEqual(len(vectors[1]), 384)
 
 
+class CosineSimilarityTests(unittest.TestCase):
+    def test_identical_unit_vectors_score_one(self) -> None:
+        from scribe_nlp.embed import cosine_similarity
+
+        self.assertEqual(cosine_similarity([1.0, 0.0], [1.0, 0.0]), 1.0)
+        self.assertEqual(cosine_similarity([1.0, 0.0], [0.0, 1.0]), 0.0)
+        self.assertEqual(cosine_similarity([1.0], [1.0, 0.0]), 0.0)
+        self.assertEqual(cosine_similarity([], [1.0]), 0.0)
+
+    def test_hash_embeddings_are_unit_length(self) -> None:
+        from scribe_nlp.embed import cosine_similarity
+
+        left = embed_text("Local notes about Scribe search")
+        right = embed_text("Scribe local search notes")
+        unrelated = embed_text("Tomato soup with basil")
+        self.assertAlmostEqual(sum(x * x for x in left), 1.0, places=5)
+        self.assertGreater(cosine_similarity(left, right), cosine_similarity(left, unrelated))
+
+
 class TextUtilsTests(unittest.TestCase):
     def test_jaccard_detects_overlap(self) -> None:
         self.assertGreater(

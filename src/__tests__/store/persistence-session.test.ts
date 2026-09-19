@@ -9,6 +9,8 @@ import {
   ensureSetupCompletedForExistingUsers,
   persistWhatsNewVersion,
   readWhatsNewVersion,
+  persistOpenDocumentIds,
+  readOpenDocumentIds,
 } from '@/store/persistence'
 
 describe('session persistence', () => {
@@ -46,5 +48,11 @@ describe('session persistence', () => {
     expect(readWhatsNewVersion()).toBeNull()
     persistWhatsNewVersion('0.8.0')
     expect(readWhatsNewVersion()).toBe('0.8.0')
+  })
+
+  it('persists open document tab ids', () => {
+    expect(readOpenDocumentIds()).toEqual([])
+    persistOpenDocumentIds(['a', 'b'])
+    expect(readOpenDocumentIds()).toEqual(['a', 'b'])
   })
 })

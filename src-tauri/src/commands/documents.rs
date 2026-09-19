@@ -1226,4 +1226,48 @@ mod tests {
             "Foo FOO x"
         );
     }
+
+    #[test]
+    fn open_list_is_scoped_to_active_library() {
+        let conn = in_memory_conn();
+        seed_document(&conn, "d-default", "Home", r#"{"type":"doc","content":[]}"#, None);
+        conn.execute(
+            "INSERT INTO libraries (id, name, root_path, created_at, last_opened_at, sort_order) \
+             VALUES ('work', 'Work', '', 1, 1, 1)",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at, library_id) \
+             VALUES ('d-work', 'Office', '{\"type\":\"doc\",\"content\":[]}', NULL, NULL, 1, 1, 'work')",
+            [],
+        )
+        .unwrap();
+
+        let home = list_open_document_summaries(&conn).unwrap();
+        assert_eq!(home.iter().map(|d| d.id.as_str()).collect::<Vec<_>>(), vec!["d-default"]);
+
+        crate::libraries::switch_library(&conn, "work").unwrap();
+        let work = list_open_document_summaries(&conn).unwrap();
+        assert_eq!(work.iter().map(|d| d.id.as_str()).collect::<Vec<_>>(), vec!["d-work"]);
+    }
+
+    #[test]
+    fn insert_document_record_uses_active_library() {
+        let conn = in_memory_conn();
+        conn.execute(
+            "INSERT INTO libraries (id, name, root_path, created_at, last_opened_at, sort_order) \
+             VALUES ('work', 'Work', '', 1, 1, 1)",
+            [],
+        )
+        .unwrap();
+        crate::libraries::switch_library(&conn, "work").unwrap();
+        insert_document_record(&conn, "d-new", "Fresh", r#"{"type":"doc","content":[]}"#, None, 50)
+            .unwrap();
+
+        let library_id: String = conn
+            .query_row("SELECT library_id FROM documents WHERE id = 'd-new'", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(library_id, "work");
+    }
 }

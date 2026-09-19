@@ -17,35 +17,13 @@ import { tiptapJsonToMarkdown } from '@/lib/export/markdown'
 import { tiptapToPlainText } from '@/lib/export/plain-text'
 import { upsertManuscript } from '@/lib/db/libraries-api'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
+import { mergeChapters } from '@/lib/library/compile-chapters'
 import { visibleLibraryDocuments } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setActiveDocumentId, updateDocuments } from '@/store/documentsSlice'
 import { setCompileDialogOpen } from '@/store/uiSlice'
-
-type TipTapDoc = { type?: string; content?: unknown[] }
-
-function mergeChapters(chapters: { title: string; contentJson: string }[]): string {
-  const content: unknown[] = []
-  for (const chapter of chapters) {
-    content.push({
-      type: 'heading',
-      attrs: { level: 1 },
-      content: [{ type: 'text', text: chapter.title }],
-    })
-    try {
-      const parsed = JSON.parse(chapter.contentJson) as TipTapDoc
-      if (Array.isArray(parsed.content)) content.push(...parsed.content)
-    } catch {
-      content.push({
-        type: 'paragraph',
-        content: [{ type: 'text', text: chapter.contentJson }],
-      })
-    }
-  }
-  return JSON.stringify({ type: 'doc', content })
-}
 
 export function CompileDialog() {
   const { t } = useTranslation()

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { cropAspectRatio, initialPercentCrop } from '@/lib/editor/image-crop'
-import { highlighterLanguage } from '@/lib/editor/syntax-highlight'
+import { highlighterLanguage, isDocumentDark } from '@/lib/editor/syntax-highlight'
 
 describe('initialPercentCrop', () => {
   it('centers a free crop', () => {
@@ -19,6 +19,17 @@ describe('initialPercentCrop', () => {
     expect(crop.x).toBeCloseTo(25)
     expect(crop.y).toBeCloseTo(0)
   })
+
+  it('locks photo and wide aspects', () => {
+    expect(cropAspectRatio('photo')).toBeCloseTo(4 / 3)
+    expect(cropAspectRatio('wide')).toBeCloseTo(16 / 9)
+
+    const photo = initialPercentCrop(1200, 900, cropAspectRatio('photo'))
+    expect(((photo.width ?? 0) * 1200) / ((photo.height ?? 1) * 900)).toBeCloseTo(4 / 3, 2)
+
+    const wide = initialPercentCrop(1600, 900, cropAspectRatio('wide'))
+    expect(((wide.width ?? 0) * 1600) / ((wide.height ?? 1) * 900)).toBeCloseTo(16 / 9, 2)
+  })
 })
 
 describe('highlighterLanguage', () => {
@@ -32,5 +43,15 @@ describe('highlighterLanguage', () => {
     expect(highlighterLanguage('js')).toBe('javascript')
     expect(highlighterLanguage('html')).toBe('xml')
     expect(highlighterLanguage('py')).toBe('python')
+  })
+})
+
+describe('isDocumentDark', () => {
+  it('follows the documentElement dark class', () => {
+    document.documentElement.classList.remove('dark')
+    expect(isDocumentDark()).toBe(false)
+    document.documentElement.classList.add('dark')
+    expect(isDocumentDark()).toBe(true)
+    document.documentElement.classList.remove('dark')
   })
 })

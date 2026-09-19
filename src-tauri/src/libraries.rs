@@ -270,3 +270,161 @@ pub fn upsert_manuscript(
         updated_at: now,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::test_helpers::in_memory_conn;
+    use rusqlite::params;
+
+    fn insert_library(conn: &Connection, id: &str, name: &str) {
+        conn.execute(
+            "INSERT INTO libraries (id, name, root_path, created_at, last_opened_at, sort_order) \
+             VALUES (?1, ?2, '', 1, 1, 1)",
+            params![id, name],
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn default_library_is_seeded_and_active() {
+        let conn = in_memory_conn();
+        let listed = list_libraries(&conn).unwrap();
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].id, DEFAULT_LIBRARY_ID);
+        assert!(listed[0].is_active);
+        assert_eq!(active_library_id(&conn), DEFAULT_LIBRARY_ID);
+    }
+
+    #[test]
+    fn create_library_rejects_blank_name() {
+        let conn = in_memory_conn();
+        let err = create_library(&conn, "   ", Path::new("/tmp")).unwrap_err();
+        assert!(err.contains("prázdny"));
+    }
+
+    #[test]
+    fn create_and_switch_library_updates_active_id() {
+        let conn = in_memory_conn();
+        let dir = std::env::temp_dir().join(format!("scribe-test-lib-{}", Uuid::new_v4()));
+        let created = create_library(&conn, " Work ", &dir).unwrap();
+        assert_eq!(created.name, "Work");
+        assert!(!created.is_active);
+        assert!(created.root_path.contains("scribe-test-lib-"));
+
+        let listed = list_libraries(&conn).unwrap();
+        assert_eq!(listed.len(), 2);
+        assert!(listed.iter().any(|lib| lib.id == created.id && !lib.is_active));
+
+        let switched = switch_library(&conn, &created.id).unwrap();
+        assert!(switched.is_active);
+        assert_eq!(active_library_id(&conn), created.id);
+
+        let listed = list_libraries(&conn).unwrap();
+        let active: Vec<_> = listed.iter().filter(|lib| lib.is_active).collect();
+        assert_eq!(active.len(), 1);
+        assert_eq!(active[0].id, created.id);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn switch_library_rejects_unknown_id() {
+        let conn = in_memory_conn();
+        let err = switch_library(&conn, "missing").unwrap_err();
+        assert!(err.contains("Knižnica neexistuje"));
+    }
+
+    #[test]
+    fn suggested_sibling_root_uses_parent_folder() {
+        let base = Path::new("/Users/me/Documents/Scribe");
+        assert_eq!(
+            suggested_sibling_root(base, "Work"),
+            PathBuf::from("/Users/me/Documents/Scribe Work")
+        );
+    }
+
+    #[test]
+    fn manuscripts_are_scoped_to_active_library() {
+        let conn = in_memory_conn();
+        insert_library(&conn, "work", "Work");
+
+        let book = upsert_manuscript(&conn, None, "Draft", &["ch-1".into()]).unwrap();
+        assert_eq!(book.library_id, DEFAULT_LIBRARY_ID);
+        assert_eq!(list_manuscripts(&conn).unwrap().len(), 1);
+
+        switch_library(&conn, "work").unwrap();
+        assert!(list_manuscripts(&conn).unwrap().is_empty());
+
+        let other = upsert_manuscript(&conn, None, "Work compile", &["ch-2".into()]).unwrap();
+        assert_eq!(other.library_id, "work");
+        let work_list = list_manuscripts(&conn).unwrap();
+        assert_eq!(work_list.len(), 1);
+        assert_eq!(work_list[0].title, "Work compile");
+
+        switch_library(&conn, DEFAULT_LIBRARY_ID).unwrap();
+        let default_list = list_manuscripts(&conn).unwrap();
+        assert_eq!(default_list.len(), 1);
+        assert_eq!(default_list[0].id, book.id);
+    }
+
+    #[test]
+    fn upsert_manuscript_rejects_blank_title() {
+        let conn = in_memory_conn();
+        let err = upsert_manuscript(&conn, None, "  ", &[]).unwrap_err();
+        assert!(err.contains("prázdny"));
+    }
+
+    #[test]
+    fn upsert_manuscript_updates_existing_row() {
+        let conn = in_memory_conn();
+        let first = upsert_manuscript(&conn, None, "Draft", &["a".into()]).unwrap();
+        let again = upsert_manuscript(
+            &conn,
+            Some(first.id.clone()),
+            "Revised",
+            &["a".into(), "b".into()],
+        )
+        .unwrap();
+        assert_eq!(again.id, first.id);
+        assert_eq!(again.title, "Revised");
+        assert_eq!(again.chapter_ids, vec!["a", "b"]);
+        assert_eq!(list_manuscripts(&conn).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn conflicts_are_scoped_and_can_be_resolved() {
+        let conn = in_memory_conn();
+        insert_library(&conn, "work", "Work");
+
+        record_conflict(&conn, "doc-1", "Note", 20, 10).unwrap();
+        assert_eq!(list_open_conflicts(&conn).unwrap().len(), 1);
+
+        switch_library(&conn, "work").unwrap();
+        assert!(list_open_conflicts(&conn).unwrap().is_empty());
+        record_conflict(&conn, "doc-2", "Other", 30, 11).unwrap();
+        let work_open = list_open_conflicts(&conn).unwrap();
+        assert_eq!(work_open.len(), 1);
+        assert_eq!(work_open[0].document_id, "doc-2");
+
+        resolve_conflict(&conn, &work_open[0].id).unwrap();
+        assert!(list_open_conflicts(&conn).unwrap().is_empty());
+
+        switch_library(&conn, DEFAULT_LIBRARY_ID).unwrap();
+        assert_eq!(list_open_conflicts(&conn).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn update_active_root_writes_current_library_path() {
+        let conn = in_memory_conn();
+        update_active_root(&conn, Path::new("/tmp/scribe-root")).unwrap();
+        let path: String = conn
+            .query_row(
+                "SELECT root_path FROM libraries WHERE id = ?1",
+                [DEFAULT_LIBRARY_ID],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(path, "/tmp/scribe-root");
+    }
+}

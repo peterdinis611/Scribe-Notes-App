@@ -841,4 +841,46 @@ mod tests {
             .unwrap();
         assert_eq!(wiki_title, "Ukážkový cieľ wiki odkazu");
     }
+
+    #[test]
+    fn schema_v19_creates_library_tables_and_columns() {
+        let conn = in_memory_conn();
+        for table in ["libraries", "manuscripts", "sync_conflicts"] {
+            let exists: i64 = conn
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?1",
+                    [table],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert_eq!(exists, 1, "missing table {table}");
+        }
+
+        let document_cols = column_names(&conn, "documents");
+        assert!(document_cols.contains(&"library_id".to_string()));
+        let folder_cols = column_names(&conn, "folders");
+        assert!(folder_cols.contains(&"library_id".to_string()));
+        let conflict_cols = column_names(&conn, "sync_conflicts");
+        assert!(conflict_cols.contains(&"library_id".to_string()));
+        let template_cols = column_names(&conn, "custom_templates");
+        assert!(template_cols.contains(&"library_id".to_string()));
+
+        let active: String = conn
+            .query_row(
+                "SELECT value FROM meta WHERE key = 'active_library_id'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(active, "default");
+
+        let seeded: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM libraries WHERE id = 'default'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(seeded, 1);
+    }
 }
