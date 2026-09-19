@@ -83,6 +83,19 @@ function renderNodes(nodes?: TipTapNode[]): string {
           const source = String(node.attrs?.source ?? '')
           return `\`\`\`mermaid\n${source}\n\`\`\`\n\n`
         }
+        case 'd3Chart': {
+          const source = String(node.attrs?.source ?? '')
+          return `\`\`\`chart\n${source}\n\`\`\`\n\n`
+        }
+        case 'leafletMap': {
+          const source = String(node.attrs?.source ?? '')
+          return `\`\`\`map\n${source}\n\`\`\`\n\n`
+        }
+        case 'youtube':
+        case 'video': {
+          const src = String(node.attrs?.src ?? '')
+          return src ? `\`\`\`video\n${src}\n\`\`\`\n\n` : ''
+        }
         case 'image': {
           const alt = String(node.attrs?.alt ?? 'image')
           const src = String(node.attrs?.src ?? '')

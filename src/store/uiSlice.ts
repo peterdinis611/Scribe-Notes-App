@@ -31,6 +31,20 @@ export type InvoiceDialogState = {
   seed?: Record<string, unknown> | null
 }
 
+export type CommentDialogState =
+  | { open: false }
+  | {
+      open: true
+      quote?: string
+      defaultAuthor: string
+      defaultBody?: string
+    }
+
+export type CommentDialogResult = {
+  author: string
+  body: string
+}
+
 export type StorageAccessDialogIntent = 'info' | 'pick'
 
 export type StorageAccessDialogState =
@@ -43,7 +57,10 @@ export interface UiState {
   loremDialog: LoremDialogState
   mathDialog: MathDialogState
   invoiceDialog: InvoiceDialogState
+  commentDialog: CommentDialogState
   storageAccessDialog: StorageAccessDialogState
+  compileDialogOpen: boolean
+  syncConflictsOpen: boolean
 }
 
 const initialState: UiState = {
@@ -52,7 +69,10 @@ const initialState: UiState = {
   loremDialog: { open: false },
   mathDialog: { open: false },
   invoiceDialog: { open: false },
+  commentDialog: { open: false },
   storageAccessDialog: { open: false },
+  compileDialogOpen: false,
+  syncConflictsOpen: false,
 }
 
 const uiSlice = createSlice({
@@ -77,8 +97,17 @@ const uiSlice = createSlice({
     setInvoiceDialog(state, action: PayloadAction<InvoiceDialogState>) {
       state.invoiceDialog = action.payload
     },
+    setCommentDialog(state, action: PayloadAction<CommentDialogState>) {
+      state.commentDialog = action.payload
+    },
     setStorageAccessDialog(state, action: PayloadAction<StorageAccessDialogState>) {
       state.storageAccessDialog = action.payload
+    },
+    setCompileDialogOpen(state, action: PayloadAction<boolean>) {
+      state.compileDialogOpen = action.payload
+    },
+    setSyncConflictsOpen(state, action: PayloadAction<boolean>) {
+      state.syncConflictsOpen = action.payload
     },
   },
 })
@@ -90,7 +119,10 @@ export const {
   setLoremDialog,
   setMathDialog,
   setInvoiceDialog,
+  setCommentDialog,
   setStorageAccessDialog,
+  setCompileDialogOpen,
+  setSyncConflictsOpen,
 } = uiSlice.actions
 
 export default uiSlice.reducer

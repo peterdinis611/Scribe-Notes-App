@@ -142,12 +142,13 @@ pub(crate) fn list_open_document_summaries(
 ) -> Result<Vec<DocumentSummary>, String> {
     let mut stmt = conn
         .prepare(&format!(
-            "{SUMMARY_SELECT} WHERE deleted_at IS NULL ORDER BY updated_at DESC"
+            "{SUMMARY_SELECT} WHERE deleted_at IS NULL AND library_id = ?1 ORDER BY updated_at DESC"
         ))
         .map_err(|e| e.to_string())?;
 
+    let library_id = crate::libraries::active_library_id(conn);
     let rows = stmt
-        .query_map([], map_summary)
+        .query_map([library_id], map_summary)
         .map_err(|e| e.to_string())?;
 
     rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
@@ -159,12 +160,13 @@ pub fn list_trashed_documents(state: State<'_, DbState>) -> Result<Vec<DocumentS
 
     let mut stmt = conn
         .prepare(&format!(
-            "{SUMMARY_SELECT} WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC"
+            "{SUMMARY_SELECT} WHERE deleted_at IS NOT NULL AND library_id = ?1 ORDER BY deleted_at DESC"
         ))
         .map_err(|e| e.to_string())?;
 
+    let library_id = crate::libraries::active_library_id(&conn);
     let rows = stmt
-        .query_map([], map_summary)
+        .query_map([library_id], map_summary)
         .map_err(|e| e.to_string())?;
 
     rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
@@ -193,8 +195,8 @@ pub(crate) fn insert_document_record(
     now: i64,
 ) -> Result<(), String> {
     conn.execute(
-        "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?5)",
-        params![id, title, content_json, folder_id, now],
+        "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at, library_id) VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?5, ?6)",
+        params![id, title, content_json, folder_id, now, crate::libraries::active_library_id(conn)],
     )
     .map_err(|e| e.to_string())?;
 
@@ -379,8 +381,8 @@ pub fn duplicate_document(
         storage::duplicate_document_assets(&dir, &source.id, &new_id, &source.content_json)?;
 
     conn.execute(
-        "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?5)",
-        params![new_id, title, content_json, source.folder_id, now],
+        "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at, library_id) VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?5, ?6)",
+        params![new_id, title, content_json, source.folder_id, now, crate::libraries::active_library_id(&conn)],
     )
     .map_err(|e| e.to_string())?;
 
@@ -904,16 +906,17 @@ pub fn library_find_replace(
     let dry_run = input.dry_run;
 
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let library_id = crate::libraries::active_library_id(&conn);
 
     let mut stmt = match &input.folder_id {
         Some(_) => conn
             .prepare(&format!(
-                "{DOCUMENT_SELECT} WHERE deleted_at IS NULL AND folder_id = ?1 ORDER BY updated_at DESC"
+                "{DOCUMENT_SELECT} WHERE deleted_at IS NULL AND library_id = ?1 AND folder_id = ?2 ORDER BY updated_at DESC"
             ))
             .map_err(|e| e.to_string())?,
         None => conn
             .prepare(&format!(
-                "{DOCUMENT_SELECT} WHERE deleted_at IS NULL ORDER BY updated_at DESC"
+                "{DOCUMENT_SELECT} WHERE deleted_at IS NULL AND library_id = ?1 ORDER BY updated_at DESC"
             ))
             .map_err(|e| e.to_string())?,
     };
@@ -921,14 +924,14 @@ pub fn library_find_replace(
     let docs: Vec<Document> = match &input.folder_id {
         Some(folder_id) => {
             let rows = stmt
-                .query_map(params![folder_id], map_document)
+                .query_map(params![library_id, folder_id], map_document)
                 .map_err(|e| e.to_string())?;
             rows.collect::<Result<Vec<_>, _>>()
                 .map_err(|e| e.to_string())?
         }
         None => {
             let rows = stmt
-                .query_map([], map_document)
+                .query_map(params![library_id], map_document)
                 .map_err(|e| e.to_string())?;
             rows.collect::<Result<Vec<_>, _>>()
                 .map_err(|e| e.to_string())?
@@ -1222,5 +1225,49 @@ mod tests {
             replace_occurrences("Foo FOO foo", "foo", "x", true),
             "Foo FOO x"
         );
+    }
+
+    #[test]
+    fn open_list_is_scoped_to_active_library() {
+        let conn = in_memory_conn();
+        seed_document(&conn, "d-default", "Home", r#"{"type":"doc","content":[]}"#, None);
+        conn.execute(
+            "INSERT INTO libraries (id, name, root_path, created_at, last_opened_at, sort_order) \
+             VALUES ('work', 'Work', '', 1, 1, 1)",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at, library_id) \
+             VALUES ('d-work', 'Office', '{\"type\":\"doc\",\"content\":[]}', NULL, NULL, 1, 1, 'work')",
+            [],
+        )
+        .unwrap();
+
+        let home = list_open_document_summaries(&conn).unwrap();
+        assert_eq!(home.iter().map(|d| d.id.as_str()).collect::<Vec<_>>(), vec!["d-default"]);
+
+        crate::libraries::switch_library(&conn, "work").unwrap();
+        let work = list_open_document_summaries(&conn).unwrap();
+        assert_eq!(work.iter().map(|d| d.id.as_str()).collect::<Vec<_>>(), vec!["d-work"]);
+    }
+
+    #[test]
+    fn insert_document_record_uses_active_library() {
+        let conn = in_memory_conn();
+        conn.execute(
+            "INSERT INTO libraries (id, name, root_path, created_at, last_opened_at, sort_order) \
+             VALUES ('work', 'Work', '', 1, 1, 1)",
+            [],
+        )
+        .unwrap();
+        crate::libraries::switch_library(&conn, "work").unwrap();
+        insert_document_record(&conn, "d-new", "Fresh", r#"{"type":"doc","content":[]}"#, None, 50)
+            .unwrap();
+
+        let library_id: String = conn
+            .query_row("SELECT library_id FROM documents WHERE id = 'd-new'", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(library_id, "work");
     }
 }

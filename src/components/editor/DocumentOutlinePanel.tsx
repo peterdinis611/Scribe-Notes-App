@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { LucideIcon } from 'lucide-react'
 import {
+  BarChart3,
   Calculator,
   CheckSquare,
   ChevronRight,
@@ -10,6 +11,7 @@ import {
   Heading,
   Image,
   List,
+  Map,
   Minus,
   PanelRightClose,
   Quote,
@@ -60,11 +62,14 @@ const OUTLINE_ICONS: Record<DocumentOutlineKind, LucideIcon> = {
   table: Table2,
   image: Image,
   youtube: Video,
+  video: Video,
   details: ChevronRight,
   pageBreak: SquareSplitVertical,
   mathInline: Calculator,
   mathBlock: Calculator,
   mermaidDiagram: GitBranch,
+  d3Chart: BarChart3,
+  leafletMap: Map,
   lottieAnimation: Sparkles,
 }
 
@@ -181,7 +186,7 @@ export function DocumentOutlinePanel({
   }, [activeId])
 
   return (
-    <EditorSidePanel width={280} className="titlebar-no-drag" aria-label={t('editorPanels.outline')}>
+    <EditorSidePanel className="titlebar-no-drag" aria-label={t('editorPanels.outline')}>
       <EditorSidePanelHeader
         title={t('panels.outline.title')}
         subtitle={t('panels.outline.navHint')}

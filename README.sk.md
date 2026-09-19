@@ -1,10 +1,10 @@
-# Scribe
+# Scribe 2.0
 
 <p align="center">
   <img src="docs/screenshots/icon.png" alt="Ikona Scribe" width="96" height="96" />
 </p>
 
-Píšte dokumenty. Prepájajte poznámky. Lokálny macOS rich-text editor s knižnicou, šablónami a exportom do viacerých formátov.
+Píšte dokumenty. Prepájajte poznámky. **Scribe 2.0** je lokálny macOS rich-text editor s knižnicou, šablónami a exportom do viacerých formátov.
 
 Scribe beží lokálne na vašom Macu. Žiadne účty, žiadny cloud — dokumenty, databáza a nastavenia patria používateľovi macOS účtu, v ktorom je aplikácia spustená.
 
@@ -67,13 +67,13 @@ Scribe beží lokálne na vašom Macu. Žiadne účty, žiadny cloud — dokumen
 ### Editor
 - Rich-text editor postavený na **TipTap** / ProseMirror
 - Prepínanie medzi formátovaným textom a **Markdown** zdrojákom
-- Formátovanie: nadpisy, zoznamy, checklisty, tabuľky, obrázky (popisok, orezanie, full-width), odkazy, poznámky pod čiarou
-- Slash príkazy (`/`), bubble menu, drag & drop blokov a obrázkov
+- Formátovanie: nadpisy, zoznamy, checklisty, tabuľky, obrázky (popisok, [React Image Crop](https://github.com/dominictobias/react-image-crop), full-width), odkazy, poznámky pod čiarou
+- Slash príkazy (`/`), bubble menu, drag & drop blokov a obrázkov; priečinky knižnice a karty editora cez React DnD
 - Blokové **snipety** cez slash (meeting notes, decision, …)
-- Wiki odkazy (`[[dokument]]`), embedy (`![[dokument]]`), komentáre, matematika (math.js), Mermaid diagramy, code bloky (highlight.js)
+- Wiki odkazy (`[[dokument]]`), embedy (`![[dokument]]`), komentáre, matematika (math.js), Mermaid diagramy, D3 grafy (JSON špecifikácia: stĺpcový / čiarový / area / koláč), videá (React Player), mapy (React Leaflet / OpenStreetMap), code bloky (React Syntax Highlighter)
 - **Print layout** — stránkovaný náhľad s okrajmi, hlavičkami/pätami, vodotlačou; jemný hero na prázdnej stránke
 - **Režim sústredenia** — minimal UI pre nerušené písanie (`⌘⇧F`, ukončenie cez `Esc`)
-- **Canvas poznámky** — voľné karty a spojenia (`type: canvas`) pre ľahké whiteboard myslenie
+- **Canvas poznámky** — voľné karty a spojenia (`type: canvas`) na [React Flow](https://reactflow.dev/)
 
 ### Knižnica
 - Stromová štruktúra **priečinkov** s drag & drop
@@ -341,7 +341,11 @@ Schéma SQLite je verzovaná v `src-tauri/src/db/migrations.rs`. Pri štarte apl
 
 ## Verzia
 
-Aktuálna verzia: **1.9.0**
+Aktuálna verzia: **2.0.0**
+
+## Súkromie
+
+Scribe je local-first: poznámky ostávajú na Macu. Voliteľné funkcie, ktoré spustíš (písma, vloženia, MCP hostitelia, zápis v LAN), sú v [zásadách ochrany súkromia](PRIVACY.sk.md) ([English](PRIVACY.md)). Rovnaký text je v aplikácii v Nastavenia → Súkromie.
 
 ## Licencia
 

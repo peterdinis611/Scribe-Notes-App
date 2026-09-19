@@ -6,12 +6,18 @@ interface EditorToolbarProps {
   onInsertImages: (files: File[]) => Promise<void>
 }
 
-export function EditorToolbar({ editor, onInsertImages }: EditorToolbarProps) {
+export function EditorToolbar({
+  editor,
+  onInsertImages,
+}: EditorToolbarProps) {
   if (!editor) return null
 
   return (
     <div className="editor-toolbar titlebar-no-drag">
-      <ToolbarRibbon editor={editor} onInsertImages={onInsertImages} />
+      <ToolbarRibbon
+        editor={editor}
+        onInsertImages={onInsertImages}
+      />
     </div>
   )
 }

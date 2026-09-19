@@ -3,17 +3,20 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import { resolveImageSrc } from '@/lib/editor/image-utils'
+import { cn } from '@/lib/utils'
 
 type ImageLightboxProps = {
   open: boolean
   src: string
+  displaySrc?: string
+  animated?: boolean
   alt?: string
   onClose: () => void
 }
 
-export function ImageLightbox({ open, src, alt, onClose }: ImageLightboxProps) {
+export function ImageLightbox({ open, src, displaySrc, animated, alt, onClose }: ImageLightboxProps) {
   const { t } = useTranslation()
-  const resolved = resolveImageSrc(src)
+  const resolved = displaySrc || resolveImageSrc(src)
 
   useEffect(() => {
     if (!open) return
@@ -36,12 +39,13 @@ export function ImageLightbox({ open, src, alt, onClose }: ImageLightboxProps) {
 
   return createPortal(
     <div
-      className="image-lightbox titlebar-no-drag"
+      className={cn('image-lightbox titlebar-no-drag', animated && 'is-animated')}
       role="dialog"
       aria-modal="true"
       aria-label={t('image.lightbox')}
       onClick={onClose}
     >
+      <div className="image-lightbox-backdrop" aria-hidden="true" />
       <button
         type="button"
         className="image-lightbox-close"
@@ -55,6 +59,7 @@ export function ImageLightbox({ open, src, alt, onClose }: ImageLightboxProps) {
         src={resolved}
         alt={alt ?? ''}
         className="image-lightbox-img"
+        decoding={animated ? 'sync' : 'async'}
         onClick={(event) => event.stopPropagation()}
         draggable={false}
       />

@@ -1,10 +1,13 @@
 import { listDocuments, listFolders, getStorageSettings } from "@/lib/db/api"
+import { listLibraries, listSyncConflicts } from "@/lib/db/libraries-api"
+import { loadLibrarySession } from "@/lib/libraries/session"
 import { mergeLibrarySummaries } from "@/lib/db/library-sync"
 import { applyThemeSettings } from "@/lib/themes/apply"
 import { updateDocuments } from "@/store/documentsSlice"
 import { setFolders } from "@/store/foldersSlice"
 import { useAppSelector, useAppDispatch } from "@/store/hooks"
 import { persistStorageFolderAccessGranted } from "@/store/persistence"
+import { setLibraries, setOpenConflictCount } from "@/store/librariesSlice"
 import { setStorageSettings } from "@/store/settingsSlice"
 import { useEffect } from "react"
 
@@ -42,9 +45,13 @@ export function useStorageBootstrap() {
     const dispatch = useAppDispatch()
   
     useEffect(() => {
-      getStorageSettings()
-        .then((settings) => {
+      Promise.all([getStorageSettings(), listLibraries(), listSyncConflicts().catch(() => [])])
+        .then(([settings, libraries, conflicts]) => {
           dispatch(setStorageSettings(settings))
+          dispatch(setLibraries(libraries))
+          dispatch(setOpenConflictCount(conflicts.length))
+          const active = libraries.find((item) => item.isActive)
+          if (active) loadLibrarySession(dispatch, active.id)
           if (settings.folderAccessGranted) {
             persistStorageFolderAccessGranted(true)
           }

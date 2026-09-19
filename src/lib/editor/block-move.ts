@@ -22,10 +22,13 @@ const MOVABLE_TOP_LEVEL = new Set([
   'table',
   'image',
   'youtube',
+  'video',
   'details',
   'pageBreak',
   'mathBlock',
   'mermaidDiagram',
+  'd3Chart',
+  'leafletMap',
   'lottieAnimation',
 ])
 

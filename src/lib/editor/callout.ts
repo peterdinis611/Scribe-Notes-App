@@ -84,8 +84,16 @@ export const Callout = Node.create({
     return ({ node, editor, getPos }) => {
       const dom = document.createElement('div')
       const setClasses = (variant: string) => {
-        dom.className = `callout callout--${variant}`
+        for (const item of CALLOUT_VARIANTS) {
+          dom.classList.toggle(`callout--${item.id}`, item.id === variant)
+        }
+        dom.classList.add('callout')
         dom.dataset.variant = variant
+      }
+      const setActiveButton = (variant: string) => {
+        toolbar.querySelectorAll<HTMLButtonElement>('.callout-variant-btn').forEach((button) => {
+          button.classList.toggle('is-active', button.dataset.variant === variant)
+        })
       }
       dom.dataset.callout = ''
       setClasses(normalizeVariant(node.attrs.variant))
@@ -98,16 +106,36 @@ export const Callout = Node.create({
       const toolbar = document.createElement('div')
       toolbar.className = 'callout-toolbar'
       toolbar.contentEditable = 'false'
+
+      let hideTimer = 0
+      const openToolbar = () => {
+        window.clearTimeout(hideTimer)
+        dom.classList.add('is-toolbar-open')
+      }
+      const scheduleCloseToolbar = () => {
+        window.clearTimeout(hideTimer)
+        hideTimer = window.setTimeout(() => {
+          if (dom.matches(':hover, :focus-within')) return
+          dom.classList.remove('is-toolbar-open')
+        }, 360)
+      }
+      dom.addEventListener('mouseenter', openToolbar)
+      dom.addEventListener('mouseleave', scheduleCloseToolbar)
+      toolbar.addEventListener('mouseenter', openToolbar)
+      toolbar.addEventListener('mouseleave', scheduleCloseToolbar)
+
       for (const variant of CALLOUT_VARIANTS) {
         const button = document.createElement('button')
         button.type = 'button'
         button.className = 'callout-variant-btn'
         button.dataset.variant = variant.id
         button.title = variant.label
+        button.setAttribute('aria-label', variant.label)
         button.textContent = variant.icon
         button.addEventListener('mousedown', (event) => {
           event.preventDefault()
           event.stopPropagation()
+          openToolbar()
           if (!editor.isEditable) return
           const pos = getPos()
           if (pos == null) return
@@ -123,6 +151,7 @@ export const Callout = Node.create({
         })
         toolbar.appendChild(button)
       }
+      setActiveButton(normalizeVariant(node.attrs.variant))
 
       const content = document.createElement('div')
       content.className = 'callout-content'
@@ -136,8 +165,12 @@ export const Callout = Node.create({
           if (updated.type.name !== 'callout') return false
           const variant = normalizeVariant(updated.attrs.variant)
           setClasses(variant)
+          setActiveButton(variant)
           icon.textContent = variantIcon(variant)
           return true
+        },
+        destroy() {
+          window.clearTimeout(hideTimer)
         },
       }
     }

@@ -1,4 +1,4 @@
-import { FolderPlus, CalendarDays, Search, Trash2 } from 'lucide-react'
+import { CalendarDays, FolderPlus, Search, Trash2 } from 'lucide-react'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
@@ -13,28 +13,45 @@ import { LibraryTagsView } from '@/components/LibraryTagsView'
 import { LibraryJournalView } from '@/components/LibraryJournalView'
 import { LibraryLinkGraphView } from '@/components/LibraryLinkGraphView'
 import { LibraryChatPanel } from '@/components/LibraryChatPanel'
+import { LibrarySwitcher } from '@/components/library/LibrarySwitcher'
 import { LibraryViewTabs } from '@/components/LibraryViewTabs'
 import { SidebarRail } from '@/components/layout/SidebarRail'
 import { SidebarSearchResults } from '@/components/SidebarSearchResults'
 import { visibleLibraryDocuments } from '@/lib/db/library-sync'
-import { createFolder } from '@/lib/db/api'
 import { openTodayNote } from '@/lib/journal-notes'
-import { promptInput } from '@/lib/input-dialog'
+import { promptAndCreateFolder } from '@/lib/library/create-folder'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setLibraryGraphAroundActive, setLibraryView, setTrashOpen } from '@/store/documentsSlice'
 import {
   setCommandPaletteOpen,
-  updateExpandedFolderIds,
-  updateFolders,
 } from '@/store/foldersSlice'
+import { setSyncConflictsOpen } from '@/store/uiSlice'
 import { useResizableSidebar } from '@/hooks/useResizableSidebar'
 
 type SidebarProps = {
   isCompact?: boolean
   isOpen?: boolean
   onClose?: () => void
+}
+
+function ConflictBadge() {
+  const { t } = useTranslation()
+  const dispatch = useAppDispatch()
+  const count = useAppSelector((state) => state.libraries.openConflictCount)
+  if (count < 1) return null
+
+  return (
+    <button
+      type="button"
+      className="library-conflict-badge"
+      onClick={() => dispatch(setSyncConflictsOpen(true))}
+      title={t('syncConflicts.badge', { count })}
+    >
+      {t('syncConflicts.badge', { count })}
+    </button>
+  )
 }
 
 const libraryActionClass =
@@ -79,17 +96,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
   const { resizing, onResizePointerDown, resetWidth } = useResizableSidebar()
 
   const handleCreateFolder = useCallback(async () => {
-    const name = await promptInput({
-      title: t('library.newFolder'),
-      defaultValue: t('library.newFolder'),
-      placeholder: t('library.folderNamePlaceholder'),
-      confirmLabel: t('common.create'),
-    })
-    if (!name) return
-    const folder = await createFolder({ name })
-    dispatch(updateFolders((prev) => [...prev, folder]))
-    dispatch(updateExpandedFolderIds((prev) => [...prev, folder.id]))
-    toast.success(t('toasts.folderCreated'), folder.name)
+    await promptAndCreateFolder({ t, dispatch })
   }, [dispatch, t])
 
   return (
@@ -97,12 +104,13 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
       className={cn(
         'app-sidebar',
         resizing && 'is-resizing',
+        isCompact && !isOpen && 'hidden',
         isCompact &&
-          'max-xl:fixed max-xl:inset-y-0 max-xl:left-0 max-xl:z-40 max-xl:w-[min(calc(var(--sidebar-rail-width)+var(--sidebar-width)),92vw)] max-xl:-translate-x-[105%] max-xl:shadow-none max-xl:transition-transform max-xl:duration-200',
+          'max-xl:fixed max-xl:inset-y-0 max-xl:left-0 max-xl:z-40 max-xl:h-svh max-xl:max-h-svh max-xl:w-[min(calc(var(--sidebar-rail-width)+var(--sidebar-width)),92vw)] max-xl:shadow-none max-xl:transition-transform max-xl:duration-200',
         isCompact && isOpen && 'max-xl:translate-x-0 max-xl:shadow-[16px_0_48px_rgba(0,0,0,0.22)]',
       )}
     >
-      <div className="relative flex h-full min-h-0 flex-1">
+      <div className="relative flex h-full min-h-0 w-full flex-1">
         <div
           className="sidebar-brand-drag titlebar-drag absolute left-[var(--sidebar-rail-width)] right-0 top-0 z-0 h-12"
           aria-hidden="true"
@@ -117,6 +125,8 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
             <p className="library-panel-meta m-0 mt-0.5 truncate px-1">
               {t('library.documentCount', { count: visibleDocuments.length })}
             </p>
+            <LibrarySwitcher />
+            <ConflictBadge />
           </div>
 
           <div className="px-2 py-1.5" data-tour="library-search">
@@ -170,6 +180,15 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                     <div className="library-docs-actions">
                       <button
                         type="button"
+                        className="library-new-folder-btn"
+                        onClick={() => void handleCreateFolder()}
+                        title={t('library.newFolder')}
+                      >
+                        <FolderPlus className="h-3.5 w-3.5" />
+                        <span className="library-new-folder-label">{t('library.newFolder')}</span>
+                      </button>
+                      <button
+                        type="button"
                         className={libraryActionClass}
                         onClick={() => {
                           void openTodayNote({
@@ -195,15 +214,6 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                         aria-label={t('library.trash')}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        className={libraryActionClass}
-                        onClick={() => void handleCreateFolder()}
-                        title={t('library.newFolder')}
-                        aria-label={t('library.newFolder')}
-                      >
-                        <FolderPlus className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   </div>

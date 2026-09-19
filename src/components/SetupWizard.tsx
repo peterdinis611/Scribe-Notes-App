@@ -1,17 +1,9 @@
-import { Languages, Palette, Sparkles, Upload } from 'lucide-react'
+import { Upload } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { LocaleToggle, useCustomLocaleRefresh } from '@/components/LocaleToggle'
-import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { useCustomLocaleRefresh } from '@/components/LocaleToggle'
 import { registerCustomLocaleBundle } from '@/i18n'
+import { APP_SHORT_VERSION } from '@/lib/app-version'
 import { pickAndParseCustomLocale } from '@/lib/i18n/custom-locale-io'
 import { THEME_PRESETS } from '@/lib/themes/presets'
 import type { ThemePresetId } from '@/lib/themes/types'
@@ -20,6 +12,7 @@ import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import {
   ensureSetupCompletedForExistingUsers,
+  persistOnboardingDismissed,
   persistSetupCompleted,
   readSetupCompleted,
   upsertCustomLocale,
@@ -28,7 +21,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { createThemeSelection } from '@/store/settings-helpers'
 import { setLocale, setThemeSettings, setUiSkin } from '@/store/settingsSlice'
 
-const STEP_IDS = ['language', 'skin', 'theme'] as const
+const STEP_IDS = ['welcome', 'skin', 'theme'] as const
 
 const WIZARD_THEME_IDS: ThemePresetId[] = [
   'system',
@@ -45,6 +38,8 @@ const WIZARD_THEME_IDS: ThemePresetId[] = [
   'dracula',
 ]
 
+const WELCOME_POINTS = ['newDocument', 'wikiLink', 'structure'] as const
+
 type SetupWizardProps = {
   onFinished?: () => void
 }
@@ -54,7 +49,8 @@ export function SetupWizard({ onFinished }: SetupWizardProps) {
   const dispatch = useAppDispatch()
   const themeSettings = useAppSelector((state) => state.settings.themeSettings)
   const uiSkin = useAppSelector((state) => state.settings.uiSkin)
-  const { refreshToken, bump } = useCustomLocaleRefresh()
+  const locale = useAppSelector((state) => state.settings.locale)
+  const { bump } = useCustomLocaleRefresh()
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState(0)
   const [localeBusy, setLocaleBusy] = useState(false)
@@ -67,13 +63,21 @@ export function SetupWizard({ onFinished }: SetupWizardProps) {
     setOpen(true)
   }, [])
 
+  useEffect(() => {
+    if (!open) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') finish(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open])
+
   const wizardThemes = useMemo(() => {
     return WIZARD_THEME_IDS.map((id) => {
       if (id === 'system') {
         return {
           id,
           name: t('settings.appearance.systemTheme'),
-          description: t('settings.appearance.systemThemeDescription'),
           swatch: ['#ffffff', '#1e1e1e'] as [string, string],
         }
       }
@@ -82,26 +86,25 @@ export function SetupWizard({ onFinished }: SetupWizardProps) {
       return {
         id,
         name: preset.name,
-        description: preset.description,
         swatch: [preset.colors.background, preset.colors.selectionStrong] as [string, string],
       }
     }).filter(Boolean) as Array<{
       id: ThemePresetId
       name: string
-      description: string
       swatch: [string, string]
     }>
   }, [t])
 
-  function finish() {
+  function finish(startTour = false) {
     persistSetupCompleted(true)
+    if (!startTour) persistOnboardingDismissed(true)
     setOpen(false)
     onFinished?.()
   }
 
   function handleNext() {
     if (step >= STEP_IDS.length - 1) {
-      finish()
+      finish(false)
       return
     }
     setStep((value) => value + 1)
@@ -141,154 +144,151 @@ export function SetupWizard({ onFinished }: SetupWizardProps) {
 
   const stepId = STEP_IDS[step]!
   const isLast = step >= STEP_IDS.length - 1
-  const Icon = stepId === 'language' ? Languages : stepId === 'skin' ? Sparkles : Palette
+  const folio = String(step + 1).padStart(2, '0')
 
   return (
-    <Dialog
-      open
-      onOpenChange={(next) => {
-        if (!next) finish()
-      }}
-    >
-      <DialogContent
-        className="setup-wizard max-w-[520px] overflow-hidden shadow-[inset_3px_0_0_0_var(--color-accent)]"
-        showClose
-      >
-        <DialogHeader>
-          <div className="mb-1 inline-flex h-9 w-9 items-center justify-center rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--color-accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--color-accent)_12%,var(--color-surface))] text-[var(--color-accent)]">
-            <Icon className="h-4 w-4" />
-          </div>
-          <DialogTitle className="font-[family-name:var(--font-display)] text-[22px] font-extrabold tracking-[-0.03em]">
-            {t('setup.title')}
-          </DialogTitle>
-          <DialogDescription className="font-mono text-[10px] uppercase tracking-[0.1em]">
-            {t('setup.stepOf', { current: step + 1, total: STEP_IDS.length })}
-          </DialogDescription>
-        </DialogHeader>
+    <div className="setup-folio-root titlebar-no-drag" role="dialog" aria-modal="true" aria-labelledby="setup-folio-title">
+      <div className="setup-folio-scrim" />
+      <div className="setup-folio">
+        <aside className="setup-folio-margin" aria-hidden="true">
+          <p className="setup-folio-brand">{t('welcome.brandWithEdition', { version: APP_SHORT_VERSION })}</p>
+          <span className="setup-folio-numeral">{folio}</span>
+          <p className="setup-folio-count">{t('setup.stepOf', { current: step + 1, total: STEP_IDS.length })}</p>
+        </aside>
 
-        <div className="space-y-1 py-1">
-          <h3 className="m-0 font-[family-name:var(--font-display)] text-[16px] font-bold tracking-[-0.02em] text-[var(--color-foreground)]">
-            {t(`setup.${stepId}.title`)}
-          </h3>
-          <p className="m-0 text-[13px] leading-relaxed text-[var(--color-muted-foreground)]">
-            {t(`setup.${stepId}.description`)}
-          </p>
-        </div>
+        <div className="setup-folio-page">
+          <header className="setup-folio-head">
+            <p className="setup-folio-kicker">{t('setup.kicker', { version: APP_SHORT_VERSION })}</p>
+            <h1 id="setup-folio-title" className="setup-folio-title">
+              {stepId === 'welcome'
+                ? t('onboarding.title', { version: APP_SHORT_VERSION })
+                : t(`setup.${stepId}.title`)}
+            </h1>
+            <p className="setup-folio-lead">
+              {stepId === 'welcome' ? t('setup.welcome.lead') : t(`setup.${stepId}.description`)}
+            </p>
+          </header>
 
-        {stepId === 'language' && (
-          <div className="flex flex-col gap-3 py-1">
-            <LocaleToggle showLabels refreshToken={refreshToken} className="w-fit" />
-            <div className="rounded-[var(--radius-sm)] border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5">
-              <p className="m-0 mb-2 text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
-                {t('setup.language.importHint')}
-              </p>
-              <Button
+          {stepId === 'welcome' && (
+            <div className="setup-folio-body">
+              <ol className="setup-folio-points">
+                {WELCOME_POINTS.map((id, index) => (
+                  <li key={id}>
+                    <span>{String(index + 1).padStart(2, '0')}</span>
+                    <div>
+                      <strong>{t(`onboarding.${id}.title`)}</strong>
+                      <p>{t(`onboarding.${id}.description`)}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+              <div className="setup-folio-langs" role="group" aria-label={t('setup.language.title')}>
+                {([
+                  ['sk', 'Slovenčina', 'Píšte v slovenčine.'],
+                  ['en', 'English', 'Write in English.'],
+                ] as const).map(([id, label, hint]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    className={cn('setup-folio-lang', locale === id && 'is-active')}
+                    aria-pressed={locale === id}
+                    onClick={() => dispatch(setLocale(id))}
+                  >
+                    <em>{id.toUpperCase()}</em>
+                    <strong>{label}</strong>
+                    <span>{hint}</span>
+                  </button>
+                ))}
+              </div>
+              <button
                 type="button"
-                variant="outline"
-                size="sm"
+                className="setup-folio-import"
                 disabled={localeBusy}
                 onClick={() => void handleImportLanguage()}
               >
-                <Upload className="mr-1.5 h-3.5 w-3.5" />
+                <Upload className="h-3.5 w-3.5" />
                 {t('settings.language.importJson')}
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {stepId === 'skin' && (
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {([
-              ['classic', 'settings.appearance.skinClassic', 'settings.appearance.skinClassicDesc'],
-              ['press', 'settings.appearance.skinPress', 'settings.appearance.skinPressDesc'],
-            ] as const).map(([id, titleKey, descKey]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => chooseSkin(id)}
-                className={cn(
-                  'rounded-[var(--radius-md)] border px-4 py-3 text-left transition-colors',
-                  uiSkin === id
-                    ? 'border-[var(--color-accent)] bg-[var(--color-selection)]'
-                    : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-hover)]',
-                )}
-              >
-                <p className="m-0 text-[13px] font-semibold text-[var(--color-foreground)]">{t(titleKey)}</p>
-                <p className="mt-1 text-[11px] leading-snug text-[var(--color-muted-foreground)]">
-                  {t(descKey)}
-                </p>
               </button>
-            ))}
-          </div>
-        )}
+            </div>
+          )}
 
-        {stepId === 'theme' && (
-          <div className="grid max-h-[280px] grid-cols-2 gap-2 overflow-y-auto pr-0.5 sm:grid-cols-3">
-            {wizardThemes.map((theme) => {
-              const active = themeSettings.themeId === theme.id
-              return (
+          {stepId === 'skin' && (
+            <div className="setup-folio-skins">
+              {([
+                ['classic', 'settings.appearance.skinClassic', 'settings.appearance.skinClassicDesc'],
+                ['press', 'settings.appearance.skinPress', 'settings.appearance.skinPressDesc'],
+              ] as const).map(([id, titleKey, descKey]) => (
                 <button
-                  key={theme.id}
+                  key={id}
                   type="button"
-                  onClick={() => chooseTheme(theme.id)}
-                  className={cn(
-                    'flex flex-col gap-2 rounded-[var(--radius-md)] border p-2.5 text-left transition-colors',
-                    active
-                      ? 'border-[var(--color-accent)] bg-[var(--color-selection)]'
-                      : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-hover)]',
-                  )}
+                  onClick={() => chooseSkin(id)}
+                  className={cn('setup-folio-skin', uiSkin === id && 'is-active')}
+                  aria-pressed={uiSkin === id}
                 >
-                  <span
-                    className="flex h-8 overflow-hidden rounded-[var(--radius-sm)] border border-[var(--color-border)]"
-                    aria-hidden
-                  >
-                    <span className="flex-1" style={{ background: theme.swatch[0] }} />
-                    <span className="w-1/3" style={{ background: theme.swatch[1] }} />
+                  <span className={cn('setup-folio-skin-sheet', `is-${id}`)} aria-hidden="true">
+                    <i />
+                    <i />
+                    <i />
                   </span>
-                  <span className="min-w-0">
-                    <span className="block truncate text-[12px] font-semibold text-[var(--color-foreground)]">
-                      {theme.name}
-                    </span>
-                    <span className="mt-0.5 line-clamp-2 block text-[10px] leading-snug text-[var(--color-muted-foreground)]">
-                      {theme.description}
-                    </span>
-                  </span>
+                  <strong>{t(titleKey)}</strong>
+                  <span>{t(descKey)}</span>
                 </button>
-              )
-            })}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
 
-        <div className="flex items-center justify-center gap-1.5 py-1">
-          {STEP_IDS.map((id, index) => (
-            <span
-              key={id}
-              className={
-                index === step
-                  ? 'h-1.5 w-5 rounded-[var(--radius-sm)] bg-[var(--color-accent)]'
-                  : 'h-1.5 w-1.5 rounded-[var(--radius-sm)] bg-[var(--color-border)]'
-              }
-              aria-hidden="true"
-            />
-          ))}
-        </div>
+          {stepId === 'theme' && (
+            <div className="setup-folio-themes">
+              {wizardThemes.map((theme) => {
+                const active = themeSettings.themeId === theme.id
+                return (
+                  <button
+                    key={theme.id}
+                    type="button"
+                    onClick={() => chooseTheme(theme.id)}
+                    className={cn('setup-folio-theme', active && 'is-active')}
+                    aria-pressed={active}
+                    title={theme.name}
+                  >
+                    <span className="setup-folio-swatch" aria-hidden="true">
+                      <span style={{ background: theme.swatch[0] }} />
+                      <span style={{ background: theme.swatch[1] }} />
+                    </span>
+                    <em>{theme.name}</em>
+                  </button>
+                )
+              })}
+            </div>
+          )}
 
-        <DialogFooter className="flex-wrap gap-2 sm:justify-between">
-          <div className="flex gap-2">
-            <Button type="button" variant="ghost" size="sm" onClick={finish}>
+          <footer className="setup-folio-foot">
+            <button type="button" className="setup-folio-quiet" onClick={() => finish(false)}>
               {t('common.skip')}
-            </Button>
-            {step > 0 && (
-              <Button type="button" variant="outline" size="sm" onClick={handleBack}>
-                {t('common.back')}
-              </Button>
-            )}
-          </div>
-          <Button type="button" variant="default" size="sm" onClick={handleNext}>
-            {isLast ? t('setup.finish') : t('common.next')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            </button>
+            <div className="setup-folio-actions">
+              {step > 0 && (
+                <button type="button" className="setup-folio-ghost" onClick={handleBack}>
+                  {t('common.back')}
+                </button>
+              )}
+              {isLast ? (
+                <>
+                  <button type="button" className="setup-folio-ghost" onClick={() => finish(true)}>
+                    {t('setup.showTour')}
+                  </button>
+                  <button type="button" className="setup-folio-next" onClick={() => finish(false)}>
+                    {t('setup.startWriting')}
+                  </button>
+                </>
+              ) : (
+                <button type="button" className="setup-folio-next" onClick={handleNext}>
+                  {t('common.next')}
+                </button>
+              )}
+            </div>
+          </footer>
+        </div>
+      </div>
+    </div>
   )
 }

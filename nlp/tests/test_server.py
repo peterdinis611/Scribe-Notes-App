@@ -43,6 +43,8 @@ class ReportTests(unittest.TestCase):
         dennik = next(row for row in docs if row["name"] == "Denník")
         self.assertEqual(dennik["documentCount"], 1)
         self.assertTrue(next(row for row in docs if row["name"] == "Archív")["isVault"])
+        self.assertEqual(result["stats"]["documentCount"], 2)
+        self.assertEqual(result["stats"]["taggedCount"], 1)
 
 
 class ServerTests(unittest.TestCase):

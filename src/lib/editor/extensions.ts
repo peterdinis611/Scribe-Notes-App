@@ -1,6 +1,6 @@
 import CharacterCount from '@tiptap/extension-character-count'
 import Color from '@tiptap/extension-color'
-import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
+import { SyntaxCodeBlock } from '@/lib/editor/code-block-extension'
 import { Details, DetailsContent, DetailsSummary } from '@tiptap/extension-details'
 import Emoji, { gitHubEmojis } from '@tiptap/extension-emoji'
 import Focus from '@tiptap/extension-focus'
@@ -18,7 +18,8 @@ import TextAlign from '@tiptap/extension-text-align'
 import { TextStyle } from '@tiptap/extension-text-style'
 import Typography from '@tiptap/extension-typography'
 import Underline from '@tiptap/extension-underline'
-import Youtube from '@tiptap/extension-youtube'
+import { LeafletMap } from '@/lib/editor/map-extension'
+import { Video, YoutubeWithPlayer } from '@/lib/editor/video-extension'
 import { Markdown } from '@tiptap/markdown'
 import Dropcursor from '@tiptap/extension-dropcursor'
 import Gapcursor from '@tiptap/extension-gapcursor'
@@ -33,9 +34,9 @@ import { FontSize } from '@/lib/editor/font-size'
 import { BlockSpacing } from '@/lib/editor/block-spacing'
 import { ListItemWithBlocks } from '@/lib/editor/list-item'
 import { MathJs } from '@/lib/editor/math-js-extension'
+import { D3Chart } from '@/lib/editor/d3-chart-extension'
 import { MermaidDiagram } from '@/lib/editor/mermaid-extension'
 import { LottieAnimation } from '@/lib/editor/lottie-extension'
-import { lowlight } from '@/lib/editor/lowlight'
 import { PageBreak } from '@/lib/editor/page-break'
 import { ResizableImage } from '@/lib/editor/resizable-image'
 import { SearchReplace } from '@/lib/editor/search-extension'
@@ -69,11 +70,10 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
       listItem: false,
     }),
     ListItemWithBlocks.configure({}),
-    CodeBlockLowlight.configure({
-      lowlight,
+    SyntaxCodeBlock.configure({
       defaultLanguage: null,
       HTMLAttributes: {
-        class: 'hljs',
+        class: 'scribe-code-block',
       },
     }),
     TextStyle.configure({}),
@@ -118,8 +118,11 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
     }),
     MathJs.configure({}),
     MermaidDiagram.configure({}),
+    D3Chart.configure({}),
     LottieAnimation.configure({}),
-    Youtube.configure({
+    Video.configure({}),
+    LeafletMap.configure({}),
+    YoutubeWithPlayer.configure({
       width: 640,
       height: 360,
       nocookie: true,

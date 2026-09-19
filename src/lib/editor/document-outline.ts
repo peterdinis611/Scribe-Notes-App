@@ -1,6 +1,8 @@
 import type { Editor } from '@tiptap/react'
 import type { Node as PMNode } from '@tiptap/pm/model'
 import { NodeSelection } from '@tiptap/pm/state'
+import { chartPreviewLabel } from '@/lib/editor/d3-chart'
+import { mapPreviewLabel } from '@/lib/editor/map'
 
 export type DocumentOutlineKind =
   | 'heading'
@@ -13,11 +15,14 @@ export type DocumentOutlineKind =
   | 'table'
   | 'image'
   | 'youtube'
+  | 'video'
   | 'details'
   | 'pageBreak'
   | 'mathInline'
   | 'mathBlock'
   | 'mermaidDiagram'
+  | 'd3Chart'
+  | 'leafletMap'
   | 'lottieAnimation'
 
 export type DocumentOutlineItem = {
@@ -40,11 +45,14 @@ const OUTLINE_NODE_TYPES = new Set<string>([
   'table',
   'image',
   'youtube',
+  'video',
   'details',
   'pageBreak',
   'mathInline',
   'mathBlock',
   'mermaidDiagram',
+  'd3Chart',
+  'leafletMap',
   'lottieAnimation',
 ])
 
@@ -80,6 +88,8 @@ function getNodeLabel(node: PMNode) {
       return 'Obrázok'
     case 'youtube':
       return 'YouTube'
+    case 'video':
+      return 'Video'
     case 'details':
       return 'Rozbaľovacia sekcia'
     case 'pageBreak':
@@ -90,6 +100,10 @@ function getNodeLabel(node: PMNode) {
       return 'Vzorec (blok)'
     case 'mermaidDiagram':
       return 'Mermaid'
+    case 'd3Chart':
+      return 'Chart'
+    case 'leafletMap':
+      return 'Map'
     case 'lottieAnimation':
       return 'Lottie'
     default:
@@ -106,11 +120,16 @@ function getNodePreview(node: PMNode) {
       return truncate(String(node.attrs.expression ?? ''), 44)
     case 'mermaidDiagram':
       return truncate(String(node.attrs.source ?? ''), 44) || 'Diagram'
+    case 'd3Chart':
+      return truncate(chartPreviewLabel(String(node.attrs.source ?? '')), 44)
+    case 'leafletMap':
+      return truncate(mapPreviewLabel(String(node.attrs.source ?? '')), 44)
     case 'lottieAnimation':
       return truncate(String(node.attrs.caption || node.attrs.src || ''), 44) || 'Animácia'
     case 'image':
       return truncate(String(node.attrs.alt || node.attrs.title || ''), 44) || 'Bez popisu'
     case 'youtube':
+    case 'video':
       return truncate(String(node.attrs.src ?? ''), 44) || 'Video'
     case 'horizontalRule':
       return 'Horizontálna čiara'
@@ -162,11 +181,14 @@ function shouldIncludeNode(node: PMNode, doc: PMNode, pos: number) {
     node.type.name === 'pageBreak' ||
     node.type.name === 'image' ||
     node.type.name === 'youtube' ||
+    node.type.name === 'video' ||
     node.type.name === 'table' ||
     node.type.name === 'taskItem' ||
     node.type.name === 'mathBlock' ||
     node.type.name === 'mathInline' ||
     node.type.name === 'mermaidDiagram' ||
+    node.type.name === 'd3Chart' ||
+    node.type.name === 'leafletMap' ||
     node.type.name === 'lottieAnimation'
   ) {
     return true

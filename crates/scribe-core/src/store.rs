@@ -11,7 +11,7 @@ use uuid::Uuid;
 use crate::dates::{date_key_bounds, date_key_bounds_ms, parse_date_key};
 use crate::db::migrations;
 use crate::db::{
-    fuse_search_hits, search_documents_in_conn, SearchHit, SearchMode,
+    active_library_id, fuse_search_hits, search_documents_for_library, SearchHit, SearchMode,
 };
 use crate::db::{
     count_embeddings, count_stale_embeddings, dominant_embedding_model, extract_search_text,
@@ -635,7 +635,8 @@ impl ScribeStore {
     }
 
     pub fn search_documents_fts(&self, query: &str, limit: i64) -> Result<Vec<SearchHit>, String> {
-        let hits = search_documents_in_conn(&self.db, query, limit)?;
+        let library_id = active_library_id(&self.db);
+        let hits = search_documents_for_library(&self.db, query, limit, &library_id)?;
         Ok(hits
             .into_iter()
             .map(|mut hit| {
@@ -3579,7 +3580,8 @@ pub fn search_library(
 
     match mode {
         SearchMode::Fts => {
-            let hits = search_documents_in_conn(conn, q, limit)?;
+            let library_id = active_library_id(conn);
+            let hits = search_documents_for_library(conn, q, limit, &library_id)?;
             Ok(hits
                 .into_iter()
                 .map(|mut hit| {
@@ -3597,7 +3599,8 @@ pub fn search_library(
             Ok(semantic_search(conn, &vector, limit, Some(&model))?)
         }
         SearchMode::Hybrid => {
-            let fts_hits = search_documents_in_conn(conn, q, limit)?;
+            let library_id = active_library_id(conn);
+            let fts_hits = search_documents_for_library(conn, q, limit, &library_id)?;
             if !is_nlp_enabled(conn)? {
                 return Ok(fts_hits
                     .into_iter()

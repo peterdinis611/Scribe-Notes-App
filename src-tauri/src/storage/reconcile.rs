@@ -53,14 +53,15 @@ pub fn reconcile_storage(app: &AppHandle, conn: &Connection) -> Result<Reconcile
             match existing {
                 None => {
                     conn.execute(
-                        "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at) VALUES (?1, ?2, ?3, NULL, ?4, ?5, ?6)",
+                        "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at, library_id) VALUES (?1, ?2, ?3, NULL, ?4, ?5, ?6, ?7)",
                         params![
                             disk.id,
                             disk.title,
                             disk.content_json,
                             path_str,
                             disk.created_at,
-                            disk.updated_at
+                            disk.updated_at,
+                            crate::libraries::active_library_id(conn)
                         ],
                     )
                     .map_err(|error| error.to_string())?;
@@ -71,7 +72,6 @@ pub fn reconcile_storage(app: &AppHandle, conn: &Connection) -> Result<Reconcile
                     let content_diverged =
                         db_content != disk.content_json || db_title != disk.title;
                     if content_diverged {
-                        // Keep local copy before cloud/folder overwrite (iCloud / Dropbox).
                         let _ = crate::db::save_revision(
                             conn,
                             &disk.id,
@@ -80,6 +80,13 @@ pub fn reconcile_storage(app: &AppHandle, conn: &Connection) -> Result<Reconcile
                             Some("Before sync conflict"),
                             true,
                         )?;
+                        let _ = crate::libraries::record_conflict(
+                            conn,
+                            &disk.id,
+                            &disk.title,
+                            disk.updated_at,
+                            db_updated_at,
+                        );
                         result.conflict_count += 1;
                     }
 
@@ -118,12 +125,13 @@ pub fn reconcile_storage(app: &AppHandle, conn: &Connection) -> Result<Reconcile
     let sync_result = (|| -> Result<(), String> {
         let mut stmt = conn
             .prepare(
-                "SELECT id, title, content_json, created_at, updated_at, file_path FROM documents",
+                "SELECT id, title, content_json, created_at, updated_at, file_path FROM documents WHERE library_id = ?1",
             )
             .map_err(|error| error.to_string())?;
 
+        let library_id = crate::libraries::active_library_id(conn);
         let rows = stmt
-            .query_map([], |row| {
+            .query_map([library_id], |row| {
                 Ok((
                     row.get::<_, String>(0)?,
                     row.get::<_, String>(1)?,

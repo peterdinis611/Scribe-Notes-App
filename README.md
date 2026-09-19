@@ -1,10 +1,10 @@
-# Scribe
+# Scribe 2.0
 
 <p align="center">
   <img src="docs/screenshots/icon.png" alt="Scribe icon" width="96" height="96" />
 </p>
 
-Write documents. Link notes. A local macOS rich-text editor with a library, templates, and multi-format export.
+Write documents. Link notes. **Scribe 2.0** is a local macOS rich-text editor with a library, templates, and multi-format export.
 
 Scribe runs locally on your Mac. No accounts, no cloud — documents, the database, and settings belong to the macOS user account running the app.
 
@@ -67,13 +67,13 @@ Scribe runs locally on your Mac. No accounts, no cloud — documents, the databa
 ### Editor
 - Rich-text editor built on **TipTap** / ProseMirror
 - Switch between formatted text and **Markdown** source
-- Formatting: headings, lists, checklists, tables, images (caption, crop, full-width), links, footnotes
-- Slash commands (`/`), bubble menu, drag & drop blocks and images
+- Formatting: headings, lists, checklists, tables, images (caption, [React Image Crop](https://github.com/dominictobias/react-image-crop), full-width), links, footnotes
+- Slash commands (`/`), bubble menu, drag & drop blocks and images; library folders and editor tabs use React DnD
 - Block **snippets** via slash (meeting notes, decision, …)
-- Wiki links (`[[document]]`), embeds (`![[document]]`), comments, math (math.js), Mermaid diagrams, code blocks (highlight.js)
+- Wiki links (`[[document]]`), embeds (`![[document]]`), comments, math (math.js), Mermaid diagrams, D3 charts (JSON spec: bar / line / area / pie), videos (React Player), maps (React Leaflet / OpenStreetMap), code blocks (React Syntax Highlighter)
 - **Print layout** — paginated page preview with margins, headers/footers, watermarks; quiet blank-page hero when empty
 - **Focus mode** — minimal UI for distraction-free writing (`⌘⇧F`, exit with `Esc`)
-- **Canvas notes** — freeform cards and connectors (`type: canvas`) for light whiteboard-style thinking
+- **Canvas notes** — freeform cards and connectors (`type: canvas`) on [React Flow](https://reactflow.dev/) for whiteboard-style thinking
 
 ### Library
 - Tree-structured **folders** with drag & drop
@@ -349,7 +349,11 @@ The SQLite schema is versioned in `src-tauri/src/db/migrations.rs`. Migrations r
 
 ## Version
 
-Current version: **1.9.0**
+Current version: **2.0.0**
+
+## Privacy
+
+Scribe is local-first: notes stay on your Mac. Optional features you start (fonts, embeds, MCP hosts, LAN capture) are described in [Privacy Policy](PRIVACY.md) ([Slovenčina](PRIVACY.sk.md)). The same notice is in the app under Settings → Privacy.
 
 ## License
 

@@ -4,6 +4,7 @@ import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { goToHome } from '@/lib/navigation'
 import { ROUTES } from '@/lib/routes'
+import { APP_SHORT_VERSION } from '@/lib/app-version'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 
@@ -39,8 +40,8 @@ export function SidebarRail({ onNavigate }: SidebarRailProps) {
       <button
         type="button"
         className="app-rail-mark mb-1"
-        title={t('nav.home')}
-        aria-label={t('nav.home')}
+        title={t('welcome.brandWithEdition', { version: APP_SHORT_VERSION })}
+        aria-label={t('welcome.brandWithEdition', { version: APP_SHORT_VERSION })}
         onClick={() => {
           goToHome({ dispatch, navigate })
           onNavigate?.()

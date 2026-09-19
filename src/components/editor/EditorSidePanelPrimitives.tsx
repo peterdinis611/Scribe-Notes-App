@@ -1,30 +1,44 @@
 import type { ReactNode } from 'react'
+import { ChevronsLeft } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
+import { useResizableEditorPanel } from '@/hooks/useResizableEditorPanel'
 
 export function EditorSidePanel({
   children,
   className,
-  width = 320,
+  minWidth,
   ...props
-}: React.ComponentProps<'aside'> & { width?: 280 | 300 | 320 | 560 }) {
-  const widthClass =
-    width === 280
-      ? 'w-[min(100%,280px)]'
-      : width === 300
-        ? 'w-[min(100%,300px)]'
-        : width === 560
-          ? 'w-[min(100%,560px)]'
-          : 'w-[min(100%,320px)]'
+}: React.ComponentProps<'aside'> & { minWidth?: number }) {
+  const { t } = useTranslation()
+  const { resizing, onResizePointerDown, resetWidth } = useResizableEditorPanel(minWidth)
 
   return (
     <aside
       className={cn(
-        'flex min-h-0 shrink-0 flex-col border-l border-[var(--color-border)] bg-[var(--color-background)]',
-        widthClass,
+        'editor-side-panel',
+        resizing && 'is-resizing',
         className,
       )}
       {...props}
     >
+      <button
+        type="button"
+        className="editor-panel-resize-handle titlebar-no-drag"
+        aria-label={t('editorPanels.resize')}
+        title={t('editorPanels.resizeHint')}
+        onPointerDown={onResizePointerDown}
+        onDoubleClick={resetWidth}
+      />
+      <button
+        type="button"
+        className="editor-panel-autofit titlebar-no-drag"
+        aria-label={t('editorPanels.autoExpand')}
+        title={t('editorPanels.resizeHint')}
+        onClick={resetWidth}
+      >
+        <ChevronsLeft className="h-3.5 w-3.5" />
+      </button>
       {children}
     </aside>
   )

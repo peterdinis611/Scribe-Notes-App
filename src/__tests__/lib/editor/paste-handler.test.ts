@@ -53,6 +53,16 @@ describe('getImageOnlyClipboardFiles', () => {
 
     expect(getImageOnlyClipboardFiles(data)).toEqual([])
   })
+
+  it('keeps gif files even when browsers also attach html', () => {
+    const gif = new File(['gif'], 'loop.gif', { type: 'image/gif' })
+    const data = createDataTransfer({
+      html: '<img src="blob:https://example/loop.gif">',
+      files: [gif],
+    })
+
+    expect(getImageOnlyClipboardFiles(data)).toEqual([gif])
+  })
 })
 
 describe('parseTsvTable', () => {

@@ -10,6 +10,7 @@ import {
   type DocumentOutlineItem,
 } from '@/lib/editor/document-outline'
 import { jumpToOutlineItem } from '@/lib/editor/outline-jump'
+import { useResizableTocRail } from '@/hooks/useResizableTocRail'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setDocumentTocLeftOpen } from '@/store/documentsSlice'
 
@@ -52,6 +53,7 @@ export function DocumentTocRail({ editor, scrollRef, scrollActiveId = null }: Do
   const dispatch = useAppDispatch()
   const activeDocumentId = useAppSelector((state) => state.documents.activeDocumentId)
   const activeRowRef = useRef<HTMLButtonElement | null>(null)
+  const { resizing, onResizePointerDown, resetWidth } = useResizableTocRail()
 
   const outlineState = useEditorState({
     editor,
@@ -83,7 +85,18 @@ export function DocumentTocRail({ editor, scrollRef, scrollActiveId = null }: Do
   if (items.length === 0) return null
 
   return (
-    <aside className="document-toc-rail titlebar-no-drag" aria-label={t('panels.outline.title')}>
+    <aside
+      className={cn('document-toc-rail titlebar-no-drag', resizing && 'is-resizing')}
+      aria-label={t('panels.outline.title')}
+    >
+      <button
+        type="button"
+        className="document-toc-resize-handle titlebar-no-drag"
+        aria-label={t('editorPanels.resize')}
+        title={t('editorPanels.resizeHint')}
+        onPointerDown={onResizePointerDown}
+        onDoubleClick={resetWidth}
+      />
       <div className="document-toc-rail-head">
         <span className="document-toc-rail-title">{t('panels.outline.title')}</span>
         <button

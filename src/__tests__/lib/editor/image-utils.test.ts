@@ -6,6 +6,7 @@ describe('isLikelyImageUrl', () => {
     expect(isLikelyImageUrl('https://cdn.example.com/photo.png')).toBe(true)
     expect(isLikelyImageUrl('https://cdn.example.com/a/b.jpeg?w=800')).toBe(true)
     expect(isLikelyImageUrl('https://cdn.example.com/x.webp#frag')).toBe(true)
+    expect(isLikelyImageUrl('https://cdn.example.com/loop.gif')).toBe(true)
   })
 
   it('accepts known image hosts without extension', () => {

@@ -4,6 +4,7 @@ mod capture;
 mod db;
 mod export;
 mod images;
+mod libraries;
 mod nlp;
 mod pdf_native;
 mod security;
@@ -104,7 +105,13 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             {
                 let app_menu = SubmenuBuilder::new(app, "Scribe")
-                    .about(None)
+                    .about(Some(tauri::menu::AboutMetadata {
+                        name: Some("Scribe 2.0".into()),
+                        version: Some(env!("CARGO_PKG_VERSION").into()),
+                        short_version: Some("2.0".into()),
+                        copyright: Some("© 2026 Peter Dinis".into()),
+                        ..Default::default()
+                    }))
                     .separator()
                     .services()
                     .separator()
@@ -197,6 +204,13 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            commands::libraries::list_libraries,
+            commands::libraries::create_library,
+            commands::libraries::switch_library,
+            commands::libraries::list_sync_conflicts,
+            commands::libraries::resolve_sync_conflict,
+            commands::libraries::list_manuscripts,
+            commands::libraries::upsert_manuscript,
             commands::documents::list_documents,
             commands::documents::get_document,
             commands::documents::create_document,

@@ -24,16 +24,18 @@ export function SelectValue({
 export function SelectTrigger({
   className,
   children,
+  size = 'default',
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Trigger>) {
+}: React.ComponentProps<typeof SelectPrimitive.Trigger> & { size?: 'default' | 'sm' }) {
   return (
     <SelectPrimitive.Trigger
       className={cn(
-        'titlebar-no-drag flex h-9 w-full items-center justify-between gap-2 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-left text-[12px] text-[var(--color-foreground)] outline-none transition-[border-color,box-shadow]',
+        'titlebar-no-drag flex w-full min-w-0 items-center justify-between gap-2 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] text-left text-[var(--color-foreground)] outline-none transition-[border-color,box-shadow]',
         'placeholder:text-[var(--color-muted-foreground)]',
         'focus:border-[var(--color-accent)] focus:shadow-[0_0_0_3px_var(--color-selection)]',
         'disabled:cursor-not-allowed disabled:opacity-50',
-        '[&>span]:line-clamp-1',
+        '[&>span]:min-w-0 [&>span]:flex-1 [&>span]:truncate',
+        size === 'sm' ? 'h-8 px-2.5 text-[12.5px]' : 'h-9 px-3 text-[12px]',
         className,
       )}
       {...props}
@@ -58,7 +60,7 @@ export function SelectContent({
         position={position}
         onCloseAutoFocus={(event) => event.preventDefault()}
         className={cn(
-          'titlebar-no-drag z-[100] max-h-[min(280px,70vh)] min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] shadow-lg',
+          'titlebar-no-drag z-[100] max-h-[min(280px,70vh)] min-w-[min(100%,var(--radix-select-trigger-width))] overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] shadow-lg',
           position === 'popper' &&
             'data-[side=bottom]:translate-y-1 data-[side=top]:-translate-y-1',
           className,
@@ -67,9 +69,8 @@ export function SelectContent({
       >
         <SelectPrimitive.Viewport
           className={cn(
-            'p-1',
-            position === 'popper' &&
-              'h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]',
+            'max-h-[inherit] overflow-y-auto p-1',
+            position === 'popper' && 'w-full min-w-[var(--radix-select-trigger-width)]',
           )}
         >
           {children}

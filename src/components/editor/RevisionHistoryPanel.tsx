@@ -308,7 +308,7 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
 
   return (
     <EditorSidePanel
-      width={compareState ? 560 : 300}
+      minWidth={compareState ? 560 : undefined}
       className="titlebar-no-drag"
     >
       <EditorSidePanelHeader

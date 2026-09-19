@@ -35,6 +35,7 @@ export type StoredCustomCategoryRow = {
 }
 
 let initPromise: Promise<void> | null = null
+let seededTemplateIds: string[] = []
 
 export let customTemplatesCollection: Collection<StoredCustomTemplateRow, string> | null = null
 
@@ -89,18 +90,17 @@ export async function initTemplateCollections() {
       })),
     )
 
-    seedCollection(
-      customTemplatesCollection!,
-      templates.map((row) => ({
-        id: row.id,
-        name: row.name,
-        description: row.description,
-        category: row.category,
-        title: row.title,
-        contentJson: row.contentJson,
-        createdAt: row.createdAt,
-      })),
-    )
+    const templateRows = templates.map((row) => ({
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      category: row.category,
+      title: row.title,
+      contentJson: row.contentJson,
+      createdAt: row.createdAt,
+    }))
+    seedCollection(customTemplatesCollection!, templateRows)
+    seededTemplateIds = templateRows.map((row) => row.id)
   })().catch((error: unknown) => {
     // Allow a later retry after Tauri IPC becomes available.
     initPromise = null
@@ -248,6 +248,30 @@ export async function deleteStoredCategory(id: string) {
       draft.category = row.category
     })
   }
+}
+
+export async function reloadCustomTemplatesCollection() {
+  await initTemplateCollections()
+  if (!customTemplatesCollection) return
+
+  const templates = await listCustomTemplates()
+  const keep = new Set(templates.map((row) => row.id))
+  for (const id of seededTemplateIds) {
+    if (!keep.has(id) && customTemplatesCollection.has(id)) {
+      customTemplatesCollection.delete(id)
+    }
+  }
+  const rows = templates.map((row) => ({
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    category: row.category,
+    title: row.title,
+    contentJson: row.contentJson,
+    createdAt: row.createdAt,
+  }))
+  seedCollection(customTemplatesCollection, rows)
+  seededTemplateIds = rows.map((row) => row.id)
 }
 
 export async function deleteStoredTemplate(id: string) {

@@ -13,8 +13,9 @@ import { createCommentForSelection, findCommentRange, focusComment } from '@/lib
 import { cn, formatRelativeTime } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { bumpCommentsVersion, setCommentAuthor } from '@/store/documentsSlice'
+import { bumpCommentsVersion, commitCommentAuthor, setCommentAuthor } from '@/store/documentsSlice'
 import { Input } from '@/components/ui/input'
+import { resolveCommentAuthor } from '@/lib/editor/comment-author'
 import {
   EditorSidePanel,
   EditorSidePanelEmpty,
@@ -180,11 +181,14 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
       const body = (replyDrafts[thread.id] ?? '').trim()
       if (!body) return
 
+      const signedAuthor = resolveCommentAuthor(author)
+      dispatch(setCommentAuthor(signedAuthor))
+
       const optimisticId = `pending-${Date.now()}`
       const optimisticReply = {
         id: optimisticId,
         threadId: thread.id,
-        author,
+        author: signedAuthor,
         body,
         createdAt: Date.now(),
       }
@@ -199,7 +203,7 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
       setReplyDrafts((prev) => ({ ...prev, [thread.id]: '' }))
 
       try {
-        const reply = await addCommentReply({ threadId: thread.id, author, body })
+        const reply = await addCommentReply({ threadId: thread.id, author: signedAuthor, body })
         setThreads((prev) =>
           prev.map((item) =>
             item.id === thread.id
@@ -227,7 +231,7 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
         toast.error(t('panels.comments.replyError'), String(error))
       }
     },
-    [author, replyDrafts, t],
+    [author, dispatch, replyDrafts, t],
   )
 
   return (
@@ -379,41 +383,59 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
               </div>
 
               <form
-                className="flex gap-1.5"
+                className="comment-compose"
                 onSubmit={(event) => {
                   event.preventDefault()
                   void handleReply(thread)
                 }}
               >
-                <Input
-                  className="h-8 min-w-0 flex-1 text-[12px]"
-                  placeholder={t('panels.comments.replyPlaceholder')}
-                  value={replyDrafts[thread.id] ?? ''}
-                  onChange={(event) =>
-                    setReplyDrafts((prev) => ({ ...prev, [thread.id]: event.target.value }))
-                  }
-                />
-                <button
-                  type="submit"
-                  className="inline-flex w-[30px] items-center justify-center rounded-[7px] border-none bg-[var(--color-accent)] text-white disabled:opacity-40"
-                  aria-label={t('panels.comments.sendReply')}
-                  disabled={!(replyDrafts[thread.id] ?? '').trim()}
-                >
-                  <Send className="h-3.5 w-3.5" />
-                </button>
+                <label className="comment-compose-author">
+                  <span>{t('panels.comments.authorLabel')}</span>
+                  <Input
+                    className="h-8 min-w-0 flex-1 text-[12px]"
+                    value={author}
+                    onChange={(event) => dispatch(setCommentAuthor(event.target.value))}
+                    onBlur={() => dispatch(commitCommentAuthor())}
+                    placeholder={t('panels.comments.authorPlaceholder')}
+                    autoComplete="nickname"
+                    maxLength={80}
+                    aria-label={t('panels.comments.authorLabel')}
+                  />
+                </label>
+                <div className="comment-compose-row">
+                  <Input
+                    className="h-8 min-w-0 flex-1 text-[12px]"
+                    placeholder={t('panels.comments.replyPlaceholder')}
+                    value={replyDrafts[thread.id] ?? ''}
+                    onChange={(event) =>
+                      setReplyDrafts((prev) => ({ ...prev, [thread.id]: event.target.value }))
+                    }
+                  />
+                  <button
+                    type="submit"
+                    className="inline-flex w-[30px] shrink-0 items-center justify-center rounded-[7px] border-none bg-[var(--color-accent)] text-white disabled:opacity-40"
+                    aria-label={t('panels.comments.sendReply')}
+                    disabled={!(replyDrafts[thread.id] ?? '').trim()}
+                  >
+                    <Send className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </form>
             </div>
           ))
         )}
       </EditorSidePanelList>
 
-      <label className="flex items-center gap-2 border-t border-[var(--color-border)] px-3.5 py-2.5 text-[11px] text-[var(--color-muted-foreground)]">
+      <label className="comment-compose-author comment-compose-author--footer">
         <span>{t('panels.comments.signedAs')}</span>
         <Input
           className="h-7 min-w-0 flex-1 text-[12px]"
           value={author}
           onChange={(event) => dispatch(setCommentAuthor(event.target.value))}
+          onBlur={() => dispatch(commitCommentAuthor())}
           placeholder={t('panels.comments.authorPlaceholder')}
+          autoComplete="nickname"
+          maxLength={80}
         />
       </label>
     </EditorSidePanel>

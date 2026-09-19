@@ -44,6 +44,7 @@ pub async fn pick_documents_directory(
     let path = PathBuf::from(path.to_string());
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     let dir = storage::set_documents_dir(&conn, &path)?;
+    let _ = crate::libraries::update_active_root(&conn, &dir);
     storage::mark_documents_dir_access_granted(&conn)?;
     storage::reconcile_storage(&app, &conn)?;
 

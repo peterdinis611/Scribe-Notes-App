@@ -17,6 +17,7 @@ import {
   GitBranch,
   Heading,
   Languages,
+  Layers,
   LayoutTemplate,
   Link2,
   MessageSquare,
@@ -24,6 +25,7 @@ import {
   Plus,
   Search,
   Settings2,
+  Shield,
   Shuffle,
   Smartphone,
   Sparkles,
@@ -56,7 +58,6 @@ import { getDisplayKeysForShortcut } from '@/lib/shortcuts'
 import type { BuiltInLocale } from '@/i18n'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import {
-  createFolder,
   duplicateDocument,
   listCommentThreads,
   listLinkGraph,
@@ -69,7 +70,7 @@ import { describeNlpSearchFailure } from '@/lib/nlp/errors'
 import { fuseSearchHits, isHybridSearchScope } from '@/lib/nlp/hybrid-search'
 import { toast } from '@/lib/toast'
 import type { SearchHit } from '@/lib/db/api'
-import { promptInput } from '@/lib/input-dialog'
+import { promptAndCreateFolder } from '@/lib/library/create-folder'
 import { collectHeadingOutline, focusOutlineItem } from '@/lib/editor/document-outline'
 import { focusComment } from '@/lib/editor/comments'
 import { collectHeadingsFromJson } from '@/lib/search/palette-headings'
@@ -107,7 +108,6 @@ import {
   setCommandPaletteOpen,
   setMoveDocumentPickerOpen,
   updateExpandedFolderIds,
-  updateFolders,
 } from '@/store/foldersSlice'
 import { setTemplatePickerOpen, setThemeSettings, setLocale } from '@/store/settingsSlice'
 import {
@@ -115,6 +115,7 @@ import {
   createThemeSelection,
 } from '@/store/settings-helpers'
 import { setSaveCustomTemplateDialog } from '@/store/templatesSlice'
+import { setCompileDialogOpen, setSyncConflictsOpen } from '@/store/uiSlice'
 
 type SearchScope = 'all' | 'titles' | 'headings' | 'tags' | 'content' | 'wiki' | 'comments' | 'semantic'
 
@@ -565,6 +566,22 @@ export function CommandPalette() {
             },
             {
               type: 'action' as const,
+              id: 'compile-manuscript',
+              label: t('compile.action'),
+              hint: t('compile.paletteHint'),
+              icon: <Layers className="h-4 w-4" />,
+              run: () => dispatch(setCompileDialogOpen(true)),
+            },
+            {
+              type: 'action' as const,
+              id: 'sync-conflicts',
+              label: t('syncConflicts.title'),
+              hint: t('syncConflicts.paletteHint'),
+              icon: <Shuffle className="h-4 w-4" />,
+              run: () => dispatch(setSyncConflictsOpen(true)),
+            },
+            {
+              type: 'action' as const,
               id: 'focus-mode',
               label: focusMode ? t('commandPalette.focusOff') : t('commandPalette.focusOn'),
               hint: getDisplayKeysForShortcut('focusMode', shortcutOverrides).join(''),
@@ -699,6 +716,14 @@ export function CommandPalette() {
         icon: <Smartphone className="h-4 w-4" />,
         run: () => navigate(ROUTES.settingsSection('capture')),
       },
+      {
+        type: 'action',
+        id: 'privacy',
+        label: t('commandPalette.privacy'),
+        hint: t('commandPalette.privacyHint'),
+        icon: <Shield className="h-4 w-4" />,
+        run: () => navigate(ROUTES.settingsSection('privacy')),
+      },
       ...(isTauriRuntime()
         ? [
             {
@@ -791,18 +816,7 @@ export function CommandPalette() {
         label: t('commandPalette.newFolder'),
         icon: <FolderPlus className="h-4 w-4" />,
         run: () => {
-          void (async () => {
-            const name = await promptInput({
-              title: t('commandPalette.newFolderTitle'),
-              defaultValue: t('commandPalette.newFolderTitle'),
-              placeholder: t('commandPalette.newFolderPlaceholder'),
-              confirmLabel: t('common.create'),
-            })
-            if (!name) return
-            const folder = await createFolder({ name })
-            dispatch(updateFolders((prev) => [...prev, folder]))
-            toast.success(t('toasts.folderCreated'), folder.name)
-          })()
+          void promptAndCreateFolder({ t, dispatch })
         },
       },
     ],

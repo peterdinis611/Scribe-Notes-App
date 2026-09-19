@@ -1,6 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import type { Document, DocumentSummary } from '@/lib/db/api'
 import { isLibraryDocumentVisible } from '@/lib/db/library-sync'
+import { resolveCommentAuthor } from '@/lib/editor/comment-author'
 import {
   persistBoolStorage,
   persistCommentAuthor,
@@ -12,6 +13,7 @@ import {
   persistRecentDocumentIds,
   persistRecentlyClosedIds,
   pushRecentId,
+  type LibrarySessionSnapshot,
   readActiveDocumentId,
   readBoolStorage,
   readCommentAuthor,
@@ -25,6 +27,7 @@ import {
 import type { MetaFilters } from '@/lib/library/tag-meta'
 import { EMPTY_META_FILTERS } from '@/lib/library/tag-meta'
 import type { LibrarySmartFilter } from '@/lib/library/smart-filters'
+import { moveIdBefore } from '@/lib/dnd/reorder'
 
 export type SaveStatus = 'idle' | 'dirty' | 'saving' | 'saved' | 'error'
 
@@ -298,6 +301,12 @@ const documentsSlice = createSlice({
       state.pinnedDocumentIds = action.payload
       persistPinnedDocumentIds(action.payload)
     },
+    reorderOpenDocuments(state, action: PayloadAction<{ fromId: string; toId: string }>) {
+      const next = moveIdBefore(state.openDocumentIds, action.payload.fromId, action.payload.toId)
+      if (next === state.openDocumentIds) return
+      state.openDocumentIds = next
+      persistOpenDocumentIds(next)
+    },
     setActiveDocument(state, action: PayloadAction<Document | null>) {
       state.activeDocument = action.payload
     },
@@ -469,9 +478,14 @@ const documentsSlice = createSlice({
       state.commentsVersion += 1
     },
     setCommentAuthor(state, action: PayloadAction<string>) {
-      const trimmed = action.payload.trim() || 'Ja'
-      state.commentAuthor = trimmed
-      persistCommentAuthor(trimmed)
+      state.commentAuthor = action.payload
+      const trimmed = action.payload.trim()
+      if (trimmed) persistCommentAuthor(trimmed)
+    },
+    commitCommentAuthor(state) {
+      const next = resolveCommentAuthor(state.commentAuthor)
+      state.commentAuthor = next
+      persistCommentAuthor(next)
     },
     setDiskSyncWarning(state, action: PayloadAction<string | null>) {
       state.diskSyncWarning = action.payload
@@ -544,6 +558,20 @@ const documentsSlice = createSlice({
     clearSelectedDocuments(state) {
       state.selectedDocumentIds = []
     },
+    restoreLibrarySession(state, action: PayloadAction<LibrarySessionSnapshot>) {
+      const next = action.payload
+      state.openDocumentIds = next.openDocumentIds
+      state.pinnedDocumentIds = next.pinnedDocumentIds
+      state.recentDocumentIds = next.recentDocumentIds
+      state.recentlyClosedIds = next.recentlyClosedIds
+      state.activeDocumentId = next.activeDocumentId
+      state.secondaryDocumentId = null
+      persistOpenDocumentIds(next.openDocumentIds)
+      persistPinnedDocumentIds(next.pinnedDocumentIds)
+      persistRecentDocumentIds(next.recentDocumentIds)
+      persistRecentlyClosedIds(next.recentlyClosedIds)
+      persistActiveDocumentId(next.activeDocumentId)
+    },
   },
 })
 
@@ -554,6 +582,7 @@ export const {
   closeOpenDocument,
   togglePinnedDocument,
   setPinnedDocumentIds,
+  reorderOpenDocuments,
   setActiveDocument,
   setSaveStatus,
   setSidebarOpen,
@@ -587,6 +616,7 @@ export const {
   clearMetaFilters,
   bumpCommentsVersion,
   setCommentAuthor,
+  commitCommentAuthor,
   setDiskSyncWarning,
   setFolderSyncStatus,
   setSecondaryDocumentId,
@@ -601,6 +631,7 @@ export const {
   setSelectedDocumentIds,
   toggleSelectedDocument,
   clearSelectedDocuments,
+  restoreLibrarySession,
 } = documentsSlice.actions
 
 export default documentsSlice.reducer

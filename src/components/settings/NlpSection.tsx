@@ -46,7 +46,7 @@ export function NlpSection() {
   const refresh = useCallback(async () => {
     setLoading(true)
     try {
-      setStatus(await nlpStatus())
+      setStatus(await nlpStatus({ fresh: true }))
     } catch (error) {
       toast.error(t('settings.nlp.loadError'), String(error))
     } finally {

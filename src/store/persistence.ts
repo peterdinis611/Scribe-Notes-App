@@ -2,6 +2,7 @@ import type { AppLocale } from '@/i18n'
 import type { CustomLocalePack } from '@/lib/i18n/custom-locales'
 import { isBuiltInLocaleCode, normalizeLocaleCode } from '@/lib/i18n/custom-locales'
 import type { PageSetup } from '@/lib/editor/page-setup'
+import { defaultCommentAuthor } from '@/lib/editor/comment-author'
 import { DEFAULT_PAGE_SETUP, normalizePageSetup } from '@/lib/editor/page-setup'
 import { kvGet, kvRemove, kvSet } from '@/lib/storage/kv'
 import type { ThemeSettings } from '@/lib/themes/types'
@@ -91,19 +92,25 @@ export function persistUiSkin(skin: import('@/lib/ui-skin').UiSkin) {
 
 export function readActiveDocumentId(): string | null {
   try {
-    const raw = kvGet(ACTIVE_DOCUMENT_ID_KEY)
-    return raw && raw.trim() ? raw : null
+    const scoped = kvGet(scopedPersistKey(ACTIVE_DOCUMENT_ID_KEY))
+    if (scoped && scoped.trim()) return scoped
+    if (persistLibraryId === DEFAULT_PERSIST_LIBRARY_ID) {
+      const raw = kvGet(ACTIVE_DOCUMENT_ID_KEY)
+      return raw && raw.trim() ? raw : null
+    }
+    return null
   } catch {
     return null
   }
 }
 
 export function persistActiveDocumentId(id: string | null) {
+  const key = scopedPersistKey(ACTIVE_DOCUMENT_ID_KEY)
   if (id) {
-    kvSet(ACTIVE_DOCUMENT_ID_KEY, id)
+    kvSet(key, id)
     return
   }
-  kvRemove(ACTIVE_DOCUMENT_ID_KEY)
+  kvRemove(key)
 }
 
 export function readOnboardingDismissed(): boolean {
@@ -460,11 +467,11 @@ export function persistManualTitleIds(ids: string[]) {
 export function readCommentAuthor(): string {
   try {
     const raw = kvGet(COMMENT_AUTHOR_KEY)
-    if (raw && raw.trim()) return raw
+    if (raw && raw.trim()) return raw.trim()
   } catch {
     // ignore
   }
-  return 'Ja'
+  return defaultCommentAuthor()
 }
 
 export function persistCommentAuthor(name: string) {
@@ -519,6 +526,32 @@ const RECENTLY_CLOSED_IDS_KEY = 'scribe-recently-closed-ids'
 const OPEN_DOCUMENT_IDS_KEY = 'scribe-open-document-ids'
 const PINNED_DOCUMENT_IDS_KEY = 'scribe-pinned-document-ids'
 export const RECENT_DOCUMENT_IDS_MAX = 20
+export const DEFAULT_PERSIST_LIBRARY_ID = 'default'
+
+let persistLibraryId = DEFAULT_PERSIST_LIBRARY_ID
+
+export function getPersistLibraryId() {
+  return persistLibraryId
+}
+
+export function setPersistLibraryId(id: string | null | undefined) {
+  persistLibraryId = id?.trim() || DEFAULT_PERSIST_LIBRARY_ID
+}
+
+function scopedPersistKey(base: string) {
+  return `${base}::${persistLibraryId}`
+}
+
+function readScopedIdList(base: string): string[] {
+  const scoped = readIdList(scopedPersistKey(base))
+  if (scoped.length > 0 || kvGet(scopedPersistKey(base))) return scoped
+  if (persistLibraryId === DEFAULT_PERSIST_LIBRARY_ID) return readIdList(base)
+  return []
+}
+
+function persistScopedIdList(base: string, ids: string[], max = RECENT_DOCUMENT_IDS_MAX) {
+  persistIdList(scopedPersistKey(base), ids, max)
+}
 
 function readIdList(key: string): string[] {
   try {
@@ -537,35 +570,53 @@ function persistIdList(key: string, ids: string[], max = RECENT_DOCUMENT_IDS_MAX
 }
 
 export function readRecentDocumentIds(): string[] {
-  return readIdList(RECENT_DOCUMENT_IDS_KEY).slice(0, RECENT_DOCUMENT_IDS_MAX)
+  return readScopedIdList(RECENT_DOCUMENT_IDS_KEY).slice(0, RECENT_DOCUMENT_IDS_MAX)
 }
 
 export function persistRecentDocumentIds(ids: string[]) {
-  persistIdList(RECENT_DOCUMENT_IDS_KEY, ids)
+  persistScopedIdList(RECENT_DOCUMENT_IDS_KEY, ids)
 }
 
 export function readRecentlyClosedIds(): string[] {
-  return readIdList(RECENTLY_CLOSED_IDS_KEY).slice(0, RECENT_DOCUMENT_IDS_MAX)
+  return readScopedIdList(RECENTLY_CLOSED_IDS_KEY).slice(0, RECENT_DOCUMENT_IDS_MAX)
 }
 
 export function persistRecentlyClosedIds(ids: string[]) {
-  persistIdList(RECENTLY_CLOSED_IDS_KEY, ids)
+  persistScopedIdList(RECENTLY_CLOSED_IDS_KEY, ids)
 }
 
 export function readOpenDocumentIds(): string[] {
-  return readIdList(OPEN_DOCUMENT_IDS_KEY)
+  return readScopedIdList(OPEN_DOCUMENT_IDS_KEY)
 }
 
 export function persistOpenDocumentIds(ids: string[]) {
-  persistIdList(OPEN_DOCUMENT_IDS_KEY, ids, 40)
+  persistScopedIdList(OPEN_DOCUMENT_IDS_KEY, ids, 40)
 }
 
 export function readPinnedDocumentIds(): string[] {
-  return readIdList(PINNED_DOCUMENT_IDS_KEY)
+  return readScopedIdList(PINNED_DOCUMENT_IDS_KEY)
 }
 
 export function persistPinnedDocumentIds(ids: string[]) {
-  persistIdList(PINNED_DOCUMENT_IDS_KEY, ids, 40)
+  persistScopedIdList(PINNED_DOCUMENT_IDS_KEY, ids, 40)
+}
+
+export type LibrarySessionSnapshot = {
+  openDocumentIds: string[]
+  pinnedDocumentIds: string[]
+  recentDocumentIds: string[]
+  recentlyClosedIds: string[]
+  activeDocumentId: string | null
+}
+
+export function readLibrarySession(): LibrarySessionSnapshot {
+  return {
+    openDocumentIds: readOpenDocumentIds(),
+    pinnedDocumentIds: readPinnedDocumentIds(),
+    recentDocumentIds: readRecentDocumentIds(),
+    recentlyClosedIds: readRecentlyClosedIds(),
+    activeDocumentId: readActiveDocumentId(),
+  }
 }
 
 /** Prepend `id` and dedupe, capped at max. */

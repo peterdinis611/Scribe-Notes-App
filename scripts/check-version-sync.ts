@@ -32,6 +32,12 @@ function appTsVersion(): string {
   return match[1]
 }
 
+function cargoLockAppVersion(): string {
+  const match = read('src-tauri/Cargo.lock').match(/^name = "app"\nversion = "([^"]+)"/m)
+  if (!match) throw new Error('app crate version not found in src-tauri/Cargo.lock')
+  return match[1]
+}
+
 const expected = pkgVersion()
 const sources: Array<[string, string]> = [
   ['package.json', expected],
@@ -40,6 +46,7 @@ const sources: Array<[string, string]> = [
   ['crates/scribe-core/Cargo.toml', cargoVersion('crates/scribe-core/Cargo.toml')],
   ['crates/scribe-mcp/Cargo.toml', cargoVersion('crates/scribe-mcp/Cargo.toml')],
   ['src/lib/app-version.ts', appTsVersion()],
+  ['src-tauri/Cargo.lock (app)', cargoLockAppVersion()],
 ]
 
 const mismatches = sources.filter(([, version]) => version !== expected)

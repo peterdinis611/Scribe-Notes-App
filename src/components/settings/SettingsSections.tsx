@@ -9,7 +9,9 @@ import { LocaleToggle, useCustomLocaleRefresh } from '@/components/LocaleToggle'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DiagnosticsSection } from '@/components/settings/DiagnosticsSection'
+import { LibrariesSettingsList } from '@/components/settings/LibrariesSettingsList'
 import { McpSection } from '@/components/settings/McpSection'
+import { PrivacySection } from '@/components/settings/PrivacySection'
 import {
   SettingsGroup,
   SettingsKbd,
@@ -29,7 +31,7 @@ import { runFolderReconcile } from '@/lib/disk-sync'
 import { ROUTES } from '@/lib/routes'
 import { THEME_PRESETS } from '@/lib/themes/presets'
 import { generateRandomTheme } from '@/lib/themes/generate-random-theme'
-import { APP_VERSION } from '@/lib/app-version'
+import { APP_VERSION, APP_SHORT_VERSION } from '@/lib/app-version'
 import type { ThemeColors, ThemePresetId } from '@/lib/themes/types'
 import { THEME_COLOR_FIELDS } from '@/lib/themes/types'
 import {
@@ -504,6 +506,8 @@ export function StorageSection() {
         description={t('settings.storage.pageDescription')}
       />
 
+      <LibrariesSettingsList />
+
       <SettingsGroup>
         <SettingsRow
           title={t('settings.storage.folderTitle')}
@@ -882,6 +886,7 @@ export function ShortcutsSection() {
 export function AboutSection() {
   const [version, setVersion] = useState(APP_VERSION)
   const { t } = useTranslation()
+  const navigate = useNavigate()
 
   useEffect(() => {
     getVersion()
@@ -895,8 +900,13 @@ export function AboutSection() {
         <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-accent)]">
           <FileTextIcon />
         </div>
-        <h3 className="m-0 text-[20px] font-bold tracking-[-0.02em]">Scribe</h3>
-        <p className="mt-1 text-[13px] text-[var(--color-muted-foreground)]">{t('settings.about.tagline')}</p>
+        <h3 className="m-0 inline-flex items-baseline gap-2.5 text-[20px] font-bold tracking-[-0.02em]">
+          {t('welcome.brand')}
+          <span className="scribe-edition">{APP_SHORT_VERSION}</span>
+        </h3>
+        <p className="mt-1 text-[13px] text-[var(--color-muted-foreground)]">
+          {t('settings.about.tagline', { version: APP_SHORT_VERSION })}
+        </p>
         <p className="mt-2 text-[12px] text-[var(--color-muted-foreground)]">{t('common.version', { version })}</p>
         <button
           type="button"
@@ -914,6 +924,14 @@ export function AboutSection() {
         <AboutRow label={t('settings.about.fileFormat')} value=".scribe" />
         <AboutRow label={t('settings.about.export')} value="PDF, DOCX, TXT, Pages" />
       </div>
+
+      <button
+        type="button"
+        className="privacy-notice-about-link mt-4 w-full"
+        onClick={() => navigate(ROUTES.settingsSection('privacy'))}
+      >
+        {t('settings.about.privacy')}
+      </button>
     </SettingsSection>
   )
 }
@@ -930,8 +948,13 @@ export function SettingsSectionContent({ section }: { section: SettingsSectionId
       return <DiagnosticsSection />
     case 'mcp':
       return <McpSection />
+    case 'privacy':
+      return <PrivacySection />
     case 'about':
       return <AboutSection />
+    case 'nlp':
+    case 'capture':
+      return null
   }
 }
 

@@ -1,19 +1,23 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { navigateToDemoGuide } from '@/lib/demo/load-demo-guide'
 import {
   destroyAppTour,
   runAppTour,
   subscribeAppTourRequest,
 } from '@/lib/app-tour'
+import { resolveLibraryEditorDocumentId } from '@/lib/libraries/switch'
 import { ROUTES } from '@/lib/routes'
 import { persistOnboardingDismissed, readOnboardingDismissed, readSetupCompleted } from '@/store/persistence'
-import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { store } from '@/store/index'
+import { useAppDispatch } from '@/store/hooks'
 import {
+  setActiveDocumentId,
   setFocusMode,
+  setLibraryView,
   setPanelRailExpanded,
   setReadingMode,
+  setSidebarOpen,
 } from '@/store/documentsSlice'
 
 type OnboardingTourProps = {
@@ -28,7 +32,7 @@ function wait(ms: number) {
   })
 }
 
-async function waitForSelector(selector: string, timeoutMs = 5000) {
+async function waitForSelector(selector: string, timeoutMs = 4000) {
   const start = Date.now()
   while (Date.now() - start < timeoutMs) {
     if (document.querySelector(selector)) return true
@@ -45,8 +49,6 @@ export function OnboardingTour({ enabled = true, onFinished }: OnboardingTourPro
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
-  const documents = useAppSelector((state) => state.documents.documents)
-  const activeId = useAppSelector((state) => state.documents.activeDocumentId)
   const runningRef = useRef(false)
   const autoStartedRef = useRef(false)
 
@@ -60,23 +62,20 @@ export function OnboardingTour({ enabled = true, onFinished }: OnboardingTourPro
     dispatch(setFocusMode(false))
     dispatch(setReadingMode(false))
     dispatch(setPanelRailExpanded(true))
+    dispatch(setLibraryView('folders'))
+    dispatch(setSidebarOpen(true))
 
-    const hasOpenDoc =
-      Boolean(activeId) &&
-      documents.some((doc) => doc.id === activeId && doc.deletedAt == null)
-
-    if (!hasOpenDoc) {
-      try {
-        await navigateToDemoGuide(documents, dispatch, navigate)
-      } catch {
-        await navigate(ROUTES.home())
-      }
+    const editorId = resolveLibraryEditorDocumentId(store.getState().documents)
+    if (editorId) {
+      dispatch(setActiveDocumentId(editorId))
+      await navigate(ROUTES.document(editorId))
+      dispatch(setSidebarOpen(true))
+      await waitForSelector('[data-tour="editor-canvas"]')
     }
 
     await waitForSelector('[data-tour="sidebar-rail"]')
-    await waitForSelector('[data-tour="editor-canvas"], [data-tour="library-search"]')
-    await wait(180)
-  }, [activeId, dispatch, documents, navigate])
+    await wait(160)
+  }, [dispatch, navigate])
 
   const startTour = useCallback(
     async (options?: { force?: boolean }) => {

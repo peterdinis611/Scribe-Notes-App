@@ -3,6 +3,7 @@ use serde::Serialize;
 use std::collections::HashMap;
 
 use crate::db::fts::extract_search_text;
+use crate::db::library_scope::active_library_id;
 use crate::db::search::SearchHit;
 
 pub const META_NLP_ENABLED: &str = "nlp_enabled";
@@ -117,7 +118,7 @@ pub fn similar_documents(
     };
 
     let max = limit.clamp(1, 20);
-    let mut hits = semantic_search(conn, &embedding.vector, max + 1, model)?;
+    let mut hits = semantic_search_documents(conn, &embedding.vector, max + 1, model)?;
     hits.retain(|hit| hit.document_id != document_id);
     hits.truncate(max as usize);
     Ok(hits)
@@ -209,7 +210,7 @@ pub fn upsert_embedding_with_chunks(
     .map_err(|e| e.to_string())?;
 
     for chunk in chunks {
-        let snippet: String = chunk.text.chars().take(240).collect();
+        let snippet: String = chunk.text.chars().take(480).collect();
         conn.execute(
             "INSERT INTO document_embedding_chunks
              (document_id, chunk_index, embedding, dims, model, snippet, updated_at)
@@ -269,16 +270,38 @@ pub fn list_embeddings(conn: &Connection) -> Result<Vec<StoredEmbedding>, String
     rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
 }
 
-fn list_chunk_embeddings(conn: &Connection) -> Result<Vec<StoredChunkEmbedding>, String> {
-    let mut stmt = conn
-        .prepare(
-            "SELECT document_id, chunk_index, embedding, model, dims, snippet, updated_at
-             FROM document_embedding_chunks",
-        )
-        .map_err(|e| e.to_string())?;
+fn list_chunk_embeddings_filtered(
+    conn: &Connection,
+    model: Option<&str>,
+    document_ids: Option<&[String]>,
+) -> Result<Vec<StoredChunkEmbedding>, String> {
+    if document_ids.is_some_and(|ids| ids.is_empty()) {
+        return Ok(Vec::new());
+    }
 
+    let mut sql = String::from(
+        "SELECT document_id, chunk_index, embedding, model, dims, snippet, updated_at \
+         FROM document_embedding_chunks",
+    );
+    let mut clauses: Vec<String> = Vec::new();
+    let mut bind: Vec<String> = Vec::new();
+    if let Some(model) = model {
+        clauses.push("model = ?".to_string());
+        bind.push(model.to_string());
+    }
+    if let Some(ids) = document_ids {
+        let placeholders = ids.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
+        clauses.push(format!("document_id IN ({placeholders})"));
+        bind.extend(ids.iter().cloned());
+    }
+    if !clauses.is_empty() {
+        sql.push_str(" WHERE ");
+        sql.push_str(&clauses.join(" AND "));
+    }
+
+    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
     let rows = stmt
-        .query_map([], |row| {
+        .query_map(rusqlite::params_from_iter(bind.iter()), |row| {
             let blob: Vec<u8> = row.get(2)?;
             Ok(StoredChunkEmbedding {
                 document_id: row.get(0)?,
@@ -323,12 +346,101 @@ pub fn semantic_search(
     limit: i64,
     model: Option<&str>,
 ) -> Result<Vec<SearchHit>, String> {
+    semantic_search_filtered(conn, query_vector, limit, model, None)
+}
+
+pub fn semantic_search_filtered(
+    conn: &Connection,
+    query_vector: &[f32],
+    limit: i64,
+    model: Option<&str>,
+    extra_document_ids: Option<&[String]>,
+) -> Result<Vec<SearchHit>, String> {
     let max = limit.clamp(1, 50);
-    let chunks = list_chunk_embeddings(conn)?;
+    let candidate_cap = (max * 4).max(24);
+    let mut candidate_ids: Vec<String> = score_document_embedding_ids(
+        conn,
+        query_vector,
+        candidate_cap,
+        model,
+    )?;
+    if let Some(extra) = extra_document_ids {
+        for id in extra {
+            if !candidate_ids.iter().any(|existing| existing == id) {
+                candidate_ids.push(id.clone());
+            }
+        }
+    }
+    if candidate_ids.len() > 48 {
+        candidate_ids.truncate(48);
+    }
+
+    let chunks = if candidate_ids.is_empty() {
+        list_chunk_embeddings_filtered(conn, model, None)?
+    } else {
+        list_chunk_embeddings_filtered(conn, model, Some(&candidate_ids))?
+    };
     if !chunks.is_empty() {
         return semantic_search_chunks(conn, query_vector, max, model, &chunks);
     }
     semantic_search_documents(conn, query_vector, max, model)
+}
+
+#[derive(Debug, Clone)]
+pub struct RankedDocumentChunk {
+    pub snippet: String,
+    pub score: f64,
+}
+
+pub fn rank_document_chunks(
+    conn: &Connection,
+    document_id: &str,
+    query_vector: &[f32],
+    limit: i64,
+    model: Option<&str>,
+) -> Result<Vec<RankedDocumentChunk>, String> {
+    let max = limit.clamp(1, 16) as usize;
+    let ids = [document_id.to_string()];
+    let mut chunks = list_chunk_embeddings_filtered(conn, model, Some(&ids))?;
+    if chunks.is_empty() {
+        chunks = list_chunk_embeddings_filtered(conn, None, Some(&ids))?;
+    }
+    let mut scored: Vec<(f64, String)> = chunks
+        .into_iter()
+        .filter(|chunk| chunk.vector.len() == query_vector.len())
+        .map(|chunk| {
+            let score = cosine_similarity(query_vector, &chunk.vector);
+            (score, chunk.snippet)
+        })
+        .filter(|(score, snippet)| *score > 0.04 && !snippet.trim().is_empty())
+        .collect();
+    scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
+    scored.truncate(max);
+    Ok(scored
+        .into_iter()
+        .map(|(score, snippet)| RankedDocumentChunk { snippet, score })
+        .collect())
+}
+
+fn score_document_embedding_ids(
+    conn: &Connection,
+    query_vector: &[f32],
+    limit: i64,
+    model: Option<&str>,
+) -> Result<Vec<String>, String> {
+    let mut scored: Vec<(f64, String)> = list_embeddings(conn)?
+        .into_iter()
+        .filter(|item| model.map_or(true, |expected| item.model == expected))
+        .filter(|item| item.vector.len() == query_vector.len())
+        .map(|item| {
+            let score = cosine_similarity(query_vector, &item.vector);
+            (score, item.document_id)
+        })
+        .filter(|(score, _)| *score > 0.04)
+        .collect();
+    scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
+    scored.truncate(limit.max(1) as usize);
+    Ok(scored.into_iter().map(|(_, id)| id).collect())
 }
 
 fn semantic_search_chunks(
@@ -372,13 +484,14 @@ fn semantic_search_chunks(
 
     let mut hits = Vec::with_capacity(scored.len());
     for (score, document_id, snippet) in scored {
-        let (title, content_json): (String, String) = conn
-            .query_row(
-                "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL",
-                params![document_id],
-                |row| Ok((row.get(0)?, row.get(1)?)),
-            )
-            .map_err(|e| e.to_string())?;
+        let library_id = active_library_id(conn);
+        let Ok((title, content_json)) = conn.query_row(
+            "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL AND library_id = ?2",
+            params![document_id, library_id],
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+        ) else {
+            continue;
+        };
 
         let body_snippet = if snippet.trim().is_empty() {
             extract_search_text(&content_json)
@@ -400,7 +513,7 @@ fn semantic_search_chunks(
     Ok(hits)
 }
 
-fn semantic_search_documents(
+pub fn semantic_search_documents(
     conn: &Connection,
     query_vector: &[f32],
     max: i64,
@@ -422,13 +535,14 @@ fn semantic_search_documents(
 
     let mut hits = Vec::with_capacity(scored.len());
     for (score, embedding) in scored {
-        let (title, content_json): (String, String) = conn
-            .query_row(
-                "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL",
-                params![embedding.document_id],
-                |row| Ok((row.get(0)?, row.get(1)?)),
-            )
-            .map_err(|e| e.to_string())?;
+        let library_id = active_library_id(conn);
+        let Ok((title, content_json)) = conn.query_row(
+            "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL AND library_id = ?2",
+            params![embedding.document_id, library_id],
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+        ) else {
+            continue;
+        };
 
         let body = extract_search_text(&content_json);
         let snippet = body.chars().take(120).collect::<String>();
@@ -513,6 +627,41 @@ mod tests {
         let hits = semantic_search(&conn, &[1.0f32, 0.0, 0.0], 5, Some("test")).unwrap();
         assert_eq!(hits.len(), 1);
         assert!(hits[0].snippet.contains("memory safety"));
+    }
+
+    #[test]
+    fn rank_document_chunks_orders_by_cosine() {
+        let conn = in_memory_conn();
+        run_migrations(&conn).unwrap();
+        conn.execute(
+            "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at)
+             VALUES ('d1', 'Long note', '{}', NULL, NULL, 1, 1)",
+            [],
+        )
+        .unwrap();
+        upsert_embedding_with_chunks(
+            &conn,
+            "d1",
+            &[0.2f32, 0.2, 0.0],
+            &[
+                EmbeddingChunkInput {
+                    index: 0,
+                    text: "unrelated intro fluff".into(),
+                    vector: vec![0.0f32, 1.0, 0.0],
+                },
+                EmbeddingChunkInput {
+                    index: 1,
+                    text: "memory safety systems programming".into(),
+                    vector: vec![1.0f32, 0.0, 0.0],
+                },
+            ],
+            "test",
+            1,
+        )
+        .unwrap();
+        let ranked = rank_document_chunks(&conn, "d1", &[1.0f32, 0.0, 0.0], 8, Some("test")).unwrap();
+        assert!(!ranked.is_empty());
+        assert!(ranked[0].snippet.contains("memory safety"));
     }
 
     #[test]

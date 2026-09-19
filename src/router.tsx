@@ -17,6 +17,7 @@ import { AppearancePage } from '@/pages/settings/AppearancePage'
 import { StoragePage } from '@/pages/settings/StoragePage'
 import { ShortcutsPage } from '@/pages/settings/ShortcutsPage'
 import { AboutPage } from '@/pages/settings/AboutPage'
+import { PrivacyPage } from '@/pages/settings/PrivacyPage'
 import { DiagnosticsPage } from '@/pages/settings/DiagnosticsPage'
 import { McpPage } from '@/pages/settings/McpPage'
 import { CapturePage } from '@/pages/settings/CapturePage'
@@ -125,6 +126,12 @@ const settingsCaptureRoute = createRoute({
   component: CapturePage,
 })
 
+const settingsPrivacyRoute = createRoute({
+  getParentRoute: () => settingsLayoutRoute,
+  path: 'privacy',
+  component: PrivacyPage,
+})
+
 const settingsAboutRoute = createRoute({
   getParentRoute: () => settingsLayoutRoute,
   path: 'about',
@@ -157,6 +164,7 @@ const routeTree = rootRoute.addChildren([
       settingsNlpRoute,
       settingsCaptureRoute,
       settingsDocsRedirectRoute,
+      settingsPrivacyRoute,
       settingsAboutRoute,
     ]),
   ]),

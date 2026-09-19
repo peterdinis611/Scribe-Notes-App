@@ -12,7 +12,7 @@
     "saveError": "Save failed",
     "saved": "Saved",
     "savedNoDisk": "Saved · no disk",
-    "version": "Version {{version}}",
+    "version": "Scribe {{version}}",
     "new": "New",
     "import": "Import",
     "create": "Create",
@@ -51,7 +51,8 @@
   },
   "welcome": {
     "brand": "Scribe",
-    "eyebrow": "Local document editor",
+    "brandWithEdition": "Scribe {{version}}",
+    "eyebrow": "Local document editor · {{version}}",
     "brandTagline": "Write documents locally. Link notes when you need them.",
     "newDocument": "New document",
     "todayNote": "Today’s note",
@@ -68,7 +69,7 @@
     "noDocumentsHint": "Start with a new document or today’s note. The demo is optional.",
     "emptyStartHint": "Start with a new document or today’s note.",
     "press": {
-      "eyebrow": "Letterpress · local on this Mac",
+      "eyebrow": "Letterpress · Scribe {{version}} · local on this Mac",
       "brandTagline": "Write documents. Link notes. Everything stays on disk.",
       "workflowHint": "Blank page → [[links]] → export. Leave advanced tools for later.",
       "recentDocuments": "Continue",
@@ -142,6 +143,8 @@
     "settings": "Settings",
     "mobileCapture": "Mobile capture…",
     "mobileCaptureHint": "QR → Inbox over Wi‑Fi",
+    "privacy": "Privacy policy",
+    "privacyHint": "What stays on this Mac",
     "windowCenter": "Center window",
     "windowTopRight": "Move window to top right",
     "docs": "Documentation",
@@ -216,7 +219,7 @@
     "zoomOut": "Zoom out",
     "resetView": "Reset view",
     "cardPlaceholder": "Card text…",
-    "emptyHint": "Double-click to add a card. Drag empty space to pan. Scroll to zoom.",
+    "emptyHint": "Double-click to add a card. Drag a handle to connect. Scroll to zoom.",
     "linkHint": "Select a card first, then link to another.",
     "linkPickSource": "Click the first card…",
     "linkPickTarget": "Click the second card to connect…",
@@ -228,6 +231,12 @@
     "done": "Done",
     "cancel": "Cancel",
     "rendering": "Rendering…"
+  },
+  "d3Chart": {
+    "edit": "Edit",
+    "editTitle": "Edit D3 chart JSON",
+    "done": "Done",
+    "cancel": "Cancel"
   },
   "footnotes": {
     "edit": "Edit",
@@ -250,7 +259,7 @@
     "generic": "An unexpected error occurred. Try again or return home."
   },
   "onboarding": {
-    "title": "Welcome to Scribe",
+    "title": "Welcome to Scribe {{version}}",
     "stepOf": "Step {{current}} of {{total}}",
     "dontShowAgain": "Don't show again on next launch",
     "demoOptional": "Want a deeper tour? The demo document is optional — open it anytime from the header.",
@@ -270,7 +279,7 @@
   "appTour": {
     "steps": {
       "welcome": {
-        "title": "Welcome to Scribe",
+        "title": "Welcome to Scribe {{version}}",
         "description": "A short walkthrough of the library, editor, and panels. Everything stays on this Mac."
       },
       "sidebarRail": {
@@ -288,6 +297,22 @@
       "libraryTree": {
         "title": "Your documents",
         "description": "Browse folders and notes. Drag to reorganize, right-click for more actions."
+      },
+      "librarySwitcher": {
+        "title": "Libraries",
+        "description": "Work, personal, or archive as separate roots. Switching changes the whole library, not just a folder."
+      },
+      "libraryChat": {
+        "title": "Chat with notes",
+        "description": "Ask the whole library or the open note. Answers stay on this Mac."
+      },
+      "libraryFilters": {
+        "title": "Quick filters",
+        "description": "All, unlinked, untagged, or unread — narrow the library to what you need."
+      },
+      "libraryCompile": {
+        "title": "Compile",
+        "description": "Pick chapters in order. Scribe builds one document and can export it in the same step."
       },
       "newDocument": {
         "title": "New document",
@@ -336,9 +361,15 @@
     }
   },
   "setup": {
-    "title": "Set up Scribe",
-    "stepOf": "Step {{current}} of {{total}}",
+    "title": "Set up Scribe {{version}}",
+    "kicker": "Scribe {{version}}",
+    "stepOf": "{{current}} / {{total}}",
     "finish": "Continue",
+    "startWriting": "Start writing",
+    "showTour": "Show me around",
+    "welcome": {
+      "lead": "A local document editor. Pick a language, then the paper you write on."
+    },
     "language": {
       "title": "Language",
       "description": "Choose the interface language. You can import a custom JSON language pack anytime.",
@@ -355,8 +386,21 @@
   },
   "whatsNew": {
     "badge": "What's new in {{version}}",
+    "kicker": "Edition notes",
     "title": "Scribe {{version}}",
-    "subtitle": "Clipboard history, a quieter writing chrome, and more reliable deletes in the editor.",
+    "subtitle": "Separate libraries, sync that asks before overwriting, and compile chapters into one document.",
+    "libraries": {
+      "title": "More than one library",
+      "description": "Work, personal, and archive as separate roots — not extra folders in the same tree. Switch from the sidebar."
+    },
+    "syncConflicts": {
+      "title": "Sync that does not silently overwrite",
+      "description": "When the disk and the app both change a note, Scribe keeps a revision and asks which version stays."
+    },
+    "compile": {
+      "title": "Compile a long text",
+      "description": "Pick chapters in order. Scribe builds one document with shared headings, ready to export or print."
+    },
     "gotIt": "Got it",
     "clipboardHistory": {
       "title": "Clipboard history",
@@ -579,6 +623,10 @@
         "label": "Mobile capture",
         "description": "Phone → Inbox over Wi‑Fi"
       },
+      "privacy": {
+        "label": "Privacy",
+        "description": "What stays on this Mac"
+      },
       "about": {
         "label": "About",
         "description": "Version and info"
@@ -621,6 +669,13 @@
     "storage": {
       "pageTitle": "Storage",
       "pageDescription": "Choose a disk folder for .scribe files. Prefer iCloud Drive or Dropbox for multi-Mac sync — Scribe has no cloud of its own.",
+      "librariesTitle": "Libraries",
+      "librariesDescription": "Every library on this Mac. The active one is where you are writing now.",
+      "librariesActive": "Active",
+      "librariesSwitch": "Switch",
+      "librariesOpened": "Last opened {{time}}",
+      "librariesNoPath": "No folder on disk",
+      "librariesEmpty": "No libraries yet.",
       "folderTitle": "Documents folder",
       "folderDescription": "All documents are stored in the app's local database. This folder holds .scribe backups.",
       "folderDescriptionShort": "Local database + .scribe files on disk. Point this at iCloud Drive or Dropbox to sync across Macs.",
@@ -794,15 +849,87 @@
       "globalBadge": "System-wide"
     },
     "about": {
-      "tagline": "Write documents. Link notes.",
+      "tagline": "Scribe {{version}} — write documents. Link notes.",
       "platform": "Platform",
       "fileFormat": "File format",
       "export": "Export",
-      "replayTour": "Replay app tour"
+      "replayTour": "Replay app tour",
+      "privacy": "Privacy policy"
+    },
+    "privacy": {
+      "kicker": "Publisher’s notice",
+      "title": "Privacy policy",
+      "effective": "Effective 19 September 2026 · Scribe {{version}}",
+      "lead": "Scribe is a local document editor for macOS. This notice describes what stays on your Mac, what is not sent to the developer, and when a feature you turn on may talk to another machine.",
+      "colophon": "Questions: open an issue on the Scribe GitHub repository. Slovak and English texts live with the app source as PRIVACY.md.",
+      "articles": {
+        "localFirst": {
+          "title": "Local first",
+          "paragraphs": [
+            "Documents, the SQLite library, settings, revisions, and optional .scribe backups stay on the Mac user account that runs Scribe. There is no Scribe sign-in and no Scribe cloud."
+          ]
+        },
+        "storedData": {
+          "title": "What stays on this Mac",
+          "paragraphs": [
+            "Depending on how you use the app, Scribe may store document content, titles, folders, tags, comments, version history, interface settings, optional Local AI indexes, clipboard history, and sync-conflict revisions.",
+            "macOS file permissions still apply. Scribe writes to the library you choose and to its application data — it does not scan your whole disk."
+          ]
+        },
+        "noCollection": {
+          "title": "What we do not collect",
+          "paragraphs": [
+            "The app does not create an account with the developer. It does not send your notes, usage analytics, advertising identifiers, or crash telemetry to Peter Dinis."
+          ]
+        },
+        "optionalNetwork": {
+          "title": "Optional network use you start",
+          "paragraphs": [
+            "Google Fonts, a remote image or YouTube embed you insert, and opening GitHub Releases from Diagnostics contact other servers only when you use those features. Those hosts may see a typical web request.",
+            "Scribe does not phone home on a schedule to report how you write."
+          ]
+        },
+        "mcp": {
+          "title": "MCP (Cursor / Claude)",
+          "paragraphs": [
+            "The MCP bridge is optional and runs as a local process on this Mac. It does not upload notes by itself. If Cursor, Claude, or another host reads Scribe through tools, that host’s privacy policy applies to any content the model fetches."
+          ]
+        },
+        "capture": {
+          "title": "Mobile capture",
+          "paragraphs": [
+            "Mobile capture is a local Wi‑Fi listener on your Mac. Your phone talks to that Mac on the LAN. Scribe does not relay capture notes through a developer-operated server."
+          ]
+        },
+        "yourControl": {
+          "title": "Your control",
+          "paragraphs": [
+            "You can change the documents folder, export or delete the library, turn optional features off, and uninstall the app. Deleting Scribe’s application data and the documents folder removes the local library from that Mac."
+          ]
+        },
+        "children": {
+          "title": "Children",
+          "paragraphs": [
+            "Scribe is a general writing tool. It is not directed at children under 13, and we do not knowingly collect personal information from children."
+          ]
+        },
+        "changes": {
+          "title": "Changes",
+          "paragraphs": [
+            "When this policy changes, the in-app notice is updated with the app version. Continued use after an update means the current notice applies."
+          ]
+        },
+        "contact": {
+          "title": "Contact",
+          "paragraphs": [
+            "Questions about this policy: open an issue on the Scribe-Notes-App GitHub repository."
+          ]
+        }
+      }
     },
     "docs": {
-      "pageTitle": "Documentation",
-      "pageDescription": "How Scribe stores, links, and edits documents on your Mac.",
+      "pageTitle": "Scribe {{version}}",
+      "pageDescription": "How Scribe {{version}} stores, links, and edits documents on your Mac.",
       "searchPlaceholder": "Search topics…",
       "onThisPage": "On this page",
       "quickStart": "Jump to",
@@ -821,11 +948,20 @@
       },
       "topics": {
         "overview": {
-          "title": "What is Scribe?",
+          "title": "What is Scribe {{version}}?",
           "summary": "Write documents. Link notes.",
           "paragraphs": [
-            "Scribe is a local document editor for macOS. Write and export on this Mac — your library lives in SQLite, with optional .scribe backups on disk.",
+            "Scribe {{version}} is a local document editor for macOS. Write and export on this Mac — your library lives in SQLite, with optional .scribe backups on disk.",
             "As notes grow, link them with wiki links. The connection map and MCP (Cursor / Claude) are power tools — not the starting point."
+          ],
+          "points": []
+        },
+        "privacy": {
+          "title": "Privacy",
+          "summary": "What stays on this Mac",
+          "paragraphs": [
+            "Scribe stores your library locally. There is no Scribe account and no analytics sent to the developer.",
+            "Optional features you start — Google Fonts, remote embeds, MCP hosts, or mobile capture on your LAN — are described in Settings → Privacy."
           ],
           "points": []
         },
@@ -885,7 +1021,8 @@
             "Text vs MD — switch between rich text and Markdown",
             "SK / EN — change the UI language",
             "Reading mode and focus mode hide chrome for fewer distractions",
-            "Layout / Page — continuous vs paginated layout"
+            "Layout / Page — continuous vs paginated layout",
+            "Microphone in the toolbar (⌘⇧M) dictates at the cursor using macOS speech recognition"
           ]
         },
         "search": {
@@ -1100,15 +1237,55 @@
     "ariaLabel": "Open documents",
     "close": "Close tab",
     "pin": "Pin tab",
-    "unpin": "Unpin tab"
+    "unpin": "Unpin tab",
+    "reorder": "Drag to reorder"
   },
   "split": {
     "close": "Close split pane"
   },
+  "libraries": {
+    "label": "Library",
+    "placeholder": "Choose library",
+    "new": "New",
+    "newTitle": "New library",
+    "newHint": "A separate root next to the current Documents folder.",
+    "switchedTitle": "Library switched",
+    "switchedHint": "Now writing in {{name}}.",
+    "switchError": "Could not switch library",
+    "createError": "Could not create library"
+  },
+  "compile": {
+    "action": "Compile",
+    "title": "Compile a long text",
+    "hint": "Pick chapters in order. Scribe builds one document — open it, or export PDF/DOCX in the same step.",
+    "titlePlaceholder": "Book or report title",
+    "untitled": "Compiled manuscript",
+    "doneTitle": "Compiled",
+    "doneHint": "{{count}} chapters in one document.",
+    "error": "Compile failed",
+    "paletteHint": "Chapters → one document",
+    "exportLabel": "After compile",
+    "exportOpen": "Open the new document",
+    "actionExport": "Compile and export",
+    "exportedTitle": "Compiled and exported",
+    "exportedHint": "{{count}} chapters exported as {{format}}."
+  },
+  "syncConflicts": {
+    "title": "Sync conflicts",
+    "hint": "Disk and the app both changed the same note. Choose which version stays.",
+    "empty": "No open conflicts.",
+    "meta": "Disk {{disk}} · App {{app}}",
+    "keepApp": "Keep app",
+    "keepDisk": "Keep disk",
+    "resolveError": "Could not resolve the conflict",
+    "paletteHint": "Choose disk or app",
+    "badge": "{{count}} sync conflicts",
+    "openDocument": "Open"
+  },
   "library": {
     "title": "Library",
     "resize": "Resize library",
-    "resizeHint": "Drag to widen. Double-click to reset.",
+    "resizeHint": "Drag to resize. Double-click to reset.",
     "allDocuments": "All documents",
     "expandFolder": "Expand folder",
     "collapseFolder": "Collapse folder",
@@ -1182,7 +1359,7 @@
     "searchEmpty": "Nothing found",
     "moveToFolder": "Move to folder",
     "rootFolder": "Root (no folder)",
-    "noFoldersYet": "Create a folder in the sidebar first.",
+    "noFoldersYet": "Create a folder first.",
     "openDocument": "Open",
     "rootLibrary": "Library root",
     "tagCount_one": "{{count}} tag",
@@ -1228,8 +1405,8 @@
     "emptyHint": "Answers come only from Local AI embeddings of your library — no cloud. Turn on Local AI in Settings.",
     "emptyHintDocument": "Ask about the open note, or tap an action chip. Local AI only — extractive, no cloud.",
     "openSettings": "Open Local AI settings",
-    "placeholder": "Ask about your notes…",
-    "placeholderDocument": "Ask about this document…",
+    "placeholder": "Ask your notes…",
+    "placeholderDocument": "Ask this note…",
     "send": "Ask",
     "thinking": "Searching notes…",
     "citations": "Sources",
@@ -1316,7 +1493,10 @@
     "findReplaceClose": "Close search",
     "clipboard": "Clipboard",
     "leftOutline": "Left outline",
-    "leftOutlineOff": "Hide left outline"
+    "leftOutlineOff": "Hide left outline",
+    "resize": "Resize panel",
+    "resizeHint": "Drag to resize. Double-click expands to the available width; double-click again to reset.",
+    "autoExpand": "Expand automatically"
   },
   "panels": {
     "comments": {
@@ -1340,7 +1520,10 @@
       "replyPlaceholder": "Reply…",
       "sendReply": "Send reply",
       "signedAs": "Signed as",
+      "authorLabel": "Your name",
       "authorPlaceholder": "Your name",
+      "bodyLabel": "Comment",
+      "composerHint": "Sign the note with your name — it stays on this Mac.",
       "anchorNotFound": "Comment anchor not found in text",
       "loadError": "Failed to load comments",
       "resolveError": "Failed to change status",
@@ -1463,6 +1646,8 @@
       "organizeHint": "Suggested folder from Local AI",
       "organizeSuggestion": "Closest folder: {{folder}}",
       "organizeMove": "Move to {{folder}}",
+      "organizeCreateHint": "No folder yet — suggested name: {{folder}}",
+      "organizeCreate": "Create folder {{folder}}",
       "organizeEmpty": "No better folder match for this note.",
       "template": "Template sections",
       "templateHint": "Missing Goal / Context / Next steps headings",
@@ -1696,6 +1881,7 @@
     "undoTrashError": "Failed to undo trash",
     "restoreError": "Failed to restore document",
     "folderCreated": "Folder created",
+    "folderCreateError": "Could not create folder",
     "vaultFolderCreated": "Encrypted vault created",
     "folderRenamed": "Folder renamed",
     "folderRenameError": "Failed to rename folder",
@@ -1794,6 +1980,18 @@
       "label": "Lottie",
       "hint": "Lottie / DotLottie animation (.json, .lottie)"
     },
+    "video": {
+      "label": "Video",
+      "hint": "YouTube, Vimeo, or a file URL"
+    },
+    "map": {
+      "label": "Map",
+      "hint": "Leaflet / OpenStreetMap"
+    },
+    "leaflet": {
+      "label": "Leaflet map",
+      "hint": "JSON map spec or OSM URL"
+    },
     "math-inline": {
       "label": "Formula",
       "hint": "Inline math.js"
@@ -1805,6 +2003,14 @@
     "mermaid": {
       "label": "Mermaid",
       "hint": "Flowchart / sequence diagram"
+    },
+    "chart": {
+      "label": "Chart",
+      "hint": "D3 bar, line, area, or pie"
+    },
+    "d3": {
+      "label": "D3 chart",
+      "hint": "Declarative JSON chart spec"
     },
     "hr": {
       "label": "Divider",
@@ -2092,6 +2298,8 @@
       "table": "Table",
       "youtube": "YouTube",
       "youtubeVideo": "YouTube video",
+      "video": "Video",
+      "map": "Map",
       "scanBarcode": "Scan QR / barcode",
       "tableOfContents": "Table of contents (TOC)",
       "pageBreak": "Page break",
@@ -2101,6 +2309,7 @@
       "blockMath": "Formula block",
       "blockMathFull": "Formula block (math.js)",
       "mermaid": "Mermaid diagram",
+      "chart": "D3 chart",
       "codeBlock": "Code block",
       "paragraphFormat": "Paragraph format",
       "moreTools": "More tools",
@@ -2186,6 +2395,11 @@
     "youtubeDialog": {
       "title": "YouTube video",
       "description": "Paste a YouTube watch or share URL.",
+      "confirm": "Insert"
+    },
+    "videoDialog": {
+      "title": "Video",
+      "description": "Paste a YouTube, Vimeo, or direct video URL.",
       "confirm": "Insert"
     },
     "paragraphStyles": {
@@ -2404,6 +2618,11 @@
     "missing": "Document not found — check ![[Title]].",
     "empty": "Empty note"
   },
+  "codeBlock": {
+    "copy": "Copy code",
+    "copied": "Copied",
+    "auto": "Auto"
+  },
   "image": {
     "alignLeft": "Align left",
     "alignCenter": "Align center",
@@ -2416,14 +2635,21 @@
     "properties": "Alt text",
     "crop": "Crop",
     "cropTitle": "Crop image",
-    "cropHint": "Drag the selection, then apply the crop.",
+    "cropHint": "Drag the handles to crop, then apply.",
+    "cropAspect": "Aspect ratio",
+    "aspect": {
+      "free": "Free",
+      "square": "1:1",
+      "photo": "4:3",
+      "wide": "16:9"
+    },
     "applyCrop": "Apply crop",
     "replace": "Replace image",
     "download": "Download",
     "delete": "Delete image",
     "missing": "Image unavailable",
     "emptyTitle": "Add an image",
-    "emptyHint": "Upload a file or embed a link — like in Notion.",
+    "emptyHint": "Upload a file or embed a link — PNG, JPEG, GIF, WebP.",
     "upload": "Upload",
     "fromUrl": "Embed link",
     "urlTitle": "Embed image",
@@ -2443,7 +2669,26 @@
     "caption": "Caption",
     "captionPlaceholder": "Optional caption",
     "captionEmpty": "Add a caption…",
-    "resize": "Resize"
+    "resize": "Resize",
+    "animatedBadge": "GIF",
+    "animatedHint": "Animated image"
+  },
+  "map": {
+    "provider": "OpenStreetMap",
+    "edit": "Edit",
+    "done": "Done",
+    "cancel": "Cancel",
+    "delete": "Delete map",
+    "fallbackTitle": "Map",
+    "openOsm": "Open in OpenStreetMap"
+  },
+  "video": {
+    "replace": "Replace URL",
+    "delete": "Delete video",
+    "emptyTitle": "Add a video",
+    "emptyHint": "YouTube, Vimeo, Twitch, or an .mp4 / .webm URL",
+    "error": "This video could not be played",
+    "captionPlaceholder": "Caption"
   },
   "lottie": {
     "alignGroup": "Lottie alignment",

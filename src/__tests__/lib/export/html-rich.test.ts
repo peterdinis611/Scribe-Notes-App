@@ -3,7 +3,7 @@ import { promoteMarkdownSpecialBlocks } from '@/lib/editor/markdown-promote'
 import { tiptapJsonToHtml } from '@/lib/export/html'
 
 describe('promoteMarkdownSpecialBlocks', () => {
-  it('promotes mermaid and math fenced code blocks', () => {
+  it('promotes mermaid, chart, and math fenced code blocks', () => {
     const promoted = promoteMarkdownSpecialBlocks({
       type: 'doc',
       content: [
@@ -11,6 +11,11 @@ describe('promoteMarkdownSpecialBlocks', () => {
           type: 'codeBlock',
           attrs: { language: 'mermaid' },
           content: [{ type: 'text', text: 'flowchart TD\n  A --> B' }],
+        },
+        {
+          type: 'codeBlock',
+          attrs: { language: 'chart' },
+          content: [{ type: 'text', text: '{"type":"bar","data":[{"month":"Jan","value":1}]}' }],
         },
         {
           type: 'codeBlock',
@@ -30,10 +35,13 @@ describe('promoteMarkdownSpecialBlocks', () => {
       attrs: { source: 'flowchart TD\n  A --> B' },
     })
     expect(promoted.content?.[1]).toMatchObject({
+      type: 'd3Chart',
+    })
+    expect(promoted.content?.[2]).toMatchObject({
       type: 'mathBlock',
       attrs: { expression: '1 + 2' },
     })
-    expect(promoted.content?.[2]?.type).toBe('codeBlock')
+    expect(promoted.content?.[3]?.type).toBe('codeBlock')
   })
 })
 
@@ -86,5 +94,17 @@ describe('tiptapJsonToHtml rich blocks', () => {
 
     expect(html).toContain('mermaid-diagram')
     expect(html).toContain('flowchart TD')
+  })
+
+  it('stamps the Scribe 2.0 generator meta', () => {
+    const html = tiptapJsonToHtml(
+      JSON.stringify({
+        type: 'doc',
+        content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Hello' }] }],
+      }),
+      'Export',
+    )
+    expect(html).toContain('name="generator"')
+    expect(html).toContain('content="Scribe 2.0"')
   })
 })

@@ -1,6 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit'
 import documentsReducer from '@/store/documentsSlice'
 import foldersReducer from '@/store/foldersSlice'
+import librariesReducer from '@/store/librariesSlice'
 import settingsReducer from '@/store/settingsSlice'
 import templatesReducer from '@/store/templatesSlice'
 import uiReducer from '@/store/uiSlice'
@@ -9,6 +10,7 @@ export const store = configureStore({
   reducer: {
     documents: documentsReducer,
     folders: foldersReducer,
+    libraries: librariesReducer,
     settings: settingsReducer,
     templates: templatesReducer,
     ui: uiReducer,

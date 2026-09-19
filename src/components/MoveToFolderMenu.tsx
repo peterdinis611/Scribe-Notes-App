@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Check, Folder, FolderInput } from 'lucide-react'
+import { Check, Folder, FolderInput, FolderPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -17,8 +17,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useMoveDocumentToFolder } from '@/hooks/useMoveDocumentToFolder'
+import { promptAndCreateFolder } from '@/lib/library/create-folder'
 import { flattenFoldersForPicker } from '@/lib/library/folders'
-import { useAppSelector } from '@/store/hooks'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
 
 type MoveToFolderMenuProps = {
   documentId: string
@@ -35,6 +36,7 @@ export function MoveToFolderMenu({
 }: MoveToFolderMenuProps) {
   const { t } = useTranslation()
   const folders = useAppSelector((state) => state.folders.folders)
+  const dispatch = useAppDispatch()
   const moveDocument = useMoveDocumentToFolder()
   const [open, setOpen] = useState(false)
 
@@ -48,6 +50,12 @@ export function MoveToFolderMenu({
     await moveDocument(documentId, nextFolderId)
     onMoved?.(nextFolderId)
     setOpen(false)
+  }
+
+  async function handleCreateAndMove() {
+    const folder = await promptAndCreateFolder({ t, dispatch })
+    if (!folder) return
+    await handleMove(folder.id)
   }
 
   return (
@@ -87,11 +95,11 @@ export function MoveToFolderMenu({
             {folderId === folder.id && <Check className="h-4 w-4 text-[var(--color-accent)]" />}
           </DropdownMenuItem>
         ))}
-        {folderItems.length === 0 && (
-          <p className="px-2 py-3 text-center text-[12px] text-[var(--color-muted-foreground)]">
-            Najprv vytvorte priečinok v sidebari.
-          </p>
-        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => void handleCreateAndMove()}>
+          <FolderPlus className="h-4 w-4" />
+          <span className="flex-1">{t('library.newFolder')}</span>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )
@@ -112,6 +120,7 @@ export function MoveToFolderDialog({
 }: MoveToFolderDialogProps) {
   const { t } = useTranslation()
   const folders = useAppSelector((state) => state.folders.folders)
+  const dispatch = useAppDispatch()
   const moveDocument = useMoveDocumentToFolder()
   const folderItems = useMemo(() => flattenFoldersForPicker(folders), [folders])
 
@@ -155,6 +164,18 @@ export function MoveToFolderDialog({
               {folderId === folder.id && <Check className="h-4 w-4 text-[var(--color-accent)]" />}
             </button>
           ))}
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] transition-colors hover:bg-[var(--color-hover)]"
+            onClick={() => {
+              void promptAndCreateFolder({ t, dispatch }).then((folder) => {
+                if (folder) void handleMove(folder.id)
+              })
+            }}
+          >
+            <FolderPlus className="h-4 w-4" />
+            <span className="flex-1">{t('library.newFolder')}</span>
+          </button>
         </div>
       </DialogContent>
     </Dialog>

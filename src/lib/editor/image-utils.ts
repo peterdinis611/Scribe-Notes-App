@@ -1,9 +1,14 @@
 import { convertFileSrc } from '@/lib/tauri'
 import type { Editor } from '@tiptap/react'
 import { saveDocumentImage } from '@/lib/db/api'
+import {
+  fileNameForDocumentImage,
+  sniffAnimatedImageKind,
+  type AnimatedImageKind,
+} from '@/lib/editor/animated-image'
 
 const IMAGE_URL_EXT =
-  /\.(?:png|jpe?g|gif|webp|svg|avif|bmp|heic|heif)(?:\?[^#]*)?(?:#.*)?$/i
+  /\.(?:png|jpe?g|gif|webp|svg|apng|avif|bmp|heic|heif)(?:\?[^#]*)?(?:#.*)?$/i
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -97,14 +102,21 @@ export function insertImageFromUrl(editor: Editor, url: string, pos?: number) {
     .run()
 }
 
+async function sniffedKindForFile(file: File): Promise<AnimatedImageKind | null> {
+  const header = new Uint8Array(await file.slice(0, 256 * 1024).arrayBuffer())
+  return sniffAnimatedImageKind(header)
+}
+
 export async function insertImageFromFile(
   editor: Editor,
   documentId: string,
   file: File,
   pos?: number,
 ) {
+  const sniffed = await sniffedKindForFile(file)
+  const fileName = fileNameForDocumentImage(file, sniffed)
   const base64 = await fileToBase64(file)
-  const path = await saveDocumentImage(documentId, file.name, base64)
+  const path = await saveDocumentImage(documentId, fileName, base64)
 
   let chain = editor.chain().focus()
   if (pos !== undefined) {
@@ -156,7 +168,7 @@ export function isLottieFile(file: File): boolean {
 
 export function isImageFile(file: File): boolean {
   if (file.type.startsWith('image/')) return true
-  return /\.(?:png|jpe?g|gif|webp|svg)$/i.test(file.name)
+  return /\.(?:png|jpe?g|gif|webp|svg|apng)$/i.test(file.name)
 }
 
 export function isDocumentMediaFile(file: File): boolean {
@@ -227,8 +239,10 @@ export function extractSvgMarkup(text: string, html = ''): string | null {
 }
 
 export async function replaceImageFromFile(documentId: string, file: File): Promise<string> {
+  const sniffed = await sniffedKindForFile(file)
+  const fileName = fileNameForDocumentImage(file, sniffed)
   const base64 = await fileToBase64(file)
-  return saveDocumentImage(documentId, file.name, base64)
+  return saveDocumentImage(documentId, fileName, base64)
 }
 
 export async function saveCroppedImage(documentId: string, dataUrl: string): Promise<string> {
@@ -285,7 +299,7 @@ export function pickImageFiles(options?: { multiple?: boolean }): Promise<File[]
   return new Promise((resolve) => {
     const input = document.createElement('input')
     input.type = 'file'
-    input.accept = 'image/png,image/jpeg,image/gif,image/webp,image/svg+xml,.svg'
+    input.accept = 'image/png,image/jpeg,image/gif,image/webp,image/apng,image/svg+xml,.svg,.gif,.webp,.apng'
     input.multiple = options?.multiple ?? true
     input.onchange = () => resolve(Array.from(input.files ?? []))
     input.click()
@@ -309,7 +323,7 @@ export function pickDocumentMediaFiles(options?: { multiple?: boolean }): Promis
     const input = document.createElement('input')
     input.type = 'file'
     input.accept =
-      'image/png,image/jpeg,image/gif,image/webp,image/svg+xml,.svg,.json,.lottie,application/json'
+      'image/png,image/jpeg,image/gif,image/webp,image/apng,image/svg+xml,.svg,.gif,.webp,.apng,.json,.lottie,application/json'
     input.multiple = options?.multiple ?? true
     input.onchange = () => resolve(Array.from(input.files ?? []).filter(isDocumentMediaFile))
     input.click()

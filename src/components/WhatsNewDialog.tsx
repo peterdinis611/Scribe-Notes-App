@@ -1,25 +1,8 @@
-import { ClipboardList, Eraser, Focus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { APP_VERSION } from '@/lib/app-version'
+import { APP_VERSION, APP_SHORT_VERSION } from '@/lib/app-version'
 import { persistWhatsNewVersion } from '@/store/persistence'
 
-const HIGHLIGHTS = [
-  { id: 'clipboardHistory', icon: ClipboardList },
-  { id: 'editorCalm', icon: Focus },
-  { id: 'editorDelete', icon: Eraser },
-] as const
-
-/** Major.minor for “Scribe 1.4” style titles. */
-const APP_SHORT_VERSION = APP_VERSION.split('.').slice(0, 2).join('.')
+const HIGHLIGHTS = ['libraries', 'syncConflicts', 'compile'] as const
 
 type WhatsNewDialogProps = {
   open: boolean
@@ -34,48 +17,44 @@ export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
     onClose()
   }
 
+  if (!open) return null
+
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && handleClose()}>
-      <DialogContent className="max-w-[500px] shadow-[inset_3px_0_0_0_var(--color-accent)]" showClose>
-        <DialogHeader>
-          <p className="m-0 font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--color-accent)]">
-            {t('whatsNew.badge', { version: APP_VERSION })}
-          </p>
-          <DialogTitle className="font-[family-name:var(--font-display)] text-[22px] font-extrabold tracking-[-0.03em]">
-            {t('whatsNew.title', { version: APP_SHORT_VERSION })}
-          </DialogTitle>
-          <DialogDescription className="text-[13px] leading-relaxed">
-            {t('whatsNew.subtitle')}
-          </DialogDescription>
-        </DialogHeader>
-
-        <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
-          {HIGHLIGHTS.map(({ id, icon: Icon }) => (
-            <li
-              key={id}
-              className="flex gap-3 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5"
-            >
-              <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[color-mix(in_srgb,var(--color-accent)_12%,var(--color-surface))] text-[var(--color-accent)]">
-                <Icon className="h-4 w-4" />
-              </span>
-              <span className="min-w-0">
-                <span className="block text-[13px] font-semibold text-[var(--color-foreground)]">
-                  {t(`whatsNew.${id}.title`)}
-                </span>
-                <span className="mt-0.5 block text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
-                  {t(`whatsNew.${id}.description`)}
-                </span>
-              </span>
-            </li>
-          ))}
-        </ul>
-
-        <DialogFooter>
-          <Button type="button" variant="default" size="sm" onClick={handleClose}>
-            {t('whatsNew.gotIt')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <div className="setup-folio-root titlebar-no-drag" role="dialog" aria-modal="true" aria-labelledby="whats-new-title">
+      <button type="button" className="setup-folio-scrim" aria-label={t('whatsNew.gotIt')} onClick={handleClose} />
+      <div className="setup-folio setup-folio--news">
+        <aside className="setup-folio-margin" aria-hidden="true">
+          <p className="setup-folio-brand">{t('welcome.brandWithEdition', { version: APP_SHORT_VERSION })}</p>
+          <span className="setup-folio-numeral">{APP_SHORT_VERSION}</span>
+          <p className="setup-folio-count">{t('whatsNew.badge', { version: APP_VERSION })}</p>
+        </aside>
+        <div className="setup-folio-page">
+          <header className="setup-folio-head">
+            <p className="setup-folio-kicker">{t('whatsNew.kicker')}</p>
+            <h1 id="whats-new-title" className="setup-folio-title">
+              {t('whatsNew.title', { version: APP_SHORT_VERSION })}
+            </h1>
+            <p className="setup-folio-lead">{t('whatsNew.subtitle')}</p>
+          </header>
+          <ol className="setup-folio-points">
+            {HIGHLIGHTS.map((id, index) => (
+              <li key={id}>
+                <span>{String(index + 1).padStart(2, '0')}</span>
+                <div>
+                  <strong>{t(`whatsNew.${id}.title`)}</strong>
+                  <p>{t(`whatsNew.${id}.description`)}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+          <footer className="setup-folio-foot">
+            <span />
+            <button type="button" className="setup-folio-next" onClick={handleClose}>
+              {t('whatsNew.gotIt')}
+            </button>
+          </footer>
+        </div>
+      </div>
+    </div>
   )
 }

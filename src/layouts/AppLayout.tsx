@@ -4,6 +4,7 @@ import { Outlet, useNavigate, useParams, useRouterState } from '@tanstack/react-
 import { useTranslation } from 'react-i18next'
 import { listen } from '@tauri-apps/api/event'
 import { CommandPalette } from '@/components/CommandPalette'
+import { DndRoot } from '@/components/dnd/DndRoot'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { DocumentTabsBar } from '@/components/layout/DocumentTabsBar'
 import { FocusModeExitBar } from '@/components/editor/FocusModeExitBar'
@@ -34,10 +35,13 @@ import { toast } from '@/lib/toast'
 import { ROUTES } from '@/lib/routes'
 import type { DocumentTemplate } from '@/lib/templates'
 import { InputDialogHost } from '@/components/InputDialogHost'
+import { CommentDialogHost } from '@/components/CommentDialogHost'
 import { LoremIpsumDialogHost } from '@/components/LoremIpsumDialogHost'
 import { MathExpressionDialogHost } from '@/components/MathExpressionDialogHost'
 import { InvoiceDialogHost } from '@/components/InvoiceDialogHost'
 import { StorageAccessDialogHost } from '@/components/StorageAccessDialogHost'
+import { CompileDialog } from '@/components/library/CompileDialog'
+import { SyncConflictsDialog } from '@/components/library/SyncConflictsDialog'
 import { SaveCustomTemplateDialogHost } from '@/components/SaveCustomTemplateDialogHost'
 import { ToastHost } from '@/components/ToastHost'
 import { TrashDialog } from '@/components/TrashDialog'
@@ -180,6 +184,7 @@ export function AppLayout() {
   }
 
   return (
+    <DndRoot>
     <div
       className="app-shell"
       data-layout-tier={layoutTier}
@@ -229,11 +234,14 @@ export function AppLayout() {
         onOpenChange={(open) => dispatch(setMoveDocumentPickerOpen(open))}
       />
       <InputDialogHost />
+      <CommentDialogHost />
       <LoremIpsumDialogHost />
       <MathExpressionDialogHost />
       <InvoiceDialogHost />
       <StorageAccessDialogHost />
       <SaveCustomTemplateDialogHost />
+      <CompileDialog />
+      <SyncConflictsDialog />
       <TrashDialog />
       <LibraryFindReplaceDialog />
       <SetupWizard
@@ -245,5 +253,6 @@ export function AppLayout() {
       <WhatsNewDialog open={whatsNewOpen} onClose={() => setWhatsNewOpen(false)} />
       <ToastHost />
     </div>
+    </DndRoot>
   )
 }

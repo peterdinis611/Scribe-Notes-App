@@ -42,7 +42,21 @@ class OrganizeTests(unittest.TestCase):
             tags=["work", "client"],
             current_folder_id=None,
         )
+        self.assertFalse(result["createNew"])
+        self.assertEqual(result["bestFolderId"], "b")
         self.assertEqual(result["bestFolderName"], "Work")
+        self.assertGreaterEqual(result["count"], 1)
+        self.assertEqual(result["suggestions"][0]["folderId"], "b")
+
+    def test_proposes_new_folder_when_none_exist(self) -> None:
+        result = suggest_organize(
+            "Travel itinerary for Japan next month",
+            [],
+            tags=["travel"],
+        )
+        self.assertTrue(result["createNew"])
+        self.assertIsNone(result["bestFolderId"])
+        self.assertIsNotNone(result["bestFolderName"])
 
 
 class CalendarBatchTests(unittest.TestCase):
