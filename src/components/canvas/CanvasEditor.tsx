@@ -4,7 +4,6 @@ import {
   Background,
   BackgroundVariant,
   MiniMap,
-  Panel,
   ReactFlow,
   ReactFlowProvider,
   addEdge,
@@ -20,7 +19,6 @@ import {
   type NodeChange,
   type NodeTypes,
 } from '@xyflow/react'
-import { openUrl } from '@tauri-apps/plugin-opener'
 import { Link2, Minus, Plus, Square, Trash2, ZoomIn, ZoomOut, Download } from 'lucide-react'
 import '@xyflow/react/dist/style.css'
 import { CanvasNoteActions, CanvasNoteNode } from '@/components/canvas/CanvasNoteNode'
@@ -409,16 +407,6 @@ function CanvasFlow() {
               maskColor="color-mix(in srgb, var(--color-canvas) 72%, transparent)"
               nodeColor="var(--color-accent)"
             />
-            <Panel position="bottom-left" className="canvas-flow-credit">
-              <button
-                type="button"
-                onClick={() => {
-                  void openUrl('https://reactflow.dev/').catch(() => undefined)
-                }}
-              >
-                React Flow
-              </button>
-            </Panel>
           </ReactFlow>
 
           {nodes.length === 0 && (
