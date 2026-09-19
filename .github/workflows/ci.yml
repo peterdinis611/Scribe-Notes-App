@@ -20,28 +20,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Version sync
-        run: npm run version:check
+        run: bun run version:check
         env:
           GITHUB_REF_TYPE: ${{ github.ref_type }}
           GITHUB_REF_NAME: ${{ github.ref_name }}
 
       - name: Lint
-        run: npm run lint
+        run: bun run lint
 
       - name: Unit tests
-        run: npm test
+        run: bun run test
 
       - name: Typecheck + Vite build
-        run: npm run build
+        run: bun run build
 
   nlp:
     name: NLP (Python)
@@ -54,9 +57,7 @@ jobs:
           python-version: '3.12'
 
       - name: Unit tests
-        run: npm run nlp:test
-        env:
-          PYTHONPATH: nlp
+        run: PYTHONPATH=nlp python3 -m unittest discover -s nlp/tests -p 'test_*.py'
 
   rust:
     name: Rust (${{ matrix.os }})
@@ -69,17 +70,17 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Linux WebKit / GTK deps
-        if: matrix.os == 'ubuntu-22.04'
+        if: startsWith(matrix.os, 'ubuntu')
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             libwebkit2gtk-4.1-dev \
-            libappindicator3-dev \
             librsvg2-dev \
             patchelf \
-            xdg-utils \
+            libayatana-appindicator3-dev \
             libgtk-3-dev \
-            libayatana-appindicator3-dev
+            libssl-dev \
+            build-essential
 
       - uses: dtolnay/rust-toolchain@stable
 
