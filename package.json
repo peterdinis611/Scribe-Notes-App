@@ -18,7 +18,7 @@
     "preview": "vite preview",
     "postinstall": "node --experimental-strip-types scripts/ensure-prosemirror-singleton.ts",
     "pm:check": "node --experimental-strip-types scripts/ensure-prosemirror-singleton.ts --check",
-    "version:check": "node --experimental-strip-types scripts/check-version-sync.ts",
+    "version:check": "bun scripts/check-version-sync.ts",
     "tauri": "tauri",
     "tauri:dev": "node --experimental-strip-types scripts/tauri-dev-with-mcp.ts",
     "tauri:dev:debug": "SCRIBE_DEBUG=1 node --experimental-strip-types scripts/tauri-dev-with-mcp.ts --debug",
