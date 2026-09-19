@@ -157,7 +157,12 @@ Prehľad argumentov a príkladov: **[tools.md](tools.md)**.
 | `get_nlp_artifact` | Cached AI artifact podľa id |
 | `list_libraries` / `switch_library` / `create_library` | Knižnice (prepnutie/vytvorenie je zápis) |
 | `extract_entities` / `extract_mentions` / `extract_dates` | Entity, zmienky, dátumy z `id` alebo `text` |
-| `list_manuscripts` / `upsert_manuscript` | Zostavenia kapitol |
+| `list_manuscripts` / `upsert_manuscript` / `compile_manuscript` | Zostavenia kapitol + markdown export |
+| `list_smart_folders` / `evaluate_smart_folder` | Uložené filtre |
+| `list_sync_conflicts` / `resolve_sync_conflict` | Konflikty disk/app |
+| `chunk_text` / `extract_outline` / `extract_asset_ocr` | Chunky, NLP osnova, OCR obrázka |
+| `library_find_replace` | Hľadanie/nahradenie (predvolene dry-run) |
+| `document_answer_and_save` | Otázka nad poznámkou + uloženie turnov |
 | `list_document_chat` / `append_document_chat` / `clear_document_chat` | Uložený chat pri poznámke |
 | `trash_document` / `empty_trash` / `rename_document` / `replace_document_content` | Úpravy poznámok |
 | `restore_document_revision` | Obnova snapshotu |

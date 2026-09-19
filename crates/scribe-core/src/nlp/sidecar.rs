@@ -703,5 +703,27 @@ mod tests {
             .expect("rewrite_selection");
         assert!(!rewritten.output.trim().is_empty());
         assert_eq!(rewritten.mode, "rephrase_professional");
+
+        let dates = sidecar
+            .extract_dates("Meet tomorrow in Bratislava, then Friday.")
+            .expect("extract_dates");
+        assert!(dates.get("events").and_then(Value::as_array).is_some());
+
+        let spell = sidecar
+            .spellcheck("This sentense has a typo.", Some("en"), 8)
+            .expect("spellcheck");
+        assert!(spell.get("issues").and_then(Value::as_array).is_some());
+
+        let query = sidecar
+            .rewrite_query("notes about friday meeting", 4)
+            .expect("rewrite_query");
+        assert!(
+            query
+                .get("query")
+                .or_else(|| query.get("rewritten"))
+                .or_else(|| query.get("expanded"))
+                .is_some()
+                || query.get("expansions").is_some()
+        );
     }
 }

@@ -5,7 +5,8 @@ use super::types::{
     NlpEntities, NlpEntity, NlpExtractedTask, NlpKeyword, NlpKeywordsResult, NlpLanguage,
     NlpMentionEdge, NlpMentionLink, NlpMentions, NlpOrganize, NlpOrganizeSuggestion, NlpOutline,
     NlpOutlineItem, NlpQueryRewrite, NlpReadingStats, NlpRewriteResult, NlpSentiment,
-    NlpSpellIssue, NlpSpellcheck, NlpSummary, NlpTasks, NlpTitleSuggestion, NlpWikiSuggestion,
+    NlpChunks, NlpDuplicatePair, NlpDuplicates, NlpLibraryReport, NlpSpellIssue, NlpSpellcheck,
+    NlpSummary, NlpTasks, NlpTemplateHints, NlpTitleSuggestion, NlpWikiSuggestion,
     NlpWikiSuggestions,
 };
 
@@ -581,6 +582,79 @@ pub fn parse_organize(result: &Value) -> NlpOrganize {
     }
 }
 
+pub fn parse_duplicates(result: &Value) -> NlpDuplicates {
+    let pairs: Vec<NlpDuplicatePair> = result
+        .get("pairs")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| {
+                    Some(NlpDuplicatePair {
+                        left_id: as_str(item.get("leftId")?)?.to_string(),
+                        left_title: item
+                            .get("leftTitle")
+                            .and_then(Value::as_str)
+                            .unwrap_or("")
+                            .to_string(),
+                        right_id: as_str(item.get("rightId")?)?.to_string(),
+                        right_title: item
+                            .get("rightTitle")
+                            .and_then(Value::as_str)
+                            .unwrap_or("")
+                            .to_string(),
+                        score: item.get("score").and_then(Value::as_f64).unwrap_or(0.0),
+                        jaccard: item.get("jaccard").and_then(Value::as_f64).unwrap_or(0.0),
+                        embed_score: item.get("embedScore").and_then(Value::as_f64).unwrap_or(0.0),
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    NlpDuplicates {
+        compared: result
+            .get("compared")
+            .and_then(Value::as_i64)
+            .unwrap_or(0),
+        pairs,
+    }
+}
+
+pub fn parse_template_hints(result: &Value) -> NlpTemplateHints {
+    NlpTemplateHints {
+        expected: string_list(result.get("expected")),
+        present: string_list(result.get("present")),
+        missing: string_list(result.get("missing")),
+        coverage: result.get("coverage").and_then(Value::as_f64).unwrap_or(0.0),
+        complete: result
+            .get("complete")
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
+    }
+}
+
+pub fn parse_library_report(result: &Value) -> NlpLibraryReport {
+    NlpLibraryReport {
+        markdown: result
+            .get("markdown")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string(),
+        stats: result.get("stats").cloned().unwrap_or(Value::Object(Default::default())),
+    }
+}
+
+pub fn parse_chunks(result: &Value) -> NlpChunks {
+    let chunks = string_list(result.get("chunks"));
+    NlpChunks {
+        count: result
+            .get("count")
+            .and_then(Value::as_i64)
+            .unwrap_or(chunks.len() as i64),
+        chunks,
+    }
+}
+
 pub fn parse_spellcheck(result: &Value) -> NlpSpellcheck {
     let issues = result
         .get("issues")
@@ -809,5 +883,47 @@ mod tests {
             "createNew": false
         }));
         assert_eq!(organize.best_folder_id.as_deref(), Some("f1"));
+    }
+
+    #[test]
+    fn parse_duplicates_template_report_chunks() {
+        let dups = parse_duplicates(&json!({
+            "pairs": [{
+                "leftId": "a",
+                "leftTitle": "Alpha",
+                "rightId": "b",
+                "rightTitle": "Beta",
+                "score": 0.9,
+                "jaccard": 0.8,
+                "embedScore": 0.85
+            }],
+            "compared": 4
+        }));
+        assert_eq!(dups.compared, 4);
+        assert_eq!(dups.pairs[0].left_id, "a");
+
+        let hints = parse_template_hints(&json!({
+            "expected": ["Intro", "Outro"],
+            "present": ["Intro"],
+            "missing": ["Outro"],
+            "coverage": 0.5,
+            "complete": false
+        }));
+        assert_eq!(hints.missing, vec!["Outro"]);
+        assert!(!hints.complete);
+
+        let report = parse_library_report(&json!({
+            "markdown": "# Report",
+            "stats": {"documents": 3}
+        }));
+        assert_eq!(report.markdown, "# Report");
+        assert_eq!(report.stats["documents"], 3);
+
+        let chunks = parse_chunks(&json!({
+            "chunks": ["one", "two"],
+            "count": 2
+        }));
+        assert_eq!(chunks.chunks.len(), 2);
+        assert_eq!(chunks.count, 2);
     }
 }

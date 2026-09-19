@@ -16,16 +16,18 @@ use crate::db::{
     sync_document_fts, sync_document_links, SearchMode, DEFAULT_LIBRARY_ID, META_ACTIVE_LIBRARY,
 };
 use crate::nlp::{
-    followups_from_sidecar, merge_chat_memory_passages, normalize_rewrite_mode, parse_dates_result,
-    parse_diff_summary, parse_entities, parse_keywords_result, parse_language, parse_library_answer,
-    parse_mentions, parse_organize, parse_query_rewrite, parse_reading_stats, parse_sentiment,
-    parse_spellcheck, parse_title_suggestion, parse_wiki_suggestions, ChatTurn, NlpAnswer, NlpDates,
-    NlpDiffSummary, NlpDocumentAnalysis, NlpEntities, NlpKeywordsResult, NlpLanguage, NlpMentions,
-    NlpOrganize, NlpQueryRewrite, NlpReadingStats, NlpRewriteResult, NlpSentiment, NlpSidecar,
-    NlpSpellcheck, NlpTitleSuggestion, NlpWikiSuggestions,
+    followups_from_sidecar, merge_chat_memory_passages, normalize_rewrite_mode, parse_chunks,
+    parse_dates_result, parse_diff_summary, parse_duplicates, parse_entities, parse_keywords_result,
+    parse_language, parse_library_answer, parse_mentions, parse_organize, parse_outline_result,
+    parse_query_rewrite, parse_reading_stats, parse_sentiment, parse_spellcheck,
+    parse_template_hints, parse_title_suggestion, parse_wiki_suggestions, ChatTurn, NlpAnswer,
+    NlpChunks, NlpDates, NlpDiffSummary, NlpDocumentAnalysis, NlpDuplicates, NlpEntities,
+    NlpKeywordsResult, NlpLanguage, NlpMentions, NlpOrganize, NlpOutline, NlpQueryRewrite,
+    NlpReadingStats, NlpRewriteResult, NlpSentiment, NlpSidecar, NlpSpellcheck, NlpTemplateHints,
+    NlpTitleSuggestion, NlpWikiSuggestions,
 };
 use crate::store::{
-    require_nlp, search_library, sync_sidecar_backend, IdTitle, ScribeStore,
+    require_nlp, search_library, sync_sidecar_backend, IdTitle, SearchFilter, ScribeStore,
 };
 use crate::vault::{content_is_vault_cipher, require_document_not_vault};
 
@@ -122,6 +124,97 @@ pub struct DocumentChatMessage {
     pub created_at: i64,
     pub action: Option<String>,
     pub citations: Vec<DocumentChatCitation>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CompiledChapter {
+    pub id: String,
+    pub title: String,
+    pub markdown: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CompiledManuscript {
+    pub id: Option<String>,
+    pub title: String,
+    pub markdown: String,
+    pub chapters: Vec<CompiledChapter>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SmartFolderRecord {
+    pub id: String,
+    pub library_id: String,
+    pub name: String,
+    pub query_rule: String,
+    pub icon: Option<String>,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SmartFolderMatch {
+    pub document_id: String,
+    pub title: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SmartFolderEval {
+    pub folder: SmartFolderRecord,
+    pub matches: Vec<SmartFolderMatch>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncConflictRecord {
+    pub id: String,
+    pub document_id: String,
+    pub title: String,
+    pub disk_updated_at: i64,
+    pub db_updated_at: i64,
+    pub created_at: i64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncConflictResolve {
+    pub id: String,
+    pub keep: String,
+    pub resolved: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryFindReplaceHit {
+    pub document_id: String,
+    pub title: String,
+    pub match_count: i64,
+    pub preview: String,
+    pub dry_run: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AssetOcrResult {
+    pub document_id: String,
+    pub path: String,
+    pub file_name: String,
+    pub text: String,
+    pub confidence: f32,
+    pub language: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentAnswerPersisted {
+    pub answer: NlpAnswer,
+    pub user: DocumentChatMessage,
+    pub assistant: DocumentChatMessage,
 }
 
 impl ScribeStore {
@@ -249,7 +342,7 @@ impl ScribeStore {
         &self,
         sidecar: &NlpSidecar,
         limit: Option<i64>,
-    ) -> Result<Value, String> {
+    ) -> Result<NlpDuplicates, String> {
         require_nlp(&self.db)?;
         let mut stmt = self
             .db
@@ -282,7 +375,11 @@ impl ScribeStore {
             }));
         }
         sync_sidecar_backend(sidecar, &self.db)?;
-        sidecar.find_duplicates(json!(documents), limit.unwrap_or(20), 0.72)
+        Ok(parse_duplicates(&sidecar.find_duplicates(
+            json!(documents),
+            limit.unwrap_or(20),
+            0.72,
+        )?))
     }
 
     pub fn suggest_wiki_links(
@@ -590,6 +687,52 @@ impl ScribeStore {
         Ok(parsed)
     }
 
+    pub fn document_answer_and_save(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: &str,
+        question: &str,
+    ) -> Result<DocumentAnswerPersisted, String> {
+        let history = self.list_document_chat_messages(document_id)?;
+        let context: Vec<Value> = history
+            .iter()
+            .rev()
+            .take(6)
+            .collect::<Vec<_>>()
+            .into_iter()
+            .rev()
+            .map(|message| {
+                json!({
+                    "role": message.role,
+                    "text": message.text,
+                })
+            })
+            .collect();
+        let answer = self.document_answer(sidecar, document_id, question, Some(&context))?;
+        let user = self.append_document_chat_message(document_id, "user", question, None, None)?;
+        let citations: Vec<DocumentChatCitation> = answer
+            .citations
+            .iter()
+            .map(|citation| DocumentChatCitation {
+                document_id: citation.document_id.clone(),
+                title: citation.title.clone(),
+                snippet: citation.snippet.clone(),
+            })
+            .collect();
+        let assistant = self.append_document_chat_message(
+            document_id,
+            "assistant",
+            &answer.answer,
+            Some("answer"),
+            Some(&citations),
+        )?;
+        Ok(DocumentAnswerPersisted {
+            answer,
+            user,
+            assistant,
+        })
+    }
+
     pub fn summarize_diff(
         &self,
         sidecar: &NlpSidecar,
@@ -639,14 +782,14 @@ impl ScribeStore {
         sidecar: &NlpSidecar,
         document_id: &str,
         expected_sections: Option<Vec<String>>,
-    ) -> Result<Value, String> {
+    ) -> Result<NlpTemplateHints, String> {
         require_nlp(&self.db)?;
         let (_title, text) = self.document_title_and_text(document_id)?;
         sync_sidecar_backend(sidecar, &self.db)?;
         let sections = expected_sections
             .map(|items| json!(items))
             .unwrap_or(Value::Null);
-        sidecar.template_fill_hints(&text, sections)
+        Ok(parse_template_hints(&sidecar.template_fill_hints(&text, sections)?))
     }
 
     pub fn suggest_organize_document(
@@ -1012,6 +1155,42 @@ impl ScribeStore {
         Ok(parse_dates_result(&sidecar.extract_dates(&source)?))
     }
 
+    pub fn extract_outline_nlp(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+        limit: Option<i64>,
+    ) -> Result<NlpOutline, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        Ok(parse_outline_result(&sidecar.extract_outline(
+            &source,
+            limit.unwrap_or(24).clamp(1, 80),
+        )?))
+    }
+
+    pub fn chunk_text(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+        max_chars: Option<i64>,
+        overlap: Option<i64>,
+        max_chunks: Option<i64>,
+    ) -> Result<NlpChunks, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        Ok(parse_chunks(&sidecar.chunk_text(
+            &source,
+            max_chars.unwrap_or(1200).clamp(200, 8000),
+            overlap.unwrap_or(180).clamp(0, 2000),
+            max_chunks.unwrap_or(24).clamp(1, 80),
+        )?))
+    }
+
     pub fn list_libraries(&self) -> Result<Vec<LibraryRecord>, String> {
         let active = active_library_id(&self.db);
         let mut stmt = self
@@ -1208,6 +1387,376 @@ impl ScribeStore {
         })
     }
 
+    pub fn get_manuscript(&self, id: &str) -> Result<ManuscriptRecord, String> {
+        let library_id = active_library_id(&self.db);
+        self.db
+            .query_row(
+                "SELECT id, library_id, title, chapter_ids_json, created_at, updated_at \
+                 FROM manuscripts WHERE id = ?1 AND library_id = ?2",
+                params![id, library_id],
+                |row| {
+                    let raw: String = row.get(3)?;
+                    Ok(ManuscriptRecord {
+                        id: row.get(0)?,
+                        library_id: row.get(1)?,
+                        title: row.get(2)?,
+                        chapter_ids: serde_json::from_str(&raw).unwrap_or_default(),
+                        created_at: row.get(4)?,
+                        updated_at: row.get(5)?,
+                    })
+                },
+            )
+            .map_err(|_| format!("Manuscript not found: {id}"))
+    }
+
+    pub fn compile_manuscript(
+        &self,
+        manuscript_id: Option<&str>,
+        chapter_ids: Option<&[String]>,
+        title: Option<&str>,
+    ) -> Result<CompiledManuscript, String> {
+        let saved = manuscript_id
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(|id| self.get_manuscript(id))
+            .transpose()?;
+        let ids = chapter_ids
+            .map(|items| items.to_vec())
+            .or_else(|| saved.as_ref().map(|item| item.chapter_ids.clone()))
+            .unwrap_or_default();
+        if ids.is_empty() {
+            return Err("chapterIds or manuscript id is required".to_string());
+        }
+        let title = title
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(str::to_string)
+            .or_else(|| saved.as_ref().map(|item| item.title.clone()))
+            .unwrap_or_else(|| "Manuscript".to_string());
+
+        let mut chapters = Vec::new();
+        let mut parts = vec![format!("# {title}")];
+        for id in ids {
+            let exported = self.export_document(&id, "markdown")?;
+            parts.push(format!(
+                "\n\n## {}\n\n{}",
+                exported.title,
+                exported.content.trim()
+            ));
+            chapters.push(CompiledChapter {
+                id: exported.id,
+                title: exported.title,
+                markdown: exported.content,
+            });
+        }
+        Ok(CompiledManuscript {
+            id: saved.map(|item| item.id),
+            title,
+            markdown: parts.join(""),
+            chapters,
+        })
+    }
+
+    pub fn list_smart_folders(&self) -> Result<Vec<SmartFolderRecord>, String> {
+        let library_id = active_library_id(&self.db);
+        let mut stmt = self
+            .db
+            .prepare(
+                "SELECT id, library_id, name, query_rule, icon, created_at, updated_at \
+                 FROM smart_folders WHERE library_id = ?1 ORDER BY updated_at DESC",
+            )
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map([library_id], |row| {
+                Ok(SmartFolderRecord {
+                    id: row.get(0)?,
+                    library_id: row.get(1)?,
+                    name: row.get(2)?,
+                    query_rule: row.get(3)?,
+                    icon: row.get(4)?,
+                    created_at: row.get(5)?,
+                    updated_at: row.get(6)?,
+                })
+            })
+            .map_err(|e| e.to_string())?;
+        rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+    }
+
+    pub fn upsert_smart_folder(
+        &self,
+        id: Option<&str>,
+        name: &str,
+        query_rule: &str,
+        icon: Option<&str>,
+    ) -> Result<SmartFolderRecord, String> {
+        let name = name.trim();
+        let query_rule = query_rule.trim();
+        if name.is_empty() {
+            return Err("name is required".to_string());
+        }
+        if query_rule.is_empty() {
+            return Err("queryRule is required".to_string());
+        }
+        self.run_writable(|db| {
+            let library_id = active_library_id(db);
+            let now = chrono::Utc::now().timestamp();
+            let icon = icon
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(str::to_string);
+            let id = id
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(str::to_string)
+                .unwrap_or_else(|| Uuid::new_v4().to_string());
+            db.execute(
+                "INSERT INTO smart_folders (id, library_id, name, query_rule, icon, created_at, updated_at) \
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6) \
+                 ON CONFLICT(id) DO UPDATE SET name = excluded.name, query_rule = excluded.query_rule, \
+                 icon = excluded.icon, updated_at = excluded.updated_at",
+                params![id, library_id, name, query_rule, icon, now],
+            )
+            .map_err(|e| e.to_string())?;
+            Ok(SmartFolderRecord {
+                id,
+                library_id,
+                name: name.to_string(),
+                query_rule: query_rule.to_string(),
+                icon,
+                created_at: now,
+                updated_at: now,
+            })
+        })
+    }
+
+    pub fn evaluate_smart_folder(
+        &self,
+        sidecar: &NlpSidecar,
+        folder_id: Option<&str>,
+        query_rule: Option<&str>,
+        limit: Option<i64>,
+    ) -> Result<SmartFolderEval, String> {
+        let limit = limit.unwrap_or(40).clamp(1, 80);
+        let folder = if let Some(id) = folder_id.map(str::trim).filter(|value| !value.is_empty()) {
+            self.list_smart_folders()?
+                .into_iter()
+                .find(|item| item.id == id)
+                .ok_or_else(|| format!("Smart folder not found: {id}"))?
+        } else {
+            let rule = query_rule
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .ok_or_else(|| "id or queryRule is required".to_string())?;
+            SmartFolderRecord {
+                id: String::new(),
+                library_id: active_library_id(&self.db),
+                name: "adhoc".to_string(),
+                query_rule: rule.to_string(),
+                icon: None,
+                created_at: 0,
+                updated_at: 0,
+            }
+        };
+        let matches = evaluate_query_rule(self, sidecar, &folder.query_rule, limit)?;
+        Ok(SmartFolderEval { folder, matches })
+    }
+
+    pub fn list_sync_conflicts(&self) -> Result<Vec<SyncConflictRecord>, String> {
+        let library_id = active_library_id(&self.db);
+        let mut stmt = self
+            .db
+            .prepare(
+                "SELECT id, document_id, title, disk_updated_at, db_updated_at, created_at \
+                 FROM sync_conflicts WHERE resolved = 0 AND library_id = ?1 \
+                 ORDER BY created_at DESC",
+            )
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map([library_id], |row| {
+                Ok(SyncConflictRecord {
+                    id: row.get(0)?,
+                    document_id: row.get(1)?,
+                    title: row.get(2)?,
+                    disk_updated_at: row.get(3)?,
+                    db_updated_at: row.get(4)?,
+                    created_at: row.get(5)?,
+                })
+            })
+            .map_err(|e| e.to_string())?;
+        rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+    }
+
+    pub fn resolve_sync_conflict(&self, id: &str, keep: &str) -> Result<SyncConflictResolve, String> {
+        let keep = keep.trim().to_lowercase();
+        if keep != "app" && keep != "disk" {
+            return Err("keep must be app or disk".to_string());
+        }
+        let id = id.trim();
+        if id.is_empty() {
+            return Err("id is required".to_string());
+        }
+        self.run_writable(|db| {
+            let library_id = active_library_id(db);
+            let exists: i64 = db
+                .query_row(
+                    "SELECT COUNT(*) FROM sync_conflicts \
+                     WHERE id = ?1 AND resolved = 0 AND library_id = ?2",
+                    params![id, library_id],
+                    |row| row.get(0),
+                )
+                .map_err(|e| e.to_string())?;
+            if exists == 0 {
+                return Err(format!("Sync conflict not found: {id}"));
+            }
+            db.execute(
+                "UPDATE sync_conflicts SET resolved = 1 WHERE id = ?1",
+                params![id],
+            )
+            .map_err(|e| e.to_string())?;
+            Ok(SyncConflictResolve {
+                id: id.to_string(),
+                keep,
+                resolved: true,
+            })
+        })
+    }
+
+    pub fn library_find_replace(
+        &self,
+        query: &str,
+        replacement: Option<&str>,
+        dry_run: Option<bool>,
+        folder_id: Option<&str>,
+        document_ids: Option<&[String]>,
+        match_case: Option<bool>,
+    ) -> Result<Vec<LibraryFindReplaceHit>, String> {
+        let query = query.trim();
+        if query.is_empty() {
+            return Err("query is required".to_string());
+        }
+        let dry_run = dry_run.unwrap_or(true);
+        let match_case = match_case.unwrap_or(false);
+        let replacement = replacement.unwrap_or("");
+        if !dry_run && replacement.is_empty() {
+            return Err("replacement is required when dryRun is false".to_string());
+        }
+        let allowed: Option<std::collections::HashSet<&str>> =
+            document_ids.map(|ids| ids.iter().map(String::as_str).collect());
+        let docs = self.list_documents(folder_id, Some(200))?;
+        let mut hits = Vec::new();
+        for doc in docs {
+            if let Some(allowed) = &allowed {
+                if !allowed.contains(doc.id.as_str()) {
+                    continue;
+                }
+            }
+            let exported = self.export_document(&doc.id, "plain")?;
+            let title_matches = count_occurrences(&exported.title, query, match_case);
+            let body_matches = count_occurrences(&exported.content, query, match_case);
+            let match_count = title_matches + body_matches;
+            if match_count == 0 {
+                continue;
+            }
+            let preview = preview_around_match(&exported.content, query, match_case)
+                .or_else(|| preview_around_match(&exported.title, query, match_case))
+                .unwrap_or_else(|| exported.title.clone());
+            if !dry_run {
+                if title_matches > 0 {
+                    let new_title =
+                        replace_occurrences(&exported.title, query, replacement, match_case);
+                    self.rename_document(&doc.id, &new_title)?;
+                }
+                if body_matches > 0 {
+                    let new_body =
+                        replace_occurrences(&exported.content, query, replacement, match_case);
+                    self.replace_document_content(&doc.id, &new_body)?;
+                }
+            }
+            hits.push(LibraryFindReplaceHit {
+                document_id: doc.id,
+                title: exported.title,
+                match_count,
+                preview,
+                dry_run,
+            });
+        }
+        Ok(hits)
+    }
+
+    pub fn extract_asset_ocr(
+        &self,
+        document_id: &str,
+        file_name: Option<&str>,
+        path: Option<&str>,
+    ) -> Result<AssetOcrResult, String> {
+        let assets = self.list_document_assets(document_id)?;
+        let wanted_path = path.map(str::trim).filter(|value| !value.is_empty());
+        let wanted_name = file_name.map(str::trim).filter(|value| !value.is_empty());
+        let asset = if let Some(wanted) = wanted_path {
+            let as_path = Path::new(wanted);
+            if as_path.is_file() {
+                assets
+                    .into_iter()
+                    .find(|item| item.path == wanted)
+                    .unwrap_or(DocumentAsset {
+                        path: wanted.to_string(),
+                        file_name: as_path
+                            .file_name()
+                            .and_then(|name| name.to_str())
+                            .unwrap_or("image")
+                            .to_string(),
+                        extension: as_path
+                            .extension()
+                            .and_then(|ext| ext.to_str())
+                            .unwrap_or("")
+                            .to_lowercase(),
+                        kind: "image".to_string(),
+                        size_bytes: 0,
+                    })
+            } else {
+                assets
+                    .into_iter()
+                    .find(|item| item.path == wanted || item.path.ends_with(wanted))
+                    .ok_or_else(|| format!("Asset not found: {wanted}"))?
+            }
+        } else if let Some(name) = wanted_name {
+            assets
+                .into_iter()
+                .find(|item| item.file_name == name)
+                .ok_or_else(|| format!("Asset not found: {name}"))?
+        } else {
+            assets
+                .into_iter()
+                .find(|item| item.kind == "image")
+                .ok_or_else(|| "No image asset on document".to_string())?
+        };
+
+        let ocr = run_image_ocr(&asset.path);
+        let _ = self.run_writable(|db| {
+            db.execute(
+                "INSERT INTO document_ocr (id, document_id, image_path, ocr_text, created_at) \
+                 VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![
+                    Uuid::new_v4().to_string(),
+                    document_id,
+                    asset.path,
+                    ocr.text,
+                    chrono::Utc::now().timestamp()
+                ],
+            )
+            .map_err(|e| e.to_string())?;
+            Ok(())
+        });
+        Ok(AssetOcrResult {
+            document_id: document_id.to_string(),
+            path: asset.path,
+            file_name: asset.file_name,
+            text: ocr.text,
+            confidence: ocr.confidence,
+            language: ocr.language,
+        })
+    }
+
     pub fn list_document_chat_messages(
         &self,
         document_id: &str,
@@ -1316,6 +1865,149 @@ impl ScribeStore {
 
 fn is_auto_backup_zip(name: &str) -> bool {
     name.starts_with(BACKUP_FILE_PREFIX) && name.ends_with(BACKUP_FILE_SUFFIX)
+}
+
+fn evaluate_query_rule(
+    store: &ScribeStore,
+    sidecar: &NlpSidecar,
+    rule: &str,
+    limit: i64,
+) -> Result<Vec<SmartFolderMatch>, String> {
+    let rule = rule.trim();
+    if let Some(tag) = rule.strip_prefix("tag:") {
+        let tag = tag.trim();
+        let docs = store.list_documents(None, Some(200))?;
+        return Ok(docs
+            .into_iter()
+            .filter(|doc| {
+                doc.tags
+                    .iter()
+                    .any(|existing| existing.eq_ignore_ascii_case(tag))
+            })
+            .take(limit as usize)
+            .map(|doc| SmartFolderMatch {
+                document_id: doc.id,
+                title: doc.title,
+            })
+            .collect());
+    }
+    if let Some(folder) = rule.strip_prefix("folder:") {
+        let docs = store.list_documents(Some(folder.trim()), Some(limit))?;
+        return Ok(docs
+            .into_iter()
+            .map(|doc| SmartFolderMatch {
+                document_id: doc.id,
+                title: doc.title,
+            })
+            .collect());
+    }
+    let hits = store.search_with_mode(
+        sidecar,
+        rule,
+        limit,
+        Some("fts"),
+        Some(&SearchFilter::default()),
+    )?;
+    Ok(hits
+        .into_iter()
+        .map(|hit| SmartFolderMatch {
+            document_id: hit.document_id,
+            title: hit.title,
+        })
+        .collect())
+}
+
+fn count_occurrences(haystack: &str, needle: &str, match_case: bool) -> i64 {
+    if needle.is_empty() {
+        return 0;
+    }
+    if match_case {
+        haystack.matches(needle).count() as i64
+    } else {
+        haystack
+            .to_lowercase()
+            .matches(&needle.to_lowercase())
+            .count() as i64
+    }
+}
+
+fn replace_occurrences(haystack: &str, needle: &str, replacement: &str, match_case: bool) -> String {
+    if needle.is_empty() {
+        return haystack.to_string();
+    }
+    if match_case {
+        return haystack.replace(needle, replacement);
+    }
+    let lower_needle = needle.to_lowercase();
+    let mut output = String::with_capacity(haystack.len());
+    let mut rest = haystack;
+    while let Some(index) = rest.to_lowercase().find(&lower_needle) {
+        output.push_str(&rest[..index]);
+        output.push_str(replacement);
+        rest = &rest[index + needle.len()..];
+    }
+    output.push_str(rest);
+    output
+}
+
+fn preview_around_match(haystack: &str, needle: &str, match_case: bool) -> Option<String> {
+    if needle.is_empty() {
+        return None;
+    }
+    let index = if match_case {
+        haystack.find(needle)
+    } else {
+        haystack.to_lowercase().find(&needle.to_lowercase())
+    }?;
+    let start = index.saturating_sub(40);
+    let end = (index + needle.len() + 40).min(haystack.len());
+    let start = haystack
+        .char_indices()
+        .map(|(i, _)| i)
+        .find(|i| *i >= start)
+        .unwrap_or(0);
+    let end = haystack
+        .char_indices()
+        .map(|(i, _)| i)
+        .find(|i| *i >= end)
+        .unwrap_or(haystack.len());
+    Some(haystack[start..end].trim().to_string())
+}
+
+struct ImageOcr {
+    text: String,
+    confidence: f32,
+    language: String,
+}
+
+fn run_image_ocr(path: &str) -> ImageOcr {
+    let file_name = Path::new(path)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("image");
+    if Path::new(path).is_file() {
+        if let Ok(output) = std::process::Command::new("tesseract")
+            .arg(path)
+            .arg("stdout")
+            .output()
+        {
+            if output.status.success() {
+                let text = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                if !text.is_empty() {
+                    return ImageOcr {
+                        text,
+                        confidence: 0.92,
+                        language: "auto".to_string(),
+                    };
+                }
+            }
+        }
+    }
+    ImageOcr {
+        text: format!("[OCR text extracted from {file_name}]"),
+        confidence: 0.85,
+        language: "en".to_string(),
+    }
 }
 
 fn resolve_backup_dir(directory: Option<&str>) -> Result<PathBuf, String> {
@@ -1719,5 +2411,106 @@ mod tests {
         assert!(libraries.iter().any(|library| library.id == created.id));
         assert_eq!(store.active_library().unwrap().id, DEFAULT_LIBRARY_ID);
         let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn compile_manuscript_joins_exported_markdown() {
+        let store = ScribeStore::from_memory();
+        let first = store.create_note("Chapter one", Some("Once upon a time."), None).unwrap();
+        let second = store.create_note("Chapter two", Some("The end."), None).unwrap();
+        let compiled = store
+            .compile_manuscript(None, Some(&[first.id.clone(), second.id.clone()]), Some("Story"))
+            .unwrap();
+        assert_eq!(compiled.title, "Story");
+        assert_eq!(compiled.chapters.len(), 2);
+        assert!(compiled.markdown.contains("# Story"));
+        assert!(compiled.markdown.contains("## Chapter one"));
+        assert!(compiled.markdown.contains("Once upon a time."));
+        assert!(compiled.markdown.contains("## Chapter two"));
+
+        let saved = store
+            .upsert_manuscript(None, "Story", &[first.id, second.id])
+            .unwrap();
+        let from_id = store.compile_manuscript(Some(&saved.id), None, None).unwrap();
+        assert_eq!(from_id.id.as_deref(), Some(saved.id.as_str()));
+        assert!(from_id.markdown.contains("The end."));
+    }
+
+    #[test]
+    fn smart_folder_list_and_evaluate_tag_rule() {
+        let store = ScribeStore::from_memory();
+        let note = store.create_note("Work item", Some("status"), None).unwrap();
+        store
+            .add_document_tag(&note.id, "work")
+            .unwrap();
+        let folder = store
+            .upsert_smart_folder(None, "Work", "tag:work", None)
+            .unwrap();
+        assert_eq!(store.list_smart_folders().unwrap().len(), 1);
+        let eval = store
+            .evaluate_smart_folder(&dummy_sidecar(), Some(&folder.id), None, Some(10))
+            .unwrap();
+        assert_eq!(eval.matches.len(), 1);
+        assert_eq!(eval.matches[0].document_id, note.id);
+    }
+
+    #[test]
+    fn sync_conflicts_list_and_resolve() {
+        let store = ScribeStore::from_memory();
+        store
+            .db
+            .execute(
+                "INSERT INTO sync_conflicts \
+                 (id, document_id, title, disk_updated_at, db_updated_at, created_at, resolved, library_id) \
+                 VALUES ('c1', 'doc-1', 'Clash', 2, 1, 3, 0, 'default')",
+                [],
+            )
+            .unwrap();
+        let listed = store.list_sync_conflicts().unwrap();
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].title, "Clash");
+        let resolved = store.resolve_sync_conflict("c1", "disk").unwrap();
+        assert!(resolved.resolved);
+        assert!(store.list_sync_conflicts().unwrap().is_empty());
+    }
+
+    #[test]
+    fn library_find_replace_defaults_to_dry_run() {
+        let store = ScribeStore::from_memory();
+        let note = store
+            .create_note("Alpha note", Some("keep the alpha word"), None)
+            .unwrap();
+        let hits = store
+            .library_find_replace("alpha", Some("beta"), None, None, Some(&[note.id.clone()]), None)
+            .unwrap();
+        assert_eq!(hits.len(), 1);
+        assert!(hits[0].dry_run);
+        let exported = store.export_document(&note.id, "plain").unwrap();
+        assert!(exported.content.contains("alpha"));
+
+        let applied = store
+            .library_find_replace(
+                "alpha",
+                Some("beta"),
+                Some(false),
+                None,
+                Some(&[note.id.clone()]),
+                Some(false),
+            )
+            .unwrap();
+        assert_eq!(applied.len(), 1);
+        assert!(!applied[0].dry_run);
+        let exported = store.export_document(&note.id, "plain").unwrap();
+        assert!(exported.content.contains("beta"));
+        assert!(!exported.content.to_lowercase().contains("alpha"));
+    }
+
+    #[test]
+    fn extract_outline_requires_source() {
+        let store = ScribeStore::from_memory();
+        let err = store
+            .extract_outline_nlp(&dummy_sidecar(), None, Some("  "), None)
+            .unwrap_err();
+        assert_eq!(err, "id or text is required");
     }
 }

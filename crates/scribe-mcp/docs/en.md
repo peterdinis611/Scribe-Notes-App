@@ -153,7 +153,12 @@ Full argument reference: **[tools.md](tools.md)**.
 | `get_nlp_artifact` | Cached AI artifact by id |
 | `list_libraries` / `switch_library` / `create_library` | Libraries (switch/create are writable) |
 | `extract_entities` / `extract_mentions` / `extract_dates` | Entities, mentions, dates from `id` or `text` |
-| `list_manuscripts` / `upsert_manuscript` | Chapter compilations |
+| `list_manuscripts` / `upsert_manuscript` / `compile_manuscript` | Chapter compilations + markdown export |
+| `list_smart_folders` / `evaluate_smart_folder` | Saved filters |
+| `list_sync_conflicts` / `resolve_sync_conflict` | Disk/app conflicts |
+| `chunk_text` / `extract_outline` / `extract_asset_ocr` | Chunks, NLP outline, image OCR |
+| `library_find_replace` | Scoped find/replace (dry-run default) |
+| `document_answer_and_save` | One-note Q&A + persist turns |
 | `list_document_chat` / `append_document_chat` / `clear_document_chat` | Persisted note chat |
 | `trash_document` / `empty_trash` / `rename_document` / `replace_document_content` | Edit lifecycle |
 | `restore_document_revision` | Restore a snapshot |

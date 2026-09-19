@@ -334,6 +334,62 @@ pub struct NlpOrganize {
     pub current_tags: Vec<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpDuplicatePair {
+    pub left_id: String,
+    pub left_title: String,
+    pub right_id: String,
+    pub right_title: String,
+    #[serde(default)]
+    pub score: f64,
+    #[serde(default)]
+    pub jaccard: f64,
+    #[serde(default)]
+    pub embed_score: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpDuplicates {
+    #[serde(default)]
+    pub pairs: Vec<NlpDuplicatePair>,
+    #[serde(default)]
+    pub compared: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpTemplateHints {
+    #[serde(default)]
+    pub expected: Vec<String>,
+    #[serde(default)]
+    pub present: Vec<String>,
+    #[serde(default)]
+    pub missing: Vec<String>,
+    #[serde(default)]
+    pub coverage: f64,
+    #[serde(default)]
+    pub complete: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpLibraryReport {
+    pub markdown: String,
+    #[serde(default)]
+    pub stats: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpChunks {
+    #[serde(default)]
+    pub chunks: Vec<String>,
+    #[serde(default)]
+    pub count: i64,
+}
+
 pub fn normalize_rewrite_mode(mode: Option<&str>) -> String {
     match mode
         .map(str::trim)

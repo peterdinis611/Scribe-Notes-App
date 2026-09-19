@@ -917,11 +917,50 @@ Pass either `id` (saved note) or `text` (ephemeral). Same sidecar methods as the
 
 ---
 
-## `list_manuscripts` / `upsert_manuscript`
+## `list_manuscripts` / `upsert_manuscript` / `compile_manuscript`
 
 Manuscripts are compiled chapter sets for the **active** library.
 
 `upsert_manuscript` — optional `id`, required `title`, optional `chapterIds` (document ids). Writable.
+
+`compile_manuscript` — join chapters into one markdown (`export_document` per id). Pass manuscript `id` and/or `chapterIds`, optional `title`.
+
+---
+
+## `list_smart_folders` / `upsert_smart_folder` / `evaluate_smart_folder`
+
+Saved filters in the active library (`queryRule`: `tag:work`, `folder:{id}`, or FTS text).
+
+`upsert_smart_folder` is writable. `evaluate_smart_folder` accepts saved `id` or ad-hoc `queryRule`.
+
+---
+
+## `list_sync_conflicts` / `resolve_sync_conflict`
+
+Open disk/app conflicts. `resolve_sync_conflict` — `id`, `keep` (`app` \| `disk`). Marks the row resolved; does not rewrite files. Writable.
+
+---
+
+## `chunk_text` / `extract_outline`
+
+Sidecar helpers. Pass `id` or `text`.
+
+| Tool | Notes |
+|------|--------|
+| `chunk_text` | Overlapping passages (`maxChars`, `overlap`, `maxChunks`) |
+| `extract_outline` | Numbered / ALL CAPS / heading-like sections. Complements `get_document_outline` (TipTap headings). |
+
+---
+
+## `extract_asset_ocr`
+
+OCR a note image via `list_document_assets` + tesseract. Args: `documentId`, optional `fileName` or `path`.
+
+---
+
+## `library_find_replace`
+
+Scoped library replace. **Defaults to `dryRun: true`.** To write: `dryRun: false`, `replacement`, and preferably `documentIds` or `folderId`.
 
 ---
 
@@ -934,8 +973,9 @@ Persisted per-note chat (same table as the app).
 | `list_document_chat` | `documentId` |
 | `append_document_chat` | `documentId`, `role` (`user` \| `assistant`), `text`, optional `action`, optional `citations` `{ documentId, title, snippet }` |
 | `clear_document_chat` | `documentId` |
+| `document_answer_and_save` | `id`, `question` — load history → answer → append both turns |
 
-`append` / `clear` require writable MCP.
+`append` / `clear` / `document_answer_and_save` require writable MCP.
 
 ---
 
@@ -948,4 +988,6 @@ Persisted per-note chat (same table as the app).
 | `open_tasks_triage` | list_open_tasks, then toggle_task |
 | `wiki_health` | hubs + unresolved wiki links |
 | `rewrite_selection_draft` | rewrite_selection preview (do not apply unless asked) |
-| `continue_document_chat` | list_document_chat → document_answer → optional append |
+| `continue_document_chat` | prefer `document_answer_and_save` |
+| `analyze_this_note` | `id` — analysis → keywords → organize |
+| `switch_and_search` | optional `library` / `query` — list → switch → search |

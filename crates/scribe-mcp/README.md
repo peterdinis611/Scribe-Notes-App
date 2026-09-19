@@ -78,6 +78,7 @@ Encrypted vault notes are stored as AES-GCM ciphertext in SQLite. The unlock pas
 | `list_graph_hubs` | Most connected notes by backlinks and outgoing wiki links |
 | `library_answer` | Answer a question from the local library (hybrid + Local AI) |
 | `document_answer` | Answer a question from one note (optional chat context) |
+| `document_answer_and_save` | Answer + persist user/assistant turns |
 | `document_analysis` | Keywords, outline, summary, tone, dates, mentions |
 | `suggest_title` | Suggest a title/slug for a note |
 | `find_duplicates` | Near-duplicate notes |
@@ -94,7 +95,12 @@ Encrypted vault notes are stored as AES-GCM ciphertext in SQLite. The unlock pas
 | `get_nlp_artifact` | Load one cached AI artifact |
 | `list_libraries` / `switch_library` / `create_library` | Libraries + active scope (switch/create are writable) |
 | `extract_entities` / `extract_mentions` / `extract_dates` | Entities, mentions, dates from `id` or `text` |
-| `list_manuscripts` / `upsert_manuscript` | Compiled chapter sets (writable upsert) |
+| `list_manuscripts` / `upsert_manuscript` / `compile_manuscript` | Chapter sets + markdown join |
+| `list_smart_folders` / `upsert_smart_folder` / `evaluate_smart_folder` | Saved filters |
+| `list_sync_conflicts` / `resolve_sync_conflict` | Disk/app conflicts |
+| `chunk_text` / `extract_outline` | Sidecar chunks + NLP outline |
+| `extract_asset_ocr` | OCR a note image asset |
+| `library_find_replace` | Scoped find/replace (dry-run default) |
 | `list_document_chat` / `append_document_chat` / `clear_document_chat` | Persisted note chat |
 | `set_nlp_enabled` | Enable/disable Local AI (writable) |
 | `set_embed_backend` | `hash` or `quality` embeddings (writable) |
@@ -110,7 +116,7 @@ Encrypted vault notes are stored as AES-GCM ciphertext in SQLite. The unlock pas
 
 Plus legacy tools: `scribe_status`, `get_document`, wiki links, folders, revisions, `create_note`, `append_to_note`, …
 
-Resources: `scribe://doc/{id}`, `scribe://artifact/{id}`. Prompts: `weekly_journal_review`, `capture_today`, `open_tasks_triage`, `wiki_health`, `rewrite_selection_draft`, `continue_document_chat`.
+Resources: `scribe://doc/{id}`, `scribe://artifact/{id}`. Prompts: `weekly_journal_review`, `capture_today`, `open_tasks_triage`, `wiki_health`, `rewrite_selection_draft`, `continue_document_chat`, `analyze_this_note`, `switch_and_search`.
 
 Full reference: [docs/tools.md](docs/tools.md) · guides: [docs/en.md](docs/en.md), [docs/sk.md](docs/sk.md)
 

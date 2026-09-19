@@ -1495,6 +1495,174 @@ impl ScribeMcp {
             })))
         })
     }
+
+    #[tool(description = "Join manuscript chapters into one markdown export (export_document per chapterId). Pass manuscript id and/or chapterIds.")]
+    fn compile_manuscript(
+        &self,
+        Parameters(params): Parameters<tools::CompileManuscriptParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.compile_manuscript(
+                params.id.as_deref(),
+                params.chapter_ids.as_deref(),
+                params.title.as_deref(),
+            )?))
+        })
+    }
+
+    #[tool(description = "List saved smart folders (query rules) in the active library.")]
+    fn list_smart_folders(&self) -> Result<String, String> {
+        self.with_store(|store| {
+            let folders = store.list_smart_folders()?;
+            Ok(tools::json(&serde_json::json!({
+                "count": folders.len(),
+                "folders": folders,
+            })))
+        })
+    }
+
+    #[tool(description = "Create or update a smart folder (name + queryRule like tag:work or a search string). Requires writable DB.")]
+    fn upsert_smart_folder(
+        &self,
+        Parameters(params): Parameters<tools::UpsertSmartFolderParams>,
+    ) -> Result<String, String> {
+        if !self.writable {
+            return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
+        }
+        self.with_store(|store| {
+            Ok(tools::json(&store.upsert_smart_folder(
+                params.id.as_deref(),
+                &params.name,
+                &params.query_rule,
+                params.icon.as_deref(),
+            )?))
+        })
+    }
+
+    #[tool(description = "Evaluate a smart folder or ad-hoc queryRule (tag:…, folder:…, or FTS).")]
+    fn evaluate_smart_folder(
+        &self,
+        Parameters(params): Parameters<tools::EvaluateSmartFolderParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.evaluate_smart_folder(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.query_rule.as_deref(),
+                params.limit,
+            )?))
+        })
+    }
+
+    #[tool(description = "List unresolved disk/app sync conflicts in the active library.")]
+    fn list_sync_conflicts(&self) -> Result<String, String> {
+        self.with_store(|store| {
+            let conflicts = store.list_sync_conflicts()?;
+            Ok(tools::json(&serde_json::json!({
+                "count": conflicts.len(),
+                "conflicts": conflicts,
+            })))
+        })
+    }
+
+    #[tool(description = "Mark a sync conflict resolved (keep=app|disk). Marks the row only; does not rewrite files. Requires writable DB.")]
+    fn resolve_sync_conflict(
+        &self,
+        Parameters(params): Parameters<tools::ResolveSyncConflictParams>,
+    ) -> Result<String, String> {
+        if !self.writable {
+            return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
+        }
+        self.with_store(|store| {
+            Ok(tools::json(
+                &store.resolve_sync_conflict(&params.id, &params.keep)?,
+            ))
+        })
+    }
+
+    #[tool(description = "Split a note or plaintext into overlapping chunks (sidecar chunk_text). Useful for citations / document chat.")]
+    fn chunk_text(
+        &self,
+        Parameters(params): Parameters<tools::ChunkTextParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.chunk_text(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.text.as_deref(),
+                params.max_chars,
+                params.overlap,
+                params.max_chunks,
+            )?))
+        })
+    }
+
+    #[tool(description = "NLP outline from numbered / ALL CAPS / heading-like sections (sidecar extract_outline). Complements get_document_outline.")]
+    fn extract_outline(
+        &self,
+        Parameters(params): Parameters<tools::ExtractOutlineNlpParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.extract_outline_nlp(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.text.as_deref(),
+                params.limit,
+            )?))
+        })
+    }
+
+    #[tool(description = "OCR text from a document image asset (list_document_assets + tesseract). Pass documentId and fileName or path.")]
+    fn extract_asset_ocr(
+        &self,
+        Parameters(params): Parameters<tools::ExtractAssetOcrParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.extract_asset_ocr(
+                &params.document_id,
+                params.file_name.as_deref(),
+                params.path.as_deref(),
+            )?))
+        })
+    }
+
+    #[tool(description = "Library find/replace. Defaults to dryRun=true. To write, pass dryRun=false, replacement, and preferably documentIds or folderId.")]
+    fn library_find_replace(
+        &self,
+        Parameters(params): Parameters<tools::LibraryFindReplaceParams>,
+    ) -> Result<String, String> {
+        let dry_run = params.dry_run.unwrap_or(true);
+        if !dry_run && !self.writable {
+            return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
+        }
+        self.with_store(|store| {
+            Ok(tools::json(&store.library_find_replace(
+                &params.query,
+                params.replacement.as_deref(),
+                Some(dry_run),
+                params.folder_id.as_deref(),
+                params.document_ids.as_deref(),
+                params.match_case,
+            )?))
+        })
+    }
+
+    #[tool(description = "Answer a question on one note and persist user + assistant turns in one call. Requires writable DB.")]
+    fn document_answer_and_save(
+        &self,
+        Parameters(params): Parameters<tools::DocumentAnswerParams>,
+    ) -> Result<String, String> {
+        if !self.writable {
+            return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
+        }
+        self.with_store(|store| {
+            Ok(tools::json(&store.document_answer_and_save(
+                &self.sidecar,
+                &params.id,
+                &params.question,
+            )?))
+        })
+    }
 }
 
 #[prompt_router]
@@ -1580,12 +1748,56 @@ impl ScribeMcp {
         GetPromptResult::new(vec![PromptMessage::new_text(
             Role::User,
             "Continue the Scribe document chat for the note I name or give by id.\n\
-             1. Call list_document_chat for that documentId.\n\
-             2. Answer with document_answer (pass recent turns as context).\n\
-             3. If I want it saved, append_document_chat for my question (role user) and your answer (role assistant).\n\
+             Prefer document_answer_and_save (loads history, answers, stores both turns).\n\
+             If write is disabled, list_document_chat then document_answer with recent turns as context.\n\
              Do not invent prior messages that were not returned.",
         )])
         .with_description("Resume saved document chat")
+    }
+
+    #[prompt(description = "Analyze a note: full analysis, then keywords, then organize.")]
+    fn analyze_this_note(
+        &self,
+        Parameters(params): Parameters<tools::AnalyzeThisNoteParams>,
+    ) -> GetPromptResult {
+        GetPromptResult::new(vec![PromptMessage::new_text(
+            Role::User,
+            format!(
+                "Analyze Scribe note {id}.\n\
+                 1. Call document_analysis with id={id}.\n\
+                 2. Call extract_keywords with the same id.\n\
+                 3. Call suggest_organize with the same id.\n\
+                 Summarize language, tone, keywords, outline, and the best folder. Do not move the note unless I ask.",
+                id = params.id
+            ),
+        )])
+        .with_description("Analyze → keywords → organize")
+    }
+
+    #[prompt(description = "List libraries, switch if needed, then search.")]
+    fn switch_and_search(
+        &self,
+        Parameters(params): Parameters<tools::SwitchAndSearchParams>,
+    ) -> GetPromptResult {
+        let library = params
+            .library
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| "the library I name".to_string());
+        let query = params
+            .query
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| "the query I give".to_string());
+        GetPromptResult::new(vec![PromptMessage::new_text(
+            Role::User,
+            format!(
+                "Search Scribe across libraries.\n\
+                 1. Call list_libraries.\n\
+                 2. If {library} is not active, call switch_library with that library id.\n\
+                 3. Call search with query={query}.\n\
+                 Quote titles and ids. Do not invent hits."
+            ),
+        )])
+        .with_description("Switch library then search")
     }
 }
 
@@ -1606,15 +1818,19 @@ impl ServerHandler for ScribeMcp {
              list_documents / create_note / search are scoped to the active library — \
              call list_libraries / switch_library first if the user names another library. \
              create_library adds a library without switching. \
-             extract_entities / extract_mentions / extract_dates accept id or text. \
+             extract_entities / extract_mentions / extract_dates / extract_outline / chunk_text accept id or text. \
              For Q&A over the library use library_answer. \
-             For one-note Q&A use document_answer; persist turns with list/append_document_chat. \
+             For one-note Q&A use document_answer_and_save (or document_answer + list/append_document_chat). \
              For note insights use document_analysis / extract_keywords / analyze_sentiment. \
              For unsaved text use rewrite_selection / analyze_plaintext. \
              Cached AI: list_nlp_artifacts then get_nlp_artifact or scribe://artifact/{id}. \
-             Manuscripts: list_manuscripts / upsert_manuscript. \
+             Manuscripts: list_manuscripts / upsert_manuscript / compile_manuscript. \
+             Smart folders: list_smart_folders / evaluate_smart_folder. \
+             Sync: list_sync_conflicts / resolve_sync_conflict. \
+             Media: list_document_assets / extract_asset_ocr. \
+             Find/replace is dry-run by default (library_find_replace). \
              Templates: list_templates then create_note_from_template. \
-             Media: list_document_assets. Backups: list_backups / create_backup. \
+             Backups: list_backups / create_backup. \
              Documents are also readable as resources scribe://doc/{id}.",
         )
     }

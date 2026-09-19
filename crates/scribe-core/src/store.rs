@@ -20,7 +20,9 @@ use crate::db::{
     sync_document_fts, sync_document_links, upsert_embedding_with_chunks,
     EmbeddingChunkInput,
 };
-use crate::nlp::{parse_entities, script_path_label, NlpSidecar};
+use crate::nlp::{
+    parse_entities, parse_library_report, parse_summary, script_path_label, NlpSidecar,
+};
 use crate::path::default_db_path;
 use crate::plain_text::{
     document_outline, plain_text_to_paragraph_nodes, plain_text_to_tiptap, tiptap_to_markdown,
@@ -2050,8 +2052,9 @@ impl ScribeStore {
         }
 
         sync_sidecar_backend(sidecar, &self.db)?;
-        let result = sidecar.summarize(&combined, 5)?;
-        let (summary, bullets) = parse_sidecar_summary(&result);
+        let parsed = parse_summary(&sidecar.summarize(&combined, 5)?);
+        let summary = parsed.summary;
+        let bullets = parsed.bullets;
 
         let payload = json!({
             "fromDate": input.from_date,
@@ -2275,12 +2278,9 @@ impl ScribeStore {
 
         sync_sidecar_backend(sidecar, &self.db)?;
         let result = sidecar.library_report(json!(documents), json!(folders))?;
-        let markdown = result
-            .get("markdown")
-            .and_then(|value| value.as_str())
-            .unwrap_or("")
-            .to_string();
-        let stats = result.get("stats").cloned().unwrap_or(json!({}));
+        let parsed = parse_library_report(&result);
+        let markdown = parsed.markdown;
+        let stats = parsed.stats;
 
         let now = chrono::Utc::now().timestamp();
         save_artifact(
