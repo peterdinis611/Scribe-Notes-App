@@ -363,7 +363,19 @@
     "badge": "Novinky {{version}}",
     "kicker": "Poznámky k vydaniu",
     "title": "Scribe {{version}}",
-    "subtitle": "História schránky, pokojnejší editor a spoľahlivejšie mazanie.",
+    "subtitle": "Samostatné knižnice, sync ktorý sa spýta pred prepísaním a zostavenie kapitol do jedného dokumentu.",
+    "libraries": {
+      "title": "Viaceré knižnice",
+      "description": "Práca, osobné a archív ako samostatné korene — nie ďalšie priečinky v tom istom strome. Prepínaš v sidebare."
+    },
+    "syncConflicts": {
+      "title": "Sync, ktorý ticho neprepíše",
+      "description": "Keď disk aj aplikácia zmenia tú istú poznámku, Scribe si nechá revíziu a spýta sa, ktorá verzia ostane."
+    },
+    "compile": {
+      "title": "Zostavenie dlhého textu",
+      "description": "Vyber kapitoly v poradí. Scribe z nich spraví jeden dokument so spoločnými nadpismi, pripravený na export."
+    },
     "gotIt": "Rozumiem",
     "clipboardHistory": {
       "title": "História schránky",
@@ -1112,6 +1124,37 @@
   },
   "split": {
     "close": "Zavrieť split panel"
+  },
+  "libraries": {
+    "label": "Knižnica",
+    "new": "Nová",
+    "newTitle": "Nová knižnica",
+    "newHint": "Samostatný koreň vedľa aktuálneho priečinka Dokumenty.",
+    "switchedTitle": "Knižnica prepnutá",
+    "switchedHint": "Píšete v {{name}}.",
+    "switchError": "Knižnicu sa nepodarilo prepnúť",
+    "createError": "Knižnicu sa nepodarilo vytvoriť"
+  },
+  "compile": {
+    "action": "Zostaviť",
+    "title": "Zostavenie dlhého textu",
+    "hint": "Vyberte kapitoly v poradí. Scribe z nich spraví jeden nový dokument so spoločnými nadpismi.",
+    "titlePlaceholder": "Názov knihy alebo reportu",
+    "untitled": "Zostavený rukopis",
+    "doneTitle": "Zostavené",
+    "doneHint": "{{count}} kapitol v jednom dokumente.",
+    "error": "Zostavenie zlyhalo",
+    "paletteHint": "Kapitoly → jeden dokument"
+  },
+  "syncConflicts": {
+    "title": "Konflikty synchronizácie",
+    "hint": "Disk aj aplikácia zmenili tú istú poznámku. Vyberte, ktorá verzia ostane.",
+    "empty": "Žiadne otvorené konflikty.",
+    "meta": "Disk {{disk}} · App {{app}}",
+    "keepApp": "Ponechať v apke",
+    "keepDisk": "Ponechať z disku",
+    "resolveError": "Konflikt sa nepodarilo vyriešiť",
+    "paletteHint": "Disk alebo aplikácia"
   },
   "library": {
     "title": "Knižnica",

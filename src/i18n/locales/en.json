@@ -363,7 +363,19 @@
     "badge": "What's new in {{version}}",
     "kicker": "Edition notes",
     "title": "Scribe {{version}}",
-    "subtitle": "Clipboard history, a quieter writing chrome, and more reliable deletes in the editor.",
+    "subtitle": "Separate libraries, sync that asks before overwriting, and compile chapters into one document.",
+    "libraries": {
+      "title": "More than one library",
+      "description": "Work, personal, and archive as separate roots — not extra folders in the same tree. Switch from the sidebar."
+    },
+    "syncConflicts": {
+      "title": "Sync that does not silently overwrite",
+      "description": "When the disk and the app both change a note, Scribe keeps a revision and asks which version stays."
+    },
+    "compile": {
+      "title": "Compile a long text",
+      "description": "Pick chapters in order. Scribe builds one document with shared headings, ready to export or print."
+    },
     "gotIt": "Got it",
     "clipboardHistory": {
       "title": "Clipboard history",
@@ -1112,6 +1124,37 @@
   },
   "split": {
     "close": "Close split pane"
+  },
+  "libraries": {
+    "label": "Library",
+    "new": "New",
+    "newTitle": "New library",
+    "newHint": "A separate root next to the current Documents folder.",
+    "switchedTitle": "Library switched",
+    "switchedHint": "Now writing in {{name}}.",
+    "switchError": "Could not switch library",
+    "createError": "Could not create library"
+  },
+  "compile": {
+    "action": "Compile",
+    "title": "Compile a long text",
+    "hint": "Pick chapters in order. Scribe creates one new document with shared headings.",
+    "titlePlaceholder": "Book or report title",
+    "untitled": "Compiled manuscript",
+    "doneTitle": "Compiled",
+    "doneHint": "{{count}} chapters in one document.",
+    "error": "Compile failed",
+    "paletteHint": "Chapters → one document"
+  },
+  "syncConflicts": {
+    "title": "Sync conflicts",
+    "hint": "Disk and the app both changed the same note. Choose which version stays.",
+    "empty": "No open conflicts.",
+    "meta": "Disk {{disk}} · App {{app}}",
+    "keepApp": "Keep app",
+    "keepDisk": "Keep disk",
+    "resolveError": "Could not resolve the conflict",
+    "paletteHint": "Choose disk or app"
   },
   "library": {
     "title": "Library",

@@ -1,2 +1,2 @@
 /** Keep in sync with package.json / src-tauri version fields. */
-export const APP_VERSION = '1.9.0'
+export const APP_VERSION = '2.0.0'

@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { APP_VERSION } from '@/lib/app-version'
 import { persistWhatsNewVersion } from '@/store/persistence'
 
-const HIGHLIGHTS = ['clipboardHistory', 'editorCalm', 'editorDelete'] as const
+const HIGHLIGHTS = ['libraries', 'syncConflicts', 'compile'] as const
 
 /** Major.minor for “Scribe 1.4” style titles. */
 const APP_SHORT_VERSION = APP_VERSION.split('.').slice(0, 2).join('.')

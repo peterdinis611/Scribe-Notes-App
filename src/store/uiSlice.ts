@@ -59,6 +59,8 @@ export interface UiState {
   invoiceDialog: InvoiceDialogState
   commentDialog: CommentDialogState
   storageAccessDialog: StorageAccessDialogState
+  compileDialogOpen: boolean
+  syncConflictsOpen: boolean
 }
 
 const initialState: UiState = {
@@ -69,6 +71,8 @@ const initialState: UiState = {
   invoiceDialog: { open: false },
   commentDialog: { open: false },
   storageAccessDialog: { open: false },
+  compileDialogOpen: false,
+  syncConflictsOpen: false,
 }
 
 const uiSlice = createSlice({
@@ -99,6 +103,12 @@ const uiSlice = createSlice({
     setStorageAccessDialog(state, action: PayloadAction<StorageAccessDialogState>) {
       state.storageAccessDialog = action.payload
     },
+    setCompileDialogOpen(state, action: PayloadAction<boolean>) {
+      state.compileDialogOpen = action.payload
+    },
+    setSyncConflictsOpen(state, action: PayloadAction<boolean>) {
+      state.syncConflictsOpen = action.payload
+    },
   },
 })
 
@@ -111,6 +121,8 @@ export const {
   setInvoiceDialog,
   setCommentDialog,
   setStorageAccessDialog,
+  setCompileDialogOpen,
+  setSyncConflictsOpen,
 } = uiSlice.actions
 
 export default uiSlice.reducer

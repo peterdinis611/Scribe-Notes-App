@@ -6,7 +6,7 @@ describe('APP_VERSION', () => {
     expect(APP_VERSION).toMatch(/^\d+\.\d+\.\d+$/)
   })
 
-  it('matches the 1.9 release line', () => {
-    expect(APP_VERSION.startsWith('1.9.')).toBe(true)
+  it('matches the 2.0 release line', () => {
+    expect(APP_VERSION.startsWith('2.0.')).toBe(true)
   })
 })

@@ -142,12 +142,13 @@ pub(crate) fn list_open_document_summaries(
 ) -> Result<Vec<DocumentSummary>, String> {
     let mut stmt = conn
         .prepare(&format!(
-            "{SUMMARY_SELECT} WHERE deleted_at IS NULL ORDER BY updated_at DESC"
+            "{SUMMARY_SELECT} WHERE deleted_at IS NULL AND library_id = ?1 ORDER BY updated_at DESC"
         ))
         .map_err(|e| e.to_string())?;
 
+    let library_id = crate::libraries::active_library_id(conn);
     let rows = stmt
-        .query_map([], map_summary)
+        .query_map([library_id], map_summary)
         .map_err(|e| e.to_string())?;
 
     rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
@@ -159,12 +160,13 @@ pub fn list_trashed_documents(state: State<'_, DbState>) -> Result<Vec<DocumentS
 
     let mut stmt = conn
         .prepare(&format!(
-            "{SUMMARY_SELECT} WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC"
+            "{SUMMARY_SELECT} WHERE deleted_at IS NOT NULL AND library_id = ?1 ORDER BY deleted_at DESC"
         ))
         .map_err(|e| e.to_string())?;
 
+    let library_id = crate::libraries::active_library_id(&conn);
     let rows = stmt
-        .query_map([], map_summary)
+        .query_map([library_id], map_summary)
         .map_err(|e| e.to_string())?;
 
     rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
@@ -193,8 +195,8 @@ pub(crate) fn insert_document_record(
     now: i64,
 ) -> Result<(), String> {
     conn.execute(
-        "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?5)",
-        params![id, title, content_json, folder_id, now],
+        "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at, library_id) VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?5, ?6)",
+        params![id, title, content_json, folder_id, now, crate::libraries::active_library_id(conn)],
     )
     .map_err(|e| e.to_string())?;
 
@@ -379,8 +381,8 @@ pub fn duplicate_document(
         storage::duplicate_document_assets(&dir, &source.id, &new_id, &source.content_json)?;
 
     conn.execute(
-        "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?5)",
-        params![new_id, title, content_json, source.folder_id, now],
+        "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at, library_id) VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?5, ?6)",
+        params![new_id, title, content_json, source.folder_id, now, crate::libraries::active_library_id(&conn)],
     )
     .map_err(|e| e.to_string())?;
 

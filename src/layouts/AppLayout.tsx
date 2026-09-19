@@ -39,6 +39,8 @@ import { LoremIpsumDialogHost } from '@/components/LoremIpsumDialogHost'
 import { MathExpressionDialogHost } from '@/components/MathExpressionDialogHost'
 import { InvoiceDialogHost } from '@/components/InvoiceDialogHost'
 import { StorageAccessDialogHost } from '@/components/StorageAccessDialogHost'
+import { CompileDialog } from '@/components/library/CompileDialog'
+import { SyncConflictsDialog } from '@/components/library/SyncConflictsDialog'
 import { SaveCustomTemplateDialogHost } from '@/components/SaveCustomTemplateDialogHost'
 import { ToastHost } from '@/components/ToastHost'
 import { TrashDialog } from '@/components/TrashDialog'
@@ -236,6 +238,8 @@ export function AppLayout() {
       <InvoiceDialogHost />
       <StorageAccessDialogHost />
       <SaveCustomTemplateDialogHost />
+      <CompileDialog />
+      <SyncConflictsDialog />
       <TrashDialog />
       <LibraryFindReplaceDialog />
       <SetupWizard

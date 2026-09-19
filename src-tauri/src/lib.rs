@@ -4,6 +4,7 @@ mod capture;
 mod db;
 mod export;
 mod images;
+mod libraries;
 mod nlp;
 mod pdf_native;
 mod security;
@@ -197,6 +198,13 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            commands::libraries::list_libraries,
+            commands::libraries::create_library,
+            commands::libraries::switch_library,
+            commands::libraries::list_sync_conflicts,
+            commands::libraries::resolve_sync_conflict,
+            commands::libraries::list_manuscripts,
+            commands::libraries::upsert_manuscript,
             commands::documents::list_documents,
             commands::documents::get_document,
             commands::documents::create_document,

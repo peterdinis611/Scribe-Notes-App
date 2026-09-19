@@ -13,6 +13,7 @@ import { LibraryTagsView } from '@/components/LibraryTagsView'
 import { LibraryJournalView } from '@/components/LibraryJournalView'
 import { LibraryLinkGraphView } from '@/components/LibraryLinkGraphView'
 import { LibraryChatPanel } from '@/components/LibraryChatPanel'
+import { LibrarySwitcher } from '@/components/library/LibrarySwitcher'
 import { LibraryViewTabs } from '@/components/LibraryViewTabs'
 import { SidebarRail } from '@/components/layout/SidebarRail'
 import { SidebarSearchResults } from '@/components/SidebarSearchResults'
@@ -105,6 +106,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
             <p className="library-panel-meta m-0 mt-0.5 truncate px-1">
               {t('library.documentCount', { count: visibleDocuments.length })}
             </p>
+            <LibrarySwitcher />
           </div>
 
           <div className="px-2 py-1.5" data-tour="library-search">

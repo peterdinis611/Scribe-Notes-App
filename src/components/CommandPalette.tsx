@@ -17,6 +17,7 @@ import {
   GitBranch,
   Heading,
   Languages,
+  Layers,
   LayoutTemplate,
   Link2,
   MessageSquare,
@@ -113,6 +114,7 @@ import {
   createThemeSelection,
 } from '@/store/settings-helpers'
 import { setSaveCustomTemplateDialog } from '@/store/templatesSlice'
+import { setCompileDialogOpen, setSyncConflictsOpen } from '@/store/uiSlice'
 
 type SearchScope = 'all' | 'titles' | 'headings' | 'tags' | 'content' | 'wiki' | 'comments' | 'semantic'
 
@@ -560,6 +562,22 @@ export function CommandPalette() {
                 dispatch(setInsightsPanelOpen(false))
                 dispatch(setClipboardHistoryPanelOpen(true))
               },
+            },
+            {
+              type: 'action' as const,
+              id: 'compile-manuscript',
+              label: t('compile.action'),
+              hint: t('compile.paletteHint'),
+              icon: <Layers className="h-4 w-4" />,
+              run: () => dispatch(setCompileDialogOpen(true)),
+            },
+            {
+              type: 'action' as const,
+              id: 'sync-conflicts',
+              label: t('syncConflicts.title'),
+              hint: t('syncConflicts.paletteHint'),
+              icon: <Shuffle className="h-4 w-4" />,
+              run: () => dispatch(setSyncConflictsOpen(true)),
             },
             {
               type: 'action' as const,

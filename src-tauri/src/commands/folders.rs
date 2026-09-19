@@ -42,12 +42,13 @@ pub fn list_folders(state: State<'_, DbState>) -> Result<Vec<Folder>, String> {
         .prepare(
             "SELECT id, name, parent_id, created_at, updated_at, COALESCE(is_pinned, 0), \
              COALESCE(is_vault, 0), vault_verifier \
-             FROM folders ORDER BY name COLLATE NOCASE ASC",
+             FROM folders WHERE library_id = ?1 ORDER BY name COLLATE NOCASE ASC",
         )
         .map_err(|e| e.to_string())?;
 
+    let library_id = crate::libraries::active_library_id(&conn);
     let rows = stmt
-        .query_map([], map_folder)
+        .query_map([library_id], map_folder)
         .map_err(|e| e.to_string())?;
 
     rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
@@ -77,15 +78,16 @@ pub fn create_folder(state: State<'_, DbState>, input: CreateFolderInput) -> Res
     }
 
     conn.execute(
-        "INSERT INTO folders (id, name, parent_id, created_at, updated_at, is_vault, vault_verifier) \
-         VALUES (?1, ?2, ?3, ?4, ?4, ?5, ?6)",
+        "INSERT INTO folders (id, name, parent_id, created_at, updated_at, is_vault, vault_verifier, library_id) \
+         VALUES (?1, ?2, ?3, ?4, ?4, ?5, ?6, ?7)",
         params![
             id,
             name,
             input.parent_id,
             now,
             if is_vault { 1 } else { 0 },
-            input.vault_verifier
+            input.vault_verifier,
+            crate::libraries::active_library_id(&conn)
         ],
     )
     .map_err(|e| e.to_string())?;
@@ -355,8 +357,8 @@ pub fn set_folder_pinned(
 
 pub fn default_folder_id(conn: &rusqlite::Connection) -> Result<Option<String>, String> {
     conn.query_row(
-        "SELECT id FROM folders ORDER BY created_at ASC LIMIT 1",
-        [],
+        "SELECT id FROM folders WHERE library_id = ?1 ORDER BY created_at ASC LIMIT 1",
+        [crate::libraries::active_library_id(conn)],
         |row| row.get(0),
     )
     .optional()

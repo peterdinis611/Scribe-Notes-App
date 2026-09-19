@@ -1,6 +1,6 @@
 use rusqlite::Connection;
 
-const SCHEMA_VERSION: i32 = 17;
+const SCHEMA_VERSION: i32 = 18;
 
 pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     conn.execute_batch(
@@ -419,6 +419,69 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
             CREATE INDEX IF NOT EXISTS idx_document_chat_messages_doc
                 ON document_chat_messages(document_id, created_at ASC);
             "#,
+        )?;
+        conn.execute(
+            "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
+            ["17".to_string()],
+        )?;
+    }
+
+    if current < 18 {
+        conn.execute_batch(
+            r#"
+            CREATE TABLE IF NOT EXISTS libraries (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                root_path TEXT NOT NULL,
+                created_at INTEGER NOT NULL,
+                last_opened_at INTEGER NOT NULL,
+                sort_order INTEGER NOT NULL DEFAULT 0
+            );
+
+            CREATE TABLE IF NOT EXISTS manuscripts (
+                id TEXT PRIMARY KEY,
+                library_id TEXT NOT NULL,
+                title TEXT NOT NULL,
+                chapter_ids_json TEXT NOT NULL DEFAULT '[]',
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS sync_conflicts (
+                id TEXT PRIMARY KEY,
+                document_id TEXT NOT NULL,
+                title TEXT NOT NULL,
+                disk_updated_at INTEGER NOT NULL,
+                db_updated_at INTEGER NOT NULL,
+                created_at INTEGER NOT NULL,
+                resolved INTEGER NOT NULL DEFAULT 0
+            );
+            "#,
+        )?;
+        let _ = conn.execute(
+            "ALTER TABLE documents ADD COLUMN library_id TEXT NOT NULL DEFAULT 'default'",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE folders ADD COLUMN library_id TEXT NOT NULL DEFAULT 'default'",
+            [],
+        );
+        let now = chrono::Utc::now().timestamp();
+        let documents_dir: String = conn
+            .query_row(
+                "SELECT value FROM meta WHERE key = 'documents_dir'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap_or_else(|_| String::new());
+        conn.execute(
+            "INSERT OR IGNORE INTO libraries (id, name, root_path, created_at, last_opened_at, sort_order) \
+             VALUES ('default', 'Knižnica', ?1, ?2, ?2, 0)",
+            rusqlite::params![documents_dir, now],
+        )?;
+        conn.execute(
+            "INSERT OR IGNORE INTO meta (key, value) VALUES ('active_library_id', 'default')",
+            [],
         )?;
         conn.execute(
             "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",

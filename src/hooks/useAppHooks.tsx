@@ -1,10 +1,12 @@
 import { listDocuments, listFolders, getStorageSettings } from "@/lib/db/api"
+import { listLibraries } from "@/lib/db/libraries-api"
 import { mergeLibrarySummaries } from "@/lib/db/library-sync"
 import { applyThemeSettings } from "@/lib/themes/apply"
 import { updateDocuments } from "@/store/documentsSlice"
 import { setFolders } from "@/store/foldersSlice"
 import { useAppSelector, useAppDispatch } from "@/store/hooks"
 import { persistStorageFolderAccessGranted } from "@/store/persistence"
+import { setLibraries } from "@/store/librariesSlice"
 import { setStorageSettings } from "@/store/settingsSlice"
 import { useEffect } from "react"
 
@@ -42,9 +44,10 @@ export function useStorageBootstrap() {
     const dispatch = useAppDispatch()
   
     useEffect(() => {
-      getStorageSettings()
-        .then((settings) => {
+      Promise.all([getStorageSettings(), listLibraries()])
+        .then(([settings, libraries]) => {
           dispatch(setStorageSettings(settings))
+          dispatch(setLibraries(libraries))
           if (settings.folderAccessGranted) {
             persistStorageFolderAccessGranted(true)
           }

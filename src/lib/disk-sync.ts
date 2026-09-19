@@ -7,6 +7,7 @@ import { toast } from '@/lib/toast'
 import type { AppDispatch } from '@/store/index'
 import { store } from '@/store/index'
 import { setDiskSyncWarning, setFolderSyncStatus } from '@/store/documentsSlice'
+import { setSyncConflictsOpen } from '@/store/uiSlice'
 import { hasStorageFolderAccess } from '@/store/persistence'
 
 /** Minimum gap between auto reconciles (focus / interval). Manual Sync can force. */
@@ -92,6 +93,7 @@ export async function runFolderReconcile(
       }
 
       if (result.conflictCount > 0) {
+        dispatch(setSyncConflictsOpen(true))
         toast.info(
           i18n.t('diskSync.conflictsTitle'),
           i18n.t('diskSync.conflictsDescription', { count: result.conflictCount }),
