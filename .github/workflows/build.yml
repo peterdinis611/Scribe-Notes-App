@@ -1,4 +1,4 @@
-# Native Tauri builds — only on version tags (v*) or manual dispatch.
+# Native Tauri builds — version tags or manual dispatch.
 name: Build
 
 on:
@@ -23,7 +23,7 @@ jobs:
             args: ''
             artifacts: true
           - name: Linux
-            os: ubuntu-22.04
+            os: ubuntu-24.04
             args: --no-bundle
             artifacts: false
           - name: Windows
@@ -34,9 +34,11 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Linux WebKit / GTK deps
-        if: startsWith(matrix.os, 'ubuntu')
+        if: runner.os == 'Linux'
         run: |
-          sudo apt-get update
+          set -euo pipefail
+          sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list
+          sudo apt-get update -y
           sudo apt-get install -y \
             libwebkit2gtk-4.1-dev \
             librsvg2-dev \
@@ -44,7 +46,8 @@ jobs:
             libayatana-appindicator3-dev \
             libgtk-3-dev \
             libssl-dev \
-            build-essential
+            build-essential \
+            pkg-config
 
       - uses: oven-sh/setup-bun@v2
         with:
