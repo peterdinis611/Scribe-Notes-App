@@ -54,6 +54,7 @@ export default defineConfig({
             { name: 'highlight', test: /\/node_modules\/(highlight\.js|lowlight)\// },
             { name: 'mathjs', test: /\/node_modules\/mathjs\// },
             { name: 'mermaid', test: /\/node_modules\/mermaid\// },
+            { name: 'd3', test: /\/node_modules\/d3/ },
             { name: 'emoji-picker', test: /\/node_modules\/emoji-picker-react\// },
           ],
         },

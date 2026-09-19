@@ -1,6 +1,7 @@
 import type { Editor } from '@tiptap/react'
 import type { Node as PMNode } from '@tiptap/pm/model'
 import { NodeSelection } from '@tiptap/pm/state'
+import { chartPreviewLabel } from '@/lib/editor/d3-chart'
 
 export type DocumentOutlineKind =
   | 'heading'
@@ -18,6 +19,7 @@ export type DocumentOutlineKind =
   | 'mathInline'
   | 'mathBlock'
   | 'mermaidDiagram'
+  | 'd3Chart'
   | 'lottieAnimation'
 
 export type DocumentOutlineItem = {
@@ -45,6 +47,7 @@ const OUTLINE_NODE_TYPES = new Set<string>([
   'mathInline',
   'mathBlock',
   'mermaidDiagram',
+  'd3Chart',
   'lottieAnimation',
 ])
 
@@ -90,6 +93,8 @@ function getNodeLabel(node: PMNode) {
       return 'Vzorec (blok)'
     case 'mermaidDiagram':
       return 'Mermaid'
+    case 'd3Chart':
+      return 'Chart'
     case 'lottieAnimation':
       return 'Lottie'
     default:
@@ -106,6 +111,8 @@ function getNodePreview(node: PMNode) {
       return truncate(String(node.attrs.expression ?? ''), 44)
     case 'mermaidDiagram':
       return truncate(String(node.attrs.source ?? ''), 44) || 'Diagram'
+    case 'd3Chart':
+      return truncate(chartPreviewLabel(String(node.attrs.source ?? '')), 44)
     case 'lottieAnimation':
       return truncate(String(node.attrs.caption || node.attrs.src || ''), 44) || 'Animácia'
     case 'image':
@@ -167,6 +174,7 @@ function shouldIncludeNode(node: PMNode, doc: PMNode, pos: number) {
     node.type.name === 'mathBlock' ||
     node.type.name === 'mathInline' ||
     node.type.name === 'mermaidDiagram' ||
+    node.type.name === 'd3Chart' ||
     node.type.name === 'lottieAnimation'
   ) {
     return true

@@ -26,6 +26,7 @@ const MOVABLE_TOP_LEVEL = new Set([
   'pageBreak',
   'mathBlock',
   'mermaidDiagram',
+  'd3Chart',
   'lottieAnimation',
 ])
 

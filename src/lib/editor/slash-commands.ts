@@ -8,7 +8,13 @@ import {
   SlashSuggestionList,
   type SlashCommandItem,
 } from '@/components/editor/SlashSuggestionList'
-import { insertBlockMath, insertInlineMath, insertLoremIpsum, insertMermaidDiagram } from '@/lib/editor/insert-helpers'
+import {
+  insertBlockMath,
+  insertD3Chart,
+  insertInlineMath,
+  insertLoremIpsum,
+  insertMermaidDiagram,
+} from '@/lib/editor/insert-helpers'
 import {
   insertEmptyImageBlock,
   insertEmptyLottieBlock,
@@ -46,6 +52,8 @@ export const SLASH_COMMAND_DEFS: SlashCommandDef[] = [
   { id: 'math-inline', icon: 'ƒ' },
   { id: 'math-block', icon: '∑' },
   { id: 'mermaid', icon: '⬡' },
+  { id: 'chart', icon: '▣' },
+  { id: 'd3', icon: '◈' },
   { id: 'hr', icon: '—' },
   { id: 'callout-info', icon: 'ℹ️' },
   { id: 'callout-tip', icon: '💡' },
@@ -158,6 +166,10 @@ export function runSlashCommand(
       break
     case 'mermaid':
       insertMermaidDiagram(editor)
+      break
+    case 'chart':
+    case 'd3':
+      insertD3Chart(editor)
       break
     case 'lorem':
       void insertLoremIpsum(editor)

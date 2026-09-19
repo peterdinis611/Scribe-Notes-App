@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { LucideIcon } from 'lucide-react'
 import {
+  BarChart3,
   Calculator,
   CheckSquare,
   ChevronRight,
@@ -65,6 +66,7 @@ const OUTLINE_ICONS: Record<DocumentOutlineKind, LucideIcon> = {
   mathInline: Calculator,
   mathBlock: Calculator,
   mermaidDiagram: GitBranch,
+  d3Chart: BarChart3,
   lottieAnimation: Sparkles,
 }
 

@@ -218,7 +218,7 @@
     "zoomOut": "Oddialiť",
     "resetView": "Resetovať pohľad",
     "cardPlaceholder": "Text karty…",
-    "emptyHint": "Dvojklikom pridáte kartu. Ťahaním prázdneho miesta posúvate. Kolieskom zoomujete.",
+    "emptyHint": "Dvojklikom pridáte kartu. Ťahaním úchytu prepojíte. Kolieskom zoomujete.",
     "linkHint": "Najprv vyberte kartu, potom ju prepojte s ďalšou.",
     "linkPickSource": "Kliknite na prvú kartu…",
     "linkPickTarget": "Kliknite na druhú kartu na prepojenie…",
@@ -230,6 +230,12 @@
     "done": "Hotovo",
     "cancel": "Zrušiť",
     "rendering": "Renderujem…"
+  },
+  "d3Chart": {
+    "edit": "Upraviť",
+    "editTitle": "Upraviť D3 graf (JSON)",
+    "done": "Hotovo",
+    "cancel": "Zrušiť"
   },
   "footnotes": {
     "edit": "Upraviť",
@@ -1966,6 +1972,14 @@
       "label": "Mermaid",
       "hint": "Diagram flowchart / sequence"
     },
+    "chart": {
+      "label": "Graf",
+      "hint": "D3 stĺpcový, čiarový, area alebo koláč"
+    },
+    "d3": {
+      "label": "D3 graf",
+      "hint": "Deklaratívna JSON špecifikácia"
+    },
     "hr": {
       "label": "Oddeľovač",
       "hint": "Horizontálna čiara"
@@ -2267,6 +2281,7 @@
       "blockMath": "Vzorec blok",
       "blockMathFull": "Vzorec blok (math.js)",
       "mermaid": "Mermaid diagram",
+      "chart": "D3 graf",
       "codeBlock": "Blok kódu",
       "paragraphFormat": "Formát odseku",
       "moreTools": "Ďalšie nástroje",

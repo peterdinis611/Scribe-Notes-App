@@ -1,5 +1,6 @@
 import type { Editor } from '@tiptap/react'
 import { MATH_JS_EXAMPLES } from '@/lib/editor/math-js'
+import { D3_CHART_DEFAULT_SOURCE } from '@/lib/editor/d3-chart'
 import { MERMAID_DEFAULT_SOURCE } from '@/lib/editor/mermaid'
 import { generateLoremIpsum, saveLoremOptions } from '@/lib/editor/lorem-ipsum'
 import { promptLoremOptions } from '@/lib/lorem-dialog'
@@ -29,6 +30,10 @@ export async function insertBlockMath(editor: Editor) {
 
 export function insertMermaidDiagram(editor: Editor) {
   editor.chain().focus().insertMermaidDiagram({ source: MERMAID_DEFAULT_SOURCE }).run()
+}
+
+export function insertD3Chart(editor: Editor) {
+  editor.chain().focus().insertD3Chart({ source: D3_CHART_DEFAULT_SOURCE }).run()
 }
 
 export async function insertYoutubeVideo(editor: Editor) {

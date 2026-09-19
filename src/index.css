@@ -5111,7 +5111,7 @@ body.is-block-dragging .tiptap {
 }
 
 /* Keep a quiet cue only for structured blocks — never a form-like box on empty paragraphs. */
-.tiptap :is(blockquote, pre, table, .details-block, .callout, .math-js-node, .mermaid-diagram, .image-block, .lottie-block).has-focus {
+.tiptap :is(blockquote, pre, table, .details-block, .callout, .math-js-node, .mermaid-diagram, .d3-chart, .image-block, .lottie-block).has-focus {
   outline: 1px solid color-mix(in srgb, var(--color-accent) 28%, transparent);
   outline-offset: 3px;
   border-radius: 4px;
@@ -5479,6 +5479,92 @@ body.is-block-dragging .tiptap {
 }
 
 .tiptap .mermaid-diagram__source:focus {
+  outline: 2px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
+  outline-offset: 1px;
+}
+
+.tiptap .d3-chart {
+  position: relative;
+  margin: 16px 0;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+}
+
+.tiptap .d3-chart--selected,
+.tiptap .d3-chart--editable:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-border));
+}
+
+.tiptap .d3-chart__toolbar,
+.tiptap .d3-chart__actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.tiptap .d3-chart__actions {
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+.tiptap .d3-chart__btn {
+  appearance: none;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-foreground);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.tiptap .d3-chart__btn:hover {
+  background: var(--color-selection);
+}
+
+.tiptap .d3-chart__btn--primary {
+  border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
+  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
+}
+
+.tiptap .d3-chart__preview {
+  overflow-x: auto;
+  text-align: center;
+  min-height: 48px;
+}
+
+.tiptap .d3-chart__preview svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.tiptap .d3-chart__preview--error {
+  color: var(--color-destructive);
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+.tiptap .d3-chart__source {
+  width: 100%;
+  min-height: 180px;
+  resize: vertical;
+  box-sizing: border-box;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-foreground);
+  background: var(--color-canvas);
+}
+
+.tiptap .d3-chart__source:focus {
   outline: 2px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
   outline-offset: 1px;
 }
@@ -8656,7 +8742,6 @@ html.dark .link-graph-toolbar--overlay {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  cursor: grab;
   touch-action: none;
   background:
     radial-gradient(
@@ -8667,66 +8752,98 @@ html.dark .link-graph-toolbar--overlay {
     var(--color-canvas);
 }
 
-.canvas-surface:active,
-.canvas-surface.is-panning {
+.canvas-surface--flow .react-flow {
+  width: 100%;
+  height: 100%;
+  font-family: var(--font-sans);
+  background: transparent;
+}
+
+.canvas-surface--flow .react-flow__pane {
+  cursor: grab;
+}
+
+.canvas-surface--flow .react-flow__pane:active {
   cursor: grabbing;
 }
 
-.canvas-grid {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.55;
-  background-image:
-    linear-gradient(to right, var(--color-separator) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--color-separator) 1px, transparent 1px);
-  background-size: 32px 32px;
-  mask-image: radial-gradient(ellipse 75% 70% at 50% 45%, #000 20%, transparent 75%);
-}
-
-.canvas-world {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 0;
-  height: 0;
-  transform-origin: 0 0;
-  will-change: transform;
-}
-
-.canvas-edges {
-  position: absolute;
-  left: 0;
-  top: 0;
-  overflow: visible;
-  pointer-events: none;
-}
-
-.canvas-edge {
-  fill: none;
+.canvas-surface--flow .react-flow__edge-path {
   stroke: color-mix(in srgb, var(--color-muted-foreground) 70%, var(--color-accent));
   stroke-width: 2;
-  pointer-events: none;
 }
 
-.canvas-edge.is-selected {
+.canvas-surface--flow .react-flow__edge.selected .react-flow__edge-path,
+.canvas-surface--flow .react-flow__edge:focus .react-flow__edge-path {
   stroke: var(--color-accent);
   stroke-width: 2.5;
 }
 
-.canvas-edge-hit {
-  fill: none;
-  stroke: transparent;
-  stroke-width: 14;
-  pointer-events: stroke;
+.canvas-surface--flow .react-flow__connection-line {
+  stroke: var(--color-accent);
+}
+
+.canvas-surface--flow .react-flow__node-note {
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.canvas-minimap {
+  overflow: hidden;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 10px !important;
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent) !important;
+  box-shadow: 0 10px 28px color-mix(in srgb, #000 12%, transparent);
+}
+
+.canvas-flow-credit {
+  margin: 0 0 8px 8px;
+  pointer-events: auto;
+}
+
+.canvas-flow-credit button {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
   cursor: pointer;
 }
 
+.canvas-flow-credit button:hover {
+  color: var(--color-accent);
+}
+
+.canvas-handle {
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid var(--color-surface-elevated);
+  background: var(--color-accent);
+}
+
+.canvas-resize-line {
+  border-color: color-mix(in srgb, var(--color-accent) 45%, transparent) !important;
+}
+
+.canvas-resize-handle {
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 2px !important;
+  border-color: var(--color-accent) !important;
+  background: var(--color-surface-elevated) !important;
+}
+
 .canvas-card {
-  position: absolute;
+  position: relative;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  width: 100%;
+  height: 100%;
   padding: 10px 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -8758,14 +8875,22 @@ html.dark .link-graph-toolbar--overlay {
 }
 
 .canvas-card-text {
+  display: block;
   flex: 1;
   min-height: 0;
+  width: 100%;
   overflow: hidden;
+  border: none;
+  padding: 0;
+  background: transparent;
+  text-align: left;
   white-space: pre-wrap;
   word-break: break-word;
+  font: inherit;
   font-size: 13px;
   line-height: 1.45;
   color: var(--color-foreground);
+  cursor: text;
 }
 
 .canvas-card-text.is-placeholder {

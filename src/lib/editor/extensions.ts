@@ -33,6 +33,7 @@ import { FontSize } from '@/lib/editor/font-size'
 import { BlockSpacing } from '@/lib/editor/block-spacing'
 import { ListItemWithBlocks } from '@/lib/editor/list-item'
 import { MathJs } from '@/lib/editor/math-js-extension'
+import { D3Chart } from '@/lib/editor/d3-chart-extension'
 import { MermaidDiagram } from '@/lib/editor/mermaid-extension'
 import { LottieAnimation } from '@/lib/editor/lottie-extension'
 import { lowlight } from '@/lib/editor/lowlight'
@@ -118,6 +119,7 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
     }),
     MathJs.configure({}),
     MermaidDiagram.configure({}),
+    D3Chart.configure({}),
     LottieAnimation.configure({}),
     Youtube.configure({
       width: 640,

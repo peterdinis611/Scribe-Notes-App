@@ -10,7 +10,7 @@ describe('promoteMarkdownSpecialBlocks', () => {
     })
   })
 
-  it('promotes mermaid and math fenced code blocks', () => {
+  it('promotes mermaid, chart, and math fenced code blocks', () => {
     const doc: JSONContent = {
       type: 'doc',
       content: [
@@ -18,6 +18,11 @@ describe('promoteMarkdownSpecialBlocks', () => {
           type: 'codeBlock',
           attrs: { language: 'mermaid' },
           content: [{ type: 'text', text: 'flowchart TD\n  A --> B' }],
+        },
+        {
+          type: 'codeBlock',
+          attrs: { language: 'd3' },
+          content: [{ type: 'text', text: '{"type":"pie","data":[{"label":"A","value":1}]}' }],
         },
         {
           type: 'codeBlock',
@@ -38,10 +43,13 @@ describe('promoteMarkdownSpecialBlocks', () => {
       attrs: { source: 'flowchart TD\n  A --> B' },
     })
     expect(promoted.content?.[1]).toMatchObject({
+      type: 'd3Chart',
+    })
+    expect(promoted.content?.[2]).toMatchObject({
       type: 'mathBlock',
       attrs: { expression: '1 + 2' },
     })
-    expect(promoted.content?.[2]?.type).toBe('codeBlock')
+    expect(promoted.content?.[3]?.type).toBe('codeBlock')
   })
 
   it('uses a default mermaid flowchart when source is empty', () => {

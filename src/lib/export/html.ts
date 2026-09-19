@@ -1,6 +1,7 @@
 import { highlightCode } from '@/lib/editor/lowlight'
 import { resolveCodeLanguage } from '@/lib/editor/code-languages'
 import { evaluateMathExpression } from '@/lib/editor/math-js'
+import { renderD3ChartSource } from '@/lib/editor/d3-chart'
 import { renderMermaidSource } from '@/lib/editor/mermaid'
 import {
   DEFAULT_PAGE_SETUP,
@@ -37,6 +38,7 @@ type TipTapNode = {
 
 type RenderContext = {
   mermaidSvgBySource: Map<string, string>
+  d3SvgBySource: Map<string, string>
 }
 
 function escapeHtml(text: string): string {
@@ -147,6 +149,16 @@ function renderMermaidFigure(source: string, ctx: RenderContext): string {
   return `<figure class="mermaid-diagram" style="margin:16pt 0;"><pre style="white-space:pre-wrap;font-family:ui-monospace,monospace;font-size:10pt;padding:12pt;background:#f5f5f7;border-radius:8pt;">${escapeHtml(source)}</pre></figure>`
 }
 
+function renderD3Figure(source: string, ctx: RenderContext): string {
+  const trimmed = source.trim()
+  const cached = ctx.d3SvgBySource.get(trimmed)
+  const result = cached ? { ok: true as const, svg: cached } : renderD3ChartSource(trimmed, { print: true })
+  if (result.ok) {
+    return `<figure class="d3-chart" style="margin:16pt 0;text-align:center;overflow:auto;">${result.svg}</figure>`
+  }
+  return `<figure class="d3-chart" style="margin:16pt 0;"><pre style="white-space:pre-wrap;font-family:ui-monospace,monospace;font-size:10pt;padding:12pt;background:#f5f5f7;border-radius:8pt;">${escapeHtml(source)}</pre></figure>`
+}
+
 function renderNodes(nodes: TipTapNode[] | undefined, ctx: RenderContext): string {
   return (nodes ?? [])
     .map((node) => {
@@ -209,6 +221,10 @@ function renderNodes(nodes: TipTapNode[] | undefined, ctx: RenderContext): strin
         case 'mermaidDiagram': {
           const source = String(node.attrs?.source ?? '')
           return renderMermaidFigure(source, ctx)
+        }
+        case 'd3Chart': {
+          const source = String(node.attrs?.source ?? '')
+          return renderD3Figure(source, ctx)
         }
         case 'lottieAnimation': {
           const src = String(node.attrs?.src ?? '')
@@ -317,6 +333,17 @@ function collectMermaidSources(nodes?: TipTapNode[], into = new Set<string>()): 
   return into
 }
 
+function collectD3Sources(nodes?: TipTapNode[], into = new Set<string>()): Set<string> {
+  for (const node of nodes ?? []) {
+    if (node.type === 'd3Chart') {
+      const source = String(node.attrs?.source ?? '').trim()
+      if (source) into.add(source)
+    }
+    collectD3Sources(node.content, into)
+  }
+  return into
+}
+
 export async function buildMermaidSvgMap(
   contentJson: string,
   theme: 'neutral' | 'dark' = 'neutral',
@@ -339,6 +366,22 @@ export async function buildMermaidSvgMap(
   return map
 }
 
+export function buildD3SvgMap(contentJson: string): Map<string, string> {
+  let doc: TipTapNode = { type: 'doc', content: [] }
+  try {
+    doc = JSON.parse(contentJson) as TipTapNode
+  } catch {
+    return new Map()
+  }
+
+  const map = new Map<string, string>()
+  for (const source of collectD3Sources(doc.content)) {
+    const result = renderD3ChartSource(source, { print: true })
+    if (result.ok) map.set(source, result.svg)
+  }
+  return map
+}
+
 export type HtmlExportOptions = {
   pageSetup?: PageSetup
   includeTitleHeading?: boolean
@@ -347,6 +390,7 @@ export type HtmlExportOptions = {
   /** @deprecated Prefer `forPrint`. Kept as an alias for native PDF / light capture. */
   forPdf?: boolean
   mermaidSvgBySource?: Map<string, string>
+  d3SvgBySource?: Map<string, string>
 }
 
 function buildFirstPageMarginCss(pageSetup: PageSetup): string {
@@ -452,7 +496,7 @@ function buildHtmlDocument(
     }
     .export-header { margin-bottom: 18pt; padding-bottom: 6pt; border-bottom: 1px solid #ddd; }
     .export-footer { margin-top: 24pt; padding-top: 6pt; border-top: 1px solid #ddd; }
-    .mermaid-diagram svg { max-width: 100%; height: auto; }
+    .mermaid-diagram svg, .d3-chart svg { max-width: 100%; height: auto; }
     ${DOCUMENT_TIPTAP_CSS}
     ${DOCUMENT_HIGHLIGHT_CSS}
     ${forPrint ? PDF_CAPTURE_CSS : ''}
@@ -497,6 +541,7 @@ export function tiptapJsonToHtml(
 ): string {
   return buildHtmlDocument(contentJson, title, options, {
     mermaidSvgBySource: options?.mermaidSvgBySource ?? new Map(),
+    d3SvgBySource: options?.d3SvgBySource ?? buildD3SvgMap(contentJson),
   })
 }
 
@@ -508,5 +553,6 @@ export async function tiptapJsonToHtmlAsync(
 ): Promise<string> {
   const mermaidSvgBySource =
     options?.mermaidSvgBySource ?? (await buildMermaidSvgMap(contentJson, 'neutral'))
-  return buildHtmlDocument(contentJson, title, options, { mermaidSvgBySource })
+  const d3SvgBySource = options?.d3SvgBySource ?? buildD3SvgMap(contentJson)
+  return buildHtmlDocument(contentJson, title, options, { mermaidSvgBySource, d3SvgBySource })
 }

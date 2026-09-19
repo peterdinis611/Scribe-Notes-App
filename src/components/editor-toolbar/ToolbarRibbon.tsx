@@ -66,6 +66,7 @@ import { FONT_SIZES, HIGHLIGHT_COLORS, TEXT_COLORS } from '@/lib/editor/font-siz
 import { pickDocumentMediaFiles } from '@/lib/editor/image-utils'
 import {
   insertBlockMath,
+  insertD3Chart,
   insertDetailsBlock,
   insertInlineMath,
   insertLoremIpsum,
@@ -265,6 +266,7 @@ export function ToolbarRibbon({
             <DropdownMenuItem onClick={() => void insertInlineMath(editor)}>{t('toolbar.actions.inlineMath')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => void insertBlockMath(editor)}>{t('toolbar.actions.blockMath')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => insertMermaidDiagram(editor)}>{t('toolbar.actions.mermaid')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => insertD3Chart(editor)}>{t('toolbar.actions.chart')}</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => editor.chain().focus().toggleCodeBlock().run()}>
               <Code className="h-4 w-4" />

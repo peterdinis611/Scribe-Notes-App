@@ -218,7 +218,7 @@
     "zoomOut": "Zoom out",
     "resetView": "Reset view",
     "cardPlaceholder": "Card text…",
-    "emptyHint": "Double-click to add a card. Drag empty space to pan. Scroll to zoom.",
+    "emptyHint": "Double-click to add a card. Drag a handle to connect. Scroll to zoom.",
     "linkHint": "Select a card first, then link to another.",
     "linkPickSource": "Click the first card…",
     "linkPickTarget": "Click the second card to connect…",
@@ -230,6 +230,12 @@
     "done": "Done",
     "cancel": "Cancel",
     "rendering": "Rendering…"
+  },
+  "d3Chart": {
+    "edit": "Edit",
+    "editTitle": "Edit D3 chart JSON",
+    "done": "Done",
+    "cancel": "Cancel"
   },
   "footnotes": {
     "edit": "Edit",
@@ -1959,6 +1965,14 @@
       "label": "Mermaid",
       "hint": "Flowchart / sequence diagram"
     },
+    "chart": {
+      "label": "Chart",
+      "hint": "D3 bar, line, area, or pie"
+    },
+    "d3": {
+      "label": "D3 chart",
+      "hint": "Declarative JSON chart spec"
+    },
     "hr": {
       "label": "Divider",
       "hint": "Horizontal rule"
@@ -2254,6 +2268,7 @@
       "blockMath": "Formula block",
       "blockMathFull": "Formula block (math.js)",
       "mermaid": "Mermaid diagram",
+      "chart": "D3 chart",
       "codeBlock": "Code block",
       "paragraphFormat": "Paragraph format",
       "moreTools": "More tools",
