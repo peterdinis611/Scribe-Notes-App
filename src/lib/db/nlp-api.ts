@@ -304,6 +304,23 @@ export interface CalendarEvent {
   resolvedDate: string | null
 }
 
+export interface NlpRewriteResult {
+  output: string
+  mode: string
+  original: string
+}
+
+export const nlpRewriteSelection = (
+  text: string,
+  mode?: string,
+  customInstruction?: string,
+) =>
+  invoke<NlpRewriteResult>('nlp_rewrite_selection', {
+    text,
+    mode,
+    customInstruction,
+  })
+
 export const nlpCalendarEvents = (options?: {
   limit?: number
   fromDate?: string

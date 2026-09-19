@@ -276,6 +276,7 @@ pub fn run() {
             commands::nlp::nlp_library_answer,
             commands::nlp::nlp_document_answer,
             commands::nlp::nlp_suggest_wiki_links,
+            commands::nlp::nlp_rewrite_selection,
             commands::nlp::nlp_calendar_events,
             commands::revisions::list_document_revisions,
             commands::revisions::get_document_revision,

@@ -2816,5 +2816,17 @@
     "preview": "Náhľad",
     "insert": "Vložiť",
     "noEditor": "Najprv otvorte dokument"
+  },
+  "aiRewrite": {
+    "title": "Lokálny RAG Extender",
+    "rephrase": "Preformulovať profesionálnejšie",
+    "summarize": "Skrátiť na odrážky",
+    "translateSk": "Preložiť do slovenčiny",
+    "translateEn": "Preložiť do angličtiny",
+    "custom": "Vlastný prompt...",
+    "customPlaceholder": "napr. skráť, veľké písmená...",
+    "run": "Spustiť",
+    "insertBelow": "Vložiť pod výber",
+    "replace": "Nahradiť text"
   }
 }

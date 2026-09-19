@@ -582,6 +582,20 @@ impl NlpSidecar {
                 "maxChunks": max_chunks,
             }),
         )
+    pub fn rewrite_selection(
+        &self,
+        text: &str,
+        mode: &str,
+        custom_instruction: Option<&str>,
+    ) -> Result<Value, String> {
+        let mut params = json!({
+            "text": text,
+            "mode": mode,
+        });
+        if let Some(inst) = custom_instruction {
+            params["customInstruction"] = json!(inst);
+        }
+        self.call_method("rewrite_selection", params)
     }
 }
 

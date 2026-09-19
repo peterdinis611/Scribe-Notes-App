@@ -2801,5 +2801,17 @@
     "preview": "Preview",
     "insert": "Insert",
     "noEditor": "Open a document first"
+  },
+  "aiRewrite": {
+    "title": "Local RAG Extender",
+    "rephrase": "Rephrase professionally",
+    "summarize": "Summarize to bullets",
+    "translateSk": "Translate to Slovak",
+    "translateEn": "Translate to English",
+    "custom": "Custom prompt...",
+    "customPlaceholder": "e.g. shorten, uppercase...",
+    "run": "Run",
+    "insertBelow": "Insert Below",
+    "replace": "Replace"
   }
 }
