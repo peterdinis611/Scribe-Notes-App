@@ -298,6 +298,22 @@
         "title": "Vaše dokumenty",
         "description": "Prechádzajte priečinky a poznámky. Presúvajte myšou, pravý klik otvorí ďalšie akcie."
       },
+      "librarySwitcher": {
+        "title": "Knižnice",
+        "description": "Práca, osobné alebo archív ako samostatné korene. Prepínač mení celú knižnicu, nie len priečinok."
+      },
+      "libraryChat": {
+        "title": "Chat s poznámkami",
+        "description": "Pýtajte sa na celú knižnicu alebo na otvorenú poznámku. Odpovede ostávajú lokálne."
+      },
+      "libraryFilters": {
+        "title": "Rýchle filtre",
+        "description": "Všetko, bez odkazov, bez štítkov alebo neprečítané — knižnica sa zúži na to, čo hľadáte."
+      },
+      "libraryCompile": {
+        "title": "Zostavenie",
+        "description": "Vyberte kapitoly v poradí. Scribe z nich spraví jeden dokument a vie ho aj exportovať."
+      },
       "newDocument": {
         "title": "Nový dokument",
         "description": "Vytvorte prázdnu poznámku alebo začnite zo šablóny."
@@ -653,6 +669,13 @@
     "storage": {
       "pageTitle": "Úložisko",
       "pageDescription": "Priečinok na disku pre .scribe súbory. Na sync medzi Macmi použite iCloud Drive alebo Dropbox — Scribe nemá vlastný cloud.",
+      "librariesTitle": "Knižnice",
+      "librariesDescription": "Všetky knižnice na tomto Macu. Aktívna je tá, v ktorej práve píšete.",
+      "librariesActive": "Aktívna",
+      "librariesSwitch": "Prepnúť",
+      "librariesOpened": "Naposledy otvorená {{time}}",
+      "librariesNoPath": "Bez priečinka na disku",
+      "librariesEmpty": "Zatiaľ žiadne knižnice.",
       "folderTitle": "Priečinok dokumentov",
       "folderDescription": "Všetky dokumenty sa ukladajú do lokálnej databázy aplikácie. Tento priečinok drží zálohu vo formáte .scribe.",
       "folderDescriptionShort": "Lokálna databáza + .scribe súbory na disku. Pre sync medzi Macmi nastavte priečinok v iCloud Drive alebo Dropboxe.",
@@ -1222,6 +1245,7 @@
   },
   "libraries": {
     "label": "Knižnica",
+    "placeholder": "Vyber knižnicu",
     "new": "Nová",
     "newTitle": "Nová knižnica",
     "newHint": "Samostatný koreň vedľa aktuálneho priečinka Dokumenty.",
@@ -1261,7 +1285,7 @@
   "library": {
     "title": "Knižnica",
     "resize": "Zmeniť šírku knižnice",
-    "resizeHint": "Ťahaním rozšírite. Dvojklik vráti predvolenú šírku.",
+    "resizeHint": "Ťahaním zmeníte šírku. Dvojklik vráti predvolenú šírku.",
     "allDocuments": "Všetky dokumenty",
     "expandFolder": "Rozbaliť priečinok",
     "collapseFolder": "Zbaliť priečinok",
@@ -1382,10 +1406,10 @@
     "emptyTitle": "Opýtajte sa poznámok",
     "emptyTitleDocument": "Opýtajte sa tohto dokumentu",
     "emptyHint": "Odpovede pochádzajú iba z lokálnych AI embeddingov vašej knižnice — bez cloudu. Zapnite Lokálne AI v Nastaveniach.",
-    "emptyHintDocument": "Pýtajte sa na otvorenú poznámku alebo použite akčné chipy. Len Lokálne AI — extraktívne, bez cloudu.",
+    "emptyHintDocument": "Pýtajte sa na otvorenú poznámku, alebo ťuknite na chip. Len lokálne AI, bez cloudu.",
     "openSettings": "Otvoriť nastavenia Lokálneho AI",
-    "placeholder": "Opýtajte sa na svoje poznámky…",
-    "placeholderDocument": "Opýtajte sa na tento dokument…",
+    "placeholder": "Otázka k poznámkam…",
+    "placeholderDocument": "Otázka k dokumentu…",
     "send": "Opýtať sa",
     "thinking": "Prehľadávam poznámky…",
     "citations": "Zdroje",
@@ -1474,7 +1498,8 @@
     "leftOutline": "Obsah vľavo",
     "leftOutlineOff": "Skryť obsah vľavo",
     "resize": "Zmeniť šírku panela",
-    "resizeHint": "Ťahaním rozšírite. Dvojklik vráti predvolenú šírku."
+    "resizeHint": "Ťahaním zmeníte šírku. Dvojklik panel automaticky rozšíri; ďalší dvojklik vráti predvolenú šírku.",
+    "autoExpand": "Automaticky rozšíriť"
   },
   "panels": {
     "comments": {

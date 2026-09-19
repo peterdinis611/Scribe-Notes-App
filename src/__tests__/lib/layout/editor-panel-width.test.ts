@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { kvRemove } from '@/lib/storage/kv'
+import { SIDEBAR_WIDTH_KEY } from '@/lib/layout/sidebar-width'
 import {
   clampEditorPanelWidth,
   clampTocRailWidth,
@@ -7,6 +8,7 @@ import {
   EDITOR_PANEL_WIDTH_KEY,
   EDITOR_PANEL_WIDTH_MAX,
   EDITOR_PANEL_WIDTH_MIN,
+  nextEditorPanelWidthOnDoubleClick,
   persistEditorPanelWidth,
   persistTocRailWidth,
   readEditorPanelWidth,
@@ -36,6 +38,16 @@ describe('editor panel width', () => {
     expect(readEditorPanelWidth()).toBe(480)
     persistEditorPanelWidth(40)
     expect(readEditorPanelWidth()).toBe(EDITOR_PANEL_WIDTH_MIN)
+  })
+
+  it('double-click expands to the available max, then back to default', () => {
+    kvRemove(SIDEBAR_WIDTH_KEY)
+    const viewport = 1440
+    const max = clampEditorPanelWidth(EDITOR_PANEL_WIDTH_MAX, viewport)
+    const def = clampEditorPanelWidth(EDITOR_PANEL_WIDTH_DEFAULT, viewport)
+    expect(nextEditorPanelWidthOnDoubleClick(def, viewport)).toBe(max)
+    expect(nextEditorPanelWidthOnDoubleClick(max, viewport)).toBe(def)
+    expect(nextEditorPanelWidthOnDoubleClick(280, viewport)).toBe(max)
   })
 })
 

@@ -17,10 +17,21 @@ export function useResizableTocRail() {
     applyTocRailWidthVar(width)
   }, [width])
 
+  const resetWidth = useCallback(() => {
+    const next = clampTocRailWidth(TOC_RAIL_WIDTH_DEFAULT)
+    widthRef.current = next
+    setWidth(next)
+    persistTocRailWidth(next)
+  }, [])
+
   const onResizePointerDown = useCallback((event: React.PointerEvent<HTMLButtonElement>) => {
     if (event.button !== 0) return
     event.preventDefault()
     event.stopPropagation()
+    if (event.detail >= 2) {
+      resetWidth()
+      return
+    }
 
     const startX = event.clientX
     const startWidth = widthRef.current
@@ -48,14 +59,7 @@ export function useResizableTocRail() {
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
     window.addEventListener('pointercancel', onUp)
-  }, [])
-
-  const resetWidth = useCallback(() => {
-    const next = clampTocRailWidth(TOC_RAIL_WIDTH_DEFAULT)
-    widthRef.current = next
-    setWidth(next)
-    persistTocRailWidth(next)
-  }, [])
+  }, [resetWidth])
 
   return {
     width,

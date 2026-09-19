@@ -379,10 +379,8 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
           <button
             type="button"
             className={cn(
-              'inline-flex h-7 flex-1 items-center justify-center gap-1.5 rounded-[5px] border-none text-[11px] font-medium transition-colors',
-              scope === 'library'
-                ? 'bg-[var(--color-selection)] text-[var(--color-foreground)]'
-                : 'bg-transparent text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
+              'library-chat-scope-tab',
+              scope === 'library' && 'is-active',
             )}
             aria-pressed={scope === 'library'}
             onClick={() => changeScope('library')}
@@ -393,11 +391,9 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
           <button
             type="button"
             className={cn(
-              'inline-flex h-7 flex-1 items-center justify-center gap-1.5 rounded-[5px] border-none text-[11px] font-medium transition-colors',
-              scope === 'document'
-                ? 'bg-[var(--color-selection)] text-[var(--color-foreground)]'
-                : 'bg-transparent text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
-              !activeDocumentId && 'opacity-50',
+              'library-chat-scope-tab',
+              scope === 'document' && 'is-active',
+              !activeDocumentId && 'is-disabled',
             )}
             aria-pressed={scope === 'document'}
             disabled={!activeDocumentId}
@@ -413,10 +409,10 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
           </button>
         </div>
         {scope === 'document' && docTitle ? (
-          <div className="mt-1.5 flex items-center gap-2 px-0.5">
-            <p className="m-0 min-w-0 flex-1 truncate text-[10px] text-[var(--color-muted-foreground)]">
+          <div className="mt-1.5 flex items-start gap-2 px-0.5">
+            <p className="library-chat-scope-meta">
               {t('libraryChat.askingAbout', { title: docTitle })}
-              <span className="opacity-70">
+              <span>
                 {' '}
                 ·{' '}
                 {messages.length > 0
@@ -427,7 +423,7 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
             {messages.length > 0 ? (
               <button
                 type="button"
-                className="inline-flex shrink-0 items-center gap-1 rounded-[var(--radius-sm)] border border-transparent px-1.5 py-0.5 text-[10px] text-[var(--color-muted-foreground)] hover:border-[var(--color-border)] hover:text-[var(--color-foreground)]"
+                className="library-chat-clear"
                 title={t('libraryChat.clearMemory')}
                 onClick={() => void clearMemory()}
               >
@@ -442,7 +438,7 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
       <div className="library-chat-thread">
         <div className="flex flex-col gap-3 px-2.5 pb-3 pt-2">
           {historyLoading && messages.length === 0 ? (
-            <p className="m-0 px-1 text-[11px] text-[var(--color-muted-foreground)]">
+            <p className="library-chat-status">
               {t('libraryChat.memoryLoading')}
             </p>
           ) : null}
@@ -571,7 +567,7 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
                   </BubbleContent>
                 </Bubble>
                 <MessageFooter>
-                  <p className="m-0 px-1 text-[10px] text-[var(--color-muted-foreground)]">
+                  <p className="library-chat-status">
                     {t('libraryChat.thinking')}
                   </p>
                 </MessageFooter>
@@ -590,7 +586,7 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
                   key={key}
                   type="button"
                   disabled={loading}
-                  className="rounded-full border border-[var(--color-border)] bg-transparent px-2 py-0.5 text-[10px] text-[var(--color-muted-foreground)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-foreground)] disabled:opacity-50"
+                  className="library-chat-chip"
                   onClick={() => void sendQuestion(t(key))}
                 >
                   {t(key)}
@@ -601,7 +597,7 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
                   key={action.id}
                   type="button"
                   disabled={loading || !activeDocumentId}
-                  className="rounded-full border border-[var(--color-border)] bg-transparent px-2 py-0.5 text-[10px] text-[var(--color-muted-foreground)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-foreground)] disabled:opacity-50"
+                  className="library-chat-chip"
                   onClick={() => void runAction(action.id)}
                 >
                   {t(action.labelKey)}
@@ -618,7 +614,7 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
           <input
             ref={inputRef}
             type="text"
-            className="h-9 min-w-0 flex-1 rounded-full border border-[var(--color-border)] bg-[var(--color-background)] px-3.5 text-[13px] text-[var(--color-foreground)] outline-none placeholder:text-[var(--color-muted-foreground)] focus:border-[var(--color-accent)]"
+            className="library-chat-input"
             placeholder={
               scope === 'document'
                 ? t('libraryChat.placeholderDocument')

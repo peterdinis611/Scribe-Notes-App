@@ -14,7 +14,12 @@ type PopoverSide = 'top' | 'right' | 'bottom' | 'left'
 
 let activeDriver: Driver | null = null
 
-function step(t: AppTourTranslate, id: string, element?: string, side: PopoverSide = 'left'): DriveStep {
+function step(
+  t: AppTourTranslate,
+  id: string,
+  element?: string,
+  side: PopoverSide = 'left',
+): DriveStep {
   return {
     ...(element ? { element } : {}),
     popover: {
@@ -26,13 +31,17 @@ function step(t: AppTourTranslate, id: string, element?: string, side: PopoverSi
   }
 }
 
-function buildSteps(t: AppTourTranslate): DriveStep[] {
+export function buildAppTourSteps(t: AppTourTranslate): DriveStep[] {
   const candidates: DriveStep[] = [
     step(t, 'welcome'),
     step(t, 'sidebarRail', TOUR.sidebarRail, 'right'),
+    step(t, 'librarySwitcher', TOUR.librarySwitcher, 'right'),
     step(t, 'librarySearch', TOUR.librarySearch, 'right'),
     step(t, 'libraryViews', TOUR.libraryViews, 'right'),
+    step(t, 'libraryChat', TOUR.libraryChat, 'right'),
+    step(t, 'libraryFilters', TOUR.libraryFilters, 'right'),
     step(t, 'libraryTree', TOUR.libraryTree, 'right'),
+    step(t, 'libraryCompile', TOUR.libraryCompile, 'right'),
     step(t, 'newDocument', TOUR.newDocument, 'bottom'),
     step(t, 'appHeader', TOUR.appHeader, 'bottom'),
     step(t, 'documentTabs', TOUR.documentTabs, 'bottom'),
@@ -67,7 +76,7 @@ export function destroyAppTour() {
 export function runAppTour({ t, onDestroyed }: RunAppTourOptions) {
   destroyAppTour()
 
-  const steps = buildSteps(t)
+  const steps = buildAppTourSteps(t)
   if (steps.length === 0) {
     onDestroyed?.()
     return null
@@ -77,9 +86,11 @@ export function runAppTour({ t, onDestroyed }: RunAppTourOptions) {
     showProgress: true,
     animate: true,
     allowClose: true,
-    overlayOpacity: 0.38,
-    stagePadding: 6,
-    stageRadius: 8,
+    overlayOpacity: 0.52,
+    stagePadding: 8,
+    stageRadius: 10,
+    popoverOffset: 12,
+    smoothScroll: true,
     popoverClass: 'scribe-driver-popover',
     // Placeholders are substituted by driver.js, not i18next.
     progressText: '{{current}} / {{total}}',

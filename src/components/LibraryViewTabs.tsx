@@ -67,6 +67,7 @@ export function LibraryViewTabs({
             role="tab"
             aria-selected={isActive}
             className={cn('library-view-tab', isActive && 'is-active')}
+            data-tour={tab.id === 'chat' ? 'library-chat' : undefined}
             onClick={() => onChange(tab.id)}
           >
             <Icon

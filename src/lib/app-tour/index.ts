@@ -14,5 +14,5 @@ export function subscribeAppTourRequest(listener: TourRequestListener) {
   }
 }
 
-export { runAppTour, destroyAppTour, isAppTourActive } from '@/lib/app-tour/run-app-tour'
+export { runAppTour, destroyAppTour, isAppTourActive, buildAppTourSteps } from '@/lib/app-tour/run-app-tour'
 export { TOUR } from '@/lib/app-tour/selectors'

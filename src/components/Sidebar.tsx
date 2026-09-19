@@ -185,7 +185,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                         title={t('library.newFolder')}
                       >
                         <FolderPlus className="h-3.5 w-3.5" />
-                        {t('library.newFolder')}
+                        <span className="library-new-folder-label">{t('library.newFolder')}</span>
                       </button>
                       <button
                         type="button"

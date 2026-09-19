@@ -1,16 +1,23 @@
 import { useCallback, useEffect, useRef } from 'react'
+import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import {
   destroyAppTour,
   runAppTour,
   subscribeAppTourRequest,
 } from '@/lib/app-tour'
+import { resolveLibraryEditorDocumentId } from '@/lib/libraries/switch'
+import { ROUTES } from '@/lib/routes'
 import { persistOnboardingDismissed, readOnboardingDismissed, readSetupCompleted } from '@/store/persistence'
+import { store } from '@/store/index'
 import { useAppDispatch } from '@/store/hooks'
 import {
+  setActiveDocumentId,
   setFocusMode,
+  setLibraryView,
   setPanelRailExpanded,
   setReadingMode,
+  setSidebarOpen,
 } from '@/store/documentsSlice'
 
 type OnboardingTourProps = {
@@ -41,6 +48,7 @@ async function waitForSelector(selector: string, timeoutMs = 4000) {
 export function OnboardingTour({ enabled = true, onFinished }: OnboardingTourProps) {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
   const runningRef = useRef(false)
   const autoStartedRef = useRef(false)
 
@@ -54,9 +62,20 @@ export function OnboardingTour({ enabled = true, onFinished }: OnboardingTourPro
     dispatch(setFocusMode(false))
     dispatch(setReadingMode(false))
     dispatch(setPanelRailExpanded(true))
+    dispatch(setLibraryView('folders'))
+    dispatch(setSidebarOpen(true))
+
+    const editorId = resolveLibraryEditorDocumentId(store.getState().documents)
+    if (editorId) {
+      dispatch(setActiveDocumentId(editorId))
+      await navigate(ROUTES.document(editorId))
+      dispatch(setSidebarOpen(true))
+      await waitForSelector('[data-tour="editor-canvas"]')
+    }
+
     await waitForSelector('[data-tour="sidebar-rail"]')
-    await wait(120)
-  }, [dispatch])
+    await wait(160)
+  }, [dispatch, navigate])
 
   const startTour = useCallback(
     async (options?: { force?: boolean }) => {

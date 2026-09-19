@@ -24,7 +24,7 @@ export function LibrarySmartFilters() {
   )
 
   return (
-    <div className="library-smart-filters titlebar-no-drag">
+    <div className="library-smart-filters titlebar-no-drag" data-tour="library-filters">
       <span className="library-smart-filters-label">{t('library.smartFilters.label')}</span>
       <div className="library-smart-filters-row">
         {FILTERS.map((filter) => (

@@ -5,9 +5,17 @@ import { createLibrary, listLibraries } from '@/lib/db/libraries-api'
 import { activateLibrary } from '@/lib/libraries/switch'
 import { promptInput } from '@/lib/input-dialog'
 import { toast } from '@/lib/toast'
+import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setLibraries } from '@/store/librariesSlice'
 import { setCompileDialogOpen } from '@/store/uiSlice'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 const PRESETS = ['Práca', 'Osobné', 'Archív'] as const
 
@@ -55,25 +63,29 @@ export function LibrarySwitcher() {
     [dispatch, navigate, refresh, t],
   )
 
+  const missingPresets = PRESETS.filter((name) => !libraries.some((item) => item.name === name))
+
   return (
-    <div className="library-switcher">
-      <label className="sr-only" htmlFor="library-switcher-select">
-        {t('libraries.label')}
-      </label>
-      <select
-        id="library-switcher-select"
-        className="library-switcher-select"
-        value={active?.id ?? ''}
-        onChange={(event) => void handleSwitch(event.target.value)}
-      >
-        {libraries.map((item) => (
-          <option key={item.id} value={item.id}>
-            {item.name}
-          </option>
-        ))}
-      </select>
+    <div className="library-switcher titlebar-no-drag" data-tour="library-switcher">
+      <Select value={active?.id} onValueChange={(id) => void handleSwitch(id)} disabled={!active}>
+        <SelectTrigger
+          size="sm"
+          id="library-switcher-select"
+          className="library-switcher-trigger"
+          aria-label={t('libraries.label')}
+        >
+          <SelectValue placeholder={t('libraries.placeholder')}>{active?.name}</SelectValue>
+        </SelectTrigger>
+        <SelectContent align="start" className="library-switcher-content">
+          {libraries.map((item) => (
+            <SelectItem key={item.id} value={item.id} textValue={item.name}>
+              <span className="truncate">{item.name}</span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       <div className="library-switcher-actions">
-        {PRESETS.filter((name) => !libraries.some((item) => item.name === name)).map((name) => (
+        {missingPresets.map((name) => (
           <button
             key={name}
             type="button"
@@ -83,12 +95,17 @@ export function LibrarySwitcher() {
             {name}
           </button>
         ))}
-        <button type="button" className="library-switcher-preset" onClick={() => void handleCreate()}>
+        <button
+          type="button"
+          className={cn('library-switcher-preset', 'is-primary')}
+          onClick={() => void handleCreate()}
+        >
           {t('libraries.new')}
         </button>
         <button
           type="button"
           className="library-switcher-preset"
+          data-tour="library-compile"
           onClick={() => dispatch(setCompileDialogOpen(true))}
         >
           {t('compile.action')}

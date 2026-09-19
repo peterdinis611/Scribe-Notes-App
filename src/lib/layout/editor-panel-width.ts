@@ -37,6 +37,20 @@ export function clampEditorPanelWidth(
   return Math.round(Math.min(max, Math.max(min, value)))
 }
 
+const WIDTH_SNAP_PX = 12
+
+/** Double-click the sash: expand to the space the canvas can spare, then back to default. */
+export function nextEditorPanelWidthOnDoubleClick(
+  current: number,
+  viewportWidth?: number,
+  minWidth = EDITOR_PANEL_WIDTH_MIN,
+) {
+  const max = clampEditorPanelWidth(EDITOR_PANEL_WIDTH_MAX, viewportWidth, minWidth)
+  const def = clampEditorPanelWidth(EDITOR_PANEL_WIDTH_DEFAULT, viewportWidth, minWidth)
+  if (Math.abs(current - max) > WIDTH_SNAP_PX) return max
+  return def
+}
+
 export function applyEditorPanelWidthVar(width: number) {
   if (typeof document === 'undefined') return
   document.documentElement.style.setProperty('--editor-panel-width', `${width}px`)

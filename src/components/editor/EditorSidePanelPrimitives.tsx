@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { ChevronsLeft } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { useResizableEditorPanel } from '@/hooks/useResizableEditorPanel'
@@ -29,6 +30,15 @@ export function EditorSidePanel({
         onPointerDown={onResizePointerDown}
         onDoubleClick={resetWidth}
       />
+      <button
+        type="button"
+        className="editor-panel-autofit titlebar-no-drag"
+        aria-label={t('editorPanels.autoExpand')}
+        title={t('editorPanels.resizeHint')}
+        onClick={resetWidth}
+      >
+        <ChevronsLeft className="h-3.5 w-3.5" />
+      </button>
       {children}
     </aside>
   )

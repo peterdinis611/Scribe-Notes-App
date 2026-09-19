@@ -2,7 +2,7 @@ import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import {
   applyEditorPanelWidthVar,
   clampEditorPanelWidth,
-  EDITOR_PANEL_WIDTH_DEFAULT,
+  nextEditorPanelWidthOnDoubleClick,
   persistEditorPanelWidth,
   readEditorPanelWidth,
 } from '@/lib/layout/editor-panel-width'
@@ -24,11 +24,23 @@ export function useResizableEditorPanel(minWidth?: number) {
     applyEditorPanelWidthVar(width)
   }, [width])
 
+  const resetWidth = useCallback(() => {
+    const next = nextEditorPanelWidthOnDoubleClick(widthRef.current, undefined, floor || undefined)
+    widthRef.current = next
+    setWidth(next)
+    persistEditorPanelWidth(next, floor || undefined)
+  }, [floor])
+
   const onResizePointerDown = useCallback(
     (event: React.PointerEvent<HTMLButtonElement>) => {
       if (event.button !== 0) return
       event.preventDefault()
       event.stopPropagation()
+      // preventDefault on pointerdown swallows dblclick — cycle width on the second press.
+      if (event.detail >= 2) {
+        resetWidth()
+        return
+      }
 
       const startX = event.clientX
       const startWidth = widthRef.current
@@ -49,7 +61,7 @@ export function useResizableEditorPanel(minWidth?: number) {
         finished = true
         setResizing(false)
         document.body.classList.remove('is-editor-panel-resizing')
-        if (moved) persistEditorPanelWidth(widthRef.current)
+        if (moved) persistEditorPanelWidth(widthRef.current, floor || undefined)
         window.removeEventListener('pointermove', onMove)
         window.removeEventListener('pointerup', onUp)
         window.removeEventListener('pointercancel', onUp)
@@ -59,15 +71,8 @@ export function useResizableEditorPanel(minWidth?: number) {
       window.addEventListener('pointerup', onUp)
       window.addEventListener('pointercancel', onUp)
     },
-    [floor],
+    [floor, resetWidth],
   )
-
-  const resetWidth = useCallback(() => {
-    const next = clampEditorPanelWidth(EDITOR_PANEL_WIDTH_DEFAULT)
-    widthRef.current = next
-    setWidth(next)
-    persistEditorPanelWidth(next)
-  }, [])
 
   return {
     width,

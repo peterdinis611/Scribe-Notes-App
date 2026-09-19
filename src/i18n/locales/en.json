@@ -298,6 +298,22 @@
         "title": "Your documents",
         "description": "Browse folders and notes. Drag to reorganize, right-click for more actions."
       },
+      "librarySwitcher": {
+        "title": "Libraries",
+        "description": "Work, personal, or archive as separate roots. Switching changes the whole library, not just a folder."
+      },
+      "libraryChat": {
+        "title": "Chat with notes",
+        "description": "Ask the whole library or the open note. Answers stay on this Mac."
+      },
+      "libraryFilters": {
+        "title": "Quick filters",
+        "description": "All, unlinked, untagged, or unread — narrow the library to what you need."
+      },
+      "libraryCompile": {
+        "title": "Compile",
+        "description": "Pick chapters in order. Scribe builds one document and can export it in the same step."
+      },
       "newDocument": {
         "title": "New document",
         "description": "Create a blank note or start from a template."
@@ -653,6 +669,13 @@
     "storage": {
       "pageTitle": "Storage",
       "pageDescription": "Choose a disk folder for .scribe files. Prefer iCloud Drive or Dropbox for multi-Mac sync — Scribe has no cloud of its own.",
+      "librariesTitle": "Libraries",
+      "librariesDescription": "Every library on this Mac. The active one is where you are writing now.",
+      "librariesActive": "Active",
+      "librariesSwitch": "Switch",
+      "librariesOpened": "Last opened {{time}}",
+      "librariesNoPath": "No folder on disk",
+      "librariesEmpty": "No libraries yet.",
       "folderTitle": "Documents folder",
       "folderDescription": "All documents are stored in the app's local database. This folder holds .scribe backups.",
       "folderDescriptionShort": "Local database + .scribe files on disk. Point this at iCloud Drive or Dropbox to sync across Macs.",
@@ -1222,6 +1245,7 @@
   },
   "libraries": {
     "label": "Library",
+    "placeholder": "Choose library",
     "new": "New",
     "newTitle": "New library",
     "newHint": "A separate root next to the current Documents folder.",
@@ -1261,7 +1285,7 @@
   "library": {
     "title": "Library",
     "resize": "Resize library",
-    "resizeHint": "Drag to widen. Double-click to reset.",
+    "resizeHint": "Drag to resize. Double-click to reset.",
     "allDocuments": "All documents",
     "expandFolder": "Expand folder",
     "collapseFolder": "Collapse folder",
@@ -1381,8 +1405,8 @@
     "emptyHint": "Answers come only from Local AI embeddings of your library — no cloud. Turn on Local AI in Settings.",
     "emptyHintDocument": "Ask about the open note, or tap an action chip. Local AI only — extractive, no cloud.",
     "openSettings": "Open Local AI settings",
-    "placeholder": "Ask about your notes…",
-    "placeholderDocument": "Ask about this document…",
+    "placeholder": "Ask your notes…",
+    "placeholderDocument": "Ask this note…",
     "send": "Ask",
     "thinking": "Searching notes…",
     "citations": "Sources",
@@ -1471,7 +1495,8 @@
     "leftOutline": "Left outline",
     "leftOutlineOff": "Hide left outline",
     "resize": "Resize panel",
-    "resizeHint": "Drag to widen. Double-click to reset."
+    "resizeHint": "Drag to resize. Double-click expands to the available width; double-click again to reset.",
+    "autoExpand": "Expand automatically"
   },
   "panels": {
     "comments": {

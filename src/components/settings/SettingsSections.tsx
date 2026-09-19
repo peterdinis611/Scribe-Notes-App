@@ -9,6 +9,7 @@ import { LocaleToggle, useCustomLocaleRefresh } from '@/components/LocaleToggle'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DiagnosticsSection } from '@/components/settings/DiagnosticsSection'
+import { LibrariesSettingsList } from '@/components/settings/LibrariesSettingsList'
 import { McpSection } from '@/components/settings/McpSection'
 import { PrivacySection } from '@/components/settings/PrivacySection'
 import {
@@ -504,6 +505,8 @@ export function StorageSection() {
         title={t('settings.storage.pageTitle')}
         description={t('settings.storage.pageDescription')}
       />
+
+      <LibrariesSettingsList />
 
       <SettingsGroup>
         <SettingsRow
