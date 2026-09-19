@@ -54,7 +54,7 @@ export function CodeBlockView({ node, updateAttributes, selected, editor }: Node
       <div className="scribe-code-block__body">
         <ScribeSyntaxHighlighter code={code} language={language} overlay />
         <pre className="scribe-code-block__input">
-          <NodeViewContent as="code" />
+          <NodeViewContent<'code'> as="code" />
         </pre>
       </div>
     </NodeViewWrapper>

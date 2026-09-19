@@ -4,7 +4,6 @@ export type AnimatedImageKind = 'gif' | 'webp' | 'apng'
 
 const GIF_EXT = /\.gif(?:$|[?#])/i
 const APNG_EXT = /\.apng(?:$|[?#])/i
-const WEBP_EXT = /\.webp(?:$|[?#])/i
 
 export function mimeForAnimatedKind(kind: AnimatedImageKind): string {
   if (kind === 'gif') return 'image/gif'
