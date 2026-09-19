@@ -27,6 +27,7 @@ import {
 import type { MetaFilters } from '@/lib/library/tag-meta'
 import { EMPTY_META_FILTERS } from '@/lib/library/tag-meta'
 import type { LibrarySmartFilter } from '@/lib/library/smart-filters'
+import { moveIdBefore } from '@/lib/dnd/reorder'
 
 export type SaveStatus = 'idle' | 'dirty' | 'saving' | 'saved' | 'error'
 
@@ -299,6 +300,12 @@ const documentsSlice = createSlice({
     setPinnedDocumentIds(state, action: PayloadAction<string[]>) {
       state.pinnedDocumentIds = action.payload
       persistPinnedDocumentIds(action.payload)
+    },
+    reorderOpenDocuments(state, action: PayloadAction<{ fromId: string; toId: string }>) {
+      const next = moveIdBefore(state.openDocumentIds, action.payload.fromId, action.payload.toId)
+      if (next === state.openDocumentIds) return
+      state.openDocumentIds = next
+      persistOpenDocumentIds(next)
     },
     setActiveDocument(state, action: PayloadAction<Document | null>) {
       state.activeDocument = action.payload
@@ -575,6 +582,7 @@ export const {
   closeOpenDocument,
   togglePinnedDocument,
   setPinnedDocumentIds,
+  reorderOpenDocuments,
   setActiveDocument,
   setSaveStatus,
   setSidebarOpen,

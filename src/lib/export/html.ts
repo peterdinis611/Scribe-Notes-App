@@ -3,6 +3,8 @@ import { resolveCodeLanguage } from '@/lib/editor/code-languages'
 import { evaluateMathExpression } from '@/lib/editor/math-js'
 import { renderD3ChartSource } from '@/lib/editor/d3-chart'
 import { renderMermaidSource } from '@/lib/editor/mermaid'
+import { mapEmbedHref, mapOsmHref, parseMapSpec } from '@/lib/editor/map'
+import { videoExportEmbed } from '@/lib/editor/video'
 import {
   DEFAULT_PAGE_SETUP,
   normalizePageSetup,
@@ -149,6 +151,32 @@ function renderMermaidFigure(source: string, ctx: RenderContext): string {
   return `<figure class="mermaid-diagram" style="margin:16pt 0;"><pre style="white-space:pre-wrap;font-family:ui-monospace,monospace;font-size:10pt;padding:12pt;background:#f5f5f7;border-radius:8pt;">${escapeHtml(source)}</pre></figure>`
 }
 
+function renderVideoFigure(source: string, caption?: string): string {
+  const embed = videoExportEmbed(source)
+  const captionHtml = caption?.trim()
+    ? `<figcaption>${escapeHtml(caption.trim())}</figcaption>`
+    : ''
+  if (embed.kind === 'iframe') {
+    return `<figure class="video-block" style="margin:16pt 0;"><div style="aspect-ratio:16/9;"><iframe src="${escapeHtml(embed.href)}" width="100%" height="360" frameborder="0" allowfullscreen></iframe></div>${captionHtml}</figure>`
+  }
+  if (embed.kind === 'video') {
+    return `<figure class="video-block" style="margin:16pt 0;"><video src="${escapeHtml(embed.href)}" controls style="width:100%;max-height:420px;"></video>${captionHtml}</figure>`
+  }
+  if (!source.trim()) {
+    return `<figure class="video-block" style="margin:16pt 0;"><p>Video</p>${captionHtml}</figure>`
+  }
+  return `<figure class="video-block" style="margin:16pt 0;"><p><a href="${escapeHtml(embed.href)}">${escapeHtml(source)}</a></p>${captionHtml}</figure>`
+}
+
+function renderMapFigure(source: string): string {
+  const parsed = parseMapSpec(source)
+  if (!parsed.ok) {
+    return `<figure class="map-block" style="margin:16pt 0;"><pre style="white-space:pre-wrap;font-family:ui-monospace,monospace;font-size:10pt;padding:12pt;background:#f5f5f7;border-radius:8pt;">${escapeHtml(source)}</pre></figure>`
+  }
+  const title = parsed.spec.title ? `<figcaption>${escapeHtml(parsed.spec.title)}</figcaption>` : ''
+  return `<figure class="map-block" style="margin:16pt 0;"><div style="aspect-ratio:16/9;"><iframe src="${escapeHtml(mapEmbedHref(parsed.spec))}" width="100%" height="320" frameborder="0"></iframe></div><p style="font-size:10pt;margin:8pt 0 0;"><a href="${escapeHtml(mapOsmHref(parsed.spec))}">OpenStreetMap</a></p>${title}</figure>`
+}
+
 function renderD3Figure(source: string, ctx: RenderContext): string {
   const trimmed = source.trim()
   const cached = ctx.d3SvgBySource.get(trimmed)
@@ -202,9 +230,11 @@ function renderNodes(nodes: TipTapNode[] | undefined, ctx: RenderContext): strin
           return renderNodes(node.content, ctx)
         case 'emoji':
           return escapeHtml(String(node.attrs?.name ?? '🙂'))
-        case 'youtube': {
+        case 'youtube':
+        case 'video': {
           const src = String(node.attrs?.src ?? '')
-          return `<div style="margin:16pt 0;aspect-ratio:16/9;"><iframe src="${escapeHtml(src)}" width="100%" height="360" frameborder="0" allowfullscreen></iframe></div>`
+          const caption = String(node.attrs?.caption ?? '')
+          return renderVideoFigure(src, caption)
         }
         case 'mathInline': {
           const expression = String(node.attrs?.expression ?? '')
@@ -225,6 +255,10 @@ function renderNodes(nodes: TipTapNode[] | undefined, ctx: RenderContext): strin
         case 'd3Chart': {
           const source = String(node.attrs?.source ?? '')
           return renderD3Figure(source, ctx)
+        }
+        case 'leafletMap': {
+          const source = String(node.attrs?.source ?? '')
+          return renderMapFigure(source)
         }
         case 'lottieAnimation': {
           const src = String(node.attrs?.src ?? '')
@@ -497,6 +531,7 @@ function buildHtmlDocument(
     .export-header { margin-bottom: 18pt; padding-bottom: 6pt; border-bottom: 1px solid #ddd; }
     .export-footer { margin-top: 24pt; padding-top: 6pt; border-top: 1px solid #ddd; }
     .mermaid-diagram svg, .d3-chart svg { max-width: 100%; height: auto; }
+    .video-block iframe, .video-block video, .map-block iframe { width: 100%; height: 100%; border: 0; }
     ${DOCUMENT_TIPTAP_CSS}
     ${DOCUMENT_HIGHLIGHT_CSS}
     ${forPrint ? PDF_CAPTURE_CSS : ''}

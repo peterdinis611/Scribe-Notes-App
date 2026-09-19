@@ -11,6 +11,8 @@ import {
 import {
   insertBlockMath,
   insertD3Chart,
+  insertEmptyVideoBlock,
+  insertLeafletMap,
   insertInlineMath,
   insertLoremIpsum,
   insertMermaidDiagram,
@@ -49,6 +51,9 @@ export const SLASH_COMMAND_DEFS: SlashCommandDef[] = [
   { id: 'image', icon: '🖼' },
   { id: 'image-url', icon: '🔗🖼' },
   { id: 'lottie', icon: '✦' },
+  { id: 'video', icon: '▶' },
+  { id: 'map', icon: '◎' },
+  { id: 'leaflet', icon: '⌖' },
   { id: 'math-inline', icon: 'ƒ' },
   { id: 'math-block', icon: '∑' },
   { id: 'mermaid', icon: '⬡' },
@@ -157,6 +162,13 @@ export function runSlashCommand(
     }
     case 'lottie':
       insertEmptyLottieBlock(editor)
+      break
+    case 'video':
+      insertEmptyVideoBlock(editor)
+      break
+    case 'map':
+    case 'leaflet':
+      insertLeafletMap(editor)
       break
     case 'math-inline':
       void insertInlineMath(editor)

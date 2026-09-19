@@ -1213,7 +1213,8 @@
     "ariaLabel": "Otvorené dokumenty",
     "close": "Zavrieť tab",
     "pin": "Pripnúť kartu",
-    "unpin": "Odopnúť kartu"
+    "unpin": "Odopnúť kartu",
+    "reorder": "Presuňte na zmenu poradia"
   },
   "split": {
     "close": "Zavrieť split panel"
@@ -1960,6 +1961,18 @@
       "label": "Lottie",
       "hint": "Lottie / DotLottie animácia (.json, .lottie)"
     },
+    "video": {
+      "label": "Video",
+      "hint": "YouTube, Vimeo alebo URL súboru"
+    },
+    "map": {
+      "label": "Mapa",
+      "hint": "Leaflet / OpenStreetMap"
+    },
+    "leaflet": {
+      "label": "Leaflet mapa",
+      "hint": "JSON špecifikácia alebo OSM URL"
+    },
     "math-inline": {
       "label": "Vzorec",
       "hint": "math.js v riadku"
@@ -2272,6 +2285,8 @@
       "table": "Tabuľka",
       "youtube": "YouTube",
       "youtubeVideo": "YouTube video",
+      "video": "Video",
+      "map": "Mapa",
       "scanBarcode": "Skenovať QR / čiarový kód",
       "tableOfContents": "Obsah (TOC)",
       "pageBreak": "Zalomenie strany",
@@ -2367,6 +2382,11 @@
     "youtubeDialog": {
       "title": "YouTube video",
       "description": "Vložte URL videa z YouTube.",
+      "confirm": "Vložiť"
+    },
+    "videoDialog": {
+      "title": "Video",
+      "description": "Vložte YouTube, Vimeo alebo priame URL videa.",
       "confirm": "Vložiť"
     },
     "paragraphStyles": {
@@ -2629,6 +2649,23 @@
     "resize": "Zmeniť veľkosť",
     "animatedBadge": "GIF",
     "animatedHint": "Animovaný obrázok"
+  },
+  "map": {
+    "provider": "OpenStreetMap",
+    "edit": "Upraviť",
+    "done": "Hotovo",
+    "cancel": "Zrušiť",
+    "delete": "Odstrániť mapu",
+    "fallbackTitle": "Mapa",
+    "openOsm": "Otvoriť v OpenStreetMap"
+  },
+  "video": {
+    "replace": "Zmeniť URL",
+    "delete": "Odstrániť video",
+    "emptyTitle": "Pridať video",
+    "emptyHint": "YouTube, Vimeo, Twitch alebo URL .mp4 / .webm",
+    "error": "Toto video sa nepodarilo prehrať",
+    "captionPlaceholder": "Popisok"
   },
   "lottie": {
     "alignGroup": "Zarovnanie Lottie",

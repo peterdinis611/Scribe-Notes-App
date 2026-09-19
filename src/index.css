@@ -1163,6 +1163,14 @@ html[data-ui-skin='press'] .app-chrome::after {
   display: none;
 }
 
+.document-tabs [role='tab'].is-dragging {
+  opacity: 0.4;
+}
+
+.document-tabs [role='tab'].is-drop-target {
+  box-shadow: inset 2px 0 0 0 var(--color-accent);
+}
+
 .settings-nav-item.is-active {
   border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
   background: var(--color-selection);
@@ -5111,7 +5119,7 @@ body.is-block-dragging .tiptap {
 }
 
 /* Keep a quiet cue only for structured blocks — never a form-like box on empty paragraphs. */
-.tiptap :is(blockquote, pre, table, .details-block, .callout, .math-js-node, .mermaid-diagram, .d3-chart, .image-block, .lottie-block).has-focus {
+.tiptap :is(blockquote, pre, table, .details-block, .callout, .math-js-node, .mermaid-diagram, .d3-chart, .video-block, .map-block, .image-block, .lottie-block).has-focus {
   outline: 1px solid color-mix(in srgb, var(--color-accent) 28%, transparent);
   outline-offset: 3px;
   border-radius: 4px;
@@ -5343,6 +5351,282 @@ body.is-block-dragging .tiptap {
   width: 100%;
   aspect-ratio: 16 / 9;
   border: 0;
+}
+
+.tiptap .video-block {
+  position: relative;
+  margin: 16px 0;
+}
+
+.tiptap .video-block.is-selected .video-block__stage,
+.tiptap .video-block.is-empty .video-block__stage {
+  outline: 1px solid color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
+  outline-offset: 2px;
+}
+
+.tiptap .video-block__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.tiptap .video-block__provider {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+  margin-right: auto;
+}
+
+.tiptap .video-block__btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-foreground);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.tiptap .video-block__btn:hover {
+  background: var(--color-selection);
+}
+
+.tiptap .video-block__btn--danger:hover {
+  color: var(--color-destructive);
+}
+
+.tiptap .video-block__stage {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background:
+    radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--color-accent) 16%, transparent), transparent 55%),
+    #111114;
+}
+
+.tiptap .video-block__stage > * {
+  width: 100%;
+  height: 100%;
+}
+
+.tiptap .video-block__stage iframe,
+.tiptap .video-block__stage video,
+.tiptap .video-block__stage youtube-video,
+.tiptap .video-block__stage vimeo-video,
+.tiptap .video-block__stage twitch-video,
+.tiptap .video-block__stage tiktok-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.tiptap .video-block__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 100%;
+  padding: 24px;
+  color: #f5f5f7;
+  text-align: center;
+  font-family: var(--font-display);
+  letter-spacing: 0.02em;
+}
+
+.tiptap .video-block__empty--error {
+  color: #ffb4b0;
+}
+
+.tiptap .video-block__empty a {
+  color: #f5f5f7;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.tiptap .video-block__hint {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: rgba(245, 245, 247, 0.62);
+}
+
+.tiptap .video-block__input {
+  width: min(420px, 100%);
+  margin-top: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.35);
+  color: #f5f5f7;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.tiptap .video-block__input:focus {
+  outline: 2px solid color-mix(in srgb, var(--color-accent) 45%, transparent);
+}
+
+.tiptap .video-block__caption {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  resize: none;
+  border: 0;
+  background: transparent;
+  color: var(--color-muted-foreground);
+  text-align: center;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.tiptap .video-block__caption:focus {
+  outline: none;
+  color: var(--color-foreground);
+}
+
+.tiptap .map-block {
+  position: relative;
+  margin: 16px 0;
+}
+
+.tiptap .map-block.is-selected .map-block__stage,
+.tiptap .map-block.is-editing .map-block__source {
+  outline: 1px solid color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
+  outline-offset: 2px;
+}
+
+.tiptap .map-block__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.tiptap .map-block__provider {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+  margin-right: auto;
+}
+
+.tiptap .map-block__btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-foreground);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.tiptap .map-block__btn:hover {
+  background: var(--color-selection);
+}
+
+.tiptap .map-block__btn--danger:hover {
+  color: var(--color-destructive);
+}
+
+.tiptap .map-block__stage {
+  position: relative;
+  height: 280px;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-canvas) 88%, #1d1d1f);
+}
+
+.tiptap .map-block__title {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 400;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  color: var(--color-foreground);
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+
+.tiptap .map-block__leaflet,
+.tiptap .map-block .leaflet-container {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  font-family: var(--font-sans);
+}
+
+.tiptap .map-block .leaflet-control-attribution {
+  font-size: 10px;
+  background: color-mix(in srgb, var(--color-surface) 86%, transparent);
+}
+
+.tiptap .map-block__fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 4px;
+  height: 100%;
+  padding: 20px;
+  color: var(--color-foreground);
+  font-family: var(--font-display);
+}
+
+.tiptap .map-block__fallback a {
+  color: var(--color-accent);
+  font-size: 12px;
+}
+
+.tiptap .map-block__error {
+  padding: 12px;
+  color: var(--color-destructive);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+.tiptap .map-block__source {
+  width: 100%;
+  min-height: 180px;
+  resize: vertical;
+  box-sizing: border-box;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-foreground);
+  background: var(--color-canvas);
+}
+
+.tiptap .map-block__source:focus {
+  outline: 2px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
+  outline-offset: 1px;
 }
 
 .tiptap .math-js-node {
@@ -8402,6 +8686,10 @@ html.dark .link-graph-toolbar--overlay {
   background: color-mix(in srgb, var(--color-accent) 12%, var(--color-selection));
   border-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
   border-style: dashed;
+}
+
+.folder-tree-row.is-dragging {
+  opacity: 0.42;
 }
 
 .folder-tree-chevron {

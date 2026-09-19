@@ -18,7 +18,8 @@ import TextAlign from '@tiptap/extension-text-align'
 import { TextStyle } from '@tiptap/extension-text-style'
 import Typography from '@tiptap/extension-typography'
 import Underline from '@tiptap/extension-underline'
-import Youtube from '@tiptap/extension-youtube'
+import { LeafletMap } from '@/lib/editor/map-extension'
+import { Video, YoutubeWithPlayer } from '@/lib/editor/video-extension'
 import { Markdown } from '@tiptap/markdown'
 import Dropcursor from '@tiptap/extension-dropcursor'
 import Gapcursor from '@tiptap/extension-gapcursor'
@@ -121,7 +122,9 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
     MermaidDiagram.configure({}),
     D3Chart.configure({}),
     LottieAnimation.configure({}),
-    Youtube.configure({
+    Video.configure({}),
+    LeafletMap.configure({}),
+    YoutubeWithPlayer.configure({
       width: 640,
       height: 360,
       nocookie: true,

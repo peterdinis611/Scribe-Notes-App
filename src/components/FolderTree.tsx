@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState, type RefObject } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
+import { useDrop } from 'react-dnd'
 import { useTranslation } from 'react-i18next'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useNavigate } from '@tanstack/react-router'
@@ -28,12 +29,8 @@ import {
 import { buildTree, estimateFlatItemSize, flattenTree } from '@/lib/library/tree'
 import { documentMatchesMetaFilters } from '@/lib/library/tag-meta'
 import { documentMatchesSmartFilter } from '@/lib/library/smart-filters'
-import {
-  readDocumentDragId,
-  readFolderDragId,
-  setDocumentDragData,
-  setFolderDragData,
-} from '@/lib/library/folder-tree-drag'
+import { canNestFolder } from '@/lib/dnd/reorder'
+import { LIBRARY_DND_TYPE, type LibraryDragItem } from '@/lib/dnd/types'
 import { nlpStatus, nlpSuggestTags } from '@/lib/db/nlp-api'
 import { describeNlpTagSuggestionFailure } from '@/lib/nlp/errors'
 import { ROUTES } from '@/lib/routes'
@@ -73,8 +70,8 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
   const selectedDocumentIds = useAppSelector((state) => state.documents.selectedDocumentIds)
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
-  const [dragOverId, setDragOverId] = useState<string | null>(null)
   const [orphanIds, setOrphanIds] = useState<Set<string>>(new Set())
+  const rootRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -455,55 +452,37 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     }
   }, [dispatch, documents, t])
 
-  const handleDropOnFolder = useCallback(async (folderId: string | null, event: React.DragEvent) => {
-    event.preventDefault()
-    event.stopPropagation()
-    setDragOverId(null)
-
-    const documentId = readDocumentDragId(event)
-    const folderDragId = readFolderDragId(event)
-
-    if (documentId) {
-      const current = documents.find((doc) => doc.id === documentId)
+  const handleLibraryDrop = useCallback(async (folderId: string | null, item: LibraryDragItem) => {
+    if (item.kind === 'document') {
+      const current = documents.find((doc) => doc.id === item.id)
       if (current?.folderId === folderId) return
-      await moveDocument(documentId, folderId)
+      await moveDocument(item.id, folderId)
       return
     }
 
-    if (folderDragId && folderDragId !== folderId) {
-      const previous = folders.find((item) => item.id === folderDragId)
-      if (!previous) return
+    if (!canNestFolder(item.id, folderId, folders)) return
+    const previous = folders.find((folder) => folder.id === item.id)
+    if (!previous || previous.parentId === folderId) return
 
+    dispatch(
+      updateFolders((prev) =>
+        prev.map((folder) => (folder.id === item.id ? { ...folder, parentId: folderId } : folder)),
+      ),
+    )
+
+    try {
+      const folder = await moveFolder(item.id, folderId)
+      dispatch(updateFolders((prev) => prev.map((entry) => (entry.id === folder.id ? folder : entry))))
+      toast.success(t('toasts.folderMoved'), folder.name)
+    } catch (error) {
       dispatch(
         updateFolders((prev) =>
-          prev.map((item) =>
-            item.id === folderDragId ? { ...item, parentId: folderId } : item,
-          ),
+          prev.map((folder) => (folder.id === item.id ? previous : folder)),
         ),
       )
-
-      try {
-        const folder = await moveFolder(folderDragId, folderId)
-        dispatch(updateFolders((prev) => prev.map((item) => (item.id === folder.id ? folder : item))))
-        toast.success(t('toasts.folderMoved'), folder.name)
-      } catch (error) {
-        dispatch(
-          updateFolders((prev) =>
-            prev.map((item) => (item.id === folderDragId ? previous : item)),
-          ),
-        )
-        toast.error(t('toasts.folderMoveError'), String(error))
-      }
+      toast.error(t('toasts.folderMoveError'), String(error))
     }
   }, [dispatch, documents, folders, moveDocument, t])
-
-  const handleFolderDragStart = useCallback((id: string, event: React.DragEvent) => {
-    setFolderDragData(event, id)
-  }, [])
-
-  const handleDocumentDragStart = useCallback((id: string, event: React.DragEvent) => {
-    setDocumentDragData(event, id)
-  }, [])
 
   const handleToggleSelect = useCallback(
     (id: string, event: React.MouseEvent) => {
@@ -518,16 +497,21 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     onToggleSelect: handleToggleSelect,
   }
 
-  const handleFolderDragOver = useCallback((id: string, event: React.DragEvent) => {
-    event.preventDefault()
-    event.stopPropagation()
-    event.dataTransfer.dropEffect = 'move'
-    setDragOverId(id)
-  }, [])
+  const [{ isOverRoot }, dropRoot] = useDrop(
+    () => ({
+      accept: LIBRARY_DND_TYPE,
+      drop: (item: LibraryDragItem, monitor) => {
+        if (monitor.didDrop()) return
+        void handleLibraryDrop(null, item)
+      },
+      collect: (monitor) => ({
+        isOverRoot: monitor.isOver({ shallow: true }) && monitor.canDrop(),
+      }),
+    }),
+    [handleLibraryDrop],
+  )
 
-  const handleFolderDragLeave = useCallback((id: string) => {
-    setDragOverId((current) => (current === id ? null : current))
-  }, [])
+  dropRoot(rootRef)
 
   const [vaultTick, setVaultTick] = useState(0)
 
@@ -585,7 +569,6 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
                 collectFolderSubtreeIds(folders, folder.id),
               )}
               isExpanded={expandedIds.includes(folder.id)}
-              isDragOver={dragOverId === folder.id}
               onToggle={toggleFolder}
               onRename={(id, name) => void handleRenameFolder(id, name)}
               onCreateChild={(parentId) => void handleCreateFolder(parentId)}
@@ -597,10 +580,7 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
               onUnlockVault={(id) => void handleUnlockVault(id)}
               onLockVault={(id) => void handleLockVault(id)}
               vaultUnlocked={isVaultUnlocked(folder.id)}
-              onDragStart={handleFolderDragStart}
-              onDragOver={handleFolderDragOver}
-              onDragLeave={handleFolderDragLeave}
-              onDrop={(folderId, event) => void handleDropOnFolder(folderId, event)}
+              onDropItem={(folderId, item) => void handleLibraryDrop(folderId, item)}
             />
           ))}
           {pinnedDocuments.map((document) => (
@@ -616,27 +596,16 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
               onTogglePin={(id, event) => void handleToggleDocumentPin(id, event)}
               onEditTags={(id, event) => void handleEditTags(id, event)}
               onToggleSelect={selectionProps.onToggleSelect}
-              onDragStart={handleDocumentDragStart}
             />
           ))}
         </div>
       )}
       <div
+        ref={rootRef}
         className={cn(
           'titlebar-no-drag',
-          dragOverId === 'root' && 'rounded-[10px] outline outline-1 outline-dashed outline-[var(--color-accent)] outline-offset-2',
+          isOverRoot && 'rounded-[10px] outline outline-1 outline-dashed outline-[var(--color-accent)] outline-offset-2',
         )}
-        onDragOver={(event) => {
-          if (event.target !== event.currentTarget) return
-          event.preventDefault()
-          event.dataTransfer.dropEffect = 'move'
-          setDragOverId('root')
-        }}
-        onDragLeave={(event) => {
-          if (event.target !== event.currentTarget) return
-          setDragOverId((id) => (id === 'root' ? null : id))
-        }}
-        onDrop={(event) => void handleDropOnFolder(null, event)}
       >
         {flatItems.length === 0 ? (
           <div className="px-3 py-6 text-center">
@@ -683,7 +652,6 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
                         collectFolderSubtreeIds(folders, item.folder.id),
                       )}
                       isExpanded={expandedIds.includes(item.folder.id)}
-                      isDragOver={dragOverId === item.folder.id}
                       onToggle={toggleFolder}
                       onRename={(id, name) => void handleRenameFolder(id, name)}
                       onCreateChild={(parentId) => void handleCreateFolder(parentId)}
@@ -695,10 +663,7 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
                       onUnlockVault={(id) => void handleUnlockVault(id)}
                       onLockVault={(id) => void handleLockVault(id)}
                       vaultUnlocked={isVaultUnlocked(item.folder.id)}
-                      onDragStart={handleFolderDragStart}
-                      onDragOver={handleFolderDragOver}
-                      onDragLeave={handleFolderDragLeave}
-                      onDrop={(folderId, event) => void handleDropOnFolder(folderId, event)}
+                      onDropItem={(folderId, item) => void handleLibraryDrop(folderId, item)}
                     />
                   ) : (
                     <FolderTreeDocumentRow
@@ -712,7 +677,6 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
                       onTogglePin={(id, event) => void handleToggleDocumentPin(id, event)}
                       onEditTags={(id, event) => void handleEditTags(id, event)}
                       onToggleSelect={selectionProps.onToggleSelect}
-                      onDragStart={handleDocumentDragStart}
                     />
                   )}
                 </div>

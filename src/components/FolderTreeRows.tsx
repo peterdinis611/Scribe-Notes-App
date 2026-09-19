@@ -1,4 +1,5 @@
-import { memo, useMemo } from 'react'
+import { memo, useMemo, useRef } from 'react'
+import { useDrag, useDrop } from 'react-dnd'
 import { useTranslation } from 'react-i18next'
 import {
   Check,
@@ -27,6 +28,8 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
 import { useMoveDocumentToFolder } from '@/hooks/useMoveDocumentToFolder'
+import { canNestFolder } from '@/lib/dnd/reorder'
+import { LIBRARY_DND_TYPE, type LibraryDragItem } from '@/lib/dnd/types'
 import { flattenFoldersForPicker } from '@/lib/library/folders'
 import { cn, formatRelativeTime } from '@/lib/utils'
 import type { DocumentSummary, Folder as FolderType } from '@/lib/db/api'
@@ -37,7 +40,6 @@ type FolderTreeFolderRowProps = {
   depth: number
   documentCount: number
   isExpanded: boolean
-  isDragOver: boolean
   onToggle: (id: string) => void
   onRename: (id: string, name: string) => void
   onCreateChild: (parentId: string) => void
@@ -47,10 +49,7 @@ type FolderTreeFolderRowProps = {
   onUnlockVault?: (id: string) => void
   onLockVault?: (id: string) => void
   vaultUnlocked?: boolean
-  onDragStart: (id: string, event: React.DragEvent) => void
-  onDragOver: (id: string, event: React.DragEvent) => void
-  onDragLeave: (id: string) => void
-  onDrop: (folderId: string, event: React.DragEvent) => void
+  onDropItem: (folderId: string, item: LibraryDragItem) => void
 }
 
 export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
@@ -58,7 +57,6 @@ export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
   depth,
   documentCount,
   isExpanded,
-  isDragOver,
   onToggle,
   onRename,
   onCreateChild,
@@ -68,28 +66,50 @@ export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
   onUnlockVault,
   onLockVault,
   vaultUnlocked = false,
-  onDragStart,
-  onDragOver,
-  onDragLeave,
-  onDrop,
+  onDropItem,
 }: FolderTreeFolderRowProps) {
   const { t } = useTranslation()
+  const folders = useAppSelector((state) => state.folders.folders)
+  const rowRef = useRef<HTMLDivElement>(null)
+
+  const [{ isDragging }, drag] = useDrag(
+    () => ({
+      type: LIBRARY_DND_TYPE,
+      item: { kind: 'folder', id: folder.id } satisfies LibraryDragItem,
+      collect: (monitor) => ({ isDragging: monitor.isDragging() }),
+    }),
+    [folder.id],
+  )
+
+  const [{ isOver }, drop] = useDrop(
+    () => ({
+      accept: LIBRARY_DND_TYPE,
+      canDrop: (item: LibraryDragItem) =>
+        item.kind === 'document' || canNestFolder(item.id, folder.id, folders),
+      drop: (item: LibraryDragItem) => {
+        onDropItem(folder.id, item)
+      },
+      collect: (monitor) => ({
+        isOver: monitor.isOver({ shallow: true }) && monitor.canDrop(),
+      }),
+    }),
+    [folder.id, folders, onDropItem],
+  )
+
+  drag(drop(rowRef))
 
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <div
+          ref={rowRef}
           className={cn(
             'folder-tree-row folder-tree-row--folder group titlebar-no-drag',
             isExpanded && 'is-expanded',
-            isDragOver && 'is-drop-target',
+            isOver && 'is-drop-target',
+            isDragging && 'is-dragging',
           )}
           style={{ '--folder-depth': depth } as React.CSSProperties}
-          draggable
-          onDragStart={(event) => onDragStart(folder.id, event)}
-          onDragOver={(event) => onDragOver(folder.id, event)}
-          onDragLeave={() => onDragLeave(folder.id)}
-          onDrop={(event) => onDrop(folder.id, event)}
         >
           <button
             type="button"
@@ -204,7 +224,6 @@ type FolderTreeDocumentRowProps = {
   onTogglePin: (id: string, event: React.MouseEvent) => void
   onEditTags: (id: string, event: React.MouseEvent) => void
   onToggleSelect?: (id: string, event: React.MouseEvent) => void
-  onDragStart: (id: string, event: React.DragEvent) => void
 }
 
 export const FolderTreeDocumentRow = memo(function FolderTreeDocumentRow({
@@ -218,12 +237,23 @@ export const FolderTreeDocumentRow = memo(function FolderTreeDocumentRow({
   onTogglePin,
   onEditTags,
   onToggleSelect,
-  onDragStart,
 }: FolderTreeDocumentRowProps) {
   const { t } = useTranslation()
   const folders = useAppSelector((state) => state.folders.folders)
   const moveDocument = useMoveDocumentToFolder()
   const folderItems = useMemo(() => flattenFoldersForPicker(folders), [folders])
+  const rowRef = useRef<HTMLDivElement>(null)
+
+  const [{ isDragging }, drag] = useDrag(
+    () => ({
+      type: LIBRARY_DND_TYPE,
+      item: { kind: 'document', id: document.id } satisfies LibraryDragItem,
+      collect: (monitor) => ({ isDragging: monitor.isDragging() }),
+    }),
+    [document.id],
+  )
+
+  drag(rowRef)
 
   const noopEvent = { stopPropagation() {} } as React.MouseEvent
 
@@ -231,10 +261,9 @@ export const FolderTreeDocumentRow = memo(function FolderTreeDocumentRow({
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <div
+          ref={rowRef}
           role="button"
           tabIndex={0}
-          draggable
-          onDragStart={(event) => onDragStart(document.id, event)}
           onClick={() => onOpen(document.id)}
           onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {
@@ -246,6 +275,7 @@ export const FolderTreeDocumentRow = memo(function FolderTreeDocumentRow({
             'folder-tree-row folder-tree-row--doc group titlebar-no-drag',
             isActive && 'is-active',
             isSelected && 'is-selected',
+            isDragging && 'is-dragging',
           )}
           style={{ '--folder-depth': depth } as React.CSSProperties}
         >

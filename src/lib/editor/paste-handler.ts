@@ -7,6 +7,8 @@ import {
   isLikelyImageUrl,
   svgMarkupToFile,
 } from '@/lib/editor/image-utils'
+import { isMapUrl, specFromMapUrl } from '@/lib/editor/map'
+import { isVideoUrl } from '@/lib/editor/video'
 
 export const PASTE_IMAGE_MIME_TYPES = [
   'image/jpeg',
@@ -138,6 +140,19 @@ export const ClipboardPaste = Extension.create<ClipboardPasteOptions>({
                   },
                 })
                 .run()
+              return true
+            }
+
+            if (text && isVideoUrl(text) && this.editor) {
+              event.preventDefault()
+              this.editor.chain().focus().insertVideo({ src: text }).run()
+              return true
+            }
+
+            if (text && isMapUrl(text) && this.editor) {
+              const spec = specFromMapUrl(text)
+              event.preventDefault()
+              this.editor.chain().focus().insertLeafletMap({ source: spec ? JSON.stringify(spec, null, 2) : text }).run()
               return true
             }
 

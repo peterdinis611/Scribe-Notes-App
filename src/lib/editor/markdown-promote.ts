@@ -1,5 +1,6 @@
 import type { JSONContent } from '@tiptap/core'
 import { D3_CHART_DEFAULT_SOURCE } from '@/lib/editor/d3-chart'
+import { MAP_DEFAULT_SOURCE } from '@/lib/editor/map'
 
 function codeBlockText(node: JSONContent): string {
   return (node.content ?? []).map((child) => child.text ?? '').join('')
@@ -32,6 +33,20 @@ function promoteNode(node: JSONContent): JSONContent {
         attrs: { expression: text.trim() },
       }
     }
+
+    if (language === 'video') {
+      return {
+        type: 'video',
+        attrs: { src: text.trim() || null },
+      }
+    }
+
+    if (language === 'map' || language === 'leaflet') {
+      return {
+        type: 'leafletMap',
+        attrs: { source: text.trim() || MAP_DEFAULT_SOURCE },
+      }
+    }
   }
 
   if (!node.content?.length) return node
@@ -43,7 +58,7 @@ function promoteNode(node: JSONContent): JSONContent {
 }
 
 /**
- * After TipTap Markdown parse, promote fenced ```mermaid / ```chart / ```math code blocks
+ * After TipTap Markdown parse, promote fenced ```mermaid / ```chart / ```video / ```map / ```math code blocks
  * into first-class editor nodes so import/source mode round-trips.
  */
 export function promoteMarkdownSpecialBlocks(doc: JSONContent): JSONContent {

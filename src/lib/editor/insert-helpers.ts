@@ -1,6 +1,7 @@
 import type { Editor } from '@tiptap/react'
 import { MATH_JS_EXAMPLES } from '@/lib/editor/math-js'
 import { D3_CHART_DEFAULT_SOURCE } from '@/lib/editor/d3-chart'
+import { MAP_DEFAULT_SOURCE } from '@/lib/editor/map'
 import { MERMAID_DEFAULT_SOURCE } from '@/lib/editor/mermaid'
 import { generateLoremIpsum, saveLoremOptions } from '@/lib/editor/lorem-ipsum'
 import { promptLoremOptions } from '@/lib/lorem-dialog'
@@ -36,17 +37,29 @@ export function insertD3Chart(editor: Editor) {
   editor.chain().focus().insertD3Chart({ source: D3_CHART_DEFAULT_SOURCE }).run()
 }
 
-export async function insertYoutubeVideo(editor: Editor) {
+export function insertLeafletMap(editor: Editor) {
+  editor.chain().focus().insertLeafletMap({ source: MAP_DEFAULT_SOURCE }).run()
+}
+
+export function insertEmptyVideoBlock(editor: Editor, pos?: number) {
+  editor.chain().focus().insertVideo({ pos, src: null }).run()
+}
+
+export async function insertVideo(editor: Editor) {
   if (editor.isDestroyed) return
   const url = await promptInput({
-    title: i18n.t('toolbar.youtubeDialog.title'),
-    description: i18n.t('toolbar.youtubeDialog.description'),
+    title: i18n.t('toolbar.videoDialog.title'),
+    description: i18n.t('toolbar.videoDialog.description'),
     defaultValue: 'https://www.youtube.com/watch?v=',
     placeholder: 'https://www.youtube.com/watch?v=',
-    confirmLabel: i18n.t('toolbar.youtubeDialog.confirm'),
+    confirmLabel: i18n.t('toolbar.videoDialog.confirm'),
   })
   if (!url?.trim() || editor.isDestroyed) return
-  editor.chain().focus().setYoutubeVideo({ src: url.trim() }).run()
+  editor.chain().focus().insertVideo({ src: url.trim() }).run()
+}
+
+export async function insertYoutubeVideo(editor: Editor) {
+  await insertVideo(editor)
 }
 
 /** Opens options dialog, then inserts configured lorem ipsum at the cursor. */

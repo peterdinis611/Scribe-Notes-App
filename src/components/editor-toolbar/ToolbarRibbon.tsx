@@ -67,12 +67,13 @@ import { pickDocumentMediaFiles } from '@/lib/editor/image-utils'
 import {
   insertBlockMath,
   insertD3Chart,
+  insertLeafletMap,
   insertDetailsBlock,
   insertInlineMath,
   insertLoremIpsum,
   insertMermaidDiagram,
   insertScannedBarcode,
-  insertYoutubeVideo,
+  insertVideo,
 } from '@/lib/editor/insert-helpers'
 import { insertBulletList, insertOrderedList, insertTaskList } from '@/lib/editor/list-commands'
 import { PARAGRAPH_STYLES, applyParagraphStyle, type ParagraphStyleId } from '@/lib/editor/paragraph-styles'
@@ -251,7 +252,7 @@ export function ToolbarRibbon({
               <Table2 className="h-4 w-4" />
               {t('toolbar.actions.table')}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => void insertYoutubeVideo(editor)}>{t('toolbar.actions.youtubeVideo')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void insertVideo(editor)}>{t('toolbar.actions.video')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => editor.chain().focus().insertTableOfContents().run()}>
               <ListTree className="h-4 w-4" />
               {t('toolbar.actions.tableOfContents')}
@@ -267,6 +268,7 @@ export function ToolbarRibbon({
             <DropdownMenuItem onClick={() => void insertBlockMath(editor)}>{t('toolbar.actions.blockMath')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => insertMermaidDiagram(editor)}>{t('toolbar.actions.mermaid')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => insertD3Chart(editor)}>{t('toolbar.actions.chart')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => insertLeafletMap(editor)}>{t('toolbar.actions.map')}</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => editor.chain().focus().toggleCodeBlock().run()}>
               <Code className="h-4 w-4" />

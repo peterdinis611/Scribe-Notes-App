@@ -1213,7 +1213,8 @@
     "ariaLabel": "Open documents",
     "close": "Close tab",
     "pin": "Pin tab",
-    "unpin": "Unpin tab"
+    "unpin": "Unpin tab",
+    "reorder": "Drag to reorder"
   },
   "split": {
     "close": "Close split pane"
@@ -1953,6 +1954,18 @@
       "label": "Lottie",
       "hint": "Lottie / DotLottie animation (.json, .lottie)"
     },
+    "video": {
+      "label": "Video",
+      "hint": "YouTube, Vimeo, or a file URL"
+    },
+    "map": {
+      "label": "Map",
+      "hint": "Leaflet / OpenStreetMap"
+    },
+    "leaflet": {
+      "label": "Leaflet map",
+      "hint": "JSON map spec or OSM URL"
+    },
     "math-inline": {
       "label": "Formula",
       "hint": "Inline math.js"
@@ -2259,6 +2272,8 @@
       "table": "Table",
       "youtube": "YouTube",
       "youtubeVideo": "YouTube video",
+      "video": "Video",
+      "map": "Map",
       "scanBarcode": "Scan QR / barcode",
       "tableOfContents": "Table of contents (TOC)",
       "pageBreak": "Page break",
@@ -2354,6 +2369,11 @@
     "youtubeDialog": {
       "title": "YouTube video",
       "description": "Paste a YouTube watch or share URL.",
+      "confirm": "Insert"
+    },
+    "videoDialog": {
+      "title": "Video",
+      "description": "Paste a YouTube, Vimeo, or direct video URL.",
       "confirm": "Insert"
     },
     "paragraphStyles": {
@@ -2614,6 +2634,23 @@
     "resize": "Resize",
     "animatedBadge": "GIF",
     "animatedHint": "Animated image"
+  },
+  "map": {
+    "provider": "OpenStreetMap",
+    "edit": "Edit",
+    "done": "Done",
+    "cancel": "Cancel",
+    "delete": "Delete map",
+    "fallbackTitle": "Map",
+    "openOsm": "Open in OpenStreetMap"
+  },
+  "video": {
+    "replace": "Replace URL",
+    "delete": "Delete video",
+    "emptyTitle": "Add a video",
+    "emptyHint": "YouTube, Vimeo, Twitch, or an .mp4 / .webm URL",
+    "error": "This video could not be played",
+    "captionPlaceholder": "Caption"
   },
   "lottie": {
     "alignGroup": "Lottie alignment",

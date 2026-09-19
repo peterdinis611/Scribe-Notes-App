@@ -11,6 +11,7 @@ import {
   Heading,
   Image,
   List,
+  Map,
   Minus,
   PanelRightClose,
   Quote,
@@ -61,12 +62,14 @@ const OUTLINE_ICONS: Record<DocumentOutlineKind, LucideIcon> = {
   table: Table2,
   image: Image,
   youtube: Video,
+  video: Video,
   details: ChevronRight,
   pageBreak: SquareSplitVertical,
   mathInline: Calculator,
   mathBlock: Calculator,
   mermaidDiagram: GitBranch,
   d3Chart: BarChart3,
+  leafletMap: Map,
   lottieAnimation: Sparkles,
 }
 
