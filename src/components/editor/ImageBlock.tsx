@@ -283,6 +283,26 @@ export function ImageBlock({
               <ToolbarBtn onClick={() => setLightboxOpen(true)} title={t('image.expand')}>
                 <Expand className="h-3.5 w-3.5" />
               </ToolbarBtn>
+              <ToolbarBtn
+                onClick={async () => {
+                  if (!rawSrc) return
+                  setOcrLoading(true)
+                  try {
+                    const { invoke } = await import('@/lib/tauri')
+                    const res = await invoke<{ text: string }>('extract_image_ocr', { imagePath: rawSrc })
+                    setOcrText(res.text)
+                    toast.success('OCR text extracted')
+                  } catch (e) {
+                    toast.error('OCR failed')
+                  } finally {
+                    setOcrLoading(false)
+                  }
+                }}
+                title="Extract text (OCR)"
+                disabled={ocrLoading}
+              >
+                <Scan className="h-3.5 w-3.5 text-amber-500" />
+              </ToolbarBtn>
               {!animated ? (
                 <ToolbarBtn onClick={() => setCropOpen(true)} title={t('image.crop')}>
                   <Crop className="h-3.5 w-3.5" />
@@ -413,6 +433,16 @@ export function ImageBlock({
               }}
               aria-label={t('image.caption')}
             />
+          </div>
+        )}
+
+        {ocrText && (
+          <div className="mt-1.5 p-2 rounded bg-muted/60 border border-border/60 text-xs font-mono select-text" contentEditable={false}>
+            <div className="flex items-center justify-between font-sans font-semibold text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
+              <span>Extracted Image Text (OCR)</span>
+              <button onClick={() => setOcrText(null)} className="hover:text-foreground">Close</button>
+            </div>
+            <div className="whitespace-pre-wrap">{ocrText}</div>
           </div>
         )}
 
