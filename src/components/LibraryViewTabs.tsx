@@ -1,10 +1,12 @@
 import {
   CalendarDays,
+  CheckSquare,
   Copy,
   FolderTree,
   GitBranch,
   History,
   MessageCircle,
+  Network,
   Star,
   Tag as TagIcon,
 } from 'lucide-react'
@@ -21,6 +23,8 @@ export type LibraryView =
   | 'journal'
   | 'chat'
   | 'duplicates'
+  | 'tasks'
+  | 'wikiHealth'
 
 type LibraryViewTabsProps = {
   value: LibraryView
@@ -47,6 +51,8 @@ export function LibraryViewTabs({
     { id: 'tags', label: t('library.tabs.tags'), icon: TagIcon },
     { id: 'graph', label: t('library.tabs.graph'), icon: GitBranch },
     { id: 'duplicates', label: t('library.tabs.duplicates'), icon: Copy },
+    { id: 'tasks', label: t('library.tabs.tasks'), icon: CheckSquare },
+    { id: 'wikiHealth', label: t('library.tabs.wikiHealth'), icon: Network },
     { id: 'chat', label: t('library.tabs.chat'), icon: MessageCircle },
   ]
 

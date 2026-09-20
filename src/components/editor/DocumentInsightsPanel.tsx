@@ -32,15 +32,21 @@ import {
   nlpSpellcheck,
   nlpStatus,
   nlpSuggestTags,
+  nlpSuggestWikiLinks,
   nlpTemplateFillHints,
   type DocumentTask,
   type NlpDocumentAnalysis,
   type NlpTemplateFillHints,
   type SpellcheckResult,
+  type WikiLinkSuggestion,
 } from '@/lib/db/nlp-api'
 import { isVaultCipherJson } from '@/lib/vault/crypto'
 import { isVaultUnlocked } from '@/lib/vault/session'
 import { tiptapToPlainText } from '@/lib/export/plain-text'
+import {
+  expectedSectionsForTemplate,
+  templateCoachFromJson,
+} from '@/lib/editor/template-coach'
 import {
   appendDocumentChatMessage,
   listDocumentChatMessages,
@@ -67,6 +73,9 @@ import {
   setSidebarOpen,
 } from '@/store/documentsSlice'
 import { useMoveDocumentToFolder } from '@/hooks/useMoveDocumentToFolder'
+import { useRenameDocument } from '@/hooks/useRenameDocument'
+import { applySpellSuggestion, applyWikiSuggestion } from '@/lib/editor/apply-suggestions'
+import { insertAiAnswerAsCallout } from '@/lib/editor/insert-ai-answer'
 import { createLibraryFolder } from '@/lib/library/create-folder'
 import {
   EditorSidePanel,
@@ -166,11 +175,13 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const moveDocument = useMoveDocumentToFolder()
+  const renameDocument = useRenameDocument()
   const [similar, setSimilar] = useState<SearchHit[]>([])
   const [tasks, setTasks] = useState<DocumentTask[]>([])
   const [analysis, setAnalysis] = useState<NlpDocumentAnalysis | null>(null)
   const [nlpEnabled, setNlpEnabled] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [applyingTitle, setApplyingTitle] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
   const [spellResult, setSpellResult] = useState<SpellcheckResult | null>(null)
   const [spellLoading, setSpellLoading] = useState(false)
@@ -185,6 +196,8 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
   const [templateLoading, setTemplateLoading] = useState(false)
   const [vaultAnalyzeBusy, setVaultAnalyzeBusy] = useState(false)
   const [vaultDenied, setVaultDenied] = useState(false)
+  const [wikiSuggestions, setWikiSuggestions] = useState<WikiLinkSuggestion[]>([])
+  const [wikiBusyId, setWikiBusyId] = useState<string | null>(null)
 
   const vaultFolder = useMemo(() => {
     const folderId = activeSummary?.folderId ?? activeDocument?.folderId
@@ -213,6 +226,7 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
       setFolderSuggestion(null)
       setFolderSuggestionId(null)
       setTemplateHints(null)
+      setWikiSuggestions([])
       setVaultDenied(false)
       return
     }
@@ -244,13 +258,20 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
           setTemplateHints(null)
           setFolderSuggestion(null)
           setFolderSuggestionId(null)
+          setWikiSuggestions([])
           return
         }
         void Promise.all([
           nlpDocumentTasks(activeId).catch(() => [] as DocumentTask[]),
           nlpSuggestTags(activeId).catch(() => null),
-          nlpTemplateFillHints({ documentId: activeId }).catch(() => null),
-        ]).then(([documentTasks, tags, template]) => {
+          nlpTemplateFillHints({
+            documentId: activeId,
+            expectedSections: expectedSectionsForTemplate(
+              templateCoachFromJson(activeDocument?.contentJson)?.templateId,
+            ),
+          }).catch(() => null),
+          nlpSuggestWikiLinks(activeId, 8).catch(() => [] as WikiLinkSuggestion[]),
+        ]).then(([documentTasks, tags, template, wiki]) => {
           if (cancelled) return
           setTasks(documentTasks)
           const nextFolderId =
@@ -260,6 +281,7 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
           setFolderSuggestionId(nextFolderId)
           setFolderSuggestion(tags?.folderSuggestion?.trim() || null)
           setTemplateHints(template)
+          setWikiSuggestions(wiki)
         })
       })
       .catch((error) => {
@@ -323,11 +345,28 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
     }
   }, [activeId, nlpEnabled, t])
 
+  const handleApplySuggestedTitle = useCallback(async () => {
+    if (!activeId || !analysis?.suggestedTitle) return
+    const next = analysis.suggestedTitle.trim()
+    if (!next) return
+    setApplyingTitle(true)
+    try {
+      await renameDocument(activeId, next)
+      setAnalysis((prev) => (prev ? { ...prev, suggestedTitle: next } : prev))
+    } finally {
+      setApplyingTitle(false)
+    }
+  }, [activeId, analysis?.suggestedTitle, renameDocument])
+
   const handleTemplateCheck = useCallback(async () => {
     if (!activeId || !nlpEnabled) return
     setTemplateLoading(true)
     try {
-      const result = await nlpTemplateFillHints({ documentId: activeId })
+      const coach = templateCoachFromJson(activeDocument?.contentJson)
+      const result = await nlpTemplateFillHints({
+        documentId: activeId,
+        expectedSections: expectedSectionsForTemplate(coach?.templateId),
+      })
       setTemplateHints(result)
     } catch (error) {
       setTemplateHints(null)
@@ -335,7 +374,7 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
     } finally {
       setTemplateLoading(false)
     }
-  }, [activeId, nlpEnabled, t])
+  }, [activeDocument?.contentJson, activeId, nlpEnabled, t])
 
   const handleMoveToSuggestedFolder = useCallback(async () => {
     if (!activeId || !folderSuggestionId) return
@@ -461,6 +500,64 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
     [dispatch],
   )
 
+  const handleInsertAskReply = useCallback(() => {
+    if (!askReply) return
+    const ok = insertAiAnswerAsCallout(askReply, {
+      sourceTitle: activeDocument?.title || t('panels.insights.askTitle'),
+    })
+    if (ok) toast.success(t('panels.insights.insertAnswerDone'))
+    else toast.error(t('panels.insights.insertAnswerError'))
+  }, [activeDocument?.title, askReply, t])
+
+  const handleApplyWiki = useCallback(
+    (suggestion: WikiLinkSuggestion) => {
+      const key = `${suggestion.documentId}:${suggestion.phrase}`
+      setWikiBusyId(key)
+      const result = applyWikiSuggestion(suggestion)
+      setWikiBusyId(null)
+      if (result === 'failed') {
+        toast.error(t('panels.insights.wikiApplyError'))
+        return
+      }
+      toast.success(
+        result === 'linked'
+          ? t('panels.insights.wikiAppliedLinked', { title: suggestion.title })
+          : t('panels.insights.wikiAppliedInserted', { title: suggestion.title }),
+      )
+      setWikiSuggestions((prev) =>
+        prev.filter(
+          (item) =>
+            !(item.documentId === suggestion.documentId && item.phrase === suggestion.phrase),
+        ),
+      )
+    },
+    [t],
+  )
+
+  const handleApplySpell = useCallback(
+    (word: string, suggestion: string) => {
+      handleFindWord(word)
+      window.setTimeout(() => {
+        const ok = applySpellSuggestion(word, suggestion)
+        if (ok) {
+          toast.success(t('panels.insights.spellcheckApplied', { word: suggestion }))
+          setSpellResult((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  issues: prev.issues.filter((issue) => issue.word !== word),
+                  issueCount: Math.max(0, prev.issueCount - 1),
+                }
+              : prev,
+          )
+        } else {
+          toast.error(t('panels.insights.spellcheckApplyError'))
+        }
+      }, 80)
+    },
+    [handleFindWord, t],
+  )
+
   const keywordCount = analysis?.keywords.length ?? 0
   const outlineCount = analysis?.outline.length ?? 0
   const dateCount = analysis?.dates?.length ?? 0
@@ -470,6 +567,12 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
     (analysis?.hosts?.length ?? 0)
   const hasSummary = Boolean(analysis?.summary?.trim())
   const templateMissingCount = templateHints?.missing.length ?? 0
+  const reportCoach = useMemo(
+    () => templateCoachFromJson(activeDocument?.contentJson ?? null),
+    [activeDocument?.contentJson],
+  )
+  const reportGapCount =
+    (reportCoach?.missingHeadings.length ?? 0) + (reportCoach?.openChecklist.length ?? 0)
   const signalCount =
     similar.length +
     openTasks.length +
@@ -480,7 +583,9 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
     (hasSummary ? 1 : 0) +
     (spellResult?.issueCount ?? 0) +
     (folderSuggestionId ? 1 : 0) +
-    templateMissingCount
+    templateMissingCount +
+    reportGapCount +
+    wikiSuggestions.length
 
   const languageLabel = useMemo(() => {
     if (!analysis?.language || analysis.language === 'unknown') {
@@ -630,6 +735,13 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
             {askReply ? (
               <div className="insights-reply">
                 <MarkdownView source={askReply} headingIds={false} className="scribe-markdown--chat" />
+                <button
+                  type="button"
+                  className="insights-primary-btn mt-2"
+                  onClick={handleInsertAskReply}
+                >
+                  {t('panels.insights.insertAnswer')}
+                </button>
               </div>
             ) : null}
 
@@ -684,9 +796,23 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
             )}
 
             {nlpEnabled && analysis?.suggestedTitle ? (
-              <p className="insights-suggested" title={analysis.suggestedTitle}>
-                {t('panels.insights.suggestedTitle', { title: analysis.suggestedTitle })}
-              </p>
+              <div className="insights-suggested-row">
+                <p className="insights-suggested" title={analysis.suggestedTitle}>
+                  {t('panels.insights.suggestedTitle', { title: analysis.suggestedTitle })}
+                </p>
+                {activeId && analysis.suggestedTitle.trim() !== (activeDocument?.title ?? '').trim() ? (
+                  <button
+                    type="button"
+                    className="insights-suggested-apply"
+                    disabled={applyingTitle}
+                    onClick={() => void handleApplySuggestedTitle()}
+                  >
+                    {applyingTitle
+                      ? t('common.loading')
+                      : t('panels.insights.applySuggestedTitle')}
+                  </button>
+                ) : null}
+              </div>
             ) : null}
           </div>
 
@@ -744,7 +870,17 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
                         </button>
                         {issue.suggestions.length > 0 ? (
                           <span className="insights-issue-suggestions">
-                            {issue.suggestions.slice(0, 3).join(' · ')}
+                            {issue.suggestions.slice(0, 3).map((suggestion) => (
+                              <button
+                                key={`${issue.word}-${suggestion}`}
+                                type="button"
+                                className="insights-spell-fix"
+                                title={t('panels.insights.spellcheckApply', { word: suggestion })}
+                                onClick={() => handleApplySpell(issue.word, suggestion)}
+                              >
+                                {suggestion}
+                              </button>
+                            ))}
                           </span>
                         ) : null}
                       </li>
@@ -812,9 +948,11 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
                 </div>
               </div>
               {templateHints ? (
-                <span className={cn('insights-count', templateMissingCount > 0 && 'has-items')}>
+                <span className={cn('insights-count', (templateMissingCount > 0 || reportGapCount > 0) && 'has-items')}>
                   {Math.round((templateHints.coverage ?? 0) * 100)}%
                 </span>
+              ) : reportGapCount > 0 ? (
+                <span className="insights-count has-items">{reportGapCount}</span>
               ) : null}
             </div>
 
@@ -860,6 +998,36 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
                     ) : null}
                   </>
                 ) : null}
+
+                {reportCoach && reportGapCount > 0 ? (
+                  <div className="insights-report-gaps">
+                    {reportCoach.missingHeadings.length > 0 ? (
+                      <>
+                        <p className="insights-quiet mb-2">{t('templateCoach.missing')}</p>
+                        <div className="insights-tag-row">
+                          {reportCoach.missingHeadings.slice(0, 8).map((section) => (
+                            <InsightChip key={`h-${section}`} className="insights-chip--strong" title={section}>
+                              {section}
+                            </InsightChip>
+                          ))}
+                        </div>
+                      </>
+                    ) : null}
+                    {reportCoach.openChecklist.length > 0 ? (
+                      <>
+                        <p className="insights-quiet mb-2 mt-2">{t('templateCoach.checklistOpen')}</p>
+                        <ul className="insights-task-list">
+                          {reportCoach.openChecklist.slice(0, 6).map((item) => (
+                            <li key={item}>
+                              <Square className="mt-0.5 h-3 w-3 shrink-0 opacity-55" aria-hidden />
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    ) : null}
+                  </div>
+                ) : null}
               </>
             )}
           </div>
@@ -892,25 +1060,59 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
             <InsightSection
               icon={AtSign}
               title={t('panels.insights.links')}
-              count={mentionCount}
-              defaultOpen={mentionCount > 0}
+              count={mentionCount + wikiSuggestions.length}
+              defaultOpen={mentionCount > 0 || wikiSuggestions.length > 0}
             >
-              {!nlpEnabled || mentionCount === 0 ? (
-                <p className="insights-quiet">
-                  {nlpEnabled ? t('panels.insights.linksEmpty') : t('panels.insights.keywordsDisabled')}
-                </p>
+              {!nlpEnabled ? (
+                <p className="insights-quiet">{t('panels.insights.keywordsDisabled')}</p>
               ) : (
-                <div className="insights-tag-row">
-                  {analysis?.wikiLinks?.slice(0, 6).map((item) => (
-                    <InsightChip key={`wiki-${item}`}>[[{item}]]</InsightChip>
-                  ))}
-                  {analysis?.mentions?.slice(0, 6).map((item) => (
-                    <InsightChip key={`mention-${item}`}>@{item}</InsightChip>
-                  ))}
-                  {analysis?.hosts?.slice(0, 4).map((item) => (
-                    <InsightChip key={`host-${item}`}>{item}</InsightChip>
-                  ))}
-                </div>
+                <>
+                  {wikiSuggestions.length > 0 ? (
+                    <div className="insights-wiki-suggest mb-3">
+                      <p className="insights-quiet mb-2">{t('panels.insights.wikiSuggestHint')}</p>
+                      <div className="insights-wiki-suggest__list">
+                        {wikiSuggestions.map((item) => {
+                          const key = `${item.documentId}:${item.phrase}`
+                          return (
+                            <div key={key} className="insights-wiki-suggest__row">
+                              <span className="min-w-0">
+                                <span className="insights-wiki-suggest__phrase">
+                                  “{item.phrase}”
+                                </span>
+                                <span className="insights-wiki-suggest__title">
+                                  → [[{item.title}]]
+                                </span>
+                              </span>
+                              <button
+                                type="button"
+                                className="insights-action"
+                                disabled={wikiBusyId === key}
+                                onClick={() => handleApplyWiki(item)}
+                              >
+                                {t('panels.insights.wikiAccept')}
+                              </button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ) : null}
+                  {mentionCount === 0 && wikiSuggestions.length === 0 ? (
+                    <p className="insights-quiet">{t('panels.insights.linksEmpty')}</p>
+                  ) : mentionCount > 0 ? (
+                    <div className="insights-tag-row">
+                      {analysis?.wikiLinks?.slice(0, 6).map((item) => (
+                        <InsightChip key={`wiki-${item}`}>[[{item}]]</InsightChip>
+                      ))}
+                      {analysis?.mentions?.slice(0, 6).map((item) => (
+                        <InsightChip key={`mention-${item}`}>@{item}</InsightChip>
+                      ))}
+                      {analysis?.hosts?.slice(0, 4).map((item) => (
+                        <InsightChip key={`host-${item}`}>{item}</InsightChip>
+                      ))}
+                    </div>
+                  ) : null}
+                </>
               )}
             </InsightSection>
 

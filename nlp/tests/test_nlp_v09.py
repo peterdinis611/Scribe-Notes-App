@@ -140,6 +140,39 @@ class LibraryAnswerTests(unittest.TestCase):
         self.assertIn("friday", result["answer"].lower())
         self.assertGreaterEqual(len(result.get("followups") or []), 1)
 
+    def test_intent_boosts_deadline_sentences(self) -> None:
+        from scribe_nlp.library_answer import detect_question_intent, library_answer
+
+        self.assertEqual(detect_question_intent("Any deadlines or dates in my notes?"), "dates")
+        result = library_answer(
+            "Any deadlines or dates in my notes?",
+            [
+                {
+                    "documentId": "a",
+                    "title": "Groceries",
+                    "snippet": "Milk and bread for the weekend picnic.",
+                },
+                {
+                    "documentId": "b",
+                    "title": "Release",
+                    "snippet": "Ship the release. The deadline is 2026-10-01.",
+                },
+            ],
+        )
+        self.assertEqual(result.get("intent"), "dates")
+        self.assertIn("deadline", result["answer"].lower())
+        self.assertIn("Dates & deadlines", result["answer"])
+        self.assertGreaterEqual(len(result.get("followups") or []), 2)
+
+    def test_people_and_decisions_intents(self) -> None:
+        from scribe_nlp.library_answer import detect_question_intent
+
+        self.assertEqual(detect_question_intent("Who do I mention across my notes?"), "people")
+        self.assertEqual(
+            detect_question_intent("Aké rozhodnutia alebo závery som si zaznačil?"),
+            "decisions",
+        )
+
     def test_library_answer_rpc(self) -> None:
         response = handle_request(
             {

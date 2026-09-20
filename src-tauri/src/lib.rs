@@ -107,9 +107,9 @@ pub fn run() {
             {
                 let app_menu = SubmenuBuilder::new(app, "Scribe")
                     .about(Some(tauri::menu::AboutMetadata {
-                        name: Some("Scribe 2.1".into()),
+                        name: Some("Scribe 2.3".into()),
                         version: Some(env!("CARGO_PKG_VERSION").into()),
-                        short_version: Some("2.1".into()),
+                        short_version: Some("2.3".into()),
                         copyright: Some("© 2026 Peter Dinis".into()),
                         ..Default::default()
                     }))
@@ -270,6 +270,7 @@ pub fn run() {
             commands::nlp::nlp_similar_documents,
             commands::nlp::nlp_document_tasks,
             commands::nlp::nlp_journal_tasks,
+            commands::nlp::nlp_list_open_tasks,
             commands::nlp::nlp_set_embed_backend,
             commands::nlp::nlp_document_analysis,
             commands::nlp::nlp_analyze_plaintext,
@@ -316,6 +317,9 @@ pub fn run() {
             commands::system::reconcile_storage,
             commands::system::list_system_font_families,
             commands::links::list_link_graph,
+            commands::links::list_wiki_health,
+            commands::links::find_documents_by_title,
+            commands::links::resolve_wiki_link,
             capture::capture_status,
             capture::capture_start,
             capture::capture_stop,

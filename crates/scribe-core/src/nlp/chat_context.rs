@@ -2,7 +2,8 @@ use serde_json::{json, Value};
 
 pub const DOCUMENT_CHAT_CONTEXT_LIMIT: usize = 16;
 pub const DOCUMENT_CHAT_RECENT_TURNS: usize = 8;
-pub const MERGED_PASSAGE_LIMIT: usize = 20;
+/// Keep enough room for full-note passages plus a bit of chat memory.
+pub const MERGED_PASSAGE_LIMIT: usize = 44;
 const RECENT_SNIPPET_CHARS: usize = 480;
 const DIGEST_TURN_CHARS: usize = 160;
 
@@ -52,11 +53,15 @@ pub fn merge_chat_memory_passages(
     passages: Value,
     turns: &[ChatTurn],
 ) -> Value {
-    let mut combined = Vec::new();
-    if let Some(docs) = passages.as_array() {
-        combined.extend(docs.iter().cloned());
+    let mut docs = Vec::new();
+    if let Some(items) = passages.as_array() {
+        docs.extend(items.iter().cloned());
     }
-    combined.extend(chat_memory_passages(document_id, title, turns));
+    let memory = chat_memory_passages(document_id, title, turns);
+    // Prefer document body over chat memory when the merged budget is tight.
+    let memory_budget = MERGED_PASSAGE_LIMIT.saturating_sub(docs.len().min(MERGED_PASSAGE_LIMIT));
+    let mut combined = docs;
+    combined.extend(memory.into_iter().take(memory_budget.max(4)));
     combined.truncate(MERGED_PASSAGE_LIMIT);
     json!(combined)
 }

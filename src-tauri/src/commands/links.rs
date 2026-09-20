@@ -74,3 +74,40 @@ pub fn list_link_graph(state: tauri::State<'_, DbState>) -> Result<LinkGraph, St
 
     Ok(LinkGraph { edges, orphans })
 }
+
+#[tauri::command]
+pub fn list_wiki_health(
+    state: tauri::State<'_, DbState>,
+    unresolved_limit: Option<i64>,
+    stub_max_words: Option<i64>,
+    stub_limit: Option<i64>,
+) -> Result<scribe_core::WikiHealth, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    scribe_core::wiki_health(
+        &conn,
+        unresolved_limit.unwrap_or(120),
+        stub_max_words.unwrap_or(40),
+        stub_limit.unwrap_or(80),
+    )
+}
+
+#[tauri::command]
+pub fn find_documents_by_title(
+    state: tauri::State<'_, DbState>,
+    title: String,
+    limit: Option<i64>,
+) -> Result<Vec<scribe_core::TitleMatch>, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    scribe_core::find_documents_by_title(&conn, &title, limit.unwrap_or(10))
+}
+
+#[tauri::command]
+pub fn resolve_wiki_link(
+    state: tauri::State<'_, DbState>,
+    document_id: String,
+    label: String,
+    target_id: String,
+) -> Result<scribe_core::ResolveWikiLinkResult, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    scribe_core::resolve_wiki_link_in_document(&conn, &document_id, &label, &target_id)
+}

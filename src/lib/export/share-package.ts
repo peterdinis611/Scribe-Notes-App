@@ -24,9 +24,20 @@ export async function shareDocumentPackage(args: {
   title: string
   format: SharePackageFormat
   pageSetup?: PageSetup
+  documentId?: string
 }): Promise<ExportResult | null> {
   if (args.format === 'md') {
     return shareDocumentAsMarkdownFile(args)
+  }
+
+  if (args.format === 'html-zip' && args.documentId) {
+    const result = await exportDocument('', '', args.title, 'html-zip', undefined, undefined, {
+      documentId: args.documentId,
+    })
+    if (result?.path) {
+      await revealInFinder(result.path)
+    }
+    return result
   }
 
   const html = await tiptapJsonToHtmlAsync(args.contentJson, args.title, {
@@ -35,8 +46,6 @@ export async function shareDocumentPackage(args: {
   })
   const plainText = tiptapToPlainText(args.contentJson)
 
-  // PDF goes through generatePdfFromHtml → export_pdf_bytes inside exportDocument;
-  // HTML ZIP uses export_document with format html-zip.
   const result = await exportDocument(
     html,
     plainText,
@@ -44,6 +53,7 @@ export async function shareDocumentPackage(args: {
     args.format,
     undefined,
     args.pageSetup,
+    args.documentId ? { documentId: args.documentId } : undefined,
   )
 
   if (result?.path) {
@@ -56,10 +66,19 @@ export async function shareDocumentPackage(args: {
 export async function shareDocumentAsMarkdownFile(args: {
   contentJson: string
   title: string
+  documentId?: string
 }): Promise<ExportResult | null> {
   const markdown = tiptapJsonToMarkdown(args.contentJson, args.title)
   const plainText = tiptapToPlainText(args.contentJson)
-  const result = await exportDocument('', plainText, args.title, 'md', markdown)
+  const result = await exportDocument(
+    '',
+    plainText,
+    args.title,
+    'md',
+    markdown,
+    undefined,
+    args.documentId ? { documentId: args.documentId } : undefined,
+  )
 
   if (result?.path) {
     await revealInFinder(result.path)

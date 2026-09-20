@@ -561,7 +561,8 @@ fn extract_text_from_pages_xml(xml: &str) -> String {
 }
 
 pub fn read_text_file(path: &Path) -> Result<String, String> {
-    std::fs::read_to_string(path).map_err(|e| format!("Nepodarilo sa prečítať súbor: {e}"))
+    let bytes = std::fs::read(path).map_err(|e| format!("Nepodarilo sa prečítať súbor: {e}"))?;
+    Ok(scribe_core::decode_bytes(&bytes))
 }
 
 pub fn import_text_from_file(path: &Path) -> Result<String, String> {

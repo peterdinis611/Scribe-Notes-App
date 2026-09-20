@@ -6,22 +6,20 @@ import { RevisionDiffView } from '@/components/editor/RevisionDiffView'
 import { cacheDocument } from '@/lib/cache/document-cache'
 import {
   createNamedRevision,
-  getDocumentRevision,
+  diffDocumentRevisions,
   listDocumentRevisions,
   renameDocumentRevision,
   restoreDocumentRevision,
   type DocumentRevision,
 } from '@/lib/db/api'
-import { tiptapToPlainText } from '@/lib/export/plain-text'
 import { promptInput } from '@/lib/input-dialog'
 import {
   CURRENT_REVISION_ID,
-  diffLines,
-  diffSideBySide,
   type DiffLine,
   type DiffViewMode,
   type SideBySideRow,
 } from '@/lib/revisions/diff-text'
+import { tiptapToPlainText } from '@/lib/export/plain-text'
 import {
   buildRevisionCompareOptions,
   findRevisionOption,
@@ -108,19 +106,8 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
     setChangesOnly(false)
   }, [activeId, revisions])
 
-  async function loadRevisionText(revisionId: string): Promise<string> {
-    if (!activeDocument) return ''
-
-    if (revisionId === CURRENT_REVISION_ID) {
-      return tiptapToPlainText(activeDocument.contentJson)
-    }
-
-    const detail = await getDocumentRevision(revisionId)
-    return tiptapToPlainText(detail.contentJson)
-  }
-
   async function runCompare(nextAId: string, nextBId: string) {
-    if (!activeDocument) return
+    if (!activeDocument || !activeId) return
 
     if (nextAId === nextBId) {
       toast.error(t('panels.revisions.selectTwoVersions'))
@@ -136,10 +123,15 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
 
     setCompareLoading(true)
     try {
-      const [olderText, newerText] = await Promise.all([
-        loadRevisionText(olderId),
-        loadRevisionText(newerId),
-      ])
+      // LCS runs in Rust against revision IDs — TipTap bodies never cross IPC.
+      // Plain text of the open editor covers unsaved `__current__` edits.
+      const currentPlain =
+        olderId === CURRENT_REVISION_ID || newerId === CURRENT_REVISION_ID
+          ? tiptapToPlainText(activeDocument.contentJson)
+          : undefined
+      const diff = await diffDocumentRevisions(activeId, olderId, newerId, currentPlain)
+      const olderText = diff.oldText
+      const newerText = diff.newText
 
       const olderOption = findRevisionOption(olderId, compareOptions)
       const newerOption = findRevisionOption(newerId, compareOptions)
@@ -182,8 +174,25 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
           label: newerOption.label,
           createdAt: newerOption.createdAt,
         },
-        lines: diffLines(olderText, newerText),
-        sideBySideRows: diffSideBySide(olderText, newerText),
+        lines: diff.lines,
+        sideBySideRows: diff.lines.map((line) => {
+          if (line.type === 'unchanged') {
+            return {
+              left: { kind: 'text' as const, type: 'unchanged' as const, text: line.text },
+              right: { kind: 'text' as const, type: 'unchanged' as const, text: line.text },
+            }
+          }
+          if (line.type === 'removed') {
+            return {
+              left: { kind: 'text' as const, type: 'removed' as const, text: line.text },
+              right: { kind: 'gap' as const, text: '' },
+            }
+          }
+          return {
+            left: { kind: 'gap' as const, text: '' },
+            right: { kind: 'text' as const, type: 'added' as const, text: line.text },
+          }
+        }),
         nlpSummary,
         nlpAdded,
         nlpRemoved,

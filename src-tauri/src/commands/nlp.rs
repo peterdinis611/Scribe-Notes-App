@@ -41,6 +41,8 @@ pub struct NlpStatus {
     pub stale_index_count: i64,
     pub embed_backend: String,
     pub quality_available: bool,
+    pub extras: Option<serde_json::Map<String, serde_json::Value>>,
+    pub rust_extras: scribe_core::EnhanceStatus,
     pub script_path: String,
     pub python_bin: String,
     pub error: Option<String>,
@@ -215,6 +217,7 @@ fn sidecar_status(
     let script_path = sidecar.script_path().to_path_buf();
     let python_bin = std::env::var("SCRIBE_NLP_PYTHON").unwrap_or_else(|_| "python3".to_string());
     let sidecar_available = sidecar.script_exists();
+    let rust_extras = scribe_core::enhance_status();
 
     if !enabled {
         return NlpStatus {
@@ -229,6 +232,8 @@ fn sidecar_status(
             stale_index_count,
             embed_backend,
             quality_available,
+            extras: None,
+            rust_extras,
             script_path: crate::nlp::script_path_label(&script_path),
             python_bin,
             error: None,
@@ -248,6 +253,8 @@ fn sidecar_status(
             stale_index_count,
             embed_backend: health.embed_backend.unwrap_or(embed_backend),
             quality_available: health.quality_available.unwrap_or(quality_available),
+            extras: health.extras,
+            rust_extras,
             script_path: crate::nlp::script_path_label(&script_path),
             python_bin,
             error: None,
@@ -264,6 +271,8 @@ fn sidecar_status(
             stale_index_count,
             embed_backend,
             quality_available,
+            extras: None,
+            rust_extras,
             script_path: crate::nlp::script_path_label(&script_path),
             python_bin,
             error: health_error,
@@ -1153,6 +1162,83 @@ pub fn nlp_journal_tasks(
 }
 
 #[tauri::command]
+pub fn nlp_list_open_tasks(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    limit: Option<i64>,
+    folder_id: Option<String>,
+) -> Result<Vec<DocumentTask>, String> {
+    let max_docs = limit.unwrap_or(200).clamp(1, 500);
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let library_id = crate::libraries::active_library_id(&conn);
+    let folder = folder_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+
+    let rows: Vec<(String, String, String)> = if let Some(folder_id) = folder {
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, title, content_json FROM documents
+                 WHERE deleted_at IS NULL AND library_id = ?1 AND folder_id = ?2
+                 ORDER BY updated_at DESC
+                 LIMIT ?3",
+            )
+            .map_err(|e| e.to_string())?;
+        let mapped = stmt
+            .query_map(params![library_id, folder_id, max_docs], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            })
+            .map_err(|e| e.to_string())?;
+        mapped
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?
+    } else {
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, title, content_json FROM documents
+                 WHERE deleted_at IS NULL AND library_id = ?1
+                 ORDER BY updated_at DESC
+                 LIMIT ?2",
+            )
+            .map_err(|e| e.to_string())?;
+        let mapped = stmt
+            .query_map(params![library_id, max_docs], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            })
+            .map_err(|e| e.to_string())?;
+        mapped
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?
+    };
+
+    // Checkbox-only for speed; phrase extraction is available per-document in Insights.
+    let mut open = Vec::new();
+    for (document_id, title, content_json) in rows {
+        if content_is_vault_cipher(&content_json) {
+            continue;
+        }
+        let mut tasks = extract_checkbox_tasks(&content_json, true);
+        for task in &mut tasks {
+            task.document_id = Some(document_id.clone());
+            task.document_title = Some(title.clone());
+        }
+        open.extend(tasks.into_iter().filter(|task| !task.checked));
+    }
+
+    let _ = sidecar;
+    Ok(merge_document_tasks(open))
+}
+
+#[tauri::command]
 pub fn nlp_set_embed_backend(
     state: State<'_, DbState>,
     sidecar: State<'_, NlpSidecar>,
@@ -1615,83 +1701,6 @@ pub fn nlp_library_answer(
     })
 }
 
-fn chunk_document_passages(document_id: &str, title: &str, text: &str) -> Value {
-    const TARGET_CHARS: usize = 480;
-    const MAX_PASSAGES: usize = 12;
-
-    let mut chunks: Vec<String> = Vec::new();
-    let paragraphs: Vec<&str> = text
-        .split("\n\n")
-        .map(str::trim)
-        .filter(|part| !part.is_empty())
-        .collect();
-
-    if paragraphs.is_empty() {
-        let trimmed = text.trim();
-        if !trimmed.is_empty() {
-            chunks.push(trimmed.to_string());
-        }
-    } else {
-        let mut buffer = String::new();
-        for paragraph in paragraphs {
-            if buffer.is_empty() {
-                buffer.push_str(paragraph);
-                continue;
-            }
-            if buffer.len() + paragraph.len() + 1 <= TARGET_CHARS {
-                buffer.push('\n');
-                buffer.push_str(paragraph);
-            } else {
-                chunks.push(std::mem::take(&mut buffer));
-                buffer.push_str(paragraph);
-            }
-        }
-        if !buffer.trim().is_empty() {
-            chunks.push(buffer);
-        }
-    }
-
-    // Split oversized chunks on sentence-ish boundaries.
-    let mut refined: Vec<String> = Vec::new();
-    for chunk in chunks {
-        if chunk.len() <= TARGET_CHARS * 2 {
-            refined.push(chunk);
-            continue;
-        }
-        let mut current = String::new();
-        for part in chunk.split_inclusive(['.', '!', '?', '\n']) {
-            let piece = part.trim();
-            if piece.is_empty() {
-                continue;
-            }
-            if current.is_empty() {
-                current.push_str(piece);
-            } else if current.len() + piece.len() + 1 <= TARGET_CHARS {
-                current.push(' ');
-                current.push_str(piece);
-            } else {
-                refined.push(std::mem::take(&mut current));
-                current.push_str(piece);
-            }
-        }
-        if !current.trim().is_empty() {
-            refined.push(current);
-        }
-    }
-
-    json!(refined
-        .into_iter()
-        .take(MAX_PASSAGES)
-        .map(|snippet| {
-            json!({
-                "documentId": document_id,
-                "title": title,
-                "snippet": snippet,
-            })
-        })
-        .collect::<Vec<_>>())
-}
-
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DocumentAnswerContextMessage {
@@ -1712,7 +1721,7 @@ pub fn nlp_document_answer(
         return Err("libraryChat.emptyQuestion".to_string());
     }
 
-    let (title, fallback) = {
+    let (title, text) = {
         let conn = state.conn.lock().map_err(|e| e.to_string())?;
         if !is_nlp_enabled(&conn)? {
             return Err("libraryChat.nlpDisabled".to_string());
@@ -1734,38 +1743,34 @@ pub fn nlp_document_answer(
             return Err(ERR_VAULT_NLP.to_string());
         }
 
-        let text = format!("{title}\n{}", extract_search_text(&content_json));
+        let text = document_index_text(&conn, &document_id, &title, &content_json);
         if text.trim().len() < 8 {
             return Err("libraryChat.documentEmpty".to_string());
         }
-        let fallback = chunk_document_passages(&document_id, &title, &text);
-        (title, fallback)
+        (title, text)
     };
 
-    let passages = match sidecar.embed_text(&trimmed) {
+    let ranked = match sidecar.embed_text(&trimmed) {
         Ok((vector, model)) => {
             let conn = state.conn.lock().map_err(|e| e.to_string())?;
-            let ranked =
-                rank_document_chunks(&conn, &document_id, &vector, 8, Some(&model)).unwrap_or_default();
-            if ranked.len() >= 2 {
-                json!(ranked
-                    .into_iter()
-                    .map(|chunk| {
-                        json!({
-                            "documentId": document_id,
-                            "title": title,
-                            "snippet": chunk.snippet,
-                            "score": chunk.score,
-                            "chunkIndex": chunk.chunk_index,
-                        })
-                    })
-                    .collect::<Vec<_>>())
-            } else {
-                fallback
-            }
+            rank_document_chunks(
+                &conn,
+                &document_id,
+                &vector,
+                scribe_core::nlp::DOCUMENT_EMBED_RANK_LIMIT,
+                Some(&model),
+            )
+            .unwrap_or_default()
         }
-        Err(_) => fallback,
+        Err(_) => Vec::new(),
     };
+    let passages = scribe_core::nlp::build_document_answer_passages(
+        &document_id,
+        &title,
+        &text,
+        &trimmed,
+        &ranked,
+    );
 
     let passages = if let Some(messages) = context {
         let turns: Vec<ChatTurn> = messages
@@ -1789,7 +1794,7 @@ pub fn nlp_document_answer(
     }
     let passages = json!(combined);
 
-    let result = sidecar.library_answer_scoped(&trimmed, passages.clone(), 6, "document")?;
+    let result = sidecar.library_answer_scoped(&trimmed, passages.clone(), 8, "document")?;
     let fallback_title = title.clone();
     let citations = result
         .get("citations")

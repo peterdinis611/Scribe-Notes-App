@@ -146,7 +146,9 @@ def _is_blacklisted_phrase(phrase: str) -> bool:
 
 
 def extract_entities(text: str) -> dict[str, object]:
-    source = text or ""
+    from .extras import fix_unicode
+
+    source = fix_unicode(text or "")
     entities: list[dict[str, str]] = []
     suggestions: list[str] = []
     seen_suggestions: set[str] = set()
@@ -228,6 +230,25 @@ def extract_entities(text: str) -> dict[str, object]:
             continue
         _entity(phrase, "phrase")
         _append_unique(suggestions, seen_suggestions, _slugify(phrase))
+
+    try:
+        from .spacy_ner import extract_spacy_entities
+
+        for item in extract_spacy_entities(source):
+            kind = str(item.get("kind") or "phrase")
+            value = str(item.get("text") or "").strip()
+            if not value:
+                continue
+            _entity(value, kind)
+            if kind == "person":
+                _append_unique(suggestions, seen_suggestions, "osoba")
+            elif kind == "org":
+                _append_unique(suggestions, seen_suggestions, "firma")
+            elif kind == "place":
+                _append_unique(suggestions, seen_suggestions, "miesto")
+            _append_unique(suggestions, seen_suggestions, _slugify(value))
+    except Exception:
+        pass
 
     for tag in keywords_as_tags(source, limit=8):
         _append_unique(suggestions, seen_suggestions, tag)

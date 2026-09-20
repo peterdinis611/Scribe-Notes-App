@@ -1,6 +1,6 @@
 # Privacy Policy — Scribe
 
-**Effective 20 September 2026 · Scribe 2.1.0**
+**Effective 20 September 2026 · Scribe 2.3.0**
 
 Scribe is a local document editor for macOS. This notice describes what the app stores on your Mac, what it does not send to the developer, and when a feature you turn on may talk to another machine.
 

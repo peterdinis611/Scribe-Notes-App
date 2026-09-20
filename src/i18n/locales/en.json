@@ -54,7 +54,7 @@
     "brandWithEdition": "Scribe {{version}}",
     "eyebrow": "Local document editor · {{version}}",
     "brandTagline": "Write documents locally. Link notes when you need them.",
-    "editionNote": "2.1 — questions you ask a note stay with the document.",
+    "editionNote": "2.3 — Scribe’s own Local AI reads your notes on this Mac.",
     "newDocument": "New document",
     "todayNote": "Today’s note",
     "import": "Import",
@@ -72,7 +72,7 @@
     "press": {
       "eyebrow": "Letterpress · Scribe {{version}} · local on this Mac",
       "brandTagline": "Write documents. Link notes. Everything stays on disk.",
-      "editionNote": "2.1 — every question to a note is kept as a ledger on that page.",
+      "editionNote": "2.3 — Local AI answers from your library; MCP connects Cursor when you want.",
       "workflowHint": "Blank page → [[links]] → export. Leave advanced tools for later.",
       "recentDocuments": "Continue",
       "noDocuments": "The press is empty",
@@ -327,8 +327,8 @@
         "description": "Work, personal, or archive as separate roots. Switching changes the whole library, not just a folder."
       },
       "libraryChat": {
-        "title": "Chat with notes",
-        "description": "Ask the whole library or the open note. Answers stay on this Mac."
+        "title": "Scribe Local AI chat",
+        "description": "Scribe has its own Local AI. Ask the whole library or the open note — answers stay on this Mac, not in the cloud."
       },
       "libraryFilters": {
         "title": "Quick filters",
@@ -412,7 +412,19 @@
     "badge": "What's new in {{version}}",
     "kicker": "Edition notes",
     "title": "Scribe {{version}}",
-    "subtitle": "Questions stay with the note, document memory follows the thread, and local search ranks closer passages first.",
+    "subtitle": "Scribe’s own Local AI reads your notes on this Mac, and MCP is ready when you want Cursor or Claude in the loop.",
+    "localAiAsk": {
+      "title": "Scribe Local AI",
+      "description": "Built-in Local AI — not ChatGPT. Ask the library or the open note; answers stay on this device."
+    },
+    "documentRead": {
+      "title": "Reads the whole note",
+      "description": "Document Q&A loads the note (including OCR), so answers come from the content you wrote — not a guess."
+    },
+    "mcpBridge": {
+      "title": "MCP enable + demo",
+      "description": "Turn on MCP in Settings, copy Cursor/Claude config, and open an in-app demo note with sample tools and prompts."
+    },
     "questionHistory": {
       "title": "Question history on the note",
       "description": "Every question you ask a document is listed in AI insights and document chat. Open a past question to reread the answer, or ask it again."
@@ -645,7 +657,7 @@
       },
       "mcp": {
         "label": "MCP",
-        "description": "Optional AI bridge — Cursor / Claude"
+        "description": "Enable the AI bridge + try the demo"
       },
       "nlp": {
         "label": "Local AI",
@@ -796,29 +808,81 @@
     },
     "mcp": {
       "title": "Scribe Memory MCP",
-      "description": "Optional for Cursor or Claude Desktop — Scribe works fine without MCP.",
-      "whatIsMcp": "MCP is a small local server so an AI app can read (and optionally update) your library. You don’t need it for everyday writing.",
-      "intro": "The Rust Scribe Memory MCP server lets an AI client search notes (full-text and semantic), load documents, follow wiki links, extract tasks, and optionally create or append notes.",
+      "description": "Optional bridge for Cursor or Claude Desktop — turn it on here, then try the demo.",
+      "whatIsMcp": "MCP is a small local server so an AI app can read (and optionally update) your library. Everyday writing in Scribe does not need it.",
+      "intro": "Scribe ships with its own MCP server (scribe-mcp). Enable it below to follow the setup, copy configs, and open an in-app demo note with sample tools and prompts.",
+      "enableTitle": "Enable MCP",
+      "enableDescription": "Marks MCP as part of your workflow and unlocks the demo showcase. Cursor/Claude still start the server — Scribe does not run it in the background.",
+      "enable": "Enable",
+      "enabled": "Enabled",
+      "enabledToast": "MCP enabled",
+      "disabledToast": "MCP disabled",
+      "enableHint": "Enable MCP to follow the setup steps, copy sample prompts, and open the demo note.",
+      "demoTitle": "MCP demo",
+      "demoDescription": "Opens (or creates) a demo note with setup steps, sample tools, and prompts you can try in Cursor.",
+      "openDemo": "Open MCP demo",
+      "demoOpening": "Opening…",
+      "demoCreated": "MCP demo note created",
+      "demoOpened": "MCP demo note opened",
+      "demoError": "Could not open MCP demo",
+      "demoDocTitle": "Scribe MCP — demo",
+      "demoDocIntro": "This note is an in-app demo of Scribe Memory MCP. Use it with Cursor or Claude Desktop after you enable MCP in Settings.",
+      "demoDocWhatTitle": "What MCP does",
+      "demoDocWhatBody": "An AI client can search your notes, load a document, follow wiki links, extract tasks, and optionally create or append notes — all locally on this Mac.",
+      "demoDocTipTitle": "Tip",
+      "demoDocTipBody": "If write tools report the database as locked, retry shortly or check scribe_status for writable: false while Scribe is open.",
+      "howToTitle": "How to connect",
+      "howToSteps": [
+        "Build the server once from the Scribe repo: npm run mcp:install",
+        "Copy the Cursor (or Claude) config below and replace __SCRIBE with your absolute repo path",
+        "Reload MCP in Cursor / fully quit and reopen Claude Desktop",
+        "In chat, try: Call scribe_status — or open this demo note and copy a sample prompt"
+      ],
+      "sampleToolsTitle": "Sample tools",
+      "sampleToolsDescription": "These are the tools an AI client can call once MCP is connected.",
+      "tools": {
+        "status": "Health, DB path, writable flag",
+        "search": "Full-text / semantic search over notes",
+        "libraryAnswer": "Ask the whole library with citations",
+        "getDocument": "Load one note as plain text",
+        "tasks": "List open checklist tasks",
+        "analysis": "Summary, keywords, outline for one note"
+      },
+      "samplePromptsTitle": "Try these prompts",
+      "samplePromptsDescription": "Copy into Cursor or Claude after MCP is connected.",
+      "samplePrompts": [
+        "Call scribe_status and tell me if the Scribe database is writable.",
+        "Search my Scribe notes for deadlines this month and list the sources.",
+        "Use library_answer: What open tasks or unfinished threads do I have?",
+        "Find the note titled like my project plan, then summarize it with document_analysis."
+      ],
+      "copyPromptShort": "Copy",
       "installTitle": "Install",
       "installDescription": "From the Scribe repo root, build the Rust MCP server once.",
       "configTitle": "Cursor config",
       "configDescription": "Paste into Cursor MCP settings. Replace __SCRIBE with the absolute repo path (binary: target/release/scribe-mcp).",
       "copyConfig": "Copy Cursor config",
       "configCopied": "Cursor config copied",
-      "promptTitle": "Prompt template",
+      "claudeConfigTitle": "Claude Desktop config",
+      "claudeConfigDescription": "Paste into ~/Library/Application Support/Claude/claude_desktop_config.json, then fully quit Claude (Cmd+Q) and reopen.",
+      "copyClaudeConfig": "Copy Claude config",
+      "claudeConfigCopied": "Claude config copied",
+      "promptTitle": "System prompt template",
       "promptDescription": "Optional instruction so the model prefers library facts over guesses.",
+      "promptTemplate": "Before answering, use Scribe MCP: search / library_answer, then get_document or document_analysis. For tasks use list_open_tasks. Prefer facts from the library over guesses.",
       "copyPrompt": "Copy prompt template",
-      "promptCopied": "Prompt template copied",
+      "promptCopied": "Prompt copied",
       "copyError": "Could not copy to clipboard",
       "pathHint": "After npm run mcp:install, point command at target/release/scribe-mcp with an absolute path (see crates/scribe-mcp/README.md).",
-      "lockHint": "Write tools need a writable DB open. If Scribe has the database locked, retry create/append shortly or check scribe_status for writable: false."
+      "lockHint": "Write tools need a writable DB open. If Scribe has the database locked, retry create/append shortly or check scribe_status for writable: false.",
+      "localAiLink": "Semantic MCP tools work best with Scribe Local AI →"
     },
     "nlp": {
-      "title": "Local AI (Python)",
-      "description": "Optional add-on — Rust core stays, Python adds intelligence.",
-      "intro": "Optional add-on that runs only on this Mac. Scribe starts a local Python process (sidecar) — no cloud, no text sent to the internet. When enabled you get semantic search in ⌘K, tag suggestions, weekly journal overview, and library analysis. Requires Python 3.10+.",
-      "enableTitle": "Enable local AI",
-      "enableDescription": "When enabled, documents are indexed for semantic search in ⌘K.",
+      "title": "Scribe Local AI",
+      "description": "Scribe’s own Local AI — runs on this Mac, not in the cloud.",
+      "intro": "Scribe ships with its own Local AI. When you enable it, the app starts a small Python process on this Mac — no ChatGPT account, no cloud API, no text sent to the internet. You get answers over your notes, semantic search in ⌘K, tag suggestions, journal overview, and library analysis. Requires Python 3.10+.",
+      "enableTitle": "Enable Scribe Local AI",
+      "enableDescription": "Turn on the app’s built-in Local AI. Documents are indexed for semantic search and Q&A on this device.",
       "enable": "Enable",
       "enabled": "Enabled",
       "enabledToast": "Local AI enabled",
@@ -879,12 +943,16 @@
       "statusEmbedBackend": "Embedding backend",
       "embedBackendTitle": "Semantic quality",
       "embedBackendDescription": "Hash is fast with no extra deps. The quality model improves similar-doc ranking and search.",
-      "embedBackendInstallHint": "For the quality model install: pip install scribe-nlp[quality] or pip install sentence-transformers",
+      "embedBackendInstallHint": "For the quality model install: pip install 'scribe-nlp[quality]' (or [full] for all extras)",
       "embedBackendHash": "Hash (fast)",
       "embedBackendQuality": "Quality (MiniLM)",
       "embedBackendError": "Could not switch embedding backend",
       "hashEnabledToast": "Using fast hash embeddings",
       "qualityEnabledToast": "Using quality embedding model — reindex your library",
+      "extrasTitle": "Optional Python packages",
+      "extrasDescription": "Install from nlp/: pip install 'scribe-nlp[enhance,translate,ner,onnx,faiss]'. Highlighted chips are detected at runtime.",
+      "rustExtrasTitle": "Built-in Rust extras",
+      "rustExtrasDescription": "Compiled into the app (Cargo feature enhance). Fuzzy titles, faster vector scoring, and import encoding detection.",
       "yes": "Yes",
       "no": "No"
     },
@@ -1084,18 +1152,18 @@
           "points": []
         },
         "localAi": {
-          "title": "Local AI",
-          "summary": "Optional intelligence without the cloud",
+          "title": "Scribe Local AI",
+          "summary": "The app’s own intelligence — on this Mac, never in the cloud",
           "paragraphs": [
-            "Local AI is not a chatbot or an online service. When you enable it in Settings → Local AI, Scribe starts a small Python process (sidecar) on this Mac. All processing — indexing, search, summarization — happens in your computer's memory. Your text is never sent anywhere.",
-            "The Rust core remains primary: database, editor, saving, and full-text search work without AI. The Python add-on adds semantics (meaning similarity), tag suggestions, weekly journal overview, and library analysis.",
+            "Scribe has its own Local AI. It is not ChatGPT and not an online chatbot. When you enable it in Settings → Local AI, Scribe starts a small Python process on this Mac. Indexing, search, and answers over your notes all happen in your computer’s memory. Your text is never sent anywhere.",
+            "The Rust core stays primary: database, editor, saving, and full-text search work without AI. Local AI adds meaning-based search, note Q&A, tag suggestions, weekly journal overview, and library analysis — so you can use the app without expecting a cloud LLM.",
             "After enabling, documents are indexed into vectors (model scribe-hash-v4). If you update Scribe and the model changes, a reindex banner appears — mixing old and new vectors would give inconsistent results."
           ],
           "points": [
+            "Built into Scribe — enable once in Settings → Local AI, no third-party account",
             "⌘K All scope — combines full-text (FTS) and semantic hits via hybrid ranking",
             "⌘K Semantic scope — meaning-based results only, not exact word matches",
-            "Library analysis — markdown report with themes, tags, and recent documents",
-            "Tag suggestions — in a document's context menu in the library (right-click)",
+            "Ask library / Ask this note — extractive answers with citations from your notes",
             "Requires Python 3.10+ on your system; no pip packages needed"
           ]
         },
@@ -1346,7 +1414,34 @@
       "tags": "Tags",
       "graph": "Connection map",
       "duplicates": "Duplicates",
-      "chat": "Ask library"
+      "tasks": "Open tasks",
+      "wikiHealth": "Wiki health",
+      "chat": "Scribe AI"
+    },
+    "tasks": {
+      "title": "Open tasks",
+      "hint": "Unchecked checkboxes across recent notes. Click a task to open the note and jump to it.",
+      "empty": "No open checklist tasks in recent notes.",
+      "count": "{{count}} open · {{notes}} notes",
+      "loadError": "Could not load open tasks"
+    },
+    "wikiHealth": {
+      "title": "Wiki health",
+      "hint": "Orphan notes, broken [[wiki links]], and stubs under 40 words. Click to open; fix broken links with a suggestion.",
+      "empty": "Wiki looks healthy — no orphans, broken links, or stubs.",
+      "count": "{{orphans}} orphans · {{unresolved}} missing · {{stubs}} stubs",
+      "loadError": "Could not load wiki health",
+      "orphans": "Orphans",
+      "orphansEmpty": "Every note is linked.",
+      "unresolved": "Missing [[targets]]",
+      "unresolvedEmpty": "All wiki links resolve.",
+      "didYouMean": "Did you mean „{{title}}“?",
+      "fixWith": "Link to {{title}}",
+      "resolved": "Linked [[{{label}}]] → {{title}}",
+      "resolveError": "Could not resolve wiki link",
+      "stubs": "Stubs",
+      "stubsEmpty": "No stub notes.",
+      "stubWords": "{{count}} words"
     },
     "duplicates": {
       "title": "Near-duplicate notes",
@@ -1456,24 +1551,29 @@
     }
   },
   "libraryChat": {
-    "emptyTitle": "Ask your notes",
-    "emptyTitleDocument": "Ask this document",
-    "emptyHint": "Answers come only from Local AI embeddings of your library — no cloud. Turn on Local AI in Settings.",
-    "emptyHintDocument": "Ask about the open note, or tap an action chip. Local AI only — extractive, no cloud.",
+    "emptyTitle": "Ask Scribe Local AI",
+    "emptyTitleDocument": "Ask this note",
+    "brandBadge": "Built-in Local AI",
+    "brandHint": "Scribe has its own Local AI on this Mac — not ChatGPT, not the cloud. Answers come only from your notes.",
+    "emptyHint": "Ask about themes, deadlines, people, decisions, projects, or open loops. Scribe’s Local AI answers from your library on this device.",
+    "emptyHintDocument": "Scribe’s Local AI reads this note (including OCR) and answers from its content. Free-form questions or action chips — nothing leaves this Mac.",
     "openSettings": "Open Local AI settings",
     "placeholder": "Ask your notes…",
     "placeholderDocument": "Ask this note…",
     "send": "Ask",
-    "thinking": "Searching notes…",
+    "thinking": "Scribe Local AI is reading your notes…",
     "citations": "Sources",
+    "insertAnswer": "Insert as callout",
+    "insertAnswerDone": "Answer inserted into the open note",
+    "insertAnswerError": "Open a document in the editor to insert the answer",
     "you": "You",
-    "assistant": "Library",
-    "assistantDocument": "Document",
+    "assistant": "Scribe AI",
+    "assistantDocument": "Scribe AI",
     "untitled": "Untitled",
     "errorTitle": "Could not answer",
     "emptyQuestion": "Type a question first.",
-    "nlpDisabled": "Local AI is off. Enable it in Settings → Local AI.",
-    "sidecarUnavailable": "Local AI sidecar is not ready. Check Settings → Local AI.",
+    "nlpDisabled": "Scribe Local AI is off. Enable it in Settings → Local AI — the app’s own AI, no account or cloud needed.",
+    "sidecarUnavailable": "Scribe Local AI is not ready. Check Settings → Local AI (Python 3.10+).",
     "noActiveDocument": "Open a document first to ask about it.",
     "documentMissing": "Document not found.",
     "documentVault": "Vault documents can’t be analyzed while locked.",
@@ -1500,7 +1600,25 @@
       "recent": "What did I write about recently?",
       "deadlines": "Any deadlines or dates in my notes?",
       "themes": "What themes come up across my notes?",
-      "openLoops": "What open tasks or unfinished threads do I have?"
+      "openLoops": "What open tasks or unfinished threads do I have?",
+      "people": "Who do I mention across my notes?",
+      "decisions": "What decisions or conclusions did I capture?",
+      "projects": "Which projects or goals show up in my notes?",
+      "meetings": "What meetings or calls did I write about?",
+      "ideas": "What ideas or brainstorms are in my library?",
+      "definitions": "Where did I define important terms?",
+      "connections": "Which notes seem connected to each other?",
+      "risks": "Any risks, blockers, or problems I noted?"
+    },
+    "documentPrompts": {
+      "about": "What is this note mainly about?",
+      "next": "What should I do next based on this note?",
+      "decisions": "What decisions or conclusions are in this note?",
+      "people": "Who is mentioned in this note?",
+      "explain": "Explain the key terms in this note",
+      "missing": "What feels unfinished or unclear here?",
+      "connect": "How does this note connect to others?",
+      "claims": "What are the main claims in this note?"
     },
     "actions": {
       "summarize": "Summarize",
@@ -1641,14 +1759,25 @@
     },
     "insights": {
       "title": "AI insights",
-      "subtitle": "Local overview of the open note",
+      "subtitle": "Scribe Local AI overview of the open note",
       "subtitleWithCount": "{{count}} signals in this note",
       "hide": "Hide AI insights",
       "loadError": "Could not load AI insights",
       "askTitle": "Ask this note",
-      "askHint": "Local AI actions and questions about the open document — no cloud.",
+      "askHint": "Scribe’s own Local AI — questions and actions on this note, on this Mac only.",
+      "insertAnswer": "Insert as callout",
+      "insertAnswerDone": "Answer inserted into the note",
+      "insertAnswerError": "Open a document in the editor to insert the answer",
+      "wikiSuggestHint": "Suggested wiki links — accept to replace the phrase with [[title]].",
+      "wikiAccept": "Link",
+      "wikiAppliedLinked": "Linked “{{title}}” in the note",
+      "wikiAppliedInserted": "Inserted [[{{title}}]] at the cursor",
+      "wikiApplyError": "Could not apply wiki link — open the note in the editor",
+      "spellcheckApply": "Replace with {{word}}",
+      "spellcheckApplied": "Replaced with “{{word}}”",
+      "spellcheckApplyError": "Could not replace — try Find in the editor",
       "questionHistoryEmpty": "Nothing asked yet — the list fills as you query this document.",
-      "localBadge": "offline",
+      "localBadge": "Scribe Local AI",
       "openChat": "Open full chat →",
       "summary": "Summary",
       "summaryEmpty": "Write a bit more for an extractive summary.",
@@ -1668,6 +1797,7 @@
         "hard": "hard"
       },
       "suggestedTitle": "Suggested title: {{title}}",
+      "applySuggestedTitle": "Apply",
       "dates": "Dates & events",
       "datesEmpty": "No dates or relative cues detected.",
       "links": "Links & mentions",
@@ -2202,7 +2332,7 @@
       },
       "modern-report": {
         "name": "Modern report",
-        "description": "Title page, TOC and structured sections",
+        "description": "Title page, sections, and a pre-submit checklist",
         "title": "Report"
       },
       "business-letter": {
@@ -2899,12 +3029,16 @@
   },
   "aiRewrite": {
     "title": "Rewrite selection",
+    "localHint": "Local rules — no cloud LLM",
     "rephrase": "Rephrase",
+    "shorten": "Shorten",
+    "simplify": "Simplify",
     "summarize": "Shorten to bullets",
+    "expand": "Bullets → prose",
     "translateSk": "To Slovak",
     "translateEn": "To English",
     "custom": "Custom prompt...",
-    "customPlaceholder": "e.g. shorten, uppercase...",
+    "customPlaceholder": "e.g. shorten, uppercase, simplify…",
     "run": "Run",
     "insertBelow": "Insert below",
     "replace": "Replace",
@@ -2916,6 +3050,8 @@
   },
   "templateCoach": {
     "chip": "{{present}}/{{expected}} sections",
-    "hint": "Template headings present in this note"
+    "hint": "Template headings present in this note",
+    "missing": "Still missing in the report",
+    "checklistOpen": "Unchecked in checklist"
   }
 }

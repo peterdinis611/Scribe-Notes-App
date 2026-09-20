@@ -11,13 +11,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { createDocument, exportDocument, getDocument, revealInFinder } from '@/lib/db/api'
-import { tiptapJsonToHtmlAsync } from '@/lib/export/html'
-import { tiptapJsonToMarkdown } from '@/lib/export/markdown'
-import { tiptapToPlainText } from '@/lib/export/plain-text'
+import {
+  compileDocuments,
+  exportDocument,
+  revealInFinder,
+} from '@/lib/db/api'
 import { upsertManuscript } from '@/lib/db/libraries-api'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
-import { mergeChapters } from '@/lib/library/compile-chapters'
 import { visibleLibraryDocuments } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
@@ -54,39 +54,38 @@ export function CompileDialog() {
     if (selected.length === 0) return
     setBusy(true)
     try {
-      const chapters = []
-      for (const id of selected) {
-        const doc = await getDocument(id)
-        chapters.push({ title: doc.title, contentJson: doc.contentJson })
-      }
       const compiledTitle = title.trim() || t('compile.untitled')
       await upsertManuscript({ title: compiledTitle, chapterIds: selected })
-      const created = await createDocument({
-        title: compiledTitle,
-        contentJson: mergeChapters(chapters),
-      })
+      // Merge + create runs entirely in Rust (no TipTap blobs through IPC).
+      const created = await compileDocuments(compiledTitle, selected)
       dispatch(updateDocuments((prev) => prependDocumentSummary(prev, created)))
       dispatch(setActiveDocumentId(created.id))
       void navigate(ROUTES.document(created.id))
       if (exportFormat !== 'none') {
-        const html = await tiptapJsonToHtmlAsync(created.contentJson, created.title, {
-          forPrint: true,
-        })
-        const result = await exportDocument(
-          html,
-          tiptapToPlainText(created.contentJson),
-          created.title,
-          exportFormat,
-          tiptapJsonToMarkdown(created.contentJson, created.title),
-        )
-        if (result?.path) {
-          toast.success(
-            t('compile.exportedTitle'),
-            t('compile.exportedHint', { count: selected.length, format: exportFormat.toUpperCase() }),
+        if (exportFormat === 'pdf' || exportFormat === 'docx') {
+          const { tiptapJsonToHtmlAsync } = await import('@/lib/export/html')
+          const { tiptapToPlainText } = await import('@/lib/export/plain-text')
+          const html = await tiptapJsonToHtmlAsync(created.contentJson, created.title, {
+            forPrint: true,
+          })
+          const result = await exportDocument(
+            html,
+            tiptapToPlainText(created.contentJson),
+            created.title,
+            exportFormat,
           )
-          await revealInFinder(result.path)
-        } else {
-          toast.success(t('compile.doneTitle'), t('compile.doneHint', { count: selected.length }))
+          if (result?.path) {
+            toast.success(
+              t('compile.exportedTitle'),
+              t('compile.exportedHint', {
+                count: selected.length,
+                format: exportFormat.toUpperCase(),
+              }),
+            )
+            await revealInFinder(result.path)
+          } else {
+            toast.success(t('compile.doneTitle'), t('compile.doneHint', { count: selected.length }))
+          }
         }
       } else {
         toast.success(t('compile.doneTitle'), t('compile.doneHint', { count: selected.length }))

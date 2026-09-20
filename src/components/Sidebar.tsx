@@ -14,6 +14,8 @@ import { LibraryJournalView } from '@/components/LibraryJournalView'
 import { LibraryLinkGraphView } from '@/components/LibraryLinkGraphView'
 import { LibraryChatPanel } from '@/components/LibraryChatPanel'
 import { LibraryDuplicatesPanel } from '@/components/LibraryDuplicatesPanel'
+import { LibraryTasksPanel } from '@/components/LibraryTasksPanel'
+import { LibraryWikiHealthPanel } from '@/components/LibraryWikiHealthPanel'
 import { LibrarySwitcher } from '@/components/library/LibrarySwitcher'
 import { LibraryViewTabs } from '@/components/LibraryViewTabs'
 import { SidebarRail } from '@/components/layout/SidebarRail'
@@ -273,6 +275,18 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
               {libraryView === 'duplicates' && (
                 <ScrollArea className="min-h-0 flex-1">
                   <LibraryDuplicatesPanel onNavigate={onClose} />
+                </ScrollArea>
+              )}
+
+              {libraryView === 'tasks' && (
+                <ScrollArea className="min-h-0 flex-1">
+                  <LibraryTasksPanel onNavigate={onClose} />
+                </ScrollArea>
+              )}
+
+              {libraryView === 'wikiHealth' && (
+                <ScrollArea className="min-h-0 flex-1">
+                  <LibraryWikiHealthPanel onNavigate={onClose} />
                 </ScrollArea>
               )}
 

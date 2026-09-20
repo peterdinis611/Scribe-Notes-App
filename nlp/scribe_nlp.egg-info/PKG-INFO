@@ -1,0 +1,28 @@
+Metadata-Version: 2.4
+Name: scribe-nlp
+Version: 1.0.0
+Summary: Optional local NLP sidecar for Scribe
+Author: Peter Dinis
+License-Expression: MIT
+Requires-Python: >=3.10
+Provides-Extra: quality
+Requires-Dist: sentence-transformers>=3.0.0; extra == "quality"
+Provides-Extra: enhance
+Requires-Dist: rapidfuzz>=3.6.0; extra == "enhance"
+Requires-Dist: lingua-language-detector>=2.0.2; extra == "enhance"
+Requires-Dist: ftfy>=6.2.0; extra == "enhance"
+Requires-Dist: dateparser>=1.2.0; extra == "enhance"
+Provides-Extra: translate
+Requires-Dist: argostranslate>=1.9.6; extra == "translate"
+Provides-Extra: ner
+Requires-Dist: spacy>=3.7.0; extra == "ner"
+Provides-Extra: onnx
+Requires-Dist: onnxruntime>=1.17.0; extra == "onnx"
+Requires-Dist: numpy>=1.24.0; extra == "onnx"
+Requires-Dist: tokenizers>=0.15.0; extra == "onnx"
+Requires-Dist: huggingface_hub>=0.20.0; extra == "onnx"
+Provides-Extra: faiss
+Requires-Dist: faiss-cpu>=1.7.4; extra == "faiss"
+Requires-Dist: numpy>=1.24.0; extra == "faiss"
+Provides-Extra: full
+Requires-Dist: scribe-nlp[enhance,faiss,ner,onnx,quality,translate]; extra == "full"

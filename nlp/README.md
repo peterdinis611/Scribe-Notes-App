@@ -11,16 +11,44 @@ Optional **local** Python service for semantic search, journal summaries, tag su
 ### Požiadavky
 
 - Python **3.10+**
-- **Žiadne pip závislosti** (voliteľne `pip install 'scribe-nlp[quality]'` / `sentence-transformers`)
-- Po upgrade modelu (`v3` → `v4`) spustite **Preindexovať**
+- **Žiadne povinné pip závislosti** (stdlib-first)
+- Voliteľné extras (soft-import — bez nich funguje fallback):
+
+```bash
+cd nlp
+pip install -e '.[quality]'                          # MiniLM (sentence-transformers)
+pip install -e '.[enhance]'                          # rapidfuzz, lingua, ftfy, dateparser
+pip install -e '.[translate]'                        # argostranslate (SK↔EN)
+pip install -e '.[ner]' && python -m spacy download xx_ent_wiki_sm
+pip install -e '.[onnx]'                             # onnxruntime MiniLM (rýchlejšie embeddingy)
+pip install -e '.[faiss]'                            # rýchly similar search
+pip install -e '.[full]'                             # všetko vyššie + quality
+```
+
+- Po upgrade modelu (`v3` → `v4` / ONNX) spustite **Preindexovať**
+- Stav balíčkov: **Nastavenia → Lokálna AI** (chipy extras)
 
 ## Models
 
 | Model | Description |
 |-------|-------------|
 | `scribe-hash-v3` | Stopword-aware + lead boost |
-| `scribe-hash-v4` | + stem/diacritic features, chunk mean-pool for long docs (current) |
-| `scribe-minilm-v1` | Optional quality MiniLM (disk cache in `~/.cache/scribe-nlp/models`) |
+| `scribe-hash-v4` | + stem/diacritic features, chunk mean-pool for long docs (current hash) |
+| `scribe-minilm-v1` | Optional quality MiniLM via sentence-transformers |
+| `scribe-minilm-onnx-v1` | Same MiniLM via onnxruntime (preferred when ONNX assets are cached) |
+
+## Optional package wiring
+
+| Extra | Improves |
+|-------|----------|
+| rapidfuzz | Spell suggestions, wiki title fuzzy match |
+| lingua | SK/EN language detection |
+| ftfy | Mojibake / broken Unicode repair on ingest |
+| dateparser | Free-form due dates (`zajtra`, `next Friday`) |
+| argostranslate | Offline rewrite translate_sk / translate_en |
+| spacy (+ `xx_ent_wiki_sm`) | NER people/orgs/places → tags & Insights |
+| onnxruntime | Faster quality embeddings without full PyTorch load path |
+| faiss-cpu | Similar-notes shortlist for large libraries |
 
 ## Dev
 
@@ -49,6 +77,10 @@ Core: `health`, `embed`, `embed_batch`, `summarize`, `extract_*`, `analyze_docum
 0.9.2+: stem-aware answer ranking + heuristic `followups` on `library_answer`
 
 1.0.0: `library_answer` passes `chunkIndex` through to citations
+
+1.0.1+: question intent detection (dates/tasks/people/decisions/…) boosts ranking + labeled answers + richer follow-ups
+
+1.0.2+: document Q&A loads full note text (OCR included), merges embeddings with whole-document coverage
 
 ## Version
 

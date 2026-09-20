@@ -8,6 +8,7 @@ EmbedBackend = Literal["hash", "quality"]
 
 HASH_MODEL_ID = "scribe-hash-v4"
 QUALITY_MODEL_ID = "scribe-minilm-v1"
+ONNX_MODEL_ID = "scribe-minilm-onnx-v1"
 QUALITY_MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
 QUALITY_BATCH_SIZE = 64
 
@@ -43,16 +44,57 @@ def active_backend() -> EmbedBackend:
 
 def current_model_id() -> str:
     if active_backend() == "quality":
+        if _prefer_onnx():
+            return ONNX_MODEL_ID
         return QUALITY_MODEL_ID
     return HASH_MODEL_ID
 
 
-def quality_available() -> bool:
+def st_available() -> bool:
     try:
         import sentence_transformers  # noqa: F401
+
         return True
     except ImportError:
         return False
+
+
+def onnx_quality_available() -> bool:
+    try:
+        from .onnx_embed import ensure_onnx_assets, onnx_available
+
+        if onnx_available():
+            return True
+        # Soft: assets may download on first embed; report available if deps present.
+        from .extras import has_onnx, has_tokenizers
+
+        return has_onnx() and has_tokenizers()
+    except Exception:
+        return False
+
+
+def quality_available() -> bool:
+    return st_available() or onnx_quality_available()
+
+
+def _prefer_onnx() -> bool:
+    """Prefer ONNX when deps+model ready (or SCRIBE_EMBED_ENGINE=onnx)."""
+    engine = os.environ.get("SCRIBE_EMBED_ENGINE", "").strip().lower()
+    if engine == "st":
+        return False
+    if engine == "onnx":
+        return onnx_quality_available()
+    try:
+        from .onnx_embed import onnx_available
+
+        if onnx_available():
+            return True
+        # Prefer ONNX when ST is missing but ONNX deps exist.
+        if not st_available() and onnx_quality_available():
+            return True
+    except Exception:
+        pass
+    return False
 
 
 def quality_cache_dir() -> Path:
@@ -96,14 +138,36 @@ def _load_quality_model():
 
 
 def warmup_quality_model() -> bool:
-    """Eager-load MiniLM when quality is active. Returns True if loaded."""
+    """Eager-load MiniLM / ONNX when quality is active. Returns True if loaded."""
     if active_backend() != "quality" or not quality_available():
         return False
+    if _prefer_onnx():
+        try:
+            from .onnx_embed import ensure_onnx_assets, embed_onnx
+
+            if ensure_onnx_assets():
+                embed_onnx("warmup")
+                return True
+        except Exception:
+            pass
+        if not st_available():
+            return False
     _load_quality_model()
     return True
 
 
 def embed_quality(text: str) -> list[float]:
+    if _prefer_onnx():
+        try:
+            from .onnx_embed import embed_onnx
+
+            vector = embed_onnx(text or "")
+            if vector:
+                return vector
+        except Exception:
+            pass
+        if not st_available():
+            raise RuntimeError("ONNX embed failed and sentence-transformers is not installed")
     model = _load_quality_model()
     vector = model.encode(text or "", normalize_embeddings=True)
     return [float(value) for value in vector.tolist()]
@@ -112,6 +176,17 @@ def embed_quality(text: str) -> list[float]:
 def embed_quality_batch(texts: list[str]) -> list[list[float]]:
     if not texts:
         return []
+    if _prefer_onnx():
+        try:
+            from .onnx_embed import embed_onnx_batch
+
+            vectors = embed_onnx_batch(texts)
+            if vectors is not None and len(vectors) == len(texts):
+                return vectors
+        except Exception:
+            pass
+        if not st_available():
+            raise RuntimeError("ONNX embed failed and sentence-transformers is not installed")
     model = _load_quality_model()
     batch_size = min(QUALITY_BATCH_SIZE, max(1, len(texts)))
     vectors = model.encode(

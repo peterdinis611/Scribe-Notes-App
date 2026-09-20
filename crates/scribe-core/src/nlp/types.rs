@@ -5,6 +5,9 @@ pub const DEFAULT_REWRITE_MODE: &str = "rephrase_professional";
 pub const REWRITE_MODES: &[&str] = &[
     "rephrase_professional",
     "summarize_bullets",
+    "shorten",
+    "simplify",
+    "expand_bullets",
     "translate_sk",
     "translate_en",
     "custom_prompt",
@@ -403,9 +406,12 @@ pub fn normalize_rewrite_mode(mode: Option<&str>) -> String {
         "rephrase" | "professional" | "rephrase_professional" => {
             "rephrase_professional".to_string()
         }
-        "summarize" | "shorten" | "summarize_bullets" => "summarize_bullets".to_string(),
-        "sk" | "translate_sk" => "translate_sk".to_string(),
-        "en" | "translate_en" => "translate_en".to_string(),
+        "summarize" | "bullets" | "summarize_bullets" => "summarize_bullets".to_string(),
+        "shorten" | "concise" | "make_concise" => "shorten".to_string(),
+        "simplify" | "plain" => "simplify".to_string(),
+        "expand" | "expand_bullets" | "from_bullets" => "expand_bullets".to_string(),
+        "sk" | "to_sk" | "translate_sk" => "translate_sk".to_string(),
+        "en" | "to_en" | "translate_en" => "translate_en".to_string(),
         "custom" | "custom_prompt" => "custom_prompt".to_string(),
         other => other.to_string(),
     }
@@ -418,7 +424,10 @@ mod tests {
     #[test]
     fn rewrite_mode_aliases_match_sidecar() {
         assert_eq!(normalize_rewrite_mode(None), "rephrase_professional");
-        assert_eq!(normalize_rewrite_mode(Some("shorten")), "summarize_bullets");
+        assert_eq!(normalize_rewrite_mode(Some("shorten")), "shorten");
+        assert_eq!(normalize_rewrite_mode(Some("summarize")), "summarize_bullets");
+        assert_eq!(normalize_rewrite_mode(Some("simplify")), "simplify");
+        assert_eq!(normalize_rewrite_mode(Some("expand")), "expand_bullets");
         assert_eq!(normalize_rewrite_mode(Some("custom")), "custom_prompt");
         assert_eq!(normalize_rewrite_mode(Some("sk")), "translate_sk");
         assert_eq!(

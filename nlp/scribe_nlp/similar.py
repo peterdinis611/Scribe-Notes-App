@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from .embed import cosine_similarity, embed_batch
+from .faiss_search import faiss_available, faiss_top_k
 from .keywords import extract_keywords
 from .normalize import stem_lite
 from .text_utils import content_stems, jaccard_similarity, normalize_text
@@ -61,6 +62,24 @@ def similar_notes(
         for map_index, vector in zip(embed_map, encoded[1:]):
             doc_vectors[map_index] = vector
 
+    # FAISS shortlist when many candidates have vectors.
+    faiss_boost: dict[int, float] = {}
+    if (
+        query_vec is not None
+        and faiss_available()
+        and sum(1 for item in doc_vectors if item is not None) >= 24
+    ):
+        indexed: list[int] = []
+        matrix: list[list[float]] = []
+        for index, vector in enumerate(doc_vectors):
+            if vector is None:
+                continue
+            indexed.append(index)
+            matrix.append(vector)
+        for local_idx, score in faiss_top_k(query_vec, matrix, limit=min(limit * 3, 48)):
+            if 0 <= local_idx < len(indexed):
+                faiss_boost[indexed[local_idx]] = max(0.0, score)
+
     scored: list[dict[str, object]] = []
     for index, (doc_id, title, body, blob) in enumerate(candidates):
         token_score = jaccard_similarity(query, blob)
@@ -81,6 +100,8 @@ def similar_notes(
         doc_vec = doc_vectors[index]
         if query_vec is not None and doc_vec is not None:
             embed_score = max(0.0, cosine_similarity(query_vec, doc_vec))
+        if index in faiss_boost:
+            embed_score = max(embed_score, faiss_boost[index])
 
         if query_vec is not None:
             score = (

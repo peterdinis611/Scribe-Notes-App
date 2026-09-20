@@ -171,7 +171,22 @@ export function EditorStatusBar({
           {templateCoverage ? (
             <span
               className="editor-status-chip editor-status-chip--coach"
-              title={t('templateCoach.hint')}
+              title={
+                templateCoverage.missingHeadings.length || templateCoverage.openChecklist.length
+                  ? [
+                      templateCoverage.missingHeadings.length
+                        ? `${t('templateCoach.missing')}: ${templateCoverage.missingHeadings.join(', ')}`
+                        : null,
+                      templateCoverage.openChecklist.length
+                        ? `${t('templateCoach.checklistOpen')}: ${templateCoverage.openChecklist
+                            .slice(0, 3)
+                            .join(', ')}`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')
+                  : t('templateCoach.hint')
+              }
             >
               {t('templateCoach.chip', {
                 present: templateCoverage.present,

@@ -31,6 +31,16 @@ pub struct NlpHealth {
     pub embed_backend: Option<String>,
     #[serde(default)]
     pub quality_available: Option<bool>,
+    #[serde(default)]
+    pub onnx_available: Option<bool>,
+    #[serde(default)]
+    pub faiss_available: Option<bool>,
+    #[serde(default)]
+    pub spacy_available: Option<bool>,
+    #[serde(default)]
+    pub argos_available: Option<bool>,
+    #[serde(default)]
+    pub extras: Option<serde_json::Map<String, Value>>,
 }
 
 #[derive(Debug, Clone)]

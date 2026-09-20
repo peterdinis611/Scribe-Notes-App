@@ -8,7 +8,6 @@ use serde::Serialize;
 use serde_json::{json, Value};
 use uuid::Uuid;
 
-use crate::dates::{date_key_bounds, parse_date_key};
 use crate::db::migrations;
 use crate::db::{
     active_library_id, filter_search_hits, fuse_search_hits, search_documents_for_library, SearchHit,
@@ -31,12 +30,33 @@ use crate::plain_text::{
 };
 use crate::tasks::{
     append_phrase_tasks, enrich_due_hints_from_sidecar, extract_checkbox_tasks_with_due,
-    merge_document_tasks, DocumentTask,
+    list_open_tasks as list_open_tasks_in_conn, merge_document_tasks, DocumentTask,
 };
 use crate::vault::{
     content_is_vault_cipher, document_is_vault, mcp_vault_denied_message, require_document_not_vault,
     vault_document_ids_among, McpVaultScope,
 };
+use crate::wiki::{
+    list_graph_hubs as list_graph_hubs_in_conn, list_link_graph as list_link_graph_in_conn,
+    list_stub_documents as list_stub_documents_in_conn,
+    list_unresolved_wiki_links as list_unresolved_wiki_links_in_conn,
+    wiki_health as wiki_health_in_conn,
+};
+
+pub use crate::wiki::{
+    GraphHub, LinkEdge, LinkGraph, OrphanDocument, StubDocument, UnresolvedWikiLink, WikiHealth,
+};
+
+use crate::journal::{
+    create_journal_note, find_journal_note, load_journal_documents, resolve_journal_date,
+};
+use crate::tags::{
+    add_document_tag as add_document_tag_in_conn, parse_tags,
+    remove_document_tag as remove_document_tag_in_conn, set_document_tags as set_document_tags_in_conn,
+};
+
+pub use crate::journal::{JournalNote, JournalSlot, JournalSummary, JournalSummaryInput};
+pub use crate::tags::IdTags;
 
 const SUMMARY_SELECT: &str =
     "SELECT id, title, folder_id, file_path, updated_at, is_favorite, is_pinned, tags, deleted_at FROM documents";
@@ -158,40 +178,11 @@ pub struct FolderDetail {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct LinkEdge {
-    pub source_id: String,
-    pub target_id: String,
-    pub source_title: String,
-    pub target_title: String,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct OrphanDocument {
-    pub id: String,
-    pub title: String,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LinkGraph {
-    pub edges: Vec<LinkEdge>,
-    pub orphans: Vec<OrphanDocument>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct IdTitle {
     pub id: String,
     pub title: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct IdTags {
-    pub id: String,
-    pub tags: Vec<String>,
-}
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -206,13 +197,6 @@ pub struct PurgeResult {
     pub id: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct JournalSummary {
-    pub summary: String,
-    pub bullets: Vec<String>,
-    pub document_count: i64,
-}
 
 pub use crate::nlp::NlpEntity;
 
@@ -250,52 +234,6 @@ pub struct DocumentNlpSummary {
     pub bullets: Vec<String>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum JournalSlot {
-    Day,
-    Morning,
-    Evening,
-}
-
-impl JournalSlot {
-    pub fn parse(value: Option<&str>) -> Result<Self, String> {
-        match value.unwrap_or("day").trim().to_lowercase().as_str() {
-            "" | "day" | "today" => Ok(Self::Day),
-            "morning" | "rano" | "ráno" => Ok(Self::Morning),
-            "evening" | "vecer" | "večer" => Ok(Self::Evening),
-            other => Err(format!(
-                "Invalid journal slot: {other}. Use day, morning, or evening."
-            )),
-        }
-    }
-
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::Day => "day",
-            Self::Morning => "morning",
-            Self::Evening => "evening",
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct JournalNote {
-    pub id: String,
-    pub title: String,
-    pub folder_id: String,
-    pub date: String,
-    pub slot: String,
-    pub created: bool,
-    pub plain_text: String,
-}
-
-pub struct JournalSummaryInput {
-    pub from_date: String,
-    pub to_date: String,
-    pub journal_folder_id: Option<String>,
-    pub document_ids: Option<Vec<String>>,
-}
 
 pub use crate::db::SearchFilter;
 
@@ -352,24 +290,6 @@ pub struct DocumentOutline {
     pub document_id: String,
     pub title: String,
     pub headings: Vec<OutlineItem>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct UnresolvedWikiLink {
-    pub document_id: String,
-    pub document_title: String,
-    pub label: String,
-    pub target_id: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct GraphHub {
-    pub id: String,
-    pub title: String,
-    pub backlinks: i64,
-    pub outgoing: i64,
 }
 
 pub struct ScribeStore {
@@ -430,39 +350,6 @@ impl ScribeStore {
         chrono::Utc::now().timestamp_millis()
     }
 
-    fn parse_tags(raw: Option<String>) -> Vec<String> {
-        let Some(raw) = raw.filter(|value| !value.is_empty()) else {
-            return Vec::new();
-        };
-        if let Ok(parsed) = serde_json::from_str::<Value>(&raw) {
-            if let Some(array) = parsed.as_array() {
-                return array
-                    .iter()
-                    .filter_map(|item| item.as_str().map(str::to_string))
-                    .collect();
-            }
-        }
-        raw.split(',')
-            .map(str::trim)
-            .filter(|tag| !tag.is_empty())
-            .map(str::to_string)
-            .collect()
-    }
-
-    fn normalize_tags(tags: &[String]) -> Vec<String> {
-        let mut cleaned: Vec<String> = tags
-            .iter()
-            .map(|tag| tag.trim().to_string())
-            .filter(|tag| !tag.is_empty())
-            .collect();
-        cleaned.sort();
-        cleaned.dedup();
-        cleaned
-    }
-
-    fn encode_tags(tags: &[String]) -> String {
-        serde_json::to_string(&Self::normalize_tags(tags)).unwrap_or_else(|_| "[]".to_string())
-    }
 
     fn map_summary(row: &rusqlite::Row<'_>) -> rusqlite::Result<DocumentSummary> {
         let deleted_at: Option<i64> = row.get(8)?;
@@ -474,7 +361,7 @@ impl ScribeStore {
             updated_at: row.get(4)?,
             is_favorite: row.get::<_, i64>(5)? != 0,
             is_pinned: row.get::<_, i64>(6)? != 0,
-            tags: Self::parse_tags(row.get(7)?),
+            tags: parse_tags(row.get(7)?),
             deleted_at,
         })
     }
@@ -491,9 +378,27 @@ impl ScribeStore {
 
     fn resolve_wiki_target(&self, label: &str) -> Option<String> {
         let docs = self.find_documents_by_title(label, 5).unwrap_or_default();
-        docs.into_iter()
+        if let Some(exact) = docs
+            .iter()
             .find(|doc| doc.title.eq_ignore_ascii_case(label))
-            .map(|doc| doc.id)
+        {
+            return Some(exact.id.clone());
+        }
+
+        // Near-miss titles (typos / diacritics) when fuzzy extras are available.
+        let titles: Vec<String> = docs.iter().map(|doc| doc.title.clone()).collect();
+        if let Some((best_title, score)) = crate::enhance::fuzzy_extract(label, &titles, 1, 0.86)
+            .into_iter()
+            .next()
+        {
+            if score >= 0.86 {
+                return docs
+                    .into_iter()
+                    .find(|doc| doc.title == best_title)
+                    .map(|doc| doc.id);
+            }
+        }
+        None
     }
 
     fn resolve_wiki_labels(&self, text: &str) -> HashMap<String, Option<String>> {
@@ -673,33 +578,22 @@ impl ScribeStore {
         title_query: &str,
         limit: i64,
     ) -> Result<Vec<DocumentSummary>, String> {
-        let q = title_query.trim();
-        if q.is_empty() {
-            return Ok(Vec::new());
+        let hits = crate::wiki::find_documents_by_title(&self.db, title_query, limit)?;
+        let mut docs = Vec::with_capacity(hits.len());
+        for hit in hits {
+            let mut stmt = self
+                .db
+                .prepare(&format!("{SUMMARY_SELECT} WHERE id = ?1"))
+                .map_err(|e| e.to_string())?;
+            if let Some(summary) = stmt
+                .query_row(params![hit.id], Self::map_summary)
+                .optional()
+                .map_err(|e| e.to_string())?
+            {
+                docs.push(summary);
+            }
         }
-        let max = limit.clamp(1, 50);
-        let pattern = format!("%{q}%");
-        let prefix = format!("{q}%");
-
-        let mut stmt = self
-            .db
-            .prepare(&format!(
-                "{SUMMARY_SELECT}
-                 WHERE deleted_at IS NULL AND title LIKE ?1 COLLATE NOCASE
-                 ORDER BY
-                   CASE WHEN title = ?2 COLLATE NOCASE THEN 0
-                        WHEN title LIKE ?3 COLLATE NOCASE THEN 1
-                        ELSE 2 END,
-                   updated_at DESC
-                 LIMIT ?4"
-            ))
-            .map_err(|e| e.to_string())?;
-
-        let rows = stmt
-            .query_map(params![pattern, q, prefix, max], Self::map_summary)
-            .map_err(|e| e.to_string())?;
-
-        rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+        Ok(docs)
     }
 
     pub fn get_document(
@@ -769,7 +663,7 @@ impl ScribeStore {
                         folder_id,
                         created_at,
                         updated_at,
-                        tags: Self::parse_tags(tags_raw),
+                        tags: parse_tags(tags_raw),
                         plain_text: String::new(),
                         content_json: None,
                     }));
@@ -784,7 +678,7 @@ impl ScribeStore {
             folder_id,
             created_at,
             updated_at,
-            tags: Self::parse_tags(tags_raw),
+            tags: parse_tags(tags_raw),
             plain_text: tiptap_to_plain_text(&content_json),
             content_json: if include_json {
                 Some(content_json)
@@ -887,53 +781,7 @@ impl ScribeStore {
     }
 
     pub fn list_link_graph(&self) -> Result<LinkGraph, String> {
-        let mut edge_stmt = self
-            .db
-            .prepare(
-                "SELECT l.source_id, l.target_id, s.title AS source_title, t.title AS target_title
-                 FROM document_links l
-                 JOIN documents s ON s.id = l.source_id AND s.deleted_at IS NULL
-                 JOIN documents t ON t.id = l.target_id AND t.deleted_at IS NULL
-                 ORDER BY s.title, t.title",
-            )
-            .map_err(|e| e.to_string())?;
-
-        let edges = edge_stmt
-            .query_map([], |row| {
-                Ok(LinkEdge {
-                    source_id: row.get(0)?,
-                    target_id: row.get(1)?,
-                    source_title: row.get(2)?,
-                    target_title: row.get(3)?,
-                })
-            })
-            .map_err(|e| e.to_string())?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| e.to_string())?;
-
-        let mut orphan_stmt = self
-            .db
-            .prepare(
-                "SELECT d.id, d.title FROM documents d
-                 WHERE d.deleted_at IS NULL
-                   AND d.id NOT IN (SELECT source_id FROM document_links)
-                   AND d.id NOT IN (SELECT target_id FROM document_links)
-                 ORDER BY d.title COLLATE NOCASE",
-            )
-            .map_err(|e| e.to_string())?;
-
-        let orphans = orphan_stmt
-            .query_map([], |row| {
-                Ok(OrphanDocument {
-                    id: row.get(0)?,
-                    title: row.get(1)?,
-                })
-            })
-            .map_err(|e| e.to_string())?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| e.to_string())?;
-
-        Ok(LinkGraph { edges, orphans })
+        list_link_graph_in_conn(&self.db)
     }
 
     pub fn list_favorites(&self, limit: i64) -> Result<Vec<DocumentSummary>, String> {
@@ -1058,7 +906,7 @@ impl ScribeStore {
 
         let mut counts: HashMap<String, i64> = HashMap::new();
         for row in rows {
-            for tag in Self::parse_tags(row.map_err(|e| e.to_string())?) {
+            for tag in parse_tags(row.map_err(|e| e.to_string())?) {
                 *counts.entry(tag).or_insert(0) += 1;
             }
         }
@@ -1105,52 +953,14 @@ impl ScribeStore {
     }
 
     pub fn set_document_tags(&self, id: &str, tags: &[String]) -> Result<IdTags, String> {
-        self.run_writable(|db| {
-            let row: Option<Option<i64>> = db
-                .query_row(
-                    "SELECT deleted_at FROM documents WHERE id = ?1",
-                    params![id],
-                    |row| row.get(0),
-                )
-                .optional()
-                .map_err(|e| e.to_string())?;
-
-            let Some(deleted_at) = row else {
-                return Err(format!("Document not found: {id}"));
-            };
-            if deleted_at.is_some() {
-                return Err(format!("Document not found: {id}"));
-            }
-
-            let normalized = Self::normalize_tags(tags);
-            db.execute(
-                "UPDATE documents SET tags = ?1 WHERE id = ?2",
-                params![Self::encode_tags(&normalized), id],
-            )
-            .map_err(|e| e.to_string())?;
-
-            Ok(IdTags {
-                id: id.to_string(),
-                tags: normalized,
-            })
-        })
+        self.run_writable(|db| set_document_tags_in_conn(db, id, tags))
     }
 
     pub fn add_document_tag(&self, id: &str, tag: &str) -> Result<IdTags, String> {
-        let tag = tag.trim();
-        if tag.is_empty() {
-            return Err("tag is required".to_string());
-        }
-
         self.run_writable(|db| add_document_tag_in_conn(db, id, tag))
     }
 
     pub fn remove_document_tag(&self, id: &str, tag: &str) -> Result<IdTags, String> {
-        let tag = tag.trim();
-        if tag.is_empty() {
-            return Err("tag is required".to_string());
-        }
-
         self.run_writable(|db| remove_document_tag_in_conn(db, id, tag))
     }
 
@@ -1600,80 +1410,7 @@ impl ScribeStore {
         limit: i64,
         include_phrases: bool,
     ) -> Result<Vec<DocumentTask>, String> {
-        let limit = limit.clamp(1, 500);
-        let filter_folder = folder_id.filter(|value| !value.is_empty());
-        let nlp_phrases = include_phrases && is_nlp_enabled(&self.db)?;
-        if nlp_phrases {
-            sync_sidecar_backend(sidecar, &self.db)?;
-        }
-
-        let mut combined = Vec::new();
-        if let Some(folder_id) = filter_folder {
-            let mut stmt = self
-                .db
-                .prepare(
-                    "SELECT id, title, content_json FROM documents
-                     WHERE deleted_at IS NULL AND folder_id = ?1
-                     ORDER BY updated_at DESC
-                     LIMIT ?2",
-                )
-                .map_err(|e| e.to_string())?;
-            let rows = stmt
-                .query_map(params![folder_id, limit], |row| {
-                    Ok((
-                        row.get::<_, String>(0)?,
-                        row.get::<_, String>(1)?,
-                        row.get::<_, String>(2)?,
-                    ))
-                })
-                .map_err(|e| e.to_string())?;
-            for row in rows {
-                combined.push(row.map_err(|e| e.to_string())?);
-            }
-        } else {
-            let mut stmt = self
-                .db
-                .prepare(
-                    "SELECT id, title, content_json FROM documents
-                     WHERE deleted_at IS NULL
-                     ORDER BY updated_at DESC
-                     LIMIT ?1",
-                )
-                .map_err(|e| e.to_string())?;
-            let rows = stmt
-                .query_map(params![limit], |row| {
-                    Ok((
-                        row.get::<_, String>(0)?,
-                        row.get::<_, String>(1)?,
-                        row.get::<_, String>(2)?,
-                    ))
-                })
-                .map_err(|e| e.to_string())?;
-            for row in rows {
-                combined.push(row.map_err(|e| e.to_string())?);
-            }
-        }
-
-        let mut tasks_out = Vec::new();
-        for (document_id, title, content_json) in combined {
-            let mut tasks = extract_checkbox_tasks_with_due(&content_json, !nlp_phrases);
-            for task in &mut tasks {
-                task.document_id = Some(document_id.clone());
-                task.document_title = Some(title.clone());
-            }
-
-            if nlp_phrases {
-                let text = format!("{title}\n{}", extract_search_text(&content_json));
-                if let Ok(result) = sidecar.extract_tasks(&text) {
-                    append_phrase_tasks(&mut tasks, &result, &document_id, &title);
-                }
-                let _ = enrich_due_hints_from_sidecar(sidecar, &mut tasks);
-            }
-
-            tasks_out.extend(tasks.into_iter().filter(|task| !task.checked));
-        }
-
-        Ok(merge_open_tasks_per_document(tasks_out))
+        list_open_tasks_in_conn(&self.db, sidecar, folder_id, limit, include_phrases)
     }
 
     pub fn nlp_status(&self, sidecar: &NlpSidecar) -> Result<Value, String> {
@@ -1699,6 +1436,12 @@ impl ScribeStore {
                 "staleIndexCount": 0,
                 "embedBackend": embed_backend,
                 "qualityAvailable": false,
+                "onnxAvailable": false,
+                "faissAvailable": false,
+                "spacyAvailable": false,
+                "argosAvailable": false,
+                "extras": {},
+                "features": [],
                 "scriptPath": script_path_label(&script_path),
                 "pythonBin": python_bin,
                 "error": Value::Null,
@@ -1739,6 +1482,12 @@ impl ScribeStore {
                 "staleIndexCount": stale_index_count,
                 "embedBackend": health.embed_backend.unwrap_or(embed_backend),
                 "qualityAvailable": health.quality_available.unwrap_or(quality_available),
+                "onnxAvailable": health.onnx_available.unwrap_or(false),
+                "faissAvailable": health.faiss_available.unwrap_or(false),
+                "spacyAvailable": health.spacy_available.unwrap_or(false),
+                "argosAvailable": health.argos_available.unwrap_or(false),
+                "extras": health.extras.clone().unwrap_or_default(),
+                "features": health.features.clone(),
                 "scriptPath": script_path_label(&script_path),
                 "pythonBin": python_bin,
                 "error": Value::Null,
@@ -1756,6 +1505,12 @@ impl ScribeStore {
                 "staleIndexCount": stale_index_count,
                 "embedBackend": embed_backend,
                 "qualityAvailable": quality_available,
+                "onnxAvailable": false,
+                "faissAvailable": false,
+                "spacyAvailable": false,
+                "argosAvailable": false,
+                "extras": {},
+                "features": [],
                 "scriptPath": script_path_label(&script_path),
                 "pythonBin": python_bin,
                 "error": health_error,
@@ -2110,7 +1865,7 @@ impl ScribeStore {
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| e.to_string())?;
 
-        let mut organize_tags = Self::parse_tags(tags_json);
+        let mut organize_tags = parse_tags(tags_json);
         organize_tags.extend(tag_suggestions.iter().cloned());
         let (folder_suggestion, folder_suggestion_id) = match sidecar.suggest_organize(
             &text,
@@ -2168,7 +1923,7 @@ impl ScribeStore {
         for row in rows {
             let (id, title, content_json, tags_json, updated_at, folder_id) =
                 row.map_err(|e| e.to_string())?;
-            let tags = Self::parse_tags(tags_json);
+            let tags = parse_tags(tags_json);
             documents.push(json!({
                 "id": id,
                 "title": title,
@@ -2332,50 +2087,11 @@ impl ScribeStore {
         slot: JournalSlot,
         date: Option<&str>,
     ) -> Result<JournalNote, String> {
-        let date = match date.map(str::trim).filter(|value| !value.is_empty()) {
-            Some(value) => {
-                parse_date_key(value)?;
-                value.to_string()
-            }
-            None => chrono::Local::now().format("%Y-%m-%d").to_string(),
-        };
-
+        let date = resolve_journal_date(date)?;
         if let Some(existing) = find_journal_note(&self.db, &date, slot)? {
             return Ok(existing);
         }
-
-        self.run_writable(|db| {
-            if let Some(existing) = find_journal_note(db, &date, slot)? {
-                return Ok(existing);
-            }
-
-            let (folder_id, folder_name) = ensure_journal_folder(db)?;
-            let locale_sk = folder_name == JOURNAL_FOLDER_SK;
-            let title = journal_create_title(&date, slot, locale_sk);
-            let content_json = journal_content_json(&title, slot);
-            let id = Uuid::new_v4().to_string();
-            let now = Self::now_ms();
-
-            let library_id = active_library_id(db);
-            db.execute(
-                "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at, library_id)
-                 VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?5, ?6)",
-                params![id, title, content_json, folder_id, now, library_id],
-            )
-            .map_err(|e| e.to_string())?;
-            sync_document_fts(db, &id, &title, &content_json)?;
-            sync_document_links(db, &id, &content_json)?;
-
-            Ok(JournalNote {
-                id,
-                title: title.clone(),
-                folder_id,
-                date,
-                slot: slot.as_str().to_string(),
-                created: true,
-                plain_text: tiptap_to_plain_text(&content_json),
-            })
-        })
+        self.run_writable(|db| create_journal_note(db, &date, slot))
     }
 
     pub fn list_nlp_artifacts(
@@ -2818,83 +2534,28 @@ impl ScribeStore {
     }
 
     pub fn list_unresolved_wiki_links(&self, limit: i64) -> Result<Vec<UnresolvedWikiLink>, String> {
-        let max = limit.clamp(1, 500);
-        let mut stmt = self
-            .db
-            .prepare(
-                "SELECT id, title, content_json FROM documents
-                 WHERE deleted_at IS NULL
-                 ORDER BY updated_at DESC",
-            )
-            .map_err(|e| e.to_string())?;
-        let rows = stmt
-            .query_map([], |row| {
-                Ok((
-                    row.get::<_, String>(0)?,
-                    row.get::<_, String>(1)?,
-                    row.get::<_, String>(2)?,
-                ))
-            })
-            .map_err(|e| e.to_string())?;
+        list_unresolved_wiki_links_in_conn(&self.db, limit)
+    }
 
-        let mut unresolved = Vec::new();
-        for row in rows {
-            if unresolved.len() as i64 >= max {
-                break;
-            }
-            let (document_id, document_title, content_json) = row.map_err(|e| e.to_string())?;
-            collect_unresolved_wiki(
-                &self.db,
-                &document_id,
-                &document_title,
-                &content_json,
-                &mut unresolved,
-                max,
-            )?;
-        }
-        Ok(unresolved)
+    pub fn list_stub_documents(
+        &self,
+        max_words: i64,
+        limit: i64,
+    ) -> Result<Vec<StubDocument>, String> {
+        list_stub_documents_in_conn(&self.db, max_words, limit)
+    }
+
+    pub fn wiki_health(
+        &self,
+        unresolved_limit: i64,
+        stub_max_words: i64,
+        stub_limit: i64,
+    ) -> Result<WikiHealth, String> {
+        wiki_health_in_conn(&self.db, unresolved_limit, stub_max_words, stub_limit)
     }
 
     pub fn list_graph_hubs(&self, limit: i64) -> Result<Vec<GraphHub>, String> {
-        let max = limit.clamp(1, 50);
-        let mut stmt = self
-            .db
-            .prepare(
-                "SELECT d.id, d.title,
-                        COALESCE(inc.n, 0) AS backlinks,
-                        COALESCE(outg.n, 0) AS outgoing
-                 FROM documents d
-                 LEFT JOIN (
-                    SELECT l.target_id AS id, COUNT(*) AS n
-                    FROM document_links l
-                    JOIN documents s ON s.id = l.source_id AND s.deleted_at IS NULL
-                    GROUP BY l.target_id
-                 ) inc ON inc.id = d.id
-                 LEFT JOIN (
-                    SELECT l.source_id AS id, COUNT(*) AS n
-                    FROM document_links l
-                    JOIN documents t ON t.id = l.target_id AND t.deleted_at IS NULL
-                    GROUP BY l.source_id
-                 ) outg ON outg.id = d.id
-                 WHERE d.deleted_at IS NULL
-                   AND (COALESCE(inc.n, 0) + COALESCE(outg.n, 0)) > 0
-                 ORDER BY (COALESCE(inc.n, 0) + COALESCE(outg.n, 0)) DESC,
-                          COALESCE(inc.n, 0) DESC,
-                          d.title COLLATE NOCASE
-                 LIMIT ?1",
-            )
-            .map_err(|e| e.to_string())?;
-        let rows = stmt
-            .query_map(params![max], |row| {
-                Ok(GraphHub {
-                    id: row.get(0)?,
-                    title: row.get(1)?,
-                    backlinks: row.get(2)?,
-                    outgoing: row.get(3)?,
-                })
-            })
-            .map_err(|e| e.to_string())?;
-        rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+        list_graph_hubs_in_conn(&self.db, limit)
     }
 }
 
@@ -2922,196 +2583,6 @@ fn parse_sidecar_summary(result: &Value) -> (String, Vec<String>) {
         })
         .unwrap_or_default();
     (summary, bullets)
-}
-
-fn merge_open_tasks_per_document(mut tasks: Vec<DocumentTask>) -> Vec<DocumentTask> {
-    let mut seen = std::collections::HashSet::new();
-    tasks.retain(|task| {
-        let key = (
-            task.document_id.clone().unwrap_or_default(),
-            task.text.to_lowercase(),
-        );
-        seen.insert(key)
-    });
-    tasks
-}
-
-const JOURNAL_FOLDER_EN: &str = "Journal";
-const JOURNAL_FOLDER_SK: &str = "Denník";
-
-fn journal_title_candidates(date: &str, slot: JournalSlot) -> Vec<String> {
-    match slot {
-        JournalSlot::Day => vec![date.to_string()],
-        JournalSlot::Morning => vec![
-            format!("{date} — morning"),
-            format!("{date} — ráno"),
-        ],
-        JournalSlot::Evening => vec![
-            format!("{date} — evening"),
-            format!("{date} — večer"),
-        ],
-    }
-}
-
-fn journal_create_title(date: &str, slot: JournalSlot, locale_sk: bool) -> String {
-    match slot {
-        JournalSlot::Day => date.to_string(),
-        JournalSlot::Morning if locale_sk => format!("{date} — ráno"),
-        JournalSlot::Morning => format!("{date} — morning"),
-        JournalSlot::Evening if locale_sk => format!("{date} — večer"),
-        JournalSlot::Evening => format!("{date} — evening"),
-    }
-}
-
-fn journal_content_json(heading: &str, slot: JournalSlot) -> String {
-    let mut content = vec![json!({
-        "type": "heading",
-        "attrs": { "level": 1 },
-        "content": [{ "type": "text", "text": heading }]
-    })];
-
-    match slot {
-        JournalSlot::Morning => {
-            content.push(json!({
-                "type": "heading",
-                "attrs": { "level": 2 },
-                "content": [{ "type": "text", "text": "Intentions" }]
-            }));
-            content.push(json!({
-                "type": "taskList",
-                "content": [{
-                    "type": "taskItem",
-                    "attrs": { "checked": false },
-                    "content": [{ "type": "paragraph" }]
-                }]
-            }));
-            content.push(json!({
-                "type": "heading",
-                "attrs": { "level": 2 },
-                "content": [{ "type": "text", "text": "Notes" }]
-            }));
-            content.push(json!({ "type": "paragraph" }));
-        }
-        JournalSlot::Evening => {
-            content.push(json!({
-                "type": "heading",
-                "attrs": { "level": 2 },
-                "content": [{ "type": "text", "text": "Highlights" }]
-            }));
-            content.push(json!({ "type": "paragraph" }));
-            content.push(json!({
-                "type": "heading",
-                "attrs": { "level": 2 },
-                "content": [{ "type": "text", "text": "Reflection" }]
-            }));
-            content.push(json!({ "type": "paragraph" }));
-        }
-        JournalSlot::Day => {
-            content.push(json!({ "type": "paragraph" }));
-        }
-    }
-
-    serde_json::to_string(&json!({ "type": "doc", "content": content })).unwrap_or_else(|_| {
-        r#"{"type":"doc","content":[{"type":"paragraph"}]}"#.to_string()
-    })
-}
-
-fn find_journal_folder(conn: &Connection) -> Result<Option<(String, String)>, String> {
-    let mut stmt = conn
-        .prepare(
-            "SELECT f.id, f.name, COUNT(d.id) AS n
-             FROM folders f
-             LEFT JOIN documents d ON d.folder_id = f.id AND d.deleted_at IS NULL
-             WHERE f.parent_id IS NULL AND (f.name = ?1 OR f.name = ?2)
-             GROUP BY f.id
-             ORDER BY n DESC, f.updated_at DESC
-             LIMIT 1",
-        )
-        .map_err(|e| e.to_string())?;
-    stmt.query_row(params![JOURNAL_FOLDER_EN, JOURNAL_FOLDER_SK], |row| {
-        Ok((row.get(0)?, row.get(1)?))
-    })
-    .optional()
-    .map_err(|e| e.to_string())
-}
-
-fn ensure_journal_folder(conn: &Connection) -> Result<(String, String), String> {
-    if let Some(existing) = find_journal_folder(conn)? {
-        return Ok(existing);
-    }
-
-    let id = Uuid::new_v4().to_string();
-    let now = chrono::Utc::now().timestamp_millis();
-    conn.execute(
-        "INSERT INTO folders (id, name, parent_id, created_at, updated_at)
-         VALUES (?1, ?2, NULL, ?3, ?3)",
-        params![id, JOURNAL_FOLDER_EN, now],
-    )
-    .map_err(|e| e.to_string())?;
-    Ok((id, JOURNAL_FOLDER_EN.to_string()))
-}
-
-fn find_journal_note(
-    conn: &Connection,
-    date: &str,
-    slot: JournalSlot,
-) -> Result<Option<JournalNote>, String> {
-    let titles = journal_title_candidates(date, slot);
-    let mut best: Option<(i64, i64, JournalNote)> = None;
-
-    let mut stmt = conn
-        .prepare(
-            "SELECT d.id, d.title, d.folder_id, d.content_json, d.updated_at, f.name
-             FROM documents d
-             LEFT JOIN folders f ON f.id = d.folder_id
-             WHERE d.deleted_at IS NULL AND d.title = ?1",
-        )
-        .map_err(|e| e.to_string())?;
-
-    for title in &titles {
-        let rows = stmt
-            .query_map(params![title], |row| {
-                Ok((
-                    row.get::<_, String>(0)?,
-                    row.get::<_, String>(1)?,
-                    row.get::<_, Option<String>>(2)?,
-                    row.get::<_, String>(3)?,
-                    row.get::<_, i64>(4)?,
-                    row.get::<_, Option<String>>(5)?,
-                ))
-            })
-            .map_err(|e| e.to_string())?;
-
-        for row in rows {
-            let (id, title, folder_id, content_json, updated_at, folder_name) =
-                row.map_err(|e| e.to_string())?;
-            let rank = match folder_name.as_deref() {
-                Some(JOURNAL_FOLDER_SK) => 0,
-                Some(JOURNAL_FOLDER_EN) => 1,
-                _ => 2,
-            };
-            let note = JournalNote {
-                id,
-                title,
-                folder_id: folder_id.unwrap_or_default(),
-                date: date.to_string(),
-                slot: slot.as_str().to_string(),
-                created: false,
-                plain_text: tiptap_to_plain_text(&content_json),
-            };
-            let better = match &best {
-                None => true,
-                Some((best_rank, best_updated, _)) => {
-                    rank < *best_rank || (rank == *best_rank && updated_at > *best_updated)
-                }
-            };
-            if better {
-                best = Some((rank, updated_at, note));
-            }
-        }
-    }
-
-    Ok(best.map(|(_, _, note)| note))
 }
 
 fn map_nlp_artifact_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<NlpArtifact> {
@@ -3184,237 +2655,6 @@ fn collect_document_ids_in_folders(
         .query_map(rusqlite::params_from_iter(folder_ids.iter()), |row| row.get(0))
         .map_err(|e| e.to_string())?;
     rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
-}
-
-fn collect_unresolved_wiki(
-    conn: &Connection,
-    document_id: &str,
-    document_title: &str,
-    content_json: &str,
-    out: &mut Vec<UnresolvedWikiLink>,
-    max: i64,
-) -> Result<(), String> {
-    let Ok(value) = serde_json::from_str::<Value>(content_json) else {
-        return Ok(());
-    };
-    walk_unresolved_wiki(conn, document_id, document_title, &value, out, max)
-}
-
-fn walk_unresolved_wiki(
-    conn: &Connection,
-    document_id: &str,
-    document_title: &str,
-    value: &Value,
-    out: &mut Vec<UnresolvedWikiLink>,
-    max: i64,
-) -> Result<(), String> {
-    if out.len() as i64 >= max {
-        return Ok(());
-    }
-    if value.get("type").and_then(Value::as_str) == Some("wikiLink") {
-        let label = value
-            .pointer("/attrs/label")
-            .and_then(Value::as_str)
-            .unwrap_or("")
-            .trim()
-            .to_string();
-        let target_id = value
-            .pointer("/attrs/targetId")
-            .and_then(Value::as_str)
-            .map(str::trim)
-            .filter(|item| !item.is_empty())
-            .map(str::to_string);
-        let resolved = if let Some(target_id) = target_id.as_deref() {
-            let exists: Option<String> = conn
-                .query_row(
-                    "SELECT id FROM documents WHERE id = ?1 AND deleted_at IS NULL",
-                    params![target_id],
-                    |row| row.get(0),
-                )
-                .optional()
-                .map_err(|e| e.to_string())?;
-            exists.is_some()
-        } else {
-            false
-        };
-        if !resolved && !label.is_empty() {
-            out.push(UnresolvedWikiLink {
-                document_id: document_id.to_string(),
-                document_title: document_title.to_string(),
-                label,
-                target_id,
-            });
-        }
-    }
-    if let Some(content) = value.get("content").and_then(Value::as_array) {
-        for child in content {
-            walk_unresolved_wiki(conn, document_id, document_title, child, out, max)?;
-            if out.len() as i64 >= max {
-                break;
-            }
-        }
-    }
-    Ok(())
-}
-
-fn load_journal_documents(
-    conn: &Connection,
-    input: &JournalSummaryInput,
-) -> Result<Vec<(String, String)>, String> {
-    if let Some(ids) = &input.document_ids {
-        let unique = ids
-            .iter()
-            .map(|id| id.trim().to_string())
-            .filter(|id| !id.is_empty())
-            .collect::<Vec<_>>();
-        if !unique.is_empty() {
-            let placeholders = std::iter::repeat("?")
-                .take(unique.len())
-                .collect::<Vec<_>>()
-                .join(", ");
-            let sql = format!(
-                "SELECT title, content_json FROM documents
-                 WHERE deleted_at IS NULL AND id IN ({placeholders})
-                 ORDER BY updated_at DESC"
-            );
-            let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
-            let rows = stmt
-                .query_map(rusqlite::params_from_iter(unique.iter()), |row| {
-                    Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-                })
-                .map_err(|e| e.to_string())?;
-
-            let mut docs = Vec::new();
-            for row in rows {
-                docs.push(row.map_err(|e| e.to_string())?);
-            }
-            return Ok(docs);
-        }
-    }
-
-    let (start_ts, end_ts) = date_key_bounds(&input.from_date, &input.to_date)?;
-    let mut stmt = conn
-        .prepare(
-            "SELECT title, content_json FROM documents
-             WHERE deleted_at IS NULL
-               AND updated_at BETWEEN ?1 AND ?2
-               AND (
-                 (?3 IS NOT NULL AND folder_id = ?3)
-                 OR (
-                   substr(title, 1, 10) GLOB '????-??-??'
-                   AND substr(title, 1, 10) >= ?4
-                   AND substr(title, 1, 10) <= ?5
-                 )
-               )
-             ORDER BY updated_at DESC",
-        )
-        .map_err(|e| e.to_string())?;
-
-    let rows = stmt
-        .query_map(
-            params![
-                start_ts,
-                end_ts,
-                input.journal_folder_id,
-                input.from_date,
-                input.to_date
-            ],
-            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
-        )
-        .map_err(|e| e.to_string())?;
-
-    let mut docs = Vec::new();
-    for row in rows {
-        docs.push(row.map_err(|e| e.to_string())?);
-    }
-    Ok(docs)
-}
-
-fn add_document_tag_in_conn(db: &Connection, id: &str, tag: &str) -> Result<IdTags, String> {
-    let row: Option<(Option<String>, Option<i64>)> = db
-        .query_row(
-            "SELECT tags, deleted_at FROM documents WHERE id = ?1",
-            params![id],
-            |row| Ok((row.get(0)?, row.get(1)?)),
-        )
-        .optional()
-        .map_err(|e| e.to_string())?;
-
-    let Some((tags_raw, deleted_at)) = row else {
-        return Err(format!("Document not found: {id}"));
-    };
-    if deleted_at.is_some() {
-        return Err(format!("Document not found: {id}"));
-    }
-
-    let mut tags = ScribeStore::parse_tags(tags_raw);
-    if !tags.iter().any(|existing| existing == tag) {
-        tags.push(tag.to_string());
-        tags = ScribeStore::normalize_tags(&tags);
-        db.execute(
-            "UPDATE documents SET tags = ?1 WHERE id = ?2",
-            params![ScribeStore::encode_tags(&tags), id],
-        )
-        .map_err(|e| e.to_string())?;
-    }
-
-    Ok(IdTags {
-        id: id.to_string(),
-        tags,
-    })
-}
-
-fn remove_document_tag_in_conn(db: &Connection, id: &str, tag: &str) -> Result<IdTags, String> {
-    let row: Option<(Option<String>, Option<i64>)> = db
-        .query_row(
-            "SELECT tags, deleted_at FROM documents WHERE id = ?1",
-            params![id],
-            |row| Ok((row.get(0)?, row.get(1)?)),
-        )
-        .optional()
-        .map_err(|e| e.to_string())?;
-
-    let Some((tags_raw, deleted_at)) = row else {
-        return Err(format!("Document not found: {id}"));
-    };
-    if deleted_at.is_some() {
-        return Err(format!("Document not found: {id}"));
-    }
-
-    let mut tags = ScribeStore::parse_tags(tags_raw);
-    let before = tags.len();
-    tags.retain(|existing| existing != tag);
-    if tags.len() != before {
-        tags = ScribeStore::normalize_tags(&tags);
-        db.execute(
-            "UPDATE documents SET tags = ?1 WHERE id = ?2",
-            params![ScribeStore::encode_tags(&tags), id],
-        )
-        .map_err(|e| e.to_string())?;
-    }
-
-    Ok(IdTags {
-        id: id.to_string(),
-        tags,
-    })
-}
-
-/// Append one tag to a document (no-op if the tag is already present).
-pub fn add_document_tag(conn: &Connection, id: &str, tag: &str) -> Result<IdTags, String> {
-    let tag = tag.trim();
-    if tag.is_empty() {
-        return Err("tag is required".to_string());
-    }
-    add_document_tag_in_conn(conn, id, tag)
-}
-
-/// Remove one tag from a document.
-pub fn remove_document_tag(conn: &Connection, id: &str, tag: &str) -> Result<IdTags, String> {
-    let tag = tag.trim();
-    if tag.is_empty() {
-        return Err("tag is required".to_string());
-    }
-    remove_document_tag_in_conn(conn, id, tag)
 }
 
 pub fn sync_sidecar_backend(sidecar: &NlpSidecar, conn: &Connection) -> Result<(), String> {
@@ -3856,5 +3096,56 @@ mod tests {
         assert_eq!(reply.author, "scribe-mcp");
         let listed = store.list_comment_threads(&note.id).unwrap();
         assert_eq!(listed[0].comments.len(), 2);
+    }
+
+    #[test]
+    fn fuzzy_ratio_near_titles() {
+        let score = crate::enhance::fuzzy_ratio("Rust notes", "Rust note");
+        assert!(score > 0.8, "expected high fuzzy score, got {score}");
+    }
+
+    #[cfg(feature = "fuzzy")]
+    #[test]
+    fn find_documents_by_title_tolerates_typos() {
+        let store = ScribeStore::from_memory();
+        store.create_note("Project Alpha", Some("body"), None).unwrap();
+        let hits = store.find_documents_by_title("Project Alph", 5).unwrap();
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].title, "Project Alpha");
+    }
+
+    #[test]
+    fn resolve_wiki_link_sets_target_id() {
+        let store = ScribeStore::from_memory();
+        let target = store.create_note("Target Note", Some("x"), None).unwrap();
+        let source = store
+            .create_note(
+                "Source",
+                Some("see [[Target Note]]"),
+                None,
+            )
+            .unwrap();
+        // Force unresolved node (plain_text may already resolve — patch if needed).
+        let content = format!(
+            r#"{{"type":"doc","content":[{{"type":"paragraph","content":[{{"type":"wikiLink","attrs":{{"label":"Target Note","targetId":null}}}}]}}]}}"#
+        );
+        store
+            .db
+            .execute(
+                "UPDATE documents SET content_json = ?1 WHERE id = ?2",
+                rusqlite::params![content, source.id],
+            )
+            .unwrap();
+        let result = crate::wiki::resolve_wiki_link_in_document(
+            &store.db,
+            &source.id,
+            "Target Note",
+            &target.id,
+        )
+        .unwrap();
+        assert_eq!(result.updated, 1);
+        assert_eq!(result.target_id, target.id);
+        let unresolved = store.list_unresolved_wiki_links(20).unwrap();
+        assert!(unresolved.iter().all(|link| link.document_id != source.id));
     }
 }

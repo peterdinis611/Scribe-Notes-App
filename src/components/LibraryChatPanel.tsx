@@ -1,4 +1,4 @@
-import { Eraser, FileText, Library, Send, Settings2, Sparkles } from 'lucide-react'
+import { Eraser, FileText, Library, Quote, Send, Settings2, Sparkles } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
@@ -36,6 +36,7 @@ import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { citationSearchQuery } from '@/lib/editor/citation-jump'
+import { insertAiAnswerAsCallout } from '@/lib/editor/insert-ai-answer'
 import { setActiveDocument, setActiveDocumentId, setPendingEditorSearch } from '@/store/documentsSlice'
 
 type ChatMessage = {
@@ -57,6 +58,25 @@ const LIBRARY_PROMPTS = [
   'libraryChat.prompts.deadlines',
   'libraryChat.prompts.themes',
   'libraryChat.prompts.openLoops',
+  'libraryChat.prompts.people',
+  'libraryChat.prompts.decisions',
+  'libraryChat.prompts.projects',
+  'libraryChat.prompts.meetings',
+  'libraryChat.prompts.ideas',
+  'libraryChat.prompts.definitions',
+  'libraryChat.prompts.connections',
+  'libraryChat.prompts.risks',
+] as const
+
+const DOCUMENT_PROMPTS = [
+  'libraryChat.documentPrompts.about',
+  'libraryChat.documentPrompts.next',
+  'libraryChat.documentPrompts.decisions',
+  'libraryChat.documentPrompts.people',
+  'libraryChat.documentPrompts.explain',
+  'libraryChat.documentPrompts.missing',
+  'libraryChat.documentPrompts.connect',
+  'libraryChat.documentPrompts.claims',
 ] as const
 
 const DOCUMENT_ACTIONS: Array<{ id: DocumentChatAction; labelKey: string }> = [
@@ -483,12 +503,18 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
               <div className="library-empty-state-icon">
                 <Sparkles className="h-5 w-5" />
               </div>
+              <p className="library-chat-brand-badge" role="status">
+                {t('libraryChat.brandBadge')}
+              </p>
               <p className="library-empty-state-title">
                 {scope === 'document'
                   ? t('libraryChat.emptyTitleDocument')
                   : t('libraryChat.emptyTitle')}
               </p>
               <p className="library-empty-state-text">
+                {t('libraryChat.brandHint')}
+              </p>
+              <p className="library-empty-state-text library-empty-state-text--secondary">
                 {scope === 'document'
                   ? t('libraryChat.emptyHintDocument')
                   : t('libraryChat.emptyHint')}
@@ -560,6 +586,27 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
                       </div>
                     </MessageFooter>
                   ) : null}
+                  {!isUser ? (
+                    <MessageFooter>
+                      <button
+                        type="button"
+                        className="library-chat-insert"
+                        disabled={loading}
+                        onClick={() => {
+                          const ok = insertAiAnswerAsCallout(message.text, {
+                            sourceTitle:
+                              message.citations?.[0]?.title ||
+                              (scope === 'document' ? docTitle : t('libraryChat.assistant')),
+                          })
+                          if (ok) toast.success(t('libraryChat.insertAnswerDone'))
+                          else toast.error(t('libraryChat.insertAnswerError'))
+                        }}
+                      >
+                        <Quote className="h-3 w-3" />
+                        {t('libraryChat.insertAnswer')}
+                      </button>
+                    </MessageFooter>
+                  ) : null}
                   {message.followups && message.followups.length > 0 ? (
                     <MessageFooter aria-label={t('libraryChat.followups')}>
                       <div className="library-chat-followups">
@@ -629,17 +676,32 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
                   {t(key)}
                 </button>
               ))
-            : DOCUMENT_ACTIONS.map((action) => (
-                <button
-                  key={action.id}
-                  type="button"
-                  disabled={loading || !activeDocumentId}
-                  className="library-chat-chip"
-                  onClick={() => void runAction(action.id)}
-                >
-                  {t(action.labelKey)}
-                </button>
-              ))}
+            : (
+              <>
+                {DOCUMENT_PROMPTS.map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    disabled={loading || !activeDocumentId}
+                    className="library-chat-chip"
+                    onClick={() => void sendQuestion(t(key))}
+                  >
+                    {t(key)}
+                  </button>
+                ))}
+                {DOCUMENT_ACTIONS.map((action) => (
+                  <button
+                    key={action.id}
+                    type="button"
+                    disabled={loading || !activeDocumentId}
+                    className="library-chat-chip library-chat-chip--action"
+                    onClick={() => void runAction(action.id)}
+                  >
+                    {t(action.labelKey)}
+                  </button>
+                ))}
+              </>
+            )}
         </div>
         <form
           className="flex items-center gap-1.5"

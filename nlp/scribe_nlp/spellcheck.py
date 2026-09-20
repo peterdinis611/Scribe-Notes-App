@@ -184,6 +184,19 @@ def _suggest(word: str, dictionary: WordDictionary, *, limit: int = MAX_SUGGESTI
         return []
 
     vocab = _suggestion_vocab(dictionary)
+    # Prefer rapidfuzz over the whole vocab when available (much faster + better ranking).
+    try:
+        from .extras import fuzzy_extract, has_rapidfuzz
+
+        if has_rapidfuzz() and vocab:
+            # Cap vocab scan for huge Hunspell stem sets.
+            choices = list(vocab) if len(vocab) <= 80_000 else list(vocab)[:80_000]
+            hits = fuzzy_extract(lower, choices, limit=limit, score_cutoff=0.72)
+            if hits:
+                return [choice for choice, _ in hits]
+    except Exception:
+        pass
+
     max_dist = 1 if len(lower) <= 5 else 2
     candidates: list[tuple[int, str]] = []
 
@@ -256,7 +269,9 @@ def spellcheck_text(
     language: str | None = None,
     max_issues: int = MAX_ISSUES,
 ) -> dict[str, object]:
-    cleaned = truncate_text(text or "", 120_000)
+    from .extras import fix_unicode
+
+    cleaned = truncate_text(fix_unicode(text or ""), 120_000)
     # Avoid tokenizing URL / email fragments as words.
     cleaned = URL_RE.sub(" ", cleaned)
     cleaned = EMAIL_RE.sub(" ", cleaned)

@@ -436,9 +436,15 @@ export const diffDocumentRevisions = (
   documentId: string,
   oldRevisionId: string,
   newRevisionId: string,
+  currentPlainText?: string,
 ) =>
   invoke<DiffDocumentRevisionsResult>('diff_document_revisions', {
-    input: { documentId, oldRevisionId, newRevisionId },
+    input: {
+      documentId,
+      oldRevisionId,
+      newRevisionId,
+      currentPlainText: currentPlainText ?? null,
+    },
   })
 
 export const renderDocumentHtml = (documentId: string, includeTitleHeading = true) =>
@@ -650,6 +656,66 @@ export interface BackupImportResult {
 }
 
 export const listLinkGraph = () => invoke<LinkGraph>('list_link_graph')
+
+export interface WikiHealthOrphan {
+  id: string
+  title: string
+}
+
+export interface WikiHealthUnresolved {
+  documentId: string
+  documentTitle: string
+  label: string
+  targetId?: string | null
+  suggestions?: TitleMatch[]
+}
+
+export interface TitleMatch {
+  id: string
+  title: string
+  score: number
+}
+
+export interface ResolveWikiLinkResult {
+  documentId: string
+  label: string
+  targetId: string
+  targetTitle: string
+  updated: number
+}
+
+export interface WikiHealthStub {
+  id: string
+  title: string
+  wordCount: number
+}
+
+export interface WikiHealth {
+  orphans: WikiHealthOrphan[]
+  unresolved: WikiHealthUnresolved[]
+  stubs: WikiHealthStub[]
+}
+
+export const listWikiHealth = (options?: {
+  unresolvedLimit?: number
+  stubMaxWords?: number
+  stubLimit?: number
+}) =>
+  invoke<WikiHealth>('list_wiki_health', {
+    unresolvedLimit: options?.unresolvedLimit ?? null,
+    stubMaxWords: options?.stubMaxWords ?? null,
+    stubLimit: options?.stubLimit ?? null,
+  })
+
+export const findDocumentsByTitle = (title: string, limit = 10) =>
+  invoke<TitleMatch[]>('find_documents_by_title', { title, limit })
+
+export const resolveWikiLink = (documentId: string, label: string, targetId: string) =>
+  invoke<ResolveWikiLinkResult>('resolve_wiki_link', {
+    documentId,
+    label,
+    targetId,
+  })
 
 export const exportLibraryArchive = () =>
   invoke<BackupExportResult | null>('export_library_archive')
