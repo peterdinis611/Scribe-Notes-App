@@ -7,6 +7,7 @@ import { MarkdownView } from '@/components/MarkdownView'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Bubble, BubbleContent } from '@/components/ui/bubble'
 import { Button } from '@/components/ui/button'
+import { IconTooltip } from '@/components/ui/tooltip'
 import {
   Message,
   MessageAvatar,
@@ -659,17 +660,18 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
             onChange={(event) => setInput(event.target.value)}
             aria-label={t('libraryChat.placeholder')}
           />
-          <Button
-            type="submit"
-            variant="default"
-            size="icon"
-            className="h-9 w-9 rounded-full"
-            disabled={loading || !input.trim()}
-            aria-label={t('libraryChat.send')}
-            title={t('libraryChat.send')}
-          >
-            <Send className="h-3.5 w-3.5" />
-          </Button>
+          <IconTooltip label={t('libraryChat.send')}>
+            <Button
+              type="submit"
+              variant="default"
+              size="icon"
+              className="h-9 w-9 rounded-full"
+              disabled={loading || !input.trim()}
+              aria-label={t('libraryChat.send')}
+            >
+              <Send className="h-3.5 w-3.5" />
+            </Button>
+          </IconTooltip>
         </form>
       </div>
     </div>

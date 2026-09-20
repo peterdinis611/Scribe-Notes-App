@@ -13,6 +13,7 @@ export interface DocumentSummary {
   isPinned: boolean
   tags: string[]
   deletedAt: number | null
+  isPasswordProtected?: boolean
 }
 
 export interface Folder {
@@ -56,6 +57,9 @@ export interface Document {
   filePath: string | null
   createdAt: number
   updatedAt: number
+  vaultVerifier?: string | null
+  /** Runtime-only: true when ciphertext could not be decrypted (locked). */
+  vaultLocked?: boolean
 }
 
 export interface CreateDocumentInput {
@@ -68,6 +72,8 @@ export interface UpdateDocumentInput {
   id: string
   title?: string
   contentJson?: string
+  vaultVerifier?: string
+  clearVaultVerifier?: boolean
 }
 
 export interface LibraryFindReplaceInput {
@@ -157,11 +163,23 @@ export const updateDocument = async (input: UpdateDocumentInput) => {
   // Cache what the UI needs: plaintext when unlocked, ciphertext only when locked.
   cacheDocument(isVaultCipherJson(decrypted.contentJson) ? saved : decrypted)
   const folder = folders.find((item) => item.id === decrypted.folderId)
-  void import('@/lib/vault/session').then(async ({ isVaultUnlocked }) => {
+  void import('@/lib/vault/session').then(async ({ isVaultUnlocked, isDocumentUnlocked, documentVaultRamFolderId }) => {
     const { vaultRamRemove, vaultRamUpsert, vaultRamTextFromDocument } = await import(
       '@/lib/vault/ram-index'
     )
+    const docProtected = Boolean(decrypted.vaultVerifier)
     if (
+      docProtected &&
+      isDocumentUnlocked(decrypted.id) &&
+      !isVaultCipherJson(decrypted.contentJson)
+    ) {
+      await vaultRamUpsert({
+        documentId: decrypted.id,
+        folderId: documentVaultRamFolderId(decrypted.id),
+        title: decrypted.title,
+        text: vaultRamTextFromDocument(decrypted.title, decrypted.contentJson),
+      })
+    } else if (
       folder?.isVault &&
       isVaultUnlocked(folder.id) &&
       !isVaultCipherJson(decrypted.contentJson)

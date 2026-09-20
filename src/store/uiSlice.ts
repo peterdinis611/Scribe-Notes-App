@@ -8,6 +8,8 @@ export type InputDialogOptions = {
   placeholder?: string
   confirmLabel?: string
   cancelLabel?: string
+  /** Mask input as a password field. */
+  password?: boolean
 }
 
 export type InputDialogState = ({ open: true } & InputDialogOptions) | { open: false }

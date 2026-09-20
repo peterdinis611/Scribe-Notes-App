@@ -2,6 +2,7 @@ import { CheckCircle2, Info, X, XCircle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { dismissToast, runToastAction, type ToastVariant } from '@/lib/toast'
 import { cn } from '@/lib/utils'
+import { IconTooltip } from '@/components/ui/tooltip'
 import { useAppSelector } from '@/store/hooks'
 
 function ToastIcon({ variant }: { variant: ToastVariant }) {
@@ -66,14 +67,16 @@ export function ToastHost() {
               </button>
             )}
           </div>
-          <button
-            type="button"
-            className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[var(--color-muted-foreground)] transition-colors hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
-            aria-label={t('common.close')}
-            onClick={() => dismissToast(item.id)}
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
+          <IconTooltip label={t('common.close')}>
+            <button
+              type="button"
+              className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[var(--color-muted-foreground)] transition-colors hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
+              aria-label={t('common.close')}
+              onClick={() => dismissToast(item.id)}
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </IconTooltip>
         </div>
       ))}
     </div>

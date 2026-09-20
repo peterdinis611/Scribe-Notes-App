@@ -154,16 +154,16 @@ export function CustomColorPicker({
 }) {
   return (
     <IconTooltip label={label}>
-    <label className="toolbar-color-picker">
-      <span className="toolbar-color-picker-label">{label}</span>
-      <input
-        type="color"
-        className="toolbar-color-picker-input"
-        aria-label={label}
-        defaultValue="#007aff"
-        onChange={(event) => onPick(event.target.value)}
-      />
-    </label>
+      <label className="toolbar-color-picker">
+        <span className="toolbar-color-picker-label">{label}</span>
+        <input
+          type="color"
+          className="toolbar-color-picker-input"
+          aria-label={label}
+          defaultValue="#007aff"
+          onChange={(event) => onPick(event.target.value)}
+        />
+      </label>
     </IconTooltip>
   )
 }

@@ -7,24 +7,39 @@ import {
   vaultLockedPlaceholderJson,
 } from '@/lib/vault/crypto'
 
-type VaultSession = {
+type FolderVaultSession = {
   folderId: string
   password: string
 }
 
+type DocumentVaultSession = {
+  documentId: string
+  password: string
+}
+
 /** In-memory unlock sessions (cleared on lock / app reload). */
-const sessions = new Map<string, VaultSession>()
+const folderSessions = new Map<string, FolderVaultSession>()
+const documentSessions = new Map<string, DocumentVaultSession>()
 
 export function isVaultUnlocked(folderId: string): boolean {
-  return sessions.has(folderId)
+  return folderSessions.has(folderId)
+}
+
+export function isDocumentUnlocked(documentId: string): boolean {
+  return documentSessions.has(documentId)
 }
 
 export function lockVault(folderId: string) {
-  sessions.delete(folderId)
+  folderSessions.delete(folderId)
+}
+
+export function lockDocument(documentId: string) {
+  documentSessions.delete(documentId)
 }
 
 export function lockAllVaults() {
-  sessions.clear()
+  folderSessions.clear()
+  documentSessions.clear()
 }
 
 export async function unlockVault(
@@ -35,12 +50,33 @@ export async function unlockVault(
   if (!verifier) return false
   const ok = await verifyVaultPassword(password, verifier)
   if (!ok) return false
-  sessions.set(folderId, { folderId, password })
+  folderSessions.set(folderId, { folderId, password })
+  return true
+}
+
+export async function unlockDocument(
+  documentId: string,
+  password: string,
+  verifier: string | null | undefined,
+): Promise<boolean> {
+  if (!verifier) return false
+  const ok = await verifyVaultPassword(password, verifier)
+  if (!ok) return false
+  documentSessions.set(documentId, { documentId, password })
   return true
 }
 
 export function getVaultPassword(folderId: string): string | null {
-  return sessions.get(folderId)?.password ?? null
+  return folderSessions.get(folderId)?.password ?? null
+}
+
+export function getDocumentPassword(documentId: string): string | null {
+  return documentSessions.get(documentId)?.password ?? null
+}
+
+/** Synthetic folder id for RAM NLP overlay of password-protected notes. */
+export function documentVaultRamFolderId(documentId: string): string {
+  return `doc:${documentId}`
 }
 
 export {

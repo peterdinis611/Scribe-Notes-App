@@ -12,6 +12,7 @@ import {
 import { createCommentForSelection, findCommentRange, focusComment } from '@/lib/editor/comments'
 import { cn, formatRelativeTime } from '@/lib/utils'
 import { toast } from '@/lib/toast'
+import { IconTooltip } from '@/components/ui/tooltip'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { bumpCommentsVersion, commitCommentAuthor, setCommentAuthor } from '@/store/documentsSlice'
 import { Input } from '@/components/ui/input'
@@ -411,14 +412,16 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
                       setReplyDrafts((prev) => ({ ...prev, [thread.id]: event.target.value }))
                     }
                   />
-                  <button
-                    type="submit"
-                    className="inline-flex w-[30px] shrink-0 items-center justify-center rounded-[7px] border-none bg-[var(--color-accent)] text-white disabled:opacity-40"
-                    aria-label={t('panels.comments.sendReply')}
-                    disabled={!(replyDrafts[thread.id] ?? '').trim()}
-                  >
-                    <Send className="h-3.5 w-3.5" />
-                  </button>
+                  <IconTooltip label={t('panels.comments.sendReply')}>
+                    <button
+                      type="submit"
+                      className="inline-flex w-[30px] shrink-0 items-center justify-center rounded-[7px] border-none bg-[var(--color-accent)] text-white disabled:opacity-40"
+                      aria-label={t('panels.comments.sendReply')}
+                      disabled={!(replyDrafts[thread.id] ?? '').trim()}
+                    >
+                      <Send className="h-3.5 w-3.5" />
+                    </button>
+                  </IconTooltip>
                 </div>
               </form>
             </div>

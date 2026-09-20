@@ -7,6 +7,7 @@ import {
   setFavoritesOnlyFilter,
   setMetaFilters,
 } from '@/store/documentsSlice'
+import { IconTooltip } from '@/components/ui/tooltip'
 
 export function LibraryFilterBanner() {
   const { t } = useTranslation()
@@ -51,19 +52,21 @@ export function LibraryFilterBanner() {
           {activeTagFilter}
         </span>
       )}
-      <button
-        type="button"
-        className="library-filter-clear"
-        onClick={() => {
-          dispatch(setFavoritesOnlyFilter(false))
-          dispatch(setActiveTagFilter(null))
-          dispatch(clearMetaFilters())
-          dispatch(setMetaFilters({ status: null, project: null, year: null }))
-        }}
-        aria-label={t('library.clearFilter')}
-      >
-        <X className="h-3.5 w-3.5" />
-      </button>
+      <IconTooltip label={t('library.clearFilter')}>
+        <button
+          type="button"
+          className="library-filter-clear"
+          onClick={() => {
+            dispatch(setFavoritesOnlyFilter(false))
+            dispatch(setActiveTagFilter(null))
+            dispatch(clearMetaFilters())
+            dispatch(setMetaFilters({ status: null, project: null, year: null }))
+          }}
+          aria-label={t('library.clearFilter')}
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </IconTooltip>
     </div>
   )
 }

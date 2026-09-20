@@ -52,6 +52,7 @@ import {
   pickAndImportTemplatePack,
 } from '@/lib/templates/pack-io'
 import { cn } from '@/lib/utils'
+import { IconTooltip } from '@/components/ui/tooltip'
 import { promptInput } from '@/lib/input-dialog'
 import { fileBasename, toast } from '@/lib/toast'
 import {
@@ -689,22 +690,24 @@ function CustomCategoryFilterChip({
         <span className="truncate">{children}</span>
         <span className="ml-1 opacity-60">{count}</span>
       </button>
-      <button
-        type="button"
-        aria-label={t('templates.deleteCategoryAria')}
-        onClick={(event) => {
-          event.stopPropagation()
-          onDelete()
-        }}
-        className={cn(
-          'inline-flex h-full items-center rounded-r-[var(--radius-sm)] pr-2 pl-1 transition-colors',
-          active
-            ? 'text-[var(--color-accent)] hover:bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)]'
-            : 'text-[var(--color-muted-foreground)] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]',
-        )}
-      >
-        <X className="h-3 w-3" />
-      </button>
+      <IconTooltip label={t('templates.deleteCategoryAria')}>
+        <button
+          type="button"
+          aria-label={t('templates.deleteCategoryAria')}
+          onClick={(event) => {
+            event.stopPropagation()
+            onDelete()
+          }}
+          className={cn(
+            'inline-flex h-full items-center rounded-r-[var(--radius-sm)] pr-2 pl-1 transition-colors',
+            active
+              ? 'text-[var(--color-accent)] hover:bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)]'
+              : 'text-[var(--color-muted-foreground)] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]',
+          )}
+        >
+          <X className="h-3 w-3" />
+        </button>
+      </IconTooltip>
     </div>
   )
 }

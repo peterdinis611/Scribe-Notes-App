@@ -9,6 +9,7 @@ import {
   Loader2,
   Plus,
   BookOpen,
+  Unlock,
   X,
 } from 'lucide-react'
 import { DocumentTitleField } from '@/components/DocumentTitleField'
@@ -424,20 +425,48 @@ function EditorChrome() {
         </div>
 
         <div className="editor-header-right titlebar-no-drag titlebar-interactive flex shrink-0 flex-nowrap items-center justify-end overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0">
+          {document && document.vaultLocked && !readingMode && (
+            <IconTooltip label={t('vault.doc.unlock')}>
+              <Button
+                variant="default"
+                size="sm"
+                className="shrink-0 gap-1.5"
+                aria-label={t('vault.doc.unlock')}
+                onClick={() => {
+                  void (async () => {
+                    try {
+                      const { unlockPasswordDocument } = await import('@/lib/vault/document-protect')
+                      const next = await unlockPasswordDocument(document, t)
+                      if (next) toast.success(t('vault.doc.unlockedToast'))
+                    } catch (error) {
+                      toast.error(t('vault.doc.actionError'), String(error))
+                    }
+                  })()
+                }}
+              >
+                <Unlock className="h-3.5 w-3.5 shrink-0" />
+                <span className="editor-header-label [[data-layout-tier=medium]_&]:hidden [[data-layout-tier=narrow]_&]:hidden [[data-layout-tier=tight]_&]:hidden">
+                  {t('vault.doc.unlock')}
+                </span>
+              </Button>
+            </IconTooltip>
+          )}
           {document && readingMode && (
-            <Button
-              variant="default"
-              size="sm"
-              className="shrink-0 gap-1.5"
-              title={t('readingMode.exitHint')}
-              onClick={() => dispatch(setReadingMode(false))}
-            >
-              <BookOpen className="h-3.5 w-3.5 shrink-0" />
-              <span className="editor-header-label [[data-layout-tier=medium]_&]:hidden [[data-layout-tier=narrow]_&]:hidden [[data-layout-tier=tight]_&]:hidden">
-                {t('readingMode.exit')}
-              </span>
-              <kbd className="editor-focus-exit-kbd">Esc</kbd>
-            </Button>
+            <IconTooltip label={t('readingMode.exitHint')}>
+              <Button
+                variant="default"
+                size="sm"
+                className="shrink-0 gap-1.5"
+                aria-label={t('readingMode.exitHint')}
+                onClick={() => dispatch(setReadingMode(false))}
+              >
+                <BookOpen className="h-3.5 w-3.5 shrink-0" />
+                <span className="editor-header-label [[data-layout-tier=medium]_&]:hidden [[data-layout-tier=narrow]_&]:hidden [[data-layout-tier=tight]_&]:hidden">
+                  {t('readingMode.exit')}
+                </span>
+                <kbd className="editor-focus-exit-kbd">Esc</kbd>
+              </Button>
+            </IconTooltip>
           )}
           {document && !readingMode && (
             <div className="editor-header-doc-actions">

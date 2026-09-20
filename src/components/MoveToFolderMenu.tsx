@@ -2,6 +2,7 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Check, Folder, FolderInput, FolderPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { IconTooltip } from '@/components/ui/tooltip'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,18 +63,19 @@ export function MoveToFolderMenu({
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         {trigger ?? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 hover:bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] hover:text-[var(--color-accent)]"
-            title={t('library.moveToFolder')}
-            aria-label={t('library.moveToFolder')}
-            onClick={(event) => event.stopPropagation()}
-            onMouseDown={(event) => event.preventDefault()}
-          >
-            <FolderInput className="h-3.5 w-3.5" />
-          </Button>
+          <IconTooltip label={t('library.moveToFolder')}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 hover:bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] hover:text-[var(--color-accent)]"
+              aria-label={t('library.moveToFolder')}
+              onClick={(event) => event.stopPropagation()}
+              onMouseDown={(event) => event.preventDefault()}
+            >
+              <FolderInput className="h-3.5 w-3.5" />
+            </Button>
+          </IconTooltip>
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="max-h-80 min-w-[220px] overflow-y-auto">

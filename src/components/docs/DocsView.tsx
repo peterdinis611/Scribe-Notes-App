@@ -19,6 +19,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { SettingsKbd } from '@/components/settings/SettingsPrimitives'
 import { cn } from '@/lib/utils'
+import { IconTooltip } from '@/components/ui/tooltip'
 import { APP_SHORT_VERSION } from '@/lib/app-version'
 
 export const DOCS_TOPIC_IDS = [
@@ -220,14 +221,16 @@ export function DocsView() {
                 aria-label={t('settings.docs.searchPlaceholder')}
               />
               {query && (
-                <button
-                  type="button"
-                  className="docs-search-clear"
-                  onClick={() => setQuery('')}
-                  aria-label={t('common.close')}
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
+                <IconTooltip label={t('common.close')}>
+                  <button
+                    type="button"
+                    className="docs-search-clear"
+                    onClick={() => setQuery('')}
+                    aria-label={t('common.close')}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </IconTooltip>
               )}
             </div>
 

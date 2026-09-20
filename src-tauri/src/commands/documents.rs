@@ -18,6 +18,8 @@ pub struct DocumentSummary {
     pub is_pinned: bool,
     pub tags: Vec<String>,
     pub deleted_at: Option<i64>,
+    #[serde(default)]
+    pub is_password_protected: bool,
 }
 
 fn parse_tags(raw: Option<String>) -> Vec<String> {
@@ -35,6 +37,8 @@ pub struct Document {
     pub file_path: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
+    #[serde(default)]
+    pub vault_verifier: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -51,6 +55,11 @@ pub struct UpdateDocumentInput {
     pub id: String,
     pub title: Option<String>,
     pub content_json: Option<String>,
+    /// When set, stores the document password verifier (PBKDF2 proof).
+    pub vault_verifier: Option<String>,
+    /// When true, clears `vault_verifier` (remove password protection).
+    #[serde(default)]
+    pub clear_vault_verifier: bool,
 }
 
 fn now_ts() -> i64 {
@@ -108,14 +117,17 @@ pub fn map_document(row: &rusqlite::Row<'_>) -> rusqlite::Result<Document> {
         file_path: row.get(4)?,
         created_at: row.get(5)?,
         updated_at: row.get(6)?,
+        vault_verifier: row.get(7)?,
     })
 }
 
 pub const DOCUMENT_SELECT: &str =
-    "SELECT id, title, content_json, folder_id, file_path, created_at, updated_at FROM documents";
+    "SELECT id, title, content_json, folder_id, file_path, created_at, updated_at, vault_verifier FROM documents";
 
 const SUMMARY_SELECT: &str =
-    "SELECT id, title, folder_id, file_path, updated_at, is_favorite, is_pinned, tags, deleted_at FROM documents";
+    "SELECT id, title, folder_id, file_path, updated_at, is_favorite, is_pinned, tags, deleted_at, \
+     CASE WHEN vault_verifier IS NOT NULL AND length(vault_verifier) > 0 THEN 1 ELSE 0 END \
+     FROM documents";
 
 fn map_summary(row: &rusqlite::Row<'_>) -> rusqlite::Result<DocumentSummary> {
     Ok(DocumentSummary {
@@ -128,6 +140,7 @@ fn map_summary(row: &rusqlite::Row<'_>) -> rusqlite::Result<DocumentSummary> {
         is_pinned: row.get::<_, i64>(6)? != 0,
         tags: parse_tags(row.get::<_, Option<String>>(7)?),
         deleted_at: row.get(8)?,
+        is_password_protected: row.get::<_, i64>(9)? != 0,
     })
 }
 
@@ -256,6 +269,7 @@ pub fn create_document(
         file_path: None,
         created_at: now,
         updated_at: now,
+        vault_verifier: None,
     })
 }
 
@@ -281,8 +295,16 @@ pub fn update_document(
     let content_json = input
         .content_json
         .unwrap_or_else(|| existing.content_json.clone());
+    let vault_verifier = if input.clear_vault_verifier {
+        None
+    } else if input.vault_verifier.is_some() {
+        input.vault_verifier.clone()
+    } else {
+        existing.vault_verifier.clone()
+    };
     let now = now_ts();
     let content_changed = content_json != existing.content_json || title != existing.title;
+    let verifier_changed = vault_verifier != existing.vault_verifier;
 
     conn.execute("BEGIN IMMEDIATE", [])
         .map_err(|e| e.to_string())?;
@@ -300,13 +322,16 @@ pub fn update_document(
         }
 
         conn.execute(
-            "UPDATE documents SET title = ?1, content_json = ?2, updated_at = ?3 WHERE id = ?4",
-            params![title, content_json, now, input.id],
+            "UPDATE documents SET title = ?1, content_json = ?2, updated_at = ?3, vault_verifier = ?4 WHERE id = ?5",
+            params![title, content_json, now, vault_verifier, input.id],
         )
         .map_err(|e| e.to_string())?;
 
         crate::db::sync_document_fts(&conn, &input.id, &title, &content_json)?;
         crate::db::sync_document_links(&conn, &input.id, &content_json)?;
+        if scribe_core::vault::content_is_vault_cipher(&content_json) {
+            crate::db::remove_embedding(&conn, &input.id)?;
+        }
         Ok(())
     })();
 
@@ -318,7 +343,7 @@ pub fn update_document(
     conn.execute("COMMIT", [])
         .map_err(|e| e.to_string())?;
 
-    if content_changed {
+    if content_changed || verifier_changed {
         if let Err(error) = queue_document_persist(
             &app,
             &conn,
@@ -341,6 +366,7 @@ pub fn update_document(
         file_path: existing.file_path,
         created_at: existing.created_at,
         updated_at: now,
+        vault_verifier,
     })
 }
 
@@ -407,6 +433,7 @@ pub fn duplicate_document(
         file_path: Some(file_path),
         created_at: now,
         updated_at: now,
+        vault_verifier: source.vault_verifier,
     })
 }
 
@@ -1023,6 +1050,7 @@ pub fn library_find_replace(
                     file_path: doc.file_path,
                     created_at,
                     updated_at: now,
+                    vault_verifier: doc.vault_verifier,
                 },
                 created_at,
             ));

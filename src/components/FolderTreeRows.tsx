@@ -162,8 +162,8 @@ export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
               <FolderPlus className="h-3.5 w-3.5" />
             </button>
           </IconTooltip>
-          {folder.isPinned ? (
-            <IconTooltip label={t('library.pin')}>
+            {folder.isPinned ? (
+            <IconTooltip label={t('library.pinnedSection')}>
               <span tabIndex={0} className="inline-flex">
                 <Pin className="folder-tree-pin" aria-hidden />
               </span>
@@ -331,8 +331,15 @@ export const FolderTreeDocumentRow = memo(function FolderTreeDocumentRow({
           </div>
 
           <div className="folder-tree-doc-badges">
+            {document.isPasswordProtected ? (
+              <IconTooltip label={t('vault.doc.protect')}>
+                <span tabIndex={0} className="inline-flex">
+                  <Lock className="folder-tree-pin h-3 w-3 text-[var(--color-muted-foreground)]" aria-hidden="true" />
+                </span>
+              </IconTooltip>
+            ) : null}
             {document.isPinned ? (
-              <IconTooltip label={t('library.pin')}>
+              <IconTooltip label={t('library.pinnedSection')}>
                 <span tabIndex={0} className="inline-flex">
                   <Pin className="folder-tree-pin" aria-hidden="true" />
                 </span>

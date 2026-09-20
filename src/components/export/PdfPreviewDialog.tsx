@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Download, Loader2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { IconTooltip } from '@/components/ui/tooltip'
 import { previewPdfExport } from '@/lib/db/api'
 import { base64ToPdfUrl } from '@/lib/pdf/pdf-viewer-config'
 import type { PageSetup } from '@/lib/editor/page-setup'
@@ -113,9 +114,11 @@ export function PdfPreviewDialog({
               {t('pdfPreview.export')}
             </Button>
 
-            <Button variant="ghost" size="icon" aria-label={t('common.close')} onClick={close}>
-              <X className="h-4 w-4" />
-            </Button>
+            <IconTooltip label={t('common.close')}>
+              <Button variant="ghost" size="icon" aria-label={t('common.close')} onClick={close}>
+                <X className="h-4 w-4" />
+              </Button>
+            </IconTooltip>
           </div>
         </header>
 

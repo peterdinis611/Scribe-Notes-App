@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setActiveDocumentId } from '@/store/documentsSlice'
 import { Button } from '@/components/ui/button'
+import { IconTooltip } from '@/components/ui/tooltip'
 import { LinkGraphEmptyState } from '@/components/LinkGraphEmptyState'
 
 const NLP_ENTITY_DOC_CAP = 24
@@ -955,46 +956,54 @@ export function LibraryLinkGraphView({
         isPage && 'mb-0 gap-1.5',
       )}
     >
-      <Button
-        type="button"
-        variant="outline"
-        size="icon"
-        className="h-7 w-7"
-        title={t('linkGraph.zoomOut')}
-        disabled={scale <= MIN_SCALE}
-        onClick={() => zoomBy(0.85)}
-      >
-        <Minus className="h-3.5 w-3.5" />
-      </Button>
-      <button
-        type="button"
-        className="link-graph-zoom-readout"
-        title={t('linkGraph.fitView')}
-        onClick={fitToNodes}
-      >
-        {zoomPercent}%
-      </button>
-      <Button
-        type="button"
-        variant="outline"
-        size="icon"
-        className="h-7 w-7"
-        title={t('linkGraph.zoomIn')}
-        disabled={scale >= MAX_SCALE}
-        onClick={() => zoomBy(1.18)}
-      >
-        <Plus className="h-3.5 w-3.5" />
-      </Button>
-      <Button
-        type="button"
-        variant="outline"
-        size="icon"
-        className="h-7 w-7"
-        title={t('linkGraph.fitView')}
-        onClick={fitToNodes}
-      >
-        <RotateCcw className="h-3.5 w-3.5" />
-      </Button>
+      <IconTooltip label={t('linkGraph.zoomOut')}>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-7 w-7"
+          disabled={scale <= MIN_SCALE}
+          aria-label={t('linkGraph.zoomOut')}
+          onClick={() => zoomBy(0.85)}
+        >
+          <Minus className="h-3.5 w-3.5" />
+        </Button>
+      </IconTooltip>
+      <IconTooltip label={t('linkGraph.fitView')}>
+        <button
+          type="button"
+          className="link-graph-zoom-readout"
+          aria-label={t('linkGraph.fitView')}
+          onClick={fitToNodes}
+        >
+          {zoomPercent}%
+        </button>
+      </IconTooltip>
+      <IconTooltip label={t('linkGraph.zoomIn')}>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-7 w-7"
+          disabled={scale >= MAX_SCALE}
+          aria-label={t('linkGraph.zoomIn')}
+          onClick={() => zoomBy(1.18)}
+        >
+          <Plus className="h-3.5 w-3.5" />
+        </Button>
+      </IconTooltip>
+      <IconTooltip label={t('linkGraph.fitView')}>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-7 w-7"
+          aria-label={t('linkGraph.fitView')}
+          onClick={fitToNodes}
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+        </Button>
+      </IconTooltip>
       <Button
         type="button"
         variant={aroundActive ? 'default' : 'outline'}

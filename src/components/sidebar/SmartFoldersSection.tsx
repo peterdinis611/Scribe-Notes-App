@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { FolderKanban, Plus, Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { IconTooltip } from '@/components/ui/tooltip'
 
 export interface SmartFolder {
   id: string
@@ -51,13 +52,16 @@ export const SmartFoldersSection: React.FC<SmartFoldersSectionProps> = ({
           <FolderKanban className="h-3.5 w-3.5 text-primary" />
           <span>{t('smartFolders.title', 'Smart Folders')}</span>
         </div>
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="rounded p-0.5 hover:bg-accent text-muted-foreground hover:text-foreground"
-          title={t('smartFolders.add', 'Add Smart Folder')}
-        >
-          <Plus className="h-3.5 w-3.5" />
-        </button>
+        <IconTooltip label={t('smartFolders.add', 'Add Smart Folder')}>
+          <button
+            type="button"
+            onClick={() => setIsOpen(!isOpen)}
+            className="rounded p-0.5 hover:bg-accent text-muted-foreground hover:text-foreground"
+            aria-label={t('smartFolders.add', 'Add Smart Folder')}
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </button>
+        </IconTooltip>
       </div>
 
       {isOpen && (

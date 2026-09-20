@@ -8,6 +8,7 @@ import { getEditorExtensions } from '@/lib/editor/extensions'
 import { setEditorContent } from '@/lib/editor/view-ready'
 import { debounce } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { IconTooltip } from '@/components/ui/tooltip'
 import { useAppDispatch } from '@/store/hooks'
 import { setSecondaryDocumentId, updateDocuments } from '@/store/documentsSlice'
 
@@ -96,17 +97,18 @@ export function SecondaryDocumentPane({ documentId }: SecondaryDocumentPaneProps
         <p className="m-0 min-w-0 flex-1 truncate text-[12px] font-semibold text-[var(--color-foreground)]">
           {title}
         </p>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-7 w-7 p-0"
-          onClick={() => dispatch(setSecondaryDocumentId(null))}
-          title={t('split.close')}
-          aria-label={t('split.close')}
-        >
-          <X className="h-3.5 w-3.5" />
-        </Button>
+        <IconTooltip label={t('split.close')}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0"
+            onClick={() => dispatch(setSecondaryDocumentId(null))}
+            aria-label={t('split.close')}
+          >
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </IconTooltip>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
         {!ready && (

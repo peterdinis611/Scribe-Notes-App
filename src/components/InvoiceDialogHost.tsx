@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { IconTooltip } from '@/components/ui/tooltip'
 import {
   Dialog,
   DialogContent,
@@ -173,22 +174,24 @@ export function InvoiceDialogHost() {
                       aria-label={t('invoiceDialog.unitPrice')}
                       onChange={(e) => updateItem(index, { unitPrice: Number(e.target.value) })}
                     />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="px-2"
-                      disabled={draft.items.length <= 1}
-                      aria-label={t('invoiceDialog.removeItem')}
-                      onClick={() =>
-                        setDraft((prev) => ({
-                          ...prev,
-                          items: prev.items.filter((_, i) => i !== index),
-                        }))
-                      }
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    <IconTooltip label={t('invoiceDialog.removeItem')}>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="px-2"
+                        disabled={draft.items.length <= 1}
+                        aria-label={t('invoiceDialog.removeItem')}
+                        onClick={() =>
+                          setDraft((prev) => ({
+                            ...prev,
+                            items: prev.items.filter((_, i) => i !== index),
+                          }))
+                        }
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </IconTooltip>
                   </div>
                 ))}
                 <Button

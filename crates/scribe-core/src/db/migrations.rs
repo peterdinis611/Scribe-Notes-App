@@ -1,6 +1,6 @@
 use rusqlite::Connection;
 
-const SCHEMA_VERSION: i32 = 20;
+const SCHEMA_VERSION: i32 = 21;
 
 pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     conn.execute_batch(
@@ -538,6 +538,17 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
                 ON document_ocr(document_id);
             "#,
         )?;
+        conn.execute(
+            "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
+            [SCHEMA_VERSION.to_string()],
+        )?;
+    }
+
+    if current < 21 {
+        let _ = conn.execute(
+            "ALTER TABLE documents ADD COLUMN vault_verifier TEXT",
+            [],
+        );
         conn.execute(
             "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
             [SCHEMA_VERSION.to_string()],

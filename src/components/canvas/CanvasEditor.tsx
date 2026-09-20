@@ -35,6 +35,7 @@ import { flushPendingWrites, updateDocument } from '@/lib/db/api'
 import { applyDiskPersistResult } from '@/lib/disk-sync'
 import { toast } from '@/lib/toast'
 import { cn, debounce } from '@/lib/utils'
+import { IconTooltip } from '@/components/ui/tooltip'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setActiveDocument, setSaveStatus, updateDocuments } from '@/store/documentsSlice'
 import { isOpenLibraryDocumentId } from '@/lib/trash-document'
@@ -323,39 +324,45 @@ function CanvasFlow() {
             link.download = `${activeDocument?.title || 'canvas'}.svg`
             link.click()
             URL.revokeObjectURL(url)
-            toast.success('Canvas exported as SVG')
+            toast.success(t('canvas.exportedSvg'))
           }}
-          title="Export Canvas SVG"
+          title={t('canvas.exportSvg')}
         >
           <Download className="h-3.5 w-3.5" />
-          <span>Export SVG</span>
+          <span>{t('canvas.exportSvg')}</span>
         </button>
         <div className="canvas-toolbar-spacer" />
-        <button
-          type="button"
-          className="canvas-toolbar-btn canvas-toolbar-btn--icon"
-          onClick={() => void zoomOut()}
-          title={t('canvas.zoomOut')}
-        >
-          <ZoomOut className="h-3.5 w-3.5" />
-        </button>
-        <button
-          type="button"
-          className="canvas-toolbar-btn canvas-toolbar-btn--icon"
-          onClick={() => void setViewport({ x: 0, y: 0, zoom: 1 })}
-          title={t('canvas.resetView')}
-        >
-          <Minus className="h-3.5 w-3.5" />
-          <Plus className="h-3.5 w-3.5" />
-        </button>
-        <button
-          type="button"
-          className="canvas-toolbar-btn canvas-toolbar-btn--icon"
-          onClick={() => void zoomIn()}
-          title={t('canvas.zoomIn')}
-        >
-          <ZoomIn className="h-3.5 w-3.5" />
-        </button>
+        <IconTooltip label={t('canvas.zoomOut')}>
+          <button
+            type="button"
+            className="canvas-toolbar-btn canvas-toolbar-btn--icon"
+            onClick={() => void zoomOut()}
+            aria-label={t('canvas.zoomOut')}
+          >
+            <ZoomOut className="h-3.5 w-3.5" />
+          </button>
+        </IconTooltip>
+        <IconTooltip label={t('canvas.resetView')}>
+          <button
+            type="button"
+            className="canvas-toolbar-btn canvas-toolbar-btn--icon"
+            onClick={() => void setViewport({ x: 0, y: 0, zoom: 1 })}
+            aria-label={t('canvas.resetView')}
+          >
+            <Minus className="h-3.5 w-3.5" />
+            <Plus className="h-3.5 w-3.5" />
+          </button>
+        </IconTooltip>
+        <IconTooltip label={t('canvas.zoomIn')}>
+          <button
+            type="button"
+            className="canvas-toolbar-btn canvas-toolbar-btn--icon"
+            onClick={() => void zoomIn()}
+            aria-label={t('canvas.zoomIn')}
+          >
+            <ZoomIn className="h-3.5 w-3.5" />
+          </button>
+        </IconTooltip>
         <span className="canvas-toolbar-meta">{Math.round(viewport.zoom * 100)}%</span>
       </div>
 

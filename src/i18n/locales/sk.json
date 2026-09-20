@@ -3,7 +3,7 @@
     "save": "Uložiť",
     "cancel": "Zrušiť",
     "close": "Zavrieť",
-    "reset": "Reset",
+    "reset": "Obnoviť",
     "later": "Neskôr",
     "understood": "Rozumiem",
     "dontShowAgain": "Nezobrazovať znova",
@@ -40,7 +40,7 @@
   },
   "nav": {
     "home": "Domov",
-    "editor": "Editor",
+    "editor": "Dokument",
     "settings": "Nastavenia",
     "docs": "Dokumentácia",
     "graph": "Mapa prepojení",
@@ -204,7 +204,7 @@
     "printEmptyHintTrail": "pre príkazy",
     "printEmptyTipSlash": "Vložiť bloky",
     "printEmptyTipWiki": "Prepojiť poznámku",
-    "markdownAria": "Markdown editor",
+    "markdownAria": "Markdownový editor",
     "markdownPlaceholder": "# Nadpis\n\nPíšte v **Markdown** — nadpisy, zoznamy, `kód`, tabuľky…",
     "markdownSwitchError": "Nepodarilo sa prepnúť do textového režimu."
   },
@@ -222,11 +222,13 @@
     "zoomOut": "Oddialiť",
     "resetView": "Resetovať pohľad",
     "cardPlaceholder": "Text karty…",
-    "emptyHint": "Dvojklikom pridáte kartu. Ťahaním úchytu prepojíte. Kolieskom zoomujete.",
+    "emptyHint": "Dvojklikom pridáte kartu. Ťahaním úchytu prepojíte. Kolieskom priblížite.",
     "linkHint": "Najprv vyberte kartu, potom ju prepojte s ďalšou.",
     "linkPickSource": "Kliknite na prvú kartu…",
     "linkPickTarget": "Kliknite na druhú kartu na prepojenie…",
-    "saveAsTemplateUnavailable": "Canvas poznámky zatiaľ nie je možné uložiť ako textové šablóny."
+    "saveAsTemplateUnavailable": "Canvas poznámky zatiaľ nie je možné uložiť ako textové šablóny.",
+    "exportSvg": "Exportovať SVG",
+    "exportedSvg": "Canvas exportovaný ako SVG"
   },
   "mermaid": {
     "edit": "Upraviť",
@@ -252,7 +254,7 @@
   "nlp": {
     "searchDisabled": "Sémantické vyhľadávanie je vypnuté. Zapnite ho v Nastavenia → Lokálna AI.",
     "sidecarScriptMissing": "Python skript pre AI sa nenašiel.",
-    "sidecarUnavailable": "Python sidecar nebeží. Skontrolujte Python 3.10+ v Nastaveniach → Lokálna AI.",
+    "sidecarUnavailable": "Lokálna AI nebeží. Skontrolujte Python 3.10+ v Nastaveniach → Lokálna AI.",
     "searchFailed": "Sémantické vyhľadávanie zlyhalo.",
     "tagsDisabled": "Návrhy tagov sú vypnuté — zapnite Lokálnu AI v nastaveniach.",
     "tagsFailed": "Nepodarilo sa načítať návrhy tagov."
@@ -409,8 +411,8 @@
       "description": "Práca, osobné a archív ako samostatné korene — nie ďalšie priečinky v tom istom strome. Prepínaš v sidebare."
     },
     "syncConflicts": {
-      "title": "Sync, ktorý ticho neprepíše",
-      "description": "Keď disk aj aplikácia zmenia tú istú poznámku, Scribe si nechá revíziu a spýta sa, ktorá verzia ostane."
+      "title": "Stav syncu a konflikty",
+      "description": "Výsledky iCloud/Dropbox syncu v Nastaveniach. Keď vyhrá disk, lokálna kópia sa uloží ako pripnutá verzia."
     },
     "compile": {
       "title": "Zostavenie dlhého textu",
@@ -496,10 +498,6 @@
     "namedVersions": {
       "title": "Pomenované verzie",
       "description": "Označte a pripnite dôležité revízie v histórii — pripnuté verzie prežijú automatické prerezávanie."
-    },
-    "syncConflicts": {
-      "title": "Stav syncu a konflikty",
-      "description": "Výsledky iCloud/Dropbox syncu v Nastaveniach. Keď vyhrá disk, lokálna kópia sa uloží ako pripnutá verzia."
     },
     "dailyBriefing": {
       "title": "Denný briefing a tagy",
@@ -793,7 +791,7 @@
       "disabledToast": "Lokálna AI vypnutá",
       "toggleError": "Nepodarilo sa zmeniť stav AI",
       "indexTitle": "Index dokumentov",
-      "indexDescription": "Prepočíta embeddings pre celú knižnicu.",
+      "indexDescription": "Prepočíta vektory pre celú knižnicu.",
       "reindex": "Preindexovať",
       "indexing": "Indexujem…",
       "indexError": "Indexovanie zlyhalo",
@@ -818,21 +816,21 @@
       "reportRecent": "Nedávne dokumenty",
       "reportVault": "Trezor",
       "reportEmptySection": "Zatiaľ nič na zobrazenie.",
-      "reportShowMarkdown": "Zobraziť raw markdown",
-      "reportHideMarkdown": "Skryť raw markdown",
+      "reportShowMarkdown": "Zobraziť čistý markdown",
+      "reportHideMarkdown": "Skryť čistý markdown",
       "exportReportPdf": "Exportovať report PDF",
       "exportingReportPdf": "Exportujem PDF…",
-      "refreshTitle": "Stav sidecaru",
+      "refreshTitle": "Stav lokálnej AI",
       "refreshDescription": "Skontroluje Python proces a počet indexovaných dokumentov.",
       "loadError": "Nepodarilo sa načítať stav AI",
       "statusEnabled": "Zapnuté",
-      "statusSidecar": "Sidecar OK",
+      "statusSidecar": "Lokálna AI beží",
       "statusModel": "Model",
       "statusIndexed": "Indexovaných",
       "statusPython": "Python",
       "statusError": "Chyba",
       "statusScript": "Skript",
-      "sidecarUnavailableTitle": "Python sidecar nie je dostupný",
+      "sidecarUnavailableTitle": "Lokálna AI nie je dostupná",
       "sidecarUnavailableHint": "Skontrolujte, či máte nainštalovaný Python 3.10+ a spustite obnovu stavu.",
       "sidecarScriptMissing": "Balík nlp/ sa nenašiel. V release builde musí byť súčasťou aplikácie; vo vývoji spustite z koreňa repozitára.",
       "staleIndexTitle": "Index vyžaduje aktualizáciu",
@@ -844,15 +842,15 @@
       "indexCancelled": "Indexovanie zrušené",
       "statusStoredModel": "Indexovaný model",
       "statusStaleCount": "Zastarané záznamy",
-      "statusEmbedBackend": "Embedding backend",
+      "statusEmbedBackend": "Spôsob vektorov",
       "embedBackendTitle": "Kvalita sémantiky",
-      "embedBackendDescription": "Hash je rýchly a bez závislostí. Quality model dáva presnejšie podobné dokumenty a vyhľadávanie.",
+      "embedBackendDescription": "Hash je rýchly a bez závislostí. Kvalitný model dáva presnejšie podobné dokumenty a vyhľadávanie.",
       "embedBackendInstallHint": "Pre kvalitný model nainštalujte: pip install scribe-nlp[quality] alebo pip install sentence-transformers",
       "embedBackendHash": "Hash (rýchly)",
-      "embedBackendQuality": "Quality (MiniLM)",
-      "embedBackendError": "Nepodarilo sa zmeniť embedding backend",
-      "hashEnabledToast": "Používa sa rýchly hash embedding",
-      "qualityEnabledToast": "Používa sa kvalitný embedding model — preindexujte knižnicu",
+      "embedBackendQuality": "Kvalita (MiniLM)",
+      "embedBackendError": "Nepodarilo sa zmeniť spôsob vektorov",
+      "hashEnabledToast": "Používa sa rýchly hash vektorov",
+      "qualityEnabledToast": "Používa sa kvalitný vektorový model — preindexujte knižnicu",
       "yes": "Áno",
       "no": "Nie"
     },
@@ -1165,8 +1163,8 @@
       "description": "Otvorí scratch dokument (funguje aj systémovo)"
     },
     "todayNote": {
-      "label": "Dnešný denník",
-      "description": "Otvorí dnešnú denníkovú poznámku (funguje aj systémovo)"
+      "label": "Dnešná poznámka",
+      "description": "Otvorí alebo vytvorí dnešný denník"
     },
     "focusMode": {
       "label": "Režim sústredenia",
@@ -1227,7 +1225,7 @@
       "description": "Vložiť číslovaný zoznam"
     },
     "taskList": {
-      "label": "Checklist",
+      "label": "Zoznam úloh",
       "description": "Vložiť zoznam úloh"
     },
     "link": {
@@ -1237,10 +1235,6 @@
     "closePanel": {
       "label": "Zavrieť panel",
       "description": "Zavrie vyhľadávanie alebo režim"
-    },
-    "todayNote": {
-      "label": "Dnešná poznámka",
-      "description": "Otvorí alebo vytvorí dnešný denník"
     }
   },
   "quickNote": {
@@ -1449,7 +1443,7 @@
     "errorTitle": "Nepodarilo sa odpovedať",
     "emptyQuestion": "Najprv napíšte otázku.",
     "nlpDisabled": "Lokálne AI je vypnuté. Zapnite ho v Nastaveniach → Lokálne AI.",
-    "sidecarUnavailable": "Sidecar Lokálneho AI nie je pripravený. Skontrolujte Nastavenia → Lokálne AI.",
+    "sidecarUnavailable": "Lokálna AI nie je pripravená. Skontrolujte Nastavenia → Lokálna AI.",
     "noActiveDocument": "Najprv otvorte dokument, aby ste sa naň mohli pýtať.",
     "documentMissing": "Dokument sa nenašiel.",
     "documentVault": "Trezorové dokumenty nie je možné analyzovať, kým sú zamknuté.",
@@ -1628,7 +1622,7 @@
       "askTitle": "Opýtať sa poznámky",
       "askHint": "Lokálne AI akcie a otázky k otvorenému dokumentu — bez cloudu.",
       "questionHistoryEmpty": "Zatiaľ nič — zoznam sa plní, keď sa pýtate tohto dokumentu.",
-      "localBadge": "offline",
+      "localBadge": "bez siete",
       "openChat": "Otvoriť plný chat →",
       "summary": "Zhrnutie",
       "summaryEmpty": "Napíšte viac textu pre výťažkové zhrnutie.",
@@ -1668,9 +1662,9 @@
       "similarDisabled": "Zapnite Lokálnu AI v nastaveniach pre podobné dokumenty.",
       "similarEmpty": "Žiadne podobné dokumenty — dokument ešte nemusí byť indexovaný.",
       "tasks": "Otvorené úlohy",
-      "tasksHint": "Checkboxy a frázy typu „treba:“, „todo:“ alebo „musím …“.",
+      "tasksHint": "Zaškrtávacie polia a frázy typu „treba:“, „todo:“ alebo „musím …“.",
       "tasksEmpty": "V tomto dokumente nie sú otvorené úlohy.",
-      "sourceCheckbox": "checkbox",
+      "sourceCheckbox": "zaškrtávacie pole",
       "sourcePhrase": "fráza",
       "dueHint": "termín {{date}}",
       "spellcheck": "Pravopis",
@@ -1822,7 +1816,9 @@
     "markdown": "Markdown",
     "markdownSource": "Zdroj",
     "markdownPreview": "Náhľad",
-    "markdownPreviewEmpty": "Náhľad sa zobrazí počas písania."
+    "markdownPreviewEmpty": "Náhľad sa zobrazí počas písania.",
+    "richShort": "Text",
+    "markdownShort": "MD"
   },
   "linkGraph": {
     "loading": "Načítavam mapu prepojení…",
@@ -1859,7 +1855,7 @@
     "howToHint": "Dvojklik na uzol otvorí dokument. Filter Okolo zobrazí susedov aktívnej poznámky.",
     "openFullMap": "Otvoriť celú mapu prepojení",
     "openFullMapShort": "Celá mapa",
-    "obsidianHint": "Zoom na kurzor · % / reset = celá mapa · dvojklik na pozadie",
+    "obsidianHint": "Priblíženie na kurzor · % / reset = celá mapa · dvojklik na pozadie",
     "showEntities": "Zobraziť štítky a NLP entity ako uzly prepojené s dokumentmi",
     "showEntitiesShort": "Entity",
     "entitiesHint": "Štítky vždy · NLP entity keď je dostupná Lokálna AI (max. 24 poznámok)"
@@ -1991,7 +1987,7 @@
     },
     "task": {
       "label": "Úlohy",
-      "hint": "Checklist"
+      "hint": "Zoznam úloh"
     },
     "quote": {
       "label": "Citácia",
@@ -2058,19 +2054,19 @@
       "hint": "Horizontálna čiara"
     },
     "callout-info": {
-      "label": "Callout: Info",
+      "label": "Výzva: Info",
       "hint": "Informačný blok"
     },
     "callout-tip": {
-      "label": "Callout: Tip",
+      "label": "Výzva: Tip",
       "hint": "Tip / rada"
     },
     "callout-warning": {
-      "label": "Callout: Varovanie",
+      "label": "Výzva: Varovanie",
       "hint": "Upozornenie"
     },
     "callout-danger": {
-      "label": "Callout: Dôležité",
+      "label": "Výzva: Dôležité",
       "hint": "Kritická poznámka"
     },
     "footnote": {
@@ -2090,11 +2086,11 @@
       "hint": "![[Názov]] — náhľad"
     },
     "snippet-meeting": {
-      "label": "Snippet: Meeting",
+      "label": "Úryvok: Stretnutie",
       "hint": "Agenda a úlohy"
     },
     "snippet-decision": {
-      "label": "Snippet: Decision",
+      "label": "Úryvok: Rozhodnutie",
       "hint": "Kontext a rozhodnutie"
     },
     "lorem": {
@@ -2115,7 +2111,7 @@
     "ordered": "Číslovaný",
     "orderedHint": "1. 2. 3.",
     "tasks": "Úlohy",
-    "tasksHint": "Checklist",
+    "tasksHint": "Zoznam úloh",
     "quote": "Citácia",
     "quoteHint": "Blok",
     "code": "Kód",
@@ -2326,7 +2322,7 @@
       "strike": "Prečiarknuté (⌘⇧X)",
       "bulletList": "Odrážky (⌘⇧8)",
       "orderedList": "Číslovaný zoznam (⌘⇧7)",
-      "taskList": "Checklist (⌘⇧9)",
+      "taskList": "Zoznam úloh (⌘⇧9)",
       "alignLeft": "Vľavo",
       "alignCenter": "Na stred",
       "alignRight": "Vpravo",
@@ -2367,7 +2363,7 @@
       "fontSizeTitle": "Veľkosť písma",
       "resetFontSize": "Reset veľkosti",
       "fontFamily": "Písmo",
-      "fontTitle": "Font",
+      "fontTitle": "Písmo",
       "paragraphStyles": "Štýly odsekov",
       "lineHeight": "Riadkovanie",
       "resetLineHeight": "Reset riadkovania",
@@ -2516,7 +2512,7 @@
   "printLayout": {
     "oneColumn": "Jeden stĺpec",
     "twoColumns": "Dva stĺpce",
-    "twoColumnsSpread": "Dva stĺpce (spred)",
+    "twoColumnsSpread": "Dva stĺpce (dvojstrana)",
     "moreActions": "Ďalšie akcie dokumentu",
     "more": "Viac",
     "layout": "Rozloženie",
@@ -2526,7 +2522,7 @@
     "pageSetup": "Nastavenie stránky",
     "pageSetupHint": "Papier, okraje, hlavička, pätička a vodoznak.",
     "preview": "Náhľad",
-    "zoom": "Zoom",
+    "zoom": "Mierka",
     "zoomIn": "Priblížiť",
     "zoomOut": "Oddialiť",
     "moveToFolder": "Presunúť do priečinka"
@@ -2682,8 +2678,8 @@
     "floatRight": "Obtekanie vľavo",
     "alignGroup": "Zarovnanie obrázka",
     "wrapGroup": "Obtekanie textu",
-    "properties": "Alt text",
-    "ocrSaved": "OCR text je v hľadaní",
+    "properties": "Alternatívny text",
+    "ocrSaved": "OCR text je vo vyhľadávaní",
     "crop": "Orezať",
     "cropTitle": "Orezať obrázok",
     "cropHint": "Ťahajte úchyty, potom aplikujte orezanie.",
@@ -2715,14 +2711,16 @@
     "copied": "Skopírované",
     "copyFailed": "Obrázok sa nepodarilo skopírovať",
     "duplicate": "Duplikovať",
-    "alt": "Alt text",
+    "alt": "Alternatívny text",
     "altPlaceholder": "Popíšte obrázok pre prístupnosť",
     "caption": "Popisok",
     "captionPlaceholder": "Voliteľný popisok",
     "captionEmpty": "Pridať popisok…",
     "resize": "Zmeniť veľkosť",
     "animatedBadge": "GIF",
-    "animatedHint": "Animovaný obrázok"
+    "animatedHint": "Animovaný obrázok",
+    "ocrExtract": "Extrahovať text (OCR)",
+    "ocrFailed": "OCR zlyhalo"
   },
   "map": {
     "provider": "OpenStreetMap",
@@ -2789,22 +2787,22 @@
   },
   "capture": {
     "title": "Mobilný zápis",
-    "description": "Kým beží Scribe, spustite lokálnu capture stránku vo Wi‑Fi. Naskenujte QR telefónom a pošlite poznámky do priečinka Inbox — bez cloud účtu.",
-    "lanTitle": "LAN capture server",
+    "description": "Kým beží Scribe, spustite lokálnu stránku pre zápis vo Wi‑Fi. Naskenujte QR telefónom a pošlite poznámky do priečinka Inbox — bez cloudového účtu.",
+    "lanTitle": "Server pre mobilný zápis",
     "lanDescription": "Telefón a Mac musia byť v rovnakej sieti. Odkaz obsahuje jednorazový token.",
-    "start": "Spustiť capture",
+    "start": "Spustiť zápis",
     "starting": "Spúšťam…",
     "stop": "Zastaviť",
-    "started": "Capture server beží",
-    "stopped": "Capture server zastavený",
-    "startError": "Nepodarilo sa spustiť capture server",
-    "stopError": "Nepodarilo sa zastaviť capture server",
+    "started": "Server pre zápis beží",
+    "stopped": "Server pre zápis zastavený",
+    "startError": "Nepodarilo sa spustiť server pre zápis",
+    "stopError": "Nepodarilo sa zastaviť server pre zápis",
     "copyUrl": "Kopírovať URL",
     "urlCopied": "URL skopírované",
     "urlCopyError": "Nepodarilo sa skopírovať URL",
     "qrAlt": "QR kód pre mobilný zápis",
     "scanHint": "Naskenujte kamerou telefónu, napíšte a odošlite.",
-    "localhostWarning": "Nepodarilo sa zistiť LAN IP — telefón na Wi‑Fi nedosiahne 127.0.0.1. Pripojte Mac na Wi‑Fi a spustite capture znova.",
+    "localhostWarning": "Nepodarilo sa zistiť sieťovú IP — telefón na Wi‑Fi nedosiahne 127.0.0.1. Pripojte Mac na Wi‑Fi a spustite zápis znova.",
     "inboxTitle": "Priečinok Inbox",
     "inboxDescription": "Zápisy vytvárajú poznámky v priečinku Inbox (alebo Schránka, ak už existuje). Potom ich triedením spracujete ako bežné poznámky.",
     "noteReceived": "Poznámka z telefónu"
@@ -2824,7 +2822,30 @@
     "unlockDescription": "Zadajte heslo pre „{{name}}“.",
     "unlockFailed": "Nesprávne heslo",
     "unlocked": "Trezor odomknutý",
-    "locked": "Trezor zamknutý"
+    "locked": "Trezor zamknutý",
+    "doc": {
+      "protect": "Chrániť poznámku heslom",
+      "protectTitle": "Chrániť túto poznámku",
+      "protectDescription": "Zvoľte heslo (min. 4 znaky). Telo poznámky sa šifruje na tomto zariadení. Lokálna AI ju neindexuje, kým je zamknutá.",
+      "protectOk": "Chrániť",
+      "confirmTitle": "Potvrďte heslo",
+      "confirmDescription": "Zadajte rovnaké heslo ešte raz.",
+      "passwordMismatch": "Heslá sa nezhodujú",
+      "unlock": "Odomknúť poznámku",
+      "unlockTitle": "Odomknúť poznámku",
+      "unlockDescription": "Zadajte heslo pre „{{title}}“.",
+      "lock": "Zamknúť poznámku",
+      "remove": "Odstrániť heslo",
+      "removeTitle": "Odstrániť ochranu heslom?",
+      "removeConfirm": "Poznámka sa na tomto zariadení znova uloží ako bežný text.",
+      "unlockFirst": "Najprv odomknite poznámku, potom môžete heslo odstrániť.",
+      "alreadyInVault": "Táto poznámka už je v šifrovanom trezorovom priečinku.",
+      "protectedToast": "Poznámka je chránená heslom",
+      "unlockedToast": "Poznámka odomknutá",
+      "lockedToast": "Poznámka zamknutá",
+      "removedToast": "Heslo odstránené",
+      "actionError": "Nepodarilo sa upraviť ochranu poznámky"
+    }
   },
   "math": {
     "insertInlineTitle": "Vzorec v riadku",
