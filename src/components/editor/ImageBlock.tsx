@@ -299,7 +299,7 @@ export function ImageBlock({
                       scheduleNlpDocumentIndex(documentId)
                     }
                     toast.success(t('image.ocrSaved'))
-                  } catch (e) {
+                  } catch {
                     toast.error(t('image.ocrFailed'))
                   } finally {
                     setOcrLoading(false)

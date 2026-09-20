@@ -46,6 +46,39 @@ type FindReplaceBarProps = {
   editor: Editor | null
 }
 
+function IconFindButton({
+  label,
+  active,
+  disabled,
+  onClick,
+  children,
+}: {
+  label: string
+  active?: boolean
+  disabled?: boolean
+  onClick: () => void
+  children: ReactNode
+}) {
+  return (
+    <IconTooltip label={label}>
+      <button
+        type="button"
+        className={cn(
+          'inline-flex h-[30px] w-[30px] items-center justify-center rounded-lg border border-transparent bg-transparent text-[var(--color-muted-foreground)] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)] disabled:opacity-35',
+          active &&
+            'bg-[color-mix(in_srgb,var(--color-accent)_14%,transparent)] text-[var(--color-accent)]',
+        )}
+        aria-label={label}
+        aria-pressed={active}
+        disabled={disabled}
+        onClick={onClick}
+      >
+        {children}
+      </button>
+    </IconTooltip>
+  )
+}
+
 export function FindReplaceBar({ editor }: FindReplaceBarProps) {
   const { t } = useTranslation()
   const open = useAppSelector((state) => state.documents.findReplaceOpen)
@@ -169,41 +202,6 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
   }, [editor, scrollToActive])
 
   if (!open) return null
-
-  const iconBtnClass =
-    'inline-flex h-[30px] w-[30px] items-center justify-center rounded-lg border border-transparent bg-transparent text-[var(--color-muted-foreground)] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)] disabled:opacity-35'
-
-  const toggleActive = (active: boolean) =>
-    active && 'bg-[color-mix(in_srgb,var(--color-accent)_14%,transparent)] text-[var(--color-accent)]'
-
-  function IconFindButton({
-    label,
-    active,
-    disabled,
-    onClick,
-    children,
-  }: {
-    label: string
-    active?: boolean
-    disabled?: boolean
-    onClick: () => void
-    children: ReactNode
-  }) {
-    return (
-      <IconTooltip label={label}>
-        <button
-          type="button"
-          className={cn(iconBtnClass, toggleActive(Boolean(active)))}
-          aria-label={label}
-          aria-pressed={active}
-          disabled={disabled}
-          onClick={onClick}
-        >
-          {children}
-        </button>
-      </IconTooltip>
-    )
-  }
 
   const placeholder = fuzzy
     ? t('findReplace.fuzzyPlaceholder')

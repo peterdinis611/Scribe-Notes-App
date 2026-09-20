@@ -3,6 +3,7 @@ import { EditorContent, useEditor } from '@tiptap/react'
 import { render, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import '@/i18n'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import { SyntaxCodeBlock } from '@/lib/editor/code-block-extension'
 
 function Harness() {
@@ -21,7 +22,11 @@ function Harness() {
     immediatelyRender: true,
   })
 
-  return <EditorContent editor={editor} />
+  return (
+    <TooltipProvider>
+      <EditorContent editor={editor} />
+    </TooltipProvider>
+  )
 }
 
 describe('SyntaxCodeBlock', () => {
