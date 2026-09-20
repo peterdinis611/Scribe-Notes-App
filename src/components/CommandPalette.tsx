@@ -77,11 +77,13 @@ import { collectHeadingsFromJson } from '@/lib/search/palette-headings'
 import { fuzzyFilter } from '@/lib/search/fuzzy'
 import { editorRefs } from '@/store/editorRefs'
 import { getCachedParsedContent, peekCachedDocument } from '@/lib/cache/document-cache'
+import { prefetchDocument } from '@/lib/cache/prefetch-document'
 import { isCanvasContent } from '@/lib/canvas/types'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
 import { cn, debounce } from '@/lib/utils'
 import { sanitizeSnippet } from '@/lib/search-snippet'
+import { citationSearchQuery } from '@/lib/editor/citation-jump'
 import { cycleThemeId } from '@/lib/themes/apply'
 import { generateRandomTheme } from '@/lib/themes/generate-random-theme'
 import { useOpenDemoGuide } from '@/hooks/useOpenDemoGuide'
@@ -99,6 +101,8 @@ import {
   setPendingEditorSearch,
   setRevisionHistoryOpen,
   setSecondaryDocumentId,
+  setSidebarOpen,
+  setLibraryView,
   setStatsPanelOpen,
   toggleFocusMode,
   toggleReadingMode,
@@ -293,6 +297,7 @@ export function CommandPalette() {
                 dispatch(setActiveDocumentId(id))
                 const cached = peekCachedDocument(id)
                 if (cached) dispatch(setActiveDocument(cached))
+                else prefetchDocument(id)
                 navigate(ROUTES.document(id))
               },
             },
@@ -776,6 +781,16 @@ export function CommandPalette() {
       },
       {
         type: 'action',
+        id: 'duplicate-notes',
+        label: t('commandPalette.duplicates'),
+        icon: <Copy className="h-4 w-4" />,
+        run: () => {
+          dispatch(setSidebarOpen(true))
+          dispatch(setLibraryView('duplicates'))
+        },
+      },
+      {
+        type: 'action',
         id: 'language',
         label:
           locale === 'sk'
@@ -929,6 +944,7 @@ export function CommandPalette() {
           dispatch(setActiveDocumentId(hit.documentId))
           const cached = peekCachedDocument(hit.documentId)
           if (cached) dispatch(setActiveDocument(cached))
+          else prefetchDocument(hit.documentId)
           navigate(ROUTES.document(hit.documentId))
           window.setTimeout(() => {
             const editor = editorRefs.editor
@@ -972,11 +988,12 @@ export function CommandPalette() {
       snippetHtml: hit.snippet,
       icon,
       run: () => {
-        const q = query.trim()
-        if (q) dispatch(setPendingEditorSearch(q))
+        const needle = citationSearchQuery(hit.snippet) || query.trim()
+        if (needle) dispatch(setPendingEditorSearch(needle))
         dispatch(setActiveDocumentId(hit.documentId))
         const cached = peekCachedDocument(hit.documentId)
         if (cached) dispatch(setActiveDocument(cached))
+        else prefetchDocument(hit.documentId)
         navigate(ROUTES.document(hit.documentId))
       },
     })
@@ -1039,6 +1056,7 @@ export function CommandPalette() {
             dispatch(setActiveDocumentId(doc.id))
             const cached = peekCachedDocument(doc.id)
             if (cached) dispatch(setActiveDocument(cached))
+            else prefetchDocument(doc.id)
             navigate(ROUTES.document(doc.id))
           },
         }))
@@ -1054,6 +1072,7 @@ export function CommandPalette() {
             dispatch(setActiveDocumentId(doc.id))
             const cached = peekCachedDocument(doc.id)
             if (cached) dispatch(setActiveDocument(cached))
+            else prefetchDocument(doc.id)
             navigate(ROUTES.document(doc.id))
           },
         }))
@@ -1078,6 +1097,7 @@ export function CommandPalette() {
         dispatch(setActiveDocumentId(doc.id))
         const cached = peekCachedDocument(doc.id)
         if (cached) dispatch(setActiveDocument(cached))
+        else prefetchDocument(doc.id)
         navigate(ROUTES.document(doc.id))
       },
     }))

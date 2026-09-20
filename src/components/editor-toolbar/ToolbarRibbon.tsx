@@ -81,6 +81,7 @@ import { promptAndApplyEditorLink } from '@/lib/editor/link-prompt'
 import { isBarcodeScannerSupported } from '@/lib/barcode-scanner'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
+import { IconTooltip } from '@/components/ui/tooltip'
 
 type ToolbarRibbonProps = {
   editor: Editor
@@ -231,12 +232,14 @@ export function ToolbarRibbon({
         </ToolbarButton>
 
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button type="button" className="toolbar-menu-trigger toolbar-menu-trigger--icon" title={t('toolbar.actions.insert')}>
-              <PlusSquare className="h-4 w-4 stroke-[1.75]" />
-              <ChevronDown className="h-3 w-3 opacity-50" />
-            </button>
-          </DropdownMenuTrigger>
+          <IconTooltip label={t('toolbar.actions.insert')}>
+            <DropdownMenuTrigger asChild>
+              <button type="button" className="toolbar-menu-trigger toolbar-menu-trigger--icon" aria-label={t('toolbar.actions.insert')}>
+                <PlusSquare className="h-4 w-4 stroke-[1.75]" />
+                <ChevronDown className="h-3 w-3 opacity-50" />
+              </button>
+            </DropdownMenuTrigger>
+          </IconTooltip>
           <DropdownMenuContent align="start" className="min-w-[200px]" onCloseAutoFocus={keepEditorSelectionFocus(editor)}>
             <DropdownMenuItem onClick={() => void handlePickImage()}>
               <ImagePlus className="h-4 w-4" />
@@ -290,11 +293,13 @@ export function ToolbarRibbon({
         <span className="toolbar-spacer" aria-hidden="true" />
 
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button type="button" className="toolbar-btn" title={t('toolbar.actions.moreTools')}>
-              <Ellipsis className="h-4 w-4 stroke-[1.75]" />
-            </button>
-          </DropdownMenuTrigger>
+          <IconTooltip label={t('toolbar.actions.moreTools')}>
+            <DropdownMenuTrigger asChild>
+              <button type="button" className="toolbar-btn" aria-label={t('toolbar.actions.moreTools')}>
+                <Ellipsis className="h-4 w-4 stroke-[1.75]" />
+              </button>
+            </DropdownMenuTrigger>
+          </IconTooltip>
           <DropdownMenuContent align="end" className="editor-toolbar-more min-w-[240px]" onCloseAutoFocus={keepEditorSelectionFocus(editor)}>
             <p className="toolbar-section-menu-label">{t('toolbar.actions.moreFormatting')}</p>
             <DropdownMenuItem onClick={() => editor.chain().focus().toggleStrike().run()}>

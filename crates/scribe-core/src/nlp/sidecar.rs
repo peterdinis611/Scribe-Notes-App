@@ -1,8 +1,11 @@
 use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, Command, Stdio};
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
+use std::sync::mpsc::{self, RecvTimeoutError};
+use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -107,24 +110,49 @@ fn parse_embed_chunks_result(value: &Value) -> Result<EmbedChunksResult, String>
 struct SidecarProcess {
     child: Child,
     stdin: BufWriter<ChildStdin>,
-    stdout: BufReader<std::process::ChildStdout>,
+}
+
+enum WorkerMsg {
+    Call {
+        id: u64,
+        method: String,
+        params: Value,
+        timeout: Duration,
+        reply: mpsc::Sender<Result<Value, String>>,
+    },
+    Reset,
+    Shutdown,
 }
 
 pub struct NlpSidecar {
     script_path: PathBuf,
     python_bin: String,
-    process: Mutex<Option<SidecarProcess>>,
     request_id: AtomicU64,
+    jobs: Mutex<mpsc::Sender<WorkerMsg>>,
+    pid: Arc<AtomicU32>,
+    cancel: Arc<AtomicBool>,
 }
 
 impl NlpSidecar {
     pub fn new(script_path: PathBuf) -> Self {
         let python_bin = std::env::var("SCRIBE_NLP_PYTHON").unwrap_or_else(|_| "python3".to_string());
+        let (tx, rx) = mpsc::channel();
+        let pid = Arc::new(AtomicU32::new(0));
+        let cancel = Arc::new(AtomicBool::new(false));
+        let worker_script = script_path.clone();
+        let worker_python = python_bin.clone();
+        let worker_pid = Arc::clone(&pid);
+        let worker_cancel = Arc::clone(&cancel);
+        let _ = thread::Builder::new()
+            .name("scribe-nlp-worker".into())
+            .spawn(move || worker_loop(rx, worker_script, worker_python, worker_pid, worker_cancel));
         Self {
             script_path,
             python_bin,
-            process: Mutex::new(None),
             request_id: AtomicU64::new(1),
+            jobs: Mutex::new(tx),
+            pid,
+            cancel,
         }
     }
 
@@ -136,53 +164,21 @@ impl NlpSidecar {
         self.script_path.exists()
     }
 
-    fn spawn_process(&self) -> Result<SidecarProcess, String> {
-        if !self.script_exists() {
-            return Err(format!(
-                "NLP sidecar script not found at {}",
-                self.script_path.display()
-            ));
-        }
-
-        let mut child = Command::new(&self.python_bin)
-            .arg(&self.script_path)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::inherit())
-            .env(
-                "SCRIBE_NLP_DEBUG",
-                std::env::var("SCRIBE_NLP_DEBUG").unwrap_or_else(|_| {
-                    match std::env::var("SCRIBE_DEBUG").as_deref() {
-                        Ok("1" | "true" | "yes" | "on" | "debug") => "1".to_string(),
-                        _ => "0".to_string(),
-                    }
-                }),
-            )
-            .spawn()
-            .map_err(|error| {
-                format!(
-                    "Failed to start Python sidecar ({python}): {error}",
-                    python = self.python_bin
-                )
-            })?;
-
-        let stdin = child.stdin.take().ok_or("Missing sidecar stdin")?;
-        let stdout = child.stdout.take().ok_or("Missing sidecar stdout")?;
-
-        Ok(SidecarProcess {
-            child,
-            stdin: BufWriter::new(stdin),
-            stdout: BufReader::new(stdout),
-        })
+    pub fn python_bin(&self) -> &str {
+        &self.python_bin
     }
 
     pub fn reset_process(&self) {
-        if let Ok(mut guard) = self.process.lock() {
-            if let Some(mut process) = guard.take() {
-                let _ = process.child.kill();
-                let _ = process.child.wait();
-            }
+        self.cancel.store(true, Ordering::SeqCst);
+        kill_os_pid(self.pid.load(Ordering::SeqCst));
+        if let Ok(tx) = self.jobs.lock() {
+            let _ = tx.send(WorkerMsg::Reset);
         }
+    }
+
+    /// Kill the current RPC (if any) and respawn Python on the next call.
+    pub fn cancel_inflight(&self) {
+        self.reset_process();
     }
 
     pub fn configure_embed_backend(&self, backend: &str) -> Result<(), String> {
@@ -191,59 +187,28 @@ impl NlpSidecar {
     }
 
     fn call_method(&self, method: &str, params: Value) -> Result<Value, String> {
+        let timeout = rpc_timeout(method);
         let id = self.request_id.fetch_add(1, Ordering::Relaxed);
-        let request = json!({
-            "jsonrpc": "2.0",
-            "id": id,
-            "method": method,
-            "params": params,
-        });
-
-        let mut guard = self.process.lock().map_err(|e| e.to_string())?;
-        if guard.is_none() {
-            *guard = Some(self.spawn_process()?);
+        let (reply_tx, reply_rx) = mpsc::channel();
+        {
+            let tx = self.jobs.lock().map_err(|e| e.to_string())?;
+            tx.send(WorkerMsg::Call {
+                id,
+                method: method.to_string(),
+                params,
+                timeout,
+                reply: reply_tx,
+            })
+            .map_err(|_| "NLP worker stopped".to_string())?;
         }
-
-        let response = (|| -> Result<Value, String> {
-            let process = guard.as_mut().ok_or("Sidecar unavailable")?;
-            let payload = serde_json::to_string(&request).map_err(|e| e.to_string())?;
-            if nlp_rpc_debug_enabled() {
-                log::debug!("NLP RPC → {method} id={id}");
+        match reply_rx.recv_timeout(timeout + Duration::from_secs(2)) {
+            Ok(result) => result,
+            Err(RecvTimeoutError::Timeout) => {
+                self.reset_process();
+                Err(format!("NLP sidecar timed out ({method})"))
             }
-            writeln!(process.stdin, "{payload}").map_err(|e| e.to_string())?;
-            process.stdin.flush().map_err(|e| e.to_string())?;
-
-            let mut line = String::new();
-            process.stdout.read_line(&mut line).map_err(|e| e.to_string())?;
-            if line.trim().is_empty() {
-                return Err("Empty response from NLP sidecar".to_string());
-            }
-
-            let value: Value = serde_json::from_str(&line).map_err(|e| e.to_string())?;
-            if let Some(error) = value.get("error") {
-                if nlp_rpc_debug_enabled() {
-                    log::debug!("NLP RPC ← error id={id}: {error}");
-                }
-                return Err(error
-                    .get("message")
-                    .and_then(|item| item.as_str())
-                    .unwrap_or("NLP sidecar error")
-                    .to_string());
-            }
-            if nlp_rpc_debug_enabled() {
-                log::debug!("NLP RPC ← ok id={id}");
-            }
-            value
-                .get("result")
-                .cloned()
-                .ok_or_else(|| "Missing result in NLP response".to_string())
-        })();
-
-        if response.is_err() {
-            *guard = None;
+            Err(RecvTimeoutError::Disconnected) => Err("NLP worker stopped".to_string()),
         }
-
-        response
     }
 
     pub fn health(&self) -> Result<NlpHealth, String> {
@@ -583,11 +548,303 @@ impl NlpSidecar {
             }),
         )
     }
+
+    pub fn rewrite_selection(
+        &self,
+        text: &str,
+        mode: &str,
+        custom_instruction: Option<&str>,
+    ) -> Result<Value, String> {
+        let mut params = json!({
+            "text": text,
+            "mode": mode,
+        });
+        if let Some(inst) = custom_instruction {
+            params["customInstruction"] = json!(inst);
+        }
+        self.call_method("rewrite_selection", params)
+    }
+
+    pub fn rewrite_selection_typed(
+        &self,
+        text: &str,
+        mode: &str,
+        custom_instruction: Option<&str>,
+    ) -> Result<crate::nlp::NlpRewriteResult, String> {
+        let raw = self.rewrite_selection(text, mode, custom_instruction)?;
+        Ok(crate::nlp::parse_rewrite_result(&raw, mode, text))
+    }
+
+    pub fn analyze_document_typed(
+        &self,
+        text: &str,
+        keyword_limit: i64,
+        outline_limit: i64,
+        summary_sentences: i64,
+    ) -> Result<crate::nlp::NlpDocumentAnalysis, String> {
+        let raw = self.analyze_document(text, keyword_limit, outline_limit, summary_sentences)?;
+        Ok(crate::nlp::parse_document_analysis(&raw))
+    }
 }
 
 impl Drop for NlpSidecar {
     fn drop(&mut self) {
-        self.reset_process();
+        self.cancel.store(true, Ordering::SeqCst);
+        kill_os_pid(self.pid.load(Ordering::SeqCst));
+        if let Ok(tx) = self.jobs.lock() {
+            let _ = tx.send(WorkerMsg::Shutdown);
+        }
+    }
+}
+
+pub fn rpc_timeout(method: &str) -> Duration {
+    if let Ok(ms) = std::env::var("SCRIBE_NLP_RPC_TIMEOUT_MS") {
+        if let Ok(n) = ms.parse::<u64>() {
+            return Duration::from_millis(n.max(500));
+        }
+    }
+    match method {
+        "health" | "set_embed_backend" => Duration::from_secs(8),
+        "embed" | "rewrite_query" | "chunk_text" => Duration::from_secs(25),
+        "embed_with_chunks" => Duration::from_secs(60),
+        "embed_batch" | "embed_batch_with_chunks" => Duration::from_secs(180),
+        "library_answer" | "find_duplicates" | "library_report" | "analyze_document" => {
+            Duration::from_secs(90)
+        }
+        _ => Duration::from_secs(45),
+    }
+}
+
+fn kill_os_pid(pid: u32) {
+    if pid == 0 {
+        return;
+    }
+    #[cfg(unix)]
+    {
+        let _ = Command::new("kill")
+            .args(["-9", &pid.to_string()])
+            .status();
+    }
+    #[cfg(windows)]
+    {
+        let _ = Command::new("taskkill")
+            .args(["/PID", &pid.to_string(), "/F"])
+            .status();
+    }
+}
+
+fn spawn_sidecar(script_path: &Path, python_bin: &str) -> Result<(SidecarProcess, mpsc::Receiver<Result<String, String>>), String> {
+    if !script_path.exists() {
+        return Err(format!(
+            "NLP sidecar script not found at {}",
+            script_path.display()
+        ));
+    }
+
+    let mut child = Command::new(python_bin)
+        .arg(script_path)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::inherit())
+        .env(
+            "SCRIBE_NLP_DEBUG",
+            std::env::var("SCRIBE_NLP_DEBUG").unwrap_or_else(|_| {
+                match std::env::var("SCRIBE_DEBUG").as_deref() {
+                    Ok("1" | "true" | "yes" | "on" | "debug") => "1".to_string(),
+                    _ => "0".to_string(),
+                }
+            }),
+        )
+        .spawn()
+        .map_err(|error| {
+            format!("Failed to start Python sidecar ({python_bin}): {error}")
+        })?;
+
+    let stdin = child.stdin.take().ok_or("Missing sidecar stdin")?;
+    let stdout = child.stdout.take().ok_or("Missing sidecar stdout")?;
+    let (line_tx, line_rx) = mpsc::channel();
+    thread::Builder::new()
+        .name("scribe-nlp-stdout".into())
+        .spawn(move || {
+            let mut reader = BufReader::new(stdout);
+            loop {
+                let mut line = String::new();
+                match reader.read_line(&mut line) {
+                    Ok(0) => {
+                        let _ = line_tx.send(Err("NLP sidecar closed stdout".to_string()));
+                        break;
+                    }
+                    Ok(_) => {
+                        if line_tx.send(Ok(line)).is_err() {
+                            break;
+                        }
+                    }
+                    Err(error) => {
+                        let _ = line_tx.send(Err(error.to_string()));
+                        break;
+                    }
+                }
+            }
+        })
+        .map_err(|e| e.to_string())?;
+
+    Ok((
+        SidecarProcess {
+            child,
+            stdin: BufWriter::new(stdin),
+        },
+        line_rx,
+    ))
+}
+
+fn kill_process(process: &mut SidecarProcess, pid: &AtomicU32) {
+    let _ = process.child.kill();
+    let _ = process.child.wait();
+    pid.store(0, Ordering::SeqCst);
+}
+
+fn watchdog_dead(process: &mut SidecarProcess, pid: &AtomicU32) -> bool {
+    match process.child.try_wait() {
+        Ok(Some(_)) => {
+            pid.store(0, Ordering::SeqCst);
+            true
+        }
+        Ok(None) => false,
+        Err(_) => {
+            pid.store(0, Ordering::SeqCst);
+            true
+        }
+    }
+}
+
+fn parse_rpc_result(line: &str, id: u64, method: &str) -> Result<Value, String> {
+    if line.trim().is_empty() {
+        return Err("Empty response from NLP sidecar".to_string());
+    }
+    let value: Value = serde_json::from_str(line).map_err(|e| e.to_string())?;
+    if let Some(error) = value.get("error") {
+        if nlp_rpc_debug_enabled() {
+            log::debug!("NLP RPC ← error id={id}: {error}");
+        }
+        return Err(error
+            .get("message")
+            .and_then(|item| item.as_str())
+            .unwrap_or("NLP sidecar error")
+            .to_string());
+    }
+    if nlp_rpc_debug_enabled() {
+        log::debug!("NLP RPC ← ok id={id} {method}");
+    }
+    value
+        .get("result")
+        .cloned()
+        .ok_or_else(|| "Missing result in NLP response".to_string())
+}
+
+fn worker_loop(
+    rx: mpsc::Receiver<WorkerMsg>,
+    script_path: PathBuf,
+    python_bin: String,
+    pid: Arc<AtomicU32>,
+    cancel: Arc<AtomicBool>,
+) {
+    let mut process: Option<SidecarProcess> = None;
+    let mut lines: Option<mpsc::Receiver<Result<String, String>>> = None;
+
+    while let Ok(msg) = rx.recv() {
+        match msg {
+            WorkerMsg::Shutdown => {
+                if let Some(mut current) = process.take() {
+                    kill_process(&mut current, &pid);
+                }
+                break;
+            }
+            WorkerMsg::Reset => {
+                cancel.store(false, Ordering::SeqCst);
+                if let Some(mut current) = process.take() {
+                    kill_process(&mut current, &pid);
+                }
+                lines = None;
+            }
+            WorkerMsg::Call {
+                id,
+                method,
+                params,
+                timeout,
+                reply,
+            } => {
+                cancel.store(false, Ordering::SeqCst);
+                if process.as_mut().is_some_and(|current| watchdog_dead(current, &pid)) {
+                    process = None;
+                    lines = None;
+                }
+                if process.is_none() {
+                    match spawn_sidecar(&script_path, &python_bin) {
+                        Ok((spawned, reader)) => {
+                            pid.store(spawned.child.id(), Ordering::SeqCst);
+                            process = Some(spawned);
+                            lines = Some(reader);
+                        }
+                        Err(error) => {
+                            let _ = reply.send(Err(error));
+                            continue;
+                        }
+                    }
+                }
+
+                let request = json!({
+                    "jsonrpc": "2.0",
+                    "id": id,
+                    "method": method,
+                    "params": params,
+                });
+                let write_err = (|| -> Result<(), String> {
+                    let current = process.as_mut().ok_or("Sidecar unavailable")?;
+                    let payload = serde_json::to_string(&request).map_err(|e| e.to_string())?;
+                    if nlp_rpc_debug_enabled() {
+                        log::debug!("NLP RPC → {method} id={id}");
+                    }
+                    writeln!(current.stdin, "{payload}").map_err(|e| e.to_string())?;
+                    current.stdin.flush().map_err(|e| e.to_string())
+                })();
+                if let Err(error) = write_err {
+                    if let Some(mut current) = process.take() {
+                        kill_process(&mut current, &pid);
+                    }
+                    lines = None;
+                    let _ = reply.send(Err(error));
+                    continue;
+                }
+
+                let deadline = Instant::now() + timeout;
+                let result = loop {
+                    if cancel.load(Ordering::SeqCst) {
+                        break Err(format!("NLP sidecar cancelled ({method})"));
+                    }
+                    let remaining = deadline.saturating_duration_since(Instant::now());
+                    if remaining.is_zero() {
+                        break Err(format!("NLP sidecar timed out ({method})"));
+                    }
+                    let slice = remaining.min(Duration::from_millis(200));
+                    match lines.as_ref().unwrap().recv_timeout(slice) {
+                        Ok(Ok(line)) => break parse_rpc_result(&line, id, &method),
+                        Ok(Err(error)) => break Err(error),
+                        Err(RecvTimeoutError::Timeout) => continue,
+                        Err(RecvTimeoutError::Disconnected) => {
+                            break Err("NLP sidecar closed stdout".to_string());
+                        }
+                    }
+                };
+
+                if result.is_err() {
+                    if let Some(mut current) = process.take() {
+                        kill_process(&mut current, &pid);
+                    }
+                    lines = None;
+                }
+                let _ = reply.send(result);
+            }
+        }
     }
 }
 
@@ -619,5 +876,81 @@ mod tests {
     fn script_path_label_formats_display_path() {
         let path = PathBuf::from("/tmp/scribe_nlp/__main__.py");
         assert!(script_path_label(&path).contains("__main__.py"));
+    }
+
+    #[test]
+    fn rpc_timeout_is_shorter_for_health_than_embed_batch() {
+        assert!(rpc_timeout("health") < rpc_timeout("embed"));
+        assert!(rpc_timeout("embed") < rpc_timeout("embed_batch"));
+        assert!(rpc_timeout("unknown_method") < rpc_timeout("library_answer"));
+    }
+
+    fn live_sidecar() -> Option<NlpSidecar> {
+        let path = std::env::var("SCRIBE_NLP_SCRIPT")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| resolve_script_path());
+        if !path.exists() {
+            eprintln!("skip live sidecar: missing {}", path.display());
+            return None;
+        }
+        Some(NlpSidecar::new(path))
+    }
+
+    #[test]
+    fn live_sidecar_health_analyze_rewrite() {
+        let Some(sidecar) = live_sidecar() else {
+            return;
+        };
+        let health = match sidecar.health() {
+            Ok(health) => health,
+            Err(error) => {
+                eprintln!("skip live sidecar: {error}");
+                return;
+            }
+        };
+        assert!(health.ok, "sidecar health not ok: {health:?}");
+        assert!(!health.version.is_empty());
+
+        let analysis = sidecar
+            .analyze_document_typed(
+                "Meeting tomorrow in Bratislava. Need to finish the report and email Peter.",
+                8,
+                8,
+                2,
+            )
+            .expect("analyze_document");
+        assert!(!analysis.language.is_empty());
+
+        let rewritten = sidecar
+            .rewrite_selection_typed(
+                "this is kinda messy notes",
+                "rephrase_professional",
+                None,
+            )
+            .expect("rewrite_selection");
+        assert!(!rewritten.output.trim().is_empty());
+        assert_eq!(rewritten.mode, "rephrase_professional");
+
+        let dates = sidecar
+            .extract_dates("Meet tomorrow in Bratislava, then Friday.")
+            .expect("extract_dates");
+        assert!(dates.get("events").and_then(Value::as_array).is_some());
+
+        let spell = sidecar
+            .spellcheck("This sentense has a typo.", Some("en"), 8)
+            .expect("spellcheck");
+        assert!(spell.get("issues").and_then(Value::as_array).is_some());
+
+        let query = sidecar
+            .rewrite_query("notes about friday meeting", 4)
+            .expect("rewrite_query");
+        assert!(
+            query
+                .get("query")
+                .or_else(|| query.get("rewritten"))
+                .or_else(|| query.get("expanded"))
+                .is_some()
+                || query.get("expansions").is_some()
+        );
     }
 }

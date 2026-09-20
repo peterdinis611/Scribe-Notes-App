@@ -1273,6 +1273,7 @@ html[data-ui-skin='press'] .app-chrome::after {
   }
 }
 .editor-shell {
+  position: relative;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -1283,6 +1284,196 @@ html[data-ui-skin='press'] .app-chrome::after {
   background: var(--color-canvas);
   container-type: inline-size;
   container-name: editor;
+}
+
+/* Document load — refined ring + page silhouette */
+.document-loading {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.35rem;
+  min-height: 0;
+  padding: 2rem 1.25rem;
+  background:
+    radial-gradient(520px 280px at 50% 42%, color-mix(in srgb, var(--color-accent) 10%, transparent), transparent 70%),
+    var(--color-canvas);
+}
+
+.document-loading--compact {
+  gap: 0.85rem;
+  padding: 1rem;
+  background: transparent;
+}
+
+.document-loading-stage {
+  position: relative;
+  width: 88px;
+  height: 104px;
+}
+
+.document-loading--compact .document-loading-stage {
+  width: 56px;
+  height: 66px;
+}
+
+.document-loading-glow {
+  position: absolute;
+  inset: 18% 8%;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-accent) 22%, transparent);
+  filter: blur(18px);
+  animation: document-loading-breathe 2.2s ease-in-out infinite;
+}
+
+.document-loading-ring {
+  position: absolute;
+  inset: 12px 6px 0;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--color-accent) 18%, transparent);
+  border-top-color: var(--color-accent);
+  animation: document-loading-spin 0.95s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+
+.document-loading-ring--lag {
+  inset: 20px 14px 8px;
+  border-width: 1.5px;
+  border-color: color-mix(in srgb, var(--color-border) 80%, transparent);
+  border-right-color: color-mix(in srgb, var(--color-accent) 55%, transparent);
+  animation-duration: 1.45s;
+  animation-direction: reverse;
+}
+
+.document-loading-page {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: flex;
+  width: 42px;
+  height: 54px;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px 8px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 90%, var(--color-accent) 10%);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--color-surface) 92%, var(--color-accent) 8%);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-foreground) 4%, transparent),
+    0 10px 28px color-mix(in srgb, var(--color-foreground) 8%, transparent);
+  transform: translate(-50%, -46%);
+  animation: document-loading-float 2.2s ease-in-out infinite;
+}
+
+.document-loading--compact .document-loading-page {
+  width: 28px;
+  height: 36px;
+  gap: 3px;
+  padding: 7px 5px;
+  border-radius: 5px;
+}
+
+.document-loading-line {
+  display: block;
+  height: 3px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-muted-foreground) 28%, transparent);
+  animation: document-loading-shimmer 1.4s ease-in-out infinite;
+}
+
+.document-loading-line--title {
+  width: 72%;
+  height: 4px;
+  background: color-mix(in srgb, var(--color-accent) 35%, transparent);
+}
+
+.document-loading-line--short {
+  width: 48%;
+}
+
+.document-loading-line:nth-child(2) {
+  animation-delay: 0.12s;
+}
+.document-loading-line:nth-child(3) {
+  animation-delay: 0.24s;
+}
+.document-loading-line:nth-child(4) {
+  animation-delay: 0.36s;
+}
+
+.document-loading-copy {
+  display: flex;
+  max-width: 18rem;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  text-align: center;
+}
+
+.document-loading-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--color-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.document-loading-label {
+  margin: 0;
+  font-size: 12.5px;
+  letter-spacing: 0.01em;
+  color: var(--color-muted-foreground);
+}
+
+@keyframes document-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes document-loading-breathe {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes document-loading-float {
+  0%,
+  100% {
+    transform: translate(-50%, -46%);
+  }
+  50% {
+    transform: translate(-50%, -50%);
+  }
+}
+
+@keyframes document-loading-shimmer {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .document-loading-glow,
+  .document-loading-ring,
+  .document-loading-page,
+  .document-loading-line {
+    animation: none;
+  }
 }
 
 .editor-shell--home {
@@ -1404,6 +1595,21 @@ html[data-ui-skin='press'] .editor-shell--home {
   font-size: 16px;
   line-height: 1.55;
   color: var(--color-muted-foreground);
+}
+
+.welcome-edition-note {
+  margin: 0.35rem 0 0;
+  max-width: 42ch;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1.45;
+  color: var(--color-accent);
+}
+
+.welcome-desk .welcome-edition-note {
+  color: color-mix(in srgb, var(--welcome-copper, var(--color-accent)) 88%, var(--welcome-ink, var(--color-foreground)));
 }
 
 .welcome-cta-stack {
@@ -4438,6 +4644,15 @@ html[data-ui-skin='press'] .editor-status-bar {
 .editor-status-chip.is-active {
   background: color-mix(in srgb, var(--color-accent) 12%, transparent);
   color: var(--color-accent);
+}
+
+.editor-status-chip--coach {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
 }
 
 .editor-status-chip-label {
@@ -9861,6 +10076,130 @@ html.dark .link-graph-toolbar--overlay {
   text-decoration: underline;
 }
 
+.question-ledger {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed color-mix(in srgb, var(--color-border) 88%, transparent);
+}
+
+.question-ledger--compact {
+  margin-top: 8px;
+  max-height: 148px;
+  overflow: auto;
+  padding-top: 8px;
+}
+
+.question-ledger__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.question-ledger__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.question-ledger__count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.question-ledger__empty {
+  margin: 0;
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.question-ledger__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.question-ledger__item {
+  display: grid;
+  grid-template-columns: 1.7rem minmax(0, 1fr);
+  gap: 6px;
+  width: 100%;
+  align-items: start;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  padding: 5px 6px;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.question-ledger__item:hover {
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+}
+
+.question-ledger__item.is-active {
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+}
+
+.question-ledger__index {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  color: var(--color-accent);
+  padding-top: 1px;
+}
+
+.question-ledger__question {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-foreground);
+  font-size: 12px;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.question-ledger__again {
+  margin: 0 6px 4px 2.3rem;
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: var(--color-accent);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.question-ledger__again:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.question-ledger__again:disabled {
+  opacity: 0.4;
+}
+
 .insights-chips,
 .insights-tag-row {
   display: flex;
@@ -11120,4 +11459,221 @@ html.dark .link-graph-toolbar--overlay {
   font-size: 11px;
   line-height: 1.5;
   color: var(--color-muted-foreground);
+}
+
+.selection-ai-pop {
+  min-width: 240px;
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-elevated);
+}
+
+.selection-ai__kicker,
+.library-duplicates__kicker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  color: var(--color-muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.selection-ai__modes,
+.selection-ai__row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.selection-ai__row {
+  flex-direction: row;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.selection-ai__mode,
+.selection-ai__ghost,
+.selection-ai__primary,
+.library-duplicates__titles button,
+.library-duplicates__actions button,
+.library-orphan-rail button,
+.wiki-ghost-hint {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.selection-ai__mode {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.selection-ai__mode:hover,
+.library-duplicates__titles button:hover,
+.library-orphan-rail button:hover,
+.wiki-ghost-hint:hover {
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+}
+
+.selection-ai__preview,
+.selection-ai__status,
+.library-duplicates__status,
+.library-duplicates__hint {
+  margin: 0;
+  color: var(--color-muted-foreground);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.selection-ai__preview {
+  max-height: 140px;
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-background) 70%, transparent);
+  padding: 8px;
+  color: var(--color-foreground);
+  white-space: pre-wrap;
+}
+
+.selection-ai__status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.selection-ai__primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 8px;
+  background: var(--color-accent);
+  padding: 4px 8px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.selection-ai__ghost {
+  padding: 4px 6px;
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+}
+
+.library-duplicates {
+  padding: 10px 12px 16px;
+}
+
+.library-duplicates__hint {
+  margin-bottom: 12px;
+}
+
+.library-duplicates__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.library-duplicates__item {
+  display: grid;
+  grid-template-columns: 1.7rem minmax(0, 1fr);
+  gap: 8px;
+}
+
+.library-duplicates__index {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 650;
+  color: var(--color-accent);
+  padding-top: 2px;
+}
+
+.library-duplicates__titles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.library-duplicates__titles button {
+  font-size: 12.5px;
+  color: var(--color-foreground);
+}
+
+.library-duplicates__score {
+  margin: 2px 0 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-muted-foreground);
+}
+
+.library-duplicates__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.library-duplicates__actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.wiki-ghost-hint {
+  position: absolute;
+  right: 18px;
+  bottom: 52px;
+  z-index: 8;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  padding: 4px 8px;
+  color: color-mix(in srgb, var(--color-foreground) 42%, var(--color-muted-foreground));
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  opacity: 0.78;
+}
+
+.library-orphan-rail {
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.library-orphan-rail li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.library-orphan-rail span {
+  color: var(--color-muted-foreground);
+  font-size: 10.5px;
 }

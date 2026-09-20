@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { getVisiblePageNumbers } from '@/lib/editor/page-layout'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { IconTooltip } from '@/components/ui/tooltip'
 
 type EditorPaginationProps = {
   currentPage: number
@@ -36,16 +37,18 @@ export function EditorPagination({
       role="navigation"
       aria-label={t('pagination.ariaLabel')}
     >
-      <Button
-        variant="ghost"
-        size="icon"
-        className="editor-pagination-arrow"
-        onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage <= 1}
-        aria-label={t('pagination.previousPage')}
-      >
-        <ChevronLeft className="h-4 w-4" />
-      </Button>
+      <IconTooltip label={t('pagination.previousPage')}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="editor-pagination-arrow"
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage <= 1}
+          aria-label={t('pagination.previousPage')}
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+      </IconTooltip>
 
       {summaryOnly ? (
         <span className="editor-pagination-summary" aria-live="polite">
@@ -75,16 +78,18 @@ export function EditorPagination({
         </div>
       )}
 
-      <Button
-        variant="ghost"
-        size="icon"
-        className="editor-pagination-arrow"
-        onClick={() => onPageChange(currentPage + 1)}
-        disabled={currentPage >= pageCount}
-        aria-label={t('pagination.nextPage')}
-      >
-        <ChevronRight className="h-4 w-4" />
-      </Button>
+      <IconTooltip label={t('pagination.nextPage')}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="editor-pagination-arrow"
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage >= pageCount}
+          aria-label={t('pagination.nextPage')}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </IconTooltip>
 
       {!summaryOnly && (
         <span className="editor-pagination-summary">

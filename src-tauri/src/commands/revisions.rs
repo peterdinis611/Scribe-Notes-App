@@ -256,5 +256,6 @@ pub fn restore_document_revision(
         file_path: Some(file_path),
         created_at: existing.created_at,
         updated_at: now,
+        vault_verifier: existing.vault_verifier,
     })
 }

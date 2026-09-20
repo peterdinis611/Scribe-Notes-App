@@ -54,7 +54,8 @@ export function InputDialogHost() {
             </DialogHeader>
             <Input
               ref={inputRef}
-              type="text"
+              type={dialog.password ? 'password' : 'text'}
+              autoComplete={dialog.password ? 'current-password' : 'off'}
               value={value}
               placeholder={dialog.placeholder}
               onChange={(event) => setValue(event.target.value)}

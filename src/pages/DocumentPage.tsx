@@ -1,7 +1,10 @@
 import { lazy, Suspense, useEffect, useMemo, useRef } from 'react'
 import { useNavigate, useParams } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
+import { DocumentLoadingState } from '@/components/DocumentLoadingState'
+import { SecondaryDocumentPane } from '@/components/SecondaryDocumentPane'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
+import { prefetchDocument } from '@/lib/cache/prefetch-document'
 import { isCanvasContent } from '@/lib/canvas/types'
 import { ROUTES } from '@/lib/routes'
 import { isOpenLibraryDocumentId } from '@/lib/trash-document'
@@ -10,7 +13,6 @@ import {
   setActiveDocument,
   setActiveDocumentId,
 } from '@/store/documentsSlice'
-import { SecondaryDocumentPane } from '@/components/SecondaryDocumentPane'
 
 const DocumentEditor = lazy(() =>
   import('@/components/DocumentEditor').then((module) => ({
@@ -24,14 +26,12 @@ const CanvasEditor = lazy(() =>
   })),
 )
 
-function DocumentEditorFallback() {
+function DocumentEditorFallback({ title }: { title?: string | null }) {
   const { t } = useTranslation()
 
   return (
     <div className="editor-shell">
-      <div className="flex flex-1 items-center justify-center text-sm text-[var(--color-muted-foreground)]">
-        {t('editor.loadingEditor')}
-      </div>
+      <DocumentLoadingState label={t('editor.loadingEditor')} title={title} />
     </div>
   )
 }
@@ -49,11 +49,21 @@ export function DocumentPage() {
   /** Tracks which route id we already adopted so close/home can clear activeId without revival. */
   const adoptedRouteIdRef = useRef<string | null>(null)
 
+  const summaryTitle = useMemo(() => {
+    if (!documentId) return null
+    return documents.find((doc) => doc.id === documentId)?.title ?? null
+  }, [documentId, documents])
+
   const resolvedDocument = useMemo(() => {
     if (!documentId) return null
     if (activeDocument?.id === documentId) return activeDocument
     return peekCachedDocument(documentId)
   }, [activeDocument, documentId])
+
+  // Kick off body fetch as soon as the route id is known (parallel to Redux loader).
+  useEffect(() => {
+    prefetchDocument(documentId)
+  }, [documentId])
 
   useEffect(() => {
     if (!documentId) return
@@ -114,9 +124,10 @@ export function DocumentPage() {
   if (!documentId || !resolvedDocument || resolvedDocument.id !== documentId) {
     return (
       <div className="editor-shell">
-        <div className="flex flex-1 items-center justify-center text-sm text-[var(--color-muted-foreground)]">
-          {t('editor.loading')}
-        </div>
+        <DocumentLoadingState
+          label={t('editor.loading')}
+          title={summaryTitle || resolvedDocument?.title}
+        />
       </div>
     )
   }
@@ -124,7 +135,7 @@ export function DocumentPage() {
   const split = Boolean(secondaryDocumentId && secondaryDocumentId !== documentId)
 
   const editor = (
-    <Suspense fallback={<DocumentEditorFallback />}>
+    <Suspense fallback={<DocumentEditorFallback title={resolvedDocument.title} />}>
       {isCanvas ? (
         <CanvasEditor key={documentId} />
       ) : (

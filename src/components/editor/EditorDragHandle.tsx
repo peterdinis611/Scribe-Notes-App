@@ -8,6 +8,7 @@ import { deleteHandleTarget, getHandleDeleteLabel } from '@/lib/editor/delete-co
 import { getEditorViewDom } from '@/lib/editor/view-ready'
 import { useBlockDragSession } from '@/hooks/useBlockDragSession'
 import { cn } from '@/lib/utils'
+import { IconTooltip } from '@/components/ui/tooltip'
 
 type EditorDragHandleProps = {
   editor: Editor | null
@@ -300,30 +301,32 @@ export function EditorDragHandle({ editor }: EditorDragHandleProps) {
         setHandleActive(false)
       }}
     >
-      <button
-        ref={handleRef}
-        type="button"
-        className={cn('editor-block-drag-handle', handleActive && 'is-active')}
-        aria-label={t('editorActions.moveBlock')}
-        title={t('editorActions.moveBlockHint')}
-      >
-        <GripVertical className="h-3.5 w-3.5" aria-hidden="true" />
-      </button>
-      {deleteLabel && (
+      <IconTooltip label={t('editorActions.moveBlockHint')} side="left">
         <button
+          ref={handleRef}
           type="button"
-          className="editor-block-delete-handle"
-          aria-label={deleteLabel}
-          title={deleteLabel}
-          tabIndex={clusterHovered ? 0 : -1}
-          onClick={(event) => {
-            event.preventDefault()
-            event.stopPropagation()
-            handleDeleteBlock()
-          }}
+          className={cn('editor-block-drag-handle', handleActive && 'is-active')}
+          aria-label={t('editorActions.moveBlock')}
         >
-          <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+          <GripVertical className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
+      </IconTooltip>
+      {deleteLabel && (
+        <IconTooltip label={deleteLabel} side="left">
+          <button
+            type="button"
+            className="editor-block-delete-handle"
+            aria-label={deleteLabel}
+            tabIndex={clusterHovered ? 0 : -1}
+            onClick={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              handleDeleteBlock()
+            }}
+          >
+            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
+        </IconTooltip>
       )}
     </div>,
     document.body,

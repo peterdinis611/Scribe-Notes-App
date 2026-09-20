@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import { BubbleMenu } from '@tiptap/react/menus'
 import type { Editor } from '@tiptap/react'
 import { useEditorState } from '@tiptap/react'
@@ -27,9 +27,28 @@ import {
 } from '@/lib/editor/table-extensions'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
+import { IconTooltip } from '@/components/ui/tooltip'
 
 type EditorTableBubbleMenuProps = {
   editor: Editor
+}
+
+function TableBubbleIcon({
+  label,
+  onClick,
+  children,
+}: {
+  label: string
+  onClick: () => void
+  children: ReactNode
+}) {
+  return (
+    <IconTooltip label={label}>
+      <button type="button" className="editor-bubble-icon-btn" aria-label={label} onClick={onClick}>
+        {children}
+      </button>
+    </IconTooltip>
+  )
 }
 
 export function EditorTableBubbleMenu({ editor }: EditorTableBubbleMenuProps) {
@@ -54,15 +73,17 @@ export function EditorTableBubbleMenu({ editor }: EditorTableBubbleMenuProps) {
         const cell = row.original.cells[colIndex]
         if (!cell) return null
         return (
-          <button
-            type="button"
-            className={cn('table-matrix-cell', cell.isHeader && 'is-header')}
-            style={{ backgroundColor: cell.backgroundColor ?? undefined }}
-            onClick={() => focusTableCell(editor, cell.row, cell.col)}
-            title={t('toolbar.table.cellTitle', { row: cell.row + 1, col: cell.col + 1 })}
-          >
-            {cell.isHeader ? t('toolbar.table.headerMark') : cell.col + 1}
-          </button>
+          <IconTooltip label={t('toolbar.table.cellTitle', { row: cell.row + 1, col: cell.col + 1 })}>
+            <button
+              type="button"
+              className={cn('table-matrix-cell', cell.isHeader && 'is-header')}
+              style={{ backgroundColor: cell.backgroundColor ?? undefined }}
+              onClick={() => focusTableCell(editor, cell.row, cell.col)}
+              aria-label={t('toolbar.table.cellTitle', { row: cell.row + 1, col: cell.col + 1 })}
+            >
+              {cell.isHeader ? t('toolbar.table.headerMark') : cell.col + 1}
+            </button>
+          </IconTooltip>
         )
       },
     }))
@@ -82,89 +103,76 @@ export function EditorTableBubbleMenu({ editor }: EditorTableBubbleMenuProps) {
     >
       <div className="table-bubble-layout">
         <div className="table-bubble-actions">
-          <button
-            type="button"
-            className="editor-bubble-icon-btn"
-            title={t('toolbar.actions.addRow')}
+          <TableBubbleIcon
+            label={t('toolbar.actions.addRow')}
             onClick={() => editor.chain().focus().addRowAfter().run()}
           >
             <BetweenHorizontalEnd className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            className="editor-bubble-icon-btn"
-            title={t('toolbar.actions.addColumn')}
+          </TableBubbleIcon>
+          <TableBubbleIcon
+            label={t('toolbar.actions.addColumn')}
             onClick={() => editor.chain().focus().addColumnAfter().run()}
           >
             <BetweenVerticalEnd className="h-3.5 w-3.5" />
-          </button>
+          </TableBubbleIcon>
           <span className="editor-bubble-divider" />
-          <button
-            type="button"
-            className="editor-bubble-icon-btn"
-            title={t('toolbar.actions.sortAsc')}
+          <TableBubbleIcon
+            label={t('toolbar.actions.sortAsc')}
             onClick={() => {
               if (!sortTableByActiveColumn(editor, 'asc')) toast.info(t('toolbar.table.needColumn'))
             }}
           >
             <ArrowDownAZ className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            className="editor-bubble-icon-btn"
-            title={t('toolbar.actions.sortDesc')}
+          </TableBubbleIcon>
+          <TableBubbleIcon
+            label={t('toolbar.actions.sortDesc')}
             onClick={() => {
               if (!sortTableByActiveColumn(editor, 'desc')) toast.info(t('toolbar.table.needColumn'))
             }}
           >
             <ArrowUpAZ className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            className="editor-bubble-icon-btn"
-            title={t('toolbar.actions.fillDown')}
+          </TableBubbleIcon>
+          <TableBubbleIcon
+            label={t('toolbar.actions.fillDown')}
             onClick={() => {
               if (!fillDownActiveColumn(editor)) toast.info(t('toolbar.table.fillEmpty'))
             }}
           >
             <ArrowDownToLine className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            className="editor-bubble-icon-btn"
-            title={t('toolbar.actions.sumColumn')}
+          </TableBubbleIcon>
+          <TableBubbleIcon
+            label={t('toolbar.actions.sumColumn')}
             onClick={() => {
               if (!insertColumnTotalBelow(editor)) toast.info(t('toolbar.table.needNumbers'))
             }}
           >
             <Sigma className="h-3.5 w-3.5" />
-          </button>
+          </TableBubbleIcon>
           <span className="editor-bubble-divider" />
-          <button
-            type="button"
-            className="editor-bubble-icon-btn"
-            title={t('editorActions.deleteTable')}
+          <TableBubbleIcon
+            label={t('editorActions.deleteTable')}
             onClick={() => editor.chain().focus().deleteTable().run()}
           >
             <Trash2 className="h-3.5 w-3.5" />
-          </button>
+          </TableBubbleIcon>
         </div>
         <div className="table-bubble-colors">
           <span className="table-bubble-label">{t('toolbar.table.cellColor')}</span>
           <div className="table-bubble-swatches">
             {TABLE_CELL_COLORS.map(({ id, value }) => (
-              <button
-                key={id}
-                type="button"
-                className={cn('toolbar-swatch', tableState.currentColor === value && 'is-active')}
-                title={t(`toolbar.table.colors.${id}`)}
-                onClick={() => setTableCellBackground(editor, value)}
-              >
-                <span
-                  className="toolbar-swatch-dot"
-                  style={{ background: value || 'var(--color-background)' }}
-                />
-              </button>
+              <IconTooltip key={id} label={t(`toolbar.table.colors.${id}`)}>
+                <button
+                  type="button"
+                  className={cn('toolbar-swatch', tableState.currentColor === value && 'is-active')}
+                  aria-label={t(`toolbar.table.colors.${id}`)}
+                  onClick={() => setTableCellBackground(editor, value)}
+                >
+                  <span
+                    className="toolbar-swatch-dot"
+                    style={{ background: value || 'var(--color-background)' }}
+                  />
+                </button>
+              </IconTooltip>
             ))}
           </div>
         </div>

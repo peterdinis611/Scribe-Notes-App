@@ -5,6 +5,7 @@ import { Clock, FileText, Plus, Settings2, Tag as TagIcon } from 'lucide-react'
 import { TagManageDialog } from '@/components/library/TagManageDialog'
 import { colorForTag } from '@/lib/library/tag-colors'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
+import { prefetchDocument } from '@/lib/cache/prefetch-document'
 import { promptInput } from '@/lib/input-dialog'
 import {
   collectMetaOptions,
@@ -74,6 +75,7 @@ export function LibraryTagsView({ onNavigate }: LibraryTagsViewProps) {
     dispatch(setActiveDocumentId(id))
     const cached = peekCachedDocument(id)
     if (cached) dispatch(setActiveDocument(cached))
+    else prefetchDocument(id)
     navigate(ROUTES.document(id))
     onNavigate?.()
   }

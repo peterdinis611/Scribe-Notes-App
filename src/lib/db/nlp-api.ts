@@ -146,12 +146,25 @@ export const nlpSetEmbedBackend = async (backend: 'hash' | 'quality') => {
 
 export const nlpSearch = (
   query: string,
-  options?: { limit?: number; mode?: 'hybrid' | 'semantic' | 'fts' },
+  options?: {
+    limit?: number
+    mode?: 'hybrid' | 'semantic' | 'fts'
+    folderId?: string
+    tag?: string
+    fromDate?: string
+    toDate?: string
+    libraryId?: string
+  },
 ) =>
   invoke<SearchHit[]>('nlp_search', {
     query,
     limit: options?.limit,
     mode: options?.mode,
+    folderId: options?.folderId,
+    tag: options?.tag,
+    fromDate: options?.fromDate,
+    toDate: options?.toDate,
+    libraryId: options?.libraryId,
   })
 
 export const nlpSemanticSearch = (query: string, limit = 12) =>
@@ -178,6 +191,8 @@ export const nlpIndexAll = async () => {
   statusCache = null
   return result
 }
+
+export const nlpCancel = () => invoke<void>('nlp_cancel')
 
 export const nlpJournalSummary = (input: {
   fromDate: string
@@ -214,9 +229,19 @@ export const nlpAnalyzePlaintext = (text: string) =>
   invoke<NlpDocumentAnalysis>('nlp_analyze_plaintext', { text })
 
 export const nlpFindDuplicates = (limit = 20) =>
-  invoke<{ pairs: Array<Record<string, unknown>>; compared: number }>('nlp_find_duplicates', {
+  invoke<{ pairs: DuplicatePair[]; compared: number }>('nlp_find_duplicates', {
     limit,
   })
+
+export type DuplicatePair = {
+  leftId: string
+  leftTitle: string
+  rightId: string
+  rightTitle: string
+  score: number
+  jaccard: number
+  embedScore: number
+}
 
 export const nlpSuggestTitle = (documentId: string) =>
   invoke<{ title: string; slug: string; source: string }>('nlp_suggest_title', { documentId })
@@ -269,21 +294,29 @@ export interface SpellcheckResult {
 export const nlpSpellcheck = (documentId: string) =>
   invoke<SpellcheckResult>('nlp_spellcheck', { documentId })
 
+export type LibraryChatCitation = {
+  documentId: string
+  title: string
+  snippet: string
+  chunkIndex?: number | null
+}
+
 export const nlpLibraryAnswer = (question: string, limit = 6) =>
-  invoke<{ answer: string; citations: Array<{ documentId: string; title: string; snippet: string }> }>(
-    'nlp_library_answer',
-    { question, limit },
-  )
+  invoke<{ answer: string; citations: LibraryChatCitation[] }>('nlp_library_answer', {
+    question,
+    limit,
+  })
 
 export const nlpDocumentAnswer = (
   documentId: string,
   question: string,
   context?: Array<{ role: string; text: string }> | null,
 ) =>
-  invoke<{ answer: string; citations: Array<{ documentId: string; title: string; snippet: string }> }>(
-    'nlp_document_answer',
-    { documentId, question, context: context ?? null },
-  )
+  invoke<{ answer: string; citations: LibraryChatCitation[] }>('nlp_document_answer', {
+    documentId,
+    question,
+    context: context ?? null,
+  })
 
 export interface WikiLinkSuggestion {
   phrase: string
@@ -303,6 +336,23 @@ export interface CalendarEvent {
   kind: string
   resolvedDate: string | null
 }
+
+export interface NlpRewriteResult {
+  output: string
+  mode: string
+  original: string
+}
+
+export const nlpRewriteSelection = (
+  text: string,
+  mode?: string,
+  customInstruction?: string,
+) =>
+  invoke<NlpRewriteResult>('nlp_rewrite_selection', {
+    text,
+    mode,
+    customInstruction,
+  })
 
 export const nlpCalendarEvents = (options?: {
   limit?: number

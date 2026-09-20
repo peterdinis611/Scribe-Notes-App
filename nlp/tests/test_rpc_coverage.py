@@ -19,7 +19,7 @@ def rpc(method: str, params: dict | None = None, request_id: int = 1) -> dict:
 class RpcCoverageTests(unittest.TestCase):
     def test_health_lists_every_feature(self) -> None:
         result = rpc("health")["result"]
-        self.assertEqual(result["version"], "0.9.2")
+        self.assertEqual(result["version"], "1.0.0")
         for feature in FEATURES:
             self.assertIn(feature, result["features"], feature)
         for expected in (

@@ -20,8 +20,10 @@ import {
   Trash2,
   Upload,
   CopyPlus,
+  Scan,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { IconTooltip } from '@/components/ui/tooltip'
 import { useAnimatedImageSrc } from '@/hooks/useAnimatedImageSrc'
 import {
   copyImageToClipboard,
@@ -35,6 +37,8 @@ import { ImageLightbox } from '@/components/editor/ImageLightbox'
 import { ImageUrlDialog } from '@/components/editor/ImageUrlDialog'
 import { toast } from '@/lib/toast'
 import { useAppSelector } from '@/store/hooks'
+import { saveDocumentOcr } from '@/lib/db/api'
+import { scheduleNlpDocumentIndex } from '@/lib/nlp/auto-index'
 
 const MIN_WIDTH = 120
 const DEFAULT_WIDTH = '480px'
@@ -64,6 +68,8 @@ export function ImageBlock({
   const [captionFocused, setCaptionFocused] = useState(false)
   const [altDraft, setAltDraft] = useState((node.attrs.alt as string) ?? '')
   const [captionDraft, setCaptionDraft] = useState((node.attrs.caption as string) ?? '')
+  const [ocrText, setOcrText] = useState<string | null>(null)
+  const [ocrLoading, setOcrLoading] = useState(false)
 
   const rawSrc = (node.attrs.src as string) ?? ''
   const { displaySrc, animated, kind: animatedKind } = useAnimatedImageSrc(rawSrc)
@@ -280,6 +286,30 @@ export function ImageBlock({
               <ToolbarBtn onClick={() => setLightboxOpen(true)} title={t('image.expand')}>
                 <Expand className="h-3.5 w-3.5" />
               </ToolbarBtn>
+              <ToolbarBtn
+                onClick={async () => {
+                  if (!rawSrc) return
+                  setOcrLoading(true)
+                  try {
+                    const { invoke } = await import('@/lib/tauri')
+                    const res = await invoke<{ text: string }>('extract_image_ocr', { imagePath: rawSrc })
+                    setOcrText(res.text)
+                    if (documentId && res.text.trim()) {
+                      await saveDocumentOcr(documentId, rawSrc, res.text)
+                      scheduleNlpDocumentIndex(documentId)
+                    }
+                    toast.success(t('image.ocrSaved'))
+                  } catch (e) {
+                    toast.error(t('image.ocrFailed'))
+                  } finally {
+                    setOcrLoading(false)
+                  }
+                }}
+                title={t('image.ocrExtract')}
+                disabled={ocrLoading}
+              >
+                <Scan className="h-3.5 w-3.5 text-amber-500" />
+              </ToolbarBtn>
               {!animated ? (
                 <ToolbarBtn onClick={() => setCropOpen(true)} title={t('image.crop')}>
                   <Crop className="h-3.5 w-3.5" />
@@ -360,26 +390,38 @@ export function ImageBlock({
 
           {showChrome && !isFull && !isEmpty && (
             <>
-              <span
-                className="image-resize-edge image-resize-edge--left"
-                onMouseDown={onResizeStart('left')}
-                title={t('image.resize')}
-              />
-              <span
-                className="image-resize-edge image-resize-edge--right"
-                onMouseDown={onResizeStart('right')}
-                title={t('image.resize')}
-              />
-              <span
-                className="image-resize-corner image-resize-corner--se"
-                onMouseDown={onResizeStart('corner')}
-                title={t('image.resize')}
-              />
-              <span
-                className="image-resize-corner image-resize-corner--sw"
-                onMouseDown={onResizeStart('left')}
-                title={t('image.resize')}
-              />
+              <IconTooltip label={t('image.resize')}>
+                <span
+                  tabIndex={0}
+                  className="image-resize-edge image-resize-edge--left"
+                  onMouseDown={onResizeStart('left')}
+                  aria-label={t('image.resize')}
+                />
+              </IconTooltip>
+              <IconTooltip label={t('image.resize')}>
+                <span
+                  tabIndex={0}
+                  className="image-resize-edge image-resize-edge--right"
+                  onMouseDown={onResizeStart('right')}
+                  aria-label={t('image.resize')}
+                />
+              </IconTooltip>
+              <IconTooltip label={t('image.resize')}>
+                <span
+                  tabIndex={0}
+                  className="image-resize-corner image-resize-corner--se"
+                  onMouseDown={onResizeStart('corner')}
+                  aria-label={t('image.resize')}
+                />
+              </IconTooltip>
+              <IconTooltip label={t('image.resize')}>
+                <span
+                  tabIndex={0}
+                  className="image-resize-corner image-resize-corner--sw"
+                  onMouseDown={onResizeStart('left')}
+                  aria-label={t('image.resize')}
+                />
+              </IconTooltip>
             </>
           )}
         </div>
@@ -410,6 +452,16 @@ export function ImageBlock({
               }}
               aria-label={t('image.caption')}
             />
+          </div>
+        )}
+
+        {ocrText && (
+          <div className="mt-1.5 p-2 rounded bg-muted/60 border border-border/60 text-xs font-mono select-text" contentEditable={false}>
+            <div className="flex items-center justify-between font-sans font-semibold text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
+              <span>Extracted Image Text (OCR)</span>
+              <button onClick={() => setOcrText(null)} className="hover:text-foreground">Close</button>
+            </div>
+            <div className="whitespace-pre-wrap">{ocrText}</div>
           </div>
         )}
 
@@ -491,20 +543,21 @@ function ToolbarBtn({
   className?: string
 }) {
   return (
-    <button
-      type="button"
-      className={cn('image-toolbar-btn', active && 'is-active', className)}
-      onClick={(event) => {
-        event.preventDefault()
-        event.stopPropagation()
-        onClick()
-      }}
-      title={title}
-      aria-label={title}
-      aria-pressed={active}
-      disabled={disabled}
-    >
-      {children}
-    </button>
+    <IconTooltip label={title}>
+      <button
+        type="button"
+        className={cn('image-toolbar-btn', active && 'is-active', className)}
+        onClick={(event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          onClick()
+        }}
+        aria-label={title}
+        aria-pressed={active}
+        disabled={disabled}
+      >
+        {children}
+      </button>
+    </IconTooltip>
   )
 }

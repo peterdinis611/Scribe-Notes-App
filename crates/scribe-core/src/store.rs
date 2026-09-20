@@ -8,19 +8,22 @@ use serde::Serialize;
 use serde_json::{json, Value};
 use uuid::Uuid;
 
-use crate::dates::{date_key_bounds, date_key_bounds_ms, parse_date_key};
+use crate::dates::{date_key_bounds, parse_date_key};
 use crate::db::migrations;
 use crate::db::{
-    active_library_id, fuse_search_hits, search_documents_for_library, SearchHit, SearchMode,
+    active_library_id, filter_search_hits, fuse_search_hits, search_documents_for_library, SearchHit,
+    SearchMode,
 };
 use crate::db::{
     count_embeddings, count_stale_embeddings, dominant_embedding_model, extract_search_text,
-    fetch_revision, get_document_embedding, get_embed_backend, is_nlp_enabled, remove_document_fts,
+    document_index_text, fetch_revision, get_document_embedding, get_embed_backend, is_nlp_enabled, remove_document_fts,
     restore_document_content, save_artifact, save_revision, semantic_search, similar_documents,
     sync_document_fts, sync_document_links, upsert_embedding_with_chunks,
     EmbeddingChunkInput,
 };
-use crate::nlp::{script_path_label, NlpSidecar};
+use crate::nlp::{
+    parse_entities, parse_library_report, parse_summary, script_path_label, NlpSidecar,
+};
 use crate::path::default_db_path;
 use crate::plain_text::{
     document_outline, plain_text_to_paragraph_nodes, plain_text_to_tiptap, tiptap_to_markdown,
@@ -211,12 +214,7 @@ pub struct JournalSummary {
     pub document_count: i64,
 }
 
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct NlpEntity {
-    pub text: String,
-    pub kind: String,
-}
+pub use crate::nlp::NlpEntity;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -299,30 +297,7 @@ pub struct JournalSummaryInput {
     pub document_ids: Option<Vec<String>>,
 }
 
-#[derive(Debug, Clone, Default)]
-pub struct SearchFilter {
-    pub folder_id: Option<String>,
-    pub tag: Option<String>,
-    pub from_date: Option<String>,
-    pub to_date: Option<String>,
-}
-
-impl SearchFilter {
-    pub fn is_empty(&self) -> bool {
-        option_blank(&self.folder_id)
-            && option_blank(&self.tag)
-            && option_blank(&self.from_date)
-            && option_blank(&self.to_date)
-    }
-}
-
-fn option_blank(value: &Option<String>) -> bool {
-    value
-        .as_deref()
-        .map(str::trim)
-        .unwrap_or("")
-        .is_empty()
-}
+pub use crate::db::SearchFilter;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -414,7 +389,7 @@ impl ScribeStore {
     }
 
     #[cfg(test)]
-    fn from_memory() -> Self {
+    pub(crate) fn from_memory() -> Self {
         Self {
             db: crate::db::test_helpers::in_memory_conn(),
             writable: true,
@@ -557,10 +532,11 @@ impl ScribeStore {
         self.run_writable(|db| {
             let id = Uuid::new_v4().to_string();
             let now = Self::now_ms();
+            let library_id = active_library_id(db);
             db.execute(
-                "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at)
-                 VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?5)",
-                params![id, title, content_json, folder_id, now],
+                "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at, library_id)
+                 VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?5, ?6)",
+                params![id, title, content_json, folder_id, now, library_id],
             )
             .map_err(|e| e.to_string())?;
             sync_document_fts(db, &id, title, &content_json)?;
@@ -666,25 +642,26 @@ impl ScribeStore {
         limit: Option<i64>,
     ) -> Result<Vec<DocumentSummary>, String> {
         let limit = limit.unwrap_or(50).clamp(1, 200);
+        let library_id = active_library_id(&self.db);
         let filter_folder = folder_id.filter(|value| !value.is_empty());
         let mut stmt = if filter_folder.is_some() {
             self.db
                 .prepare(&format!(
-                    "{SUMMARY_SELECT} WHERE deleted_at IS NULL AND folder_id = ?1 ORDER BY updated_at DESC LIMIT ?2"
+                    "{SUMMARY_SELECT} WHERE deleted_at IS NULL AND COALESCE(library_id, 'default') = ?1 AND folder_id = ?2 ORDER BY updated_at DESC LIMIT ?3"
                 ))
                 .map_err(|e| e.to_string())?
         } else {
             self.db
                 .prepare(&format!(
-                    "{SUMMARY_SELECT} WHERE deleted_at IS NULL ORDER BY updated_at DESC LIMIT ?1"
+                    "{SUMMARY_SELECT} WHERE deleted_at IS NULL AND COALESCE(library_id, 'default') = ?1 ORDER BY updated_at DESC LIMIT ?2"
                 ))
                 .map_err(|e| e.to_string())?
         };
 
         let rows = if let Some(folder_id) = filter_folder {
-            stmt.query_map(params![folder_id, limit], Self::map_summary)
+            stmt.query_map(params![library_id, folder_id, limit], Self::map_summary)
         } else {
-            stmt.query_map(params![limit], Self::map_summary)
+            stmt.query_map(params![library_id, limit], Self::map_summary)
         }
         .map_err(|e| e.to_string())?;
 
@@ -961,17 +938,18 @@ impl ScribeStore {
 
     pub fn list_favorites(&self, limit: i64) -> Result<Vec<DocumentSummary>, String> {
         let max = limit.clamp(1, 200);
+        let library_id = active_library_id(&self.db);
         let mut stmt = self
             .db
             .prepare(&format!(
                 "{SUMMARY_SELECT}
-                 WHERE deleted_at IS NULL AND is_favorite = 1
-                 ORDER BY updated_at DESC LIMIT ?1"
+                 WHERE deleted_at IS NULL AND is_favorite = 1 AND COALESCE(library_id, 'default') = ?1
+                 ORDER BY updated_at DESC LIMIT ?2"
             ))
             .map_err(|e| e.to_string())?;
 
         let rows = stmt
-            .query_map(params![max], Self::map_summary)
+            .query_map(params![library_id, max], Self::map_summary)
             .map_err(|e| e.to_string())?;
 
         rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
@@ -979,17 +957,18 @@ impl ScribeStore {
 
     pub fn list_pinned(&self, limit: i64) -> Result<Vec<DocumentSummary>, String> {
         let max = limit.clamp(1, 200);
+        let library_id = active_library_id(&self.db);
         let mut stmt = self
             .db
             .prepare(&format!(
                 "{SUMMARY_SELECT}
-                 WHERE deleted_at IS NULL AND is_pinned = 1
-                 ORDER BY updated_at DESC LIMIT ?1"
+                 WHERE deleted_at IS NULL AND is_pinned = 1 AND COALESCE(library_id, 'default') = ?1
+                 ORDER BY updated_at DESC LIMIT ?2"
             ))
             .map_err(|e| e.to_string())?;
 
         let rows = stmt
-            .query_map(params![max], Self::map_summary)
+            .query_map(params![library_id, max], Self::map_summary)
             .map_err(|e| e.to_string())?;
 
         rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
@@ -997,17 +976,18 @@ impl ScribeStore {
 
     pub fn list_trashed_documents(&self, limit: i64) -> Result<Vec<DocumentSummary>, String> {
         let max = limit.clamp(1, 200);
+        let library_id = active_library_id(&self.db);
         let mut stmt = self
             .db
             .prepare(&format!(
                 "{SUMMARY_SELECT}
-                 WHERE deleted_at IS NOT NULL
-                 ORDER BY deleted_at DESC LIMIT ?1"
+                 WHERE deleted_at IS NOT NULL AND COALESCE(library_id, 'default') = ?1
+                 ORDER BY deleted_at DESC LIMIT ?2"
             ))
             .map_err(|e| e.to_string())?;
 
         let rows = stmt
-            .query_map(params![max], Self::map_summary)
+            .query_map(params![library_id, max], Self::map_summary)
             .map_err(|e| e.to_string())?;
 
         rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
@@ -1972,55 +1952,8 @@ impl ScribeStore {
         } else {
             (limit * 5).clamp(limit, 200)
         };
-        let mut hits = search_library(&self.db, sidecar, query, fetch_limit, search_mode)?;
-        if !filter.is_empty() {
-            hits.retain(|hit| self.hit_matches_filter(hit, &filter));
-            hits.truncate(limit.clamp(1, 50) as usize);
-        }
-        Ok(hits)
-    }
-
-    fn hit_matches_filter(&self, hit: &SearchHit, filter: &SearchFilter) -> bool {
-        let row: Option<(Option<String>, Option<String>, i64)> = self
-            .db
-            .query_row(
-                "SELECT folder_id, tags, updated_at FROM documents
-                 WHERE id = ?1 AND deleted_at IS NULL",
-                params![hit.document_id],
-                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
-            )
-            .optional()
-            .ok()
-            .flatten();
-        let Some((folder_id, tags_raw, updated_at)) = row else {
-            return false;
-        };
-        if let Some(wanted) = filter.folder_id.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
-            if folder_id.as_deref() != Some(wanted) {
-                return false;
-            }
-        }
-        if let Some(tag) = filter.tag.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
-            let tags = Self::parse_tags(tags_raw);
-            if !tags.iter().any(|existing| existing == tag) {
-                return false;
-            }
-        }
-        if let Some(from) = filter.from_date.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
-            if let Ok((start, _)) = date_key_bounds_ms(from, from) {
-                if updated_at < start {
-                    return false;
-                }
-            }
-        }
-        if let Some(to) = filter.to_date.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
-            if let Ok((_, end)) = date_key_bounds_ms(to, to) {
-                if updated_at > end {
-                    return false;
-                }
-            }
-        }
-        true
+        let hits = search_library(&self.db, sidecar, query, fetch_limit, search_mode)?;
+        Ok(filter_search_hits(&self.db, hits, &filter, limit))
     }
 
     pub fn journal_summary(
@@ -2050,8 +1983,9 @@ impl ScribeStore {
         }
 
         sync_sidecar_backend(sidecar, &self.db)?;
-        let result = sidecar.summarize(&combined, 5)?;
-        let (summary, bullets) = parse_sidecar_summary(&result);
+        let parsed = parse_summary(&sidecar.summarize(&combined, 5)?);
+        let summary = parsed.summary;
+        let bullets = parsed.bullets;
 
         let payload = json!({
             "fromDate": input.from_date,
@@ -2145,34 +2079,9 @@ impl ScribeStore {
 
         let text = format!("{title}\n{}", extract_search_text(&content_json));
         sync_sidecar_backend(sidecar, &self.db)?;
-        let result = sidecar.extract_entities(&text)?;
-
-        let entities = result
-            .get("entities")
-            .and_then(|value| value.as_array())
-            .map(|items| {
-                items
-                    .iter()
-                    .filter_map(|item| {
-                        Some(NlpEntity {
-                            text: item.get("text")?.as_str()?.to_string(),
-                            kind: item.get("kind")?.as_str()?.to_string(),
-                        })
-                    })
-                    .collect::<Vec<_>>()
-            })
-            .unwrap_or_default();
-
-        let tag_suggestions = result
-            .get("tagSuggestions")
-            .and_then(|value| value.as_array())
-            .map(|items| {
-                items
-                    .iter()
-                    .filter_map(|item| item.as_str().map(str::to_string))
-                    .collect::<Vec<_>>()
-            })
-            .unwrap_or_default();
+        let parsed = parse_entities(&sidecar.extract_entities(&text)?);
+        let entities = parsed.entities;
+        let tag_suggestions = parsed.tag_suggestions;
 
         let (folder_id, tags_json): (Option<String>, Option<String>) = self
             .db
@@ -2300,12 +2209,9 @@ impl ScribeStore {
 
         sync_sidecar_backend(sidecar, &self.db)?;
         let result = sidecar.library_report(json!(documents), json!(folders))?;
-        let markdown = result
-            .get("markdown")
-            .and_then(|value| value.as_str())
-            .unwrap_or("")
-            .to_string();
-        let stats = result.get("stats").cloned().unwrap_or(json!({}));
+        let parsed = parse_library_report(&result);
+        let markdown = parsed.markdown;
+        let stats = parsed.stats;
 
         let now = chrono::Utc::now().timestamp();
         save_artifact(
@@ -2375,7 +2281,7 @@ impl ScribeStore {
             )
             .map_err(|e| e.to_string())?;
 
-        let text = format!("{title}\n{}", extract_search_text(&content_json));
+        let text = document_index_text(&self.db, document_id, &title, &content_json);
         sync_sidecar_backend(sidecar, &self.db)?;
         let embedded = sidecar.embed_with_chunks(&text)?;
         let chunks: Vec<EmbeddingChunkInput> = embedded
@@ -2403,72 +2309,22 @@ impl ScribeStore {
     }
 
     pub fn index_all_documents(&self, sidecar: &NlpSidecar) -> Result<IndexResult, String> {
-        const BATCH_SIZE: usize = 24;
-
         require_nlp(&self.db)?;
-        sync_sidecar_backend(sidecar, &self.db)?;
-
-        let mut stmt = self
-            .db
-            .prepare("SELECT id, title, content_json FROM documents WHERE deleted_at IS NULL")
-            .map_err(|e| e.to_string())?;
-        let rows = stmt
-            .query_map([], |row| {
-                Ok((
-                    row.get::<_, String>(0)?,
-                    row.get::<_, String>(1)?,
-                    row.get::<_, String>(2)?,
-                ))
-            })
-            .map_err(|e| e.to_string())?;
-
-        let mut docs: Vec<(String, String)> = Vec::new();
-        for row in rows {
-            let (id, title, content_json) = row.map_err(|e| e.to_string())?;
-            let text = format!("{title}\n{}", extract_search_text(&content_json));
-            docs.push((id, text));
-        }
-
-        if docs.is_empty() {
-            return Ok(IndexResult {
-                indexed: 0,
-                model: "none".to_string(),
-            });
-        }
-
-        let mut indexed = 0i64;
-        let mut model = "none".to_string();
+        let _ = crate::nlp::sync_embed_backend(&self.db, sidecar);
+        let docs = crate::nlp::collect_index_documents(&self.db, None, true)?;
         let now = chrono::Utc::now().timestamp();
-
-        for chunk in docs.chunks(BATCH_SIZE) {
-            let ids: Vec<String> = chunk.iter().map(|(id, _)| id.clone()).collect();
-            let texts: Vec<String> = chunk.iter().map(|(_, text)| text.clone()).collect();
-            let (results, batch_model) = sidecar.embed_batch_with_chunks(&texts)?;
-            model = batch_model;
-
-            for (document_id, embedded) in ids.into_iter().zip(results.into_iter()) {
-                let chunks: Vec<EmbeddingChunkInput> = embedded
-                    .chunks
-                    .into_iter()
-                    .map(|chunk| EmbeddingChunkInput {
-                        index: chunk.index,
-                        text: chunk.text,
-                        vector: chunk.vector,
-                    })
-                    .collect();
-                upsert_embedding_with_chunks(
-                    &self.db,
-                    &document_id,
-                    &embedded.vector,
-                    &chunks,
-                    &model,
-                    now,
-                )?;
-                indexed += 1;
-            }
-        }
-
-        Ok(IndexResult { indexed, model })
+        let result = crate::nlp::index_collected_documents(
+            sidecar,
+            docs,
+            |ids, results, model| {
+                crate::nlp::persist_embedded_batch(&self.db, ids, results, model, now).map(|_| ())
+            },
+            |_| {},
+        )?;
+        Ok(IndexResult {
+            indexed: result.indexed,
+            model: result.model,
+        })
     }
 
     pub fn get_or_create_journal(
@@ -2500,10 +2356,11 @@ impl ScribeStore {
             let id = Uuid::new_v4().to_string();
             let now = Self::now_ms();
 
+            let library_id = active_library_id(db);
             db.execute(
-                "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at)
-                 VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?5)",
-                params![id, title, content_json, folder_id, now],
+                "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at, library_id)
+                 VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?5, ?6)",
+                params![id, title, content_json, folder_id, now, library_id],
             )
             .map_err(|e| e.to_string())?;
             sync_document_fts(db, &id, &title, &content_json)?;
@@ -3600,7 +3457,8 @@ pub fn search_library(
         }
         SearchMode::Hybrid => {
             let library_id = active_library_id(conn);
-            let fts_hits = search_documents_for_library(conn, q, limit, &library_id)?;
+            let fetch = (limit * 2).clamp(limit, 40);
+            let fts_hits = search_documents_for_library(conn, q, fetch, &library_id)?;
             if !is_nlp_enabled(conn)? {
                 return Ok(fts_hits
                     .into_iter()
@@ -3608,14 +3466,25 @@ pub fn search_library(
                         hit.match_kind = Some("fts".to_string());
                         hit
                     })
+                    .take(limit.clamp(1, 50) as usize)
                     .collect());
             }
             sync_sidecar_backend(sidecar, conn)?;
-            let semantic_hits = match sidecar.embed_text(q) {
-                Ok((vector, model)) => semantic_search(conn, &vector, limit, Some(&model)).unwrap_or_default(),
-                Err(_) => Vec::new(),
-            };
-            Ok(fuse_search_hits(&fts_hits, &semantic_hits, limit))
+            match sidecar.embed_text(q) {
+                Ok((vector, model)) => {
+                    let semantic_hits =
+                        semantic_search(conn, &vector, fetch, Some(&model)).unwrap_or_default();
+                    let fused = fuse_search_hits(&fts_hits, &semantic_hits, fetch);
+                    Ok(crate::db::rerank_search_hits(
+                        conn,
+                        &vector,
+                        fused,
+                        Some(&model),
+                        limit,
+                    ))
+                }
+                Err(_) => Ok(fuse_search_hits(&fts_hits, &[], limit)),
+            }
         }
     }
 }

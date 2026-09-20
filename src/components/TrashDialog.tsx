@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { confirm } from '@tauri-apps/plugin-dialog'
 import { FileText, RotateCcw, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { IconTooltip } from '@/components/ui/tooltip'
 import {
   Dialog,
   DialogContent,
@@ -190,17 +191,19 @@ export function TrashDialog() {
                             <RotateCcw className="h-3.5 w-3.5" />
                             {t('common.restore')}
                           </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="trash-dialog-purge"
-                            disabled={busy}
-                            title={t('trash.purgeForever')}
-                            onClick={() => void handlePurge(item)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
+                          <IconTooltip label={t('trash.purgeForever')}>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="trash-dialog-purge"
+                              disabled={busy}
+                              aria-label={t('trash.purgeForever')}
+                              onClick={() => void handlePurge(item)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </IconTooltip>
                         </div>
                       </li>
                     )

@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { FolderInput, Trash2, X } from 'lucide-react'
 import { confirm } from '@tauri-apps/plugin-dialog'
 import { Button } from '@/components/ui/button'
+import { IconTooltip } from '@/components/ui/tooltip'
 import { toast } from '@/lib/toast'
 import { restoreTrashedDocuments, trashDocuments } from '@/lib/trash-document'
 import { useNavigate } from '@tanstack/react-router'
@@ -85,14 +86,16 @@ export function LibraryBulkBar() {
           <Trash2 className="h-3 w-3" />
           {t('common.delete')}
         </Button>
-        <button
-          type="button"
-          className="library-bulk-clear"
-          aria-label={t('library.bulk.clear')}
-          onClick={() => dispatch(clearSelectedDocuments())}
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
+        <IconTooltip label={t('library.bulk.clear')}>
+          <button
+            type="button"
+            className="library-bulk-clear"
+            aria-label={t('library.bulk.clear')}
+            onClick={() => dispatch(clearSelectedDocuments())}
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </IconTooltip>
       </div>
     </div>
   )

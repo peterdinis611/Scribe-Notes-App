@@ -6,6 +6,7 @@ import { openQuickNote } from '@/lib/quick-note'
 import { openTodayNote } from '@/lib/journal-notes'
 import { closeActiveDocumentAndMaybeHome } from '@/lib/navigation'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
+import { prefetchDocument } from '@/lib/cache/prefetch-document'
 import { pickAndImportFile } from '@/lib/db/api'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
@@ -195,6 +196,7 @@ export function useKeyboardShortcuts() {
           dispatch(setActiveDocumentId(id))
           const cached = peekCachedDocument(id)
           if (cached) dispatch(setActiveDocument(cached))
+          else prefetchDocument(id)
           void navigate(ROUTES.document(id))
         },
         options: {

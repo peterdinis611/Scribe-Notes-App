@@ -14,6 +14,7 @@ import {
   Upload,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { IconTooltip } from '@/components/ui/tooltip'
 import { pickLottieFiles, replaceImageFromFile, resolveImageSrc } from '@/lib/editor/image-utils'
 import { useAppSelector } from '@/store/hooks'
 
@@ -305,19 +306,20 @@ function ToolbarBtn({
   className?: string
 }) {
   return (
-    <button
-      type="button"
-      className={cn('image-toolbar-btn', active && 'is-active', className)}
-      title={title}
-      aria-label={title}
-      disabled={disabled}
-      onClick={(event) => {
-        event.preventDefault()
-        event.stopPropagation()
-        onClick()
-      }}
-    >
-      {children}
-    </button>
+    <IconTooltip label={title}>
+      <button
+        type="button"
+        className={cn('image-toolbar-btn', active && 'is-active', className)}
+        aria-label={title}
+        disabled={disabled}
+        onClick={(event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          onClick()
+        }}
+      >
+        {children}
+      </button>
+    </IconTooltip>
   )
 }

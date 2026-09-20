@@ -18,6 +18,7 @@ import {
 } from '@/lib/db/api'
 import { useMoveDocumentToFolder } from '@/hooks/useMoveDocumentToFolder'
 import { invalidateDocumentCache, peekCachedDocument } from '@/lib/cache/document-cache'
+import { prefetchDocument } from '@/lib/cache/prefetch-document'
 import { isLibraryDocumentVisible } from '@/lib/db/library-sync'
 import { trashDocuments, removeDocumentsFromLibraryUi, restoreTrashedDocuments } from '@/lib/trash-document'
 import {
@@ -319,6 +320,7 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     dispatch(setActiveDocumentId(id))
     const cached = peekCachedDocument(id)
     if (cached) dispatch(setActiveDocument(cached))
+    else prefetchDocument(id)
     navigate(ROUTES.document(id))
     onNavigate?.()
   }, [dispatch, navigate, onNavigate])
@@ -534,6 +536,24 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
       }
       const { clearDocumentCache } = await import('@/lib/cache/document-cache')
       clearDocumentCache()
+      try {
+        const { listDocuments, getDocument } = await import('@/lib/db/api')
+        const { isVaultCipherJson } = await import('@/lib/vault/crypto')
+        const { syncUnlockedVaultFolder } = await import('@/lib/vault/ram-index')
+        const summaries = (await listDocuments()).filter(
+          (doc) => doc.folderId === id && doc.deletedAt == null,
+        )
+        const decrypted = []
+        for (const summary of summaries) {
+          const doc = await getDocument(summary.id)
+          if (!isVaultCipherJson(doc.contentJson)) {
+            decrypted.push(doc)
+          }
+        }
+        await syncUnlockedVaultFolder(id, decrypted)
+      } catch {
+        // search overlay is best-effort; unlock still succeeded
+      }
       setVaultTick((n) => n + 1)
       toast.success(t('vault.unlocked'), folder.name)
     },
@@ -546,6 +566,12 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
       lockVault(id)
       const { clearDocumentCache } = await import('@/lib/cache/document-cache')
       clearDocumentCache()
+      try {
+        const { vaultRamClearFolder } = await import('@/lib/vault/ram-index')
+        await vaultRamClearFolder(id)
+      } catch {
+        // RAM overlay is best-effort
+      }
       setVaultTick((n) => n + 1)
       toast.info(t('vault.locked'))
     },

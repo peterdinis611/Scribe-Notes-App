@@ -123,7 +123,7 @@ export async function decryptContentJson(password: string, cipherJson: string): 
 }
 
 /** Locked placeholder TipTap doc shown until unlock. */
-export function vaultLockedPlaceholderJson(): string {
+export function vaultLockedPlaceholderJson(message?: string): string {
   return JSON.stringify({
     type: 'doc',
     content: [
@@ -132,7 +132,7 @@ export function vaultLockedPlaceholderJson(): string {
         content: [
           {
             type: 'text',
-            text: '🔒 This note is in an encrypted vault. Unlock the folder to read it.',
+            text: message ?? '🔒 This note is password-protected. Unlock it to read and edit.',
             marks: [{ type: 'italic' }],
           },
         ],

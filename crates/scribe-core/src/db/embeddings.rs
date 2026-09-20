@@ -320,7 +320,48 @@ fn list_chunk_embeddings_filtered(
     rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
 }
 
-fn cosine_similarity(a: &[f32], b: &[f32]) -> f64 {
+/// Second-stage hybrid rerank: RRF (`hit.rank` is negated RRF) + stored embedding cosine.
+pub fn rerank_search_hits(
+    conn: &Connection,
+    query_vector: &[f32],
+    hits: Vec<SearchHit>,
+    model: Option<&str>,
+    limit: i64,
+) -> Vec<SearchHit> {
+    if hits.len() <= 1 || query_vector.is_empty() {
+        return hits;
+    }
+    let mut scored: Vec<(f64, SearchHit)> = hits
+        .into_iter()
+        .map(|hit| {
+            let rrf = if hit.rank <= 0.0 { -hit.rank } else { 1.0 / (60.0 + hit.rank) };
+            let cosine = get_document_embedding(conn, &hit.document_id)
+                .ok()
+                .flatten()
+                .filter(|item| model.map_or(true, |expected| item.model == expected))
+                .filter(|item| item.vector.len() == query_vector.len())
+                .map(|item| cosine_similarity(query_vector, &item.vector))
+                .unwrap_or(0.0);
+            (rrf + 0.04 * cosine, hit)
+        })
+        .collect();
+    scored.sort_by(|left, right| {
+        right
+            .0
+            .partial_cmp(&left.0)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    scored.truncate(limit.clamp(1, 50) as usize);
+    scored
+        .into_iter()
+        .map(|(score, mut hit)| {
+            hit.rank = -score;
+            hit
+        })
+        .collect()
+}
+
+pub fn cosine_similarity(a: &[f32], b: &[f32]) -> f64 {
     if a.len() != b.len() || a.is_empty() {
         return 0.0;
     }
@@ -390,6 +431,7 @@ pub fn semantic_search_filtered(
 pub struct RankedDocumentChunk {
     pub snippet: String,
     pub score: f64,
+    pub chunk_index: i32,
 }
 
 pub fn rank_document_chunks(
@@ -405,20 +447,24 @@ pub fn rank_document_chunks(
     if chunks.is_empty() {
         chunks = list_chunk_embeddings_filtered(conn, None, Some(&ids))?;
     }
-    let mut scored: Vec<(f64, String)> = chunks
+    let mut scored: Vec<(f64, String, i32)> = chunks
         .into_iter()
         .filter(|chunk| chunk.vector.len() == query_vector.len())
         .map(|chunk| {
             let score = cosine_similarity(query_vector, &chunk.vector);
-            (score, chunk.snippet)
+            (score, chunk.snippet, chunk.chunk_index)
         })
-        .filter(|(score, snippet)| *score > 0.04 && !snippet.trim().is_empty())
+        .filter(|(score, snippet, _)| *score > 0.04 && !snippet.trim().is_empty())
         .collect();
     scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
     scored.truncate(max);
     Ok(scored
         .into_iter()
-        .map(|(score, snippet)| RankedDocumentChunk { snippet, score })
+        .map(|(score, snippet, chunk_index)| RankedDocumentChunk {
+            snippet,
+            score,
+            chunk_index,
+        })
         .collect())
 }
 
@@ -450,7 +496,7 @@ fn semantic_search_chunks(
     model: Option<&str>,
     chunks: &[StoredChunkEmbedding],
 ) -> Result<Vec<SearchHit>, String> {
-    let mut best: HashMap<String, (f64, String)> = HashMap::new();
+    let mut best: HashMap<String, (f64, String, i32)> = HashMap::new();
     for chunk in chunks {
         if model.is_some_and(|expected| chunk.model != expected) {
             continue;
@@ -468,22 +514,27 @@ fn semantic_search_chunks(
             chunk.snippet.clone()
         };
         match best.get(&chunk.document_id) {
-            Some((prev, _)) if *prev >= score => {}
+            Some((prev, _, _)) if *prev >= score => {}
             _ => {
-                best.insert(chunk.document_id.clone(), (score, snippet));
+                best.insert(
+                    chunk.document_id.clone(),
+                    (score, snippet, chunk.chunk_index),
+                );
             }
         }
     }
 
-    let mut scored: Vec<(f64, String, String)> = best
+    let mut scored: Vec<(f64, String, String, i32)> = best
         .into_iter()
-        .map(|(document_id, (score, snippet))| (score, document_id, snippet))
+        .map(|(document_id, (score, snippet, chunk_index))| {
+            (score, document_id, snippet, chunk_index)
+        })
         .collect();
     scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
     scored.truncate(max as usize);
 
     let mut hits = Vec::with_capacity(scored.len());
-    for (score, document_id, snippet) in scored {
+    for (score, document_id, snippet, chunk_index) in scored {
         let library_id = active_library_id(conn);
         let Ok((title, content_json)) = conn.query_row(
             "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL AND library_id = ?2",
@@ -507,6 +558,7 @@ fn semantic_search_chunks(
             snippet: body_snippet,
             rank: -score,
             match_kind: Some("semantic".to_string()),
+            chunk_index: Some(chunk_index),
         });
     }
 
@@ -552,6 +604,7 @@ pub fn semantic_search_documents(
             snippet,
             rank: -score,
             match_kind: Some("semantic".to_string()),
+            chunk_index: None,
         });
     }
 
@@ -708,5 +761,40 @@ mod tests {
         let hits = similar_documents(&conn, "d1", 8, Some("test")).unwrap();
         assert_eq!(hits.len(), 1);
         assert_eq!(hits[0].document_id, "d2");
+    }
+
+    #[test]
+    fn rerank_search_hits_prefers_cosine_match() {
+        let conn = in_memory_conn();
+        run_migrations(&conn).unwrap();
+        conn.execute(
+            "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at)
+             VALUES ('a', 'Alpha', '{}', NULL, NULL, 1, 1),
+                    ('b', 'Beta', '{}', NULL, NULL, 1, 1)",
+            [],
+        )
+        .unwrap();
+        upsert_embedding(&conn, "a", &[0.0f32, 1.0, 0.0], "test", 1).unwrap();
+        upsert_embedding(&conn, "b", &[1.0f32, 0.0, 0.0], "test", 1).unwrap();
+        let hits = vec![
+            SearchHit {
+                document_id: "a".into(),
+                title: "Alpha".into(),
+                snippet: String::new(),
+                rank: -0.02,
+                match_kind: Some("fts".into()),
+                chunk_index: None,
+            },
+            SearchHit {
+                document_id: "b".into(),
+                title: "Beta".into(),
+                snippet: String::new(),
+                rank: -0.015,
+                match_kind: Some("fts".into()),
+                chunk_index: None,
+            },
+        ];
+        let ranked = rerank_search_hits(&conn, &[1.0f32, 0.0, 0.0], hits, Some("test"), 2);
+        assert_eq!(ranked[0].document_id, "b");
     }
 }

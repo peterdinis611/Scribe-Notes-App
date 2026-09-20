@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Scribe",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "identifier": "com.scribe.app",
   "build": {
     "frontendDist": "../dist",
@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Scribe 2.0",
+        "title": "Scribe 2.1",
         "width": 1280,
         "height": 820,
         "minWidth": 720,

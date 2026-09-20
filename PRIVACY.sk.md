@@ -1,6 +1,6 @@
 # Zásady ochrany súkromia — Scribe
 
-**Účinné od 19. septembra 2026 · Scribe 2.0.0**
+**Účinné od 20. septembra 2026 · Scribe 2.1.0**
 
 Scribe je lokálny editor dokumentov pre macOS. Tento text popisuje, čo aplikácia ukladá na Macu, čo neodosiela vývojárovi a kedy funkcia, ktorú zapneš, môže hovoriť s iným zariadením.
 

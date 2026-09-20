@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import { resolveImageSrc } from '@/lib/editor/image-utils'
 import { cn } from '@/lib/utils'
+import { IconTooltip } from '@/components/ui/tooltip'
 
 type ImageLightboxProps = {
   open: boolean
@@ -46,15 +47,16 @@ export function ImageLightbox({ open, src, displaySrc, animated, alt, onClose }:
       onClick={onClose}
     >
       <div className="image-lightbox-backdrop" aria-hidden="true" />
-      <button
-        type="button"
-        className="image-lightbox-close"
-        onClick={onClose}
-        title={t('common.close')}
-        aria-label={t('common.close')}
-      >
-        <X className="h-5 w-5" />
-      </button>
+      <IconTooltip label={t('common.close')}>
+        <button
+          type="button"
+          className="image-lightbox-close"
+          onClick={onClose}
+          aria-label={t('common.close')}
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </IconTooltip>
       <img
         src={resolved}
         alt={alt ?? ''}

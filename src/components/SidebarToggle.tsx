@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { PanelLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { IconTooltip } from '@/components/ui/tooltip'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { SIDEBAR_DRAWER_BREAKPOINT } from '@/hooks/useLayoutTier'
 import { useAppDispatch } from '@/store/hooks'
@@ -14,14 +15,15 @@ export function SidebarToggle() {
   if (!isCompact) return null
 
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={() => dispatch(setSidebarOpen(true))}
-      title={t('nav.library')}
-      aria-label={t('nav.openLibrary')}
-    >
-      <PanelLeft className="h-4 w-4" />
-    </Button>
+    <IconTooltip label={t('nav.openLibrary')}>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => dispatch(setSidebarOpen(true))}
+        aria-label={t('nav.openLibrary')}
+      >
+        <PanelLeft className="h-4 w-4" />
+      </Button>
+    </IconTooltip>
   )
 }

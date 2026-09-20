@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { promoteMarkdownSpecialBlocks } from '@/lib/editor/markdown-promote'
+import { APP_SHORT_VERSION } from '@/lib/app-version'
 import { tiptapJsonToHtml } from '@/lib/export/html'
 
 describe('promoteMarkdownSpecialBlocks', () => {
@@ -96,7 +97,7 @@ describe('tiptapJsonToHtml rich blocks', () => {
     expect(html).toContain('flowchart TD')
   })
 
-  it('stamps the Scribe 2.0 generator meta', () => {
+  it('stamps the Scribe generator meta with the current edition', () => {
     const html = tiptapJsonToHtml(
       JSON.stringify({
         type: 'doc',
@@ -105,6 +106,6 @@ describe('tiptapJsonToHtml rich blocks', () => {
       'Export',
     )
     expect(html).toContain('name="generator"')
-    expect(html).toContain('content="Scribe 2.0"')
+    expect(html).toContain(`content="Scribe ${APP_SHORT_VERSION}"`)
   })
 })

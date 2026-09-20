@@ -7,6 +7,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { requestStorageAccessDialog } from '@/components/StorageAccessDialogHost'
 import { LocaleToggle, useCustomLocaleRefresh } from '@/components/LocaleToggle'
 import { Button } from '@/components/ui/button'
+import { IconTooltip } from '@/components/ui/tooltip'
 import { Input } from '@/components/ui/input'
 import { DiagnosticsSection } from '@/components/settings/DiagnosticsSection'
 import { LibrariesSettingsList } from '@/components/settings/LibrariesSettingsList'
@@ -217,16 +218,18 @@ export function AppearanceSection() {
                       {pack.name}
                       <span className="ml-1.5 text-[11px] opacity-60">{pack.code}</span>
                     </button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-[var(--color-muted-foreground)]"
-                      title={t('settings.language.remove')}
-                      onClick={() => handleRemoveCustomLocale(pack.code)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    <IconTooltip label={t('settings.language.remove')}>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-[var(--color-muted-foreground)]"
+                        aria-label={t('settings.language.remove')}
+                        onClick={() => handleRemoveCustomLocale(pack.code)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </IconTooltip>
                   </li>
                 ))}
               </ul>

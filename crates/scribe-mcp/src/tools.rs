@@ -13,6 +13,7 @@ pub struct SearchParams {
     pub tag: Option<String>,
     pub from_date: Option<String>,
     pub to_date: Option<String>,
+    pub library_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -124,6 +125,7 @@ pub struct SearchModeParams {
     pub tag: Option<String>,
     pub from_date: Option<String>,
     pub to_date: Option<String>,
+    pub library_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -336,4 +338,144 @@ pub struct SetEmbedBackendParams {
 pub struct RewriteQueryParams {
     pub query: String,
     pub max_expansions: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct RewriteSelectionParams {
+    pub text: String,
+    /// rephrase_professional | summarize_bullets | translate_sk | translate_en | custom_prompt
+    pub mode: Option<String>,
+    pub custom_instruction: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct AnalyzePlaintextParams {
+    pub text: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateLibraryParams {
+    pub name: String,
+    pub root_path: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct TextOrDocumentParams {
+    pub id: Option<String>,
+    pub text: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct UpsertManuscriptParams {
+    pub id: Option<String>,
+    pub title: String,
+    pub chapter_ids: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentChatCitationParams {
+    pub document_id: String,
+    pub title: String,
+    pub snippet: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct AppendDocumentChatParams {
+    pub document_id: String,
+    /// user | assistant
+    pub role: String,
+    pub text: String,
+    pub action: Option<String>,
+    pub citations: Option<Vec<DocumentChatCitationParams>>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CompileManuscriptParams {
+    pub id: Option<String>,
+    pub chapter_ids: Option<Vec<String>>,
+    pub title: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct UpsertSmartFolderParams {
+    pub id: Option<String>,
+    pub name: String,
+    pub query_rule: String,
+    pub icon: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct EvaluateSmartFolderParams {
+    pub id: Option<String>,
+    pub query_rule: Option<String>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ResolveSyncConflictParams {
+    pub id: String,
+    /// app | disk
+    pub keep: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ChunkTextParams {
+    pub id: Option<String>,
+    pub text: Option<String>,
+    pub max_chars: Option<i64>,
+    pub overlap: Option<i64>,
+    pub max_chunks: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ExtractOutlineNlpParams {
+    pub id: Option<String>,
+    pub text: Option<String>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ExtractAssetOcrParams {
+    pub document_id: String,
+    pub file_name: Option<String>,
+    pub path: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryFindReplaceParams {
+    pub query: String,
+    pub replacement: Option<String>,
+    /// Defaults to true. Must pass false plus replacement to write.
+    pub dry_run: Option<bool>,
+    pub folder_id: Option<String>,
+    pub document_ids: Option<Vec<String>>,
+    pub match_case: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct AnalyzeThisNoteParams {
+    pub id: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SwitchAndSearchParams {
+    pub library: Option<String>,
+    pub query: Option<String>,
 }

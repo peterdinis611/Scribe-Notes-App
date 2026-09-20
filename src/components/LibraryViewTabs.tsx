@@ -1,5 +1,6 @@
 import {
   CalendarDays,
+  Copy,
   FolderTree,
   GitBranch,
   History,
@@ -9,6 +10,7 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
+import { IconTooltip } from '@/components/ui/tooltip'
 
 export type LibraryView =
   | 'folders'
@@ -18,6 +20,7 @@ export type LibraryView =
   | 'graph'
   | 'journal'
   | 'chat'
+  | 'duplicates'
 
 type LibraryViewTabsProps = {
   value: LibraryView
@@ -43,6 +46,7 @@ export function LibraryViewTabs({
     { id: 'journal', label: t('library.tabs.journal'), icon: CalendarDays },
     { id: 'tags', label: t('library.tabs.tags'), icon: TagIcon },
     { id: 'graph', label: t('library.tabs.graph'), icon: GitBranch },
+    { id: 'duplicates', label: t('library.tabs.duplicates'), icon: Copy },
     { id: 'chat', label: t('library.tabs.chat'), icon: MessageCircle },
   ]
 
@@ -61,26 +65,28 @@ export function LibraryViewTabs({
         const isActive = value === tab.id
 
         return (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            aria-selected={isActive}
-            className={cn('library-view-tab', isActive && 'is-active')}
-            data-tour={tab.id === 'chat' ? 'library-chat' : undefined}
-            onClick={() => onChange(tab.id)}
-          >
-            <Icon
-              className={cn(
-                'library-view-tab-icon h-4 w-4 shrink-0',
-                tab.id === 'favorites' && isActive && 'fill-current',
+          <IconTooltip key={tab.id} label={tab.label}>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              className={cn('library-view-tab', isActive && 'is-active')}
+              data-tour={tab.id === 'chat' ? 'library-chat' : undefined}
+              onClick={() => onChange(tab.id)}
+              aria-label={tab.label}
+            >
+              <Icon
+                className={cn(
+                  'library-view-tab-icon h-4 w-4 shrink-0',
+                  tab.id === 'favorites' && isActive && 'fill-current',
+                )}
+              />
+              <span className="library-view-tab-label">{tab.label}</span>
+              {count !== null && count > 0 && (
+                <span className="library-view-tab-count">{count}</span>
               )}
-            />
-            <span className="library-view-tab-label">{tab.label}</span>
-            {count !== null && count > 0 && (
-              <span className="library-view-tab-count">{count}</span>
-            )}
-          </button>
+            </button>
+          </IconTooltip>
         )
       })}
     </nav>

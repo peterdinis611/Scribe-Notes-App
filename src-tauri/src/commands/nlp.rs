@@ -5,11 +5,11 @@ use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, State};
 
 use crate::db::{
-    count_embeddings, count_stale_embeddings, dominant_embedding_model, extract_search_text,
-    fuse_search_hits, get_embed_backend, is_nlp_enabled, rank_document_chunks, save_artifact,
-    search_documents_for_library, semantic_search, semantic_search_filtered, set_embed_backend,
-    set_nlp_enabled, similar_documents, upsert_embedding_with_chunks, EmbeddingChunkInput,
-    SearchMode,
+    count_embeddings, count_stale_embeddings, dominant_embedding_model, document_index_text,
+    extract_search_text, fuse_search_hits, get_embed_backend, is_nlp_enabled, rank_document_chunks, rerank_search_hits,
+    save_artifact, search_documents_for_library, semantic_search, semantic_search_filtered,
+    set_embed_backend, set_nlp_enabled, similar_documents, upsert_embedding_with_chunks,
+    EmbeddingChunkInput, SearchMode,
 };
 use scribe_core::{
     content_is_vault_cipher, date_key_bounds, extract_due_hint, require_document_not_vault,
@@ -18,8 +18,9 @@ use scribe_core::{
 use crate::db::SearchHit;
 use crate::db::DbState;
 use crate::nlp::{
-    followups_from_sidecar, is_chat_memory_citation_title, merge_chat_memory_passages, ChatTurn,
-    NlpSidecar,
+    followups_from_sidecar, is_chat_memory_citation_title, merge_chat_memory_passages,
+    normalize_rewrite_mode, parse_document_analysis, parse_rewrite_result, ChatTurn,
+    NlpDocumentAnalysis, NlpRewriteResult, NlpSidecar,
 };
 
 fn now_ts() -> i64 {
@@ -479,9 +480,15 @@ pub fn nlp_set_enabled(
 pub fn nlp_search(
     state: State<'_, DbState>,
     sidecar: State<'_, NlpSidecar>,
+    vault: State<'_, scribe_core::nlp::UnlockedVaultIndex>,
     query: String,
     limit: Option<i64>,
     mode: Option<String>,
+    folder_id: Option<String>,
+    tag: Option<String>,
+    from_date: Option<String>,
+    to_date: Option<String>,
+    library_id: Option<String>,
 ) -> Result<Vec<SearchHit>, String> {
     let limit = limit.unwrap_or(12);
     let q = query.trim();
@@ -495,60 +502,91 @@ pub fn nlp_search(
         (SearchMode::parse(mode.as_deref(), enabled), enabled)
     };
 
-    match search_mode {
+    let filter = crate::db::SearchFilter {
+        folder_id,
+        tag,
+        from_date,
+        to_date,
+        library_id,
+    };
+    let fetch_limit = if filter.is_empty() {
+        limit
+    } else {
+        (limit * 5).clamp(limit, 200)
+    };
+
+    let hits = match search_mode {
         SearchMode::Fts => {
             let conn = state.conn.lock().map_err(|e| e.to_string())?;
-            scribe_core::search_library(&conn, &sidecar, q, limit, SearchMode::Fts)
+            scribe_core::search_library(&conn, &sidecar, q, fetch_limit, SearchMode::Fts)?
         }
         SearchMode::Semantic => {
             if !nlp_enabled {
                 let conn = state.conn.lock().map_err(|e| e.to_string())?;
-                return scribe_core::search_library(&conn, &sidecar, q, limit, SearchMode::Fts);
-            }
-            {
+                scribe_core::search_library(&conn, &sidecar, q, fetch_limit, SearchMode::Fts)?
+            } else {
+                {
+                    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+                    sync_sidecar_backend(&sidecar, &conn)?;
+                }
+                let embed_query = rewrite_query_for_embed(&sidecar, q);
+                let (vector, model) = sidecar.embed_text(&embed_query)?;
                 let conn = state.conn.lock().map_err(|e| e.to_string())?;
-                sync_sidecar_backend(&sidecar, &conn)?;
+                semantic_search(&conn, &vector, fetch_limit, Some(&model))?
             }
-            let embed_query = rewrite_query_for_embed(&sidecar, q);
-            let (vector, model) = sidecar.embed_text(&embed_query)?;
-            let conn = state.conn.lock().map_err(|e| e.to_string())?;
-            semantic_search(&conn, &vector, limit, Some(&model))
         }
         SearchMode::Hybrid => {
             let fts_hits = {
                 let conn = state.conn.lock().map_err(|e| e.to_string())?;
-                {
-                    let library_id = crate::libraries::active_library_id(&conn);
-                    search_documents_for_library(&conn, q, limit, &library_id)?
-                }
+                let library_id = crate::libraries::active_library_id(&conn);
+                search_documents_for_library(&conn, q, fetch_limit, &library_id)?
             };
             if !nlp_enabled {
-                return Ok(fts_hits
+                fts_hits
                     .into_iter()
                     .map(|mut hit| {
                         hit.match_kind = Some("fts".to_string());
                         hit
                     })
-                    .collect());
-            }
-            {
-                let conn = state.conn.lock().map_err(|e| e.to_string())?;
-                sync_sidecar_backend(&sidecar, &conn)?;
-            }
-            let embed_query = rewrite_query_for_embed(&sidecar, q);
-            let semantic_hits = match sidecar.embed_text(&embed_query) {
-                Ok((vector, model)) => {
+                    .collect()
+            } else {
+                {
                     let conn = state.conn.lock().map_err(|e| e.to_string())?;
-                    let extra: Vec<String> =
-                        fts_hits.iter().map(|hit| hit.document_id.clone()).collect();
-                    semantic_search_filtered(&conn, &vector, limit, Some(&model), Some(&extra))
-                        .unwrap_or_default()
+                    sync_sidecar_backend(&sidecar, &conn)?;
                 }
-                Err(_) => Vec::new(),
-            };
-            Ok(fuse_search_hits(&fts_hits, &semantic_hits, limit))
+                let embed_query = rewrite_query_for_embed(&sidecar, q);
+                let semantic_hits = match sidecar.embed_text(&embed_query) {
+                    Ok((vector, model)) => {
+                        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+                        let extra: Vec<String> =
+                            fts_hits.iter().map(|hit| hit.document_id.clone()).collect();
+                        semantic_search_filtered(
+                            &conn,
+                            &vector,
+                            fetch_limit,
+                            Some(&model),
+                            Some(&extra),
+                        )
+                        .unwrap_or_default()
+                    }
+                    Err(_) => Vec::new(),
+                };
+                fuse_search_hits(&fts_hits, &semantic_hits, fetch_limit)
+            }
+        }
+    };
+
+    let mut hits = hits;
+    for vault_hit in vault.search(q, 8, filter.folder_id.as_deref()) {
+        if !hits.iter().any(|hit| hit.document_id == vault_hit.document_id) {
+            hits.push(vault_hit);
         }
     }
+    let hits = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        crate::db::filter_search_hits(&conn, hits, &filter, limit)
+    };
+    Ok(hits)
 }
 
 fn rewrite_query_for_embed(sidecar: &NlpSidecar, query: &str) -> String {
@@ -567,10 +605,23 @@ fn rewrite_query_for_embed(sidecar: &NlpSidecar, query: &str) -> String {
 pub fn nlp_semantic_search(
     state: State<'_, DbState>,
     sidecar: State<'_, NlpSidecar>,
+    vault: State<'_, scribe_core::nlp::UnlockedVaultIndex>,
     query: String,
     limit: Option<i64>,
 ) -> Result<Vec<SearchHit>, String> {
-    nlp_search(state, sidecar, query, limit, Some("semantic".to_string()))
+    nlp_search(
+        state,
+        sidecar,
+        vault,
+        query,
+        limit,
+        Some("semantic".to_string()),
+        None,
+        None,
+        None,
+        None,
+        None,
+    )
 }
 
 #[tauri::command]
@@ -600,7 +651,7 @@ pub fn nlp_index_document(
             return Err("Encrypted vault notes are not indexed".to_string());
         }
 
-        format!("{title}\n{}", extract_search_text(&content_json))
+        document_index_text(&conn, &document_id, &title, &content_json)
     };
 
     let embedded = sidecar.embed_with_chunks(&text)?;
@@ -637,120 +688,80 @@ pub fn nlp_index_all(
     state: State<'_, DbState>,
     sidecar: State<'_, NlpSidecar>,
 ) -> Result<NlpIndexResult, String> {
-    const BATCH_SIZE: usize = 24;
-
     let docs = {
         let conn = state.conn.lock().map_err(|e| e.to_string())?;
         if !is_nlp_enabled(&conn)? {
             return Err("NLP is disabled".to_string());
         }
-        sync_sidecar_backend(&sidecar, &conn)?;
+        let _ = scribe_core::nlp::sync_embed_backend(&conn, &sidecar);
+        let _ = scribe_core::nlp::prune_memory_artifacts(&conn);
         let library_id = crate::libraries::active_library_id(&conn);
-
-        let mut stmt = conn
-            .prepare("SELECT id, title, content_json FROM documents WHERE deleted_at IS NULL AND library_id = ?1")
-            .map_err(|e| e.to_string())?;
-        let rows = stmt
-            .query_map([library_id], |row| {
-                Ok((
-                    row.get::<_, String>(0)?,
-                    row.get::<_, String>(1)?,
-                    row.get::<_, String>(2)?,
-                ))
-            })
-            .map_err(|e| e.to_string())?;
-
-        let mut docs: Vec<(String, String)> = Vec::new();
-        for row in rows {
-            let (id, title, content_json) = row.map_err(|e| e.to_string())?;
-            if content_is_vault_cipher(&content_json) {
-                continue;
-            }
-            let text = format!("{title}\n{}", extract_search_text(&content_json));
-            docs.push((id, text));
-        }
-        docs
+        scribe_core::nlp::collect_index_documents(&conn, Some(&library_id), true)?
     };
 
-    let total = docs.len();
-    let _ = app.emit(
-        "nlp-index-progress",
-        json!({
-            "current": 0,
-            "total": total,
-            "phase": "starting",
-        }),
-    );
-
-    if docs.is_empty() {
-        let _ = app.emit(
-            "nlp-index-progress",
-            json!({
-                "current": 0,
-                "total": 0,
-                "phase": "done",
-            }),
-        );
-        return Ok(NlpIndexResult {
-            indexed: 0,
-            model: "none".to_string(),
-        });
-    }
-
-    let mut indexed = 0i64;
-    let mut model = "none".to_string();
-    let now = now_ts();
-
-    for chunk in docs.chunks(BATCH_SIZE) {
-        let ids: Vec<String> = chunk.iter().map(|(id, _)| id.clone()).collect();
-        let texts: Vec<String> = chunk.iter().map(|(_, text)| text.clone()).collect();
-        let (results, batch_model) = sidecar.embed_batch_with_chunks(&texts)?;
-        model = batch_model;
-
-        {
+    let result = scribe_core::nlp::index_collected_documents(
+        &sidecar,
+        docs,
+        |ids, results, model| {
             let conn = state.conn.lock().map_err(|e| e.to_string())?;
-            for (document_id, embedded) in ids.into_iter().zip(results.into_iter()) {
-                let chunks: Vec<EmbeddingChunkInput> = embedded
-                    .chunks
-                    .into_iter()
-                    .map(|chunk| EmbeddingChunkInput {
-                        index: chunk.index,
-                        text: chunk.text,
-                        vector: chunk.vector,
-                    })
-                    .collect();
-                upsert_embedding_with_chunks(
-                    &conn,
-                    &document_id,
-                    &embedded.vector,
-                    &chunks,
-                    &model,
-                    now,
-                )?;
-                indexed += 1;
-            }
-        }
+            scribe_core::nlp::persist_embedded_batch(&conn, ids, results, model, now_ts()).map(|_| ())
+        },
+        |progress| {
+            let _ = app.emit("nlp-index-progress", progress);
+        },
+    )?;
 
-        let _ = app.emit(
-            "nlp-index-progress",
-            json!({
-                "current": indexed,
-                "total": total,
-                "phase": "indexing",
-            }),
-        );
-    }
+    Ok(NlpIndexResult {
+        indexed: result.indexed,
+        model: result.model,
+    })
+}
 
-    let _ = app.emit(
-        "nlp-index-progress",
-        json!({
-            "current": total,
-            "total": total,
-            "phase": "done",
-        }),
-    );
+#[tauri::command]
+pub fn nlp_cancel(sidecar: State<'_, NlpSidecar>) -> Result<(), String> {
+    sidecar.cancel_inflight();
+    Ok(())
+}
 
-    Ok(NlpIndexResult { indexed, model })
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpVaultIndexPutInput {
+    pub document_id: String,
+    pub folder_id: String,
+    pub title: String,
+    pub text: String,
+}
+
+#[tauri::command]
+pub fn nlp_vault_index_put(
+    vault: State<'_, scribe_core::nlp::UnlockedVaultIndex>,
+    input: NlpVaultIndexPutInput,
+) -> Result<(), String> {
+    vault.upsert(scribe_core::nlp::UnlockedVaultNote {
+        document_id: input.document_id,
+        folder_id: input.folder_id,
+        title: input.title,
+        text: input.text,
+    });
+    Ok(())
+}
+
+#[tauri::command]
+pub fn nlp_vault_index_remove(
+    vault: State<'_, scribe_core::nlp::UnlockedVaultIndex>,
+    document_id: String,
+) -> Result<(), String> {
+    vault.remove(&document_id);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn nlp_vault_index_clear_folder(
+    vault: State<'_, scribe_core::nlp::UnlockedVaultIndex>,
+    folder_id: String,
+) -> Result<(), String> {
+    vault.clear_folder(&folder_id);
+    Ok(())
 }
 
 #[tauri::command]
@@ -1159,51 +1170,6 @@ pub fn nlp_set_embed_backend(
     build_nlp_status(&sidecar, &conn, is_nlp_enabled(&conn)?)
 }
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct NlpKeyword {
-    pub term: String,
-    pub score: f64,
-    pub count: i64,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct NlpOutlineItem {
-    pub title: String,
-    pub level: i64,
-    pub kind: String,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct NlpDateEvent {
-    pub text: String,
-    pub kind: String,
-    pub resolved_date: Option<String>,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct NlpDocumentAnalysis {
-    pub language: String,
-    pub language_confidence: f64,
-    pub keywords: Vec<NlpKeyword>,
-    pub keyphrases: Vec<String>,
-    pub outline: Vec<NlpOutlineItem>,
-    pub summary: Option<String>,
-    pub suggested_title: Option<String>,
-    pub readability_label: Option<String>,
-    pub reading_time_minutes: Option<f64>,
-    pub flesch: Option<f64>,
-    pub tone: Option<String>,
-    pub tone_score: Option<f64>,
-    pub wiki_links: Vec<String>,
-    pub mentions: Vec<String>,
-    pub hosts: Vec<String>,
-    pub dates: Vec<NlpDateEvent>,
-}
-
 #[tauri::command]
 pub fn nlp_document_analysis(
     state: State<'_, DbState>,
@@ -1261,163 +1227,7 @@ fn run_document_analysis(
     text: &str,
 ) -> Result<NlpDocumentAnalysis, String> {
     let result = sidecar.analyze_document(text, 12, 24, 3)?;
-
-    let language = result
-        .get("language")
-        .and_then(|value| value.as_str())
-        .unwrap_or("unknown")
-        .to_string();
-    let language_confidence = result
-        .get("languageConfidence")
-        .and_then(|value| value.as_f64())
-        .unwrap_or(0.0);
-
-    let keywords = result
-        .get("keywords")
-        .and_then(|value| value.as_array())
-        .map(|items| {
-            items
-                .iter()
-                .filter_map(|item| {
-                    Some(NlpKeyword {
-                        term: item.get("term")?.as_str()?.to_string(),
-                        score: item.get("score")?.as_f64().unwrap_or(0.0),
-                        count: item.get("count")?.as_i64().unwrap_or(0),
-                    })
-                })
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
-
-    let keyphrases = result
-        .get("keyphrases")
-        .and_then(|value| value.as_array())
-        .map(|items| {
-            items
-                .iter()
-                .filter_map(|item| item.as_str().map(str::to_string))
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
-
-    let outline = result
-        .get("outline")
-        .and_then(|value| value.as_array())
-        .map(|items| {
-            items
-                .iter()
-                .filter_map(|item| {
-                    Some(NlpOutlineItem {
-                        title: item.get("title")?.as_str()?.to_string(),
-                        level: item.get("level")?.as_i64().unwrap_or(1),
-                        kind: item
-                            .get("kind")
-                            .and_then(|value| value.as_str())
-                            .unwrap_or("heading")
-                            .to_string(),
-                    })
-                })
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
-
-    let summary = result
-        .get("summary")
-        .and_then(|value| value.as_str())
-        .map(str::to_string)
-        .filter(|value| !value.trim().is_empty());
-
-    let suggested_title = result
-        .get("suggestedTitle")
-        .and_then(|value| value.as_str())
-        .map(str::to_string)
-        .filter(|value| !value.trim().is_empty());
-
-    let readability = result.get("readability");
-    let sentiment = result.get("sentiment");
-    let mentions = result.get("mentions");
-
-    let dates = result
-        .get("dates")
-        .and_then(|value| value.as_array())
-        .map(|items| {
-            items
-                .iter()
-                .filter_map(|item| {
-                    Some(NlpDateEvent {
-                        text: item.get("text")?.as_str()?.to_string(),
-                        kind: item
-                            .get("kind")
-                            .and_then(|value| value.as_str())
-                            .unwrap_or("absolute")
-                            .to_string(),
-                        resolved_date: item
-                            .get("resolvedDate")
-                            .and_then(|value| value.as_str())
-                            .map(str::to_string),
-                    })
-                })
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
-
-    Ok(NlpDocumentAnalysis {
-        language,
-        language_confidence,
-        keywords,
-        keyphrases,
-        outline,
-        summary,
-        suggested_title,
-        readability_label: readability
-            .and_then(|value| value.get("readabilityLabel"))
-            .and_then(|value| value.as_str())
-            .map(str::to_string),
-        reading_time_minutes: readability
-            .and_then(|value| value.get("readingTimeMinutes"))
-            .and_then(|value| value.as_f64()),
-        flesch: readability
-            .and_then(|value| value.get("flesch"))
-            .and_then(|value| value.as_f64()),
-        tone: sentiment
-            .and_then(|value| value.get("label"))
-            .and_then(|value| value.as_str())
-            .map(str::to_string),
-        tone_score: sentiment
-            .and_then(|value| value.get("score"))
-            .and_then(|value| value.as_f64()),
-        wiki_links: mentions
-            .and_then(|value| value.get("wikiLinks"))
-            .and_then(|value| value.as_array())
-            .map(|items| {
-                items
-                    .iter()
-                    .filter_map(|item| item.as_str().map(str::to_string))
-                    .collect()
-            })
-            .unwrap_or_default(),
-        mentions: mentions
-            .and_then(|value| value.get("mentions"))
-            .and_then(|value| value.as_array())
-            .map(|items| {
-                items
-                    .iter()
-                    .filter_map(|item| item.as_str().map(str::to_string))
-                    .collect()
-            })
-            .unwrap_or_default(),
-        hosts: mentions
-            .and_then(|value| value.get("hosts"))
-            .and_then(|value| value.as_array())
-            .map(|items| {
-                items
-                    .iter()
-                    .filter_map(|item| item.as_str().map(str::to_string))
-                    .collect()
-            })
-            .unwrap_or_default(),
-        dates,
-    })
+    Ok(parse_document_analysis(&result))
 }
 
 #[derive(Debug, Deserialize)]
@@ -1441,11 +1251,20 @@ pub fn nlp_find_duplicates(
     sidecar: State<'_, NlpSidecar>,
     limit: Option<i64>,
 ) -> Result<serde_json::Value, String> {
-    let documents = {
+    let limit = limit.unwrap_or(20);
+    {
         let conn = state.conn.lock().map_err(|e| e.to_string())?;
         if !is_nlp_enabled(&conn)? {
             return Err("NLP is disabled".to_string());
         }
+        let stored = scribe_core::nlp::find_duplicates_from_embeddings(&conn, limit, 0.86)?;
+        if stored.compared >= 2 {
+            return serde_json::to_value(stored).map_err(|e| e.to_string());
+        }
+    }
+
+    let documents = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
         let mut stmt = conn
             .prepare(
                 "SELECT id, title, content_json FROM documents
@@ -1463,19 +1282,23 @@ pub fn nlp_find_duplicates(
                 ))
             })
             .map_err(|e| e.to_string())?;
-        let mut documents = Vec::new();
+        let mut pending: Vec<(String, String, String)> = Vec::new();
         for row in rows {
-            let (id, title, content_json) = row.map_err(|e| e.to_string())?;
+            pending.push(row.map_err(|e| e.to_string())?);
+        }
+        drop(stmt);
+        let mut documents = Vec::new();
+        for (id, title, content_json) in pending {
             documents.push(json!({
                 "id": id,
                 "title": title,
-                "text": extract_search_text(&content_json),
+                "text": document_index_text(&conn, &id, &title, &content_json),
             }));
         }
         documents
     };
 
-    sidecar.find_duplicates(json!(documents), limit.unwrap_or(20), 0.72)
+    sidecar.find_duplicates(json!(documents), limit, 0.72)
 }
 
 #[tauri::command]
@@ -1644,6 +1467,8 @@ pub struct LibraryChatCitation {
     pub document_id: String,
     pub title: String,
     pub snippet: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub chunk_index: Option<i32>,
 }
 
 #[derive(Debug, Serialize)]
@@ -1678,30 +1503,36 @@ pub fn nlp_library_answer(
     }
 
     let hits = {
-        let limit = limit.unwrap_or(6);
+        let limit = limit.unwrap_or(8).clamp(1, 20);
+        let fetch = (limit * 2).clamp(limit, 40);
         let q = trimmed.as_str();
         let fts_hits = {
             let conn = state.conn.lock().map_err(|e| e.to_string())?;
-            {
-                let library_id = crate::libraries::active_library_id(&conn);
-                search_documents_for_library(&conn, q, limit, &library_id)?
-            }
+            let library_id = crate::libraries::active_library_id(&conn);
+            search_documents_for_library(&conn, q, fetch, &library_id)?
         };
         let embed_query = rewrite_query_for_embed(&sidecar, q);
-        let semantic_hits = match sidecar.embed_text(&embed_query) {
+        match sidecar.embed_text(&embed_query) {
             Ok((vector, model)) => {
                 let conn = state.conn.lock().map_err(|e| e.to_string())?;
                 let extra: Vec<String> =
                     fts_hits.iter().map(|hit| hit.document_id.clone()).collect();
-                semantic_search_filtered(&conn, &vector, limit, Some(&model), Some(&extra))
-                    .unwrap_or_default()
+                let semantic_hits = semantic_search_filtered(
+                    &conn,
+                    &vector,
+                    fetch,
+                    Some(&model),
+                    Some(&extra),
+                )
+                .unwrap_or_default();
+                let fused = fuse_search_hits(&fts_hits, &semantic_hits, fetch);
+                rerank_search_hits(&conn, &vector, fused, Some(&model), limit)
             }
-            Err(_) => Vec::new(),
-        };
-        fuse_search_hits(&fts_hits, &semantic_hits, limit)
+            Err(_) => fuse_search_hits(&fts_hits, &[], limit),
+        }
     };
 
-    let passages = json!(hits
+    let mut passages: Vec<Value> = hits
         .iter()
         .map(|hit| {
             json!({
@@ -1710,9 +1541,15 @@ pub fn nlp_library_answer(
                 "snippet": hit.snippet,
             })
         })
-        .collect::<Vec<_>>());
-
-    let result = sidecar.library_answer(&trimmed, passages, 4)?;
+        .collect();
+    {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        passages.extend(scribe_core::nlp::collect_library_memory_passages(
+            &conn, &trimmed,
+        ));
+    }
+    let max_sentences = if passages.len() > hits.len() { 6 } else { 4 };
+    let result = sidecar.library_answer(&trimmed, json!(passages), max_sentences)?;
     let citations = result
         .get("citations")
         .and_then(|value| value.as_array())
@@ -1732,6 +1569,10 @@ pub fn nlp_library_answer(
                             .and_then(|value| value.as_str())
                             .unwrap_or("")
                             .to_string(),
+                        chunk_index: item
+                            .get("chunkIndex")
+                            .and_then(|value| value.as_i64())
+                            .map(|value| value as i32),
                     })
                 })
                 .collect::<Vec<_>>()
@@ -1742,16 +1583,33 @@ pub fn nlp_library_answer(
                     document_id: hit.document_id.clone(),
                     title: hit.title.clone(),
                     snippet: hit.snippet.clone(),
+                    chunk_index: hit.chunk_index,
                 })
                 .collect()
         });
 
+    let answer = result
+        .get("answer")
+        .and_then(|value| value.as_str())
+        .unwrap_or("Based on your notes: No matching passages were found in your indexed library.")
+        .to_string();
+    {
+        let mapped: Vec<scribe_core::nlp::NlpCitation> = citations
+            .iter()
+            .map(|item| scribe_core::nlp::NlpCitation {
+                document_id: item.document_id.clone(),
+                title: item.title.clone(),
+                snippet: item.snippet.clone(),
+                chunk_index: item.chunk_index,
+            })
+            .collect();
+        if let Ok(conn) = state.conn.lock() {
+            let _ = scribe_core::nlp::persist_library_memory(&conn, &trimmed, &answer, &mapped);
+        }
+    }
+
     Ok(LibraryChatResult {
-        answer: result
-            .get("answer")
-            .and_then(|value| value.as_str())
-            .unwrap_or("Based on your notes: No matching passages were found in your indexed library.")
-            .to_string(),
+        answer,
         citations,
         followups: followups_from_sidecar(&result),
     })
@@ -1898,6 +1756,7 @@ pub fn nlp_document_answer(
                             "title": title,
                             "snippet": chunk.snippet,
                             "score": chunk.score,
+                            "chunkIndex": chunk.chunk_index,
                         })
                     })
                     .collect::<Vec<_>>())
@@ -1920,6 +1779,15 @@ pub fn nlp_document_answer(
     } else {
         passages
     };
+    let mut combined: Vec<Value> = passages.as_array().cloned().unwrap_or_default();
+    {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        combined.extend(scribe_core::nlp::collect_document_memory_passages(
+            &conn,
+            &document_id,
+        ));
+    }
+    let passages = json!(combined);
 
     let result = sidecar.library_answer_scoped(&trimmed, passages.clone(), 6, "document")?;
     let fallback_title = title.clone();
@@ -1946,6 +1814,10 @@ pub fn nlp_document_answer(
                             .and_then(|value| value.as_str())
                             .unwrap_or("")
                             .to_string(),
+                        chunk_index: item
+                            .get("chunkIndex")
+                            .and_then(|value| value.as_i64())
+                            .map(|value| value as i32),
                     })
                 })
                 .collect::<Vec<_>>()
@@ -1968,18 +1840,27 @@ pub fn nlp_document_answer(
                         document_id: document_id.clone(),
                         title,
                         snippet: item.get("snippet")?.as_str()?.to_string(),
+                        chunk_index: item
+                            .get("chunkIndex")
+                            .and_then(|value| value.as_i64())
+                            .map(|value| value as i32),
                     })
                 })
                 .take(4)
                 .collect()
         });
 
+    let answer = result
+        .get("answer")
+        .and_then(|value| value.as_str())
+        .unwrap_or("Based on this document: No matching passages were found.")
+        .to_string();
+    if let Ok(conn) = state.conn.lock() {
+        let _ = scribe_core::nlp::persist_document_memory(&conn, &document_id, &trimmed, &answer);
+    }
+
     Ok(LibraryChatResult {
-        answer: result
-            .get("answer")
-            .and_then(|value| value.as_str())
-            .unwrap_or("Based on this document: No matching passages were found.")
-            .to_string(),
+        answer,
         citations,
         followups: followups_from_sidecar(&result),
     })
@@ -2184,3 +2065,21 @@ pub fn nlp_calendar_events(
         })
         .unwrap_or_default())
 }
+
+#[tauri::command]
+pub fn nlp_rewrite_selection(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    text: String,
+    mode: Option<String>,
+    custom_instruction: Option<String>,
+) -> Result<NlpRewriteResult, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    if !is_nlp_enabled(&conn)? {
+        return Err("NLP is disabled".to_string());
+    }
+    let mode = normalize_rewrite_mode(mode.as_deref());
+    let res = sidecar.rewrite_selection(&text, &mode, custom_instruction.as_deref())?;
+    Ok(parse_rewrite_result(&res, &mode, &text))
+}
+

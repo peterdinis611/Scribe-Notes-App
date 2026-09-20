@@ -54,6 +54,7 @@
     "brandWithEdition": "Scribe {{version}}",
     "eyebrow": "Local document editor · {{version}}",
     "brandTagline": "Write documents locally. Link notes when you need them.",
+    "editionNote": "2.1 — questions you ask a note stay with the document.",
     "newDocument": "New document",
     "todayNote": "Today’s note",
     "import": "Import",
@@ -71,6 +72,7 @@
     "press": {
       "eyebrow": "Letterpress · Scribe {{version}} · local on this Mac",
       "brandTagline": "Write documents. Link notes. Everything stays on disk.",
+      "editionNote": "2.1 — every question to a note is kept as a ledger on that page.",
       "workflowHint": "Blank page → [[links]] → export. Leave advanced tools for later.",
       "recentDocuments": "Continue",
       "noDocuments": "The press is empty",
@@ -149,6 +151,7 @@
     "windowTopRight": "Move window to top right",
     "docs": "Documentation",
     "linkGraph": "Connection map",
+    "duplicates": "Near-duplicate notes",
     "libraryFindReplace": "Find and replace in library",
     "toggleTheme": "Toggle theme",
     "randomTheme": "Random theme",
@@ -223,7 +226,9 @@
     "linkHint": "Select a card first, then link to another.",
     "linkPickSource": "Click the first card…",
     "linkPickTarget": "Click the second card to connect…",
-    "saveAsTemplateUnavailable": "Canvas notes can’t be saved as text templates yet."
+    "saveAsTemplateUnavailable": "Canvas notes can’t be saved as text templates yet.",
+    "exportSvg": "Export SVG",
+    "exportedSvg": "Canvas exported as SVG"
   },
   "mermaid": {
     "edit": "Edit",
@@ -388,14 +393,26 @@
     "badge": "What's new in {{version}}",
     "kicker": "Edition notes",
     "title": "Scribe {{version}}",
-    "subtitle": "Separate libraries, sync that asks before overwriting, and compile chapters into one document.",
+    "subtitle": "Questions stay with the note, document memory follows the thread, and local search ranks closer passages first.",
+    "questionHistory": {
+      "title": "Question history on the note",
+      "description": "Every question you ask a document is listed in AI insights and document chat. Open a past question to reread the answer, or ask it again."
+    },
+    "noteMemory": {
+      "title": "Memory of the open note",
+      "description": "Answers remember earlier turns on that document — a local thread, not a cloud chat log."
+    },
+    "smarterAnswers": {
+      "title": "Closer passages first",
+      "description": "Local search ranks the most relevant excerpts before answering, so citations stay on the right paragraphs."
+    },
     "libraries": {
       "title": "More than one library",
       "description": "Work, personal, and archive as separate roots — not extra folders in the same tree. Switch from the sidebar."
     },
     "syncConflicts": {
-      "title": "Sync that does not silently overwrite",
-      "description": "When the disk and the app both change a note, Scribe keeps a revision and asks which version stays."
+      "title": "Sync status & conflicts",
+      "description": "See iCloud/Dropbox sync results in Settings. When disk wins, your local copy is saved as a pinned version."
     },
     "compile": {
       "title": "Compile a long text",
@@ -481,10 +498,6 @@
     "namedVersions": {
       "title": "Named version snapshots",
       "description": "Label and pin important revisions in history — pinned versions survive automatic pruning."
-    },
-    "syncConflicts": {
-      "title": "Sync status & conflicts",
-      "description": "See iCloud/Dropbox sync results in Settings. When disk wins, your local copy is saved as a pinned version."
     },
     "dailyBriefing": {
       "title": "Daily briefing & tags",
@@ -825,6 +838,8 @@
       "reindexNow": "Reindex now",
       "indexProgressLabel": "Indexing documents…",
       "indexProgressCount": "{{current}} / {{total}}",
+      "cancelIndex": "Cancel indexing",
+      "indexCancelled": "Indexing cancelled",
       "statusStoredModel": "Indexed model",
       "statusStaleCount": "Stale records",
       "statusEmbedBackend": "Embedding backend",
@@ -1148,8 +1163,8 @@
       "description": "Opens a scratch document (also works system-wide)"
     },
     "todayNote": {
-      "label": "Today's journal",
-      "description": "Opens today's daily note (also works system-wide)"
+      "label": "Today note",
+      "description": "Opens or creates today’s journal entry"
     },
     "focusMode": {
       "label": "Focus mode",
@@ -1220,10 +1235,6 @@
     "closePanel": {
       "label": "Close panel",
       "description": "Closes search or reading/focus mode"
-    },
-    "todayNote": {
-      "label": "Today note",
-      "description": "Opens or creates today’s journal entry"
     }
   },
   "quickNote": {
@@ -1300,9 +1311,20 @@
       "journal": "Journal",
       "tags": "Tags",
       "graph": "Connection map",
+      "duplicates": "Duplicates",
       "chat": "Ask library"
     },
-
+    "duplicates": {
+      "title": "Near-duplicate notes",
+      "hint": "Local AI compared recent notes. Open either one, or merge the right into the left and trash the copy.",
+      "nlpOff": "Turn on Local AI in Settings to compare notes.",
+      "empty": "No near-duplicates in {{count}} compared notes.",
+      "score": "{{percent}}% alike",
+      "mergeIntoLeft": "Merge into first",
+      "merged": "Notes merged — the copy is in Trash.",
+      "mergeError": "Could not merge notes",
+      "loadError": "Could not find duplicates"
+    },
     "trash": "Trash",
     "newFolder": "New folder",
     "newSubfolder": "New subfolder",
@@ -1436,6 +1458,10 @@
     "memoryCleared": "Chat memory cleared",
     "memoryClearError": "Could not clear chat memory",
     "clearMemory": "Clear",
+    "questionHistory": "Questions asked",
+    "questionHistoryCount": "{{count}}",
+    "questionHistoryEmpty": "No questions on this note yet.",
+    "askAgain": "Ask again",
     "prompts": {
       "recent": "What did I write about recently?",
       "deadlines": "Any deadlines or dates in my notes?",
@@ -1587,6 +1613,7 @@
       "loadError": "Could not load AI insights",
       "askTitle": "Ask this note",
       "askHint": "Local AI actions and questions about the open document — no cloud.",
+      "questionHistoryEmpty": "Nothing asked yet — the list fills as you query this document.",
       "localBadge": "offline",
       "openChat": "Open full chat →",
       "summary": "Summary",
@@ -1781,7 +1808,9 @@
     "markdown": "Markdown",
     "markdownSource": "Source",
     "markdownPreview": "Preview",
-    "markdownPreviewEmpty": "Preview appears as you type."
+    "markdownPreviewEmpty": "Preview appears as you type.",
+    "richShort": "Text",
+    "markdownShort": "MD"
   },
   "linkGraph": {
     "loading": "Loading connection map…",
@@ -2564,6 +2593,7 @@
     "streak": "{{count}} day streak",
     "weeklySummary": "Weekly overview",
     "weeklySummaryTitle": "Week in review",
+    "thisWeekDates": "Due this week",
     "weeklyTone": "This week felt mostly {{tone}}.",
     "tone": {
       "positive": "positive",
@@ -2632,7 +2662,8 @@
     "floatRight": "Wrap text left",
     "alignGroup": "Image alignment",
     "wrapGroup": "Text wrap",
-    "properties": "Alt text",
+    "properties": "Alternative text",
+    "ocrSaved": "OCR text saved into search",
     "crop": "Crop",
     "cropTitle": "Crop image",
     "cropHint": "Drag the handles to crop, then apply.",
@@ -2664,14 +2695,16 @@
     "copied": "Copied",
     "copyFailed": "Could not copy image",
     "duplicate": "Duplicate",
-    "alt": "Alt text",
+    "alt": "Alternative text",
     "altPlaceholder": "Describe the image for accessibility",
     "caption": "Caption",
     "captionPlaceholder": "Optional caption",
     "captionEmpty": "Add a caption…",
     "resize": "Resize",
     "animatedBadge": "GIF",
-    "animatedHint": "Animated image"
+    "animatedHint": "Animated image",
+    "ocrExtract": "Extract text (OCR)",
+    "ocrFailed": "OCR failed"
   },
   "map": {
     "provider": "OpenStreetMap",
@@ -2773,7 +2806,30 @@
     "unlockDescription": "Enter the password for “{{name}}”.",
     "unlockFailed": "Wrong password",
     "unlocked": "Vault unlocked",
-    "locked": "Vault locked"
+    "locked": "Vault locked",
+    "doc": {
+      "protect": "Password-protect note",
+      "protectTitle": "Protect this note",
+      "protectDescription": "Choose a password (min. 4 characters). The note body is encrypted on this device. Local AI will not index it while locked.",
+      "protectOk": "Protect",
+      "confirmTitle": "Confirm password",
+      "confirmDescription": "Enter the same password again.",
+      "passwordMismatch": "Passwords do not match",
+      "unlock": "Unlock note",
+      "unlockTitle": "Unlock note",
+      "unlockDescription": "Enter the password for “{{title}}”.",
+      "lock": "Lock note",
+      "remove": "Remove password",
+      "removeTitle": "Remove password protection?",
+      "removeConfirm": "The note will be stored as plaintext again on this device.",
+      "unlockFirst": "Unlock the note before removing the password.",
+      "alreadyInVault": "This note is already in an encrypted vault folder.",
+      "protectedToast": "Note password-protected",
+      "unlockedToast": "Note unlocked",
+      "lockedToast": "Note locked",
+      "removedToast": "Password removed",
+      "actionError": "Could not update note protection"
+    }
   },
   "math": {
     "insertInlineTitle": "Inline formula",
@@ -2801,5 +2857,26 @@
     "preview": "Preview",
     "insert": "Insert",
     "noEditor": "Open a document first"
+  },
+  "aiRewrite": {
+    "title": "Rewrite selection",
+    "rephrase": "Rephrase",
+    "summarize": "Shorten to bullets",
+    "translateSk": "To Slovak",
+    "translateEn": "To English",
+    "custom": "Custom prompt...",
+    "customPlaceholder": "e.g. shorten, uppercase...",
+    "run": "Run",
+    "insertBelow": "Insert below",
+    "replace": "Replace",
+    "working": "Rewriting…",
+    "error": "Could not rewrite selection"
+  },
+  "wikiGhost": {
+    "hint": "Link [[{{title}}]]"
+  },
+  "templateCoach": {
+    "chip": "{{present}}/{{expected}} sections",
+    "hint": "Template headings present in this note"
   }
 }

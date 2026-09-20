@@ -257,6 +257,7 @@ fn import_file_at_path(
         file_path: Some(file_path),
         created_at,
         updated_at: now,
+        vault_verifier: None,
     })
 }
 

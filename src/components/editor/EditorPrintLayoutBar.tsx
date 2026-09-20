@@ -1,6 +1,7 @@
 import { Columns2, FileText, LayoutGrid, Minus, Plus, Printer, Rows2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
+import { IconTooltip } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
@@ -53,37 +54,45 @@ export function EditorPrintLayoutBar({ onPrint, onOpenPageSetup }: EditorPrintLa
           <div className="editor-print-bar-group">
             <span className="editor-print-bar-label">{t('printLayout.preview')}</span>
             <div className="editor-print-bar-segmented">
-              <button
-                type="button"
-                className={cn('editor-print-bar-segment', printColumns === 1 && 'is-active')}
-                title={t('printLayout.oneColumn')}
-                aria-pressed={printColumns === 1}
-                onClick={() => dispatch(setPrintLayoutColumns(1))}
-              >
-                <Rows2 className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                className={cn('editor-print-bar-segment', printColumns === 2 && 'is-active')}
-                title={t('printLayout.twoColumnsSpread')}
-                aria-pressed={printColumns === 2}
-                onClick={() => dispatch(setPrintLayoutColumns(2))}
-              >
-                <Columns2 className="h-3.5 w-3.5" />
-              </button>
+              <IconTooltip label={t('printLayout.oneColumn')}>
+                <button
+                  type="button"
+                  className={cn('editor-print-bar-segment', printColumns === 1 && 'is-active')}
+                  aria-label={t('printLayout.oneColumn')}
+                  aria-pressed={printColumns === 1}
+                  onClick={() => dispatch(setPrintLayoutColumns(1))}
+                >
+                  <Rows2 className="h-3.5 w-3.5" />
+                </button>
+              </IconTooltip>
+              <IconTooltip label={t('printLayout.twoColumnsSpread')}>
+                <button
+                  type="button"
+                  className={cn('editor-print-bar-segment', printColumns === 2 && 'is-active')}
+                  aria-label={t('printLayout.twoColumnsSpread')}
+                  aria-pressed={printColumns === 2}
+                  onClick={() => dispatch(setPrintLayoutColumns(2))}
+                >
+                  <Columns2 className="h-3.5 w-3.5" />
+                </button>
+              </IconTooltip>
             </div>
           </div>
 
           <div className="editor-print-bar-group">
             <span className="editor-print-bar-label">{t('printLayout.zoom')}</span>
             <div className="editor-print-bar-zoom-controls">
-              <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => adjustZoom(-0.1)}>
-                <Minus className="h-3.5 w-3.5" />
-              </Button>
+              <IconTooltip label={t('printLayout.zoomOut')}>
+                <Button variant="outline" size="icon" className="h-7 w-7" aria-label={t('printLayout.zoomOut')} onClick={() => adjustZoom(-0.1)}>
+                  <Minus className="h-3.5 w-3.5" />
+                </Button>
+              </IconTooltip>
               <span className="editor-print-bar-zoom">{Math.round(printZoom * 100)}%</span>
-              <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => adjustZoom(0.1)}>
-                <Plus className="h-3.5 w-3.5" />
-              </Button>
+              <IconTooltip label={t('printLayout.zoomIn')}>
+                <Button variant="outline" size="icon" className="h-7 w-7" aria-label={t('printLayout.zoomIn')} onClick={() => adjustZoom(0.1)}>
+                  <Plus className="h-3.5 w-3.5" />
+                </Button>
+              </IconTooltip>
             </div>
           </div>
         </>

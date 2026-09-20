@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import { CalendarDays, CheckSquare, ChevronLeft, ChevronRight, Flame, Moon, Sparkles, Sun } from 'lucide-react'
-import { nlpJournalSummary, nlpJournalTasks, type DocumentTask } from '@/lib/db/nlp-api'
+import { nlpCalendarEvents, nlpJournalSummary, nlpJournalTasks, type CalendarEvent, type DocumentTask } from '@/lib/db/nlp-api'
 import {
   computeJournalStreak,
   collectJournalDocumentIdsForRange,
@@ -48,6 +48,7 @@ export function LibraryJournalView({ onNavigate }: LibraryJournalViewProps) {
   const [weeklyBullets, setWeeklyBullets] = useState<string[]>([])
   const [weeklyTone, setWeeklyTone] = useState<string | null>(null)
   const [weeklyTasks, setWeeklyTasks] = useState<DocumentTask[]>([])
+  const [weekEvents, setWeekEvents] = useState<CalendarEvent[]>([])
   const [summaryLoading, setSummaryLoading] = useState(false)
   const [tasksLoading, setTasksLoading] = useState(false)
   const [digestLoading, setDigestLoading] = useState(false)
@@ -108,6 +109,21 @@ export function LibraryJournalView({ onNavigate }: LibraryJournalViewProps) {
       cancelled = true
     }
   }, [weekDocumentIds])
+
+  useEffect(() => {
+    let cancelled = false
+    const { from, to } = currentWeekRange()
+    nlpCalendarEvents({ limit: 80, fromDate: from, toDate: to })
+      .then((events) => {
+        if (!cancelled) setWeekEvents(events.filter((event) => event.resolvedDate))
+      })
+      .catch(() => {
+        if (!cancelled) setWeekEvents([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const notedDates = useMemo(
     () => listJournalDailyDates(documents, folderId),
@@ -270,6 +286,37 @@ export function LibraryJournalView({ onNavigate }: LibraryJournalViewProps) {
           {digestPdfLoading ? t('journal.digestPdfExporting') : t('journal.exportDigestPdf')}
         </Button>
       </div>
+
+      {weekEvents.length > 0 ? (
+        <div className="mb-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+          <p className="m-0 mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
+            <Flame className="h-3.5 w-3.5" />
+            {t('journal.thisWeekDates')}
+          </p>
+          <ul className="m-0 space-y-2 p-0">
+            {weekEvents.slice(0, 12).map((event, index) => (
+              <li key={`${event.documentId}-${event.text}-${index}`} className="list-none">
+                <button
+                  type="button"
+                  className="flex w-full flex-col gap-0.5 rounded-lg px-1 py-1 text-left hover:bg-[var(--color-hover)]"
+                  onClick={() => {
+                    if (!event.documentId) return
+                    dispatch(setActiveDocumentId(event.documentId))
+                    void navigate(ROUTES.document(event.documentId))
+                    onNavigate?.()
+                  }}
+                >
+                  <span className="text-[12.5px] leading-snug text-[var(--color-foreground)]">{event.text}</span>
+                  <span className="text-[10.5px] text-[var(--color-muted-foreground)]">
+                    {event.resolvedDate}
+                    {event.documentTitle ? ` · ${event.documentTitle}` : ''}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       {weeklySummary && (
         <div className="journal-weekly-summary mb-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">

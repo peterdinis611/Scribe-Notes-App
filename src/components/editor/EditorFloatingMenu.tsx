@@ -4,6 +4,7 @@ import { Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { shouldShowInsertMenu } from '@/lib/editor/list-commands'
 import { openSlashPalette } from '@/lib/editor/slash-commands'
+import { IconTooltip } from '@/components/ui/tooltip'
 
 type EditorFloatingMenuProps = {
   editor: Editor | null
@@ -29,16 +30,17 @@ export function EditorFloatingMenu({ editor }: EditorFloatingMenuProps) {
         return shouldShowInsertMenu(currentEditor, null)
       }}
     >
-      <button
-        type="button"
-        className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-transparent bg-transparent text-[var(--color-muted-foreground)] opacity-55 transition-[opacity,background,color,border-color] duration-120 hover:border-[var(--color-border)] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)] hover:opacity-100 focus-visible:border-[var(--color-border)] focus-visible:bg-[var(--color-hover)] focus-visible:text-[var(--color-foreground)] focus-visible:opacity-100"
-        aria-label={t('editorActions.insertBlock')}
-        title={t('editorActions.insertBlockHint')}
-        onMouseDown={(event) => event.preventDefault()}
-        onClick={() => openSlashPalette(editor)}
-      >
-        <Plus className="h-4 w-4" />
-      </button>
+      <IconTooltip label={t('editorActions.insertBlockHint')} side="right">
+        <button
+          type="button"
+          className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-transparent bg-transparent text-[var(--color-muted-foreground)] opacity-55 transition-[opacity,background,color,border-color] duration-120 hover:border-[var(--color-border)] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)] hover:opacity-100 focus-visible:border-[var(--color-border)] focus-visible:bg-[var(--color-hover)] focus-visible:text-[var(--color-foreground)] focus-visible:opacity-100"
+          aria-label={t('editorActions.insertBlock')}
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => openSlashPalette(editor)}
+        >
+          <Plus className="h-4 w-4" />
+        </button>
+      </IconTooltip>
     </FloatingMenu>
   )
 }

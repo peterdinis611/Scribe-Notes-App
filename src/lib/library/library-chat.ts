@@ -12,6 +12,7 @@ export type LibraryChatCitation = {
   documentId: string
   title: string
   snippet: string
+  chunkIndex?: number | null
 }
 
 export type LibraryChatResult = {

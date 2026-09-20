@@ -8,6 +8,8 @@ import { getEditorExtensions } from '@/lib/editor/extensions'
 import { setEditorContent } from '@/lib/editor/view-ready'
 import { debounce } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { DocumentLoadingState } from '@/components/DocumentLoadingState'
+import { IconTooltip } from '@/components/ui/tooltip'
 import { useAppDispatch } from '@/store/hooks'
 import { setSecondaryDocumentId, updateDocuments } from '@/store/documentsSlice'
 
@@ -18,7 +20,7 @@ type SecondaryDocumentPaneProps = {
 export function SecondaryDocumentPane({ documentId }: SecondaryDocumentPaneProps) {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
-  const [title, setTitle] = useState(t('common.loading'))
+  const [title, setTitle] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
   const saveRef = useRef<(json: string) => void>(() => {})
 
@@ -94,23 +96,24 @@ export function SecondaryDocumentPane({ documentId }: SecondaryDocumentPaneProps
     <div className="flex min-h-0 min-w-0 flex-1 flex-col border-l border-[var(--color-border)] bg-[var(--color-canvas)]">
       <div className="flex h-9 shrink-0 items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-3">
         <p className="m-0 min-w-0 flex-1 truncate text-[12px] font-semibold text-[var(--color-foreground)]">
-          {title}
+          {title ?? t('common.loading')}
         </p>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-7 w-7 p-0"
-          onClick={() => dispatch(setSecondaryDocumentId(null))}
-          title={t('split.close')}
-          aria-label={t('split.close')}
-        >
-          <X className="h-3.5 w-3.5" />
-        </Button>
+        <IconTooltip label={t('split.close')}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0"
+            onClick={() => dispatch(setSecondaryDocumentId(null))}
+            aria-label={t('split.close')}
+          >
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </IconTooltip>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
         {!ready && (
-          <p className="m-0 text-[12px] text-[var(--color-muted-foreground)]">{t('editor.loading')}</p>
+          <DocumentLoadingState compact label={t('editor.loading')} title={title} />
         )}
         <EditorContent editor={editor} className={ready ? '' : 'invisible h-0'} />
       </div>

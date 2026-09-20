@@ -13,6 +13,7 @@ export interface DocumentSummary {
   isPinned: boolean
   tags: string[]
   deletedAt: number | null
+  isPasswordProtected?: boolean
 }
 
 export interface Folder {
@@ -31,7 +32,8 @@ export interface SearchHit {
   title: string
   snippet: string
   rank: number
-  matchKind?: 'fts' | 'semantic' | 'both'
+  matchKind?: 'fts' | 'semantic' | 'both' | 'vault-ram'
+  chunkIndex?: number
 }
 
 export interface DocumentRevision {
@@ -55,6 +57,9 @@ export interface Document {
   filePath: string | null
   createdAt: number
   updatedAt: number
+  vaultVerifier?: string | null
+  /** Runtime-only: true when ciphertext could not be decrypted (locked). */
+  vaultLocked?: boolean
 }
 
 export interface CreateDocumentInput {
@@ -67,6 +72,8 @@ export interface UpdateDocumentInput {
   id: string
   title?: string
   contentJson?: string
+  vaultVerifier?: string
+  clearVaultVerifier?: boolean
 }
 
 export interface LibraryFindReplaceInput {
@@ -104,8 +111,9 @@ async function vaultContext() {
   }
 }
 
+const getDocumentInflight = new Map<string, Promise<Document>>()
+
 export const getDocument = async (id: string) => {
-  const { folders } = await vaultContext()
   const cached = peekCachedDocument(id)
 
   // Prefer warm plaintext cache (typical after unlock / save).
@@ -113,20 +121,36 @@ export const getDocument = async (id: string) => {
     return cached
   }
 
-  const raw =
-    cached ??
-    (await (async () => {
-      const fetched = await invoke<Document>('get_document', { id })
-      cacheDocument(fetched)
-      return fetched
-    })())
+  const pending = getDocumentInflight.get(id)
+  if (pending) return pending
 
-  const decrypted = await maybeDecryptDocument(raw, folders)
-  // While unlocked, keep plaintext warm so tab switches skip decrypt + IPC.
-  if (!isVaultCipherJson(decrypted.contentJson)) {
-    cacheDocument(decrypted)
-  }
-  return decrypted
+  const request = (async () => {
+    const { folders } = await vaultContext()
+    const warm = peekCachedDocument(id)
+    if (warm && !isVaultCipherJson(warm.contentJson)) {
+      return warm
+    }
+
+    const raw =
+      warm ??
+      (await (async () => {
+        const fetched = await invoke<Document>('get_document', { id })
+        cacheDocument(fetched)
+        return fetched
+      })())
+
+    const decrypted = await maybeDecryptDocument(raw, folders)
+    // While unlocked, keep plaintext warm so tab switches skip decrypt + IPC.
+    if (!isVaultCipherJson(decrypted.contentJson)) {
+      cacheDocument(decrypted)
+    }
+    return decrypted
+  })().finally(() => {
+    if (getDocumentInflight.get(id) === request) getDocumentInflight.delete(id)
+  })
+
+  getDocumentInflight.set(id, request)
+  return request
 }
 
 export const fetchDocumentFresh = async (id: string) => {
@@ -155,6 +179,38 @@ export const updateDocument = async (input: UpdateDocumentInput) => {
   const decrypted = await maybeDecryptDocument(saved, folders)
   // Cache what the UI needs: plaintext when unlocked, ciphertext only when locked.
   cacheDocument(isVaultCipherJson(decrypted.contentJson) ? saved : decrypted)
+  const folder = folders.find((item) => item.id === decrypted.folderId)
+  void import('@/lib/vault/session').then(async ({ isVaultUnlocked, isDocumentUnlocked, documentVaultRamFolderId }) => {
+    const { vaultRamRemove, vaultRamUpsert, vaultRamTextFromDocument } = await import(
+      '@/lib/vault/ram-index'
+    )
+    const docProtected = Boolean(decrypted.vaultVerifier)
+    if (
+      docProtected &&
+      isDocumentUnlocked(decrypted.id) &&
+      !isVaultCipherJson(decrypted.contentJson)
+    ) {
+      await vaultRamUpsert({
+        documentId: decrypted.id,
+        folderId: documentVaultRamFolderId(decrypted.id),
+        title: decrypted.title,
+        text: vaultRamTextFromDocument(decrypted.title, decrypted.contentJson),
+      })
+    } else if (
+      folder?.isVault &&
+      isVaultUnlocked(folder.id) &&
+      !isVaultCipherJson(decrypted.contentJson)
+    ) {
+      await vaultRamUpsert({
+        documentId: decrypted.id,
+        folderId: folder.id,
+        title: decrypted.title,
+        text: vaultRamTextFromDocument(decrypted.title, decrypted.contentJson),
+      })
+    } else {
+      await vaultRamRemove(decrypted.id)
+    }
+  })
   return decrypted
 }
 
@@ -164,6 +220,7 @@ export const libraryFindReplace = (input: LibraryFindReplaceInput) =>
 export const deleteDocument = async (id: string) => {
   await invoke<void>('delete_document', { id })
   invalidateDocumentCache(id)
+  void import('@/lib/vault/ram-index').then(({ vaultRamRemove }) => vaultRamRemove(id))
 }
 
 export const listTrashedDocuments = () => invoke<DocumentSummary[]>('list_trashed_documents')
@@ -313,6 +370,9 @@ export const writeTextFile = async (path: string, contents: string) => {
   return invoke<void>('write_text_file', { path, contents })
 }
 
+export const saveDocumentOcr = (documentId: string, imagePath: string, text: string) =>
+  invoke<void>('save_document_ocr', { documentId, imagePath, text })
+
 export const pickAndImportFile = async () => {
   const { pickAndImportDocument } = await import('@/lib/import-document')
   return pickAndImportDocument()
@@ -423,8 +483,26 @@ export const moveFolder = (id: string, parentId: string | null) =>
 export const moveDocumentToFolder = (documentId: string, folderId: string | null) =>
   invoke<void>('move_document_to_folder', { input: { documentId, folderId } })
 
-export const searchDocuments = (query: string, limit = 20) =>
-  invoke<SearchHit[]>('search_documents', { query, limit })
+export const searchDocuments = (
+  query: string,
+  limit = 20,
+  filter?: {
+    folderId?: string
+    tag?: string
+    fromDate?: string
+    toDate?: string
+    libraryId?: string
+  },
+) =>
+  invoke<SearchHit[]>('search_documents', {
+    query,
+    limit,
+    folderId: filter?.folderId,
+    tag: filter?.tag,
+    fromDate: filter?.fromDate,
+    toDate: filter?.toDate,
+    libraryId: filter?.libraryId,
+  })
 
 export const listDocumentRevisions = (documentId: string, limit = 20) =>
   invoke<DocumentRevision[]>('list_document_revisions', { documentId, limit })

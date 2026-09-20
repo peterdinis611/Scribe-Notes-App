@@ -48,6 +48,8 @@ Core: `health`, `embed`, `embed_batch`, `summarize`, `extract_*`, `analyze_docum
 
 0.9.2+: stem-aware answer ranking + heuristic `followups` on `library_answer`
 
+1.0.0: `library_answer` passes `chunkIndex` through to citations
+
 ## Version
 
-Current sidecar: **0.9.2**
+Current sidecar: **1.0.0**

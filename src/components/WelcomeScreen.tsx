@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { DemoGuideButton } from '@/components/DemoGuideButton'
 import { pickAndImportFile } from '@/lib/db/api'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
+import { prefetchDocument } from '@/lib/cache/prefetch-document'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { openTodayNote } from '@/lib/journal-notes'
 import { toast } from '@/lib/toast'
@@ -68,6 +69,7 @@ export function WelcomeScreen() {
     dispatch(setActiveDocumentId(id))
     const cached = peekCachedDocument(id)
     if (cached) dispatch(setActiveDocument(cached))
+    else prefetchDocument(id)
     navigate(ROUTES.document(id))
   }
 
@@ -186,6 +188,7 @@ export function WelcomeScreen() {
               <span className="scribe-edition">{APP_SHORT_VERSION}</span>
             </h1>
             <p className="welcome-tagline">{t('welcome.press.brandTagline')}</p>
+            <p className="welcome-edition-note">{t('welcome.press.editionNote')}</p>
             <div className="welcome-actions">
               <div className="welcome-actions-primary">
                 <Button
@@ -241,6 +244,7 @@ export function WelcomeScreen() {
             <span className="scribe-edition">{APP_SHORT_VERSION}</span>
           </h1>
           <p className="welcome-atelier-tagline">{t('welcome.brandTagline')}</p>
+          <p className="welcome-edition-note">{t('welcome.editionNote')}</p>
 
           <div className="welcome-cta-stack">
             <Button

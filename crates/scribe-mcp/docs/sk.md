@@ -77,8 +77,10 @@ Príklad v repo: [`../cursor.mcp.example.json`](../cursor.mcp.example.json).
 
 ## Write tools
 
-- **`create_note`** — nová poznámka (`title`, voliteľne `content`, `folderId`)
+- **`create_note`** — nová poznámka (`title`, voliteľne `content`, `folderId`) v **aktívnej knižnici**
 - **`append_to_note`** — doplnenie textu do existujúcej poznámky (`id`, `text`)
+- **`switch_library`** — prepne knižnicu pre list/create/search
+- **`upsert_manuscript`** / **`append_document_chat`** / **`clear_document_chat`** — zostavenia a chat pri poznámke
 
 **Upozornenie:** bežiaca aplikácia Scribe môže DB zamknúť. Pri chybe „locked / busy“ alebo `writable: false` v `scribe_status` skúste znova o chvíľu (alebo dočasne zatvorte Scribe). Force readonly: `SCRIBE_MCP_WRITE=0`.
 
@@ -151,6 +153,17 @@ Prehľad argumentov a príkladov: **[tools.md](tools.md)**.
 | `suggest_organize` / `template_fill_hints` | Návrhy priečinka a sekcií šablóny |
 | `summarize_diff` / `summarize_revision_diff` | Zhrnutie zmien |
 | `set_nlp_enabled` / `set_embed_backend` | Zapnutie NLP / backend (zápis) |
+| `rewrite_selection` / `analyze_plaintext` | Prepísať alebo analyzovať neuložený text |
+| `get_nlp_artifact` | Cached AI artifact podľa id |
+| `list_libraries` / `switch_library` / `create_library` | Knižnice (prepnutie/vytvorenie je zápis) |
+| `extract_entities` / `extract_mentions` / `extract_dates` | Entity, zmienky, dátumy z `id` alebo `text` |
+| `list_manuscripts` / `upsert_manuscript` / `compile_manuscript` | Zostavenia kapitol + markdown export |
+| `list_smart_folders` / `evaluate_smart_folder` | Uložené filtre |
+| `list_sync_conflicts` / `resolve_sync_conflict` | Konflikty disk/app |
+| `chunk_text` / `extract_outline` / `extract_asset_ocr` | Chunky, NLP osnova, OCR obrázka |
+| `library_find_replace` | Hľadanie/nahradenie (predvolene dry-run) |
+| `document_answer_and_save` | Otázka nad poznámkou + uloženie turnov |
+| `list_document_chat` / `append_document_chat` / `clear_document_chat` | Uložený chat pri poznámke |
 | `trash_document` / `empty_trash` / `rename_document` / `replace_document_content` | Úpravy poznámok |
 | `restore_document_revision` | Obnova snapshotu |
 | `duplicate_document` / `export_document` | Kópia / markdown export |

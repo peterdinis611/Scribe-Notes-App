@@ -100,15 +100,16 @@ pub fn run() {
             });
             app.manage(PathAccessGate::new());
             app.manage(NlpSidecar::new(nlp::resolve_script_path(app.handle())));
+            app.manage(scribe_core::nlp::UnlockedVaultIndex::new());
             app.manage(capture::CaptureServerState::new());
 
             #[cfg(target_os = "macos")]
             {
                 let app_menu = SubmenuBuilder::new(app, "Scribe")
                     .about(Some(tauri::menu::AboutMetadata {
-                        name: Some("Scribe 2.0".into()),
+                        name: Some("Scribe 2.1".into()),
                         version: Some(env!("CARGO_PKG_VERSION").into()),
-                        short_version: Some("2.0".into()),
+                        short_version: Some("2.1".into()),
                         copyright: Some("© 2026 Peter Dinis".into()),
                         ..Default::default()
                     }))
@@ -259,6 +260,10 @@ pub fn run() {
             commands::nlp::nlp_search,
             commands::nlp::nlp_index_document,
             commands::nlp::nlp_index_all,
+            commands::nlp::nlp_cancel,
+            commands::nlp::nlp_vault_index_put,
+            commands::nlp::nlp_vault_index_remove,
+            commands::nlp::nlp_vault_index_clear_folder,
             commands::nlp::nlp_journal_summary,
             commands::nlp::nlp_suggest_tags,
             commands::nlp::nlp_library_report,
@@ -276,7 +281,10 @@ pub fn run() {
             commands::nlp::nlp_library_answer,
             commands::nlp::nlp_document_answer,
             commands::nlp::nlp_suggest_wiki_links,
+            commands::nlp::nlp_rewrite_selection,
             commands::nlp::nlp_calendar_events,
+            commands::ocr::extract_image_ocr,
+            commands::ocr::save_document_ocr,
             commands::revisions::list_document_revisions,
             commands::revisions::get_document_revision,
             commands::revisions::create_named_revision,

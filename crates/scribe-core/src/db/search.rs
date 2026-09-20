@@ -38,6 +38,35 @@ pub struct SearchHit {
     pub rank: f64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub match_kind: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub chunk_index: Option<i32>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct SearchFilter {
+    pub folder_id: Option<String>,
+    pub tag: Option<String>,
+    pub from_date: Option<String>,
+    pub to_date: Option<String>,
+    pub library_id: Option<String>,
+}
+
+impl SearchFilter {
+    pub fn is_empty(&self) -> bool {
+        option_blank(&self.folder_id)
+            && option_blank(&self.tag)
+            && option_blank(&self.from_date)
+            && option_blank(&self.to_date)
+            && option_blank(&self.library_id)
+    }
+}
+
+fn option_blank(value: &Option<String>) -> bool {
+    value
+        .as_deref()
+        .map(str::trim)
+        .unwrap_or("")
+        .is_empty()
 }
 
 const RRF_K: f64 = 60.0;
@@ -82,8 +111,13 @@ pub fn fuse_search_hits(
         if let Some(entry) = merged.get_mut(&hit.document_id) {
             entry.score += rrf_score(rank);
             entry.semantic = true;
-            if entry.hit.snippet.is_empty() && !hit.snippet.is_empty() {
+            if !hit.snippet.is_empty()
+                && (entry.hit.snippet.is_empty() || hit.chunk_index.is_some())
+            {
                 entry.hit.snippet = hit.snippet.clone();
+            }
+            if entry.hit.chunk_index.is_none() {
+                entry.hit.chunk_index = hit.chunk_index;
             }
         } else {
             merged.insert(
@@ -205,6 +239,7 @@ fn search_documents_scoped(
             snippet: row.get(2)?,
             rank: row.get(3)?,
             match_kind: None,
+            chunk_index: None,
         })
     };
 
@@ -217,6 +252,73 @@ fn search_documents_scoped(
     };
 
     rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+}
+
+pub fn filter_search_hits(
+    conn: &Connection,
+    mut hits: Vec<SearchHit>,
+    filter: &SearchFilter,
+    limit: i64,
+) -> Vec<SearchHit> {
+    if !filter.is_empty() {
+        hits.retain(|hit| hit_matches_filter(conn, hit, filter));
+    }
+    hits.truncate(limit.clamp(1, 50) as usize);
+    hits
+}
+
+fn hit_matches_filter(conn: &Connection, hit: &SearchHit, filter: &SearchFilter) -> bool {
+    use rusqlite::OptionalExtension;
+
+    let row: Option<(Option<String>, Option<String>, i64, String)> = conn
+        .query_row(
+            "SELECT folder_id, tags, updated_at, library_id FROM documents
+             WHERE id = ?1 AND deleted_at IS NULL",
+            params![hit.document_id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .optional()
+        .ok()
+        .flatten();
+    let Some((folder_id, tags_raw, updated_at, library_id)) = row else {
+        return false;
+    };
+    if let Some(wanted) = filter.library_id.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
+        if library_id != wanted {
+            return false;
+        }
+    };
+    if let Some(wanted) = filter.folder_id.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
+        if folder_id.as_deref() != Some(wanted) {
+            return false;
+        }
+    }
+    if let Some(tag) = filter.tag.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
+        let tags = tags_raw
+            .unwrap_or_default()
+            .split(',')
+            .map(|item| item.trim().to_string())
+            .filter(|item| !item.is_empty())
+            .collect::<Vec<_>>();
+        if !tags.iter().any(|existing| existing == tag) {
+            return false;
+        }
+    }
+    if let Some(from) = filter.from_date.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
+        if let Ok((start, _)) = crate::dates::date_key_bounds_ms(from, from) {
+            if updated_at < start {
+                return false;
+            }
+        }
+    }
+    if let Some(to) = filter.to_date.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
+        if let Ok((_, end)) = crate::dates::date_key_bounds_ms(to, to) {
+            if updated_at > end {
+                return false;
+            }
+        }
+    }
+    true
 }
 
 #[cfg(test)]
@@ -309,6 +411,7 @@ mod tests {
                 snippet: String::new(),
                 rank: 0.1,
                 match_kind: None,
+                chunk_index: None,
             },
             SearchHit {
                 document_id: "b".into(),
@@ -316,6 +419,7 @@ mod tests {
                 snippet: String::new(),
                 rank: 0.2,
                 match_kind: None,
+                chunk_index: None,
             },
         ];
         let semantic = vec![
@@ -325,6 +429,7 @@ mod tests {
                 snippet: String::new(),
                 rank: 0.05,
                 match_kind: None,
+                chunk_index: None,
             },
             SearchHit {
                 document_id: "c".into(),
@@ -332,6 +437,7 @@ mod tests {
                 snippet: String::new(),
                 rank: 0.08,
                 match_kind: None,
+                chunk_index: None,
             },
         ];
         let fused = fuse_search_hits(&fts, &semantic, 3);
@@ -340,5 +446,69 @@ mod tests {
             vec!["b", "a", "c"]
         );
         assert_eq!(fused[0].match_kind.as_deref(), Some("both"));
+    }
+
+    #[test]
+    fn filter_hits_by_folder_tag_and_library() {
+        let conn = in_memory_conn();
+        crate::db::test_helpers::seed_folder(&conn, "f-work", "Work", None);
+        crate::db::test_helpers::seed_document(&conn, "doc-a", "Alpha", "{}", Some("f-work"));
+        crate::db::test_helpers::seed_document(&conn, "doc-b", "Beta", "{}", None);
+        conn.execute("UPDATE documents SET tags = 'inbox', library_id = 'work' WHERE id = 'doc-a'", [])
+            .unwrap();
+        conn.execute("UPDATE documents SET tags = 'other', library_id = 'home' WHERE id = 'doc-b'", [])
+            .unwrap();
+        let hits = vec![
+            SearchHit {
+                document_id: "doc-a".into(),
+                title: "Alpha".into(),
+                snippet: String::new(),
+                rank: 0.0,
+                match_kind: None,
+                chunk_index: None,
+            },
+            SearchHit {
+                document_id: "doc-b".into(),
+                title: "Beta".into(),
+                snippet: String::new(),
+                rank: 0.0,
+                match_kind: None,
+                chunk_index: None,
+            },
+        ];
+        let folder = filter_search_hits(
+            &conn,
+            hits.clone(),
+            &SearchFilter {
+                folder_id: Some("f-work".into()),
+                ..SearchFilter::default()
+            },
+            10,
+        );
+        assert_eq!(folder.len(), 1);
+        assert_eq!(folder[0].document_id, "doc-a");
+
+        let tagged = filter_search_hits(
+            &conn,
+            hits.clone(),
+            &SearchFilter {
+                tag: Some("inbox".into()),
+                ..SearchFilter::default()
+            },
+            10,
+        );
+        assert_eq!(tagged.len(), 1);
+
+        let library = filter_search_hits(
+            &conn,
+            hits,
+            &SearchFilter {
+                library_id: Some("home".into()),
+                ..SearchFilter::default()
+            },
+            10,
+        );
+        assert_eq!(library.len(), 1);
+        assert_eq!(library[0].document_id, "doc-b");
     }
 }

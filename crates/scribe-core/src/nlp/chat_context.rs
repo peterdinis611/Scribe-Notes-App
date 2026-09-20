@@ -12,6 +12,40 @@ pub struct ChatTurn {
     pub text: String,
 }
 
+impl ChatTurn {
+    pub fn new(role: impl Into<String>, text: impl Into<String>) -> Self {
+        Self {
+            role: role.into(),
+            text: text.into(),
+        }
+    }
+
+    pub fn from_json(value: &Value) -> Option<Self> {
+        let role = value
+            .get("role")
+            .and_then(Value::as_str)
+            .unwrap_or("user")
+            .trim();
+        let text = value
+            .get("text")
+            .or_else(|| value.get("content"))
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .trim();
+        if text.is_empty() {
+            return None;
+        }
+        Some(Self {
+            role: role.to_string(),
+            text: text.to_string(),
+        })
+    }
+
+    pub fn from_json_list(values: &[Value]) -> Vec<Self> {
+        values.iter().filter_map(Self::from_json).collect()
+    }
+}
+
 pub fn merge_chat_memory_passages(
     document_id: &str,
     title: &str,
@@ -29,7 +63,10 @@ pub fn merge_chat_memory_passages(
 
 pub fn is_chat_memory_citation_title(title: &str) -> bool {
     let lower = title.to_ascii_lowercase();
-    lower.contains("chat memory") || lower.contains("earlier chat")
+    lower.contains("chat memory")
+        || lower.contains("earlier chat")
+        || lower.contains("note memory")
+        || lower.contains("library memory")
 }
 
 pub fn followups_from_sidecar(result: &Value) -> Vec<String> {
@@ -174,5 +211,16 @@ mod tests {
     fn parses_followups() {
         let result = json!({ "followups": ["Next?", "", "And then?"] });
         assert_eq!(followups_from_sidecar(&result), vec!["Next?", "And then?"]);
+    }
+
+    #[test]
+    fn chat_turn_from_json_skips_empty() {
+        let turns = ChatTurn::from_json_list(&[
+            json!({ "role": "user", "text": "Hello" }),
+            json!({ "role": "assistant", "content": "Hi" }),
+            json!({ "role": "user", "text": "   " }),
+        ]);
+        assert_eq!(turns.len(), 2);
+        assert_eq!(turns[1].text, "Hi");
     }
 }

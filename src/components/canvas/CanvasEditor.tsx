@@ -4,7 +4,6 @@ import {
   Background,
   BackgroundVariant,
   MiniMap,
-  Panel,
   ReactFlow,
   ReactFlowProvider,
   addEdge,
@@ -20,9 +19,9 @@ import {
   type NodeChange,
   type NodeTypes,
 } from '@xyflow/react'
-import { openUrl } from '@tauri-apps/plugin-opener'
-import { Link2, Minus, Plus, Square, Trash2, ZoomIn, ZoomOut } from 'lucide-react'
+import { Link2, Minus, Plus, Square, Trash2, ZoomIn, ZoomOut, Download } from 'lucide-react'
 import '@xyflow/react/dist/style.css'
+import { DocumentLoadingState } from '@/components/DocumentLoadingState'
 import { CanvasNoteActions, CanvasNoteNode } from '@/components/canvas/CanvasNoteNode'
 import {
   canvasEdgesToFlow,
@@ -37,6 +36,7 @@ import { flushPendingWrites, updateDocument } from '@/lib/db/api'
 import { applyDiskPersistResult } from '@/lib/disk-sync'
 import { toast } from '@/lib/toast'
 import { cn, debounce } from '@/lib/utils'
+import { IconTooltip } from '@/components/ui/tooltip'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setActiveDocument, setSaveStatus, updateDocuments } from '@/store/documentsSlice'
 import { isOpenLibraryDocumentId } from '@/lib/trash-document'
@@ -259,9 +259,7 @@ function CanvasFlow() {
   if (!activeId || !activeDocument) {
     return (
       <div className="editor-shell">
-        <div className="flex flex-1 items-center justify-center text-sm text-[var(--color-muted-foreground)]">
-          {t('editor.loading')}
-        </div>
+        <DocumentLoadingState label={t('editor.loading')} />
       </div>
     )
   }
@@ -311,32 +309,59 @@ function CanvasFlow() {
           <Trash2 className="h-3.5 w-3.5" />
           <span>{t('canvas.deleteSelected')}</span>
         </button>
+        <button
+          type="button"
+          className="canvas-toolbar-btn"
+          onClick={() => {
+            const el = surfaceRef.current
+            if (!el) return
+            const svgData = `<svg xmlns="http://www.w3.org/2000/svg" width="${el.clientWidth}" height="${el.clientHeight}"><foreignObject width="100%" height="100%">${new XMLSerializer().serializeToString(el)}</foreignObject></svg>`
+            const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' })
+            const url = URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.href = url
+            link.download = `${activeDocument?.title || 'canvas'}.svg`
+            link.click()
+            URL.revokeObjectURL(url)
+            toast.success(t('canvas.exportedSvg'))
+          }}
+          title={t('canvas.exportSvg')}
+        >
+          <Download className="h-3.5 w-3.5" />
+          <span>{t('canvas.exportSvg')}</span>
+        </button>
         <div className="canvas-toolbar-spacer" />
-        <button
-          type="button"
-          className="canvas-toolbar-btn canvas-toolbar-btn--icon"
-          onClick={() => void zoomOut()}
-          title={t('canvas.zoomOut')}
-        >
-          <ZoomOut className="h-3.5 w-3.5" />
-        </button>
-        <button
-          type="button"
-          className="canvas-toolbar-btn canvas-toolbar-btn--icon"
-          onClick={() => void setViewport({ x: 0, y: 0, zoom: 1 })}
-          title={t('canvas.resetView')}
-        >
-          <Minus className="h-3.5 w-3.5" />
-          <Plus className="h-3.5 w-3.5" />
-        </button>
-        <button
-          type="button"
-          className="canvas-toolbar-btn canvas-toolbar-btn--icon"
-          onClick={() => void zoomIn()}
-          title={t('canvas.zoomIn')}
-        >
-          <ZoomIn className="h-3.5 w-3.5" />
-        </button>
+        <IconTooltip label={t('canvas.zoomOut')}>
+          <button
+            type="button"
+            className="canvas-toolbar-btn canvas-toolbar-btn--icon"
+            onClick={() => void zoomOut()}
+            aria-label={t('canvas.zoomOut')}
+          >
+            <ZoomOut className="h-3.5 w-3.5" />
+          </button>
+        </IconTooltip>
+        <IconTooltip label={t('canvas.resetView')}>
+          <button
+            type="button"
+            className="canvas-toolbar-btn canvas-toolbar-btn--icon"
+            onClick={() => void setViewport({ x: 0, y: 0, zoom: 1 })}
+            aria-label={t('canvas.resetView')}
+          >
+            <Minus className="h-3.5 w-3.5" />
+            <Plus className="h-3.5 w-3.5" />
+          </button>
+        </IconTooltip>
+        <IconTooltip label={t('canvas.zoomIn')}>
+          <button
+            type="button"
+            className="canvas-toolbar-btn canvas-toolbar-btn--icon"
+            onClick={() => void zoomIn()}
+            aria-label={t('canvas.zoomIn')}
+          >
+            <ZoomIn className="h-3.5 w-3.5" />
+          </button>
+        </IconTooltip>
         <span className="canvas-toolbar-meta">{Math.round(viewport.zoom * 100)}%</span>
       </div>
 
@@ -388,16 +413,6 @@ function CanvasFlow() {
               maskColor="color-mix(in srgb, var(--color-canvas) 72%, transparent)"
               nodeColor="var(--color-accent)"
             />
-            <Panel position="bottom-left" className="canvas-flow-credit">
-              <button
-                type="button"
-                onClick={() => {
-                  void openUrl('https://reactflow.dev/').catch(() => undefined)
-                }}
-              >
-                React Flow
-              </button>
-            </Panel>
           </ReactFlow>
 
           {nodes.length === 0 && (

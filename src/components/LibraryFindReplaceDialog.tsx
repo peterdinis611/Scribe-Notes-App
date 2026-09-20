@@ -22,6 +22,7 @@ import {
 import { invalidateDocumentCache } from '@/lib/cache/document-cache'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
+import { IconTooltip } from '@/components/ui/tooltip'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
   setActiveDocument,
@@ -187,19 +188,21 @@ export function LibraryFindReplaceDialog() {
                 }
               }}
             />
-            <button
-              type="button"
-              className={cn(
-                'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--color-border)] text-[var(--color-muted-foreground)] hover:bg-[var(--color-hover)]',
-                matchCase &&
-                  'border-[color-mix(in_srgb,var(--color-accent)_40%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-accent)_14%,transparent)] text-[var(--color-accent)]',
-              )}
-              title={t('libraryFindReplace.matchCase')}
-              aria-pressed={matchCase}
-              onClick={() => setMatchCase((value) => !value)}
-            >
-              <CaseSensitive className="h-4 w-4" />
-            </button>
+            <IconTooltip label={t('libraryFindReplace.matchCase')}>
+              <button
+                type="button"
+                className={cn(
+                  'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--color-border)] text-[var(--color-muted-foreground)] hover:bg-[var(--color-hover)]',
+                  matchCase &&
+                    'border-[color-mix(in_srgb,var(--color-accent)_40%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-accent)_14%,transparent)] text-[var(--color-accent)]',
+                )}
+                aria-label={t('libraryFindReplace.matchCase')}
+                aria-pressed={matchCase}
+                onClick={() => setMatchCase((value) => !value)}
+              >
+                <CaseSensitive className="h-4 w-4" />
+              </button>
+            </IconTooltip>
           </div>
 
           <Input

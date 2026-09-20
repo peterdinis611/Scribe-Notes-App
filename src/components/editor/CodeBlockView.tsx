@@ -6,6 +6,7 @@ import { CodeLanguageMenu } from '@/components/editor-toolbar/CodeLanguageMenu'
 import { ScribeSyntaxHighlighter } from '@/components/editor/ScribeSyntaxHighlighter'
 import { getCodeLanguageLabel } from '@/lib/editor/code-languages'
 import { cn } from '@/lib/utils'
+import { IconTooltip } from '@/components/ui/tooltip'
 
 export function CodeBlockView({ node, updateAttributes, selected, editor }: NodeViewProps) {
   const { t } = useTranslation()
@@ -40,16 +41,17 @@ export function CodeBlockView({ node, updateAttributes, selected, editor }: Node
         ) : (
           <span className="scribe-code-block__lang-label">{getCodeLanguageLabel(language)}</span>
         )}
-        <button
-          type="button"
-          className="scribe-code-block__copy"
-          onClick={() => void copyCode()}
-          title={copied ? t('codeBlock.copied') : t('codeBlock.copy')}
-          aria-label={copied ? t('codeBlock.copied') : t('codeBlock.copy')}
-        >
-          {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-          {copied ? t('codeBlock.copied') : t('codeBlock.copy')}
-        </button>
+        <IconTooltip label={copied ? t('codeBlock.copied') : t('codeBlock.copy')}>
+          <button
+            type="button"
+            className="scribe-code-block__copy"
+            onClick={() => void copyCode()}
+            aria-label={copied ? t('codeBlock.copied') : t('codeBlock.copy')}
+          >
+            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            {copied ? t('codeBlock.copied') : t('codeBlock.copy')}
+          </button>
+        </IconTooltip>
       </div>
       <div className="scribe-code-block__body">
         <ScribeSyntaxHighlighter code={code} language={language} overlay />

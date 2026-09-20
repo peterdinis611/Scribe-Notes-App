@@ -3,6 +3,7 @@ import { ChevronsLeft } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { useResizableEditorPanel } from '@/hooks/useResizableEditorPanel'
+import { IconTooltip } from '@/components/ui/tooltip'
 
 export function EditorSidePanel({
   children,
@@ -22,23 +23,25 @@ export function EditorSidePanel({
       )}
       {...props}
     >
-      <button
-        type="button"
-        className="editor-panel-resize-handle titlebar-no-drag"
-        aria-label={t('editorPanels.resize')}
-        title={t('editorPanels.resizeHint')}
-        onPointerDown={onResizePointerDown}
-        onDoubleClick={resetWidth}
-      />
-      <button
-        type="button"
-        className="editor-panel-autofit titlebar-no-drag"
-        aria-label={t('editorPanels.autoExpand')}
-        title={t('editorPanels.resizeHint')}
-        onClick={resetWidth}
-      >
-        <ChevronsLeft className="h-3.5 w-3.5" />
-      </button>
+      <IconTooltip label={t('editorPanels.resizeHint')}>
+        <button
+          type="button"
+          className="editor-panel-resize-handle titlebar-no-drag"
+          aria-label={t('editorPanels.resize')}
+          onPointerDown={onResizePointerDown}
+          onDoubleClick={resetWidth}
+        />
+      </IconTooltip>
+      <IconTooltip label={t('editorPanels.autoExpand')}>
+        <button
+          type="button"
+          className="editor-panel-autofit titlebar-no-drag"
+          aria-label={t('editorPanels.autoExpand')}
+          onClick={resetWidth}
+        >
+          <ChevronsLeft className="h-3.5 w-3.5" />
+        </button>
+      </IconTooltip>
       {children}
     </aside>
   )
@@ -68,17 +71,23 @@ export function EditorSidePanelHeader({
 
 export function EditorSidePanelIconButton({
   className,
+  title,
+  'aria-label': ariaLabel,
   ...props
 }: React.ComponentProps<'button'>) {
+  const label = (typeof ariaLabel === 'string' && ariaLabel.trim()) || (typeof title === 'string' ? title : '')
   return (
-    <button
-      type="button"
-      className={cn(
-        'inline-flex h-7 w-7 items-center justify-center rounded-[7px] border-none bg-transparent text-[var(--color-muted-foreground)] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]',
-        className,
-      )}
-      {...props}
-    />
+    <IconTooltip label={label}>
+      <button
+        type="button"
+        aria-label={label || undefined}
+        className={cn(
+          'inline-flex h-7 w-7 items-center justify-center rounded-[7px] border-none bg-transparent text-[var(--color-muted-foreground)] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]',
+          className,
+        )}
+        {...props}
+      />
+    </IconTooltip>
   )
 }
 
