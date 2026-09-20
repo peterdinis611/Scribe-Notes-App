@@ -54,7 +54,7 @@
     "brandWithEdition": "Scribe {{version}}",
     "eyebrow": "Lokálny editor dokumentov · {{version}}",
     "brandTagline": "Píšte dokumenty lokálne. Prepájajte poznámky, keď ich pribudne.",
-    "editionNote": "2.1 — otázky k poznámke ostávajú pri dokumente.",
+    "editionNote": "2.3 — Scribe má vlastnú Lokálnu AI, ktorá číta poznámky na tomto Macu.",
     "newDocument": "Nový dokument",
     "todayNote": "Dnešná poznámka",
     "import": "Importovať",
@@ -72,7 +72,7 @@
     "press": {
       "eyebrow": "Letterpress · Scribe {{version}} · lokálne na tomto Macu",
       "brandTagline": "Píšte dokumenty. Prepájajte poznámky. Všetko ostáva na disku.",
-      "editionNote": "2.1 — každá otázka k poznámke ostáva v zozname na tej stránke.",
+      "editionNote": "2.3 — Lokálna AI odpovedá z knižnice; MCP pripojí Cursor, keď chcete.",
       "workflowHint": "Nová stránka → [[odkazy]] → export. Pokročilé nástroje nechajte na neskôr.",
       "recentDocuments": "Pokračovať",
       "noDocuments": "Lis je prázdny",
@@ -412,7 +412,19 @@
     "badge": "Novinky {{version}}",
     "kicker": "Poznámky k vydaniu",
     "title": "Scribe {{version}}",
-    "subtitle": "Otázky ostávajú pri poznámke, pamäť dokumentu sleduje vlákno a lokálne hľadanie radí bližšie úryvky navrch.",
+    "subtitle": "Scribe má vlastnú Lokálnu AI, ktorá číta poznámky na tomto Macu, a MCP je pripravené, keď chcete Cursor alebo Claude.",
+    "localAiAsk": {
+      "title": "Scribe Lokálna AI",
+      "description": "Vstavaná Lokálna AI — nie ChatGPT. Pýtajte sa knižnice alebo otvorenej poznámky; odpovede ostávajú na tomto zariadení."
+    },
+    "documentRead": {
+      "title": "Načíta celú poznámku",
+      "description": "Otázky k dokumentu načítajú poznámku (vrátane OCR), takže odpoveď ide z obsahu, ktorý ste napísali — nie z dohadu."
+    },
+    "mcpBridge": {
+      "title": "MCP zapnutie + demo",
+      "description": "Zapnite MCP v Nastaveniach, skopírujte Cursor/Claude config a otvorte demo poznámku so vzorovými nástrojmi a promptmi."
+    },
     "questionHistory": {
       "title": "História otázok pri poznámke",
       "description": "Každá otázka k dokumentu je v AI prehľade aj v chate poznámky. Otvoríš ju, prečítaš odpoveď, alebo sa spýtaš znova."
@@ -645,7 +657,7 @@
       },
       "mcp": {
         "label": "MCP",
-        "description": "Voliteľný AI most — Cursor / Claude"
+        "description": "Zapnúť AI most + vyskúšať demo"
       },
       "nlp": {
         "label": "Lokálna AI",
@@ -796,22 +808,74 @@
     },
     "mcp": {
       "title": "Scribe Memory MCP",
-      "description": "Voliteľné pre Cursor alebo Claude Desktop — Scribe funguje aj bez MCP.",
-      "whatIsMcp": "MCP je malý lokálny server, cez ktorý AI appka môže čítať (a voliteľne dopĺňať) vašu knižnicu. Pri bežnom písaní ho nepotrebujete.",
-      "intro": "Rust MCP server Scribe Memory umožňuje AI klientovi vyhľadávať poznámky (fulltext aj sémanticky), načítavať dokumenty, sledovať wiki odkazy, extrahovať úlohy a voliteľne vytvárať alebo dopĺňať poznámky.",
+      "description": "Voliteľný most pre Cursor alebo Claude Desktop — tu zapnete a vyskúšate demo.",
+      "whatIsMcp": "MCP je malý lokálny server, cez ktorý AI appka môže čítať (a voliteľne dopĺňať) vašu knižnicu. Pri bežnom písaní v Scribe ho nepotrebujete.",
+      "intro": "Scribe má vlastný MCP server (scribe-mcp). Zapnite ho nižšie, aby ste videli návod, skopírovali konfiguráciu a otvorili demo poznámku so vzorovými nástrojmi a promptmi.",
+      "enableTitle": "Zapnúť MCP",
+      "enableDescription": "Označí MCP ako súčasť vášho workflow a odomkne demo ukážku. Cursor/Claude stále spúšťajú server — Scribe ho nespúšťa na pozadí.",
+      "enable": "Zapnúť",
+      "enabled": "Zapnuté",
+      "enabledToast": "MCP zapnuté",
+      "disabledToast": "MCP vypnuté",
+      "enableHint": "Zapnite MCP, aby ste videli kroky nastavenia, vzorové prompty a mohli otvoriť demo poznámku.",
+      "demoTitle": "MCP demo",
+      "demoDescription": "Otvorí (alebo vytvorí) demo poznámku s návodom, nástrojmi a promptmi na vyskúšanie v Cursori.",
+      "openDemo": "Otvoriť MCP demo",
+      "demoOpening": "Otváram…",
+      "demoCreated": "MCP demo poznámka vytvorená",
+      "demoOpened": "MCP demo poznámka otvorená",
+      "demoError": "Nepodarilo sa otvoriť MCP demo",
+      "demoDocTitle": "Scribe MCP — demo",
+      "demoDocIntro": "Táto poznámka je ukážka Scribe Memory MCP v aplikácii. Použite ju s Cursorom alebo Claude Desktop po zapnutí MCP v Nastaveniach.",
+      "demoDocWhatTitle": "Čo MCP robí",
+      "demoDocWhatBody": "AI klient vie vyhľadávať v poznámkach, načítať dokument, sledovať wiki odkazy, extrahovať úlohy a voliteľne vytvárať alebo dopĺňať poznámky — všetko lokálne na tomto Macu.",
+      "demoDocTipTitle": "Tip",
+      "demoDocTipBody": "Ak nástroje na zápis hlásia zamknutú databázu, skúste znova o chvíľu alebo skontrolujte scribe_status (writable: false), kým beží Scribe.",
+      "howToTitle": "Ako pripojiť",
+      "howToSteps": [
+        "Raz zostavte server z koreňa repozitára Scribe: npm run mcp:install",
+        "Skopírujte Cursor (alebo Claude) konfiguráciu nižšie a __SCRIBE nahraďte absolútnou cestou k repo",
+        "Obnovte MCP v Cursori / úplne ukončite a znova spustite Claude Desktop",
+        "V chate skúste: Zavolaj scribe_status — alebo otvorte túto demo poznámku a skopírujte vzorový prompt"
+      ],
+      "sampleToolsTitle": "Vzorové nástroje",
+      "sampleToolsDescription": "Toto sú nástroje, ktoré AI klient môže volať po pripojení MCP.",
+      "tools": {
+        "status": "Zdravie, cesta k DB, writable príznak",
+        "search": "Fulltextové / sémantické hľadanie v poznámkach",
+        "libraryAnswer": "Otázka nad celou knižnicou s citáciami",
+        "getDocument": "Načítať jednu poznámku ako plain text",
+        "tasks": "Zoznam otvorených úloh v checklistoch",
+        "analysis": "Zhrnutie, kľúčové slová, osnova jednej poznámky"
+      },
+      "samplePromptsTitle": "Vyskúšajte tieto prompty",
+      "samplePromptsDescription": "Skopírujte do Cursora alebo Claude po pripojení MCP.",
+      "samplePrompts": [
+        "Zavolaj scribe_status a povedz, či je Scribe databáza writable.",
+        "Hľadaj v mojich Scribe poznámkach termíny tento mesiac a uveď zdroje.",
+        "Použi library_answer: Aké otvorené úlohy alebo nedokončené vlákna mám?",
+        "Nájdi poznámku s názvom ako plán projektu a zhrň ju cez document_analysis."
+      ],
+      "copyPromptShort": "Kopírovať",
       "installTitle": "Inštalácia",
       "installDescription": "Z koreňa repozitára raz skompilujte Rust MCP server.",
       "configTitle": "Cursor konfigurácia",
       "configDescription": "Vložte do nastavení MCP v Cursor. __SCRIBE nahraďte absolútnou cestou k repozitáru (binárka: target/release/scribe-mcp).",
       "copyConfig": "Kopírovať Cursor config",
       "configCopied": "Cursor config skopírovaný",
-      "promptTitle": "Šablóna promptu",
+      "claudeConfigTitle": "Claude Desktop konfigurácia",
+      "claudeConfigDescription": "Vložte do ~/Library/Application Support/Claude/claude_desktop_config.json, potom Claude úplne ukončite (Cmd+Q) a znova spustite.",
+      "copyClaudeConfig": "Kopírovať Claude config",
+      "claudeConfigCopied": "Claude config skopírovaný",
+      "promptTitle": "Šablóna systémového promptu",
       "promptDescription": "Voliteľná inštrukcia, aby model preferoval fakty z knižnice pred dohadmi.",
+      "promptTemplate": "Pred odpoveďou použij Scribe MCP: search / library_answer, potom get_document alebo document_analysis. Pre úlohy list_open_tasks. Preferuj fakty z knižnice pred dohadmi.",
       "copyPrompt": "Kopírovať šablónu promptu",
-      "promptCopied": "Šablóna promptu skopírovaná",
+      "promptCopied": "Prompt skopírovaný",
       "copyError": "Nepodarilo sa skopírovať do schránky",
       "pathHint": "Po npm run mcp:install použite absolútnu cestu k target/release/scribe-mcp (pozri crates/scribe-mcp/README.md).",
-      "lockHint": "Nástroje na zápis potrebujú writable DB. Ak Scribe drží zámok, skúste create/append znova o chvíľu alebo skontrolujte scribe_status (writable: false)."
+      "lockHint": "Nástroje na zápis potrebujú writable DB. Ak Scribe drží zámok, skúste create/append znova o chvíľu alebo skontrolujte scribe_status (writable: false).",
+      "localAiLink": "Sémantické MCP nástroje fungujú najlepšie so Scribe Lokálnou AI →"
     },
     "nlp": {
       "title": "Scribe Lokálna AI",

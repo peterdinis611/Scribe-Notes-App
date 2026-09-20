@@ -54,7 +54,7 @@
     "brandWithEdition": "Scribe {{version}}",
     "eyebrow": "Local document editor · {{version}}",
     "brandTagline": "Write documents locally. Link notes when you need them.",
-    "editionNote": "2.1 — questions you ask a note stay with the document.",
+    "editionNote": "2.3 — Scribe’s own Local AI reads your notes on this Mac.",
     "newDocument": "New document",
     "todayNote": "Today’s note",
     "import": "Import",
@@ -72,7 +72,7 @@
     "press": {
       "eyebrow": "Letterpress · Scribe {{version}} · local on this Mac",
       "brandTagline": "Write documents. Link notes. Everything stays on disk.",
-      "editionNote": "2.1 — every question to a note is kept as a ledger on that page.",
+      "editionNote": "2.3 — Local AI answers from your library; MCP connects Cursor when you want.",
       "workflowHint": "Blank page → [[links]] → export. Leave advanced tools for later.",
       "recentDocuments": "Continue",
       "noDocuments": "The press is empty",
@@ -412,7 +412,19 @@
     "badge": "What's new in {{version}}",
     "kicker": "Edition notes",
     "title": "Scribe {{version}}",
-    "subtitle": "Questions stay with the note, document memory follows the thread, and local search ranks closer passages first.",
+    "subtitle": "Scribe’s own Local AI reads your notes on this Mac, and MCP is ready when you want Cursor or Claude in the loop.",
+    "localAiAsk": {
+      "title": "Scribe Local AI",
+      "description": "Built-in Local AI — not ChatGPT. Ask the library or the open note; answers stay on this device."
+    },
+    "documentRead": {
+      "title": "Reads the whole note",
+      "description": "Document Q&A loads the note (including OCR), so answers come from the content you wrote — not a guess."
+    },
+    "mcpBridge": {
+      "title": "MCP enable + demo",
+      "description": "Turn on MCP in Settings, copy Cursor/Claude config, and open an in-app demo note with sample tools and prompts."
+    },
     "questionHistory": {
       "title": "Question history on the note",
       "description": "Every question you ask a document is listed in AI insights and document chat. Open a past question to reread the answer, or ask it again."
@@ -645,7 +657,7 @@
       },
       "mcp": {
         "label": "MCP",
-        "description": "Optional AI bridge — Cursor / Claude"
+        "description": "Enable the AI bridge + try the demo"
       },
       "nlp": {
         "label": "Local AI",
@@ -796,22 +808,74 @@
     },
     "mcp": {
       "title": "Scribe Memory MCP",
-      "description": "Optional for Cursor or Claude Desktop — Scribe works fine without MCP.",
-      "whatIsMcp": "MCP is a small local server so an AI app can read (and optionally update) your library. You don’t need it for everyday writing.",
-      "intro": "The Rust Scribe Memory MCP server lets an AI client search notes (full-text and semantic), load documents, follow wiki links, extract tasks, and optionally create or append notes.",
+      "description": "Optional bridge for Cursor or Claude Desktop — turn it on here, then try the demo.",
+      "whatIsMcp": "MCP is a small local server so an AI app can read (and optionally update) your library. Everyday writing in Scribe does not need it.",
+      "intro": "Scribe ships with its own MCP server (scribe-mcp). Enable it below to follow the setup, copy configs, and open an in-app demo note with sample tools and prompts.",
+      "enableTitle": "Enable MCP",
+      "enableDescription": "Marks MCP as part of your workflow and unlocks the demo showcase. Cursor/Claude still start the server — Scribe does not run it in the background.",
+      "enable": "Enable",
+      "enabled": "Enabled",
+      "enabledToast": "MCP enabled",
+      "disabledToast": "MCP disabled",
+      "enableHint": "Enable MCP to follow the setup steps, copy sample prompts, and open the demo note.",
+      "demoTitle": "MCP demo",
+      "demoDescription": "Opens (or creates) a demo note with setup steps, sample tools, and prompts you can try in Cursor.",
+      "openDemo": "Open MCP demo",
+      "demoOpening": "Opening…",
+      "demoCreated": "MCP demo note created",
+      "demoOpened": "MCP demo note opened",
+      "demoError": "Could not open MCP demo",
+      "demoDocTitle": "Scribe MCP — demo",
+      "demoDocIntro": "This note is an in-app demo of Scribe Memory MCP. Use it with Cursor or Claude Desktop after you enable MCP in Settings.",
+      "demoDocWhatTitle": "What MCP does",
+      "demoDocWhatBody": "An AI client can search your notes, load a document, follow wiki links, extract tasks, and optionally create or append notes — all locally on this Mac.",
+      "demoDocTipTitle": "Tip",
+      "demoDocTipBody": "If write tools report the database as locked, retry shortly or check scribe_status for writable: false while Scribe is open.",
+      "howToTitle": "How to connect",
+      "howToSteps": [
+        "Build the server once from the Scribe repo: npm run mcp:install",
+        "Copy the Cursor (or Claude) config below and replace __SCRIBE with your absolute repo path",
+        "Reload MCP in Cursor / fully quit and reopen Claude Desktop",
+        "In chat, try: Call scribe_status — or open this demo note and copy a sample prompt"
+      ],
+      "sampleToolsTitle": "Sample tools",
+      "sampleToolsDescription": "These are the tools an AI client can call once MCP is connected.",
+      "tools": {
+        "status": "Health, DB path, writable flag",
+        "search": "Full-text / semantic search over notes",
+        "libraryAnswer": "Ask the whole library with citations",
+        "getDocument": "Load one note as plain text",
+        "tasks": "List open checklist tasks",
+        "analysis": "Summary, keywords, outline for one note"
+      },
+      "samplePromptsTitle": "Try these prompts",
+      "samplePromptsDescription": "Copy into Cursor or Claude after MCP is connected.",
+      "samplePrompts": [
+        "Call scribe_status and tell me if the Scribe database is writable.",
+        "Search my Scribe notes for deadlines this month and list the sources.",
+        "Use library_answer: What open tasks or unfinished threads do I have?",
+        "Find the note titled like my project plan, then summarize it with document_analysis."
+      ],
+      "copyPromptShort": "Copy",
       "installTitle": "Install",
       "installDescription": "From the Scribe repo root, build the Rust MCP server once.",
       "configTitle": "Cursor config",
       "configDescription": "Paste into Cursor MCP settings. Replace __SCRIBE with the absolute repo path (binary: target/release/scribe-mcp).",
       "copyConfig": "Copy Cursor config",
       "configCopied": "Cursor config copied",
-      "promptTitle": "Prompt template",
+      "claudeConfigTitle": "Claude Desktop config",
+      "claudeConfigDescription": "Paste into ~/Library/Application Support/Claude/claude_desktop_config.json, then fully quit Claude (Cmd+Q) and reopen.",
+      "copyClaudeConfig": "Copy Claude config",
+      "claudeConfigCopied": "Claude config copied",
+      "promptTitle": "System prompt template",
       "promptDescription": "Optional instruction so the model prefers library facts over guesses.",
+      "promptTemplate": "Before answering, use Scribe MCP: search / library_answer, then get_document or document_analysis. For tasks use list_open_tasks. Prefer facts from the library over guesses.",
       "copyPrompt": "Copy prompt template",
-      "promptCopied": "Prompt template copied",
+      "promptCopied": "Prompt copied",
       "copyError": "Could not copy to clipboard",
       "pathHint": "After npm run mcp:install, point command at target/release/scribe-mcp with an absolute path (see crates/scribe-mcp/README.md).",
-      "lockHint": "Write tools need a writable DB open. If Scribe has the database locked, retry create/append shortly or check scribe_status for writable: false."
+      "lockHint": "Write tools need a writable DB open. If Scribe has the database locked, retry create/append shortly or check scribe_status for writable: false.",
+      "localAiLink": "Semantic MCP tools work best with Scribe Local AI →"
     },
     "nlp": {
       "title": "Scribe Local AI",
