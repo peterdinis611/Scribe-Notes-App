@@ -54,6 +54,7 @@
     "brandWithEdition": "Scribe {{version}}",
     "eyebrow": "Lokálny editor dokumentov · {{version}}",
     "brandTagline": "Píšte dokumenty lokálne. Prepájajte poznámky, keď ich pribudne.",
+    "editionNote": "2.1 — otázky k poznámke ostávajú pri dokumente.",
     "newDocument": "Nový dokument",
     "todayNote": "Dnešná poznámka",
     "import": "Importovať",
@@ -71,6 +72,7 @@
     "press": {
       "eyebrow": "Letterpress · Scribe {{version}} · lokálne na tomto Macu",
       "brandTagline": "Píšte dokumenty. Prepájajte poznámky. Všetko ostáva na disku.",
+      "editionNote": "2.1 — každá otázka k poznámke ostáva v zozname na tej stránke.",
       "workflowHint": "Nová stránka → [[odkazy]] → export. Pokročilé nástroje nechajte na neskôr.",
       "recentDocuments": "Pokračovať",
       "noDocuments": "Lis je prázdny",
@@ -388,7 +390,19 @@
     "badge": "Novinky {{version}}",
     "kicker": "Poznámky k vydaniu",
     "title": "Scribe {{version}}",
-    "subtitle": "Samostatné knižnice, sync ktorý sa spýta pred prepísaním a zostavenie kapitol do jedného dokumentu.",
+    "subtitle": "Otázky ostávajú pri poznámke, pamäť dokumentu sleduje vlákno a lokálne hľadanie radí bližšie úryvky navrch.",
+    "questionHistory": {
+      "title": "História otázok pri poznámke",
+      "description": "Každá otázka k dokumentu je v AI prehľade aj v chate poznámky. Otvoríš ju, prečítaš odpoveď, alebo sa spýtaš znova."
+    },
+    "noteMemory": {
+      "title": "Pamäť otvorenej poznámky",
+      "description": "Odpovede si pamätajú predchádzajúce ťahy na tom dokumente — lokálne vlákno, nie cloudový chat."
+    },
+    "smarterAnswers": {
+      "title": "Bližšie úryvky prvé",
+      "description": "Lokálne hľadanie zoradí najrelevantnejšie pasáže pred odpoveďou, aby citácie ostali na správnych odsekoch."
+    },
     "libraries": {
       "title": "Viaceré knižnice",
       "description": "Práca, osobné a archív ako samostatné korene — nie ďalšie priečinky v tom istom strome. Prepínaš v sidebare."
@@ -1439,6 +1453,10 @@
     "memoryCleared": "Pamäť chatu vymazaná",
     "memoryClearError": "Nepodarilo sa vymazať pamäť chatu",
     "clearMemory": "Vymazať",
+    "questionHistory": "Položené otázky",
+    "questionHistoryCount": "{{count}}",
+    "questionHistoryEmpty": "K tejto poznámke zatiaľ žiadne otázky.",
+    "askAgain": "Spýtať sa znova",
     "prompts": {
       "recent": "O čom som naposledy písal?",
       "deadlines": "Mám v poznámkach termíny alebo dátumy?",
@@ -1594,6 +1612,7 @@
       "loadError": "Nepodarilo sa načítať AI prehľad",
       "askTitle": "Opýtať sa poznámky",
       "askHint": "Lokálne AI akcie a otázky k otvorenému dokumentu — bez cloudu.",
+      "questionHistoryEmpty": "Zatiaľ nič — zoznam sa plní, keď sa pýtate tohto dokumentu.",
       "localBadge": "offline",
       "openChat": "Otvoriť plný chat →",
       "summary": "Zhrnutie",

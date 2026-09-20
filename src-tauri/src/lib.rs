@@ -106,9 +106,9 @@ pub fn run() {
             {
                 let app_menu = SubmenuBuilder::new(app, "Scribe")
                     .about(Some(tauri::menu::AboutMetadata {
-                        name: Some("Scribe 2.0".into()),
+                        name: Some("Scribe 2.1".into()),
                         version: Some(env!("CARGO_PKG_VERSION").into()),
-                        short_version: Some("2.0".into()),
+                        short_version: Some("2.1".into()),
                         copyright: Some("© 2026 Peter Dinis".into()),
                         ..Default::default()
                     }))

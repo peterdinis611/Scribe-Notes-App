@@ -2,6 +2,7 @@ import { Eraser, FileText, Library, Send, Settings2, Sparkles } from 'lucide-rea
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
+import { DocumentQuestionHistoryList } from '@/components/DocumentQuestionHistory'
 import { MarkdownView } from '@/components/MarkdownView'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Bubble, BubbleContent } from '@/components/ui/bubble'
@@ -27,6 +28,7 @@ import {
   type DocumentChatAction,
   type LibraryChatCitation,
 } from '@/lib/library/library-chat'
+import { documentQuestionHistory, type DocumentQuestionTurn } from '@/lib/library/document-question-history'
 import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
@@ -40,6 +42,7 @@ type ChatMessage = {
   citations?: LibraryChatCitation[]
   action?: string | null
   followups?: string[]
+  createdAt?: number
 }
 
 type LibraryChatPanelProps = {
@@ -81,6 +84,7 @@ function toChatMessage(row: {
   role: string
   text: string
   action?: string | null
+  createdAt?: number
   citations: LibraryChatCitation[]
 }): ChatMessage {
   return {
@@ -88,6 +92,7 @@ function toChatMessage(row: {
     role: row.role === 'assistant' ? 'assistant' : 'user',
     text: row.text,
     action: row.action,
+    createdAt: row.createdAt,
     citations: row.citations,
   }
 }
@@ -106,6 +111,7 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
   const [loading, setLoading] = useState(false)
   const [historyLoading, setHistoryLoading] = useState(false)
   const [nlpReady, setNlpReady] = useState<boolean | null>(null)
+  const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const libraryMessagesRef = useRef<ChatMessage[]>([])
@@ -235,6 +241,7 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
     try {
       await clearDocumentChatMessages(activeDocumentId)
       setMessages([])
+      setSelectedQuestionId(null)
       toast.success(t('libraryChat.memoryCleared'))
     } catch (error) {
       toast.error(t('libraryChat.memoryClearError'), String(error))
@@ -368,6 +375,18 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
     return name ? name.slice(0, 1).toUpperCase() : t('libraryChat.you').slice(0, 1)
   }, [commentAuthor, t])
 
+  const questionTurns = useMemo(
+    () => (scope === 'document' ? documentQuestionHistory(messages) : []),
+    [messages, scope],
+  )
+
+  const selectQuestion = useCallback((turn: DocumentQuestionTurn) => {
+    setSelectedQuestionId(turn.id)
+    if (!turn.action) setInput(turn.question)
+    const node = document.getElementById(`chat-turn-${turn.id}`)
+    node?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }, [])
+
   return (
     <div className="library-chat-panel">
       <div className="shrink-0 border-b border-[var(--color-border)] px-2 py-2">
@@ -433,6 +452,16 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
             ) : null}
           </div>
         ) : null}
+        {scope === 'document' && questionTurns.length > 0 ? (
+          <DocumentQuestionHistoryList
+            compact
+            items={questionTurns}
+            selectedId={selectedQuestionId}
+            onSelect={selectQuestion}
+            onAskAgain={(turn) => void sendQuestion(turn.question)}
+            askAgainDisabled={loading}
+          />
+        ) : null}
       </div>
 
       <div className="library-chat-thread">
@@ -479,7 +508,8 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
           {messages.map((message) => {
             const isUser = message.role === 'user'
             return (
-              <Message key={message.id} align={isUser ? 'end' : 'start'}>
+              <div key={message.id} id={`chat-turn-${message.id}`}>
+              <Message align={isUser ? 'end' : 'start'}>
                 <MessageAvatar>
                   <Avatar
                     className={
@@ -543,6 +573,7 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
                   ) : null}
                 </MessageContent>
               </Message>
+              </div>
             )
           })}
 

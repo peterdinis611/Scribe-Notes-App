@@ -54,6 +54,7 @@
     "brandWithEdition": "Scribe {{version}}",
     "eyebrow": "Local document editor · {{version}}",
     "brandTagline": "Write documents locally. Link notes when you need them.",
+    "editionNote": "2.1 — questions you ask a note stay with the document.",
     "newDocument": "New document",
     "todayNote": "Today’s note",
     "import": "Import",
@@ -71,6 +72,7 @@
     "press": {
       "eyebrow": "Letterpress · Scribe {{version}} · local on this Mac",
       "brandTagline": "Write documents. Link notes. Everything stays on disk.",
+      "editionNote": "2.1 — every question to a note is kept as a ledger on that page.",
       "workflowHint": "Blank page → [[links]] → export. Leave advanced tools for later.",
       "recentDocuments": "Continue",
       "noDocuments": "The press is empty",
@@ -388,7 +390,19 @@
     "badge": "What's new in {{version}}",
     "kicker": "Edition notes",
     "title": "Scribe {{version}}",
-    "subtitle": "Separate libraries, sync that asks before overwriting, and compile chapters into one document.",
+    "subtitle": "Questions stay with the note, document memory follows the thread, and local search ranks closer passages first.",
+    "questionHistory": {
+      "title": "Question history on the note",
+      "description": "Every question you ask a document is listed in AI insights and document chat. Open a past question to reread the answer, or ask it again."
+    },
+    "noteMemory": {
+      "title": "Memory of the open note",
+      "description": "Answers remember earlier turns on that document — a local thread, not a cloud chat log."
+    },
+    "smarterAnswers": {
+      "title": "Closer passages first",
+      "description": "Local search ranks the most relevant excerpts before answering, so citations stay on the right paragraphs."
+    },
     "libraries": {
       "title": "More than one library",
       "description": "Work, personal, and archive as separate roots — not extra folders in the same tree. Switch from the sidebar."
@@ -1436,6 +1450,10 @@
     "memoryCleared": "Chat memory cleared",
     "memoryClearError": "Could not clear chat memory",
     "clearMemory": "Clear",
+    "questionHistory": "Questions asked",
+    "questionHistoryCount": "{{count}}",
+    "questionHistoryEmpty": "No questions on this note yet.",
+    "askAgain": "Ask again",
     "prompts": {
       "recent": "What did I write about recently?",
       "deadlines": "Any deadlines or dates in my notes?",
@@ -1587,6 +1605,7 @@
       "loadError": "Could not load AI insights",
       "askTitle": "Ask this note",
       "askHint": "Local AI actions and questions about the open document — no cloud.",
+      "questionHistoryEmpty": "Nothing asked yet — the list fills as you query this document.",
       "localBadge": "offline",
       "openChat": "Open full chat →",
       "summary": "Summary",

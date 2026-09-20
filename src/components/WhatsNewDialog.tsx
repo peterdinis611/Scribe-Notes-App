@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { APP_VERSION, APP_SHORT_VERSION } from '@/lib/app-version'
 import { persistWhatsNewVersion } from '@/store/persistence'
 
-const HIGHLIGHTS = ['libraries', 'syncConflicts', 'compile'] as const
+const HIGHLIGHTS = ['questionHistory', 'noteMemory', 'smarterAnswers'] as const
 
 type WhatsNewDialogProps = {
   open: boolean

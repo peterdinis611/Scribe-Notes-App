@@ -51,6 +51,8 @@ import {
   runDocumentChatAction,
   type DocumentChatAction,
 } from '@/lib/library/library-chat'
+import { documentQuestionHistory, type DocumentQuestionTurn } from '@/lib/library/document-question-history'
+import { DocumentQuestionHistoryList } from '@/components/DocumentQuestionHistory'
 import { MarkdownView } from '@/components/MarkdownView'
 import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
@@ -175,6 +177,8 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
   const [askInput, setAskInput] = useState('')
   const [askBusy, setAskBusy] = useState(false)
   const [askReply, setAskReply] = useState<string | null>(null)
+  const [questionHistory, setQuestionHistory] = useState<DocumentQuestionTurn[]>([])
+  const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null)
   const [folderSuggestion, setFolderSuggestion] = useState<string | null>(null)
   const [folderSuggestionId, setFolderSuggestionId] = useState<string | null>(null)
   const [templateHints, setTemplateHints] = useState<NlpTemplateFillHints | null>(null)
@@ -204,6 +208,8 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
       setAnalysis(null)
       setSpellResult(null)
       setAskReply(null)
+      setQuestionHistory([])
+      setSelectedQuestionId(null)
       setFolderSuggestion(null)
       setFolderSuggestionId(null)
       setTemplateHints(null)
@@ -275,6 +281,20 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
       setFolderSuggestionId(null)
     }
   }, [activeSummary?.folderId, folderSuggestionId])
+
+  const loadQuestionHistory = useCallback(async (documentId: string) => {
+    try {
+      const rows = await listDocumentChatMessages(documentId)
+      setQuestionHistory(documentQuestionHistory(rows))
+    } catch {
+      setQuestionHistory([])
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!activeId) return
+    void loadQuestionHistory(activeId)
+  }, [activeId, reloadKey, loadQuestionHistory])
 
   const openTasks = useMemo(
     () => tasks.filter((task) => !task.checked),
@@ -373,17 +393,18 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
           citations: result.citations,
           action,
         })
+        await loadQuestionHistory(activeId)
       } catch (error) {
         toast.error(t('libraryChat.errorTitle'), String(error))
       } finally {
         setAskBusy(false)
       }
     },
-    [activeId, askBusy, nlpEnabled, t],
+    [activeId, askBusy, loadQuestionHistory, nlpEnabled, t],
   )
 
-  const handleAskQuestion = useCallback(async () => {
-    const question = askInput.trim()
+  const handleAskQuestion = useCallback(async (raw?: string) => {
+    const question = (raw ?? askInput).trim()
     if (!activeId || !nlpEnabled || !question || askBusy) return
     setAskBusy(true)
     try {
@@ -397,6 +418,7 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
       const result = await askDocument(activeId, question, context)
       setAskReply(result.answer)
       setAskInput('')
+      setSelectedQuestionId(null)
       await appendDocumentChatMessage({
         documentId: activeId,
         role: 'user',
@@ -408,6 +430,7 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
         text: result.answer,
         citations: result.citations,
       })
+      await loadQuestionHistory(activeId)
     } catch (error) {
       const raw = error instanceof Error ? error.message : String(error)
       toast.error(
@@ -417,7 +440,13 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
     } finally {
       setAskBusy(false)
     }
-  }, [activeId, askBusy, askInput, nlpEnabled, t])
+  }, [activeId, askBusy, askInput, loadQuestionHistory, nlpEnabled, t])
+
+  const handleSelectQuestion = useCallback((turn: DocumentQuestionTurn) => {
+    setSelectedQuestionId(turn.id)
+    setAskInput(turn.action ? '' : turn.question)
+    setAskReply(turn.answer ?? null)
+  }, [])
 
   const openLibraryChat = useCallback(() => {
     dispatch(setPendingLibraryView({ view: 'chat' }))
@@ -497,7 +526,7 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
         }
       />
 
-      {loading && signalCount === 0 && !askReply ? (
+      {loading && signalCount === 0 && !askReply && questionHistory.length === 0 ? (
         <EditorSidePanelEmpty>{t('common.loading')}</EditorSidePanelEmpty>
       ) : (
         <EditorSidePanelList className="insights-panel__list">
@@ -595,18 +624,27 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
                 {askBusy && !askReply ? (
                   <p className="insights-quiet">{t('libraryChat.thinking')}</p>
                 ) : null}
-
-                {askReply ? (
-                  <div className="insights-reply">
-                    <MarkdownView source={askReply} headingIds={false} className="scribe-markdown--chat" />
-                  </div>
-                ) : null}
-
-                <button type="button" className="insights-link" onClick={openLibraryChat}>
-                  {t('panels.insights.openChat')}
-                </button>
               </>
             )}
+
+            {askReply ? (
+              <div className="insights-reply">
+                <MarkdownView source={askReply} headingIds={false} className="scribe-markdown--chat" />
+              </div>
+            ) : null}
+
+            <DocumentQuestionHistoryList
+              items={questionHistory}
+              selectedId={selectedQuestionId}
+              emptyHint={t('panels.insights.questionHistoryEmpty')}
+              onSelect={handleSelectQuestion}
+              onAskAgain={nlpEnabled ? (turn) => void handleAskQuestion(turn.question) : undefined}
+              askAgainDisabled={askBusy}
+            />
+
+            <button type="button" className="insights-link" onClick={openLibraryChat}>
+              {t('panels.insights.openChat')}
+            </button>
           </div>
 
           <div className="insights-snapshot insights-rise" style={{ animationDelay: '90ms' }}>

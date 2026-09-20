@@ -186,6 +186,7 @@ export function WelcomeScreen() {
               <span className="scribe-edition">{APP_SHORT_VERSION}</span>
             </h1>
             <p className="welcome-tagline">{t('welcome.press.brandTagline')}</p>
+            <p className="welcome-edition-note">{t('welcome.press.editionNote')}</p>
             <div className="welcome-actions">
               <div className="welcome-actions-primary">
                 <Button
@@ -241,6 +242,7 @@ export function WelcomeScreen() {
             <span className="scribe-edition">{APP_SHORT_VERSION}</span>
           </h1>
           <p className="welcome-atelier-tagline">{t('welcome.brandTagline')}</p>
+          <p className="welcome-edition-note">{t('welcome.editionNote')}</p>
 
           <div className="welcome-cta-stack">
             <Button
