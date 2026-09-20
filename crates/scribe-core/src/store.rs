@@ -11,7 +11,8 @@ use uuid::Uuid;
 use crate::dates::{date_key_bounds, date_key_bounds_ms, parse_date_key};
 use crate::db::migrations;
 use crate::db::{
-    active_library_id, fuse_search_hits, search_documents_for_library, SearchHit, SearchMode,
+    active_library_id, filter_search_hits, fuse_search_hits, search_documents_for_library, SearchHit,
+    SearchMode,
 };
 use crate::db::{
     count_embeddings, count_stale_embeddings, dominant_embedding_model, extract_search_text,
@@ -296,30 +297,7 @@ pub struct JournalSummaryInput {
     pub document_ids: Option<Vec<String>>,
 }
 
-#[derive(Debug, Clone, Default)]
-pub struct SearchFilter {
-    pub folder_id: Option<String>,
-    pub tag: Option<String>,
-    pub from_date: Option<String>,
-    pub to_date: Option<String>,
-}
-
-impl SearchFilter {
-    pub fn is_empty(&self) -> bool {
-        option_blank(&self.folder_id)
-            && option_blank(&self.tag)
-            && option_blank(&self.from_date)
-            && option_blank(&self.to_date)
-    }
-}
-
-fn option_blank(value: &Option<String>) -> bool {
-    value
-        .as_deref()
-        .map(str::trim)
-        .unwrap_or("")
-        .is_empty()
-}
+pub use crate::db::SearchFilter;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -1974,55 +1952,8 @@ impl ScribeStore {
         } else {
             (limit * 5).clamp(limit, 200)
         };
-        let mut hits = search_library(&self.db, sidecar, query, fetch_limit, search_mode)?;
-        if !filter.is_empty() {
-            hits.retain(|hit| self.hit_matches_filter(hit, &filter));
-            hits.truncate(limit.clamp(1, 50) as usize);
-        }
-        Ok(hits)
-    }
-
-    fn hit_matches_filter(&self, hit: &SearchHit, filter: &SearchFilter) -> bool {
-        let row: Option<(Option<String>, Option<String>, i64)> = self
-            .db
-            .query_row(
-                "SELECT folder_id, tags, updated_at FROM documents
-                 WHERE id = ?1 AND deleted_at IS NULL",
-                params![hit.document_id],
-                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
-            )
-            .optional()
-            .ok()
-            .flatten();
-        let Some((folder_id, tags_raw, updated_at)) = row else {
-            return false;
-        };
-        if let Some(wanted) = filter.folder_id.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
-            if folder_id.as_deref() != Some(wanted) {
-                return false;
-            }
-        }
-        if let Some(tag) = filter.tag.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
-            let tags = Self::parse_tags(tags_raw);
-            if !tags.iter().any(|existing| existing == tag) {
-                return false;
-            }
-        }
-        if let Some(from) = filter.from_date.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
-            if let Ok((start, _)) = date_key_bounds_ms(from, from) {
-                if updated_at < start {
-                    return false;
-                }
-            }
-        }
-        if let Some(to) = filter.to_date.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
-            if let Ok((_, end)) = date_key_bounds_ms(to, to) {
-                if updated_at > end {
-                    return false;
-                }
-            }
-        }
-        true
+        let hits = search_library(&self.db, sidecar, query, fetch_limit, search_mode)?;
+        Ok(filter_search_hits(&self.db, hits, &filter, limit))
     }
 
     pub fn journal_summary(
@@ -2378,76 +2309,22 @@ impl ScribeStore {
     }
 
     pub fn index_all_documents(&self, sidecar: &NlpSidecar) -> Result<IndexResult, String> {
-        const BATCH_SIZE: usize = 24;
-
         require_nlp(&self.db)?;
-        sync_sidecar_backend(sidecar, &self.db)?;
-
-        let mut stmt = self
-            .db
-            .prepare("SELECT id, title, content_json FROM documents WHERE deleted_at IS NULL")
-            .map_err(|e| e.to_string())?;
-        let rows = stmt
-            .query_map([], |row| {
-                Ok((
-                    row.get::<_, String>(0)?,
-                    row.get::<_, String>(1)?,
-                    row.get::<_, String>(2)?,
-                ))
-            })
-            .map_err(|e| e.to_string())?;
-
-        let mut docs: Vec<(String, String)> = Vec::new();
-        let mut pending: Vec<(String, String, String)> = Vec::new();
-        for row in rows {
-            pending.push(row.map_err(|e| e.to_string())?);
-        }
-        drop(stmt);
-        for (id, title, content_json) in pending {
-            let text = document_index_text(&self.db, &id, &title, &content_json);
-            docs.push((id, text));
-        }
-
-        if docs.is_empty() {
-            return Ok(IndexResult {
-                indexed: 0,
-                model: "none".to_string(),
-            });
-        }
-
-        let mut indexed = 0i64;
-        let mut model = "none".to_string();
+        let _ = crate::nlp::sync_embed_backend(&self.db, sidecar);
+        let docs = crate::nlp::collect_index_documents(&self.db, None, true)?;
         let now = chrono::Utc::now().timestamp();
-
-        for chunk in docs.chunks(BATCH_SIZE) {
-            let ids: Vec<String> = chunk.iter().map(|(id, _)| id.clone()).collect();
-            let texts: Vec<String> = chunk.iter().map(|(_, text)| text.clone()).collect();
-            let (results, batch_model) = sidecar.embed_batch_with_chunks(&texts)?;
-            model = batch_model;
-
-            for (document_id, embedded) in ids.into_iter().zip(results.into_iter()) {
-                let chunks: Vec<EmbeddingChunkInput> = embedded
-                    .chunks
-                    .into_iter()
-                    .map(|chunk| EmbeddingChunkInput {
-                        index: chunk.index,
-                        text: chunk.text,
-                        vector: chunk.vector,
-                    })
-                    .collect();
-                upsert_embedding_with_chunks(
-                    &self.db,
-                    &document_id,
-                    &embedded.vector,
-                    &chunks,
-                    &model,
-                    now,
-                )?;
-                indexed += 1;
-            }
-        }
-
-        Ok(IndexResult { indexed, model })
+        let result = crate::nlp::index_collected_documents(
+            sidecar,
+            docs,
+            |ids, results, model| {
+                crate::nlp::persist_embedded_batch(&self.db, ids, results, model, now).map(|_| ())
+            },
+            |_| {},
+        )?;
+        Ok(IndexResult {
+            indexed: result.indexed,
+            model: result.model,
+        })
     }
 
     pub fn get_or_create_journal(

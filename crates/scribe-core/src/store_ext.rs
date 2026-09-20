@@ -96,16 +96,7 @@ pub struct LibraryRecord {
     pub is_active: bool,
 }
 
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ManuscriptRecord {
-    pub id: String,
-    pub library_id: String,
-    pub title: String,
-    pub chapter_ids: Vec<String>,
-    pub created_at: i64,
-    pub updated_at: i64,
-}
+pub use crate::manuscripts::ManuscriptRecord;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -289,6 +280,7 @@ impl ScribeStore {
                     "documentId": hit.document_id,
                     "title": hit.title,
                     "snippet": hit.snippet,
+                    "chunkIndex": hit.chunk_index,
                 })
             })
             .collect();
@@ -309,6 +301,7 @@ impl ScribeStore {
                     document_id: hit.document_id.clone(),
                     title: hit.title.clone(),
                     snippet: hit.snippet.clone(),
+                    chunk_index: hit.chunk_index,
                 })
                 .collect();
         }
@@ -348,6 +341,11 @@ impl ScribeStore {
         limit: Option<i64>,
     ) -> Result<NlpDuplicates, String> {
         require_nlp(&self.db)?;
+        let limit = limit.unwrap_or(20);
+        let stored = crate::nlp::find_duplicates_from_embeddings(&self.db, limit, 0.86)?;
+        if stored.compared >= 2 {
+            return Ok(stored);
+        }
         let mut stmt = self
             .db
             .prepare(
@@ -366,22 +364,26 @@ impl ScribeStore {
                 ))
             })
             .map_err(|e| e.to_string())?;
-        let mut documents = Vec::new();
+        let mut pending = Vec::new();
         for row in rows {
-            let (id, title, content_json) = row.map_err(|e| e.to_string())?;
+            pending.push(row.map_err(|e| e.to_string())?);
+        }
+        drop(stmt);
+        let mut documents = Vec::new();
+        for (id, title, content_json) in pending {
             if content_is_vault_cipher(&content_json) {
                 continue;
             }
             documents.push(json!({
                 "id": id,
                 "title": title,
-                "text": extract_search_text(&content_json),
+                "text": document_index_text(&self.db, &id, &title, &content_json),
             }));
         }
         sync_sidecar_backend(sidecar, &self.db)?;
         Ok(parse_duplicates(&sidecar.find_duplicates(
             json!(documents),
-            limit.unwrap_or(20),
+            limit,
             0.72,
         )?))
     }
@@ -631,6 +633,7 @@ impl ScribeStore {
                                 "title": title,
                                 "snippet": chunk.snippet,
                                 "score": chunk.score,
+                                "chunkIndex": chunk.chunk_index,
                             })
                         })
                         .collect::<Vec<_>>())
@@ -684,6 +687,10 @@ impl ScribeStore {
                         document_id: document_id.to_string(),
                         title: title.clone(),
                         snippet: item.get("snippet")?.as_str()?.to_string(),
+                        chunk_index: item
+                            .get("chunkIndex")
+                            .and_then(|value| value.as_i64())
+                            .map(|value| value as i32),
                     })
                 })
                 .take(4)
@@ -1333,91 +1340,6 @@ impl ScribeStore {
                 is_active: false,
             })
         })
-    }
-
-    pub fn list_manuscripts(&self) -> Result<Vec<ManuscriptRecord>, String> {
-        let library_id = active_library_id(&self.db);
-        let mut stmt = self
-            .db
-            .prepare(
-                "SELECT id, library_id, title, chapter_ids_json, created_at, updated_at \
-                 FROM manuscripts WHERE library_id = ?1 ORDER BY updated_at DESC",
-            )
-            .map_err(|e| e.to_string())?;
-        let rows = stmt
-            .query_map([library_id], |row| {
-                let raw: String = row.get(3)?;
-                Ok(ManuscriptRecord {
-                    id: row.get(0)?,
-                    library_id: row.get(1)?,
-                    title: row.get(2)?,
-                    chapter_ids: serde_json::from_str(&raw).unwrap_or_default(),
-                    created_at: row.get(4)?,
-                    updated_at: row.get(5)?,
-                })
-            })
-            .map_err(|e| e.to_string())?;
-        rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
-    }
-
-    pub fn upsert_manuscript(
-        &self,
-        id: Option<&str>,
-        title: &str,
-        chapter_ids: &[String],
-    ) -> Result<ManuscriptRecord, String> {
-        let title = title.trim();
-        if title.is_empty() {
-            return Err("title is required".to_string());
-        }
-        self.run_writable(|db| {
-            let library_id = active_library_id(db);
-            let now = chrono::Utc::now().timestamp();
-            let json = serde_json::to_string(chapter_ids).unwrap_or_else(|_| "[]".into());
-            let id = id
-                .map(str::trim)
-                .filter(|value| !value.is_empty())
-                .map(str::to_string)
-                .unwrap_or_else(|| Uuid::new_v4().to_string());
-            db.execute(
-                "INSERT INTO manuscripts (id, library_id, title, chapter_ids_json, created_at, updated_at) \
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?5) \
-                 ON CONFLICT(id) DO UPDATE SET title = excluded.title, chapter_ids_json = excluded.chapter_ids_json, \
-                 updated_at = excluded.updated_at",
-                params![id, library_id, title, json, now],
-            )
-            .map_err(|e| e.to_string())?;
-            Ok(ManuscriptRecord {
-                id,
-                library_id,
-                title: title.to_string(),
-                chapter_ids: chapter_ids.to_vec(),
-                created_at: now,
-                updated_at: now,
-            })
-        })
-    }
-
-    pub fn get_manuscript(&self, id: &str) -> Result<ManuscriptRecord, String> {
-        let library_id = active_library_id(&self.db);
-        self.db
-            .query_row(
-                "SELECT id, library_id, title, chapter_ids_json, created_at, updated_at \
-                 FROM manuscripts WHERE id = ?1 AND library_id = ?2",
-                params![id, library_id],
-                |row| {
-                    let raw: String = row.get(3)?;
-                    Ok(ManuscriptRecord {
-                        id: row.get(0)?,
-                        library_id: row.get(1)?,
-                        title: row.get(2)?,
-                        chapter_ids: serde_json::from_str(&raw).unwrap_or_default(),
-                        created_at: row.get(4)?,
-                        updated_at: row.get(5)?,
-                    })
-                },
-            )
-            .map_err(|_| format!("Manuscript not found: {id}"))
     }
 
     pub fn compile_manuscript(

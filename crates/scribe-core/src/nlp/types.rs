@@ -265,6 +265,8 @@ pub struct NlpCitation {
     pub document_id: String,
     pub title: String,
     pub snippet: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub chunk_index: Option<i32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

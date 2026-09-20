@@ -7,8 +7,8 @@ mod revisions;
 mod search;
 pub use library_scope::{active_library_id, DEFAULT_LIBRARY_ID, META_ACTIVE_LIBRARY};
 pub use search::{
-    build_fts_query, fuse_search_hits, search_documents_for_library, search_documents_in_conn,
-    SearchHit, SearchMode,
+    build_fts_query, filter_search_hits, fuse_search_hits, search_documents_for_library,
+    search_documents_in_conn, SearchFilter, SearchHit, SearchMode,
 };
 pub mod test_helpers;
 

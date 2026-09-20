@@ -480,9 +480,14 @@ pub fn nlp_set_enabled(
 pub fn nlp_search(
     state: State<'_, DbState>,
     sidecar: State<'_, NlpSidecar>,
+    vault: State<'_, scribe_core::nlp::UnlockedVaultIndex>,
     query: String,
     limit: Option<i64>,
     mode: Option<String>,
+    folder_id: Option<String>,
+    tag: Option<String>,
+    from_date: Option<String>,
+    to_date: Option<String>,
 ) -> Result<Vec<SearchHit>, String> {
     let limit = limit.unwrap_or(12);
     let q = query.trim();
@@ -638,125 +643,38 @@ pub fn nlp_index_all(
     state: State<'_, DbState>,
     sidecar: State<'_, NlpSidecar>,
 ) -> Result<NlpIndexResult, String> {
-    const BATCH_SIZE: usize = 24;
-
     let docs = {
         let conn = state.conn.lock().map_err(|e| e.to_string())?;
         if !is_nlp_enabled(&conn)? {
             return Err("NLP is disabled".to_string());
         }
-        sync_sidecar_backend(&sidecar, &conn)?;
+        let _ = scribe_core::nlp::sync_embed_backend(&conn, &sidecar);
         let library_id = crate::libraries::active_library_id(&conn);
-
-        let mut stmt = conn
-            .prepare("SELECT id, title, content_json FROM documents WHERE deleted_at IS NULL AND library_id = ?1")
-            .map_err(|e| e.to_string())?;
-        let rows = stmt
-            .query_map([library_id], |row| {
-                Ok((
-                    row.get::<_, String>(0)?,
-                    row.get::<_, String>(1)?,
-                    row.get::<_, String>(2)?,
-                ))
-            })
-            .map_err(|e| e.to_string())?;
-
-        let mut pending: Vec<(String, String, String)> = Vec::new();
-        for row in rows {
-            let (id, title, content_json) = row.map_err(|e| e.to_string())?;
-            if content_is_vault_cipher(&content_json) {
-                continue;
-            }
-            pending.push((id, title, content_json));
-        }
-        drop(stmt);
-        let mut docs: Vec<(String, String)> = Vec::new();
-        for (id, title, content_json) in pending {
-            let text = document_index_text(&conn, &id, &title, &content_json);
-            docs.push((id, text));
-        }
-        docs
+        scribe_core::nlp::collect_index_documents(&conn, Some(&library_id), true)?
     };
 
-    let total = docs.len();
-    let _ = app.emit(
-        "nlp-index-progress",
-        json!({
-            "current": 0,
-            "total": total,
-            "phase": "starting",
-        }),
-    );
-
-    if docs.is_empty() {
-        let _ = app.emit(
-            "nlp-index-progress",
-            json!({
-                "current": 0,
-                "total": 0,
-                "phase": "done",
-            }),
-        );
-        return Ok(NlpIndexResult {
-            indexed: 0,
-            model: "none".to_string(),
-        });
-    }
-
-    let mut indexed = 0i64;
-    let mut model = "none".to_string();
-    let now = now_ts();
-
-    for chunk in docs.chunks(BATCH_SIZE) {
-        let ids: Vec<String> = chunk.iter().map(|(id, _)| id.clone()).collect();
-        let texts: Vec<String> = chunk.iter().map(|(_, text)| text.clone()).collect();
-        let (results, batch_model) = sidecar.embed_batch_with_chunks(&texts)?;
-        model = batch_model;
-
-        {
+    let result = scribe_core::nlp::index_collected_documents(
+        &sidecar,
+        docs,
+        |ids, results, model| {
             let conn = state.conn.lock().map_err(|e| e.to_string())?;
-            for (document_id, embedded) in ids.into_iter().zip(results.into_iter()) {
-                let chunks: Vec<EmbeddingChunkInput> = embedded
-                    .chunks
-                    .into_iter()
-                    .map(|chunk| EmbeddingChunkInput {
-                        index: chunk.index,
-                        text: chunk.text,
-                        vector: chunk.vector,
-                    })
-                    .collect();
-                upsert_embedding_with_chunks(
-                    &conn,
-                    &document_id,
-                    &embedded.vector,
-                    &chunks,
-                    &model,
-                    now,
-                )?;
-                indexed += 1;
-            }
-        }
+            scribe_core::nlp::persist_embedded_batch(&conn, ids, results, model, now_ts()).map(|_| ())
+        },
+        |progress| {
+            let _ = app.emit("nlp-index-progress", progress);
+        },
+    )?;
 
-        let _ = app.emit(
-            "nlp-index-progress",
-            json!({
-                "current": indexed,
-                "total": total,
-                "phase": "indexing",
-            }),
-        );
-    }
+    Ok(NlpIndexResult {
+        indexed: result.indexed,
+        model: result.model,
+    })
+}
 
-    let _ = app.emit(
-        "nlp-index-progress",
-        json!({
-            "current": total,
-            "total": total,
-            "phase": "done",
-        }),
-    );
-
-    Ok(NlpIndexResult { indexed, model })
+#[tauri::command]
+pub fn nlp_cancel(sidecar: State<'_, NlpSidecar>) -> Result<(), String> {
+    sidecar.cancel_inflight();
+    Ok(())
 }
 
 #[tauri::command]

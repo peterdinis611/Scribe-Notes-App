@@ -204,39 +204,10 @@ pub fn resolve_conflict(conn: &Connection, id: &str) -> Result<(), String> {
     Ok(())
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Manuscript {
-    pub id: String,
-    pub library_id: String,
-    pub title: String,
-    pub chapter_ids: Vec<String>,
-    pub created_at: i64,
-    pub updated_at: i64,
-}
+use scribe_core::ManuscriptRecord as Manuscript;
 
 pub fn list_manuscripts(conn: &Connection) -> Result<Vec<Manuscript>, String> {
-    let library_id = active_library_id(conn);
-    let mut stmt = conn
-        .prepare(
-            "SELECT id, library_id, title, chapter_ids_json, created_at, updated_at \
-             FROM manuscripts WHERE library_id = ?1 ORDER BY updated_at DESC",
-        )
-        .map_err(|e| e.to_string())?;
-    let rows = stmt
-        .query_map([library_id], |row| {
-            let raw: String = row.get(3)?;
-            Ok(Manuscript {
-                id: row.get(0)?,
-                library_id: row.get(1)?,
-                title: row.get(2)?,
-                chapter_ids: serde_json::from_str(&raw).unwrap_or_default(),
-                created_at: row.get(4)?,
-                updated_at: row.get(5)?,
-            })
-        })
-        .map_err(|e| e.to_string())?;
-    rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+    scribe_core::list_manuscripts(conn)
 }
 
 pub fn upsert_manuscript(
@@ -245,30 +216,10 @@ pub fn upsert_manuscript(
     title: &str,
     chapter_ids: &[String],
 ) -> Result<Manuscript, String> {
-    let library_id = active_library_id(conn);
-    let now = now_ts();
-    let title = title.trim();
-    if title.is_empty() {
+    if title.trim().is_empty() {
         return Err("Názov zostavenia nemôže byť prázdny".into());
     }
-    let json = serde_json::to_string(chapter_ids).unwrap_or_else(|_| "[]".into());
-    let id = id.unwrap_or_else(|| Uuid::new_v4().to_string());
-    conn.execute(
-        "INSERT INTO manuscripts (id, library_id, title, chapter_ids_json, created_at, updated_at) \
-         VALUES (?1, ?2, ?3, ?4, ?5, ?5) \
-         ON CONFLICT(id) DO UPDATE SET title = excluded.title, chapter_ids_json = excluded.chapter_ids_json, \
-         updated_at = excluded.updated_at",
-        params![id, library_id, title, json, now],
-    )
-    .map_err(|e| e.to_string())?;
-    Ok(Manuscript {
-        id,
-        library_id,
-        title: title.to_string(),
-        chapter_ids: chapter_ids.to_vec(),
-        created_at: now,
-        updated_at: now,
-    })
+    scribe_core::upsert_manuscript(conn, id.as_deref(), title, chapter_ids)
 }
 
 #[cfg(test)]

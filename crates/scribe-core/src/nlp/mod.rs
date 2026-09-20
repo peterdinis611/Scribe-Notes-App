@@ -1,16 +1,24 @@
 mod chat_context;
+mod duplicates;
+pub mod jobs;
 mod memory;
 mod parse;
 mod sidecar;
 mod types;
+pub mod vault_index;
 
 pub use chat_context::{
     followups_from_sidecar, is_chat_memory_citation_title, merge_chat_memory_passages, ChatTurn,
     DOCUMENT_CHAT_CONTEXT_LIMIT,
 };
+pub use duplicates::find_duplicates_from_embeddings;
+pub use jobs::{
+    collect_index_documents, index_collected_documents, persist_embedded_batch, prune_memory_artifacts,
+    sync_embed_backend, IndexJobResult, NlpIndexProgress,
+};
 pub use memory::{
     collect_document_memory_passages, collect_library_memory_passages, persist_document_memory,
-    persist_library_memory, DOCUMENT_MEMORY_KIND, LIBRARY_MEMORY_KIND,
+    persist_library_memory, prune_expired, DOCUMENT_MEMORY_KIND, LIBRARY_MEMORY_KIND,
 };
 pub use parse::{
     parse_chunks, parse_dates_result, parse_diff_summary, parse_document_analysis, parse_duplicates,
@@ -31,3 +39,4 @@ pub use types::{
     NlpSummary, NlpTasks, NlpTemplateHints, NlpTitleSuggestion, NlpWikiSuggestion,
     NlpWikiSuggestions, DEFAULT_REWRITE_MODE, REWRITE_MODES,
 };
+pub use vault_index::{UnlockedVaultIndex, UnlockedVaultNote};

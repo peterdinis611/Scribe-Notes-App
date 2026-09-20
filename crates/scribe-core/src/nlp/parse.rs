@@ -475,6 +475,10 @@ pub fn parse_library_answer(result: &Value) -> NlpAnswer {
                             .and_then(Value::as_str)
                             .unwrap_or("")
                             .to_string(),
+                        chunk_index: item
+                            .get("chunkIndex")
+                            .and_then(Value::as_i64)
+                            .map(|value| value as i32),
                     })
                 })
                 .collect()

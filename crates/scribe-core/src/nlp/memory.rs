@@ -9,6 +9,7 @@ use crate::nlp::NlpCitation;
 pub const LIBRARY_MEMORY_KIND: &str = "library_memory";
 pub const DOCUMENT_MEMORY_KIND: &str = "document_memory";
 const LIBRARY_MEMORY_KEEP: usize = 24;
+const LIBRARY_MEMORY_TTL_SECS: i64 = 14 * 24 * 60 * 60;
 const MATCH_LIMIT: usize = 4;
 const DIGEST_PAIRS: usize = 6;
 const CLIP_CHARS: usize = 420;
@@ -172,6 +173,7 @@ pub fn persist_library_memory(
             "documentId": item.document_id,
             "title": item.title,
             "snippet": clip(&item.snippet, 180),
+            "chunkIndex": item.chunk_index,
         })).collect::<Vec<_>>(),
     });
     save_artifact(
@@ -181,6 +183,7 @@ pub fn persist_library_memory(
         &payload.to_string(),
         chrono::Utc::now().timestamp(),
     )?;
+    prune_expired(conn)?;
     prune_kind(conn, LIBRARY_MEMORY_KIND, LIBRARY_MEMORY_KEEP)
 }
 
@@ -247,7 +250,20 @@ pub fn persist_document_memory(
         DOCUMENT_MEMORY_KIND,
         &payload.to_string(),
         chrono::Utc::now().timestamp(),
-    )
+    )?;
+    prune_expired(conn)
+}
+
+pub fn prune_expired(conn: &Connection) -> Result<i64, String> {
+    let cutoff = chrono::Utc::now().timestamp() - LIBRARY_MEMORY_TTL_SECS;
+    let n = conn
+        .execute(
+            "DELETE FROM nlp_artifacts
+             WHERE kind IN (?1, ?2) AND created_at < ?3",
+            params![LIBRARY_MEMORY_KIND, DOCUMENT_MEMORY_KIND, cutoff],
+        )
+        .map_err(|e| e.to_string())?;
+    Ok(n as i64)
 }
 
 fn prune_kind(conn: &Connection, kind: &str, keep: usize) -> Result<(), String> {
@@ -280,6 +296,7 @@ mod tests {
                 document_id: "d1".into(),
                 title: "Atlas".into(),
                 snippet: "Friday".into(),
+                chunk_index: None,
             }],
         )
         .unwrap();

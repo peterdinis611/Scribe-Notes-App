@@ -431,6 +431,7 @@ pub fn semantic_search_filtered(
 pub struct RankedDocumentChunk {
     pub snippet: String,
     pub score: f64,
+    pub chunk_index: i32,
 }
 
 pub fn rank_document_chunks(
@@ -446,20 +447,24 @@ pub fn rank_document_chunks(
     if chunks.is_empty() {
         chunks = list_chunk_embeddings_filtered(conn, None, Some(&ids))?;
     }
-    let mut scored: Vec<(f64, String)> = chunks
+    let mut scored: Vec<(f64, String, i32)> = chunks
         .into_iter()
         .filter(|chunk| chunk.vector.len() == query_vector.len())
         .map(|chunk| {
             let score = cosine_similarity(query_vector, &chunk.vector);
-            (score, chunk.snippet)
+            (score, chunk.snippet, chunk.chunk_index)
         })
-        .filter(|(score, snippet)| *score > 0.04 && !snippet.trim().is_empty())
+        .filter(|(score, snippet, _)| *score > 0.04 && !snippet.trim().is_empty())
         .collect();
     scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
     scored.truncate(max);
     Ok(scored
         .into_iter()
-        .map(|(score, snippet)| RankedDocumentChunk { snippet, score })
+        .map(|(score, snippet, chunk_index)| RankedDocumentChunk {
+            snippet,
+            score,
+            chunk_index,
+        })
         .collect())
 }
 
@@ -491,7 +496,7 @@ fn semantic_search_chunks(
     model: Option<&str>,
     chunks: &[StoredChunkEmbedding],
 ) -> Result<Vec<SearchHit>, String> {
-    let mut best: HashMap<String, (f64, String)> = HashMap::new();
+    let mut best: HashMap<String, (f64, String, i32)> = HashMap::new();
     for chunk in chunks {
         if model.is_some_and(|expected| chunk.model != expected) {
             continue;
@@ -509,22 +514,27 @@ fn semantic_search_chunks(
             chunk.snippet.clone()
         };
         match best.get(&chunk.document_id) {
-            Some((prev, _)) if *prev >= score => {}
+            Some((prev, _, _)) if *prev >= score => {}
             _ => {
-                best.insert(chunk.document_id.clone(), (score, snippet));
+                best.insert(
+                    chunk.document_id.clone(),
+                    (score, snippet, chunk.chunk_index),
+                );
             }
         }
     }
 
-    let mut scored: Vec<(f64, String, String)> = best
+    let mut scored: Vec<(f64, String, String, i32)> = best
         .into_iter()
-        .map(|(document_id, (score, snippet))| (score, document_id, snippet))
+        .map(|(document_id, (score, snippet, chunk_index))| {
+            (score, document_id, snippet, chunk_index)
+        })
         .collect();
     scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
     scored.truncate(max as usize);
 
     let mut hits = Vec::with_capacity(scored.len());
-    for (score, document_id, snippet) in scored {
+    for (score, document_id, snippet, chunk_index) in scored {
         let library_id = active_library_id(conn);
         let Ok((title, content_json)) = conn.query_row(
             "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL AND library_id = ?2",
@@ -548,6 +558,7 @@ fn semantic_search_chunks(
             snippet: body_snippet,
             rank: -score,
             match_kind: Some("semantic".to_string()),
+            chunk_index: Some(chunk_index),
         });
     }
 
@@ -593,6 +604,7 @@ pub fn semantic_search_documents(
             snippet,
             rank: -score,
             match_kind: Some("semantic".to_string()),
+            chunk_index: None,
         });
     }
 
@@ -771,6 +783,7 @@ mod tests {
                 snippet: String::new(),
                 rank: -0.02,
                 match_kind: Some("fts".into()),
+                chunk_index: None,
             },
             SearchHit {
                 document_id: "b".into(),
@@ -778,6 +791,7 @@ mod tests {
                 snippet: String::new(),
                 rank: -0.015,
                 match_kind: Some("fts".into()),
+                chunk_index: None,
             },
         ];
         let ranked = rerank_search_hits(&conn, &[1.0f32, 0.0, 0.0], hits, Some("test"), 2);
