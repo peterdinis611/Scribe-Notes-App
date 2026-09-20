@@ -436,9 +436,15 @@ export const diffDocumentRevisions = (
   documentId: string,
   oldRevisionId: string,
   newRevisionId: string,
+  currentPlainText?: string,
 ) =>
   invoke<DiffDocumentRevisionsResult>('diff_document_revisions', {
-    input: { documentId, oldRevisionId, newRevisionId },
+    input: {
+      documentId,
+      oldRevisionId,
+      newRevisionId,
+      currentPlainText: currentPlainText ?? null,
+    },
   })
 
 export const renderDocumentHtml = (documentId: string, includeTitleHeading = true) =>

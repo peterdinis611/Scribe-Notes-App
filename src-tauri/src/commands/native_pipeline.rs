@@ -46,12 +46,16 @@ fn load_revision_plain(
     conn: &rusqlite::Connection,
     document_id: &str,
     revision_id: &str,
+    current_plain_text: Option<&str>,
 ) -> Result<String, String> {
     if document_is_vault(conn, document_id)? {
         return Err("Šifrované vault dokumenty sa nedajú porovnávať cez revision ID".to_string());
     }
 
     if revision_id == CURRENT_REVISION_ID {
+        if let Some(text) = current_plain_text {
+            return Ok(text.to_string());
+        }
         let (_, _, content_json) = load_document_row(conn, document_id)?;
         return Ok(tiptap_to_plain_text(&content_json));
     }
@@ -263,6 +267,9 @@ pub struct DiffDocumentRevisionsInput {
     pub document_id: String,
     pub old_revision_id: String,
     pub new_revision_id: String,
+    /// When comparing against `__current__`, optional plain text from the open
+    /// editor (includes unsaved edits). TipTap JSON still stays in JS.
+    pub current_plain_text: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -285,8 +292,19 @@ pub fn diff_document_revisions(
     }
 
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
-    let old_text = load_revision_plain(&conn, &input.document_id, &input.old_revision_id)?;
-    let new_text = load_revision_plain(&conn, &input.document_id, &input.new_revision_id)?;
+    let current = input.current_plain_text.as_deref();
+    let old_text = load_revision_plain(
+        &conn,
+        &input.document_id,
+        &input.old_revision_id,
+        current,
+    )?;
+    let new_text = load_revision_plain(
+        &conn,
+        &input.document_id,
+        &input.new_revision_id,
+        current,
+    )?;
 
     let DiffResult {
         lines,
