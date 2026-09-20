@@ -319,6 +319,10 @@ export function NlpSection() {
                 ['onnxruntime', status?.onnxAvailable ?? status?.extras?.onnxruntime],
                 ['faiss', status?.faissAvailable ?? status?.extras?.faiss],
                 ['sentenceTransformers', status?.qualityAvailable ?? status?.extras?.sentenceTransformers],
+                ['rust:rapidfuzz', status?.rustExtras?.fuzzy],
+                ['rust:rayon', status?.rustExtras?.searchFast],
+                ['rust:simsimd', status?.rustExtras?.vectors],
+                ['rust:encoding', status?.rustExtras?.unicode],
               ] as const
             ).map(([key, on]) => (
               <span

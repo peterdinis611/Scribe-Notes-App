@@ -362,23 +362,7 @@ pub fn rerank_search_hits(
 }
 
 pub fn cosine_similarity(a: &[f32], b: &[f32]) -> f64 {
-    if a.len() != b.len() || a.is_empty() {
-        return 0.0;
-    }
-    let mut dot = 0.0f64;
-    let mut norm_a = 0.0f64;
-    let mut norm_b = 0.0f64;
-    for (left, right) in a.iter().zip(b.iter()) {
-        let l = f64::from(*left);
-        let r = f64::from(*right);
-        dot += l * r;
-        norm_a += l * l;
-        norm_b += r * r;
-    }
-    if norm_a <= 0.0 || norm_b <= 0.0 {
-        return 0.0;
-    }
-    dot / (norm_a.sqrt() * norm_b.sqrt())
+    crate::enhance::cosine_similarity(a, b)
 }
 
 pub fn semantic_search(
@@ -474,16 +458,35 @@ fn score_document_embedding_ids(
     limit: i64,
     model: Option<&str>,
 ) -> Result<Vec<String>, String> {
-    let mut scored: Vec<(f64, String)> = list_embeddings(conn)?
+    let candidates: Vec<_> = list_embeddings(conn)?
         .into_iter()
         .filter(|item| model.map_or(true, |expected| item.model == expected))
         .filter(|item| item.vector.len() == query_vector.len())
+        .collect();
+
+    #[cfg(feature = "search-fast")]
+    let mut scored: Vec<(f64, String)> = {
+        use rayon::prelude::*;
+        candidates
+            .into_par_iter()
+            .map(|item| {
+                let score = cosine_similarity(query_vector, &item.vector);
+                (score, item.document_id)
+            })
+            .filter(|(score, _)| *score > 0.04)
+            .collect()
+    };
+
+    #[cfg(not(feature = "search-fast"))]
+    let mut scored: Vec<(f64, String)> = candidates
+        .into_iter()
         .map(|item| {
             let score = cosine_similarity(query_vector, &item.vector);
             (score, item.document_id)
         })
         .filter(|(score, _)| *score > 0.04)
         .collect();
+
     scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
     scored.truncate(limit.max(1) as usize);
     Ok(scored.into_iter().map(|(_, id)| id).collect())

@@ -41,6 +41,8 @@ pub struct NlpStatus {
     pub stale_index_count: i64,
     pub embed_backend: String,
     pub quality_available: bool,
+    pub extras: Option<serde_json::Map<String, serde_json::Value>>,
+    pub rust_extras: scribe_core::EnhanceStatus,
     pub script_path: String,
     pub python_bin: String,
     pub error: Option<String>,
@@ -215,6 +217,7 @@ fn sidecar_status(
     let script_path = sidecar.script_path().to_path_buf();
     let python_bin = std::env::var("SCRIBE_NLP_PYTHON").unwrap_or_else(|_| "python3".to_string());
     let sidecar_available = sidecar.script_exists();
+    let rust_extras = scribe_core::enhance_status();
 
     if !enabled {
         return NlpStatus {
@@ -229,6 +232,8 @@ fn sidecar_status(
             stale_index_count,
             embed_backend,
             quality_available,
+            extras: None,
+            rust_extras,
             script_path: crate::nlp::script_path_label(&script_path),
             python_bin,
             error: None,
@@ -248,6 +253,8 @@ fn sidecar_status(
             stale_index_count,
             embed_backend: health.embed_backend.unwrap_or(embed_backend),
             quality_available: health.quality_available.unwrap_or(quality_available),
+            extras: health.extras,
+            rust_extras,
             script_path: crate::nlp::script_path_label(&script_path),
             python_bin,
             error: None,
@@ -264,6 +271,8 @@ fn sidecar_status(
             stale_index_count,
             embed_backend,
             quality_available,
+            extras: None,
+            rust_extras,
             script_path: crate::nlp::script_path_label(&script_path),
             python_bin,
             error: health_error,

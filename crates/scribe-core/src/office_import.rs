@@ -402,9 +402,7 @@ fn read_entry<R: Read + Seek>(
     entry
         .read_to_end(&mut buffer)
         .map_err(|error| format!("cannot read {name}: {error}"))?;
-    String::from_utf8(buffer)
-        .map(Some)
-        .map_err(|_| format!("{name} is not valid UTF-8"))
+    Ok(Some(crate::enhance::decode_bytes(&buffer)))
 }
 
 fn new_reader(xml: &str) -> Reader<&[u8]> {

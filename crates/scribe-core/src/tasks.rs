@@ -1,5 +1,6 @@
 use serde::Serialize;
 use serde_json::Value;
+use rusqlite::{params, Connection};
 
 use crate::dates::extract_due_hint;
 use crate::nlp::NlpSidecar;
@@ -149,6 +150,103 @@ pub fn enrich_due_hints_from_sidecar(
         }
     }
     Ok(())
+}
+
+fn merge_open_tasks_per_document(mut tasks: Vec<DocumentTask>) -> Vec<DocumentTask> {
+    let mut seen = std::collections::HashSet::new();
+    tasks.retain(|task| {
+        let key = (
+            task.document_id.clone().unwrap_or_default(),
+            task.text.to_lowercase(),
+        );
+        seen.insert(key)
+    });
+    tasks
+}
+
+/// Unchecked checklist items (and optional NLP phrases) across recent notes.
+pub fn list_open_tasks(
+    conn: &Connection,
+    sidecar: &NlpSidecar,
+    folder_id: Option<&str>,
+    limit: i64,
+    include_phrases: bool,
+) -> Result<Vec<DocumentTask>, String> {
+    use crate::db::{extract_search_text, get_embed_backend, is_nlp_enabled};
+
+    let limit = limit.clamp(1, 500);
+    let filter_folder = folder_id.filter(|value| !value.is_empty());
+    let nlp_phrases = include_phrases && is_nlp_enabled(conn)?;
+    if nlp_phrases {
+        let backend = get_embed_backend(conn)?;
+        let _ = sidecar.configure_embed_backend(&backend);
+    }
+
+    let mut combined = Vec::new();
+    if let Some(folder_id) = filter_folder {
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, title, content_json FROM documents
+                 WHERE deleted_at IS NULL AND folder_id = ?1
+                 ORDER BY updated_at DESC
+                 LIMIT ?2",
+            )
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map(params![folder_id, limit], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            })
+            .map_err(|e| e.to_string())?;
+        for row in rows {
+            combined.push(row.map_err(|e| e.to_string())?);
+        }
+    } else {
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, title, content_json FROM documents
+                 WHERE deleted_at IS NULL
+                 ORDER BY updated_at DESC
+                 LIMIT ?1",
+            )
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map(params![limit], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            })
+            .map_err(|e| e.to_string())?;
+        for row in rows {
+            combined.push(row.map_err(|e| e.to_string())?);
+        }
+    }
+
+    let mut tasks_out = Vec::new();
+    for (document_id, title, content_json) in combined {
+        let mut tasks = extract_checkbox_tasks_with_due(&content_json, !nlp_phrases);
+        for task in &mut tasks {
+            task.document_id = Some(document_id.clone());
+            task.document_title = Some(title.clone());
+        }
+
+        if nlp_phrases {
+            let text = format!("{title}\n{}", extract_search_text(&content_json));
+            if let Ok(result) = sidecar.extract_tasks(&text) {
+                append_phrase_tasks(&mut tasks, &result, &document_id, &title);
+            }
+            let _ = enrich_due_hints_from_sidecar(sidecar, &mut tasks);
+        }
+
+        tasks_out.extend(tasks.into_iter().filter(|task| !task.checked));
+    }
+
+    Ok(merge_open_tasks_per_document(tasks_out))
 }
 
 #[cfg(test)]

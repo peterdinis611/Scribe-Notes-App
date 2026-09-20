@@ -18,6 +18,12 @@ export interface NlpStatus {
   spacyAvailable?: boolean
   argosAvailable?: boolean
   extras?: Record<string, boolean>
+  rustExtras?: {
+    fuzzy: boolean
+    searchFast: boolean
+    vectors: boolean
+    unicode: boolean
+  }
   features?: string[]
   scriptPath: string
   pythonBin: string

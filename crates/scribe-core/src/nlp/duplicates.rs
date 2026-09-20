@@ -35,29 +35,69 @@ pub fn find_duplicates_from_embeddings(
 
     let compared = docs.len() as i64;
     let mut pairs = Vec::new();
-    for left in 0..docs.len() {
-        for right in (left + 1)..docs.len() {
-            if docs[left].0.vector.len() != docs[right].0.vector.len() {
-                continue;
+
+    #[cfg(feature = "search-fast")]
+    {
+        use rayon::prelude::*;
+        let scored: Vec<_> = (0..docs.len())
+            .into_par_iter()
+            .flat_map(|left| {
+                (left + 1..docs.len())
+                    .filter_map(|right| {
+                        if docs[left].0.vector.len() != docs[right].0.vector.len() {
+                            return None;
+                        }
+                        if docs[left].0.model != docs[right].0.model {
+                            return None;
+                        }
+                        let score =
+                            cosine_similarity(&docs[left].0.vector, &docs[right].0.vector);
+                        if score < min_score {
+                            return None;
+                        }
+                        Some(NlpDuplicatePair {
+                            left_id: docs[left].0.document_id.clone(),
+                            left_title: docs[left].1.clone(),
+                            right_id: docs[right].0.document_id.clone(),
+                            right_title: docs[right].1.clone(),
+                            score,
+                            jaccard: 0.0,
+                            embed_score: score,
+                        })
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+        pairs = scored;
+    }
+
+    #[cfg(not(feature = "search-fast"))]
+    {
+        for left in 0..docs.len() {
+            for right in (left + 1)..docs.len() {
+                if docs[left].0.vector.len() != docs[right].0.vector.len() {
+                    continue;
+                }
+                if docs[left].0.model != docs[right].0.model {
+                    continue;
+                }
+                let score = cosine_similarity(&docs[left].0.vector, &docs[right].0.vector);
+                if score < min_score {
+                    continue;
+                }
+                pairs.push(NlpDuplicatePair {
+                    left_id: docs[left].0.document_id.clone(),
+                    left_title: docs[left].1.clone(),
+                    right_id: docs[right].0.document_id.clone(),
+                    right_title: docs[right].1.clone(),
+                    score,
+                    jaccard: 0.0,
+                    embed_score: score,
+                });
             }
-            if docs[left].0.model != docs[right].0.model {
-                continue;
-            }
-            let score = cosine_similarity(&docs[left].0.vector, &docs[right].0.vector);
-            if score < min_score {
-                continue;
-            }
-            pairs.push(NlpDuplicatePair {
-                left_id: docs[left].0.document_id.clone(),
-                left_title: docs[left].1.clone(),
-                right_id: docs[right].0.document_id.clone(),
-                right_title: docs[right].1.clone(),
-                score,
-                jaccard: 0.0,
-                embed_score: score,
-            });
         }
     }
+
     pairs.sort_by(|a, b| {
         b.score
             .partial_cmp(&a.score)
