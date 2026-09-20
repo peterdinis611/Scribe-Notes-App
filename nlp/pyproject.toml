@@ -9,6 +9,24 @@ dependencies = []
 
 [project.optional-dependencies]
 quality = ["sentence-transformers>=3.0.0"]
+enhance = [
+  "rapidfuzz>=3.6.0",
+  "lingua-language-detector>=2.0.2",
+  "ftfy>=6.2.0",
+  "dateparser>=1.2.0",
+]
+translate = ["argostranslate>=1.9.6"]
+ner = ["spacy>=3.7.0"]
+onnx = [
+  "onnxruntime>=1.17.0",
+  "numpy>=1.24.0",
+  "tokenizers>=0.15.0",
+  "huggingface_hub>=0.20.0",
+]
+faiss = ["faiss-cpu>=1.7.4", "numpy>=1.24.0"]
+full = [
+  "scribe-nlp[quality,enhance,translate,ner,onnx,faiss]",
+]
 
 [project.scripts]
 scribe-nlp = "scribe_nlp.__main__:main"

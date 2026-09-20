@@ -64,7 +64,9 @@ def extract_dates(
     today: date | None = None,
 ) -> dict[str, object]:
     """Absolute + relative date/event cues for tasks and journal timeline."""
-    source = text or ""
+    from .extras import fix_unicode, parse_date_flexible
+
+    source = fix_unicode(text or "")
     folded = fold_diacritics(source)
     base = today or date.today()
     events: list[dict[str, object]] = []
@@ -96,7 +98,12 @@ def extract_dates(
         claimed.append((match.start(1), match.end(1)))
         original = source[match.start(1) : match.end(1)] if match.end(1) <= len(source) else raw
         display = normalize_text(source[match.start() : match.end()] if match.end() <= len(source) else match.group(0))
-        resolved = _parse_absolute(raw, base.year) or _resolve_relative(raw, base)
+        resolved = (
+            _parse_absolute(raw, base.year)
+            or _resolve_relative(raw, base)
+            or parse_date_flexible(original)
+            or parse_date_flexible(raw)
+        )
         _add(display or f"do {original}", "deadline", resolved)
 
     for match in RELATIVE.finditer(folded):
@@ -106,7 +113,8 @@ def extract_dates(
         raw = match.group(1)
         claimed.append((start, end))
         original = source[start:end] if end <= len(source) else raw
-        _add(original, "relative", _resolve_relative(raw, base))
+        resolved = _resolve_relative(raw, base) or parse_date_flexible(original)
+        _add(original, "relative", resolved)
 
     for match in ABSOLUTE_DATE.finditer(folded):
         start, end = match.start(1), match.end(1)
@@ -114,7 +122,7 @@ def extract_dates(
             continue
         raw = match.group(1)
         original = source[start:end] if end <= len(source) else raw
-        _add(original, "absolute", _parse_absolute(raw, base.year))
+        _add(original, "absolute", _parse_absolute(raw, base.year) or parse_date_flexible(original))
 
     events.sort(
         key=lambda item: (
@@ -135,7 +143,11 @@ def resolve_due_hint(
     result = extract_dates(text, today=today)
     events = result.get("events") or []
     if not events:
-        return None
+        # dateparser fallback for free-form phrases (SK/EN).
+        from .extras import parse_date_flexible
+
+        parsed = parse_date_flexible(text or "")
+        return parsed.isoformat() if parsed is not None else None
 
     def _rank(item: dict[str, object]) -> tuple[int, str]:
         kind = str(item.get("kind") or "")
@@ -148,7 +160,12 @@ def resolve_due_hint(
         resolved = item.get("resolvedDate")
         if isinstance(resolved, str) and resolved:
             return resolved
-    # Fallback: raw absolute token when unparseable.
+    # Fallback: try dateparser on the raw line, then raw absolute token.
+    from .extras import parse_date_flexible
+
+    parsed = parse_date_flexible(text or "")
+    if parsed is not None:
+        return parsed.isoformat()
     text_value = ranked[0].get("text")
     return str(text_value) if text_value else None
 

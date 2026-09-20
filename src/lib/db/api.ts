@@ -657,6 +657,41 @@ export interface BackupImportResult {
 
 export const listLinkGraph = () => invoke<LinkGraph>('list_link_graph')
 
+export interface WikiHealthOrphan {
+  id: string
+  title: string
+}
+
+export interface WikiHealthUnresolved {
+  documentId: string
+  documentTitle: string
+  label: string
+  targetId?: string | null
+}
+
+export interface WikiHealthStub {
+  id: string
+  title: string
+  wordCount: number
+}
+
+export interface WikiHealth {
+  orphans: WikiHealthOrphan[]
+  unresolved: WikiHealthUnresolved[]
+  stubs: WikiHealthStub[]
+}
+
+export const listWikiHealth = (options?: {
+  unresolvedLimit?: number
+  stubMaxWords?: number
+  stubLimit?: number
+}) =>
+  invoke<WikiHealth>('list_wiki_health', {
+    unresolvedLimit: options?.unresolvedLimit ?? null,
+    stubMaxWords: options?.stubMaxWords ?? null,
+    stubLimit: options?.stubLimit ?? null,
+  })
+
 export const exportLibraryArchive = () =>
   invoke<BackupExportResult | null>('export_library_archive')
 

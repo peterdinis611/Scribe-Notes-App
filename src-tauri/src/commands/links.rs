@@ -74,3 +74,19 @@ pub fn list_link_graph(state: tauri::State<'_, DbState>) -> Result<LinkGraph, St
 
     Ok(LinkGraph { edges, orphans })
 }
+
+#[tauri::command]
+pub fn list_wiki_health(
+    state: tauri::State<'_, DbState>,
+    unresolved_limit: Option<i64>,
+    stub_max_words: Option<i64>,
+    stub_limit: Option<i64>,
+) -> Result<scribe_core::WikiHealth, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    scribe_core::wiki_health(
+        &conn,
+        unresolved_limit.unwrap_or(120),
+        stub_max_words.unwrap_or(40),
+        stub_limit.unwrap_or(80),
+    )
+}

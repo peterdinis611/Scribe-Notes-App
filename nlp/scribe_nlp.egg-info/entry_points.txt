@@ -1,0 +1,2 @@
+[console_scripts]
+scribe-nlp = scribe_nlp.__main__:main

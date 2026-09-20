@@ -13,6 +13,12 @@ export interface NlpStatus {
   staleIndexCount: number
   embedBackend: string
   qualityAvailable: boolean
+  onnxAvailable?: boolean
+  faissAvailable?: boolean
+  spacyAvailable?: boolean
+  argosAvailable?: boolean
+  extras?: Record<string, boolean>
+  features?: string[]
   scriptPath: string
   pythonBin: string
   error: string | null
@@ -178,6 +184,13 @@ export const nlpDocumentTasks = (documentId: string) =>
 
 export const nlpJournalTasks = (documentIds: string[]) =>
   invoke<DocumentTask[]>('nlp_journal_tasks', { input: { documentIds } })
+
+/** Open checkbox tasks across recent library documents (checkbox source only). */
+export const nlpListOpenTasks = (limit = 200, folderId?: string | null) =>
+  invoke<DocumentTask[]>('nlp_list_open_tasks', {
+    limit,
+    folderId: folderId ?? null,
+  })
 
 export const nlpIndexDocument = async (documentId: string) => {
   const result = await invoke<NlpIndexResult>('nlp_index_document', { documentId })

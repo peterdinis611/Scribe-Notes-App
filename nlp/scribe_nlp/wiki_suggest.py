@@ -119,6 +119,15 @@ def _candidate_phrases(text: str) -> list[str]:
         if cleaned[0].isupper() and cleaned[1:].islower():
             _push(cleaned)
 
+    try:
+        from .spacy_ner import extract_spacy_entities
+
+        for item in extract_spacy_entities(text, limit=20):
+            if str(item.get("kind") or "") in {"person", "org", "place", "phrase"}:
+                _push(str(item.get("text") or ""))
+    except Exception:
+        pass
+
     return phrases[:48]
 
 
@@ -135,8 +144,14 @@ def _match_score(
         longer = max(len(folded_phrase), len(folded_title))
         return 0.72 + 0.2 * (shorter / max(longer, 1))
 
+    from .extras import fuzzy_ratio
+
+    fuzzy = fuzzy_ratio(folded_phrase, folded_title)
+    if fuzzy >= 0.88:
+        return min(0.98, 0.82 + 0.16 * fuzzy)
+
     if not phrase_stems or not title_stems:
-        return 0.0
+        return fuzzy if fuzzy >= 0.72 else 0.0
 
     overlap = len(phrase_stems & title_stems) / max(len(phrase_stems | title_stems), 1)
     if overlap <= 0:
@@ -149,4 +164,5 @@ def _match_score(
 
     # Tiny lexical Jaccard on surface strings as tie-break.
     surface = jaccard_similarity(folded_phrase, folded_title)
-    return 0.75 * overlap + 0.25 * surface
+    blended = 0.55 * overlap + 0.20 * surface + 0.25 * fuzzy
+    return blended

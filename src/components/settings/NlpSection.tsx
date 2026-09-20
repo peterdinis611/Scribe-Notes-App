@@ -304,6 +304,38 @@ export function NlpSection() {
         </SettingsRow>
 
         <SettingsRow
+          title={t('settings.nlp.extrasTitle')}
+          description={t('settings.nlp.extrasDescription')}
+        >
+          <div className="flex max-w-md flex-wrap justify-end gap-1.5">
+            {(
+              [
+                ['rapidfuzz', status?.extras?.rapidfuzz],
+                ['lingua', status?.extras?.lingua],
+                ['ftfy', status?.extras?.ftfy],
+                ['dateparser', status?.extras?.dateparser],
+                ['argosTranslate', status?.argosAvailable ?? status?.extras?.argosTranslate],
+                ['spacy', status?.spacyAvailable ?? status?.extras?.spacy],
+                ['onnxruntime', status?.onnxAvailable ?? status?.extras?.onnxruntime],
+                ['faiss', status?.faissAvailable ?? status?.extras?.faiss],
+                ['sentenceTransformers', status?.qualityAvailable ?? status?.extras?.sentenceTransformers],
+              ] as const
+            ).map(([key, on]) => (
+              <span
+                key={key}
+                className={
+                  on
+                    ? 'rounded-full border border-[var(--color-accent)]/40 bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-accent)]'
+                    : 'rounded-full border border-[var(--color-border)] px-2 py-0.5 text-[10px] text-[var(--color-muted-foreground)]'
+                }
+              >
+                {key}
+              </span>
+            ))}
+          </div>
+        </SettingsRow>
+
+        <SettingsRow
           title={t('settings.nlp.reportTitle')}
           description={t('settings.nlp.reportDescription')}
         >

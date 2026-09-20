@@ -1153,6 +1153,83 @@ pub fn nlp_journal_tasks(
 }
 
 #[tauri::command]
+pub fn nlp_list_open_tasks(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    limit: Option<i64>,
+    folder_id: Option<String>,
+) -> Result<Vec<DocumentTask>, String> {
+    let max_docs = limit.unwrap_or(200).clamp(1, 500);
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let library_id = crate::libraries::active_library_id(&conn);
+    let folder = folder_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+
+    let rows: Vec<(String, String, String)> = if let Some(folder_id) = folder {
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, title, content_json FROM documents
+                 WHERE deleted_at IS NULL AND library_id = ?1 AND folder_id = ?2
+                 ORDER BY updated_at DESC
+                 LIMIT ?3",
+            )
+            .map_err(|e| e.to_string())?;
+        let mapped = stmt
+            .query_map(params![library_id, folder_id, max_docs], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            })
+            .map_err(|e| e.to_string())?;
+        mapped
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?
+    } else {
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, title, content_json FROM documents
+                 WHERE deleted_at IS NULL AND library_id = ?1
+                 ORDER BY updated_at DESC
+                 LIMIT ?2",
+            )
+            .map_err(|e| e.to_string())?;
+        let mapped = stmt
+            .query_map(params![library_id, max_docs], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            })
+            .map_err(|e| e.to_string())?;
+        mapped
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?
+    };
+
+    // Checkbox-only for speed; phrase extraction is available per-document in Insights.
+    let mut open = Vec::new();
+    for (document_id, title, content_json) in rows {
+        if content_is_vault_cipher(&content_json) {
+            continue;
+        }
+        let mut tasks = extract_checkbox_tasks(&content_json, true);
+        for task in &mut tasks {
+            task.document_id = Some(document_id.clone());
+            task.document_title = Some(title.clone());
+        }
+        open.extend(tasks.into_iter().filter(|task| !task.checked));
+    }
+
+    let _ = sidecar;
+    Ok(merge_document_tasks(open))
+}
+
+#[tauri::command]
 pub fn nlp_set_embed_backend(
     state: State<'_, DbState>,
     sidecar: State<'_, NlpSidecar>,

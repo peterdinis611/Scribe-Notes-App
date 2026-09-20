@@ -1,4 +1,4 @@
-import { Eraser, FileText, Library, Send, Settings2, Sparkles } from 'lucide-react'
+import { Eraser, FileText, Library, Quote, Send, Settings2, Sparkles } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
@@ -36,6 +36,7 @@ import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { citationSearchQuery } from '@/lib/editor/citation-jump'
+import { insertAiAnswerAsCallout } from '@/lib/editor/insert-ai-answer'
 import { setActiveDocument, setActiveDocumentId, setPendingEditorSearch } from '@/store/documentsSlice'
 
 type ChatMessage = {
@@ -583,6 +584,27 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
                           </button>
                         ))}
                       </div>
+                    </MessageFooter>
+                  ) : null}
+                  {!isUser ? (
+                    <MessageFooter>
+                      <button
+                        type="button"
+                        className="library-chat-insert"
+                        disabled={loading}
+                        onClick={() => {
+                          const ok = insertAiAnswerAsCallout(message.text, {
+                            sourceTitle:
+                              message.citations?.[0]?.title ||
+                              (scope === 'document' ? docTitle : t('libraryChat.assistant')),
+                          })
+                          if (ok) toast.success(t('libraryChat.insertAnswerDone'))
+                          else toast.error(t('libraryChat.insertAnswerError'))
+                        }}
+                      >
+                        <Quote className="h-3 w-3" />
+                        {t('libraryChat.insertAnswer')}
+                      </button>
                     </MessageFooter>
                   ) : null}
                   {message.followups && message.followups.length > 0 ? (

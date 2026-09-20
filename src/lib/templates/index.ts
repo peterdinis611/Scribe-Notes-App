@@ -51,7 +51,7 @@ const canvasNote: DocumentTemplate = {
 const modernReport: DocumentTemplate = {
   id: 'modern-report',
   name: 'Moderný report',
-  description: 'Titulná strana, obsah a štruktúrované sekcie',
+  description: 'Titulná strana, sekcie a checklist pred odovzdaním',
   category: 'business',
   title: 'Report',
   content: {
@@ -144,6 +144,76 @@ const modernReport: DocumentTemplate = {
       {
         type: 'paragraph',
         content: [{ type: 'text', text: 'Zhrnutie a ďalšie kroky.' }],
+      },
+      { type: 'horizontalRule' },
+      {
+        type: 'heading',
+        attrs: { level: 2 },
+        content: [{ type: 'text', text: 'Kontrola pred odovzdaním' }],
+      },
+      {
+        type: 'paragraph',
+        content: [
+          {
+            type: 'text',
+            text: 'Zaškrtni, čo je hotové — status bar a Insights ukážu, čo v reporte ešte chýba.',
+          },
+        ],
+      },
+      {
+        type: 'taskList',
+        content: [
+          {
+            type: 'taskItem',
+            attrs: { checked: false },
+            content: [
+              {
+                type: 'paragraph',
+                content: [{ type: 'text', text: 'Zhrnutie má kľúčové zistenia a odporúčania' }],
+              },
+            ],
+          },
+          {
+            type: 'taskItem',
+            attrs: { checked: false },
+            content: [
+              {
+                type: 'paragraph',
+                content: [{ type: 'text', text: 'Úvod definuje cieľ, publikum a rozsah' }],
+              },
+            ],
+          },
+          {
+            type: 'taskItem',
+            attrs: { checked: false },
+            content: [
+              {
+                type: 'paragraph',
+                content: [{ type: 'text', text: 'Hlavná časť obsahuje dáta / dôkazy' }],
+              },
+            ],
+          },
+          {
+            type: 'taskItem',
+            attrs: { checked: false },
+            content: [
+              {
+                type: 'paragraph',
+                content: [{ type: 'text', text: 'Záver obsahuje konkrétne ďalšie kroky' }],
+              },
+            ],
+          },
+          {
+            type: 'taskItem',
+            attrs: { checked: false },
+            content: [
+              {
+                type: 'paragraph',
+                content: [{ type: 'text', text: 'Zdroje, prílohy a formátovanie skontrolované' }],
+              },
+            ],
+          },
+        ],
       },
     ],
   },

@@ -48,8 +48,11 @@ def _embed_cached(text: str) -> list[float]:
 
 
 def _validate_text(text: str, *, field: str = "text") -> str:
+    from .extras import fix_unicode
+
     if not isinstance(text, str):
         raise SidecarError(f"{field} must be a string")
+    text = fix_unicode(text)
     if len(text) > MAX_TEXT_CHARS:
         raise SidecarError(
             f"{field} exceeds {MAX_TEXT_CHARS} characters",
@@ -104,6 +107,12 @@ FEATURES = [
 ]
 
 
+def _active_features() -> list[str]:
+    from .extras import extras_feature_flags
+
+    return FEATURES + extras_feature_flags()
+
+
 def handle_request(request: dict[str, Any]) -> dict[str, Any]:
     from .debug import debug_log, nlp_debug_enabled, timed_debug
 
@@ -135,13 +144,24 @@ def _handle_request_inner(
 ) -> dict[str, Any]:
     try:
         if method == "health":
+            from .extras import extras_status
+            from .onnx_embed import onnx_available
+            from .faiss_search import faiss_available
+            from .spacy_ner import spacy_available
+            from .argos_translate import argos_ready
+
             result = {
                 "ok": True,
                 "version": __version__,
                 "model": current_model_id(),
                 "embedBackend": active_backend(),
                 "qualityAvailable": quality_available(),
-                "features": FEATURES,
+                "onnxAvailable": onnx_available(),
+                "faissAvailable": faiss_available(),
+                "spacyAvailable": spacy_available(),
+                "argosAvailable": argos_ready(),
+                "extras": extras_status(),
+                "features": _active_features(),
                 "debug": nlp_debug_enabled(),
                 "limits": {
                     "maxTextChars": MAX_TEXT_CHARS,

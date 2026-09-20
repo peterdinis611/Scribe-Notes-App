@@ -943,12 +943,14 @@
       "statusEmbedBackend": "Spôsob vektorov",
       "embedBackendTitle": "Kvalita sémantiky",
       "embedBackendDescription": "Hash je rýchly a bez závislostí. Kvalitný model dáva presnejšie podobné dokumenty a vyhľadávanie.",
-      "embedBackendInstallHint": "Pre kvalitný model nainštalujte: pip install scribe-nlp[quality] alebo pip install sentence-transformers",
+      "embedBackendInstallHint": "Pre kvalitný model: pip install 'scribe-nlp[quality]' (alebo [full] pre všetky extras)",
       "embedBackendHash": "Hash (rýchly)",
       "embedBackendQuality": "Kvalita (MiniLM)",
       "embedBackendError": "Nepodarilo sa zmeniť spôsob vektorov",
       "hashEnabledToast": "Používa sa rýchly hash vektorov",
       "qualityEnabledToast": "Používa sa kvalitný vektorový model — preindexujte knižnicu",
+      "extrasTitle": "Voliteľné Python balíčky",
+      "extrasDescription": "Inštalácia z nlp/: pip install 'scribe-nlp[enhance,translate,ner,onnx,faiss]'. Zvýraznené chipy sú detegované.",
       "yes": "Áno",
       "no": "Nie"
     },
@@ -1412,7 +1414,30 @@
       "tags": "Štítky",
       "graph": "Mapa prepojení",
       "duplicates": "Duplicity",
+      "tasks": "Otvorené úlohy",
+      "wikiHealth": "Wiki zdravie",
       "chat": "Scribe AI"
+    },
+    "tasks": {
+      "title": "Otvorené úlohy",
+      "hint": "Nezaškrtnuté checkboxy naprieč nedávnymi poznámkami. Klikni na úlohu a otvorí sa poznámka so skokom na text.",
+      "empty": "V nedávnych poznámkach nie sú otvorené checklist úlohy.",
+      "count": "{{count}} otvorených · {{notes}} poznámok",
+      "loadError": "Otvorené úlohy sa nepodarilo načítať"
+    },
+    "wikiHealth": {
+      "title": "Wiki zdravie",
+      "hint": "Osirolené poznámky, chýbajúce [[odkazy]] a stuby pod 40 slov. Klikni a otvoríš.",
+      "empty": "Wiki je v poriadku — žiadne osirolené, chýbajúce odkazy ani stuby.",
+      "count": "{{orphans}} osirolených · {{unresolved}} chýbajúcich · {{stubs}} stubov",
+      "loadError": "Wiki zdravie sa nepodarilo načítať",
+      "orphans": "Osirolené",
+      "orphansEmpty": "Každá poznámka je prepojená.",
+      "unresolved": "Chýbajúce [[ciele]]",
+      "unresolvedEmpty": "Všetky wiki odkazy sa dajú vyriešiť.",
+      "stubs": "Stuby",
+      "stubsEmpty": "Žiadne stub poznámky.",
+      "stubWords": "{{count}} slov"
     },
     "duplicates": {
       "title": "Takmer rovnaké poznámky",
@@ -1536,6 +1561,9 @@
     "send": "Opýtať sa",
     "thinking": "Scribe Lokálna AI číta vaše poznámky…",
     "citations": "Zdroje",
+    "insertAnswer": "Vložiť ako callout",
+    "insertAnswerDone": "Odpoveď vložená do otvorenej poznámky",
+    "insertAnswerError": "Otvorte dokument v editore, aby sa dala odpoveď vložiť",
     "you": "Vy",
     "assistant": "Scribe AI",
     "assistantDocument": "Scribe AI",
@@ -1739,6 +1767,17 @@
       "loadError": "Nepodarilo sa načítať AI prehľad",
       "askTitle": "Opýtať sa poznámky",
       "askHint": "Vlastná Lokálna AI Scribe — otázky a akcie k tejto poznámke, len na tomto Macu.",
+      "insertAnswer": "Vložiť ako callout",
+      "insertAnswerDone": "Odpoveď vložená do poznámky",
+      "insertAnswerError": "Otvorte dokument v editore, aby sa dala odpoveď vložiť",
+      "wikiSuggestHint": "Navrhované wiki odkazy — prijmite a fráza sa nahradí [[názvom]].",
+      "wikiAccept": "Prepojiť",
+      "wikiAppliedLinked": "Prepojené „{{title}}“ v poznámke",
+      "wikiAppliedInserted": "Vložené [[{{title}}]] na kurzor",
+      "wikiApplyError": "Wiki odkaz sa nepodarilo použiť — otvorte poznámku v editore",
+      "spellcheckApply": "Nahradiť za {{word}}",
+      "spellcheckApplied": "Nahradené za „{{word}}“",
+      "spellcheckApplyError": "Nepodarilo sa nahradiť — skúste Nájsť v editore",
       "questionHistoryEmpty": "Zatiaľ nič — zoznam sa plní, keď sa pýtate tohto dokumentu.",
       "localBadge": "Scribe Lokálna AI",
       "openChat": "Otvoriť plný chat →",
@@ -2294,7 +2333,7 @@
       },
       "modern-report": {
         "name": "Moderný report",
-        "description": "Titulná strana, obsah a štruktúrované sekcie",
+        "description": "Titulná strana, sekcie a checklist pred odovzdaním",
         "title": "Report"
       },
       "business-letter": {
@@ -2999,12 +3038,16 @@
   },
   "aiRewrite": {
     "title": "Upraviť výber",
+    "localHint": "Lokálne pravidlá — bez cloud LLM",
     "rephrase": "Preformulovať",
+    "shorten": "Skrátiť",
+    "simplify": "Zjednodušiť",
     "summarize": "Skrátiť na odrážky",
+    "expand": "Odrážky → odsek",
     "translateSk": "Do slovenčiny",
     "translateEn": "Do angličtiny",
     "custom": "Vlastný prompt...",
-    "customPlaceholder": "napr. skráť, veľké písmená...",
+    "customPlaceholder": "napr. skráť, veľké písmená, zjednoduš…",
     "run": "Spustiť",
     "insertBelow": "Vložiť pod výber",
     "replace": "Nahradiť",
@@ -3016,6 +3059,8 @@
   },
   "templateCoach": {
     "chip": "{{present}}/{{expected}} sekcií",
-    "hint": "Nadpisy šablóny v tejto poznámke"
+    "hint": "Nadpisy šablóny v tejto poznámke",
+    "missing": "V reporte ešte chýba",
+    "checklistOpen": "Nezaškrtnuté v kontrole"
   }
 }

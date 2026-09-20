@@ -19,7 +19,11 @@ pub use diff::{diff_lines, DiffLine, DiffLineType, DiffResult};
 pub use html::{escape_html, tiptap_to_html};
 pub use office_import::{docx_bytes_to_tiptap, xlsx_bytes_to_tiptap};
 pub use plain_text::{tiptap_to_markdown, tiptap_to_plain_text};
-pub use store::{add_document_tag, remove_document_tag, search_library, sync_sidecar_backend};
+pub use store::{
+    add_document_tag, list_stub_documents, list_unresolved_wiki_links, remove_document_tag,
+    search_library, sync_sidecar_backend, wiki_health, OrphanDocument, StubDocument,
+    UnresolvedWikiLink, WikiHealth,
+};
 pub use manuscripts::{list_manuscripts, upsert_manuscript, ManuscriptRecord};
 pub use vault::{
     content_is_vault_cipher, document_is_vault, require_document_not_vault, vault_document_ids_among,

@@ -943,12 +943,14 @@
       "statusEmbedBackend": "Embedding backend",
       "embedBackendTitle": "Semantic quality",
       "embedBackendDescription": "Hash is fast with no extra deps. The quality model improves similar-doc ranking and search.",
-      "embedBackendInstallHint": "For the quality model install: pip install scribe-nlp[quality] or pip install sentence-transformers",
+      "embedBackendInstallHint": "For the quality model install: pip install 'scribe-nlp[quality]' (or [full] for all extras)",
       "embedBackendHash": "Hash (fast)",
       "embedBackendQuality": "Quality (MiniLM)",
       "embedBackendError": "Could not switch embedding backend",
       "hashEnabledToast": "Using fast hash embeddings",
       "qualityEnabledToast": "Using quality embedding model — reindex your library",
+      "extrasTitle": "Optional Python packages",
+      "extrasDescription": "Install from nlp/: pip install 'scribe-nlp[enhance,translate,ner,onnx,faiss]'. Highlighted chips are detected.",
       "yes": "Yes",
       "no": "No"
     },
@@ -1410,7 +1412,30 @@
       "tags": "Tags",
       "graph": "Connection map",
       "duplicates": "Duplicates",
+      "tasks": "Open tasks",
+      "wikiHealth": "Wiki health",
       "chat": "Scribe AI"
+    },
+    "tasks": {
+      "title": "Open tasks",
+      "hint": "Unchecked checkboxes across recent notes. Click a task to open the note and jump to it.",
+      "empty": "No open checklist tasks in recent notes.",
+      "count": "{{count}} open · {{notes}} notes",
+      "loadError": "Could not load open tasks"
+    },
+    "wikiHealth": {
+      "title": "Wiki health",
+      "hint": "Orphan notes, broken [[wiki links]], and stubs under 40 words. Click to open.",
+      "empty": "Wiki looks healthy — no orphans, broken links, or stubs.",
+      "count": "{{orphans}} orphans · {{unresolved}} missing · {{stubs}} stubs",
+      "loadError": "Could not load wiki health",
+      "orphans": "Orphans",
+      "orphansEmpty": "Every note is linked.",
+      "unresolved": "Missing [[targets]]",
+      "unresolvedEmpty": "All wiki links resolve.",
+      "stubs": "Stubs",
+      "stubsEmpty": "No stub notes.",
+      "stubWords": "{{count}} words"
     },
     "duplicates": {
       "title": "Near-duplicate notes",
@@ -1532,6 +1557,9 @@
     "send": "Ask",
     "thinking": "Scribe Local AI is reading your notes…",
     "citations": "Sources",
+    "insertAnswer": "Insert as callout",
+    "insertAnswerDone": "Answer inserted into the open note",
+    "insertAnswerError": "Open a document in the editor to insert the answer",
     "you": "You",
     "assistant": "Scribe AI",
     "assistantDocument": "Scribe AI",
@@ -1731,6 +1759,17 @@
       "loadError": "Could not load AI insights",
       "askTitle": "Ask this note",
       "askHint": "Scribe’s own Local AI — questions and actions on this note, on this Mac only.",
+      "insertAnswer": "Insert as callout",
+      "insertAnswerDone": "Answer inserted into the note",
+      "insertAnswerError": "Open a document in the editor to insert the answer",
+      "wikiSuggestHint": "Suggested wiki links — accept to replace the phrase with [[title]].",
+      "wikiAccept": "Link",
+      "wikiAppliedLinked": "Linked “{{title}}” in the note",
+      "wikiAppliedInserted": "Inserted [[{{title}}]] at the cursor",
+      "wikiApplyError": "Could not apply wiki link — open the note in the editor",
+      "spellcheckApply": "Replace with {{word}}",
+      "spellcheckApplied": "Replaced with “{{word}}”",
+      "spellcheckApplyError": "Could not replace — try Find in the editor",
       "questionHistoryEmpty": "Nothing asked yet — the list fills as you query this document.",
       "localBadge": "Scribe Local AI",
       "openChat": "Open full chat →",
@@ -2286,7 +2325,7 @@
       },
       "modern-report": {
         "name": "Modern report",
-        "description": "Title page, TOC and structured sections",
+        "description": "Title page, sections, and a pre-submit checklist",
         "title": "Report"
       },
       "business-letter": {
@@ -2983,12 +3022,16 @@
   },
   "aiRewrite": {
     "title": "Rewrite selection",
+    "localHint": "Local rules — no cloud LLM",
     "rephrase": "Rephrase",
+    "shorten": "Shorten",
+    "simplify": "Simplify",
     "summarize": "Shorten to bullets",
+    "expand": "Bullets → prose",
     "translateSk": "To Slovak",
     "translateEn": "To English",
     "custom": "Custom prompt...",
-    "customPlaceholder": "e.g. shorten, uppercase...",
+    "customPlaceholder": "e.g. shorten, uppercase, simplify…",
     "run": "Run",
     "insertBelow": "Insert below",
     "replace": "Replace",
@@ -3000,6 +3043,8 @@
   },
   "templateCoach": {
     "chip": "{{present}}/{{expected}} sections",
-    "hint": "Template headings present in this note"
+    "hint": "Template headings present in this note",
+    "missing": "Still missing in the report",
+    "checklistOpen": "Unchecked in checklist"
   }
 }
