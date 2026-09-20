@@ -13,6 +13,7 @@ import { LibraryTagsView } from '@/components/LibraryTagsView'
 import { LibraryJournalView } from '@/components/LibraryJournalView'
 import { LibraryLinkGraphView } from '@/components/LibraryLinkGraphView'
 import { LibraryChatPanel } from '@/components/LibraryChatPanel'
+import { LibraryDuplicatesPanel } from '@/components/LibraryDuplicatesPanel'
 import { LibrarySwitcher } from '@/components/library/LibrarySwitcher'
 import { LibraryViewTabs } from '@/components/LibraryViewTabs'
 import { SidebarRail } from '@/components/layout/SidebarRail'
@@ -261,6 +262,12 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                     initialAroundActive={graphAroundActive}
                     onAroundActiveConsumed={() => dispatch(setLibraryGraphAroundActive(false))}
                   />
+                </ScrollArea>
+              )}
+
+              {libraryView === 'duplicates' && (
+                <ScrollArea className="min-h-0 flex-1">
+                  <LibraryDuplicatesPanel onNavigate={onClose} />
                 </ScrollArea>
               )}
 

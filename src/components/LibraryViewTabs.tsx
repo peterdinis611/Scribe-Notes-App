@@ -1,5 +1,6 @@
 import {
   CalendarDays,
+  Copy,
   FolderTree,
   GitBranch,
   History,
@@ -18,6 +19,7 @@ export type LibraryView =
   | 'graph'
   | 'journal'
   | 'chat'
+  | 'duplicates'
 
 type LibraryViewTabsProps = {
   value: LibraryView
@@ -43,6 +45,7 @@ export function LibraryViewTabs({
     { id: 'journal', label: t('library.tabs.journal'), icon: CalendarDays },
     { id: 'tags', label: t('library.tabs.tags'), icon: TagIcon },
     { id: 'graph', label: t('library.tabs.graph'), icon: GitBranch },
+    { id: 'duplicates', label: t('library.tabs.duplicates'), icon: Copy },
     { id: 'chat', label: t('library.tabs.chat'), icon: MessageCircle },
   ]
 

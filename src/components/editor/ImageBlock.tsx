@@ -36,6 +36,8 @@ import { ImageLightbox } from '@/components/editor/ImageLightbox'
 import { ImageUrlDialog } from '@/components/editor/ImageUrlDialog'
 import { toast } from '@/lib/toast'
 import { useAppSelector } from '@/store/hooks'
+import { saveDocumentOcr } from '@/lib/db/api'
+import { scheduleNlpDocumentIndex } from '@/lib/nlp/auto-index'
 
 const MIN_WIDTH = 120
 const DEFAULT_WIDTH = '480px'
@@ -291,7 +293,11 @@ export function ImageBlock({
                     const { invoke } = await import('@/lib/tauri')
                     const res = await invoke<{ text: string }>('extract_image_ocr', { imagePath: rawSrc })
                     setOcrText(res.text)
-                    toast.success('OCR text extracted')
+                    if (documentId && res.text.trim()) {
+                      await saveDocumentOcr(documentId, rawSrc, res.text)
+                      scheduleNlpDocumentIndex(documentId)
+                    }
+                    toast.success(t('image.ocrSaved'))
                   } catch (e) {
                     toast.error('OCR failed')
                   } finally {

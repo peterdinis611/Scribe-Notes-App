@@ -12,7 +12,7 @@ use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
 
 use crate::db::{
-    active_library_id, extract_search_text, rank_document_chunks, set_embed_backend, set_nlp_enabled,
+    active_library_id, document_index_text, extract_search_text, rank_document_chunks, set_embed_backend, set_nlp_enabled,
     sync_document_fts, sync_document_links, SearchMode, DEFAULT_LIBRARY_ID, META_ACTIVE_LIBRARY,
 };
 use crate::nlp::{
@@ -232,7 +232,7 @@ impl ScribeStore {
         if content_is_vault_cipher(&content_json) {
             return Err(crate::vault::ERR_VAULT_NLP.to_string());
         }
-        let text = format!("{title}\n{}", extract_search_text(&content_json));
+        let text = document_index_text(&self.db, document_id, &title, &content_json);
         Ok((title, text))
     }
 
@@ -1756,6 +1756,14 @@ impl ScribeStore {
                 ],
             )
             .map_err(|e| e.to_string())?;
+            let (title, content_json): (String, String) = db
+                .query_row(
+                    "SELECT title, content_json FROM documents WHERE id = ?1",
+                    params![document_id],
+                    |row| Ok((row.get(0)?, row.get(1)?)),
+                )
+                .map_err(|e| e.to_string())?;
+            sync_document_fts(db, document_id, &title, &content_json)?;
             Ok(())
         });
         Ok(AssetOcrResult {

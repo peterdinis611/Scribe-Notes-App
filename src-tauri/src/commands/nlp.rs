@@ -5,8 +5,8 @@ use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, State};
 
 use crate::db::{
-    count_embeddings, count_stale_embeddings, dominant_embedding_model, extract_search_text,
-    fuse_search_hits, get_embed_backend, is_nlp_enabled, rank_document_chunks, rerank_search_hits,
+    count_embeddings, count_stale_embeddings, dominant_embedding_model, document_index_text,
+    extract_search_text, fuse_search_hits, get_embed_backend, is_nlp_enabled, rank_document_chunks, rerank_search_hits,
     save_artifact, search_documents_for_library, semantic_search, semantic_search_filtered,
     set_embed_backend, set_nlp_enabled, similar_documents, upsert_embedding_with_chunks,
     EmbeddingChunkInput, SearchMode,
@@ -601,7 +601,7 @@ pub fn nlp_index_document(
             return Err("Encrypted vault notes are not indexed".to_string());
         }
 
-        format!("{title}\n{}", extract_search_text(&content_json))
+        document_index_text(&conn, &document_id, &title, &content_json)
     };
 
     let embedded = sidecar.embed_with_chunks(&text)?;
@@ -661,13 +661,18 @@ pub fn nlp_index_all(
             })
             .map_err(|e| e.to_string())?;
 
-        let mut docs: Vec<(String, String)> = Vec::new();
+        let mut pending: Vec<(String, String, String)> = Vec::new();
         for row in rows {
             let (id, title, content_json) = row.map_err(|e| e.to_string())?;
             if content_is_vault_cipher(&content_json) {
                 continue;
             }
-            let text = format!("{title}\n{}", extract_search_text(&content_json));
+            pending.push((id, title, content_json));
+        }
+        drop(stmt);
+        let mut docs: Vec<(String, String)> = Vec::new();
+        for (id, title, content_json) in pending {
+            let text = document_index_text(&conn, &id, &title, &content_json);
             docs.push((id, text));
         }
         docs
@@ -1263,13 +1268,17 @@ pub fn nlp_find_duplicates(
                 ))
             })
             .map_err(|e| e.to_string())?;
-        let mut documents = Vec::new();
+        let mut pending: Vec<(String, String, String)> = Vec::new();
         for row in rows {
-            let (id, title, content_json) = row.map_err(|e| e.to_string())?;
+            pending.push(row.map_err(|e| e.to_string())?);
+        }
+        drop(stmt);
+        let mut documents = Vec::new();
+        for (id, title, content_json) in pending {
             documents.push(json!({
                 "id": id,
                 "title": title,
-                "text": extract_search_text(&content_json),
+                "text": document_index_text(&conn, &id, &title, &content_json),
             }));
         }
         documents

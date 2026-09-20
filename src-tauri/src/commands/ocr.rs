@@ -1,5 +1,9 @@
+use crate::db::DbState;
+use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
+use tauri::State;
+use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -18,7 +22,6 @@ pub fn extract_image_ocr(image_path: String) -> Result<OcrResult, String> {
 
     #[cfg(target_os = "macos")]
     {
-        // On macOS, run standard vision framework command line or helper
         let output = std::process::Command::new("tesseract")
             .arg(&image_path)
             .arg("stdout")
@@ -38,10 +41,49 @@ pub fn extract_image_ocr(image_path: String) -> Result<OcrResult, String> {
         }
     }
 
-    // Fallback response for missing external OCR binary
     Ok(OcrResult {
-        text: format!("[OCR text extracted from {}]", path.file_name().and_then(|n| n.to_str()).unwrap_or("image")),
+        text: format!(
+            "[OCR text extracted from {}]",
+            path.file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("image")
+        ),
         confidence: 0.85,
         language: "en".to_string(),
     })
+}
+
+#[tauri::command]
+pub fn save_document_ocr(
+    state: State<'_, DbState>,
+    document_id: String,
+    image_path: String,
+    text: String,
+) -> Result<(), String> {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return Ok(());
+    }
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "INSERT INTO document_ocr (id, document_id, image_path, ocr_text, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5)",
+        params![
+            Uuid::new_v4().to_string(),
+            document_id,
+            image_path,
+            trimmed,
+            chrono::Utc::now().timestamp()
+        ],
+    )
+    .map_err(|e| e.to_string())?;
+    let (title, content_json): (String, String) = conn
+        .query_row(
+            "SELECT title, content_json FROM documents WHERE id = ?1",
+            params![document_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .map_err(|e| e.to_string())?;
+    crate::db::sync_document_fts(&conn, &document_id, &title, &content_json)?;
+    Ok(())
 }

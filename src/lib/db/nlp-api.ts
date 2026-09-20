@@ -214,9 +214,19 @@ export const nlpAnalyzePlaintext = (text: string) =>
   invoke<NlpDocumentAnalysis>('nlp_analyze_plaintext', { text })
 
 export const nlpFindDuplicates = (limit = 20) =>
-  invoke<{ pairs: Array<Record<string, unknown>>; compared: number }>('nlp_find_duplicates', {
+  invoke<{ pairs: DuplicatePair[]; compared: number }>('nlp_find_duplicates', {
     limit,
   })
+
+export type DuplicatePair = {
+  leftId: string
+  leftTitle: string
+  rightId: string
+  rightTitle: string
+  score: number
+  jaccard: number
+  embedScore: number
+}
 
 export const nlpSuggestTitle = (documentId: string) =>
   invoke<{ title: string; slug: string; source: string }>('nlp_suggest_title', { documentId })

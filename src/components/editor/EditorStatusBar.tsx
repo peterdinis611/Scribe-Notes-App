@@ -16,6 +16,7 @@ import {
   setPrintZoom,
 } from '@/store/settingsSlice'
 import { EditorPagination } from '@/components/EditorPagination'
+import { templateCoachFromJson } from '@/lib/editor/template-coach'
 
 type EditorStatusBarProps = {
   currentPage: number
@@ -44,6 +45,7 @@ export function EditorStatusBar({
   const dispatch = useAppDispatch()
 
   const words = document ? countWords(document.contentJson) : 0
+  const templateCoverage = templateCoachFromJson(document?.contentJson ?? null)
 
   function adjustZoom(delta: number) {
     const next = Math.min(1, Math.max(0.5, Number((printZoom + delta).toFixed(2))))
@@ -159,6 +161,17 @@ export function EditorStatusBar({
         </div>
 
         <div className="editor-status-bar-right">
+          {templateCoverage ? (
+            <span
+              className="editor-status-chip editor-status-chip--coach"
+              title={t('templateCoach.hint')}
+            >
+              {t('templateCoach.chip', {
+                present: templateCoverage.present,
+                expected: templateCoverage.expected,
+              })}
+            </span>
+          ) : null}
           {document && (
             <span className="editor-status-meta">{t('toolbar.stats.word', { count: words })}</span>
           )}

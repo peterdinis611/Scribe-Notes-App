@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { FolderKanban, Plus, Sparkles, FolderHeart } from 'lucide-react'
+import { FolderKanban, Plus, Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 export interface SmartFolder {

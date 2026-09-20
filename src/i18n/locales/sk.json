@@ -151,6 +151,7 @@
     "windowTopRight": "Presunúť okno vpravo hore",
     "docs": "Dokumentácia",
     "linkGraph": "Mapa prepojení",
+    "duplicates": "Takmer rovnaké poznámky",
     "libraryFindReplace": "Nájsť a nahradiť v knižnici",
     "toggleTheme": "Prepínať tému",
     "randomTheme": "Náhodná téma",
@@ -1316,7 +1317,19 @@
       "journal": "Denník",
       "tags": "Štítky",
       "graph": "Mapa prepojení",
+      "duplicates": "Duplicity",
       "chat": "Opýtať sa knižnice"
+    },
+    "duplicates": {
+      "title": "Takmer rovnaké poznámky",
+      "hint": "Lokálna AI porovnala nedávne poznámky. Otvor ktorúkoľvek, alebo zluč pravú do ľavej a kópiu daj do koša.",
+      "nlpOff": "Zapni Lokálnu AI v nastaveniach, aby sa poznámky porovnali.",
+      "empty": "V {{count}} porovnaných poznámkach nie sú blízke duplicity.",
+      "score": "{{percent}} % zhoda",
+      "mergeIntoLeft": "Zlúčiť do prvej",
+      "merged": "Poznámky zlúčené — kópia je v koši.",
+      "mergeError": "Poznámky sa nepodarilo zlúčiť",
+      "loadError": "Duplicity sa nepodarilo načítať"
     },
     "trash": "Kôš",
     "newFolder": "Nový priečinok",
@@ -2598,6 +2611,7 @@
     "streak": "{{count}} dní po sebe",
     "weeklySummary": "Týždenný prehľad",
     "weeklySummaryTitle": "Prehľad týždňa",
+    "thisWeekDates": "Tento týždeň horí",
     "weeklyTone": "Tento týždeň pôsobil skôr {{tone}}.",
     "tone": {
       "positive": "pozitívne",
@@ -2667,6 +2681,7 @@
     "alignGroup": "Zarovnanie obrázka",
     "wrapGroup": "Obtekanie textu",
     "properties": "Alt text",
+    "ocrSaved": "OCR text je v hľadaní",
     "crop": "Orezať",
     "cropTitle": "Orezať obrázok",
     "cropHint": "Ťahajte úchyty, potom aplikujte orezanie.",
@@ -2837,15 +2852,24 @@
     "noEditor": "Najprv otvorte dokument"
   },
   "aiRewrite": {
-    "title": "Lokálny RAG Extender",
-    "rephrase": "Preformulovať profesionálnejšie",
+    "title": "Upraviť výber",
+    "rephrase": "Preformulovať",
     "summarize": "Skrátiť na odrážky",
-    "translateSk": "Preložiť do slovenčiny",
-    "translateEn": "Preložiť do angličtiny",
+    "translateSk": "Do slovenčiny",
+    "translateEn": "Do angličtiny",
     "custom": "Vlastný prompt...",
     "customPlaceholder": "napr. skráť, veľké písmená...",
     "run": "Spustiť",
     "insertBelow": "Vložiť pod výber",
-    "replace": "Nahradiť text"
+    "replace": "Nahradiť",
+    "working": "Upravujem…",
+    "error": "Výber sa nepodarilo upraviť"
+  },
+  "wikiGhost": {
+    "hint": "Prepojiť [[{{title}}]]"
+  },
+  "templateCoach": {
+    "chip": "{{present}}/{{expected}} sekcií",
+    "hint": "Nadpisy šablóny v tejto poznámke"
   }
 }

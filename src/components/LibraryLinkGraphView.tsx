@@ -6,8 +6,9 @@ import {
   listLinkGraph,
   type LinkGraphEdge,
   type LinkGraphOrphan,
+  type SearchHit,
 } from '@/lib/db/api'
-import { nlpStatus, nlpSuggestTags, type NlpEntity } from '@/lib/db/nlp-api'
+import { nlpSimilarDocuments, nlpStatus, nlpSuggestTags, type NlpEntity } from '@/lib/db/nlp-api'
 import {
   createForceSimulation,
   degreeById,
@@ -374,6 +375,7 @@ export function LibraryLinkGraphView({
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [tick, setTick] = useState(0)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [orphanSimilar, setOrphanSimilar] = useState<Array<{ id: string; title: string; similar: SearchHit[] }>>([])
 
   const simRef = useRef<ReturnType<typeof createForceSimulation> | null>(null)
   const panDragRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null)
@@ -461,6 +463,35 @@ export function LibraryLinkGraphView({
       cancelled = true
     }
   }, [documentsVersion])
+
+  useEffect(() => {
+    if (!showOrphans || orphans.length === 0) {
+      setOrphanSimilar([])
+      return
+    }
+    let cancelled = false
+    void nlpStatus()
+      .then(async (status) => {
+        if (!status.enabled || !status.sidecarOk) return []
+        const slice = orphans.slice(0, 8)
+        const rows = await Promise.all(
+          slice.map(async (orphan) => {
+            const similar = await nlpSimilarDocuments(orphan.id, 3).catch(() => [] as SearchHit[])
+            return { id: orphan.id, title: orphan.title, similar: similar.filter((hit) => hit.documentId !== orphan.id) }
+          }),
+        )
+        return rows.filter((row) => row.similar.length > 0)
+      })
+      .then((rows) => {
+        if (!cancelled) setOrphanSimilar(rows ?? [])
+      })
+      .catch(() => {
+        if (!cancelled) setOrphanSimilar([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [orphans, showOrphans])
 
   const size = isPage ? 900 : 320
   const labelMax = isPage ? 26 : 14
@@ -1121,6 +1152,24 @@ export function LibraryLinkGraphView({
           {entitiesLoading ? ` · ${t('linkGraph.loading')}` : ''}
         </p>
       )}
+
+      {showOrphans && orphanSimilar.length > 0 ? (
+        <ul className="library-orphan-rail">
+          {orphanSimilar.map((row) => (
+            <li key={row.id}>
+              <button type="button" onClick={() => openDocument(row.id)}>
+                {row.title || t('libraryChat.untitled')}
+              </button>
+              <span>
+                {row.similar
+                  .slice(0, 2)
+                  .map((hit) => hit.title)
+                  .join(' · ')}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
 
       {seedNodes.length === 0 ? (
         <p className="rounded-xl border border-[var(--color-border)] bg-[var(--color-canvas)] px-3 py-10 text-center text-[12px] text-[var(--color-muted-foreground)]">

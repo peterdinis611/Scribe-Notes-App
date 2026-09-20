@@ -19,6 +19,9 @@ pub use embeddings::{
     similar_documents, upsert_embedding, upsert_embedding_with_chunks, EmbeddingChunkInput,
     RankedDocumentChunk,
 };
-pub use fts::{backfill_fts, extract_search_text, remove_document_fts, sync_document_fts};
+pub use fts::{
+    backfill_fts, collect_document_ocr_text, document_index_text, extract_search_text,
+    remove_document_fts, sync_document_fts,
+};
 pub use links::{backfill_links, sync_document_links};
 pub use revisions::{fetch_revision, restore_document_content, save_revision, set_revision_label};

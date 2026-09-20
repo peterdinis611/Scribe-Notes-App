@@ -279,6 +279,7 @@ pub fn run() {
             commands::nlp::nlp_rewrite_selection,
             commands::nlp::nlp_calendar_events,
             commands::ocr::extract_image_ocr,
+            commands::ocr::save_document_ocr,
             commands::revisions::list_document_revisions,
             commands::revisions::get_document_revision,
             commands::revisions::create_named_revision,

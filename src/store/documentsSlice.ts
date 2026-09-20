@@ -53,10 +53,10 @@ export interface DocumentsState {
   findReplaceMode: 'find' | 'replace'
   libraryFindReplaceOpen: boolean
   pendingEditorSearch: string | null
-  libraryView: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal' | 'chat'
+  libraryView: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal' | 'chat' | 'duplicates'
   libraryGraphAroundActive: boolean
   pendingLibraryView: {
-    view: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal' | 'chat'
+    view: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal' | 'chat' | 'duplicates'
     aroundActive?: boolean
   } | null
   trashOpen: boolean
@@ -446,7 +446,7 @@ const documentsSlice = createSlice({
     setPendingLibraryView(
       state,
       action: PayloadAction<{
-        view: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal' | 'chat'
+        view: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal' | 'chat' | 'duplicates'
         aroundActive?: boolean
       } | null>,
     ) {

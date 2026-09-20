@@ -8,6 +8,7 @@ import {
   Italic,
   Link2,
   MessageSquare,
+  Sparkles,
   Strikethrough,
   Subscript,
   Superscript,
@@ -22,12 +23,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { ColorSwatchGrid, CustomColorPicker } from '@/components/editor-toolbar/primitives'
+import { SelectionAIContextMenu } from '@/components/editor/SelectionAIContextMenu'
 import { HIGHLIGHT_COLORS, TEXT_COLORS } from '@/lib/editor/font-size'
 import { hasEditorSelection } from '@/lib/editor/delete-content'
 import { createCommentForSelection } from '@/lib/editor/comments'
 import { promptAndApplyEditorLink } from '@/lib/editor/link-prompt'
 import { keepEditorSelectionFocus } from '@/lib/editor/view-ready'
+import { nlpStatus } from '@/lib/db/nlp-api'
 import { cn } from '@/lib/utils'
+import { useEffect, useState } from 'react'
 
 type EditorTextBubbleMenuProps = {
   editor: Editor | null
@@ -35,6 +39,22 @@ type EditorTextBubbleMenuProps = {
 
 export function EditorTextBubbleMenu({ editor }: EditorTextBubbleMenuProps) {
   const { t } = useTranslation()
+  const [nlpReady, setNlpReady] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    void nlpStatus()
+      .then((status) => {
+        if (!cancelled) setNlpReady(Boolean(status.enabled && status.sidecarOk))
+      })
+      .catch(() => {
+        if (!cancelled) setNlpReady(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   if (!editor) return null
   const activeEditor = editor
 
@@ -42,6 +62,21 @@ export function EditorTextBubbleMenu({ editor }: EditorTextBubbleMenuProps) {
 
   function setLink() {
     void promptAndApplyEditorLink(activeEditor)
+  }
+
+  function selectedPlainText() {
+    const { from, to } = activeEditor.state.selection
+    return activeEditor.state.doc.textBetween(from, to, ' ')
+  }
+
+  function replaceSelection(next: string) {
+    const { from, to } = activeEditor.state.selection
+    activeEditor.chain().focus().insertContentAt({ from, to }, next).run()
+  }
+
+  function insertBelow(next: string) {
+    const { to } = activeEditor.state.selection
+    activeEditor.chain().focus().insertContentAt(to, `\n${next}`).run()
   }
 
   return (
@@ -74,6 +109,33 @@ export function EditorTextBubbleMenu({ editor }: EditorTextBubbleMenuProps) {
       >
         <MessageSquare className="h-3.5 w-3.5" />
       </button>
+
+      {nlpReady ? (
+        <DropdownMenu modal={false}>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="editor-bubble-icon-btn"
+              title={t('aiRewrite.title')}
+              aria-label={t('aiRewrite.title')}
+              onMouseDown={(event) => event.preventDefault()}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="start"
+            className="selection-ai-pop"
+            onCloseAutoFocus={keepEditorSelectionFocus(editor)}
+          >
+            <SelectionAIContextMenu
+              selectedText={selectedPlainText()}
+              onReplaceText={replaceSelection}
+              onInsertBelow={insertBelow}
+            />
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : null}
 
       <span className="editor-bubble-divider" />
 

@@ -1273,6 +1273,7 @@ html[data-ui-skin='press'] .app-chrome::after {
   }
 }
 .editor-shell {
+  position: relative;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -4453,6 +4454,15 @@ html[data-ui-skin='press'] .editor-status-bar {
 .editor-status-chip.is-active {
   background: color-mix(in srgb, var(--color-accent) 12%, transparent);
   color: var(--color-accent);
+}
+
+.editor-status-chip--coach {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
 }
 
 .editor-status-chip-label {
@@ -11259,4 +11269,221 @@ html.dark .link-graph-toolbar--overlay {
   font-size: 11px;
   line-height: 1.5;
   color: var(--color-muted-foreground);
+}
+
+.selection-ai-pop {
+  min-width: 240px;
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-elevated);
+}
+
+.selection-ai__kicker,
+.library-duplicates__kicker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  color: var(--color-muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.selection-ai__modes,
+.selection-ai__row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.selection-ai__row {
+  flex-direction: row;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.selection-ai__mode,
+.selection-ai__ghost,
+.selection-ai__primary,
+.library-duplicates__titles button,
+.library-duplicates__actions button,
+.library-orphan-rail button,
+.wiki-ghost-hint {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.selection-ai__mode {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.selection-ai__mode:hover,
+.library-duplicates__titles button:hover,
+.library-orphan-rail button:hover,
+.wiki-ghost-hint:hover {
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+}
+
+.selection-ai__preview,
+.selection-ai__status,
+.library-duplicates__status,
+.library-duplicates__hint {
+  margin: 0;
+  color: var(--color-muted-foreground);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.selection-ai__preview {
+  max-height: 140px;
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-background) 70%, transparent);
+  padding: 8px;
+  color: var(--color-foreground);
+  white-space: pre-wrap;
+}
+
+.selection-ai__status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.selection-ai__primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 8px;
+  background: var(--color-accent);
+  padding: 4px 8px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.selection-ai__ghost {
+  padding: 4px 6px;
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+}
+
+.library-duplicates {
+  padding: 10px 12px 16px;
+}
+
+.library-duplicates__hint {
+  margin-bottom: 12px;
+}
+
+.library-duplicates__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.library-duplicates__item {
+  display: grid;
+  grid-template-columns: 1.7rem minmax(0, 1fr);
+  gap: 8px;
+}
+
+.library-duplicates__index {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 650;
+  color: var(--color-accent);
+  padding-top: 2px;
+}
+
+.library-duplicates__titles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.library-duplicates__titles button {
+  font-size: 12.5px;
+  color: var(--color-foreground);
+}
+
+.library-duplicates__score {
+  margin: 2px 0 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-muted-foreground);
+}
+
+.library-duplicates__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.library-duplicates__actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.wiki-ghost-hint {
+  position: absolute;
+  right: 18px;
+  bottom: 52px;
+  z-index: 8;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  padding: 4px 8px;
+  color: color-mix(in srgb, var(--color-foreground) 42%, var(--color-muted-foreground));
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  opacity: 0.78;
+}
+
+.library-orphan-rail {
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.library-orphan-rail li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.library-orphan-rail span {
+  color: var(--color-muted-foreground);
+  font-size: 10.5px;
 }

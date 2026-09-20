@@ -99,6 +99,8 @@ import {
   setPendingEditorSearch,
   setRevisionHistoryOpen,
   setSecondaryDocumentId,
+  setSidebarOpen,
+  setLibraryView,
   setStatsPanelOpen,
   toggleFocusMode,
   toggleReadingMode,
@@ -773,6 +775,16 @@ export function CommandPalette() {
         label: t('commandPalette.linkGraph'),
         icon: <GitBranch className="h-4 w-4" />,
         run: () => navigate(ROUTES.graph()),
+      },
+      {
+        type: 'action',
+        id: 'duplicate-notes',
+        label: t('commandPalette.duplicates'),
+        icon: <Copy className="h-4 w-4" />,
+        run: () => {
+          dispatch(setSidebarOpen(true))
+          dispatch(setLibraryView('duplicates'))
+        },
       },
       {
         type: 'action',

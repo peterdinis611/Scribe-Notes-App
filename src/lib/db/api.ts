@@ -313,6 +313,9 @@ export const writeTextFile = async (path: string, contents: string) => {
   return invoke<void>('write_text_file', { path, contents })
 }
 
+export const saveDocumentOcr = (documentId: string, imagePath: string, text: string) =>
+  invoke<void>('save_document_ocr', { documentId, imagePath, text })
+
 export const pickAndImportFile = async () => {
   const { pickAndImportDocument } = await import('@/lib/import-document')
   return pickAndImportDocument()

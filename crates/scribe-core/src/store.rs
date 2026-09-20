@@ -15,7 +15,7 @@ use crate::db::{
 };
 use crate::db::{
     count_embeddings, count_stale_embeddings, dominant_embedding_model, extract_search_text,
-    fetch_revision, get_document_embedding, get_embed_backend, is_nlp_enabled, remove_document_fts,
+    document_index_text, fetch_revision, get_document_embedding, get_embed_backend, is_nlp_enabled, remove_document_fts,
     restore_document_content, save_artifact, save_revision, semantic_search, similar_documents,
     sync_document_fts, sync_document_links, upsert_embedding_with_chunks,
     EmbeddingChunkInput,
@@ -2350,7 +2350,7 @@ impl ScribeStore {
             )
             .map_err(|e| e.to_string())?;
 
-        let text = format!("{title}\n{}", extract_search_text(&content_json));
+        let text = document_index_text(&self.db, document_id, &title, &content_json);
         sync_sidecar_backend(sidecar, &self.db)?;
         let embedded = sidecar.embed_with_chunks(&text)?;
         let chunks: Vec<EmbeddingChunkInput> = embedded
@@ -2398,9 +2398,13 @@ impl ScribeStore {
             .map_err(|e| e.to_string())?;
 
         let mut docs: Vec<(String, String)> = Vec::new();
+        let mut pending: Vec<(String, String, String)> = Vec::new();
         for row in rows {
-            let (id, title, content_json) = row.map_err(|e| e.to_string())?;
-            let text = format!("{title}\n{}", extract_search_text(&content_json));
+            pending.push(row.map_err(|e| e.to_string())?);
+        }
+        drop(stmt);
+        for (id, title, content_json) in pending {
+            let text = document_index_text(&self.db, &id, &title, &content_json);
             docs.push((id, text));
         }
 

@@ -151,6 +151,7 @@
     "windowTopRight": "Move window to top right",
     "docs": "Documentation",
     "linkGraph": "Connection map",
+    "duplicates": "Near-duplicate notes",
     "libraryFindReplace": "Find and replace in library",
     "toggleTheme": "Toggle theme",
     "randomTheme": "Random theme",
@@ -1314,7 +1315,19 @@
       "journal": "Journal",
       "tags": "Tags",
       "graph": "Connection map",
+      "duplicates": "Duplicates",
       "chat": "Ask library"
+    },
+    "duplicates": {
+      "title": "Near-duplicate notes",
+      "hint": "Local AI compared recent notes. Open either one, or merge the right into the left and trash the copy.",
+      "nlpOff": "Turn on Local AI in Settings to compare notes.",
+      "empty": "No near-duplicates in {{count}} compared notes.",
+      "score": "{{percent}}% alike",
+      "mergeIntoLeft": "Merge into first",
+      "merged": "Notes merged — the copy is in Trash.",
+      "mergeError": "Could not merge notes",
+      "loadError": "Could not find duplicates"
     },
 
     "trash": "Trash",
@@ -2583,6 +2596,7 @@
     "streak": "{{count}} day streak",
     "weeklySummary": "Weekly overview",
     "weeklySummaryTitle": "Week in review",
+    "thisWeekDates": "Due this week",
     "weeklyTone": "This week felt mostly {{tone}}.",
     "tone": {
       "positive": "positive",
@@ -2652,6 +2666,7 @@
     "alignGroup": "Image alignment",
     "wrapGroup": "Text wrap",
     "properties": "Alt text",
+    "ocrSaved": "OCR text saved into search",
     "crop": "Crop",
     "cropTitle": "Crop image",
     "cropHint": "Drag the handles to crop, then apply.",
@@ -2822,15 +2837,24 @@
     "noEditor": "Open a document first"
   },
   "aiRewrite": {
-    "title": "Local RAG Extender",
-    "rephrase": "Rephrase professionally",
-    "summarize": "Summarize to bullets",
-    "translateSk": "Translate to Slovak",
-    "translateEn": "Translate to English",
+    "title": "Rewrite selection",
+    "rephrase": "Rephrase",
+    "summarize": "Shorten to bullets",
+    "translateSk": "To Slovak",
+    "translateEn": "To English",
     "custom": "Custom prompt...",
     "customPlaceholder": "e.g. shorten, uppercase...",
     "run": "Run",
-    "insertBelow": "Insert Below",
-    "replace": "Replace"
+    "insertBelow": "Insert below",
+    "replace": "Replace",
+    "working": "Rewriting…",
+    "error": "Could not rewrite selection"
+  },
+  "wikiGhost": {
+    "hint": "Link [[{{title}}]]"
+  },
+  "templateCoach": {
+    "chip": "{{present}}/{{expected}} sections",
+    "hint": "Template headings present in this note"
   }
 }

@@ -33,7 +33,8 @@ import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { setActiveDocument, setActiveDocumentId } from '@/store/documentsSlice'
+import { citationSearchQuery } from '@/lib/editor/citation-jump'
+import { setActiveDocument, setActiveDocumentId, setPendingEditorSearch } from '@/store/documentsSlice'
 
 type ChatMessage = {
   id: string
@@ -188,10 +189,12 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
   }, [messages, loading, historyLoading])
 
   const openDocument = useCallback(
-    (documentId: string) => {
+    (documentId: string, snippet?: string) => {
       dispatch(setActiveDocumentId(documentId))
       const cached = peekCachedDocument(documentId)
       if (cached) dispatch(setActiveDocument(cached))
+      const needle = snippet ? citationSearchQuery(snippet) : ''
+      if (needle) dispatch(setPendingEditorSearch(needle))
       void navigate(ROUTES.document(documentId))
       onNavigate?.()
     },
@@ -546,7 +549,7 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
                             type="button"
                             className="library-chat-source"
                             title={citation.snippet}
-                            onClick={() => openDocument(citation.documentId)}
+                            onClick={() => openDocument(citation.documentId, citation.snippet)}
                           >
                             {citation.title || t('libraryChat.untitled')}
                           </button>

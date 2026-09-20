@@ -1,152 +1,89 @@
-import React, { useState } from 'react'
-import { Sparkles, Check, RefreshCw, Languages, FileText } from 'lucide-react'
-import { nlpRewriteSelection } from '@/lib/db/nlp-api'
+import { useState } from 'react'
+import { Check, Languages, LoaderCircle, RefreshCw, Scissors, Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { nlpRewriteSelection } from '@/lib/db/nlp-api'
+import { toast } from '@/lib/toast'
 
-interface SelectionAIContextMenuProps {
+type SelectionAIContextMenuProps = {
   selectedText: string
-  onReplaceText: (newText: string) => void
-  onInsertBelow: (newText: string) => void
-  onClose: () => void
+  onReplaceText: (next: string) => void
+  onInsertBelow: (next: string) => void
 }
 
-export const SelectionAIContextMenu: React.FC<SelectionAIContextMenuProps> = ({
+const MODES = [
+  { id: 'rephrase_professional', icon: RefreshCw, labelKey: 'aiRewrite.rephrase' },
+  { id: 'summarize_bullets', icon: Scissors, labelKey: 'aiRewrite.summarize' },
+  { id: 'translate_sk', icon: Languages, labelKey: 'aiRewrite.translateSk' },
+  { id: 'translate_en', icon: Languages, labelKey: 'aiRewrite.translateEn' },
+] as const
+
+export function SelectionAIContextMenu({
   selectedText,
   onReplaceText,
   onInsertBelow,
-  onClose,
-}) => {
+}: SelectionAIContextMenuProps) {
   const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<string | null>(null)
-  const [customPrompt, setCustomPrompt] = useState('')
-  const [showCustom, setShowCustom] = useState(false)
 
-  const handleRewrite = async (mode: string, instruction?: string) => {
+  async function handleRewrite(mode: string) {
+    const text = selectedText.trim()
+    if (!text || loading) return
     setLoading(true)
     try {
-      const res = await nlpRewriteSelection(selectedText, mode, instruction)
+      const res = await nlpRewriteSelection(text, mode)
       setResult(res.output)
-    } catch (err) {
-      console.error('Failed to rewrite selection', err)
+    } catch (error) {
+      toast.error(t('aiRewrite.error'), String(error))
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="z-50 min-w-[260px] rounded-lg border border-border bg-popover p-2 shadow-md text-popover-foreground animate-in fade-in zoom-in-95">
-      <div className="flex items-center gap-1.5 px-2 py-1 text-xs font-semibold text-muted-foreground border-b border-border/50 mb-1">
-        <Sparkles className="h-3.5 w-3.5 text-primary" />
-        <span>{t('aiRewrite.title', 'Local RAG Extender')}</span>
-      </div>
+    <div className="selection-ai">
+      <p className="selection-ai__kicker">
+        <Sparkles className="h-3 w-3" aria-hidden />
+        {t('aiRewrite.title')}
+      </p>
 
-      {!result ? (
-        <div className="flex flex-col gap-0.5">
-          <button
-            onClick={() => handleRewrite('rephrase_professional')}
-            disabled={loading}
-            className="flex items-center gap-2 px-2 py-1.5 text-xs rounded hover:bg-accent text-left transition-colors"
-          >
-            <RefreshCw className="h-3.5 w-3.5 text-blue-500" />
-            <span>{t('aiRewrite.rephrase', 'Rephrase professionally')}</span>
-          </button>
-
-          <button
-            onClick={() => handleRewrite('summarize_bullets')}
-            disabled={loading}
-            className="flex items-center gap-2 px-2 py-1.5 text-xs rounded hover:bg-accent text-left transition-colors"
-          >
-            <FileText className="h-3.5 w-3.5 text-emerald-500" />
-            <span>{t('aiRewrite.summarize', 'Summarize to bullets')}</span>
-          </button>
-
-          <button
-            onClick={() => handleRewrite('translate_sk')}
-            disabled={loading}
-            className="flex items-center gap-2 px-2 py-1.5 text-xs rounded hover:bg-accent text-left transition-colors"
-          >
-            <Languages className="h-3.5 w-3.5 text-purple-500" />
-            <span>{t('aiRewrite.translateSk', 'Translate to Slovak')}</span>
-          </button>
-
-          <button
-            onClick={() => handleRewrite('translate_en')}
-            disabled={loading}
-            className="flex items-center gap-2 px-2 py-1.5 text-xs rounded hover:bg-accent text-left transition-colors"
-          >
-            <Languages className="h-3.5 w-3.5 text-indigo-500" />
-            <span>{t('aiRewrite.translateEn', 'Translate to English')}</span>
-          </button>
-
-          {showCustom ? (
-            <div className="mt-1 flex flex-col gap-1 p-1 border-t border-border/50">
-              <input
-                type="text"
-                value={customPrompt}
-                onChange={(e) => setCustomPrompt(e.target.value)}
-                placeholder={t('aiRewrite.customPlaceholder', 'e.g. shorten, uppercase...')}
-                className="w-full px-2 py-1 text-xs border rounded bg-background"
-                autoFocus
-              />
-              <div className="flex justify-end gap-1">
-                <button
-                  onClick={() => setShowCustom(false)}
-                  className="px-2 py-0.5 text-[10px] rounded hover:bg-muted"
-                >
-                  {t('common.cancel', 'Cancel')}
-                </button>
-                <button
-                  onClick={() => handleRewrite('custom_prompt', customPrompt)}
-                  disabled={!customPrompt.trim()}
-                  className="px-2 py-0.5 text-[10px] bg-primary text-primary-foreground rounded"
-                >
-                  {t('aiRewrite.run', 'Run')}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              onClick={() => setShowCustom(true)}
-              className="flex items-center gap-2 px-2 py-1.5 text-xs rounded hover:bg-accent text-left transition-colors border-t border-border/40 mt-0.5"
-            >
-              <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-              <span>{t('aiRewrite.custom', 'Custom prompt...')}</span>
+      {loading ? (
+        <p className="selection-ai__status">
+          <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden />
+          {t('aiRewrite.working')}
+        </p>
+      ) : result ? (
+        <>
+          <p className="selection-ai__preview">{result}</p>
+          <div className="selection-ai__row">
+            <button type="button" className="selection-ai__ghost" onClick={() => setResult(null)}>
+              {t('common.back')}
             </button>
-          )}
-        </div>
+            <button type="button" className="selection-ai__ghost" onClick={() => onInsertBelow(result)}>
+              {t('aiRewrite.insertBelow')}
+            </button>
+            <button type="button" className="selection-ai__primary" onClick={() => onReplaceText(result)}>
+              <Check className="h-3 w-3" aria-hidden />
+              {t('aiRewrite.replace')}
+            </button>
+          </div>
+        </>
       ) : (
-        <div className="flex flex-col gap-2 p-1">
-          <div className="max-h-[140px] overflow-y-auto text-xs bg-muted/50 p-2 rounded border border-border/50 font-sans whitespace-pre-wrap">
-            {result}
-          </div>
-          <div className="flex items-center justify-end gap-1.5">
-            <button
-              onClick={() => setResult(null)}
-              className="px-2 py-1 text-[11px] rounded hover:bg-muted text-muted-foreground"
-            >
-              {t('common.back', 'Back')}
-            </button>
-            <button
-              onClick={() => {
-                onInsertBelow(result)
-                onClose()
-              }}
-              className="px-2 py-1 text-[11px] rounded border border-border hover:bg-accent"
-            >
-              {t('aiRewrite.insertBelow', 'Insert Below')}
-            </button>
-            <button
-              onClick={() => {
-                onReplaceText(result)
-                onClose()
-              }}
-              className="flex items-center gap-1 px-2.5 py-1 text-[11px] bg-primary text-primary-foreground rounded hover:opacity-90 font-medium"
-            >
-              <Check className="h-3 w-3" />
-              <span>{t('aiRewrite.replace', 'Replace')}</span>
-            </button>
-          </div>
+        <div className="selection-ai__modes">
+          {MODES.map((mode) => {
+            const Icon = mode.icon
+            return (
+              <button
+                key={mode.id}
+                type="button"
+                className="selection-ai__mode"
+                onClick={() => void handleRewrite(mode.id)}
+              >
+                <Icon className="h-3.5 w-3.5" aria-hidden />
+                {t(mode.labelKey)}
+              </button>
+            )
+          })}
         </div>
       )}
     </div>
