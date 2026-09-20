@@ -1,4 +1,5 @@
 mod chat_context;
+mod memory;
 mod parse;
 mod sidecar;
 mod types;
@@ -6,6 +7,10 @@ mod types;
 pub use chat_context::{
     followups_from_sidecar, is_chat_memory_citation_title, merge_chat_memory_passages, ChatTurn,
     DOCUMENT_CHAT_CONTEXT_LIMIT,
+};
+pub use memory::{
+    collect_document_memory_passages, collect_library_memory_passages, persist_document_memory,
+    persist_library_memory, DOCUMENT_MEMORY_KIND, LIBRARY_MEMORY_KIND,
 };
 pub use parse::{
     parse_chunks, parse_dates_result, parse_diff_summary, parse_document_analysis, parse_duplicates,

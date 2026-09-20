@@ -162,6 +162,23 @@ class LibraryAnswerTests(unittest.TestCase):
             {"jsonrpc": "2.0", "id": 3, "method": "health", "params": {}}
         )["result"]["features"])
 
+    def test_rerank_puts_relevant_passage_first(self) -> None:
+        from scribe_nlp.rerank import rerank_passages
+
+        ranked = rerank_passages(
+            "semantic embeddings for search",
+            [
+                {"documentId": "g", "title": "Groceries", "snippet": "Milk, bread, apples."},
+                {
+                    "documentId": "s",
+                    "title": "Search",
+                    "snippet": "Local embeddings power semantic search in Scribe.",
+                },
+            ],
+        )
+        self.assertEqual(ranked[0]["documentId"], "s")
+        self.assertGreater(float(ranked[0]["score"]), float(ranked[1]["score"]))
+
 
 class ChunkEmbedTests(unittest.TestCase):
     def test_embed_with_chunks_short(self) -> None:

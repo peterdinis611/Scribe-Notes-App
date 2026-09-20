@@ -1824,6 +1824,7 @@ impl ServerHandler for ScribeMcp {
              For note insights use document_analysis / extract_keywords / analyze_sentiment. \
              For unsaved text use rewrite_selection / analyze_plaintext. \
              Cached AI: list_nlp_artifacts then get_nlp_artifact or scribe://artifact/{id}. \
+             Memory: library_answer stores library_memory artifacts; document_answer_and_save stores document_memory. \
              Manuscripts: list_manuscripts / upsert_manuscript / compile_manuscript. \
              Smart folders: list_smart_folders / evaluate_smart_folder. \
              Sync: list_sync_conflicts / resolve_sync_conflict. \

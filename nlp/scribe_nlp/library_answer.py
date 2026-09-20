@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from .normalize import fold_diacritics, stem_lite
+from .rerank import rerank_passages
 from .text_utils import STOP_WORDS, normalize_text, split_sentences, tokenize
 
 MAX_SENTENCES = 4
@@ -52,6 +53,7 @@ def library_answer(
             entry["score"] = item.get("score")
         cleaned.append(entry)
 
+    cleaned = rerank_passages(question, cleaned, limit=MAX_PASSAGES)
     query_terms = _query_terms(query)
     sentences, used = _pick_sentences(query_terms, cleaned, max_sentences=max_sentences)
     answer = _format_answer(sentences, prefix=prefix)
@@ -60,7 +62,7 @@ def library_answer(
     for item in used:
         document_id = item["documentId"]
         title = item.get("title") or "Untitled"
-        if "chat memory" in title.lower() or "earlier chat" in title.lower():
+        if "chat memory" in title.lower() or "earlier chat" in title.lower() or "library memory" in title.lower() or "note memory" in title.lower():
             continue
         if document_id in seen_ids:
             continue
@@ -159,7 +161,7 @@ def _pick_sentences(
         candidates = parts if parts else [source]
         rank_boost = 0.12 / (hit_index + 1)
         title = (passage.get("title") or "").lower()
-        if "chat memory" in title or "earlier chat" in title:
+        if "chat memory" in title or "earlier chat" in title or "library memory" in title or "note memory" in title:
             rank_boost += 0.08
         try:
             rank_boost += min(0.35, max(0.0, float(passage.get("score") or 0))) * 0.25

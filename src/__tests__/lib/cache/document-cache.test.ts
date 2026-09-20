@@ -124,4 +124,55 @@ describe('document cache', () => {
     }
     expect(peekCachedDocument('doc-keep')).not.toBeNull()
   })
+
+  it('promotes a touched document so LRU eviction skips it', () => {
+    for (let i = 0; i < 48; i += 1) {
+      cacheDocument(
+        makeDocument({
+          id: `doc-${i}`,
+          contentJson: JSON.stringify({
+            type: 'doc',
+            content: [{ type: 'paragraph', content: [{ type: 'text', text: `n${i}` }] }],
+          }),
+        }),
+      )
+    }
+    getCachedParsedContent(
+      makeDocument({
+        id: 'doc-0',
+        contentJson: JSON.stringify({
+          type: 'doc',
+          content: [{ type: 'paragraph', content: [{ type: 'text', text: 'n0' }] }],
+        }),
+      }),
+    )
+    for (let i = 48; i < 60; i += 1) {
+      cacheDocument(
+        makeDocument({
+          id: `doc-${i}`,
+          contentJson: JSON.stringify({
+            type: 'doc',
+            content: [{ type: 'paragraph', content: [{ type: 'text', text: `n${i}` }] }],
+          }),
+        }),
+      )
+    }
+    expect(peekCachedDocument('doc-0')).not.toBeNull()
+    expect(peekCachedDocument('doc-1')).toBeNull()
+    expect(peekCachedDocument('doc-59')).not.toBeNull()
+  })
+
+  it('reparses when content actually changes', () => {
+    const first = getCachedParsedContent(makeDocument())
+    const second = getCachedParsedContent(
+      makeDocument({
+        contentJson: JSON.stringify({
+          type: 'doc',
+          content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Changed' }] }],
+        }),
+      }),
+    )
+    expect(second).not.toBe(first)
+    expect(JSON.stringify(second)).toContain('Changed')
+  })
 })

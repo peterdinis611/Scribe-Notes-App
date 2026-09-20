@@ -6,10 +6,10 @@ use tauri::{AppHandle, Emitter, State};
 
 use crate::db::{
     count_embeddings, count_stale_embeddings, dominant_embedding_model, extract_search_text,
-    fuse_search_hits, get_embed_backend, is_nlp_enabled, rank_document_chunks, save_artifact,
-    search_documents_for_library, semantic_search, semantic_search_filtered, set_embed_backend,
-    set_nlp_enabled, similar_documents, upsert_embedding_with_chunks, EmbeddingChunkInput,
-    SearchMode,
+    fuse_search_hits, get_embed_backend, is_nlp_enabled, rank_document_chunks, rerank_search_hits,
+    save_artifact, search_documents_for_library, semantic_search, semantic_search_filtered,
+    set_embed_backend, set_nlp_enabled, similar_documents, upsert_embedding_with_chunks,
+    EmbeddingChunkInput, SearchMode,
 };
 use scribe_core::{
     content_is_vault_cipher, date_key_bounds, extract_due_hint, require_document_not_vault,
@@ -1478,30 +1478,36 @@ pub fn nlp_library_answer(
     }
 
     let hits = {
-        let limit = limit.unwrap_or(6);
+        let limit = limit.unwrap_or(8).clamp(1, 20);
+        let fetch = (limit * 2).clamp(limit, 40);
         let q = trimmed.as_str();
         let fts_hits = {
             let conn = state.conn.lock().map_err(|e| e.to_string())?;
-            {
-                let library_id = crate::libraries::active_library_id(&conn);
-                search_documents_for_library(&conn, q, limit, &library_id)?
-            }
+            let library_id = crate::libraries::active_library_id(&conn);
+            search_documents_for_library(&conn, q, fetch, &library_id)?
         };
         let embed_query = rewrite_query_for_embed(&sidecar, q);
-        let semantic_hits = match sidecar.embed_text(&embed_query) {
+        match sidecar.embed_text(&embed_query) {
             Ok((vector, model)) => {
                 let conn = state.conn.lock().map_err(|e| e.to_string())?;
                 let extra: Vec<String> =
                     fts_hits.iter().map(|hit| hit.document_id.clone()).collect();
-                semantic_search_filtered(&conn, &vector, limit, Some(&model), Some(&extra))
-                    .unwrap_or_default()
+                let semantic_hits = semantic_search_filtered(
+                    &conn,
+                    &vector,
+                    fetch,
+                    Some(&model),
+                    Some(&extra),
+                )
+                .unwrap_or_default();
+                let fused = fuse_search_hits(&fts_hits, &semantic_hits, fetch);
+                rerank_search_hits(&conn, &vector, fused, Some(&model), limit)
             }
-            Err(_) => Vec::new(),
-        };
-        fuse_search_hits(&fts_hits, &semantic_hits, limit)
+            Err(_) => fuse_search_hits(&fts_hits, &[], limit),
+        }
     };
 
-    let passages = json!(hits
+    let mut passages: Vec<Value> = hits
         .iter()
         .map(|hit| {
             json!({
@@ -1510,9 +1516,15 @@ pub fn nlp_library_answer(
                 "snippet": hit.snippet,
             })
         })
-        .collect::<Vec<_>>());
-
-    let result = sidecar.library_answer(&trimmed, passages, 4)?;
+        .collect();
+    {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        passages.extend(scribe_core::nlp::collect_library_memory_passages(
+            &conn, &trimmed,
+        ));
+    }
+    let max_sentences = if passages.len() > hits.len() { 6 } else { 4 };
+    let result = sidecar.library_answer(&trimmed, json!(passages), max_sentences)?;
     let citations = result
         .get("citations")
         .and_then(|value| value.as_array())
@@ -1546,12 +1558,27 @@ pub fn nlp_library_answer(
                 .collect()
         });
 
+    let answer = result
+        .get("answer")
+        .and_then(|value| value.as_str())
+        .unwrap_or("Based on your notes: No matching passages were found in your indexed library.")
+        .to_string();
+    {
+        let mapped: Vec<scribe_core::nlp::NlpCitation> = citations
+            .iter()
+            .map(|item| scribe_core::nlp::NlpCitation {
+                document_id: item.document_id.clone(),
+                title: item.title.clone(),
+                snippet: item.snippet.clone(),
+            })
+            .collect();
+        if let Ok(conn) = state.conn.lock() {
+            let _ = scribe_core::nlp::persist_library_memory(&conn, &trimmed, &answer, &mapped);
+        }
+    }
+
     Ok(LibraryChatResult {
-        answer: result
-            .get("answer")
-            .and_then(|value| value.as_str())
-            .unwrap_or("Based on your notes: No matching passages were found in your indexed library.")
-            .to_string(),
+        answer,
         citations,
         followups: followups_from_sidecar(&result),
     })
@@ -1720,6 +1747,15 @@ pub fn nlp_document_answer(
     } else {
         passages
     };
+    let mut combined: Vec<Value> = passages.as_array().cloned().unwrap_or_default();
+    {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        combined.extend(scribe_core::nlp::collect_document_memory_passages(
+            &conn,
+            &document_id,
+        ));
+    }
+    let passages = json!(combined);
 
     let result = sidecar.library_answer_scoped(&trimmed, passages.clone(), 6, "document")?;
     let fallback_title = title.clone();
@@ -1774,12 +1810,17 @@ pub fn nlp_document_answer(
                 .collect()
         });
 
+    let answer = result
+        .get("answer")
+        .and_then(|value| value.as_str())
+        .unwrap_or("Based on this document: No matching passages were found.")
+        .to_string();
+    if let Ok(conn) = state.conn.lock() {
+        let _ = scribe_core::nlp::persist_document_memory(&conn, &document_id, &trimmed, &answer);
+    }
+
     Ok(LibraryChatResult {
-        answer: result
-            .get("answer")
-            .and_then(|value| value.as_str())
-            .unwrap_or("Based on this document: No matching passages were found.")
-            .to_string(),
+        answer,
         citations,
         followups: followups_from_sidecar(&result),
     })

@@ -100,6 +100,7 @@ FEATURES = [
     "calendarEvents",
     "answerFollowups",
     "rewriteSelection",
+    "passageRerank",
 ]
 
 

@@ -63,7 +63,10 @@ pub fn merge_chat_memory_passages(
 
 pub fn is_chat_memory_citation_title(title: &str) -> bool {
     let lower = title.to_ascii_lowercase();
-    lower.contains("chat memory") || lower.contains("earlier chat")
+    lower.contains("chat memory")
+        || lower.contains("earlier chat")
+        || lower.contains("note memory")
+        || lower.contains("library memory")
 }
 
 pub fn followups_from_sidecar(result: &Value) -> Vec<String> {

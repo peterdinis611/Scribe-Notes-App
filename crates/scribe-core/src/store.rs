@@ -3576,7 +3576,8 @@ pub fn search_library(
         }
         SearchMode::Hybrid => {
             let library_id = active_library_id(conn);
-            let fts_hits = search_documents_for_library(conn, q, limit, &library_id)?;
+            let fetch = (limit * 2).clamp(limit, 40);
+            let fts_hits = search_documents_for_library(conn, q, fetch, &library_id)?;
             if !is_nlp_enabled(conn)? {
                 return Ok(fts_hits
                     .into_iter()
@@ -3584,14 +3585,25 @@ pub fn search_library(
                         hit.match_kind = Some("fts".to_string());
                         hit
                     })
+                    .take(limit.clamp(1, 50) as usize)
                     .collect());
             }
             sync_sidecar_backend(sidecar, conn)?;
-            let semantic_hits = match sidecar.embed_text(q) {
-                Ok((vector, model)) => semantic_search(conn, &vector, limit, Some(&model)).unwrap_or_default(),
-                Err(_) => Vec::new(),
-            };
-            Ok(fuse_search_hits(&fts_hits, &semantic_hits, limit))
+            match sidecar.embed_text(q) {
+                Ok((vector, model)) => {
+                    let semantic_hits =
+                        semantic_search(conn, &vector, fetch, Some(&model)).unwrap_or_default();
+                    let fused = fuse_search_hits(&fts_hits, &semantic_hits, fetch);
+                    Ok(crate::db::rerank_search_hits(
+                        conn,
+                        &vector,
+                        fused,
+                        Some(&model),
+                        limit,
+                    ))
+                }
+                Err(_) => Ok(fuse_search_hits(&fts_hits, &[], limit)),
+            }
         }
     }
 }

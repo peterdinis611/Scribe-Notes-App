@@ -320,7 +320,48 @@ fn list_chunk_embeddings_filtered(
     rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
 }
 
-fn cosine_similarity(a: &[f32], b: &[f32]) -> f64 {
+/// Second-stage hybrid rerank: RRF (`hit.rank` is negated RRF) + stored embedding cosine.
+pub fn rerank_search_hits(
+    conn: &Connection,
+    query_vector: &[f32],
+    hits: Vec<SearchHit>,
+    model: Option<&str>,
+    limit: i64,
+) -> Vec<SearchHit> {
+    if hits.len() <= 1 || query_vector.is_empty() {
+        return hits;
+    }
+    let mut scored: Vec<(f64, SearchHit)> = hits
+        .into_iter()
+        .map(|hit| {
+            let rrf = if hit.rank <= 0.0 { -hit.rank } else { 1.0 / (60.0 + hit.rank) };
+            let cosine = get_document_embedding(conn, &hit.document_id)
+                .ok()
+                .flatten()
+                .filter(|item| model.map_or(true, |expected| item.model == expected))
+                .filter(|item| item.vector.len() == query_vector.len())
+                .map(|item| cosine_similarity(query_vector, &item.vector))
+                .unwrap_or(0.0);
+            (rrf + 0.04 * cosine, hit)
+        })
+        .collect();
+    scored.sort_by(|left, right| {
+        right
+            .0
+            .partial_cmp(&left.0)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    scored.truncate(limit.clamp(1, 50) as usize);
+    scored
+        .into_iter()
+        .map(|(score, mut hit)| {
+            hit.rank = -score;
+            hit
+        })
+        .collect()
+}
+
+pub(crate) fn cosine_similarity(a: &[f32], b: &[f32]) -> f64 {
     if a.len() != b.len() || a.is_empty() {
         return 0.0;
     }
@@ -708,5 +749,38 @@ mod tests {
         let hits = similar_documents(&conn, "d1", 8, Some("test")).unwrap();
         assert_eq!(hits.len(), 1);
         assert_eq!(hits[0].document_id, "d2");
+    }
+
+    #[test]
+    fn rerank_search_hits_prefers_cosine_match() {
+        let conn = in_memory_conn();
+        run_migrations(&conn).unwrap();
+        conn.execute(
+            "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at)
+             VALUES ('a', 'Alpha', '{}', NULL, NULL, 1, 1),
+                    ('b', 'Beta', '{}', NULL, NULL, 1, 1)",
+            [],
+        )
+        .unwrap();
+        upsert_embedding(&conn, "a", &[0.0f32, 1.0, 0.0], "test", 1).unwrap();
+        upsert_embedding(&conn, "b", &[1.0f32, 0.0, 0.0], "test", 1).unwrap();
+        let hits = vec![
+            SearchHit {
+                document_id: "a".into(),
+                title: "Alpha".into(),
+                snippet: String::new(),
+                rank: -0.02,
+                match_kind: Some("fts".into()),
+            },
+            SearchHit {
+                document_id: "b".into(),
+                title: "Beta".into(),
+                snippet: String::new(),
+                rank: -0.015,
+                match_kind: Some("fts".into()),
+            },
+        ];
+        let ranked = rerank_search_hits(&conn, &[1.0f32, 0.0, 0.0], hits, Some("test"), 2);
+        assert_eq!(ranked[0].document_id, "b");
     }
 }

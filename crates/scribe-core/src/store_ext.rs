@@ -16,12 +16,13 @@ use crate::db::{
     sync_document_fts, sync_document_links, SearchMode, DEFAULT_LIBRARY_ID, META_ACTIVE_LIBRARY,
 };
 use crate::nlp::{
-    followups_from_sidecar, merge_chat_memory_passages, normalize_rewrite_mode, parse_chunks,
-    parse_dates_result, parse_diff_summary, parse_duplicates, parse_entities, parse_keywords_result,
-    parse_language, parse_library_answer, parse_mentions, parse_organize, parse_outline_result,
-    parse_query_rewrite, parse_reading_stats, parse_sentiment, parse_spellcheck,
-    parse_template_hints, parse_title_suggestion, parse_wiki_suggestions, ChatTurn, NlpAnswer,
-    NlpChunks, NlpDates, NlpDiffSummary, NlpDocumentAnalysis, NlpDuplicates, NlpEntities,
+    collect_document_memory_passages, collect_library_memory_passages, followups_from_sidecar,
+    merge_chat_memory_passages, normalize_rewrite_mode, parse_chunks, parse_dates_result,
+    persist_document_memory, persist_library_memory, parse_diff_summary, parse_duplicates,
+    parse_entities, parse_keywords_result, parse_language, parse_library_answer, parse_mentions,
+    parse_organize, parse_outline_result, parse_query_rewrite, parse_reading_stats, parse_sentiment,
+    parse_spellcheck, parse_template_hints, parse_title_suggestion, parse_wiki_suggestions, ChatTurn,
+    NlpAnswer, NlpChunks, NlpDates, NlpDiffSummary, NlpDocumentAnalysis, NlpDuplicates, NlpEntities,
     NlpKeywordsResult, NlpLanguage, NlpMentions, NlpOrganize, NlpOutline, NlpQueryRewrite,
     NlpReadingStats, NlpRewriteResult, NlpSentiment, NlpSidecar, NlpSpellcheck, NlpTemplateHints,
     NlpTitleSuggestion, NlpWikiSuggestions,
@@ -266,7 +267,7 @@ impl ScribeStore {
         if !sidecar.script_exists() {
             return Err("NLP sidecar unavailable".to_string());
         }
-        let limit = limit.unwrap_or(6).clamp(1, 20);
+        let limit = limit.unwrap_or(8).clamp(1, 20);
         sync_sidecar_backend(sidecar, &self.db)?;
 
         let hits = search_library(&self.db, sidecar, trimmed, limit, SearchMode::Hybrid)?;
@@ -281,7 +282,7 @@ impl ScribeStore {
             .into_iter()
             .filter(|hit| !vault_ids.contains(&hit.document_id))
             .collect();
-        let passages = json!(hits
+        let mut passages: Vec<Value> = hits
             .iter()
             .map(|hit| {
                 json!({
@@ -290,9 +291,11 @@ impl ScribeStore {
                     "snippet": hit.snippet,
                 })
             })
-            .collect::<Vec<_>>());
+            .collect();
+        passages.extend(collect_library_memory_passages(&self.db, trimmed));
 
-        let result = sidecar.library_answer(trimmed, passages, 4)?;
+        let max_sentences = if passages.len() > hits.len() { 6 } else { 4 };
+        let result = sidecar.library_answer(trimmed, json!(passages), max_sentences)?;
         let mut parsed = parse_library_answer(&result);
         if parsed.answer.is_empty() {
             parsed.answer =
@@ -313,6 +316,7 @@ impl ScribeStore {
             parsed.followups = followups_from_sidecar(&result);
         }
         parsed.hit_count = Some(hits.len() as i64);
+        let _ = persist_library_memory(&self.db, trimmed, &parsed.answer, &parsed.citations);
         Ok(parsed)
     }
 
@@ -642,6 +646,12 @@ impl ScribeStore {
         } else {
             passages
         };
+        let mut combined: Vec<Value> = passages
+            .as_array()
+            .cloned()
+            .unwrap_or_default();
+        combined.extend(collect_document_memory_passages(&self.db, document_id));
+        let passages = json!(combined);
 
         let result = sidecar.library_answer_scoped(trimmed, passages.clone(), 6, "document")?;
         let citations = result.get("citations").cloned().unwrap_or_else(|| {
@@ -726,6 +736,7 @@ impl ScribeStore {
             Some("answer"),
             Some(&citations),
         )?;
+        let _ = persist_document_memory(&self.db, document_id, question, &answer.answer);
         Ok(DocumentAnswerPersisted {
             answer,
             user,
