@@ -63,6 +63,17 @@ describe('document cache', () => {
     expect(cachedParsed).toBe(parsed)
   })
 
+  it('uses metadata identity for large content hashes', () => {
+    const huge = 'x'.repeat(400_001)
+    const doc = makeDocument({
+      contentJson: JSON.stringify({ type: 'doc', content: [{ type: 'text', text: huge }] }),
+      updatedAt: 42,
+    })
+    const hash = getCachedContentHash(doc)
+    expect(hash.startsWith('u:doc-1:42:')).toBe(true)
+    expect(getCachedContentHash(doc)).toBe(hash)
+  })
+
   it('reuses parse when contentJson string is shared', () => {
     const doc = makeDocument()
     const parsed = getCachedParsedContent(doc)

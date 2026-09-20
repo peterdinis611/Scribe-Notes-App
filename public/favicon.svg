@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Scribe">
+  <rect width="64" height="64" rx="14" fill="#0E1210"/>
+  <g fill="none" stroke-linecap="butt" transform="translate(32 32)">
+    <g transform="translate(5.5 -5.5)">
+      <path stroke="#FFC131" stroke-width="7" d="M 5.5 -9 A 14.5 14.5 0 1 1 -5.5 9"/>
+      <circle cx="0" cy="0" r="3.5" fill="#FFC131"/>
+    </g>
+    <g transform="translate(-5.5 5.5)">
+      <path stroke="#24C8DB" stroke-width="7" d="M -5.5 9 A 14.5 14.5 0 1 1 5.5 -9"/>
+      <circle cx="0" cy="0" r="3.5" fill="#24C8DB"/>
+    </g>
+  </g>
+</svg>

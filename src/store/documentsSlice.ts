@@ -51,6 +51,7 @@ export interface DocumentsState {
   manualTitleDocumentIds: string[]
   findReplaceOpen: boolean
   findReplaceMode: 'find' | 'replace'
+  shareDialogOpen: boolean
   libraryFindReplaceOpen: boolean
   pendingEditorSearch: string | null
   libraryView: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal' | 'chat' | 'duplicates'
@@ -136,6 +137,7 @@ const initialState: DocumentsState = {
   manualTitleDocumentIds: readManualTitleIds(),
   findReplaceOpen: false,
   findReplaceMode: 'find',
+  shareDialogOpen: false,
   libraryFindReplaceOpen: false,
   pendingEditorSearch: null,
   libraryView: 'folders',
@@ -420,6 +422,9 @@ const documentsSlice = createSlice({
     toggleFindReplaceOpen(state) {
       state.findReplaceOpen = !state.findReplaceOpen
     },
+    setShareDialogOpen(state, action: PayloadAction<boolean>) {
+      state.shareDialogOpen = action.payload
+    },
     setFindReplaceMode(state, action: PayloadAction<'find' | 'replace'>) {
       state.findReplaceMode = action.payload
     },
@@ -602,6 +607,7 @@ export const {
   markDocumentTitleManual,
   setFindReplaceOpen,
   toggleFindReplaceOpen,
+  setShareDialogOpen,
   setFindReplaceMode,
   setLibraryFindReplaceOpen,
   setPendingEditorSearch,

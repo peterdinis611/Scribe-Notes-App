@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" role="img" aria-label="Scribe">
+  <!-- Official Scribe mark: interlocking dual arcs -->
+  <path
+    stroke="#FFC131"
+    stroke-width="56"
+    stroke-linecap="butt"
+    d="M 348 118 A 118 118 0 1 1 268 346"
+  />
+  <circle cx="348" cy="190" r="28" fill="#FFC131" />
+  <path
+    stroke="#24C8DB"
+    stroke-width="56"
+    stroke-linecap="butt"
+    d="M 164 394 A 118 118 0 1 1 244 166"
+  />
+  <circle cx="164" cy="322" r="28" fill="#24C8DB" />
+</svg>

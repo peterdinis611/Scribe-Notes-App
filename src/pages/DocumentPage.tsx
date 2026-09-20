@@ -3,7 +3,7 @@ import { useNavigate, useParams } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { DocumentLoadingState } from '@/components/DocumentLoadingState'
 import { SecondaryDocumentPane } from '@/components/SecondaryDocumentPane'
-import { peekCachedDocument } from '@/lib/cache/document-cache'
+import { peekCachedDocument, peekCachedParsedContent } from '@/lib/cache/document-cache'
 import { prefetchDocument } from '@/lib/cache/prefetch-document'
 import { isCanvasContent } from '@/lib/canvas/types'
 import { ROUTES } from '@/lib/routes'
@@ -114,6 +114,8 @@ export function DocumentPage() {
 
   const isCanvas = useMemo(() => {
     if (!resolvedDocument) return false
+    const cachedTree = peekCachedParsedContent(resolvedDocument.id)
+    if (cachedTree) return isCanvasContent(cachedTree)
     try {
       return isCanvasContent(JSON.parse(resolvedDocument.contentJson))
     } catch {
