@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { listen } from '@tauri-apps/api/event'
 import { CommandPalette } from '@/components/CommandPalette'
 import { DndRoot } from '@/components/dnd/DndRoot'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { DocumentTabsBar } from '@/components/layout/DocumentTabsBar'
 import { FocusModeExitBar } from '@/components/editor/FocusModeExitBar'
@@ -184,6 +185,7 @@ export function AppLayout() {
   }
 
   return (
+    <TooltipProvider>
     <DndRoot>
     <div
       className="app-shell"
@@ -254,5 +256,6 @@ export function AppLayout() {
       <ToastHost />
     </div>
     </DndRoot>
+    </TooltipProvider>
   )
 }

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { Editor } from '@tiptap/react'
 import { ChevronDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -10,6 +11,7 @@ import {
 import { keepEditorSelectionFocus } from '@/lib/editor/view-ready'
 import { cn } from '@/lib/utils'
 import { HEADING_LEVELS, type HeadingLevel } from '@/lib/editor/heading-levels'
+import { IconTooltip } from '@/components/ui/tooltip'
 
 export type BlockType = 'paragraph' | 'blockquote' | `h${HeadingLevel}`
 
@@ -56,12 +58,14 @@ export function BlockTypeSelect({ editor }: { editor: Editor }) {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button type="button" className="toolbar-select" title={t('toolbar.blockTypes.title')}>
-          <span>{label}</span>
-          <ChevronDown className="h-3.5 w-3.5 opacity-60" />
-        </button>
-      </DropdownMenuTrigger>
+      <IconTooltip label={t('toolbar.blockTypes.title')}>
+        <DropdownMenuTrigger asChild>
+          <button type="button" className="toolbar-select" aria-label={t('toolbar.blockTypes.title')}>
+            <span>{label}</span>
+            <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+          </button>
+        </DropdownMenuTrigger>
+      </IconTooltip>
       <DropdownMenuContent
         align="start"
         className="min-w-[160px] max-h-[320px] overflow-y-auto"
@@ -92,21 +96,22 @@ export function ToolbarButton({
   active?: boolean
   disabled?: boolean
   onClick: () => void
-  children: React.ReactNode
+  children: ReactNode
   label: string
   className?: string
 }) {
   return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      disabled={disabled}
-      onClick={onClick}
-      className={cn('toolbar-btn', active && 'is-active', className)}
-    >
-      {children}
-    </button>
+    <IconTooltip label={label}>
+      <button
+        type="button"
+        aria-label={label}
+        disabled={disabled}
+        onClick={onClick}
+        className={cn('toolbar-btn', active && 'is-active', className)}
+      >
+        {children}
+      </button>
+    </IconTooltip>
   )
 }
 
@@ -122,19 +127,19 @@ export function ColorSwatchGrid({
   return (
     <div className="toolbar-swatch-grid">
       {colors.map(({ label, value }) => (
-        <button
-          key={label}
-          type="button"
-          className={cn('toolbar-swatch', activeValue === value && 'is-active')}
-          title={label}
-          aria-label={label}
-          onClick={() => onPick(value)}
-        >
-          <span
-            className="toolbar-swatch-dot"
-            style={{ background: value || 'var(--color-foreground)' }}
-          />
-        </button>
+        <IconTooltip key={label} label={label}>
+          <button
+            type="button"
+            className={cn('toolbar-swatch', activeValue === value && 'is-active')}
+            aria-label={label}
+            onClick={() => onPick(value)}
+          >
+            <span
+              className="toolbar-swatch-dot"
+              style={{ background: value || 'var(--color-foreground)' }}
+            />
+          </button>
+        </IconTooltip>
       ))}
     </div>
   )
@@ -148,14 +153,17 @@ export function CustomColorPicker({
   onPick: (value: string) => void
 }) {
   return (
-    <label className="toolbar-color-picker" title={label}>
+    <IconTooltip label={label}>
+    <label className="toolbar-color-picker">
       <span className="toolbar-color-picker-label">{label}</span>
       <input
         type="color"
         className="toolbar-color-picker-input"
+        aria-label={label}
         defaultValue="#007aff"
         onChange={(event) => onPick(event.target.value)}
       />
     </label>
+    </IconTooltip>
   )
 }

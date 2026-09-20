@@ -23,6 +23,7 @@ import { openTodayNote } from '@/lib/journal-notes'
 import { promptAndCreateFolder } from '@/lib/library/create-folder'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
+import { IconTooltip } from '@/components/ui/tooltip'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setLibraryGraphAroundActive, setLibraryView, setTrashOpen } from '@/store/documentsSlice'
 import {
@@ -179,43 +180,47 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                   <div className="library-docs-header">
                     <h2 className="library-docs-heading">{t('library.allDocuments')}</h2>
                     <div className="library-docs-actions">
-                      <button
-                        type="button"
-                        className="library-new-folder-btn"
-                        onClick={() => void handleCreateFolder()}
-                        title={t('library.newFolder')}
-                      >
-                        <FolderPlus className="h-3.5 w-3.5" />
-                        <span className="library-new-folder-label">{t('library.newFolder')}</span>
-                      </button>
-                      <button
-                        type="button"
-                        className={libraryActionClass}
-                        onClick={() => {
-                          void openTodayNote({
-                            documents,
-                            folders,
-                            dispatch,
-                            navigate,
-                            t: (key, options) => t(key, options),
-                          }).catch((error) => {
-                            toast.error(t('journal.openError'), String(error))
-                          })
-                        }}
-                        title={t('journal.today')}
-                        aria-label={t('journal.today')}
-                      >
-                        <CalendarDays className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        className={libraryActionClass}
-                        onClick={() => dispatch(setTrashOpen(true))}
-                        title={t('library.trash')}
-                        aria-label={t('library.trash')}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      <IconTooltip label={t('library.newFolder')}>
+                        <button
+                          type="button"
+                          className="library-new-folder-btn"
+                          onClick={() => void handleCreateFolder()}
+                          aria-label={t('library.newFolder')}
+                        >
+                          <FolderPlus className="h-3.5 w-3.5" />
+                          <span className="library-new-folder-label">{t('library.newFolder')}</span>
+                        </button>
+                      </IconTooltip>
+                      <IconTooltip label={t('journal.today')}>
+                        <button
+                          type="button"
+                          className={libraryActionClass}
+                          onClick={() => {
+                            void openTodayNote({
+                              documents,
+                              folders,
+                              dispatch,
+                              navigate,
+                              t: (key, options) => t(key, options),
+                            }).catch((error) => {
+                              toast.error(t('journal.openError'), String(error))
+                            })
+                          }}
+                          aria-label={t('journal.today')}
+                        >
+                          <CalendarDays className="h-3.5 w-3.5" />
+                        </button>
+                      </IconTooltip>
+                      <IconTooltip label={t('library.trash')}>
+                        <button
+                          type="button"
+                          className={libraryActionClass}
+                          onClick={() => dispatch(setTrashOpen(true))}
+                          aria-label={t('library.trash')}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </IconTooltip>
                     </div>
                   </div>
                   <ScrollArea className="min-h-0 flex-1" viewportRef={scrollRef}>

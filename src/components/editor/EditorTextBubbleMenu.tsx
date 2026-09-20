@@ -31,7 +31,33 @@ import { promptAndApplyEditorLink } from '@/lib/editor/link-prompt'
 import { keepEditorSelectionFocus } from '@/lib/editor/view-ready'
 import { nlpStatus } from '@/lib/db/nlp-api'
 import { cn } from '@/lib/utils'
-import { useEffect, useState } from 'react'
+import { IconTooltip } from '@/components/ui/tooltip'
+import { useEffect, useState, type ReactNode } from 'react'
+
+function BubbleIcon({
+  label,
+  active,
+  onClick,
+  children,
+}: {
+  label: string
+  active?: boolean
+  onClick: () => void
+  children: ReactNode
+}) {
+  return (
+    <IconTooltip label={label}>
+      <button
+        type="button"
+        className={cn('editor-bubble-icon-btn', active && 'is-active')}
+        aria-label={label}
+        onClick={onClick}
+      >
+        {children}
+      </button>
+    </IconTooltip>
+  )
+}
 
 type EditorTextBubbleMenuProps = {
   editor: Editor | null
@@ -87,42 +113,42 @@ export function EditorTextBubbleMenu({ editor }: EditorTextBubbleMenuProps) {
         hasEditorSelection(currentEditor) && !currentEditor.isActive('table')
       }
     >
-      <button type="button" className={cn('editor-bubble-icon-btn', editor.isActive('bold') && 'is-active')} title={t('toolbar.actions.bold')} onClick={() => editor.chain().focus().toggleBold().run()}>
+      <BubbleIcon label={t('toolbar.actions.bold')} active={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()}>
         <Bold className="h-3.5 w-3.5" />
-      </button>
-      <button type="button" className={cn('editor-bubble-icon-btn', editor.isActive('italic') && 'is-active')} title={t('toolbar.actions.italic')} onClick={() => editor.chain().focus().toggleItalic().run()}>
+      </BubbleIcon>
+      <BubbleIcon label={t('toolbar.actions.italic')} active={editor.isActive('italic')} onClick={() => editor.chain().focus().toggleItalic().run()}>
         <Italic className="h-3.5 w-3.5" />
-      </button>
-      <button type="button" className={cn('editor-bubble-icon-btn', editor.isActive('underline') && 'is-active')} title={t('toolbar.actions.underline')} onClick={() => editor.chain().focus().toggleUnderline().run()}>
+      </BubbleIcon>
+      <BubbleIcon label={t('toolbar.actions.underline')} active={editor.isActive('underline')} onClick={() => editor.chain().focus().toggleUnderline().run()}>
         <Underline className="h-3.5 w-3.5" />
-      </button>
-      <button type="button" className={cn('editor-bubble-icon-btn', editor.isActive('link') && 'is-active')} title={t('toolbar.actions.link')} onClick={setLink}>
+      </BubbleIcon>
+      <BubbleIcon label={t('toolbar.actions.link')} active={editor.isActive('link')} onClick={setLink}>
         <Link2 className="h-3.5 w-3.5" />
-      </button>
-      <button
-        type="button"
-        className={cn('editor-bubble-icon-btn', editor.isActive('comment') && 'is-active')}
-        title={t('editorActions.comment')}
+      </BubbleIcon>
+      <BubbleIcon
+        label={t('editorActions.comment')}
+        active={editor.isActive('comment')}
         onClick={() => {
           void createCommentForSelection(editor)
         }}
       >
         <MessageSquare className="h-3.5 w-3.5" />
-      </button>
+      </BubbleIcon>
 
       {nlpReady ? (
         <DropdownMenu modal={false}>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              className="editor-bubble-icon-btn"
-              title={t('aiRewrite.title')}
-              aria-label={t('aiRewrite.title')}
-              onMouseDown={(event) => event.preventDefault()}
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-            </button>
-          </DropdownMenuTrigger>
+          <IconTooltip label={t('aiRewrite.title')}>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="editor-bubble-icon-btn"
+                aria-label={t('aiRewrite.title')}
+                onMouseDown={(event) => event.preventDefault()}
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+              </button>
+            </DropdownMenuTrigger>
+          </IconTooltip>
           <DropdownMenuContent
             align="start"
             className="selection-ai-pop"
@@ -140,17 +166,18 @@ export function EditorTextBubbleMenu({ editor }: EditorTextBubbleMenuProps) {
       <span className="editor-bubble-divider" />
 
       <DropdownMenu modal={false}>
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            className="editor-bubble-icon-btn"
-            title={t('toolbar.actions.moreFormatting')}
-            aria-label={t('toolbar.actions.moreFormatting')}
-            onMouseDown={(event) => event.preventDefault()}
-          >
-            <Ellipsis className="h-3.5 w-3.5" />
-          </button>
-        </DropdownMenuTrigger>
+        <IconTooltip label={t('toolbar.actions.moreFormatting')}>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="editor-bubble-icon-btn"
+              aria-label={t('toolbar.actions.moreFormatting')}
+              onMouseDown={(event) => event.preventDefault()}
+            >
+              <Ellipsis className="h-3.5 w-3.5" />
+            </button>
+          </DropdownMenuTrigger>
+        </IconTooltip>
         <DropdownMenuContent
           align="end"
           className="editor-bubble-more"
@@ -192,14 +219,16 @@ export function EditorTextBubbleMenu({ editor }: EditorTextBubbleMenuProps) {
               onPick={(value) => editor.chain().focus().toggleHighlight({ color: value }).run()}
             />
             <CustomColorPicker label="+" onPick={(value) => editor.chain().focus().toggleHighlight({ color: value }).run()} />
-            <button
-              type="button"
-              className={cn('editor-bubble-icon-btn', editor.isActive('highlight') && 'is-active')}
-              title={t('editorActions.deleteHighlight')}
-              onClick={() => editor.chain().focus().unsetHighlight().run()}
-            >
-              <Highlighter className="h-3.5 w-3.5" />
-            </button>
+            <IconTooltip label={t('editorActions.deleteHighlight')}>
+              <button
+                type="button"
+                className={cn('editor-bubble-icon-btn', editor.isActive('highlight') && 'is-active')}
+                aria-label={t('editorActions.deleteHighlight')}
+                onClick={() => editor.chain().focus().unsetHighlight().run()}
+              >
+                <Highlighter className="h-3.5 w-3.5" />
+              </button>
+            </IconTooltip>
           </div>
         </DropdownMenuContent>
       </DropdownMenu>

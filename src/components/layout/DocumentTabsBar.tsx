@@ -8,6 +8,7 @@ import { TAB_DND_TYPE, type TabDragItem } from '@/lib/dnd/types'
 import { closeActiveDocumentAndMaybeHome } from '@/lib/navigation'
 import { ROUTES } from '@/lib/routes'
 import { cn } from '@/lib/utils'
+import { IconTooltip } from '@/components/ui/tooltip'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
   closeOpenDocument,
@@ -200,24 +201,25 @@ function DocumentTab({
         isOver && 'is-drop-target',
       )}
     >
-      <button
-        type="button"
-        className={cn(
-          'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border-none bg-transparent transition-opacity hover:bg-[var(--color-hover)]',
-          tab.pinned
-            ? 'text-[var(--color-accent)] opacity-100'
-            : 'text-[var(--color-muted-foreground)] opacity-0 group-hover:opacity-100',
-        )}
-        onClick={(event) => {
-          event.preventDefault()
-          event.stopPropagation()
-          dispatch(togglePinnedDocument(tab.id))
-        }}
-        title={tab.pinned ? t('tabs.unpin') : t('tabs.pin')}
-        aria-label={tab.pinned ? t('tabs.unpin') : t('tabs.pin')}
-      >
-        <Pin className={cn('h-3 w-3', tab.pinned && 'fill-current')} />
-      </button>
+      <IconTooltip label={tab.pinned ? t('tabs.unpin') : t('tabs.pin')}>
+        <button
+          type="button"
+          className={cn(
+            'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border-none bg-transparent transition-opacity hover:bg-[var(--color-hover)]',
+            tab.pinned
+              ? 'text-[var(--color-accent)] opacity-100'
+              : 'text-[var(--color-muted-foreground)] opacity-0 group-hover:opacity-100',
+          )}
+          onClick={(event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            dispatch(togglePinnedDocument(tab.id))
+          }}
+          aria-label={tab.pinned ? t('tabs.unpin') : t('tabs.pin')}
+        >
+          <Pin className={cn('h-3 w-3', tab.pinned && 'fill-current')} />
+        </button>
+      </IconTooltip>
       <button
         type="button"
         className="min-w-0 flex-1 truncate border-none bg-transparent p-0 font-[family-name:var(--font-display)] text-[12px] font-semibold tracking-[-0.02em] text-inherit"
@@ -227,22 +229,23 @@ function DocumentTab({
         {tab.title}
       </button>
       {!tab.pinned && (
-        <button
-          type="button"
-          className={cn(
-            'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border-none bg-transparent text-[var(--color-muted-foreground)] transition-opacity hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]',
-            isActive ? 'opacity-100' : 'opacity-60 group-hover:opacity-100',
-          )}
-          onClick={(event) => {
-            event.preventDefault()
-            event.stopPropagation()
-            onClose(tab.id)
-          }}
-          title={t('tabs.close')}
-          aria-label={t('tabs.close')}
-        >
-          <X className="h-3 w-3" />
-        </button>
+        <IconTooltip label={t('tabs.close')}>
+          <button
+            type="button"
+            className={cn(
+              'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border-none bg-transparent text-[var(--color-muted-foreground)] transition-opacity hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]',
+              isActive ? 'opacity-100' : 'opacity-60 group-hover:opacity-100',
+            )}
+            onClick={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              onClose(tab.id)
+            }}
+            aria-label={t('tabs.close')}
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </IconTooltip>
       )}
     </div>
   )

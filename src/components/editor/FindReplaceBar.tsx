@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Editor } from '@tiptap/react'
 import {
@@ -22,6 +22,7 @@ import {
 } from '@/store/documentsSlice'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { IconTooltip } from '@/components/ui/tooltip'
 
 function clearEditorSearch(editor: Editor | null) {
   if (!editor || editor.isDestroyed) return
@@ -175,6 +176,35 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
   const toggleActive = (active: boolean) =>
     active && 'bg-[color-mix(in_srgb,var(--color-accent)_14%,transparent)] text-[var(--color-accent)]'
 
+  function IconFindButton({
+    label,
+    active,
+    disabled,
+    onClick,
+    children,
+  }: {
+    label: string
+    active?: boolean
+    disabled?: boolean
+    onClick: () => void
+    children: ReactNode
+  }) {
+    return (
+      <IconTooltip label={label}>
+        <button
+          type="button"
+          className={cn(iconBtnClass, toggleActive(Boolean(active)))}
+          aria-label={label}
+          aria-pressed={active}
+          disabled={disabled}
+          onClick={onClick}
+        >
+          {children}
+        </button>
+      </IconTooltip>
+    )
+  }
+
   const placeholder = fuzzy
     ? t('findReplace.fuzzyPlaceholder')
     : regex
@@ -219,27 +249,24 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
           </span>
         </div>
 
-        <button
-          type="button"
-          className={cn(iconBtnClass, toggleActive(caseSensitive))}
-          title={t('findReplace.matchCase')}
+        <IconFindButton
+          label={t('findReplace.matchCase')}
+          active={caseSensitive}
           onClick={() => setCaseSensitive((value) => !value)}
         >
           <CaseSensitive className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
-          className={cn(iconBtnClass, toggleActive(wholeWord))}
-          title={t('findReplace.wholeWord')}
+        </IconFindButton>
+        <IconFindButton
+          label={t('findReplace.wholeWord')}
+          active={wholeWord}
           disabled={fuzzy}
           onClick={() => setWholeWord((value) => !value)}
         >
           <WholeWord className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
-          className={cn(iconBtnClass, toggleActive(regex))}
-          title={t('findReplace.regex')}
+        </IconFindButton>
+        <IconFindButton
+          label={t('findReplace.regex')}
+          active={regex}
           disabled={fuzzy}
           onClick={() => {
             setRegex((value) => !value)
@@ -247,11 +274,10 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
           }}
         >
           <Regex className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
-          className={cn(iconBtnClass, toggleActive(fuzzy))}
-          title={t('findReplace.fuzzy')}
+        </IconFindButton>
+        <IconFindButton
+          label={t('findReplace.fuzzy')}
+          active={fuzzy}
           onClick={() => {
             setFuzzy((value) => {
               const next = !value
@@ -265,47 +291,32 @@ export function FindReplaceBar({ editor }: FindReplaceBarProps) {
           }}
         >
           <Sparkles className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
-          className={iconBtnClass}
-          title={t('findReplace.previous')}
-          onClick={goPrev}
+        </IconFindButton>
+        <IconFindButton
+          label={t('findReplace.previous')}
           disabled={status.total === 0}
+          onClick={goPrev}
         >
           <ArrowUp className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
-          className={iconBtnClass}
-          title={t('findReplace.next')}
-          onClick={goNext}
+        </IconFindButton>
+        <IconFindButton
+          label={t('findReplace.next')}
           disabled={status.total === 0}
+          onClick={goNext}
         >
           <ArrowDown className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
-          className={cn(iconBtnClass, toggleActive(showReplace))}
-          title={t('findReplace.replace')}
+        </IconFindButton>
+        <IconFindButton
+          label={t('findReplace.replace')}
+          active={showReplace}
           disabled={fuzzy}
           onClick={() => setShowReplace((value) => !value)}
         >
           <Replace className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
-          className={iconBtnClass}
-          title={t('findReplace.close')}
-          aria-label={t('findReplace.closeAria')}
-          onClick={(event) => {
-            event.preventDefault()
-            event.stopPropagation()
-            handleClose()
-          }}
-        >
+        </IconFindButton>
+        <IconFindButton label={t('findReplace.closeAria')} onClick={handleClose}>
           <X className="h-4 w-4" />
-        </button>
+        </IconFindButton>
       </div>
 
       {status.regexError && (

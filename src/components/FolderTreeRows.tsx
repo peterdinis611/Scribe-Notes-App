@@ -34,6 +34,7 @@ import { flattenFoldersForPicker } from '@/lib/library/folders'
 import { cn, formatRelativeTime } from '@/lib/utils'
 import type { DocumentSummary, Folder as FolderType } from '@/lib/db/api'
 import { useAppSelector } from '@/store/hooks'
+import { IconTooltip } from '@/components/ui/tooltip'
 
 type FolderTreeFolderRowProps = {
   folder: FolderType
@@ -111,24 +112,30 @@ export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
           )}
           style={{ '--folder-depth': depth } as React.CSSProperties}
         >
-          <button
-            type="button"
-            className="folder-tree-chevron"
-            onClick={() => onToggle(folder.id)}
-            aria-expanded={isExpanded}
-            aria-label={isExpanded ? t('library.collapseFolder') : t('library.expandFolder')}
-          >
-            <ChevronRight className={cn('h-3.5 w-3.5 transition-transform', isExpanded && 'rotate-90')} />
-          </button>
+          <IconTooltip label={isExpanded ? t('library.collapseFolder') : t('library.expandFolder')}>
+            <button
+              type="button"
+              className="folder-tree-chevron"
+              onClick={() => onToggle(folder.id)}
+              aria-expanded={isExpanded}
+              aria-label={isExpanded ? t('library.collapseFolder') : t('library.expandFolder')}
+            >
+              <ChevronRight className={cn('h-3.5 w-3.5 transition-transform', isExpanded && 'rotate-90')} />
+            </button>
+          </IconTooltip>
           <span className="folder-tree-folder-mark" aria-hidden="true">
             <Folder className="h-3.5 w-3.5" />
           </span>
           {folder.isVault ? (
-            vaultUnlocked ? (
-              <Unlock className="folder-tree-vault-icon" aria-hidden />
-            ) : (
-              <Lock className="folder-tree-vault-icon" aria-hidden />
-            )
+            <IconTooltip label={vaultUnlocked ? t('vault.unlocked') : t('vault.locked')}>
+              <span tabIndex={0} className="inline-flex">
+                {vaultUnlocked ? (
+                  <Unlock className="folder-tree-vault-icon" aria-hidden />
+                ) : (
+                  <Lock className="folder-tree-vault-icon" aria-hidden />
+                )}
+              </span>
+            </IconTooltip>
           ) : null}
           <button
             type="button"
@@ -141,21 +148,26 @@ export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
           {documentCount > 0 ? (
             <span className="folder-tree-count">{documentCount}</span>
           ) : null}
-          <button
-            type="button"
-            className="folder-tree-add"
-            title={t('library.newSubfolder')}
-            aria-label={t('library.newSubfolder')}
-            onClick={(event) => {
-              event.preventDefault()
-              event.stopPropagation()
-              onCreateChild(folder.id)
-            }}
-          >
-            <FolderPlus className="h-3.5 w-3.5" />
-          </button>
+          <IconTooltip label={t('library.newSubfolder')}>
+            <button
+              type="button"
+              className="folder-tree-add"
+              aria-label={t('library.newSubfolder')}
+              onClick={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                onCreateChild(folder.id)
+              }}
+            >
+              <FolderPlus className="h-3.5 w-3.5" />
+            </button>
+          </IconTooltip>
           {folder.isPinned ? (
-            <Pin className="folder-tree-pin" aria-hidden />
+            <IconTooltip label={t('library.pin')}>
+              <span tabIndex={0} className="inline-flex">
+                <Pin className="folder-tree-pin" aria-hidden />
+              </span>
+            </IconTooltip>
           ) : null}
         </div>
       </ContextMenuTrigger>
@@ -320,10 +332,18 @@ export const FolderTreeDocumentRow = memo(function FolderTreeDocumentRow({
 
           <div className="folder-tree-doc-badges">
             {document.isPinned ? (
-              <Pin className="folder-tree-pin" aria-hidden="true" />
+              <IconTooltip label={t('library.pin')}>
+                <span tabIndex={0} className="inline-flex">
+                  <Pin className="folder-tree-pin" aria-hidden="true" />
+                </span>
+              </IconTooltip>
             ) : null}
             {document.isFavorite ? (
-              <Star className="folder-tree-star" aria-hidden="true" />
+              <IconTooltip label={t('library.favorite')}>
+                <span tabIndex={0} className="inline-flex">
+                  <Star className="folder-tree-star" aria-hidden="true" />
+                </span>
+              </IconTooltip>
             ) : null}
           </div>
         </div>
