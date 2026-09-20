@@ -21,6 +21,7 @@ import {
 } from '@xyflow/react'
 import { Link2, Minus, Plus, Square, Trash2, ZoomIn, ZoomOut, Download } from 'lucide-react'
 import '@xyflow/react/dist/style.css'
+import { DocumentLoadingState } from '@/components/DocumentLoadingState'
 import { CanvasNoteActions, CanvasNoteNode } from '@/components/canvas/CanvasNoteNode'
 import {
   canvasEdgesToFlow,
@@ -258,9 +259,7 @@ function CanvasFlow() {
   if (!activeId || !activeDocument) {
     return (
       <div className="editor-shell">
-        <div className="flex flex-1 items-center justify-center text-sm text-[var(--color-muted-foreground)]">
-          {t('editor.loading')}
-        </div>
+        <DocumentLoadingState label={t('editor.loading')} />
       </div>
     )
   }

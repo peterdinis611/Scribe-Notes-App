@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import { Clock, FileText, Star } from 'lucide-react'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
+import { prefetchDocument } from '@/lib/cache/prefetch-document'
 import { ROUTES } from '@/lib/routes'
 import { cn, formatRelativeTime } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
@@ -31,6 +32,7 @@ export function LibraryFavoritesView({ onNavigate }: LibraryFavoritesViewProps) 
     dispatch(setActiveDocumentId(id))
     const cached = peekCachedDocument(id)
     if (cached) dispatch(setActiveDocument(cached))
+    else prefetchDocument(id)
     navigate(ROUTES.document(id))
     onNavigate?.()
   }

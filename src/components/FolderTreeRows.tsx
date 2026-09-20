@@ -17,6 +17,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { DocumentTitleField } from '@/components/DocumentTitleField'
+import { prefetchDocument } from '@/lib/cache/prefetch-document'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -277,6 +278,7 @@ export const FolderTreeDocumentRow = memo(function FolderTreeDocumentRow({
           role="button"
           tabIndex={0}
           onClick={() => onOpen(document.id)}
+          onPointerEnter={() => prefetchDocument(document.id)}
           onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault()

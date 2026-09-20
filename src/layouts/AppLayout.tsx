@@ -26,6 +26,7 @@ import { useAutoBackup } from '@/hooks/useAutoBackup'
 import { useDocumentCacheRetention } from '@/hooks/useDocumentCacheRetention'
 import { APP_VERSION } from '@/lib/app-version'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
+import { prefetchDocument, prefetchEditorChunks } from '@/lib/cache/prefetch-document'
 import { createDocument, flushPendingWrites, importFile } from '@/lib/db/api'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { applyDiskPersistResult } from '@/lib/disk-sync'
@@ -74,6 +75,7 @@ function useDocumentRouteSync() {
     dispatch(setActiveDocumentId(documentId))
     const cached = peekCachedDocument(documentId)
     if (cached) dispatch(setActiveDocument(cached))
+    else prefetchDocument(documentId)
   }, [activeId, dispatch, documentId, documents])
 }
 
@@ -89,6 +91,7 @@ export function AppLayout() {
   const movePickerOpen = useAppSelector((state) => state.folders.moveDocumentPickerOpen)
   const activeDocument = useAppSelector((state) => state.documents.activeDocument)
   const documents = useAppSelector((state) => state.documents.documents)
+  const openDocumentIds = useAppSelector((state) => state.documents.openDocumentIds)
   const folders = useAppSelector((state) => state.folders.folders)
   const focusMode = useAppSelector((state) => state.documents.focusMode)
   const readingMode = useAppSelector((state) => state.documents.readingMode)
@@ -107,6 +110,14 @@ export function AppLayout() {
   const [setupReady, setSetupReady] = useState(
     () => ensureSetupCompletedForExistingUsers() || readSetupCompleted(),
   )
+
+  useEffect(() => {
+    prefetchEditorChunks()
+  }, [])
+
+  useEffect(() => {
+    for (const id of openDocumentIds) prefetchDocument(id)
+  }, [openDocumentIds])
 
   function maybeOpenWhatsNew() {
     if (readWhatsNewVersion() !== APP_VERSION) {

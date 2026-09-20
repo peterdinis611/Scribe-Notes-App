@@ -1,4 +1,5 @@
 import { peekCachedDocument } from '@/lib/cache/document-cache'
+import { prefetchDocument } from '@/lib/cache/prefetch-document'
 import { ROUTES } from '@/lib/routes'
 import type { AppDispatch } from '@/store/index'
 import {
@@ -44,6 +45,7 @@ export function closeActiveDocumentAndMaybeHome(args: {
   if (nextId) {
     const cached = peekCachedDocument(nextId)
     if (cached) dispatch(setActiveDocument(cached))
+    else prefetchDocument(nextId)
     void navigate(ROUTES.document(nextId))
     return
   }
@@ -75,6 +77,7 @@ export function navigateViaWikiLink(args: {
   args.dispatch(setActiveDocumentId(args.targetId))
   const cached = peekCachedDocument(args.targetId)
   if (cached) args.dispatch(setActiveDocument(cached))
+  else prefetchDocument(args.targetId)
   void args.navigate(ROUTES.document(args.targetId))
 }
 
@@ -90,6 +93,7 @@ export function navigateWikiBack(args: {
   args.dispatch(setActiveDocumentId(prev))
   const cached = peekCachedDocument(prev)
   if (cached) args.dispatch(setActiveDocument(cached))
+  else prefetchDocument(prev)
   void args.navigate(ROUTES.document(prev))
 }
 
@@ -103,5 +107,6 @@ export function navigateToBreadcrumb(args: {
   args.dispatch(setActiveDocumentId(args.targetId))
   const cached = peekCachedDocument(args.targetId)
   if (cached) args.dispatch(setActiveDocument(cached))
+  else prefetchDocument(args.targetId)
   void args.navigate(ROUTES.document(args.targetId))
 }

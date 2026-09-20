@@ -4,6 +4,7 @@ import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { Pin, X } from 'lucide-react'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
+import { prefetchDocument } from '@/lib/cache/prefetch-document'
 import { TAB_DND_TYPE, type TabDragItem } from '@/lib/dnd/types'
 import { closeActiveDocumentAndMaybeHome } from '@/lib/navigation'
 import { ROUTES } from '@/lib/routes'
@@ -94,6 +95,7 @@ export function DocumentTabsBar() {
     dispatch(setActiveDocumentId(id))
     const cached = peekCachedDocument(id)
     if (cached) dispatch(setActiveDocument(cached))
+    else prefetchDocument(id)
     void navigate(ROUTES.document(id))
   }
 
@@ -224,6 +226,7 @@ function DocumentTab({
         type="button"
         className="min-w-0 flex-1 truncate border-none bg-transparent p-0 font-[family-name:var(--font-display)] text-[12px] font-semibold tracking-[-0.02em] text-inherit"
         onClick={() => onActivate(tab.id)}
+        onPointerEnter={() => prefetchDocument(tab.id)}
         title={tab.title}
       >
         {tab.title}

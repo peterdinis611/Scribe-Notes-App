@@ -77,6 +77,7 @@ import { collectHeadingsFromJson } from '@/lib/search/palette-headings'
 import { fuzzyFilter } from '@/lib/search/fuzzy'
 import { editorRefs } from '@/store/editorRefs'
 import { getCachedParsedContent, peekCachedDocument } from '@/lib/cache/document-cache'
+import { prefetchDocument } from '@/lib/cache/prefetch-document'
 import { isCanvasContent } from '@/lib/canvas/types'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
@@ -296,6 +297,7 @@ export function CommandPalette() {
                 dispatch(setActiveDocumentId(id))
                 const cached = peekCachedDocument(id)
                 if (cached) dispatch(setActiveDocument(cached))
+                else prefetchDocument(id)
                 navigate(ROUTES.document(id))
               },
             },
@@ -942,6 +944,7 @@ export function CommandPalette() {
           dispatch(setActiveDocumentId(hit.documentId))
           const cached = peekCachedDocument(hit.documentId)
           if (cached) dispatch(setActiveDocument(cached))
+          else prefetchDocument(hit.documentId)
           navigate(ROUTES.document(hit.documentId))
           window.setTimeout(() => {
             const editor = editorRefs.editor
@@ -990,6 +993,7 @@ export function CommandPalette() {
         dispatch(setActiveDocumentId(hit.documentId))
         const cached = peekCachedDocument(hit.documentId)
         if (cached) dispatch(setActiveDocument(cached))
+        else prefetchDocument(hit.documentId)
         navigate(ROUTES.document(hit.documentId))
       },
     })
@@ -1052,6 +1056,7 @@ export function CommandPalette() {
             dispatch(setActiveDocumentId(doc.id))
             const cached = peekCachedDocument(doc.id)
             if (cached) dispatch(setActiveDocument(cached))
+            else prefetchDocument(doc.id)
             navigate(ROUTES.document(doc.id))
           },
         }))
@@ -1067,6 +1072,7 @@ export function CommandPalette() {
             dispatch(setActiveDocumentId(doc.id))
             const cached = peekCachedDocument(doc.id)
             if (cached) dispatch(setActiveDocument(cached))
+            else prefetchDocument(doc.id)
             navigate(ROUTES.document(doc.id))
           },
         }))
@@ -1091,6 +1097,7 @@ export function CommandPalette() {
         dispatch(setActiveDocumentId(doc.id))
         const cached = peekCachedDocument(doc.id)
         if (cached) dispatch(setActiveDocument(cached))
+        else prefetchDocument(doc.id)
         navigate(ROUTES.document(doc.id))
       },
     }))

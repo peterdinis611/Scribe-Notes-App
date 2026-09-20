@@ -15,6 +15,7 @@ import {
   MessageFooter,
 } from '@/components/ui/message'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
+import { prefetchDocument } from '@/lib/cache/prefetch-document'
 import {
   appendDocumentChatMessage,
   clearDocumentChatMessages,
@@ -194,6 +195,7 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
       dispatch(setActiveDocumentId(documentId))
       const cached = peekCachedDocument(documentId)
       if (cached) dispatch(setActiveDocument(cached))
+      else prefetchDocument(documentId)
       const needle = snippet ? citationSearchQuery(snippet) : ''
       if (needle) dispatch(setPendingEditorSearch(needle))
       void navigate(ROUTES.document(documentId))

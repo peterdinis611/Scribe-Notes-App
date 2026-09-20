@@ -18,6 +18,7 @@ import {
 } from '@/lib/db/api'
 import { useMoveDocumentToFolder } from '@/hooks/useMoveDocumentToFolder'
 import { invalidateDocumentCache, peekCachedDocument } from '@/lib/cache/document-cache'
+import { prefetchDocument } from '@/lib/cache/prefetch-document'
 import { isLibraryDocumentVisible } from '@/lib/db/library-sync'
 import { trashDocuments, removeDocumentsFromLibraryUi, restoreTrashedDocuments } from '@/lib/trash-document'
 import {
@@ -319,6 +320,7 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     dispatch(setActiveDocumentId(id))
     const cached = peekCachedDocument(id)
     if (cached) dispatch(setActiveDocument(cached))
+    else prefetchDocument(id)
     navigate(ROUTES.document(id))
     onNavigate?.()
   }, [dispatch, navigate, onNavigate])

@@ -111,8 +111,9 @@ async function vaultContext() {
   }
 }
 
+const getDocumentInflight = new Map<string, Promise<Document>>()
+
 export const getDocument = async (id: string) => {
-  const { folders } = await vaultContext()
   const cached = peekCachedDocument(id)
 
   // Prefer warm plaintext cache (typical after unlock / save).
@@ -120,20 +121,36 @@ export const getDocument = async (id: string) => {
     return cached
   }
 
-  const raw =
-    cached ??
-    (await (async () => {
-      const fetched = await invoke<Document>('get_document', { id })
-      cacheDocument(fetched)
-      return fetched
-    })())
+  const pending = getDocumentInflight.get(id)
+  if (pending) return pending
 
-  const decrypted = await maybeDecryptDocument(raw, folders)
-  // While unlocked, keep plaintext warm so tab switches skip decrypt + IPC.
-  if (!isVaultCipherJson(decrypted.contentJson)) {
-    cacheDocument(decrypted)
-  }
-  return decrypted
+  const request = (async () => {
+    const { folders } = await vaultContext()
+    const warm = peekCachedDocument(id)
+    if (warm && !isVaultCipherJson(warm.contentJson)) {
+      return warm
+    }
+
+    const raw =
+      warm ??
+      (await (async () => {
+        const fetched = await invoke<Document>('get_document', { id })
+        cacheDocument(fetched)
+        return fetched
+      })())
+
+    const decrypted = await maybeDecryptDocument(raw, folders)
+    // While unlocked, keep plaintext warm so tab switches skip decrypt + IPC.
+    if (!isVaultCipherJson(decrypted.contentJson)) {
+      cacheDocument(decrypted)
+    }
+    return decrypted
+  })().finally(() => {
+    if (getDocumentInflight.get(id) === request) getDocumentInflight.delete(id)
+  })
+
+  getDocumentInflight.set(id, request)
+  return request
 }
 
 export const fetchDocumentFresh = async (id: string) => {
