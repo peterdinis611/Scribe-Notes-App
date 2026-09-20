@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { FileCode2, Type } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { IconTooltip } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { editorRefs } from '@/store/editorRefs'
 import { useAppSelector } from '@/store/hooks'
@@ -20,34 +21,38 @@ export function EditorViewModeToggle({ className }: { className?: string }) {
         className,
       )}
     >
-      <Button
-        type="button"
-        variant={isMarkdown ? 'ghost' : 'default'}
-        size="sm"
-        className="h-7 gap-1 px-2 text-[12px] [[data-layout-tier=medium]_&]:w-8 [[data-layout-tier=medium]_&]:min-w-8 [[data-layout-tier=medium]_&]:px-0 [[data-layout-tier=narrow]_&]:w-8 [[data-layout-tier=narrow]_&]:min-w-8 [[data-layout-tier=narrow]_&]:px-0 [[data-layout-tier=tight]_&]:w-8 [[data-layout-tier=tight]_&]:min-w-8 [[data-layout-tier=tight]_&]:px-0"
-        title={t('viewMode.rich')}
-        onClick={() => actions.switchToRich()}
-        aria-pressed={!isMarkdown}
-      >
-        <Type className="h-3.5 w-3.5" />
-        <span className="[[data-layout-tier=medium]_&]:hidden [[data-layout-tier=narrow]_&]:hidden [[data-layout-tier=tight]_&]:hidden">
-          Text
-        </span>
-      </Button>
-      <Button
-        type="button"
-        variant={isMarkdown ? 'default' : 'ghost'}
-        size="sm"
-        className="h-7 gap-1 px-2 text-[12px] [[data-layout-tier=medium]_&]:w-8 [[data-layout-tier=medium]_&]:min-w-8 [[data-layout-tier=medium]_&]:px-0 [[data-layout-tier=narrow]_&]:w-8 [[data-layout-tier=narrow]_&]:min-w-8 [[data-layout-tier=narrow]_&]:px-0 [[data-layout-tier=tight]_&]:w-8 [[data-layout-tier=tight]_&]:min-w-8 [[data-layout-tier=tight]_&]:px-0"
-        title={t('viewMode.markdown')}
-        onClick={() => actions.switchToMarkdown()}
-        aria-pressed={isMarkdown}
-      >
-        <FileCode2 className="h-3.5 w-3.5" />
-        <span className="[[data-layout-tier=medium]_&]:hidden [[data-layout-tier=narrow]_&]:hidden [[data-layout-tier=tight]_&]:hidden">
-          MD
-        </span>
-      </Button>
+      <IconTooltip label={t('viewMode.rich')}>
+        <Button
+          type="button"
+          variant={isMarkdown ? 'ghost' : 'default'}
+          size="sm"
+          className="h-7 gap-1 px-2 text-[12px] [[data-layout-tier=medium]_&]:w-8 [[data-layout-tier=medium]_&]:min-w-8 [[data-layout-tier=medium]_&]:px-0 [[data-layout-tier=narrow]_&]:w-8 [[data-layout-tier=narrow]_&]:min-w-8 [[data-layout-tier=narrow]_&]:px-0 [[data-layout-tier=tight]_&]:w-8 [[data-layout-tier=tight]_&]:min-w-8 [[data-layout-tier=tight]_&]:px-0"
+          onClick={() => actions.switchToRich()}
+          aria-label={t('viewMode.rich')}
+          aria-pressed={!isMarkdown}
+        >
+          <Type className="h-3.5 w-3.5" />
+          <span className="[[data-layout-tier=medium]_&]:hidden [[data-layout-tier=narrow]_&]:hidden [[data-layout-tier=tight]_&]:hidden">
+            {t('viewMode.richShort')}
+          </span>
+        </Button>
+      </IconTooltip>
+      <IconTooltip label={t('viewMode.markdown')}>
+        <Button
+          type="button"
+          variant={isMarkdown ? 'default' : 'ghost'}
+          size="sm"
+          className="h-7 gap-1 px-2 text-[12px] [[data-layout-tier=medium]_&]:w-8 [[data-layout-tier=medium]_&]:min-w-8 [[data-layout-tier=medium]_&]:px-0 [[data-layout-tier=narrow]_&]:w-8 [[data-layout-tier=narrow]_&]:min-w-8 [[data-layout-tier=narrow]_&]:px-0 [[data-layout-tier=tight]_&]:w-8 [[data-layout-tier=tight]_&]:min-w-8 [[data-layout-tier=tight]_&]:px-0"
+          onClick={() => actions.switchToMarkdown()}
+          aria-label={t('viewMode.markdown')}
+          aria-pressed={isMarkdown}
+        >
+          <FileCode2 className="h-3.5 w-3.5" />
+          <span className="[[data-layout-tier=medium]_&]:hidden [[data-layout-tier=narrow]_&]:hidden [[data-layout-tier=tight]_&]:hidden">
+            {t('viewMode.markdownShort')}
+          </span>
+        </Button>
+      </IconTooltip>
     </div>
   )
 }

@@ -23,6 +23,7 @@ import {
   Scan,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { IconTooltip } from '@/components/ui/tooltip'
 import { useAnimatedImageSrc } from '@/hooks/useAnimatedImageSrc'
 import {
   copyImageToClipboard,
@@ -299,12 +300,12 @@ export function ImageBlock({
                     }
                     toast.success(t('image.ocrSaved'))
                   } catch (e) {
-                    toast.error('OCR failed')
+                    toast.error(t('image.ocrFailed'))
                   } finally {
                     setOcrLoading(false)
                   }
                 }}
-                title="Extract text (OCR)"
+                title={t('image.ocrExtract')}
                 disabled={ocrLoading}
               >
                 <Scan className="h-3.5 w-3.5 text-amber-500" />
@@ -389,26 +390,38 @@ export function ImageBlock({
 
           {showChrome && !isFull && !isEmpty && (
             <>
-              <span
-                className="image-resize-edge image-resize-edge--left"
-                onMouseDown={onResizeStart('left')}
-                title={t('image.resize')}
-              />
-              <span
-                className="image-resize-edge image-resize-edge--right"
-                onMouseDown={onResizeStart('right')}
-                title={t('image.resize')}
-              />
-              <span
-                className="image-resize-corner image-resize-corner--se"
-                onMouseDown={onResizeStart('corner')}
-                title={t('image.resize')}
-              />
-              <span
-                className="image-resize-corner image-resize-corner--sw"
-                onMouseDown={onResizeStart('left')}
-                title={t('image.resize')}
-              />
+              <IconTooltip label={t('image.resize')}>
+                <span
+                  tabIndex={0}
+                  className="image-resize-edge image-resize-edge--left"
+                  onMouseDown={onResizeStart('left')}
+                  aria-label={t('image.resize')}
+                />
+              </IconTooltip>
+              <IconTooltip label={t('image.resize')}>
+                <span
+                  tabIndex={0}
+                  className="image-resize-edge image-resize-edge--right"
+                  onMouseDown={onResizeStart('right')}
+                  aria-label={t('image.resize')}
+                />
+              </IconTooltip>
+              <IconTooltip label={t('image.resize')}>
+                <span
+                  tabIndex={0}
+                  className="image-resize-corner image-resize-corner--se"
+                  onMouseDown={onResizeStart('corner')}
+                  aria-label={t('image.resize')}
+                />
+              </IconTooltip>
+              <IconTooltip label={t('image.resize')}>
+                <span
+                  tabIndex={0}
+                  className="image-resize-corner image-resize-corner--sw"
+                  onMouseDown={onResizeStart('left')}
+                  aria-label={t('image.resize')}
+                />
+              </IconTooltip>
             </>
           )}
         </div>
@@ -530,20 +543,21 @@ function ToolbarBtn({
   className?: string
 }) {
   return (
-    <button
-      type="button"
-      className={cn('image-toolbar-btn', active && 'is-active', className)}
-      onClick={(event) => {
-        event.preventDefault()
-        event.stopPropagation()
-        onClick()
-      }}
-      title={title}
-      aria-label={title}
-      aria-pressed={active}
-      disabled={disabled}
-    >
-      {children}
-    </button>
+    <IconTooltip label={title}>
+      <button
+        type="button"
+        className={cn('image-toolbar-btn', active && 'is-active', className)}
+        onClick={(event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          onClick()
+        }}
+        aria-label={title}
+        aria-pressed={active}
+        disabled={disabled}
+      >
+        {children}
+      </button>
+    </IconTooltip>
   )
 }

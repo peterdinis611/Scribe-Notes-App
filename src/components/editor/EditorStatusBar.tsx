@@ -6,6 +6,7 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
+  IconTooltip,
 } from '@/components/ui/tooltip'
 import { countWords } from '@/lib/utils'
 import { cn } from '@/lib/utils'
@@ -90,47 +91,53 @@ export function EditorStatusBar({
             <>
               <div className="editor-status-divider" aria-hidden="true" />
               <div className="editor-status-segmented" role="group" aria-label={t('printLayout.preview')}>
-                <button
-                  type="button"
-                  className={cn('editor-status-segment', printColumns === 1 && 'is-active')}
-                  title={t('printLayout.oneColumn')}
-                  aria-label={t('printLayout.oneColumn')}
-                  aria-pressed={printColumns === 1}
-                  onClick={() => dispatch(setPrintLayoutColumns(1))}
-                >
-                  <Rows2 className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  type="button"
-                  className={cn('editor-status-segment', printColumns === 2 && 'is-active')}
-                  title={t('printLayout.twoColumns')}
-                  aria-label={t('printLayout.twoColumns')}
-                  aria-pressed={printColumns === 2}
-                  onClick={() => dispatch(setPrintLayoutColumns(2))}
-                >
-                  <Columns2 className="h-3.5 w-3.5" />
-                </button>
+                <IconTooltip label={t('printLayout.oneColumn')}>
+                  <button
+                    type="button"
+                    className={cn('editor-status-segment', printColumns === 1 && 'is-active')}
+                    aria-label={t('printLayout.oneColumn')}
+                    aria-pressed={printColumns === 1}
+                    onClick={() => dispatch(setPrintLayoutColumns(1))}
+                  >
+                    <Rows2 className="h-3.5 w-3.5" />
+                  </button>
+                </IconTooltip>
+                <IconTooltip label={t('printLayout.twoColumns')}>
+                  <button
+                    type="button"
+                    className={cn('editor-status-segment', printColumns === 2 && 'is-active')}
+                    aria-label={t('printLayout.twoColumns')}
+                    aria-pressed={printColumns === 2}
+                    onClick={() => dispatch(setPrintLayoutColumns(2))}
+                  >
+                    <Columns2 className="h-3.5 w-3.5" />
+                  </button>
+                </IconTooltip>
               </div>
               <div className="editor-status-zoom">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
-                  aria-label={t('printLayout.zoomOut')}
-                  onClick={() => adjustZoom(-0.1)}
-                >
-                  <Minus className="h-3 w-3" />
-                </Button>
+                <IconTooltip label={t('printLayout.zoomOut')}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    aria-label={t('printLayout.zoomOut')}
+                    onClick={() => adjustZoom(-0.1)}
+                  >
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                </IconTooltip>
                 <span aria-live="polite">{Math.round(printZoom * 100)}%</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
-                  aria-label={t('printLayout.zoomIn')}
-                  onClick={() => adjustZoom(0.1)}
-                >
-                  <Plus className="h-3 w-3" />
-                </Button>
+                <IconTooltip label={t('printLayout.zoomIn')}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    aria-label={t('printLayout.zoomIn')}
+                    onClick={() => adjustZoom(0.1)}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </IconTooltip>
               </div>
             </>
           )}

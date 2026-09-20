@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { filterCodeLanguages, getCodeLanguageLabel } from '@/lib/editor/code-languages'
 import { keepEditorSelectionFocus } from '@/lib/editor/view-ready'
 import { cn } from '@/lib/utils'
+import { IconTooltip } from '@/components/ui/tooltip'
 import type { Editor } from '@tiptap/react'
 
 type CodeLanguageMenuProps = {
@@ -39,16 +40,18 @@ export function CodeLanguageMenu({ language, onSelect, triggerClassName, editor 
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          className={cn('toolbar-select', triggerClassName)}
-          title={t('toolbar.actions.syntaxLanguage')}
-        >
-          <span>{getCodeLanguageLabel(language)}</span>
-          <ChevronDown className="h-3.5 w-3.5 opacity-60" />
-        </button>
-      </DropdownMenuTrigger>
+      <IconTooltip label={t('toolbar.actions.syntaxLanguage')}>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            className={cn('toolbar-select', triggerClassName)}
+            aria-label={t('toolbar.actions.syntaxLanguage')}
+          >
+            <span>{getCodeLanguageLabel(language)}</span>
+            <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+          </button>
+        </DropdownMenuTrigger>
+      </IconTooltip>
       <DropdownMenuContent
         align="start"
         className="code-lang-menu"
