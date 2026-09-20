@@ -194,10 +194,11 @@ export const WikiLink = Node.create({
   },
 
   addInputRules() {
+    const editor = this.editor
     return [
       new InputRule({
         find: /\[\[([^[\]\n]+)]]$/,
-        handler: ({ range, match, chain, editor }) => {
+        handler: ({ range, match, chain }) => {
           const title = match[1]?.trim()
           if (!title) return
           const local = resolveTitleLocal(title)

@@ -11,7 +11,6 @@ export function applyWikiSuggestion(suggestion: WikiLinkSuggestion): 'linked' | 
   const label = (suggestion.title || suggestion.phrase || '').trim()
   if (!phrase || !label || !suggestion.documentId) return 'failed'
 
-  const docText = editor.state.doc.textBetween(0, editor.state.doc.content.size, '\n')
   const candidates = [
     {
       id: suggestion.documentId,
