@@ -26,7 +26,7 @@ import { useAutoBackup } from '@/hooks/useAutoBackup'
 import { useDocumentCacheRetention } from '@/hooks/useDocumentCacheRetention'
 import { APP_VERSION } from '@/lib/app-version'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
-import { prefetchDocument, prefetchEditorChunks } from '@/lib/cache/prefetch-document'
+import { prefetchDocument, prefetchEditorChunks, prefetchOpenDocuments } from '@/lib/cache/prefetch-document'
 import { createDocument, flushPendingWrites, importFile } from '@/lib/db/api'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { applyDiskPersistResult } from '@/lib/disk-sync'
@@ -116,8 +116,12 @@ export function AppLayout() {
   }, [])
 
   useEffect(() => {
-    for (const id of openDocumentIds) prefetchDocument(id)
-  }, [openDocumentIds])
+    const activeId = activeDocument?.id
+    const prioritized = activeId
+      ? [activeId, ...openDocumentIds.filter((id) => id !== activeId)]
+      : openDocumentIds
+    prefetchOpenDocuments(prioritized, { limit: 6 })
+  }, [activeDocument?.id, openDocumentIds])
 
   function maybeOpenWhatsNew() {
     if (readWhatsNewVersion() !== APP_VERSION) {

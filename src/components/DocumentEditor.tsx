@@ -283,18 +283,36 @@ export function DocumentEditor() {
 
   useEffect(() => {
     if (!activeDocument) return
-    void listGoogleFontFamilies().then(() => {
-      loadGoogleFontsForDocument(
-        activeDocument.contentJson,
-        pageSetup.typography.fontFamily,
-      )
-    })
-    void ensureAllCustomFontsLoaded().then(() => {
-      loadCustomFontsForDocument(
-        activeDocument.contentJson,
-        pageSetup.typography.fontFamily,
-      )
-    })
+
+    const contentJson = activeDocument.contentJson
+    const pageFont = pageSetup.typography.fontFamily
+    let cancelled = false
+    let idleId = 0
+
+    const run = () => {
+      if (cancelled) return
+      void listGoogleFontFamilies().then(() => {
+        if (cancelled) return
+        loadGoogleFontsForDocument(contentJson, pageFont)
+      })
+      void ensureAllCustomFontsLoaded().then(() => {
+        if (cancelled) return
+        loadCustomFontsForDocument(contentJson, pageFont)
+      })
+    }
+
+    // Defer font discovery until after first paint — large docs parse marks off the critical path.
+    if (typeof requestIdleCallback === 'function') {
+      idleId = requestIdleCallback(run, { timeout: 1200 })
+    } else {
+      idleId = window.setTimeout(run, 0) as unknown as number
+    }
+
+    return () => {
+      cancelled = true
+      if (typeof cancelIdleCallback === 'function') cancelIdleCallback(idleId)
+      else window.clearTimeout(idleId)
+    }
   }, [activeDocument?.id, pageSetup.typography.fontFamily])
 
   useEditorHotkeys(editor)
@@ -459,9 +477,7 @@ export function DocumentEditor() {
       editorContentHashRef.current = incomingHash
       lastPersistedHashRef.current = incomingHash
 
-      const markdown = getEditorMarkdown(currentEditor)
-      markdownDraftRef.current = markdown
-      setMarkdownDraft(markdown)
+      // Markdown draft is built lazily when switching to markdown mode (see effect below).
       dispatch(setSaveStatus('saved'))
 
       const session = recallEditorSession(activeId)

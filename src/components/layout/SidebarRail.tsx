@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { BookOpen, FileText, GitBranch, Home, Settings2 } from 'lucide-react'
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
+import scribeMarkUrl from '@/assets/brand/scribe-mark.svg'
 import { goToHome } from '@/lib/navigation'
 import { ROUTES } from '@/lib/routes'
 import { APP_SHORT_VERSION } from '@/lib/app-version'
@@ -48,7 +49,7 @@ export function SidebarRail({ onNavigate }: SidebarRailProps) {
             onNavigate?.()
           }}
         >
-          S
+          <img src={scribeMarkUrl} alt="" width={18} height={18} draggable={false} />
         </button>
       </IconTooltip>
 

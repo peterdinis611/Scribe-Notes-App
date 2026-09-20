@@ -50,11 +50,18 @@
         "name": "Scribe Document",
         "description": "Scribe document",
         "role": "Editor",
-        "mimeType": "application/x-scribe+json"
+        "mimeType": "application/x-scribe+json",
+        "exportedType": {
+          "identifier": "com.scribe.app.document",
+          "conformsTo": ["public.json", "public.data"]
+        }
       }
     ],
     "macOS": {
-      "minimumSystemVersion": "12.0"
+      "minimumSystemVersion": "12.0",
+      "files": {
+        "Resources/scribe-document.icns": "icons/scribe-document.icns"
+      }
     },
     "resources": {
       "../nlp/scribe_nlp/": "nlp/scribe_nlp/",

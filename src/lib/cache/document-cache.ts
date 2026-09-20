@@ -123,7 +123,13 @@ export function getCachedParsedContent(document: Document): JSONContent {
 }
 
 export function getCachedContentHash(document: Document): string {
-  return ensureHash(upsert(document))
+  const entry = upsert(document)
+  // Full FNV over multi‑MB JSON stalls open — use identity from metadata instead.
+  if (entry.contentHash === null && entry.contentLength > 400_000) {
+    entry.contentHash = `u:${document.id}:${document.updatedAt}:${entry.contentLength}`
+    return entry.contentHash
+  }
+  return ensureHash(entry)
 }
 
 export function setRetainedDocumentIds(ids: Iterable<string>) {
