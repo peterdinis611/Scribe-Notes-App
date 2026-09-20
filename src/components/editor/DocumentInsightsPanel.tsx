@@ -73,6 +73,7 @@ import {
   setSidebarOpen,
 } from '@/store/documentsSlice'
 import { useMoveDocumentToFolder } from '@/hooks/useMoveDocumentToFolder'
+import { useRenameDocument } from '@/hooks/useRenameDocument'
 import { applySpellSuggestion, applyWikiSuggestion } from '@/lib/editor/apply-suggestions'
 import { insertAiAnswerAsCallout } from '@/lib/editor/insert-ai-answer'
 import { createLibraryFolder } from '@/lib/library/create-folder'
@@ -174,11 +175,13 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const moveDocument = useMoveDocumentToFolder()
+  const renameDocument = useRenameDocument()
   const [similar, setSimilar] = useState<SearchHit[]>([])
   const [tasks, setTasks] = useState<DocumentTask[]>([])
   const [analysis, setAnalysis] = useState<NlpDocumentAnalysis | null>(null)
   const [nlpEnabled, setNlpEnabled] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [applyingTitle, setApplyingTitle] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
   const [spellResult, setSpellResult] = useState<SpellcheckResult | null>(null)
   const [spellLoading, setSpellLoading] = useState(false)
@@ -341,6 +344,19 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
       setSpellLoading(false)
     }
   }, [activeId, nlpEnabled, t])
+
+  const handleApplySuggestedTitle = useCallback(async () => {
+    if (!activeId || !analysis?.suggestedTitle) return
+    const next = analysis.suggestedTitle.trim()
+    if (!next) return
+    setApplyingTitle(true)
+    try {
+      await renameDocument(activeId, next)
+      setAnalysis((prev) => (prev ? { ...prev, suggestedTitle: next } : prev))
+    } finally {
+      setApplyingTitle(false)
+    }
+  }, [activeId, analysis?.suggestedTitle, renameDocument])
 
   const handleTemplateCheck = useCallback(async () => {
     if (!activeId || !nlpEnabled) return
@@ -780,9 +796,23 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
             )}
 
             {nlpEnabled && analysis?.suggestedTitle ? (
-              <p className="insights-suggested" title={analysis.suggestedTitle}>
-                {t('panels.insights.suggestedTitle', { title: analysis.suggestedTitle })}
-              </p>
+              <div className="insights-suggested-row">
+                <p className="insights-suggested" title={analysis.suggestedTitle}>
+                  {t('panels.insights.suggestedTitle', { title: analysis.suggestedTitle })}
+                </p>
+                {activeId && analysis.suggestedTitle.trim() !== (activeDocument?.title ?? '').trim() ? (
+                  <button
+                    type="button"
+                    className="insights-suggested-apply"
+                    disabled={applyingTitle}
+                    onClick={() => void handleApplySuggestedTitle()}
+                  >
+                    {applyingTitle
+                      ? t('common.loading')
+                      : t('panels.insights.applySuggestedTitle')}
+                  </button>
+                ) : null}
+              </div>
             ) : null}
           </div>
 

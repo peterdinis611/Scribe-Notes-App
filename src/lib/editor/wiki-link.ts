@@ -4,7 +4,7 @@ import { PluginKey } from '@tiptap/pm/state'
 import Suggestion, { type SuggestionProps } from '@tiptap/suggestion'
 import type { Range } from '@tiptap/core'
 import type { Editor } from '@tiptap/react'
-import { createDocument } from '@/lib/db/api'
+import { createDocument, findDocumentsByTitle } from '@/lib/db/api'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { toast } from '@/lib/toast'
 import { WikiLinkSuggestionList, type WikiLinkItem } from '@/components/editor/WikiLinkSuggestionList'
@@ -22,13 +22,27 @@ declare module '@tiptap/core' {
   }
 }
 
-/** Resolves a typed title to an existing document (case-insensitive, excluding the active one). */
-function resolveTitle(title: string): { targetId: string | null; label: string } {
+/** Local exact match — used when closing `]]` and as offline fallback. */
+function resolveTitleLocal(title: string): { targetId: string | null; label: string } {
   const { documents: docs, activeDocumentId: activeId } = store.getState().documents
   const match = docs.find(
     (doc) => doc.id !== activeId && doc.title.toLowerCase() === title.toLowerCase(),
   )
   return match ? { targetId: match.id, label: match.title } : { targetId: null, label: title }
+}
+
+async function resolveTitle(title: string): Promise<{ targetId: string | null; label: string }> {
+  const local = resolveTitleLocal(title)
+  if (local.targetId) return local
+  try {
+    const { activeDocumentId: activeId } = store.getState().documents
+    const hits = await findDocumentsByTitle(title, 5)
+    const best = hits.find((hit) => hit.id !== activeId && hit.score >= 0.86)
+    if (best) return { targetId: best.id, label: best.title }
+  } catch {
+    // Offline / invoke failure — keep unresolved.
+  }
+  return local
 }
 
 async function createAndResolveLabel(editor: Editor, title: string) {
@@ -43,7 +57,7 @@ async function createAndResolveLabel(editor: Editor, title: string) {
 
 const MAX_RESULTS = 8
 
-function filterDocuments(query: string): WikiLinkItem[] {
+function filterDocumentsLocal(query: string): WikiLinkItem[] {
   const { documents: docs, activeDocumentId: activeId } = store.getState().documents
   const q = query.trim().toLowerCase()
 
@@ -58,6 +72,32 @@ function filterDocuments(query: string): WikiLinkItem[] {
   }
 
   return items
+}
+
+async function filterDocuments(query: string): Promise<WikiLinkItem[]> {
+  const trimmed = query.trim()
+  const { activeDocumentId: activeId, documents: docs } = store.getState().documents
+
+  if (!trimmed) {
+    return filterDocumentsLocal(query)
+  }
+
+  try {
+    const hits = await findDocumentsByTitle(trimmed, MAX_RESULTS)
+    const items: WikiLinkItem[] = hits
+      .filter((hit) => hit.id !== activeId)
+      .slice(0, MAX_RESULTS)
+      .map((hit) => ({ id: hit.id, title: hit.title }))
+
+    const hasExact = items.some((item) => item.title.toLowerCase() === trimmed.toLowerCase())
+      || docs.some((doc) => doc.title.toLowerCase() === trimmed.toLowerCase())
+    if (!hasExact) {
+      items.push({ id: '__create__', title: trimmed, isCreate: true, query: trimmed })
+    }
+    return items
+  } catch {
+    return filterDocumentsLocal(query)
+  }
 }
 
 function insertNode(editor: Editor, range: Range, targetId: string, label: string) {
@@ -157,19 +197,24 @@ export const WikiLink = Node.create({
     return [
       new InputRule({
         find: /\[\[([^[\]\n]+)]]$/,
-        handler: ({ range, match, chain }) => {
+        handler: ({ range, match, chain, editor }) => {
           const title = match[1]?.trim()
           if (!title) return
-          const { targetId, label } = resolveTitle(title)
+          const local = resolveTitleLocal(title)
           chain()
             .insertContentAt({ from: range.from, to: range.to }, [
-              { type: this.name, attrs: { targetId, label } },
+              { type: this.name, attrs: { targetId: local.targetId, label: local.label } },
               { type: 'text', text: ' ' },
             ])
             .run()
-          if (!targetId) {
-            void createAndResolveLabel(this.editor, title)
-          }
+          if (local.targetId) return
+          void resolveTitle(title).then(({ targetId }) => {
+            if (targetId) {
+              editor.chain().resolveWikiLinkLabel({ label: title, targetId }).run()
+              return
+            }
+            void createAndResolveLabel(editor, title)
+          })
         },
       }),
     ]

@@ -34,12 +34,11 @@ pub fn find_duplicates_from_embeddings(
     }
 
     let compared = docs.len() as i64;
-    let mut pairs = Vec::new();
 
     #[cfg(feature = "search-fast")]
-    {
+    let mut pairs: Vec<NlpDuplicatePair> = {
         use rayon::prelude::*;
-        let scored: Vec<_> = (0..docs.len())
+        (0..docs.len())
             .into_par_iter()
             .flat_map(|left| {
                 (left + 1..docs.len())
@@ -67,12 +66,12 @@ pub fn find_duplicates_from_embeddings(
                     })
                     .collect::<Vec<_>>()
             })
-            .collect();
-        pairs = scored;
-    }
+            .collect()
+    };
 
     #[cfg(not(feature = "search-fast"))]
-    {
+    let mut pairs = {
+        let mut pairs = Vec::new();
         for left in 0..docs.len() {
             for right in (left + 1)..docs.len() {
                 if docs[left].0.vector.len() != docs[right].0.vector.len() {
@@ -96,7 +95,8 @@ pub fn find_duplicates_from_embeddings(
                 });
             }
         }
-    }
+        pairs
+    };
 
     pairs.sort_by(|a, b| {
         b.score

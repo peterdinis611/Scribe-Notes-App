@@ -4198,6 +4198,45 @@ html[data-ui-skin='press'] .editor-shell--home {
   color: var(--color-muted-foreground);
 }
 
+.library-wiki-health__unresolved {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.library-wiki-health__suggest {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  padding: 0 4px 2px 10px;
+}
+
+.library-wiki-health__suggest-label {
+  font-size: 10.5px;
+  color: var(--color-muted-foreground);
+}
+
+.library-wiki-health__fix {
+  border: 1px solid color-mix(in srgb, var(--color-accent) 35%, var(--color-border));
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  color: var(--color-accent);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.library-wiki-health__fix:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+}
+
+.library-wiki-health__fix:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
 .library-chat-typing {
   display: inline-flex;
   align-items: center;
@@ -10575,6 +10614,41 @@ html.dark .link-graph-toolbar--overlay {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.insights-suggested-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 8px;
+}
+
+.insights-suggested-row .insights-suggested {
+  margin: 0;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.insights-suggested-apply {
+  flex: 0 0 auto;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 35%, var(--color-border));
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  color: var(--color-accent);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.insights-suggested-apply:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+}
+
+.insights-suggested-apply:disabled {
+  opacity: 0.6;
+  cursor: wait;
 }
 
 .insights-quiet {

@@ -10,8 +10,8 @@ pub fn cosine_similarity(a: &[f32], b: &[f32]) -> f64 {
     {
         use simsimd::SpatialSimilarity;
         // simsimd returns cosine *distance* (1 − similarity).
-        if let Some(distance) = f32::cos(a, b) {
-            return (1.0 - distance).clamp(0.0, 1.0);
+        if let Some(distance) = <f32 as SpatialSimilarity>::cos(a, b) {
+            return (1.0_f64 - distance).clamp(0.0, 1.0);
         }
     }
 

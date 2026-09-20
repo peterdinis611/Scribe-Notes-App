@@ -318,6 +318,8 @@ pub fn run() {
             commands::system::list_system_font_families,
             commands::links::list_link_graph,
             commands::links::list_wiki_health,
+            commands::links::find_documents_by_title,
+            commands::links::resolve_wiki_link,
             capture::capture_status,
             capture::capture_start,
             capture::capture_stop,

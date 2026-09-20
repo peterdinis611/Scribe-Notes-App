@@ -66,6 +66,7 @@ fn walk_unresolved_wiki(
                 document_title: document_title.to_string(),
                 label,
                 target_id,
+                suggestions: Vec::new(),
             });
         }
     }
@@ -118,6 +119,7 @@ pub fn list_unresolved_wiki_links(
             max,
         )?;
     }
+    super::resolve::attach_link_suggestions(conn, &mut unresolved)?;
     Ok(unresolved)
 }
 

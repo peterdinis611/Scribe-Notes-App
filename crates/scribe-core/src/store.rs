@@ -578,60 +578,21 @@ impl ScribeStore {
         title_query: &str,
         limit: i64,
     ) -> Result<Vec<DocumentSummary>, String> {
-        let q = title_query.trim();
-        if q.is_empty() {
-            return Ok(Vec::new());
-        }
-        let max = limit.clamp(1, 50);
-        let pattern = format!("%{q}%");
-        let prefix = format!("{q}%");
-
-        let mut stmt = self
-            .db
-            .prepare(&format!(
-                "{SUMMARY_SELECT}
-                 WHERE deleted_at IS NULL AND title LIKE ?1 COLLATE NOCASE
-                 ORDER BY
-                   CASE WHEN title = ?2 COLLATE NOCASE THEN 0
-                        WHEN title LIKE ?3 COLLATE NOCASE THEN 1
-                        ELSE 2 END,
-                   updated_at DESC
-                 LIMIT ?4"
-            ))
-            .map_err(|e| e.to_string())?;
-
-        let rows = stmt
-            .query_map(params![pattern, q, prefix, max], Self::map_summary)
-            .map_err(|e| e.to_string())?;
-
-        let mut docs = rows
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| e.to_string())?;
-
-        // Typo-tolerant fallback when SQL LIKE finds nothing.
-        if docs.is_empty() && cfg!(feature = "fuzzy") {
-            let mut cand_stmt = self
+        let hits = crate::wiki::find_documents_by_title(&self.db, title_query, limit)?;
+        let mut docs = Vec::with_capacity(hits.len());
+        for hit in hits {
+            let mut stmt = self
                 .db
-                .prepare(&format!(
-                    "{SUMMARY_SELECT}
-                     WHERE deleted_at IS NULL
-                     ORDER BY updated_at DESC
-                     LIMIT 200"
-                ))
+                .prepare(&format!("{SUMMARY_SELECT} WHERE id = ?1"))
                 .map_err(|e| e.to_string())?;
-            let candidates = cand_stmt
-                .query_map([], Self::map_summary)
+            if let Some(summary) = stmt
+                .query_row(params![hit.id], Self::map_summary)
+                .optional()
                 .map_err(|e| e.to_string())?
-                .collect::<Result<Vec<_>, _>>()
-                .map_err(|e| e.to_string())?;
-            let titles: Vec<String> = candidates.iter().map(|doc| doc.title.clone()).collect();
-            for (title, _) in crate::enhance::fuzzy_extract(q, &titles, max as usize, 0.78) {
-                if let Some(doc) = candidates.iter().find(|doc| doc.title == title) {
-                    docs.push(doc.clone());
-                }
+            {
+                docs.push(summary);
             }
         }
-
         Ok(docs)
     }
 
@@ -3135,5 +3096,56 @@ mod tests {
         assert_eq!(reply.author, "scribe-mcp");
         let listed = store.list_comment_threads(&note.id).unwrap();
         assert_eq!(listed[0].comments.len(), 2);
+    }
+
+    #[test]
+    fn fuzzy_ratio_near_titles() {
+        let score = crate::enhance::fuzzy_ratio("Rust notes", "Rust note");
+        assert!(score > 0.8, "expected high fuzzy score, got {score}");
+    }
+
+    #[cfg(feature = "fuzzy")]
+    #[test]
+    fn find_documents_by_title_tolerates_typos() {
+        let store = ScribeStore::from_memory();
+        store.create_note("Project Alpha", Some("body"), None).unwrap();
+        let hits = store.find_documents_by_title("Project Alph", 5).unwrap();
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].title, "Project Alpha");
+    }
+
+    #[test]
+    fn resolve_wiki_link_sets_target_id() {
+        let store = ScribeStore::from_memory();
+        let target = store.create_note("Target Note", Some("x"), None).unwrap();
+        let source = store
+            .create_note(
+                "Source",
+                Some("see [[Target Note]]"),
+                None,
+            )
+            .unwrap();
+        // Force unresolved node (plain_text may already resolve — patch if needed).
+        let content = format!(
+            r#"{{"type":"doc","content":[{{"type":"paragraph","content":[{{"type":"wikiLink","attrs":{{"label":"Target Note","targetId":null}}}}]}}]}}"#
+        );
+        store
+            .db
+            .execute(
+                "UPDATE documents SET content_json = ?1 WHERE id = ?2",
+                rusqlite::params![content, source.id],
+            )
+            .unwrap();
+        let result = crate::wiki::resolve_wiki_link_in_document(
+            &store.db,
+            &source.id,
+            "Target Note",
+            &target.id,
+        )
+        .unwrap();
+        assert_eq!(result.updated, 1);
+        assert_eq!(result.target_id, target.id);
+        let unresolved = store.list_unresolved_wiki_links(20).unwrap();
+        assert!(unresolved.iter().all(|link| link.document_id != source.id));
     }
 }

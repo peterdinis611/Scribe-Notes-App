@@ -25,11 +25,31 @@ pub struct LinkGraph {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct TitleMatch {
+    pub id: String,
+    pub title: String,
+    pub score: f64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UnresolvedWikiLink {
     pub document_id: String,
     pub document_title: String,
     pub label: String,
     pub target_id: Option<String>,
+    #[serde(default)]
+    pub suggestions: Vec<TitleMatch>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResolveWikiLinkResult {
+    pub document_id: String,
+    pub label: String,
+    pub target_id: String,
+    pub target_title: String,
+    pub updated: i64,
 }
 
 #[derive(Debug, Clone, Serialize)]

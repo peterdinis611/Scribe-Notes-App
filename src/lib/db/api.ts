@@ -667,6 +667,21 @@ export interface WikiHealthUnresolved {
   documentTitle: string
   label: string
   targetId?: string | null
+  suggestions?: TitleMatch[]
+}
+
+export interface TitleMatch {
+  id: string
+  title: string
+  score: number
+}
+
+export interface ResolveWikiLinkResult {
+  documentId: string
+  label: string
+  targetId: string
+  targetTitle: string
+  updated: number
 }
 
 export interface WikiHealthStub {
@@ -690,6 +705,16 @@ export const listWikiHealth = (options?: {
     unresolvedLimit: options?.unresolvedLimit ?? null,
     stubMaxWords: options?.stubMaxWords ?? null,
     stubLimit: options?.stubLimit ?? null,
+  })
+
+export const findDocumentsByTitle = (title: string, limit = 10) =>
+  invoke<TitleMatch[]>('find_documents_by_title', { title, limit })
+
+export const resolveWikiLink = (documentId: string, label: string, targetId: string) =>
+  invoke<ResolveWikiLinkResult>('resolve_wiki_link', {
+    documentId,
+    label,
+    targetId,
   })
 
 export const exportLibraryArchive = () =>

@@ -28,8 +28,9 @@ pub use plain_text::{tiptap_to_markdown, tiptap_to_plain_text};
 pub use store::{search_library, sync_sidecar_backend};
 pub use tags::{add_document_tag, remove_document_tag, IdTags};
 pub use wiki::{
-    list_stub_documents, list_unresolved_wiki_links, wiki_health, OrphanDocument, StubDocument,
-    UnresolvedWikiLink, WikiHealth,
+    find_documents_by_title, list_stub_documents, list_unresolved_wiki_links,
+    resolve_wiki_link_in_document, wiki_health, OrphanDocument, ResolveWikiLinkResult,
+    StubDocument, TitleMatch, UnresolvedWikiLink, WikiHealth,
 };
 pub use manuscripts::{list_manuscripts, upsert_manuscript, ManuscriptRecord};
 pub use vault::{

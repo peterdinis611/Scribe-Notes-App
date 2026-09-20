@@ -90,3 +90,24 @@ pub fn list_wiki_health(
         stub_limit.unwrap_or(80),
     )
 }
+
+#[tauri::command]
+pub fn find_documents_by_title(
+    state: tauri::State<'_, DbState>,
+    title: String,
+    limit: Option<i64>,
+) -> Result<Vec<scribe_core::TitleMatch>, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    scribe_core::find_documents_by_title(&conn, &title, limit.unwrap_or(10))
+}
+
+#[tauri::command]
+pub fn resolve_wiki_link(
+    state: tauri::State<'_, DbState>,
+    document_id: String,
+    label: String,
+    target_id: String,
+) -> Result<scribe_core::ResolveWikiLinkResult, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    scribe_core::resolve_wiki_link_in_document(&conn, &document_id, &label, &target_id)
+}

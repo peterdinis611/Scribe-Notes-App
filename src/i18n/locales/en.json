@@ -950,7 +950,9 @@
       "hashEnabledToast": "Using fast hash embeddings",
       "qualityEnabledToast": "Using quality embedding model — reindex your library",
       "extrasTitle": "Optional Python packages",
-      "extrasDescription": "Install from nlp/: pip install 'scribe-nlp[enhance,translate,ner,onnx,faiss]'. Highlighted chips are detected.",
+      "extrasDescription": "Install from nlp/: pip install 'scribe-nlp[enhance,translate,ner,onnx,faiss]'. Highlighted chips are detected at runtime.",
+      "rustExtrasTitle": "Built-in Rust extras",
+      "rustExtrasDescription": "Compiled into the app (Cargo feature enhance). Fuzzy titles, faster vector scoring, and import encoding detection.",
       "yes": "Yes",
       "no": "No"
     },
@@ -1425,7 +1427,7 @@
     },
     "wikiHealth": {
       "title": "Wiki health",
-      "hint": "Orphan notes, broken [[wiki links]], and stubs under 40 words. Click to open.",
+      "hint": "Orphan notes, broken [[wiki links]], and stubs under 40 words. Click to open; fix broken links with a suggestion.",
       "empty": "Wiki looks healthy — no orphans, broken links, or stubs.",
       "count": "{{orphans}} orphans · {{unresolved}} missing · {{stubs}} stubs",
       "loadError": "Could not load wiki health",
@@ -1433,6 +1435,10 @@
       "orphansEmpty": "Every note is linked.",
       "unresolved": "Missing [[targets]]",
       "unresolvedEmpty": "All wiki links resolve.",
+      "didYouMean": "Did you mean „{{title}}“?",
+      "fixWith": "Link to {{title}}",
+      "resolved": "Linked [[{{label}}]] → {{title}}",
+      "resolveError": "Could not resolve wiki link",
       "stubs": "Stubs",
       "stubsEmpty": "No stub notes.",
       "stubWords": "{{count}} words"
@@ -1791,6 +1797,7 @@
         "hard": "hard"
       },
       "suggestedTitle": "Suggested title: {{title}}",
+      "applySuggestedTitle": "Apply",
       "dates": "Dates & events",
       "datesEmpty": "No dates or relative cues detected.",
       "links": "Links & mentions",

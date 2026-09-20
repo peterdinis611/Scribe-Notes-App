@@ -950,7 +950,9 @@
       "hashEnabledToast": "Používa sa rýchly hash vektorov",
       "qualityEnabledToast": "Používa sa kvalitný vektorový model — preindexujte knižnicu",
       "extrasTitle": "Voliteľné Python balíčky",
-      "extrasDescription": "Inštalácia z nlp/: pip install 'scribe-nlp[enhance,translate,ner,onnx,faiss]'. Zvýraznené chipy sú detegované.",
+      "extrasDescription": "Inštalácia z nlp/: pip install 'scribe-nlp[enhance,translate,ner,onnx,faiss]'. Zvýraznené chipy sú detegované za behu.",
+      "rustExtrasTitle": "Vstavané Rust extras",
+      "rustExtrasDescription": "Skompilované v aplikácii (Cargo feature enhance). Fuzzy názvy, rýchlejšie vektory a detekcia encodingu pri importe.",
       "yes": "Áno",
       "no": "Nie"
     },
@@ -1427,7 +1429,7 @@
     },
     "wikiHealth": {
       "title": "Wiki zdravie",
-      "hint": "Osirolené poznámky, chýbajúce [[odkazy]] a stuby pod 40 slov. Klikni a otvoríš.",
+      "hint": "Osirolené poznámky, chýbajúce [[odkazy]] a stuby pod 40 slov. Klikni a otvoríš; návrh opraví odkaz jedným klikom.",
       "empty": "Wiki je v poriadku — žiadne osirolené, chýbajúce odkazy ani stuby.",
       "count": "{{orphans}} osirolených · {{unresolved}} chýbajúcich · {{stubs}} stubov",
       "loadError": "Wiki zdravie sa nepodarilo načítať",
@@ -1435,6 +1437,10 @@
       "orphansEmpty": "Každá poznámka je prepojená.",
       "unresolved": "Chýbajúce [[ciele]]",
       "unresolvedEmpty": "Všetky wiki odkazy sa dajú vyriešiť.",
+      "didYouMean": "Mysleli ste „{{title}}“?",
+      "fixWith": "Prepojiť na {{title}}",
+      "resolved": "Prepojené [[{{label}}]] → {{title}}",
+      "resolveError": "Wiki odkaz sa nepodarilo opraviť",
       "stubs": "Stuby",
       "stubsEmpty": "Žiadne stub poznámky.",
       "stubWords": "{{count}} slov"
@@ -1799,6 +1805,7 @@
         "hard": "náročná"
       },
       "suggestedTitle": "Návrh názvu: {{title}}",
+      "applySuggestedTitle": "Použiť",
       "dates": "Dátumy a udalosti",
       "datesEmpty": "Žiadne dátumy ani relatívne frázy.",
       "links": "Odkazy a zmienky",
