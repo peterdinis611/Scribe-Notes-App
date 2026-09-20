@@ -50,6 +50,10 @@ Core: `health`, `embed`, `embed_batch`, `summarize`, `extract_*`, `analyze_docum
 
 1.0.0: `library_answer` passes `chunkIndex` through to citations
 
+1.0.1+: question intent detection (dates/tasks/people/decisions/…) boosts ranking + labeled answers + richer follow-ups
+
+1.0.2+: document Q&A loads full note text (OCR included), merges embeddings with whole-document coverage
+
 ## Version
 
 Current sidecar: **1.0.0**

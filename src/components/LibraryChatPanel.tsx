@@ -57,6 +57,25 @@ const LIBRARY_PROMPTS = [
   'libraryChat.prompts.deadlines',
   'libraryChat.prompts.themes',
   'libraryChat.prompts.openLoops',
+  'libraryChat.prompts.people',
+  'libraryChat.prompts.decisions',
+  'libraryChat.prompts.projects',
+  'libraryChat.prompts.meetings',
+  'libraryChat.prompts.ideas',
+  'libraryChat.prompts.definitions',
+  'libraryChat.prompts.connections',
+  'libraryChat.prompts.risks',
+] as const
+
+const DOCUMENT_PROMPTS = [
+  'libraryChat.documentPrompts.about',
+  'libraryChat.documentPrompts.next',
+  'libraryChat.documentPrompts.decisions',
+  'libraryChat.documentPrompts.people',
+  'libraryChat.documentPrompts.explain',
+  'libraryChat.documentPrompts.missing',
+  'libraryChat.documentPrompts.connect',
+  'libraryChat.documentPrompts.claims',
 ] as const
 
 const DOCUMENT_ACTIONS: Array<{ id: DocumentChatAction; labelKey: string }> = [
@@ -483,12 +502,18 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
               <div className="library-empty-state-icon">
                 <Sparkles className="h-5 w-5" />
               </div>
+              <p className="library-chat-brand-badge" role="status">
+                {t('libraryChat.brandBadge')}
+              </p>
               <p className="library-empty-state-title">
                 {scope === 'document'
                   ? t('libraryChat.emptyTitleDocument')
                   : t('libraryChat.emptyTitle')}
               </p>
               <p className="library-empty-state-text">
+                {t('libraryChat.brandHint')}
+              </p>
+              <p className="library-empty-state-text library-empty-state-text--secondary">
                 {scope === 'document'
                   ? t('libraryChat.emptyHintDocument')
                   : t('libraryChat.emptyHint')}
@@ -629,17 +654,32 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
                   {t(key)}
                 </button>
               ))
-            : DOCUMENT_ACTIONS.map((action) => (
-                <button
-                  key={action.id}
-                  type="button"
-                  disabled={loading || !activeDocumentId}
-                  className="library-chat-chip"
-                  onClick={() => void runAction(action.id)}
-                >
-                  {t(action.labelKey)}
-                </button>
-              ))}
+            : (
+              <>
+                {DOCUMENT_PROMPTS.map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    disabled={loading || !activeDocumentId}
+                    className="library-chat-chip"
+                    onClick={() => void sendQuestion(t(key))}
+                  >
+                    {t(key)}
+                  </button>
+                ))}
+                {DOCUMENT_ACTIONS.map((action) => (
+                  <button
+                    key={action.id}
+                    type="button"
+                    disabled={loading || !activeDocumentId}
+                    className="library-chat-chip library-chat-chip--action"
+                    onClick={() => void runAction(action.id)}
+                  >
+                    {t(action.labelKey)}
+                  </button>
+                ))}
+              </>
+            )}
         </div>
         <form
           className="flex items-center gap-1.5"

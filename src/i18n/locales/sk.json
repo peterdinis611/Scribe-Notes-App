@@ -327,8 +327,8 @@
         "description": "Práca, osobné alebo archív ako samostatné korene. Prepínač mení celú knižnicu, nie len priečinok."
       },
       "libraryChat": {
-        "title": "Chat s poznámkami",
-        "description": "Pýtajte sa na celú knižnicu alebo na otvorenú poznámku. Odpovede ostávajú lokálne."
+        "title": "Scribe Lokálna AI chat",
+        "description": "Scribe má vlastnú Lokálnu AI. Pýtajte sa na celú knižnicu alebo otvorenú poznámku — odpovede ostávajú na tomto Macu, nie v cloude."
       },
       "libraryFilters": {
         "title": "Rýchle filtre",
@@ -814,11 +814,11 @@
       "lockHint": "Nástroje na zápis potrebujú writable DB. Ak Scribe drží zámok, skúste create/append znova o chvíľu alebo skontrolujte scribe_status (writable: false)."
     },
     "nlp": {
-      "title": "Lokálna AI (Python)",
-      "description": "Voliteľný doplnok — Rust jadro ostáva, Python rozširuje inteligentné funkcie.",
-      "intro": "Voliteľný doplnok, ktorý beží len na tomto Macu. Scribe spustí lokálny Python proces (sidecar) — žiadny cloud, žiadne odosielanie textu na internet. Zapnutím získate sémantické vyhľadávanie v ⌘K, návrhy tagov, týždenný prehľad denníka a analýzu knižnice. Vyžaduje Python 3.10+.",
-      "enableTitle": "Zapnúť lokálnu AI",
-      "enableDescription": "Po zapnutí sa indexujú dokumenty pre sémantické vyhľadávanie v ⌘K.",
+      "title": "Scribe Lokálna AI",
+      "description": "Vlastná lokálna AI aplikácie — beží na tomto Macu, nie v cloude.",
+      "intro": "Scribe má vlastnú Lokálnu AI. Po zapnutí spustí malý Python proces priamo na tomto Macu — žiadny ChatGPT účet, žiadne cloud API, text sa nikam neodosiela. Získate odpovede nad poznámkami, sémantické vyhľadávanie v ⌘K, návrhy tagov, prehľad denníka a analýzu knižnice. Vyžaduje Python 3.10+.",
+      "enableTitle": "Zapnúť Scribe Lokálnu AI",
+      "enableDescription": "Zapnite vstavanú Lokálnu AI aplikácie. Dokumenty sa indexujú pre sémantické hľadanie a otázky na tomto zariadení.",
       "enable": "Zapnúť",
       "enabled": "Zapnuté",
       "enabledToast": "Lokálna AI zapnutá",
@@ -1085,19 +1085,19 @@
           "points": []
         },
         "localAi": {
-          "title": "Lokálna AI",
-          "summary": "Voliteľná inteligencia bez cloudu",
+          "title": "Scribe Lokálna AI",
+          "summary": "Vlastná inteligencia aplikácie — na tomto Macu, nikdy v cloude",
           "paragraphs": [
-            "Lokálna AI nie je chatbot ani online služba. Keď ju zapnete v Nastaveniach → Lokálna AI, Scribe spustí na pozadí malý Python proces (sidecar) priamo na tomto Macu. Všetko spracovanie — indexovanie, vyhľadávanie, sumarizácia — prebieha v pamäti vášho počítača. Text sa nikam neodosiela.",
-            "Rust jadro aplikácie ostáva hlavné: databáza, editor, ukladanie a fulltextové vyhľadávanie fungujú aj bez AI. Python doplnok pridáva sémantiku (význam podobnosti), návrhy tagov, týždenný prehľad denníka a analýzu knižnice.",
+            "Scribe má vlastnú Lokálnu AI. Nie je to ChatGPT ani online chatbot. Keď ju zapnete v Nastaveniach → Lokálna AI, Scribe spustí malý Python proces priamo na tomto Macu. Indexovanie, vyhľadávanie a odpovede nad poznámkami prebiehajú v pamäti počítača. Text sa nikam neodosiela.",
+            "Rust jadro ostáva hlavné: databáza, editor, ukladanie a fulltext fungujú aj bez AI. Lokálna AI pridáva sémantické hľadanie, otázky k poznámkam, návrhy tagov, týždenný prehľad denníka a analýzu knižnice — aby ste aplikáciu používali bez očakávania cloud LLM.",
             "Po zapnutí sa dokumenty indexujú do vektorov (model scribe-hash-v4). Ak Scribe aktualizujete a model sa zmení, zobrazí sa upozornenie na preindexovanie — staré a nové vektory by inak dávali nekonzistentné výsledky."
           ],
           "points": [
+            "Súčasť Scribe — zapnite raz v Nastaveniach → Lokálna AI, bez účtu tretej strany",
             "⌘K scope Všetko — kombinuje fulltext (FTS) a sémantiku cez hybridné zlučovanie",
             "⌘K scope Sémanticky — len výsledky podľa významu, nie presného slova",
-            "Analýza knižnice — markdown report s témami, tagmi a nedávnymi dokumentmi",
-            "Návrhy tagov — v kontextovom menu dokumentu v knižnici (pravý klik)",
-            "Vyžaduje Python 3.10+ nainštalovaný v systéme; pip balíčky nie sú potrebné"
+            "Opýtať sa knižnice / tejto poznámky — extractive odpovede s citáciami z vašich poznámok",
+            "Vyžaduje Python 3.10+ v systéme; pip balíčky nie sú potrebné"
           ]
         },
         "journal": {
@@ -1348,7 +1348,7 @@
       "tags": "Štítky",
       "graph": "Mapa prepojení",
       "duplicates": "Duplicity",
-      "chat": "Opýtať sa knižnice"
+      "chat": "Scribe AI"
     },
     "duplicates": {
       "title": "Takmer rovnaké poznámky",
@@ -1460,24 +1460,26 @@
     }
   },
   "libraryChat": {
-    "emptyTitle": "Opýtajte sa poznámok",
-    "emptyTitleDocument": "Opýtajte sa tohto dokumentu",
-    "emptyHint": "Odpovede pochádzajú iba z lokálnych AI embeddingov vašej knižnice — bez cloudu. Zapnite Lokálne AI v Nastaveniach.",
-    "emptyHintDocument": "Pýtajte sa na otvorenú poznámku, alebo ťuknite na chip. Len lokálne AI, bez cloudu.",
-    "openSettings": "Otvoriť nastavenia Lokálneho AI",
+    "emptyTitle": "Opýtajte sa Scribe Lokálnej AI",
+    "emptyTitleDocument": "Opýtajte sa tejto poznámky",
+    "brandBadge": "Vlastná lokálna AI",
+    "brandHint": "Scribe má vlastnú Lokálnu AI na tomto Macu — nie ChatGPT, nie cloud. Odpovede idú len z vašich poznámok.",
+    "emptyHint": "Pýtajte sa na témy, termíny, ľudí, rozhodnutia, projekty alebo otvorené úlohy. Scribe Lokálna AI odpovie z knižnice priamo na tomto zariadení.",
+    "emptyHintDocument": "Scribe Lokálna AI načíta túto poznámku (vrátane OCR) a odpovie z jej obsahu. Voľné otázky alebo chipy — nič neopustí tento Mac.",
+    "openSettings": "Otvoriť nastavenia Lokálnej AI",
     "placeholder": "Otázka k poznámkam…",
     "placeholderDocument": "Otázka k dokumentu…",
     "send": "Opýtať sa",
-    "thinking": "Prehľadávam poznámky…",
+    "thinking": "Scribe Lokálna AI číta vaše poznámky…",
     "citations": "Zdroje",
     "you": "Vy",
-    "assistant": "Knižnica",
-    "assistantDocument": "Dokument",
+    "assistant": "Scribe AI",
+    "assistantDocument": "Scribe AI",
     "untitled": "Bez názvu",
     "errorTitle": "Nepodarilo sa odpovedať",
     "emptyQuestion": "Najprv napíšte otázku.",
-    "nlpDisabled": "Lokálne AI je vypnuté. Zapnite ho v Nastaveniach → Lokálne AI.",
-    "sidecarUnavailable": "Lokálna AI nie je pripravená. Skontrolujte Nastavenia → Lokálna AI.",
+    "nlpDisabled": "Scribe Lokálna AI je vypnutá. Zapnite ju v Nastaveniach → Lokálna AI — vlastná AI aplikácie, bez účtu a bez cloudu.",
+    "sidecarUnavailable": "Scribe Lokálna AI nie je pripravená. Skontrolujte Nastavenia → Lokálna AI (Python 3.10+).",
     "noActiveDocument": "Najprv otvorte dokument, aby ste sa naň mohli pýtať.",
     "documentMissing": "Dokument sa nenašiel.",
     "documentVault": "Trezorové dokumenty nie je možné analyzovať, kým sú zamknuté.",
@@ -1504,7 +1506,25 @@
       "recent": "O čom som naposledy písal?",
       "deadlines": "Mám v poznámkach termíny alebo dátumy?",
       "themes": "Aké témy sa v poznámkach opakujú?",
-      "openLoops": "Aké otvorené úlohy alebo nedokončené vlákna mám?"
+      "openLoops": "Aké otvorené úlohy alebo nedokončené vlákna mám?",
+      "people": "Koho spomínam naprieč poznámkami?",
+      "decisions": "Aké rozhodnutia alebo závery som si zaznačil?",
+      "projects": "Ktoré projekty alebo ciele sa v poznámkach objavujú?",
+      "meetings": "O akých schôdzkach alebo hovoroch som písal?",
+      "ideas": "Aké nápady alebo brainstormy mám v knižnici?",
+      "definitions": "Kde som definoval dôležité pojmy?",
+      "connections": "Ktoré poznámky spolu súvisia?",
+      "risks": "Mám zaznamenané riziká, blokery alebo problémy?"
+    },
+    "documentPrompts": {
+      "about": "O čom je táto poznámka hlavne?",
+      "next": "Čo by som mal urobiť ďalej podľa tejto poznámky?",
+      "decisions": "Aké rozhodnutia alebo závery sú v tejto poznámke?",
+      "people": "Kto je v tejto poznámke spomenutý?",
+      "explain": "Vysvetli kľúčové pojmy v tejto poznámke",
+      "missing": "Čo tu pôsobí nedokončene alebo nejasne?",
+      "connect": "Ako táto poznámka súvisí s ostatnými?",
+      "claims": "Aké sú hlavné tvrdenia v tejto poznámke?"
     },
     "actions": {
       "summarize": "Zhrnúť",
@@ -1649,14 +1669,14 @@
     },
     "insights": {
       "title": "AI prehľad",
-      "subtitle": "Lokálny prehľad otvorenej poznámky",
+      "subtitle": "Scribe Lokálna AI — prehľad otvorenej poznámky",
       "subtitleWithCount": "{{count}} signálov v poznámke",
       "hide": "Skryť AI prehľad",
       "loadError": "Nepodarilo sa načítať AI prehľad",
       "askTitle": "Opýtať sa poznámky",
-      "askHint": "Lokálne AI akcie a otázky k otvorenému dokumentu — bez cloudu.",
+      "askHint": "Vlastná Lokálna AI Scribe — otázky a akcie k tejto poznámke, len na tomto Macu.",
       "questionHistoryEmpty": "Zatiaľ nič — zoznam sa plní, keď sa pýtate tohto dokumentu.",
-      "localBadge": "bez siete",
+      "localBadge": "Scribe Lokálna AI",
       "openChat": "Otvoriť plný chat →",
       "summary": "Zhrnutie",
       "summaryEmpty": "Napíšte viac textu pre výťažkové zhrnutie.",

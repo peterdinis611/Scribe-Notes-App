@@ -997,12 +997,32 @@ html[data-ui-skin='press'] .library-doc-card.is-active {
   color: var(--color-foreground);
 }
 
+.library-chat-brand-badge {
+  margin: 0 0 8px;
+  padding: 0.18rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
+  color: var(--color-accent);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .library-empty-state-text {
   margin: 6px 0 0;
   max-width: 34ch;
   font-size: 12px;
   line-height: 1.5;
   color: color-mix(in srgb, var(--color-foreground) 74%, var(--color-muted-foreground));
+}
+
+.library-empty-state-text--secondary {
+  margin-top: 8px;
+  max-width: 36ch;
+  font-size: 11px;
+  color: var(--color-muted-foreground);
 }
 
 .library-tags-view {
@@ -3808,6 +3828,12 @@ html[data-ui-skin='press'] .editor-shell--home {
 
 .library-chat-chip:disabled {
   opacity: 0.45;
+}
+
+.library-chat-chip--action {
+  border-style: dashed;
+  font-weight: 500;
+  color: color-mix(in srgb, var(--color-muted-foreground) 70%, var(--color-foreground));
 }
 
 .library-chat-actions button {

@@ -1,4 +1,5 @@
 mod chat_context;
+mod document_passages;
 mod duplicates;
 pub mod jobs;
 mod memory;
@@ -9,7 +10,11 @@ pub mod vault_index;
 
 pub use chat_context::{
     followups_from_sidecar, is_chat_memory_citation_title, merge_chat_memory_passages, ChatTurn,
-    DOCUMENT_CHAT_CONTEXT_LIMIT,
+    DOCUMENT_CHAT_CONTEXT_LIMIT, MERGED_PASSAGE_LIMIT,
+};
+pub use document_passages::{
+    build_document_answer_passages, chunk_document_passages, DOCUMENT_ANSWER_PASSAGE_LIMIT,
+    DOCUMENT_EMBED_RANK_LIMIT,
 };
 pub use duplicates::find_duplicates_from_embeddings;
 pub use jobs::{

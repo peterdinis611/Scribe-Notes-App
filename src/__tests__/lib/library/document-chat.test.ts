@@ -39,7 +39,12 @@ vi.mock('@/lib/db/nlp-api', () => ({
 }))
 
 import { invoke } from '@/lib/tauri'
-import { askChat, documentChatContext, runDocumentChatAction } from '@/lib/library/library-chat'
+import {
+  askChat,
+  documentChatContext,
+  matchDocumentChatIntent,
+  runDocumentChatAction,
+} from '@/lib/library/library-chat'
 
 describe('document chat helpers', () => {
   beforeEach(() => {
@@ -51,13 +56,29 @@ describe('document chat helpers', () => {
       answer: 'Based on this document: Hello',
       citations: [],
     })
-    const result = await askChat('document', 'What is this about?', 'doc-1')
+    const result = await askChat('document', 'What feels unfinished here?', 'doc-1')
     expect(invoke).toHaveBeenCalledWith('nlp_document_answer', {
       documentId: 'doc-1',
-      question: 'What is this about?',
+      question: 'What feels unfinished here?',
       context: null,
     })
     expect(result.answer).toContain('document')
+  })
+
+  it('routes clear document intents to structured actions', async () => {
+    const result = await askChat('document', 'What are the open tasks?', 'doc-1')
+    expect(invoke).not.toHaveBeenCalled()
+    expect(result.answer).toContain('Buy milk')
+  })
+
+  it('matches SK/EN free-form intents', () => {
+    expect(matchDocumentChatIntent('Summarize this note')).toBe('summarize')
+    expect(matchDocumentChatIntent('Aké dátumy sú v poznámke?')).toBe('dates')
+    expect(matchDocumentChatIntent('Who is mentioned in this note?')).toBe('mentions')
+    expect(matchDocumentChatIntent('How does this note connect to others?')).toBe('similar')
+    expect(matchDocumentChatIntent('What feels unfinished or unclear here?')).toBeNull()
+    expect(matchDocumentChatIntent('What is this note mainly about?')).toBeNull()
+    expect(matchDocumentChatIntent('Explain the key terms in this note')).toBeNull()
   })
 
   it('formats summarize action from analysis', async () => {

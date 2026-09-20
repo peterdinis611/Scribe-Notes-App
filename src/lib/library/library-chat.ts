@@ -100,9 +100,105 @@ export async function askChat(
   context?: Array<{ role: string; text: string }>,
 ): Promise<LibraryChatResult> {
   if (scope === 'document') {
+    const action = matchDocumentChatIntent(question)
+    if (action && documentId) {
+      return runDocumentChatAction(documentId, action)
+    }
     return askDocument(documentId ?? '', question, context)
   }
   return askLibrary(question)
+}
+
+/** Map free-form questions to structured document actions when the intent is clear. */
+export function matchDocumentChatIntent(question: string): DocumentChatAction | null {
+  const folded = question
+    .trim()
+    .toLocaleLowerCase()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+  if (!folded) return null
+
+  const rules: Array<{ action: DocumentChatAction; patterns: RegExp[] }> = [
+    {
+      action: 'summarize',
+      patterns: [
+        /\b(summarize|summary|tlldr|digest)\b/,
+        /\b(zhrn|zhrnutie|strucne)\b/,
+      ],
+    },
+    {
+      action: 'outline',
+      patterns: [/\b(outline|structure|headings?)\b/, /\b(osnova|struktura|nadpisy)\b/],
+    },
+    {
+      action: 'keywords',
+      patterns: [/\b(keywords?|key ?words?)\b/, /\b(klucove slova)\b/],
+    },
+    {
+      action: 'tasks',
+      patterns: [
+        /\b(open )?tasks?\b/,
+        /\b(todo|to-?dos?|action items?|checklist)\b/,
+        /\bwhat should i do next\b/,
+        /\b(ulohy|otvorene ulohy|co (mam|by som mal) (urobit|spravit))\b/,
+      ],
+    },
+    {
+      action: 'dates',
+      patterns: [
+        /\b(dates?|deadlines?|due dates?|schedule)\b/,
+        /\b(datumy|terminy|deadline)\b/,
+      ],
+    },
+    {
+      action: 'mentions',
+      patterns: [
+        /\b(who is mentioned|people mentioned|mentions?)\b/,
+        /\b(kto (je|je v)|ludia|spomenut|zmienky)\b/,
+      ],
+    },
+    {
+      action: 'wiki',
+      patterns: [/\b(wiki ?links?|backlinks?)\b/, /\b(wiki odkazy|prepojen)/],
+    },
+    {
+      action: 'similar',
+      patterns: [
+        /\b(related notes?|similar notes?|connected notes?)\b/,
+        /\b(how does this (note )?connect|suvisiace|podobne poznamky)\b/,
+      ],
+    },
+    {
+      action: 'quotes',
+      patterns: [/\b(key claims?|main claims?)\b/, /\b(klucove tvrden|hlavne tvrden)\b/],
+    },
+    {
+      action: 'tone',
+      patterns: [/\b(tone|readability|reading time)\b/, /\b(ton|citanie|citatelnost)\b/],
+    },
+    {
+      action: 'spellcheck',
+      patterns: [/\b(spellcheck|spelling|typos?)\b/, /\b(pravopis|preklepy)\b/],
+    },
+    {
+      action: 'title',
+      patterns: [/\b(suggest(ed)? title|better title)\b/, /\b(navrhni nazov|navrhnut nazov)\b/],
+    },
+    {
+      action: 'questions',
+      patterns: [
+        /\b(ask next|follow-?up questions?|what else should i ask)\b/,
+        /\b(dalsie otazky)\b/,
+      ],
+    },
+  ]
+
+  for (const rule of rules) {
+    if (rule.patterns.some((pattern) => pattern.test(folded))) {
+      return rule.action
+    }
+  }
+  return null
 }
 
 function bullets(lines: string[]): string {

@@ -1615,83 +1615,6 @@ pub fn nlp_library_answer(
     })
 }
 
-fn chunk_document_passages(document_id: &str, title: &str, text: &str) -> Value {
-    const TARGET_CHARS: usize = 480;
-    const MAX_PASSAGES: usize = 12;
-
-    let mut chunks: Vec<String> = Vec::new();
-    let paragraphs: Vec<&str> = text
-        .split("\n\n")
-        .map(str::trim)
-        .filter(|part| !part.is_empty())
-        .collect();
-
-    if paragraphs.is_empty() {
-        let trimmed = text.trim();
-        if !trimmed.is_empty() {
-            chunks.push(trimmed.to_string());
-        }
-    } else {
-        let mut buffer = String::new();
-        for paragraph in paragraphs {
-            if buffer.is_empty() {
-                buffer.push_str(paragraph);
-                continue;
-            }
-            if buffer.len() + paragraph.len() + 1 <= TARGET_CHARS {
-                buffer.push('\n');
-                buffer.push_str(paragraph);
-            } else {
-                chunks.push(std::mem::take(&mut buffer));
-                buffer.push_str(paragraph);
-            }
-        }
-        if !buffer.trim().is_empty() {
-            chunks.push(buffer);
-        }
-    }
-
-    // Split oversized chunks on sentence-ish boundaries.
-    let mut refined: Vec<String> = Vec::new();
-    for chunk in chunks {
-        if chunk.len() <= TARGET_CHARS * 2 {
-            refined.push(chunk);
-            continue;
-        }
-        let mut current = String::new();
-        for part in chunk.split_inclusive(['.', '!', '?', '\n']) {
-            let piece = part.trim();
-            if piece.is_empty() {
-                continue;
-            }
-            if current.is_empty() {
-                current.push_str(piece);
-            } else if current.len() + piece.len() + 1 <= TARGET_CHARS {
-                current.push(' ');
-                current.push_str(piece);
-            } else {
-                refined.push(std::mem::take(&mut current));
-                current.push_str(piece);
-            }
-        }
-        if !current.trim().is_empty() {
-            refined.push(current);
-        }
-    }
-
-    json!(refined
-        .into_iter()
-        .take(MAX_PASSAGES)
-        .map(|snippet| {
-            json!({
-                "documentId": document_id,
-                "title": title,
-                "snippet": snippet,
-            })
-        })
-        .collect::<Vec<_>>())
-}
-
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DocumentAnswerContextMessage {
@@ -1712,7 +1635,7 @@ pub fn nlp_document_answer(
         return Err("libraryChat.emptyQuestion".to_string());
     }
 
-    let (title, fallback) = {
+    let (title, text) = {
         let conn = state.conn.lock().map_err(|e| e.to_string())?;
         if !is_nlp_enabled(&conn)? {
             return Err("libraryChat.nlpDisabled".to_string());
@@ -1734,38 +1657,34 @@ pub fn nlp_document_answer(
             return Err(ERR_VAULT_NLP.to_string());
         }
 
-        let text = format!("{title}\n{}", extract_search_text(&content_json));
+        let text = document_index_text(&conn, &document_id, &title, &content_json);
         if text.trim().len() < 8 {
             return Err("libraryChat.documentEmpty".to_string());
         }
-        let fallback = chunk_document_passages(&document_id, &title, &text);
-        (title, fallback)
+        (title, text)
     };
 
-    let passages = match sidecar.embed_text(&trimmed) {
+    let ranked = match sidecar.embed_text(&trimmed) {
         Ok((vector, model)) => {
             let conn = state.conn.lock().map_err(|e| e.to_string())?;
-            let ranked =
-                rank_document_chunks(&conn, &document_id, &vector, 8, Some(&model)).unwrap_or_default();
-            if ranked.len() >= 2 {
-                json!(ranked
-                    .into_iter()
-                    .map(|chunk| {
-                        json!({
-                            "documentId": document_id,
-                            "title": title,
-                            "snippet": chunk.snippet,
-                            "score": chunk.score,
-                            "chunkIndex": chunk.chunk_index,
-                        })
-                    })
-                    .collect::<Vec<_>>())
-            } else {
-                fallback
-            }
+            rank_document_chunks(
+                &conn,
+                &document_id,
+                &vector,
+                scribe_core::nlp::DOCUMENT_EMBED_RANK_LIMIT,
+                Some(&model),
+            )
+            .unwrap_or_default()
         }
-        Err(_) => fallback,
+        Err(_) => Vec::new(),
     };
+    let passages = scribe_core::nlp::build_document_answer_passages(
+        &document_id,
+        &title,
+        &text,
+        &trimmed,
+        &ranked,
+    );
 
     let passages = if let Some(messages) = context {
         let turns: Vec<ChatTurn> = messages
@@ -1789,7 +1708,7 @@ pub fn nlp_document_answer(
     }
     let passages = json!(combined);
 
-    let result = sidecar.library_answer_scoped(&trimmed, passages.clone(), 6, "document")?;
+    let result = sidecar.library_answer_scoped(&trimmed, passages.clone(), 8, "document")?;
     let fallback_title = title.clone();
     let citations = result
         .get("citations")

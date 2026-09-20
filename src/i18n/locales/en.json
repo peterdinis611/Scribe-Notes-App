@@ -327,8 +327,8 @@
         "description": "Work, personal, or archive as separate roots. Switching changes the whole library, not just a folder."
       },
       "libraryChat": {
-        "title": "Chat with notes",
-        "description": "Ask the whole library or the open note. Answers stay on this Mac."
+        "title": "Scribe Local AI chat",
+        "description": "Scribe has its own Local AI. Ask the whole library or the open note — answers stay on this Mac, not in the cloud."
       },
       "libraryFilters": {
         "title": "Quick filters",
@@ -814,11 +814,11 @@
       "lockHint": "Write tools need a writable DB open. If Scribe has the database locked, retry create/append shortly or check scribe_status for writable: false."
     },
     "nlp": {
-      "title": "Local AI (Python)",
-      "description": "Optional add-on — Rust core stays, Python adds intelligence.",
-      "intro": "Optional add-on that runs only on this Mac. Scribe starts a local Python process (sidecar) — no cloud, no text sent to the internet. When enabled you get semantic search in ⌘K, tag suggestions, weekly journal overview, and library analysis. Requires Python 3.10+.",
-      "enableTitle": "Enable local AI",
-      "enableDescription": "When enabled, documents are indexed for semantic search in ⌘K.",
+      "title": "Scribe Local AI",
+      "description": "Scribe’s own Local AI — runs on this Mac, not in the cloud.",
+      "intro": "Scribe ships with its own Local AI. When you enable it, the app starts a small Python process on this Mac — no ChatGPT account, no cloud API, no text sent to the internet. You get answers over your notes, semantic search in ⌘K, tag suggestions, journal overview, and library analysis. Requires Python 3.10+.",
+      "enableTitle": "Enable Scribe Local AI",
+      "enableDescription": "Turn on the app’s built-in Local AI. Documents are indexed for semantic search and Q&A on this device.",
       "enable": "Enable",
       "enabled": "Enabled",
       "enabledToast": "Local AI enabled",
@@ -1084,18 +1084,18 @@
           "points": []
         },
         "localAi": {
-          "title": "Local AI",
-          "summary": "Optional intelligence without the cloud",
+          "title": "Scribe Local AI",
+          "summary": "The app’s own intelligence — on this Mac, never in the cloud",
           "paragraphs": [
-            "Local AI is not a chatbot or an online service. When you enable it in Settings → Local AI, Scribe starts a small Python process (sidecar) on this Mac. All processing — indexing, search, summarization — happens in your computer's memory. Your text is never sent anywhere.",
-            "The Rust core remains primary: database, editor, saving, and full-text search work without AI. The Python add-on adds semantics (meaning similarity), tag suggestions, weekly journal overview, and library analysis.",
+            "Scribe has its own Local AI. It is not ChatGPT and not an online chatbot. When you enable it in Settings → Local AI, Scribe starts a small Python process on this Mac. Indexing, search, and answers over your notes all happen in your computer’s memory. Your text is never sent anywhere.",
+            "The Rust core stays primary: database, editor, saving, and full-text search work without AI. Local AI adds meaning-based search, note Q&A, tag suggestions, weekly journal overview, and library analysis — so you can use the app without expecting a cloud LLM.",
             "After enabling, documents are indexed into vectors (model scribe-hash-v4). If you update Scribe and the model changes, a reindex banner appears — mixing old and new vectors would give inconsistent results."
           ],
           "points": [
+            "Built into Scribe — enable once in Settings → Local AI, no third-party account",
             "⌘K All scope — combines full-text (FTS) and semantic hits via hybrid ranking",
             "⌘K Semantic scope — meaning-based results only, not exact word matches",
-            "Library analysis — markdown report with themes, tags, and recent documents",
-            "Tag suggestions — in a document's context menu in the library (right-click)",
+            "Ask library / Ask this note — extractive answers with citations from your notes",
             "Requires Python 3.10+ on your system; no pip packages needed"
           ]
         },
@@ -1346,7 +1346,7 @@
       "tags": "Tags",
       "graph": "Connection map",
       "duplicates": "Duplicates",
-      "chat": "Ask library"
+      "chat": "Scribe AI"
     },
     "duplicates": {
       "title": "Near-duplicate notes",
@@ -1456,24 +1456,26 @@
     }
   },
   "libraryChat": {
-    "emptyTitle": "Ask your notes",
-    "emptyTitleDocument": "Ask this document",
-    "emptyHint": "Answers come only from Local AI embeddings of your library — no cloud. Turn on Local AI in Settings.",
-    "emptyHintDocument": "Ask about the open note, or tap an action chip. Local AI only — extractive, no cloud.",
+    "emptyTitle": "Ask Scribe Local AI",
+    "emptyTitleDocument": "Ask this note",
+    "brandBadge": "Built-in Local AI",
+    "brandHint": "Scribe has its own Local AI on this Mac — not ChatGPT, not the cloud. Answers come only from your notes.",
+    "emptyHint": "Ask about themes, deadlines, people, decisions, projects, or open loops. Scribe’s Local AI answers from your library on this device.",
+    "emptyHintDocument": "Scribe’s Local AI reads this note (including OCR) and answers from its content. Free-form questions or action chips — nothing leaves this Mac.",
     "openSettings": "Open Local AI settings",
     "placeholder": "Ask your notes…",
     "placeholderDocument": "Ask this note…",
     "send": "Ask",
-    "thinking": "Searching notes…",
+    "thinking": "Scribe Local AI is reading your notes…",
     "citations": "Sources",
     "you": "You",
-    "assistant": "Library",
-    "assistantDocument": "Document",
+    "assistant": "Scribe AI",
+    "assistantDocument": "Scribe AI",
     "untitled": "Untitled",
     "errorTitle": "Could not answer",
     "emptyQuestion": "Type a question first.",
-    "nlpDisabled": "Local AI is off. Enable it in Settings → Local AI.",
-    "sidecarUnavailable": "Local AI sidecar is not ready. Check Settings → Local AI.",
+    "nlpDisabled": "Scribe Local AI is off. Enable it in Settings → Local AI — the app’s own AI, no account or cloud needed.",
+    "sidecarUnavailable": "Scribe Local AI is not ready. Check Settings → Local AI (Python 3.10+).",
     "noActiveDocument": "Open a document first to ask about it.",
     "documentMissing": "Document not found.",
     "documentVault": "Vault documents can’t be analyzed while locked.",
@@ -1500,7 +1502,25 @@
       "recent": "What did I write about recently?",
       "deadlines": "Any deadlines or dates in my notes?",
       "themes": "What themes come up across my notes?",
-      "openLoops": "What open tasks or unfinished threads do I have?"
+      "openLoops": "What open tasks or unfinished threads do I have?",
+      "people": "Who do I mention across my notes?",
+      "decisions": "What decisions or conclusions did I capture?",
+      "projects": "Which projects or goals show up in my notes?",
+      "meetings": "What meetings or calls did I write about?",
+      "ideas": "What ideas or brainstorms are in my library?",
+      "definitions": "Where did I define important terms?",
+      "connections": "Which notes seem connected to each other?",
+      "risks": "Any risks, blockers, or problems I noted?"
+    },
+    "documentPrompts": {
+      "about": "What is this note mainly about?",
+      "next": "What should I do next based on this note?",
+      "decisions": "What decisions or conclusions are in this note?",
+      "people": "Who is mentioned in this note?",
+      "explain": "Explain the key terms in this note",
+      "missing": "What feels unfinished or unclear here?",
+      "connect": "How does this note connect to others?",
+      "claims": "What are the main claims in this note?"
     },
     "actions": {
       "summarize": "Summarize",
@@ -1641,14 +1661,14 @@
     },
     "insights": {
       "title": "AI insights",
-      "subtitle": "Local overview of the open note",
+      "subtitle": "Scribe Local AI overview of the open note",
       "subtitleWithCount": "{{count}} signals in this note",
       "hide": "Hide AI insights",
       "loadError": "Could not load AI insights",
       "askTitle": "Ask this note",
-      "askHint": "Local AI actions and questions about the open document — no cloud.",
+      "askHint": "Scribe’s own Local AI — questions and actions on this note, on this Mac only.",
       "questionHistoryEmpty": "Nothing asked yet — the list fills as you query this document.",
-      "localBadge": "offline",
+      "localBadge": "Scribe Local AI",
       "openChat": "Open full chat →",
       "summary": "Summary",
       "summaryEmpty": "Write a bit more for an extractive summary.",
