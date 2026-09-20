@@ -1,4 +1,4 @@
-import { Sparkles, RefreshCw, Database, FileBarChart } from 'lucide-react'
+import { Sparkles, RefreshCw, Database, FileBarChart, Square } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,7 @@ import {
   nlpSetEmbedBackend,
   nlpSetEnabled,
   nlpStatus,
+  nlpCancel,
   type NlpIndexProgress,
   type NlpLibraryReport,
   type NlpStatus,
@@ -66,7 +67,12 @@ export function NlpSection() {
       toast.success(t('settings.nlp.indexedToast', { count: result.indexed }))
       await refresh()
     } catch (error) {
-      toast.error(t('settings.nlp.indexError'), String(error))
+      const message = String(error).toLowerCase()
+      if (message.includes('cancel')) {
+        toast.info(t('settings.nlp.indexCancelled'))
+      } else {
+        toast.error(t('settings.nlp.indexError'), String(error))
+      }
     } finally {
       setIndexing(false)
       setIndexProgress(null)
@@ -204,11 +210,23 @@ export function NlpSection() {
             <span className="font-medium text-[var(--color-foreground)]">
               {t('settings.nlp.indexProgressLabel')}
             </span>
-            <span className="tabular-nums text-[var(--color-muted-foreground)]">
-              {t('settings.nlp.indexProgressCount', {
-                current: indexProgress.current,
-                total: indexProgress.total,
-              })}
+            <span className="flex items-center gap-2">
+              <span className="tabular-nums text-[var(--color-muted-foreground)]">
+                {t('settings.nlp.indexProgressCount', {
+                  current: indexProgress.current,
+                  total: indexProgress.total,
+                })}
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2"
+                onClick={() => void nlpCancel()}
+              >
+                <Square className="mr-1 h-3 w-3" />
+                {t('settings.nlp.cancelIndex')}
+              </Button>
             </span>
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-[var(--color-border)]">

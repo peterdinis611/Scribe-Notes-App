@@ -301,6 +301,23 @@ export type LibraryChatCitation = {
   chunkIndex?: number | null
 }
 
+export const nlpLibraryAnswer = (question: string, limit = 6) =>
+  invoke<{ answer: string; citations: LibraryChatCitation[] }>('nlp_library_answer', {
+    question,
+    limit,
+  })
+
+export const nlpDocumentAnswer = (
+  documentId: string,
+  question: string,
+  context?: Array<{ role: string; text: string }> | null,
+) =>
+  invoke<{ answer: string; citations: LibraryChatCitation[] }>('nlp_document_answer', {
+    documentId,
+    question,
+    context: context ?? null,
+  })
+
 export interface WikiLinkSuggestion {
   phrase: string
   documentId: string

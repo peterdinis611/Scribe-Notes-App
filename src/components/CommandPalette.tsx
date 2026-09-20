@@ -82,6 +82,7 @@ import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
 import { cn, debounce } from '@/lib/utils'
 import { sanitizeSnippet } from '@/lib/search-snippet'
+import { citationSearchQuery } from '@/lib/editor/citation-jump'
 import { cycleThemeId } from '@/lib/themes/apply'
 import { generateRandomTheme } from '@/lib/themes/generate-random-theme'
 import { useOpenDemoGuide } from '@/hooks/useOpenDemoGuide'
@@ -984,8 +985,8 @@ export function CommandPalette() {
       snippetHtml: hit.snippet,
       icon,
       run: () => {
-        const q = query.trim()
-        if (q) dispatch(setPendingEditorSearch(q))
+        const needle = citationSearchQuery(hit.snippet) || query.trim()
+        if (needle) dispatch(setPendingEditorSearch(needle))
         dispatch(setActiveDocumentId(hit.documentId))
         const cached = peekCachedDocument(hit.documentId)
         if (cached) dispatch(setActiveDocument(cached))

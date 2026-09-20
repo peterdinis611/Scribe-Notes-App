@@ -111,8 +111,13 @@ pub fn fuse_search_hits(
         if let Some(entry) = merged.get_mut(&hit.document_id) {
             entry.score += rrf_score(rank);
             entry.semantic = true;
-            if entry.hit.snippet.is_empty() && !hit.snippet.is_empty() {
+            if !hit.snippet.is_empty()
+                && (entry.hit.snippet.is_empty() || hit.chunk_index.is_some())
+            {
                 entry.hit.snippet = hit.snippet.clone();
+            }
+            if entry.hit.chunk_index.is_none() {
+                entry.hit.chunk_index = hit.chunk_index;
             }
         } else {
             merged.insert(

@@ -48,6 +48,7 @@ class LibraryAnswerTests(unittest.TestCase):
                     "documentId": "d1",
                     "title": "Search notes",
                     "snippet": "Local embeddings power semantic search in Scribe. Hybrid mode fuses FTS.",
+                    "chunkIndex": 2,
                 },
                 {
                     "documentId": "d2",
@@ -58,6 +59,7 @@ class LibraryAnswerTests(unittest.TestCase):
         )
         self.assertIn("embeddings", result["answer"].lower())
         self.assertEqual(result["citations"][0]["documentId"], "d1")
+        self.assertEqual(result["citations"][0]["chunkIndex"], 2)
         self.assertGreaterEqual(len(result.get("followups") or []), 1)
         self.assertTrue(result["answer"].startswith("Based on your notes"))
 
@@ -212,7 +214,7 @@ class VersionTests(unittest.TestCase):
         result = handle_request(
             {"jsonrpc": "2.0", "id": 9, "method": "health", "params": {}}
         )["result"]
-        self.assertEqual(result["version"], "0.9.2")
+        self.assertEqual(result["version"], "1.0.0")
         for feature in ("chunkEmbeddings", "libraryAnswer", "dueHints"):
             self.assertIn(feature, result["features"])
 

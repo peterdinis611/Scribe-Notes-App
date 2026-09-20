@@ -204,7 +204,7 @@ pub fn resolve_conflict(conn: &Connection, id: &str) -> Result<(), String> {
     Ok(())
 }
 
-use scribe_core::ManuscriptRecord as Manuscript;
+pub use scribe_core::ManuscriptRecord as Manuscript;
 
 pub fn list_manuscripts(conn: &Connection) -> Result<Vec<Manuscript>, String> {
     scribe_core::list_manuscripts(conn)

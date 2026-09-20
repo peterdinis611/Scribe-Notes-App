@@ -252,7 +252,7 @@ pub fn persist_document_memory(
         &payload.to_string(),
         chrono::Utc::now().timestamp(),
     )?;
-    prune_expired(conn)
+    prune_expired(conn).map(|_| ())
 }
 
 pub fn prune_expired(conn: &Connection) -> Result<i64, String> {

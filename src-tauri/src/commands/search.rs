@@ -1,6 +1,7 @@
 use crate::db::{
-    search_documents_for_library, filter_search_hits, SearchFilter, SearchHit,
+    filter_search_hits, search_documents_for_library, SearchFilter, SearchHit, DbState,
 };
+use tauri::State;
 
 #[tauri::command]
 pub fn search_documents(

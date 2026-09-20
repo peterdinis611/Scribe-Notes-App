@@ -37,41 +37,43 @@ pub fn collect_index_documents(
     library_id: Option<&str>,
     skip_vault: bool,
 ) -> Result<Vec<(String, String)>, String> {
-    let mut stmt = if library_id.is_some() {
-        conn.prepare(
-            "SELECT id, title, content_json FROM documents
-             WHERE deleted_at IS NULL AND library_id = ?1",
-        )
+    let mut pending: Vec<(String, String, String)> = Vec::new();
+    if let Some(library_id) = library_id {
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, title, content_json FROM documents
+                 WHERE deleted_at IS NULL AND library_id = ?1",
+            )
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map([library_id], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            })
+            .map_err(|e| e.to_string())?;
+        for row in rows {
+            pending.push(row.map_err(|e| e.to_string())?);
+        }
     } else {
-        conn.prepare("SELECT id, title, content_json FROM documents WHERE deleted_at IS NULL")
+        let mut stmt = conn
+            .prepare("SELECT id, title, content_json FROM documents WHERE deleted_at IS NULL")
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            })
+            .map_err(|e| e.to_string())?;
+        for row in rows {
+            pending.push(row.map_err(|e| e.to_string())?);
+        }
     }
-    .map_err(|e| e.to_string())?;
-
-    let rows = if let Some(library_id) = library_id {
-        stmt.query_map([library_id], |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, String>(2)?,
-            ))
-        })
-        .map_err(|e| e.to_string())?
-    } else {
-        stmt.query_map([], |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, String>(2)?,
-            ))
-        })
-        .map_err(|e| e.to_string())?
-    };
-
-    let mut pending = Vec::new();
-    for row in rows {
-        pending.push(row.map_err(|e| e.to_string())?);
-    }
-    drop(stmt);
 
     let mut docs = Vec::new();
     for (id, title, content_json) in pending {

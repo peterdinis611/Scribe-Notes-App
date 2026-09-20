@@ -840,6 +840,8 @@
       "reindexNow": "Reindex now",
       "indexProgressLabel": "Indexing documents…",
       "indexProgressCount": "{{current}} / {{total}}",
+      "cancelIndex": "Cancel indexing",
+      "indexCancelled": "Indexing cancelled",
       "statusStoredModel": "Indexed model",
       "statusStaleCount": "Stale records",
       "statusEmbedBackend": "Embedding backend",

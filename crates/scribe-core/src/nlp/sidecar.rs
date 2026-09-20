@@ -757,7 +757,6 @@ fn worker_loop(
                 if let Some(mut current) = process.take() {
                     kill_process(&mut current, &pid);
                 }
-                lines = None;
                 break;
             }
             WorkerMsg::Reset => {
@@ -874,6 +873,11 @@ mod tests {
     use super::*;
 
     #[test]
+    fn script_path_label_formats_display_path() {
+        let path = PathBuf::from("/tmp/scribe_nlp/__main__.py");
+        assert!(script_path_label(&path).contains("__main__.py"));
+    }
+
     #[test]
     fn rpc_timeout_is_shorter_for_health_than_embed_batch() {
         assert!(rpc_timeout("health") < rpc_timeout("embed"));

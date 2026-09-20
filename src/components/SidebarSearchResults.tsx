@@ -6,6 +6,7 @@ import { searchDocuments, type SearchHit } from '@/lib/db/api'
 import { ROUTES } from '@/lib/routes'
 import { debounce } from '@/lib/utils'
 import { sanitizeSnippet } from '@/lib/search-snippet'
+import { citationSearchQuery } from '@/lib/editor/citation-jump'
 import { useAppDispatch } from '@/store/hooks'
 import { setActiveDocumentId, setPendingEditorSearch } from '@/store/documentsSlice'
 
@@ -65,8 +66,8 @@ export function SidebarSearchResults({ query, onNavigate }: SidebarSearchResults
             type="button"
             className="mb-0.5 flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-[var(--color-hover)]"
             onClick={() => {
-              const q = query.trim()
-              if (q) dispatch(setPendingEditorSearch(q))
+              const needle = citationSearchQuery(hit.snippet) || query.trim()
+              if (needle) dispatch(setPendingEditorSearch(needle))
               dispatch(setActiveDocumentId(hit.documentId))
               navigate(ROUTES.document(hit.documentId))
               onNavigate?.()

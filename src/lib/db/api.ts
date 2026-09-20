@@ -156,6 +156,26 @@ export const updateDocument = async (input: UpdateDocumentInput) => {
   const decrypted = await maybeDecryptDocument(saved, folders)
   // Cache what the UI needs: plaintext when unlocked, ciphertext only when locked.
   cacheDocument(isVaultCipherJson(decrypted.contentJson) ? saved : decrypted)
+  const folder = folders.find((item) => item.id === decrypted.folderId)
+  void import('@/lib/vault/session').then(async ({ isVaultUnlocked }) => {
+    const { vaultRamRemove, vaultRamUpsert, vaultRamTextFromDocument } = await import(
+      '@/lib/vault/ram-index'
+    )
+    if (
+      folder?.isVault &&
+      isVaultUnlocked(folder.id) &&
+      !isVaultCipherJson(decrypted.contentJson)
+    ) {
+      await vaultRamUpsert({
+        documentId: decrypted.id,
+        folderId: folder.id,
+        title: decrypted.title,
+        text: vaultRamTextFromDocument(decrypted.title, decrypted.contentJson),
+      })
+    } else {
+      await vaultRamRemove(decrypted.id)
+    }
+  })
   return decrypted
 }
 
@@ -165,6 +185,7 @@ export const libraryFindReplace = (input: LibraryFindReplaceInput) =>
 export const deleteDocument = async (id: string) => {
   await invoke<void>('delete_document', { id })
   invalidateDocumentCache(id)
+  void import('@/lib/vault/ram-index').then(({ vaultRamRemove }) => vaultRamRemove(id))
 }
 
 export const listTrashedDocuments = () => invoke<DocumentSummary[]>('list_trashed_documents')

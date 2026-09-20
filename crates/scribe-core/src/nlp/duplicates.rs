@@ -2,7 +2,7 @@
 
 use rusqlite::{params, Connection};
 
-use crate::db::embeddings::{cosine_similarity, list_embeddings};
+use crate::db::{cosine_similarity, list_embeddings};
 use crate::nlp::{NlpDuplicatePair, NlpDuplicates};
 use crate::vault::content_is_vault_cipher;
 
@@ -70,8 +70,8 @@ pub fn find_duplicates_from_embeddings(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db::embeddings::upsert_embedding;
     use crate::db::test_helpers::in_memory_conn;
+    use crate::db::upsert_embedding;
 
     #[test]
     fn scores_near_identical_vectors() {

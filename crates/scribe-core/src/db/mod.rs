@@ -13,11 +13,11 @@ pub use search::{
 pub mod test_helpers;
 
 pub use embeddings::{
-    count_embeddings, count_stale_embeddings, dominant_embedding_model, get_document_embedding,
-    get_embed_backend, is_nlp_enabled, rank_document_chunks, remove_embedding, rerank_search_hits,
-    save_artifact, semantic_search, semantic_search_filtered, set_embed_backend, set_nlp_enabled,
-    similar_documents, upsert_embedding, upsert_embedding_with_chunks, EmbeddingChunkInput,
-    RankedDocumentChunk,
+    cosine_similarity, count_embeddings, count_stale_embeddings, dominant_embedding_model,
+    get_document_embedding, get_embed_backend, is_nlp_enabled, list_embeddings, rank_document_chunks,
+    remove_embedding, rerank_search_hits, save_artifact, semantic_search, semantic_search_filtered,
+    set_embed_backend, set_nlp_enabled, similar_documents, upsert_embedding,
+    upsert_embedding_with_chunks, EmbeddingChunkInput, RankedDocumentChunk, StoredEmbedding,
 };
 pub use fts::{
     backfill_fts, collect_document_ocr_text, document_index_text, extract_search_text,

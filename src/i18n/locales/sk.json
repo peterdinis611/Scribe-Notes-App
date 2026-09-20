@@ -840,6 +840,8 @@
       "reindexNow": "Preindexovať teraz",
       "indexProgressLabel": "Indexujem dokumenty…",
       "indexProgressCount": "{{current}} / {{total}}",
+      "cancelIndex": "Zrušiť indexovanie",
+      "indexCancelled": "Indexovanie zrušené",
       "statusStoredModel": "Indexovaný model",
       "statusStaleCount": "Zastarané záznamy",
       "statusEmbedBackend": "Embedding backend",
