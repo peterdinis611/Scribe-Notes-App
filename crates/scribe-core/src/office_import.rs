@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::io::{Cursor, Read, Seek};
 
 use quick_xml::events::{BytesRef, BytesStart, Event};
-use quick_xml::Reader;
+use quick_xml::{Reader, XmlVersion};
 use serde_json::{json, Value};
 use zip::result::ZipError;
 use zip::ZipArchive;
@@ -42,25 +42,26 @@ fn docx_nodes(xml: &str) -> Result<Vec<Value>, String> {
     loop {
         match read_event(&mut reader, "word/document.xml")? {
             Event::Start(tag) => match local_name(tag.name().as_ref()) {
-                b"p" => {
+                "p" => {
                     in_paragraph = true;
                     text.clear();
                     style = None;
                 }
-                b"t" => in_text = true,
-                b"pStyle" => style = attribute(&tag, b"val"),
-                b"tab" if in_paragraph => text.push('\t'),
-                b"br" | b"cr" if in_paragraph => text.push('\n'),
+                "t" => in_text = true,
+                "pStyle" => style = attribute(&tag, "val"),
+                "tab" if in_paragraph => text.push('\t'),
+                "br" | "cr" if in_paragraph => text.push('\n'),
                 _ => {}
             },
             Event::Empty(tag) => match local_name(tag.name().as_ref()) {
-                b"pStyle" => style = attribute(&tag, b"val"),
-                b"tab" if in_paragraph => text.push('\t'),
-                b"br" | b"cr" if in_paragraph => text.push('\n'),
+                "p" => nodes.push(json!({ "type": "paragraph" })),
+                "pStyle" => style = attribute(&tag, "val"),
+                "tab" if in_paragraph => text.push('\t'),
+                "br" | "cr" if in_paragraph => text.push('\n'),
                 _ => {}
             },
             Event::End(tag) => match local_name(tag.name().as_ref()) {
-                b"p" => {
+                "p" => {
                     if in_paragraph {
                         nodes.push(docx_block(&text, style.as_deref()));
                     }
@@ -69,7 +70,7 @@ fn docx_nodes(xml: &str) -> Result<Vec<Value>, String> {
                     text.clear();
                     style = None;
                 }
-                b"t" => in_text = false,
+                "t" => in_text = false,
                 _ => {}
             },
             Event::Text(chunk) if in_paragraph && in_text => {
@@ -200,19 +201,19 @@ fn parse_shared_strings(xml: &str) -> Result<Vec<String>, String> {
     loop {
         match read_event(&mut reader, "xl/sharedStrings.xml")? {
             Event::Start(tag) => match local_name(tag.name().as_ref()) {
-                b"si" => {
+                "si" => {
                     in_item = true;
                     current.clear();
                 }
-                b"t" => in_text = true,
+                "t" => in_text = true,
                 _ => {}
             },
             Event::End(tag) => match local_name(tag.name().as_ref()) {
-                b"si" => {
+                "si" => {
                     strings.push(std::mem::take(&mut current));
                     in_item = false;
                 }
-                b"t" => in_text = false,
+                "t" => in_text = false,
                 _ => {}
             },
             Event::Text(chunk) if in_item && in_text => current.push_str(&chunk.xml10_content()),
@@ -238,12 +239,12 @@ fn parse_workbook_sheets(xml: &str) -> Result<Vec<(String, Option<String>)>, Str
             Event::Eof => break,
             _ => continue,
         };
-        if local_name(tag.name().as_ref()) != b"sheet" {
+        if local_name(tag.name().as_ref()) != "sheet" {
             continue;
         }
         sheets.push((
-            attribute(&tag, b"name").unwrap_or_default(),
-            attribute(&tag, b"id"),
+            attribute(&tag, "name").unwrap_or_default(),
+            attribute(&tag, "id"),
         ));
     }
 
@@ -260,10 +261,10 @@ fn parse_relationships(xml: &str) -> Result<HashMap<String, String>, String> {
             Event::Eof => break,
             _ => continue,
         };
-        if local_name(tag.name().as_ref()) != b"Relationship" {
+        if local_name(tag.name().as_ref()) != "Relationship" {
             continue;
         }
-        if let (Some(id), Some(target)) = (attribute(&tag, b"Id"), attribute(&tag, b"Target")) {
+        if let (Some(id), Some(target)) = (attribute(&tag, "Id"), attribute(&tag, "Target")) {
             map.insert(id, target);
         }
     }
@@ -277,11 +278,11 @@ fn sheet_entry_path(target: &str) -> String {
     if let Some(absolute) = target.strip_prefix('/') {
         return absolute.to_string();
     }
-    let relative = target.trim_start_matches("./");
+    let relative = target.trim_start_matches("./").trim_start_matches("../");
     if relative.starts_with("xl/") {
         return relative.to_string();
     }
-    format!("xl/{}", relative.trim_start_matches("../"))
+    format!("xl/{relative}")
 }
 
 fn parse_sheet_rows(xml: &str, shared: &[String]) -> Result<Vec<Vec<String>>, String> {
@@ -297,29 +298,29 @@ fn parse_sheet_rows(xml: &str, shared: &[String]) -> Result<Vec<Vec<String>>, St
     loop {
         match read_event(&mut reader, "worksheet")? {
             Event::Start(tag) => match local_name(tag.name().as_ref()) {
-                b"row" => {
+                "row" => {
                     in_row = true;
                     row = Vec::new();
                 }
-                b"c" => {
-                    cell_type = attribute(&tag, b"t").unwrap_or_default();
-                    cell_column = attribute(&tag, b"r")
+                "c" => {
+                    cell_type = attribute(&tag, "t").unwrap_or_default();
+                    cell_column = attribute(&tag, "r")
                         .map(|reference| column_index(&reference))
                         .unwrap_or(row.len());
                     value.clear();
                 }
-                b"v" | b"t" => capture = true,
+                "v" | "t" => capture = true,
                 _ => {}
             },
             Event::Text(chunk) if capture => value.push_str(&chunk.xml10_content()),
             Event::GeneralRef(entity) if capture => value.push_str(&resolve_entity(&entity)),
             Event::End(tag) => match local_name(tag.name().as_ref()) {
-                b"v" | b"t" => capture = false,
-                b"c" if in_row => {
+                "v" | "t" => capture = false,
+                "c" if in_row => {
                     set_cell(&mut row, cell_column, cell_value(&cell_type, &value, shared));
                     value.clear();
                 }
-                b"row" if in_row => {
+                "row" if in_row => {
                     while row.last().is_some_and(|cell| cell.is_empty()) {
                         row.pop();
                     }
@@ -419,18 +420,18 @@ fn read_event<'a>(reader: &mut Reader<&'a [u8]>, part: &str) -> Result<Event<'a>
 }
 
 /// Strip the namespace prefix, so `w:p` matches `p`.
-fn local_name(name: &[u8]) -> &[u8] {
-    match name.iter().rposition(|byte| *byte == b':') {
+fn local_name(name: &str) -> &str {
+    match name.rfind(':') {
         Some(index) => &name[index + 1..],
         None => name,
     }
 }
 
 /// Look up an attribute by local name, ignoring namespace prefixes.
-fn attribute(tag: &BytesStart<'_>, name: &[u8]) -> Option<String> {
+fn attribute(tag: &BytesStart<'_>, name: &str) -> Option<String> {
     tag.attributes().flatten().find_map(|attr| {
         if local_name(attr.key.as_ref()) == name {
-            attr.unescape_value()
+            attr.normalized_value(XmlVersion::Implicit1_0)
                 .ok()
                 .map(|value| value.into_owned())
         } else {
@@ -608,6 +609,6 @@ mod tests {
     fn relationship_targets_resolve_to_entry_paths() {
         assert_eq!(sheet_entry_path("worksheets/sheet1.xml"), "xl/worksheets/sheet1.xml");
         assert_eq!(sheet_entry_path("/xl/worksheets/sheet2.xml"), "xl/worksheets/sheet2.xml");
-        assert_eq!(sheet_entry_path("../xl/worksheets/sheet3.xml"), "xl/xl/worksheets/sheet3.xml");
+        assert_eq!(sheet_entry_path("../xl/worksheets/sheet3.xml"), "xl/worksheets/sheet3.xml");
     }
 }

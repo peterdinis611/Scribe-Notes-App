@@ -282,7 +282,7 @@ mod tests {
 
     #[test]
     fn renders_text_styles_and_alignment() {
-        let json = r#"{
+        let json = r##"{
             "type": "doc",
             "content": [
                 { "type": "paragraph", "attrs": { "textAlign": "center" }, "content": [
@@ -292,7 +292,7 @@ mod tests {
                     ] }
                 ] }
             ]
-        }"#;
+        }"##;
 
         let html = tiptap_to_html(json, "", false);
 

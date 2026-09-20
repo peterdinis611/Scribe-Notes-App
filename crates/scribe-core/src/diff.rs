@@ -212,8 +212,8 @@ mod tests {
             shape(&result),
             vec![
                 (DiffLineType::Unchanged, "alpha"),
-                (DiffLineType::Added, "delta"),
                 (DiffLineType::Removed, "beta"),
+                (DiffLineType::Added, "delta"),
                 (DiffLineType::Unchanged, "gamma"),
             ]
         );
@@ -226,12 +226,12 @@ mod tests {
         assert_eq!(
             shape(&result),
             vec![
+                (DiffLineType::Removed, ""),
                 (DiffLineType::Added, "alpha"),
                 (DiffLineType::Added, "beta"),
-                (DiffLineType::Unchanged, ""),
             ]
         );
-        assert_eq!((result.added, result.removed), (2, 0));
+        assert_eq!((result.added, result.removed), (2, 1));
     }
 
     #[test]
