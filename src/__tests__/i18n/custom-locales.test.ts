@@ -46,4 +46,12 @@ describe('parseCustomLocalePack', () => {
     expect(guessCodeFromFileName('scribe-de.json')).toBe('de')
     expect(guessCodeFromFileName('pl.json')).toBe('pl')
   })
+
+  it('accepts the checked-in sample locale pack', async () => {
+    const sample = await import('@/i18n/locales/locale-pack.example.json')
+    const pack = parseCustomLocalePack(JSON.stringify(sample.default ?? sample))
+    expect(pack.code).toBe('cs')
+    expect(pack.name.length).toBeGreaterThan(0)
+    expect(pack.messages.common).toBeTruthy()
+  })
 })

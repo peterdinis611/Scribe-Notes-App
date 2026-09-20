@@ -1,6 +1,7 @@
 import { open, save } from '@tauri-apps/plugin-dialog'
 import { readTextFile, writeTextFile } from '@/lib/db/api'
 import en from '@/i18n/locales/en.json'
+import sampleLocalePack from '@/i18n/locales/locale-pack.example.json'
 import {
   guessCodeFromFileName,
   parseCustomLocalePack,
@@ -59,18 +60,11 @@ export async function pickAndParseCustomLocale(): Promise<CustomLocalePack | nul
   })
 }
 
-export async function exportEnglishLanguageTemplate(): Promise<string | null> {
-  const pack: CustomLocalePack = {
-    code: 'xx',
-    name: 'My language',
-    messages: en as unknown as Record<string, unknown>,
-  }
-  const body = serializeCustomLocalePack(pack)
-
+async function saveLocaleJson(body: string, defaultPath: string, title: string): Promise<string | null> {
   try {
     const path = await save({
-      title: 'Export English language template',
-      defaultPath: 'scribe-locale-template.json',
+      title,
+      defaultPath,
       filters: FILTERS,
     })
     if (path) {
@@ -85,10 +79,33 @@ export async function exportEnglishLanguageTemplate(): Promise<string | null> {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.download = 'scribe-locale-template.json'
+  link.download = defaultPath
   document.body.appendChild(link)
   link.click()
   link.remove()
   URL.revokeObjectURL(url)
-  return 'scribe-locale-template.json'
+  return defaultPath
+}
+
+export async function exportEnglishLanguageTemplate(): Promise<string | null> {
+  const pack: CustomLocalePack = {
+    code: 'xx',
+    name: 'My language',
+    messages: en as unknown as Record<string, unknown>,
+  }
+  return saveLocaleJson(
+    serializeCustomLocalePack(pack),
+    'scribe-locale-template.json',
+    'Export English language template',
+  )
+}
+
+/** Small Czech sample pack — partial overrides that import cleanly. */
+export async function exportSampleLocalePack(): Promise<string | null> {
+  const pack = parseCustomLocalePack(JSON.stringify(sampleLocalePack))
+  return saveLocaleJson(
+    serializeCustomLocalePack(pack),
+    'scribe-locale-sample-cs.json',
+    'Export sample language JSON',
+  )
 }

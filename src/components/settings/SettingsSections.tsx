@@ -1,6 +1,6 @@
 import { getVersion } from '@tauri-apps/api/app'
 import { confirm, open } from '@tauri-apps/plugin-dialog'
-import { Archive, ArchiveRestore, FolderOpen, FolderSearch, Languages, Shuffle, Trash2, Upload } from 'lucide-react'
+import { Archive, ArchiveRestore, FileJson, FolderOpen, FolderSearch, Languages, Shuffle, Trash2, Upload } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
@@ -11,6 +11,7 @@ import { IconTooltip } from '@/components/ui/tooltip'
 import { Input } from '@/components/ui/input'
 import { DiagnosticsSection } from '@/components/settings/DiagnosticsSection'
 import { LibrariesSettingsList } from '@/components/settings/LibrariesSettingsList'
+import { LocaleKeysReference } from '@/components/settings/LocaleKeysReference'
 import { McpSection } from '@/components/settings/McpSection'
 import { PrivacySection } from '@/components/settings/PrivacySection'
 import {
@@ -76,7 +77,7 @@ import {
 } from '@/store/persistence'
 import { persistStorageFolderAccessGranted } from '@/store/persistence'
 import { registerCustomLocaleBundle, unregisterCustomLocaleBundle } from '@/i18n'
-import { exportEnglishLanguageTemplate, pickAndParseCustomLocale } from '@/lib/i18n/custom-locale-io'
+import { exportEnglishLanguageTemplate, exportSampleLocalePack, pickAndParseCustomLocale } from '@/lib/i18n/custom-locale-io'
 import {
   createCustomThemeSelection,
   createResetCustomTheme,
@@ -138,6 +139,19 @@ export function AppearanceSection() {
     }
   }
 
+  async function handleExportSampleLocale() {
+    if (localeBusy) return
+    setLocaleBusy(true)
+    try {
+      const path = await exportSampleLocalePack()
+      if (path) toast.success(t('toasts.localeSampleExported'))
+    } catch (error) {
+      toast.error(t('toasts.localeSampleExportError'), String(error))
+    } finally {
+      setLocaleBusy(false)
+    }
+  }
+
   function handleRemoveCustomLocale(code: string) {
     const next = removeCustomLocale(code)
     unregisterCustomLocaleBundle(code)
@@ -184,6 +198,16 @@ export function AppearanceSection() {
               </Button>
               <Button
                 type="button"
+                variant="outline"
+                size="sm"
+                disabled={localeBusy}
+                onClick={() => void handleExportSampleLocale()}
+              >
+                <FileJson className="mr-1.5 h-3.5 w-3.5" />
+                {t('settings.language.exportSample')}
+              </Button>
+              <Button
+                type="button"
                 variant="ghost"
                 size="sm"
                 disabled={localeBusy}
@@ -193,6 +217,13 @@ export function AppearanceSection() {
                 {t('settings.language.exportTemplate')}
               </Button>
             </div>
+          </SettingsRow>
+          <SettingsRow
+            title={t('settings.language.keysTitle')}
+            description={t('settings.language.keysDescription')}
+            layout="stack"
+          >
+            <LocaleKeysReference />
           </SettingsRow>
           {customLocales.length > 0 && (
             <SettingsRow

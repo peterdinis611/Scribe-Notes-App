@@ -61,16 +61,20 @@ export function SettingsRow({
   description,
   children,
   danger,
+  layout = 'row',
 }: {
   title: string
   description?: ReactNode
   children?: ReactNode
   danger?: boolean
+  /** `stack` keeps controls under the label (for wide content). */
+  layout?: 'row' | 'stack'
 }) {
   return (
     <div
       className={cn(
-        'flex flex-col gap-3 border-b border-[var(--color-border)] px-4 py-3.5 last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6',
+        'flex flex-col gap-3 border-b border-[var(--color-border)] px-4 py-3.5 last:border-b-0',
+        layout === 'row' && 'sm:flex-row sm:items-center sm:justify-between sm:gap-6',
         danger && 'bg-[color-mix(in_srgb,var(--color-destructive)_4%,transparent)]',
       )}
     >
@@ -90,7 +94,14 @@ export function SettingsRow({
         )}
       </div>
       {children && (
-        <div className="flex shrink-0 flex-wrap items-center gap-1.5 sm:justify-end">{children}</div>
+        <div
+          className={cn(
+            'flex flex-wrap items-center gap-1.5',
+            layout === 'row' ? 'shrink-0 sm:justify-end' : 'w-full',
+          )}
+        >
+          {children}
+        </div>
       )}
     </div>
   )
