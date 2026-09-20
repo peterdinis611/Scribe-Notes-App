@@ -32,8 +32,11 @@ import { tiptapJsonToMarkdown } from '@/lib/export/markdown'
 import { tiptapToPlainText } from '@/lib/export/plain-text'
 import { exportEditorSelection } from '@/lib/export/selection'
 import {
+  copyDocumentMarkdown,
+  copyDocumentPath,
+  revealDocumentSource,
   shareDocumentPackage,
-  type SharePackageFormat,
+  type ShareDocumentAction,
 } from '@/lib/export/share-package'
 import { ROUTES, useSettingsSections } from '@/lib/routes'
 import { closeActiveDocumentAndMaybeHome, goToHome } from '@/lib/navigation'
@@ -45,10 +48,12 @@ import {
   setActiveDocumentId,
   setSaveStatus,
   setReadingMode,
+  setShareDialogOpen,
   updateDocuments,
 } from '@/store/documentsSlice'
 import { setTemplatePickerOpen } from '@/store/settingsSlice'
 import { setSaveCustomTemplateDialog } from '@/store/templatesSlice'
+import { ShareDocumentDialog } from '@/components/export/ShareDocumentDialog'
 
 const PdfPreviewDialog = lazy(() =>
   import('@/components/export/PdfPreviewDialog').then((module) => ({
@@ -180,6 +185,7 @@ function EditorChrome() {
   const pageSetup = useAppSelector((state) => state.settings.pageSetup)
   const viewMode = useAppSelector((state) => state.settings.editorViewMode)
   const readingMode = useAppSelector((state) => state.documents.readingMode)
+  const shareDialogOpen = useAppSelector((state) => state.documents.shareDialogOpen)
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const { t } = useTranslation()
@@ -292,13 +298,39 @@ function EditorChrome() {
     }
   }
 
-  async function handleSharePackage(format: SharePackageFormat) {
+  async function handleShareAction(action: ShareDocumentAction) {
     if (!document) return
+
     try {
+      if (action === 'copy-markdown') {
+        await copyDocumentMarkdown(document.contentJson, document.title)
+        toast.success(t('toasts.markdownCopied'))
+        return
+      }
+
+      if (action === 'copy-path') {
+        try {
+          const path = await copyDocumentPath(document.filePath)
+          toast.success(t('toasts.pathCopied'), path)
+        } catch {
+          toast.error(t('toasts.pathMissing'))
+        }
+        return
+      }
+
+      if (action === 'reveal') {
+        try {
+          await revealDocumentSource(document.filePath)
+        } catch {
+          toast.error(t('toasts.pathMissing'))
+        }
+        return
+      }
+
       const result = await shareDocumentPackage({
         contentJson: document.contentJson,
         title: document.title,
-        format,
+        format: action,
         pageSetup,
       })
       if (result?.path) {
@@ -408,7 +440,7 @@ function EditorChrome() {
             onExport={document ? (format) => void handleExport(format) : undefined}
             onExportSelection={document ? (format) => void handleExportSelection(format) : undefined}
             onExportStructuredPdf={(kind) => void handleExportStructuredPdf(kind)}
-            onSharePackage={document ? (format) => void handleSharePackage(format) : undefined}
+            onShareOpen={document ? () => dispatch(setShareDialogOpen(true)) : undefined}
             hasSelection
           />
           {document ? (
@@ -516,6 +548,16 @@ function EditorChrome() {
             onExport={() => void handleExport('pdf')}
           />
         </Suspense>
+      )}
+
+      {document && (
+        <ShareDocumentDialog
+          open={shareDialogOpen}
+          onOpenChange={(open) => dispatch(setShareDialogOpen(open))}
+          title={document.title}
+          hasFilePath={Boolean(document.filePath)}
+          onAction={handleShareAction}
+        />
       )}
     </>
   )

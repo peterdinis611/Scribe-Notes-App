@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Scribe official application icon (1024-ready vector).
+  Dual interlocking arcs on ink  macOS / Windows / Linux dock.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Scribe">
+  <rect width="1024" height="1024" rx="220" ry="220" fill="#0E1210" />
+
+  <g fill="none" stroke-linecap="butt" stroke-linejoin="round" transform="translate(512 512)">
+    <!-- Amber (top-right) -->
+    <g transform="translate(92 -92)">
+      <path
+        stroke="#FFC131"
+        stroke-width="112"
+        d="M 90 -150 A 236 236 0 1 1 -90 150"
+      />
+      <circle cx="0" cy="0" r="56" fill="#FFC131" />
+    </g>
+
+    <!-- Cyan (bottom-left) -->
+    <g transform="translate(-92 92)">
+      <path
+        stroke="#24C8DB"
+        stroke-width="112"
+        d="M -90 150 A 236 236 0 1 1 90 -150"
+      />
+      <circle cx="0" cy="0" r="56" fill="#24C8DB" />
+    </g>
+  </g>
+</svg>

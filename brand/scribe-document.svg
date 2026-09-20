@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Official Finder / Explorer icon for .scribe documents.
+  Paper folio + Scribe dual-arc mark.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Scribe Document">
+  <defs>
+    <linearGradient id="page" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F7F5F0" />
+      <stop offset="100%" stop-color="#E8E4DA" />
+    </linearGradient>
+    <linearGradient id="fold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#D9D3C6" />
+      <stop offset="100%" stop-color="#C4BDAE" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-10%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="28" flood-color="#0E1210" flood-opacity="0.28" />
+    </filter>
+  </defs>
+
+  <!-- Soft ground so the page reads on light Finder backgrounds -->
+  <rect width="1024" height="1024" fill="#0E1210" opacity="0" />
+
+  <g filter="url(#shadow)">
+    <!-- Page body -->
+    <path
+      fill="url(#page)"
+      d="M 246 96
+         H 640
+         L 778 234
+         V 928
+         H 246
+         Z"
+    />
+    <!-- Folded corner -->
+    <path fill="url(#fold)" d="M 640 96 V 234 H 778 Z" />
+    <path fill="#F0EBE2" fill-opacity="0.9" d="M 640 96 L 640 234 L 778 234 Z" opacity="0.35" />
+
+    <!-- Hairline rules suggesting writing -->
+    <g stroke="#C8C2B5" stroke-width="10" stroke-linecap="round" opacity="0.55">
+      <line x1="318" y1="720" x2="706" y2="720" />
+      <line x1="318" y1="768" x2="640" y2="768" />
+      <line x1="318" y1="816" x2="680" y2="816" />
+    </g>
+
+    <!-- Dual-arc mark -->
+    <g fill="none" stroke-linecap="butt" transform="translate(512 430)">
+      <g transform="translate(58 -58)">
+        <path stroke="#FFC131" stroke-width="52" d="M 42 -70 A 110 110 0 1 1 -42 70" />
+        <circle cx="0" cy="0" r="26" fill="#FFC131" />
+      </g>
+      <g transform="translate(-58 58)">
+        <path stroke="#24C8DB" stroke-width="52" d="M -42 70 A 110 110 0 1 1 42 -70" />
+        <circle cx="0" cy="0" r="26" fill="#24C8DB" />
+      </g>
+    </g>
+  </g>
+</svg>

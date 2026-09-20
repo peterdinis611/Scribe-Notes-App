@@ -26,6 +26,7 @@ import {
   Search,
   Settings2,
   Shield,
+  Share2,
   Shuffle,
   Smartphone,
   Sparkles,
@@ -101,6 +102,7 @@ import {
   setPendingEditorSearch,
   setRevisionHistoryOpen,
   setSecondaryDocumentId,
+  setShareDialogOpen,
   setSidebarOpen,
   setLibraryView,
   setStatsPanelOpen,
@@ -465,6 +467,14 @@ export function CommandPalette() {
       },
       ...(activeDocument
         ? [
+            {
+              type: 'action' as const,
+              id: 'share-document',
+              label: t('commandPalette.shareDocument'),
+              hint: t('commandPalette.shareDocumentHint'),
+              icon: <Share2 className="h-4 w-4" />,
+              run: () => dispatch(setShareDialogOpen(true)),
+            },
             {
               type: 'action' as const,
               id: 'insert-lorem',
