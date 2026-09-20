@@ -488,6 +488,7 @@ pub fn nlp_search(
     tag: Option<String>,
     from_date: Option<String>,
     to_date: Option<String>,
+    library_id: Option<String>,
 ) -> Result<Vec<SearchHit>, String> {
     let limit = limit.unwrap_or(12);
     let q = query.trim();
@@ -501,60 +502,91 @@ pub fn nlp_search(
         (SearchMode::parse(mode.as_deref(), enabled), enabled)
     };
 
-    match search_mode {
+    let filter = crate::db::SearchFilter {
+        folder_id,
+        tag,
+        from_date,
+        to_date,
+        library_id,
+    };
+    let fetch_limit = if filter.is_empty() {
+        limit
+    } else {
+        (limit * 5).clamp(limit, 200)
+    };
+
+    let hits = match search_mode {
         SearchMode::Fts => {
             let conn = state.conn.lock().map_err(|e| e.to_string())?;
-            scribe_core::search_library(&conn, &sidecar, q, limit, SearchMode::Fts)
+            scribe_core::search_library(&conn, &sidecar, q, fetch_limit, SearchMode::Fts)?
         }
         SearchMode::Semantic => {
             if !nlp_enabled {
                 let conn = state.conn.lock().map_err(|e| e.to_string())?;
-                return scribe_core::search_library(&conn, &sidecar, q, limit, SearchMode::Fts);
-            }
-            {
+                scribe_core::search_library(&conn, &sidecar, q, fetch_limit, SearchMode::Fts)?
+            } else {
+                {
+                    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+                    sync_sidecar_backend(&sidecar, &conn)?;
+                }
+                let embed_query = rewrite_query_for_embed(&sidecar, q);
+                let (vector, model) = sidecar.embed_text(&embed_query)?;
                 let conn = state.conn.lock().map_err(|e| e.to_string())?;
-                sync_sidecar_backend(&sidecar, &conn)?;
+                semantic_search(&conn, &vector, fetch_limit, Some(&model))?
             }
-            let embed_query = rewrite_query_for_embed(&sidecar, q);
-            let (vector, model) = sidecar.embed_text(&embed_query)?;
-            let conn = state.conn.lock().map_err(|e| e.to_string())?;
-            semantic_search(&conn, &vector, limit, Some(&model))
         }
         SearchMode::Hybrid => {
             let fts_hits = {
                 let conn = state.conn.lock().map_err(|e| e.to_string())?;
-                {
-                    let library_id = crate::libraries::active_library_id(&conn);
-                    search_documents_for_library(&conn, q, limit, &library_id)?
-                }
+                let library_id = crate::libraries::active_library_id(&conn);
+                search_documents_for_library(&conn, q, fetch_limit, &library_id)?
             };
             if !nlp_enabled {
-                return Ok(fts_hits
+                fts_hits
                     .into_iter()
                     .map(|mut hit| {
                         hit.match_kind = Some("fts".to_string());
                         hit
                     })
-                    .collect());
-            }
-            {
-                let conn = state.conn.lock().map_err(|e| e.to_string())?;
-                sync_sidecar_backend(&sidecar, &conn)?;
-            }
-            let embed_query = rewrite_query_for_embed(&sidecar, q);
-            let semantic_hits = match sidecar.embed_text(&embed_query) {
-                Ok((vector, model)) => {
+                    .collect()
+            } else {
+                {
                     let conn = state.conn.lock().map_err(|e| e.to_string())?;
-                    let extra: Vec<String> =
-                        fts_hits.iter().map(|hit| hit.document_id.clone()).collect();
-                    semantic_search_filtered(&conn, &vector, limit, Some(&model), Some(&extra))
-                        .unwrap_or_default()
+                    sync_sidecar_backend(&sidecar, &conn)?;
                 }
-                Err(_) => Vec::new(),
-            };
-            Ok(fuse_search_hits(&fts_hits, &semantic_hits, limit))
+                let embed_query = rewrite_query_for_embed(&sidecar, q);
+                let semantic_hits = match sidecar.embed_text(&embed_query) {
+                    Ok((vector, model)) => {
+                        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+                        let extra: Vec<String> =
+                            fts_hits.iter().map(|hit| hit.document_id.clone()).collect();
+                        semantic_search_filtered(
+                            &conn,
+                            &vector,
+                            fetch_limit,
+                            Some(&model),
+                            Some(&extra),
+                        )
+                        .unwrap_or_default()
+                    }
+                    Err(_) => Vec::new(),
+                };
+                fuse_search_hits(&fts_hits, &semantic_hits, fetch_limit)
+            }
+        }
+    };
+
+    let mut hits = hits;
+    for vault_hit in vault.search(q, 8, filter.folder_id.as_deref()) {
+        if !hits.iter().any(|hit| hit.document_id == vault_hit.document_id) {
+            hits.push(vault_hit);
         }
     }
+    let hits = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        crate::db::filter_search_hits(&conn, hits, &filter, limit)
+    };
+    Ok(hits)
 }
 
 fn rewrite_query_for_embed(sidecar: &NlpSidecar, query: &str) -> String {
@@ -573,10 +605,23 @@ fn rewrite_query_for_embed(sidecar: &NlpSidecar, query: &str) -> String {
 pub fn nlp_semantic_search(
     state: State<'_, DbState>,
     sidecar: State<'_, NlpSidecar>,
+    vault: State<'_, scribe_core::nlp::UnlockedVaultIndex>,
     query: String,
     limit: Option<i64>,
 ) -> Result<Vec<SearchHit>, String> {
-    nlp_search(state, sidecar, query, limit, Some("semantic".to_string()))
+    nlp_search(
+        state,
+        sidecar,
+        vault,
+        query,
+        limit,
+        Some("semantic".to_string()),
+        None,
+        None,
+        None,
+        None,
+        None,
+    )
 }
 
 #[tauri::command]
@@ -649,6 +694,7 @@ pub fn nlp_index_all(
             return Err("NLP is disabled".to_string());
         }
         let _ = scribe_core::nlp::sync_embed_backend(&conn, &sidecar);
+        let _ = scribe_core::nlp::prune_memory_artifacts(&conn);
         let library_id = crate::libraries::active_library_id(&conn);
         scribe_core::nlp::collect_index_documents(&conn, Some(&library_id), true)?
     };
@@ -674,6 +720,47 @@ pub fn nlp_index_all(
 #[tauri::command]
 pub fn nlp_cancel(sidecar: State<'_, NlpSidecar>) -> Result<(), String> {
     sidecar.cancel_inflight();
+    Ok(())
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpVaultIndexPutInput {
+    pub document_id: String,
+    pub folder_id: String,
+    pub title: String,
+    pub text: String,
+}
+
+#[tauri::command]
+pub fn nlp_vault_index_put(
+    vault: State<'_, scribe_core::nlp::UnlockedVaultIndex>,
+    input: NlpVaultIndexPutInput,
+) -> Result<(), String> {
+    vault.upsert(scribe_core::nlp::UnlockedVaultNote {
+        document_id: input.document_id,
+        folder_id: input.folder_id,
+        title: input.title,
+        text: input.text,
+    });
+    Ok(())
+}
+
+#[tauri::command]
+pub fn nlp_vault_index_remove(
+    vault: State<'_, scribe_core::nlp::UnlockedVaultIndex>,
+    document_id: String,
+) -> Result<(), String> {
+    vault.remove(&document_id);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn nlp_vault_index_clear_folder(
+    vault: State<'_, scribe_core::nlp::UnlockedVaultIndex>,
+    folder_id: String,
+) -> Result<(), String> {
+    vault.clear_folder(&folder_id);
     Ok(())
 }
 
@@ -1164,11 +1251,20 @@ pub fn nlp_find_duplicates(
     sidecar: State<'_, NlpSidecar>,
     limit: Option<i64>,
 ) -> Result<serde_json::Value, String> {
-    let documents = {
+    let limit = limit.unwrap_or(20);
+    {
         let conn = state.conn.lock().map_err(|e| e.to_string())?;
         if !is_nlp_enabled(&conn)? {
             return Err("NLP is disabled".to_string());
         }
+        let stored = scribe_core::nlp::find_duplicates_from_embeddings(&conn, limit, 0.86)?;
+        if stored.compared >= 2 {
+            return serde_json::to_value(stored).map_err(|e| e.to_string());
+        }
+    }
+
+    let documents = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
         let mut stmt = conn
             .prepare(
                 "SELECT id, title, content_json FROM documents
@@ -1202,7 +1298,7 @@ pub fn nlp_find_duplicates(
         documents
     };
 
-    sidecar.find_duplicates(json!(documents), limit.unwrap_or(20), 0.72)
+    sidecar.find_duplicates(json!(documents), limit, 0.72)
 }
 
 #[tauri::command]
@@ -1371,6 +1467,8 @@ pub struct LibraryChatCitation {
     pub document_id: String,
     pub title: String,
     pub snippet: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub chunk_index: Option<i32>,
 }
 
 #[derive(Debug, Serialize)]
@@ -1471,6 +1569,10 @@ pub fn nlp_library_answer(
                             .and_then(|value| value.as_str())
                             .unwrap_or("")
                             .to_string(),
+                        chunk_index: item
+                            .get("chunkIndex")
+                            .and_then(|value| value.as_i64())
+                            .map(|value| value as i32),
                     })
                 })
                 .collect::<Vec<_>>()
@@ -1481,6 +1583,7 @@ pub fn nlp_library_answer(
                     document_id: hit.document_id.clone(),
                     title: hit.title.clone(),
                     snippet: hit.snippet.clone(),
+                    chunk_index: hit.chunk_index,
                 })
                 .collect()
         });
@@ -1497,6 +1600,7 @@ pub fn nlp_library_answer(
                 document_id: item.document_id.clone(),
                 title: item.title.clone(),
                 snippet: item.snippet.clone(),
+                chunk_index: item.chunk_index,
             })
             .collect();
         if let Ok(conn) = state.conn.lock() {
@@ -1652,6 +1756,7 @@ pub fn nlp_document_answer(
                             "title": title,
                             "snippet": chunk.snippet,
                             "score": chunk.score,
+                            "chunkIndex": chunk.chunk_index,
                         })
                     })
                     .collect::<Vec<_>>())
@@ -1709,6 +1814,10 @@ pub fn nlp_document_answer(
                             .and_then(|value| value.as_str())
                             .unwrap_or("")
                             .to_string(),
+                        chunk_index: item
+                            .get("chunkIndex")
+                            .and_then(|value| value.as_i64())
+                            .map(|value| value as i32),
                     })
                 })
                 .collect::<Vec<_>>()
@@ -1731,6 +1840,10 @@ pub fn nlp_document_answer(
                         document_id: document_id.clone(),
                         title,
                         snippet: item.get("snippet")?.as_str()?.to_string(),
+                        chunk_index: item
+                            .get("chunkIndex")
+                            .and_then(|value| value.as_i64())
+                            .map(|value| value as i32),
                     })
                 })
                 .take(4)

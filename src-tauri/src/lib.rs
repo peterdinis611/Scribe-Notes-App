@@ -100,6 +100,7 @@ pub fn run() {
             });
             app.manage(PathAccessGate::new());
             app.manage(NlpSidecar::new(nlp::resolve_script_path(app.handle())));
+            app.manage(scribe_core::nlp::UnlockedVaultIndex::new());
             app.manage(capture::CaptureServerState::new());
 
             #[cfg(target_os = "macos")]
@@ -259,6 +260,10 @@ pub fn run() {
             commands::nlp::nlp_search,
             commands::nlp::nlp_index_document,
             commands::nlp::nlp_index_all,
+            commands::nlp::nlp_cancel,
+            commands::nlp::nlp_vault_index_put,
+            commands::nlp::nlp_vault_index_remove,
+            commands::nlp::nlp_vault_index_clear_folder,
             commands::nlp::nlp_journal_summary,
             commands::nlp::nlp_suggest_tags,
             commands::nlp::nlp_library_report,

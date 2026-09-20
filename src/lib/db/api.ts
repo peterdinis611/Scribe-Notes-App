@@ -31,7 +31,8 @@ export interface SearchHit {
   title: string
   snippet: string
   rank: number
-  matchKind?: 'fts' | 'semantic' | 'both'
+  matchKind?: 'fts' | 'semantic' | 'both' | 'vault-ram'
+  chunkIndex?: number
 }
 
 export interface DocumentRevision {
@@ -426,8 +427,26 @@ export const moveFolder = (id: string, parentId: string | null) =>
 export const moveDocumentToFolder = (documentId: string, folderId: string | null) =>
   invoke<void>('move_document_to_folder', { input: { documentId, folderId } })
 
-export const searchDocuments = (query: string, limit = 20) =>
-  invoke<SearchHit[]>('search_documents', { query, limit })
+export const searchDocuments = (
+  query: string,
+  limit = 20,
+  filter?: {
+    folderId?: string
+    tag?: string
+    fromDate?: string
+    toDate?: string
+    libraryId?: string
+  },
+) =>
+  invoke<SearchHit[]>('search_documents', {
+    query,
+    limit,
+    folderId: filter?.folderId,
+    tag: filter?.tag,
+    fromDate: filter?.fromDate,
+    toDate: filter?.toDate,
+    libraryId: filter?.libraryId,
+  })
 
 export const listDocumentRevisions = (documentId: string, limit = 20) =>
   invoke<DocumentRevision[]>('list_document_revisions', { documentId, limit })

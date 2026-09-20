@@ -66,6 +66,7 @@ fn memory_passage(document_id: &str, title: &str, snippet: &str, score: f64) -> 
 }
 
 pub fn collect_library_memory_passages(conn: &Connection, question: &str) -> Vec<Value> {
+    let _ = prune_expired(conn);
     let mut stmt = match conn.prepare(
         "SELECT id, payload_json, created_at FROM nlp_artifacts
          WHERE kind = ?1 ORDER BY created_at DESC LIMIT 32",

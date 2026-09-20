@@ -13,6 +13,7 @@ pub struct SearchParams {
     pub tag: Option<String>,
     pub from_date: Option<String>,
     pub to_date: Option<String>,
+    pub library_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -124,6 +125,7 @@ pub struct SearchModeParams {
     pub tag: Option<String>,
     pub from_date: Option<String>,
     pub to_date: Option<String>,
+    pub library_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]

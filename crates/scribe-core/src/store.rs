@@ -8,7 +8,7 @@ use serde::Serialize;
 use serde_json::{json, Value};
 use uuid::Uuid;
 
-use crate::dates::{date_key_bounds, date_key_bounds_ms, parse_date_key};
+use crate::dates::{date_key_bounds, parse_date_key};
 use crate::db::migrations;
 use crate::db::{
     active_library_id, filter_search_hits, fuse_search_hits, search_documents_for_library, SearchHit,

@@ -146,12 +146,25 @@ export const nlpSetEmbedBackend = async (backend: 'hash' | 'quality') => {
 
 export const nlpSearch = (
   query: string,
-  options?: { limit?: number; mode?: 'hybrid' | 'semantic' | 'fts' },
+  options?: {
+    limit?: number
+    mode?: 'hybrid' | 'semantic' | 'fts'
+    folderId?: string
+    tag?: string
+    fromDate?: string
+    toDate?: string
+    libraryId?: string
+  },
 ) =>
   invoke<SearchHit[]>('nlp_search', {
     query,
     limit: options?.limit,
     mode: options?.mode,
+    folderId: options?.folderId,
+    tag: options?.tag,
+    fromDate: options?.fromDate,
+    toDate: options?.toDate,
+    libraryId: options?.libraryId,
   })
 
 export const nlpSemanticSearch = (query: string, limit = 12) =>
@@ -178,6 +191,8 @@ export const nlpIndexAll = async () => {
   statusCache = null
   return result
 }
+
+export const nlpCancel = () => invoke<void>('nlp_cancel')
 
 export const nlpJournalSummary = (input: {
   fromDate: string
@@ -279,21 +294,12 @@ export interface SpellcheckResult {
 export const nlpSpellcheck = (documentId: string) =>
   invoke<SpellcheckResult>('nlp_spellcheck', { documentId })
 
-export const nlpLibraryAnswer = (question: string, limit = 6) =>
-  invoke<{ answer: string; citations: Array<{ documentId: string; title: string; snippet: string }> }>(
-    'nlp_library_answer',
-    { question, limit },
-  )
-
-export const nlpDocumentAnswer = (
-  documentId: string,
-  question: string,
-  context?: Array<{ role: string; text: string }> | null,
-) =>
-  invoke<{ answer: string; citations: Array<{ documentId: string; title: string; snippet: string }> }>(
-    'nlp_document_answer',
-    { documentId, question, context: context ?? null },
-  )
+export type LibraryChatCitation = {
+  documentId: string
+  title: string
+  snippet: string
+  chunkIndex?: number | null
+}
 
 export interface WikiLinkSuggestion {
   phrase: string

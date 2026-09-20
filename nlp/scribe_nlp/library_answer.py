@@ -51,6 +51,12 @@ def library_answer(
         }
         if item.get("score") is not None:
             entry["score"] = item.get("score")
+        chunk_index = item.get("chunkIndex", item.get("chunk_index"))
+        if chunk_index is not None:
+            try:
+                entry["chunkIndex"] = int(chunk_index)
+            except (TypeError, ValueError):
+                pass
         cleaned.append(entry)
 
     cleaned = rerank_passages(question, cleaned, limit=MAX_PASSAGES)
@@ -67,13 +73,14 @@ def library_answer(
         if document_id in seen_ids:
             continue
         seen_ids.add(document_id)
-        citations.append(
-            {
-                "documentId": document_id,
-                "title": title,
-                "snippet": item["snippet"][:240],
-            }
-        )
+        cite: dict[str, Any] = {
+            "documentId": document_id,
+            "title": title,
+            "snippet": item["snippet"][:240],
+        }
+        if item.get("chunkIndex") is not None:
+            cite["chunkIndex"] = item["chunkIndex"]
+        citations.append(cite)
         if len(citations) >= 4:
             break
     followups = suggest_followups(question, sentences, cleaned, scope=scope)

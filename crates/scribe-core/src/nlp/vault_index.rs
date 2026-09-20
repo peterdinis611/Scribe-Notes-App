@@ -47,7 +47,7 @@ impl UnlockedVaultIndex {
         }
     }
 
-    pub fn search(&self, query: &str, limit: i64) -> Vec<SearchHit> {
+    pub fn search(&self, query: &str, limit: i64, folder_id: Option<&str>) -> Vec<SearchHit> {
         let q = query.trim().to_lowercase();
         if q.is_empty() {
             return Vec::new();
@@ -58,6 +58,11 @@ impl UnlockedVaultIndex {
         };
         let mut hits: Vec<(i32, SearchHit)> = Vec::new();
         for note in map.values() {
+            if let Some(wanted) = folder_id.map(str::trim).filter(|v| !v.is_empty()) {
+                if note.folder_id != wanted {
+                    continue;
+                }
+            }
             let hay = format!("{} {}", note.title, note.text).to_lowercase();
             let score = terms.iter().filter(|term| hay.contains(*term)).count() as i32;
             if score == 0 {
@@ -99,10 +104,10 @@ mod tests {
             title: "Secret".into(),
             text: "The atlas deadline is Friday".into(),
         });
-        let hits = index.search("atlas friday", 8);
+        let hits = index.search("atlas friday", 8, None);
         assert_eq!(hits.len(), 1);
         assert_eq!(hits[0].document_id, "v1");
         index.clear_folder("f1");
-        assert!(index.search("atlas", 8).is_empty());
+        assert!(index.search("atlas", 8, None).is_empty());
     }
 }

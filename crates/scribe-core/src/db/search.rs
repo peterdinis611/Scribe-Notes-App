@@ -48,6 +48,7 @@ pub struct SearchFilter {
     pub tag: Option<String>,
     pub from_date: Option<String>,
     pub to_date: Option<String>,
+    pub library_id: Option<String>,
 }
 
 impl SearchFilter {
@@ -56,6 +57,7 @@ impl SearchFilter {
             && option_blank(&self.tag)
             && option_blank(&self.from_date)
             && option_blank(&self.to_date)
+            && option_blank(&self.library_id)
     }
 }
 
@@ -263,18 +265,23 @@ pub fn filter_search_hits(
 fn hit_matches_filter(conn: &Connection, hit: &SearchHit, filter: &SearchFilter) -> bool {
     use rusqlite::OptionalExtension;
 
-    let row: Option<(Option<String>, Option<String>, i64)> = conn
+    let row: Option<(Option<String>, Option<String>, i64, String)> = conn
         .query_row(
-            "SELECT folder_id, tags, updated_at FROM documents
+            "SELECT folder_id, tags, updated_at, library_id FROM documents
              WHERE id = ?1 AND deleted_at IS NULL",
             params![hit.document_id],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
         )
         .optional()
         .ok()
         .flatten();
-    let Some((folder_id, tags_raw, updated_at)) = row else {
+    let Some((folder_id, tags_raw, updated_at, library_id)) = row else {
         return false;
+    };
+    if let Some(wanted) = filter.library_id.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
+        if library_id != wanted {
+            return false;
+        }
     };
     if let Some(wanted) = filter.folder_id.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
         if folder_id.as_deref() != Some(wanted) {
@@ -434,5 +441,69 @@ mod tests {
             vec!["b", "a", "c"]
         );
         assert_eq!(fused[0].match_kind.as_deref(), Some("both"));
+    }
+
+    #[test]
+    fn filter_hits_by_folder_tag_and_library() {
+        let conn = in_memory_conn();
+        crate::db::test_helpers::seed_folder(&conn, "f-work", "Work", None);
+        crate::db::test_helpers::seed_document(&conn, "doc-a", "Alpha", "{}", Some("f-work"));
+        crate::db::test_helpers::seed_document(&conn, "doc-b", "Beta", "{}", None);
+        conn.execute("UPDATE documents SET tags = 'inbox', library_id = 'work' WHERE id = 'doc-a'", [])
+            .unwrap();
+        conn.execute("UPDATE documents SET tags = 'other', library_id = 'home' WHERE id = 'doc-b'", [])
+            .unwrap();
+        let hits = vec![
+            SearchHit {
+                document_id: "doc-a".into(),
+                title: "Alpha".into(),
+                snippet: String::new(),
+                rank: 0.0,
+                match_kind: None,
+                chunk_index: None,
+            },
+            SearchHit {
+                document_id: "doc-b".into(),
+                title: "Beta".into(),
+                snippet: String::new(),
+                rank: 0.0,
+                match_kind: None,
+                chunk_index: None,
+            },
+        ];
+        let folder = filter_search_hits(
+            &conn,
+            hits.clone(),
+            &SearchFilter {
+                folder_id: Some("f-work".into()),
+                ..SearchFilter::default()
+            },
+            10,
+        );
+        assert_eq!(folder.len(), 1);
+        assert_eq!(folder[0].document_id, "doc-a");
+
+        let tagged = filter_search_hits(
+            &conn,
+            hits.clone(),
+            &SearchFilter {
+                tag: Some("inbox".into()),
+                ..SearchFilter::default()
+            },
+            10,
+        );
+        assert_eq!(tagged.len(), 1);
+
+        let library = filter_search_hits(
+            &conn,
+            hits,
+            &SearchFilter {
+                library_id: Some("home".into()),
+                ..SearchFilter::default()
+            },
+            10,
+        );
+        assert_eq!(library.len(), 1);
+        assert_eq!(library[0].document_id, "doc-b");
     }
 }

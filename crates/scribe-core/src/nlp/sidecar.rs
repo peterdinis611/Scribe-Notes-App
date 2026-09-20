@@ -874,9 +874,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn script_path_label_formats_display_path() {
-        let path = PathBuf::from("/tmp/scribe_nlp/__main__.py");
-        assert!(script_path_label(&path).contains("__main__.py"));
+    #[test]
+    fn rpc_timeout_is_shorter_for_health_than_embed_batch() {
+        assert!(rpc_timeout("health") < rpc_timeout("embed"));
+        assert!(rpc_timeout("embed") < rpc_timeout("embed_batch"));
+        assert!(rpc_timeout("unknown_method") < rpc_timeout("library_answer"));
     }
 
     fn live_sidecar() -> Option<NlpSidecar> {

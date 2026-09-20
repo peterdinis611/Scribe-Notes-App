@@ -63,12 +63,14 @@ fn search_filter(
     tag: Option<String>,
     from_date: Option<String>,
     to_date: Option<String>,
+    library_id: Option<String>,
 ) -> SearchFilter {
     SearchFilter {
         folder_id,
         tag,
         from_date,
         to_date,
+        library_id,
     }
 }
 
@@ -106,6 +108,7 @@ impl ScribeMcp {
                 params.tag,
                 params.from_date,
                 params.to_date,
+                params.library_id,
             );
             let hits = store.search_with_mode(
                 &self.sidecar,
@@ -599,6 +602,7 @@ impl ScribeMcp {
                 params.tag,
                 params.from_date,
                 params.to_date,
+                params.library_id,
             );
             let hits = store.search_with_mode(
                 &self.sidecar,
