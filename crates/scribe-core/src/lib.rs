@@ -16,8 +16,9 @@ pub mod vault;
 pub use compile::merge_chapters;
 pub use dates::{date_key_bounds, date_key_bounds_ms, extract_due_hint, parse_date_key};
 pub use diff::{diff_lines, DiffLine, DiffLineType, DiffResult};
-pub use html::tiptap_to_html;
+pub use html::{escape_html, tiptap_to_html};
 pub use office_import::{docx_bytes_to_tiptap, xlsx_bytes_to_tiptap};
+pub use plain_text::{tiptap_to_markdown, tiptap_to_plain_text};
 pub use store::{add_document_tag, remove_document_tag, search_library, sync_sidecar_backend};
 pub use manuscripts::{list_manuscripts, upsert_manuscript, ManuscriptRecord};
 pub use vault::{

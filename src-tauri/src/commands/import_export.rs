@@ -222,6 +222,26 @@ fn import_file_at_path(
                 now,
             )
         }
+        ImportFormat::Docx => {
+            let bytes = std::fs::read(&validated).map_err(|e| e.to_string())?;
+            let title = import_title_from_path(&validated, "Importovaný dokument");
+            (
+                Uuid::new_v4().to_string(),
+                title,
+                scribe_core::docx_bytes_to_tiptap(&bytes)?,
+                now,
+            )
+        }
+        ImportFormat::Xlsx => {
+            let bytes = std::fs::read(&validated).map_err(|e| e.to_string())?;
+            let title = import_title_from_path(&validated, "Importovaný zošit");
+            (
+                Uuid::new_v4().to_string(),
+                title,
+                scribe_core::xlsx_bytes_to_tiptap(&bytes)?,
+                now,
+            )
+        }
     };
 
     let existing: Option<String> = conn
@@ -266,6 +286,8 @@ enum ImportFormat {
     Scribe,
     Pages,
     Text,
+    Docx,
+    Xlsx,
 }
 
 fn import_title_from_path(path: &Path, fallback: &str) -> String {
@@ -314,9 +336,11 @@ fn detect_import_format(path: &Path) -> Result<ImportFormat, String> {
     match extension.as_str() {
         "scribe" => Ok(ImportFormat::Scribe),
         "pages" => Ok(ImportFormat::Pages),
-        "md" | "markdown" | "txt" | "docx" | "doc" | "rtf" => Ok(ImportFormat::Text),
+        "docx" => Ok(ImportFormat::Docx),
+        "xlsx" | "xlsm" => Ok(ImportFormat::Xlsx),
+        "md" | "markdown" | "txt" | "doc" | "rtf" => Ok(ImportFormat::Text),
         _ => Err(
-            "Podporované formáty: .scribe, .pages, .md, .txt, .docx, .rtf".to_string(),
+            "Podporované formáty: .scribe, .pages, .md, .txt, .docx, .xlsx, .rtf".to_string(),
         ),
     }
 }
@@ -349,7 +373,11 @@ mod tests {
         );
         assert_eq!(
             detect_import_format(Path::new("/tmp/notes.docx")).unwrap(),
-            ImportFormat::Text
+            ImportFormat::Docx
+        );
+        assert_eq!(
+            detect_import_format(Path::new("/tmp/budget.xlsx")).unwrap(),
+            ImportFormat::Xlsx
         );
         assert!(detect_import_format(Path::new("/tmp/image.png")).is_err());
     }

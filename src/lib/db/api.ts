@@ -382,20 +382,18 @@ export const importFile = async (path: string) => {
   await grantScopedPath(path)
 
   const [
-    { isWordDocxPath, importWordDocumentFromPath },
     { isPagesPath, importPagesDocumentFromPath },
     { isExcelPath, isLegacyExcelPath, importExcelDocumentFromPath },
+    { isWordDocxPath },
   ] = await Promise.all([
-    import('@/lib/import/word-docx'),
     import('@/lib/import/pages'),
     import('@/lib/import/excel-xlsx'),
+    import('@/lib/import/word-docx'),
   ])
 
-  if (isWordDocxPath(path)) {
-    return importWordDocumentFromPath(path)
-  }
-
-  if (isExcelPath(path) || isLegacyExcelPath(path)) {
+  // .docx / .xlsx go through Rust (scribe-core office_import) via import_file.
+  // Legacy .xls and CSV stay in TS; Pages keeps its hybrid path.
+  if (isLegacyExcelPath(path) || (isExcelPath(path) && /\.csv$/i.test(path))) {
     return importExcelDocumentFromPath(path)
   }
 
@@ -403,8 +401,51 @@ export const importFile = async (path: string) => {
     return importPagesDocumentFromPath(path)
   }
 
+  if (isWordDocxPath(path) || isExcelPath(path)) {
+    return cacheDocument(await invoke<Document>('import_file', { path }))
+  }
+
   return cacheDocument(await invoke<Document>('import_file', { path }))
 }
+
+const NATIVE_EXPORT_FORMATS = new Set(['md', 'txt', 'html', 'html-zip', 'epub'])
+
+/** Export from SQLite by document id — TipTap blob never crosses IPC. */
+export const exportDocumentById = (
+  documentId: string,
+  format: 'md' | 'txt' | 'html' | 'html-zip' | 'epub',
+) =>
+  invoke<ExportResult | null>('export_document_by_id', {
+    input: { documentId, format },
+  })
+
+export const compileDocuments = (title: string, chapterIds: string[]) =>
+  invoke<Document>('compile_documents', {
+    input: { title, chapterIds },
+  }).then(cacheDocument)
+
+export type DiffDocumentRevisionsResult = {
+  lines: Array<{ type: 'unchanged' | 'added' | 'removed'; text: string }>
+  added: number
+  removed: number
+  oldText: string
+  newText: string
+}
+
+export const diffDocumentRevisions = (
+  documentId: string,
+  oldRevisionId: string,
+  newRevisionId: string,
+) =>
+  invoke<DiffDocumentRevisionsResult>('diff_document_revisions', {
+    input: { documentId, oldRevisionId, newRevisionId },
+  })
+
+export const renderDocumentHtml = (documentId: string, includeTitleHeading = true) =>
+  invoke<string>('render_document_html', {
+    documentId,
+    includeTitleHeading,
+  })
 
 export const exportDocument = async (
   html: string,
@@ -413,7 +454,23 @@ export const exportDocument = async (
   format: 'pdf' | 'docx' | 'txt' | 'pages' | 'md' | 'html' | 'html-zip' | 'epub',
   markdown?: string,
   pageSetup?: import('@/lib/editor/page-setup').PageSetup,
+  options?: { documentId?: string },
 ) => {
+  if (
+    options?.documentId &&
+    NATIVE_EXPORT_FORMATS.has(format) &&
+    format !== 'pdf'
+  ) {
+    try {
+      return await exportDocumentById(
+        options.documentId,
+        format as 'md' | 'txt' | 'html' | 'html-zip' | 'epub',
+      )
+    } catch {
+      // Vault / missing row — fall through to blob export.
+    }
+  }
+
   if (format === 'pdf') {
     const { generatePdfFromHtml } = await import('@/lib/export/pdf')
     const { dataBase64 } = await generatePdfFromHtml(html, { pageSetup, title })

@@ -14,10 +14,7 @@ import {
   isExcelPath,
   isLegacyExcelPath,
 } from '@/lib/import/excel-xlsx'
-import {
-  importWordDocumentFromPath,
-  isWordDocxPath,
-} from '@/lib/import/word-docx'
+import { isWordDocxPath } from '@/lib/import/word-docx'
 
 const IMPORT_FILTERS = [
   {
@@ -83,11 +80,11 @@ export async function pickAndImportDocument(): Promise<Document | null> {
       return cacheDocument(doc)
     }
 
-    if (isWordDocxPath(selected)) {
-      return await importWordDocumentFromPath(selected)
+    if (isLegacyExcelPath(selected)) {
+      return await importExcelDocumentFromPath(selected)
     }
 
-    if (isExcelPath(selected) || isLegacyExcelPath(selected)) {
+    if (isExcelPath(selected) && /\.csv$/i.test(selected)) {
       return await importExcelDocumentFromPath(selected)
     }
 
@@ -95,7 +92,12 @@ export async function pickAndImportDocument(): Promise<Document | null> {
       return await importPagesDocumentFromPath(selected)
     }
 
-    if (isLegacyWordPath(selected)) {
+    // .docx / .xlsx / text / .scribe — Rust import_file (office_import for Office).
+    if (
+      isWordDocxPath(selected) ||
+      isExcelPath(selected) ||
+      isLegacyWordPath(selected)
+    ) {
       return await importFile(selected)
     }
 

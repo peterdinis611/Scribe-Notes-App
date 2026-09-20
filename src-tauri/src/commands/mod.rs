@@ -6,6 +6,7 @@ pub mod folders;
 pub mod templates;
 pub mod images;
 pub mod import_export;
+pub mod native_pipeline;
 pub mod revisions;
 pub mod search;
 pub mod storage;
