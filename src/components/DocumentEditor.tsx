@@ -400,6 +400,22 @@ export function DocumentEditor() {
     scrollToPage,
   } = useDocumentPagination({ editor, documentId: activeId, pageSetup, pageLayout })
 
+  // Paper settle when switching documents (honors prefers-reduced-motion).
+  useEffect(() => {
+    const node = canvasRef.current
+    if (!node || !activeId || !editorReady) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    node.classList.remove('is-entering')
+    void node.offsetWidth
+    node.classList.add('is-entering')
+    const done = () => node.classList.remove('is-entering')
+    node.addEventListener('animationend', done, { once: true })
+    return () => {
+      node.removeEventListener('animationend', done)
+      node.classList.remove('is-entering')
+    }
+  }, [activeId, canvasRef, editorReady])
+
   const stageSize = useMemo(
     () =>
       getEditorPrintStageSize(

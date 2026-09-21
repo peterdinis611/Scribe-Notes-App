@@ -1411,6 +1411,155 @@ html[data-ui-skin='press'] .app-chrome::after {
   container-name: editor;
 }
 
+/* —— Editor motion (paper settle) —— */
+.editor-toolbar {
+  animation: editor-chrome-in 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.find-replace-bar {
+  animation: editor-find-in 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.editor-canvas.is-entering {
+  animation: editor-paper-in 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.editor-side-panel {
+  animation: editor-panel-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.editor-panel-rail:not(.editor-panel-rail--collapsed) {
+  animation: editor-rail-in 440ms cubic-bezier(0.22, 1, 0.36, 1) 60ms both;
+}
+
+.editor-status-bar {
+  animation: editor-status-in 400ms cubic-bezier(0.22, 1, 0.36, 1) 80ms both;
+}
+
+.document-toc-rail {
+  animation: editor-toc-in 400ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.wiki-link,
+.wiki-link--unresolved {
+  transition:
+    color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 180ms ease,
+    border-color 160ms ease;
+}
+
+@keyframes editor-chrome-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes editor-find-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes editor-paper-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+    filter: blur(1.5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes editor-panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes editor-rail-in {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes editor-status-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes editor-toc-in {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .editor-scroll {
+    scroll-behavior: auto;
+  }
+
+  .editor-toolbar,
+  .find-replace-bar,
+  .editor-canvas.is-entering,
+  .editor-side-panel,
+  .editor-panel-rail:not(.editor-panel-rail--truncated),
+  .editor-status-bar,
+  .document-toc-rail {
+    animation: none !important;
+    filter: none !important;
+    transform: none !important;
+  }
+
+  .editor-panel-rail-btn,
+  .editor-panel-rail-btn:hover,
+  .editor-panel-rail-btn:active,
+  .wiki-link,
+  .wiki-link--unresolved {
+    transition: none !important;
+    transform: none !important;
+  }
+
+  .editor-panel-resize-handle::after,
+  .document-toc-resize-handle::after {
+    transition: none !important;
+  }
+}
+
 /* Document load — refined ring + page silhouette */
 .document-loading {
   display: flex;
@@ -4801,18 +4950,28 @@ html[data-ui-skin='press'] .editor-shell--home {
   background: transparent;
   color: var(--color-muted-foreground);
   cursor: default;
-  transition: background 120ms ease, color 120ms ease, box-shadow 120ms ease;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .editor-panel-rail-btn:hover {
   background: var(--color-hover);
   color: var(--color-foreground);
+  transform: translateY(-1px);
+}
+
+.editor-panel-rail-btn:active {
+  transform: translateY(0);
 }
 
 .editor-panel-rail-btn.is-active {
   background: var(--color-selection);
   color: var(--color-accent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 35%, transparent);
+  transform: none;
 }
 
 .editor-panel-rail-sep {
