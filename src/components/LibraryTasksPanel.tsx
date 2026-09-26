@@ -1,12 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { CheckSquare, LoaderCircle, Square } from 'lucide-react'
+import { CheckSquare, Folder, LoaderCircle, Square } from 'lucide-react'
 import { nlpListOpenTasks, type DocumentTask } from '@/lib/db/nlp-api'
+import { flattenFoldersForPicker } from '@/lib/library/folders'
 import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setActiveDocumentId, setPendingEditorSearch, setFindReplaceOpen } from '@/store/documentsSlice'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 type LibraryTasksPanelProps = {
   onNavigate?: () => void
@@ -26,12 +34,14 @@ export function LibraryTasksPanel({ onNavigate }: LibraryTasksPanelProps) {
   const folders = useAppSelector((state) => state.folders.folders)
   const [tasks, setTasks] = useState<DocumentTask[]>([])
   const [loading, setLoading] = useState(true)
-  const [folderId, setFolderId] = useState<string>('')
+  const [folderId, setFolderId] = useState<string>('all')
+
+  const folderItems = useMemo(() => flattenFoldersForPicker(folders), [folders])
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const rows = await nlpListOpenTasks(240, folderId || null)
+      const rows = await nlpListOpenTasks(240, folderId === 'all' ? null : folderId)
       setTasks(rows)
     } catch (error) {
       toast.error(t('library.tasks.loadError'), String(error))
@@ -88,21 +98,33 @@ export function LibraryTasksPanel({ onNavigate }: LibraryTasksPanelProps) {
       </p>
       <p className="library-tasks__hint">{t('library.tasks.hint')}</p>
 
-      <label className="library-tasks__filter">
-        <span className="sr-only">{t('library.tasks.folderFilter')}</span>
-        <select
-          value={folderId}
-          onChange={(event) => setFolderId(event.target.value)}
-          aria-label={t('library.tasks.folderFilter')}
-        >
-          <option value="">{t('library.tasks.allFolders')}</option>
-          {folders.map((folder) => (
-            <option key={folder.id} value={folder.id}>
-              {folder.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      <div className="library-tasks__filter">
+        <Select value={folderId} onValueChange={setFolderId}>
+          <SelectTrigger
+            size="sm"
+            className="library-tasks__select"
+            aria-label={t('library.tasks.folderFilter')}
+          >
+            <span className="library-tasks__select-value">
+              <Folder className="library-tasks__select-icon" aria-hidden />
+              <SelectValue placeholder={t('library.tasks.allFolders')} />
+            </span>
+          </SelectTrigger>
+          <SelectContent align="start" className="library-tasks__select-menu">
+            <SelectItem value="all">{t('library.tasks.allFolders')}</SelectItem>
+            {folderItems.map(({ folder, depth }) => (
+              <SelectItem key={folder.id} value={folder.id}>
+                <span
+                  className="library-tasks__folder-option"
+                  style={{ paddingInlineStart: `${depth * 12}px` }}
+                >
+                  {folder.name}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       {loading ? (
         <p className="library-tasks__status">
