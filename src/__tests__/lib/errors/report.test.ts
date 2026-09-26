@@ -28,7 +28,7 @@ describe('extractErrorDetails', () => {
 describe('buildDiagnosticReport', () => {
   it('includes version, route, and optional stacks', () => {
     const report = buildDiagnosticReport({
-      appVersion: '2.4.0',
+      appVersion: '2.5.0',
       details: {
         name: 'TypeError',
         message: 'x is not a function',
@@ -39,7 +39,7 @@ describe('buildDiagnosticReport', () => {
       locale: 'sk',
       when: '2026-09-26T08:00:00.000Z',
     })
-    expect(report).toContain('Scribe 2.4.0')
+    expect(report).toContain('Scribe 2.5.0')
     expect(report).toContain('Route: /doc/abc')
     expect(report).toContain('Locale: sk')
     expect(report).toContain('TypeError')

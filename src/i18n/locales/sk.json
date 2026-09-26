@@ -435,7 +435,35 @@
     "badge": "Novinky {{version}}",
     "kicker": "Poznámky k vydaniu",
     "title": "Scribe {{version}}",
-    "subtitle": "Wiki odkazy ako v Obsidiane, skratka na Prepojenia a Local AI polish v 2.4.",
+    "subtitle": "Pokračovanie textu, smart paste, 3D modely, Revision AI a hlbšie Local AI nástroje na štúdium — všetko offline na tomto Macu.",
+    "editionMark": "Inteligencia bez cloudu",
+    "tagsLabel": "Témy tohto vydania",
+    "tags": {
+      "localAi": "Lokálna AI",
+      "editor": "Editor",
+      "history": "História"
+    },
+    "footNote": "Nastavenia → Lokálna AI na zapnutie Python sidecaru.",
+    "continueWriting": {
+      "title": "Pokračovanie textu",
+      "description": "Slash /continue navrhne ďalšiu frázu z vašej knižnice — lokálne n-gramy, žiadny cloud model."
+    },
+    "smartPaste": {
+      "title": "Smart paste",
+      "description": "HTML z Wordu, Pages a webu sa vyčistí v Ruste pred vložením do TipTap — štýly ostanú rozumné."
+    },
+    "models3d": {
+      "title": "3D modely v poznámkach",
+      "description": "GLB / GLTF (a USDZ) priamo v editore cez model-viewer — orbit, inšpekcia, assety lokálne."
+    },
+    "revisionAi": {
+      "title": "Revision AI",
+      "description": "Diffy v histórii klasifikujú rozšírenia, skrátenia a riziká. Python pri Lokálnej AI; Rust fallback, keď je vypnutá."
+    },
+    "studyAi": {
+      "title": "Štúdium a štýl",
+      "description": "Kartičky, závery, konzistencia terminológie a štýlový kouč — nové akcie v Local AI chate dokumentu."
+    },
     "localAiAsk": {
       "title": "Scribe Lokálna AI",
       "description": "Vstavaná Lokálna AI — nie ChatGPT. Pýtajte sa knižnice alebo otvorenej poznámky; odpovede ostávajú na tomto zariadení."

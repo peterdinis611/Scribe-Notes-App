@@ -11438,6 +11438,77 @@ html.dark .link-graph-toolbar--overlay {
   min-height: 420px;
 }
 
+.setup-folio--edition-25 {
+  min-height: 560px;
+}
+
+.setup-folio-margin-mid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.setup-folio-edition-mark {
+  margin: 0;
+  max-width: 11em;
+  font-size: 11px;
+  line-height: 1.35;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, #f4efe4 72%, transparent);
+}
+
+.setup-folio-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.setup-folio-tags li {
+  padding: 4px 9px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 90%, transparent);
+  border-radius: 2px;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+  background: color-mix(in srgb, var(--color-muted) 35%, transparent);
+}
+
+.setup-folio-points--edition li {
+  opacity: 0;
+  animation: setup-folio-rise 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.setup-folio-foot-note {
+  max-width: 280px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--color-muted-foreground);
+}
+
+@keyframes setup-folio-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .setup-folio-points--edition li {
+    opacity: 1;
+    animation: none;
+  }
+}
+
 @media (max-width: 720px) {
   .setup-folio {
     grid-template-columns: 1fr;

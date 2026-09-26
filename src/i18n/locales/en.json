@@ -435,7 +435,35 @@
     "badge": "What's new in {{version}}",
     "kicker": "Edition notes",
     "title": "Scribe {{version}}",
-    "subtitle": "Wiki links feel like Obsidian, Connections got a shortcut, and Local AI polish lands in 2.4.",
+    "subtitle": "Continue writing, smarter paste, 3D models, Revision AI, and deeper Local AI study tools — all offline on this Mac.",
+    "editionMark": "Local-first intelligence",
+    "tagsLabel": "Themes in this release",
+    "tags": {
+      "localAi": "Local AI",
+      "editor": "Editor",
+      "history": "History"
+    },
+    "footNote": "Settings → Local AI to enable the Python sidecar.",
+    "continueWriting": {
+      "title": "Continue writing",
+      "description": "Slash /continue suggests the next phrase from your own library — local n-grams, no cloud model."
+    },
+    "smartPaste": {
+      "title": "Smart paste",
+      "description": "Word, Pages, and messy web HTML are cleaned in Rust before they land in TipTap — styles stay sane."
+    },
+    "models3d": {
+      "title": "3D models in notes",
+      "description": "Drop GLB / GLTF (and USDZ) into the editor with model-viewer — orbit, inspect, keep assets local."
+    },
+    "revisionAi": {
+      "title": "Revision AI",
+      "description": "History diffs classify expansions, trims, and risks. Python when Local AI is on; Rust fallback when it isn’t."
+    },
+    "studyAi": {
+      "title": "Study & style actions",
+      "description": "Flashcards, takeaways, terminology consistency, and a writing coach — new chips in document Local AI chat."
+    },
     "localAiAsk": {
       "title": "Scribe Local AI",
       "description": "Built-in Local AI — not ChatGPT. Ask the library or the open note; answers stay on this device."
