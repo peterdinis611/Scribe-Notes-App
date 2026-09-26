@@ -3,10 +3,10 @@ import { cacheDocument } from '@/lib/cache/document-cache'
 import {
   createDocument,
   flushPendingWrites,
-  getDocument,
   listDocuments,
   listFolders,
   setDocumentFavorite,
+  updateDocument,
 } from '@/lib/db/api'
 import type { Document, DocumentSummary } from '@/lib/db/api'
 import { fetchLibrarySnapshot, prependDocumentSummary } from '@/lib/db/library-sync'
@@ -107,9 +107,16 @@ export async function openMcpDemoDocument(
     const existing = findMcpDemoDocument(library, copy.title)
 
     if (existing) {
-      const document = cacheDocument(await getDocument(existing.id))
-      activateDocument(dispatch, document)
-      return { document, created: false }
+      const freshContent = buildMcpDemoContentJson(copy)
+      const updated = cacheDocument(
+        await updateDocument({
+          id: existing.id,
+          contentJson: freshContent,
+        }),
+      )
+      activateDocument(dispatch, updated)
+      await flushDisk(dispatch, updated.id)
+      return { document: updated, created: false }
     }
 
     const folderId = await resolveDefaultDocumentsFolderId()

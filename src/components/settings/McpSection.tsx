@@ -43,8 +43,12 @@ const SAMPLE_TOOLS = [
   { id: 'extract_flashcards', hintKey: 'settings.mcp.tools.flashcards' },
   { id: 'extract_takeaways', hintKey: 'settings.mcp.tools.takeaways' },
   { id: 'writing_coach', hintKey: 'settings.mcp.tools.writingCoach' },
+  { id: 'outline_quiz', hintKey: 'settings.mcp.tools.outlineQuiz' },
+  { id: 'meeting_notes_pack', hintKey: 'settings.mcp.tools.meetingPack' },
+  { id: 'citation_pack', hintKey: 'settings.mcp.tools.citationPack' },
   { id: 'analyze_revision_diff_for_document', hintKey: 'settings.mcp.tools.revisionAi' },
   { id: 'suggest_continuation', hintKey: 'settings.mcp.tools.continuation' },
+  { id: 'generate_placeholder', hintKey: 'settings.mcp.tools.placeholder' },
   { id: 'wiki_health_report', hintKey: 'settings.mcp.tools.wikiHealth' },
 ] as const
 
