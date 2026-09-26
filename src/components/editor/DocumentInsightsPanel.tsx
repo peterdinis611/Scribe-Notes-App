@@ -171,7 +171,7 @@ function InsightSection({
 }
 
 export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
   const activeDocument = useAppSelector((state) => state.documents.activeDocument)
   const activeSummary = useAppSelector((state) =>
@@ -212,25 +212,6 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
     () => getDisplayKeysForShortcut('askThisNote', shortcutOverrides).join(''),
     [shortcutOverrides],
   )
-
-  const slovak = useMemo(
-    () => (analysis?.language || i18n.language || '').toLowerCase().startsWith('sk'),
-    [analysis?.language, i18n.language],
-  )
-
-  const documentQuestions = useMemo(
-    () =>
-      buildDocumentAskQuestions(analysis, openTasks, {
-        title: activeDocument?.title || activeSummary?.title,
-        slovak,
-      }),
-    [analysis, openTasks, activeDocument?.title, activeSummary?.title, slovak],
-  )
-
-  const documentActions = useMemo(() => {
-    const ranked = buildDocumentAskActions(analysis, openTasks)
-    return ranked.length > 0 ? ranked : FALLBACK_INSIGHT_ACTIONS
-  }, [analysis, openTasks])
 
   useEffect(() => {
     if (!insightsFocusAsk || !nlpEnabled) return
@@ -365,6 +346,25 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
     () => tasks.filter((task) => !task.checked),
     [tasks],
   )
+
+  const slovak = useMemo(
+    () => (analysis?.language || i18n.language || '').toLowerCase().startsWith('sk'),
+    [analysis?.language, i18n.language],
+  )
+
+  const documentQuestions = useMemo(
+    () =>
+      buildDocumentAskQuestions(analysis, openTasks, {
+        title: activeDocument?.title || activeSummary?.title,
+        slovak,
+      }),
+    [analysis, openTasks, activeDocument?.title, activeSummary?.title, slovak],
+  )
+
+  const documentActions = useMemo(() => {
+    const ranked = buildDocumentAskActions(analysis, openTasks)
+    return ranked.length > 0 ? ranked : FALLBACK_INSIGHT_ACTIONS
+  }, [analysis, openTasks])
 
   const handleOpen = useCallback(
     (id: string) => {
@@ -731,8 +731,23 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
               <>
                 <p className="insights-ask__cta">{t('panels.insights.askCta')}</p>
                 <p className="insights-ask__hint">{t('panels.insights.askHint')}</p>
+                {documentQuestions.length > 0 ? (
+                  <div className="insights-actions">
+                    {documentQuestions.map((question) => (
+                      <button
+                        key={question}
+                        type="button"
+                        disabled={askBusy || !activeId}
+                        className="insights-action insights-action--question"
+                        onClick={() => void handleAskQuestion(question)}
+                      >
+                        {question}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
                 <div className="insights-actions">
-                  {INSIGHT_ACTIONS.map((action) => (
+                  {documentActions.map((action) => (
                     <button
                       key={action}
                       type="button"

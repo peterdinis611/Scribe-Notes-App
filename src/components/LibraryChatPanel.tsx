@@ -21,7 +21,11 @@ import {
   clearDocumentChatMessages,
   listDocumentChatMessages,
 } from '@/lib/db/api'
-import { nlpStatus } from '@/lib/db/nlp-api'
+import { nlpDocumentAnalysis, nlpDocumentTasks, nlpStatus, type DocumentTask, type NlpDocumentAnalysis } from '@/lib/db/nlp-api'
+import {
+  buildDocumentAskActions,
+  buildDocumentAskQuestions,
+} from '@/lib/library/document-ask-suggestions'
 import {
   askChat,
   documentChatContext,
@@ -121,7 +125,7 @@ function toChatMessage(row: {
 }
 
 export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const activeDocumentId = useAppSelector((state) => state.documents.activeDocumentId)
@@ -135,6 +139,8 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
   const [historyLoading, setHistoryLoading] = useState(false)
   const [nlpReady, setNlpReady] = useState<boolean | null>(null)
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null)
+  const [docAnalysis, setDocAnalysis] = useState<NlpDocumentAnalysis | null>(null)
+  const [docTasks, setDocTasks] = useState<DocumentTask[]>([])
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const libraryMessagesRef = useRef<ChatMessage[]>([])
@@ -154,6 +160,55 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    if (scope !== 'document' || !activeDocumentId || !nlpReady) {
+      setDocAnalysis(null)
+      setDocTasks([])
+      return
+    }
+    let cancelled = false
+    void Promise.all([
+      nlpDocumentAnalysis(activeDocumentId).catch(() => null),
+      nlpDocumentTasks(activeDocumentId).catch(() => [] as DocumentTask[]),
+    ]).then(([analysis, tasks]) => {
+      if (cancelled) return
+      setDocAnalysis(analysis)
+      setDocTasks(tasks)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [scope, activeDocumentId, nlpReady])
+
+  const documentQuestions = useMemo(() => {
+    if (scope !== 'document') return [] as string[]
+    const slovak =
+      (docAnalysis?.language || i18n.language || '').toLowerCase().startsWith('sk')
+    const generated = buildDocumentAskQuestions(docAnalysis, docTasks, {
+      title: activeDocument?.title,
+      slovak,
+    })
+    if (generated.length > 0) return generated
+    return DOCUMENT_PROMPTS.map((key) => t(key))
+  }, [scope, docAnalysis, docTasks, activeDocument?.title, i18n.language, t])
+
+  const documentActions = useMemo(() => {
+    if (scope !== 'document') return DOCUMENT_ACTIONS
+    const ranked = buildDocumentAskActions(docAnalysis, docTasks)
+    if (!ranked.length) return DOCUMENT_ACTIONS
+    const byId = new Map(DOCUMENT_ACTIONS.map((item) => [item.id, item]))
+    const ordered = ranked
+      .map((id) => byId.get(id))
+      .filter((item): item is (typeof DOCUMENT_ACTIONS)[number] => Boolean(item))
+    // Keep title/spellcheck available even when not top-ranked.
+    for (const extra of DOCUMENT_ACTIONS) {
+      if (!ordered.some((item) => item.id === extra.id) && (extra.id === 'title' || extra.id === 'spellcheck')) {
+        ordered.push(extra)
+      }
+    }
+    return ordered
+  }, [scope, docAnalysis, docTasks])
 
   useEffect(() => {
     if (!sidebarOpen) return
@@ -678,18 +733,18 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
               ))
             : (
               <>
-                {DOCUMENT_PROMPTS.map((key) => (
+                {documentQuestions.map((question) => (
                   <button
-                    key={key}
+                    key={question}
                     type="button"
                     disabled={loading || !activeDocumentId}
                     className="library-chat-chip"
-                    onClick={() => void sendQuestion(t(key))}
+                    onClick={() => void sendQuestion(question)}
                   >
-                    {t(key)}
+                    {question}
                   </button>
                 ))}
-                {DOCUMENT_ACTIONS.map((action) => (
+                {documentActions.map((action) => (
                   <button
                     key={action.id}
                     type="button"

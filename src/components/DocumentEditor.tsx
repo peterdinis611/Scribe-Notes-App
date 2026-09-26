@@ -453,6 +453,8 @@ export function DocumentEditor() {
     void printDocumentFromContent(activeDocument.contentJson, activeDocument.title, {
       pageSetup,
       includeTitleHeading: true,
+    }).catch((error) => {
+      console.error(error)
     })
   }, [activeDocument, pageSetup])
 
