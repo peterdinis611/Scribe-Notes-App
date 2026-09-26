@@ -646,3 +646,17 @@ pub fn force_save_document(
         ..doc
     })
 }
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NormalizeClipboardHtmlInput {
+    pub html: String,
+}
+
+/// Clean Word / Pages / web clipboard HTML into TipTap-friendly markup.
+#[tauri::command]
+pub fn normalize_clipboard_html(
+    input: NormalizeClipboardHtmlInput,
+) -> Result<scribe_core::HtmlPasteResult, String> {
+    Ok(scribe_core::normalize_clipboard_html(&input.html))
+}

@@ -52,7 +52,7 @@ function ConflictBadge() {
   return (
     <button
       type="button"
-      className="library-conflict-badge"
+      className="mt-1.5 h-[26px] w-full cursor-pointer rounded-lg border border-[color-mix(in_srgb,var(--color-destructive)_45%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-destructive)_10%,var(--color-surface))] font-[family-name:var(--font-mono)] text-[10px] font-[650] uppercase tracking-[0.04em] text-[var(--color-destructive)] hover:bg-[color-mix(in_srgb,var(--color-destructive)_16%,var(--color-surface))]"
       onClick={() => dispatch(setSyncConflictsOpen(true))}
       title={t('syncConflicts.badge', { count })}
     >
@@ -148,11 +148,11 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
         <SidebarRail onNavigate={onClose} />
 
         <div className="app-sidebar-panel titlebar-no-drag min-h-0" data-tour="library-panel">
-          <div className="library-panel-head px-3 pb-1 pt-3">
-            <p className="library-panel-title m-0 truncate px-1">
+          <div className="@container/library-head min-w-0 px-3 pb-1 pt-3">
+            <p className="m-0 truncate px-1 font-[family-name:var(--font-display)] text-[15px] font-extrabold tracking-[-0.03em] text-[var(--color-foreground)]">
               {t('library.title')}
             </p>
-            <p className="library-panel-meta m-0 mt-0.5 truncate px-1">
+            <p className="m-0 mt-0.5 truncate px-1 font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-[0.04em] text-[var(--color-muted-foreground)]">
               {t('library.documentCount', { count: visibleDocuments.length })}
             </p>
             <LibrarySwitcher />
@@ -160,21 +160,21 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
           </div>
 
           <div className="px-2 py-1.5" data-tour="library-search">
-            <div className="library-search relative flex items-center">
+            <div className="relative flex items-center rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--color-border)_90%,transparent)] bg-[color-mix(in_srgb,var(--color-background)_55%,transparent)] transition-[border-color,background] duration-120 focus-within:border-[color-mix(in_srgb,var(--color-accent)_45%,var(--color-border))] focus-within:bg-[var(--color-background)]">
               <Search
                 className="pointer-events-none absolute left-2.5 top-1/2 z-1 h-3.5 w-3.5 -translate-y-1/2 text-[var(--color-muted-foreground)]"
                 aria-hidden="true"
               />
               <input
                 type="search"
-                className="library-search-input"
+                className="h-8 w-full rounded-[var(--radius-sm)] border-0 bg-transparent py-0 pr-10 pl-[30px] text-[13px] text-[var(--color-foreground)] outline-none placeholder:text-[var(--color-muted-foreground)]"
                 placeholder={t('library.searchPlaceholder')}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
               <button
                 type="button"
-                className="library-search-kbd"
+                className="absolute top-1/2 right-1.5 inline-flex h-[18px] min-w-7 -translate-y-1/2 items-center justify-center rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--color-border)_80%,transparent)] bg-transparent px-1 font-[family-name:var(--font-mono)] text-[10px] font-medium text-[var(--color-muted-foreground)] transition-[color,background,border-color] duration-100 hover:border-[color-mix(in_srgb,var(--color-accent)_35%,var(--color-border))] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
                 onClick={() => dispatch(setCommandPaletteOpen(true))}
                 title={t('shortcuts.commandPalette.label')}
                 aria-label={t('shortcuts.commandPalette.label')}
@@ -200,7 +200,10 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                 />
               </div>
 
-              <div className="library-section-sep" aria-hidden="true" />
+              <div
+                className="mx-3 my-2 h-px bg-[linear-gradient(90deg,var(--color-accent),color-mix(in_srgb,var(--color-border)_80%,transparent)_28%,transparent)]"
+                aria-hidden="true"
+              />
 
               {libraryView === 'folders' && (
                 <>

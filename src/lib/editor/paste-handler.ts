@@ -1,5 +1,6 @@
 import { Extension } from '@tiptap/core'
 import { Plugin } from '@tiptap/pm/state'
+import { invoke } from '@tauri-apps/api/core'
 import { isLikelyAnimatedImageFile } from '@/lib/editor/animated-image'
 import {
   extractSvgMarkup,
@@ -18,6 +19,39 @@ export const PASTE_IMAGE_MIME_TYPES = [
   'image/apng',
   'image/svg+xml',
 ] as const
+
+/** Detect Word / Office / Google Docs / Pages clipboard noise (mirrors Rust). */
+export function looksLikeDirtyHtml(html: string): boolean {
+  const lower = html.toLowerCase()
+  return (
+    lower.includes('mso-') ||
+    lower.includes('xmlns:o') ||
+    lower.includes('xmlns:w') ||
+    lower.includes('urn:schemas-microsoft') ||
+    lower.includes('docs-internal-guid') ||
+    lower.includes('apple-converted-space') ||
+    lower.includes('<o:p') ||
+    lower.includes('class="msonormal') ||
+    (lower.includes('<span') && lower.includes('style=')) ||
+    lower.includes('<font ')
+  )
+}
+
+export type NormalizeClipboardHtmlResult = {
+  html: string
+  changed: boolean
+  source: string
+  strippedTags: number
+}
+
+/** Clean clipboard HTML via Rust (Word / Pages / web junk → TipTap-friendly). */
+export async function normalizeClipboardHtml(
+  html: string,
+): Promise<NormalizeClipboardHtmlResult> {
+  return invoke<NormalizeClipboardHtmlResult>('normalize_clipboard_html', {
+    input: { html },
+  })
+}
 
 export function getImageOnlyClipboardFiles(data: DataTransfer | null): File[] {
   if (!data) return []
@@ -152,16 +186,39 @@ export const ClipboardPaste = Extension.create<ClipboardPasteOptions>({
             if (text && isMapUrl(text) && this.editor) {
               const spec = specFromMapUrl(text)
               event.preventDefault()
-              this.editor.chain().focus().insertLeafletMap({ source: spec ? JSON.stringify(spec, null, 2) : text }).run()
+              this.editor
+                .chain()
+                .focus()
+                .insertLeafletMap({ source: spec ? JSON.stringify(spec, null, 2) : text })
+                .run()
               return true
             }
 
             const grid = parseTsvTable(text)
-            if (!grid || !this.editor) return false
+            if (grid && this.editor) {
+              event.preventDefault()
+              this.editor.chain().focus().insertContent(tsvGridToTableHtml(grid)).run()
+              return true
+            }
 
-            event.preventDefault()
-            this.editor.chain().focus().insertContent(tsvGridToTableHtml(grid)).run()
-            return true
+            if (html && looksLikeDirtyHtml(html) && this.editor) {
+              const editor = this.editor
+              event.preventDefault()
+              void (async () => {
+                let cleaned = html
+                try {
+                  const result = await normalizeClipboardHtml(html)
+                  if (result.html?.trim()) cleaned = result.html
+                } catch {
+                  // Fall back to original HTML if Rust IPC fails.
+                }
+                if (editor.isDestroyed) return
+                editor.chain().focus().insertContent(cleaned).run()
+              })()
+              return true
+            }
+
+            return false
           },
         },
       }),

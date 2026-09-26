@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   getImageOnlyClipboardFiles,
+  looksLikeDirtyHtml,
   parseTsvTable,
   tsvGridToTableHtml,
 } from '@/lib/editor/paste-handler'
@@ -62,6 +63,13 @@ describe('getImageOnlyClipboardFiles', () => {
     })
 
     expect(getImageOnlyClipboardFiles(data)).toEqual([gif])
+  })
+})
+
+describe('looksLikeDirtyHtml', () => {
+  it('detects Word / Office markers', () => {
+    expect(looksLikeDirtyHtml('<p class="MsoNormal" style="mso-fareast:1">Hi</p>')).toBe(true)
+    expect(looksLikeDirtyHtml('<p>Clean</p>')).toBe(false)
   })
 })
 

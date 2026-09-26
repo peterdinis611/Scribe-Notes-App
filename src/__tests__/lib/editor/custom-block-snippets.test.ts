@@ -3,12 +3,16 @@ import StarterKit from '@tiptap/starter-kit'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import '@/i18n'
 import {
+  captureSelectionAsSnippet,
   listBlockSnippets,
   listCustomBlockSnippets,
   plainTextToTipTapContent,
   removeCustomBlockSnippet,
+  resolveSnippetInsertContent,
   upsertCustomBlockSnippet,
 } from '@/lib/editor/block-snippets'
+import { getBlockDefinition, insertBlock, listBlockDefinitions } from '@/lib/editor/block-registry'
+import { Callout } from '@/lib/editor/callout'
 import { listSlashCommands, runSlashCommand, SLASH_COMMAND_DEFS } from '@/lib/editor/slash-commands'
 import { resetKvStoreForTests } from '@/lib/storage/kv'
 
@@ -53,6 +57,92 @@ describe('custom block snippets', () => {
         expect.objectContaining({ text: 'Bold', marks: [{ type: 'bold' }] }),
       ]),
     })
+  })
+
+  it('prefers TipTap JSON content over plain text on insert resolve', () => {
+    const saved = upsertCustomBlockSnippet({
+      name: 'Rich',
+      plainText: '## Ignored heading',
+      content: [
+        {
+          type: 'heading',
+          attrs: { level: 2 },
+          content: [{ type: 'text', text: 'From JSON' }],
+        },
+        {
+          type: 'callout',
+          attrs: { variant: 'tip' },
+          content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Keep me' }] }],
+        },
+      ],
+    })
+
+    const nodes = resolveSnippetInsertContent(saved)
+    expect(nodes).toHaveLength(2)
+    expect(nodes[0]).toMatchObject({ type: 'heading', content: [{ text: 'From JSON' }] })
+    expect(nodes[1]).toMatchObject({ type: 'callout', attrs: { variant: 'tip' } })
+  })
+
+  it('captures the editor selection as TipTap JSON', () => {
+    const editor = new Editor({
+      extensions: [StarterKit, Callout],
+      content: {
+        type: 'doc',
+        content: [
+          {
+            type: 'heading',
+            attrs: { level: 2 },
+            content: [{ type: 'text', text: 'Agenda' }],
+          },
+          {
+            type: 'callout',
+            attrs: { variant: 'info' },
+            content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Note' }] }],
+          },
+        ],
+      },
+    })
+
+    editor.commands.selectAll()
+    const captured = captureSelectionAsSnippet(editor)
+    expect(captured).not.toBeNull()
+    expect(captured?.plainText).toContain('Agenda')
+    expect(captured?.content.some((node) => node.type === 'heading')).toBe(true)
+    expect(captured?.content.some((node) => node.type === 'callout')).toBe(true)
+
+    const saved = upsertCustomBlockSnippet({
+      name: 'From selection',
+      plainText: captured!.plainText,
+      content: captured!.content,
+    })
+
+    expect(saved.content?.some((node) => node.type === 'callout')).toBe(true)
+    editor.destroy()
+  })
+})
+
+describe('block registry', () => {
+  it('exposes slash-visible definitions used by the catalog', () => {
+    const ids = listBlockDefinitions().map((item) => item.id)
+    expect(ids).toContain('mermaid')
+    expect(ids).toContain('custom-block')
+    expect(ids).not.toContain('snippet-meeting')
+    expect(getBlockDefinition('snippet-meeting')?.slash).toBe(false)
+  })
+
+  it('inserts via insertBlock without the slash switch', () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const editor = new Editor({
+      element: host,
+      extensions: [StarterKit],
+      content: '<p></p>',
+    })
+
+    expect(insertBlock(editor as never, 'hr')).toBe(true)
+    expect(editor.getJSON().content?.some((node) => node.type === 'horizontalRule')).toBe(true)
+    editor.destroy()
+    host.remove()
   })
 })
 
@@ -105,6 +195,35 @@ describe('slash custom block catalog', () => {
 
     expect(editor.getJSON().content?.some((node) => node.type === 'heading')).toBe(true)
     expect(editor.getText()).toContain('What went well')
+    editor.destroy()
+  })
+
+  it('inserts a JSON snippet with nested blocks intact', () => {
+    const saved = upsertCustomBlockSnippet({
+      name: 'Callout pack',
+      content: [
+        {
+          type: 'callout',
+          attrs: { variant: 'warning' },
+          content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Careful' }] }],
+        },
+      ],
+    })
+
+    const editor = new Editor({
+      extensions: [StarterKit, Callout],
+      content: '<p></p>',
+    })
+
+    runSlashCommand(editor as never, {
+      id: `snippet:${saved.id}`,
+      label: saved.name,
+      hint: 'custom',
+    })
+
+    const callout = editor.getJSON().content?.find((node) => node.type === 'callout')
+    expect(callout?.attrs?.variant).toBe('warning')
+    expect(editor.getText()).toContain('Careful')
     editor.destroy()
   })
 

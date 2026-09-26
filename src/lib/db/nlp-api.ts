@@ -257,6 +257,29 @@ export const nlpDocumentAnalysis = (documentId: string) => {
 export const nlpAnalyzePlaintext = (text: string) =>
   invoke<NlpDocumentAnalysis>('nlp_analyze_plaintext', { text })
 
+export type PlaceholderUnit = 'paragraphs' | 'sentences' | 'words'
+export type PlaceholderLanguage = 'la' | 'en' | 'sk'
+
+export type NlpPlaceholderResult = {
+  text: string
+  unit: PlaceholderUnit
+  count: number
+  language: PlaceholderLanguage
+  source: string
+  startWithClassic?: boolean
+}
+
+/** Generate placeholder / lorem text via Python NLP (preferred) or Rust fallback. */
+export const nlpGeneratePlaceholder = (input: {
+  unit?: PlaceholderUnit
+  count?: number
+  language?: PlaceholderLanguage | string
+  startWithClassic?: boolean
+  startWithLorem?: boolean
+  seed?: number
+  preferRust?: boolean
+}) => invoke<NlpPlaceholderResult>('nlp_generate_placeholder', { input })
+
 export const nlpFindDuplicates = (limit = 20) =>
   invoke<{ pairs: DuplicatePair[]; compared: number }>('nlp_find_duplicates', {
     limit,
@@ -291,6 +314,138 @@ export const nlpSummarizeDiff = (input: {
   newText: string
   maxBullets?: number
 }) => invoke<NlpDiffSummary>('nlp_summarize_diff', { input })
+
+export type RevisionChangeKind =
+  | 'identical'
+  | 'expansion'
+  | 'trim'
+  | 'rewrite'
+  | 'polish'
+  | 'structural'
+  | 'mixed'
+
+export type RevisionAiBullet = {
+  text: string
+  severity: 'info' | 'warn' | 'critical' | string
+  kind: string
+}
+
+export type RevisionAiReport = {
+  summary: string
+  headline: string
+  changeKind: RevisionChangeKind
+  confidence: number
+  bullets: RevisionAiBullet[]
+  addedSentences: string[]
+  removedSentences: string[]
+  gainedTerms: string[]
+  lostTerms: string[]
+  headingChanges: { added: string[]; removed: string[] }
+  risks: string[]
+  stats: {
+    changeRatio: number
+    oldWordCount: number
+    newWordCount: number
+    linesAdded: number
+    linesRemoved: number
+    netWords: number
+  }
+  source: 'python' | 'rust' | string
+  changeRatio?: number
+  oldWordCount?: number
+  newWordCount?: number
+}
+
+/** Dedicated revision AI (Python module preferred, Rust fallback). */
+export const nlpAnalyzeRevisionDiff = (input: {
+  oldText: string
+  newText: string
+  maxBullets?: number
+  language?: string
+  preferRust?: boolean
+}) => invoke<RevisionAiReport>('nlp_analyze_revision_diff', { input })
+
+export type FlashcardKind = 'qa' | 'definition' | 'cloze' | 'section' | string
+
+export type Flashcard = {
+  kind: FlashcardKind
+  question: string
+  answer: string
+  front?: string
+}
+
+export type FlashcardsResult = {
+  cards: Flashcard[]
+  count: number
+  source: 'python' | string
+}
+
+export const nlpExtractFlashcards = (input: {
+  documentId: string
+  limit?: number
+  includeCloze?: boolean
+}) => invoke<FlashcardsResult>('nlp_extract_flashcards', { input })
+
+export type TerminologyVariant = { term: string; count: number }
+
+export type TerminologyIssue = {
+  canonical: string
+  key: string
+  preferredCount: number
+  variants: TerminologyVariant[]
+  suggestion: string
+}
+
+export type TerminologyResult = {
+  issues: TerminologyIssue[]
+  issueCount: number
+  scannedTerms: number
+  source: 'python' | string
+}
+
+export const nlpCheckTerminology = (input: { documentId: string; limit?: number }) =>
+  invoke<TerminologyResult>('nlp_check_terminology', { input })
+
+export type TakeawayItem = {
+  text: string
+  kind: string
+  score: number
+}
+
+export type TakeawaysResult = {
+  summary: string
+  takeaways: TakeawayItem[]
+  count: number
+  themes: Array<{ term: string; count: number }>
+  source: 'python' | string
+}
+
+export const nlpExtractTakeaways = (input: { documentId: string; limit?: number }) =>
+  invoke<TakeawaysResult>('nlp_extract_takeaways', { input })
+
+export type WritingCoachHint = {
+  code: string
+  severity: 'info' | 'warn' | 'ok' | string
+  message: string
+  excerpt?: string
+}
+
+export type WritingCoachResult = {
+  language: string
+  score?: number
+  hints: WritingCoachHint[]
+  stats?: {
+    sentenceCount?: number
+    wordCount?: number
+    averageSentenceWords?: number
+    longSentenceCount?: number
+    passiveSentenceCount?: number
+  }
+  source: 'python' | string
+}
+
+export const nlpWritingCoach = (input: { documentId: string; limit?: number }) =>
+  invoke<WritingCoachResult>('nlp_writing_coach', { input })
 
 export interface NlpTemplateFillHints {
   expected: string[]
@@ -382,6 +537,29 @@ export const nlpRewriteSelection = (
     mode,
     customInstruction,
   })
+
+export type ContinuationSuggestion = {
+  text: string
+  score: number
+  model: string
+}
+
+export type NlpContinuationResult = {
+  suggestions: ContinuationSuggestion[]
+  prefixTail: string
+  source: string
+  corpusDocs: number
+  model: string
+}
+
+/** Suggest continue-writing phrases from the local library (Python n-grams, Rust fallback). */
+export const nlpSuggestContinuation = (input: {
+  prefix: string
+  maxSuggestions?: number
+  maxTokens?: number
+  preferRust?: boolean
+  excludeDocumentId?: string
+}) => invoke<NlpContinuationResult>('nlp_suggest_continuation', { input })
 
 export const nlpCalendarEvents = (options?: {
   limit?: number

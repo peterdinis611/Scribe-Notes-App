@@ -435,7 +435,35 @@
     "badge": "What's new in {{version}}",
     "kicker": "Edition notes",
     "title": "Scribe {{version}}",
-    "subtitle": "Wiki links feel like Obsidian, Connections got a shortcut, and Local AI polish lands in 2.4.",
+    "subtitle": "Continue writing, smarter paste, 3D models, Revision AI, and deeper Local AI study tools — all offline on this Mac.",
+    "editionMark": "Local-first intelligence",
+    "tagsLabel": "Themes in this release",
+    "tags": {
+      "localAi": "Local AI",
+      "editor": "Editor",
+      "history": "History"
+    },
+    "footNote": "Settings → Local AI to enable the Python sidecar.",
+    "continueWriting": {
+      "title": "Continue writing",
+      "description": "Slash /continue suggests the next phrase from your own library — local n-grams, no cloud model."
+    },
+    "smartPaste": {
+      "title": "Smart paste",
+      "description": "Word, Pages, and messy web HTML are cleaned in Rust before they land in TipTap — styles stay sane."
+    },
+    "models3d": {
+      "title": "3D models in notes",
+      "description": "Drop GLB / GLTF (and USDZ) into the editor with model-viewer — orbit, inspect, keep assets local."
+    },
+    "revisionAi": {
+      "title": "Revision AI",
+      "description": "History diffs classify expansions, trims, and risks. Python when Local AI is on; Rust fallback when it isn’t."
+    },
+    "studyAi": {
+      "title": "Study & style actions",
+      "description": "Flashcards, takeaways, terminology consistency, and a writing coach — new chips in document Local AI chat."
+    },
     "localAiAsk": {
       "title": "Scribe Local AI",
       "description": "Built-in Local AI — not ChatGPT. Ask the library or the open note; answers stay on this device."
@@ -1692,7 +1720,11 @@
       "similar": "Related notes",
       "mentions": "People & links",
       "quotes": "Key claims",
-      "questions": "Ask next"
+      "questions": "Ask next",
+      "flashcards": "Flashcards",
+      "takeaways": "Takeaways",
+      "terminology": "Terminology",
+      "style": "Writing coach"
     }
   },
   "documentChat": {
@@ -1953,7 +1985,17 @@
       "restoreError": "Failed to restore version",
       "compareError": "Version comparison failed",
       "nlpDiffSummary": "AI change summary",
+      "revisionAi": "Revision AI",
       "nlpDiffChange": "{{percent}}% changed",
+      "changeKind": {
+        "identical": "Identical",
+        "expansion": "Expansion",
+        "trim": "Trim",
+        "rewrite": "Rewrite",
+        "polish": "Polish",
+        "structural": "Structural",
+        "mixed": "Mixed"
+      },
       "selectTwoVersions": "Select two different versions",
       "currentVersion": "Current version",
       "diffTitle": "Version comparison",
@@ -1979,7 +2021,21 @@
       "renameError": "Could not rename version",
       "pin": "Pin",
       "unpin": "Unpin",
-      "pinError": "Could not update pin"
+      "pinError": "Could not update pin",
+      "preview": "Preview",
+      "previewTitle": "Version preview",
+      "previewEmpty": "(Empty document)",
+      "previewError": "Could not load version preview",
+      "deleteConfirmTitle": "Delete version",
+      "deleteConfirm": "Permanently delete version “{{title}}”? This cannot be undone.",
+      "deleteSuccess": "Version deleted",
+      "deleteError": "Could not delete version",
+      "deleting": "Deleting…",
+      "swapSides": "Swap A / B",
+      "contextLines": "Context",
+      "wordHighlight": "Word highlight",
+      "gainedTerms": "Gained",
+      "lostTerms": "Lost"
     }
   },
   "focusMode": {
@@ -2239,6 +2295,10 @@
       "label": "Lottie",
       "hint": "Lottie / DotLottie animation (.json, .lottie)"
     },
+    "model3d": {
+      "label": "3D model",
+      "hint": "GLB / GLTF / USDZ — orbit in the editor"
+    },
     "video": {
       "label": "Video",
       "hint": "YouTube, Vimeo, or a file URL"
@@ -2325,7 +2385,22 @@
       "bodyPlaceholder": "## Heading\n\n- item",
       "save": "Save block",
       "saved": "Custom block saved",
-      "saveFailed": "Could not save custom block"
+      "saveFailed": "Could not save custom block",
+      "validation": {
+        "name_required": "Enter a block name.",
+        "name_too_long": "Name can be at most 80 characters.",
+        "body_required": "Block content cannot be empty.",
+        "body_too_large": "Block content is too long.",
+        "content_invalid": "Block content has an invalid format.",
+        "content_too_large": "Block content is too large.",
+        "content_too_deep": "Block content is nested too deeply.",
+        "content_too_many_nodes": "Block content has too many parts.",
+        "id_invalid": "Block id is invalid.",
+        "too_many_snippets": "You reached the custom block limit.",
+        "icon_invalid": "Block icon is invalid.",
+        "hint_too_long": "Block description is too long.",
+        "keywords_invalid": "Block keywords are invalid."
+      }
     },
     "snippet-meeting": {
       "label": "Snippet: Meeting",
@@ -2338,6 +2413,10 @@
     "lorem": {
       "label": "Lorem ipsum",
       "hint": "Placeholder text…"
+    },
+    "continue": {
+      "label": "Continue writing",
+      "hint": "Suggest next words from your library"
     },
     "toc": {
       "label": "Table of contents",
@@ -2661,7 +2740,6 @@
       "insert": "Insert",
       "image": "Image",
       "imageUrl": "Image from URL",
-      "lottie": "Lottie animation",
       "table": "Table",
       "youtube": "YouTube",
       "youtubeVideo": "YouTube video",
@@ -2671,6 +2749,8 @@
       "tableOfContents": "Table of contents (TOC)",
       "pageBreak": "Page break",
       "lorem": "Lorem ipsum…",
+      "lottie": "Lottie animation",
+      "model3d": "3D model",
       "inlineMath": "Inline formula",
       "inlineMathFull": "Inline formula (math.js)",
       "blockMath": "Formula block",
@@ -3071,6 +3151,17 @@
     "emptyHint": "Upload a .json or .lottie file",
     "upload": "Upload"
   },
+  "model3d": {
+    "alignGroup": "3D model alignment",
+    "autoRotate": "Auto-rotate",
+    "cameraControls": "Orbit controls",
+    "replace": "Replace model",
+    "delete": "Delete 3D model",
+    "emptyTitle": "Add a 3D model",
+    "emptyHint": "Upload a .glb, .gltf, or .usdz file",
+    "upload": "Upload",
+    "alt": "3D model"
+  },
   "structuredPdf": {
     "digestFooter": "Scribe · Journal digest",
     "libraryReportTitle": "Library report",
@@ -3183,7 +3274,7 @@
   },
   "lorem": {
     "title": "Insert lorem ipsum",
-    "description": "Choose how much placeholder text to generate. Your last choice is remembered.",
+    "description": "Placeholder text is generated by Python NLP or Rust. Your last choice is remembered.",
     "unit": "Generate",
     "count": "Amount",
     "units": {
@@ -3191,8 +3282,22 @@
       "sentences": "Sentences",
       "words": "Words"
     },
+    "language": "Word language",
+    "languages": {
+      "la": "Latin (classic lorem)",
+      "en": "English",
+      "sk": "Slovak"
+    },
+    "engine": "Generator",
+    "engines": {
+      "auto": "Auto (Python → Rust)",
+      "python": "Python NLP",
+      "rust": "Rust",
+      "local": "Local (JS)"
+    },
     "startWithLorem": "Start with classic “Lorem ipsum…”",
     "preview": "Preview",
+    "previewHint": "Preview is local; insert uses the selected generator.",
     "insert": "Insert",
     "noEditor": "Open a document first"
   },

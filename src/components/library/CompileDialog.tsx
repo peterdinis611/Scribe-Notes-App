@@ -101,7 +101,7 @@ export function CompileDialog() {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && close()}>
       {open && (
-        <DialogContent className="titlebar-no-drag compile-dialog">
+        <DialogContent className="max-w-[440px] titlebar-no-drag">
           <DialogHeader>
             <DialogTitle>{t('compile.title')}</DialogTitle>
             <DialogDescription>{t('compile.hint')}</DialogDescription>
@@ -111,10 +111,10 @@ export function CompileDialog() {
             placeholder={t('compile.titlePlaceholder')}
             onChange={(event) => setTitle(event.target.value)}
           />
-          <ol className="compile-chapter-list">
+          <ol className="mt-3 mb-0 max-h-60 list-none overflow-auto p-0">
             {visible.map((doc) => (
               <li key={doc.id}>
-                <label className="compile-chapter-row">
+                <label className="flex min-h-7 items-center gap-2 text-[13px]">
                   <input
                     type="checkbox"
                     checked={selected.includes(doc.id)}
@@ -125,9 +125,11 @@ export function CompileDialog() {
               </li>
             ))}
           </ol>
-          <fieldset className="compile-export">
-            <legend>{t('compile.exportLabel')}</legend>
-            <label>
+          <fieldset className="m-0 flex flex-col gap-1.5 border-0 p-0">
+            <legend className="mb-1 font-[family-name:var(--font-mono)] text-[10px] font-[650] uppercase tracking-[0.08em] text-[var(--color-muted-foreground)]">
+              {t('compile.exportLabel')}
+            </legend>
+            <label className="flex items-center gap-2 text-[13px] text-[var(--color-foreground)]">
               <input
                 type="radio"
                 name="compile-export"
@@ -136,7 +138,7 @@ export function CompileDialog() {
               />
               {t('compile.exportOpen')}
             </label>
-            <label>
+            <label className="flex items-center gap-2 text-[13px] text-[var(--color-foreground)]">
               <input
                 type="radio"
                 name="compile-export"
@@ -145,7 +147,7 @@ export function CompileDialog() {
               />
               PDF
             </label>
-            <label>
+            <label className="flex items-center gap-2 text-[13px] text-[var(--color-foreground)]">
               <input
                 type="radio"
                 name="compile-export"

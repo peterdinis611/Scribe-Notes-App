@@ -63,7 +63,6 @@ import {
 import { CodeLanguageMenu } from '@/components/editor-toolbar/CodeLanguageMenu'
 import { LINE_HEIGHTS, PARAGRAPH_SPACING } from '@/lib/editor/block-spacing'
 import { FONT_SIZES, HIGHLIGHT_COLORS, TEXT_COLORS } from '@/lib/editor/font-size'
-import { pickDocumentMediaFiles } from '@/lib/editor/image-utils'
 import {
   insertBlockMath,
   insertD3Chart,
@@ -75,6 +74,7 @@ import {
   insertScannedBarcode,
   insertVideo,
 } from '@/lib/editor/insert-helpers'
+import { insertEmptyLottieBlock, insertEmptyModel3dBlock, pickDocumentMediaFiles } from '@/lib/editor/image-utils'
 import { insertBulletList, insertOrderedList, insertTaskList } from '@/lib/editor/list-commands'
 import { PARAGRAPH_STYLES, applyParagraphStyle, type ParagraphStyleId } from '@/lib/editor/paragraph-styles'
 import { promptAndApplyEditorLink } from '@/lib/editor/link-prompt'
@@ -256,6 +256,8 @@ export function ToolbarRibbon({
               {t('toolbar.actions.table')}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => void insertVideo(editor)}>{t('toolbar.actions.video')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => insertEmptyLottieBlock(editor)}>{t('toolbar.actions.lottie')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => insertEmptyModel3dBlock(editor)}>{t('toolbar.actions.model3d')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => editor.chain().focus().insertTableOfContents().run()}>
               <ListTree className="h-4 w-4" />
               {t('toolbar.actions.tableOfContents')}

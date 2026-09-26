@@ -435,7 +435,35 @@
     "badge": "Novinky {{version}}",
     "kicker": "Poznámky k vydaniu",
     "title": "Scribe {{version}}",
-    "subtitle": "Wiki odkazy ako v Obsidiane, skratka na Prepojenia a Local AI polish v 2.4.",
+    "subtitle": "Pokračovanie textu, smart paste, 3D modely, Revision AI a hlbšie Local AI nástroje na štúdium — všetko offline na tomto Macu.",
+    "editionMark": "Inteligencia bez cloudu",
+    "tagsLabel": "Témy tohto vydania",
+    "tags": {
+      "localAi": "Lokálna AI",
+      "editor": "Editor",
+      "history": "História"
+    },
+    "footNote": "Nastavenia → Lokálna AI na zapnutie Python sidecaru.",
+    "continueWriting": {
+      "title": "Pokračovanie textu",
+      "description": "Slash /continue navrhne ďalšiu frázu z vašej knižnice — lokálne n-gramy, žiadny cloud model."
+    },
+    "smartPaste": {
+      "title": "Smart paste",
+      "description": "HTML z Wordu, Pages a webu sa vyčistí v Ruste pred vložením do TipTap — štýly ostanú rozumné."
+    },
+    "models3d": {
+      "title": "3D modely v poznámkach",
+      "description": "GLB / GLTF (a USDZ) priamo v editore cez model-viewer — orbit, inšpekcia, assety lokálne."
+    },
+    "revisionAi": {
+      "title": "Revision AI",
+      "description": "Diffy v histórii klasifikujú rozšírenia, skrátenia a riziká. Python pri Lokálnej AI; Rust fallback, keď je vypnutá."
+    },
+    "studyAi": {
+      "title": "Štúdium a štýl",
+      "description": "Kartičky, závery, konzistencia terminológie a štýlový kouč — nové akcie v Local AI chate dokumentu."
+    },
     "localAiAsk": {
       "title": "Scribe Lokálna AI",
       "description": "Vstavaná Lokálna AI — nie ChatGPT. Pýtajte sa knižnice alebo otvorenej poznámky; odpovede ostávajú na tomto zariadení."
@@ -1696,7 +1724,11 @@
       "similar": "Súvisiace poznámky",
       "mentions": "Ľudia a odkazy",
       "quotes": "Kľúčové tvrdenia",
-      "questions": "Ďalšie otázky"
+      "questions": "Ďalšie otázky",
+      "flashcards": "Kartičky",
+      "takeaways": "Závery",
+      "terminology": "Terminológia",
+      "style": "Štýlový kouč"
     }
   },
   "documentChat": {
@@ -1961,7 +1993,17 @@
       "restoreError": "Obnovenie verzie zlyhalo",
       "compareError": "Porovnanie verzií zlyhalo",
       "nlpDiffSummary": "AI zhrnutie zmien",
+      "revisionAi": "Revision AI",
       "nlpDiffChange": "{{percent}} % zmenené",
+      "changeKind": {
+        "identical": "Bez zmien",
+        "expansion": "Rozšírenie",
+        "trim": "Skrátenie",
+        "rewrite": "Prepísanie",
+        "polish": "Úprava",
+        "structural": "Štruktúra",
+        "mixed": "Zmiešané"
+      },
       "selectTwoVersions": "Vyberte dve rôzne verzie",
       "currentVersion": "Aktuálna verzia",
       "diffTitle": "Porovnanie verzií",
@@ -1987,7 +2029,21 @@
       "renameError": "Premenovanie verzie zlyhalo",
       "pin": "Pripnúť",
       "unpin": "Odopnúť",
-      "pinError": "Pripnutie sa nepodarilo zmeniť"
+      "pinError": "Pripnutie sa nepodarilo zmeniť",
+      "preview": "Náhľad",
+      "previewTitle": "Náhľad verzie",
+      "previewEmpty": "(Prázdny dokument)",
+      "previewError": "Náhľad verzie sa nepodarilo načítať",
+      "deleteConfirmTitle": "Odstrániť verziu",
+      "deleteConfirm": "Natrvalo odstrániť verziu „{{title}}“? Túto akciu nejde vrátiť.",
+      "deleteSuccess": "Verzia odstránená",
+      "deleteError": "Verziu sa nepodarilo odstrániť",
+      "deleting": "Odstraňujem…",
+      "swapSides": "Prehodiť A / B",
+      "contextLines": "Kontext",
+      "wordHighlight": "Zvýraznenie slov",
+      "gainedTerms": "Pribudlo",
+      "lostTerms": "Ubylo"
     }
   },
   "focusMode": {
@@ -2247,6 +2303,10 @@
       "label": "Lottie",
       "hint": "Lottie / DotLottie animácia (.json, .lottie)"
     },
+    "model3d": {
+      "label": "3D model",
+      "hint": "GLB / GLTF / USDZ — orbit v editore"
+    },
     "video": {
       "label": "Video",
       "hint": "YouTube, Vimeo alebo URL súboru"
@@ -2333,7 +2393,22 @@
       "bodyPlaceholder": "## Nadpis\n\n- položka",
       "save": "Uložiť blok",
       "saved": "Vlastný blok uložený",
-      "saveFailed": "Vlastný blok sa nepodarilo uložiť"
+      "saveFailed": "Vlastný blok sa nepodarilo uložiť",
+      "validation": {
+        "name_required": "Zadajte názov bloku.",
+        "name_too_long": "Názov môže mať najviac 80 znakov.",
+        "body_required": "Obsah bloku nemôže byť prázdny.",
+        "body_too_large": "Obsah bloku je príliš dlhý.",
+        "content_invalid": "Obsah bloku má neplatný formát.",
+        "content_too_large": "Obsah bloku je príliš veľký.",
+        "content_too_deep": "Obsah bloku je príliš hlboko vnorený.",
+        "content_too_many_nodes": "Obsah bloku má príliš veľa častí.",
+        "id_invalid": "Identifikátor bloku je neplatný.",
+        "too_many_snippets": "Dosiahli ste maximum vlastných blokov.",
+        "icon_invalid": "Ikona bloku je neplatná.",
+        "hint_too_long": "Popis bloku je príliš dlhý.",
+        "keywords_invalid": "Kľúčové slová bloku sú neplatné."
+      }
     },
     "snippet-meeting": {
       "label": "Úryvok: Stretnutie",
@@ -2346,6 +2421,10 @@
     "lorem": {
       "label": "Lorem ipsum",
       "hint": "Zástupný text…"
+    },
+    "continue": {
+      "label": "Pokračovať v písaní",
+      "hint": "Návrh ďalších slov z knižnice"
     },
     "toc": {
       "label": "Obsah",
@@ -2675,7 +2754,6 @@
       "insert": "Vložiť",
       "image": "Obrázok",
       "imageUrl": "Obrázok z URL",
-      "lottie": "Lottie animácia",
       "table": "Tabuľka",
       "youtube": "YouTube",
       "youtubeVideo": "YouTube video",
@@ -2685,6 +2763,8 @@
       "tableOfContents": "Obsah (TOC)",
       "pageBreak": "Zalomenie strany",
       "lorem": "Lorem ipsum…",
+      "lottie": "Lottie animácia",
+      "model3d": "3D model",
       "inlineMath": "Vzorec v riadku",
       "inlineMathFull": "Vzorec v riadku (math.js)",
       "blockMath": "Vzorec blok",
@@ -3087,6 +3167,17 @@
     "emptyHint": "Nahrajte súbor .json alebo .lottie",
     "upload": "Nahrať"
   },
+  "model3d": {
+    "alignGroup": "Zarovnanie 3D modelu",
+    "autoRotate": "Automatická rotácia",
+    "cameraControls": "Orbit ovládanie",
+    "replace": "Nahradiť model",
+    "delete": "Odstrániť 3D model",
+    "emptyTitle": "Pridať 3D model",
+    "emptyHint": "Nahrajte súbor .glb, .gltf alebo .usdz",
+    "upload": "Nahrať",
+    "alt": "3D model"
+  },
   "structuredPdf": {
     "digestFooter": "Scribe · Denníkový digest",
     "libraryReportTitle": "Report knižnice",
@@ -3199,7 +3290,7 @@
   },
   "lorem": {
     "title": "Vložiť lorem ipsum",
-    "description": "Zvoľte, koľko zástupného textu vygenerovať. Posledná voľba sa zapamätá.",
+    "description": "Zástupný text vygeneruje Python NLP alebo Rust. Posledná voľba sa zapamätá.",
     "unit": "Generovať",
     "count": "Množstvo",
     "units": {
@@ -3207,8 +3298,22 @@
       "sentences": "Vety",
       "words": "Slová"
     },
+    "language": "Jazyk slov",
+    "languages": {
+      "la": "Latin (klasické lorem)",
+      "en": "Angličtina",
+      "sk": "Slovenčina"
+    },
+    "engine": "Generátor",
+    "engines": {
+      "auto": "Auto (Python → Rust)",
+      "python": "Python NLP",
+      "rust": "Rust",
+      "local": "Lokálny (JS)"
+    },
     "startWithLorem": "Začať klasickým „Lorem ipsum…“",
     "preview": "Náhľad",
+    "previewHint": "Náhľad je lokálny; pri vložení sa použije zvolený generátor.",
     "insert": "Vložiť",
     "noEditor": "Najprv otvorte dokument"
   },

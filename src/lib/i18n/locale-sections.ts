@@ -94,7 +94,7 @@ export const LOCALE_SECTION_GROUPS: LocaleSectionGroup[] = [
   },
   {
     id: 'media',
-    sections: ['image', 'map', 'video', 'lottie', 'canvas', 'mermaid', 'd3Chart', 'invoiceDialog', 'capture'],
+    sections: ['image', 'map', 'video', 'lottie', 'model3d', 'canvas', 'mermaid', 'd3Chart', 'invoiceDialog', 'capture'],
   },
   {
     id: 'system',

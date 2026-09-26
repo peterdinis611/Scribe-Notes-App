@@ -62,13 +62,32 @@ export async function insertYoutubeVideo(editor: Editor) {
   await insertVideo(editor)
 }
 
-/** Opens options dialog, then inserts configured lorem ipsum at the cursor. */
+/** Opens options dialog, then inserts configured lorem / placeholder text at the cursor. */
 export async function insertLoremIpsum(editor: Editor): Promise<boolean> {
   if (editor.isDestroyed) return false
   const options = await promptLoremOptions()
   if (!options || editor.isDestroyed) return false
   const saved = saveLoremOptions(options)
-  const text = generateLoremIpsum(saved)
+
+  let text = ''
+  if (saved.engine !== 'local') {
+    try {
+      const { nlpGeneratePlaceholder } = await import('@/lib/db/nlp-api')
+      const result = await nlpGeneratePlaceholder({
+        unit: saved.unit,
+        count: saved.count,
+        language: saved.language,
+        startWithClassic: saved.startWithLorem,
+        preferRust: saved.engine === 'rust',
+      })
+      text = result.text ?? ''
+    } catch {
+      text = ''
+    }
+  }
+  if (!text.trim()) {
+    text = generateLoremIpsum(saved)
+  }
   if (!text.trim()) return false
 
   const blocks = text
@@ -83,6 +102,38 @@ export async function insertLoremIpsum(editor: Editor): Promise<boolean> {
   if (blocks.length === 0) return false
   editor.chain().focus().insertContent(blocks).run()
   return true
+}
+
+/** Insert a library-based continue-writing suggestion at the cursor. */
+export async function insertContinuation(
+  editor: Editor,
+  options?: { excludeDocumentId?: string },
+): Promise<boolean> {
+  if (editor.isDestroyed) return false
+
+  const { from } = editor.state.selection
+  const prefix = editor.state.doc.textBetween(Math.max(0, from - 800), from, '\n', '\n')
+
+  try {
+    const { nlpSuggestContinuation } = await import('@/lib/db/nlp-api')
+    const result = await nlpSuggestContinuation({
+      prefix,
+      maxSuggestions: 3,
+      maxTokens: 16,
+      excludeDocumentId: options?.excludeDocumentId,
+    })
+    const text = result.suggestions?.[0]?.text?.trim()
+    if (!text || editor.isDestroyed) return false
+    const needsSpace = prefix.length > 0 && !/\s$/.test(prefix)
+    editor
+      .chain()
+      .focus()
+      .insertContent(needsSpace ? ` ${text}` : text)
+      .run()
+    return true
+  } catch {
+    return false
+  }
 }
 
 export async function insertScannedBarcode(editor: Editor): Promise<boolean> {

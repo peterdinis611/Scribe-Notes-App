@@ -277,6 +277,18 @@ function renderNodes(nodes: TipTapNode[] | undefined, ctx: RenderContext): strin
           // Static export: link to the animation asset (HTML viewers won't play .json/.lottie inline).
           return `<figure data-type="lottie-animation" data-align="${escapeHtml(align)}" style="text-align:${escapeHtml(align)}"><a href="${escapeHtml(src)}"${width}>Lottie animation</a>${captionHtml}</figure>`
         }
+        case 'model3d': {
+          const src = String(node.attrs?.src ?? '')
+          const caption = String(node.attrs?.caption ?? '').trim()
+          const align = String(node.attrs?.align ?? 'center')
+          const captionHtml = caption
+            ? `<figcaption>${escapeHtml(caption)}</figcaption>`
+            : ''
+          if (!src) {
+            return `<figure data-type="model-3d" data-align="${escapeHtml(align)}"><p>3D model</p>${captionHtml}</figure>`
+          }
+          return `<figure data-type="model-3d" data-align="${escapeHtml(align)}" style="text-align:${escapeHtml(align)}"><a href="${escapeHtml(src)}">3D model (.glb / .gltf)</a>${captionHtml}</figure>`
+        }
         case 'table':
           return `<table style="border-collapse:collapse;width:100%;margin:12pt 0;">${renderNodes(node.content, ctx)}</table>`
         case 'tableRow':

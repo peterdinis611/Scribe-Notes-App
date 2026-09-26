@@ -1377,6 +1377,68 @@ fn run_document_analysis(
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct NlpGeneratePlaceholderInput {
+    pub unit: Option<String>,
+    pub count: Option<u32>,
+    pub language: Option<String>,
+    pub start_with_classic: Option<bool>,
+    pub start_with_lorem: Option<bool>,
+    pub seed: Option<u64>,
+    /// When true, skip the Python sidecar and use the Rust generator.
+    pub prefer_rust: Option<bool>,
+}
+
+/// Generate lorem-style placeholder text for the editor.
+/// Prefers the Python NLP sidecar when available; always falls back to Rust.
+#[tauri::command]
+pub fn nlp_generate_placeholder(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpGeneratePlaceholderInput,
+) -> Result<serde_json::Value, String> {
+    let unit = input.unit.as_deref().unwrap_or("paragraphs");
+    let count = input.count.unwrap_or(3);
+    let language = input.language.as_deref();
+    let start_with_classic = input
+        .start_with_classic
+        .or(input.start_with_lorem)
+        .unwrap_or(true);
+    let prefer_rust = input.prefer_rust.unwrap_or(false);
+
+    if !prefer_rust {
+        let nlp_on = {
+            let conn = state.conn.lock().map_err(|e| e.to_string())?;
+            let enabled = is_nlp_enabled(&conn)?;
+            if enabled {
+                let _ = sync_sidecar_backend(&sidecar, &conn);
+            }
+            enabled
+        };
+        if nlp_on {
+            if let Ok(value) = sidecar.generate_placeholder(
+                unit,
+                count as i64,
+                language,
+                start_with_classic,
+                input.seed,
+            ) {
+                return Ok(value);
+            }
+        }
+    }
+
+    let result = scribe_core::nlp::generate_placeholder(
+        scribe_core::nlp::PlaceholderUnit::parse(Some(unit)),
+        count,
+        scribe_core::nlp::PlaceholderLanguage::parse(language),
+        start_with_classic,
+        input.seed,
+    );
+    serde_json::to_value(result).map_err(|e| e.to_string())
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NlpSummarizeDiffInput {
     pub old_text: String,
     pub new_text: String,
@@ -1485,6 +1547,133 @@ pub fn nlp_summarize_diff(
         &input.new_text,
         input.max_bullets.unwrap_or(5),
     )
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpAnalyzeRevisionDiffInput {
+    pub old_text: String,
+    pub new_text: String,
+    pub max_bullets: Option<i64>,
+    pub language: Option<String>,
+    /// When true, skip Python and use the Rust revision AI module.
+    pub prefer_rust: Option<bool>,
+}
+
+/// Dedicated revision AI report (Python module preferred, Rust fallback always available).
+#[tauri::command]
+pub fn nlp_analyze_revision_diff(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpAnalyzeRevisionDiffInput,
+) -> Result<serde_json::Value, String> {
+    let max_bullets = input.max_bullets.unwrap_or(6).clamp(1, 12);
+    let prefer_rust = input.prefer_rust.unwrap_or(false);
+    let language = input.language.as_deref();
+
+    if !prefer_rust {
+        let nlp_on = {
+            let conn = state.conn.lock().map_err(|e| e.to_string())?;
+            let enabled = is_nlp_enabled(&conn)?;
+            if enabled {
+                let _ = sync_sidecar_backend(&sidecar, &conn);
+            }
+            enabled
+        };
+        if nlp_on {
+            if let Ok(value) = sidecar.analyze_revision_diff(
+                &input.old_text,
+                &input.new_text,
+                max_bullets,
+                language,
+            ) {
+                return Ok(value);
+            }
+        }
+    }
+
+    let report = scribe_core::nlp::analyze_revision_diff(
+        &input.old_text,
+        &input.new_text,
+        max_bullets as usize,
+        language,
+    );
+    serde_json::to_value(report).map_err(|e| e.to_string())
+}
+
+fn document_plain_for_nlp(
+    state: &State<'_, DbState>,
+    document_id: &str,
+) -> Result<String, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    if !is_nlp_enabled(&conn)? {
+        return Err("NLP is disabled".to_string());
+    }
+    let (title, content_json): (String, String) = conn
+        .query_row(
+            "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL",
+            params![document_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .map_err(|e| e.to_string())?;
+    Ok(format!("{title}\n{}", extract_search_text(&content_json)))
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpDocumentTextInput {
+    pub document_id: String,
+    pub limit: Option<i64>,
+    pub include_cloze: Option<bool>,
+}
+
+/// Study flashcards from the active document (Python sidecar).
+#[tauri::command]
+pub fn nlp_extract_flashcards(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpDocumentTextInput,
+) -> Result<serde_json::Value, String> {
+    let text = document_plain_for_nlp(&state, &input.document_id)?;
+    let limit = input.limit.unwrap_or(12).clamp(1, 40);
+    let include_cloze = input.include_cloze.unwrap_or(true);
+    sidecar.extract_flashcards(&text, limit, include_cloze)
+}
+
+/// Terminology consistency issues in one document (Python sidecar).
+#[tauri::command]
+pub fn nlp_check_terminology(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpDocumentTextInput,
+) -> Result<serde_json::Value, String> {
+    let text = document_plain_for_nlp(&state, &input.document_id)?;
+    let limit = input.limit.unwrap_or(12).clamp(1, 30);
+    sidecar.check_terminology(&text, limit)
+}
+
+/// Key takeaways / executive bullets (Python sidecar).
+#[tauri::command]
+pub fn nlp_extract_takeaways(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpDocumentTextInput,
+) -> Result<serde_json::Value, String> {
+    let text = document_plain_for_nlp(&state, &input.document_id)?;
+    let limit = input.limit.unwrap_or(8).clamp(1, 20);
+    sidecar.extract_takeaways(&text, limit)
+}
+
+/// Local writing-coach style hints (Python sidecar).
+#[tauri::command]
+pub fn nlp_writing_coach(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpDocumentTextInput,
+) -> Result<serde_json::Value, String> {
+    let text = document_plain_for_nlp(&state, &input.document_id)?;
+    let limit = input.limit.unwrap_or(12).clamp(1, 30);
+    sidecar.writing_coach(&text, limit)
 }
 
 #[tauri::command]
@@ -2177,5 +2366,99 @@ pub fn nlp_rewrite_selection(
     let mode = normalize_rewrite_mode(mode.as_deref());
     let res = sidecar.rewrite_selection(&text, &mode, custom_instruction.as_deref())?;
     Ok(parse_rewrite_result(&res, &mode, &text))
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpSuggestContinuationInput {
+    pub prefix: String,
+    pub max_suggestions: Option<u32>,
+    pub max_tokens: Option<u32>,
+    pub prefer_rust: Option<bool>,
+    pub exclude_document_id: Option<String>,
+}
+
+/// Suggest continuation phrases from the local library corpus (Python n-grams, Rust fallback).
+#[tauri::command]
+pub fn nlp_suggest_continuation(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpSuggestContinuationInput,
+) -> Result<serde_json::Value, String> {
+    let prefix = input.prefix;
+    let max_suggestions = input.max_suggestions.unwrap_or(3).clamp(1, 5);
+    let max_tokens = input.max_tokens.unwrap_or(16).clamp(1, 32);
+    let prefer_rust = input.prefer_rust.unwrap_or(false);
+    let exclude = input
+        .exclude_document_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+
+    let corpus = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        let library_id = crate::libraries::active_library_id(&conn);
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, title, content_json FROM documents
+                 WHERE deleted_at IS NULL AND library_id = ?1
+                 ORDER BY updated_at DESC
+                 LIMIT 48",
+            )
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map(params![library_id], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            })
+            .map_err(|e| e.to_string())?;
+        let mut texts = Vec::new();
+        for row in rows {
+            let (id, title, content_json) = row.map_err(|e| e.to_string())?;
+            if exclude.is_some_and(|ex| ex == id) {
+                continue;
+            }
+            if content_is_vault_cipher(&content_json) {
+                continue;
+            }
+            let text = document_index_text(&conn, &id, &title, &content_json);
+            if text.trim().chars().count() >= 24 {
+                texts.push(text);
+            }
+        }
+        texts
+    };
+
+    if !prefer_rust {
+        let nlp_on = {
+            let conn = state.conn.lock().map_err(|e| e.to_string())?;
+            let enabled = is_nlp_enabled(&conn)?;
+            if enabled {
+                let _ = sync_sidecar_backend(&sidecar, &conn);
+            }
+            enabled
+        };
+        if nlp_on {
+            if let Ok(value) = sidecar.suggest_continuation(
+                &prefix,
+                &corpus,
+                max_suggestions as i64,
+                max_tokens as i64,
+            ) {
+                return Ok(value);
+            }
+        }
+    }
+
+    let result = scribe_core::nlp::suggest_continuation(
+        &prefix,
+        &corpus,
+        max_suggestions as usize,
+        max_tokens as usize,
+    );
+    serde_json::to_value(result).map_err(|e| e.to_string())
 }
 

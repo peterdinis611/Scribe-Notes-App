@@ -559,6 +559,28 @@ impl NlpSidecar {
         self.call_method("spellcheck", params)
     }
 
+    pub fn generate_placeholder(
+        &self,
+        unit: &str,
+        count: i64,
+        language: Option<&str>,
+        start_with_classic: bool,
+        seed: Option<u64>,
+    ) -> Result<Value, String> {
+        let mut params = json!({
+            "unit": unit,
+            "count": count,
+            "startWithClassic": start_with_classic,
+        });
+        if let Some(lang) = language {
+            params["language"] = json!(lang);
+        }
+        if let Some(value) = seed {
+            params["seed"] = json!(value);
+        }
+        self.call_method("generate_placeholder", params)
+    }
+
     pub fn chunk_text(
         &self,
         text: &str,
@@ -603,6 +625,79 @@ impl NlpSidecar {
         Ok(crate::nlp::parse_rewrite_result(&raw, mode, text))
     }
 
+    pub fn suggest_continuation(
+        &self,
+        prefix: &str,
+        corpus: &[String],
+        max_suggestions: i64,
+        max_tokens: i64,
+    ) -> Result<Value, String> {
+        self.call_method(
+            "suggest_continuation",
+            json!({
+                "prefix": prefix,
+                "corpus": corpus,
+                "maxSuggestions": max_suggestions,
+                "maxTokens": max_tokens,
+            }),
+        )
+    }
+
+    pub fn analyze_revision_diff(
+        &self,
+        old_text: &str,
+        new_text: &str,
+        max_bullets: i64,
+        language: Option<&str>,
+    ) -> Result<Value, String> {
+        let mut params = json!({
+            "oldText": old_text,
+            "newText": new_text,
+            "maxBullets": max_bullets,
+        });
+        if let Some(lang) = language {
+            params["language"] = json!(lang);
+        }
+        self.call_method("analyze_revision_diff", params)
+    }
+
+    pub fn extract_flashcards(
+        &self,
+        text: &str,
+        limit: i64,
+        include_cloze: bool,
+    ) -> Result<Value, String> {
+        self.call_method(
+            "extract_flashcards",
+            json!({
+                "text": text,
+                "limit": limit,
+                "includeCloze": include_cloze,
+            }),
+        )
+    }
+
+    pub fn check_terminology(&self, text: &str, limit: i64) -> Result<Value, String> {
+        self.call_method(
+            "check_terminology",
+            json!({ "text": text, "limit": limit }),
+        )
+    }
+
+    pub fn extract_takeaways(&self, text: &str, limit: i64) -> Result<Value, String> {
+        self.call_method(
+            "extract_takeaways",
+            json!({ "text": text, "limit": limit }),
+        )
+    }
+
+    pub fn writing_coach(&self, text: &str, limit: i64) -> Result<Value, String> {
+        self.call_method(
+            "writing_coach",
+            json!({ "text": text, "limit": limit }),
+        )
+    }
+
     pub fn analyze_document_typed(
         &self,
         text: &str,
@@ -633,7 +728,11 @@ pub fn rpc_timeout(method: &str) -> Duration {
     }
     match method {
         "health" | "set_embed_backend" => Duration::from_secs(8),
-        "embed" | "rewrite_query" | "chunk_text" => Duration::from_secs(25),
+        "embed" | "rewrite_query" | "chunk_text" | "suggest_continuation" | "generate_placeholder"
+        | "analyze_revision_diff" | "summarize_diff" | "extract_flashcards" | "check_terminology"
+        | "extract_takeaways" | "writing_coach" => {
+            Duration::from_secs(25)
+        }
         "embed_with_chunks" => Duration::from_secs(60),
         "embed_batch" | "embed_batch_with_chunks" => Duration::from_secs(180),
         "library_answer" | "find_duplicates" | "library_report" | "analyze_document" => {

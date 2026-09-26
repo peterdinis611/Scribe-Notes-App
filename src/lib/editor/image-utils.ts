@@ -166,17 +166,31 @@ export function isLottieFile(file: File): boolean {
   return false
 }
 
+export function isModel3dFile(file: File): boolean {
+  const name = file.name.toLowerCase()
+  if (name.endsWith('.glb') || name.endsWith('.gltf') || name.endsWith('.usdz')) return true
+  return (
+    file.type === 'model/gltf-binary' ||
+    file.type === 'model/gltf+json' ||
+    file.type === 'model/vnd.usdz+zip'
+  )
+}
+
 export function isImageFile(file: File): boolean {
   if (file.type.startsWith('image/')) return true
   return /\.(?:png|jpe?g|gif|webp|svg|apng)$/i.test(file.name)
 }
 
 export function isDocumentMediaFile(file: File): boolean {
-  return isImageFile(file) || isLottieFile(file)
+  return isImageFile(file) || isLottieFile(file) || isModel3dFile(file)
 }
 
 export function insertEmptyLottieBlock(editor: Editor, pos?: number) {
   editor.chain().focus().insertLottieAnimation({ pos, src: null }).run()
+}
+
+export function insertEmptyModel3dBlock(editor: Editor, pos?: number) {
+  editor.chain().focus().insertModel3d({ pos, src: null }).run()
 }
 
 export async function insertLottieFromFile(
@@ -200,7 +214,28 @@ export async function insertLottieFromFile(
     .run()
 }
 
-/** Insert images and/or Lottie animations from a mixed file list. */
+export async function insertModel3dFromFile(
+  editor: Editor,
+  documentId: string,
+  file: File,
+  pos?: number,
+) {
+  const base64 = await fileToBase64(file)
+  const path = await saveDocumentImage(documentId, file.name, base64)
+
+  editor
+    .chain()
+    .focus()
+    .insertModel3d({
+      pos,
+      src: path,
+      width: '480px',
+      align: 'center',
+    })
+    .run()
+}
+
+/** Insert images, Lottie, and/or 3D models from a mixed file list. */
 export async function insertDocumentMediaFromFiles(
   editor: Editor,
   documentId: string,
@@ -209,7 +244,9 @@ export async function insertDocumentMediaFromFiles(
 ) {
   let insertPos = pos
   for (const file of files) {
-    if (isLottieFile(file) && !file.type.startsWith('image/')) {
+    if (isModel3dFile(file)) {
+      await insertModel3dFromFile(editor, documentId, file, insertPos)
+    } else if (isLottieFile(file) && !file.type.startsWith('image/')) {
       await insertLottieFromFile(editor, documentId, file, insertPos)
     } else if (isImageFile(file)) {
       await insertImageFromFile(editor, documentId, file, insertPos)
@@ -317,13 +354,24 @@ export function pickLottieFiles(options?: { multiple?: boolean }): Promise<File[
   })
 }
 
-/** Images + Lottie in one picker (Insert toolbar / drop). */
+export function pickModel3dFiles(options?: { multiple?: boolean }): Promise<File[]> {
+  return new Promise((resolve) => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.glb,.gltf,.usdz,model/gltf-binary,model/gltf+json,model/vnd.usdz+zip'
+    input.multiple = options?.multiple ?? false
+    input.onchange = () => resolve(Array.from(input.files ?? []).filter(isModel3dFile))
+    input.click()
+  })
+}
+
+/** Images + Lottie + 3D models in one picker (Insert toolbar / drop). */
 export function pickDocumentMediaFiles(options?: { multiple?: boolean }): Promise<File[]> {
   return new Promise((resolve) => {
     const input = document.createElement('input')
     input.type = 'file'
     input.accept =
-      'image/png,image/jpeg,image/gif,image/webp,image/apng,image/svg+xml,.svg,.gif,.webp,.apng,.json,.lottie,application/json'
+      'image/png,image/jpeg,image/gif,image/webp,image/apng,image/svg+xml,.svg,.gif,.webp,.apng,.json,.lottie,.glb,.gltf,.usdz,application/json,model/gltf-binary,model/gltf+json'
     input.multiple = options?.multiple ?? true
     input.onchange = () => resolve(Array.from(input.files ?? []).filter(isDocumentMediaFile))
     input.click()

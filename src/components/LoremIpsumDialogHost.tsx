@@ -21,6 +21,8 @@ import {
   generateLoremIpsum,
   loadLoremOptions,
   normalizeLoremOptions,
+  type LoremEngine,
+  type LoremLanguage,
   type LoremOptions,
   type LoremUnit,
 } from '@/lib/editor/lorem-ipsum'
@@ -48,6 +50,7 @@ export function LoremIpsumDialogHost() {
 
   const preview = generateLoremIpsum({
     ...options,
+    // Local JS preview only (backend runs on insert).
     count: options.unit === 'words' ? Math.min(options.count, 24) : Math.min(options.count, 2),
   })
 
@@ -106,6 +109,49 @@ export function LoremIpsumDialogHost() {
                 />
               </label>
 
+              <label className="grid gap-1.5 text-[12px]">
+                <span className="font-medium text-[var(--color-foreground)]">{t('lorem.language')}</span>
+                <Select
+                  value={options.language}
+                  onValueChange={(value) =>
+                    setOptions((prev) =>
+                      normalizeLoremOptions({ ...prev, language: value as LoremLanguage }),
+                    )
+                  }
+                >
+                  <SelectTrigger aria-label={t('lorem.language')}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="la">{t('lorem.languages.la')}</SelectItem>
+                    <SelectItem value="en">{t('lorem.languages.en')}</SelectItem>
+                    <SelectItem value="sk">{t('lorem.languages.sk')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </label>
+
+              <label className="grid gap-1.5 text-[12px]">
+                <span className="font-medium text-[var(--color-foreground)]">{t('lorem.engine')}</span>
+                <Select
+                  value={options.engine}
+                  onValueChange={(value) =>
+                    setOptions((prev) =>
+                      normalizeLoremOptions({ ...prev, engine: value as LoremEngine }),
+                    )
+                  }
+                >
+                  <SelectTrigger aria-label={t('lorem.engine')}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">{t('lorem.engines.auto')}</SelectItem>
+                    <SelectItem value="python">{t('lorem.engines.python')}</SelectItem>
+                    <SelectItem value="rust">{t('lorem.engines.rust')}</SelectItem>
+                    <SelectItem value="local">{t('lorem.engines.local')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </label>
+
               <label className="flex items-center gap-2 text-[12px] text-[var(--color-foreground)]">
                 <input
                   type="checkbox"
@@ -128,6 +174,9 @@ export function LoremIpsumDialogHost() {
               </p>
               <p className="m-0 line-clamp-4 text-[12px] leading-relaxed text-[var(--color-foreground)]">
                 {preview}
+              </p>
+              <p className="m-0 mt-2 text-[10px] text-[var(--color-muted-foreground)]">
+                {t('lorem.previewHint')}
               </p>
             </div>
 

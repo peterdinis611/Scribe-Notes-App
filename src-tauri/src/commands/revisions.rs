@@ -1,6 +1,9 @@
 use crate::commands::documents::{map_document, Document, DOCUMENT_SELECT};
 use crate::commands::storage::{flush_document_persist, persist_document};
-use crate::db::{fetch_revision, restore_document_content, save_revision, set_revision_label, DbState};
+use crate::db::{
+    delete_revision, fetch_revision, restore_document_content, save_revision, set_revision_label,
+    DbState,
+};
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, State};
@@ -258,4 +261,13 @@ pub fn restore_document_revision(
         updated_at: now,
         vault_verifier: existing.vault_verifier,
     })
+}
+
+#[tauri::command]
+pub fn delete_document_revision(
+    state: State<'_, DbState>,
+    revision_id: String,
+) -> Result<(), String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    delete_revision(&conn, &revision_id)
 }

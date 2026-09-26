@@ -64,16 +64,22 @@ export function CommentDialogHost() {
         if (!open) close(null)
       }}
     >
-      <DialogContent className="comment-dialog titlebar-no-drag">
+      <DialogContent className="titlebar-no-drag">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>{t('editorActions.newComment')}</DialogTitle>
             <DialogDescription>{t('panels.comments.composerHint')}</DialogDescription>
           </DialogHeader>
-          {dialog.quote ? <blockquote className="comment-dialog-quote">“{dialog.quote}”</blockquote> : null}
+          {dialog.quote ? (
+            <blockquote className="mb-3.5 border-0 border-l-2 border-[var(--color-accent)] py-2 pl-2.5 font-[family-name:var(--font-sans)] text-[12px] italic leading-[1.45] text-[var(--color-muted-foreground)]">
+              “{dialog.quote}”
+            </blockquote>
+          ) : null}
 
-          <label className="comment-dialog-field">
-            <span>{t('panels.comments.authorLabel')}</span>
+          <label className="mb-3 flex flex-col gap-1.5">
+            <span className="font-[family-name:var(--font-display)] text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--color-muted-foreground)]">
+              {t('panels.comments.authorLabel')}
+            </span>
             <Input
               ref={nameRef}
               value={author}
@@ -84,11 +90,13 @@ export function CommentDialogHost() {
             />
           </label>
 
-          <label className="comment-dialog-field">
-            <span>{t('panels.comments.bodyLabel')}</span>
+          <label className="mb-3 flex flex-col gap-1.5">
+            <span className="font-[family-name:var(--font-display)] text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--color-muted-foreground)]">
+              {t('panels.comments.bodyLabel')}
+            </span>
             <textarea
               ref={bodyRef}
-              className="comment-dialog-body"
+              className="min-h-[92px] w-full resize-y rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 font-[family-name:var(--font-sans)] text-[13px] leading-[1.45] text-[var(--color-foreground)] outline-none placeholder:text-[var(--color-muted-foreground)] focus:border-[var(--color-accent)] focus:shadow-[0_0_0_3px_var(--color-selection)]"
               value={body}
               onChange={(event) => setBody(event.target.value)}
               placeholder={t('editorActions.commentPlaceholder')}

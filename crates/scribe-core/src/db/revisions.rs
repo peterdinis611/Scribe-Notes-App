@@ -117,6 +117,19 @@ pub fn set_revision_label(
     Ok(())
 }
 
+pub fn delete_revision(conn: &Connection, revision_id: &str) -> Result<(), String> {
+    let updated = conn
+        .execute(
+            "DELETE FROM document_revisions WHERE id = ?1",
+            params![revision_id],
+        )
+        .map_err(|e| e.to_string())?;
+    if updated == 0 {
+        return Err("Verzia neexistuje".into());
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -263,5 +276,26 @@ mod tests {
             )
             .unwrap();
         assert_eq!(revision_count, 0);
+    }
+
+    #[test]
+    fn delete_revision_removes_row() {
+        let conn = in_memory_conn();
+        conn.execute(
+            "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at) VALUES ('doc-1', 'A', '{}', NULL, NULL, 1, 1)",
+            [],
+        )
+        .unwrap();
+        let id = save_revision(&conn, "doc-1", "A", "{}", Some("Keep"), false).unwrap();
+        delete_revision(&conn, &id).unwrap();
+        let count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM document_revisions WHERE id = ?1",
+                params![id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 0);
+        assert!(delete_revision(&conn, &id).is_err());
     }
 }

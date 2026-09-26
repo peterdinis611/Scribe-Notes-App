@@ -384,14 +384,16 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
               </div>
 
               <form
-                className="comment-compose"
+                className="flex flex-col gap-2"
                 onSubmit={(event) => {
                   event.preventDefault()
                   void handleReply(thread)
                 }}
               >
-                <label className="comment-compose-author">
-                  <span>{t('panels.comments.authorLabel')}</span>
+                <label className="flex min-w-0 flex-col items-stretch gap-1">
+                  <span className="font-[family-name:var(--font-display)] text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--color-muted-foreground)]">
+                    {t('panels.comments.authorLabel')}
+                  </span>
                   <Input
                     className="h-8 min-w-0 flex-1 text-[12px]"
                     value={author}
@@ -403,7 +405,7 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
                     aria-label={t('panels.comments.authorLabel')}
                   />
                 </label>
-                <div className="comment-compose-row">
+                <div className="flex gap-1.5">
                   <Input
                     className="h-8 min-w-0 flex-1 text-[12px]"
                     placeholder={t('panels.comments.replyPlaceholder')}
@@ -429,8 +431,10 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
         )}
       </EditorSidePanelList>
 
-      <label className="comment-compose-author comment-compose-author--footer">
-        <span>{t('panels.comments.signedAs')}</span>
+      <label className="flex flex-row items-center gap-2 border-t border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-surface)_70%,transparent)] px-3.5 pt-2.5 pb-3">
+        <span className="shrink-0 font-[family-name:var(--font-display)] text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--color-muted-foreground)]">
+          {t('panels.comments.signedAs')}
+        </span>
         <Input
           className="h-7 min-w-0 flex-1 text-[12px]"
           value={author}

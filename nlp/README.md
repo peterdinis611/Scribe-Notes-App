@@ -87,6 +87,12 @@ Core: `health`, `embed`, `embed_batch`, `summarize`, `extract_*`, `analyze_docum
 
 1.0.2+: document Q&A loads full note text (OCR included), merges embeddings with whole-document coverage
 
+1.1.0+: `suggest_continuation` — local n-gram continue-writing from library corpus (slash `/continue`)
+
+1.2.0+: `analyze_revision_diff` — dedicated revision AI (change kind, risks, bullets; Rust fallback)
+
+1.3.0+: `extract_flashcards`, `check_terminology`, `extract_takeaways`, `writing_coach`
+
 ## Version
 
-Current sidecar: **1.0.0**
+Current sidecar: **1.3.0**

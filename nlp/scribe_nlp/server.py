@@ -98,6 +98,13 @@ FEATURES = [
     "stemming",
     "keybert",
     "spellcheck",
+    "generatePlaceholder",
+    "suggestContinuation",
+    "analyzeRevisionDiff",
+    "extractFlashcards",
+    "checkTerminology",
+    "extractTakeaways",
+    "writingCoach",
     "libraryAnswer",
     "dueHints",
     "wikiSuggest",
@@ -466,6 +473,25 @@ def _handle_request_inner(
             language_value = str(language).lower() if language else None
             max_issues = max(1, min(int(params.get("maxIssues") or 80), 200))
             result = spellcheck_text(text, language=language_value, max_issues=max_issues)
+        elif method == "generate_placeholder":
+            from .placeholder import generate_placeholder
+
+            unit = str(params.get("unit") or "paragraphs")
+            count = int(params.get("count") or 3)
+            language = params.get("language")
+            language_value = str(language) if language else "la"
+            start_with_classic = bool(
+                params.get("startWithClassic", params.get("startWithLorem", True))
+            )
+            seed = params.get("seed")
+            seed_value = int(seed) if seed is not None else None
+            result = generate_placeholder(
+                unit=unit,
+                count=count,
+                language=language_value,
+                start_with_classic=start_with_classic,
+                seed=seed_value,
+            )
         elif method == "rewrite_selection":
             from .rewrite import rewrite_selection
 
@@ -474,6 +500,65 @@ def _handle_request_inner(
             custom_instruction = params.get("customInstruction")
             custom_value = str(custom_instruction) if custom_instruction else None
             result = rewrite_selection(text, mode=mode, custom_instruction=custom_value)
+        elif method == "suggest_continuation":
+            from .continuation import suggest_continuation
+
+            prefix = str(params.get("prefix") or "")
+            if len(prefix) > 8_000:
+                raise SidecarError("prefix exceeds limit", code=-32602)
+            corpus_raw = params.get("corpus") or []
+            if not isinstance(corpus_raw, list):
+                raise SidecarError("corpus must be an array of strings", code=-32602)
+            corpus = [str(item) for item in corpus_raw[:80]]
+            max_suggestions = max(1, min(int(params.get("maxSuggestions") or 3), 5))
+            max_tokens = max(1, min(int(params.get("maxTokens") or 16), 32))
+            result = suggest_continuation(
+                prefix,
+                corpus=corpus,
+                max_suggestions=max_suggestions,
+                max_tokens=max_tokens,
+            )
+        elif method == "analyze_revision_diff":
+            from .revision_ai import analyze_revision_diff
+
+            old_text = str(params.get("oldText") or "")
+            new_text = str(params.get("newText") or "")
+            if len(old_text) > 400_000 or len(new_text) > 400_000:
+                raise SidecarError("diff text exceeds limit", code=-32602)
+            max_bullets = max(1, min(int(params.get("maxBullets") or 6), 12))
+            language = params.get("language")
+            language_value = str(language).lower() if language else None
+            result = analyze_revision_diff(
+                old_text,
+                new_text,
+                max_bullets=max_bullets,
+                language=language_value,
+            )
+        elif method == "extract_flashcards":
+            from .flashcards import extract_flashcards
+
+            text = _validate_text(str(params.get("text") or ""))
+            limit = max(1, min(int(params.get("limit") or 12), 40))
+            include_cloze = bool(params.get("includeCloze", True))
+            result = extract_flashcards(text, limit=limit, include_cloze=include_cloze)
+        elif method == "check_terminology":
+            from .terminology import check_terminology
+
+            text = _validate_text(str(params.get("text") or ""))
+            limit = max(1, min(int(params.get("limit") or 12), 30))
+            result = check_terminology(text, limit=limit)
+        elif method == "extract_takeaways":
+            from .takeaways import extract_takeaways
+
+            text = _validate_text(str(params.get("text") or ""))
+            limit = max(1, min(int(params.get("limit") or 8), 20))
+            result = extract_takeaways(text, limit=limit)
+        elif method == "writing_coach":
+            from .writing_coach import writing_coach
+
+            text = _validate_text(str(params.get("text") or ""))
+            limit = max(1, min(int(params.get("limit") or 12), 30))
+            result = writing_coach(text, limit=limit)
         else:
             return {
                 "jsonrpc": "2.0",

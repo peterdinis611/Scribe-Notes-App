@@ -34,6 +34,20 @@ fn looks_like_lottie_zip(bytes: &[u8]) -> bool {
     bytes.len() >= 4 && bytes[0] == 0x50 && bytes[1] == 0x4B && (bytes[2] == 0x03 || bytes[2] == 0x05)
 }
 
+fn looks_like_glb(bytes: &[u8]) -> bool {
+    // glTF binary magic: "glTF"
+    bytes.len() >= 12 && bytes[0] == b'g' && bytes[1] == b'l' && bytes[2] == b'T' && bytes[3] == b'F'
+}
+
+fn looks_like_gltf_json(bytes: &[u8]) -> bool {
+    let Ok(value) = serde_json::from_slice::<serde_json::Value>(bytes) else {
+        return false;
+    };
+    value
+        .as_object()
+        .is_some_and(|obj| obj.contains_key("asset") && (obj.contains_key("meshes") || obj.contains_key("nodes") || obj.contains_key("scenes")))
+}
+
 #[tauri::command]
 pub fn save_document_image(
     app: AppHandle,
@@ -53,9 +67,14 @@ pub fn save_document_image(
         .unwrap_or("png")
         .to_lowercase();
 
-    let allowed = ["png", "jpg", "jpeg", "gif", "webp", "svg", "json", "lottie", "apng"];
+    let allowed = [
+        "png", "jpg", "jpeg", "gif", "webp", "svg", "json", "lottie", "apng", "glb", "gltf", "usdz",
+    ];
     if !allowed.contains(&ext.as_str()) {
-        return Err("Podporované formáty: PNG, JPG, GIF, WEBP, SVG, Lottie (.json / .lottie)".to_string());
+        return Err(
+            "Podporované formáty: PNG, JPG, GIF, WEBP, SVG, Lottie (.json / .lottie), 3D (.glb / .gltf / .usdz)"
+                .to_string(),
+        );
     }
 
     let bytes = decode_payload(&data_base64)?;
@@ -83,6 +102,21 @@ pub fn save_document_image(
                 return Err("Lottie súbor je príliš veľký (max 20 MB)".to_string());
             }
             (bytes, "lottie".into())
+        }
+        "glb" | "gltf" | "usdz" => {
+            if bytes.len() < 16 {
+                return Err("3D súbor je príliš malý alebo poškodený".to_string());
+            }
+            if ext == "glb" && !looks_like_glb(&bytes) {
+                return Err("Súbor .glb nie je platný glTF binary kontajner".to_string());
+            }
+            if ext == "gltf" && !looks_like_gltf_json(&bytes) {
+                return Err("Súbor .gltf nie je platný glTF JSON".to_string());
+            }
+            if bytes.len() > 80 * 1024 * 1024 {
+                return Err("3D model je príliš veľký (max 80 MB)".to_string());
+            }
+            (bytes, ext.clone())
         }
         _ => {
             let optimized = optimize_image_bytes(&bytes, &ext, OptimizeOptions::default())?;

@@ -177,10 +177,10 @@ Voliteľná offline inteligencia. Zapnite v **Nastavenia → Lokálna AI**. Scri
 | | |
 |--|--|
 | **Runtime** | Python **3.10+**, predvolene len štandardná knižnica |
-| **Verzia sidecaru** | **0.8.1** |
+| **Verzia sidecaru** | **1.3.0** |
 | **Predvolený embed model** | `scribe-hash-v4` (stem/diakritika; chunk mean-pool pre dlhé poznámky) |
 | **Voliteľná kvalita** | `pip install sentence-transformers` → MiniLM (`scribe-minilm-v1`), cache v `~/.cache/scribe-nlp/models` |
-| **Čo získate** | Sémantické ⌘K, AI prehľad (zhrnutie, tón, dátumy, odkazy, keywords), návrhy tagov, tón týždňa v denníku, analýza knižnice, AI zhrnutie diffu revízií |
+| **Čo získate** | Sémantické ⌘K hľadanie, AI insights (zhrnutie, tón, dátumy, odkazy, kľúčové slová), návrhy tagov, denníkový digest, report knižnice, revision AI, kartičky, závery, terminológia, štýlový kouč |
 
 ```bash
 # health check
@@ -273,41 +273,131 @@ Kompletný zoznam je v aplikácii pod **Nastavenia → Skratky**.
 
 ## Štruktúra projektu
 
+Scribe je **local-first desktop app**: React UI komunikuje s Rust Tauri shellom, ktorý vlastní SQLite a voliteľnú Python Local AI. Voliteľný MCP proces môže čítať/zapisovať tú istú databázu pre Cursor / Claude.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  React UI (src/)                                            │
+│  pages · components · Redux store · TipTap editor           │
+│  lib/db/*  ──invoke()──►  Tauri commands                    │
+└───────────────────────────────┬─────────────────────────────┘
+                                │
+┌───────────────────────────────▼─────────────────────────────┐
+│  Tauri shell (src-tauri/)                                   │
+│  IPC commands · storage watch · export · OCR · knižnice     │
+│           │                                                 │
+│           ▼                                                 │
+│  scribe-core (crates/scribe-core/)                          │
+│  SQLite schéma · FTS · wiki · vault · NLP most              │
+│           │                                                 │
+│           ▼  (voliteľné, keď je zapnutá Lokálna AI)         │
+│  Python sidecar (nlp/scribe_nlp/)  stdin/stdout JSON-RPC    │
+└─────────────────────────────────────────────────────────────┘
+        ▲
+        │ tá istá DB (voliteľné)
+┌───────┴────────┐
+│  scribe-mcp    │  nástroje pre Claude / Cursor cez stdio
+└────────────────┘
+```
+
+**Rýchla orientácia**
+
+| Chceš zmeniť… | Začni tu |
+|---------------|----------|
+| Tlačidlá, dialógy, layout | `src/components/`, `src/pages/` |
+| Stav appky (otvorený dokument, téma, dialógy) | `src/store/` |
+| TipTap uzly, slash menu, block API | `src/lib/editor/` (`block-api.ts`, `block-registry.ts`, `extensions.ts`) |
+| Volania do Rustu (`invoke`) | `src/lib/db/` |
+| SQLite / dokumenty / sync | `crates/scribe-core/` + `src-tauri/src/commands/` |
+| Algoritmy Lokálnej AI | `nlp/scribe_nlp/` (exponované cez `src-tauri/src/commands/nlp.rs`) |
+| Agent tools pre Cursor/Claude | `crates/scribe-mcp/` |
+| Preklady | `src/i18n/locales/{en,sk}.json` |
+
+### Mapa adresárov
+
 ```
 scribe/
-├── src/                          # React frontend
-│   ├── components/
-│   │   ├── canvas/               # Canvas / whiteboard poznámky
-│   │   ├── editor/               # Panely, menu, stránkovanie, diff
-│   │   ├── editor-toolbar/       # Formátovací toolbar
-│   │   ├── layout/               # AppHeader, SidebarRail, taby
-│   │   ├── settings/             # Nastavenia UI
-│   │   └── ui/                   # shadcn-style primitívy
-│   ├── hooks/                    # Auto-save, hotkeys, pagination, …
-│   ├── i18n/                     # Preklady (en, sk)
+├── src/                          # React + TypeScript frontend (Vite)
+│   ├── main.tsx / App.tsx        # Bootstrap, providery
+│   ├── router.tsx                # TanStack Router routes
+│   ├── index.css                 # Tailwind v4 + zvyšný globálny chrome
+│   ├── components/               # UI podľa feature
+│   │   ├── canvas/               # Voľné canvas poznámky (React Flow)
+│   │   ├── editor/               # Panely, menu, TOC, komentáre, overlaye
+│   │   ├── editor-toolbar/       # Formátovací ribbon
+│   │   ├── layout/               # Header, icon rail, taby dokumentov
+│   │   ├── library/              # Switcher, compile, sync konflikty
+│   │   ├── settings/             # Sekcie nastavení
+│   │   ├── pdf/                  # Bloky pre štruktúrovaný PDF náhľad
+│   │   └── ui/                   # Zdieľané primitívy (button, dialog, …)
+│   ├── hooks/                    # Auto-save, hotkeys, pagination, sync
+│   ├── i18n/                     # i18next + en/sk locale JSON
 │   ├── layouts/                  # AppLayout, SettingsLayout
-│   ├── lib/
-│   │   ├── canvas/               # Helpery pre canvas dokumenty
-│   │   ├── db/                   # Tauri invoke API
-│   │   ├── editor/               # TipTap extensions a helpery
-│   │   ├── export/               # HTML, PDF, DOCX, Markdown, share balíky
-│   │   ├── revisions/            # Porovnanie verzií
-│   │   └── themes/               # Témy a preset farby
-│   ├── pages/                    # Home, Document, Settings
-│   └── store/                    # Redux slices + persistence
-├── src-tauri/                    # Rust backend
+│   ├── lib/                      # Doménová logika (radšej tu než v tlustých komponentoch)
+│   │   ├── db/                   # Typované Tauri invoke wrapery (documents, NLP, …)
+│   │   ├── editor/               # TipTap extensions, slash, block registry/snipety
+│   │   ├── export/               # HTML / PDF / DOCX / Markdown / share balíky
+│   │   ├── disk-sync.ts          # Folder reconcile + toasty
+│   │   └── themes/               # Theme presets
+│   ├── pages/                    # Obrazovky na úrovni routes
+│   ├── store/                    # Redux Toolkit slices + persistence
+│   └── __tests__/                # Vitest (zrkadlí lib/ + components/)
+│
+├── src-tauri/                    # Tauri 2 desktop shell
+│   ├── tauri.conf.json           # Window, bundle, resources (vrátane nlp/)
 │   └── src/
-│       ├── commands/             # Tauri commands (documents, folders, NLP, …)
-│       ├── db/                   # SQLite, migrácie, FTS, revízie
-│       ├── export/               # Export do súborov
-│       └── storage/              # .scribe súbory, sync, persist queue
-├── nlp/                          # Lokálna AI — Python sidecar (stdlib JSON-RPC)
-│   ├── scribe_nlp/               # embed, summarize, analyze, NER, …
-│   └── tests/                    # unittest (`npm run nlp:test`)
-├── crates/scribe-core/           # Zdieľaný Rust DB / NLP most
-├── crates/scribe-mcp/            # Voliteľný MCP server
-└── src/__tests__/                # Vitest testy
+│       ├── commands/             # #[tauri::command] IPC povrch
+│       ├── db/                   # App DB helpery / migrácie
+│       ├── storage/              # .scribe súbory, FS watch, write queue
+│       ├── export/               # Natívne export helpery
+│       └── nlp/                  # Správa sidecar procesu
+│
+├── crates/
+│   ├── scribe-core/              # Zdieľaná Rust knižnica (DB, wiki, NLP typy, placeholder text)
+│   └── scribe-mcp/               # Voliteľný MCP server binary
+│
+├── nlp/                          # Voliteľná Lokálna AI (Python 3.10+)
+│   ├── scribe_nlp/               # JSON-RPC metódy: embed, analyze, placeholder, …
+│   ├── tests/                    # unittest (`bun run nlp:test`)
+│   └── README.md                 # Zoznam metód + dizajn
+│
+├── brand/                        # Ikony / marketing assets
+├── docs/                         # Screenshoty v tomto README
+├── scripts/                      # Dev helpery (version sync, Tauri+MCP, …)
+└── .github/workflows/            # CI + Tauri build
 ```
+
+### Ako typicky tečie feature
+
+1. **UI** — React komponent v `src/components/` alebo `src/pages/` volá hook alebo helper z `lib/`.
+2. **Stav** — Redux (`src/store/`) drží efemérne UI + zoznam dokumentov; trvalé preferencie idú cez persistence helpery.
+3. **IPC** — `src/lib/db/*.ts` wrapuje `invoke('command_name', …)`.
+4. **Rust** — `src-tauri/src/commands/` validuje vstup a používa `scribe-core` na SQLite / súbory.
+5. **Lokálna AI (voliteľné)** — NLP príkazy idú na Python sidecar cez JSON-RPC; ak je sidecar vypnutý, feature buď degraduje, alebo použije Rust fallback (napr. placeholder / lorem text, continue-writing n-gramy, **revision AI**).
+6. **Smart paste** — špinavé HTML z Wordu/Pages/webu sa v Ruste (`html_paste`) vyčistí pred vložením do TipTapu.
+7. **Revision AI** — `analyze_revision_diff` v Pythone (`revision_ai.py`) a rovnaký Rust modul (`nlp/revision_ai.rs`) klasifikujú rozšírenia, skrátenia, riziká a bullet body pre history panel.
+8. **Štúdium / štýl AI** — Python moduly `flashcards`, `terminology`, `takeaways`, `writing_coach` (sidecar 1.3+) ako akcie v Local AI chate.
+
+### Editor / block vrstva
+
+Telo dokumentu je **TipTap JSON** v SQLite (`content_json`) a pri zapnutom folder sync sa zrkadlí do `.scribe` súborov.
+
+- **`src/lib/editor/extensions.ts`** — registruje TipTap uzly (callout, mermaid, video, …).
+- **`src/lib/editor/block-registry.ts`** — slash-vkladateľné built-in bloky (`insertBlock('hr')`, …).
+- **`src/lib/editor/block-snippets.ts`** — znovupoužiteľné šablóny (plain text alebo TipTap JSON), vrátane vlastných blokov.
+- **`src/lib/editor/block-api.ts`** — verejná fasáda pre registry + snippety (`insertAnyBlock`, import/export, favorites).
+
+Radšej skladaj existujúce bloky / snippety, než pridávať nový TipTap node typ.
+
+### UI chrome
+
+Trojstĺpcový shell:
+
+```
+Icon rail (~52px) | Panel knižnice | Header + editor / obsah stránky
+```
+
+Editor pridáva formátovací toolbar, taby dokumentov (pin), print-layout „papier“, pravý rail (osnova, komentáre, odkazy, štatistiky, história) a status bar (stránkovanie / tlač). Štýly sú hlavne **Tailwind utility classy** v TSX; `src/index.css` drží theme tokeny, TipTap chrome a zvyšný globálny layout.
 
 ## Vývoj
 
@@ -325,19 +415,9 @@ GitHub Actions (`.github/workflows/`):
 - **CI** — na tagoch `v*` (alebo manuálny dispatch): kontrola synchronizácie verzie; frontend lint + Vitest + Vite build; NLP testy; Rust testy na **macOS**, **Ubuntu** a **Windows**
 - **Build** — na tagoch `v*` (alebo manuálny dispatch): kontrola synchronizácie verzie; Tauri build (macOS `.app`/`.dmg` artefakty; Linux/Windows zatiaľ `--no-bundle`, kým nie sú produktové inštalátory)
 
-### Architektúra UI
-
-Aplikácia používa trojstĺpcový shell:
-
-```
-Icon rail (52px) | Knižnica (252px) | Header + obsah
-```
-
-Editor obsahuje formátovací toolbar, taby dokumentov (s pinom), „papierový“ print-layout náhľad, pravý panel rail (štruktúra, komentáre, odkazy, štatistiky, história) a spodný status bar so stránkovaním a tlačou.
-
 ### Databázové migrácie
 
-Schéma SQLite je verzovaná v `src-tauri/src/db/migrations.rs`. Pri štarte aplikácie sa migrácie aplikujú automaticky.
+Schéma SQLite je verzovaná v `src-tauri/src/db/migrations.rs` (a zdieľané helpery v `crates/scribe-core/`). Pri štarte aplikácie sa migrácie aplikujú automaticky.
 
 ## Verzia
 

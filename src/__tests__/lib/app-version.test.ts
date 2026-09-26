@@ -13,8 +13,8 @@ describe('APP_VERSION', () => {
   })
 
   it('matches the 2.4 release line', () => {
-    expect(APP_VERSION.startsWith('2.4.')).toBe(true)
-    expect(APP_SHORT_VERSION).toBe('2.4')
+    expect(APP_VERSION.startsWith('2.5.')).toBe(true)
+    expect(APP_SHORT_VERSION).toBe('2.5')
   })
 
   it('stays in sync with package.json', () => {

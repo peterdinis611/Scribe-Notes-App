@@ -177,10 +177,10 @@ Optional offline intelligence. Enable in **Settings → Local AI**. Scribe start
 | | |
 |--|--|
 | **Runtime** | Python **3.10+**, standard library only by default |
-| **Sidecar version** | **0.8.1** |
+| **Sidecar version** | **1.3.0** |
 | **Default embed model** | `scribe-hash-v4` (stem/diacritic-aware; chunk mean-pool for long notes) |
 | **Optional quality** | `pip install sentence-transformers` → MiniLM (`scribe-minilm-v1`), cached under `~/.cache/scribe-nlp/models` |
-| **What you get** | Semantic ⌘K search, AI insights (summary, tone, dates, links, keywords), tag suggestions, journal week tone, library report, revision diff summary |
+| **What you get** | Semantic ⌘K search, AI insights (summary, tone, dates, links, keywords), tag suggestions, journal week tone, library report, revision AI, flashcards, takeaways, terminology, writing coach |
 
 ```bash
 # health check
@@ -273,41 +273,131 @@ The full list is in the app under **Settings → Shortcuts**.
 
 ## Project structure
 
+Scribe is a **local-first desktop app**: the React UI talks to a Rust Tauri shell, which owns SQLite and optional Python Local AI. An optional MCP process can read/write the same database for Cursor / Claude.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  React UI (src/)                                            │
+│  pages · components · Redux store · TipTap editor           │
+│  lib/db/*  ──invoke()──►  Tauri commands                    │
+└───────────────────────────────┬─────────────────────────────┘
+                                │
+┌───────────────────────────────▼─────────────────────────────┐
+│  Tauri shell (src-tauri/)                                   │
+│  IPC commands · storage watch · export · OCR · libraries    │
+│           │                                                 │
+│           ▼                                                 │
+│  scribe-core (crates/scribe-core/)                          │
+│  SQLite schema · FTS · wiki · vault · NLP bridge            │
+│           │                                                 │
+│           ▼  (optional, when Local AI is enabled)           │
+│  Python sidecar (nlp/scribe_nlp/)  stdin/stdout JSON-RPC    │
+└─────────────────────────────────────────────────────────────┘
+        ▲
+        │ same DB (optional)
+┌───────┴────────┐
+│  scribe-mcp    │  Claude / Cursor tools over stdio
+└────────────────┘
+```
+
+**Rule of thumb**
+
+| You want to change… | Start here |
+|---------------------|------------|
+| Buttons, dialogs, layout | `src/components/`, `src/pages/` |
+| App state (open doc, theme, UI dialogs) | `src/store/` |
+| TipTap nodes, slash menu, block API | `src/lib/editor/` (`block-api.ts`, `block-registry.ts`, `extensions.ts`) |
+| Calls into Rust (`invoke`) | `src/lib/db/` |
+| SQLite / documents / sync | `crates/scribe-core/` + `src-tauri/src/commands/` |
+| Local AI algorithms | `nlp/scribe_nlp/` (exposed via `src-tauri/src/commands/nlp.rs`) |
+| Agent tools for Cursor/Claude | `crates/scribe-mcp/` |
+| Translations | `src/i18n/locales/{en,sk}.json` |
+
+### Directory map
+
 ```
 scribe/
-├── src/                          # React frontend
-│   ├── components/
-│   │   ├── canvas/               # Canvas / whiteboard notes
-│   │   ├── editor/               # Panels, menus, pagination, diff
-│   │   ├── editor-toolbar/       # Formatting toolbar
-│   │   ├── layout/               # AppHeader, SidebarRail, tabs
-│   │   ├── settings/             # Settings UI
-│   │   └── ui/                   # shadcn-style primitives
-│   ├── hooks/                    # Auto-save, hotkeys, pagination, …
-│   ├── i18n/                     # Translations (en, sk)
+├── src/                          # React + TypeScript frontend (Vite)
+│   ├── main.tsx / App.tsx        # Bootstrap, providers
+│   ├── router.tsx                # TanStack Router routes
+│   ├── index.css                 # Tailwind v4 + remaining global chrome
+│   ├── components/               # UI by feature
+│   │   ├── canvas/               # Freeform canvas notes (React Flow)
+│   │   ├── editor/               # Panels, menus, TOC, comments, overlays
+│   │   ├── editor-toolbar/       # Formatting ribbon
+│   │   ├── layout/               # Header, icon rail, document tabs
+│   │   ├── library/              # Switcher, compile, sync conflicts
+│   │   ├── settings/             # Settings sections
+│   │   ├── pdf/                  # Structured PDF preview building blocks
+│   │   └── ui/                   # Shared primitives (button, dialog, …)
+│   ├── hooks/                    # Auto-save, hotkeys, pagination, sync
+│   ├── i18n/                     # i18next + en/sk locale JSON
 │   ├── layouts/                  # AppLayout, SettingsLayout
-│   ├── lib/
-│   │   ├── canvas/               # Canvas document helpers
-│   │   ├── db/                   # Tauri invoke API
-│   │   ├── editor/               # TipTap extensions and helpers
-│   │   ├── export/               # HTML, PDF, DOCX, Markdown, share packs
-│   │   ├── revisions/            # Version comparison
-│   │   └── themes/               # Themes and preset colors
-│   ├── pages/                    # Home, Document, Settings
-│   └── store/                    # Redux slices + persistence
-├── src-tauri/                    # Rust backend
+│   ├── lib/                      # Domain logic (prefer this over fat components)
+│   │   ├── db/                   # Typed Tauri invoke wrappers (documents, NLP, …)
+│   │   ├── editor/               # TipTap extensions, slash, block registry/snippets
+│   │   ├── export/               # HTML / PDF / DOCX / Markdown / share packs
+│   │   ├── disk-sync.ts          # Folder reconcile + toasts
+│   │   └── themes/               # Theme presets
+│   ├── pages/                    # Route-level screens
+│   ├── store/                    # Redux Toolkit slices + persistence
+│   └── __tests__/                # Vitest (mirrors lib/ + components/)
+│
+├── src-tauri/                    # Tauri 2 desktop shell
+│   ├── tauri.conf.json           # Window, bundle, resources (incl. nlp/)
 │   └── src/
-│       ├── commands/             # Tauri commands (documents, folders, NLP, …)
-│       ├── db/                   # SQLite, migrations, FTS, revisions
-│       ├── export/               # File export
-│       └── storage/              # .scribe files, sync, persist queue
-├── nlp/                          # Local AI Python sidecar (stdlib JSON-RPC)
-│   ├── scribe_nlp/               # embed, summarize, analyze, NER, …
-│   └── tests/                    # unittest suite (`npm run nlp:test`)
-├── crates/scribe-core/           # Shared Rust DB / NLP bridge
-├── crates/scribe-mcp/            # Optional MCP server
-└── src/__tests__/                # Vitest tests
+│       ├── commands/             # #[tauri::command] IPC surface
+│       ├── db/                   # App DB helpers / migrations wiring
+│       ├── storage/              # .scribe files, FS watch, write queue
+│       ├── export/               # Native export helpers
+│       └── nlp/                  # Sidecar process management
+│
+├── crates/
+│   ├── scribe-core/              # Shared Rust library (DB, wiki, NLP types, placeholder text)
+│   └── scribe-mcp/               # Optional MCP server binary
+│
+├── nlp/                          # Optional Local AI (Python 3.10+)
+│   ├── scribe_nlp/               # JSON-RPC methods: embed, analyze, placeholder, …
+│   ├── tests/                    # unittest (`bun run nlp:test`)
+│   └── README.md                 # Method list + design notes
+│
+├── brand/                        # Icons / marketing assets
+├── docs/                         # Screenshots used in this README
+├── scripts/                      # Dev helpers (version sync, Tauri+MCP, …)
+└── .github/workflows/            # CI + Tauri build
 ```
+
+### How a typical feature flows
+
+1. **UI** — React component in `src/components/` or `src/pages/` calls a hook or `lib/` helper.
+2. **State** — Redux (`src/store/`) holds ephemeral UI + document list; durable prefs go through persistence helpers.
+3. **IPC** — `src/lib/db/*.ts` wraps `invoke('command_name', …)`.
+4. **Rust** — `src-tauri/src/commands/` validates input, then uses `scribe-core` for SQLite / file IO.
+5. **Local AI (optional)** — NLP commands talk to the Python sidecar over JSON-RPC; if the sidecar is off, features either degrade or use a Rust fallback (e.g. placeholder / lorem text, continue-writing n-grams, **revision AI**).
+6. **Smart paste** — dirty Word/Pages/web HTML is normalized in Rust (`html_paste`) before TipTap insert.
+7. **Revision AI** — `analyze_revision_diff` in Python (`revision_ai.py`) with a matching Rust module (`nlp/revision_ai.rs`) classifies expansions, trims, risks, and bullets for the history panel.
+8. **Study / style AI** — Python modules `flashcards`, `terminology`, `takeaways`, `writing_coach` (sidecar 1.3+) surface as Local AI chat actions.
+
+### Editor / block layer
+
+The document body is **TipTap JSON** stored in SQLite (`content_json`) and mirrored to `.scribe` files when folder sync is on.
+
+- **`src/lib/editor/extensions.ts`** — registers TipTap nodes (callout, mermaid, video, …).
+- **`src/lib/editor/block-registry.ts`** — slash-insertable built-in blocks (`insertBlock('hr')`, …).
+- **`src/lib/editor/block-snippets.ts`** — reusable templates (plain text or TipTap JSON), including user custom blocks.
+- **`src/lib/editor/block-api.ts`** — public facade for registry + snippets (`insertAnyBlock`, import/export, favorites).
+
+Prefer composing existing blocks / snippets before adding a new TipTap node type.
+
+### UI chrome
+
+Three-column shell:
+
+```
+Icon rail (~52px) | Library panel | Header + editor / page content
+```
+
+The editor adds a formatting toolbar, document tabs (pin), print-layout “paper”, a right rail (outline, comments, backlinks, stats, history), and a status bar (pagination / print). Styling is mostly **Tailwind utility classes** in TSX; `src/index.css` keeps theme tokens, TipTap chrome, and remaining global layout.
 
 ## Development
 
@@ -333,19 +423,9 @@ npm run nlp:test      # Python Local AI sidecar tests
 bun run test:all      # frontend + Rust + NLP
 ```
 
-### UI architecture
-
-The app uses a three-column shell:
-
-```
-Icon rail (52px) | Library (252px) | Header + content
-```
-
-The editor includes a formatting toolbar, document tabs (with pin), a “paper” print-layout preview, a right panel rail (outline, comments, backlinks, stats, history), and a bottom status bar with pagination and print.
-
 ### Database migrations
 
-The SQLite schema is versioned in `src-tauri/src/db/migrations.rs`. Migrations run automatically on app startup.
+The SQLite schema is versioned in `src-tauri/src/db/migrations.rs` (and shared helpers in `crates/scribe-core/`). Migrations run automatically on app startup.
 
 ## Version
 
