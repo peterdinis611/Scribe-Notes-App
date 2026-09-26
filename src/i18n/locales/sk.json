@@ -3214,7 +3214,7 @@
   },
   "lorem": {
     "title": "Vložiť lorem ipsum",
-    "description": "Zvoľte, koľko zástupného textu vygenerovať. Posledná voľba sa zapamätá.",
+    "description": "Zástupný text vygeneruje Python NLP alebo Rust. Posledná voľba sa zapamätá.",
     "unit": "Generovať",
     "count": "Množstvo",
     "units": {
@@ -3222,8 +3222,22 @@
       "sentences": "Vety",
       "words": "Slová"
     },
+    "language": "Jazyk slov",
+    "languages": {
+      "la": "Latin (klasické lorem)",
+      "en": "Angličtina",
+      "sk": "Slovenčina"
+    },
+    "engine": "Generátor",
+    "engines": {
+      "auto": "Auto (Python → Rust)",
+      "python": "Python NLP",
+      "rust": "Rust",
+      "local": "Lokálny (JS)"
+    },
     "startWithLorem": "Začať klasickým „Lorem ipsum…“",
     "preview": "Náhľad",
+    "previewHint": "Náhľad je lokálny; pri vložení sa použije zvolený generátor.",
     "insert": "Vložiť",
     "noEditor": "Najprv otvorte dokument"
   },

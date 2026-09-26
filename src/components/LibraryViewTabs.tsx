@@ -70,7 +70,7 @@ export function LibraryViewTabs({
   }
 
   return (
-    <nav className="library-view-tabs titlebar-no-drag" aria-label={t('library.tabs.ariaLabel')}>
+    <nav className="flex flex-col gap-0.5 border-0 bg-transparent p-0 titlebar-no-drag" aria-label={t('library.tabs.ariaLabel')}>
       {tabs.map((tab) => {
         const count = countFor(tab.id)
         const Icon = tab.icon
@@ -82,20 +82,34 @@ export function LibraryViewTabs({
               type="button"
               role="tab"
               aria-selected={isActive}
-              className={cn('library-view-tab', isActive && 'is-active')}
+              className={cn(
+                'flex w-full min-w-0 cursor-default items-center justify-start gap-2 rounded-[var(--radius-sm)] border border-transparent bg-transparent px-2 py-1.5 text-[13px] font-medium text-[var(--color-muted-foreground)] transition-[background,color,border-color] duration-120 hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]',
+                isActive &&
+                  'bg-[var(--color-selection)] text-[var(--color-foreground)] shadow-none [[html[data-ui-skin=press]_&]]:border-[color-mix(in_srgb,var(--color-accent)_28%,transparent)] [[html[data-ui-skin=press]_&]]:bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] [[html[data-ui-skin=press]_&]]:shadow-[inset_2px_0_0_0_var(--color-accent)]',
+              )}
               data-tour={tab.id === 'chat' ? 'library-chat' : undefined}
               onClick={() => onChange(tab.id)}
               aria-label={tab.label}
             >
               <Icon
                 className={cn(
-                  'library-view-tab-icon h-4 w-4 shrink-0',
+                  'h-4 w-4 shrink-0 text-inherit opacity-85',
+                  isActive && 'text-[var(--color-accent)] opacity-100',
                   tab.id === 'favorites' && isActive && 'fill-current',
                 )}
               />
-              <span className="library-view-tab-label">{tab.label}</span>
+              <span className="min-w-0 flex-1 overflow-hidden text-left text-ellipsis whitespace-nowrap">
+                {tab.label}
+              </span>
               {count !== null && count > 0 && (
-                <span className="library-view-tab-count">{count}</span>
+                <span
+                  className={cn(
+                    'min-w-0 rounded-[var(--radius-sm)] bg-transparent p-0 font-[family-name:var(--font-mono)] text-[10px] font-medium leading-none tracking-[0.02em] text-[var(--color-muted-foreground)]',
+                    isActive && 'text-[var(--color-accent)]',
+                  )}
+                >
+                  {count}
+                </span>
               )}
             </button>
           </IconTooltip>

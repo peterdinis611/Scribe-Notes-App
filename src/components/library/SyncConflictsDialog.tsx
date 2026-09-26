@@ -57,21 +57,21 @@ export function SyncConflictsDialog() {
             <DialogDescription>{t('syncConflicts.hint')}</DialogDescription>
           </DialogHeader>
           {conflicts.length === 0 ? (
-            <p className="sync-conflicts-empty">{t('syncConflicts.empty')}</p>
+            <p className="mt-1 text-[12px] text-[var(--color-muted-foreground)]">{t('syncConflicts.empty')}</p>
           ) : (
-            <ul className="sync-conflicts-list">
+            <ul className="m-0 flex list-none flex-col gap-3 p-0">
               {conflicts.map((item) => (
-                <li key={item.id} className="sync-conflicts-row">
+                <li key={item.id} className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="sync-conflicts-title">{item.title}</p>
-                    <p className="sync-conflicts-meta">
+                    <p className="m-0 font-[650]">{item.title}</p>
+                    <p className="mt-1 text-[12px] text-[var(--color-muted-foreground)]">
                       {t('syncConflicts.meta', {
                         disk: item.diskUpdatedAt,
                         app: item.dbUpdatedAt,
                       })}
                     </p>
                   </div>
-                  <div className="sync-conflicts-actions">
+                  <div className="flex shrink-0 gap-1.5">
                     <Button
                       type="button"
                       size="sm"
