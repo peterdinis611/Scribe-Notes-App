@@ -176,3 +176,30 @@ pub fn spawn(app: AppHandle) -> Arc<DocumentsWatcher> {
 
     watcher_state
 }
+
+#[cfg(test)]
+mod tests {
+    use super::should_ignore_path;
+    use std::path::Path;
+
+    #[test]
+    fn ignores_dotfiles_and_sidecar_dirs() {
+        assert!(should_ignore_path(Path::new("/docs/.DS_Store")));
+        assert!(should_ignore_path(Path::new("/docs/pdf")));
+        assert!(should_ignore_path(Path::new("/docs/assets")));
+        assert!(should_ignore_path(Path::new("/docs/Backups")));
+    }
+
+    #[test]
+    fn ignores_temp_write_artifacts() {
+        assert!(should_ignore_path(Path::new("/docs/note.scribe.tmp")));
+        assert!(should_ignore_path(Path::new("/docs/note.scribe.part")));
+        assert!(should_ignore_path(Path::new("/docs/note~")));
+    }
+
+    #[test]
+    fn keeps_real_scribe_files() {
+        assert!(!should_ignore_path(Path::new("/docs/Meeting.scribe")));
+        assert!(!should_ignore_path(Path::new("/docs/folder/note.scribe.json")));
+    }
+}

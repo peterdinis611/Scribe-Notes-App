@@ -337,4 +337,16 @@ mod tests {
                     .contains("deadline")
             }));
     }
+
+    #[test]
+    fn empty_document_yields_no_passages() {
+        let passages = chunk_document_passages("d1", "Empty", "   ");
+        assert!(passages.is_empty());
+    }
+
+    #[test]
+    fn passage_limit_constant_is_wide_for_bm25() {
+        assert!(DOCUMENT_ANSWER_PASSAGE_LIMIT >= 64);
+        assert!(DOCUMENT_PASSAGE_MAX <= DOCUMENT_ANSWER_PASSAGE_LIMIT);
+    }
 }

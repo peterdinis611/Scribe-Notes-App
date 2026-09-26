@@ -2390,6 +2390,53 @@ mod tests {
     }
 
     #[test]
+    fn smart_folder_evaluate_folder_rule_and_delete() {
+        let store = ScribeStore::from_memory();
+        let folder = store.create_folder("Projects", None).unwrap();
+        let inside = store
+            .create_note("Inside", Some("body"), Some(&folder.id))
+            .unwrap();
+        let _outside = store.create_note("Outside", Some("body"), None).unwrap();
+
+        let smart = store
+            .upsert_smart_folder(None, "Projects", &format!("folder:{}", folder.id), None)
+            .unwrap();
+        let eval = store
+            .evaluate_smart_folder(&dummy_sidecar(), Some(&smart.id), None, Some(20))
+            .unwrap();
+        assert_eq!(eval.matches.len(), 1);
+        assert_eq!(eval.matches[0].document_id, inside.id);
+
+        assert!(store.delete_smart_folder(&smart.id).unwrap());
+        assert!(store.list_smart_folders().unwrap().is_empty());
+        assert!(!store.delete_smart_folder(&smart.id).unwrap());
+    }
+
+    #[test]
+    fn smart_folder_adhoc_fts_and_validation() {
+        let store = ScribeStore::from_memory();
+        let note = store
+            .create_note("Rocket launch", Some("countdown to ignition"), None)
+            .unwrap();
+        let eval = store
+            .evaluate_smart_folder(&dummy_sidecar(), None, Some("ignition"), Some(10))
+            .unwrap();
+        assert!(
+            eval.matches.iter().any(|item| item.document_id == note.id),
+            "expected FTS hit for ignition"
+        );
+
+        let err = store
+            .upsert_smart_folder(None, "   ", "tag:x", None)
+            .unwrap_err();
+        assert_eq!(err, "name is required");
+        let err = store
+            .upsert_smart_folder(None, "X", "  ", None)
+            .unwrap_err();
+        assert_eq!(err, "queryRule is required");
+    }
+
+    #[test]
     fn sync_conflicts_list_and_resolve() {
         let store = ScribeStore::from_memory();
         store
