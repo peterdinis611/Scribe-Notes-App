@@ -25,28 +25,6 @@ const DEFAULT_HEIGHT = '320px'
 
 type Align = 'left' | 'center' | 'right' | 'full'
 
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace JSX {
-    interface IntrinsicElements {
-      'model-viewer': React.DetailedHTMLProps<
-        React.HTMLAttributes<HTMLElement> & {
-          src?: string
-          poster?: string
-          alt?: string
-          'camera-controls'?: boolean | string
-          'auto-rotate'?: boolean | string
-          'shadow-intensity'?: string
-          'exposure'?: string
-          'touch-action'?: string
-          style?: React.CSSProperties
-        },
-        HTMLElement
-      >
-    }
-  }
-}
-
 export function Model3dBlock({
   node,
   updateAttributes,

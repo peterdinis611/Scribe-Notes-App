@@ -5824,7 +5824,7 @@ body.is-block-dragging .editor-block-drag-handle {
   border-radius: 4px;
 }
 
-.tiptap > *:is(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, pre, table, hr, .details-block, .table-of-contents-block, .image-block, .lottie-block, li).is-block-drag-source {
+.tiptap > *:is(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, pre, table, hr, .details-block, .table-of-contents-block, .image-block, .lottie-block, .model-3d-block, li).is-block-drag-source {
   opacity: 0.35;
 }
 
