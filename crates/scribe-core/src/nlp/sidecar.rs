@@ -32,9 +32,15 @@ pub struct NlpHealth {
     #[serde(default)]
     pub quality_available: Option<bool>,
     #[serde(default)]
+    pub fast_available: Option<bool>,
+    #[serde(default)]
     pub onnx_available: Option<bool>,
     #[serde(default)]
     pub faiss_available: Option<bool>,
+    #[serde(default)]
+    pub hnsw_available: Option<bool>,
+    #[serde(default)]
+    pub bm25_available: Option<bool>,
     #[serde(default)]
     pub spacy_available: Option<bool>,
     #[serde(default)]
@@ -328,15 +334,27 @@ impl NlpSidecar {
         max_sentences: i64,
         scope: &str,
     ) -> Result<Value, String> {
-        self.call_method(
-            "library_answer",
-            json!({
-                "question": question,
-                "passages": passages,
-                "maxSentences": max_sentences,
-                "scope": scope,
-            }),
-        )
+        self.library_answer_scoped_with_backend(question, passages, max_sentences, scope, None)
+    }
+
+    pub fn library_answer_scoped_with_backend(
+        &self,
+        question: &str,
+        passages: Value,
+        max_sentences: i64,
+        scope: &str,
+        answer_embed_backend: Option<&str>,
+    ) -> Result<Value, String> {
+        let mut params = json!({
+            "question": question,
+            "passages": passages,
+            "maxSentences": max_sentences,
+            "scope": scope,
+        });
+        if let Some(backend) = answer_embed_backend {
+            params["answerEmbedBackend"] = json!(backend);
+        }
+        self.call_method("library_answer", params)
     }
 
     pub fn suggest_wiki_links(

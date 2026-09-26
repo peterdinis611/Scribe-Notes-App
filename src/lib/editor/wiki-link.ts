@@ -11,13 +11,97 @@ import { WikiLinkSuggestionList, type WikiLinkItem } from '@/components/editor/W
 import { store } from '@/store/index'
 import { updateDocuments } from '@/store/documentsSlice'
 
+export type ParsedWikiLink = {
+  title: string
+  heading: string | null
+  alias: string | null
+  displayLabel: string
+}
+
+/** Obsidian-style `[[Title#Heading|Alias]]` inner (without brackets). */
+export function parseWikiLinkRaw(raw: string): ParsedWikiLink {
+  const trimmed = raw.trim()
+  const pipeIdx = trimmed.lastIndexOf('|')
+  let main = trimmed
+  let alias: string | null = null
+  if (pipeIdx >= 0) {
+    alias = trimmed.slice(pipeIdx + 1).trim() || null
+    main = trimmed.slice(0, pipeIdx).trim()
+  }
+  const hashIdx = main.indexOf('#')
+  let title = main
+  let heading: string | null = null
+  if (hashIdx >= 0) {
+    title = main.slice(0, hashIdx).trim()
+    heading = main.slice(hashIdx + 1).trim() || null
+  }
+  const displayLabel = alias ?? (heading ? `${title}#${heading}` : title)
+  return { title, heading, alias, displayLabel }
+}
+
+export function formatWikiLinkRenderText(attrs: {
+  label: string
+  linkTitle?: string | null
+  heading?: string | null
+}): string {
+  const linkTitle = (attrs.linkTitle?.trim() || attrs.label.trim()) || ''
+  const heading = attrs.heading?.trim() || null
+  const label = attrs.label
+  const defaultDisplay = heading ? `${linkTitle}#${heading}` : linkTitle
+  if (label !== defaultDisplay) {
+    const main = heading ? `${linkTitle}#${heading}` : linkTitle
+    return `[[${main}|${label}]]`
+  }
+  if (heading) return `[[${linkTitle}#${heading}]]`
+  return `[[${linkTitle}]]`
+}
+
+function wikiLinkNodeLabel(parsed: ParsedWikiLink, resolvedTitle: string): string {
+  if (parsed.alias || parsed.heading) return parsed.displayLabel
+  return resolvedTitle
+}
+
+function wikiLinkNodeAttrs(
+  targetId: string | null,
+  parsed: ParsedWikiLink,
+  resolvedTitle: string,
+) {
+  return {
+    targetId,
+    label: wikiLinkNodeLabel(parsed, resolvedTitle),
+    linkTitle: parsed.title,
+    heading: parsed.heading,
+  }
+}
+
+function wikiLinkLabelMatches(
+  node: { attrs: Record<string, unknown> },
+  attrs: { label: string; linkTitle?: string },
+): boolean {
+  if (node.attrs.label === attrs.label) return true
+  const linkTitle = attrs.linkTitle?.trim()
+  if (!linkTitle) return false
+  if (node.attrs.linkTitle === linkTitle) return true
+  if (!node.attrs.linkTitle && node.attrs.label === linkTitle) return true
+  return false
+}
+
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     wikiLink: {
       /** Insert a wiki-link node pointing at a document. */
-      insertWikiLink: (attrs: { targetId: string; label: string }) => ReturnType
+      insertWikiLink: (attrs: {
+        targetId: string
+        label: string
+        linkTitle?: string
+        heading?: string | null
+      }) => ReturnType
       /** Fill in the target id for every unresolved link with a matching label. */
-      resolveWikiLinkLabel: (attrs: { label: string; targetId: string }) => ReturnType
+      resolveWikiLinkLabel: (attrs: {
+        label: string
+        targetId: string
+        linkTitle?: string
+      }) => ReturnType
     }
   }
 }
@@ -45,11 +129,22 @@ async function resolveTitle(title: string): Promise<{ targetId: string | null; l
   return local
 }
 
-async function createAndResolveLabel(editor: Editor, title: string) {
+async function createAndResolveLabel(
+  editor: Editor,
+  linkTitle: string,
+  displayLabel?: string,
+) {
   try {
-    const doc = await createDocument({ title })
+    const doc = await createDocument({ title: linkTitle })
     store.dispatch(updateDocuments((prev) => prependDocumentSummary(prev, doc)))
-    editor.chain().resolveWikiLinkLabel({ label: title, targetId: doc.id }).run()
+    editor
+      .chain()
+      .resolveWikiLinkLabel({
+        label: displayLabel ?? linkTitle,
+        linkTitle,
+        targetId: doc.id,
+      })
+      .run()
   } catch (error) {
     toast.error('Nepodarilo sa vytvoriť dokument', String(error))
   }
@@ -75,7 +170,8 @@ function filterDocumentsLocal(query: string): WikiLinkItem[] {
 }
 
 async function filterDocuments(query: string): Promise<WikiLinkItem[]> {
-  const trimmed = query.trim()
+  const parsedQuery = parseWikiLinkRaw(query)
+  const trimmed = parsedQuery.title.trim() || query.trim()
   const { activeDocumentId: activeId, documents: docs } = store.getState().documents
 
   if (!trimmed) {
@@ -96,16 +192,19 @@ async function filterDocuments(query: string): Promise<WikiLinkItem[]> {
     }
     return items
   } catch {
-    return filterDocumentsLocal(query)
+    return filterDocumentsLocal(trimmed)
   }
 }
 
-function insertNode(editor: Editor, range: Range, targetId: string, label: string) {
+function insertNode(editor: Editor, range: Range, targetId: string, parsed: ParsedWikiLink) {
   editor
     .chain()
     .focus()
     .insertContentAt(range, [
-      { type: 'wikiLink', attrs: { targetId, label } },
+      {
+        type: 'wikiLink',
+        attrs: wikiLinkNodeAttrs(targetId, parsed, parsed.title),
+      },
       { type: 'text', text: ' ' },
     ])
     .run()
@@ -115,7 +214,7 @@ async function createAndInsert(editor: Editor, range: Range, title: string) {
   try {
     const doc = await createDocument({ title })
     store.dispatch(updateDocuments((prev) => prependDocumentSummary(prev, doc)))
-    insertNode(editor, range, doc.id, doc.title)
+    insertNode(editor, range, doc.id, parseWikiLinkRaw(doc.title))
   } catch (error) {
     toast.error('Nepodarilo sa vytvoriť dokument', String(error))
   }
@@ -141,6 +240,18 @@ export const WikiLink = Node.create({
         parseHTML: (element) => element.getAttribute('data-label') ?? element.textContent ?? '',
         renderHTML: (attributes) => ({ 'data-label': attributes.label }),
       },
+      linkTitle: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('data-link-title'),
+        renderHTML: (attributes) =>
+          attributes.linkTitle ? { 'data-link-title': attributes.linkTitle } : {},
+      },
+      heading: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('data-heading'),
+        renderHTML: (attributes) =>
+          attributes.heading ? { 'data-heading': attributes.heading } : {},
+      },
     }
   },
 
@@ -161,7 +272,11 @@ export const WikiLink = Node.create({
   },
 
   renderText({ node }) {
-    return `[[${(node.attrs.label as string) || ''}]]`
+    return formatWikiLinkRenderText({
+      label: (node.attrs.label as string) || '',
+      linkTitle: node.attrs.linkTitle as string | null,
+      heading: node.attrs.heading as string | null,
+    })
   },
 
   addCommands() {
@@ -182,7 +297,11 @@ export const WikiLink = Node.create({
           if (!type) return false
           let changed = false
           state.doc.descendants((node, pos) => {
-            if (node.type === type && !node.attrs.targetId && node.attrs.label === attrs.label) {
+            if (
+              node.type === type &&
+              !node.attrs.targetId &&
+              wikiLinkLabelMatches(node, attrs)
+            ) {
               tr.setNodeMarkup(pos, undefined, { ...node.attrs, targetId: attrs.targetId })
               changed = true
             }
@@ -199,22 +318,34 @@ export const WikiLink = Node.create({
       new InputRule({
         find: /\[\[([^[\]\n]+)]]$/,
         handler: ({ range, match, chain }) => {
-          const title = match[1]?.trim()
-          if (!title) return
-          const local = resolveTitleLocal(title)
+          const raw = match[1]?.trim()
+          if (!raw) return
+          const parsed = parseWikiLinkRaw(raw)
+          if (!parsed.title) return
+          const local = resolveTitleLocal(parsed.title)
           chain()
             .insertContentAt({ from: range.from, to: range.to }, [
-              { type: this.name, attrs: { targetId: local.targetId, label: local.label } },
+              {
+                type: this.name,
+                attrs: wikiLinkNodeAttrs(local.targetId, parsed, local.label),
+              },
               { type: 'text', text: ' ' },
             ])
             .run()
           if (local.targetId) return
-          void resolveTitle(title).then(({ targetId }) => {
+          void resolveTitle(parsed.title).then(({ targetId }) => {
             if (targetId) {
-              editor.chain().resolveWikiLinkLabel({ label: title, targetId }).run()
+              editor
+                .chain()
+                .resolveWikiLinkLabel({
+                  label: wikiLinkNodeLabel(parsed, parsed.title),
+                  linkTitle: parsed.title,
+                  targetId,
+                })
+                .run()
               return
             }
-            void createAndResolveLabel(editor, title)
+            void createAndResolveLabel(editor, parsed.title, parsed.displayLabel)
           })
         },
       }),
@@ -235,11 +366,25 @@ export const WikiLink = Node.create({
           strategy: 'fixed',
         },
         command: ({ editor, range, props }) => {
+          const typed = parseWikiLinkRaw(
+            (editor.state.doc.textBetween(range.from, range.to, '') || '').replace(/^\[\[/, ''),
+          )
           if (props.isCreate) {
-            void createAndInsert(editor, range, props.query ?? props.title)
+            const createTitle = props.query ?? props.title
+            void createAndInsert(editor, range, createTitle)
             return
           }
-          insertNode(editor, range, props.id, props.title)
+          insertNode(
+            editor,
+            range,
+            props.id,
+            {
+              title: props.title,
+              heading: typed.heading,
+              alias: typed.alias,
+              displayLabel: typed.alias ?? (typed.heading ? `${props.title}#${typed.heading}` : props.title),
+            },
+          )
         },
         render: () => {
           let component: ReactRenderer | null = null

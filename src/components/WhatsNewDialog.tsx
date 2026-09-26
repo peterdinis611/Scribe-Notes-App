@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { APP_VERSION, APP_SHORT_VERSION } from '@/lib/app-version'
 import { persistWhatsNewVersion } from '@/store/persistence'
 
-const HIGHLIGHTS = ['localAiAsk', 'documentRead', 'mcpBridge'] as const
+const HIGHLIGHTS = ['wikiNav', 'connectionsShortcut', 'libraryPolish'] as const
 
 type WhatsNewDialogProps = {
   open: boolean

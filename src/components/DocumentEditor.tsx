@@ -12,6 +12,10 @@ import { ClipboardHistoryPanel } from '@/components/editor/ClipboardHistoryPanel
 import { BacklinksPanel } from '@/components/editor/BacklinksPanel'
 import { DocumentInsightsPanel } from '@/components/editor/DocumentInsightsPanel'
 import { WikiLinkHoverCard } from '@/components/editor/WikiLinkHoverCard'
+import {
+  UnresolvedWikiLinkPopover,
+  type UnresolvedWikiPopoverState,
+} from '@/components/editor/UnresolvedWikiLinkPopover'
 import { StatsPanel } from '@/components/editor/StatsPanel'
 import { FindReplaceBar } from '@/components/editor/FindReplaceBar'
 import { EditorToolbar } from '@/components/editor-toolbar/EditorToolbar'
@@ -41,7 +45,6 @@ import { resolveDocumentTypography } from '@/lib/editor/document-style-presets'
 import { getEditorExtensions } from '@/lib/editor/extensions'
 import { listGoogleFontFamilies, loadGoogleFontsForDocument } from '@/lib/editor/google-fonts'
 import { ensureAllCustomFontsLoaded, loadCustomFontsForDocument } from '@/lib/editor/custom-fonts'
-import { handleTauriEditorKeyDown } from '@/lib/editor/tauri-input-fix'
 import { getEditorMarkdown, parseMarkdownToContentJson } from '@/lib/editor/markdown-content'
 import type { DocumentOutlineItem } from '@/lib/editor/document-outline'
 import { jumpToMarkdownOutlineItem } from '@/lib/editor/markdown-outline'
@@ -60,6 +63,7 @@ import {
   setDocumentOutlineOpen,
   setDocumentTocLeftOpen,
   setFindReplaceOpen,
+  setPendingEditorSearch,
   setInsightsPanelOpen,
   setRevisionHistoryOpen,
   setSaveStatus,
@@ -87,6 +91,7 @@ export function DocumentEditor() {
   const readingMode = useAppSelector((state) => state.documents.readingMode)
   const [markdownDraft, setMarkdownDraft] = useState('')
   const [pageSetupOpen, setPageSetupOpen] = useState(false)
+  const [unresolvedPopover, setUnresolvedPopover] = useState<UnresolvedWikiPopoverState | null>(null)
   const activeDocumentRef = useRef(activeDocument)
   const manualTitleIdsRef = useRef(new Set(manualTitleIds))
   const editorRef = useRef<Editor | null>(null)
@@ -163,9 +168,7 @@ export function DocumentEditor() {
     immediatelyRender: false,
     shouldRerenderOnTransaction: false,
     editorProps: {
-      // Checked before plugins — required so Enter applies immediately in Tauri/WebKit.
       attributes: editorAttributes,
-      handleKeyDown: handleTauriEditorKeyDown,
     },
     onUpdate: () => {
       if (!activeIdRef.current || viewModeRef.current !== 'rich') return
@@ -177,15 +180,13 @@ export function DocumentEditor() {
   editorRefs.editor = editor
   const editorReady = useEditorReady(editor)
 
-  // useEditor only syncs editorProps automatically when deps === []. We depend on
-  // [extensions], so push keyboard/attribute props explicitly or Enter stays dead.
+  // Sync editable + DOM attributes when settings change. Key handling stays in TauriInputFix.
   useEffect(() => {
     if (!editor || editor.isDestroyed) return
     editor.setOptions({
       editable: !readingMode && viewMode === 'rich',
       editorProps: {
         attributes: editorAttributes,
-        handleKeyDown: handleTauriEditorKeyDown,
       },
     })
   }, [editor, editorAttributes, readingMode, viewMode])
@@ -373,16 +374,36 @@ export function DocumentEditor() {
     editor,
     (_editor, dom) => {
       const handleClick = (event: MouseEvent) => {
-        const anchor = (event.target as HTMLElement | null)?.closest?.('a[data-wiki-link]')
+        const anchor = (event.target as HTMLElement | null)?.closest?.('a[data-wiki-link]') as
+          | HTMLElement
+          | null
         if (!anchor) return
         event.preventDefault()
         const targetId = anchor.getAttribute('data-target-id')
-        if (!targetId) return
-        navigateViaWikiLink({
-          fromId: activeId,
-          targetId,
-          dispatch,
-          navigate: (route) => void navigate(route),
+        if (targetId) {
+          setUnresolvedPopover(null)
+          navigateViaWikiLink({
+            fromId: activeId,
+            targetId,
+            dispatch,
+            navigate: (route) => void navigate(route),
+          })
+          const heading = anchor.getAttribute('data-heading')?.trim()
+          if (heading) {
+            dispatch(setFindReplaceOpen(true))
+            dispatch(setPendingEditorSearch(heading))
+          }
+          return
+        }
+        const label = (anchor.getAttribute('data-label') || anchor.textContent || '').trim()
+        if (!label) return
+        const linkTitle = (anchor.getAttribute('data-link-title') || label).trim()
+        const rect = anchor.getBoundingClientRect()
+        setUnresolvedPopover({
+          label,
+          linkTitle,
+          x: rect.left,
+          y: rect.bottom + 6,
         })
       }
       dom.addEventListener('click', handleClick)
@@ -432,6 +453,8 @@ export function DocumentEditor() {
     void printDocumentFromContent(activeDocument.contentJson, activeDocument.title, {
       pageSetup,
       includeTitleHeading: true,
+    }).catch((error) => {
+      console.error(error)
     })
   }, [activeDocument, pageSetup])
 
@@ -839,6 +862,11 @@ export function DocumentEditor() {
 
       <PageSetupDialog open={pageSetupOpen} onClose={() => setPageSetupOpen(false)} />
       {!isMarkdown && editorReady && <WikiLinkHoverCard editor={editor} />}
+      <UnresolvedWikiLinkPopover
+        state={unresolvedPopover}
+        documentId={activeId}
+        onClose={() => setUnresolvedPopover(null)}
+      />
     </div>
   )
 }

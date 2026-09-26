@@ -24,8 +24,11 @@ onnx = [
   "huggingface_hub>=0.20.0",
 ]
 faiss = ["faiss-cpu>=1.7.4", "numpy>=1.24.0"]
+fast-embed = ["model2vec>=0.4.0", "numpy>=1.24.0"]
+lexical = ["bm25s>=0.2.0", "numpy>=1.24.0"]
+hnsw = ["pynear>=2.0.0", "numpy>=1.24.0"]
 full = [
-  "scribe-nlp[quality,enhance,translate,ner,onnx,faiss]",
+  "scribe-nlp[quality,enhance,translate,ner,onnx,faiss,fast-embed,lexical,hnsw]",
 ]
 
 [project.scripts]

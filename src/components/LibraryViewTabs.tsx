@@ -31,6 +31,8 @@ type LibraryViewTabsProps = {
   favoriteCount: number
   tagCount: number
   recentCount?: number
+  taskCount?: number
+  wikiHealthCount?: number
   onChange: (view: LibraryView) => void
 }
 
@@ -39,6 +41,8 @@ export function LibraryViewTabs({
   favoriteCount,
   tagCount,
   recentCount = 0,
+  taskCount = 0,
+  wikiHealthCount = 0,
   onChange,
 }: LibraryViewTabsProps) {
   const { t } = useTranslation()
@@ -60,6 +64,8 @@ export function LibraryViewTabs({
     if (view === 'favorites') return favoriteCount
     if (view === 'tags') return tagCount
     if (view === 'recent') return recentCount
+    if (view === 'tasks') return taskCount
+    if (view === 'wikiHealth') return wikiHealthCount
     return null
   }
 

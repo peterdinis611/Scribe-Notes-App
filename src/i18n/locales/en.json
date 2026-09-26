@@ -177,6 +177,7 @@
     "randomThemeHint": "Generate a custom palette",
     "switchToEnglish": "Switch to English",
     "switchToSlovak": "Switch to Slovak",
+    "switchLanguage": "Switch to {{language}}",
     "newFolder": "New folder",
     "newFolderTitle": "New folder",
     "newFolderPlaceholder": "Folder name",
@@ -209,7 +210,10 @@
       "wiki": "Wiki links",
       "comments": "Comments",
       "semantic": "Semantic"
-    }
+    },
+    "connections": "Connections",
+    "connectionsOff": "Hide connections",
+    "askThisNote": "Ask this note"
   },
   "editor": {
     "loading": "Loading document…",
@@ -280,7 +284,26 @@
   },
   "errors": {
     "title": "Something went wrong",
-    "generic": "An unexpected error occurred. Try again or return home."
+    "subtitle": "Scribe hit an unexpected fault. Your notes on disk are safe — try again, or copy the report below if it keeps happening.",
+    "generic": "An unexpected error occurred. Try again or return home.",
+    "kicker": "Runtime fault",
+    "mark": "ERR",
+    "meta": {
+      "type": "Type",
+      "route": "Route",
+      "version": "Version",
+      "time": "Time",
+      "locale": "Locale"
+    },
+    "technical": "Technical details",
+    "showDetails": "Show",
+    "hideDetails": "Hide",
+    "stack": "Stack trace",
+    "componentStack": "Component stack",
+    "copyReport": "Copy report",
+    "copied": "Error report copied",
+    "copiedShort": "Copied",
+    "copyFailed": "Could not copy the report"
   },
   "onboarding": {
     "title": "Welcome to Scribe {{version}}",
@@ -412,7 +435,7 @@
     "badge": "What's new in {{version}}",
     "kicker": "Edition notes",
     "title": "Scribe {{version}}",
-    "subtitle": "Scribe’s own Local AI reads your notes on this Mac, and MCP is ready when you want Cursor or Claude in the loop.",
+    "subtitle": "Wiki links feel like Obsidian, Connections got a shortcut, and Local AI polish lands in 2.4.",
     "localAiAsk": {
       "title": "Scribe Local AI",
       "description": "Built-in Local AI — not ChatGPT. Ask the library or the open note; answers stay on this device."
@@ -629,6 +652,18 @@
     "importPipeline": {
       "title": "Faster imports",
       "description": "Optimized file reading and rich-text conversion without overloading the editor."
+    },
+    "wikiNav": {
+      "title": "Wiki link navigation",
+      "description": "Unresolved [[links]] open a create / did-you-mean popover. Hover cards stay clickable, and Connections jumps keep a back trail."
+    },
+    "connectionsShortcut": {
+      "title": "Connections shortcut",
+      "description": "⌘⇧B toggles the Connections panel. Mention snippets show where each backlink appears."
+    },
+    "libraryPolish": {
+      "title": "Library polish",
+      "description": "Tasks filter by folder and sort by due date. Duplicates show lexical vs embed scores. Dirty tabs and wiki/task counts keep you oriented."
     }
   },
   "wikiNav": {
@@ -678,10 +713,13 @@
     },
     "language": {
       "title": "Language",
-      "description": "Application interface language. Import a JSON file to add your own.",
-      "rowDescription": "Switches menus, dialogs, and editor UI text.",
+      "description": "Application interface language. Default is Slovak; switch to English or import your own pack.",
+      "rowDescription": "Pick Slovenčina, English, or a custom pack from the dropdown. Choice is saved on this Mac.",
       "sk": "Slovenčina",
       "en": "English",
+      "defaultBadge": "Default",
+      "builtInGroup": "Built-in",
+      "customGroup": "Your languages",
       "customTitle": "Custom language",
       "customDescription": "Upload a JSON translation pack (same shape as en.json). Missing keys fall back to Slovak.",
       "importJson": "Import JSON",
@@ -942,19 +980,28 @@
       "statusStaleCount": "Stale records",
       "statusEmbedBackend": "Embedding backend",
       "embedBackendTitle": "Semantic quality",
-      "embedBackendDescription": "Hash is fast with no extra deps. The quality model improves similar-doc ranking and search.",
-      "embedBackendInstallHint": "For the quality model install: pip install 'scribe-nlp[quality]' (or [full] for all extras)",
-      "embedBackendHash": "Hash (fast)",
+      "embedBackendDescription": "Hash is instant. Fast (Model2Vec) is a CPU middle path. Quality (MiniLM/ONNX) is strongest — reindex after switching.",
+      "embedBackendInstallHint": "Install: pip install -e '.[enhance,onnx,faiss,fast-embed,lexical]' from nlp/ (add [quality] or [hnsw] as needed)",
+      "embedBackendHash": "Hash",
       "embedBackendQuality": "Quality (MiniLM)",
       "embedBackendError": "Could not switch embedding backend",
-      "hashEnabledToast": "Using fast hash embeddings",
+      "hashEnabledToast": "Using hash embeddings",
       "qualityEnabledToast": "Using quality embedding model — reindex your library",
       "extrasTitle": "Optional Python packages",
-      "extrasDescription": "Install from nlp/: pip install 'scribe-nlp[enhance,translate,ner,onnx,faiss]'. Highlighted chips are detected at runtime.",
+      "extrasDescription": "From nlp/: pip install -e '.[enhance,onnx,faiss,fast-embed,lexical,hnsw]'. Highlighted chips are detected at runtime.",
       "rustExtrasTitle": "Built-in Rust extras",
       "rustExtrasDescription": "Compiled into the app (Cargo feature enhance). Fuzzy titles, faster vector scoring, and import encoding detection.",
       "yes": "Yes",
-      "no": "No"
+      "no": "No",
+      "embedBackendFast": "Fast (Model2Vec)",
+      "fastEnabledToast": "Using Model2Vec fast embeddings — reindex your library",
+      "answerBackendTitle": "Ask / answer quality",
+      "answerBackendDescription": "Keep Fast for indexing; Auto uses Quality/ONNX only when answering (query + top passages).",
+      "answerBackendAuto": "Auto (Quality on Ask)",
+      "answerBackendIndex": "Same as index",
+      "answerBackendQuality": "Always Quality",
+      "answerBackendToast": "Answer embed preference saved",
+      "answerBackendError": "Could not update answer preference"
     },
     "shortcuts": {
       "title": "Keyboard shortcuts",
@@ -1337,6 +1384,14 @@
     "closePanel": {
       "label": "Close panel",
       "description": "Closes search or reading/focus mode"
+    },
+    "connections": {
+      "label": "Connections",
+      "description": "Show wiki backlinks and outgoing links"
+    },
+    "askThisNote": {
+      "label": "Ask this note",
+      "description": "Open AI insights and focus the Ask field"
     }
   },
   "quickNote": {
@@ -1351,7 +1406,8 @@
     "close": "Close tab",
     "pin": "Pin tab",
     "unpin": "Unpin tab",
-    "reorder": "Drag to reorder"
+    "reorder": "Drag to reorder",
+    "unsaved": "Unsaved"
   },
   "split": {
     "close": "Close split pane"
@@ -1423,7 +1479,9 @@
       "hint": "Unchecked checkboxes across recent notes. Click a task to open the note and jump to it.",
       "empty": "No open checklist tasks in recent notes.",
       "count": "{{count}} open · {{notes}} notes",
-      "loadError": "Could not load open tasks"
+      "loadError": "Could not load open tasks",
+      "folderFilter": "Filter by folder",
+      "allFolders": "All folders"
     },
     "wikiHealth": {
       "title": "Wiki health",
@@ -1452,7 +1510,8 @@
       "mergeIntoLeft": "Merge into first",
       "merged": "Notes merged — the copy is in Trash.",
       "mergeError": "Could not merge notes",
-      "loadError": "Could not find duplicates"
+      "loadError": "Could not find duplicates",
+      "scoreParts": "Lexical {{lexical}}% · Embed {{embed}}%"
     },
     "trash": "Trash",
     "newFolder": "New folder",
@@ -1765,6 +1824,8 @@
       "loadError": "Could not load AI insights",
       "askTitle": "Ask this note",
       "askHint": "Scribe’s own Local AI — questions and actions on this note, on this Mac only.",
+      "askCta": "Ask anything about this note",
+      "askShortcutHint": "{{shortcut}}",
       "insertAnswer": "Insert as callout",
       "insertAnswerDone": "Answer inserted into the note",
       "insertAnswerError": "Open a document in the editor to insert the answer",
@@ -2003,7 +2064,7 @@
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
     "resetView": "Reset view",
-    "fitView": "Fit graph (double-click background)",
+    "fitView": "Fit graph (click % or double-click background)",
     "eyebrow": "Wiki links",
     "pageTitle": "Connection map",
     "pageLede": "Documents linked by [[wiki links]] — click a node to open it.",
@@ -2011,7 +2072,7 @@
     "howToHint": "Double-click a node to open it. The Around filter shows neighbors of the active note.",
     "openFullMap": "Open full connection map",
     "openFullMapShort": "Full map",
-    "obsidianHint": "Zoom toward cursor · % / reset fits all · double-click background",
+    "obsidianHint": "Scroll to pan · ⌃ scroll zooms · Space/middle-drag · % fits all",
     "showEntities": "Show tags and NLP entities as nodes connected to documents",
     "showEntitiesShort": "Entities",
     "entitiesHint": "Tags always · NLP entities when Local AI is available (up to 24 notes)"
@@ -2246,6 +2307,26 @@
       "label": "Embed note",
       "hint": "![[Title]] preview"
     },
+    "custom-block": {
+      "label": "Custom block",
+      "hint": "Save a reusable block"
+    },
+    "customSnippet": {
+      "label": "Snippet: {{name}}",
+      "hint": "Your custom block"
+    },
+    "customBlock": {
+      "nameTitle": "Custom block name",
+      "nameDescription": "This name appears in the / menu.",
+      "namePlaceholder": "e.g. Weekly review",
+      "bodyTitle": "Block content",
+      "bodyDescription": "Markdown-ish text: ## headings, - lists, - [ ] tasks, **bold**.",
+      "bodyDescriptionSelection": "Edit the selected text, or replace it with your reusable block.",
+      "bodyPlaceholder": "## Heading\n\n- item",
+      "save": "Save block",
+      "saved": "Custom block saved",
+      "saveFailed": "Could not save custom block"
+    },
     "snippet-meeting": {
       "label": "Snippet: Meeting",
       "hint": "Agenda and actions"
@@ -2298,7 +2379,15 @@
     "modified": "Edited {{time}}",
     "emptyDocument": "Empty document",
     "previewHint": "Preview of the target document — click the link or use the button below.",
-    "openDocument": "Open document"
+    "openDocument": "Open document",
+    "unresolvedTitle": "Unresolved wiki link",
+    "unresolvedHint": "Create a note or link to a close match.",
+    "noSuggestions": "No close matches.",
+    "createNote": "Create „{{title}}“",
+    "resolvedToast": "Linked [[{{label}}]] → {{title}}",
+    "resolveError": "Could not resolve wiki link",
+    "createdToast": "Created „{{title}}“ and linked",
+    "createError": "Could not create note"
   },
   "templates": {
     "title": "New document",
@@ -2374,6 +2463,86 @@
         "name": "Academic paper",
         "description": "Abstract, sections and references",
         "title": "Paper"
+      },
+      "daily-journal": {
+        "name": "Daily journal",
+        "description": "Intentions, notes, and evening reflection",
+        "title": "Journal"
+      },
+      "weekly-review": {
+        "name": "Weekly review",
+        "description": "Wins, blockers, and next-week priorities",
+        "title": "Weekly review"
+      },
+      "brainstorm": {
+        "name": "Brainstorm",
+        "description": "Free ideas, clusters, and next steps",
+        "title": "Brainstorm"
+      },
+      "book-notes": {
+        "name": "Book notes",
+        "description": "Quotes, takeaways, and action items from reading",
+        "title": "Book notes"
+      },
+      "decision-log": {
+        "name": "Decision log",
+        "description": "Options, criteria, and the chosen path",
+        "title": "Decision"
+      },
+      "standup": {
+        "name": "Stand-up",
+        "description": "Yesterday, today, blockers",
+        "title": "Stand-up"
+      },
+      "research-notes": {
+        "name": "Research notes",
+        "description": "Question, sources, findings, and conclusion",
+        "title": "Research"
+      },
+      "product-spec": {
+        "name": "Product spec",
+        "description": "Problem, user, requirements, and milestones",
+        "title": "Spec"
+      },
+      "lesson-plan": {
+        "name": "Lesson plan",
+        "description": "Goals, activities, and assessment",
+        "title": "Lesson plan"
+      },
+      "interview-notes": {
+        "name": "Interview notes",
+        "description": "Candidate, questions, rating, and decision",
+        "title": "Interview"
+      },
+      "travel-plan": {
+        "name": "Travel plan",
+        "description": "Itinerary, lodging, and pre-trip checklist",
+        "title": "Trip"
+      },
+      "recipe": {
+        "name": "Recipe",
+        "description": "Ingredients, steps, and tips",
+        "title": "Recipe"
+      },
+      "bug-report": {
+        "name": "Bug report",
+        "description": "Repro steps, expected vs actual, environment",
+        "title": "Bug report"
+      },
+      "creative-brief": {
+        "name": "Creative brief",
+        "description": "Goal, audience, tone, and deliverables",
+        "title": "Brief"
+      },
+      "one-on-one": {
+        "name": "1:1 notes",
+        "description": "Agenda, feedback, and follow-ups",
+        "title": "1:1"
+      },
+      "changelog": {
+        "name": "Changelog",
+        "description": "Version, changes, and known issues",
+        "title": "Changelog"
       }
     },
     "customTemplates": "Custom templates",
@@ -3053,5 +3222,22 @@
     "hint": "Template headings present in this note",
     "missing": "Still missing in the report",
     "checklistOpen": "Unchecked in checklist"
+  },
+  "import": {
+    "encodingConverted": "Imported text was converted from {{encoding}}"
+  },
+  "smartFolders": {
+    "title": "Smart folders",
+    "add": "Add smart folder",
+    "remove": "Remove smart folder",
+    "empty": "No smart folders yet. Add one with a rule like tag:work.",
+    "namePlaceholder": "Name (e.g. Work)",
+    "rulePlaceholder": "Rule (tag:work, folder:…, or search)",
+    "ruleHint": "tag:name · folder:id · or any search phrase",
+    "results": "{{count}} matches",
+    "noMatches": "No matching notes",
+    "saveFailed": "Could not save smart folder",
+    "evalFailed": "Could not evaluate smart folder",
+    "deleteFailed": "Could not remove smart folder"
   }
 }

@@ -2,7 +2,7 @@ use crate::storage::{self, DiskDocument, DiskPersistQueue, PersistJob};
 use crate::security::PathAccessGate;
 use rusqlite::Connection;
 use std::path::PathBuf;
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_opener::OpenerExt;
 
@@ -47,6 +47,11 @@ pub async fn pick_documents_directory(
     let _ = crate::libraries::update_active_root(&conn, &dir);
     storage::mark_documents_dir_access_granted(&conn)?;
     storage::reconcile_storage(&app, &conn)?;
+    drop(conn);
+
+    if let Some(watcher) = app.try_state::<std::sync::Arc<storage::DocumentsWatcher>>() {
+        watcher.request_restart();
+    }
 
     Ok(Some(StorageSettings {
         documents_dir: dir.to_string_lossy().to_string(),

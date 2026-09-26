@@ -8,6 +8,7 @@ from .text_utils import STOP_WORDS, normalize_text, split_sentences, tokenize
 
 MAX_SENTENCES = 5
 MAX_PASSAGES = 40
+MAX_CANDIDATE_PASSAGES = 96
 MAX_FOLLOWUPS = 5
 
 # Cue words that boost sentence relevance for a detected question intent.
@@ -335,6 +336,7 @@ def library_answer(
     *,
     max_sentences: int = MAX_SENTENCES,
     scope: str = "library",
+    answer_embed_backend: str | None = None,
 ) -> dict[str, object]:
     """Extractive multi-doc answer + citations (no cloud LLM)."""
     query = normalize_text(question)
@@ -353,8 +355,10 @@ def library_answer(
             "intent": intent,
         }
 
+    # Keep a wide pool so BM25 can prune before embed rerank (not after a hard cut).
+    pool_cap = MAX_CANDIDATE_PASSAGES if scope == "document" else MAX_PASSAGES
     cleaned: list[dict[str, Any]] = []
-    for item in passages[:MAX_PASSAGES]:
+    for item in passages[:pool_cap]:
         if not isinstance(item, dict):
             continue
         document_id = str(item.get("documentId") or item.get("document_id") or "").strip()
@@ -379,7 +383,12 @@ def library_answer(
                 pass
         cleaned.append(entry)
 
-    cleaned = rerank_passages(question, cleaned, limit=MAX_PASSAGES)
+    cleaned = rerank_passages(
+        question,
+        cleaned,
+        limit=MAX_PASSAGES,
+        embed_backend=answer_embed_backend,
+    )
     if intent:
         cleaned = _boost_passages_for_intent(cleaned, intent)
     query_terms = _query_terms(query)
@@ -457,6 +466,9 @@ def suggest_followups(
             else:
                 candidates.append(f"What do my notes say about {title}?")
 
+    # Pull concrete topics from passage snippets so follow-ups differ per note.
+    candidates.extend(_passage_topic_followups(passages, asked=asked, scope=scope))
+
     candidates.extend(_intent_followups(intent, scope=scope))
 
     if scope == "document":
@@ -490,6 +502,63 @@ def suggest_followups(
         if len(picked) >= limit:
             break
     return picked
+
+
+def _passage_topic_followups(
+    passages: list[dict[str, str]],
+    *,
+    asked: set[str],
+    scope: str,
+    limit: int = 6,
+) -> list[str]:
+    """Build follow-ups from distinctive terms in the retrieved passages."""
+    topics: list[str] = []
+    seen: set[str] = set()
+    for item in passages[:16]:
+        snippet = normalize_text(str(item.get("snippet") or ""))
+        if len(snippet) < 18:
+            continue
+        tokens = [
+            token
+            for token in tokenize(fold_diacritics(snippet).lower())
+            if len(token) >= 4 and stem_lite(token) not in asked and token not in STOP_WORDS
+        ]
+        # Prefer multi-word windows that look like topics.
+        words = snippet.split()
+        for index in range(len(words) - 1):
+            left = words[index].strip(".,;:()[]\"'")
+            right = words[index + 1].strip(".,;:()[]\"'")
+            if len(left) < 3 or len(right) < 3:
+                continue
+            if not left[0].isupper() and not right[0].isupper():
+                continue
+            phrase = f"{left} {right}"
+            key = fold_diacritics(phrase).lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            topics.append(phrase)
+            if len(topics) >= limit:
+                break
+        if len(topics) >= limit:
+            break
+        for token in tokens[:2]:
+            key = stem_lite(token)
+            if key in seen:
+                continue
+            seen.add(key)
+            topics.append(token)
+            if len(topics) >= limit:
+                break
+
+    out: list[str] = []
+    for topic in topics[:limit]:
+        clipped = topic if len(topic) <= 64 else f"{topic[:63].rstrip()}…"
+        if scope == "document":
+            out.append(f"What does this note say about {clipped}?")
+        else:
+            out.append(f"What do my notes say about {clipped}?")
+    return out
 
 
 def _intent_followups(intent: str | None, *, scope: str) -> list[str]:

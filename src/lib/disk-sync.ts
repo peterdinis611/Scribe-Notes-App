@@ -44,11 +44,56 @@ export function applyDiskPersistResult(
   }
 }
 
-export type FolderReconcileOptions = {
-  /** Bypass debounce (Settings / Diagnostics Sync button). */
-  force?: boolean
-  /** Toast success when nothing was pulled from disk (manual Sync). */
-  announceSuccess?: boolean
+/**
+ * Apply a reconcile result already computed by Rust (e.g. FSEvents watcher).
+ * Skips a second round-trip to `reconcile_storage`.
+ */
+export async function applyFolderReconcileResult(
+  dispatch: AppDispatch,
+  result: ReconcileResult,
+): Promise<void> {
+  lastReconcileAt = Date.now()
+  const pulled = result.updatedFromDiskCount > 0 || result.importedCount > 0
+
+  dispatch(
+    setFolderSyncStatus({
+      at: Date.now(),
+      scannedCount: result.scannedCount,
+      importedCount: result.importedCount,
+      updatedFromDiskCount: result.updatedFromDiskCount,
+      syncedToDiskCount: result.syncedToDiskCount,
+      conflictCount: result.conflictCount,
+    }),
+  )
+
+  if (pulled) {
+    await reloadLibraryFromBackend(dispatch, {
+      preserveActive: true,
+      refreshActive: result.updatedFromDiskCount > 0,
+      getState: () => store.getState(),
+    })
+  }
+
+  try {
+    dispatch(setOpenConflictCount((await listSyncConflicts()).length))
+  } catch {
+    dispatch(setOpenConflictCount(result.conflictCount))
+  }
+
+  if (result.conflictCount > 0) {
+    dispatch(setSyncConflictsOpen(true))
+    toast.info(
+      i18n.t('diskSync.conflictsTitle'),
+      i18n.t('diskSync.conflictsDescription', { count: result.conflictCount }),
+    )
+  } else if (result.updatedFromDiskCount > 0) {
+    toast.info(
+      i18n.t('diskSync.updatedFromDiskTitle'),
+      i18n.t('diskSync.updatedFromDiskDescription', {
+        count: result.updatedFromDiskCount,
+      }),
+    )
+  }
 }
 
 /**

@@ -3,9 +3,10 @@ use serde_json::{json, Value};
 use crate::db::RankedDocumentChunk;
 
 pub const DOCUMENT_PASSAGE_TARGET_CHARS: usize = 560;
-pub const DOCUMENT_PASSAGE_MAX: usize = 48;
-pub const DOCUMENT_ANSWER_PASSAGE_LIMIT: usize = 36;
-pub const DOCUMENT_EMBED_RANK_LIMIT: i64 = 16;
+pub const DOCUMENT_PASSAGE_MAX: usize = 64;
+/// Candidate pool sent to Python — BM25 prunes before embed rerank (do not cut early).
+pub const DOCUMENT_ANSWER_PASSAGE_LIMIT: usize = 80;
+pub const DOCUMENT_EMBED_RANK_LIMIT: i64 = 24;
 
 /// Split full note plaintext into overlapping-ish passages covering the whole document.
 pub fn chunk_document_passages(document_id: &str, title: &str, text: &str) -> Vec<Value> {
@@ -335,5 +336,17 @@ mod tests {
                     .to_lowercase()
                     .contains("deadline")
             }));
+    }
+
+    #[test]
+    fn empty_document_yields_no_passages() {
+        let passages = chunk_document_passages("d1", "Empty", "   ");
+        assert!(passages.is_empty());
+    }
+
+    #[test]
+    fn passage_limit_constant_is_wide_for_bm25() {
+        assert!(DOCUMENT_ANSWER_PASSAGE_LIMIT >= 64);
+        assert!(DOCUMENT_PASSAGE_MAX <= DOCUMENT_ANSWER_PASSAGE_LIMIT);
     }
 }

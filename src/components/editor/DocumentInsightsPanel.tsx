@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import {
@@ -52,6 +52,10 @@ import {
   listDocumentChatMessages,
 } from '@/lib/db/api'
 import {
+  buildDocumentAskActions,
+  buildDocumentAskQuestions,
+} from '@/lib/library/document-ask-suggestions'
+import {
   askDocument,
   documentChatContext,
   runDocumentChatAction,
@@ -63,8 +67,10 @@ import { MarkdownView } from '@/components/MarkdownView'
 import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
+import { getDisplayKeysForShortcut } from '@/lib/shortcuts'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
+  clearInsightsAskFocus,
   setActiveDocumentId,
   setDocumentOutlineOpen,
   setFindReplaceOpen,
@@ -89,7 +95,7 @@ type DocumentInsightsPanelProps = {
   onClose: () => void
 }
 
-const INSIGHT_ACTIONS: DocumentChatAction[] = [
+const FALLBACK_INSIGHT_ACTIONS: DocumentChatAction[] = [
   'summarize',
   'outline',
   'quotes',
@@ -165,17 +171,20 @@ function InsightSection({
 }
 
 export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
   const activeDocument = useAppSelector((state) => state.documents.activeDocument)
   const activeSummary = useAppSelector((state) =>
     state.documents.documents.find((doc) => doc.id === state.documents.activeDocumentId),
   )
   const folders = useAppSelector((state) => state.folders.folders)
+  const insightsFocusAsk = useAppSelector((state) => state.documents.insightsFocusAsk)
+  const shortcutOverrides = useAppSelector((state) => state.settings.shortcutOverrides)
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const moveDocument = useMoveDocumentToFolder()
   const renameDocument = useRenameDocument()
+  const askInputRef = useRef<HTMLInputElement>(null)
   const [similar, setSimilar] = useState<SearchHit[]>([])
   const [tasks, setTasks] = useState<DocumentTask[]>([])
   const [analysis, setAnalysis] = useState<NlpDocumentAnalysis | null>(null)
@@ -198,6 +207,21 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
   const [vaultDenied, setVaultDenied] = useState(false)
   const [wikiSuggestions, setWikiSuggestions] = useState<WikiLinkSuggestion[]>([])
   const [wikiBusyId, setWikiBusyId] = useState<string | null>(null)
+
+  const askShortcutLabel = useMemo(
+    () => getDisplayKeysForShortcut('askThisNote', shortcutOverrides).join(''),
+    [shortcutOverrides],
+  )
+
+  useEffect(() => {
+    if (!insightsFocusAsk || !nlpEnabled) return
+    const timer = window.setTimeout(() => {
+      askInputRef.current?.focus()
+      askInputRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+      dispatch(clearInsightsAskFocus())
+    }, 80)
+    return () => window.clearTimeout(timer)
+  }, [insightsFocusAsk, nlpEnabled, dispatch])
 
   const vaultFolder = useMemo(() => {
     const folderId = activeSummary?.folderId ?? activeDocument?.folderId
@@ -322,6 +346,25 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
     () => tasks.filter((task) => !task.checked),
     [tasks],
   )
+
+  const slovak = useMemo(
+    () => (analysis?.language || i18n.language || '').toLowerCase().startsWith('sk'),
+    [analysis?.language, i18n.language],
+  )
+
+  const documentQuestions = useMemo(
+    () =>
+      buildDocumentAskQuestions(analysis, openTasks, {
+        title: activeDocument?.title || activeSummary?.title,
+        slovak,
+      }),
+    [analysis, openTasks, activeDocument?.title, activeSummary?.title, slovak],
+  )
+
+  const documentActions = useMemo(() => {
+    const ranked = buildDocumentAskActions(analysis, openTasks)
+    return ranked.length > 0 ? ranked : FALLBACK_INSIGHT_ACTIONS
+  }, [analysis, openTasks])
 
   const handleOpen = useCallback(
     (id: string) => {
@@ -676,6 +719,9 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
             <div className="insights-ask__label">
               <MessageCircle className="h-3.5 w-3.5" aria-hidden />
               <span>{t('panels.insights.askTitle')}</span>
+              {askShortcutLabel ? (
+                <kbd className="insights-ask__kbd">{askShortcutLabel}</kbd>
+              ) : null}
               <span className="insights-ask__local">{t('panels.insights.localBadge')}</span>
             </div>
 
@@ -683,8 +729,25 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
               <p className="insights-quiet">{t('panels.insights.keywordsDisabled')}</p>
             ) : (
               <>
+                <p className="insights-ask__cta">{t('panels.insights.askCta')}</p>
+                <p className="insights-ask__hint">{t('panels.insights.askHint')}</p>
+                {documentQuestions.length > 0 ? (
+                  <div className="insights-actions">
+                    {documentQuestions.map((question) => (
+                      <button
+                        key={question}
+                        type="button"
+                        disabled={askBusy || !activeId}
+                        className="insights-action insights-action--question"
+                        onClick={() => void handleAskQuestion(question)}
+                      >
+                        {question}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
                 <div className="insights-actions">
-                  {INSIGHT_ACTIONS.map((action) => (
+                  {documentActions.map((action) => (
                     <button
                       key={action}
                       type="button"
@@ -705,6 +768,7 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
                   }}
                 >
                   <input
+                    ref={askInputRef}
                     type="text"
                     className="insights-ask__input"
                     placeholder={t('libraryChat.placeholderDocument')}

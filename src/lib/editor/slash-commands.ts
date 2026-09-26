@@ -25,8 +25,13 @@ import {
 } from '@/lib/editor/image-utils'
 import { insertBulletList, insertOrderedList, insertTaskList } from '@/lib/editor/list-commands'
 import { createCommentForSelection } from '@/lib/editor/comments'
-import { listBlockSnippets, plainTextToTipTapContent } from '@/lib/editor/block-snippets'
+import {
+  listBlockSnippets,
+  plainTextToTipTapContent,
+  upsertCustomBlockSnippet,
+} from '@/lib/editor/block-snippets'
 import { promptInput } from '@/lib/input-dialog'
+import { toast } from '@/lib/toast'
 import i18n from '@/i18n'
 
 type SlashCommandDef = {
@@ -68,8 +73,7 @@ export const SLASH_COMMAND_DEFS: SlashCommandDef[] = [
   { id: 'comment', icon: '💬' },
   { id: 'wiki-link', icon: '🔗' },
   { id: 'wiki-embed', icon: '⧉' },
-  { id: 'snippet-meeting', icon: '📝' },
-  { id: 'snippet-decision', icon: '⚖' },
+  { id: 'custom-block', icon: '＋' },
   { id: 'lorem', icon: '¶' },
   { id: 'toc', icon: '≡' },
 ]
@@ -83,10 +87,56 @@ function localizeSlashCommand(def: SlashCommandDef): SlashCommandItem {
   }
 }
 
+function snippetIcon(id: string, custom?: boolean): string {
+  if (custom || id.startsWith('custom-')) return '✦'
+  if (id === 'meeting-notes') return '📝'
+  if (id === 'decision') return '⚖'
+  return '▤'
+}
+
+function snippetSlashItems(): SlashCommandItem[] {
+  return listBlockSnippets().map((snippet) => {
+    const builtinKey =
+      snippet.id === 'meeting-notes'
+        ? 'snippet-meeting'
+        : snippet.id === 'decision'
+          ? 'snippet-decision'
+          : null
+    const custom = Boolean(snippet.custom || !builtinKey)
+    return {
+      id: `snippet:${snippet.id}`,
+      icon: snippetIcon(snippet.id, custom),
+      label: custom
+        ? i18n.t('slash.customSnippet.label', { name: snippet.name })
+        : i18n.t(`slash.${builtinKey}.label`),
+      hint: custom
+        ? i18n.t('slash.customSnippet.hint')
+        : i18n.t(`slash.${builtinKey}.hint`),
+    }
+  })
+}
+
+function allSlashItems(): SlashCommandItem[] {
+  const base = SLASH_COMMAND_DEFS.map(localizeSlashCommand)
+  const customBlockIndex = base.findIndex((item) => item.id === 'custom-block')
+  const snippets = snippetSlashItems()
+  if (customBlockIndex < 0) return [...base, ...snippets]
+  return [
+    ...base.slice(0, customBlockIndex + 1),
+    ...snippets,
+    ...base.slice(customBlockIndex + 1),
+  ]
+}
+
+/** @deprecated Static list without live custom snippets — prefer listSlashCommands(). */
 export const SLASH_COMMANDS: SlashCommandItem[] = SLASH_COMMAND_DEFS.map(localizeSlashCommand)
 
+export function listSlashCommands(): SlashCommandItem[] {
+  return allSlashItems()
+}
+
 function filterCommands(query: string) {
-  const commands = SLASH_COMMAND_DEFS.map(localizeSlashCommand)
+  const commands = allSlashItems()
   const q = query.toLowerCase().trim()
   if (!q) return commands
   return commands.filter(
@@ -97,11 +147,68 @@ function filterCommands(query: string) {
   )
 }
 
+function selectionPlainText(editor: Editor): string {
+  const { from, to, empty } = editor.state.selection
+  if (empty) return ''
+  return editor.state.doc.textBetween(from, to, '\n', '\n').trim()
+}
+
+async function createCustomBlockFromEditor(editor: Editor) {
+  const selected = selectionPlainText(editor)
+  const name = await promptInput({
+    title: i18n.t('slash.customBlock.nameTitle'),
+    description: i18n.t('slash.customBlock.nameDescription'),
+    placeholder: i18n.t('slash.customBlock.namePlaceholder'),
+    confirmLabel: i18n.t('common.next'),
+  })
+  if (!name?.trim()) return
+
+  const body = await promptInput({
+    title: i18n.t('slash.customBlock.bodyTitle'),
+    description: selected
+      ? i18n.t('slash.customBlock.bodyDescriptionSelection')
+      : i18n.t('slash.customBlock.bodyDescription'),
+    defaultValue: selected || '## \n\n',
+    placeholder: i18n.t('slash.customBlock.bodyPlaceholder'),
+    confirmLabel: i18n.t('slash.customBlock.save'),
+    multiline: true,
+  })
+  if (body == null || !body.trim()) return
+
+  try {
+    const snippet = upsertCustomBlockSnippet({
+      name: name.trim(),
+      plainText: body,
+    })
+    editor
+      .chain()
+      .focus()
+      .insertContent(plainTextToTipTapContent(snippet.plainText))
+      .run()
+    toast.success(i18n.t('slash.customBlock.saved'), snippet.name)
+  } catch (error) {
+    toast.error(i18n.t('slash.customBlock.saveFailed'), String(error))
+  }
+}
+
 export function runSlashCommand(
   editor: Editor,
   item: SlashCommandItem,
   _onInsertImages?: (files: File[]) => void | Promise<void>,
 ) {
+  if (item.id.startsWith('snippet:')) {
+    const snippetId = item.id.slice('snippet:'.length)
+    const snippet = listBlockSnippets().find((entry) => entry.id === snippetId)
+    if (snippet) {
+      editor
+        .chain()
+        .focus()
+        .insertContent(plainTextToTipTapContent(snippet.plainText))
+        .run()
+    }
+    return
+  }
+
   switch (item.id) {
     case 'h1':
       editor.chain().focus().setHeading({ level: 1 }).run()
@@ -214,11 +321,14 @@ export function runSlashCommand(
     case 'wiki-embed':
       editor.chain().focus().insertContent('![[').run()
       break
+    case 'custom-block':
+      void createCustomBlockFromEditor(editor)
+      break
+    // Back-compat for older tests / callers
     case 'snippet-meeting':
     case 'snippet-decision': {
-      const snippets = listBlockSnippets()
       const id = item.id === 'snippet-meeting' ? 'meeting-notes' : 'decision'
-      const snippet = snippets.find((entry) => entry.id === id)
+      const snippet = listBlockSnippets().find((entry) => entry.id === id)
       if (snippet) {
         editor
           .chain()
@@ -264,7 +374,7 @@ export const SlashCommands = Extension.create<SlashCommandsOptions>({
 
   addProseMirrorPlugins() {
     const onInsertImages = this.options.onInsertImages
-    const initialItems = SLASH_COMMAND_DEFS.map(localizeSlashCommand)
+    const initialItems = allSlashItems()
 
     return [
       Suggestion({
@@ -295,7 +405,7 @@ export const SlashCommands = Extension.create<SlashCommandsOptions>({
               component = new ReactRenderer(SlashSuggestionList, {
                 props: {
                   ...props,
-                  items: props.items?.length ? props.items : initialItems,
+                  items: props.items?.length ? props.items : allSlashItems(),
                 },
                 editor: props.editor,
                 className: 'slash-suggestion-popup',

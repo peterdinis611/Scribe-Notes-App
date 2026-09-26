@@ -11,7 +11,7 @@ mod unicode;
 mod vectors;
 
 pub use fuzzy::{fuzzy_extract, fuzzy_ratio};
-pub use unicode::decode_bytes;
+pub use unicode::{decode_bytes, decode_bytes_detailed, DecodedText};
 pub use vectors::cosine_similarity;
 
 use serde::Serialize;

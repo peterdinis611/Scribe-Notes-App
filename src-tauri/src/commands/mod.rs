@@ -9,6 +9,7 @@ pub mod import_export;
 pub mod native_pipeline;
 pub mod revisions;
 pub mod search;
+pub mod smart_folders;
 pub mod storage;
 pub mod system;
 pub mod links;

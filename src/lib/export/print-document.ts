@@ -1,4 +1,10 @@
 import { tiptapJsonToHtmlAsync, type HtmlExportOptions } from '@/lib/export/html'
+import {
+  DEFAULT_PAGE_SETUP,
+  PAPER_SIZES,
+  normalizePageSetup,
+} from '@/lib/editor/page-setup'
+import { invoke, isTauriRuntime } from '@/lib/tauri'
 
 const PRINT_FRAME_ID = 'scribe-print-frame'
 
@@ -17,8 +23,7 @@ function getOrCreatePrintFrame(): HTMLIFrameElement {
 }
 
 /**
- * Print HTML without `window.open` — popups are blocked in Tauri / WKWebView,
- * and `noopener` makes `window.open` return null even when a window would open.
+ * Browser fallback print. Unreliable inside Tauri WKWebView — prefer `print_html`.
  */
 export function printDocumentHtml(html: string, title: string): void {
   const frame = getOrCreatePrintFrame()
@@ -46,7 +51,6 @@ export function printDocumentHtml(html: string, title: string): void {
     }
   }
 
-  // Images / fonts may still be loading after write().
   frame.onload = () => {
     window.setTimeout(triggerPrint, 50)
   }
@@ -58,9 +62,28 @@ export async function printDocumentFromContent(
   title: string,
   options?: HtmlExportOptions,
 ): Promise<void> {
+  const pageSetup = normalizePageSetup(options?.pageSetup ?? DEFAULT_PAGE_SETUP)
+  const paper = PAPER_SIZES[pageSetup.paperSize]
   const html = await tiptapJsonToHtmlAsync(contentJson, title, {
     ...options,
+    pageSetup,
     forPrint: true,
   })
+
+  if (isTauriRuntime()) {
+    await invoke('print_html', {
+      input: {
+        html,
+        paperWidthPx: paper.width,
+        paperHeightPx: paper.height,
+        marginTopPx: pageSetup.marginTop,
+        marginRightPx: pageSetup.marginRight,
+        marginBottomPx: pageSetup.marginBottom,
+        marginLeftPx: pageSetup.marginLeft,
+      },
+    })
+    return
+  }
+
   printDocumentHtml(html, title)
 }

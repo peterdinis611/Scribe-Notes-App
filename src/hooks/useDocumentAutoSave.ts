@@ -11,6 +11,8 @@ import { debounce, extractTitleFromContent } from '@/lib/utils'
 import { store } from '@/store/index'
 import { useAppDispatch } from '@/store/hooks'
 import {
+  clearDocumentDirty,
+  markDocumentDirty,
   setActiveDocument,
   setSaveStatus,
   updateDocuments,
@@ -94,6 +96,7 @@ export function useDocumentAutoSave({
           lastPersistedHashRef.current = contentHash
           editorContentHashRef.current = contentHash
           dispatch(setActiveDocument(updated))
+          dispatch(setSaveStatus('saved'))
         }
 
         dispatch(
@@ -110,10 +113,7 @@ export function useDocumentAutoSave({
             ),
           ),
         )
-
-        if (latestDocIdRef.current === docId) {
-          dispatch(setSaveStatus('saved'))
-        }
+        dispatch(clearDocumentDirty(docId))
 
         const { scheduleNlpDocumentIndex } = await import('@/lib/nlp/auto-index')
         scheduleNlpDocumentIndex(docId)
@@ -172,8 +172,9 @@ export function useDocumentAutoSave({
   }, [activeId, dispatch, editor, saveNow, scheduleSave])
 
   const markDirty = useCallback(() => {
+    if (activeId) dispatch(markDocumentDirty(activeId))
     dispatch(setSaveStatus('dirty'))
-  }, [dispatch])
+  }, [activeId, dispatch])
 
   const queueSave = useCallback(
     (docId: string) => {

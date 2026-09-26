@@ -356,8 +356,19 @@ export const grantScopedPath = (path: string) =>
   invoke<void>('grant_scoped_path', { path })
 
 export const readTextFile = async (path: string) => {
+  const result = await readTextFileDecoded(path)
+  return result.text
+}
+
+export type ReadTextFileResult = {
+  text: string
+  encoding: string
+  converted: boolean
+}
+
+export const readTextFileDecoded = async (path: string) => {
   await grantScopedPath(path)
-  return invoke<string>('read_text_file', { path })
+  return invoke<ReadTextFileResult>('read_text_file', { path })
 }
 
 export const readBinaryFile = async (path: string) => {
@@ -726,6 +737,58 @@ export const exportLibraryArchiveToDir = (directory: string) =>
 /** Default folder for automatic backups (~/Documents/Scribe/Backups). */
 export const getDefaultAutoBackupDir = () =>
   invoke<string>('get_default_auto_backup_dir')
+
+export interface AutoBackupConfig {
+  enabled: boolean
+  intervalHours: number
+  directory: string | null
+  lastAt: number | null
+}
+
+export const getAutoBackupConfig = () => invoke<AutoBackupConfig>('get_auto_backup_config')
+
+export const configureAutoBackup = (config: AutoBackupConfig) =>
+  invoke<AutoBackupConfig>('configure_auto_backup', { config })
+
+export const setDocumentsWatchEnabled = (enabled: boolean) =>
+  invoke<void>('set_documents_watch_enabled', { enabled })
+
+export interface SmartFolderRecord {
+  id: string
+  libraryId: string
+  name: string
+  queryRule: string
+  icon: string | null
+  createdAt: number
+  updatedAt: number
+}
+
+export interface SmartFolderMatch {
+  documentId: string
+  title: string
+}
+
+export interface SmartFolderEval {
+  folder: SmartFolderRecord
+  matches: SmartFolderMatch[]
+}
+
+export const listSmartFolders = () => invoke<SmartFolderRecord[]>('list_smart_folders')
+
+export const upsertSmartFolder = (input: {
+  id?: string | null
+  name: string
+  queryRule: string
+  icon?: string | null
+}) => invoke<SmartFolderRecord>('upsert_smart_folder', { input })
+
+export const deleteSmartFolder = (id: string) => invoke<boolean>('delete_smart_folder', { id })
+
+export const evaluateSmartFolder = (input: {
+  id?: string | null
+  queryRule?: string | null
+  limit?: number
+}) => invoke<SmartFolderEval>('evaluate_smart_folder', { input })
 
 export const importLibraryArchive = () =>
   invoke<BackupImportResult | null>('import_library_archive')

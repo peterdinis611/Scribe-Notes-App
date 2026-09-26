@@ -1,6 +1,6 @@
 import { message, open } from '@tauri-apps/plugin-dialog'
 import { cacheDocument } from '@/lib/cache/document-cache'
-import { createDocument, importFile, readTextFile, type Document } from '@/lib/db/api'
+import { createDocument, importFile, readTextFileDecoded, type Document } from '@/lib/db/api'
 import {
   parseMarkdownToContentJson,
   titleFromMarkdown,
@@ -15,6 +15,8 @@ import {
   isLegacyExcelPath,
 } from '@/lib/import/excel-xlsx'
 import { isWordDocxPath } from '@/lib/import/word-docx'
+import { toast } from '@/lib/toast'
+import i18n from '@/i18n'
 
 const IMPORT_FILTERS = [
   {
@@ -71,7 +73,13 @@ export async function pickAndImportDocument(): Promise<Document | null> {
 
   try {
     if (isMarkdownPath(selected)) {
-      const markdown = await readTextFile(selected)
+      const decoded = await readTextFileDecoded(selected)
+      if (decoded.converted && decoded.encoding.toLowerCase() !== 'utf-8') {
+        toast.info(
+          i18n.t('import.encodingConverted', { encoding: decoded.encoding }),
+        )
+      }
+      const markdown = decoded.text
       const fallbackTitle = fallbackTitleFromPath(selected)
       const doc = await createDocument({
         title: titleFromMarkdown(markdown, fallbackTitle),

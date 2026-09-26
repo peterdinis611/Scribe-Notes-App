@@ -16,16 +16,17 @@ Optional **local** Python service for semantic search, journal summaries, tag su
 
 ```bash
 cd nlp
+pip install -e '.[enhance,onnx,faiss]'               # denné používanie (odporúčané)
+pip install -e '.[fast-embed]'                       # Model2Vec stredná cesta hash ↔ MiniLM
+pip install -e '.[lexical]'                          # bm25s hybrid lexical ranking
+pip install -e '.[hnsw]'                             # pynear HNSW (veľké knižnice)
 pip install -e '.[quality]'                          # MiniLM (sentence-transformers)
-pip install -e '.[enhance]'                          # rapidfuzz, lingua, ftfy, dateparser
 pip install -e '.[translate]'                        # argostranslate (SK↔EN)
 pip install -e '.[ner]' && python -m spacy download xx_ent_wiki_sm
-pip install -e '.[onnx]'                             # onnxruntime MiniLM (rýchlejšie embeddingy)
-pip install -e '.[faiss]'                            # rýchly similar search
-pip install -e '.[full]'                             # všetko vyššie + quality
+pip install -e '.[full]'                             # všetko vyššie
 ```
 
-- Po upgrade modelu (`v3` → `v4` / ONNX) spustite **Preindexovať**
+- Po upgrade modelu / zmene backendu (`hash` → `fast`/`quality`) spustite **Preindexovať**
 - Stav balíčkov: **Nastavenia → Lokálna AI** (chipy extras)
 
 ## Models
@@ -34,6 +35,7 @@ pip install -e '.[full]'                             # všetko vyššie + qualit
 |-------|-------------|
 | `scribe-hash-v3` | Stopword-aware + lead boost |
 | `scribe-hash-v4` | + stem/diacritic features, chunk mean-pool for long docs (current hash) |
+| `scribe-m2v-v1` | Optional Model2Vec static embeddings (`fast` backend) |
 | `scribe-minilm-v1` | Optional quality MiniLM via sentence-transformers |
 | `scribe-minilm-onnx-v1` | Same MiniLM via onnxruntime (preferred when ONNX assets are cached) |
 
@@ -48,7 +50,10 @@ pip install -e '.[full]'                             # všetko vyššie + qualit
 | argostranslate | Offline rewrite translate_sk / translate_en |
 | spacy (+ `xx_ent_wiki_sm`) | NER people/orgs/places → tags & Insights |
 | onnxruntime | Faster quality embeddings without full PyTorch load path |
-| faiss-cpu | Similar-notes shortlist for large libraries |
+| faiss-cpu | Similar-notes shortlist (flat IP) |
+| model2vec | Fast static embeddings (`fast` backend) between hash and MiniLM |
+| bm25s | Lexical BM25 boost in similar notes + library_answer rerank |
+| pynear | HNSW cosine ANN when candidate set ≥ 128 (falls back to FAISS) |
 
 ## Dev
 

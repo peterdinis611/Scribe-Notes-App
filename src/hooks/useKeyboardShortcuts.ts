@@ -27,6 +27,7 @@ import {
   setFindReplaceOpen,
   setFocusMode,
   setInsightsPanelOpen,
+  requestInsightsAskFocus,
   setLibraryFindReplaceOpen,
   setReadingMode,
   setRevisionHistoryOpen,
@@ -64,6 +65,7 @@ export function useKeyboardShortcuts() {
   const readingMode = useAppSelector((state) => state.documents.readingMode)
   const findReplaceOpen = useAppSelector((state) => state.documents.findReplaceOpen)
   const clipboardHistoryOpen = useAppSelector((state) => state.documents.clipboardHistoryPanelOpen)
+  const backlinksPanelOpen = useAppSelector((state) => state.documents.backlinksPanelOpen)
   const commandPaletteOpen = useAppSelector((state) => state.folders.commandPaletteOpen)
   const templatePickerOpen = useAppSelector((state) => state.settings.templatePickerOpen)
   const dispatch = useAppDispatch()
@@ -237,6 +239,44 @@ export function useKeyboardShortcuts() {
           meta: {
             name: t('shortcuts.clipboardHistory.label'),
             description: t('shortcuts.clipboardHistory.description'),
+          },
+        },
+      },
+      {
+        hotkey: hotkey('connections', shortcutOverrides),
+        callback: () => {
+          if (!activeId) return
+          if (backlinksPanelOpen) {
+            dispatch(setBacklinksPanelOpen(false))
+            return
+          }
+          dispatch(setDocumentOutlineOpen(false))
+          dispatch(setRevisionHistoryOpen(false))
+          dispatch(setCommentsPanelOpen(false))
+          dispatch(setStatsPanelOpen(false))
+          dispatch(setClipboardHistoryPanelOpen(false))
+          dispatch(setInsightsPanelOpen(false))
+          dispatch(setBacklinksPanelOpen(true))
+        },
+        options: {
+          enabled: !!activeId,
+          meta: {
+            name: t('shortcuts.connections.label'),
+            description: t('shortcuts.connections.description'),
+          },
+        },
+      },
+      {
+        hotkey: hotkey('askThisNote', shortcutOverrides),
+        callback: () => {
+          if (!activeId) return
+          dispatch(requestInsightsAskFocus())
+        },
+        options: {
+          enabled: !!activeId,
+          meta: {
+            name: t('shortcuts.askThisNote.label'),
+            description: t('shortcuts.askThisNote.description'),
           },
         },
       },

@@ -22,8 +22,9 @@ import {
 import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
 import { cn, formatRelativeTime } from '@/lib/utils'
+import { navigateViaWikiLink } from '@/lib/navigation'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { setActiveDocumentId } from '@/store/documentsSlice'
+import { setFindReplaceOpen, setPendingEditorSearch } from '@/store/documentsSlice'
 import {
   EditorSidePanel,
   EditorSidePanelEmpty,
@@ -85,6 +86,7 @@ export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
   const [backlinks, setBacklinks] = useState<DocumentSummary[]>([])
   const [outgoing, setOutgoing] = useState<DocumentSummary[]>([])
   const [unlinked, setUnlinked] = useState<SearchHit[]>([])
+  const [mentionSnippets, setMentionSnippets] = useState<Record<string, string>>({})
   const [graphEdges, setGraphEdges] = useState<LinkGraphEdge[]>([])
   const [loading, setLoading] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
@@ -95,6 +97,7 @@ export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
       setBacklinks([])
       setOutgoing([])
       setUnlinked([])
+      setMentionSnippets({})
       setGraphEdges([])
       return
     }
@@ -104,7 +107,7 @@ export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
       listBacklinks(activeId),
       listOutgoingLinks(activeId),
       listLinkGraph(),
-      title.length >= 2 ? searchDocuments(title, 24) : Promise.resolve([] as SearchHit[]),
+      title.length >= 2 ? searchDocuments(title, 32) : Promise.resolve([] as SearchHit[]),
     ])
       .then(([incoming, outbound, graph, hits]) => {
         if (cancelled) return
@@ -112,6 +115,16 @@ export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
         setOutgoing(outbound)
         setGraphEdges(graph.edges)
         const linkedIds = new Set(incoming.map((doc) => doc.id))
+        const snippetMap: Record<string, string> = {}
+        for (const hit of hits) {
+          if (!hit.snippet) continue
+          const plain = hit.snippet.replace(/<\/?mark>/g, '').trim()
+          if (!plain) continue
+          if (linkedIds.has(hit.documentId) || hit.documentId === activeId) {
+            snippetMap[hit.documentId] = plain
+          }
+        }
+        setMentionSnippets(snippetMap)
         setUnlinked(
           hits.filter(
             (hit) => hit.documentId !== activeId && !linkedIds.has(hit.documentId),
@@ -130,11 +143,19 @@ export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
   }, [activeId, activeTitle, reloadKey, t])
 
   const handleOpen = useCallback(
-    (id: string) => {
-      dispatch(setActiveDocumentId(id))
-      navigate(ROUTES.document(id))
+    (id: string, mentionNeedle?: string) => {
+      if (mentionNeedle?.trim()) {
+        dispatch(setFindReplaceOpen(true))
+        dispatch(setPendingEditorSearch(mentionNeedle.trim().slice(0, 80)))
+      }
+      navigateViaWikiLink({
+        fromId: activeId,
+        targetId: id,
+        dispatch,
+        navigate: (route) => void navigate(route),
+      })
     },
-    [dispatch, navigate],
+    [activeId, dispatch, navigate],
   )
 
   const mini = useMemo(() => {
@@ -152,29 +173,42 @@ export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
     void navigate(ROUTES.graph({ around: true }))
   }, [navigate])
 
-  const renderList = (docs: DocumentSummary[], emptyText: string) => {
+  const renderList = (
+    docs: DocumentSummary[],
+    emptyText: string,
+    options?: { mentionNeedle?: string; showMentionSnippet?: boolean },
+  ) => {
     if (docs.length === 0) {
       return <p className="m-0 mt-0.5 text-[11.5px] text-[var(--color-muted-foreground)]">{emptyText}</p>
     }
-    return docs.map((doc) => (
-      <button
-        key={doc.id}
-        type="button"
-        className="flex w-full items-center gap-2.5 rounded-[9px] border border-transparent bg-transparent px-2.5 py-2 text-left transition-[background,border-color] duration-120 hover:border-[var(--color-border)] hover:bg-[var(--color-surface-elevated)]"
-        onClick={() => handleOpen(doc.id)}
-        title={doc.title}
-      >
-        <FileText className="h-4 w-4 shrink-0 opacity-60" />
-        <span className="flex min-w-0 flex-col gap-px">
-          <span className="truncate text-[12.5px] font-medium text-[var(--color-foreground)]">
-            {doc.title || t('common.untitled')}
+    return docs.map((doc) => {
+      const snippet = options?.showMentionSnippet ? mentionSnippets[doc.id] : undefined
+      return (
+        <button
+          key={doc.id}
+          type="button"
+          className="flex w-full items-center gap-2.5 rounded-[9px] border border-transparent bg-transparent px-2.5 py-2 text-left transition-[background,border-color] duration-120 hover:border-[var(--color-border)] hover:bg-[var(--color-surface-elevated)]"
+          onClick={() => handleOpen(doc.id, options?.mentionNeedle)}
+          title={doc.title}
+        >
+          <FileText className="h-4 w-4 shrink-0 opacity-60" />
+          <span className="flex min-w-0 flex-col gap-px">
+            <span className="truncate text-[12.5px] font-medium text-[var(--color-foreground)]">
+              {doc.title || t('common.untitled')}
+            </span>
+            {snippet ? (
+              <span className="line-clamp-2 text-[10.5px] text-[var(--color-muted-foreground)]">
+                {snippet}
+              </span>
+            ) : (
+              <span className="text-[10.5px] text-[var(--color-muted-foreground)]">
+                {formatRelativeTime(doc.updatedAt)}
+              </span>
+            )}
           </span>
-          <span className="text-[10.5px] text-[var(--color-muted-foreground)]">
-            {formatRelativeTime(doc.updatedAt)}
-          </span>
-        </span>
-      </button>
-    ))
+        </button>
+      )
+    })
   }
 
   const total = backlinks.length + outgoing.length
@@ -305,7 +339,10 @@ export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
                 {backlinks.length}
               </span>
             </h3>
-            {renderList(backlinks, t('panels.backlinks.incomingEmpty'))}
+            {renderList(backlinks, t('panels.backlinks.incomingEmpty'), {
+              mentionNeedle: activeTitle,
+              showMentionSnippet: true,
+            })}
           </div>
 
           <div className="mt-3.5 border-t border-[var(--color-border)] pt-3">

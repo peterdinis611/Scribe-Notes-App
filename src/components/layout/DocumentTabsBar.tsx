@@ -27,12 +27,14 @@ export function DocumentTabsBar() {
   const openIds = useAppSelector((state) => state.documents.openDocumentIds)
   const pinnedIds = useAppSelector((state) => state.documents.pinnedDocumentIds)
   const documents = useAppSelector((state) => state.documents.documents)
+  const dirtyDocumentIds = useAppSelector((state) => state.documents.dirtyDocumentIds)
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
   const focusMode = useAppSelector((state) => state.documents.focusMode)
   const listRef = useRef<HTMLDivElement>(null)
   const [scrollHints, setScrollHints] = useState({ left: false, right: false })
 
   const onEditorRoute = pathname === '/' || pathname.startsWith('/doc/')
+  const dirtySet = useMemo(() => new Set(dirtyDocumentIds), [dirtyDocumentIds])
 
   const tabs = useMemo(() => {
     const byId = new Map(documents.map((doc) => [doc.id, doc]))
@@ -45,15 +47,16 @@ export function DocumentTabsBar() {
           id,
           title: doc.title || t('common.untitled'),
           pinned: pinnedSet.has(id),
+          dirty: dirtySet.has(id),
         }
       })
-      .filter((tab): tab is { id: string; title: string; pinned: boolean } => tab != null)
+      .filter((tab): tab is { id: string; title: string; pinned: boolean; dirty: boolean } => tab != null)
 
     return [
       ...mapped.filter((tab) => tab.pinned),
       ...mapped.filter((tab) => !tab.pinned),
     ]
-  }, [documents, openIds, pinnedIds, t])
+  }, [dirtySet, documents, openIds, pinnedIds, t])
 
   const updateScrollHints = useCallback(() => {
     const el = listRef.current
@@ -151,7 +154,7 @@ function DocumentTab({
   onActivate,
   onClose,
 }: {
-  tab: { id: string; title: string; pinned: boolean }
+  tab: { id: string; title: string; pinned: boolean; dirty: boolean }
   isActive: boolean
   onActivate: (id: string) => void
   onClose: (id: string) => void
@@ -193,7 +196,7 @@ function DocumentTab({
       role="tab"
       aria-selected={isActive}
       aria-roledescription={t('tabs.reorder')}
-      title={tab.title}
+      title={tab.dirty ? `${tab.title} • ${t('tabs.unsaved')}` : tab.title}
       className={cn(
         'group relative flex max-w-[200px] min-w-[96px] shrink-0 items-center gap-1 border-x border-t px-2.5 py-1.5 text-left transition-colors',
         isActive
@@ -229,6 +232,11 @@ function DocumentTab({
         onPointerEnter={() => prefetchDocument(tab.id)}
         title={tab.title}
       >
+        {tab.dirty ? (
+          <span className="document-tab-dirty" aria-hidden>
+            ●
+          </span>
+        ) : null}
         {tab.title}
       </button>
       {!tab.pinned && (

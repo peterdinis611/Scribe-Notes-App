@@ -157,6 +157,78 @@ pub async fn render_html_to_pdf(
     })
 }
 
+/// Open the system print dialog for HTML (macOS WKWebView + NSPrintOperation).
+/// iframe/`window.print` is unreliable inside Tauri’s WKWebView.
+#[tauri::command]
+pub async fn print_html(app: AppHandle, input: RenderPdfInput) -> Result<(), String> {
+    let seq = EXPORT_SEQ.fetch_add(1, Ordering::Relaxed);
+    let pid = std::process::id();
+
+    let mut temp_html = std::env::temp_dir();
+    temp_html.push(format!("scribe-print-{pid}-{seq}.html"));
+    std::fs::write(&temp_html, &input.html)
+        .map_err(|e| format!("Nepodarilo sa pripraviť HTML pre tlač: {e}"))?;
+
+    let url = tauri::Url::from_file_path(&temp_html)
+        .map_err(|_| "Nepodarilo sa vytvoriť URL pre tlač HTML.".to_string())?;
+
+    let (load_tx, load_rx) = mpsc::channel::<()>();
+    let load_tx = Mutex::new(Some(load_tx));
+
+    let label = format!("print-job-{seq}");
+    let window = WebviewWindowBuilder::new(&app, &label, WebviewUrl::External(url))
+        .visible(false)
+        .skip_taskbar(true)
+        .title("")
+        .inner_size(input.paper_width_px, input.paper_height_px)
+        .on_page_load(move |_w, payload| {
+            if matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
+                if let Ok(mut guard) = load_tx.lock() {
+                    if let Some(tx) = guard.take() {
+                        let _ = tx.send(());
+                    }
+                }
+            }
+        })
+        .build()
+        .map_err(|e| format!("Nepodarilo sa vytvoriť print webview: {e}"))?;
+
+    if load_rx.recv_timeout(Duration::from_secs(30)).is_err() {
+        let _ = window.close();
+        let _ = std::fs::remove_file(&temp_html);
+        return Err("Časový limit pri renderovaní dokumentu pre tlač vypršal.".into());
+    }
+
+    std::thread::sleep(Duration::from_millis(350));
+
+    let margins = PrintMargins {
+        top: px_to_pt(input.margin_top_px),
+        right: px_to_pt(input.margin_right_px),
+        bottom: px_to_pt(input.margin_bottom_px),
+        left: px_to_pt(input.margin_left_px),
+        paper_width: px_to_pt(input.paper_width_px),
+        paper_height: px_to_pt(input.paper_height_px),
+    };
+
+    let (done_tx, done_rx) = mpsc::channel::<Result<(), String>>();
+    if let Err(e) = window.with_webview(move |platform| {
+        let result = unsafe { print_with_dialog(platform, &margins) };
+        let _ = done_tx.send(result);
+    }) {
+        let _ = window.close();
+        let _ = std::fs::remove_file(&temp_html);
+        return Err(format!("Nepodarilo sa pristúpiť k print webview: {e}"));
+    }
+
+    let outcome = done_rx
+        .recv_timeout(Duration::from_secs(300))
+        .unwrap_or_else(|_| Err("Časový limit pri tlači vypršal.".into()));
+
+    let _ = window.close();
+    let _ = std::fs::remove_file(&temp_html);
+    outcome
+}
+
 struct PrintMargins {
     top: f64,
     right: f64,
@@ -239,6 +311,65 @@ unsafe fn print_to_pdf(
     Ok(())
 }
 
+/// Show the macOS print panel for the off-screen WKWebView.
+#[cfg(target_os = "macos")]
+unsafe fn print_with_dialog(
+    platform: tauri::webview::PlatformWebview,
+    margins: &PrintMargins,
+) -> Result<(), String> {
+    use objc2::msg_send;
+    use objc2::runtime::{AnyObject, Bool, Sel};
+    use objc2_app_kit::{NSPrintInfo, NSPrintOperation, NSPrintingPaginationMode, NSWindow};
+    use objc2_foundation::NSSize;
+
+    let webview = (platform.inner() as *mut AnyObject)
+        .as_ref()
+        .ok_or("WKWebView nie je dostupný")?;
+    let ns_window = (platform.ns_window() as *mut NSWindow)
+        .as_ref()
+        .ok_or("Print okno nie je dostupné")?;
+
+    let selector = Sel::register(c"printOperationWithPrintInfo:");
+    let responds: Bool = msg_send![webview, respondsToSelector: selector];
+    if !responds.as_bool() {
+        return Err("Tlač vyžaduje macOS 11 alebo novší".into());
+    }
+
+    let print_info = NSPrintInfo::sharedPrintInfo();
+    print_info.setPaperSize(NSSize {
+        width: margins.paper_width,
+        height: margins.paper_height,
+    });
+    print_info.setTopMargin(margins.top);
+    print_info.setBottomMargin(margins.bottom);
+    print_info.setLeftMargin(margins.left);
+    print_info.setRightMargin(margins.right);
+    print_info.setHorizontalPagination(NSPrintingPaginationMode::Fit);
+    print_info.setVerticalPagination(NSPrintingPaginationMode::Automatic);
+
+    let op: *const NSPrintOperation =
+        msg_send![webview, printOperationWithPrintInfo: &*print_info];
+    let op = op
+        .as_ref()
+        .ok_or("Nepodarilo sa vytvoriť NSPrintOperation")?;
+
+    op.setShowsPrintPanel(true);
+    op.setShowsProgressPanel(true);
+    if let Some(view) = op.view() {
+        let frame: objc2_foundation::NSRect = msg_send![webview, frame];
+        view.setFrame(frame);
+    }
+
+    op.runOperationModalForWindow_delegate_didRunSelector_contextInfo(
+        ns_window,
+        None,
+        None,
+        std::ptr::null_mut(),
+    );
+
+    Ok(())
+}
+
 #[cfg(not(target_os = "macos"))]
 unsafe fn print_to_pdf(
     _platform: tauri::webview::PlatformWebview,
@@ -246,4 +377,12 @@ unsafe fn print_to_pdf(
     _margins: &PrintMargins,
 ) -> Result<(), String> {
     Err("Natívny PDF export je dostupný len na macOS.".into())
+}
+
+#[cfg(not(target_os = "macos"))]
+unsafe fn print_with_dialog(
+    _platform: tauri::webview::PlatformWebview,
+    _margins: &PrintMargins,
+) -> Result<(), String> {
+    Err("Natívna tlač je dostupná len na macOS.".into())
 }

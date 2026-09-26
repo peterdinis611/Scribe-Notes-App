@@ -15,7 +15,7 @@ import {
 import { DocumentTitleField } from '@/components/DocumentTitleField'
 import { DemoGuideButton } from '@/components/DemoGuideButton'
 import { DocumentNavBreadcrumb } from '@/components/layout/DocumentNavBreadcrumb'
-import { LocaleToggle } from '@/components/LocaleToggle'
+import { LocaleSelect } from '@/components/LocaleSelect'
 import { EditorDocumentToolsMenu } from '@/components/editor/EditorDocumentToolsMenu'
 import { EditorFileMenu } from '@/components/editor/EditorFileMenu'
 import { EditorViewModeToggle } from '@/components/editor/EditorViewModeToggle'
@@ -38,6 +38,7 @@ import {
   shareDocumentPackage,
   type ShareDocumentAction,
 } from '@/lib/export/share-package'
+import { printDocumentFromContent } from '@/lib/export/print-document'
 import { ROUTES, useSettingsSections } from '@/lib/routes'
 import { closeActiveDocumentAndMaybeHome, goToHome } from '@/lib/navigation'
 import { cn } from '@/lib/utils'
@@ -452,7 +453,22 @@ function EditorChrome() {
             onImportPdfHighlights={() => void handleImportPdfHighlights()}
             onRevealFile={() => void handleRevealFile()}
             onPdfPreview={document ? () => setPdfPreviewOpen(true) : undefined}
-            onPrint={document ? (editorRefs.printHandler ?? undefined) : undefined}
+            onPrint={
+              document
+                ? () => {
+                    if (editorRefs.printHandler) {
+                      editorRefs.printHandler()
+                      return
+                    }
+                    void printDocumentFromContent(document.contentJson, document.title, {
+                      pageSetup,
+                      includeTitleHeading: true,
+                    }).catch((error) => {
+                      toast.error(t('fileMenu.print'), String(error))
+                    })
+                  }
+                : undefined
+            }
             onSaveAsTemplate={document ? handleSaveAsTemplate : undefined}
             onGoHome={handleGoHome}
             onCloseDocument={document ? handleCloseDocument : undefined}
@@ -550,7 +566,7 @@ function EditorChrome() {
           )}
           {document && !readingMode && <EditorDocumentToolsMenu viewMode={viewMode} />}
           {document && !readingMode && <EditorViewModeToggle />}
-          <LocaleToggle size="sm" />
+          <LocaleSelect compact size="sm" />
           {document && <SaveStatus />}
         </div>
       </header>

@@ -107,3 +107,14 @@ pub fn list_system_font_families() -> Result<Vec<String>, String> {
     names.dedup_by(|a, b| a.eq_ignore_ascii_case(b));
     Ok(names)
 }
+
+#[tauri::command]
+pub fn set_documents_watch_enabled(
+    app: AppHandle,
+    enabled: bool,
+) -> Result<(), String> {
+    if let Some(watcher) = app.try_state::<std::sync::Arc<storage::DocumentsWatcher>>() {
+        watcher.set_enabled(enabled);
+    }
+    Ok(())
+}

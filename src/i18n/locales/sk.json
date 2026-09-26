@@ -177,6 +177,7 @@
     "randomThemeHint": "Vygenerovať vlastnú paletu",
     "switchToEnglish": "Prepnúť na English",
     "switchToSlovak": "Prepnúť na slovenčinu",
+    "switchLanguage": "Prepnúť na {{language}}",
     "newFolder": "Nový priečinok",
     "newFolderTitle": "Nový priečinok",
     "newFolderPlaceholder": "Názov priečinka",
@@ -209,7 +210,10 @@
       "wiki": "Wiki odkazy",
       "comments": "Komentáre",
       "semantic": "Sémanticky"
-    }
+    },
+    "connections": "Prepojenia",
+    "connectionsOff": "Skryť prepojenia",
+    "askThisNote": "Opýtať sa poznámky"
   },
   "editor": {
     "loading": "Načítavam dokument…",
@@ -280,7 +284,26 @@
   },
   "errors": {
     "title": "Niečo sa pokazilo",
-    "generic": "Nastala neočakávaná chyba. Skúste to znova alebo sa vráťte na úvod."
+    "subtitle": "Scribe narazil na neočakávanú chybu. Poznámky na disku sú v poriadku — skúste znova, alebo skopírujte report nižšie, ak sa to opakuje.",
+    "generic": "Nastala neočakávaná chyba. Skúste to znova alebo sa vráťte na úvod.",
+    "kicker": "Chyba behu",
+    "mark": "ERR",
+    "meta": {
+      "type": "Typ",
+      "route": "Cesta",
+      "version": "Verzia",
+      "time": "Čas",
+      "locale": "Jazyk"
+    },
+    "technical": "Technické detaily",
+    "showDetails": "Zobraziť",
+    "hideDetails": "Skryť",
+    "stack": "Stack trace",
+    "componentStack": "Component stack",
+    "copyReport": "Kopírovať report",
+    "copied": "Report chyby skopírovaný",
+    "copiedShort": "Skopírované",
+    "copyFailed": "Report sa nepodarilo skopírovať"
   },
   "onboarding": {
     "title": "Vitajte v Scribe {{version}}",
@@ -412,7 +435,7 @@
     "badge": "Novinky {{version}}",
     "kicker": "Poznámky k vydaniu",
     "title": "Scribe {{version}}",
-    "subtitle": "Scribe má vlastnú Lokálnu AI, ktorá číta poznámky na tomto Macu, a MCP je pripravené, keď chcete Cursor alebo Claude.",
+    "subtitle": "Wiki odkazy ako v Obsidiane, skratka na Prepojenia a Local AI polish v 2.4.",
     "localAiAsk": {
       "title": "Scribe Lokálna AI",
       "description": "Vstavaná Lokálna AI — nie ChatGPT. Pýtajte sa knižnice alebo otvorenej poznámky; odpovede ostávajú na tomto zariadení."
@@ -629,6 +652,18 @@
     "importPipeline": {
       "title": "Rýchlejší import",
       "description": "Optimalizované čítanie súborov a konverzia na rich text bez zbytočného zaťaženia editora."
+    },
+    "wikiNav": {
+      "title": "Navigácia wiki odkazov",
+      "description": "Nevyriešené [[odkazy]] otvoria popover vytvoriť / mysleli ste?. Hover karty sú klikateľné a skoky cez Prepojenia majú späť trail."
+    },
+    "connectionsShortcut": {
+      "title": "Skratka Prepojenia",
+      "description": "⌘⇧B prepína panel Prepojenia. Snippety ukazujú, kde sa backlink spomína."
+    },
+    "libraryPolish": {
+      "title": "Knižnica polish",
+      "description": "Úlohy filtrujú podľa priečinka a triedia podľa termínu. Duplikáty ukazujú lexikálne vs embed skóre. Dirty taby a počty wiki/úloh."
     }
   },
   "wikiNav": {
@@ -678,10 +713,13 @@
     },
     "language": {
       "title": "Jazyk",
-      "description": "Jazyk rozhrania aplikácie. Vlastný jazyk pridáte importom JSON súboru.",
-      "rowDescription": "Prepína texty menu, dialógov a editora.",
+      "description": "Jazyk rozhrania aplikácie. Predvolená je slovenčina; môžete prepnúť na angličtinu alebo nahrať vlastný balík.",
+      "rowDescription": "Vyberte slovenčinu, angličtinu alebo vlastný balík z rozbaľovacieho zoznamu. Voľba sa uloží na tomto Macu.",
       "sk": "Slovenčina",
       "en": "English",
+      "defaultBadge": "Predvolený",
+      "builtInGroup": "Vstavané",
+      "customGroup": "Vaše jazyky",
       "customTitle": "Vlastný jazyk",
       "customDescription": "Nahrajte JSON preklad (rovnaká štruktúra ako en.json). Chýbajúce kľúče padnú na slovenčinu.",
       "importJson": "Importovať JSON",
@@ -942,19 +980,28 @@
       "statusStaleCount": "Zastarané záznamy",
       "statusEmbedBackend": "Spôsob vektorov",
       "embedBackendTitle": "Kvalita sémantiky",
-      "embedBackendDescription": "Hash je rýchly a bez závislostí. Kvalitný model dáva presnejšie podobné dokumenty a vyhľadávanie.",
-      "embedBackendInstallHint": "Pre kvalitný model: pip install 'scribe-nlp[quality]' (alebo [full] pre všetky extras)",
-      "embedBackendHash": "Hash (rýchly)",
-      "embedBackendQuality": "Kvalita (MiniLM)",
+      "embedBackendDescription": "Hash je okamžitý. Fast (Model2Vec) je stredná CPU cesta. Quality (MiniLM/ONNX) je najsilnejšia — po prepnutí preindexuj.",
+      "embedBackendInstallHint": "Inštalácia: pip install -e '.[enhance,onnx,faiss,fast-embed,lexical]' z nlp/ (podľa potreby [quality] alebo [hnsw])",
+      "embedBackendHash": "Hash",
+      "embedBackendQuality": "Quality (MiniLM)",
       "embedBackendError": "Nepodarilo sa zmeniť spôsob vektorov",
-      "hashEnabledToast": "Používa sa rýchly hash vektorov",
-      "qualityEnabledToast": "Používa sa kvalitný vektorový model — preindexujte knižnicu",
+      "hashEnabledToast": "Používajú sa hash embeddingy",
+      "qualityEnabledToast": "Používa sa quality embedding model — preindexuj knižnicu",
       "extrasTitle": "Voliteľné Python balíčky",
-      "extrasDescription": "Inštalácia z nlp/: pip install 'scribe-nlp[enhance,translate,ner,onnx,faiss]'. Zvýraznené chipy sú detegované za behu.",
+      "extrasDescription": "Z nlp/: pip install -e '.[enhance,onnx,faiss,fast-embed,lexical,hnsw]'. Zvýraznené chipy sú detegované za behu.",
       "rustExtrasTitle": "Vstavané Rust extras",
       "rustExtrasDescription": "Skompilované v aplikácii (Cargo feature enhance). Fuzzy názvy, rýchlejšie vektory a detekcia encodingu pri importe.",
       "yes": "Áno",
-      "no": "Nie"
+      "no": "Nie",
+      "embedBackendFast": "Fast (Model2Vec)",
+      "fastEnabledToast": "Používajú sa Model2Vec fast embeddingy — preindexuj knižnicu",
+      "answerBackendTitle": "Kvalita Ask / odpovede",
+      "answerBackendDescription": "Fast nechaj na index; Auto použije Quality/ONNX len pri odpovedi (query + top passáže).",
+      "answerBackendAuto": "Auto (Quality pri Ask)",
+      "answerBackendIndex": "Rovnaké ako index",
+      "answerBackendQuality": "Vždy Quality",
+      "answerBackendToast": "Preferencia odpovede uložená",
+      "answerBackendError": "Nepodarilo sa aktualizovať preferenciu odpovede"
     },
     "shortcuts": {
       "title": "Klávesové skratky",
@@ -1337,6 +1384,14 @@
     "closePanel": {
       "label": "Zavrieť panel",
       "description": "Zavrie vyhľadávanie alebo režim"
+    },
+    "connections": {
+      "label": "Prepojenia",
+      "description": "Zobraziť wiki backlinky a odchádzajúce odkazy"
+    },
+    "askThisNote": {
+      "label": "Opýtať sa poznámky",
+      "description": "Otvoriť AI prehľad a focusnúť Ask pole"
     }
   },
   "quickNote": {
@@ -1351,7 +1406,8 @@
     "close": "Zavrieť tab",
     "pin": "Pripnúť kartu",
     "unpin": "Odopnúť kartu",
-    "reorder": "Presuňte na zmenu poradia"
+    "reorder": "Presuňte na zmenu poradia",
+    "unsaved": "Neuložené"
   },
   "split": {
     "close": "Zavrieť split panel"
@@ -1425,7 +1481,9 @@
       "hint": "Nezaškrtnuté checkboxy naprieč nedávnymi poznámkami. Klikni na úlohu a otvorí sa poznámka so skokom na text.",
       "empty": "V nedávnych poznámkach nie sú otvorené checklist úlohy.",
       "count": "{{count}} otvorených · {{notes}} poznámok",
-      "loadError": "Otvorené úlohy sa nepodarilo načítať"
+      "loadError": "Otvorené úlohy sa nepodarilo načítať",
+      "folderFilter": "Filter podľa priečinka",
+      "allFolders": "Všetky priečinky"
     },
     "wikiHealth": {
       "title": "Wiki zdravie",
@@ -1454,7 +1512,8 @@
       "mergeIntoLeft": "Zlúčiť do prvej",
       "merged": "Poznámky zlúčené — kópia je v koši.",
       "mergeError": "Poznámky sa nepodarilo zlúčiť",
-      "loadError": "Duplicity sa nepodarilo načítať"
+      "loadError": "Duplicity sa nepodarilo načítať",
+      "scoreParts": "Lexikálne {{lexical}}% · Embed {{embed}}%"
     },
     "trash": "Kôš",
     "newFolder": "Nový priečinok",
@@ -1773,6 +1832,8 @@
       "loadError": "Nepodarilo sa načítať AI prehľad",
       "askTitle": "Opýtať sa poznámky",
       "askHint": "Vlastná Lokálna AI Scribe — otázky a akcie k tejto poznámke, len na tomto Macu.",
+      "askCta": "Opýtaj sa čohokoľvek o tejto poznámke",
+      "askShortcutHint": "{{shortcut}}",
       "insertAnswer": "Vložiť ako callout",
       "insertAnswerDone": "Odpoveď vložená do poznámky",
       "insertAnswerError": "Otvorte dokument v editore, aby sa dala odpoveď vložiť",
@@ -2011,7 +2072,7 @@
     "zoomIn": "Priblížiť",
     "zoomOut": "Oddialiť",
     "resetView": "Resetovať pohľad",
-    "fitView": "Prispôsobiť mapu (dvojklik na pozadie)",
+    "fitView": "Prispôsobiť mapu (% alebo dvojklik na pozadie)",
     "eyebrow": "Wiki odkazy",
     "pageTitle": "Mapa prepojení",
     "pageLede": "Dokumenty spojené cez [[wiki odkazy]] — kliknutím na uzol dokument otvoríte.",
@@ -2019,7 +2080,7 @@
     "howToHint": "Dvojklik na uzol otvorí dokument. Filter Okolo zobrazí susedov aktívnej poznámky.",
     "openFullMap": "Otvoriť celú mapu prepojení",
     "openFullMapShort": "Celá mapa",
-    "obsidianHint": "Priblíženie na kurzor · % / reset = celá mapa · dvojklik na pozadie",
+    "obsidianHint": "Scroll posúva · ⌃ scroll priblíži · Space/stredné tlačidlo · % = celá mapa",
     "showEntities": "Zobraziť štítky a NLP entity ako uzly prepojené s dokumentmi",
     "showEntitiesShort": "Entity",
     "entitiesHint": "Štítky vždy · NLP entity keď je dostupná Lokálna AI (max. 24 poznámok)"
@@ -2254,6 +2315,26 @@
       "label": "Vložená poznámka",
       "hint": "![[Názov]] — náhľad"
     },
+    "custom-block": {
+      "label": "Vlastný blok",
+      "hint": "Uložiť znovupoužiteľný blok"
+    },
+    "customSnippet": {
+      "label": "Úryvok: {{name}}",
+      "hint": "Váš vlastný blok"
+    },
+    "customBlock": {
+      "nameTitle": "Názov vlastného bloku",
+      "nameDescription": "Tento názov sa zobrazí v ponuke /.",
+      "namePlaceholder": "napr. Týždenné zhrnutie",
+      "bodyTitle": "Obsah bloku",
+      "bodyDescription": "Text vo formáte: ## nadpisy, - zoznamy, - [ ] úlohy, **tučné**.",
+      "bodyDescriptionSelection": "Upravte označený text alebo ho nahraďte svojim blokom.",
+      "bodyPlaceholder": "## Nadpis\n\n- položka",
+      "save": "Uložiť blok",
+      "saved": "Vlastný blok uložený",
+      "saveFailed": "Vlastný blok sa nepodarilo uložiť"
+    },
     "snippet-meeting": {
       "label": "Úryvok: Stretnutie",
       "hint": "Agenda a úlohy"
@@ -2306,7 +2387,15 @@
     "modified": "Upravené {{time}}",
     "emptyDocument": "Prázdny dokument",
     "previewHint": "Náhľad cieľového dokumentu — kliknutím na odkaz alebo tlačidlom nižšie.",
-    "openDocument": "Otvoriť dokument"
+    "openDocument": "Otvoriť dokument",
+    "unresolvedTitle": "Nevyriešený wiki odkaz",
+    "unresolvedHint": "Vytvor poznámku alebo prepoj na blízku zhodu.",
+    "noSuggestions": "Žiadne blízke zhody.",
+    "createNote": "Vytvoriť „{{title}}“",
+    "resolvedToast": "Prepojené [[{{label}}]] → {{title}}",
+    "resolveError": "Nepodarilo sa vyriešiť wiki odkaz",
+    "createdToast": "Vytvorené „{{title}}“ a prepojené",
+    "createError": "Nepodarilo sa vytvoriť poznámku"
   },
   "templates": {
     "title": "Nový dokument",
@@ -2382,6 +2471,86 @@
         "name": "Akademická práca",
         "description": "Abstrakt, sekcie a zdroje",
         "title": "Práca"
+      },
+      "daily-journal": {
+        "name": "Denný denník",
+        "description": "Ranné zámery, poznámky a večerná reflexia",
+        "title": "Denník"
+      },
+      "weekly-review": {
+        "name": "Týždenný prehľad",
+        "description": "Výhry, blokery a plán na ďalší týždeň",
+        "title": "Týždenný prehľad"
+      },
+      "brainstorm": {
+        "name": "Brainstorm",
+        "description": "Voľné nápady, zhluky a ďalšie kroky",
+        "title": "Brainstorm"
+      },
+      "book-notes": {
+        "name": "Poznámky z knihy",
+        "description": "Citáty, myšlienky a akčné body z čítania",
+        "title": "Poznámky z knihy"
+      },
+      "decision-log": {
+        "name": "Rozhodovací denník",
+        "description": "Možnosti, kritériá a zvolená cesta",
+        "title": "Rozhodnutie"
+      },
+      "standup": {
+        "name": "Stand-up",
+        "description": "Včera, dnes, blokery",
+        "title": "Stand-up"
+      },
+      "research-notes": {
+        "name": "Výskumné poznámky",
+        "description": "Otázka, zdroje, zistenia a záver",
+        "title": "Výskum"
+      },
+      "product-spec": {
+        "name": "Produktová špecifikácia",
+        "description": "Problém, používateľ, požiadavky a míľniky",
+        "title": "Špecifikácia"
+      },
+      "lesson-plan": {
+        "name": "Plán hodiny",
+        "description": "Ciele, aktivity a hodnotenie výučby",
+        "title": "Plán hodiny"
+      },
+      "interview-notes": {
+        "name": "Poznámky z pohovoru",
+        "description": "Kandidát, otázky, hodnotenie a rozhodnutie",
+        "title": "Pohovor"
+      },
+      "travel-plan": {
+        "name": "Cestovný plán",
+        "description": "Itinerár, ubytovanie a checklist pred odchodom",
+        "title": "Cesta"
+      },
+      "recipe": {
+        "name": "Recept",
+        "description": "Ingrediencie, postup a tipy",
+        "title": "Recept"
+      },
+      "bug-report": {
+        "name": "Bug report",
+        "description": "Reprodukcia, očakávanie a prostredie",
+        "title": "Bug report"
+      },
+      "creative-brief": {
+        "name": "Kreatívny brief",
+        "description": "Cieľ, publikum, tón a deliverables",
+        "title": "Brief"
+      },
+      "one-on-one": {
+        "name": "1:1 poznámky",
+        "description": "Agenda, spätná väzba a follow-upy",
+        "title": "1:1"
+      },
+      "changelog": {
+        "name": "Changelog",
+        "description": "Verzia, zmeny a známe problémy",
+        "title": "Changelog"
       }
     },
     "customTemplates": "Vlastné šablóny",
@@ -3069,5 +3238,22 @@
     "hint": "Nadpisy šablóny v tejto poznámke",
     "missing": "V reporte ešte chýba",
     "checklistOpen": "Nezaškrtnuté v kontrole"
+  },
+  "import": {
+    "encodingConverted": "Importovaný text bol skonvertovaný z {{encoding}}"
+  },
+  "smartFolders": {
+    "title": "Inteligentné priečinky",
+    "add": "Pridať inteligentný priečinok",
+    "remove": "Odstrániť inteligentný priečinok",
+    "empty": "Zatiaľ žiadne inteligentné priečinky. Pridajte pravidlo napr. tag:praca.",
+    "namePlaceholder": "Názov (napr. Práca)",
+    "rulePlaceholder": "Pravidlo (tag:praca, folder:…, alebo hľadanie)",
+    "ruleHint": "tag:názov · folder:id · alebo ľubovoľný výraz",
+    "results": "{{count}} zhody",
+    "noMatches": "Žiadne zodpovedajúce poznámky",
+    "saveFailed": "Nepodarilo sa uložiť inteligentný priečinok",
+    "evalFailed": "Nepodarilo sa vyhodnotiť inteligentný priečinok",
+    "deleteFailed": "Nepodarilo sa odstrániť inteligentný priečinok"
   }
 }

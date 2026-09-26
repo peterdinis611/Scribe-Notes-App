@@ -8,8 +8,11 @@ from .chunking import chunk_text
 from .embed_backend import (
     active_backend,
     current_model_id,
+    embed_fast,
+    embed_fast_batch,
     embed_quality,
     embed_quality_batch,
+    fast_available,
     quality_available,
 )
 from .normalize import stem_lite
@@ -96,8 +99,11 @@ def _mean_pool(vectors: list[list[float]]) -> list[float]:
 
 
 def _embed_single_chunk(text: str, dims: int = DEFAULT_DIMS) -> list[float]:
-    if active_backend() == "quality" and quality_available():
+    backend = active_backend()
+    if backend == "quality" and quality_available():
         return embed_quality(text)
+    if backend == "fast" and fast_available():
+        return embed_fast(text)
     return _hash_embed(text, dims=dims)
 
 
@@ -112,8 +118,11 @@ def embed_text(text: str, dims: int = DEFAULT_DIMS) -> list[float]:
     if len(chunks) == 1:
         return _embed_single_chunk(chunks[0], dims=dims)
 
-    if active_backend() == "quality" and quality_available():
+    backend = active_backend()
+    if backend == "quality" and quality_available():
         vectors = embed_quality_batch(chunks)
+    elif backend == "fast" and fast_available():
+        vectors = embed_fast_batch(chunks)
     else:
         vectors = [_hash_embed(chunk, dims=dims) for chunk in chunks]
     return _mean_pool(vectors)
@@ -164,12 +173,31 @@ def _embed_batch_quality(texts: list[str]) -> list[list[float]]:
     return results
 
 
+def _embed_batch_fast(texts: list[str]) -> list[list[float]]:
+    flat, owners = _quality_units(texts)
+    if not flat:
+        return [[0.0] * DEFAULT_DIMS for _ in texts]
+
+    vectors = embed_fast_batch(flat)
+    results: list[list[float]] = [[0.0] * DEFAULT_DIMS for _ in texts]
+    for doc_index, start, end in owners:
+        slice_vecs = vectors[start:end]
+        if len(slice_vecs) == 1:
+            results[doc_index] = slice_vecs[0]
+        else:
+            results[doc_index] = _mean_pool(slice_vecs)
+    return results
+
+
 def embed_batch(texts: list[str], dims: int = DEFAULT_DIMS) -> list[list[float]]:
-    """Embed many texts. Quality backend uses one MiniLM encode pass (plus chunk pooling)."""
+    """Embed many texts. Quality/fast backends use one encode pass (plus chunk pooling)."""
     if not texts:
         return []
-    if active_backend() == "quality" and quality_available():
+    backend = active_backend()
+    if backend == "quality" and quality_available():
         return _embed_batch_quality(texts)
+    if backend == "fast" and fast_available():
+        return _embed_batch_fast(texts)
     return [embed_text(text, dims=dims) for text in texts]
 
 
@@ -177,8 +205,11 @@ def _embed_units(texts: list[str], dims: int = DEFAULT_DIMS) -> list[list[float]
     """Embed pre-chunked strings without further chunk pooling."""
     if not texts:
         return []
-    if active_backend() == "quality" and quality_available():
+    backend = active_backend()
+    if backend == "quality" and quality_available():
         return embed_quality_batch(texts)
+    if backend == "fast" and fast_available():
+        return embed_fast_batch(texts)
     return [_hash_embed(text, dims=dims) for text in texts]
 
 

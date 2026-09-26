@@ -103,6 +103,11 @@ pub fn run() {
             app.manage(scribe_core::nlp::UnlockedVaultIndex::new());
             app.manage(capture::CaptureServerState::new());
 
+            let docs_watcher = storage::watch::spawn(app.handle().clone());
+            app.manage(docs_watcher);
+            let auto_backup = backup::spawn_auto_backup_scheduler(app.handle().clone());
+            app.manage(auto_backup);
+
             #[cfg(target_os = "macos")]
             {
                 let app_menu = SubmenuBuilder::new(app, "Scribe")
@@ -272,6 +277,7 @@ pub fn run() {
             commands::nlp::nlp_journal_tasks,
             commands::nlp::nlp_list_open_tasks,
             commands::nlp::nlp_set_embed_backend,
+            commands::nlp::nlp_set_answer_backend,
             commands::nlp::nlp_document_analysis,
             commands::nlp::nlp_analyze_plaintext,
             commands::nlp::nlp_find_duplicates,
@@ -286,6 +292,10 @@ pub fn run() {
             commands::nlp::nlp_calendar_events,
             commands::ocr::extract_image_ocr,
             commands::ocr::save_document_ocr,
+            commands::smart_folders::list_smart_folders,
+            commands::smart_folders::upsert_smart_folder,
+            commands::smart_folders::delete_smart_folder,
+            commands::smart_folders::evaluate_smart_folder,
             commands::revisions::list_document_revisions,
             commands::revisions::get_document_revision,
             commands::revisions::create_named_revision,
@@ -309,6 +319,7 @@ pub fn run() {
             commands::native_pipeline::diff_document_revisions,
             commands::native_pipeline::render_document_html,
             pdf_native::render_html_to_pdf,
+            pdf_native::print_html,
             commands::import_export::scan_scribe_files,
             commands::import_export::force_save_document,
             commands::images::save_document_image,
@@ -327,6 +338,9 @@ pub fn run() {
             backup::export_library_archive_to_dir,
             backup::get_default_auto_backup_dir,
             backup::import_library_archive,
+            backup::get_auto_backup_config,
+            backup::configure_auto_backup,
+            commands::system::set_documents_watch_enabled,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

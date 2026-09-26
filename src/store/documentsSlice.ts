@@ -36,6 +36,8 @@ export interface DocumentsState {
   activeDocumentId: string | null
   activeDocument: Document | null
   saveStatus: SaveStatus
+  /** Open tabs with unsaved editor changes (survives tab switches). */
+  dirtyDocumentIds: string[]
   sidebarOpen: boolean
   documentOutlineOpen: boolean
   revisionHistoryOpen: boolean
@@ -43,6 +45,7 @@ export interface DocumentsState {
   statsPanelOpen: boolean
   backlinksPanelOpen: boolean
   insightsPanelOpen: boolean
+  insightsFocusAsk: boolean
   clipboardHistoryPanelOpen: boolean
   /** Right panel icon rail; collapsed by default for a quieter writing chrome. */
   panelRailExpanded: boolean
@@ -123,6 +126,7 @@ const initialState: DocumentsState = {
   activeDocumentId: initialActiveId,
   activeDocument: null,
   saveStatus: 'idle',
+  dirtyDocumentIds: [],
   sidebarOpen: true,
   documentOutlineOpen: readBoolStorage('scribe-document-outline-open', false),
   revisionHistoryOpen: readBoolStorage('scribe-revision-history-open', false),
@@ -130,6 +134,7 @@ const initialState: DocumentsState = {
   statsPanelOpen: readBoolStorage('scribe-stats-open', false),
   backlinksPanelOpen: readBoolStorage('scribe-backlinks-open', false),
   insightsPanelOpen: readBoolStorage('scribe-insights-open', false),
+  insightsFocusAsk: false,
   clipboardHistoryPanelOpen: readBoolStorage('scribe-clipboard-history-open', false),
   panelRailExpanded: readBoolStorage('scribe-panel-rail-expanded', false),
   focusMode: readBoolStorage('scribe-focus-mode', false),
@@ -261,6 +266,7 @@ const documentsSlice = createSlice({
 
       state.openDocumentIds = state.openDocumentIds.filter((openId) => openId !== id)
       persistOpenDocumentIds(state.openDocumentIds)
+      state.dirtyDocumentIds = state.dirtyDocumentIds.filter((dirtyId) => dirtyId !== id)
 
       state.recentlyClosedIds = pushRecentId(state.recentlyClosedIds, id)
       persistRecentlyClosedIds(state.recentlyClosedIds)
@@ -314,6 +320,23 @@ const documentsSlice = createSlice({
     },
     setSaveStatus(state, action: PayloadAction<SaveStatus>) {
       state.saveStatus = action.payload
+      const activeId = state.activeDocumentId
+      if (!activeId) return
+      if (action.payload === 'dirty') {
+        if (!state.dirtyDocumentIds.includes(activeId)) {
+          state.dirtyDocumentIds = [...state.dirtyDocumentIds, activeId]
+        }
+      } else if (action.payload === 'saved' || action.payload === 'idle') {
+        state.dirtyDocumentIds = state.dirtyDocumentIds.filter((id) => id !== activeId)
+      }
+    },
+    markDocumentDirty(state, action: PayloadAction<string>) {
+      const id = action.payload
+      if (!id || state.dirtyDocumentIds.includes(id)) return
+      state.dirtyDocumentIds = [...state.dirtyDocumentIds, id]
+    },
+    clearDocumentDirty(state, action: PayloadAction<string>) {
+      state.dirtyDocumentIds = state.dirtyDocumentIds.filter((id) => id !== action.payload)
     },
     setSidebarOpen(state, action: PayloadAction<boolean>) {
       state.sidebarOpen = action.payload
@@ -364,7 +387,25 @@ const documentsSlice = createSlice({
       if (action.payload) {
         state.panelRailExpanded = true
         persistBoolStorage('scribe-panel-rail-expanded', true)
+      } else {
+        state.insightsFocusAsk = false
       }
+    },
+    requestInsightsAskFocus(state) {
+      state.insightsPanelOpen = true
+      state.insightsFocusAsk = true
+      state.panelRailExpanded = true
+      persistBoolStorage('scribe-insights-open', true)
+      persistBoolStorage('scribe-panel-rail-expanded', true)
+      state.documentOutlineOpen = false
+      state.revisionHistoryOpen = false
+      state.commentsPanelOpen = false
+      state.statsPanelOpen = false
+      state.backlinksPanelOpen = false
+      state.clipboardHistoryPanelOpen = false
+    },
+    clearInsightsAskFocus(state) {
+      state.insightsFocusAsk = false
     },
     setClipboardHistoryPanelOpen(state, action: PayloadAction<boolean>) {
       state.clipboardHistoryPanelOpen = action.payload
@@ -590,6 +631,8 @@ export const {
   reorderOpenDocuments,
   setActiveDocument,
   setSaveStatus,
+  markDocumentDirty,
+  clearDocumentDirty,
   setSidebarOpen,
   setDocumentOutlineOpen,
   setRevisionHistoryOpen,
@@ -597,6 +640,8 @@ export const {
   setStatsPanelOpen,
   setBacklinksPanelOpen,
   setInsightsPanelOpen,
+  requestInsightsAskFocus,
+  clearInsightsAskFocus,
   setClipboardHistoryPanelOpen,
   setPanelRailExpanded,
   setFocusMode,

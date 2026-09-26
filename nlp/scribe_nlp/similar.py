@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from .bm25_search import bm25_available, bm25_rank
 from .embed import cosine_similarity, embed_batch
 from .faiss_search import faiss_available, faiss_top_k
 from .keywords import extract_keywords
@@ -62,7 +63,7 @@ def similar_notes(
         for map_index, vector in zip(embed_map, encoded[1:]):
             doc_vectors[map_index] = vector
 
-    # FAISS shortlist when many candidates have vectors.
+    # FAISS / HNSW shortlist when many candidates have vectors.
     faiss_boost: dict[int, float] = {}
     if (
         query_vec is not None
@@ -80,9 +81,20 @@ def similar_notes(
             if 0 <= local_idx < len(indexed):
                 faiss_boost[indexed[local_idx]] = max(0.0, score)
 
+    bm25_boost: dict[int, float] = {}
+    if bm25_available() and len(candidates) >= 4:
+        for local_idx, score in bm25_rank(
+            query,
+            [blob for _doc_id, _title, _body, blob in candidates],
+            limit=min(limit * 4, 64),
+        ):
+            bm25_boost[local_idx] = max(0.0, score)
+
     scored: list[dict[str, object]] = []
     for index, (doc_id, title, body, blob) in enumerate(candidates):
         token_score = jaccard_similarity(query, blob)
+        if index in bm25_boost:
+            token_score = max(token_score, bm25_boost[index])
         doc_stems = set(content_stems(blob))
         keyword_overlap = 0.0
         if query_keywords and doc_stems:

@@ -1,13 +1,22 @@
 import { useEffect } from 'react'
-import { runFolderReconcile } from '@/lib/disk-sync'
+import { listen } from '@tauri-apps/api/event'
+import { applyFolderReconcileResult, runFolderReconcile } from '@/lib/disk-sync'
+import { setDocumentsWatchEnabled, type ReconcileResult } from '@/lib/db/api'
+import { isTauriRuntime } from '@/lib/tauri'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 
-const AUTO_SYNC_INTERVAL_MS = 5 * 60 * 1000
-
-/** Reconcile the documents folder on focus and on a quiet interval when enabled. */
+/**
+ * Reconcile on focus as a fallback, and react to Rust FSEvents (`disk-changed`).
+ * When folder auto-sync is on, the native watcher stays enabled.
+ */
 export function useFolderAutoSync() {
   const dispatch = useAppDispatch()
   const enabled = useAppSelector((state) => state.settings.folderAutoSyncEnabled)
+
+  useEffect(() => {
+    if (!isTauriRuntime()) return
+    void setDocumentsWatchEnabled(enabled).catch(() => {})
+  }, [enabled])
 
   useEffect(() => {
     if (!enabled) return
@@ -22,12 +31,20 @@ export function useFolderAutoSync() {
 
     window.addEventListener('focus', run)
     document.addEventListener('visibilitychange', onVisibility)
-    const intervalId = window.setInterval(run, AUTO_SYNC_INTERVAL_MS)
+
+    let unlisten: (() => void) | undefined
+    if (isTauriRuntime()) {
+      void listen<ReconcileResult>('disk-changed', (event) => {
+        void applyFolderReconcileResult(dispatch, event.payload)
+      }).then((fn) => {
+        unlisten = fn
+      })
+    }
 
     return () => {
       window.removeEventListener('focus', run)
       document.removeEventListener('visibilitychange', onVisibility)
-      window.clearInterval(intervalId)
+      unlisten?.()
     }
   }, [dispatch, enabled])
 }

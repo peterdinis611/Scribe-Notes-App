@@ -50,16 +50,29 @@ export function useDocumentPagination({
     const segments = computePageSegments(pageSetup, nextHeight)
     const nextPageCount = getPageCountForContent(nextHeight, pageSetup)
 
-    setContentHeight(nextHeight)
-    setPageSegments(segments)
-    setPageCount(nextPageCount)
+    setContentHeight((prev) => (prev === nextHeight ? prev : nextHeight))
+    setPageCount((prev) => (prev === nextPageCount ? prev : nextPageCount))
+    setPageSegments((prev) => {
+      if (
+        prev.length === segments.length &&
+        prev.every(
+          (segment, index) =>
+            segment.pageNumber === segments[index]?.pageNumber &&
+            segment.start === segments[index]?.start &&
+            segment.height === segments[index]?.height,
+        )
+      ) {
+        return prev
+      }
+      return segments
+    })
 
     const scrollEl = scrollRef.current
     if (scrollEl) {
       const contentStart = canvas.offsetTop + pageLayout.paddingTop
       const relative = scrollEl.scrollTop + pageLayout.scrollPaddingTop - contentStart
       const page = getPageNumberAtOffset(Math.max(0, relative), segments)
-      setCurrentPage(page)
+      setCurrentPage((prev) => (prev === page ? prev : page))
     }
   }, [pageLayout.paddingTop, pageLayout.scrollPaddingTop, pageSetup])
 
