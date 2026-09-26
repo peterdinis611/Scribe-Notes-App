@@ -15,7 +15,7 @@ import {
 import { DocumentTitleField } from '@/components/DocumentTitleField'
 import { DemoGuideButton } from '@/components/DemoGuideButton'
 import { DocumentNavBreadcrumb } from '@/components/layout/DocumentNavBreadcrumb'
-import { LocaleToggle } from '@/components/LocaleToggle'
+import { LocaleSelect } from '@/components/LocaleSelect'
 import { EditorDocumentToolsMenu } from '@/components/editor/EditorDocumentToolsMenu'
 import { EditorFileMenu } from '@/components/editor/EditorFileMenu'
 import { EditorViewModeToggle } from '@/components/editor/EditorViewModeToggle'
@@ -566,7 +566,7 @@ function EditorChrome() {
           )}
           {document && !readingMode && <EditorDocumentToolsMenu viewMode={viewMode} />}
           {document && !readingMode && <EditorViewModeToggle />}
-          <LocaleToggle size="sm" />
+          <LocaleSelect compact size="sm" />
           {document && <SaveStatus />}
         </div>
       </header>

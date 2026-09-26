@@ -4,6 +4,7 @@ import type { TemplateCategoryId } from '@/lib/templates/categories'
 import { emptyCanvasDocument, type CanvasDocument } from '@/lib/canvas/types'
 
 import { SCRIBE_DEMO_GUIDE_TEMPLATE } from '@/lib/templates/demo-guide'
+import { EXTRA_DOCUMENT_TEMPLATES } from '@/lib/templates/extra-builtins'
 
 export interface DocumentTemplate {
   id: string
@@ -795,6 +796,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
   projectProposal,
   invoice,
   academicPaper,
+  ...EXTRA_DOCUMENT_TEMPLATES,
 ]
 
 export function localizeTemplate(template: DocumentTemplate): DocumentTemplate {

@@ -56,7 +56,7 @@ import {
   openYesterdayNote,
 } from '@/lib/journal-notes'
 import { getDisplayKeysForShortcut } from '@/lib/shortcuts'
-import type { BuiltInLocale } from '@/i18n'
+import { useLocaleOptions } from '@/components/LocaleSelect'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import {
   duplicateDocument,
@@ -192,6 +192,7 @@ export function CommandPalette() {
   const backlinksPanelOpen = useAppSelector((state) => state.documents.backlinksPanelOpen)
   const shortcutOverrides = useAppSelector((state) => state.settings.shortcutOverrides)
   const locale = useAppSelector((state) => state.settings.locale)
+  const localeOptions = useLocaleOptions()
   const openDemoGuide = useOpenDemoGuide()
 
   const activeDocument = useMemo(
@@ -840,16 +841,23 @@ export function CommandPalette() {
       {
         type: 'action',
         id: 'language',
-        label:
-          locale === 'sk'
-            ? t('commandPalette.switchToEnglish')
-            : t('commandPalette.switchToSlovak'),
-        hint: locale === 'sk' ? 'EN' : 'SK',
+        label: (() => {
+          const idx = localeOptions.findIndex((item) => item.code === locale)
+          const next = localeOptions[(idx + 1 + localeOptions.length) % localeOptions.length]
+          return t('commandPalette.switchLanguage', { language: next?.label ?? 'English' })
+        })(),
+        hint: (() => {
+          const idx = localeOptions.findIndex((item) => item.code === locale)
+          const next = localeOptions[(idx + 1 + localeOptions.length) % localeOptions.length]
+          return next?.short ?? 'EN'
+        })(),
         icon: <Languages className="h-4 w-4" />,
         run: () => {
-          const next: BuiltInLocale = locale === 'sk' ? 'en' : 'sk'
-          dispatch(setLocale(next))
-          toast.success(t('toasts.localeChanged'), t(`settings.language.${next}`))
+          const idx = localeOptions.findIndex((item) => item.code === locale)
+          const next = localeOptions[(idx + 1 + localeOptions.length) % localeOptions.length]
+          if (!next) return
+          dispatch(setLocale(next.code))
+          toast.success(t('toasts.localeChanged'), next.label)
         },
       },
       {
@@ -901,6 +909,7 @@ export function CommandPalette() {
       backlinksPanelOpen,
       openDocumentIds,
       locale,
+      localeOptions,
       shortcutOverrides,
       nlpEnabled,
       activeDocumentId,

@@ -177,6 +177,7 @@
     "randomThemeHint": "Generate a custom palette",
     "switchToEnglish": "Switch to English",
     "switchToSlovak": "Switch to Slovak",
+    "switchLanguage": "Switch to {{language}}",
     "newFolder": "New folder",
     "newFolderTitle": "New folder",
     "newFolderPlaceholder": "Folder name",
@@ -693,10 +694,13 @@
     },
     "language": {
       "title": "Language",
-      "description": "Application interface language. Import a JSON file to add your own.",
-      "rowDescription": "Switches menus, dialogs, and editor UI text.",
+      "description": "Application interface language. Default is Slovak; switch to English or import your own pack.",
+      "rowDescription": "Pick Slovenčina, English, or a custom pack from the dropdown. Choice is saved on this Mac.",
       "sk": "Slovenčina",
       "en": "English",
+      "defaultBadge": "Default",
+      "builtInGroup": "Built-in",
+      "customGroup": "Your languages",
       "customTitle": "Custom language",
       "customDescription": "Upload a JSON translation pack (same shape as en.json). Missing keys fall back to Slovak.",
       "importJson": "Import JSON",
@@ -2420,6 +2424,86 @@
         "name": "Academic paper",
         "description": "Abstract, sections and references",
         "title": "Paper"
+      },
+      "daily-journal": {
+        "name": "Daily journal",
+        "description": "Intentions, notes, and evening reflection",
+        "title": "Journal"
+      },
+      "weekly-review": {
+        "name": "Weekly review",
+        "description": "Wins, blockers, and next-week priorities",
+        "title": "Weekly review"
+      },
+      "brainstorm": {
+        "name": "Brainstorm",
+        "description": "Free ideas, clusters, and next steps",
+        "title": "Brainstorm"
+      },
+      "book-notes": {
+        "name": "Book notes",
+        "description": "Quotes, takeaways, and action items from reading",
+        "title": "Book notes"
+      },
+      "decision-log": {
+        "name": "Decision log",
+        "description": "Options, criteria, and the chosen path",
+        "title": "Decision"
+      },
+      "standup": {
+        "name": "Stand-up",
+        "description": "Yesterday, today, blockers",
+        "title": "Stand-up"
+      },
+      "research-notes": {
+        "name": "Research notes",
+        "description": "Question, sources, findings, and conclusion",
+        "title": "Research"
+      },
+      "product-spec": {
+        "name": "Product spec",
+        "description": "Problem, user, requirements, and milestones",
+        "title": "Spec"
+      },
+      "lesson-plan": {
+        "name": "Lesson plan",
+        "description": "Goals, activities, and assessment",
+        "title": "Lesson plan"
+      },
+      "interview-notes": {
+        "name": "Interview notes",
+        "description": "Candidate, questions, rating, and decision",
+        "title": "Interview"
+      },
+      "travel-plan": {
+        "name": "Travel plan",
+        "description": "Itinerary, lodging, and pre-trip checklist",
+        "title": "Trip"
+      },
+      "recipe": {
+        "name": "Recipe",
+        "description": "Ingredients, steps, and tips",
+        "title": "Recipe"
+      },
+      "bug-report": {
+        "name": "Bug report",
+        "description": "Repro steps, expected vs actual, environment",
+        "title": "Bug report"
+      },
+      "creative-brief": {
+        "name": "Creative brief",
+        "description": "Goal, audience, tone, and deliverables",
+        "title": "Brief"
+      },
+      "one-on-one": {
+        "name": "1:1 notes",
+        "description": "Agenda, feedback, and follow-ups",
+        "title": "1:1"
+      },
+      "changelog": {
+        "name": "Changelog",
+        "description": "Version, changes, and known issues",
+        "title": "Changelog"
       }
     },
     "customTemplates": "Custom templates",

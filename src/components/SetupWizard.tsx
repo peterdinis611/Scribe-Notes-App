@@ -1,6 +1,7 @@
 import { Upload } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { LocaleSelect } from '@/components/LocaleSelect'
 import { useCustomLocaleRefresh } from '@/components/LocaleToggle'
 import { registerCustomLocaleBundle } from '@/i18n'
 import { APP_SHORT_VERSION } from '@/lib/app-version'
@@ -14,6 +15,7 @@ import {
   ensureSetupCompletedForExistingUsers,
   persistOnboardingDismissed,
   persistSetupCompleted,
+  readCustomLocales,
   readSetupCompleted,
   upsertCustomLocale,
 } from '@/store/persistence'
@@ -50,10 +52,11 @@ export function SetupWizard({ onFinished }: SetupWizardProps) {
   const themeSettings = useAppSelector((state) => state.settings.themeSettings)
   const uiSkin = useAppSelector((state) => state.settings.uiSkin)
   const locale = useAppSelector((state) => state.settings.locale)
-  const { bump } = useCustomLocaleRefresh()
+  const { bump, refreshToken } = useCustomLocaleRefresh()
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState(0)
   const [localeBusy, setLocaleBusy] = useState(false)
+  const hasCustomLocales = useMemo(() => readCustomLocales().length > 0, [refreshToken])
 
   useEffect(() => {
     if (ensureSetupCompletedForExistingUsers() || readSetupCompleted()) {
@@ -184,9 +187,9 @@ export function SetupWizard({ onFinished }: SetupWizardProps) {
               </ol>
               <div className="setup-folio-langs" role="group" aria-label={t('setup.language.title')}>
                 {([
-                  ['sk', 'Slovenčina', 'Píšte v slovenčine.'],
-                  ['en', 'English', 'Write in English.'],
-                ] as const).map(([id, label, hint]) => (
+                  ['sk', 'Slovenčina', 'Píšte v slovenčine.', true],
+                  ['en', 'English', 'Write in English.', false],
+                ] as const).map(([id, label, hint, isDefault]) => (
                   <button
                     key={id}
                     type="button"
@@ -195,11 +198,21 @@ export function SetupWizard({ onFinished }: SetupWizardProps) {
                     onClick={() => dispatch(setLocale(id))}
                   >
                     <em>{id.toUpperCase()}</em>
-                    <strong>{label}</strong>
+                    <strong>
+                      {label}
+                      {isDefault ? (
+                        <span className="setup-folio-lang-default">{t('settings.language.defaultBadge')}</span>
+                      ) : null}
+                    </strong>
                     <span>{hint}</span>
                   </button>
                 ))}
               </div>
+              {hasCustomLocales ? (
+                <div className="setup-folio-locale-select">
+                  <LocaleSelect refreshToken={refreshToken} />
+                </div>
+              ) : null}
               <button
                 type="button"
                 className="setup-folio-import"

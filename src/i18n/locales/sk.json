@@ -177,6 +177,7 @@
     "randomThemeHint": "Vygenerovať vlastnú paletu",
     "switchToEnglish": "Prepnúť na English",
     "switchToSlovak": "Prepnúť na slovenčinu",
+    "switchLanguage": "Prepnúť na {{language}}",
     "newFolder": "Nový priečinok",
     "newFolderTitle": "Nový priečinok",
     "newFolderPlaceholder": "Názov priečinka",
@@ -693,10 +694,13 @@
     },
     "language": {
       "title": "Jazyk",
-      "description": "Jazyk rozhrania aplikácie. Vlastný jazyk pridáte importom JSON súboru.",
-      "rowDescription": "Prepína texty menu, dialógov a editora.",
+      "description": "Jazyk rozhrania aplikácie. Predvolená je slovenčina; môžete prepnúť na angličtinu alebo nahrať vlastný balík.",
+      "rowDescription": "Vyberte slovenčinu, angličtinu alebo vlastný balík z rozbaľovacieho zoznamu. Voľba sa uloží na tomto Macu.",
       "sk": "Slovenčina",
       "en": "English",
+      "defaultBadge": "Predvolený",
+      "builtInGroup": "Vstavané",
+      "customGroup": "Vaše jazyky",
       "customTitle": "Vlastný jazyk",
       "customDescription": "Nahrajte JSON preklad (rovnaká štruktúra ako en.json). Chýbajúce kľúče padnú na slovenčinu.",
       "importJson": "Importovať JSON",
@@ -2428,6 +2432,86 @@
         "name": "Akademická práca",
         "description": "Abstrakt, sekcie a zdroje",
         "title": "Práca"
+      },
+      "daily-journal": {
+        "name": "Denný denník",
+        "description": "Ranné zámery, poznámky a večerná reflexia",
+        "title": "Denník"
+      },
+      "weekly-review": {
+        "name": "Týždenný prehľad",
+        "description": "Výhry, blokery a plán na ďalší týždeň",
+        "title": "Týždenný prehľad"
+      },
+      "brainstorm": {
+        "name": "Brainstorm",
+        "description": "Voľné nápady, zhluky a ďalšie kroky",
+        "title": "Brainstorm"
+      },
+      "book-notes": {
+        "name": "Poznámky z knihy",
+        "description": "Citáty, myšlienky a akčné body z čítania",
+        "title": "Poznámky z knihy"
+      },
+      "decision-log": {
+        "name": "Rozhodovací denník",
+        "description": "Možnosti, kritériá a zvolená cesta",
+        "title": "Rozhodnutie"
+      },
+      "standup": {
+        "name": "Stand-up",
+        "description": "Včera, dnes, blokery",
+        "title": "Stand-up"
+      },
+      "research-notes": {
+        "name": "Výskumné poznámky",
+        "description": "Otázka, zdroje, zistenia a záver",
+        "title": "Výskum"
+      },
+      "product-spec": {
+        "name": "Produktová špecifikácia",
+        "description": "Problém, používateľ, požiadavky a míľniky",
+        "title": "Špecifikácia"
+      },
+      "lesson-plan": {
+        "name": "Plán hodiny",
+        "description": "Ciele, aktivity a hodnotenie výučby",
+        "title": "Plán hodiny"
+      },
+      "interview-notes": {
+        "name": "Poznámky z pohovoru",
+        "description": "Kandidát, otázky, hodnotenie a rozhodnutie",
+        "title": "Pohovor"
+      },
+      "travel-plan": {
+        "name": "Cestovný plán",
+        "description": "Itinerár, ubytovanie a checklist pred odchodom",
+        "title": "Cesta"
+      },
+      "recipe": {
+        "name": "Recept",
+        "description": "Ingrediencie, postup a tipy",
+        "title": "Recept"
+      },
+      "bug-report": {
+        "name": "Bug report",
+        "description": "Reprodukcia, očakávanie a prostredie",
+        "title": "Bug report"
+      },
+      "creative-brief": {
+        "name": "Kreatívny brief",
+        "description": "Cieľ, publikum, tón a deliverables",
+        "title": "Brief"
+      },
+      "one-on-one": {
+        "name": "1:1 poznámky",
+        "description": "Agenda, spätná väzba a follow-upy",
+        "title": "1:1"
+      },
+      "changelog": {
+        "name": "Changelog",
+        "description": "Verzia, zmeny a známe problémy",
+        "title": "Changelog"
       }
     },
     "customTemplates": "Vlastné šablóny",

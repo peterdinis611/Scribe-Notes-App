@@ -5,7 +5,8 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import { requestStorageAccessDialog } from '@/components/StorageAccessDialogHost'
-import { LocaleToggle, useCustomLocaleRefresh } from '@/components/LocaleToggle'
+import { LocaleSelect } from '@/components/LocaleSelect'
+import { useCustomLocaleRefresh } from '@/components/LocaleToggle'
 import { Button } from '@/components/ui/button'
 import { IconTooltip } from '@/components/ui/tooltip'
 import { Input } from '@/components/ui/input'
@@ -179,7 +180,7 @@ export function AppearanceSection() {
             title={t('settings.language.title')}
             description={t('settings.language.rowDescription')}
           >
-            <LocaleToggle showLabels refreshToken={refreshToken} />
+            <LocaleSelect refreshToken={refreshToken} className="w-[min(100%,240px)]" />
           </SettingsRow>
           <SettingsRow
             title={t('settings.language.customTitle')}
