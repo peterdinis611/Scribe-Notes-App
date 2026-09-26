@@ -2041,7 +2041,7 @@
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
     "resetView": "Reset view",
-    "fitView": "Fit graph (double-click background)",
+    "fitView": "Fit graph (click % or double-click background)",
     "eyebrow": "Wiki links",
     "pageTitle": "Connection map",
     "pageLede": "Documents linked by [[wiki links]] — click a node to open it.",
@@ -2049,7 +2049,7 @@
     "howToHint": "Double-click a node to open it. The Around filter shows neighbors of the active note.",
     "openFullMap": "Open full connection map",
     "openFullMapShort": "Full map",
-    "obsidianHint": "Zoom toward cursor · % / reset fits all · double-click background",
+    "obsidianHint": "Scroll to pan · ⌃ scroll zooms · Space/middle-drag · % fits all",
     "showEntities": "Show tags and NLP entities as nodes connected to documents",
     "showEntitiesShort": "Entities",
     "entitiesHint": "Tags always · NLP entities when Local AI is available (up to 24 notes)"

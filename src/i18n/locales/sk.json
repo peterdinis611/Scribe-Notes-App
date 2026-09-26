@@ -2049,7 +2049,7 @@
     "zoomIn": "Priblížiť",
     "zoomOut": "Oddialiť",
     "resetView": "Resetovať pohľad",
-    "fitView": "Prispôsobiť mapu (dvojklik na pozadie)",
+    "fitView": "Prispôsobiť mapu (% alebo dvojklik na pozadie)",
     "eyebrow": "Wiki odkazy",
     "pageTitle": "Mapa prepojení",
     "pageLede": "Dokumenty spojené cez [[wiki odkazy]] — kliknutím na uzol dokument otvoríte.",
@@ -2057,7 +2057,7 @@
     "howToHint": "Dvojklik na uzol otvorí dokument. Filter Okolo zobrazí susedov aktívnej poznámky.",
     "openFullMap": "Otvoriť celú mapu prepojení",
     "openFullMapShort": "Celá mapa",
-    "obsidianHint": "Priblíženie na kurzor · % / reset = celá mapa · dvojklik na pozadie",
+    "obsidianHint": "Scroll posúva · ⌃ scroll priblíži · Space/stredné tlačidlo · % = celá mapa",
     "showEntities": "Zobraziť štítky a NLP entity ako uzly prepojené s dokumentmi",
     "showEntitiesShort": "Entity",
     "entitiesHint": "Štítky vždy · NLP entity keď je dostupná Lokálna AI (max. 24 poznámok)"

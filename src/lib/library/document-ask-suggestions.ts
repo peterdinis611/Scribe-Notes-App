@@ -1,7 +1,7 @@
 import type { DocumentTask, NlpDocumentAnalysis } from '@/lib/db/nlp-api'
 import type { DocumentChatAction } from '@/lib/library/library-chat'
 
-const MAX_QUESTIONS = 6
+const MAX_QUESTIONS = 8
 const MAX_ACTIONS = 8
 
 function uniqueKeepOrder(items: string[], limit: number): string[] {
@@ -79,16 +79,6 @@ export function buildDocumentAskQuestions(
     )
   }
 
-  const dates = uniqueKeepOrder(
-    (analysis?.dates ?? []).map((item) => item.resolvedDate || item.text),
-    2,
-  )
-  for (const date of dates) {
-    questions.push(
-      slovak ? `Čo sa viaže k dátumu ${clip(date)}?` : `What is tied to ${clip(date)}?`,
-    )
-  }
-
   const openTasks = uniqueKeepOrder(
     (tasks ?? []).filter((task) => !task.checked).map((task) => task.text),
     2,
@@ -98,6 +88,16 @@ export function buildDocumentAskQuestions(
       slovak
         ? `Aký je stav úlohy „${clip(task)}“?`
         : `What’s the status of “${clip(task)}”?`,
+    )
+  }
+
+  const dates = uniqueKeepOrder(
+    (analysis?.dates ?? []).map((item) => item.resolvedDate || item.text),
+    2,
+  )
+  for (const date of dates) {
+    questions.push(
+      slovak ? `Čo sa viaže k dátumu ${clip(date)}?` : `What is tied to ${clip(date)}?`,
     )
   }
 

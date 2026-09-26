@@ -42,10 +42,11 @@ export function createForceSimulation(
   const cx = width / 2
   const cy = height / 2
   const n = Math.max(seedNodes.length, 1)
+  const compact = n <= 6
 
   const nodes: ForceNode[] = seedNodes.map((node, index) => {
     const angle = (index / n) * Math.PI * 2 - Math.PI / 2
-    const spread = Math.min(width, height) * (tight ? 0.18 : 0.28)
+    const spread = Math.min(width, height) * (tight ? 0.18 : compact ? 0.22 : 0.28)
     return {
       ...node,
       x: node.x ?? cx + Math.cos(angle) * spread * (0.4 + Math.random() * 0.6),
@@ -70,10 +71,11 @@ export function createForceSimulation(
   const alphaDecay = 0.022
   const alphaMin = 0.0015
   const velocityDecay = 0.82
-  const charge = tight ? -280 : -420
-  const linkDistance = tight ? 72 : 110
-  const linkStrength = tight ? 0.14 : 0.09
-  const centerStrength = tight ? 0.05 : 0.035
+  // Small maps: stronger repulsion + longer springs so labels don’t collide.
+  const charge = tight ? -280 : compact ? -620 : -420
+  const linkDistance = tight ? 72 : compact ? 150 : 110
+  const linkStrength = tight ? 0.14 : compact ? 0.07 : 0.09
+  const centerStrength = tight ? 0.05 : compact ? 0.02 : 0.035
 
   function step(): boolean {
     if (alpha < alphaMin) return false
@@ -140,7 +142,7 @@ export function createForceSimulation(
       node.x += node.vx
       node.y += node.vy
 
-      const pad = 28
+      const pad = compact ? 48 : 28
       node.x = Math.min(width - pad, Math.max(pad, node.x))
       node.y = Math.min(height - pad, Math.max(pad, node.y))
     }

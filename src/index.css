@@ -9474,9 +9474,19 @@ html.dark .link-graph-toolbar--overlay {
 .link-graph-svg {
   display: block;
   cursor: grab;
+  touch-action: none;
 }
 
+.link-graph-canvas.is-panning .link-graph-svg,
 .link-graph-canvas:active .link-graph-svg {
+  cursor: grabbing;
+}
+
+.link-graph-canvas.is-space-pan .link-graph-svg {
+  cursor: grab;
+}
+
+.link-graph-canvas.is-space-pan.is-panning .link-graph-svg {
   cursor: grabbing;
 }
 
@@ -10688,6 +10698,14 @@ html.dark .link-graph-toolbar--overlay {
   border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-border));
   background: color-mix(in srgb, var(--color-accent) 8%, transparent);
   color: var(--color-foreground);
+}
+
+.insights-action--question {
+  max-width: 100%;
+  border-radius: 10px;
+  text-align: left;
+  line-height: 1.35;
+  white-space: normal;
 }
 
 .insights-action:disabled {

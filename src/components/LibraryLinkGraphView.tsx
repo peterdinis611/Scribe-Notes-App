@@ -307,11 +307,19 @@ function nodeRadius(node: ForceNode, isPage: boolean, isActive: boolean): number
   return (base + byDegree) * orphanShrink + activeBoost
 }
 
-const MIN_SCALE = 0.45
-const MAX_SCALE = 2.35
+const MIN_SCALE = 0.28
+const MAX_SCALE = 3.2
 
 function clampScale(value: number): number {
   return Math.min(MAX_SCALE, Math.max(MIN_SCALE, Number(value.toFixed(3))))
+}
+
+/** How far in we may zoom when fitting — small maps should fill the frame. */
+function maxFitScaleForCount(count: number): number {
+  if (count <= 4) return 2.45
+  if (count <= 10) return 1.9
+  if (count <= 24) return 1.55
+  return 1.3
 }
 
 function fitCameraToNodes(
@@ -326,16 +334,22 @@ function fitCameraToNodes(
   let maxX = -Infinity
   let maxY = -Infinity
   for (const node of nodes) {
-    minX = Math.min(minX, node.x)
-    minY = Math.min(minY, node.y)
-    maxX = Math.max(maxX, node.x)
-    maxY = Math.max(maxY, node.y)
+    // Include label room below the node so fit does not clip titles.
+    const labelPad = 22
+    minX = Math.min(minX, node.x - 18)
+    minY = Math.min(minY, node.y - 18)
+    maxX = Math.max(maxX, node.x + 18)
+    maxY = Math.max(maxY, node.y + labelPad)
   }
 
-  const width = Math.max(maxX - minX, 48)
-  const height = Math.max(maxY - minY, 48)
+  const width = Math.max(maxX - minX, 64)
+  const height = Math.max(maxY - minY, 64)
   const scale = clampScale(
-    Math.min((size - padding * 2) / width, (size - padding * 2) / height, 1.25),
+    Math.min(
+      (size - padding * 2) / width,
+      (size - padding * 2) / height,
+      maxFitScaleForCount(nodes.length),
+    ),
   )
   const midX = (minX + maxX) / 2
   const midY = (minY + maxY) / 2
@@ -347,6 +361,42 @@ function fitCameraToNodes(
       y: size / 2 - midY * scale,
     },
   }
+}
+
+/** Nudge labels away from the cluster centroid so titles don’t stack. */
+function labelAnchor(
+  node: ForceNode,
+  nodes: ForceNode[],
+  radius: number,
+): { x: number; y: number; anchor: 'start' | 'middle' | 'end' } {
+  if (nodes.length <= 1) {
+    return { x: node.x, y: node.y + radius + 14, anchor: 'middle' }
+  }
+  let cx = 0
+  let cy = 0
+  for (const item of nodes) {
+    cx += item.x
+    cy += item.y
+  }
+  cx /= nodes.length
+  cy /= nodes.length
+  let dx = node.x - cx
+  let dy = node.y - cy
+  const len = Math.hypot(dx, dy)
+  if (len < 1) {
+    dx = 0
+    dy = 1
+  } else {
+    dx /= len
+    dy /= len
+  }
+  const offset = radius + (nodes.length <= 6 ? 18 : 14)
+  const x = node.x + dx * offset * 0.35
+  const y = node.y + dy * offset + (dy >= 0 ? 4 : -2)
+  let anchor: 'start' | 'middle' | 'end' = 'middle'
+  if (dx > 0.45) anchor = 'start'
+  else if (dx < -0.45) anchor = 'end'
+  return { x, y, anchor }
 }
 
 export function LibraryLinkGraphView({
@@ -379,7 +429,13 @@ export function LibraryLinkGraphView({
   const [orphanSimilar, setOrphanSimilar] = useState<Array<{ id: string; title: string; similar: SearchHit[] }>>([])
 
   const simRef = useRef<ReturnType<typeof createForceSimulation> | null>(null)
-  const panDragRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null)
+  const panDragRef = useRef<{
+    pointerId: number
+    startViewX: number
+    startViewY: number
+    panX: number
+    panY: number
+  } | null>(null)
   const nodeDragRef = useRef<{
     id: string
     pointerId: number
@@ -391,6 +447,8 @@ export function LibraryLinkGraphView({
   const openTimerRef = useRef<number | null>(null)
   const nlpCacheRef = useRef<Map<string, NlpEntity[]>>(new Map())
   const tagByNodeIdRef = useRef<Map<string, string>>(new Map())
+  const [isPanning, setIsPanning] = useState(false)
+  const [spaceHeld, setSpaceHeld] = useState(false)
 
   viewRef.current = { scale, pan }
 
@@ -823,8 +881,20 @@ export function LibraryLinkGraphView({
 
   function handleWheel(event: React.WheelEvent) {
     event.preventDefault()
+    const zoomGesture = event.ctrlKey || event.metaKey
+    if (!zoomGesture) {
+      // Trackpad / mouse wheel pans in viewBox space (maps-style navigation).
+      const svg = svgRef.current
+      const rect = svg?.getBoundingClientRect()
+      if (!rect || rect.width <= 0 || rect.height <= 0) return
+      const { pan: currentPan } = viewRef.current
+      setPan({
+        x: currentPan.x - (event.deltaX / rect.width) * size,
+        y: currentPan.y - (event.deltaY / rect.height) * size,
+      })
+      return
+    }
     const anchor = clientToViewBox(event.clientX, event.clientY)
-    // Multiplicative zoom toward cursor — gentler than fixed steps.
     const factor = event.deltaY > 0 ? 0.9 : 1.11
     applyZoomAt(viewRef.current.scale * factor, anchor.x, anchor.y)
   }
@@ -867,7 +937,26 @@ export function LibraryLinkGraphView({
     fitToNodes()
   }
 
+  function beginPan(event: React.PointerEvent) {
+    const start = clientToViewBox(event.clientX, event.clientY)
+    panDragRef.current = {
+      pointerId: event.pointerId,
+      startViewX: start.x,
+      startViewY: start.y,
+      panX: viewRef.current.pan.x,
+      panY: viewRef.current.pan.y,
+    }
+    setIsPanning(true)
+    ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
+  }
+
   function handlePointerDown(event: React.PointerEvent) {
+    // Middle mouse always pans; Space+drag pans even over nodes.
+    if (event.button === 1 || (event.button === 0 && spaceHeld)) {
+      event.preventDefault()
+      beginPan(event)
+      return
+    }
     if (event.button !== 0) return
     const target = event.target as Element
     const nodeEl = target.closest('[data-graph-node]') as HTMLElement | null
@@ -882,13 +971,7 @@ export function LibraryLinkGraphView({
       return
     }
 
-    panDragRef.current = {
-      x: event.clientX,
-      y: event.clientY,
-      panX: pan.x,
-      panY: pan.y,
-    }
-    ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
+    beginPan(event)
   }
 
   function handlePointerMove(event: React.PointerEvent) {
@@ -910,9 +993,10 @@ export function LibraryLinkGraphView({
 
     const drag = panDragRef.current
     if (!drag) return
+    const current = clientToViewBox(event.clientX, event.clientY)
     setPan({
-      x: drag.panX + (event.clientX - drag.x),
-      y: drag.panY + (event.clientY - drag.y),
+      x: drag.panX + (current.x - drag.startViewX),
+      y: drag.panY + (current.y - drag.startViewY),
     })
   }
 
@@ -936,13 +1020,40 @@ export function LibraryLinkGraphView({
       nodeDragRef.current = null
       simRef.current.reheat(0.25)
     }
-    panDragRef.current = null
+    if (panDragRef.current) {
+      panDragRef.current = null
+      setIsPanning(false)
+    }
     try {
       ;(event.currentTarget as HTMLElement).releasePointerCapture(event.pointerId)
     } catch {
       // ignore
     }
   }
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.code !== 'Space' || event.repeat) return
+      const tag = (event.target as HTMLElement | null)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (event.target as HTMLElement)?.isContentEditable) {
+        return
+      }
+      event.preventDefault()
+      setSpaceHeld(true)
+    }
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (event.code === 'Space') setSpaceHeld(false)
+    }
+    const onBlur = () => setSpaceHeld(false)
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+    window.addEventListener('blur', onBlur)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
+      window.removeEventListener('blur', onBlur)
+    }
+  }, [])
 
   const shellClass = isPage ? 'link-graph-page-body' : 'px-3 py-3'
   const hasContent = edges.length > 0 || (showOrphans && orphans.length > 0)
@@ -1193,6 +1304,8 @@ export function LibraryLinkGraphView({
           className={cn(
             'link-graph-canvas touch-none overflow-hidden',
             isPage ? 'link-graph-canvas--page min-h-0 flex-1' : 'rounded-xl border border-[var(--color-border)]',
+            (isPanning || spaceHeld) && 'is-panning',
+            spaceHeld && 'is-space-pan',
           )}
           onWheel={handleWheel}
           onDoubleClick={handleDoubleClick}
@@ -1200,6 +1313,10 @@ export function LibraryLinkGraphView({
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
+          onContextMenu={(event) => {
+            // Keep middle-click / accidental right-drag from opening a menu mid-pan.
+            if (isPanning) event.preventDefault()
+          }}
         >
           {isPage && (
             <p className="link-graph-canvas-meta">
@@ -1272,6 +1389,7 @@ export function LibraryLinkGraphView({
                     ? `${node.title.slice(0, labelMax - 1)}…`
                     : node.title
                 const kind = node.kind ?? 'document'
+                const labelPos = labelAnchor(node, simNodes, r)
 
                 return (
                   <g
@@ -1315,9 +1433,9 @@ export function LibraryLinkGraphView({
                     {showLabel && (
                       <text
                         className="link-graph-node-label"
-                        x={node.x}
-                        y={node.y + r + (isPage ? 14 : 11)}
-                        textAnchor="middle"
+                        x={labelPos.x}
+                        y={labelPos.y}
+                        textAnchor={labelPos.anchor}
                       >
                         {label}
                       </text>
