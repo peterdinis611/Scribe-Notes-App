@@ -209,9 +209,23 @@ cargo build --release -p scribe-mcp
 cargo test -p scribe-mcp
 ```
 
+## What’s new in 2.5 (MCP)
+
+Study / style Local AI tools (need Local AI enabled unless noted):
+
+- `extract_flashcards`, `extract_takeaways`, `check_terminology`, `writing_coach`
+- `suggest_continuation` (library n-grams; Rust fallback)
+- `analyze_revision_diff` / `analyze_revision_diff_for_document` (Revision AI)
+- `wiki_health_report`, `list_stub_documents`
+
+Prompts: `study_flashcards`, `writing_coach_pass`, `revision_review`, `continue_writing`.
+
+Full argument tables: [tools.md](tools.md).
+
 ## See also
 
 - [Package README](../README.md)
 - [Slovak guide](sk.md)
 - [Tool reference](tools.md)
 - In-app connection map: `/graph`
+- In-app Docs (Settings → Docs) — topics Local AI, Revisions, MCP

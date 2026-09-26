@@ -93,6 +93,8 @@ Core: `health`, `embed`, `embed_batch`, `summarize`, `extract_*`, `analyze_docum
 
 1.3.0+: `extract_flashcards`, `check_terminology`, `extract_takeaways`, `writing_coach`
 
+1.4.0+: `outline_quiz`, `meeting_notes_pack`, `check_terminology_library`, `citation_pack`
+
 ## Version
 
-Current sidecar: **1.3.0**
+Current sidecar: **1.4.0**

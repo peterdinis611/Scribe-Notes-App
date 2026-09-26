@@ -105,6 +105,10 @@ FEATURES = [
     "checkTerminology",
     "extractTakeaways",
     "writingCoach",
+    "outlineQuiz",
+    "meetingNotesPack",
+    "checkTerminologyLibrary",
+    "citationPack",
     "libraryAnswer",
     "dueHints",
     "wikiSuggest",
@@ -559,6 +563,39 @@ def _handle_request_inner(
             text = _validate_text(str(params.get("text") or ""))
             limit = max(1, min(int(params.get("limit") or 12), 30))
             result = writing_coach(text, limit=limit)
+        elif method == "outline_quiz":
+            from .outline_quiz import outline_quiz
+
+            text = _validate_text(str(params.get("text") or ""))
+            limit = max(1, min(int(params.get("limit") or 12), 40))
+            result = outline_quiz(text, limit=limit)
+        elif method == "meeting_notes_pack":
+            from .meeting_notes import meeting_notes_pack
+
+            text = _validate_text(str(params.get("text") or ""))
+            limit = max(1, min(int(params.get("limit") or 12), 30))
+            result = meeting_notes_pack(text, limit=limit)
+        elif method == "check_terminology_library":
+            from .terminology_library import check_terminology_library
+
+            documents = params.get("documents") or []
+            if not isinstance(documents, list):
+                raise SidecarError("documents must be an array", code=-32602)
+            if len(documents) > 80:
+                raise SidecarError("documents exceeds limit", code=-32602)
+            limit = max(1, min(int(params.get("limit") or 16), 40))
+            result = check_terminology_library(documents, limit=limit)
+        elif method == "citation_pack":
+            from .citation_pack import citation_pack
+
+            claim = str(params.get("claim") or params.get("question") or "")
+            documents = params.get("documents") or []
+            if not isinstance(documents, list):
+                raise SidecarError("documents must be an array", code=-32602)
+            if len(documents) > 80:
+                raise SidecarError("documents exceeds limit", code=-32602)
+            limit = max(1, min(int(params.get("limit") or 8), 20))
+            result = citation_pack(claim, documents, limit=limit)
         else:
             return {
                 "jsonrpc": "2.0",

@@ -215,9 +215,23 @@ cargo build --release -p scribe-mcp
 cargo test -p scribe-mcp
 ```
 
+## Novinky 2.5 (MCP)
+
+Štúdium / štýl Local AI (väčšina vyžaduje zapnutú Lokálnu AI):
+
+- `extract_flashcards`, `extract_takeaways`, `check_terminology`, `writing_coach`
+- `suggest_continuation` (n-gramy z knižnice; Rust fallback)
+- `analyze_revision_diff` / `analyze_revision_diff_for_document` (Revision AI)
+- `wiki_health_report`, `list_stub_documents`
+
+Prompty: `study_flashcards`, `writing_coach_pass`, `revision_review`, `continue_writing`.
+
+Úplné tabuľky argumentov: [tools.md](tools.md).
+
 ## Ďalšie odkazy
 
 - [Prehľad balíka](../README.md)
 - [English guide](en.md)
 - [Tool reference](tools.md)
 - Mapa prepojení v aplikácii: route `/graph`
+- In-app Docs (Nastavenia → Docs) — témy Lokálna AI, História, MCP

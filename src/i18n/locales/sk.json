@@ -912,7 +912,13 @@
         "libraryAnswer": "Otázka nad celou knižnicou s citáciami",
         "getDocument": "Načítať jednu poznámku ako plain text",
         "tasks": "Zoznam otvorených úloh v checklistoch",
-        "analysis": "Zhrnutie, kľúčové slová, osnova jednej poznámky"
+        "analysis": "Zhrnutie, kľúčové slová, osnova jednej poznámky",
+        "flashcards": "Študijné kartičky z poznámky",
+        "takeaways": "Kľúčové závery / executive bullets",
+        "writingCoach": "Lokálny štýlový kouč",
+        "revisionAi": "Revision AI pre uložený snapshot",
+        "continuation": "Návrhy pokračovania textu z knižnice",
+        "wikiHealth": "Neriešené odkazy a stub poznámky"
       },
       "samplePromptsTitle": "Vyskúšajte tieto prompty",
       "samplePromptsDescription": "Skopírujte do Cursora alebo Claude po pripojení MCP.",
@@ -920,7 +926,10 @@
         "Zavolaj scribe_status a povedz, či je Scribe databáza writable.",
         "Hľadaj v mojich Scribe poznámkach termíny tento mesiac a uveď zdroje.",
         "Použi library_answer: Aké otvorené úlohy alebo nedokončené vlákna mám?",
-        "Nájdi poznámku s názvom ako plán projektu a zhrň ju cez document_analysis."
+        "Nájdi poznámku s názvom ako plán projektu a zhrň ju cez document_analysis.",
+        "Vygeneruj kartičky z mojej najnovšej študijnej poznámky.",
+        "Spusti writing_coach a check_terminology na otvorenej poznámke.",
+        "Skontroluj poslednú revíziu poznámky cez analyze_revision_diff_for_document."
       ],
       "copyPromptShort": "Kopírovať",
       "installTitle": "Inštalácia",
@@ -1131,6 +1140,8 @@
       "tipLabel": "Tip",
       "searchTip": "otvorí príkazovú paletu kdekoľvek v aplikácii.",
       "localAiTip": "v scope Všetko kombinuje fulltext a sémantiku, ak je Lokálna AI zapnutá.",
+      "revisionsTip": "stále funguje pre undo v editore; panel História drží dlhšie snímky.",
+      "mcpTip": "otvorí Nastavenia — MCP zapnete a skopírujete Cursor / Claude config tam.",
       "journalTip": "otvorí dnešnú denníkovú poznámku.",
       "shortcutsTip": "otvorí Nastavenia na úpravu skratiek.",
       "groups": {
@@ -1142,12 +1153,15 @@
       "topics": {
         "overview": {
           "title": "Čo je Scribe {{version}}?",
-          "summary": "Píšte dokumenty. Prepájajte poznámky.",
+          "summary": "Píšte dokumenty. Prepájajte poznámky. Ostávajte lokálne.",
           "paragraphs": [
             "Scribe {{version}} je lokálny editor dokumentov pre macOS. Píšte a exportujte súbory na tomto Macu — knižnica žije v SQLite, s voliteľnými .scribe zálohmi na disku.",
-            "Keď poznámok pribudne, prepájajte ich wiki odkazmi. Mapa prepojení a MCP (Cursor / Claude) sú pokročilé nástroje — nie povinný štart."
+            "Keď poznámok pribudne, prepájajte ich wiki odkazmi. Lokálna AI, Revision AI, mapa prepojení a MCP (Cursor / Claude) sú pokročilé nástroje — užitočné, keď ich potrebujete, nie povinný štart."
           ],
-          "points": []
+          "points": [
+            "Novinky 2.5 — pokračovanie textu, smart paste, 3D modely, Revision AI, študijné a štýlové akcie v chate",
+            "Všetko nižšie funguje offline okrem voliteľných embedov alebo MCP hostiteľov, ktoré sami pripojíte"
+          ]
         },
         "privacy": {
           "title": "Súkromie",
@@ -1206,13 +1220,16 @@
         },
         "editor": {
           "title": "Editor",
-          "summary": "Rich text, Markdown a sústredenie",
+          "summary": "Rich text, čistenie paste, médiá a sústredenie",
           "paragraphs": [
-            "Stredná stránka je TipTap rich-text editor s lištou formátovania pre štýly, zoznamy, tabuľky, obrázky a farby."
+            "Stredná stránka je TipTap rich-text editor s lištou formátovania pre štýly, zoznamy, tabuľky, obrázky a farby.",
+            "Scribe {{version}} tiež čistí mess HTML z Wordu / Pages / webu pri vložení a vie vložiť lokálne 3D modely (GLB / GLTF) vedľa diagramov a médií."
           ],
           "points": [
             "Text / MD — prepínač medzi rich textom a Markdownom",
-            "SK / EN — jazyk rozhrania",
+            "Slash /continue — Lokálna AI pokračovanie textu z vašej knižnice (ak je zapnutá)",
+            "Smart paste — Rust normalizuje špinavé HTML pred TipTap insertom",
+            "3D model — vloženie GLB / GLTF zo slash menu alebo Insert lišty",
             "Režim čítania a focus skryjú chrome",
             "Layout / Page — spojitý alebo stránkovaný layout",
             "Mikrofón v lište (⌘⇧M) diktuje na kurzor cez rozpoznávanie reči macOS"
@@ -1225,7 +1242,10 @@
             "Príkazová paleta skáče na dokumenty, spúšťa príkazy a hľadá v obsahu. Nájsť a Nájsť a nahradiť hľadajú v otvorenom dokumente.",
             "Výber zásahu z obsahu dokument otvorí a skočí na prvý výskyt."
           ],
-          "points": []
+          "points": [
+            "Približné hľadanie — fuzzy zhoda vo Find (⌘F) a v palete",
+            "Nájsť a nahradiť v knižnici — scoped search cez viac poznámok (v MCP predvolene dry-run)"
+          ]
         },
         "localAi": {
           "title": "Scribe Lokálna AI",
@@ -1233,14 +1253,44 @@
           "paragraphs": [
             "Scribe má vlastnú Lokálnu AI. Nie je to ChatGPT ani online chatbot. Keď ju zapnete v Nastaveniach → Lokálna AI, Scribe spustí malý Python proces priamo na tomto Macu. Indexovanie, vyhľadávanie a odpovede nad poznámkami prebiehajú v pamäti počítača. Text sa nikam neodosiela.",
             "Rust jadro ostáva hlavné: databáza, editor, ukladanie a fulltext fungujú aj bez AI. Lokálna AI pridáva sémantické hľadanie, otázky k poznámkam, návrhy tagov, týždenný prehľad denníka a analýzu knižnice — aby ste aplikáciu používali bez očakávania cloud LLM.",
-            "Po zapnutí sa dokumenty indexujú do vektorov (model scribe-hash-v4). Ak Scribe aktualizujete a model sa zmení, zobrazí sa upozornenie na preindexovanie — staré a nové vektory by inak dávali nekonzistentné výsledky."
+            "Po zapnutí sa dokumenty indexujú do vektorov (model scribe-hash-v4). Ak Scribe aktualizujete a model sa zmení, zobrazí sa upozornenie na preindexovanie — staré a nové vektory by inak dávali nekonzistentné výsledky.",
+            "V chate dokumentu a AI prehľade môžete spustiť aj študijné a štýlové akcie: kartičky, závery, konzistenciu terminológie a štýlový kouč — všetko offline nad textom poznámky."
           ],
           "points": [
             "Súčasť Scribe — zapnite raz v Nastaveniach → Lokálna AI, bez účtu tretej strany",
             "⌘K scope Všetko — kombinuje fulltext (FTS) a sémantiku cez hybridné zlučovanie",
             "⌘K scope Sémanticky — len výsledky podľa významu, nie presného slova",
             "Opýtať sa knižnice / tejto poznámky — extractive odpovede s citáciami z vašich poznámok",
+            "Kartičky / Závery / Terminológia / Štýlový kouč — chipy v Local AI chate",
+            "/continue — n-gram návrhy z korpusu knižnice",
             "Vyžaduje Python 3.10+ v systéme; pip balíčky nie sú potrebné"
+          ]
+        },
+        "revisions": {
+          "title": "História a Revision AI",
+          "summary": "Snímky, diffy a offline report zmien",
+          "paragraphs": [
+            "Každé dôležité uloženie môže nechať snímku revízie. V pravom paneli História môžete náhľad, porovnanie, obnovenie alebo zmazanie revízií.",
+            "Revision AI klasifikuje, čo sa zmenilo medzi dvoma verziami — rozšírenie, skrátenie, prepísanie, štrukturálne úpravy — a vypíše riziká a bullet body. Pri zapnutej Lokálnej AI ide cez Python; inak ostáva Rust fallback na tomto Macu."
+          ],
+          "points": [
+            "Zvýraznenie na úrovni slov a párovanie nahradení v diff pohľade",
+            "Preferujte Revision AI, keď chcete changeKind a riziká, nie len bullet zhrnutie",
+            "Obnovenie revízie najprv uloží aktuálne telo ako novú snímku"
+          ]
+        },
+        "mcp": {
+          "title": "MCP (Cursor / Claude)",
+          "summary": "Nechajte agentov čítať a písať lokálnu knižnicu",
+          "paragraphs": [
+            "Scribe Memory MCP je voliteľný lokálny most. Cursor alebo Claude Desktop komunikujú s Rust stdio serverom nad tou istou SQLite knižnicou — poznámky neopustia Mac, kým ich hostiteľský model sám nestiahne do chatu.",
+            "Zapnite a skopírujte config v Nastavenia → MCP. Binárku raz zbuildíte cez npm run mcp:install z repa. Nástroje pokrývajú hľadanie, poznámky, úlohy, Local AI štúdium, Revision AI a zdravie wiki."
+          ],
+          "points": [
+            "Predvolený vault scope je no-vault — šifrované poznámky ostávajú pred agentmi skryté",
+            "SCRIBE_MCP_WRITE=0 vynúti read-only, ak chcete hľadať bez zápisu",
+            "Prompty ako study_flashcards a revision_review vedú bežné workflow",
+            "Ak je DB zamknutá pri otvorenom Scribe, skúste znova alebo skontrolujte scribe_status"
           ]
         },
         "journal": {
@@ -1260,7 +1310,8 @@
           ],
           "points": [
             "Import nahradí aktuálnu knižnicu; predchádzajúca databáza sa uloží ako .bak",
-            "Na tej istej stránke zmeníte priečinok, synchronizáciu s diskom alebo vymazanie dát"
+            "Na tej istej stránke zmeníte priečinok, synchronizáciu s diskom alebo vymazanie dát",
+            "Automatické zálohy môžu rotovať zip archívy v Documents/Scribe/Backups"
           ]
         },
         "shortcuts": {
@@ -1271,7 +1322,8 @@
           ],
           "points": [
             "Vzhľad — témy a jazyk",
-            "Diagnostika — zdravie databázy, cesty a čakajúce zápisy na disk"
+            "Diagnostika — zdravie databázy, cesty a čakajúce zápisy na disk",
+            "Docs — táto príručka, prehľadávateľná podľa tém"
           ]
         }
       }
@@ -1760,6 +1812,7 @@
     "comments": "Komentáre",
     "backlinks": "Odkazy sem",
     "insights": "AI prehľad",
+    "flashcards": "Kartičky",
     "stats": "Štatistika",
     "revisions": "História verzií",
     "findReplace": "Nájsť a nahradiť",

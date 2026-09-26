@@ -698,6 +698,43 @@ impl NlpSidecar {
         )
     }
 
+    pub fn outline_quiz(&self, text: &str, limit: i64) -> Result<Value, String> {
+        self.call_method(
+            "outline_quiz",
+            json!({ "text": text, "limit": limit }),
+        )
+    }
+
+    pub fn meeting_notes_pack(&self, text: &str, limit: i64) -> Result<Value, String> {
+        self.call_method(
+            "meeting_notes_pack",
+            json!({ "text": text, "limit": limit }),
+        )
+    }
+
+    pub fn check_terminology_library(
+        &self,
+        documents: &Value,
+        limit: i64,
+    ) -> Result<Value, String> {
+        self.call_method(
+            "check_terminology_library",
+            json!({ "documents": documents, "limit": limit }),
+        )
+    }
+
+    pub fn citation_pack(
+        &self,
+        claim: &str,
+        documents: &Value,
+        limit: i64,
+    ) -> Result<Value, String> {
+        self.call_method(
+            "citation_pack",
+            json!({ "claim": claim, "documents": documents, "limit": limit }),
+        )
+    }
+
     pub fn analyze_document_typed(
         &self,
         text: &str,
@@ -730,7 +767,8 @@ pub fn rpc_timeout(method: &str) -> Duration {
         "health" | "set_embed_backend" => Duration::from_secs(8),
         "embed" | "rewrite_query" | "chunk_text" | "suggest_continuation" | "generate_placeholder"
         | "analyze_revision_diff" | "summarize_diff" | "extract_flashcards" | "check_terminology"
-        | "extract_takeaways" | "writing_coach" => {
+        | "extract_takeaways" | "writing_coach" | "outline_quiz" | "meeting_notes_pack"
+        | "check_terminology_library" | "citation_pack" => {
             Duration::from_secs(25)
         }
         "embed_with_chunks" => Duration::from_secs(60),

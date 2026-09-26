@@ -40,6 +40,12 @@ const SAMPLE_TOOLS = [
   { id: 'get_document', hintKey: 'settings.mcp.tools.getDocument' },
   { id: 'list_open_tasks', hintKey: 'settings.mcp.tools.tasks' },
   { id: 'document_analysis', hintKey: 'settings.mcp.tools.analysis' },
+  { id: 'extract_flashcards', hintKey: 'settings.mcp.tools.flashcards' },
+  { id: 'extract_takeaways', hintKey: 'settings.mcp.tools.takeaways' },
+  { id: 'writing_coach', hintKey: 'settings.mcp.tools.writingCoach' },
+  { id: 'analyze_revision_diff_for_document', hintKey: 'settings.mcp.tools.revisionAi' },
+  { id: 'suggest_continuation', hintKey: 'settings.mcp.tools.continuation' },
+  { id: 'wiki_health_report', hintKey: 'settings.mcp.tools.wikiHealth' },
 ] as const
 
 async function copyText(

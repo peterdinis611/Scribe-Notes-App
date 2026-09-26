@@ -979,6 +979,31 @@ Persisted per-note chat (same table as the app).
 
 ---
 
+## Study / style AI (Local AI)
+
+All accept `id` and/or `text` unless noted. Require Local AI enabled (except where Rust fallback is noted).
+
+| Tool | Extra args | Notes |
+|------|------------|--------|
+| `extract_flashcards` | `limit?`, `includeCloze?` | Q&A, definitions, cloze, sections |
+| `extract_takeaways` | `limit?` | Executive bullets + themes |
+| `check_terminology` | `limit?` | Inconsistent spellings / casing |
+| `writing_coach` | `limit?` | Long sentences, fillers, passive voice |
+| `suggest_continuation` | `prefix`, `maxSuggestions?`, `maxTokens?`, `excludeDocumentId?`, `preferRust?` | Library n-grams; Rust fallback |
+| `analyze_revision_diff` | `oldText`, `newText`, `maxBullets?`, `language?`, `preferRust?` | Richer than `summarize_diff` |
+| `analyze_revision_diff_for_document` | `id`, `revisionId`, … | Snapshot → current note |
+
+---
+
+## Wiki health
+
+| Tool | Args |
+|------|------|
+| `wiki_health_report` | `unresolvedLimit?`, `stubMaxWords?`, `stubLimit?` |
+| `list_stub_documents` | `maxWords?`, `limit?` |
+
+---
+
 ## Prompts
 
 | Prompt | Purpose |
@@ -989,5 +1014,9 @@ Persisted per-note chat (same table as the app).
 | `wiki_health` | hubs + unresolved wiki links |
 | `rewrite_selection_draft` | rewrite_selection preview (do not apply unless asked) |
 | `continue_document_chat` | prefer `document_answer_and_save` |
-| `analyze_this_note` | `id` — analysis → keywords → organize |
+| `analyze_this_note` | `id` — analysis → keywords → takeaways → organize |
+| `study_flashcards` | `id` — extract_flashcards |
+| `writing_coach_pass` | `id` — writing_coach + terminology + spellcheck |
+| `revision_review` | `id` — revisions + analyze_revision_diff_for_document |
+| `continue_writing` | `prefix` (+ optional `excludeDocumentId`) — suggest_continuation |
 | `switch_and_search` | optional `library` / `query` — list → switch → search |

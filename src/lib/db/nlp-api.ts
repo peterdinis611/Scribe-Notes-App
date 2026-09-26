@@ -380,12 +380,6 @@ export type FlashcardsResult = {
   source: 'python' | string
 }
 
-export const nlpExtractFlashcards = (input: {
-  documentId: string
-  limit?: number
-  includeCloze?: boolean
-}) => invoke<FlashcardsResult>('nlp_extract_flashcards', { input })
-
 export type TerminologyVariant = { term: string; count: number }
 
 export type TerminologyIssue = {
@@ -403,9 +397,6 @@ export type TerminologyResult = {
   source: 'python' | string
 }
 
-export const nlpCheckTerminology = (input: { documentId: string; limit?: number }) =>
-  invoke<TerminologyResult>('nlp_check_terminology', { input })
-
 export type TakeawayItem = {
   text: string
   kind: string
@@ -419,9 +410,6 @@ export type TakeawaysResult = {
   themes: Array<{ term: string; count: number }>
   source: 'python' | string
 }
-
-export const nlpExtractTakeaways = (input: { documentId: string; limit?: number }) =>
-  invoke<TakeawaysResult>('nlp_extract_takeaways', { input })
 
 export type WritingCoachHint = {
   code: string
@@ -444,8 +432,81 @@ export type WritingCoachResult = {
   source: 'python' | string
 }
 
-export const nlpWritingCoach = (input: { documentId: string; limit?: number }) =>
-  invoke<WritingCoachResult>('nlp_writing_coach', { input })
+export const nlpExtractFlashcards = (input: {
+  documentId?: string
+  text?: string
+  limit?: number
+  includeCloze?: boolean
+}) => invoke<FlashcardsResult>('nlp_extract_flashcards', { input })
+
+export const nlpCheckTerminology = (input: {
+  documentId?: string
+  text?: string
+  limit?: number
+}) => invoke<TerminologyResult>('nlp_check_terminology', { input })
+
+export const nlpExtractTakeaways = (input: {
+  documentId?: string
+  text?: string
+  limit?: number
+}) => invoke<TakeawaysResult>('nlp_extract_takeaways', { input })
+
+export const nlpWritingCoach = (input: {
+  documentId?: string
+  text?: string
+  limit?: number
+}) => invoke<WritingCoachResult>('nlp_writing_coach', { input })
+
+export type OutlineQuizQuestion = {
+  kind: string
+  level?: number
+  section: string
+  question: string
+  answer: string
+}
+
+export type OutlineQuizResult = {
+  questions: OutlineQuizQuestion[]
+  count: number
+  headingCount: number
+  source: string
+}
+
+export const nlpOutlineQuiz = (input: {
+  documentId?: string
+  text?: string
+  limit?: number
+}) => invoke<OutlineQuizResult>('nlp_outline_quiz', { input })
+
+export type MeetingNotesPack = {
+  decisions: Array<{ text: string; kind: string }>
+  actionItems: Array<{ text: string; dueHint?: string | null; source?: string }>
+  attendees: string[]
+  counts: { decisions: number; actionItems: number; attendees: number }
+  source: string
+}
+
+export const nlpMeetingNotesPack = (input: {
+  documentId?: string
+  text?: string
+  limit?: number
+}) => invoke<MeetingNotesPack>('nlp_meeting_notes_pack', { input })
+
+export type CitationPackResult = {
+  claim: string
+  citations: Array<{ documentId: string; title: string; snippet: string; score: number }>
+  bullets: string[]
+  count: number
+  source: string
+}
+
+export const nlpCitationPack = (input: { claim: string; limit?: number }) =>
+  invoke<CitationPackResult>('nlp_citation_pack', { input })
+
+export const nlpCheckTerminologyLibrary = (input?: {
+  limit?: number
+  documentLimit?: number
+}) => invoke<TerminologyResult>('nlp_check_terminology_library', { input: input ?? {} })
 
 export interface NlpTemplateFillHints {
   expected: string[]

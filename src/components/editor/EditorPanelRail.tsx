@@ -5,6 +5,7 @@ import {
   ClipboardList,
   Focus,
   History,
+  Layers,
   Link2,
   ListTree,
   MessageSquare,
@@ -29,6 +30,7 @@ import {
   setCommentsPanelOpen,
   setDocumentOutlineOpen,
   setFindReplaceMode,
+  setFlashcardsPanelOpen,
   setInsightsPanelOpen,
   setPanelRailExpanded,
   setRevisionHistoryOpen,
@@ -76,6 +78,7 @@ export function EditorPanelRail() {
   const backlinksOpen = useAppSelector((state) => state.documents.backlinksPanelOpen)
   const insightsOpen = useAppSelector((state) => state.documents.insightsPanelOpen)
   const clipboardOpen = useAppSelector((state) => state.documents.clipboardHistoryPanelOpen)
+  const flashcardsOpen = useAppSelector((state) => state.documents.flashcardsPanelOpen)
   const findReplaceOpen = useAppSelector((state) => state.documents.findReplaceOpen)
   const panelRailExpanded = useAppSelector((state) => state.documents.panelRailExpanded)
   const focusMode = useAppSelector((state) => state.documents.focusMode)
@@ -91,11 +94,20 @@ export function EditorPanelRail() {
     backlinksOpen ||
     insightsOpen ||
     clipboardOpen ||
+    flashcardsOpen ||
     findReplaceOpen
   const expanded = panelRailExpanded || anyPanelOpen
 
   function closeOtherPanels(
-    except?: 'outline' | 'history' | 'comments' | 'stats' | 'backlinks' | 'insights' | 'clipboard',
+    except?:
+      | 'outline'
+      | 'history'
+      | 'comments'
+      | 'stats'
+      | 'backlinks'
+      | 'insights'
+      | 'clipboard'
+      | 'flashcards',
   ) {
     if (except !== 'outline') dispatch(setDocumentOutlineOpen(false))
     if (except !== 'history') dispatch(setRevisionHistoryOpen(false))
@@ -104,6 +116,7 @@ export function EditorPanelRail() {
     if (except !== 'backlinks') dispatch(setBacklinksPanelOpen(false))
     if (except !== 'insights') dispatch(setInsightsPanelOpen(false))
     if (except !== 'clipboard') dispatch(setClipboardHistoryPanelOpen(false))
+    if (except !== 'flashcards') dispatch(setFlashcardsPanelOpen(false))
   }
 
   function openFind() {
@@ -223,6 +236,16 @@ export function EditorPanelRail() {
           onClick={openInsights}
         >
           <Sparkles className="h-4 w-4" />
+        </RailButton>
+        <RailButton
+          label={t('editorPanels.flashcards')}
+          active={flashcardsOpen}
+          onClick={() => {
+            closeOtherPanels('flashcards')
+            dispatch(setFlashcardsPanelOpen(!flashcardsOpen))
+          }}
+        >
+          <Layers className="h-4 w-4" />
         </RailButton>
         <RailButton
           label={t('editorPanels.clipboard')}

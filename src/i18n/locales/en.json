@@ -912,7 +912,13 @@
         "libraryAnswer": "Ask the whole library with citations",
         "getDocument": "Load one note as plain text",
         "tasks": "List open checklist tasks",
-        "analysis": "Summary, keywords, outline for one note"
+        "analysis": "Summary, keywords, outline for one note",
+        "flashcards": "Study flashcards from a note",
+        "takeaways": "Key takeaways / executive bullets",
+        "writingCoach": "Local writing-coach style hints",
+        "revisionAi": "Revision AI for a saved snapshot",
+        "continuation": "Continue-writing suggestions from your library",
+        "wikiHealth": "Unresolved links and stub notes"
       },
       "samplePromptsTitle": "Try these prompts",
       "samplePromptsDescription": "Copy into Cursor or Claude after MCP is connected.",
@@ -920,7 +926,10 @@
         "Call scribe_status and tell me if the Scribe database is writable.",
         "Search my Scribe notes for deadlines this month and list the sources.",
         "Use library_answer: What open tasks or unfinished threads do I have?",
-        "Find the note titled like my project plan, then summarize it with document_analysis."
+        "Find the note titled like my project plan, then summarize it with document_analysis.",
+        "Extract flashcards from my most recent study note.",
+        "Run writing_coach and check_terminology on the open note.",
+        "Review the latest revision of this note with analyze_revision_diff_for_document."
       ],
       "copyPromptShort": "Copy",
       "installTitle": "Install",
@@ -1141,12 +1150,15 @@
       "topics": {
         "overview": {
           "title": "What is Scribe {{version}}?",
-          "summary": "Write documents. Link notes.",
+          "summary": "Write documents. Link notes. Stay local.",
           "paragraphs": [
             "Scribe {{version}} is a local document editor for macOS. Write and export on this Mac — your library lives in SQLite, with optional .scribe backups on disk.",
-            "As notes grow, link them with wiki links. The connection map and MCP (Cursor / Claude) are power tools — not the starting point."
+            "As notes grow, link them with wiki links. Local AI, Revision AI, the connection map, and MCP (Cursor / Claude) are power tools — useful when you need them, not required to start writing."
           ],
-          "points": []
+          "points": [
+            "2.5 highlights — continue writing, smart paste, 3D models, Revision AI, study & style chat actions",
+            "Everything below works offline except optional embeds or MCP hosts you choose to connect"
+          ]
         },
         "privacy": {
           "title": "Privacy",
@@ -1205,13 +1217,16 @@
         },
         "editor": {
           "title": "Editor",
-          "summary": "Rich text, Markdown, and focus",
+          "summary": "Rich text, paste cleanup, media, and focus",
           "paragraphs": [
-            "The center page is a TipTap rich-text editor with a formatting toolbar for styles, lists, tables, images, and colors."
+            "The center page is a TipTap rich-text editor with a formatting toolbar for styles, lists, tables, images, and colors.",
+            "Scribe {{version}} also cleans messy Word / Pages / web HTML on paste, and can embed local 3D models (GLB / GLTF) beside diagrams and media blocks."
           ],
           "points": [
             "Text vs MD — switch between rich text and Markdown",
-            "SK / EN — change the UI language",
+            "Slash /continue — Local AI continue-writing from your own library (when enabled)",
+            "Smart paste — Rust normalizes dirty HTML before TipTap insert",
+            "3D model — insert GLB / GLTF from the slash menu or Insert toolbar",
             "Reading mode and focus mode hide chrome for fewer distractions",
             "Layout / Page — continuous vs paginated layout",
             "Microphone in the toolbar (⌘⇧M) dictates at the cursor using macOS speech recognition"
@@ -1224,7 +1239,10 @@
             "The command palette jumps to documents, runs commands, and searches inside content. Find and Find & Replace search within the open document.",
             "Choosing a content hit from the palette opens that document and jumps to the first match."
           ],
-          "points": []
+          "points": [
+            "Fuzzy find — approximate matching in Find (⌘F) and the palette",
+            "Library find & replace — scoped search across many notes (dry-run by default in MCP)"
+          ]
         },
         "localAi": {
           "title": "Scribe Local AI",
@@ -1232,14 +1250,44 @@
           "paragraphs": [
             "Scribe has its own Local AI. It is not ChatGPT and not an online chatbot. When you enable it in Settings → Local AI, Scribe starts a small Python process on this Mac. Indexing, search, and answers over your notes all happen in your computer’s memory. Your text is never sent anywhere.",
             "The Rust core stays primary: database, editor, saving, and full-text search work without AI. Local AI adds meaning-based search, note Q&A, tag suggestions, weekly journal overview, and library analysis — so you can use the app without expecting a cloud LLM.",
-            "After enabling, documents are indexed into vectors (model scribe-hash-v4). If you update Scribe and the model changes, a reindex banner appears — mixing old and new vectors would give inconsistent results."
+            "After enabling, documents are indexed into vectors (model scribe-hash-v4). If you update Scribe and the model changes, a reindex banner appears — mixing old and new vectors would give inconsistent results.",
+            "In document chat and AI insights you can also run study and style actions: flashcards, takeaways, terminology consistency, and a writing coach — all offline heuristics on your note text."
           ],
           "points": [
             "Built into Scribe — enable once in Settings → Local AI, no third-party account",
             "⌘K All scope — combines full-text (FTS) and semantic hits via hybrid ranking",
             "⌘K Semantic scope — meaning-based results only, not exact word matches",
             "Ask library / Ask this note — extractive answers with citations from your notes",
+            "Flashcards / Takeaways / Terminology / Writing coach — chips in Local AI chat",
+            "/continue — n-gram suggestions from your library corpus",
             "Requires Python 3.10+ on your system; no pip packages needed"
+          ]
+        },
+        "revisions": {
+          "title": "History and Revision AI",
+          "summary": "Snapshots, diffs, and offline change reports",
+          "paragraphs": [
+            "Every meaningful save can leave a revision snapshot. Open History in the right rail to preview, compare, restore, or delete revisions.",
+            "Revision AI classifies what changed between two versions — expansion, trim, rewrite, structural edits — and lists risks and bullets. With Local AI on it uses the Python module; otherwise a Rust fallback still works on this Mac."
+          ],
+          "points": [
+            "Word-level highlights and paired replacements in the diff view",
+            "Prefer Revision AI when you want changeKind and risks, not only bullet summaries",
+            "Restoring a revision saves the current body as a new snapshot first"
+          ]
+        },
+        "mcp": {
+          "title": "MCP (Cursor / Claude)",
+          "summary": "Let agents read and write your local library",
+          "paragraphs": [
+            "Scribe Memory MCP is an optional local bridge. Cursor or Claude Desktop talk to a Rust stdio server that reads the same SQLite library — notes never leave this Mac unless the host model fetches them into its own chat.",
+            "Enable and copy config from Settings → MCP. Build the binary once with npm run mcp:install from the repo. Tools cover search, notes, tasks, Local AI study actions, Revision AI, and wiki health."
+          ],
+          "points": [
+            "Default vault scope is no-vault — encrypted notes stay hidden from agents",
+            "SCRIBE_MCP_WRITE=0 forces read-only if you want search without edits",
+            "Prompts such as study_flashcards and revision_review guide common workflows",
+            "If the DB is locked while Scribe is open, retry or check scribe_status"
           ]
         },
         "journal": {
@@ -1259,7 +1307,8 @@
           ],
           "points": [
             "Import replaces the current library; the previous database is kept as a .bak file",
-            "Change the documents folder, sync with disk, or clear all data from the same page"
+            "Change the documents folder, sync with disk, or clear all data from the same page",
+            "Automatic backups can keep rotating zip archives under Documents/Scribe/Backups"
           ]
         },
         "shortcuts": {
@@ -1270,11 +1319,14 @@
           ],
           "points": [
             "Appearance — themes and language",
-            "Diagnostics — database health, paths, and pending disk writes"
+            "Diagnostics — database health, paths, and pending disk writes",
+            "Docs — this guide, searchable by topic"
           ]
         }
       },
-      "localAiTip": "in All scope combines full-text and semantic hits when Local AI is enabled."
+      "localAiTip": "in All scope combines full-text and semantic hits when Local AI is enabled.",
+      "revisionsTip": "still works for undo in the editor; History panel holds longer snapshots.",
+      "mcpTip": "opens Settings — enable MCP and copy Cursor / Claude config there."
     }
   },
   "storageAccess": {
@@ -1756,6 +1808,7 @@
     "comments": "Comments",
     "backlinks": "Backlinks",
     "insights": "AI insights",
+    "flashcards": "Flashcards",
     "stats": "Statistics",
     "revisions": "Version history",
     "findReplace": "Find and replace",

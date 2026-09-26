@@ -1225,6 +1225,39 @@ impl ScribeMcp {
         })
     }
 
+    #[tool(description = "Set answer embedding backend: auto (default), index, or quality. Requires writable DB.")]
+    fn set_answer_backend(
+        &self,
+        Parameters(params): Parameters<tools::SetAnswerBackendParams>,
+    ) -> Result<String, String> {
+        if !self.writable {
+            return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
+        }
+        self.with_store(|store| {
+            Ok(tools::json(
+                &store.set_nlp_answer_backend(&self.sidecar, &params.backend)?,
+            ))
+        })
+    }
+
+    #[tool(description = "Generate lorem / placeholder text (paragraphs, sentences, or words). Python preferred; Rust fallback always available.")]
+    fn generate_placeholder(
+        &self,
+        Parameters(params): Parameters<tools::GeneratePlaceholderParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.generate_placeholder(
+                &self.sidecar,
+                params.unit.as_deref(),
+                params.count,
+                params.language.as_deref(),
+                params.start_with_classic,
+                params.seed,
+                params.prefer_rust,
+            )?))
+        })
+    }
+
     #[tool(description = "List custom note templates saved in Scribe (id, name, title, category).")]
     fn list_templates(&self) -> Result<String, String> {
         self.with_store(|store| {
@@ -1543,6 +1576,23 @@ impl ScribeMcp {
         })
     }
 
+    #[tool(description = "Delete a smart folder by id. Requires writable DB.")]
+    fn delete_smart_folder(
+        &self,
+        Parameters(params): Parameters<tools::DeleteIdParams>,
+    ) -> Result<String, String> {
+        if !self.writable {
+            return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
+        }
+        self.with_store(|store| {
+            let deleted = store.delete_smart_folder(&params.id)?;
+            Ok(tools::json(&serde_json::json!({
+                "ok": deleted,
+                "id": params.id,
+            })))
+        })
+    }
+
     #[tool(description = "Evaluate a smart folder or ad-hoc queryRule (tag:…, folder:…, or FTS).")]
     fn evaluate_smart_folder(
         &self,
@@ -1667,6 +1717,218 @@ impl ScribeMcp {
             )?))
         })
     }
+
+    #[tool(description = "Extract study flashcards (Q&A, definitions, cloze, sections) from a note id or plaintext. Requires Local AI.")]
+    fn extract_flashcards(
+        &self,
+        Parameters(params): Parameters<tools::ExtractFlashcardsParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.extract_flashcards(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.text.as_deref(),
+                params.limit,
+                params.include_cloze,
+            )?))
+        })
+    }
+
+    #[tool(description = "Find inconsistent terminology / casing variants in a note id or plaintext. Requires Local AI.")]
+    fn check_terminology(
+        &self,
+        Parameters(params): Parameters<tools::StudyLimitParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.check_terminology(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.text.as_deref(),
+                params.limit,
+            )?))
+        })
+    }
+
+    #[tool(description = "Extract key takeaways / executive bullets from a note id or plaintext. Requires Local AI.")]
+    fn extract_takeaways(
+        &self,
+        Parameters(params): Parameters<tools::StudyLimitParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.extract_takeaways(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.text.as_deref(),
+                params.limit,
+            )?))
+        })
+    }
+
+    #[tool(description = "Local writing-coach style hints (long sentences, fillers, passive voice) for a note id or plaintext. Requires Local AI.")]
+    fn writing_coach(
+        &self,
+        Parameters(params): Parameters<tools::StudyLimitParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.writing_coach(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.text.as_deref(),
+                params.limit,
+            )?))
+        })
+    }
+
+    #[tool(description = "Revision AI: classify what changed between two plain texts (changeKind, risks, bullets). Python preferred; Rust fallback always available.")]
+    fn analyze_revision_diff(
+        &self,
+        Parameters(params): Parameters<tools::AnalyzeRevisionDiffParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.analyze_revision_diff(
+                &self.sidecar,
+                &params.old_text,
+                &params.new_text,
+                params.max_bullets,
+                params.language.as_deref(),
+                params.prefer_rust,
+            )?))
+        })
+    }
+
+    #[tool(description = "Revision AI for a saved snapshot vs the current note body. Prefer this over summarize_revision_diff when you need changeKind/risks.")]
+    fn analyze_revision_diff_for_document(
+        &self,
+        Parameters(params): Parameters<tools::AnalyzeRevisionDiffDocParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.analyze_revision_diff_for_document(
+                &self.sidecar,
+                &params.id,
+                &params.revision_id,
+                params.max_bullets,
+                params.language.as_deref(),
+                params.prefer_rust,
+            )?))
+        })
+    }
+
+    #[tool(description = "Suggest continue-writing phrases from the local library corpus (n-grams). Optional excludeDocumentId for the note being edited. Rust fallback if Local AI is off.")]
+    fn suggest_continuation(
+        &self,
+        Parameters(params): Parameters<tools::SuggestContinuationParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.suggest_continuation(
+                &self.sidecar,
+                &params.prefix,
+                params.max_suggestions,
+                params.max_tokens,
+                params.exclude_document_id.as_deref(),
+                params.prefer_rust,
+            )?))
+        })
+    }
+
+    #[tool(description = "Wiki health report: unresolved [[links]], stub notes, and graph summary.")]
+    fn wiki_health_report(
+        &self,
+        Parameters(params): Parameters<tools::WikiHealthParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.wiki_health(
+                params.unresolved_limit.unwrap_or(40).clamp(1, 200),
+                params.stub_max_words.unwrap_or(40).clamp(5, 200),
+                params.stub_limit.unwrap_or(20).clamp(1, 100),
+            )?))
+        })
+    }
+
+    #[tool(description = "List stub short notes (few words) that may need expanding.")]
+    fn list_stub_documents(
+        &self,
+        Parameters(params): Parameters<tools::StubDocumentsParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            let stubs = store.list_stub_documents(
+                params.max_words.unwrap_or(40).clamp(5, 200),
+                params.limit.unwrap_or(20).clamp(1, 100),
+            )?;
+            Ok(tools::json(&serde_json::json!({
+                "count": stubs.len(),
+                "stubs": stubs,
+            })))
+        })
+    }
+
+    #[tool(description = "Permanently delete a document revision snapshot. Requires writable DB.")]
+    fn delete_document_revision(
+        &self,
+        Parameters(params): Parameters<tools::DeleteIdParams>,
+    ) -> Result<String, String> {
+        if !self.writable {
+            return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
+        }
+        self.with_store(|store| Ok(tools::json(&store.delete_document_revision(&params.id)?)))
+    }
+
+    #[tool(description = "Build quiz questions from outline headings (id or plaintext). Requires Local AI.")]
+    fn outline_quiz(
+        &self,
+        Parameters(params): Parameters<tools::StudyLimitParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.outline_quiz(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.text.as_deref(),
+                params.limit,
+            )?))
+        })
+    }
+
+    #[tool(description = "Meeting notes pack: decisions, action items, and attendees from a note id or plaintext. Requires Local AI.")]
+    fn meeting_notes_pack(
+        &self,
+        Parameters(params): Parameters<tools::StudyLimitParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.meeting_notes_pack(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.text.as_deref(),
+                params.limit,
+            )?))
+        })
+    }
+
+    #[tool(description = "Cross-note terminology consistency across the active library. Requires Local AI.")]
+    fn check_terminology_library(
+        &self,
+        Parameters(params): Parameters<tools::TerminologyLibraryParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.check_terminology_library(
+                &self.sidecar,
+                params.limit,
+                params.document_limit,
+            )?))
+        })
+    }
+
+    #[tool(description = "Citation pack: which notes support a claim (hybrid search + supporting bullets). Requires Local AI.")]
+    fn citation_pack(
+        &self,
+        Parameters(params): Parameters<tools::CitationPackParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.citation_pack(
+                &self.sidecar,
+                &params.claim,
+                params.limit,
+            )?))
+        })
+    }
 }
 
 #[prompt_router]
@@ -1759,7 +2021,7 @@ impl ScribeMcp {
         .with_description("Resume saved document chat")
     }
 
-    #[prompt(description = "Analyze a note: full analysis, then keywords, then organize.")]
+    #[prompt(description = "Analyze a note: full analysis, then keywords, takeaways, then organize.")]
     fn analyze_this_note(
         &self,
         Parameters(params): Parameters<tools::AnalyzeThisNoteParams>,
@@ -1770,12 +2032,94 @@ impl ScribeMcp {
                 "Analyze Scribe note {id}.\n\
                  1. Call document_analysis with id={id}.\n\
                  2. Call extract_keywords with the same id.\n\
-                 3. Call suggest_organize with the same id.\n\
-                 Summarize language, tone, keywords, outline, and the best folder. Do not move the note unless I ask.",
+                 3. Call extract_takeaways with the same id.\n\
+                 4. Call suggest_organize with the same id.\n\
+                 Summarize language, tone, keywords, takeaways, outline, and the best folder. Do not move the note unless I ask.",
                 id = params.id
             ),
         )])
-        .with_description("Analyze → keywords → organize")
+        .with_description("Analyze → keywords → takeaways → organize")
+    }
+
+    #[prompt(description = "Build study flashcards from a named note.")]
+    fn study_flashcards(
+        &self,
+        Parameters(params): Parameters<tools::AnalyzeThisNoteParams>,
+    ) -> GetPromptResult {
+        GetPromptResult::new(vec![PromptMessage::new_text(
+            Role::User,
+            format!(
+                "Build study flashcards from Scribe note {id}.\n\
+                 1. Call extract_flashcards with id={id}.\n\
+                 2. Present Q/A and cloze cards clearly.\n\
+                 3. Optionally offer create_note for a deck — do not invent cards that were not returned.",
+                id = params.id
+            ),
+        )])
+        .with_description("Flashcards from a note")
+    }
+
+    #[prompt(description = "Writing-coach pass: style, terminology, spellcheck.")]
+    fn writing_coach_pass(
+        &self,
+        Parameters(params): Parameters<tools::AnalyzeThisNoteParams>,
+    ) -> GetPromptResult {
+        GetPromptResult::new(vec![PromptMessage::new_text(
+            Role::User,
+            format!(
+                "Run a writing-coach pass on Scribe note {id}.\n\
+                 1. Call writing_coach with id={id}.\n\
+                 2. Call check_terminology with the same id.\n\
+                 3. Call spellcheck with the same id.\n\
+                 Prioritize fixes. Do not rewrite the note unless I ask.",
+                id = params.id
+            ),
+        )])
+        .with_description("Style + terminology + spellcheck")
+    }
+
+    #[prompt(description = "Review a revision with Revision AI (changeKind and risks).")]
+    fn revision_review(
+        &self,
+        Parameters(params): Parameters<tools::AnalyzeThisNoteParams>,
+    ) -> GetPromptResult {
+        GetPromptResult::new(vec![PromptMessage::new_text(
+            Role::User,
+            format!(
+                "Review recent revisions of Scribe note {id}.\n\
+                 1. Call list_document_revisions with id={id}.\n\
+                 2. Pick the most recent useful revisionId.\n\
+                 3. Call analyze_revision_diff_for_document (prefer over summarize_revision_diff).\n\
+                 Explain changeKind, risks, and key bullets. Do not restore unless I ask.",
+                id = params.id
+            ),
+        )])
+        .with_description("Revision AI review")
+    }
+
+    #[prompt(description = "Suggest continue-writing phrases from the local library.")]
+    fn continue_writing(
+        &self,
+        Parameters(params): Parameters<tools::SuggestContinuationParams>,
+    ) -> GetPromptResult {
+        let exclude = params
+            .exclude_document_id
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(|id| format!(" excludeDocumentId={id}"))
+            .unwrap_or_default();
+        GetPromptResult::new(vec![PromptMessage::new_text(
+            Role::User,
+            format!(
+                "Suggest how to continue this Scribe draft.\n\
+                 1. Call suggest_continuation with prefix={prefix:?}{exclude}.\n\
+                 2. Show the suggestions only — do not append unless I ask.",
+                prefix = params.prefix,
+                exclude = exclude
+            ),
+        )])
+        .with_description("Continue writing suggestions")
     }
 
     #[prompt(description = "List libraries, switch if needed, then search.")]
@@ -1823,14 +2167,21 @@ impl ServerHandler for ScribeMcp {
              call list_libraries / switch_library first if the user names another library. \
              create_library adds a library without switching. \
              extract_entities / extract_mentions / extract_dates / extract_outline / chunk_text accept id or text. \
+             Study AI: extract_flashcards / extract_takeaways / check_terminology / writing_coach / outline_quiz / meeting_notes_pack (id or text). \
+             Library study: check_terminology_library / citation_pack. \
+             Placeholder: generate_placeholder. Answer backend: set_answer_backend. \
+             Revision AI: analyze_revision_diff or analyze_revision_diff_for_document; delete_document_revision cleans history. \
+             Continue writing: suggest_continuation from the local library corpus. \
+             Wiki: wiki_health_report / list_stub_documents / list_unresolved_wiki_links / list_graph_hubs. \
+             Smart folders: list_smart_folders / upsert_smart_folder / delete_smart_folder / evaluate_smart_folder. \
+             Resources: scribe://doc/{id}, scribe://artifact/{id}, scribe://revision/{docId}/{revId}. \
              For Q&A over the library use library_answer. \
              For one-note Q&A use document_answer_and_save (or document_answer + list/append_document_chat). \
              For note insights use document_analysis / extract_keywords / analyze_sentiment. \
-             For unsaved text use rewrite_selection / analyze_plaintext. \
+             For unsaved text use rewrite_selection / analyze_plaintext / generate_placeholder. \
              Cached AI: list_nlp_artifacts then get_nlp_artifact or scribe://artifact/{id}. \
              Memory: library_answer stores library_memory artifacts; document_answer_and_save stores document_memory. \
              Manuscripts: list_manuscripts / upsert_manuscript / compile_manuscript. \
-             Smart folders: list_smart_folders / evaluate_smart_folder. \
              Sync: list_sync_conflicts / resolve_sync_conflict. \
              Media: list_document_assets / extract_asset_ocr. \
              Find/replace is dry-run by default (library_find_replace). \
@@ -1863,6 +2214,13 @@ impl ServerHandler for ScribeMcp {
                 .with_title("NLP artifact")
                 .with_description("Cached journal_summary or library_report JSON")
                 .with_mime_type("application/json"),
+            ResourceTemplate::new(
+                "scribe://revision/{documentId}/{revisionId}",
+                "scribe-revision",
+            )
+                .with_title("Document revision")
+                .with_description("Plain-text snapshot of a saved revision")
+                .with_mime_type("text/plain"),
         ])))
     }
 
@@ -1917,8 +2275,38 @@ impl ScribeMcp {
             let text = serde_json::to_string_pretty(&artifact.payload).unwrap_or_default();
             return Ok(ResourceContents::text(text, uri).with_mime_type("application/json"));
         }
+        if let Some(rest) = uri.strip_prefix("scribe://revision/") {
+            let mut parts = rest.splitn(2, '/');
+            let document_id = parts.next().unwrap_or("").trim();
+            let revision_id = parts.next().unwrap_or("").trim();
+            if document_id.is_empty() || revision_id.is_empty() {
+                return Err(ErrorData::resource_not_found(
+                    "Use scribe://revision/{documentId}/{revisionId}",
+                    None,
+                ));
+            }
+            let revision = self
+                .with_store(|store| {
+                    let revision = store
+                        .get_document_revision(revision_id)?
+                        .ok_or_else(|| format!("Revision not found: {revision_id}"))?;
+                    if revision.document_id != document_id {
+                        return Err("revision does not belong to document".to_string());
+                    }
+                    Ok(revision)
+                })
+                .map_err(|error| ErrorData::resource_not_found(error, None))?;
+            let body = format!(
+                "# {}\n\n{}",
+                revision.title.trim(),
+                revision.plain_text.trim()
+            );
+            return Ok(ResourceContents::text(body, uri).with_mime_type("text/plain"));
+        }
         Err(ErrorData::resource_not_found(
-            format!("Unknown resource URI: {uri}. Use scribe://doc/{{id}} or scribe://artifact/{{id}}."),
+            format!(
+                "Unknown resource URI: {uri}. Use scribe://doc/{{id}}, scribe://artifact/{{id}}, or scribe://revision/{{docId}}/{{revId}}."
+            ),
             None,
         ))
     }
