@@ -8,6 +8,7 @@ from scribe_nlp.ner import extract_entities
 from scribe_nlp.query_rewrite import rewrite_query
 from scribe_nlp.server import handle_request
 from scribe_nlp.text_utils import content_stems, jaccard_similarity
+from scribe_nlp import __version__
 
 
 class NormalizeTests(unittest.TestCase):
@@ -53,7 +54,7 @@ class ServerV07Tests(unittest.TestCase):
         result = handle_request(
             {"jsonrpc": "2.0", "id": 1, "method": "health", "params": {}}
         )["result"]
-        self.assertEqual(result["version"], "1.0.0")
+        self.assertEqual(result["version"], __version__)
         self.assertEqual(result["model"], "scribe-hash-v4")
         for feature in ("chunking", "queryRewrite", "stemming", "chunkEmbeddings"):
             self.assertIn(feature, result["features"])

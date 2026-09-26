@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 
 from scribe_nlp.server import FEATURES, handle_request
+from scribe_nlp import __version__
 
 
 def rpc(method: str, params: dict | None = None, request_id: int = 1) -> dict:
@@ -19,7 +20,7 @@ def rpc(method: str, params: dict | None = None, request_id: int = 1) -> dict:
 class RpcCoverageTests(unittest.TestCase):
     def test_health_lists_every_feature(self) -> None:
         result = rpc("health")["result"]
-        self.assertEqual(result["version"], "1.0.0")
+        self.assertEqual(result["version"], __version__)
         for feature in FEATURES:
             self.assertIn(feature, result["features"], feature)
         for expected in (

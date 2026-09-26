@@ -184,23 +184,11 @@ def _suggest(word: str, dictionary: WordDictionary, *, limit: int = MAX_SUGGESTI
         return []
 
     vocab = _suggestion_vocab(dictionary)
-    # Prefer rapidfuzz over the whole vocab when available (much faster + better ranking).
-    try:
-        from .extras import fuzzy_extract, has_rapidfuzz
-
-        if has_rapidfuzz() and vocab:
-            # Cap vocab scan for huge Hunspell stem sets.
-            choices = list(vocab) if len(vocab) <= 80_000 else list(vocab)[:80_000]
-            hits = fuzzy_extract(lower, choices, limit=limit, score_cutoff=0.72)
-            if hits:
-                return [choice for choice, _ in hits]
-    except Exception:
-        pass
-
     max_dist = 1 if len(lower) <= 5 else 2
     candidates: list[tuple[int, str]] = []
 
     # Fast path: generate edits and intersect a plain vocabulary set.
+    # Prefer this over fuzzy extract — typo fixes stay length-aware and deterministic.
     edits = _edits1(lower)
     for item in edits:
         if item in vocab:
@@ -226,18 +214,38 @@ def _suggest(word: str, dictionary: WordDictionary, *, limit: int = MAX_SUGGESTI
             if len(candidates) >= limit * 4:
                 break
 
-    # Prefer shorter distance, then similar length, then alpha.
-    ranked: dict[str, int] = {}
-    for dist, item in candidates:
-        prev = ranked.get(item)
-        if prev is None or dist < prev:
-            ranked[item] = dist
+    if candidates:
+        ranked: dict[str, int] = {}
+        for dist, item in candidates:
+            prev = ranked.get(item)
+            if prev is None or dist < prev:
+                ranked[item] = dist
 
-    ordered = sorted(
-        ranked.items(),
-        key=lambda pair: (pair[1], abs(len(pair[0]) - len(lower)), pair[0]),
-    )
-    return [item for item, _ in ordered[:limit]]
+        ordered = sorted(
+            ranked.items(),
+            key=lambda pair: (pair[1], abs(len(pair[0]) - len(lower)), pair[0]),
+        )
+        return [item for item, _ in ordered[:limit]]
+
+    # Optional fuzzy fallback when edit distance found nothing (e.g. heavier typos).
+    try:
+        from .extras import fuzzy_extract, has_rapidfuzz
+
+        if has_rapidfuzz() and vocab:
+            choices = list(vocab) if len(vocab) <= 80_000 else list(vocab)[:80_000]
+            hits = fuzzy_extract(lower, choices, limit=limit * 4, score_cutoff=0.82)
+            max_len_delta = max(2, len(lower) // 4)
+            filtered = [
+                choice
+                for choice, _score in hits
+                if abs(len(choice) - len(lower)) <= max_len_delta and len(choice) >= MIN_WORD_LEN
+            ]
+            if filtered:
+                return filtered[:limit]
+    except Exception:
+        pass
+
+    return []
 
 
 def _should_skip(token: str) -> bool:

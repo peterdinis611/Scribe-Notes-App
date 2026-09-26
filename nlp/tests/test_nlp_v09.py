@@ -7,6 +7,7 @@ from scribe_nlp.dates import resolve_due_hint
 from scribe_nlp.embed import embed_batch_with_chunks, embed_with_chunks
 from scribe_nlp.library_answer import library_answer
 from scribe_nlp.server import handle_request
+from scribe_nlp import __version__
 
 
 class DueHintTests(unittest.TestCase):
@@ -247,7 +248,7 @@ class VersionTests(unittest.TestCase):
         result = handle_request(
             {"jsonrpc": "2.0", "id": 9, "method": "health", "params": {}}
         )["result"]
-        self.assertEqual(result["version"], "1.0.0")
+        self.assertEqual(result["version"], __version__)
         for feature in ("chunkEmbeddings", "libraryAnswer", "dueHints"):
             self.assertIn(feature, result["features"])
 

@@ -12,6 +12,7 @@ from scribe_nlp.sentiment import analyze_sentiment
 from scribe_nlp.server import handle_request
 from scribe_nlp.template_hints import template_fill_hints
 from scribe_nlp.title import suggest_title
+from scribe_nlp import __version__
 
 
 class ReadabilityTests(unittest.TestCase):
@@ -117,7 +118,7 @@ class ServerFeatureTests(unittest.TestCase):
         result = handle_request(
             {"jsonrpc": "2.0", "id": 1, "method": "health", "params": {}}
         )["result"]
-        self.assertEqual(result["version"], "1.0.0")
+        self.assertEqual(result["version"], __version__)
         for feature in ("readability", "duplicates", "sentiment", "dates", "diff", "template"):
             self.assertIn(feature, result["features"])
 

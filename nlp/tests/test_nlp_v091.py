@@ -7,6 +7,7 @@ from scribe_nlp.dates import extract_dates_batch
 from scribe_nlp.organize import suggest_organize
 from scribe_nlp.server import handle_request
 from scribe_nlp.wiki_suggest import suggest_wiki_links
+from scribe_nlp import __version__
 
 
 class WikiSuggestTests(unittest.TestCase):
@@ -87,7 +88,7 @@ class ServerRpcTests(unittest.TestCase):
         health = handle_request(
             {"jsonrpc": "2.0", "id": 1, "method": "health", "params": {}}
         )["result"]
-        self.assertEqual(health["version"], "1.0.0")
+        self.assertEqual(health["version"], __version__)
         for feature in ("wikiSuggest", "organize", "calendarEvents", "answerFollowups", "passageRerank"):
             self.assertIn(feature, health["features"])
 
