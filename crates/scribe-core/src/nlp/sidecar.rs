@@ -643,6 +643,24 @@ impl NlpSidecar {
         )
     }
 
+    pub fn analyze_revision_diff(
+        &self,
+        old_text: &str,
+        new_text: &str,
+        max_bullets: i64,
+        language: Option<&str>,
+    ) -> Result<Value, String> {
+        let mut params = json!({
+            "oldText": old_text,
+            "newText": new_text,
+            "maxBullets": max_bullets,
+        });
+        if let Some(lang) = language {
+            params["language"] = json!(lang);
+        }
+        self.call_method("analyze_revision_diff", params)
+    }
+
     pub fn analyze_document_typed(
         &self,
         text: &str,
@@ -673,7 +691,8 @@ pub fn rpc_timeout(method: &str) -> Duration {
     }
     match method {
         "health" | "set_embed_backend" => Duration::from_secs(8),
-        "embed" | "rewrite_query" | "chunk_text" | "suggest_continuation" | "generate_placeholder" => {
+        "embed" | "rewrite_query" | "chunk_text" | "suggest_continuation" | "generate_placeholder"
+        | "analyze_revision_diff" | "summarize_diff" => {
             Duration::from_secs(25)
         }
         "embed_with_chunks" => Duration::from_secs(60),

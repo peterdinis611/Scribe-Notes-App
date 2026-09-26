@@ -1961,7 +1961,17 @@
       "restoreError": "Obnovenie verzie zlyhalo",
       "compareError": "Porovnanie verzií zlyhalo",
       "nlpDiffSummary": "AI zhrnutie zmien",
+      "revisionAi": "Revision AI",
       "nlpDiffChange": "{{percent}} % zmenené",
+      "changeKind": {
+        "identical": "Bez zmien",
+        "expansion": "Rozšírenie",
+        "trim": "Skrátenie",
+        "rewrite": "Prepísanie",
+        "polish": "Úprava",
+        "structural": "Štruktúra",
+        "mixed": "Zmiešané"
+      },
       "selectTwoVersions": "Vyberte dve rôzne verzie",
       "currentVersion": "Aktuálna verzia",
       "diffTitle": "Porovnanie verzií",

@@ -6,6 +6,7 @@ pub mod jobs;
 mod memory;
 mod parse;
 pub mod placeholder;
+pub mod revision_ai;
 mod sidecar;
 mod types;
 pub mod vault_index;
@@ -38,6 +39,10 @@ pub use parse::{
 pub use continuation::{suggest_continuation, ContinuationResult, ContinuationSuggestion};
 pub use placeholder::{
     generate_placeholder, PlaceholderLanguage, PlaceholderResult, PlaceholderUnit,
+};
+pub use revision_ai::{
+    analyze_revision_diff, RevisionAiBullet, RevisionAiReport, RevisionAiStats, RevisionChangeKind,
+    RevisionHeadingChanges,
 };
 pub use sidecar::{
     resolve_script_path, script_path_label, EmbedChunk, EmbedChunksResult, NlpHealth, NlpSidecar,

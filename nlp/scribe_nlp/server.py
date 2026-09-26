@@ -100,6 +100,7 @@ FEATURES = [
     "spellcheck",
     "generatePlaceholder",
     "suggestContinuation",
+    "analyzeRevisionDiff",
     "libraryAnswer",
     "dueHints",
     "wikiSuggest",
@@ -512,6 +513,22 @@ def _handle_request_inner(
                 corpus=corpus,
                 max_suggestions=max_suggestions,
                 max_tokens=max_tokens,
+            )
+        elif method == "analyze_revision_diff":
+            from .revision_ai import analyze_revision_diff
+
+            old_text = str(params.get("oldText") or "")
+            new_text = str(params.get("newText") or "")
+            if len(old_text) > 400_000 or len(new_text) > 400_000:
+                raise SidecarError("diff text exceeds limit", code=-32602)
+            max_bullets = max(1, min(int(params.get("maxBullets") or 6), 12))
+            language = params.get("language")
+            language_value = str(language).lower() if language else None
+            result = analyze_revision_diff(
+                old_text,
+                new_text,
+                max_bullets=max_bullets,
+                language=language_value,
             )
         else:
             return {

@@ -284,6 +284,7 @@ pub fn run() {
             commands::nlp::nlp_find_duplicates,
             commands::nlp::nlp_suggest_title,
             commands::nlp::nlp_summarize_diff,
+            commands::nlp::nlp_analyze_revision_diff,
             commands::nlp::nlp_template_fill_hints,
             commands::nlp::nlp_spellcheck,
             commands::nlp::nlp_library_answer,

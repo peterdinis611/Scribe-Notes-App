@@ -89,6 +89,8 @@ Core: `health`, `embed`, `embed_batch`, `summarize`, `extract_*`, `analyze_docum
 
 1.1.0+: `suggest_continuation` — local n-gram continue-writing from library corpus (slash `/continue`)
 
+1.2.0+: `analyze_revision_diff` — dedicated revision AI (change kind, risks, bullets; Rust fallback)
+
 ## Version
 
-Current sidecar: **1.1.0**
+Current sidecar: **1.2.0**

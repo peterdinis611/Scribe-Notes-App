@@ -315,6 +315,56 @@ export const nlpSummarizeDiff = (input: {
   maxBullets?: number
 }) => invoke<NlpDiffSummary>('nlp_summarize_diff', { input })
 
+export type RevisionChangeKind =
+  | 'identical'
+  | 'expansion'
+  | 'trim'
+  | 'rewrite'
+  | 'polish'
+  | 'structural'
+  | 'mixed'
+
+export type RevisionAiBullet = {
+  text: string
+  severity: 'info' | 'warn' | 'critical' | string
+  kind: string
+}
+
+export type RevisionAiReport = {
+  summary: string
+  headline: string
+  changeKind: RevisionChangeKind
+  confidence: number
+  bullets: RevisionAiBullet[]
+  addedSentences: string[]
+  removedSentences: string[]
+  gainedTerms: string[]
+  lostTerms: string[]
+  headingChanges: { added: string[]; removed: string[] }
+  risks: string[]
+  stats: {
+    changeRatio: number
+    oldWordCount: number
+    newWordCount: number
+    linesAdded: number
+    linesRemoved: number
+    netWords: number
+  }
+  source: 'python' | 'rust' | string
+  changeRatio?: number
+  oldWordCount?: number
+  newWordCount?: number
+}
+
+/** Dedicated revision AI (Python module preferred, Rust fallback). */
+export const nlpAnalyzeRevisionDiff = (input: {
+  oldText: string
+  newText: string
+  maxBullets?: number
+  language?: string
+  preferRust?: boolean
+}) => invoke<RevisionAiReport>('nlp_analyze_revision_diff', { input })
+
 export interface NlpTemplateFillHints {
   expected: string[]
   present: string[]

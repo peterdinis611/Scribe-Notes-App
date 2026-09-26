@@ -1953,7 +1953,17 @@
       "restoreError": "Failed to restore version",
       "compareError": "Version comparison failed",
       "nlpDiffSummary": "AI change summary",
+      "revisionAi": "Revision AI",
       "nlpDiffChange": "{{percent}}% changed",
+      "changeKind": {
+        "identical": "Identical",
+        "expansion": "Expansion",
+        "trim": "Trim",
+        "rewrite": "Rewrite",
+        "polish": "Polish",
+        "structural": "Structural",
+        "mixed": "Mixed"
+      },
       "selectTwoVersions": "Select two different versions",
       "currentVersion": "Current version",
       "diffTitle": "Version comparison",

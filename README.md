@@ -373,8 +373,9 @@ scribe/
 2. **State** — Redux (`src/store/`) holds ephemeral UI + document list; durable prefs go through persistence helpers.
 3. **IPC** — `src/lib/db/*.ts` wraps `invoke('command_name', …)`.
 4. **Rust** — `src-tauri/src/commands/` validates input, then uses `scribe-core` for SQLite / file IO.
-5. **Local AI (optional)** — NLP commands talk to the Python sidecar over JSON-RPC; if the sidecar is off, features either degrade or use a Rust fallback (e.g. placeholder / lorem text, continue-writing n-grams).
+5. **Local AI (optional)** — NLP commands talk to the Python sidecar over JSON-RPC; if the sidecar is off, features either degrade or use a Rust fallback (e.g. placeholder / lorem text, continue-writing n-grams, **revision AI**).
 6. **Smart paste** — dirty Word/Pages/web HTML is normalized in Rust (`html_paste`) before TipTap insert.
+7. **Revision AI** — `analyze_revision_diff` in Python (`revision_ai.py`) with a matching Rust module (`nlp/revision_ai.rs`) classifies expansions, trims, risks, and bullets for the history panel.
 
 ### Editor / block layer
 

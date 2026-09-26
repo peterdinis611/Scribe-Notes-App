@@ -373,8 +373,9 @@ scribe/
 2. **Stav** — Redux (`src/store/`) drží efemérne UI + zoznam dokumentov; trvalé preferencie idú cez persistence helpery.
 3. **IPC** — `src/lib/db/*.ts` wrapuje `invoke('command_name', …)`.
 4. **Rust** — `src-tauri/src/commands/` validuje vstup a používa `scribe-core` na SQLite / súbory.
-5. **Lokálna AI (voliteľné)** — NLP príkazy idú na Python sidecar cez JSON-RPC; ak je sidecar vypnutý, feature buď degraduje, alebo použije Rust fallback (napr. placeholder / lorem text, continue-writing n-gramy).
+5. **Lokálna AI (voliteľné)** — NLP príkazy idú na Python sidecar cez JSON-RPC; ak je sidecar vypnutý, feature buď degraduje, alebo použije Rust fallback (napr. placeholder / lorem text, continue-writing n-gramy, **revision AI**).
 6. **Smart paste** — špinavé HTML z Wordu/Pages/webu sa v Ruste (`html_paste`) vyčistí pred vložením do TipTapu.
+7. **Revision AI** — `analyze_revision_diff` v Pythone (`revision_ai.py`) a rovnaký Rust modul (`nlp/revision_ai.rs`) klasifikujú rozšírenia, skrátenia, riziká a bullet body pre history panel.
 
 ### Editor / block vrstva
 

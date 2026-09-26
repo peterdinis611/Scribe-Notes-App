@@ -1549,6 +1549,58 @@ pub fn nlp_summarize_diff(
     )
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpAnalyzeRevisionDiffInput {
+    pub old_text: String,
+    pub new_text: String,
+    pub max_bullets: Option<i64>,
+    pub language: Option<String>,
+    /// When true, skip Python and use the Rust revision AI module.
+    pub prefer_rust: Option<bool>,
+}
+
+/// Dedicated revision AI report (Python module preferred, Rust fallback always available).
+#[tauri::command]
+pub fn nlp_analyze_revision_diff(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpAnalyzeRevisionDiffInput,
+) -> Result<serde_json::Value, String> {
+    let max_bullets = input.max_bullets.unwrap_or(6).clamp(1, 12);
+    let prefer_rust = input.prefer_rust.unwrap_or(false);
+    let language = input.language.as_deref();
+
+    if !prefer_rust {
+        let nlp_on = {
+            let conn = state.conn.lock().map_err(|e| e.to_string())?;
+            let enabled = is_nlp_enabled(&conn)?;
+            if enabled {
+                let _ = sync_sidecar_backend(&sidecar, &conn);
+            }
+            enabled
+        };
+        if nlp_on {
+            if let Ok(value) = sidecar.analyze_revision_diff(
+                &input.old_text,
+                &input.new_text,
+                max_bullets,
+                language,
+            ) {
+                return Ok(value);
+            }
+        }
+    }
+
+    let report = scribe_core::nlp::analyze_revision_diff(
+        &input.old_text,
+        &input.new_text,
+        max_bullets as usize,
+        language,
+    );
+    serde_json::to_value(report).map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 pub fn nlp_template_fill_hints(
     state: State<'_, DbState>,
