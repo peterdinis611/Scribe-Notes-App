@@ -3,7 +3,7 @@ use serde_json::{json, Value};
 pub const DOCUMENT_CHAT_CONTEXT_LIMIT: usize = 16;
 pub const DOCUMENT_CHAT_RECENT_TURNS: usize = 8;
 /// Keep enough room for full-note passages plus a bit of chat memory.
-pub const MERGED_PASSAGE_LIMIT: usize = 44;
+pub const MERGED_PASSAGE_LIMIT: usize = 96;
 const RECENT_SNIPPET_CHARS: usize = 480;
 const DIGEST_TURN_CHARS: usize = 160;
 

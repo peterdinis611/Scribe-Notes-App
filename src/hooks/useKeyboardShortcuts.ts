@@ -27,6 +27,7 @@ import {
   setFindReplaceOpen,
   setFocusMode,
   setInsightsPanelOpen,
+  requestInsightsAskFocus,
   setLibraryFindReplaceOpen,
   setReadingMode,
   setRevisionHistoryOpen,
@@ -262,6 +263,20 @@ export function useKeyboardShortcuts() {
           meta: {
             name: t('shortcuts.connections.label'),
             description: t('shortcuts.connections.description'),
+          },
+        },
+      },
+      {
+        hotkey: hotkey('askThisNote', shortcutOverrides),
+        callback: () => {
+          if (!activeId) return
+          dispatch(requestInsightsAskFocus())
+        },
+        options: {
+          enabled: !!activeId,
+          meta: {
+            name: t('shortcuts.askThisNote.label'),
+            description: t('shortcuts.askThisNote.description'),
           },
         },
       },

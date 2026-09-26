@@ -4,7 +4,8 @@ use rusqlite::Connection;
 use serde::Serialize;
 
 use crate::db::{
-    document_index_text, get_embed_backend, upsert_embedding_with_chunks, EmbeddingChunkInput,
+    document_index_ready, document_index_text, get_answer_backend, get_embed_backend,
+    upsert_embedding_with_chunks, EmbeddingChunkInput,
 };
 use crate::nlp::{EmbedChunksResult, NlpSidecar};
 use crate::vault::content_is_vault_cipher;
@@ -29,6 +30,89 @@ pub struct IndexJobResult {
 pub fn sync_embed_backend(conn: &Connection, sidecar: &NlpSidecar) -> Result<(), String> {
     let backend = get_embed_backend(conn)?;
     sidecar.configure_embed_backend(&backend)
+}
+
+/// Resolve optional answer-time embed override (Quality for query+passage rerank).
+pub fn resolve_answer_embed_backend(
+    conn: &Connection,
+    sidecar: &NlpSidecar,
+) -> Result<Option<String>, String> {
+    let pref = get_answer_backend(conn)?;
+    let index_backend = get_embed_backend(conn)?;
+    match pref.as_str() {
+        "index" => Ok(None),
+        "quality" => Ok(Some("quality".to_string())),
+        _ => {
+            // auto: Quality/ONNX for answer when available and index is Fast/hash
+            if index_backend == "quality" {
+                return Ok(None);
+            }
+            let quality_ok = sidecar
+                .health()
+                .ok()
+                .and_then(|h| h.quality_available)
+                .unwrap_or(false);
+            if quality_ok {
+                Ok(Some("quality".to_string()))
+            } else {
+                Ok(None)
+            }
+        }
+    }
+}
+
+/// True when chunks are missing, model changed, or the note is newer than embeddings.
+pub fn document_needs_reindex(
+    conn: &Connection,
+    sidecar: &NlpSidecar,
+    document_id: &str,
+) -> Result<bool, String> {
+    let _ = sync_embed_backend(conn, sidecar);
+    let health = sidecar.health()?;
+    Ok(!document_index_ready(conn, document_id, &health.model)?)
+}
+
+/// Embed + persist one document. Prefer releasing any DB mutex before calling.
+pub fn index_document_now(
+    conn: &Connection,
+    sidecar: &NlpSidecar,
+    document_id: &str,
+    text: &str,
+) -> Result<String, String> {
+    let embedded = sidecar.embed_with_chunks(text)?;
+    let chunks: Vec<EmbeddingChunkInput> = embedded
+        .chunks
+        .into_iter()
+        .map(|chunk| EmbeddingChunkInput {
+            index: chunk.index,
+            text: chunk.text,
+            vector: chunk.vector,
+        })
+        .collect();
+    let now = chrono::Utc::now().timestamp();
+    upsert_embedding_with_chunks(
+        conn,
+        document_id,
+        &embedded.vector,
+        &chunks,
+        &embedded.model,
+        now,
+    )?;
+    Ok(embedded.model)
+}
+
+/// Reindex when stale. Safe when `conn` is not shared under a held mutex during embed.
+pub fn ensure_document_indexed(
+    conn: &Connection,
+    sidecar: &NlpSidecar,
+    document_id: &str,
+    text: &str,
+) -> Result<bool, String> {
+    if !document_needs_reindex(conn, sidecar, document_id)? {
+        return Ok(false);
+    }
+    index_document_now(conn, sidecar, document_id, text)?;
+    Ok(true)
 }
 
 /// Title + body + OCR text for each active document, optional library / vault skip.

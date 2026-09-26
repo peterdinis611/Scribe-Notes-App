@@ -12,6 +12,7 @@ export interface NlpStatus {
   indexStale: boolean
   staleIndexCount: number
   embedBackend: string
+  answerBackend?: string
   qualityAvailable: boolean
   fastAvailable?: boolean
   onnxAvailable?: boolean
@@ -156,6 +157,12 @@ export const nlpSetEmbedBackend = async (backend: 'hash' | 'fast' | 'quality') =
   const value = await invoke<NlpStatus>('nlp_set_embed_backend', { input: { backend } })
   statusCache = { value, at: Date.now() }
   analysisCache = null
+  return value
+}
+
+export const nlpSetAnswerBackend = async (backend: 'auto' | 'index' | 'quality') => {
+  const value = await invoke<NlpStatus>('nlp_set_answer_backend', { input: { backend } })
+  statusCache = { value, at: Date.now() }
   return value
 }
 

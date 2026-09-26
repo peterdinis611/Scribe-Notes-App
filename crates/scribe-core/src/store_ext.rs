@@ -619,6 +619,9 @@ impl ScribeStore {
             return Err("document is empty".to_string());
         }
 
+        let _ = crate::nlp::ensure_document_indexed(&self.db, sidecar, document_id, &text);
+        let answer_backend = crate::nlp::resolve_answer_embed_backend(&self.db, sidecar).unwrap_or(None);
+
         let ranked = match sidecar.embed_text(trimmed) {
             Ok((vector, model)) => {
                 rank_document_chunks(
@@ -652,7 +655,13 @@ impl ScribeStore {
         combined.extend(collect_document_memory_passages(&self.db, document_id));
         let passages = json!(combined);
 
-        let result = sidecar.library_answer_scoped(trimmed, passages.clone(), 8, "document")?;
+        let result = sidecar.library_answer_scoped_with_backend(
+            trimmed,
+            passages.clone(),
+            8,
+            "document",
+            answer_backend.as_deref(),
+        )?;
         let citations = result.get("citations").cloned().unwrap_or_else(|| {
             json!(passages
                 .as_array()

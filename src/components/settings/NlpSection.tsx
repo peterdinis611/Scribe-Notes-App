@@ -10,6 +10,7 @@ import {
 } from '@/components/settings/SettingsPrimitives'
 import {
   nlpLibraryReport,
+  nlpSetAnswerBackend,
   nlpSetEmbedBackend,
   nlpSetEnabled,
   nlpStatus,
@@ -151,6 +152,17 @@ export function NlpSection() {
       )
     } catch (error) {
       toast.error(t('settings.nlp.embedBackendError'), String(error))
+    }
+  }
+
+  async function handleAnswerBackend(next: 'auto' | 'index' | 'quality') {
+    if (!status || (status.answerBackend ?? 'auto') === next) return
+    try {
+      const updated = await nlpSetAnswerBackend(next)
+      setStatus(updated)
+      toast.success(t('settings.nlp.answerBackendToast'))
+    } catch (error) {
+      toast.error(t('settings.nlp.answerBackendError'), String(error))
     }
   }
 
@@ -315,6 +327,41 @@ export function NlpSection() {
               onClick={() => void handleEmbedBackend('quality')}
             >
               {t('settings.nlp.embedBackendQuality')}
+            </Button>
+          </div>
+        </SettingsRow>
+
+        <SettingsRow
+          title={t('settings.nlp.answerBackendTitle')}
+          description={t('settings.nlp.answerBackendDescription')}
+        >
+          <div className="flex flex-wrap justify-end gap-1.5">
+            <Button
+              type="button"
+              variant={(status?.answerBackend ?? 'auto') === 'auto' ? 'default' : 'outline'}
+              size="sm"
+              disabled={!status?.enabled || loading || indexing}
+              onClick={() => void handleAnswerBackend('auto')}
+            >
+              {t('settings.nlp.answerBackendAuto')}
+            </Button>
+            <Button
+              type="button"
+              variant={(status?.answerBackend ?? 'auto') === 'index' ? 'default' : 'outline'}
+              size="sm"
+              disabled={!status?.enabled || loading || indexing}
+              onClick={() => void handleAnswerBackend('index')}
+            >
+              {t('settings.nlp.answerBackendIndex')}
+            </Button>
+            <Button
+              type="button"
+              variant={(status?.answerBackend ?? 'auto') === 'quality' ? 'default' : 'outline'}
+              size="sm"
+              disabled={!status?.enabled || !status?.qualityAvailable || loading || indexing}
+              onClick={() => void handleAnswerBackend('quality')}
+            >
+              {t('settings.nlp.answerBackendQuality')}
             </Button>
           </div>
         </SettingsRow>

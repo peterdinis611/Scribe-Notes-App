@@ -211,7 +211,8 @@
       "semantic": "Semantic"
     },
     "connections": "Connections",
-    "connectionsOff": "Hide connections"
+    "connectionsOff": "Hide connections",
+    "askThisNote": "Ask this note"
   },
   "editor": {
     "loading": "Loading document…",
@@ -970,7 +971,14 @@
       "yes": "Yes",
       "no": "No",
       "embedBackendFast": "Fast (Model2Vec)",
-      "fastEnabledToast": "Using Model2Vec fast embeddings — reindex your library"
+      "fastEnabledToast": "Using Model2Vec fast embeddings — reindex your library",
+      "answerBackendTitle": "Ask / answer quality",
+      "answerBackendDescription": "Keep Fast for indexing; Auto uses Quality/ONNX only when answering (query + top passages).",
+      "answerBackendAuto": "Auto (Quality on Ask)",
+      "answerBackendIndex": "Same as index",
+      "answerBackendQuality": "Always Quality",
+      "answerBackendToast": "Answer embed preference saved",
+      "answerBackendError": "Could not update answer preference"
     },
     "shortcuts": {
       "title": "Keyboard shortcuts",
@@ -1357,6 +1365,10 @@
     "connections": {
       "label": "Connections",
       "description": "Show wiki backlinks and outgoing links"
+    },
+    "askThisNote": {
+      "label": "Ask this note",
+      "description": "Open AI insights and focus the Ask field"
     }
   },
   "quickNote": {
@@ -1789,6 +1801,8 @@
       "loadError": "Could not load AI insights",
       "askTitle": "Ask this note",
       "askHint": "Scribe’s own Local AI — questions and actions on this note, on this Mac only.",
+      "askCta": "Ask anything about this note",
+      "askShortcutHint": "{{shortcut}}",
       "insertAnswer": "Insert as callout",
       "insertAnswerDone": "Answer inserted into the note",
       "insertAnswerError": "Open a document in the editor to insert the answer",

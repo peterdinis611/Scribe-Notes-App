@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import {
@@ -63,8 +63,10 @@ import { MarkdownView } from '@/components/MarkdownView'
 import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
+import { getDisplayKeysForShortcut } from '@/lib/shortcuts'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
+  clearInsightsAskFocus,
   setActiveDocumentId,
   setDocumentOutlineOpen,
   setFindReplaceOpen,
@@ -172,10 +174,13 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
     state.documents.documents.find((doc) => doc.id === state.documents.activeDocumentId),
   )
   const folders = useAppSelector((state) => state.folders.folders)
+  const insightsFocusAsk = useAppSelector((state) => state.documents.insightsFocusAsk)
+  const shortcutOverrides = useAppSelector((state) => state.settings.shortcutOverrides)
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const moveDocument = useMoveDocumentToFolder()
   const renameDocument = useRenameDocument()
+  const askInputRef = useRef<HTMLInputElement>(null)
   const [similar, setSimilar] = useState<SearchHit[]>([])
   const [tasks, setTasks] = useState<DocumentTask[]>([])
   const [analysis, setAnalysis] = useState<NlpDocumentAnalysis | null>(null)
@@ -198,6 +203,21 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
   const [vaultDenied, setVaultDenied] = useState(false)
   const [wikiSuggestions, setWikiSuggestions] = useState<WikiLinkSuggestion[]>([])
   const [wikiBusyId, setWikiBusyId] = useState<string | null>(null)
+
+  const askShortcutLabel = useMemo(
+    () => getDisplayKeysForShortcut('askThisNote', shortcutOverrides).join(''),
+    [shortcutOverrides],
+  )
+
+  useEffect(() => {
+    if (!insightsFocusAsk || !nlpEnabled) return
+    const timer = window.setTimeout(() => {
+      askInputRef.current?.focus()
+      askInputRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+      dispatch(clearInsightsAskFocus())
+    }, 80)
+    return () => window.clearTimeout(timer)
+  }, [insightsFocusAsk, nlpEnabled, dispatch])
 
   const vaultFolder = useMemo(() => {
     const folderId = activeSummary?.folderId ?? activeDocument?.folderId
@@ -676,6 +696,9 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
             <div className="insights-ask__label">
               <MessageCircle className="h-3.5 w-3.5" aria-hidden />
               <span>{t('panels.insights.askTitle')}</span>
+              {askShortcutLabel ? (
+                <kbd className="insights-ask__kbd">{askShortcutLabel}</kbd>
+              ) : null}
               <span className="insights-ask__local">{t('panels.insights.localBadge')}</span>
             </div>
 
@@ -683,6 +706,8 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
               <p className="insights-quiet">{t('panels.insights.keywordsDisabled')}</p>
             ) : (
               <>
+                <p className="insights-ask__cta">{t('panels.insights.askCta')}</p>
+                <p className="insights-ask__hint">{t('panels.insights.askHint')}</p>
                 <div className="insights-actions">
                   {INSIGHT_ACTIONS.map((action) => (
                     <button
@@ -705,6 +730,7 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
                   }}
                 >
                   <input
+                    ref={askInputRef}
                     type="text"
                     className="insights-ask__input"
                     placeholder={t('libraryChat.placeholderDocument')}

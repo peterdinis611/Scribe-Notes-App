@@ -100,6 +100,7 @@ import {
   setCommentsPanelOpen,
   setDocumentOutlineOpen,
   setInsightsPanelOpen,
+  requestInsightsAskFocus,
   setLibraryFindReplaceOpen,
   setPendingEditorSearch,
   setRevisionHistoryOpen,
@@ -607,6 +608,17 @@ export function CommandPalette() {
             },
             {
               type: 'action' as const,
+              id: 'ask-this-note',
+              label: t('commandPalette.askThisNote'),
+              hint: getDisplayKeysForShortcut('askThisNote', shortcutOverrides).join(''),
+              icon: <MessageSquare className="h-4 w-4" />,
+              run: () => {
+                if (!activeDocumentId || !nlpEnabled) return
+                dispatch(requestInsightsAskFocus())
+              },
+            },
+            {
+              type: 'action' as const,
               id: 'compile-manuscript',
               label: t('compile.action'),
               hint: t('compile.paletteHint'),
@@ -890,6 +902,8 @@ export function CommandPalette() {
       openDocumentIds,
       locale,
       shortcutOverrides,
+      nlpEnabled,
+      activeDocumentId,
       t,
       themeSettings,
     ],

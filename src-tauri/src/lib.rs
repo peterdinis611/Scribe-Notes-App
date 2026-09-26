@@ -272,6 +272,7 @@ pub fn run() {
             commands::nlp::nlp_journal_tasks,
             commands::nlp::nlp_list_open_tasks,
             commands::nlp::nlp_set_embed_backend,
+            commands::nlp::nlp_set_answer_backend,
             commands::nlp::nlp_document_analysis,
             commands::nlp::nlp_analyze_plaintext,
             commands::nlp::nlp_find_duplicates,

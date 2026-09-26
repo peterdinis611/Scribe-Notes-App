@@ -211,7 +211,8 @@
       "semantic": "Sémanticky"
     },
     "connections": "Prepojenia",
-    "connectionsOff": "Skryť prepojenia"
+    "connectionsOff": "Skryť prepojenia",
+    "askThisNote": "Opýtať sa poznámky"
   },
   "editor": {
     "loading": "Načítavam dokument…",
@@ -970,7 +971,14 @@
       "yes": "Áno",
       "no": "Nie",
       "embedBackendFast": "Fast (Model2Vec)",
-      "fastEnabledToast": "Používajú sa Model2Vec fast embeddingy — preindexuj knižnicu"
+      "fastEnabledToast": "Používajú sa Model2Vec fast embeddingy — preindexuj knižnicu",
+      "answerBackendTitle": "Kvalita Ask / odpovede",
+      "answerBackendDescription": "Fast nechaj na index; Auto použije Quality/ONNX len pri odpovedi (query + top passáže).",
+      "answerBackendAuto": "Auto (Quality pri Ask)",
+      "answerBackendIndex": "Rovnaké ako index",
+      "answerBackendQuality": "Vždy Quality",
+      "answerBackendToast": "Preferencia odpovede uložená",
+      "answerBackendError": "Nepodarilo sa aktualizovať preferenciu odpovede"
     },
     "shortcuts": {
       "title": "Klávesové skratky",
@@ -1357,6 +1365,10 @@
     "connections": {
       "label": "Prepojenia",
       "description": "Zobraziť wiki backlinky a odchádzajúce odkazy"
+    },
+    "askThisNote": {
+      "label": "Opýtať sa poznámky",
+      "description": "Otvoriť AI prehľad a focusnúť Ask pole"
     }
   },
   "quickNote": {
@@ -1797,6 +1809,8 @@
       "loadError": "Nepodarilo sa načítať AI prehľad",
       "askTitle": "Opýtať sa poznámky",
       "askHint": "Vlastná Lokálna AI Scribe — otázky a akcie k tejto poznámke, len na tomto Macu.",
+      "askCta": "Opýtaj sa čohokoľvek o tejto poznámke",
+      "askShortcutHint": "{{shortcut}}",
       "insertAnswer": "Vložiť ako callout",
       "insertAnswerDone": "Odpoveď vložená do poznámky",
       "insertAnswerError": "Otvorte dokument v editore, aby sa dala odpoveď vložiť",

@@ -1418,6 +1418,7 @@ impl ScribeStore {
         let indexed_count = count_embeddings(&self.db)?;
         let stored_model = dominant_embedding_model(&self.db)?;
         let embed_backend = get_embed_backend(&self.db)?;
+        let answer_backend = crate::db::get_answer_backend(&self.db)?;
         let script_path = sidecar.script_path().to_path_buf();
         let python_bin =
             std::env::var("SCRIBE_NLP_PYTHON").unwrap_or_else(|_| "python3".to_string());
@@ -1435,6 +1436,7 @@ impl ScribeStore {
                 "indexStale": false,
                 "staleIndexCount": 0,
                 "embedBackend": embed_backend,
+                "answerBackend": answer_backend,
                 "qualityAvailable": false,
                 "onnxAvailable": false,
                 "faissAvailable": false,
@@ -1481,6 +1483,7 @@ impl ScribeStore {
                 "indexStale": index_stale,
                 "staleIndexCount": stale_index_count,
                 "embedBackend": health.embed_backend.unwrap_or(embed_backend),
+                "answerBackend": answer_backend,
                 "qualityAvailable": health.quality_available.unwrap_or(quality_available),
                 "onnxAvailable": health.onnx_available.unwrap_or(false),
                 "faissAvailable": health.faiss_available.unwrap_or(false),
@@ -1504,6 +1507,7 @@ impl ScribeStore {
                 "indexStale": index_stale,
                 "staleIndexCount": stale_index_count,
                 "embedBackend": embed_backend,
+                "answerBackend": answer_backend,
                 "qualityAvailable": quality_available,
                 "onnxAvailable": false,
                 "faissAvailable": false,

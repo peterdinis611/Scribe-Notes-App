@@ -6,10 +6,10 @@ use tauri::{AppHandle, Emitter, State};
 
 use crate::db::{
     count_embeddings, count_stale_embeddings, dominant_embedding_model, document_index_text,
-    extract_search_text, fuse_search_hits, get_embed_backend, is_nlp_enabled, rank_document_chunks, rerank_search_hits,
-    save_artifact, search_documents_for_library, semantic_search, semantic_search_filtered,
-    set_embed_backend, set_nlp_enabled, similar_documents, upsert_embedding_with_chunks,
-    EmbeddingChunkInput, SearchMode,
+    extract_search_text, fuse_search_hits, get_answer_backend, get_embed_backend, is_nlp_enabled,
+    rank_document_chunks, rerank_search_hits, save_artifact, search_documents_for_library,
+    semantic_search, semantic_search_filtered, set_answer_backend, set_embed_backend, set_nlp_enabled,
+    similar_documents, upsert_embedding_with_chunks, EmbeddingChunkInput, SearchMode,
 };
 use scribe_core::{
     content_is_vault_cipher, date_key_bounds, extract_due_hint, require_document_not_vault,
@@ -40,6 +40,7 @@ pub struct NlpStatus {
     pub index_stale: bool,
     pub stale_index_count: i64,
     pub embed_backend: String,
+    pub answer_backend: String,
     pub quality_available: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fast_available: Option<bool>,
@@ -224,6 +225,7 @@ fn sidecar_status(
     index_stale: bool,
     stale_index_count: i64,
     embed_backend: String,
+    answer_backend: String,
     quality_available: bool,
     health: Option<crate::nlp::NlpHealth>,
     health_error: Option<String>,
@@ -245,6 +247,7 @@ fn sidecar_status(
             index_stale,
             stale_index_count,
             embed_backend,
+            answer_backend,
             quality_available,
             fast_available: None,
             onnx_available: None,
@@ -273,6 +276,7 @@ fn sidecar_status(
             index_stale,
             stale_index_count,
             embed_backend: health.embed_backend.unwrap_or(embed_backend),
+            answer_backend,
             quality_available: health.quality_available.unwrap_or(quality_available),
             fast_available: health.fast_available,
             onnx_available: health.onnx_available,
@@ -298,6 +302,7 @@ fn sidecar_status(
             index_stale,
             stale_index_count,
             embed_backend,
+            answer_backend,
             quality_available,
             fast_available: None,
             onnx_available: None,
@@ -466,6 +471,7 @@ fn build_nlp_status(
     let indexed_count = count_embeddings(conn)?;
     let stored_model = dominant_embedding_model(conn)?;
     let embed_backend = get_embed_backend(conn)?;
+    let answer_backend = get_answer_backend(conn)?;
     let (health, health_error, quality_available, current_model) = if enabled && sidecar.script_exists() {
         let _ = sync_sidecar_backend(sidecar, conn);
         match sidecar.health() {
@@ -496,6 +502,7 @@ fn build_nlp_status(
         index_stale,
         stale_index_count,
         embed_backend,
+        answer_backend,
         quality_available,
         health,
         health_error,
@@ -1291,6 +1298,23 @@ pub fn nlp_set_embed_backend(
     build_nlp_status(&sidecar, &conn, is_nlp_enabled(&conn)?)
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpSetAnswerBackendInput {
+    pub backend: String,
+}
+
+#[tauri::command]
+pub fn nlp_set_answer_backend(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpSetAnswerBackendInput,
+) -> Result<NlpStatus, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    set_answer_backend(&conn, &input.backend)?;
+    build_nlp_status(&sidecar, &conn, is_nlp_enabled(&conn)?)
+}
+
 #[tauri::command]
 pub fn nlp_document_analysis(
     state: State<'_, DbState>,
@@ -1756,7 +1780,7 @@ pub fn nlp_document_answer(
         return Err("libraryChat.emptyQuestion".to_string());
     }
 
-    let (title, text) = {
+    let (title, text, needs_index, answer_backend) = {
         let conn = state.conn.lock().map_err(|e| e.to_string())?;
         if !is_nlp_enabled(&conn)? {
             return Err("libraryChat.nlpDisabled".to_string());
@@ -1782,8 +1806,34 @@ pub fn nlp_document_answer(
         if text.trim().len() < 8 {
             return Err("libraryChat.documentEmpty".to_string());
         }
-        (title, text)
+        let needs_index =
+            scribe_core::nlp::document_needs_reindex(&conn, &sidecar, &document_id).unwrap_or(true);
+        let answer_backend =
+            scribe_core::nlp::resolve_answer_embed_backend(&conn, &sidecar).unwrap_or(None);
+        (title, text, needs_index, answer_backend)
     };
+
+    if needs_index {
+        let embedded = sidecar.embed_with_chunks(&text)?;
+        let chunks: Vec<EmbeddingChunkInput> = embedded
+            .chunks
+            .into_iter()
+            .map(|chunk| EmbeddingChunkInput {
+                index: chunk.index,
+                text: chunk.text,
+                vector: chunk.vector,
+            })
+            .collect();
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        upsert_embedding_with_chunks(
+            &conn,
+            &document_id,
+            &embedded.vector,
+            &chunks,
+            &embedded.model,
+            now_ts(),
+        )?;
+    }
 
     let ranked = match sidecar.embed_text(&trimmed) {
         Ok((vector, model)) => {
@@ -1829,7 +1879,13 @@ pub fn nlp_document_answer(
     }
     let passages = json!(combined);
 
-    let result = sidecar.library_answer_scoped(&trimmed, passages.clone(), 8, "document")?;
+    let result = sidecar.library_answer_scoped_with_backend(
+        &trimmed,
+        passages.clone(),
+        8,
+        "document",
+        answer_backend.as_deref(),
+    )?;
     let fallback_title = title.clone();
     let citations = result
         .get("citations")

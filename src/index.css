@@ -10635,6 +10635,34 @@ html.dark .link-graph-toolbar--overlay {
   text-transform: uppercase;
 }
 
+.insights-ask__kbd {
+  margin-left: 4px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
+  background: color-mix(in srgb, var(--color-background) 70%, transparent);
+  padding: 1px 5px;
+  color: var(--color-muted-foreground);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 550;
+  letter-spacing: 0.02em;
+}
+
+.insights-ask__cta {
+  margin: 0 0 4px;
+  color: var(--color-foreground);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.insights-ask__hint {
+  margin: 0 0 10px;
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 .insights-actions {
   display: flex;
   flex-wrap: wrap;

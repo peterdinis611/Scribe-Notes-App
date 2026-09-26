@@ -8,6 +8,7 @@ from .text_utils import STOP_WORDS, normalize_text, split_sentences, tokenize
 
 MAX_SENTENCES = 5
 MAX_PASSAGES = 40
+MAX_CANDIDATE_PASSAGES = 96
 MAX_FOLLOWUPS = 5
 
 # Cue words that boost sentence relevance for a detected question intent.
@@ -335,6 +336,7 @@ def library_answer(
     *,
     max_sentences: int = MAX_SENTENCES,
     scope: str = "library",
+    answer_embed_backend: str | None = None,
 ) -> dict[str, object]:
     """Extractive multi-doc answer + citations (no cloud LLM)."""
     query = normalize_text(question)
@@ -353,8 +355,10 @@ def library_answer(
             "intent": intent,
         }
 
+    # Keep a wide pool so BM25 can prune before embed rerank (not after a hard cut).
+    pool_cap = MAX_CANDIDATE_PASSAGES if scope == "document" else MAX_PASSAGES
     cleaned: list[dict[str, Any]] = []
-    for item in passages[:MAX_PASSAGES]:
+    for item in passages[:pool_cap]:
         if not isinstance(item, dict):
             continue
         document_id = str(item.get("documentId") or item.get("document_id") or "").strip()
@@ -379,7 +383,12 @@ def library_answer(
                 pass
         cleaned.append(entry)
 
-    cleaned = rerank_passages(question, cleaned, limit=MAX_PASSAGES)
+    cleaned = rerank_passages(
+        question,
+        cleaned,
+        limit=MAX_PASSAGES,
+        embed_backend=answer_embed_backend,
+    )
     if intent:
         cleaned = _boost_passages_for_intent(cleaned, intent)
     query_terms = _query_terms(query)

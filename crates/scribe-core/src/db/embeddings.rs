@@ -8,6 +8,8 @@ use crate::db::search::SearchHit;
 
 pub const META_NLP_ENABLED: &str = "nlp_enabled";
 pub const META_NLP_EMBED_BACKEND: &str = "nlp_embed_backend";
+/// Answer-time embed: `auto` (Quality when available), `index` (same as index), or `quality`.
+pub const META_NLP_ANSWER_BACKEND: &str = "nlp_answer_backend";
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -84,6 +86,65 @@ pub fn set_embed_backend(conn: &Connection, backend: &str) -> Result<(), String>
     )
     .map_err(|e| e.to_string())?;
     Ok(())
+}
+
+pub fn get_answer_backend(conn: &Connection) -> Result<String, String> {
+    let value: Option<String> = conn
+        .query_row(
+            "SELECT value FROM meta WHERE key = ?1",
+            params![META_NLP_ANSWER_BACKEND],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|e| e.to_string())?;
+    Ok(value.unwrap_or_else(|| "auto".to_string()))
+}
+
+pub fn set_answer_backend(conn: &Connection, backend: &str) -> Result<(), String> {
+    let normalized = match backend.trim().to_ascii_lowercase().as_str() {
+        "quality" => "quality",
+        "index" => "index",
+        _ => "auto",
+    };
+    conn.execute(
+        "INSERT OR REPLACE INTO meta (key, value) VALUES (?1, ?2)",
+        params![META_NLP_ANSWER_BACKEND, normalized],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Whether document chunks exist for `current_model` and match note freshness.
+pub fn document_index_ready(
+    conn: &Connection,
+    document_id: &str,
+    current_model: &str,
+) -> Result<bool, String> {
+    let Some(emb) = get_document_embedding(conn, document_id)? else {
+        return Ok(false);
+    };
+    if emb.model != current_model {
+        return Ok(false);
+    }
+    let doc_updated: i64 = conn
+        .query_row(
+            "SELECT updated_at FROM documents WHERE id = ?1",
+            params![document_id],
+            |row| row.get(0),
+        )
+        .map_err(|e| e.to_string())?;
+    if doc_updated > emb.updated_at {
+        return Ok(false);
+    }
+    let chunks: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM document_embedding_chunks \
+             WHERE document_id = ?1 AND model = ?2",
+            params![document_id, current_model],
+            |row| row.get(0),
+        )
+        .map_err(|e| e.to_string())?;
+    Ok(chunks > 0)
 }
 
 pub fn get_document_embedding(

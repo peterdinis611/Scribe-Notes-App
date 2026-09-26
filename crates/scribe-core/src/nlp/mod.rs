@@ -18,7 +18,8 @@ pub use document_passages::{
 };
 pub use duplicates::find_duplicates_from_embeddings;
 pub use jobs::{
-    collect_index_documents, index_collected_documents, persist_embedded_batch, prune_memory_artifacts,
+    collect_index_documents, document_needs_reindex, ensure_document_indexed, index_collected_documents,
+    index_document_now, persist_embedded_batch, prune_memory_artifacts, resolve_answer_embed_backend,
     sync_embed_backend, IndexJobResult, NlpIndexProgress,
 };
 pub use memory::{

@@ -45,6 +45,7 @@ export interface DocumentsState {
   statsPanelOpen: boolean
   backlinksPanelOpen: boolean
   insightsPanelOpen: boolean
+  insightsFocusAsk: boolean
   clipboardHistoryPanelOpen: boolean
   /** Right panel icon rail; collapsed by default for a quieter writing chrome. */
   panelRailExpanded: boolean
@@ -133,6 +134,7 @@ const initialState: DocumentsState = {
   statsPanelOpen: readBoolStorage('scribe-stats-open', false),
   backlinksPanelOpen: readBoolStorage('scribe-backlinks-open', false),
   insightsPanelOpen: readBoolStorage('scribe-insights-open', false),
+  insightsFocusAsk: false,
   clipboardHistoryPanelOpen: readBoolStorage('scribe-clipboard-history-open', false),
   panelRailExpanded: readBoolStorage('scribe-panel-rail-expanded', false),
   focusMode: readBoolStorage('scribe-focus-mode', false),
@@ -385,7 +387,25 @@ const documentsSlice = createSlice({
       if (action.payload) {
         state.panelRailExpanded = true
         persistBoolStorage('scribe-panel-rail-expanded', true)
+      } else {
+        state.insightsFocusAsk = false
       }
+    },
+    requestInsightsAskFocus(state) {
+      state.insightsPanelOpen = true
+      state.insightsFocusAsk = true
+      state.panelRailExpanded = true
+      persistBoolStorage('scribe-insights-open', true)
+      persistBoolStorage('scribe-panel-rail-expanded', true)
+      state.documentOutlineOpen = false
+      state.revisionHistoryOpen = false
+      state.commentsPanelOpen = false
+      state.statsPanelOpen = false
+      state.backlinksPanelOpen = false
+      state.clipboardHistoryPanelOpen = false
+    },
+    clearInsightsAskFocus(state) {
+      state.insightsFocusAsk = false
     },
     setClipboardHistoryPanelOpen(state, action: PayloadAction<boolean>) {
       state.clipboardHistoryPanelOpen = action.payload
@@ -620,6 +640,8 @@ export const {
   setStatsPanelOpen,
   setBacklinksPanelOpen,
   setInsightsPanelOpen,
+  requestInsightsAskFocus,
+  clearInsightsAskFocus,
   setClipboardHistoryPanelOpen,
   setPanelRailExpanded,
   setFocusMode,

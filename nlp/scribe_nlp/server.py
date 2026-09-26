@@ -347,17 +347,31 @@ def _handle_request_inner(
             passages = params.get("passages") or params.get("hits") or []
             if not isinstance(passages, list):
                 raise SidecarError("passages must be an array", code=-32602)
-            if len(passages) > 24:
-                raise SidecarError("passages exceeds limit (24)", code=-32602)
-            max_sentences = max(1, min(int(params.get("maxSentences") or 4), 8))
             scope = str(params.get("scope") or "library").strip().lower()
             if scope not in {"library", "document"}:
                 scope = "library"
+            # Document Q&A sends a wider pool; BM25 prunes before embed rerank.
+            passage_limit = 96 if scope == "document" else 40
+            if len(passages) > passage_limit:
+                raise SidecarError(
+                    f"passages exceeds limit ({passage_limit})",
+                    code=-32602,
+                )
+            max_sentences = max(1, min(int(params.get("maxSentences") or 4), 8))
+            answer_backend_raw = params.get("answerEmbedBackend") or params.get(
+                "answer_embed_backend"
+            )
+            answer_embed_backend = None
+            if isinstance(answer_backend_raw, str) and answer_backend_raw.strip():
+                answer_embed_backend = answer_backend_raw.strip().lower()
+                if answer_embed_backend not in {"hash", "fast", "quality"}:
+                    answer_embed_backend = None
             result = library_answer(
                 question,
                 passages,
                 max_sentences=max_sentences,
                 scope=scope,
+                answer_embed_backend=answer_embed_backend,
             )
         elif method == "suggest_wiki_links":
             from .wiki_suggest import suggest_wiki_links
