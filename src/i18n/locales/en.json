@@ -3186,5 +3186,19 @@
   },
   "import": {
     "encodingConverted": "Imported text was converted from {{encoding}}"
+  },
+  "smartFolders": {
+    "title": "Smart folders",
+    "add": "Add smart folder",
+    "remove": "Remove smart folder",
+    "empty": "No smart folders yet. Add one with a rule like tag:work.",
+    "namePlaceholder": "Name (e.g. Work)",
+    "rulePlaceholder": "Rule (tag:work, folder:…, or search)",
+    "ruleHint": "tag:name · folder:id · or any search phrase",
+    "results": "{{count}} matches",
+    "noMatches": "No matching notes",
+    "saveFailed": "Could not save smart folder",
+    "evalFailed": "Could not evaluate smart folder",
+    "deleteFailed": "Could not remove smart folder"
   }
 }

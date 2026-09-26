@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { FolderTree } from '@/components/FolderTree'
+import SmartFoldersSection from '@/components/SmartFoldersSection'
 import { LibraryFavoritesView } from '@/components/LibraryFavoritesView'
 import { LibraryFilterBanner } from '@/components/LibraryFilterBanner'
 import { LibraryBulkBar } from '@/components/library/LibraryBulkBar'
@@ -254,6 +255,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                   </div>
                   <ScrollArea className="min-h-0 flex-1" viewportRef={scrollRef}>
                     <div className="folder-tree px-1.5 pb-3" data-tour="library-tree">
+                      <SmartFoldersSection onNavigate={onClose} />
                       <FolderTree query={query} scrollRef={scrollRef} onNavigate={onClose} />
                     </div>
                   </ScrollArea>

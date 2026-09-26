@@ -36,6 +36,10 @@ pub use wiki::{
     StubDocument, TitleMatch, UnresolvedWikiLink, WikiHealth,
 };
 pub use manuscripts::{list_manuscripts, upsert_manuscript, ManuscriptRecord};
+pub use store_ext::{
+    delete_smart_folder_in_conn, evaluate_smart_folder_in_conn, list_smart_folders_in_conn,
+    upsert_smart_folder_in_conn, SmartFolderEval, SmartFolderMatch, SmartFolderRecord,
+};
 pub use vault::{
     content_is_vault_cipher, document_is_vault, require_document_not_vault, vault_document_ids_among,
     McpVaultScope, ERR_VAULT_DENIED, ERR_VAULT_NLP, VAULT_CONTENT_MARKER,

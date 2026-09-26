@@ -103,6 +103,11 @@ pub fn run() {
             app.manage(scribe_core::nlp::UnlockedVaultIndex::new());
             app.manage(capture::CaptureServerState::new());
 
+            let docs_watcher = storage::watch::spawn(app.handle().clone());
+            app.manage(docs_watcher);
+            let auto_backup = backup::spawn_auto_backup_scheduler(app.handle().clone());
+            app.manage(auto_backup);
+
             #[cfg(target_os = "macos")]
             {
                 let app_menu = SubmenuBuilder::new(app, "Scribe")
@@ -287,6 +292,10 @@ pub fn run() {
             commands::nlp::nlp_calendar_events,
             commands::ocr::extract_image_ocr,
             commands::ocr::save_document_ocr,
+            commands::smart_folders::list_smart_folders,
+            commands::smart_folders::upsert_smart_folder,
+            commands::smart_folders::delete_smart_folder,
+            commands::smart_folders::evaluate_smart_folder,
             commands::revisions::list_document_revisions,
             commands::revisions::get_document_revision,
             commands::revisions::create_named_revision,
@@ -329,6 +338,9 @@ pub fn run() {
             backup::export_library_archive_to_dir,
             backup::get_default_auto_backup_dir,
             backup::import_library_archive,
+            backup::get_auto_backup_config,
+            backup::configure_auto_backup,
+            commands::system::set_documents_watch_enabled,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

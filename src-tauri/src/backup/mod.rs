@@ -199,7 +199,7 @@ fn write_library_archive(
 
 fn prepare_backup_paths(
     app: &AppHandle,
-    state: &tauri::State<'_, DbState>,
+    state: &DbState,
 ) -> Result<(PathBuf, PathBuf, i32), String> {
     let _ = crate::commands::storage::flush_document_persist(&state.persist_queue, None);
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
@@ -377,6 +377,230 @@ pub async fn import_library_archive(
     }))
 }
 
+// ── Native auto-backup scheduler ────────────────────────────────────────────
+
+const META_AUTO_BACKUP_ENABLED: &str = "auto_backup_enabled";
+const META_AUTO_BACKUP_INTERVAL_HOURS: &str = "auto_backup_interval_hours";
+const META_AUTO_BACKUP_DIRECTORY: &str = "auto_backup_directory";
+const META_AUTO_BACKUP_LAST_AT: &str = "auto_backup_last_at";
+const MIN_INTERVAL_HOURS: i64 = 1;
+const MAX_INTERVAL_HOURS: i64 = 24 * 30;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoBackupConfig {
+    pub enabled: bool,
+    pub interval_hours: i64,
+    pub directory: Option<String>,
+    pub last_at: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoBackupEvent {
+    pub path: String,
+    pub at: i64,
+}
+
+fn meta_get(conn: &Connection, key: &str) -> Option<String> {
+    conn.query_row(
+        "SELECT value FROM meta WHERE key = ?1",
+        rusqlite::params![key],
+        |row| row.get(0),
+    )
+    .ok()
+}
+
+fn meta_set(conn: &Connection, key: &str, value: &str) -> Result<(), String> {
+    conn.execute(
+        "INSERT OR REPLACE INTO meta (key, value) VALUES (?1, ?2)",
+        rusqlite::params![key, value],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+fn clamp_interval_hours(hours: i64) -> i64 {
+    hours.clamp(MIN_INTERVAL_HOURS, MAX_INTERVAL_HOURS)
+}
+
+fn read_auto_backup_config(conn: &Connection) -> AutoBackupConfig {
+    let enabled = meta_get(conn, META_AUTO_BACKUP_ENABLED)
+        .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+        .unwrap_or(false);
+    let interval_hours = meta_get(conn, META_AUTO_BACKUP_INTERVAL_HOURS)
+        .and_then(|v| v.parse::<i64>().ok())
+        .map(clamp_interval_hours)
+        .unwrap_or(24);
+    let directory = meta_get(conn, META_AUTO_BACKUP_DIRECTORY).filter(|v| !v.trim().is_empty());
+    let last_at = meta_get(conn, META_AUTO_BACKUP_LAST_AT).and_then(|v| v.parse::<i64>().ok());
+    AutoBackupConfig {
+        enabled,
+        interval_hours,
+        directory,
+        last_at,
+    }
+}
+
+fn is_backup_due(config: &AutoBackupConfig, now_ms: i64) -> bool {
+    if !config.enabled {
+        return false;
+    }
+    match config.last_at {
+        None => true,
+        Some(last) => now_ms.saturating_sub(last) >= config.interval_hours * 60 * 60 * 1000,
+    }
+}
+
+fn check_interval_ms(interval_hours: i64) -> u64 {
+    let hours = clamp_interval_hours(interval_hours) as u64;
+    if hours <= 1 {
+        5 * 60 * 1000
+    } else if hours <= 6 {
+        15 * 60 * 1000
+    } else {
+        60 * 60 * 1000
+    }
+}
+
+pub struct AutoBackupScheduler {
+    wake: Mutex<Option<mpsc::Sender<()>>>,
+}
+
+impl AutoBackupScheduler {
+    pub fn new() -> Self {
+        Self {
+            wake: Mutex::new(None),
+        }
+    }
+
+    pub fn wake(&self) {
+        if let Ok(guard) = self.wake.lock() {
+            if let Some(tx) = guard.as_ref() {
+                let _ = tx.send(());
+            }
+        }
+    }
+}
+
+use std::sync::mpsc;
+use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
+use tauri::Emitter;
+
+pub fn spawn_auto_backup_scheduler(app: AppHandle) -> Arc<AutoBackupScheduler> {
+    let scheduler = Arc::new(AutoBackupScheduler::new());
+    let (wake_tx, wake_rx) = mpsc::channel::<()>();
+    if let Ok(mut guard) = scheduler.wake.lock() {
+        *guard = Some(wake_tx);
+    }
+
+    thread::Builder::new()
+        .name("scribe-auto-backup".into())
+        .spawn(move || {
+            loop {
+                let config = {
+                    let Some(state) = app.try_state::<DbState>() else {
+                        let _ = wake_rx.recv_timeout(Duration::from_secs(30));
+                        continue;
+                    };
+                    let Ok(conn) = state.conn.lock() else {
+                        let _ = wake_rx.recv_timeout(Duration::from_secs(5));
+                        continue;
+                    };
+                    read_auto_backup_config(&conn)
+                };
+
+                let now_ms = chrono::Utc::now().timestamp_millis();
+                if is_backup_due(&config, now_ms) {
+                    match run_scheduled_backup(&app, &config) {
+                        Ok(event) => {
+                            let _ = app.emit("auto-backup-completed", &event);
+                            log::info!("Auto-backup written to {}", event.path);
+                        }
+                        Err(error) => log::warn!("Auto-backup failed: {error}"),
+                    }
+                }
+
+                let wait = Duration::from_millis(check_interval_ms(config.interval_hours));
+                match wake_rx.recv_timeout(wait) {
+                    Ok(()) | Err(mpsc::RecvTimeoutError::Timeout) => {}
+                    Err(mpsc::RecvTimeoutError::Disconnected) => return,
+                }
+            }
+        })
+        .ok();
+
+    scheduler
+}
+
+fn run_scheduled_backup(app: &AppHandle, config: &AutoBackupConfig) -> Result<AutoBackupEvent, String> {
+    let state = app
+        .try_state::<DbState>()
+        .ok_or_else(|| "Database not ready".to_string())?;
+    let dir = resolve_auto_backup_dir(config.directory.as_deref().unwrap_or(""))?;
+    let (db_path, documents_dir, schema_version) = prepare_backup_paths(app, &state)?;
+    let out_path = dir.join(format!(
+        "{BACKUP_FILE_PREFIX}{}.zip",
+        chrono::Utc::now().format("%Y%m%d-%H%M%S")
+    ));
+    let result = write_library_archive(&out_path, &db_path, &documents_dir, schema_version)?;
+    let _ = prune_old_auto_backups(&dir, AUTO_BACKUP_KEEP);
+    let at = chrono::Utc::now().timestamp_millis();
+    {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        meta_set(&conn, META_AUTO_BACKUP_LAST_AT, &at.to_string())?;
+    }
+    Ok(AutoBackupEvent {
+        path: result.path,
+        at,
+    })
+}
+
+#[tauri::command]
+pub fn get_auto_backup_config(state: tauri::State<'_, DbState>) -> Result<AutoBackupConfig, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    Ok(read_auto_backup_config(&conn))
+}
+
+#[tauri::command]
+pub fn configure_auto_backup(
+    state: tauri::State<'_, DbState>,
+    scheduler: tauri::State<'_, Arc<AutoBackupScheduler>>,
+    config: AutoBackupConfig,
+) -> Result<AutoBackupConfig, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let interval = clamp_interval_hours(config.interval_hours);
+    meta_set(
+        &conn,
+        META_AUTO_BACKUP_ENABLED,
+        if config.enabled { "1" } else { "0" },
+    )?;
+    meta_set(
+        &conn,
+        META_AUTO_BACKUP_INTERVAL_HOURS,
+        &interval.to_string(),
+    )?;
+    match config.directory.as_ref().map(|s| s.trim()).filter(|s| !s.is_empty()) {
+        Some(dir) => meta_set(&conn, META_AUTO_BACKUP_DIRECTORY, dir)?,
+        None => {
+            conn.execute(
+                "DELETE FROM meta WHERE key = ?1",
+                rusqlite::params![META_AUTO_BACKUP_DIRECTORY],
+            )
+            .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(last_at) = config.last_at {
+        meta_set(&conn, META_AUTO_BACKUP_LAST_AT, &last_at.to_string())?;
+    }
+    let next = read_auto_backup_config(&conn);
+    drop(conn);
+    scheduler.wake();
+    Ok(next)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -414,5 +638,16 @@ mod tests {
         let dir = resolve_auto_backup_dir("").expect("default backup dir");
         assert!(dir.ends_with("Backups"));
         assert!(dir.is_dir());
+    }
+
+    #[test]
+    fn backup_due_when_never_run() {
+        let config = AutoBackupConfig {
+            enabled: true,
+            interval_hours: 24,
+            directory: None,
+            last_at: None,
+        };
+        assert!(is_backup_due(&config, 1_000_000));
     }
 }

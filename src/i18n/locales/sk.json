@@ -3202,5 +3202,19 @@
   },
   "import": {
     "encodingConverted": "Importovaný text bol skonvertovaný z {{encoding}}"
+  },
+  "smartFolders": {
+    "title": "Inteligentné priečinky",
+    "add": "Pridať inteligentný priečinok",
+    "remove": "Odstrániť inteligentný priečinok",
+    "empty": "Zatiaľ žiadne inteligentné priečinky. Pridajte pravidlo napr. tag:praca.",
+    "namePlaceholder": "Názov (napr. Práca)",
+    "rulePlaceholder": "Pravidlo (tag:praca, folder:…, alebo hľadanie)",
+    "ruleHint": "tag:názov · folder:id · alebo ľubovoľný výraz",
+    "results": "{{count}} zhody",
+    "noMatches": "Žiadne zodpovedajúce poznámky",
+    "saveFailed": "Nepodarilo sa uložiť inteligentný priečinok",
+    "evalFailed": "Nepodarilo sa vyhodnotiť inteligentný priečinok",
+    "deleteFailed": "Nepodarilo sa odstrániť inteligentný priečinok"
   }
 }

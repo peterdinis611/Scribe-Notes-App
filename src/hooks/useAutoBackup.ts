@@ -1,13 +1,12 @@
-import { useEffect, useRef } from 'react'
-import { exportLibraryArchiveToDir } from '@/lib/db/api'
+import { useEffect } from 'react'
+import { listen } from '@tauri-apps/api/event'
+import { configureAutoBackup, type AutoBackupConfig } from '@/lib/db/api'
 import { isTauriRuntime } from '@/lib/tauri'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setLastAutoBackupAt } from '@/store/settingsSlice'
 import { clampAutoBackupIntervalHours } from '@/store/persistence'
 
 const MS_PER_HOUR = 60 * 60 * 1000
-const MIN_CHECK_MS = 5 * 60 * 1000 // 5 minutes
-const MAX_CHECK_MS = 60 * 60 * 1000 // 1 hour
 
 export function isBackupDue(lastAt: number | null, intervalHours: number): boolean {
   if (!lastAt) return true
@@ -22,17 +21,17 @@ export function nextBackupAt(lastAt: number | null, intervalHours: number): numb
   return lastAt + hours * MS_PER_HOUR
 }
 
-/** How often to poll; denser for short intervals. */
+/** How often the frontend used to poll; kept for tests / diagnostics. */
 export function backupCheckIntervalMs(intervalHours: number): number {
   const hours = clampAutoBackupIntervalHours(intervalHours)
-  if (hours <= 1) return MIN_CHECK_MS
+  if (hours <= 1) return 5 * 60 * 1000
   if (hours <= 6) return 15 * 60 * 1000
-  return MAX_CHECK_MS
+  return 60 * 60 * 1000
 }
 
 /**
- * Quiet scheduled library backups.
- * Uses the chosen folder when set; otherwise ~/Documents/Scribe/Backups.
+ * Push auto-backup settings into the Rust scheduler (keeps running when the
+ * webview is backgrounded) and mirror completion events into Redux.
  */
 export function useAutoBackup() {
   const dispatch = useAppDispatch()
@@ -40,43 +39,40 @@ export function useAutoBackup() {
   const intervalHours = useAppSelector((state) => state.settings.autoBackupIntervalHours)
   const directory = useAppSelector((state) => state.settings.autoBackupDirectory)
   const lastAt = useAppSelector((state) => state.settings.lastAutoBackupAt)
-  const running = useRef(false)
 
   useEffect(() => {
-    if (!enabled || !isTauriRuntime()) return
+    if (!isTauriRuntime()) return
 
-    async function maybeBackup() {
-      if (running.current) return
-      if (!isBackupDue(lastAt, intervalHours)) return
-
-      running.current = true
-      try {
-        // Empty string → Rust resolves to Documents/Scribe/Backups
-        await exportLibraryArchiveToDir(directory ?? '')
-        dispatch(setLastAutoBackupAt(Date.now()))
-      } catch (error) {
-        console.warn('[scribe] auto-backup failed', error)
-      } finally {
-        running.current = false
-      }
+    const config: AutoBackupConfig = {
+      enabled,
+      intervalHours: clampAutoBackupIntervalHours(intervalHours),
+      directory,
+      lastAt,
     }
 
-    void maybeBackup()
-    const timer = window.setInterval(
-      () => void maybeBackup(),
-      backupCheckIntervalMs(intervalHours),
-    )
+    void configureAutoBackup(config)
+      .then((next) => {
+        if (next.lastAt && next.lastAt !== lastAt) {
+          dispatch(setLastAutoBackupAt(next.lastAt))
+        }
+      })
+      .catch((error) => {
+        console.warn('[scribe] configure auto-backup failed', error)
+      })
+  }, [directory, dispatch, enabled, intervalHours, lastAt])
 
-    const onVisibility = () => {
-      if (document.visibilityState === 'hidden') {
-        void maybeBackup()
-      }
-    }
-    document.addEventListener('visibilitychange', onVisibility)
+  useEffect(() => {
+    if (!isTauriRuntime()) return
+
+    let unlisten: (() => void) | undefined
+    void listen<{ path: string; at: number }>('auto-backup-completed', (event) => {
+      dispatch(setLastAutoBackupAt(event.payload.at))
+    }).then((fn) => {
+      unlisten = fn
+    })
 
     return () => {
-      window.clearInterval(timer)
-      document.removeEventListener('visibilitychange', onVisibility)
+      unlisten?.()
     }
-  }, [directory, dispatch, enabled, intervalHours, lastAt])
+  }, [dispatch])
 }

@@ -4,7 +4,7 @@ use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
-use rusqlite::{params, OptionalExtension};
+use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use uuid::Uuid;
@@ -28,7 +28,7 @@ use crate::nlp::{
     NlpTitleSuggestion, NlpWikiSuggestions,
 };
 use crate::store::{
-    require_nlp, search_library, sync_sidecar_backend, IdTitle, SearchFilter, ScribeStore,
+    require_nlp, search_library, sync_sidecar_backend, IdTitle, ScribeStore,
 };
 use crate::vault::{content_is_vault_cipher, require_document_not_vault};
 
@@ -1396,28 +1396,7 @@ impl ScribeStore {
     }
 
     pub fn list_smart_folders(&self) -> Result<Vec<SmartFolderRecord>, String> {
-        let library_id = active_library_id(&self.db);
-        let mut stmt = self
-            .db
-            .prepare(
-                "SELECT id, library_id, name, query_rule, icon, created_at, updated_at \
-                 FROM smart_folders WHERE library_id = ?1 ORDER BY updated_at DESC",
-            )
-            .map_err(|e| e.to_string())?;
-        let rows = stmt
-            .query_map([library_id], |row| {
-                Ok(SmartFolderRecord {
-                    id: row.get(0)?,
-                    library_id: row.get(1)?,
-                    name: row.get(2)?,
-                    query_rule: row.get(3)?,
-                    icon: row.get(4)?,
-                    created_at: row.get(5)?,
-                    updated_at: row.get(6)?,
-                })
-            })
-            .map_err(|e| e.to_string())?;
-        rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+        list_smart_folders_in_conn(&self.db)
     }
 
     pub fn upsert_smart_folder(
@@ -1427,44 +1406,11 @@ impl ScribeStore {
         query_rule: &str,
         icon: Option<&str>,
     ) -> Result<SmartFolderRecord, String> {
-        let name = name.trim();
-        let query_rule = query_rule.trim();
-        if name.is_empty() {
-            return Err("name is required".to_string());
-        }
-        if query_rule.is_empty() {
-            return Err("queryRule is required".to_string());
-        }
-        self.run_writable(|db| {
-            let library_id = active_library_id(db);
-            let now = chrono::Utc::now().timestamp();
-            let icon = icon
-                .map(str::trim)
-                .filter(|value| !value.is_empty())
-                .map(str::to_string);
-            let id = id
-                .map(str::trim)
-                .filter(|value| !value.is_empty())
-                .map(str::to_string)
-                .unwrap_or_else(|| Uuid::new_v4().to_string());
-            db.execute(
-                "INSERT INTO smart_folders (id, library_id, name, query_rule, icon, created_at, updated_at) \
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6) \
-                 ON CONFLICT(id) DO UPDATE SET name = excluded.name, query_rule = excluded.query_rule, \
-                 icon = excluded.icon, updated_at = excluded.updated_at",
-                params![id, library_id, name, query_rule, icon, now],
-            )
-            .map_err(|e| e.to_string())?;
-            Ok(SmartFolderRecord {
-                id,
-                library_id,
-                name: name.to_string(),
-                query_rule: query_rule.to_string(),
-                icon,
-                created_at: now,
-                updated_at: now,
-            })
-        })
+        self.run_writable(|db| upsert_smart_folder_in_conn(db, id, name, query_rule, icon))
+    }
+
+    pub fn delete_smart_folder(&self, id: &str) -> Result<bool, String> {
+        self.run_writable(|db| delete_smart_folder_in_conn(db, id))
     }
 
     pub fn evaluate_smart_folder(
@@ -1474,29 +1420,7 @@ impl ScribeStore {
         query_rule: Option<&str>,
         limit: Option<i64>,
     ) -> Result<SmartFolderEval, String> {
-        let limit = limit.unwrap_or(40).clamp(1, 80);
-        let folder = if let Some(id) = folder_id.map(str::trim).filter(|value| !value.is_empty()) {
-            self.list_smart_folders()?
-                .into_iter()
-                .find(|item| item.id == id)
-                .ok_or_else(|| format!("Smart folder not found: {id}"))?
-        } else {
-            let rule = query_rule
-                .map(str::trim)
-                .filter(|value| !value.is_empty())
-                .ok_or_else(|| "id or queryRule is required".to_string())?;
-            SmartFolderRecord {
-                id: String::new(),
-                library_id: active_library_id(&self.db),
-                name: "adhoc".to_string(),
-                query_rule: rule.to_string(),
-                icon: None,
-                created_at: 0,
-                updated_at: 0,
-            }
-        };
-        let matches = evaluate_query_rule(self, sidecar, &folder.query_rule, limit)?;
-        Ok(SmartFolderEval { folder, matches })
+        evaluate_smart_folder_in_conn(&self.db, sidecar, folder_id, query_rule, limit)
     }
 
     pub fn list_sync_conflicts(&self) -> Result<Vec<SyncConflictRecord>, String> {
@@ -1813,47 +1737,188 @@ fn is_auto_backup_zip(name: &str) -> bool {
     name.starts_with(BACKUP_FILE_PREFIX) && name.ends_with(BACKUP_FILE_SUFFIX)
 }
 
+pub fn list_smart_folders_in_conn(conn: &Connection) -> Result<Vec<SmartFolderRecord>, String> {
+    let library_id = active_library_id(conn);
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, library_id, name, query_rule, icon, created_at, updated_at \
+             FROM smart_folders WHERE library_id = ?1 ORDER BY updated_at DESC",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([library_id], |row| {
+            Ok(SmartFolderRecord {
+                id: row.get(0)?,
+                library_id: row.get(1)?,
+                name: row.get(2)?,
+                query_rule: row.get(3)?,
+                icon: row.get(4)?,
+                created_at: row.get(5)?,
+                updated_at: row.get(6)?,
+            })
+        })
+        .map_err(|e| e.to_string())?;
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())
+}
+
+pub fn upsert_smart_folder_in_conn(
+    conn: &Connection,
+    id: Option<&str>,
+    name: &str,
+    query_rule: &str,
+    icon: Option<&str>,
+) -> Result<SmartFolderRecord, String> {
+    let name = name.trim();
+    let query_rule = query_rule.trim();
+    if name.is_empty() {
+        return Err("name is required".to_string());
+    }
+    if query_rule.is_empty() {
+        return Err("queryRule is required".to_string());
+    }
+    let library_id = active_library_id(conn);
+    let now = chrono::Utc::now().timestamp();
+    let icon = icon
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string);
+    let id = id
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+        .unwrap_or_else(|| Uuid::new_v4().to_string());
+    conn.execute(
+        "INSERT INTO smart_folders (id, library_id, name, query_rule, icon, created_at, updated_at) \
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6) \
+         ON CONFLICT(id) DO UPDATE SET name = excluded.name, query_rule = excluded.query_rule, \
+         icon = excluded.icon, updated_at = excluded.updated_at",
+        params![id, library_id, name, query_rule, icon, now],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(SmartFolderRecord {
+        id,
+        library_id,
+        name: name.to_string(),
+        query_rule: query_rule.to_string(),
+        icon,
+        created_at: now,
+        updated_at: now,
+    })
+}
+
+pub fn delete_smart_folder_in_conn(conn: &Connection, id: &str) -> Result<bool, String> {
+    let id = id.trim();
+    if id.is_empty() {
+        return Err("id is required".to_string());
+    }
+    let library_id = active_library_id(conn);
+    let deleted = conn
+        .execute(
+            "DELETE FROM smart_folders WHERE id = ?1 AND library_id = ?2",
+            params![id, library_id],
+        )
+        .map_err(|e| e.to_string())?;
+    Ok(deleted > 0)
+}
+
+pub fn evaluate_smart_folder_in_conn(
+    conn: &Connection,
+    sidecar: &NlpSidecar,
+    folder_id: Option<&str>,
+    query_rule: Option<&str>,
+    limit: Option<i64>,
+) -> Result<SmartFolderEval, String> {
+    let limit = limit.unwrap_or(40).clamp(1, 80);
+    let folder = if let Some(id) = folder_id.map(str::trim).filter(|value| !value.is_empty()) {
+        list_smart_folders_in_conn(conn)?
+            .into_iter()
+            .find(|item| item.id == id)
+            .ok_or_else(|| format!("Smart folder not found: {id}"))?
+    } else {
+        let rule = query_rule
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .ok_or_else(|| "id or queryRule is required".to_string())?;
+        SmartFolderRecord {
+            id: String::new(),
+            library_id: active_library_id(conn),
+            name: "adhoc".to_string(),
+            query_rule: rule.to_string(),
+            icon: None,
+            created_at: 0,
+            updated_at: 0,
+        }
+    };
+    let matches = evaluate_query_rule(conn, sidecar, &folder.query_rule, limit)?;
+    Ok(SmartFolderEval { folder, matches })
+}
+
 fn evaluate_query_rule(
-    store: &ScribeStore,
+    conn: &Connection,
     sidecar: &NlpSidecar,
     rule: &str,
     limit: i64,
 ) -> Result<Vec<SmartFolderMatch>, String> {
     let rule = rule.trim();
     if let Some(tag) = rule.strip_prefix("tag:") {
-        let tag = tag.trim();
-        let docs = store.list_documents(None, Some(200))?;
-        return Ok(docs
-            .into_iter()
-            .filter(|doc| {
-                doc.tags
-                    .iter()
-                    .any(|existing| existing.eq_ignore_ascii_case(tag))
+        let tag = tag.trim().to_lowercase();
+        let library_id = active_library_id(conn);
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, title, tags FROM documents \
+                 WHERE deleted_at IS NULL AND COALESCE(library_id, 'default') = ?1 \
+                 ORDER BY updated_at DESC LIMIT 200",
+            )
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map([library_id], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, Option<String>>(2)?,
+                ))
             })
-            .take(limit as usize)
-            .map(|doc| SmartFolderMatch {
-                document_id: doc.id,
-                title: doc.title,
-            })
-            .collect());
+            .map_err(|e| e.to_string())?;
+        let mut matches = Vec::new();
+        for row in rows {
+            let (id, title, tags_raw) = row.map_err(|e| e.to_string())?;
+            let tags = crate::tags::parse_tags(tags_raw);
+            if tags.iter().any(|existing| existing.eq_ignore_ascii_case(&tag)) {
+                matches.push(SmartFolderMatch {
+                    document_id: id,
+                    title,
+                });
+                if matches.len() as i64 >= limit {
+                    break;
+                }
+            }
+        }
+        return Ok(matches);
     }
     if let Some(folder) = rule.strip_prefix("folder:") {
-        let docs = store.list_documents(Some(folder.trim()), Some(limit))?;
-        return Ok(docs
-            .into_iter()
-            .map(|doc| SmartFolderMatch {
-                document_id: doc.id,
-                title: doc.title,
+        let folder = folder.trim();
+        let library_id = active_library_id(conn);
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, title FROM documents \
+                 WHERE deleted_at IS NULL AND COALESCE(library_id, 'default') = ?1 AND folder_id = ?2 \
+                 ORDER BY updated_at DESC LIMIT ?3",
+            )
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map(params![library_id, folder, limit], |row| {
+                Ok(SmartFolderMatch {
+                    document_id: row.get(0)?,
+                    title: row.get(1)?,
+                })
             })
-            .collect());
+            .map_err(|e| e.to_string())?;
+        return rows
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string());
     }
-    let hits = store.search_with_mode(
-        sidecar,
-        rule,
-        limit,
-        Some("fts"),
-        Some(&SearchFilter::default()),
-    )?;
+    let hits = crate::store::search_library(conn, sidecar, rule, limit, SearchMode::Fts)?;
     Ok(hits
         .into_iter()
         .map(|hit| SmartFolderMatch {

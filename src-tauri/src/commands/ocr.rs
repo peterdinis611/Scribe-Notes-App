@@ -1,5 +1,4 @@
 use crate::db::DbState;
-use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use tauri::State;
@@ -13,6 +12,107 @@ pub struct OcrResult {
     pub language: String,
 }
 
+#[cfg(target_os = "macos")]
+mod vision {
+    use super::OcrResult;
+    use objc2::runtime::AnyObject;
+    use objc2::AnyThread;
+    use objc2_foundation::{NSArray, NSDictionary, NSObjectProtocol, NSString, NSURL};
+    use objc2_vision::{
+        VNImageRequestHandler, VNRecognizeTextRequest, VNRequest, VNRequestTextRecognitionLevel,
+    };
+    use std::path::Path;
+
+    pub fn recognize_text(path: &Path) -> Result<OcrResult, String> {
+        let url_string = path
+            .to_str()
+            .ok_or_else(|| "OCR path is not valid UTF-8".to_string())?;
+        let ns_url =
+            NSURL::initFileURLWithPath(NSURL::alloc(), &NSString::from_str(url_string));
+
+        let request = VNRecognizeTextRequest::new();
+        request.setRecognitionLevel(VNRequestTextRecognitionLevel::Accurate);
+        request.setUsesLanguageCorrection(true);
+        if request.respondsToSelector(objc2::sel!(setAutomaticallyDetectsLanguage:)) {
+            request.setAutomaticallyDetectsLanguage(true);
+        }
+
+        let handler = unsafe {
+            VNImageRequestHandler::initWithURL_options(
+                VNImageRequestHandler::alloc(),
+                &ns_url,
+                &NSDictionary::<NSString, AnyObject>::new(),
+            )
+        };
+
+        let requests = NSArray::<VNRequest>::from_retained_slice(&[objc2::rc::Retained::into_super(
+            objc2::rc::Retained::into_super(request.clone()),
+        )]);
+
+        handler
+            .performRequests_error(&requests)
+            .map_err(|err| format!("Vision OCR failed: {err}"))?;
+
+        let Some(results) = request.results() else {
+            return Ok(OcrResult {
+                text: String::new(),
+                confidence: 0.0,
+                language: "auto".to_string(),
+            });
+        };
+
+        let mut lines: Vec<String> = Vec::new();
+        let mut confidences: Vec<f32> = Vec::new();
+        for observation in results.iter() {
+            let candidates = observation.topCandidates(1);
+            let Some(candidate) = candidates.firstObject() else {
+                continue;
+            };
+            let text = candidate.string().to_string();
+            if text.trim().is_empty() {
+                continue;
+            }
+            confidences.push(candidate.confidence());
+            lines.push(text);
+        }
+
+        let text = lines.join("\n").trim().to_string();
+        let confidence = if confidences.is_empty() {
+            0.0
+        } else {
+            confidences.iter().sum::<f32>() / confidences.len() as f32
+        };
+
+        Ok(OcrResult {
+            text,
+            confidence,
+            language: "auto".to_string(),
+        })
+    }
+}
+
+fn tesseract_ocr(image_path: &str) -> Option<OcrResult> {
+    let output = std::process::Command::new("tesseract")
+        .arg(image_path)
+        .arg("stdout")
+        .arg("-l")
+        .arg("eng+slk")
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let text = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if text.is_empty() {
+        return None;
+    }
+    Some(OcrResult {
+        text,
+        confidence: 0.85,
+        language: "auto".to_string(),
+    })
+}
+
 #[tauri::command]
 pub fn extract_image_ocr(image_path: String) -> Result<OcrResult, String> {
     let path = Path::new(&image_path);
@@ -22,34 +122,22 @@ pub fn extract_image_ocr(image_path: String) -> Result<OcrResult, String> {
 
     #[cfg(target_os = "macos")]
     {
-        let output = std::process::Command::new("tesseract")
-            .arg(&image_path)
-            .arg("stdout")
-            .output();
-
-        if let Ok(out) = output {
-            if out.status.success() {
-                let text = String::from_utf8_lossy(&out.stdout).trim().to_string();
-                if !text.is_empty() {
-                    return Ok(OcrResult {
-                        text,
-                        confidence: 0.92,
-                        language: "auto".to_string(),
-                    });
-                }
-            }
+        match vision::recognize_text(path) {
+            Ok(result) if !result.text.trim().is_empty() => return Ok(result),
+            Ok(_) => {}
+            Err(error) => log::warn!("Vision OCR unavailable: {error}"),
         }
     }
 
+    if let Some(result) = tesseract_ocr(&image_path) {
+        return Ok(result);
+    }
+
+    // Never invent OCR text — empty is honest when engines fail.
     Ok(OcrResult {
-        text: format!(
-            "[OCR text extracted from {}]",
-            path.file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("image")
-        ),
-        confidence: 0.85,
-        language: "en".to_string(),
+        text: String::new(),
+        confidence: 0.0,
+        language: "auto".to_string(),
     })
 }
 
@@ -68,7 +156,7 @@ pub fn save_document_ocr(
     conn.execute(
         "INSERT INTO document_ocr (id, document_id, image_path, ocr_text, created_at)
          VALUES (?1, ?2, ?3, ?4, ?5)",
-        params![
+        rusqlite::params![
             Uuid::new_v4().to_string(),
             document_id,
             image_path,
@@ -80,7 +168,7 @@ pub fn save_document_ocr(
     let (title, content_json): (String, String) = conn
         .query_row(
             "SELECT title, content_json FROM documents WHERE id = ?1",
-            params![document_id],
+            rusqlite::params![document_id],
             |row| Ok((row.get(0)?, row.get(1)?)),
         )
         .map_err(|e| e.to_string())?;

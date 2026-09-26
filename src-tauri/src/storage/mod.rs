@@ -4,9 +4,11 @@ use tauri::AppHandle;
 
 mod persist_queue;
 mod reconcile;
+pub mod watch;
 
 pub use persist_queue::{DiskPersistQueue, FlushPendingWritesResult, PersistJob};
 pub use reconcile::{reconcile_storage, ReconcileResult};
+pub use watch::DocumentsWatcher;
 
 pub const META_DOCUMENTS_DIR: &str = "documents_dir";
 pub const META_DOCUMENTS_DIR_GRANTED: &str = "documents_dir_granted";

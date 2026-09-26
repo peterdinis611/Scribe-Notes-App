@@ -738,6 +738,58 @@ export const exportLibraryArchiveToDir = (directory: string) =>
 export const getDefaultAutoBackupDir = () =>
   invoke<string>('get_default_auto_backup_dir')
 
+export interface AutoBackupConfig {
+  enabled: boolean
+  intervalHours: number
+  directory: string | null
+  lastAt: number | null
+}
+
+export const getAutoBackupConfig = () => invoke<AutoBackupConfig>('get_auto_backup_config')
+
+export const configureAutoBackup = (config: AutoBackupConfig) =>
+  invoke<AutoBackupConfig>('configure_auto_backup', { config })
+
+export const setDocumentsWatchEnabled = (enabled: boolean) =>
+  invoke<void>('set_documents_watch_enabled', { enabled })
+
+export interface SmartFolderRecord {
+  id: string
+  libraryId: string
+  name: string
+  queryRule: string
+  icon: string | null
+  createdAt: number
+  updatedAt: number
+}
+
+export interface SmartFolderMatch {
+  documentId: string
+  title: string
+}
+
+export interface SmartFolderEval {
+  folder: SmartFolderRecord
+  matches: SmartFolderMatch[]
+}
+
+export const listSmartFolders = () => invoke<SmartFolderRecord[]>('list_smart_folders')
+
+export const upsertSmartFolder = (input: {
+  id?: string | null
+  name: string
+  queryRule: string
+  icon?: string | null
+}) => invoke<SmartFolderRecord>('upsert_smart_folder', { input })
+
+export const deleteSmartFolder = (id: string) => invoke<boolean>('delete_smart_folder', { id })
+
+export const evaluateSmartFolder = (input: {
+  id?: string | null
+  queryRule?: string | null
+  limit?: number
+}) => invoke<SmartFolderEval>('evaluate_smart_folder', { input })
+
 export const importLibraryArchive = () =>
   invoke<BackupImportResult | null>('import_library_archive')
 
