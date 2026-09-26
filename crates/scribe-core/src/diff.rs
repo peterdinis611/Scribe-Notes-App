@@ -1,10 +1,11 @@
-//! Line based diff with the same semantics as `src/lib/revisions/diff-text.ts`:
-//! split on `\n`, build an LCS matrix, backtrack from the bottom right corner.
+//! Line / word / side-by-side diff (canonical; TS only filters + view state).
 
 use serde::{Deserialize, Serialize};
 
 /// Largest LCS matrix we are willing to allocate (cells, 4 bytes each).
 const MAX_MATRIX_CELLS: usize = 16_000_000;
+/// Avoid quadratic blow-ups on huge word-level lines.
+const MAX_WORD_MATRIX_CELLS: usize = 40_000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -30,11 +31,56 @@ impl DiffLine {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum DiffSegmentType {
+    Equal,
+    Add,
+    Del,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DiffSegment {
+    #[serde(rename = "type")]
+    pub segment_type: DiffSegmentType,
+    pub text: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum SideBySideCellKind {
+    Text,
+    Gap,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SideBySideCell {
+    pub kind: SideBySideCellKind,
+    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
+    pub line_type: Option<DiffLineType>,
+    pub text: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub segments: Option<Vec<DiffSegment>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SideBySideRow {
+    pub left: SideBySideCell,
+    pub right: SideBySideCell,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub paired: Option<bool>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DiffResult {
     pub lines: Vec<DiffLine>,
     pub added: usize,
     pub removed: usize,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub side_by_side_rows: Vec<SideBySideRow>,
 }
 
 pub fn diff_lines(old_text: &str, new_text: &str) -> DiffResult {
@@ -50,12 +96,205 @@ pub fn diff_lines(old_text: &str, new_text: &str) -> DiffResult {
         .iter()
         .filter(|line| line.line_type == DiffLineType::Removed)
         .count();
+    let side_by_side_rows = build_side_by_side_from_lines(&lines);
 
     DiffResult {
         lines,
         added,
         removed,
+        side_by_side_rows,
     }
+}
+
+/// Word / whitespace-aware inline diff for a single line pair.
+pub fn diff_words(old_text: &str, new_text: &str) -> Vec<DiffSegment> {
+    if old_text == new_text {
+        return if old_text.is_empty() {
+            Vec::new()
+        } else {
+            vec![DiffSegment {
+                segment_type: DiffSegmentType::Equal,
+                text: old_text.to_string(),
+            }]
+        };
+    }
+
+    let a: Vec<&str> = split_words(old_text);
+    let b: Vec<&str> = split_words(new_text);
+    if a.is_empty() && b.is_empty() {
+        return Vec::new();
+    }
+    if a.len().saturating_mul(b.len()) > MAX_WORD_MATRIX_CELLS {
+        let mut out = Vec::new();
+        if !old_text.is_empty() {
+            out.push(DiffSegment {
+                segment_type: DiffSegmentType::Del,
+                text: old_text.to_string(),
+            });
+        }
+        if !new_text.is_empty() {
+            out.push(DiffSegment {
+                segment_type: DiffSegmentType::Add,
+                text: new_text.to_string(),
+            });
+        }
+        return out;
+    }
+
+    diff_slices(&a, &b)
+        .into_iter()
+        .map(|line| DiffSegment {
+            segment_type: match line.line_type {
+                DiffLineType::Unchanged => DiffSegmentType::Equal,
+                DiffLineType::Added => DiffSegmentType::Add,
+                DiffLineType::Removed => DiffSegmentType::Del,
+            },
+            text: line.text,
+        })
+        .collect()
+}
+
+fn split_words(text: &str) -> Vec<&str> {
+    // Char-safe split matching JS `/(\s+)/` keep-delimiter behaviour.
+    let mut out = Vec::new();
+    let mut rest = text;
+    while !rest.is_empty() {
+        let split_at = rest
+            .char_indices()
+            .find(|(_, ch)| ch.is_whitespace())
+            .map(|(idx, _)| idx);
+        match split_at {
+            None => {
+                out.push(rest);
+                break;
+            }
+            Some(0) => {
+                let end = rest
+                    .char_indices()
+                    .skip(1)
+                    .find(|(_, ch)| !ch.is_whitespace())
+                    .map(|(idx, _)| idx)
+                    .unwrap_or(rest.len());
+                out.push(&rest[..end]);
+                rest = &rest[end..];
+            }
+            Some(idx) => {
+                out.push(&rest[..idx]);
+                rest = &rest[idx..];
+            }
+        }
+    }
+    out.into_iter().filter(|part| !part.is_empty()).collect()
+}
+
+/// Build side-by-side rows, pairing adjacent removed→added as replacements.
+pub fn build_side_by_side_from_lines(lines: &[DiffLine]) -> Vec<SideBySideRow> {
+    let mut rows = Vec::new();
+    let mut index = 0usize;
+    while index < lines.len() {
+        let line = &lines[index];
+        let next = lines.get(index + 1);
+
+        if line.line_type == DiffLineType::Unchanged {
+            rows.push(SideBySideRow {
+                left: SideBySideCell {
+                    kind: SideBySideCellKind::Text,
+                    line_type: Some(DiffLineType::Unchanged),
+                    text: line.text.clone(),
+                    segments: None,
+                },
+                right: SideBySideCell {
+                    kind: SideBySideCellKind::Text,
+                    line_type: Some(DiffLineType::Unchanged),
+                    text: line.text.clone(),
+                    segments: None,
+                },
+                paired: None,
+            });
+            index += 1;
+            continue;
+        }
+
+        if line.line_type == DiffLineType::Removed
+            && next.is_some_and(|n| n.line_type == DiffLineType::Added)
+        {
+            let next = next.unwrap();
+            let segments = diff_words(&line.text, &next.text);
+            let left_segments: Vec<DiffSegment> = segments
+                .iter()
+                .filter(|s| s.segment_type != DiffSegmentType::Add)
+                .cloned()
+                .collect();
+            let right_segments: Vec<DiffSegment> = segments
+                .iter()
+                .filter(|s| s.segment_type != DiffSegmentType::Del)
+                .cloned()
+                .collect();
+            rows.push(SideBySideRow {
+                paired: Some(true),
+                left: SideBySideCell {
+                    kind: SideBySideCellKind::Text,
+                    line_type: Some(DiffLineType::Removed),
+                    text: line.text.clone(),
+                    segments: if left_segments.is_empty() {
+                        None
+                    } else {
+                        Some(left_segments)
+                    },
+                },
+                right: SideBySideCell {
+                    kind: SideBySideCellKind::Text,
+                    line_type: Some(DiffLineType::Added),
+                    text: next.text.clone(),
+                    segments: if right_segments.is_empty() {
+                        None
+                    } else {
+                        Some(right_segments)
+                    },
+                },
+            });
+            index += 2;
+            continue;
+        }
+
+        if line.line_type == DiffLineType::Removed {
+            rows.push(SideBySideRow {
+                left: SideBySideCell {
+                    kind: SideBySideCellKind::Text,
+                    line_type: Some(DiffLineType::Removed),
+                    text: line.text.clone(),
+                    segments: None,
+                },
+                right: SideBySideCell {
+                    kind: SideBySideCellKind::Gap,
+                    line_type: None,
+                    text: String::new(),
+                    segments: None,
+                },
+                paired: None,
+            });
+            index += 1;
+            continue;
+        }
+
+        rows.push(SideBySideRow {
+            left: SideBySideCell {
+                kind: SideBySideCellKind::Gap,
+                line_type: None,
+                text: String::new(),
+                segments: None,
+            },
+            right: SideBySideCell {
+                kind: SideBySideCellKind::Text,
+                line_type: Some(DiffLineType::Added),
+                text: line.text.clone(),
+                segments: None,
+            },
+            paired: None,
+        });
+        index += 1;
+    }
+    rows
 }
 
 fn diff_slices(old_lines: &[&str], new_lines: &[&str]) -> Vec<DiffLine> {
@@ -264,5 +503,19 @@ mod tests {
         let result = diff_lines(&old_text, &new_text);
         assert_eq!((result.added, result.removed), (1, 1));
         assert_eq!(result.lines.len(), 6002);
+    }
+
+    #[test]
+    fn word_diff_marks_changed_token() {
+        let segments = diff_words("the quick fox", "the slow fox");
+        assert!(segments.iter().any(|s| s.segment_type == DiffSegmentType::Del && s.text == "quick"));
+        assert!(segments.iter().any(|s| s.segment_type == DiffSegmentType::Add && s.text == "slow"));
+    }
+
+    #[test]
+    fn side_by_side_pairs_replacement() {
+        let result = diff_lines("Hello world", "Hello there");
+        assert_eq!(result.side_by_side_rows.len(), 1);
+        assert_eq!(result.side_by_side_rows[0].paired, Some(true));
     }
 }

@@ -1,0 +1,170 @@
+//! Document chat intent router (EN/SK) — canonical for app + MCP.
+
+fn strip_diacritic(ch: char) -> char {
+    match ch {
+        'á' | 'ä' | 'à' | 'â' | 'ã' => 'a',
+        'é' | 'ě' | 'è' | 'ê' => 'e',
+        'í' | 'ì' | 'î' => 'i',
+        'ó' | 'ô' | 'ö' | 'ò' | 'õ' => 'o',
+        'ú' | 'ů' | 'ü' | 'ù' | 'û' => 'u',
+        'ý' | 'ỳ' => 'y',
+        'č' | 'ć' => 'c',
+        'ď' => 'd',
+        'ň' | 'ń' => 'n',
+        'ř' => 'r',
+        'š' | 'ś' => 's',
+        'ť' => 't',
+        'ž' | 'ź' => 'z',
+        'ľ' | 'ĺ' => 'l',
+        other => other,
+    }
+}
+
+/// Fold for intent matching: lowercase + strip common SK/CS diacritics.
+fn fold_intent(question: &str) -> String {
+    question
+        .trim()
+        .chars()
+        .map(|ch| strip_diacritic(ch.to_lowercase().next().unwrap_or(ch)))
+        .collect()
+}
+
+fn contains_any(hay: &str, needles: &[&str]) -> bool {
+    needles.iter().any(|n| hay.contains(n))
+}
+
+/// Map free-form questions to structured document actions when the intent is clear.
+pub fn match_document_chat_intent(question: &str) -> Option<&'static str> {
+    let folded = fold_intent(question);
+    if folded.is_empty() {
+        return None;
+    }
+
+    let rules: &[(&str, &[&str])] = &[
+        ("summarize", &["summarize", "summary", "tlldr", "digest", "zhrn", "zhrnutie", "strucne"]),
+        ("outline", &["outline", "structure", "heading", "osnova", "struktura", "nadpisy"]),
+        ("keywords", &["keyword", "key word", "klucove slova"]),
+        (
+            "tasks",
+            &[
+                "task",
+                "todo",
+                "to-do",
+                "action item",
+                "checklist",
+                "what should i do next",
+                "ulohy",
+                "otvorene ulohy",
+            ],
+        ),
+        ("dates", &["date", "deadline", "due date", "schedule", "datumy", "terminy"]),
+        (
+            "mentions",
+            &[
+                "who is mentioned",
+                "people mentioned",
+                "mention",
+                "kto je",
+                "ludia",
+                "spomenut",
+                "zmienky",
+            ],
+        ),
+        ("wiki", &["wiki link", "wikilink", "backlink", "wiki odkazy", "prepojen"]),
+        (
+            "similar",
+            &[
+                "related note",
+                "similar note",
+                "connected note",
+                "how does this note connect",
+                "how does this connect",
+                "suvisiace",
+                "podobne poznamky",
+            ],
+        ),
+        ("quotes", &["key claim", "main claim", "klucove tvrden", "hlavne tvrden"]),
+        ("tone", &["tone", "readability", "reading time", "ton", "citanie", "citatelnost"]),
+        ("spellcheck", &["spellcheck", "spelling", "typo", "pravopis", "preklepy"]),
+        ("title", &["suggest title", "suggested title", "better title", "navrhni nazov", "navrhnut nazov"]),
+        (
+            "questions",
+            &["ask next", "follow-up question", "follow up question", "what else should i ask", "dalsie otazky"],
+        ),
+        ("flashcards", &["flashcard", "study card", "quiz me", "karticky", "kartick", "kviz"]),
+        (
+            "takeaways",
+            &[
+                "takeaway",
+                "key point",
+                "executive summary",
+                "action item",
+                "zavery",
+                "hlavne body",
+                "zhrnutie rozhodnut",
+            ],
+        ),
+        (
+            "terminology",
+            &[
+                "terminology",
+                "term consistency",
+                "inconsistent term",
+                "terminologia",
+                "konzistencia pojmov",
+                "nekonzistent",
+            ],
+        ),
+        (
+            "style",
+            &[
+                "writing coach",
+                "style tip",
+                "clarity",
+                "passive voice",
+                "filler word",
+                "styl",
+                "jasnost",
+                "trpny rod",
+                "vyplnove",
+            ],
+        ),
+    ];
+
+    for (action, needles) in rules {
+        if contains_any(&folded, needles) {
+            return Some(*action);
+        }
+    }
+    None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn matches_english_and_slovak() {
+        assert_eq!(match_document_chat_intent("Summarize this note"), Some("summarize"));
+        assert_eq!(match_document_chat_intent("Aké dátumy sú v poznámke?"), Some("dates"));
+        assert_eq!(match_document_chat_intent("Who is mentioned in this note?"), Some("mentions"));
+        assert_eq!(
+            match_document_chat_intent("How does this note connect to others?"),
+            Some("similar")
+        );
+        assert_eq!(match_document_chat_intent("Make flashcards from this"), Some("flashcards"));
+        assert_eq!(match_document_chat_intent("What are the key takeaways?"), Some("takeaways"));
+        assert_eq!(
+            match_document_chat_intent("Check terminology consistency"),
+            Some("terminology")
+        );
+        assert_eq!(match_document_chat_intent("Writing coach tips please"), Some("style"));
+    }
+
+    #[test]
+    fn open_questions_do_not_match() {
+        assert_eq!(match_document_chat_intent("What feels unfinished or unclear here?"), None);
+        assert_eq!(match_document_chat_intent("What is this note mainly about?"), None);
+        assert_eq!(match_document_chat_intent("Explain the key terms in this note"), None);
+    }
+}

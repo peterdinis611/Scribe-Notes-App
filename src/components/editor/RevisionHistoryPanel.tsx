@@ -26,8 +26,8 @@ import {
 } from '@/lib/db/api'
 import { promptInput } from '@/lib/input-dialog'
 import {
-  buildSideBySideFromLines,
   CURRENT_REVISION_ID,
+  normalizeSideBySideRows,
   type DiffLine,
   type DiffViewMode,
   type SideBySideRow,
@@ -246,7 +246,7 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
           createdAt: newerOption.createdAt,
         },
         lines: diff.lines,
-        sideBySideRows: buildSideBySideFromLines(diff.lines),
+        sideBySideRows: normalizeSideBySideRows(diff.sideBySideRows ?? []),
         ai,
       })
       setVersionAId(olderId)

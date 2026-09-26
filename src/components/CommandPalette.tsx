@@ -70,7 +70,7 @@ import {
 } from '@/lib/db/api'
 import { nlpSearch, nlpStatus, type NlpStatus } from '@/lib/db/nlp-api'
 import { describeNlpSearchFailure } from '@/lib/nlp/errors'
-import { fuseSearchHits, isHybridSearchScope } from '@/lib/nlp/hybrid-search'
+import { isHybridSearchScope } from '@/lib/nlp/hybrid-search'
 import { toast } from '@/lib/toast'
 import type { SearchHit } from '@/lib/db/api'
 import { promptAndCreateFolder } from '@/lib/library/create-folder'
@@ -1080,12 +1080,26 @@ export function CommandPalette() {
         )
     }
 
+    // Hybrid results without matchKind: prefer FTS order, then append semantic-only.
     if (isHybridSearchScope(searchScope) && hits.length > 0 && semanticHits.length > 0) {
       const semanticIds = new Set(semanticHits.map((item) => item.documentId))
-      const fused = fuseSearchHits(hits, semanticHits, 12).filter((item) => byId.has(item.documentId))
-      return fused.map((hit) =>
-        mapHit(hit, semanticIds.has(hit.documentId) ? <Sparkles className="h-4 w-4" /> : <FileText className="h-4 w-4" />),
-      )
+      const mergedIds = new Set<string>()
+      const ordered: SearchHit[] = []
+      for (const hit of hits) {
+        if (!byId.has(hit.documentId) || mergedIds.has(hit.documentId)) continue
+        mergedIds.add(hit.documentId)
+        ordered.push(hit)
+      }
+      for (const hit of semanticHits) {
+        if (!byId.has(hit.documentId) || mergedIds.has(hit.documentId)) continue
+        mergedIds.add(hit.documentId)
+        ordered.push(hit)
+      }
+      return ordered
+        .slice(0, 12)
+        .map((hit) =>
+          mapHit(hit, semanticIds.has(hit.documentId) ? <Sparkles className="h-4 w-4" /> : <FileText className="h-4 w-4" />),
+        )
     }
     if (hits.length > 0 && (searchScope === 'all' || searchScope === 'content')) {
       for (const hit of hits.filter((item) => byId.has(item.documentId))) {
