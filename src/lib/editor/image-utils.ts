@@ -193,6 +193,10 @@ export function insertEmptyModel3dBlock(editor: Editor, pos?: number) {
   editor.chain().focus().insertModel3d({ pos, src: null }).run()
 }
 
+export function insertEmptyPaintPad(editor: Editor, pos?: number) {
+  editor.chain().focus().insertPaintPad({ pos }).run()
+}
+
 export async function insertLottieFromFile(
   editor: Editor,
   documentId: string,

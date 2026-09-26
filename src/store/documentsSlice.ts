@@ -47,6 +47,7 @@ export interface DocumentsState {
   insightsPanelOpen: boolean
   insightsFocusAsk: boolean
   clipboardHistoryPanelOpen: boolean
+  flashcardsPanelOpen: boolean
   /** Right panel icon rail; collapsed by default for a quieter writing chrome. */
   panelRailExpanded: boolean
   focusMode: boolean
@@ -136,6 +137,7 @@ const initialState: DocumentsState = {
   insightsPanelOpen: readBoolStorage('scribe-insights-open', false),
   insightsFocusAsk: false,
   clipboardHistoryPanelOpen: readBoolStorage('scribe-clipboard-history-open', false),
+  flashcardsPanelOpen: readBoolStorage('scribe-flashcards-open', false),
   panelRailExpanded: readBoolStorage('scribe-panel-rail-expanded', false),
   focusMode: readBoolStorage('scribe-focus-mode', false),
   readingMode: readBoolStorage('scribe-reading-mode', false),
@@ -403,6 +405,7 @@ const documentsSlice = createSlice({
       state.statsPanelOpen = false
       state.backlinksPanelOpen = false
       state.clipboardHistoryPanelOpen = false
+      state.flashcardsPanelOpen = false
     },
     clearInsightsAskFocus(state) {
       state.insightsFocusAsk = false
@@ -410,6 +413,14 @@ const documentsSlice = createSlice({
     setClipboardHistoryPanelOpen(state, action: PayloadAction<boolean>) {
       state.clipboardHistoryPanelOpen = action.payload
       persistBoolStorage('scribe-clipboard-history-open', action.payload)
+      if (action.payload) {
+        state.panelRailExpanded = true
+        persistBoolStorage('scribe-panel-rail-expanded', true)
+      }
+    },
+    setFlashcardsPanelOpen(state, action: PayloadAction<boolean>) {
+      state.flashcardsPanelOpen = action.payload
+      persistBoolStorage('scribe-flashcards-open', action.payload)
       if (action.payload) {
         state.panelRailExpanded = true
         persistBoolStorage('scribe-panel-rail-expanded', true)
@@ -643,6 +654,7 @@ export const {
   requestInsightsAskFocus,
   clearInsightsAskFocus,
   setClipboardHistoryPanelOpen,
+  setFlashcardsPanelOpen,
   setPanelRailExpanded,
   setFocusMode,
   toggleFocusMode,

@@ -389,6 +389,10 @@ The document body is **TipTap JSON** stored in SQLite (`content_json`) and mirro
 
 Prefer composing existing blocks / snippets before adding a new TipTap node type.
 
+### In-app documentation
+
+**Settings → Docs** covers basics, library, editor, Local AI, revisions, MCP, backup, and shortcuts. Content is localized (EN/SK) and searchable. Edition **2.5** adds topics for Revision AI and MCP, plus expanded Local AI / editor notes.
+
 ### UI chrome
 
 Three-column shell:
@@ -429,7 +433,7 @@ The SQLite schema is versioned in `src-tauri/src/db/migrations.rs` (and shared h
 
 ## Version
 
-Current version: **2.3.0**
+Current version: **2.5.0**
 
 ## Privacy
 

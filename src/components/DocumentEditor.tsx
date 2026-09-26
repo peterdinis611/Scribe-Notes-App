@@ -17,6 +17,7 @@ import {
   type UnresolvedWikiPopoverState,
 } from '@/components/editor/UnresolvedWikiLinkPopover'
 import { StatsPanel } from '@/components/editor/StatsPanel'
+import { FlashcardsPanel } from '@/components/editor/FlashcardsPanel'
 import { FindReplaceBar } from '@/components/editor/FindReplaceBar'
 import { EditorToolbar } from '@/components/editor-toolbar/EditorToolbar'
 import { EditorMenus } from '@/components/editor/EditorMenus'
@@ -63,6 +64,7 @@ import {
   setDocumentOutlineOpen,
   setDocumentTocLeftOpen,
   setFindReplaceOpen,
+  setFlashcardsPanelOpen,
   setPendingEditorSearch,
   setInsightsPanelOpen,
   setRevisionHistoryOpen,
@@ -87,6 +89,7 @@ export function DocumentEditor() {
   const backlinksOpen = useAppSelector((state) => state.documents.backlinksPanelOpen)
   const insightsOpen = useAppSelector((state) => state.documents.insightsPanelOpen)
   const clipboardOpen = useAppSelector((state) => state.documents.clipboardHistoryPanelOpen)
+  const flashcardsOpen = useAppSelector((state) => state.documents.flashcardsPanelOpen)
   const focusMode = useAppSelector((state) => state.documents.focusMode)
   const readingMode = useAppSelector((state) => state.documents.readingMode)
   const [markdownDraft, setMarkdownDraft] = useState('')
@@ -123,7 +126,7 @@ export function DocumentEditor() {
   insertImagesRef.current = handleInsertImages
 
   // Bump when extension set changes so HMR recreates the editor (useMemo [] is sticky).
-  const EDITOR_EXTENSIONS_REV = 6
+  const EDITOR_EXTENSIONS_REV = 7
   const extensions = useMemo(
     () =>
       getEditorExtensions({
@@ -617,7 +620,8 @@ export function DocumentEditor() {
                 statsOpen ||
                 backlinksOpen ||
                 insightsOpen ||
-                clipboardOpen) &&
+                clipboardOpen ||
+                flashcardsOpen) &&
                 'editor-body--with-outline',
               tocLeftOpen && !isMarkdown && headingCount > 0 && 'editor-body--with-toc-left',
             )}
@@ -834,6 +838,9 @@ export function DocumentEditor() {
         )}
         {!isMarkdown && !readingMode && insightsOpen && (
           <DocumentInsightsPanel onClose={() => dispatch(setInsightsPanelOpen(false))} />
+        )}
+        {!isMarkdown && !readingMode && flashcardsOpen && (
+          <FlashcardsPanel onClose={() => dispatch(setFlashcardsPanelOpen(false))} />
         )}
         {!readingMode && clipboardOpen && (
           <ClipboardHistoryPanel

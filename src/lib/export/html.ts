@@ -289,6 +289,12 @@ function renderNodes(nodes: TipTapNode[] | undefined, ctx: RenderContext): strin
           }
           return `<figure data-type="model-3d" data-align="${escapeHtml(align)}" style="text-align:${escapeHtml(align)}"><a href="${escapeHtml(src)}">3D model (.glb / .gltf)</a>${captionHtml}</figure>`
         }
+        case 'paintPad': {
+          const ocr = String(node.attrs?.ocrText ?? '').trim()
+          const strokes = String(node.attrs?.strokes ?? '[]')
+          const ocrHtml = ocr ? `<figcaption>${escapeHtml(ocr)}</figcaption>` : ''
+          return `<figure data-type="paint-pad"><p>Paint pad</p><script type="application/json">${escapeHtml(strokes)}</script>${ocrHtml}</figure>`
+        }
         case 'table':
           return `<table style="border-collapse:collapse;width:100%;margin:12pt 0;">${renderNodes(node.content, ctx)}</table>`
         case 'tableRow':

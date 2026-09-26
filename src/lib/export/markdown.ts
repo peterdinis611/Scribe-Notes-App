@@ -91,6 +91,10 @@ function renderNodes(nodes?: TipTapNode[]): string {
           const source = String(node.attrs?.source ?? '')
           return `\`\`\`map\n${source}\n\`\`\`\n\n`
         }
+        case 'paintPad': {
+          const ocr = String(node.attrs?.ocrText ?? '').trim()
+          return ocr ? `> Paint OCR: ${ocr}\n\n` : `> *[Paint pad]*\n\n`
+        }
         case 'youtube':
         case 'video': {
           const src = String(node.attrs?.src ?? '')
@@ -135,4 +139,18 @@ export function tiptapJsonToMarkdown(contentJson: string, title: string): string
 
   const body = renderNodes(doc.content).trim()
   return `# ${title}\n\n${body}\n`
+}
+
+/** Prefer Rust `convert_tiptap` when available; falls back to sync serializer. */
+export async function tiptapJsonToMarkdownAsync(
+  contentJson: string,
+  title: string,
+): Promise<string> {
+  try {
+    const { convertTiptap } = await import('@/lib/db/api')
+    const body = (await convertTiptap(contentJson, 'markdown')).trim()
+    return `# ${title}\n\n${body}\n`
+  } catch {
+    return tiptapJsonToMarkdown(contentJson, title)
+  }
 }

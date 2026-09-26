@@ -7,9 +7,11 @@ import {
   FileText,
   FolderTree,
   GitFork,
+  History,
   Keyboard,
   Link2,
   PenLine,
+  Plug,
   Search,
   Shield,
   Sparkles,
@@ -32,6 +34,8 @@ export const DOCS_TOPIC_IDS = [
   'editor',
   'search',
   'localAi',
+  'revisions',
+  'mcp',
   'journal',
   'backup',
   'shortcuts',
@@ -49,6 +53,8 @@ const TOPIC_ICONS: Record<DocsTopicId, LucideIcon> = {
   editor: PenLine,
   search: Search,
   localAi: Sparkles,
+  revisions: History,
+  mcp: Plug,
   journal: CalendarDays,
   backup: Archive,
   shortcuts: Keyboard,
@@ -57,15 +63,17 @@ const TOPIC_ICONS: Record<DocsTopicId, LucideIcon> = {
 const DOC_GROUPS: { id: string; topics: DocsTopicId[] }[] = [
   { id: 'basics', topics: ['overview', 'privacy', 'documents'] },
   { id: 'organize', topics: ['library', 'linkGraph', 'wikiLinks'] },
-  { id: 'write', topics: ['editor', 'search', 'localAi', 'journal'] },
-  { id: 'power', topics: ['backup', 'shortcuts'] },
+  { id: 'write', topics: ['editor', 'search', 'localAi', 'revisions', 'journal'] },
+  { id: 'power', topics: ['mcp', 'backup', 'shortcuts'] },
 ]
 
-const QUICK_LINKS: DocsTopicId[] = ['library', 'wikiLinks', 'search', 'localAi']
+const QUICK_LINKS: DocsTopicId[] = ['library', 'localAi', 'revisions', 'mcp']
 
 const TOPIC_TIPS: Partial<Record<DocsTopicId, { keys: string; tipKey: string }>> = {
   search: { keys: '⌘K', tipKey: 'searchTip' },
   localAi: { keys: '⌘K', tipKey: 'localAiTip' },
+  revisions: { keys: '⌘Z', tipKey: 'revisionsTip' },
+  mcp: { keys: '⌘,', tipKey: 'mcpTip' },
   journal: { keys: '⌘⇧D', tipKey: 'journalTip' },
   shortcuts: { keys: '⌘,', tipKey: 'shortcutsTip' },
 }

@@ -13,6 +13,7 @@ import {
   insertEmptyImageBlock,
   insertEmptyLottieBlock,
   insertEmptyModel3dBlock,
+  insertEmptyPaintPad,
   insertImageFromUrl,
   isLikelyImageUrl,
 } from '@/lib/editor/image-utils'
@@ -162,6 +163,14 @@ const BLOCK_DEFINITIONS: BlockDefinition[] = [
     aliases: ['3d', 'glb', 'gltf'],
     keywords: ['3d', 'model', 'glb', 'gltf', 'usdz', 'mesh'],
     insert: (editor) => insertEmptyModel3dBlock(editor),
+  },
+  {
+    id: 'paint',
+    icon: '✎',
+    group: 'media',
+    aliases: ['draw', 'sketch', 'ink'],
+    keywords: ['paint', 'draw', 'sketch', 'ink', 'canvas', 'malovanie', 'kreslenie'],
+    insert: (editor) => insertEmptyPaintPad(editor),
   },
   {
     id: 'video',

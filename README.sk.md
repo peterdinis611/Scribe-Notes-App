@@ -389,6 +389,10 @@ Telo dokumentu je **TipTap JSON** v SQLite (`content_json`) a pri zapnutom folde
 
 Radšej skladaj existujúce bloky / snippety, než pridávať nový TipTap node typ.
 
+### In-app dokumentácia
+
+**Nastavenia → Docs** pokrýva základy, knižnicu, editor, Lokálnu AI, revízie, MCP, zálohy a skratky. Text je lokalizovaný (EN/SK) a prehľadávateľný. Edícia **2.5** pridáva témy Revision AI a MCP plus rozšírené poznámky k Lokálnej AI / editoru.
+
 ### UI chrome
 
 Trojstĺpcový shell:
@@ -421,7 +425,7 @@ Schéma SQLite je verzovaná v `src-tauri/src/db/migrations.rs` (a zdieľané he
 
 ## Verzia
 
-Aktuálna verzia: **2.3.0**
+Aktuálna verzia: **2.5.0**
 
 ## Súkromie
 

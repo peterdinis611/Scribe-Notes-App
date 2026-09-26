@@ -74,7 +74,7 @@ import {
   insertScannedBarcode,
   insertVideo,
 } from '@/lib/editor/insert-helpers'
-import { insertEmptyLottieBlock, insertEmptyModel3dBlock, pickDocumentMediaFiles } from '@/lib/editor/image-utils'
+import { insertEmptyLottieBlock, insertEmptyModel3dBlock, insertEmptyPaintPad, pickDocumentMediaFiles } from '@/lib/editor/image-utils'
 import { insertBulletList, insertOrderedList, insertTaskList } from '@/lib/editor/list-commands'
 import { PARAGRAPH_STYLES, applyParagraphStyle, type ParagraphStyleId } from '@/lib/editor/paragraph-styles'
 import { promptAndApplyEditorLink } from '@/lib/editor/link-prompt'
@@ -258,6 +258,7 @@ export function ToolbarRibbon({
             <DropdownMenuItem onClick={() => void insertVideo(editor)}>{t('toolbar.actions.video')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => insertEmptyLottieBlock(editor)}>{t('toolbar.actions.lottie')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => insertEmptyModel3dBlock(editor)}>{t('toolbar.actions.model3d')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => insertEmptyPaintPad(editor)}>{t('toolbar.actions.paint')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => editor.chain().focus().insertTableOfContents().run()}>
               <ListTree className="h-4 w-4" />
               {t('toolbar.actions.tableOfContents')}

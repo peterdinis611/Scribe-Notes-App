@@ -1,4 +1,5 @@
 import { invoke } from '@/lib/tauri'
+import { invokeMatchDocumentChatIntent } from '@/lib/db/api'
 import {
   nlpCheckTerminology,
   nlpDocumentAnalysis,
@@ -108,7 +109,12 @@ export async function askChat(
   context?: Array<{ role: string; text: string }>,
 ): Promise<LibraryChatResult> {
   if (scope === 'document') {
-    const action = matchDocumentChatIntent(question)
+    let action: DocumentChatAction | null = null
+    try {
+      action = (await invokeMatchDocumentChatIntent(question)) as DocumentChatAction | null
+    } catch {
+      action = matchDocumentChatIntent(question)
+    }
     if (action && documentId) {
       return runDocumentChatAction(documentId, action)
     }
@@ -117,7 +123,7 @@ export async function askChat(
   return askLibrary(question)
 }
 
-/** Map free-form questions to structured document actions when the intent is clear. */
+/** @deprecated Prefer Rust `match_document_chat_intent` — kept for sync tests only. */
 export function matchDocumentChatIntent(question: string): DocumentChatAction | null {
   const folded = question
     .trim()
@@ -126,111 +132,68 @@ export function matchDocumentChatIntent(question: string): DocumentChatAction | 
     .replace(/\p{M}/gu, '')
   if (!folded) return null
 
-  const rules: Array<{ action: DocumentChatAction; patterns: RegExp[] }> = [
-    {
-      action: 'summarize',
-      patterns: [
-        /\b(summarize|summary|tlldr|digest)\b/,
-        /\b(zhrn|zhrnutie|strucne)\b/,
-      ],
-    },
-    {
-      action: 'outline',
-      patterns: [/\b(outline|structure|headings?)\b/, /\b(osnova|struktura|nadpisy)\b/],
-    },
-    {
-      action: 'keywords',
-      patterns: [/\b(keywords?|key ?words?)\b/, /\b(klucove slova)\b/],
-    },
+  // Thin sync mirror of scribe-core::match_document_chat_intent for vitest without Tauri.
+  const rules: Array<{ action: DocumentChatAction; needles: string[] }> = [
+    { action: 'summarize', needles: ['summarize', 'summary', 'tlldr', 'digest', 'zhrn', 'zhrnutie', 'strucne'] },
+    { action: 'outline', needles: ['outline', 'structure', 'heading', 'osnova', 'struktura', 'nadpisy'] },
+    { action: 'keywords', needles: ['keyword', 'key word', 'klucove slova'] },
     {
       action: 'tasks',
-      patterns: [
-        /\b(open )?tasks?\b/,
-        /\b(todo|to-?dos?|action items?|checklist)\b/,
-        /\bwhat should i do next\b/,
-        /\b(ulohy|otvorene ulohy|co (mam|by som mal) (urobit|spravit))\b/,
-      ],
+      needles: ['task', 'todo', 'to-do', 'action item', 'checklist', 'what should i do next', 'ulohy', 'otvorene ulohy'],
     },
-    {
-      action: 'dates',
-      patterns: [
-        /\b(dates?|deadlines?|due dates?|schedule)\b/,
-        /\b(datumy|terminy|deadline)\b/,
-      ],
-    },
+    { action: 'dates', needles: ['date', 'deadline', 'due date', 'schedule', 'datumy', 'terminy'] },
     {
       action: 'mentions',
-      patterns: [
-        /\b(who is mentioned|people mentioned|mentions?)\b/,
-        /\b(kto (je|je v)|ludia|spomenut|zmienky)\b/,
-      ],
+      needles: ['who is mentioned', 'people mentioned', 'mention', 'kto je', 'ludia', 'spomenut', 'zmienky'],
     },
-    {
-      action: 'wiki',
-      patterns: [/\b(wiki ?links?|backlinks?)\b/, /\b(wiki odkazy|prepojen)/],
-    },
+    { action: 'wiki', needles: ['wiki link', 'wikilink', 'backlink', 'wiki odkazy', 'prepojen'] },
     {
       action: 'similar',
-      patterns: [
-        /\b(related notes?|similar notes?|connected notes?)\b/,
-        /\b(how does this (note )?connect|suvisiace|podobne poznamky)\b/,
+      needles: [
+        'related note',
+        'similar note',
+        'connected note',
+        'how does this note connect',
+        'how does this connect',
+        'suvisiace',
+        'podobne poznamky',
       ],
     },
-    {
-      action: 'quotes',
-      patterns: [/\b(key claims?|main claims?)\b/, /\b(klucove tvrden|hlavne tvrden)\b/],
-    },
-    {
-      action: 'tone',
-      patterns: [/\b(tone|readability|reading time)\b/, /\b(ton|citanie|citatelnost)\b/],
-    },
-    {
-      action: 'spellcheck',
-      patterns: [/\b(spellcheck|spelling|typos?)\b/, /\b(pravopis|preklepy)\b/],
-    },
-    {
-      action: 'title',
-      patterns: [/\b(suggest(ed)? title|better title)\b/, /\b(navrhni nazov|navrhnut nazov)\b/],
-    },
+    { action: 'quotes', needles: ['key claim', 'main claim', 'klucove tvrden', 'hlavne tvrden'] },
+    { action: 'tone', needles: ['tone', 'readability', 'reading time', 'ton', 'citanie', 'citatelnost'] },
+    { action: 'spellcheck', needles: ['spellcheck', 'spelling', 'typo', 'pravopis', 'preklepy'] },
+    { action: 'title', needles: ['suggest title', 'suggested title', 'better title', 'navrhni nazov', 'navrhnut nazov'] },
     {
       action: 'questions',
-      patterns: [
-        /\b(ask next|follow-?up questions?|what else should i ask)\b/,
-        /\b(dalsie otazky)\b/,
-      ],
+      needles: ['ask next', 'follow-up question', 'follow up question', 'what else should i ask', 'dalsie otazky'],
     },
-    {
-      action: 'flashcards',
-      patterns: [
-        /\b(flashcards?|study cards?|quiz me)\b/,
-        /\b(karticky|kartick|kviz)\b/,
-      ],
-    },
+    { action: 'flashcards', needles: ['flashcard', 'study card', 'quiz me', 'karticky', 'kartick', 'kviz'] },
     {
       action: 'takeaways',
-      patterns: [
-        /\b(takeaways?|key points?|executive summary|action items?)\b/,
-        /\b(zavery|hlavne body|zhrnutie rozhodnut)\b/,
-      ],
+      needles: ['takeaway', 'key point', 'executive summary', 'action item', 'zavery', 'hlavne body', 'zhrnutie rozhodnut'],
     },
     {
       action: 'terminology',
-      patterns: [
-        /\b(terminology|term consistency|inconsistent terms?)\b/,
-        /\b(terminologia|konzistencia pojmov|nekonzistent)\b/,
-      ],
+      needles: ['terminology', 'term consistency', 'inconsistent term', 'terminologia', 'konzistencia pojmov', 'nekonzistent'],
     },
     {
       action: 'style',
-      patterns: [
-        /\b(writing coach|style tips?|clarity|passive voice|filler words?)\b/,
-        /\b(styl|jasnost|trpny rod|vyplnove)\b/,
+      needles: [
+        'writing coach',
+        'style tip',
+        'clarity',
+        'passive voice',
+        'filler word',
+        'styl',
+        'jasnost',
+        'trpny rod',
+        'vyplnove',
       ],
     },
   ]
 
   for (const rule of rules) {
-    if (rule.patterns.some((pattern) => pattern.test(folded))) {
+    if (rule.needles.some((needle) => folded.includes(needle))) {
       return rule.action
     }
   }

@@ -108,6 +108,15 @@ Encrypted vault notes are stored as AES-GCM ciphertext in SQLite. The unlock pas
 | `spellcheck` | Spellcheck a document |
 | `extract_keywords` | Keywords / keyphrases |
 | `analyze_sentiment` | Tone / sentiment |
+| `extract_flashcards` | Study flashcards (Q&A / cloze) from id or text |
+| `extract_takeaways` | Key takeaways / executive bullets |
+| `check_terminology` | Inconsistent terminology / casing |
+| `writing_coach` | Style / clarity hints |
+| `analyze_revision_diff` | Revision AI on two plain texts (changeKind, risks) |
+| `analyze_revision_diff_for_document` | Revision AI: snapshot → current note |
+| `suggest_continuation` | Continue-writing suggestions from library corpus |
+| `wiki_health_report` | Unresolved links + stubs summary |
+| `list_stub_documents` | Short stub notes |
 | `list_templates` | Custom note templates |
 | `create_note_from_template` | Create a note from a template (writable) |
 | `list_backups` | List zip backups |
@@ -116,7 +125,7 @@ Encrypted vault notes are stored as AES-GCM ciphertext in SQLite. The unlock pas
 
 Plus legacy tools: `scribe_status`, `get_document`, wiki links, folders, revisions, `create_note`, `append_to_note`, …
 
-Resources: `scribe://doc/{id}`, `scribe://artifact/{id}`. Prompts: `weekly_journal_review`, `capture_today`, `open_tasks_triage`, `wiki_health`, `rewrite_selection_draft`, `continue_document_chat`, `analyze_this_note`, `switch_and_search`.
+Resources: `scribe://doc/{id}`, `scribe://artifact/{id}`. Prompts: `weekly_journal_review`, `capture_today`, `open_tasks_triage`, `wiki_health`, `rewrite_selection_draft`, `continue_document_chat`, `analyze_this_note`, `study_flashcards`, `writing_coach_pass`, `revision_review`, `continue_writing`, `switch_and_search`.
 
 Full reference: [docs/tools.md](docs/tools.md) · guides: [docs/en.md](docs/en.md), [docs/sk.md](docs/sk.md)
 

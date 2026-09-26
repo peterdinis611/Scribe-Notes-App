@@ -26,8 +26,8 @@ import {
 } from '@/lib/db/api'
 import { promptInput } from '@/lib/input-dialog'
 import {
-  buildSideBySideFromLines,
   CURRENT_REVISION_ID,
+  normalizeSideBySideRows,
   type DiffLine,
   type DiffViewMode,
   type SideBySideRow,
@@ -71,6 +71,69 @@ type PreviewState = {
   label: string | null
   createdAt: number
   plainText: string
+  ai?: RevisionAiReport | null
+}
+
+function RevisionAiSummary({ report }: { report: RevisionAiReport }) {
+  const { t } = useTranslation()
+  return (
+    <div className="mx-3 mb-2 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-[12px] leading-snug text-[var(--color-foreground)]">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
+          {t('panels.revisions.revisionAi')}
+          <span className="ml-1.5 font-medium normal-case tracking-normal opacity-70">
+            · {report.source}
+          </span>
+        </span>
+        <span className="inline-flex items-center gap-2">
+          <span
+            className={cn(
+              'rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+              report.changeKind === 'expansion' &&
+                'bg-[color-mix(in_srgb,#22c55e_18%,transparent)] text-[#15803d]',
+              report.changeKind === 'trim' &&
+                'bg-[color-mix(in_srgb,#ef4444_14%,transparent)] text-[#b91c1c]',
+              report.changeKind === 'rewrite' &&
+                'bg-[color-mix(in_srgb,#f59e0b_18%,transparent)] text-[#b45309]',
+              report.changeKind === 'structural' &&
+                'bg-[color-mix(in_srgb,var(--color-accent)_18%,transparent)] text-[var(--color-accent)]',
+              !['expansion', 'trim', 'rewrite', 'structural'].includes(report.changeKind) &&
+                'bg-[var(--color-selection)] text-[var(--color-foreground)]',
+            )}
+          >
+            {t(`panels.revisions.changeKind.${report.changeKind}`)}
+          </span>
+          <span className="text-[10px] text-[var(--color-muted-foreground)]">
+            {t('panels.revisions.nlpDiffChange', {
+              percent: Math.round((report.stats?.changeRatio ?? 0) * 100),
+            })}
+          </span>
+        </span>
+      </div>
+      <p className="mb-1 text-[13px] font-semibold">{report.headline}</p>
+      {report.summary ? (
+        <p className="mb-2 text-[12px] text-[var(--color-muted-foreground)]">{report.summary}</p>
+      ) : null}
+      {report.bullets?.length ? (
+        <ul className="mb-0 space-y-1.5 text-[11px]">
+          {report.bullets.map((bullet) => (
+            <li key={`${bullet.kind}-${bullet.text.slice(0, 40)}`} className="flex gap-1.5">
+              <span
+                className={cn(
+                  'mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full',
+                  bullet.severity === 'critical' && 'bg-[#b91c1c]',
+                  bullet.severity === 'warn' && 'bg-[#b45309]',
+                  bullet.severity === 'info' && 'bg-[#15803d]',
+                )}
+                aria-hidden
+              />
+              <span>{bullet.text}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  )
 }
 
 export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
@@ -183,7 +246,7 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
           createdAt: newerOption.createdAt,
         },
         lines: diff.lines,
-        sideBySideRows: buildSideBySideFromLines(diff.lines),
+        sideBySideRows: normalizeSideBySideRows(diff.sideBySideRows ?? []),
         ai,
       })
       setVersionAId(olderId)
@@ -243,16 +306,31 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
   }
 
   async function handlePreview(revision: DocumentRevision) {
+    if (!activeDocument) return
     setPreviewLoading(true)
     setCompareState(null)
     try {
       const detail = await getDocumentRevision(revision.id)
+      const plainText =
+        tiptapToPlainText(detail.contentJson).trim() || t('panels.revisions.previewEmpty')
+      const currentPlain = tiptapToPlainText(activeDocument.contentJson)
+      let ai: RevisionAiReport | null = null
+      try {
+        ai = await nlpAnalyzeRevisionDiff({
+          oldText: plainText,
+          newText: currentPlain,
+          maxBullets: 6,
+        })
+      } catch {
+        ai = null
+      }
       setPreview({
         id: detail.id,
         title: detail.title,
         label: detail.label,
         createdAt: detail.createdAt,
-        plainText: tiptapToPlainText(detail.contentJson).trim() || t('panels.revisions.previewEmpty'),
+        plainText,
+        ai,
       })
     } catch {
       toast.error(t('panels.revisions.previewError'))
@@ -602,7 +680,7 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
       </div>
 
       {preview ? (
-        <div className="flex max-h-[40vh] flex-col border-t border-[var(--color-border)] bg-[var(--color-background)]">
+        <div className="flex max-h-[48vh] flex-col border-t border-[var(--color-border)] bg-[var(--color-background)]">
           <div className="flex items-start justify-between gap-3 border-b border-[var(--color-border)] px-4 py-3">
             <div>
               <p className="m-0 text-[13px] font-semibold">{t('panels.revisions.previewTitle')}</p>
@@ -620,6 +698,7 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
               {t('common.close')}
             </button>
           </div>
+          {preview.ai ? <RevisionAiSummary report={preview.ai} /> : null}
           <pre className="m-0 overflow-auto whitespace-pre-wrap break-words px-4 py-3 font-mono text-[12px] leading-relaxed text-[var(--color-foreground)]">
             {preview.plainText}
           </pre>
@@ -628,67 +707,7 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
 
       {compareState && (
         <>
-          {compareState.ai ? (
-            <div className="mx-3 mb-2 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-[12px] leading-snug text-[var(--color-foreground)]">
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
-                  {t('panels.revisions.revisionAi')}
-                  <span className="ml-1.5 font-medium normal-case tracking-normal opacity-70">
-                    · {compareState.ai.source}
-                  </span>
-                </span>
-                <span className="inline-flex items-center gap-2">
-                  <span
-                    className={cn(
-                      'rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
-                      compareState.ai.changeKind === 'expansion' &&
-                        'bg-[color-mix(in_srgb,#22c55e_18%,transparent)] text-[#15803d]',
-                      compareState.ai.changeKind === 'trim' &&
-                        'bg-[color-mix(in_srgb,#ef4444_14%,transparent)] text-[#b91c1c]',
-                      compareState.ai.changeKind === 'rewrite' &&
-                        'bg-[color-mix(in_srgb,#f59e0b_18%,transparent)] text-[#b45309]',
-                      compareState.ai.changeKind === 'structural' &&
-                        'bg-[color-mix(in_srgb,var(--color-accent)_18%,transparent)] text-[var(--color-accent)]',
-                      !['expansion', 'trim', 'rewrite', 'structural'].includes(
-                        compareState.ai.changeKind,
-                      ) && 'bg-[var(--color-selection)] text-[var(--color-foreground)]',
-                    )}
-                  >
-                    {t(`panels.revisions.changeKind.${compareState.ai.changeKind}`)}
-                  </span>
-                  <span className="text-[10px] text-[var(--color-muted-foreground)]">
-                    {t('panels.revisions.nlpDiffChange', {
-                      percent: Math.round((compareState.ai.stats?.changeRatio ?? 0) * 100),
-                    })}
-                  </span>
-                </span>
-              </div>
-              <p className="mb-1 text-[13px] font-semibold">{compareState.ai.headline}</p>
-              {compareState.ai.summary ? (
-                <p className="mb-2 text-[12px] text-[var(--color-muted-foreground)]">
-                  {compareState.ai.summary}
-                </p>
-              ) : null}
-              {compareState.ai.bullets?.length ? (
-                <ul className="mb-0 space-y-1.5 text-[11px]">
-                  {compareState.ai.bullets.map((bullet) => (
-                    <li key={`${bullet.kind}-${bullet.text.slice(0, 40)}`} className="flex gap-1.5">
-                      <span
-                        className={cn(
-                          'mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full',
-                          bullet.severity === 'critical' && 'bg-[#b91c1c]',
-                          bullet.severity === 'warn' && 'bg-[#b45309]',
-                          bullet.severity === 'info' && 'bg-[#15803d]',
-                        )}
-                        aria-hidden
-                      />
-                      <span>{bullet.text}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-            </div>
-          ) : null}
+          {compareState.ai ? <RevisionAiSummary report={compareState.ai} /> : null}
           <RevisionDiffView
             left={{
               label: compareState.left.label,

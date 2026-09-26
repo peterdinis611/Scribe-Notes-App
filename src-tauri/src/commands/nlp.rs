@@ -1622,9 +1622,28 @@ fn document_plain_for_nlp(
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NlpDocumentTextInput {
-    pub document_id: String,
+    pub document_id: Option<String>,
+    pub text: Option<String>,
     pub limit: Option<i64>,
     pub include_cloze: Option<bool>,
+}
+
+fn resolve_nlp_text(state: &State<'_, DbState>, input: &NlpDocumentTextInput) -> Result<String, String> {
+    if let Some(plain) = input
+        .text
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        return Ok(plain.to_string());
+    }
+    let document_id = input
+        .document_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| "documentId or text is required".to_string())?;
+    document_plain_for_nlp(state, document_id)
 }
 
 /// Study flashcards from the active document (Python sidecar).
@@ -1634,7 +1653,7 @@ pub fn nlp_extract_flashcards(
     sidecar: State<'_, NlpSidecar>,
     input: NlpDocumentTextInput,
 ) -> Result<serde_json::Value, String> {
-    let text = document_plain_for_nlp(&state, &input.document_id)?;
+    let text = resolve_nlp_text(&state, &input)?;
     let limit = input.limit.unwrap_or(12).clamp(1, 40);
     let include_cloze = input.include_cloze.unwrap_or(true);
     sidecar.extract_flashcards(&text, limit, include_cloze)
@@ -1647,7 +1666,7 @@ pub fn nlp_check_terminology(
     sidecar: State<'_, NlpSidecar>,
     input: NlpDocumentTextInput,
 ) -> Result<serde_json::Value, String> {
-    let text = document_plain_for_nlp(&state, &input.document_id)?;
+    let text = resolve_nlp_text(&state, &input)?;
     let limit = input.limit.unwrap_or(12).clamp(1, 30);
     sidecar.check_terminology(&text, limit)
 }
@@ -1659,7 +1678,7 @@ pub fn nlp_extract_takeaways(
     sidecar: State<'_, NlpSidecar>,
     input: NlpDocumentTextInput,
 ) -> Result<serde_json::Value, String> {
-    let text = document_plain_for_nlp(&state, &input.document_id)?;
+    let text = resolve_nlp_text(&state, &input)?;
     let limit = input.limit.unwrap_or(8).clamp(1, 20);
     sidecar.extract_takeaways(&text, limit)
 }
@@ -1671,9 +1690,138 @@ pub fn nlp_writing_coach(
     sidecar: State<'_, NlpSidecar>,
     input: NlpDocumentTextInput,
 ) -> Result<serde_json::Value, String> {
-    let text = document_plain_for_nlp(&state, &input.document_id)?;
+    let text = resolve_nlp_text(&state, &input)?;
     let limit = input.limit.unwrap_or(12).clamp(1, 30);
     sidecar.writing_coach(&text, limit)
+}
+
+#[tauri::command]
+pub fn nlp_outline_quiz(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpDocumentTextInput,
+) -> Result<serde_json::Value, String> {
+    let text = resolve_nlp_text(&state, &input)?;
+    let limit = input.limit.unwrap_or(12).clamp(1, 40);
+    sidecar.outline_quiz(&text, limit)
+}
+
+#[tauri::command]
+pub fn nlp_meeting_notes_pack(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpDocumentTextInput,
+) -> Result<serde_json::Value, String> {
+    let text = resolve_nlp_text(&state, &input)?;
+    let limit = input.limit.unwrap_or(12).clamp(1, 30);
+    sidecar.meeting_notes_pack(&text, limit)
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpCitationPackInput {
+    pub claim: String,
+    pub limit: Option<i64>,
+}
+
+#[tauri::command]
+pub fn nlp_citation_pack(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpCitationPackInput,
+) -> Result<serde_json::Value, String> {
+    let claim = input.claim.trim();
+    if claim.is_empty() {
+        return Err("claim is required".to_string());
+    }
+    let limit = input.limit.unwrap_or(8).clamp(1, 20);
+    let docs = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        if !is_nlp_enabled(&conn)? {
+            return Err("NLP is disabled".to_string());
+        }
+        let _ = sync_sidecar_backend(&sidecar, &conn);
+        let library_id = crate::libraries::active_library_id(&conn);
+        let fetch = limit.saturating_mul(3).clamp(6, 24);
+        let hits = search_documents_for_library(&conn, claim, fetch, &library_id)?;
+        let mut docs = Vec::new();
+        for hit in hits {
+            let row: Result<(String, String), _> = conn.query_row(
+                "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL",
+                params![hit.document_id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            );
+            if let Ok((title, content_json)) = row {
+                if content_is_vault_cipher(&content_json) {
+                    continue;
+                }
+                let text = document_index_text(&conn, &hit.document_id, &title, &content_json);
+                docs.push(serde_json::json!({
+                    "id": hit.document_id,
+                    "title": title,
+                    "text": text,
+                    "snippet": hit.snippet,
+                }));
+            }
+        }
+        docs
+    };
+    sidecar.citation_pack(claim, &serde_json::json!(docs), limit)
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpTerminologyLibraryInput {
+    pub limit: Option<i64>,
+    pub document_limit: Option<i64>,
+}
+
+#[tauri::command]
+pub fn nlp_check_terminology_library(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpTerminologyLibraryInput,
+) -> Result<serde_json::Value, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    if !is_nlp_enabled(&conn)? {
+        return Err("NLP is disabled".to_string());
+    }
+    let _ = sync_sidecar_backend(&sidecar, &conn);
+    let library_id = crate::libraries::active_library_id(&conn);
+    let doc_limit = input.document_limit.unwrap_or(40).clamp(2, 80);
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, title, content_json FROM documents
+             WHERE deleted_at IS NULL AND library_id = ?1
+             ORDER BY updated_at DESC
+             LIMIT ?2",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map(params![library_id, doc_limit], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+            ))
+        })
+        .map_err(|e| e.to_string())?;
+    let mut docs = Vec::new();
+    for row in rows {
+        let (id, title, content_json) = row.map_err(|e| e.to_string())?;
+        if content_is_vault_cipher(&content_json) {
+            continue;
+        }
+        let text = document_index_text(&conn, &id, &title, &content_json);
+        if text.trim().chars().count() < 24 {
+            continue;
+        }
+        docs.push(serde_json::json!({ "id": id, "title": title, "text": text }));
+    }
+    drop(stmt);
+    drop(conn);
+    let limit = input.limit.unwrap_or(16).clamp(1, 40);
+    sidecar.check_terminology_library(&serde_json::json!(docs), limit)
 }
 
 #[tauri::command]

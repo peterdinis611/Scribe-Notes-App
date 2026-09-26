@@ -335,6 +335,75 @@ pub struct SetEmbedBackendParams {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+pub struct SetAnswerBackendParams {
+    /// `auto` (default), `index`, or `quality`
+    pub backend: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct GeneratePlaceholderParams {
+    /// paragraphs | sentences | words
+    pub unit: Option<String>,
+    pub count: Option<i64>,
+    pub language: Option<String>,
+    pub start_with_classic: Option<bool>,
+    pub seed: Option<u64>,
+    pub prefer_rust: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct DeleteIdParams {
+    pub id: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CitationPackParams {
+    pub claim: String,
+    pub limit: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct QuestionParams {
+    pub question: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ConvertTiptapParams {
+    pub content_json: String,
+    /// `plain` or `markdown`
+    pub format: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct DiffPlainTextsParams {
+    pub old_text: String,
+    pub new_text: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct MetaFiltersParams {
+    pub tags: Vec<String>,
+    pub status: Option<String>,
+    pub project: Option<String>,
+    pub year: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct TerminologyLibraryParams {
+    pub limit: Option<i64>,
+    pub document_limit: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct RewriteQueryParams {
     pub query: String,
     pub max_expansions: Option<i64>,
@@ -367,6 +436,68 @@ pub struct CreateLibraryParams {
 pub struct TextOrDocumentParams {
     pub id: Option<String>,
     pub text: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ExtractFlashcardsParams {
+    pub id: Option<String>,
+    pub text: Option<String>,
+    pub limit: Option<i64>,
+    pub include_cloze: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct StudyLimitParams {
+    pub id: Option<String>,
+    pub text: Option<String>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct AnalyzeRevisionDiffParams {
+    pub old_text: String,
+    pub new_text: String,
+    pub max_bullets: Option<i64>,
+    pub language: Option<String>,
+    pub prefer_rust: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct AnalyzeRevisionDiffDocParams {
+    pub id: String,
+    pub revision_id: String,
+    pub max_bullets: Option<i64>,
+    pub language: Option<String>,
+    pub prefer_rust: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SuggestContinuationParams {
+    pub prefix: String,
+    pub max_suggestions: Option<i64>,
+    pub max_tokens: Option<i64>,
+    pub exclude_document_id: Option<String>,
+    pub prefer_rust: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct WikiHealthParams {
+    pub unresolved_limit: Option<i64>,
+    pub stub_max_words: Option<i64>,
+    pub stub_limit: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct StubDocumentsParams {
+    pub max_words: Option<i64>,
+    pub limit: Option<i64>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]

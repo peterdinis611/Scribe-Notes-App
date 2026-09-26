@@ -11,6 +11,103 @@ pub struct IdTags {
     pub tags: Vec<String>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TagKind {
+    Status,
+    Project,
+    Year,
+    Plain,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ParsedTag {
+    pub raw: String,
+    pub kind: TagKind,
+    pub value: String,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MetaFilters {
+    pub status: Option<String>,
+    pub project: Option<String>,
+    pub year: Option<String>,
+}
+
+pub const STATUS_TAG_VALUES: &[&str] = &["draft", "review", "done", "archived"];
+
+/// Convention-based structured tags: `status:draft`, `project:Acme`, `year:2026`.
+pub fn parse_meta_tag(raw: &str) -> ParsedTag {
+    let trimmed = raw.trim();
+    if let Some((kind_raw, value_raw)) = trimmed.split_once(':') {
+        let kind_l = kind_raw.trim().to_ascii_lowercase();
+        let value = value_raw.trim().to_string();
+        if !value.is_empty() {
+            let kind = match kind_l.as_str() {
+                "status" => Some(TagKind::Status),
+                "project" => Some(TagKind::Project),
+                "year" => Some(TagKind::Year),
+                _ => None,
+            };
+            if let Some(kind) = kind {
+                return ParsedTag {
+                    raw: trimmed.to_string(),
+                    kind,
+                    value,
+                };
+            }
+        }
+    }
+    ParsedTag {
+        raw: trimmed.to_string(),
+        kind: TagKind::Plain,
+        value: trimmed.to_string(),
+    }
+}
+
+pub fn make_meta_tag(kind: TagKind, value: &str) -> String {
+    let prefix = match kind {
+        TagKind::Status => "status",
+        TagKind::Project => "project",
+        TagKind::Year => "year",
+        TagKind::Plain => return value.trim().to_string(),
+    };
+    format!("{prefix}:{}", value.trim())
+}
+
+pub fn document_matches_meta_filters(tags: &[String], filters: &MetaFilters) -> bool {
+    if let Some(status) = filters.status.as_deref().filter(|s| !s.is_empty()) {
+        let needle = make_meta_tag(TagKind::Status, status);
+        if !tags
+            .iter()
+            .any(|tag| tag.eq_ignore_ascii_case(&needle))
+        {
+            return false;
+        }
+    }
+    if let Some(project) = filters.project.as_deref().filter(|s| !s.is_empty()) {
+        let needle = make_meta_tag(TagKind::Project, project);
+        if !tags
+            .iter()
+            .any(|tag| tag.eq_ignore_ascii_case(&needle))
+        {
+            return false;
+        }
+    }
+    if let Some(year) = filters.year.as_deref().filter(|s| !s.is_empty()) {
+        let needle = make_meta_tag(TagKind::Year, year);
+        if !tags
+            .iter()
+            .any(|tag| tag.eq_ignore_ascii_case(&needle))
+        {
+            return false;
+        }
+    }
+    true
+}
+
 pub fn parse_tags(raw: Option<String>) -> Vec<String> {
     if let Some(raw) = raw {
         let trimmed = raw.trim();
@@ -160,4 +257,36 @@ pub fn remove_document_tag(conn: &Connection, id: &str, tag: &str) -> Result<IdT
         id: id.to_string(),
         tags,
     })
+}
+
+#[cfg(test)]
+mod meta_tests {
+    use super::*;
+
+    #[test]
+    fn parses_structured_tags() {
+        let parsed = parse_meta_tag("status:draft");
+        assert_eq!(parsed.kind, TagKind::Status);
+        assert_eq!(parsed.value, "draft");
+        assert_eq!(parse_meta_tag("plain").kind, TagKind::Plain);
+    }
+
+    #[test]
+    fn filters_by_status() {
+        let tags = vec!["status:done".to_string(), "project:Acme".to_string()];
+        assert!(document_matches_meta_filters(
+            &tags,
+            &MetaFilters {
+                status: Some("done".into()),
+                ..Default::default()
+            }
+        ));
+        assert!(!document_matches_meta_filters(
+            &tags,
+            &MetaFilters {
+                status: Some("draft".into()),
+                ..Default::default()
+            }
+        ));
+    }
 }

@@ -12,9 +12,10 @@ use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
 
 use crate::db::{
-    active_library_id, document_index_text, extract_search_text, rank_document_chunks, set_embed_backend, set_nlp_enabled,
+    active_library_id, document_index_text, extract_search_text, rank_document_chunks, set_answer_backend, set_embed_backend, set_nlp_enabled,
     sync_document_fts, sync_document_links, SearchMode, DEFAULT_LIBRARY_ID, META_ACTIVE_LIBRARY,
 };
+use crate::db::delete_revision;
 use crate::nlp::{
     collect_document_memory_passages, collect_library_memory_passages, followups_from_sidecar,
     merge_chat_memory_passages, normalize_rewrite_mode, parse_chunks, parse_dates_result,
@@ -1212,6 +1213,361 @@ impl ScribeStore {
             overlap.unwrap_or(180).clamp(0, 2000),
             max_chunks.unwrap_or(24).clamp(1, 80),
         )?))
+    }
+
+    pub fn extract_flashcards(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+        limit: Option<i64>,
+        include_cloze: Option<bool>,
+    ) -> Result<Value, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        sidecar.extract_flashcards(
+            &source,
+            limit.unwrap_or(12).clamp(1, 40),
+            include_cloze.unwrap_or(true),
+        )
+    }
+
+    pub fn check_terminology(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+        limit: Option<i64>,
+    ) -> Result<Value, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        sidecar.check_terminology(&source, limit.unwrap_or(12).clamp(1, 30))
+    }
+
+    pub fn extract_takeaways(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+        limit: Option<i64>,
+    ) -> Result<Value, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        sidecar.extract_takeaways(&source, limit.unwrap_or(8).clamp(1, 20))
+    }
+
+    pub fn writing_coach(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+        limit: Option<i64>,
+    ) -> Result<Value, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        sidecar.writing_coach(&source, limit.unwrap_or(12).clamp(1, 30))
+    }
+
+    pub fn analyze_revision_diff(
+        &self,
+        sidecar: &NlpSidecar,
+        old_text: &str,
+        new_text: &str,
+        max_bullets: Option<i64>,
+        language: Option<&str>,
+        prefer_rust: Option<bool>,
+    ) -> Result<Value, String> {
+        let max_bullets = max_bullets.unwrap_or(6).clamp(1, 12);
+        let prefer_rust = prefer_rust.unwrap_or(false);
+        if !prefer_rust {
+            if require_nlp(&self.db).is_ok() {
+                let _ = sync_sidecar_backend(sidecar, &self.db);
+                if let Ok(value) =
+                    sidecar.analyze_revision_diff(old_text, new_text, max_bullets, language)
+                {
+                    return Ok(value);
+                }
+            }
+        }
+        let report = crate::nlp::analyze_revision_diff(
+            old_text,
+            new_text,
+            max_bullets as usize,
+            language,
+        );
+        serde_json::to_value(report).map_err(|e| e.to_string())
+    }
+
+    pub fn analyze_revision_diff_for_document(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: &str,
+        revision_id: &str,
+        max_bullets: Option<i64>,
+        language: Option<&str>,
+        prefer_rust: Option<bool>,
+    ) -> Result<Value, String> {
+        let revision = self
+            .get_document_revision(revision_id)?
+            .ok_or_else(|| format!("Revision not found: {revision_id}"))?;
+        if revision.document_id != document_id {
+            return Err("revision does not belong to document".to_string());
+        }
+        let (title, current_text) = self.document_title_and_text(document_id)?;
+        let old_text = format!("{}\n{}", revision.title, revision.plain_text);
+        let mut value = self.analyze_revision_diff(
+            sidecar,
+            &old_text,
+            &current_text,
+            max_bullets,
+            language,
+            prefer_rust,
+        )?;
+        if let Some(obj) = value.as_object_mut() {
+            obj.insert("documentId".into(), json!(document_id));
+            obj.insert("title".into(), json!(title));
+            obj.insert("revisionId".into(), json!(revision_id));
+        }
+        Ok(value)
+    }
+
+    pub fn suggest_continuation(
+        &self,
+        sidecar: &NlpSidecar,
+        prefix: &str,
+        max_suggestions: Option<i64>,
+        max_tokens: Option<i64>,
+        exclude_document_id: Option<&str>,
+        prefer_rust: Option<bool>,
+    ) -> Result<Value, String> {
+        let prefix = prefix.trim();
+        if prefix.is_empty() {
+            return Err("prefix is required".to_string());
+        }
+        let max_suggestions = max_suggestions.unwrap_or(3).clamp(1, 5);
+        let max_tokens = max_tokens.unwrap_or(16).clamp(1, 32);
+        let prefer_rust = prefer_rust.unwrap_or(false);
+        let exclude = exclude_document_id
+            .map(str::trim)
+            .filter(|value| !value.is_empty());
+
+        let library_id = active_library_id(&self.db);
+        let mut stmt = self
+            .db
+            .prepare(
+                "SELECT id, title, content_json FROM documents
+                 WHERE deleted_at IS NULL AND library_id = ?1
+                 ORDER BY updated_at DESC
+                 LIMIT 48",
+            )
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map(params![library_id], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            })
+            .map_err(|e| e.to_string())?;
+        let mut corpus = Vec::new();
+        for row in rows {
+            let (id, title, content_json) = row.map_err(|e| e.to_string())?;
+            if exclude.is_some_and(|ex| ex == id) {
+                continue;
+            }
+            if content_is_vault_cipher(&content_json) {
+                continue;
+            }
+            let text = document_index_text(&self.db, &id, &title, &content_json);
+            if text.trim().chars().count() >= 24 {
+                corpus.push(text);
+            }
+        }
+
+        if !prefer_rust && require_nlp(&self.db).is_ok() {
+            let _ = sync_sidecar_backend(sidecar, &self.db);
+            if let Ok(value) =
+                sidecar.suggest_continuation(prefix, &corpus, max_suggestions, max_tokens)
+            {
+                return Ok(value);
+            }
+        }
+
+        let result = crate::nlp::suggest_continuation(
+            prefix,
+            &corpus,
+            max_suggestions as usize,
+            max_tokens as usize,
+        );
+        serde_json::to_value(result).map_err(|e| e.to_string())
+    }
+
+    pub fn generate_placeholder(
+        &self,
+        sidecar: &NlpSidecar,
+        unit: Option<&str>,
+        count: Option<i64>,
+        language: Option<&str>,
+        start_with_classic: Option<bool>,
+        seed: Option<u64>,
+        prefer_rust: Option<bool>,
+    ) -> Result<Value, String> {
+        let unit = unit.unwrap_or("paragraphs");
+        let count = count.unwrap_or(3).clamp(1, 40);
+        let start_with_classic = start_with_classic.unwrap_or(true);
+        let prefer_rust = prefer_rust.unwrap_or(false);
+        if !prefer_rust && require_nlp(&self.db).is_ok() {
+            let _ = sync_sidecar_backend(sidecar, &self.db);
+            if let Ok(value) = sidecar.generate_placeholder(
+                unit,
+                count,
+                language,
+                start_with_classic,
+                seed,
+            ) {
+                return Ok(value);
+            }
+        }
+        let result = crate::nlp::generate_placeholder(
+            crate::nlp::PlaceholderUnit::parse(Some(unit)),
+            count as u32,
+            crate::nlp::PlaceholderLanguage::parse(language),
+            start_with_classic,
+            seed,
+        );
+        serde_json::to_value(result).map_err(|e| e.to_string())
+    }
+
+    pub fn set_nlp_answer_backend(
+        &self,
+        sidecar: &NlpSidecar,
+        backend: &str,
+    ) -> Result<Value, String> {
+        set_answer_backend(&self.db, backend)?;
+        self.nlp_status(sidecar)
+    }
+
+    pub fn delete_document_revision(&self, revision_id: &str) -> Result<Value, String> {
+        self.run_writable(|db| {
+            delete_revision(db, revision_id)?;
+            Ok(json!({ "ok": true, "revisionId": revision_id }))
+        })
+    }
+
+    pub fn outline_quiz(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+        limit: Option<i64>,
+    ) -> Result<Value, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        sidecar.outline_quiz(&source, limit.unwrap_or(12).clamp(1, 40))
+    }
+
+    pub fn meeting_notes_pack(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+        limit: Option<i64>,
+    ) -> Result<Value, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        sidecar.meeting_notes_pack(&source, limit.unwrap_or(12).clamp(1, 30))
+    }
+
+    pub fn check_terminology_library(
+        &self,
+        sidecar: &NlpSidecar,
+        limit: Option<i64>,
+        document_limit: Option<i64>,
+    ) -> Result<Value, String> {
+        require_nlp(&self.db)?;
+        let docs = self.library_plain_documents(document_limit.unwrap_or(40).clamp(2, 80))?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        sidecar.check_terminology_library(&json!(docs), limit.unwrap_or(16).clamp(1, 40))
+    }
+
+    pub fn citation_pack(
+        &self,
+        sidecar: &NlpSidecar,
+        claim: &str,
+        limit: Option<i64>,
+    ) -> Result<Value, String> {
+        let claim = claim.trim();
+        if claim.is_empty() {
+            return Err("claim is required".to_string());
+        }
+        require_nlp(&self.db)?;
+        let limit = limit.unwrap_or(8).clamp(1, 20);
+        // Prefer hybrid search hits, then enrich with full text for packing.
+        let hits = search_library(
+            &self.db,
+            sidecar,
+            claim,
+            limit.saturating_mul(3).clamp(6, 24),
+            SearchMode::Hybrid,
+        )?;
+        let mut docs = Vec::new();
+        for hit in hits {
+            if let Ok((_title, text)) = self.document_title_and_text(&hit.document_id) {
+                docs.push(json!({
+                    "id": hit.document_id,
+                    "title": hit.title,
+                    "text": text,
+                    "snippet": hit.snippet,
+                }));
+            }
+        }
+        if docs.is_empty() {
+            docs = self.library_plain_documents(24)?;
+        }
+        sync_sidecar_backend(sidecar, &self.db)?;
+        sidecar.citation_pack(claim, &json!(docs), limit)
+    }
+
+    fn library_plain_documents(&self, limit: i64) -> Result<Vec<Value>, String> {
+        let library_id = active_library_id(&self.db);
+        let mut stmt = self
+            .db
+            .prepare(
+                "SELECT id, title, content_json FROM documents
+                 WHERE deleted_at IS NULL AND library_id = ?1
+                 ORDER BY updated_at DESC
+                 LIMIT ?2",
+            )
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map(params![library_id, limit], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            })
+            .map_err(|e| e.to_string())?;
+        let mut docs = Vec::new();
+        for row in rows {
+            let (id, title, content_json) = row.map_err(|e| e.to_string())?;
+            if content_is_vault_cipher(&content_json) {
+                continue;
+            }
+            let text = document_index_text(&self.db, &id, &title, &content_json);
+            if text.trim().chars().count() < 24 {
+                continue;
+            }
+            docs.push(json!({ "id": id, "title": title, "text": text }));
+        }
+        Ok(docs)
     }
 
     pub fn list_libraries(&self) -> Result<Vec<LibraryRecord>, String> {

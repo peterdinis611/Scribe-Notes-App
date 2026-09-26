@@ -280,6 +280,7 @@ pub struct DiffDocumentRevisionsResult {
     pub removed: usize,
     pub old_text: String,
     pub new_text: String,
+    pub side_by_side_rows: Vec<scribe_core::SideBySideRow>,
 }
 
 #[tauri::command]
@@ -310,6 +311,7 @@ pub fn diff_document_revisions(
         lines,
         added,
         removed,
+        side_by_side_rows,
     } = diff_lines(&old_text, &new_text);
 
     Ok(DiffDocumentRevisionsResult {
@@ -318,7 +320,57 @@ pub fn diff_document_revisions(
         removed,
         old_text,
         new_text,
+        side_by_side_rows,
     })
+}
+
+/// Convert TipTap JSON → plain text or markdown (canonical scribe-core serializers).
+#[tauri::command]
+pub fn convert_tiptap(content_json: String, format: String) -> Result<String, String> {
+    match format.to_lowercase().as_str() {
+        "plain" | "text" | "txt" => Ok(tiptap_to_plain_text(&content_json)),
+        "markdown" | "md" => Ok(tiptap_to_markdown(&content_json)),
+        other => Err(format!("Unsupported convert_tiptap format: {other}")),
+    }
+}
+
+/// Diff two plain-text blobs (lines + word-level side-by-side).
+#[tauri::command]
+pub fn diff_plain_texts(old_text: String, new_text: String) -> DiffResult {
+    diff_lines(&old_text, &new_text)
+}
+
+/// Document chat intent router (EN/SK) — same rules as Local AI chat chips.
+#[tauri::command]
+pub fn match_document_chat_intent(question: String) -> Option<String> {
+    scribe_core::match_document_chat_intent(&question).map(str::to_string)
+}
+
+/// Parse convention tags (`status:` / `project:` / `year:`).
+#[tauri::command]
+pub fn parse_meta_tag(raw: String) -> scribe_core::ParsedTag {
+    scribe_core::parse_meta_tag(&raw)
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MetaFiltersInput {
+    pub status: Option<String>,
+    pub project: Option<String>,
+    pub year: Option<String>,
+}
+
+/// Whether a document's tags satisfy status/project/year filters.
+#[tauri::command]
+pub fn document_matches_meta_filters(tags: Vec<String>, filters: MetaFiltersInput) -> bool {
+    scribe_core::document_matches_meta_filters(
+        &tags,
+        &scribe_core::MetaFilters {
+            status: filters.status,
+            project: filters.project,
+            year: filters.year,
+        },
+    )
 }
 
 /// Render structural TipTap→HTML in Rust (no Mermaid/D3). Used when the caller

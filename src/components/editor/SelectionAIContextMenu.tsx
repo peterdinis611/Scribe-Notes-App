@@ -5,14 +5,20 @@ import {
   List,
   LoaderCircle,
   Minimize2,
+  PenLine,
   RefreshCw,
   Scissors,
   Sparkles,
   Type,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { nlpRewriteSelection } from '@/lib/db/nlp-api'
+import {
+  nlpRewriteSelection,
+  nlpWritingCoach,
+  type WritingCoachHint,
+} from '@/lib/db/nlp-api'
 import { toast } from '@/lib/toast'
+import { cn } from '@/lib/utils'
 
 type SelectionAIContextMenuProps = {
   selectedText: string
@@ -38,19 +44,47 @@ export function SelectionAIContextMenu({
   const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<string | null>(null)
+  const [coachHints, setCoachHints] = useState<WritingCoachHint[] | null>(null)
+  const [coachScore, setCoachScore] = useState<number | null>(null)
   const [customOpen, setCustomOpen] = useState(false)
   const [customPrompt, setCustomPrompt] = useState('')
+
+  function resetViews() {
+    setResult(null)
+    setCoachHints(null)
+    setCoachScore(null)
+    setCustomOpen(false)
+  }
 
   async function handleRewrite(mode: string, instruction?: string) {
     const text = selectedText.trim()
     if (!text || loading) return
     setLoading(true)
+    setCoachHints(null)
+    setCoachScore(null)
     try {
       const res = await nlpRewriteSelection(text, mode, instruction)
       setResult(res.output)
       setCustomOpen(false)
     } catch (error) {
       toast.error(t('aiRewrite.error'), String(error))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleWritingCoach() {
+    const text = selectedText.trim()
+    if (!text || loading) return
+    setLoading(true)
+    setResult(null)
+    try {
+      const res = await nlpWritingCoach({ text, limit: 10 })
+      setCoachHints(res.hints ?? [])
+      setCoachScore(typeof res.score === 'number' ? res.score : null)
+      setCustomOpen(false)
+    } catch (error) {
+      toast.error(t('aiRewrite.coachError'), String(error))
     } finally {
       setLoading(false)
     }
@@ -69,11 +103,51 @@ export function SelectionAIContextMenu({
           <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden />
           {t('aiRewrite.working')}
         </p>
+      ) : coachHints ? (
+        <>
+          <div className="selection-ai__coach-head">
+            <span className="selection-ai__coach-title">{t('aiRewrite.coachTitle')}</span>
+            {coachScore != null ? (
+              <span className="selection-ai__coach-score">
+                {t('aiRewrite.coachScore', { score: Math.round(coachScore) })}
+              </span>
+            ) : null}
+          </div>
+          {coachHints.length === 0 ? (
+            <p className="selection-ai__preview">{t('aiRewrite.coachEmpty')}</p>
+          ) : (
+            <ul className="selection-ai__coach-list">
+              {coachHints.map((hint, index) => (
+                <li key={`${hint.code}-${index}`} className="selection-ai__coach-item">
+                  <span
+                    className={cn(
+                      'selection-ai__coach-dot',
+                      hint.severity === 'warn' && 'is-warn',
+                      hint.severity === 'ok' && 'is-ok',
+                    )}
+                    aria-hidden
+                  />
+                  <div>
+                    <p className="selection-ai__coach-msg">{hint.message}</p>
+                    {hint.excerpt ? (
+                      <p className="selection-ai__coach-excerpt">{hint.excerpt}</p>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="selection-ai__row">
+            <button type="button" className="selection-ai__ghost" onClick={resetViews}>
+              {t('common.back')}
+            </button>
+          </div>
+        </>
       ) : result ? (
         <>
           <p className="selection-ai__preview">{result}</p>
           <div className="selection-ai__row">
-            <button type="button" className="selection-ai__ghost" onClick={() => setResult(null)}>
+            <button type="button" className="selection-ai__ghost" onClick={resetViews}>
               {t('common.back')}
             </button>
             <button type="button" className="selection-ai__ghost" onClick={() => onInsertBelow(result)}>
@@ -130,6 +204,14 @@ export function SelectionAIContextMenu({
               </button>
             )
           })}
+          <button
+            type="button"
+            className="selection-ai__mode"
+            onClick={() => void handleWritingCoach()}
+          >
+            <PenLine className="h-3.5 w-3.5" aria-hidden />
+            {t('aiRewrite.coach')}
+          </button>
           <button
             type="button"
             className="selection-ai__mode"

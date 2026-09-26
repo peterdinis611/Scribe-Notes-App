@@ -1,4 +1,5 @@
 mod chat_context;
+mod chat_intent;
 pub mod continuation;
 mod document_passages;
 mod duplicates;
@@ -15,6 +16,7 @@ pub use chat_context::{
     followups_from_sidecar, is_chat_memory_citation_title, merge_chat_memory_passages, ChatTurn,
     DOCUMENT_CHAT_CONTEXT_LIMIT, MERGED_PASSAGE_LIMIT,
 };
+pub use chat_intent::match_document_chat_intent;
 pub use document_passages::{
     build_document_answer_passages, chunk_document_passages, DOCUMENT_ANSWER_PASSAGE_LIMIT,
     DOCUMENT_EMBED_RANK_LIMIT,
