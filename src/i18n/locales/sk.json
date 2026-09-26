@@ -2315,6 +2315,26 @@
       "label": "Vložená poznámka",
       "hint": "![[Názov]] — náhľad"
     },
+    "custom-block": {
+      "label": "Vlastný blok",
+      "hint": "Uložiť znovupoužiteľný blok"
+    },
+    "customSnippet": {
+      "label": "Úryvok: {{name}}",
+      "hint": "Váš vlastný blok"
+    },
+    "customBlock": {
+      "nameTitle": "Názov vlastného bloku",
+      "nameDescription": "Tento názov sa zobrazí v ponuke /.",
+      "namePlaceholder": "napr. Týždenné zhrnutie",
+      "bodyTitle": "Obsah bloku",
+      "bodyDescription": "Text vo formáte: ## nadpisy, - zoznamy, - [ ] úlohy, **tučné**.",
+      "bodyDescriptionSelection": "Upravte označený text alebo ho nahraďte svojim blokom.",
+      "bodyPlaceholder": "## Nadpis\n\n- položka",
+      "save": "Uložiť blok",
+      "saved": "Vlastný blok uložený",
+      "saveFailed": "Vlastný blok sa nepodarilo uložiť"
+    },
     "snippet-meeting": {
       "label": "Úryvok: Stretnutie",
       "hint": "Agenda a úlohy"

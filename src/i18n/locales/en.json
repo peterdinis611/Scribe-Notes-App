@@ -2307,6 +2307,26 @@
       "label": "Embed note",
       "hint": "![[Title]] preview"
     },
+    "custom-block": {
+      "label": "Custom block",
+      "hint": "Save a reusable block"
+    },
+    "customSnippet": {
+      "label": "Snippet: {{name}}",
+      "hint": "Your custom block"
+    },
+    "customBlock": {
+      "nameTitle": "Custom block name",
+      "nameDescription": "This name appears in the / menu.",
+      "namePlaceholder": "e.g. Weekly review",
+      "bodyTitle": "Block content",
+      "bodyDescription": "Markdown-ish text: ## headings, - lists, - [ ] tasks, **bold**.",
+      "bodyDescriptionSelection": "Edit the selected text, or replace it with your reusable block.",
+      "bodyPlaceholder": "## Heading\n\n- item",
+      "save": "Save block",
+      "saved": "Custom block saved",
+      "saveFailed": "Could not save custom block"
+    },
     "snippet-meeting": {
       "label": "Snippet: Meeting",
       "hint": "Agenda and actions"

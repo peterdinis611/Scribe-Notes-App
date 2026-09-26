@@ -10,6 +10,8 @@ export type InputDialogOptions = {
   cancelLabel?: string
   /** Mask input as a password field. */
   password?: boolean
+  /** Use a multiline textarea (e.g. custom block body). */
+  multiline?: boolean
 }
 
 export type InputDialogState = ({ open: true } & InputDialogOptions) | { open: false }
