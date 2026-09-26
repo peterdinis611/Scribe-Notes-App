@@ -5817,8 +5817,8 @@ body.is-block-dragging .editor-block-drag-handle {
   cursor: grabbing;
 }
 
-.tiptap > *:is(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, pre, table, hr, .details-block, .table-of-contents-block, .image-block, .lottie-block, li).is-block-drag-hover,
-.tiptap > *:is(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, pre, table, hr, .details-block, .table-of-contents-block, .image-block, .lottie-block, li).is-block-drag-source {
+.tiptap > *:is(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, pre, table, hr, .details-block, .table-of-contents-block, .image-block, .lottie-block, .model-3d-block, li).is-block-drag-hover,
+.tiptap > *:is(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, pre, table, hr, .details-block, .table-of-contents-block, .image-block, .lottie-block, .model-3d-block, li).is-block-drag-source {
   outline: 2px solid color-mix(in srgb, var(--color-accent) 45%, transparent);
   outline-offset: 3px;
   border-radius: 4px;
@@ -6103,7 +6103,7 @@ body.is-block-dragging .tiptap {
 }
 
 /* Keep a quiet cue only for structured blocks — never a form-like box on empty paragraphs. */
-.tiptap :is(blockquote, pre, table, .details-block, .callout, .math-js-node, .mermaid-diagram, .d3-chart, .video-block, .map-block, .image-block, .lottie-block).has-focus {
+.tiptap :is(blockquote, pre, table, .details-block, .callout, .math-js-node, .mermaid-diagram, .d3-chart, .video-block, .map-block, .image-block, .lottie-block, .model-3d-block).has-focus {
   outline: 1px solid color-mix(in srgb, var(--color-accent) 28%, transparent);
   outline-offset: 3px;
   border-radius: 4px;
@@ -7409,6 +7409,22 @@ body.is-block-dragging .tiptap {
   width: 100% !important;
   height: auto !important;
   max-width: 100%;
+}
+
+.tiptap .model-3d-block .model-3d-media {
+  min-height: 200px;
+  background:
+    radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--color-accent) 12%, transparent), transparent 55%),
+    color-mix(in srgb, var(--color-muted) 35%, var(--color-surface));
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.tiptap .model-3d-block model-viewer {
+  display: block;
+  width: 100%;
+  height: 320px;
+  --poster-color: transparent;
 }
 
 .tiptap .ProseMirror-selectednode .image-block-inner {

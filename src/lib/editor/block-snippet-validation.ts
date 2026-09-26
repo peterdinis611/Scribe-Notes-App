@@ -65,6 +65,7 @@ const ALLOWED_NODE_TYPES = new Set([
   'video',
   'youtube',
   'lottieAnimation',
+  'model3d',
   'callout',
   'details',
   'detailsSummary',

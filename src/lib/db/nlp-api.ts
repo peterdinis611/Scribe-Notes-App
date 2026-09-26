@@ -406,6 +406,29 @@ export const nlpRewriteSelection = (
     customInstruction,
   })
 
+export type ContinuationSuggestion = {
+  text: string
+  score: number
+  model: string
+}
+
+export type NlpContinuationResult = {
+  suggestions: ContinuationSuggestion[]
+  prefixTail: string
+  source: string
+  corpusDocs: number
+  model: string
+}
+
+/** Suggest continue-writing phrases from the local library (Python n-grams, Rust fallback). */
+export const nlpSuggestContinuation = (input: {
+  prefix: string
+  maxSuggestions?: number
+  maxTokens?: number
+  preferRust?: boolean
+  excludeDocumentId?: string
+}) => invoke<NlpContinuationResult>('nlp_suggest_continuation', { input })
+
 export const nlpCalendarEvents = (options?: {
   limit?: number
   fromDate?: string

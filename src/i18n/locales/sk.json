@@ -2247,6 +2247,10 @@
       "label": "Lottie",
       "hint": "Lottie / DotLottie animácia (.json, .lottie)"
     },
+    "model3d": {
+      "label": "3D model",
+      "hint": "GLB / GLTF / USDZ — orbit v editore"
+    },
     "video": {
       "label": "Video",
       "hint": "YouTube, Vimeo alebo URL súboru"
@@ -2361,6 +2365,10 @@
     "lorem": {
       "label": "Lorem ipsum",
       "hint": "Zástupný text…"
+    },
+    "continue": {
+      "label": "Pokračovať v písaní",
+      "hint": "Návrh ďalších slov z knižnice"
     },
     "toc": {
       "label": "Obsah",
@@ -2690,7 +2698,6 @@
       "insert": "Vložiť",
       "image": "Obrázok",
       "imageUrl": "Obrázok z URL",
-      "lottie": "Lottie animácia",
       "table": "Tabuľka",
       "youtube": "YouTube",
       "youtubeVideo": "YouTube video",
@@ -2700,6 +2707,8 @@
       "tableOfContents": "Obsah (TOC)",
       "pageBreak": "Zalomenie strany",
       "lorem": "Lorem ipsum…",
+      "lottie": "Lottie animácia",
+      "model3d": "3D model",
       "inlineMath": "Vzorec v riadku",
       "inlineMathFull": "Vzorec v riadku (math.js)",
       "blockMath": "Vzorec blok",
@@ -3101,6 +3110,17 @@
     "emptyTitle": "Pridať Lottie animáciu",
     "emptyHint": "Nahrajte súbor .json alebo .lottie",
     "upload": "Nahrať"
+  },
+  "model3d": {
+    "alignGroup": "Zarovnanie 3D modelu",
+    "autoRotate": "Automatická rotácia",
+    "cameraControls": "Orbit ovládanie",
+    "replace": "Nahradiť model",
+    "delete": "Odstrániť 3D model",
+    "emptyTitle": "Pridať 3D model",
+    "emptyHint": "Nahrajte súbor .glb, .gltf alebo .usdz",
+    "upload": "Nahrať",
+    "alt": "3D model"
   },
   "structuredPdf": {
     "digestFooter": "Scribe · Denníkový digest",

@@ -2239,6 +2239,10 @@
       "label": "Lottie",
       "hint": "Lottie / DotLottie animation (.json, .lottie)"
     },
+    "model3d": {
+      "label": "3D model",
+      "hint": "GLB / GLTF / USDZ — orbit in the editor"
+    },
     "video": {
       "label": "Video",
       "hint": "YouTube, Vimeo, or a file URL"
@@ -2353,6 +2357,10 @@
     "lorem": {
       "label": "Lorem ipsum",
       "hint": "Placeholder text…"
+    },
+    "continue": {
+      "label": "Continue writing",
+      "hint": "Suggest next words from your library"
     },
     "toc": {
       "label": "Table of contents",
@@ -2676,7 +2684,6 @@
       "insert": "Insert",
       "image": "Image",
       "imageUrl": "Image from URL",
-      "lottie": "Lottie animation",
       "table": "Table",
       "youtube": "YouTube",
       "youtubeVideo": "YouTube video",
@@ -2686,6 +2693,8 @@
       "tableOfContents": "Table of contents (TOC)",
       "pageBreak": "Page break",
       "lorem": "Lorem ipsum…",
+      "lottie": "Lottie animation",
+      "model3d": "3D model",
       "inlineMath": "Inline formula",
       "inlineMathFull": "Inline formula (math.js)",
       "blockMath": "Formula block",
@@ -3085,6 +3094,17 @@
     "emptyTitle": "Add a Lottie animation",
     "emptyHint": "Upload a .json or .lottie file",
     "upload": "Upload"
+  },
+  "model3d": {
+    "alignGroup": "3D model alignment",
+    "autoRotate": "Auto-rotate",
+    "cameraControls": "Orbit controls",
+    "replace": "Replace model",
+    "delete": "Delete 3D model",
+    "emptyTitle": "Add a 3D model",
+    "emptyHint": "Upload a .glb, .gltf, or .usdz file",
+    "upload": "Upload",
+    "alt": "3D model"
   },
   "structuredPdf": {
     "digestFooter": "Scribe · Journal digest",

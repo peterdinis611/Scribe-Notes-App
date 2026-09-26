@@ -1,6 +1,7 @@
 import type { Editor } from '@tiptap/react'
 import {
   insertBlockMath,
+  insertContinuation,
   insertD3Chart,
   insertEmptyVideoBlock,
   insertLeafletMap,
@@ -11,6 +12,7 @@ import {
 import {
   insertEmptyImageBlock,
   insertEmptyLottieBlock,
+  insertEmptyModel3dBlock,
   insertImageFromUrl,
   isLikelyImageUrl,
 } from '@/lib/editor/image-utils'
@@ -154,6 +156,14 @@ const BLOCK_DEFINITIONS: BlockDefinition[] = [
     insert: (editor) => insertEmptyLottieBlock(editor),
   },
   {
+    id: 'model3d',
+    icon: '▣',
+    group: 'media',
+    aliases: ['3d', 'glb', 'gltf'],
+    keywords: ['3d', 'model', 'glb', 'gltf', 'usdz', 'mesh'],
+    insert: (editor) => insertEmptyModel3dBlock(editor),
+  },
+  {
     id: 'video',
     icon: '▶',
     group: 'media',
@@ -284,6 +294,14 @@ const BLOCK_DEFINITIONS: BlockDefinition[] = [
     icon: '¶',
     group: 'advanced',
     insert: (editor) => void insertLoremIpsum(editor),
+  },
+  {
+    id: 'continue',
+    icon: '→',
+    group: 'advanced',
+    aliases: ['continue-writing', 'suggest-continuation'],
+    keywords: ['continue', 'suggest', 'ai', 'nlp', 'pokracovat'],
+    insert: (editor) => void insertContinuation(editor),
   },
   {
     id: 'toc',

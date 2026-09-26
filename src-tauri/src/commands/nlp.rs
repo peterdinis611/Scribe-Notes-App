@@ -2241,3 +2241,97 @@ pub fn nlp_rewrite_selection(
     Ok(parse_rewrite_result(&res, &mode, &text))
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpSuggestContinuationInput {
+    pub prefix: String,
+    pub max_suggestions: Option<u32>,
+    pub max_tokens: Option<u32>,
+    pub prefer_rust: Option<bool>,
+    pub exclude_document_id: Option<String>,
+}
+
+/// Suggest continuation phrases from the local library corpus (Python n-grams, Rust fallback).
+#[tauri::command]
+pub fn nlp_suggest_continuation(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpSuggestContinuationInput,
+) -> Result<serde_json::Value, String> {
+    let prefix = input.prefix;
+    let max_suggestions = input.max_suggestions.unwrap_or(3).clamp(1, 5);
+    let max_tokens = input.max_tokens.unwrap_or(16).clamp(1, 32);
+    let prefer_rust = input.prefer_rust.unwrap_or(false);
+    let exclude = input
+        .exclude_document_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+
+    let corpus = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        let library_id = crate::libraries::active_library_id(&conn);
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, title, content_json FROM documents
+                 WHERE deleted_at IS NULL AND library_id = ?1
+                 ORDER BY updated_at DESC
+                 LIMIT 48",
+            )
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map(params![library_id], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            })
+            .map_err(|e| e.to_string())?;
+        let mut texts = Vec::new();
+        for row in rows {
+            let (id, title, content_json) = row.map_err(|e| e.to_string())?;
+            if exclude.is_some_and(|ex| ex == id) {
+                continue;
+            }
+            if content_is_vault_cipher(&content_json) {
+                continue;
+            }
+            let text = document_index_text(&conn, &id, &title, &content_json);
+            if text.trim().chars().count() >= 24 {
+                texts.push(text);
+            }
+        }
+        texts
+    };
+
+    if !prefer_rust {
+        let nlp_on = {
+            let conn = state.conn.lock().map_err(|e| e.to_string())?;
+            let enabled = is_nlp_enabled(&conn)?;
+            if enabled {
+                let _ = sync_sidecar_backend(&sidecar, &conn);
+            }
+            enabled
+        };
+        if nlp_on {
+            if let Ok(value) = sidecar.suggest_continuation(
+                &prefix,
+                &corpus,
+                max_suggestions as i64,
+                max_tokens as i64,
+            ) {
+                return Ok(value);
+            }
+        }
+    }
+
+    let result = scribe_core::nlp::suggest_continuation(
+        &prefix,
+        &corpus,
+        max_suggestions as usize,
+        max_tokens as usize,
+    );
+    serde_json::to_value(result).map_err(|e| e.to_string())
+}
+

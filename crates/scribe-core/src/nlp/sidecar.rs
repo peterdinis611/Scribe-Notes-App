@@ -625,6 +625,24 @@ impl NlpSidecar {
         Ok(crate::nlp::parse_rewrite_result(&raw, mode, text))
     }
 
+    pub fn suggest_continuation(
+        &self,
+        prefix: &str,
+        corpus: &[String],
+        max_suggestions: i64,
+        max_tokens: i64,
+    ) -> Result<Value, String> {
+        self.call_method(
+            "suggest_continuation",
+            json!({
+                "prefix": prefix,
+                "corpus": corpus,
+                "maxSuggestions": max_suggestions,
+                "maxTokens": max_tokens,
+            }),
+        )
+    }
+
     pub fn analyze_document_typed(
         &self,
         text: &str,
@@ -655,7 +673,9 @@ pub fn rpc_timeout(method: &str) -> Duration {
     }
     match method {
         "health" | "set_embed_backend" => Duration::from_secs(8),
-        "embed" | "rewrite_query" | "chunk_text" => Duration::from_secs(25),
+        "embed" | "rewrite_query" | "chunk_text" | "suggest_continuation" | "generate_placeholder" => {
+            Duration::from_secs(25)
+        }
         "embed_with_chunks" => Duration::from_secs(60),
         "embed_batch" | "embed_batch_with_chunks" => Duration::from_secs(180),
         "library_answer" | "find_duplicates" | "library_report" | "analyze_document" => {

@@ -37,6 +37,7 @@ import { MathJs } from '@/lib/editor/math-js-extension'
 import { D3Chart } from '@/lib/editor/d3-chart-extension'
 import { MermaidDiagram } from '@/lib/editor/mermaid-extension'
 import { LottieAnimation } from '@/lib/editor/lottie-extension'
+import { Model3d } from '@/lib/editor/model-3d-extension'
 import { PageBreak } from '@/lib/editor/page-break'
 import { ResizableImage } from '@/lib/editor/resizable-image'
 import { SearchReplace } from '@/lib/editor/search-extension'
@@ -120,6 +121,7 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
     MermaidDiagram.configure({}),
     D3Chart.configure({}),
     LottieAnimation.configure({}),
+    Model3d.configure({}),
     Video.configure({}),
     LeafletMap.configure({}),
     YoutubeWithPlayer.configure({

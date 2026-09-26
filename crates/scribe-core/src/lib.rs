@@ -4,6 +4,7 @@ pub mod db;
 pub mod diff;
 pub mod enhance;
 pub mod html;
+pub mod html_paste;
 pub mod journal;
 pub mod manuscripts;
 pub mod nlp;
@@ -25,6 +26,7 @@ pub use enhance::{
 };
 pub use diff::{diff_lines, DiffLine, DiffLineType, DiffResult};
 pub use html::{escape_html, tiptap_to_html};
+pub use html_paste::{looks_like_dirty_html, normalize_clipboard_html, HtmlPasteResult};
 pub use journal::{JournalNote, JournalSlot, JournalSummary, JournalSummaryInput};
 pub use office_import::{docx_bytes_to_tiptap, xlsx_bytes_to_tiptap};
 pub use plain_text::{tiptap_to_markdown, tiptap_to_plain_text};

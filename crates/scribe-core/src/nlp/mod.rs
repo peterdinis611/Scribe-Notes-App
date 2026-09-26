@@ -1,4 +1,5 @@
 mod chat_context;
+pub mod continuation;
 mod document_passages;
 mod duplicates;
 pub mod jobs;
@@ -34,6 +35,7 @@ pub use parse::{
     parse_reading_stats, parse_rewrite_result, parse_sentiment, parse_spellcheck, parse_summary,
     parse_tasks, parse_template_hints, parse_title_suggestion, parse_wiki_suggestions,
 };
+pub use continuation::{suggest_continuation, ContinuationResult, ContinuationSuggestion};
 pub use placeholder::{
     generate_placeholder, PlaceholderLanguage, PlaceholderResult, PlaceholderUnit,
 };

@@ -104,6 +104,38 @@ export async function insertLoremIpsum(editor: Editor): Promise<boolean> {
   return true
 }
 
+/** Insert a library-based continue-writing suggestion at the cursor. */
+export async function insertContinuation(
+  editor: Editor,
+  options?: { excludeDocumentId?: string },
+): Promise<boolean> {
+  if (editor.isDestroyed) return false
+
+  const { from } = editor.state.selection
+  const prefix = editor.state.doc.textBetween(Math.max(0, from - 800), from, '\n', '\n')
+
+  try {
+    const { nlpSuggestContinuation } = await import('@/lib/db/nlp-api')
+    const result = await nlpSuggestContinuation({
+      prefix,
+      maxSuggestions: 3,
+      maxTokens: 16,
+      excludeDocumentId: options?.excludeDocumentId,
+    })
+    const text = result.suggestions?.[0]?.text?.trim()
+    if (!text || editor.isDestroyed) return false
+    const needsSpace = prefix.length > 0 && !/\s$/.test(prefix)
+    editor
+      .chain()
+      .focus()
+      .insertContent(needsSpace ? ` ${text}` : text)
+      .run()
+    return true
+  } catch {
+    return false
+  }
+}
+
 export async function insertScannedBarcode(editor: Editor): Promise<boolean> {
   const { scanBarcode } = await import('@/lib/barcode-scanner')
   const scanned = await scanBarcode()
