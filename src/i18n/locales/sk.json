@@ -2382,6 +2382,10 @@
       "label": "3D model",
       "hint": "GLB / GLTF / USDZ — orbit v editore"
     },
+    "paint": {
+      "label": "Maľovanie",
+      "hint": "Voľná kresba priamo v poznámke"
+    },
     "video": {
       "label": "Video",
       "hint": "YouTube, Vimeo alebo URL súboru"
@@ -2840,6 +2844,7 @@
       "lorem": "Lorem ipsum…",
       "lottie": "Lottie animácia",
       "model3d": "3D model",
+      "paint": "Maľovanie / kresba",
       "inlineMath": "Vzorec v riadku",
       "inlineMathFull": "Vzorec v riadku (math.js)",
       "blockMath": "Vzorec blok",
@@ -3252,6 +3257,22 @@
     "emptyHint": "Nahrajte súbor .glb, .gltf alebo .usdz",
     "upload": "Nahrať",
     "alt": "3D model"
+  },
+  "paint": {
+    "title": "Atramentový blok",
+    "pen": "Pero",
+    "eraser": "Guma",
+    "size": "Hrúbka štetca",
+    "colors": "Farby atramentu",
+    "undo": "Späť ťah",
+    "redo": "Znova ťah",
+    "clear": "Vymazať plochu",
+    "ocr": "Rozpoznať text (OCR)",
+    "ocrLabel": "OCR",
+    "ocrDone": "Text z kresby rozpoznaný",
+    "ocrEmpty": "V tejto kresbe sa nenašiel text",
+    "ocrError": "OCR na kresbe zlyhalo",
+    "ocrNoDocument": "Pred OCR otvorte dokument"
   },
   "structuredPdf": {
     "digestFooter": "Scribe · Denníkový digest",

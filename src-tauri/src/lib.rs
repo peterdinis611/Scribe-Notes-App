@@ -302,6 +302,7 @@ pub fn run() {
             commands::nlp::nlp_suggest_continuation,
             commands::nlp::nlp_calendar_events,
             commands::ocr::extract_image_ocr,
+            commands::ocr::extract_image_ocr_base64,
             commands::ocr::save_document_ocr,
             commands::smart_folders::list_smart_folders,
             commands::smart_folders::upsert_smart_folder,

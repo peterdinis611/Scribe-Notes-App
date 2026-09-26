@@ -115,6 +115,20 @@ fn render_node(node: &Value, out: &mut String) {
             out.push_str("</code></pre>");
         }
         Some("horizontalRule") => out.push_str("<hr />"),
+        Some("paintPad") => {
+            let ocr = node
+                .pointer("/attrs/ocrText")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .trim();
+            out.push_str("<figure data-type=\"paint-pad\"><p>Paint pad</p>");
+            if !ocr.is_empty() {
+                out.push_str("<figcaption>");
+                push_escaped(out, ocr);
+                out.push_str("</figcaption>");
+            }
+            out.push_str("</figure>");
+        }
         // Unknown nodes keep their children so no content is lost.
         _ => render_children(node, out),
     }

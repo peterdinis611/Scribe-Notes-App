@@ -141,6 +141,39 @@ pub fn extract_image_ocr(image_path: String) -> Result<OcrResult, String> {
     })
 }
 
+/// OCR from an in-memory PNG/JPEG (e.g. paint pad export) without a document asset path.
+#[tauri::command]
+pub fn extract_image_ocr_base64(image_base64: String, mime_hint: Option<String>) -> Result<OcrResult, String> {
+    use base64::Engine;
+    let cleaned = image_base64
+        .trim()
+        .strip_prefix("data:image/png;base64,")
+        .or_else(|| image_base64.trim().strip_prefix("data:image/jpeg;base64,"))
+        .unwrap_or(image_base64.trim());
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(cleaned)
+        .map_err(|error| format!("Invalid image base64: {error}"))?;
+    if bytes.is_empty() {
+        return Err("Empty image payload".to_string());
+    }
+    let ext = match mime_hint
+        .as_deref()
+        .unwrap_or("image/png")
+        .to_ascii_lowercase()
+        .as_str()
+    {
+        "image/jpeg" | "image/jpg" => "jpg",
+        _ => "png",
+    };
+    let dir = std::env::temp_dir().join("scribe-ocr");
+    std::fs::create_dir_all(&dir).map_err(|error| error.to_string())?;
+    let path = dir.join(format!("{}.{}", Uuid::new_v4(), ext));
+    std::fs::write(&path, &bytes).map_err(|error| error.to_string())?;
+    let result = extract_image_ocr(path.to_string_lossy().to_string());
+    let _ = std::fs::remove_file(&path);
+    result
+}
+
 #[tauri::command]
 pub fn save_document_ocr(
     state: State<'_, DbState>,

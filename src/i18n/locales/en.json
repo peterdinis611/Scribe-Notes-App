@@ -2374,6 +2374,10 @@
       "label": "3D model",
       "hint": "GLB / GLTF / USDZ — orbit in the editor"
     },
+    "paint": {
+      "label": "Paint",
+      "hint": "Freehand sketch pad in the note"
+    },
     "video": {
       "label": "Video",
       "hint": "YouTube, Vimeo, or a file URL"
@@ -2826,6 +2830,7 @@
       "lorem": "Lorem ipsum…",
       "lottie": "Lottie animation",
       "model3d": "3D model",
+      "paint": "Paint / sketch",
       "inlineMath": "Inline formula",
       "inlineMathFull": "Inline formula (math.js)",
       "blockMath": "Formula block",
@@ -3236,6 +3241,22 @@
     "emptyHint": "Upload a .glb, .gltf, or .usdz file",
     "upload": "Upload",
     "alt": "3D model"
+  },
+  "paint": {
+    "title": "Ink pad",
+    "pen": "Pen",
+    "eraser": "Eraser",
+    "size": "Brush size",
+    "colors": "Ink colors",
+    "undo": "Undo stroke",
+    "redo": "Redo stroke",
+    "clear": "Clear pad",
+    "ocr": "Recognize text (OCR)",
+    "ocrLabel": "OCR",
+    "ocrDone": "Text recognized from drawing",
+    "ocrEmpty": "No text found in this drawing",
+    "ocrError": "Could not run OCR on drawing",
+    "ocrNoDocument": "Open a document before running OCR"
   },
   "structuredPdf": {
     "digestFooter": "Scribe · Journal digest",

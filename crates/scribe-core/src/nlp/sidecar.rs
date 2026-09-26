@@ -735,6 +735,13 @@ impl NlpSidecar {
         )
     }
 
+    pub fn extract_paint_ocr(&self, content_json: &str) -> Result<Value, String> {
+        self.call_method(
+            "extract_paint_ocr",
+            json!({ "contentJson": content_json }),
+        )
+    }
+
     pub fn analyze_document_typed(
         &self,
         text: &str,
@@ -768,7 +775,7 @@ pub fn rpc_timeout(method: &str) -> Duration {
         "embed" | "rewrite_query" | "chunk_text" | "suggest_continuation" | "generate_placeholder"
         | "analyze_revision_diff" | "summarize_diff" | "extract_flashcards" | "check_terminology"
         | "extract_takeaways" | "writing_coach" | "outline_quiz" | "meeting_notes_pack"
-        | "check_terminology_library" | "citation_pack" => {
+        | "check_terminology_library" | "citation_pack" | "extract_paint_ocr" => {
             Duration::from_secs(25)
         }
         "embed_with_chunks" => Duration::from_secs(60),

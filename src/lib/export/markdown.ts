@@ -91,6 +91,10 @@ function renderNodes(nodes?: TipTapNode[]): string {
           const source = String(node.attrs?.source ?? '')
           return `\`\`\`map\n${source}\n\`\`\`\n\n`
         }
+        case 'paintPad': {
+          const ocr = String(node.attrs?.ocrText ?? '').trim()
+          return ocr ? `> Paint OCR: ${ocr}\n\n` : `> *[Paint pad]*\n\n`
+        }
         case 'youtube':
         case 'video': {
           const src = String(node.attrs?.src ?? '')

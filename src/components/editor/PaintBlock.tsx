@@ -229,13 +229,13 @@ export function PaintBlock({ node, selected, deleteNode, updateAttributes, getPo
           >
             <Eraser className="h-3.5 w-3.5" />
           </button>
-          <label className="paint-block__size">
-            <span className="sr-only">{t('paint.size')}</span>
+            <label className="paint-block__size" title={t('paint.size')}>
             <input
               type="range"
               min={1}
               max={24}
               value={brush}
+              aria-label={t('paint.size')}
               onChange={(event) => setBrush(Number(event.target.value))}
             />
           </label>

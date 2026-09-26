@@ -109,6 +109,7 @@ FEATURES = [
     "meetingNotesPack",
     "checkTerminologyLibrary",
     "citationPack",
+    "extractPaintOcr",
     "libraryAnswer",
     "dueHints",
     "wikiSuggest",
@@ -596,6 +597,12 @@ def _handle_request_inner(
                 raise SidecarError("documents exceeds limit", code=-32602)
             limit = max(1, min(int(params.get("limit") or 8), 20))
             result = citation_pack(claim, documents, limit=limit)
+        elif method == "extract_paint_ocr":
+            from .paint_blocks import extract_paint_ocr
+
+            content = params.get("contentJson") or params.get("content_json") or params.get("text") or ""
+            texts = extract_paint_ocr(content if isinstance(content, (str, dict)) else str(content))
+            result = {"texts": texts, "count": len(texts), "source": "python"}
         else:
             return {
                 "jsonrpc": "2.0",

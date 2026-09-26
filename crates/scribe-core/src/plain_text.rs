@@ -232,6 +232,19 @@ fn block_to_plain(value: &Value) -> String {
             .unwrap_or_default(),
         Some("horizontalRule") => "---".to_string(),
         Some("codeBlock") => inline_text(value),
+        Some("paintPad") => {
+            let ocr = value
+                .get("attrs")
+                .and_then(|attrs| attrs.get("ocrText"))
+                .and_then(|item| item.as_str())
+                .unwrap_or("")
+                .trim();
+            if ocr.is_empty() {
+                "[Paint pad]".to_string()
+            } else {
+                format!("[Paint pad] {ocr}")
+            }
+        }
         _ => value
             .get("content")
             .and_then(|item| item.as_array())
@@ -342,6 +355,18 @@ fn block_to_markdown(value: &Value) -> String {
             format!("```{lang}\n{}\n```\n\n", inline_text(value))
         }
         Some("horizontalRule") => "---\n\n".to_string(),
+        Some("paintPad") => {
+            let ocr = value
+                .pointer("/attrs/ocrText")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .trim();
+            if ocr.is_empty() {
+                "> *[Paint pad]*\n\n".to_string()
+            } else {
+                format!("> Paint OCR: {ocr}\n\n")
+            }
+        }
         Some("bulletList") => list_to_markdown(value, false),
         Some("orderedList") => list_to_markdown(value, true),
         Some("taskList") => value
