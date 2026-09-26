@@ -118,6 +118,8 @@ FEATURES = [
     "answerFollowups",
     "rewriteSelection",
     "passageRerank",
+    "planAgentGoal",
+    "agentDocumentBrief",
 ]
 
 
