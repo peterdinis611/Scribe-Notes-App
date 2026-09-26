@@ -1601,6 +1601,81 @@ pub fn nlp_analyze_revision_diff(
     serde_json::to_value(report).map_err(|e| e.to_string())
 }
 
+fn document_plain_for_nlp(
+    state: &State<'_, DbState>,
+    document_id: &str,
+) -> Result<String, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    if !is_nlp_enabled(&conn)? {
+        return Err("NLP is disabled".to_string());
+    }
+    let (title, content_json): (String, String) = conn
+        .query_row(
+            "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL",
+            params![document_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .map_err(|e| e.to_string())?;
+    Ok(format!("{title}\n{}", extract_search_text(&content_json)))
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpDocumentTextInput {
+    pub document_id: String,
+    pub limit: Option<i64>,
+    pub include_cloze: Option<bool>,
+}
+
+/// Study flashcards from the active document (Python sidecar).
+#[tauri::command]
+pub fn nlp_extract_flashcards(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpDocumentTextInput,
+) -> Result<serde_json::Value, String> {
+    let text = document_plain_for_nlp(&state, &input.document_id)?;
+    let limit = input.limit.unwrap_or(12).clamp(1, 40);
+    let include_cloze = input.include_cloze.unwrap_or(true);
+    sidecar.extract_flashcards(&text, limit, include_cloze)
+}
+
+/// Terminology consistency issues in one document (Python sidecar).
+#[tauri::command]
+pub fn nlp_check_terminology(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpDocumentTextInput,
+) -> Result<serde_json::Value, String> {
+    let text = document_plain_for_nlp(&state, &input.document_id)?;
+    let limit = input.limit.unwrap_or(12).clamp(1, 30);
+    sidecar.check_terminology(&text, limit)
+}
+
+/// Key takeaways / executive bullets (Python sidecar).
+#[tauri::command]
+pub fn nlp_extract_takeaways(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpDocumentTextInput,
+) -> Result<serde_json::Value, String> {
+    let text = document_plain_for_nlp(&state, &input.document_id)?;
+    let limit = input.limit.unwrap_or(8).clamp(1, 20);
+    sidecar.extract_takeaways(&text, limit)
+}
+
+/// Local writing-coach style hints (Python sidecar).
+#[tauri::command]
+pub fn nlp_writing_coach(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpDocumentTextInput,
+) -> Result<serde_json::Value, String> {
+    let text = document_plain_for_nlp(&state, &input.document_id)?;
+    let limit = input.limit.unwrap_or(12).clamp(1, 30);
+    sidecar.writing_coach(&text, limit)
+}
+
 #[tauri::command]
 pub fn nlp_template_fill_hints(
     state: State<'_, DbState>,

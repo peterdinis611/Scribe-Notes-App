@@ -1692,7 +1692,11 @@
       "similar": "Related notes",
       "mentions": "People & links",
       "quotes": "Key claims",
-      "questions": "Ask next"
+      "questions": "Ask next",
+      "flashcards": "Flashcards",
+      "takeaways": "Takeaways",
+      "terminology": "Terminology",
+      "style": "Writing coach"
     }
   },
   "documentChat": {

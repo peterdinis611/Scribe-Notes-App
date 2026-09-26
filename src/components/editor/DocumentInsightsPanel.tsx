@@ -97,14 +97,17 @@ type DocumentInsightsPanelProps = {
 
 const FALLBACK_INSIGHT_ACTIONS: DocumentChatAction[] = [
   'summarize',
+  'takeaways',
   'outline',
   'quotes',
+  'flashcards',
   'keywords',
   'tasks',
   'wiki',
   'mentions',
   'similar',
   'questions',
+  'style',
   'tone',
 ]
 

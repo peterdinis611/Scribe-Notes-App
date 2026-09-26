@@ -365,6 +365,88 @@ export const nlpAnalyzeRevisionDiff = (input: {
   preferRust?: boolean
 }) => invoke<RevisionAiReport>('nlp_analyze_revision_diff', { input })
 
+export type FlashcardKind = 'qa' | 'definition' | 'cloze' | 'section' | string
+
+export type Flashcard = {
+  kind: FlashcardKind
+  question: string
+  answer: string
+  front?: string
+}
+
+export type FlashcardsResult = {
+  cards: Flashcard[]
+  count: number
+  source: 'python' | string
+}
+
+export const nlpExtractFlashcards = (input: {
+  documentId: string
+  limit?: number
+  includeCloze?: boolean
+}) => invoke<FlashcardsResult>('nlp_extract_flashcards', { input })
+
+export type TerminologyVariant = { term: string; count: number }
+
+export type TerminologyIssue = {
+  canonical: string
+  key: string
+  preferredCount: number
+  variants: TerminologyVariant[]
+  suggestion: string
+}
+
+export type TerminologyResult = {
+  issues: TerminologyIssue[]
+  issueCount: number
+  scannedTerms: number
+  source: 'python' | string
+}
+
+export const nlpCheckTerminology = (input: { documentId: string; limit?: number }) =>
+  invoke<TerminologyResult>('nlp_check_terminology', { input })
+
+export type TakeawayItem = {
+  text: string
+  kind: string
+  score: number
+}
+
+export type TakeawaysResult = {
+  summary: string
+  takeaways: TakeawayItem[]
+  count: number
+  themes: Array<{ term: string; count: number }>
+  source: 'python' | string
+}
+
+export const nlpExtractTakeaways = (input: { documentId: string; limit?: number }) =>
+  invoke<TakeawaysResult>('nlp_extract_takeaways', { input })
+
+export type WritingCoachHint = {
+  code: string
+  severity: 'info' | 'warn' | 'ok' | string
+  message: string
+  excerpt?: string
+}
+
+export type WritingCoachResult = {
+  language: string
+  score?: number
+  hints: WritingCoachHint[]
+  stats?: {
+    sentenceCount?: number
+    wordCount?: number
+    averageSentenceWords?: number
+    longSentenceCount?: number
+    passiveSentenceCount?: number
+  }
+  source: 'python' | string
+}
+
+export const nlpWritingCoach = (input: { documentId: string; limit?: number }) =>
+  invoke<WritingCoachResult>('nlp_writing_coach', { input })
+
 export interface NlpTemplateFillHints {
   expected: string[]
   present: string[]

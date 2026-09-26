@@ -88,6 +88,8 @@ const DOCUMENT_ACTIONS: Array<{ id: DocumentChatAction; labelKey: string }> = [
   { id: 'outline', labelKey: 'libraryChat.actions.outline' },
   { id: 'keywords', labelKey: 'libraryChat.actions.keywords' },
   { id: 'quotes', labelKey: 'libraryChat.actions.quotes' },
+  { id: 'takeaways', labelKey: 'libraryChat.actions.takeaways' },
+  { id: 'flashcards', labelKey: 'libraryChat.actions.flashcards' },
   { id: 'tasks', labelKey: 'libraryChat.actions.tasks' },
   { id: 'title', labelKey: 'libraryChat.actions.title' },
   { id: 'wiki', labelKey: 'libraryChat.actions.wiki' },
@@ -96,6 +98,8 @@ const DOCUMENT_ACTIONS: Array<{ id: DocumentChatAction; labelKey: string }> = [
   { id: 'similar', labelKey: 'libraryChat.actions.similar' },
   { id: 'questions', labelKey: 'libraryChat.actions.questions' },
   { id: 'tone', labelKey: 'libraryChat.actions.tone' },
+  { id: 'style', labelKey: 'libraryChat.actions.style' },
+  { id: 'terminology', labelKey: 'libraryChat.actions.terminology' },
   { id: 'spellcheck', labelKey: 'libraryChat.actions.spellcheck' },
 ]
 

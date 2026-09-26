@@ -36,6 +36,31 @@ vi.mock('@/lib/db/nlp-api', () => ({
   nlpSimilarDocuments: vi.fn(async () => [
     { documentId: 'd2', title: 'Related note', snippet: 'Also about notes', rank: 1 },
   ]),
+  nlpExtractFlashcards: vi.fn(async () => ({
+    cards: [{ kind: 'qa', question: 'What is Scribe?', answer: 'A notes app', front: 'What is Scribe?' }],
+    count: 1,
+    source: 'python',
+  })),
+  nlpExtractTakeaways: vi.fn(async () => ({
+    summary: 'Ship local AI features.',
+    takeaways: [{ text: 'Ship flashcards this week', kind: 'sentence', score: 2 }],
+    count: 1,
+    themes: [{ term: 'flashcards', count: 2 }],
+    source: 'python',
+  })),
+  nlpCheckTerminology: vi.fn(async () => ({
+    issues: [],
+    issueCount: 0,
+    scannedTerms: 3,
+    source: 'python',
+  })),
+  nlpWritingCoach: vi.fn(async () => ({
+    language: 'en',
+    score: 100,
+    hints: [{ code: 'ok', severity: 'info', message: 'No major style issues found.', excerpt: '' }],
+    stats: {},
+    source: 'python',
+  })),
 }))
 
 import { invoke } from '@/lib/tauri'
@@ -76,6 +101,10 @@ describe('document chat helpers', () => {
     expect(matchDocumentChatIntent('Aké dátumy sú v poznámke?')).toBe('dates')
     expect(matchDocumentChatIntent('Who is mentioned in this note?')).toBe('mentions')
     expect(matchDocumentChatIntent('How does this note connect to others?')).toBe('similar')
+    expect(matchDocumentChatIntent('Make flashcards from this')).toBe('flashcards')
+    expect(matchDocumentChatIntent('What are the key takeaways?')).toBe('takeaways')
+    expect(matchDocumentChatIntent('Check terminology consistency')).toBe('terminology')
+    expect(matchDocumentChatIntent('Writing coach tips please')).toBe('style')
     expect(matchDocumentChatIntent('What feels unfinished or unclear here?')).toBeNull()
     expect(matchDocumentChatIntent('What is this note mainly about?')).toBeNull()
     expect(matchDocumentChatIntent('Explain the key terms in this note')).toBeNull()
@@ -85,6 +114,15 @@ describe('document chat helpers', () => {
     const result = await runDocumentChatAction('doc-1', 'summarize')
     expect(result.answer).toContain('Summary')
     expect(result.answer).toContain('A short summary.')
+  })
+
+  it('formats flashcards and takeaways', async () => {
+    const cards = await runDocumentChatAction('doc-1', 'flashcards')
+    expect(cards.answer).toContain('What is Scribe?')
+    const takeaways = await runDocumentChatAction('doc-1', 'takeaways')
+    expect(takeaways.answer).toContain('Ship flashcards')
+    const style = await runDocumentChatAction('doc-1', 'style')
+    expect(style.answer).toContain('no style issues')
   })
 
   it('formats open tasks action', async () => {

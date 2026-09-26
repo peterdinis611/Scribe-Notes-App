@@ -177,10 +177,10 @@ Optional offline intelligence. Enable in **Settings → Local AI**. Scribe start
 | | |
 |--|--|
 | **Runtime** | Python **3.10+**, standard library only by default |
-| **Sidecar version** | **0.8.1** |
+| **Sidecar version** | **1.3.0** |
 | **Default embed model** | `scribe-hash-v4` (stem/diacritic-aware; chunk mean-pool for long notes) |
 | **Optional quality** | `pip install sentence-transformers` → MiniLM (`scribe-minilm-v1`), cached under `~/.cache/scribe-nlp/models` |
-| **What you get** | Semantic ⌘K search, AI insights (summary, tone, dates, links, keywords), tag suggestions, journal week tone, library report, revision diff summary |
+| **What you get** | Semantic ⌘K search, AI insights (summary, tone, dates, links, keywords), tag suggestions, journal week tone, library report, revision AI, flashcards, takeaways, terminology, writing coach |
 
 ```bash
 # health check
@@ -376,6 +376,7 @@ scribe/
 5. **Local AI (optional)** — NLP commands talk to the Python sidecar over JSON-RPC; if the sidecar is off, features either degrade or use a Rust fallback (e.g. placeholder / lorem text, continue-writing n-grams, **revision AI**).
 6. **Smart paste** — dirty Word/Pages/web HTML is normalized in Rust (`html_paste`) before TipTap insert.
 7. **Revision AI** — `analyze_revision_diff` in Python (`revision_ai.py`) with a matching Rust module (`nlp/revision_ai.rs`) classifies expansions, trims, risks, and bullets for the history panel.
+8. **Study / style AI** — Python modules `flashcards`, `terminology`, `takeaways`, `writing_coach` (sidecar 1.3+) surface as Local AI chat actions.
 
 ### Editor / block layer
 

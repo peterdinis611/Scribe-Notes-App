@@ -1,11 +1,15 @@
 import { invoke } from '@/lib/tauri'
 import {
+  nlpCheckTerminology,
   nlpDocumentAnalysis,
   nlpDocumentTasks,
+  nlpExtractFlashcards,
+  nlpExtractTakeaways,
   nlpSimilarDocuments,
   nlpSpellcheck,
   nlpStatus,
   nlpSuggestWikiLinks,
+  nlpWritingCoach,
 } from '@/lib/db/nlp-api'
 
 export type LibraryChatCitation = {
@@ -37,6 +41,10 @@ export type DocumentChatAction =
   | 'mentions'
   | 'quotes'
   | 'questions'
+  | 'flashcards'
+  | 'takeaways'
+  | 'terminology'
+  | 'style'
 
 export const DOCUMENT_CHAT_CONTEXT_LIMIT = 16
 
@@ -191,6 +199,34 @@ export function matchDocumentChatIntent(question: string): DocumentChatAction | 
         /\b(dalsie otazky)\b/,
       ],
     },
+    {
+      action: 'flashcards',
+      patterns: [
+        /\b(flashcards?|study cards?|quiz me)\b/,
+        /\b(karticky|kartick|kviz)\b/,
+      ],
+    },
+    {
+      action: 'takeaways',
+      patterns: [
+        /\b(takeaways?|key points?|executive summary|action items?)\b/,
+        /\b(zavery|hlavne body|zhrnutie rozhodnut)\b/,
+      ],
+    },
+    {
+      action: 'terminology',
+      patterns: [
+        /\b(terminology|term consistency|inconsistent terms?)\b/,
+        /\b(terminologia|konzistencia pojmov|nekonzistent)\b/,
+      ],
+    },
+    {
+      action: 'style',
+      patterns: [
+        /\b(writing coach|style tips?|clarity|passive voice|filler words?)\b/,
+        /\b(styl|jasnost|trpny rod|vyplnove)\b/,
+      ],
+    },
   ]
 
   for (const rule of rules) {
@@ -309,6 +345,88 @@ export async function runDocumentChatAction(
         title: hit.title,
         snippet: hit.snippet,
       })),
+    }
+  }
+
+  if (action === 'flashcards') {
+    const result = await nlpExtractFlashcards({ documentId, limit: 10 })
+    if (!result.cards.length) {
+      return {
+        answer: 'No flashcards could be extracted from this document yet.',
+        citations: [],
+      }
+    }
+    return {
+      answer: `**Flashcards (${result.count})**\n\n${bullets(
+        result.cards.map(
+          (card) => `**Q:** ${card.question}\n  **A:** ${card.answer}`,
+        ),
+      )}`,
+      citations: [],
+    }
+  }
+
+  if (action === 'takeaways') {
+    const result = await nlpExtractTakeaways({ documentId, limit: 8 })
+    if (!result.takeaways.length) {
+      return {
+        answer: 'No takeaways found in this document.',
+        citations: [],
+      }
+    }
+    const themes = result.themes?.length
+      ? `\n\n**Themes:** ${result.themes
+          .slice(0, 6)
+          .map((item) => item.term)
+          .join(', ')}`
+      : ''
+    const summary = result.summary?.trim() ? `**Summary**\n\n${result.summary}\n\n` : ''
+    return {
+      answer: `${summary}**Takeaways**\n\n${bullets(
+        result.takeaways.map((item) => item.text),
+      )}${themes}`,
+      citations: [],
+    }
+  }
+
+  if (action === 'terminology') {
+    const result = await nlpCheckTerminology({ documentId, limit: 10 })
+    if (!result.issues.length) {
+      return {
+        answer: 'Terminology looks consistent in this document.',
+        citations: [],
+      }
+    }
+    return {
+      answer: `**Terminology issues (${result.issueCount})**\n\n${bullets(
+        result.issues.map((issue) => {
+          const variants = issue.variants
+            .map((item) => `“${item.term}”×${item.count}`)
+            .join(', ')
+          return `Prefer **${issue.canonical}** — also saw ${variants}`
+        }),
+      )}`,
+      citations: [],
+    }
+  }
+
+  if (action === 'style') {
+    const result = await nlpWritingCoach({ documentId, limit: 10 })
+    const actionable = result.hints.filter((hint) => hint.code !== 'ok')
+    if (!actionable.length) {
+      return {
+        answer: 'Writing coach: no style issues flagged.',
+        citations: [],
+      }
+    }
+    return {
+      answer: `**Writing coach** (${actionable.length})\n\n${bullets(
+        actionable.map((hint) => {
+          const excerpt = hint.excerpt ? ` — “${hint.excerpt}”` : ''
+          return `${hint.message}${excerpt}`
+        }),
+      )}`,
+      citations: [],
     }
   }
 

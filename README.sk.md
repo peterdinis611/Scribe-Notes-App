@@ -177,10 +177,10 @@ Voliteľná offline inteligencia. Zapnite v **Nastavenia → Lokálna AI**. Scri
 | | |
 |--|--|
 | **Runtime** | Python **3.10+**, predvolene len štandardná knižnica |
-| **Verzia sidecaru** | **0.8.1** |
+| **Verzia sidecaru** | **1.3.0** |
 | **Predvolený embed model** | `scribe-hash-v4` (stem/diakritika; chunk mean-pool pre dlhé poznámky) |
 | **Voliteľná kvalita** | `pip install sentence-transformers` → MiniLM (`scribe-minilm-v1`), cache v `~/.cache/scribe-nlp/models` |
-| **Čo získate** | Sémantické ⌘K, AI prehľad (zhrnutie, tón, dátumy, odkazy, keywords), návrhy tagov, tón týždňa v denníku, analýza knižnice, AI zhrnutie diffu revízií |
+| **Čo získate** | Sémantické ⌘K hľadanie, AI insights (zhrnutie, tón, dátumy, odkazy, kľúčové slová), návrhy tagov, denníkový digest, report knižnice, revision AI, kartičky, závery, terminológia, štýlový kouč |
 
 ```bash
 # health check
@@ -376,6 +376,7 @@ scribe/
 5. **Lokálna AI (voliteľné)** — NLP príkazy idú na Python sidecar cez JSON-RPC; ak je sidecar vypnutý, feature buď degraduje, alebo použije Rust fallback (napr. placeholder / lorem text, continue-writing n-gramy, **revision AI**).
 6. **Smart paste** — špinavé HTML z Wordu/Pages/webu sa v Ruste (`html_paste`) vyčistí pred vložením do TipTapu.
 7. **Revision AI** — `analyze_revision_diff` v Pythone (`revision_ai.py`) a rovnaký Rust modul (`nlp/revision_ai.rs`) klasifikujú rozšírenia, skrátenia, riziká a bullet body pre history panel.
+8. **Štúdium / štýl AI** — Python moduly `flashcards`, `terminology`, `takeaways`, `writing_coach` (sidecar 1.3+) ako akcie v Local AI chate.
 
 ### Editor / block vrstva
 

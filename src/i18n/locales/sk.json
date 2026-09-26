@@ -1696,7 +1696,11 @@
       "similar": "Súvisiace poznámky",
       "mentions": "Ľudia a odkazy",
       "quotes": "Kľúčové tvrdenia",
-      "questions": "Ďalšie otázky"
+      "questions": "Ďalšie otázky",
+      "flashcards": "Kartičky",
+      "takeaways": "Závery",
+      "terminology": "Terminológia",
+      "style": "Štýlový kouč"
     }
   },
   "documentChat": {

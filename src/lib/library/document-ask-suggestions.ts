@@ -125,9 +125,11 @@ export function buildDocumentAskActions(
   const openTasks = (tasks ?? []).filter((task) => !task.checked)
   const ranked: Array<{ action: DocumentChatAction; score: number }> = [
     { action: 'summarize', score: 100 },
+    { action: 'takeaways', score: 96 },
     { action: 'questions', score: 95 },
     { action: 'outline', score: (analysis?.outline?.length ?? 0) > 0 ? 90 : 40 },
     { action: 'quotes', score: (analysis?.keyphrases?.length ?? 0) > 0 ? 85 : 35 },
+    { action: 'flashcards', score: (analysis?.outline?.length ?? 0) > 1 ? 84 : 42 },
     { action: 'keywords', score: (analysis?.keywords?.length ?? 0) > 0 ? 80 : 30 },
     { action: 'tasks', score: openTasks.length > 0 ? 88 : 20 },
     { action: 'dates', score: (analysis?.dates?.length ?? 0) > 0 ? 82 : 18 },
@@ -142,6 +144,8 @@ export function buildDocumentAskActions(
           : 15,
     },
     { action: 'wiki', score: (analysis?.wikiLinks?.length ?? 0) > 0 ? 70 : 25 },
+    { action: 'style', score: 58 },
+    { action: 'terminology', score: 52 },
     { action: 'similar', score: 55 },
     { action: 'tone', score: 50 },
   ]
