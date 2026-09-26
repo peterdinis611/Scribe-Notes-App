@@ -19,7 +19,10 @@ pub mod wiki;
 
 pub use compile::merge_chapters;
 pub use dates::{date_key_bounds, date_key_bounds_ms, extract_due_hint, parse_date_key};
-pub use enhance::{decode_bytes, enhance_status, fuzzy_extract, fuzzy_ratio, EnhanceStatus};
+pub use enhance::{
+    decode_bytes, decode_bytes_detailed, enhance_status, fuzzy_extract, fuzzy_ratio, DecodedText,
+    EnhanceStatus,
+};
 pub use diff::{diff_lines, DiffLine, DiffLineType, DiffResult};
 pub use html::{escape_html, tiptap_to_html};
 pub use journal::{JournalNote, JournalSlot, JournalSummary, JournalSummaryInput};

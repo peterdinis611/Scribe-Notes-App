@@ -1262,6 +1262,158 @@ html[data-ui-skin='press'] .app-chrome::after {
   opacity: 0.4;
 }
 
+.document-tabs [role='tab'] .document-tab-dirty {
+  display: inline-block;
+  margin-right: 0.35rem;
+  font-size: 8px;
+  line-height: 1;
+  color: var(--color-accent);
+  vertical-align: middle;
+}
+
+/* Unresolved wiki-link popover */
+.wiki-unresolved-popover {
+  position: fixed;
+  z-index: 70;
+  width: 260px;
+  max-width: calc(100vw - 16px);
+  padding: 12px 12px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface-elevated);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.24);
+  animation: wiki-hover-in 0.12s ease;
+}
+
+.wiki-unresolved-popover__title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-foreground);
+}
+
+.wiki-unresolved-popover__hint {
+  margin: 0.35rem 0 0.55rem;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--color-muted-foreground);
+}
+
+.wiki-unresolved-popover__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.25rem 0 0.5rem;
+  font-size: 11.5px;
+  color: var(--color-muted-foreground);
+}
+
+.wiki-unresolved-popover__list {
+  list-style: none;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 160px;
+  overflow: auto;
+}
+
+.wiki-unresolved-popover__item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: var(--color-foreground);
+}
+
+.wiki-unresolved-popover__item:hover:not(:disabled) {
+  border-color: var(--color-border);
+  background: var(--color-hover);
+}
+
+.wiki-unresolved-popover__item:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.wiki-unresolved-popover__item-title {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.wiki-unresolved-popover__item-score {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-muted-foreground);
+}
+
+.wiki-unresolved-popover__create {
+  display: inline-flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 0.15rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px dashed var(--color-border);
+  border-radius: 8px;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-accent);
+  cursor: pointer;
+}
+
+.wiki-unresolved-popover__create:hover:not(:disabled) {
+  border-style: solid;
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+}
+
+.wiki-unresolved-popover__create:disabled,
+.wiki-unresolved-popover__create.is-busy {
+  opacity: 0.65;
+  cursor: default;
+}
+
+.library-tasks__filter {
+  display: block;
+  margin: 0.35rem 0 0.65rem;
+}
+
+.library-tasks__filter select {
+  width: 100%;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-foreground);
+  font-size: 12px;
+}
+
+.library-duplicates__score-parts {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--color-muted-foreground);
+}
+
 .document-tabs [role='tab'].is-drop-target {
   box-shadow: inset 2px 0 0 0 var(--color-accent);
 }
@@ -1420,9 +1572,8 @@ html[data-ui-skin='press'] .app-chrome::after {
   animation: editor-find-in 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.editor-canvas.is-entering {
-  animation: editor-paper-in 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
+/* Canvas must not animate — transform/opacity/filter on the contenteditable
+   ancestor makes the WebKit caret jump while typing. */
 
 .editor-side-panel {
   animation: editor-panel-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -1471,19 +1622,6 @@ html[data-ui-skin='press'] .app-chrome::after {
   }
 }
 
-@keyframes editor-paper-in {
-  from {
-    opacity: 0;
-    transform: translateY(14px) scale(0.985);
-    filter: blur(1.5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    filter: blur(0);
-  }
-}
-
 @keyframes editor-panel-in {
   from {
     opacity: 0;
@@ -1529,13 +1667,8 @@ html[data-ui-skin='press'] .app-chrome::after {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .editor-scroll {
-    scroll-behavior: auto;
-  }
-
   .editor-toolbar,
   .find-replace-bar,
-  .editor-canvas.is-entering,
   .editor-side-panel,
   .editor-panel-rail:not(.editor-panel-rail--truncated),
   .editor-status-bar,
@@ -1543,6 +1676,7 @@ html[data-ui-skin='press'] .app-chrome::after {
     animation: none !important;
     filter: none !important;
     transform: none !important;
+    opacity: 1 !important;
   }
 
   .editor-panel-rail-btn,
@@ -3504,7 +3638,8 @@ html[data-ui-skin='press'] .editor-shell--home {
   min-width: 0;
   overflow-y: auto;
   padding: 32px 36px 64px;
-  scroll-behavior: smooth;
+  /* Avoid smooth scroll while typing — it fights caret scroll-into-view. */
+  scroll-behavior: auto;
 }
 
 .editor-body {
@@ -7638,7 +7773,7 @@ body.is-block-dragging .tiptap {
   border-radius: 12px;
   background: var(--color-surface-elevated);
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.22);
-  pointer-events: none;
+  pointer-events: auto;
   animation: wiki-hover-in 0.12s ease;
 }
 
@@ -7691,7 +7826,7 @@ body.is-block-dragging .tiptap {
   font-size: 12px;
   font-weight: 600;
   color: var(--color-accent);
-  cursor: default;
+  cursor: pointer;
 }
 
 .wiki-link-hover-open:hover {

@@ -435,6 +435,9 @@ export const TauriInputFix = Extension.create({
     let lastEnterHandledAt = 0
     let lastDeleteSource: 'keydown' | 'beforeinput' | null = null
     let lastDeleteHandledAt = 0
+    let lastTextSource: 'keydown' | 'beforeinput' | null = null
+    let lastTextHandledAt = 0
+    let lastText = ''
     const recently = (at: number) => Date.now() - at < 50
 
     return [
@@ -444,7 +447,29 @@ export const TauriInputFix = Extension.create({
           handleDOMEvents: {
             beforeinput(view, event) {
               if (!view.editable) return false
-              const inputType = (event as InputEvent).inputType
+              const inputEvent = event as InputEvent
+              const inputType = inputEvent.inputType
+
+              // WebKit often fires beforeinput even after keydown preventDefault.
+              // Suppress native insertText so we don't double-apply caret/text.
+              if (
+                (inputType === 'insertText' || inputType === 'insertReplacementText') &&
+                !inputEvent.isComposing
+              ) {
+                const data = inputEvent.data ?? ''
+                if (!data) return false
+                if (lastTextSource === 'keydown' && recently(lastTextHandledAt) && lastText === data) {
+                  return true
+                }
+                const { state } = view
+                view.dispatch(
+                  state.tr.insertText(data, state.selection.from, state.selection.to).scrollIntoView(),
+                )
+                lastTextSource = 'beforeinput'
+                lastTextHandledAt = Date.now()
+                lastText = data
+                return true
+              }
 
               if (inputType === 'insertParagraph') {
                 if (!(lastEnterSource === 'keydown' && recently(lastEnterHandledAt))) {
@@ -476,6 +501,17 @@ export const TauriInputFix = Extension.create({
             },
           },
           handleKeyDown(view, event) {
+            if (event.isComposing || event.key === 'Dead') return false
+
+            if (
+              event.key.length === 1 &&
+              lastTextSource === 'beforeinput' &&
+              recently(lastTextHandledAt) &&
+              lastText === event.key
+            ) {
+              return true
+            }
+
             if (isEnterKey(event) && lastEnterSource === 'beforeinput' && recently(lastEnterHandledAt)) {
               return true
             }
@@ -497,6 +533,18 @@ export const TauriInputFix = Extension.create({
             if (event.key === 'Backspace' || event.key === 'Delete') {
               lastDeleteSource = 'keydown'
               lastDeleteHandledAt = Date.now()
+            }
+            if (
+              event.key.length === 1 &&
+              !event.metaKey &&
+              !event.ctrlKey &&
+              !event.altKey &&
+              event.key !== '\n' &&
+              event.key !== '\r'
+            ) {
+              lastTextSource = 'keydown'
+              lastTextHandledAt = Date.now()
+              lastText = event.key
             }
             return true
           },

@@ -5,24 +5,33 @@ import { CheckSquare, LoaderCircle, Square } from 'lucide-react'
 import { nlpListOpenTasks, type DocumentTask } from '@/lib/db/nlp-api'
 import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
-import { useAppDispatch } from '@/store/hooks'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setActiveDocumentId, setPendingEditorSearch, setFindReplaceOpen } from '@/store/documentsSlice'
 
 type LibraryTasksPanelProps = {
   onNavigate?: () => void
 }
 
+function dueSortKey(dueHint: string | null): number {
+  if (!dueHint) return Number.POSITIVE_INFINITY
+  const match = dueHint.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (!match) return Number.POSITIVE_INFINITY - 1
+  return Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+}
+
 export function LibraryTasksPanel({ onNavigate }: LibraryTasksPanelProps) {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
+  const folders = useAppSelector((state) => state.folders.folders)
   const [tasks, setTasks] = useState<DocumentTask[]>([])
   const [loading, setLoading] = useState(true)
+  const [folderId, setFolderId] = useState<string>('')
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const rows = await nlpListOpenTasks(240)
+      const rows = await nlpListOpenTasks(240, folderId || null)
       setTasks(rows)
     } catch (error) {
       toast.error(t('library.tasks.loadError'), String(error))
@@ -30,24 +39,32 @@ export function LibraryTasksPanel({ onNavigate }: LibraryTasksPanelProps) {
     } finally {
       setLoading(false)
     }
-  }, [t])
+  }, [folderId, t])
 
   useEffect(() => {
     void load()
   }, [load])
 
   const grouped = useMemo(() => {
+    const sorted = [...tasks].sort((a, b) => {
+      const dueDiff = dueSortKey(a.dueHint) - dueSortKey(b.dueHint)
+      if (dueDiff !== 0) return dueDiff
+      return a.text.localeCompare(b.text, undefined, { sensitivity: 'base' })
+    })
     const map = new Map<string, { title: string; items: DocumentTask[] }>()
-    for (const task of tasks) {
+    for (const task of sorted) {
       const id = task.documentId || 'unknown'
       const title = task.documentTitle?.trim() || t('common.untitled')
       const bucket = map.get(id) ?? { title, items: [] }
       bucket.items.push(task)
       map.set(id, bucket)
     }
-    return [...map.entries()].sort((a, b) =>
-      a[1].title.localeCompare(b[1].title, undefined, { sensitivity: 'base' }),
-    )
+    return [...map.entries()].sort((a, b) => {
+      const aDue = Math.min(...a[1].items.map((item) => dueSortKey(item.dueHint)))
+      const bDue = Math.min(...b[1].items.map((item) => dueSortKey(item.dueHint)))
+      if (aDue !== bDue) return aDue - bDue
+      return a[1].title.localeCompare(b[1].title, undefined, { sensitivity: 'base' })
+    })
   }, [t, tasks])
 
   function openTask(task: DocumentTask) {
@@ -70,6 +87,22 @@ export function LibraryTasksPanel({ onNavigate }: LibraryTasksPanelProps) {
         {t('library.tasks.title')}
       </p>
       <p className="library-tasks__hint">{t('library.tasks.hint')}</p>
+
+      <label className="library-tasks__filter">
+        <span className="sr-only">{t('library.tasks.folderFilter')}</span>
+        <select
+          value={folderId}
+          onChange={(event) => setFolderId(event.target.value)}
+          aria-label={t('library.tasks.folderFilter')}
+        >
+          <option value="">{t('library.tasks.allFolders')}</option>
+          {folders.map((folder) => (
+            <option key={folder.id} value={folder.id}>
+              {folder.name}
+            </option>
+          ))}
+        </select>
+      </label>
 
       {loading ? (
         <p className="library-tasks__status">

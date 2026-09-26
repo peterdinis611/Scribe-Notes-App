@@ -209,7 +209,9 @@
       "wiki": "Wiki links",
       "comments": "Comments",
       "semantic": "Semantic"
-    }
+    },
+    "connections": "Connections",
+    "connectionsOff": "Hide connections"
   },
   "editor": {
     "loading": "Loading document…",
@@ -412,7 +414,7 @@
     "badge": "What's new in {{version}}",
     "kicker": "Edition notes",
     "title": "Scribe {{version}}",
-    "subtitle": "Scribe’s own Local AI reads your notes on this Mac, and MCP is ready when you want Cursor or Claude in the loop.",
+    "subtitle": "Wiki links feel like Obsidian, Connections got a shortcut, and Local AI polish lands in 2.4.",
     "localAiAsk": {
       "title": "Scribe Local AI",
       "description": "Built-in Local AI — not ChatGPT. Ask the library or the open note; answers stay on this device."
@@ -629,6 +631,18 @@
     "importPipeline": {
       "title": "Faster imports",
       "description": "Optimized file reading and rich-text conversion without overloading the editor."
+    },
+    "wikiNav": {
+      "title": "Wiki link navigation",
+      "description": "Unresolved [[links]] open a create / did-you-mean popover. Hover cards stay clickable, and Connections jumps keep a back trail."
+    },
+    "connectionsShortcut": {
+      "title": "Connections shortcut",
+      "description": "⌘⇧B toggles the Connections panel. Mention snippets show where each backlink appears."
+    },
+    "libraryPolish": {
+      "title": "Library polish",
+      "description": "Tasks filter by folder and sort by due date. Duplicates show lexical vs embed scores. Dirty tabs and wiki/task counts keep you oriented."
     }
   },
   "wikiNav": {
@@ -1337,6 +1351,10 @@
     "closePanel": {
       "label": "Close panel",
       "description": "Closes search or reading/focus mode"
+    },
+    "connections": {
+      "label": "Connections",
+      "description": "Show wiki backlinks and outgoing links"
     }
   },
   "quickNote": {
@@ -1351,7 +1369,8 @@
     "close": "Close tab",
     "pin": "Pin tab",
     "unpin": "Unpin tab",
-    "reorder": "Drag to reorder"
+    "reorder": "Drag to reorder",
+    "unsaved": "Unsaved"
   },
   "split": {
     "close": "Close split pane"
@@ -1423,7 +1442,9 @@
       "hint": "Unchecked checkboxes across recent notes. Click a task to open the note and jump to it.",
       "empty": "No open checklist tasks in recent notes.",
       "count": "{{count}} open · {{notes}} notes",
-      "loadError": "Could not load open tasks"
+      "loadError": "Could not load open tasks",
+      "folderFilter": "Filter by folder",
+      "allFolders": "All folders"
     },
     "wikiHealth": {
       "title": "Wiki health",
@@ -1452,7 +1473,8 @@
       "mergeIntoLeft": "Merge into first",
       "merged": "Notes merged — the copy is in Trash.",
       "mergeError": "Could not merge notes",
-      "loadError": "Could not find duplicates"
+      "loadError": "Could not find duplicates",
+      "scoreParts": "Lexical {{lexical}}% · Embed {{embed}}%"
     },
     "trash": "Trash",
     "newFolder": "New folder",
@@ -2298,7 +2320,15 @@
     "modified": "Edited {{time}}",
     "emptyDocument": "Empty document",
     "previewHint": "Preview of the target document — click the link or use the button below.",
-    "openDocument": "Open document"
+    "openDocument": "Open document",
+    "unresolvedTitle": "Unresolved wiki link",
+    "unresolvedHint": "Create a note or link to a close match.",
+    "noSuggestions": "No close matches.",
+    "createNote": "Create „{{title}}“",
+    "resolvedToast": "Linked [[{{label}}]] → {{title}}",
+    "resolveError": "Could not resolve wiki link",
+    "createdToast": "Created „{{title}}“ and linked",
+    "createError": "Could not create note"
   },
   "templates": {
     "title": "New document",
@@ -3053,5 +3083,8 @@
     "hint": "Template headings present in this note",
     "missing": "Still missing in the report",
     "checklistOpen": "Unchecked in checklist"
+  },
+  "import": {
+    "encodingConverted": "Imported text was converted from {{encoding}}"
   }
 }

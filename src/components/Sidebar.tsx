@@ -1,5 +1,5 @@
 import { CalendarDays, FolderPlus, Search, Trash2 } from 'lucide-react'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -20,6 +20,8 @@ import { LibrarySwitcher } from '@/components/library/LibrarySwitcher'
 import { LibraryViewTabs } from '@/components/LibraryViewTabs'
 import { SidebarRail } from '@/components/layout/SidebarRail'
 import { SidebarSearchResults } from '@/components/SidebarSearchResults'
+import { listWikiHealth } from '@/lib/db/api'
+import { nlpListOpenTasks } from '@/lib/db/nlp-api'
 import { visibleLibraryDocuments } from '@/lib/db/library-sync'
 import { openTodayNote } from '@/lib/journal-notes'
 import { promptAndCreateFolder } from '@/lib/library/create-folder'
@@ -97,6 +99,29 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
     }
     return tags.size
   }, [visibleDocuments])
+
+  const [taskCount, setTaskCount] = useState(0)
+  const [wikiHealthCount, setWikiHealthCount] = useState(0)
+
+  useEffect(() => {
+    let cancelled = false
+    void Promise.all([
+      nlpListOpenTasks(200).catch(() => [] as Awaited<ReturnType<typeof nlpListOpenTasks>>),
+      listWikiHealth({ unresolvedLimit: 80, stubMaxWords: 40, stubLimit: 40 }).catch(() => null),
+    ]).then(([tasks, health]) => {
+      if (cancelled) return
+      setTaskCount(tasks.length)
+      if (health) {
+        setWikiHealthCount(health.orphans.length + health.unresolved.length + health.stubs.length)
+      } else {
+        setWikiHealthCount(0)
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [visibleDocuments.length])
+
   const { resizing, onResizePointerDown, resetWidth } = useResizableSidebar()
 
   const handleCreateFolder = useCallback(async () => {
@@ -168,6 +193,8 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                   favoriteCount={favoriteCount}
                   tagCount={tagCount}
                   recentCount={recentCount}
+                  taskCount={taskCount}
+                  wikiHealthCount={wikiHealthCount}
                   onChange={(view) => dispatch(setLibraryView(view))}
                 />
               </div>

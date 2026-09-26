@@ -109,6 +109,12 @@ export function LibraryDuplicatesPanel({ onNavigate }: LibraryDuplicatesPanelPro
                   </div>
                   <p className="library-duplicates__score">
                     {t('library.duplicates.score', { percent: Math.round(pair.score * 100) })}
+                    <span className="library-duplicates__score-parts">
+                      {t('library.duplicates.scoreParts', {
+                        lexical: Math.round(pair.jaccard * 100),
+                        embed: Math.round(pair.embedScore * 100),
+                      })}
+                    </span>
                   </p>
                   <div className="library-duplicates__actions">
                     <button type="button" onClick={() => void merge(pair.leftId, pair.rightId)} disabled={mergingId === key}>

@@ -36,6 +36,8 @@ export interface DocumentsState {
   activeDocumentId: string | null
   activeDocument: Document | null
   saveStatus: SaveStatus
+  /** Open tabs with unsaved editor changes (survives tab switches). */
+  dirtyDocumentIds: string[]
   sidebarOpen: boolean
   documentOutlineOpen: boolean
   revisionHistoryOpen: boolean
@@ -123,6 +125,7 @@ const initialState: DocumentsState = {
   activeDocumentId: initialActiveId,
   activeDocument: null,
   saveStatus: 'idle',
+  dirtyDocumentIds: [],
   sidebarOpen: true,
   documentOutlineOpen: readBoolStorage('scribe-document-outline-open', false),
   revisionHistoryOpen: readBoolStorage('scribe-revision-history-open', false),
@@ -261,6 +264,7 @@ const documentsSlice = createSlice({
 
       state.openDocumentIds = state.openDocumentIds.filter((openId) => openId !== id)
       persistOpenDocumentIds(state.openDocumentIds)
+      state.dirtyDocumentIds = state.dirtyDocumentIds.filter((dirtyId) => dirtyId !== id)
 
       state.recentlyClosedIds = pushRecentId(state.recentlyClosedIds, id)
       persistRecentlyClosedIds(state.recentlyClosedIds)
@@ -314,6 +318,23 @@ const documentsSlice = createSlice({
     },
     setSaveStatus(state, action: PayloadAction<SaveStatus>) {
       state.saveStatus = action.payload
+      const activeId = state.activeDocumentId
+      if (!activeId) return
+      if (action.payload === 'dirty') {
+        if (!state.dirtyDocumentIds.includes(activeId)) {
+          state.dirtyDocumentIds = [...state.dirtyDocumentIds, activeId]
+        }
+      } else if (action.payload === 'saved' || action.payload === 'idle') {
+        state.dirtyDocumentIds = state.dirtyDocumentIds.filter((id) => id !== activeId)
+      }
+    },
+    markDocumentDirty(state, action: PayloadAction<string>) {
+      const id = action.payload
+      if (!id || state.dirtyDocumentIds.includes(id)) return
+      state.dirtyDocumentIds = [...state.dirtyDocumentIds, id]
+    },
+    clearDocumentDirty(state, action: PayloadAction<string>) {
+      state.dirtyDocumentIds = state.dirtyDocumentIds.filter((id) => id !== action.payload)
     },
     setSidebarOpen(state, action: PayloadAction<boolean>) {
       state.sidebarOpen = action.payload
@@ -590,6 +611,8 @@ export const {
   reorderOpenDocuments,
   setActiveDocument,
   setSaveStatus,
+  markDocumentDirty,
+  clearDocumentDirty,
   setSidebarOpen,
   setDocumentOutlineOpen,
   setRevisionHistoryOpen,

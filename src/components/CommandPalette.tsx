@@ -60,11 +60,13 @@ import type { BuiltInLocale } from '@/i18n'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import {
   duplicateDocument,
+  findDocumentsByTitle,
   listCommentThreads,
   listLinkGraph,
   moveDocumentToFolder,
   searchDocuments,
   setDocumentPinned,
+  type TitleMatch,
 } from '@/lib/db/api'
 import { nlpSearch, nlpStatus, type NlpStatus } from '@/lib/db/nlp-api'
 import { describeNlpSearchFailure } from '@/lib/nlp/errors'
@@ -159,6 +161,7 @@ export function CommandPalette() {
   const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [hits, setHits] = useState<SearchHit[]>([])
+  const [titleMatches, setTitleMatches] = useState<TitleMatch[]>([])
   const [semanticHits, setSemanticHits] = useState<SearchHit[]>([])
   const [nlpEnabled, setNlpEnabled] = useState(false)
   const [nlpStatusState, setNlpStatusState] = useState<NlpStatus | null>(null)
@@ -185,6 +188,7 @@ export function CommandPalette() {
   const focusMode = useAppSelector((state) => state.documents.focusMode)
   const readingMode = useAppSelector((state) => state.documents.readingMode)
   const clipboardHistoryOpen = useAppSelector((state) => state.documents.clipboardHistoryPanelOpen)
+  const backlinksPanelOpen = useAppSelector((state) => state.documents.backlinksPanelOpen)
   const shortcutOverrides = useAppSelector((state) => state.settings.shortcutOverrides)
   const locale = useAppSelector((state) => state.settings.locale)
   const openDemoGuide = useOpenDemoGuide()
@@ -581,6 +585,28 @@ export function CommandPalette() {
             },
             {
               type: 'action' as const,
+              id: 'connections',
+              label: backlinksPanelOpen
+                ? t('commandPalette.connectionsOff')
+                : t('commandPalette.connections'),
+              hint: getDisplayKeysForShortcut('connections', shortcutOverrides).join(''),
+              icon: <GitBranch className="h-4 w-4" />,
+              run: () => {
+                if (backlinksPanelOpen) {
+                  dispatch(setBacklinksPanelOpen(false))
+                  return
+                }
+                dispatch(setDocumentOutlineOpen(false))
+                dispatch(setRevisionHistoryOpen(false))
+                dispatch(setCommentsPanelOpen(false))
+                dispatch(setStatsPanelOpen(false))
+                dispatch(setClipboardHistoryPanelOpen(false))
+                dispatch(setInsightsPanelOpen(false))
+                dispatch(setBacklinksPanelOpen(true))
+              },
+            },
+            {
+              type: 'action' as const,
               id: 'compile-manuscript',
               label: t('compile.action'),
               hint: t('compile.paletteHint'),
@@ -860,6 +886,7 @@ export function CommandPalette() {
       recentDocumentIds,
       secondaryDocumentId,
       clipboardHistoryOpen,
+      backlinksPanelOpen,
       openDocumentIds,
       locale,
       shortcutOverrides,
@@ -1053,11 +1080,17 @@ export function CommandPalette() {
       return [...merged.values()]
     }
 
-    const q = query.trim().toLowerCase()
+    const q = query.trim()
     if (q.length > 0) {
       if (searchScope === 'wiki') {
         const wikiDocs = [...byId.values()].filter((doc) => linkedTargetIds.has(doc.id))
-        return fuzzyFilter(wikiDocs, q, (doc) => doc.title, { limit: 10 }).map((doc) => ({
+        const ranked =
+          titleMatches.length > 0
+            ? titleMatches
+                .map((hit) => byId.get(hit.id))
+                .filter((doc): doc is NonNullable<typeof doc> => !!doc && linkedTargetIds.has(doc.id))
+            : fuzzyFilter(wikiDocs, q.toLowerCase(), (doc) => doc.title, { limit: 10 })
+        return ranked.slice(0, 10).map((doc) => ({
           type: 'document' as const,
           id: doc.id,
           label: doc.title,
@@ -1073,7 +1106,13 @@ export function CommandPalette() {
       }
 
       if (searchScope === 'all' || searchScope === 'titles') {
-        return fuzzyFilter([...byId.values()], q, (doc) => doc.title, { limit: 10 }).map((doc) => ({
+        const ranked =
+          titleMatches.length > 0
+            ? titleMatches
+                .map((hit) => byId.get(hit.id))
+                .filter((doc): doc is NonNullable<typeof doc> => !!doc)
+            : fuzzyFilter([...byId.values()], q.toLowerCase(), (doc) => doc.title, { limit: 10 })
+        return ranked.slice(0, 10).map((doc) => ({
           type: 'document' as const,
           id: doc.id,
           label: doc.title,
@@ -1122,6 +1161,7 @@ export function CommandPalette() {
     recentDocumentIds,
     searchScope,
     semanticHits,
+    titleMatches,
   ])
 
   const filteredActions = useMemo(() => {
@@ -1147,6 +1187,16 @@ export function CommandPalette() {
     () =>
       debounce(async (value: string, scope: SearchScope) => {
         const q = value.trim()
+        if (q.length >= 1 && (scope === 'all' || scope === 'titles' || scope === 'wiki')) {
+          try {
+            setTitleMatches(await findDocumentsByTitle(q, 12))
+          } catch {
+            setTitleMatches([])
+          }
+        } else {
+          setTitleMatches([])
+        }
+
         if (q.length < 2 || scope === 'headings' || scope === 'tags' || scope === 'wiki' || scope === 'titles') {
           setHits([])
           setSemanticHits([])
@@ -1247,6 +1297,7 @@ export function CommandPalette() {
     if (!open) return
     setQuery('')
     setHits([])
+    setTitleMatches([])
     setSemanticHits([])
     setCommentHits([])
     setSelected(0)

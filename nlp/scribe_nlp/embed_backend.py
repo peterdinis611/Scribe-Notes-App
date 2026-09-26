@@ -4,9 +4,10 @@ import os
 from pathlib import Path
 from typing import Literal
 
-EmbedBackend = Literal["hash", "quality"]
+EmbedBackend = Literal["hash", "fast", "quality"]
 
 HASH_MODEL_ID = "scribe-hash-v4"
+FAST_MODEL_ID = "scribe-m2v-v1"
 QUALITY_MODEL_ID = "scribe-minilm-v1"
 ONNX_MODEL_ID = "scribe-minilm-onnx-v1"
 QUALITY_MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
@@ -26,8 +27,11 @@ def set_backend_change_hook(callback) -> None:
 def configure_backend(value: str | None) -> EmbedBackend:
     global _active_backend
     previous = _active_backend
-    if value == "quality" and quality_available():
+    normalized = (value or "hash").strip().lower()
+    if normalized == "quality" and quality_available():
         _active_backend = "quality"
+    elif normalized == "fast" and fast_available():
+        _active_backend = "fast"
     else:
         _active_backend = "hash"
     if _active_backend != previous and _on_backend_change is not None:
@@ -39,14 +43,19 @@ def active_backend() -> EmbedBackend:
     env = os.environ.get("SCRIBE_EMBED_BACKEND", "").strip().lower()
     if env == "quality" and quality_available():
         return "quality"
+    if env == "fast" and fast_available():
+        return "fast"
     return _active_backend
 
 
 def current_model_id() -> str:
-    if active_backend() == "quality":
+    backend = active_backend()
+    if backend == "quality":
         if _prefer_onnx():
             return ONNX_MODEL_ID
         return QUALITY_MODEL_ID
+    if backend == "fast":
+        return FAST_MODEL_ID
     return HASH_MODEL_ID
 
 
@@ -61,11 +70,10 @@ def st_available() -> bool:
 
 def onnx_quality_available() -> bool:
     try:
-        from .onnx_embed import ensure_onnx_assets, onnx_available
+        from .onnx_embed import onnx_available
 
         if onnx_available():
             return True
-        # Soft: assets may download on first embed; report available if deps present.
         from .extras import has_onnx, has_tokenizers
 
         return has_onnx() and has_tokenizers()
@@ -75,6 +83,15 @@ def onnx_quality_available() -> bool:
 
 def quality_available() -> bool:
     return st_available() or onnx_quality_available()
+
+
+def fast_available() -> bool:
+    try:
+        from .fast_embed import fast_available as _fast
+
+        return _fast()
+    except Exception:
+        return False
 
 
 def _prefer_onnx() -> bool:
@@ -89,7 +106,6 @@ def _prefer_onnx() -> bool:
 
         if onnx_available():
             return True
-        # Prefer ONNX when ST is missing but ONNX deps exist.
         if not st_available() and onnx_quality_available():
             return True
     except Exception:
@@ -156,6 +172,17 @@ def warmup_quality_model() -> bool:
     return True
 
 
+def warmup_fast_model() -> bool:
+    if active_backend() != "fast" or not fast_available():
+        return False
+    try:
+        from .fast_embed import warmup_fast_model as _warmup
+
+        return _warmup()
+    except Exception:
+        return False
+
+
 def embed_quality(text: str) -> list[float]:
     if _prefer_onnx():
         try:
@@ -196,3 +223,15 @@ def embed_quality_batch(texts: list[str]) -> list[list[float]]:
         show_progress_bar=False,
     )
     return [[float(value) for value in row.tolist()] for row in vectors]
+
+
+def embed_fast(text: str) -> list[float]:
+    from .fast_embed import embed_fast as _embed
+
+    return _embed(text)
+
+
+def embed_fast_batch(texts: list[str]) -> list[list[float]]:
+    from .fast_embed import embed_fast_batch as _embed_batch
+
+    return _embed_batch(texts)

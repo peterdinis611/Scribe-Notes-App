@@ -356,8 +356,19 @@ export const grantScopedPath = (path: string) =>
   invoke<void>('grant_scoped_path', { path })
 
 export const readTextFile = async (path: string) => {
+  const result = await readTextFileDecoded(path)
+  return result.text
+}
+
+export type ReadTextFileResult = {
+  text: string
+  encoding: string
+  converted: boolean
+}
+
+export const readTextFileDecoded = async (path: string) => {
   await grantScopedPath(path)
-  return invoke<string>('read_text_file', { path })
+  return invoke<ReadTextFileResult>('read_text_file', { path })
 }
 
 export const readBinaryFile = async (path: string) => {

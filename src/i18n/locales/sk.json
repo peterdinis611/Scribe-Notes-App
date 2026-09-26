@@ -209,7 +209,9 @@
       "wiki": "Wiki odkazy",
       "comments": "Komentáre",
       "semantic": "Sémanticky"
-    }
+    },
+    "connections": "Prepojenia",
+    "connectionsOff": "Skryť prepojenia"
   },
   "editor": {
     "loading": "Načítavam dokument…",
@@ -412,7 +414,7 @@
     "badge": "Novinky {{version}}",
     "kicker": "Poznámky k vydaniu",
     "title": "Scribe {{version}}",
-    "subtitle": "Scribe má vlastnú Lokálnu AI, ktorá číta poznámky na tomto Macu, a MCP je pripravené, keď chcete Cursor alebo Claude.",
+    "subtitle": "Wiki odkazy ako v Obsidiane, skratka na Prepojenia a Local AI polish v 2.4.",
     "localAiAsk": {
       "title": "Scribe Lokálna AI",
       "description": "Vstavaná Lokálna AI — nie ChatGPT. Pýtajte sa knižnice alebo otvorenej poznámky; odpovede ostávajú na tomto zariadení."
@@ -629,6 +631,18 @@
     "importPipeline": {
       "title": "Rýchlejší import",
       "description": "Optimalizované čítanie súborov a konverzia na rich text bez zbytočného zaťaženia editora."
+    },
+    "wikiNav": {
+      "title": "Navigácia wiki odkazov",
+      "description": "Nevyriešené [[odkazy]] otvoria popover vytvoriť / mysleli ste?. Hover karty sú klikateľné a skoky cez Prepojenia majú späť trail."
+    },
+    "connectionsShortcut": {
+      "title": "Skratka Prepojenia",
+      "description": "⌘⇧B prepína panel Prepojenia. Snippety ukazujú, kde sa backlink spomína."
+    },
+    "libraryPolish": {
+      "title": "Knižnica polish",
+      "description": "Úlohy filtrujú podľa priečinka a triedia podľa termínu. Duplikáty ukazujú lexikálne vs embed skóre. Dirty taby a počty wiki/úloh."
     }
   },
   "wikiNav": {
@@ -1337,6 +1351,10 @@
     "closePanel": {
       "label": "Zavrieť panel",
       "description": "Zavrie vyhľadávanie alebo režim"
+    },
+    "connections": {
+      "label": "Prepojenia",
+      "description": "Zobraziť wiki backlinky a odchádzajúce odkazy"
     }
   },
   "quickNote": {
@@ -1351,7 +1369,8 @@
     "close": "Zavrieť tab",
     "pin": "Pripnúť kartu",
     "unpin": "Odopnúť kartu",
-    "reorder": "Presuňte na zmenu poradia"
+    "reorder": "Presuňte na zmenu poradia",
+    "unsaved": "Neuložené"
   },
   "split": {
     "close": "Zavrieť split panel"
@@ -1425,7 +1444,9 @@
       "hint": "Nezaškrtnuté checkboxy naprieč nedávnymi poznámkami. Klikni na úlohu a otvorí sa poznámka so skokom na text.",
       "empty": "V nedávnych poznámkach nie sú otvorené checklist úlohy.",
       "count": "{{count}} otvorených · {{notes}} poznámok",
-      "loadError": "Otvorené úlohy sa nepodarilo načítať"
+      "loadError": "Otvorené úlohy sa nepodarilo načítať",
+      "folderFilter": "Filter podľa priečinka",
+      "allFolders": "Všetky priečinky"
     },
     "wikiHealth": {
       "title": "Wiki zdravie",
@@ -1454,7 +1475,8 @@
       "mergeIntoLeft": "Zlúčiť do prvej",
       "merged": "Poznámky zlúčené — kópia je v koši.",
       "mergeError": "Poznámky sa nepodarilo zlúčiť",
-      "loadError": "Duplicity sa nepodarilo načítať"
+      "loadError": "Duplicity sa nepodarilo načítať",
+      "scoreParts": "Lexikálne {{lexical}}% · Embed {{embed}}%"
     },
     "trash": "Kôš",
     "newFolder": "Nový priečinok",
@@ -2306,7 +2328,15 @@
     "modified": "Upravené {{time}}",
     "emptyDocument": "Prázdny dokument",
     "previewHint": "Náhľad cieľového dokumentu — kliknutím na odkaz alebo tlačidlom nižšie.",
-    "openDocument": "Otvoriť dokument"
+    "openDocument": "Otvoriť dokument",
+    "unresolvedTitle": "Nevyriešený wiki odkaz",
+    "unresolvedHint": "Vytvor poznámku alebo prepoj na blízku zhodu.",
+    "noSuggestions": "Žiadne blízke zhody.",
+    "createNote": "Vytvoriť „{{title}}“",
+    "resolvedToast": "Prepojené [[{{label}}]] → {{title}}",
+    "resolveError": "Nepodarilo sa vyriešiť wiki odkaz",
+    "createdToast": "Vytvorené „{{title}}“ a prepojené",
+    "createError": "Nepodarilo sa vytvoriť poznámku"
   },
   "templates": {
     "title": "Nový dokument",
@@ -3069,5 +3099,8 @@
     "hint": "Nadpisy šablóny v tejto poznámke",
     "missing": "V reporte ešte chýba",
     "checklistOpen": "Nezaškrtnuté v kontrole"
+  },
+  "import": {
+    "encodingConverted": "Importovaný text bol skonvertovaný z {{encoding}}"
   }
 }

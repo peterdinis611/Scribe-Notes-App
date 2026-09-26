@@ -33,18 +33,31 @@ pub fn grant_scoped_path(gate: State<'_, PathAccessGate>, path: String) -> Resul
     Ok(())
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReadTextFileResult {
+    pub text: String,
+    pub encoding: String,
+    pub converted: bool,
+}
+
 #[tauri::command]
 pub fn read_text_file(
     app: AppHandle,
     state: State<'_, DbState>,
     gate: State<'_, PathAccessGate>,
     path: String,
-) -> Result<String, String> {
+) -> Result<ReadTextFileResult, String> {
     let path = PathBuf::from(path);
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     let validated = gate.validate_read(&app, &conn, &path)?;
     drop(conn);
-    std::fs::read_to_string(&validated).map_err(|e| format!("Nepodarilo sa prečítať súbor: {e}"))
+    let decoded = export::read_text_file_decoded(&validated)?;
+    Ok(ReadTextFileResult {
+        text: decoded.text,
+        encoding: decoded.encoding,
+        converted: decoded.converted,
+    })
 }
 
 #[tauri::command]
