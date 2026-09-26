@@ -77,11 +77,16 @@ describe('document chat helpers', () => {
   })
 
   it('routes document scope to nlp_document_answer', async () => {
-    vi.mocked(invoke).mockResolvedValueOnce({
-      answer: 'Based on this document: Hello',
-      citations: [],
-    })
+    vi.mocked(invoke)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        answer: 'Based on this document: Hello',
+        citations: [],
+      })
     const result = await askChat('document', 'What feels unfinished here?', 'doc-1')
+    expect(invoke).toHaveBeenCalledWith('match_document_chat_intent', {
+      question: 'What feels unfinished here?',
+    })
     expect(invoke).toHaveBeenCalledWith('nlp_document_answer', {
       documentId: 'doc-1',
       question: 'What feels unfinished here?',
@@ -91,8 +96,11 @@ describe('document chat helpers', () => {
   })
 
   it('routes clear document intents to structured actions', async () => {
+    vi.mocked(invoke).mockResolvedValueOnce('tasks')
     const result = await askChat('document', 'What are the open tasks?', 'doc-1')
-    expect(invoke).not.toHaveBeenCalled()
+    expect(invoke).toHaveBeenCalledWith('match_document_chat_intent', {
+      question: 'What are the open tasks?',
+    })
     expect(result.answer).toContain('Buy milk')
   })
 

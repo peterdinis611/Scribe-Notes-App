@@ -459,19 +459,26 @@ export const diffDocumentRevisions = (
     },
   })
 
+export type DiffPlainTextsResult = {
+  lines: Array<{ type: 'unchanged' | 'added' | 'removed'; text: string }>
+  added: number
+  removed: number
+  sideBySideRows: import('@/lib/revisions/diff-text').SideBySideRow[]
+}
+
 export const diffPlainTexts = (oldText: string, newText: string) =>
-  invoke<DiffDocumentRevisionsResult>('diff_plain_texts', { oldText, newText })
+  invoke<DiffPlainTextsResult>('diff_plain_texts', { oldText, newText })
 
 export const convertTiptap = (contentJson: string, format: 'plain' | 'markdown') =>
   invoke<string>('convert_tiptap', { contentJson, format })
 
-export const matchDocumentChatIntent = (question: string) =>
+export const invokeMatchDocumentChatIntent = (question: string) =>
   invoke<string | null>('match_document_chat_intent', { question })
 
-export const parseMetaTagRust = (raw: string) =>
+export const invokeParseMetaTag = (raw: string) =>
   invoke<{ raw: string; kind: string; value: string }>('parse_meta_tag', { raw })
 
-export const documentMatchesMetaFiltersRust = (
+export const invokeDocumentMatchesMetaFilters = (
   tags: string[],
   filters: { status?: string | null; project?: string | null; year?: string | null },
 ) =>

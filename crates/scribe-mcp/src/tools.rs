@@ -367,6 +367,36 @@ pub struct CitationPackParams {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+pub struct QuestionParams {
+    pub question: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ConvertTiptapParams {
+    pub content_json: String,
+    /// `plain` or `markdown`
+    pub format: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct DiffPlainTextsParams {
+    pub old_text: String,
+    pub new_text: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct MetaFiltersParams {
+    pub tags: Vec<String>,
+    pub status: Option<String>,
+    pub project: Option<String>,
+    pub year: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct TerminologyLibraryParams {
     pub limit: Option<i64>,
     pub document_limit: Option<i64>,

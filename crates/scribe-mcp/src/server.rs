@@ -1929,6 +1929,62 @@ impl ScribeMcp {
             )?))
         })
     }
+
+    #[tool(description = "Map a free-form question to a structured document chat action (summarize, flashcards, style, …). EN/SK.")]
+    fn match_document_chat_intent(
+        &self,
+        Parameters(params): Parameters<tools::QuestionParams>,
+    ) -> Result<String, String> {
+        let action = scribe_core::match_document_chat_intent(&params.question);
+        Ok(tools::json(&serde_json::json!({
+            "action": action,
+            "matched": action.is_some(),
+        })))
+    }
+
+    #[tool(description = "Convert TipTap JSON to plain text or markdown (canonical Rust serializers).")]
+    fn convert_tiptap(
+        &self,
+        Parameters(params): Parameters<tools::ConvertTiptapParams>,
+    ) -> Result<String, String> {
+        let format = params.format.to_lowercase();
+        let body = match format.as_str() {
+            "plain" | "text" | "txt" => scribe_core::tiptap_to_plain_text(&params.content_json),
+            "markdown" | "md" => scribe_core::tiptap_to_markdown(&params.content_json),
+            other => return Err(format!("Unsupported format: {other}")),
+        };
+        Ok(tools::json(&serde_json::json!({
+            "format": format,
+            "text": body,
+        })))
+    }
+
+    #[tool(description = "Line + word-level side-by-side diff of two plain-text blobs.")]
+    fn diff_plain_texts(
+        &self,
+        Parameters(params): Parameters<tools::DiffPlainTextsParams>,
+    ) -> Result<String, String> {
+        Ok(tools::json(&scribe_core::diff_lines(
+            &params.old_text,
+            &params.new_text,
+        )))
+    }
+
+    #[tool(description = "Whether document tags match status:/project:/year: meta filters.")]
+    fn document_matches_meta_filters(
+        &self,
+        Parameters(params): Parameters<tools::MetaFiltersParams>,
+    ) -> Result<String, String> {
+        let matched = scribe_core::document_matches_meta_filters(
+            &params.tags,
+            &scribe_core::MetaFilters {
+                status: params.status,
+                project: params.project,
+                year: params.year,
+            },
+        );
+        Ok(tools::json(&serde_json::json!({ "matched": matched })))
+    }
 }
 
 #[prompt_router]
@@ -2169,6 +2225,7 @@ impl ServerHandler for ScribeMcp {
              extract_entities / extract_mentions / extract_dates / extract_outline / chunk_text accept id or text. \
              Study AI: extract_flashcards / extract_takeaways / check_terminology / writing_coach / outline_quiz / meeting_notes_pack (id or text). \
              Library study: check_terminology_library / citation_pack. \
+             Intent router: match_document_chat_intent. Convert: convert_tiptap. Diff: diff_plain_texts. Meta tags: document_matches_meta_filters. \
              Placeholder: generate_placeholder. Answer backend: set_answer_backend. \
              Revision AI: analyze_revision_diff or analyze_revision_diff_for_document; delete_document_revision cleans history. \
              Continue writing: suggest_continuation from the local library corpus. \

@@ -1,4 +1,7 @@
-/** Convention-based structured tags: status:draft, project:Acme, year:2026 */
+/** Convention-based structured tags: status:draft, project:Acme, year:2026.
+ * Canonical logic: scribe-core `parse_meta_tag` / `document_matches_meta_filters`
+ * (also MCP). This module stays sync for Library UI filtering.
+ */
 
 export type TagKind = 'status' | 'project' | 'year' | 'plain'
 
