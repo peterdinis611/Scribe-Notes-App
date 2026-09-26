@@ -87,6 +87,8 @@ Core: `health`, `embed`, `embed_batch`, `summarize`, `extract_*`, `analyze_docum
 
 1.0.2+: document Q&A loads full note text (OCR included), merges embeddings with whole-document coverage
 
+1.1.0+: `suggest_continuation` — local n-gram continue-writing from library corpus (slash `/continue`)
+
 ## Version
 
-Current sidecar: **1.0.0**
+Current sidecar: **1.1.0**

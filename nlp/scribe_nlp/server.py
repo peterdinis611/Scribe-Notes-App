@@ -99,6 +99,7 @@ FEATURES = [
     "keybert",
     "spellcheck",
     "generatePlaceholder",
+    "suggestContinuation",
     "libraryAnswer",
     "dueHints",
     "wikiSuggest",
@@ -494,6 +495,24 @@ def _handle_request_inner(
             custom_instruction = params.get("customInstruction")
             custom_value = str(custom_instruction) if custom_instruction else None
             result = rewrite_selection(text, mode=mode, custom_instruction=custom_value)
+        elif method == "suggest_continuation":
+            from .continuation import suggest_continuation
+
+            prefix = str(params.get("prefix") or "")
+            if len(prefix) > 8_000:
+                raise SidecarError("prefix exceeds limit", code=-32602)
+            corpus_raw = params.get("corpus") or []
+            if not isinstance(corpus_raw, list):
+                raise SidecarError("corpus must be an array of strings", code=-32602)
+            corpus = [str(item) for item in corpus_raw[:80]]
+            max_suggestions = max(1, min(int(params.get("maxSuggestions") or 3), 5))
+            max_tokens = max(1, min(int(params.get("maxTokens") or 16), 32))
+            result = suggest_continuation(
+                prefix,
+                corpus=corpus,
+                max_suggestions=max_suggestions,
+                max_tokens=max_tokens,
+            )
         else:
             return {
                 "jsonrpc": "2.0",
