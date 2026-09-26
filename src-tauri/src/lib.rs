@@ -303,6 +303,7 @@ pub fn run() {
             commands::revisions::create_named_revision,
             commands::revisions::rename_document_revision,
             commands::revisions::restore_document_revision,
+            commands::revisions::delete_document_revision,
             commands::storage::get_storage_settings,
             commands::storage::pick_documents_directory,
             commands::storage::reveal_in_finder,

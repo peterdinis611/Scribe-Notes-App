@@ -1987,7 +1987,21 @@
       "renameError": "Premenovanie verzie zlyhalo",
       "pin": "Pripnúť",
       "unpin": "Odopnúť",
-      "pinError": "Pripnutie sa nepodarilo zmeniť"
+      "pinError": "Pripnutie sa nepodarilo zmeniť",
+      "preview": "Náhľad",
+      "previewTitle": "Náhľad verzie",
+      "previewEmpty": "(Prázdny dokument)",
+      "previewError": "Náhľad verzie sa nepodarilo načítať",
+      "deleteConfirmTitle": "Odstrániť verziu",
+      "deleteConfirm": "Natrvalo odstrániť verziu „{{title}}“? Túto akciu nejde vrátiť.",
+      "deleteSuccess": "Verzia odstránená",
+      "deleteError": "Verziu sa nepodarilo odstrániť",
+      "deleting": "Odstraňujem…",
+      "swapSides": "Prehodiť A / B",
+      "contextLines": "Kontext",
+      "wordHighlight": "Zvýraznenie slov",
+      "gainedTerms": "Pribudlo",
+      "lostTerms": "Ubylo"
     }
   },
   "focusMode": {

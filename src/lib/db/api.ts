@@ -598,6 +598,9 @@ export const renameDocumentRevision = (
     input: { revisionId, label, pinned },
   })
 
+export const deleteDocumentRevision = (revisionId: string) =>
+  invoke<void>('delete_document_revision', { revisionId })
+
 export const restoreDocumentRevision = (revisionId: string) =>
   invoke<Document>('restore_document_revision', { revisionId })
 

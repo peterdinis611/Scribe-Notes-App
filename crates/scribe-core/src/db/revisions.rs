@@ -117,6 +117,19 @@ pub fn set_revision_label(
     Ok(())
 }
 
+pub fn delete_revision(conn: &Connection, revision_id: &str) -> Result<(), String> {
+    let updated = conn
+        .execute(
+            "DELETE FROM document_revisions WHERE id = ?1",
+            params![revision_id],
+        )
+        .map_err(|e| e.to_string())?;
+    if updated == 0 {
+        return Err("Verzia neexistuje".into());
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

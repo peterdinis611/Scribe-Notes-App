@@ -1,12 +1,24 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { BookmarkPlus, Clock, GitCompare, Pencil, Pin, RotateCcw } from 'lucide-react'
+import {
+  ArrowLeftRight,
+  BookmarkPlus,
+  Clock,
+  Eye,
+  GitCompare,
+  Pencil,
+  Pin,
+  RotateCcw,
+  Trash2,
+} from 'lucide-react'
 import { confirm } from '@tauri-apps/plugin-dialog'
 import { RevisionDiffView } from '@/components/editor/RevisionDiffView'
 import { cacheDocument } from '@/lib/cache/document-cache'
 import {
   createNamedRevision,
+  deleteDocumentRevision,
   diffDocumentRevisions,
+  getDocumentRevision,
   listDocumentRevisions,
   renameDocumentRevision,
   restoreDocumentRevision,
@@ -14,6 +26,7 @@ import {
 } from '@/lib/db/api'
 import { promptInput } from '@/lib/input-dialog'
 import {
+  buildSideBySideFromLines,
   CURRENT_REVISION_ID,
   type DiffLine,
   type DiffViewMode,
@@ -52,7 +65,17 @@ type CompareState = {
   nlpSummary?: string | null
   nlpAdded?: string[]
   nlpRemoved?: string[]
+  nlpGainedTerms?: string[]
+  nlpLostTerms?: string[]
   nlpChangeRatio?: number | null
+}
+
+type PreviewState = {
+  id: string
+  title: string
+  label: string | null
+  createdAt: number
+  plainText: string
 }
 
 export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
@@ -63,13 +86,18 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
   const [revisions, setRevisions] = useState<DocumentRevision[]>([])
   const [loading, setLoading] = useState(true)
   const [restoringId, setRestoringId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [naming, setNaming] = useState(false)
   const [compareLoading, setCompareLoading] = useState(false)
+  const [previewLoading, setPreviewLoading] = useState(false)
   const [versionAId, setVersionAId] = useState(CURRENT_REVISION_ID)
   const [versionBId, setVersionBId] = useState(CURRENT_REVISION_ID)
   const [compareState, setCompareState] = useState<CompareState | null>(null)
+  const [preview, setPreview] = useState<PreviewState | null>(null)
   const [viewMode, setViewMode] = useState<DiffViewMode>('split')
   const [changesOnly, setChangesOnly] = useState(false)
+  const [contextLines, setContextLines] = useState(2)
+  const [wordHighlight, setWordHighlight] = useState(true)
 
   const compareOptions = useMemo(() => {
     const options = buildRevisionCompareOptions(revisions, activeDocument?.updatedAt ?? Date.now())
@@ -81,7 +109,7 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
   }, [activeDocument?.updatedAt, revisions, t])
 
   async function refreshRevisions(documentId: string) {
-    const next = await listDocumentRevisions(documentId, 30)
+    const next = await listDocumentRevisions(documentId, 50)
     setRevisions(next)
     return next
   }
@@ -101,6 +129,7 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
 
   useEffect(() => {
     setCompareState(null)
+    setPreview(null)
     setVersionAId(revisions[1]?.id ?? CURRENT_REVISION_ID)
     setVersionBId(CURRENT_REVISION_ID)
     setChangesOnly(false)
@@ -122,9 +151,8 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
     )
 
     setCompareLoading(true)
+    setPreview(null)
     try {
-      // LCS runs in Rust against revision IDs — TipTap bodies never cross IPC.
-      // Plain text of the open editor covers unsaved `__current__` edits.
       const currentPlain =
         olderId === CURRENT_REVISION_ID || newerId === CURRENT_REVISION_ID
           ? tiptapToPlainText(activeDocument.contentJson)
@@ -140,6 +168,8 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
       let nlpSummary: string | null = null
       let nlpAdded: string[] = []
       let nlpRemoved: string[] = []
+      let nlpGainedTerms: string[] = []
+      let nlpLostTerms: string[] = []
       let nlpChangeRatio: number | null = null
       try {
         const diffSummary: NlpDiffSummary = await nlpSummarizeDiff({
@@ -154,13 +184,16 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
         nlpRemoved = Array.isArray(diffSummary.removedSentences)
           ? diffSummary.removedSentences.filter(Boolean).slice(0, 4)
           : []
+        nlpGainedTerms = Array.isArray(diffSummary.gainedTerms)
+          ? diffSummary.gainedTerms.filter(Boolean).slice(0, 8)
+          : []
+        nlpLostTerms = Array.isArray(diffSummary.lostTerms)
+          ? diffSummary.lostTerms.filter(Boolean).slice(0, 8)
+          : []
         nlpChangeRatio =
           typeof diffSummary.changeRatio === 'number' ? diffSummary.changeRatio : null
       } catch {
         nlpSummary = null
-        nlpAdded = []
-        nlpRemoved = []
-        nlpChangeRatio = null
       }
 
       setCompareState({
@@ -175,27 +208,12 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
           createdAt: newerOption.createdAt,
         },
         lines: diff.lines,
-        sideBySideRows: diff.lines.map((line) => {
-          if (line.type === 'unchanged') {
-            return {
-              left: { kind: 'text' as const, type: 'unchanged' as const, text: line.text },
-              right: { kind: 'text' as const, type: 'unchanged' as const, text: line.text },
-            }
-          }
-          if (line.type === 'removed') {
-            return {
-              left: { kind: 'text' as const, type: 'removed' as const, text: line.text },
-              right: { kind: 'gap' as const, text: '' },
-            }
-          }
-          return {
-            left: { kind: 'gap' as const, text: '' },
-            right: { kind: 'text' as const, type: 'added' as const, text: line.text },
-          }
-        }),
+        sideBySideRows: buildSideBySideFromLines(diff.lines),
         nlpSummary,
         nlpAdded,
         nlpRemoved,
+        nlpGainedTerms,
+        nlpLostTerms,
         nlpChangeRatio,
       })
       setVersionAId(olderId)
@@ -254,6 +272,55 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
     }
   }
 
+  async function handlePreview(revision: DocumentRevision) {
+    setPreviewLoading(true)
+    setCompareState(null)
+    try {
+      const detail = await getDocumentRevision(revision.id)
+      setPreview({
+        id: detail.id,
+        title: detail.title,
+        label: detail.label,
+        createdAt: detail.createdAt,
+        plainText: tiptapToPlainText(detail.contentJson).trim() || t('panels.revisions.previewEmpty'),
+      })
+    } catch {
+      toast.error(t('panels.revisions.previewError'))
+    } finally {
+      setPreviewLoading(false)
+    }
+  }
+
+  async function handleDelete(revision: DocumentRevision) {
+    const confirmed = await confirm(
+      t('panels.revisions.deleteConfirm', {
+        title: revision.label?.trim() || revision.title,
+      }),
+      {
+        title: t('panels.revisions.deleteConfirmTitle'),
+        kind: 'warning',
+        okLabel: t('common.delete'),
+        cancelLabel: t('common.cancel'),
+      },
+    )
+    if (!confirmed) return
+
+    setDeletingId(revision.id)
+    try {
+      await deleteDocumentRevision(revision.id)
+      if (preview?.id === revision.id) setPreview(null)
+      if (compareState?.left.id === revision.id || compareState?.right.id === revision.id) {
+        setCompareState(null)
+      }
+      if (activeId) await refreshRevisions(activeId)
+      toast.success(t('panels.revisions.deleteSuccess'))
+    } catch {
+      toast.error(t('panels.revisions.deleteError'))
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
   async function handleRestore(revision: DocumentRevision) {
     const confirmed = await confirm(
       t('panels.revisions.restoreConfirm', {
@@ -289,6 +356,7 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
       )
       toast.success(t('panels.revisions.restoreSuccess'), formatRelativeTime(revision.createdAt))
       setCompareState(null)
+      setPreview(null)
       if (activeId) await refreshRevisions(activeId)
     } catch {
       toast.error(t('panels.revisions.restoreError'))
@@ -309,6 +377,11 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
     setVersionBId(revisionId)
   }
 
+  function handleSwapSides() {
+    setVersionAId(versionBId)
+    setVersionBId(versionAId)
+  }
+
   const canCompare = compareOptions.length >= 2 && versionAId !== versionBId
 
   function formatVersionLabel(option: (typeof compareOptions)[number]) {
@@ -317,7 +390,7 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
 
   return (
     <EditorSidePanel
-      minWidth={compareState ? 560 : undefined}
+      minWidth={compareState || preview ? 560 : undefined}
       className="titlebar-no-drag"
     >
       <EditorSidePanelHeader
@@ -349,7 +422,10 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
           <div className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-2.5">
             <div className="grid gap-2.5">
               <div className="grid gap-1">
-                <label htmlFor="revision-version-a" className="text-[11px] font-medium text-[var(--color-muted-foreground)]">
+                <label
+                  htmlFor="revision-version-a"
+                  className="text-[11px] font-medium text-[var(--color-muted-foreground)]"
+                >
                   {t('panels.revisions.versionA')}
                 </label>
                 <Select value={versionAId} onValueChange={setVersionAId}>
@@ -358,7 +434,11 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
                   </SelectTrigger>
                   <SelectContent>
                     {compareOptions.map((option) => (
-                      <SelectItem key={`a-${option.id}`} value={option.id} textValue={formatVersionLabel(option)}>
+                      <SelectItem
+                        key={`a-${option.id}`}
+                        value={option.id}
+                        textValue={formatVersionLabel(option)}
+                      >
                         <span className="flex min-w-0 items-center justify-between gap-2">
                           <span className="truncate font-medium">{option.label}</span>
                           <span className="shrink-0 text-[11px] text-[var(--color-muted-foreground)]">
@@ -371,8 +451,23 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
                 </Select>
               </div>
 
+              <div className="flex justify-center">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSwapSides}
+                  title={t('panels.revisions.swapSides')}
+                >
+                  <ArrowLeftRight className="h-3.5 w-3.5" />
+                  {t('panels.revisions.swapSides')}
+                </Button>
+              </div>
+
               <div className="grid gap-1">
-                <label htmlFor="revision-version-b" className="text-[11px] font-medium text-[var(--color-muted-foreground)]">
+                <label
+                  htmlFor="revision-version-b"
+                  className="text-[11px] font-medium text-[var(--color-muted-foreground)]"
+                >
                   {t('panels.revisions.versionB')}
                 </label>
                 <Select value={versionBId} onValueChange={setVersionBId}>
@@ -381,7 +476,11 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
                   </SelectTrigger>
                   <SelectContent>
                     {compareOptions.map((option) => (
-                      <SelectItem key={`b-${option.id}`} value={option.id} textValue={formatVersionLabel(option)}>
+                      <SelectItem
+                        key={`b-${option.id}`}
+                        value={option.id}
+                        textValue={formatVersionLabel(option)}
+                      >
                         <span className="flex min-w-0 items-center justify-between gap-2">
                           <span className="truncate font-medium">{option.label}</span>
                           <span className="shrink-0 text-[11px] text-[var(--color-muted-foreground)]">
@@ -433,7 +532,8 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
                   'flex flex-col gap-2.5 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2.5',
                   (isSelectedA || isSelectedB) &&
                     'border-[var(--color-selection-strong)] bg-[color-mix(in_srgb,var(--color-selection)_35%,var(--color-surface-elevated))]',
-                  revision.pinned && 'border-[color-mix(in_srgb,var(--color-accent)_45%,var(--color-border))]',
+                  revision.pinned &&
+                    'border-[color-mix(in_srgb,var(--color-accent)_45%,var(--color-border))]',
                 )}
               >
                 <div className="flex min-w-0 items-start gap-2">
@@ -481,6 +581,15 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
                     <GitCompare className="h-3.5 w-3.5" />
                     {t('panels.revisions.vsCurrent')}
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={previewLoading}
+                    onClick={() => void handlePreview(revision)}
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    {t('panels.revisions.preview')}
+                  </Button>
                   <Button variant="outline" size="sm" onClick={() => void handleRename(revision)}>
                     <Pencil className="h-3.5 w-3.5" />
                     {t('panels.revisions.rename')}
@@ -501,13 +610,51 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
                     onClick={() => void handleRestore(revision)}
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
-                    {restoringId === revision.id ? t('panels.revisions.restoring') : t('common.restore')}
+                    {restoringId === revision.id
+                      ? t('panels.revisions.restoring')
+                      : t('common.restore')}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={deletingId === revision.id}
+                    onClick={() => void handleDelete(revision)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    {deletingId === revision.id
+                      ? t('panels.revisions.deleting')
+                      : t('common.delete')}
                   </Button>
                 </div>
               </div>
             )
           })}
       </div>
+
+      {preview ? (
+        <div className="flex max-h-[40vh] flex-col border-t border-[var(--color-border)] bg-[var(--color-background)]">
+          <div className="flex items-start justify-between gap-3 border-b border-[var(--color-border)] px-4 py-3">
+            <div>
+              <p className="m-0 text-[13px] font-semibold">{t('panels.revisions.previewTitle')}</p>
+              <p className="mt-1 text-[11px] text-[var(--color-muted-foreground)]">
+                {(preview.label?.trim() || preview.title) +
+                  ' · ' +
+                  formatRelativeTime(preview.createdAt)}
+              </p>
+            </div>
+            <button
+              type="button"
+              className="border-none bg-transparent text-[12px] text-[var(--color-muted-foreground)]"
+              onClick={() => setPreview(null)}
+            >
+              {t('common.close')}
+            </button>
+          </div>
+          <pre className="m-0 overflow-auto whitespace-pre-wrap break-words px-4 py-3 font-mono text-[12px] leading-relaxed text-[var(--color-foreground)]">
+            {preview.plainText}
+          </pre>
+        </div>
+      ) : null}
 
       {compareState && (
         <>
@@ -518,7 +665,7 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
               <span className="mb-1 flex items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
                 <span>{t('panels.revisions.nlpDiffSummary')}</span>
                 {typeof compareState.nlpChangeRatio === 'number' ? (
-                  <span className="normal-case tracking-normal font-medium opacity-80">
+                  <span className="font-medium normal-case tracking-normal opacity-80">
                     {t('panels.revisions.nlpDiffChange', {
                       percent: Math.round(compareState.nlpChangeRatio * 100),
                     })}
@@ -549,22 +696,28 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
             </div>
           ) : null}
           <RevisionDiffView
-          left={{
-            label: compareState.left.label,
-            createdAt: compareState.left.createdAt,
-          }}
-          right={{
-            label: compareState.right.label,
-            createdAt: compareState.right.createdAt,
-          }}
-          lines={compareState.lines}
-          sideBySideRows={compareState.sideBySideRows}
-          viewMode={viewMode}
-          changesOnly={changesOnly}
-          onViewModeChange={setViewMode}
-          onChangesOnlyChange={setChangesOnly}
-          onClose={() => setCompareState(null)}
-        />
+            left={{
+              label: compareState.left.label,
+              createdAt: compareState.left.createdAt,
+            }}
+            right={{
+              label: compareState.right.label,
+              createdAt: compareState.right.createdAt,
+            }}
+            lines={compareState.lines}
+            sideBySideRows={compareState.sideBySideRows}
+            viewMode={viewMode}
+            changesOnly={changesOnly}
+            contextLines={contextLines}
+            wordHighlight={wordHighlight}
+            gainedTerms={compareState.nlpGainedTerms}
+            lostTerms={compareState.nlpLostTerms}
+            onViewModeChange={setViewMode}
+            onChangesOnlyChange={setChangesOnly}
+            onContextLinesChange={setContextLines}
+            onWordHighlightChange={setWordHighlight}
+            onClose={() => setCompareState(null)}
+          />
         </>
       )}
     </EditorSidePanel>

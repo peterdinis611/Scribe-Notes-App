@@ -1979,7 +1979,21 @@
       "renameError": "Could not rename version",
       "pin": "Pin",
       "unpin": "Unpin",
-      "pinError": "Could not update pin"
+      "pinError": "Could not update pin",
+      "preview": "Preview",
+      "previewTitle": "Version preview",
+      "previewEmpty": "(Empty document)",
+      "previewError": "Could not load version preview",
+      "deleteConfirmTitle": "Delete version",
+      "deleteConfirm": "Permanently delete version “{{title}}”? This cannot be undone.",
+      "deleteSuccess": "Version deleted",
+      "deleteError": "Could not delete version",
+      "deleting": "Deleting…",
+      "swapSides": "Swap A / B",
+      "contextLines": "Context",
+      "wordHighlight": "Word highlight",
+      "gainedTerms": "Gained",
+      "lostTerms": "Lost"
     }
   },
   "focusMode": {

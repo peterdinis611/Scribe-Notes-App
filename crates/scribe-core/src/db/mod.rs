@@ -25,4 +25,6 @@ pub use fts::{
     remove_document_fts, sync_document_fts,
 };
 pub use links::{backfill_links, sync_document_links};
-pub use revisions::{fetch_revision, restore_document_content, save_revision, set_revision_label};
+pub use revisions::{
+    delete_revision, fetch_revision, restore_document_content, save_revision, set_revision_label,
+};
