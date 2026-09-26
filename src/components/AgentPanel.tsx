@@ -15,6 +15,7 @@ import {
 import { peekCachedDocument } from '@/lib/cache/document-cache'
 import {
   appendAgentMessage,
+  appendAgentRun,
   clearAgentMessages,
   listAgentMessages,
   type AgentMessageStep,
@@ -291,6 +292,13 @@ export function AgentPanel({ onNavigate }: AgentPanelProps) {
         } else {
           setSessionMessages((prev) => [...prev, assistant])
         }
+        void appendAgentRun({
+          scope,
+          documentId: activeDocumentId,
+          goal: trimmed,
+          stepsJson: JSON.stringify(toPersistSteps(assistant.steps ?? [])),
+          answer: assistant.text,
+        }).catch(() => undefined)
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         const key = message.startsWith('libraryChat.') || message.startsWith('agent.') ? message : null

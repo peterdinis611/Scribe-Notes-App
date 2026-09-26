@@ -47,6 +47,12 @@ import {
   type AutoBackupIntervalHours,
   type ShortcutOverrides,
 } from '@/store/persistence'
+import {
+  clearAgentTeachingsOnBackend,
+  forgetAgentTeachingBackend,
+  saveAgentPrefsToBackend,
+  teachAgentBackend,
+} from '@/lib/library/agent-backend'
 
 export type EditorViewMode = 'rich' | 'markdown'
 export type PrintLayoutColumns = 1 | 2
@@ -187,11 +193,13 @@ const settingsSlice = createSlice({
       const next = normalizeAgentPrefs(action.payload)
       state.agentPrefs = next
       persistAgentPrefs(next)
+      void saveAgentPrefsToBackend(next)
     },
     patchAgentPrefs(state, action: PayloadAction<Partial<AgentPrefs>>) {
       const next = normalizeAgentPrefs({ ...state.agentPrefs, ...action.payload })
       state.agentPrefs = next
       persistAgentPrefs(next)
+      void saveAgentPrefsToBackend(next)
     },
     addAgentTeaching(state, action: PayloadAction<string>) {
       const teaching = createTeaching(action.payload)
@@ -206,15 +214,23 @@ const settingsSlice = createSlice({
       const next = normalizeAgentPrefs({ ...state.agentPrefs, teachings })
       state.agentPrefs = next
       persistAgentPrefs(next)
+      void teachAgentBackend(teaching.text)
     },
     removeAgentTeaching(state, action: PayloadAction<string>) {
       const teachings = state.agentPrefs.teachings.filter((item) => item.id !== action.payload)
       const next = normalizeAgentPrefs({ ...state.agentPrefs, teachings })
       state.agentPrefs = next
       persistAgentPrefs(next)
+      void forgetAgentTeachingBackend(action.payload)
     },
     clearAgentTeachings(state) {
       const next = normalizeAgentPrefs({ ...state.agentPrefs, teachings: [] as AgentTeaching[] })
+      state.agentPrefs = next
+      persistAgentPrefs(next)
+      void clearAgentTeachingsOnBackend()
+    },
+    hydrateAgentPrefs(state, action: PayloadAction<AgentPrefs>) {
+      const next = normalizeAgentPrefs(action.payload)
       state.agentPrefs = next
       persistAgentPrefs(next)
     },
@@ -245,6 +261,7 @@ export const {
   addAgentTeaching,
   removeAgentTeaching,
   clearAgentTeachings,
+  hydrateAgentPrefs,
 } = settingsSlice.actions
 
 export default settingsSlice.reducer

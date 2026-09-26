@@ -1,4 +1,5 @@
 mod commands;
+mod agent_db;
 mod backup;
 mod capture;
 mod db;
@@ -10,6 +11,7 @@ mod pdf_native;
 mod security;
 mod storage;
 
+use agent_db::{init_agent_db, AgentDbState};
 use db::{init_db, DbState};
 use nlp::NlpSidecar;
 use security::PathAccessGate;
@@ -97,6 +99,10 @@ pub fn run() {
             app.manage(DbState {
                 conn: std::sync::Mutex::new(conn),
                 persist_queue,
+            });
+            let agent_store = init_agent_db(&app.handle())?;
+            app.manage(AgentDbState {
+                store: std::sync::Mutex::new(agent_store),
             });
             app.manage(PathAccessGate::new());
             app.manage(NlpSidecar::new(nlp::resolve_script_path(app.handle())));
@@ -247,6 +253,15 @@ pub fn run() {
             commands::agent::list_agent_messages,
             commands::agent::append_agent_message,
             commands::agent::clear_agent_messages,
+            commands::agent::get_agent_prefs,
+            commands::agent::set_agent_prefs,
+            commands::agent::list_agent_teachings,
+            commands::agent::add_agent_teaching,
+            commands::agent::remove_agent_teaching,
+            commands::agent::clear_agent_teachings,
+            commands::agent::append_agent_run,
+            commands::agent::list_agent_runs,
+            commands::agent::get_agent_db_path,
             commands::folders::list_folders,
             commands::folders::create_folder,
             commands::folders::rename_folder,

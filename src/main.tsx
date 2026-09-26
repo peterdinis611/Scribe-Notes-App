@@ -17,11 +17,15 @@ async function bootstrap() {
   const { Provider } = await import('react-redux')
   const { HotkeysProvider } = await import('@tanstack/react-hotkeys')
   await import('@/i18n')
-  const { bootstrapTheme } = await import('@/store/settingsSlice')
+  const { bootstrapTheme, hydrateAgentPrefs } = await import('@/store/settingsSlice')
   const { store } = await import('@/store/index')
   const { default: App } = await import('./App.tsx')
 
   bootstrapTheme()
+  void import('@/lib/library/agent-backend').then(async ({ loadAgentPrefsFromBackend }) => {
+    const prefs = await loadAgentPrefsFromBackend()
+    if (prefs) store.dispatch(hydrateAgentPrefs(prefs))
+  })
 
   // TipTap + React StrictMode double-mount can leave ProseMirror non-editable on WebKit.
   createRoot(document.getElementById('root')!).render(

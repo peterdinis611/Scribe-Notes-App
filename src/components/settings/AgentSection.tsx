@@ -1,4 +1,4 @@
-import { Bot, GraduationCap, Trash2 } from 'lucide-react'
+import { GraduationCap, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
@@ -81,21 +81,19 @@ export function AgentSection() {
   return (
     <SettingsSection>
       <SettingsSectionHeader
-        icon={Bot}
         title={t('settings.agent.title')}
         description={t('settings.agent.description')}
       />
 
       <SettingsGroup>
         <SettingsRow
-          label={t('settings.agent.enabled')}
+          title={t('settings.agent.enabled')}
           description={t('settings.agent.enabledHint')}
-          action={
-            <Button type="button" variant={prefs.enabled ? 'default' : 'outline'} size="sm" onClick={toggleEnabled}>
-              {prefs.enabled ? t('settings.agent.on') : t('settings.agent.off')}
-            </Button>
-          }
-        />
+        >
+          <Button type="button" variant={prefs.enabled ? 'default' : 'outline'} size="sm" onClick={toggleEnabled}>
+            {prefs.enabled ? t('settings.agent.on') : t('settings.agent.off')}
+          </Button>
+        </SettingsRow>
       </SettingsGroup>
 
       <SettingsGroup>
@@ -106,40 +104,38 @@ export function AgentSection() {
           {t('settings.agent.optimizeHint')}
         </p>
         <SettingsRow
-          label={t('settings.agent.maxSteps')}
+          title={t('settings.agent.maxSteps')}
           description={t('settings.agent.maxStepsHint')}
-          action={
-            <div className="inline-flex gap-1">
-              {([1, 2, 3] as AgentMaxSteps[]).map((steps) => (
-                <Button
-                  key={steps}
-                  type="button"
-                  size="sm"
-                  variant={prefs.maxSteps === steps ? 'default' : 'outline'}
-                  onClick={() => setMaxSteps(steps)}
-                  disabled={!prefs.enabled}
-                >
-                  {steps}
-                </Button>
-              ))}
-            </div>
-          }
-        />
+        >
+          <div className="inline-flex gap-1">
+            {([1, 2, 3] as AgentMaxSteps[]).map((steps) => (
+              <Button
+                key={steps}
+                type="button"
+                size="sm"
+                variant={prefs.maxSteps === steps ? 'default' : 'outline'}
+                onClick={() => setMaxSteps(steps)}
+                disabled={!prefs.enabled}
+              >
+                {steps}
+              </Button>
+            ))}
+          </div>
+        </SettingsRow>
         <SettingsRow
-          label={t('settings.agent.preferFast')}
+          title={t('settings.agent.preferFast')}
           description={t('settings.agent.preferFastHint')}
-          action={
-            <Button
-              type="button"
-              size="sm"
-              variant={prefs.preferFast ? 'default' : 'outline'}
-              onClick={togglePreferFast}
-              disabled={!prefs.enabled}
-            >
-              {prefs.preferFast ? t('settings.agent.on') : t('settings.agent.off')}
-            </Button>
-          }
-        />
+        >
+          <Button
+            type="button"
+            size="sm"
+            variant={prefs.preferFast ? 'default' : 'outline'}
+            onClick={togglePreferFast}
+            disabled={!prefs.enabled}
+          >
+            {prefs.preferFast ? t('settings.agent.on') : t('settings.agent.off')}
+          </Button>
+        </SettingsRow>
         <div className="mt-3 space-y-2 px-1">
           <p className="text-[12px] font-medium text-[var(--color-foreground)]">
             {t('settings.agent.preferredTools')}

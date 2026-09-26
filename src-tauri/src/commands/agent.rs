@@ -183,3 +183,106 @@ pub fn clear_agent_messages(
         .map_err(|e| e.to_string())?;
     Ok(deleted as u64)
 }
+
+// --- scribe-agent.db (separate agent store) ---
+
+use crate::agent_db::AgentDbState;
+use scribe_agent::{AgentPrefs, AgentRunRecord, AgentTeaching};
+
+#[tauri::command]
+pub fn get_agent_prefs(agent: State<'_, AgentDbState>) -> Result<AgentPrefs, String> {
+    let store = agent.store.lock().map_err(|e| e.to_string())?;
+    store.get_prefs()
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SetAgentPrefsInput {
+    pub enabled: bool,
+    pub max_steps: i32,
+    pub prefer_fast: bool,
+    pub preferred_tools: Vec<String>,
+    pub disabled_tools: Vec<String>,
+}
+
+#[tauri::command]
+pub fn set_agent_prefs(
+    agent: State<'_, AgentDbState>,
+    input: SetAgentPrefsInput,
+) -> Result<AgentPrefs, String> {
+    let store = agent.store.lock().map_err(|e| e.to_string())?;
+    store.set_prefs(&AgentPrefs {
+        enabled: input.enabled,
+        max_steps: input.max_steps,
+        prefer_fast: input.prefer_fast,
+        preferred_tools: input.preferred_tools,
+        disabled_tools: input.disabled_tools,
+    })
+}
+
+#[tauri::command]
+pub fn list_agent_teachings(agent: State<'_, AgentDbState>) -> Result<Vec<AgentTeaching>, String> {
+    let store = agent.store.lock().map_err(|e| e.to_string())?;
+    store.list_teachings()
+}
+
+#[tauri::command]
+pub fn add_agent_teaching(
+    agent: State<'_, AgentDbState>,
+    text: String,
+) -> Result<AgentTeaching, String> {
+    let store = agent.store.lock().map_err(|e| e.to_string())?;
+    store.add_teaching(&text)
+}
+
+#[tauri::command]
+pub fn remove_agent_teaching(agent: State<'_, AgentDbState>, id: String) -> Result<bool, String> {
+    let store = agent.store.lock().map_err(|e| e.to_string())?;
+    store.remove_teaching(&id)
+}
+
+#[tauri::command]
+pub fn clear_agent_teachings(agent: State<'_, AgentDbState>) -> Result<u64, String> {
+    let store = agent.store.lock().map_err(|e| e.to_string())?;
+    store.clear_teachings()
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppendAgentRunInput {
+    pub scope: String,
+    pub document_id: Option<String>,
+    pub goal: String,
+    pub steps_json: Option<String>,
+    pub answer: Option<String>,
+}
+
+#[tauri::command]
+pub fn append_agent_run(
+    agent: State<'_, AgentDbState>,
+    input: AppendAgentRunInput,
+) -> Result<AgentRunRecord, String> {
+    let store = agent.store.lock().map_err(|e| e.to_string())?;
+    store.append_run(
+        &input.scope,
+        input.document_id.as_deref(),
+        &input.goal,
+        input.steps_json.as_deref(),
+        input.answer.as_deref(),
+    )
+}
+
+#[tauri::command]
+pub fn list_agent_runs(
+    agent: State<'_, AgentDbState>,
+    limit: Option<u32>,
+) -> Result<Vec<AgentRunRecord>, String> {
+    let store = agent.store.lock().map_err(|e| e.to_string())?;
+    store.list_runs(limit.unwrap_or(40) as usize)
+}
+
+#[tauri::command]
+pub fn get_agent_db_path(agent: State<'_, AgentDbState>) -> Result<Option<String>, String> {
+    let store = agent.store.lock().map_err(|e| e.to_string())?;
+    Ok(store.path().map(|path| path.to_string_lossy().to_string()))
+}

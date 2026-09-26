@@ -1,0 +1,15 @@
+[package]
+name = "scribe-agent"
+version = "2.5.0"
+edition = "2021"
+rust-version = "1.77.2"
+license = "MIT"
+authors = ["Peter Dinis"]
+description = "Local agent prefs, teachings, and run log — separate SQLite from the notes DB"
+
+[dependencies]
+rusqlite = { version = "0.32", features = ["bundled"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", features = ["clock"] }

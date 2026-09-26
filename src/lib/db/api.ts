@@ -370,6 +370,68 @@ export const clearAgentMessages = (documentId: string) =>
 export const invokeMatchAgentIntents = (question: string) =>
   invoke<string[]>('match_agent_intents', { question })
 
+export type AgentBackendPrefs = {
+  enabled: boolean
+  maxSteps: number
+  preferFast: boolean
+  preferredTools: string[]
+  disabledTools: string[]
+}
+
+export type AgentBackendTeaching = {
+  id: string
+  text: string
+  createdAt: number
+}
+
+export type AgentBackendRun = {
+  id: string
+  scope: string
+  documentId?: string | null
+  goal: string
+  stepsJson?: string | null
+  answer?: string | null
+  createdAt: number
+}
+
+export const getAgentPrefs = () => invoke<AgentBackendPrefs>('get_agent_prefs')
+
+export const setAgentPrefsBackend = (input: AgentBackendPrefs) =>
+  invoke<AgentBackendPrefs>('set_agent_prefs', {
+    input: {
+      enabled: input.enabled,
+      maxSteps: input.maxSteps,
+      preferFast: input.preferFast,
+      preferredTools: input.preferredTools,
+      disabledTools: input.disabledTools,
+    },
+  })
+
+export const listAgentTeachings = () =>
+  invoke<AgentBackendTeaching[]>('list_agent_teachings')
+
+export const addAgentTeachingBackend = (text: string) =>
+  invoke<AgentBackendTeaching>('add_agent_teaching', { text })
+
+export const removeAgentTeachingBackend = (id: string) =>
+  invoke<boolean>('remove_agent_teaching', { id })
+
+export const clearAgentTeachingsBackend = () =>
+  invoke<number>('clear_agent_teachings')
+
+export const appendAgentRun = (input: {
+  scope: string
+  documentId?: string | null
+  goal: string
+  stepsJson?: string | null
+  answer?: string | null
+}) => invoke<AgentBackendRun>('append_agent_run', { input })
+
+export const listAgentRuns = (limit = 40) =>
+  invoke<AgentBackendRun[]>('list_agent_runs', { limit })
+
+export const getAgentDbPath = () => invoke<string | null>('get_agent_db_path')
+
 export const clearAllDocuments = async () => {
   const count = await invoke<number>('clear_all_documents')
   clearDocumentCache()
