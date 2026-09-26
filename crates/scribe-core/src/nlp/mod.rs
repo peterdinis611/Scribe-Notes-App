@@ -4,6 +4,7 @@ mod duplicates;
 pub mod jobs;
 mod memory;
 mod parse;
+pub mod placeholder;
 mod sidecar;
 mod types;
 pub mod vault_index;
@@ -32,6 +33,9 @@ pub use parse::{
     parse_library_report, parse_mentions, parse_organize, parse_outline_result, parse_query_rewrite,
     parse_reading_stats, parse_rewrite_result, parse_sentiment, parse_spellcheck, parse_summary,
     parse_tasks, parse_template_hints, parse_title_suggestion, parse_wiki_suggestions,
+};
+pub use placeholder::{
+    generate_placeholder, PlaceholderLanguage, PlaceholderResult, PlaceholderUnit,
 };
 pub use sidecar::{
     resolve_script_path, script_path_label, EmbedChunk, EmbedChunksResult, NlpHealth, NlpSidecar,

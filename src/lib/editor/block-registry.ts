@@ -33,6 +33,10 @@ export class BlockDefinitionError extends Error {
 
 export type BlockInsertContext = {
   onInsertImages?: (files: File[], pos?: number) => void | Promise<void>
+  /** Absolute document position hint for inserts that support it. */
+  pos?: number
+  /** Delete the current selection before running the block insert. */
+  replaceSelection?: boolean
 }
 
 export type BlockGroup = 'basic' | 'media' | 'embed' | 'advanced' | 'snippet'
@@ -323,21 +327,39 @@ export function listBlockDefinitions(): BlockDefinition[] {
   return BLOCK_DEFINITIONS.filter((def) => def.slash !== false)
 }
 
+/** All registered blocks, including `slash: false` aliases / legacy ids. */
+export function listAllBlockDefinitions(): BlockDefinition[] {
+  return [...BLOCK_DEFINITIONS]
+}
+
+export function listBlockDefinitionsByGroup(group: BlockGroup): BlockDefinition[] {
+  return listBlockDefinitions().filter((def) => def.group === group)
+}
+
 export function getBlockDefinition(id: string): BlockDefinition | undefined {
   return byId.get(id) ?? byAlias.get(id)
+}
+
+export function hasBlock(id: string): boolean {
+  return Boolean(getBlockDefinition(id.trim()))
 }
 
 /** Insert a registered block by id (or alias). Returns false if unknown. */
 export function insertBlock(
   editor: Editor,
   id: string,
-  ctx?: BlockInsertContext,
+  ctx: BlockInsertContext = {},
 ): boolean {
   if (editor.isDestroyed) return false
   const trimmed = id.trim()
   if (!trimmed) return false
   const def = getBlockDefinition(trimmed)
   if (!def) return false
+
+  if (ctx.replaceSelection && !editor.state.selection.empty) {
+    editor.chain().focus().deleteSelection().run()
+  }
+
   void def.insert(editor, ctx)
   return true
 }
@@ -372,4 +394,20 @@ export function registerBlock(def: BlockDefinition): void {
   for (const alias of normalized.aliases ?? []) {
     byAlias.set(alias, normalized)
   }
+}
+
+/** Remove a runtime-registered block. Built-ins can also be removed for tests. */
+export function unregisterBlock(id: string): boolean {
+  const trimmed = id.trim()
+  if (!trimmed) return false
+  const existing = byId.get(trimmed)
+  if (!existing) return false
+
+  const index = BLOCK_DEFINITIONS.indexOf(existing)
+  if (index >= 0) BLOCK_DEFINITIONS.splice(index, 1)
+  byId.delete(existing.id)
+  for (const alias of existing.aliases ?? []) {
+    if (byAlias.get(alias) === existing) byAlias.delete(alias)
+  }
+  return true
 }

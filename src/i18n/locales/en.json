@@ -2336,7 +2336,10 @@
         "content_too_deep": "Block content is nested too deeply.",
         "content_too_many_nodes": "Block content has too many parts.",
         "id_invalid": "Block id is invalid.",
-        "too_many_snippets": "You reached the custom block limit."
+        "too_many_snippets": "You reached the custom block limit.",
+        "icon_invalid": "Block icon is invalid.",
+        "hint_too_long": "Block description is too long.",
+        "keywords_invalid": "Block keywords are invalid."
       }
     },
     "snippet-meeting": {

@@ -37,10 +37,11 @@ function localizeSlashCommand(def: SlashCommandDef): SlashCommandItem {
   }
 }
 
-function snippetIcon(id: string, custom?: boolean): string {
-  if (custom || id.startsWith('custom-')) return '✦'
-  if (id === 'meeting-notes') return '📝'
-  if (id === 'decision') return '⚖'
+function snippetIcon(snippet: { id: string; icon?: string; custom?: boolean }): string {
+  if (snippet.icon) return snippet.icon
+  if (snippet.custom || snippet.id.startsWith('custom-')) return '✦'
+  if (snippet.id === 'meeting-notes') return '📝'
+  if (snippet.id === 'decision') return '⚖'
   return '▤'
 }
 
@@ -55,13 +56,13 @@ function snippetSlashItems(): SlashCommandItem[] {
     const custom = Boolean(snippet.custom || !builtinKey)
     return {
       id: `snippet:${snippet.id}`,
-      icon: snippetIcon(snippet.id, custom),
+      icon: snippetIcon(snippet),
       label: custom
         ? i18n.t('slash.customSnippet.label', { name: snippet.name })
         : i18n.t(`slash.${builtinKey}.label`),
       hint: custom
-        ? i18n.t('slash.customSnippet.hint')
-        : i18n.t(`slash.${builtinKey}.hint`),
+        ? snippet.hint || i18n.t('slash.customSnippet.hint')
+        : snippet.hint || i18n.t(`slash.${builtinKey}.hint`),
     }
   })
 }
@@ -98,7 +99,14 @@ function filterCommands(query: string) {
       return true
     }
     const def = getBlockDefinition(item.id)
-    return def?.keywords?.some((keyword) => keyword.toLowerCase().includes(q)) ?? false
+    if (def?.keywords?.some((keyword) => keyword.toLowerCase().includes(q))) return true
+    if (item.id.startsWith('snippet:')) {
+      const snippet = listBlockSnippets().find(
+        (entry) => entry.id === item.id.slice('snippet:'.length),
+      )
+      return snippet?.keywords?.some((keyword) => keyword.includes(q)) ?? false
+    }
+    return false
   })
 }
 

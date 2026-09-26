@@ -559,6 +559,28 @@ impl NlpSidecar {
         self.call_method("spellcheck", params)
     }
 
+    pub fn generate_placeholder(
+        &self,
+        unit: &str,
+        count: i64,
+        language: Option<&str>,
+        start_with_classic: bool,
+        seed: Option<u64>,
+    ) -> Result<Value, String> {
+        let mut params = json!({
+            "unit": unit,
+            "count": count,
+            "startWithClassic": start_with_classic,
+        });
+        if let Some(lang) = language {
+            params["language"] = json!(lang);
+        }
+        if let Some(value) = seed {
+            params["seed"] = json!(value);
+        }
+        self.call_method("generate_placeholder", params)
+    }
+
     pub fn chunk_text(
         &self,
         text: &str,

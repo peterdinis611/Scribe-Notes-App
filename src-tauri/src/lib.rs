@@ -280,6 +280,7 @@ pub fn run() {
             commands::nlp::nlp_set_answer_backend,
             commands::nlp::nlp_document_analysis,
             commands::nlp::nlp_analyze_plaintext,
+            commands::nlp::nlp_generate_placeholder,
             commands::nlp::nlp_find_duplicates,
             commands::nlp::nlp_suggest_title,
             commands::nlp::nlp_summarize_diff,

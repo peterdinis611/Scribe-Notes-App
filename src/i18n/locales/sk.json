@@ -2344,7 +2344,10 @@
         "content_too_deep": "Obsah bloku je príliš hlboko vnorený.",
         "content_too_many_nodes": "Obsah bloku má príliš veľa častí.",
         "id_invalid": "Identifikátor bloku je neplatný.",
-        "too_many_snippets": "Dosiahli ste maximum vlastných blokov."
+        "too_many_snippets": "Dosiahli ste maximum vlastných blokov.",
+        "icon_invalid": "Ikona bloku je neplatná.",
+        "hint_too_long": "Popis bloku je príliš dlhý.",
+        "keywords_invalid": "Kľúčové slová bloku sú neplatné."
       }
     },
     "snippet-meeting": {

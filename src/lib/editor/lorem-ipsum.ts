@@ -2,11 +2,19 @@ import { kvGet, kvSet } from '@/lib/storage/kv'
 
 export type LoremUnit = 'paragraphs' | 'sentences' | 'words'
 
+/** Word bank / locale for backend (Python/Rust) generation. */
+export type LoremLanguage = 'la' | 'en' | 'sk'
+
+/** Where to generate text: auto prefers NLP Python, then Rust, then local JS. */
+export type LoremEngine = 'auto' | 'python' | 'rust' | 'local'
+
 export type LoremOptions = {
   unit: LoremUnit
   count: number
   /** Start with the classic “Lorem ipsum dolor sit amet…” lead-in. */
   startWithLorem: boolean
+  language: LoremLanguage
+  engine: LoremEngine
 }
 
 const STORAGE_KEY = 'scribe-lorem-options'
@@ -15,6 +23,8 @@ export const DEFAULT_LOREM_OPTIONS: LoremOptions = {
   unit: 'paragraphs',
   count: 3,
   startWithLorem: true,
+  language: 'la',
+  engine: 'auto',
 }
 
 const LOREM_WORDS = [
@@ -117,10 +127,23 @@ export function normalizeLoremOptions(raw: Partial<LoremOptions> | null | undefi
     raw?.unit === 'sentences' || raw?.unit === 'words' || raw?.unit === 'paragraphs'
       ? raw.unit
       : DEFAULT_LOREM_OPTIONS.unit
+  const language: LoremLanguage =
+    raw?.language === 'en' || raw?.language === 'sk' || raw?.language === 'la'
+      ? raw.language
+      : DEFAULT_LOREM_OPTIONS.language
+  const engine: LoremEngine =
+    raw?.engine === 'python' ||
+    raw?.engine === 'rust' ||
+    raw?.engine === 'local' ||
+    raw?.engine === 'auto'
+      ? raw.engine
+      : DEFAULT_LOREM_OPTIONS.engine
   return {
     unit,
     count: clampCount(unit, raw?.count ?? DEFAULT_LOREM_OPTIONS.count),
     startWithLorem: raw?.startWithLorem ?? DEFAULT_LOREM_OPTIONS.startWithLorem,
+    language,
+    engine,
   }
 }
 

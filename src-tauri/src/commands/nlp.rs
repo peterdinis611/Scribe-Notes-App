@@ -1377,6 +1377,68 @@ fn run_document_analysis(
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct NlpGeneratePlaceholderInput {
+    pub unit: Option<String>,
+    pub count: Option<u32>,
+    pub language: Option<String>,
+    pub start_with_classic: Option<bool>,
+    pub start_with_lorem: Option<bool>,
+    pub seed: Option<u64>,
+    /// When true, skip the Python sidecar and use the Rust generator.
+    pub prefer_rust: Option<bool>,
+}
+
+/// Generate lorem-style placeholder text for the editor.
+/// Prefers the Python NLP sidecar when available; always falls back to Rust.
+#[tauri::command]
+pub fn nlp_generate_placeholder(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpGeneratePlaceholderInput,
+) -> Result<serde_json::Value, String> {
+    let unit = input.unit.as_deref().unwrap_or("paragraphs");
+    let count = input.count.unwrap_or(3);
+    let language = input.language.as_deref();
+    let start_with_classic = input
+        .start_with_classic
+        .or(input.start_with_lorem)
+        .unwrap_or(true);
+    let prefer_rust = input.prefer_rust.unwrap_or(false);
+
+    if !prefer_rust {
+        let nlp_on = {
+            let conn = state.conn.lock().map_err(|e| e.to_string())?;
+            let enabled = is_nlp_enabled(&conn)?;
+            if enabled {
+                let _ = sync_sidecar_backend(&sidecar, &conn);
+            }
+            enabled
+        };
+        if nlp_on {
+            if let Ok(value) = sidecar.generate_placeholder(
+                unit,
+                count as i64,
+                language,
+                start_with_classic,
+                input.seed,
+            ) {
+                return Ok(value);
+            }
+        }
+    }
+
+    let result = scribe_core::nlp::generate_placeholder(
+        scribe_core::nlp::PlaceholderUnit::parse(Some(unit)),
+        count,
+        scribe_core::nlp::PlaceholderLanguage::parse(language),
+        start_with_classic,
+        input.seed,
+    );
+    serde_json::to_value(result).map_err(|e| e.to_string())
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NlpSummarizeDiffInput {
     pub old_text: String,
     pub new_text: String,

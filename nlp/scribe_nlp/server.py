@@ -98,6 +98,7 @@ FEATURES = [
     "stemming",
     "keybert",
     "spellcheck",
+    "generatePlaceholder",
     "libraryAnswer",
     "dueHints",
     "wikiSuggest",
@@ -466,6 +467,25 @@ def _handle_request_inner(
             language_value = str(language).lower() if language else None
             max_issues = max(1, min(int(params.get("maxIssues") or 80), 200))
             result = spellcheck_text(text, language=language_value, max_issues=max_issues)
+        elif method == "generate_placeholder":
+            from .placeholder import generate_placeholder
+
+            unit = str(params.get("unit") or "paragraphs")
+            count = int(params.get("count") or 3)
+            language = params.get("language")
+            language_value = str(language) if language else "la"
+            start_with_classic = bool(
+                params.get("startWithClassic", params.get("startWithLorem", True))
+            )
+            seed = params.get("seed")
+            seed_value = int(seed) if seed is not None else None
+            result = generate_placeholder(
+                unit=unit,
+                count=count,
+                language=language_value,
+                start_with_classic=start_with_classic,
+                seed=seed_value,
+            )
         elif method == "rewrite_selection":
             from .rewrite import rewrite_selection
 

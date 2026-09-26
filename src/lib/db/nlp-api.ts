@@ -257,6 +257,29 @@ export const nlpDocumentAnalysis = (documentId: string) => {
 export const nlpAnalyzePlaintext = (text: string) =>
   invoke<NlpDocumentAnalysis>('nlp_analyze_plaintext', { text })
 
+export type PlaceholderUnit = 'paragraphs' | 'sentences' | 'words'
+export type PlaceholderLanguage = 'la' | 'en' | 'sk'
+
+export type NlpPlaceholderResult = {
+  text: string
+  unit: PlaceholderUnit
+  count: number
+  language: PlaceholderLanguage
+  source: string
+  startWithClassic?: boolean
+}
+
+/** Generate placeholder / lorem text via Python NLP (preferred) or Rust fallback. */
+export const nlpGeneratePlaceholder = (input: {
+  unit?: PlaceholderUnit
+  count?: number
+  language?: PlaceholderLanguage | string
+  startWithClassic?: boolean
+  startWithLorem?: boolean
+  seed?: number
+  preferRust?: boolean
+}) => invoke<NlpPlaceholderResult>('nlp_generate_placeholder', { input })
+
 export const nlpFindDuplicates = (limit = 20) =>
   invoke<{ pairs: DuplicatePair[]; compared: number }>('nlp_find_duplicates', {
     limit,

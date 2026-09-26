@@ -62,13 +62,32 @@ export async function insertYoutubeVideo(editor: Editor) {
   await insertVideo(editor)
 }
 
-/** Opens options dialog, then inserts configured lorem ipsum at the cursor. */
+/** Opens options dialog, then inserts configured lorem / placeholder text at the cursor. */
 export async function insertLoremIpsum(editor: Editor): Promise<boolean> {
   if (editor.isDestroyed) return false
   const options = await promptLoremOptions()
   if (!options || editor.isDestroyed) return false
   const saved = saveLoremOptions(options)
-  const text = generateLoremIpsum(saved)
+
+  let text = ''
+  if (saved.engine !== 'local') {
+    try {
+      const { nlpGeneratePlaceholder } = await import('@/lib/db/nlp-api')
+      const result = await nlpGeneratePlaceholder({
+        unit: saved.unit,
+        count: saved.count,
+        language: saved.language,
+        startWithClassic: saved.startWithLorem,
+        preferRust: saved.engine === 'rust',
+      })
+      text = result.text ?? ''
+    } catch {
+      text = ''
+    }
+  }
+  if (!text.trim()) {
+    text = generateLoremIpsum(saved)
+  }
   if (!text.trim()) return false
 
   const blocks = text
