@@ -101,6 +101,10 @@ FEATURES = [
     "generatePlaceholder",
     "suggestContinuation",
     "analyzeRevisionDiff",
+    "extractFlashcards",
+    "checkTerminology",
+    "extractTakeaways",
+    "writingCoach",
     "libraryAnswer",
     "dueHints",
     "wikiSuggest",
@@ -530,6 +534,31 @@ def _handle_request_inner(
                 max_bullets=max_bullets,
                 language=language_value,
             )
+        elif method == "extract_flashcards":
+            from .flashcards import extract_flashcards
+
+            text = _validate_text(str(params.get("text") or ""))
+            limit = max(1, min(int(params.get("limit") or 12), 40))
+            include_cloze = bool(params.get("includeCloze", True))
+            result = extract_flashcards(text, limit=limit, include_cloze=include_cloze)
+        elif method == "check_terminology":
+            from .terminology import check_terminology
+
+            text = _validate_text(str(params.get("text") or ""))
+            limit = max(1, min(int(params.get("limit") or 12), 30))
+            result = check_terminology(text, limit=limit)
+        elif method == "extract_takeaways":
+            from .takeaways import extract_takeaways
+
+            text = _validate_text(str(params.get("text") or ""))
+            limit = max(1, min(int(params.get("limit") or 8), 20))
+            result = extract_takeaways(text, limit=limit)
+        elif method == "writing_coach":
+            from .writing_coach import writing_coach
+
+            text = _validate_text(str(params.get("text") or ""))
+            limit = max(1, min(int(params.get("limit") or 12), 30))
+            result = writing_coach(text, limit=limit)
         else:
             return {
                 "jsonrpc": "2.0",

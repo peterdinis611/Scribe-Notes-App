@@ -661,6 +661,43 @@ impl NlpSidecar {
         self.call_method("analyze_revision_diff", params)
     }
 
+    pub fn extract_flashcards(
+        &self,
+        text: &str,
+        limit: i64,
+        include_cloze: bool,
+    ) -> Result<Value, String> {
+        self.call_method(
+            "extract_flashcards",
+            json!({
+                "text": text,
+                "limit": limit,
+                "includeCloze": include_cloze,
+            }),
+        )
+    }
+
+    pub fn check_terminology(&self, text: &str, limit: i64) -> Result<Value, String> {
+        self.call_method(
+            "check_terminology",
+            json!({ "text": text, "limit": limit }),
+        )
+    }
+
+    pub fn extract_takeaways(&self, text: &str, limit: i64) -> Result<Value, String> {
+        self.call_method(
+            "extract_takeaways",
+            json!({ "text": text, "limit": limit }),
+        )
+    }
+
+    pub fn writing_coach(&self, text: &str, limit: i64) -> Result<Value, String> {
+        self.call_method(
+            "writing_coach",
+            json!({ "text": text, "limit": limit }),
+        )
+    }
+
     pub fn analyze_document_typed(
         &self,
         text: &str,
@@ -692,7 +729,8 @@ pub fn rpc_timeout(method: &str) -> Duration {
     match method {
         "health" | "set_embed_backend" => Duration::from_secs(8),
         "embed" | "rewrite_query" | "chunk_text" | "suggest_continuation" | "generate_placeholder"
-        | "analyze_revision_diff" | "summarize_diff" => {
+        | "analyze_revision_diff" | "summarize_diff" | "extract_flashcards" | "check_terminology"
+        | "extract_takeaways" | "writing_coach" => {
             Duration::from_secs(25)
         }
         "embed_with_chunks" => Duration::from_secs(60),

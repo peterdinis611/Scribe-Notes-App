@@ -1,6 +1,6 @@
 [project]
 name = "scribe-nlp"
-version = "1.2.0"
+version = "1.3.0"
 description = "Optional local NLP sidecar for Scribe"
 requires-python = ">=3.10"
 license = "MIT"
