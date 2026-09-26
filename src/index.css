@@ -11652,7 +11652,8 @@ html.dark .link-graph-toolbar--overlay {
   min-height: 420px;
 }
 
-.setup-folio--edition-25 {
+.setup-folio--edition-25,
+.setup-folio--edition-27 {
   min-height: 560px;
 }
 

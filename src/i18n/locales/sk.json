@@ -54,7 +54,7 @@
     "brandWithEdition": "Scribe {{version}}",
     "eyebrow": "Lokálny editor dokumentov · {{version}}",
     "brandTagline": "Píšte dokumenty lokálne. Prepájajte poznámky, keď ich pribudne.",
-    "editionNote": "2.3 — Scribe má vlastnú Lokálnu AI, ktorá číta poznámky na tomto Macu.",
+    "editionNote": "2.7 — Local Agent spúšťa nástroje na tomto Macu; nauč ho svoje preferencie.",
     "newDocument": "Nový dokument",
     "todayNote": "Dnešná poznámka",
     "import": "Importovať",
@@ -72,7 +72,7 @@
     "press": {
       "eyebrow": "Letterpress · Scribe {{version}} · lokálne na tomto Macu",
       "brandTagline": "Píšte dokumenty. Prepájajte poznámky. Všetko ostáva na disku.",
-      "editionNote": "2.3 — Lokálna AI odpovedá z knižnice; MCP pripojí Cursor, keď chcete.",
+      "editionNote": "2.7 — Local Agent + Lokálna AI; trvalé preferencie v Nastavenia → Agent.",
       "workflowHint": "Nová stránka → [[odkazy]] → export. Pokročilé nástroje nechajte na neskôr.",
       "recentDocuments": "Pokračovať",
       "noDocuments": "Lis je prázdny",
@@ -436,15 +436,36 @@
     "badge": "Novinky {{version}}",
     "kicker": "Poznámky k vydaniu",
     "title": "Scribe {{version}}",
-    "subtitle": "Pokračovanie textu, smart paste, 3D modely, Revision AI a hlbšie Local AI nástroje na štúdium — všetko offline na tomto Macu.",
-    "editionMark": "Inteligencia bez cloudu",
+    "subtitle": "In-app Local Agent s trvalou pamäťou, učením preferencií, paint padmi a vlastnou agent DB — všetko offline na tomto Macu.",
+    "editionMark": "Agent · local-first",
     "tagsLabel": "Témy tohto vydania",
     "tags": {
+      "agent": "Agent",
       "localAi": "Lokálna AI",
       "editor": "Editor",
       "history": "História"
     },
-    "footNote": "Nastavenia → Lokálna AI na zapnutie Python sidecaru.",
+    "footNote": "Nastavenia → Agent na zapnutie, optimalizáciu a učenie. Local AI poháňa nástroje.",
+    "localAgent": {
+      "title": "In-app Local Agent",
+      "description": "Nový tab Agent naplánuje až tri Local AI nástroje na cieľ — zhrnutie, úlohy, súvisiace — s viditeľným trace krokov."
+    },
+    "agentTeach": {
+      "title": "Naučiť agenta",
+      "description": "Ulož trvalé inštrukcie (jazyk, priority). Vkladajú sa do každého behu na tomto Macu."
+    },
+    "agentOptimize": {
+      "title": "Zapnúť / vypnúť a optimalizácia",
+      "description": "Vypni agenta, obmedz kroky, preferuj rýchle nástroje alebo zablokuj ťažké v Nastavenia → Agent."
+    },
+    "paintPad": {
+      "title": "Maľovanie v editore",
+      "description": "Freehand paint pady v TipTap s OCR, aby skice mohli byť vyhľadateľný text."
+    },
+    "agentDatabase": {
+      "title": "Vlastná agent databáza",
+      "description": "Prefs, učenia a log behov žijú v scribe-agent.db — oddelene od knižnice poznámok."
+    },
     "continueWriting": {
       "title": "Pokračovanie textu",
       "description": "Slash /continue navrhne ďalšiu frázu z vašej knižnice — lokálne n-gramy, žiadny cloud model."

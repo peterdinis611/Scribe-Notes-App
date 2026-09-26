@@ -54,7 +54,7 @@
     "brandWithEdition": "Scribe {{version}}",
     "eyebrow": "Local document editor · {{version}}",
     "brandTagline": "Write documents locally. Link notes when you need them.",
-    "editionNote": "2.3 — Scribe’s own Local AI reads your notes on this Mac.",
+    "editionNote": "2.7 — Local Agent runs tools on this Mac; teach it your preferences.",
     "newDocument": "New document",
     "todayNote": "Today’s note",
     "import": "Import",
@@ -72,7 +72,7 @@
     "press": {
       "eyebrow": "Letterpress · Scribe {{version}} · local on this Mac",
       "brandTagline": "Write documents. Link notes. Everything stays on disk.",
-      "editionNote": "2.3 — Local AI answers from your library; MCP connects Cursor when you want.",
+      "editionNote": "2.7 — Local Agent + Local AI; teach standing prefs in Settings → Agent.",
       "workflowHint": "Blank page → [[links]] → export. Leave advanced tools for later.",
       "recentDocuments": "Continue",
       "noDocuments": "The press is empty",
@@ -436,15 +436,36 @@
     "badge": "What's new in {{version}}",
     "kicker": "Edition notes",
     "title": "Scribe {{version}}",
-    "subtitle": "Continue writing, smarter paste, 3D models, Revision AI, and deeper Local AI study tools — all offline on this Mac.",
-    "editionMark": "Local-first intelligence",
+    "subtitle": "In-app Local Agent with durable memory, teachable prefs, paint pads, and a dedicated agent database — all offline on this Mac.",
+    "editionMark": "Agent · local-first",
     "tagsLabel": "Themes in this release",
     "tags": {
+      "agent": "Agent",
       "localAi": "Local AI",
       "editor": "Editor",
       "history": "History"
     },
-    "footNote": "Settings → Local AI to enable the Python sidecar.",
+    "footNote": "Settings → Agent to enable, optimize, and teach. Local AI powers the tools.",
+    "localAgent": {
+      "title": "In-app Local Agent",
+      "description": "A new Agent tab plans up to three Local AI tools per goal — summarize, tasks, related notes — with a visible step trace."
+    },
+    "agentTeach": {
+      "title": "Teach the agent",
+      "description": "Save standing instructions (language, priorities). They inject into every run on this Mac."
+    },
+    "agentOptimize": {
+      "title": "On / off & optimize",
+      "description": "Disable the agent, cap tool steps, prefer fast tools, or block heavy ones from Settings → Agent."
+    },
+    "paintPad": {
+      "title": "Paint in the editor",
+      "description": "Freehand paint pads in TipTap with OCR so sketches can become searchable text."
+    },
+    "agentDatabase": {
+      "title": "Dedicated agent database",
+      "description": "Prefs, teachings, and run logs live in scribe-agent.db — separate from your notes library."
+    },
     "continueWriting": {
       "title": "Continue writing",
       "description": "Slash /continue suggests the next phrase from your own library — local n-grams, no cloud model."
