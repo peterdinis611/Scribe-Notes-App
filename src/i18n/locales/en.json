@@ -284,7 +284,26 @@
   },
   "errors": {
     "title": "Something went wrong",
-    "generic": "An unexpected error occurred. Try again or return home."
+    "subtitle": "Scribe hit an unexpected fault. Your notes on disk are safe — try again, or copy the report below if it keeps happening.",
+    "generic": "An unexpected error occurred. Try again or return home.",
+    "kicker": "Runtime fault",
+    "mark": "ERR",
+    "meta": {
+      "type": "Type",
+      "route": "Route",
+      "version": "Version",
+      "time": "Time",
+      "locale": "Locale"
+    },
+    "technical": "Technical details",
+    "showDetails": "Show",
+    "hideDetails": "Hide",
+    "stack": "Stack trace",
+    "componentStack": "Component stack",
+    "copyReport": "Copy report",
+    "copied": "Error report copied",
+    "copiedShort": "Copied",
+    "copyFailed": "Could not copy the report"
   },
   "onboarding": {
     "title": "Welcome to Scribe {{version}}",

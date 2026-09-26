@@ -12670,3 +12670,299 @@ html.dark .link-graph-toolbar--overlay {
   color: var(--color-muted-foreground);
   font-size: 10.5px;
 }
+
+/* ── Error folio (runtime crash screen) ───────────────────────────────────── */
+
+.error-folio {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: stretch;
+  justify-content: center;
+  min-height: 100%;
+  min-height: 100dvh;
+  padding: clamp(1.25rem, 4vw, 2.75rem);
+  overflow: auto;
+}
+
+.error-folio__atmosphere {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      120% 80% at 12% -10%,
+      color-mix(in srgb, var(--color-destructive) 18%, transparent),
+      transparent 52%
+    ),
+    radial-gradient(
+      90% 70% at 100% 100%,
+      color-mix(in srgb, var(--color-accent) 10%, transparent),
+      transparent 55%
+    ),
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--color-background) 92%, var(--color-surface)),
+      var(--color-background)
+    );
+}
+
+.error-folio__atmosphere::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+}
+
+.error-folio__sheet {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 52rem);
+  margin: auto 0;
+  border: 1px solid color-mix(in srgb, var(--color-border) 88%, var(--color-destructive));
+  border-radius: 2px;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-surface-elevated) 88%, transparent),
+      color-mix(in srgb, var(--color-surface) 96%, transparent)
+    );
+  box-shadow:
+    0 24px 64px color-mix(in srgb, #000 28%, transparent),
+    inset 4px 0 0 var(--color-destructive);
+  animation: error-folio-in 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes error-folio-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.error-folio__masthead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem 0.85rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.error-folio__kicker {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-destructive);
+}
+
+.error-folio__mark {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 6vw, 3.75rem);
+  font-weight: 800;
+  line-height: 0.85;
+  letter-spacing: -0.06em;
+  color: color-mix(in srgb, var(--color-foreground) 14%, transparent);
+  user-select: none;
+}
+
+.error-folio__body {
+  display: grid;
+  gap: 1.25rem;
+  padding: 1.25rem clamp(1rem, 3vw, 1.5rem) 0.5rem;
+}
+
+.error-folio__lead {
+  max-width: 38rem;
+  animation: error-folio-in 520ms 60ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.error-folio__title {
+  margin: 0 0 0.4rem;
+  font-family: var(--font-display);
+  font-size: clamp(1.55rem, 3.4vw, 2.05rem);
+  font-weight: 750;
+  letter-spacing: -0.035em;
+  color: var(--color-foreground);
+}
+
+.error-folio__subtitle {
+  margin: 0 0 0.85rem;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--color-muted-foreground);
+}
+
+.error-folio__message {
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  border-left: 3px solid var(--color-destructive);
+  background: color-mix(in srgb, var(--color-destructive) 8%, var(--color-surface));
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--color-foreground);
+  word-break: break-word;
+}
+
+.error-folio__meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 0.65rem 1rem;
+  margin: 0;
+  animation: error-folio-in 560ms 110ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.error-folio__meta > div {
+  min-width: 0;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--color-border) 90%, transparent);
+  background: color-mix(in srgb, var(--color-background) 70%, transparent);
+}
+
+.error-folio__meta dt {
+  margin: 0 0 0.2rem;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+
+.error-folio__meta dd {
+  margin: 0;
+}
+
+.error-folio__meta code {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--color-foreground);
+}
+
+.error-folio__tech {
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-background) 78%, transparent);
+  animation: error-folio-in 600ms 150ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.error-folio__tech-toggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 0.8rem;
+  border: none;
+  background: transparent;
+  color: var(--color-foreground);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: default;
+}
+
+.error-folio__tech-toggle:hover {
+  background: color-mix(in srgb, var(--color-hover) 70%, transparent);
+}
+
+.error-folio__tech-hint {
+  color: var(--color-muted-foreground);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.error-folio__tech-panels {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0 0.75rem 0.85rem;
+}
+
+.error-folio__panel h2 {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+
+.error-folio__pre {
+  margin: 0;
+  max-height: 11rem;
+  overflow: auto;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
+  background: color-mix(in srgb, #000 18%, var(--color-background));
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--color-foreground) 88%, var(--color-muted-foreground));
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.error-folio__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  padding: 1rem 1.25rem 1.2rem;
+  border-top: 1px solid var(--color-border);
+  animation: error-folio-in 640ms 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.error-folio__copy.is-copied {
+  color: var(--color-accent);
+}
+
+@media (max-width: 640px) {
+  .error-folio {
+    padding: 0.75rem;
+  }
+
+  .error-folio__masthead {
+    align-items: flex-start;
+  }
+
+  .error-folio__mark {
+    font-size: 2.1rem;
+  }
+
+  .error-folio__actions {
+    flex-direction: column;
+  }
+
+  .error-folio__actions > * {
+    width: 100%;
+  }
+}
+
+html[data-ui-skin='press'] .error-folio__sheet {
+  border-radius: 0;
+  box-shadow:
+    0 28px 70px color-mix(in srgb, #000 34%, transparent),
+    inset 5px 0 0 var(--color-destructive);
+}
+
+html[data-ui-skin='press'] .error-folio__title {
+  letter-spacing: -0.045em;
+}

@@ -284,7 +284,26 @@
   },
   "errors": {
     "title": "Niečo sa pokazilo",
-    "generic": "Nastala neočakávaná chyba. Skúste to znova alebo sa vráťte na úvod."
+    "subtitle": "Scribe narazil na neočakávanú chybu. Poznámky na disku sú v poriadku — skúste znova, alebo skopírujte report nižšie, ak sa to opakuje.",
+    "generic": "Nastala neočakávaná chyba. Skúste to znova alebo sa vráťte na úvod.",
+    "kicker": "Chyba behu",
+    "mark": "ERR",
+    "meta": {
+      "type": "Typ",
+      "route": "Cesta",
+      "version": "Verzia",
+      "time": "Čas",
+      "locale": "Jazyk"
+    },
+    "technical": "Technické detaily",
+    "showDetails": "Zobraziť",
+    "hideDetails": "Skryť",
+    "stack": "Stack trace",
+    "componentStack": "Component stack",
+    "copyReport": "Kopírovať report",
+    "copied": "Report chyby skopírovaný",
+    "copiedShort": "Skopírované",
+    "copyFailed": "Report sa nepodarilo skopírovať"
   },
   "onboarding": {
     "title": "Vitajte v Scribe {{version}}",

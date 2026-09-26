@@ -40,7 +40,7 @@ impl DocumentsWatcher {
     }
 }
 
-fn should_ignore(path: &Path) -> bool {
+pub(crate) fn should_ignore_path(path: &Path) -> bool {
     let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
         return true;
     };
@@ -52,6 +52,10 @@ fn should_ignore(path: &Path) -> bool {
         return true;
     }
     false
+}
+
+fn should_ignore(path: &Path) -> bool {
+    should_ignore_path(path)
 }
 
 fn event_is_interesting(event: &Event) -> bool {

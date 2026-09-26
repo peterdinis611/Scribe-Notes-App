@@ -1,9 +1,8 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Languages } from 'lucide-react'
-import type { BuiltInLocale } from '@/i18n'
-import { BUILT_IN_LOCALES, DEFAULT_LOCALE } from '@/i18n'
 import { cn } from '@/lib/utils'
+import { buildLocaleOptions, type LocaleOption } from '@/lib/i18n/locale-options'
 import { readCustomLocales } from '@/store/persistence'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setLocale } from '@/store/settingsSlice'
@@ -18,18 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-const BUILT_IN: { id: BuiltInLocale; labelKey: string; short: string }[] = [
-  { id: 'sk', labelKey: 'settings.language.sk', short: 'SK' },
-  { id: 'en', labelKey: 'settings.language.en', short: 'EN' },
-]
-
-export type LocaleOption = {
-  code: string
-  label: string
-  short: string
-  kind: 'builtin' | 'custom'
-  isDefault?: boolean
-}
+export type { LocaleOption }
 
 type LocaleSelectProps = {
   size?: 'sm' | 'default'
@@ -43,30 +31,14 @@ type LocaleSelectProps = {
 
 export function useLocaleOptions(refreshToken = 0): LocaleOption[] {
   const { t } = useTranslation()
-  return useMemo(() => {
-    const builtIn: LocaleOption[] = BUILT_IN.map((entry) => ({
-      code: entry.id,
-      label: t(entry.labelKey),
-      short: entry.short,
-      kind: 'builtin' as const,
-      isDefault: entry.id === DEFAULT_LOCALE,
-    }))
-    builtIn.sort((a, b) => {
-      if (a.code === DEFAULT_LOCALE) return -1
-      if (b.code === DEFAULT_LOCALE) return 1
-      return (
-        BUILT_IN_LOCALES.indexOf(a.code as BuiltInLocale) -
-        BUILT_IN_LOCALES.indexOf(b.code as BuiltInLocale)
-      )
-    })
-    const customs: LocaleOption[] = readCustomLocales().map((pack) => ({
-      code: pack.code,
-      label: pack.name,
-      short: pack.code.slice(0, 3).toUpperCase(),
-      kind: 'custom' as const,
-    }))
-    return [...builtIn, ...customs]
-  }, [refreshToken, t])
+  return useMemo(
+    () =>
+      buildLocaleOptions({
+        labelFor: (key) => t(key),
+        customLocales: readCustomLocales(),
+      }),
+    [refreshToken, t],
+  )
 }
 
 export function LocaleSelect({
