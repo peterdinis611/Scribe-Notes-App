@@ -13,8 +13,10 @@ import { isTauriRuntime } from '@/lib/tauri'
 function toFrontendPrefs(
   prefs: Awaited<ReturnType<typeof getAgentPrefs>>,
   teachings: AgentTeaching[],
+  local: AgentPrefs,
 ): AgentPrefs {
   return normalizeAgentPrefs({
+    ...local,
     enabled: prefs.enabled,
     maxSteps: prefs.maxSteps,
     preferFast: prefs.preferFast,
@@ -28,6 +30,8 @@ function toFrontendPrefs(
 export async function loadAgentPrefsFromBackend(): Promise<AgentPrefs | null> {
   if (!isTauriRuntime()) return null
   try {
+    const { readAgentPrefs } = await import('@/store/persistence')
+    const local = readAgentPrefs()
     const [prefs, teachings] = await Promise.all([getAgentPrefs(), listAgentTeachings()])
     return toFrontendPrefs(
       prefs,
@@ -36,6 +40,7 @@ export async function loadAgentPrefsFromBackend(): Promise<AgentPrefs | null> {
         text: item.text,
         createdAt: item.createdAt,
       })),
+      local,
     )
   } catch {
     return null

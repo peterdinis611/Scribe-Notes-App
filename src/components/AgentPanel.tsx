@@ -1,4 +1,4 @@
-import { Bot, Eraser, FileText, GraduationCap, Library, Send, Settings2, Sparkles } from 'lucide-react'
+import { Bot, Eraser, FilePlus2, FileText, GraduationCap, Library, Send, Settings2, Sparkles } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
@@ -22,12 +22,14 @@ import {
   type DocumentChatCitation,
 } from '@/lib/db/api'
 import { nlpDocumentAnalysis, nlpDocumentTasks, nlpStatus, type DocumentTask, type NlpDocumentAnalysis } from '@/lib/db/nlp-api'
+import { insertAiAnswerAsCallout } from '@/lib/editor/insert-ai-answer'
 import {
   agentMemoryContext,
   runAgentGoal,
   type AgentStep,
   type AgentToolId,
 } from '@/lib/library/agent'
+import { AGENT_RECIPES, type AgentRecipeId } from '@/lib/library/agent-recipes'
 import {
   buildAgentGoalChips,
   buildAgentToolOptions,
@@ -41,7 +43,7 @@ import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { citationSearchQuery } from '@/lib/editor/citation-jump'
 import { setActiveDocument, setActiveDocumentId, setPendingEditorSearch } from '@/store/documentsSlice'
-import { addAgentTeaching, removeAgentTeaching } from '@/store/settingsSlice'
+import { addAgentTeaching, removeAgentTeaching, setAgentPrefs } from '@/store/settingsSlice'
 
 type AgentThreadMessage = {
   id: string
@@ -50,6 +52,7 @@ type AgentThreadMessage = {
   citations?: LibraryChatCitation[]
   steps?: AgentStep[]
   followups?: string[]
+  clarifyOptions?: AgentToolId[]
   createdAt?: number
 }
 
@@ -67,7 +70,19 @@ const TOOL_LABEL_KEYS: Record<AgentToolId, string> = {
   style: 'agent.tools.style',
   flashcards: 'agent.tools.flashcards',
   takeaways: 'agent.tools.takeaways',
+  dates: 'agent.tools.dates',
+  meeting: 'agent.tools.meeting',
+  terminology: 'agent.tools.terminology',
+  wiki: 'agent.tools.wiki',
+  organize: 'agent.tools.organize',
+  duplicates: 'agent.tools.duplicates',
+  citations: 'agent.tools.citations',
+  quiz: 'agent.tools.quiz',
+  revision: 'agent.tools.revision',
+  spellcheck: 'agent.tools.spellcheck',
+  rewrite: 'agent.tools.rewrite',
 }
+
 
 function stepsFromRecord(steps: AgentMessageStep[] | undefined): AgentStep[] {
   return (steps ?? []).map((step) => ({
@@ -242,9 +257,12 @@ export function AgentPanel({ onNavigate }: AgentPanelProps) {
   )
 
   const runGoal = useCallback(
-    async (goal: string) => {
+    async (
+      goal: string,
+      opts?: { recipeId?: AgentRecipeId; forceTools?: AgentToolId[] },
+    ) => {
       const trimmed = goal.trim()
-      if (!trimmed || loading) return
+      if ((!trimmed && !opts?.recipeId && !opts?.forceTools?.length) || loading) return
       if (!agentPrefs.enabled) {
         toast.error(t('agent.errorTitle'), t('agent.disabled'))
         return
@@ -254,10 +272,14 @@ export function AgentPanel({ onNavigate }: AgentPanelProps) {
         return
       }
 
+      const recipe = opts?.recipeId ? AGENT_RECIPES.find((item) => item.id === opts.recipeId) : null
+      const displayGoal =
+        trimmed ||
+        (recipe ? t(recipe.labelKey) : t('agent.run'))
       const userMsg: AgentThreadMessage = {
         id: `local-user-${Date.now()}`,
         role: 'user',
-        text: trimmed,
+        text: displayGoal,
         createdAt: Date.now(),
       }
       const prior = scope === 'document' ? messages : sessionMessages
@@ -271,12 +293,34 @@ export function AgentPanel({ onNavigate }: AgentPanelProps) {
 
       try {
         const result = await runAgentGoal(
-          trimmed,
+          trimmed || displayGoal,
           scope,
           activeDocumentId,
           agentMemoryContext(prior),
           agentPrefs,
+          opts,
         )
+
+        if (result.nextPrefs) {
+          dispatch(setAgentPrefs(result.nextPrefs))
+        }
+
+        if (result.needsClarification) {
+          const assistant: AgentThreadMessage = {
+            id: `local-assistant-${Date.now()}`,
+            role: 'assistant',
+            text: t('agent.clarifyPrompt'),
+            clarifyOptions: result.clarifyOptions,
+            createdAt: Date.now(),
+          }
+          if (scope === 'document') {
+            setMessages((prev) => [...prev, assistant])
+          } else {
+            setSessionMessages((prev) => [...prev, assistant])
+          }
+          return
+        }
+
         const assistant: AgentThreadMessage = {
           id: `local-assistant-${Date.now()}`,
           role: 'assistant',
@@ -288,14 +332,14 @@ export function AgentPanel({ onNavigate }: AgentPanelProps) {
         }
         if (scope === 'document') {
           setMessages((prev) => [...prev, assistant])
-          await persistPair(trimmed, assistant)
+          await persistPair(trimmed || displayGoal, assistant)
         } else {
           setSessionMessages((prev) => [...prev, assistant])
         }
         void appendAgentRun({
           scope,
           documentId: activeDocumentId,
-          goal: trimmed,
+          goal: trimmed || displayGoal,
           stepsJson: JSON.stringify(toPersistSteps(assistant.steps ?? [])),
           answer: assistant.text,
         }).catch(() => undefined)
@@ -307,7 +351,20 @@ export function AgentPanel({ onNavigate }: AgentPanelProps) {
         setLoading(false)
       }
     },
-    [loading, agentPrefs, scope, activeDocumentId, messages, sessionMessages, persistPair, t],
+    [loading, agentPrefs, scope, activeDocumentId, messages, sessionMessages, persistPair, t, dispatch],
+  )
+
+  const applyAnswerToNote = useCallback(
+    (text: string) => {
+      if (!activeDocumentId) {
+        toast.error(t('libraryChat.noActiveDocument'))
+        return
+      }
+      const ok = insertAiAnswerAsCallout(text, { sourceTitle: t('agent.brandBadge') })
+      if (ok) toast.success(t('agent.appliedToNote'))
+      else toast.error(t('agent.applyFailed'))
+    },
+    [activeDocumentId, t],
   )
 
   const handleTeach = useCallback(() => {
@@ -588,6 +645,42 @@ export function AgentPanel({ onNavigate }: AgentPanelProps) {
                     </div>
                   </MessageFooter>
                 ) : null}
+                {message.role === 'assistant' && message.clarifyOptions && message.clarifyOptions.length > 0 ? (
+                  <div className="library-chat-followups">
+                    <p className="px-0.5 text-[11px] text-[var(--color-muted-foreground)]">
+                      {t('agent.clarifyHint')}
+                    </p>
+                    {message.clarifyOptions.map((tool) => (
+                      <button
+                        key={tool}
+                        type="button"
+                        className="library-chat-followup"
+                        disabled={loading}
+                        onClick={() =>
+                          void runGoal(t(TOOL_LABEL_KEYS[tool]), { forceTools: [tool] })
+                        }
+                      >
+                        {t(TOOL_LABEL_KEYS[tool])}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+                {message.role === 'assistant' &&
+                message.text &&
+                !message.clarifyOptions?.length &&
+                activeDocumentId ? (
+                  <div className="mt-1.5">
+                    <button
+                      type="button"
+                      className="library-chat-chip"
+                      disabled={loading}
+                      onClick={() => applyAnswerToNote(message.text)}
+                    >
+                      <FilePlus2 className="mr-1 inline h-3 w-3" />
+                      {t('agent.applyToNote')}
+                    </button>
+                  </div>
+                ) : null}
                 {message.role === 'assistant' && message.followups && message.followups.length > 0 ? (
                   <div className="library-chat-followups">
                     {message.followups.map((item) => (
@@ -623,6 +716,19 @@ export function AgentPanel({ onNavigate }: AgentPanelProps) {
 
       <div className="library-chat-composer">
         <div className="library-chat-actions">
+          {AGENT_RECIPES.filter((recipe) =>
+            scope === 'library' ? !recipe.documentPreferred : true,
+          ).map((recipe) => (
+            <button
+              key={recipe.id}
+              type="button"
+              className="library-chat-chip"
+              disabled={loading || !agentPrefs.enabled}
+              onClick={() => void runGoal('', { recipeId: recipe.id })}
+            >
+              {t(recipe.labelKey)}
+            </button>
+          ))}
           {goalChips.map((chip) => (
             <button
               key={chip}

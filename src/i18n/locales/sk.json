@@ -1094,6 +1094,17 @@
       "modeDefault": "Auto",
       "modePrefer": "Preferuj",
       "modeNever": "Nikdy",
+      "behaviorTitle": "Správanie",
+      "behaviorHint": "Jazyk, istota a denný rozpočet behov na tomto Macu.",
+      "outputLanguage": "Jazyk odpovedí",
+      "outputLanguageHint": "Vnútené do každého behu (oddelene od učení).",
+      "langAuto": "Auto",
+      "askWhenUncertain": "Opýtať sa pri neistote",
+      "askWhenUncertainHint": "Pri nejasnom cieli ponúkne nástroje namiesto tipovania Q&A.",
+      "quietHours": "Tiché hodiny",
+      "quietHoursHint": "Od 22:00 do 07:00 automaticky vynechá ťažšie nástroje.",
+      "dailyBudget": "Denný rozpočet behov",
+      "dailyBudgetHint": "Dnes {{used}} / {{max}}. 0 = bez limitu.",
       "teachTitle": "Naučiť agenta",
       "teachHint": "Krátke trvalé inštrukcie (jazyk, priority, návyky). Vkladajú sa do každého behu agenta na tomto Macu.",
       "teachPlaceholder": "napr. Odpovedaj po slovensky; najprv termíny",
@@ -1878,6 +1889,13 @@
     "clearError": "Pamäť agenta sa nepodarilo vymazať",
     "needsDocument": "Pre tento nástroj otvor dokument.",
     "disabled": "Agent je vypnutý. Zapni ho v Nastavenia → Agent.",
+    "budgetExceeded": "Denný rozpočet agenta je vyčerpaný. Zvýš ho v Nastavenia → Agent.",
+    "clarifyPrompt": "Nie som si istý, ktoré nástroje spustiť. Vyber:",
+    "clarifyHint": "Vyber nástroj pre tento cieľ",
+    "applyToNote": "Vložiť do poznámky",
+    "appliedToNote": "Vložené do otvorenej poznámky",
+    "applyFailed": "Nepodarilo sa vložiť — otvor poznámku v editore",
+    "run": "Beh agenta",
     "capabilitiesLabel": "Nástroje pre túto poznámku",
     "stepTrace": "Kroky nástrojov",
     "starters": {
@@ -1885,6 +1903,13 @@
       "openLoops": "Aké otvorené slučky by som mal uzavrieť?",
       "deadlines": "Aké termíny sa blížia?",
       "connections": "Ktoré poznámky sa prepojujú?"
+    },
+    "recipes": {
+      "weeklyReview": "Týždenný review",
+      "meetingWrap": "Zápis zo stretnutia",
+      "studyPass": "Štúdium",
+      "cleanup": "Upratanie knižnice",
+      "polish": "Vylepšiť poznámku"
     },
     "tools": {
       "library_answer": "Q&A knižnica",
@@ -1895,7 +1920,18 @@
       "similar": "Súvisiace",
       "style": "Writing coach",
       "flashcards": "Kartičky",
-      "takeaways": "Závery"
+      "takeaways": "Závery",
+      "dates": "Termíny",
+      "meeting": "Meeting pack",
+      "terminology": "Terminológia",
+      "wiki": "Wiki odkazy",
+      "organize": "Organizácia",
+      "duplicates": "Duplicity",
+      "citations": "Citácie",
+      "quiz": "Kvíz z osnovy",
+      "revision": "Diff revízií",
+      "spellcheck": "Pravopis",
+      "rewrite": "Prepis"
     }
   },
   "trash": {

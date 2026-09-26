@@ -1094,6 +1094,17 @@
       "modeDefault": "Auto",
       "modePrefer": "Prefer",
       "modeNever": "Never",
+      "behaviorTitle": "Behavior",
+      "behaviorHint": "Language, confidence, and daily budget for this Mac.",
+      "outputLanguage": "Answer language",
+      "outputLanguageHint": "Forced into every run (separate from teachings).",
+      "langAuto": "Auto",
+      "askWhenUncertain": "Ask when unsure",
+      "askWhenUncertainHint": "If the goal is vague, offer tool choices instead of guessing Q&A.",
+      "quietHours": "Quiet hours",
+      "quietHoursHint": "From 22:00–07:00, skip heavier tools automatically.",
+      "dailyBudget": "Daily run budget",
+      "dailyBudgetHint": "Used {{used}} / {{max}} today. 0 means unlimited.",
       "teachTitle": "Teach the agent",
       "teachHint": "Short standing instructions (language, priorities, habits). They are injected into every agent run on this Mac.",
       "teachPlaceholder": "e.g. Prefer Slovak answers; focus on deadlines first",
@@ -1874,6 +1885,13 @@
     "clearError": "Could not clear agent memory",
     "needsDocument": "Open a document for this tool.",
     "disabled": "Agent is turned off. Enable it in Settings → Agent.",
+    "budgetExceeded": "Daily agent budget reached. Raise it in Settings → Agent.",
+    "clarifyPrompt": "I’m not sure which tools to run. Pick one:",
+    "clarifyHint": "Choose a tool for this goal",
+    "applyToNote": "Insert into note",
+    "appliedToNote": "Inserted into the open note",
+    "applyFailed": "Could not insert — open a note in the editor",
+    "run": "Agent run",
     "capabilitiesLabel": "Tools for this note",
     "stepTrace": "Tool steps",
     "starters": {
@@ -1881,6 +1899,13 @@
       "openLoops": "What open loops should I close?",
       "deadlines": "What deadlines are coming up?",
       "connections": "Which notes connect to each other?"
+    },
+    "recipes": {
+      "weeklyReview": "Weekly review",
+      "meetingWrap": "Meeting wrap-up",
+      "studyPass": "Study pass",
+      "cleanup": "Library cleanup",
+      "polish": "Polish note"
     },
     "tools": {
       "library_answer": "Library Q&A",
@@ -1891,7 +1916,18 @@
       "similar": "Related notes",
       "style": "Writing coach",
       "flashcards": "Flashcards",
-      "takeaways": "Takeaways"
+      "takeaways": "Takeaways",
+      "dates": "Deadlines",
+      "meeting": "Meeting pack",
+      "terminology": "Terminology",
+      "wiki": "Wiki links",
+      "organize": "Organize",
+      "duplicates": "Duplicates",
+      "citations": "Citations",
+      "quiz": "Outline quiz",
+      "revision": "Revision diff",
+      "spellcheck": "Spellcheck",
+      "rewrite": "Rewrite"
     }
   },
   "trash": {

@@ -10,6 +10,7 @@ import {
   AGENT_OPTIMIZABLE_TOOLS,
   AGENT_TEACHING_MAX_LEN,
   type AgentMaxSteps,
+  type AgentOutputLanguage,
   type AgentToolId,
 } from '@/lib/library/agent-prefs'
 import { toast } from '@/lib/toast'
@@ -32,6 +33,17 @@ const TOOL_LABEL_KEYS: Record<AgentToolId, string> = {
   style: 'agent.tools.style',
   flashcards: 'agent.tools.flashcards',
   takeaways: 'agent.tools.takeaways',
+  dates: 'agent.tools.dates',
+  meeting: 'agent.tools.meeting',
+  terminology: 'agent.tools.terminology',
+  wiki: 'agent.tools.wiki',
+  organize: 'agent.tools.organize',
+  duplicates: 'agent.tools.duplicates',
+  citations: 'agent.tools.citations',
+  quiz: 'agent.tools.quiz',
+  revision: 'agent.tools.revision',
+  spellcheck: 'agent.tools.spellcheck',
+  rewrite: 'agent.tools.rewrite',
 }
 
 type ToolMode = 'default' | 'prefer' | 'never'
@@ -223,6 +235,99 @@ export function AgentSection() {
                 )
               })}
             </ul>
+          </div>
+        </section>
+
+        <section className="agent-settings-card" aria-labelledby="agent-behavior-title">
+          <div className="agent-settings-card-head">
+            <Bot className="h-3.5 w-3.5" aria-hidden="true" />
+            <div>
+              <h4 id="agent-behavior-title">{t('settings.agent.behaviorTitle')}</h4>
+              <p>{t('settings.agent.behaviorHint')}</p>
+            </div>
+          </div>
+
+          <div className="agent-settings-field">
+            <div className="agent-settings-field-copy">
+              <span>{t('settings.agent.outputLanguage')}</span>
+              <small>{t('settings.agent.outputLanguageHint')}</small>
+            </div>
+            <div className="agent-settings-segment" role="group">
+              {([
+                ['auto', t('settings.agent.langAuto')],
+                ['sk', 'SK'],
+                ['en', 'EN'],
+              ] as const).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={cn(prefs.outputLanguage === value && 'is-active')}
+                  disabled={!prefs.enabled}
+                  onClick={() =>
+                    dispatch(patchAgentPrefs({ outputLanguage: value as AgentOutputLanguage }))
+                  }
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="agent-settings-field">
+            <div className="agent-settings-field-copy">
+              <span>{t('settings.agent.askWhenUncertain')}</span>
+              <small>{t('settings.agent.askWhenUncertainHint')}</small>
+            </div>
+            <AgentToggle
+              compact
+              checked={prefs.askWhenUncertain}
+              onChange={() =>
+                dispatch(patchAgentPrefs({ askWhenUncertain: !prefs.askWhenUncertain }))
+              }
+              disabled={!prefs.enabled}
+              onLabel={t('settings.agent.on')}
+              offLabel={t('settings.agent.off')}
+            />
+          </div>
+
+          <div className="agent-settings-field">
+            <div className="agent-settings-field-copy">
+              <span>{t('settings.agent.quietHours')}</span>
+              <small>{t('settings.agent.quietHoursHint')}</small>
+            </div>
+            <AgentToggle
+              compact
+              checked={prefs.quietHours}
+              onChange={() => dispatch(patchAgentPrefs({ quietHours: !prefs.quietHours }))}
+              disabled={!prefs.enabled}
+              onLabel={t('settings.agent.on')}
+              offLabel={t('settings.agent.off')}
+            />
+          </div>
+
+          <div className="agent-settings-field">
+            <div className="agent-settings-field-copy">
+              <span>{t('settings.agent.dailyBudget')}</span>
+              <small>
+                {t('settings.agent.dailyBudgetHint', {
+                  used: prefs.runsToday,
+                  max: prefs.dailyRunBudget || '∞',
+                })}
+              </small>
+            </div>
+            <div className="agent-settings-segment" role="group">
+              {([0, 20, 40, 80] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={cn(prefs.dailyRunBudget === value && 'is-active')}
+                  disabled={!prefs.enabled}
+                  onClick={() => dispatch(patchAgentPrefs({ dailyRunBudget: value }))}
+                >
+                  {value === 0 ? '∞' : value}
+                </button>
+              ))}
+            </div>
           </div>
         </section>
 

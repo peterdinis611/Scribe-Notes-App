@@ -51,7 +51,19 @@ fn intent_rules() -> &'static [(&'static str, &'static [&'static str])] {
                 "otvorene ulohy",
             ],
         ),
-        ("dates", &["date", "deadline", "due date", "schedule", "datumy", "terminy"]),
+        (
+            "dates",
+            &[
+                "date",
+                "deadline",
+                "due date",
+                "schedule",
+                "datumy",
+                "terminy",
+                "this week",
+                "tento tyzden",
+            ],
+        ),
         (
             "mentions",
             &[
@@ -122,6 +134,69 @@ fn intent_rules() -> &'static [(&'static str, &'static [&'static str])] {
                 "trpny rod",
                 "vyplnove",
             ],
+        ),
+        (
+            "meeting",
+            &[
+                "meeting",
+                "standup",
+                "retro",
+                "meeting notes",
+                "zapis zo stretnut",
+                "porada",
+                "rozhodnutia zo stretnut",
+            ],
+        ),
+        (
+            "organize",
+            &[
+                "organize",
+                "suggest folder",
+                "suggest tag",
+                "zarad",
+                "priecinok",
+                "tagy",
+                "organizuj",
+            ],
+        ),
+        (
+            "duplicates",
+            &[
+                "duplicate",
+                "redundant",
+                "near duplicate",
+                "duplicit",
+                "redundantn",
+                "podobne subory",
+            ],
+        ),
+        (
+            "citations",
+            &["citation", "cite", "source for", "citac", "zdroje", "podloz"],
+        ),
+        (
+            "quiz",
+            &[
+                "outline quiz",
+                "quiz from outline",
+                "kviz z osnovy",
+                "test z osnovy",
+            ],
+        ),
+        (
+            "revision",
+            &[
+                "revision",
+                "what changed",
+                "diff summary",
+                "co sa zmenilo",
+                "revizia",
+                "zmeny medzi",
+            ],
+        ),
+        (
+            "rewrite",
+            &["rewrite", "rephrase", "prepis", "preformuluj"],
         ),
     ]
 }
@@ -202,5 +277,8 @@ mod tests {
     fn agent_single_intent_still_works() {
         assert_eq!(match_agent_intents("Writing coach tips"), vec!["style"]);
         assert!(match_agent_intents("What is this about?").is_empty());
+        assert_eq!(match_agent_intents("Deadlines this week"), vec!["dates"]);
+        assert_eq!(match_agent_intents("Extract meeting notes"), vec!["meeting"]);
+        assert_eq!(match_agent_intents("Find duplicate notes"), vec!["duplicates"]);
     }
 }

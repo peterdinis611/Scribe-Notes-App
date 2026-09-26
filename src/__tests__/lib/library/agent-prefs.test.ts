@@ -53,6 +53,7 @@ describe('applyAgentOptimize', () => {
       preferFast: true,
       preferredTools: [],
       disabledTools: [],
+      quietHours: false,
     })
     expect(tools).toEqual(['summarize'])
   })
@@ -63,6 +64,7 @@ describe('applyAgentOptimize', () => {
       preferFast: false,
       preferredTools: ['tasks'],
       disabledTools: ['outline'],
+      quietHours: false,
     })
     expect(tools[0]).toBe('tasks')
     expect(tools).not.toContain('outline')
@@ -89,18 +91,22 @@ describe('agent runtime prefs', () => {
     expect(plan.tools).toHaveLength(1)
   })
 
+  it('asks when uncertain instead of guessing', async () => {
+    const plan = await planAgentGoal('What themes appear?', 'library', null, {
+      ...DEFAULT_AGENT_PREFS,
+      askWhenUncertain: true,
+    })
+    expect(plan.needsClarification).toBe(true)
+    expect(plan.tools).toEqual([])
+  })
+
   it('passes teachings into document answer context', async () => {
     const { askDocument } = await import('@/lib/library/library-chat')
-    await runAgentGoal(
-      'What is this about?',
-      'document',
-      'doc-1',
-      [],
-      {
-        ...DEFAULT_AGENT_PREFS,
-        teachings: [{ id: 't1', text: 'Focus on deadlines', createdAt: 1 }],
-      },
-    )
+    await runAgentGoal('What is this about?', 'document', 'doc-1', [], {
+      ...DEFAULT_AGENT_PREFS,
+      askWhenUncertain: false,
+      teachings: [{ id: 't1', text: 'Focus on deadlines', createdAt: 1 }],
+    })
     expect(askDocument).toHaveBeenCalled()
     const call = vi.mocked(askDocument).mock.calls.at(-1)
     const context = call?.[2] as Array<{ text: string }>

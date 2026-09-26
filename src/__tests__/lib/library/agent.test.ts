@@ -55,13 +55,21 @@ describe('matchAgentIntentsSync', () => {
 })
 
 describe('planAgentGoal', () => {
-  it('falls back to library_answer when no intents', async () => {
-    const plan = await planAgentGoal('What themes appear?', 'library', null)
+  it('falls back to library_answer when no intents and askWhenUncertain off', async () => {
+    const { DEFAULT_AGENT_PREFS } = await import('@/lib/library/agent-prefs')
+    const plan = await planAgentGoal('What themes appear?', 'library', null, {
+      ...DEFAULT_AGENT_PREFS,
+      askWhenUncertain: false,
+    })
     expect(plan.tools).toEqual(['library_answer'])
   })
 
   it('falls back to document_answer in document scope', async () => {
-    const plan = await planAgentGoal('What is this about?', 'document', 'doc-1')
+    const { DEFAULT_AGENT_PREFS } = await import('@/lib/library/agent-prefs')
+    const plan = await planAgentGoal('What is this about?', 'document', 'doc-1', {
+      ...DEFAULT_AGENT_PREFS,
+      askWhenUncertain: false,
+    })
     expect(plan.tools).toEqual(['document_answer'])
   })
 
@@ -73,6 +81,11 @@ describe('planAgentGoal', () => {
     )
     expect(plan.tools[0]).toBe('summarize')
     expect(plan.tools).toContain('similar')
+  })
+
+  it('plans dates and meeting intents', async () => {
+    expect(matchAgentIntentsSync('What deadlines this week?')).toContain('dates')
+    expect(matchAgentIntentsSync('Extract meeting notes pack')).toContain('meeting')
   })
 })
 
@@ -135,6 +148,7 @@ describe('buildAgentGoalChips / buildAgentToolOptions', () => {
     const tools = buildAgentToolOptions(analysis, tasks)
     expect(tools[0]).toBe('summarize')
     expect(tools).toContain('tasks')
-    expect(tools.indexOf('tasks')).toBeLessThan(tools.indexOf('similar'))
+    expect(tools).toContain('dates')
+    expect(tools.indexOf('tasks')).toBeLessThan(tools.indexOf('meeting'))
   })
 })
