@@ -1,0 +1,350 @@
+import type { Editor } from '@tiptap/react'
+import {
+  insertBlockMath,
+  insertD3Chart,
+  insertEmptyVideoBlock,
+  insertLeafletMap,
+  insertInlineMath,
+  insertLoremIpsum,
+  insertMermaidDiagram,
+} from '@/lib/editor/insert-helpers'
+import {
+  insertEmptyImageBlock,
+  insertEmptyLottieBlock,
+  insertImageFromUrl,
+  isLikelyImageUrl,
+} from '@/lib/editor/image-utils'
+import { insertBulletList, insertOrderedList, insertTaskList } from '@/lib/editor/list-commands'
+import { createCommentForSelection } from '@/lib/editor/comments'
+import { createCustomBlockFromEditor, insertBlockSnippet } from '@/lib/editor/block-snippets'
+import { promptInput } from '@/lib/input-dialog'
+import i18n from '@/i18n'
+
+export type BlockInsertContext = {
+  onInsertImages?: (files: File[], pos?: number) => void | Promise<void>
+}
+
+export type BlockGroup = 'basic' | 'media' | 'embed' | 'advanced' | 'snippet'
+
+export type BlockDefinition = {
+  id: string
+  icon?: string
+  /** Extra ids that resolve to this block (hidden aliases). */
+  aliases?: string[]
+  group?: BlockGroup
+  keywords?: string[]
+  /**
+   * When false, the block is invokable via `insertBlock` / aliases but omitted
+   * from the slash catalog (e.g. legacy snippet-meeting).
+   */
+  slash?: boolean
+  insert: (editor: Editor, ctx?: BlockInsertContext) => void | Promise<void>
+}
+
+function heading(level: 1 | 2 | 3 | 4 | 5 | 6, icon: string): BlockDefinition {
+  return {
+    id: `h${level}`,
+    icon,
+    group: 'basic',
+    insert: (editor) => {
+      editor.chain().focus().setHeading({ level }).run()
+    },
+  }
+}
+
+const BLOCK_DEFINITIONS: BlockDefinition[] = [
+  heading(1, 'H1'),
+  heading(2, 'H2'),
+  heading(3, 'H3'),
+  heading(4, 'H4'),
+  heading(5, 'H5'),
+  heading(6, 'H6'),
+  {
+    id: 'bullet',
+    icon: '•',
+    group: 'basic',
+    insert: (editor) => insertBulletList(editor),
+  },
+  {
+    id: 'ordered',
+    icon: '1.',
+    group: 'basic',
+    insert: (editor) => insertOrderedList(editor),
+  },
+  {
+    id: 'task',
+    icon: '☑',
+    group: 'basic',
+    insert: (editor) => insertTaskList(editor),
+  },
+  {
+    id: 'quote',
+    icon: '❝',
+    group: 'basic',
+    insert: (editor) => {
+      editor.chain().focus().toggleBlockquote().run()
+    },
+  },
+  {
+    id: 'inline-code',
+    icon: '‹›',
+    group: 'basic',
+    insert: (editor) => {
+      editor.chain().focus().setMark('code').run()
+    },
+  },
+  {
+    id: 'code',
+    icon: '</>',
+    group: 'basic',
+    insert: (editor) => {
+      editor.chain().focus().toggleCodeBlock().run()
+    },
+  },
+  {
+    id: 'table',
+    icon: '⊞',
+    group: 'basic',
+    insert: (editor) => {
+      editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
+    },
+  },
+  {
+    id: 'image',
+    icon: '🖼',
+    group: 'media',
+    insert: (editor) => insertEmptyImageBlock(editor),
+  },
+  {
+    id: 'image-url',
+    icon: '🔗🖼',
+    group: 'media',
+    insert: async (editor) => {
+      const url = await promptInput({
+        title: i18n.t('image.urlTitle'),
+        description: i18n.t('image.urlHint'),
+        defaultValue: 'https://',
+        placeholder: 'https://',
+        confirmLabel: i18n.t('image.urlInsert'),
+      })
+      if (url && (isLikelyImageUrl(url) || /^https?:\/\//i.test(url.trim()))) {
+        insertImageFromUrl(editor, url.trim())
+      }
+    },
+  },
+  {
+    id: 'lottie',
+    icon: '✦',
+    group: 'media',
+    insert: (editor) => insertEmptyLottieBlock(editor),
+  },
+  {
+    id: 'video',
+    icon: '▶',
+    group: 'media',
+    insert: (editor) => insertEmptyVideoBlock(editor),
+  },
+  {
+    id: 'map',
+    icon: '◎',
+    group: 'embed',
+    insert: (editor) => insertLeafletMap(editor),
+  },
+  {
+    id: 'leaflet',
+    icon: '⌖',
+    group: 'embed',
+    keywords: ['map', 'osm'],
+    insert: (editor) => insertLeafletMap(editor),
+  },
+  {
+    id: 'math-inline',
+    icon: 'ƒ',
+    group: 'embed',
+    insert: (editor) => void insertInlineMath(editor),
+  },
+  {
+    id: 'math-block',
+    icon: '∑',
+    group: 'embed',
+    insert: (editor) => void insertBlockMath(editor),
+  },
+  {
+    id: 'mermaid',
+    icon: '⬡',
+    group: 'embed',
+    insert: (editor) => insertMermaidDiagram(editor),
+  },
+  {
+    id: 'chart',
+    icon: '▣',
+    group: 'embed',
+    insert: (editor) => insertD3Chart(editor),
+  },
+  {
+    id: 'd3',
+    icon: '◈',
+    group: 'embed',
+    keywords: ['chart'],
+    insert: (editor) => insertD3Chart(editor),
+  },
+  {
+    id: 'hr',
+    icon: '—',
+    group: 'basic',
+    insert: (editor) => {
+      editor.chain().focus().setHorizontalRule().run()
+    },
+  },
+  {
+    id: 'callout-info',
+    icon: 'ℹ️',
+    group: 'basic',
+    insert: (editor) => {
+      editor.chain().focus().toggleCallout('info').run()
+    },
+  },
+  {
+    id: 'callout-tip',
+    icon: '💡',
+    group: 'basic',
+    insert: (editor) => {
+      editor.chain().focus().toggleCallout('tip').run()
+    },
+  },
+  {
+    id: 'callout-warning',
+    icon: '⚠️',
+    group: 'basic',
+    insert: (editor) => {
+      editor.chain().focus().toggleCallout('warning').run()
+    },
+  },
+  {
+    id: 'callout-danger',
+    icon: '🛑',
+    group: 'basic',
+    insert: (editor) => {
+      editor.chain().focus().toggleCallout('danger').run()
+    },
+  },
+  {
+    id: 'footnote',
+    icon: '⁽¹⁾',
+    group: 'advanced',
+    insert: (editor) => {
+      editor.chain().focus().insertFootnote().run()
+    },
+  },
+  {
+    id: 'comment',
+    icon: '💬',
+    group: 'advanced',
+    insert: (editor) => void createCommentForSelection(editor),
+  },
+  {
+    id: 'wiki-link',
+    icon: '🔗',
+    group: 'advanced',
+    insert: (editor) => {
+      editor.chain().focus().insertContent('[[').run()
+    },
+  },
+  {
+    id: 'wiki-embed',
+    icon: '⧉',
+    group: 'advanced',
+    insert: (editor) => {
+      editor.chain().focus().insertContent('![[').run()
+    },
+  },
+  {
+    id: 'custom-block',
+    icon: '＋',
+    group: 'snippet',
+    insert: (editor) => void createCustomBlockFromEditor(editor),
+  },
+  {
+    id: 'lorem',
+    icon: '¶',
+    group: 'advanced',
+    insert: (editor) => void insertLoremIpsum(editor),
+  },
+  {
+    id: 'toc',
+    icon: '≡',
+    group: 'advanced',
+    insert: (editor) => {
+      editor.chain().focus().insertTableOfContents().run()
+    },
+  },
+  // Legacy slash ids from older tests / callers
+  {
+    id: 'snippet-meeting',
+    slash: false,
+    group: 'snippet',
+    insert: (editor) => {
+      insertBlockSnippet(editor, 'meeting-notes')
+    },
+  },
+  {
+    id: 'snippet-decision',
+    slash: false,
+    group: 'snippet',
+    insert: (editor) => {
+      insertBlockSnippet(editor, 'decision')
+    },
+  },
+]
+
+const byId = new Map<string, BlockDefinition>()
+const byAlias = new Map<string, BlockDefinition>()
+
+for (const def of BLOCK_DEFINITIONS) {
+  byId.set(def.id, def)
+  for (const alias of def.aliases ?? []) {
+    byAlias.set(alias, def)
+  }
+}
+
+/** Static slash-visible block catalog (excludes snippets and legacy aliases). */
+export function listBlockDefinitions(): BlockDefinition[] {
+  return BLOCK_DEFINITIONS.filter((def) => def.slash !== false)
+}
+
+export function getBlockDefinition(id: string): BlockDefinition | undefined {
+  return byId.get(id) ?? byAlias.get(id)
+}
+
+/** Insert a registered block by id (or alias). Returns false if unknown. */
+export function insertBlock(
+  editor: Editor,
+  id: string,
+  ctx?: BlockInsertContext,
+): boolean {
+  const def = getBlockDefinition(id)
+  if (!def) return false
+  void def.insert(editor, ctx)
+  return true
+}
+
+/**
+ * Register an additional block at runtime (plugins / tests).
+ * Replaces an existing id when present.
+ */
+export function registerBlock(def: BlockDefinition): void {
+  const previous = byId.get(def.id)
+  if (previous) {
+    const index = BLOCK_DEFINITIONS.indexOf(previous)
+    if (index >= 0) BLOCK_DEFINITIONS.splice(index, 1, def)
+    for (const alias of previous.aliases ?? []) {
+      if (byAlias.get(alias) === previous) byAlias.delete(alias)
+    }
+  } else {
+    BLOCK_DEFINITIONS.push(def)
+  }
+  byId.set(def.id, def)
+  for (const alias of def.aliases ?? []) {
+    byAlias.set(alias, def)
+  }
+}

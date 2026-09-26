@@ -9,29 +9,12 @@ import {
   type SlashCommandItem,
 } from '@/components/editor/SlashSuggestionList'
 import {
-  insertBlockMath,
-  insertD3Chart,
-  insertEmptyVideoBlock,
-  insertLeafletMap,
-  insertInlineMath,
-  insertLoremIpsum,
-  insertMermaidDiagram,
-} from '@/lib/editor/insert-helpers'
-import {
-  insertEmptyImageBlock,
-  insertEmptyLottieBlock,
-  insertImageFromUrl,
-  isLikelyImageUrl,
-} from '@/lib/editor/image-utils'
-import { insertBulletList, insertOrderedList, insertTaskList } from '@/lib/editor/list-commands'
-import { createCommentForSelection } from '@/lib/editor/comments'
-import {
-  listBlockSnippets,
-  plainTextToTipTapContent,
-  upsertCustomBlockSnippet,
-} from '@/lib/editor/block-snippets'
-import { promptInput } from '@/lib/input-dialog'
-import { toast } from '@/lib/toast'
+  getBlockDefinition,
+  insertBlock,
+  listBlockDefinitions,
+  type BlockInsertContext,
+} from '@/lib/editor/block-registry'
+import { insertBlockSnippet, listBlockSnippets } from '@/lib/editor/block-snippets'
 import i18n from '@/i18n'
 
 type SlashCommandDef = {
@@ -39,44 +22,11 @@ type SlashCommandDef = {
   icon?: string
 }
 
-export const SLASH_COMMAND_DEFS: SlashCommandDef[] = [
-  { id: 'h1', icon: 'H1' },
-  { id: 'h2', icon: 'H2' },
-  { id: 'h3', icon: 'H3' },
-  { id: 'h4', icon: 'H4' },
-  { id: 'h5', icon: 'H5' },
-  { id: 'h6', icon: 'H6' },
-  { id: 'bullet', icon: '•' },
-  { id: 'ordered', icon: '1.' },
-  { id: 'task', icon: '☑' },
-  { id: 'quote', icon: '❝' },
-  { id: 'inline-code', icon: '‹›' },
-  { id: 'code', icon: '</>' },
-  { id: 'table', icon: '⊞' },
-  { id: 'image', icon: '🖼' },
-  { id: 'image-url', icon: '🔗🖼' },
-  { id: 'lottie', icon: '✦' },
-  { id: 'video', icon: '▶' },
-  { id: 'map', icon: '◎' },
-  { id: 'leaflet', icon: '⌖' },
-  { id: 'math-inline', icon: 'ƒ' },
-  { id: 'math-block', icon: '∑' },
-  { id: 'mermaid', icon: '⬡' },
-  { id: 'chart', icon: '▣' },
-  { id: 'd3', icon: '◈' },
-  { id: 'hr', icon: '—' },
-  { id: 'callout-info', icon: 'ℹ️' },
-  { id: 'callout-tip', icon: '💡' },
-  { id: 'callout-warning', icon: '⚠️' },
-  { id: 'callout-danger', icon: '🛑' },
-  { id: 'footnote', icon: '⁽¹⁾' },
-  { id: 'comment', icon: '💬' },
-  { id: 'wiki-link', icon: '🔗' },
-  { id: 'wiki-embed', icon: '⧉' },
-  { id: 'custom-block', icon: '＋' },
-  { id: 'lorem', icon: '¶' },
-  { id: 'toc', icon: '≡' },
-]
+/** Slash-visible static blocks (derived from the block registry). */
+export const SLASH_COMMAND_DEFS: SlashCommandDef[] = listBlockDefinitions().map((def) => ({
+  id: def.id,
+  icon: def.icon,
+}))
 
 function localizeSlashCommand(def: SlashCommandDef): SlashCommandItem {
   return {
@@ -139,211 +89,30 @@ function filterCommands(query: string) {
   const commands = allSlashItems()
   const q = query.toLowerCase().trim()
   if (!q) return commands
-  return commands.filter(
-    (item) =>
+  return commands.filter((item) => {
+    if (
       item.label.toLowerCase().includes(q) ||
       item.hint?.toLowerCase().includes(q) ||
-      item.id.includes(q),
-  )
-}
-
-function selectionPlainText(editor: Editor): string {
-  const { from, to, empty } = editor.state.selection
-  if (empty) return ''
-  return editor.state.doc.textBetween(from, to, '\n', '\n').trim()
-}
-
-async function createCustomBlockFromEditor(editor: Editor) {
-  const selected = selectionPlainText(editor)
-  const name = await promptInput({
-    title: i18n.t('slash.customBlock.nameTitle'),
-    description: i18n.t('slash.customBlock.nameDescription'),
-    placeholder: i18n.t('slash.customBlock.namePlaceholder'),
-    confirmLabel: i18n.t('common.next'),
+      item.id.includes(q)
+    ) {
+      return true
+    }
+    const def = getBlockDefinition(item.id)
+    return def?.keywords?.some((keyword) => keyword.toLowerCase().includes(q)) ?? false
   })
-  if (!name?.trim()) return
-
-  const body = await promptInput({
-    title: i18n.t('slash.customBlock.bodyTitle'),
-    description: selected
-      ? i18n.t('slash.customBlock.bodyDescriptionSelection')
-      : i18n.t('slash.customBlock.bodyDescription'),
-    defaultValue: selected || '## \n\n',
-    placeholder: i18n.t('slash.customBlock.bodyPlaceholder'),
-    confirmLabel: i18n.t('slash.customBlock.save'),
-    multiline: true,
-  })
-  if (body == null || !body.trim()) return
-
-  try {
-    const snippet = upsertCustomBlockSnippet({
-      name: name.trim(),
-      plainText: body,
-    })
-    editor
-      .chain()
-      .focus()
-      .insertContent(plainTextToTipTapContent(snippet.plainText))
-      .run()
-    toast.success(i18n.t('slash.customBlock.saved'), snippet.name)
-  } catch (error) {
-    toast.error(i18n.t('slash.customBlock.saveFailed'), String(error))
-  }
 }
 
 export function runSlashCommand(
   editor: Editor,
   item: SlashCommandItem,
-  _onInsertImages?: (files: File[]) => void | Promise<void>,
+  onInsertImages?: BlockInsertContext['onInsertImages'],
 ) {
   if (item.id.startsWith('snippet:')) {
-    const snippetId = item.id.slice('snippet:'.length)
-    const snippet = listBlockSnippets().find((entry) => entry.id === snippetId)
-    if (snippet) {
-      editor
-        .chain()
-        .focus()
-        .insertContent(plainTextToTipTapContent(snippet.plainText))
-        .run()
-    }
+    insertBlockSnippet(editor, item.id.slice('snippet:'.length))
     return
   }
 
-  switch (item.id) {
-    case 'h1':
-      editor.chain().focus().setHeading({ level: 1 }).run()
-      break
-    case 'h2':
-      editor.chain().focus().setHeading({ level: 2 }).run()
-      break
-    case 'h3':
-      editor.chain().focus().setHeading({ level: 3 }).run()
-      break
-    case 'h4':
-      editor.chain().focus().setHeading({ level: 4 }).run()
-      break
-    case 'h5':
-      editor.chain().focus().setHeading({ level: 5 }).run()
-      break
-    case 'h6':
-      editor.chain().focus().setHeading({ level: 6 }).run()
-      break
-    case 'bullet':
-      insertBulletList(editor)
-      break
-    case 'ordered':
-      insertOrderedList(editor)
-      break
-    case 'task':
-      insertTaskList(editor)
-      break
-    case 'quote':
-      editor.chain().focus().toggleBlockquote().run()
-      break
-    case 'inline-code':
-      editor.chain().focus().setMark('code').run()
-      break
-    case 'code':
-      editor.chain().focus().toggleCodeBlock().run()
-      break
-    case 'table':
-      editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
-      break
-    case 'image':
-      insertEmptyImageBlock(editor)
-      break
-    case 'image-url': {
-      void (async () => {
-        const url = await promptInput({
-          title: i18n.t('image.urlTitle'),
-          description: i18n.t('image.urlHint'),
-          defaultValue: 'https://',
-          placeholder: 'https://',
-          confirmLabel: i18n.t('image.urlInsert'),
-        })
-        if (url && (isLikelyImageUrl(url) || /^https?:\/\//i.test(url.trim()))) {
-          insertImageFromUrl(editor, url.trim())
-        }
-      })()
-      break
-    }
-    case 'lottie':
-      insertEmptyLottieBlock(editor)
-      break
-    case 'video':
-      insertEmptyVideoBlock(editor)
-      break
-    case 'map':
-    case 'leaflet':
-      insertLeafletMap(editor)
-      break
-    case 'math-inline':
-      void insertInlineMath(editor)
-      break
-    case 'math-block':
-      void insertBlockMath(editor)
-      break
-    case 'mermaid':
-      insertMermaidDiagram(editor)
-      break
-    case 'chart':
-    case 'd3':
-      insertD3Chart(editor)
-      break
-    case 'lorem':
-      void insertLoremIpsum(editor)
-      break
-    case 'hr':
-      editor.chain().focus().setHorizontalRule().run()
-      break
-    case 'callout-info':
-      editor.chain().focus().toggleCallout('info').run()
-      break
-    case 'callout-tip':
-      editor.chain().focus().toggleCallout('tip').run()
-      break
-    case 'callout-warning':
-      editor.chain().focus().toggleCallout('warning').run()
-      break
-    case 'callout-danger':
-      editor.chain().focus().toggleCallout('danger').run()
-      break
-    case 'footnote':
-      editor.chain().focus().insertFootnote().run()
-      break
-    case 'comment': {
-      void createCommentForSelection(editor)
-      break
-    }
-    case 'wiki-link':
-      editor.chain().focus().insertContent('[[').run()
-      break
-    case 'wiki-embed':
-      editor.chain().focus().insertContent('![[').run()
-      break
-    case 'custom-block':
-      void createCustomBlockFromEditor(editor)
-      break
-    // Back-compat for older tests / callers
-    case 'snippet-meeting':
-    case 'snippet-decision': {
-      const id = item.id === 'snippet-meeting' ? 'meeting-notes' : 'decision'
-      const snippet = listBlockSnippets().find((entry) => entry.id === id)
-      if (snippet) {
-        editor
-          .chain()
-          .focus()
-          .insertContent(plainTextToTipTapContent(snippet.plainText))
-          .run()
-      }
-      break
-    }
-    case 'toc':
-      editor.chain().focus().insertTableOfContents().run()
-      break
-    default:
-      break
-  }
+  insertBlock(editor, item.id, { onInsertImages })
 }
 
 export function openSlashPalette(editor: Editor) {
