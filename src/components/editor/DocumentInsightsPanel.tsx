@@ -52,6 +52,10 @@ import {
   listDocumentChatMessages,
 } from '@/lib/db/api'
 import {
+  buildDocumentAskActions,
+  buildDocumentAskQuestions,
+} from '@/lib/library/document-ask-suggestions'
+import {
   askDocument,
   documentChatContext,
   runDocumentChatAction,
@@ -91,7 +95,7 @@ type DocumentInsightsPanelProps = {
   onClose: () => void
 }
 
-const INSIGHT_ACTIONS: DocumentChatAction[] = [
+const FALLBACK_INSIGHT_ACTIONS: DocumentChatAction[] = [
   'summarize',
   'outline',
   'quotes',
@@ -208,6 +212,25 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
     () => getDisplayKeysForShortcut('askThisNote', shortcutOverrides).join(''),
     [shortcutOverrides],
   )
+
+  const slovak = useMemo(
+    () => (analysis?.language || i18n.language || '').toLowerCase().startsWith('sk'),
+    [analysis?.language, i18n.language],
+  )
+
+  const documentQuestions = useMemo(
+    () =>
+      buildDocumentAskQuestions(analysis, openTasks, {
+        title: activeDocument?.title || activeSummary?.title,
+        slovak,
+      }),
+    [analysis, openTasks, activeDocument?.title, activeSummary?.title, slovak],
+  )
+
+  const documentActions = useMemo(() => {
+    const ranked = buildDocumentAskActions(analysis, openTasks)
+    return ranked.length > 0 ? ranked : FALLBACK_INSIGHT_ACTIONS
+  }, [analysis, openTasks])
 
   useEffect(() => {
     if (!insightsFocusAsk || !nlpEnabled) return

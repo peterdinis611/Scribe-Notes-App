@@ -133,7 +133,13 @@ pub fn document_index_ready(
             |row| row.get(0),
         )
         .map_err(|e| e.to_string())?;
-    if doc_updated > emb.updated_at {
+    // Documents store ms; embeddings store seconds — normalize before compare.
+    let doc_secs = if doc_updated > 1_000_000_000_000 {
+        doc_updated / 1000
+    } else {
+        doc_updated
+    };
+    if doc_secs > emb.updated_at {
         return Ok(false);
     }
     let chunks: i64 = conn

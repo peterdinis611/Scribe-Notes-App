@@ -310,6 +310,7 @@ pub fn run() {
             commands::native_pipeline::diff_document_revisions,
             commands::native_pipeline::render_document_html,
             pdf_native::render_html_to_pdf,
+            pdf_native::print_html,
             commands::import_export::scan_scribe_files,
             commands::import_export::force_save_document,
             commands::images::save_document_image,

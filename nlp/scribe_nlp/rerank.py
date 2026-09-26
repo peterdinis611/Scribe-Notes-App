@@ -35,11 +35,11 @@ def _bm25_preselect(
     *,
     limit: int,
 ) -> list[dict[str, Any]]:
-    """Rank a large candidate pool with BM25 before expensive embedding."""
+    """Rank a large candidate pool with BM25 (or token overlap) before expensive embedding."""
     if len(pool) <= limit:
         return list(pool)
     texts = [_passage_text(item) for item in pool]
-    if bm25_available() and query.strip():
+    if query.strip():
         ranked = bm25_rank(query, texts, limit=limit)
         if ranked:
             selected = [pool[index] for index, _ in ranked if 0 <= index < len(pool)]
