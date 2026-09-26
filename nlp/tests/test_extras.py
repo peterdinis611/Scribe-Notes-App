@@ -18,6 +18,9 @@ class TestExtrasSoftImport(unittest.TestCase):
             "spacy",
             "onnxruntime",
             "faiss",
+            "model2vec",
+            "bm25s",
+            "pynear",
             "sentenceTransformers",
         ):
             self.assertIn(key, status)

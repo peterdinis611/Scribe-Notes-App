@@ -6,6 +6,9 @@ Install groups (from nlp/):
   pip install 'scribe-nlp[ner]'         # spacy (+ download xx_ent_wiki_sm)
   pip install 'scribe-nlp[onnx]'        # onnxruntime + numpy + tokenizers
   pip install 'scribe-nlp[faiss]'       # faiss-cpu + numpy
+  pip install 'scribe-nlp[fast-embed]'  # model2vec static embeddings
+  pip install 'scribe-nlp[lexical]'     # bm25s hybrid lexical ranking
+  pip install 'scribe-nlp[hnsw]'        # pynear HNSW for large ANN
   pip install 'scribe-nlp[full]'        # everything including quality MiniLM
 """
 
@@ -68,6 +71,21 @@ def has_tokenizers() -> bool:
     return _probe("tokenizers")
 
 
+@lru_cache(maxsize=1)
+def has_model2vec() -> bool:
+    return _probe("model2vec")
+
+
+@lru_cache(maxsize=1)
+def has_bm25s() -> bool:
+    return _probe("bm25s")
+
+
+@lru_cache(maxsize=1)
+def has_pynear() -> bool:
+    return _probe("pynear")
+
+
 def extras_status() -> dict[str, bool]:
     """Capability flags for health RPC / Settings UI."""
     return {
@@ -79,6 +97,9 @@ def extras_status() -> dict[str, bool]:
         "spacy": has_spacy(),
         "onnxruntime": has_onnx(),
         "faiss": has_faiss(),
+        "model2vec": has_model2vec(),
+        "bm25s": has_bm25s(),
+        "pynear": has_pynear(),
         "sentenceTransformers": _probe("sentence_transformers"),
     }
 
@@ -96,6 +117,9 @@ def extras_feature_flags() -> list[str]:
         "spacy": "spacyNer",
         "onnxruntime": "onnxEmbed",
         "faiss": "faissSearch",
+        "model2vec": "fastEmbed",
+        "bm25s": "bm25Lexical",
+        "pynear": "hnswSearch",
     }
     for key, flag in mapping.items():
         if status.get(key):
@@ -132,7 +156,7 @@ def fuzzy_ratio(a: str, b: str) -> float:
             return float(fuzz.token_set_ratio(left, right)) / 100.0
         except Exception:
             pass
-    # Fallback: character bigram Dice
+
     def bigrams(value: str) -> set[str]:
         if len(value) < 2:
             return {value}

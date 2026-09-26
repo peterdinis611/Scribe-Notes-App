@@ -32,9 +32,15 @@ pub struct NlpHealth {
     #[serde(default)]
     pub quality_available: Option<bool>,
     #[serde(default)]
+    pub fast_available: Option<bool>,
+    #[serde(default)]
     pub onnx_available: Option<bool>,
     #[serde(default)]
     pub faiss_available: Option<bool>,
+    #[serde(default)]
+    pub hnsw_available: Option<bool>,
+    #[serde(default)]
+    pub bm25_available: Option<bool>,
     #[serde(default)]
     pub spacy_available: Option<bool>,
     #[serde(default)]

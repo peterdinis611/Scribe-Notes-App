@@ -41,6 +41,20 @@ pub struct NlpStatus {
     pub stale_index_count: i64,
     pub embed_backend: String,
     pub quality_available: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fast_available: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub onnx_available: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub faiss_available: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hnsw_available: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bm25_available: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub spacy_available: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub argos_available: Option<bool>,
     pub extras: Option<serde_json::Map<String, serde_json::Value>>,
     pub rust_extras: scribe_core::EnhanceStatus,
     pub script_path: String,
@@ -232,6 +246,13 @@ fn sidecar_status(
             stale_index_count,
             embed_backend,
             quality_available,
+            fast_available: None,
+            onnx_available: None,
+            faiss_available: None,
+            hnsw_available: None,
+            bm25_available: None,
+            spacy_available: None,
+            argos_available: None,
             extras: None,
             rust_extras,
             script_path: crate::nlp::script_path_label(&script_path),
@@ -253,6 +274,13 @@ fn sidecar_status(
             stale_index_count,
             embed_backend: health.embed_backend.unwrap_or(embed_backend),
             quality_available: health.quality_available.unwrap_or(quality_available),
+            fast_available: health.fast_available,
+            onnx_available: health.onnx_available,
+            faiss_available: health.faiss_available,
+            hnsw_available: health.hnsw_available,
+            bm25_available: health.bm25_available,
+            spacy_available: health.spacy_available,
+            argos_available: health.argos_available,
             extras: health.extras,
             rust_extras,
             script_path: crate::nlp::script_path_label(&script_path),
@@ -271,6 +299,13 @@ fn sidecar_status(
             stale_index_count,
             embed_backend,
             quality_available,
+            fast_available: None,
+            onnx_available: None,
+            faiss_available: None,
+            hnsw_available: None,
+            bm25_available: None,
+            spacy_available: None,
+            argos_available: None,
             extras: None,
             rust_extras,
             script_path: crate::nlp::script_path_label(&script_path),
@@ -1245,10 +1280,10 @@ pub fn nlp_set_embed_backend(
     input: NlpSetEmbedBackendInput,
 ) -> Result<NlpStatus, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
-    let backend = if input.backend == "quality" {
-        "quality"
-    } else {
-        "hash"
+    let backend = match input.backend.trim().to_ascii_lowercase().as_str() {
+        "quality" => "quality",
+        "fast" => "fast",
+        _ => "hash",
     };
     set_embed_backend(&conn, backend)?;
     sidecar.reset_process();

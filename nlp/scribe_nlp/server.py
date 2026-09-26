@@ -18,8 +18,10 @@ from .embed_backend import (
     active_backend,
     configure_backend,
     current_model_id,
+    fast_available,
     quality_available,
     set_backend_change_hook,
+    warmup_fast_model,
     warmup_quality_model,
 )
 from .text_utils import truncate_text
@@ -146,7 +148,8 @@ def _handle_request_inner(
         if method == "health":
             from .extras import extras_status
             from .onnx_embed import onnx_available
-            from .faiss_search import faiss_available
+            from .faiss_search import faiss_available, hnsw_available
+            from .bm25_search import bm25_available
             from .spacy_ner import spacy_available
             from .argos_translate import argos_ready
 
@@ -156,8 +159,11 @@ def _handle_request_inner(
                 "model": current_model_id(),
                 "embedBackend": active_backend(),
                 "qualityAvailable": quality_available(),
+                "fastAvailable": fast_available(),
                 "onnxAvailable": onnx_available(),
                 "faissAvailable": faiss_available(),
+                "hnswAvailable": hnsw_available(),
+                "bm25Available": bm25_available(),
                 "spacyAvailable": spacy_available(),
                 "argosAvailable": argos_ready(),
                 "extras": extras_status(),
@@ -174,10 +180,13 @@ def _handle_request_inner(
             configured = configure_backend(backend)
             if configured == "quality":
                 warmup_quality_model()
+            elif configured == "fast":
+                warmup_fast_model()
             result = {
                 "embedBackend": configured,
                 "model": current_model_id(),
                 "qualityAvailable": quality_available(),
+                "fastAvailable": fast_available(),
             }
         elif method == "embed":
             text = _validate_text(str(params.get("text") or ""))

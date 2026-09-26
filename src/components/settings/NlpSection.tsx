@@ -137,7 +137,7 @@ export function NlpSection() {
     }
   }
 
-  async function handleEmbedBackend(next: 'hash' | 'quality') {
+  async function handleEmbedBackend(next: 'hash' | 'fast' | 'quality') {
     if (!status || status.embedBackend === next) return
     try {
       const updated = await nlpSetEmbedBackend(next)
@@ -145,7 +145,9 @@ export function NlpSection() {
       toast.success(
         next === 'quality'
           ? t('settings.nlp.qualityEnabledToast')
-          : t('settings.nlp.hashEnabledToast'),
+          : next === 'fast'
+            ? t('settings.nlp.fastEnabledToast')
+            : t('settings.nlp.hashEnabledToast'),
       )
     } catch (error) {
       toast.error(t('settings.nlp.embedBackendError'), String(error))
@@ -276,7 +278,7 @@ export function NlpSection() {
         <SettingsRow
           title={t('settings.nlp.embedBackendTitle')}
           description={
-            status?.qualityAvailable
+            status?.qualityAvailable || status?.fastAvailable || status?.extras?.model2vec
               ? t('settings.nlp.embedBackendDescription')
               : t('settings.nlp.embedBackendInstallHint')
           }
@@ -290,6 +292,20 @@ export function NlpSection() {
               onClick={() => void handleEmbedBackend('hash')}
             >
               {t('settings.nlp.embedBackendHash')}
+            </Button>
+            <Button
+              type="button"
+              variant={status?.embedBackend === 'fast' ? 'default' : 'outline'}
+              size="sm"
+              disabled={
+                !status?.enabled ||
+                !(status?.fastAvailable ?? status?.extras?.model2vec) ||
+                loading ||
+                indexing
+              }
+              onClick={() => void handleEmbedBackend('fast')}
+            >
+              {t('settings.nlp.embedBackendFast')}
             </Button>
             <Button
               type="button"
@@ -318,6 +334,9 @@ export function NlpSection() {
                 ['spacy', status?.spacyAvailable ?? status?.extras?.spacy],
                 ['onnxruntime', status?.onnxAvailable ?? status?.extras?.onnxruntime],
                 ['faiss', status?.faissAvailable ?? status?.extras?.faiss],
+                ['model2vec', status?.fastAvailable ?? status?.extras?.model2vec],
+                ['bm25s', status?.bm25Available ?? status?.extras?.bm25s],
+                ['pynear', status?.hnswAvailable ?? status?.extras?.pynear],
                 ['sentenceTransformers', status?.qualityAvailable ?? status?.extras?.sentenceTransformers],
               ] as const
             ).map(([key, on]) => (
@@ -409,7 +428,9 @@ export function NlpSection() {
             value={
               status.embedBackend === 'quality'
                 ? t('settings.nlp.embedBackendQuality')
-                : t('settings.nlp.embedBackendHash')
+                : status.embedBackend === 'fast'
+                  ? t('settings.nlp.embedBackendFast')
+                  : t('settings.nlp.embedBackendHash')
             }
           />
           <StatRow label={t('settings.nlp.statusStoredModel')} value={status.storedModel ?? '—'} />

@@ -73,7 +73,11 @@ pub fn get_embed_backend(conn: &Connection) -> Result<String, String> {
 }
 
 pub fn set_embed_backend(conn: &Connection, backend: &str) -> Result<(), String> {
-    let normalized = if backend == "quality" { "quality" } else { "hash" };
+    let normalized = match backend.trim().to_ascii_lowercase().as_str() {
+        "quality" => "quality",
+        "fast" => "fast",
+        _ => "hash",
+    };
     conn.execute(
         "INSERT OR REPLACE INTO meta (key, value) VALUES (?1, ?2)",
         params![META_NLP_EMBED_BACKEND, normalized],

@@ -867,10 +867,10 @@ impl ScribeStore {
         sidecar: &NlpSidecar,
         backend: &str,
     ) -> Result<Value, String> {
-        let normalized = if backend.trim().eq_ignore_ascii_case("quality") {
-            "quality"
-        } else {
-            "hash"
+        let normalized = match backend.trim().to_ascii_lowercase().as_str() {
+            "quality" => "quality",
+            "fast" => "fast",
+            _ => "hash",
         };
         set_embed_backend(&self.db, normalized)?;
         sidecar.reset_process();

@@ -1210,7 +1210,7 @@ impl ScribeMcp {
         })
     }
 
-    #[tool(description = "Set embedding backend: hash (fast, default) or quality (MiniLM). Requires writable DB; reindex after switching.")]
+    #[tool(description = "Set embedding backend: hash (default), fast (model2vec), or quality (MiniLM). Requires writable DB; reindex after switching.")]
     fn set_embed_backend(
         &self,
         Parameters(params): Parameters<tools::SetEmbedBackendParams>,

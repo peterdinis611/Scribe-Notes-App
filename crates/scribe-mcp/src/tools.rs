@@ -329,7 +329,7 @@ pub struct SetNlpEnabledParams {
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct SetEmbedBackendParams {
-    /// `hash` (default) or `quality` (MiniLM when installed)
+    /// `hash` (default), `fast` (model2vec), or `quality` (MiniLM when installed)
     pub backend: String,
 }
 
