@@ -15,6 +15,13 @@ import { hasStorageFolderAccess } from '@/store/persistence'
 /** Minimum gap between auto reconciles (focus / interval). Manual Sync can force. */
 const AUTO_RECONCILE_DEBOUNCE_MS = 15_000
 
+export type FolderReconcileOptions = {
+  /** Bypass debounce (Settings / Diagnostics Sync button). */
+  force?: boolean
+  /** Toast success when nothing was pulled from disk (manual Sync). */
+  announceSuccess?: boolean
+}
+
 let lastReconcileAt = 0
 let inFlight: Promise<ReconcileResult | null> | null = null
 

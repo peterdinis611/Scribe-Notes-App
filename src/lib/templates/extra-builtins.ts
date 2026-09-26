@@ -55,10 +55,6 @@ function tasks(...items: string[]): Node {
   }
 }
 
-function hr(): Node {
-  return { type: 'horizontalRule' }
-}
-
 function doc(...content: Node[]): JSONContent {
   return { type: 'doc', content }
 }

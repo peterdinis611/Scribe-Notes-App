@@ -41,7 +41,8 @@ export function InputDialogHost() {
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
-    close(dialog.multiline ? value : value.trim())
+    const multiline = dialog.open ? Boolean(dialog.multiline) : false
+    close(multiline ? value : value.trim())
   }
 
   return (
