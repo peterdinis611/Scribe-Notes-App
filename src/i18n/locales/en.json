@@ -1927,7 +1927,8 @@
       "quiz": "Outline quiz",
       "revision": "Revision diff",
       "spellcheck": "Spellcheck",
-      "rewrite": "Rewrite"
+      "rewrite": "Rewrite",
+      "brief": "Document brief"
     }
   },
   "trash": {

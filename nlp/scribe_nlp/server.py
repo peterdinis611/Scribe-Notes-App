@@ -578,6 +578,22 @@ def _handle_request_inner(
             text = _validate_text(str(params.get("text") or ""))
             limit = max(1, min(int(params.get("limit") or 12), 30))
             result = meeting_notes_pack(text, limit=limit)
+        elif method == "plan_agent_goal":
+            from .agent_plan import plan_agent_goal
+
+            goal = str(params.get("goal") or params.get("question") or "")
+            scope = str(params.get("scope") or "document")
+            max_tools = max(1, min(int(params.get("maxTools") or params.get("max_tools") or 3), 6))
+            result = plan_agent_goal(goal, scope=scope, max_tools=max_tools)
+        elif method == "agent_document_brief":
+            from .agent_plan import agent_document_brief
+
+            text = _validate_text(str(params.get("text") or ""))
+            goal = str(params.get("goal") or params.get("question") or "")
+            tools_raw = params.get("tools")
+            tools = [str(item) for item in tools_raw] if isinstance(tools_raw, list) else None
+            limit = max(1, min(int(params.get("limit") or 8), 20))
+            result = agent_document_brief(text, goal=goal, tools=tools, limit=limit)
         elif method == "check_terminology_library":
             from .terminology_library import check_terminology_library
 

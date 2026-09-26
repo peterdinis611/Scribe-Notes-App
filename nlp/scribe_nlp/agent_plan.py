@@ -6,7 +6,6 @@ and optionally run a multi-tool document brief in one RPC round-trip.
 
 from __future__ import annotations
 
-import re
 import unicodedata
 from typing import Any
 
@@ -156,8 +155,6 @@ def plan_agent_goal(
     tools = match_agent_intents(trimmed, max_tools=limit)
 
     if scope_norm == "library":
-        tools = [tool for tool in tools if tool not in {"document_answer"} or True]
-        # Drop pure document-only tools when no note is implied — keep dates/duplicates/citations.
         library_ok = {
             "dates",
             "duplicates",
@@ -168,8 +165,7 @@ def plan_agent_goal(
             "similar",
             "library_answer",
         }
-        filtered = [tool for tool in tools if tool in library_ok]
-        tools = filtered
+        tools = [tool for tool in tools if tool in library_ok]
 
     needs = len(tools) == 0
     return {
@@ -389,7 +385,3 @@ def agent_document_brief(
         "count": len(sections),
         "source": "python",
     }
-
-
-# Keep re export for tests / debug.
-_DIACRITIC_STRIP_RE = re.compile(r"[\u0300-\u036f]")

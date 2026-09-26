@@ -1,4 +1,5 @@
 import { invokeMatchAgentIntents } from '@/lib/db/api'
+import { nlpAgentDocumentBrief, nlpPlanAgentGoal } from '@/lib/db/nlp-api'
 import {
   applyAgentOptimize,
   bumpAgentRunCount,
@@ -85,6 +86,7 @@ const DOCUMENT_TOOLS = new Set<AgentToolId>([
   'revision',
   'spellcheck',
   'rewrite',
+  'brief',
 ])
 
 const LIBRARY_ONLY_TOOLS = new Set<AgentToolId>(['duplicates', 'citations', 'library_answer'])
@@ -122,6 +124,7 @@ const INTENT_TO_TOOL: Record<string, AgentToolId> = {
   quiz: 'quiz',
   revision: 'revision',
   rewrite: 'rewrite',
+  brief: 'brief',
 }
 
 const DEFAULT_CLARIFY: AgentToolId[] = [
@@ -230,6 +233,10 @@ export function matchAgentIntentsSync(goal: string): AgentToolId[] {
       ],
     },
     { tool: 'spellcheck', needles: ['spellcheck', 'spelling', 'typo', 'pravopis', 'preklepy'] },
+    {
+      tool: 'brief',
+      needles: ['agent brief', 'document brief', 'full brief', 'kompletny brief', 'brief poznámky'],
+    },
   ]
 
   const out: AgentToolId[] = []
@@ -300,9 +307,38 @@ export async function planAgentGoal(
 
   let intents: string[] = []
   try {
-    intents = await invokeMatchAgentIntents(trimmed)
+    const planned = await nlpPlanAgentGoal({
+      goal: trimmed,
+      scope,
+      maxTools: prefs.maxSteps,
+    })
+    intents = planned.tools
+    if (planned.needsClarification && prefs.askWhenUncertain) {
+      const clarifyOptions = (planned.clarifyOptions ?? DEFAULT_CLARIFY)
+        .map((item) => INTENT_TO_TOOL[item] ?? (item as AgentToolId))
+        .filter((tool, index, list) => list.indexOf(tool) === index)
+        .filter((tool) => {
+          if (tool === 'document_answer') return scope === 'document' || Boolean(documentId)
+          if (tool === 'library_answer') return scope === 'library' || !documentId
+          if (DOCUMENT_TOOLS.has(tool)) return Boolean(documentId) || scope === 'document'
+          return true
+        })
+        .slice(0, 5)
+      return {
+        goal: trimmed,
+        scope,
+        documentId,
+        tools: [],
+        needsClarification: true,
+        clarifyOptions,
+      }
+    }
   } catch {
-    intents = matchAgentIntentsSync(trimmed)
+    try {
+      intents = await invokeMatchAgentIntents(trimmed)
+    } catch {
+      intents = matchAgentIntentsSync(trimmed)
+    }
   }
 
   let fromIntent = dedupeTools(
@@ -408,6 +444,24 @@ async function runTool(
   if (tool === 'rewrite') {
     if (!ctx.documentId) throw new Error('agent.needsDocument')
     return runAgentRewrite(ctx.documentId, ctx.goal)
+  }
+  if (tool === 'brief') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    const brief = await nlpAgentDocumentBrief({
+      documentId: ctx.documentId,
+      goal: ctx.goal,
+      limit: 8,
+    })
+    return {
+      answer: brief.answer || 'No brief sections produced for this note.',
+      citations: [
+        {
+          documentId: ctx.documentId,
+          title: 'Agent brief',
+          snippet: (brief.tools || []).join(' → '),
+        },
+      ],
+    }
   }
 
   if (CHAT_ACTION_TOOLS.has(tool)) {

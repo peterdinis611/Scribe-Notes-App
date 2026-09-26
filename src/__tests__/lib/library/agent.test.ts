@@ -18,6 +18,20 @@ vi.mock('@/lib/db/api', () => ({
   }),
 }))
 
+vi.mock('@/lib/db/nlp-api', () => ({
+  nlpPlanAgentGoal: vi.fn(async () => {
+    throw new Error('no nlp')
+  }),
+  nlpAgentDocumentBrief: vi.fn(async () => ({
+    goal: '',
+    tools: [],
+    sections: [],
+    answer: '',
+    count: 0,
+    source: 'python',
+  })),
+}))
+
 vi.mock('@/lib/library/library-chat', async () => {
   const actual = await vi.importActual<typeof import('@/lib/library/library-chat')>(
     '@/lib/library/library-chat',

@@ -1505,6 +1505,47 @@ impl ScribeStore {
         sidecar.meeting_notes_pack(&source, limit.unwrap_or(12).clamp(1, 30))
     }
 
+    pub fn plan_agent_goal(
+        &self,
+        sidecar: &NlpSidecar,
+        goal: &str,
+        scope: &str,
+        max_tools: Option<i64>,
+    ) -> Result<Value, String> {
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        sidecar.plan_agent_goal(
+            goal.trim(),
+            if scope.eq_ignore_ascii_case("library") {
+                "library"
+            } else {
+                "document"
+            },
+            max_tools.unwrap_or(3).clamp(1, 6),
+        )
+    }
+
+    pub fn agent_document_brief(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+        goal: Option<&str>,
+        tools: Option<&Value>,
+        limit: Option<i64>,
+    ) -> Result<Value, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        let tools_value = tools.cloned().unwrap_or_else(|| json!([]));
+        sidecar.agent_document_brief(
+            &source,
+            goal.unwrap_or("").trim(),
+            &tools_value,
+            limit.unwrap_or(8).clamp(1, 20),
+        )
+    }
+
     pub fn check_terminology_library(
         &self,
         sidecar: &NlpSidecar,

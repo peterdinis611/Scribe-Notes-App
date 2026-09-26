@@ -712,6 +712,40 @@ impl NlpSidecar {
         )
     }
 
+    pub fn plan_agent_goal(
+        &self,
+        goal: &str,
+        scope: &str,
+        max_tools: i64,
+    ) -> Result<Value, String> {
+        self.call_method(
+            "plan_agent_goal",
+            json!({
+                "goal": goal,
+                "scope": scope,
+                "maxTools": max_tools,
+            }),
+        )
+    }
+
+    pub fn agent_document_brief(
+        &self,
+        text: &str,
+        goal: &str,
+        tools: &Value,
+        limit: i64,
+    ) -> Result<Value, String> {
+        self.call_method(
+            "agent_document_brief",
+            json!({
+                "text": text,
+                "goal": goal,
+                "tools": tools,
+                "limit": limit,
+            }),
+        )
+    }
+
     pub fn check_terminology_library(
         &self,
         documents: &Value,
@@ -775,7 +809,8 @@ pub fn rpc_timeout(method: &str) -> Duration {
         "embed" | "rewrite_query" | "chunk_text" | "suggest_continuation" | "generate_placeholder"
         | "analyze_revision_diff" | "summarize_diff" | "extract_flashcards" | "check_terminology"
         | "extract_takeaways" | "writing_coach" | "outline_quiz" | "meeting_notes_pack"
-        | "check_terminology_library" | "citation_pack" | "extract_paint_ocr" => {
+        | "check_terminology_library" | "citation_pack" | "extract_paint_ocr"
+        | "plan_agent_goal" | "agent_document_brief" => {
             Duration::from_secs(25)
         }
         "embed_with_chunks" => Duration::from_secs(60),

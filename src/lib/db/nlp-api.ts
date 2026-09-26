@@ -492,6 +492,38 @@ export const nlpMeetingNotesPack = (input: {
   limit?: number
 }) => invoke<MeetingNotesPack>('nlp_meeting_notes_pack', { input })
 
+export type AgentPlanNlpResult = {
+  goal: string
+  scope: string
+  tools: string[]
+  needsClarification: boolean
+  clarifyOptions?: string[]
+  source: string
+}
+
+export const nlpPlanAgentGoal = (input: {
+  goal: string
+  scope?: 'library' | 'document' | string
+  maxTools?: number
+}) => invoke<AgentPlanNlpResult>('nlp_plan_agent_goal', { input })
+
+export type AgentDocumentBriefResult = {
+  goal: string
+  tools: string[]
+  sections: Array<{ tool: string; title: string; markdown: string }>
+  answer: string
+  count: number
+  source: string
+}
+
+export const nlpAgentDocumentBrief = (input: {
+  documentId?: string
+  text?: string
+  goal?: string
+  tools?: string[]
+  limit?: number
+}) => invoke<AgentDocumentBriefResult>('nlp_agent_document_brief', { input })
+
 export type CitationPackResult = {
   claim: string
   citations: Array<{ documentId: string; title: string; snippet: string; score: number }>

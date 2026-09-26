@@ -198,6 +198,16 @@ fn intent_rules() -> &'static [(&'static str, &'static [&'static str])] {
             "rewrite",
             &["rewrite", "rephrase", "prepis", "preformuluj"],
         ),
+        (
+            "brief",
+            &[
+                "agent brief",
+                "document brief",
+                "full brief",
+                "kompletny brief",
+                "brief poznamky",
+            ],
+        ),
     ]
 }
 

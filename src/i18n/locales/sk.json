@@ -1931,7 +1931,8 @@
       "quiz": "Kvíz z osnovy",
       "revision": "Diff revízií",
       "spellcheck": "Pravopis",
-      "rewrite": "Prepis"
+      "rewrite": "Prepis",
+      "brief": "Brief poznámky"
     }
   },
   "trash": {

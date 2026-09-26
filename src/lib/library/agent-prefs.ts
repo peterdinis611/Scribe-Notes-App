@@ -25,6 +25,7 @@ export type AgentToolId =
   | 'revision'
   | 'spellcheck'
   | 'rewrite'
+  | 'brief'
 
 export type AgentMaxSteps = 1 | 2 | 3
 
@@ -123,6 +124,7 @@ const ALL_TOOLS: AgentToolId[] = [
   'revision',
   'spellcheck',
   'rewrite',
+  'brief',
 ]
 
 const HEAVY_TOOLS = new Set<AgentToolId>([
@@ -134,6 +136,7 @@ const HEAVY_TOOLS = new Set<AgentToolId>([
   'duplicates',
   'citations',
   'meeting',
+  'brief',
 ])
 
 function isToolId(value: unknown): value is AgentToolId {
@@ -430,4 +433,5 @@ export const AGENT_OPTIMIZABLE_TOOLS: AgentToolId[] = [
   'flashcards',
   'spellcheck',
   'rewrite',
+  'brief',
 ]

@@ -44,6 +44,7 @@ const TOOL_LABEL_KEYS: Record<AgentToolId, string> = {
   revision: 'agent.tools.revision',
   spellcheck: 'agent.tools.spellcheck',
   rewrite: 'agent.tools.rewrite',
+  brief: 'agent.tools.brief',
 }
 
 type ToolMode = 'default' | 'prefer' | 'never'
