@@ -12892,3 +12892,391 @@ html[data-ui-skin='press'] .error-folio__sheet {
 html[data-ui-skin='press'] .error-folio__title {
   letter-spacing: -0.045em;
 }
+
+/* —— Agent settings (control desk) —— */
+.agent-settings {
+  max-width: 44rem;
+}
+
+.agent-settings-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.agent-settings-hero .mb-3 {
+  margin-bottom: 0;
+}
+
+.agent-settings-hero-mark {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 35%, var(--color-border));
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--color-accent) 16%, transparent),
+      color-mix(in srgb, var(--color-surface) 88%, transparent)
+    );
+  color: var(--color-accent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 8%, transparent);
+}
+
+.agent-settings-lede {
+  margin: 0 0 1.25rem;
+  max-width: 36rem;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--color-muted-foreground);
+}
+
+.agent-settings-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: opacity 160ms ease;
+}
+
+.agent-settings-grid.is-dimmed {
+  opacity: 0.55;
+}
+
+.agent-settings-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid var(--color-border);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-surface) 92%, var(--color-accent)),
+      var(--color-surface)
+    );
+  padding: 16px 16px 14px;
+}
+
+.agent-settings-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: color-mix(in srgb, var(--color-accent) 70%, transparent);
+}
+
+.agent-settings-card--teach::before {
+  background: color-mix(in srgb, var(--color-foreground) 22%, var(--color-accent));
+}
+
+.agent-settings-card-head {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+  color: var(--color-accent);
+}
+
+.agent-settings-card-head h4 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-foreground);
+}
+
+.agent-settings-card-head p {
+  margin: 3px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-muted-foreground);
+}
+
+.agent-settings-field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
+}
+
+.agent-settings-field-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: min(100%, 14rem);
+}
+
+.agent-settings-field-copy span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+.agent-settings-field-copy small {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--color-muted-foreground);
+}
+
+.agent-settings-segment {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-background) 70%, var(--color-surface));
+}
+
+.agent-settings-segment button {
+  min-width: 2rem;
+  height: 1.75rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-muted-foreground);
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.agent-settings-segment button:hover:not(:disabled) {
+  color: var(--color-foreground);
+}
+
+.agent-settings-segment button.is-active {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.agent-settings-segment button.is-active.is-never {
+  background: color-mix(in srgb, var(--color-destructive, #c44) 85%, #000);
+}
+
+.agent-settings-segment button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.agent-settings-segment--modes button {
+  min-width: 0;
+  padding: 0 0.65rem;
+  font-size: 11px;
+}
+
+.agent-settings-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 2rem;
+  padding: 0 10px 0 4px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-background) 65%, var(--color-surface));
+  color: var(--color-muted-foreground);
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
+}
+
+.agent-settings-switch--compact {
+  height: 1.75rem;
+  padding-right: 8px;
+}
+
+.agent-settings-switch-knob {
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-muted-foreground) 35%, var(--color-surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #000 12%, transparent);
+  transition: transform 140ms ease, background 140ms ease;
+}
+
+.agent-settings-switch-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.agent-settings-switch.is-on {
+  border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-border));
+  background: color-mix(in srgb, var(--color-accent) 14%, var(--color-surface));
+  color: var(--color-foreground);
+}
+
+.agent-settings-switch.is-on .agent-settings-switch-knob {
+  background: var(--color-accent);
+  transform: translateX(2px);
+}
+
+.agent-settings-switch:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.agent-settings-tools {
+  margin-top: 4px;
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
+  padding-top: 12px;
+}
+
+.agent-settings-tools-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  margin-bottom: 8px;
+  padding: 0 2px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+
+.agent-settings-tools ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.agent-settings-tools li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-background) 55%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+}
+
+.agent-settings-tool-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+.agent-settings-teach-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.agent-settings-teach-form input {
+  min-width: 0;
+  flex: 1;
+  height: 2.25rem;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-background) 70%, var(--color-surface));
+  padding: 0 12px;
+  color: var(--color-foreground);
+  font-size: 13px;
+}
+
+.agent-settings-teach-form input:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 16%, transparent);
+}
+
+.agent-settings-teachings {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.agent-settings-teachings li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  padding: 10px 10px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 75%, transparent);
+  background: color-mix(in srgb, var(--color-background) 45%, transparent);
+}
+
+.agent-settings-teaching-index {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-accent);
+  padding-top: 1px;
+}
+
+.agent-settings-teaching-text {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--color-foreground);
+}
+
+.agent-settings-teaching-remove {
+  border: 0;
+  background: transparent;
+  color: var(--color-muted-foreground);
+  cursor: pointer;
+  padding: 2px;
+}
+
+.agent-settings-teaching-remove:hover {
+  color: var(--color-foreground);
+}
+
+.agent-settings-clear {
+  margin-top: 10px;
+  border: 0;
+  background: transparent;
+  color: var(--color-muted-foreground);
+  font-size: 11.5px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.agent-settings-clear:hover {
+  color: var(--color-foreground);
+}
+
+.agent-settings-empty {
+  margin: 0;
+  padding: 14px 12px;
+  border-radius: 10px;
+  border: 1px dashed color-mix(in srgb, var(--color-border) 90%, transparent);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-muted-foreground);
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .agent-settings-tools li {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .agent-settings-segment--modes {
+    width: 100%;
+  }
+
+  .agent-settings-segment--modes button {
+    flex: 1;
+  }
+}
+
