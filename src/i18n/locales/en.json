@@ -2325,7 +2325,19 @@
       "bodyPlaceholder": "## Heading\n\n- item",
       "save": "Save block",
       "saved": "Custom block saved",
-      "saveFailed": "Could not save custom block"
+      "saveFailed": "Could not save custom block",
+      "validation": {
+        "name_required": "Enter a block name.",
+        "name_too_long": "Name can be at most 80 characters.",
+        "body_required": "Block content cannot be empty.",
+        "body_too_large": "Block content is too long.",
+        "content_invalid": "Block content has an invalid format.",
+        "content_too_large": "Block content is too large.",
+        "content_too_deep": "Block content is nested too deeply.",
+        "content_too_many_nodes": "Block content has too many parts.",
+        "id_invalid": "Block id is invalid.",
+        "too_many_snippets": "You reached the custom block limit."
+      }
     },
     "snippet-meeting": {
       "label": "Snippet: Meeting",

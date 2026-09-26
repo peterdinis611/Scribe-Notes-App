@@ -17,8 +17,19 @@ import {
 import { insertBulletList, insertOrderedList, insertTaskList } from '@/lib/editor/list-commands'
 import { createCommentForSelection } from '@/lib/editor/comments'
 import { createCustomBlockFromEditor, insertBlockSnippet } from '@/lib/editor/block-snippets'
+import { validateBlockDefinition } from '@/lib/editor/block-snippet-validation'
 import { promptInput } from '@/lib/input-dialog'
 import i18n from '@/i18n'
+
+export class BlockDefinitionError extends Error {
+  readonly code: string
+
+  constructor(code: string, message: string) {
+    super(message)
+    this.name = 'BlockDefinitionError'
+    this.code = code
+  }
+}
 
 export type BlockInsertContext = {
   onInsertImages?: (files: File[], pos?: number) => void | Promise<void>
@@ -322,7 +333,10 @@ export function insertBlock(
   id: string,
   ctx?: BlockInsertContext,
 ): boolean {
-  const def = getBlockDefinition(id)
+  if (editor.isDestroyed) return false
+  const trimmed = id.trim()
+  if (!trimmed) return false
+  const def = getBlockDefinition(trimmed)
   if (!def) return false
   void def.insert(editor, ctx)
   return true
@@ -333,18 +347,29 @@ export function insertBlock(
  * Replaces an existing id when present.
  */
 export function registerBlock(def: BlockDefinition): void {
-  const previous = byId.get(def.id)
+  const validated = validateBlockDefinition(def)
+  if (!validated.ok) {
+    throw new BlockDefinitionError(validated.error.code, validated.error.message)
+  }
+
+  const normalized: BlockDefinition = {
+    ...def,
+    id: validated.value.id,
+    ...(validated.value.aliases ? { aliases: validated.value.aliases } : {}),
+  }
+
+  const previous = byId.get(normalized.id)
   if (previous) {
     const index = BLOCK_DEFINITIONS.indexOf(previous)
-    if (index >= 0) BLOCK_DEFINITIONS.splice(index, 1, def)
+    if (index >= 0) BLOCK_DEFINITIONS.splice(index, 1, normalized)
     for (const alias of previous.aliases ?? []) {
       if (byAlias.get(alias) === previous) byAlias.delete(alias)
     }
   } else {
-    BLOCK_DEFINITIONS.push(def)
+    BLOCK_DEFINITIONS.push(normalized)
   }
-  byId.set(def.id, def)
-  for (const alias of def.aliases ?? []) {
-    byAlias.set(alias, def)
+  byId.set(normalized.id, normalized)
+  for (const alias of normalized.aliases ?? []) {
+    byAlias.set(alias, normalized)
   }
 }

@@ -1,6 +1,12 @@
 import type { Editor, JSONContent } from '@tiptap/core'
 import i18n from '@/i18n'
 import { promptInput } from '@/lib/input-dialog'
+import {
+  sanitizeJsonContentList,
+  SNIPPET_LIMITS,
+  type SnippetValidationCode,
+  validateSnippetInput,
+} from '@/lib/editor/block-snippet-validation'
 import { kvGet, kvSet } from '@/lib/storage/kv'
 import { toast } from '@/lib/toast'
 
@@ -16,6 +22,16 @@ export type BlockSnippet = {
   content?: JSONContent[]
   /** True for user-created snippets (persisted). */
   custom?: boolean
+}
+
+export class SnippetValidationError extends Error {
+  readonly code: SnippetValidationCode
+
+  constructor(code: SnippetValidationCode, message: string) {
+    super(message)
+    this.name = 'SnippetValidationError'
+    this.code = code
+  }
 }
 
 const STORAGE_KEY = 'scribe-block-snippets'
@@ -36,29 +52,25 @@ export const DEFAULT_BLOCK_SNIPPETS: BlockSnippet[] = [
 
 const DEFAULT_IDS = new Set(DEFAULT_BLOCK_SNIPPETS.map((item) => item.id))
 
-function isJsonContent(value: unknown): value is JSONContent {
-  return Boolean(
-    value &&
-      typeof value === 'object' &&
-      typeof (value as JSONContent).type === 'string',
-  )
-}
-
 function normalizeContentField(value: unknown): JSONContent[] | undefined {
-  if (Array.isArray(value)) {
-    const nodes = value.filter(isJsonContent)
-    return nodes.length > 0 ? nodes : undefined
-  }
-  if (isJsonContent(value)) return [value]
-  return undefined
+  return sanitizeJsonContentList(value)
 }
 
 function isValidSnippet(item: unknown): item is BlockSnippet {
   if (!item || typeof item !== 'object') return false
   const candidate = item as BlockSnippet
   if (typeof candidate.id !== 'string' || typeof candidate.name !== 'string') return false
-  const hasPlain = typeof candidate.plainText === 'string'
+  if (!candidate.id.trim() || !candidate.name.trim()) return false
+  if (candidate.name.trim().length > SNIPPET_LIMITS.nameMax) return false
+  if (candidate.id.length > SNIPPET_LIMITS.idMax) return false
+  if (
+    typeof candidate.plainText === 'string' &&
+    candidate.plainText.length > SNIPPET_LIMITS.plainTextMax
+  ) {
+    return false
+  }
   const content = normalizeContentField(candidate.content)
+  const hasPlain = typeof candidate.plainText === 'string' && candidate.plainText.trim().length > 0
   return hasPlain || Boolean(content)
 }
 
@@ -66,13 +78,24 @@ function readStoredSnippets(): BlockSnippet[] {
   try {
     const raw = kvGet(STORAGE_KEY)
     if (!raw) return []
+    if (raw.length > SNIPPET_LIMITS.contentSerializedMax * SNIPPET_LIMITS.customSnippetsMax) {
+      return []
+    }
     const parsed = JSON.parse(raw) as unknown
     if (!Array.isArray(parsed)) return []
-    return parsed.filter(isValidSnippet).map((item) => ({
-      ...item,
-      content: normalizeContentField(item.content),
-      custom: item.custom ?? !DEFAULT_IDS.has(item.id),
-    }))
+    return parsed
+      .filter(isValidSnippet)
+      .slice(0, SNIPPET_LIMITS.customSnippetsMax + DEFAULT_IDS.size)
+      .map((item) => ({
+        id: item.id.trim(),
+        name: item.name.trim().slice(0, SNIPPET_LIMITS.nameMax),
+        plainText:
+          typeof item.plainText === 'string'
+            ? item.plainText.replace(/\r\n/g, '\n').slice(0, SNIPPET_LIMITS.plainTextMax)
+            : undefined,
+        content: normalizeContentField(item.content),
+        custom: item.custom ?? !DEFAULT_IDS.has(item.id),
+      }))
   } catch {
     return []
   }
@@ -86,7 +109,6 @@ function persistAll(snippets: BlockSnippet[]) {
 export function listBlockSnippets(): BlockSnippet[] {
   const stored = readStoredSnippets()
   const customs = stored.filter((item) => item.custom || !DEFAULT_IDS.has(item.id))
-  // Allow overriding default plainText via stored non-custom entries with same id.
   const overrides = new Map(
     stored.filter((item) => DEFAULT_IDS.has(item.id) && !item.custom).map((item) => [item.id, item]),
   )
@@ -99,7 +121,27 @@ export function listCustomBlockSnippets(): BlockSnippet[] {
 }
 
 export function saveBlockSnippets(snippets: BlockSnippet[]) {
-  persistAll(snippets)
+  const cleaned: BlockSnippet[] = []
+  for (const item of snippets) {
+    const parsed = validateSnippetInput(
+      {
+        id: item.id,
+        name: item.name,
+        plainText: item.plainText,
+        content: item.content,
+      },
+      { isUpdate: true },
+    )
+    if (!parsed.ok) continue
+    cleaned.push({
+      id: parsed.value.id ?? item.id,
+      name: parsed.value.name,
+      plainText: parsed.value.plainText,
+      ...(parsed.value.content ? { content: parsed.value.content } : {}),
+      custom: item.custom ?? true,
+    })
+  }
+  persistAll(cleaned.slice(0, SNIPPET_LIMITS.customSnippetsMax + DEFAULT_IDS.size))
 }
 
 export function plainTextFromJsonContent(nodes: JSONContent[]): string {
@@ -138,35 +180,49 @@ export function upsertCustomBlockSnippet(input: {
   plainText?: string
   content?: JSONContent | JSONContent[]
 }): BlockSnippet {
-  const name = input.name.trim()
-  if (!name) {
-    throw new Error('name is required')
+  const existing = readStoredSnippets()
+  const customs = existing.filter((item) => item.custom || !DEFAULT_IDS.has(item.id))
+  const updating = Boolean(input.id?.trim() && customs.some((item) => item.id === input.id?.trim()))
+
+  const parsed = validateSnippetInput(
+    {
+      id: input.id,
+      name: input.name,
+      plainText: input.plainText ?? '',
+      content: input.content,
+    },
+    {
+      existingCustomCount: customs.length,
+      isUpdate: updating,
+    },
+  )
+  if (!parsed.ok) {
+    throw new SnippetValidationError(parsed.error.code, parsed.error.message)
   }
 
-  const content = normalizeContentField(input.content)
-  const plainText = (input.plainText ?? (content ? plainTextFromJsonContent(content) : '')).replace(
-    /\r\n/g,
-    '\n',
-  )
+  const content = parsed.value.content
+  let plainText = parsed.value.plainText
+  if (content && !plainText.trim()) {
+    plainText = plainTextFromJsonContent(content)
+  }
 
   if (!content && !plainText.trim()) {
-    throw new Error('plainText or content is required')
+    throw new SnippetValidationError('body_required', 'Snippet body is required')
   }
 
   const id =
-    input.id?.trim() ||
+    parsed.value.id ||
     `${CUSTOM_ID_PREFIX}${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
 
   const next: BlockSnippet = {
     id,
-    name,
+    name: parsed.value.name,
     plainText,
     ...(content ? { content } : {}),
     custom: true,
   }
-  const existing = readStoredSnippets().filter((item) => item.id !== id)
-  // Keep only customs + optional overrides in storage; defaults live in code.
-  const storedCustoms = existing.filter((item) => item.custom || !DEFAULT_IDS.has(item.id))
+  const without = existing.filter((item) => item.id !== id)
+  const storedCustoms = without.filter((item) => item.custom || !DEFAULT_IDS.has(item.id))
   persistAll([...storedCustoms, next])
   return next
 }
@@ -193,7 +249,8 @@ export function slugifySnippetName(name: string): string {
 }
 
 export function plainTextToTipTapContent(text: string): JSONContent[] {
-  const lines = text.replace(/\r\n/g, '\n').split('\n')
+  const limited = text.replace(/\r\n/g, '\n').slice(0, SNIPPET_LIMITS.plainTextMax)
+  const lines = limited.split('\n')
   const content: JSONContent[] = []
   for (const line of lines) {
     if (line.startsWith('### ')) {
@@ -288,26 +345,52 @@ export function captureSelectionAsSnippet(editor: Editor): {
   plainText: string
   content: JSONContent[]
 } | null {
+  if (editor.isDestroyed) return null
   const { from, to, empty } = editor.state.selection
   if (empty) return null
 
-  const plainText = editor.state.doc.textBetween(from, to, '\n', '\n').replace(/\r\n/g, '\n')
+  const plainText = editor.state.doc
+    .textBetween(from, to, '\n', '\n')
+    .replace(/\r\n/g, '\n')
+    .slice(0, SNIPPET_LIMITS.plainTextMax)
   const slice = editor.state.selection.content()
   const raw = slice.content.toJSON() as JSONContent[] | JSONContent | null
   const content = normalizeContentField(raw)
   if (!content || content.length === 0) return null
 
+  const fragment = normalizeSnippetFragment(content)
+  const validated = validateSnippetInput(
+    {
+      name: 'selection',
+      plainText,
+      content: fragment,
+    },
+    { isUpdate: true },
+  )
+  if (!validated.ok) return null
+
   return {
     plainText,
-    content: normalizeSnippetFragment(content),
+    content: validated.value.content ?? fragment,
   }
 }
 
 export function insertBlockSnippet(editor: Editor, snippetId: string): boolean {
-  const snippet = listBlockSnippets().find((entry) => entry.id === snippetId)
+  if (editor.isDestroyed) return false
+  const id = snippetId.trim()
+  if (!id) return false
+  const snippet = listBlockSnippets().find((entry) => entry.id === id)
   if (!snippet) return false
-  editor.chain().focus().insertContent(resolveSnippetInsertContent(snippet)).run()
+  const content = resolveSnippetInsertContent(snippet)
+  if (content.length === 0) return false
+  editor.chain().focus().insertContent(content).run()
   return true
+}
+
+function localizeSnippetValidation(code: SnippetValidationCode): string {
+  const key = `slash.customBlock.validation.${code}`
+  const translated = i18n.t(key)
+  return translated === key ? code : translated
 }
 
 /**
@@ -315,6 +398,7 @@ export function insertBlockSnippet(editor: Editor, snippetId: string): boolean {
  * When the editor has a selection, the TipTap slice is stored as JSON.
  */
 export async function createCustomBlockFromEditor(editor: Editor): Promise<BlockSnippet | null> {
+  if (editor.isDestroyed) return null
   const selection = captureSelectionAsSnippet(editor)
   const name = await promptInput({
     title: i18n.t('slash.customBlock.nameTitle'),
@@ -323,6 +407,13 @@ export async function createCustomBlockFromEditor(editor: Editor): Promise<Block
     confirmLabel: i18n.t('common.next'),
   })
   if (!name?.trim()) return null
+  if (name.trim().length > SNIPPET_LIMITS.nameMax) {
+    toast.error(
+      i18n.t('slash.customBlock.saveFailed'),
+      localizeSnippetValidation('name_too_long'),
+    )
+    return null
+  }
 
   let plainText: string
   let content: JSONContent[] | undefined
@@ -331,21 +422,30 @@ export async function createCustomBlockFromEditor(editor: Editor): Promise<Block
     const body = await promptInput({
       title: i18n.t('slash.customBlock.bodyTitle'),
       description: i18n.t('slash.customBlock.bodyDescriptionSelection'),
-      defaultValue: selection.plainText,
+      defaultValue: selection.plainText.slice(0, SNIPPET_LIMITS.plainTextMax),
       placeholder: i18n.t('slash.customBlock.bodyPlaceholder'),
       confirmLabel: i18n.t('slash.customBlock.save'),
       multiline: true,
     })
     if (body == null) return null
     const trimmed = body.replace(/\r\n/g, '\n')
+    if (trimmed.length > SNIPPET_LIMITS.plainTextMax) {
+      toast.error(
+        i18n.t('slash.customBlock.saveFailed'),
+        localizeSnippetValidation('body_too_large'),
+      )
+      return null
+    }
     if (trimmed.trim() && trimmed.trim() !== selection.plainText.trim()) {
-      // User edited the body — treat as plain-text snippet.
       plainText = trimmed
       content = undefined
     } else if (!trimmed.trim()) {
+      toast.error(
+        i18n.t('slash.customBlock.saveFailed'),
+        localizeSnippetValidation('body_required'),
+      )
       return null
     } else {
-      // Keep rich slice JSON when the body matches the selection.
       plainText = selection.plainText
       content = selection.content
     }
@@ -358,7 +458,21 @@ export async function createCustomBlockFromEditor(editor: Editor): Promise<Block
       confirmLabel: i18n.t('slash.customBlock.save'),
       multiline: true,
     })
-    if (body == null || !body.trim()) return null
+    if (body == null) return null
+    if (!body.trim()) {
+      toast.error(
+        i18n.t('slash.customBlock.saveFailed'),
+        localizeSnippetValidation('body_required'),
+      )
+      return null
+    }
+    if (body.length > SNIPPET_LIMITS.plainTextMax) {
+      toast.error(
+        i18n.t('slash.customBlock.saveFailed'),
+        localizeSnippetValidation('body_too_large'),
+      )
+      return null
+    }
     plainText = body
     content = undefined
   }
@@ -369,11 +483,16 @@ export async function createCustomBlockFromEditor(editor: Editor): Promise<Block
       plainText,
       content,
     })
+    if (editor.isDestroyed) return snippet
     editor.chain().focus().insertContent(resolveSnippetInsertContent(snippet)).run()
     toast.success(i18n.t('slash.customBlock.saved'), snippet.name)
     return snippet
   } catch (error) {
-    toast.error(i18n.t('slash.customBlock.saveFailed'), String(error))
+    const detail =
+      error instanceof SnippetValidationError
+        ? localizeSnippetValidation(error.code)
+        : String(error)
+    toast.error(i18n.t('slash.customBlock.saveFailed'), detail)
     return null
   }
 }

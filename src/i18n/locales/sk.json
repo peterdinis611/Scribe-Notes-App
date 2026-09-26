@@ -2333,7 +2333,19 @@
       "bodyPlaceholder": "## Nadpis\n\n- položka",
       "save": "Uložiť blok",
       "saved": "Vlastný blok uložený",
-      "saveFailed": "Vlastný blok sa nepodarilo uložiť"
+      "saveFailed": "Vlastný blok sa nepodarilo uložiť",
+      "validation": {
+        "name_required": "Zadajte názov bloku.",
+        "name_too_long": "Názov môže mať najviac 80 znakov.",
+        "body_required": "Obsah bloku nemôže byť prázdny.",
+        "body_too_large": "Obsah bloku je príliš dlhý.",
+        "content_invalid": "Obsah bloku má neplatný formát.",
+        "content_too_large": "Obsah bloku je príliš veľký.",
+        "content_too_deep": "Obsah bloku je príliš hlboko vnorený.",
+        "content_too_many_nodes": "Obsah bloku má príliš veľa častí.",
+        "id_invalid": "Identifikátor bloku je neplatný.",
+        "too_many_snippets": "Dosiahli ste maximum vlastných blokov."
+      }
     },
     "snippet-meeting": {
       "label": "Úryvok: Stretnutie",
