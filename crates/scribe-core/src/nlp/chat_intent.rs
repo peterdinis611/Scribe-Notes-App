@@ -1,4 +1,4 @@
-//! Document chat intent router (EN/SK) — canonical for app + MCP.
+//! Document chat + agent intent router (EN/SK) — canonical for app + MCP.
 
 fn strip_diacritic(ch: char) -> char {
     match ch {
@@ -33,14 +33,8 @@ fn contains_any(hay: &str, needles: &[&str]) -> bool {
     needles.iter().any(|n| hay.contains(n))
 }
 
-/// Map free-form questions to structured document actions when the intent is clear.
-pub fn match_document_chat_intent(question: &str) -> Option<&'static str> {
-    let folded = fold_intent(question);
-    if folded.is_empty() {
-        return None;
-    }
-
-    let rules: &[(&str, &[&str])] = &[
+fn intent_rules() -> &'static [(&'static str, &'static [&'static str])] {
+    &[
         ("summarize", &["summarize", "summary", "tlldr", "digest", "zhrn", "zhrnutie", "strucne"]),
         ("outline", &["outline", "structure", "heading", "osnova", "struktura", "nadpisy"]),
         ("keywords", &["keyword", "key word", "klucove slova"]),
@@ -129,14 +123,43 @@ pub fn match_document_chat_intent(question: &str) -> Option<&'static str> {
                 "vyplnove",
             ],
         ),
-    ];
+    ]
+}
 
-    for (action, needles) in rules {
+/// Map free-form questions to structured document actions when the intent is clear.
+pub fn match_document_chat_intent(question: &str) -> Option<&'static str> {
+    let folded = fold_intent(question);
+    if folded.is_empty() {
+        return None;
+    }
+
+    for (action, needles) in intent_rules() {
         if contains_any(&folded, needles) {
             return Some(*action);
         }
     }
     None
+}
+
+const AGENT_INTENT_LIMIT: usize = 3;
+
+/// Collect up to three matching intents for the local agent tool loop (ordered by rule priority).
+pub fn match_agent_intents(question: &str) -> Vec<&'static str> {
+    let folded = fold_intent(question);
+    if folded.is_empty() {
+        return Vec::new();
+    }
+
+    let mut out = Vec::new();
+    for (action, needles) in intent_rules() {
+        if contains_any(&folded, needles) {
+            out.push(*action);
+            if out.len() >= AGENT_INTENT_LIMIT {
+                break;
+            }
+        }
+    }
+    out
 }
 
 #[cfg(test)]
@@ -166,5 +189,18 @@ mod tests {
         assert_eq!(match_document_chat_intent("What feels unfinished or unclear here?"), None);
         assert_eq!(match_document_chat_intent("What is this note mainly about?"), None);
         assert_eq!(match_document_chat_intent("Explain the key terms in this note"), None);
+    }
+
+    #[test]
+    fn agent_collects_multiple_intents_capped_at_three() {
+        let intents = match_agent_intents("Summarize this note and find related notes plus flashcards and tasks");
+        assert_eq!(intents, vec!["summarize", "tasks", "similar"]);
+        assert!(intents.len() <= 3);
+    }
+
+    #[test]
+    fn agent_single_intent_still_works() {
+        assert_eq!(match_agent_intents("Writing coach tips"), vec!["style"]);
+        assert!(match_agent_intents("What is this about?").is_empty());
     }
 }

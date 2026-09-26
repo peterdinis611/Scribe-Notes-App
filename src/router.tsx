@@ -22,6 +22,7 @@ import { DiagnosticsPage } from '@/pages/settings/DiagnosticsPage'
 import { McpPage } from '@/pages/settings/McpPage'
 import { CapturePage } from '@/pages/settings/CapturePage'
 import { NlpPage } from '@/pages/settings/NlpPage'
+import { AgentPage } from '@/pages/settings/AgentPage'
 
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
@@ -120,6 +121,12 @@ const settingsNlpRoute = createRoute({
   component: NlpPage,
 })
 
+const settingsAgentRoute = createRoute({
+  getParentRoute: () => settingsLayoutRoute,
+  path: 'agent',
+  component: AgentPage,
+})
+
 const settingsCaptureRoute = createRoute({
   getParentRoute: () => settingsLayoutRoute,
   path: 'capture',
@@ -162,6 +169,7 @@ const routeTree = rootRoute.addChildren([
       settingsDiagnosticsRoute,
       settingsMcpRoute,
       settingsNlpRoute,
+      settingsAgentRoute,
       settingsCaptureRoute,
       settingsDocsRedirectRoute,
       settingsPrivacyRoute,

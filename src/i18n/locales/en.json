@@ -171,6 +171,7 @@
     "docs": "Documentation",
     "linkGraph": "Connection map",
     "duplicates": "Near-duplicate notes",
+    "openAgent": "Open Local Agent",
     "libraryFindReplace": "Find and replace in library",
     "toggleTheme": "Toggle theme",
     "randomTheme": "Random theme",
@@ -726,6 +727,10 @@
         "label": "Local AI",
         "description": "Python add-on — semantics & analysis"
       },
+      "agent": {
+        "label": "Agent",
+        "description": "On/off, optimize tools, teach preferences"
+      },
       "capture": {
         "label": "Mobile capture",
         "description": "Phone → Inbox over Wi‑Fi"
@@ -1045,6 +1050,33 @@
       "answerBackendQuality": "Always Quality",
       "answerBackendToast": "Answer embed preference saved",
       "answerBackendError": "Could not update answer preference"
+    },
+    "agent": {
+      "title": "Local Agent",
+      "description": "Turn the agent on or off, tune how many tools it runs, and teach standing preferences.",
+      "enabled": "Agent enabled",
+      "enabledHint": "When off, the Agent tab refuses to run goals. Local AI can still be used from Chat.",
+      "on": "On",
+      "off": "Off",
+      "enabledToast": "Agent enabled",
+      "disabledToast": "Agent disabled",
+      "optimizeTitle": "Optimize work",
+      "optimizeHint": "Limit steps and prefer lighter tools so runs stay fast on this Mac.",
+      "maxSteps": "Max tool steps",
+      "maxStepsHint": "How many Local AI tools one goal may chain (1–3).",
+      "preferFast": "Prefer fast tools",
+      "preferFastHint": "Skip heavier tools (related notes, flashcards, writing coach) when lighter ones match.",
+      "preferredTools": "Prefer these tools",
+      "disabledTools": "Never run these tools",
+      "teachTitle": "Teach the agent",
+      "teachHint": "Short standing instructions (language, priorities, habits). They are injected into every agent run on this Mac.",
+      "teachPlaceholder": "e.g. Prefer Slovak answers; focus on deadlines first",
+      "teachAdd": "Teach",
+      "teachRemove": "Forget",
+      "teachEmpty": "No teachings yet — add a preference above.",
+      "teachClear": "Clear all teachings",
+      "teachCleared": "Teachings cleared",
+      "taughtToast": "Agent taught"
     },
     "shortcuts": {
       "title": "Keyboard shortcuts",
@@ -1558,7 +1590,8 @@
       "duplicates": "Duplicates",
       "tasks": "Open tasks",
       "wikiHealth": "Wiki health",
-      "chat": "Scribe AI"
+      "chat": "Scribe AI",
+      "agent": "Agent"
     },
     "tasks": {
       "title": "Open tasks",
@@ -1789,6 +1822,51 @@
     "invalidRole": "Invalid chat role.",
     "emptyText": "Message is empty.",
     "documentMissing": "Document not found."
+  },
+  "agent": {
+    "brandBadge": "Local Agent",
+    "emptyTitle": "Run a local agent goal",
+    "emptyTitleDocument": "Agent for this note",
+    "emptyHint": "Describe a goal. The agent picks up to three Local AI tools (search, summarize, tasks…) — no cloud LLM.",
+    "emptyHintDocument": "Goals use this note’s analysis. Memory is saved with the document. Tools stay on this Mac.",
+    "emptyResult": "No tool produced an answer.",
+    "placeholder": "Goal for your library…",
+    "placeholderDocument": "Goal for this note…",
+    "send": "Run",
+    "thinking": "Agent is running local tools…",
+    "errorTitle": "Agent failed",
+    "scopeLabel": "Agent scope",
+    "scopeLibrary": "Library",
+    "scopeDocument": "This note",
+    "askingAbout": "Agent memory for: {{title}}",
+    "memoryHint": "saved with this note",
+    "memoryTurns": "{{count}} saved turns",
+    "memoryLoading": "Loading agent memory…",
+    "memoryCleared": "Agent memory cleared",
+    "clearMemory": "Clear memory",
+    "clearSession": "Clear session",
+    "clearError": "Could not clear agent memory",
+    "needsDocument": "Open a document for this tool.",
+    "disabled": "Agent is turned off. Enable it in Settings → Agent.",
+    "capabilitiesLabel": "Tools for this note",
+    "stepTrace": "Tool steps",
+    "starters": {
+      "themes": "What themes show up across my notes?",
+      "openLoops": "What open loops should I close?",
+      "deadlines": "What deadlines are coming up?",
+      "connections": "Which notes connect to each other?"
+    },
+    "tools": {
+      "library_answer": "Library Q&A",
+      "document_answer": "Note Q&A",
+      "summarize": "Summarize",
+      "outline": "Outline",
+      "tasks": "Tasks",
+      "similar": "Related notes",
+      "style": "Writing coach",
+      "flashcards": "Flashcards",
+      "takeaways": "Takeaways"
+    }
   },
   "trash": {
     "title": "Trash",

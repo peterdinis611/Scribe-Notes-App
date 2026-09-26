@@ -14,6 +14,7 @@ import { LibraryTagsView } from '@/components/LibraryTagsView'
 import { LibraryJournalView } from '@/components/LibraryJournalView'
 import { LibraryLinkGraphView } from '@/components/LibraryLinkGraphView'
 import { LibraryChatPanel } from '@/components/LibraryChatPanel'
+import { AgentPanel } from '@/components/AgentPanel'
 import { LibraryDuplicatesPanel } from '@/components/LibraryDuplicatesPanel'
 import { LibraryTasksPanel } from '@/components/LibraryTasksPanel'
 import { LibraryWikiHealthPanel } from '@/components/LibraryWikiHealthPanel'
@@ -76,7 +77,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
   const recentlyClosedIds = useAppSelector((state) => state.documents.recentlyClosedIds)
   const libraryView = useAppSelector((state) => state.documents.libraryView)
   const graphAroundActive = useAppSelector((state) => state.documents.libraryGraphAroundActive)
-  const isContentSearch = libraryView !== 'chat' && query.trim().length >= 2
+  const isContentSearch = libraryView !== 'chat' && libraryView !== 'agent' && query.trim().length >= 2
 
   const visibleDocuments = useMemo(() => visibleLibraryDocuments(documents), [documents])
 
@@ -323,6 +324,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
               )}
 
               {libraryView === 'chat' && <LibraryChatPanel onNavigate={onClose} />}
+              {libraryView === 'agent' && <AgentPanel onNavigate={onClose} />}
             </>
           )}
         </div>

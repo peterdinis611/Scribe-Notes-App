@@ -337,6 +337,39 @@ export const appendDocumentChatMessage = (input: {
 export const clearDocumentChatMessages = (documentId: string) =>
   invoke<number>('clear_document_chat_messages', { documentId })
 
+export type AgentMessageStep = {
+  tool: string
+  status: string
+  detail?: string | null
+}
+
+export type AgentMessage = {
+  id: string
+  documentId: string
+  role: 'user' | 'assistant' | string
+  text: string
+  createdAt: number
+  steps: AgentMessageStep[]
+  citations: DocumentChatCitation[]
+}
+
+export const listAgentMessages = (documentId: string) =>
+  invoke<AgentMessage[]>('list_agent_messages', { documentId })
+
+export const appendAgentMessage = (input: {
+  documentId: string
+  role: 'user' | 'assistant'
+  text: string
+  steps?: AgentMessageStep[]
+  citations?: DocumentChatCitation[]
+}) => invoke<AgentMessage>('append_agent_message', { input })
+
+export const clearAgentMessages = (documentId: string) =>
+  invoke<number>('clear_agent_messages', { documentId })
+
+export const invokeMatchAgentIntents = (question: string) =>
+  invoke<string[]>('match_agent_intents', { question })
+
 export const clearAllDocuments = async () => {
   const count = await invoke<number>('clear_all_documents')
   clearDocumentCache()

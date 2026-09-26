@@ -11,6 +11,7 @@ import {
   FileText,
   Focus,
   BookOpen,
+  Bot,
   FolderInput,
   FolderOpen,
   FolderPlus,
@@ -836,6 +837,16 @@ export function CommandPalette() {
         run: () => {
           dispatch(setSidebarOpen(true))
           dispatch(setLibraryView('duplicates'))
+        },
+      },
+      {
+        type: 'action',
+        id: 'open-agent',
+        label: t('commandPalette.openAgent'),
+        icon: <Bot className="h-4 w-4" />,
+        run: () => {
+          dispatch(setSidebarOpen(true))
+          dispatch(setLibraryView('agent'))
         },
       },
       {

@@ -119,6 +119,26 @@ pub struct DocumentChatMessage {
     pub citations: Vec<DocumentChatCitation>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentMessageStep {
+    pub tool: String,
+    pub status: String,
+    pub detail: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentMessage {
+    pub id: String,
+    pub document_id: String,
+    pub role: String,
+    pub text: String,
+    pub created_at: i64,
+    pub steps: Vec<AgentMessageStep>,
+    pub citations: Vec<DocumentChatCitation>,
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CompiledChapter {
@@ -2087,6 +2107,116 @@ impl ScribeStore {
             Ok(deleted as u64)
         })
     }
+
+    pub fn list_agent_messages(&self, document_id: &str) -> Result<Vec<AgentMessage>, String> {
+        let mut stmt = self
+            .db
+            .prepare(
+                "SELECT id, document_id, role, text, created_at, steps_json, citations_json \
+                 FROM agent_messages \
+                 WHERE document_id = ?1 \
+                 ORDER BY created_at ASC, id ASC",
+            )
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map(params![document_id], |row| {
+                let steps_raw: Option<String> = row.get(5)?;
+                let citations_raw: Option<String> = row.get(6)?;
+                let steps = steps_raw
+                    .as_deref()
+                    .filter(|value| !value.trim().is_empty())
+                    .and_then(|json| serde_json::from_str(json).ok())
+                    .unwrap_or_default();
+                let citations = citations_raw
+                    .as_deref()
+                    .filter(|value| !value.trim().is_empty())
+                    .and_then(|json| serde_json::from_str(json).ok())
+                    .unwrap_or_default();
+                Ok(AgentMessage {
+                    id: row.get(0)?,
+                    document_id: row.get(1)?,
+                    role: row.get(2)?,
+                    text: row.get(3)?,
+                    created_at: row.get(4)?,
+                    steps,
+                    citations,
+                })
+            })
+            .map_err(|e| e.to_string())?;
+        rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+    }
+
+    pub fn append_agent_message(
+        &self,
+        document_id: &str,
+        role: &str,
+        text: &str,
+        steps: Option<&[AgentMessageStep]>,
+        citations: Option<&[DocumentChatCitation]>,
+    ) -> Result<AgentMessage, String> {
+        let role = role.trim().to_lowercase();
+        if role != "user" && role != "assistant" {
+            return Err("role must be user or assistant".to_string());
+        }
+        let text = text.trim().to_string();
+        if text.is_empty() {
+            return Err("text is required".to_string());
+        }
+        self.run_writable(|db| {
+            let exists: i64 = db
+                .query_row(
+                    "SELECT COUNT(*) FROM documents WHERE id = ?1 AND deleted_at IS NULL",
+                    params![document_id],
+                    |row| row.get(0),
+                )
+                .map_err(|e| e.to_string())?;
+            if exists == 0 {
+                return Err(format!("Document not found: {document_id}"));
+            }
+            let steps = steps.unwrap_or(&[]).to_vec();
+            let citations = citations.unwrap_or(&[]).to_vec();
+            let steps_json = if steps.is_empty() {
+                None
+            } else {
+                Some(serde_json::to_string(&steps).map_err(|e| e.to_string())?)
+            };
+            let citations_json = if citations.is_empty() {
+                None
+            } else {
+                Some(serde_json::to_string(&citations).map_err(|e| e.to_string())?)
+            };
+            let id = Uuid::new_v4().to_string();
+            let created_at = chrono::Utc::now().timestamp();
+            db.execute(
+                "INSERT INTO agent_messages \
+                 (id, document_id, role, text, created_at, steps_json, citations_json) \
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                params![id, document_id, role, text, created_at, steps_json, citations_json],
+            )
+            .map_err(|e| e.to_string())?;
+            Ok(AgentMessage {
+                id,
+                document_id: document_id.to_string(),
+                role,
+                text,
+                created_at,
+                steps,
+                citations,
+            })
+        })
+    }
+
+    pub fn clear_agent_messages(&self, document_id: &str) -> Result<u64, String> {
+        self.run_writable(|db| {
+            let deleted = db
+                .execute(
+                    "DELETE FROM agent_messages WHERE document_id = ?1",
+                    params![document_id],
+                )
+                .map_err(|e| e.to_string())?;
+            Ok(deleted as u64)
+        })
+    }
 }
 
 fn is_auto_backup_zip(name: &str) -> bool {
@@ -2652,6 +2782,54 @@ mod tests {
         let deleted = store.clear_document_chat_messages("doc-1").unwrap();
         assert_eq!(deleted, 2);
         assert!(store.list_document_chat_messages("doc-1").unwrap().is_empty());
+    }
+
+    #[test]
+    fn agent_messages_append_list_and_clear() {
+        let store = ScribeStore::from_memory();
+        seed_document(
+            &store.db,
+            "doc-1",
+            "Note",
+            r#"{"type":"doc","content":[]}"#,
+            None,
+        );
+        store
+            .append_agent_message("doc-1", "user", "Summarize and find related", None, None)
+            .unwrap();
+        let steps = vec![AgentMessageStep {
+            tool: "summarize".into(),
+            status: "ok".into(),
+            detail: Some("done".into()),
+        }];
+        let citations = vec![DocumentChatCitation {
+            document_id: "doc-1".into(),
+            title: "Note".into(),
+            snippet: "body".into(),
+        }];
+        store
+            .append_agent_message(
+                "doc-1",
+                "assistant",
+                "1. Summary…\n2. Related…",
+                Some(&steps),
+                Some(&citations),
+            )
+            .unwrap();
+
+        let messages = store.list_agent_messages("doc-1").unwrap();
+        assert_eq!(messages.len(), 2);
+        let assistant = messages
+            .iter()
+            .find(|message| message.role == "assistant")
+            .expect("assistant");
+        assert_eq!(assistant.steps.len(), 1);
+        assert_eq!(assistant.steps[0].tool, "summarize");
+        assert_eq!(assistant.citations[0].snippet, "body");
+
+        let deleted = store.clear_agent_messages("doc-1").unwrap();
+        assert_eq!(deleted, 2);
+        assert!(store.list_agent_messages("doc-1").unwrap().is_empty());
     }
 
     #[test]

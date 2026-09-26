@@ -1,4 +1,5 @@
 import {
+  Bot,
   CalendarDays,
   CheckSquare,
   Copy,
@@ -22,6 +23,7 @@ export type LibraryView =
   | 'graph'
   | 'journal'
   | 'chat'
+  | 'agent'
   | 'duplicates'
   | 'tasks'
   | 'wikiHealth'
@@ -58,6 +60,7 @@ export function LibraryViewTabs({
     { id: 'tasks', label: t('library.tabs.tasks'), icon: CheckSquare },
     { id: 'wikiHealth', label: t('library.tabs.wikiHealth'), icon: Network },
     { id: 'chat', label: t('library.tabs.chat'), icon: MessageCircle },
+    { id: 'agent', label: t('library.tabs.agent'), icon: Bot },
   ]
 
   function countFor(view: LibraryView) {

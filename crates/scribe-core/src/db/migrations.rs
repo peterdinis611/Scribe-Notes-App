@@ -1,6 +1,6 @@
 use rusqlite::Connection;
 
-const SCHEMA_VERSION: i32 = 21;
+const SCHEMA_VERSION: i32 = 22;
 
 pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     conn.execute_batch(
@@ -549,6 +549,30 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
             "ALTER TABLE documents ADD COLUMN vault_verifier TEXT",
             [],
         );
+        conn.execute(
+            "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
+            ["21".to_string()],
+        )?;
+    }
+
+    if current < 22 {
+        conn.execute_batch(
+            r#"
+            CREATE TABLE IF NOT EXISTS agent_messages (
+                id TEXT PRIMARY KEY,
+                document_id TEXT NOT NULL,
+                role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+                text TEXT NOT NULL,
+                created_at INTEGER NOT NULL,
+                steps_json TEXT,
+                citations_json TEXT,
+                FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_agent_messages_doc
+                ON agent_messages(document_id, created_at ASC);
+            "#,
+        )?;
         conn.execute(
             "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
             [SCHEMA_VERSION.to_string()],

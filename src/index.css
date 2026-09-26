@@ -3786,6 +3786,71 @@ html[data-ui-skin='press'] .editor-shell--home {
   overflow: hidden;
 }
 
+.agent-capability-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 88%, var(--color-accent));
+  padding: 2px 8px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--color-muted-foreground);
+}
+
+.agent-step-trace {
+  margin: 0 0 0.65rem;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.agent-step-trace-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-hover) 70%, transparent);
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+.agent-step-trace-item.is-error {
+  background: color-mix(in srgb, var(--color-danger, #c44) 12%, transparent);
+}
+
+.agent-step-trace-item.is-skipped {
+  opacity: 0.65;
+}
+
+.agent-step-index {
+  display: inline-flex;
+  width: 1.1rem;
+  height: 1.1rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.agent-step-tool {
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+.agent-step-status {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 9.5px;
+  color: var(--color-muted-foreground);
+}
+
 .library-chat-scope-tab {
   display: inline-flex;
   height: 28px;

@@ -58,10 +58,10 @@ export interface DocumentsState {
   shareDialogOpen: boolean
   libraryFindReplaceOpen: boolean
   pendingEditorSearch: string | null
-  libraryView: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal' | 'chat' | 'duplicates' | 'tasks' | 'wikiHealth'
+  libraryView: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal' | 'chat' | 'agent' | 'duplicates' | 'tasks' | 'wikiHealth'
   libraryGraphAroundActive: boolean
   pendingLibraryView: {
-    view: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal' | 'chat' | 'duplicates' | 'tasks' | 'wikiHealth'
+    view: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal' | 'chat' | 'agent' | 'duplicates' | 'tasks' | 'wikiHealth'
     aroundActive?: boolean
   } | null
   trashOpen: boolean
@@ -503,7 +503,7 @@ const documentsSlice = createSlice({
     setPendingLibraryView(
       state,
       action: PayloadAction<{
-        view: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal' | 'chat' | 'duplicates'
+        view: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal' | 'chat' | 'agent' | 'duplicates'
         aroundActive?: boolean
       } | null>,
     ) {

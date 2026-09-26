@@ -5,6 +5,7 @@ describe('isSettingsSection', () => {
   it('accepts known sections', () => {
     expect(isSettingsSection('appearance')).toBe(true)
     expect(isSettingsSection('nlp')).toBe(true)
+    expect(isSettingsSection('agent')).toBe(true)
     expect(isSettingsSection('capture')).toBe(true)
     expect(isSettingsSection('about')).toBe(true)
     expect(isSettingsSection('privacy')).toBe(true)
@@ -33,5 +34,6 @@ describe('ROUTES', () => {
       search: { around: true },
     })
     expect(ROUTES.settingsSection('nlp')).toEqual({ to: '/settings/nlp' })
+    expect(ROUTES.settingsSection('agent')).toEqual({ to: '/settings/agent' })
   })
 })

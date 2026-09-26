@@ -171,6 +171,7 @@
     "docs": "Dokumentácia",
     "linkGraph": "Mapa prepojení",
     "duplicates": "Takmer rovnaké poznámky",
+    "openAgent": "Otvoriť lokálneho agenta",
     "libraryFindReplace": "Nájsť a nahradiť v knižnici",
     "toggleTheme": "Prepínať tému",
     "randomTheme": "Náhodná téma",
@@ -726,6 +727,10 @@
         "label": "Lokálna AI",
         "description": "Python doplnok — sémantika a analýza"
       },
+      "agent": {
+        "label": "Agent",
+        "description": "Zapnúť/vypnúť, optimalizácia, učenie"
+      },
       "capture": {
         "label": "Mobilný zápis",
         "description": "Telefón → Schránka cez Wi‑Fi"
@@ -1045,6 +1050,33 @@
       "answerBackendQuality": "Vždy Quality",
       "answerBackendToast": "Preferencia odpovede uložená",
       "answerBackendError": "Nepodarilo sa aktualizovať preferenciu odpovede"
+    },
+    "agent": {
+      "title": "Lokálny agent",
+      "description": "Zapni alebo vypni agenta, uprav počet nástrojov a nauč ho preferencie.",
+      "enabled": "Agent zapnutý",
+      "enabledHint": "Keď je vypnutý, tab Agent nespustí ciele. Local AI chat stále funguje.",
+      "on": "Zapnuté",
+      "off": "Vypnuté",
+      "enabledToast": "Agent zapnutý",
+      "disabledToast": "Agent vypnutý",
+      "optimizeTitle": "Optimalizácia práce",
+      "optimizeHint": "Obmedz počet krokov a uprednostni ľahšie nástroje, aby beh ostal rýchly.",
+      "maxSteps": "Max. krokov nástrojov",
+      "maxStepsHint": "Koľko Local AI nástrojov môže jeden cieľ spojiť (1–3).",
+      "preferFast": "Preferovať rýchle nástroje",
+      "preferFastHint": "Preskočiť ťažšie nástroje (súvisiace, kartičky, writing coach), keď stačia ľahšie.",
+      "preferredTools": "Preferovať tieto nástroje",
+      "disabledTools": "Nikdy nespúšťať tieto nástroje",
+      "teachTitle": "Naučiť agenta",
+      "teachHint": "Krátke trvalé inštrukcie (jazyk, priority, návyky). Vkladajú sa do každého behu agenta na tomto Macu.",
+      "teachPlaceholder": "napr. Odpovedaj po slovensky; najprv termíny",
+      "teachAdd": "Naučiť",
+      "teachRemove": "Zabudnúť",
+      "teachEmpty": "Zatiaľ žiadne učenia — pridaj preferenciu vyššie.",
+      "teachClear": "Vymazať všetky učenia",
+      "teachCleared": "Učenia vymazané",
+      "taughtToast": "Agent naučený"
     },
     "shortcuts": {
       "title": "Klávesové skratky",
@@ -1560,7 +1592,8 @@
       "duplicates": "Duplicity",
       "tasks": "Otvorené úlohy",
       "wikiHealth": "Wiki zdravie",
-      "chat": "Scribe AI"
+      "chat": "Scribe AI",
+      "agent": "Agent"
     },
     "tasks": {
       "title": "Otvorené úlohy",
@@ -1793,6 +1826,51 @@
     "invalidRole": "Neplatná rola správy.",
     "emptyText": "Správa je prázdna.",
     "documentMissing": "Dokument sa nenašiel."
+  },
+  "agent": {
+    "brandBadge": "Lokálny agent",
+    "emptyTitle": "Spustiť cieľ lokálneho agenta",
+    "emptyTitleDocument": "Agent pre túto poznámku",
+    "emptyHint": "Popíš cieľ. Agent vyberie až tri Local AI nástroje (hľadanie, zhrnutie, úlohy…) — bez cloud LLM.",
+    "emptyHintDocument": "Ciele využívajú analýzu tejto poznámky. Pamäť sa ukladá s dokumentom. Nástroje ostávajú na tomto Macu.",
+    "emptyResult": "Žiadny nástroj nevrátil odpoveď.",
+    "placeholder": "Cieľ pre knižnicu…",
+    "placeholderDocument": "Cieľ pre túto poznámku…",
+    "send": "Spustiť",
+    "thinking": "Agent spúšťa lokálne nástroje…",
+    "errorTitle": "Agent zlyhal",
+    "scopeLabel": "Rozsah agenta",
+    "scopeLibrary": "Knižnica",
+    "scopeDocument": "Táto poznámka",
+    "askingAbout": "Pamäť agenta pre: {{title}}",
+    "memoryHint": "uložené pri poznámke",
+    "memoryTurns": "{{count}} uložených ťahov",
+    "memoryLoading": "Načítavam pamäť agenta…",
+    "memoryCleared": "Pamäť agenta vymazaná",
+    "clearMemory": "Vymazať pamäť",
+    "clearSession": "Vymazať session",
+    "clearError": "Pamäť agenta sa nepodarilo vymazať",
+    "needsDocument": "Pre tento nástroj otvor dokument.",
+    "disabled": "Agent je vypnutý. Zapni ho v Nastavenia → Agent.",
+    "capabilitiesLabel": "Nástroje pre túto poznámku",
+    "stepTrace": "Kroky nástrojov",
+    "starters": {
+      "themes": "Aké témy sa objavujú v mojich poznámkach?",
+      "openLoops": "Aké otvorené slučky by som mal uzavrieť?",
+      "deadlines": "Aké termíny sa blížia?",
+      "connections": "Ktoré poznámky sa prepojujú?"
+    },
+    "tools": {
+      "library_answer": "Q&A knižnica",
+      "document_answer": "Q&A poznámka",
+      "summarize": "Zhrnutie",
+      "outline": "Osnova",
+      "tasks": "Úlohy",
+      "similar": "Súvisiace",
+      "style": "Writing coach",
+      "flashcards": "Kartičky",
+      "takeaways": "Závery"
+    }
   },
   "trash": {
     "title": "Kôš",

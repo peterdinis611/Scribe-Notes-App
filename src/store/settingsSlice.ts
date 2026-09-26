@@ -5,6 +5,12 @@ import type { PageSetup } from '@/lib/editor/page-setup'
 import { applyThemeSettings } from '@/lib/themes/apply'
 import type { ThemeSettings } from '@/lib/themes/types'
 import type { UiSkin } from '@/lib/ui-skin'
+import type { AgentPrefs, AgentTeaching } from '@/lib/library/agent-prefs'
+import {
+  AGENT_TEACHINGS_MAX,
+  createTeaching,
+  normalizeAgentPrefs,
+} from '@/lib/library/agent-prefs'
 import {
   persistEditorViewMode,
   persistFolderAutoSyncEnabled,
@@ -20,6 +26,7 @@ import {
   persistAutoBackupIntervalHours,
   persistAutoBackupDirectory,
   persistLastAutoBackupAt,
+  persistAgentPrefs,
   readEditorViewMode,
   readFolderAutoSyncEnabled,
   readLocale,
@@ -35,6 +42,7 @@ import {
   readAutoBackupIntervalHours,
   readAutoBackupDirectory,
   readLastAutoBackupAt,
+  readAgentPrefs,
   persistShortcutOverrides,
   type AutoBackupIntervalHours,
   type ShortcutOverrides,
@@ -67,6 +75,7 @@ export interface SettingsState {
   autoBackupDirectory: string | null
   lastAutoBackupAt: number | null
   shortcutOverrides: ShortcutOverrides
+  agentPrefs: AgentPrefs
 }
 
 const initialState: SettingsState = {
@@ -87,6 +96,7 @@ const initialState: SettingsState = {
   autoBackupDirectory: readAutoBackupDirectory(),
   lastAutoBackupAt: readLastAutoBackupAt(),
   shortcutOverrides: readShortcutOverrides(),
+  agentPrefs: readAgentPrefs(),
 }
 
 const settingsSlice = createSlice({
@@ -173,6 +183,41 @@ const settingsSlice = createSlice({
       state.shortcutOverrides = {}
       persistShortcutOverrides({})
     },
+    setAgentPrefs(state, action: PayloadAction<AgentPrefs>) {
+      const next = normalizeAgentPrefs(action.payload)
+      state.agentPrefs = next
+      persistAgentPrefs(next)
+    },
+    patchAgentPrefs(state, action: PayloadAction<Partial<AgentPrefs>>) {
+      const next = normalizeAgentPrefs({ ...state.agentPrefs, ...action.payload })
+      state.agentPrefs = next
+      persistAgentPrefs(next)
+    },
+    addAgentTeaching(state, action: PayloadAction<string>) {
+      const teaching = createTeaching(action.payload)
+      if (!teaching) return
+      const teachings = [teaching, ...state.agentPrefs.teachings]
+        .filter(
+          (item, index, list) =>
+            list.findIndex((other) => other.text.toLowerCase() === item.text.toLowerCase()) ===
+            index,
+        )
+        .slice(0, AGENT_TEACHINGS_MAX)
+      const next = normalizeAgentPrefs({ ...state.agentPrefs, teachings })
+      state.agentPrefs = next
+      persistAgentPrefs(next)
+    },
+    removeAgentTeaching(state, action: PayloadAction<string>) {
+      const teachings = state.agentPrefs.teachings.filter((item) => item.id !== action.payload)
+      const next = normalizeAgentPrefs({ ...state.agentPrefs, teachings })
+      state.agentPrefs = next
+      persistAgentPrefs(next)
+    },
+    clearAgentTeachings(state) {
+      const next = normalizeAgentPrefs({ ...state.agentPrefs, teachings: [] as AgentTeaching[] })
+      state.agentPrefs = next
+      persistAgentPrefs(next)
+    },
   },
 })
 
@@ -195,6 +240,11 @@ export const {
   setLastAutoBackupAt,
   setShortcutOverride,
   resetShortcutOverrides,
+  setAgentPrefs,
+  patchAgentPrefs,
+  addAgentTeaching,
+  removeAgentTeaching,
+  clearAgentTeachings,
 } = settingsSlice.actions
 
 export default settingsSlice.reducer

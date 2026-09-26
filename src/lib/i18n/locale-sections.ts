@@ -77,6 +77,7 @@ export const LOCALE_SECTION_GROUPS: LocaleSectionGroup[] = [
       'library',
       'libraryChat',
       'documentChat',
+      'agent',
       'libraryFindReplace',
       'libraries',
       'trash',
