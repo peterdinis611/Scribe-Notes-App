@@ -580,11 +580,19 @@ export type LibraryChatCitation = {
   chunkIndex?: number | null
 }
 
-export const nlpLibraryAnswer = (question: string, limit = 6) =>
-  invoke<{ answer: string; citations: LibraryChatCitation[] }>('nlp_library_answer', {
-    question,
-    limit,
-  })
+export const nlpLibraryAnswer = (
+  question: string,
+  limit = 6,
+  folderId?: string | null,
+) =>
+  invoke<{ answer: string; citations: LibraryChatCitation[]; followups?: string[] }>(
+    'nlp_library_answer',
+    {
+      question,
+      limit,
+      folderId: folderId ?? null,
+    },
+  )
 
 export const nlpDocumentAnswer = (
   documentId: string,

@@ -249,6 +249,20 @@ pub struct DateRangePromptParams {
 pub struct LibraryAnswerParams {
     pub question: String,
     pub limit: Option<i64>,
+    pub folder_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct RunAgentParams {
+    /// Natural-language goal for the local agent (same planner as the Scribe app).
+    pub goal: String,
+    /// library | document
+    pub scope: Option<String>,
+    /// Required for most document tools.
+    pub document_id: Option<String>,
+    /// Cap tool steps (1–6). Default 3.
+    pub max_tools: Option<i64>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]

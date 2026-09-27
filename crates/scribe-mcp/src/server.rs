@@ -56,6 +56,106 @@ impl ScribeMcp {
     ) -> Result<Vec<scribe_core::db::SearchHit>, String> {
         store.filter_search_hits_for_scope(hits, self.vault_scope)
     }
+
+    /// Map planner tool ids to store methods (mirrors the in-app Local Agent).
+    fn execute_agent_tool(
+        &self,
+        tool: &str,
+        goal: &str,
+        document_id: Option<&str>,
+    ) -> Result<(String, Option<String>), String> {
+        let tool = tool.trim().to_ascii_lowercase();
+        self.with_store(|store| match tool.as_str() {
+            "library_answer" => {
+                let result = store.library_answer(&self.sidecar, goal, Some(8))?;
+                Ok((
+                    format!("{} citations", result.citations.len()),
+                    Some(result.answer),
+                ))
+            }
+            "document_answer" => {
+                let id = document_id.ok_or_else(|| "documentId required for document_answer".to_string())?;
+                let result = store.document_answer(&self.sidecar, id, goal, None)?;
+                Ok((
+                    format!("{} citations", result.citations.len()),
+                    Some(result.answer),
+                ))
+            }
+            "summarize" | "brief" => {
+                let id = document_id.ok_or_else(|| "documentId required for summarize".to_string())?;
+                let summary = store.summarize_document(&self.sidecar, id, Some(5))?;
+                Ok(("summarize".into(), Some(summary.summary)))
+            }
+            "outline" => {
+                let id = document_id.ok_or_else(|| "documentId required for outline".to_string())?;
+                let outline = store.get_document_outline(id)?;
+                Ok(("outline".into(), Some(tools::json(&outline))))
+            }
+            "tasks" => {
+                let id = document_id.ok_or_else(|| "documentId required for tasks".to_string())?;
+                let tasks = store.extract_document_tasks(&self.sidecar, id)?;
+                Ok(("tasks".into(), Some(tools::json(&tasks))))
+            }
+            "takeaways" => {
+                let id = document_id.ok_or_else(|| "documentId required for takeaways".to_string())?;
+                let result = store.extract_takeaways(&self.sidecar, Some(id), None, Some(10))?;
+                Ok(("takeaways".into(), Some(tools::json(&result))))
+            }
+            "organize" => {
+                let id = document_id.ok_or_else(|| "documentId required for organize".to_string())?;
+                let suggestions = store.suggest_tags(&self.sidecar, id)?;
+                Ok(("organize".into(), Some(tools::json(&suggestions))))
+            }
+            "wiki" => {
+                let id = document_id.ok_or_else(|| "documentId required for wiki".to_string())?;
+                let links = store.suggest_wiki_links(&self.sidecar, id, Some(8))?;
+                Ok(("wiki".into(), Some(tools::json(&links))))
+            }
+            "dates" => {
+                let events = store.calendar_events(&self.sidecar, Some(16), None, None)?;
+                Ok(("dates".into(), Some(tools::json(&events))))
+            }
+            "duplicates" => {
+                let result = store.find_duplicate_documents(&self.sidecar, Some(12))?;
+                Ok(("duplicates".into(), Some(tools::json(&result))))
+            }
+            "meeting" => {
+                let id = document_id.ok_or_else(|| "documentId required for meeting".to_string())?;
+                let pack = store.meeting_notes_pack(&self.sidecar, Some(id), None, Some(12))?;
+                Ok(("meeting".into(), Some(tools::json(&pack))))
+            }
+            "citations" => {
+                let pack = store.citation_pack(&self.sidecar, goal, Some(8))?;
+                Ok(("citations".into(), Some(tools::json(&pack))))
+            }
+            "analysis" | "document_analysis" => {
+                let id = document_id.ok_or_else(|| "documentId required for analysis".to_string())?;
+                let analysis = store.document_analysis(&self.sidecar, id)?;
+                Ok(("analysis".into(), Some(tools::json(&analysis))))
+            }
+            "flashcards" => {
+                let id = document_id.ok_or_else(|| "documentId required for flashcards".to_string())?;
+                let cards = store.extract_flashcards(&self.sidecar, Some(id), None, Some(12), Some(true))?;
+                Ok(("flashcards".into(), Some(tools::json(&cards))))
+            }
+            "style" | "writing_coach" => {
+                let id = document_id.ok_or_else(|| "documentId required for writing_coach".to_string())?;
+                let coach = store.writing_coach(&self.sidecar, Some(id), None, None)?;
+                Ok(("style".into(), Some(tools::json(&coach))))
+            }
+            "spellcheck" => {
+                let id = document_id.ok_or_else(|| "documentId required for spellcheck".to_string())?;
+                let result = store.spellcheck_document(&self.sidecar, id)?;
+                Ok(("spellcheck".into(), Some(tools::json(&result))))
+            }
+            "similar" => {
+                let id = document_id.ok_or_else(|| "documentId required for similar".to_string())?;
+                let hits = store.similar_documents_for(id, 8)?;
+                Ok(("similar".into(), Some(tools::json(&hits))))
+            }
+            other => Err(format!("unsupported agent tool: {other}")),
+        })
+    }
 }
 
 fn search_filter(
@@ -952,18 +1052,176 @@ impl ScribeMcp {
         })
     }
 
-    #[tool(description = "Answer a question from the local library (hybrid search + Local AI). Requires Local AI.")]
+    #[tool(description = "Answer a question from the local library (hybrid search + Local AI). Optional folderId scopes to one folder. Requires Local AI.")]
     fn library_answer(
         &self,
         Parameters(params): Parameters<tools::LibraryAnswerParams>,
     ) -> Result<String, String> {
         self.with_store(|store| {
+            if let Some(folder_id) = params
+                .folder_id
+                .as_deref()
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+            {
+                let limit = params.limit.unwrap_or(8).clamp(1, 20);
+                let filter = search_filter(
+                    Some(folder_id.to_string()),
+                    None,
+                    None,
+                    None,
+                    None,
+                );
+                let hits = store.search_with_mode(
+                    &self.sidecar,
+                    &params.question,
+                    limit,
+                    Some("hybrid"),
+                    Some(&filter),
+                )?;
+                let hits = self.filter_hits(store, hits)?;
+                let passages: Vec<serde_json::Value> = hits
+                    .iter()
+                    .map(|hit| {
+                        serde_json::json!({
+                            "documentId": hit.document_id,
+                            "title": hit.title,
+                            "snippet": hit.snippet,
+                            "chunkIndex": hit.chunk_index,
+                        })
+                    })
+                    .collect();
+                let result = self.sidecar.library_answer(
+                    params.question.trim(),
+                    serde_json::json!(passages),
+                    4,
+                )?;
+                return Ok(tools::json(&serde_json::json!({
+                    "folderId": folder_id,
+                    "hitCount": hits.len(),
+                    "result": result,
+                })));
+            }
             Ok(tools::json(&store.library_answer(
                 &self.sidecar,
                 &params.question,
                 params.limit,
             )?))
         })
+    }
+
+    #[tool(
+        description = "Run the same local agent planner used in the Scribe app: plan_agent_goal then execute tools (library/document Q&A, summarize, tasks, organize, wiki, …). Requires Local AI. Prefer this over calling many tools yourself."
+    )]
+    fn run_agent(
+        &self,
+        Parameters(params): Parameters<tools::RunAgentParams>,
+    ) -> Result<String, String> {
+        let goal = params.goal.trim();
+        if goal.is_empty() {
+            return Err("goal is required".to_string());
+        }
+        let scope = params
+            .scope
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .unwrap_or(if params.document_id.as_deref().map(str::trim).filter(|v| !v.is_empty()).is_some() {
+                "document"
+            } else {
+                "library"
+            });
+        let document_id = params
+            .document_id
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(|value| value.to_string());
+        let max_tools = params.max_tools.unwrap_or(3).clamp(1, 6);
+
+        let plan = self.with_store(|store| {
+            store.plan_agent_goal(&self.sidecar, goal, scope, Some(max_tools))
+        })?;
+
+        let tools_list = plan
+            .get("tools")
+            .and_then(|value| value.as_array())
+            .cloned()
+            .unwrap_or_default()
+            .into_iter()
+            .filter_map(|value| value.as_str().map(|s| s.to_string()))
+            .take(max_tools as usize)
+            .collect::<Vec<_>>();
+
+        if plan
+            .get("needsClarification")
+            .and_then(|value| value.as_bool())
+            .unwrap_or(false)
+            && tools_list.is_empty()
+        {
+            return Ok(tools::json(&serde_json::json!({
+                "goal": goal,
+                "scope": scope,
+                "documentId": document_id,
+                "needsClarification": true,
+                "clarifyOptions": plan.get("clarifyOptions").cloned().unwrap_or(serde_json::json!([])),
+                "steps": [],
+                "answer": "Goal is ambiguous — pick a tool from clarifyOptions, or call run_agent again with a more specific goal.",
+            })));
+        }
+
+        let mut steps = Vec::new();
+        let mut answers = Vec::new();
+
+        for tool_name in &tools_list {
+            match self.execute_agent_tool(tool_name, goal, document_id.as_deref()) {
+                Ok((detail, answer)) => {
+                    if let Some(text) = answer.as_ref().filter(|s| !s.trim().is_empty()) {
+                        answers.push(text.clone());
+                    }
+                    steps.push(serde_json::json!({
+                        "tool": tool_name,
+                        "status": "ok",
+                        "detail": detail,
+                    }));
+                }
+                Err(error) => {
+                    steps.push(serde_json::json!({
+                        "tool": tool_name,
+                        "status": "error",
+                        "detail": error,
+                    }));
+                }
+            }
+        }
+
+        let answer = if answers.is_empty() {
+            "No tool produced an answer.".to_string()
+        } else {
+            answers.join("\n\n")
+        };
+
+        if let Some(parent) = self.db_path.parent() {
+            let agent_path = parent.join(scribe_agent::AGENT_DB_FILE);
+            if let Ok(store) = scribe_agent::AgentStore::from_path(&agent_path) {
+                let _ = store.append_run(
+                    scope,
+                    document_id.as_deref(),
+                    goal,
+                    Some(&serde_json::to_string(&steps).unwrap_or_else(|_| "[]".into())),
+                    Some(&answer),
+                );
+            }
+        }
+
+        Ok(tools::json(&serde_json::json!({
+            "goal": goal,
+            "scope": scope,
+            "documentId": document_id,
+            "plan": plan,
+            "steps": steps,
+            "answer": answer,
+        })))
     }
 
     #[tool(description = "Full Local AI analysis of a note: keywords, outline, summary, tone, dates, mentions.")]
@@ -2217,8 +2475,9 @@ impl ServerHandler for ScribeMcp {
                 .build(),
         )
         .with_instructions(
-            "Scribe local notes. Prefer search (with folderId/tag/fromDate/toDate), \
+            "Scribe local notes.              Prefer search (with folderId/tag/fromDate/toDate), \
              get_document_outline, then get_document or export_document. \
+             For multi-step local agent goals use run_agent (same planner as the Scribe app). \
              list_documents / create_note / search are scoped to the active library — \
              call list_libraries / switch_library first if the user names another library. \
              create_library adds a library without switching. \

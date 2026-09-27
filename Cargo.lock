@@ -3757,6 +3757,7 @@ dependencies = [
  "anyhow",
  "rmcp",
  "schemars 1.2.2",
+ "scribe-agent",
  "scribe-core",
  "serde",
  "serde_json",

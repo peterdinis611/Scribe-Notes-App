@@ -29,10 +29,20 @@ const SHORTCUT_OVERRIDES_KEY = 'scribe-shortcut-overrides'
 const UI_SKIN_KEY = 'scribe-ui-skin'
 const DOCUMENT_TOC_LEFT_KEY = 'scribe-document-toc-left-open'
 const AGENT_PREFS_KEY = 'scribe-agent-prefs'
+const SHOW_DOCUMENT_TABS_KEY = 'scribe-show-document-tabs'
+const SHOW_EDITOR_TOOLBAR_KEY = 'scribe-show-editor-toolbar'
+const SHOW_STATUS_BAR_KEY = 'scribe-show-status-bar'
+const SHOW_PANEL_RAIL_KEY = 'scribe-show-panel-rail'
+const UI_ZOOM_KEY = 'scribe-ui-zoom'
 
 export {
     ACTIVE_DOCUMENT_ID_KEY,
     AGENT_PREFS_KEY,
+    SHOW_DOCUMENT_TABS_KEY,
+    SHOW_EDITOR_TOOLBAR_KEY,
+    SHOW_STATUS_BAR_KEY,
+    SHOW_PANEL_RAIL_KEY,
+    UI_ZOOM_KEY,
     COMMENT_AUTHOR_KEY,
     CUSTOM_TEMPLATE_CATEGORIES_KEY,
     CUSTOM_TEMPLATES_KEY,

@@ -89,6 +89,7 @@ export function AppLayout() {
   useAutoBackup()
   useDocumentCacheRetention()
   const templatePickerOpen = useAppSelector((state) => state.settings.templatePickerOpen)
+  const showDocumentTabs = useAppSelector((state) => state.settings.showDocumentTabs)
   const movePickerOpen = useAppSelector((state) => state.folders.moveDocumentPickerOpen)
   const activeDocument = useAppSelector((state) => state.documents.activeDocument)
   const documents = useAppSelector((state) => state.documents.documents)
@@ -230,7 +231,7 @@ export function AppLayout() {
         <FocusModeExitBar />
         <ReadingModeExitBar />
         <AppHeader />
-        <DocumentTabsBar />
+        {showDocumentTabs ? <DocumentTabsBar /> : null}
         <main
           ref={mainRef}
           className="app-main relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"

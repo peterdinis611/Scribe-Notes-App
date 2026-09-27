@@ -14,6 +14,7 @@ import { GraphPage } from '@/pages/GraphPage'
 import { ErrorPage } from '@/pages/ErrorPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { AppearancePage } from '@/pages/settings/AppearancePage'
+import { InterfacePage } from '@/pages/settings/InterfacePage'
 import { StoragePage } from '@/pages/settings/StoragePage'
 import { ShortcutsPage } from '@/pages/settings/ShortcutsPage'
 import { AboutPage } from '@/pages/settings/AboutPage'
@@ -81,6 +82,12 @@ const settingsAppearanceRoute = createRoute({
   getParentRoute: () => settingsLayoutRoute,
   path: 'appearance',
   component: AppearancePage,
+})
+
+const settingsInterfaceRoute = createRoute({
+  getParentRoute: () => settingsLayoutRoute,
+  path: 'interface',
+  component: InterfacePage,
 })
 
 const settingsAiRedirectRoute = createRoute({
@@ -163,6 +170,7 @@ const routeTree = rootRoute.addChildren([
     settingsLayoutRoute.addChildren([
       settingsIndexRoute,
       settingsAppearanceRoute,
+      settingsInterfaceRoute,
       settingsAiRedirectRoute,
       settingsStorageRoute,
       settingsShortcutsRoute,

@@ -143,6 +143,9 @@ export function DocumentEditor() {
   const printLayoutEnabled = useAppSelector((state) => state.settings.printLayoutEnabled)
   const printZoom = useAppSelector((state) => state.settings.printZoom)
   const printColumns = useAppSelector((state) => state.settings.printLayoutColumns)
+  const showEditorToolbar = useAppSelector((state) => state.settings.showEditorToolbar)
+  const showStatusBar = useAppSelector((state) => state.settings.showStatusBar)
+  const showPanelRail = useAppSelector((state) => state.settings.showPanelRail)
   const normalizedPageSetup = useMemo(() => normalizePageSetup(pageSetup), [pageSetup])
   const pageLayout = useMemo(() => resolvePageLayout(pageSetup), [pageSetup])
   const documentTypography = useMemo(
@@ -595,7 +598,7 @@ export function DocumentEditor() {
         readingMode && 'editor-shell--reading',
       )}
     >
-      {!isMarkdown && !focusMode && !readingMode && editorReady && (
+      {!isMarkdown && !focusMode && !readingMode && editorReady && showEditorToolbar && (
         <EditorToolbar
           editor={editor}
           onInsertImages={handleInsertImages}
@@ -851,7 +854,7 @@ export function DocumentEditor() {
         )}
           </div>
 
-          {!isMarkdown && !focusMode && !readingMode && (
+          {!isMarkdown && !focusMode && !readingMode && showStatusBar && (
             <EditorStatusBar
               currentPage={currentPage}
               pageCount={pageCount}
@@ -864,7 +867,7 @@ export function DocumentEditor() {
           )}
         </div>
 
-        {!focusMode && !readingMode && <EditorPanelRail />}
+        {!focusMode && !readingMode && showPanelRail && <EditorPanelRail />}
       </div>
 
       <PageSetupDialog open={pageSetupOpen} onClose={() => setPageSetupOpen(false)} />

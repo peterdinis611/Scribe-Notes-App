@@ -728,6 +728,10 @@
         "label": "Appearance",
         "description": "Themes, colors, and language"
       },
+      "interface": {
+        "label": "Interface",
+        "description": "Tabs, toolbar, zoom"
+      },
       "storage": {
         "label": "Storage",
         "description": "Files and folders"
@@ -764,6 +768,25 @@
         "label": "About",
         "description": "Version and info"
       }
+    },
+    "interface": {
+      "title": "Interface",
+      "description": "Show or hide chrome around the editor. Changes apply immediately on this Mac.",
+      "on": "On",
+      "off": "Off",
+      "showTabs": "Show tab bar",
+      "showTabsHint": "Document tabs under the header for open notes.",
+      "showToolbar": "Show formatting toolbar",
+      "showToolbarHint": "Horizontal toolbar above the editor (bold, lists, inserts).",
+      "showPanelRail": "Show side toolbar",
+      "showPanelRailHint": "Vertical rail on the editor edge for outline, agent, and panels.",
+      "showStatusBar": "Show status bar",
+      "showStatusBarHint": "Word count, page layout, and print controls at the bottom.",
+      "advancedTitle": "Advanced",
+      "advancedDescription": "Overall interface scale. Print layout zoom stays separate.",
+      "uiZoom": "Zoom level",
+      "uiZoomHint": "Scale the whole app UI from 85% to 125%.",
+      "uiZoomReset": "Reset zoom to 100%"
     },
     "language": {
       "title": "Language",
@@ -1038,6 +1061,7 @@
       "sampleToolsDescription": "These are the tools an AI client can call once MCP is connected.",
       "tools": {
         "status": "Health, DB path, writable flag",
+        "runAgent": "Run the same local agent planner as the Scribe app",
         "search": "Full-text / semantic search over notes",
         "libraryAnswer": "Ask the whole library with citations",
         "getDocument": "Load one note as plain text",
@@ -1058,6 +1082,7 @@
       "samplePromptsDescription": "Copy into Cursor or Claude after MCP is connected.",
       "samplePrompts": [
         "Call scribe_status and tell me if the Scribe database is writable.",
+        "Use run_agent with goal: What open loops should I close this week?",
         "Search my Scribe notes for deadlines this month and list the sources.",
         "Use library_answer: What open tasks or unfinished threads do I have?",
         "Find the note titled like my project plan, then summarize it with document_analysis.",
@@ -1217,8 +1242,16 @@
       "pinnedAdd": "Pin",
       "pinnedEmpty": "No pinned facts yet.",
       "teachTitle": "Teach the agent",
-      "teachHint": "Short standing instructions (language, priorities, habits). They are injected into every agent run on this Mac.",
+      "teachHint": "Short standing instructions (language, priorities, habits). Global teachings apply everywhere; document teachings only when that note is open.",
       "teachPlaceholder": "e.g. Prefer Slovak answers; focus on deadlines first",
+      "teachPlaceholderDocument": "e.g. Prefer bullet action items for this meeting note",
+      "teachScopeGlobal": "Teaching applies to all notes",
+      "teachScopeDocument": "Teaching applies to this note only",
+      "teachScopeToggleGlobal": "Global",
+      "teachScopeToggleDocument": "This note",
+      "teachBadgeDocument": "Note",
+      "teachBadgeGlobal": "All",
+      "teachNeedsDocument": "Open a note to teach for that document.",
       "teachAdd": "Teach",
       "teachRemove": "Forget",
       "teachEmpty": "No teachings yet — add a preference above.",
@@ -1707,15 +1740,20 @@
   },
   "syncConflicts": {
     "title": "Sync conflicts",
-    "hint": "Disk and the app both changed the same note. Choose which version stays.",
+    "hint": "Disk and the app both changed the same note. Compare versions, then keep one side or open the note to merge.",
     "empty": "No open conflicts.",
     "meta": "Disk {{disk}} · App {{app}}",
     "keepApp": "Keep app",
     "keepDisk": "Keep disk",
+    "showDiff": "Compare",
+    "hideDiff": "Hide compare",
+    "appVersion": "App (before sync)",
+    "diskVersion": "Disk (current)",
+    "noAppRevision": "No saved app revision for this conflict.",
     "resolveError": "Could not resolve the conflict",
     "paletteHint": "Choose disk or app",
     "badge": "{{count}} sync conflicts",
-    "openDocument": "Open"
+    "openDocument": "Open / merge"
   },
   "library": {
     "title": "Library",
@@ -1752,7 +1790,7 @@
     },
     "wikiHealth": {
       "title": "Wiki health",
-      "hint": "Orphan notes, broken [[wiki links]], and stubs under 40 words. Click to open; fix broken links with a suggestion.",
+      "hint": "Orphan notes, broken [[wiki links]], and stubs under 40 words. Click to open; fix with a suggestion or create the missing note.",
       "empty": "Wiki looks healthy — no orphans, broken links, or stubs.",
       "count": "{{orphans}} orphans · {{unresolved}} missing · {{stubs}} stubs",
       "loadError": "Could not load wiki health",
@@ -1766,7 +1804,10 @@
       "resolveError": "Could not resolve wiki link",
       "stubs": "Stubs",
       "stubsEmpty": "No stub notes.",
-      "stubWords": "{{count}} words"
+      "stubWords": "{{count}} words",
+      "createNote": "Create \"{{title}}\"",
+      "created": "Created \"{{title}}\" and linked [[{{label}}]]",
+      "createError": "Could not create note for wiki link"
     },
     "duplicates": {
       "title": "Near-duplicate notes",
@@ -2012,11 +2053,20 @@
     "clarifyPrompt": "I’m not sure which tools to run. Pick one:",
     "clarifyHint": "Choose a tool for this goal",
     "applyToNote": "Insert into note",
+    "applySmart": "Apply to note",
     "applyCallout": "Callout",
     "applyChecklist": "Checklist",
     "applyFrontmatter": "Top note",
     "applyUndo": "Undo insert",
     "applyUndone": "Undid insert",
+    "applyOrganizeDone": "Added tags: {{tags}}",
+    "applyOrganizeFolder": "Suggested folder: {{folder}}",
+    "applyOrganizeNone": "No new tags to apply",
+    "applyWikiDone": "Linked [[{{title}}]]",
+    "applyWikiFailed": "Could not apply wiki link — open the note in the editor",
+    "runHistory": "Run history",
+    "runHistoryEmpty": "No agent runs saved yet.",
+    "runHistorySteps": "{{count}} steps",
     "autoBriefToast": "Agent brief after save",
     "recipesDone": "Agent recipe finished",
     "appliedToNote": "Inserted into the open note",

@@ -2028,6 +2028,7 @@ pub fn nlp_library_answer(
     sidecar: State<'_, NlpSidecar>,
     question: String,
     limit: Option<i64>,
+    folder_id: Option<String>,
 ) -> Result<LibraryChatResult, String> {
     let trimmed = question.trim().to_string();
     if trimmed.is_empty() {
@@ -2045,6 +2046,12 @@ pub fn nlp_library_answer(
         sync_sidecar_backend(&sidecar, &conn)?;
     }
 
+    let folder = folder_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| value.to_string());
+
     let hits = {
         let limit = limit.unwrap_or(8).clamp(1, 20);
         let fetch = (limit * 2).clamp(limit, 40);
@@ -2052,7 +2059,23 @@ pub fn nlp_library_answer(
         let fts_hits = {
             let conn = state.conn.lock().map_err(|e| e.to_string())?;
             let library_id = crate::libraries::active_library_id(&conn);
-            search_documents_for_library(&conn, q, fetch, &library_id)?
+            if let Some(folder_id) = folder.as_ref() {
+                crate::db::search_documents_filtered(
+                    &conn,
+                    q,
+                    fetch,
+                    Some(&library_id),
+                    &crate::db::SearchFilter {
+                        folder_id: Some(folder_id.clone()),
+                        tag: None,
+                        from_date: None,
+                        to_date: None,
+                        library_id: None,
+                    },
+                )?
+            } else {
+                search_documents_for_library(&conn, q, fetch, &library_id)?
+            }
         };
         let embed_query = rewrite_query_for_embed(&sidecar, q);
         match sidecar.embed_text(&embed_query) {
@@ -2060,7 +2083,7 @@ pub fn nlp_library_answer(
                 let conn = state.conn.lock().map_err(|e| e.to_string())?;
                 let extra: Vec<String> =
                     fts_hits.iter().map(|hit| hit.document_id.clone()).collect();
-                let semantic_hits = semantic_search_filtered(
+                let mut semantic_hits = semantic_search_filtered(
                     &conn,
                     &vector,
                     fetch,
@@ -2068,6 +2091,19 @@ pub fn nlp_library_answer(
                     Some(&extra),
                 )
                 .unwrap_or_default();
+                if let Some(folder_id) = folder.as_ref() {
+                    semantic_hits.retain(|hit| {
+                        conn.query_row(
+                            "SELECT folder_id FROM documents WHERE id = ?1",
+                            [&hit.document_id],
+                            |row| row.get::<_, Option<String>>(0),
+                        )
+                        .ok()
+                        .flatten()
+                        .as_deref()
+                            == Some(folder_id.as_str())
+                    });
+                }
                 let fused = fuse_search_hits(&fts_hits, &semantic_hits, fetch);
                 rerank_search_hits(&conn, &vector, fused, Some(&model), limit)
             }

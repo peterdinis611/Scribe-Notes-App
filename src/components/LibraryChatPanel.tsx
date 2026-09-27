@@ -1,4 +1,4 @@
-import { Eraser, FileText, Library, Quote, Send, Settings2, Sparkles } from 'lucide-react'
+import { Eraser, FileText, Folder, Library, Quote, Send, Settings2, Sparkles } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
@@ -136,6 +136,7 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
   const activeDocument = useAppSelector((state) => state.documents.activeDocument)
   const commentAuthor = useAppSelector((state) => state.documents.commentAuthor)
   const sidebarOpen = useAppSelector((state) => state.documents.sidebarOpen)
+  const folderId = activeDocument?.folderId ?? null
   const [scope, setScope] = useState<ChatScope>(() => (activeDocumentId ? 'document' : 'library'))
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
@@ -148,6 +149,7 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const libraryMessagesRef = useRef<ChatMessage[]>([])
+  const folderMessagesRef = useRef<ChatMessage[]>([])
   const messagesRef = useRef(messages)
   messagesRef.current = messages
 
@@ -241,10 +243,18 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
   }, [activeDocumentId, scope])
 
   useEffect(() => {
+    if (scope === 'folder' && !folderId) {
+      setScope(activeDocumentId ? 'document' : 'library')
+    }
+  }, [scope, folderId, activeDocumentId])
+
+  useEffect(() => {
     let cancelled = false
     if (scope !== 'document' || !activeDocumentId) {
       if (scope === 'library') {
         setMessages(libraryMessagesRef.current)
+      } else if (scope === 'folder') {
+        setMessages(folderMessagesRef.current)
       }
       return
     }
@@ -317,10 +327,14 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
       if (next === scope) return
       if (scope === 'library') {
         libraryMessagesRef.current = messagesRef.current
+      } else if (scope === 'folder') {
+        folderMessagesRef.current = messagesRef.current
       }
       setScope(next)
       if (next === 'library') {
         setMessages(libraryMessagesRef.current)
+      } else if (next === 'folder') {
+        setMessages(folderMessagesRef.current)
       }
     },
     [scope],
@@ -346,6 +360,10 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
         toast.error(t('libraryChat.errorTitle'), t('libraryChat.noActiveDocument'))
         return
       }
+      if (scope === 'folder' && !folderId) {
+        toast.error(t('libraryChat.errorTitle'), t('libraryChat.scopeFolderNeedsDoc'))
+        return
+      }
 
       const context =
         scope === 'document' ? documentChatContext(messagesRef.current) : undefined
@@ -360,7 +378,7 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
       setMessages((prev) => [...prev, optimisticUser])
 
       try {
-        const result = await askChat(scope, trimmed, activeDocumentId, context)
+        const result = await askChat(scope, trimmed, activeDocumentId, context, folderId)
         setNlpReady(true)
         if (scope === 'document' && activeDocumentId) {
           const saved = await persistPair(activeDocumentId, trimmed, {
@@ -407,7 +425,7 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
         inputRef.current?.focus()
       }
     },
-    [activeDocumentId, loading, persistPair, scope, t],
+    [activeDocumentId, folderId, loading, persistPair, scope, t],
   )
 
   const runAction = useCallback(
@@ -496,6 +514,25 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
           >
             <Library className="h-3 w-3" />
             {t('libraryChat.scopeLibrary')}
+          </button>
+          <button
+            type="button"
+            className={cn(
+              'library-chat-scope-tab',
+              scope === 'folder' && 'is-active',
+              !folderId && 'is-disabled',
+            )}
+            aria-pressed={scope === 'folder'}
+            disabled={!folderId}
+            title={
+              folderId
+                ? t('libraryChat.scopeFolderHint')
+                : t('libraryChat.scopeFolderNeedsDoc')
+            }
+            onClick={() => folderId && changeScope('folder')}
+          >
+            <Folder className="h-3 w-3" />
+            {t('libraryChat.scopeFolder')}
           </button>
           <button
             type="button"

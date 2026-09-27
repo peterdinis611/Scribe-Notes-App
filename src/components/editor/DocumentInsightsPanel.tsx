@@ -72,10 +72,10 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
   clearInsightsAskFocus,
   setActiveDocumentId,
+  setAgentPanelOpen,
   setDocumentOutlineOpen,
   setFindReplaceOpen,
   setPendingEditorSearch,
-  setPendingLibraryView,
   setSidebarOpen,
 } from '@/store/documentsSlice'
 import { useMoveDocumentToFolder } from '@/hooks/useMoveDocumentToFolder'
@@ -534,7 +534,7 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
   }, [])
 
   const openLibraryChat = useCallback(() => {
-    dispatch(setPendingLibraryView({ view: 'chat' }))
+    dispatch(setAgentPanelOpen(true))
     dispatch(setSidebarOpen(true))
   }, [dispatch])
 

@@ -3,6 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { FileWarning, Link2Off, LoaderCircle, Network, Unlink } from 'lucide-react'
 import {
+  createDocument,
   getDocument,
   listWikiHealth,
   resolveWikiLink,
@@ -61,6 +62,32 @@ export function LibraryWikiHealthPanel({ onNavigate }: LibraryWikiHealthPanelPro
     }
     void navigate(ROUTES.document(documentId))
     onNavigate?.()
+  }
+
+  async function handleCreate(item: WikiHealthUnresolved) {
+    const title = item.label.trim()
+    if (!title) return
+    const key = `create:${item.documentId}:${item.label}`
+    setResolvingKey(key)
+    try {
+      const doc = await createDocument({ title })
+      const result = await resolveWikiLink(item.documentId, item.label, doc.id)
+      toast.success(
+        t('library.wikiHealth.created', {
+          title: result.targetTitle || doc.title || title,
+          label: item.label,
+        }),
+      )
+      if (activeId === item.documentId) {
+        const refreshed = await getDocument(item.documentId)
+        if (refreshed) dispatch(setActiveDocument(refreshed))
+      }
+      await load()
+    } catch (error) {
+      toast.error(t('library.wikiHealth.createError'), String(error))
+    } finally {
+      setResolvingKey(null)
+    }
   }
 
   async function handleResolve(
@@ -163,23 +190,35 @@ export function LibraryWikiHealthPanel({ onNavigate }: LibraryWikiHealthPanelPro
                       </span>
                     </span>
                   </button>
-                  {top ? (
-                    <div className="library-wiki-health__suggest">
-                      <span className="library-wiki-health__suggest-label">
-                        {t('library.wikiHealth.didYouMean', { title: top.title })}
-                      </span>
-                      <button
-                        type="button"
-                        className="library-wiki-health__fix"
-                        disabled={resolvingKey === resolveKey}
-                        onClick={() => void handleResolve(item, top)}
-                      >
-                        {resolvingKey === resolveKey
-                          ? t('common.loading')
-                          : t('library.wikiHealth.fixWith', { title: top.title })}
-                      </button>
-                    </div>
-                  ) : null}
+                  <div className="library-wiki-health__suggest">
+                    {top ? (
+                      <>
+                        <span className="library-wiki-health__suggest-label">
+                          {t('library.wikiHealth.didYouMean', { title: top.title })}
+                        </span>
+                        <button
+                          type="button"
+                          className="library-wiki-health__resolve"
+                          disabled={resolvingKey === resolveKey}
+                          onClick={() => void handleResolve(item, top)}
+                        >
+                          {resolvingKey === resolveKey
+                            ? t('common.loading')
+                            : t('library.wikiHealth.resolveWith', { title: top.title })}
+                        </button>
+                      </>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="library-wiki-health__resolve"
+                      disabled={resolvingKey === `create:${item.documentId}:${item.label}`}
+                      onClick={() => void handleCreate(item)}
+                    >
+                      {resolvingKey === `create:${item.documentId}:${item.label}`
+                        ? t('common.loading')
+                        : t('library.wikiHealth.createNote', { title: item.label })}
+                    </button>
+                  </div>
                 </div>
               )
             }}

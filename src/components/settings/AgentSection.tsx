@@ -7,11 +7,13 @@ import {
   SettingsSection,
   SettingsSectionHeader,
 } from '@/components/settings/SettingsPrimitives'
+import { peekCachedDocument } from '@/lib/cache/document-cache'
 import {
   AGENT_OPTIMIZABLE_TOOLS,
   AGENT_TEACHING_MAX_LEN,
   type AgentMaxSteps,
   type AgentOutputLanguage,
+  type AgentTeachingScope,
   type AgentToolId,
 } from '@/lib/library/agent-prefs'
 import { toast } from '@/lib/toast'
@@ -128,8 +130,11 @@ export function AgentSection() {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
   const prefs = useAppSelector((state) => state.settings.agentPrefs)
+  const activeDocumentId = useAppSelector((state) => state.documents.activeDocumentId)
+  const activeDocument = activeDocumentId ? peekCachedDocument(activeDocumentId) : null
   const [teachInput, setTeachInput] = useState('')
   const [pinInput, setPinInput] = useState('')
+  const [teachScope, setTeachScope] = useState<AgentTeachingScope>('global')
 
   const budgetMax = prefs.dailyRunBudget
   const budgetUsed = prefs.runsToday
@@ -161,7 +166,21 @@ export function AgentSection() {
   function handleTeach() {
     const text = teachInput.trim()
     if (text.length < 2) return
-    dispatch(addAgentTeaching(text))
+    if (teachScope === 'document') {
+      if (!activeDocumentId) {
+        toast.error(t('settings.agent.teachNeedsDocument'))
+        return
+      }
+      dispatch(
+        addAgentTeaching({
+          text,
+          scope: 'document',
+          documentId: activeDocumentId,
+        }),
+      )
+    } else {
+      dispatch(addAgentTeaching(text))
+    }
     setTeachInput('')
     toast.success(t('settings.agent.taughtToast'))
   }
@@ -492,6 +511,34 @@ export function AgentSection() {
             <GraduationCap className="h-3.5 w-3.5" />
           </CardHead>
 
+          <div className="agent-scope-switch mb-2" role="group" aria-label={t('settings.agent.teachTitle')}>
+            <button
+              type="button"
+              className={cn('library-chat-scope-tab', teachScope === 'global' && 'is-active')}
+              onClick={() => setTeachScope('global')}
+            >
+              {t('settings.agent.teachScopeToggleGlobal')}
+            </button>
+            <button
+              type="button"
+              className={cn('library-chat-scope-tab', teachScope === 'document' && 'is-active')}
+              disabled={!activeDocumentId}
+              title={
+                activeDocumentId
+                  ? activeDocument?.title || t('libraryChat.untitled')
+                  : t('settings.agent.teachNeedsDocument')
+              }
+              onClick={() => setTeachScope('document')}
+            >
+              {t('settings.agent.teachScopeToggleDocument')}
+            </button>
+          </div>
+          <p className="mb-2 text-[11px] text-[var(--color-muted-foreground)]">
+            {teachScope === 'document'
+              ? t('settings.agent.teachScopeDocument')
+              : t('settings.agent.teachScopeGlobal')}
+          </p>
+
           <form
             className="agent-settings-teach-form"
             onSubmit={(event) => {
@@ -503,7 +550,11 @@ export function AgentSection() {
               value={teachInput}
               maxLength={AGENT_TEACHING_MAX_LEN}
               disabled={!prefs.enabled}
-              placeholder={t('settings.agent.teachPlaceholder')}
+              placeholder={
+                teachScope === 'document'
+                  ? t('settings.agent.teachPlaceholderDocument')
+                  : t('settings.agent.teachPlaceholder')
+              }
               onChange={(event) => setTeachInput(event.target.value)}
               aria-label={t('settings.agent.teachTitle')}
             />
@@ -520,7 +571,14 @@ export function AgentSection() {
                     <span className="agent-settings-teaching-index">
                       {String(index + 1).padStart(2, '0')}
                     </span>
-                    <span className="agent-settings-teaching-text">{item.text}</span>
+                    <span className="agent-settings-teaching-text">
+                      <span className="mr-1.5 text-[10px] font-semibold uppercase tracking-wide opacity-55">
+                        {item.scope === 'document'
+                          ? t('settings.agent.teachBadgeDocument')
+                          : t('settings.agent.teachBadgeGlobal')}
+                      </span>
+                      {item.text}
+                    </span>
                     <button
                       type="button"
                       className="agent-settings-teaching-remove"

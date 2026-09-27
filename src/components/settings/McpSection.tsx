@@ -35,6 +35,7 @@ const CLAUDE_CONFIG = `{
 
 const SAMPLE_TOOLS = [
   { id: 'scribe_status', hintKey: 'settings.mcp.tools.status' },
+  { id: 'run_agent', hintKey: 'settings.mcp.tools.runAgent' },
   { id: 'search_documents', hintKey: 'settings.mcp.tools.search' },
   { id: 'library_answer', hintKey: 'settings.mcp.tools.libraryAnswer' },
   { id: 'get_document', hintKey: 'settings.mcp.tools.getDocument' },

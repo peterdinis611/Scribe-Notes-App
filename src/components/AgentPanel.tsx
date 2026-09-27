@@ -18,10 +18,13 @@ import {
   appendAgentRun,
   clearAgentMessages,
   listAgentMessages,
+  listAgentRuns,
+  type AgentBackendRun,
   type AgentMessageStep,
   type DocumentChatCitation,
 } from '@/lib/db/api'
-import { nlpDocumentAnalysis, nlpDocumentTasks, nlpStatus, type DocumentTask, type NlpDocumentAnalysis } from '@/lib/db/nlp-api'
+import { nlpDocumentAnalysis, nlpDocumentTasks, nlpStatus, nlpSuggestWikiLinks, type DocumentTask, type NlpDocumentAnalysis } from '@/lib/db/nlp-api'
+import { applyWikiSuggestion } from '@/lib/editor/apply-suggestions'
 import {
   applyAgentAnswer,
   undoAgentApply,
@@ -33,6 +36,7 @@ import {
   type AgentStep,
   type AgentToolId,
 } from '@/lib/library/agent'
+import { applySuggestedTagsToDocument } from '@/lib/library/auto-organize'
 import { AGENT_RECIPES, type AgentRecipeId } from '@/lib/library/agent-recipes'
 import {
   buildAgentGoalChips,
@@ -135,16 +139,25 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
   const [analysis, setAnalysis] = useState<NlpDocumentAnalysis | null>(null)
   const [tasks, setTasks] = useState<DocumentTask[] | null>(null)
   const [nlpReady, setNlpReady] = useState<boolean | null>(null)
+  const [runHistory, setRunHistory] = useState<AgentBackendRun[]>([])
+  const [showRuns, setShowRuns] = useState(false)
   const threadEndRef = useRef<HTMLDivElement>(null)
   const slovak = i18n.language?.toLowerCase().startsWith('sk')
 
   const displayMessages = scope === 'document' ? messages : sessionMessages
 
+  const refreshRunHistory = useCallback(() => {
+    void listAgentRuns(24)
+      .then(setRunHistory)
+      .catch(() => setRunHistory([]))
+  }, [])
+
   useEffect(() => {
     void nlpStatus()
       .then((status) => setNlpReady(Boolean(status.enabled && status.sidecarOk)))
       .catch(() => setNlpReady(false))
-  }, [])
+    refreshRunHistory()
+  }, [refreshRunHistory])
 
   useEffect(() => {
     if (scope !== 'document' || !activeDocumentId) {
@@ -347,12 +360,14 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
           setSessionMessages((prev) => [...prev, assistant])
         }
         void appendAgentRun({
-          scope,
+          scope: scope === 'folder' ? 'library' : scope,
           documentId: activeDocumentId,
           goal: trimmed || displayGoal,
           stepsJson: JSON.stringify(toPersistSteps(assistant.steps ?? [])),
           answer: assistant.text,
-        }).catch(() => undefined)
+        })
+          .then(() => refreshRunHistory())
+          .catch(() => undefined)
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         const key = message.startsWith('libraryChat.') || message.startsWith('agent.') ? message : null
@@ -361,7 +376,7 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
         setLoading(false)
       }
     },
-    [loading, agentPrefs, scope, activeDocumentId, activeDocument?.folderId, messages, sessionMessages, persistPair, t, dispatch],
+    [loading, agentPrefs, scope, activeDocumentId, activeDocument?.folderId, messages, sessionMessages, persistPair, t, dispatch, refreshRunHistory],
   )
 
   const applyAnswerToNote = useCallback(
@@ -375,6 +390,74 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
       else toast.error(t('agent.applyFailed'))
     },
     [activeDocumentId, t],
+  )
+
+  const preferredApplyMode = useCallback((steps?: AgentStep[]): AgentApplyMode => {
+    const tools = (steps ?? []).map((step) => step.tool)
+    if (tools.includes('tasks') || tools.includes('takeaways') || tools.includes('dates')) {
+      return 'checklist'
+    }
+    if (tools.includes('meeting') || tools.includes('brief')) {
+      return 'frontmatter'
+    }
+    return 'callout'
+  }, [])
+
+  const applyFromSteps = useCallback(
+    async (text: string, steps?: AgentStep[]) => {
+      if (!activeDocumentId) {
+        toast.error(t('libraryChat.noActiveDocument'))
+        return
+      }
+      const tools = new Set((steps ?? []).map((step) => step.tool))
+      const doc = peekCachedDocument(activeDocumentId)
+      if (!doc) {
+        applyAnswerToNote(text, preferredApplyMode(steps))
+        return
+      }
+
+      try {
+        if (tools.has('organize')) {
+          const result = await applySuggestedTagsToDocument(doc, dispatch)
+          if (result.added.length) {
+            toast.success(
+              t('agent.applyOrganizeDone', { tags: result.added.join(', ') }),
+            )
+          } else if (result.folderSuggestion) {
+            toast.success(
+              t('agent.applyOrganizeFolder', { folder: result.folderSuggestion }),
+            )
+          } else {
+            toast.success(t('agent.applyOrganizeNone'))
+          }
+          return
+        }
+
+        if (tools.has('wiki')) {
+          const suggestions = await nlpSuggestWikiLinks(activeDocumentId, 6)
+          const first = suggestions?.[0]
+          if (first) {
+            const result = applyWikiSuggestion(first)
+            if (result === 'failed') {
+              toast.error(t('agent.applyWikiFailed'))
+              return
+            }
+            toast.success(t('agent.applyWikiDone', { title: first.title }))
+            return
+          }
+        }
+
+        if (tools.has('tasks') || tools.has('takeaways')) {
+          applyAnswerToNote(text, 'checklist')
+          return
+        }
+
+        applyAnswerToNote(text, preferredApplyMode(steps))
+      } catch (error) {
+        toast.error(t('agent.applyFailed'), String(error))
+      }
+    },
+    [activeDocumentId, applyAnswerToNote, dispatch, preferredApplyMode, t],
   )
 
   const handleTeach = useCallback(() => {
@@ -519,6 +602,17 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
           </button>
           <button
             type="button"
+            className={cn('library-chat-chip', showRuns && 'is-active')}
+            onClick={() => {
+              setShowRuns((value) => !value)
+              refreshRunHistory()
+            }}
+          >
+            {t('agent.runHistory')}
+            {runHistory.length > 0 ? ` (${runHistory.length})` : ''}
+          </button>
+          <button
+            type="button"
             className="library-chat-chip"
             onClick={() => navigate(ROUTES.settingsSection('agent'))}
           >
@@ -534,6 +628,11 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
 
         {showTeach ? (
           <div className="mt-2 space-y-1.5 px-0.5">
+            <p className="px-0.5 text-[11px] text-[var(--color-muted-foreground)]">
+              {scope === 'document' && activeDocumentId
+                ? t('settings.agent.teachScopeDocument')
+                : t('settings.agent.teachScopeGlobal')}
+            </p>
             <form
               className="flex gap-1.5"
               onSubmit={(event) => {
@@ -545,14 +644,30 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                 className="library-chat-input"
                 value={teachInput}
                 maxLength={AGENT_TEACHING_MAX_LEN}
-                placeholder={t('settings.agent.teachPlaceholder')}
+                placeholder={
+                  scope === 'document' && activeDocumentId
+                    ? t('settings.agent.teachPlaceholderDocument')
+                    : t('settings.agent.teachPlaceholder')
+                }
                 onChange={(event) => setTeachInput(event.target.value)}
               />
               <Button type="submit" size="sm" disabled={teachInput.trim().length < 2}>
                 {t('settings.agent.teachAdd')}
               </Button>
             </form>
-            {agentPrefs.teachings.slice(0, 4).map((item) => (
+            {agentPrefs.teachings
+              .filter((item) => {
+                if (scope === 'document' && activeDocumentId) {
+                  return (
+                    !item.scope ||
+                    item.scope === 'global' ||
+                    (item.scope === 'document' && item.documentId === activeDocumentId)
+                  )
+                }
+                return !item.scope || item.scope === 'global'
+              })
+              .slice(0, 4)
+              .map((item) => (
               <button
                 key={item.id}
                 type="button"
@@ -560,10 +675,62 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                 title={t('settings.agent.teachRemove')}
                 onClick={() => dispatch(removeAgentTeaching(item.id))}
               >
-                <span className="truncate">{item.text}</span>
+                <span className="truncate">
+                  {item.scope === 'document' ? (
+                    <span className="mr-1 text-[10px] uppercase tracking-wide opacity-60">
+                      {t('settings.agent.teachBadgeDocument')}
+                    </span>
+                  ) : null}
+                  {item.text}
+                </span>
                 <Eraser className="ml-1 h-3 w-3 shrink-0 opacity-70" />
               </button>
             ))}
+          </div>
+        ) : null}
+
+        {showRuns ? (
+          <div className="agent-run-history mt-2 space-y-1.5 px-0.5">
+            {runHistory.length === 0 ? (
+              <p className="px-0.5 text-[11px] text-[var(--color-muted-foreground)]">
+                {t('agent.runHistoryEmpty')}
+              </p>
+            ) : (
+              runHistory.map((run) => {
+                const when = new Date(run.createdAt).toLocaleString(undefined, {
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })
+                let stepCount = 0
+                try {
+                  const parsed = JSON.parse(run.stepsJson || '[]') as unknown
+                  if (Array.isArray(parsed)) stepCount = parsed.length
+                } catch {
+                  stepCount = 0
+                }
+                return (
+                  <button
+                    key={run.id}
+                    type="button"
+                    className="agent-run-history-item"
+                    disabled={loading}
+                    onClick={() => {
+                      setInput(run.goal)
+                      setShowRuns(false)
+                    }}
+                  >
+                    <span className="agent-run-history-goal">{run.goal}</span>
+                    <span className="agent-run-history-meta">
+                      {when}
+                      {stepCount > 0 ? ` · ${t('agent.runHistorySteps', { count: stepCount })}` : ''}
+                      {run.answer ? ` · ${run.answer.slice(0, 72)}${run.answer.length > 72 ? '…' : ''}` : ''}
+                    </span>
+                  </button>
+                )
+              })
+            )}
           </div>
         ) : null}
       </div>
@@ -715,11 +882,21 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                   <div className="mt-1.5 flex flex-wrap gap-1">
                     <button
                       type="button"
+                      className="library-chat-chip is-active"
+                      disabled={loading}
+                      onClick={() =>
+                        void applyFromSteps(message.text, message.steps)
+                      }
+                    >
+                      <FilePlus2 className="mr-1 inline h-3 w-3" />
+                      {t('agent.applySmart')}
+                    </button>
+                    <button
+                      type="button"
                       className="library-chat-chip"
                       disabled={loading}
                       onClick={() => applyAnswerToNote(message.text, 'callout')}
                     >
-                      <FilePlus2 className="mr-1 inline h-3 w-3" />
                       {t('agent.applyCallout')}
                     </button>
                     <button
