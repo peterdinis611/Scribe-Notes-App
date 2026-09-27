@@ -2210,6 +2210,7 @@
     },
     "revisions": {
       "subtitle": "Automatically saved document versions",
+      "hide": "Hide version history",
       "compareTitle": "Compare versions",
       "versionA": "Version A",
       "versionB": "Version B",

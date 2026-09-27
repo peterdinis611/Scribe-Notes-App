@@ -2215,6 +2215,7 @@
     },
     "revisions": {
       "subtitle": "Automaticky uložené verzie dokumentu",
+      "hide": "Skryť históriu verzií",
       "compareTitle": "Porovnať verzie",
       "versionA": "Verzia A",
       "versionB": "Verzia B",

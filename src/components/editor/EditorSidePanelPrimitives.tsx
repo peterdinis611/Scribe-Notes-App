@@ -57,14 +57,16 @@ export function EditorSidePanelHeader({
   actions?: ReactNode
 }) {
   return (
-    <div className="flex items-start justify-between gap-3 border-b border-[var(--color-border)] px-3.5 pb-2.5 pt-3.5">
-      <div>
-        <h2 className="m-0 text-[13px] font-bold">{title}</h2>
+    <div className="flex items-start justify-between gap-2 border-b border-[var(--color-border)] px-3.5 pb-2.5 pt-3.5">
+      <div className="min-w-0 flex-1">
+        <h2 className="m-0 truncate text-[13px] font-bold">{title}</h2>
         {subtitle ? (
-          <p className="mt-0.5 text-[11px] text-[var(--color-muted-foreground)]">{subtitle}</p>
+          <p className="mt-0.5 line-clamp-2 text-[11px] text-[var(--color-muted-foreground)]">
+            {subtitle}
+          </p>
         ) : null}
       </div>
-      {actions}
+      {actions ? <div className="flex shrink-0 items-center gap-0.5">{actions}</div> : null}
     </div>
   )
 }

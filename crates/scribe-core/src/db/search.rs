@@ -26,14 +26,15 @@ pub fn build_fts_query(query: &str) -> String {
     }
 
     if tokens.len() == 1 {
-        let quoted = quote_fts_token(&tokens[0]);
-        return format!("{quoted} OR {quoted}*");
+        let token = &tokens[0];
+        // Prefix form must stay unquoted (`token*`); token is already sanitized.
+        return format!("{} OR {token}*", quote_fts_token(token));
     }
 
     let phrase = quote_fts_token(&tokens.join(" "));
     let mut parts = vec![phrase];
     for token in &tokens {
-        parts.push(format!("{}*", quote_fts_token(token)));
+        parts.push(format!("{token}*"));
     }
     parts.join(" OR ")
 }
@@ -543,7 +544,7 @@ mod tests {
     fn escapes_quotes_in_query() {
         assert_eq!(
             build_fts_query(r#"foo" bar"#),
-            r#""foo bar" OR "foo"* OR "bar"*"#
+            r#""foo bar" OR foo* OR bar*"#
         );
     }
 
@@ -551,26 +552,48 @@ mod tests {
     fn strips_fts_punctuation() {
         assert_eq!(
             build_fts_query("Where is my car?"),
-            r#""Where is my car" OR "Where"* OR "is"* OR "my"* OR "car"*"#
+            r#""Where is my car" OR Where* OR is* OR my* OR car*"#
         );
         assert_eq!(build_fts_query("???"), "");
-        assert_eq!(
-            build_fts_query("pridané?"),
-            r#""pridané" OR "pridané"*"#
-        );
+        assert_eq!(build_fts_query("pridané?"), r#""pridané" OR pridané*"#);
+        assert_eq!(build_fts_query("@alice #tag"), r#""alice tag" OR alice* OR tag*"#);
+    }
+
+    #[test]
+    fn question_mark_query_does_not_error() {
+        let conn = in_memory_conn();
+        crate::db::test_helpers::seed_document(&conn, "doc-q", "Car note", "{}", None);
+        crate::db::sync_document_fts(
+            &conn,
+            "doc-q",
+            "Car note",
+            r#"{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Where is my car parked"}]}]}"#,
+        )
+        .unwrap();
+
+        let hits = search_documents_in_conn(&conn, "Where is my car?", 10).unwrap();
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].document_id, "doc-q");
     }
 
     #[test]
     fn builds_multi_word_query() {
         assert_eq!(
             build_fts_query("dôležitý termín"),
-            r#""dôležitý termín" OR "dôležitý"* OR "termín"*"#
+            r#""dôležitý termín" OR dôležitý* OR termín*"#
         );
     }
 
     #[test]
     fn finds_document_by_title_and_body() {
         let conn = in_memory_conn();
+        crate::db::test_helpers::seed_document(
+            &conn,
+            "doc-1",
+            "Poznámky zo stretnutia",
+            "{}",
+            None,
+        );
         crate::db::sync_document_fts(
             &conn,
             "doc-1",
