@@ -1,9 +1,9 @@
-import { Bot, Eraser, FilePlus2, FileText, Folder, GraduationCap, Library, Send, Settings2, Sparkles } from 'lucide-react'
+import { Eraser, FilePlus2, FileText, Folder, GraduationCap, Library, Send, Settings2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import { MarkdownView } from '@/components/MarkdownView'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { AgentBlobatar, AGENT_BLOBATAR_NAME } from '@/components/agent/AgentBlobatar'
 import { Bubble, BubbleContent } from '@/components/ui/bubble'
 import { Button } from '@/components/ui/button'
 import {
@@ -62,6 +62,8 @@ type AgentThreadMessage = {
 
 type AgentPanelProps = {
   onNavigate?: () => void
+  onClose?: () => void
+  variant?: 'embedded' | 'dock'
 }
 
 const TOOL_LABEL_KEYS: Record<AgentToolId, string> = {
@@ -113,7 +115,7 @@ function toPersistCitations(citations: LibraryChatCitation[]): DocumentChatCitat
   }))
 }
 
-export function AgentPanel({ onNavigate }: AgentPanelProps) {
+export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded' }: AgentPanelProps) {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
@@ -409,16 +411,17 @@ export function AgentPanel({ onNavigate }: AgentPanelProps) {
   const docTitle =
     activeDocument?.title?.trim() ||
     (activeDocumentId ? t('libraryChat.untitled') : null)
-  const userInitial = useMemo(() => {
+  const userBlobatarName = useMemo(() => {
     const name = commentAuthor.trim()
-    return name ? name.slice(0, 1).toUpperCase() : t('libraryChat.you').slice(0, 1)
+    if (name) return name
+    return t('libraryChat.you')
   }, [commentAuthor, t])
 
   return (
-    <div className="library-chat-panel agent-panel">
-      <div className="shrink-0 border-b border-[var(--color-border)] px-2 py-2">
+    <div className={cn('library-chat-panel agent-panel', variant === 'dock' && 'agent-panel--dock')}>
+      <div className="agent-panel-toolbar shrink-0">
         <div
-          className="inline-flex w-full rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5"
+          className="agent-scope-switch"
           role="group"
           aria-label={t('agent.scopeLabel')}
         >
@@ -573,8 +576,13 @@ export function AgentPanel({ onNavigate }: AgentPanelProps) {
 
           {displayMessages.length === 0 && !historyLoading ? (
             <div className="library-empty-state">
-              <div className="library-empty-state-icon">
-                <Bot className="h-5 w-5" />
+              <div className="library-empty-state-icon agent-empty-blobatar">
+                <AgentBlobatar
+                  name={AGENT_BLOBATAR_NAME}
+                  size={40}
+                  talking={loading}
+                  title={t('agent.faceTitle')}
+                />
               </div>
               <p className="library-chat-brand-badge" role="status">
                 {t('agent.brandBadge')}
@@ -610,17 +618,19 @@ export function AgentPanel({ onNavigate }: AgentPanelProps) {
             <Message key={message.id} className={cn(message.role === 'user' && 'items-end')}>
               {message.role === 'assistant' ? (
                 <MessageAvatar>
-                  <Avatar className="h-7 w-7">
-                    <AvatarFallback className="bg-[var(--color-accent)] text-[10px] text-white">
-                      <Sparkles className="h-3.5 w-3.5" />
-                    </AvatarFallback>
-                  </Avatar>
+                  <AgentBlobatar
+                    name={AGENT_BLOBATAR_NAME}
+                    size={28}
+                    title={t('agent.faceTitle')}
+                  />
                 </MessageAvatar>
               ) : (
                 <MessageAvatar>
-                  <Avatar className="h-7 w-7">
-                    <AvatarFallback className="text-[11px]">{userInitial}</AvatarFallback>
-                  </Avatar>
+                  <AgentBlobatar
+                    name={userBlobatarName}
+                    size={28}
+                    title={t('agent.yourFaceTitle')}
+                  />
                 </MessageAvatar>
               )}
               <MessageContent>
@@ -778,14 +788,20 @@ export function AgentPanel({ onNavigate }: AgentPanelProps) {
           ))}
 
           {loading ? (
-            <p className="library-chat-status">
-              <span className="library-chat-typing" role="status">
+            <div className="library-chat-status agent-thinking-row" role="status">
+              <AgentBlobatar
+                name={AGENT_BLOBATAR_NAME}
+                size={22}
+                talking
+                title={t('agent.faceTitle')}
+              />
+              <span className="library-chat-typing">
                 <span className="library-chat-typing-dot" />
                 <span className="library-chat-typing-dot" />
                 <span className="library-chat-typing-dot" />
               </span>
-              {t('agent.thinking')}
-            </p>
+              <span>{t('agent.thinking')}</span>
+            </div>
           ) : null}
           <div ref={threadEndRef} />
         </div>

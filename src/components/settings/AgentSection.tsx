@@ -1,6 +1,7 @@
-import { Bot, GraduationCap, Trash2, Zap } from 'lucide-react'
+import { GraduationCap, Trash2, Zap } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { AgentBlobatar, AGENT_BLOBATAR_NAME } from '@/components/agent/AgentBlobatar'
 import { Button } from '@/components/ui/button'
 import {
   SettingsSection,
@@ -143,7 +144,12 @@ export function AgentSection() {
 
       <div className="agent-settings-power">
         <div className="agent-settings-power-mark" aria-hidden="true">
-          <Bot className="h-4 w-4" />
+          <AgentBlobatar
+            name={AGENT_BLOBATAR_NAME}
+            size={28}
+            talking={prefs.enabled}
+            title={t('agent.faceTitle')}
+          />
         </div>
         <div className="agent-settings-power-copy">
           <span>{t('settings.agent.enabled')}</span>
@@ -244,7 +250,7 @@ export function AgentSection() {
 
         <section className="agent-settings-card" aria-labelledby="agent-behavior-title">
           <div className="agent-settings-card-head">
-            <Bot className="h-3.5 w-3.5" aria-hidden="true" />
+            <AgentBlobatar name={AGENT_BLOBATAR_NAME} size={14} title={t('agent.faceTitle')} />
             <div>
               <h4 id="agent-behavior-title">{t('settings.agent.behaviorTitle')}</h4>
               <p>{t('settings.agent.behaviorHint')}</p>

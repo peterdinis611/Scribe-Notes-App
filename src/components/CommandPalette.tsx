@@ -100,6 +100,7 @@ import {
   setClipboardHistoryPanelOpen,
   setCommentsPanelOpen,
   setDocumentOutlineOpen,
+  setAgentPanelOpen,
   setInsightsPanelOpen,
   requestInsightsAskFocus,
   setLibraryFindReplaceOpen,
@@ -845,8 +846,7 @@ export function CommandPalette() {
         label: t('commandPalette.openAgent'),
         icon: <Bot className="h-4 w-4" />,
         run: () => {
-          dispatch(setSidebarOpen(true))
-          dispatch(setLibraryView('agent'))
+          dispatch(setAgentPanelOpen(true))
         },
       },
       {
@@ -855,8 +855,7 @@ export function CommandPalette() {
         label: t('agent.recipes.weeklyReview'),
         icon: <Bot className="h-4 w-4" />,
         run: () => {
-          dispatch(setSidebarOpen(true))
-          dispatch(setLibraryView('agent'))
+          dispatch(setAgentPanelOpen(true))
           void import('@/lib/library/agent-recipe-runner').then(({ runAgentRecipeFromPalette }) =>
             runAgentRecipeFromPalette('weekly_review'),
           )
@@ -868,8 +867,7 @@ export function CommandPalette() {
         label: t('agent.recipes.meetingWrap'),
         icon: <Bot className="h-4 w-4" />,
         run: () => {
-          dispatch(setSidebarOpen(true))
-          dispatch(setLibraryView('agent'))
+          dispatch(setAgentPanelOpen(true))
           void import('@/lib/library/agent-recipe-runner').then(({ runAgentRecipeFromPalette }) =>
             runAgentRecipeFromPalette('meeting_wrap'),
           )

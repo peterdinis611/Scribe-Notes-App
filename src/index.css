@@ -3786,6 +3786,139 @@ html[data-ui-skin='press'] .editor-shell--home {
   overflow: hidden;
 }
 
+.agent-workspace-dock {
+  --agent-dock-width: min(400px, 42vw);
+  position: relative;
+  z-index: 24;
+  display: flex;
+  width: var(--agent-dock-width);
+  min-width: 300px;
+  max-width: 460px;
+  height: 100%;
+  min-height: 0;
+  flex-shrink: 0;
+  flex-direction: column;
+  border-left: 1px solid color-mix(in srgb, var(--color-border) 88%, var(--color-accent));
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--color-accent) 10%, var(--color-sidebar-solid)) 0%,
+      var(--color-sidebar-solid) 28%,
+      var(--color-background) 100%
+    );
+  box-shadow: -18px 0 40px color-mix(in srgb, #000 18%, transparent);
+  animation: agent-dock-in 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes agent-dock-in {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.agent-dock-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 75%, transparent);
+}
+
+.agent-dock-identity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.agent-dock-face {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 28%, transparent);
+}
+
+.agent-dock-copy {
+  min-width: 0;
+}
+
+.agent-dock-kicker {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+.agent-dock-title {
+  margin: 2px 0 0;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-foreground);
+}
+
+.agent-dock-close {
+  display: inline-flex;
+  height: 30px;
+  width: 30px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-muted-foreground);
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.agent-dock-close:hover {
+  border-color: var(--color-border);
+  background: var(--color-hover);
+  color: var(--color-foreground);
+}
+
+.agent-panel--dock {
+  min-height: 0;
+  flex: 1;
+}
+
+.agent-panel-toolbar {
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+}
+
+.agent-scope-switch {
+  display: inline-flex;
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  padding: 3px;
+  gap: 2px;
+}
+
+.agent-scope-switch .library-chat-scope-tab {
+  border-radius: 8px;
+}
+
+.editor-panel-rail-btn--agent,
+.app-rail-btn--agent {
+  padding: 0;
+  overflow: visible;
+}
+
+.editor-panel-rail-btn--agent.is-active,
+.app-rail-btn--agent.is-active {
+  background: color-mix(in srgb, var(--color-accent) 16%, var(--color-selection));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 40%, transparent);
+}
+
 .agent-capability-chip {
   display: inline-flex;
   align-items: center;
@@ -3849,6 +3982,33 @@ html[data-ui-skin='press'] .editor-shell--home {
   letter-spacing: 0.04em;
   font-size: 9.5px;
   color: var(--color-muted-foreground);
+}
+
+.agent-blobatar {
+  line-height: 0;
+  background: color-mix(in srgb, var(--color-surface) 88%, var(--color-border));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-border) 80%, transparent);
+}
+
+.agent-blobatar svg,
+.agent-blobatar img {
+  display: block;
+}
+
+.library-empty-state-icon.agent-empty-blobatar {
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  box-shadow: none;
+}
+
+.agent-thinking-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .library-chat-scope-tab {
@@ -12895,7 +13055,8 @@ html[data-ui-skin='press'] .error-folio__title {
 
 /* —— Agent settings (utilitarian control desk) —— */
 .agent-settings {
-  max-width: 40rem;
+  width: 100%;
+  max-width: none;
 }
 
 .agent-settings-power {
@@ -12919,12 +13080,13 @@ html[data-ui-skin='press'] .error-folio__title {
 .agent-settings-power-mark {
   display: grid;
   place-items: center;
-  width: 2.15rem;
-  height: 2.15rem;
-  border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
-  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
-  color: var(--color-accent);
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 28%, var(--color-border));
+  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  overflow: hidden;
+  padding: 0;
 }
 
 .agent-settings-power-copy {
@@ -12947,10 +13109,32 @@ html[data-ui-skin='press'] .error-folio__title {
 }
 
 .agent-settings-grid {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 12px;
+  width: 100%;
   transition: opacity 160ms ease;
+}
+
+@media (min-width: 960px) {
+  .agent-settings-grid {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .agent-settings-grid > .agent-settings-card:first-child {
+    grid-row: 1 / span 3;
+  }
+}
+
+@media (min-width: 1280px) {
+  .agent-settings-grid {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.9fr) minmax(0, 0.9fr);
+  }
+
+  .agent-settings-grid > .agent-settings-card:first-child {
+    grid-row: 1 / span 2;
+  }
 }
 
 .agent-settings-grid.is-dimmed {

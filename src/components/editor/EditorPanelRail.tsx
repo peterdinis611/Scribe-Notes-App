@@ -16,6 +16,7 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { AgentBlobatar, AGENT_BLOBATAR_NAME } from '@/components/agent/AgentBlobatar'
 import {
   Tooltip,
   TooltipContent,
@@ -25,6 +26,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
+  setAgentPanelOpen,
   setBacklinksPanelOpen,
   setClipboardHistoryPanelOpen,
   setCommentsPanelOpen,
@@ -47,15 +49,16 @@ type RailButtonProps = {
   onClick: () => void
   children: ReactNode
   tourId?: string
+  className?: string
 }
 
-function RailButton({ active, label, onClick, children, tourId }: RailButtonProps) {
+function RailButton({ active, label, onClick, children, tourId, className }: RailButtonProps) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <button
           type="button"
-          className={cn('editor-panel-rail-btn titlebar-no-drag', active && 'is-active')}
+          className={cn('editor-panel-rail-btn titlebar-no-drag', active && 'is-active', className)}
           aria-label={label}
           aria-pressed={active}
           data-tour={tourId}
@@ -77,6 +80,7 @@ export function EditorPanelRail() {
   const statsOpen = useAppSelector((state) => state.documents.statsPanelOpen)
   const backlinksOpen = useAppSelector((state) => state.documents.backlinksPanelOpen)
   const insightsOpen = useAppSelector((state) => state.documents.insightsPanelOpen)
+  const agentOpen = useAppSelector((state) => state.documents.agentPanelOpen)
   const clipboardOpen = useAppSelector((state) => state.documents.clipboardHistoryPanelOpen)
   const flashcardsOpen = useAppSelector((state) => state.documents.flashcardsPanelOpen)
   const findReplaceOpen = useAppSelector((state) => state.documents.findReplaceOpen)
@@ -93,6 +97,7 @@ export function EditorPanelRail() {
     statsOpen ||
     backlinksOpen ||
     insightsOpen ||
+    agentOpen ||
     clipboardOpen ||
     flashcardsOpen ||
     findReplaceOpen
@@ -106,6 +111,7 @@ export function EditorPanelRail() {
       | 'stats'
       | 'backlinks'
       | 'insights'
+      | 'agent'
       | 'clipboard'
       | 'flashcards',
   ) {
@@ -115,6 +121,7 @@ export function EditorPanelRail() {
     if (except !== 'stats') dispatch(setStatsPanelOpen(false))
     if (except !== 'backlinks') dispatch(setBacklinksPanelOpen(false))
     if (except !== 'insights') dispatch(setInsightsPanelOpen(false))
+    if (except !== 'agent') dispatch(setAgentPanelOpen(false))
     if (except !== 'clipboard') dispatch(setClipboardHistoryPanelOpen(false))
     if (except !== 'flashcards') dispatch(setFlashcardsPanelOpen(false))
   }
@@ -136,6 +143,23 @@ export function EditorPanelRail() {
     dispatch(setInsightsPanelOpen(!insightsOpen))
   }
 
+  function openAgent() {
+    closeOtherPanels('agent')
+    dispatch(setAgentPanelOpen(!agentOpen))
+  }
+
+  const agentButton = (
+    <RailButton
+      label={t('editorPanels.agent')}
+      active={agentOpen}
+      tourId="panel-agent"
+      className="editor-panel-rail-btn--agent"
+      onClick={openAgent}
+    >
+      <AgentBlobatar name={AGENT_BLOBATAR_NAME} size={22} talking={agentOpen} title={t('agent.faceTitle')} />
+    </RailButton>
+  )
+
   if (!expanded) {
     return (
       <TooltipProvider>
@@ -143,6 +167,7 @@ export function EditorPanelRail() {
           className="editor-panel-rail editor-panel-rail--collapsed titlebar-no-drag"
           aria-label={t('editorPanels.ariaLabel')}
         >
+          {agentButton}
           <RailButton
             label={findReplaceOpen ? t('editorPanels.findReplaceClose') : t('editorPanels.findReplace')}
             active={findReplaceOpen}
@@ -191,6 +216,10 @@ export function EditorPanelRail() {
         >
           <PanelRightClose className="h-4 w-4" />
         </RailButton>
+
+        <div className="editor-panel-rail-sep" aria-hidden="true" />
+
+        {agentButton}
 
         <div className="editor-panel-rail-sep" aria-hidden="true" />
 

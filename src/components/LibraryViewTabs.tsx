@@ -30,6 +30,7 @@ export type LibraryView =
 
 type LibraryViewTabsProps = {
   value: LibraryView
+  agentOpen?: boolean
   favoriteCount: number
   tagCount: number
   recentCount?: number
@@ -40,6 +41,7 @@ type LibraryViewTabsProps = {
 
 export function LibraryViewTabs({
   value,
+  agentOpen = false,
   favoriteCount,
   tagCount,
   recentCount = 0,
@@ -77,7 +79,7 @@ export function LibraryViewTabs({
       {tabs.map((tab) => {
         const count = countFor(tab.id)
         const Icon = tab.icon
-        const isActive = value === tab.id
+        const isActive = tab.id === 'agent' ? agentOpen : value === tab.id
 
         return (
           <IconTooltip key={tab.id} label={tab.label}>
@@ -90,7 +92,7 @@ export function LibraryViewTabs({
                 isActive &&
                   'bg-[var(--color-selection)] text-[var(--color-foreground)] shadow-none [[html[data-ui-skin=press]_&]]:border-[color-mix(in_srgb,var(--color-accent)_28%,transparent)] [[html[data-ui-skin=press]_&]]:bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] [[html[data-ui-skin=press]_&]]:shadow-[inset_2px_0_0_0_var(--color-accent)]',
               )}
-              data-tour={tab.id === 'chat' ? 'library-chat' : undefined}
+              data-tour={tab.id === 'chat' ? 'library-chat' : tab.id === 'agent' ? 'library-agent' : undefined}
               onClick={() => onChange(tab.id)}
               aria-label={tab.label}
             >
