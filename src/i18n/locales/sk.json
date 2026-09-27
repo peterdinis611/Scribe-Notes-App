@@ -1912,6 +1912,7 @@
     "applyCallout": "Callout",
     "applyChecklist": "Checklist",
     "applyFrontmatter": "Hore do poznámky",
+    "applyUndo": "Vrátiť vloženie",
     "applyUndone": "Vloženie vrátené",
     "autoBriefToast": "Agent brief po uložení",
     "recipesDone": "Recept agenta hotový",
@@ -2376,7 +2377,7 @@
     "howToHint": "Dvojklik na uzol otvorí dokument. Filter Okolo zobrazí susedov aktívnej poznámky.",
     "openFullMap": "Otvoriť celú mapu prepojení",
     "openFullMapShort": "Celá mapa",
-    "obsidianHint": "Scroll posúva · ⌃ scroll priblíži · Space/stredné tlačidlo · % = celá mapa",
+    "obsidianHint": "Scroll približuje · ťahaním posúvaš · tlačidlá = celá mapa",
     "showEntities": "Zobraziť štítky a NLP entity ako uzly prepojené s dokumentmi",
     "showEntitiesShort": "Entity",
     "entitiesHint": "Štítky vždy · NLP entity keď je dostupná Lokálna AI (max. 24 poznámok)"

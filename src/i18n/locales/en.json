@@ -1911,6 +1911,7 @@
     "applyCallout": "Callout",
     "applyChecklist": "Checklist",
     "applyFrontmatter": "Top note",
+    "applyUndo": "Undo insert",
     "applyUndone": "Undid insert",
     "autoBriefToast": "Agent brief after save",
     "recipesDone": "Agent recipe finished",
@@ -2371,7 +2372,7 @@
     "howToHint": "Double-click a node to open it. The Around filter shows neighbors of the active note.",
     "openFullMap": "Open full connection map",
     "openFullMapShort": "Full map",
-    "obsidianHint": "Scroll to pan · ⌃ scroll zooms · Space/middle-drag · % fits all",
+    "obsidianHint": "Scroll zooms · drag pans · buttons fit the map",
     "showEntities": "Show tags and NLP entities as nodes connected to documents",
     "showEntitiesShort": "Entities",
     "entitiesHint": "Tags always · NLP entities when Local AI is available (up to 24 notes)"

@@ -2,16 +2,19 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Background,
   BackgroundVariant,
-  Controls,
   MiniMap,
+  Panel,
   ReactFlow,
   ReactFlowProvider,
   useEdgesState,
   useNodesState,
   useReactFlow,
+  useStore,
   type Edge,
   type NodeTypes,
 } from '@xyflow/react'
+import { Maximize2, Minus, Plus } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import '@xyflow/react/dist/style.css'
 import type { LinkGraphEdge } from '@/lib/db/api'
 import {
@@ -19,6 +22,8 @@ import {
   type ForceNodeKind,
 } from '@/lib/link-graph/force-layout'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { IconTooltip } from '@/components/ui/tooltip'
 import {
   LINK_GRAPH_NODE_TYPE,
   LinkGraphNode,
@@ -130,6 +135,64 @@ function toFlowEdges(edges: LinkGraphEdge[], activeId: string | null): Edge[] {
   })
 }
 
+function LinkGraphZoomPanel() {
+  const { zoomIn, zoomOut, fitView } = useReactFlow()
+  const zoom = useStore((state) => state.transform[2])
+  const { t } = useTranslation()
+  const percent = Math.round(zoom * 100)
+
+  return (
+    <Panel position="bottom-left" className="link-graph-rf-zoom">
+      <IconTooltip label={t('linkGraph.zoomOut')}>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-8 w-8"
+          aria-label={t('linkGraph.zoomOut')}
+          onClick={() => void zoomOut({ duration: 160 })}
+        >
+          <Minus className="h-3.5 w-3.5" />
+        </Button>
+      </IconTooltip>
+      <IconTooltip label={t('linkGraph.fitView')}>
+        <button
+          type="button"
+          className="link-graph-rf-zoom-readout"
+          aria-label={t('linkGraph.fitView')}
+          onClick={() => void fitView({ padding: 0.2, duration: 220 })}
+        >
+          {percent}%
+        </button>
+      </IconTooltip>
+      <IconTooltip label={t('linkGraph.zoomIn')}>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-8 w-8"
+          aria-label={t('linkGraph.zoomIn')}
+          onClick={() => void zoomIn({ duration: 160 })}
+        >
+          <Plus className="h-3.5 w-3.5" />
+        </Button>
+      </IconTooltip>
+      <IconTooltip label={t('linkGraph.fitView')}>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-8 w-8"
+          aria-label={t('linkGraph.fitView')}
+          onClick={() => void fitView({ padding: 0.2, duration: 220 })}
+        >
+          <Maximize2 className="h-3.5 w-3.5" />
+        </Button>
+      </IconTooltip>
+    </Panel>
+  )
+}
+
 function LinkGraphFlowInner({
   seeds,
   edges,
@@ -144,7 +207,7 @@ function LinkGraphFlowInner({
   onFocusDocument,
 }: LinkGraphFlowProps) {
   const size = isPage ? 900 : 360
-  const { fitView, getZoom } = useReactFlow()
+  const { fitView } = useReactFlow()
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const clickTimerRef = useRef<number | null>(null)
   const topologyKey = useMemo(
@@ -237,8 +300,8 @@ function LinkGraphFlowInner({
             stroke: relatedToActive || (hoveredId && relatedToHover)
               ? 'var(--link-graph-edge-hot)'
               : 'var(--link-graph-edge)',
-            strokeWidth: relatedToActive || (hoveredId && relatedToHover) ? 1.6 : 1.1,
-            opacity: dimmed ? 0.22 : 1,
+            strokeWidth: relatedToActive || (hoveredId && relatedToHover) ? 2 : 1.35,
+            opacity: dimmed ? 0.2 : 1,
           },
         }
       }),
@@ -303,39 +366,41 @@ function LinkGraphFlowInner({
         onNodeMouseLeave={() => setHoveredId(null)}
         fitView
         fitViewOptions={{ padding: isPage ? 0.18 : 0.22 }}
-        minZoom={0.28}
-        maxZoom={3.2}
+        minZoom={0.2}
+        maxZoom={4}
         proOptions={{ hideAttribution: true }}
         nodesConnectable={false}
         edgesReconnectable={false}
         elementsSelectable
-        panOnScroll
+        panOnDrag
+        panOnScroll={false}
+        zoomOnScroll
+        zoomOnPinch
         zoomOnDoubleClick={false}
+        preventScrolling
         defaultEdgeOptions={{ type: 'default' }}
       >
         <Background
           id="link-graph-bg"
           variant={BackgroundVariant.Dots}
-          gap={18}
-          size={1}
-          color="color-mix(in srgb, var(--color-muted-foreground) 22%, transparent)"
+          gap={20}
+          size={1.15}
+          color="color-mix(in srgb, var(--color-accent) 28%, transparent)"
         />
-        <Controls
-          showInteractive={false}
-          className="link-graph-rf-controls"
-          aria-label={`zoom ${Math.round(getZoom() * 100)}%`}
-        />
+        <LinkGraphZoomPanel />
         {isPage ? (
           <MiniMap
             className="link-graph-rf-minimap"
             pannable
             zoomable
+            maskColor="color-mix(in srgb, var(--color-background) 55%, transparent)"
             nodeColor={(node) => {
               const data = node.data as LinkGraphNodeData | undefined
               if (data?.active) return 'var(--link-graph-node-active)'
               if (data?.color) return data.color
               if (data?.kind === 'tag') return 'var(--color-accent)'
-              if (data?.kind === 'entity') return 'color-mix(in srgb, var(--color-accent) 55%, #fff)'
+              if (data?.kind === 'entity')
+                return 'color-mix(in srgb, var(--color-accent) 55%, #fff)'
               return 'var(--link-graph-node)'
             }}
           />

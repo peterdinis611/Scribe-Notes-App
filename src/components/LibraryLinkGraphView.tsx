@@ -49,7 +49,7 @@ function hashHue(value: string): number {
 function colorForKey(key: string | null | undefined): string | undefined {
   if (!key) return undefined
   const hue = hashHue(key)
-  return `hsl(${hue} 52% 52%)`
+  return `hsl(${hue} 72% 58%)`
 }
 
 function normalizeKey(value: string): string {
@@ -137,10 +137,10 @@ function collectVisible(
     const meta = options.metaById.get(id)
     if (options.colorMode === 'tag') {
       const tag = meta?.tags[0]
-      return colorForKey(tag)
+      return colorForKey(tag ?? id)
     }
     if (options.colorMode === 'folder') {
-      return colorForKey(meta?.folderId)
+      return colorForKey(meta?.folderId ?? id)
     }
     return undefined
   }
