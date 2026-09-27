@@ -17,9 +17,11 @@ import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
+  addAgentPinnedFact,
   addAgentTeaching,
   clearAgentTeachings,
   patchAgentPrefs,
+  removeAgentPinnedFact,
   removeAgentTeaching,
 } from '@/store/settingsSlice'
 
@@ -100,6 +102,7 @@ export function AgentSection() {
   const dispatch = useAppDispatch()
   const prefs = useAppSelector((state) => state.settings.agentPrefs)
   const [teachInput, setTeachInput] = useState('')
+  const [pinInput, setPinInput] = useState('')
 
   function toggleEnabled() {
     const next = !prefs.enabled
@@ -330,6 +333,74 @@ export function AgentSection() {
               ))}
             </div>
           </div>
+          <div className="agent-settings-field">
+            <div className="agent-settings-field-copy">
+              <span>{t('settings.agent.autoRunOnSave')}</span>
+              <small>{t('settings.agent.autoRunOnSaveHint')}</small>
+            </div>
+            <AgentToggle
+              compact
+              checked={prefs.autoRunOnSave}
+              onChange={() =>
+                dispatch(patchAgentPrefs({ autoRunOnSave: !prefs.autoRunOnSave }))
+              }
+              disabled={!prefs.enabled}
+              onLabel={t('settings.agent.on')}
+              offLabel={t('settings.agent.off')}
+            />
+          </div>
+        </section>
+
+        <section className="agent-settings-card" aria-labelledby="agent-pins-title">
+          <div className="agent-settings-card-head">
+            <Zap className="h-3.5 w-3.5" aria-hidden="true" />
+            <div>
+              <h4 id="agent-pins-title">{t('settings.agent.pinnedTitle')}</h4>
+              <p>{t('settings.agent.pinnedHint')}</p>
+            </div>
+          </div>
+          <form
+            className="agent-settings-teach-form"
+            onSubmit={(event) => {
+              event.preventDefault()
+              const text = pinInput.trim()
+              if (text.length < 2) return
+              dispatch(addAgentPinnedFact(text))
+              setPinInput('')
+            }}
+          >
+            <input
+              value={pinInput}
+              maxLength={AGENT_TEACHING_MAX_LEN}
+              disabled={!prefs.enabled}
+              placeholder={t('settings.agent.pinnedPlaceholder')}
+              onChange={(event) => setPinInput(event.target.value)}
+            />
+            <Button type="submit" size="sm" disabled={!prefs.enabled || pinInput.trim().length < 2}>
+              {t('settings.agent.pinnedAdd')}
+            </Button>
+          </form>
+          {prefs.pinnedFacts.length > 0 ? (
+            <ol className="agent-settings-teachings">
+              {prefs.pinnedFacts.map((item, index) => (
+                <li key={item.id}>
+                  <span className="agent-settings-teaching-index">
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
+                  <span className="agent-settings-teaching-text">{item.text}</span>
+                  <button
+                    type="button"
+                    className="agent-settings-teaching-remove"
+                    onClick={() => dispatch(removeAgentPinnedFact(item.id))}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="agent-settings-empty">{t('settings.agent.pinnedEmpty')}</p>
+          )}
         </section>
 
         <section className="agent-settings-card agent-settings-card--teach" aria-labelledby="agent-teach-title">

@@ -1,0 +1,32 @@
+import { runAgentGoal } from '@/lib/library/agent'
+import type { AgentRecipeId } from '@/lib/library/agent-recipes'
+import { normalizeAgentPrefs } from '@/lib/library/agent-prefs'
+import { toast } from '@/lib/toast'
+import { store } from '@/store/index'
+import { setAgentPrefs } from '@/store/settingsSlice'
+import i18n from '@/i18n'
+
+/** Fire a recipe from the command palette (opens agent view separately). */
+export async function runAgentRecipeFromPalette(recipeId: AgentRecipeId) {
+  const state = store.getState()
+  const prefs = normalizeAgentPrefs(state.settings.agentPrefs)
+  if (!prefs.enabled) {
+    toast.error(i18n.t('agent.errorTitle'), i18n.t('agent.disabled'))
+    return
+  }
+  const documentId = state.documents.activeDocumentId
+  const scope = documentId ? 'document' : 'library'
+  try {
+    const result = await runAgentGoal('', scope, documentId, undefined, prefs, { recipeId })
+    if (result.nextPrefs) store.dispatch(setAgentPrefs(result.nextPrefs))
+    if (result.needsClarification) {
+      toast.info(i18n.t('agent.clarifyPrompt'))
+      return
+    }
+    const preview = (result.answer || '').replace(/\s+/g, ' ').slice(0, 140)
+    toast.success(i18n.t('agent.recipesDone'), preview || i18n.t('agent.emptyResult'))
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    toast.error(i18n.t('agent.errorTitle'), message)
+  }
+}

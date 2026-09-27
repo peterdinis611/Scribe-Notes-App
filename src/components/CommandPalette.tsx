@@ -851,6 +851,32 @@ export function CommandPalette() {
       },
       {
         type: 'action',
+        id: 'agent-weekly-review',
+        label: t('agent.recipes.weeklyReview'),
+        icon: <Bot className="h-4 w-4" />,
+        run: () => {
+          dispatch(setSidebarOpen(true))
+          dispatch(setLibraryView('agent'))
+          void import('@/lib/library/agent-recipe-runner').then(({ runAgentRecipeFromPalette }) =>
+            runAgentRecipeFromPalette('weekly_review'),
+          )
+        },
+      },
+      {
+        type: 'action',
+        id: 'agent-meeting-wrap',
+        label: t('agent.recipes.meetingWrap'),
+        icon: <Bot className="h-4 w-4" />,
+        run: () => {
+          dispatch(setSidebarOpen(true))
+          dispatch(setLibraryView('agent'))
+          void import('@/lib/library/agent-recipe-runner').then(({ runAgentRecipeFromPalette }) =>
+            runAgentRecipeFromPalette('meeting_wrap'),
+          )
+        },
+      },
+      {
+        type: 'action',
         id: 'language',
         label: (() => {
           const idx = localeOptions.findIndex((item) => item.code === locale)

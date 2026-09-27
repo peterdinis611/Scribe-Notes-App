@@ -5,9 +5,11 @@ import type { PageSetup } from '@/lib/editor/page-setup'
 import { applyThemeSettings } from '@/lib/themes/apply'
 import type { ThemeSettings } from '@/lib/themes/types'
 import type { UiSkin } from '@/lib/ui-skin'
-import type { AgentPrefs, AgentTeaching } from '@/lib/library/agent-prefs'
+import type { AgentPrefs, AgentTeaching, AgentTeachingScope } from '@/lib/library/agent-prefs'
 import {
+  AGENT_PINNED_FACTS_MAX,
   AGENT_TEACHINGS_MAX,
+  createPinnedFact,
   createTeaching,
   normalizeAgentPrefs,
 } from '@/lib/library/agent-prefs'
@@ -201,8 +203,19 @@ const settingsSlice = createSlice({
       persistAgentPrefs(next)
       void saveAgentPrefsToBackend(next)
     },
-    addAgentTeaching(state, action: PayloadAction<string>) {
-      const teaching = createTeaching(action.payload)
+    addAgentTeaching(
+      state,
+      action: PayloadAction<
+        string | { text: string; scope?: AgentTeachingScope; documentId?: string | null }
+      >,
+    ) {
+      const payload = action.payload
+      const text = typeof payload === 'string' ? payload : payload.text
+      const opts =
+        typeof payload === 'string'
+          ? undefined
+          : { scope: payload.scope, documentId: payload.documentId }
+      const teaching = createTeaching(text, opts)
       if (!teaching) return
       const teachings = [teaching, ...state.agentPrefs.teachings]
         .filter(
@@ -228,6 +241,26 @@ const settingsSlice = createSlice({
       state.agentPrefs = next
       persistAgentPrefs(next)
       void clearAgentTeachingsOnBackend()
+    },
+    addAgentPinnedFact(state, action: PayloadAction<string>) {
+      const fact = createPinnedFact(action.payload)
+      if (!fact) return
+      const pinnedFacts = [fact, ...state.agentPrefs.pinnedFacts]
+        .filter(
+          (item, index, list) =>
+            list.findIndex((other) => other.text.toLowerCase() === item.text.toLowerCase()) ===
+            index,
+        )
+        .slice(0, AGENT_PINNED_FACTS_MAX)
+      const next = normalizeAgentPrefs({ ...state.agentPrefs, pinnedFacts })
+      state.agentPrefs = next
+      persistAgentPrefs(next)
+    },
+    removeAgentPinnedFact(state, action: PayloadAction<string>) {
+      const pinnedFacts = state.agentPrefs.pinnedFacts.filter((item) => item.id !== action.payload)
+      const next = normalizeAgentPrefs({ ...state.agentPrefs, pinnedFacts })
+      state.agentPrefs = next
+      persistAgentPrefs(next)
     },
     hydrateAgentPrefs(state, action: PayloadAction<AgentPrefs>) {
       const next = normalizeAgentPrefs(action.payload)
@@ -261,6 +294,8 @@ export const {
   addAgentTeaching,
   removeAgentTeaching,
   clearAgentTeachings,
+  addAgentPinnedFact,
+  removeAgentPinnedFact,
   hydrateAgentPrefs,
 } = settingsSlice.actions
 

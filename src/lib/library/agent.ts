@@ -256,11 +256,35 @@ function scopeTools(
 ): AgentToolId[] {
   return tools.filter((tool) => {
     if (LIBRARY_ONLY_TOOLS.has(tool)) return true
+    if (tool === 'dates' && (scope === 'library' || scope === 'folder')) return true
+    if (tool === 'brief' && scope === 'folder') return true
     if (!DOCUMENT_TOOLS.has(tool)) return true
-    if (tool === 'dates' && scope === 'library') return true
     if (scope === 'library' && !documentId) return false
+    if (scope === 'folder' && !documentId && DOCUMENT_TOOLS.has(tool) && tool !== 'dates') {
+      return false
+    }
     return true
   })
+}
+
+function defaultAnswerTool(scope: ChatScope): AgentToolId {
+  return scope === 'document' ? 'document_answer' : 'library_answer'
+}
+
+export function suggestFollowupRecipes(
+  steps: AgentStep[],
+  scope: ChatScope,
+): string[] {
+  const ok = new Set(steps.filter((step) => step.status === 'ok').map((step) => step.tool))
+  const out: string[] = []
+  if (ok.has('dates') || ok.has('tasks')) out.push('weekly_review')
+  if (ok.has('meeting') || ok.has('tasks')) out.push('meeting_wrap')
+  if (ok.has('outline') || ok.has('flashcards')) out.push('study_pass')
+  if (ok.has('duplicates') || ok.has('wiki')) out.push('cleanup')
+  if (ok.has('spellcheck') || ok.has('style') || ok.has('terminology')) out.push('polish')
+  if (scope === 'document' && out.length === 0) out.push('polish', 'study_pass')
+  if (scope !== 'document' && out.length === 0) out.push('weekly_review', 'cleanup')
+  return [...new Set(out)].slice(0, 3)
 }
 
 export async function planAgentGoal(
@@ -268,13 +292,18 @@ export async function planAgentGoal(
   scope: ChatScope,
   documentId?: string | null,
   prefs: AgentPrefs = DEFAULT_AGENT_PREFS,
-  opts?: { recipeId?: AgentRecipeId | null; forceTools?: AgentToolId[] },
+  opts?: {
+    recipeId?: AgentRecipeId | null
+    forceTools?: AgentToolId[]
+    folderId?: string | null
+  },
 ): Promise<AgentPlan> {
   if (!prefs.enabled) {
     throw new Error('agent.disabled')
   }
 
   const trimmed = goal.trim()
+  const fallback = defaultAnswerTool(scope)
 
   if (opts?.forceTools?.length) {
     const tools = applyAgentOptimize(scopeTools(opts.forceTools, scope, documentId), prefs)
@@ -282,10 +311,7 @@ export async function planAgentGoal(
       goal: trimmed,
       scope,
       documentId,
-      tools:
-        tools.length > 0
-          ? tools
-          : [scope === 'document' ? 'document_answer' : 'library_answer'],
+      tools: tools.length > 0 ? tools : [fallback],
     }
   }
 
@@ -297,10 +323,7 @@ export async function planAgentGoal(
         goal: trimmed || opts.recipeId,
         scope,
         documentId,
-        tools:
-          tools.length > 0
-            ? tools
-            : [scope === 'document' ? 'document_answer' : 'library_answer'],
+        tools: tools.length > 0 ? tools : [fallback],
       }
     }
   }
@@ -309,7 +332,7 @@ export async function planAgentGoal(
   try {
     const planned = await nlpPlanAgentGoal({
       goal: trimmed,
-      scope,
+      scope: scope === 'folder' ? 'library' : scope,
       maxTools: prefs.maxSteps,
     })
     intents = planned.tools
@@ -358,7 +381,7 @@ export async function planAgentGoal(
   if (fromIntent.length === 0 && prefs.askWhenUncertain) {
     const clarifyOptions = DEFAULT_CLARIFY.filter((tool) => {
       if (tool === 'document_answer') return scope === 'document' || Boolean(documentId)
-      if (tool === 'library_answer') return scope === 'library' || !documentId
+      if (tool === 'library_answer') return scope !== 'document'
       if (DOCUMENT_TOOLS.has(tool)) return Boolean(documentId) || scope === 'document'
       return true
     }).slice(0, 5)
@@ -373,25 +396,17 @@ export async function planAgentGoal(
   }
 
   if (fromIntent.length === 0) {
-    fromIntent = [scope === 'document' ? 'document_answer' : 'library_answer']
+    fromIntent = [fallback]
   }
 
   const scoped = scopeTools(fromIntent, scope, documentId)
-  const tools = applyAgentOptimize(
-    scoped.length > 0
-      ? scoped
-      : [scope === 'document' ? 'document_answer' : 'library_answer'],
-    prefs,
-  )
+  const tools = applyAgentOptimize(scoped.length > 0 ? scoped : [fallback], prefs)
 
   return {
     goal: trimmed,
     scope,
     documentId,
-    tools:
-      tools.length > 0
-        ? tools
-        : [scope === 'document' ? 'document_answer' : 'library_answer'],
+    tools: tools.length > 0 ? tools : [fallback],
   }
 }
 
@@ -401,8 +416,10 @@ async function runTool(
     goal: string
     scope: ChatScope
     documentId?: string | null
+    folderId?: string | null
     memoryContext?: Array<{ role: string; text: string }>
     priorAnswers: string[]
+    selectionText?: string | null
   },
 ): Promise<LibraryChatResult> {
   const workingMemory = [
@@ -411,7 +428,9 @@ async function runTool(
   ]
 
   if (tool === 'library_answer') {
-    return askLibrary(ctx.goal)
+    return askLibrary(ctx.goal, {
+      folderId: ctx.scope === 'folder' ? ctx.folderId : null,
+    })
   }
   if (tool === 'document_answer') {
     return askDocument(ctx.documentId ?? '', ctx.goal, workingMemory)
@@ -422,7 +441,7 @@ async function runTool(
   if (tool === 'citations') {
     return runAgentCitations(ctx.goal)
   }
-  if (tool === 'dates' && (ctx.scope === 'library' || !ctx.documentId)) {
+  if (tool === 'dates' && (ctx.scope === 'library' || ctx.scope === 'folder' || !ctx.documentId)) {
     return runAgentDatesLibrary()
   }
   if (tool === 'meeting') {
@@ -442,10 +461,21 @@ async function runTool(
     return runAgentRevision(ctx.documentId)
   }
   if (tool === 'rewrite') {
-    if (!ctx.documentId) throw new Error('agent.needsDocument')
-    return runAgentRewrite(ctx.documentId, ctx.goal)
+    if (!ctx.documentId && !ctx.selectionText) throw new Error('agent.needsDocument')
+    return runAgentRewrite(ctx.documentId ?? 'selection', ctx.goal, ctx.selectionText)
   }
   if (tool === 'brief') {
+    if (ctx.scope === 'library' || (ctx.scope === 'folder' && !ctx.documentId)) {
+      const [dates, dups] = await Promise.all([
+        runAgentDatesLibrary().catch(() => null),
+        runAgentDuplicates().catch(() => null),
+      ])
+      const parts = [dates?.answer, dups?.answer].filter(Boolean)
+      return {
+        answer: parts.join('\n\n') || 'No library brief sections available.',
+        citations: [...(dates?.citations ?? []), ...(dups?.citations ?? [])].slice(0, 10),
+      }
+    }
     if (!ctx.documentId) throw new Error('agent.needsDocument')
     const brief = await nlpAgentDocumentBrief({
       documentId: ctx.documentId,
@@ -500,7 +530,12 @@ export async function runAgentGoal(
   documentId?: string | null,
   memoryContext?: Array<{ role: string; text: string }>,
   prefs: AgentPrefs = DEFAULT_AGENT_PREFS,
-  opts?: { recipeId?: AgentRecipeId | null; forceTools?: AgentToolId[] },
+  opts?: {
+    recipeId?: AgentRecipeId | null
+    forceTools?: AgentToolId[]
+    folderId?: string | null
+    selectionText?: string | null
+  },
 ): Promise<AgentRunResult> {
   if (!prefs.enabled) {
     throw new Error('agent.disabled')
@@ -543,7 +578,10 @@ export async function runAgentGoal(
 
   for (const tool of plan.tools) {
     const needsDoc =
-      DOCUMENT_TOOLS.has(tool) && tool !== 'dates' && !LIBRARY_ONLY_TOOLS.has(tool)
+      DOCUMENT_TOOLS.has(tool) &&
+      tool !== 'dates' &&
+      tool !== 'rewrite' &&
+      !LIBRARY_ONLY_TOOLS.has(tool)
     if (needsDoc && !documentId) {
       steps.push({
         tool,
@@ -558,8 +596,10 @@ export async function runAgentGoal(
         goal: trimmed,
         scope,
         documentId,
+        folderId: opts?.folderId,
         memoryContext: contextWithTeachings,
         priorAnswers,
+        selectionText: opts?.selectionText,
       })
       steps.push({
         tool,
@@ -595,11 +635,15 @@ export async function runAgentGoal(
     })
   }
 
+  const recipeFollowups = suggestFollowupRecipes(steps, scope).map(
+    (id) => `recipe:${id}`,
+  )
+
   return {
     answer,
     citations: mergeCitations(citationBuckets),
     steps,
-    followups: followups.slice(0, 6),
+    followups: [...followups, ...recipeFollowups].slice(0, 6),
     nextPrefs,
   }
 }

@@ -1,4 +1,4 @@
-import { Bot, Eraser, FilePlus2, FileText, GraduationCap, Library, Send, Settings2, Sparkles } from 'lucide-react'
+import { Bot, Eraser, FilePlus2, FileText, Folder, GraduationCap, Library, Send, Settings2, Sparkles } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
@@ -22,7 +22,11 @@ import {
   type DocumentChatCitation,
 } from '@/lib/db/api'
 import { nlpDocumentAnalysis, nlpDocumentTasks, nlpStatus, type DocumentTask, type NlpDocumentAnalysis } from '@/lib/db/nlp-api'
-import { insertAiAnswerAsCallout } from '@/lib/editor/insert-ai-answer'
+import {
+  applyAgentAnswer,
+  undoAgentApply,
+  type AgentApplyMode,
+} from '@/lib/editor/insert-ai-answer'
 import {
   agentMemoryContext,
   runAgentGoal,
@@ -299,7 +303,10 @@ export function AgentPanel({ onNavigate }: AgentPanelProps) {
           activeDocumentId,
           agentMemoryContext(prior),
           agentPrefs,
-          opts,
+          {
+            ...opts,
+            folderId: scope === 'folder' ? activeDocument?.folderId : null,
+          },
         )
 
         if (result.nextPrefs) {
@@ -352,16 +359,16 @@ export function AgentPanel({ onNavigate }: AgentPanelProps) {
         setLoading(false)
       }
     },
-    [loading, agentPrefs, scope, activeDocumentId, messages, sessionMessages, persistPair, t, dispatch],
+    [loading, agentPrefs, scope, activeDocumentId, activeDocument?.folderId, messages, sessionMessages, persistPair, t, dispatch],
   )
 
   const applyAnswerToNote = useCallback(
-    (text: string) => {
+    (text: string, mode: AgentApplyMode = 'callout') => {
       if (!activeDocumentId) {
         toast.error(t('libraryChat.noActiveDocument'))
         return
       }
-      const ok = insertAiAnswerAsCallout(text, { sourceTitle: t('agent.brandBadge') })
+      const ok = applyAgentAnswer(text, mode, { sourceTitle: t('agent.brandBadge') })
       if (ok) toast.success(t('agent.appliedToNote'))
       else toast.error(t('agent.applyFailed'))
     },
@@ -371,10 +378,20 @@ export function AgentPanel({ onNavigate }: AgentPanelProps) {
   const handleTeach = useCallback(() => {
     const text = teachInput.trim()
     if (text.length < 2) return
-    dispatch(addAgentTeaching(text))
+    if (scope === 'document' && activeDocumentId) {
+      dispatch(
+        addAgentTeaching({
+          text,
+          scope: 'document',
+          documentId: activeDocumentId,
+        }),
+      )
+    } else {
+      dispatch(addAgentTeaching(text))
+    }
     setTeachInput('')
     toast.success(t('settings.agent.taughtToast'))
-  }, [teachInput, dispatch, t])
+  }, [teachInput, dispatch, t, scope, activeDocumentId])
 
   const openCitation = useCallback(
     (citation: LibraryChatCitation) => {
@@ -413,6 +430,21 @@ export function AgentPanel({ onNavigate }: AgentPanelProps) {
           >
             <Library className="h-3 w-3" />
             {t('agent.scopeLibrary')}
+          </button>
+          <button
+            type="button"
+            className={cn('library-chat-scope-tab', scope === 'folder' && 'is-active')}
+            aria-pressed={scope === 'folder'}
+            disabled={!activeDocument?.folderId}
+            onClick={() => changeScope('folder')}
+            title={
+              activeDocument?.folderId
+                ? t('agent.scopeFolderHint')
+                : t('agent.scopeFolderNeedsDoc')
+            }
+          >
+            <Folder className="h-3 w-3" />
+            {t('agent.scopeFolder')}
           </button>
           <button
             type="button"
@@ -670,31 +702,75 @@ export function AgentPanel({ onNavigate }: AgentPanelProps) {
                 message.text &&
                 !message.clarifyOptions?.length &&
                 activeDocumentId ? (
-                  <div className="mt-1.5">
+                  <div className="mt-1.5 flex flex-wrap gap-1">
                     <button
                       type="button"
                       className="library-chat-chip"
                       disabled={loading}
-                      onClick={() => applyAnswerToNote(message.text)}
+                      onClick={() => applyAnswerToNote(message.text, 'callout')}
                     >
                       <FilePlus2 className="mr-1 inline h-3 w-3" />
-                      {t('agent.applyToNote')}
+                      {t('agent.applyCallout')}
+                    </button>
+                    <button
+                      type="button"
+                      className="library-chat-chip"
+                      disabled={loading}
+                      onClick={() => applyAnswerToNote(message.text, 'checklist')}
+                    >
+                      {t('agent.applyChecklist')}
+                    </button>
+                    <button
+                      type="button"
+                      className="library-chat-chip"
+                      disabled={loading}
+                      onClick={() => applyAnswerToNote(message.text, 'frontmatter')}
+                    >
+                      {t('agent.applyFrontmatter')}
+                    </button>
+                    <button
+                      type="button"
+                      className="library-chat-chip"
+                      disabled={loading}
+                      onClick={() => {
+                        if (undoAgentApply()) toast.success(t('agent.applyUndone'))
+                      }}
+                    >
+                      {t('agent.applyUndo')}
                     </button>
                   </div>
                 ) : null}
                 {message.role === 'assistant' && message.followups && message.followups.length > 0 ? (
                   <div className="library-chat-followups">
-                    {message.followups.map((item) => (
-                      <button
-                        key={item}
-                        type="button"
-                        className="library-chat-followup"
-                        disabled={loading}
-                        onClick={() => void runGoal(item)}
-                      >
-                        {item}
-                      </button>
-                    ))}
+                    {message.followups.map((item) => {
+                      if (item.startsWith('recipe:')) {
+                        const recipeId = item.slice('recipe:'.length) as AgentRecipeId
+                        const recipe = AGENT_RECIPES.find((row) => row.id === recipeId)
+                        if (!recipe) return null
+                        return (
+                          <button
+                            key={item}
+                            type="button"
+                            className="library-chat-followup"
+                            disabled={loading}
+                            onClick={() => void runGoal('', { recipeId })}
+                          >
+                            {t(recipe.labelKey)}
+                          </button>
+                        )
+                      }
+                      return (
+                        <button
+                          key={item}
+                          type="button"
+                          className="library-chat-followup"
+                          disabled={loading}
+                          onClick={() => void runGoal(item)}
+                        >
+                          {item}
+                        </button>
+                      )
+                    })}
                   </div>
                 ) : null}
               </MessageContent>

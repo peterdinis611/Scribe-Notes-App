@@ -1,5 +1,5 @@
 import { invoke } from '@/lib/tauri'
-import { invokeMatchDocumentChatIntent } from '@/lib/db/api'
+import { invokeMatchDocumentChatIntent, searchDocuments } from '@/lib/db/api'
 import {
   nlpCheckTerminology,
   nlpDocumentAnalysis,
@@ -26,7 +26,7 @@ export type LibraryChatResult = {
   followups?: string[]
 }
 
-export type ChatScope = 'library' | 'document'
+export type ChatScope = 'library' | 'document' | 'folder'
 
 export type DocumentChatAction =
   | 'summarize'
@@ -68,13 +68,44 @@ async function assertNlpReady() {
   }
 }
 
-/** Extractive Q&A over the whole library (no cloud LLM). */
-export async function askLibrary(question: string): Promise<LibraryChatResult> {
+/** Extractive Q&A over the whole library (no cloud LLM). Optional folder filter. */
+export async function askLibrary(
+  question: string,
+  opts?: { folderId?: string | null },
+): Promise<LibraryChatResult> {
   const trimmed = question.trim()
   if (!trimmed) {
     throw new Error('libraryChat.emptyQuestion')
   }
   await assertNlpReady()
+
+  if (opts?.folderId) {
+    const hits = await searchDocuments(trimmed, 8, { folderId: opts.folderId })
+    if (!hits.length) {
+      return {
+        answer: 'No matching passages found in this folder.',
+        citations: [],
+      }
+    }
+    const bullets = hits
+      .slice(0, 6)
+      .map((hit) => `- **${hit.title || 'Note'}**: ${hit.snippet || ''}`.trim())
+      .join('\n')
+    return {
+      answer: `Based on notes in this folder:\n\n${bullets}`,
+      citations: hits.slice(0, 8).map((hit) => ({
+        documentId: hit.documentId,
+        title: hit.title || 'Note',
+        snippet: hit.snippet || '',
+        chunkIndex: hit.chunkIndex ?? null,
+      })),
+      followups: [
+        'Summarize the open loops in this folder',
+        'What deadlines appear across these notes?',
+      ],
+    }
+  }
+
   return invoke<LibraryChatResult>('nlp_library_answer', {
     question: trimmed,
     limit: 8,

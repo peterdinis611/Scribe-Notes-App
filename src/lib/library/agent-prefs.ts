@@ -84,6 +84,8 @@ export type AgentPrefs = {
   /** Runs consumed today (local). */
   runsToday: number
   runsTodayDate: string
+  /** After save, queue a light document brief (preferFast tools). */
+  autoRunOnSave: boolean
 }
 
 export const DEFAULT_AGENT_PREFS: AgentPrefs = {
@@ -101,6 +103,7 @@ export const DEFAULT_AGENT_PREFS: AgentPrefs = {
   episodes: [],
   runsToday: 0,
   runsTodayDate: '',
+  autoRunOnSave: false,
 }
 
 const ALL_TOOLS: AgentToolId[] = [
@@ -260,6 +263,7 @@ export function normalizeAgentPrefs(raw: unknown): AgentPrefs {
     episodes: normalizeEpisodes(input.episodes),
     runsToday,
     runsTodayDate: date === today ? today : '',
+    autoRunOnSave: Boolean(input.autoRunOnSave),
   }
 }
 

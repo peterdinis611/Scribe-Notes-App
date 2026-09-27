@@ -291,7 +291,7 @@ export function LibraryJournalView({ onNavigate }: LibraryJournalViewProps) {
         <div className="mb-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
           <p className="m-0 mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
             <Flame className="h-3.5 w-3.5" />
-            {t('journal.thisWeekDates')}
+            {t('journal.thisWeekDatesCount', { count: weekEvents.length })}
           </p>
           <ul className="m-0 space-y-2 p-0">
             {weekEvents.slice(0, 12).map((event, index) => (

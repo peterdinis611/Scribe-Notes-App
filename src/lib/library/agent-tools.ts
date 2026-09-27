@@ -239,16 +239,18 @@ export async function runAgentRevision(documentId: string): Promise<LibraryChatR
 export async function runAgentRewrite(
   documentId: string,
   goal: string,
+  selectionText?: string | null,
 ): Promise<LibraryChatResult> {
   const quoted =
-    goal.match(/[„"]([^„"]{12,800})[“"]/) ||
-    goal.match(/"([^"]{12,800})"/) ||
-    goal.match(/'([^']{12,800})'/)
-  const source = quoted?.[1]?.trim()
+    selectionText?.trim() ||
+    goal.match(/[„"]([^„"]{12,800})[“"]/)?.[1]?.trim() ||
+    goal.match(/"([^"]{12,800})"/)?.[1]?.trim() ||
+    goal.match(/'([^']{12,800})'/)?.[1]?.trim()
+  const source = quoted?.trim()
   if (!source) {
     return {
       answer:
-        'Rewrite needs a quoted passage in the goal (e.g. rewrite “…” clearer), or use the selection AI menu for live editor spans.',
+        'Rewrite needs a text selection (from the editor bubble menu) or a quoted passage in the goal.',
       citations: [],
     }
   }

@@ -496,6 +496,8 @@ export type AgentPlanNlpResult = {
   goal: string
   scope: string
   tools: string[]
+  toolScores?: Array<{ tool: string; score: number }>
+  confidence?: number
   needsClarification: boolean
   clarifyOptions?: string[]
   source: string

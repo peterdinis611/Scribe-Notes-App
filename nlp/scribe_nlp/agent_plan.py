@@ -128,18 +128,29 @@ def _fold(text: str) -> str:
     return "".join(ch for ch in decomposed if unicodedata.category(ch) != "Mn")
 
 
-def match_agent_intents(goal: str, *, max_tools: int = _AGENT_TOOL_LIMIT) -> list[str]:
+def match_agent_intents_scored(
+    goal: str, *, max_tools: int = _AGENT_TOOL_LIMIT
+) -> list[tuple[str, float]]:
     folded = _fold(goal)
     if not folded:
         return []
     limit = max(1, min(int(max_tools or _AGENT_TOOL_LIMIT), 6))
-    out: list[str] = []
+    scored: list[tuple[str, float]] = []
     for tool, needles in _INTENT_RULES:
-        if any(needle in folded for needle in needles):
-            out.append(tool)
-            if len(out) >= limit:
-                break
-    return out
+        hits = [needle for needle in needles if needle in folded]
+        if not hits:
+            continue
+        # Longer / more specific needle ⇒ higher confidence.
+        best = max(len(needle) for needle in hits)
+        score = min(0.98, 0.42 + best / 28.0 + 0.08 * (len(hits) - 1))
+        scored.append((tool, round(score, 3)))
+        if len(scored) >= limit:
+            break
+    return scored
+
+
+def match_agent_intents(goal: str, *, max_tools: int = _AGENT_TOOL_LIMIT) -> list[str]:
+    return [tool for tool, _score in match_agent_intents_scored(goal, max_tools=max_tools)]
 
 
 def plan_agent_goal(
@@ -152,7 +163,7 @@ def plan_agent_goal(
     trimmed = (goal or "").strip()
     scope_norm = "library" if str(scope or "").lower().startswith("lib") else "document"
     limit = max(1, min(int(max_tools or _AGENT_TOOL_LIMIT), 6))
-    tools = match_agent_intents(trimmed, max_tools=limit)
+    scored = match_agent_intents_scored(trimmed, max_tools=limit)
 
     if scope_norm == "library":
         library_ok = {
@@ -164,21 +175,27 @@ def plan_agent_goal(
             "takeaways",
             "similar",
             "library_answer",
+            "brief",
         }
-        tools = [tool for tool in tools if tool in library_ok]
+        scored = [(tool, score) for tool, score in scored if tool in library_ok]
 
-    needs = len(tools) == 0
+    tools = [tool for tool, _score in scored]
+    tool_scores = [{"tool": tool, "score": score} for tool, score in scored]
+    confidence = max((score for _tool, score in scored), default=0.0)
+    needs = len(tools) == 0 or confidence < 0.48
     return {
         "goal": trimmed,
         "scope": scope_norm,
-        "tools": tools,
-        "needsClarification": needs,
+        "tools": [] if needs and len(tools) == 0 else tools,
+        "toolScores": tool_scores,
+        "confidence": confidence,
+        "needsClarification": needs and len(tools) == 0,
         "clarifyOptions": (
             ["summarize", "takeaways", "tasks", "dates", "document_answer"]
             if scope_norm == "document"
-            else ["dates", "duplicates", "citations", "library_answer", "tasks"]
+            else ["dates", "duplicates", "citations", "library_answer", "brief"]
         )
-        if needs
+        if needs and len(tools) == 0
         else [],
         "source": "python",
     }
