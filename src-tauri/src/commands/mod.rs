@@ -1,4 +1,5 @@
 pub mod libraries;
+pub mod agent;
 pub mod comments;
 pub mod document_chat;
 pub mod documents;

@@ -1,6 +1,6 @@
 [package]
 name = "scribe-core"
-version = "2.5.0"
+version = "2.7.0"
 edition = "2021"
 rust-version = "1.77.2"
 license = "MIT"
@@ -31,3 +31,4 @@ rayon = { version = "1.10", optional = true }
 simsimd = { version = "6", optional = true }
 encoding_rs = { version = "0.8", optional = true }
 chardetng = { version = "1.0", optional = true }
+unicode-normalization = "0.1"

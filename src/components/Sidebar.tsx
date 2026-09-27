@@ -30,7 +30,7 @@ import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { IconTooltip } from '@/components/ui/tooltip'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { setLibraryGraphAroundActive, setLibraryView, setTrashOpen } from '@/store/documentsSlice'
+import { setAgentPanelOpen, setLibraryGraphAroundActive, setLibraryView, setTrashOpen } from '@/store/documentsSlice'
 import {
   setCommandPaletteOpen,
 } from '@/store/foldersSlice'
@@ -75,8 +75,11 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
   const recentDocumentIds = useAppSelector((state) => state.documents.recentDocumentIds)
   const recentlyClosedIds = useAppSelector((state) => state.documents.recentlyClosedIds)
   const libraryView = useAppSelector((state) => state.documents.libraryView)
+  const agentPanelOpen = useAppSelector((state) => state.documents.agentPanelOpen)
   const graphAroundActive = useAppSelector((state) => state.documents.libraryGraphAroundActive)
-  const isContentSearch = libraryView !== 'chat' && query.trim().length >= 2
+  /** Agent moved to the right dock — never render it as a left library view. */
+  const contentView = libraryView === 'agent' ? 'folders' : libraryView
+  const isContentSearch = contentView !== 'chat' && query.trim().length >= 2
 
   const visibleDocuments = useMemo(() => visibleLibraryDocuments(documents), [documents])
 
@@ -191,12 +194,19 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
               <div className="px-2 pb-1 pt-0.5" data-tour="library-views">
                 <LibraryViewTabs
                   value={libraryView}
+                  agentOpen={agentPanelOpen}
                   favoriteCount={favoriteCount}
                   tagCount={tagCount}
                   recentCount={recentCount}
                   taskCount={taskCount}
                   wikiHealthCount={wikiHealthCount}
-                  onChange={(view) => dispatch(setLibraryView(view))}
+                  onChange={(view) => {
+                    if (view === 'agent') {
+                      dispatch(setAgentPanelOpen(!agentPanelOpen))
+                      return
+                    }
+                    dispatch(setLibraryView(view))
+                  }}
                 />
               </div>
 
@@ -205,7 +215,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                 aria-hidden="true"
               />
 
-              {libraryView === 'folders' && (
+              {contentView === 'folders' && (
                 <>
                   <LibraryFilterBanner />
                   <LibrarySmartFilters />
@@ -265,7 +275,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                 </>
               )}
 
-              {libraryView === 'recent' && (
+              {contentView === 'recent' && (
                 <ScrollArea className="min-h-0 flex-1">
                   <div className="px-1 pb-3 pt-1">
                     <LibraryRecentView onNavigate={onClose} />
@@ -273,7 +283,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                 </ScrollArea>
               )}
 
-              {libraryView === 'favorites' && (
+              {contentView === 'favorites' && (
                 <ScrollArea className="min-h-0 flex-1">
                   <div className="px-1 pb-3 pt-1">
                     <LibraryFavoritesView onNavigate={onClose} />
@@ -281,7 +291,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                 </ScrollArea>
               )}
 
-              {libraryView === 'tags' && (
+              {contentView === 'tags' && (
                 <ScrollArea className="min-h-0 flex-1">
                   <div className="px-1 pb-3 pt-1">
                     <LibraryTagsView onNavigate={onClose} />
@@ -289,13 +299,13 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                 </ScrollArea>
               )}
 
-              {libraryView === 'journal' && (
+              {contentView === 'journal' && (
                 <ScrollArea className="min-h-0 flex-1">
                   <LibraryJournalView onNavigate={onClose} />
                 </ScrollArea>
               )}
 
-              {libraryView === 'graph' && (
+              {contentView === 'graph' && (
                 <ScrollArea className="min-h-0 flex-1">
                   <LibraryLinkGraphView
                     initialAroundActive={graphAroundActive}
@@ -304,25 +314,29 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                 </ScrollArea>
               )}
 
-              {libraryView === 'duplicates' && (
+              {contentView === 'duplicates' && (
                 <ScrollArea className="min-h-0 flex-1">
                   <LibraryDuplicatesPanel onNavigate={onClose} />
                 </ScrollArea>
               )}
 
-              {libraryView === 'tasks' && (
+              {contentView === 'tasks' && (
                 <ScrollArea className="min-h-0 flex-1">
                   <LibraryTasksPanel onNavigate={onClose} />
                 </ScrollArea>
               )}
 
-              {libraryView === 'wikiHealth' && (
+              {contentView === 'wikiHealth' && (
                 <ScrollArea className="min-h-0 flex-1">
                   <LibraryWikiHealthPanel onNavigate={onClose} />
                 </ScrollArea>
               )}
 
-              {libraryView === 'chat' && <LibraryChatPanel onNavigate={onClose} />}
+              {contentView === 'chat' && (
+                <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                  <LibraryChatPanel onNavigate={onClose} />
+                </div>
+              )}
             </>
           )}
         </div>

@@ -346,6 +346,14 @@ pub fn match_document_chat_intent(question: String) -> Option<String> {
     scribe_core::match_document_chat_intent(&question).map(str::to_string)
 }
 
+#[tauri::command]
+pub fn match_agent_intents(question: String) -> Vec<String> {
+    scribe_core::match_agent_intents(&question)
+        .into_iter()
+        .map(str::to_string)
+        .collect()
+}
+
 /// Parse convention tags (`status:` / `project:` / `year:`).
 #[tauri::command]
 pub fn parse_meta_tag(raw: String) -> scribe_core::ParsedTag {

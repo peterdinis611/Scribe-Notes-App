@@ -117,6 +117,8 @@ export function useDocumentAutoSave({
 
         const { scheduleNlpDocumentIndex } = await import('@/lib/nlp/auto-index')
         scheduleNlpDocumentIndex(docId)
+        const { scheduleAgentAutoBrief } = await import('@/lib/library/agent-autorun')
+        scheduleAgentAutoBrief(docId)
 
         return true
       } catch {

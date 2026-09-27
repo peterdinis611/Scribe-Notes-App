@@ -5,6 +5,14 @@ import type { PageSetup } from '@/lib/editor/page-setup'
 import { applyThemeSettings } from '@/lib/themes/apply'
 import type { ThemeSettings } from '@/lib/themes/types'
 import type { UiSkin } from '@/lib/ui-skin'
+import type { AgentPrefs, AgentTeaching, AgentTeachingScope } from '@/lib/library/agent-prefs'
+import {
+  AGENT_PINNED_FACTS_MAX,
+  AGENT_TEACHINGS_MAX,
+  createPinnedFact,
+  createTeaching,
+  normalizeAgentPrefs,
+} from '@/lib/library/agent-prefs'
 import {
   persistEditorViewMode,
   persistFolderAutoSyncEnabled,
@@ -20,6 +28,7 @@ import {
   persistAutoBackupIntervalHours,
   persistAutoBackupDirectory,
   persistLastAutoBackupAt,
+  persistAgentPrefs,
   readEditorViewMode,
   readFolderAutoSyncEnabled,
   readLocale,
@@ -35,10 +44,17 @@ import {
   readAutoBackupIntervalHours,
   readAutoBackupDirectory,
   readLastAutoBackupAt,
+  readAgentPrefs,
   persistShortcutOverrides,
   type AutoBackupIntervalHours,
   type ShortcutOverrides,
 } from '@/store/persistence'
+import {
+  clearAgentTeachingsOnBackend,
+  forgetAgentTeachingBackend,
+  saveAgentPrefsToBackend,
+  teachAgentBackend,
+} from '@/lib/library/agent-backend'
 
 export type EditorViewMode = 'rich' | 'markdown'
 export type PrintLayoutColumns = 1 | 2
@@ -67,6 +83,7 @@ export interface SettingsState {
   autoBackupDirectory: string | null
   lastAutoBackupAt: number | null
   shortcutOverrides: ShortcutOverrides
+  agentPrefs: AgentPrefs
 }
 
 const initialState: SettingsState = {
@@ -87,6 +104,7 @@ const initialState: SettingsState = {
   autoBackupDirectory: readAutoBackupDirectory(),
   lastAutoBackupAt: readLastAutoBackupAt(),
   shortcutOverrides: readShortcutOverrides(),
+  agentPrefs: readAgentPrefs(),
 }
 
 const settingsSlice = createSlice({
@@ -173,6 +191,82 @@ const settingsSlice = createSlice({
       state.shortcutOverrides = {}
       persistShortcutOverrides({})
     },
+    setAgentPrefs(state, action: PayloadAction<AgentPrefs>) {
+      const next = normalizeAgentPrefs(action.payload)
+      state.agentPrefs = next
+      persistAgentPrefs(next)
+      void saveAgentPrefsToBackend(next)
+    },
+    patchAgentPrefs(state, action: PayloadAction<Partial<AgentPrefs>>) {
+      const next = normalizeAgentPrefs({ ...state.agentPrefs, ...action.payload })
+      state.agentPrefs = next
+      persistAgentPrefs(next)
+      void saveAgentPrefsToBackend(next)
+    },
+    addAgentTeaching(
+      state,
+      action: PayloadAction<
+        string | { text: string; scope?: AgentTeachingScope; documentId?: string | null }
+      >,
+    ) {
+      const payload = action.payload
+      const text = typeof payload === 'string' ? payload : payload.text
+      const opts =
+        typeof payload === 'string'
+          ? undefined
+          : { scope: payload.scope, documentId: payload.documentId }
+      const teaching = createTeaching(text, opts)
+      if (!teaching) return
+      const teachings = [teaching, ...state.agentPrefs.teachings]
+        .filter(
+          (item, index, list) =>
+            list.findIndex((other) => other.text.toLowerCase() === item.text.toLowerCase()) ===
+            index,
+        )
+        .slice(0, AGENT_TEACHINGS_MAX)
+      const next = normalizeAgentPrefs({ ...state.agentPrefs, teachings })
+      state.agentPrefs = next
+      persistAgentPrefs(next)
+      void teachAgentBackend(teaching.text)
+    },
+    removeAgentTeaching(state, action: PayloadAction<string>) {
+      const teachings = state.agentPrefs.teachings.filter((item) => item.id !== action.payload)
+      const next = normalizeAgentPrefs({ ...state.agentPrefs, teachings })
+      state.agentPrefs = next
+      persistAgentPrefs(next)
+      void forgetAgentTeachingBackend(action.payload)
+    },
+    clearAgentTeachings(state) {
+      const next = normalizeAgentPrefs({ ...state.agentPrefs, teachings: [] as AgentTeaching[] })
+      state.agentPrefs = next
+      persistAgentPrefs(next)
+      void clearAgentTeachingsOnBackend()
+    },
+    addAgentPinnedFact(state, action: PayloadAction<string>) {
+      const fact = createPinnedFact(action.payload)
+      if (!fact) return
+      const pinnedFacts = [fact, ...state.agentPrefs.pinnedFacts]
+        .filter(
+          (item, index, list) =>
+            list.findIndex((other) => other.text.toLowerCase() === item.text.toLowerCase()) ===
+            index,
+        )
+        .slice(0, AGENT_PINNED_FACTS_MAX)
+      const next = normalizeAgentPrefs({ ...state.agentPrefs, pinnedFacts })
+      state.agentPrefs = next
+      persistAgentPrefs(next)
+    },
+    removeAgentPinnedFact(state, action: PayloadAction<string>) {
+      const pinnedFacts = state.agentPrefs.pinnedFacts.filter((item) => item.id !== action.payload)
+      const next = normalizeAgentPrefs({ ...state.agentPrefs, pinnedFacts })
+      state.agentPrefs = next
+      persistAgentPrefs(next)
+    },
+    hydrateAgentPrefs(state, action: PayloadAction<AgentPrefs>) {
+      const next = normalizeAgentPrefs(action.payload)
+      state.agentPrefs = next
+      persistAgentPrefs(next)
+    },
   },
 })
 
@@ -195,6 +289,14 @@ export const {
   setLastAutoBackupAt,
   setShortcutOverride,
   resetShortcutOverrides,
+  setAgentPrefs,
+  patchAgentPrefs,
+  addAgentTeaching,
+  removeAgentTeaching,
+  clearAgentTeachings,
+  addAgentPinnedFact,
+  removeAgentPinnedFact,
+  hydrateAgentPrefs,
 } = settingsSlice.actions
 
 export default settingsSlice.reducer

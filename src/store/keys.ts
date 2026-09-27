@@ -28,9 +28,11 @@ const SCRATCH_DOCUMENT_ID_KEY = 'scribe-scratch-document-id'
 const SHORTCUT_OVERRIDES_KEY = 'scribe-shortcut-overrides'
 const UI_SKIN_KEY = 'scribe-ui-skin'
 const DOCUMENT_TOC_LEFT_KEY = 'scribe-document-toc-left-open'
+const AGENT_PREFS_KEY = 'scribe-agent-prefs'
 
 export {
     ACTIVE_DOCUMENT_ID_KEY,
+    AGENT_PREFS_KEY,
     COMMENT_AUTHOR_KEY,
     CUSTOM_TEMPLATE_CATEGORIES_KEY,
     CUSTOM_TEMPLATES_KEY,

@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { LucideIcon } from 'lucide-react'
-import { Activity, Cable, FolderOpen, Info, Keyboard, Palette, Shield, Smartphone, Sparkles } from 'lucide-react'
+import { Activity, Bot, Cable, FolderOpen, Info, Keyboard, Palette, Shield, Smartphone, Sparkles } from 'lucide-react'
 export type SettingsSection =
   | 'appearance'
   | 'storage'
@@ -9,6 +9,7 @@ export type SettingsSection =
   | 'diagnostics'
   | 'mcp'
   | 'nlp'
+  | 'agent'
   | 'capture'
   | 'privacy'
   | 'about'
@@ -21,6 +22,7 @@ export function isSettingsSection(value: string | undefined): value is SettingsS
     value === 'diagnostics' ||
     value === 'mcp' ||
     value === 'nlp' ||
+    value === 'agent' ||
     value === 'capture' ||
     value === 'privacy' ||
     value === 'about'
@@ -38,6 +40,7 @@ const SETTINGS_SECTION_META: {
   { id: 'diagnostics', icon: Activity },
   { id: 'mcp', icon: Cable },
   { id: 'nlp', icon: Sparkles },
+  { id: 'agent', icon: Bot },
   { id: 'privacy', icon: Shield },
   { id: 'about', icon: Info },
 ]
@@ -64,6 +67,7 @@ const SETTINGS_PATHS = {
   diagnostics: '/settings/diagnostics',
   mcp: '/settings/mcp',
   nlp: '/settings/nlp',
+  agent: '/settings/agent',
   capture: '/settings/capture',
   privacy: '/settings/privacy',
   about: '/settings/about',

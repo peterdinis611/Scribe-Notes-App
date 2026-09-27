@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import {
+  Bot,
   Check,
   Languages,
   List,
@@ -65,6 +66,39 @@ export function SelectionAIContextMenu({
     try {
       const res = await nlpRewriteSelection(text, mode, instruction)
       setResult(res.output)
+      setCustomOpen(false)
+    } catch (error) {
+      toast.error(t('aiRewrite.error'), String(error))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleAgentRewrite() {
+    const text = selectedText.trim()
+    if (!text || loading) return
+    setLoading(true)
+    setCoachHints(null)
+    setCoachScore(null)
+    try {
+      const { runAgentGoal } = await import('@/lib/library/agent')
+      const { store } = await import('@/store/index')
+      const prefs = store.getState().settings.agentPrefs
+      const documentId = store.getState().documents.activeDocumentId
+      const result = await runAgentGoal(
+        'Rewrite selection for clarity',
+        documentId ? 'document' : 'library',
+        documentId,
+        undefined,
+        prefs,
+        { forceTools: ['rewrite'], selectionText: text },
+      )
+      const body = result.answer
+        .replace(/^###\s*rewrite\s*/i, '')
+        .replace(/\*\*Rewrite\*\*[^\n]*\n*/i, '')
+        .trim()
+      if (body) setResult(body)
+      else toast.error(t('aiRewrite.error'), t('agent.emptyResult'))
       setCustomOpen(false)
     } catch (error) {
       toast.error(t('aiRewrite.error'), String(error))
@@ -211,6 +245,14 @@ export function SelectionAIContextMenu({
           >
             <PenLine className="h-3.5 w-3.5" aria-hidden />
             {t('aiRewrite.coach')}
+          </button>
+          <button
+            type="button"
+            className="selection-ai__mode"
+            onClick={() => void handleAgentRewrite()}
+          >
+            <Bot className="h-3.5 w-3.5" aria-hidden />
+            {t('aiRewrite.agentRewrite')}
           </button>
           <button
             type="button"

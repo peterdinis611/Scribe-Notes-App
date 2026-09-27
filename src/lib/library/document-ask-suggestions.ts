@@ -1,7 +1,7 @@
 import type { DocumentTask, NlpDocumentAnalysis } from '@/lib/db/nlp-api'
 import type { DocumentChatAction } from '@/lib/library/library-chat'
 
-const MAX_QUESTIONS = 8
+const MAX_QUESTIONS = 6
 const MAX_ACTIONS = 8
 
 function uniqueKeepOrder(items: string[], limit: number): string[] {

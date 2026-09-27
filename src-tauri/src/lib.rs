@@ -1,4 +1,5 @@
 mod commands;
+mod agent_db;
 mod backup;
 mod capture;
 mod db;
@@ -10,6 +11,7 @@ mod pdf_native;
 mod security;
 mod storage;
 
+use agent_db::{init_agent_db, AgentDbState};
 use db::{init_db, DbState};
 use nlp::NlpSidecar;
 use security::PathAccessGate;
@@ -98,6 +100,10 @@ pub fn run() {
                 conn: std::sync::Mutex::new(conn),
                 persist_queue,
             });
+            let agent_store = init_agent_db(&app.handle())?;
+            app.manage(AgentDbState {
+                store: std::sync::Mutex::new(agent_store),
+            });
             app.manage(PathAccessGate::new());
             app.manage(NlpSidecar::new(nlp::resolve_script_path(app.handle())));
             app.manage(scribe_core::nlp::UnlockedVaultIndex::new());
@@ -112,9 +118,9 @@ pub fn run() {
             {
                 let app_menu = SubmenuBuilder::new(app, "Scribe")
                     .about(Some(tauri::menu::AboutMetadata {
-                        name: Some("Scribe 2.3".into()),
+                        name: Some("Scribe 2.7".into()),
                         version: Some(env!("CARGO_PKG_VERSION").into()),
-                        short_version: Some("2.3".into()),
+                        short_version: Some("2.7".into()),
                         copyright: Some("© 2026 Peter Dinis".into()),
                         ..Default::default()
                     }))
@@ -244,6 +250,18 @@ pub fn run() {
             commands::document_chat::list_document_chat_messages,
             commands::document_chat::append_document_chat_message,
             commands::document_chat::clear_document_chat_messages,
+            commands::agent::list_agent_messages,
+            commands::agent::append_agent_message,
+            commands::agent::clear_agent_messages,
+            commands::agent::get_agent_prefs,
+            commands::agent::set_agent_prefs,
+            commands::agent::list_agent_teachings,
+            commands::agent::add_agent_teaching,
+            commands::agent::remove_agent_teaching,
+            commands::agent::clear_agent_teachings,
+            commands::agent::append_agent_run,
+            commands::agent::list_agent_runs,
+            commands::agent::get_agent_db_path,
             commands::folders::list_folders,
             commands::folders::create_folder,
             commands::folders::rename_folder,
@@ -291,6 +309,8 @@ pub fn run() {
             commands::nlp::nlp_writing_coach,
             commands::nlp::nlp_outline_quiz,
             commands::nlp::nlp_meeting_notes_pack,
+            commands::nlp::nlp_plan_agent_goal,
+            commands::nlp::nlp_agent_document_brief,
             commands::nlp::nlp_citation_pack,
             commands::nlp::nlp_check_terminology_library,
             commands::nlp::nlp_template_fill_hints,
@@ -333,6 +353,7 @@ pub fn run() {
             commands::native_pipeline::diff_plain_texts,
             commands::native_pipeline::convert_tiptap,
             commands::native_pipeline::match_document_chat_intent,
+            commands::native_pipeline::match_agent_intents,
             commands::native_pipeline::parse_meta_tag,
             commands::native_pipeline::document_matches_meta_filters,
             commands::native_pipeline::render_document_html,

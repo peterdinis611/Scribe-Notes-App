@@ -1,4 +1,5 @@
 import {
+  Bot,
   CalendarDays,
   CheckSquare,
   Copy,
@@ -22,12 +23,14 @@ export type LibraryView =
   | 'graph'
   | 'journal'
   | 'chat'
+  | 'agent'
   | 'duplicates'
   | 'tasks'
   | 'wikiHealth'
 
 type LibraryViewTabsProps = {
   value: LibraryView
+  agentOpen?: boolean
   favoriteCount: number
   tagCount: number
   recentCount?: number
@@ -38,6 +41,7 @@ type LibraryViewTabsProps = {
 
 export function LibraryViewTabs({
   value,
+  agentOpen = false,
   favoriteCount,
   tagCount,
   recentCount = 0,
@@ -58,6 +62,7 @@ export function LibraryViewTabs({
     { id: 'tasks', label: t('library.tabs.tasks'), icon: CheckSquare },
     { id: 'wikiHealth', label: t('library.tabs.wikiHealth'), icon: Network },
     { id: 'chat', label: t('library.tabs.chat'), icon: MessageCircle },
+    { id: 'agent', label: t('library.tabs.agent'), icon: Bot },
   ]
 
   function countFor(view: LibraryView) {
@@ -74,7 +79,7 @@ export function LibraryViewTabs({
       {tabs.map((tab) => {
         const count = countFor(tab.id)
         const Icon = tab.icon
-        const isActive = value === tab.id
+        const isActive = tab.id === 'agent' ? agentOpen : value === tab.id
 
         return (
           <IconTooltip key={tab.id} label={tab.label}>
@@ -87,7 +92,7 @@ export function LibraryViewTabs({
                 isActive &&
                   'bg-[var(--color-selection)] text-[var(--color-foreground)] shadow-none [[html[data-ui-skin=press]_&]]:border-[color-mix(in_srgb,var(--color-accent)_28%,transparent)] [[html[data-ui-skin=press]_&]]:bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] [[html[data-ui-skin=press]_&]]:shadow-[inset_2px_0_0_0_var(--color-accent)]',
               )}
-              data-tour={tab.id === 'chat' ? 'library-chat' : undefined}
+              data-tour={tab.id === 'chat' ? 'library-chat' : tab.id === 'agent' ? 'library-agent' : undefined}
               onClick={() => onChange(tab.id)}
               aria-label={tab.label}
             >

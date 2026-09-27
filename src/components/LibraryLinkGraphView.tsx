@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { Focus, Loader2, Maximize2, Minus, Plus, RotateCcw, Tags } from 'lucide-react'
+import { Focus, Loader2, Maximize2, Tags } from 'lucide-react'
 import {
   listLinkGraph,
   type LinkGraphEdge,
@@ -9,19 +9,14 @@ import {
   type SearchHit,
 } from '@/lib/db/api'
 import { nlpSimilarDocuments, nlpStatus, nlpSuggestTags, type NlpEntity } from '@/lib/db/nlp-api'
-import {
-  createForceSimulation,
-  degreeById,
-  type ForceNode,
-  type ForceNodeKind,
-} from '@/lib/link-graph/force-layout'
+import { degreeById, type ForceNodeKind } from '@/lib/link-graph/force-layout'
 import { ROUTES } from '@/lib/routes'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setActiveDocumentId } from '@/store/documentsSlice'
 import { Button } from '@/components/ui/button'
-import { IconTooltip } from '@/components/ui/tooltip'
 import { LinkGraphEmptyState } from '@/components/LinkGraphEmptyState'
+import { LinkGraphFlow } from '@/components/link-graph/LinkGraphFlow'
 
 const NLP_ENTITY_DOC_CAP = 24
 
@@ -54,7 +49,7 @@ function hashHue(value: string): number {
 function colorForKey(key: string | null | undefined): string | undefined {
   if (!key) return undefined
   const hue = hashHue(key)
-  return `hsl(${hue} 52% 52%)`
+  return `hsl(${hue} 72% 58%)`
 }
 
 function normalizeKey(value: string): string {
@@ -142,10 +137,10 @@ function collectVisible(
     const meta = options.metaById.get(id)
     if (options.colorMode === 'tag') {
       const tag = meta?.tags[0]
-      return colorForKey(tag)
+      return colorForKey(tag ?? id)
     }
     if (options.colorMode === 'folder') {
-      return colorForKey(meta?.folderId)
+      return colorForKey(meta?.folderId ?? id)
     }
     return undefined
   }
@@ -293,112 +288,6 @@ function mergeWithDegrees(
   return { nodes, visibleEdges }
 }
 
-function nodeRadius(node: ForceNode, isPage: boolean, isActive: boolean): number {
-  if (node.kind === 'tag' || node.kind === 'entity') {
-    const base = isPage ? 5 : 3.75
-    const byDegree = Math.min(isPage ? 5 : 3.5, node.degree * 0.7)
-    const activeBoost = isActive ? 2 : 0
-    return base + byDegree + activeBoost
-  }
-  const base = isPage ? 7 : 5.5
-  const byDegree = Math.min(isPage ? 10 : 7, node.degree * (isPage ? 1.6 : 1.2))
-  const orphanShrink = node.orphan ? 0.72 : 1
-  const activeBoost = isActive ? (isPage ? 4 : 3) : 0
-  return (base + byDegree) * orphanShrink + activeBoost
-}
-
-const MIN_SCALE = 0.28
-const MAX_SCALE = 3.2
-
-function clampScale(value: number): number {
-  return Math.min(MAX_SCALE, Math.max(MIN_SCALE, Number(value.toFixed(3))))
-}
-
-/** How far in we may zoom when fitting — small maps should fill the frame. */
-function maxFitScaleForCount(count: number): number {
-  if (count <= 4) return 2.45
-  if (count <= 10) return 1.9
-  if (count <= 24) return 1.55
-  return 1.3
-}
-
-function fitCameraToNodes(
-  nodes: ForceNode[],
-  size: number,
-  padding: number,
-): { scale: number; pan: { x: number; y: number } } {
-  if (nodes.length === 0) return { scale: 1, pan: { x: 0, y: 0 } }
-
-  let minX = Infinity
-  let minY = Infinity
-  let maxX = -Infinity
-  let maxY = -Infinity
-  for (const node of nodes) {
-    // Include label room below the node so fit does not clip titles.
-    const labelPad = 22
-    minX = Math.min(minX, node.x - 18)
-    minY = Math.min(minY, node.y - 18)
-    maxX = Math.max(maxX, node.x + 18)
-    maxY = Math.max(maxY, node.y + labelPad)
-  }
-
-  const width = Math.max(maxX - minX, 64)
-  const height = Math.max(maxY - minY, 64)
-  const scale = clampScale(
-    Math.min(
-      (size - padding * 2) / width,
-      (size - padding * 2) / height,
-      maxFitScaleForCount(nodes.length),
-    ),
-  )
-  const midX = (minX + maxX) / 2
-  const midY = (minY + maxY) / 2
-
-  return {
-    scale,
-    pan: {
-      x: size / 2 - midX * scale,
-      y: size / 2 - midY * scale,
-    },
-  }
-}
-
-/** Nudge labels away from the cluster centroid so titles don’t stack. */
-function labelAnchor(
-  node: ForceNode,
-  nodes: ForceNode[],
-  radius: number,
-): { x: number; y: number; anchor: 'start' | 'middle' | 'end' } {
-  if (nodes.length <= 1) {
-    return { x: node.x, y: node.y + radius + 14, anchor: 'middle' }
-  }
-  let cx = 0
-  let cy = 0
-  for (const item of nodes) {
-    cx += item.x
-    cy += item.y
-  }
-  cx /= nodes.length
-  cy /= nodes.length
-  let dx = node.x - cx
-  let dy = node.y - cy
-  const len = Math.hypot(dx, dy)
-  if (len < 1) {
-    dx = 0
-    dy = 1
-  } else {
-    dx /= len
-    dy /= len
-  }
-  const offset = radius + (nodes.length <= 6 ? 18 : 14)
-  const x = node.x + dx * offset * 0.35
-  const y = node.y + dy * offset + (dy >= 0 ? 4 : -2)
-  let anchor: 'start' | 'middle' | 'end' = 'middle'
-  if (dx > 0.45) anchor = 'start'
-  else if (dx < -0.45) anchor = 'end'
-  return { x, y, anchor }
-}
-
 export function LibraryLinkGraphView({
   initialAroundActive = false,
   onAroundActiveConsumed,
@@ -422,35 +311,10 @@ export function LibraryLinkGraphView({
   const [favoritesOnly, setFavoritesOnly] = useState(false)
   const [colorMode, setColorMode] = useState<'none' | 'tag' | 'folder'>('tag')
   const [localCenterId, setLocalCenterId] = useState<string | null>(null)
-  const [scale, setScale] = useState(1)
-  const [pan, setPan] = useState({ x: 0, y: 0 })
-  const [tick, setTick] = useState(0)
-  const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [orphanSimilar, setOrphanSimilar] = useState<Array<{ id: string; title: string; similar: SearchHit[] }>>([])
 
-  const simRef = useRef<ReturnType<typeof createForceSimulation> | null>(null)
-  const panDragRef = useRef<{
-    pointerId: number
-    startViewX: number
-    startViewY: number
-    panX: number
-    panY: number
-  } | null>(null)
-  const nodeDragRef = useRef<{
-    id: string
-    pointerId: number
-    moved: boolean
-  } | null>(null)
-  const svgRef = useRef<SVGSVGElement>(null)
-  const viewRef = useRef({ scale: 1, pan: { x: 0, y: 0 } })
-  const autoFitDoneRef = useRef(false)
-  const openTimerRef = useRef<number | null>(null)
   const nlpCacheRef = useRef<Map<string, NlpEntity[]>>(new Map())
   const tagByNodeIdRef = useRef<Map<string, string>>(new Map())
-  const [isPanning, setIsPanning] = useState(false)
-  const [spaceHeld, setSpaceHeld] = useState(false)
-
-  viewRef.current = { scale, pan }
 
   useEffect(() => {
     if (!initialAroundActive) return
@@ -552,8 +416,6 @@ export function LibraryLinkGraphView({
     }
   }, [orphans, showOrphans])
 
-  const size = isPage ? 900 : 320
-  const labelMax = isPage ? 26 : 14
   const centerIsSynthetic = Boolean(graphCenterId && isSyntheticNodeId(graphCenterId))
 
   const { nodes: wikiNodes, visibleEdges: wikiEdges } = useMemo(
@@ -735,82 +597,6 @@ export function LibraryLinkGraphView({
     wikiNodes,
   ])
 
-  const graphKey = useMemo(
-    () =>
-      `${size}:${aroundActive}:${showOrphans}:${showEntities}:${favoritesOnly}:${tagFilter ?? ''}:${colorMode}:${graphCenterId ?? ''}:${seedNodes.map((node) => `${node.id}:${node.kind ?? 'd'}`).join(',')}:${visibleEdges.length}:${nlpEntitiesByDoc.size}`,
-    [
-      aroundActive,
-      colorMode,
-      favoritesOnly,
-      graphCenterId,
-      nlpEntitiesByDoc.size,
-      seedNodes,
-      showEntities,
-      showOrphans,
-      size,
-      tagFilter,
-      visibleEdges.length,
-    ],
-  )
-
-  useEffect(() => {
-    if (seedNodes.length === 0) {
-      simRef.current = null
-      setTick((value) => value + 1)
-      return
-    }
-
-    autoFitDoneRef.current = false
-    setScale(1)
-    setPan({ x: 0, y: 0 })
-
-    const sim = createForceSimulation(seedNodes, visibleEdges, {
-      width: size,
-      height: size,
-      tight: aroundActive,
-    })
-    simRef.current = sim
-
-    let frame = 0
-    let running = true
-    const padding = isPage ? 80 : 52
-
-    const loop = () => {
-      if (!running || !simRef.current) return
-      const keepGoing = simRef.current.step()
-      setTick((value) => value + 1)
-
-      if (!keepGoing && !autoFitDoneRef.current) {
-        autoFitDoneRef.current = true
-        const camera = fitCameraToNodes(simRef.current.nodes, size, padding)
-        setScale(camera.scale)
-        setPan(camera.pan)
-        return
-      }
-
-      if (keepGoing) frame = requestAnimationFrame(loop)
-    }
-    frame = requestAnimationFrame(loop)
-
-    return () => {
-      running = false
-      cancelAnimationFrame(frame)
-    }
-  }, [graphKey]) // eslint-disable-line react-hooks/exhaustive-deps -- restart only when topology changes
-
-  const simNodes = simRef.current?.nodes ?? []
-  const nodeMap = useMemo(() => new Map(simNodes.map((node) => [node.id, node])), [simNodes, tick])
-
-  const hoverNeighbors = useMemo(() => {
-    if (!hoveredId) return null
-    const ids = new Set<string>([hoveredId])
-    for (const edge of visibleEdges) {
-      if (edge.sourceId === hoveredId) ids.add(edge.targetId)
-      if (edge.targetId === hoveredId) ids.add(edge.sourceId)
-    }
-    return ids
-  }, [hoveredId, visibleEdges])
-
   const openDocument = useCallback(
     (id: string) => {
       dispatch(setActiveDocumentId(id))
@@ -819,245 +605,32 @@ export function LibraryLinkGraphView({
     [dispatch, navigate],
   )
 
-  const clientToViewBox = useCallback(
-    (clientX: number, clientY: number) => {
-      const svg = svgRef.current
-      if (!svg) return { x: size / 2, y: size / 2 }
-      const rect = svg.getBoundingClientRect()
-      if (rect.width <= 0 || rect.height <= 0) return { x: size / 2, y: size / 2 }
-      return {
-        x: ((clientX - rect.left) / rect.width) * size,
-        y: ((clientY - rect.top) / rect.height) * size,
-      }
-    },
-    [size],
-  )
-
-  const clientToGraph = useCallback(
-    (clientX: number, clientY: number) => {
-      const view = clientToViewBox(clientX, clientY)
-      const { scale: currentScale, pan: currentPan } = viewRef.current
-      return {
-        x: (view.x - currentPan.x) / currentScale,
-        y: (view.y - currentPan.y) / currentScale,
-      }
-    },
-    [clientToViewBox],
-  )
-
-  const applyZoomAt = useCallback((nextScaleRaw: number, anchorViewX: number, anchorViewY: number) => {
-    const { scale: currentScale, pan: currentPan } = viewRef.current
-    const nextScale = clampScale(nextScaleRaw)
-    if (nextScale === currentScale) return
-
-    const graphX = (anchorViewX - currentPan.x) / currentScale
-    const graphY = (anchorViewY - currentPan.y) / currentScale
-    const nextPan = {
-      x: anchorViewX - graphX * nextScale,
-      y: anchorViewY - graphY * nextScale,
-    }
-    setScale(nextScale)
-    setPan(nextPan)
-  }, [])
-
-  const fitToNodes = useCallback(() => {
-    const nodes = simRef.current?.nodes
-    if (!nodes?.length) {
-      setScale(1)
-      setPan({ x: 0, y: 0 })
-      return
-    }
-    const camera = fitCameraToNodes(nodes, size, isPage ? 80 : 52)
-    setScale(camera.scale)
-    setPan(camera.pan)
-  }, [isPage, size])
-
-  const zoomBy = useCallback(
-    (factor: number) => {
-      applyZoomAt(viewRef.current.scale * factor, size / 2, size / 2)
-    },
-    [applyZoomAt, size],
-  )
-
-  function handleWheel(event: React.WheelEvent) {
-    event.preventDefault()
-    const zoomGesture = event.ctrlKey || event.metaKey
-    if (!zoomGesture) {
-      // Trackpad / mouse wheel pans in viewBox space (maps-style navigation).
-      const svg = svgRef.current
-      const rect = svg?.getBoundingClientRect()
-      if (!rect || rect.width <= 0 || rect.height <= 0) return
-      const { pan: currentPan } = viewRef.current
-      setPan({
-        x: currentPan.x - (event.deltaX / rect.width) * size,
-        y: currentPan.y - (event.deltaY / rect.height) * size,
-      })
-      return
-    }
-    const anchor = clientToViewBox(event.clientX, event.clientY)
-    const factor = event.deltaY > 0 ? 0.9 : 1.11
-    applyZoomAt(viewRef.current.scale * factor, anchor.x, anchor.y)
-  }
-
-  function handleSyntheticNodeActivate(id: string) {
-    if (id.startsWith('tag:')) {
+  const activateTagNode = useCallback(
+    (id: string, title: string) => {
       const fromMap = tagByNodeIdRef.current.get(id)
-      const node = simRef.current?.nodeById.get(id)
-      const tag = fromMap ?? parseTagFromNodeId(id, node?.title ?? '')
+      const tag = fromMap ?? parseTagFromNodeId(id, title)
       if (tag) setTagFilter(tag)
       setLocalCenterId(null)
-      return
-    }
-    if (id.startsWith('entity:')) {
-      setLocalCenterId(id)
-      setAroundActive(true)
-    }
-  }
+    },
+    [],
+  )
 
-  function handleDoubleClick(event: React.MouseEvent) {
-    const target = event.target as Element
-    const nodeEl = target.closest('[data-graph-node]') as HTMLElement | null
-    if (nodeEl?.dataset.nodeId) {
-      event.preventDefault()
-      event.stopPropagation()
-      if (openTimerRef.current != null) {
-        window.clearTimeout(openTimerRef.current)
-        openTimerRef.current = null
-      }
-      const id = nodeEl.dataset.nodeId
-      if (isSyntheticNodeId(id)) {
-        handleSyntheticNodeActivate(id)
-        return
-      }
+  const focusEntityNode = useCallback((id: string) => {
+    setLocalCenterId(id)
+    setAroundActive(true)
+  }, [])
+
+  const focusDocumentNode = useCallback(
+    (id: string) => {
       setLocalCenterId(id)
       setAroundActive(true)
       dispatch(setActiveDocumentId(id))
-      return
-    }
-    fitToNodes()
-  }
-
-  function beginPan(event: React.PointerEvent) {
-    const start = clientToViewBox(event.clientX, event.clientY)
-    panDragRef.current = {
-      pointerId: event.pointerId,
-      startViewX: start.x,
-      startViewY: start.y,
-      panX: viewRef.current.pan.x,
-      panY: viewRef.current.pan.y,
-    }
-    setIsPanning(true)
-    ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
-  }
-
-  function handlePointerDown(event: React.PointerEvent) {
-    // Middle mouse always pans; Space+drag pans even over nodes.
-    if (event.button === 1 || (event.button === 0 && spaceHeld)) {
-      event.preventDefault()
-      beginPan(event)
-      return
-    }
-    if (event.button !== 0) return
-    const target = event.target as Element
-    const nodeEl = target.closest('[data-graph-node]') as HTMLElement | null
-    if (nodeEl?.dataset.nodeId) {
-      const id = nodeEl.dataset.nodeId
-      const node = simRef.current?.nodeById.get(id)
-      if (!node) return
-      node.fixed = true
-      nodeDragRef.current = { id, pointerId: event.pointerId, moved: false }
-      ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
-      event.stopPropagation()
-      return
-    }
-
-    beginPan(event)
-  }
-
-  function handlePointerMove(event: React.PointerEvent) {
-    const nodeDrag = nodeDragRef.current
-    if (nodeDrag && simRef.current) {
-      const node = simRef.current.nodeById.get(nodeDrag.id)
-      if (node) {
-        const point = clientToGraph(event.clientX, event.clientY)
-        node.x = point.x
-        node.y = point.y
-        node.vx = 0
-        node.vy = 0
-        nodeDrag.moved = true
-        simRef.current.reheat(0.2)
-        setTick((value) => value + 1)
-      }
-      return
-    }
-
-    const drag = panDragRef.current
-    if (!drag) return
-    const current = clientToViewBox(event.clientX, event.clientY)
-    setPan({
-      x: drag.panX + (current.x - drag.startViewX),
-      y: drag.panY + (current.y - drag.startViewY),
-    })
-  }
-
-  function handlePointerUp(event: React.PointerEvent) {
-    const nodeDrag = nodeDragRef.current
-    if (nodeDrag && simRef.current) {
-      const node = simRef.current.nodeById.get(nodeDrag.id)
-      if (node) node.fixed = false
-      if (!nodeDrag.moved) {
-        const id = nodeDrag.id
-        if (openTimerRef.current != null) window.clearTimeout(openTimerRef.current)
-        if (isSyntheticNodeId(id)) {
-          handleSyntheticNodeActivate(id)
-        } else {
-          openTimerRef.current = window.setTimeout(() => {
-            openTimerRef.current = null
-            openDocument(id)
-          }, 240)
-        }
-      }
-      nodeDragRef.current = null
-      simRef.current.reheat(0.25)
-    }
-    if (panDragRef.current) {
-      panDragRef.current = null
-      setIsPanning(false)
-    }
-    try {
-      ;(event.currentTarget as HTMLElement).releasePointerCapture(event.pointerId)
-    } catch {
-      // ignore
-    }
-  }
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.code !== 'Space' || event.repeat) return
-      const tag = (event.target as HTMLElement | null)?.tagName
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || (event.target as HTMLElement)?.isContentEditable) {
-        return
-      }
-      event.preventDefault()
-      setSpaceHeld(true)
-    }
-    const onKeyUp = (event: KeyboardEvent) => {
-      if (event.code === 'Space') setSpaceHeld(false)
-    }
-    const onBlur = () => setSpaceHeld(false)
-    window.addEventListener('keydown', onKeyDown)
-    window.addEventListener('keyup', onKeyUp)
-    window.addEventListener('blur', onBlur)
-    return () => {
-      window.removeEventListener('keydown', onKeyDown)
-      window.removeEventListener('keyup', onKeyUp)
-      window.removeEventListener('blur', onBlur)
-    }
-  }, [])
+    },
+    [dispatch],
+  )
 
   const shellClass = isPage ? 'link-graph-page-body' : 'px-3 py-3'
   const hasContent = edges.length > 0 || (showOrphans && orphans.length > 0)
-  const zoomPercent = Math.round(scale * 100)
 
   const toolbar = (
     <div
@@ -1067,54 +640,6 @@ export function LibraryLinkGraphView({
         isPage && 'mb-0 gap-1.5',
       )}
     >
-      <IconTooltip label={t('linkGraph.zoomOut')}>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          className="h-7 w-7"
-          disabled={scale <= MIN_SCALE}
-          aria-label={t('linkGraph.zoomOut')}
-          onClick={() => zoomBy(0.85)}
-        >
-          <Minus className="h-3.5 w-3.5" />
-        </Button>
-      </IconTooltip>
-      <IconTooltip label={t('linkGraph.fitView')}>
-        <button
-          type="button"
-          className="link-graph-zoom-readout"
-          aria-label={t('linkGraph.fitView')}
-          onClick={fitToNodes}
-        >
-          {zoomPercent}%
-        </button>
-      </IconTooltip>
-      <IconTooltip label={t('linkGraph.zoomIn')}>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          className="h-7 w-7"
-          disabled={scale >= MAX_SCALE}
-          aria-label={t('linkGraph.zoomIn')}
-          onClick={() => zoomBy(1.18)}
-        >
-          <Plus className="h-3.5 w-3.5" />
-        </Button>
-      </IconTooltip>
-      <IconTooltip label={t('linkGraph.fitView')}>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          className="h-7 w-7"
-          aria-label={t('linkGraph.fitView')}
-          onClick={fitToNodes}
-        >
-          <RotateCcw className="h-3.5 w-3.5" />
-        </Button>
-      </IconTooltip>
       <Button
         type="button"
         variant={aroundActive ? 'default' : 'outline'}
@@ -1302,21 +827,9 @@ export function LibraryLinkGraphView({
       ) : (
         <div
           className={cn(
-            'link-graph-canvas touch-none overflow-hidden',
+            'link-graph-canvas overflow-hidden',
             isPage ? 'link-graph-canvas--page min-h-0 flex-1' : 'rounded-xl border border-[var(--color-border)]',
-            (isPanning || spaceHeld) && 'is-panning',
-            spaceHeld && 'is-space-pan',
           )}
-          onWheel={handleWheel}
-          onDoubleClick={handleDoubleClick}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
-          onContextMenu={(event) => {
-            // Keep middle-click / accidental right-drag from opening a menu mid-pan.
-            if (isPanning) event.preventDefault()
-          }}
         >
           {isPage && (
             <p className="link-graph-canvas-meta">
@@ -1334,119 +847,22 @@ export function LibraryLinkGraphView({
               {aroundActive ? ` · ${t('linkGraph.localGraphHint')}` : ''}
             </p>
           )}
-          <svg
-            ref={svgRef}
-            viewBox={`0 0 ${size} ${size}`}
-            className={cn('link-graph-svg h-auto w-full select-none', isPage && 'h-full min-h-[min(78vh,900px)]')}
-          >
-            <defs>
-              <radialGradient id="link-graph-void" cx="50%" cy="45%" r="65%">
-                <stop offset="0%" stopColor="var(--link-graph-void-center)" />
-                <stop offset="100%" stopColor="var(--link-graph-void-edge)" />
-              </radialGradient>
-            </defs>
-            <rect width={size} height={size} fill="url(#link-graph-void)" />
-            <g transform={`translate(${pan.x} ${pan.y}) scale(${scale})`}>
-              {visibleEdges.map((edge) => {
-                const source = nodeMap.get(edge.sourceId)
-                const target = nodeMap.get(edge.targetId)
-                if (!source || !target) return null
-                const relatedToActive =
-                  activeId === edge.sourceId || activeId === edge.targetId
-                const relatedToHover =
-                  !hoverNeighbors ||
-                  (hoverNeighbors.has(edge.sourceId) && hoverNeighbors.has(edge.targetId))
-                const dimmed = Boolean(hoverNeighbors && !relatedToHover)
-                return (
-                  <line
-                    key={`${edge.sourceId}-${edge.targetId}`}
-                    className={cn(
-                      'link-graph-edge',
-                      relatedToActive && 'is-active',
-                      relatedToHover && hoveredId && 'is-hot',
-                      dimmed && 'is-dim',
-                    )}
-                    x1={source.x}
-                    y1={source.y}
-                    x2={target.x}
-                    y2={target.y}
-                  />
-                )
-              })}
-              {simNodes.map((node) => {
-                const isFocusedCenter = graphCenterId === node.id
-                const isActive =
-                  activeId === node.id || (isSyntheticNodeId(node.id) && isFocusedCenter)
-                const isHovered = hoveredId === node.id
-                const related =
-                  !hoverNeighbors || hoverNeighbors.has(node.id)
-                const dimmed = Boolean(hoverNeighbors && !related)
-                const showLabel =
-                  isPage || isActive || isHovered || Boolean(hoverNeighbors?.has(node.id))
-                const r = nodeRadius(node, isPage, isActive)
-                const label =
-                  node.title.length > labelMax
-                    ? `${node.title.slice(0, labelMax - 1)}…`
-                    : node.title
-                const kind = node.kind ?? 'document'
-                const labelPos = labelAnchor(node, simNodes, r)
-
-                return (
-                  <g
-                    key={node.id}
-                    data-graph-node=""
-                    data-node-id={node.id}
-                    data-node-kind={kind}
-                    className={cn(
-                      'link-graph-node',
-                      isActive && 'is-active',
-                      node.orphan && 'is-orphan',
-                      isHovered && 'is-hovered',
-                      dimmed && 'is-dim',
-                      kind === 'tag' && 'is-tag',
-                      kind === 'entity' && 'is-entity',
-                    )}
-                    onPointerEnter={() => setHoveredId(node.id)}
-                    onPointerLeave={() =>
-                      setHoveredId((current) => (current === node.id ? null : current))
-                    }
-                  >
-                    {(isActive || isHovered) && (
-                      <circle
-                        className="link-graph-node-glow"
-                        cx={node.x}
-                        cy={node.y}
-                        r={r + (isPage ? 10 : 7)}
-                      />
-                    )}
-                    <circle
-                      className="link-graph-node-core"
-                      cx={node.x}
-                      cy={node.y}
-                      r={r}
-                      style={
-                        !isActive && !isHovered && node.color
-                          ? { fill: node.color }
-                          : undefined
-                      }
-                    />
-                    {showLabel && (
-                      <text
-                        className="link-graph-node-label"
-                        x={labelPos.x}
-                        y={labelPos.y}
-                        textAnchor={labelPos.anchor}
-                      >
-                        {label}
-                      </text>
-                    )}
-                  </g>
-                )
-              })}
-            </g>
-          </svg>
+          <LinkGraphFlow
+            seeds={seedNodes}
+            edges={visibleEdges}
+            activeId={activeId}
+            graphCenterId={graphCenterId}
+            isPage={isPage}
+            aroundActive={aroundActive}
+            className={isPage ? 'h-full min-h-[min(78vh,900px)]' : 'h-[320px]'}
+            onOpenDocument={openDocument}
+            onActivateTag={activateTagNode}
+            onFocusEntity={focusEntityNode}
+            onFocusDocument={focusDocumentNode}
+          />
         </div>
       )}
+
     </div>
   )
 }

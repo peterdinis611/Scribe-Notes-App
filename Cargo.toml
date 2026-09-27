@@ -1,5 +1,5 @@
 [workspace]
-members = ["src-tauri", "crates/scribe-core", "crates/scribe-mcp"]
+members = ["src-tauri", "crates/scribe-core", "crates/scribe-mcp", "crates/scribe-agent"]
 resolver = "2"
 
 [profile.release]

@@ -6,6 +6,7 @@ import {
   Clock,
   Eye,
   GitCompare,
+  PanelRightClose,
   Pencil,
   Pin,
   RotateCcw,
@@ -51,7 +52,7 @@ import {
 import { cn, formatRelativeTime } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setActiveDocument, updateDocuments } from '@/store/documentsSlice'
-import { EditorSidePanel, EditorSidePanelHeader } from '@/components/editor/EditorSidePanelPrimitives'
+import { EditorSidePanel, EditorSidePanelHeader, EditorSidePanelIconButton } from '@/components/editor/EditorSidePanelPrimitives'
 
 type RevisionHistoryPanelProps = {
   onClose: () => void
@@ -445,20 +446,27 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
         title={t('editorPanels.revisions')}
         subtitle={t('panels.revisions.subtitle')}
         actions={
-          <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="sm"
+          <>
+            <EditorSidePanelIconButton
+              aria-label={
+                naming ? t('panels.revisions.naming') : t('panels.revisions.nameVersion')
+              }
+              title={
+                naming ? t('panels.revisions.naming') : t('panels.revisions.nameVersion')
+              }
               disabled={!activeId || naming}
               onClick={() => void handleNameCurrent()}
             >
-              <BookmarkPlus className="h-3.5 w-3.5" />
-              {naming ? t('panels.revisions.naming') : t('panels.revisions.nameVersion')}
-            </Button>
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              {t('common.close')}
-            </Button>
-          </div>
+              <BookmarkPlus className="h-4 w-4" />
+            </EditorSidePanelIconButton>
+            <EditorSidePanelIconButton
+              aria-label={t('panels.revisions.hide')}
+              title={t('common.close')}
+              onClick={onClose}
+            >
+              <PanelRightClose className="h-4 w-4" />
+            </EditorSidePanelIconButton>
+          </>
         }
       />
 

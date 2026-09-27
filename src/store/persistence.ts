@@ -4,13 +4,15 @@ import { isBuiltInLocaleCode, normalizeLocaleCode } from '@/lib/i18n/custom-loca
 import type { PageSetup } from '@/lib/editor/page-setup'
 import { defaultCommentAuthor } from '@/lib/editor/comment-author'
 import { DEFAULT_PAGE_SETUP, normalizePageSetup } from '@/lib/editor/page-setup'
+import type { AgentPrefs } from '@/lib/library/agent-prefs'
+import { DEFAULT_AGENT_PREFS, normalizeAgentPrefs } from '@/lib/library/agent-prefs'
 import { kvGet, kvRemove, kvSet } from '@/lib/storage/kv'
 import type { ThemeSettings } from '@/lib/themes/types'
 import type { CustomDocumentTemplate } from '@/lib/templates/custom'
 import { parseStoredCustomTemplates } from '@/lib/templates/custom'
 import type { CustomTemplateCategory } from '@/lib/templates/categories'
 import { parseStoredCustomCategories } from '@/lib/templates/categories'
-import { LOCALE_KEY, UI_SKIN_KEY, ACTIVE_DOCUMENT_ID_KEY, ONBOARDING_DISMISSED_KEY, SETUP_COMPLETED_KEY, WHATS_NEW_VERSION_KEY, DOCUMENT_TOC_LEFT_KEY, SCRATCH_DOCUMENT_ID_KEY, SHORTCUT_OVERRIDES_KEY, STORAGE_ACCESS_EXPLAINER_KEY, STORAGE_FOLDER_ACCESS_GRANTED_KEY, FOLDER_AUTO_SYNC_KEY, AUTO_BACKUP_ENABLED_KEY, AUTO_BACKUP_INTERVAL_DAYS_KEY, AUTO_BACKUP_INTERVAL_HOURS_KEY, AUTO_BACKUP_DIR_KEY, LAST_AUTO_BACKUP_AT_KEY, THEME_KEY_V2, THEME_KEY_LEGACY, EDITOR_VIEW_MODE_KEY, PAGE_SETUP_KEY, SPELL_CHECK_KEY, PRINT_LAYOUT_KEY, PRINT_ZOOM_KEY, PRINT_COLUMNS_KEY, MANUAL_TITLES_KEY, COMMENT_AUTHOR_KEY, CUSTOM_TEMPLATES_KEY, CUSTOM_TEMPLATE_CATEGORIES_KEY, CUSTOM_LOCALES_KEY } from './keys'
+import { LOCALE_KEY, UI_SKIN_KEY, ACTIVE_DOCUMENT_ID_KEY, ONBOARDING_DISMISSED_KEY, SETUP_COMPLETED_KEY, WHATS_NEW_VERSION_KEY, DOCUMENT_TOC_LEFT_KEY, SCRATCH_DOCUMENT_ID_KEY, SHORTCUT_OVERRIDES_KEY, STORAGE_ACCESS_EXPLAINER_KEY, STORAGE_FOLDER_ACCESS_GRANTED_KEY, FOLDER_AUTO_SYNC_KEY, AUTO_BACKUP_ENABLED_KEY, AUTO_BACKUP_INTERVAL_DAYS_KEY, AUTO_BACKUP_INTERVAL_HOURS_KEY, AUTO_BACKUP_DIR_KEY, LAST_AUTO_BACKUP_AT_KEY, THEME_KEY_V2, THEME_KEY_LEGACY, EDITOR_VIEW_MODE_KEY, PAGE_SETUP_KEY, SPELL_CHECK_KEY, PRINT_LAYOUT_KEY, PRINT_ZOOM_KEY, PRINT_COLUMNS_KEY, MANUAL_TITLES_KEY, COMMENT_AUTHOR_KEY, CUSTOM_TEMPLATES_KEY, CUSTOM_TEMPLATE_CATEGORIES_KEY, CUSTOM_LOCALES_KEY, AGENT_PREFS_KEY } from './keys'
 
 export function readCustomLocales(): CustomLocalePack[] {
   try {
@@ -622,4 +624,18 @@ export function readLibrarySession(): LibrarySessionSnapshot {
 /** Prepend `id` and dedupe, capped at max. */
 export function pushRecentId(ids: string[], id: string, max = RECENT_DOCUMENT_IDS_MAX): string[] {
   return [id, ...ids.filter((existing) => existing !== id)].slice(0, max)
+}
+
+export function readAgentPrefs(): AgentPrefs {
+  try {
+    const raw = kvGet(AGENT_PREFS_KEY)
+    if (!raw) return { ...DEFAULT_AGENT_PREFS, teachings: [] }
+    return normalizeAgentPrefs(JSON.parse(raw))
+  } catch {
+    return { ...DEFAULT_AGENT_PREFS, teachings: [] }
+  }
+}
+
+export function persistAgentPrefs(prefs: AgentPrefs) {
+  kvSet(AGENT_PREFS_KEY, JSON.stringify(normalizeAgentPrefs(prefs)))
 }

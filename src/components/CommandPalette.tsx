@@ -11,6 +11,7 @@ import {
   FileText,
   Focus,
   BookOpen,
+  Bot,
   FolderInput,
   FolderOpen,
   FolderPlus,
@@ -99,6 +100,7 @@ import {
   setClipboardHistoryPanelOpen,
   setCommentsPanelOpen,
   setDocumentOutlineOpen,
+  setAgentPanelOpen,
   setInsightsPanelOpen,
   requestInsightsAskFocus,
   setLibraryFindReplaceOpen,
@@ -836,6 +838,39 @@ export function CommandPalette() {
         run: () => {
           dispatch(setSidebarOpen(true))
           dispatch(setLibraryView('duplicates'))
+        },
+      },
+      {
+        type: 'action',
+        id: 'open-agent',
+        label: t('commandPalette.openAgent'),
+        icon: <Bot className="h-4 w-4" />,
+        run: () => {
+          dispatch(setAgentPanelOpen(true))
+        },
+      },
+      {
+        type: 'action',
+        id: 'agent-weekly-review',
+        label: t('agent.recipes.weeklyReview'),
+        icon: <Bot className="h-4 w-4" />,
+        run: () => {
+          dispatch(setAgentPanelOpen(true))
+          void import('@/lib/library/agent-recipe-runner').then(({ runAgentRecipeFromPalette }) =>
+            runAgentRecipeFromPalette('weekly_review'),
+          )
+        },
+      },
+      {
+        type: 'action',
+        id: 'agent-meeting-wrap',
+        label: t('agent.recipes.meetingWrap'),
+        icon: <Bot className="h-4 w-4" />,
+        run: () => {
+          dispatch(setAgentPanelOpen(true))
+          void import('@/lib/library/agent-recipe-runner').then(({ runAgentRecipeFromPalette }) =>
+            runAgentRecipeFromPalette('meeting_wrap'),
+          )
         },
       },
       {

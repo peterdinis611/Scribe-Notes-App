@@ -48,6 +48,8 @@ export interface DocumentsState {
   insightsFocusAsk: boolean
   clipboardHistoryPanelOpen: boolean
   flashcardsPanelOpen: boolean
+  /** Right workspace dock for the Local Agent (library + document goals). */
+  agentPanelOpen: boolean
   /** Right panel icon rail; collapsed by default for a quieter writing chrome. */
   panelRailExpanded: boolean
   focusMode: boolean
@@ -58,10 +60,10 @@ export interface DocumentsState {
   shareDialogOpen: boolean
   libraryFindReplaceOpen: boolean
   pendingEditorSearch: string | null
-  libraryView: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal' | 'chat' | 'duplicates' | 'tasks' | 'wikiHealth'
+  libraryView: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal' | 'chat' | 'agent' | 'duplicates' | 'tasks' | 'wikiHealth'
   libraryGraphAroundActive: boolean
   pendingLibraryView: {
-    view: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal' | 'chat' | 'duplicates' | 'tasks' | 'wikiHealth'
+    view: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal' | 'chat' | 'agent' | 'duplicates' | 'tasks' | 'wikiHealth'
     aroundActive?: boolean
   } | null
   trashOpen: boolean
@@ -138,6 +140,7 @@ const initialState: DocumentsState = {
   insightsFocusAsk: false,
   clipboardHistoryPanelOpen: readBoolStorage('scribe-clipboard-history-open', false),
   flashcardsPanelOpen: readBoolStorage('scribe-flashcards-open', false),
+  agentPanelOpen: readBoolStorage('scribe-agent-panel-open', false),
   panelRailExpanded: readBoolStorage('scribe-panel-rail-expanded', false),
   focusMode: readBoolStorage('scribe-focus-mode', false),
   readingMode: readBoolStorage('scribe-reading-mode', false),
@@ -349,6 +352,8 @@ const documentsSlice = createSlice({
       if (action.payload) {
         state.panelRailExpanded = true
         persistBoolStorage('scribe-panel-rail-expanded', true)
+        state.agentPanelOpen = false
+        persistBoolStorage('scribe-agent-panel-open', false)
       }
     },
     setRevisionHistoryOpen(state, action: PayloadAction<boolean>) {
@@ -389,8 +394,28 @@ const documentsSlice = createSlice({
       if (action.payload) {
         state.panelRailExpanded = true
         persistBoolStorage('scribe-panel-rail-expanded', true)
+        state.agentPanelOpen = false
+        persistBoolStorage('scribe-agent-panel-open', false)
       } else {
         state.insightsFocusAsk = false
+      }
+    },
+    setAgentPanelOpen(state, action: PayloadAction<boolean>) {
+      state.agentPanelOpen = action.payload
+      persistBoolStorage('scribe-agent-panel-open', action.payload)
+      if (action.payload) {
+        state.panelRailExpanded = true
+        persistBoolStorage('scribe-panel-rail-expanded', true)
+        state.documentOutlineOpen = false
+        state.revisionHistoryOpen = false
+        state.commentsPanelOpen = false
+        state.statsPanelOpen = false
+        state.backlinksPanelOpen = false
+        state.insightsPanelOpen = false
+        state.insightsFocusAsk = false
+        state.clipboardHistoryPanelOpen = false
+        state.flashcardsPanelOpen = false
+        persistBoolStorage('scribe-insights-open', false)
       }
     },
     requestInsightsAskFocus(state) {
@@ -406,6 +431,8 @@ const documentsSlice = createSlice({
       state.backlinksPanelOpen = false
       state.clipboardHistoryPanelOpen = false
       state.flashcardsPanelOpen = false
+      state.agentPanelOpen = false
+      persistBoolStorage('scribe-agent-panel-open', false)
     },
     clearInsightsAskFocus(state) {
       state.insightsFocusAsk = false
@@ -503,7 +530,7 @@ const documentsSlice = createSlice({
     setPendingLibraryView(
       state,
       action: PayloadAction<{
-        view: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal' | 'chat' | 'duplicates'
+        view: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal' | 'chat' | 'agent' | 'duplicates'
         aroundActive?: boolean
       } | null>,
     ) {
@@ -651,6 +678,7 @@ export const {
   setStatsPanelOpen,
   setBacklinksPanelOpen,
   setInsightsPanelOpen,
+  setAgentPanelOpen,
   requestInsightsAskFocus,
   clearInsightsAskFocus,
   setClipboardHistoryPanelOpen,

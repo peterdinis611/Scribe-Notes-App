@@ -52,4 +52,4 @@ pub use vault::{
     content_is_vault_cipher, document_is_vault, require_document_not_vault, vault_document_ids_among,
     McpVaultScope, ERR_VAULT_DENIED, ERR_VAULT_NLP, VAULT_CONTENT_MARKER,
 };
-pub use nlp::match_document_chat_intent;
+pub use nlp::{match_agent_intents, match_document_chat_intent};

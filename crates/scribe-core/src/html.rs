@@ -3,8 +3,9 @@
 //! This is the subset of `src/lib/export/html.ts` that needs no browser: text,
 //! headings, lists, quotes, code and rules. Rich embeds (Mermaid, D3, maps,
 //! media) stay in TypeScript and are skipped here.
-
+//!
 use serde_json::Value;
+use unicode_normalization::UnicodeNormalization;
 
 pub fn tiptap_to_html(content_json: &str, title: &str, include_title_heading: bool) -> String {
     let doc: Value = serde_json::from_str(content_json).unwrap_or(Value::Null);
@@ -12,7 +13,7 @@ pub fn tiptap_to_html(content_json: &str, title: &str, include_title_heading: bo
     let mut out = String::from("<article class=\"scribe-export\">");
     if include_title_heading {
         out.push_str("<h1>");
-        push_escaped(&mut out, title);
+        push_escaped(&mut out, &to_nfc(title));
         out.push_str("</h1>");
     }
     render_children(&doc, &mut out);
@@ -24,6 +25,10 @@ pub fn escape_html(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     push_escaped(&mut out, text);
     out
+}
+
+fn to_nfc(text: &str) -> String {
+    text.nfc().collect()
 }
 
 fn push_escaped(out: &mut String, text: &str) {
@@ -53,7 +58,7 @@ fn render_node(node: &Value, out: &mut String) {
         Some("hardBreak") => out.push_str("<br />"),
         Some("paragraph") => {
             out.push_str("<p");
-            push_text_align(node, out);
+            push_block_attrs(node, out);
             out.push('>');
             render_children(node, out);
             out.push_str("</p>");
@@ -65,7 +70,7 @@ fn render_node(node: &Value, out: &mut String) {
                 .unwrap_or(1)
                 .clamp(1, 6);
             out.push_str(&format!("<h{level}"));
-            push_text_align(node, out);
+            push_block_attrs(node, out);
             out.push('>');
             render_children(node, out);
             out.push_str(&format!("</h{level}>"));
@@ -111,6 +116,9 @@ fn render_node(node: &Value, out: &mut String) {
                 push_escaped(out, language);
                 out.push_str("\">");
             }
+            // Code content is left byte-for-byte as authored: no Unicode
+            // normalization here, since normalizing code could silently
+            // change it.
             push_escaped(out, &collect_text(node));
             out.push_str("</code></pre>");
         }
@@ -140,7 +148,13 @@ fn wrap(node: &Value, open: &str, close: &str, out: &mut String) {
     out.push_str(close);
 }
 
-fn push_text_align(node: &Value, out: &mut String) {
+/// Emits `dir="rtl"` (when the block's text is predominantly right-to-left)
+/// and an inline `text-align` style, on `<p>` / `<hn>` opening tags.
+fn push_block_attrs(node: &Value, out: &mut String) {
+    if text_direction(&collect_text(node)) == Some("rtl") {
+        out.push_str(" dir=\"rtl\"");
+    }
+
     let align = node
         .pointer("/attrs/textAlign")
         .and_then(Value::as_str)
@@ -150,17 +164,51 @@ fn push_text_align(node: &Value, out: &mut String) {
     }
 }
 
+/// Returns the direction implied by the first "strong" (directionally
+/// significant) character in `text`: `Some("rtl")` for Hebrew/Arabic-script
+/// text, `Some("ltr")` for other alphabetic text, or `None` when the text has
+/// no directionally strong characters at all (e.g. empty, digits/punctuation
+/// only).
+fn text_direction(text: &str) -> Option<&'static str> {
+    for ch in text.chars() {
+        let cp = ch as u32;
+        let is_rtl = matches!(cp,
+            0x0590..=0x05FF   // Hebrew
+            | 0x0600..=0x06FF // Arabic
+            | 0x0700..=0x074F // Syriac
+            | 0x0750..=0x077F // Arabic Supplement
+            | 0x0780..=0x07BF // Thaana
+            | 0x07C0..=0x07FF // NKo
+            | 0x0800..=0x083F // Samaritan
+            | 0x0840..=0x085F // Mandaic
+            | 0x08A0..=0x08FF // Arabic Extended-A
+            | 0xFB1D..=0xFB4F // Hebrew presentation forms
+            | 0xFB50..=0xFDFF // Arabic presentation forms A
+            | 0xFE70..=0xFEFF // Arabic presentation forms B
+        );
+        if is_rtl {
+            return Some("rtl");
+        }
+        if ch.is_alphabetic() {
+            return Some("ltr");
+        }
+    }
+    None
+}
+
 fn render_text(node: &Value, out: &mut String) {
-    let text = node.get("text").and_then(Value::as_str).unwrap_or("");
+    let raw = node.get("text").and_then(Value::as_str).unwrap_or("");
+    let text = to_nfc(raw);
+
     let marks = node.get("marks").and_then(Value::as_array);
 
     let Some(marks) = marks.filter(|marks| !marks.is_empty()) else {
-        push_escaped(out, text);
+        push_escaped(out, &text);
         return;
     };
 
     // Marks wrap the accumulated markup in order, like the TypeScript reducer.
-    let mut rendered = escape_html(text);
+    let mut rendered = escape_html(&text);
     for mark in marks {
         rendered = apply_mark(mark, rendered);
     }
@@ -336,5 +384,53 @@ mod tests {
             tiptap_to_html("not json", "T", true),
             "<article class=\"scribe-export\"><h1>T</h1></article>"
         );
+    }
+
+    #[test]
+    fn renders_rtl_paragraph_with_dir_attr() {
+        let json = r#"{
+            "type": "doc",
+            "content": [
+                { "type": "paragraph", "content": [{ "type": "text", "text": "\u0645\u0631\u062d\u0628\u0627" }] },
+                { "type": "heading", "attrs": { "level": 1 }, "content": [{ "type": "text", "text": "\u05e9\u05dc\u05d5\u05dd" }] },
+                { "type": "paragraph", "content": [{ "type": "text", "text": "Hello" }] }
+            ]
+        }"#;
+
+        let html = tiptap_to_html(json, "", false);
+
+        assert!(html.contains("<p dir=\"rtl\">"));
+        assert!(html.contains("<h1 dir=\"rtl\">"));
+        assert!(!html.contains("<p dir=\"rtl\">Hello"));
+    }
+
+    #[test]
+    fn combines_rtl_dir_with_text_align() {
+        let json = r#"{
+            "type": "doc",
+            "content": [
+                { "type": "paragraph", "attrs": { "textAlign": "right" }, "content": [
+                    { "type": "text", "text": "\u0645\u0631\u062d\u0628\u0627" }
+                ] }
+            ]
+        }"#;
+
+        let html = tiptap_to_html(json, "", false);
+        assert!(html.contains("<p dir=\"rtl\" style=\"text-align:right\">"));
+    }
+
+    #[test]
+    fn normalizes_combining_diacritics_to_nfc() {
+        // "é" written as "e" + combining acute accent (U+0065 U+0301)
+        let decomposed = "e\u{0301}cole";
+        let json = format!(
+            r#"{{"type":"doc","content":[{{"type":"paragraph","content":[{{"type":"text","text":"{decomposed}"}}]}}]}}"#
+        );
+
+        let html = tiptap_to_html(&json, "", false);
+
+        // NFC precomposed form: U+00E9 ("é")
+        assert!(html.contains("<p>\u{00e9}cole</p>"));
+        assert!(!html.contains(decomposed));
     }
 }

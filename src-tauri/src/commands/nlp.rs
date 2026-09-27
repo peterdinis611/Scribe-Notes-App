@@ -1719,6 +1719,67 @@ pub fn nlp_meeting_notes_pack(
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct NlpPlanAgentGoalInput {
+    pub goal: String,
+    pub scope: Option<String>,
+    pub max_tools: Option<i64>,
+}
+
+#[tauri::command]
+pub fn nlp_plan_agent_goal(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpPlanAgentGoalInput,
+) -> Result<serde_json::Value, String> {
+    {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        if !is_nlp_enabled(&conn)? {
+            return Err("NLP is disabled".to_string());
+        }
+        let _ = sync_sidecar_backend(&sidecar, &conn);
+    }
+    let scope = input.scope.as_deref().unwrap_or("document");
+    let max_tools = input.max_tools.unwrap_or(3).clamp(1, 6);
+    sidecar.plan_agent_goal(input.goal.trim(), scope, max_tools)
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpAgentDocumentBriefInput {
+    pub document_id: Option<String>,
+    pub text: Option<String>,
+    pub goal: Option<String>,
+    pub tools: Option<Vec<String>>,
+    pub limit: Option<i64>,
+}
+
+#[tauri::command]
+pub fn nlp_agent_document_brief(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpAgentDocumentBriefInput,
+) -> Result<serde_json::Value, String> {
+    let resolved = resolve_nlp_text(
+        &state,
+        &NlpDocumentTextInput {
+            document_id: input.document_id.clone(),
+            text: input.text.clone(),
+            limit: input.limit,
+            include_cloze: None,
+        },
+    )?;
+    let tools = serde_json::json!(input.tools.unwrap_or_default());
+    let limit = input.limit.unwrap_or(8).clamp(1, 20);
+    sidecar.agent_document_brief(
+        &resolved,
+        input.goal.as_deref().unwrap_or("").trim(),
+        &tools,
+        limit,
+    )
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NlpCitationPackInput {
     pub claim: String,
     pub limit: Option<i64>,

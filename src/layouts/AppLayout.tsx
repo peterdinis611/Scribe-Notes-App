@@ -3,6 +3,7 @@ import { flushSync } from 'react-dom'
 import { Outlet, useNavigate, useParams, useRouterState } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { listen } from '@tauri-apps/api/event'
+import { AgentWorkspaceDock } from '@/components/agent/AgentWorkspaceDock'
 import { CommandPalette } from '@/components/CommandPalette'
 import { DndRoot } from '@/components/dnd/DndRoot'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -237,6 +238,8 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+
+      <AgentWorkspaceDock />
 
       <TemplatePicker
         open={templatePickerOpen}
