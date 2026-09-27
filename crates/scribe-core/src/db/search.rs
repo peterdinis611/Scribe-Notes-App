@@ -1,4 +1,4 @@
-use rusqlite::{params, Connection};
+use rusqlite::{types::ToSql, Connection};
 use serde::Serialize;
 
 fn escape_fts_token(token: &str) -> String {
@@ -181,12 +181,39 @@ impl SearchMode {
     }
 }
 
+/// A dynamically-typed bind value for the query built in
+/// `search_documents_scoped`. Using a small enum instead of `Box<dyn ToSql>`
+/// keeps the optional-filter SQL building simple while still letting us bind
+/// a variable number of parameters in one prepared statement.
+enum SqlParam {
+    Text(String),
+    Int(i64),
+}
+
+impl ToSql for SqlParam {
+    fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
+        match self {
+            SqlParam::Text(value) => value.to_sql(),
+            SqlParam::Int(value) => value.to_sql(),
+        }
+    }
+}
+
+// Recommended indexes (create once, e.g. in a migration), so the filters
+// below and the batched lookups in `fetch_document_metadata` stay sublinear
+// as the `documents` table grows instead of falling back to full scans:
+//
+//   CREATE INDEX IF NOT EXISTS idx_documents_library_deleted
+//     ON documents(library_id, deleted_at);
+//   CREATE INDEX IF NOT EXISTS idx_documents_folder ON documents(folder_id);
+//   CREATE INDEX IF NOT EXISTS idx_documents_updated_at ON documents(updated_at);
+
 pub fn search_documents_in_conn(
     conn: &Connection,
     query: &str,
     limit: i64,
 ) -> Result<Vec<SearchHit>, String> {
-    search_documents_scoped(conn, query, limit, None)
+    search_documents_scoped(conn, query, limit, None, &SearchFilter::default())
 }
 
 pub fn search_documents_for_library(
@@ -195,7 +222,22 @@ pub fn search_documents_for_library(
     limit: i64,
     library_id: &str,
 ) -> Result<Vec<SearchHit>, String> {
-    search_documents_scoped(conn, query, limit, Some(library_id))
+    search_documents_scoped(conn, query, limit, Some(library_id), &SearchFilter::default())
+}
+
+/// Same search as above, but also applies `filter` (folder, tag, date range,
+/// library) as part of the query. Prefer this over post-fetch filtering with
+/// `filter_search_hits`: applying filters before the SQL `LIMIT` means a
+/// narrow filter can no longer cause fewer than `limit` results to come back
+/// just because the unfiltered top-N candidates happened not to match it.
+pub fn search_documents_filtered(
+    conn: &Connection,
+    query: &str,
+    limit: i64,
+    library_id: Option<&str>,
+    filter: &SearchFilter,
+) -> Result<Vec<SearchHit>, String> {
+    search_documents_scoped(conn, query, limit, library_id, filter)
 }
 
 fn search_documents_scoped(
@@ -203,6 +245,7 @@ fn search_documents_scoped(
     query: &str,
     limit: i64,
     library_id: Option<&str>,
+    filter: &SearchFilter,
 ) -> Result<Vec<SearchHit>, String> {
     let q = query.trim();
     if q.is_empty() {
@@ -215,22 +258,79 @@ fn search_documents_scoped(
         return Ok(Vec::new());
     }
 
-    let sql = if library_id.is_some() {
-        "SELECT f.document_id, f.title, snippet(documents_fts, 2, '<mark>', '</mark>', '…', 32) AS snippet, bm25(documents_fts) AS rank
-             FROM documents_fts f
-             JOIN documents d ON d.id = f.document_id
-             WHERE documents_fts MATCH ?1 AND d.deleted_at IS NULL AND d.library_id = ?3
-             ORDER BY rank
-             LIMIT ?2"
+    // Tag matching can't be expressed as a plain SQL equality (tags are a
+    // trimmed, comma-separated list), so when a tag filter is active we pull
+    // a wider candidate pool from the DB, filter by tag in Rust, and only
+    // then trim back down to `max`. Every other filter (library, folder,
+    // date range) IS pushed into the SQL below, ahead of `LIMIT`, so it no
+    // longer truncates relevant results before they get a chance to match.
+    let fetch_cap = if filter.tag.is_some() {
+        max.saturating_mul(4).clamp(1, 200)
     } else {
-        "SELECT document_id, title, snippet(documents_fts, 2, '<mark>', '</mark>', '…', 32) AS snippet, bm25(documents_fts) AS rank
-             FROM documents_fts
-             WHERE documents_fts MATCH ?1
-             ORDER BY rank
-             LIMIT ?2"
+        max
     };
 
-    let mut stmt = conn.prepare(sql).map_err(|e| e.to_string())?;
+    let mut sql = String::from(
+        "SELECT f.document_id, f.title, snippet(documents_fts, 2, '<mark>', '</mark>', '…', 32) AS snippet, bm25(documents_fts) AS rank
+         FROM documents_fts f
+         JOIN documents d ON d.id = f.document_id
+         WHERE documents_fts MATCH ? AND d.deleted_at IS NULL",
+    );
+    let mut bind: Vec<SqlParam> = vec![SqlParam::Text(fts_query)];
+
+    // An explicit `library_id` argument (used by `search_documents_for_library`)
+    // takes precedence; falling back to `filter.library_id` lets callers of
+    // `search_documents_filtered` scope by library through the filter alone.
+    let effective_library = library_id
+        .map(str::trim)
+        .filter(|v| !v.is_empty())
+        .or_else(|| {
+            filter
+                .library_id
+                .as_deref()
+                .map(str::trim)
+                .filter(|v| !v.is_empty())
+        });
+    if let Some(lib) = effective_library {
+        sql.push_str(" AND d.library_id = ?");
+        bind.push(SqlParam::Text(lib.to_string()));
+    }
+    if let Some(folder) = filter
+        .folder_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|v| !v.is_empty())
+    {
+        sql.push_str(" AND d.folder_id = ?");
+        bind.push(SqlParam::Text(folder.to_string()));
+    }
+    if let Some(from) = filter
+        .from_date
+        .as_deref()
+        .map(str::trim)
+        .filter(|v| !v.is_empty())
+    {
+        if let Ok((start, _)) = crate::dates::date_key_bounds_ms(from, from) {
+            sql.push_str(" AND d.updated_at >= ?");
+            bind.push(SqlParam::Int(start));
+        }
+    }
+    if let Some(to) = filter
+        .to_date
+        .as_deref()
+        .map(str::trim)
+        .filter(|v| !v.is_empty())
+    {
+        if let Ok((_, end)) = crate::dates::date_key_bounds_ms(to, to) {
+            sql.push_str(" AND d.updated_at <= ?");
+            bind.push(SqlParam::Int(end));
+        }
+    }
+
+    sql.push_str(" ORDER BY rank LIMIT ?");
+    bind.push(SqlParam::Int(fetch_cap));
+
+    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
 
     let map_hit = |row: &rusqlite::Row<'_>| {
         Ok(SearchHit {
@@ -243,82 +343,179 @@ fn search_documents_scoped(
         })
     };
 
-    let rows = if let Some(library_id) = library_id {
-        stmt.query_map(params![fts_query, max, library_id], map_hit)
-            .map_err(|e| e.to_string())?
-    } else {
-        stmt.query_map(params![fts_query, max], map_hit)
-            .map_err(|e| e.to_string())?
-    };
+    let mut hits = stmt
+        .query_map(rusqlite::params_from_iter(bind.iter()), map_hit)
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
 
-    rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
-}
-
-pub fn filter_search_hits(
-    conn: &Connection,
-    mut hits: Vec<SearchHit>,
-    filter: &SearchFilter,
-    limit: i64,
-) -> Vec<SearchHit> {
-    if !filter.is_empty() {
-        hits.retain(|hit| hit_matches_filter(conn, hit, filter));
-    }
-    hits.truncate(limit.clamp(1, 50) as usize);
-    hits
-}
-
-fn hit_matches_filter(conn: &Connection, hit: &SearchHit, filter: &SearchFilter) -> bool {
-    use rusqlite::OptionalExtension;
-
-    let row: Option<(Option<String>, Option<String>, i64, String)> = conn
-        .query_row(
-            "SELECT folder_id, tags, updated_at, library_id FROM documents
-             WHERE id = ?1 AND deleted_at IS NULL",
-            params![hit.document_id],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
-        )
-        .optional()
-        .ok()
-        .flatten();
-    let Some((folder_id, tags_raw, updated_at, library_id)) = row else {
-        return false;
-    };
-    if let Some(wanted) = filter.library_id.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
-        if library_id != wanted {
-            return false;
-        }
-    };
-    if let Some(wanted) = filter.folder_id.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
-        if folder_id.as_deref() != Some(wanted) {
-            return false;
-        }
-    }
     if let Some(tag) = filter.tag.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
+        let tag_only = SearchFilter {
+            tag: Some(tag.to_string()),
+            ..SearchFilter::default()
+        };
+        let metadata = fetch_document_metadata(conn, &hits);
+        hits.retain(|hit| {
+            metadata
+                .get(&hit.document_id)
+                .map(|meta| meta.matches(&tag_only))
+                .unwrap_or(false)
+        });
+    }
+
+    hits.truncate(max as usize);
+    Ok(hits)
+}
+
+/// Metadata used by `filter_search_hits` / the tag-filtering step above.
+struct DocMetadata {
+    folder_id: Option<String>,
+    tags: Vec<String>,
+    updated_at: i64,
+    library_id: String,
+}
+
+impl DocMetadata {
+    fn matches(&self, filter: &SearchFilter) -> bool {
+        if let Some(wanted) = filter
+            .library_id
+            .as_deref()
+            .map(str::trim)
+            .filter(|v| !v.is_empty())
+        {
+            if self.library_id != wanted {
+                return false;
+            }
+        }
+        if let Some(wanted) = filter
+            .folder_id
+            .as_deref()
+            .map(str::trim)
+            .filter(|v| !v.is_empty())
+        {
+            if self.folder_id.as_deref() != Some(wanted) {
+                return false;
+            }
+        }
+        if let Some(tag) = filter.tag.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
+            if !self.tags.iter().any(|existing| existing == tag) {
+                return false;
+            }
+        }
+        if let Some(from) = filter
+            .from_date
+            .as_deref()
+            .map(str::trim)
+            .filter(|v| !v.is_empty())
+        {
+            if let Ok((start, _)) = crate::dates::date_key_bounds_ms(from, from) {
+                if self.updated_at < start {
+                    return false;
+                }
+            }
+        }
+        if let Some(to) = filter
+            .to_date
+            .as_deref()
+            .map(str::trim)
+            .filter(|v| !v.is_empty())
+        {
+            if let Ok((_, end)) = crate::dates::date_key_bounds_ms(to, to) {
+                if self.updated_at > end {
+                    return false;
+                }
+            }
+        }
+        true
+    }
+}
+
+/// Loads folder/tags/updated_at/library_id for every hit's document in a
+/// single query (`id IN (...)`) instead of one round-trip per hit, which is
+/// what the previous implementation did.
+fn fetch_document_metadata(
+    conn: &Connection,
+    hits: &[SearchHit],
+) -> std::collections::HashMap<String, DocMetadata> {
+    use std::collections::HashMap;
+
+    let mut out = HashMap::with_capacity(hits.len());
+    if hits.is_empty() {
+        return out;
+    }
+
+    let placeholders = vec!["?"; hits.len()].join(",");
+    let sql = format!(
+        "SELECT id, folder_id, tags, updated_at, library_id FROM documents
+         WHERE id IN ({placeholders}) AND deleted_at IS NULL"
+    );
+    let Ok(mut stmt) = conn.prepare(&sql) else {
+        return out;
+    };
+
+    let ids: Vec<String> = hits.iter().map(|hit| hit.document_id.clone()).collect();
+    let rows = stmt.query_map(rusqlite::params_from_iter(ids.iter()), |row| {
+        let id: String = row.get(0)?;
+        let folder_id: Option<String> = row.get(1)?;
+        let tags_raw: Option<String> = row.get(2)?;
+        let updated_at: i64 = row.get(3)?;
+        let library_id: String = row.get(4)?;
+        Ok((id, folder_id, tags_raw, updated_at, library_id))
+    });
+
+    let Ok(rows) = rows else {
+        return out;
+    };
+
+    for (id, folder_id, tags_raw, updated_at, library_id) in rows.flatten() {
         let tags = tags_raw
             .unwrap_or_default()
             .split(',')
             .map(|item| item.trim().to_string())
             .filter(|item| !item.is_empty())
             .collect::<Vec<_>>();
-        if !tags.iter().any(|existing| existing == tag) {
-            return false;
-        }
+        out.insert(
+            id,
+            DocMetadata {
+                folder_id,
+                tags,
+                updated_at,
+                library_id,
+            },
+        );
     }
-    if let Some(from) = filter.from_date.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
-        if let Ok((start, _)) = crate::dates::date_key_bounds_ms(from, from) {
-            if updated_at < start {
-                return false;
-            }
-        }
+
+    out
+}
+
+/// Post-filters an already-fetched hit list against `filter`, using a single
+/// batched metadata query rather than one query per hit.
+///
+/// Prefer `search_documents_filtered` for new call sites: it applies most of
+/// these same conditions inside the SQL query itself, before `LIMIT`, which
+/// this function (being a pure post-filter over whatever was already
+/// fetched) cannot do.
+pub fn filter_search_hits(
+    conn: &Connection,
+    hits: Vec<SearchHit>,
+    filter: &SearchFilter,
+    limit: i64,
+) -> Vec<SearchHit> {
+    let mut hits = hits;
+    if filter.is_empty() || hits.is_empty() {
+        hits.truncate(limit.clamp(1, 50) as usize);
+        return hits;
     }
-    if let Some(to) = filter.to_date.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
-        if let Ok((_, end)) = crate::dates::date_key_bounds_ms(to, to) {
-            if updated_at > end {
-                return false;
-            }
-        }
-    }
-    true
+
+    let metadata = fetch_document_metadata(conn, &hits);
+    hits.retain(|hit| {
+        metadata
+            .get(&hit.document_id)
+            .map(|meta| meta.matches(filter))
+            .unwrap_or(false)
+    });
+    hits.truncate(limit.clamp(1, 50) as usize);
+    hits
 }
 
 #[cfg(test)]
@@ -400,6 +597,72 @@ mod tests {
         let work = search_documents_for_library(&conn, "alpha", 10, "work").unwrap();
         assert_eq!(work.len(), 1);
         assert_eq!(work[0].document_id, "doc-work");
+    }
+
+    #[test]
+    fn excludes_soft_deleted_documents_even_without_library_filter() {
+        // Regression test: the previous "no library" query branch selected
+        // straight from `documents_fts` without joining `documents`, so it
+        // never checked `deleted_at` at all.
+        let conn = in_memory_conn();
+        crate::db::test_helpers::seed_document(&conn, "doc-live", "Live note", "{}", None);
+        crate::db::test_helpers::seed_document(&conn, "doc-deleted", "Deleted note", "{}", None);
+        conn.execute("UPDATE documents SET deleted_at = 1 WHERE id = 'doc-deleted'", [])
+            .unwrap();
+
+        crate::db::sync_document_fts(
+            &conn,
+            "doc-live",
+            "Live note",
+            r#"{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"quarterly budget"}]}]}"#,
+        )
+        .unwrap();
+        crate::db::sync_document_fts(
+            &conn,
+            "doc-deleted",
+            "Deleted note",
+            r#"{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"quarterly budget"}]}]}"#,
+        )
+        .unwrap();
+
+        let hits = search_documents_in_conn(&conn, "quarterly", 10).unwrap();
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].document_id, "doc-live");
+    }
+
+    #[test]
+    fn filtered_search_applies_folder_filter_in_sql_before_truncation() {
+        // Regression test for the old "SQL LIMIT, then filter in Rust"
+        // ordering: with a tight `limit`, filtering after the fact could
+        // return zero hits even though matching documents existed, just
+        // because they didn't fall inside the first `limit` FTS rows.
+        let conn = in_memory_conn();
+        crate::db::test_helpers::seed_folder(&conn, "f-target", "Target", None);
+
+        for i in 0..5 {
+            let id = format!("doc-{i}");
+            // Put the folder-matching documents LAST so a naive
+            // "LIMIT 1, then filter" approach would fetch a non-matching
+            // document first and report zero results.
+            let folder = if i >= 3 { Some("f-target") } else { None };
+            crate::db::test_helpers::seed_document(&conn, &id, &format!("Note {i}"), "{}", folder);
+            crate::db::sync_document_fts(
+                &conn,
+                &id,
+                &format!("Note {i}"),
+                r#"{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"urgent deadline"}]}]}"#,
+            )
+            .unwrap();
+        }
+
+        let filter = SearchFilter {
+            folder_id: Some("f-target".into()),
+            ..SearchFilter::default()
+        };
+
+        let hits = search_documents_filtered(&conn, "urgent", 1, None, &filter).unwrap();
+        assert_eq!(hits.len(), 1);
+        assert!(hits[0].document_id == "doc-3" || hits[0].document_id == "doc-4");
     }
 
     #[test]
