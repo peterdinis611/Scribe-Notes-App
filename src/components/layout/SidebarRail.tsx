@@ -3,14 +3,12 @@ import { BookOpen, FileText, GitBranch, Home, Settings2 } from 'lucide-react'
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import scribeMarkUrl from '@/assets/brand/scribe-mark.svg'
-import { AgentBlobatar, AGENT_BLOBATAR_NAME } from '@/components/agent/AgentBlobatar'
 import { goToHome } from '@/lib/navigation'
 import { ROUTES } from '@/lib/routes'
 import { APP_SHORT_VERSION } from '@/lib/app-version'
 import { cn } from '@/lib/utils'
 import { IconTooltip } from '@/components/ui/tooltip'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { setAgentPanelOpen } from '@/store/documentsSlice'
 
 type SidebarRailProps = {
   onNavigate?: () => void
@@ -23,7 +21,6 @@ export function SidebarRail({ onNavigate }: SidebarRailProps) {
   const navigate = useNavigate()
   const activeDocumentId = useAppSelector((state) => state.documents.activeDocumentId)
   const documents = useAppSelector((state) => state.documents.documents)
-  const agentPanelOpen = useAppSelector((state) => state.documents.agentPanelOpen)
   const onSettingsPage = pathname.startsWith('/settings')
   const onDocsPage = pathname === '/docs' || pathname.startsWith('/docs/')
   const onGraphPage = pathname === '/graph'
@@ -117,32 +114,6 @@ export function SidebarRail({ onNavigate }: SidebarRailProps) {
           <Settings2 className="h-[18px] w-[18px]" />
         </Link>
       </IconTooltip>
-
-      <div className="mt-auto flex flex-col items-center gap-1 pb-1 pt-3">
-        <IconTooltip label={t('editorPanels.agent')} side="right">
-          <button
-            type="button"
-            aria-label={t('editorPanels.agent')}
-            aria-pressed={agentPanelOpen}
-            data-tour="rail-agent"
-            onClick={() => {
-              dispatch(setAgentPanelOpen(!agentPanelOpen))
-              onNavigate?.()
-            }}
-            className={cn(
-              'app-rail-btn app-rail-btn--agent titlebar-no-drag',
-              agentPanelOpen && 'is-active',
-            )}
-          >
-            <AgentBlobatar
-              name={AGENT_BLOBATAR_NAME}
-              size={22}
-              talking={agentPanelOpen}
-              title={t('agent.faceTitle')}
-            />
-          </button>
-        </IconTooltip>
-      </div>
     </div>
   )
 }

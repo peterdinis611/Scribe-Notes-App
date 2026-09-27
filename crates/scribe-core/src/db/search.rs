@@ -1,14 +1,23 @@
 use rusqlite::{types::ToSql, Connection};
 use serde::Serialize;
 
-fn escape_fts_token(token: &str) -> String {
-    token.replace('"', "\"\"")
+fn sanitize_fts_token(token: &str) -> String {
+    // FTS5 MATCH is its own query language — punctuation like `?` / `@` / `*`
+    // is syntax, not search text. Keep letters & digits (incl. Slovak diacritics).
+    token
+        .chars()
+        .filter(|c| c.is_alphanumeric() || *c == '_')
+        .collect()
+}
+
+fn quote_fts_token(token: &str) -> String {
+    format!("\"{}\"", token.replace('"', "\"\""))
 }
 
 pub fn build_fts_query(query: &str) -> String {
     let tokens: Vec<String> = query
         .split_whitespace()
-        .map(escape_fts_token)
+        .map(sanitize_fts_token)
         .filter(|token| !token.is_empty())
         .collect();
 
@@ -17,14 +26,14 @@ pub fn build_fts_query(query: &str) -> String {
     }
 
     if tokens.len() == 1 {
-        let token = &tokens[0];
-        return format!("\"{token}\" OR {token}*");
+        let quoted = quote_fts_token(&tokens[0]);
+        return format!("{quoted} OR {quoted}*");
     }
 
-    let phrase = tokens.join(" ");
-    let mut parts = vec![format!("\"{phrase}\"")];
-    for token in tokens {
-        parts.push(format!("{token}*"));
+    let phrase = quote_fts_token(&tokens.join(" "));
+    let mut parts = vec![phrase];
+    for token in &tokens {
+        parts.push(format!("{}*", quote_fts_token(token)));
     }
     parts.join(" OR ")
 }
@@ -534,7 +543,20 @@ mod tests {
     fn escapes_quotes_in_query() {
         assert_eq!(
             build_fts_query(r#"foo" bar"#),
-            r#""foo"" bar" OR foo""* OR bar*"#
+            r#""foo bar" OR "foo"* OR "bar"*"#
+        );
+    }
+
+    #[test]
+    fn strips_fts_punctuation() {
+        assert_eq!(
+            build_fts_query("Where is my car?"),
+            r#""Where is my car" OR "Where"* OR "is"* OR "my"* OR "car"*"#
+        );
+        assert_eq!(build_fts_query("???"), "");
+        assert_eq!(
+            build_fts_query("pridané?"),
+            r#""pridané" OR "pridané"*"#
         );
     }
 
@@ -542,7 +564,7 @@ mod tests {
     fn builds_multi_word_query() {
         assert_eq!(
             build_fts_query("dôležitý termín"),
-            "\"dôležitý termín\" OR dôležitý* OR termín*"
+            r#""dôležitý termín" OR "dôležitý"* OR "termín"*"#
         );
     }
 
