@@ -1,6 +1,4 @@
-use crate::db::{
-    filter_search_hits, search_documents_for_library, SearchFilter, SearchHit, DbState,
-};
+use crate::db::{search_documents_filtered, SearchFilter, SearchHit, DbState};
 use tauri::State;
 
 #[tauri::command]
@@ -27,17 +25,13 @@ pub fn search_documents(
         tag,
         from_date,
         to_date,
-        library_id: library_id
-            .as_deref()
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-            .map(str::to_string),
+        library_id: None,
     };
-    let fetch = if filter.is_empty() {
-        limit.unwrap_or(20)
-    } else {
-        (limit.unwrap_or(20) * 5).clamp(limit.unwrap_or(20), 200)
-    };
-    let hits = search_documents_for_library(&conn, &query, fetch, &library)?;
-    Ok(filter_search_hits(&conn, hits, &filter, limit.unwrap_or(20)))
+    search_documents_filtered(
+        &conn,
+        &query,
+        limit.unwrap_or(20),
+        Some(&library),
+        &filter,
+    )
 }

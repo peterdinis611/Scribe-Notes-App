@@ -19,7 +19,7 @@ export type LocaleSectionGroup = {
 
 /**
  * Human-oriented grouping for the settings “which keys” list.
- * Unknown keys (if the catalog grows) are appended under `system`.
+ * Unknown keys (if the catalog grows) are appended under `other`.
  */
 export const LOCALE_SECTION_GROUPS: LocaleSectionGroup[] = [
   {
@@ -95,18 +95,106 @@ export const LOCALE_SECTION_GROUPS: LocaleSectionGroup[] = [
   },
   {
     id: 'media',
-    sections: ['image', 'map', 'video', 'lottie', 'model3d', 'canvas', 'mermaid', 'd3Chart', 'invoiceDialog', 'capture'],
+    sections: [
+      'image',
+      'map',
+      'video',
+      'lottie',
+      'model3d',
+      'canvas',
+      'mermaid',
+      'd3Chart',
+      'invoiceDialog',
+      'capture',
+    ],
   },
   {
     id: 'system',
-    sections: [
-      'storageAccess',
-      'diskSync',
-      'syncConflicts',
-      'vault',
-    ],
+    sections: ['storageAccess', 'diskSync', 'syncConflicts', 'vault'],
   },
 ]
+
+/** Short blurbs for the catalog — i18n key suffix under `settings.language.sections.*`. */
+export const LOCALE_SECTION_BLURB_KEYS = [
+  'common',
+  'nav',
+  'welcome',
+  'settings',
+  'toasts',
+  'errors',
+  'setup',
+  'onboarding',
+  'appTour',
+  'whatsNew',
+  'demoGuide',
+  'fileMenu',
+  'commandPalette',
+  'shortcuts',
+  'editor',
+  'toolbar',
+  'editorActions',
+  'slash',
+  'floatingMenu',
+  'findReplace',
+  'viewMode',
+  'focusMode',
+  'readingMode',
+  'printLayout',
+  'pageStyles',
+  'pagination',
+  'tableOfContents',
+  'footnotes',
+  'math',
+  'lorem',
+  'aiRewrite',
+  'wikiLink',
+  'wikiNav',
+  'wikiEmbed',
+  'wikiGhost',
+  'emojiPicker',
+  'codeBlock',
+  'templates',
+  'templateCoach',
+  'library',
+  'libraryChat',
+  'documentChat',
+  'agent',
+  'libraryFindReplace',
+  'libraries',
+  'trash',
+  'journal',
+  'linkGraph',
+  'compile',
+  'tabs',
+  'split',
+  'quickNote',
+  'editorPanels',
+  'panels',
+  'nlp',
+  'diagnostics',
+  'pdfPreview',
+  'structuredPdf',
+  'image',
+  'map',
+  'video',
+  'lottie',
+  'model3d',
+  'canvas',
+  'mermaid',
+  'd3Chart',
+  'invoiceDialog',
+  'capture',
+  'storageAccess',
+  'diskSync',
+  'syncConflicts',
+  'vault',
+] as const
+
+export type LocaleSectionBlurbKey = (typeof LOCALE_SECTION_BLURB_KEYS)[number]
+
+export function hasLocaleSectionBlurb(section: string): section is LocaleSectionBlurbKey {
+  return (LOCALE_SECTION_BLURB_KEYS as readonly string[]).includes(section)
+}
 
 /** Sections present in en.json but not listed above (keeps the UI complete). */
 export function orphanLocaleSections(): string[] {

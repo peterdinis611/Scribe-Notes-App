@@ -1,5 +1,5 @@
-import { GraduationCap, Trash2, Zap } from 'lucide-react'
-import { useState } from 'react'
+import { GraduationCap, Pin, Trash2, Zap } from 'lucide-react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AgentBlobatar, AGENT_BLOBATAR_NAME } from '@/components/agent/AgentBlobatar'
 import { Button } from '@/components/ui/button'
@@ -98,12 +98,43 @@ function AgentToggle({
   )
 }
 
+function CardHead({
+  id,
+  title,
+  hint,
+  tone,
+  children,
+}: {
+  id: string
+  title: string
+  hint: string
+  tone: 'optimize' | 'behavior' | 'pins' | 'teach'
+  children: ReactNode
+}) {
+  return (
+    <div className={cn('agent-settings-card-head', `is-${tone}`)}>
+      <span className="agent-settings-card-icon" aria-hidden="true">
+        {children}
+      </span>
+      <div>
+        <h4 id={id}>{title}</h4>
+        <p>{hint}</p>
+      </div>
+    </div>
+  )
+}
+
 export function AgentSection() {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
   const prefs = useAppSelector((state) => state.settings.agentPrefs)
   const [teachInput, setTeachInput] = useState('')
   const [pinInput, setPinInput] = useState('')
+
+  const budgetMax = prefs.dailyRunBudget
+  const budgetUsed = prefs.runsToday
+  const budgetRatio =
+    budgetMax > 0 ? Math.min(1, budgetUsed / budgetMax) : 0
 
   function toggleEnabled() {
     const next = !prefs.enabled
@@ -142,16 +173,23 @@ export function AgentSection() {
         description={t('settings.agent.description')}
       />
 
-      <div className="agent-settings-power">
+      <div
+        className={cn('agent-settings-power', prefs.enabled && 'is-live')}
+        style={{ '--agent-reveal': '0' } as CSSProperties}
+      >
         <div className="agent-settings-power-mark" aria-hidden="true">
           <AgentBlobatar
             name={AGENT_BLOBATAR_NAME}
-            size={28}
+            size={40}
             talking={prefs.enabled}
             title={t('agent.faceTitle')}
           />
+          <span className="agent-settings-power-led" data-on={prefs.enabled || undefined} />
         </div>
         <div className="agent-settings-power-copy">
+          <span className="agent-settings-power-kicker">
+            {prefs.enabled ? t('settings.agent.on') : t('settings.agent.off')}
+          </span>
           <span>{t('settings.agent.enabled')}</span>
           <small>{t('settings.agent.enabledHint')}</small>
         </div>
@@ -164,14 +202,19 @@ export function AgentSection() {
       </div>
 
       <div className={cn('agent-settings-grid', !prefs.enabled && 'is-dimmed')}>
-        <section className="agent-settings-card" aria-labelledby="agent-optimize-title">
-          <div className="agent-settings-card-head">
-            <Zap className="h-3.5 w-3.5" aria-hidden="true" />
-            <div>
-              <h4 id="agent-optimize-title">{t('settings.agent.optimizeTitle')}</h4>
-              <p>{t('settings.agent.optimizeHint')}</p>
-            </div>
-          </div>
+        <section
+          className="agent-settings-card agent-settings-card--optimize"
+          aria-labelledby="agent-optimize-title"
+          style={{ '--agent-reveal': '1' } as CSSProperties}
+        >
+          <CardHead
+            id="agent-optimize-title"
+            title={t('settings.agent.optimizeTitle')}
+            hint={t('settings.agent.optimizeHint')}
+            tone="optimize"
+          >
+            <Zap className="h-3.5 w-3.5" />
+          </CardHead>
 
           <div className="agent-settings-field">
             <div className="agent-settings-field-copy">
@@ -217,7 +260,7 @@ export function AgentSection() {
               {AGENT_OPTIMIZABLE_TOOLS.map((tool) => {
                 const mode = toolMode(tool, prefs.preferredTools, prefs.disabledTools)
                 return (
-                  <li key={tool}>
+                  <li key={tool} data-mode={mode}>
                     <span className="agent-settings-tool-name">{t(TOOL_LABEL_KEYS[tool])}</span>
                     <div className="agent-settings-segment agent-settings-segment--modes" role="group">
                       {(
@@ -248,14 +291,19 @@ export function AgentSection() {
           </div>
         </section>
 
-        <section className="agent-settings-card" aria-labelledby="agent-behavior-title">
-          <div className="agent-settings-card-head">
-            <AgentBlobatar name={AGENT_BLOBATAR_NAME} size={14} title={t('agent.faceTitle')} />
-            <div>
-              <h4 id="agent-behavior-title">{t('settings.agent.behaviorTitle')}</h4>
-              <p>{t('settings.agent.behaviorHint')}</p>
-            </div>
-          </div>
+        <section
+          className="agent-settings-card agent-settings-card--behavior"
+          aria-labelledby="agent-behavior-title"
+          style={{ '--agent-reveal': '2' } as CSSProperties}
+        >
+          <CardHead
+            id="agent-behavior-title"
+            title={t('settings.agent.behaviorTitle')}
+            hint={t('settings.agent.behaviorHint')}
+            tone="behavior"
+          >
+            <AgentBlobatar name={AGENT_BLOBATAR_NAME} size={16} title={t('agent.faceTitle')} />
+          </CardHead>
 
           <div className="agent-settings-field">
             <div className="agent-settings-field-copy">
@@ -315,7 +363,7 @@ export function AgentSection() {
             />
           </div>
 
-          <div className="agent-settings-field">
+          <div className="agent-settings-field agent-settings-field--budget">
             <div className="agent-settings-field-copy">
               <span>{t('settings.agent.dailyBudget')}</span>
               <small>
@@ -338,7 +386,20 @@ export function AgentSection() {
                 </button>
               ))}
             </div>
+            {budgetMax > 0 ? (
+              <div
+                className="agent-settings-budget-meter"
+                role="meter"
+                aria-valuemin={0}
+                aria-valuemax={budgetMax}
+                aria-valuenow={budgetUsed}
+                aria-label={t('settings.agent.dailyBudget')}
+              >
+                <span style={{ width: `${budgetRatio * 100}%` }} />
+              </div>
+            ) : null}
           </div>
+
           <div className="agent-settings-field">
             <div className="agent-settings-field-copy">
               <span>{t('settings.agent.autoRunOnSave')}</span>
@@ -357,14 +418,19 @@ export function AgentSection() {
           </div>
         </section>
 
-        <section className="agent-settings-card" aria-labelledby="agent-pins-title">
-          <div className="agent-settings-card-head">
-            <Zap className="h-3.5 w-3.5" aria-hidden="true" />
-            <div>
-              <h4 id="agent-pins-title">{t('settings.agent.pinnedTitle')}</h4>
-              <p>{t('settings.agent.pinnedHint')}</p>
-            </div>
-          </div>
+        <section
+          className="agent-settings-card agent-settings-card--pins"
+          aria-labelledby="agent-pins-title"
+          style={{ '--agent-reveal': '3' } as CSSProperties}
+        >
+          <CardHead
+            id="agent-pins-title"
+            title={t('settings.agent.pinnedTitle')}
+            hint={t('settings.agent.pinnedHint')}
+            tone="pins"
+          >
+            <Pin className="h-3.5 w-3.5" />
+          </CardHead>
           <form
             className="agent-settings-teach-form"
             onSubmit={(event) => {
@@ -405,18 +471,26 @@ export function AgentSection() {
               ))}
             </ol>
           ) : (
-            <p className="agent-settings-empty">{t('settings.agent.pinnedEmpty')}</p>
+            <p className="agent-settings-empty">
+              <Pin className="h-4 w-4" aria-hidden="true" />
+              {t('settings.agent.pinnedEmpty')}
+            </p>
           )}
         </section>
 
-        <section className="agent-settings-card agent-settings-card--teach" aria-labelledby="agent-teach-title">
-          <div className="agent-settings-card-head">
-            <GraduationCap className="h-3.5 w-3.5" aria-hidden="true" />
-            <div>
-              <h4 id="agent-teach-title">{t('settings.agent.teachTitle')}</h4>
-              <p>{t('settings.agent.teachHint')}</p>
-            </div>
-          </div>
+        <section
+          className="agent-settings-card agent-settings-card--teach"
+          aria-labelledby="agent-teach-title"
+          style={{ '--agent-reveal': '4' } as CSSProperties}
+        >
+          <CardHead
+            id="agent-teach-title"
+            title={t('settings.agent.teachTitle')}
+            hint={t('settings.agent.teachHint')}
+            tone="teach"
+          >
+            <GraduationCap className="h-3.5 w-3.5" />
+          </CardHead>
 
           <form
             className="agent-settings-teach-form"
@@ -470,7 +544,10 @@ export function AgentSection() {
               </button>
             </>
           ) : (
-            <p className="agent-settings-empty">{t('settings.agent.teachEmpty')}</p>
+            <p className="agent-settings-empty">
+              <GraduationCap className="h-4 w-4" aria-hidden="true" />
+              {t('settings.agent.teachEmpty')}
+            </p>
           )}
         </section>
       </div>

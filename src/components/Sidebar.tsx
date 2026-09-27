@@ -332,7 +332,11 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                 </ScrollArea>
               )}
 
-              {contentView === 'chat' && <LibraryChatPanel onNavigate={onClose} />}
+              {contentView === 'chat' && (
+                <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                  <LibraryChatPanel onNavigate={onClose} />
+                </div>
+              )}
             </>
           )}
         </div>

@@ -198,16 +198,21 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
   }, [scope, docAnalysis, docTasks, activeDocument?.title, i18n.language, t])
 
   const documentActions = useMemo(() => {
-    if (scope !== 'document') return DOCUMENT_ACTIONS
-    const ranked = buildDocumentAskActions(docAnalysis, docTasks)
-    if (!ranked.length) return DOCUMENT_ACTIONS
     const byId = new Map(DOCUMENT_ACTIONS.map((item) => [item.id, item]))
+    const fallback = DOCUMENT_ACTIONS.slice(0, 6)
+    if (scope !== 'document') return fallback
+    const ranked = buildDocumentAskActions(docAnalysis, docTasks)
+    if (!ranked.length) return fallback
     const ordered = ranked
       .map((id) => byId.get(id))
       .filter((item): item is (typeof DOCUMENT_ACTIONS)[number] => Boolean(item))
     // Keep title/spellcheck available even when not top-ranked.
     for (const extra of DOCUMENT_ACTIONS) {
-      if (!ordered.some((item) => item.id === extra.id) && (extra.id === 'title' || extra.id === 'spellcheck')) {
+      if (
+        ordered.length < 8 &&
+        !ordered.some((item) => item.id === extra.id) &&
+        (extra.id === 'title' || extra.id === 'spellcheck')
+      ) {
         ordered.push(extra)
       }
     }
@@ -558,7 +563,7 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
           ) : null}
 
           {messages.length === 0 && !historyLoading && (
-            <div className="library-empty-state">
+            <div className="library-empty-state library-empty-state--chat">
               <div className="library-empty-state-icon">
                 <Sparkles className="h-5 w-5" />
               </div>
@@ -569,9 +574,6 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
                 {scope === 'document'
                   ? t('libraryChat.emptyTitleDocument')
                   : t('libraryChat.emptyTitle')}
-              </p>
-              <p className="library-empty-state-text">
-                {t('libraryChat.brandHint')}
               </p>
               <p className="library-empty-state-text library-empty-state-text--secondary">
                 {scope === 'document'
