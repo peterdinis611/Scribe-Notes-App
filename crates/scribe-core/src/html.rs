@@ -5,6 +5,7 @@
 //! media) stay in TypeScript and are skipped here.
 //!
 use serde_json::Value;
+use unicode_normalization::UnicodeNormalization;
 
 pub fn tiptap_to_html(content_json: &str, title: &str, include_title_heading: bool) -> String {
     let doc: Value = serde_json::from_str(content_json).unwrap_or(Value::Null);
@@ -12,7 +13,7 @@ pub fn tiptap_to_html(content_json: &str, title: &str, include_title_heading: bo
     let mut out = String::from("<article class=\"scribe-export\">");
     if include_title_heading {
         out.push_str("<h1>");
-        push_escaped(&mut out, title);
+        push_escaped(&mut out, &to_nfc(title));
         out.push_str("</h1>");
     }
     render_children(&doc, &mut out);
@@ -24,6 +25,10 @@ pub fn escape_html(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     push_escaped(&mut out, text);
     out
+}
+
+fn to_nfc(text: &str) -> String {
+    text.nfc().collect()
 }
 
 fn push_escaped(out: &mut String, text: &str) {
@@ -193,7 +198,7 @@ fn text_direction(text: &str) -> Option<&'static str> {
 
 fn render_text(node: &Value, out: &mut String) {
     let raw = node.get("text").and_then(Value::as_str).unwrap_or("");
-    let text = raw;
+    let text = to_nfc(raw);
 
     let marks = node.get("marks").and_then(Value::as_array);
 

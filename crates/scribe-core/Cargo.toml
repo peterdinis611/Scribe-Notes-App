@@ -31,3 +31,4 @@ rayon = { version = "1.10", optional = true }
 simsimd = { version = "6", optional = true }
 encoding_rs = { version = "0.8", optional = true }
 chardetng = { version = "1.0", optional = true }
+unicode-normalization = "0.1"
