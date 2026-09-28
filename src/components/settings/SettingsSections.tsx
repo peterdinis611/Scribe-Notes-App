@@ -331,7 +331,7 @@ export function AppearanceSection() {
             active={themeSettings.themeId === 'system'}
             name={t('settings.appearance.systemTheme')}
             description={t('settings.appearance.systemThemeDescription')}
-            swatch={['#ffffff', '#1e1e1e']}
+            swatch={['#e7efe4', '#121a16']}
             onClick={() => chooseTheme('system')}
           />
           {THEME_PRESETS.map((preset) => (
@@ -373,7 +373,7 @@ export function AppearanceSection() {
             }
           />
 
-          <div className="flex max-w-[640px] flex-col gap-2">
+          <div className="flex w-full flex-col gap-2">
             {THEME_COLOR_FIELDS.map(({ key, label }) => (
               <label key={key} className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                 <span className="text-[12px]">{label}</span>

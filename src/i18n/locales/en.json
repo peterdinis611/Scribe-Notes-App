@@ -70,13 +70,13 @@
     "noDocumentsHint": "Start with a new document or today’s note. The demo is optional.",
     "emptyStartHint": "Start with a new document or today’s note.",
     "press": {
-      "eyebrow": "Letterpress · Scribe {{version}} · local on this Mac",
-      "brandTagline": "Write documents. Link notes. Everything stays on disk.",
-      "editionNote": "2.7 — Local Agent + Local AI; teach standing prefs in Settings → Agent.",
+      "eyebrow": "Grove · Scribe {{version}} · local on this Mac",
+      "brandTagline": "Write in a quiet grove. Notes stay on your disk.",
+      "editionNote": "2.9 — Organic Grove chrome for deep local writing; Local Agent still runs on this Mac.",
       "workflowHint": "Blank page → [[links]] → export. Leave advanced tools for later.",
-      "recentDocuments": "Continue",
-      "noDocuments": "The press is empty",
-      "noDocumentsHint": "Start a blank page or today’s note. The guide is optional."
+      "recentDocuments": "Recent leaves",
+      "noDocuments": "The grove is empty",
+      "noDocumentsHint": "Plant a new document or today’s note. The guide is optional."
     }
   },
   "demoGuide": {
@@ -968,11 +968,13 @@
     },
     "appearance": {
       "skinTitle": "Design language",
-      "skinDescription": "Classic Scribe look, or Copper Press letterpress chrome. You can switch anytime.",
+      "skinDescription": "Grove organic chrome for writing, or a flatter Classic variant.",
       "skinClassic": "Classic",
-      "skinClassicDesc": "Original clean macOS-style interface with blue accents.",
-      "skinPress": "Copper Press",
-      "skinPressDesc": "Letterpress atmosphere — Syne typography, copper accents, press welcome.",
+      "skinClassicDesc": "Same Grove palette with less grain and tighter corners.",
+      "skinGrove": "Grove",
+      "skinGroveDesc": "Organic botanical chrome — Fraunces, soft moss paper, lichen accent.",
+      "skinPress": "Grove",
+      "skinPressDesc": "Organic botanical chrome — Fraunces, soft moss paper, lichen accent.",
       "themeTitle": "Theme",
       "themeDescription": "Choose a default theme, generate a random one, or create your own.",
       "randomTheme": "Random theme",

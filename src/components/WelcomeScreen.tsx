@@ -73,10 +73,10 @@ export function WelcomeScreen() {
     navigate(ROUTES.document(id))
   }
 
-  const isPress = uiSkin === 'press'
+  const isGrove = uiSkin !== 'classic'
 
   const steps = (
-    <ol className={isPress ? 'welcome-steps welcome-steps--press' : 'welcome-steps'} aria-label={t('welcome.stepsLabel')}>
+    <ol className={isGrove ? 'welcome-steps welcome-steps--press' : 'welcome-steps'} aria-label={t('welcome.stepsLabel')}>
       <li>
         <span className="welcome-step-index" aria-hidden="true">
           01
@@ -99,12 +99,12 @@ export function WelcomeScreen() {
   )
 
   const moreLinks = (
-    <div className={isPress ? 'welcome-actions-more' : 'welcome-more'}>
-      <DemoGuideButton variant="link" className={isPress ? 'welcome-link' : undefined} />
+    <div className={isGrove ? 'welcome-actions-more' : 'welcome-more'}>
+      <DemoGuideButton variant="link" className={isGrove ? 'welcome-link' : undefined} />
       <button
         type="button"
         title={t('welcome.connectionMapHint')}
-        className={isPress ? 'welcome-link' : 'welcome-more-link'}
+        className={isGrove ? 'welcome-link' : 'welcome-more-link'}
         onClick={() => void navigate(ROUTES.graph())}
       >
         <GitBranch className="h-3.5 w-3.5" aria-hidden="true" />
@@ -115,39 +115,39 @@ export function WelcomeScreen() {
 
   const recentSection = (
     <section
-      className={isPress ? 'welcome-recent' : 'welcome-rail'}
+      className={isGrove ? 'welcome-recent' : 'welcome-rail'}
       aria-labelledby="welcome-recent-heading"
     >
-      <div className={isPress ? 'welcome-recent-head' : 'welcome-rail-head'}>
-        <h2 id="welcome-recent-heading" className={isPress ? 'welcome-recent-label' : 'welcome-rail-label'}>
-          {t(isPress ? 'welcome.press.recentDocuments' : 'welcome.recentDocuments')}
+      <div className={isGrove ? 'welcome-recent-head' : 'welcome-rail-head'}>
+        <h2 id="welcome-recent-heading" className={isGrove ? 'welcome-recent-label' : 'welcome-rail-label'}>
+          {t(isGrove ? 'welcome.press.recentDocuments' : 'welcome.recentDocuments')}
         </h2>
         {documents.length > 0 && (
-          <span className={isPress ? 'welcome-recent-count' : 'welcome-rail-count'}>
+          <span className={isGrove ? 'welcome-recent-count' : 'welcome-rail-count'}>
             {t('common.total', { count: documents.length })}
           </span>
         )}
       </div>
 
       {recentDocuments.length > 0 ? (
-        <ul className={isPress ? 'welcome-recent-list' : 'welcome-rail-list'}>
+        <ul className={isGrove ? 'welcome-recent-list' : 'welcome-rail-list'}>
           {recentDocuments.map((doc, index) => (
             <li key={doc.id} style={{ ['--welcome-i' as string]: String(index) }}>
               <button
                 type="button"
-                className={isPress ? 'welcome-recent-row' : 'welcome-rail-row'}
+                className={isGrove ? 'welcome-recent-row' : 'welcome-rail-row'}
                 onClick={() => openDocument(doc.id)}
               >
-                <span className={isPress ? 'welcome-recent-icon' : 'welcome-rail-icon'} aria-hidden="true">
+                <span className={isGrove ? 'welcome-recent-icon' : 'welcome-rail-icon'} aria-hidden="true">
                   <FileText className="h-4 w-4" />
                 </span>
-                <span className={isPress ? 'welcome-recent-title' : 'welcome-rail-title'}>{doc.title}</span>
-                <span className={isPress ? 'welcome-recent-meta' : 'welcome-rail-meta'}>
+                <span className={isGrove ? 'welcome-recent-title' : 'welcome-rail-title'}>{doc.title}</span>
+                <span className={isGrove ? 'welcome-recent-meta' : 'welcome-rail-meta'}>
                   <Clock className="h-3 w-3" />
                   {formatRelativeTime(doc.updatedAt)}
                 </span>
                 <ArrowRight
-                  className={cn(isPress ? 'welcome-recent-arrow' : 'welcome-rail-arrow', 'h-4 w-4')}
+                  className={cn(isGrove ? 'welcome-recent-arrow' : 'welcome-rail-arrow', 'h-4 w-4')}
                   aria-hidden="true"
                 />
               </button>
@@ -155,14 +155,14 @@ export function WelcomeScreen() {
           ))}
         </ul>
       ) : (
-        <div className={isPress ? 'welcome-empty' : 'welcome-rail-empty'}>
-          <p className={isPress ? 'welcome-empty-title' : 'welcome-rail-empty-title'}>
-            {t(isPress ? 'welcome.press.noDocuments' : 'welcome.noDocuments')}
+        <div className={isGrove ? 'welcome-empty' : 'welcome-rail-empty'}>
+          <p className={isGrove ? 'welcome-empty-title' : 'welcome-rail-empty-title'}>
+            {t(isGrove ? 'welcome.press.noDocuments' : 'welcome.noDocuments')}
           </p>
-          <p className={isPress ? 'welcome-empty-text' : 'welcome-rail-empty-text'}>
-            {t(isPress ? 'welcome.press.noDocumentsHint' : 'welcome.noDocumentsHint')}
+          <p className={isGrove ? 'welcome-empty-text' : 'welcome-rail-empty-text'}>
+            {t(isGrove ? 'welcome.press.noDocumentsHint' : 'welcome.noDocumentsHint')}
           </p>
-          <div className={isPress ? 'welcome-empty-actions' : 'welcome-rail-empty-actions'}>
+          <div className={isGrove ? 'welcome-empty-actions' : 'welcome-rail-empty-actions'}>
             <DemoGuideButton size="sm" />
           </div>
         </div>
@@ -170,7 +170,7 @@ export function WelcomeScreen() {
     </section>
   )
 
-  if (isPress) {
+  if (isGrove) {
     return (
       <div className="welcome-desk titlebar-no-drag">
         <div className="welcome-desk-grain" aria-hidden="true" />
