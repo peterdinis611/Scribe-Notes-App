@@ -3888,9 +3888,16 @@ html[data-ui-skin='press'] .editor-shell--home {
   flex: 1;
 }
 
-.agent-panel-toolbar {
-  padding: 10px 12px 8px;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+.agent-blobatar--thinking {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 45%, transparent);
+}
+
+.agent-blobatar--done {
+  box-shadow: 0 0 0 2px color-mix(in srgb, #22c55e 50%, transparent);
+}
+
+.agent-blobatar--error {
+  box-shadow: 0 0 0 2px color-mix(in srgb, #ef4444 50%, transparent);
 }
 
 .agent-run-history-item {

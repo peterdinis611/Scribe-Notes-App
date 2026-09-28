@@ -90,6 +90,40 @@ export function LibraryWikiHealthPanel({ onNavigate }: LibraryWikiHealthPanelPro
     }
   }
 
+  async function handleCreateAllUnresolved() {
+    const items = health?.unresolved ?? []
+    if (!items.length) return
+    setResolvingKey('create:all')
+    let created = 0
+    const seen = new Set<string>()
+    try {
+      for (const item of items) {
+        const title = item.label.trim()
+        if (!title) continue
+        const dedupe = `${item.documentId}::${title.toLowerCase()}`
+        if (seen.has(dedupe)) continue
+        seen.add(dedupe)
+        const doc = await createDocument({ title })
+        await resolveWikiLink(item.documentId, item.label, doc.id)
+        created += 1
+      }
+      toast.success(t('library.wikiHealth.batchCreated', { count: created }))
+      if (activeId) {
+        try {
+          const refreshed = await getDocument(activeId)
+          if (refreshed) dispatch(setActiveDocument(refreshed))
+        } catch {
+          /* ignore */
+        }
+      }
+      await load()
+    } catch (error) {
+      toast.error(t('library.wikiHealth.createError'), String(error))
+    } finally {
+      setResolvingKey(null)
+    }
+  }
+
   async function handleResolve(
     item: WikiHealthUnresolved,
     suggestion: { id: string; title: string },
@@ -171,6 +205,20 @@ export function LibraryWikiHealthPanel({ onNavigate }: LibraryWikiHealthPanelPro
             title={t('library.wikiHealth.unresolved')}
             empty={t('library.wikiHealth.unresolvedEmpty')}
             items={unresolved}
+            headerAction={
+              unresolved.length > 1 ? (
+                <button
+                  type="button"
+                  className="library-wiki-health__resolve"
+                  disabled={resolvingKey === 'create:all'}
+                  onClick={() => void handleCreateAllUnresolved()}
+                >
+                  {resolvingKey === 'create:all'
+                    ? t('common.loading')
+                    : t('library.wikiHealth.createAll', { count: unresolved.length })}
+                </button>
+              ) : null
+            }
             renderItem={(item: WikiHealthUnresolved) => {
               const top = item.suggestions?.[0]
               const resolveKey = top
@@ -256,12 +304,14 @@ function HealthSection<T>({
   empty,
   items,
   renderItem,
+  headerAction,
 }: {
   icon: typeof Unlink
   title: string
   empty: string
   items: T[]
   renderItem: (item: T, index: number) => React.ReactNode
+  headerAction?: React.ReactNode
 }) {
   return (
     <section className="library-wiki-health__section">
@@ -269,6 +319,7 @@ function HealthSection<T>({
         <Icon className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
         {title}
         <span className="library-wiki-health__badge">{items.length}</span>
+        {headerAction}
       </h4>
       {items.length === 0 ? (
         <p className="library-wiki-health__section-empty">{empty}</p>

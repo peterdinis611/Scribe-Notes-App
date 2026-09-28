@@ -1,7 +1,7 @@
 import type { DocumentTask, NlpDocumentAnalysis } from '@/lib/db/nlp-api'
 import type { DocumentChatAction } from '@/lib/library/library-chat'
 
-const MAX_QUESTIONS = 6
+const MAX_QUESTIONS = 10
 const MAX_ACTIONS = 8
 
 function uniqueKeepOrder(items: string[], limit: number): string[] {
@@ -48,7 +48,7 @@ export function buildDocumentAskQuestions(
 
   const headings = uniqueKeepOrder(
     (analysis?.outline ?? []).map((item) => item.title),
-    4,
+    5,
   )
   for (const heading of headings) {
     questions.push(
@@ -60,7 +60,7 @@ export function buildDocumentAskQuestions(
 
   const phrases = uniqueKeepOrder(
     [...(analysis?.keyphrases ?? []), ...(analysis?.keywords ?? []).map((item) => item.term)],
-    4,
+    5,
   )
   for (const phrase of phrases) {
     if (headings.some((heading) => heading.toLowerCase() === phrase.toLowerCase())) continue
@@ -71,7 +71,7 @@ export function buildDocumentAskQuestions(
     )
   }
 
-  const people = uniqueKeepOrder(analysis?.mentions ?? [], 3)
+  const people = uniqueKeepOrder(analysis?.mentions ?? [], 4)
   for (const person of people) {
     const label = person.replace(/^@/, '')
     questions.push(
@@ -81,7 +81,7 @@ export function buildDocumentAskQuestions(
 
   const openTasks = uniqueKeepOrder(
     (tasks ?? []).filter((task) => !task.checked).map((task) => task.text),
-    2,
+    3,
   )
   for (const task of openTasks) {
     questions.push(
@@ -93,7 +93,7 @@ export function buildDocumentAskQuestions(
 
   const dates = uniqueKeepOrder(
     (analysis?.dates ?? []).map((item) => item.resolvedDate || item.text),
-    2,
+    3,
   )
   for (const date of dates) {
     questions.push(
@@ -101,7 +101,24 @@ export function buildDocumentAskQuestions(
     )
   }
 
-  if (questions.length < 3) {
+  const wiki = uniqueKeepOrder(analysis?.wikiLinks ?? [], 2)
+  for (const link of wiki) {
+    questions.push(
+      slovak
+        ? `Ako táto poznámka nadväzuje na [[${clip(link)}]]?`
+        : `How does this note follow on from [[${clip(link)}]]?`,
+    )
+  }
+
+  if (analysis?.summary?.trim()) {
+    questions.push(
+      slovak
+        ? 'Súhlasí zhrnutie s tým, čo som chcel povedať?'
+        : 'Does the summary match what I meant to say?',
+    )
+  }
+
+  if (questions.length < 4) {
     questions.push(
       slovak
         ? 'Čo by som mal urobiť ďalej podľa tejto poznámky?'
@@ -111,6 +128,11 @@ export function buildDocumentAskQuestions(
       slovak
         ? 'Aké rozhodnutia alebo závery sú v tejto poznámke?'
         : 'What decisions or conclusions are in this note?',
+    )
+    questions.push(
+      slovak
+        ? 'Aké otvorené otázky ostávajú v tejto poznámke?'
+        : 'What open questions remain in this note?',
     )
   }
 
