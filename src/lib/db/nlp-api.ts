@@ -1,6 +1,24 @@
 import { invoke } from '@/lib/tauri'
 import type { SearchHit } from '@/lib/db/api'
 
+export interface NlpLlmPrefs {
+  enabled: boolean
+  provider: string
+  baseUrl: string
+  model: string
+  useRewrite: boolean
+  useAnswer: boolean
+}
+
+export interface NlpLlmStatus {
+  reachable: boolean
+  provider: string
+  baseUrl: string
+  model: string | null
+  models: string[]
+  error: string | null
+}
+
 export interface NlpStatus {
   enabled: boolean
   sidecarAvailable: boolean
@@ -13,6 +31,7 @@ export interface NlpStatus {
   staleIndexCount: number
   embedBackend: string
   answerBackend?: string
+  llm?: NlpLlmPrefs
   qualityAvailable: boolean
   fastAvailable?: boolean
   onnxAvailable?: boolean
@@ -165,6 +184,21 @@ export const nlpSetAnswerBackend = async (backend: 'auto' | 'index' | 'quality')
   statusCache = { value, at: Date.now() }
   return value
 }
+
+export const nlpSetLlmPrefs = async (input: {
+  enabled?: boolean
+  provider?: string
+  baseUrl?: string
+  model?: string
+  useRewrite?: boolean
+  useAnswer?: boolean
+}) => {
+  const value = await invoke<NlpStatus>('nlp_set_llm_prefs', { input })
+  statusCache = { value, at: Date.now() }
+  return value
+}
+
+export const nlpLlmStatus = () => invoke<NlpLlmStatus>('nlp_llm_status')
 
 export const nlpSearch = (
   query: string,

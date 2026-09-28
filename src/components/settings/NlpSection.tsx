@@ -10,13 +10,16 @@ import {
 } from '@/components/settings/SettingsPrimitives'
 import {
   nlpLibraryReport,
+  nlpLlmStatus,
   nlpSetAnswerBackend,
   nlpSetEmbedBackend,
   nlpSetEnabled,
+  nlpSetLlmPrefs,
   nlpStatus,
   nlpCancel,
   type NlpIndexProgress,
   type NlpLibraryReport,
+  type NlpLlmStatus,
   type NlpStatus,
 } from '@/lib/db/nlp-api'
 import { LibraryReportView } from '@/components/settings/LibraryReportView'
@@ -37,6 +40,7 @@ function StatRow({ label, value }: { label: string; value: string | number }) {
 export function NlpSection() {
   const { t } = useTranslation()
   const [status, setStatus] = useState<NlpStatus | null>(null)
+  const [llmLive, setLlmLive] = useState<NlpLlmStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [indexing, setIndexing] = useState(false)
   const [indexProgress, setIndexProgress] = useState<NlpIndexProgress | null>(null)
@@ -48,7 +52,17 @@ export function NlpSection() {
   const refresh = useCallback(async () => {
     setLoading(true)
     try {
-      setStatus(await nlpStatus({ fresh: true }))
+      const next = await nlpStatus({ fresh: true })
+      setStatus(next)
+      if (next.enabled && next.llm?.enabled) {
+        try {
+          setLlmLive(await nlpLlmStatus())
+        } catch {
+          setLlmLive(null)
+        }
+      } else {
+        setLlmLive(null)
+      }
     } catch (error) {
       toast.error(t('settings.nlp.loadError'), String(error))
     } finally {
@@ -163,6 +177,82 @@ export function NlpSection() {
       toast.success(t('settings.nlp.answerBackendToast'))
     } catch (error) {
       toast.error(t('settings.nlp.answerBackendError'), String(error))
+    }
+  }
+
+  async function handleLlmToggle() {
+    if (!status) return
+    const enabled = !(status.llm?.enabled ?? false)
+    try {
+      const updated = await nlpSetLlmPrefs({ enabled })
+      setStatus(updated)
+      if (enabled) {
+        try {
+          setLlmLive(await nlpLlmStatus())
+        } catch (error) {
+          setLlmLive(null)
+          toast.error(t('settings.nlp.llmCheckError'), String(error))
+        }
+      } else {
+        setLlmLive(null)
+      }
+      toast.success(enabled ? t('settings.nlp.llmEnabledToast') : t('settings.nlp.llmDisabledToast'))
+    } catch (error) {
+      toast.error(t('settings.nlp.llmSaveError'), String(error))
+    }
+  }
+
+  async function handleLlmUse(kind: 'rewrite' | 'answer') {
+    if (!status?.llm) return
+    try {
+      const updated = await nlpSetLlmPrefs(
+        kind === 'rewrite'
+          ? { useRewrite: !status.llm.useRewrite }
+          : { useAnswer: !status.llm.useAnswer },
+      )
+      setStatus(updated)
+      toast.success(t('settings.nlp.llmSaveToast'))
+    } catch (error) {
+      toast.error(t('settings.nlp.llmSaveError'), String(error))
+    }
+  }
+
+  async function handleLlmBaseUrl(value: string) {
+    try {
+      const updated = await nlpSetLlmPrefs({ baseUrl: value })
+      setStatus(updated)
+      toast.success(t('settings.nlp.llmSaveToast'))
+    } catch (error) {
+      toast.error(t('settings.nlp.llmSaveError'), String(error))
+    }
+  }
+
+  async function handleLlmModel(value: string) {
+    try {
+      const updated = await nlpSetLlmPrefs({ model: value })
+      setStatus(updated)
+      toast.success(t('settings.nlp.llmSaveToast'))
+    } catch (error) {
+      toast.error(t('settings.nlp.llmSaveError'), String(error))
+    }
+  }
+
+  async function handleLlmCheck() {
+    try {
+      const live = await nlpLlmStatus()
+      setLlmLive(live)
+      if (live.reachable) {
+        toast.success(t('settings.nlp.llmReachableToast', { count: live.models.length }))
+        if (!status?.llm?.model && live.model) {
+          const updated = await nlpSetLlmPrefs({ model: live.model })
+          setStatus(updated)
+        }
+      } else {
+        toast.error(t('settings.nlp.llmUnreachableToast'), live.error ?? undefined)
+      }
+    } catch (error) {
+      setLlmLive(null)
+      toast.error(t('settings.nlp.llmCheckError'), String(error))
     }
   }
 
@@ -365,6 +455,118 @@ export function NlpSection() {
             </Button>
           </div>
         </SettingsRow>
+
+        <SettingsRow
+          title={t('settings.nlp.llmTitle')}
+          description={t('settings.nlp.llmDescription')}
+        >
+          <div className="flex flex-wrap justify-end gap-1.5">
+            <Button
+              type="button"
+              variant={status?.llm?.enabled ? 'default' : 'outline'}
+              size="sm"
+              disabled={!status?.enabled || loading || indexing}
+              onClick={() => void handleLlmToggle()}
+            >
+              {status?.llm?.enabled ? t('settings.nlp.llmOn') : t('settings.nlp.llmOff')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!status?.enabled || !status?.llm?.enabled || loading}
+              onClick={() => void handleLlmCheck()}
+            >
+              {t('settings.nlp.llmCheck')}
+            </Button>
+          </div>
+        </SettingsRow>
+
+        {status?.llm?.enabled ? (
+          <>
+            <SettingsRow
+              title={t('settings.nlp.llmBaseUrlTitle')}
+              description={t('settings.nlp.llmBaseUrlDescription')}
+            >
+              <input
+                type="url"
+                className="w-full max-w-[280px] rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-2.5 py-1.5 text-[12px] text-[var(--color-foreground)] outline-none focus:border-[var(--color-accent)]"
+                defaultValue={status.llm.baseUrl}
+                key={status.llm.baseUrl}
+                disabled={!status.enabled || loading}
+                onBlur={(event) => {
+                  const next = event.target.value.trim()
+                  if (!next || next === status.llm?.baseUrl) return
+                  void handleLlmBaseUrl(next)
+                }}
+                placeholder="http://127.0.0.1:11434"
+              />
+            </SettingsRow>
+
+            <SettingsRow
+              title={t('settings.nlp.llmModelTitle')}
+              description={t('settings.nlp.llmModelDescription')}
+            >
+              <select
+                className="max-w-[280px] rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-2.5 py-1.5 text-[12px] text-[var(--color-foreground)] outline-none focus:border-[var(--color-accent)]"
+                value={status.llm.model || llmLive?.model || ''}
+                disabled={!status.enabled || loading}
+                onChange={(event) => void handleLlmModel(event.target.value)}
+              >
+                <option value="">{t('settings.nlp.llmModelAuto')}</option>
+                {(llmLive?.models?.length
+                  ? llmLive.models
+                  : status.llm.model
+                    ? [status.llm.model]
+                    : []
+                ).map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </SettingsRow>
+
+            <SettingsRow
+              title={t('settings.nlp.llmUsesTitle')}
+              description={t('settings.nlp.llmUsesDescription')}
+            >
+              <div className="flex flex-wrap justify-end gap-1.5">
+                <Button
+                  type="button"
+                  variant={status.llm.useRewrite ? 'default' : 'outline'}
+                  size="sm"
+                  disabled={!status.enabled || loading}
+                  onClick={() => void handleLlmUse('rewrite')}
+                >
+                  {t('settings.nlp.llmUseRewrite')}
+                </Button>
+                <Button
+                  type="button"
+                  variant={status.llm.useAnswer ? 'default' : 'outline'}
+                  size="sm"
+                  disabled={!status.enabled || loading}
+                  onClick={() => void handleLlmUse('answer')}
+                >
+                  {t('settings.nlp.llmUseAnswer')}
+                </Button>
+              </div>
+            </SettingsRow>
+
+            <SettingsRow
+              title={t('settings.nlp.llmStatusTitle')}
+              description={t('settings.nlp.llmInstallHint')}
+            >
+              <span className="text-right text-[12px] text-[var(--color-muted-foreground)]">
+                {llmLive
+                  ? llmLive.reachable
+                    ? t('settings.nlp.llmStatusOk', { count: llmLive.models.length })
+                    : t('settings.nlp.llmStatusDown')
+                  : t('settings.nlp.llmStatusUnknown')}
+              </span>
+            </SettingsRow>
+          </>
+        ) : null}
 
         <SettingsRow
           title={t('settings.nlp.extrasTitle')}

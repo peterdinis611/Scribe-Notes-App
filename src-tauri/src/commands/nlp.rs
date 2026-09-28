@@ -6,10 +6,11 @@ use tauri::{AppHandle, Emitter, State};
 
 use crate::db::{
     count_embeddings, count_stale_embeddings, dominant_embedding_model, document_index_text,
-    extract_search_text, fuse_search_hits, get_answer_backend, get_embed_backend, is_nlp_enabled,
-    rank_document_chunks, rerank_search_hits, save_artifact, search_documents_for_library,
-    semantic_search, semantic_search_filtered, set_answer_backend, set_embed_backend, set_nlp_enabled,
-    similar_documents, upsert_embedding_with_chunks, EmbeddingChunkInput, SearchMode,
+    extract_search_text, fuse_search_hits, get_answer_backend, get_embed_backend, get_llm_prefs,
+    llm_sidecar_options, rank_document_chunks, rerank_search_hits, save_artifact,
+    search_documents_for_library, semantic_search, semantic_search_filtered, set_answer_backend,
+    set_embed_backend, set_llm_prefs, set_nlp_enabled, similar_documents, upsert_embedding_with_chunks,
+    EmbeddingChunkInput, NlpLlmPrefs, SearchMode, is_nlp_enabled,
 };
 use scribe_core::{
     content_is_vault_cipher, date_key_bounds, extract_due_hint, require_document_not_vault,
@@ -41,6 +42,7 @@ pub struct NlpStatus {
     pub stale_index_count: i64,
     pub embed_backend: String,
     pub answer_backend: String,
+    pub llm: NlpLlmPrefs,
     pub quality_available: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fast_available: Option<bool>,
@@ -226,6 +228,7 @@ fn sidecar_status(
     stale_index_count: i64,
     embed_backend: String,
     answer_backend: String,
+    llm: NlpLlmPrefs,
     quality_available: bool,
     health: Option<crate::nlp::NlpHealth>,
     health_error: Option<String>,
@@ -248,6 +251,7 @@ fn sidecar_status(
             stale_index_count,
             embed_backend,
             answer_backend,
+            llm,
             quality_available,
             fast_available: None,
             onnx_available: None,
@@ -277,6 +281,7 @@ fn sidecar_status(
             stale_index_count,
             embed_backend: health.embed_backend.unwrap_or(embed_backend),
             answer_backend,
+            llm,
             quality_available: health.quality_available.unwrap_or(quality_available),
             fast_available: health.fast_available,
             onnx_available: health.onnx_available,
@@ -303,6 +308,7 @@ fn sidecar_status(
             stale_index_count,
             embed_backend,
             answer_backend,
+            llm,
             quality_available,
             fast_available: None,
             onnx_available: None,
@@ -472,6 +478,7 @@ fn build_nlp_status(
     let stored_model = dominant_embedding_model(conn)?;
     let embed_backend = get_embed_backend(conn)?;
     let answer_backend = get_answer_backend(conn)?;
+    let llm = get_llm_prefs(conn)?;
     let (health, health_error, quality_available, current_model) = if enabled && sidecar.script_exists() {
         let _ = sync_sidecar_backend(sidecar, conn);
         match sidecar.health() {
@@ -503,6 +510,7 @@ fn build_nlp_status(
         stale_index_count,
         embed_backend,
         answer_backend,
+        llm,
         quality_available,
         health,
         health_error,
@@ -1313,6 +1321,108 @@ pub fn nlp_set_answer_backend(
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     set_answer_backend(&conn, &input.backend)?;
     build_nlp_status(&sidecar, &conn, is_nlp_enabled(&conn)?)
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpSetLlmPrefsInput {
+    pub enabled: Option<bool>,
+    pub provider: Option<String>,
+    pub base_url: Option<String>,
+    pub model: Option<String>,
+    pub use_rewrite: Option<bool>,
+    pub use_answer: Option<bool>,
+}
+
+#[tauri::command]
+pub fn nlp_set_llm_prefs(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpSetLlmPrefsInput,
+) -> Result<NlpStatus, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    set_llm_prefs(
+        &conn,
+        input.enabled,
+        input.provider.as_deref(),
+        input.base_url.as_deref(),
+        input.model.as_deref(),
+        input.use_rewrite,
+        input.use_answer,
+    )?;
+    build_nlp_status(&sidecar, &conn, is_nlp_enabled(&conn)?)
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpLlmStatus {
+    pub reachable: bool,
+    pub provider: String,
+    pub base_url: String,
+    pub model: Option<String>,
+    pub models: Vec<String>,
+    pub error: Option<String>,
+}
+
+#[tauri::command]
+pub fn nlp_llm_status(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+) -> Result<NlpLlmStatus, String> {
+    let prefs = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        if !is_nlp_enabled(&conn)? {
+            return Err("NLP is disabled".to_string());
+        }
+        get_llm_prefs(&conn)?
+    };
+    if !sidecar.script_exists() {
+        return Err("NLP sidecar unavailable".to_string());
+    }
+    let raw = sidecar.llm_status(
+        Some(prefs.base_url.as_str()),
+        if prefs.model.is_empty() {
+            None
+        } else {
+            Some(prefs.model.as_str())
+        },
+    )?;
+    Ok(NlpLlmStatus {
+        reachable: raw
+            .get("reachable")
+            .and_then(|value| value.as_bool())
+            .unwrap_or(false),
+        provider: raw
+            .get("provider")
+            .and_then(|value| value.as_str())
+            .unwrap_or("ollama")
+            .to_string(),
+        base_url: raw
+            .get("baseUrl")
+            .and_then(|value| value.as_str())
+            .unwrap_or(prefs.base_url.as_str())
+            .to_string(),
+        model: raw
+            .get("model")
+            .and_then(|value| value.as_str())
+            .map(|value| value.to_string())
+            .filter(|value| !value.is_empty()),
+        models: raw
+            .get("models")
+            .and_then(|value| value.as_array())
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(|item| item.as_str().map(str::to_string))
+                    .collect()
+            })
+            .unwrap_or_default(),
+        error: raw
+            .get("error")
+            .and_then(|value| value.as_str())
+            .map(|value| value.to_string())
+            .filter(|value| !value.is_empty()),
+    })
 }
 
 #[tauri::command]
@@ -2128,7 +2238,18 @@ pub fn nlp_library_answer(
         ));
     }
     let max_sentences = if passages.len() > hits.len() { 6 } else { 4 };
-    let result = sidecar.library_answer(&trimmed, json!(passages), max_sentences)?;
+    let llm = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        llm_sidecar_options(&conn, "answer")?
+    };
+    let result = sidecar.library_answer_scoped_with_options(
+        &trimmed,
+        json!(passages),
+        max_sentences,
+        "library",
+        None,
+        llm,
+    )?;
     let citations = result
         .get("citations")
         .and_then(|value| value.as_array())
@@ -2214,7 +2335,7 @@ pub fn nlp_document_answer(
         return Err("libraryChat.emptyQuestion".to_string());
     }
 
-    let (title, text, needs_index, answer_backend) = {
+    let (title, text, needs_index, answer_backend, llm) = {
         let conn = state.conn.lock().map_err(|e| e.to_string())?;
         if !is_nlp_enabled(&conn)? {
             return Err("libraryChat.nlpDisabled".to_string());
@@ -2244,7 +2365,8 @@ pub fn nlp_document_answer(
             scribe_core::nlp::document_needs_reindex(&conn, &sidecar, &document_id).unwrap_or(true);
         let answer_backend =
             scribe_core::nlp::resolve_answer_embed_backend(&conn, &sidecar).unwrap_or(None);
-        (title, text, needs_index, answer_backend)
+        let llm = llm_sidecar_options(&conn, "answer")?;
+        (title, text, needs_index, answer_backend, llm)
     };
 
     if needs_index {
@@ -2313,12 +2435,13 @@ pub fn nlp_document_answer(
     }
     let passages = json!(combined);
 
-    let result = sidecar.library_answer_scoped_with_backend(
+    let result = sidecar.library_answer_scoped_with_options(
         &trimmed,
         passages.clone(),
         8,
         "document",
         answer_backend.as_deref(),
+        llm,
     )?;
     let fallback_title = title.clone();
     let citations = result
@@ -2609,7 +2732,14 @@ pub fn nlp_rewrite_selection(
         return Err("NLP is disabled".to_string());
     }
     let mode = normalize_rewrite_mode(mode.as_deref());
-    let res = sidecar.rewrite_selection(&text, &mode, custom_instruction.as_deref())?;
+    let llm = llm_sidecar_options(&conn, "rewrite")?;
+    drop(conn);
+    let res = sidecar.rewrite_selection_with_llm(
+        &text,
+        &mode,
+        custom_instruction.as_deref(),
+        llm,
+    )?;
     Ok(parse_rewrite_result(&res, &mode, &text))
 }
 

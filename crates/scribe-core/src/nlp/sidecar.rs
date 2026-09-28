@@ -627,6 +627,16 @@ impl NlpSidecar {
         mode: &str,
         custom_instruction: Option<&str>,
     ) -> Result<Value, String> {
+        self.rewrite_selection_with_llm(text, mode, custom_instruction, None)
+    }
+
+    pub fn rewrite_selection_with_llm(
+        &self,
+        text: &str,
+        mode: &str,
+        custom_instruction: Option<&str>,
+        llm: Option<Value>,
+    ) -> Result<Value, String> {
         let mut params = json!({
             "text": text,
             "mode": mode,
@@ -634,7 +644,49 @@ impl NlpSidecar {
         if let Some(inst) = custom_instruction {
             params["customInstruction"] = json!(inst);
         }
+        if let Some(llm_options) = llm {
+            params["llm"] = llm_options;
+        }
         self.call_method("rewrite_selection", params)
+    }
+
+    pub fn llm_status(&self, base_url: Option<&str>, model: Option<&str>) -> Result<Value, String> {
+        let mut params = json!({});
+        if let Some(url) = base_url {
+            params["baseUrl"] = json!(url);
+        }
+        if let Some(name) = model {
+            params["model"] = json!(name);
+        }
+        self.call_method("llm_status", params)
+    }
+
+    pub fn llm_complete(
+        &self,
+        prompt: &str,
+        system: Option<&str>,
+        base_url: Option<&str>,
+        model: Option<&str>,
+        temperature: Option<f64>,
+        max_tokens: Option<i64>,
+    ) -> Result<Value, String> {
+        let mut params = json!({ "prompt": prompt });
+        if let Some(value) = system {
+            params["system"] = json!(value);
+        }
+        if let Some(value) = base_url {
+            params["baseUrl"] = json!(value);
+        }
+        if let Some(value) = model {
+            params["model"] = json!(value);
+        }
+        if let Some(value) = temperature {
+            params["temperature"] = json!(value);
+        }
+        if let Some(value) = max_tokens {
+            params["maxTokens"] = json!(value);
+        }
+        self.call_method("llm_complete", params)
     }
 
     pub fn rewrite_selection_typed(
@@ -835,10 +887,12 @@ pub fn rpc_timeout(method: &str) -> Duration {
         | "plan_agent_goal" | "agent_document_brief" => {
             Duration::from_secs(25)
         }
+        "llm_status" => Duration::from_secs(8),
+        "llm_complete" | "rewrite_selection" => Duration::from_secs(120),
         "embed_with_chunks" => Duration::from_secs(60),
         "embed_batch" | "embed_batch_with_chunks" => Duration::from_secs(180),
         "library_answer" | "find_duplicates" | "library_report" | "analyze_document" => {
-            Duration::from_secs(90)
+            Duration::from_secs(120)
         }
         _ => Duration::from_secs(45),
     }
