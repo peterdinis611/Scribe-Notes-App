@@ -1,5 +1,5 @@
 import { invoke } from '@/lib/tauri'
-import { cacheDocument, clearDocumentCache, invalidateDocumentCache, peekCachedDocument } from '@/lib/cache/document-cache'
+import { cacheDocument, clearDocumentCache, getCachedDocument, invalidateDocumentCache, peekCachedDocument } from '@/lib/cache/document-cache'
 import { isVaultCipherJson } from '@/lib/vault/crypto'
 import { maybeDecryptDocument, maybeEncryptContentJson } from '@/lib/vault/document-crypto'
 
@@ -114,7 +114,8 @@ async function vaultContext() {
 const getDocumentInflight = new Map<string, Promise<Document>>()
 
 export const getDocument = async (id: string) => {
-  const cached = peekCachedDocument(id)
+  // Promote LRU on intentional fetch so open docs stay warm.
+  const cached = getCachedDocument(id)
 
   // Prefer warm plaintext cache (typical after unlock / save).
   if (cached && !isVaultCipherJson(cached.contentJson)) {

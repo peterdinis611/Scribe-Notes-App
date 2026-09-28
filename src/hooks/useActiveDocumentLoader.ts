@@ -1,11 +1,13 @@
 import { useEffect, useRef } from 'react'
 import { fetchDocumentFresh, getDocument } from '@/lib/db/api'
-import { peekCachedDocument } from '@/lib/cache/document-cache'
+import { isCachedRecent, peekCachedDocument } from '@/lib/cache/document-cache'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setActiveDocument, setSaveStatus } from '@/store/documentsSlice'
 
 /** Soft-revalidate is expensive for multi‑MB JSON — skip background IPC above this size. */
 const SOFT_REVALIDATE_MAX_CHARS = 400_000
+/** Skip soft-revalidate when the warm entry is still fresh. */
+const SOFT_REVALIDATE_MAX_AGE_MS = 45_000
 
 export function useActiveDocumentLoader() {
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
@@ -35,6 +37,9 @@ export function useActiveDocumentLoader() {
       try {
         if (cached && cached.contentJson.length > SOFT_REVALIDATE_MAX_CHARS) {
           // Huge body already on screen — skip background full-blob revalidate.
+          return
+        }
+        if (cached && isCachedRecent(documentId, SOFT_REVALIDATE_MAX_AGE_MS)) {
           return
         }
 

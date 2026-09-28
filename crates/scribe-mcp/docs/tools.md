@@ -461,9 +461,49 @@ Open tasks from checkboxes and NLP phrase patterns (`treba:`, `todo:`, …).
 
 ## `nlp_status`
 
-Local AI sidecar health: enabled flag, model, indexed counts, embed backend.
+Local AI sidecar health: enabled flag, model, indexed counts, embed backend, optional LLM prefs.
 
 **Arguments:** none
+
+---
+
+## `llm_status`
+
+Ping local Ollama (opt-in Local LLM). Returns `reachable`, model list, and errors. Requires Local AI.
+
+**Arguments:** none
+
+---
+
+## `llm_complete`
+
+Generate text with the opt-in local LLM (Ollama on localhost). Requires Local AI + LLM enabled in Settings → Local AI. Localhost only.
+
+| Arg | Type | Required | Notes |
+|-----|------|----------|--------|
+| `prompt` | string | yes | User prompt |
+| `system` | string | no | System instruction |
+| `temperature` | number | no | Default ~0.2 |
+| `maxTokens` | number | no | Cap on generation length |
+
+---
+
+## `set_llm_prefs`
+
+Configure opt-in Local LLM (writable MCP only): `enabled`, `baseUrl` (localhost), `model`, `useRewrite`, `useAnswer`, `usePlan`.
+
+---
+
+## `run_agent`
+
+Same local agent planner as the Scribe app (`plan_agent_goal` + tool execution). Optional LLM planner when Local LLM + plan is enabled.
+
+| Arg | Type | Required | Notes |
+|-----|------|----------|--------|
+| `goal` | string | yes | Natural-language goal |
+| `scope` | string | no | `library` or `document` |
+| `documentId` | string | no | Required for most document tools |
+| `maxTools` | number | no | 1–6, default 3 |
 
 ---
 

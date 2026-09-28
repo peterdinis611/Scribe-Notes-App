@@ -12,7 +12,8 @@ import {
   Undo2,
 } from 'lucide-react'
 import { invoke } from '@/lib/tauri'
-import { saveDocumentImage } from '@/lib/db/api'
+import { saveDocumentImage, saveDocumentOcr } from '@/lib/db/api'
+import { scheduleNlpDocumentIndex } from '@/lib/nlp/auto-index'
 import { useAppSelector } from '@/store/hooks'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
@@ -186,8 +187,15 @@ export function PaintBlock({ node, selected, deleteNode, updateAttributes, getPo
         text = fromPath.text?.trim() ?? ''
       }
       updateAttributes({ ocrText: text, strokes: serializePaintStrokes(strokesRef.current) })
-      if (text) toast.success(t('paint.ocrDone'))
-      else toast.error(t('paint.ocrEmpty'))
+      if (text) {
+        try {
+          await saveDocumentOcr(activeId, path, text)
+          scheduleNlpDocumentIndex(activeId)
+        } catch {
+          /* attrs still hold OCR; FTS picks up ocrText on next save */
+        }
+        toast.success(t('paint.ocrDone'))
+      } else toast.error(t('paint.ocrEmpty'))
     } catch (error) {
       toast.error(t('paint.ocrError'), String(error))
     } finally {

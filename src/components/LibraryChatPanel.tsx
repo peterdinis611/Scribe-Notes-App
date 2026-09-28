@@ -1,4 +1,4 @@
-import { Eraser, FileText, Library, Quote, Send, Settings2, Sparkles } from 'lucide-react'
+import { Eraser, FileText, Folder, Library, Quote, Send, Settings2, Sparkles } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
@@ -35,6 +35,7 @@ import {
   type LibraryChatCitation,
 } from '@/lib/library/library-chat'
 import { documentQuestionHistory, type DocumentQuestionTurn } from '@/lib/library/document-question-history'
+import { withLlmChunkListener } from '@/lib/nlp/llm-stream'
 import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
@@ -136,6 +137,7 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
   const activeDocument = useAppSelector((state) => state.documents.activeDocument)
   const commentAuthor = useAppSelector((state) => state.documents.commentAuthor)
   const sidebarOpen = useAppSelector((state) => state.documents.sidebarOpen)
+  const folderId = activeDocument?.folderId ?? null
   const [scope, setScope] = useState<ChatScope>(() => (activeDocumentId ? 'document' : 'library'))
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
@@ -148,6 +150,7 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const libraryMessagesRef = useRef<ChatMessage[]>([])
+  const folderMessagesRef = useRef<ChatMessage[]>([])
   const messagesRef = useRef(messages)
   messagesRef.current = messages
 
@@ -241,10 +244,18 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
   }, [activeDocumentId, scope])
 
   useEffect(() => {
+    if (scope === 'folder' && !folderId) {
+      setScope(activeDocumentId ? 'document' : 'library')
+    }
+  }, [scope, folderId, activeDocumentId])
+
+  useEffect(() => {
     let cancelled = false
     if (scope !== 'document' || !activeDocumentId) {
       if (scope === 'library') {
         setMessages(libraryMessagesRef.current)
+      } else if (scope === 'folder') {
+        setMessages(folderMessagesRef.current)
       }
       return
     }
@@ -317,10 +328,14 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
       if (next === scope) return
       if (scope === 'library') {
         libraryMessagesRef.current = messagesRef.current
+      } else if (scope === 'folder') {
+        folderMessagesRef.current = messagesRef.current
       }
       setScope(next)
       if (next === 'library') {
         setMessages(libraryMessagesRef.current)
+      } else if (next === 'folder') {
+        setMessages(folderMessagesRef.current)
       }
     },
     [scope],
@@ -346,6 +361,10 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
         toast.error(t('libraryChat.errorTitle'), t('libraryChat.noActiveDocument'))
         return
       }
+      if (scope === 'folder' && !folderId) {
+        toast.error(t('libraryChat.errorTitle'), t('libraryChat.scopeFolderNeedsDoc'))
+        return
+      }
 
       const context =
         scope === 'document' ? documentChatContext(messagesRef.current) : undefined
@@ -357,10 +376,28 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
         role: 'user',
         text: trimmed,
       }
-      setMessages((prev) => [...prev, optimisticUser])
+      const streamingId = `a-stream-${Date.now()}`
+      setMessages((prev) => [
+        ...prev,
+        optimisticUser,
+        { id: streamingId, role: 'assistant', text: '' },
+      ])
 
       try {
-        const result = await askChat(scope, trimmed, activeDocumentId, context)
+        let streamed = ''
+        const result = await withLlmChunkListener(
+          (chunk) => {
+            streamed += chunk
+            const snapshot = streamed
+            setMessages((prev) =>
+              prev.map((item) => (item.id === streamingId ? { ...item, text: snapshot } : item)),
+            )
+          },
+          () =>
+            askChat(scope, trimmed, activeDocumentId, context, folderId, {
+              stream: true,
+            }),
+        )
         setNlpReady(true)
         if (scope === 'document' && activeDocumentId) {
           const saved = await persistPair(activeDocumentId, trimmed, {
@@ -368,7 +405,9 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
             citations: result.citations,
           })
           setMessages((prev) => {
-            const withoutOptimistic = prev.filter((item) => item.id !== optimisticUser.id)
+            const withoutOptimistic = prev.filter(
+              (item) => item.id !== optimisticUser.id && item.id !== streamingId,
+            )
             return [
               ...withoutOptimistic,
               saved.savedUser,
@@ -376,16 +415,18 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
             ]
           })
         } else {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: `a-${Date.now()}`,
-              role: 'assistant',
-              text: result.answer,
-              citations: result.citations,
-              followups: result.followups,
-            },
-          ])
+          setMessages((prev) =>
+            prev.map((item) =>
+              item.id === streamingId
+                ? {
+                    ...item,
+                    text: result.answer,
+                    citations: result.citations,
+                    followups: result.followups,
+                  }
+                : item,
+            ),
+          )
         }
       } catch (error) {
         const raw = error instanceof Error ? error.message : String(error)
@@ -394,20 +435,17 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
         }
         const description = translateError(raw, t)
         toast.error(t('libraryChat.errorTitle'), description)
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `a-${Date.now()}`,
-            role: 'assistant',
-            text: description,
-          },
-        ])
+        setMessages((prev) =>
+          prev.map((item) =>
+            item.id === streamingId ? { ...item, text: description } : item,
+          ),
+        )
       } finally {
         setLoading(false)
         inputRef.current?.focus()
       }
     },
-    [activeDocumentId, loading, persistPair, scope, t],
+    [activeDocumentId, folderId, loading, persistPair, scope, t],
   )
 
   const runAction = useCallback(
@@ -496,6 +534,25 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
           >
             <Library className="h-3 w-3" />
             {t('libraryChat.scopeLibrary')}
+          </button>
+          <button
+            type="button"
+            className={cn(
+              'library-chat-scope-tab',
+              scope === 'folder' && 'is-active',
+              !folderId && 'is-disabled',
+            )}
+            aria-pressed={scope === 'folder'}
+            disabled={!folderId}
+            title={
+              folderId
+                ? t('libraryChat.scopeFolderHint')
+                : t('libraryChat.scopeFolderNeedsDoc')
+            }
+            onClick={() => folderId && changeScope('folder')}
+          >
+            <Folder className="h-3 w-3" />
+            {t('libraryChat.scopeFolder')}
           </button>
           <button
             type="button"

@@ -308,7 +308,15 @@ impl ScribeStore {
         passages.extend(collect_library_memory_passages(&self.db, trimmed));
 
         let max_sentences = if passages.len() > hits.len() { 6 } else { 4 };
-        let result = sidecar.library_answer(trimmed, json!(passages), max_sentences)?;
+        let llm = crate::db::llm_sidecar_options(&self.db, "answer")?;
+        let result = sidecar.library_answer_scoped_with_options(
+            trimmed,
+            json!(passages),
+            max_sentences,
+            "library",
+            None,
+            llm,
+        )?;
         let mut parsed = parse_library_answer(&result);
         if parsed.answer.is_empty() {
             parsed.answer =
@@ -1127,7 +1135,9 @@ impl ScribeStore {
         }
         sync_sidecar_backend(sidecar, &self.db)?;
         let mode = normalize_rewrite_mode(mode);
-        sidecar.rewrite_selection_typed(trimmed, &mode, custom_instruction)
+        let llm = crate::db::llm_sidecar_options(&self.db, "rewrite")?;
+        let raw = sidecar.rewrite_selection_with_llm(trimmed, &mode, custom_instruction, llm)?;
+        Ok(crate::nlp::parse_rewrite_result(&raw, &mode, trimmed))
     }
 
     pub fn analyze_plaintext(
@@ -1463,6 +1473,10 @@ impl ScribeStore {
         serde_json::to_value(result).map_err(|e| e.to_string())
     }
 
+    pub fn llm_options(&self, kind: &str) -> Result<Option<Value>, String> {
+        crate::db::llm_sidecar_options(&self.db, kind)
+    }
+
     pub fn set_nlp_answer_backend(
         &self,
         sidecar: &NlpSidecar,
@@ -1470,6 +1484,76 @@ impl ScribeStore {
     ) -> Result<Value, String> {
         set_answer_backend(&self.db, backend)?;
         self.nlp_status(sidecar)
+    }
+
+    pub fn set_nlp_llm_prefs(
+        &self,
+        sidecar: &NlpSidecar,
+        enabled: Option<bool>,
+        provider: Option<&str>,
+        base_url: Option<&str>,
+        model: Option<&str>,
+        use_rewrite: Option<bool>,
+        use_answer: Option<bool>,
+        use_plan: Option<bool>,
+    ) -> Result<Value, String> {
+        crate::db::set_llm_prefs(
+            &self.db,
+            enabled,
+            provider,
+            base_url,
+            model,
+            use_rewrite,
+            use_answer,
+            use_plan,
+        )?;
+        self.nlp_status(sidecar)
+    }
+
+    pub fn llm_status(&self, sidecar: &NlpSidecar) -> Result<Value, String> {
+        require_nlp(&self.db)?;
+        if !sidecar.script_exists() {
+            return Err("NLP sidecar unavailable".to_string());
+        }
+        let prefs = crate::db::get_llm_prefs(&self.db)?;
+        sidecar.llm_status(
+            Some(prefs.base_url.as_str()),
+            if prefs.model.is_empty() {
+                None
+            } else {
+                Some(prefs.model.as_str())
+            },
+        )
+    }
+
+    pub fn llm_complete(
+        &self,
+        sidecar: &NlpSidecar,
+        prompt: &str,
+        system: Option<&str>,
+        temperature: Option<f64>,
+        max_tokens: Option<i64>,
+    ) -> Result<Value, String> {
+        require_nlp(&self.db)?;
+        if !sidecar.script_exists() {
+            return Err("NLP sidecar unavailable".to_string());
+        }
+        let prefs = crate::db::get_llm_prefs(&self.db)?;
+        if !prefs.enabled {
+            return Err("Local LLM is disabled".to_string());
+        }
+        sidecar.llm_complete(
+            prompt.trim(),
+            system,
+            Some(prefs.base_url.as_str()),
+            if prefs.model.is_empty() {
+                None
+            } else {
+                Some(prefs.model.as_str())
+            },
+            temperature,
+            max_tokens,
+        )
     }
 
     pub fn delete_document_revision(&self, revision_id: &str) -> Result<Value, String> {
@@ -1514,7 +1598,8 @@ impl ScribeStore {
     ) -> Result<Value, String> {
         require_nlp(&self.db)?;
         sync_sidecar_backend(sidecar, &self.db)?;
-        sidecar.plan_agent_goal(
+        let llm = crate::db::llm_sidecar_options(&self.db, "plan")?;
+        sidecar.plan_agent_goal_with_llm(
             goal.trim(),
             if scope.eq_ignore_ascii_case("library") {
                 "library"
@@ -1522,6 +1607,7 @@ impl ScribeStore {
                 "document"
             },
             max_tools.unwrap_or(3).clamp(1, 6),
+            llm,
         )
     }
 

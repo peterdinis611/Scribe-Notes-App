@@ -1,6 +1,25 @@
 import { invoke } from '@/lib/tauri'
 import type { SearchHit } from '@/lib/db/api'
 
+export interface NlpLlmPrefs {
+  enabled: boolean
+  provider: string
+  baseUrl: string
+  model: string
+  useRewrite: boolean
+  useAnswer: boolean
+  usePlan: boolean
+}
+
+export interface NlpLlmStatus {
+  reachable: boolean
+  provider: string
+  baseUrl: string
+  model: string | null
+  models: string[]
+  error: string | null
+}
+
 export interface NlpStatus {
   enabled: boolean
   sidecarAvailable: boolean
@@ -13,6 +32,7 @@ export interface NlpStatus {
   staleIndexCount: number
   embedBackend: string
   answerBackend?: string
+  llm?: NlpLlmPrefs
   qualityAvailable: boolean
   fastAvailable?: boolean
   onnxAvailable?: boolean
@@ -165,6 +185,30 @@ export const nlpSetAnswerBackend = async (backend: 'auto' | 'index' | 'quality')
   statusCache = { value, at: Date.now() }
   return value
 }
+
+export const nlpSetLlmPrefs = async (input: {
+  enabled?: boolean
+  provider?: string
+  baseUrl?: string
+  model?: string
+  useRewrite?: boolean
+  useAnswer?: boolean
+  usePlan?: boolean
+}) => {
+  const value = await invoke<NlpStatus>('nlp_set_llm_prefs', { input })
+  statusCache = { value, at: Date.now() }
+  return value
+}
+
+export const nlpLlmStatus = () => invoke<NlpLlmStatus>('nlp_llm_status')
+
+export const nlpLlmComplete = (input: {
+  prompt: string
+  system?: string
+  temperature?: number
+  maxTokens?: number
+  stream?: boolean
+}) => invoke<{ requestId: string; text: string; model?: string; streamed: boolean }>('nlp_llm_complete', { input })
 
 export const nlpSearch = (
   query: string,
@@ -580,11 +624,19 @@ export type LibraryChatCitation = {
   chunkIndex?: number | null
 }
 
-export const nlpLibraryAnswer = (question: string, limit = 6) =>
-  invoke<{ answer: string; citations: LibraryChatCitation[] }>('nlp_library_answer', {
-    question,
-    limit,
-  })
+export const nlpLibraryAnswer = (
+  question: string,
+  limit = 6,
+  folderId?: string | null,
+) =>
+  invoke<{ answer: string; citations: LibraryChatCitation[]; followups?: string[] }>(
+    'nlp_library_answer',
+    {
+      question,
+      limit,
+      folderId: folderId ?? null,
+    },
+  )
 
 export const nlpDocumentAnswer = (
   documentId: string,

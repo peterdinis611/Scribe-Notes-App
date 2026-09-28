@@ -1,7 +1,68 @@
 import type { MermaidConfig } from 'mermaid'
 
-export const MERMAID_DEFAULT_SOURCE = `flowchart TD
-  A[Start] --> B[End]`
+export const MERMAID_TEMPLATE_IDS = ['flowchart', 'sequence', 'gantt', 'class', 'state'] as const
+
+export type MermaidTemplateId = (typeof MERMAID_TEMPLATE_IDS)[number]
+
+export const MERMAID_TEMPLATES: Record<MermaidTemplateId, { labelKey: string; source: string }> = {
+  flowchart: {
+    labelKey: 'mermaid.templates.flowchart',
+    source: `flowchart TD
+  A[Start] --> B{Decision}
+  B -->|Yes| C[Do work]
+  B -->|No| D[Skip]
+  C --> E[End]
+  D --> E`,
+  },
+  sequence: {
+    labelKey: 'mermaid.templates.sequence',
+    source: `sequenceDiagram
+  participant User
+  participant App
+  participant API
+  User->>App: Open note
+  App->>API: Load document
+  API-->>App: Content
+  App-->>User: Render`,
+  },
+  gantt: {
+    labelKey: 'mermaid.templates.gantt',
+    source: `gantt
+  title Sprint
+  dateFormat  YYYY-MM-DD
+  section Build
+  Spec           :a1, 2026-01-01, 3d
+  Implement      :after a1, 5d
+  section Ship
+  Review         :2026-01-10, 2d
+  Release        :1d`,
+  },
+  class: {
+    labelKey: 'mermaid.templates.class',
+    source: `classDiagram
+  class Document {
+    +String id
+    +String title
+    +save()
+  }
+  class Folder {
+    +String id
+    +add(Document)
+  }
+  Folder "1" --> "*" Document`,
+  },
+  state: {
+    labelKey: 'mermaid.templates.state',
+    source: `stateDiagram-v2
+  [*] --> Draft
+  Draft --> Review: submit
+  Review --> Published: approve
+  Review --> Draft: revise
+  Published --> [*]`,
+  },
+}
+
+export const MERMAID_DEFAULT_SOURCE = MERMAID_TEMPLATES.flowchart.source
 
 let mermaidReady: Promise<typeof import('mermaid').default> | null = null
 let renderSeq = 0
@@ -42,7 +103,7 @@ export async function renderMermaidSource(
 ): Promise<MermaidRenderResult> {
   const trimmed = source.trim()
   if (!trimmed) {
-    return { ok: false, error: 'Prázdny diagram' }
+    return { ok: false, error: 'Empty diagram' }
   }
 
   try {
@@ -60,7 +121,7 @@ export async function renderMermaidSource(
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : 'Neplatný Mermaid diagram',
+      error: error instanceof Error ? error.message : 'Invalid Mermaid diagram',
     }
   }
 }

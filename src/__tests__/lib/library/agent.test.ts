@@ -152,10 +152,18 @@ describe('buildAgentGoalChips / buildAgentToolOptions', () => {
 
   it('ranks document-aware chips', () => {
     const chips = buildAgentGoalChips(analysis, tasks, { title: 'Ship plan', slovak: false })
-    expect(chips.length).toBeGreaterThan(3)
-    expect(chips.some((chip) => /summarize|related/i.test(chip))).toBe(true)
-    expect(chips.some((chip) => /tasks|takeaways/i.test(chip))).toBe(true)
-    expect(chips.some((chip) => /flashcard/i.test(chip))).toBe(true)
+    expect(chips.length).toBeGreaterThan(5)
+    expect(chips.some((chip) => /Ship plan|Goals|Risks|Alex|Friday|Write release/i.test(chip))).toBe(
+      true,
+    )
+    expect(chips.some((chip) => /launch window|ship/i.test(chip))).toBe(true)
+    expect(chips.some((chip) => /finish|Prioritize|tasks/i.test(chip))).toBe(true)
+  })
+
+  it('names concrete note signals in chips', () => {
+    const chips = buildAgentGoalChips(analysis, tasks, { title: 'Ship plan', slovak: true })
+    expect(chips.some((chip) => chip.includes('Ship plan') || chip.includes('Goals'))).toBe(true)
+    expect(chips.some((chip) => chip.includes('Write release') || chip.includes('úloh'))).toBe(true)
   })
 
   it('ranks tools with open tasks higher', () => {

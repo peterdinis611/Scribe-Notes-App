@@ -12,7 +12,7 @@ import type { CustomDocumentTemplate } from '@/lib/templates/custom'
 import { parseStoredCustomTemplates } from '@/lib/templates/custom'
 import type { CustomTemplateCategory } from '@/lib/templates/categories'
 import { parseStoredCustomCategories } from '@/lib/templates/categories'
-import { LOCALE_KEY, UI_SKIN_KEY, ACTIVE_DOCUMENT_ID_KEY, ONBOARDING_DISMISSED_KEY, SETUP_COMPLETED_KEY, WHATS_NEW_VERSION_KEY, DOCUMENT_TOC_LEFT_KEY, SCRATCH_DOCUMENT_ID_KEY, SHORTCUT_OVERRIDES_KEY, STORAGE_ACCESS_EXPLAINER_KEY, STORAGE_FOLDER_ACCESS_GRANTED_KEY, FOLDER_AUTO_SYNC_KEY, AUTO_BACKUP_ENABLED_KEY, AUTO_BACKUP_INTERVAL_DAYS_KEY, AUTO_BACKUP_INTERVAL_HOURS_KEY, AUTO_BACKUP_DIR_KEY, LAST_AUTO_BACKUP_AT_KEY, THEME_KEY_V2, THEME_KEY_LEGACY, EDITOR_VIEW_MODE_KEY, PAGE_SETUP_KEY, SPELL_CHECK_KEY, PRINT_LAYOUT_KEY, PRINT_ZOOM_KEY, PRINT_COLUMNS_KEY, MANUAL_TITLES_KEY, COMMENT_AUTHOR_KEY, CUSTOM_TEMPLATES_KEY, CUSTOM_TEMPLATE_CATEGORIES_KEY, CUSTOM_LOCALES_KEY, AGENT_PREFS_KEY } from './keys'
+import { LOCALE_KEY, UI_SKIN_KEY, ACTIVE_DOCUMENT_ID_KEY, ONBOARDING_DISMISSED_KEY, SETUP_COMPLETED_KEY, WHATS_NEW_VERSION_KEY, DOCUMENT_TOC_LEFT_KEY, SCRATCH_DOCUMENT_ID_KEY, SHORTCUT_OVERRIDES_KEY, STORAGE_ACCESS_EXPLAINER_KEY, STORAGE_FOLDER_ACCESS_GRANTED_KEY, FOLDER_AUTO_SYNC_KEY, AUTO_BACKUP_ENABLED_KEY, AUTO_BACKUP_INTERVAL_DAYS_KEY, AUTO_BACKUP_INTERVAL_HOURS_KEY, AUTO_BACKUP_DIR_KEY, LAST_AUTO_BACKUP_AT_KEY, THEME_KEY_V2, THEME_KEY_LEGACY, EDITOR_VIEW_MODE_KEY, PAGE_SETUP_KEY, SPELL_CHECK_KEY, PRINT_LAYOUT_KEY, PRINT_ZOOM_KEY, PRINT_COLUMNS_KEY, MANUAL_TITLES_KEY, COMMENT_AUTHOR_KEY, CUSTOM_TEMPLATES_KEY, CUSTOM_TEMPLATE_CATEGORIES_KEY, CUSTOM_LOCALES_KEY, AGENT_PREFS_KEY, SHOW_DOCUMENT_TABS_KEY, SHOW_EDITOR_TOOLBAR_KEY, SHOW_STATUS_BAR_KEY, SHOW_PANEL_RAIL_KEY, UI_ZOOM_KEY } from './keys'
 
 export function readCustomLocales(): CustomLocalePack[] {
   try {
@@ -638,4 +638,62 @@ export function readAgentPrefs(): AgentPrefs {
 
 export function persistAgentPrefs(prefs: AgentPrefs) {
   kvSet(AGENT_PREFS_KEY, JSON.stringify(normalizeAgentPrefs(prefs)))
+}
+
+export function readShowDocumentTabs(): boolean {
+  return readBoolStorage(SHOW_DOCUMENT_TABS_KEY, true)
+}
+
+export function persistShowDocumentTabs(value: boolean) {
+  kvSet(SHOW_DOCUMENT_TABS_KEY, value ? '1' : '0')
+}
+
+export function readShowEditorToolbar(): boolean {
+  return readBoolStorage(SHOW_EDITOR_TOOLBAR_KEY, true)
+}
+
+export function persistShowEditorToolbar(value: boolean) {
+  kvSet(SHOW_EDITOR_TOOLBAR_KEY, value ? '1' : '0')
+}
+
+export function readShowStatusBar(): boolean {
+  return readBoolStorage(SHOW_STATUS_BAR_KEY, true)
+}
+
+export function persistShowStatusBar(value: boolean) {
+  kvSet(SHOW_STATUS_BAR_KEY, value ? '1' : '0')
+}
+
+export function readShowPanelRail(): boolean {
+  return readBoolStorage(SHOW_PANEL_RAIL_KEY, true)
+}
+
+export function persistShowPanelRail(value: boolean) {
+  kvSet(SHOW_PANEL_RAIL_KEY, value ? '1' : '0')
+}
+
+export function clampUiZoom(value: number): number {
+  const snapped = Math.round(value * 20) / 20
+  return Math.min(1.25, Math.max(0.85, snapped))
+}
+
+export function readUiZoom(): number {
+  try {
+    const raw = kvGet(UI_ZOOM_KEY)
+    if (!raw) return 1
+    const parsed = Number(raw)
+    if (!Number.isFinite(parsed)) return 1
+    return clampUiZoom(parsed)
+  } catch {
+    return 1
+  }
+}
+
+export function persistUiZoom(value: number) {
+  kvSet(UI_ZOOM_KEY, String(clampUiZoom(value)))
+}
+
+export function applyUiZoom(zoom: number) {
+  const value = clampUiZoom(zoom)
+  document.documentElement.style.setProperty('--ui-zoom', String(value))
 }

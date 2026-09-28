@@ -13,7 +13,6 @@ import { LibraryRecentView } from '@/components/LibraryRecentView'
 import { LibraryTagsView } from '@/components/LibraryTagsView'
 import { LibraryJournalView } from '@/components/LibraryJournalView'
 import { LibraryLinkGraphView } from '@/components/LibraryLinkGraphView'
-import { LibraryChatPanel } from '@/components/LibraryChatPanel'
 import { LibraryDuplicatesPanel } from '@/components/LibraryDuplicatesPanel'
 import { LibraryTasksPanel } from '@/components/LibraryTasksPanel'
 import { LibraryWikiHealthPanel } from '@/components/LibraryWikiHealthPanel'
@@ -78,8 +77,9 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
   const agentPanelOpen = useAppSelector((state) => state.documents.agentPanelOpen)
   const graphAroundActive = useAppSelector((state) => state.documents.libraryGraphAroundActive)
   /** Agent moved to the right dock — never render it as a left library view. */
-  const contentView = libraryView === 'agent' ? 'folders' : libraryView
-  const isContentSearch = contentView !== 'chat' && query.trim().length >= 2
+  const contentView =
+    libraryView === 'agent' || libraryView === 'chat' ? 'folders' : libraryView
+  const isContentSearch = query.trim().length >= 2
 
   const visibleDocuments = useMemo(() => visibleLibraryDocuments(documents), [documents])
 
@@ -201,7 +201,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                   taskCount={taskCount}
                   wikiHealthCount={wikiHealthCount}
                   onChange={(view) => {
-                    if (view === 'agent') {
+                    if (view === 'agent' || view === 'chat') {
                       dispatch(setAgentPanelOpen(!agentPanelOpen))
                       return
                     }
@@ -330,12 +330,6 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                 <ScrollArea className="min-h-0 flex-1">
                   <LibraryWikiHealthPanel onNavigate={onClose} />
                 </ScrollArea>
-              )}
-
-              {contentView === 'chat' && (
-                <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                  <LibraryChatPanel onNavigate={onClose} />
-                </div>
               )}
             </>
           )}

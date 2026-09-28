@@ -14,10 +14,6 @@ declare module '@tiptap/core' {
   }
 }
 
-function stopEditorKeys(event: Event) {
-  event.stopPropagation()
-}
-
 function createMermaidNodeView() {
   return ({
     node,
@@ -29,7 +25,6 @@ function createMermaidNodeView() {
     editor: Editor
   }) => {
     let currentSource = String(node.attrs.source ?? '')
-    let editing = false
     let renderToken = 0
     let themeObserver: MutationObserver | null = null
 
@@ -55,34 +50,19 @@ function createMermaidNodeView() {
     const preview = document.createElement('div')
     preview.className = 'mermaid-diagram__preview'
 
-    const sourceArea = document.createElement('textarea')
-    sourceArea.className = 'mermaid-diagram__source'
-    sourceArea.spellcheck = false
-    sourceArea.rows = 8
-    sourceArea.hidden = true
-
-    const actions = document.createElement('div')
-    actions.className = 'mermaid-diagram__actions'
-    actions.hidden = true
-
-    const doneBtn = document.createElement('button')
-    doneBtn.type = 'button'
-    doneBtn.className = 'mermaid-diagram__btn mermaid-diagram__btn--primary'
-    doneBtn.textContent = i18n.t('mermaid.done')
-
-    const cancelBtn = document.createElement('button')
-    cancelBtn.type = 'button'
-    cancelBtn.className = 'mermaid-diagram__btn'
-    cancelBtn.textContent = i18n.t('mermaid.cancel')
-
     toolbar.appendChild(editBtn)
-    actions.append(doneBtn, cancelBtn)
-    wrapper.append(toolbar, preview, sourceArea, actions)
+    wrapper.append(toolbar, preview)
 
     const setSourceOnNode = (source: string) => {
       const pos = getPos()
       if (pos == null) return
       editor.chain().focus().updateMermaidDiagram({ source, pos }).run()
+    }
+
+    const deleteNode = () => {
+      const pos = getPos()
+      if (pos == null) return
+      editor.chain().focus().deleteMermaidDiagram({ pos }).run()
     }
 
     const renderPreview = async (source: string) => {
@@ -107,75 +87,45 @@ function createMermaidNodeView() {
       }
     }
 
-    const enterEdit = () => {
-      if (!editor.isEditable || editing) return
-      editing = true
-      wrapper.classList.add('mermaid-diagram--editing')
-      sourceArea.value = currentSource
-      sourceArea.hidden = false
-      actions.hidden = false
-      editBtn.hidden = true
-      preview.hidden = true
-      sourceArea.focus()
-    }
-
-    const exitEdit = (commit: boolean) => {
-      if (!editing) return
-      editing = false
-      wrapper.classList.remove('mermaid-diagram--editing')
-      sourceArea.hidden = true
-      actions.hidden = true
-      editBtn.hidden = false
-      preview.hidden = false
-
-      if (commit) {
-        const next = sourceArea.value.trim() || MERMAID_DEFAULT_SOURCE
-        currentSource = next
-        wrapper.dataset.source = next
-        setSourceOnNode(next)
-        void renderPreview(next)
-      } else {
-        sourceArea.value = currentSource
-      }
+    const openBuilder = () => {
+      if (!editor.isEditable) return
+      void (async () => {
+        const { promptMermaidDialog } = await import('@/lib/mermaid-dialog')
+        const next = await promptMermaidDialog({
+          intent: 'edit',
+          initialSource: currentSource,
+        })
+        if (next === null || editor.isDestroyed) return
+        if (next.clear || !next.source.trim()) {
+          deleteNode()
+          return
+        }
+        const source = next.source.trim() || MERMAID_DEFAULT_SOURCE
+        currentSource = source
+        wrapper.dataset.source = source
+        setSourceOnNode(source)
+        void renderPreview(source)
+      })()
     }
 
     const onEditClick = (event: Event) => {
       event.preventDefault()
       event.stopPropagation()
-      enterEdit()
-    }
-
-    const onDoneClick = (event: Event) => {
-      event.preventDefault()
-      event.stopPropagation()
-      exitEdit(true)
-    }
-
-    const onCancelClick = (event: Event) => {
-      event.preventDefault()
-      event.stopPropagation()
-      exitEdit(false)
+      openBuilder()
     }
 
     const onDoubleClick = (event: Event) => {
-      if (!editor.isEditable || editing) return
+      if (!editor.isEditable) return
       event.preventDefault()
       event.stopPropagation()
-      enterEdit()
+      openBuilder()
     }
 
     editBtn.addEventListener('click', onEditClick)
-    doneBtn.addEventListener('click', onDoneClick)
-    cancelBtn.addEventListener('click', onCancelClick)
     wrapper.addEventListener('dblclick', onDoubleClick)
-    sourceArea.addEventListener('keydown', stopEditorKeys)
-    sourceArea.addEventListener('keyup', stopEditorKeys)
-    sourceArea.addEventListener('keypress', stopEditorKeys)
-    sourceArea.addEventListener('beforeinput', stopEditorKeys)
-    sourceArea.addEventListener('mousedown', stopEditorKeys)
 
     themeObserver = new MutationObserver(() => {
-      if (!editing) void renderPreview(currentSource)
+      void renderPreview(currentSource)
     })
     themeObserver.observe(document.documentElement, {
       attributes: true,
@@ -197,7 +147,7 @@ function createMermaidNodeView() {
       update(updatedNode: PMNode) {
         if (updatedNode.type.name !== 'mermaidDiagram') return false
         const next = String(updatedNode.attrs.source ?? '')
-        if (next !== currentSource && !editing) {
+        if (next !== currentSource) {
           currentSource = next
           wrapper.dataset.source = next
           void renderPreview(next)
@@ -207,14 +157,7 @@ function createMermaidNodeView() {
       destroy() {
         themeObserver?.disconnect()
         editBtn.removeEventListener('click', onEditClick)
-        doneBtn.removeEventListener('click', onDoneClick)
-        cancelBtn.removeEventListener('click', onCancelClick)
         wrapper.removeEventListener('dblclick', onDoubleClick)
-        sourceArea.removeEventListener('keydown', stopEditorKeys)
-        sourceArea.removeEventListener('keyup', stopEditorKeys)
-        sourceArea.removeEventListener('keypress', stopEditorKeys)
-        sourceArea.removeEventListener('beforeinput', stopEditorKeys)
-        sourceArea.removeEventListener('mousedown', stopEditorKeys)
       },
     }
   }

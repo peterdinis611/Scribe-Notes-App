@@ -107,6 +107,36 @@ export function SettingsRow({
   )
 }
 
+export function SettingsToggle({
+  checked,
+  onChange,
+  disabled,
+  onLabel,
+  offLabel,
+}: {
+  checked: boolean
+  onChange: () => void
+  disabled?: boolean
+  onLabel: string
+  offLabel: string
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      className={cn('settings-toggle', checked && 'is-on')}
+      onClick={onChange}
+    >
+      <span className="settings-toggle-track" aria-hidden="true">
+        <span className="settings-toggle-knob" />
+      </span>
+      <span className="settings-toggle-label">{checked ? onLabel : offLabel}</span>
+    </button>
+  )
+}
+
 export function SettingsKbd({ children }: { children: ReactNode }) {
   return (
     <kbd className="inline-flex h-[22px] min-w-[22px] items-center justify-center rounded-[5px] border border-[var(--color-border)] bg-[var(--color-background)] px-1.5 font-sans text-[11px] text-[var(--color-foreground)] shadow-[0_1px_0_rgba(0,0,0,0.04)]">

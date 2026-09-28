@@ -3,6 +3,8 @@ import {
   Bot,
   Check,
   Languages,
+  Layers,
+  Link2,
   List,
   LoaderCircle,
   Minimize2,
@@ -14,12 +16,16 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import {
+  nlpExtractFlashcards,
   nlpRewriteSelection,
+  nlpSuggestWikiLinks,
   nlpWritingCoach,
   type WritingCoachHint,
 } from '@/lib/db/nlp-api'
+import { applyWikiSuggestion } from '@/lib/editor/apply-suggestions'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
+import { store } from '@/store/index'
 
 type SelectionAIContextMenuProps = {
   selectedText: string
@@ -119,6 +125,76 @@ export function SelectionAIContextMenu({
       setCustomOpen(false)
     } catch (error) {
       toast.error(t('aiRewrite.coachError'), String(error))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleWikiLink() {
+    const text = selectedText.trim()
+    if (!text || loading) return
+    const documentId = store.getState().documents.activeDocumentId
+    if (!documentId) {
+      toast.error(t('libraryChat.noActiveDocument'))
+      return
+    }
+    setLoading(true)
+    setCoachHints(null)
+    setCoachScore(null)
+    try {
+      const suggestions = await nlpSuggestWikiLinks(documentId, 8)
+      const needle = text.toLowerCase()
+      const match =
+        suggestions.find(
+          (item) =>
+            item.phrase.toLowerCase() === needle ||
+            item.title.toLowerCase() === needle ||
+            needle.includes(item.phrase.toLowerCase()) ||
+            needle.includes(item.title.toLowerCase()),
+        ) ?? suggestions[0]
+      if (!match) {
+        toast.info(t('aiRewrite.wikiEmpty'))
+        return
+      }
+      const result = applyWikiSuggestion({
+        ...match,
+        phrase: text.length <= 80 ? text : match.phrase,
+      })
+      if (result === 'failed') toast.error(t('aiRewrite.wikiError'))
+      else toast.success(t('aiRewrite.wikiDone', { title: match.title }))
+      setCustomOpen(false)
+    } catch (error) {
+      toast.error(t('aiRewrite.wikiError'), String(error))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleFlashcards() {
+    const text = selectedText.trim()
+    if (!text || loading) return
+    setLoading(true)
+    setCoachHints(null)
+    setCoachScore(null)
+    try {
+      const pack = await nlpExtractFlashcards({ text, limit: 8 })
+      const cards = pack.cards ?? []
+      if (!cards.length) {
+        toast.info(t('aiRewrite.flashcardsEmpty'))
+        return
+      }
+      const body = cards
+        .slice(0, 8)
+        .map((card, index) => {
+          const front = card.front || card.question
+          const back = card.answer
+          return `${index + 1}. **${front}** — ${back}`
+        })
+        .join('\n')
+      setResult(body)
+      setCustomOpen(false)
+    } catch (error) {
+      toast.error(t('aiRewrite.flashcardsError'), String(error))
     } finally {
       setLoading(false)
     }
@@ -253,6 +329,22 @@ export function SelectionAIContextMenu({
           >
             <Bot className="h-3.5 w-3.5" aria-hidden />
             {t('aiRewrite.agentRewrite')}
+          </button>
+          <button
+            type="button"
+            className="selection-ai__mode"
+            onClick={() => void handleWikiLink()}
+          >
+            <Link2 className="h-3.5 w-3.5" aria-hidden />
+            {t('aiRewrite.wikiLink')}
+          </button>
+          <button
+            type="button"
+            className="selection-ai__mode"
+            onClick={() => void handleFlashcards()}
+          >
+            <Layers className="h-3.5 w-3.5" aria-hidden />
+            {t('aiRewrite.flashcards')}
           </button>
           <button
             type="button"

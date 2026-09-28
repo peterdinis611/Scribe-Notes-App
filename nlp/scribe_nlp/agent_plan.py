@@ -6,6 +6,7 @@ and optionally run a multi-tool document brief in one RPC round-trip.
 
 from __future__ import annotations
 
+import json
 import unicodedata
 from typing import Any
 
@@ -158,8 +159,9 @@ def plan_agent_goal(
     *,
     scope: str = "document",
     max_tools: int = _AGENT_TOOL_LIMIT,
+    llm: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Plan Local Agent tools from a free-form goal (EN/SK heuristics)."""
+    """Plan Local Agent tools from a free-form goal (EN/SK heuristics + optional LLM)."""
     trimmed = (goal or "").strip()
     scope_norm = "library" if str(scope or "").lower().startswith("lib") else "document"
     limit = max(1, min(int(max_tools or _AGENT_TOOL_LIMIT), 6))
@@ -182,7 +184,18 @@ def plan_agent_goal(
     tools = [tool for tool, _score in scored]
     tool_scores = [{"tool": tool, "score": score} for tool, score in scored]
     confidence = max((score for _tool, score in scored), default=0.0)
+    source = "python"
     needs = len(tools) == 0 or confidence < 0.48
+
+    if llm and (needs or confidence < 0.62):
+        llm_plan = _try_llm_plan(trimmed, scope=scope_norm, limit=limit, llm=llm)
+        if llm_plan:
+            tools = llm_plan["tools"]
+            tool_scores = [{"tool": tool, "score": 0.8} for tool in tools]
+            confidence = float(llm_plan.get("confidence") or 0.8)
+            needs = len(tools) == 0
+            source = "llm"
+
     return {
         "goal": trimmed,
         "scope": scope_norm,
@@ -197,8 +210,104 @@ def plan_agent_goal(
         )
         if needs and len(tools) == 0
         else [],
-        "source": "python",
+        "source": source,
     }
+
+
+_ALLOWED_PLAN_TOOLS = {
+    "summarize",
+    "outline",
+    "tasks",
+    "dates",
+    "meeting",
+    "terminology",
+    "wiki",
+    "organize",
+    "duplicates",
+    "citations",
+    "quiz",
+    "revision",
+    "rewrite",
+    "similar",
+    "flashcards",
+    "takeaways",
+    "style",
+    "spellcheck",
+    "document_answer",
+    "library_answer",
+    "brief",
+}
+
+
+def _try_llm_plan(
+    goal: str,
+    *,
+    scope: str,
+    limit: int,
+    llm: dict[str, Any],
+) -> dict[str, Any] | None:
+    from .llm import try_complete_from_options
+
+    allowed = sorted(
+        tool
+        for tool in _ALLOWED_PLAN_TOOLS
+        if scope != "library"
+        or tool
+        in {
+            "dates",
+            "duplicates",
+            "citations",
+            "summarize",
+            "tasks",
+            "takeaways",
+            "similar",
+            "library_answer",
+            "brief",
+        }
+    )
+    system = (
+        "You are Scribe's local agent planner. Pick tools for the user's goal. "
+        "Reply with ONLY a JSON object: {\"tools\":[\"tool_id\",...],\"confidence\":0.0-1.0}. "
+        f"Allowed tools: {', '.join(allowed)}. Max {limit} tools. Prefer fewer tools."
+    )
+    prompt = f"Scope: {scope}\nGoal: {goal.strip()}"
+    raw = try_complete_from_options(
+        llm,
+        prompt=prompt,
+        system=system,
+        temperature=0.1,
+        max_tokens=200,
+    )
+    if not raw:
+        return None
+    try:
+        start = raw.find("{")
+        end = raw.rfind("}")
+        if start < 0 or end <= start:
+            return None
+        parsed = json.loads(raw[start : end + 1])
+    except Exception:
+        return None
+    if not isinstance(parsed, dict):
+        return None
+    tools_raw = parsed.get("tools")
+    if not isinstance(tools_raw, list):
+        return None
+    tools: list[str] = []
+    for item in tools_raw:
+        name = str(item).strip()
+        if name in allowed and name not in tools:
+            tools.append(name)
+        if len(tools) >= limit:
+            break
+    if not tools:
+        return None
+    confidence = parsed.get("confidence")
+    try:
+        conf = float(confidence)
+    except (TypeError, ValueError):
+        conf = 0.75
+    return {"tools": tools, "confidence": max(0.0, min(conf, 1.0))}
 
 
 def _section(title: str, body: str) -> dict[str, Any]:

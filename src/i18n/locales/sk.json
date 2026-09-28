@@ -256,16 +256,58 @@
   },
   "mermaid": {
     "edit": "Upraviť",
-    "editTitle": "Upraviť Mermaid zdroj",
+    "editTitle": "Upraviť Mermaid diagram",
     "done": "Hotovo",
     "cancel": "Zrušiť",
-    "rendering": "Renderujem…"
+    "rendering": "Renderujem…",
+    "templates": {
+      "flowchart": "Tok",
+      "sequence": "Sekvencia",
+      "gantt": "Gantt",
+      "class": "Triedy",
+      "state": "Stavy"
+    },
+    "builder": {
+      "insertTitle": "Vložiť Mermaid diagram",
+      "editTitle": "Upraviť Mermaid diagram",
+      "description": "Vyberte šablónu alebo vložte Mermaid zdroj.",
+      "sourceLabel": "Zdroj",
+      "insert": "Vložiť",
+      "remove": "Odstrániť"
+    }
   },
   "d3Chart": {
     "edit": "Upraviť",
-    "editTitle": "Upraviť D3 graf (JSON)",
+    "editTitle": "Upraviť graf",
     "done": "Hotovo",
-    "cancel": "Zrušiť"
+    "cancel": "Zrušiť",
+    "types": {
+      "bar": "Stĺpcový",
+      "line": "Čiarový",
+      "area": "Plošný",
+      "pie": "Koláčový",
+      "donut": "Prstencový",
+      "hbar": "Vodorovný",
+      "scatter": "Bodový"
+    },
+    "builder": {
+      "insertTitle": "Vložiť graf",
+      "editTitle": "Upraviť graf",
+      "description": "Vyberte typ grafu, vložte dáta a skontrolujte náhľad.",
+      "titleLabel": "Názov",
+      "titlePlaceholder": "Voliteľný názov",
+      "gridLabel": "Dáta",
+      "gridHint": "Hlavička + hodnoty. Oddeľovač: čiarka, tabulátor alebo |.",
+      "jsonLabel": "JSON špecifikácia",
+      "previewEmpty": "Zatiaľ nie je čo zobraziť",
+      "simpleMode": "Jednoduché",
+      "advancedMode": "Pokročilé JSON",
+      "insert": "Vložiť",
+      "remove": "Odstrániť"
+    },
+    "fromTable": {
+      "needTable": "Najprv umiestnite kurzor do tabuľky"
+    }
   },
   "footnotes": {
     "edit": "Upraviť",
@@ -728,6 +770,10 @@
         "label": "Vzhľad",
         "description": "Témy, farby a jazyk"
       },
+      "interface": {
+        "label": "Rozhranie",
+        "description": "Taby, lišta, zoom"
+      },
       "storage": {
         "label": "Úložisko",
         "description": "Súbory a priečinky"
@@ -764,6 +810,25 @@
         "label": "O aplikácii",
         "description": "Verzia a info"
       }
+    },
+    "interface": {
+      "title": "Rozhranie",
+      "description": "Zobraziť alebo skryť chrome okolo editora. Zmeny platia hneď na tomto Macu.",
+      "on": "Zap",
+      "off": "Vyp",
+      "showTabs": "Zobraziť lištu kariet",
+      "showTabsHint": "Karty otvorených dokumentov pod hlavičkou.",
+      "showToolbar": "Zobraziť panel formátovania",
+      "showToolbarHint": "Horizontálna lišta nad editorom (tučné, zoznamy, vloženia).",
+      "showPanelRail": "Zobraziť bočný panel nástrojov",
+      "showPanelRailHint": "Vertikálna lišta na kraji editora — osnova, agent a panely.",
+      "showStatusBar": "Zobraziť stavový riadok",
+      "showStatusBarHint": "Počet slov, layout stránky a tlač dole.",
+      "advancedTitle": "Rozšírené",
+      "advancedDescription": "Celkové priblíženie rozhrania. Zoom print layoutu ostáva oddelený.",
+      "uiZoom": "Veľkosť priblíženia",
+      "uiZoomHint": "Škála celého UI od 85 % do 125 %.",
+      "uiZoomReset": "Obnoviť zoom na 100 %"
     },
     "language": {
       "title": "Jazyk",
@@ -1038,6 +1103,9 @@
       "sampleToolsDescription": "Toto sú nástroje, ktoré AI klient môže volať po pripojení MCP.",
       "tools": {
         "status": "Zdravie, cesta k DB, writable príznak",
+        "runAgent": "Spustí ten istý lokálny agent ako aplikácia Scribe",
+        "llmStatus": "Ping lokálnej Ollama (Local LLM)",
+        "llmComplete": "Generovanie cez opt-in lokálny LLM",
         "search": "Fulltextové / sémantické hľadanie v poznámkach",
         "libraryAnswer": "Otázka nad celou knižnicou s citáciami",
         "getDocument": "Načítať jednu poznámku ako plain text",
@@ -1058,6 +1126,7 @@
       "samplePromptsDescription": "Skopírujte do Cursora alebo Claude po pripojení MCP.",
       "samplePrompts": [
         "Zavolaj scribe_status a povedz, či je Scribe databáza writable.",
+        "Použi run_agent s cieľom: Aké otvorené slučky by som mal tento týždeň uzavrieť?",
         "Hľadaj v mojich Scribe poznámkach termíny tento mesiac a uveď zdroje.",
         "Použi library_answer: Aké otvorené úlohy alebo nedokončené vlákna mám?",
         "Nájdi poznámku s názvom ako plán projektu a zhrň ju cez document_analysis.",
@@ -1174,7 +1243,34 @@
       "answerBackendIndex": "Rovnaké ako index",
       "answerBackendQuality": "Vždy Quality",
       "answerBackendToast": "Preferencia odpovede uložená",
-      "answerBackendError": "Nepodarilo sa aktualizovať preferenciu odpovede"
+      "answerBackendError": "Nepodarilo sa aktualizovať preferenciu odpovede",
+      "llmTitle": "Lokálny LLM (Ollama)",
+      "llmDescription": "Voliteľné generatívne prepisovanie a odpovede. Vypnuté, kým nebeží Ollama na tomto Macu.",
+      "llmOn": "Zapnuté",
+      "llmOff": "Vypnuté",
+      "llmCheck": "Skontrolovať Ollama",
+      "llmBaseUrlTitle": "URL Ollama",
+      "llmBaseUrlDescription": "Len localhost (súkromie). Predvolené http://127.0.0.1:11434",
+      "llmModelTitle": "Model",
+      "llmModelDescription": "Najprv stiahni model v Ollama (napr. ollama pull qwen2.5:7b).",
+      "llmModelAuto": "Auto (prvý dostupný)",
+      "llmUsesTitle": "Použiť LLM na",
+      "llmUsesDescription": "Retrieval ostáva lokálny; model len prepisuje alebo skladá odpoveď z pasáží.",
+      "llmUseRewrite": "Prepis",
+      "llmUseAnswer": "Ask / odpovede",
+      "llmUsePlan": "Plánovač agenta",
+      "llmStatusTitle": "Stav Ollama",
+      "llmInstallHint": "Inštalácia z ollama.com, potom pull modelu. Ak je offline, ostane rule-based Local AI.",
+      "llmStatusOk": "Dostupná · {{count}} modelov",
+      "llmStatusDown": "Nedostupná",
+      "llmStatusUnknown": "Ešte neoverené",
+      "llmEnabledToast": "Lokálny LLM zapnutý",
+      "llmDisabledToast": "Lokálny LLM vypnutý",
+      "llmSaveToast": "Nastavenia LLM uložené",
+      "llmSaveError": "Nepodarilo sa uložiť nastavenia LLM",
+      "llmCheckError": "Nepodarilo sa spojiť s Ollama",
+      "llmReachableToast": "Ollama OK · {{count}} modelov",
+      "llmUnreachableToast": "Ollama nie je dostupná"
     },
     "agent": {
       "title": "Lokálny agent",
@@ -1217,8 +1313,16 @@
       "pinnedAdd": "Pripnúť",
       "pinnedEmpty": "Zatiaľ žiadne pripnuté fakty.",
       "teachTitle": "Naučiť agenta",
-      "teachHint": "Krátke trvalé inštrukcie (jazyk, priority, návyky). Vkladajú sa do každého behu agenta na tomto Macu.",
+      "teachHint": "Krátke trvalé inštrukcie (jazyk, priority, návyky). Globálne platia všade; dokumentové len pri otvorenej poznámke.",
       "teachPlaceholder": "napr. Odpovedaj po slovensky; najprv termíny",
+      "teachPlaceholderDocument": "napr. Preferuj odrážkové action items pre túto meeting poznámku",
+      "teachScopeGlobal": "Učenie platí pre všetky poznámky",
+      "teachScopeDocument": "Učenie platí len pre túto poznámku",
+      "teachScopeToggleGlobal": "Globálne",
+      "teachScopeToggleDocument": "Táto poznámka",
+      "teachBadgeDocument": "Poznámka",
+      "teachBadgeGlobal": "Všetky",
+      "teachNeedsDocument": "Otvor poznámku, aby si ju mohol naučiť.",
       "teachAdd": "Naučiť",
       "teachRemove": "Zabudnúť",
       "teachEmpty": "Zatiaľ žiadne učenia — pridaj preferenciu vyššie.",
@@ -1673,7 +1777,9 @@
     "pin": "Pripnúť kartu",
     "unpin": "Odopnúť kartu",
     "reorder": "Presuňte na zmenu poradia",
-    "unsaved": "Neuložené"
+    "unsaved": "Neuložené",
+    "scrollLeft": "Posunúť karty doľava",
+    "scrollRight": "Posunúť karty doprava"
   },
   "split": {
     "close": "Zavrieť split panel"
@@ -1707,15 +1813,29 @@
   },
   "syncConflicts": {
     "title": "Konflikty synchronizácie",
-    "hint": "Disk aj aplikácia zmenili tú istú poznámku. Vyberte, ktorá verzia ostane.",
+    "hint": "Disk aj aplikácia zmenili tú istú poznámku. Porovnaj verzie, ponechaj jednu stranu, alebo otvor poznámku a zlúč ručne.",
     "empty": "Žiadne otvorené konflikty.",
     "meta": "Disk {{disk}} · App {{app}}",
     "keepApp": "Ponechať v apke",
     "keepDisk": "Ponechať z disku",
+    "showDiff": "Porovnať",
+    "hideDiff": "Skryť porovnanie",
+    "appVersion": "Apka (pred sync)",
+    "diskVersion": "Disk (aktuálne)",
+    "noAppRevision": "Pre tento konflikt nie je uložená revízia z apky.",
+    "merge": "Zlúčiť…",
+    "mergeHint": "Pre každú zmenu vyber apku, disk alebo oboje, uprav draft a ulož.",
+    "mergeSave": "Uložiť zlúčenie",
+    "mergeSaved": "Zlúčená verzia uložená",
+    "pick": {
+      "app": "Apka",
+      "disk": "Disk",
+      "both": "Obe"
+    },
     "resolveError": "Konflikt sa nepodarilo vyriešiť",
     "paletteHint": "Disk alebo aplikácia",
     "badge": "{{count}} sync konfliktov",
-    "openDocument": "Otvoriť"
+    "openDocument": "Otvoriť / zlúčiť"
   },
   "library": {
     "title": "Knižnica",
@@ -1754,7 +1874,7 @@
     },
     "wikiHealth": {
       "title": "Wiki zdravie",
-      "hint": "Osirolené poznámky, chýbajúce [[odkazy]] a stuby pod 40 slov. Klikni a otvoríš; návrh opraví odkaz jedným klikom.",
+      "hint": "Osirolené poznámky, chýbajúce [[odkazy]] a stuby pod 40 slov. Klikni a otvoríš; návrh opraví odkaz, alebo vytvor chýbajúcu poznámku.",
       "empty": "Wiki je v poriadku — žiadne osirolené, chýbajúce odkazy ani stuby.",
       "count": "{{orphans}} osirolených · {{unresolved}} chýbajúcich · {{stubs}} stubov",
       "loadError": "Wiki zdravie sa nepodarilo načítať",
@@ -1768,7 +1888,12 @@
       "resolveError": "Wiki odkaz sa nepodarilo opraviť",
       "stubs": "Stuby",
       "stubsEmpty": "Žiadne stub poznámky.",
-      "stubWords": "{{count}} slov"
+      "stubWords": "{{count}} slov",
+      "createNote": "Vytvoriť „{{title}}“",
+      "created": "Vytvorené „{{title}}“ a prepojené [[{{label}}]]",
+      "createAll": "Vytvoriť všetky chýbajúce ({{count}})",
+      "batchCreated": "Vytvorených {{count}} chýbajúcich poznámok",
+      "createError": "Poznámku pre wiki odkaz sa nepodarilo vytvoriť"
     },
     "duplicates": {
       "title": "Takmer rovnaké poznámky",
@@ -1912,6 +2037,9 @@
     "scopeLabel": "Rozsah chatu",
     "scopeLibrary": "Knižnica",
     "scopeDocument": "Táto poznámka",
+    "scopeFolder": "Priečinok",
+    "scopeFolderHint": "Hľadanie v rovnakom priečinku ako otvorená poznámka",
+    "scopeFolderNeedsDoc": "Najprv otvorte poznámku v priečinku",
     "scopeDocumentHint": "Pýtať sa na „{{title}}“",
     "askingAbout": "Pýtam sa na: {{title}}",
     "memoryHint": "uložené v tejto poznámke",
@@ -2013,12 +2141,42 @@
     "clarifyPrompt": "Nie som si istý, ktoré nástroje spustiť. Vyber:",
     "clarifyHint": "Vyber nástroj pre tento cieľ",
     "applyToNote": "Vložiť do poznámky",
+    "applySmart": "Aplikovať do poznámky",
     "applyCallout": "Callout",
     "applyChecklist": "Checklist",
     "applyFrontmatter": "Hore do poznámky",
     "applyUndo": "Vrátiť vloženie",
     "applyUndone": "Vloženie vrátené",
+    "applyOrganizeDone": "Pridané tagy: {{tags}}",
+    "applyOrganizeFolder": "Navrhovaný priečinok: {{folder}}",
+    "applyOrganizeNone": "Žiadne nové tagy na aplikovanie",
+    "applyWikiDone": "Prepojené [[{{title}}]]",
+    "applyWikiFailed": "Wiki odkaz sa nepodarilo použiť — otvorte poznámku v editore",
+    "applyPreviewTitle": "Náhľad vloženia",
+    "applyPreviewHint": "Skontroluj, čo sa zapíše do otvorenej poznámky.",
+    "applyPreviewCallout": "Vložiť ako callout",
+    "applyPreviewChecklist": "Vložiť ako checklist",
+    "applyPreviewFrontmatter": "Vložiť hore",
+    "applyPreviewOrganize": "Aplikovať organize návrhy",
+    "applyPreviewWiki": "Aplikovať wiki odkaz",
+    "applyPreviewTags": "Nové tagy",
+    "applyPreviewFolder": "Návrh priečinka",
+    "applyPreviewWikiBody": "Prepojiť „{{phrase}}“ → [[{{title}}]]",
+    "applyPreviewConfirm": "Vložiť do poznámky",
+    "followupContinue": "Pokračuj",
+    "followupContinueGoal": "Pokračuj v poslednej odpovedi s viac detailmi k tejto poznámke",
+    "followupShorten": "Skráť",
+    "followupShortenGoal": "Skráť poslednú odpoveď do stručnejších odrážok",
+    "followupChecklist": "Urob checklist",
+    "followupChecklistGoal": "Z otvorených úloh a záverov urob checklist",
+    "followupRelated": "Nájdi súvisiace",
+    "followupRelatedGoal": "Nájdi súvisiace poznámky a prepojenia k tejto téme",
+    "runHistory": "História behov",
+    "runHistoryEmpty": "Zatiaľ žiadne uložené behy agenta.",
+    "runHistorySteps": "{{count}} krokov",
     "autoBriefToast": "Agent brief po uložení",
+    "autoBriefInsert": "Vložiť do poznámky",
+    "autoBriefWrongDoc": "Otvor tú istú poznámku, aby si brief vložil",
     "recipesDone": "Recept agenta hotový",
     "appliedToNote": "Vložené do otvorenej poznámky",
     "applyFailed": "Nepodarilo sa vložiť — otvor poznámku v editore",
@@ -2682,7 +2840,11 @@
     },
     "chart": {
       "label": "Graf",
-      "hint": "D3 stĺpcový, čiarový, area alebo koláč"
+      "hint": "Stĺpcový, čiarový, koláčový, prstencový a ďalšie"
+    },
+    "chart-from-table": {
+      "label": "Graf z tabuľky",
+      "hint": "Prevod aktuálnej tabuľky na graf"
     },
     "d3": {
       "label": "D3 graf",
@@ -3148,6 +3310,7 @@
       "sortDesc": "Zoradiť stĺpec Z→A",
       "fillDown": "Vyplniť nadol",
       "sumColumn": "Súčet stĺpca do bunky",
+      "chartFromTable": "Vytvoriť graf z tabuľky",
       "showInvisible": "Zobraziť neviditeľné znaky",
       "hideInvisible": "Skryť neviditeľné znaky",
       "spellcheckOn": "Zapnúť kontrolu pravopisu",
@@ -3696,6 +3859,13 @@
     "translateEn": "Do angličtiny",
     "coach": "Štýlový kouč",
     "agentRewrite": "Agent prepis",
+    "wikiLink": "Wiki odkaz",
+    "wikiDone": "Prepojené [[{{title}}]]",
+    "wikiEmpty": "Pre tento výber nie je wiki cieľ",
+    "wikiError": "Wiki odkaz sa nepodarilo použiť",
+    "flashcards": "Kartičky",
+    "flashcardsEmpty": "Z výberu nevznikli kartičky",
+    "flashcardsError": "Kartičky sa nepodarilo vytiahnuť",
     "coachTitle": "Štýlový kouč",
     "coachScore": "Skóre {{score}}",
     "coachEmpty": "Vo výbere nie sú štýlové problémy.",

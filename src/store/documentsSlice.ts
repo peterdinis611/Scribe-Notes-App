@@ -406,6 +406,10 @@ const documentsSlice = createSlice({
       if (action.payload) {
         state.panelRailExpanded = true
         persistBoolStorage('scribe-panel-rail-expanded', true)
+        // One AI surface at a time: dock replaces library chat.
+        if (state.libraryView === 'chat' || state.libraryView === 'agent') {
+          state.libraryView = 'folders'
+        }
         state.documentOutlineOpen = false
         state.revisionHistoryOpen = false
         state.commentsPanelOpen = false
@@ -522,6 +526,11 @@ const documentsSlice = createSlice({
       state.libraryView = action.payload
       if (action.payload !== 'graph') {
         state.libraryGraphAroundActive = false
+      }
+      // Opening Scribe AI chat closes the agent dock so only one AI rail is active.
+      if (action.payload === 'chat' && state.agentPanelOpen) {
+        state.agentPanelOpen = false
+        persistBoolStorage('scribe-agent-panel-open', false)
       }
     },
     setLibraryGraphAroundActive(state, action: PayloadAction<boolean>) {

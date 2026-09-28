@@ -91,6 +91,7 @@ describe('document chat helpers', () => {
       documentId: 'doc-1',
       question: 'What feels unfinished here?',
       context: null,
+      stream: false,
     })
     expect(result.answer).toContain('document')
   })

@@ -9,6 +9,14 @@ import { handleTauriEditorKeyDown, TauriInputFix } from '@/lib/editor/tauri-inpu
 import { tiptapJsonToMarkdown } from '@/lib/export/markdown'
 import { collectDocumentOutline } from '@/lib/editor/document-outline'
 
+vi.mock('@/lib/mermaid-dialog', () => ({
+  promptMermaidDialog: vi.fn(async () => ({
+    source: MERMAID_DEFAULT_SOURCE,
+    clear: false,
+  })),
+  resolveMermaidDialog: vi.fn(),
+}))
+
 describe('slash command catalog', () => {
   it('includes mermaid among slash defs', () => {
     expect(SLASH_COMMAND_DEFS.some((item) => item.id === 'mermaid')).toBe(true)
@@ -35,7 +43,7 @@ describe('runSlashCommand', () => {
     document.body.replaceChildren()
   })
 
-  it('inserts a mermaid diagram block', () => {
+  it('inserts a mermaid diagram block', async () => {
     const host = document.createElement('div')
     document.body.appendChild(host)
 
@@ -52,10 +60,12 @@ describe('runSlashCommand', () => {
       hint: 'Diagram',
     })
 
-    const json = editor.getJSON()
-    const mermaid = json.content?.find((node) => node.type === 'mermaidDiagram')
-    expect(mermaid).toBeTruthy()
-    expect(mermaid?.attrs?.source).toContain('flowchart')
+    await vi.waitFor(() => {
+      const json = editor!.getJSON()
+      const mermaid = json.content?.find((node) => node.type === 'mermaidDiagram')
+      expect(mermaid).toBeTruthy()
+      expect(mermaid?.attrs?.source).toContain('flowchart')
+    })
   })
 })
 

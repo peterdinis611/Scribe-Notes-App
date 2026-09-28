@@ -41,6 +41,8 @@ import { InputDialogHost } from '@/components/InputDialogHost'
 import { CommentDialogHost } from '@/components/CommentDialogHost'
 import { LoremIpsumDialogHost } from '@/components/LoremIpsumDialogHost'
 import { MathExpressionDialogHost } from '@/components/MathExpressionDialogHost'
+import { ChartBuilderDialogHost } from '@/components/ChartBuilderDialogHost'
+import { MermaidDialogHost } from '@/components/MermaidDialogHost'
 import { InvoiceDialogHost } from '@/components/InvoiceDialogHost'
 import { StorageAccessDialogHost } from '@/components/StorageAccessDialogHost'
 import { CompileDialog } from '@/components/library/CompileDialog'
@@ -76,7 +78,7 @@ function useDocumentRouteSync() {
     dispatch(setActiveDocumentId(documentId))
     const cached = peekCachedDocument(documentId)
     if (cached) dispatch(setActiveDocument(cached))
-    else prefetchDocument(documentId)
+    else prefetchDocument(documentId, 'high')
   }, [activeId, dispatch, documentId, documents])
 }
 
@@ -89,6 +91,7 @@ export function AppLayout() {
   useAutoBackup()
   useDocumentCacheRetention()
   const templatePickerOpen = useAppSelector((state) => state.settings.templatePickerOpen)
+  const showDocumentTabs = useAppSelector((state) => state.settings.showDocumentTabs)
   const movePickerOpen = useAppSelector((state) => state.folders.moveDocumentPickerOpen)
   const activeDocument = useAppSelector((state) => state.documents.activeDocument)
   const documents = useAppSelector((state) => state.documents.documents)
@@ -121,7 +124,7 @@ export function AppLayout() {
     const prioritized = activeId
       ? [activeId, ...openDocumentIds.filter((id) => id !== activeId)]
       : openDocumentIds
-    prefetchOpenDocuments(prioritized, { limit: 6 })
+    prefetchOpenDocuments(prioritized, { limit: 6, priority: 'high' })
   }, [activeDocument?.id, openDocumentIds])
 
   function maybeOpenWhatsNew() {
@@ -230,7 +233,7 @@ export function AppLayout() {
         <FocusModeExitBar />
         <ReadingModeExitBar />
         <AppHeader />
-        <DocumentTabsBar />
+        {showDocumentTabs ? <DocumentTabsBar /> : null}
         <main
           ref={mainRef}
           className="app-main relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
@@ -257,6 +260,8 @@ export function AppLayout() {
       <CommentDialogHost />
       <LoremIpsumDialogHost />
       <MathExpressionDialogHost />
+      <ChartBuilderDialogHost />
+      <MermaidDialogHost />
       <InvoiceDialogHost />
       <StorageAccessDialogHost />
       <SaveCustomTemplateDialogHost />

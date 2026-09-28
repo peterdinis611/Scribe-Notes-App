@@ -6,10 +6,11 @@ use tauri::{AppHandle, Emitter, State};
 
 use crate::db::{
     count_embeddings, count_stale_embeddings, dominant_embedding_model, document_index_text,
-    extract_search_text, fuse_search_hits, get_answer_backend, get_embed_backend, is_nlp_enabled,
-    rank_document_chunks, rerank_search_hits, save_artifact, search_documents_for_library,
-    semantic_search, semantic_search_filtered, set_answer_backend, set_embed_backend, set_nlp_enabled,
-    similar_documents, upsert_embedding_with_chunks, EmbeddingChunkInput, SearchMode,
+    extract_search_text, fuse_search_hits, get_answer_backend, get_embed_backend, get_llm_prefs,
+    llm_sidecar_options, rank_document_chunks, rerank_search_hits, save_artifact,
+    search_documents_for_library, semantic_search, semantic_search_filtered, set_answer_backend,
+    set_embed_backend, set_llm_prefs, set_nlp_enabled, similar_documents, upsert_embedding_with_chunks,
+    EmbeddingChunkInput, NlpLlmPrefs, SearchMode, is_nlp_enabled,
 };
 use scribe_core::{
     content_is_vault_cipher, date_key_bounds, extract_due_hint, require_document_not_vault,
@@ -41,6 +42,7 @@ pub struct NlpStatus {
     pub stale_index_count: i64,
     pub embed_backend: String,
     pub answer_backend: String,
+    pub llm: NlpLlmPrefs,
     pub quality_available: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fast_available: Option<bool>,
@@ -226,6 +228,7 @@ fn sidecar_status(
     stale_index_count: i64,
     embed_backend: String,
     answer_backend: String,
+    llm: NlpLlmPrefs,
     quality_available: bool,
     health: Option<crate::nlp::NlpHealth>,
     health_error: Option<String>,
@@ -248,6 +251,7 @@ fn sidecar_status(
             stale_index_count,
             embed_backend,
             answer_backend,
+            llm,
             quality_available,
             fast_available: None,
             onnx_available: None,
@@ -277,6 +281,7 @@ fn sidecar_status(
             stale_index_count,
             embed_backend: health.embed_backend.unwrap_or(embed_backend),
             answer_backend,
+            llm,
             quality_available: health.quality_available.unwrap_or(quality_available),
             fast_available: health.fast_available,
             onnx_available: health.onnx_available,
@@ -303,6 +308,7 @@ fn sidecar_status(
             stale_index_count,
             embed_backend,
             answer_backend,
+            llm,
             quality_available,
             fast_available: None,
             onnx_available: None,
@@ -472,6 +478,7 @@ fn build_nlp_status(
     let stored_model = dominant_embedding_model(conn)?;
     let embed_backend = get_embed_backend(conn)?;
     let answer_backend = get_answer_backend(conn)?;
+    let llm = get_llm_prefs(conn)?;
     let (health, health_error, quality_available, current_model) = if enabled && sidecar.script_exists() {
         let _ = sync_sidecar_backend(sidecar, conn);
         match sidecar.health() {
@@ -503,6 +510,7 @@ fn build_nlp_status(
         stale_index_count,
         embed_backend,
         answer_backend,
+        llm,
         quality_available,
         health,
         health_error,
@@ -1315,6 +1323,211 @@ pub fn nlp_set_answer_backend(
     build_nlp_status(&sidecar, &conn, is_nlp_enabled(&conn)?)
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpSetLlmPrefsInput {
+    pub enabled: Option<bool>,
+    pub provider: Option<String>,
+    pub base_url: Option<String>,
+    pub model: Option<String>,
+    pub use_rewrite: Option<bool>,
+    pub use_answer: Option<bool>,
+    pub use_plan: Option<bool>,
+}
+
+#[tauri::command]
+pub fn nlp_set_llm_prefs(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpSetLlmPrefsInput,
+) -> Result<NlpStatus, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    set_llm_prefs(
+        &conn,
+        input.enabled,
+        input.provider.as_deref(),
+        input.base_url.as_deref(),
+        input.model.as_deref(),
+        input.use_rewrite,
+        input.use_answer,
+        input.use_plan,
+    )?;
+    build_nlp_status(&sidecar, &conn, is_nlp_enabled(&conn)?)
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpLlmStatus {
+    pub reachable: bool,
+    pub provider: String,
+    pub base_url: String,
+    pub model: Option<String>,
+    pub models: Vec<String>,
+    pub error: Option<String>,
+}
+
+#[tauri::command]
+pub fn nlp_llm_status(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+) -> Result<NlpLlmStatus, String> {
+    let prefs = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        if !is_nlp_enabled(&conn)? {
+            return Err("NLP is disabled".to_string());
+        }
+        get_llm_prefs(&conn)?
+    };
+    if !sidecar.script_exists() {
+        return Err("NLP sidecar unavailable".to_string());
+    }
+    let raw = sidecar.llm_status(
+        Some(prefs.base_url.as_str()),
+        if prefs.model.is_empty() {
+            None
+        } else {
+            Some(prefs.model.as_str())
+        },
+    )?;
+    Ok(NlpLlmStatus {
+        reachable: raw
+            .get("reachable")
+            .and_then(|value| value.as_bool())
+            .unwrap_or(false),
+        provider: raw
+            .get("provider")
+            .and_then(|value| value.as_str())
+            .unwrap_or("ollama")
+            .to_string(),
+        base_url: raw
+            .get("baseUrl")
+            .and_then(|value| value.as_str())
+            .unwrap_or(prefs.base_url.as_str())
+            .to_string(),
+        model: raw
+            .get("model")
+            .and_then(|value| value.as_str())
+            .map(|value| value.to_string())
+            .filter(|value| !value.is_empty()),
+        models: raw
+            .get("models")
+            .and_then(|value| value.as_array())
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(|item| item.as_str().map(str::to_string))
+                    .collect()
+            })
+            .unwrap_or_default(),
+        error: raw
+            .get("error")
+            .and_then(|value| value.as_str())
+            .map(|value| value.to_string())
+            .filter(|value| !value.is_empty()),
+    })
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpLlmCompleteInput {
+    pub prompt: String,
+    pub system: Option<String>,
+    pub temperature: Option<f64>,
+    pub max_tokens: Option<i64>,
+    pub stream: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpLlmChunkEvent {
+    pub request_id: String,
+    pub text: String,
+    pub done: bool,
+}
+
+#[tauri::command]
+pub fn nlp_llm_complete(
+    app: AppHandle,
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpLlmCompleteInput,
+) -> Result<serde_json::Value, String> {
+    let prefs = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        if !is_nlp_enabled(&conn)? {
+            return Err("NLP is disabled".to_string());
+        }
+        let prefs = get_llm_prefs(&conn)?;
+        if !prefs.enabled {
+            return Err("Local LLM is disabled".to_string());
+        }
+        prefs
+    };
+    if !sidecar.script_exists() {
+        return Err("NLP sidecar unavailable".to_string());
+    }
+    let stream = input.stream.unwrap_or(false);
+    let request_id = format!("llm-{}", Utc::now().timestamp_millis());
+    let (progress_tx, progress_rx) = if stream {
+        let (tx, rx) = std::sync::mpsc::channel::<String>();
+        Some((tx, rx))
+    } else {
+        None
+    }
+    .map(|(tx, rx)| (Some(tx), Some(rx)))
+    .unwrap_or((None, None));
+
+    if let Some(rx) = progress_rx {
+        let app_handle = app.clone();
+        let rid = request_id.clone();
+        std::thread::spawn(move || {
+            while let Ok(text) = rx.recv() {
+                let _ = app_handle.emit(
+                    "nlp-llm-chunk",
+                    NlpLlmChunkEvent {
+                        request_id: rid.clone(),
+                        text,
+                        done: false,
+                    },
+                );
+            }
+        });
+    }
+
+    let result = sidecar.llm_complete_with_progress(
+        input.prompt.trim(),
+        input.system.as_deref(),
+        Some(prefs.base_url.as_str()),
+        if prefs.model.is_empty() {
+            None
+        } else {
+            Some(prefs.model.as_str())
+        },
+        input.temperature,
+        input.max_tokens,
+        progress_tx,
+        stream,
+    )?;
+
+    if stream {
+        let _ = app.emit(
+            "nlp-llm-chunk",
+            NlpLlmChunkEvent {
+                request_id: request_id.clone(),
+                text: String::new(),
+                done: true,
+            },
+        );
+    }
+
+    Ok(json!({
+        "requestId": request_id,
+        "text": result.get("text").and_then(|v| v.as_str()).unwrap_or(""),
+        "model": result.get("model").and_then(|v| v.as_str()),
+        "streamed": stream,
+    }))
+}
+
 #[tauri::command]
 pub fn nlp_document_analysis(
     state: State<'_, DbState>,
@@ -1731,16 +1944,17 @@ pub fn nlp_plan_agent_goal(
     sidecar: State<'_, NlpSidecar>,
     input: NlpPlanAgentGoalInput,
 ) -> Result<serde_json::Value, String> {
-    {
+    let llm = {
         let conn = state.conn.lock().map_err(|e| e.to_string())?;
         if !is_nlp_enabled(&conn)? {
             return Err("NLP is disabled".to_string());
         }
         let _ = sync_sidecar_backend(&sidecar, &conn);
-    }
+        llm_sidecar_options(&conn, "plan")?
+    };
     let scope = input.scope.as_deref().unwrap_or("document");
     let max_tools = input.max_tools.unwrap_or(3).clamp(1, 6);
-    sidecar.plan_agent_goal(input.goal.trim(), scope, max_tools)
+    sidecar.plan_agent_goal_with_llm(input.goal.trim(), scope, max_tools, llm)
 }
 
 #[derive(Debug, Deserialize)]
@@ -2024,10 +2238,13 @@ pub struct LibraryChatResult {
 
 #[tauri::command]
 pub fn nlp_library_answer(
+    app: AppHandle,
     state: State<'_, DbState>,
     sidecar: State<'_, NlpSidecar>,
     question: String,
     limit: Option<i64>,
+    folder_id: Option<String>,
+    stream: Option<bool>,
 ) -> Result<LibraryChatResult, String> {
     let trimmed = question.trim().to_string();
     if trimmed.is_empty() {
@@ -2045,6 +2262,12 @@ pub fn nlp_library_answer(
         sync_sidecar_backend(&sidecar, &conn)?;
     }
 
+    let folder = folder_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| value.to_string());
+
     let hits = {
         let limit = limit.unwrap_or(8).clamp(1, 20);
         let fetch = (limit * 2).clamp(limit, 40);
@@ -2052,7 +2275,23 @@ pub fn nlp_library_answer(
         let fts_hits = {
             let conn = state.conn.lock().map_err(|e| e.to_string())?;
             let library_id = crate::libraries::active_library_id(&conn);
-            search_documents_for_library(&conn, q, fetch, &library_id)?
+            if let Some(folder_id) = folder.as_ref() {
+                crate::db::search_documents_filtered(
+                    &conn,
+                    q,
+                    fetch,
+                    Some(&library_id),
+                    &crate::db::SearchFilter {
+                        folder_id: Some(folder_id.clone()),
+                        tag: None,
+                        from_date: None,
+                        to_date: None,
+                        library_id: None,
+                    },
+                )?
+            } else {
+                search_documents_for_library(&conn, q, fetch, &library_id)?
+            }
         };
         let embed_query = rewrite_query_for_embed(&sidecar, q);
         match sidecar.embed_text(&embed_query) {
@@ -2060,7 +2299,7 @@ pub fn nlp_library_answer(
                 let conn = state.conn.lock().map_err(|e| e.to_string())?;
                 let extra: Vec<String> =
                     fts_hits.iter().map(|hit| hit.document_id.clone()).collect();
-                let semantic_hits = semantic_search_filtered(
+                let mut semantic_hits = semantic_search_filtered(
                     &conn,
                     &vector,
                     fetch,
@@ -2068,6 +2307,19 @@ pub fn nlp_library_answer(
                     Some(&extra),
                 )
                 .unwrap_or_default();
+                if let Some(folder_id) = folder.as_ref() {
+                    semantic_hits.retain(|hit| {
+                        conn.query_row(
+                            "SELECT folder_id FROM documents WHERE id = ?1",
+                            [&hit.document_id],
+                            |row| row.get::<_, Option<String>>(0),
+                        )
+                        .ok()
+                        .flatten()
+                        .as_deref()
+                            == Some(folder_id.as_str())
+                    });
+                }
                 let fused = fuse_search_hits(&fts_hits, &semantic_hits, fetch);
                 rerank_search_hits(&conn, &vector, fused, Some(&model), limit)
             }
@@ -2092,7 +2344,57 @@ pub fn nlp_library_answer(
         ));
     }
     let max_sentences = if passages.len() > hits.len() { 6 } else { 4 };
-    let result = sidecar.library_answer(&trimmed, json!(passages), max_sentences)?;
+    let (llm, want_stream) = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        let llm = llm_sidecar_options(&conn, "answer")?;
+        let want_stream = stream.unwrap_or(false) && llm.is_some();
+        (llm, want_stream)
+    };
+    let request_id = format!("ask-{}", Utc::now().timestamp_millis());
+    let (progress_tx, progress_rx) = if want_stream {
+        let (tx, rx) = std::sync::mpsc::channel::<String>();
+        Some((tx, rx))
+    } else {
+        None
+    }
+    .map(|(tx, rx)| (Some(tx), Some(rx)))
+    .unwrap_or((None, None));
+    if let Some(rx) = progress_rx {
+        let app_handle = app.clone();
+        let rid = request_id.clone();
+        std::thread::spawn(move || {
+            while let Ok(text) = rx.recv() {
+                let _ = app_handle.emit(
+                    "nlp-llm-chunk",
+                    NlpLlmChunkEvent {
+                        request_id: rid.clone(),
+                        text,
+                        done: false,
+                    },
+                );
+            }
+        });
+    }
+    let result = sidecar.library_answer_scoped_with_options_progress(
+        &trimmed,
+        json!(passages),
+        max_sentences,
+        "library",
+        None,
+        llm,
+        progress_tx,
+        want_stream,
+    )?;
+    if want_stream {
+        let _ = app.emit(
+            "nlp-llm-chunk",
+            NlpLlmChunkEvent {
+                request_id,
+                text: String::new(),
+                done: true,
+            },
+        );
+    }
     let citations = result
         .get("citations")
         .and_then(|value| value.as_array())
@@ -2167,18 +2469,20 @@ pub struct DocumentAnswerContextMessage {
 
 #[tauri::command]
 pub fn nlp_document_answer(
+    app: AppHandle,
     state: State<'_, DbState>,
     sidecar: State<'_, NlpSidecar>,
     document_id: String,
     question: String,
     context: Option<Vec<DocumentAnswerContextMessage>>,
+    stream: Option<bool>,
 ) -> Result<LibraryChatResult, String> {
     let trimmed = question.trim().to_string();
     if trimmed.is_empty() {
         return Err("libraryChat.emptyQuestion".to_string());
     }
 
-    let (title, text, needs_index, answer_backend) = {
+    let (title, text, needs_index, answer_backend, llm) = {
         let conn = state.conn.lock().map_err(|e| e.to_string())?;
         if !is_nlp_enabled(&conn)? {
             return Err("libraryChat.nlpDisabled".to_string());
@@ -2208,7 +2512,8 @@ pub fn nlp_document_answer(
             scribe_core::nlp::document_needs_reindex(&conn, &sidecar, &document_id).unwrap_or(true);
         let answer_backend =
             scribe_core::nlp::resolve_answer_embed_backend(&conn, &sidecar).unwrap_or(None);
-        (title, text, needs_index, answer_backend)
+        let llm = llm_sidecar_options(&conn, "answer")?;
+        (title, text, needs_index, answer_backend, llm)
     };
 
     if needs_index {
@@ -2277,13 +2582,52 @@ pub fn nlp_document_answer(
     }
     let passages = json!(combined);
 
-    let result = sidecar.library_answer_scoped_with_backend(
+    let want_stream = stream.unwrap_or(false) && llm.is_some();
+    let request_id = format!("ask-{}", Utc::now().timestamp_millis());
+    let (progress_tx, progress_rx) = if want_stream {
+        let (tx, rx) = std::sync::mpsc::channel::<String>();
+        Some((tx, rx))
+    } else {
+        None
+    }
+    .map(|(tx, rx)| (Some(tx), Some(rx)))
+    .unwrap_or((None, None));
+    if let Some(rx) = progress_rx {
+        let app_handle = app.clone();
+        let rid = request_id.clone();
+        std::thread::spawn(move || {
+            while let Ok(text) = rx.recv() {
+                let _ = app_handle.emit(
+                    "nlp-llm-chunk",
+                    NlpLlmChunkEvent {
+                        request_id: rid.clone(),
+                        text,
+                        done: false,
+                    },
+                );
+            }
+        });
+    }
+    let result = sidecar.library_answer_scoped_with_options_progress(
         &trimmed,
         passages.clone(),
         8,
         "document",
         answer_backend.as_deref(),
+        llm,
+        progress_tx,
+        want_stream,
     )?;
+    if want_stream {
+        let _ = app.emit(
+            "nlp-llm-chunk",
+            NlpLlmChunkEvent {
+                request_id,
+                text: String::new(),
+                done: true,
+            },
+        );
+    }
     let fallback_title = title.clone();
     let citations = result
         .get("citations")
@@ -2573,7 +2917,14 @@ pub fn nlp_rewrite_selection(
         return Err("NLP is disabled".to_string());
     }
     let mode = normalize_rewrite_mode(mode.as_deref());
-    let res = sidecar.rewrite_selection(&text, &mode, custom_instruction.as_deref())?;
+    let llm = llm_sidecar_options(&conn, "rewrite")?;
+    drop(conn);
+    let res = sidecar.rewrite_selection_with_llm(
+        &text,
+        &mode,
+        custom_instruction.as_deref(),
+        llm,
+    )?;
     Ok(parse_rewrite_result(&res, &mode, &text))
 }
 

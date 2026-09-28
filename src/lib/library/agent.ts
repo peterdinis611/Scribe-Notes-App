@@ -465,6 +465,10 @@ async function runTool(
     return runAgentRewrite(ctx.documentId ?? 'selection', ctx.goal, ctx.selectionText)
   }
   if (tool === 'brief') {
+    if (ctx.scope === 'folder' && ctx.folderId) {
+      const { runFolderDigest } = await import('@/lib/library/folder-digest')
+      return runFolderDigest(ctx.folderId)
+    }
     if (ctx.scope === 'library' || (ctx.scope === 'folder' && !ctx.documentId)) {
       const [dates, dups] = await Promise.all([
         runAgentDatesLibrary().catch(() => null),

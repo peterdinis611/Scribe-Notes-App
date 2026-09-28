@@ -1,23 +1,36 @@
 import type { JSONContent } from '@tiptap/core'
 import type { Document } from '@/lib/db/api'
+import { LruCache } from '@/lib/cache/lru-cache'
 
 /** Insert until this many entries, then drop down to TARGET_ENTRIES. */
-const MAX_ENTRIES = 60
-const TARGET_ENTRIES = 48
+const MAX_ENTRIES = 72
+const TARGET_ENTRIES = 56
 /** Soft cap on cached TipTap JSON so a few huge canvases cannot pin the heap. */
-const MAX_CONTENT_CHARS = 8_000_000
-const TARGET_CONTENT_CHARS = 6_000_000
+const MAX_CONTENT_CHARS = 10_000_000
+const TARGET_CONTENT_CHARS = 7_500_000
+/** Soft-stale window for UI that wants SWR without forcing IPC. */
+const DEFAULT_FRESH_MS = 60_000
 
 type CacheEntry = {
   document: Document
   contentHash: string | null
   contentLength: number
   parsedContent: JSONContent
+  cachedAt: number
+  hits: number
 }
 
-const cache = new Map<string, CacheEntry>()
-const retainedIds = new Set<string>()
-let totalChars = 0
+type CacheListener = (event: { type: 'put' | 'invalidate' | 'clear'; id?: string }) => void
+
+const cache = new LruCache<CacheEntry>({
+  maxEntries: MAX_ENTRIES,
+  targetEntries: TARGET_ENTRIES,
+  maxBytes: MAX_CONTENT_CHARS,
+  targetBytes: TARGET_CONTENT_CHARS,
+  sizeof: (entry: CacheEntry) => entry.contentLength,
+})
+
+const listeners = new Set<CacheListener>()
 
 /** FNV-1a 32-bit. */
 export function hashContent(content: string): string {
@@ -36,46 +49,14 @@ function ensureHash(entry: CacheEntry): string {
   return entry.contentHash
 }
 
-/** Move an existing entry to the newest end of the LRU. */
-function touch(id: string): CacheEntry | undefined {
-  const entry = cache.get(id)
-  if (!entry) return undefined
-  cache.delete(id)
-  cache.set(id, entry)
-  return entry
-}
-
-function forget(id: string) {
-  const entry = cache.get(id)
-  if (!entry) return
-  totalChars -= entry.contentLength
-  cache.delete(id)
-}
-
-function evictIfNeeded() {
-  const overCount = cache.size >= MAX_ENTRIES
-  const overChars = totalChars > MAX_CONTENT_CHARS
-  if (!overCount && !overChars) return
-
-  const countFloor = overCount ? TARGET_ENTRIES : cache.size
-  const charsFloor = overChars ? TARGET_CONTENT_CHARS : MAX_CONTENT_CHARS
-
-  for (const key of cache.keys()) {
-    if (cache.size <= countFloor && totalChars <= charsFloor) break
-    if (retainedIds.has(key)) continue
-    forget(key)
+function emit(event: { type: 'put' | 'invalidate' | 'clear'; id?: string }) {
+  for (const listener of listeners) {
+    try {
+      listener(event)
+    } catch {
+      // Listeners must not break cache writes.
+    }
   }
-}
-
-function put(id: string, entry: CacheEntry) {
-  const previous = cache.get(id)
-  if (previous) {
-    totalChars -= previous.contentLength
-    cache.delete(id)
-  }
-  totalChars += entry.contentLength
-  cache.set(id, entry)
-  evictIfNeeded()
 }
 
 /**
@@ -84,10 +65,12 @@ function put(id: string, entry: CacheEntry) {
  */
 function buildEntry(document: Document, existing: CacheEntry | undefined): CacheEntry {
   const contentLength = document.contentJson.length
+  const now = Date.now()
 
   if (existing && existing.document.contentJson === document.contentJson) {
     existing.document = document
     existing.contentLength = contentLength
+    existing.cachedAt = now
     return existing
   }
 
@@ -96,12 +79,16 @@ function buildEntry(document: Document, existing: CacheEntry | undefined): Cache
     contentHash: null,
     contentLength,
     parsedContent: JSON.parse(document.contentJson) as JSONContent,
+    cachedAt: now,
+    hits: existing?.hits ?? 0,
   }
 }
 
 function upsert(document: Document): CacheEntry {
-  const entry = buildEntry(document, cache.get(document.id))
-  put(document.id, entry)
+  const previous = cache.peek(document.id)
+  const entry = buildEntry(document, previous)
+  cache.set(document.id, entry)
+  emit({ type: 'put', id: document.id })
   return entry
 }
 
@@ -109,17 +96,46 @@ export function cacheDocument(document: Document): Document {
   return upsert(document).document
 }
 
+/**
+ * Patch title / folder / timestamps without reparsing TipTap JSON.
+ * No-op when the id is not cached.
+ */
+export function patchCachedDocument(
+  id: string,
+  patch: Partial<Pick<Document, 'title' | 'folderId' | 'filePath' | 'updatedAt' | 'createdAt' | 'vaultVerifier' | 'vaultLocked'>>,
+): Document | null {
+  const entry = cache.peek(id)
+  if (!entry) return null
+  entry.document = { ...entry.document, ...patch }
+  entry.cachedAt = Date.now()
+  cache.set(id, entry)
+  emit({ type: 'put', id })
+  return entry.document
+}
+
+/** Peek without promoting LRU (safe for speculative reads). */
 export function peekCachedDocument(id: string): Document | null {
-  return cache.get(id)?.document ?? null
+  return cache.peek(id)?.document ?? null
+}
+
+/** Peek + promote LRU. Prefer for intentional reads (open tab, active doc). */
+export function getCachedDocument(id: string): Document | null {
+  const entry = cache.get(id)
+  if (!entry) return null
+  entry.hits += 1
+  return entry.document
 }
 
 export function peekCachedParsedContent(id: string): JSONContent | null {
-  return cache.get(id)?.parsedContent ?? null
+  return cache.peek(id)?.parsedContent ?? null
 }
 
 /** Touch + return. Use when you want LRU promotion as a side effect. */
 export function getCachedParsedContent(document: Document): JSONContent {
-  return upsert(document).parsedContent
+  const entry = upsert(document)
+  entry.hits += 1
+  cache.touch(document.id)
+  return entry.parsedContent
 }
 
 export function getCachedContentHash(document: Document): string {
@@ -132,23 +148,51 @@ export function getCachedContentHash(document: Document): string {
   return ensureHash(entry)
 }
 
+/** True when cache has an entry with matching `updatedAt` (disk not newer). */
+export function isCachedFresh(id: string, updatedAt: number): boolean {
+  const entry = cache.peek(id)
+  return Boolean(entry && entry.document.updatedAt === updatedAt)
+}
+
+/** True when the entry was written within `maxAgeMs` (default 60s). */
+export function isCachedRecent(id: string, maxAgeMs: number = DEFAULT_FRESH_MS): boolean {
+  const entry = cache.peek(id)
+  if (!entry) return false
+  return Date.now() - entry.cachedAt <= maxAgeMs
+}
+
 export function setRetainedDocumentIds(ids: Iterable<string>) {
-  retainedIds.clear()
-  for (const id of ids) if (id) retainedIds.add(id)
-  for (const id of retainedIds) touch(id)
-  evictIfNeeded()
+  cache.setRetained(ids)
 }
 
 export function invalidateDocumentCache(id: string) {
-  forget(id)
+  if (cache.delete(id)) emit({ type: 'invalidate', id })
 }
 
 export function clearDocumentCache() {
   cache.clear()
-  retainedIds.clear()
-  totalChars = 0
+  emit({ type: 'clear' })
 }
 
 export function getDocumentCacheSize(): number {
   return cache.size
+}
+
+export function getDocumentCacheStats() {
+  return {
+    ...cache.stats(),
+    retainedHint: 'open/active/split docs are pinned via setRetainedDocumentIds',
+  }
+}
+
+export function subscribeDocumentCache(listener: CacheListener): () => void {
+  listeners.add(listener)
+  return () => {
+    listeners.delete(listener)
+  }
+}
+
+/** Test helper — reset hit counters without clearing entries. */
+export function resetDocumentCacheStats() {
+  cache.resetStats()
 }

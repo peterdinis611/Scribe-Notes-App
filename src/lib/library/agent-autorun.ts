@@ -1,5 +1,6 @@
 import { nlpAgentDocumentBrief, nlpStatus } from '@/lib/db/nlp-api'
 import { canRunAgentBudget, normalizeAgentPrefs } from '@/lib/library/agent-prefs'
+import { applyAgentAnswer } from '@/lib/editor/insert-ai-answer'
 import { toast } from '@/lib/toast'
 import { store } from '@/store/index'
 import { setAgentPrefs } from '@/store/settingsSlice'
@@ -44,8 +45,26 @@ async function runAutoBrief(documentId: string) {
     if (!brief.count || !brief.answer?.trim()) return
     lastBriefAt.set(documentId, Date.now())
     store.dispatch(setAgentPrefs(bumpAgentRunCount(prefs)))
-    const preview = brief.answer.replace(/\s+/g, ' ').slice(0, 120)
-    toast.success(i18n.t('agent.autoBriefToast'), preview)
+    const preview = brief.answer.replace(/\s+/g, ' ').slice(0, 140)
+    const answer = brief.answer
+    toast.success(i18n.t('agent.autoBriefToast'), preview, {
+      duration: 10_000,
+      action: {
+        label: i18n.t('agent.autoBriefInsert'),
+        onClick: () => {
+          const activeId = store.getState().documents.activeDocumentId
+          if (activeId !== documentId) {
+            toast.info(i18n.t('agent.autoBriefWrongDoc'))
+            return
+          }
+          const ok = applyAgentAnswer(answer, 'callout', {
+            sourceTitle: i18n.t('agent.brandBadge'),
+          })
+          if (ok) toast.success(i18n.t('agent.appliedToNote'))
+          else toast.error(i18n.t('agent.applyFailed'))
+        },
+      },
+    })
   } catch {
     // Soft-fail — never block editing.
   }

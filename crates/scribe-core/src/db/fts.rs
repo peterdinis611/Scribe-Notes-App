@@ -65,6 +65,15 @@ fn collect_text(value: &Value, parts: &mut Vec<String>) {
                     parts.push(trimmed.to_string());
                 }
             }
+            // Paint pads / image attrs store OCR outside TipTap text nodes.
+            if let Some(attrs) = map.get("attrs").and_then(Value::as_object) {
+                if let Some(Value::String(ocr)) = attrs.get("ocrText") {
+                    let trimmed = ocr.trim();
+                    if !trimmed.is_empty() {
+                        parts.push(trimmed.to_string());
+                    }
+                }
+            }
             if let Some(content) = map.get("content") {
                 collect_text(content, parts);
             }

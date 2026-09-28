@@ -3,7 +3,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import { MarkdownView } from '@/components/MarkdownView'
-import { AgentBlobatar, AGENT_BLOBATAR_NAME } from '@/components/agent/AgentBlobatar'
+import { AgentBlobatar, AGENT_BLOBATAR_NAME, type AgentBlobatarMood } from '@/components/agent/AgentBlobatar'
+import {
+  AgentApplyPreviewDialog,
+  type AgentApplyPreviewKind,
+} from '@/components/agent/AgentApplyPreviewDialog'
 import { Bubble, BubbleContent } from '@/components/ui/bubble'
 import { Button } from '@/components/ui/button'
 import {
@@ -18,10 +22,13 @@ import {
   appendAgentRun,
   clearAgentMessages,
   listAgentMessages,
+  listAgentRuns,
+  type AgentBackendRun,
   type AgentMessageStep,
   type DocumentChatCitation,
 } from '@/lib/db/api'
-import { nlpDocumentAnalysis, nlpDocumentTasks, nlpStatus, type DocumentTask, type NlpDocumentAnalysis } from '@/lib/db/nlp-api'
+import { nlpDocumentAnalysis, nlpDocumentTasks, nlpStatus, nlpSuggestTags, nlpSuggestWikiLinks, type DocumentTask, type NlpDocumentAnalysis, type WikiLinkSuggestion } from '@/lib/db/nlp-api'
+import { applyWikiSuggestion } from '@/lib/editor/apply-suggestions'
 import {
   applyAgentAnswer,
   undoAgentApply,
@@ -33,6 +40,8 @@ import {
   type AgentStep,
   type AgentToolId,
 } from '@/lib/library/agent'
+import { applySuggestedTagsToDocument } from '@/lib/library/auto-organize'
+import { runFolderDigest } from '@/lib/library/folder-digest'
 import { AGENT_RECIPES, type AgentRecipeId } from '@/lib/library/agent-recipes'
 import {
   buildAgentGoalChips,
@@ -120,11 +129,18 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
   const activeDocumentId = useAppSelector((state) => state.documents.activeDocumentId)
+  const documents = useAppSelector((state) => state.documents.documents)
   const commentAuthor = useAppSelector((state) => state.documents.commentAuthor)
   const agentPrefs = useAppSelector((state) => state.settings.agentPrefs)
   const activeDocument = activeDocumentId ? peekCachedDocument(activeDocumentId) : null
+  const activeDocumentSummary = useMemo(
+    () => documents.find((doc) => doc.id === activeDocumentId) ?? null,
+    [activeDocumentId, documents],
+  )
 
-  const [scope, setScope] = useState<ChatScope>('library')
+  const [scope, setScope] = useState<ChatScope>(() =>
+    activeDocumentId ? 'document' : 'library',
+  )
   const [input, setInput] = useState('')
   const [teachInput, setTeachInput] = useState('')
   const [showTeach, setShowTeach] = useState(false)
@@ -135,16 +151,38 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
   const [analysis, setAnalysis] = useState<NlpDocumentAnalysis | null>(null)
   const [tasks, setTasks] = useState<DocumentTask[] | null>(null)
   const [nlpReady, setNlpReady] = useState<boolean | null>(null)
+  const [runHistory, setRunHistory] = useState<AgentBackendRun[]>([])
+  const [showRuns, setShowRuns] = useState(false)
+  const [blobMood, setBlobMood] = useState<AgentBlobatarMood>('idle')
+  const [applyPreview, setApplyPreview] = useState<AgentApplyPreviewKind | null>(null)
+  const [applyBusy, setApplyBusy] = useState(false)
+  const applyPendingRef = useRef<null | (() => Promise<void> | void)>(null)
+  const moodTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const threadEndRef = useRef<HTMLDivElement>(null)
   const slovak = i18n.language?.toLowerCase().startsWith('sk')
 
   const displayMessages = scope === 'document' ? messages : sessionMessages
 
+  const refreshRunHistory = useCallback(() => {
+    void listAgentRuns(24)
+      .then(setRunHistory)
+      .catch(() => setRunHistory([]))
+  }, [])
+
+  useEffect(() => {
+    if (activeDocumentId) {
+      setScope((prev) => (prev === 'folder' ? prev : 'document'))
+    } else {
+      setScope((prev) => (prev === 'document' ? 'library' : prev))
+    }
+  }, [activeDocumentId])
+
   useEffect(() => {
     void nlpStatus()
       .then((status) => setNlpReady(Boolean(status.enabled && status.sidecarOk)))
       .catch(() => setNlpReady(false))
-  }, [])
+    refreshRunHistory()
+  }, [refreshRunHistory])
 
   useEffect(() => {
     if (scope !== 'document' || !activeDocumentId) {
@@ -209,8 +247,32 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
         slovak,
       })
     }
+    if (scope === 'folder' && activeDocument?.folderId) {
+      return [
+        slovak ? 'Čo je nové v priečinku (7 dní)?' : 'What’s new in this folder (7 days)?',
+        ...LIBRARY_AGENT_STARTER_CHIPS.map((key) => t(key)),
+      ]
+    }
     return LIBRARY_AGENT_STARTER_CHIPS.map((key) => t(key))
-  }, [scope, activeDocumentId, analysis, tasks, activeDocument?.title, slovak, t])
+  }, [scope, activeDocumentId, analysis, tasks, activeDocument?.title, activeDocument?.folderId, slovak, t])
+
+  const answerFollowups = useMemo(
+    () => [
+      { id: 'continue', label: t('agent.followupContinue'), goal: t('agent.followupContinueGoal') },
+      { id: 'shorten', label: t('agent.followupShorten'), goal: t('agent.followupShortenGoal') },
+      { id: 'checklist', label: t('agent.followupChecklist'), goal: t('agent.followupChecklistGoal') },
+      { id: 'related', label: t('agent.followupRelated'), goal: t('agent.followupRelatedGoal') },
+    ],
+    [t],
+  )
+
+  const setMoodBriefly = useCallback((mood: AgentBlobatarMood) => {
+    if (moodTimerRef.current) clearTimeout(moodTimerRef.current)
+    setBlobMood(mood)
+    if (mood === 'done' || mood === 'error') {
+      moodTimerRef.current = setTimeout(() => setBlobMood('idle'), 2200)
+    }
+  }, [])
 
   const toolOptions = useMemo(() => {
     if (scope !== 'document' || !activeDocumentId) return [] as AgentToolId[]
@@ -297,19 +359,33 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
       }
       setInput('')
       setLoading(true)
+      setBlobMood('thinking')
 
       try {
-        const result = await runAgentGoal(
-          trimmed || displayGoal,
-          scope,
-          activeDocumentId,
-          agentMemoryContext(prior),
-          agentPrefs,
-          {
-            ...opts,
-            folderId: scope === 'folder' ? activeDocument?.folderId : null,
-          },
-        )
+        const digestGoal =
+          /folder \(7 days\)|priečinku \(7 dní\)|priecinku \(7 dni\)/i.test(trimmed) ||
+          /what.?s new in this folder|čo je nové v priečinku/i.test(trimmed)
+        const result =
+          scope === 'folder' && activeDocument?.folderId && digestGoal
+            ? await runFolderDigest(activeDocument.folderId).then((answer) => ({
+                answer: answer.answer,
+                citations: answer.citations,
+                steps: [{ tool: 'brief' as AgentToolId, status: 'ok' as const, detail: 'folder-digest' }],
+                followups: answer.followups,
+                needsClarification: false as const,
+                nextPrefs: null,
+              }))
+            : await runAgentGoal(
+                trimmed || displayGoal,
+                scope,
+                activeDocumentId,
+                agentMemoryContext(prior),
+                agentPrefs,
+                {
+                  ...opts,
+                  folderId: scope === 'folder' ? activeDocument?.folderId : null,
+                },
+              )
 
         if (result.nextPrefs) {
           dispatch(setAgentPrefs(result.nextPrefs))
@@ -328,6 +404,7 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
           } else {
             setSessionMessages((prev) => [...prev, assistant])
           }
+          setMoodBriefly('done')
           return
         }
 
@@ -347,21 +424,25 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
           setSessionMessages((prev) => [...prev, assistant])
         }
         void appendAgentRun({
-          scope,
+          scope: scope === 'folder' ? 'library' : scope,
           documentId: activeDocumentId,
           goal: trimmed || displayGoal,
           stepsJson: JSON.stringify(toPersistSteps(assistant.steps ?? [])),
           answer: assistant.text,
-        }).catch(() => undefined)
+        })
+          .then(() => refreshRunHistory())
+          .catch(() => undefined)
+        setMoodBriefly('done')
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         const key = message.startsWith('libraryChat.') || message.startsWith('agent.') ? message : null
         toast.error(t('agent.errorTitle'), key ? t(key) : message)
+        setMoodBriefly('error')
       } finally {
         setLoading(false)
       }
     },
-    [loading, agentPrefs, scope, activeDocumentId, activeDocument?.folderId, messages, sessionMessages, persistPair, t, dispatch],
+    [loading, agentPrefs, scope, activeDocumentId, activeDocument?.folderId, messages, sessionMessages, persistPair, t, dispatch, refreshRunHistory, setMoodBriefly],
   )
 
   const applyAnswerToNote = useCallback(
@@ -376,6 +457,99 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
     },
     [activeDocumentId, t],
   )
+
+  const preferredApplyMode = useCallback((steps?: AgentStep[]): AgentApplyMode => {
+    const tools = (steps ?? []).map((step) => step.tool)
+    if (tools.includes('tasks') || tools.includes('takeaways') || tools.includes('dates')) {
+      return 'checklist'
+    }
+    if (tools.includes('meeting') || tools.includes('brief')) {
+      return 'frontmatter'
+    }
+    return 'callout'
+  }, [])
+
+  const applyFromSteps = useCallback(
+    async (text: string, steps?: AgentStep[]) => {
+      if (!activeDocumentId) {
+        toast.error(t('libraryChat.noActiveDocument'))
+        return
+      }
+      const tools = new Set((steps ?? []).map((step) => step.tool))
+      const mode = preferredApplyMode(steps)
+
+      try {
+        if (tools.has('organize') && activeDocumentSummary) {
+          const suggestions = await nlpSuggestTags(activeDocumentSummary.id)
+          const existing = new Set(activeDocumentSummary.tags.map((tag) => tag.trim().toLowerCase()))
+          const tags = suggestions.tagSuggestions
+            .map((tag) => tag.trim())
+            .filter((tag) => tag && !existing.has(tag.toLowerCase()))
+          setApplyPreview({
+            type: 'organize',
+            tags,
+            folderSuggestion: suggestions.folderSuggestion,
+          })
+          applyPendingRef.current = async () => {
+            const result = await applySuggestedTagsToDocument(activeDocumentSummary, dispatch)
+            if (result.added.length) {
+              toast.success(t('agent.applyOrganizeDone', { tags: result.added.join(', ') }))
+            } else if (result.folderSuggestion) {
+              toast.success(t('agent.applyOrganizeFolder', { folder: result.folderSuggestion }))
+            } else {
+              toast.success(t('agent.applyOrganizeNone'))
+            }
+          }
+          return
+        }
+
+        if (tools.has('wiki')) {
+          const suggestions = await nlpSuggestWikiLinks(activeDocumentId, 6)
+          const first = suggestions?.[0] as WikiLinkSuggestion | undefined
+          if (first) {
+            setApplyPreview({
+              type: 'wiki',
+              phrase: first.phrase || first.title,
+              title: first.title,
+              documentId: first.documentId,
+            })
+            applyPendingRef.current = () => {
+              const result = applyWikiSuggestion(first)
+              if (result === 'failed') toast.error(t('agent.applyWikiFailed'))
+              else toast.success(t('agent.applyWikiDone', { title: first.title }))
+            }
+            return
+          }
+        }
+
+        const insertMode =
+          tools.has('tasks') || tools.has('takeaways') ? 'checklist' : mode
+        setApplyPreview({ type: 'insert', mode: insertMode, text })
+        applyPendingRef.current = () => {
+          applyAnswerToNote(text, insertMode)
+        }
+      } catch (error) {
+        toast.error(t('agent.applyFailed'), String(error))
+      }
+    },
+    [activeDocumentId, activeDocumentSummary, applyAnswerToNote, dispatch, preferredApplyMode, t],
+  )
+
+  const confirmApplyPreview = useCallback(async () => {
+    const action = applyPendingRef.current
+    if (!action) {
+      setApplyPreview(null)
+      return
+    }
+    setApplyBusy(true)
+    try {
+      await action()
+      setApplyPreview(null)
+      applyPendingRef.current = null
+    } finally {
+      setApplyBusy(false)
+    }
+  }, [])
 
   const handleTeach = useCallback(() => {
     const text = teachInput.trim()
@@ -519,6 +693,17 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
           </button>
           <button
             type="button"
+            className={cn('library-chat-chip', showRuns && 'is-active')}
+            onClick={() => {
+              setShowRuns((value) => !value)
+              refreshRunHistory()
+            }}
+          >
+            {t('agent.runHistory')}
+            {runHistory.length > 0 ? ` (${runHistory.length})` : ''}
+          </button>
+          <button
+            type="button"
             className="library-chat-chip"
             onClick={() => navigate(ROUTES.settingsSection('agent'))}
           >
@@ -534,6 +719,11 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
 
         {showTeach ? (
           <div className="mt-2 space-y-1.5 px-0.5">
+            <p className="px-0.5 text-[11px] text-[var(--color-muted-foreground)]">
+              {scope === 'document' && activeDocumentId
+                ? t('settings.agent.teachScopeDocument')
+                : t('settings.agent.teachScopeGlobal')}
+            </p>
             <form
               className="flex gap-1.5"
               onSubmit={(event) => {
@@ -545,14 +735,30 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                 className="library-chat-input"
                 value={teachInput}
                 maxLength={AGENT_TEACHING_MAX_LEN}
-                placeholder={t('settings.agent.teachPlaceholder')}
+                placeholder={
+                  scope === 'document' && activeDocumentId
+                    ? t('settings.agent.teachPlaceholderDocument')
+                    : t('settings.agent.teachPlaceholder')
+                }
                 onChange={(event) => setTeachInput(event.target.value)}
               />
               <Button type="submit" size="sm" disabled={teachInput.trim().length < 2}>
                 {t('settings.agent.teachAdd')}
               </Button>
             </form>
-            {agentPrefs.teachings.slice(0, 4).map((item) => (
+            {agentPrefs.teachings
+              .filter((item) => {
+                if (scope === 'document' && activeDocumentId) {
+                  return (
+                    !item.scope ||
+                    item.scope === 'global' ||
+                    (item.scope === 'document' && item.documentId === activeDocumentId)
+                  )
+                }
+                return !item.scope || item.scope === 'global'
+              })
+              .slice(0, 4)
+              .map((item) => (
               <button
                 key={item.id}
                 type="button"
@@ -560,10 +766,62 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                 title={t('settings.agent.teachRemove')}
                 onClick={() => dispatch(removeAgentTeaching(item.id))}
               >
-                <span className="truncate">{item.text}</span>
+                <span className="truncate">
+                  {item.scope === 'document' ? (
+                    <span className="mr-1 text-[10px] uppercase tracking-wide opacity-60">
+                      {t('settings.agent.teachBadgeDocument')}
+                    </span>
+                  ) : null}
+                  {item.text}
+                </span>
                 <Eraser className="ml-1 h-3 w-3 shrink-0 opacity-70" />
               </button>
             ))}
+          </div>
+        ) : null}
+
+        {showRuns ? (
+          <div className="agent-run-history mt-2 space-y-1.5 px-0.5">
+            {runHistory.length === 0 ? (
+              <p className="px-0.5 text-[11px] text-[var(--color-muted-foreground)]">
+                {t('agent.runHistoryEmpty')}
+              </p>
+            ) : (
+              runHistory.map((run) => {
+                const when = new Date(run.createdAt).toLocaleString(undefined, {
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })
+                let stepCount = 0
+                try {
+                  const parsed = JSON.parse(run.stepsJson || '[]') as unknown
+                  if (Array.isArray(parsed)) stepCount = parsed.length
+                } catch {
+                  stepCount = 0
+                }
+                return (
+                  <button
+                    key={run.id}
+                    type="button"
+                    className="agent-run-history-item"
+                    disabled={loading}
+                    onClick={() => {
+                      setInput(run.goal)
+                      setShowRuns(false)
+                    }}
+                  >
+                    <span className="agent-run-history-goal">{run.goal}</span>
+                    <span className="agent-run-history-meta">
+                      {when}
+                      {stepCount > 0 ? ` · ${t('agent.runHistorySteps', { count: stepCount })}` : ''}
+                      {run.answer ? ` · ${run.answer.slice(0, 72)}${run.answer.length > 72 ? '…' : ''}` : ''}
+                    </span>
+                  </button>
+                )
+              })
+            )}
           </div>
         ) : null}
       </div>
@@ -580,7 +838,7 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                 <AgentBlobatar
                   name={AGENT_BLOBATAR_NAME}
                   size={40}
-                  talking={loading}
+                  mood={loading ? 'thinking' : blobMood}
                   title={t('agent.faceTitle')}
                 />
               </div>
@@ -715,11 +973,21 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                   <div className="mt-1.5 flex flex-wrap gap-1">
                     <button
                       type="button"
+                      className="library-chat-chip is-active"
+                      disabled={loading}
+                      onClick={() =>
+                        void applyFromSteps(message.text, message.steps)
+                      }
+                    >
+                      <FilePlus2 className="mr-1 inline h-3 w-3" />
+                      {t('agent.applySmart')}
+                    </button>
+                    <button
+                      type="button"
                       className="library-chat-chip"
                       disabled={loading}
                       onClick={() => applyAnswerToNote(message.text, 'callout')}
                     >
-                      <FilePlus2 className="mr-1 inline h-3 w-3" />
                       {t('agent.applyCallout')}
                     </button>
                     <button
@@ -783,6 +1051,29 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                     })}
                   </div>
                 ) : null}
+                {message.role === 'assistant' &&
+                message.text &&
+                !message.clarifyOptions?.length ? (
+                  <div className="library-chat-followups">
+                    {answerFollowups.map((item) => (
+                      <button
+                        key={`${message.id}-${item.id}`}
+                        type="button"
+                        className="library-chat-followup"
+                        disabled={loading}
+                        onClick={() => {
+                          if (item.id === 'checklist') {
+                            applyAnswerToNote(message.text, 'checklist')
+                            return
+                          }
+                          void runGoal(item.goal)
+                        }}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
               </MessageContent>
             </Message>
           ))}
@@ -792,7 +1083,7 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
               <AgentBlobatar
                 name={AGENT_BLOBATAR_NAME}
                 size={22}
-                talking
+                mood="thinking"
                 title={t('agent.faceTitle')}
               />
               <span className="library-chat-typing">
@@ -857,6 +1148,19 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
           </Button>
         </form>
       </div>
+
+      <AgentApplyPreviewDialog
+        open={Boolean(applyPreview)}
+        preview={applyPreview}
+        busy={applyBusy}
+        onOpenChange={(next) => {
+          if (!next) {
+            setApplyPreview(null)
+            applyPendingRef.current = null
+          }
+        }}
+        onConfirm={() => void confirmApplyPreview()}
+      />
     </div>
   )
 }

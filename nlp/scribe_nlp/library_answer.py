@@ -337,8 +337,14 @@ def library_answer(
     max_sentences: int = MAX_SENTENCES,
     scope: str = "library",
     answer_embed_backend: str | None = None,
+    llm: dict[str, Any] | None = None,
+    stream: bool = False,
+    on_chunk: Any | None = None,
 ) -> dict[str, object]:
-    """Extractive multi-doc answer + citations (no cloud LLM)."""
+    """Extractive multi-doc answer + citations; optional local LLM synthesis."""
+    from collections.abc import Callable
+
+    chunk_cb: Callable[[str], None] | None = on_chunk if callable(on_chunk) else None
     query = normalize_text(question)
     intent = detect_question_intent(question)
     prefix = (
@@ -353,6 +359,7 @@ def library_answer(
             "sentences": [],
             "followups": [],
             "intent": intent,
+            "source": "empty",
         }
 
     # Keep a wide pool so BM25 can prune before embed rerank (not after a hard cut).
@@ -399,7 +406,20 @@ def library_answer(
         max_sentences=sentence_budget,
         intent=intent,
     )
+    answer_source = "extractive"
     answer = _format_answer(sentences, prefix=prefix, intent=intent)
+    llm_answer = _try_llm_answer(
+        question,
+        used if used else cleaned[:6],
+        scope=scope,
+        intent=intent,
+        llm=llm,
+        stream=stream,
+        on_chunk=chunk_cb,
+    )
+    if llm_answer:
+        answer = llm_answer
+        answer_source = "llm"
     citations = []
     seen_ids: set[str] = set()
     for item in used:
@@ -427,7 +447,54 @@ def library_answer(
         "sentences": sentences,
         "followups": followups,
         "intent": intent,
+        "source": answer_source,
     }
+
+
+def _try_llm_answer(
+    question: str,
+    passages: list[dict[str, Any]],
+    *,
+    scope: str,
+    intent: str | None,
+    llm: dict[str, Any] | None,
+    stream: bool = False,
+    on_chunk: Any | None = None,
+) -> str | None:
+    if not llm or not passages:
+        return None
+    from .llm import try_complete_from_options
+
+    blocks: list[str] = []
+    for index, item in enumerate(passages[:6], start=1):
+        title = str(item.get("title") or "Untitled")
+        snippet = str(item.get("snippet") or "")[:500]
+        blocks.append(f"[{index}] {title}\n{snippet}")
+    context = "\n\n".join(blocks)
+    scope_hint = "this open document" if scope == "document" else "the user's local notes"
+    intent_hint = f" Question intent hint: {intent}." if intent else ""
+    system = (
+        "You are Scribe's local library assistant. Answer ONLY from the provided passages. "
+        "If the passages are insufficient, say what is missing. "
+        "Do not invent facts. Prefer concise prose with short bullets when listing items. "
+        "Reply in the same language as the question."
+    )
+    prompt = (
+        f"Answer using {scope_hint}.{intent_hint}\n\n"
+        f"Question:\n{question.strip()}\n\n"
+        f"Passages:\n{context}\n\n"
+        "Write a grounded answer. Mention source titles inline when helpful "
+        "(e.g. according to \"Note title\")."
+    )
+    return try_complete_from_options(
+        llm,
+        prompt=prompt,
+        system=system,
+        temperature=0.15,
+        max_tokens=900,
+        stream=stream,
+        on_chunk=on_chunk,
+    )
 
 
 def suggest_followups(

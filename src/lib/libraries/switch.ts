@@ -1,4 +1,5 @@
 import { clearDocumentCache } from '@/lib/cache/document-cache'
+import { clearPrefetchQueue } from '@/lib/cache/prefetch-document'
 import { listLibraries, listSyncConflicts, switchLibrary } from '@/lib/db/libraries-api'
 import type { DocumentSummary } from '@/lib/db/api'
 import { reloadLibraryFromBackend } from '@/lib/library-reload'
@@ -40,6 +41,7 @@ export function resolveLibraryEditorDocumentId(state: {
 export async function activateLibrary(dispatch: AppDispatch, navigate: NavigateFn, id: string) {
   loadLibrarySession(dispatch, id)
   await switchLibrary(id)
+  clearPrefetchQueue()
   clearDocumentCache()
   const libraries = await listLibraries()
   dispatch(setLibraries(libraries))

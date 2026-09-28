@@ -766,6 +766,14 @@ export function CommandPalette() {
       },
       {
         type: 'action',
+        id: 'settings-interface',
+        label: t('settings.interface.title'),
+        hint: t('settings.sections.interface.description'),
+        icon: <LayoutTemplate className="h-4 w-4" />,
+        run: () => navigate(ROUTES.settingsSection('interface')),
+      },
+      {
+        type: 'action',
         id: 'mobile-capture',
         label: t('commandPalette.mobileCapture'),
         hint: t('commandPalette.mobileCaptureHint'),

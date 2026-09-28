@@ -1,13 +1,22 @@
 import type { Editor } from '@tiptap/react'
+import { findParentNode } from '@tiptap/core'
 import { MATH_JS_EXAMPLES } from '@/lib/editor/math-js'
-import { D3_CHART_DEFAULT_SOURCE } from '@/lib/editor/d3-chart'
+import {
+  D3_CHART_DEFAULT_SOURCE,
+  stringifyD3ChartSpec,
+  tableMatrixToChartSpec,
+  type D3ChartType,
+} from '@/lib/editor/d3-chart'
 import { MAP_DEFAULT_SOURCE } from '@/lib/editor/map'
-import { MERMAID_DEFAULT_SOURCE } from '@/lib/editor/mermaid'
+import { MERMAID_DEFAULT_SOURCE, MERMAID_TEMPLATES, type MermaidTemplateId } from '@/lib/editor/mermaid'
 import { generateLoremIpsum, saveLoremOptions } from '@/lib/editor/lorem-ipsum'
 import { promptLoremOptions } from '@/lib/lorem-dialog'
 import { promptMathExpressionDialog } from '@/lib/math-dialog'
+import { promptChartDialog } from '@/lib/chart-dialog'
+import { promptMermaidDialog } from '@/lib/mermaid-dialog'
 import { promptInput } from '@/lib/input-dialog'
 import i18n from '@/i18n'
+import { toast } from '@/lib/toast'
 
 export async function insertInlineMath(editor: Editor) {
   const result = await promptMathExpressionDialog({
@@ -29,12 +38,63 @@ export async function insertBlockMath(editor: Editor) {
   editor.chain().focus().insertMathBlock({ expression: result.expression }).run()
 }
 
-export function insertMermaidDiagram(editor: Editor) {
-  editor.chain().focus().insertMermaidDiagram({ source: MERMAID_DEFAULT_SOURCE }).run()
+export async function insertMermaidDiagram(editor: Editor, templateId?: MermaidTemplateId) {
+  const seed =
+    templateId && MERMAID_TEMPLATES[templateId]
+      ? MERMAID_TEMPLATES[templateId].source
+      : MERMAID_DEFAULT_SOURCE
+  const result = await promptMermaidDialog({
+    intent: 'insert',
+    initialSource: seed,
+  })
+  if (!result || result.clear || !result.source.trim() || editor.isDestroyed) return
+  editor.chain().focus().insertMermaidDiagram({ source: result.source.trim() }).run()
 }
 
-export function insertD3Chart(editor: Editor) {
-  editor.chain().focus().insertD3Chart({ source: D3_CHART_DEFAULT_SOURCE }).run()
+export async function insertD3Chart(editor: Editor, initialSource?: string) {
+  const result = await promptChartDialog({
+    intent: 'insert',
+    initialSource: initialSource ?? D3_CHART_DEFAULT_SOURCE,
+  })
+  if (!result || result.clear || !result.source.trim() || editor.isDestroyed) return
+  editor.chain().focus().insertD3Chart({ source: result.source.trim() }).run()
+}
+
+/** Build a chart from the table under the cursor and open the chart builder. */
+export async function insertChartFromTable(editor: Editor, type: D3ChartType = 'bar') {
+  if (editor.isDestroyed) return false
+  const table = findParentNode((node) => node.type.name === 'table')(editor.state.selection)
+  if (!table) {
+    toast.info(i18n.t('d3Chart.fromTable.needTable'))
+    return false
+  }
+
+  const matrix: string[][] = []
+  table.node.forEach((rowNode) => {
+    if (rowNode.type.name !== 'tableRow') return
+    const row: string[] = []
+    rowNode.forEach((cellNode) => {
+      if (cellNode.type.name !== 'tableCell' && cellNode.type.name !== 'tableHeader') return
+      row.push(cellNode.textContent.trim())
+    })
+    if (row.length > 0) matrix.push(row)
+  })
+
+  const parsed = tableMatrixToChartSpec(matrix, type)
+  if (!parsed.ok) {
+    toast.info(parsed.error)
+    return false
+  }
+
+  const result = await promptChartDialog({
+    intent: 'insert',
+    initialSource: stringifyD3ChartSpec(parsed.spec),
+  })
+  if (!result || result.clear || !result.source.trim() || editor.isDestroyed) return false
+
+  const insertPos = table.pos + table.node.nodeSize
+  editor.chain().focus().insertD3Chart({ source: result.source.trim(), pos: insertPos }).run()
+  return true
 }
 
 export function insertLeafletMap(editor: Editor) {

@@ -249,6 +249,20 @@ pub struct DateRangePromptParams {
 pub struct LibraryAnswerParams {
     pub question: String,
     pub limit: Option<i64>,
+    pub folder_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct RunAgentParams {
+    /// Natural-language goal for the local agent (same planner as the Scribe app).
+    pub goal: String,
+    /// library | document
+    pub scope: Option<String>,
+    /// Required for most document tools.
+    pub document_id: Option<String>,
+    /// Cap tool steps (1–6). Default 3.
+    pub max_tools: Option<i64>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -338,6 +352,27 @@ pub struct SetEmbedBackendParams {
 pub struct SetAnswerBackendParams {
     /// `auto` (default), `index`, or `quality`
     pub backend: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SetLlmPrefsParams {
+    pub enabled: Option<bool>,
+    pub provider: Option<String>,
+    pub base_url: Option<String>,
+    pub model: Option<String>,
+    pub use_rewrite: Option<bool>,
+    pub use_answer: Option<bool>,
+    pub use_plan: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct LlmCompleteParams {
+    pub prompt: String,
+    pub system: Option<String>,
+    pub temperature: Option<f64>,
+    pub max_tokens: Option<i64>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]

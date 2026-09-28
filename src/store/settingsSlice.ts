@@ -45,6 +45,18 @@ import {
   readAutoBackupDirectory,
   readLastAutoBackupAt,
   readAgentPrefs,
+  readShowDocumentTabs,
+  readShowEditorToolbar,
+  readShowStatusBar,
+  readShowPanelRail,
+  readUiZoom,
+  persistShowDocumentTabs,
+  persistShowEditorToolbar,
+  persistShowStatusBar,
+  persistShowPanelRail,
+  persistUiZoom,
+  applyUiZoom,
+  clampUiZoom,
   persistShortcutOverrides,
   type AutoBackupIntervalHours,
   type ShortcutOverrides,
@@ -84,6 +96,11 @@ export interface SettingsState {
   lastAutoBackupAt: number | null
   shortcutOverrides: ShortcutOverrides
   agentPrefs: AgentPrefs
+  showDocumentTabs: boolean
+  showEditorToolbar: boolean
+  showStatusBar: boolean
+  showPanelRail: boolean
+  uiZoom: number
 }
 
 const initialState: SettingsState = {
@@ -105,6 +122,11 @@ const initialState: SettingsState = {
   lastAutoBackupAt: readLastAutoBackupAt(),
   shortcutOverrides: readShortcutOverrides(),
   agentPrefs: readAgentPrefs(),
+  showDocumentTabs: readShowDocumentTabs(),
+  showEditorToolbar: readShowEditorToolbar(),
+  showStatusBar: readShowStatusBar(),
+  showPanelRail: readShowPanelRail(),
+  uiZoom: readUiZoom(),
 }
 
 const settingsSlice = createSlice({
@@ -267,6 +289,28 @@ const settingsSlice = createSlice({
       state.agentPrefs = next
       persistAgentPrefs(next)
     },
+    setShowDocumentTabs(state, action: PayloadAction<boolean>) {
+      state.showDocumentTabs = action.payload
+      persistShowDocumentTabs(action.payload)
+    },
+    setShowEditorToolbar(state, action: PayloadAction<boolean>) {
+      state.showEditorToolbar = action.payload
+      persistShowEditorToolbar(action.payload)
+    },
+    setShowStatusBar(state, action: PayloadAction<boolean>) {
+      state.showStatusBar = action.payload
+      persistShowStatusBar(action.payload)
+    },
+    setShowPanelRail(state, action: PayloadAction<boolean>) {
+      state.showPanelRail = action.payload
+      persistShowPanelRail(action.payload)
+    },
+    setUiZoom(state, action: PayloadAction<number>) {
+      const value = clampUiZoom(action.payload)
+      state.uiZoom = value
+      persistUiZoom(value)
+      applyUiZoom(value)
+    },
   },
 })
 
@@ -297,10 +341,16 @@ export const {
   addAgentPinnedFact,
   removeAgentPinnedFact,
   hydrateAgentPrefs,
+  setShowDocumentTabs,
+  setShowEditorToolbar,
+  setShowStatusBar,
+  setShowPanelRail,
+  setUiZoom,
 } = settingsSlice.actions
 
 export default settingsSlice.reducer
 
 export function bootstrapTheme() {
   applyThemeSettings(readThemeSettings(), readUiSkin())
+  applyUiZoom(readUiZoom())
 }

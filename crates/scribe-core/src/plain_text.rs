@@ -232,6 +232,45 @@ fn block_to_plain(value: &Value) -> String {
             .unwrap_or_default(),
         Some("horizontalRule") => "---".to_string(),
         Some("codeBlock") => inline_text(value),
+        Some("d3Chart") => {
+            let source = value
+                .pointer("/attrs/source")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .trim();
+            let title = serde_json::from_str::<Value>(source)
+                .ok()
+                .and_then(|spec| {
+                    spec.get("title")
+                        .and_then(Value::as_str)
+                        .map(str::trim)
+                        .filter(|item| !item.is_empty())
+                        .map(str::to_string)
+                        .or_else(|| {
+                            spec.get("type")
+                                .and_then(Value::as_str)
+                                .map(str::to_string)
+                        })
+                })
+                .unwrap_or_else(|| "Chart".to_string());
+            if source.is_empty() {
+                format!("[Chart: {title}]")
+            } else {
+                format!("[Chart: {title}]\n```chart\n{source}\n```")
+            }
+        }
+        Some("mermaidDiagram") => {
+            let source = value
+                .pointer("/attrs/source")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .trim();
+            if source.is_empty() {
+                "[Mermaid]".to_string()
+            } else {
+                format!("[Mermaid]\n```mermaid\n{source}\n```")
+            }
+        }
         Some("paintPad") => {
             let ocr = value
                 .get("attrs")
