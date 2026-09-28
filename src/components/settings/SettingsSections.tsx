@@ -279,36 +279,36 @@ export function AppearanceSection() {
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <button
             type="button"
+            onClick={() => dispatch(setUiSkin('grove'))}
+            className={cn(
+              'rounded-[var(--radius-lg)] border px-4 py-3 text-left transition-all duration-200',
+              uiSkin === 'grove'
+                ? 'border-[var(--color-accent)] bg-[var(--color-selection)] shadow-[0_8px_24px_color-mix(in_srgb,var(--color-accent)_16%,transparent)]'
+                : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-hover)]',
+            )}
+          >
+            <p className="m-0 text-[13px] font-semibold text-[var(--color-foreground)] [font-family:var(--font-display)]">
+              {t('settings.appearance.skinGrove')}
+            </p>
+            <p className="mt-1 text-[11px] leading-snug text-[var(--color-muted-foreground)]">
+              {t('settings.appearance.skinGroveDesc')}
+            </p>
+          </button>
+          <button
+            type="button"
             onClick={() => dispatch(setUiSkin('classic'))}
             className={cn(
-              'rounded-[var(--radius-md)] border px-4 py-3 text-left transition-colors',
+              'rounded-[var(--radius-lg)] border px-4 py-3 text-left transition-all duration-200',
               uiSkin === 'classic'
                 ? 'border-[var(--color-accent)] bg-[var(--color-selection)]'
                 : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-hover)]',
             )}
           >
-            <p className="m-0 text-[13px] font-semibold text-[var(--color-foreground)]">
+            <p className="m-0 text-[13px] font-semibold text-[var(--color-foreground)] [font-family:var(--font-display)]">
               {t('settings.appearance.skinClassic')}
             </p>
             <p className="mt-1 text-[11px] leading-snug text-[var(--color-muted-foreground)]">
               {t('settings.appearance.skinClassicDesc')}
-            </p>
-          </button>
-          <button
-            type="button"
-            onClick={() => dispatch(setUiSkin('press'))}
-            className={cn(
-              'rounded-[var(--radius-md)] border px-4 py-3 text-left transition-colors',
-              uiSkin === 'press'
-                ? 'border-[var(--color-accent)] bg-[var(--color-selection)]'
-                : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-hover)]',
-            )}
-          >
-            <p className="m-0 text-[13px] font-semibold text-[var(--color-foreground)]">
-              {t('settings.appearance.skinPress')}
-            </p>
-            <p className="mt-1 text-[11px] leading-snug text-[var(--color-muted-foreground)]">
-              {t('settings.appearance.skinPressDesc')}
             </p>
           </button>
         </div>

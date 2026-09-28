@@ -1,83 +1,56 @@
 import type { ThemeColors, ThemePreset } from '@/lib/themes/types'
 
-/** Classic (default) light / dark — original Scribe look */
+/** Grove (default) light / dark — organic botanical chrome */
 const light: ThemeColors = {
-  background: '#ffffff',
-  foreground: '#1d1d1f',
-  mutedForeground: '#86868b',
-  border: 'rgba(0, 0, 0, 0.08)',
-  sidebar: 'rgba(246, 246, 246, 0.72)',
-  sidebarSolid: '#f5f5f7',
-  toolbar: 'rgba(251, 251, 253, 0.82)',
-  selection: 'rgba(0, 122, 255, 0.14)',
-  selectionStrong: '#007aff',
-  hover: 'rgba(0, 0, 0, 0.04)',
-  separator: 'rgba(0, 0, 0, 0.06)',
-  formatBar: 'rgba(255, 255, 255, 0.92)',
-  destructive: '#ff3b30',
-}
-
-const dark: ThemeColors = {
-  background: '#1e1e1e',
-  foreground: '#f5f5f7',
-  mutedForeground: '#98989d',
-  border: 'rgba(255, 255, 255, 0.08)',
-  sidebar: 'rgba(40, 40, 40, 0.72)',
-  sidebarSolid: '#2c2c2e',
-  toolbar: 'rgba(30, 30, 30, 0.82)',
-  selection: 'rgba(10, 132, 255, 0.22)',
-  selectionStrong: '#0a84ff',
-  hover: 'rgba(255, 255, 255, 0.06)',
-  separator: 'rgba(255, 255, 255, 0.06)',
-  formatBar: 'rgba(44, 44, 46, 0.92)',
-  destructive: '#ff453a',
-}
-
-/** Copper Press palette used when UI skin is “press” and theme is light/dark/system */
-export const PRESS_LIGHT: ThemeColors = {
-  background: '#eaeef2',
-  foreground: '#15202b',
-  mutedForeground: '#667484',
-  border: 'rgba(21, 32, 43, 0.12)',
-  sidebar: 'rgba(223, 229, 235, 0.92)',
-  sidebarSolid: '#dfe5eb',
-  toolbar: 'rgba(234, 238, 242, 0.94)',
-  selection: 'rgba(196, 92, 38, 0.16)',
-  selectionStrong: '#c45c26',
-  hover: 'rgba(21, 32, 43, 0.05)',
-  separator: 'rgba(21, 32, 43, 0.08)',
-  formatBar: 'rgba(248, 250, 252, 0.96)',
+  background: '#e7efe4',
+  foreground: '#1c2b22',
+  mutedForeground: '#5c7264',
+  border: 'rgba(28, 43, 34, 0.12)',
+  sidebar: 'rgba(214, 228, 210, 0.88)',
+  sidebarSolid: '#d6e4d2',
+  toolbar: 'rgba(231, 239, 228, 0.94)',
+  selection: 'rgba(63, 122, 90, 0.18)',
+  selectionStrong: '#3f7a5a',
+  hover: 'rgba(28, 43, 34, 0.05)',
+  separator: 'rgba(28, 43, 34, 0.08)',
+  formatBar: 'rgba(244, 248, 242, 0.96)',
   destructive: '#b42318',
 }
 
-export const PRESS_DARK: ThemeColors = {
-  background: '#14181e',
-  foreground: '#e8e4dc',
-  mutedForeground: '#8b939e',
-  border: 'rgba(232, 228, 220, 0.1)',
-  sidebar: 'rgba(26, 32, 40, 0.94)',
-  sidebarSolid: '#1a2028',
-  toolbar: 'rgba(20, 24, 30, 0.94)',
-  selection: 'rgba(212, 120, 74, 0.22)',
-  selectionStrong: '#d4784a',
-  hover: 'rgba(232, 228, 220, 0.06)',
-  separator: 'rgba(232, 228, 220, 0.08)',
-  formatBar: 'rgba(30, 36, 44, 0.96)',
+const dark: ThemeColors = {
+  background: '#121a16',
+  foreground: '#e4efe6',
+  mutedForeground: '#8fa898',
+  border: 'rgba(228, 239, 230, 0.1)',
+  sidebar: 'rgba(22, 32, 26, 0.94)',
+  sidebarSolid: '#16201a',
+  toolbar: 'rgba(18, 26, 22, 0.94)',
+  selection: 'rgba(124, 184, 146, 0.22)',
+  selectionStrong: '#7cb892',
+  hover: 'rgba(228, 239, 230, 0.06)',
+  separator: 'rgba(228, 239, 230, 0.08)',
+  formatBar: 'rgba(28, 40, 33, 0.96)',
   destructive: '#f97066',
 }
+
+/** @deprecated Alias kept for older press-skin call sites — same as Grove light/dark. */
+export const PRESS_LIGHT: ThemeColors = light
+export const PRESS_DARK: ThemeColors = dark
+export const GROVE_LIGHT: ThemeColors = light
+export const GROVE_DARK: ThemeColors = dark
 
 export const THEME_PRESETS: ThemePreset[] = [
   {
     id: 'light',
     name: 'Svetlá',
-    description: 'Predvolená svetlá téma',
+    description: 'Grove — mäkký sage papier',
     colorScheme: 'light',
     colors: light,
   },
   {
     id: 'dark',
     name: 'Tmavá',
-    description: 'Predvolená tmavá téma',
+    description: 'Grove — hlboká hlina',
     colorScheme: 'dark',
     colors: dark,
   },
