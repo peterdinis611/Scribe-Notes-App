@@ -298,6 +298,7 @@ pub fn run() {
             commands::nlp::nlp_set_answer_backend,
             commands::nlp::nlp_set_llm_prefs,
             commands::nlp::nlp_llm_status,
+            commands::nlp::nlp_llm_complete,
             commands::nlp::nlp_document_analysis,
             commands::nlp::nlp_analyze_plaintext,
             commands::nlp::nlp_generate_placeholder,

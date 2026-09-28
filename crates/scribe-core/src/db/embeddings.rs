@@ -16,6 +16,7 @@ pub const META_NLP_LLM_BASE_URL: &str = "nlp_llm_base_url";
 pub const META_NLP_LLM_MODEL: &str = "nlp_llm_model";
 pub const META_NLP_LLM_USE_REWRITE: &str = "nlp_llm_use_rewrite";
 pub const META_NLP_LLM_USE_ANSWER: &str = "nlp_llm_use_answer";
+pub const META_NLP_LLM_USE_PLAN: &str = "nlp_llm_use_plan";
 
 pub const DEFAULT_LLM_BASE_URL: &str = "http://127.0.0.1:11434";
 
@@ -28,6 +29,7 @@ pub struct NlpLlmPrefs {
     pub model: String,
     pub use_rewrite: bool,
     pub use_answer: bool,
+    pub use_plan: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -231,6 +233,7 @@ pub fn get_llm_prefs(conn: &Connection) -> Result<NlpLlmPrefs, String> {
         model: meta_string(conn, META_NLP_LLM_MODEL, "")?,
         use_rewrite: meta_flag(conn, META_NLP_LLM_USE_REWRITE, true)?,
         use_answer: meta_flag(conn, META_NLP_LLM_USE_ANSWER, true)?,
+        use_plan: meta_flag(conn, META_NLP_LLM_USE_PLAN, true)?,
     })
 }
 
@@ -242,6 +245,7 @@ pub fn set_llm_prefs(
     model: Option<&str>,
     use_rewrite: Option<bool>,
     use_answer: Option<bool>,
+    use_plan: Option<bool>,
 ) -> Result<NlpLlmPrefs, String> {
     if let Some(value) = enabled {
         set_meta_flag(conn, META_NLP_LLM_ENABLED, value)?;
@@ -267,6 +271,9 @@ pub fn set_llm_prefs(
     if let Some(value) = use_answer {
         set_meta_flag(conn, META_NLP_LLM_USE_ANSWER, value)?;
     }
+    if let Some(value) = use_plan {
+        set_meta_flag(conn, META_NLP_LLM_USE_PLAN, value)?;
+    }
     get_llm_prefs(conn)
 }
 
@@ -279,6 +286,7 @@ pub fn llm_sidecar_options(conn: &Connection, kind: &str) -> Result<Option<serde
     let allowed = match kind {
         "rewrite" => prefs.use_rewrite,
         "answer" => prefs.use_answer,
+        "plan" => prefs.use_plan,
         _ => false,
     };
     if !allowed {

@@ -356,6 +356,27 @@ pub struct SetAnswerBackendParams {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+pub struct SetLlmPrefsParams {
+    pub enabled: Option<bool>,
+    pub provider: Option<String>,
+    pub base_url: Option<String>,
+    pub model: Option<String>,
+    pub use_rewrite: Option<bool>,
+    pub use_answer: Option<bool>,
+    pub use_plan: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct LlmCompleteParams {
+    pub prompt: String,
+    pub system: Option<String>,
+    pub temperature: Option<f64>,
+    pub max_tokens: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct GeneratePlaceholderParams {
     /// paragraphs | sentences | words
     pub unit: Option<String>,

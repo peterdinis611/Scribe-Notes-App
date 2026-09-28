@@ -304,11 +304,34 @@ impl ScribeMcp {
         })
     }
 
-    #[tool(description = "Local AI sidecar status: enabled flag, model, index counts.")]
+    #[tool(description = "Local AI sidecar status: enabled flag, model, index counts, optional LLM prefs.")]
     fn nlp_status(&self) -> Result<String, String> {
         self.with_store(|store| {
             let status = store.nlp_status(&self.sidecar)?;
             Ok(tools::json(&status))
+        })
+    }
+
+    #[tool(description = "Ping local Ollama (Local LLM). Returns reachable, models, and errors. Requires Local AI.")]
+    fn llm_status(&self) -> Result<String, String> {
+        self.with_store(|store| Ok(tools::json(&store.llm_status(&self.sidecar)?)))
+    }
+
+    #[tool(
+        description = "Complete a prompt with the opt-in local LLM (Ollama on localhost). Requires Local AI + LLM enabled in Scribe settings. Not for vault notes."
+    )]
+    fn llm_complete(
+        &self,
+        Parameters(params): Parameters<tools::LlmCompleteParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.llm_complete(
+                &self.sidecar,
+                &params.prompt,
+                params.system.as_deref(),
+                params.temperature,
+                params.max_tokens,
+            )?))
         })
     }
 
@@ -1091,10 +1114,13 @@ impl ScribeMcp {
                         })
                     })
                     .collect();
-                let result = self.sidecar.library_answer(
+                let result = self.sidecar.library_answer_scoped_with_options(
                     params.question.trim(),
                     serde_json::json!(passages),
                     4,
+                    "library",
+                    None,
+                    store.llm_options("answer")?,
                 )?;
                 return Ok(tools::json(&serde_json::json!({
                     "folderId": folder_id,
@@ -1495,6 +1521,30 @@ impl ScribeMcp {
             Ok(tools::json(
                 &store.set_nlp_answer_backend(&self.sidecar, &params.backend)?,
             ))
+        })
+    }
+
+    #[tool(
+        description = "Configure opt-in local LLM (Ollama): enabled, baseUrl (localhost only), model, useRewrite/useAnswer/usePlan. Requires writable DB."
+    )]
+    fn set_llm_prefs(
+        &self,
+        Parameters(params): Parameters<tools::SetLlmPrefsParams>,
+    ) -> Result<String, String> {
+        if !self.writable {
+            return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
+        }
+        self.with_store(|store| {
+            Ok(tools::json(&store.set_nlp_llm_prefs(
+                &self.sidecar,
+                params.enabled,
+                params.provider.as_deref(),
+                params.base_url.as_deref(),
+                params.model.as_deref(),
+                params.use_rewrite,
+                params.use_answer,
+                params.use_plan,
+            )?))
         })
     }
 

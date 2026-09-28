@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import sys
 from functools import lru_cache
+from collections.abc import Callable
 from typing import Any
 
 from . import __version__
@@ -131,7 +132,11 @@ def _active_features() -> list[str]:
     return FEATURES + extras_feature_flags()
 
 
-def handle_request(request: dict[str, Any]) -> dict[str, Any]:
+def handle_request(
+    request: dict[str, Any],
+    *,
+    progress: Callable[[dict[str, Any]], None] | None = None,
+) -> dict[str, Any]:
     from .debug import debug_log, nlp_debug_enabled, timed_debug
 
     request_id = request.get("id")
@@ -143,7 +148,7 @@ def handle_request(request: dict[str, Any]) -> dict[str, Any]:
         timer.__enter__()
 
     try:
-        response = _handle_request_inner(request_id, method, params)
+        response = _handle_request_inner(request_id, method, params, progress=progress)
         if timer is not None:
             timer.__exit__(None, None, None)
         if nlp_debug_enabled() and "error" in response:
@@ -159,6 +164,8 @@ def _handle_request_inner(
     request_id: Any,
     method: Any,
     params: dict[str, Any],
+    *,
+    progress: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     try:
         if method == "health":
@@ -391,6 +398,10 @@ def _handle_request_inner(
                 scope=scope,
                 answer_embed_backend=answer_embed_backend,
                 llm=llm_options,
+                stream=bool(params.get("stream")),
+                on_chunk=(
+                    (lambda text: progress({"text": text})) if progress is not None else None
+                ),
             )
         elif method == "suggest_wiki_links":
             from .wiki_suggest import suggest_wiki_links
@@ -534,6 +545,7 @@ def _handle_request_inner(
             system_value = str(system) if system else None
             temperature = float(params.get("temperature") or 0.2)
             max_tokens = max(64, min(int(params.get("maxTokens") or 1024), 4096))
+            want_stream = bool(params.get("stream")) and progress is not None
             result = llm_complete(
                 prompt=prompt,
                 system=system_value,
@@ -541,6 +553,8 @@ def _handle_request_inner(
                 model=str(params.get("model") or "") or None,
                 temperature=temperature,
                 max_tokens=max_tokens,
+                stream=want_stream,
+                on_chunk=(lambda text: progress({"text": text})) if want_stream else None,
             )
         elif method == "suggest_continuation":
             from .continuation import suggest_continuation
@@ -619,7 +633,9 @@ def _handle_request_inner(
             goal = str(params.get("goal") or params.get("question") or "")
             scope = str(params.get("scope") or "document")
             max_tools = max(1, min(int(params.get("maxTools") or params.get("max_tools") or 3), 6))
-            result = plan_agent_goal(goal, scope=scope, max_tools=max_tools)
+            llm_raw = params.get("llm")
+            llm_options = llm_raw if isinstance(llm_raw, dict) else None
+            result = plan_agent_goal(goal, scope=scope, max_tools=max_tools, llm=llm_options)
         elif method == "agent_document_brief":
             from .agent_plan import agent_document_brief
 
@@ -705,7 +721,18 @@ def run_stdio_server() -> None:
             sys.stdout.flush()
             continue
 
-        response = handle_request(request)
+        request_id = request.get("id")
+
+        def _progress(params: dict[str, Any], _id: Any = request_id) -> None:
+            payload = {
+                "jsonrpc": "2.0",
+                "method": "nlp/chunk",
+                "params": {"id": _id, **params},
+            }
+            sys.stdout.write(json.dumps(payload, ensure_ascii=False) + "\n")
+            sys.stdout.flush()
+
+        response = handle_request(request, progress=_progress)
         sys.stdout.write(json.dumps(response, ensure_ascii=False) + "\n")
         sys.stdout.flush()
 

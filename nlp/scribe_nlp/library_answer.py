@@ -338,8 +338,13 @@ def library_answer(
     scope: str = "library",
     answer_embed_backend: str | None = None,
     llm: dict[str, Any] | None = None,
+    stream: bool = False,
+    on_chunk: Any | None = None,
 ) -> dict[str, object]:
     """Extractive multi-doc answer + citations; optional local LLM synthesis."""
+    from collections.abc import Callable
+
+    chunk_cb: Callable[[str], None] | None = on_chunk if callable(on_chunk) else None
     query = normalize_text(question)
     intent = detect_question_intent(question)
     prefix = (
@@ -409,6 +414,8 @@ def library_answer(
         scope=scope,
         intent=intent,
         llm=llm,
+        stream=stream,
+        on_chunk=chunk_cb,
     )
     if llm_answer:
         answer = llm_answer
@@ -451,6 +458,8 @@ def _try_llm_answer(
     scope: str,
     intent: str | None,
     llm: dict[str, Any] | None,
+    stream: bool = False,
+    on_chunk: Any | None = None,
 ) -> str | None:
     if not llm or not passages:
         return None
@@ -483,6 +492,8 @@ def _try_llm_answer(
         system=system,
         temperature=0.15,
         max_tokens=900,
+        stream=stream,
+        on_chunk=on_chunk,
     )
 
 

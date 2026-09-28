@@ -68,10 +68,10 @@ async function assertNlpReady() {
   }
 }
 
-/** Extractive Q&A over the whole library (no cloud LLM). Optional folder filter. */
+/** Extractive Q&A over the whole library (optional local LLM). Optional folder filter. */
 export async function askLibrary(
   question: string,
-  opts?: { folderId?: string | null },
+  opts?: { folderId?: string | null; stream?: boolean },
 ): Promise<LibraryChatResult> {
   const trimmed = question.trim()
   if (!trimmed) {
@@ -84,6 +84,7 @@ export async function askLibrary(
       question: trimmed,
       limit: 8,
       folderId: opts.folderId,
+      stream: opts.stream ?? false,
     })
     if (!result.answer?.trim() && !(result.citations?.length > 0)) {
       return {
@@ -107,6 +108,7 @@ export async function askLibrary(
     question: trimmed,
     limit: 8,
     folderId: null,
+    stream: opts?.stream ?? false,
   })
 }
 

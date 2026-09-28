@@ -135,6 +135,7 @@ enum WorkerMsg {
         params: Value,
         timeout: Duration,
         reply: mpsc::Sender<Result<Value, String>>,
+        progress: Option<mpsc::Sender<String>>,
     },
     Reset,
     Shutdown,
@@ -203,6 +204,15 @@ impl NlpSidecar {
     }
 
     fn call_method(&self, method: &str, params: Value) -> Result<Value, String> {
+        self.call_method_with_progress(method, params, None)
+    }
+
+    fn call_method_with_progress(
+        &self,
+        method: &str,
+        params: Value,
+        progress: Option<mpsc::Sender<String>>,
+    ) -> Result<Value, String> {
         let timeout = rpc_timeout(method);
         let id = self.request_id.fetch_add(1, Ordering::Relaxed);
         let (reply_tx, reply_rx) = mpsc::channel();
@@ -214,6 +224,7 @@ impl NlpSidecar {
                 params,
                 timeout,
                 reply: reply_tx,
+                progress,
             })
             .map_err(|_| "NLP worker stopped".to_string())?;
         }
@@ -364,11 +375,35 @@ impl NlpSidecar {
         answer_embed_backend: Option<&str>,
         llm: Option<Value>,
     ) -> Result<Value, String> {
+        self.library_answer_scoped_with_options_progress(
+            question,
+            passages,
+            max_sentences,
+            scope,
+            answer_embed_backend,
+            llm,
+            None,
+            false,
+        )
+    }
+
+    pub fn library_answer_scoped_with_options_progress(
+        &self,
+        question: &str,
+        passages: Value,
+        max_sentences: i64,
+        scope: &str,
+        answer_embed_backend: Option<&str>,
+        llm: Option<Value>,
+        progress: Option<mpsc::Sender<String>>,
+        stream: bool,
+    ) -> Result<Value, String> {
         let mut params = json!({
             "question": question,
             "passages": passages,
             "maxSentences": max_sentences,
             "scope": scope,
+            "stream": stream,
         });
         if let Some(backend) = answer_embed_backend {
             params["answerEmbedBackend"] = json!(backend);
@@ -376,7 +411,7 @@ impl NlpSidecar {
         if let Some(llm_options) = llm {
             params["llm"] = llm_options;
         }
-        self.call_method("library_answer", params)
+        self.call_method_with_progress("library_answer", params, progress)
     }
 
     pub fn suggest_wiki_links(
@@ -670,7 +705,30 @@ impl NlpSidecar {
         temperature: Option<f64>,
         max_tokens: Option<i64>,
     ) -> Result<Value, String> {
-        let mut params = json!({ "prompt": prompt });
+        self.llm_complete_with_progress(
+            prompt,
+            system,
+            base_url,
+            model,
+            temperature,
+            max_tokens,
+            None,
+            false,
+        )
+    }
+
+    pub fn llm_complete_with_progress(
+        &self,
+        prompt: &str,
+        system: Option<&str>,
+        base_url: Option<&str>,
+        model: Option<&str>,
+        temperature: Option<f64>,
+        max_tokens: Option<i64>,
+        progress: Option<mpsc::Sender<String>>,
+        stream: bool,
+    ) -> Result<Value, String> {
+        let mut params = json!({ "prompt": prompt, "stream": stream });
         if let Some(value) = system {
             params["system"] = json!(value);
         }
@@ -686,7 +744,34 @@ impl NlpSidecar {
         if let Some(value) = max_tokens {
             params["maxTokens"] = json!(value);
         }
-        self.call_method("llm_complete", params)
+        self.call_method_with_progress("llm_complete", params, progress)
+    }
+
+    pub fn plan_agent_goal(
+        &self,
+        goal: &str,
+        scope: &str,
+        max_tools: i64,
+    ) -> Result<Value, String> {
+        self.plan_agent_goal_with_llm(goal, scope, max_tools, None)
+    }
+
+    pub fn plan_agent_goal_with_llm(
+        &self,
+        goal: &str,
+        scope: &str,
+        max_tools: i64,
+        llm: Option<Value>,
+    ) -> Result<Value, String> {
+        let mut params = json!({
+            "goal": goal,
+            "scope": scope,
+            "maxTools": max_tools,
+        });
+        if let Some(llm_options) = llm {
+            params["llm"] = llm_options;
+        }
+        self.call_method("plan_agent_goal", params)
     }
 
     pub fn rewrite_selection_typed(
@@ -783,22 +868,6 @@ impl NlpSidecar {
         self.call_method(
             "meeting_notes_pack",
             json!({ "text": text, "limit": limit }),
-        )
-    }
-
-    pub fn plan_agent_goal(
-        &self,
-        goal: &str,
-        scope: &str,
-        max_tools: i64,
-    ) -> Result<Value, String> {
-        self.call_method(
-            "plan_agent_goal",
-            json!({
-                "goal": goal,
-                "scope": scope,
-                "maxTools": max_tools,
-            }),
         )
     }
 
@@ -1055,6 +1124,7 @@ fn worker_loop(
                 params,
                 timeout,
                 reply,
+                progress,
             } => {
                 cancel.store(false, Ordering::SeqCst);
                 if process.as_mut().is_some_and(|current| watchdog_dead(current, &pid)) {
@@ -1110,7 +1180,24 @@ fn worker_loop(
                     }
                     let slice = remaining.min(Duration::from_millis(200));
                     match lines.as_ref().unwrap().recv_timeout(slice) {
-                        Ok(Ok(line)) => break parse_rpc_result(&line, id, &method),
+                        Ok(Ok(line)) => {
+                            if let Ok(value) = serde_json::from_str::<Value>(&line) {
+                                if value.get("method").and_then(|m| m.as_str()) == Some("nlp/chunk")
+                                {
+                                    if let Some(tx) = progress.as_ref() {
+                                        if let Some(text) = value
+                                            .get("params")
+                                            .and_then(|p| p.get("text"))
+                                            .and_then(|t| t.as_str())
+                                        {
+                                            let _ = tx.send(text.to_string());
+                                        }
+                                    }
+                                    continue;
+                                }
+                            }
+                            break parse_rpc_result(&line, id, &method);
+                        }
                         Ok(Err(error)) => break Err(error),
                         Err(RecvTimeoutError::Timeout) => continue,
                         Err(RecvTimeoutError::Disconnected) => {

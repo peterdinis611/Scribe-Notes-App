@@ -1332,6 +1332,7 @@ pub struct NlpSetLlmPrefsInput {
     pub model: Option<String>,
     pub use_rewrite: Option<bool>,
     pub use_answer: Option<bool>,
+    pub use_plan: Option<bool>,
 }
 
 #[tauri::command]
@@ -1349,6 +1350,7 @@ pub fn nlp_set_llm_prefs(
         input.model.as_deref(),
         input.use_rewrite,
         input.use_answer,
+        input.use_plan,
     )?;
     build_nlp_status(&sidecar, &conn, is_nlp_enabled(&conn)?)
 }
@@ -1423,6 +1425,107 @@ pub fn nlp_llm_status(
             .map(|value| value.to_string())
             .filter(|value| !value.is_empty()),
     })
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpLlmCompleteInput {
+    pub prompt: String,
+    pub system: Option<String>,
+    pub temperature: Option<f64>,
+    pub max_tokens: Option<i64>,
+    pub stream: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpLlmChunkEvent {
+    pub request_id: String,
+    pub text: String,
+    pub done: bool,
+}
+
+#[tauri::command]
+pub fn nlp_llm_complete(
+    app: AppHandle,
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpLlmCompleteInput,
+) -> Result<serde_json::Value, String> {
+    let prefs = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        if !is_nlp_enabled(&conn)? {
+            return Err("NLP is disabled".to_string());
+        }
+        let prefs = get_llm_prefs(&conn)?;
+        if !prefs.enabled {
+            return Err("Local LLM is disabled".to_string());
+        }
+        prefs
+    };
+    if !sidecar.script_exists() {
+        return Err("NLP sidecar unavailable".to_string());
+    }
+    let stream = input.stream.unwrap_or(false);
+    let request_id = format!("llm-{}", Utc::now().timestamp_millis());
+    let (progress_tx, progress_rx) = if stream {
+        let (tx, rx) = std::sync::mpsc::channel::<String>();
+        Some((tx, rx))
+    } else {
+        None
+    }
+    .map(|(tx, rx)| (Some(tx), Some(rx)))
+    .unwrap_or((None, None));
+
+    if let Some(rx) = progress_rx {
+        let app_handle = app.clone();
+        let rid = request_id.clone();
+        std::thread::spawn(move || {
+            while let Ok(text) = rx.recv() {
+                let _ = app_handle.emit(
+                    "nlp-llm-chunk",
+                    NlpLlmChunkEvent {
+                        request_id: rid.clone(),
+                        text,
+                        done: false,
+                    },
+                );
+            }
+        });
+    }
+
+    let result = sidecar.llm_complete_with_progress(
+        input.prompt.trim(),
+        input.system.as_deref(),
+        Some(prefs.base_url.as_str()),
+        if prefs.model.is_empty() {
+            None
+        } else {
+            Some(prefs.model.as_str())
+        },
+        input.temperature,
+        input.max_tokens,
+        progress_tx,
+        stream,
+    )?;
+
+    if stream {
+        let _ = app.emit(
+            "nlp-llm-chunk",
+            NlpLlmChunkEvent {
+                request_id: request_id.clone(),
+                text: String::new(),
+                done: true,
+            },
+        );
+    }
+
+    Ok(json!({
+        "requestId": request_id,
+        "text": result.get("text").and_then(|v| v.as_str()).unwrap_or(""),
+        "model": result.get("model").and_then(|v| v.as_str()),
+        "streamed": stream,
+    }))
 }
 
 #[tauri::command]
@@ -1841,16 +1944,17 @@ pub fn nlp_plan_agent_goal(
     sidecar: State<'_, NlpSidecar>,
     input: NlpPlanAgentGoalInput,
 ) -> Result<serde_json::Value, String> {
-    {
+    let llm = {
         let conn = state.conn.lock().map_err(|e| e.to_string())?;
         if !is_nlp_enabled(&conn)? {
             return Err("NLP is disabled".to_string());
         }
         let _ = sync_sidecar_backend(&sidecar, &conn);
-    }
+        llm_sidecar_options(&conn, "plan")?
+    };
     let scope = input.scope.as_deref().unwrap_or("document");
     let max_tools = input.max_tools.unwrap_or(3).clamp(1, 6);
-    sidecar.plan_agent_goal(input.goal.trim(), scope, max_tools)
+    sidecar.plan_agent_goal_with_llm(input.goal.trim(), scope, max_tools, llm)
 }
 
 #[derive(Debug, Deserialize)]
@@ -2134,11 +2238,13 @@ pub struct LibraryChatResult {
 
 #[tauri::command]
 pub fn nlp_library_answer(
+    app: AppHandle,
     state: State<'_, DbState>,
     sidecar: State<'_, NlpSidecar>,
     question: String,
     limit: Option<i64>,
     folder_id: Option<String>,
+    stream: Option<bool>,
 ) -> Result<LibraryChatResult, String> {
     let trimmed = question.trim().to_string();
     if trimmed.is_empty() {
@@ -2238,18 +2344,57 @@ pub fn nlp_library_answer(
         ));
     }
     let max_sentences = if passages.len() > hits.len() { 6 } else { 4 };
-    let llm = {
+    let (llm, want_stream) = {
         let conn = state.conn.lock().map_err(|e| e.to_string())?;
-        llm_sidecar_options(&conn, "answer")?
+        let llm = llm_sidecar_options(&conn, "answer")?;
+        let want_stream = stream.unwrap_or(false) && llm.is_some();
+        (llm, want_stream)
     };
-    let result = sidecar.library_answer_scoped_with_options(
+    let request_id = format!("ask-{}", Utc::now().timestamp_millis());
+    let (progress_tx, progress_rx) = if want_stream {
+        let (tx, rx) = std::sync::mpsc::channel::<String>();
+        Some((tx, rx))
+    } else {
+        None
+    }
+    .map(|(tx, rx)| (Some(tx), Some(rx)))
+    .unwrap_or((None, None));
+    if let Some(rx) = progress_rx {
+        let app_handle = app.clone();
+        let rid = request_id.clone();
+        std::thread::spawn(move || {
+            while let Ok(text) = rx.recv() {
+                let _ = app_handle.emit(
+                    "nlp-llm-chunk",
+                    NlpLlmChunkEvent {
+                        request_id: rid.clone(),
+                        text,
+                        done: false,
+                    },
+                );
+            }
+        });
+    }
+    let result = sidecar.library_answer_scoped_with_options_progress(
         &trimmed,
         json!(passages),
         max_sentences,
         "library",
         None,
         llm,
+        progress_tx,
+        want_stream,
     )?;
+    if want_stream {
+        let _ = app.emit(
+            "nlp-llm-chunk",
+            NlpLlmChunkEvent {
+                request_id,
+                text: String::new(),
+                done: true,
+            },
+        );
+    }
     let citations = result
         .get("citations")
         .and_then(|value| value.as_array())
@@ -2324,11 +2469,13 @@ pub struct DocumentAnswerContextMessage {
 
 #[tauri::command]
 pub fn nlp_document_answer(
+    app: AppHandle,
     state: State<'_, DbState>,
     sidecar: State<'_, NlpSidecar>,
     document_id: String,
     question: String,
     context: Option<Vec<DocumentAnswerContextMessage>>,
+    stream: Option<bool>,
 ) -> Result<LibraryChatResult, String> {
     let trimmed = question.trim().to_string();
     if trimmed.is_empty() {
@@ -2435,14 +2582,52 @@ pub fn nlp_document_answer(
     }
     let passages = json!(combined);
 
-    let result = sidecar.library_answer_scoped_with_options(
+    let want_stream = stream.unwrap_or(false) && llm.is_some();
+    let request_id = format!("ask-{}", Utc::now().timestamp_millis());
+    let (progress_tx, progress_rx) = if want_stream {
+        let (tx, rx) = std::sync::mpsc::channel::<String>();
+        Some((tx, rx))
+    } else {
+        None
+    }
+    .map(|(tx, rx)| (Some(tx), Some(rx)))
+    .unwrap_or((None, None));
+    if let Some(rx) = progress_rx {
+        let app_handle = app.clone();
+        let rid = request_id.clone();
+        std::thread::spawn(move || {
+            while let Ok(text) = rx.recv() {
+                let _ = app_handle.emit(
+                    "nlp-llm-chunk",
+                    NlpLlmChunkEvent {
+                        request_id: rid.clone(),
+                        text,
+                        done: false,
+                    },
+                );
+            }
+        });
+    }
+    let result = sidecar.library_answer_scoped_with_options_progress(
         &trimmed,
         passages.clone(),
         8,
         "document",
         answer_backend.as_deref(),
         llm,
+        progress_tx,
+        want_stream,
     )?;
+    if want_stream {
+        let _ = app.emit(
+            "nlp-llm-chunk",
+            NlpLlmChunkEvent {
+                request_id,
+                text: String::new(),
+                done: true,
+            },
+        );
+    }
     let fallback_title = title.clone();
     let citations = result
         .get("citations")

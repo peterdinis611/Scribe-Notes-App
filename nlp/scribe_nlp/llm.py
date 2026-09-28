@@ -1,6 +1,7 @@
 """Optional local LLM via Ollama HTTP API (stdlib only).
 
 Default: disabled. No PyTorch. Calls localhost OpenAI-compatible chat.
+Supports optional streaming via on_chunk callback (NDJSON from /api/chat).
 """
 
 from __future__ import annotations
@@ -8,6 +9,7 @@ from __future__ import annotations
 import json
 import urllib.error
 import urllib.request
+from collections.abc import Callable
 from typing import Any
 from urllib.parse import urlparse
 
@@ -15,6 +17,8 @@ DEFAULT_BASE_URL = "http://127.0.0.1:11434"
 DEFAULT_TIMEOUT_S = 90.0
 STATUS_TIMEOUT_S = 3.0
 MAX_PROMPT_CHARS = 24_000
+
+ChunkCallback = Callable[[str], None]
 
 
 def normalize_base_url(raw: str | None) -> str:
@@ -69,9 +73,6 @@ def llm_status(
             models.append(name)
 
     preferred = (model or "").strip()
-    if preferred and preferred not in models and models:
-        # Keep user choice even if not in list yet (pulling).
-        pass
     if not preferred and models:
         preferred = models[0]
 
@@ -94,8 +95,10 @@ def llm_complete(
     temperature: float = 0.2,
     max_tokens: int = 1024,
     timeout_s: float = DEFAULT_TIMEOUT_S,
+    stream: bool = False,
+    on_chunk: ChunkCallback | None = None,
 ) -> dict[str, Any]:
-    """Chat completion via Ollama `/api/chat` (non-streaming)."""
+    """Chat completion via Ollama `/api/chat`."""
     url = normalize_base_url(base_url)
     model_name = (model or "").strip()
     if not model_name:
@@ -119,20 +122,30 @@ def llm_complete(
     body = {
         "model": model_name,
         "messages": messages,
-        "stream": False,
+        "stream": bool(stream and on_chunk is not None),
         "options": {
             "temperature": max(0.0, min(float(temperature), 1.5)),
             "num_predict": max(64, min(int(max_tokens), 4096)),
         },
     }
-    payload = _http_json(
-        f"{url}/api/chat",
-        method="POST",
-        body=body,
-        timeout=timeout_s,
-    )
-    message = payload.get("message") if isinstance(payload.get("message"), dict) else {}
-    text = str(message.get("content") or payload.get("response") or "").strip()
+
+    if body["stream"]:
+        text = _http_chat_stream(
+            f"{url}/api/chat",
+            body=body,
+            timeout=timeout_s,
+            on_chunk=on_chunk,
+        )
+    else:
+        payload = _http_json(
+            f"{url}/api/chat",
+            method="POST",
+            body=body,
+            timeout=timeout_s,
+        )
+        message = payload.get("message") if isinstance(payload.get("message"), dict) else {}
+        text = str(message.get("content") or payload.get("response") or "").strip()
+
     if not text:
         raise RuntimeError("Ollama returned an empty response")
     return {
@@ -140,6 +153,7 @@ def llm_complete(
         "model": model_name,
         "provider": "ollama",
         "baseUrl": url,
+        "streamed": bool(body["stream"]),
     }
 
 
@@ -150,6 +164,8 @@ def try_complete_from_options(
     system: str | None = None,
     temperature: float = 0.2,
     max_tokens: int = 1024,
+    stream: bool = False,
+    on_chunk: ChunkCallback | None = None,
 ) -> str | None:
     """Best-effort complete; returns None when options missing or call fails."""
     if not isinstance(llm_options, dict) or not llm_options:
@@ -162,6 +178,8 @@ def try_complete_from_options(
             model=str(llm_options.get("model") or "") or None,
             temperature=temperature,
             max_tokens=max_tokens,
+            stream=stream,
+            on_chunk=on_chunk,
         )
         text = str(result.get("text") or "").strip()
         return text or None
@@ -197,3 +215,50 @@ def _http_json(
     if not isinstance(parsed, dict):
         raise RuntimeError("Ollama returned non-object JSON")
     return parsed
+
+
+def _http_chat_stream(
+    url: str,
+    *,
+    body: dict[str, Any],
+    timeout: float,
+    on_chunk: ChunkCallback | None,
+) -> str:
+    data = json.dumps(body).encode("utf-8")
+    request = urllib.request.Request(
+        url,
+        data=data,
+        headers={"Accept": "application/json", "Content-Type": "application/json"},
+        method="POST",
+    )
+    parts: list[str] = []
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            while True:
+                raw_line = response.readline()
+                if not raw_line:
+                    break
+                line = raw_line.decode("utf-8", errors="replace").strip()
+                if not line:
+                    continue
+                try:
+                    payload = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if not isinstance(payload, dict):
+                    continue
+                message = payload.get("message") if isinstance(payload.get("message"), dict) else {}
+                piece = str(message.get("content") or payload.get("response") or "")
+                if piece:
+                    parts.append(piece)
+                    if on_chunk is not None:
+                        on_chunk(piece)
+                if payload.get("done") is True:
+                    break
+    except urllib.error.HTTPError as error:
+        detail = error.read().decode("utf-8", errors="replace")[:400]
+        raise RuntimeError(f"Ollama HTTP {error.code}: {detail or error.reason}") from error
+    except urllib.error.URLError as error:
+        raise RuntimeError(f"Ollama unreachable: {error.reason}") from error
+
+    return "".join(parts).strip()
