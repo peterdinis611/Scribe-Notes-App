@@ -79,7 +79,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
   /** Agent moved to the right dock — never render it as a left library view. */
   const contentView =
     libraryView === 'agent' || libraryView === 'chat' ? 'folders' : libraryView
-  const isContentSearch = contentView !== 'chat' && query.trim().length >= 2
+  const isContentSearch = query.trim().length >= 2
 
   const visibleDocuments = useMemo(() => visibleLibraryDocuments(documents), [documents])
 

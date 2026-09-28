@@ -129,9 +129,14 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
   const activeDocumentId = useAppSelector((state) => state.documents.activeDocumentId)
+  const documents = useAppSelector((state) => state.documents.documents)
   const commentAuthor = useAppSelector((state) => state.documents.commentAuthor)
   const agentPrefs = useAppSelector((state) => state.settings.agentPrefs)
   const activeDocument = activeDocumentId ? peekCachedDocument(activeDocumentId) : null
+  const activeDocumentSummary = useMemo(
+    () => documents.find((doc) => doc.id === activeDocumentId) ?? null,
+    [activeDocumentId, documents],
+  )
 
   const [scope, setScope] = useState<ChatScope>(() =>
     activeDocumentId ? 'document' : 'library',
@@ -471,13 +476,12 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
         return
       }
       const tools = new Set((steps ?? []).map((step) => step.tool))
-      const doc = peekCachedDocument(activeDocumentId)
       const mode = preferredApplyMode(steps)
 
       try {
-        if (tools.has('organize') && doc) {
-          const suggestions = await nlpSuggestTags(doc.id)
-          const existing = new Set(doc.tags.map((tag) => tag.trim().toLowerCase()))
+        if (tools.has('organize') && activeDocumentSummary) {
+          const suggestions = await nlpSuggestTags(activeDocumentSummary.id)
+          const existing = new Set(activeDocumentSummary.tags.map((tag) => tag.trim().toLowerCase()))
           const tags = suggestions.tagSuggestions
             .map((tag) => tag.trim())
             .filter((tag) => tag && !existing.has(tag.toLowerCase()))
@@ -487,7 +491,7 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
             folderSuggestion: suggestions.folderSuggestion,
           })
           applyPendingRef.current = async () => {
-            const result = await applySuggestedTagsToDocument(doc, dispatch)
+            const result = await applySuggestedTagsToDocument(activeDocumentSummary, dispatch)
             if (result.added.length) {
               toast.success(t('agent.applyOrganizeDone', { tags: result.added.join(', ') }))
             } else if (result.folderSuggestion) {
@@ -528,7 +532,7 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
         toast.error(t('agent.applyFailed'), String(error))
       }
     },
-    [activeDocumentId, applyAnswerToNote, dispatch, preferredApplyMode, t],
+    [activeDocumentId, activeDocumentSummary, applyAnswerToNote, dispatch, preferredApplyMode, t],
   )
 
   const confirmApplyPreview = useCallback(async () => {

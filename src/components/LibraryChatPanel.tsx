@@ -385,8 +385,7 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
 
       try {
         let streamed = ''
-        let result: Awaited<ReturnType<typeof askChat>> | null = null
-        await withLlmChunkListener(
+        const result = await withLlmChunkListener(
           (chunk) => {
             streamed += chunk
             const snapshot = streamed
@@ -394,13 +393,11 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
               prev.map((item) => (item.id === streamingId ? { ...item, text: snapshot } : item)),
             )
           },
-          async () => {
-            result = await askChat(scope, trimmed, activeDocumentId, context, folderId, {
+          () =>
+            askChat(scope, trimmed, activeDocumentId, context, folderId, {
               stream: true,
-            })
-          },
+            }),
         )
-        if (!result) throw new Error('libraryChat.errorTitle')
         setNlpReady(true)
         if (scope === 'document' && activeDocumentId) {
           const saved = await persistPair(activeDocumentId, trimmed, {
@@ -414,7 +411,7 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
             return [
               ...withoutOptimistic,
               saved.savedUser,
-              { ...saved.savedAssistant, followups: result!.followups },
+              { ...saved.savedAssistant, followups: result.followups },
             ]
           })
         } else {
@@ -423,9 +420,9 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
               item.id === streamingId
                 ? {
                     ...item,
-                    text: result!.answer,
-                    citations: result!.citations,
-                    followups: result!.followups,
+                    text: result.answer,
+                    citations: result.citations,
+                    followups: result.followups,
                   }
                 : item,
             ),

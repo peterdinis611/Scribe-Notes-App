@@ -7,17 +7,17 @@ export type NlpLlmChunkEvent = {
 }
 
 /** Listen for streaming LLM token events while `run` executes. */
-export async function withLlmChunkListener(
+export async function withLlmChunkListener<T>(
   onChunk: (text: string) => void,
-  run: () => Promise<void>,
-): Promise<void> {
+  run: () => Promise<T>,
+): Promise<T> {
   let unlisten: UnlistenFn | null = null
   try {
     unlisten = await listen<NlpLlmChunkEvent>('nlp-llm-chunk', (event) => {
       if (event.payload.done) return
       if (event.payload.text) onChunk(event.payload.text)
     })
-    await run()
+    return await run()
   } finally {
     if (unlisten) await unlisten()
   }
