@@ -8,6 +8,7 @@ export interface NlpLlmPrefs {
   model: string
   useRewrite: boolean
   useAnswer: boolean
+  usePlan: boolean
 }
 
 export interface NlpLlmStatus {
@@ -192,6 +193,7 @@ export const nlpSetLlmPrefs = async (input: {
   model?: string
   useRewrite?: boolean
   useAnswer?: boolean
+  usePlan?: boolean
 }) => {
   const value = await invoke<NlpStatus>('nlp_set_llm_prefs', { input })
   statusCache = { value, at: Date.now() }
@@ -199,6 +201,14 @@ export const nlpSetLlmPrefs = async (input: {
 }
 
 export const nlpLlmStatus = () => invoke<NlpLlmStatus>('nlp_llm_status')
+
+export const nlpLlmComplete = (input: {
+  prompt: string
+  system?: string
+  temperature?: number
+  maxTokens?: number
+  stream?: boolean
+}) => invoke<{ requestId: string; text: string; model?: string; streamed: boolean }>('nlp_llm_complete', { input })
 
 export const nlpSearch = (
   query: string,

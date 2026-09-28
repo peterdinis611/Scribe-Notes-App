@@ -202,13 +202,15 @@ export function NlpSection() {
     }
   }
 
-  async function handleLlmUse(kind: 'rewrite' | 'answer') {
+  async function handleLlmUse(kind: 'rewrite' | 'answer' | 'plan') {
     if (!status?.llm) return
     try {
       const updated = await nlpSetLlmPrefs(
         kind === 'rewrite'
           ? { useRewrite: !status.llm.useRewrite }
-          : { useAnswer: !status.llm.useAnswer },
+          : kind === 'answer'
+            ? { useAnswer: !status.llm.useAnswer }
+            : { usePlan: !(status.llm.usePlan ?? true) },
       )
       setStatus(updated)
       toast.success(t('settings.nlp.llmSaveToast'))
@@ -549,6 +551,15 @@ export function NlpSection() {
                   onClick={() => void handleLlmUse('answer')}
                 >
                   {t('settings.nlp.llmUseAnswer')}
+                </Button>
+                <Button
+                  type="button"
+                  variant={(status.llm.usePlan ?? true) ? 'default' : 'outline'}
+                  size="sm"
+                  disabled={!status.enabled || loading}
+                  onClick={() => void handleLlmUse('plan')}
+                >
+                  {t('settings.nlp.llmUsePlan')}
                 </Button>
               </div>
             </SettingsRow>

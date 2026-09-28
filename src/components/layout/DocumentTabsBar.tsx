@@ -117,7 +117,7 @@ export function DocumentTabsBar() {
     dispatch(setActiveDocumentId(id))
     const cached = peekCachedDocument(id)
     if (cached) dispatch(setActiveDocument(cached))
-    else prefetchDocument(id)
+    else prefetchDocument(id, 'high')
     void navigate(ROUTES.document(id))
   }
 
@@ -275,7 +275,7 @@ function DocumentTab({
         type="button"
         className="document-tab-label"
         onClick={() => onActivate(tab.id)}
-        onPointerEnter={() => prefetchDocument(tab.id)}
+        onPointerEnter={() => prefetchDocument(tab.id, 'low')}
         title={tab.title}
       >
         {tab.dirty ? <span className="document-tab-dirty" aria-hidden /> : null}

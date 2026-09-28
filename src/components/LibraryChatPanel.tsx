@@ -35,6 +35,7 @@ import {
   type LibraryChatCitation,
 } from '@/lib/library/library-chat'
 import { documentQuestionHistory, type DocumentQuestionTurn } from '@/lib/library/document-question-history'
+import { withLlmChunkListener } from '@/lib/nlp/llm-stream'
 import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
@@ -375,10 +376,31 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
         role: 'user',
         text: trimmed,
       }
-      setMessages((prev) => [...prev, optimisticUser])
+      const streamingId = `a-stream-${Date.now()}`
+      setMessages((prev) => [
+        ...prev,
+        optimisticUser,
+        { id: streamingId, role: 'assistant', text: '' },
+      ])
 
       try {
-        const result = await askChat(scope, trimmed, activeDocumentId, context, folderId)
+        let streamed = ''
+        let result: Awaited<ReturnType<typeof askChat>> | null = null
+        await withLlmChunkListener(
+          (chunk) => {
+            streamed += chunk
+            const snapshot = streamed
+            setMessages((prev) =>
+              prev.map((item) => (item.id === streamingId ? { ...item, text: snapshot } : item)),
+            )
+          },
+          async () => {
+            result = await askChat(scope, trimmed, activeDocumentId, context, folderId, {
+              stream: true,
+            })
+          },
+        )
+        if (!result) throw new Error('libraryChat.errorTitle')
         setNlpReady(true)
         if (scope === 'document' && activeDocumentId) {
           const saved = await persistPair(activeDocumentId, trimmed, {
@@ -386,24 +408,28 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
             citations: result.citations,
           })
           setMessages((prev) => {
-            const withoutOptimistic = prev.filter((item) => item.id !== optimisticUser.id)
+            const withoutOptimistic = prev.filter(
+              (item) => item.id !== optimisticUser.id && item.id !== streamingId,
+            )
             return [
               ...withoutOptimistic,
               saved.savedUser,
-              { ...saved.savedAssistant, followups: result.followups },
+              { ...saved.savedAssistant, followups: result!.followups },
             ]
           })
         } else {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: `a-${Date.now()}`,
-              role: 'assistant',
-              text: result.answer,
-              citations: result.citations,
-              followups: result.followups,
-            },
-          ])
+          setMessages((prev) =>
+            prev.map((item) =>
+              item.id === streamingId
+                ? {
+                    ...item,
+                    text: result!.answer,
+                    citations: result!.citations,
+                    followups: result!.followups,
+                  }
+                : item,
+            ),
+          )
         }
       } catch (error) {
         const raw = error instanceof Error ? error.message : String(error)
@@ -412,14 +438,11 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
         }
         const description = translateError(raw, t)
         toast.error(t('libraryChat.errorTitle'), description)
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `a-${Date.now()}`,
-            role: 'assistant',
-            text: description,
-          },
-        ])
+        setMessages((prev) =>
+          prev.map((item) =>
+            item.id === streamingId ? { ...item, text: description } : item,
+          ),
+        )
       } finally {
         setLoading(false)
         inputRef.current?.focus()

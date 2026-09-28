@@ -14,10 +14,6 @@ declare module '@tiptap/core' {
   }
 }
 
-function stopEditorKeys(event: Event) {
-  event.stopPropagation()
-}
-
 function createD3ChartNodeView() {
   return ({
     node,
@@ -29,7 +25,6 @@ function createD3ChartNodeView() {
     editor: Editor
   }) => {
     let currentSource = String(node.attrs.source ?? '')
-    let editing = false
     let themeObserver: MutationObserver | null = null
 
     const wrapper = document.createElement('div')
@@ -54,34 +49,19 @@ function createD3ChartNodeView() {
     const preview = document.createElement('div')
     preview.className = 'd3-chart__preview'
 
-    const sourceArea = document.createElement('textarea')
-    sourceArea.className = 'd3-chart__source'
-    sourceArea.spellcheck = false
-    sourceArea.rows = 12
-    sourceArea.hidden = true
-
-    const actions = document.createElement('div')
-    actions.className = 'd3-chart__actions'
-    actions.hidden = true
-
-    const doneBtn = document.createElement('button')
-    doneBtn.type = 'button'
-    doneBtn.className = 'd3-chart__btn d3-chart__btn--primary'
-    doneBtn.textContent = i18n.t('d3Chart.done')
-
-    const cancelBtn = document.createElement('button')
-    cancelBtn.type = 'button'
-    cancelBtn.className = 'd3-chart__btn'
-    cancelBtn.textContent = i18n.t('d3Chart.cancel')
-
     toolbar.appendChild(editBtn)
-    actions.append(doneBtn, cancelBtn)
-    wrapper.append(toolbar, preview, sourceArea, actions)
+    wrapper.append(toolbar, preview)
 
     const setSourceOnNode = (source: string) => {
       const pos = getPos()
       if (pos == null) return
       editor.chain().focus().updateD3Chart({ source, pos }).run()
+    }
+
+    const deleteNode = () => {
+      const pos = getPos()
+      if (pos == null) return
+      editor.chain().focus().deleteD3Chart({ pos }).run()
     }
 
     const renderPreview = (source: string) => {
@@ -101,75 +81,45 @@ function createD3ChartNodeView() {
       }
     }
 
-    const enterEdit = () => {
-      if (!editor.isEditable || editing) return
-      editing = true
-      wrapper.classList.add('d3-chart--editing')
-      sourceArea.value = currentSource
-      sourceArea.hidden = false
-      actions.hidden = false
-      editBtn.hidden = true
-      preview.hidden = true
-      sourceArea.focus()
-    }
-
-    const exitEdit = (commit: boolean) => {
-      if (!editing) return
-      editing = false
-      wrapper.classList.remove('d3-chart--editing')
-      sourceArea.hidden = true
-      actions.hidden = true
-      editBtn.hidden = false
-      preview.hidden = false
-
-      if (commit) {
-        const next = sourceArea.value.trim() || D3_CHART_DEFAULT_SOURCE
-        currentSource = next
-        wrapper.dataset.source = next
-        setSourceOnNode(next)
-        renderPreview(next)
-      } else {
-        sourceArea.value = currentSource
-      }
+    const openBuilder = () => {
+      if (!editor.isEditable) return
+      void (async () => {
+        const { promptChartDialog } = await import('@/lib/chart-dialog')
+        const next = await promptChartDialog({
+          intent: 'edit',
+          initialSource: currentSource,
+        })
+        if (next === null || editor.isDestroyed) return
+        if (next.clear || !next.source.trim()) {
+          deleteNode()
+          return
+        }
+        const source = next.source.trim() || D3_CHART_DEFAULT_SOURCE
+        currentSource = source
+        wrapper.dataset.source = source
+        setSourceOnNode(source)
+        renderPreview(source)
+      })()
     }
 
     const onEditClick = (event: Event) => {
       event.preventDefault()
       event.stopPropagation()
-      enterEdit()
-    }
-
-    const onDoneClick = (event: Event) => {
-      event.preventDefault()
-      event.stopPropagation()
-      exitEdit(true)
-    }
-
-    const onCancelClick = (event: Event) => {
-      event.preventDefault()
-      event.stopPropagation()
-      exitEdit(false)
+      openBuilder()
     }
 
     const onDoubleClick = (event: Event) => {
-      if (!editor.isEditable || editing) return
+      if (!editor.isEditable) return
       event.preventDefault()
       event.stopPropagation()
-      enterEdit()
+      openBuilder()
     }
 
     editBtn.addEventListener('click', onEditClick)
-    doneBtn.addEventListener('click', onDoneClick)
-    cancelBtn.addEventListener('click', onCancelClick)
     wrapper.addEventListener('dblclick', onDoubleClick)
-    sourceArea.addEventListener('keydown', stopEditorKeys)
-    sourceArea.addEventListener('keyup', stopEditorKeys)
-    sourceArea.addEventListener('keypress', stopEditorKeys)
-    sourceArea.addEventListener('beforeinput', stopEditorKeys)
-    sourceArea.addEventListener('mousedown', stopEditorKeys)
 
     themeObserver = new MutationObserver(() => {
-      if (!editing) renderPreview(currentSource)
+      renderPreview(currentSource)
     })
     themeObserver.observe(document.documentElement, {
       attributes: true,
@@ -191,7 +141,7 @@ function createD3ChartNodeView() {
       update(updatedNode: PMNode) {
         if (updatedNode.type.name !== 'd3Chart') return false
         const next = String(updatedNode.attrs.source ?? '')
-        if (next !== currentSource && !editing) {
+        if (next !== currentSource) {
           currentSource = next
           wrapper.dataset.source = next
           renderPreview(next)
@@ -201,14 +151,7 @@ function createD3ChartNodeView() {
       destroy() {
         themeObserver?.disconnect()
         editBtn.removeEventListener('click', onEditClick)
-        doneBtn.removeEventListener('click', onDoneClick)
-        cancelBtn.removeEventListener('click', onCancelClick)
         wrapper.removeEventListener('dblclick', onDoubleClick)
-        sourceArea.removeEventListener('keydown', stopEditorKeys)
-        sourceArea.removeEventListener('keyup', stopEditorKeys)
-        sourceArea.removeEventListener('keypress', stopEditorKeys)
-        sourceArea.removeEventListener('beforeinput', stopEditorKeys)
-        sourceArea.removeEventListener('mousedown', stopEditorKeys)
       },
     }
   }

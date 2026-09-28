@@ -256,16 +256,58 @@
   },
   "mermaid": {
     "edit": "Upraviť",
-    "editTitle": "Upraviť Mermaid zdroj",
+    "editTitle": "Upraviť Mermaid diagram",
     "done": "Hotovo",
     "cancel": "Zrušiť",
-    "rendering": "Renderujem…"
+    "rendering": "Renderujem…",
+    "templates": {
+      "flowchart": "Tok",
+      "sequence": "Sekvencia",
+      "gantt": "Gantt",
+      "class": "Triedy",
+      "state": "Stavy"
+    },
+    "builder": {
+      "insertTitle": "Vložiť Mermaid diagram",
+      "editTitle": "Upraviť Mermaid diagram",
+      "description": "Vyberte šablónu alebo vložte Mermaid zdroj.",
+      "sourceLabel": "Zdroj",
+      "insert": "Vložiť",
+      "remove": "Odstrániť"
+    }
   },
   "d3Chart": {
     "edit": "Upraviť",
-    "editTitle": "Upraviť D3 graf (JSON)",
+    "editTitle": "Upraviť graf",
     "done": "Hotovo",
-    "cancel": "Zrušiť"
+    "cancel": "Zrušiť",
+    "types": {
+      "bar": "Stĺpcový",
+      "line": "Čiarový",
+      "area": "Plošný",
+      "pie": "Koláčový",
+      "donut": "Prstencový",
+      "hbar": "Vodorovný",
+      "scatter": "Bodový"
+    },
+    "builder": {
+      "insertTitle": "Vložiť graf",
+      "editTitle": "Upraviť graf",
+      "description": "Vyberte typ grafu, vložte dáta a skontrolujte náhľad.",
+      "titleLabel": "Názov",
+      "titlePlaceholder": "Voliteľný názov",
+      "gridLabel": "Dáta",
+      "gridHint": "Hlavička + hodnoty. Oddeľovač: čiarka, tabulátor alebo |.",
+      "jsonLabel": "JSON špecifikácia",
+      "previewEmpty": "Zatiaľ nie je čo zobraziť",
+      "simpleMode": "Jednoduché",
+      "advancedMode": "Pokročilé JSON",
+      "insert": "Vložiť",
+      "remove": "Odstrániť"
+    },
+    "fromTable": {
+      "needTable": "Najprv umiestnite kurzor do tabuľky"
+    }
   },
   "footnotes": {
     "edit": "Upraviť",
@@ -1062,6 +1104,8 @@
       "tools": {
         "status": "Zdravie, cesta k DB, writable príznak",
         "runAgent": "Spustí ten istý lokálny agent ako aplikácia Scribe",
+        "llmStatus": "Ping lokálnej Ollama (Local LLM)",
+        "llmComplete": "Generovanie cez opt-in lokálny LLM",
         "search": "Fulltextové / sémantické hľadanie v poznámkach",
         "libraryAnswer": "Otázka nad celou knižnicou s citáciami",
         "getDocument": "Načítať jednu poznámku ako plain text",
@@ -1214,6 +1258,7 @@
       "llmUsesDescription": "Retrieval ostáva lokálny; model len prepisuje alebo skladá odpoveď z pasáží.",
       "llmUseRewrite": "Prepis",
       "llmUseAnswer": "Ask / odpovede",
+      "llmUsePlan": "Plánovač agenta",
       "llmStatusTitle": "Stav Ollama",
       "llmInstallHint": "Inštalácia z ollama.com, potom pull modelu. Ak je offline, ostane rule-based Local AI.",
       "llmStatusOk": "Dostupná · {{count}} modelov",
@@ -2795,7 +2840,11 @@
     },
     "chart": {
       "label": "Graf",
-      "hint": "D3 stĺpcový, čiarový, area alebo koláč"
+      "hint": "Stĺpcový, čiarový, koláčový, prstencový a ďalšie"
+    },
+    "chart-from-table": {
+      "label": "Graf z tabuľky",
+      "hint": "Prevod aktuálnej tabuľky na graf"
     },
     "d3": {
       "label": "D3 graf",
@@ -3261,6 +3310,7 @@
       "sortDesc": "Zoradiť stĺpec Z→A",
       "fillDown": "Vyplniť nadol",
       "sumColumn": "Súčet stĺpca do bunky",
+      "chartFromTable": "Vytvoriť graf z tabuľky",
       "showInvisible": "Zobraziť neviditeľné znaky",
       "hideInvisible": "Skryť neviditeľné znaky",
       "spellcheckOn": "Zapnúť kontrolu pravopisu",

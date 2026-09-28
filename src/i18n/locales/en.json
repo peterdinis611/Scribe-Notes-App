@@ -256,16 +256,58 @@
   },
   "mermaid": {
     "edit": "Edit",
-    "editTitle": "Edit Mermaid source",
+    "editTitle": "Edit Mermaid diagram",
     "done": "Done",
     "cancel": "Cancel",
-    "rendering": "Rendering…"
+    "rendering": "Rendering…",
+    "templates": {
+      "flowchart": "Flowchart",
+      "sequence": "Sequence",
+      "gantt": "Gantt",
+      "class": "Class",
+      "state": "State"
+    },
+    "builder": {
+      "insertTitle": "Insert Mermaid diagram",
+      "editTitle": "Edit Mermaid diagram",
+      "description": "Pick a template or paste Mermaid source.",
+      "sourceLabel": "Source",
+      "insert": "Insert",
+      "remove": "Remove"
+    }
   },
   "d3Chart": {
     "edit": "Edit",
-    "editTitle": "Edit D3 chart JSON",
+    "editTitle": "Edit chart",
     "done": "Done",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "types": {
+      "bar": "Bar",
+      "line": "Line",
+      "area": "Area",
+      "pie": "Pie",
+      "donut": "Donut",
+      "hbar": "Horizontal bar",
+      "scatter": "Scatter"
+    },
+    "builder": {
+      "insertTitle": "Insert chart",
+      "editTitle": "Edit chart",
+      "description": "Choose a chart type, paste a data grid, and preview the result.",
+      "titleLabel": "Title",
+      "titlePlaceholder": "Optional title",
+      "gridLabel": "Data",
+      "gridHint": "Header row + values. Use commas, tabs, or pipes.",
+      "jsonLabel": "JSON spec",
+      "previewEmpty": "Nothing to preview yet",
+      "simpleMode": "Simple",
+      "advancedMode": "Advanced JSON",
+      "insert": "Insert",
+      "remove": "Remove"
+    },
+    "fromTable": {
+      "needTable": "Place the cursor in a table first"
+    }
   },
   "footnotes": {
     "edit": "Edit",
@@ -1062,6 +1104,8 @@
       "tools": {
         "status": "Health, DB path, writable flag",
         "runAgent": "Run the same local agent planner as the Scribe app",
+        "llmStatus": "Ping local Ollama (Local LLM)",
+        "llmComplete": "Generate with the opt-in local LLM",
         "search": "Full-text / semantic search over notes",
         "libraryAnswer": "Ask the whole library with citations",
         "getDocument": "Load one note as plain text",
@@ -1214,6 +1258,7 @@
       "llmUsesDescription": "Retrieval stays local; the model only rewrites or synthesizes from passages.",
       "llmUseRewrite": "Rewrite",
       "llmUseAnswer": "Ask / answers",
+      "llmUsePlan": "Agent planner",
       "llmStatusTitle": "Ollama status",
       "llmInstallHint": "Install from ollama.com, then pull a model. Falls back to rule-based Local AI if offline.",
       "llmStatusOk": "Reachable · {{count}} models",
@@ -2787,7 +2832,11 @@
     },
     "chart": {
       "label": "Chart",
-      "hint": "D3 bar, line, area, or pie"
+      "hint": "Bar, line, pie, donut, and more"
+    },
+    "chart-from-table": {
+      "label": "Chart from table",
+      "hint": "Convert the current table into a chart"
     },
     "d3": {
       "label": "D3 chart",
@@ -3247,6 +3296,7 @@
       "sortDesc": "Sort column Z→A",
       "fillDown": "Fill down",
       "sumColumn": "Sum column into cell",
+      "chartFromTable": "Create chart from table",
       "showInvisible": "Show invisible characters",
       "hideInvisible": "Hide invisible characters",
       "spellcheckOn": "Enable spell check",

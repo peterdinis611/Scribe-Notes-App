@@ -9,6 +9,7 @@ import {
   ArrowUpAZ,
   BetweenHorizontalEnd,
   BetweenVerticalEnd,
+  ChartColumn,
   Sigma,
   Trash2,
 } from 'lucide-react'
@@ -18,6 +19,7 @@ import {
   insertColumnTotalBelow,
   sortTableByActiveColumn,
 } from '@/lib/editor/table-commands'
+import { insertChartFromTable } from '@/lib/editor/insert-helpers'
 import {
   focusTableCell,
   getTableMatrix,
@@ -147,6 +149,14 @@ export function EditorTableBubbleMenu({ editor }: EditorTableBubbleMenuProps) {
             }}
           >
             <Sigma className="h-3.5 w-3.5" />
+          </TableBubbleIcon>
+          <TableBubbleIcon
+            label={t('toolbar.actions.chartFromTable')}
+            onClick={() => {
+              void insertChartFromTable(editor)
+            }}
+          >
+            <ChartColumn className="h-3.5 w-3.5" />
           </TableBubbleIcon>
           <span className="editor-bubble-divider" />
           <TableBubbleIcon

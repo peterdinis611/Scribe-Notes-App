@@ -4,6 +4,7 @@
  * Sync fallback kept for vitest / hot vault paths without IPC.
  */
 import { convertTiptap } from '@/lib/db/api'
+import { chartPreviewLabel } from '@/lib/editor/d3-chart'
 
 type TipTapNode = {
   type?: string
@@ -68,6 +69,19 @@ function blockToPlain(node: TipTapNode): string {
       return '---'
     case 'codeBlock':
       return inlineText(node.content)
+    case 'd3Chart': {
+      const source = String(node.attrs?.source ?? '')
+      const label = chartPreviewLabel(source)
+      return source.trim()
+        ? `[Chart: ${label}]\n\`\`\`chart\n${source.trim()}\n\`\`\``
+        : `[Chart: ${label}]`
+    }
+    case 'mermaidDiagram': {
+      const source = String(node.attrs?.source ?? '').trim()
+      return source
+        ? `[Mermaid]\n\`\`\`mermaid\n${source}\n\`\`\``
+        : '[Mermaid]'
+    }
     default:
       if (node.content) {
         return node.content.map(blockToPlain).filter(Boolean).join('\n')

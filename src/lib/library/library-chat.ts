@@ -117,6 +117,7 @@ export async function askDocument(
   documentId: string,
   question: string,
   context?: Array<{ role: string; text: string }>,
+  opts?: { stream?: boolean },
 ): Promise<LibraryChatResult> {
   const trimmed = question.trim()
   if (!trimmed) {
@@ -130,6 +131,7 @@ export async function askDocument(
     documentId,
     question: trimmed,
     context: context?.length ? context : null,
+    stream: opts?.stream ?? false,
   })
 }
 
@@ -139,6 +141,7 @@ export async function askChat(
   documentId?: string | null,
   context?: Array<{ role: string; text: string }>,
   folderId?: string | null,
+  opts?: { stream?: boolean },
 ): Promise<LibraryChatResult> {
   if (scope === 'document') {
     let action: DocumentChatAction | null = null
@@ -150,12 +153,12 @@ export async function askChat(
     if (action && documentId) {
       return runDocumentChatAction(documentId, action)
     }
-    return askDocument(documentId ?? '', question, context)
+    return askDocument(documentId ?? '', question, context, opts)
   }
   if (scope === 'folder') {
-    return askLibrary(question, { folderId: folderId ?? null })
+    return askLibrary(question, { folderId: folderId ?? null, stream: opts?.stream })
   }
-  return askLibrary(question)
+  return askLibrary(question, { stream: opts?.stream })
 }
 
 /** @deprecated Prefer Rust `match_document_chat_intent` — kept for sync tests only. */

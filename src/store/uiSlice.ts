@@ -29,6 +29,22 @@ export type MathDialogState =
       initialExpression: string
     }
 
+export type ChartDialogState =
+  | { open: false }
+  | {
+      open: true
+      intent: 'insert' | 'edit'
+      initialSource: string
+    }
+
+export type MermaidDialogState =
+  | { open: false }
+  | {
+      open: true
+      intent: 'insert' | 'edit'
+      initialSource: string
+    }
+
 export type InvoiceDialogState = {
   open: boolean
   /** Partial invoice draft seed; shaped like InvoiceDialogDraft. */
@@ -60,6 +76,8 @@ export interface UiState {
   inputDialog: InputDialogState
   loremDialog: LoremDialogState
   mathDialog: MathDialogState
+  chartDialog: ChartDialogState
+  mermaidDialog: MermaidDialogState
   invoiceDialog: InvoiceDialogState
   commentDialog: CommentDialogState
   storageAccessDialog: StorageAccessDialogState
@@ -72,6 +90,8 @@ const initialState: UiState = {
   inputDialog: { open: false },
   loremDialog: { open: false },
   mathDialog: { open: false },
+  chartDialog: { open: false },
+  mermaidDialog: { open: false },
   invoiceDialog: { open: false },
   commentDialog: { open: false },
   storageAccessDialog: { open: false },
@@ -98,6 +118,12 @@ const uiSlice = createSlice({
     setMathDialog(state, action: PayloadAction<MathDialogState>) {
       state.mathDialog = action.payload
     },
+    setChartDialog(state, action: PayloadAction<ChartDialogState>) {
+      state.chartDialog = action.payload
+    },
+    setMermaidDialog(state, action: PayloadAction<MermaidDialogState>) {
+      state.mermaidDialog = action.payload
+    },
     setInvoiceDialog(state, action: PayloadAction<InvoiceDialogState>) {
       state.invoiceDialog = action.payload
     },
@@ -122,6 +148,8 @@ export const {
   setInputDialog,
   setLoremDialog,
   setMathDialog,
+  setChartDialog,
+  setMermaidDialog,
   setInvoiceDialog,
   setCommentDialog,
   setStorageAccessDialog,
