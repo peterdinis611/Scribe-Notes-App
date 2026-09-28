@@ -10,6 +10,25 @@ pub const META_NLP_ENABLED: &str = "nlp_enabled";
 pub const META_NLP_EMBED_BACKEND: &str = "nlp_embed_backend";
 /// Answer-time embed: `auto` (Quality when available), `index` (same as index), or `quality`.
 pub const META_NLP_ANSWER_BACKEND: &str = "nlp_answer_backend";
+pub const META_NLP_LLM_ENABLED: &str = "nlp_llm_enabled";
+pub const META_NLP_LLM_PROVIDER: &str = "nlp_llm_provider";
+pub const META_NLP_LLM_BASE_URL: &str = "nlp_llm_base_url";
+pub const META_NLP_LLM_MODEL: &str = "nlp_llm_model";
+pub const META_NLP_LLM_USE_REWRITE: &str = "nlp_llm_use_rewrite";
+pub const META_NLP_LLM_USE_ANSWER: &str = "nlp_llm_use_answer";
+
+pub const DEFAULT_LLM_BASE_URL: &str = "http://127.0.0.1:11434";
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpLlmPrefs {
+    pub enabled: bool,
+    pub provider: String,
+    pub base_url: String,
+    pub model: String,
+    pub use_rewrite: bool,
+    pub use_answer: bool,
+}
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -112,6 +131,164 @@ pub fn set_answer_backend(conn: &Connection, backend: &str) -> Result<(), String
     )
     .map_err(|e| e.to_string())?;
     Ok(())
+}
+
+fn meta_flag(conn: &Connection, key: &str, default: bool) -> Result<bool, String> {
+    let value: Option<String> = conn
+        .query_row(
+            "SELECT value FROM meta WHERE key = ?1",
+            params![key],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|e| e.to_string())?;
+    Ok(match value.as_deref() {
+        Some("1") | Some("true") | Some("yes") | Some("on") => true,
+        Some("0") | Some("false") | Some("no") | Some("off") => false,
+        Some(_) => default,
+        None => default,
+    })
+}
+
+fn set_meta_flag(conn: &Connection, key: &str, enabled: bool) -> Result<(), String> {
+    conn.execute(
+        "INSERT OR REPLACE INTO meta (key, value) VALUES (?1, ?2)",
+        params![key, if enabled { "1" } else { "0" }],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+fn meta_string(conn: &Connection, key: &str, default: &str) -> Result<String, String> {
+    let value: Option<String> = conn
+        .query_row(
+            "SELECT value FROM meta WHERE key = ?1",
+            params![key],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|e| e.to_string())?;
+    Ok(value
+        .map(|item| item.trim().to_string())
+        .filter(|item| !item.is_empty())
+        .unwrap_or_else(|| default.to_string()))
+}
+
+fn set_meta_string(conn: &Connection, key: &str, value: &str) -> Result<(), String> {
+    conn.execute(
+        "INSERT OR REPLACE INTO meta (key, value) VALUES (?1, ?2)",
+        params![key, value],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+fn normalize_llm_base_url(raw: &str) -> Result<String, String> {
+    let trimmed = raw.trim().trim_end_matches('/').to_string();
+    let candidate = if trimmed.is_empty() {
+        DEFAULT_LLM_BASE_URL.to_string()
+    } else {
+        trimmed
+    };
+    let lower = candidate.to_ascii_lowercase();
+    if !(lower.starts_with("http://") || lower.starts_with("https://")) {
+        return Err("LLM base URL must be http(s)".to_string());
+    }
+    let host_part = candidate
+        .split("://")
+        .nth(1)
+        .unwrap_or("")
+        .split('/')
+        .next()
+        .unwrap_or("")
+        .split('@')
+        .next_back()
+        .unwrap_or("");
+    let host = host_part
+        .split(':')
+        .next()
+        .unwrap_or("")
+        .trim_matches(|c| c == '[' || c == ']')
+        .to_ascii_lowercase();
+    if !matches!(host.as_str(), "127.0.0.1" | "localhost" | "::1") {
+        return Err("LLM base URL must target localhost".to_string());
+    }
+    Ok(candidate)
+}
+
+pub fn get_llm_prefs(conn: &Connection) -> Result<NlpLlmPrefs, String> {
+    Ok(NlpLlmPrefs {
+        enabled: meta_flag(conn, META_NLP_LLM_ENABLED, false)?,
+        provider: {
+            let value = meta_string(conn, META_NLP_LLM_PROVIDER, "ollama")?;
+            if value.eq_ignore_ascii_case("ollama") {
+                "ollama".to_string()
+            } else {
+                "ollama".to_string()
+            }
+        },
+        base_url: meta_string(conn, META_NLP_LLM_BASE_URL, DEFAULT_LLM_BASE_URL)?,
+        model: meta_string(conn, META_NLP_LLM_MODEL, "")?,
+        use_rewrite: meta_flag(conn, META_NLP_LLM_USE_REWRITE, true)?,
+        use_answer: meta_flag(conn, META_NLP_LLM_USE_ANSWER, true)?,
+    })
+}
+
+pub fn set_llm_prefs(
+    conn: &Connection,
+    enabled: Option<bool>,
+    provider: Option<&str>,
+    base_url: Option<&str>,
+    model: Option<&str>,
+    use_rewrite: Option<bool>,
+    use_answer: Option<bool>,
+) -> Result<NlpLlmPrefs, String> {
+    if let Some(value) = enabled {
+        set_meta_flag(conn, META_NLP_LLM_ENABLED, value)?;
+    }
+    if let Some(value) = provider {
+        let normalized = if value.trim().eq_ignore_ascii_case("ollama") {
+            "ollama"
+        } else {
+            "ollama"
+        };
+        set_meta_string(conn, META_NLP_LLM_PROVIDER, normalized)?;
+    }
+    if let Some(value) = base_url {
+        let normalized = normalize_llm_base_url(value)?;
+        set_meta_string(conn, META_NLP_LLM_BASE_URL, &normalized)?;
+    }
+    if let Some(value) = model {
+        set_meta_string(conn, META_NLP_LLM_MODEL, value.trim())?;
+    }
+    if let Some(value) = use_rewrite {
+        set_meta_flag(conn, META_NLP_LLM_USE_REWRITE, value)?;
+    }
+    if let Some(value) = use_answer {
+        set_meta_flag(conn, META_NLP_LLM_USE_ANSWER, value)?;
+    }
+    get_llm_prefs(conn)
+}
+
+/// JSON options for sidecar `llm` param when the feature is enabled for `kind`.
+pub fn llm_sidecar_options(conn: &Connection, kind: &str) -> Result<Option<serde_json::Value>, String> {
+    let prefs = get_llm_prefs(conn)?;
+    if !prefs.enabled {
+        return Ok(None);
+    }
+    let allowed = match kind {
+        "rewrite" => prefs.use_rewrite,
+        "answer" => prefs.use_answer,
+        _ => false,
+    };
+    if !allowed {
+        return Ok(None);
+    }
+    Ok(Some(serde_json::json!({
+        "provider": prefs.provider,
+        "baseUrl": prefs.base_url,
+        "model": prefs.model,
+    })))
 }
 
 /// Whether document chunks exist for `current_model` and match note freshness.

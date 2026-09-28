@@ -120,6 +120,8 @@ FEATURES = [
     "passageRerank",
     "planAgentGoal",
     "agentDocumentBrief",
+    "llmStatus",
+    "llmComplete",
 ]
 
 
@@ -380,12 +382,15 @@ def _handle_request_inner(
                 answer_embed_backend = answer_backend_raw.strip().lower()
                 if answer_embed_backend not in {"hash", "fast", "quality"}:
                     answer_embed_backend = None
+            llm_raw = params.get("llm")
+            llm_options = llm_raw if isinstance(llm_raw, dict) else None
             result = library_answer(
                 question,
                 passages,
                 max_sentences=max_sentences,
                 scope=scope,
                 answer_embed_backend=answer_embed_backend,
+                llm=llm_options,
             )
         elif method == "suggest_wiki_links":
             from .wiki_suggest import suggest_wiki_links
@@ -506,7 +511,37 @@ def _handle_request_inner(
             mode = str(params.get("mode") or "rephrase_professional")
             custom_instruction = params.get("customInstruction")
             custom_value = str(custom_instruction) if custom_instruction else None
-            result = rewrite_selection(text, mode=mode, custom_instruction=custom_value)
+            llm_raw = params.get("llm")
+            llm_options = llm_raw if isinstance(llm_raw, dict) else None
+            result = rewrite_selection(
+                text,
+                mode=mode,
+                custom_instruction=custom_value,
+                llm=llm_options,
+            )
+        elif method == "llm_status":
+            from .llm import llm_status
+
+            result = llm_status(
+                base_url=str(params.get("baseUrl") or params.get("base_url") or "") or None,
+                model=str(params.get("model") or "") or None,
+            )
+        elif method == "llm_complete":
+            from .llm import llm_complete
+
+            prompt = _validate_text(str(params.get("prompt") or ""), field="prompt")
+            system = params.get("system")
+            system_value = str(system) if system else None
+            temperature = float(params.get("temperature") or 0.2)
+            max_tokens = max(64, min(int(params.get("maxTokens") or 1024), 4096))
+            result = llm_complete(
+                prompt=prompt,
+                system=system_value,
+                base_url=str(params.get("baseUrl") or params.get("base_url") or "") or None,
+                model=str(params.get("model") or "") or None,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
         elif method == "suggest_continuation":
             from .continuation import suggest_continuation
 

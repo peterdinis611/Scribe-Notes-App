@@ -345,6 +345,25 @@ impl NlpSidecar {
         scope: &str,
         answer_embed_backend: Option<&str>,
     ) -> Result<Value, String> {
+        self.library_answer_scoped_with_options(
+            question,
+            passages,
+            max_sentences,
+            scope,
+            answer_embed_backend,
+            None,
+        )
+    }
+
+    pub fn library_answer_scoped_with_options(
+        &self,
+        question: &str,
+        passages: Value,
+        max_sentences: i64,
+        scope: &str,
+        answer_embed_backend: Option<&str>,
+        llm: Option<Value>,
+    ) -> Result<Value, String> {
         let mut params = json!({
             "question": question,
             "passages": passages,
@@ -353,6 +372,9 @@ impl NlpSidecar {
         });
         if let Some(backend) = answer_embed_backend {
             params["answerEmbedBackend"] = json!(backend);
+        }
+        if let Some(llm_options) = llm {
+            params["llm"] = llm_options;
         }
         self.call_method("library_answer", params)
     }

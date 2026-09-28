@@ -8,14 +8,23 @@ def rewrite_selection(
     text: str,
     mode: str = "rephrase_professional",
     custom_instruction: str | None = None,
+    llm: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     from .extras import fix_unicode
 
     text = fix_unicode(text).strip()
     if not text:
-        return {"output": "", "mode": mode, "original": text}
+        return {"output": "", "mode": mode, "original": text, "source": "empty"}
 
     mode_lower = mode.lower().strip()
+    llm_output = _try_llm_rewrite(text, mode_lower, custom_instruction, llm)
+    if llm_output is not None:
+        return {
+            "output": llm_output,
+            "mode": mode,
+            "original": text,
+            "source": "llm",
+        }
 
     if mode_lower in {"rephrase_professional", "rephrase", "professional"}:
         output = _rephrase_professional(text)
@@ -40,7 +49,61 @@ def rewrite_selection(
         "output": output,
         "mode": mode,
         "original": text,
+        "source": "rules",
     }
+
+
+def _try_llm_rewrite(
+    text: str,
+    mode: str,
+    custom_instruction: str | None,
+    llm: dict[str, Any] | None,
+) -> str | None:
+    if not llm:
+        return None
+    from .llm import try_complete_from_options
+
+    instruction = _llm_mode_instruction(mode, custom_instruction)
+    system = (
+        "You are Scribe's local writing assistant. Rewrite only the given text. "
+        "Preserve meaning and language unless asked to translate. "
+        "Return only the rewritten text — no preamble or quotes."
+    )
+    prompt = f"{instruction}\n\n---\n{text}\n---"
+    return try_complete_from_options(
+        llm,
+        prompt=prompt,
+        system=system,
+        temperature=0.25,
+        max_tokens=min(2048, max(256, len(text) // 2 + 200)),
+    )
+
+
+def _llm_mode_instruction(mode: str, custom_instruction: str | None) -> str:
+    if mode in {"custom_prompt", "custom"} and custom_instruction:
+        return custom_instruction.strip()
+    mapping = {
+        "rephrase_professional": "Rewrite in a clear, professional tone.",
+        "rephrase": "Rewrite in a clear, professional tone.",
+        "professional": "Rewrite in a clear, professional tone.",
+        "summarize_bullets": "Summarize as a short bullet list.",
+        "bullets": "Summarize as a short bullet list.",
+        "summarize": "Summarize as a short bullet list.",
+        "shorten": "Make the text shorter while keeping key facts.",
+        "concise": "Make the text shorter while keeping key facts.",
+        "make_concise": "Make the text shorter while keeping key facts.",
+        "simplify": "Simplify wording for easier reading.",
+        "plain": "Simplify wording for easier reading.",
+        "expand_bullets": "Expand bullets into coherent short paragraphs.",
+        "from_bullets": "Expand bullets into coherent short paragraphs.",
+        "translate_sk": "Translate into natural Slovak.",
+        "to_sk": "Translate into natural Slovak.",
+        "sk": "Translate into natural Slovak.",
+        "translate_en": "Translate into natural English.",
+        "to_en": "Translate into natural English.",
+        "en": "Translate into natural English.",
+    }
+    return mapping.get(mode, "Improve clarity without changing meaning.")
 
 
 def _rephrase_professional(text: str) -> str:
