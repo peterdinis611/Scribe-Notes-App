@@ -1706,7 +1706,9 @@
     "pin": "Pin tab",
     "unpin": "Unpin tab",
     "reorder": "Drag to reorder",
-    "unsaved": "Unsaved"
+    "unsaved": "Unsaved",
+    "scrollLeft": "Scroll tabs left",
+    "scrollRight": "Scroll tabs right"
   },
   "split": {
     "close": "Close split pane"

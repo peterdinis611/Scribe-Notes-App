@@ -1706,7 +1706,9 @@
     "pin": "Pripnúť kartu",
     "unpin": "Odopnúť kartu",
     "reorder": "Presuňte na zmenu poradia",
-    "unsaved": "Neuložené"
+    "unsaved": "Neuložené",
+    "scrollLeft": "Posunúť karty doľava",
+    "scrollRight": "Posunúť karty doprava"
   },
   "split": {
     "close": "Zavrieť split panel"

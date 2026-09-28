@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useDrag, useDrop } from 'react-dnd'
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { Pin, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Pin, X } from 'lucide-react'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { prefetchDocument } from '@/lib/cache/prefetch-document'
 import { TAB_DND_TYPE, type TabDragItem } from '@/lib/dnd/types'
@@ -67,6 +67,12 @@ export function DocumentTabsBar() {
     })
   }, [])
 
+  const scrollByAmount = useCallback((direction: -1 | 1) => {
+    const el = listRef.current
+    if (!el) return
+    el.scrollBy({ left: direction * Math.max(160, el.clientWidth * 0.45), behavior: 'smooth' })
+  }, [])
+
   useEffect(() => {
     updateScrollHints()
   }, [tabs, updateScrollHints])
@@ -79,17 +85,30 @@ export function DocumentTabsBar() {
     const observer = new ResizeObserver(updateScrollHints)
     observer.observe(el)
 
+    const onWheel = (event: WheelEvent) => {
+      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return
+      if (el.scrollWidth <= el.clientWidth) return
+      event.preventDefault()
+      el.scrollLeft += event.deltaY
+      updateScrollHints()
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+
     return () => {
       el.removeEventListener('scroll', updateScrollHints)
+      el.removeEventListener('wheel', onWheel)
       observer.disconnect()
     }
   }, [updateScrollHints])
 
   useEffect(() => {
     if (!activeId) return
-    listRef.current
-      ?.querySelector<HTMLElement>(`[data-tab-id="${activeId}"]`)
-      ?.scrollIntoView({ inline: 'nearest', block: 'nearest' })
+    const frame = window.requestAnimationFrame(() => {
+      listRef.current
+        ?.querySelector<HTMLElement>(`[data-tab-id="${activeId}"]`)
+        ?.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' })
+    })
+    return () => window.cancelAnimationFrame(frame)
   }, [activeId, tabs])
 
   if (!onEditorRoute || focusMode || tabs.length === 0) return null
@@ -119,42 +138,72 @@ export function DocumentTabsBar() {
     dispatch(closeOpenDocument(id))
   }
 
+  const overflow = scrollHints.left || scrollHints.right
+
   return (
     <div
       className={cn(
         'document-tabs-shell',
         scrollHints.left && 'can-scroll-left',
         scrollHints.right && 'can-scroll-right',
+        overflow && 'is-overflowing',
       )}
       data-tour="document-tabs"
     >
+      {overflow ? (
+        <button
+          type="button"
+          className={cn('document-tabs-scroll-btn is-left', !scrollHints.left && 'is-disabled')}
+          onClick={() => scrollByAmount(-1)}
+          disabled={!scrollHints.left}
+          aria-label={t('tabs.scrollLeft')}
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+        </button>
+      ) : null}
+
       <div
         ref={listRef}
-        className="document-tabs titlebar-no-drag flex shrink-0 flex-nowrap items-stretch gap-0 overflow-x-auto overscroll-x-contain border-b border-[var(--color-border)] bg-[var(--color-rail)] px-2 [[data-sidebar-drawer=true]_&]:pl-[78px]"
+        className="document-tabs titlebar-no-drag"
         role="tablist"
         aria-label={t('tabs.ariaLabel')}
       >
-        {tabs.map((tab) => (
+        {tabs.map((tab, index) => (
           <DocumentTab
             key={tab.id}
             tab={tab}
+            index={index}
             isActive={tab.id === activeId}
             onActivate={activate}
             onClose={closeTab}
           />
         ))}
       </div>
+
+      {overflow ? (
+        <button
+          type="button"
+          className={cn('document-tabs-scroll-btn is-right', !scrollHints.right && 'is-disabled')}
+          onClick={() => scrollByAmount(1)}
+          disabled={!scrollHints.right}
+          aria-label={t('tabs.scrollRight')}
+        >
+          <ChevronRight className="h-3.5 w-3.5" />
+        </button>
+      ) : null}
     </div>
   )
 }
 
 function DocumentTab({
   tab,
+  index,
   isActive,
   onActivate,
   onClose,
 }: {
   tab: { id: string; title: string; pinned: boolean; dirty: boolean }
+  index: number
   isActive: boolean
   onActivate: (id: string) => void
   onClose: (id: string) => void
@@ -197,11 +246,12 @@ function DocumentTab({
       aria-selected={isActive}
       aria-roledescription={t('tabs.reorder')}
       title={tab.dirty ? `${tab.title} • ${t('tabs.unsaved')}` : tab.title}
+      style={{ '--tab-reveal': String(Math.min(index, 8)) } as CSSProperties}
       className={cn(
-        'group relative flex max-w-[200px] min-w-[96px] shrink-0 items-center gap-1 border-x border-t px-2.5 py-1.5 text-left transition-colors',
-        isActive
-          ? 'border-[var(--color-border)] bg-[var(--color-background)] text-[var(--color-foreground)] shadow-[inset_0_2px_0_0_var(--color-accent)]'
-          : 'border-transparent text-[var(--color-muted-foreground)] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]',
+        'document-tab group',
+        isActive && 'is-active',
+        tab.pinned && 'is-pinned',
+        tab.dirty && 'is-dirty',
         isDragging && 'is-dragging',
         isOver && 'is-drop-target',
       )}
@@ -209,12 +259,7 @@ function DocumentTab({
       <IconTooltip label={tab.pinned ? t('tabs.unpin') : t('tabs.pin')}>
         <button
           type="button"
-          className={cn(
-            'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border-none bg-transparent transition-opacity hover:bg-[var(--color-hover)]',
-            tab.pinned
-              ? 'text-[var(--color-accent)] opacity-100'
-              : 'text-[var(--color-muted-foreground)] opacity-0 group-hover:opacity-100',
-          )}
+          className={cn('document-tab-pin', tab.pinned && 'is-on')}
           onClick={(event) => {
             event.preventDefault()
             event.stopPropagation()
@@ -225,28 +270,23 @@ function DocumentTab({
           <Pin className={cn('h-3 w-3', tab.pinned && 'fill-current')} />
         </button>
       </IconTooltip>
+
       <button
         type="button"
-        className="min-w-0 flex-1 truncate border-none bg-transparent p-0 font-[family-name:var(--font-display)] text-[12px] font-semibold tracking-[-0.02em] text-inherit"
+        className="document-tab-label"
         onClick={() => onActivate(tab.id)}
         onPointerEnter={() => prefetchDocument(tab.id)}
         title={tab.title}
       >
-        {tab.dirty ? (
-          <span className="document-tab-dirty" aria-hidden>
-            ●
-          </span>
-        ) : null}
-        {tab.title}
+        {tab.dirty ? <span className="document-tab-dirty" aria-hidden /> : null}
+        <span className="document-tab-title">{tab.title}</span>
       </button>
-      {!tab.pinned && (
+
+      {!tab.pinned ? (
         <IconTooltip label={t('tabs.close')}>
           <button
             type="button"
-            className={cn(
-              'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border-none bg-transparent text-[var(--color-muted-foreground)] transition-opacity hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]',
-              isActive ? 'opacity-100' : 'opacity-60 group-hover:opacity-100',
-            )}
+            className="document-tab-close"
             onClick={(event) => {
               event.preventDefault()
               event.stopPropagation()
@@ -257,7 +297,7 @@ function DocumentTab({
             <X className="h-3 w-3" />
           </button>
         </IconTooltip>
-      )}
+      ) : null}
     </div>
   )
 }
