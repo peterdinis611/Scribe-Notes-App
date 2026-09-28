@@ -16,6 +16,7 @@ import {
   FolderOpen,
   FolderPlus,
   GitBranch,
+  HardDrive,
   Heading,
   Languages,
   Layers,
@@ -188,6 +189,7 @@ export function CommandPalette() {
   const openDocumentIds = useAppSelector((state) => state.documents.openDocumentIds)
   const folders = useAppSelector((state) => state.folders.folders)
   const themeSettings = useAppSelector((state) => state.settings.themeSettings)
+  const storageModeEnabled = useAppSelector((state) => state.settings.storageModeEnabled)
   const focusMode = useAppSelector((state) => state.documents.focusMode)
   const readingMode = useAppSelector((state) => state.documents.readingMode)
   const clipboardHistoryOpen = useAppSelector((state) => state.documents.clipboardHistoryPanelOpen)
@@ -838,6 +840,20 @@ export function CommandPalette() {
         icon: <GitBranch className="h-4 w-4" />,
         run: () => navigate(ROUTES.graph()),
       },
+      ...(storageModeEnabled
+        ? [
+            {
+              type: 'action' as const,
+              id: 'storage-mode',
+              label: t('commandPalette.storageMode'),
+              icon: <HardDrive className="h-4 w-4" />,
+              run: () => {
+                dispatch(setLibraryView('storage'))
+                void navigate(ROUTES.storageMode())
+              },
+            },
+          ]
+        : []),
       {
         type: 'action',
         id: 'duplicate-notes',
@@ -958,6 +974,7 @@ export function CommandPalette() {
       activeDocumentId,
       t,
       themeSettings,
+      storageModeEnabled,
     ],
   )
 

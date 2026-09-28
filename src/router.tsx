@@ -11,6 +11,7 @@ import { HomePage } from '@/pages/HomePage'
 import { DocumentPage } from '@/pages/DocumentPage'
 import { DocsPage } from '@/pages/DocsPage'
 import { GraphPage } from '@/pages/GraphPage'
+import { StorageModePage } from '@/pages/StorageModePage'
 import { ErrorPage } from '@/pages/ErrorPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { AppearancePage } from '@/pages/settings/AppearancePage'
@@ -62,6 +63,12 @@ const graphRoute = createRoute({
     around: search.around === true || search.around === 'true' ? true : undefined,
   }),
   component: GraphPage,
+})
+
+const storageModeRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/storage',
+  component: StorageModePage,
 })
 
 const settingsLayoutRoute = createRoute({
@@ -167,6 +174,7 @@ const routeTree = rootRoute.addChildren([
     documentRoute,
     docsRoute,
     graphRoute,
+    storageModeRoute,
     settingsLayoutRoute.addChildren([
       settingsIndexRoute,
       settingsAppearanceRoute,

@@ -22,6 +22,7 @@ import {
   SettingsRow,
   SettingsSection,
   SettingsSectionHeader,
+  SettingsToggle,
 } from '@/components/settings/SettingsPrimitives'
 import {
   APP_SHORTCUT_BINDINGS,
@@ -64,6 +65,7 @@ import {
   setShortcutOverride,
   resetShortcutOverrides,
   setFolderAutoSyncEnabled,
+  setStorageModeEnabled,
   setAutoBackupEnabled,
   setAutoBackupIntervalHours,
   setAutoBackupDirectory,
@@ -232,7 +234,7 @@ export function AppearanceSection() {
               title={t('settings.language.installedTitle')}
               description={t('settings.language.installedDescription')}
             >
-              <ul className="flex w-full max-w-md flex-col gap-1.5">
+              <ul className="flex w-full flex-col gap-1.5">
                 {customLocales.map((pack) => (
                   <li
                     key={pack.code}
@@ -400,6 +402,7 @@ export function AppearanceSection() {
 export function StorageSection() {
   const settings = useAppSelector((state) => state.settings.storageSettings)
   const folderAutoSyncEnabled = useAppSelector((state) => state.settings.folderAutoSyncEnabled)
+  const storageModeEnabled = useAppSelector((state) => state.settings.storageModeEnabled)
   const folderSyncStatus = useAppSelector((state) => state.documents.folderSyncStatus)
   const autoBackupEnabled = useAppSelector((state) => state.settings.autoBackupEnabled)
   const autoBackupIntervalHours = useAppSelector((state) => state.settings.autoBackupIntervalHours)
@@ -543,6 +546,26 @@ export function StorageSection() {
       />
 
       <LibrariesSettingsList />
+
+      <SettingsGroup>
+        <SettingsRow
+          title={t('settings.storage.storageModeTitle')}
+          description={t('settings.storage.storageModeDescription')}
+        >
+          <SettingsToggle
+            checked={storageModeEnabled}
+            onChange={() => {
+              const next = !storageModeEnabled
+              dispatch(setStorageModeEnabled(next))
+              if (next) {
+                void navigate(ROUTES.storageMode())
+              }
+            }}
+            onLabel={t('settings.storage.storageModeOn')}
+            offLabel={t('settings.storage.storageModeOff')}
+          />
+        </SettingsRow>
+      </SettingsGroup>
 
       <SettingsGroup>
         <SettingsRow

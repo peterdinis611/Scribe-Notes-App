@@ -29,6 +29,7 @@ import {
   persistAutoBackupDirectory,
   persistLastAutoBackupAt,
   persistAgentPrefs,
+  persistStorageModeEnabled,
   readEditorViewMode,
   readFolderAutoSyncEnabled,
   readLocale,
@@ -45,6 +46,7 @@ import {
   readAutoBackupDirectory,
   readLastAutoBackupAt,
   readAgentPrefs,
+  readStorageModeEnabled,
   readShowDocumentTabs,
   readShowEditorToolbar,
   readShowStatusBar,
@@ -90,6 +92,7 @@ export interface SettingsState {
   printLayoutColumns: PrintLayoutColumns
   spellCheckEnabled: boolean
   folderAutoSyncEnabled: boolean
+  storageModeEnabled: boolean
   autoBackupEnabled: boolean
   autoBackupIntervalHours: AutoBackupIntervalHours
   autoBackupDirectory: string | null
@@ -116,6 +119,7 @@ const initialState: SettingsState = {
   printLayoutColumns: readPrintColumns(),
   spellCheckEnabled: readSpellCheckEnabled(),
   folderAutoSyncEnabled: readFolderAutoSyncEnabled(),
+  storageModeEnabled: readStorageModeEnabled(),
   autoBackupEnabled: readAutoBackupEnabled(),
   autoBackupIntervalHours: readAutoBackupIntervalHours(),
   autoBackupDirectory: readAutoBackupDirectory(),
@@ -181,6 +185,10 @@ const settingsSlice = createSlice({
     setFolderAutoSyncEnabled(state, action: PayloadAction<boolean>) {
       state.folderAutoSyncEnabled = action.payload
       persistFolderAutoSyncEnabled(action.payload)
+    },
+    setStorageModeEnabled(state, action: PayloadAction<boolean>) {
+      state.storageModeEnabled = action.payload
+      persistStorageModeEnabled(action.payload)
     },
     setAutoBackupEnabled(state, action: PayloadAction<boolean>) {
       state.autoBackupEnabled = action.payload
@@ -327,6 +335,7 @@ export const {
   setPrintLayoutColumns,
   setSpellCheckEnabled,
   setFolderAutoSyncEnabled,
+  setStorageModeEnabled,
   setAutoBackupEnabled,
   setAutoBackupIntervalHours,
   setAutoBackupDirectory,

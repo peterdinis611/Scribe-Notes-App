@@ -366,6 +366,7 @@ pub fn run() {
             commands::import_export::force_save_document,
             commands::import_export::normalize_clipboard_html,
             commands::images::save_document_image,
+            commands::images::list_library_assets,
             commands::system::get_backend_stats,
             commands::system::flush_pending_writes,
             commands::system::reconcile_storage,

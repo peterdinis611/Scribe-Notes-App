@@ -959,6 +959,21 @@ export const saveDocumentImage = (
     dataBase64,
   })
 
+export type LibraryAssetKind = 'image' | 'svg' | 'lottie' | 'model3d' | 'other'
+
+export interface LibraryAsset {
+  path: string
+  fileName: string
+  extension: string
+  kind: LibraryAssetKind | string
+  sizeBytes: number
+  documentId: string
+  documentTitle: string | null
+  modifiedAt: number | null
+}
+
+export const listLibraryAssets = () => invoke<LibraryAsset[]>('list_library_assets')
+
 export interface CustomTemplateCategoryRow {
   id: string
   name: string
