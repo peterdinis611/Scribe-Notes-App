@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 import { goToHome } from '@/lib/navigation'
 import { useAppDispatch } from '@/store/hooks'
+import { StorageLocalApiPanel } from '@/components/storage/StorageLocalApiPanel'
 
 type AssetFilter = 'all' | 'image' | 'svg' | 'lottie' | 'model3d' | 'other'
 
@@ -163,75 +164,78 @@ export function StorageModeView() {
         </p>
       </div>
 
-      <div className="storage-mode-body titlebar-no-drag">
-        {loading ? (
-          <p className="storage-mode-empty">{t('storageMode.loading')}</p>
-        ) : filtered.length === 0 ? (
-          <div className="storage-mode-empty-card">
-            <HardDrive className="h-6 w-6 text-[var(--color-muted-foreground)]" />
-            <p className="m-0 mt-2 text-[14px] font-semibold text-[var(--color-foreground)]">
-              {assets.length === 0 ? t('storageMode.emptyTitle') : t('storageMode.emptyFilteredTitle')}
-            </p>
-            <p className="m-0 mt-1 max-w-[42ch] text-center text-[12.5px] leading-relaxed text-[var(--color-muted-foreground)]">
-              {assets.length === 0 ? t('storageMode.emptyBody') : t('storageMode.emptyFilteredBody')}
-            </p>
-          </div>
-        ) : (
-          <ul className="storage-mode-grid">
-            {filtered.map((asset) => (
-              <li key={asset.path} className="storage-mode-card">
-                <div className="storage-mode-thumb">
-                  {isPreviewable(asset.kind) ? (
-                    <img
-                      src={convertFileSrc(asset.path)}
-                      alt={asset.fileName}
-                      loading="lazy"
-                      className="storage-mode-thumb-img"
-                    />
-                  ) : (
-                    <span className="storage-mode-thumb-fallback" aria-hidden="true">
-                      <KindIcon kind={asset.kind} />
-                    </span>
-                  )}
-                </div>
-                <div className="storage-mode-card-body">
-                  <p className="storage-mode-file" title={asset.fileName}>
-                    {asset.fileName}
-                  </p>
-                  <p className="storage-mode-meta">
-                    {asset.extension ? asset.extension.toUpperCase() : 'FILE'} · {formatBytes(asset.sizeBytes)}
-                  </p>
-                  <p className="storage-mode-doc" title={asset.documentTitle ?? asset.documentId}>
-                    {asset.documentTitle || t('storageMode.orphanDocument')}
-                  </p>
-                  <div className="storage-mode-actions">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-7 gap-1 px-2 text-[11px]"
-                      onClick={() => void revealInFinder(asset.path).catch((error) => toast.error(String(error)))}
-                    >
-                      <FolderOpen className="h-3 w-3" />
-                      {t('storageMode.reveal')}
-                    </Button>
-                    {asset.documentTitle ? (
+      <div className="storage-mode-main titlebar-no-drag">
+        <div className="storage-mode-body">
+          {loading ? (
+            <p className="storage-mode-empty">{t('storageMode.loading')}</p>
+          ) : filtered.length === 0 ? (
+            <div className="storage-mode-empty-card">
+              <HardDrive className="h-6 w-6 text-[var(--color-muted-foreground)]" />
+              <p className="m-0 mt-2 text-[14px] font-semibold text-[var(--color-foreground)]">
+                {assets.length === 0 ? t('storageMode.emptyTitle') : t('storageMode.emptyFilteredTitle')}
+              </p>
+              <p className="m-0 mt-1 max-w-[42ch] text-center text-[12.5px] leading-relaxed text-[var(--color-muted-foreground)]">
+                {assets.length === 0 ? t('storageMode.emptyBody') : t('storageMode.emptyFilteredBody')}
+              </p>
+            </div>
+          ) : (
+            <ul className="storage-mode-grid">
+              {filtered.map((asset) => (
+                <li key={asset.path} className="storage-mode-card">
+                  <div className="storage-mode-thumb">
+                    {isPreviewable(asset.kind) ? (
+                      <img
+                        src={convertFileSrc(asset.path)}
+                        alt={asset.fileName}
+                        loading="lazy"
+                        className="storage-mode-thumb-img"
+                      />
+                    ) : (
+                      <span className="storage-mode-thumb-fallback" aria-hidden="true">
+                        <KindIcon kind={asset.kind} />
+                      </span>
+                    )}
+                  </div>
+                  <div className="storage-mode-card-body">
+                    <p className="storage-mode-file" title={asset.fileName}>
+                      {asset.fileName}
+                    </p>
+                    <p className="storage-mode-meta">
+                      {asset.extension ? asset.extension.toUpperCase() : 'FILE'} · {formatBytes(asset.sizeBytes)}
+                    </p>
+                    <p className="storage-mode-doc" title={asset.documentTitle ?? asset.documentId}>
+                      {asset.documentTitle || t('storageMode.orphanDocument')}
+                    </p>
+                    <div className="storage-mode-actions">
                       <Button
                         type="button"
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        className="h-7 px-2 text-[11px]"
-                        onClick={() => void navigate(ROUTES.document(asset.documentId))}
+                        className="h-7 gap-1 px-2 text-[11px]"
+                        onClick={() => void revealInFinder(asset.path).catch((error) => toast.error(String(error)))}
                       >
-                        {t('storageMode.openDocument')}
+                        <FolderOpen className="h-3 w-3" />
+                        {t('storageMode.reveal')}
                       </Button>
-                    ) : null}
+                      {asset.documentTitle ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-[11px]"
+                          onClick={() => void navigate(ROUTES.document(asset.documentId))}
+                        >
+                          {t('storageMode.openDocument')}
+                        </Button>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <StorageLocalApiPanel />
       </div>
     </div>
   )
