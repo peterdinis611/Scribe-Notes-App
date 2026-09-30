@@ -13,7 +13,6 @@ pub mod path;
 pub mod plain_text;
 pub mod store;
 pub mod store_ext;
-pub mod storage_fs;
 pub mod tags;
 pub mod tasks;
 pub mod vault;
@@ -35,13 +34,6 @@ pub use journal::{JournalNote, JournalSlot, JournalSummary, JournalSummaryInput}
 pub use office_import::{docx_bytes_to_tiptap, xlsx_bytes_to_tiptap};
 pub use plain_text::{tiptap_to_markdown, tiptap_to_plain_text};
 pub use store::{search_library, sync_sidecar_backend};
-pub use storage_fs::{
-    absolute_path as storage_fs_absolute_path, delete as storage_fs_delete,
-    ensure_files_root, list as storage_fs_list, mkdir as storage_fs_mkdir,
-    read_file as storage_fs_read, rename as storage_fs_rename, resolve_files_path,
-    safe_join_under as storage_fs_safe_join, stat as storage_fs_stat, write_file as storage_fs_write,
-    ListOpts as StorageFsListOpts, StorageEntry, StorageEntryKind, MAX_WRITE_BYTES,
-};
 pub use tags::{
     add_document_tag, document_matches_meta_filters, make_meta_tag, parse_meta_tag,
     remove_document_tag, IdTags, MetaFilters, ParsedTag, TagKind, STATUS_TAG_VALUES,

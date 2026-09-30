@@ -3755,7 +3755,6 @@ name = "scribe-mcp"
 version = "2.9.0"
 dependencies = [
  "anyhow",
- "base64 0.22.1",
  "rmcp",
  "schemars 1.2.2",
  "scribe-agent",
