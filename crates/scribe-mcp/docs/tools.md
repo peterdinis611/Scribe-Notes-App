@@ -854,6 +854,22 @@ Lists files under `{documentsDir}/assets/{id}/` with `kind`: `image` | `svg` | `
 
 ---
 
+## `storage_fs_list` / `storage_fs_stat` / `storage_fs_mkdir` / `storage_fs_write` / `storage_fs_read` / `storage_fs_delete` / `storage_fs_rename`
+
+Sandboxed file store under `{documentsDir}/files/`. Paths are relative to that root (no `..`). See `docs/storage-fs-api.md`.
+
+| Tool | Args | Notes |
+|------|------|--------|
+| `storage_fs_list` | `path?`, `recursive?`, `depth?` | List entries |
+| `storage_fs_stat` | `path` | One entry (empty = root) |
+| `storage_fs_mkdir` | `path` | Writable |
+| `storage_fs_write` | `path`, `dataBase64`, `overwrite?` | Writable; max 100 MiB |
+| `storage_fs_read` | `path` | Returns `dataBase64` |
+| `storage_fs_delete` | `path`, `recursive?` | Writable |
+| `storage_fs_rename` | `from`, `to` | Writable |
+
+---
+
 ## `document_answer`
 
 Answer a question from **one** document (chunked passages + Local AI). Optional `context` turns (`role`, `text`) for follow-ups.

@@ -3,6 +3,7 @@ use std::future::ready;
 use std::path::PathBuf;
 use std::sync::Mutex;
 
+use base64::{engine::general_purpose::STANDARD, Engine as _};
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{
     ErrorData, GetPromptResult, ListResourceTemplatesResult, ListResourcesResult, PromptMessage,
@@ -18,6 +19,20 @@ use scribe_core::store::{
     open_scribe_store, JournalSlot, JournalSummaryInput, ScribeStore, SearchFilter,
 };
 use scribe_core::vault::McpVaultScope;
+
+fn decode_storage_fs_base64(data_base64: &str) -> Result<Vec<u8>, String> {
+    let payload = data_base64
+        .split_once(',')
+        .map(|(_, data)| data)
+        .unwrap_or(data_base64);
+    STANDARD
+        .decode(payload)
+        .map_err(|e| format!("Invalid base64: {e}"))
+}
+
+fn encode_storage_fs_base64(bytes: &[u8]) -> String {
+    STANDARD.encode(bytes)
+}
 
 pub struct ScribeMcp {
     store: Mutex<ScribeStore>,
@@ -47,6 +62,14 @@ impl ScribeMcp {
     fn with_store<T, F: FnOnce(&ScribeStore) -> Result<T, String>>(&self, f: F) -> Result<T, String> {
         let guard = self.store.lock().map_err(|e| e.to_string())?;
         f(&guard)
+    }
+
+    fn require_writable(&self) -> Result<(), String> {
+        if self.writable {
+            Ok(())
+        } else {
+            Err("Database is read-only (open Scribe or set a writable DB path)".to_string())
+        }
     }
 
     fn filter_hits(
@@ -1634,6 +1657,114 @@ impl ScribeMcp {
         })
     }
 
+    #[tool(description = "List files/folders under {documentsDir}/files/ (Storage Mode Files API). Paths are relative to files/.")]
+    fn storage_fs_list(
+        &self,
+        Parameters(params): Parameters<tools::StorageFsListParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            let dir = store.documents_dir()?;
+            let entries = scribe_core::storage_fs_list(
+                &dir,
+                scribe_core::StorageFsListOpts {
+                    path: params.path,
+                    recursive: params.recursive.unwrap_or(false),
+                    depth: params.depth,
+                },
+            )?;
+            Ok(tools::json(&serde_json::json!({
+                "count": entries.len(),
+                "entries": entries,
+            })))
+        })
+    }
+
+    #[tool(description = "Stat one path under {documentsDir}/files/. Empty path is the files root.")]
+    fn storage_fs_stat(
+        &self,
+        Parameters(params): Parameters<tools::StorageFsPathParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            let dir = store.documents_dir()?;
+            Ok(tools::json(&scribe_core::storage_fs_stat(&dir, &params.path)?))
+        })
+    }
+
+    #[tool(description = "Create a directory under {documentsDir}/files/ (parents created). Requires writable DB session.")]
+    fn storage_fs_mkdir(
+        &self,
+        Parameters(params): Parameters<tools::StorageFsPathParams>,
+    ) -> Result<String, String> {
+        self.require_writable()?;
+        self.with_store(|store| {
+            let dir = store.documents_dir()?;
+            Ok(tools::json(&scribe_core::storage_fs_mkdir(&dir, &params.path)?))
+        })
+    }
+
+    #[tool(description = "Write a file under {documentsDir}/files/ from base64. Requires writable. Soft max 100 MiB.")]
+    fn storage_fs_write(
+        &self,
+        Parameters(params): Parameters<tools::StorageFsWriteParams>,
+    ) -> Result<String, String> {
+        self.require_writable()?;
+        self.with_store(|store| {
+            let dir = store.documents_dir()?;
+            let bytes = decode_storage_fs_base64(&params.data_base64)?;
+            Ok(tools::json(&scribe_core::storage_fs_write(
+                &dir,
+                &params.path,
+                &bytes,
+                params.overwrite.unwrap_or(false),
+            )?))
+        })
+    }
+
+    #[tool(description = "Read a file under {documentsDir}/files/ as base64.")]
+    fn storage_fs_read(
+        &self,
+        Parameters(params): Parameters<tools::StorageFsPathParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            let dir = store.documents_dir()?;
+            let bytes = scribe_core::storage_fs_read(&dir, &params.path)?;
+            Ok(tools::json(&serde_json::json!({
+                "path": params.path,
+                "sizeBytes": bytes.len(),
+                "dataBase64": encode_storage_fs_base64(&bytes),
+            })))
+        })
+    }
+
+    #[tool(description = "Delete a file (or directory with recursive=true) under {documentsDir}/files/. Requires writable.")]
+    fn storage_fs_delete(
+        &self,
+        Parameters(params): Parameters<tools::StorageFsDeleteParams>,
+    ) -> Result<String, String> {
+        self.require_writable()?;
+        self.with_store(|store| {
+            let dir = store.documents_dir()?;
+            scribe_core::storage_fs_delete(&dir, &params.path, params.recursive.unwrap_or(false))?;
+            Ok(tools::json(&serde_json::json!({ "ok": true, "path": params.path })))
+        })
+    }
+
+    #[tool(description = "Rename/move within {documentsDir}/files/. Requires writable.")]
+    fn storage_fs_rename(
+        &self,
+        Parameters(params): Parameters<tools::StorageFsRenameParams>,
+    ) -> Result<String, String> {
+        self.require_writable()?;
+        self.with_store(|store| {
+            let dir = store.documents_dir()?;
+            Ok(tools::json(&scribe_core::storage_fs_rename(
+                &dir,
+                &params.from,
+                &params.to,
+            )?))
+        })
+    }
+
     #[tool(description = "Rewrite selected text via Local AI (rephrase_professional, summarize_bullets, translate_sk, translate_en, custom_prompt). Does not mutate the note.")]
     fn rewrite_selection(
         &self,
@@ -2550,6 +2681,7 @@ impl ServerHandler for ScribeMcp {
              Manuscripts: list_manuscripts / upsert_manuscript / compile_manuscript. \
              Sync: list_sync_conflicts / resolve_sync_conflict. \
              Media: list_document_assets / extract_asset_ocr. \
+             Files store: storage_fs_list / storage_fs_stat / storage_fs_mkdir / storage_fs_write / storage_fs_read / storage_fs_delete / storage_fs_rename (under documentsDir/files/). \
              Find/replace is dry-run by default (library_find_replace). \
              Templates: list_templates then create_note_from_template. \
              Backups: list_backups / create_backup. \

@@ -645,3 +645,39 @@ pub struct SwitchAndSearchParams {
     pub library: Option<String>,
     pub query: Option<String>,
 }
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct StorageFsListParams {
+    pub path: Option<String>,
+    pub recursive: Option<bool>,
+    pub depth: Option<u32>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct StorageFsPathParams {
+    pub path: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct StorageFsWriteParams {
+    pub path: String,
+    pub data_base64: String,
+    pub overwrite: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct StorageFsDeleteParams {
+    pub path: String,
+    pub recursive: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct StorageFsRenameParams {
+    pub from: String,
+    pub to: String,
+}

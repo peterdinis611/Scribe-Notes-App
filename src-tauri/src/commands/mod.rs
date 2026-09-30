@@ -12,6 +12,7 @@ pub mod revisions;
 pub mod search;
 pub mod smart_folders;
 pub mod storage;
+pub mod storage_fs;
 pub mod system;
 pub mod links;
 pub mod nlp;
