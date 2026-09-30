@@ -51,15 +51,13 @@ export const storageFsReveal = (input: StorageFsPathRef) =>
 /** Encode Uint8Array / string to base64 for `storageFsWrite`. */
 export function toStorageFsBase64(data: Uint8Array | string): string {
   if (typeof data === 'string') {
-    if (typeof btoa === 'function') {
-      return btoa(unescape(encodeURIComponent(data)))
-    }
-    return Buffer.from(data, 'utf8').toString('base64')
+    const bytes = new TextEncoder().encode(data)
+    return toStorageFsBase64(bytes)
   }
   let binary = ''
-  for (let i = 0; i < data.length; i += 1) {
-    binary += String.fromCharCode(data[i]!)
+  const chunk = 0x8000
+  for (let i = 0; i < data.length; i += chunk) {
+    binary += String.fromCharCode(...data.subarray(i, i + chunk))
   }
-  if (typeof btoa === 'function') return btoa(binary)
-  return Buffer.from(data).toString('base64')
+  return btoa(binary)
 }

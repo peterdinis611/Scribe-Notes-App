@@ -5,7 +5,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Component, Path, PathBuf};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::UNIX_EPOCH;
 
 const FILES_DIR_NAME: &str = "files";
 /// Soft cap for a single write (100 MiB). Raise later if needed.

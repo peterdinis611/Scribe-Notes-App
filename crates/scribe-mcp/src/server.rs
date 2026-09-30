@@ -1664,9 +1664,9 @@ impl ScribeMcp {
     ) -> Result<String, String> {
         self.with_store(|store| {
             let dir = store.documents_dir()?;
-            let entries = scribe_core::storage_fs_list(
+            let entries = scribe_core::storage_fs::list(
                 &dir,
-                scribe_core::StorageFsListOpts {
+                scribe_core::storage_fs::ListOpts {
                     path: params.path,
                     recursive: params.recursive.unwrap_or(false),
                     depth: params.depth,
@@ -1686,7 +1686,7 @@ impl ScribeMcp {
     ) -> Result<String, String> {
         self.with_store(|store| {
             let dir = store.documents_dir()?;
-            Ok(tools::json(&scribe_core::storage_fs_stat(&dir, &params.path)?))
+            Ok(tools::json(&scribe_core::storage_fs::stat(&dir, &params.path)?))
         })
     }
 
@@ -1698,7 +1698,7 @@ impl ScribeMcp {
         self.require_writable()?;
         self.with_store(|store| {
             let dir = store.documents_dir()?;
-            Ok(tools::json(&scribe_core::storage_fs_mkdir(&dir, &params.path)?))
+            Ok(tools::json(&scribe_core::storage_fs::mkdir(&dir, &params.path)?))
         })
     }
 
@@ -1711,7 +1711,7 @@ impl ScribeMcp {
         self.with_store(|store| {
             let dir = store.documents_dir()?;
             let bytes = decode_storage_fs_base64(&params.data_base64)?;
-            Ok(tools::json(&scribe_core::storage_fs_write(
+            Ok(tools::json(&scribe_core::storage_fs::write_file(
                 &dir,
                 &params.path,
                 &bytes,
@@ -1727,7 +1727,7 @@ impl ScribeMcp {
     ) -> Result<String, String> {
         self.with_store(|store| {
             let dir = store.documents_dir()?;
-            let bytes = scribe_core::storage_fs_read(&dir, &params.path)?;
+            let bytes = scribe_core::storage_fs::read_file(&dir, &params.path)?;
             Ok(tools::json(&serde_json::json!({
                 "path": params.path,
                 "sizeBytes": bytes.len(),
@@ -1744,7 +1744,7 @@ impl ScribeMcp {
         self.require_writable()?;
         self.with_store(|store| {
             let dir = store.documents_dir()?;
-            scribe_core::storage_fs_delete(&dir, &params.path, params.recursive.unwrap_or(false))?;
+            scribe_core::storage_fs::delete(&dir, &params.path, params.recursive.unwrap_or(false))?;
             Ok(tools::json(&serde_json::json!({ "ok": true, "path": params.path })))
         })
     }
@@ -1757,7 +1757,7 @@ impl ScribeMcp {
         self.require_writable()?;
         self.with_store(|store| {
             let dir = store.documents_dir()?;
-            Ok(tools::json(&scribe_core::storage_fs_rename(
+            Ok(tools::json(&scribe_core::storage_fs::rename(
                 &dir,
                 &params.from,
                 &params.to,
