@@ -19,6 +19,208 @@ Document media stays under `assets/{documentId}/` (`list_library_assets`) and st
 - Sync / cloud / multi-device
 - Fulltext index of file contents
 - Streaming multi‑GB files through MCP (use soft size limits; large files → reveal in Finder)
+- Public / remote exposure of the files sandbox without explicit auth (demo binds to loopback only)
+
+---
+
+## Demo server (planned — how you try the API)
+
+**Yes:** after the Rust core exists, a small **local demo server** will wrap the same `storage_fs` API so you can call it with `curl`, a GraphQL playground, TypeScript `fetch`, or Python `httpx` — without opening the full Tauri app.
+
+| Item | Plan |
+|------|------|
+| Bind | `127.0.0.1` only (default port e.g. `8787`) |
+| Root | temp dir or `--documents-dir /path/to/demo` → uses `{dir}/files/` |
+| Surfaces | REST JSON (`/v1/fs/…`) **and** GraphQL (`/graphql` + GraphiQL) |
+| Auth | none on loopback for demo; refuse non-local binds unless `--allow-remote` + token |
+| Binary | base64 in JSON / GraphQL (same contract as MCP) |
+| Run | e.g. `cargo run -p scribe-storage-fs-demo -- --port 8787` |
+
+```text
+curl / GraphQL / TS / Python
+        │
+        ▼
+┌───────────────────────────┐
+│ demo server (127.0.0.1)   │
+│  REST  /v1/fs/*           │
+│  GQL   /graphql           │
+└─────────────┬─────────────┘
+              ▼
+     scribe_core::storage_fs
+              ▼
+     {documentsDir}/files/
+```
+
+### Example REST calls (demo)
+
+```bash
+# list
+curl -s 'http://127.0.0.1:8787/v1/fs/list?path=inbox'
+
+# mkdir + write text
+curl -s -X POST 'http://127.0.0.1:8787/v1/fs/mkdir' \
+  -H 'content-type: application/json' \
+  -d '{"path":"scratch/demo"}'
+
+curl -s -X POST 'http://127.0.0.1:8787/v1/fs/write-text' \
+  -H 'content-type: application/json' \
+  -d '{"path":"scratch/demo/hello.md","text":"# hi\n","overwrite":true}'
+
+# read text
+curl -s 'http://127.0.0.1:8787/v1/fs/read-text?path=scratch/demo/hello.md'
+```
+
+### Example GraphQL (same server)
+
+```bash
+curl -s 'http://127.0.0.1:8787/graphql' \
+  -H 'content-type: application/json' \
+  -d '{"query":"query { storageFsList(path: \"inbox\") { count entries { path kind } } }"}'
+```
+
+Open GraphiQL in the browser: `http://127.0.0.1:8787/graphql` (if enabled).
+
+### Status
+
+| Step | State |
+|------|--------|
+| Design / contract in this doc | done |
+| Rust `storage_fs` core | not in repo yet |
+| Demo server binary | not in repo yet |
+| Tauri / MCP / TS / Python wired to core | after core + demo |
+
+So: **we will be able to run a demo server and call the API** — that is an explicit deliverable of the implementation phase, not something available today.
+
+---
+
+## In-app usage (Scribe desktop)
+
+**Yes — the primary way to use this API is from inside the app**, without any HTTP server.
+
+```text
+Storage Mode UI (Files tab)
+        │  filesApi.*()
+        ▼
+  Tauri invoke  storage_fs_*
+        ▼
+  scribe_core::storage_fs
+        ▼
+  {documentsDir}/files/     ← same library folder the app already uses
+```
+
+| Mode | How | Who |
+|------|-----|-----|
+| **In-app (default)** | TS `filesApi` → Tauri commands | Storage Mode Files tab, future pickers, agents inside Scribe |
+| **Optional local API** | App starts embedded loopback server on demand | External `curl` / GraphQL / Python talking to the **same** `files/` root |
+| **Standalone demo** | `cargo run -p scribe-storage-fs-demo` | Dev / CI without launching the UI |
+
+### From the UI (planned)
+
+1. Settings → Storage Mode **on** (already exists).
+2. Open Storage Mode → tab **Media** | **Files**.
+3. Files tab uses `filesApi.list / mkdir / writeText / delete / reveal / …` against the current library’s `documentsDir`.
+4. Optional toggle: **“Local Files API server”** → start/stop embedded REST+GraphQL on `127.0.0.1:8787` (or next free port), status chip + Copy URL + Open GraphiQL.
+
+When the embedded server runs from the app, it must use the **same** `documentsDir` as the open library (not a separate temp root), so UI and `curl` see identical files.
+
+### Local API panel UI (planned — user sees every URL)
+
+Place a **Local Files API** drawer / side rail on the Files tab (not buried only in Settings). Industrial / utilitarian: monospace URLs, sharp accent on “Live”, quiet chrome.
+
+```text
+┌─ Local Files API ──────────────────────────────────┐
+│  ● Live · 127.0.0.1:8787          [Stop] [Copy all]│
+│  Root  ~/Documents/Scribe/files/                   │
+│  Loopback only · same library as this window       │
+├─ Available URLs ───────────────────────────────────┤
+│  GraphQL                                           │
+│  POST  http://127.0.0.1:8787/graphql        [Copy]│
+│  GET   http://127.0.0.1:8787/graphql        [Open]│  ← GraphiQL
+│                                                    │
+│  REST                                              │
+│  GET   …/v1/fs/list?path=                   [Copy]│
+│  GET   …/v1/fs/stat?path=                   [Copy]│
+│  GET   …/v1/fs/read?path=                   [Copy]│
+│  GET   …/v1/fs/read-text?path=              [Copy]│
+│  GET   …/v1/fs/search?query=                [Copy]│
+│  GET   …/v1/fs/disk-usage?path=             [Copy]│
+│  GET   …/v1/fs/health                       [Copy]│
+│  POST  …/v1/fs/mkdir                        [Copy]│
+│  POST  …/v1/fs/write                        [Copy]│
+│  POST  …/v1/fs/write-text                   [Copy]│
+│  POST  …/v1/fs/delete                       [Copy]│
+│  POST  …/v1/fs/rename                       [Copy]│
+│  POST  …/v1/fs/copy                         [Copy]│
+│  POST  …/v1/fs/ensure-defaults              [Copy]│
+│                                                    │
+│  Examples (filled with base URL)                   │
+│  curl -s 'http://127.0.0.1:8787/v1/fs/list' [Copy]│
+│  curl GraphQL BrowseInbox snippet           [Copy]│
+└────────────────────────────────────────────────────┘
+```
+
+**States**
+
+| State | UI |
+|-------|-----|
+| Stopped | Dim list still visible (so user learns endpoints); primary **Start server**; badge `Offline` |
+| Starting | Spinner on Start; URLs disabled |
+| Live | Green/amber **Live** pill; full URL list with real host:port; each row Copy; GraphiQL **Open** |
+| Error | Inline error (port in use → suggest next port); Retry |
+
+**URL catalog the panel always documents** (base = `http://127.0.0.1:{port}`):
+
+| Method | Path | Shown label |
+|--------|------|-------------|
+| `GET` | `/v1/fs/health` | Health |
+| `GET` | `/v1/fs/list` | List |
+| `GET` | `/v1/fs/stat` | Stat |
+| `GET` | `/v1/fs/read` | Read (base64) |
+| `GET` | `/v1/fs/read-text` | Read text |
+| `GET` | `/v1/fs/search` | Search |
+| `GET` | `/v1/fs/disk-usage` | Disk usage |
+| `POST` | `/v1/fs/mkdir` | Mkdir |
+| `POST` | `/v1/fs/write` | Write bytes |
+| `POST` | `/v1/fs/write-text` | Write text |
+| `POST` | `/v1/fs/delete` | Delete |
+| `POST` | `/v1/fs/rename` | Rename |
+| `POST` | `/v1/fs/copy` | Copy |
+| `POST` | `/v1/fs/ensure-defaults` | Ensure defaults |
+| `POST` | `/graphql` | GraphQL |
+| `GET` | `/graphql` | GraphiQL playground |
+
+**Interactions**
+
+- Per-row **Copy** → clipboard full absolute URL (query placeholders kept, e.g. `?path=`).
+- **Copy all** → markdown checklist of method + URL (for pasting into docs / Slack).
+- **Open** on GraphiQL → system browser to `http://127.0.0.1:{port}/graphql`.
+- Hover / focus: full URL in tooltip; click row selects for keyboard Copy (`⌘C`).
+- When offline, still show paths as `/v1/fs/…` with note “Start server to get absolute URLs”.
+
+**Visual direction** (match Storage Mode, not a generic card grid)
+
+- One composition: Files browser left / main; API rail right (~320–360px) or bottom sheet on narrow windows.
+- Monospace for URLs (`ui-monospace` / JetBrains Mono if already in app — avoid Inter).
+- Method badges: muted `GET` / accent `POST`.
+- Live pulse on status dot; no purple glow, no pill soup — one accent only.
+- Motion: rail slides in on first open; URL rows stagger-fade when server goes Live.
+
+### App commands for the embedded server (planned)
+
+| Command | Purpose |
+|---------|---------|
+| `storage_fs_server_start` | `{ port? }` → `{ url, port, documentsDir }` |
+| `storage_fs_server_stop` | stop listener |
+| `storage_fs_server_status` | `{ running, url?, port?, documentsDir }` |
+
+```ts
+// Settings / Storage Mode — optional
+const { url } = await invoke('storage_fs_server_start', { port: 8787 })
+// url === "http://127.0.0.1:8787"
+await invoke('storage_fs_server_stop')
+```
+
+Reveal / Finder and PathAccessGate stay on the Tauri path; the HTTP surface stays loopback-only.
 
 ---
 
@@ -972,10 +1174,11 @@ Do **not** merge roots; Storage Mode can show two tabs: **Media** | **Files**.
 ## UI follow-up (not this doc’s implementation)
 
 1. Toggle already exists: Settings → Storage Mode.
-2. Add Files tab: breadcrumb + list/grid + mkdir / rename / delete / reveal.
+2. Add Files tab: breadcrumb + list/grid + mkdir / rename / delete / reveal (via `filesApi`, no HTTP).
 3. Drag-drop → `storage_fs_import_paths` or write after picker grant.
 4. Empty state → `storage_fs_ensure_defaults` + short copy.
 5. Disk usage chip via `storage_fs_disk_usage`.
+6. **Local Files API panel**: Start/Stop, Live badge, full URL catalog (REST + GraphQL + GraphiQL), per-URL Copy, Copy all, Open GraphiQL — see [Local API panel UI](#local-api-panel-ui-planned--user-sees-every-url).
 
 ---
 
@@ -989,6 +1192,9 @@ Do **not** merge roots; Storage Mode can show two tabs: **Media** | **Files**.
 | MCP | `storage_fs_*` in `scribe-mcp` + `docs/tools.md` |
 | Python | `nlp/scribe_nlp/storage_fs.py` |
 | GraphQL (optional) | schema + resolvers over Rust core; local bind only |
+| Demo server | small binary: REST + GraphQL on `127.0.0.1` wrapping the same core |
+| In-app UI | Storage Mode Files tab → Tauri `storage_fs_*` |
+| In-app embedded API | optional start/stop loopback server sharing library `documentsDir` |
 
 Until then this file is the source of truth for the contract.
 
@@ -1031,3 +1237,5 @@ Until then this file is the source of truth for the contract.
 - [ ] MIME sniffing vs extension-only `mimeHint`?
 - [ ] GraphQL: ship with core or keep as optional feature flag / sidecar only?
 - [ ] GraphQL auth model if ever bound beyond `127.0.0.1`?
+- [ ] Demo server: separate crate (`scribe-storage-fs-demo`) vs feature on `scribe-mcp`?
+- [ ] Demo default documents dir: temp vs `./.scribe-fs-demo`?
