@@ -2676,7 +2676,32 @@
     "reveal": "Finder",
     "openDocument": "Otvoriť poznámku",
     "sidebarHint": "Storage mode je zapnutý. Prehliadaj súbory a obrázky v hlavnom paneli.",
-    "openBrowser": "Otvoriť prehliadač"
+    "openBrowser": "Otvoriť prehliadač",
+    "localApi": {
+      "eyebrow": "Loopback",
+      "title": "Lokálne Files API",
+      "lede": "Spusti lokálny server a volaj rovnaký files sandbox cez curl, GraphQL alebo skripty. URL zostanú len na tomto počítači.",
+      "live": "Live",
+      "offline": "Offline",
+      "start": "Spustiť server",
+      "stop": "Zastaviť",
+      "copyAll": "Kopírovať všetko",
+      "copy": "Kopírovať URL",
+      "openGraphiql": "Otvoriť GraphiQL",
+      "startHint": "Spusti server, aby si získal absolútne http://127.0.0.1 URL.",
+      "root": "Koreň",
+      "groupMeta": "Meta",
+      "groupGraphql": "GraphQL",
+      "groupRest": "REST",
+      "started": "Files API server beží",
+      "stopped": "Files API server zastavený",
+      "startError": "Files API sa nepodarilo spustiť",
+      "stopError": "Files API sa nepodarilo zastaviť",
+      "copied": "URL skopírované",
+      "copiedAll": "Zoznam endpointov skopírovaný",
+      "copyError": "Nepodarilo sa skopírovať",
+      "openError": "URL sa nepodarilo otvoriť"
+    }
   },
   "diagnostics": {
     "loadError": "Nepodarilo sa načítať diagnostiku",

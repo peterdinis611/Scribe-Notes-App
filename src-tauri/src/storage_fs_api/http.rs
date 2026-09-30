@@ -351,7 +351,7 @@ pub fn handle_connection(mut stream: TcpStream, documents_dir: &Path, port: u16)
     if method == "GET" && path == "/v1/fs/stat" {
         let rel = query_param(full_path, "path").unwrap_or_default();
         match storage_fs::stat(documents_dir, &rel) {
-            Ok(entry) => write_json(&mut stream, "200 OK", &entry),
+            Ok(entry) => write_json(&mut stream, "200 OK", &json!(entry)),
             Err(e) => write_err(&mut stream, &e),
         }
         return;

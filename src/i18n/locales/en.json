@@ -2668,7 +2668,32 @@
     "reveal": "Finder",
     "openDocument": "Open note",
     "sidebarHint": "Storage mode is on. Browse every file and image in the main panel.",
-    "openBrowser": "Open browser"
+    "openBrowser": "Open browser",
+    "localApi": {
+      "eyebrow": "Loopback",
+      "title": "Local Files API",
+      "lede": "Start a local server to call the same files sandbox from curl, GraphQL, or scripts. URLs stay on this machine only.",
+      "live": "Live",
+      "offline": "Offline",
+      "start": "Start server",
+      "stop": "Stop",
+      "copyAll": "Copy all",
+      "copy": "Copy URL",
+      "openGraphiql": "Open GraphiQL",
+      "startHint": "Start the server to unlock absolute http://127.0.0.1 URLs.",
+      "root": "Root",
+      "groupMeta": "Meta",
+      "groupGraphql": "GraphQL",
+      "groupRest": "REST",
+      "started": "Files API server started",
+      "stopped": "Files API server stopped",
+      "startError": "Could not start Files API",
+      "stopError": "Could not stop Files API",
+      "copied": "URL copied",
+      "copiedAll": "Endpoint list copied",
+      "copyError": "Could not copy",
+      "openError": "Could not open URL"
+    }
   },
   "diagnostics": {
     "loadError": "Failed to load diagnostics",
