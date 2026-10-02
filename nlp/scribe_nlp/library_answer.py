@@ -425,7 +425,7 @@ def library_answer(
     for item in used:
         document_id = item["documentId"]
         title = item.get("title") or "Untitled"
-        if "chat memory" in title.lower() or "earlier chat" in title.lower() or "library memory" in title.lower() or "note memory" in title.lower():
+        if "chat memory" in title.lower() or "earlier chat" in title.lower() or "library memory" in title.lower() or "note memory" in title.lower() or "agent memory" in title.lower():
             continue
         if document_id in seen_ids:
             continue

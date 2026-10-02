@@ -1,4 +1,4 @@
-import { Eraser, FilePlus2, FileText, Folder, GraduationCap, Library, Send, Settings2 } from 'lucide-react'
+import { Eraser, FilePlus2, FileText, Folder, GraduationCap, Library, Send, Settings2, Sparkles } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
@@ -53,6 +53,11 @@ import {
   LIBRARY_AGENT_STARTER_CHIPS,
 } from '@/lib/library/agent-suggestions'
 import { AGENT_TEACHING_MAX_LEN } from '@/lib/library/agent-prefs'
+import {
+  AGENT_TEACH_DRAFT_MAX_LEN,
+  canDistillTeachingWithLlm,
+  distillTeachingWithLlm,
+} from '@/lib/library/agent-teach'
 import type { ChatScope, LibraryChatCitation } from '@/lib/library/library-chat'
 import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
@@ -154,6 +159,9 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
   const [input, setInput] = useState('')
   const [teachInput, setTeachInput] = useState('')
   const [showTeach, setShowTeach] = useState(false)
+  const [teachWithAi, setTeachWithAi] = useState(true)
+  const [teachBusy, setTeachBusy] = useState(false)
+  const [llmTeachReady, setLlmTeachReady] = useState<boolean | null>(null)
   const [loading, setLoading] = useState(false)
   const [historyLoading, setHistoryLoading] = useState(false)
   const [messages, setMessages] = useState<AgentThreadMessage[]>([])
@@ -196,6 +204,17 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
       .catch(() => setNlpReady(false))
     refreshRunHistory()
   }, [refreshRunHistory])
+
+  useEffect(() => {
+    if (!showTeach) return
+    let cancelled = false
+    void canDistillTeachingWithLlm().then((ready) => {
+      if (!cancelled) setLlmTeachReady(ready)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [showTeach])
 
   useEffect(() => {
     if (scope !== 'document' || !activeDocumentId) {
@@ -610,23 +629,67 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
     }
   }, [])
 
-  const handleTeach = useCallback(() => {
-    const text = teachInput.trim()
-    if (text.length < 2) return
-    if (scope === 'document' && activeDocumentId) {
-      dispatch(
-        addAgentTeaching({
-          text,
-          scope: 'document',
-          documentId: activeDocumentId,
-        }),
+  const handleTeach = useCallback(async () => {
+    const draft = teachInput.trim()
+    if (draft.length < 2 || teachBusy) return
+    setTeachBusy(true)
+    try {
+      const result = teachWithAi
+        ? await distillTeachingWithLlm(draft, {
+            force: draft.length > AGENT_TEACHING_MAX_LEN || draft.includes('\n'),
+          })
+        : { text: draft.slice(0, AGENT_TEACHING_MAX_LEN), distilled: false }
+      if (scope === 'document' && activeDocumentId) {
+        dispatch(
+          addAgentTeaching({
+            text: result.text,
+            scope: 'document',
+            documentId: activeDocumentId,
+          }),
+        )
+      } else {
+        dispatch(addAgentTeaching(result.text))
+      }
+      setTeachInput('')
+      toast.success(
+        result.distilled ? t('settings.agent.teachRefinedToast') : t('settings.agent.taughtToast'),
       )
-    } else {
-      dispatch(addAgentTeaching(text))
+    } catch {
+      toast.error(t('settings.agent.teachRefineOffline'))
+    } finally {
+      setTeachBusy(false)
     }
-    setTeachInput('')
-    toast.success(t('settings.agent.taughtToast'))
-  }, [teachInput, dispatch, t, scope, activeDocumentId])
+  }, [teachInput, teachBusy, teachWithAi, dispatch, t, scope, activeDocumentId])
+
+  const handleSaveReplyAsTeaching = useCallback(
+    async (text: string) => {
+      const draft = text.trim()
+      if (draft.length < 2 || teachBusy) return
+      setTeachBusy(true)
+      try {
+        const result = await distillTeachingWithLlm(draft, { force: true })
+        if (scope === 'document' && activeDocumentId) {
+          dispatch(
+            addAgentTeaching({
+              text: result.text,
+              scope: 'document',
+              documentId: activeDocumentId,
+            }),
+          )
+        } else {
+          dispatch(addAgentTeaching(result.text))
+        }
+        toast.success(
+          result.distilled ? t('settings.agent.teachRefinedToast') : t('settings.agent.taughtToast'),
+        )
+      } catch {
+        toast.error(t('settings.agent.teachRefineOffline'))
+      } finally {
+        setTeachBusy(false)
+      }
+    },
+    [activeDocumentId, dispatch, scope, t, teachBusy],
+  )
 
   const openCitation = useCallback(
     (citation: LibraryChatCitation) => {
@@ -784,26 +847,50 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                 : t('settings.agent.teachScopeGlobal')}
             </p>
             <form
-              className="flex gap-1.5"
+              className="flex flex-col gap-1.5"
               onSubmit={(event) => {
                 event.preventDefault()
-                handleTeach()
+                void handleTeach()
               }}
             >
-              <input
-                className="library-chat-input"
+              <textarea
+                className="library-chat-input min-h-[4.5rem] resize-y"
                 value={teachInput}
-                maxLength={AGENT_TEACHING_MAX_LEN}
+                maxLength={AGENT_TEACH_DRAFT_MAX_LEN}
                 placeholder={
-                  scope === 'document' && activeDocumentId
-                    ? t('settings.agent.teachPlaceholderDocument')
-                    : t('settings.agent.teachPlaceholder')
+                  teachWithAi
+                    ? t('settings.agent.teachPlaceholderLong')
+                    : scope === 'document' && activeDocumentId
+                      ? t('settings.agent.teachPlaceholderDocument')
+                      : t('settings.agent.teachPlaceholder')
                 }
                 onChange={(event) => setTeachInput(event.target.value)}
               />
-              <Button type="submit" size="sm" disabled={teachInput.trim().length < 2}>
-                {t('settings.agent.teachAdd')}
-              </Button>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  className={cn('library-chat-chip', teachWithAi && 'is-active')}
+                  aria-pressed={teachWithAi}
+                  title={t('settings.agent.teachRefineHint')}
+                  onClick={() => setTeachWithAi((value) => !value)}
+                >
+                  <Sparkles className="mr-1 inline h-3 w-3" />
+                  {t('settings.agent.teachRefine')}
+                </button>
+                {teachWithAi && llmTeachReady === false ? (
+                  <span className="text-[11px] text-[var(--color-muted-foreground)]">
+                    {t('settings.agent.teachRefineOffline')}
+                  </span>
+                ) : null}
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="ml-auto"
+                  disabled={teachInput.trim().length < 2 || teachBusy}
+                >
+                  {teachBusy ? t('settings.agent.teachRefineBusy') : t('settings.agent.teachAdd')}
+                </Button>
+              </div>
             </form>
             {agentPrefs.teachings
               .filter((item) => {
@@ -1071,6 +1158,15 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                     <button
                       type="button"
                       className="library-chat-chip"
+                      disabled={teachBusy || loading}
+                      onClick={() => void handleSaveReplyAsTeaching(message.text)}
+                    >
+                      <GraduationCap className="mr-1 inline h-3 w-3" />
+                      {t('settings.agent.teachSaveReply')}
+                    </button>
+                    <button
+                      type="button"
+                      className="library-chat-chip"
                       disabled={loading}
                       onClick={() => applyAnswerToNote(message.text, 'callout')}
                     >
@@ -1101,6 +1197,22 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                       }}
                     >
                       {t('agent.applyUndo')}
+                    </button>
+                  </div>
+                ) : null}
+                {message.role === 'assistant' &&
+                message.text &&
+                !message.clarifyOptions?.length &&
+                !activeDocumentId ? (
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    <button
+                      type="button"
+                      className="library-chat-chip"
+                      disabled={teachBusy || loading}
+                      onClick={() => void handleSaveReplyAsTeaching(message.text)}
+                    >
+                      <GraduationCap className="mr-1 inline h-3 w-3" />
+                      {t('settings.agent.teachSaveReply')}
                     </button>
                   </div>
                 ) : null}

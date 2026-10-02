@@ -155,11 +155,12 @@ function toFlowEdges(edges: LinkGraphEdge[], activeId: string | null): Edge[] {
   })
 }
 
-function LinkGraphZoomPanel() {
+function LinkGraphZoomPanel({ isPage }: { isPage: boolean }) {
   const { zoomIn, zoomOut, fitView } = useReactFlow()
   const zoom = useStore((state) => state.transform[2])
   const { t } = useTranslation()
   const percent = Math.round(zoom * 100)
+  const fitOpts = isPage ? LINK_GRAPH_FIT_PAGE : LINK_GRAPH_FIT
 
   return (
     <Panel position="bottom-left" className="link-graph-rf-zoom">
@@ -180,7 +181,7 @@ function LinkGraphZoomPanel() {
           type="button"
           className="link-graph-rf-zoom-readout"
           aria-label={t('linkGraph.fitView')}
-          onClick={() => void fitView({ padding: 0.2, duration: 220 })}
+          onClick={() => void fitView({ ...fitOpts, duration: 220 })}
         >
           {percent}%
         </button>
@@ -204,7 +205,7 @@ function LinkGraphZoomPanel() {
           size="icon"
           className="h-8 w-8"
           aria-label={t('linkGraph.fitView')}
-          onClick={() => void fitView({ padding: 0.2, duration: 220 })}
+          onClick={() => void fitView({ ...fitOpts, duration: 220 })}
         >
           <Maximize2 className="h-3.5 w-3.5" />
         </Button>
@@ -239,6 +240,7 @@ function LinkGraphFlowInner({
     nodeCount: seeds.length,
     sparse: density.sparse && !aroundActive,
   })
+  const fitOpts = isPage ? LINK_GRAPH_FIT_PAGE : LINK_GRAPH_FIT
   const { fitView } = useReactFlow()
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const clickTimerRef = useRef<number | null>(null)
@@ -261,10 +263,7 @@ function LinkGraphFlowInner({
     )
     setFlowEdges(toFlowEdges(edges, activeId))
     const frame = requestAnimationFrame(() => {
-      void fitView({
-        padding: density.sparse ? (isPage ? 0.12 : 0.16) : isPage ? 0.18 : 0.22,
-        duration: 280,
-      })
+      void fitView({ ...fitOpts, duration: 280 })
     })
     return () => cancelAnimationFrame(frame)
     // Topology / viewport size only — active/hover patched separately.
@@ -402,11 +401,9 @@ function LinkGraphFlowInner({
         onNodeMouseEnter={(_e, node) => setHoveredId(node.id)}
         onNodeMouseLeave={() => setHoveredId(null)}
         fitView
-        fitViewOptions={{
-          padding: density.sparse ? (isPage ? 0.12 : 0.16) : isPage ? 0.18 : 0.22,
-        }}
-        minZoom={density.sparse ? 0.08 : 0.2}
-        maxZoom={4}
+        fitViewOptions={fitOpts}
+        minZoom={0.05}
+        maxZoom={2.25}
         proOptions={{ hideAttribution: true }}
         nodesConnectable={false}
         edgesReconnectable={false}
@@ -426,7 +423,7 @@ function LinkGraphFlowInner({
           size={1.15}
           color="color-mix(in srgb, var(--color-accent) 28%, transparent)"
         />
-        <LinkGraphZoomPanel />
+        <LinkGraphZoomPanel isPage={isPage} />
         {isPage ? (
           <MiniMap
             className="link-graph-rf-minimap"

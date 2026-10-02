@@ -2592,6 +2592,7 @@ pub fn nlp_library_answer(
     question: String,
     limit: Option<i64>,
     folder_id: Option<String>,
+    context: Option<Vec<DocumentAnswerContextMessage>>,
     stream: Option<bool>,
 ) -> Result<LibraryChatResult, String> {
     let trimmed = question.trim().to_string();
@@ -2691,7 +2692,23 @@ pub fn nlp_library_answer(
             &conn, &trimmed,
         ));
     }
-    let max_sentences = if passages.len() > hits.len() { 6 } else { 4 };
+    let passages = if let Some(messages) = context {
+        let turns: Vec<ChatTurn> = messages
+            .into_iter()
+            .map(|message| ChatTurn {
+                role: message.role,
+                text: message.text,
+            })
+            .collect();
+        merge_chat_memory_passages("__agent__", "Agent memory", json!(passages), &turns)
+    } else {
+        json!(passages)
+    };
+    let max_sentences = if passages.as_array().map(|items| items.len()).unwrap_or(0) > hits.len() {
+        6
+    } else {
+        4
+    };
     let (llm, want_stream) = {
         let conn = state.conn.lock().map_err(|e| e.to_string())?;
         let llm = llm_sidecar_options(&conn, "answer")?;
@@ -2725,7 +2742,7 @@ pub fn nlp_library_answer(
     }
     let result = sidecar.library_answer_scoped_with_options_progress(
         &trimmed,
-        json!(passages),
+        passages,
         max_sentences,
         "library",
         None,

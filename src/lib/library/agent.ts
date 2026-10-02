@@ -485,6 +485,7 @@ async function runTool(
     return askLibrary(ctx.goal, {
       folderId: ctx.scope === 'folder' ? ctx.folderId : null,
       stream: ctx.stream,
+      context: workingMemory.length ? workingMemory : undefined,
     })
   }
   if (tool === 'document_answer') {

@@ -14945,10 +14945,15 @@ html[data-ui-skin='press'] .error-folio__title {
   margin: 12px 0 12px;
 }
 
-.agent-settings-teach-form input {
+.agent-settings-teach-form--stack {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.agent-settings-teach-form input,
+.agent-settings-teach-form textarea {
   min-width: 0;
   flex: 1;
-  height: 2.25rem;
   border-radius: 9px;
   border: 1px solid color-mix(in srgb, var(--color-border) 88%, transparent);
   background: color-mix(in srgb, var(--color-background) 72%, var(--color-surface));
@@ -14958,7 +14963,20 @@ html[data-ui-skin='press'] .error-folio__title {
   transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 
-.agent-settings-teach-form input:focus {
+.agent-settings-teach-form input {
+  height: 2.25rem;
+}
+
+.agent-settings-teach-form textarea {
+  min-height: 4.5rem;
+  padding: 10px 12px;
+  resize: vertical;
+  line-height: 1.4;
+  font-family: inherit;
+}
+
+.agent-settings-teach-form input:focus,
+.agent-settings-teach-form textarea:focus {
   outline: none;
   border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-border));
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 14%, transparent);

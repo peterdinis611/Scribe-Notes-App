@@ -80,7 +80,12 @@ async function assertNlpReady() {
 /** Extractive Q&A over the whole library (optional local LLM). Optional folder filter. */
 export async function askLibrary(
   question: string,
-  opts?: { folderId?: string | null; stream?: boolean },
+  opts?: {
+    folderId?: string | null
+    stream?: boolean
+    /** Standing instructions / prior turns (agent teachings). */
+    context?: Array<{ role: string; text: string }>
+  },
 ): Promise<LibraryChatResult> {
   const trimmed = question.trim()
   if (!trimmed) {
@@ -88,11 +93,14 @@ export async function askLibrary(
   }
   await assertNlpReady()
 
+  const context = opts?.context?.length ? opts.context : null
+
   if (opts?.folderId) {
     const result = await invoke<LibraryChatResult>('nlp_library_answer', {
       question: trimmed,
       limit: 8,
       folderId: opts.folderId,
+      context,
       stream: opts.stream ?? false,
     })
     if (!result.answer?.trim() && !(result.citations?.length > 0)) {
@@ -117,6 +125,7 @@ export async function askLibrary(
     question: trimmed,
     limit: 8,
     folderId: null,
+    context,
     stream: opts?.stream ?? false,
   })
 }
