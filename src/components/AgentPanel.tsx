@@ -8,6 +8,7 @@ import {
   AgentApplyPreviewDialog,
   type AgentApplyPreviewKind,
 } from '@/components/agent/AgentApplyPreviewDialog'
+import { LocalIntelligenceStatus } from '@/components/nlp/LocalIntelligenceStatus'
 import { Bubble, BubbleContent } from '@/components/ui/bubble'
 import { Button } from '@/components/ui/button'
 import {
@@ -857,6 +858,33 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
               <p className="library-empty-state-hint">
                 {scope === 'document' ? t('agent.emptyHintDocument') : t('agent.emptyHint')}
               </p>
+              <LocalIntelligenceStatus className="mt-3 w-full max-w-md" compact />
+              <div className="mt-3 flex max-w-md flex-wrap justify-center gap-1.5">
+                {(scope === 'document'
+                  ? ([
+                      'agent.quickPrompts.explain',
+                      'agent.quickPrompts.glossary',
+                      'agent.quickPrompts.takeaways',
+                    ] as const)
+                  : ([
+                      'agent.starters.themes',
+                      'agent.starters.openLoops',
+                      'agent.starters.deadlines',
+                    ] as const)
+                ).map((key) => (
+                  <Button
+                    key={key}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-[11px]"
+                    disabled={loading || !agentPrefs.enabled}
+                    onClick={() => void runGoal(t(key))}
+                  >
+                    {t(key)}
+                  </Button>
+                ))}
+              </div>
               {nlpReady === false || !agentPrefs.enabled ? (
                 <Button
                   type="button"

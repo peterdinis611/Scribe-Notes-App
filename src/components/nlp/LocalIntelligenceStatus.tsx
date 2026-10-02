@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button'
 import { nlpLlmStatus, nlpStatus, type NlpLlmStatus, type NlpStatus } from '@/lib/db/nlp-api'
 import { ROUTES } from '@/lib/routes'
 import {
-  getStorageFsServerStatus,
-  startStorageFsServer,
+  storageFsServerStart,
+  storageFsServerStatus,
   type StorageFsServerStatus,
 } from '@/lib/storage/files-api-server'
 import { cn } from '@/lib/utils'
@@ -60,7 +60,7 @@ export function LocalIntelligenceStatus({
       setLlm(null)
     }
     try {
-      setFiles(await getStorageFsServerStatus())
+      setFiles(await storageFsServerStatus())
     } catch {
       setFiles(null)
     }
@@ -81,9 +81,9 @@ export function LocalIntelligenceStatus({
   async function handleStartFiles() {
     setStartingFiles(true)
     try {
-      setFiles(await startStorageFsServer())
+      setFiles(await storageFsServerStart())
     } catch {
-      /* toast handled by panel callers if needed */
+      /* panel callers surface toasts if needed */
     } finally {
       setStartingFiles(false)
     }

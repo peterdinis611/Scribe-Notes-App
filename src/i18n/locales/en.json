@@ -1552,17 +1552,20 @@
           "paragraphs": [
             "Scribe has its own Local AI. It is not ChatGPT and not an online chatbot. When you enable it in Settings → Local AI, Scribe starts a small Python process on this Mac. Indexing, search, and answers over your notes all happen in your computer’s memory. Your text is never sent anywhere.",
             "The Rust core stays primary: database, editor, saving, and full-text search work without AI. Local AI adds meaning-based search, note Q&A, tag suggestions, weekly journal overview, and library analysis — so you can use the app without expecting a cloud LLM.",
+            "Optional Local LLM (Ollama on localhost) can polish selected heuristics — summarize, writing coach, rewrite, explain, simplify — when you turn on Enhance heuristics in Settings. Model picker and a connectivity test live on the same page.",
+            "Storage Files API exposes your documents folder’s files/ sandbox on loopback. With the API running, Local AI can list, search, summarize, and answer questions over those text files with path citations — still never leaving this Mac.",
             "After enabling, documents are indexed into vectors (model scribe-hash-v4). If you update Scribe and the model changes, a reindex banner appears — mixing old and new vectors would give inconsistent results.",
-            "In document chat and AI insights you can also run study and style actions: flashcards, takeaways, terminology consistency, and a writing coach — all offline heuristics on your note text."
+            "In document chat and the Local Agent you can run study and style actions: flashcards, takeaways, glossary, explain, simplify, action items, terminology, and a writing coach — plus the Deep read recipe (outline → glossary → takeaways → flashcards)."
           ],
           "points": [
             "Built into Scribe — enable once in Settings → Local AI, no third-party account",
+            "Local intelligence status shows NLP · Ollama · Files API together",
             "⌘K All scope — combines full-text (FTS) and semantic hits via hybrid ranking",
-            "⌘K Semantic scope — meaning-based results only, not exact word matches",
             "Ask library / Ask this note — extractive answers with citations from your notes",
-            "Flashcards / Takeaways / Terminology / Writing coach — chips in Local AI chat",
+            "Ask files/ — when Local Files API is running (Storage Mode)",
+            "Flashcards / Takeaways / Glossary / Explain / Writing coach — chips in Local AI chat and Agent",
             "/continue — n-gram suggestions from your library corpus",
-            "Requires Python 3.10+ on your system; no pip packages needed"
+            "Requires Python 3.10+ on your system; Ollama optional for LLM polish"
           ]
         },
         "revisions": {
@@ -2202,8 +2205,14 @@
       "weeklyReview": "Weekly review",
       "meetingWrap": "Meeting wrap-up",
       "studyPass": "Study pass",
+      "deepRead": "Deep read",
       "cleanup": "Library cleanup",
       "polish": "Polish note"
+    },
+    "quickPrompts": {
+      "explain": "Explain this note",
+      "glossary": "Build a glossary",
+      "takeaways": "Key takeaways"
     },
     "tools": {
       "library_answer": "Library Q&A",
@@ -2226,8 +2235,28 @@
       "revision": "Revision diff",
       "spellcheck": "Spellcheck",
       "rewrite": "Rewrite",
-      "brief": "Document brief"
+      "brief": "Document brief",
+      "explain": "Explain",
+      "simplify": "Simplify",
+      "action_items": "Action items",
+      "glossary": "Glossary",
+      "compare_notes": "Compare notes",
+      "files_answer": "Ask files/"
     }
+  },
+  "localIntelligence": {
+    "title": "Local intelligence",
+    "settings": "Settings",
+    "nlpOn": "NLP on",
+    "nlpOff": "NLP off",
+    "llmOk": "Ollama reachable",
+    "llmDown": "Ollama offline",
+    "llmOff": "Local LLM off",
+    "llmModelMissing": "Model missing: {{model}}",
+    "filesOn": "Files API live",
+    "filesOff": "Files API offline",
+    "startFilesApi": "Start Local Files API",
+    "storageMode": "Storage Mode"
   },
   "trash": {
     "title": "Trash",

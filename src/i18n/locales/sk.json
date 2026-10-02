@@ -1555,17 +1555,20 @@
           "paragraphs": [
             "Scribe má vlastnú Lokálnu AI. Nie je to ChatGPT ani online chatbot. Keď ju zapnete v Nastaveniach → Lokálna AI, Scribe spustí malý Python proces priamo na tomto Macu. Indexovanie, vyhľadávanie a odpovede nad poznámkami prebiehajú v pamäti počítača. Text sa nikam neodosiela.",
             "Rust jadro ostáva hlavné: databáza, editor, ukladanie a fulltext fungujú aj bez AI. Lokálna AI pridáva sémantické hľadanie, otázky k poznámkam, návrhy tagov, týždenný prehľad denníka a analýzu knižnice — aby ste aplikáciu používali bez očakávania cloud LLM.",
+            "Voliteľné lokálne LLM (Ollama na localhote) môže vylepšiť vybrané heuristiky — zhrnutie, writing coach, prepis, vysvetlenie, zjednodušenie — keď zapnete Enhance heuristics. Výber modelu a test spojenia sú na tej istej stránke.",
+            "Storage Files API sprístupní sandbox files/ z priečinka dokumentov na loopbacku. Keď API beží, Lokálna AI vie súbory listovať, hľadať, sumarizovať a odpovedať s citáciami ciest — stále bez cloudu.",
             "Po zapnutí sa dokumenty indexujú do vektorov (model scribe-hash-v4). Ak Scribe aktualizujete a model sa zmení, zobrazí sa upozornenie na preindexovanie — staré a nové vektory by inak dávali nekonzistentné výsledky.",
-            "V chate dokumentu a AI prehľade môžete spustiť aj študijné a štýlové akcie: kartičky, závery, konzistenciu terminológie a štýlový kouč — všetko offline nad textom poznámky."
+            "V chate dokumentu a Local Agent môžete spustiť študijné a štýlové akcie: kartičky, závery, slovník, vysvetlenie, zjednodušenie, akčné body, terminológiu a štýlový kouč — plus recept Hĺbkové čítanie (osnova → slovník → závery → kartičky)."
           ],
           "points": [
             "Súčasť Scribe — zapnite raz v Nastaveniach → Lokálna AI, bez účtu tretej strany",
+            "Stav Lokálnej inteligencie ukazuje NLP · Ollama · Files API spolu",
             "⌘K scope Všetko — kombinuje fulltext (FTS) a sémantiku cez hybridné zlučovanie",
-            "⌘K scope Sémanticky — len výsledky podľa významu, nie presného slova",
-            "Opýtať sa knižnice / tejto poznámky — extractive odpovede s citáciami z vašich poznámok",
-            "Kartičky / Závery / Terminológia / Štýlový kouč — chipy v Local AI chate",
+            "Opýtať sa knižnice / tejto poznámky — extractive odpovede s citáciami",
+            "Opýtať sa files/ — keď beží Local Files API (Storage Mode)",
+            "Kartičky / Závery / Slovník / Vysvetliť / Writing coach — chipy v chate a Agente",
             "/continue — n-gram návrhy z korpusu knižnice",
-            "Vyžaduje Python 3.10+ v systéme; pip balíčky nie sú potrebné"
+            "Vyžaduje Python 3.10+; Ollama je voliteľná na LLM polish"
           ]
         },
         "revisions": {
@@ -2206,8 +2209,14 @@
       "weeklyReview": "Týždenný review",
       "meetingWrap": "Zápis zo stretnutia",
       "studyPass": "Štúdium",
+      "deepRead": "Hĺbkové čítanie",
       "cleanup": "Upratanie knižnice",
       "polish": "Vylepšiť poznámku"
+    },
+    "quickPrompts": {
+      "explain": "Vysvetli túto poznámku",
+      "glossary": "Vytvor slovník pojmov",
+      "takeaways": "Hlavné závery"
     },
     "tools": {
       "library_answer": "Q&A knižnica",
@@ -2230,8 +2239,28 @@
       "revision": "Diff revízií",
       "spellcheck": "Pravopis",
       "rewrite": "Prepis",
-      "brief": "Brief poznámky"
+      "brief": "Brief poznámky",
+      "explain": "Vysvetliť",
+      "simplify": "Zjednodušiť",
+      "action_items": "Akčné body",
+      "glossary": "Slovník",
+      "compare_notes": "Porovnať poznámky",
+      "files_answer": "Opýtať sa files/"
     }
+  },
+  "localIntelligence": {
+    "title": "Lokálna inteligencia",
+    "settings": "Nastavenia",
+    "nlpOn": "NLP zapnuté",
+    "nlpOff": "NLP vypnuté",
+    "llmOk": "Ollama dosiahnuteľná",
+    "llmDown": "Ollama offline",
+    "llmOff": "Lokálne LLM vypnuté",
+    "llmModelMissing": "Chýba model: {{model}}",
+    "filesOn": "Files API beží",
+    "filesOff": "Files API offline",
+    "startFilesApi": "Spustiť Local Files API",
+    "storageMode": "Storage Mode"
   },
   "trash": {
     "title": "Kôš",

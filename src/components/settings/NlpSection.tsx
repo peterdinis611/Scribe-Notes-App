@@ -24,6 +24,7 @@ import {
   type NlpStatus,
 } from '@/lib/db/nlp-api'
 import { LibraryReportView } from '@/components/settings/LibraryReportView'
+import { LocalIntelligenceStatus } from '@/components/nlp/LocalIntelligenceStatus'
 import { runNlpIndexAllWithProgress } from '@/lib/nlp/index-progress'
 import { toast } from '@/lib/toast'
 
@@ -290,6 +291,8 @@ export function NlpSection() {
       <p className="mb-4 max-w-2xl text-[13px] leading-relaxed text-[var(--color-muted-foreground)]">
         {t('settings.nlp.intro')}
       </p>
+
+      <LocalIntelligenceStatus className="mb-4" showStartFilesCta />
 
       {status?.enabled && !status.sidecarOk && (
         <div className="mb-4 rounded-xl border border-[color-mix(in_srgb,var(--color-destructive)_35%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-destructive)_8%,var(--color-surface))] px-3 py-2.5 text-[12px] leading-relaxed text-[var(--color-foreground)]">
