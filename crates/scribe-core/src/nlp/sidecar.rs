@@ -466,11 +466,17 @@ impl NlpSidecar {
         )
     }
 
-    pub fn summarize(&self, text: &str, max_sentences: i64) -> Result<Value, String> {
-        self.call_method(
-            "summarize",
-            json!({ "text": text, "maxSentences": max_sentences }),
-        )
+    pub fn summarize(
+        &self,
+        text: &str,
+        max_sentences: i64,
+        llm: Option<&Value>,
+    ) -> Result<Value, String> {
+        let mut params = json!({ "text": text, "maxSentences": max_sentences });
+        if let Some(options) = llm {
+            params["llm"] = options.clone();
+        }
+        self.call_method("summarize", params)
     }
 
     pub fn extract_entities(&self, text: &str) -> Result<Value, String> {
@@ -935,6 +941,24 @@ impl NlpSidecar {
         self.call_method("files_answer", params)
     }
 
+    pub fn files_index(
+        &self,
+        path: &str,
+        limit_files: i64,
+        force: bool,
+        base_url: Option<&str>,
+    ) -> Result<Value, String> {
+        let mut params = json!({
+            "path": path,
+            "limitFiles": limit_files,
+            "force": force,
+        });
+        if let Some(url) = base_url {
+            params["baseUrl"] = json!(url);
+        }
+        self.call_method("files_index", params)
+    }
+
     pub fn explain_selection(&self, text: &str, llm: Option<&Value>) -> Result<Value, String> {
         let mut params = json!({ "text": text });
         if let Some(options) = llm {
@@ -1099,6 +1123,7 @@ pub fn rpc_timeout(method: &str) -> Duration {
         | "files_list" | "files_read_text" | "files_search" | "files_summarize" | "files_answer" => {
             Duration::from_secs(25)
         }
+        "files_index" => Duration::from_secs(180),
         "llm_status" => Duration::from_secs(8),
         "llm_complete" | "rewrite_selection" => Duration::from_secs(120),
         "embed_with_chunks" => Duration::from_secs(60),

@@ -527,7 +527,7 @@ export type FilesSearchHit = {
 
 export type FilesAnswerResult = {
   answer: string
-  citations: Array<{ path: string; snippet: string; score?: number }>
+  citations: Array<{ path: string; snippet?: string; excerpt?: string; score?: number }>
   source: string
 }
 
@@ -569,6 +569,32 @@ export const nlpFilesAnswer = (input: {
   limit?: number
   baseUrl?: string
 }) => invoke<FilesAnswerResult>('nlp_files_answer', { input })
+
+export const nlpFilesIndex = (input?: {
+  path?: string
+  limitFiles?: number
+  force?: boolean
+  baseUrl?: string
+}) =>
+  invoke<{
+    namespace: string
+    indexedFiles: number
+    chunkCount: number
+    updated: number
+    skipped: number
+    indexPath: string
+    source: string
+  }>('nlp_files_index', { input: input ?? {} })
+
+export const nlpSummarize = (input: {
+  documentId?: string
+  text?: string
+  maxSentences?: number
+}) =>
+  invoke<{ summary: string; bullets: string[]; enhanced?: boolean; source?: string }>(
+    'nlp_summarize',
+    { input },
+  )
 
 export type ExplainSelectionResult = {
   language: string

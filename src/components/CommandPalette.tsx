@@ -618,7 +618,15 @@ export function CommandPalette() {
               hint: getDisplayKeysForShortcut('askThisNote', shortcutOverrides).join(''),
               icon: <MessageSquare className="h-4 w-4" />,
               run: () => {
-                if (!activeDocumentId || !nlpEnabled) return
+                if (!activeDocumentId) {
+                  toast.info(t('libraryChat.noActiveDocument'))
+                  return
+                }
+                if (!nlpEnabled) {
+                  toast.info(t('libraryChat.nlpDisabled'))
+                  navigate(ROUTES.settingsSection('nlp'))
+                  return
+                }
                 dispatch(requestInsightsAskFocus())
               },
             },
@@ -773,6 +781,14 @@ export function CommandPalette() {
         hint: t('settings.sections.interface.description'),
         icon: <LayoutTemplate className="h-4 w-4" />,
         run: () => navigate(ROUTES.settingsSection('interface')),
+      },
+      {
+        type: 'action',
+        id: 'settings-nlp',
+        label: t('settings.nlp.title'),
+        hint: t('settings.sections.nlp.description'),
+        icon: <Sparkles className="h-4 w-4" />,
+        run: () => navigate(ROUTES.settingsSection('nlp')),
       },
       {
         type: 'action',

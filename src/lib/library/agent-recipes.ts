@@ -7,6 +7,7 @@ export type AgentRecipeId =
   | 'cleanup'
   | 'polish'
   | 'deep_read'
+  | 'files_digest'
 
 export type AgentRecipe = {
   id: AgentRecipeId
@@ -41,6 +42,11 @@ export const AGENT_RECIPES: AgentRecipe[] = [
     labelKey: 'agent.recipes.deepRead',
     tools: ['outline', 'glossary', 'takeaways', 'flashcards'],
     documentPreferred: true,
+  },
+  {
+    id: 'files_digest',
+    labelKey: 'agent.recipes.filesDigest',
+    tools: ['files_answer'],
   },
   {
     id: 'cleanup',

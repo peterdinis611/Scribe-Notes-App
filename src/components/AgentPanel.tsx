@@ -9,6 +9,9 @@ import {
   type AgentApplyPreviewKind,
 } from '@/components/agent/AgentApplyPreviewDialog'
 import { LocalIntelligenceStatus } from '@/components/nlp/LocalIntelligenceStatus'
+import { CompareNotesDialog } from '@/components/agent/CompareNotesDialog'
+import { withLlmChunkListener } from '@/lib/nlp/llm-stream'
+import { storageFsServerStart } from '@/lib/storage/files-api-server'
 import { Bubble, BubbleContent } from '@/components/ui/bubble'
 import { Button } from '@/components/ui/button'
 import {
@@ -162,6 +165,9 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
   const [showRuns, setShowRuns] = useState(false)
   const [blobMood, setBlobMood] = useState<AgentBlobatarMood>('idle')
   const [applyPreview, setApplyPreview] = useState<AgentApplyPreviewKind | null>(null)
+  const [compareOpen, setCompareOpen] = useState(false)
+  const [pendingCompareGoal, setPendingCompareGoal] = useState('')
+  const [filesOfflineHint, setFilesOfflineHint] = useState(false)
   const [applyBusy, setApplyBusy] = useState(false)
   const applyPendingRef = useRef<null | (() => Promise<void> | void)>(null)
   const moodTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -335,7 +341,11 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
   const runGoal = useCallback(
     async (
       goal: string,
-      opts?: { recipeId?: AgentRecipeId; forceTools?: AgentToolId[] },
+      opts?: {
+        recipeId?: AgentRecipeId
+        forceTools?: AgentToolId[]
+        compareDocumentId?: string | null
+      },
     ) => {
       const trimmed = goal.trim()
       if ((!trimmed && !opts?.recipeId && !opts?.forceTools?.length) || loading) return
@@ -345,6 +355,17 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
       }
       if (scope === 'document' && !activeDocumentId) {
         toast.error(t('libraryChat.noActiveDocument'))
+        return
+      }
+
+      if (
+        opts?.forceTools?.includes('compare_notes') &&
+        !opts.compareDocumentId &&
+        scope === 'document' &&
+        activeDocumentId
+      ) {
+        setPendingCompareGoal(trimmed || t('agent.tools.compare_notes'))
+        setCompareOpen(true)
         return
       }
 
@@ -367,11 +388,32 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
       setInput('')
       setLoading(true)
       setBlobMood('thinking')
+      setFilesOfflineHint(false)
+
+      const streamingId = `local-assistant-stream-${Date.now()}`
+      const appendAssistant = (msg: AgentThreadMessage) => {
+        if (scope === 'document') setMessages((prev) => [...prev, msg])
+        else setSessionMessages((prev) => [...prev, msg])
+      }
+      const patchAssistant = (id: string, patch: Partial<AgentThreadMessage>) => {
+        const updater = (prev: AgentThreadMessage[]) =>
+          prev.map((item) => (item.id === id ? { ...item, ...patch } : item))
+        if (scope === 'document') setMessages(updater)
+        else setSessionMessages(updater)
+      }
+
+      appendAssistant({
+        id: streamingId,
+        role: 'assistant',
+        text: '',
+        createdAt: Date.now(),
+      })
 
       try {
         const digestGoal =
           /folder \(7 days\)|priečinku \(7 dní\)|priecinku \(7 dni\)/i.test(trimmed) ||
           /what.?s new in this folder|čo je nové v priečinku/i.test(trimmed)
+        let streamed = ''
         const result =
           scope === 'folder' && activeDocument?.folderId && digestGoal
             ? await runFolderDigest(activeDocument.folderId).then((answer) => ({
@@ -382,16 +424,25 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                 needsClarification: false as const,
                 nextPrefs: null,
               }))
-            : await runAgentGoal(
-                trimmed || displayGoal,
-                scope,
-                activeDocumentId,
-                agentMemoryContext(prior),
-                agentPrefs,
-                {
-                  ...opts,
-                  folderId: scope === 'folder' ? activeDocument?.folderId : null,
+            : await withLlmChunkListener(
+                (chunk) => {
+                  streamed += chunk
+                  const snapshot = streamed
+                  patchAssistant(streamingId, { text: snapshot })
                 },
+                () =>
+                  runAgentGoal(
+                    trimmed || displayGoal,
+                    scope,
+                    activeDocumentId,
+                    agentMemoryContext(prior),
+                    agentPrefs,
+                    {
+                      ...opts,
+                      folderId: scope === 'folder' ? activeDocument?.folderId : null,
+                      stream: true,
+                    },
+                  ),
               )
 
         if (result.nextPrefs) {
@@ -399,36 +450,26 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
         }
 
         if (result.needsClarification) {
-          const assistant: AgentThreadMessage = {
-            id: `local-assistant-${Date.now()}`,
-            role: 'assistant',
+          patchAssistant(streamingId, {
             text: t('agent.clarifyPrompt'),
             clarifyOptions: result.clarifyOptions,
-            createdAt: Date.now(),
-          }
-          if (scope === 'document') {
-            setMessages((prev) => [...prev, assistant])
-          } else {
-            setSessionMessages((prev) => [...prev, assistant])
-          }
+          })
           setMoodBriefly('done')
           return
         }
 
         const assistant: AgentThreadMessage = {
-          id: `local-assistant-${Date.now()}`,
+          id: streamingId,
           role: 'assistant',
-          text: result.answer || t('agent.emptyResult'),
+          text: streamed.trim() || result.answer || t('agent.emptyResult'),
           citations: result.citations,
           steps: result.steps,
           followups: result.followups,
           createdAt: Date.now(),
         }
+        patchAssistant(streamingId, assistant)
         if (scope === 'document') {
-          setMessages((prev) => [...prev, assistant])
           await persistPair(trimmed || displayGoal, assistant)
-        } else {
-          setSessionMessages((prev) => [...prev, assistant])
         }
         void appendAgentRun({
           scope: scope === 'folder' ? 'library' : scope,
@@ -442,6 +483,17 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
         setMoodBriefly('done')
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
+        if (message === 'agent.filesApiOffline' || message.includes('FilesApiOffline')) {
+          setFilesOfflineHint(true)
+          patchAssistant(streamingId, { text: t('agent.filesApiOffline') })
+        } else {
+          patchAssistant(streamingId, {
+            text:
+              message.startsWith('agent.') || message.startsWith('libraryChat.')
+                ? t(message)
+                : message,
+          })
+        }
         const key = message.startsWith('libraryChat.') || message.startsWith('agent.') ? message : null
         toast.error(t('agent.errorTitle'), key ? t(key) : message)
         setMoodBriefly('error')
@@ -1133,7 +1185,48 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
       </div>
 
       <div className="library-chat-composer">
+        {filesOfflineHint ? (
+          <div className="mb-2 flex flex-wrap items-center gap-2 rounded-md border border-[var(--color-border)] bg-[var(--color-muted)]/30 px-2.5 py-2 text-[12px]">
+            <span className="text-[var(--color-muted-foreground)]">{t('agent.filesApiOffline')}</span>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-7 text-[11px]"
+              onClick={() => {
+                void storageFsServerStart()
+                  .then(() => {
+                    setFilesOfflineHint(false)
+                    toast.success(t('localIntelligence.filesOn'))
+                  })
+                  .catch((error) => toast.error(t('agent.errorTitle'), String(error)))
+              }}
+            >
+              {t('localIntelligence.startFilesApi')}
+            </Button>
+          </div>
+        ) : null}
         <div className="library-chat-actions">
+          <button
+            type="button"
+            className="library-chat-chip"
+            disabled={loading || !agentPrefs.enabled}
+            onClick={() =>
+              void runGoal(t('agent.quickPrompts.askFiles'), { forceTools: ['files_answer'] })
+            }
+          >
+            {t('agent.tools.files_answer')}
+          </button>
+          {scope === 'document' ? (
+            <button
+              type="button"
+              className="library-chat-chip"
+              disabled={loading || !agentPrefs.enabled || !activeDocumentId}
+              onClick={() => void runGoal(t('agent.tools.compare_notes'), { forceTools: ['compare_notes'] })}
+            >
+              {t('agent.tools.compare_notes')}
+            </button>
+          ) : null}
           {AGENT_RECIPES.filter((recipe) =>
             scope === 'library' ? !recipe.documentPreferred : true,
           ).map((recipe) => (
@@ -1194,6 +1287,23 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
           }
         }}
         onConfirm={() => void confirmApplyPreview()}
+      />
+      <CompareNotesDialog
+        open={compareOpen}
+        excludeDocumentId={activeDocumentId}
+        onClose={() => {
+          setCompareOpen(false)
+          setPendingCompareGoal('')
+        }}
+        onSelect={(documentId) => {
+          setCompareOpen(false)
+          const goal = pendingCompareGoal
+          setPendingCompareGoal('')
+          void runGoal(goal, {
+            forceTools: ['compare_notes'],
+            compareDocumentId: documentId,
+          })
+        }}
       />
     </div>
   )

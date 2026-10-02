@@ -1121,6 +1121,9 @@
         "flashcards": "Študijné kartičky z poznámky",
         "takeaways": "Kľúčové závery / executive bullets",
         "writingCoach": "Lokálny štýlový kouč",
+        "explainSelection": "Vysvetliť poznámku alebo výber",
+        "glossary": "Pojmy a krátke definície z poznámky",
+        "filesAnswer": "Q&A nad sandboxom files/ (Local Files API)",
         "outlineQuiz": "Kvízové otázky z nadpisov",
         "meetingPack": "Rozhodnutia + action items + účastníci",
         "citationPack": "Ktoré poznámky podporujú tvrdenie X",
@@ -2113,6 +2116,7 @@
       "glossary": "Slovník",
       "explain": "Vysvetliť",
       "simplify": "Zjednodušiť",
+      "action_items": "Akčné body",
       "actionItems": "Akčné body",
       "terminology": "Terminológia",
       "style": "Štýlový kouč"
@@ -2198,6 +2202,12 @@
     "autoBriefInsert": "Vložiť do poznámky",
     "autoBriefWrongDoc": "Otvor tú istú poznámku, aby si brief vložil",
     "recipesDone": "Recept agenta hotový",
+    "filesApiOffline": "Local Files API je offline. Spusti ho, aby si sa mohol pýtať files/.",
+    "compareNeedsOther": "Vyber druhú poznámku na porovnanie.",
+    "comparePickerTitle": "Porovnať s…",
+    "comparePickerHint": "Vyber druhú poznámku pre lokálne zhrnutie rozdielov.",
+    "comparePickerSearch": "Hľadať poznámky…",
+    "comparePickerEmpty": "Žiadne zodpovedajúce poznámky.",
     "appliedToNote": "Vložené do otvorenej poznámky",
     "applyFailed": "Nepodarilo sa vložiť — otvor poznámku v editore",
     "run": "Beh agenta",
@@ -2214,13 +2224,15 @@
       "meetingWrap": "Zápis zo stretnutia",
       "studyPass": "Štúdium",
       "deepRead": "Hĺbkové čítanie",
+      "filesDigest": "Prehľad files/",
       "cleanup": "Upratanie knižnice",
       "polish": "Vylepšiť poznámku"
     },
     "quickPrompts": {
       "explain": "Vysvetli túto poznámku",
       "glossary": "Vytvor slovník pojmov",
-      "takeaways": "Hlavné závery"
+      "takeaways": "Hlavné závery",
+      "askFiles": "Čo je v sandboxe files/?"
     },
     "tools": {
       "library_answer": "Q&A knižnica",

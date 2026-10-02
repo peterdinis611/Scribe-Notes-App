@@ -546,6 +546,15 @@ pub struct FilesAnswerParams {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+pub struct FilesIndexParams {
+    pub path: Option<String>,
+    pub limit_files: Option<i64>,
+    pub force: Option<bool>,
+    pub base_url: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct AnalyzeRevisionDiffParams {
     pub old_text: String,
     pub new_text: String,

@@ -2241,6 +2241,22 @@ impl ScribeMcp {
         })
     }
 
+    #[tool(description = "Build/refresh path-scoped embeddings for files/ (namespace separate from note ids). Persists under scratch/.scribe-files-index.json.")]
+    fn files_index(
+        &self,
+        Parameters(params): Parameters<tools::FilesIndexParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.files_index(
+                &self.sidecar,
+                params.path.as_deref().unwrap_or(""),
+                params.limit_files,
+                params.force.unwrap_or(false),
+                params.base_url.as_deref(),
+            )?))
+        })
+    }
+
     #[tool(description = "Revision AI: classify what changed between two plain texts (changeKind, risks, bullets). Python preferred; Rust fallback always available.")]
     fn analyze_revision_diff(
         &self,
@@ -2687,7 +2703,7 @@ impl ServerHandler for ScribeMcp {
              create_library adds a library without switching. \
              extract_entities / extract_mentions / extract_dates / extract_outline / chunk_text accept id or text. \
              Study AI: extract_flashcards / extract_takeaways / check_terminology / writing_coach / outline_quiz / meeting_notes_pack / explain_selection / simplify / action_items / glossary / compare_notes (id or text). \
-             Files sandbox AI: files_list / files_read_text / files_search / files_summarize / files_answer (requires Local Files API). \
+             Files sandbox AI: files_list / files_read_text / files_search / files_summarize / files_answer / files_index (requires Local Files API). \
              Library study: check_terminology_library / citation_pack. \
              Intent router: match_document_chat_intent. Convert: convert_tiptap. Diff: diff_plain_texts. Meta tags: document_matches_meta_filters. \
              Placeholder: generate_placeholder. Answer backend: set_answer_backend. \

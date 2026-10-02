@@ -858,7 +858,7 @@ pub fn nlp_journal_summary(
         });
     }
 
-    let result = sidecar.summarize(&combined, 5)?;
+    let result = sidecar.summarize(&combined, 5, None)?;
     let summary = result
         .get("summary")
         .and_then(|value| value.as_str())
@@ -2048,6 +2048,66 @@ pub fn nlp_files_answer(
         input.limit.unwrap_or(6).clamp(1, 12),
         input.base_url.as_deref(),
     )
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpFilesIndexInput {
+    pub path: Option<String>,
+    pub limit_files: Option<i64>,
+    pub force: Option<bool>,
+    pub base_url: Option<String>,
+}
+
+#[tauri::command]
+pub fn nlp_files_index(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpFilesIndexInput,
+) -> Result<serde_json::Value, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    if !is_nlp_enabled(&conn)? {
+        return Err("NLP is disabled".to_string());
+    }
+    let _ = sync_sidecar_backend(&sidecar, &conn);
+    drop(conn);
+    sidecar.files_index(
+        input.path.as_deref().unwrap_or(""),
+        input.limit_files.unwrap_or(40).clamp(1, 80),
+        input.force.unwrap_or(false),
+        input.base_url.as_deref(),
+    )
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpSummarizeInput {
+    pub document_id: Option<String>,
+    pub text: Option<String>,
+    pub max_sentences: Option<i64>,
+}
+
+#[tauri::command]
+pub fn nlp_summarize(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpSummarizeInput,
+) -> Result<serde_json::Value, String> {
+    let text = resolve_nlp_text(
+        &state,
+        &NlpDocumentTextInput {
+            document_id: input.document_id,
+            text: input.text,
+            limit: None,
+            include_cloze: None,
+        },
+    )?;
+    let max_sentences = input.max_sentences.unwrap_or(4).clamp(1, 12);
+    let llm = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        llm_sidecar_options(&conn, "enhance")?
+    };
+    sidecar.summarize(&text, max_sentences, llm.as_ref())
 }
 
 #[derive(Debug, Deserialize)]

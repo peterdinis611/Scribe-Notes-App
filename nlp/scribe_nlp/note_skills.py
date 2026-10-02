@@ -12,6 +12,13 @@ from .tasks import extract_tasks
 from .text_utils import content_tokens, split_sentences, tokenize
 
 
+def _lang_code(text: str) -> str:
+    detected = detect_language(text)
+    if isinstance(detected, dict):
+        return str(detected.get("language") or "unknown")
+    return str(detected or "unknown")
+
+
 def explain_selection(
     text: str,
     *,
@@ -20,7 +27,7 @@ def explain_selection(
     source = (text or "").strip()
     if not source:
         raise ValueError("text is required")
-    language = detect_language(source)
+    language = _lang_code(source)
     slovak = language.startswith("sk")
     sentences = [s.strip() for s in split_sentences(source) if s.strip()]
     tokens = content_tokens(source)
@@ -59,7 +66,7 @@ def simplify_text(
     source = (text or "").strip()
     if not source:
         raise ValueError("text is required")
-    language = detect_language(source)
+    language = _lang_code(source)
     # Heuristic: split long sentences and drop filler-ish words
     fillers = {"basically", "actually", "literally", "really", "very", "just", "vlastne", "proste"}
     parts: list[str] = []
@@ -87,6 +94,7 @@ def simplify_text(
         enhanced = True
     return {
         "language": language,
+        "simplified": simplified,
         "text": simplified,
         "originalLength": len(source),
         "simplifiedLength": len(simplified),
@@ -175,7 +183,7 @@ def glossary_from_text(
     source = (text or "").strip()
     if not source:
         raise ValueError("text is required")
-    language = detect_language(source)
+    language = _lang_code(source)
     tokens = tokenize(source)
     # Prefer capitalized / longer content tokens as term candidates
     candidates: dict[str, int] = {}

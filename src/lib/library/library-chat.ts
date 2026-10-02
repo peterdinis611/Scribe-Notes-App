@@ -14,6 +14,7 @@ import {
   nlpSpellcheck,
   nlpStatus,
   nlpSuggestWikiLinks,
+  nlpSummarize,
   nlpWritingCoach,
 } from '@/lib/db/nlp-api'
 
@@ -511,6 +512,22 @@ export async function runDocumentChatAction(
 
   switch (action) {
     case 'summarize': {
+      try {
+        const live = await nlpSummarize({ documentId, maxSentences: 4 })
+        const summary = live.summary?.trim()
+        if (summary) {
+          const phrases = analysis.keyphrases?.length
+            ? `\n\n${bullets(analysis.keyphrases.slice(0, 6))}`
+            : ''
+          const enhanced = live.enhanced ? '\n\n_(LLM polish)_' : ''
+          return {
+            answer: `**Summary**\n\n${summary}${phrases}${enhanced}`,
+            citations: [citation],
+          }
+        }
+      } catch {
+        /* fall through to cached analysis */
+      }
       const summary = analysis.summary?.trim()
       const phrases = analysis.keyphrases?.length
         ? `\n\n${bullets(analysis.keyphrases.slice(0, 6))}`

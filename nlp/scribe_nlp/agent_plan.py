@@ -522,7 +522,7 @@ def agent_document_brief(
                 from .note_skills import simplify_text
 
                 result = simplify_text(source)
-                text_out = (result.get("simplified") or "").strip()
+                text_out = (result.get("simplified") or result.get("text") or "").strip()
                 if text_out:
                     sections.append(_section("simplify", text_out))
             elif tool == "action_items":

@@ -94,7 +94,7 @@ const DOCUMENT_ACTIONS: Array<{ id: DocumentChatAction; labelKey: string }> = [
   { id: 'glossary', labelKey: 'libraryChat.actions.glossary' },
   { id: 'explain', labelKey: 'libraryChat.actions.explain' },
   { id: 'simplify', labelKey: 'libraryChat.actions.simplify' },
-  { id: 'action_items', labelKey: 'libraryChat.actions.actionItems' },
+  { id: 'action_items', labelKey: 'libraryChat.actions.action_items' },
   { id: 'tasks', labelKey: 'libraryChat.actions.tasks' },
   { id: 'title', labelKey: 'libraryChat.actions.title' },
   { id: 'wiki', labelKey: 'libraryChat.actions.wiki' },

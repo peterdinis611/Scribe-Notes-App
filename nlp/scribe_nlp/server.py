@@ -254,7 +254,12 @@ def _handle_request_inner(
 
             text = _validate_text(str(params.get("text") or ""))
             max_sentences = max(1, min(int(params.get("maxSentences") or 4), 12))
-            result = summarize_text(text, max_sentences=max_sentences)
+            llm_raw = params.get("llm")
+            result = summarize_text(
+                text,
+                max_sentences=max_sentences,
+                llm=llm_raw if isinstance(llm_raw, dict) else None,
+            )
         elif method == "extract_entities":
             from .ner import extract_entities
 
@@ -722,6 +727,19 @@ def _handle_request_inner(
                     path=str(params.get("path") or ""),
                     base_url=str(params.get("baseUrl") or params.get("base_url") or "") or None,
                     limit=max(1, min(int(params.get("limit") or 6), 12)),
+                    use_index=bool(params.get("useIndex", True)),
+                )
+            except FilesApiOfflineError as exc:
+                raise SidecarError(str(exc), code=-32020) from exc
+        elif method == "files_index":
+            from .files_ai import FilesApiOfflineError, files_index
+
+            try:
+                result = files_index(
+                    str(params.get("path") or ""),
+                    base_url=str(params.get("baseUrl") or params.get("base_url") or "") or None,
+                    limit_files=max(1, min(int(params.get("limitFiles") or 40), 80)),
+                    force=bool(params.get("force")),
                 )
             except FilesApiOfflineError as exc:
                 raise SidecarError(str(exc), code=-32020) from exc

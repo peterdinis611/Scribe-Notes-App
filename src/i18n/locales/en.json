@@ -2112,6 +2112,7 @@
       "glossary": "Glossary",
       "explain": "Explain",
       "simplify": "Simplify",
+      "action_items": "Action items",
       "actionItems": "Action items",
       "terminology": "Terminology",
       "style": "Writing coach"
@@ -2197,6 +2198,12 @@
     "autoBriefInsert": "Insert into note",
     "autoBriefWrongDoc": "Open the same note to insert the brief",
     "recipesDone": "Agent recipe finished",
+    "filesApiOffline": "Local Files API is offline. Start it to ask files/.",
+    "compareNeedsOther": "Pick another note to compare with.",
+    "comparePickerTitle": "Compare with…",
+    "comparePickerHint": "Choose a second note for a local diff summary.",
+    "comparePickerSearch": "Search notes…",
+    "comparePickerEmpty": "No matching notes.",
     "appliedToNote": "Inserted into the open note",
     "applyFailed": "Could not insert — open a note in the editor",
     "run": "Agent run",
@@ -2213,13 +2220,15 @@
       "meetingWrap": "Meeting wrap-up",
       "studyPass": "Study pass",
       "deepRead": "Deep read",
+      "filesDigest": "Files digest",
       "cleanup": "Library cleanup",
       "polish": "Polish note"
     },
     "quickPrompts": {
       "explain": "Explain this note",
       "glossary": "Build a glossary",
-      "takeaways": "Key takeaways"
+      "takeaways": "Key takeaways",
+      "askFiles": "What's in my files/ sandbox?"
     },
     "tools": {
       "library_answer": "Library Q&A",

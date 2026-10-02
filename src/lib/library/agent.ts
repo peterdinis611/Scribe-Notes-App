@@ -472,6 +472,8 @@ async function runTool(
     memoryContext?: Array<{ role: string; text: string }>
     priorAnswers: string[]
     selectionText?: string | null
+    compareDocumentId?: string | null
+    stream?: boolean
   },
 ): Promise<LibraryChatResult> {
   const workingMemory = [
@@ -482,10 +484,11 @@ async function runTool(
   if (tool === 'library_answer') {
     return askLibrary(ctx.goal, {
       folderId: ctx.scope === 'folder' ? ctx.folderId : null,
+      stream: ctx.stream,
     })
   }
   if (tool === 'document_answer') {
-    return askDocument(ctx.documentId ?? '', ctx.goal, workingMemory)
+    return askDocument(ctx.documentId ?? '', ctx.goal, workingMemory, { stream: ctx.stream })
   }
   if (tool === 'duplicates') {
     return runAgentDuplicates()
@@ -551,14 +554,40 @@ async function runTool(
   }
 
   if (tool === 'files_answer') {
-    const result = await nlpFilesAnswer({ question: ctx.goal, limit: 6 })
+    try {
+      const result = await nlpFilesAnswer({ question: ctx.goal, limit: 6 })
+      return {
+        answer: result.answer || 'No answer from files sandbox.',
+        citations: (result.citations || []).map((item) => ({
+          documentId: item.path,
+          title: item.path,
+          snippet: item.snippet || item.excerpt || '',
+        })),
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (message.includes('FilesApiOffline')) {
+        throw new Error('agent.filesApiOffline')
+      }
+      throw error
+    }
+  }
+
+  if (tool === 'compare_notes') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    const otherId =
+      ctx.compareDocumentId?.trim() ||
+      ctx.goal.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i)?.[0]
+    if (!otherId || otherId === ctx.documentId) {
+      throw new Error('agent.compareNeedsOther')
+    }
+    const result = await nlpCompareNotes({
+      documentIdA: ctx.documentId,
+      documentIdB: otherId,
+    })
     return {
-      answer: result.answer || 'No answer from files sandbox.',
-      citations: (result.citations || []).map((item) => ({
-        documentId: item.path,
-        title: item.path,
-        snippet: item.snippet,
-      })),
+      answer: result.summary || 'No comparison summary.',
+      citations: [],
     }
   }
 
@@ -620,25 +649,6 @@ async function runTool(
     }
   }
 
-  if (tool === 'compare_notes') {
-    if (!ctx.documentId) throw new Error('agent.needsDocument')
-    const otherId = ctx.goal.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i)?.[0]
-    if (!otherId || otherId === ctx.documentId) {
-      return {
-        answer: 'Compare notes needs a second document id in the goal.',
-        citations: [],
-      }
-    }
-    const result = await nlpCompareNotes({
-      documentIdA: ctx.documentId,
-      documentIdB: otherId,
-    })
-    return {
-      answer: result.summary || 'No comparison summary.',
-      citations: [],
-    }
-  }
-
   if (CHAT_ACTION_TOOLS.has(tool)) {
     if (!ctx.documentId) throw new Error('libraryChat.noActiveDocument')
     return runDocumentChatAction(ctx.documentId, tool as DocumentChatAction)
@@ -680,6 +690,8 @@ export async function runAgentGoal(
     forceTools?: AgentToolId[]
     folderId?: string | null
     selectionText?: string | null
+    compareDocumentId?: string | null
+    stream?: boolean
   },
 ): Promise<AgentRunResult> {
   if (!prefs.enabled) {
@@ -738,13 +750,18 @@ export async function runAgentGoal(
 
     try {
       const result = await runTool(tool, {
-        goal: trimmed,
+        goal:
+          tool === 'files_answer' && (!trimmed || opts?.recipeId === 'files_digest')
+            ? trimmed || 'Summarize the key points across my files/ sandbox'
+            : trimmed,
         scope,
         documentId,
         folderId: opts?.folderId,
         memoryContext: contextWithTeachings,
         priorAnswers,
         selectionText: opts?.selectionText,
+        compareDocumentId: opts?.compareDocumentId,
+        stream: opts?.stream && (tool === 'library_answer' || tool === 'document_answer'),
       })
       steps.push({
         tool,

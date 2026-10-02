@@ -1454,6 +1454,24 @@ impl ScribeStore {
         )
     }
 
+    pub fn files_index(
+        &self,
+        sidecar: &NlpSidecar,
+        path: &str,
+        limit_files: Option<i64>,
+        force: bool,
+        base_url: Option<&str>,
+    ) -> Result<Value, String> {
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        sidecar.files_index(
+            path,
+            limit_files.unwrap_or(40).clamp(1, 80),
+            force,
+            base_url,
+        )
+    }
+
     pub fn analyze_revision_diff(
         &self,
         sidecar: &NlpSidecar,

@@ -319,6 +319,8 @@ pub fn run() {
             commands::nlp::nlp_files_search,
             commands::nlp::nlp_files_summarize,
             commands::nlp::nlp_files_answer,
+            commands::nlp::nlp_files_index,
+            commands::nlp::nlp_summarize,
             commands::nlp::nlp_explain_selection,
             commands::nlp::nlp_simplify,
             commands::nlp::nlp_action_items,
