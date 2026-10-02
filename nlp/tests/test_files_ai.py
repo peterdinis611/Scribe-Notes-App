@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import io
+import unittest
 import zipfile
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 from scribe_nlp.files_ai import (
     FilesApiOfflineError,
@@ -14,6 +13,7 @@ from scribe_nlp.files_ai import (
     extract_file_text,
     files_answer,
 )
+from scribe_nlp.storage_fs import StorageEntry, StorageFsError
 
 
 def _minimal_docx(text: str) -> bytes:
@@ -31,43 +31,39 @@ def _minimal_docx(text: str) -> bytes:
     return buf.getvalue()
 
 
-def test_extract_docx_text():
-    data = _minimal_docx("Hello sandbox")
-    assert "Hello sandbox" in _extract_docx_text(data)
-    assert "Hello sandbox" in extract_file_text("notes/demo.docx", data)
+class FilesAiTests(unittest.TestCase):
+    def test_extract_docx_text(self) -> None:
+        data = _minimal_docx("Hello sandbox")
+        self.assertIn("Hello sandbox", _extract_docx_text(data))
+        self.assertIn("Hello sandbox", extract_file_text("notes/demo.docx", data))
 
+    def test_files_answer_offline_raises(self) -> None:
+        with patch("scribe_nlp.files_ai._client") as client_factory:
+            client = MagicMock()
+            client.health.side_effect = StorageFsError("connection failed")
+            client_factory.return_value = client
+            with self.assertRaises(FilesApiOfflineError) as ctx:
+                files_answer("What is in inbox?")
+            self.assertIn("FilesApiOffline", str(ctx.exception))
 
-def test_files_answer_offline_raises():
-    with patch("scribe_nlp.files_ai._client") as client_factory:
-        client = MagicMock()
-        client.health.side_effect = Exception("connection failed")
-        # StorageFsError path
-        from scribe_nlp.storage_fs import StorageFsError
+    def test_files_answer_extractive_when_online(self) -> None:
+        with patch("scribe_nlp.files_ai._client") as client_factory:
+            client = MagicMock()
+            client.health.return_value = {"ok": True}
+            client.search.return_value = [
+                StorageEntry(path="inbox/a.md", name="a.md", kind="file", size_bytes=12),
+            ]
+            client.read_text.return_value = "Alpha project deadline is Friday for shipping."
+            client_factory.return_value = client
 
-        client.health.side_effect = StorageFsError("connection failed")
-        client_factory.return_value = client
-        with pytest.raises(FilesApiOfflineError) as exc:
-            files_answer("What is in inbox?")
-        assert "FilesApiOffline" in str(exc.value)
-
-
-def test_files_answer_extractive_when_online():
-    from scribe_nlp.storage_fs import StorageEntry
-
-    with patch("scribe_nlp.files_ai._client") as client_factory:
-        client = MagicMock()
-        client.health.return_value = {"ok": True}
-        client.search.return_value = [
-            StorageEntry(path="inbox/a.md", name="a.md", kind="file", size_bytes=12),
-        ]
-        client.read_text.return_value = "Alpha project deadline is Friday for shipping."
-        client.read_json.side_effect = Exception("missing index")
-        client_factory.return_value = client
-
-        # Force extractive: empty index load
-        with patch("scribe_nlp.files_ai._load_index", return_value={"namespace": "files", "chunks": []}):
             result = files_answer("deadline shipping", use_index=False)
 
-        assert result["citations"]
-        assert result["retrieval"] == "extractive"
-        assert "Friday" in result["answer"] or "deadline" in result["answer"].lower()
+            self.assertTrue(result["citations"])
+            self.assertEqual(result["retrieval"], "extractive")
+            self.assertTrue(
+                "Friday" in result["answer"] or "deadline" in result["answer"].lower()
+            )
+
+
+if __name__ == "__main__":
+    unittest.main()
