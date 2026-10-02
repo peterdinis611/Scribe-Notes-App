@@ -96,8 +96,9 @@ export function SettingsRow({
       {children && (
         <div
           className={cn(
-            'flex flex-wrap items-center gap-1.5',
-            layout === 'row' ? 'shrink-0 sm:justify-end' : 'w-full',
+            layout === 'row'
+              ? 'flex shrink-0 flex-wrap items-center justify-start gap-1.5 sm:justify-end'
+              : 'w-full min-w-0',
           )}
         >
           {children}

@@ -4,18 +4,18 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-1.5 whitespace-nowrap text-[13px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-selection)] disabled:pointer-events-none disabled:opacity-40 titlebar-no-drag',
+  'inline-flex items-center justify-center gap-1.5 whitespace-nowrap text-[13px] font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-selection)] disabled:pointer-events-none disabled:opacity-40 titlebar-no-drag',
   {
     variants: {
       variant: {
         default:
-          'rounded-[var(--radius-md)] bg-[var(--color-accent)] text-white hover:brightness-105 active:brightness-95 shadow-sm',
+          'rounded-[var(--radius-md)] bg-[var(--color-accent)] text-white hover:brightness-105 active:brightness-95 shadow-[0_6px_16px_color-mix(in_srgb,var(--color-accent)_28%,transparent)]',
         outline:
-          'rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-foreground)] hover:bg-[var(--color-hover)]',
+          'rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-foreground)] hover:bg-[var(--color-hover)] hover:-translate-y-px',
         ghost:
           'rounded-[var(--radius-md)] bg-transparent text-[var(--color-foreground)] hover:bg-[var(--color-hover)]',
         sidebar:
-          'rounded-[var(--radius-md)] bg-transparent hover:bg-[var(--color-hover)] p-0',
+          'grove-nav-row rounded-[var(--radius-md)] bg-transparent hover:bg-[var(--color-hover)] p-0',
       },
       size: {
         default: 'h-9 px-3.5',

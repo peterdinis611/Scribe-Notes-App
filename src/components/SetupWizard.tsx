@@ -228,8 +228,8 @@ export function SetupWizard({ onFinished }: SetupWizardProps) {
           {stepId === 'skin' && (
             <div className="setup-folio-skins">
               {([
+                ['grove', 'settings.appearance.skinGrove', 'settings.appearance.skinGroveDesc'],
                 ['classic', 'settings.appearance.skinClassic', 'settings.appearance.skinClassicDesc'],
-                ['press', 'settings.appearance.skinPress', 'settings.appearance.skinPressDesc'],
               ] as const).map(([id, titleKey, descKey]) => (
                 <button
                   key={id}

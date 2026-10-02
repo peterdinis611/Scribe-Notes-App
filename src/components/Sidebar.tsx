@@ -1,7 +1,7 @@
 import { CalendarDays, FolderPlus, Search, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from '@tanstack/react-router'
+import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { FolderTree } from '@/components/FolderTree'
 import SmartFoldersSection from '@/components/SmartFoldersSection'
@@ -25,6 +25,7 @@ import { nlpListOpenTasks } from '@/lib/db/nlp-api'
 import { visibleLibraryDocuments } from '@/lib/db/library-sync'
 import { openTodayNote } from '@/lib/journal-notes'
 import { promptAndCreateFolder } from '@/lib/library/create-folder'
+import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { IconTooltip } from '@/components/ui/tooltip'
@@ -69,6 +70,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
   const scrollRef = useRef<HTMLDivElement>(null)
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
+  const pathname = useRouterState({ select: (state) => state.location.pathname })
   const documents = useAppSelector((state) => state.documents.documents)
   const folders = useAppSelector((state) => state.folders.folders)
   const recentDocumentIds = useAppSelector((state) => state.documents.recentDocumentIds)
@@ -76,10 +78,26 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
   const libraryView = useAppSelector((state) => state.documents.libraryView)
   const agentPanelOpen = useAppSelector((state) => state.documents.agentPanelOpen)
   const graphAroundActive = useAppSelector((state) => state.documents.libraryGraphAroundActive)
+  const storageModeEnabled = useAppSelector((state) => state.settings.storageModeEnabled)
   /** Agent moved to the right dock — never render it as a left library view. */
   const contentView =
     libraryView === 'agent' || libraryView === 'chat' ? 'folders' : libraryView
   const isContentSearch = query.trim().length >= 2
+
+  useEffect(() => {
+    if (pathname === '/storage' && storageModeEnabled && libraryView !== 'storage') {
+      dispatch(setLibraryView('storage'))
+    }
+  }, [dispatch, libraryView, pathname, storageModeEnabled])
+
+  useEffect(() => {
+    if (!storageModeEnabled && libraryView === 'storage') {
+      dispatch(setLibraryView('folders'))
+      if (pathname === '/storage') {
+        void navigate(ROUTES.home())
+      }
+    }
+  }, [dispatch, libraryView, navigate, pathname, storageModeEnabled])
 
   const visibleDocuments = useMemo(() => visibleLibraryDocuments(documents), [documents])
 
@@ -195,6 +213,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                 <LibraryViewTabs
                   value={libraryView}
                   agentOpen={agentPanelOpen}
+                  storageModeEnabled={storageModeEnabled}
                   favoriteCount={favoriteCount}
                   tagCount={tagCount}
                   recentCount={recentCount}
@@ -204,6 +223,15 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                     if (view === 'agent' || view === 'chat') {
                       dispatch(setAgentPanelOpen(!agentPanelOpen))
                       return
+                    }
+                    if (view === 'storage') {
+                      dispatch(setLibraryView('storage'))
+                      void navigate(ROUTES.storageMode())
+                      onClose?.()
+                      return
+                    }
+                    if (libraryView === 'storage' && pathname === '/storage') {
+                      void navigate(ROUTES.home())
                     }
                     dispatch(setLibraryView(view))
                   }}
@@ -312,6 +340,25 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                     onAroundActiveConsumed={() => dispatch(setLibraryGraphAroundActive(false))}
                   />
                 </ScrollArea>
+              )}
+
+              {contentView === 'storage' && (
+                <div className="px-3 py-3 text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
+                  <p className="m-0 font-[family-name:var(--font-display)] text-[13px] font-semibold text-[var(--color-foreground)]">
+                    {t('library.tabs.storage')}
+                  </p>
+                  <p className="mt-1.5 m-0">{t('storageMode.sidebarHint')}</p>
+                  <button
+                    type="button"
+                    className="mt-3 inline-flex h-8 items-center rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 text-[12px] font-medium text-[var(--color-foreground)] hover:bg-[var(--color-hover)]"
+                    onClick={() => {
+                      void navigate(ROUTES.storageMode())
+                      onClose?.()
+                    }}
+                  >
+                    {t('storageMode.openBrowser')}
+                  </button>
+                </div>
               )}
 
               {contentView === 'duplicates' && (

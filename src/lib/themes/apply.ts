@@ -2,8 +2,6 @@ import {
   CYCLE_THEME_ORDER,
   getDefaultCustomTheme,
   getPresetById,
-  PRESS_DARK,
-  PRESS_LIGHT,
 } from '@/lib/themes/presets'
 import type { ThemeColors, ThemePresetId, ThemeSettings } from '@/lib/themes/types'
 import { applyUiSkin, type UiSkin } from '@/lib/ui-skin'
@@ -107,16 +105,27 @@ function relativeLuminance(r: number, g: number, b: number): number {
 function colorsForSkin(
   colors: ThemeColors,
   resolvedId: Exclude<ThemePresetId, 'system'>,
-  colorScheme: 'light' | 'dark',
+  _colorScheme: 'light' | 'dark',
   skin: UiSkin,
 ): ThemeColors {
-  if (skin !== 'press') return colors
-  if (resolvedId === 'light' || resolvedId === 'dark') {
-    return resolvedId === 'dark' ? PRESS_DARK : PRESS_LIGHT
-  }
-  // system resolves to light|dark already; custom / named presets keep their colors
-  if (resolvedId !== 'custom' && (colorScheme === 'light' || colorScheme === 'dark')) {
-    // named presets like sepia keep own colors
+  // Grove is the default palette baked into light/dark presets.
+  // Classic keeps named presets as-authored; for light/dark use a flatter paper variant.
+  if (skin === 'classic' && (resolvedId === 'light' || resolvedId === 'dark')) {
+    if (resolvedId === 'dark') {
+      return {
+        ...colors,
+        background: '#151c18',
+        sidebarSolid: '#1a221d',
+        toolbar: 'rgba(21, 28, 24, 0.96)',
+      }
+    }
+    return {
+      ...colors,
+      background: '#eef4eb',
+      sidebar: 'rgba(232, 240, 228, 0.92)',
+      sidebarSolid: '#e4eee0',
+      toolbar: 'rgba(238, 244, 235, 0.96)',
+    }
   }
   return colors
 }

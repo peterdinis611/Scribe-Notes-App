@@ -8,11 +8,12 @@ import type { AgentPrefs } from '@/lib/library/agent-prefs'
 import { DEFAULT_AGENT_PREFS, normalizeAgentPrefs } from '@/lib/library/agent-prefs'
 import { kvGet, kvRemove, kvSet } from '@/lib/storage/kv'
 import type { ThemeSettings } from '@/lib/themes/types'
+import { normalizeUiSkin, type UiSkin } from '@/lib/ui-skin'
 import type { CustomDocumentTemplate } from '@/lib/templates/custom'
 import { parseStoredCustomTemplates } from '@/lib/templates/custom'
 import type { CustomTemplateCategory } from '@/lib/templates/categories'
 import { parseStoredCustomCategories } from '@/lib/templates/categories'
-import { LOCALE_KEY, UI_SKIN_KEY, ACTIVE_DOCUMENT_ID_KEY, ONBOARDING_DISMISSED_KEY, SETUP_COMPLETED_KEY, WHATS_NEW_VERSION_KEY, DOCUMENT_TOC_LEFT_KEY, SCRATCH_DOCUMENT_ID_KEY, SHORTCUT_OVERRIDES_KEY, STORAGE_ACCESS_EXPLAINER_KEY, STORAGE_FOLDER_ACCESS_GRANTED_KEY, FOLDER_AUTO_SYNC_KEY, AUTO_BACKUP_ENABLED_KEY, AUTO_BACKUP_INTERVAL_DAYS_KEY, AUTO_BACKUP_INTERVAL_HOURS_KEY, AUTO_BACKUP_DIR_KEY, LAST_AUTO_BACKUP_AT_KEY, THEME_KEY_V2, THEME_KEY_LEGACY, EDITOR_VIEW_MODE_KEY, PAGE_SETUP_KEY, SPELL_CHECK_KEY, PRINT_LAYOUT_KEY, PRINT_ZOOM_KEY, PRINT_COLUMNS_KEY, MANUAL_TITLES_KEY, COMMENT_AUTHOR_KEY, CUSTOM_TEMPLATES_KEY, CUSTOM_TEMPLATE_CATEGORIES_KEY, CUSTOM_LOCALES_KEY, AGENT_PREFS_KEY, SHOW_DOCUMENT_TABS_KEY, SHOW_EDITOR_TOOLBAR_KEY, SHOW_STATUS_BAR_KEY, SHOW_PANEL_RAIL_KEY, UI_ZOOM_KEY } from './keys'
+import { LOCALE_KEY, UI_SKIN_KEY, ACTIVE_DOCUMENT_ID_KEY, ONBOARDING_DISMISSED_KEY, SETUP_COMPLETED_KEY, WHATS_NEW_VERSION_KEY, DOCUMENT_TOC_LEFT_KEY, SCRATCH_DOCUMENT_ID_KEY, SHORTCUT_OVERRIDES_KEY, STORAGE_ACCESS_EXPLAINER_KEY, STORAGE_FOLDER_ACCESS_GRANTED_KEY, FOLDER_AUTO_SYNC_KEY, STORAGE_MODE_KEY, AUTO_BACKUP_ENABLED_KEY, AUTO_BACKUP_INTERVAL_DAYS_KEY, AUTO_BACKUP_INTERVAL_HOURS_KEY, AUTO_BACKUP_DIR_KEY, LAST_AUTO_BACKUP_AT_KEY, THEME_KEY_V2, THEME_KEY_LEGACY, EDITOR_VIEW_MODE_KEY, PAGE_SETUP_KEY, SPELL_CHECK_KEY, PRINT_LAYOUT_KEY, PRINT_ZOOM_KEY, PRINT_COLUMNS_KEY, MANUAL_TITLES_KEY, COMMENT_AUTHOR_KEY, CUSTOM_TEMPLATES_KEY, CUSTOM_TEMPLATE_CATEGORIES_KEY, CUSTOM_LOCALES_KEY, AGENT_PREFS_KEY, SHOW_DOCUMENT_TABS_KEY, SHOW_EDITOR_TOOLBAR_KEY, SHOW_STATUS_BAR_KEY, SHOW_PANEL_RAIL_KEY, UI_ZOOM_KEY } from './keys'
 
 export function readCustomLocales(): CustomLocalePack[] {
   try {
@@ -78,14 +79,13 @@ export function persistLocale(locale: AppLocale) {
   kvSet(LOCALE_KEY, normalizeLocaleCode(locale) || 'sk')
 }
 
-export function readUiSkin(): import('@/lib/ui-skin').UiSkin {
+export function readUiSkin(): UiSkin {
   try {
-    const raw = kvGet(UI_SKIN_KEY)
-    if (raw === 'classic' || raw === 'press') return raw
+    return normalizeUiSkin(kvGet(UI_SKIN_KEY))
   } catch {
     // ignore
   }
-  return 'classic'
+  return 'grove'
 }
 
 export function persistUiSkin(skin: import('@/lib/ui-skin').UiSkin) {
@@ -251,6 +251,14 @@ export function readFolderAutoSyncEnabled(): boolean {
 
 export function persistFolderAutoSyncEnabled(enabled: boolean) {
   persistBoolStorage(FOLDER_AUTO_SYNC_KEY, enabled)
+}
+
+export function readStorageModeEnabled(): boolean {
+  return readBoolStorage(STORAGE_MODE_KEY, false)
+}
+
+export function persistStorageModeEnabled(enabled: boolean) {
+  persistBoolStorage(STORAGE_MODE_KEY, enabled)
 }
 
 /** Preset intervals shown in Settings (hours). */

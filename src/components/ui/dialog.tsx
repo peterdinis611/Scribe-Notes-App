@@ -17,7 +17,7 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      'titlebar-no-drag fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]',
+      'titlebar-no-drag fixed inset-0 z-50 bg-[color-mix(in_srgb,#0e1511_48%,transparent)] backdrop-blur-[3px]',
       className,
     )}
     {...props}
@@ -37,7 +37,9 @@ const DialogContent = React.forwardRef<
         ref={ref}
         className={cn(
           'titlebar-no-drag fixed left-1/2 top-1/2 z-[51] w-full max-w-md -translate-x-1/2 -translate-y-1/2',
-          'rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-5 shadow-[0_20px_50px_rgba(0,0,0,0.22)]',
+          'rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-5',
+          'shadow-[0_24px_60px_rgba(28,43,34,0.22)]',
+          'animate-in fade-in-0 zoom-in-95 duration-200',
           'focus:outline-none',
           className,
         )}
@@ -76,7 +78,7 @@ function DialogTitle({
 }: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>) {
   return (
     <DialogPrimitive.Title
-      className={cn('text-[15px] font-semibold text-[var(--color-foreground)]', className)}
+      className={cn('text-[16px] font-semibold tracking-[-0.02em] text-[var(--color-foreground)] [font-family:var(--font-display)]', className)}
       {...props}
     />
   )

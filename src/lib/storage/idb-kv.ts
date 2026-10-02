@@ -22,19 +22,17 @@ function openDatabase(): Promise<IDBDatabase> {
   })
 }
 
-function withStore<T>(mode: IDBTransactionMode, run: (store: IDBObjectStore) => IDBRequest<T>): Promise<T> {
-  return openDatabase().then(
-    (db) =>
-      new Promise<T>((resolve, reject) => {
-        const transaction = db.transaction(STORE_NAME, mode)
-        const store = transaction.objectStore(STORE_NAME)
-        const request = run(store)
-        request.onerror = () => reject(request.error ?? new Error('IndexedDB request failed'))
-        request.onsuccess = () => resolve(request.result as T)
-        transaction.oncomplete = () => db.close()
-        transaction.onerror = () => reject(transaction.error ?? new Error('IndexedDB transaction failed'))
-      }),
-  )
+async function withStore<T>(mode: IDBTransactionMode, run: (store: IDBObjectStore) => IDBRequest<T>): Promise<T> {
+  const db = await openDatabase()
+  return await new Promise<T>((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, mode)
+    const store_1 = transaction.objectStore(STORE_NAME)
+    const request = run(store_1)
+    request.onerror = () => reject(request.error ?? new Error('IndexedDB request failed'))
+    request.onsuccess = () => resolve(request.result as T)
+    transaction.oncomplete = () => db.close()
+    transaction.onerror = () => reject(transaction.error ?? new Error('IndexedDB transaction failed'))
+  })
 }
 
 export async function idbGetAll(): Promise<Map<string, string>> {

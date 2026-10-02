@@ -22,6 +22,7 @@ import {
   SettingsRow,
   SettingsSection,
   SettingsSectionHeader,
+  SettingsToggle,
 } from '@/components/settings/SettingsPrimitives'
 import {
   APP_SHORTCUT_BINDINGS,
@@ -64,6 +65,7 @@ import {
   setShortcutOverride,
   resetShortcutOverrides,
   setFolderAutoSyncEnabled,
+  setStorageModeEnabled,
   setAutoBackupEnabled,
   setAutoBackupIntervalHours,
   setAutoBackupDirectory,
@@ -232,7 +234,7 @@ export function AppearanceSection() {
               title={t('settings.language.installedTitle')}
               description={t('settings.language.installedDescription')}
             >
-              <ul className="flex w-full max-w-md flex-col gap-1.5">
+              <ul className="flex w-full flex-col gap-1.5">
                 {customLocales.map((pack) => (
                   <li
                     key={pack.code}
@@ -279,36 +281,36 @@ export function AppearanceSection() {
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <button
             type="button"
+            onClick={() => dispatch(setUiSkin('grove'))}
+            className={cn(
+              'rounded-[var(--radius-lg)] border px-4 py-3 text-left transition-all duration-200',
+              uiSkin === 'grove'
+                ? 'border-[var(--color-accent)] bg-[var(--color-selection)] shadow-[0_8px_24px_color-mix(in_srgb,var(--color-accent)_16%,transparent)]'
+                : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-hover)]',
+            )}
+          >
+            <p className="m-0 text-[13px] font-semibold text-[var(--color-foreground)] [font-family:var(--font-display)]">
+              {t('settings.appearance.skinGrove')}
+            </p>
+            <p className="mt-1 text-[11px] leading-snug text-[var(--color-muted-foreground)]">
+              {t('settings.appearance.skinGroveDesc')}
+            </p>
+          </button>
+          <button
+            type="button"
             onClick={() => dispatch(setUiSkin('classic'))}
             className={cn(
-              'rounded-[var(--radius-md)] border px-4 py-3 text-left transition-colors',
+              'rounded-[var(--radius-lg)] border px-4 py-3 text-left transition-all duration-200',
               uiSkin === 'classic'
                 ? 'border-[var(--color-accent)] bg-[var(--color-selection)]'
                 : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-hover)]',
             )}
           >
-            <p className="m-0 text-[13px] font-semibold text-[var(--color-foreground)]">
+            <p className="m-0 text-[13px] font-semibold text-[var(--color-foreground)] [font-family:var(--font-display)]">
               {t('settings.appearance.skinClassic')}
             </p>
             <p className="mt-1 text-[11px] leading-snug text-[var(--color-muted-foreground)]">
               {t('settings.appearance.skinClassicDesc')}
-            </p>
-          </button>
-          <button
-            type="button"
-            onClick={() => dispatch(setUiSkin('press'))}
-            className={cn(
-              'rounded-[var(--radius-md)] border px-4 py-3 text-left transition-colors',
-              uiSkin === 'press'
-                ? 'border-[var(--color-accent)] bg-[var(--color-selection)]'
-                : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-hover)]',
-            )}
-          >
-            <p className="m-0 text-[13px] font-semibold text-[var(--color-foreground)]">
-              {t('settings.appearance.skinPress')}
-            </p>
-            <p className="mt-1 text-[11px] leading-snug text-[var(--color-muted-foreground)]">
-              {t('settings.appearance.skinPressDesc')}
             </p>
           </button>
         </div>
@@ -331,7 +333,7 @@ export function AppearanceSection() {
             active={themeSettings.themeId === 'system'}
             name={t('settings.appearance.systemTheme')}
             description={t('settings.appearance.systemThemeDescription')}
-            swatch={['#ffffff', '#1e1e1e']}
+            swatch={['#e7efe4', '#121a16']}
             onClick={() => chooseTheme('system')}
           />
           {THEME_PRESETS.map((preset) => (
@@ -373,7 +375,7 @@ export function AppearanceSection() {
             }
           />
 
-          <div className="flex max-w-[640px] flex-col gap-2">
+          <div className="flex w-full flex-col gap-2">
             {THEME_COLOR_FIELDS.map(({ key, label }) => (
               <label key={key} className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                 <span className="text-[12px]">{label}</span>
@@ -400,6 +402,7 @@ export function AppearanceSection() {
 export function StorageSection() {
   const settings = useAppSelector((state) => state.settings.storageSettings)
   const folderAutoSyncEnabled = useAppSelector((state) => state.settings.folderAutoSyncEnabled)
+  const storageModeEnabled = useAppSelector((state) => state.settings.storageModeEnabled)
   const folderSyncStatus = useAppSelector((state) => state.documents.folderSyncStatus)
   const autoBackupEnabled = useAppSelector((state) => state.settings.autoBackupEnabled)
   const autoBackupIntervalHours = useAppSelector((state) => state.settings.autoBackupIntervalHours)
@@ -543,6 +546,26 @@ export function StorageSection() {
       />
 
       <LibrariesSettingsList />
+
+      <SettingsGroup>
+        <SettingsRow
+          title={t('settings.storage.storageModeTitle')}
+          description={t('settings.storage.storageModeDescription')}
+        >
+          <SettingsToggle
+            checked={storageModeEnabled}
+            onChange={() => {
+              const next = !storageModeEnabled
+              dispatch(setStorageModeEnabled(next))
+              if (next) {
+                void navigate(ROUTES.storageMode())
+              }
+            }}
+            onLabel={t('settings.storage.storageModeOn')}
+            offLabel={t('settings.storage.storageModeOff')}
+          />
+        </SettingsRow>
+      </SettingsGroup>
 
       <SettingsGroup>
         <SettingsRow

@@ -88,6 +88,7 @@ export const ROUTES = {
     to: '/graph' as const,
     search: options?.around ? { around: true as const } : {},
   }),
+  storageMode: () => ({ to: '/storage' as const }),
   settingsSection: (section: SettingsSection) => ({
     to: SETTINGS_PATHS[section],
   }),

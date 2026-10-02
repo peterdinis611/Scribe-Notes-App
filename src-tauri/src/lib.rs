@@ -10,6 +10,7 @@ mod nlp;
 mod pdf_native;
 mod security;
 mod storage;
+mod storage_fs_api;
 
 use agent_db::{init_agent_db, AgentDbState};
 use db::{init_db, DbState};
@@ -108,6 +109,7 @@ pub fn run() {
             app.manage(NlpSidecar::new(nlp::resolve_script_path(app.handle())));
             app.manage(scribe_core::nlp::UnlockedVaultIndex::new());
             app.manage(capture::CaptureServerState::new());
+            app.manage(storage_fs_api::StorageFsServerState::new());
 
             let docs_watcher = storage::watch::spawn(app.handle().clone());
             app.manage(docs_watcher);
@@ -366,6 +368,7 @@ pub fn run() {
             commands::import_export::force_save_document,
             commands::import_export::normalize_clipboard_html,
             commands::images::save_document_image,
+            commands::images::list_library_assets,
             commands::system::get_backend_stats,
             commands::system::flush_pending_writes,
             commands::system::reconcile_storage,
@@ -377,6 +380,9 @@ pub fn run() {
             capture::capture_status,
             capture::capture_start,
             capture::capture_stop,
+            storage_fs_api::storage_fs_server_status,
+            storage_fs_api::storage_fs_server_start,
+            storage_fs_api::storage_fs_server_stop,
             backup::export_library_archive,
             backup::export_library_archive_to_dir,
             backup::get_default_auto_backup_dir,

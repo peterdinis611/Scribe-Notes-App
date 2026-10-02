@@ -14,6 +14,7 @@ const CUSTOM_LOCALES_KEY = 'scribe-custom-locales'
 const STORAGE_ACCESS_EXPLAINER_KEY = 'scribe-storage-access-explainer-dismissed'
 const STORAGE_FOLDER_ACCESS_GRANTED_KEY = 'scribe-storage-folder-access-granted'
 const FOLDER_AUTO_SYNC_KEY = 'scribe-folder-auto-sync'
+const STORAGE_MODE_KEY = 'scribe-storage-mode'
 const AUTO_BACKUP_ENABLED_KEY = 'scribe-auto-backup-enabled'
 const AUTO_BACKUP_INTERVAL_DAYS_KEY = 'scribe-auto-backup-interval-days'
 const AUTO_BACKUP_INTERVAL_HOURS_KEY = 'scribe-auto-backup-interval-hours'
@@ -60,6 +61,7 @@ export {
     SCRATCH_DOCUMENT_ID_KEY,
     SHORTCUT_OVERRIDES_KEY,
     FOLDER_AUTO_SYNC_KEY,
+    STORAGE_MODE_KEY,
     AUTO_BACKUP_ENABLED_KEY,
     AUTO_BACKUP_INTERVAL_DAYS_KEY,
     AUTO_BACKUP_INTERVAL_HOURS_KEY,

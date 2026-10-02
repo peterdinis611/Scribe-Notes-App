@@ -2,9 +2,42 @@ use crate::db::DbState;
 use crate::images::{optimize_image_bytes, OptimizeOptions};
 use crate::storage;
 use base64::{engine::general_purpose::STANDARD, Engine as _};
+use rusqlite::OptionalExtension;
 use std::path::Path;
+use std::time::SystemTime;
 use tauri::{AppHandle, State};
 use uuid::Uuid;
+
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryAsset {
+    pub path: String,
+    pub file_name: String,
+    pub extension: String,
+    pub kind: String,
+    pub size_bytes: u64,
+    pub document_id: String,
+    pub document_title: Option<String>,
+    pub modified_at: Option<i64>,
+}
+
+fn asset_kind(extension: &str) -> &'static str {
+    match extension {
+        "svg" => "svg",
+        "json" | "lottie" => "lottie",
+        "png" | "jpg" | "jpeg" | "gif" | "webp" | "bmp" | "avif" | "apng" => "image",
+        "glb" | "gltf" | "usdz" => "model3d",
+        _ => "other",
+    }
+}
+
+fn modified_at_secs(meta: &std::fs::Metadata) -> Option<i64> {
+    meta.modified().ok().and_then(|time| {
+        time.duration_since(SystemTime::UNIX_EPOCH)
+            .ok()
+            .map(|d| d.as_secs() as i64)
+    })
+}
 
 fn decode_payload(data_base64: &str) -> Result<Vec<u8>, String> {
     let payload = data_base64
@@ -137,4 +170,79 @@ pub fn save_document_image(
     std::fs::write(&path, &out_bytes).map_err(|e| e.to_string())?;
 
     Ok(path.to_string_lossy().to_string())
+}
+
+/// Lists every media file under `{documentsDir}/assets/{documentId}/`.
+#[tauri::command]
+pub fn list_library_assets(
+    app: AppHandle,
+    state: State<'_, DbState>,
+) -> Result<Vec<LibraryAsset>, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let documents_dir = storage::get_documents_dir(&app, &conn)?;
+    let assets_root = documents_dir.join("assets");
+    if !assets_root.is_dir() {
+        return Ok(Vec::new());
+    }
+
+    let mut assets = Vec::new();
+    for entry in std::fs::read_dir(&assets_root).map_err(|e| e.to_string())? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let doc_path = entry.path();
+        if !doc_path.is_dir() {
+            continue;
+        }
+        let document_id = match doc_path.file_name().and_then(|n| n.to_str()) {
+            Some(id) if !id.is_empty() => id.to_string(),
+            _ => continue,
+        };
+
+        let document_title: Option<String> = conn
+            .query_row(
+                "SELECT title FROM documents WHERE id = ?1 AND deleted_at IS NULL",
+                rusqlite::params![document_id],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()
+            .map_err(|e| e.to_string())?;
+
+        for file_entry in std::fs::read_dir(&doc_path).map_err(|e| e.to_string())? {
+            let file_entry = file_entry.map_err(|e| e.to_string())?;
+            let path = file_entry.path();
+            if !path.is_file() {
+                continue;
+            }
+            let file_name = path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("unknown")
+                .to_string();
+            let extension = path
+                .extension()
+                .and_then(|e| e.to_str())
+                .unwrap_or("")
+                .to_lowercase();
+            let meta = file_entry.metadata().ok();
+            let size_bytes = meta.as_ref().map(|m| m.len()).unwrap_or(0);
+            let modified_at = meta.as_ref().and_then(modified_at_secs);
+
+            assets.push(LibraryAsset {
+                path: path.to_string_lossy().to_string(),
+                file_name,
+                extension: extension.clone(),
+                kind: asset_kind(&extension).to_string(),
+                size_bytes,
+                document_id: document_id.clone(),
+                document_title: document_title.clone(),
+                modified_at,
+            });
+        }
+    }
+
+    assets.sort_by(|a, b| {
+        b.modified_at
+            .cmp(&a.modified_at)
+            .then_with(|| a.file_name.cmp(&b.file_name))
+    });
+    Ok(assets)
 }

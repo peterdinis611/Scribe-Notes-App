@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Scribe",
-  "version": "2.8.0",
+  "version": "2.9.0",
   "identifier": "com.scribe.app",
   "build": {
     "frontendDist": "../dist",
@@ -30,13 +30,19 @@
       "csp": null,
       "assetProtocol": {
         "enable": true,
-        "scope": ["$DOCUMENT/**", "$HOME/**"]
+        "scope": [
+          "$DOCUMENT/**",
+          "$HOME/**"
+        ]
       }
     }
   },
   "bundle": {
     "active": true,
-    "targets": ["app", "dmg"],
+    "targets": [
+      "app",
+      "dmg"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -46,14 +52,19 @@
     ],
     "fileAssociations": [
       {
-        "ext": ["scribe"],
+        "ext": [
+          "scribe"
+        ],
         "name": "Scribe Document",
         "description": "Scribe document",
         "role": "Editor",
         "mimeType": "application/x-scribe+json",
         "exportedType": {
           "identifier": "com.scribe.app.document",
-          "conformsTo": ["public.json", "public.data"]
+          "conformsTo": [
+            "public.json",
+            "public.data"
+          ]
         }
       }
     ],

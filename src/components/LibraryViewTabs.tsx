@@ -5,6 +5,7 @@ import {
   Copy,
   FolderTree,
   GitBranch,
+  HardDrive,
   History,
   Network,
   Star,
@@ -26,10 +27,12 @@ export type LibraryView =
   | 'duplicates'
   | 'tasks'
   | 'wikiHealth'
+  | 'storage'
 
 type LibraryViewTabsProps = {
   value: LibraryView
   agentOpen?: boolean
+  storageModeEnabled?: boolean
   favoriteCount: number
   tagCount: number
   recentCount?: number
@@ -41,6 +44,7 @@ type LibraryViewTabsProps = {
 export function LibraryViewTabs({
   value,
   agentOpen = false,
+  storageModeEnabled = false,
   favoriteCount,
   tagCount,
   recentCount = 0,
@@ -57,6 +61,9 @@ export function LibraryViewTabs({
     { id: 'journal', label: t('library.tabs.journal'), icon: CalendarDays },
     { id: 'tags', label: t('library.tabs.tags'), icon: TagIcon },
     { id: 'graph', label: t('library.tabs.graph'), icon: GitBranch },
+    ...(storageModeEnabled
+      ? [{ id: 'storage' as const, label: t('library.tabs.storage'), icon: HardDrive }]
+      : []),
     { id: 'duplicates', label: t('library.tabs.duplicates'), icon: Copy },
     { id: 'tasks', label: t('library.tabs.tasks'), icon: CheckSquare },
     { id: 'wikiHealth', label: t('library.tabs.wikiHealth'), icon: Network },

@@ -13,8 +13,8 @@ describe('WhatsNew 2.7 highlights', () => {
     ])
   })
 
-  it('matches app version 2.8.0', () => {
-    expect(APP_VERSION).toBe('2.8.0')
-    expect(APP_SHORT_VERSION).toBe('2.8')
+  it('matches app version 2.9.0', () => {
+    expect(APP_VERSION).toBe('2.9.0')
+    expect(APP_SHORT_VERSION).toBe('2.9')
   })
 })

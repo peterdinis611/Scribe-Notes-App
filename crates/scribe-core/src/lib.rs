@@ -13,6 +13,7 @@ pub mod path;
 pub mod plain_text;
 pub mod store;
 pub mod store_ext;
+pub mod storage_fs;
 pub mod tags;
 pub mod tasks;
 pub mod vault;
