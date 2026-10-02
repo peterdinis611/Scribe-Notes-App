@@ -1121,6 +1121,9 @@
         "flashcards": "Study flashcards from a note",
         "takeaways": "Key takeaways / executive bullets",
         "writingCoach": "Local writing-coach style hints",
+        "explainSelection": "Explain a note or selection",
+        "glossary": "Terms and short definitions from a note",
+        "filesAnswer": "Q&A over the files/ sandbox (Local Files API)",
         "outlineQuiz": "Quiz questions from note headings",
         "meetingPack": "Decisions + action items + attendees",
         "citationPack": "Which notes support claim X",
@@ -2106,6 +2109,10 @@
       "questions": "Ask next",
       "flashcards": "Flashcards",
       "takeaways": "Takeaways",
+      "glossary": "Glossary",
+      "explain": "Explain",
+      "simplify": "Simplify",
+      "actionItems": "Action items",
       "terminology": "Terminology",
       "style": "Writing coach"
     }

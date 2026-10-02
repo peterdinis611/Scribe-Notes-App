@@ -1028,7 +1028,13 @@ All accept `id` and/or `text` unless noted. Require Local AI enabled (except whe
 | `extract_flashcards` | `limit?`, `includeCloze?` | Q&A, definitions, cloze, sections |
 | `extract_takeaways` | `limit?` | Executive bullets + themes |
 | `check_terminology` | `limit?` | Inconsistent spellings / casing |
-| `writing_coach` | `limit?` | Long sentences, fillers, passive voice |
+| `writing_coach` | `limit?` | Long sentences, fillers, passive voice; optional LLM polish |
+| `explain_selection` | — | Explain note/selection (heuristic + optional LLM) |
+| `simplify` | — | Simplify note/selection |
+| `action_items` | `limit?` | Extract action items |
+| `glossary` | `limit?` | Terms + short definitions |
+| `compare_notes` | `idA?`, `idB?`, `textA?`, `textB?` | Diff-style summary of two notes |
+| `files_list` / `files_read_text` / `files_search` / `files_summarize` / `files_answer` | path/query | Storage Files API (`files/`); `FilesApiOffline` if server down |
 | `suggest_continuation` | `prefix`, `maxSuggestions?`, `maxTokens?`, `excludeDocumentId?`, `preferRust?` | Library n-grams; Rust fallback |
 | `analyze_revision_diff` | `oldText`, `newText`, `maxBullets?`, `language?`, `preferRust?` | Richer than `summarize_diff` |
 | `analyze_revision_diff_for_document` | `id`, `revisionId`, … | Snapshot → current note |

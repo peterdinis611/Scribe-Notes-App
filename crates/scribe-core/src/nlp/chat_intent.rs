@@ -322,7 +322,10 @@ mod tests {
     fn open_questions_do_not_match() {
         assert_eq!(match_document_chat_intent("What feels unfinished or unclear here?"), None);
         assert_eq!(match_document_chat_intent("What is this note mainly about?"), None);
-        assert_eq!(match_document_chat_intent("Explain the key terms in this note"), None);
+        assert_eq!(
+            match_document_chat_intent("Explain the key terms in this note"),
+            Some("explain")
+        );
     }
 
     #[test]
