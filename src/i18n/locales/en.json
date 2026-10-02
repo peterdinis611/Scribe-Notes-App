@@ -3732,6 +3732,8 @@
     "urlPrompt": "Image URL",
     "expand": "View full size",
     "lightbox": "Image preview",
+    "loupe": "Zoom loupe (or hold Alt)",
+    "loupeActive": "Magnified image region",
     "copy": "Copy image",
     "copied": "Copied",
     "copyFailed": "Could not copy image",

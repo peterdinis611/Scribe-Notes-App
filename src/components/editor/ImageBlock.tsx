@@ -16,6 +16,7 @@ import {
   PanelLeft,
   PanelRight,
   Replace,
+  Search,
   Settings2,
   Trash2,
   Upload,
@@ -34,6 +35,7 @@ import {
 } from '@/lib/editor/image-utils'
 import { ImageCropDialog } from '@/components/editor/ImageCropDialog'
 import { ImageLightbox } from '@/components/editor/ImageLightbox'
+import { ImageLoupe } from '@/components/editor/ImageLoupe'
 import { ImageUrlDialog } from '@/components/editor/ImageUrlDialog'
 import { toast } from '@/lib/toast'
 import { useAppSelector } from '@/store/hooks'
@@ -58,11 +60,15 @@ export function ImageBlock({
   const imgRef = useRef<HTMLImageElement>(null)
   const frameRef = useRef<HTMLDivElement>(null)
   const captionRef = useRef<HTMLTextAreaElement>(null)
+  const loupePointerRef = useRef<{ x: number; y: number } | null>(null)
   const [resizing, setResizing] = useState(false)
   const [showAlt, setShowAlt] = useState(false)
   const [cropOpen, setCropOpen] = useState(false)
   const [urlOpen, setUrlOpen] = useState(false)
   const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [loupeMode, setLoupeMode] = useState(false)
+  const [altHeld, setAltHeld] = useState(false)
+  const [pointerOverImage, setPointerOverImage] = useState(false)
   const [busy, setBusy] = useState(false)
   const [broken, setBroken] = useState(false)
   const [captionFocused, setCaptionFocused] = useState(false)
@@ -94,6 +100,37 @@ export function ImageBlock({
   useEffect(() => {
     if (!selected && !captionFocused) setShowAlt(false)
   }, [captionFocused, selected])
+
+  useEffect(() => {
+    if (!selected) setLoupeMode(false)
+  }, [selected])
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Alt') setAltHeld(true)
+    }
+    function onKeyUp(event: KeyboardEvent) {
+      if (event.key === 'Alt') setAltHeld(false)
+    }
+    function onBlur() {
+      setAltHeld(false)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+    window.addEventListener('blur', onBlur)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
+      window.removeEventListener('blur', onBlur)
+    }
+  }, [])
+
+  const loupeEnabled =
+    !isEmpty &&
+    !resizing &&
+    !lightboxOpen &&
+    !busy &&
+    (loupeMode || (altHeld && pointerOverImage))
 
   useEffect(() => {
     const el = captionRef.current
@@ -287,6 +324,13 @@ export function ImageBlock({
                 <Expand className="h-3.5 w-3.5" />
               </ToolbarBtn>
               <ToolbarBtn
+                active={loupeMode}
+                onClick={() => setLoupeMode((value) => !value)}
+                title={t('image.loupe')}
+              >
+                <Search className="h-3.5 w-3.5" />
+              </ToolbarBtn>
+              <ToolbarBtn
                 onClick={async () => {
                   if (!rawSrc) return
                   setOcrLoading(true)
@@ -374,9 +418,21 @@ export function ImageBlock({
                 alt={(node.attrs.alt as string) ?? ''}
                 title={(node.attrs.title as string) ?? undefined}
                 style={{ width: isFull ? '100%' : width }}
+                className={cn(loupeEnabled && 'is-loupe-armed')}
                 draggable={false}
                 decoding={animated ? 'sync' : 'async'}
                 loading="eager"
+                onPointerEnter={(event) => {
+                  setPointerOverImage(true)
+                  loupePointerRef.current = { x: event.clientX, y: event.clientY }
+                }}
+                onPointerMove={(event) => {
+                  loupePointerRef.current = { x: event.clientX, y: event.clientY }
+                }}
+                onPointerLeave={() => {
+                  setPointerOverImage(false)
+                  loupePointerRef.current = null
+                }}
                 onDoubleClick={() => setLightboxOpen(true)}
                 onError={() => setBroken(true)}
               />
@@ -385,6 +441,13 @@ export function ImageBlock({
                   {animatedKind === 'gif' ? t('image.animatedBadge') : animatedKind.toUpperCase()}
                 </span>
               ) : null}
+              <ImageLoupe
+                imgRef={imgRef}
+                src={src}
+                enabled={loupeEnabled}
+                label={t('image.loupeActive')}
+                pointerRef={loupePointerRef}
+              />
             </>
           )}
 

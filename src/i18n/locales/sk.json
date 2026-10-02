@@ -3748,6 +3748,8 @@
     "urlPrompt": "URL obrázka",
     "expand": "Zobraziť na celú obrazovku",
     "lightbox": "Náhľad obrázka",
+    "loupe": "Lupa (alebo držte Alt)",
+    "loupeActive": "Zväčšená oblasť obrázka",
     "copy": "Kopírovať obrázok",
     "copied": "Skopírované",
     "copyFailed": "Obrázok sa nepodarilo skopírovať",
