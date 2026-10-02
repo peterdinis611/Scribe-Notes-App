@@ -107,8 +107,10 @@ fn to_unix_secs(time: SystemTime) -> Option<i64> {
 
 fn entry_from_path(root: &Path, abs: &Path) -> Result<StorageEntry, String> {
     let meta = fs::metadata(abs).map_err(|e| err("NotFound:", e.to_string()))?;
-    let rel = abs
-        .strip_prefix(root)
+    let root_canon = fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
+    let abs_canon = fs::canonicalize(abs).unwrap_or_else(|_| abs.to_path_buf());
+    let rel = abs_canon
+        .strip_prefix(&root_canon)
         .map_err(|_| err("InvalidPath:", "not under files root"))?;
     let path = rel.to_string_lossy().replace('\\', "/");
     let name = abs
@@ -585,4 +587,241 @@ pub fn ensure_defaults(documents_dir: &Path) -> Result<Vec<String>, String> {
         }
     }
     Ok(created)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TreeNode {
+    #[serde(flatten)]
+    pub entry: StorageEntry,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub children: Option<Vec<TreeNode>>,
+}
+
+pub fn tree(
+    documents_dir: &Path,
+    path: &str,
+    depth: Option<u32>,
+) -> Result<TreeNode, String> {
+    let root = ensure_files_root(documents_dir)?;
+    let abs = safe_join_under(&root, path)?;
+    if !abs.exists() {
+        return Err(err("NotFound:", format!("missing path `{path}`")));
+    }
+    let max_depth = depth.unwrap_or(4).min(16);
+    build_tree(&root, &abs, 0, max_depth)
+}
+
+fn build_tree(
+    root: &Path,
+    abs: &Path,
+    depth: u32,
+    max_depth: u32,
+) -> Result<TreeNode, String> {
+    let entry = entry_from_path(root, abs)?;
+    if entry.kind != StorageEntryKind::Dir || depth >= max_depth {
+        return Ok(TreeNode {
+            entry,
+            children: None,
+        });
+    }
+    let mut children = Vec::new();
+    let mut dirs = Vec::new();
+    for item in fs::read_dir(abs).map_err(|e| e.to_string())? {
+        let item = item.map_err(|e| e.to_string())?;
+        let child_path = item.path();
+        if child_path.is_dir() {
+            dirs.push(child_path);
+        } else {
+            children.push(TreeNode {
+                entry: entry_from_path(root, &child_path)?,
+                children: None,
+            });
+        }
+    }
+    dirs.sort();
+    for dir in dirs {
+        children.push(build_tree(root, &dir, depth + 1, max_depth)?);
+    }
+    children.sort_by(|a, b| a.entry.path.cmp(&b.entry.path));
+    Ok(TreeNode {
+        entry,
+        children: Some(children),
+    })
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PreviewResult {
+    pub path: String,
+    pub text: String,
+    pub truncated: bool,
+    pub size_bytes: u64,
+}
+
+pub fn preview(
+    documents_dir: &Path,
+    path: &str,
+    max_chars: Option<usize>,
+) -> Result<PreviewResult, String> {
+    let limit = max_chars.unwrap_or(2_000).clamp(1, 100_000);
+    let bytes = read_file(documents_dir, path)?;
+    let size_bytes = bytes.len() as u64;
+    let full = String::from_utf8_lossy(&bytes);
+    let truncated = full.chars().count() > limit;
+    let text: String = full.chars().take(limit).collect();
+    Ok(PreviewResult {
+        path: normalize_relative(path)?,
+        text,
+        truncated,
+        size_bytes,
+    })
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChecksumResult {
+    pub path: String,
+    pub algo: String,
+    pub hex: String,
+    pub size_bytes: u64,
+}
+
+pub fn checksum_sha256(documents_dir: &Path, path: &str) -> Result<ChecksumResult, String> {
+    use sha2::{Digest, Sha256};
+    let bytes = read_file(documents_dir, path)?;
+    let mut hasher = Sha256::new();
+    hasher.update(&bytes);
+    let digest = hasher.finalize();
+    let hex: String = digest.iter().map(|b| format!("{b:02x}")).collect();
+    Ok(ChecksumResult {
+        path: normalize_relative(path)?,
+        algo: "sha256".into(),
+        hex,
+        size_bytes: bytes.len() as u64,
+    })
+}
+
+pub fn recent(
+    documents_dir: &Path,
+    path: Option<&str>,
+    limit: Option<usize>,
+    files_only: bool,
+) -> Result<Vec<StorageEntry>, String> {
+    let under = path.unwrap_or("").to_string();
+    let mut entries = list(
+        documents_dir,
+        ListOpts {
+            path: Some(under),
+            recursive: true,
+            depth: Some(16),
+        },
+    )?;
+    if files_only {
+        entries.retain(|e| e.kind == StorageEntryKind::File);
+    }
+    entries.sort_by(|a, b| {
+        b.modified_at
+            .cmp(&a.modified_at)
+            .then_with(|| a.path.cmp(&b.path))
+    });
+    let limit = limit.unwrap_or(50).max(1);
+    entries.truncate(limit);
+    Ok(entries)
+}
+
+pub fn clear_dir(documents_dir: &Path, path: &str) -> Result<StorageEntry, String> {
+    let root = ensure_files_root(documents_dir)?;
+    let rel = normalize_relative(path)?;
+    let abs = safe_join_under(&root, &rel)?;
+    if !abs.exists() {
+        return Err(err("NotFound:", format!("missing path `{rel}`")));
+    }
+    if !abs.is_dir() {
+        return Err(err("NotADirectory:", format!("`{rel}` is not a directory")));
+    }
+    for item in fs::read_dir(&abs).map_err(|e| e.to_string())? {
+        let item = item.map_err(|e| e.to_string())?;
+        let child = item.path();
+        let child_rel = child
+            .strip_prefix(&root)
+            .map_err(|_| err("InvalidPath:", "escape"))?
+            .to_string_lossy()
+            .replace('\\', "/");
+        delete(documents_dir, &child_rel, true)?;
+    }
+    entry_from_path(&root, &abs)
+}
+
+pub fn write_json(
+    documents_dir: &Path,
+    path: &str,
+    value: &serde_json::Value,
+    overwrite: bool,
+    pretty: bool,
+) -> Result<StorageEntry, String> {
+    let text = if pretty {
+        serde_json::to_string_pretty(value).map_err(|e| e.to_string())?
+    } else {
+        serde_json::to_string(value).map_err(|e| e.to_string())?
+    };
+    write_text(documents_dir, path, &text, overwrite)
+}
+
+pub fn read_json(documents_dir: &Path, path: &str) -> Result<serde_json::Value, String> {
+    let text = read_text(documents_dir, path, None)?;
+    serde_json::from_str(&text).map_err(|e| err("NotAFile:", format!("invalid JSON ({e})")))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::env;
+
+    fn temp_docs() -> PathBuf {
+        let dir = env::temp_dir().join(format!("scribe-fs-test-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn glob_and_roundtrip() {
+        let docs = temp_docs();
+        ensure_defaults(&docs).unwrap();
+        write_text(&docs, "scratch/a.md", "# hi\n", true).unwrap();
+        write_text(&docs, "scratch/b.txt", "x", true).unwrap();
+        let hits = search(&docs, "", Some("scratch"), Some("*.md"), Some(10)).unwrap();
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].name, "a.md");
+        let prev = preview(&docs, "scratch/a.md", Some(10)).unwrap();
+        assert!(prev.text.starts_with("# hi"));
+        let sum = checksum_sha256(&docs, "scratch/a.md").unwrap();
+        assert_eq!(sum.algo, "sha256");
+        assert_eq!(sum.hex.len(), 64);
+        let tree = tree(&docs, "scratch", Some(2)).unwrap();
+        assert!(tree.children.as_ref().unwrap().len() >= 2);
+        let _ = fs::remove_dir_all(&docs);
+    }
+
+    #[test]
+    fn exists_touch_append_json() {
+        let docs = temp_docs();
+        assert!(!exists(&docs, "inbox/note.json").unwrap().exists);
+        touch(&docs, "inbox/note.json").unwrap();
+        assert!(exists(&docs, "inbox/note.json").unwrap().exists);
+        append_text(&docs, "inbox/log.txt", "a\n").unwrap();
+        append_text(&docs, "inbox/log.txt", "b\n").unwrap();
+        assert_eq!(read_text(&docs, "inbox/log.txt", None).unwrap(), "a\nb\n");
+        write_json(
+            &docs,
+            "inbox/note.json",
+            &serde_json::json!({"ok": true}),
+            true,
+            true,
+        )
+        .unwrap();
+        let v = read_json(&docs, "inbox/note.json").unwrap();
+        assert_eq!(v["ok"], true);
+        let _ = fs::remove_dir_all(&docs);
+    }
 }

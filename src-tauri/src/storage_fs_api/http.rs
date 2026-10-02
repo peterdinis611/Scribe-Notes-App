@@ -289,6 +289,39 @@ fn handle_graphql(documents_dir: &Path, body: &[u8]) -> Result<Value, String> {
         return Ok(json!({ "data": { "storageFsDiskUsage": usage } }));
     }
 
+    if query.contains("storageFsTree") {
+        let path = payload
+            .pointer("/variables/path")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        let node = storage_fs::tree(documents_dir, path, Some(3))?;
+        return Ok(json!({ "data": { "storageFsTree": node } }));
+    }
+
+    if query.contains("storageFsRecent") {
+        let path = payload.pointer("/variables/path").and_then(|v| v.as_str());
+        let entries = storage_fs::recent(documents_dir, path, Some(20), true)?;
+        return Ok(json!({ "data": { "storageFsRecent": entries } }));
+    }
+
+    if query.contains("storageFsPreview") {
+        let path = payload
+            .pointer("/variables/path")
+            .and_then(|v| v.as_str())
+            .unwrap_or_else(inline_path);
+        let prev = storage_fs::preview(documents_dir, path, Some(500))?;
+        return Ok(json!({ "data": { "storageFsPreview": prev } }));
+    }
+
+    if query.contains("storageFsChecksum") {
+        let path = payload
+            .pointer("/variables/path")
+            .and_then(|v| v.as_str())
+            .unwrap_or_else(inline_path);
+        let sum = storage_fs::checksum_sha256(documents_dir, path)?;
+        return Ok(json!({ "data": { "storageFsChecksum": sum } }));
+    }
+
     if query.contains("__schema") || query.contains("storageFsHealth") {
         return Ok(json!({
             "data": {
@@ -299,7 +332,7 @@ fn handle_graphql(documents_dir: &Path, body: &[u8]) -> Result<Value, String> {
 
     Ok(json!({
         "errors": [{
-            "message": "Supported fields: storageFsList, storageFsStat, storageFsExists, storageFsSearch, storageFsDiskUsage, storageFsHealth."
+            "message": "Supported fields: storageFsList, storageFsStat, storageFsExists, storageFsSearch, storageFsDiskUsage, storageFsTree, storageFsRecent, storageFsPreview, storageFsChecksum, storageFsHealth."
         }]
     }))
 }
@@ -377,10 +410,29 @@ pub fn handle_connection(mut stream: TcpStream, documents_dir: &Path, port: u16)
         return;
     }
 
+    if method == "GET" && path == "/v1/fs/tree" {
+        let rel = query_param(full_path, "path").unwrap_or_default();
+        let depth = query_param(full_path, "depth").and_then(|v| v.parse().ok());
+        match storage_fs::tree(documents_dir, &rel, depth) {
+            Ok(node) => write_json(&mut stream, "200 OK", &json!(node)),
+            Err(e) => write_err(&mut stream, &e),
+        }
+        return;
+    }
+
     if method == "GET" && path == "/v1/fs/stat" {
         let rel = query_param(full_path, "path").unwrap_or_default();
         match storage_fs::stat(documents_dir, &rel) {
             Ok(entry) => write_json(&mut stream, "200 OK", &json!(entry)),
+            Err(e) => write_err(&mut stream, &e),
+        }
+        return;
+    }
+
+    if method == "GET" && path == "/v1/fs/exists" {
+        let rel = query_param(full_path, "path").unwrap_or_default();
+        match storage_fs::exists(documents_dir, &rel) {
+            Ok(result) => write_json(&mut stream, "200 OK", &json!(result)),
             Err(e) => write_err(&mut stream, &e),
         }
         return;
@@ -416,10 +468,33 @@ pub fn handle_connection(mut stream: TcpStream, documents_dir: &Path, port: u16)
         return;
     }
 
-    if method == "GET" && path == "/v1/fs/exists" {
+    if method == "GET" && path == "/v1/fs/read-json" {
         let rel = query_param(full_path, "path").unwrap_or_default();
-        match storage_fs::exists(documents_dir, &rel) {
-            Ok(result) => write_json(&mut stream, "200 OK", &json!(result)),
+        match storage_fs::read_json(documents_dir, &rel) {
+            Ok(value) => write_json(
+                &mut stream,
+                "200 OK",
+                &json!({ "path": rel, "value": value }),
+            ),
+            Err(e) => write_err(&mut stream, &e),
+        }
+        return;
+    }
+
+    if method == "GET" && path == "/v1/fs/preview" {
+        let rel = query_param(full_path, "path").unwrap_or_default();
+        let max_chars = query_param(full_path, "maxChars").and_then(|v| v.parse().ok());
+        match storage_fs::preview(documents_dir, &rel, max_chars) {
+            Ok(prev) => write_json(&mut stream, "200 OK", &json!(prev)),
+            Err(e) => write_err(&mut stream, &e),
+        }
+        return;
+    }
+
+    if method == "GET" && path == "/v1/fs/checksum" {
+        let rel = query_param(full_path, "path").unwrap_or_default();
+        match storage_fs::checksum_sha256(documents_dir, &rel) {
+            Ok(sum) => write_json(&mut stream, "200 OK", &json!(sum)),
             Err(e) => write_err(&mut stream, &e),
         }
         return;
@@ -437,6 +512,19 @@ pub fn handle_connection(mut stream: TcpStream, documents_dir: &Path, port: u16)
             glob.as_deref(),
             limit,
         ) {
+            Ok(entries) => write_json(&mut stream, "200 OK", &json!(entries)),
+            Err(e) => write_err(&mut stream, &e),
+        }
+        return;
+    }
+
+    if method == "GET" && path == "/v1/fs/recent" {
+        let under = query_param(full_path, "path");
+        let limit = query_param(full_path, "limit").and_then(|v| v.parse().ok());
+        let files_only = query_param(full_path, "filesOnly")
+            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+            .unwrap_or(true);
+        match storage_fs::recent(documents_dir, under.as_deref(), limit, files_only) {
             Ok(entries) => write_json(&mut stream, "200 OK", &json!(entries)),
             Err(e) => write_err(&mut stream, &e),
         }
@@ -467,6 +555,19 @@ pub fn handle_connection(mut stream: TcpStream, documents_dir: &Path, port: u16)
                     .and_then(|v| v.as_bool())
                     .unwrap_or(false);
                 storage_fs::write_text(documents_dir, p, text, overwrite).map(|e| json!(e))
+            }
+            "/v1/fs/write-json" => {
+                let p = payload.get("path").and_then(|v| v.as_str()).unwrap_or("");
+                let value = payload.get("value").cloned().unwrap_or(json!({}));
+                let overwrite = payload
+                    .get("overwrite")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false);
+                let pretty = payload
+                    .get("pretty")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(true);
+                storage_fs::write_json(documents_dir, p, &value, overwrite, pretty).map(|e| json!(e))
             }
             "/v1/fs/write" => {
                 let p = payload.get("path").and_then(|v| v.as_str()).unwrap_or("");
@@ -513,6 +614,10 @@ pub fn handle_connection(mut stream: TcpStream, documents_dir: &Path, port: u16)
                     .unwrap_or(false);
                 storage_fs::delete(documents_dir, p, recursive)
                     .map(|_| json!({ "ok": true, "path": p }))
+            }
+            "/v1/fs/clear-dir" => {
+                let p = payload.get("path").and_then(|v| v.as_str()).unwrap_or("");
+                storage_fs::clear_dir(documents_dir, p).map(|e| json!(e))
             }
             "/v1/fs/rename" => {
                 let from = payload.get("from").and_then(|v| v.as_str()).unwrap_or("");
