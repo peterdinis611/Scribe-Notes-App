@@ -17,6 +17,7 @@ pub const META_NLP_LLM_MODEL: &str = "nlp_llm_model";
 pub const META_NLP_LLM_USE_REWRITE: &str = "nlp_llm_use_rewrite";
 pub const META_NLP_LLM_USE_ANSWER: &str = "nlp_llm_use_answer";
 pub const META_NLP_LLM_USE_PLAN: &str = "nlp_llm_use_plan";
+pub const META_NLP_LLM_ENHANCE_HEURISTICS: &str = "nlp_llm_enhance_heuristics";
 
 pub const DEFAULT_LLM_BASE_URL: &str = "http://127.0.0.1:11434";
 
@@ -30,6 +31,7 @@ pub struct NlpLlmPrefs {
     pub use_rewrite: bool,
     pub use_answer: bool,
     pub use_plan: bool,
+    pub enhance_heuristics: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
