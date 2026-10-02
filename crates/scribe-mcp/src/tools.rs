@@ -493,6 +493,59 @@ pub struct StudyLimitParams {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+pub struct CompareNotesParams {
+    pub id_a: Option<String>,
+    pub id_b: Option<String>,
+    pub text_a: Option<String>,
+    pub text_b: Option<String>,
+    pub title_a: Option<String>,
+    pub title_b: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct FilesPathParams {
+    pub path: Option<String>,
+    pub recursive: Option<bool>,
+    pub base_url: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct FilesReadParams {
+    pub path: String,
+    pub base_url: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct FilesSearchParams {
+    pub query: String,
+    pub path: Option<String>,
+    pub glob: Option<String>,
+    pub limit: Option<i64>,
+    pub base_url: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct FilesSummarizeParams {
+    pub path: String,
+    pub limit: Option<i64>,
+    pub base_url: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct FilesAnswerParams {
+    pub question: String,
+    pub path: Option<String>,
+    pub limit: Option<i64>,
+    pub base_url: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct AnalyzeRevisionDiffParams {
     pub old_text: String,
     pub new_text: String,

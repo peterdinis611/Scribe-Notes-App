@@ -503,6 +503,139 @@ export const nlpWritingCoach = (input: {
   limit?: number
 }) => invoke<WritingCoachResult>('nlp_writing_coach', { input })
 
+export type FilesListResult = {
+  path: string
+  count: number
+  entries: Array<{
+    path: string
+    name: string
+    kind: string
+    sizeBytes?: number
+    modifiedAt?: string
+    extension?: string
+    textLike?: boolean
+  }>
+  source: string
+}
+
+export type FilesSearchHit = {
+  path: string
+  line?: number
+  snippet?: string
+  score?: number
+}
+
+export type FilesAnswerResult = {
+  answer: string
+  citations: Array<{ path: string; snippet: string; score?: number }>
+  source: string
+}
+
+export const nlpFilesList = (input?: {
+  path?: string
+  recursive?: boolean
+  baseUrl?: string
+}) => invoke<FilesListResult>('nlp_files_list', { input: input ?? {} })
+
+export const nlpFilesReadText = (input: { path: string; baseUrl?: string }) =>
+  invoke<{ path: string; text: string; sizeBytes: number; source: string }>('nlp_files_read_text', {
+    input,
+  })
+
+export const nlpFilesSearch = (input: {
+  query: string
+  path?: string
+  glob?: string
+  limit?: number
+  baseUrl?: string
+}) =>
+  invoke<{ query: string; hits: FilesSearchHit[]; count: number; source: string }>(
+    'nlp_files_search',
+    { input },
+  )
+
+export const nlpFilesSummarize = (input: {
+  path: string
+  limit?: number
+  baseUrl?: string
+}) => invoke<{ path: string; summary: string; bullets?: string[]; source: string }>(
+  'nlp_files_summarize',
+  { input },
+)
+
+export const nlpFilesAnswer = (input: {
+  question: string
+  path?: string
+  limit?: number
+  baseUrl?: string
+}) => invoke<FilesAnswerResult>('nlp_files_answer', { input })
+
+export type ExplainSelectionResult = {
+  language: string
+  explanation: string
+  bullets: string[]
+  keyTerms: string[]
+  enhanced?: boolean
+  source: string
+}
+
+export type SimplifyResult = {
+  language: string
+  simplified: string
+  enhanced?: boolean
+  source: string
+}
+
+export type ActionItemsResult = {
+  items: Array<{ text: string; kind?: string; dueHint?: string | null }>
+  count: number
+  enhanced?: boolean
+  source: string
+}
+
+export type GlossaryResult = {
+  entries: Array<{ term: string; definition: string; count?: number }>
+  count: number
+  enhanced?: boolean
+  source: string
+}
+
+export type CompareNotesResult = {
+  summary: string
+  bullets?: string[]
+  enhanced?: boolean
+  source: string
+}
+
+export const nlpExplainSelection = (input: {
+  documentId?: string
+  text?: string
+}) => invoke<ExplainSelectionResult>('nlp_explain_selection', { input })
+
+export const nlpSimplify = (input: { documentId?: string; text?: string }) =>
+  invoke<SimplifyResult>('nlp_simplify', { input })
+
+export const nlpActionItems = (input: {
+  documentId?: string
+  text?: string
+  limit?: number
+}) => invoke<ActionItemsResult>('nlp_action_items', { input })
+
+export const nlpGlossary = (input: {
+  documentId?: string
+  text?: string
+  limit?: number
+}) => invoke<GlossaryResult>('nlp_glossary', { input })
+
+export const nlpCompareNotes = (input: {
+  documentIdA?: string
+  documentIdB?: string
+  textA?: string
+  textB?: string
+  titleA?: string
+  titleB?: string
+}) => invoke<CompareNotesResult>('nlp_compare_notes', { input })
+
 export type OutlineQuizQuestion = {
   kind: string
   level?: number

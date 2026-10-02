@@ -1,12 +1,16 @@
 import { invoke } from '@/lib/tauri'
 import { invokeMatchDocumentChatIntent } from '@/lib/db/api'
 import {
+  nlpActionItems,
   nlpCheckTerminology,
   nlpDocumentAnalysis,
   nlpDocumentTasks,
+  nlpExplainSelection,
   nlpExtractFlashcards,
   nlpExtractTakeaways,
+  nlpGlossary,
   nlpSimilarDocuments,
+  nlpSimplify,
   nlpSpellcheck,
   nlpStatus,
   nlpSuggestWikiLinks,
@@ -46,6 +50,10 @@ export type DocumentChatAction =
   | 'takeaways'
   | 'terminology'
   | 'style'
+  | 'explain'
+  | 'simplify'
+  | 'action_items'
+  | 'glossary'
 
 export const DOCUMENT_CHAT_CONTEXT_LIMIT = 16
 
@@ -227,6 +235,22 @@ export function matchDocumentChatIntent(question: string): DocumentChatAction | 
         'trpny rod',
         'vyplnove',
       ],
+    },
+    {
+      action: 'explain',
+      needles: ['explain', 'what does this mean', 'vysvetli', 'vysvetlenie', 'co to znamena'],
+    },
+    {
+      action: 'simplify',
+      needles: ['simplify', 'simpler', 'plain language', 'zjednodus', 'jednoduchsie'],
+    },
+    {
+      action: 'action_items',
+      needles: ['action items', 'extract actions', 'akcne body', 'ulohy z textu'],
+    },
+    {
+      action: 'glossary',
+      needles: ['glossary', 'define terms', 'key terms', 'slovnik', 'pojmy', 'definicie'],
     },
   ]
 
@@ -426,6 +450,48 @@ export async function runDocumentChatAction(
           const excerpt = hint.excerpt ? ` — “${hint.excerpt}”` : ''
           return `${hint.message}${excerpt}`
         }),
+      )}`,
+      citations: [],
+    }
+  }
+
+  if (action === 'explain') {
+    const result = await nlpExplainSelection({ documentId })
+    return {
+      answer: result.explanation || 'No explanation produced.',
+      citations: [],
+    }
+  }
+
+  if (action === 'simplify') {
+    const result = await nlpSimplify({ documentId })
+    return {
+      answer: result.simplified || 'No simplified text produced.',
+      citations: [],
+    }
+  }
+
+  if (action === 'action_items') {
+    const result = await nlpActionItems({ documentId, limit: 12 })
+    if (!result.items?.length) {
+      return { answer: 'No action items found in this document.', citations: [] }
+    }
+    return {
+      answer: `**Action items (${result.count})**\n\n${bullets(
+        result.items.map((item) => item.text),
+      )}`,
+      citations: [],
+    }
+  }
+
+  if (action === 'glossary') {
+    const result = await nlpGlossary({ documentId, limit: 16 })
+    if (!result.entries?.length) {
+      return { answer: 'No glossary terms extracted.', citations: [] }
+    }
+    return {
+      answer: `**Glossary**\n\n${bullets(
+        result.entries.map((entry) => `**${entry.term}** — ${entry.definition}`),
       )}`,
       citations: [],
     }

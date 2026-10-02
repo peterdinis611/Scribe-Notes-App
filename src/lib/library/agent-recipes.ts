@@ -6,6 +6,7 @@ export type AgentRecipeId =
   | 'study_pass'
   | 'cleanup'
   | 'polish'
+  | 'deep_read'
 
 export type AgentRecipe = {
   id: AgentRecipeId
@@ -33,6 +34,12 @@ export const AGENT_RECIPES: AgentRecipe[] = [
     id: 'study_pass',
     labelKey: 'agent.recipes.studyPass',
     tools: ['outline', 'quiz', 'flashcards'],
+    documentPreferred: true,
+  },
+  {
+    id: 'deep_read',
+    labelKey: 'agent.recipes.deepRead',
+    tools: ['outline', 'glossary', 'takeaways', 'flashcards'],
     documentPreferred: true,
   },
   {

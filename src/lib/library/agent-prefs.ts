@@ -26,6 +26,12 @@ export type AgentToolId =
   | 'spellcheck'
   | 'rewrite'
   | 'brief'
+  | 'explain'
+  | 'simplify'
+  | 'action_items'
+  | 'glossary'
+  | 'compare_notes'
+  | 'files_answer'
 
 export type AgentMaxSteps = 1 | 2 | 3
 
@@ -128,6 +134,12 @@ const ALL_TOOLS: AgentToolId[] = [
   'spellcheck',
   'rewrite',
   'brief',
+  'explain',
+  'simplify',
+  'action_items',
+  'glossary',
+  'compare_notes',
+  'files_answer',
 ]
 
 const HEAVY_TOOLS = new Set<AgentToolId>([
@@ -140,6 +152,9 @@ const HEAVY_TOOLS = new Set<AgentToolId>([
   'citations',
   'meeting',
   'brief',
+  'compare_notes',
+  'files_answer',
+  'glossary',
 ])
 
 function isToolId(value: unknown): value is AgentToolId {
@@ -438,4 +453,9 @@ export const AGENT_OPTIMIZABLE_TOOLS: AgentToolId[] = [
   'spellcheck',
   'rewrite',
   'brief',
+  'explain',
+  'simplify',
+  'action_items',
+  'glossary',
+  'compare_notes',
 ]

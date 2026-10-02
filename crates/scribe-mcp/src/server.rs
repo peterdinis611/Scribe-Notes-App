@@ -2088,6 +2088,159 @@ impl ScribeMcp {
         })
     }
 
+    #[tool(description = "Explain a selection or note text in plain language. Optional LLM polish when enhanceHeuristics is on.")]
+    fn explain_selection(
+        &self,
+        Parameters(params): Parameters<tools::StudyLimitParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.explain_selection(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.text.as_deref(),
+            )?))
+        })
+    }
+
+    #[tool(description = "Simplify a note or selection into shorter plain sentences.")]
+    fn simplify(
+        &self,
+        Parameters(params): Parameters<tools::StudyLimitParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.simplify_text(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.text.as_deref(),
+            )?))
+        })
+    }
+
+    #[tool(description = "Extract action items from a note id or plaintext.")]
+    fn action_items(
+        &self,
+        Parameters(params): Parameters<tools::StudyLimitParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.action_items(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.text.as_deref(),
+                params.limit,
+            )?))
+        })
+    }
+
+    #[tool(description = "Build a glossary of terms and short definitions from a note.")]
+    fn glossary(
+        &self,
+        Parameters(params): Parameters<tools::StudyLimitParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.glossary(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.text.as_deref(),
+                params.limit,
+            )?))
+        })
+    }
+
+    #[tool(description = "Compare two notes (ids or plaintexts) and return a diff-style summary.")]
+    fn compare_notes(
+        &self,
+        Parameters(params): Parameters<tools::CompareNotesParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.compare_notes(
+                &self.sidecar,
+                params.id_a.as_deref(),
+                params.id_b.as_deref(),
+                params.text_a.as_deref(),
+                params.text_b.as_deref(),
+                params.title_a.as_deref(),
+                params.title_b.as_deref(),
+            )?))
+        })
+    }
+
+    #[tool(description = "List entries under the local files/ sandbox via Storage Files API (requires Files API running).")]
+    fn files_list(
+        &self,
+        Parameters(params): Parameters<tools::FilesPathParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.files_list(
+                &self.sidecar,
+                params.path.as_deref().unwrap_or(""),
+                params.recursive.unwrap_or(false),
+                params.base_url.as_deref(),
+            )?))
+        })
+    }
+
+    #[tool(description = "Read a text file from the files/ sandbox (.md/.txt/.json/.csv).")]
+    fn files_read_text(
+        &self,
+        Parameters(params): Parameters<tools::FilesReadParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.files_read_text(
+                &self.sidecar,
+                &params.path,
+                params.base_url.as_deref(),
+            )?))
+        })
+    }
+
+    #[tool(description = "Search text files under files/ sandbox.")]
+    fn files_search(
+        &self,
+        Parameters(params): Parameters<tools::FilesSearchParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.files_search(
+                &self.sidecar,
+                &params.query,
+                params.path.as_deref(),
+                params.glob.as_deref(),
+                params.limit,
+                params.base_url.as_deref(),
+            )?))
+        })
+    }
+
+    #[tool(description = "Summarize a text file under files/ sandbox.")]
+    fn files_summarize(
+        &self,
+        Parameters(params): Parameters<tools::FilesSummarizeParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.files_summarize(
+                &self.sidecar,
+                &params.path,
+                params.limit,
+                params.base_url.as_deref(),
+            )?))
+        })
+    }
+
+    #[tool(description = "Answer a question over files/ sandbox with path citations. Returns FilesApiOffline if the Local Files API is not running.")]
+    fn files_answer(
+        &self,
+        Parameters(params): Parameters<tools::FilesAnswerParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.files_answer(
+                &self.sidecar,
+                &params.question,
+                params.path.as_deref(),
+                params.limit,
+                params.base_url.as_deref(),
+            )?))
+        })
+    }
+
     #[tool(description = "Revision AI: classify what changed between two plain texts (changeKind, risks, bullets). Python preferred; Rust fallback always available.")]
     fn analyze_revision_diff(
         &self,
@@ -2533,7 +2686,8 @@ impl ServerHandler for ScribeMcp {
              call list_libraries / switch_library first if the user names another library. \
              create_library adds a library without switching. \
              extract_entities / extract_mentions / extract_dates / extract_outline / chunk_text accept id or text. \
-             Study AI: extract_flashcards / extract_takeaways / check_terminology / writing_coach / outline_quiz / meeting_notes_pack (id or text). \
+             Study AI: extract_flashcards / extract_takeaways / check_terminology / writing_coach / outline_quiz / meeting_notes_pack / explain_selection / simplify / action_items / glossary / compare_notes (id or text). \
+             Files sandbox AI: files_list / files_read_text / files_search / files_summarize / files_answer (requires Local Files API). \
              Library study: check_terminology_library / citation_pack. \
              Intent router: match_document_chat_intent. Convert: convert_tiptap. Diff: diff_plain_texts. Meta tags: document_matches_meta_filters. \
              Placeholder: generate_placeholder. Answer backend: set_answer_backend. \

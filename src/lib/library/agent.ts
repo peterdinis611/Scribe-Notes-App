@@ -32,6 +32,14 @@ import {
   type LibraryChatCitation,
   type LibraryChatResult,
 } from '@/lib/library/library-chat'
+import {
+  nlpActionItems,
+  nlpCompareNotes,
+  nlpExplainSelection,
+  nlpFilesAnswer,
+  nlpGlossary,
+  nlpSimplify,
+} from '@/lib/db/nlp-api'
 
 export type { AgentToolId }
 
@@ -87,9 +95,19 @@ const DOCUMENT_TOOLS = new Set<AgentToolId>([
   'spellcheck',
   'rewrite',
   'brief',
+  'explain',
+  'simplify',
+  'action_items',
+  'glossary',
+  'compare_notes',
 ])
 
-const LIBRARY_ONLY_TOOLS = new Set<AgentToolId>(['duplicates', 'citations', 'library_answer'])
+const LIBRARY_ONLY_TOOLS = new Set<AgentToolId>([
+  'duplicates',
+  'citations',
+  'library_answer',
+  'files_answer',
+])
 
 const CHAT_ACTION_TOOLS = new Set<AgentToolId>([
   'summarize',
@@ -103,6 +121,10 @@ const CHAT_ACTION_TOOLS = new Set<AgentToolId>([
   'terminology',
   'wiki',
   'spellcheck',
+  'explain',
+  'simplify',
+  'action_items',
+  'glossary',
 ])
 
 const INTENT_TO_TOOL: Record<string, AgentToolId> = {
@@ -125,6 +147,11 @@ const INTENT_TO_TOOL: Record<string, AgentToolId> = {
   revision: 'revision',
   rewrite: 'rewrite',
   brief: 'brief',
+  explain: 'explain',
+  simplify: 'simplify',
+  action_items: 'action_items',
+  glossary: 'glossary',
+  compare_notes: 'compare_notes',
 }
 
 const DEFAULT_CLARIFY: AgentToolId[] = [
@@ -232,6 +259,30 @@ export function matchAgentIntentsSync(goal: string): AgentToolId[] {
         'vyplnove',
       ],
     },
+    {
+      tool: 'explain',
+      needles: ['explain', 'what does this mean', 'vysvetli', 'vysvetlenie', 'co to znamena'],
+    },
+    {
+      tool: 'simplify',
+      needles: ['simplify', 'simpler', 'plain language', 'zjednodus', 'jednoduchsie'],
+    },
+    {
+      tool: 'action_items',
+      needles: ['action items', 'extract actions', 'akcne body', 'ulohy z textu'],
+    },
+    {
+      tool: 'glossary',
+      needles: ['glossary', 'define terms', 'key terms', 'slovnik', 'pojmy', 'definicie'],
+    },
+    {
+      tool: 'compare_notes',
+      needles: ['compare notes', 'diff notes', 'porovnaj poznamky', 'porovnanie poznamok'],
+    },
+    {
+      tool: 'files_answer',
+      needles: ['files answer', 'ask files', 'sandboxed files', 'subory sandbox', 'files/'],
+    },
     { tool: 'spellcheck', needles: ['spellcheck', 'spelling', 'typo', 'pravopis', 'preklepy'] },
     {
       tool: 'brief',
@@ -280,6 +331,7 @@ export function suggestFollowupRecipes(
   if (ok.has('dates') || ok.has('tasks')) out.push('weekly_review')
   if (ok.has('meeting') || ok.has('tasks')) out.push('meeting_wrap')
   if (ok.has('outline') || ok.has('flashcards')) out.push('study_pass')
+  if (ok.has('glossary') || ok.has('outline')) out.push('deep_read')
   if (ok.has('duplicates') || ok.has('wiki')) out.push('cleanup')
   if (ok.has('spellcheck') || ok.has('style') || ok.has('terminology')) out.push('polish')
   if (scope === 'document' && out.length === 0) out.push('polish', 'study_pass')
@@ -495,6 +547,95 @@ async function runTool(
           snippet: (brief.tools || []).join(' → '),
         },
       ],
+    }
+  }
+
+  if (tool === 'files_answer') {
+    const result = await nlpFilesAnswer({ question: ctx.goal, limit: 6 })
+    return {
+      answer: result.answer || 'No answer from files sandbox.',
+      citations: (result.citations || []).map((item) => ({
+        documentId: item.path,
+        title: item.path,
+        snippet: item.snippet,
+      })),
+    }
+  }
+
+  if (tool === 'explain') {
+    const text = ctx.selectionText?.trim() || undefined
+    if (!text && !ctx.documentId) throw new Error('agent.needsDocument')
+    const result = await nlpExplainSelection({
+      documentId: text ? undefined : ctx.documentId ?? undefined,
+      text,
+    })
+    return {
+      answer: result.explanation || 'No explanation produced.',
+      citations: [],
+    }
+  }
+
+  if (tool === 'simplify') {
+    const text = ctx.selectionText?.trim() || undefined
+    if (!text && !ctx.documentId) throw new Error('agent.needsDocument')
+    const result = await nlpSimplify({
+      documentId: text ? undefined : ctx.documentId ?? undefined,
+      text,
+    })
+    return {
+      answer: result.simplified || 'No simplified text produced.',
+      citations: [],
+    }
+  }
+
+  if (tool === 'action_items') {
+    if (!ctx.documentId && !ctx.selectionText?.trim()) throw new Error('agent.needsDocument')
+    const result = await nlpActionItems({
+      documentId: ctx.selectionText?.trim() ? undefined : ctx.documentId ?? undefined,
+      text: ctx.selectionText?.trim() || undefined,
+      limit: 12,
+    })
+    if (!result.items?.length) {
+      return { answer: 'No action items found.', citations: [] }
+    }
+    return {
+      answer: `**Action items (${result.count})**\n\n${result.items
+        .map((item) => `- ${item.text}`)
+        .join('\n')}`,
+      citations: [],
+    }
+  }
+
+  if (tool === 'glossary') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    const result = await nlpGlossary({ documentId: ctx.documentId, limit: 16 })
+    if (!result.entries?.length) {
+      return { answer: 'No glossary terms extracted.', citations: [] }
+    }
+    return {
+      answer: `**Glossary**\n\n${result.entries
+        .map((entry) => `- **${entry.term}** — ${entry.definition}`)
+        .join('\n')}`,
+      citations: [],
+    }
+  }
+
+  if (tool === 'compare_notes') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    const otherId = ctx.goal.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i)?.[0]
+    if (!otherId || otherId === ctx.documentId) {
+      return {
+        answer: 'Compare notes needs a second document id in the goal.',
+        citations: [],
+      }
+    }
+    const result = await nlpCompareNotes({
+      documentIdA: ctx.documentId,
+      documentIdB: otherId,
+    })
+    return {
+      answer: result.summary || 'No comparison summary.',
+      citations: [],
     }
   }
 
