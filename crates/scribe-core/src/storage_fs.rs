@@ -314,6 +314,266 @@ pub fn rename(documents_dir: &Path, from: &str, to: &str) -> Result<StorageEntry
     entry_from_path(&root, &to_abs)
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExistsResult {
+    pub exists: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<StorageEntryKind>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+}
+
+pub fn exists(documents_dir: &Path, path: &str) -> Result<ExistsResult, String> {
+    let root = ensure_files_root(documents_dir)?;
+    let abs = safe_join_under(&root, path)?;
+    if !abs.exists() {
+        return Ok(ExistsResult {
+            exists: false,
+            kind: None,
+            path: None,
+        });
+    }
+    let entry = entry_from_path(&root, &abs)?;
+    Ok(ExistsResult {
+        exists: true,
+        kind: Some(entry.kind),
+        path: Some(entry.path),
+    })
+}
+
+pub fn touch(documents_dir: &Path, path: &str) -> Result<StorageEntry, String> {
+    let root = ensure_files_root(documents_dir)?;
+    let rel = normalize_relative(path)?;
+    if rel.is_empty() {
+        return Err(err("RootProtected:", "cannot touch files root"));
+    }
+    let abs = safe_join_under(&root, &rel)?;
+    if abs.exists() {
+        if abs.is_dir() {
+            return Err(err("NotAFile:", format!("`{rel}` is a directory")));
+        }
+        let file = fs::OpenOptions::new()
+            .write(true)
+            .open(&abs)
+            .map_err(|e| e.to_string())?;
+        let times = fs::FileTimes::new().set_modified(SystemTime::now());
+        file.set_times(times).map_err(|e| e.to_string())?;
+        return entry_from_path(&root, &abs);
+    }
+    write_file(documents_dir, &rel, b"", true)
+}
+
+pub fn append_bytes(
+    documents_dir: &Path,
+    path: &str,
+    bytes: &[u8],
+) -> Result<StorageEntry, String> {
+    if bytes.len() as u64 > MAX_WRITE_BYTES {
+        return Err(err("TooLarge:", format!("max {MAX_WRITE_BYTES} bytes")));
+    }
+    let root = ensure_files_root(documents_dir)?;
+    let rel = normalize_relative(path)?;
+    if rel.is_empty() {
+        return Err(err("RootProtected:", "cannot append to files root"));
+    }
+    let abs = safe_join_under(&root, &rel)?;
+    if abs.exists() && abs.is_dir() {
+        return Err(err("NotAFile:", format!("`{rel}` is a directory")));
+    }
+    if let Some(parent) = abs.parent() {
+        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    if abs.exists() {
+        let meta = fs::metadata(&abs).map_err(|e| e.to_string())?;
+        if meta.len() + bytes.len() as u64 > MAX_WRITE_BYTES {
+            return Err(err("TooLarge:", format!("max {MAX_WRITE_BYTES} bytes")));
+        }
+    }
+    use std::io::Write;
+    let mut file = fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&abs)
+        .map_err(|e| e.to_string())?;
+    file.write_all(bytes).map_err(|e| e.to_string())?;
+    entry_from_path(&root, &abs)
+}
+
+pub fn append_text(
+    documents_dir: &Path,
+    path: &str,
+    text: &str,
+) -> Result<StorageEntry, String> {
+    append_bytes(documents_dir, path, text.as_bytes())
+}
+
+pub fn move_into(
+    documents_dir: &Path,
+    from: &str,
+    dir: &str,
+) -> Result<StorageEntry, String> {
+    let from_rel = normalize_relative(from)?;
+    if from_rel.is_empty() {
+        return Err(err("RootProtected:", "cannot move files root"));
+    }
+    let name = Path::new(&from_rel)
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .ok_or_else(|| err("InvalidPath:", "missing basename"))?;
+    let dir_rel = normalize_relative(dir)?;
+    let to = if dir_rel.is_empty() {
+        name
+    } else {
+        format!("{dir_rel}/{name}")
+    };
+    rename(documents_dir, &from_rel, &to)
+}
+
+pub fn copy(
+    documents_dir: &Path,
+    from: &str,
+    to: &str,
+    overwrite: bool,
+) -> Result<StorageEntry, String> {
+    let bytes = read_file(documents_dir, from)?;
+    write_file(documents_dir, to, &bytes, overwrite)
+}
+
+/// Simple glob: `*` any chars except `/`, `**` any including `/`, `?` one char.
+pub fn glob_match(pattern: &str, value: &str) -> bool {
+    fn match_rec(p: &[u8], v: &[u8]) -> bool {
+        let mut i = 0;
+        let mut j = 0;
+        while i < p.len() {
+            match p[i] {
+                b'*' if i + 1 < p.len() && p[i + 1] == b'*' => {
+                    // **
+                    let rest = &p[i + 2..];
+                    let rest = if rest.first() == Some(&b'/') {
+                        &rest[1..]
+                    } else {
+                        rest
+                    };
+                    if rest.is_empty() {
+                        return true;
+                    }
+                    for k in j..=v.len() {
+                        if match_rec(rest, &v[k..]) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+                b'*' => {
+                    let rest = &p[i + 1..];
+                    if rest.is_empty() {
+                        return !v[j..].contains(&b'/');
+                    }
+                    for k in j..=v.len() {
+                        if v[j..k].contains(&b'/') {
+                            break;
+                        }
+                        if match_rec(rest, &v[k..]) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+                b'?' => {
+                    if j >= v.len() || v[j] == b'/' {
+                        return false;
+                    }
+                    i += 1;
+                    j += 1;
+                }
+                c => {
+                    if j >= v.len() || v[j] != c {
+                        return false;
+                    }
+                    i += 1;
+                    j += 1;
+                }
+            }
+        }
+        j == v.len()
+    }
+    match_rec(pattern.as_bytes(), value.as_bytes())
+}
+
+pub fn search(
+    documents_dir: &Path,
+    query: &str,
+    path: Option<&str>,
+    glob: Option<&str>,
+    limit: Option<usize>,
+) -> Result<Vec<StorageEntry>, String> {
+    let under = path.unwrap_or("").to_string();
+    let entries = list(
+        documents_dir,
+        ListOpts {
+            path: Some(under),
+            recursive: true,
+            depth: Some(16),
+        },
+    )?;
+    let q = query.trim().to_ascii_lowercase();
+    let limit = limit.unwrap_or(100).max(1);
+    let filtered: Vec<_> = entries
+        .into_iter()
+        .filter(|e| {
+            let name_ok = q.is_empty()
+                || e.name.to_ascii_lowercase().contains(&q)
+                || e.path.to_ascii_lowercase().contains(&q);
+            let glob_ok = match glob {
+                Some(g) if !g.is_empty() => glob_match(g, &e.path) || glob_match(g, &e.name),
+                _ => true,
+            };
+            name_ok && glob_ok
+        })
+        .take(limit)
+        .collect();
+    Ok(filtered)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiskUsage {
+    pub path: String,
+    pub total_bytes: u64,
+    pub file_count: u64,
+    pub dir_count: u64,
+}
+
+pub fn disk_usage(documents_dir: &Path, path: &str) -> Result<DiskUsage, String> {
+    let entries = list(
+        documents_dir,
+        ListOpts {
+            path: Some(path.to_string()),
+            recursive: true,
+            depth: Some(32),
+        },
+    )?;
+    let mut total = 0u64;
+    let mut files = 0u64;
+    let mut dirs = 0u64;
+    for e in &entries {
+        match e.kind {
+            StorageEntryKind::File => {
+                files += 1;
+                total += e.size_bytes.unwrap_or(0);
+            }
+            StorageEntryKind::Dir => dirs += 1,
+        }
+    }
+    Ok(DiskUsage {
+        path: normalize_relative(path)?,
+        total_bytes: total,
+        file_count: files,
+        dir_count: dirs,
+    })
+}
+
 pub fn ensure_defaults(documents_dir: &Path) -> Result<Vec<String>, String> {
     let root = ensure_files_root(documents_dir)?;
     let mut created = Vec::new();

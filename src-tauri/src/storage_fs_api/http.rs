@@ -212,26 +212,26 @@ fn handle_graphql(documents_dir: &Path, body: &[u8]) -> Result<Value, String> {
         .unwrap_or("")
         .to_string();
 
-    // Minimal resolver: detect storageFsList / storageFsDiskUsage / health-ish fields
+    let inline_path = || {
+        query
+            .split("path:")
+            .nth(1)
+            .and_then(|rest| {
+                let rest = rest.trim_start();
+                if let Some(s) = rest.strip_prefix('"') {
+                    s.split('"').next()
+                } else {
+                    Some("")
+                }
+            })
+            .unwrap_or("")
+    };
+
     if query.contains("storageFsList") {
         let path = payload
             .pointer("/variables/path")
             .and_then(|v| v.as_str())
-            .unwrap_or_else(|| {
-                // naive extract path: "…" from query
-                query
-                    .split("path:")
-                    .nth(1)
-                    .and_then(|rest| {
-                        let rest = rest.trim_start();
-                        if let Some(s) = rest.strip_prefix('"') {
-                            s.split('"').next()
-                        } else {
-                            Some("")
-                        }
-                    })
-                    .unwrap_or("")
-            });
+            .unwrap_or_else(inline_path);
         let entries = storage_fs::list(
             documents_dir,
             ListOpts {
@@ -255,9 +255,38 @@ fn handle_graphql(documents_dir: &Path, body: &[u8]) -> Result<Value, String> {
         let path = payload
             .pointer("/variables/path")
             .and_then(|v| v.as_str())
-            .unwrap_or("");
+            .unwrap_or_else(inline_path);
         let entry = storage_fs::stat(documents_dir, path)?;
         return Ok(json!({ "data": { "storageFsStat": entry } }));
+    }
+
+    if query.contains("storageFsExists") {
+        let path = payload
+            .pointer("/variables/path")
+            .and_then(|v| v.as_str())
+            .unwrap_or_else(inline_path);
+        let result = storage_fs::exists(documents_dir, path)?;
+        return Ok(json!({ "data": { "storageFsExists": result } }));
+    }
+
+    if query.contains("storageFsSearch") {
+        let q = payload
+            .pointer("/variables/query")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        let path = payload.pointer("/variables/path").and_then(|v| v.as_str());
+        let glob = payload.pointer("/variables/glob").and_then(|v| v.as_str());
+        let entries = storage_fs::search(documents_dir, q, path, glob, Some(50))?;
+        return Ok(json!({ "data": { "storageFsSearch": entries } }));
+    }
+
+    if query.contains("storageFsDiskUsage") {
+        let path = payload
+            .pointer("/variables/path")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        let usage = storage_fs::disk_usage(documents_dir, path)?;
+        return Ok(json!({ "data": { "storageFsDiskUsage": usage } }));
     }
 
     if query.contains("__schema") || query.contains("storageFsHealth") {
@@ -270,7 +299,7 @@ fn handle_graphql(documents_dir: &Path, body: &[u8]) -> Result<Value, String> {
 
     Ok(json!({
         "errors": [{
-            "message": "Supported demo fields: storageFsList(path), storageFsStat(path). See docs/storage-fs-api.md for full schema."
+            "message": "Supported fields: storageFsList, storageFsStat, storageFsExists, storageFsSearch, storageFsDiskUsage, storageFsHealth."
         }]
     }))
 }
@@ -387,26 +416,28 @@ pub fn handle_connection(mut stream: TcpStream, documents_dir: &Path, port: u16)
         return;
     }
 
+    if method == "GET" && path == "/v1/fs/exists" {
+        let rel = query_param(full_path, "path").unwrap_or_default();
+        match storage_fs::exists(documents_dir, &rel) {
+            Ok(result) => write_json(&mut stream, "200 OK", &json!(result)),
+            Err(e) => write_err(&mut stream, &e),
+        }
+        return;
+    }
+
     if method == "GET" && path == "/v1/fs/search" {
         let query = query_param(full_path, "query").unwrap_or_default();
-        let under = query_param(full_path, "path").unwrap_or_default();
-        let q = query.to_ascii_lowercase();
-        match storage_fs::list(
+        let under = query_param(full_path, "path");
+        let glob = query_param(full_path, "glob");
+        let limit = query_param(full_path, "limit").and_then(|v| v.parse().ok());
+        match storage_fs::search(
             documents_dir,
-            ListOpts {
-                path: Some(under),
-                recursive: true,
-                depth: Some(8),
-            },
+            &query,
+            under.as_deref(),
+            glob.as_deref(),
+            limit,
         ) {
-            Ok(entries) => {
-                let filtered: Vec<_> = entries
-                    .into_iter()
-                    .filter(|e| e.name.to_ascii_lowercase().contains(&q) || e.path.to_ascii_lowercase().contains(&q))
-                    .take(100)
-                    .collect();
-                write_json(&mut stream, "200 OK", &json!(filtered));
-            }
+            Ok(entries) => write_json(&mut stream, "200 OK", &json!(entries)),
             Err(e) => write_err(&mut stream, &e),
         }
         return;
@@ -414,38 +445,8 @@ pub fn handle_connection(mut stream: TcpStream, documents_dir: &Path, port: u16)
 
     if method == "GET" && path == "/v1/fs/disk-usage" {
         let rel = query_param(full_path, "path").unwrap_or_default();
-        match storage_fs::list(
-            documents_dir,
-            ListOpts {
-                path: Some(rel.clone()),
-                recursive: true,
-                depth: Some(32),
-            },
-        ) {
-            Ok(entries) => {
-                let mut total = 0u64;
-                let mut files = 0u64;
-                let mut dirs = 0u64;
-                for e in &entries {
-                    match e.kind {
-                        storage_fs::StorageEntryKind::File => {
-                            files += 1;
-                            total += e.size_bytes.unwrap_or(0);
-                        }
-                        storage_fs::StorageEntryKind::Dir => dirs += 1,
-                    }
-                }
-                write_json(
-                    &mut stream,
-                    "200 OK",
-                    &json!({
-                        "path": rel,
-                        "totalBytes": total,
-                        "fileCount": files,
-                        "dirCount": dirs,
-                    }),
-                );
-            }
+        match storage_fs::disk_usage(documents_dir, &rel) {
+            Ok(usage) => write_json(&mut stream, "200 OK", &json!(usage)),
             Err(e) => write_err(&mut stream, &e),
         }
         return;
@@ -484,6 +485,26 @@ pub fn handle_connection(mut stream: TcpStream, documents_dir: &Path, port: u16)
                     Err(e) => Err(format!("InvalidPath: bad base64 ({e})")),
                 }
             }
+            "/v1/fs/append-text" => {
+                let p = payload.get("path").and_then(|v| v.as_str()).unwrap_or("");
+                let text = payload.get("text").and_then(|v| v.as_str()).unwrap_or("");
+                storage_fs::append_text(documents_dir, p, text).map(|e| json!(e))
+            }
+            "/v1/fs/append" => {
+                let p = payload.get("path").and_then(|v| v.as_str()).unwrap_or("");
+                let data = payload
+                    .get("dataBase64")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
+                match STANDARD.decode(strip_data_url_base64(data)) {
+                    Ok(bytes) => storage_fs::append_bytes(documents_dir, p, &bytes).map(|e| json!(e)),
+                    Err(e) => Err(format!("InvalidPath: bad base64 ({e})")),
+                }
+            }
+            "/v1/fs/touch" => {
+                let p = payload.get("path").and_then(|v| v.as_str()).unwrap_or("");
+                storage_fs::touch(documents_dir, p).map(|e| json!(e))
+            }
             "/v1/fs/delete" => {
                 let p = payload.get("path").and_then(|v| v.as_str()).unwrap_or("");
                 let recursive = payload
@@ -498,6 +519,11 @@ pub fn handle_connection(mut stream: TcpStream, documents_dir: &Path, port: u16)
                 let to = payload.get("to").and_then(|v| v.as_str()).unwrap_or("");
                 storage_fs::rename(documents_dir, from, to).map(|e| json!(e))
             }
+            "/v1/fs/move-into" => {
+                let from = payload.get("from").and_then(|v| v.as_str()).unwrap_or("");
+                let dir = payload.get("dir").and_then(|v| v.as_str()).unwrap_or("");
+                storage_fs::move_into(documents_dir, from, dir).map(|e| json!(e))
+            }
             "/v1/fs/copy" => {
                 let from = payload.get("from").and_then(|v| v.as_str()).unwrap_or("");
                 let to = payload.get("to").and_then(|v| v.as_str()).unwrap_or("");
@@ -505,9 +531,7 @@ pub fn handle_connection(mut stream: TcpStream, documents_dir: &Path, port: u16)
                     .get("overwrite")
                     .and_then(|v| v.as_bool())
                     .unwrap_or(false);
-                storage_fs::read_file(documents_dir, from).and_then(|bytes| {
-                    storage_fs::write_file(documents_dir, to, &bytes, overwrite).map(|e| json!(e))
-                })
+                storage_fs::copy(documents_dir, from, to, overwrite).map(|e| json!(e))
             }
             "/v1/fs/ensure-defaults" => storage_fs::ensure_defaults(documents_dir)
                 .map(|created| json!({ "created": created })),

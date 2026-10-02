@@ -175,15 +175,20 @@ Place a **Local Files API** drawer / side rail on the Files tab (not buried only
 | `GET` | `/v1/fs/health` | Health |
 | `GET` | `/v1/fs/list` | List |
 | `GET` | `/v1/fs/stat` | Stat |
+| `GET` | `/v1/fs/exists` | Exists |
 | `GET` | `/v1/fs/read` | Read (base64) |
 | `GET` | `/v1/fs/read-text` | Read text |
-| `GET` | `/v1/fs/search` | Search |
+| `GET` | `/v1/fs/search` | Search (`query`, optional `glob`, `path`, `limit`) |
 | `GET` | `/v1/fs/disk-usage` | Disk usage |
 | `POST` | `/v1/fs/mkdir` | Mkdir |
 | `POST` | `/v1/fs/write` | Write bytes |
 | `POST` | `/v1/fs/write-text` | Write text |
+| `POST` | `/v1/fs/append` | Append bytes |
+| `POST` | `/v1/fs/append-text` | Append text |
+| `POST` | `/v1/fs/touch` | Touch / create empty |
 | `POST` | `/v1/fs/delete` | Delete |
 | `POST` | `/v1/fs/rename` | Rename |
+| `POST` | `/v1/fs/move-into` | Move into dir |
 | `POST` | `/v1/fs/copy` | Copy |
 | `POST` | `/v1/fs/ensure-defaults` | Ensure defaults |
 | `POST` | `/graphql` | GraphQL |
