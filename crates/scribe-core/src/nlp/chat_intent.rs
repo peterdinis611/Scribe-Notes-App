@@ -136,6 +136,55 @@ fn intent_rules() -> &'static [(&'static str, &'static [&'static str])] {
             ],
         ),
         (
+            "explain",
+            &[
+                "explain",
+                "what does this mean",
+                "vysvetli",
+                "vysvetlenie",
+                "co to znamena",
+            ],
+        ),
+        (
+            "simplify",
+            &[
+                "simplify",
+                "simpler",
+                "plain language",
+                "zjednodus",
+                "jednoduchsie",
+            ],
+        ),
+        (
+            "action_items",
+            &[
+                "action items",
+                "extract actions",
+                "akcne body",
+                "ulohy z textu",
+            ],
+        ),
+        (
+            "glossary",
+            &[
+                "glossary",
+                "define terms",
+                "key terms",
+                "slovnik",
+                "pojmy",
+                "definicie",
+            ],
+        ),
+        (
+            "compare_notes",
+            &[
+                "compare notes",
+                "diff notes",
+                "porovnaj poznamky",
+                "porovnanie poznamok",
+            ],
+        ),
+        (
             "meeting",
             &[
                 "meeting",

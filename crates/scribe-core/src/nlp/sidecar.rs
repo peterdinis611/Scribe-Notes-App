@@ -850,11 +850,152 @@ impl NlpSidecar {
         )
     }
 
-    pub fn writing_coach(&self, text: &str, limit: i64) -> Result<Value, String> {
-        self.call_method(
-            "writing_coach",
-            json!({ "text": text, "limit": limit }),
-        )
+    pub fn writing_coach(
+        &self,
+        text: &str,
+        limit: i64,
+        llm: Option<&Value>,
+    ) -> Result<Value, String> {
+        let mut params = json!({ "text": text, "limit": limit });
+        if let Some(options) = llm {
+            params["llm"] = options.clone();
+        }
+        self.call_method("writing_coach", params)
+    }
+
+    pub fn files_list(
+        &self,
+        path: &str,
+        recursive: bool,
+        base_url: Option<&str>,
+    ) -> Result<Value, String> {
+        let mut params = json!({ "path": path, "recursive": recursive });
+        if let Some(url) = base_url {
+            params["baseUrl"] = json!(url);
+        }
+        self.call_method("files_list", params)
+    }
+
+    pub fn files_read_text(&self, path: &str, base_url: Option<&str>) -> Result<Value, String> {
+        let mut params = json!({ "path": path });
+        if let Some(url) = base_url {
+            params["baseUrl"] = json!(url);
+        }
+        self.call_method("files_read_text", params)
+    }
+
+    pub fn files_search(
+        &self,
+        query: &str,
+        path: Option<&str>,
+        glob: Option<&str>,
+        limit: i64,
+        base_url: Option<&str>,
+    ) -> Result<Value, String> {
+        let mut params = json!({ "query": query, "limit": limit });
+        if let Some(value) = path {
+            params["path"] = json!(value);
+        }
+        if let Some(value) = glob {
+            params["glob"] = json!(value);
+        }
+        if let Some(url) = base_url {
+            params["baseUrl"] = json!(url);
+        }
+        self.call_method("files_search", params)
+    }
+
+    pub fn files_summarize(
+        &self,
+        path: &str,
+        limit: i64,
+        base_url: Option<&str>,
+    ) -> Result<Value, String> {
+        let mut params = json!({ "path": path, "limit": limit });
+        if let Some(url) = base_url {
+            params["baseUrl"] = json!(url);
+        }
+        self.call_method("files_summarize", params)
+    }
+
+    pub fn files_answer(
+        &self,
+        question: &str,
+        path: Option<&str>,
+        limit: i64,
+        base_url: Option<&str>,
+    ) -> Result<Value, String> {
+        let mut params = json!({ "question": question, "limit": limit });
+        if let Some(value) = path {
+            params["path"] = json!(value);
+        }
+        if let Some(url) = base_url {
+            params["baseUrl"] = json!(url);
+        }
+        self.call_method("files_answer", params)
+    }
+
+    pub fn explain_selection(&self, text: &str, llm: Option<&Value>) -> Result<Value, String> {
+        let mut params = json!({ "text": text });
+        if let Some(options) = llm {
+            params["llm"] = options.clone();
+        }
+        self.call_method("explain_selection", params)
+    }
+
+    pub fn simplify_text(&self, text: &str, llm: Option<&Value>) -> Result<Value, String> {
+        let mut params = json!({ "text": text });
+        if let Some(options) = llm {
+            params["llm"] = options.clone();
+        }
+        self.call_method("simplify_text", params)
+    }
+
+    pub fn action_items(
+        &self,
+        text: &str,
+        limit: i64,
+        llm: Option<&Value>,
+    ) -> Result<Value, String> {
+        let mut params = json!({ "text": text, "limit": limit });
+        if let Some(options) = llm {
+            params["llm"] = options.clone();
+        }
+        self.call_method("action_items", params)
+    }
+
+    pub fn glossary(
+        &self,
+        text: &str,
+        limit: i64,
+        llm: Option<&Value>,
+    ) -> Result<Value, String> {
+        let mut params = json!({ "text": text, "limit": limit });
+        if let Some(options) = llm {
+            params["llm"] = options.clone();
+        }
+        self.call_method("glossary", params)
+    }
+
+    pub fn compare_notes(
+        &self,
+        text_a: &str,
+        text_b: &str,
+        title_a: Option<&str>,
+        title_b: Option<&str>,
+        llm: Option<&Value>,
+    ) -> Result<Value, String> {
+        let mut params = json!({ "textA": text_a, "textB": text_b });
+        if let Some(value) = title_a {
+            params["titleA"] = json!(value);
+        }
+        if let Some(value) = title_b {
+            params["titleB"] = json!(value);
+        }
+        if let Some(options) = llm {
+            params["llm"] = options.clone();
+        }
+        self.call_method("compare_notes", params)
     }
 
     pub fn outline_quiz(&self, text: &str, limit: i64) -> Result<Value, String> {
@@ -953,7 +1094,9 @@ pub fn rpc_timeout(method: &str) -> Duration {
         | "analyze_revision_diff" | "summarize_diff" | "extract_flashcards" | "check_terminology"
         | "extract_takeaways" | "writing_coach" | "outline_quiz" | "meeting_notes_pack"
         | "check_terminology_library" | "citation_pack" | "extract_paint_ocr"
-        | "plan_agent_goal" | "agent_document_brief" => {
+        | "plan_agent_goal" | "agent_document_brief"
+        | "explain_selection" | "simplify_text" | "action_items" | "glossary" | "compare_notes"
+        | "files_list" | "files_read_text" | "files_search" | "files_summarize" | "files_answer" => {
             Duration::from_secs(25)
         }
         "llm_status" => Duration::from_secs(8),

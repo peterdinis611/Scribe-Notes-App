@@ -1907,7 +1907,293 @@ pub fn nlp_writing_coach(
 ) -> Result<serde_json::Value, String> {
     let text = resolve_nlp_text(&state, &input)?;
     let limit = input.limit.unwrap_or(12).clamp(1, 30);
-    sidecar.writing_coach(&text, limit)
+    let llm = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        llm_sidecar_options(&conn, "enhance")?
+    };
+    sidecar.writing_coach(&text, limit, llm.as_ref())
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpFilesListInput {
+    pub path: Option<String>,
+    pub recursive: Option<bool>,
+    pub base_url: Option<String>,
+}
+
+#[tauri::command]
+pub fn nlp_files_list(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpFilesListInput,
+) -> Result<serde_json::Value, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    if !is_nlp_enabled(&conn)? {
+        return Err("NLP is disabled".to_string());
+    }
+    let _ = sync_sidecar_backend(&sidecar, &conn);
+    drop(conn);
+    sidecar.files_list(
+        input.path.as_deref().unwrap_or(""),
+        input.recursive.unwrap_or(false),
+        input.base_url.as_deref(),
+    )
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpFilesReadTextInput {
+    pub path: String,
+    pub base_url: Option<String>,
+}
+
+#[tauri::command]
+pub fn nlp_files_read_text(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpFilesReadTextInput,
+) -> Result<serde_json::Value, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    if !is_nlp_enabled(&conn)? {
+        return Err("NLP is disabled".to_string());
+    }
+    let _ = sync_sidecar_backend(&sidecar, &conn);
+    drop(conn);
+    sidecar.files_read_text(input.path.trim(), input.base_url.as_deref())
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpFilesSearchInput {
+    pub query: String,
+    pub path: Option<String>,
+    pub glob: Option<String>,
+    pub limit: Option<i64>,
+    pub base_url: Option<String>,
+}
+
+#[tauri::command]
+pub fn nlp_files_search(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpFilesSearchInput,
+) -> Result<serde_json::Value, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    if !is_nlp_enabled(&conn)? {
+        return Err("NLP is disabled".to_string());
+    }
+    let _ = sync_sidecar_backend(&sidecar, &conn);
+    drop(conn);
+    sidecar.files_search(
+        input.query.trim(),
+        input.path.as_deref(),
+        input.glob.as_deref(),
+        input.limit.unwrap_or(40).clamp(1, 100),
+        input.base_url.as_deref(),
+    )
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpFilesSummarizeInput {
+    pub path: String,
+    pub limit: Option<i64>,
+    pub base_url: Option<String>,
+}
+
+#[tauri::command]
+pub fn nlp_files_summarize(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpFilesSummarizeInput,
+) -> Result<serde_json::Value, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    if !is_nlp_enabled(&conn)? {
+        return Err("NLP is disabled".to_string());
+    }
+    let _ = sync_sidecar_backend(&sidecar, &conn);
+    drop(conn);
+    sidecar.files_summarize(
+        input.path.trim(),
+        input.limit.unwrap_or(8).clamp(1, 20),
+        input.base_url.as_deref(),
+    )
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpFilesAnswerInput {
+    pub question: String,
+    pub path: Option<String>,
+    pub limit: Option<i64>,
+    pub base_url: Option<String>,
+}
+
+#[tauri::command]
+pub fn nlp_files_answer(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpFilesAnswerInput,
+) -> Result<serde_json::Value, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    if !is_nlp_enabled(&conn)? {
+        return Err("NLP is disabled".to_string());
+    }
+    let _ = sync_sidecar_backend(&sidecar, &conn);
+    drop(conn);
+    sidecar.files_answer(
+        input.question.trim(),
+        input.path.as_deref(),
+        input.limit.unwrap_or(6).clamp(1, 12),
+        input.base_url.as_deref(),
+    )
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpTextSkillInput {
+    pub document_id: Option<String>,
+    pub text: Option<String>,
+    pub limit: Option<i64>,
+}
+
+#[tauri::command]
+pub fn nlp_explain_selection(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpTextSkillInput,
+) -> Result<serde_json::Value, String> {
+    let text = resolve_nlp_text(
+        &state,
+        &NlpDocumentTextInput {
+            document_id: input.document_id,
+            text: input.text,
+            limit: None,
+            include_cloze: None,
+        },
+    )?;
+    let llm = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        llm_sidecar_options(&conn, "enhance")?
+    };
+    sidecar.explain_selection(&text, llm.as_ref())
+}
+
+#[tauri::command]
+pub fn nlp_simplify(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpTextSkillInput,
+) -> Result<serde_json::Value, String> {
+    let text = resolve_nlp_text(
+        &state,
+        &NlpDocumentTextInput {
+            document_id: input.document_id,
+            text: input.text,
+            limit: None,
+            include_cloze: None,
+        },
+    )?;
+    let llm = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        llm_sidecar_options(&conn, "enhance")?
+    };
+    sidecar.simplify_text(&text, llm.as_ref())
+}
+
+#[tauri::command]
+pub fn nlp_action_items(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpTextSkillInput,
+) -> Result<serde_json::Value, String> {
+    let text = resolve_nlp_text(
+        &state,
+        &NlpDocumentTextInput {
+            document_id: input.document_id.clone(),
+            text: input.text.clone(),
+            limit: None,
+            include_cloze: None,
+        },
+    )?;
+    let limit = input.limit.unwrap_or(12).clamp(1, 30);
+    let llm = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        llm_sidecar_options(&conn, "enhance")?
+    };
+    sidecar.action_items(&text, limit, llm.as_ref())
+}
+
+#[tauri::command]
+pub fn nlp_glossary(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpTextSkillInput,
+) -> Result<serde_json::Value, String> {
+    let text = resolve_nlp_text(
+        &state,
+        &NlpDocumentTextInput {
+            document_id: input.document_id.clone(),
+            text: input.text.clone(),
+            limit: None,
+            include_cloze: None,
+        },
+    )?;
+    let limit = input.limit.unwrap_or(16).clamp(1, 40);
+    let llm = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        llm_sidecar_options(&conn, "enhance")?
+    };
+    sidecar.glossary(&text, limit, llm.as_ref())
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpCompareNotesInput {
+    pub document_id_a: Option<String>,
+    pub document_id_b: Option<String>,
+    pub text_a: Option<String>,
+    pub text_b: Option<String>,
+    pub title_a: Option<String>,
+    pub title_b: Option<String>,
+}
+
+#[tauri::command]
+pub fn nlp_compare_notes(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpCompareNotesInput,
+) -> Result<serde_json::Value, String> {
+    let text_a = resolve_nlp_text(
+        &state,
+        &NlpDocumentTextInput {
+            document_id: input.document_id_a.clone(),
+            text: input.text_a.clone(),
+            limit: None,
+            include_cloze: None,
+        },
+    )?;
+    let text_b = resolve_nlp_text(
+        &state,
+        &NlpDocumentTextInput {
+            document_id: input.document_id_b.clone(),
+            text: input.text_b.clone(),
+            limit: None,
+            include_cloze: None,
+        },
+    )?;
+    let llm = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        llm_sidecar_options(&conn, "enhance")?
+    };
+    sidecar.compare_notes(
+        &text_a,
+        &text_b,
+        input.title_a.as_deref(),
+        input.title_b.as_deref(),
+        llm.as_ref(),
+    )
 }
 
 #[tauri::command]
