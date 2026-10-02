@@ -1266,8 +1266,10 @@
       "llmUseRewrite": "Rewrite",
       "llmUseAnswer": "Ask / answers",
       "llmUsePlan": "Agent planner",
+      "llmEnhanceHeuristics": "Polish heuristics",
       "llmStatusTitle": "Ollama status",
       "llmInstallHint": "Install from ollama.com, then pull a model. Falls back to rule-based Local AI if offline.",
+      "llmModelMissing": "Model “{{model}}” is not in Ollama — pull it or pick another.",
       "llmStatusOk": "Reachable · {{count}} models",
       "llmStatusDown": "Unreachable",
       "llmStatusUnknown": "Not checked yet",
@@ -1277,7 +1279,10 @@
       "llmSaveError": "Could not save LLM settings",
       "llmCheckError": "Could not reach Ollama",
       "llmReachableToast": "Ollama OK · {{count}} models",
-      "llmUnreachableToast": "Ollama is not reachable"
+      "llmUnreachableToast": "Ollama is not reachable",
+      "llmTest": "Test complete",
+      "llmTestOk": "LLM OK ({{model}}): {{text}}",
+      "llmTestError": "LLM test failed"
     },
     "agent": {
       "title": "Local Agent",

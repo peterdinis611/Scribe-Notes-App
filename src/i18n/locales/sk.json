@@ -1266,8 +1266,10 @@
       "llmUseRewrite": "Prepis",
       "llmUseAnswer": "Ask / odpovede",
       "llmUsePlan": "Plánovač agenta",
+      "llmEnhanceHeuristics": "Vylepšiť heuristiky",
       "llmStatusTitle": "Stav Ollama",
       "llmInstallHint": "Inštalácia z ollama.com, potom pull modelu. Ak je offline, ostane rule-based Local AI.",
+      "llmModelMissing": "Model „{{model}}“ nie je v Ollama — stiahni ho alebo vyber iný.",
       "llmStatusOk": "Dostupná · {{count}} modelov",
       "llmStatusDown": "Nedostupná",
       "llmStatusUnknown": "Ešte neoverené",
@@ -1277,7 +1279,10 @@
       "llmSaveError": "Nepodarilo sa uložiť nastavenia LLM",
       "llmCheckError": "Nepodarilo sa spojiť s Ollama",
       "llmReachableToast": "Ollama OK · {{count}} modelov",
-      "llmUnreachableToast": "Ollama nie je dostupná"
+      "llmUnreachableToast": "Ollama nie je dostupná",
+      "llmTest": "Test complete",
+      "llmTestOk": "LLM OK ({{model}}): {{text}}",
+      "llmTestError": "LLM test zlyhal"
     },
     "agent": {
       "title": "Lokálny agent",

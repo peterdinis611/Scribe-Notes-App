@@ -236,6 +236,7 @@ pub fn get_llm_prefs(conn: &Connection) -> Result<NlpLlmPrefs, String> {
         use_rewrite: meta_flag(conn, META_NLP_LLM_USE_REWRITE, true)?,
         use_answer: meta_flag(conn, META_NLP_LLM_USE_ANSWER, true)?,
         use_plan: meta_flag(conn, META_NLP_LLM_USE_PLAN, true)?,
+        enhance_heuristics: meta_flag(conn, META_NLP_LLM_ENHANCE_HEURISTICS, false)?,
     })
 }
 
@@ -248,6 +249,7 @@ pub fn set_llm_prefs(
     use_rewrite: Option<bool>,
     use_answer: Option<bool>,
     use_plan: Option<bool>,
+    enhance_heuristics: Option<bool>,
 ) -> Result<NlpLlmPrefs, String> {
     if let Some(value) = enabled {
         set_meta_flag(conn, META_NLP_LLM_ENABLED, value)?;
@@ -276,6 +278,9 @@ pub fn set_llm_prefs(
     if let Some(value) = use_plan {
         set_meta_flag(conn, META_NLP_LLM_USE_PLAN, value)?;
     }
+    if let Some(value) = enhance_heuristics {
+        set_meta_flag(conn, META_NLP_LLM_ENHANCE_HEURISTICS, value)?;
+    }
     get_llm_prefs(conn)
 }
 
@@ -289,6 +294,7 @@ pub fn llm_sidecar_options(conn: &Connection, kind: &str) -> Result<Option<serde
         "rewrite" => prefs.use_rewrite,
         "answer" => prefs.use_answer,
         "plan" => prefs.use_plan,
+        "enhance" => prefs.enhance_heuristics,
         _ => false,
     };
     if !allowed {
@@ -298,6 +304,7 @@ pub fn llm_sidecar_options(conn: &Connection, kind: &str) -> Result<Option<serde
         "provider": prefs.provider,
         "baseUrl": prefs.base_url,
         "model": prefs.model,
+        "enhanceHeuristics": prefs.enhance_heuristics,
     })))
 }
 

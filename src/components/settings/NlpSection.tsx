@@ -10,6 +10,7 @@ import {
 } from '@/components/settings/SettingsPrimitives'
 import {
   nlpLibraryReport,
+  nlpLlmComplete,
   nlpLlmStatus,
   nlpSetAnswerBackend,
   nlpSetEmbedBackend,
@@ -202,7 +203,7 @@ export function NlpSection() {
     }
   }
 
-  async function handleLlmUse(kind: 'rewrite' | 'answer' | 'plan') {
+  async function handleLlmUse(kind: 'rewrite' | 'answer' | 'plan' | 'enhance') {
     if (!status?.llm) return
     try {
       const updated = await nlpSetLlmPrefs(
@@ -210,12 +211,33 @@ export function NlpSection() {
           ? { useRewrite: !status.llm.useRewrite }
           : kind === 'answer'
             ? { useAnswer: !status.llm.useAnswer }
-            : { usePlan: !(status.llm.usePlan ?? true) },
+            : kind === 'plan'
+              ? { usePlan: !(status.llm.usePlan ?? true) }
+              : { enhanceHeuristics: !(status.llm.enhanceHeuristics ?? false) },
       )
       setStatus(updated)
       toast.success(t('settings.nlp.llmSaveToast'))
     } catch (error) {
       toast.error(t('settings.nlp.llmSaveError'), String(error))
+    }
+  }
+
+  async function handleLlmTest() {
+    try {
+      const result = await nlpLlmComplete({
+        prompt: 'Reply with exactly: ok',
+        system: 'You are a connectivity check. Reply with one short token only.',
+        maxTokens: 16,
+        temperature: 0,
+      })
+      toast.success(
+        t('settings.nlp.llmTestOk', {
+          model: result.model || status?.llm?.model || 'ollama',
+          text: (result.text || '').trim().slice(0, 80),
+        }),
+      )
+    } catch (error) {
+      toast.error(t('settings.nlp.llmTestError'), String(error))
     }
   }
 
@@ -481,6 +503,15 @@ export function NlpSection() {
             >
               {t('settings.nlp.llmCheck')}
             </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!status?.enabled || !status?.llm?.enabled || loading}
+              onClick={() => void handleLlmTest()}
+            >
+              {t('settings.nlp.llmTest')}
+            </Button>
           </div>
         </SettingsRow>
 
@@ -561,12 +592,27 @@ export function NlpSection() {
                 >
                   {t('settings.nlp.llmUsePlan')}
                 </Button>
+                <Button
+                  type="button"
+                  variant={(status.llm.enhanceHeuristics ?? false) ? 'default' : 'outline'}
+                  size="sm"
+                  disabled={!status.enabled || loading}
+                  onClick={() => void handleLlmUse('enhance')}
+                >
+                  {t('settings.nlp.llmEnhanceHeuristics')}
+                </Button>
               </div>
             </SettingsRow>
 
             <SettingsRow
               title={t('settings.nlp.llmStatusTitle')}
-              description={t('settings.nlp.llmInstallHint')}
+              description={
+                llmLive && !llmLive.reachable
+                  ? t('settings.nlp.llmStatusDown')
+                  : llmLive?.reachable && status.llm.model && !llmLive.models.includes(status.llm.model)
+                    ? t('settings.nlp.llmModelMissing', { model: status.llm.model })
+                    : t('settings.nlp.llmInstallHint')
+              }
             >
               <span className="text-right text-[12px] text-[var(--color-muted-foreground)]">
                 {llmLive

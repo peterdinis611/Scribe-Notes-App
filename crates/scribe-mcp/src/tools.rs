@@ -364,6 +364,7 @@ pub struct SetLlmPrefsParams {
     pub use_rewrite: Option<bool>,
     pub use_answer: Option<bool>,
     pub use_plan: Option<bool>,
+    pub enhance_heuristics: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]

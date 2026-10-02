@@ -39,7 +39,12 @@ _PASSIVE_SK = re.compile(
 )
 
 
-def writing_coach(text: str, *, limit: int = 12) -> dict[str, Any]:
+def writing_coach(
+    text: str,
+    *,
+    limit: int = 12,
+    llm: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     source = text or ""
     limit = max(1, min(int(limit or 12), 30))
     language = str(detect_language(source).get("language") or "unknown")
@@ -151,7 +156,7 @@ def writing_coach(text: str, *, limit: int = 12) -> dict[str, Any]:
 
     score = max(0, 100 - len([h for h in hints if h["code"] != "ok"]) * 8)
 
-    return {
+    result = {
         "language": language,
         "score": score,
         "hints": hints[:limit],
@@ -162,5 +167,28 @@ def writing_coach(text: str, *, limit: int = 12) -> dict[str, Any]:
             "longSentenceCount": len(long_sentences),
             "passiveSentenceCount": len(passive_hits),
         },
+        "enhanced": False,
         "source": "python",
     }
+
+    if isinstance(llm, dict) and llm:
+        from .llm import try_complete_from_options
+
+        hint_lines = "\n".join(
+            f"- {h.get('message')}" for h in result["hints"] if h.get("code") != "ok"
+        )
+        polished = try_complete_from_options(
+            llm,
+            prompt=(
+                "Polish these writing-coach hints into 3-5 crisp actionable bullets. "
+                "Keep the same issues; do not invent new facts.\n\n"
+                f"{hint_lines or source[:1500]}"
+            ),
+            system="Output only short bullets.",
+            max_tokens=280,
+        )
+        if polished:
+            result["llmSummary"] = polished
+            result["enhanced"] = True
+
+    return result

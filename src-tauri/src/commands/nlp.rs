@@ -1333,6 +1333,7 @@ pub struct NlpSetLlmPrefsInput {
     pub use_rewrite: Option<bool>,
     pub use_answer: Option<bool>,
     pub use_plan: Option<bool>,
+    pub enhance_heuristics: Option<bool>,
 }
 
 #[tauri::command]
@@ -1351,6 +1352,7 @@ pub fn nlp_set_llm_prefs(
         input.use_rewrite,
         input.use_answer,
         input.use_plan,
+        input.enhance_heuristics,
     )?;
     build_nlp_status(&sidecar, &conn, is_nlp_enabled(&conn)?)
 }

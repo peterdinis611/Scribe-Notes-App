@@ -1445,6 +1445,7 @@ impl ScribeStore {
                     use_rewrite: true,
                     use_answer: true,
                     use_plan: true,
+                    enhance_heuristics: false,
                 }),
                 "qualityAvailable": false,
                 "onnxAvailable": false,

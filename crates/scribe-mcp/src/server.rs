@@ -1544,6 +1544,7 @@ impl ScribeMcp {
                 params.use_rewrite,
                 params.use_answer,
                 params.use_plan,
+                params.enhance_heuristics,
             )?))
         })
     }

@@ -1496,6 +1496,7 @@ impl ScribeStore {
         use_rewrite: Option<bool>,
         use_answer: Option<bool>,
         use_plan: Option<bool>,
+        enhance_heuristics: Option<bool>,
     ) -> Result<Value, String> {
         crate::db::set_llm_prefs(
             &self.db,
@@ -1506,6 +1507,7 @@ impl ScribeStore {
             use_rewrite,
             use_answer,
             use_plan,
+            enhance_heuristics,
         )?;
         self.nlp_status(sidecar)
     }

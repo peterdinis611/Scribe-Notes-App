@@ -9,6 +9,7 @@ export interface NlpLlmPrefs {
   useRewrite: boolean
   useAnswer: boolean
   usePlan: boolean
+  enhanceHeuristics?: boolean
 }
 
 export interface NlpLlmStatus {
@@ -194,6 +195,7 @@ export const nlpSetLlmPrefs = async (input: {
   useRewrite?: boolean
   useAnswer?: boolean
   usePlan?: boolean
+  enhanceHeuristics?: boolean
 }) => {
   const value = await invoke<NlpStatus>('nlp_set_llm_prefs', { input })
   statusCache = { value, at: Date.now() }
