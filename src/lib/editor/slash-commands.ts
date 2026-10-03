@@ -22,18 +22,42 @@ type SlashCommandDef = {
   icon?: string
 }
 
-/** Slash-visible static blocks (derived from the block registry). */
-export const SLASH_COMMAND_DEFS: SlashCommandDef[] = listBlockDefinitions().map((def) => ({
-  id: def.id,
-  icon: def.icon,
-}))
-
-function localizeSlashCommand(def: SlashCommandDef): SlashCommandItem {
+function toSlashCommandDef(def: {
+  id: string
+  icon?: string
+  label?: string
+  hint?: string
+}): SlashCommandDef & { label?: string; hint?: string } {
   return {
     id: def.id,
     icon: def.icon,
-    label: i18n.t(`slash.${def.id}.label`),
-    hint: i18n.t(`slash.${def.id}.hint`),
+    ...(def.label ? { label: def.label } : {}),
+    ...(def.hint ? { hint: def.hint } : {}),
+  }
+}
+
+/** Live slash-visible blocks from the registry (includes runtime plugins). */
+export function listSlashCommandDefs(): Array<SlashCommandDef & { label?: string; hint?: string }> {
+  return listBlockDefinitions().map(toSlashCommandDef)
+}
+
+/**
+ * Snapshot of built-in slash defs at module load.
+ * Prefer `listSlashCommandDefs()` when plugins may have registered blocks.
+ */
+export const SLASH_COMMAND_DEFS: SlashCommandDef[] = listSlashCommandDefs().map(
+  ({ id, icon }) => ({ id, icon }),
+)
+
+function localizeSlashCommand(
+  def: SlashCommandDef & { label?: string; hint?: string },
+): SlashCommandItem {
+  const fromRegistry = getBlockDefinition(def.id)
+  return {
+    id: def.id,
+    icon: def.icon ?? fromRegistry?.icon,
+    label: def.label ?? fromRegistry?.label ?? i18n.t(`slash.${def.id}.label`),
+    hint: def.hint ?? fromRegistry?.hint ?? i18n.t(`slash.${def.id}.hint`),
   }
 }
 
@@ -68,7 +92,7 @@ function snippetSlashItems(): SlashCommandItem[] {
 }
 
 function allSlashItems(): SlashCommandItem[] {
-  const base = SLASH_COMMAND_DEFS.map(localizeSlashCommand)
+  const base = listSlashCommandDefs().map(localizeSlashCommand)
   const customBlockIndex = base.findIndex((item) => item.id === 'custom-block')
   const snippets = snippetSlashItems()
   if (customBlockIndex < 0) return [...base, ...snippets]

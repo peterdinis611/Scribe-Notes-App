@@ -809,6 +809,10 @@
         "label": "Mobilný zápis",
         "description": "Telefón → Schránka cez Wi‑Fi"
       },
+      "plugins": {
+        "label": "Pluginy",
+        "description": "Voliteľné bloky, príkazy a exporty"
+      },
       "privacy": {
         "label": "Súkromie",
         "description": "Čo ostáva na tomto Macu"
@@ -1105,6 +1109,24 @@
     "diagnostics": {
       "title": "Diagnostika",
       "description": "Stav SQLite, cesty a posledné operácie na disku."
+    },
+    "plugins": {
+      "title": "Pluginy",
+      "description": "Zapnite balíčkové rozšírenia — slash bloky, príkazy ⌘K a exporty. Všetko ostáva na tomto Macu.",
+      "introTitle": "Ako pluginy fungujú",
+      "introBody": "Oficiálne pluginy sa registrujú cez malé hostiteľské API (bloky, príkazy, namespaced úložisko). Kedykoľvek ich vypnete — slash položky a akcie v palete zmiznú hneď.",
+      "bundledHint": "Dostupných bundled pluginov: {{count}}",
+      "listTitle": "Nainštalované",
+      "emptyTitle": "Žiadne pluginy",
+      "emptyBody": "Bundled pluginy sa načítajú pri štarte. Ak je zoznam prázdny, reštartujte Scribe.",
+      "noDescription": "Bez popisu",
+      "enable": "Zapnúť",
+      "disable": "Vypnúť",
+      "enabledToast": "Plugin zapnutý",
+      "disabledToast": "Plugin vypnutý",
+      "toggleError": "Plugin sa nepodarilo prepnúť",
+      "errorPrefix": "Chyba",
+      "usage": "použité {{count}}×"
     },
     "mcp": {
       "title": "Scribe Memory MCP",

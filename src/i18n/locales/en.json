@@ -809,6 +809,10 @@
         "label": "Mobile capture",
         "description": "Phone → Inbox over Wi‑Fi"
       },
+      "plugins": {
+        "label": "Plugins",
+        "description": "Optional blocks, commands, and exports"
+      },
       "privacy": {
         "label": "Privacy",
         "description": "What stays on this Mac"
@@ -1105,6 +1109,24 @@
     "diagnostics": {
       "title": "Diagnostics",
       "description": "SQLite status, paths, and recent disk operations."
+    },
+    "plugins": {
+      "title": "Plugins",
+      "description": "Enable bundled extensions that add slash blocks, ⌘K commands, and exports. Everything stays on this Mac.",
+      "introTitle": "How plugins work",
+      "introBody": "Official plugins register through a small host API (blocks, commands, namespaced storage). Disable any plugin anytime — its slash items and palette actions disappear immediately.",
+      "bundledHint": "{{count}} bundled plugin(s) available",
+      "listTitle": "Installed",
+      "emptyTitle": "No plugins registered",
+      "emptyBody": "Bundled plugins load at startup. Restart Scribe if this list is empty.",
+      "noDescription": "No description",
+      "enable": "Enable",
+      "disable": "Disable",
+      "enabledToast": "Plugin enabled",
+      "disabledToast": "Plugin disabled",
+      "toggleError": "Could not toggle plugin",
+      "errorPrefix": "Error",
+      "usage": "used {{count}}×"
     },
     "mcp": {
       "title": "Scribe Memory MCP",

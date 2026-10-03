@@ -34,6 +34,7 @@ import {
   Sparkles,
   StickyNote,
   Pin,
+  Puzzle,
   Replace,
   RotateCcw,
   Tag,
@@ -42,6 +43,11 @@ import {
   PanelTop,
   Type,
 } from 'lucide-react'
+import {
+  getPluginsGeneration,
+  listPluginCommands,
+  subscribePlugins,
+} from '@/lib/plugins'
 import { openQuickNote } from '@/lib/quick-note'
 import { openNewCanvasNote } from '@/lib/canvas/create-canvas'
 import { Position, moveAppWindow } from '@/lib/window-position'
@@ -198,6 +204,9 @@ export function CommandPalette() {
   const locale = useAppSelector((state) => state.settings.locale)
   const localeOptions = useLocaleOptions()
   const openDemoGuide = useOpenDemoGuide()
+  const [pluginsGeneration, setPluginsGeneration] = useState(() => getPluginsGeneration())
+
+  useEffect(() => subscribePlugins(() => setPluginsGeneration(getPluginsGeneration())), [])
 
   const activeDocument = useMemo(
     () => documents.find((doc) => doc.id === activeDocumentId) ?? null,
@@ -806,6 +815,26 @@ export function CommandPalette() {
         icon: <Shield className="h-4 w-4" />,
         run: () => navigate(ROUTES.settingsSection('privacy')),
       },
+      {
+        type: 'action',
+        id: 'settings-plugins',
+        label: t('settings.plugins.title'),
+        hint: t('settings.sections.plugins.description'),
+        icon: <Puzzle className="h-4 w-4" />,
+        run: () => navigate(ROUTES.settingsSection('plugins')),
+      },
+      ...listPluginCommands().map((command) => ({
+        type: 'action' as const,
+        id: command.commandId,
+        label: command.title,
+        hint: command.hint,
+        icon: <Puzzle className="h-4 w-4" />,
+        run: () => {
+          void Promise.resolve(command.run()).catch((error) =>
+            toast.error(t('settings.plugins.toggleError'), String(error)),
+          )
+        },
+      })),
       ...(isTauriRuntime()
         ? [
             {
@@ -1033,6 +1062,7 @@ export function CommandPalette() {
       t,
       themeSettings,
       storageModeEnabled,
+      pluginsGeneration,
     ],
   )
 
