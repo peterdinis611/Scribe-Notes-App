@@ -296,7 +296,7 @@ export function SpellcheckAgentPanel({ onClose: _onClose }: SpellcheckAgentPanel
                 <Bubble>
                   <BubbleContent>
                     {message.role === 'assistant' ? (
-                      <MarkdownView markdown={message.text} />
+                      <MarkdownView source={message.text} headingIds={false} className="scribe-markdown--chat" />
                     ) : (
                       <p className="m-0 whitespace-pre-wrap">{message.text}</p>
                     )}

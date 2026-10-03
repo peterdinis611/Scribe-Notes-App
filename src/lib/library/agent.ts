@@ -628,7 +628,7 @@ async function runTool(
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       if (message.includes('FilesApiOffline')) {
-        throw new Error('agent.filesApiOffline')
+        throw new Error('agent.filesApiOffline', { cause: error })
       }
       throw error
     }

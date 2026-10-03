@@ -53,6 +53,6 @@ describe('document-ask-suggestions', () => {
     expect(actions[0]).toBe('summarize')
     expect(actions).toContain('tasks')
     expect(actions).toContain('dates')
-    expect(actions.indexOf('tasks')).toBeLessThan(actions.indexOf('keywords'))
+    expect(actions.indexOf('tasks')).toBeLessThan(actions.indexOf('dates'))
   })
 })

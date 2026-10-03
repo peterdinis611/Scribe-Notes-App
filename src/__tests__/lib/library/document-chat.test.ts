@@ -116,7 +116,7 @@ describe('document chat helpers', () => {
     expect(matchDocumentChatIntent('Writing coach tips please')).toBe('style')
     expect(matchDocumentChatIntent('What feels unfinished or unclear here?')).toBeNull()
     expect(matchDocumentChatIntent('What is this note mainly about?')).toBeNull()
-    expect(matchDocumentChatIntent('Explain the key terms in this note')).toBeNull()
+    expect(matchDocumentChatIntent('Explain the key terms in this note')).toBe('explain')
   })
 
   it('formats summarize action from analysis', async () => {
