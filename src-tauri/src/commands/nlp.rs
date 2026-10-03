@@ -1390,6 +1390,7 @@ pub fn nlp_llm_status(
         } else {
             Some(prefs.model.as_str())
         },
+        Some(prefs.provider.as_str()),
     )?;
     Ok(NlpLlmStatus {
         reachable: raw
@@ -1505,6 +1506,7 @@ pub fn nlp_llm_complete(
         } else {
             Some(prefs.model.as_str())
         },
+        Some(prefs.provider.as_str()),
         input.temperature,
         input.max_tokens,
         progress_tx,

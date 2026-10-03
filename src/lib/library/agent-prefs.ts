@@ -32,6 +32,7 @@ export type AgentToolId =
   | 'glossary'
   | 'compare_notes'
   | 'files_answer'
+  | 'save_template'
 
 export type AgentMaxSteps = 1 | 2 | 3
 
@@ -140,6 +141,7 @@ const ALL_TOOLS: AgentToolId[] = [
   'glossary',
   'compare_notes',
   'files_answer',
+  'save_template',
 ]
 
 const HEAVY_TOOLS = new Set<AgentToolId>([

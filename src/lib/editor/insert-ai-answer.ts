@@ -119,6 +119,18 @@ export function insertAiAnswerAsFrontmatter(
     .run()
 }
 
+/** Replace the current selection (or insert at cursor) with rewritten plain text. */
+export function replaceSelectionWithAnswer(answer: string): boolean {
+  const editor = editorRefs.editor
+  if (!editor || editor.isDestroyed) return false
+  const body = stripAnswerMarkdown(answer)
+  if (!body) return false
+  if (editor.state.selection.empty) {
+    return editor.chain().focus().insertContent(plainTextToTipTapContent(body)).run()
+  }
+  return editor.chain().focus().insertContent(plainTextToTipTapContent(body)).run()
+}
+
 export function applyAgentAnswer(
   answer: string,
   mode: AgentApplyMode = 'callout',

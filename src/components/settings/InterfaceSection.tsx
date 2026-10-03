@@ -1,4 +1,5 @@
 import { RotateCcw } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
@@ -8,6 +9,7 @@ import {
   SettingsSectionHeader,
   SettingsToggle,
 } from '@/components/settings/SettingsPrimitives'
+import { applyUiZoom } from '@/store/persistence'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
@@ -28,6 +30,38 @@ export function InterfaceSection() {
   const showStatusBar = useAppSelector((state) => state.settings.showStatusBar)
   const showPanelRail = useAppSelector((state) => state.settings.showPanelRail)
   const uiZoom = useAppSelector((state) => state.settings.uiZoom)
+  const [draftZoom, setDraftZoom] = useState(uiZoom)
+  const persistTimer = useRef<number | null>(null)
+
+  useEffect(() => {
+    setDraftZoom(uiZoom)
+  }, [uiZoom])
+
+  useEffect(
+    () => () => {
+      if (persistTimer.current != null) window.clearTimeout(persistTimer.current)
+    },
+    [],
+  )
+
+  function previewZoom(value: number) {
+    setDraftZoom(value)
+    applyUiZoom(value)
+    if (persistTimer.current != null) window.clearTimeout(persistTimer.current)
+    persistTimer.current = window.setTimeout(() => {
+      dispatch(setUiZoom(value))
+      persistTimer.current = null
+    }, 160)
+  }
+
+  function commitZoom(value: number) {
+    if (persistTimer.current != null) {
+      window.clearTimeout(persistTimer.current)
+      persistTimer.current = null
+    }
+    setDraftZoom(value)
+    dispatch(setUiZoom(value))
+  }
 
   return (
     <div className="interface-settings">
@@ -104,18 +138,20 @@ export function InterfaceSection() {
                   min={0.85}
                   max={1.25}
                   step={0.05}
-                  value={uiZoom}
+                  value={draftZoom}
                   aria-label={t('settings.interface.uiZoom')}
-                  onChange={(event) => dispatch(setUiZoom(Number(event.target.value)))}
+                  onChange={(event) => previewZoom(Number(event.target.value))}
+                  onPointerUp={(event) => commitZoom(Number((event.target as HTMLInputElement).value))}
+                  onBlur={(event) => commitZoom(Number(event.target.value))}
                 />
-                <span className="interface-zoom-value">{Math.round(uiZoom * 100)}%</span>
+                <span className="interface-zoom-value">{Math.round(draftZoom * 100)}%</span>
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   className="h-8 gap-1.5 px-2"
-                  disabled={uiZoom === 1}
-                  onClick={() => dispatch(setUiZoom(1))}
+                  disabled={draftZoom === 1}
+                  onClick={() => commitZoom(1)}
                   title={t('settings.interface.uiZoomReset')}
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
@@ -127,8 +163,8 @@ export function InterfaceSection() {
                   <button
                     key={preset}
                     type="button"
-                    className={cn(uiZoom === preset && 'is-active')}
-                    onClick={() => dispatch(setUiZoom(preset))}
+                    className={cn(draftZoom === preset && 'is-active')}
+                    onClick={() => commitZoom(preset)}
                   >
                     {Math.round(preset * 100)}%
                   </button>

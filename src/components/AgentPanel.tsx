@@ -20,7 +20,7 @@ import {
   MessageContent,
   MessageFooter,
 } from '@/components/ui/message'
-import { peekCachedDocument } from '@/lib/cache/document-cache'
+import { getCachedParsedContent, peekCachedDocument } from '@/lib/cache/document-cache'
 import {
   appendAgentMessage,
   appendAgentRun,
@@ -35,6 +35,8 @@ import { nlpDocumentAnalysis, nlpDocumentTasks, nlpStatus, nlpSuggestTags, nlpSu
 import { applyWikiSuggestion } from '@/lib/editor/apply-suggestions'
 import {
   applyAgentAnswer,
+  replaceSelectionWithAnswer,
+  stripAnswerMarkdown,
   undoAgentApply,
   type AgentApplyMode,
 } from '@/lib/editor/insert-ai-answer'
@@ -66,6 +68,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { citationSearchQuery } from '@/lib/editor/citation-jump'
 import { setActiveDocument, setActiveDocumentId, setPendingEditorSearch } from '@/store/documentsSlice'
 import { addAgentTeaching, removeAgentTeaching, setAgentPrefs } from '@/store/settingsSlice'
+import { setSaveCustomTemplateDialog } from '@/store/templatesSlice'
 
 type AgentThreadMessage = {
   id: string
@@ -112,6 +115,7 @@ const TOOL_LABEL_KEYS: Record<AgentToolId, string> = {
   glossary: 'agent.tools.glossary',
   compare_notes: 'agent.tools.compare_notes',
   files_answer: 'agent.tools.files_answer',
+  save_template: 'agent.tools.save_template',
 }
 
 
@@ -432,9 +436,18 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
         const digestGoal =
           /folder \(7 days\)|priečinku \(7 dní\)|priecinku \(7 dni\)/i.test(trimmed) ||
           /what.?s new in this folder|čo je nové v priečinku/i.test(trimmed)
+        const libraryRecipes = new Set<AgentRecipeId>([
+          'daily_digest',
+          'weekly_review',
+          'files_digest',
+          'cleanup',
+        ])
+        const forceLibrary = Boolean(opts?.recipeId && libraryRecipes.has(opts.recipeId))
+        const runScope = forceLibrary ? 'library' : scope
+        const runDocumentId = forceLibrary ? null : activeDocumentId
         let streamed = ''
         const result =
-          scope === 'folder' && activeDocument?.folderId && digestGoal
+          runScope === 'folder' && activeDocument?.folderId && digestGoal
             ? await runFolderDigest(activeDocument.folderId).then((answer) => ({
                 answer: answer.answer,
                 citations: answer.citations,
@@ -452,13 +465,13 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                 () =>
                   runAgentGoal(
                     trimmed || displayGoal,
-                    scope,
-                    activeDocumentId,
+                    runScope,
+                    runDocumentId,
                     agentMemoryContext(prior),
                     agentPrefs,
                     {
                       ...opts,
-                      folderId: scope === 'folder' ? activeDocument?.folderId : null,
+                      folderId: runScope === 'folder' ? activeDocument?.folderId : null,
                       stream: true,
                     },
                   ),
@@ -523,18 +536,36 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
     [loading, agentPrefs, scope, activeDocumentId, activeDocument?.folderId, messages, sessionMessages, persistPair, t, dispatch, refreshRunHistory, setMoodBriefly],
   )
 
-  const applyAnswerToNote = useCallback(
+  const queueInsertPreview = useCallback(
     (text: string, mode: AgentApplyMode = 'callout') => {
       if (!activeDocumentId) {
         toast.error(t('libraryChat.noActiveDocument'))
         return
       }
-      const ok = applyAgentAnswer(text, mode, { sourceTitle: t('agent.brandBadge') })
-      if (ok) toast.success(t('agent.appliedToNote'))
-      else toast.error(t('agent.applyFailed'))
+      setApplyPreview({ type: 'insert', mode, text })
+      applyPendingRef.current = () => {
+        const ok = applyAgentAnswer(text, mode, { sourceTitle: t('agent.brandBadge') })
+        if (ok) toast.success(t('agent.appliedToNote'))
+        else toast.error(t('agent.applyFailed'))
+      }
     },
     [activeDocumentId, t],
   )
+
+  const handleSaveAsTemplate = useCallback(() => {
+    if (!activeDocument) {
+      toast.error(t('libraryChat.noActiveDocument'))
+      return
+    }
+    dispatch(
+      setSaveCustomTemplateDialog({
+        open: true,
+        content: getCachedParsedContent(activeDocument),
+        suggestedName: activeDocument.title,
+        suggestedTitle: activeDocument.title,
+      }),
+    )
+  }, [activeDocument, dispatch, t])
 
   const preferredApplyMode = useCallback((steps?: AgentStep[]): AgentApplyMode => {
     const tools = (steps ?? []).map((step) => step.tool)
@@ -557,6 +588,11 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
       const mode = preferredApplyMode(steps)
 
       try {
+        if (tools.has('save_template')) {
+          handleSaveAsTemplate()
+          return
+        }
+
         if (tools.has('organize') && activeDocumentSummary) {
           const suggestions = await nlpSuggestTags(activeDocumentSummary.id)
           const existing = new Set(activeDocumentSummary.tags.map((tag) => tag.trim().toLowerCase()))
@@ -600,17 +636,43 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
           }
         }
 
-        const insertMode =
-          tools.has('tasks') || tools.has('takeaways') ? 'checklist' : mode
-        setApplyPreview({ type: 'insert', mode: insertMode, text })
-        applyPendingRef.current = () => {
-          applyAnswerToNote(text, insertMode)
+        if (tools.has('rewrite') || tools.has('simplify')) {
+          const rewriteStep = (steps ?? []).find(
+            (step) =>
+              (step.tool === 'rewrite' || step.tool === 'simplify') && step.status === 'ok',
+          )
+          const before =
+            rewriteStep?.citations?.[0]?.snippet?.trim() ||
+            text.match(/\*\*Rewrite\*\*[^\n]*\n+([\s\S]+)/i)?.[1]?.slice(0, 400) ||
+            ''
+          const after = stripAnswerMarkdown(text)
+          setApplyPreview({ type: 'replace', before, after })
+          applyPendingRef.current = () => {
+            const ok = replaceSelectionWithAnswer(after)
+            if (ok) toast.success(t('agent.appliedToNote'))
+            else toast.error(t('agent.applyFailed'))
+          }
+          return
         }
+
+        const insertMode =
+          tools.has('tasks') || tools.has('takeaways') || tools.has('action_items')
+            ? 'checklist'
+            : mode
+        queueInsertPreview(text, insertMode)
       } catch (error) {
         toast.error(t('agent.applyFailed'), String(error))
       }
     },
-    [activeDocumentId, activeDocumentSummary, applyAnswerToNote, dispatch, preferredApplyMode, t],
+    [
+      activeDocumentId,
+      activeDocumentSummary,
+      dispatch,
+      handleSaveAsTemplate,
+      preferredApplyMode,
+      queueInsertPreview,
+      t,
+    ],
   )
 
   const confirmApplyPreview = useCallback(async () => {
@@ -1168,7 +1230,7 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                       type="button"
                       className="library-chat-chip"
                       disabled={loading}
-                      onClick={() => applyAnswerToNote(message.text, 'callout')}
+                      onClick={() => queueInsertPreview(message.text, 'callout')}
                     >
                       {t('agent.applyCallout')}
                     </button>
@@ -1176,7 +1238,7 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                       type="button"
                       className="library-chat-chip"
                       disabled={loading}
-                      onClick={() => applyAnswerToNote(message.text, 'checklist')}
+                      onClick={() => queueInsertPreview(message.text, 'checklist')}
                     >
                       {t('agent.applyChecklist')}
                     </button>
@@ -1184,9 +1246,17 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                       type="button"
                       className="library-chat-chip"
                       disabled={loading}
-                      onClick={() => applyAnswerToNote(message.text, 'frontmatter')}
+                      onClick={() => queueInsertPreview(message.text, 'frontmatter')}
                     >
                       {t('agent.applyFrontmatter')}
+                    </button>
+                    <button
+                      type="button"
+                      className="library-chat-chip"
+                      disabled={loading || !activeDocument}
+                      onClick={handleSaveAsTemplate}
+                    >
+                      {t('agent.saveAsTemplate')}
                     </button>
                     <button
                       type="button"
@@ -1261,7 +1331,7 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                         disabled={loading}
                         onClick={() => {
                           if (item.id === 'checklist') {
-                            applyAnswerToNote(message.text, 'checklist')
+                            queueInsertPreview(message.text, 'checklist')
                             return
                           }
                           void runGoal(item.goal)

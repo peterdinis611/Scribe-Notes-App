@@ -891,6 +891,18 @@ export function CommandPalette() {
       },
       {
         type: 'action',
+        id: 'agent-daily-digest',
+        label: t('agent.recipes.dailyDigest'),
+        icon: <Bot className="h-4 w-4" />,
+        run: () => {
+          dispatch(setAgentPanelOpen(true))
+          void import('@/lib/library/agent-recipe-runner').then(({ runAgentRecipeFromPalette }) =>
+            runAgentRecipeFromPalette('daily_digest'),
+          )
+        },
+      },
+      {
+        type: 'action',
         id: 'agent-weekly-review',
         label: t('agent.recipes.weeklyReview'),
         icon: <Bot className="h-4 w-4" />,
@@ -910,6 +922,18 @@ export function CommandPalette() {
           dispatch(setAgentPanelOpen(true))
           void import('@/lib/library/agent-recipe-runner').then(({ runAgentRecipeFromPalette }) =>
             runAgentRecipeFromPalette('meeting_wrap'),
+          )
+        },
+      },
+      {
+        type: 'action',
+        id: 'agent-note-to-template',
+        label: t('agent.recipes.noteToTemplate'),
+        icon: <Bot className="h-4 w-4" />,
+        run: () => {
+          dispatch(setAgentPanelOpen(true))
+          void import('@/lib/library/agent-recipe-runner').then(({ runAgentRecipeFromPalette }) =>
+            runAgentRecipeFromPalette('note_to_template'),
           )
         },
       },

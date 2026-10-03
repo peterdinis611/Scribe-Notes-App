@@ -14,6 +14,7 @@ import { DiagnosticsSection } from '@/components/settings/DiagnosticsSection'
 import { InterfaceSection } from '@/components/settings/InterfaceSection'
 import { LibrariesSettingsList } from '@/components/settings/LibrariesSettingsList'
 import { LocaleKeysReference } from '@/components/settings/LocaleKeysReference'
+import { FontsSettingsSection } from '@/components/settings/FontsSettingsSection'
 import { McpSection } from '@/components/settings/McpSection'
 import { PrivacySection } from '@/components/settings/PrivacySection'
 import {
@@ -315,6 +316,8 @@ export function AppearanceSection() {
           </button>
         </div>
       </SettingsSection>
+
+      <FontsSettingsSection />
 
       <SettingsSection>
         <SettingsSectionHeader

@@ -55,6 +55,13 @@ const TOOL_LABEL_KEYS: Record<AgentToolId, string> = {
   spellcheck: 'agent.tools.spellcheck',
   rewrite: 'agent.tools.rewrite',
   brief: 'agent.tools.brief',
+  explain: 'agent.tools.explain',
+  simplify: 'agent.tools.simplify',
+  action_items: 'agent.tools.action_items',
+  glossary: 'agent.tools.glossary',
+  compare_notes: 'agent.tools.compare_notes',
+  files_answer: 'agent.tools.files_answer',
+  save_template: 'agent.tools.save_template',
 }
 
 type ToolMode = 'default' | 'prefer' | 'never'

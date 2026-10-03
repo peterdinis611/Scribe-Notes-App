@@ -541,6 +541,7 @@ def _handle_request_inner(
             result = llm_status(
                 base_url=str(params.get("baseUrl") or params.get("base_url") or "") or None,
                 model=str(params.get("model") or "") or None,
+                provider=str(params.get("provider") or "") or None,
             )
         elif method == "llm_complete":
             from .llm import llm_complete
@@ -556,6 +557,7 @@ def _handle_request_inner(
                 system=system_value,
                 base_url=str(params.get("baseUrl") or params.get("base_url") or "") or None,
                 model=str(params.get("model") or "") or None,
+                provider=str(params.get("provider") or "") or None,
                 temperature=temperature,
                 max_tokens=max_tokens,
                 stream=want_stream,

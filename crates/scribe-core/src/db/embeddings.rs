@@ -20,6 +20,17 @@ pub const META_NLP_LLM_USE_PLAN: &str = "nlp_llm_use_plan";
 pub const META_NLP_LLM_ENHANCE_HEURISTICS: &str = "nlp_llm_enhance_heuristics";
 
 pub const DEFAULT_LLM_BASE_URL: &str = "http://127.0.0.1:11434";
+pub const DEFAULT_OPENAI_COMPAT_BASE_URL: &str = "http://127.0.0.1:1234";
+
+fn normalize_llm_provider(raw: &str) -> String {
+    let value = raw.trim().to_ascii_lowercase().replace('-', "_");
+    match value.as_str() {
+        "openai" | "openai_compatible" | "lm_studio" | "lmstudio" | "vllm" | "localai" => {
+            "openai_compatible".to_string()
+        }
+        _ => "ollama".to_string(),
+    }
+}
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -188,7 +199,11 @@ fn set_meta_string(conn: &Connection, key: &str, value: &str) -> Result<(), Stri
 }
 
 fn normalize_llm_base_url(raw: &str) -> Result<String, String> {
-    let trimmed = raw.trim().trim_end_matches('/').to_string();
+    let mut trimmed = raw.trim().trim_end_matches('/').to_string();
+    if trimmed.to_ascii_lowercase().ends_with("/v1") {
+        trimmed.truncate(trimmed.len().saturating_sub(3));
+        trimmed = trimmed.trim_end_matches('/').to_string();
+    }
     let candidate = if trimmed.is_empty() {
         DEFAULT_LLM_BASE_URL.to_string()
     } else {
@@ -225,11 +240,7 @@ pub fn get_llm_prefs(conn: &Connection) -> Result<NlpLlmPrefs, String> {
         enabled: meta_flag(conn, META_NLP_LLM_ENABLED, false)?,
         provider: {
             let value = meta_string(conn, META_NLP_LLM_PROVIDER, "ollama")?;
-            if value.eq_ignore_ascii_case("ollama") {
-                "ollama".to_string()
-            } else {
-                "ollama".to_string()
-            }
+            normalize_llm_provider(&value)
         },
         base_url: meta_string(conn, META_NLP_LLM_BASE_URL, DEFAULT_LLM_BASE_URL)?,
         model: meta_string(conn, META_NLP_LLM_MODEL, "")?,
@@ -255,12 +266,24 @@ pub fn set_llm_prefs(
         set_meta_flag(conn, META_NLP_LLM_ENABLED, value)?;
     }
     if let Some(value) = provider {
-        let normalized = if value.trim().eq_ignore_ascii_case("ollama") {
-            "ollama"
-        } else {
-            "ollama"
-        };
-        set_meta_string(conn, META_NLP_LLM_PROVIDER, normalized)?;
+        let normalized = normalize_llm_provider(value);
+        set_meta_string(conn, META_NLP_LLM_PROVIDER, &normalized)?;
+        // When switching providers without an explicit URL, jump to that provider's default
+        // if the current URL is still a known stock default.
+        if base_url.is_none() {
+            let current = meta_string(conn, META_NLP_LLM_BASE_URL, DEFAULT_LLM_BASE_URL)?;
+            let is_stock = current == DEFAULT_LLM_BASE_URL
+                || current == DEFAULT_OPENAI_COMPAT_BASE_URL
+                || current == format!("{DEFAULT_OPENAI_COMPAT_BASE_URL}/v1");
+            if is_stock {
+                let next = if normalized == "openai_compatible" {
+                    DEFAULT_OPENAI_COMPAT_BASE_URL
+                } else {
+                    DEFAULT_LLM_BASE_URL
+                };
+                set_meta_string(conn, META_NLP_LLM_BASE_URL, next)?;
+            }
+        }
     }
     if let Some(value) = base_url {
         let normalized = normalize_llm_base_url(value)?;

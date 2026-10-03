@@ -242,6 +242,22 @@ export function NlpSection() {
     }
   }
 
+  async function handleLlmProvider(provider: 'ollama' | 'openai_compatible') {
+    if (!status?.llm || status.llm.provider === provider) return
+    try {
+      const updated = await nlpSetLlmPrefs({ provider })
+      setStatus(updated)
+      try {
+        setLlmLive(await nlpLlmStatus())
+      } catch {
+        setLlmLive(null)
+      }
+      toast.success(t('settings.nlp.llmSaveToast'))
+    } catch (error) {
+      toast.error(t('settings.nlp.llmSaveError'), String(error))
+    }
+  }
+
   async function handleLlmBaseUrl(value: string) {
     try {
       const updated = await nlpSetLlmPrefs({ baseUrl: value })
@@ -521,27 +537,67 @@ export function NlpSection() {
         {status?.llm?.enabled ? (
           <>
             <SettingsRow
+              title={t('settings.nlp.llmProviderTitle')}
+              description={t('settings.nlp.llmProviderDescription')}
+            >
+              <div className="flex flex-wrap justify-end gap-1.5">
+                <Button
+                  type="button"
+                  variant={status.llm.provider === 'ollama' ? 'default' : 'outline'}
+                  size="sm"
+                  disabled={!status.enabled || loading}
+                  onClick={() => void handleLlmProvider('ollama')}
+                >
+                  {t('settings.nlp.llmProviderOllama')}
+                </Button>
+                <Button
+                  type="button"
+                  variant={
+                    status.llm.provider === 'openai_compatible' ? 'default' : 'outline'
+                  }
+                  size="sm"
+                  disabled={!status.enabled || loading}
+                  onClick={() => void handleLlmProvider('openai_compatible')}
+                >
+                  {t('settings.nlp.llmProviderOpenAi')}
+                </Button>
+              </div>
+            </SettingsRow>
+
+            <SettingsRow
               title={t('settings.nlp.llmBaseUrlTitle')}
-              description={t('settings.nlp.llmBaseUrlDescription')}
+              description={
+                status.llm.provider === 'openai_compatible'
+                  ? t('settings.nlp.llmBaseUrlDescriptionOpenAi')
+                  : t('settings.nlp.llmBaseUrlDescription')
+              }
             >
               <input
                 type="url"
                 className="w-full max-w-[280px] rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-2.5 py-1.5 text-[12px] text-[var(--color-foreground)] outline-none focus:border-[var(--color-accent)]"
                 defaultValue={status.llm.baseUrl}
-                key={status.llm.baseUrl}
+                key={`${status.llm.provider}:${status.llm.baseUrl}`}
                 disabled={!status.enabled || loading}
                 onBlur={(event) => {
                   const next = event.target.value.trim()
                   if (!next || next === status.llm?.baseUrl) return
                   void handleLlmBaseUrl(next)
                 }}
-                placeholder="http://127.0.0.1:11434"
+                placeholder={
+                  status.llm.provider === 'openai_compatible'
+                    ? 'http://127.0.0.1:1234'
+                    : 'http://127.0.0.1:11434'
+                }
               />
             </SettingsRow>
 
             <SettingsRow
               title={t('settings.nlp.llmModelTitle')}
-              description={t('settings.nlp.llmModelDescription')}
+              description={
+                status.llm.provider === 'openai_compatible'
+                  ? t('settings.nlp.llmModelDescriptionOpenAi')
+                  : t('settings.nlp.llmModelDescription')
+              }
             >
               <select
                 className="max-w-[280px] rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-2.5 py-1.5 text-[12px] text-[var(--color-foreground)] outline-none focus:border-[var(--color-accent)]"

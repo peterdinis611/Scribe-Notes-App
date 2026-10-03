@@ -1695,6 +1695,7 @@ impl ScribeStore {
             } else {
                 Some(prefs.model.as_str())
             },
+            Some(prefs.provider.as_str()),
         )
     }
 
@@ -1723,6 +1724,7 @@ impl ScribeStore {
             } else {
                 Some(prefs.model.as_str())
             },
+            Some(prefs.provider.as_str()),
             temperature,
             max_tokens,
         )

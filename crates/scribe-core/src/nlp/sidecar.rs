@@ -691,13 +691,21 @@ impl NlpSidecar {
         self.call_method("rewrite_selection", params)
     }
 
-    pub fn llm_status(&self, base_url: Option<&str>, model: Option<&str>) -> Result<Value, String> {
+    pub fn llm_status(
+        &self,
+        base_url: Option<&str>,
+        model: Option<&str>,
+        provider: Option<&str>,
+    ) -> Result<Value, String> {
         let mut params = json!({});
         if let Some(url) = base_url {
             params["baseUrl"] = json!(url);
         }
         if let Some(name) = model {
             params["model"] = json!(name);
+        }
+        if let Some(value) = provider {
+            params["provider"] = json!(value);
         }
         self.call_method("llm_status", params)
     }
@@ -708,6 +716,7 @@ impl NlpSidecar {
         system: Option<&str>,
         base_url: Option<&str>,
         model: Option<&str>,
+        provider: Option<&str>,
         temperature: Option<f64>,
         max_tokens: Option<i64>,
     ) -> Result<Value, String> {
@@ -716,6 +725,7 @@ impl NlpSidecar {
             system,
             base_url,
             model,
+            provider,
             temperature,
             max_tokens,
             None,
@@ -729,6 +739,7 @@ impl NlpSidecar {
         system: Option<&str>,
         base_url: Option<&str>,
         model: Option<&str>,
+        provider: Option<&str>,
         temperature: Option<f64>,
         max_tokens: Option<i64>,
         progress: Option<mpsc::Sender<String>>,
@@ -743,6 +754,9 @@ impl NlpSidecar {
         }
         if let Some(value) = model {
             params["model"] = json!(value);
+        }
+        if let Some(value) = provider {
+            params["provider"] = json!(value);
         }
         if let Some(value) = temperature {
             params["temperature"] = json!(value);

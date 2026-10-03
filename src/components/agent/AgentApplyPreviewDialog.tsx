@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils'
 
 export type AgentApplyPreviewKind =
   | { type: 'insert'; mode: AgentApplyMode; text: string }
+  | { type: 'replace'; before: string; after: string }
   | { type: 'organize'; tags: string[]; folderSuggestion?: string | null }
   | { type: 'wiki'; phrase: string; title: string; documentId: string }
 
@@ -51,6 +52,7 @@ export function AgentApplyPreviewDialog({
     if (!preview) return t('agent.applyPreviewTitle')
     if (preview.type === 'organize') return t('agent.applyPreviewOrganize')
     if (preview.type === 'wiki') return t('agent.applyPreviewWiki')
+    if (preview.type === 'replace') return t('agent.applyPreviewReplace')
     if (preview.mode === 'checklist') return t('agent.applyPreviewChecklist')
     if (preview.mode === 'frontmatter') return t('agent.applyPreviewFrontmatter')
     return t('agent.applyPreviewCallout')
@@ -96,6 +98,25 @@ export function AgentApplyPreviewDialog({
                   title: preview.title,
                 })}
               </p>
+            ) : preview.type === 'replace' ? (
+              <div className="space-y-3 text-[13px] leading-relaxed">
+                <div>
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
+                    {t('agent.applyPreviewBefore')}
+                  </span>
+                  <pre className="m-0 mt-1 whitespace-pre-wrap font-sans text-[var(--color-muted-foreground)]">
+                    {preview.before || '—'}
+                  </pre>
+                </div>
+                <div>
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
+                    {t('agent.applyPreviewAfter')}
+                  </span>
+                  <pre className="m-0 mt-1 whitespace-pre-wrap font-sans text-[var(--color-foreground)]">
+                    {stripAnswerMarkdown(preview.after)}
+                  </pre>
+                </div>
+              </div>
             ) : (
               <ul
                 className={cn(
@@ -117,7 +138,11 @@ export function AgentApplyPreviewDialog({
               {t('common.cancel')}
             </Button>
             <Button type="button" disabled={busy} onClick={onConfirm}>
-              {busy ? t('common.loading') : t('agent.applyPreviewConfirm')}
+              {busy
+                ? t('common.loading')
+                : preview.type === 'replace'
+                  ? t('agent.applyPreviewConfirmReplace')
+                  : t('agent.applyPreviewConfirm')}
             </Button>
           </DialogFooter>
         </DialogContent>

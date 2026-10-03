@@ -100,6 +100,7 @@ const DOCUMENT_TOOLS = new Set<AgentToolId>([
   'action_items',
   'glossary',
   'compare_notes',
+  'save_template',
 ])
 
 const LIBRARY_ONLY_TOOLS = new Set<AgentToolId>([
@@ -152,6 +153,7 @@ const INTENT_TO_TOOL: Record<string, AgentToolId> = {
   action_items: 'action_items',
   glossary: 'glossary',
   compare_notes: 'compare_notes',
+  save_template: 'save_template',
 }
 
 const DEFAULT_CLARIFY: AgentToolId[] = [
@@ -185,6 +187,30 @@ export function matchAgentIntentsSync(goal: string): AgentToolId[] {
   if (!folded) return []
 
   const rules: Array<{ tool: AgentToolId; needles: string[] }> = [
+    {
+      tool: 'save_template',
+      needles: [
+        'save as template',
+        'make a template',
+        'create template',
+        'note to template',
+        'sablonu',
+        'ako sablonu',
+        'uloz ako sablonu',
+        'urob sablonu',
+      ],
+    },
+    {
+      tool: 'brief',
+      needles: [
+        'daily digest',
+        'weekly digest',
+        'denny digest',
+        'tyzdenny digest',
+        'denne zhrnutie',
+        'tyzdenne zhrnutie',
+      ],
+    },
     { tool: 'summarize', needles: ['summarize', 'summary', 'tlldr', 'digest', 'zhrn', 'zhrnutie', 'strucne'] },
     { tool: 'outline', needles: ['outline', 'structure', 'heading', 'osnova', 'struktura', 'nadpisy'] },
     {
@@ -308,7 +334,7 @@ function scopeTools(
   return tools.filter((tool) => {
     if (LIBRARY_ONLY_TOOLS.has(tool)) return true
     if (tool === 'dates' && (scope === 'library' || scope === 'folder')) return true
-    if (tool === 'brief' && scope === 'folder') return true
+    if (tool === 'brief' && (scope === 'library' || scope === 'folder')) return true
     if (!DOCUMENT_TOOLS.has(tool)) return true
     if (scope === 'library' && !documentId) return false
     if (scope === 'folder' && !documentId && DOCUMENT_TOOLS.has(tool) && tool !== 'dates') {
@@ -328,14 +354,15 @@ export function suggestFollowupRecipes(
 ): string[] {
   const ok = new Set(steps.filter((step) => step.status === 'ok').map((step) => step.tool))
   const out: string[] = []
-  if (ok.has('dates') || ok.has('tasks')) out.push('weekly_review')
+  if (ok.has('dates') || ok.has('tasks') || ok.has('brief')) out.push('daily_digest', 'weekly_review')
   if (ok.has('meeting') || ok.has('tasks')) out.push('meeting_wrap')
+  if (ok.has('outline') || ok.has('meeting')) out.push('note_to_template')
   if (ok.has('outline') || ok.has('flashcards')) out.push('study_pass')
   if (ok.has('glossary') || ok.has('outline')) out.push('deep_read')
   if (ok.has('duplicates') || ok.has('wiki')) out.push('cleanup')
   if (ok.has('spellcheck') || ok.has('style') || ok.has('terminology')) out.push('polish')
-  if (scope === 'document' && out.length === 0) out.push('polish', 'study_pass')
-  if (scope !== 'document' && out.length === 0) out.push('weekly_review', 'cleanup')
+  if (scope === 'document' && out.length === 0) out.push('polish', 'study_pass', 'note_to_template')
+  if (scope !== 'document' && out.length === 0) out.push('daily_digest', 'weekly_review', 'cleanup')
   return [...new Set(out)].slice(0, 3)
 }
 
@@ -520,21 +547,33 @@ async function runTool(
     if (!ctx.documentId && !ctx.selectionText) throw new Error('agent.needsDocument')
     return runAgentRewrite(ctx.documentId ?? 'selection', ctx.goal, ctx.selectionText)
   }
+  if (tool === 'save_template') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return {
+      answer:
+        'Ready to save this note as a reusable template. Use **Save as template** below to name it and store it in your template library.',
+      citations: [
+        {
+          documentId: ctx.documentId,
+          title: 'Template',
+          snippet: 'Open the save-as-template dialog',
+        },
+      ],
+      followups: ['Polish this note first', 'Extract meeting wrap-up'],
+    }
+  }
   if (tool === 'brief') {
     if (ctx.scope === 'folder' && ctx.folderId) {
       const { runFolderDigest } = await import('@/lib/library/folder-digest')
       return runFolderDigest(ctx.folderId)
     }
     if (ctx.scope === 'library' || (ctx.scope === 'folder' && !ctx.documentId)) {
-      const [dates, dups] = await Promise.all([
-        runAgentDatesLibrary().catch(() => null),
-        runAgentDuplicates().catch(() => null),
-      ])
-      const parts = [dates?.answer, dups?.answer].filter(Boolean)
-      return {
-        answer: parts.join('\n\n') || 'No library brief sections available.',
-        citations: [...(dates?.citations ?? []), ...(dups?.citations ?? [])].slice(0, 10),
-      }
+      const { runLibraryDigest } = await import('@/lib/library/library-digest')
+      const period =
+        /week|tyzden|týždeň|weekly/i.test(ctx.goal) || ctx.goal === 'weekly_review'
+          ? 'week'
+          : 'day'
+      return runLibraryDigest(period)
     }
     if (!ctx.documentId) throw new Error('agent.needsDocument')
     const brief = await nlpAgentDocumentBrief({
@@ -738,6 +777,7 @@ export async function runAgentGoal(
     const needsDoc =
       DOCUMENT_TOOLS.has(tool) &&
       tool !== 'dates' &&
+      tool !== 'brief' &&
       tool !== 'rewrite' &&
       !LIBRARY_ONLY_TOOLS.has(tool)
     if (needsDoc && !documentId) {
@@ -754,7 +794,11 @@ export async function runAgentGoal(
         goal:
           tool === 'files_answer' && (!trimmed || opts?.recipeId === 'files_digest')
             ? trimmed || 'Summarize the key points across my files/ sandbox'
-            : trimmed,
+            : tool === 'brief' && opts?.recipeId === 'daily_digest'
+              ? trimmed || 'daily digest'
+              : tool === 'brief' && opts?.recipeId === 'weekly_review'
+                ? trimmed || 'weekly_review'
+                : trimmed,
         scope,
         documentId,
         folderId: opts?.folderId,

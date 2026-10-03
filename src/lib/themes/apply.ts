@@ -5,6 +5,7 @@ import {
 } from '@/lib/themes/presets'
 import type { ThemeColors, ThemePresetId, ThemeSettings } from '@/lib/themes/types'
 import { applyUiSkin, type UiSkin } from '@/lib/ui-skin'
+import { applyUiFontSettings } from '@/lib/ui-fonts'
 import { readUiSkin } from '@/store/persistence'
 
 const CSS_VAR_MAP: Record<keyof ThemeColors, string> = {
@@ -136,6 +137,7 @@ export function applyThemeSettings(settings: ThemeSettings, skin: UiSkin = readU
   const root = document.documentElement
 
   applyUiSkin(skin)
+  applyUiFontSettings()
 
   for (const [key, cssVar] of Object.entries(CSS_VAR_MAP) as Array<
     [keyof ThemeColors, string]

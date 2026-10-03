@@ -1,6 +1,7 @@
 import type { AgentToolId } from '@/lib/library/agent-prefs'
 
 export type AgentRecipeId =
+  | 'daily_digest'
   | 'weekly_review'
   | 'meeting_wrap'
   | 'study_pass'
@@ -8,6 +9,7 @@ export type AgentRecipeId =
   | 'polish'
   | 'deep_read'
   | 'files_digest'
+  | 'note_to_template'
 
 export type AgentRecipe = {
   id: AgentRecipeId
@@ -21,14 +23,25 @@ export type AgentRecipe = {
 
 export const AGENT_RECIPES: AgentRecipe[] = [
   {
+    id: 'daily_digest',
+    labelKey: 'agent.recipes.dailyDigest',
+    tools: ['brief'],
+  },
+  {
     id: 'weekly_review',
     labelKey: 'agent.recipes.weeklyReview',
-    tools: ['dates', 'tasks', 'takeaways'],
+    tools: ['brief', 'dates'],
   },
   {
     id: 'meeting_wrap',
     labelKey: 'agent.recipes.meetingWrap',
     tools: ['meeting', 'tasks', 'takeaways'],
+    documentPreferred: true,
+  },
+  {
+    id: 'note_to_template',
+    labelKey: 'agent.recipes.noteToTemplate',
+    tools: ['outline', 'save_template'],
     documentPreferred: true,
   },
   {

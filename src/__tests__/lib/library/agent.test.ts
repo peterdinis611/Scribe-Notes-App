@@ -101,6 +101,11 @@ describe('planAgentGoal', () => {
     expect(matchAgentIntentsSync('What deadlines this week?')).toContain('dates')
     expect(matchAgentIntentsSync('Extract meeting notes pack')).toContain('meeting')
   })
+
+  it('plans save_template and daily digest intents', () => {
+    expect(matchAgentIntentsSync('Urob z tejto poznámky šablónu')).toContain('save_template')
+    expect(matchAgentIntentsSync('daily digest')).toContain('brief')
+  })
 })
 
 describe('runAgentGoal', () => {
