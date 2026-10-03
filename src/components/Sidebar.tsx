@@ -30,7 +30,7 @@ import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { IconTooltip } from '@/components/ui/tooltip'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { setAgentPanelOpen, setLibraryGraphAroundActive, setLibraryView, setTrashOpen } from '@/store/documentsSlice'
+import { openAgentPanel, setAgentPanelOpen, setLibraryGraphAroundActive, setLibraryView, setTrashOpen } from '@/store/documentsSlice'
 import {
   setCommandPaletteOpen,
 } from '@/store/foldersSlice'

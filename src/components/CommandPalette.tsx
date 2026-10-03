@@ -101,7 +101,7 @@ import {
   setClipboardHistoryPanelOpen,
   setCommentsPanelOpen,
   setDocumentOutlineOpen,
-  setAgentPanelOpen,
+  openAgentPanel,
   setInsightsPanelOpen,
   requestInsightsAskFocus,
   setLibraryFindReplaceOpen,
@@ -886,7 +886,16 @@ export function CommandPalette() {
         label: t('commandPalette.openAgent'),
         icon: <Bot className="h-4 w-4" />,
         run: () => {
-          dispatch(setAgentPanelOpen(true))
+          dispatch(openAgentPanel({ persona: 'general' }))
+        },
+      },
+      {
+        type: 'action',
+        id: 'open-spellcheck-agent',
+        label: t('commandPalette.openSpellcheckAgent'),
+        icon: <Bot className="h-4 w-4" />,
+        run: () => {
+          dispatch(openAgentPanel({ persona: 'spellcheck' }))
         },
       },
       {
@@ -895,7 +904,7 @@ export function CommandPalette() {
         label: t('agent.recipes.dailyDigest'),
         icon: <Bot className="h-4 w-4" />,
         run: () => {
-          dispatch(setAgentPanelOpen(true))
+          dispatch(openAgentPanel({ persona: 'general' }))
           void import('@/lib/library/agent-recipe-runner').then(({ runAgentRecipeFromPalette }) =>
             runAgentRecipeFromPalette('daily_digest'),
           )
@@ -907,7 +916,7 @@ export function CommandPalette() {
         label: t('agent.recipes.weeklyReview'),
         icon: <Bot className="h-4 w-4" />,
         run: () => {
-          dispatch(setAgentPanelOpen(true))
+          dispatch(openAgentPanel({ persona: 'general' }))
           void import('@/lib/library/agent-recipe-runner').then(({ runAgentRecipeFromPalette }) =>
             runAgentRecipeFromPalette('weekly_review'),
           )
@@ -919,7 +928,7 @@ export function CommandPalette() {
         label: t('agent.recipes.meetingWrap'),
         icon: <Bot className="h-4 w-4" />,
         run: () => {
-          dispatch(setAgentPanelOpen(true))
+          dispatch(openAgentPanel({ persona: 'general' }))
           void import('@/lib/library/agent-recipe-runner').then(({ runAgentRecipeFromPalette }) =>
             runAgentRecipeFromPalette('meeting_wrap'),
           )
@@ -931,7 +940,7 @@ export function CommandPalette() {
         label: t('agent.recipes.noteToTemplate'),
         icon: <Bot className="h-4 w-4" />,
         run: () => {
-          dispatch(setAgentPanelOpen(true))
+          dispatch(openAgentPanel({ persona: 'general' }))
           void import('@/lib/library/agent-recipe-runner').then(({ runAgentRecipeFromPalette }) =>
             runAgentRecipeFromPalette('note_to_template'),
           )
@@ -943,10 +952,7 @@ export function CommandPalette() {
         label: t('agent.recipes.spellcheck'),
         icon: <Bot className="h-4 w-4" />,
         run: () => {
-          dispatch(setAgentPanelOpen(true))
-          void import('@/lib/library/agent-recipe-runner').then(({ runAgentRecipeFromPalette }) =>
-            runAgentRecipeFromPalette('spellcheck'),
-          )
+          dispatch(openAgentPanel({ persona: 'spellcheck' }))
         },
       },
       {

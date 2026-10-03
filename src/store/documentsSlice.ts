@@ -50,6 +50,8 @@ export interface DocumentsState {
   flashcardsPanelOpen: boolean
   /** Right workspace dock for the Local Agent (library + document goals). */
   agentPanelOpen: boolean
+  /** Which agent persona fills the dock when open. */
+  agentPersona: 'general' | 'spellcheck'
   /** Right panel icon rail; collapsed by default for a quieter writing chrome. */
   panelRailExpanded: boolean
   focusMode: boolean
@@ -141,6 +143,7 @@ const initialState: DocumentsState = {
   clipboardHistoryPanelOpen: readBoolStorage('scribe-clipboard-history-open', false),
   flashcardsPanelOpen: readBoolStorage('scribe-flashcards-open', false),
   agentPanelOpen: readBoolStorage('scribe-agent-panel-open', false),
+  agentPersona: 'general',
   panelRailExpanded: readBoolStorage('scribe-panel-rail-expanded', false),
   focusMode: readBoolStorage('scribe-focus-mode', false),
   readingMode: readBoolStorage('scribe-reading-mode', false),
@@ -420,7 +423,35 @@ const documentsSlice = createSlice({
         state.clipboardHistoryPanelOpen = false
         state.flashcardsPanelOpen = false
         persistBoolStorage('scribe-insights-open', false)
+      } else {
+        state.agentPersona = 'general'
       }
+    },
+    setAgentPersona(state, action: PayloadAction<'general' | 'spellcheck'>) {
+      state.agentPersona = action.payload
+    },
+    openAgentPanel(
+      state,
+      action: PayloadAction<{ persona?: 'general' | 'spellcheck' } | undefined>,
+    ) {
+      state.agentPersona = action.payload?.persona ?? 'general'
+      state.agentPanelOpen = true
+      persistBoolStorage('scribe-agent-panel-open', true)
+      state.panelRailExpanded = true
+      persistBoolStorage('scribe-panel-rail-expanded', true)
+      if (state.libraryView === 'chat' || state.libraryView === 'agent') {
+        state.libraryView = 'folders'
+      }
+      state.documentOutlineOpen = false
+      state.revisionHistoryOpen = false
+      state.commentsPanelOpen = false
+      state.statsPanelOpen = false
+      state.backlinksPanelOpen = false
+      state.insightsPanelOpen = false
+      state.insightsFocusAsk = false
+      state.clipboardHistoryPanelOpen = false
+      state.flashcardsPanelOpen = false
+      persistBoolStorage('scribe-insights-open', false)
     },
     requestInsightsAskFocus(state) {
       state.insightsPanelOpen = true
@@ -688,6 +719,8 @@ export const {
   setBacklinksPanelOpen,
   setInsightsPanelOpen,
   setAgentPanelOpen,
+  setAgentPersona,
+  openAgentPanel,
   requestInsightsAskFocus,
   clearInsightsAskFocus,
   setClipboardHistoryPanelOpen,
