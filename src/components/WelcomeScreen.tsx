@@ -220,7 +220,7 @@ export function WelcomeScreen() {
       <div className="welcome-desk titlebar-no-drag">
         <div className="welcome-desk-grain" aria-hidden="true" />
         <p className="welcome-stamp" aria-hidden="true">
-          {t('welcome.brandWithEdition', { version: APP_SHORT_VERSION })}
+          {t('welcome.brand')}
         </p>
 
         <div className="welcome-sheet">

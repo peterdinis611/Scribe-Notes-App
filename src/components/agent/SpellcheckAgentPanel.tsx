@@ -1,4 +1,4 @@
-import { Eraser, GraduationCap, Send, SpellCheck2 } from 'lucide-react'
+import { Eraser, GraduationCap, RotateCcw, Send, SpellCheck2 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -49,13 +49,12 @@ type SpellcheckAgentPanelProps = {
 }
 
 export function SpellcheckAgentPanel({ onClose: _onClose }: SpellcheckAgentPanelProps) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const dispatch = useAppDispatch()
   const activeDocumentId = useAppSelector((state) => state.documents.activeDocumentId)
   const commentAuthor = useAppSelector((state) => state.documents.commentAuthor)
   const agentPrefs = useAppSelector((state) => state.settings.agentPrefs)
   const activeDocument = activeDocumentId ? peekCachedDocument(activeDocumentId) : null
-  const slovak = i18n.language?.toLowerCase().startsWith('sk')
 
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -69,6 +68,7 @@ export function SpellcheckAgentPanel({ onClose: _onClose }: SpellcheckAgentPanel
   const applyPendingRef = useRef<null | (() => void)>(null)
   const moodTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const threadEndRef = useRef<HTMLDivElement>(null)
+  const teachInputRef = useRef<HTMLTextAreaElement>(null)
 
   const setMoodBriefly = useCallback((mood: AgentBlobatarMood) => {
     setBlobMood(mood)
@@ -85,19 +85,22 @@ export function SpellcheckAgentPanel({ onClose: _onClose }: SpellcheckAgentPanel
   // Own session thread — does not share history with the general Local Agent.
   useEffect(() => {
     setMessages([])
+    setShowTeach(false)
   }, [activeDocumentId])
 
   useEffect(() => {
     threadEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
   }, [messages, loading])
 
-  const starters = slovak
-    ? [
-        'Skontroluj pravopis',
-        'Nájdi preklepy',
-        'Oprav zjavné chyby',
-      ]
-    : ['Check spelling', 'Find typos', 'Fix obvious mistakes']
+  useEffect(() => {
+    if (showTeach) teachInputRef.current?.focus()
+  }, [showTeach])
+
+  /** Focus variants only — primary action is “Check spelling now”. */
+  const focusStarters = [
+    t('agent.spellAgent.focusTypos'),
+    t('agent.spellAgent.focusFix'),
+  ]
 
   const queueApply = useCallback(
     (fixes: SpellcheckAgentFix[]) => {
@@ -135,6 +138,7 @@ export function SpellcheckAgentPanel({ onClose: _onClose }: SpellcheckAgentPanel
       }
       setMessages((prev) => [...prev, userMsg])
       setInput('')
+      setShowTeach(false)
       setLoading(true)
       setBlobMood('thinking')
 
@@ -178,6 +182,8 @@ export function SpellcheckAgentPanel({ onClose: _onClose }: SpellcheckAgentPanel
   }, [])
 
   const grammarTeachings = agentPrefs.teachings.filter((item) => item.topic === 'grammar')
+  const canRun = Boolean(activeDocumentId && agentPrefs.enabled && !loading)
+  const hasThread = messages.length > 0
 
   const handleTeachGrammar = useCallback(async () => {
     const draft = teachInput.trim()
@@ -218,14 +224,14 @@ export function SpellcheckAgentPanel({ onClose: _onClose }: SpellcheckAgentPanel
     <div className="library-chat-panel agent-panel agent-panel--dock spellcheck-agent-panel">
       <div className="agent-panel-toolbar shrink-0">
         <div className="spellcheck-agent-meta">
-          <SpellCheck2 className="h-3.5 w-3.5 text-[var(--color-accent)]" aria-hidden />
+          <SpellCheck2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--agent-dock-accent,var(--color-accent))]" aria-hidden />
           <p className="library-chat-scope-meta">
             {activeDocumentId
               ? t('agent.spellAgent.askingAbout', { title: docTitle })
               : t('agent.spellAgent.needsDocument')}
           </p>
         </div>
-        {messages.length > 0 ? (
+        {hasThread ? (
           <button type="button" className="library-chat-clear" onClick={() => void clearThread()}>
             <Eraser className="h-3 w-3" />
             {t('agent.clearMemory')}
@@ -235,7 +241,7 @@ export function SpellcheckAgentPanel({ onClose: _onClose }: SpellcheckAgentPanel
 
       <div className="library-chat-scroll">
         <div className="library-chat-thread">
-          {messages.length === 0 && !loading ? (
+          {!hasThread && !loading ? (
             <div className="agent-empty-state spellcheck-agent-empty">
               <AgentBlobatar
                 name={SPELLCHECK_AGENT_BLOBATAR_NAME}
@@ -245,13 +251,25 @@ export function SpellcheckAgentPanel({ onClose: _onClose }: SpellcheckAgentPanel
               />
               <p className="agent-empty-title">{t('agent.spellAgent.emptyTitle')}</p>
               <p className="agent-empty-copy">{t('agent.spellAgent.emptyHint')}</p>
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {starters.map((chip) => (
+              <button
+                type="button"
+                className="spellcheck-agent-primary"
+                disabled={!canRun}
+                onClick={() => void runCheck(t('agent.spellAgent.defaultGoal'))}
+              >
+                <SpellCheck2 className="h-3.5 w-3.5" aria-hidden />
+                {t('agent.spellAgent.runNow')}
+              </button>
+              <div className="spellcheck-agent-focus-row">
+                <span className="spellcheck-agent-focus-label">
+                  {t('agent.spellAgent.focusLabel')}
+                </span>
+                {focusStarters.map((chip) => (
                   <button
                     key={chip}
                     type="button"
                     className="library-chat-chip"
-                    disabled={!activeDocumentId || loading || !agentPrefs.enabled}
+                    disabled={!canRun}
                     onClick={() => void runCheck(chip)}
                   >
                     {chip}
@@ -341,81 +359,97 @@ export function SpellcheckAgentPanel({ onClose: _onClose }: SpellcheckAgentPanel
         </div>
       </div>
 
-      <div className="library-chat-composer">
-        <div className="mb-1.5 flex flex-wrap gap-1">
-          <button
-            type="button"
-            className="library-chat-chip is-active"
-            disabled={!activeDocumentId || loading || !agentPrefs.enabled}
-            onClick={() => void runCheck(t('agent.spellAgent.defaultGoal'))}
-          >
-            {t('agent.spellAgent.runNow')}
-          </button>
-          <button
-            type="button"
-            className={cn('library-chat-chip', showTeach && 'is-active')}
-            disabled={!agentPrefs.enabled}
-            onClick={() => setShowTeach((value) => !value)}
-          >
-            <GraduationCap className="mr-1 inline h-3 w-3" />
-            {t('settings.agent.teachTopicGrammar')}
-          </button>
-          {starters.map((chip) => (
-            <button
-              key={`footer-${chip}`}
-              type="button"
-              className="library-chat-chip"
-              disabled={!activeDocumentId || loading || !agentPrefs.enabled}
-              onClick={() => void runCheck(chip)}
-            >
-              {chip}
-            </button>
-          ))}
-        </div>
+      <div className="library-chat-composer spellcheck-agent-composer">
         {showTeach ? (
-          <div className="mb-2 space-y-1.5 rounded-lg border border-[var(--color-border)] p-2">
-            <p className="m-0 text-[11px] text-[var(--color-muted-foreground)]">
+          <div className="spellcheck-agent-teach">
+            <p className="spellcheck-agent-teach-hint">
               {t('settings.agent.teachTopicGrammarHint')}
             </p>
             <form
-              className="flex flex-col gap-1.5"
+              className="spellcheck-agent-teach-form"
               onSubmit={(event) => {
                 event.preventDefault()
                 void handleTeachGrammar()
               }}
             >
               <textarea
-                className="library-chat-input min-h-[3.5rem] resize-y"
+                ref={teachInputRef}
+                className="library-chat-input min-h-[3.25rem] resize-y"
                 value={teachInput}
                 maxLength={AGENT_TEACH_DRAFT_MAX_LEN}
                 placeholder={t('settings.agent.teachPlaceholderGrammar')}
                 onChange={(event) => setTeachInput(event.target.value)}
               />
-              <Button
-                type="submit"
-                size="sm"
-                className="self-end"
-                disabled={teachInput.trim().length < 2 || teachBusy}
-              >
-                {teachBusy ? t('settings.agent.teachRefineBusy') : t('settings.agent.teachAdd')}
-              </Button>
+              <div className="spellcheck-agent-teach-actions">
+                <button
+                  type="button"
+                  className="library-chat-chip"
+                  onClick={() => {
+                    setShowTeach(false)
+                    setTeachInput('')
+                  }}
+                >
+                  {t('common.cancel')}
+                </button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={teachInput.trim().length < 2 || teachBusy}
+                >
+                  {teachBusy ? t('settings.agent.teachRefineBusy') : t('settings.agent.teachAdd')}
+                </Button>
+              </div>
             </form>
-            {grammarTeachings.slice(0, 4).map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className="library-chat-chip w-full justify-between text-left"
-                title={t('settings.agent.teachRemove')}
-                onClick={() => dispatch(removeAgentTeaching(item.id))}
-              >
-                <span className="truncate">{item.text}</span>
-                <Eraser className="ml-1 h-3 w-3 shrink-0 opacity-70" />
-              </button>
-            ))}
+            {grammarTeachings.length > 0 ? (
+              <ul className="spellcheck-agent-teach-list">
+                {grammarTeachings.slice(0, 5).map((item) => (
+                  <li key={item.id}>
+                    <span className="spellcheck-agent-teach-text">{item.text}</span>
+                    <button
+                      type="button"
+                      className="spellcheck-agent-teach-forget"
+                      title={t('settings.agent.teachRemove')}
+                      aria-label={t('settings.agent.teachRemove')}
+                      onClick={() => dispatch(removeAgentTeaching(item.id))}
+                    >
+                      <Eraser className="h-3 w-3" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </div>
         ) : null}
+
+        <div className="spellcheck-agent-toolbar" role="toolbar" aria-label={t('agent.spellAgent.dockAria')}>
+          {hasThread ? (
+            <button
+              type="button"
+              className="library-chat-chip is-active"
+              disabled={!canRun}
+              onClick={() => void runCheck(t('agent.spellAgent.defaultGoal'))}
+            >
+              <RotateCcw className="mr-1 inline h-3 w-3" aria-hidden />
+              {t('agent.spellAgent.recheck')}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className={cn('library-chat-chip', showTeach && 'is-active')}
+            disabled={!agentPrefs.enabled}
+            aria-expanded={showTeach}
+            onClick={() => setShowTeach((value) => !value)}
+          >
+            <GraduationCap className="mr-1 inline h-3 w-3" aria-hidden />
+            {t('settings.agent.teachTopicGrammar')}
+            {grammarTeachings.length > 0 ? (
+              <span className="spellcheck-agent-badge">{grammarTeachings.length}</span>
+            ) : null}
+          </button>
+        </div>
+
         <form
-          className="flex gap-1.5"
+          className="spellcheck-agent-input-row"
           onSubmit={(event) => {
             event.preventDefault()
             void runCheck(input)
@@ -432,7 +466,7 @@ export function SpellcheckAgentPanel({ onClose: _onClose }: SpellcheckAgentPanel
           <Button
             type="submit"
             size="sm"
-            disabled={loading || !agentPrefs.enabled || !activeDocumentId}
+            disabled={!canRun}
             aria-label={t('agent.run')}
           >
             <Send className="h-3.5 w-3.5" />

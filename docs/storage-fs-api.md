@@ -31,7 +31,7 @@ Document media stays under `assets/{documentId}/` (`list_library_assets`) and st
 |------|---------|
 | Bind | `127.0.0.1` only (default port `8787`, or next free) |
 | Root | open library `{documentsDir}/files/` |
-| Surfaces | REST JSON (`/v1/fs/…`) **and** GraphQL (`/graphql` + GraphiQL) |
+| Surfaces | REST JSON (`/v1/fs/…`), OpenAPI (`/openapi.json` + `/docs` Swagger demo), GraphQL (`/graphql` + GraphiQL) |
 | Auth | none on loopback; no remote bind |
 | Start | Storage Mode → Local API panel, or `storage_fs_server_start` |
 | Local AI | NLP sidecar `files_list` / `files_read_text` / `files_search` / `files_summarize` / `files_answer` via `StorageFsClient` |
@@ -43,6 +43,7 @@ curl / GraphQL / TS / Python / NLP sidecar
 ┌───────────────────────────┐
 │ Tauri loopback (127.0.0.1)│
 │  REST  /v1/fs/*           │
+│  Docs  /docs · /openapi.json │
 │  GQL   /graphql           │
 └─────────────┬─────────────┘
               ▼
@@ -69,6 +70,18 @@ curl -s -X POST 'http://127.0.0.1:8787/v1/fs/write-text' \
 # read text
 curl -s 'http://127.0.0.1:8787/v1/fs/read-text?path=scratch/demo/hello.md'
 ```
+
+### OpenAPI / Swagger demo (same server)
+
+```bash
+# Machine-readable OpenAPI 3.0
+curl -s 'http://127.0.0.1:8787/openapi.json' | head
+
+# Interactive Try-it UI (also aliased as /swagger)
+open 'http://127.0.0.1:8787/docs'
+```
+
+In the app: **Storage Mode → Local Files API → Open Swagger** (server must be running).
 
 ### Example GraphQL (same server)
 

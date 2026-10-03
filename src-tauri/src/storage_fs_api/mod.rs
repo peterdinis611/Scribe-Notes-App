@@ -1,6 +1,7 @@
-//! Loopback Files API server (REST + GraphQL playground) for Storage Mode.
+//! Loopback Files API server (REST + GraphQL + OpenAPI demo) for Storage Mode.
 
 mod http;
+mod openapi;
 
 use serde::{Deserialize, Serialize};
 use std::net::TcpListener;
@@ -59,6 +60,8 @@ impl StorageFsServerState {
 pub fn endpoint_catalog() -> Vec<StorageFsEndpoint> {
     vec![
         ep("GET", "/v1/fs/health", "Health", "meta"),
+        ep("GET", "/openapi.json", "OpenAPI 3.0 spec", "docs"),
+        ep("GET", "/docs", "Swagger demo UI", "docs"),
         ep("GET", "/v1/fs/list", "List", "rest"),
         ep("GET", "/v1/fs/tree", "Tree", "rest"),
         ep("GET", "/v1/fs/stat", "Stat", "rest"),

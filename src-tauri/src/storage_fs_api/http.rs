@@ -353,6 +353,26 @@ pub fn handle_connection(mut stream: TcpStream, documents_dir: &Path, port: u16)
         return;
     }
 
+    if method == "GET" && path == "/openapi.json" {
+        write_json(
+            &mut stream,
+            "200 OK",
+            &super::openapi::openapi_document(port),
+        );
+        return;
+    }
+
+    if method == "GET" && (path == "/docs" || path == "/swagger" || path == "/swagger-ui") {
+        let html = super::openapi::swagger_demo_html(port);
+        write_response(
+            &mut stream,
+            "200 OK",
+            "text/html; charset=utf-8",
+            html.as_bytes(),
+        );
+        return;
+    }
+
     if method == "GET" && path == "/graphql" {
         let html = graphiql_html(port);
         write_response(

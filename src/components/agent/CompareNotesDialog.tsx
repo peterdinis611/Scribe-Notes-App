@@ -69,7 +69,7 @@ export function CompareNotesDialog({
                     className="w-full rounded-md px-2.5 py-2 text-left text-[13px] hover:bg-[var(--color-muted)]/50"
                     onClick={() => onSelect(doc.id, doc.title || t('common.untitled'))}
                   >
-                    {doc.title || t('untitled')}
+                    {doc.title || t('common.untitled')}
                   </button>
                 </li>
               ))}

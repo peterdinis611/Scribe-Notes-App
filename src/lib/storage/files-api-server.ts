@@ -19,6 +19,8 @@ export type StorageFsServerStatus = {
 /** Offline catalog shown before the server reports endpoints. */
 export const STORAGE_FS_ENDPOINT_CATALOG: StorageFsEndpoint[] = [
   { method: 'GET', path: '/v1/fs/health', label: 'Health', group: 'meta' },
+  { method: 'GET', path: '/openapi.json', label: 'OpenAPI 3.0 spec', group: 'docs' },
+  { method: 'GET', path: '/docs', label: 'Swagger demo UI', group: 'docs' },
   { method: 'GET', path: '/v1/fs/list', label: 'List', group: 'rest' },
   { method: 'GET', path: '/v1/fs/tree', label: 'Tree', group: 'rest' },
   { method: 'GET', path: '/v1/fs/stat', label: 'Stat', group: 'rest' },

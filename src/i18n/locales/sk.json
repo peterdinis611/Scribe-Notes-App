@@ -232,7 +232,9 @@
     "printEmptyTipWiki": "Prepojiť poznámku",
     "markdownAria": "Markdownový editor",
     "markdownPlaceholder": "# Nadpis\n\nPíšte v **Markdown** — nadpisy, zoznamy, `kód`, tabuľky…",
-    "markdownSwitchError": "Nepodarilo sa prepnúť do textového režimu."
+    "markdownSwitchError": "Nepodarilo sa prepnúť do textového režimu.",
+    "renameTitleHint": "Kliknite pre premenovanie",
+    "renameTitleHintDouble": "Dvojklik pre premenovanie"
   },
   "tableOfContents": {
     "title": "Obsah",
@@ -348,7 +350,10 @@
     "copyReport": "Kopírovať report",
     "copied": "Report chyby skopírovaný",
     "copiedShort": "Skopírované",
-    "copyFailed": "Report sa nepodarilo skopírovať"
+    "copyFailed": "Report sa nepodarilo skopírovať",
+    "notFoundTitle": "Stránka neexistuje",
+    "notFoundDescription": "Táto adresa v Scribe neexistuje alebo bola presunutá. Skontrolujte URL alebo sa vráťte do editora.",
+    "notFoundHome": "Späť do editora"
   },
   "onboarding": {
     "title": "Vitajte v Scribe {{version}}",
@@ -2194,10 +2199,14 @@
       "askingAbout": "Kontrolujem pravopis v „{{title}}“",
       "needsDocument": "Otvor poznámku na kontrolu pravopisu.",
       "emptyTitle": "Pravopisný agent",
-      "emptyHint": "Lokálna SK/EN kontrola preklepov. Vypíšem pravdepodobné chyby a jedným klikom ich opravíš.",
-      "placeholder": "Skontroluj pravopis, nájdi preklepy…",
+      "emptyHint": "Lokálna SK/EN kontrola preklepov. Opravy jedným klikom.",
+      "placeholder": "Voliteľný fokus (napr. len mená)…",
       "defaultGoal": "Skontroluj pravopis v tejto poznámke",
       "runNow": "Skontrolovať teraz",
+      "recheck": "Znova skontrolovať",
+      "focusLabel": "Alebo zameraj na",
+      "focusTypos": "Nájdi preklepy",
+      "focusFix": "Oprav zjavné chyby",
       "thinking": "Kontrolujem pravopis…",
       "empty": "Správa o pravopise nevznikla."
     },
@@ -2295,7 +2304,8 @@
       "themes": "Aké témy sa objavujú v mojich poznámkach?",
       "openLoops": "Aké otvorené slučky by som mal uzavrieť?",
       "deadlines": "Aké termíny sa blížia?",
-      "connections": "Ktoré poznámky sa prepojujú?"
+      "connections": "Ktoré poznámky sa prepojujú?",
+      "folderWhatsNew": "Čo je nové v priečinku (7 dní)?"
     },
     "recipes": {
       "dailyDigest": "Denný digest",
@@ -2818,19 +2828,21 @@
     "sidebarHint": "Storage mode je zapnutý. Prehliadaj súbory a obrázky v hlavnom paneli.",
     "openBrowser": "Otvoriť prehliadač",
     "localApi": {
-      "eyebrow": "Loopback",
+      "eyebrow": "Lokálny server",
       "title": "Lokálne Files API",
-      "lede": "Spusti lokálny server a volaj rovnaký files sandbox cez curl, GraphQL alebo skripty. URL zostanú len na tomto počítači.",
-      "live": "Live",
-      "offline": "Offline",
+      "lede": "Spusti lokálny server a volaj rovnaký files sandbox cez curl, Swagger, GraphQL alebo skripty. URL zostanú len na tomto počítači.",
+      "live": "Beží",
+      "offline": "Vypnuté",
       "start": "Spustiť server",
       "stop": "Zastaviť",
       "copyAll": "Kopírovať všetko",
       "copy": "Kopírovať URL",
       "openGraphiql": "Otvoriť GraphiQL",
+      "openSwagger": "Otvoriť Swagger",
       "startHint": "Spusti server, aby si získal absolútne http://127.0.0.1 URL.",
       "root": "Koreň",
       "groupMeta": "Meta",
+      "groupDocs": "API dokumentácia",
       "groupGraphql": "GraphQL",
       "groupRest": "REST",
       "started": "Files API server beží",

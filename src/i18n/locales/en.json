@@ -232,7 +232,9 @@
     "printEmptyTipWiki": "Link a note",
     "markdownAria": "Markdown editor",
     "markdownPlaceholder": "# Heading\n\nWrite in **Markdown** — headings, lists, `code`, tables…",
-    "markdownSwitchError": "Could not switch to text mode."
+    "markdownSwitchError": "Could not switch to text mode.",
+    "renameTitleHint": "Click to rename",
+    "renameTitleHintDouble": "Double-click to rename"
   },
   "tableOfContents": {
     "title": "Contents",
@@ -348,7 +350,10 @@
     "copyReport": "Copy report",
     "copied": "Error report copied",
     "copiedShort": "Copied",
-    "copyFailed": "Could not copy the report"
+    "copyFailed": "Could not copy the report",
+    "notFoundTitle": "Page not found",
+    "notFoundDescription": "This address doesn’t exist in Scribe, or it was moved. Check the URL or return to the editor.",
+    "notFoundHome": "Back to editor"
   },
   "onboarding": {
     "title": "Welcome to Scribe {{version}}",
@@ -2190,10 +2195,14 @@
       "askingAbout": "Checking spelling in “{{title}}”",
       "needsDocument": "Open a note to check spelling.",
       "emptyTitle": "Spellcheck Agent",
-      "emptyHint": "Offline SK/EN typo check. I’ll list likely mistakes and you can apply fixes in one click.",
-      "placeholder": "Check spelling, find typos…",
+      "emptyHint": "Offline SK/EN typo check. Apply fixes in one click.",
+      "placeholder": "Optional focus (e.g. names only)…",
       "defaultGoal": "Check spelling in this note",
       "runNow": "Check spelling now",
+      "recheck": "Recheck",
+      "focusLabel": "Or focus on",
+      "focusTypos": "Find typos",
+      "focusFix": "Fix obvious mistakes",
       "thinking": "Checking spelling…",
       "empty": "No spelling report produced."
     },
@@ -2291,7 +2300,8 @@
       "themes": "What themes show up across my notes?",
       "openLoops": "What open loops should I close?",
       "deadlines": "What deadlines are coming up?",
-      "connections": "Which notes connect to each other?"
+      "connections": "Which notes connect to each other?",
+      "folderWhatsNew": "What’s new in this folder (7 days)?"
     },
     "recipes": {
       "dailyDigest": "Daily digest",
@@ -2812,7 +2822,7 @@
     "localApi": {
       "eyebrow": "Loopback",
       "title": "Local Files API",
-      "lede": "Start a local server to call the same files sandbox from curl, GraphQL, or scripts. URLs stay on this machine only.",
+      "lede": "Start a local server to call the same files sandbox from curl, Swagger, GraphQL, or scripts. URLs stay on this machine only.",
       "live": "Live",
       "offline": "Offline",
       "start": "Start server",
@@ -2820,9 +2830,11 @@
       "copyAll": "Copy all",
       "copy": "Copy URL",
       "openGraphiql": "Open GraphiQL",
+      "openSwagger": "Open Swagger",
       "startHint": "Start the server to unlock absolute http://127.0.0.1 URLs.",
       "root": "Root",
       "groupMeta": "Meta",
+      "groupDocs": "API docs",
       "groupGraphql": "GraphQL",
       "groupRest": "REST",
       "started": "Files API server started",

@@ -296,7 +296,7 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
     }
     if (scope === 'folder' && activeDocument?.folderId) {
       return [
-        slovak ? 'Čo je nové v priečinku (7 dní)?' : 'What’s new in this folder (7 days)?',
+        t('agent.starters.folderWhatsNew'),
         ...LIBRARY_AGENT_STARTER_CHIPS.map((key) => t(key)),
       ]
     }
