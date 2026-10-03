@@ -939,6 +939,18 @@ export function CommandPalette() {
       },
       {
         type: 'action',
+        id: 'agent-spellcheck',
+        label: t('agent.recipes.spellcheck'),
+        icon: <Bot className="h-4 w-4" />,
+        run: () => {
+          dispatch(setAgentPanelOpen(true))
+          void import('@/lib/library/agent-recipe-runner').then(({ runAgentRecipeFromPalette }) =>
+            runAgentRecipeFromPalette('spellcheck'),
+          )
+        },
+      },
+      {
+        type: 'action',
         id: 'language',
         label: (() => {
           const idx = localeOptions.findIndex((item) => item.code === locale)

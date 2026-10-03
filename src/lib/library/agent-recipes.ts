@@ -10,6 +10,7 @@ export type AgentRecipeId =
   | 'deep_read'
   | 'files_digest'
   | 'note_to_template'
+  | 'spellcheck'
 
 export type AgentRecipe = {
   id: AgentRecipeId
@@ -65,6 +66,12 @@ export const AGENT_RECIPES: AgentRecipe[] = [
     id: 'cleanup',
     labelKey: 'agent.recipes.cleanup',
     tools: ['duplicates', 'wiki', 'organize'],
+  },
+  {
+    id: 'spellcheck',
+    labelKey: 'agent.recipes.spellcheck',
+    tools: ['spellcheck'],
+    documentPreferred: true,
   },
   {
     id: 'polish',

@@ -118,7 +118,26 @@ _INTENT_RULES: list[tuple[str, tuple[str, ...]]] = [
         "compare_notes",
         ("compare notes", "diff notes", "porovnaj poznamky", "porovnanie poznamok"),
     ),
-    ("spellcheck", ("spellcheck", "spelling", "typo", "pravopis", "preklepy")),
+    (
+        "spellcheck",
+        (
+            "spellcheck",
+            "spell check",
+            "spelling",
+            "typo",
+            "typos",
+            "pravopis",
+            "preklepy",
+            "preklep",
+            "skontroluj pravopis",
+            "skontroluj preklepy",
+            "oprav preklepy",
+            "oprav pravopis",
+            "check spelling",
+            "fix spelling",
+            "fix typos",
+        ),
+    ),
 ]
 
 _DOCUMENT_TOOLS = {

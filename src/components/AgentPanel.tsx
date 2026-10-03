@@ -31,8 +31,18 @@ import {
   type AgentMessageStep,
   type DocumentChatCitation,
 } from '@/lib/db/api'
-import { nlpDocumentAnalysis, nlpDocumentTasks, nlpStatus, nlpSuggestTags, nlpSuggestWikiLinks, type DocumentTask, type NlpDocumentAnalysis, type WikiLinkSuggestion } from '@/lib/db/nlp-api'
-import { applyWikiSuggestion } from '@/lib/editor/apply-suggestions'
+import {
+  nlpDocumentAnalysis,
+  nlpDocumentTasks,
+  nlpSpellcheck,
+  nlpStatus,
+  nlpSuggestTags,
+  nlpSuggestWikiLinks,
+  type DocumentTask,
+  type NlpDocumentAnalysis,
+  type WikiLinkSuggestion,
+} from '@/lib/db/nlp-api'
+import { applySpellSuggestion, applyWikiSuggestion } from '@/lib/editor/apply-suggestions'
 import {
   applyAgentAnswer,
   replaceSelectionWithAnswer,
@@ -590,6 +600,43 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
       try {
         if (tools.has('save_template')) {
           handleSaveAsTemplate()
+          return
+        }
+
+        if (tools.has('spellcheck')) {
+          const fromSteps = (steps ?? [])
+            .flatMap((step) => step.spellIssues ?? [])
+            .filter((issue) => issue.word && issue.suggestions[0])
+          const result =
+            fromSteps.length > 0
+              ? null
+              : await nlpSpellcheck(activeDocumentId).catch(() => null)
+          const fixes = (
+            fromSteps.length
+              ? fromSteps.map((issue) => ({
+                  word: issue.word,
+                  suggestion: issue.suggestions[0]!,
+                }))
+              : (result?.issues ?? [])
+                  .filter((issue) => issue.suggestions[0])
+                  .map((issue) => ({
+                    word: issue.word,
+                    suggestion: issue.suggestions[0]!,
+                  }))
+          ).slice(0, 24)
+
+          setApplyPreview({ type: 'spellcheck', fixes })
+          applyPendingRef.current = () => {
+            let applied = 0
+            for (const fix of fixes) {
+              if (applySpellSuggestion(fix.word, fix.suggestion)) applied += 1
+            }
+            if (applied > 0) {
+              toast.success(t('agent.applySpellcheckDone', { count: applied }))
+            } else {
+              toast.error(t('agent.applySpellcheckFailed'))
+            }
+          }
           return
         }
 
@@ -1215,7 +1262,9 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                       }
                     >
                       <FilePlus2 className="mr-1 inline h-3 w-3" />
-                      {t('agent.applySmart')}
+                      {(message.steps ?? []).some((step) => step.tool === 'spellcheck')
+                        ? t('agent.applySpellcheck')
+                        : t('agent.applySmart')}
                     </button>
                     <button
                       type="button"
@@ -1311,7 +1360,13 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                           type="button"
                           className="library-chat-followup"
                           disabled={loading}
-                          onClick={() => void runGoal(item)}
+                          onClick={() => {
+                            if (/^apply spelling fixes$/i.test(item.trim())) {
+                              void applyFromSteps(message.text, message.steps)
+                              return
+                            }
+                            void runGoal(item)
+                          }}
                         >
                           {item}
                         </button>

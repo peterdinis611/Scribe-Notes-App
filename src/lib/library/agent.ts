@@ -53,6 +53,7 @@ export type AgentStep = {
   detail?: string
   answer?: string
   citations?: LibraryChatCitation[]
+  spellIssues?: Array<{ word: string; suggestions: string[] }>
 }
 
 export type AgentPlan = {
@@ -309,7 +310,26 @@ export function matchAgentIntentsSync(goal: string): AgentToolId[] {
       tool: 'files_answer',
       needles: ['files answer', 'ask files', 'sandboxed files', 'subory sandbox', 'files/'],
     },
-    { tool: 'spellcheck', needles: ['spellcheck', 'spelling', 'typo', 'pravopis', 'preklepy'] },
+    {
+      tool: 'spellcheck',
+      needles: [
+        'spellcheck',
+        'spell check',
+        'spelling',
+        'typo',
+        'typos',
+        'pravopis',
+        'preklepy',
+        'preklep',
+        'skontroluj pravopis',
+        'skontroluj preklepy',
+        'oprav preklepy',
+        'oprav pravopis',
+        'check spelling',
+        'fix spelling',
+        'fix typos',
+      ],
+    },
     {
       tool: 'brief',
       needles: ['agent brief', 'document brief', 'full brief', 'kompletny brief', 'brief poznámky'],
@@ -360,8 +380,9 @@ export function suggestFollowupRecipes(
   if (ok.has('outline') || ok.has('flashcards')) out.push('study_pass')
   if (ok.has('glossary') || ok.has('outline')) out.push('deep_read')
   if (ok.has('duplicates') || ok.has('wiki')) out.push('cleanup')
-  if (ok.has('spellcheck') || ok.has('style') || ok.has('terminology')) out.push('polish')
-  if (scope === 'document' && out.length === 0) out.push('polish', 'study_pass', 'note_to_template')
+  if (ok.has('spellcheck')) out.push('spellcheck', 'polish')
+  if (ok.has('style') || ok.has('terminology')) out.push('polish')
+  if (scope === 'document' && out.length === 0) out.push('spellcheck', 'polish', 'study_pass')
   if (scope !== 'document' && out.length === 0) out.push('daily_digest', 'weekly_review', 'cleanup')
   return [...new Set(out)].slice(0, 3)
 }
@@ -813,6 +834,7 @@ export async function runAgentGoal(
         status: 'ok',
         answer: result.answer,
         citations: result.citations,
+        spellIssues: result.spellIssues,
       })
       priorAnswers.push(result.answer)
       sectionAnswers.push(`### ${tool}\n\n${result.answer}`)
