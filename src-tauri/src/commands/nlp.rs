@@ -2662,12 +2662,14 @@ pub fn nlp_grammar_check(
         })
         .unwrap_or_default();
 
+    let finding_count = result
+        .get("findingCount")
+        .and_then(|value| value.as_i64())
+        .unwrap_or(findings.len() as i64);
+
     Ok(GrammarCheckResult {
         findings,
-        finding_count: result
-            .get("findingCount")
-            .and_then(|value| value.as_i64())
-            .unwrap_or(findings.len() as i64),
+        finding_count,
         rules_applied: result
             .get("rulesApplied")
             .and_then(|value| value.as_i64())
