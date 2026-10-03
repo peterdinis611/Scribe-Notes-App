@@ -504,6 +504,16 @@ pub struct StudyLimitParams {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+pub struct GrammarCheckParams {
+    pub id: Option<String>,
+    pub text: Option<String>,
+    /// Standing grammar rules. When omitted, loads grammar teachings from scribe-agent.db.
+    pub rules: Option<Vec<String>>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct CompareNotesParams {
     pub id_a: Option<String>,
     pub id_b: Option<String>,

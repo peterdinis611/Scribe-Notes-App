@@ -143,7 +143,7 @@ impl AgentStore {
                     id: row.get(0)?,
                     text: row.get(1)?,
                     created_at: row.get(2)?,
-                    topic: normalize_teaching_topic(row.get::<_, String>(3)?.as_str()),
+                    topic: crate::grammar::normalize_topic(row.get::<_, String>(3)?.as_str()),
                 })
             })
             .map_err(|e| e.to_string())?;
@@ -152,7 +152,7 @@ impl AgentStore {
 
     pub fn add_teaching(&self, text: &str, topic: Option<&str>) -> Result<AgentTeaching, String> {
         let text = normalize_teaching_text(text).ok_or_else(|| "teaching text is required".to_string())?;
-        let topic = normalize_teaching_topic(topic.unwrap_or("general"));
+        let topic = crate::grammar::normalize_topic(topic.unwrap_or("general"));
         // Dedupe case-insensitive
         let existing: Option<(String, String)> = self
             .db
@@ -188,7 +188,7 @@ impl AgentStore {
                 topic: if topic == "grammar" {
                     "grammar".into()
                 } else {
-                    normalize_teaching_topic(&existing_topic)
+                    crate::grammar::normalize_topic(&existing_topic)
                 },
             });
         }
@@ -363,13 +363,6 @@ fn normalize_teaching_text(text: &str) -> Option<String> {
         return None;
     }
     Some(trimmed.chars().take(TEACHING_MAX_LEN).collect())
-}
-
-fn normalize_teaching_topic(topic: &str) -> String {
-    match topic.trim().to_ascii_lowercase().as_str() {
-        "grammar" | "spelling" | "spellcheck" => "grammar".into(),
-        _ => "general".into(),
-    }
 }
 
 #[cfg(test)]

@@ -778,6 +778,38 @@ export interface SpellcheckResult {
 export const nlpSpellcheck = (documentId: string) =>
   invoke<SpellcheckResult>('nlp_spellcheck', { documentId })
 
+export type GrammarFinding = {
+  rule: string
+  kind: 'prefer' | 'avoid' | 'capitalize' | 'guidance' | string
+  match: string
+  suggestion: string
+  offset: number
+  length: number
+  message: string
+}
+
+export type GrammarCheckResult = {
+  findings: GrammarFinding[]
+  findingCount: number
+  rulesApplied: number
+  source: string
+}
+
+export const nlpGrammarCheck = (input: {
+  documentId?: string | null
+  text?: string | null
+  rules?: string[]
+  limit?: number
+}) =>
+  invoke<GrammarCheckResult>('nlp_grammar_check', {
+    input: {
+      documentId: input.documentId ?? null,
+      text: input.text ?? null,
+      rules: input.rules ?? null,
+      limit: input.limit ?? null,
+    },
+  })
+
 export type LibraryChatCitation = {
   documentId: string
   title: string

@@ -1,4 +1,9 @@
-import { nlpSpellcheck, type SpellIssue } from '@/lib/db/nlp-api'
+import {
+  nlpGrammarCheck,
+  nlpSpellcheck,
+  type GrammarFinding,
+  type SpellIssue,
+} from '@/lib/db/nlp-api'
 import { applySpellSuggestion } from '@/lib/editor/apply-suggestions'
 import {
   agentMemoryContext,
@@ -8,6 +13,7 @@ import {
 } from '@/lib/library/agent'
 import {
   normalizeAgentPrefs,
+  relevantTeachings,
   type AgentPrefs,
   DEFAULT_AGENT_PREFS,
 } from '@/lib/library/agent-prefs'
@@ -24,6 +30,7 @@ export type SpellcheckAgentFix = {
 export type SpellcheckAgentResult = AgentRunResult & {
   fixes: SpellcheckAgentFix[]
   language?: string
+  grammarFindings?: GrammarFinding[]
 }
 
 function fixesFromIssues(issues: SpellIssue[]): SpellcheckAgentFix[] {
@@ -85,7 +92,33 @@ export async function runSpellcheckAgent(
     }
   }
 
-  return { ...result, fixes, language }
+  const grammarRules = relevantTeachings(normalized.teachings, documentId)
+    .filter((item) => item.topic === 'grammar')
+    .map((item) => item.text)
+  const grammar = grammarRules.length
+    ? await nlpGrammarCheck({
+        documentId,
+        rules: grammarRules,
+        limit: 24,
+      }).catch(() => null)
+    : null
+  const grammarFindings = grammar?.findings ?? []
+
+  let answer = result.answer
+  if (grammarFindings.length) {
+    const concrete = grammarFindings.filter((item) => item.kind !== 'guidance')
+    const lines = (concrete.length ? concrete : grammarFindings)
+      .slice(0, 8)
+      .map((item) => {
+        if (item.match && item.suggestion) {
+          return `• ${item.match} → ${item.suggestion} (${item.message})`
+        }
+        return `• ${item.message || item.rule}`
+      })
+    answer = [answer.trim(), '### Grammar teachings', ...lines].filter(Boolean).join('\n\n')
+  }
+
+  return { ...result, answer, fixes, language, grammarFindings }
 }
 
 export function applySpellcheckFixes(fixes: SpellcheckAgentFix[]): number {

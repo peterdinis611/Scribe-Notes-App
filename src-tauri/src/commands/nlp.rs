@@ -2568,6 +2568,118 @@ pub fn nlp_spellcheck(
     })
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpGrammarCheckInput {
+    pub document_id: Option<String>,
+    pub text: Option<String>,
+    pub rules: Option<Vec<String>>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GrammarFinding {
+    pub rule: String,
+    pub kind: String,
+    #[serde(rename = "match")]
+    pub match_text: String,
+    pub suggestion: String,
+    pub offset: i64,
+    pub length: i64,
+    pub message: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GrammarCheckResult {
+    pub findings: Vec<GrammarFinding>,
+    pub finding_count: i64,
+    pub rules_applied: i64,
+    pub source: String,
+}
+
+#[tauri::command]
+pub fn nlp_grammar_check(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpGrammarCheckInput,
+) -> Result<GrammarCheckResult, String> {
+    let text = resolve_nlp_text(
+        &state,
+        &NlpDocumentTextInput {
+            document_id: input.document_id,
+            text: input.text,
+            limit: None,
+            include_cloze: None,
+        },
+    )?;
+    {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        if !is_nlp_enabled(&conn)? {
+            return Err("NLP is disabled".to_string());
+        }
+        let _ = sync_sidecar_backend(&sidecar, &conn);
+    }
+    let rule_list = input.rules.unwrap_or_default();
+    let limit = input.limit.unwrap_or(24).clamp(1, 40);
+    let result = sidecar.grammar_check(&text, &rule_list, limit)?;
+
+    let findings = result
+        .get("findings")
+        .and_then(|value| value.as_array())
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| {
+                    Some(GrammarFinding {
+                        rule: item.get("rule")?.as_str()?.to_string(),
+                        kind: item
+                            .get("kind")
+                            .and_then(|value| value.as_str())
+                            .unwrap_or("guidance")
+                            .to_string(),
+                        match_text: item
+                            .get("match")
+                            .and_then(|value| value.as_str())
+                            .unwrap_or("")
+                            .to_string(),
+                        suggestion: item
+                            .get("suggestion")
+                            .and_then(|value| value.as_str())
+                            .unwrap_or("")
+                            .to_string(),
+                        offset: item.get("offset").and_then(|value| value.as_i64()).unwrap_or(0),
+                        length: item.get("length").and_then(|value| value.as_i64()).unwrap_or(0),
+                        message: item
+                            .get("message")
+                            .and_then(|value| value.as_str())
+                            .unwrap_or("")
+                            .to_string(),
+                    })
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+
+    Ok(GrammarCheckResult {
+        findings,
+        finding_count: result
+            .get("findingCount")
+            .and_then(|value| value.as_i64())
+            .unwrap_or(findings.len() as i64),
+        rules_applied: result
+            .get("rulesApplied")
+            .and_then(|value| value.as_i64())
+            .unwrap_or(0),
+        source: result
+            .get("source")
+            .and_then(|value| value.as_str())
+            .unwrap_or("python")
+            .to_string(),
+    })
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LibraryChatCitation {

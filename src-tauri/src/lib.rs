@@ -332,6 +332,7 @@ pub fn run() {
             commands::nlp::nlp_check_terminology_library,
             commands::nlp::nlp_template_fill_hints,
             commands::nlp::nlp_spellcheck,
+            commands::nlp::nlp_grammar_check,
             commands::nlp::nlp_library_answer,
             commands::nlp::nlp_document_answer,
             commands::nlp::nlp_suggest_wiki_links,

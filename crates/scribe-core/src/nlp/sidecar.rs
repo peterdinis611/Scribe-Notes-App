@@ -622,6 +622,22 @@ impl NlpSidecar {
         self.call_method("spellcheck", params)
     }
 
+    pub fn grammar_check(
+        &self,
+        text: &str,
+        rules: &[String],
+        limit: i64,
+    ) -> Result<Value, String> {
+        self.call_method(
+            "grammar_check",
+            json!({
+                "text": text,
+                "rules": rules,
+                "limit": limit,
+            }),
+        )
+    }
+
     pub fn generate_placeholder(
         &self,
         unit: &str,

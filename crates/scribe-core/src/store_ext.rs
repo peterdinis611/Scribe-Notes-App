@@ -548,6 +548,25 @@ impl ScribeStore {
         Ok(parse_spellcheck(&sidecar.spellcheck(&text, None, 80)?))
     }
 
+    /// Apply standing grammar teachings to a note or plaintext (NLP `grammar_check`).
+    pub fn grammar_check(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+        rules: &[String],
+        limit: Option<i64>,
+    ) -> Result<Value, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        sidecar.grammar_check(
+            &source,
+            rules,
+            limit.unwrap_or(24).clamp(1, 40),
+        )
+    }
+
     pub fn extract_document_keywords(
         &self,
         sidecar: &NlpSidecar,

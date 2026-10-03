@@ -10,6 +10,11 @@ vi.mock('@/lib/db/nlp-api', () => ({
       { word: 'documnet', offset: 0, length: 8, suggestions: ['document', 'documents'] },
     ],
   })),
+  nlpGrammarCheck: vi.fn(async () => ({
+    findingCount: 0,
+    findings: [],
+    rulesApplied: 0,
+  })),
 }))
 
 vi.mock('@/lib/library/agent', () => ({

@@ -99,6 +99,7 @@ FEATURES = [
     "stemming",
     "keybert",
     "spellcheck",
+    "grammarCheck",
     "generatePlaceholder",
     "suggestContinuation",
     "analyzeRevisionDiff",
@@ -501,6 +502,19 @@ def _handle_request_inner(
             language_value = str(language).lower() if language else None
             max_issues = max(1, min(int(params.get("maxIssues") or 80), 200))
             result = spellcheck_text(text, language=language_value, max_issues=max_issues)
+        elif method == "grammar_check":
+            from .grammar import check_grammar
+
+            text = _validate_text(str(params.get("text") or ""))
+            raw_rules = params.get("rules") or []
+            if isinstance(raw_rules, str):
+                rules = [raw_rules]
+            elif isinstance(raw_rules, list):
+                rules = [str(item) for item in raw_rules]
+            else:
+                rules = []
+            limit = max(1, min(int(params.get("limit") or 24), 40))
+            result = check_grammar(text, rules=rules, limit=limit)
         elif method == "generate_placeholder":
             from .placeholder import generate_placeholder
 

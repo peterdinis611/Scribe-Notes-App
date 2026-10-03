@@ -65,30 +65,14 @@ impl ScribeMcp {
     fn agent_teachings_preamble(&self, grammar_only: bool) -> Option<String> {
         let store = self.open_agent_store()?;
         let teachings = store.list_teachings().ok()?;
-        let filtered: Vec<_> = teachings
-            .into_iter()
-            .filter(|item| {
-                if grammar_only {
-                    item.topic == "grammar"
-                } else {
-                    true
-                }
-            })
-            .collect();
-        if filtered.is_empty() {
-            return None;
-        }
-        let header = if grammar_only {
-            "Grammar & spelling preferences (apply when checking or polishing):"
-        } else {
-            "Standing instructions for the local agent (follow when relevant):"
-        };
-        let body = filtered
-            .iter()
-            .map(|item| format!("• {}", item.text))
-            .collect::<Vec<_>>()
-            .join("\n");
-        Some(format!("{header}\n{body}"))
+        scribe_agent::memory_preamble(&teachings, grammar_only)
+    }
+
+    fn grammar_rules_from_agent(&self) -> Vec<String> {
+        self.open_agent_store()
+            .and_then(|store| store.list_teachings().ok())
+            .map(|teachings| scribe_agent::grammar_rule_texts(&teachings))
+            .unwrap_or_default()
     }
 
     /// Map planner tool ids to store methods (mirrors the in-app Local Agent).
@@ -99,6 +83,11 @@ impl ScribeMcp {
         document_id: Option<&str>,
     ) -> Result<(String, Option<String>), String> {
         let tool = tool.trim().to_ascii_lowercase();
+        let grammar_rules = if tool == "grammar" || tool == "grammar_check" {
+            self.grammar_rules_from_agent()
+        } else {
+            Vec::new()
+        };
         self.with_store(|store| match tool.as_str() {
             "library_answer" => {
                 let result = store.library_answer(&self.sidecar, goal, Some(8))?;
@@ -181,6 +170,17 @@ impl ScribeMcp {
                 let id = document_id.ok_or_else(|| "documentId required for spellcheck".to_string())?;
                 let result = store.spellcheck_document(&self.sidecar, id)?;
                 Ok(("spellcheck".into(), Some(tools::json(&result))))
+            }
+            "grammar" | "grammar_check" => {
+                let id = document_id.ok_or_else(|| "documentId required for grammar_check".to_string())?;
+                let result = store.grammar_check(
+                    &self.sidecar,
+                    Some(id),
+                    None,
+                    &grammar_rules,
+                    Some(24),
+                )?;
+                Ok(("grammar_check".into(), Some(tools::json(&result))))
             }
             "similar" => {
                 let id = document_id.ok_or_else(|| "documentId required for similar".to_string())?;
@@ -2233,6 +2233,28 @@ impl ScribeMcp {
                 &self.sidecar,
                 params.id.as_deref(),
                 params.text.as_deref(),
+                params.limit,
+            )?))
+        })
+    }
+
+    #[tool(
+        description = "Apply grammar teachings to a note or plaintext (prefer/avoid/capitalize rules). Uses rules from scribe-agent when omitted. Requires Local AI."
+    )]
+    fn grammar_check(
+        &self,
+        Parameters(params): Parameters<tools::GrammarCheckParams>,
+    ) -> Result<String, String> {
+        let rules = match params.rules {
+            Some(list) if !list.is_empty() => list,
+            _ => self.grammar_rules_from_agent(),
+        };
+        self.with_store(|store| {
+            Ok(tools::json(&store.grammar_check(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.text.as_deref(),
+                &rules,
                 params.limit,
             )?))
         })

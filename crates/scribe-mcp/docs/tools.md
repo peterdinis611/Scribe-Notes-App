@@ -521,6 +521,19 @@ Dedicated Spellcheck Agent (same path as the in-app persona). Equivalent to `run
 
 ---
 
+## `grammar_check`
+
+Apply standing grammar teachings (prefer/avoid/capitalize) to a note or plaintext. When `rules` is omitted, loads grammar-topic teachings from `scribe-agent.db`.
+
+| Arg | Type | Required | Notes |
+|-----|------|----------|--------|
+| `id` | string | no* | Document id |
+| `text` | string | no* | Plaintext (id or text required) |
+| `rules` | string[] | no | Override teachings |
+| `limit` | number | no | Max findings (default 24) |
+
+---
+
 ## `search`
 
 Unified search with explicit mode.
