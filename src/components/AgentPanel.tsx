@@ -1,4 +1,4 @@
-import { Eraser, FilePlus2, FileText, Folder, GraduationCap, Library, Send, Settings2 } from 'lucide-react'
+import { Eraser, FilePlus2, FileText, Folder, GraduationCap, Library, Send, Settings2, Sparkles } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
@@ -8,6 +8,10 @@ import {
   AgentApplyPreviewDialog,
   type AgentApplyPreviewKind,
 } from '@/components/agent/AgentApplyPreviewDialog'
+import { LocalIntelligenceStatus } from '@/components/nlp/LocalIntelligenceStatus'
+import { CompareNotesDialog } from '@/components/agent/CompareNotesDialog'
+import { withLlmChunkListener } from '@/lib/nlp/llm-stream'
+import { storageFsServerStart } from '@/lib/storage/files-api-server'
 import { Bubble, BubbleContent } from '@/components/ui/bubble'
 import { Button } from '@/components/ui/button'
 import {
@@ -16,7 +20,7 @@ import {
   MessageContent,
   MessageFooter,
 } from '@/components/ui/message'
-import { peekCachedDocument } from '@/lib/cache/document-cache'
+import { getCachedParsedContent, peekCachedDocument } from '@/lib/cache/document-cache'
 import {
   appendAgentMessage,
   appendAgentRun,
@@ -27,10 +31,22 @@ import {
   type AgentMessageStep,
   type DocumentChatCitation,
 } from '@/lib/db/api'
-import { nlpDocumentAnalysis, nlpDocumentTasks, nlpStatus, nlpSuggestTags, nlpSuggestWikiLinks, type DocumentTask, type NlpDocumentAnalysis, type WikiLinkSuggestion } from '@/lib/db/nlp-api'
-import { applyWikiSuggestion } from '@/lib/editor/apply-suggestions'
+import {
+  nlpDocumentAnalysis,
+  nlpDocumentTasks,
+  nlpSpellcheck,
+  nlpStatus,
+  nlpSuggestTags,
+  nlpSuggestWikiLinks,
+  type DocumentTask,
+  type NlpDocumentAnalysis,
+  type WikiLinkSuggestion,
+} from '@/lib/db/nlp-api'
+import { applySpellSuggestion, applyWikiSuggestion } from '@/lib/editor/apply-suggestions'
 import {
   applyAgentAnswer,
+  replaceSelectionWithAnswer,
+  stripAnswerMarkdown,
   undoAgentApply,
   type AgentApplyMode,
 } from '@/lib/editor/insert-ai-answer'
@@ -49,6 +65,11 @@ import {
   LIBRARY_AGENT_STARTER_CHIPS,
 } from '@/lib/library/agent-suggestions'
 import { AGENT_TEACHING_MAX_LEN } from '@/lib/library/agent-prefs'
+import {
+  AGENT_TEACH_DRAFT_MAX_LEN,
+  canDistillTeachingWithLlm,
+  distillTeachingWithLlm,
+} from '@/lib/library/agent-teach'
 import type { ChatScope, LibraryChatCitation } from '@/lib/library/library-chat'
 import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
@@ -57,6 +78,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { citationSearchQuery } from '@/lib/editor/citation-jump'
 import { setActiveDocument, setActiveDocumentId, setPendingEditorSearch } from '@/store/documentsSlice'
 import { addAgentTeaching, removeAgentTeaching, setAgentPrefs } from '@/store/settingsSlice'
+import { setSaveCustomTemplateDialog } from '@/store/templatesSlice'
 
 type AgentThreadMessage = {
   id: string
@@ -97,6 +119,13 @@ const TOOL_LABEL_KEYS: Record<AgentToolId, string> = {
   spellcheck: 'agent.tools.spellcheck',
   rewrite: 'agent.tools.rewrite',
   brief: 'agent.tools.brief',
+  explain: 'agent.tools.explain',
+  simplify: 'agent.tools.simplify',
+  action_items: 'agent.tools.action_items',
+  glossary: 'agent.tools.glossary',
+  compare_notes: 'agent.tools.compare_notes',
+  files_answer: 'agent.tools.files_answer',
+  save_template: 'agent.tools.save_template',
 }
 
 
@@ -144,6 +173,10 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
   const [input, setInput] = useState('')
   const [teachInput, setTeachInput] = useState('')
   const [showTeach, setShowTeach] = useState(false)
+  const [teachTopic, setTeachTopic] = useState<'general' | 'grammar'>('general')
+  const [teachWithAi, setTeachWithAi] = useState(true)
+  const [teachBusy, setTeachBusy] = useState(false)
+  const [llmTeachReady, setLlmTeachReady] = useState<boolean | null>(null)
   const [loading, setLoading] = useState(false)
   const [historyLoading, setHistoryLoading] = useState(false)
   const [messages, setMessages] = useState<AgentThreadMessage[]>([])
@@ -155,6 +188,9 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
   const [showRuns, setShowRuns] = useState(false)
   const [blobMood, setBlobMood] = useState<AgentBlobatarMood>('idle')
   const [applyPreview, setApplyPreview] = useState<AgentApplyPreviewKind | null>(null)
+  const [compareOpen, setCompareOpen] = useState(false)
+  const [pendingCompareGoal, setPendingCompareGoal] = useState('')
+  const [filesOfflineHint, setFilesOfflineHint] = useState(false)
   const [applyBusy, setApplyBusy] = useState(false)
   const applyPendingRef = useRef<null | (() => Promise<void> | void)>(null)
   const moodTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -183,6 +219,17 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
       .catch(() => setNlpReady(false))
     refreshRunHistory()
   }, [refreshRunHistory])
+
+  useEffect(() => {
+    if (!showTeach) return
+    let cancelled = false
+    void canDistillTeachingWithLlm().then((ready) => {
+      if (!cancelled) setLlmTeachReady(ready)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [showTeach])
 
   useEffect(() => {
     if (scope !== 'document' || !activeDocumentId) {
@@ -249,7 +296,7 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
     }
     if (scope === 'folder' && activeDocument?.folderId) {
       return [
-        slovak ? 'Čo je nové v priečinku (7 dní)?' : 'What’s new in this folder (7 days)?',
+        t('agent.starters.folderWhatsNew'),
         ...LIBRARY_AGENT_STARTER_CHIPS.map((key) => t(key)),
       ]
     }
@@ -328,7 +375,11 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
   const runGoal = useCallback(
     async (
       goal: string,
-      opts?: { recipeId?: AgentRecipeId; forceTools?: AgentToolId[] },
+      opts?: {
+        recipeId?: AgentRecipeId
+        forceTools?: AgentToolId[]
+        compareDocumentId?: string | null
+      },
     ) => {
       const trimmed = goal.trim()
       if ((!trimmed && !opts?.recipeId && !opts?.forceTools?.length) || loading) return
@@ -338,6 +389,17 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
       }
       if (scope === 'document' && !activeDocumentId) {
         toast.error(t('libraryChat.noActiveDocument'))
+        return
+      }
+
+      if (
+        opts?.forceTools?.includes('compare_notes') &&
+        !opts.compareDocumentId &&
+        scope === 'document' &&
+        activeDocumentId
+      ) {
+        setPendingCompareGoal(trimmed || t('agent.tools.compare_notes'))
+        setCompareOpen(true)
         return
       }
 
@@ -360,13 +422,43 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
       setInput('')
       setLoading(true)
       setBlobMood('thinking')
+      setFilesOfflineHint(false)
+
+      const streamingId = `local-assistant-stream-${Date.now()}`
+      const appendAssistant = (msg: AgentThreadMessage) => {
+        if (scope === 'document') setMessages((prev) => [...prev, msg])
+        else setSessionMessages((prev) => [...prev, msg])
+      }
+      const patchAssistant = (id: string, patch: Partial<AgentThreadMessage>) => {
+        const updater = (prev: AgentThreadMessage[]) =>
+          prev.map((item) => (item.id === id ? { ...item, ...patch } : item))
+        if (scope === 'document') setMessages(updater)
+        else setSessionMessages(updater)
+      }
+
+      appendAssistant({
+        id: streamingId,
+        role: 'assistant',
+        text: '',
+        createdAt: Date.now(),
+      })
 
       try {
         const digestGoal =
           /folder \(7 days\)|priečinku \(7 dní\)|priecinku \(7 dni\)/i.test(trimmed) ||
           /what.?s new in this folder|čo je nové v priečinku/i.test(trimmed)
+        const libraryRecipes = new Set<AgentRecipeId>([
+          'daily_digest',
+          'weekly_review',
+          'files_digest',
+          'cleanup',
+        ])
+        const forceLibrary = Boolean(opts?.recipeId && libraryRecipes.has(opts.recipeId))
+        const runScope = forceLibrary ? 'library' : scope
+        const runDocumentId = forceLibrary ? null : activeDocumentId
+        let streamed = ''
         const result =
-          scope === 'folder' && activeDocument?.folderId && digestGoal
+          runScope === 'folder' && activeDocument?.folderId && digestGoal
             ? await runFolderDigest(activeDocument.folderId).then((answer) => ({
                 answer: answer.answer,
                 citations: answer.citations,
@@ -375,16 +467,25 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                 needsClarification: false as const,
                 nextPrefs: null,
               }))
-            : await runAgentGoal(
-                trimmed || displayGoal,
-                scope,
-                activeDocumentId,
-                agentMemoryContext(prior),
-                agentPrefs,
-                {
-                  ...opts,
-                  folderId: scope === 'folder' ? activeDocument?.folderId : null,
+            : await withLlmChunkListener(
+                (chunk) => {
+                  streamed += chunk
+                  const snapshot = streamed
+                  patchAssistant(streamingId, { text: snapshot })
                 },
+                () =>
+                  runAgentGoal(
+                    trimmed || displayGoal,
+                    runScope,
+                    runDocumentId,
+                    agentMemoryContext(prior),
+                    agentPrefs,
+                    {
+                      ...opts,
+                      folderId: runScope === 'folder' ? activeDocument?.folderId : null,
+                      stream: true,
+                    },
+                  ),
               )
 
         if (result.nextPrefs) {
@@ -392,36 +493,26 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
         }
 
         if (result.needsClarification) {
-          const assistant: AgentThreadMessage = {
-            id: `local-assistant-${Date.now()}`,
-            role: 'assistant',
+          patchAssistant(streamingId, {
             text: t('agent.clarifyPrompt'),
             clarifyOptions: result.clarifyOptions,
-            createdAt: Date.now(),
-          }
-          if (scope === 'document') {
-            setMessages((prev) => [...prev, assistant])
-          } else {
-            setSessionMessages((prev) => [...prev, assistant])
-          }
+          })
           setMoodBriefly('done')
           return
         }
 
         const assistant: AgentThreadMessage = {
-          id: `local-assistant-${Date.now()}`,
+          id: streamingId,
           role: 'assistant',
-          text: result.answer || t('agent.emptyResult'),
+          text: streamed.trim() || result.answer || t('agent.emptyResult'),
           citations: result.citations,
           steps: result.steps,
           followups: result.followups,
           createdAt: Date.now(),
         }
+        patchAssistant(streamingId, assistant)
         if (scope === 'document') {
-          setMessages((prev) => [...prev, assistant])
           await persistPair(trimmed || displayGoal, assistant)
-        } else {
-          setSessionMessages((prev) => [...prev, assistant])
         }
         void appendAgentRun({
           scope: scope === 'folder' ? 'library' : scope,
@@ -435,6 +526,17 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
         setMoodBriefly('done')
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
+        if (message === 'agent.filesApiOffline' || message.includes('FilesApiOffline')) {
+          setFilesOfflineHint(true)
+          patchAssistant(streamingId, { text: t('agent.filesApiOffline') })
+        } else {
+          patchAssistant(streamingId, {
+            text:
+              message.startsWith('agent.') || message.startsWith('libraryChat.')
+                ? t(message)
+                : message,
+          })
+        }
         const key = message.startsWith('libraryChat.') || message.startsWith('agent.') ? message : null
         toast.error(t('agent.errorTitle'), key ? t(key) : message)
         setMoodBriefly('error')
@@ -445,18 +547,36 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
     [loading, agentPrefs, scope, activeDocumentId, activeDocument?.folderId, messages, sessionMessages, persistPair, t, dispatch, refreshRunHistory, setMoodBriefly],
   )
 
-  const applyAnswerToNote = useCallback(
+  const queueInsertPreview = useCallback(
     (text: string, mode: AgentApplyMode = 'callout') => {
       if (!activeDocumentId) {
         toast.error(t('libraryChat.noActiveDocument'))
         return
       }
-      const ok = applyAgentAnswer(text, mode, { sourceTitle: t('agent.brandBadge') })
-      if (ok) toast.success(t('agent.appliedToNote'))
-      else toast.error(t('agent.applyFailed'))
+      setApplyPreview({ type: 'insert', mode, text })
+      applyPendingRef.current = () => {
+        const ok = applyAgentAnswer(text, mode, { sourceTitle: t('agent.brandBadge') })
+        if (ok) toast.success(t('agent.appliedToNote'))
+        else toast.error(t('agent.applyFailed'))
+      }
     },
     [activeDocumentId, t],
   )
+
+  const handleSaveAsTemplate = useCallback(() => {
+    if (!activeDocument) {
+      toast.error(t('libraryChat.noActiveDocument'))
+      return
+    }
+    dispatch(
+      setSaveCustomTemplateDialog({
+        open: true,
+        content: getCachedParsedContent(activeDocument),
+        suggestedName: activeDocument.title,
+        suggestedTitle: activeDocument.title,
+      }),
+    )
+  }, [activeDocument, dispatch, t])
 
   const preferredApplyMode = useCallback((steps?: AgentStep[]): AgentApplyMode => {
     const tools = (steps ?? []).map((step) => step.tool)
@@ -479,6 +599,48 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
       const mode = preferredApplyMode(steps)
 
       try {
+        if (tools.has('save_template')) {
+          handleSaveAsTemplate()
+          return
+        }
+
+        if (tools.has('spellcheck')) {
+          const fromSteps = (steps ?? [])
+            .flatMap((step) => step.spellIssues ?? [])
+            .filter((issue) => issue.word && issue.suggestions[0])
+          const result =
+            fromSteps.length > 0
+              ? null
+              : await nlpSpellcheck(activeDocumentId).catch(() => null)
+          const fixes = (
+            fromSteps.length
+              ? fromSteps.map((issue) => ({
+                  word: issue.word,
+                  suggestion: issue.suggestions[0]!,
+                }))
+              : (result?.issues ?? [])
+                  .filter((issue) => issue.suggestions[0])
+                  .map((issue) => ({
+                    word: issue.word,
+                    suggestion: issue.suggestions[0]!,
+                  }))
+          ).slice(0, 24)
+
+          setApplyPreview({ type: 'spellcheck', fixes })
+          applyPendingRef.current = () => {
+            let applied = 0
+            for (const fix of fixes) {
+              if (applySpellSuggestion(fix.word, fix.suggestion)) applied += 1
+            }
+            if (applied > 0) {
+              toast.success(t('agent.applySpellcheckDone', { count: applied }))
+            } else {
+              toast.error(t('agent.applySpellcheckFailed'))
+            }
+          }
+          return
+        }
+
         if (tools.has('organize') && activeDocumentSummary) {
           const suggestions = await nlpSuggestTags(activeDocumentSummary.id)
           const existing = new Set(activeDocumentSummary.tags.map((tag) => tag.trim().toLowerCase()))
@@ -522,17 +684,43 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
           }
         }
 
-        const insertMode =
-          tools.has('tasks') || tools.has('takeaways') ? 'checklist' : mode
-        setApplyPreview({ type: 'insert', mode: insertMode, text })
-        applyPendingRef.current = () => {
-          applyAnswerToNote(text, insertMode)
+        if (tools.has('rewrite') || tools.has('simplify')) {
+          const rewriteStep = (steps ?? []).find(
+            (step) =>
+              (step.tool === 'rewrite' || step.tool === 'simplify') && step.status === 'ok',
+          )
+          const before =
+            rewriteStep?.citations?.[0]?.snippet?.trim() ||
+            text.match(/\*\*Rewrite\*\*[^\n]*\n+([\s\S]+)/i)?.[1]?.slice(0, 400) ||
+            ''
+          const after = stripAnswerMarkdown(text)
+          setApplyPreview({ type: 'replace', before, after })
+          applyPendingRef.current = () => {
+            const ok = replaceSelectionWithAnswer(after)
+            if (ok) toast.success(t('agent.appliedToNote'))
+            else toast.error(t('agent.applyFailed'))
+          }
+          return
         }
+
+        const insertMode =
+          tools.has('tasks') || tools.has('takeaways') || tools.has('action_items')
+            ? 'checklist'
+            : mode
+        queueInsertPreview(text, insertMode)
       } catch (error) {
         toast.error(t('agent.applyFailed'), String(error))
       }
     },
-    [activeDocumentId, activeDocumentSummary, applyAnswerToNote, dispatch, preferredApplyMode, t],
+    [
+      activeDocumentId,
+      activeDocumentSummary,
+      dispatch,
+      handleSaveAsTemplate,
+      preferredApplyMode,
+      queueInsertPreview,
+      t,
+    ],
   )
 
   const confirmApplyPreview = useCallback(async () => {
@@ -551,23 +739,73 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
     }
   }, [])
 
-  const handleTeach = useCallback(() => {
-    const text = teachInput.trim()
-    if (text.length < 2) return
-    if (scope === 'document' && activeDocumentId) {
-      dispatch(
-        addAgentTeaching({
-          text,
-          scope: 'document',
-          documentId: activeDocumentId,
-        }),
+  const handleTeach = useCallback(async () => {
+    const draft = teachInput.trim()
+    if (draft.length < 2 || teachBusy) return
+    setTeachBusy(true)
+    try {
+      const result = teachWithAi
+        ? await distillTeachingWithLlm(draft, {
+            force: draft.length > AGENT_TEACHING_MAX_LEN || draft.includes('\n'),
+            topic: teachTopic,
+          })
+        : { text: draft.slice(0, AGENT_TEACHING_MAX_LEN), distilled: false }
+      if (scope === 'document' && activeDocumentId) {
+        dispatch(
+          addAgentTeaching({
+            text: result.text,
+            scope: 'document',
+            documentId: activeDocumentId,
+            topic: teachTopic,
+          }),
+        )
+      } else {
+        dispatch(addAgentTeaching({ text: result.text, topic: teachTopic }))
+      }
+      setTeachInput('')
+      toast.success(
+        result.distilled
+          ? t('settings.agent.teachRefinedToast')
+          : teachTopic === 'grammar'
+            ? t('settings.agent.taughtGrammarToast')
+            : t('settings.agent.taughtToast'),
       )
-    } else {
-      dispatch(addAgentTeaching(text))
+    } catch {
+      toast.error(t('settings.agent.teachRefineOffline'))
+    } finally {
+      setTeachBusy(false)
     }
-    setTeachInput('')
-    toast.success(t('settings.agent.taughtToast'))
-  }, [teachInput, dispatch, t, scope, activeDocumentId])
+  }, [teachInput, teachBusy, teachWithAi, teachTopic, dispatch, t, scope, activeDocumentId])
+
+  const handleSaveReplyAsTeaching = useCallback(
+    async (text: string) => {
+      const draft = text.trim()
+      if (draft.length < 2 || teachBusy) return
+      setTeachBusy(true)
+      try {
+        const result = await distillTeachingWithLlm(draft, { force: true })
+        if (scope === 'document' && activeDocumentId) {
+          dispatch(
+            addAgentTeaching({
+              text: result.text,
+              scope: 'document',
+              documentId: activeDocumentId,
+            }),
+          )
+        } else {
+          dispatch(addAgentTeaching(result.text))
+        }
+        toast.success(
+          result.distilled ? t('settings.agent.teachRefinedToast') : t('settings.agent.taughtToast'),
+        )
+      } catch {
+        toast.error(t('settings.agent.teachRefineOffline'))
+      } finally {
+        setTeachBusy(false)
+      }
+    },
+    [activeDocumentId, dispatch, scope, t, teachBusy],
+  )
 
   const openCitation = useCallback(
     (citation: LibraryChatCitation) => {
@@ -724,27 +962,73 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                 ? t('settings.agent.teachScopeDocument')
                 : t('settings.agent.teachScopeGlobal')}
             </p>
+            <div
+              className="agent-scope-switch"
+              role="group"
+              aria-label={t('settings.agent.teachTopicLabel')}
+            >
+              <button
+                type="button"
+                className={cn('library-chat-scope-tab', teachTopic === 'general' && 'is-active')}
+                onClick={() => setTeachTopic('general')}
+              >
+                {t('settings.agent.teachTopicGeneral')}
+              </button>
+              <button
+                type="button"
+                className={cn('library-chat-scope-tab', teachTopic === 'grammar' && 'is-active')}
+                onClick={() => setTeachTopic('grammar')}
+              >
+                {t('settings.agent.teachTopicGrammar')}
+              </button>
+            </div>
             <form
-              className="flex gap-1.5"
+              className="flex flex-col gap-1.5"
               onSubmit={(event) => {
                 event.preventDefault()
-                handleTeach()
+                void handleTeach()
               }}
             >
-              <input
-                className="library-chat-input"
+              <textarea
+                className="library-chat-input min-h-[4.5rem] resize-y"
                 value={teachInput}
-                maxLength={AGENT_TEACHING_MAX_LEN}
+                maxLength={AGENT_TEACH_DRAFT_MAX_LEN}
                 placeholder={
-                  scope === 'document' && activeDocumentId
-                    ? t('settings.agent.teachPlaceholderDocument')
-                    : t('settings.agent.teachPlaceholder')
+                  teachTopic === 'grammar'
+                    ? t('settings.agent.teachPlaceholderGrammar')
+                    : teachWithAi
+                      ? t('settings.agent.teachPlaceholderLong')
+                      : scope === 'document' && activeDocumentId
+                        ? t('settings.agent.teachPlaceholderDocument')
+                        : t('settings.agent.teachPlaceholder')
                 }
                 onChange={(event) => setTeachInput(event.target.value)}
               />
-              <Button type="submit" size="sm" disabled={teachInput.trim().length < 2}>
-                {t('settings.agent.teachAdd')}
-              </Button>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  className={cn('library-chat-chip', teachWithAi && 'is-active')}
+                  aria-pressed={teachWithAi}
+                  title={t('settings.agent.teachRefineHint')}
+                  onClick={() => setTeachWithAi((value) => !value)}
+                >
+                  <Sparkles className="mr-1 inline h-3 w-3" />
+                  {t('settings.agent.teachRefine')}
+                </button>
+                {teachWithAi && llmTeachReady === false ? (
+                  <span className="text-[11px] text-[var(--color-muted-foreground)]">
+                    {t('settings.agent.teachRefineOffline')}
+                  </span>
+                ) : null}
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="ml-auto"
+                  disabled={teachInput.trim().length < 2 || teachBusy}
+                >
+                  {teachBusy ? t('settings.agent.teachRefineBusy') : t('settings.agent.teachAdd')}
+                </Button>
+              </div>
             </form>
             {agentPrefs.teachings
               .filter((item) => {
@@ -770,6 +1054,11 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                   {item.scope === 'document' ? (
                     <span className="mr-1 text-[10px] uppercase tracking-wide opacity-60">
                       {t('settings.agent.teachBadgeDocument')}
+                    </span>
+                  ) : null}
+                  {item.topic === 'grammar' ? (
+                    <span className="mr-1 text-[10px] uppercase tracking-wide text-[var(--color-accent)] opacity-80">
+                      {t('settings.agent.teachBadgeGrammar')}
                     </span>
                   ) : null}
                   {item.text}
@@ -851,6 +1140,33 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
               <p className="library-empty-state-hint">
                 {scope === 'document' ? t('agent.emptyHintDocument') : t('agent.emptyHint')}
               </p>
+              <LocalIntelligenceStatus className="mt-3 w-full max-w-md" compact />
+              <div className="mt-3 flex max-w-md flex-wrap justify-center gap-1.5">
+                {(scope === 'document'
+                  ? ([
+                      'agent.quickPrompts.explain',
+                      'agent.quickPrompts.glossary',
+                      'agent.quickPrompts.takeaways',
+                    ] as const)
+                  : ([
+                      'agent.starters.themes',
+                      'agent.starters.openLoops',
+                      'agent.starters.deadlines',
+                    ] as const)
+                ).map((key) => (
+                  <Button
+                    key={key}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-[11px]"
+                    disabled={loading || !agentPrefs.enabled}
+                    onClick={() => void runGoal(t(key))}
+                  >
+                    {t(key)}
+                  </Button>
+                ))}
+              </div>
               {nlpReady === false || !agentPrefs.enabled ? (
                 <Button
                   type="button"
@@ -980,13 +1296,24 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                       }
                     >
                       <FilePlus2 className="mr-1 inline h-3 w-3" />
-                      {t('agent.applySmart')}
+                      {(message.steps ?? []).some((step) => step.tool === 'spellcheck')
+                        ? t('agent.applySpellcheck')
+                        : t('agent.applySmart')}
+                    </button>
+                    <button
+                      type="button"
+                      className="library-chat-chip"
+                      disabled={teachBusy || loading}
+                      onClick={() => void handleSaveReplyAsTeaching(message.text)}
+                    >
+                      <GraduationCap className="mr-1 inline h-3 w-3" />
+                      {t('settings.agent.teachSaveReply')}
                     </button>
                     <button
                       type="button"
                       className="library-chat-chip"
                       disabled={loading}
-                      onClick={() => applyAnswerToNote(message.text, 'callout')}
+                      onClick={() => queueInsertPreview(message.text, 'callout')}
                     >
                       {t('agent.applyCallout')}
                     </button>
@@ -994,7 +1321,7 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                       type="button"
                       className="library-chat-chip"
                       disabled={loading}
-                      onClick={() => applyAnswerToNote(message.text, 'checklist')}
+                      onClick={() => queueInsertPreview(message.text, 'checklist')}
                     >
                       {t('agent.applyChecklist')}
                     </button>
@@ -1002,9 +1329,17 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                       type="button"
                       className="library-chat-chip"
                       disabled={loading}
-                      onClick={() => applyAnswerToNote(message.text, 'frontmatter')}
+                      onClick={() => queueInsertPreview(message.text, 'frontmatter')}
                     >
                       {t('agent.applyFrontmatter')}
+                    </button>
+                    <button
+                      type="button"
+                      className="library-chat-chip"
+                      disabled={loading || !activeDocument}
+                      onClick={handleSaveAsTemplate}
+                    >
+                      {t('agent.saveAsTemplate')}
                     </button>
                     <button
                       type="button"
@@ -1015,6 +1350,22 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                       }}
                     >
                       {t('agent.applyUndo')}
+                    </button>
+                  </div>
+                ) : null}
+                {message.role === 'assistant' &&
+                message.text &&
+                !message.clarifyOptions?.length &&
+                !activeDocumentId ? (
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    <button
+                      type="button"
+                      className="library-chat-chip"
+                      disabled={teachBusy || loading}
+                      onClick={() => void handleSaveReplyAsTeaching(message.text)}
+                    >
+                      <GraduationCap className="mr-1 inline h-3 w-3" />
+                      {t('settings.agent.teachSaveReply')}
                     </button>
                   </div>
                 ) : null}
@@ -1043,7 +1394,13 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                           type="button"
                           className="library-chat-followup"
                           disabled={loading}
-                          onClick={() => void runGoal(item)}
+                          onClick={() => {
+                            if (/^apply spelling fixes$/i.test(item.trim())) {
+                              void applyFromSteps(message.text, message.steps)
+                              return
+                            }
+                            void runGoal(item)
+                          }}
                         >
                           {item}
                         </button>
@@ -1063,7 +1420,7 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                         disabled={loading}
                         onClick={() => {
                           if (item.id === 'checklist') {
-                            applyAnswerToNote(message.text, 'checklist')
+                            queueInsertPreview(message.text, 'checklist')
                             return
                           }
                           void runGoal(item.goal)
@@ -1099,7 +1456,48 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
       </div>
 
       <div className="library-chat-composer">
+        {filesOfflineHint ? (
+          <div className="mb-2 flex flex-wrap items-center gap-2 rounded-md border border-[var(--color-border)] bg-[var(--color-muted)]/30 px-2.5 py-2 text-[12px]">
+            <span className="text-[var(--color-muted-foreground)]">{t('agent.filesApiOffline')}</span>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-7 text-[11px]"
+              onClick={() => {
+                void storageFsServerStart()
+                  .then(() => {
+                    setFilesOfflineHint(false)
+                    toast.success(t('localIntelligence.filesOn'))
+                  })
+                  .catch((error) => toast.error(t('agent.errorTitle'), String(error)))
+              }}
+            >
+              {t('localIntelligence.startFilesApi')}
+            </Button>
+          </div>
+        ) : null}
         <div className="library-chat-actions">
+          <button
+            type="button"
+            className="library-chat-chip"
+            disabled={loading || !agentPrefs.enabled}
+            onClick={() =>
+              void runGoal(t('agent.quickPrompts.askFiles'), { forceTools: ['files_answer'] })
+            }
+          >
+            {t('agent.tools.files_answer')}
+          </button>
+          {scope === 'document' ? (
+            <button
+              type="button"
+              className="library-chat-chip"
+              disabled={loading || !agentPrefs.enabled || !activeDocumentId}
+              onClick={() => void runGoal(t('agent.tools.compare_notes'), { forceTools: ['compare_notes'] })}
+            >
+              {t('agent.tools.compare_notes')}
+            </button>
+          ) : null}
           {AGENT_RECIPES.filter((recipe) =>
             scope === 'library' ? !recipe.documentPreferred : true,
           ).map((recipe) => (
@@ -1160,6 +1558,23 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
           }
         }}
         onConfirm={() => void confirmApplyPreview()}
+      />
+      <CompareNotesDialog
+        open={compareOpen}
+        excludeDocumentId={activeDocumentId}
+        onClose={() => {
+          setCompareOpen(false)
+          setPendingCompareGoal('')
+        }}
+        onSelect={(documentId) => {
+          setCompareOpen(false)
+          const goal = pendingCompareGoal
+          setPendingCompareGoal('')
+          void runGoal(goal, {
+            forceTools: ['compare_notes'],
+            compareDocumentId: documentId,
+          })
+        }}
       />
     </div>
   )

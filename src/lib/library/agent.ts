@@ -32,6 +32,14 @@ import {
   type LibraryChatCitation,
   type LibraryChatResult,
 } from '@/lib/library/library-chat'
+import {
+  nlpActionItems,
+  nlpCompareNotes,
+  nlpExplainSelection,
+  nlpFilesAnswer,
+  nlpGlossary,
+  nlpSimplify,
+} from '@/lib/db/nlp-api'
 
 export type { AgentToolId }
 
@@ -45,6 +53,7 @@ export type AgentStep = {
   detail?: string
   answer?: string
   citations?: LibraryChatCitation[]
+  spellIssues?: Array<{ word: string; suggestions: string[] }>
 }
 
 export type AgentPlan = {
@@ -87,9 +96,20 @@ const DOCUMENT_TOOLS = new Set<AgentToolId>([
   'spellcheck',
   'rewrite',
   'brief',
+  'explain',
+  'simplify',
+  'action_items',
+  'glossary',
+  'compare_notes',
+  'save_template',
 ])
 
-const LIBRARY_ONLY_TOOLS = new Set<AgentToolId>(['duplicates', 'citations', 'library_answer'])
+const LIBRARY_ONLY_TOOLS = new Set<AgentToolId>([
+  'duplicates',
+  'citations',
+  'library_answer',
+  'files_answer',
+])
 
 const CHAT_ACTION_TOOLS = new Set<AgentToolId>([
   'summarize',
@@ -103,6 +123,10 @@ const CHAT_ACTION_TOOLS = new Set<AgentToolId>([
   'terminology',
   'wiki',
   'spellcheck',
+  'explain',
+  'simplify',
+  'action_items',
+  'glossary',
 ])
 
 const INTENT_TO_TOOL: Record<string, AgentToolId> = {
@@ -125,6 +149,12 @@ const INTENT_TO_TOOL: Record<string, AgentToolId> = {
   revision: 'revision',
   rewrite: 'rewrite',
   brief: 'brief',
+  explain: 'explain',
+  simplify: 'simplify',
+  action_items: 'action_items',
+  glossary: 'glossary',
+  compare_notes: 'compare_notes',
+  save_template: 'save_template',
 }
 
 const DEFAULT_CLARIFY: AgentToolId[] = [
@@ -158,6 +188,30 @@ export function matchAgentIntentsSync(goal: string): AgentToolId[] {
   if (!folded) return []
 
   const rules: Array<{ tool: AgentToolId; needles: string[] }> = [
+    {
+      tool: 'save_template',
+      needles: [
+        'save as template',
+        'make a template',
+        'create template',
+        'note to template',
+        'sablonu',
+        'ako sablonu',
+        'uloz ako sablonu',
+        'urob sablonu',
+      ],
+    },
+    {
+      tool: 'brief',
+      needles: [
+        'daily digest',
+        'weekly digest',
+        'denny digest',
+        'tyzdenny digest',
+        'denne zhrnutie',
+        'tyzdenne zhrnutie',
+      ],
+    },
     { tool: 'summarize', needles: ['summarize', 'summary', 'tlldr', 'digest', 'zhrn', 'zhrnutie', 'strucne'] },
     { tool: 'outline', needles: ['outline', 'structure', 'heading', 'osnova', 'struktura', 'nadpisy'] },
     {
@@ -232,7 +286,50 @@ export function matchAgentIntentsSync(goal: string): AgentToolId[] {
         'vyplnove',
       ],
     },
-    { tool: 'spellcheck', needles: ['spellcheck', 'spelling', 'typo', 'pravopis', 'preklepy'] },
+    {
+      tool: 'explain',
+      needles: ['explain', 'what does this mean', 'vysvetli', 'vysvetlenie', 'co to znamena'],
+    },
+    {
+      tool: 'simplify',
+      needles: ['simplify', 'simpler', 'plain language', 'zjednodus', 'jednoduchsie'],
+    },
+    {
+      tool: 'action_items',
+      needles: ['action items', 'extract actions', 'akcne body', 'ulohy z textu'],
+    },
+    {
+      tool: 'glossary',
+      needles: ['glossary', 'define terms', 'key terms', 'slovnik', 'pojmy', 'definicie'],
+    },
+    {
+      tool: 'compare_notes',
+      needles: ['compare notes', 'diff notes', 'porovnaj poznamky', 'porovnanie poznamok'],
+    },
+    {
+      tool: 'files_answer',
+      needles: ['files answer', 'ask files', 'sandboxed files', 'subory sandbox', 'files/'],
+    },
+    {
+      tool: 'spellcheck',
+      needles: [
+        'spellcheck',
+        'spell check',
+        'spelling',
+        'typo',
+        'typos',
+        'pravopis',
+        'preklepy',
+        'preklep',
+        'skontroluj pravopis',
+        'skontroluj preklepy',
+        'oprav preklepy',
+        'oprav pravopis',
+        'check spelling',
+        'fix spelling',
+        'fix typos',
+      ],
+    },
     {
       tool: 'brief',
       needles: ['agent brief', 'document brief', 'full brief', 'kompletny brief', 'brief poznámky'],
@@ -257,7 +354,7 @@ function scopeTools(
   return tools.filter((tool) => {
     if (LIBRARY_ONLY_TOOLS.has(tool)) return true
     if (tool === 'dates' && (scope === 'library' || scope === 'folder')) return true
-    if (tool === 'brief' && scope === 'folder') return true
+    if (tool === 'brief' && (scope === 'library' || scope === 'folder')) return true
     if (!DOCUMENT_TOOLS.has(tool)) return true
     if (scope === 'library' && !documentId) return false
     if (scope === 'folder' && !documentId && DOCUMENT_TOOLS.has(tool) && tool !== 'dates') {
@@ -277,13 +374,16 @@ export function suggestFollowupRecipes(
 ): string[] {
   const ok = new Set(steps.filter((step) => step.status === 'ok').map((step) => step.tool))
   const out: string[] = []
-  if (ok.has('dates') || ok.has('tasks')) out.push('weekly_review')
+  if (ok.has('dates') || ok.has('tasks') || ok.has('brief')) out.push('daily_digest', 'weekly_review')
   if (ok.has('meeting') || ok.has('tasks')) out.push('meeting_wrap')
+  if (ok.has('outline') || ok.has('meeting')) out.push('note_to_template')
   if (ok.has('outline') || ok.has('flashcards')) out.push('study_pass')
+  if (ok.has('glossary') || ok.has('outline')) out.push('deep_read')
   if (ok.has('duplicates') || ok.has('wiki')) out.push('cleanup')
-  if (ok.has('spellcheck') || ok.has('style') || ok.has('terminology')) out.push('polish')
-  if (scope === 'document' && out.length === 0) out.push('polish', 'study_pass')
-  if (scope !== 'document' && out.length === 0) out.push('weekly_review', 'cleanup')
+  if (ok.has('spellcheck')) out.push('spellcheck', 'polish')
+  if (ok.has('style') || ok.has('terminology')) out.push('polish')
+  if (scope === 'document' && out.length === 0) out.push('spellcheck', 'polish', 'study_pass')
+  if (scope !== 'document' && out.length === 0) out.push('daily_digest', 'weekly_review', 'cleanup')
   return [...new Set(out)].slice(0, 3)
 }
 
@@ -420,6 +520,8 @@ async function runTool(
     memoryContext?: Array<{ role: string; text: string }>
     priorAnswers: string[]
     selectionText?: string | null
+    compareDocumentId?: string | null
+    stream?: boolean
   },
 ): Promise<LibraryChatResult> {
   const workingMemory = [
@@ -430,10 +532,12 @@ async function runTool(
   if (tool === 'library_answer') {
     return askLibrary(ctx.goal, {
       folderId: ctx.scope === 'folder' ? ctx.folderId : null,
+      stream: ctx.stream,
+      context: workingMemory.length ? workingMemory : undefined,
     })
   }
   if (tool === 'document_answer') {
-    return askDocument(ctx.documentId ?? '', ctx.goal, workingMemory)
+    return askDocument(ctx.documentId ?? '', ctx.goal, workingMemory, { stream: ctx.stream })
   }
   if (tool === 'duplicates') {
     return runAgentDuplicates()
@@ -464,21 +568,33 @@ async function runTool(
     if (!ctx.documentId && !ctx.selectionText) throw new Error('agent.needsDocument')
     return runAgentRewrite(ctx.documentId ?? 'selection', ctx.goal, ctx.selectionText)
   }
+  if (tool === 'save_template') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return {
+      answer:
+        'Ready to save this note as a reusable template. Use **Save as template** below to name it and store it in your template library.',
+      citations: [
+        {
+          documentId: ctx.documentId,
+          title: 'Template',
+          snippet: 'Open the save-as-template dialog',
+        },
+      ],
+      followups: ['Polish this note first', 'Extract meeting wrap-up'],
+    }
+  }
   if (tool === 'brief') {
     if (ctx.scope === 'folder' && ctx.folderId) {
       const { runFolderDigest } = await import('@/lib/library/folder-digest')
       return runFolderDigest(ctx.folderId)
     }
     if (ctx.scope === 'library' || (ctx.scope === 'folder' && !ctx.documentId)) {
-      const [dates, dups] = await Promise.all([
-        runAgentDatesLibrary().catch(() => null),
-        runAgentDuplicates().catch(() => null),
-      ])
-      const parts = [dates?.answer, dups?.answer].filter(Boolean)
-      return {
-        answer: parts.join('\n\n') || 'No library brief sections available.',
-        citations: [...(dates?.citations ?? []), ...(dups?.citations ?? [])].slice(0, 10),
-      }
+      const { runLibraryDigest } = await import('@/lib/library/library-digest')
+      const period =
+        /week|tyzden|týždeň|weekly/i.test(ctx.goal) || ctx.goal === 'weekly_review'
+          ? 'week'
+          : 'day'
+      return runLibraryDigest(period)
     }
     if (!ctx.documentId) throw new Error('agent.needsDocument')
     const brief = await nlpAgentDocumentBrief({
@@ -495,6 +611,102 @@ async function runTool(
           snippet: (brief.tools || []).join(' → '),
         },
       ],
+    }
+  }
+
+  if (tool === 'files_answer') {
+    try {
+      const result = await nlpFilesAnswer({ question: ctx.goal, limit: 6 })
+      return {
+        answer: result.answer || 'No answer from files sandbox.',
+        citations: (result.citations || []).map((item) => ({
+          documentId: item.path,
+          title: item.path,
+          snippet: item.snippet || item.excerpt || '',
+        })),
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (message.includes('FilesApiOffline')) {
+        throw new Error('agent.filesApiOffline')
+      }
+      throw error
+    }
+  }
+
+  if (tool === 'compare_notes') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    const otherId =
+      ctx.compareDocumentId?.trim() ||
+      ctx.goal.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i)?.[0]
+    if (!otherId || otherId === ctx.documentId) {
+      throw new Error('agent.compareNeedsOther')
+    }
+    const result = await nlpCompareNotes({
+      documentIdA: ctx.documentId,
+      documentIdB: otherId,
+    })
+    return {
+      answer: result.summary || 'No comparison summary.',
+      citations: [],
+    }
+  }
+
+  if (tool === 'explain') {
+    const text = ctx.selectionText?.trim() || undefined
+    if (!text && !ctx.documentId) throw new Error('agent.needsDocument')
+    const result = await nlpExplainSelection({
+      documentId: text ? undefined : ctx.documentId ?? undefined,
+      text,
+    })
+    return {
+      answer: result.explanation || 'No explanation produced.',
+      citations: [],
+    }
+  }
+
+  if (tool === 'simplify') {
+    const text = ctx.selectionText?.trim() || undefined
+    if (!text && !ctx.documentId) throw new Error('agent.needsDocument')
+    const result = await nlpSimplify({
+      documentId: text ? undefined : ctx.documentId ?? undefined,
+      text,
+    })
+    return {
+      answer: result.simplified || 'No simplified text produced.',
+      citations: [],
+    }
+  }
+
+  if (tool === 'action_items') {
+    if (!ctx.documentId && !ctx.selectionText?.trim()) throw new Error('agent.needsDocument')
+    const result = await nlpActionItems({
+      documentId: ctx.selectionText?.trim() ? undefined : ctx.documentId ?? undefined,
+      text: ctx.selectionText?.trim() || undefined,
+      limit: 12,
+    })
+    if (!result.items?.length) {
+      return { answer: 'No action items found.', citations: [] }
+    }
+    return {
+      answer: `**Action items (${result.count})**\n\n${result.items
+        .map((item) => `- ${item.text}`)
+        .join('\n')}`,
+      citations: [],
+    }
+  }
+
+  if (tool === 'glossary') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    const result = await nlpGlossary({ documentId: ctx.documentId, limit: 16 })
+    if (!result.entries?.length) {
+      return { answer: 'No glossary terms extracted.', citations: [] }
+    }
+    return {
+      answer: `**Glossary**\n\n${result.entries
+        .map((entry) => `- **${entry.term}** — ${entry.definition}`)
+        .join('\n')}`,
+      citations: [],
     }
   }
 
@@ -539,6 +751,10 @@ export async function runAgentGoal(
     forceTools?: AgentToolId[]
     folderId?: string | null
     selectionText?: string | null
+    compareDocumentId?: string | null
+    stream?: boolean
+    /** Spellcheck agent: inject grammar teachings only. */
+    grammarOnly?: boolean
   },
 ): Promise<AgentRunResult> {
   if (!prefs.enabled) {
@@ -567,10 +783,11 @@ export async function runAgentGoal(
 
   const contextWithTeachings = [
     ...teachingsToMemoryContext(prefs.teachings, {
-      pinnedFacts: prefs.pinnedFacts,
-      episodes: prefs.episodes,
+      pinnedFacts: opts?.grammarOnly ? undefined : prefs.pinnedFacts,
+      episodes: opts?.grammarOnly ? undefined : prefs.episodes,
       outputLanguage: prefs.outputLanguage,
       documentId,
+      grammarOnly: opts?.grammarOnly,
     }),
     ...(memoryContext ?? []),
   ]
@@ -584,6 +801,7 @@ export async function runAgentGoal(
     const needsDoc =
       DOCUMENT_TOOLS.has(tool) &&
       tool !== 'dates' &&
+      tool !== 'brief' &&
       tool !== 'rewrite' &&
       !LIBRARY_ONLY_TOOLS.has(tool)
     if (needsDoc && !documentId) {
@@ -597,19 +815,29 @@ export async function runAgentGoal(
 
     try {
       const result = await runTool(tool, {
-        goal: trimmed,
+        goal:
+          tool === 'files_answer' && (!trimmed || opts?.recipeId === 'files_digest')
+            ? trimmed || 'Summarize the key points across my files/ sandbox'
+            : tool === 'brief' && opts?.recipeId === 'daily_digest'
+              ? trimmed || 'daily digest'
+              : tool === 'brief' && opts?.recipeId === 'weekly_review'
+                ? trimmed || 'weekly_review'
+                : trimmed,
         scope,
         documentId,
         folderId: opts?.folderId,
         memoryContext: contextWithTeachings,
         priorAnswers,
         selectionText: opts?.selectionText,
+        compareDocumentId: opts?.compareDocumentId,
+        stream: opts?.stream && (tool === 'library_answer' || tool === 'document_answer'),
       })
       steps.push({
         tool,
         status: 'ok',
         answer: result.answer,
         citations: result.citations,
+        spellIssues: result.spellIssues,
       })
       priorAnswers.push(result.answer)
       sectionAnswers.push(`### ${tool}\n\n${result.answer}`)

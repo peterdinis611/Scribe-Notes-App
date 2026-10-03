@@ -18,6 +18,7 @@ import {
 
 function groupLabel(group: string, t: (key: string) => string): string {
   if (group === 'graphql') return t('storageMode.localApi.groupGraphql')
+  if (group === 'docs') return t('storageMode.localApi.groupDocs')
   if (group === 'meta') return t('storageMode.localApi.groupMeta')
   return t('storageMode.localApi.groupRest')
 }
@@ -56,7 +57,7 @@ export function StorageLocalApiPanel() {
       list.push(ep)
       map.set(ep.group, list)
     }
-    return ['meta', 'graphql', 'rest']
+    return ['meta', 'docs', 'graphql', 'rest']
       .filter((g) => map.has(g))
       .map((g) => ({ group: g, items: map.get(g)! }))
   }, [endpoints])
@@ -96,8 +97,8 @@ export function StorageLocalApiPanel() {
     }
   }
 
-  async function openGraphiql() {
-    const url = absoluteEndpointUrl(status?.url, '/graphql')
+  async function openExternalPath(path: string) {
+    const url = absoluteEndpointUrl(status?.url, path)
     try {
       await openUrl(url)
     } catch (error) {
@@ -154,6 +155,18 @@ export function StorageLocalApiPanel() {
           <Copy className="h-3 w-3" />
           {t('storageMode.localApi.copyAll')}
         </Button>
+        {running ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
+            onClick={() => void openExternalPath('/docs')}
+          >
+            <ExternalLink className="h-3 w-3" />
+            {t('storageMode.localApi.openSwagger')}
+          </Button>
+        ) : null}
       </div>
 
       {running && base ? (
@@ -208,12 +221,18 @@ export function StorageLocalApiPanel() {
                       >
                         <Copy className="h-3 w-3" />
                       </button>
-                      {ep.path === '/graphql' && ep.method === 'GET' && running ? (
+                      {ep.method === 'GET' &&
+                      running &&
+                      (ep.path === '/graphql' || ep.path === '/docs') ? (
                         <button
                           type="button"
                           className="storage-api-icon-btn"
-                          aria-label={t('storageMode.localApi.openGraphiql')}
-                          onClick={() => void openGraphiql()}
+                          aria-label={
+                            ep.path === '/docs'
+                              ? t('storageMode.localApi.openSwagger')
+                              : t('storageMode.localApi.openGraphiql')
+                          }
+                          onClick={() => void openExternalPath(ep.path)}
                         >
                           <ExternalLink className="h-3 w-3" />
                         </button>

@@ -1,6 +1,7 @@
-//! Loopback Files API server (REST + GraphQL playground) for Storage Mode.
+//! Loopback Files API server (REST + GraphQL + OpenAPI demo) for Storage Mode.
 
 mod http;
+mod openapi;
 
 use serde::{Deserialize, Serialize};
 use std::net::TcpListener;
@@ -59,20 +60,29 @@ impl StorageFsServerState {
 pub fn endpoint_catalog() -> Vec<StorageFsEndpoint> {
     vec![
         ep("GET", "/v1/fs/health", "Health", "meta"),
+        ep("GET", "/openapi.json", "OpenAPI 3.0 spec", "docs"),
+        ep("GET", "/docs", "Swagger demo UI", "docs"),
         ep("GET", "/v1/fs/list", "List", "rest"),
+        ep("GET", "/v1/fs/tree", "Tree", "rest"),
         ep("GET", "/v1/fs/stat", "Stat", "rest"),
         ep("GET", "/v1/fs/exists", "Exists", "rest"),
         ep("GET", "/v1/fs/read", "Read (base64)", "rest"),
         ep("GET", "/v1/fs/read-text", "Read text", "rest"),
+        ep("GET", "/v1/fs/read-json", "Read JSON", "rest"),
+        ep("GET", "/v1/fs/preview", "Preview text", "rest"),
+        ep("GET", "/v1/fs/checksum", "SHA-256 checksum", "rest"),
         ep("GET", "/v1/fs/search", "Search", "rest"),
+        ep("GET", "/v1/fs/recent", "Recent files", "rest"),
         ep("GET", "/v1/fs/disk-usage", "Disk usage", "rest"),
         ep("POST", "/v1/fs/mkdir", "Mkdir", "rest"),
         ep("POST", "/v1/fs/write", "Write bytes", "rest"),
         ep("POST", "/v1/fs/write-text", "Write text", "rest"),
+        ep("POST", "/v1/fs/write-json", "Write JSON", "rest"),
         ep("POST", "/v1/fs/append", "Append bytes", "rest"),
         ep("POST", "/v1/fs/append-text", "Append text", "rest"),
         ep("POST", "/v1/fs/touch", "Touch", "rest"),
         ep("POST", "/v1/fs/delete", "Delete", "rest"),
+        ep("POST", "/v1/fs/clear-dir", "Clear directory", "rest"),
         ep("POST", "/v1/fs/rename", "Rename", "rest"),
         ep("POST", "/v1/fs/move-into", "Move into", "rest"),
         ep("POST", "/v1/fs/copy", "Copy", "rest"),

@@ -98,7 +98,46 @@ _INTENT_RULES: list[tuple[str, tuple[str, ...]]] = [
             "vyplnove",
         ),
     ),
-    ("spellcheck", ("spellcheck", "spelling", "typo", "pravopis", "preklepy")),
+    (
+        "explain",
+        ("explain", "what does this mean", "vysvetli", "vysvetlenie", "co to znamena"),
+    ),
+    (
+        "simplify",
+        ("simplify", "simpler", "plain language", "zjednodus", "jednoduchsie"),
+    ),
+    (
+        "action_items",
+        ("action items", "extract actions", "akcne body", "ulohy z textu"),
+    ),
+    (
+        "glossary",
+        ("glossary", "define terms", "key terms", "slovnik", "pojmy", "definicie"),
+    ),
+    (
+        "compare_notes",
+        ("compare notes", "diff notes", "porovnaj poznamky", "porovnanie poznamok"),
+    ),
+    (
+        "spellcheck",
+        (
+            "spellcheck",
+            "spell check",
+            "spelling",
+            "typo",
+            "typos",
+            "pravopis",
+            "preklepy",
+            "preklep",
+            "skontroluj pravopis",
+            "skontroluj preklepy",
+            "oprav preklepy",
+            "oprav pravopis",
+            "check spelling",
+            "fix spelling",
+            "fix typos",
+        ),
+    ),
 ]
 
 _DOCUMENT_TOOLS = {
@@ -117,6 +156,11 @@ _DOCUMENT_TOOLS = {
     "flashcards",
     "takeaways",
     "style",
+    "explain",
+    "simplify",
+    "action_items",
+    "glossary",
+    "compare_notes",
     "spellcheck",
     "document_answer",
 }
@@ -223,8 +267,6 @@ _ALLOWED_PLAN_TOOLS = {
     "terminology",
     "wiki",
     "organize",
-    "duplicates",
-    "citations",
     "quiz",
     "revision",
     "rewrite",
@@ -232,9 +274,16 @@ _ALLOWED_PLAN_TOOLS = {
     "flashcards",
     "takeaways",
     "style",
+    "explain",
+    "simplify",
+    "action_items",
+    "glossary",
+    "compare_notes",
     "spellcheck",
     "document_answer",
     "library_answer",
+    "duplicates",
+    "citations",
     "brief",
 }
 
@@ -481,6 +530,46 @@ def agent_document_brief(
                         if item.get("message") or item.get("code")
                     ]
                     sections.append(_section("style", "\n".join(lines)))
+            elif tool == "explain":
+                from .note_skills import explain_selection
+
+                result = explain_selection(source)
+                text_out = (result.get("explanation") or "").strip()
+                if text_out:
+                    sections.append(_section("explain", text_out))
+            elif tool == "simplify":
+                from .note_skills import simplify_text
+
+                result = simplify_text(source)
+                text_out = (result.get("simplified") or result.get("text") or "").strip()
+                if text_out:
+                    sections.append(_section("simplify", text_out))
+            elif tool == "action_items":
+                from .note_skills import action_items_from_text
+
+                result = action_items_from_text(source, limit=limit)
+                items = result.get("items") or result.get("actionItems") or []
+                if items:
+                    lines = [
+                        f"- {item.get('text') or item}" if isinstance(item, dict) else f"- {item}"
+                        for item in items[:limit]
+                    ]
+                    sections.append(_section("action_items", "\n".join(lines)))
+            elif tool == "glossary":
+                from .note_skills import glossary_from_text
+
+                result = glossary_from_text(source, limit=limit)
+                entries = result.get("entries") or result.get("terms") or []
+                if entries:
+                    lines = []
+                    for entry in entries[:limit]:
+                        if isinstance(entry, dict):
+                            term = entry.get("term") or ""
+                            definition = entry.get("definition") or ""
+                            lines.append(f"- **{term}** — {definition}".strip(" —"))
+                        else:
+                            lines.append(f"- {entry}")
+                    sections.append(_section("glossary", "\n".join(lines)))
             elif tool == "spellcheck":
                 from .spellcheck import spellcheck_text
 
@@ -496,7 +585,14 @@ def agent_document_brief(
             elif tool == "similar":
                 # Similar needs a corpus — skip in single-doc brief.
                 continue
-            elif tool in {"wiki", "organize", "revision", "rewrite", "document_answer"}:
+            elif tool in {
+                "wiki",
+                "organize",
+                "revision",
+                "rewrite",
+                "document_answer",
+                "compare_notes",
+            }:
                 # Need library context or editor selection — skip in pure-text brief.
                 continue
         except Exception:  # noqa: BLE001 — soft-fail per tool like the FE agent loop

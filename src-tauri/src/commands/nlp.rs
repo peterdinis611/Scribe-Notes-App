@@ -858,7 +858,7 @@ pub fn nlp_journal_summary(
         });
     }
 
-    let result = sidecar.summarize(&combined, 5)?;
+    let result = sidecar.summarize(&combined, 5, None)?;
     let summary = result
         .get("summary")
         .and_then(|value| value.as_str())
@@ -1333,6 +1333,7 @@ pub struct NlpSetLlmPrefsInput {
     pub use_rewrite: Option<bool>,
     pub use_answer: Option<bool>,
     pub use_plan: Option<bool>,
+    pub enhance_heuristics: Option<bool>,
 }
 
 #[tauri::command]
@@ -1351,6 +1352,7 @@ pub fn nlp_set_llm_prefs(
         input.use_rewrite,
         input.use_answer,
         input.use_plan,
+        input.enhance_heuristics,
     )?;
     build_nlp_status(&sidecar, &conn, is_nlp_enabled(&conn)?)
 }
@@ -1388,6 +1390,7 @@ pub fn nlp_llm_status(
         } else {
             Some(prefs.model.as_str())
         },
+        Some(prefs.provider.as_str()),
     )?;
     Ok(NlpLlmStatus {
         reachable: raw
@@ -1503,6 +1506,7 @@ pub fn nlp_llm_complete(
         } else {
             Some(prefs.model.as_str())
         },
+        Some(prefs.provider.as_str()),
         input.temperature,
         input.max_tokens,
         progress_tx,
@@ -1905,7 +1909,353 @@ pub fn nlp_writing_coach(
 ) -> Result<serde_json::Value, String> {
     let text = resolve_nlp_text(&state, &input)?;
     let limit = input.limit.unwrap_or(12).clamp(1, 30);
-    sidecar.writing_coach(&text, limit)
+    let llm = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        llm_sidecar_options(&conn, "enhance")?
+    };
+    sidecar.writing_coach(&text, limit, llm.as_ref())
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpFilesListInput {
+    pub path: Option<String>,
+    pub recursive: Option<bool>,
+    pub base_url: Option<String>,
+}
+
+#[tauri::command]
+pub fn nlp_files_list(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpFilesListInput,
+) -> Result<serde_json::Value, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    if !is_nlp_enabled(&conn)? {
+        return Err("NLP is disabled".to_string());
+    }
+    let _ = sync_sidecar_backend(&sidecar, &conn);
+    drop(conn);
+    sidecar.files_list(
+        input.path.as_deref().unwrap_or(""),
+        input.recursive.unwrap_or(false),
+        input.base_url.as_deref(),
+    )
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpFilesReadTextInput {
+    pub path: String,
+    pub base_url: Option<String>,
+}
+
+#[tauri::command]
+pub fn nlp_files_read_text(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpFilesReadTextInput,
+) -> Result<serde_json::Value, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    if !is_nlp_enabled(&conn)? {
+        return Err("NLP is disabled".to_string());
+    }
+    let _ = sync_sidecar_backend(&sidecar, &conn);
+    drop(conn);
+    sidecar.files_read_text(input.path.trim(), input.base_url.as_deref())
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpFilesSearchInput {
+    pub query: String,
+    pub path: Option<String>,
+    pub glob: Option<String>,
+    pub limit: Option<i64>,
+    pub base_url: Option<String>,
+}
+
+#[tauri::command]
+pub fn nlp_files_search(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpFilesSearchInput,
+) -> Result<serde_json::Value, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    if !is_nlp_enabled(&conn)? {
+        return Err("NLP is disabled".to_string());
+    }
+    let _ = sync_sidecar_backend(&sidecar, &conn);
+    drop(conn);
+    sidecar.files_search(
+        input.query.trim(),
+        input.path.as_deref(),
+        input.glob.as_deref(),
+        input.limit.unwrap_or(40).clamp(1, 100),
+        input.base_url.as_deref(),
+    )
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpFilesSummarizeInput {
+    pub path: String,
+    pub limit: Option<i64>,
+    pub base_url: Option<String>,
+}
+
+#[tauri::command]
+pub fn nlp_files_summarize(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpFilesSummarizeInput,
+) -> Result<serde_json::Value, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    if !is_nlp_enabled(&conn)? {
+        return Err("NLP is disabled".to_string());
+    }
+    let _ = sync_sidecar_backend(&sidecar, &conn);
+    drop(conn);
+    sidecar.files_summarize(
+        input.path.trim(),
+        input.limit.unwrap_or(8).clamp(1, 20),
+        input.base_url.as_deref(),
+    )
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpFilesAnswerInput {
+    pub question: String,
+    pub path: Option<String>,
+    pub limit: Option<i64>,
+    pub base_url: Option<String>,
+}
+
+#[tauri::command]
+pub fn nlp_files_answer(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpFilesAnswerInput,
+) -> Result<serde_json::Value, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    if !is_nlp_enabled(&conn)? {
+        return Err("NLP is disabled".to_string());
+    }
+    let _ = sync_sidecar_backend(&sidecar, &conn);
+    drop(conn);
+    sidecar.files_answer(
+        input.question.trim(),
+        input.path.as_deref(),
+        input.limit.unwrap_or(6).clamp(1, 12),
+        input.base_url.as_deref(),
+    )
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpFilesIndexInput {
+    pub path: Option<String>,
+    pub limit_files: Option<i64>,
+    pub force: Option<bool>,
+    pub base_url: Option<String>,
+}
+
+#[tauri::command]
+pub fn nlp_files_index(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpFilesIndexInput,
+) -> Result<serde_json::Value, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    if !is_nlp_enabled(&conn)? {
+        return Err("NLP is disabled".to_string());
+    }
+    let _ = sync_sidecar_backend(&sidecar, &conn);
+    drop(conn);
+    sidecar.files_index(
+        input.path.as_deref().unwrap_or(""),
+        input.limit_files.unwrap_or(40).clamp(1, 80),
+        input.force.unwrap_or(false),
+        input.base_url.as_deref(),
+    )
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpSummarizeInput {
+    pub document_id: Option<String>,
+    pub text: Option<String>,
+    pub max_sentences: Option<i64>,
+}
+
+#[tauri::command]
+pub fn nlp_summarize(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpSummarizeInput,
+) -> Result<serde_json::Value, String> {
+    let text = resolve_nlp_text(
+        &state,
+        &NlpDocumentTextInput {
+            document_id: input.document_id,
+            text: input.text,
+            limit: None,
+            include_cloze: None,
+        },
+    )?;
+    let max_sentences = input.max_sentences.unwrap_or(4).clamp(1, 12);
+    let llm = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        llm_sidecar_options(&conn, "enhance")?
+    };
+    sidecar.summarize(&text, max_sentences, llm.as_ref())
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpTextSkillInput {
+    pub document_id: Option<String>,
+    pub text: Option<String>,
+    pub limit: Option<i64>,
+}
+
+#[tauri::command]
+pub fn nlp_explain_selection(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpTextSkillInput,
+) -> Result<serde_json::Value, String> {
+    let text = resolve_nlp_text(
+        &state,
+        &NlpDocumentTextInput {
+            document_id: input.document_id,
+            text: input.text,
+            limit: None,
+            include_cloze: None,
+        },
+    )?;
+    let llm = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        llm_sidecar_options(&conn, "enhance")?
+    };
+    sidecar.explain_selection(&text, llm.as_ref())
+}
+
+#[tauri::command]
+pub fn nlp_simplify(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpTextSkillInput,
+) -> Result<serde_json::Value, String> {
+    let text = resolve_nlp_text(
+        &state,
+        &NlpDocumentTextInput {
+            document_id: input.document_id,
+            text: input.text,
+            limit: None,
+            include_cloze: None,
+        },
+    )?;
+    let llm = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        llm_sidecar_options(&conn, "enhance")?
+    };
+    sidecar.simplify_text(&text, llm.as_ref())
+}
+
+#[tauri::command]
+pub fn nlp_action_items(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpTextSkillInput,
+) -> Result<serde_json::Value, String> {
+    let text = resolve_nlp_text(
+        &state,
+        &NlpDocumentTextInput {
+            document_id: input.document_id.clone(),
+            text: input.text.clone(),
+            limit: None,
+            include_cloze: None,
+        },
+    )?;
+    let limit = input.limit.unwrap_or(12).clamp(1, 30);
+    let llm = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        llm_sidecar_options(&conn, "enhance")?
+    };
+    sidecar.action_items(&text, limit, llm.as_ref())
+}
+
+#[tauri::command]
+pub fn nlp_glossary(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpTextSkillInput,
+) -> Result<serde_json::Value, String> {
+    let text = resolve_nlp_text(
+        &state,
+        &NlpDocumentTextInput {
+            document_id: input.document_id.clone(),
+            text: input.text.clone(),
+            limit: None,
+            include_cloze: None,
+        },
+    )?;
+    let limit = input.limit.unwrap_or(16).clamp(1, 40);
+    let llm = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        llm_sidecar_options(&conn, "enhance")?
+    };
+    sidecar.glossary(&text, limit, llm.as_ref())
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpCompareNotesInput {
+    pub document_id_a: Option<String>,
+    pub document_id_b: Option<String>,
+    pub text_a: Option<String>,
+    pub text_b: Option<String>,
+    pub title_a: Option<String>,
+    pub title_b: Option<String>,
+}
+
+#[tauri::command]
+pub fn nlp_compare_notes(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpCompareNotesInput,
+) -> Result<serde_json::Value, String> {
+    let text_a = resolve_nlp_text(
+        &state,
+        &NlpDocumentTextInput {
+            document_id: input.document_id_a.clone(),
+            text: input.text_a.clone(),
+            limit: None,
+            include_cloze: None,
+        },
+    )?;
+    let text_b = resolve_nlp_text(
+        &state,
+        &NlpDocumentTextInput {
+            document_id: input.document_id_b.clone(),
+            text: input.text_b.clone(),
+            limit: None,
+            include_cloze: None,
+        },
+    )?;
+    let llm = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        llm_sidecar_options(&conn, "enhance")?
+    };
+    sidecar.compare_notes(
+        &text_a,
+        &text_b,
+        input.title_a.as_deref(),
+        input.title_b.as_deref(),
+        llm.as_ref(),
+    )
 }
 
 #[tauri::command]
@@ -2218,6 +2568,120 @@ pub fn nlp_spellcheck(
     })
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpGrammarCheckInput {
+    pub document_id: Option<String>,
+    pub text: Option<String>,
+    pub rules: Option<Vec<String>>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GrammarFinding {
+    pub rule: String,
+    pub kind: String,
+    #[serde(rename = "match")]
+    pub match_text: String,
+    pub suggestion: String,
+    pub offset: i64,
+    pub length: i64,
+    pub message: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GrammarCheckResult {
+    pub findings: Vec<GrammarFinding>,
+    pub finding_count: i64,
+    pub rules_applied: i64,
+    pub source: String,
+}
+
+#[tauri::command]
+pub fn nlp_grammar_check(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpGrammarCheckInput,
+) -> Result<GrammarCheckResult, String> {
+    let text = resolve_nlp_text(
+        &state,
+        &NlpDocumentTextInput {
+            document_id: input.document_id,
+            text: input.text,
+            limit: None,
+            include_cloze: None,
+        },
+    )?;
+    {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        if !is_nlp_enabled(&conn)? {
+            return Err("NLP is disabled".to_string());
+        }
+        let _ = sync_sidecar_backend(&sidecar, &conn);
+    }
+    let rule_list = input.rules.unwrap_or_default();
+    let limit = input.limit.unwrap_or(24).clamp(1, 40);
+    let result = sidecar.grammar_check(&text, &rule_list, limit)?;
+
+    let findings = result
+        .get("findings")
+        .and_then(|value| value.as_array())
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| {
+                    Some(GrammarFinding {
+                        rule: item.get("rule")?.as_str()?.to_string(),
+                        kind: item
+                            .get("kind")
+                            .and_then(|value| value.as_str())
+                            .unwrap_or("guidance")
+                            .to_string(),
+                        match_text: item
+                            .get("match")
+                            .and_then(|value| value.as_str())
+                            .unwrap_or("")
+                            .to_string(),
+                        suggestion: item
+                            .get("suggestion")
+                            .and_then(|value| value.as_str())
+                            .unwrap_or("")
+                            .to_string(),
+                        offset: item.get("offset").and_then(|value| value.as_i64()).unwrap_or(0),
+                        length: item.get("length").and_then(|value| value.as_i64()).unwrap_or(0),
+                        message: item
+                            .get("message")
+                            .and_then(|value| value.as_str())
+                            .unwrap_or("")
+                            .to_string(),
+                    })
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+
+    let finding_count = result
+        .get("findingCount")
+        .and_then(|value| value.as_i64())
+        .unwrap_or(findings.len() as i64);
+
+    Ok(GrammarCheckResult {
+        findings,
+        finding_count,
+        rules_applied: result
+            .get("rulesApplied")
+            .and_then(|value| value.as_i64())
+            .unwrap_or(0),
+        source: result
+            .get("source")
+            .and_then(|value| value.as_str())
+            .unwrap_or("python")
+            .to_string(),
+    })
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LibraryChatCitation {
@@ -2244,6 +2708,7 @@ pub fn nlp_library_answer(
     question: String,
     limit: Option<i64>,
     folder_id: Option<String>,
+    context: Option<Vec<DocumentAnswerContextMessage>>,
     stream: Option<bool>,
 ) -> Result<LibraryChatResult, String> {
     let trimmed = question.trim().to_string();
@@ -2343,7 +2808,23 @@ pub fn nlp_library_answer(
             &conn, &trimmed,
         ));
     }
-    let max_sentences = if passages.len() > hits.len() { 6 } else { 4 };
+    let passages = if let Some(messages) = context {
+        let turns: Vec<ChatTurn> = messages
+            .into_iter()
+            .map(|message| ChatTurn {
+                role: message.role,
+                text: message.text,
+            })
+            .collect();
+        merge_chat_memory_passages("__agent__", "Agent memory", json!(passages), &turns)
+    } else {
+        json!(passages)
+    };
+    let max_sentences = if passages.as_array().map(|items| items.len()).unwrap_or(0) > hits.len() {
+        6
+    } else {
+        4
+    };
     let (llm, want_stream) = {
         let conn = state.conn.lock().map_err(|e| e.to_string())?;
         let llm = llm_sidecar_options(&conn, "answer")?;
@@ -2377,7 +2858,7 @@ pub fn nlp_library_answer(
     }
     let result = sidecar.library_answer_scoped_with_options_progress(
         &trimmed,
-        json!(passages),
+        passages,
         max_sentences,
         "library",
         None,

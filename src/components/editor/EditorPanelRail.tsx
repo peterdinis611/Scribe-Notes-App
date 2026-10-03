@@ -23,9 +23,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { SPELLCHECK_AGENT_BLOBATAR_NAME } from '@/lib/library/spellcheck-agent'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
+  openAgentPanel,
   setAgentPanelOpen,
   setBacklinksPanelOpen,
   setClipboardHistoryPanelOpen,
@@ -81,6 +83,9 @@ export function EditorPanelRail() {
   const backlinksOpen = useAppSelector((state) => state.documents.backlinksPanelOpen)
   const insightsOpen = useAppSelector((state) => state.documents.insightsPanelOpen)
   const agentOpen = useAppSelector((state) => state.documents.agentPanelOpen)
+  const agentPersona = useAppSelector((state) => state.documents.agentPersona)
+  const generalAgentOpen = agentOpen && agentPersona === 'general'
+  const spellAgentOpen = agentOpen && agentPersona === 'spellcheck'
   const clipboardOpen = useAppSelector((state) => state.documents.clipboardHistoryPanelOpen)
   const flashcardsOpen = useAppSelector((state) => state.documents.flashcardsPanelOpen)
   const findReplaceOpen = useAppSelector((state) => state.documents.findReplaceOpen)
@@ -145,18 +150,47 @@ export function EditorPanelRail() {
 
   function openAgent() {
     closeOtherPanels('agent')
-    dispatch(setAgentPanelOpen(!agentOpen))
+    if (generalAgentOpen) dispatch(setAgentPanelOpen(false))
+    else dispatch(openAgentPanel({ persona: 'general' }))
+  }
+
+  function openSpellAgent() {
+    closeOtherPanels('agent')
+    if (spellAgentOpen) dispatch(setAgentPanelOpen(false))
+    else dispatch(openAgentPanel({ persona: 'spellcheck' }))
   }
 
   const agentButton = (
     <RailButton
       label={t('editorPanels.agent')}
-      active={agentOpen}
+      active={generalAgentOpen}
       tourId="panel-agent"
       className="editor-panel-rail-btn--agent"
       onClick={openAgent}
     >
-      <AgentBlobatar name={AGENT_BLOBATAR_NAME} size={22} talking={agentOpen} title={t('agent.faceTitle')} />
+      <AgentBlobatar
+        name={AGENT_BLOBATAR_NAME}
+        size={22}
+        talking={generalAgentOpen}
+        title={t('agent.faceTitle')}
+      />
+    </RailButton>
+  )
+
+  const spellAgentButton = (
+    <RailButton
+      label={t('editorPanels.spellcheckAgent')}
+      active={spellAgentOpen}
+      tourId="panel-spellcheck-agent"
+      className="editor-panel-rail-btn--spellcheck-agent"
+      onClick={openSpellAgent}
+    >
+      <AgentBlobatar
+        name={SPELLCHECK_AGENT_BLOBATAR_NAME}
+        size={22}
+        talking={spellAgentOpen}
+        title={t('agent.spellAgent.faceTitle')}
+      />
     </RailButton>
   )
 
@@ -168,6 +202,7 @@ export function EditorPanelRail() {
           aria-label={t('editorPanels.ariaLabel')}
         >
           {agentButton}
+          {spellAgentButton}
           <RailButton
             label={findReplaceOpen ? t('editorPanels.findReplaceClose') : t('editorPanels.findReplace')}
             active={findReplaceOpen}
@@ -220,6 +255,7 @@ export function EditorPanelRail() {
         <div className="editor-panel-rail-sep" aria-hidden="true" />
 
         {agentButton}
+        {spellAgentButton}
 
         <div className="editor-panel-rail-sep" aria-hidden="true" />
 

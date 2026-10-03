@@ -15,6 +15,8 @@ export type LinkGraphNodeData = {
   dimmed: boolean
   hovered: boolean
   isPage: boolean
+  /** Dense orphan maps: hide idle labels to avoid overlap. */
+  sparseLabels?: boolean
 }
 
 export type LinkGraphFlowNode = Node<LinkGraphNodeData, typeof LINK_GRAPH_NODE_TYPE>
@@ -29,7 +31,8 @@ function nodeRadius(data: LinkGraphNodeData): number {
   }
   const base = isPage ? 7 : 5.5
   const byDegree = Math.min(isPage ? 10 : 7, degree * (isPage ? 1.6 : 1.2))
-  const orphanShrink = orphan ? 0.72 : 1
+  // Keep orphan dots readable when idle labels are hidden (sparse maps).
+  const orphanShrink = orphan && !data.sparseLabels ? 0.72 : orphan ? 0.88 : 1
   const activeBoost = active ? (isPage ? 4 : 3) : 0
   return (base + byDegree) * orphanShrink + activeBoost
 }
@@ -37,10 +40,12 @@ function nodeRadius(data: LinkGraphNodeData): number {
 function LinkGraphNodeComponent({ data }: NodeProps<LinkGraphFlowNode>) {
   const r = nodeRadius(data)
   const size = Math.max(28, Math.round(r * 2 + 8))
-  const labelMax = data.isPage ? 26 : 14
+  const labelMax = data.isPage ? (data.sparseLabels ? 18 : 26) : 14
   const label =
     data.title.length > labelMax ? `${data.title.slice(0, labelMax - 1)}…` : data.title
-  const showLabel = data.isPage || data.active || data.hovered || !data.dimmed
+  const showLabel = data.sparseLabels
+    ? data.active || data.hovered
+    : data.isPage || data.active || data.hovered || !data.dimmed
 
   return (
     <div
@@ -50,10 +55,12 @@ function LinkGraphNodeComponent({ data }: NodeProps<LinkGraphFlowNode>) {
         data.orphan && 'is-orphan',
         data.hovered && 'is-hovered',
         data.dimmed && 'is-dim',
+        data.sparseLabels && 'is-sparse-labels',
         data.kind === 'tag' && 'is-tag',
         data.kind === 'entity' && 'is-entity',
       )}
       style={{ width: size, height: size }}
+      title={data.title}
     >
       <Handle type="target" position={Position.Top} className="link-graph-rf-handle" />
       <Handle type="source" position={Position.Bottom} className="link-graph-rf-handle" />

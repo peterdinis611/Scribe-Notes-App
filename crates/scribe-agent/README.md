@@ -7,7 +7,8 @@ Local Agent store in its **own** SQLite file (`scribe-agent.db`), separate from 
 | Table | Purpose |
 |--------|---------|
 | `agent_prefs` | enabled, max steps, prefer-fast, preferred/disabled tools |
-| `agent_teachings` | standing instructions the user taught the agent |
+| `agent_teachings` | standing instructions (`topic`: `general` \| `grammar`) |
+| `grammar` module | memory preamble + grammar rule texts for NLP / MCP |
 | `agent_runs` | recent goal/run log (capped) |
 
 Document-scoped chat memory (`agent_messages`) stays in `scribe.db` because it FKs to documents.
@@ -19,7 +20,8 @@ use scribe_agent::AgentStore;
 
 let store = AgentStore::from_path(path)?;
 let prefs = store.get_prefs()?;
-store.add_teaching("Prefer Slovak answers")?;
+store.add_teaching("Prefer Slovak answers", None)?;
+store.add_teaching("Prefer -ise endings", Some("grammar"))?;
 ```
 
 Tauri opens the DB under the app data dir and exposes commands in `commands/agent.rs`.

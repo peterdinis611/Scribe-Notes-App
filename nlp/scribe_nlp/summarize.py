@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from typing import Any
 
 from .text_utils import content_tokens, jaccard_similarity, split_sentences
 
@@ -69,21 +70,55 @@ def _select_with_mmr(
     return sorted(chosen)
 
 
-def summarize_text(text: str, max_sentences: int = 4) -> dict[str, object]:
+def summarize_text(
+    text: str,
+    max_sentences: int = 4,
+    *,
+    llm: dict[str, Any] | None = None,
+) -> dict[str, object]:
     sentences = split_sentences(text)
     max_sentences = max(1, min(max_sentences, 12))
 
     if not sentences:
-        return {"summary": "", "bullets": []}
+        return {"summary": "", "bullets": [], "enhanced": False, "source": "python"}
     if len(sentences) <= max_sentences:
-        return {"summary": " ".join(sentences), "bullets": sentences[:max_sentences]}
+        result: dict[str, object] = {
+            "summary": " ".join(sentences),
+            "bullets": sentences[:max_sentences],
+            "enhanced": False,
+            "source": "python",
+        }
+    else:
+        doc_freq = Counter(content_tokens(" ".join(sentences)))
+        weights = [
+            _sentence_weight(index, sentence, len(sentences), doc_freq)
+            for index, sentence in enumerate(sentences)
+        ]
+        chosen_indices = _select_with_mmr(sentences, weights, max_sentences)
+        bullets = [sentences[index] for index in chosen_indices]
+        result = {
+            "summary": " ".join(bullets),
+            "bullets": bullets,
+            "enhanced": False,
+            "source": "python",
+        }
 
-    doc_freq = Counter(content_tokens(" ".join(sentences)))
-    weights = [
-        _sentence_weight(index, sentence, len(sentences), doc_freq)
-        for index, sentence in enumerate(sentences)
-    ]
-    chosen_indices = _select_with_mmr(sentences, weights, max_sentences)
-    bullets = [sentences[index] for index in chosen_indices]
+    if isinstance(llm, dict) and llm:
+        from .llm import try_complete_from_options
 
-    return {"summary": " ".join(bullets), "bullets": bullets}
+        polished = try_complete_from_options(
+            llm,
+            prompt=(
+                "Rewrite this extractive summary into 2-4 crisp sentences. "
+                "Stay faithful; do not invent facts.\n\n"
+                f"{result['summary']}\n\nSource excerpt:\n{(text or '')[:2500]}"
+            ),
+            system="Output only the polished summary paragraph.",
+            max_tokens=280,
+        )
+        if polished:
+            result["summary"] = polished
+            result["llmSummary"] = polished
+            result["enhanced"] = True
+
+    return result

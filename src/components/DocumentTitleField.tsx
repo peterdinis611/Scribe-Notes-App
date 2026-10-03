@@ -99,7 +99,7 @@ export function DocumentTitleField({
           className,
         )}
         onClick={startEditing}
-        title={t('editor.renameTitleHint', { defaultValue: 'Kliknite pre premenovanie' })}
+        title={t('editor.renameTitleHint')}
       >
         {label}
       </button>
@@ -117,7 +117,7 @@ export function DocumentTitleField({
         event.stopPropagation()
         startEditing()
       }}
-      title={t('editor.renameTitleHintDouble', { defaultValue: 'Dvojklik pre premenovanie' })}
+      title={t('editor.renameTitleHintDouble')}
     >
       {label}
     </p>

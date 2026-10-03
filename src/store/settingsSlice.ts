@@ -5,7 +5,12 @@ import type { PageSetup } from '@/lib/editor/page-setup'
 import { applyThemeSettings } from '@/lib/themes/apply'
 import type { ThemeSettings } from '@/lib/themes/types'
 import type { UiSkin } from '@/lib/ui-skin'
-import type { AgentPrefs, AgentTeaching, AgentTeachingScope } from '@/lib/library/agent-prefs'
+import type {
+  AgentPrefs,
+  AgentTeaching,
+  AgentTeachingScope,
+  AgentTeachingTopic,
+} from '@/lib/library/agent-prefs'
 import {
   AGENT_PINNED_FACTS_MAX,
   AGENT_TEACHINGS_MAX,
@@ -236,7 +241,13 @@ const settingsSlice = createSlice({
     addAgentTeaching(
       state,
       action: PayloadAction<
-        string | { text: string; scope?: AgentTeachingScope; documentId?: string | null }
+        | string
+        | {
+            text: string
+            scope?: AgentTeachingScope
+            documentId?: string | null
+            topic?: AgentTeachingTopic
+          }
       >,
     ) {
       const payload = action.payload
@@ -244,7 +255,11 @@ const settingsSlice = createSlice({
       const opts =
         typeof payload === 'string'
           ? undefined
-          : { scope: payload.scope, documentId: payload.documentId }
+          : {
+              scope: payload.scope,
+              documentId: payload.documentId,
+              topic: payload.topic,
+            }
       const teaching = createTeaching(text, opts)
       if (!teaching) return
       const teachings = [teaching, ...state.agentPrefs.teachings]
@@ -257,7 +272,7 @@ const settingsSlice = createSlice({
       const next = normalizeAgentPrefs({ ...state.agentPrefs, teachings })
       state.agentPrefs = next
       persistAgentPrefs(next)
-      void teachAgentBackend(teaching.text)
+      void teachAgentBackend(teaching.text, teaching.topic === 'grammar' ? 'grammar' : 'general')
     },
     removeAgentTeaching(state, action: PayloadAction<string>) {
       const teachings = state.agentPrefs.teachings.filter((item) => item.id !== action.payload)

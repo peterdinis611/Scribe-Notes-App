@@ -30,7 +30,7 @@ import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { IconTooltip } from '@/components/ui/tooltip'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { setAgentPanelOpen, setLibraryGraphAroundActive, setLibraryView, setTrashOpen } from '@/store/documentsSlice'
+import { openAgentPanel, setAgentPanelOpen, setLibraryGraphAroundActive, setLibraryView, setTrashOpen } from '@/store/documentsSlice'
 import {
   setCommandPaletteOpen,
 } from '@/store/foldersSlice'
@@ -221,7 +221,8 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                   wikiHealthCount={wikiHealthCount}
                   onChange={(view) => {
                     if (view === 'agent' || view === 'chat') {
-                      dispatch(setAgentPanelOpen(!agentPanelOpen))
+                      if (agentPanelOpen) dispatch(setAgentPanelOpen(false))
+                      else dispatch(openAgentPanel({ persona: 'general' }))
                       return
                     }
                     if (view === 'storage') {

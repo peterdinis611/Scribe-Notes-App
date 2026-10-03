@@ -72,6 +72,7 @@ pub fn is_chat_memory_citation_title(title: &str) -> bool {
         || lower.contains("earlier chat")
         || lower.contains("note memory")
         || lower.contains("library memory")
+        || lower.contains("agent memory")
 }
 
 pub fn followups_from_sidecar(result: &Value) -> Vec<String> {

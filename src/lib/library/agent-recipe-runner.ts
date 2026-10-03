@@ -15,9 +15,18 @@ export async function runAgentRecipeFromPalette(recipeId: AgentRecipeId) {
     return
   }
   const documentId = state.documents.activeDocumentId
-  const scope = documentId ? 'document' : 'library'
+  const libraryRecipes = new Set<AgentRecipeId>(['daily_digest', 'weekly_review', 'files_digest', 'cleanup'])
+  const forceLibrary = libraryRecipes.has(recipeId)
+  const scope = forceLibrary || !documentId ? 'library' : 'document'
   try {
-    const result = await runAgentGoal('', scope, documentId, undefined, prefs, { recipeId })
+    const result = await runAgentGoal(
+      '',
+      scope,
+      forceLibrary ? null : documentId,
+      undefined,
+      prefs,
+      { recipeId },
+    )
     if (result.nextPrefs) store.dispatch(setAgentPrefs(result.nextPrefs))
     if (result.needsClarification) {
       toast.info(i18n.t('agent.clarifyPrompt'))

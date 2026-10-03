@@ -19,6 +19,11 @@ import '@xyflow/react/dist/style.css'
 import type { LinkGraphEdge } from '@/lib/db/api'
 import {
   createForceSimulation,
+  separateOverlappingNodes,
+  suggestedLayoutSize,
+  analyzeGraphDensity,
+  LINK_GRAPH_FIT,
+  LINK_GRAPH_FIT_PAGE,
   type ForceNodeKind,
 } from '@/lib/link-graph/force-layout'
 import { cn } from '@/lib/utils'
@@ -67,8 +72,10 @@ function layoutSeeds(
   edges: LinkGraphEdge[],
   size: number,
   tight: boolean,
-): LinkGraphFlowNode[] {
-  if (seeds.length === 0) return []
+): { nodes: LinkGraphFlowNode[]; sparseLabels: boolean } {
+  if (seeds.length === 0) return { nodes: [], sparseLabels: false }
+  const orphanCount = seeds.filter((seed) => seed.orphan).length
+  const density = analyzeGraphDensity(seeds.length, edges.length, orphanCount)
   const sim = createForceSimulation(
     seeds.map((seed) => ({
       id: seed.id,
@@ -83,9 +90,19 @@ function layoutSeeds(
   )
 
   let guard = 0
-  while (sim.step() && guard < 500) guard += 1
+  const maxSteps = density.sparse ? 700 : 500
+  while (sim.step() && guard < maxSteps) guard += 1
 
-  return sim.nodes.map((node) => {
+  const sep = density.sparse
+    ? Math.max(64, Math.min(120, 52 + Math.sqrt(seeds.length) * 7))
+    : seeds.length <= 14
+      ? Math.max(96, 120 - seeds.length * 1.5)
+      : 72
+  separateOverlappingNodes(sim.nodes, sep)
+
+  const sparseLabels = density.sparse && seeds.length >= 16
+
+  const nodes = sim.nodes.map((node) => {
     const kind = node.kind ?? 'document'
     const r =
       kind === 'tag'
@@ -108,11 +125,14 @@ function layoutSeeds(
         dimmed: false,
         hovered: false,
         isPage: false,
+        sparseLabels,
       } satisfies LinkGraphNodeData,
       draggable: true,
       selectable: true,
     } satisfies LinkGraphFlowNode
   })
+
+  return { nodes, sparseLabels }
 }
 
 function toFlowEdges(edges: LinkGraphEdge[], activeId: string | null): Edge[] {
@@ -135,11 +155,12 @@ function toFlowEdges(edges: LinkGraphEdge[], activeId: string | null): Edge[] {
   })
 }
 
-function LinkGraphZoomPanel() {
+function LinkGraphZoomPanel({ isPage }: { isPage: boolean }) {
   const { zoomIn, zoomOut, fitView } = useReactFlow()
   const zoom = useStore((state) => state.transform[2])
   const { t } = useTranslation()
   const percent = Math.round(zoom * 100)
+  const fitOpts = isPage ? LINK_GRAPH_FIT_PAGE : LINK_GRAPH_FIT
 
   return (
     <Panel position="bottom-left" className="link-graph-rf-zoom">
@@ -160,7 +181,7 @@ function LinkGraphZoomPanel() {
           type="button"
           className="link-graph-rf-zoom-readout"
           aria-label={t('linkGraph.fitView')}
-          onClick={() => void fitView({ padding: 0.2, duration: 220 })}
+          onClick={() => void fitView({ ...fitOpts, duration: 220 })}
         >
           {percent}%
         </button>
@@ -184,7 +205,7 @@ function LinkGraphZoomPanel() {
           size="icon"
           className="h-8 w-8"
           aria-label={t('linkGraph.fitView')}
-          onClick={() => void fitView({ padding: 0.2, duration: 220 })}
+          onClick={() => void fitView({ ...fitOpts, duration: 220 })}
         >
           <Maximize2 className="h-3.5 w-3.5" />
         </Button>
@@ -206,28 +227,43 @@ function LinkGraphFlowInner({
   onFocusEntity,
   onFocusDocument,
 }: LinkGraphFlowProps) {
-  const size = isPage ? 900 : 360
+  const orphanCount = useMemo(
+    () => seeds.filter((seed) => seed.orphan).length,
+    [seeds],
+  )
+  const density = useMemo(
+    () => analyzeGraphDensity(seeds.length, edges.length, orphanCount),
+    [edges.length, orphanCount, seeds.length],
+  )
+  const size = suggestedLayoutSize({
+    isPage,
+    nodeCount: seeds.length,
+    sparse: density.sparse && !aroundActive,
+  })
+  const fitOpts = isPage ? LINK_GRAPH_FIT_PAGE : LINK_GRAPH_FIT
   const { fitView } = useReactFlow()
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const clickTimerRef = useRef<number | null>(null)
   const topologyKey = useMemo(
     () =>
-      `${size}:${aroundActive}:${seeds.map((s) => s.id).join(',')}:${edges.length}`,
-    [aroundActive, edges.length, seeds, size],
+      `${size}:${aroundActive}:${density.sparse}:${seeds.map((s) => s.id).join(',')}:${edges.length}`,
+    [aroundActive, density.sparse, edges.length, seeds, size],
   )
 
   const [nodes, setNodes, onNodesChange] = useNodesState<LinkGraphFlowNode>([])
   const [flowEdges, setFlowEdges, onEdgesChange] = useEdgesState<Edge>([])
 
   useEffect(() => {
-    const laidOut = layoutSeeds(seeds, edges, size, aroundActive).map((node) => ({
-      ...node,
-      data: { ...node.data, isPage },
-    }))
-    setNodes(laidOut)
+    const { nodes: laidOut } = layoutSeeds(seeds, edges, size, aroundActive)
+    setNodes(
+      laidOut.map((node) => ({
+        ...node,
+        data: { ...node.data, isPage },
+      })),
+    )
     setFlowEdges(toFlowEdges(edges, activeId))
     const frame = requestAnimationFrame(() => {
-      void fitView({ padding: isPage ? 0.18 : 0.22, duration: 280 })
+      void fitView({ ...fitOpts, duration: 280 })
     })
     return () => cancelAnimationFrame(frame)
     // Topology / viewport size only — active/hover patched separately.
@@ -365,9 +401,9 @@ function LinkGraphFlowInner({
         onNodeMouseEnter={(_e, node) => setHoveredId(node.id)}
         onNodeMouseLeave={() => setHoveredId(null)}
         fitView
-        fitViewOptions={{ padding: isPage ? 0.18 : 0.22 }}
-        minZoom={0.2}
-        maxZoom={4}
+        fitViewOptions={fitOpts}
+        minZoom={0.05}
+        maxZoom={2.25}
         proOptions={{ hideAttribution: true }}
         nodesConnectable={false}
         edgesReconnectable={false}
@@ -387,7 +423,7 @@ function LinkGraphFlowInner({
           size={1.15}
           color="color-mix(in srgb, var(--color-accent) 28%, transparent)"
         />
-        <LinkGraphZoomPanel />
+        <LinkGraphZoomPanel isPage={isPage} />
         {isPage ? (
           <MiniMap
             className="link-graph-rf-minimap"

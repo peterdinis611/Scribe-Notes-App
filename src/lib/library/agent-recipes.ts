@@ -1,11 +1,16 @@
 import type { AgentToolId } from '@/lib/library/agent-prefs'
 
 export type AgentRecipeId =
+  | 'daily_digest'
   | 'weekly_review'
   | 'meeting_wrap'
   | 'study_pass'
   | 'cleanup'
   | 'polish'
+  | 'deep_read'
+  | 'files_digest'
+  | 'note_to_template'
+  | 'spellcheck'
 
 export type AgentRecipe = {
   id: AgentRecipeId
@@ -19,14 +24,25 @@ export type AgentRecipe = {
 
 export const AGENT_RECIPES: AgentRecipe[] = [
   {
+    id: 'daily_digest',
+    labelKey: 'agent.recipes.dailyDigest',
+    tools: ['brief'],
+  },
+  {
     id: 'weekly_review',
     labelKey: 'agent.recipes.weeklyReview',
-    tools: ['dates', 'tasks', 'takeaways'],
+    tools: ['brief', 'dates'],
   },
   {
     id: 'meeting_wrap',
     labelKey: 'agent.recipes.meetingWrap',
     tools: ['meeting', 'tasks', 'takeaways'],
+    documentPreferred: true,
+  },
+  {
+    id: 'note_to_template',
+    labelKey: 'agent.recipes.noteToTemplate',
+    tools: ['outline', 'save_template'],
     documentPreferred: true,
   },
   {
@@ -36,9 +52,26 @@ export const AGENT_RECIPES: AgentRecipe[] = [
     documentPreferred: true,
   },
   {
+    id: 'deep_read',
+    labelKey: 'agent.recipes.deepRead',
+    tools: ['outline', 'glossary', 'takeaways', 'flashcards'],
+    documentPreferred: true,
+  },
+  {
+    id: 'files_digest',
+    labelKey: 'agent.recipes.filesDigest',
+    tools: ['files_answer'],
+  },
+  {
     id: 'cleanup',
     labelKey: 'agent.recipes.cleanup',
     tools: ['duplicates', 'wiki', 'organize'],
+  },
+  {
+    id: 'spellcheck',
+    labelKey: 'agent.recipes.spellcheck',
+    tools: ['spellcheck'],
+    documentPreferred: true,
   },
   {
     id: 'polish',

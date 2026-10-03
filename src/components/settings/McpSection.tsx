@@ -36,6 +36,7 @@ const CLAUDE_CONFIG = `{
 const SAMPLE_TOOLS = [
   { id: 'scribe_status', hintKey: 'settings.mcp.tools.status' },
   { id: 'run_agent', hintKey: 'settings.mcp.tools.runAgent' },
+  { id: 'run_spellcheck_agent', hintKey: 'settings.mcp.tools.runSpellcheckAgent' },
   { id: 'llm_status', hintKey: 'settings.mcp.tools.llmStatus' },
   { id: 'llm_complete', hintKey: 'settings.mcp.tools.llmComplete' },
   { id: 'search_documents', hintKey: 'settings.mcp.tools.search' },
@@ -46,6 +47,9 @@ const SAMPLE_TOOLS = [
   { id: 'extract_flashcards', hintKey: 'settings.mcp.tools.flashcards' },
   { id: 'extract_takeaways', hintKey: 'settings.mcp.tools.takeaways' },
   { id: 'writing_coach', hintKey: 'settings.mcp.tools.writingCoach' },
+  { id: 'explain_selection', hintKey: 'settings.mcp.tools.explainSelection' },
+  { id: 'glossary', hintKey: 'settings.mcp.tools.glossary' },
+  { id: 'files_answer', hintKey: 'settings.mcp.tools.filesAnswer' },
   { id: 'outline_quiz', hintKey: 'settings.mcp.tools.outlineQuiz' },
   { id: 'meeting_notes_pack', hintKey: 'settings.mcp.tools.meetingPack' },
   { id: 'citation_pack', hintKey: 'settings.mcp.tools.citationPack' },

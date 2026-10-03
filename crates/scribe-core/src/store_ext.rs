@@ -548,6 +548,25 @@ impl ScribeStore {
         Ok(parse_spellcheck(&sidecar.spellcheck(&text, None, 80)?))
     }
 
+    /// Apply standing grammar teachings to a note or plaintext (NLP `grammar_check`).
+    pub fn grammar_check(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+        rules: &[String],
+        limit: Option<i64>,
+    ) -> Result<Value, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        sidecar.grammar_check(
+            &source,
+            rules,
+            limit.unwrap_or(24).clamp(1, 40),
+        )
+    }
+
     pub fn extract_document_keywords(
         &self,
         sidecar: &NlpSidecar,
@@ -1299,7 +1318,177 @@ impl ScribeStore {
         let source = self.nlp_source_text(document_id, text)?;
         require_nlp(&self.db)?;
         sync_sidecar_backend(sidecar, &self.db)?;
-        sidecar.writing_coach(&source, limit.unwrap_or(12).clamp(1, 30))
+        let llm = crate::db::llm_sidecar_options(&self.db, "enhance")?;
+        sidecar.writing_coach(&source, limit.unwrap_or(12).clamp(1, 30), llm.as_ref())
+    }
+
+    pub fn explain_selection(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+    ) -> Result<Value, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        let llm = crate::db::llm_sidecar_options(&self.db, "enhance")?;
+        sidecar.explain_selection(&source, llm.as_ref())
+    }
+
+    pub fn simplify_text(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+    ) -> Result<Value, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        let llm = crate::db::llm_sidecar_options(&self.db, "enhance")?;
+        sidecar.simplify_text(&source, llm.as_ref())
+    }
+
+    pub fn action_items(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+        limit: Option<i64>,
+    ) -> Result<Value, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        let llm = crate::db::llm_sidecar_options(&self.db, "enhance")?;
+        sidecar.action_items(&source, limit.unwrap_or(12).clamp(1, 30), llm.as_ref())
+    }
+
+    pub fn glossary(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+        limit: Option<i64>,
+    ) -> Result<Value, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        let llm = crate::db::llm_sidecar_options(&self.db, "enhance")?;
+        sidecar.glossary(&source, limit.unwrap_or(16).clamp(1, 40), llm.as_ref())
+    }
+
+    pub fn compare_notes(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id_a: Option<&str>,
+        document_id_b: Option<&str>,
+        text_a: Option<&str>,
+        text_b: Option<&str>,
+        title_a: Option<&str>,
+        title_b: Option<&str>,
+    ) -> Result<Value, String> {
+        let source_a = self.nlp_source_text(document_id_a, text_a)?;
+        let source_b = self.nlp_source_text(document_id_b, text_b)?;
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        let llm = crate::db::llm_sidecar_options(&self.db, "enhance")?;
+        sidecar.compare_notes(
+            &source_a,
+            &source_b,
+            title_a,
+            title_b,
+            llm.as_ref(),
+        )
+    }
+
+    pub fn files_list(
+        &self,
+        sidecar: &NlpSidecar,
+        path: &str,
+        recursive: bool,
+        base_url: Option<&str>,
+    ) -> Result<Value, String> {
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        sidecar.files_list(path, recursive, base_url)
+    }
+
+    pub fn files_read_text(
+        &self,
+        sidecar: &NlpSidecar,
+        path: &str,
+        base_url: Option<&str>,
+    ) -> Result<Value, String> {
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        sidecar.files_read_text(path, base_url)
+    }
+
+    pub fn files_search(
+        &self,
+        sidecar: &NlpSidecar,
+        query: &str,
+        path: Option<&str>,
+        glob: Option<&str>,
+        limit: Option<i64>,
+        base_url: Option<&str>,
+    ) -> Result<Value, String> {
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        sidecar.files_search(
+            query,
+            path,
+            glob,
+            limit.unwrap_or(40).clamp(1, 100),
+            base_url,
+        )
+    }
+
+    pub fn files_summarize(
+        &self,
+        sidecar: &NlpSidecar,
+        path: &str,
+        limit: Option<i64>,
+        base_url: Option<&str>,
+    ) -> Result<Value, String> {
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        sidecar.files_summarize(path, limit.unwrap_or(8).clamp(1, 20), base_url)
+    }
+
+    pub fn files_answer(
+        &self,
+        sidecar: &NlpSidecar,
+        question: &str,
+        path: Option<&str>,
+        limit: Option<i64>,
+        base_url: Option<&str>,
+    ) -> Result<Value, String> {
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        sidecar.files_answer(
+            question,
+            path,
+            limit.unwrap_or(6).clamp(1, 12),
+            base_url,
+        )
+    }
+
+    pub fn files_index(
+        &self,
+        sidecar: &NlpSidecar,
+        path: &str,
+        limit_files: Option<i64>,
+        force: bool,
+        base_url: Option<&str>,
+    ) -> Result<Value, String> {
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        sidecar.files_index(
+            path,
+            limit_files.unwrap_or(40).clamp(1, 80),
+            force,
+            base_url,
+        )
     }
 
     pub fn analyze_revision_diff(
@@ -1496,6 +1685,7 @@ impl ScribeStore {
         use_rewrite: Option<bool>,
         use_answer: Option<bool>,
         use_plan: Option<bool>,
+        enhance_heuristics: Option<bool>,
     ) -> Result<Value, String> {
         crate::db::set_llm_prefs(
             &self.db,
@@ -1506,6 +1696,7 @@ impl ScribeStore {
             use_rewrite,
             use_answer,
             use_plan,
+            enhance_heuristics,
         )?;
         self.nlp_status(sidecar)
     }
@@ -1523,6 +1714,7 @@ impl ScribeStore {
             } else {
                 Some(prefs.model.as_str())
             },
+            Some(prefs.provider.as_str()),
         )
     }
 
@@ -1551,6 +1743,7 @@ impl ScribeStore {
             } else {
                 Some(prefs.model.as_str())
             },
+            Some(prefs.provider.as_str()),
             temperature,
             max_tokens,
         )

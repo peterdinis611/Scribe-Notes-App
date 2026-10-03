@@ -1,5 +1,5 @@
-import { GraduationCap, Pin, Trash2, Zap } from 'lucide-react'
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { GraduationCap, Pin, Sparkles, Trash2, Zap } from 'lucide-react'
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AgentBlobatar, AGENT_BLOBATAR_NAME } from '@/components/agent/AgentBlobatar'
 import { Button } from '@/components/ui/button'
@@ -14,8 +14,14 @@ import {
   type AgentMaxSteps,
   type AgentOutputLanguage,
   type AgentTeachingScope,
+  type AgentTeachingTopic,
   type AgentToolId,
 } from '@/lib/library/agent-prefs'
+import {
+  AGENT_TEACH_DRAFT_MAX_LEN,
+  canDistillTeachingWithLlm,
+  distillTeachingWithLlm,
+} from '@/lib/library/agent-teach'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
@@ -50,6 +56,13 @@ const TOOL_LABEL_KEYS: Record<AgentToolId, string> = {
   spellcheck: 'agent.tools.spellcheck',
   rewrite: 'agent.tools.rewrite',
   brief: 'agent.tools.brief',
+  explain: 'agent.tools.explain',
+  simplify: 'agent.tools.simplify',
+  action_items: 'agent.tools.action_items',
+  glossary: 'agent.tools.glossary',
+  compare_notes: 'agent.tools.compare_notes',
+  files_answer: 'agent.tools.files_answer',
+  save_template: 'agent.tools.save_template',
 }
 
 type ToolMode = 'default' | 'prefer' | 'never'
@@ -135,6 +148,10 @@ export function AgentSection() {
   const [teachInput, setTeachInput] = useState('')
   const [pinInput, setPinInput] = useState('')
   const [teachScope, setTeachScope] = useState<AgentTeachingScope>('global')
+  const [teachTopic, setTeachTopic] = useState<AgentTeachingTopic>('general')
+  const [teachWithAi, setTeachWithAi] = useState(true)
+  const [teachBusy, setTeachBusy] = useState(false)
+  const [llmTeachReady, setLlmTeachReady] = useState<boolean | null>(null)
 
   const budgetMax = prefs.dailyRunBudget
   const budgetUsed = prefs.runsToday
@@ -146,6 +163,16 @@ export function AgentSection() {
     dispatch(patchAgentPrefs({ enabled: next }))
     toast.success(next ? t('settings.agent.enabledToast') : t('settings.agent.disabledToast'))
   }
+
+  useEffect(() => {
+    let cancelled = false
+    void canDistillTeachingWithLlm().then((ready) => {
+      if (!cancelled) setLlmTeachReady(ready)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   function setMaxSteps(maxSteps: AgentMaxSteps) {
     dispatch(patchAgentPrefs({ maxSteps }))
@@ -163,26 +190,46 @@ export function AgentSection() {
     dispatch(patchAgentPrefs({ preferredTools, disabledTools }))
   }
 
-  function handleTeach() {
-    const text = teachInput.trim()
-    if (text.length < 2) return
-    if (teachScope === 'document') {
-      if (!activeDocumentId) {
-        toast.error(t('settings.agent.teachNeedsDocument'))
-        return
+  async function handleTeach() {
+    const draft = teachInput.trim()
+    if (draft.length < 2 || teachBusy) return
+    setTeachBusy(true)
+    try {
+      const result = teachWithAi
+        ? await distillTeachingWithLlm(draft, {
+            force: draft.length > AGENT_TEACHING_MAX_LEN || draft.includes('\n'),
+            topic: teachTopic,
+          })
+        : { text: draft.slice(0, AGENT_TEACHING_MAX_LEN), distilled: false }
+      if (teachScope === 'document') {
+        if (!activeDocumentId) {
+          toast.error(t('settings.agent.teachNeedsDocument'))
+          return
+        }
+        dispatch(
+          addAgentTeaching({
+            text: result.text,
+            scope: 'document',
+            documentId: activeDocumentId,
+            topic: teachTopic,
+          }),
+        )
+      } else {
+        dispatch(addAgentTeaching({ text: result.text, topic: teachTopic }))
       }
-      dispatch(
-        addAgentTeaching({
-          text,
-          scope: 'document',
-          documentId: activeDocumentId,
-        }),
+      setTeachInput('')
+      toast.success(
+        result.distilled
+          ? t('settings.agent.teachRefinedToast')
+          : teachTopic === 'grammar'
+            ? t('settings.agent.taughtGrammarToast')
+            : t('settings.agent.taughtToast'),
       )
-    } else {
-      dispatch(addAgentTeaching(text))
+    } catch {
+      toast.error(t('settings.agent.teachRefineOffline'))
+    } finally {
+      setTeachBusy(false)
     }
-    setTeachInput('')
-    toast.success(t('settings.agent.taughtToast'))
   }
 
   return (
@@ -533,34 +580,84 @@ export function AgentSection() {
               {t('settings.agent.teachScopeToggleDocument')}
             </button>
           </div>
+          <div
+            className="agent-scope-switch mb-2"
+            role="group"
+            aria-label={t('settings.agent.teachTopicLabel')}
+          >
+            <button
+              type="button"
+              className={cn('library-chat-scope-tab', teachTopic === 'general' && 'is-active')}
+              onClick={() => setTeachTopic('general')}
+            >
+              {t('settings.agent.teachTopicGeneral')}
+            </button>
+            <button
+              type="button"
+              className={cn('library-chat-scope-tab', teachTopic === 'grammar' && 'is-active')}
+              onClick={() => setTeachTopic('grammar')}
+            >
+              {t('settings.agent.teachTopicGrammar')}
+            </button>
+          </div>
           <p className="mb-2 text-[11px] text-[var(--color-muted-foreground)]">
-            {teachScope === 'document'
-              ? t('settings.agent.teachScopeDocument')
-              : t('settings.agent.teachScopeGlobal')}
+            {teachTopic === 'grammar'
+              ? t('settings.agent.teachTopicGrammarHint')
+              : teachScope === 'document'
+                ? t('settings.agent.teachScopeDocument')
+                : t('settings.agent.teachScopeGlobal')}
           </p>
 
           <form
-            className="agent-settings-teach-form"
+            className="agent-settings-teach-form agent-settings-teach-form--stack"
             onSubmit={(event) => {
               event.preventDefault()
-              handleTeach()
+              void handleTeach()
             }}
           >
-            <input
+            <textarea
               value={teachInput}
-              maxLength={AGENT_TEACHING_MAX_LEN}
-              disabled={!prefs.enabled}
+              maxLength={AGENT_TEACH_DRAFT_MAX_LEN}
+              disabled={!prefs.enabled || teachBusy}
+              rows={3}
               placeholder={
-                teachScope === 'document'
-                  ? t('settings.agent.teachPlaceholderDocument')
-                  : t('settings.agent.teachPlaceholder')
+                teachTopic === 'grammar'
+                  ? t('settings.agent.teachPlaceholderGrammar')
+                  : teachWithAi
+                    ? t('settings.agent.teachPlaceholderLong')
+                    : teachScope === 'document'
+                      ? t('settings.agent.teachPlaceholderDocument')
+                      : t('settings.agent.teachPlaceholder')
               }
               onChange={(event) => setTeachInput(event.target.value)}
               aria-label={t('settings.agent.teachTitle')}
             />
-            <Button type="submit" size="sm" disabled={!prefs.enabled || teachInput.trim().length < 2}>
-              {t('settings.agent.teachAdd')}
-            </Button>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                className={cn('library-chat-chip', teachWithAi && 'is-active')}
+                aria-pressed={teachWithAi}
+                disabled={!prefs.enabled}
+                title={t('settings.agent.teachRefineHint')}
+                onClick={() => setTeachWithAi((value) => !value)}
+              >
+                <Sparkles className="mr-1 inline h-3 w-3" />
+                {t('settings.agent.teachRefine')}
+              </button>
+              {teachWithAi && llmTeachReady === false ? (
+                <span className="text-[11px] text-[var(--color-muted-foreground)]">
+                  {t('settings.agent.teachRefineOffline')}
+                </span>
+              ) : null}
+              <Button
+                type="submit"
+                size="sm"
+                className="ml-auto"
+                disabled={!prefs.enabled || teachInput.trim().length < 2 || teachBusy}
+              >
+                {teachBusy ? t('settings.agent.teachRefineBusy') : t('settings.agent.teachAdd')}
+              </Button>
+            </div>
           </form>
 
           {prefs.teachings.length > 0 ? (
@@ -577,6 +674,11 @@ export function AgentSection() {
                           ? t('settings.agent.teachBadgeDocument')
                           : t('settings.agent.teachBadgeGlobal')}
                       </span>
+                      {item.topic === 'grammar' ? (
+                        <span className="mr-1.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-accent)] opacity-80">
+                          {t('settings.agent.teachBadgeGrammar')}
+                        </span>
+                      ) : null}
                       {item.text}
                     </span>
                     <button

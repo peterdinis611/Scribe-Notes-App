@@ -101,7 +101,7 @@ import {
   setClipboardHistoryPanelOpen,
   setCommentsPanelOpen,
   setDocumentOutlineOpen,
-  setAgentPanelOpen,
+  openAgentPanel,
   setInsightsPanelOpen,
   requestInsightsAskFocus,
   setLibraryFindReplaceOpen,
@@ -618,7 +618,15 @@ export function CommandPalette() {
               hint: getDisplayKeysForShortcut('askThisNote', shortcutOverrides).join(''),
               icon: <MessageSquare className="h-4 w-4" />,
               run: () => {
-                if (!activeDocumentId || !nlpEnabled) return
+                if (!activeDocumentId) {
+                  toast.info(t('libraryChat.noActiveDocument'))
+                  return
+                }
+                if (!nlpEnabled) {
+                  toast.info(t('libraryChat.nlpDisabled'))
+                  navigate(ROUTES.settingsSection('nlp'))
+                  return
+                }
                 dispatch(requestInsightsAskFocus())
               },
             },
@@ -776,6 +784,14 @@ export function CommandPalette() {
       },
       {
         type: 'action',
+        id: 'settings-nlp',
+        label: t('settings.nlp.title'),
+        hint: t('settings.sections.nlp.description'),
+        icon: <Sparkles className="h-4 w-4" />,
+        run: () => navigate(ROUTES.settingsSection('nlp')),
+      },
+      {
+        type: 'action',
         id: 'mobile-capture',
         label: t('commandPalette.mobileCapture'),
         hint: t('commandPalette.mobileCaptureHint'),
@@ -870,7 +886,28 @@ export function CommandPalette() {
         label: t('commandPalette.openAgent'),
         icon: <Bot className="h-4 w-4" />,
         run: () => {
-          dispatch(setAgentPanelOpen(true))
+          dispatch(openAgentPanel({ persona: 'general' }))
+        },
+      },
+      {
+        type: 'action',
+        id: 'open-spellcheck-agent',
+        label: t('commandPalette.openSpellcheckAgent'),
+        icon: <Bot className="h-4 w-4" />,
+        run: () => {
+          dispatch(openAgentPanel({ persona: 'spellcheck' }))
+        },
+      },
+      {
+        type: 'action',
+        id: 'agent-daily-digest',
+        label: t('agent.recipes.dailyDigest'),
+        icon: <Bot className="h-4 w-4" />,
+        run: () => {
+          dispatch(openAgentPanel({ persona: 'general' }))
+          void import('@/lib/library/agent-recipe-runner').then(({ runAgentRecipeFromPalette }) =>
+            runAgentRecipeFromPalette('daily_digest'),
+          )
         },
       },
       {
@@ -879,7 +916,7 @@ export function CommandPalette() {
         label: t('agent.recipes.weeklyReview'),
         icon: <Bot className="h-4 w-4" />,
         run: () => {
-          dispatch(setAgentPanelOpen(true))
+          dispatch(openAgentPanel({ persona: 'general' }))
           void import('@/lib/library/agent-recipe-runner').then(({ runAgentRecipeFromPalette }) =>
             runAgentRecipeFromPalette('weekly_review'),
           )
@@ -891,10 +928,31 @@ export function CommandPalette() {
         label: t('agent.recipes.meetingWrap'),
         icon: <Bot className="h-4 w-4" />,
         run: () => {
-          dispatch(setAgentPanelOpen(true))
+          dispatch(openAgentPanel({ persona: 'general' }))
           void import('@/lib/library/agent-recipe-runner').then(({ runAgentRecipeFromPalette }) =>
             runAgentRecipeFromPalette('meeting_wrap'),
           )
+        },
+      },
+      {
+        type: 'action',
+        id: 'agent-note-to-template',
+        label: t('agent.recipes.noteToTemplate'),
+        icon: <Bot className="h-4 w-4" />,
+        run: () => {
+          dispatch(openAgentPanel({ persona: 'general' }))
+          void import('@/lib/library/agent-recipe-runner').then(({ runAgentRecipeFromPalette }) =>
+            runAgentRecipeFromPalette('note_to_template'),
+          )
+        },
+      },
+      {
+        type: 'action',
+        id: 'agent-spellcheck',
+        label: t('agent.recipes.spellcheck'),
+        icon: <Bot className="h-4 w-4" />,
+        run: () => {
+          dispatch(openAgentPanel({ persona: 'spellcheck' }))
         },
       },
       {

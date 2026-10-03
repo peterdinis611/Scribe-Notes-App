@@ -2,6 +2,7 @@ import { useState } from 'react'
 import {
   Bot,
   Check,
+  GraduationCap,
   Languages,
   Layers,
   Link2,
@@ -23,9 +24,11 @@ import {
   type WritingCoachHint,
 } from '@/lib/db/nlp-api'
 import { applyWikiSuggestion } from '@/lib/editor/apply-suggestions'
+import { distillTeachingWithLlm } from '@/lib/library/agent-teach'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { store } from '@/store/index'
+import { addAgentTeaching } from '@/store/settingsSlice'
 
 type SelectionAIContextMenuProps = {
   selectedText: string
@@ -108,6 +111,40 @@ export function SelectionAIContextMenu({
       setCustomOpen(false)
     } catch (error) {
       toast.error(t('aiRewrite.error'), String(error))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleTeachSelection(topic: 'general' | 'grammar' = 'general') {
+    const text = selectedText.trim()
+    if (!text || loading) return
+    setLoading(true)
+    try {
+      const result = await distillTeachingWithLlm(text, { force: true, topic })
+      const documentId = store.getState().documents.activeDocumentId
+      if (documentId) {
+        store.dispatch(
+          addAgentTeaching({
+            text: result.text,
+            scope: 'document',
+            documentId,
+            topic,
+          }),
+        )
+      } else {
+        store.dispatch(addAgentTeaching({ text: result.text, topic }))
+      }
+      toast.success(
+        result.distilled
+          ? t('settings.agent.teachRefinedToast')
+          : topic === 'grammar'
+            ? t('settings.agent.taughtGrammarToast')
+            : t('settings.agent.taughtToast'),
+      )
+      resetViews()
+    } catch {
+      toast.error(t('settings.agent.teachRefineOffline'))
     } finally {
       setLoading(false)
     }
@@ -329,6 +366,22 @@ export function SelectionAIContextMenu({
           >
             <Bot className="h-3.5 w-3.5" aria-hidden />
             {t('aiRewrite.agentRewrite')}
+          </button>
+          <button
+            type="button"
+            className="selection-ai__mode"
+            onClick={() => void handleTeachSelection('general')}
+          >
+            <GraduationCap className="h-3.5 w-3.5" aria-hidden />
+            {t('aiRewrite.teachAgent')}
+          </button>
+          <button
+            type="button"
+            className="selection-ai__mode"
+            onClick={() => void handleTeachSelection('grammar')}
+          >
+            <GraduationCap className="h-3.5 w-3.5" aria-hidden />
+            {t('aiRewrite.teachGrammar')}
           </button>
           <button
             type="button"

@@ -496,14 +496,41 @@ Configure opt-in Local LLM (writable MCP only): `enabled`, `baseUrl` (localhost)
 
 ## `run_agent`
 
-Same local agent planner as the Scribe app (`plan_agent_goal` + tool execution). Optional LLM planner when Local LLM + plan is enabled.
+Same local agent planner as the Scribe app (`plan_agent_goal` + tool execution). Optional LLM planner when Local LLM + plan is enabled. Respects agent prefs (disabled tools, max steps) and injects teachings from `scribe-agent.db`.
 
 | Arg | Type | Required | Notes |
 |-----|------|----------|--------|
 | `goal` | string | yes | Natural-language goal |
 | `scope` | string | no | `library` or `document` |
 | `documentId` | string | no | Required for most document tools |
-| `maxTools` | number | no | 1–6, default 3 |
+| `maxTools` | number | no | 1–6; defaults to agent prefs `maxSteps` |
+| `persona` | string | no | `general` (default) or `spellcheck` (Spellcheck Agent) |
+
+When `persona` is `spellcheck`, the run forces the `spellcheck` tool, requires `documentId`, and injects **grammar** teachings only.
+
+---
+
+## `run_spellcheck_agent`
+
+Dedicated Spellcheck Agent (same path as the in-app persona). Equivalent to `run_agent` with `persona=spellcheck`.
+
+| Arg | Type | Required | Notes |
+|-----|------|----------|--------|
+| `documentId` | string | yes | Note to check |
+| `goal` | string | no | Optional focus; default “Check spelling in this note” |
+
+---
+
+## `grammar_check`
+
+Apply standing grammar teachings (prefer/avoid/capitalize) to a note or plaintext. When `rules` is omitted, loads grammar-topic teachings from `scribe-agent.db`.
+
+| Arg | Type | Required | Notes |
+|-----|------|----------|--------|
+| `id` | string | no* | Document id |
+| `text` | string | no* | Plaintext (id or text required) |
+| `rules` | string[] | no | Override teachings |
+| `limit` | number | no | Max findings (default 24) |
 
 ---
 
@@ -1028,7 +1055,14 @@ All accept `id` and/or `text` unless noted. Require Local AI enabled (except whe
 | `extract_flashcards` | `limit?`, `includeCloze?` | Q&A, definitions, cloze, sections |
 | `extract_takeaways` | `limit?` | Executive bullets + themes |
 | `check_terminology` | `limit?` | Inconsistent spellings / casing |
-| `writing_coach` | `limit?` | Long sentences, fillers, passive voice |
+| `writing_coach` | `limit?` | Long sentences, fillers, passive voice; optional LLM polish |
+| `explain_selection` | — | Explain note/selection (heuristic + optional LLM) |
+| `simplify` | — | Simplify note/selection |
+| `action_items` | `limit?` | Extract action items |
+| `glossary` | `limit?` | Terms + short definitions |
+| `compare_notes` | `idA?`, `idB?`, `textA?`, `textB?` | Diff-style summary of two notes |
+| `files_list` / `files_read_text` / `files_search` / `files_summarize` / `files_answer` | path/query | Storage Files API (`files/`); `FilesApiOffline` if server down |
+| `files_index` | `path?`, `limitFiles?`, `force?` | Path-scoped embeddings under `scratch/.scribe-files-index.json` |
 | `suggest_continuation` | `prefix`, `maxSuggestions?`, `maxTokens?`, `excludeDocumentId?`, `preferRust?` | Library n-grams; Rust fallback |
 | `analyze_revision_diff` | `oldText`, `newText`, `maxBullets?`, `language?`, `preferRust?` | Richer than `summarize_diff` |
 | `analyze_revision_diff_for_document` | `id`, `revisionId`, … | Snapshot → current note |

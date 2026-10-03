@@ -252,7 +252,7 @@ export function LibraryWikiHealthPanel({ onNavigate }: LibraryWikiHealthPanelPro
                         >
                           {resolvingKey === resolveKey
                             ? t('common.loading')
-                            : t('library.wikiHealth.resolveWith', { title: top.title })}
+                            : t('library.wikiHealth.fixWith', { title: top.title })}
                         </button>
                       </>
                     ) : null}

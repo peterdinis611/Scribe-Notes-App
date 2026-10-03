@@ -136,6 +136,55 @@ fn intent_rules() -> &'static [(&'static str, &'static [&'static str])] {
             ],
         ),
         (
+            "explain",
+            &[
+                "explain",
+                "what does this mean",
+                "vysvetli",
+                "vysvetlenie",
+                "co to znamena",
+            ],
+        ),
+        (
+            "simplify",
+            &[
+                "simplify",
+                "simpler",
+                "plain language",
+                "zjednodus",
+                "jednoduchsie",
+            ],
+        ),
+        (
+            "action_items",
+            &[
+                "action items",
+                "extract actions",
+                "akcne body",
+                "ulohy z textu",
+            ],
+        ),
+        (
+            "glossary",
+            &[
+                "glossary",
+                "define terms",
+                "key terms",
+                "slovnik",
+                "pojmy",
+                "definicie",
+            ],
+        ),
+        (
+            "compare_notes",
+            &[
+                "compare notes",
+                "diff notes",
+                "porovnaj poznamky",
+                "porovnanie poznamok",
+            ],
+        ),
+        (
             "meeting",
             &[
                 "meeting",
@@ -273,7 +322,10 @@ mod tests {
     fn open_questions_do_not_match() {
         assert_eq!(match_document_chat_intent("What feels unfinished or unclear here?"), None);
         assert_eq!(match_document_chat_intent("What is this note mainly about?"), None);
-        assert_eq!(match_document_chat_intent("Explain the key terms in this note"), None);
+        assert_eq!(
+            match_document_chat_intent("Explain the key terms in this note"),
+            Some("explain")
+        );
     }
 
     #[test]

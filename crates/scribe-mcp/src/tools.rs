@@ -261,8 +261,19 @@ pub struct RunAgentParams {
     pub scope: Option<String>,
     /// Required for most document tools.
     pub document_id: Option<String>,
-    /// Cap tool steps (1–6). Default 3.
+    /// Cap tool steps (1–6). Default 3 (or agent prefs maxSteps).
     pub max_tools: Option<i64>,
+    /// Agent persona: `general` (default) or `spellcheck` (Spellcheck Agent).
+    pub persona: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct RunSpellcheckAgentParams {
+    /// Document to spellcheck (required).
+    pub document_id: String,
+    /// Optional focus (e.g. “only proper nouns”). Defaults to a full-note check.
+    pub goal: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -364,6 +375,7 @@ pub struct SetLlmPrefsParams {
     pub use_rewrite: Option<bool>,
     pub use_answer: Option<bool>,
     pub use_plan: Option<bool>,
+    pub enhance_heuristics: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -488,6 +500,78 @@ pub struct StudyLimitParams {
     pub id: Option<String>,
     pub text: Option<String>,
     pub limit: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct GrammarCheckParams {
+    pub id: Option<String>,
+    pub text: Option<String>,
+    /// Standing grammar rules. When omitted, loads grammar teachings from scribe-agent.db.
+    pub rules: Option<Vec<String>>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CompareNotesParams {
+    pub id_a: Option<String>,
+    pub id_b: Option<String>,
+    pub text_a: Option<String>,
+    pub text_b: Option<String>,
+    pub title_a: Option<String>,
+    pub title_b: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct FilesPathParams {
+    pub path: Option<String>,
+    pub recursive: Option<bool>,
+    pub base_url: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct FilesReadParams {
+    pub path: String,
+    pub base_url: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct FilesSearchParams {
+    pub query: String,
+    pub path: Option<String>,
+    pub glob: Option<String>,
+    pub limit: Option<i64>,
+    pub base_url: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct FilesSummarizeParams {
+    pub path: String,
+    pub limit: Option<i64>,
+    pub base_url: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct FilesAnswerParams {
+    pub question: String,
+    pub path: Option<String>,
+    pub limit: Option<i64>,
+    pub base_url: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct FilesIndexParams {
+    pub path: Option<String>,
+    pub limit_files: Option<i64>,
+    pub force: Option<bool>,
+    pub base_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]

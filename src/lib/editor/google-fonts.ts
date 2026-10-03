@@ -133,24 +133,67 @@ export function googleFontsCssUrl(familyName: string): string {
 
 /** Inject a stylesheet so the font can render in the editor. */
 export function ensureGoogleFontLoaded(familyName: string, options?: { force?: boolean }): void {
+  void ensureGoogleFontLoadedAsync(familyName, options)
+}
+
+/** Same as ensureGoogleFontLoaded, but resolves after the stylesheet loads (or fails / times out). */
+export function ensureGoogleFontLoadedAsync(
+  familyName: string,
+  options?: { force?: boolean },
+): Promise<void> {
   const name = primaryFontFamilyName(familyName)
-  if (!name || loadedFamilies.has(name.toLowerCase())) return
-  if (!options?.force && !isKnownGoogleFont(name)) return
+  if (!name) return Promise.resolve()
+  if (!options?.force && !isKnownGoogleFont(name)) return Promise.resolve()
 
-  loadedFamilies.add(name.toLowerCase())
-
-  if (typeof document === 'undefined') return
-  const href = googleFontsCssUrl(name)
-  const existing = document.head.querySelectorAll(`link[${LOADED_ATTR}]`)
-  for (const node of existing) {
-    if (node.getAttribute(LOADED_ATTR) === name) return
+  if (typeof document === 'undefined') {
+    loadedFamilies.add(name.toLowerCase())
+    return Promise.resolve()
   }
 
+  const findLink = () => {
+    const nodes = document.head.querySelectorAll(`link[${LOADED_ATTR}]`)
+    for (const node of nodes) {
+      if (node.getAttribute(LOADED_ATTR) === name) return node as HTMLLinkElement
+    }
+    return null
+  }
+
+  const existing = findLink()
+  if (existing) {
+    loadedFamilies.add(name.toLowerCase())
+    if (existing.sheet || existing.dataset.loaded === '1') return Promise.resolve()
+    return waitForLink(existing)
+  }
+
+  if (loadedFamilies.has(name.toLowerCase())) {
+    const pending = findLink()
+    if (pending) return waitForLink(pending)
+    return Promise.resolve()
+  }
+
+  loadedFamilies.add(name.toLowerCase())
   const link = document.createElement('link')
   link.rel = 'stylesheet'
-  link.href = href
+  link.href = googleFontsCssUrl(name)
   link.setAttribute(LOADED_ATTR, name)
   document.head.appendChild(link)
+  return waitForLink(link)
+}
+
+function waitForLink(link: HTMLLinkElement): Promise<void> {
+  if (link.sheet || link.dataset.loaded === '1') return Promise.resolve()
+  return new Promise((resolve) => {
+    let settled = false
+    const done = () => {
+      if (settled) return
+      settled = true
+      link.dataset.loaded = '1'
+      resolve()
+    }
+    link.addEventListener('load', done, { once: true })
+    link.addEventListener('error', done, { once: true })
+    window.setTimeout(done, 2500)
+  })
 }
 
 export function googleFontsLinkTags(familyNames: string[]): string {

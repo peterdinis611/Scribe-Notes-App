@@ -1,6 +1,6 @@
 # Storage Mode Files API
 
-Design / analysis only — **not implemented in the repo yet**. Soft sandbox under `{documentsDir}/files/` for user files that are **not** document media.
+Implemented soft sandbox under `{documentsDir}/files/` for user files that are **not** document media. Loopback REST + GraphQL run from the Tauri app (`storage_fs_server_*`); Local AI can call the same root via Python `StorageFsClient` / `files_*` RPC.
 
 Document media stays under `assets/{documentId}/` (`list_library_assets`) and stays **out of scope** for this API.
 
@@ -23,26 +23,27 @@ Document media stays under `assets/{documentId}/` (`list_library_assets`) and st
 
 ---
 
-## Demo server (planned — how you try the API)
+## Demo / loopback server
 
-**Yes:** after the Rust core exists, a small **local demo server** will wrap the same `storage_fs` API so you can call it with `curl`, a GraphQL playground, TypeScript `fetch`, or Python `httpx` — without opening the full Tauri app.
+**Yes:** the app embeds a loopback Files API server (same `storage_fs` core) so you can call it with `curl`, GraphiQL, TypeScript `fetch`, or Python — without a separate demo crate.
 
-| Item | Plan |
-|------|------|
-| Bind | `127.0.0.1` only (default port e.g. `8787`) |
-| Root | temp dir or `--documents-dir /path/to/demo` → uses `{dir}/files/` |
-| Surfaces | REST JSON (`/v1/fs/…`) **and** GraphQL (`/graphql` + GraphiQL) |
-| Auth | none on loopback for demo; refuse non-local binds unless `--allow-remote` + token |
-| Binary | base64 in JSON / GraphQL (same contract as MCP) |
-| Run | e.g. `cargo run -p scribe-storage-fs-demo -- --port 8787` |
+| Item | Reality |
+|------|---------|
+| Bind | `127.0.0.1` only (default port `8787`, or next free) |
+| Root | open library `{documentsDir}/files/` |
+| Surfaces | REST JSON (`/v1/fs/…`), OpenAPI (`/openapi.json` + `/docs` Swagger demo), GraphQL (`/graphql` + GraphiQL) |
+| Auth | none on loopback; no remote bind |
+| Start | Storage Mode → Local API panel, or `storage_fs_server_start` |
+| Local AI | NLP sidecar `files_list` / `files_read_text` / `files_search` / `files_summarize` / `files_answer` via `StorageFsClient` |
 
 ```text
-curl / GraphQL / TS / Python
+curl / GraphQL / TS / Python / NLP sidecar
         │
         ▼
 ┌───────────────────────────┐
-│ demo server (127.0.0.1)   │
+│ Tauri loopback (127.0.0.1)│
 │  REST  /v1/fs/*           │
+│  Docs  /docs · /openapi.json │
 │  GQL   /graphql           │
 └─────────────┬─────────────┘
               ▼
@@ -51,7 +52,7 @@ curl / GraphQL / TS / Python
      {documentsDir}/files/
 ```
 
-### Example REST calls (demo)
+### Example REST calls
 
 ```bash
 # list
@@ -70,6 +71,18 @@ curl -s -X POST 'http://127.0.0.1:8787/v1/fs/write-text' \
 curl -s 'http://127.0.0.1:8787/v1/fs/read-text?path=scratch/demo/hello.md'
 ```
 
+### OpenAPI / Swagger demo (same server)
+
+```bash
+# Machine-readable OpenAPI 3.0
+curl -s 'http://127.0.0.1:8787/openapi.json' | head
+
+# Interactive Try-it UI (also aliased as /swagger)
+open 'http://127.0.0.1:8787/docs'
+```
+
+In the app: **Storage Mode → Local Files API → Open Swagger** (server must be running).
+
 ### Example GraphQL (same server)
 
 ```bash
@@ -78,18 +91,21 @@ curl -s 'http://127.0.0.1:8787/graphql' \
   -d '{"query":"query { storageFsList(path: \"inbox\") { count entries { path kind } } }"}'
 ```
 
-Open GraphiQL in the browser: `http://127.0.0.1:8787/graphql` (if enabled).
+Open GraphiQL in the browser: `http://127.0.0.1:8787/graphql` (when the server is running).
 
 ### Status
 
 | Step | State |
 |------|--------|
 | Design / contract in this doc | done |
-| Rust `storage_fs` core | not in repo yet |
-| Demo server binary | not in repo yet |
-| Tauri / MCP / TS / Python wired to core | after core + demo |
-
-So: **we will be able to run a demo server and call the API** — that is an explicit deliverable of the implementation phase, not something available today.
+| Rust `storage_fs` core | done (`crates/scribe-core/src/storage_fs.rs`) |
+| Loopback server in Tauri | done (`src-tauri/src/storage_fs_api/`) |
+| TS start/stop/status + Storage panel | done |
+| Python `StorageFsClient` | done (`nlp/scribe_nlp/storage_fs.py`) |
+| Local AI `files_*` RPC + `nlp_files_*` | done (`files_ai.py`, Tauri, MCP) |
+| First-party Tauri `storage_fs_*` FS invokes (non-HTTP) | optional / not required for AI |
+| Content embeddings index for `files/` | done (path namespace via `files_index` → `scratch/.scribe-files-index.json`; `files_answer` prefers embed retrieval) |
+| PDF/DOCX text for `files/` | done (docx stdlib; PDF via optional pypdf/pdfminer) |
 
 ---
 
@@ -174,19 +190,26 @@ Place a **Local Files API** drawer / side rail on the Files tab (not buried only
 |--------|------|-------------|
 | `GET` | `/v1/fs/health` | Health |
 | `GET` | `/v1/fs/list` | List |
+| `GET` | `/v1/fs/tree` | Nested tree (`depth?`) |
 | `GET` | `/v1/fs/stat` | Stat |
 | `GET` | `/v1/fs/exists` | Exists |
 | `GET` | `/v1/fs/read` | Read (base64) |
 | `GET` | `/v1/fs/read-text` | Read text |
+| `GET` | `/v1/fs/read-json` | Read JSON value |
+| `GET` | `/v1/fs/preview` | Text preview (`maxChars?`) |
+| `GET` | `/v1/fs/checksum` | SHA-256 |
 | `GET` | `/v1/fs/search` | Search (`query`, optional `glob`, `path`, `limit`) |
+| `GET` | `/v1/fs/recent` | Recent by mtime (`filesOnly?`, `limit?`) |
 | `GET` | `/v1/fs/disk-usage` | Disk usage |
 | `POST` | `/v1/fs/mkdir` | Mkdir |
 | `POST` | `/v1/fs/write` | Write bytes |
 | `POST` | `/v1/fs/write-text` | Write text |
+| `POST` | `/v1/fs/write-json` | Write JSON (`value`, `pretty?`) |
 | `POST` | `/v1/fs/append` | Append bytes |
 | `POST` | `/v1/fs/append-text` | Append text |
 | `POST` | `/v1/fs/touch` | Touch / create empty |
 | `POST` | `/v1/fs/delete` | Delete |
+| `POST` | `/v1/fs/clear-dir` | Clear directory contents |
 | `POST` | `/v1/fs/rename` | Rename |
 | `POST` | `/v1/fs/move-into` | Move into dir |
 | `POST` | `/v1/fs/copy` | Copy |

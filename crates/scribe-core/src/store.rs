@@ -1445,6 +1445,7 @@ impl ScribeStore {
                     use_rewrite: true,
                     use_answer: true,
                     use_plan: true,
+                    enhance_heuristics: false,
                 }),
                 "qualityAvailable": false,
                 "onnxAvailable": false,
@@ -1753,7 +1754,7 @@ impl ScribeStore {
         }
 
         sync_sidecar_backend(sidecar, &self.db)?;
-        let parsed = parse_summary(&sidecar.summarize(&combined, 5)?);
+        let parsed = parse_summary(&sidecar.summarize(&combined, 5, None)?);
         let summary = parsed.summary;
         let bullets = parsed.bullets;
 
@@ -1820,7 +1821,7 @@ impl ScribeStore {
 
         let max_sentences = max_sentences.unwrap_or(4).clamp(1, 12);
         sync_sidecar_backend(sidecar, &self.db)?;
-        let result = sidecar.summarize(&text, max_sentences)?;
+        let result = sidecar.summarize(&text, max_sentences, None)?;
         let (summary, bullets) = parse_sidecar_summary(&result);
 
         Ok(DocumentNlpSummary {

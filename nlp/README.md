@@ -95,6 +95,8 @@ Core: `health`, `embed`, `embed_batch`, `summarize`, `extract_*`, `analyze_docum
 
 1.4.0+: `outline_quiz`, `meeting_notes_pack`, `check_terminology_library`, `citation_pack`
 
+1.5.0+: `grammar_check` — apply standing grammar teachings (prefer/avoid/capitalize) to note or plaintext
+
 ## Version
 
-Current sidecar: **1.4.0**
+Current sidecar: **1.5.0**

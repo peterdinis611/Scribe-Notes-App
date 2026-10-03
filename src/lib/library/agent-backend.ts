@@ -39,6 +39,7 @@ export async function loadAgentPrefsFromBackend(): Promise<AgentPrefs | null> {
         id: item.id,
         text: item.text,
         createdAt: item.createdAt,
+        topic: item.topic === 'grammar' ? ('grammar' as const) : ('general' as const),
       })),
       local,
     )
@@ -62,11 +63,19 @@ export async function saveAgentPrefsToBackend(prefs: AgentPrefs): Promise<void> 
   }
 }
 
-export async function teachAgentBackend(text: string): Promise<AgentTeaching | null> {
+export async function teachAgentBackend(
+  text: string,
+  topic?: 'general' | 'grammar',
+): Promise<AgentTeaching | null> {
   if (!isTauriRuntime()) return null
   try {
-    const row = await addAgentTeachingBackend(text)
-    return { id: row.id, text: row.text, createdAt: row.createdAt }
+    const row = await addAgentTeachingBackend(text, topic)
+    return {
+      id: row.id,
+      text: row.text,
+      createdAt: row.createdAt,
+      topic: row.topic === 'grammar' || topic === 'grammar' ? 'grammar' : 'general',
+    }
   } catch {
     return null
   }

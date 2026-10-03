@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { Focus, Loader2, Maximize2, Tags } from 'lucide-react'
+import { Focus, Loader2, Maximize2, Tags, Trash2 } from 'lucide-react'
 import {
   listLinkGraph,
   type LinkGraphEdge,
@@ -10,7 +10,10 @@ import {
 } from '@/lib/db/api'
 import { nlpSimilarDocuments, nlpStatus, nlpSuggestTags, type NlpEntity } from '@/lib/db/nlp-api'
 import { degreeById, type ForceNodeKind } from '@/lib/link-graph/force-layout'
+import { isUntitledOrphanTitle, partitionOrphans } from '@/lib/link-graph/orphan-cleanup'
 import { ROUTES } from '@/lib/routes'
+import { toast } from '@/lib/toast'
+import { trashDocuments } from '@/lib/trash-document'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setActiveDocumentId } from '@/store/documentsSlice'
@@ -324,6 +327,8 @@ export function LibraryLinkGraphView({
 
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
   const documents = useAppSelector((state) => state.documents.documents)
+  const openDocumentIds = useAppSelector((state) => state.documents.openDocumentIds)
+  const secondaryDocumentId = useAppSelector((state) => state.documents.secondaryDocumentId)
   const graphCenterId = localCenterId ?? activeId
   const documentsVersion = useAppSelector((state) => {
     const docs = state.documents.documents
@@ -605,6 +610,33 @@ export function LibraryLinkGraphView({
     [dispatch, navigate],
   )
 
+  const untitledOrphans = useMemo(() => partitionOrphans(orphans).untitled, [orphans])
+
+  const archiveOrphans = useCallback(
+    async (ids: string[]) => {
+      if (!ids.length) return
+      try {
+        const removed = await trashDocuments({
+          ids,
+          documents,
+          activeId,
+          openDocumentIds,
+          secondaryDocumentId,
+          dispatch,
+          navigate,
+        })
+        if (removed.length) {
+          setOrphans((prev) => prev.filter((orphan) => !ids.includes(orphan.id)))
+          setOrphanSimilar((prev) => prev.filter((row) => !ids.includes(row.id)))
+          toast.success(t('linkGraph.orphanArchiveUntitledDone', { count: removed.length }))
+        }
+      } catch (error) {
+        toast.error(t('library.moveToTrash'), String(error))
+      }
+    },
+    [activeId, dispatch, documents, navigate, openDocumentIds, secondaryDocumentId, t],
+  )
+
   const activateTagNode = useCallback(
     (id: string, title: string) => {
       const fromMap = tagByNodeIdRef.current.get(id)
@@ -798,22 +830,75 @@ export function LibraryLinkGraphView({
         </p>
       )}
 
-      {showOrphans && orphanSimilar.length > 0 ? (
-        <ul className="library-orphan-rail">
-          {orphanSimilar.map((row) => (
-            <li key={row.id}>
-              <button type="button" onClick={() => openDocument(row.id)}>
-                {row.title || t('libraryChat.untitled')}
-              </button>
-              <span>
-                {row.similar
-                  .slice(0, 2)
-                  .map((hit) => hit.title)
-                  .join(' · ')}
+      {showOrphans && (orphanSimilar.length > 0 || untitledOrphans.length > 0) ? (
+        <div className="library-orphan-cleanup mb-2">
+          {untitledOrphans.length > 0 ? (
+            <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
+              <span className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
+                {t('linkGraph.orphanCleanupTitle')}
               </span>
-            </li>
-          ))}
-        </ul>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-6 gap-1 text-[10.5px]"
+                onClick={() => void archiveOrphans(untitledOrphans.map((item) => item.id))}
+              >
+                <Trash2 className="h-3 w-3" />
+                {t('linkGraph.orphanArchiveUntitled', { count: untitledOrphans.length })}
+              </Button>
+            </div>
+          ) : null}
+          {orphanSimilar.length > 0 ? (
+            <ul className="library-orphan-rail">
+              {orphanSimilar.map((row) => {
+                const top = row.similar[0]
+                return (
+                  <li key={row.id}>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <button type="button" onClick={() => openDocument(row.id)}>
+                        {row.title || t('libraryChat.untitled')}
+                        {isUntitledOrphanTitle(row.title) ? (
+                          <span className="ml-1 text-[10px] text-[var(--color-muted-foreground)]">
+                            · {t('linkGraph.orphanUntitledBadge')}
+                          </span>
+                        ) : null}
+                      </button>
+                      {top ? (
+                        <button
+                          type="button"
+                          className="text-[10.5px] text-[var(--color-accent)]"
+                          onClick={() => openDocument(row.id)}
+                          title={t('linkGraph.orphanSuggestHint', {
+                            titles: row.similar
+                              .slice(0, 2)
+                              .map((hit) => hit.title)
+                              .join(' · '),
+                          })}
+                        >
+                          {t('linkGraph.orphanSuggestLink')} → {top.title}
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="text-[10.5px] text-[var(--color-muted-foreground)]"
+                        onClick={() => void archiveOrphans([row.id])}
+                      >
+                        {t('linkGraph.orphanArchiveOne')}
+                      </button>
+                    </div>
+                    <span>
+                      {row.similar
+                        .slice(0, 2)
+                        .map((hit) => hit.title)
+                        .join(' · ')}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+          ) : null}
+        </div>
       ) : null}
 
       {seedNodes.length === 0 ? (

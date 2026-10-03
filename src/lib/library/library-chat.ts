@@ -1,15 +1,20 @@
 import { invoke } from '@/lib/tauri'
 import { invokeMatchDocumentChatIntent } from '@/lib/db/api'
 import {
+  nlpActionItems,
   nlpCheckTerminology,
   nlpDocumentAnalysis,
   nlpDocumentTasks,
+  nlpExplainSelection,
   nlpExtractFlashcards,
   nlpExtractTakeaways,
+  nlpGlossary,
   nlpSimilarDocuments,
+  nlpSimplify,
   nlpSpellcheck,
   nlpStatus,
   nlpSuggestWikiLinks,
+  nlpSummarize,
   nlpWritingCoach,
 } from '@/lib/db/nlp-api'
 
@@ -20,10 +25,17 @@ export type LibraryChatCitation = {
   chunkIndex?: number | null
 }
 
+export type LibraryChatSpellFix = {
+  word: string
+  suggestions: string[]
+}
+
 export type LibraryChatResult = {
   answer: string
   citations: LibraryChatCitation[]
   followups?: string[]
+  /** Structured spellcheck fixes for agent apply UI. */
+  spellIssues?: LibraryChatSpellFix[]
 }
 
 export type ChatScope = 'library' | 'document' | 'folder'
@@ -46,6 +58,10 @@ export type DocumentChatAction =
   | 'takeaways'
   | 'terminology'
   | 'style'
+  | 'explain'
+  | 'simplify'
+  | 'action_items'
+  | 'glossary'
 
 export const DOCUMENT_CHAT_CONTEXT_LIMIT = 16
 
@@ -71,7 +87,12 @@ async function assertNlpReady() {
 /** Extractive Q&A over the whole library (optional local LLM). Optional folder filter. */
 export async function askLibrary(
   question: string,
-  opts?: { folderId?: string | null; stream?: boolean },
+  opts?: {
+    folderId?: string | null
+    stream?: boolean
+    /** Standing instructions / prior turns (agent teachings). */
+    context?: Array<{ role: string; text: string }>
+  },
 ): Promise<LibraryChatResult> {
   const trimmed = question.trim()
   if (!trimmed) {
@@ -79,11 +100,14 @@ export async function askLibrary(
   }
   await assertNlpReady()
 
+  const context = opts?.context?.length ? opts.context : null
+
   if (opts?.folderId) {
     const result = await invoke<LibraryChatResult>('nlp_library_answer', {
       question: trimmed,
       limit: 8,
       folderId: opts.folderId,
+      context,
       stream: opts.stream ?? false,
     })
     if (!result.answer?.trim() && !(result.citations?.length > 0)) {
@@ -108,6 +132,7 @@ export async function askLibrary(
     question: trimmed,
     limit: 8,
     folderId: null,
+    context,
     stream: opts?.stream ?? false,
   })
 }
@@ -199,7 +224,26 @@ export function matchDocumentChatIntent(question: string): DocumentChatAction | 
     },
     { action: 'quotes', needles: ['key claim', 'main claim', 'klucove tvrden', 'hlavne tvrden'] },
     { action: 'tone', needles: ['tone', 'readability', 'reading time', 'ton', 'citanie', 'citatelnost'] },
-    { action: 'spellcheck', needles: ['spellcheck', 'spelling', 'typo', 'pravopis', 'preklepy'] },
+    {
+      action: 'spellcheck',
+      needles: [
+        'spellcheck',
+        'spell check',
+        'spelling',
+        'typo',
+        'typos',
+        'pravopis',
+        'preklepy',
+        'preklep',
+        'skontroluj pravopis',
+        'skontroluj preklepy',
+        'oprav preklepy',
+        'oprav pravopis',
+        'check spelling',
+        'fix spelling',
+        'fix typos',
+      ],
+    },
     { action: 'title', needles: ['suggest title', 'suggested title', 'better title', 'navrhni nazov', 'navrhnut nazov'] },
     {
       action: 'questions',
@@ -227,6 +271,22 @@ export function matchDocumentChatIntent(question: string): DocumentChatAction | 
         'trpny rod',
         'vyplnove',
       ],
+    },
+    {
+      action: 'explain',
+      needles: ['explain', 'what does this mean', 'vysvetli', 'vysvetlenie', 'co to znamena'],
+    },
+    {
+      action: 'simplify',
+      needles: ['simplify', 'simpler', 'plain language', 'zjednodus', 'jednoduchsie'],
+    },
+    {
+      action: 'action_items',
+      needles: ['action items', 'extract actions', 'akcne body', 'ulohy z textu'],
+    },
+    {
+      action: 'glossary',
+      needles: ['glossary', 'define terms', 'key terms', 'slovnik', 'pojmy', 'definicie'],
     },
   ]
 
@@ -271,19 +331,26 @@ export async function runDocumentChatAction(
     const result = await nlpSpellcheck(documentId)
     if (result.issueCount === 0) {
       return {
-        answer: 'Spellcheck: no issues found in this document.',
+        answer: 'Spellcheck: no likely typos found in this document.',
         citations: [],
+        spellIssues: [],
+        followups: ['Polish terminology next', 'Run writing coach'],
       }
     }
-    const lines = result.issues.slice(0, 12).map((issue) => {
-      const suggestions = issue.suggestions.slice(0, 3).join(', ')
-      return suggestions
-        ? `**${issue.word}** → ${suggestions}`
-        : `**${issue.word}**`
+    const issues = result.issues.slice(0, 16).map((issue) => ({
+      word: issue.word,
+      suggestions: issue.suggestions.slice(0, 3),
+    }))
+    const lines = issues.map((issue) => {
+      const suggestions = issue.suggestions.join(', ')
+      return suggestions ? `**${issue.word}** → ${suggestions}` : `**${issue.word}**`
     })
+    const lang = result.checkedLanguage || result.language || 'auto'
     return {
-      answer: `Spellcheck found **${result.issueCount}** issue(s):\n${bullets(lines)}`,
+      answer: `Spellcheck (_${lang}_) found **${result.issueCount}** issue(s):\n${bullets(lines)}\n\nUse **Apply spelling fixes** to replace words with the first suggestion.`,
       citations: [],
+      spellIssues: issues,
+      followups: ['Apply spelling fixes', 'Check terminology consistency', 'Writing coach'],
     }
   }
 
@@ -431,6 +498,48 @@ export async function runDocumentChatAction(
     }
   }
 
+  if (action === 'explain') {
+    const result = await nlpExplainSelection({ documentId })
+    return {
+      answer: result.explanation || 'No explanation produced.',
+      citations: [],
+    }
+  }
+
+  if (action === 'simplify') {
+    const result = await nlpSimplify({ documentId })
+    return {
+      answer: result.simplified || 'No simplified text produced.',
+      citations: [],
+    }
+  }
+
+  if (action === 'action_items') {
+    const result = await nlpActionItems({ documentId, limit: 12 })
+    if (!result.items?.length) {
+      return { answer: 'No action items found in this document.', citations: [] }
+    }
+    return {
+      answer: `**Action items (${result.count})**\n\n${bullets(
+        result.items.map((item) => item.text),
+      )}`,
+      citations: [],
+    }
+  }
+
+  if (action === 'glossary') {
+    const result = await nlpGlossary({ documentId, limit: 16 })
+    if (!result.entries?.length) {
+      return { answer: 'No glossary terms extracted.', citations: [] }
+    }
+    return {
+      answer: `**Glossary**\n\n${bullets(
+        result.entries.map((entry) => `**${entry.term}** — ${entry.definition}`),
+      )}`,
+      citations: [],
+    }
+  }
+
   const analysis = await nlpDocumentAnalysis(documentId)
   if (!analysis) {
     throw new Error('libraryChat.analysisFailed')
@@ -445,6 +554,22 @@ export async function runDocumentChatAction(
 
   switch (action) {
     case 'summarize': {
+      try {
+        const live = await nlpSummarize({ documentId, maxSentences: 4 })
+        const summary = live.summary?.trim()
+        if (summary) {
+          const phrases = analysis.keyphrases?.length
+            ? `\n\n${bullets(analysis.keyphrases.slice(0, 6))}`
+            : ''
+          const enhanced = live.enhanced ? '\n\n_(LLM polish)_' : ''
+          return {
+            answer: `**Summary**\n\n${summary}${phrases}${enhanced}`,
+            citations: [citation],
+          }
+        }
+      } catch {
+        /* fall through to cached analysis */
+      }
       const summary = analysis.summary?.trim()
       const phrases = analysis.keyphrases?.length
         ? `\n\n${bullets(analysis.keyphrases.slice(0, 6))}`

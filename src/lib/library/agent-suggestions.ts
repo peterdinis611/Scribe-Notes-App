@@ -154,6 +154,9 @@ export function buildAgentGoalChips(
     )
   }
 
+  chips.push(
+    slovak ? 'Skontroluj pravopis v tejto poznámke' : 'Check spelling in this note',
+  )
   chips.push(slovak ? 'Organizuj tagy a priečinok' : 'Organize tags and folder for this note')
 
   return uniqueKeepOrder(chips, MAX_CHIPS)
@@ -182,9 +185,13 @@ export function buildAgentToolOptions(
     { tool: 'terminology', score: (analysis?.keywords?.length ?? 0) > 2 ? 72 : 50 },
     { tool: 'wiki', score: (analysis?.wikiLinks?.length ?? 0) > 0 ? 74 : 56 },
     { tool: 'organize', score: 62 },
-    { tool: 'spellcheck', score: 52 },
+    { tool: 'spellcheck', score: 76 },
     { tool: 'similar', score: (analysis?.keyphrases?.length ?? 0) > 0 ? 68 : 50 },
     { tool: 'style', score: analysis?.tone ? 70 : 54 },
+    { tool: 'explain', score: 66 },
+    { tool: 'simplify', score: 58 },
+    { tool: 'action_items', score: openTasks.length > 0 ? 88 : 46 },
+    { tool: 'glossary', score: (analysis?.keywords?.length ?? 0) > 2 ? 78 : 44 },
   ]
 
   ranked.sort((a, b) => b.score - a.score)

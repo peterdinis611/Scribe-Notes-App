@@ -58,6 +58,24 @@ describe('normalizeAgentPrefs / teach', () => {
     const ctx = teachingsToMemoryContext([teaching!])
     expect(ctx[0].text).toContain('Prefer Slovak answers')
   })
+
+  it('injects grammar teachings in a dedicated block', () => {
+    const grammar = createTeaching('Prefer -ise endings', { topic: 'grammar' })
+    const general = createTeaching('Focus on deadlines')
+    const ctx = teachingsToMemoryContext([grammar!, general!])
+    expect(ctx[0].text).toContain('Grammar & spelling preferences')
+    expect(ctx[0].text).toContain('Prefer -ise endings')
+    expect(ctx[0].text).toContain('Standing instructions')
+    expect(ctx[0].text).toContain('Focus on deadlines')
+  })
+
+  it('can inject grammar teachings only', () => {
+    const grammar = createTeaching('Keep product names capitalized', { topic: 'grammar' })
+    const general = createTeaching('Answer in Slovak')
+    const ctx = teachingsToMemoryContext([grammar!, general!], { grammarOnly: true })
+    expect(ctx[0].text).toContain('Keep product names capitalized')
+    expect(ctx[0].text).not.toContain('Answer in Slovak')
+  })
 })
 
 describe('applyAgentOptimize', () => {

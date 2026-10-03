@@ -99,6 +99,7 @@ FEATURES = [
     "stemming",
     "keybert",
     "spellcheck",
+    "grammarCheck",
     "generatePlaceholder",
     "suggestContinuation",
     "analyzeRevisionDiff",
@@ -254,7 +255,12 @@ def _handle_request_inner(
 
             text = _validate_text(str(params.get("text") or ""))
             max_sentences = max(1, min(int(params.get("maxSentences") or 4), 12))
-            result = summarize_text(text, max_sentences=max_sentences)
+            llm_raw = params.get("llm")
+            result = summarize_text(
+                text,
+                max_sentences=max_sentences,
+                llm=llm_raw if isinstance(llm_raw, dict) else None,
+            )
         elif method == "extract_entities":
             from .ner import extract_entities
 
@@ -496,6 +502,19 @@ def _handle_request_inner(
             language_value = str(language).lower() if language else None
             max_issues = max(1, min(int(params.get("maxIssues") or 80), 200))
             result = spellcheck_text(text, language=language_value, max_issues=max_issues)
+        elif method == "grammar_check":
+            from .grammar import check_grammar
+
+            text = _validate_text(str(params.get("text") or ""))
+            raw_rules = params.get("rules") or []
+            if isinstance(raw_rules, str):
+                rules = [raw_rules]
+            elif isinstance(raw_rules, list):
+                rules = [str(item) for item in raw_rules]
+            else:
+                rules = []
+            limit = max(1, min(int(params.get("limit") or 24), 40))
+            result = check_grammar(text, rules=rules, limit=limit)
         elif method == "generate_placeholder":
             from .placeholder import generate_placeholder
 
@@ -536,6 +555,7 @@ def _handle_request_inner(
             result = llm_status(
                 base_url=str(params.get("baseUrl") or params.get("base_url") or "") or None,
                 model=str(params.get("model") or "") or None,
+                provider=str(params.get("provider") or "") or None,
             )
         elif method == "llm_complete":
             from .llm import llm_complete
@@ -551,6 +571,7 @@ def _handle_request_inner(
                 system=system_value,
                 base_url=str(params.get("baseUrl") or params.get("base_url") or "") or None,
                 model=str(params.get("model") or "") or None,
+                provider=str(params.get("provider") or "") or None,
                 temperature=temperature,
                 max_tokens=max_tokens,
                 stream=want_stream,
@@ -614,7 +635,9 @@ def _handle_request_inner(
 
             text = _validate_text(str(params.get("text") or ""))
             limit = max(1, min(int(params.get("limit") or 12), 30))
-            result = writing_coach(text, limit=limit)
+            llm_raw = params.get("llm")
+            llm_options = llm_raw if isinstance(llm_raw, dict) else None
+            result = writing_coach(text, limit=limit, llm=llm_options)
         elif method == "outline_quiz":
             from .outline_quiz import outline_quiz
 
@@ -666,6 +689,129 @@ def _handle_request_inner(
                 raise SidecarError("documents exceeds limit", code=-32602)
             limit = max(1, min(int(params.get("limit") or 8), 20))
             result = citation_pack(claim, documents, limit=limit)
+        elif method == "files_list":
+            from .files_ai import FilesApiOfflineError, files_list
+
+            try:
+                result = files_list(
+                    str(params.get("path") or ""),
+                    base_url=str(params.get("baseUrl") or params.get("base_url") or "") or None,
+                    recursive=bool(params.get("recursive")),
+                )
+            except FilesApiOfflineError as exc:
+                raise SidecarError(str(exc), code=-32020) from exc
+        elif method == "files_read_text":
+            from .files_ai import FilesApiOfflineError, files_read_text
+
+            try:
+                result = files_read_text(
+                    str(params.get("path") or ""),
+                    base_url=str(params.get("baseUrl") or params.get("base_url") or "") or None,
+                )
+            except FilesApiOfflineError as exc:
+                raise SidecarError(str(exc), code=-32020) from exc
+        elif method == "files_search":
+            from .files_ai import FilesApiOfflineError, files_search
+
+            try:
+                result = files_search(
+                    str(params.get("query") or ""),
+                    path=str(params.get("path") or ""),
+                    glob=str(params.get("glob") or "") or None,
+                    limit=max(1, min(int(params.get("limit") or 40), 100)),
+                    base_url=str(params.get("baseUrl") or params.get("base_url") or "") or None,
+                )
+            except FilesApiOfflineError as exc:
+                raise SidecarError(str(exc), code=-32020) from exc
+        elif method == "files_summarize":
+            from .files_ai import FilesApiOfflineError, files_summarize
+
+            try:
+                result = files_summarize(
+                    str(params.get("path") or ""),
+                    base_url=str(params.get("baseUrl") or params.get("base_url") or "") or None,
+                    limit=max(1, min(int(params.get("limit") or 8), 20)),
+                )
+            except FilesApiOfflineError as exc:
+                raise SidecarError(str(exc), code=-32020) from exc
+        elif method == "files_answer":
+            from .files_ai import FilesApiOfflineError, files_answer
+
+            try:
+                result = files_answer(
+                    str(params.get("question") or params.get("query") or ""),
+                    path=str(params.get("path") or ""),
+                    base_url=str(params.get("baseUrl") or params.get("base_url") or "") or None,
+                    limit=max(1, min(int(params.get("limit") or 6), 12)),
+                    use_index=bool(params.get("useIndex", True)),
+                )
+            except FilesApiOfflineError as exc:
+                raise SidecarError(str(exc), code=-32020) from exc
+        elif method == "files_index":
+            from .files_ai import FilesApiOfflineError, files_index
+
+            try:
+                result = files_index(
+                    str(params.get("path") or ""),
+                    base_url=str(params.get("baseUrl") or params.get("base_url") or "") or None,
+                    limit_files=max(1, min(int(params.get("limitFiles") or 40), 80)),
+                    force=bool(params.get("force")),
+                )
+            except FilesApiOfflineError as exc:
+                raise SidecarError(str(exc), code=-32020) from exc
+        elif method == "explain_selection":
+            from .note_skills import explain_selection
+
+            text = _validate_text(str(params.get("text") or ""))
+            llm_raw = params.get("llm")
+            result = explain_selection(
+                text,
+                llm=llm_raw if isinstance(llm_raw, dict) else None,
+            )
+        elif method == "simplify_text":
+            from .note_skills import simplify_text
+
+            text = _validate_text(str(params.get("text") or ""))
+            llm_raw = params.get("llm")
+            result = simplify_text(
+                text,
+                llm=llm_raw if isinstance(llm_raw, dict) else None,
+            )
+        elif method == "action_items":
+            from .note_skills import action_items_from_text
+
+            text = _validate_text(str(params.get("text") or ""))
+            limit = max(1, min(int(params.get("limit") or 12), 30))
+            llm_raw = params.get("llm")
+            result = action_items_from_text(
+                text,
+                limit=limit,
+                llm=llm_raw if isinstance(llm_raw, dict) else None,
+            )
+        elif method == "glossary":
+            from .note_skills import glossary_from_text
+
+            text = _validate_text(str(params.get("text") or ""))
+            limit = max(1, min(int(params.get("limit") or 12), 40))
+            llm_raw = params.get("llm")
+            result = glossary_from_text(
+                text,
+                limit=limit,
+                llm=llm_raw if isinstance(llm_raw, dict) else None,
+            )
+        elif method == "compare_notes":
+            from .note_skills import compare_notes
+
+            text_a = _validate_text(str(params.get("textA") or params.get("text_a") or ""))
+            text_b = _validate_text(str(params.get("textB") or params.get("text_b") or ""))
+            llm_raw = params.get("llm")
+            result = compare_notes(
+                text_a,
+                text_b,
+                title_a=str(params.get("titleA") or "") or None,
+                title_b=str(params.get("titleB") or "") or None,
+                llm=llm_raw if isinstance(llm_raw, dict) else None,
+            )
         elif method == "extract_paint_ocr":
             from .paint_blocks import extract_paint_ocr
 

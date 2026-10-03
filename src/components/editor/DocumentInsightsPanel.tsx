@@ -101,13 +101,17 @@ const FALLBACK_INSIGHT_ACTIONS: DocumentChatAction[] = [
   'outline',
   'quotes',
   'flashcards',
+  'glossary',
+  'explain',
   'keywords',
   'tasks',
+  'action_items',
   'wiki',
   'mentions',
   'similar',
   'questions',
   'style',
+  'simplify',
   'tone',
 ]
 
