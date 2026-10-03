@@ -221,7 +221,8 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                   wikiHealthCount={wikiHealthCount}
                   onChange={(view) => {
                     if (view === 'agent' || view === 'chat') {
-                      dispatch(setAgentPanelOpen(!agentPanelOpen))
+                      if (agentPanelOpen) dispatch(setAgentPanelOpen(false))
+                      else dispatch(openAgentPanel({ persona: 'general' }))
                       return
                     }
                     if (view === 'storage') {
