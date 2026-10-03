@@ -1,7 +1,7 @@
 use rusqlite::Connection;
 use std::path::{Path, PathBuf};
 
-pub const SCHEMA_VERSION: i32 = 1;
+pub const SCHEMA_VERSION: i32 = 2;
 pub const AGENT_DB_FILE: &str = "scribe-agent.db";
 
 pub struct AgentDb {
@@ -105,6 +105,30 @@ fn run_migrations(conn: &Connection) -> Result<(), String> {
         )
         .map_err(|e| e.to_string())?;
 
+        conn.execute(
+            "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', '1')",
+            [],
+        )
+        .map_err(|e| e.to_string())?;
+    }
+
+    let current: i32 = conn
+        .query_row(
+            "SELECT value FROM meta WHERE key = 'schema_version'",
+            [],
+            |row| {
+                let raw: String = row.get(0)?;
+                Ok(raw.parse::<i32>().unwrap_or(0))
+            },
+        )
+        .unwrap_or(0);
+
+    if current < 2 {
+        // Grammar vs general teachings (Spellcheck Agent / MCP persona).
+        let _ = conn.execute(
+            "ALTER TABLE agent_teachings ADD COLUMN topic TEXT NOT NULL DEFAULT 'general'",
+            [],
+        );
         conn.execute(
             "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
             [SCHEMA_VERSION.to_string()],

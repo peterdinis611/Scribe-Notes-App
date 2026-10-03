@@ -40,6 +40,9 @@ export type AgentOutputLanguage = 'auto' | 'en' | 'sk'
 
 export type AgentTeachingScope = 'global' | 'document'
 
+/** general = standing prefs; grammar = spelling/style rules for spellcheck & rewrite. */
+export type AgentTeachingTopic = 'general' | 'grammar'
+
 export type AgentTeaching = {
   id: string
   text: string
@@ -47,6 +50,7 @@ export type AgentTeaching = {
   scope?: AgentTeachingScope
   /** When scope is document, bind teaching to this note. */
   documentId?: string | null
+  topic?: AgentTeachingTopic
 }
 
 export type AgentPinnedFact = {
@@ -184,6 +188,7 @@ function normalizeTeachings(raw: unknown): AgentTeaching[] {
       createdAt: item.createdAt,
       scope: (item.scope === 'document' ? 'document' : 'global') as AgentTeachingScope,
       documentId: typeof item.documentId === 'string' ? item.documentId : null,
+      topic: (item.topic === 'grammar' ? 'grammar' : 'general') as AgentTeachingTopic,
     }))
     .filter((item) => item.text.length > 0)
     .slice(0, AGENT_TEACHINGS_MAX)
@@ -286,7 +291,11 @@ export function normalizeAgentPrefs(raw: unknown): AgentPrefs {
 
 export function createTeaching(
   text: string,
-  opts?: { scope?: AgentTeachingScope; documentId?: string | null },
+  opts?: {
+    scope?: AgentTeachingScope
+    documentId?: string | null
+    topic?: AgentTeachingTopic
+  },
 ): AgentTeaching | null {
   const trimmed = text.trim().replace(/\s+/g, ' ').slice(0, AGENT_TEACHING_MAX_LEN)
   if (trimmed.length < 2) return null
@@ -296,6 +305,7 @@ export function createTeaching(
     createdAt: Date.now(),
     scope: opts?.scope === 'document' ? 'document' : 'global',
     documentId: opts?.scope === 'document' ? opts.documentId ?? null : null,
+    topic: opts?.topic === 'grammar' ? 'grammar' : 'general',
   }
 }
 
@@ -328,13 +338,24 @@ export function teachingsToMemoryContext(
     episodes?: AgentEpisode[]
     outputLanguage?: AgentOutputLanguage
     documentId?: string | null
+    /** When true, only inject grammar topic teachings (spellcheck agent). */
+    grammarOnly?: boolean
   },
 ): Array<{ role: string; text: string }> {
   const blocks: string[] = []
   const scoped = relevantTeachings(teachings, extras?.documentId)
-  if (scoped.length) {
+  const general = scoped.filter((item) => !item.topic || item.topic === 'general')
+  const grammar = scoped.filter((item) => item.topic === 'grammar')
+  if (!extras?.grammarOnly && general.length) {
     blocks.push(
-      `Standing instructions for the local agent (follow when relevant):\n${scoped
+      `Standing instructions for the local agent (follow when relevant):\n${general
+        .map((item) => `• ${item.text}`)
+        .join('\n')}`,
+    )
+  }
+  if (grammar.length) {
+    blocks.push(
+      `Grammar & spelling preferences (apply when checking, rewriting, or polishing text):\n${grammar
         .map((item) => `• ${item.text}`)
         .join('\n')}`,
     )

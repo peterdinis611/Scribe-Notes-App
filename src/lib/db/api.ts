@@ -383,6 +383,7 @@ export type AgentBackendTeaching = {
   id: string
   text: string
   createdAt: number
+  topic?: 'general' | 'grammar'
 }
 
 export type AgentBackendRun = {
@@ -411,8 +412,14 @@ export const setAgentPrefsBackend = (input: AgentBackendPrefs) =>
 export const listAgentTeachings = () =>
   invoke<AgentBackendTeaching[]>('list_agent_teachings')
 
-export const addAgentTeachingBackend = (text: string) =>
-  invoke<AgentBackendTeaching>('add_agent_teaching', { text })
+export const addAgentTeachingBackend = (
+  text: string,
+  topic?: 'general' | 'grammar',
+) =>
+  invoke<AgentBackendTeaching>('add_agent_teaching', {
+    text,
+    topic: topic ?? null,
+  })
 
 export const removeAgentTeachingBackend = (id: string) =>
   invoke<boolean>('remove_agent_teaching', { id })

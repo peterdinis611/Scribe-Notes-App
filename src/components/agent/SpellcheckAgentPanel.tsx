@@ -1,4 +1,4 @@
-import { Eraser, Send, SpellCheck2 } from 'lucide-react'
+import { Eraser, GraduationCap, Send, SpellCheck2 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -20,6 +20,11 @@ import {
 import { Bubble, BubbleContent } from '@/components/ui/bubble'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { applySpellSuggestion } from '@/lib/editor/apply-suggestions'
+import { AGENT_TEACHING_MAX_LEN } from '@/lib/library/agent-prefs'
+import {
+  AGENT_TEACH_DRAFT_MAX_LEN,
+  distillTeachingWithLlm,
+} from '@/lib/library/agent-teach'
 import {
   applySpellcheckFixes,
   runSpellcheckAgent,
@@ -29,7 +34,7 @@ import {
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { setAgentPrefs } from '@/store/settingsSlice'
+import { addAgentTeaching, removeAgentTeaching, setAgentPrefs } from '@/store/settingsSlice'
 
 type SpellThreadMessage = {
   id: string
@@ -58,6 +63,9 @@ export function SpellcheckAgentPanel({ onClose: _onClose }: SpellcheckAgentPanel
   const [blobMood, setBlobMood] = useState<AgentBlobatarMood>('idle')
   const [applyPreview, setApplyPreview] = useState<AgentApplyPreviewKind | null>(null)
   const [applyBusy, setApplyBusy] = useState(false)
+  const [showTeach, setShowTeach] = useState(false)
+  const [teachInput, setTeachInput] = useState('')
+  const [teachBusy, setTeachBusy] = useState(false)
   const applyPendingRef = useRef<null | (() => void)>(null)
   const moodTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const threadEndRef = useRef<HTMLDivElement>(null)
@@ -168,6 +176,38 @@ export function SpellcheckAgentPanel({ onClose: _onClose }: SpellcheckAgentPanel
   const clearThread = useCallback(() => {
     setMessages([])
   }, [])
+
+  const grammarTeachings = agentPrefs.teachings.filter((item) => item.topic === 'grammar')
+
+  const handleTeachGrammar = useCallback(async () => {
+    const draft = teachInput.trim()
+    if (draft.length < 2 || teachBusy) return
+    setTeachBusy(true)
+    try {
+      const result = await distillTeachingWithLlm(draft, {
+        force: draft.length > AGENT_TEACHING_MAX_LEN || draft.includes('\n'),
+        topic: 'grammar',
+      })
+      dispatch(
+        addAgentTeaching({
+          text: result.text,
+          topic: 'grammar',
+          scope: activeDocumentId ? 'document' : 'global',
+          documentId: activeDocumentId,
+        }),
+      )
+      setTeachInput('')
+      toast.success(
+        result.distilled
+          ? t('settings.agent.teachRefinedToast')
+          : t('settings.agent.taughtGrammarToast'),
+      )
+    } catch {
+      toast.error(t('settings.agent.teachRefineOffline'))
+    } finally {
+      setTeachBusy(false)
+    }
+  }, [activeDocumentId, dispatch, t, teachBusy, teachInput])
 
   const docTitle =
     activeDocument?.title?.trim() ||
@@ -311,6 +351,15 @@ export function SpellcheckAgentPanel({ onClose: _onClose }: SpellcheckAgentPanel
           >
             {t('agent.spellAgent.runNow')}
           </button>
+          <button
+            type="button"
+            className={cn('library-chat-chip', showTeach && 'is-active')}
+            disabled={!agentPrefs.enabled}
+            onClick={() => setShowTeach((value) => !value)}
+          >
+            <GraduationCap className="mr-1 inline h-3 w-3" />
+            {t('settings.agent.teachTopicGrammar')}
+          </button>
           {starters.map((chip) => (
             <button
               key={`footer-${chip}`}
@@ -323,6 +372,48 @@ export function SpellcheckAgentPanel({ onClose: _onClose }: SpellcheckAgentPanel
             </button>
           ))}
         </div>
+        {showTeach ? (
+          <div className="mb-2 space-y-1.5 rounded-lg border border-[var(--color-border)] p-2">
+            <p className="m-0 text-[11px] text-[var(--color-muted-foreground)]">
+              {t('settings.agent.teachTopicGrammarHint')}
+            </p>
+            <form
+              className="flex flex-col gap-1.5"
+              onSubmit={(event) => {
+                event.preventDefault()
+                void handleTeachGrammar()
+              }}
+            >
+              <textarea
+                className="library-chat-input min-h-[3.5rem] resize-y"
+                value={teachInput}
+                maxLength={AGENT_TEACH_DRAFT_MAX_LEN}
+                placeholder={t('settings.agent.teachPlaceholderGrammar')}
+                onChange={(event) => setTeachInput(event.target.value)}
+              />
+              <Button
+                type="submit"
+                size="sm"
+                className="self-end"
+                disabled={teachInput.trim().length < 2 || teachBusy}
+              >
+                {teachBusy ? t('settings.agent.teachRefineBusy') : t('settings.agent.teachAdd')}
+              </Button>
+            </form>
+            {grammarTeachings.slice(0, 4).map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className="library-chat-chip w-full justify-between text-left"
+                title={t('settings.agent.teachRemove')}
+                onClick={() => dispatch(removeAgentTeaching(item.id))}
+              >
+                <span className="truncate">{item.text}</span>
+                <Eraser className="ml-1 h-3 w-3 shrink-0 opacity-70" />
+              </button>
+            ))}
+          </div>
+        ) : null}
         <form
           className="flex gap-1.5"
           onSubmit={(event) => {

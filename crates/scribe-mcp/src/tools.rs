@@ -261,8 +261,19 @@ pub struct RunAgentParams {
     pub scope: Option<String>,
     /// Required for most document tools.
     pub document_id: Option<String>,
-    /// Cap tool steps (1–6). Default 3.
+    /// Cap tool steps (1–6). Default 3 (or agent prefs maxSteps).
     pub max_tools: Option<i64>,
+    /// Agent persona: `general` (default) or `spellcheck` (Spellcheck Agent).
+    pub persona: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct RunSpellcheckAgentParams {
+    /// Document to spellcheck (required).
+    pub document_id: String,
+    /// Optional focus (e.g. “only proper nouns”). Defaults to a full-note check.
+    pub goal: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]

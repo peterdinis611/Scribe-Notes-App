@@ -230,9 +230,10 @@ pub fn list_agent_teachings(agent: State<'_, AgentDbState>) -> Result<Vec<AgentT
 pub fn add_agent_teaching(
     agent: State<'_, AgentDbState>,
     text: String,
+    topic: Option<String>,
 ) -> Result<AgentTeaching, String> {
     let store = agent.store.lock().map_err(|e| e.to_string())?;
-    store.add_teaching(&text)
+    store.add_teaching(&text, topic.as_deref())
 }
 
 #[tauri::command]

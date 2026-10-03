@@ -72,7 +72,7 @@ export async function runSpellcheckAgent(
     documentId,
     memoryContext,
     normalized,
-    { forceTools: ['spellcheck'] },
+    { forceTools: ['spellcheck'], grammarOnly: true },
   )
 
   let fixes = fixesFromSteps(result.steps)

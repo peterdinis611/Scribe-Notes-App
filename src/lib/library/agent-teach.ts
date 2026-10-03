@@ -1,5 +1,8 @@
 import { nlpLlmComplete, nlpLlmStatus } from '@/lib/db/nlp-api'
-import { AGENT_TEACHING_MAX_LEN } from '@/lib/library/agent-prefs'
+import {
+  AGENT_TEACHING_MAX_LEN,
+  type AgentTeachingTopic,
+} from '@/lib/library/agent-prefs'
 
 /** Longer drafts allowed before local-LLM distillation into a standing instruction. */
 export const AGENT_TEACH_DRAFT_MAX_LEN = 2000
@@ -11,6 +14,14 @@ Rules:
 - Max ${AGENT_TEACHING_MAX_LEN} characters.
 - Same language as the user text.
 - No quotes, no markdown, no preamble — output only the instruction.`
+
+const DISTILL_GRAMMAR_SYSTEM = `You are Scribe's local grammar teaching editor.
+Turn the user's note into ONE standing grammar/spelling preference for a spellcheck agent.
+Rules:
+- Imperative rule about spelling, grammar, hyphenation, capitalization, or preferred wording.
+- Max ${AGENT_TEACHING_MAX_LEN} characters.
+- Same language as the user text.
+- No quotes, no markdown, no preamble — output only the rule.`
 
 export type DistillTeachingResult = {
   text: string
@@ -34,7 +45,7 @@ export async function canDistillTeachingWithLlm(): Promise<boolean> {
  */
 export async function distillTeachingWithLlm(
   raw: string,
-  opts?: { force?: boolean },
+  opts?: { force?: boolean; topic?: AgentTeachingTopic },
 ): Promise<DistillTeachingResult> {
   const trimmed = raw.trim().replace(/\s+/g, ' ')
   if (trimmed.length < 2) {
@@ -60,9 +71,13 @@ export async function distillTeachingWithLlm(
     }
   }
 
+  const topic: AgentTeachingTopic = opts?.topic === 'grammar' ? 'grammar' : 'general'
   const result = await nlpLlmComplete({
-    system: DISTILL_SYSTEM,
-    prompt: `User teaching note:\n${trimmed.slice(0, AGENT_TEACH_DRAFT_MAX_LEN)}`,
+    system: topic === 'grammar' ? DISTILL_GRAMMAR_SYSTEM : DISTILL_SYSTEM,
+    prompt:
+      topic === 'grammar'
+        ? `User grammar preference note:\n${trimmed.slice(0, AGENT_TEACH_DRAFT_MAX_LEN)}`
+        : `User teaching note:\n${trimmed.slice(0, AGENT_TEACH_DRAFT_MAX_LEN)}`,
     temperature: 0.2,
     maxTokens: 180,
     stream: false,

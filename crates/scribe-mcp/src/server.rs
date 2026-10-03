@@ -7,7 +7,7 @@ use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{
     ErrorData, GetPromptResult, ListResourceTemplatesResult, ListResourcesResult, PromptMessage,
     ReadResourceRequestParams, ReadResourceResponse, ReadResourceResult, Resource, ResourceContents,
-    ResourceTemplate, Role, ServerCapabilities, ServerInfo,
+    ResourceTemplate, Role, ServerCapabilities, ServerConfig,
 };
 use rmcp::service::RequestContext;
 use rmcp::{
@@ -55,6 +55,40 @@ impl ScribeMcp {
         hits: Vec<scribe_core::db::SearchHit>,
     ) -> Result<Vec<scribe_core::db::SearchHit>, String> {
         store.filter_search_hits_for_scope(hits, self.vault_scope)
+    }
+
+    fn open_agent_store(&self) -> Option<scribe_agent::AgentStore> {
+        let parent = self.db_path.parent()?;
+        scribe_agent::AgentStore::from_path(&parent.join(scribe_agent::AGENT_DB_FILE)).ok()
+    }
+
+    fn agent_teachings_preamble(&self, grammar_only: bool) -> Option<String> {
+        let store = self.open_agent_store()?;
+        let teachings = store.list_teachings().ok()?;
+        let filtered: Vec<_> = teachings
+            .into_iter()
+            .filter(|item| {
+                if grammar_only {
+                    item.topic == "grammar"
+                } else {
+                    true
+                }
+            })
+            .collect();
+        if filtered.is_empty() {
+            return None;
+        }
+        let header = if grammar_only {
+            "Grammar & spelling preferences (apply when checking or polishing):"
+        } else {
+            "Standing instructions for the local agent (follow when relevant):"
+        };
+        let body = filtered
+            .iter()
+            .map(|item| format!("• {}", item.text))
+            .collect::<Vec<_>>()
+            .join("\n");
+        Some(format!("{header}\n{body}"))
     }
 
     /// Map planner tool ids to store methods (mirrors the in-app Local Agent).
@@ -153,8 +187,200 @@ impl ScribeMcp {
                 let hits = store.similar_documents_for(id, 8)?;
                 Ok(("similar".into(), Some(tools::json(&hits))))
             }
+            "rewrite" | "polish" => {
+                let id = document_id.ok_or_else(|| "documentId required for rewrite".to_string())?;
+                let doc = store
+                    .get_document(id, false)?
+                    .ok_or_else(|| format!("document not found: {id}"))?;
+                let result = store.rewrite_selection(
+                    &self.sidecar,
+                    &doc.plain_text,
+                    Some("polish"),
+                    None,
+                )?;
+                Ok(("rewrite".into(), Some(tools::json(&result))))
+            }
+            "explain" => {
+                let id = document_id.ok_or_else(|| "documentId required for explain".to_string())?;
+                let result = store.explain_selection(&self.sidecar, Some(id), None)?;
+                Ok(("explain".into(), Some(tools::json(&result))))
+            }
+            "simplify" => {
+                let id = document_id.ok_or_else(|| "documentId required for simplify".to_string())?;
+                let result = store.simplify_text(&self.sidecar, Some(id), None)?;
+                Ok(("simplify".into(), Some(tools::json(&result))))
+            }
+            "action_items" => {
+                let id =
+                    document_id.ok_or_else(|| "documentId required for action_items".to_string())?;
+                let result = store.action_items(&self.sidecar, Some(id), None, Some(12))?;
+                Ok(("action_items".into(), Some(tools::json(&result))))
+            }
+            "glossary" => {
+                let id = document_id.ok_or_else(|| "documentId required for glossary".to_string())?;
+                let result = store.glossary(&self.sidecar, Some(id), None, Some(16))?;
+                Ok(("glossary".into(), Some(tools::json(&result))))
+            }
+            "terminology" => {
+                let id =
+                    document_id.ok_or_else(|| "documentId required for terminology".to_string())?;
+                let result = store.check_terminology(&self.sidecar, Some(id), None, Some(12))?;
+                Ok(("terminology".into(), Some(tools::json(&result))))
+            }
+            "quiz" => {
+                let id = document_id.ok_or_else(|| "documentId required for quiz".to_string())?;
+                let result = store.outline_quiz(&self.sidecar, Some(id), None, Some(12))?;
+                Ok(("quiz".into(), Some(tools::json(&result))))
+            }
+            "files_answer" => {
+                let result = store.files_answer(&self.sidecar, goal, None, Some(6), None)?;
+                Ok(("files_answer".into(), Some(tools::json(&result))))
+            }
+            "compare_notes" => Err(
+                "compare_notes needs two documents — call the compare_notes MCP tool with documentIdA/documentIdB"
+                    .into(),
+            ),
+            "revision" => Err(
+                "revision needs a revisionId — call analyze_revision_diff_for_document".into(),
+            ),
+            "save_template" => Err("save_template is available in the Scribe app only".into()),
             other => Err(format!("unsupported agent tool: {other}")),
         })
+    }
+
+    fn run_agent_with_persona(
+        &self,
+        goal: &str,
+        scope: &str,
+        document_id: Option<String>,
+        max_tools: Option<i64>,
+        persona: &str,
+    ) -> Result<String, String> {
+        let spellcheck = persona == "spellcheck";
+        if spellcheck && document_id.as_deref().map(str::trim).filter(|v| !v.is_empty()).is_none()
+        {
+            return Err("documentId is required for the spellcheck persona".into());
+        }
+
+        let (prefs_enabled, prefs_max, disabled_tools) = self
+            .open_agent_store()
+            .and_then(|store| store.get_prefs().ok())
+            .map(|prefs| {
+                (
+                    prefs.enabled,
+                    prefs.max_steps as i64,
+                    prefs.disabled_tools,
+                )
+            })
+            .unwrap_or((true, 3, Vec::new()));
+
+        if !prefs_enabled {
+            return Err("Local agent is disabled in Scribe settings".into());
+        }
+
+        let scope = if spellcheck { "document" } else { scope };
+        let max_tools = if spellcheck {
+            1
+        } else {
+            max_tools.unwrap_or(prefs_max).clamp(1, 6)
+        };
+
+        let tools_list: Vec<String> = if spellcheck {
+            vec!["spellcheck".into()]
+        } else {
+            let plan = self.with_store(|store| {
+                store.plan_agent_goal(&self.sidecar, goal, scope, Some(max_tools))
+            })?;
+
+            let planned = plan
+                .get("tools")
+                .and_then(|value| value.as_array())
+                .cloned()
+                .unwrap_or_default()
+                .into_iter()
+                .filter_map(|value| value.as_str().map(|s| s.to_string()))
+                .filter(|tool| {
+                    !disabled_tools
+                        .iter()
+                        .any(|disabled| disabled.eq_ignore_ascii_case(tool))
+                })
+                .take(max_tools as usize)
+                .collect::<Vec<_>>();
+
+            if plan
+                .get("needsClarification")
+                .and_then(|value| value.as_bool())
+                .unwrap_or(false)
+                && planned.is_empty()
+            {
+                return Ok(tools::json(&serde_json::json!({
+                    "goal": goal,
+                    "scope": scope,
+                    "documentId": document_id,
+                    "persona": persona,
+                    "needsClarification": true,
+                    "clarifyOptions": plan.get("clarifyOptions").cloned().unwrap_or(serde_json::json!([])),
+                    "steps": [],
+                    "answer": "Goal is ambiguous — pick a tool from clarifyOptions, or call run_agent again with a more specific goal.",
+                })));
+            }
+
+            planned
+        };
+
+        let mut steps = Vec::new();
+        let mut answers = Vec::new();
+
+        if let Some(preamble) = self.agent_teachings_preamble(spellcheck) {
+            answers.push(preamble);
+        }
+
+        for tool_name in &tools_list {
+            match self.execute_agent_tool(tool_name, goal, document_id.as_deref()) {
+                Ok((detail, answer)) => {
+                    if let Some(text) = answer.as_ref().filter(|s| !s.trim().is_empty()) {
+                        answers.push(text.clone());
+                    }
+                    steps.push(serde_json::json!({
+                        "tool": tool_name,
+                        "status": "ok",
+                        "detail": detail,
+                    }));
+                }
+                Err(error) => {
+                    steps.push(serde_json::json!({
+                        "tool": tool_name,
+                        "status": "error",
+                        "detail": error,
+                    }));
+                }
+            }
+        }
+
+        let answer = if answers.is_empty() {
+            "No tool produced an answer.".to_string()
+        } else {
+            answers.join("\n\n")
+        };
+
+        if let Some(store) = self.open_agent_store() {
+            let _ = store.append_run(
+                scope,
+                document_id.as_deref(),
+                goal,
+                Some(&serde_json::to_string(&steps).unwrap_or_else(|_| "[]".into())),
+                Some(&answer),
+            );
+        }
+
+        Ok(tools::json(&serde_json::json!({
+            "goal": goal,
+            "scope": scope,
+            "documentId": document_id,
+            "persona": persona,
+            "steps": steps,
+            "answer": answer,
+        })))
     }
 }
 
@@ -1137,7 +1363,7 @@ impl ScribeMcp {
     }
 
     #[tool(
-        description = "Run the same local agent planner used in the Scribe app: plan_agent_goal then execute tools (library/document Q&A, summarize, tasks, organize, wiki, …). Requires Local AI. Prefer this over calling many tools yourself."
+        description = "Run the same local agent planner used in the Scribe app: plan_agent_goal then execute tools (library/document Q&A, summarize, tasks, spellcheck, rewrite, glossary, …). Set persona=spellcheck for the Spellcheck Agent (grammar teachings + spellcheck only). Requires Local AI."
     )]
     fn run_agent(
         &self,
@@ -1147,6 +1373,16 @@ impl ScribeMcp {
         if goal.is_empty() {
             return Err("goal is required".to_string());
         }
+        let persona = match params
+            .persona
+            .as_deref()
+            .map(str::trim)
+            .map(|value| value.to_ascii_lowercase())
+            .as_deref()
+        {
+            Some("spellcheck") | Some("spell") | Some("grammar") => "spellcheck",
+            _ => "general",
+        };
         let scope = params
             .scope
             .as_deref()
@@ -1163,91 +1399,35 @@ impl ScribeMcp {
             .map(str::trim)
             .filter(|value| !value.is_empty())
             .map(|value| value.to_string());
-        let max_tools = params.max_tools.unwrap_or(3).clamp(1, 6);
 
-        let plan = self.with_store(|store| {
-            store.plan_agent_goal(&self.sidecar, goal, scope, Some(max_tools))
-        })?;
+        self.run_agent_with_persona(goal, scope, document_id, params.max_tools, persona)
+    }
 
-        let tools_list = plan
-            .get("tools")
-            .and_then(|value| value.as_array())
-            .cloned()
-            .unwrap_or_default()
-            .into_iter()
-            .filter_map(|value| value.as_str().map(|s| s.to_string()))
-            .take(max_tools as usize)
-            .collect::<Vec<_>>();
-
-        if plan
-            .get("needsClarification")
-            .and_then(|value| value.as_bool())
-            .unwrap_or(false)
-            && tools_list.is_empty()
-        {
-            return Ok(tools::json(&serde_json::json!({
-                "goal": goal,
-                "scope": scope,
-                "documentId": document_id,
-                "needsClarification": true,
-                "clarifyOptions": plan.get("clarifyOptions").cloned().unwrap_or(serde_json::json!([])),
-                "steps": [],
-                "answer": "Goal is ambiguous — pick a tool from clarifyOptions, or call run_agent again with a more specific goal.",
-            })));
+    #[tool(
+        description = "Spellcheck Agent: check spelling on one note using the same path as the in-app Spellcheck Agent. Applies grammar teachings from Scribe settings. Requires documentId + Local AI."
+    )]
+    fn run_spellcheck_agent(
+        &self,
+        Parameters(params): Parameters<tools::RunSpellcheckAgentParams>,
+    ) -> Result<String, String> {
+        let document_id = params.document_id.trim();
+        if document_id.is_empty() {
+            return Err("documentId is required".into());
         }
+        let goal = params
+            .goal
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .unwrap_or("Check spelling in this note");
 
-        let mut steps = Vec::new();
-        let mut answers = Vec::new();
-
-        for tool_name in &tools_list {
-            match self.execute_agent_tool(tool_name, goal, document_id.as_deref()) {
-                Ok((detail, answer)) => {
-                    if let Some(text) = answer.as_ref().filter(|s| !s.trim().is_empty()) {
-                        answers.push(text.clone());
-                    }
-                    steps.push(serde_json::json!({
-                        "tool": tool_name,
-                        "status": "ok",
-                        "detail": detail,
-                    }));
-                }
-                Err(error) => {
-                    steps.push(serde_json::json!({
-                        "tool": tool_name,
-                        "status": "error",
-                        "detail": error,
-                    }));
-                }
-            }
-        }
-
-        let answer = if answers.is_empty() {
-            "No tool produced an answer.".to_string()
-        } else {
-            answers.join("\n\n")
-        };
-
-        if let Some(parent) = self.db_path.parent() {
-            let agent_path = parent.join(scribe_agent::AGENT_DB_FILE);
-            if let Ok(store) = scribe_agent::AgentStore::from_path(&agent_path) {
-                let _ = store.append_run(
-                    scope,
-                    document_id.as_deref(),
-                    goal,
-                    Some(&serde_json::to_string(&steps).unwrap_or_else(|_| "[]".into())),
-                    Some(&answer),
-                );
-            }
-        }
-
-        Ok(tools::json(&serde_json::json!({
-            "goal": goal,
-            "scope": scope,
-            "documentId": document_id,
-            "plan": plan,
-            "steps": steps,
-            "answer": answer,
-        })))
+        self.run_agent_with_persona(
+            goal,
+            "document",
+            Some(document_id.to_string()),
+            Some(1),
+            "spellcheck",
+        )
     }
 
     #[tool(description = "Full Local AI analysis of a note: keywords, outline, summary, tone, dates, mentions.")]
@@ -2631,6 +2811,24 @@ impl ScribeMcp {
         .with_description("Revision AI review")
     }
 
+    #[prompt(description = "Run the Spellcheck Agent on a note (grammar teachings + spellcheck).")]
+    fn spellcheck_agent_pass(
+        &self,
+        Parameters(params): Parameters<tools::IdParams>,
+    ) -> GetPromptResult {
+        GetPromptResult::new(vec![PromptMessage::new_text(
+            Role::User,
+            format!(
+                "Run the Scribe Spellcheck Agent on note {id}.\n\
+                 1. Call run_spellcheck_agent with documentId={id}.\n\
+                 2. Summarize issues and suggested fixes.\n\
+                 Respect grammar teachings in the answer. Do not rewrite the note unless I ask.",
+                id = params.id
+            ),
+        )])
+        .with_description("Spellcheck Agent pass")
+    }
+
     #[prompt(description = "Suggest continue-writing phrases from the local library.")]
     fn continue_writing(
         &self,
@@ -2686,8 +2884,8 @@ impl ScribeMcp {
 #[tool_handler]
 #[prompt_handler]
 impl ServerHandler for ScribeMcp {
-    fn get_info(&self) -> ServerInfo {
-        ServerInfo::new(
+    fn get_info(&self) -> ServerConfig {
+        ServerConfig::new(
             ServerCapabilities::builder()
                 .enable_tools()
                 .enable_prompts()
@@ -2697,7 +2895,8 @@ impl ServerHandler for ScribeMcp {
         .with_instructions(
             "Scribe local notes.              Prefer search (with folderId/tag/fromDate/toDate), \
              get_document_outline, then get_document or export_document. \
-             For multi-step local agent goals use run_agent (same planner as the Scribe app). \
+             For multi-step local agent goals use run_agent (same planner as the Scribe app; persona=spellcheck for the Spellcheck Agent). \
+             Prefer run_spellcheck_agent when the user only wants spelling/grammar on one note. \
              list_documents / create_note / search are scoped to the active library — \
              call list_libraries / switch_library first if the user names another library. \
              create_library adds a library without switching. \

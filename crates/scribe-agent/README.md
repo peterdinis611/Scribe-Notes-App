@@ -19,7 +19,8 @@ use scribe_agent::AgentStore;
 
 let store = AgentStore::from_path(path)?;
 let prefs = store.get_prefs()?;
-store.add_teaching("Prefer Slovak answers")?;
+store.add_teaching("Prefer Slovak answers", None)?;
+store.add_teaching("Prefer -ise endings", Some("grammar"))?;
 ```
 
 Tauri opens the DB under the app data dir and exposes commands in `commands/agent.rs`.

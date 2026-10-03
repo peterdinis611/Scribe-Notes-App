@@ -496,14 +496,28 @@ Configure opt-in Local LLM (writable MCP only): `enabled`, `baseUrl` (localhost)
 
 ## `run_agent`
 
-Same local agent planner as the Scribe app (`plan_agent_goal` + tool execution). Optional LLM planner when Local LLM + plan is enabled.
+Same local agent planner as the Scribe app (`plan_agent_goal` + tool execution). Optional LLM planner when Local LLM + plan is enabled. Respects agent prefs (disabled tools, max steps) and injects teachings from `scribe-agent.db`.
 
 | Arg | Type | Required | Notes |
 |-----|------|----------|--------|
 | `goal` | string | yes | Natural-language goal |
 | `scope` | string | no | `library` or `document` |
 | `documentId` | string | no | Required for most document tools |
-| `maxTools` | number | no | 1–6, default 3 |
+| `maxTools` | number | no | 1–6; defaults to agent prefs `maxSteps` |
+| `persona` | string | no | `general` (default) or `spellcheck` (Spellcheck Agent) |
+
+When `persona` is `spellcheck`, the run forces the `spellcheck` tool, requires `documentId`, and injects **grammar** teachings only.
+
+---
+
+## `run_spellcheck_agent`
+
+Dedicated Spellcheck Agent (same path as the in-app persona). Equivalent to `run_agent` with `persona=spellcheck`.
+
+| Arg | Type | Required | Notes |
+|-----|------|----------|--------|
+| `documentId` | string | yes | Note to check |
+| `goal` | string | no | Optional focus; default “Check spelling in this note” |
 
 ---
 

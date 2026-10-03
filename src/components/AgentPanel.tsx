@@ -173,6 +173,7 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
   const [input, setInput] = useState('')
   const [teachInput, setTeachInput] = useState('')
   const [showTeach, setShowTeach] = useState(false)
+  const [teachTopic, setTeachTopic] = useState<'general' | 'grammar'>('general')
   const [teachWithAi, setTeachWithAi] = useState(true)
   const [teachBusy, setTeachBusy] = useState(false)
   const [llmTeachReady, setLlmTeachReady] = useState<boolean | null>(null)
@@ -746,6 +747,7 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
       const result = teachWithAi
         ? await distillTeachingWithLlm(draft, {
             force: draft.length > AGENT_TEACHING_MAX_LEN || draft.includes('\n'),
+            topic: teachTopic,
           })
         : { text: draft.slice(0, AGENT_TEACHING_MAX_LEN), distilled: false }
       if (scope === 'document' && activeDocumentId) {
@@ -754,21 +756,26 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
             text: result.text,
             scope: 'document',
             documentId: activeDocumentId,
+            topic: teachTopic,
           }),
         )
       } else {
-        dispatch(addAgentTeaching(result.text))
+        dispatch(addAgentTeaching({ text: result.text, topic: teachTopic }))
       }
       setTeachInput('')
       toast.success(
-        result.distilled ? t('settings.agent.teachRefinedToast') : t('settings.agent.taughtToast'),
+        result.distilled
+          ? t('settings.agent.teachRefinedToast')
+          : teachTopic === 'grammar'
+            ? t('settings.agent.taughtGrammarToast')
+            : t('settings.agent.taughtToast'),
       )
     } catch {
       toast.error(t('settings.agent.teachRefineOffline'))
     } finally {
       setTeachBusy(false)
     }
-  }, [teachInput, teachBusy, teachWithAi, dispatch, t, scope, activeDocumentId])
+  }, [teachInput, teachBusy, teachWithAi, teachTopic, dispatch, t, scope, activeDocumentId])
 
   const handleSaveReplyAsTeaching = useCallback(
     async (text: string) => {
@@ -955,6 +962,26 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                 ? t('settings.agent.teachScopeDocument')
                 : t('settings.agent.teachScopeGlobal')}
             </p>
+            <div
+              className="agent-scope-switch"
+              role="group"
+              aria-label={t('settings.agent.teachTopicLabel')}
+            >
+              <button
+                type="button"
+                className={cn('library-chat-scope-tab', teachTopic === 'general' && 'is-active')}
+                onClick={() => setTeachTopic('general')}
+              >
+                {t('settings.agent.teachTopicGeneral')}
+              </button>
+              <button
+                type="button"
+                className={cn('library-chat-scope-tab', teachTopic === 'grammar' && 'is-active')}
+                onClick={() => setTeachTopic('grammar')}
+              >
+                {t('settings.agent.teachTopicGrammar')}
+              </button>
+            </div>
             <form
               className="flex flex-col gap-1.5"
               onSubmit={(event) => {
@@ -967,11 +994,13 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                 value={teachInput}
                 maxLength={AGENT_TEACH_DRAFT_MAX_LEN}
                 placeholder={
-                  teachWithAi
-                    ? t('settings.agent.teachPlaceholderLong')
-                    : scope === 'document' && activeDocumentId
-                      ? t('settings.agent.teachPlaceholderDocument')
-                      : t('settings.agent.teachPlaceholder')
+                  teachTopic === 'grammar'
+                    ? t('settings.agent.teachPlaceholderGrammar')
+                    : teachWithAi
+                      ? t('settings.agent.teachPlaceholderLong')
+                      : scope === 'document' && activeDocumentId
+                        ? t('settings.agent.teachPlaceholderDocument')
+                        : t('settings.agent.teachPlaceholder')
                 }
                 onChange={(event) => setTeachInput(event.target.value)}
               />
@@ -1025,6 +1054,11 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                   {item.scope === 'document' ? (
                     <span className="mr-1 text-[10px] uppercase tracking-wide opacity-60">
                       {t('settings.agent.teachBadgeDocument')}
+                    </span>
+                  ) : null}
+                  {item.topic === 'grammar' ? (
+                    <span className="mr-1 text-[10px] uppercase tracking-wide text-[var(--color-accent)] opacity-80">
+                      {t('settings.agent.teachBadgeGrammar')}
                     </span>
                   ) : null}
                   {item.text}

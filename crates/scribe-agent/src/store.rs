@@ -37,6 +37,13 @@ pub struct AgentTeaching {
     pub id: String,
     pub text: String,
     pub created_at: i64,
+    /// `general` standing prefs or `grammar` spelling/style rules.
+    #[serde(default = "default_teaching_topic")]
+    pub topic: String,
+}
+
+fn default_teaching_topic() -> String {
+    "general".into()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -126,7 +133,7 @@ impl AgentStore {
             .db
             .conn
             .prepare(
-                "SELECT id, text, created_at FROM agent_teachings \
+                "SELECT id, text, created_at, COALESCE(topic, 'general') FROM agent_teachings \
                  ORDER BY created_at DESC, id DESC LIMIT ?1",
             )
             .map_err(|e| e.to_string())?;
@@ -136,25 +143,28 @@ impl AgentStore {
                     id: row.get(0)?,
                     text: row.get(1)?,
                     created_at: row.get(2)?,
+                    topic: normalize_teaching_topic(row.get::<_, String>(3)?.as_str()),
                 })
             })
             .map_err(|e| e.to_string())?;
         rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
     }
 
-    pub fn add_teaching(&self, text: &str) -> Result<AgentTeaching, String> {
+    pub fn add_teaching(&self, text: &str, topic: Option<&str>) -> Result<AgentTeaching, String> {
         let text = normalize_teaching_text(text).ok_or_else(|| "teaching text is required".to_string())?;
+        let topic = normalize_teaching_topic(topic.unwrap_or("general"));
         // Dedupe case-insensitive
-        let existing: Option<String> = self
+        let existing: Option<(String, String)> = self
             .db
             .conn
             .query_row(
-                "SELECT id FROM agent_teachings WHERE lower(text) = lower(?1) LIMIT 1",
+                "SELECT id, COALESCE(topic, 'general') FROM agent_teachings \
+                 WHERE lower(text) = lower(?1) LIMIT 1",
                 params![text],
-                |row| row.get(0),
+                |row| Ok((row.get(0)?, row.get(1)?)),
             )
             .ok();
-        if let Some(id) = existing {
+        if let Some((id, existing_topic)) = existing {
             let created_at: i64 = self
                 .db
                 .conn
@@ -164,10 +174,22 @@ impl AgentStore {
                     |row| row.get(0),
                 )
                 .map_err(|e| e.to_string())?;
+            // Upgrade topic when re-teaching the same text as grammar.
+            if topic == "grammar" && existing_topic != "grammar" {
+                let _ = self.db.conn.execute(
+                    "UPDATE agent_teachings SET topic = ?1 WHERE id = ?2",
+                    params![topic, id],
+                );
+            }
             return Ok(AgentTeaching {
                 id,
                 text,
                 created_at,
+                topic: if topic == "grammar" {
+                    "grammar".into()
+                } else {
+                    normalize_teaching_topic(&existing_topic)
+                },
             });
         }
 
@@ -175,12 +197,13 @@ impl AgentStore {
             id: Uuid::new_v4().to_string(),
             text,
             created_at: chrono::Utc::now().timestamp(),
+            topic,
         };
         self.db
             .conn
             .execute(
-                "INSERT INTO agent_teachings (id, text, created_at) VALUES (?1, ?2, ?3)",
-                params![teaching.id, teaching.text, teaching.created_at],
+                "INSERT INTO agent_teachings (id, text, created_at, topic) VALUES (?1, ?2, ?3, ?4)",
+                params![teaching.id, teaching.text, teaching.created_at, teaching.topic],
             )
             .map_err(|e| e.to_string())?;
 
@@ -342,6 +365,13 @@ fn normalize_teaching_text(text: &str) -> Option<String> {
     Some(trimmed.chars().take(TEACHING_MAX_LEN).collect())
 }
 
+fn normalize_teaching_topic(topic: &str) -> String {
+    match topic.trim().to_ascii_lowercase().as_str() {
+        "grammar" | "spelling" | "spellcheck" => "grammar".into(),
+        _ => "general".into(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -368,12 +398,24 @@ mod tests {
     #[test]
     fn teachings_add_list_clear() {
         let store = AgentStore::from_memory().unwrap();
-        store.add_teaching("Prefer Slovak answers").unwrap();
-        store.add_teaching("prefer slovak answers").unwrap(); // dedupe
+        store.add_teaching("Prefer Slovak answers", None).unwrap();
+        store.add_teaching("prefer slovak answers", None).unwrap(); // dedupe
         let list = store.list_teachings().unwrap();
         assert_eq!(list.len(), 1);
+        assert_eq!(list[0].topic, "general");
         store.clear_teachings().unwrap();
         assert!(store.list_teachings().unwrap().is_empty());
+    }
+
+    #[test]
+    fn teachings_grammar_topic() {
+        let store = AgentStore::from_memory().unwrap();
+        store
+            .add_teaching("Prefer -ise endings", Some("grammar"))
+            .unwrap();
+        let list = store.list_teachings().unwrap();
+        assert_eq!(list.len(), 1);
+        assert_eq!(list[0].topic, "grammar");
     }
 
     #[test]

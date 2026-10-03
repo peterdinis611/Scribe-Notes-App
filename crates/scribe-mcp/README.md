@@ -105,6 +105,8 @@ Encrypted vault notes are stored as AES-GCM ciphertext in SQLite. The unlock pas
 | `set_nlp_enabled` | Enable/disable Local AI (writable) |
 | `set_embed_backend` | `hash` or `quality` embeddings (writable) |
 | `calendar_events` | Date events from recent notes |
+| `run_agent` | Local agent planner (`persona=spellcheck` for Spellcheck Agent) |
+| `run_spellcheck_agent` | Spellcheck Agent on one note (grammar teachings) |
 | `spellcheck` | Spellcheck a document |
 | `extract_keywords` | Keywords / keyphrases |
 | `analyze_sentiment` | Tone / sentiment |
@@ -125,7 +127,7 @@ Encrypted vault notes are stored as AES-GCM ciphertext in SQLite. The unlock pas
 
 Plus legacy tools: `scribe_status`, `get_document`, wiki links, folders, revisions, `create_note`, `append_to_note`, …
 
-Resources: `scribe://doc/{id}`, `scribe://artifact/{id}`. Prompts: `weekly_journal_review`, `capture_today`, `open_tasks_triage`, `wiki_health`, `rewrite_selection_draft`, `continue_document_chat`, `analyze_this_note`, `study_flashcards`, `writing_coach_pass`, `revision_review`, `continue_writing`, `switch_and_search`.
+Resources: `scribe://doc/{id}`, `scribe://artifact/{id}`. Prompts: `weekly_journal_review`, `capture_today`, `open_tasks_triage`, `wiki_health`, `rewrite_selection_draft`, `continue_document_chat`, `analyze_this_note`, `study_flashcards`, `writing_coach_pass`, `spellcheck_agent_pass`, `revision_review`, `continue_writing`, `switch_and_search`.
 
 Full reference: [docs/tools.md](docs/tools.md) · guides: [docs/en.md](docs/en.md), [docs/sk.md](docs/sk.md)
 

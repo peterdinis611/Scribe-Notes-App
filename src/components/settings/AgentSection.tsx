@@ -14,6 +14,7 @@ import {
   type AgentMaxSteps,
   type AgentOutputLanguage,
   type AgentTeachingScope,
+  type AgentTeachingTopic,
   type AgentToolId,
 } from '@/lib/library/agent-prefs'
 import {
@@ -147,6 +148,7 @@ export function AgentSection() {
   const [teachInput, setTeachInput] = useState('')
   const [pinInput, setPinInput] = useState('')
   const [teachScope, setTeachScope] = useState<AgentTeachingScope>('global')
+  const [teachTopic, setTeachTopic] = useState<AgentTeachingTopic>('general')
   const [teachWithAi, setTeachWithAi] = useState(true)
   const [teachBusy, setTeachBusy] = useState(false)
   const [llmTeachReady, setLlmTeachReady] = useState<boolean | null>(null)
@@ -196,6 +198,7 @@ export function AgentSection() {
       const result = teachWithAi
         ? await distillTeachingWithLlm(draft, {
             force: draft.length > AGENT_TEACHING_MAX_LEN || draft.includes('\n'),
+            topic: teachTopic,
           })
         : { text: draft.slice(0, AGENT_TEACHING_MAX_LEN), distilled: false }
       if (teachScope === 'document') {
@@ -208,14 +211,19 @@ export function AgentSection() {
             text: result.text,
             scope: 'document',
             documentId: activeDocumentId,
+            topic: teachTopic,
           }),
         )
       } else {
-        dispatch(addAgentTeaching(result.text))
+        dispatch(addAgentTeaching({ text: result.text, topic: teachTopic }))
       }
       setTeachInput('')
       toast.success(
-        result.distilled ? t('settings.agent.teachRefinedToast') : t('settings.agent.taughtToast'),
+        result.distilled
+          ? t('settings.agent.teachRefinedToast')
+          : teachTopic === 'grammar'
+            ? t('settings.agent.taughtGrammarToast')
+            : t('settings.agent.taughtToast'),
       )
     } catch {
       toast.error(t('settings.agent.teachRefineOffline'))
@@ -572,10 +580,32 @@ export function AgentSection() {
               {t('settings.agent.teachScopeToggleDocument')}
             </button>
           </div>
+          <div
+            className="agent-scope-switch mb-2"
+            role="group"
+            aria-label={t('settings.agent.teachTopicLabel')}
+          >
+            <button
+              type="button"
+              className={cn('library-chat-scope-tab', teachTopic === 'general' && 'is-active')}
+              onClick={() => setTeachTopic('general')}
+            >
+              {t('settings.agent.teachTopicGeneral')}
+            </button>
+            <button
+              type="button"
+              className={cn('library-chat-scope-tab', teachTopic === 'grammar' && 'is-active')}
+              onClick={() => setTeachTopic('grammar')}
+            >
+              {t('settings.agent.teachTopicGrammar')}
+            </button>
+          </div>
           <p className="mb-2 text-[11px] text-[var(--color-muted-foreground)]">
-            {teachScope === 'document'
-              ? t('settings.agent.teachScopeDocument')
-              : t('settings.agent.teachScopeGlobal')}
+            {teachTopic === 'grammar'
+              ? t('settings.agent.teachTopicGrammarHint')
+              : teachScope === 'document'
+                ? t('settings.agent.teachScopeDocument')
+                : t('settings.agent.teachScopeGlobal')}
           </p>
 
           <form
@@ -591,11 +621,13 @@ export function AgentSection() {
               disabled={!prefs.enabled || teachBusy}
               rows={3}
               placeholder={
-                teachWithAi
-                  ? t('settings.agent.teachPlaceholderLong')
-                  : teachScope === 'document'
-                    ? t('settings.agent.teachPlaceholderDocument')
-                    : t('settings.agent.teachPlaceholder')
+                teachTopic === 'grammar'
+                  ? t('settings.agent.teachPlaceholderGrammar')
+                  : teachWithAi
+                    ? t('settings.agent.teachPlaceholderLong')
+                    : teachScope === 'document'
+                      ? t('settings.agent.teachPlaceholderDocument')
+                      : t('settings.agent.teachPlaceholder')
               }
               onChange={(event) => setTeachInput(event.target.value)}
               aria-label={t('settings.agent.teachTitle')}
@@ -642,6 +674,11 @@ export function AgentSection() {
                           ? t('settings.agent.teachBadgeDocument')
                           : t('settings.agent.teachBadgeGlobal')}
                       </span>
+                      {item.topic === 'grammar' ? (
+                        <span className="mr-1.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-accent)] opacity-80">
+                          {t('settings.agent.teachBadgeGrammar')}
+                        </span>
+                      ) : null}
                       {item.text}
                     </span>
                     <button

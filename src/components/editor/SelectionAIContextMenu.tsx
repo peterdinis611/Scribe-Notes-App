@@ -116,12 +116,12 @@ export function SelectionAIContextMenu({
     }
   }
 
-  async function handleTeachSelection() {
+  async function handleTeachSelection(topic: 'general' | 'grammar' = 'general') {
     const text = selectedText.trim()
     if (!text || loading) return
     setLoading(true)
     try {
-      const result = await distillTeachingWithLlm(text, { force: true })
+      const result = await distillTeachingWithLlm(text, { force: true, topic })
       const documentId = store.getState().documents.activeDocumentId
       if (documentId) {
         store.dispatch(
@@ -129,15 +129,18 @@ export function SelectionAIContextMenu({
             text: result.text,
             scope: 'document',
             documentId,
+            topic,
           }),
         )
       } else {
-        store.dispatch(addAgentTeaching(result.text))
+        store.dispatch(addAgentTeaching({ text: result.text, topic }))
       }
       toast.success(
         result.distilled
           ? t('settings.agent.teachRefinedToast')
-          : t('settings.agent.taughtToast'),
+          : topic === 'grammar'
+            ? t('settings.agent.taughtGrammarToast')
+            : t('settings.agent.taughtToast'),
       )
       resetViews()
     } catch {
@@ -367,10 +370,18 @@ export function SelectionAIContextMenu({
           <button
             type="button"
             className="selection-ai__mode"
-            onClick={() => void handleTeachSelection()}
+            onClick={() => void handleTeachSelection('general')}
           >
             <GraduationCap className="h-3.5 w-3.5" aria-hidden />
             {t('aiRewrite.teachAgent')}
+          </button>
+          <button
+            type="button"
+            className="selection-ai__mode"
+            onClick={() => void handleTeachSelection('grammar')}
+          >
+            <GraduationCap className="h-3.5 w-3.5" aria-hidden />
+            {t('aiRewrite.teachGrammar')}
           </button>
           <button
             type="button"

@@ -753,6 +753,8 @@ export async function runAgentGoal(
     selectionText?: string | null
     compareDocumentId?: string | null
     stream?: boolean
+    /** Spellcheck agent: inject grammar teachings only. */
+    grammarOnly?: boolean
   },
 ): Promise<AgentRunResult> {
   if (!prefs.enabled) {
@@ -781,10 +783,11 @@ export async function runAgentGoal(
 
   const contextWithTeachings = [
     ...teachingsToMemoryContext(prefs.teachings, {
-      pinnedFacts: prefs.pinnedFacts,
-      episodes: prefs.episodes,
+      pinnedFacts: opts?.grammarOnly ? undefined : prefs.pinnedFacts,
+      episodes: opts?.grammarOnly ? undefined : prefs.episodes,
       outputLanguage: prefs.outputLanguage,
       documentId,
+      grammarOnly: opts?.grammarOnly,
     }),
     ...(memoryContext ?? []),
   ]
