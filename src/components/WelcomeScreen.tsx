@@ -4,7 +4,8 @@ import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { DemoGuideButton } from '@/components/DemoGuideButton'
-import { pickAndImportFile } from '@/lib/db/api'
+import { pickAndImportFiles } from '@/lib/db/api'
+import { toastImportDocumentsResult } from '@/lib/import-document'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { prefetchDocument } from '@/lib/cache/prefetch-document'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
@@ -50,14 +51,18 @@ export function WelcomeScreen() {
   }, [documents, recentDocumentIds])
 
   async function handleImport() {
-    const doc = await pickAndImportFile()
-    if (!doc) return
-    dispatch(updateDocuments((prev) => prependDocumentSummary(prev, doc)))
-    dispatch(setActiveDocumentId(doc.id))
-    dispatch(setActiveDocument(doc))
+    const result = await pickAndImportFiles()
+    if (!result) return
+    toastImportDocumentsResult(result, (key, options) => t(key, options))
+    if (result.imported.length === 0) return
+    for (const doc of result.imported) {
+      dispatch(updateDocuments((prev) => prependDocumentSummary(prev, doc)))
+    }
+    const last = result.imported[result.imported.length - 1]!
+    dispatch(setActiveDocumentId(last.id))
+    dispatch(setActiveDocument(last))
     dispatch(setSaveStatus('saved'))
-    toast.success(t('toasts.documentImported'), doc.title)
-    navigate(ROUTES.document(doc.id))
+    navigate(ROUTES.document(last.id))
   }
 
   function handleToday() {

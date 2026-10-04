@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import {
-  fileNameFromPath,
   filterImportableDocumentPaths,
   importDocumentsFromPaths,
+  toastImportDocumentsResult,
 } from '@/lib/import-document'
 import type { Document } from '@/lib/db/api'
 
@@ -87,32 +87,8 @@ export function useAppFileDrop(handlers: AppFileDropHandlers) {
             const result = await importDocumentsFromPaths(importable)
             if (result.imported.length > 0) {
               await h.onImported(result.imported)
-              if (result.imported.length === 1) {
-                h.toastSuccess(
-                  h.t('fileDrop.importedOne'),
-                  result.imported[0]!.title,
-                )
-              } else {
-                h.toastSuccess(
-                  h.t('fileDrop.importedMany', { count: result.imported.length }),
-                )
-              }
             }
-
-            if (result.skipped.length > 0) {
-              h.toastInfo(
-                h.t('fileDrop.skipped', { count: result.skipped.length }),
-                result.skipped.slice(0, 3).map(fileNameFromPath).join(', '),
-              )
-            }
-
-            if (result.failed.length > 0) {
-              const first = result.failed[0]!
-              h.toastError(
-                h.t('fileDrop.failed', { count: result.failed.length }),
-                `${fileNameFromPath(first.path)}: ${first.error}`,
-              )
-            }
+            toastImportDocumentsResult(result, h.t)
           } catch (error) {
             h.toastError(h.t('fileDrop.error'), String(error))
           } finally {

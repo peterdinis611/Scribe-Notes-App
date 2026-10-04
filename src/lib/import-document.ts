@@ -152,23 +152,73 @@ export async function importDocumentsFromPaths(paths: string[]): Promise<ImportD
   return { imported, skipped, failed }
 }
 
-export async function pickAndImportDocument(): Promise<Document | null> {
+/**
+ * Open a multi-file picker and import all selected documents.
+ * Returns `null` when the user cancels.
+ */
+export async function pickAndImportDocuments(): Promise<ImportDocumentsResult | null> {
   const selected = await open({
-    multiple: false,
-    title: 'Importovať dokument',
+    multiple: true,
+    title: 'Importovať dokumenty',
     filters: IMPORT_FILTERS,
     fileAccessMode: 'scoped',
   })
 
-  if (!selected || Array.isArray(selected)) {
+  if (selected == null) {
     return null
   }
 
-  try {
-    return await importDocumentFromPath(selected)
-  } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error)
-    await message(detail, { title: 'Import zlyhal', kind: 'error' })
+  const paths = (Array.isArray(selected) ? selected : [selected]).filter(Boolean)
+  if (paths.length === 0) {
     return null
+  }
+
+  return importDocumentsFromPaths(paths)
+}
+
+/** Single-file convenience wrapper (first imported doc, or null). */
+export async function pickAndImportDocument(): Promise<Document | null> {
+  const result = await pickAndImportDocuments()
+  if (!result) return null
+
+  if (result.imported.length === 0 && result.failed.length > 0) {
+    const first = result.failed[0]!
+    await message(`${fileNameFromPath(first.path)}: ${first.error}`, {
+      title: 'Import zlyhal',
+      kind: 'error',
+    })
+    return null
+  }
+
+  return result.imported[0] ?? null
+}
+
+/** Toast feedback for a batch import result (picker or drop). */
+export function toastImportDocumentsResult(
+  result: ImportDocumentsResult,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): void {
+  if (result.imported.length === 1) {
+    toast.success(
+      t('toasts.documentImported'),
+      result.imported[0]!.title || t('fileDrop.importedOne'),
+    )
+  } else if (result.imported.length > 1) {
+    toast.success(t('fileDrop.importedMany', { count: result.imported.length }))
+  }
+
+  if (result.skipped.length > 0) {
+    toast.info(
+      t('fileDrop.skipped', { count: result.skipped.length }),
+      result.skipped.slice(0, 3).map(fileNameFromPath).join(', '),
+    )
+  }
+
+  if (result.failed.length > 0) {
+    const first = result.failed[0]!
+    toast.error(
+      t('fileDrop.failed', { count: result.failed.length }),
+      `${fileNameFromPath(first.path)}: ${first.error}`,
+    )
   }
 }

@@ -95,16 +95,31 @@ pub fn write_text_file(
         .map_err(|e| format!("Nepodarilo sa zapísať súbor: {e}"))
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PickAndImportResult {
+    pub imported: Vec<Document>,
+    pub failed: Vec<PickAndImportFailure>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PickAndImportFailure {
+    pub path: String,
+    pub error: String,
+}
+
+/// Multi-file picker + import. Returns `None` when the user cancels.
 #[tauri::command]
 pub fn pick_and_import_file(
     app: AppHandle,
     state: State<'_, DbState>,
     gate: State<'_, PathAccessGate>,
-) -> Result<Option<Document>, String> {
+) -> Result<Option<PickAndImportResult>, String> {
     let picked = app
         .dialog()
         .file()
-        .set_title("Importovať dokument")
+        .set_title("Importovať dokumenty")
         .add_filter(
             "Podporované dokumenty",
             &[
@@ -112,16 +127,30 @@ pub fn pick_and_import_file(
                 "csv", "xls",
             ],
         )
-        .blocking_pick_file();
+        .blocking_pick_files();
 
-    let Some(path) = picked else {
+    let Some(paths) = picked else {
         return Ok(None);
     };
+    if paths.is_empty() {
+        return Ok(None);
+    }
 
-    let path = PathBuf::from(path.to_string());
-    gate.grant(&path);
-    let doc = import_file_at_path(&app, &state, &gate, &path)?;
-    Ok(Some(doc))
+    let mut imported = Vec::new();
+    let mut failed = Vec::new();
+    for path in paths {
+        let path = PathBuf::from(path.to_string());
+        gate.grant(&path);
+        match import_file_at_path(&app, &state, &gate, &path) {
+            Ok(doc) => imported.push(doc),
+            Err(error) => failed.push(PickAndImportFailure {
+                path: path.to_string_lossy().to_string(),
+                error,
+            }),
+        }
+    }
+
+    Ok(Some(PickAndImportResult { imported, failed }))
 }
 
 #[derive(Debug, Serialize)]

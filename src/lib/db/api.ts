@@ -547,9 +547,16 @@ export const writeTextFile = async (path: string, contents: string) => {
 export const saveDocumentOcr = (documentId: string, imagePath: string, text: string) =>
   invoke<void>('save_document_ocr', { documentId, imagePath, text })
 
+/** Multi-file import picker. Returns `null` when cancelled. */
+export const pickAndImportFiles = async () => {
+  const { pickAndImportDocuments } = await import('@/lib/import-document')
+  return pickAndImportDocuments()
+}
+
+/** @deprecated Prefer `pickAndImportFiles` — kept for single-doc call sites. */
 export const pickAndImportFile = async () => {
-  const { pickAndImportDocument } = await import('@/lib/import-document')
-  return pickAndImportDocument()
+  const result = await pickAndImportFiles()
+  return result?.imported[0] ?? null
 }
 
 export const importFile = async (path: string) => {
