@@ -1731,21 +1731,21 @@ pub fn nlp_suggest_title(
     sidecar: State<'_, NlpSidecar>,
     document_id: String,
 ) -> Result<serde_json::Value, String> {
-    let text = {
-        let conn = state.conn.lock().map_err(|e| e.to_string())?;
-        if !is_nlp_enabled(&conn)? {
-            return Err("NLP is disabled".to_string());
+    let text = resolve_text_offline_ok(
+        &state,
+        &NlpDocumentTextInput {
+            document_id: Some(document_id),
+            text: None,
+            limit: None,
+            include_cloze: None,
+        },
+    )?;
+    if nlp_is_enabled(&state) {
+        if let Ok(raw) = sidecar.suggest_title(&text, 72) {
+            return Ok(raw);
         }
-        let (title, content_json): (String, String) = conn
-            .query_row(
-                "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL",
-                params![document_id],
-                |row| Ok((row.get(0)?, row.get(1)?)),
-            )
-            .map_err(|e| e.to_string())?;
-        format!("{title}\n{}", extract_search_text(&content_json))
-    };
-    sidecar.suggest_title(&text, 72)
+    }
+    serde_json::to_value(scribe_core::nlp::suggest_title(&text, 72)).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -2482,6 +2482,38 @@ pub fn nlp_extract_mentions(
     serde_json::to_value(scribe_core::nlp::extract_mentions(&text)).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+pub fn nlp_open_loops(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpDocumentTextInput,
+) -> Result<serde_json::Value, String> {
+    let text = resolve_text_offline_ok(&state, &input)?;
+    let limit = input.limit.unwrap_or(16).clamp(1, 40);
+    if nlp_is_enabled(&state) {
+        if let Ok(raw) = sidecar.open_loops(&text, limit) {
+            return Ok(raw);
+        }
+    }
+    serde_json::to_value(scribe_core::nlp::open_loops(&text, limit as usize))
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn nlp_tone_pack(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpDocumentTextInput,
+) -> Result<serde_json::Value, String> {
+    let text = resolve_text_offline_ok(&state, &input)?;
+    if nlp_is_enabled(&state) {
+        if let Ok(raw) = sidecar.tone_pack(&text) {
+            return Ok(raw);
+        }
+    }
+    serde_json::to_value(scribe_core::nlp::tone_pack(&text)).map_err(|e| e.to_string())
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NlpContradictionInput {
@@ -2704,25 +2736,29 @@ pub fn nlp_template_fill_hints(
     sidecar: State<'_, NlpSidecar>,
     input: NlpTemplateHintsInput,
 ) -> Result<serde_json::Value, String> {
-    let text = {
-        let conn = state.conn.lock().map_err(|e| e.to_string())?;
-        if !is_nlp_enabled(&conn)? {
-            return Err("NLP is disabled".to_string());
+    let text = resolve_text_offline_ok(
+        &state,
+        &NlpDocumentTextInput {
+            document_id: Some(input.document_id),
+            text: None,
+            limit: None,
+            include_cloze: None,
+        },
+    )?;
+    let expected = input.expected_sections.clone();
+    if nlp_is_enabled(&state) {
+        let sections = expected
+            .as_ref()
+            .map(|items| json!(items))
+            .unwrap_or(json!(null));
+        if let Ok(raw) = sidecar.template_fill_hints(&text, sections) {
+            return Ok(raw);
         }
-        let (title, content_json): (String, String) = conn
-            .query_row(
-                "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL",
-                params![input.document_id],
-                |row| Ok((row.get(0)?, row.get(1)?)),
-            )
-            .map_err(|e| e.to_string())?;
-        format!("{title}\n{}", extract_search_text(&content_json))
-    };
-    let sections = input
-        .expected_sections
-        .map(|items| json!(items))
-        .unwrap_or(json!(null));
-    sidecar.template_fill_hints(&text, sections)
+    }
+    Ok(scribe_core::nlp::template_fill_hints_value(
+        &text,
+        expected.as_deref(),
+    ))
 }
 
 #[derive(Debug, Serialize)]

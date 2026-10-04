@@ -1147,6 +1147,14 @@ impl NlpSidecar {
         self.call_method("note_pulse", json!({ "text": text }))
     }
 
+    pub fn open_loops(&self, text: &str, limit: i64) -> Result<Value, String> {
+        self.call_method("open_loops", json!({ "text": text, "limit": limit }))
+    }
+
+    pub fn tone_pack(&self, text: &str) -> Result<Value, String> {
+        self.call_method("tone_pack", json!({ "text": text }))
+    }
+
     pub fn agent_document_brief(
         &self,
         text: &str,

@@ -2742,6 +2742,13 @@
       "note_pulse": "Note pulse",
       "grammar": "Grammar check",
       "mentions": "Mentions & people",
+      "open_loops": "Open loops",
+      "tone": "Tone & readability",
+      "title": "Suggest title",
+      "continuation": "Continue writing",
+      "template_hints": "Template gaps",
+      "library_report": "Library report",
+      "terminology_library": "Library terminology",
       "files_answer": "Ask files/",
       "save_template": "Save as template"
     }

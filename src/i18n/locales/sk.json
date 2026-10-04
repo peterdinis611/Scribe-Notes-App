@@ -2746,6 +2746,13 @@
       "note_pulse": "Pulse poznámky",
       "grammar": "Gramatika",
       "mentions": "Mentions a ľudia",
+      "open_loops": "Otvorené slučky",
+      "tone": "Tón a čitateľnosť",
+      "title": "Navrhnúť názov",
+      "continuation": "Pokračovať v písaní",
+      "template_hints": "Medzery v šablóne",
+      "library_report": "Report knižnice",
+      "terminology_library": "Terminológia knižnice",
       "files_answer": "Opýtať sa files/",
       "save_template": "Uložiť ako šablónu"
     }

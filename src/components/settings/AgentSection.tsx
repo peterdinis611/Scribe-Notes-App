@@ -73,6 +73,13 @@ const TOOL_LABEL_KEYS: Record<AgentToolId, string> = {
   note_pulse: 'agent.tools.note_pulse',
   grammar: 'agent.tools.grammar',
   mentions: 'agent.tools.mentions',
+  open_loops: 'agent.tools.open_loops',
+  tone: 'agent.tools.tone',
+  title: 'agent.tools.title',
+  continuation: 'agent.tools.continuation',
+  template_hints: 'agent.tools.template_hints',
+  library_report: 'agent.tools.library_report',
+  terminology_library: 'agent.tools.terminology_library',
   files_answer: 'agent.tools.files_answer',
   save_template: 'agent.tools.save_template',
 }

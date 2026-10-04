@@ -21,14 +21,17 @@ import { getAgentRecipe, type AgentRecipeId } from '@/lib/library/agent-recipes'
 import {
   runAgentCitations,
   runAgentCommitments,
+  runAgentContinuation,
   runAgentContradictions,
   runAgentDatesLibrary,
   runAgentDecisions,
   runAgentDuplicates,
   runAgentGrammar,
+  runAgentLibraryReport,
   runAgentMeetingPack,
   runAgentMentions,
   runAgentNotePulse,
+  runAgentOpenLoops,
   runAgentOrganize,
   runAgentOutlineQuiz,
   runAgentPii,
@@ -38,6 +41,10 @@ import {
   runAgentRevision,
   runAgentRewrite,
   runAgentSectionSummaries,
+  runAgentTemplateHints,
+  runAgentTerminologyLibrary,
+  runAgentTitle,
+  runAgentTone,
 } from '@/lib/library/agent-tools'
 import {
   askDocument,
@@ -130,6 +137,11 @@ const DOCUMENT_TOOLS = new Set<AgentToolId>([
   'note_pulse',
   'grammar',
   'mentions',
+  'open_loops',
+  'tone',
+  'title',
+  'continuation',
+  'template_hints',
   'save_template',
 ])
 
@@ -138,6 +150,8 @@ const LIBRARY_ONLY_TOOLS = new Set<AgentToolId>([
   'citations',
   'library_answer',
   'files_answer',
+  'library_report',
+  'terminology_library',
 ])
 
 const CHAT_ACTION_TOOLS = new Set<AgentToolId>([
@@ -194,6 +208,13 @@ const INTENT_TO_TOOL: Record<string, AgentToolId> = {
   note_pulse: 'note_pulse',
   grammar: 'grammar',
   mentions: 'mentions',
+  open_loops: 'open_loops',
+  tone: 'tone',
+  title: 'title',
+  continuation: 'continuation',
+  template_hints: 'template_hints',
+  library_report: 'library_report',
+  terminology_library: 'terminology_library',
   save_template: 'save_template',
 }
 
@@ -413,6 +434,34 @@ export function matchAgentIntentsSync(goal: string): AgentToolId[] {
     {
       tool: 'mentions',
       needles: ['mentions', 'people mentioned', '@mentions', 'spomenute osoby', 'kto je v poznamke', 'attendees'],
+    },
+    {
+      tool: 'open_loops',
+      needles: ['open loops', 'unfinished', 'loose ends', 'otvorene slucky', 'nedokoncene', 'co ostava'],
+    },
+    {
+      tool: 'tone',
+      needles: ['tone', 'readability', 'reading time', 'sentiment', 'citelnost', 'ton textu', 'nalada textu'],
+    },
+    {
+      tool: 'title',
+      needles: ['suggest title', 'rename note', 'better title', 'navrhni nazov', 'premenuj', 'lepsi nazov'],
+    },
+    {
+      tool: 'continuation',
+      needles: ['continue writing', 'keep writing', 'what next sentence', 'pokracuj v pisani', 'dalsia veta'],
+    },
+    {
+      tool: 'template_hints',
+      needles: ['template gaps', 'missing sections', 'template hints', 'chyba sekcia', 'dopln sablonu'],
+    },
+    {
+      tool: 'library_report',
+      needles: ['library report', 'library health', 'report kniznice', 'stav kniznice'],
+    },
+    {
+      tool: 'terminology_library',
+      needles: ['library terminology', 'term variants', 'terminologia kniznice', 'nekonzistentne pojmy'],
     },
     {
       tool: 'brief',
@@ -706,6 +755,32 @@ async function runTool(
   if (tool === 'mentions') {
     if (!ctx.documentId) throw new Error('agent.needsDocument')
     return runAgentMentions(ctx.documentId)
+  }
+  if (tool === 'open_loops') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentOpenLoops(ctx.documentId)
+  }
+  if (tool === 'tone') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentTone(ctx.documentId)
+  }
+  if (tool === 'title') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentTitle(ctx.documentId)
+  }
+  if (tool === 'continuation') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentContinuation(ctx.documentId)
+  }
+  if (tool === 'template_hints') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentTemplateHints(ctx.documentId)
+  }
+  if (tool === 'library_report') {
+    return runAgentLibraryReport()
+  }
+  if (tool === 'terminology_library') {
+    return runAgentTerminologyLibrary()
   }
   if (tool === 'contradictions') {
     if (!ctx.documentId) throw new Error('agent.needsDocument')

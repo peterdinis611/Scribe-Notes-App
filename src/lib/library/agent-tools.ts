@@ -7,6 +7,7 @@ import {
   nlpCalendarEvents,
   nlpCitationPack,
   nlpContradictionHints,
+  nlpCheckTerminologyLibrary,
   nlpDetectPii,
   nlpExtractCommitments,
   nlpExtractDecisions,
@@ -14,14 +15,20 @@ import {
   nlpExtractQuotes,
   nlpFindDuplicates,
   nlpGrammarCheck,
+  nlpLibraryReport,
   nlpMeetingNotesPack,
   nlpNotePulse,
+  nlpOpenLoops,
   nlpOutlineQuiz,
   nlpRankTasks,
   nlpReadingPlan,
   nlpRewriteSelection,
   nlpSectionSummaries,
+  nlpSuggestContinuation,
   nlpSuggestTags,
+  nlpSuggestTitle,
+  nlpTemplateFillHints,
+  nlpTonePack,
   type CalendarEvent,
 } from '@/lib/db/nlp-api'
 import { tiptapToPlainText } from '@/lib/export/plain-text'
@@ -252,6 +259,117 @@ export async function runAgentMentions(documentId: string): Promise<LibraryChatR
         snippet: `${result.edgeCount ?? people.length + wiki.length} edges`,
       },
     ],
+  }
+}
+
+export async function runAgentOpenLoops(documentId: string): Promise<LibraryChatResult> {
+  const result = await nlpOpenLoops({ documentId, limit: 16 })
+  if (!result.loops.length) {
+    return { answer: 'No open loops — checkboxes and commitments look clear.', citations: [] }
+  }
+  return {
+    answer: `**Open loops (${result.count})**\n\n${bullets(
+      result.loops.map((item) => {
+        const due = item.dueHint ? ` _(due ${item.dueHint})_` : ''
+        return `[${item.kind}] ${item.text}${due}`
+      }),
+    )}`,
+    citations: [
+      {
+        documentId,
+        title: 'Open loops',
+        snippet: `${result.openTaskCount} tasks · ${result.commitmentCount} commitments`,
+      },
+    ],
+  }
+}
+
+export async function runAgentTone(documentId: string): Promise<LibraryChatResult> {
+  const result = await nlpTonePack({ documentId })
+  const hints = result.hints?.length ? `\n\nHints: ${result.hints.join(', ')}` : ''
+  return {
+    answer: `**Tone & readability**\n\n${result.summary}\nFlesch **${result.flesch}** · ${result.wordCount} words${hints}`,
+    citations: [{ documentId, title: 'Tone', snippet: result.source }],
+  }
+}
+
+export async function runAgentTitle(documentId: string): Promise<LibraryChatResult> {
+  const result = await nlpSuggestTitle(documentId)
+  if (!result.title) {
+    return { answer: 'Could not suggest a title for this note.', citations: [] }
+  }
+  return {
+    answer: `**Suggested title**\n\n**${result.title}**\n\nSlug: \`${result.slug || '—'}\` · source: ${result.source}`,
+    citations: [{ documentId, title: result.title, snippet: result.source }],
+  }
+}
+
+export async function runAgentContinuation(documentId: string): Promise<LibraryChatResult> {
+  const result = await nlpSuggestContinuation({
+    prefix: '',
+    maxSuggestions: 4,
+    maxTokens: 16,
+    excludeDocumentId: documentId,
+  })
+  const suggestions = result.suggestions ?? []
+  if (!suggestions.length) {
+    return { answer: 'No continuation suggestions from the local library yet.', citations: [] }
+  }
+  return {
+    answer: `**Continue writing**\n\n${bullets(suggestions.map((item) => item.text))}`,
+    citations: [
+      {
+        documentId,
+        title: 'Continuation',
+        snippet: `${result.corpusDocs ?? 0} corpus docs · ${result.source}`,
+      },
+    ],
+  }
+}
+
+export async function runAgentTemplateHints(documentId: string): Promise<LibraryChatResult> {
+  const result = await nlpTemplateFillHints({ documentId })
+  const missing = result.missing ?? []
+  const present = result.present ?? []
+  return {
+    answer: `**Template coverage** — ${Math.round((result.coverage || 0) * 100)}%${
+      result.complete ? ' · complete' : ''
+    }\n\nPresent: ${present.length ? present.join(', ') : '—'}\nMissing: ${
+      missing.length ? missing.join(', ') : '—'
+    }`,
+    citations: [{ documentId, title: 'Template hints', snippet: `${missing.length} missing` }],
+  }
+}
+
+export async function runAgentLibraryReport(): Promise<LibraryChatResult> {
+  const result = await nlpLibraryReport()
+  const markdown = (result.markdown || '').trim()
+  if (!markdown) {
+    return { answer: 'Library report returned empty.', citations: [] }
+  }
+  return {
+    answer: `**Library report**\n\n${markdown.slice(0, 3500)}`,
+    citations: [],
+  }
+}
+
+export async function runAgentTerminologyLibrary(): Promise<LibraryChatResult> {
+  const result = await nlpCheckTerminologyLibrary({ limit: 20, documentLimit: 40 })
+  const issues = result.issues ?? []
+  if (!issues.length) {
+    return { answer: 'No cross-note terminology variants flagged.', citations: [] }
+  }
+  return {
+    answer: `**Library terminology (${result.issueCount})**\n\n${bullets(
+      issues.slice(0, 16).map((issue) => {
+        const variants = (issue.variants || [])
+          .slice(0, 4)
+          .map((item) => item.term)
+          .join(' / ')
+        return `${issue.canonical}: ${variants || issue.suggestion || ''}`
+      }),
+    )}`,
+    citations: [],
   }
 }
 

@@ -876,6 +876,40 @@ export type ExtractMentionsResult = {
 export const nlpExtractMentions = (input: { documentId?: string; text?: string }) =>
   invoke<ExtractMentionsResult>('nlp_extract_mentions', { input })
 
+export type OpenLoopsResult = {
+  loops: Array<{
+    text: string
+    kind: string
+    score: number
+    dueHint?: string | null
+  }>
+  count: number
+  openTaskCount: number
+  commitmentCount: number
+  source: string
+}
+
+export const nlpOpenLoops = (input: {
+  documentId?: string
+  text?: string
+  limit?: number
+}) => invoke<OpenLoopsResult>('nlp_open_loops', { input })
+
+export type TonePackResult = {
+  summary: string
+  readabilityLabel: string
+  flesch: number
+  readingTimeMinutes: number
+  wordCount: number
+  polarity: string
+  polarityScore: number
+  hints: string[]
+  source: string
+}
+
+export const nlpTonePack = (input: { documentId?: string; text?: string }) =>
+  invoke<TonePackResult>('nlp_tone_pack', { input })
+
 export type AgentPlanNlpResult = {
   goal: string
   scope: string

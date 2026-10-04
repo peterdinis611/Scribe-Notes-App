@@ -249,6 +249,39 @@ _INTENT_RULES: list[tuple[str, tuple[str, ...]]] = [
             "attendees",
         ),
     ),
+    (
+        "open_loops",
+        ("open loops", "unfinished", "loose ends", "otvorene slucky", "nedokoncene", "co ostava"),
+    ),
+    (
+        "tone",
+        ("tone", "readability", "reading time", "sentiment", "citelnost", "ton textu", "nalada textu"),
+    ),
+    (
+        "title",
+        ("suggest title", "rename note", "better title", "navrhni nazov", "premenuj", "lepsi nazov"),
+    ),
+    (
+        "continuation",
+        ("continue writing", "keep writing", "what next sentence", "pokracuj v pisani", "dalsia veta"),
+    ),
+    (
+        "template_hints",
+        ("template gaps", "missing sections", "template hints", "chyba sekcia", "dopln sablonu"),
+    ),
+    (
+        "library_report",
+        ("library report", "library health", "report kniznice", "stav kniznice"),
+    ),
+    (
+        "terminology_library",
+        (
+            "library terminology",
+            "term variants",
+            "terminologia kniznice",
+            "nekonzistentne pojmy",
+        ),
+    ),
 ]
 
 _DOCUMENT_TOOLS = {
@@ -284,6 +317,11 @@ _DOCUMENT_TOOLS = {
     "note_pulse",
     "grammar",
     "mentions",
+    "open_loops",
+    "tone",
+    "title",
+    "continuation",
+    "template_hints",
     "document_answer",
 }
 
@@ -413,6 +451,13 @@ _ALLOWED_PLAN_TOOLS = {
     "note_pulse",
     "grammar",
     "mentions",
+    "open_loops",
+    "tone",
+    "title",
+    "continuation",
+    "template_hints",
+    "library_report",
+    "terminology_library",
     "document_answer",
     "library_answer",
     "duplicates",

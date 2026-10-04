@@ -336,6 +336,8 @@ pub fn run() {
             commands::nlp::nlp_reading_plan,
             commands::nlp::nlp_note_pulse,
             commands::nlp::nlp_extract_mentions,
+            commands::nlp::nlp_open_loops,
+            commands::nlp::nlp_tone_pack,
             commands::nlp::nlp_files_list,
             commands::nlp::nlp_files_read_text,
             commands::nlp::nlp_files_search,

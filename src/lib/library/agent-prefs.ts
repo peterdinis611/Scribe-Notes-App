@@ -53,6 +53,13 @@ export type AgentToolId =
   | 'note_pulse'
   | 'grammar'
   | 'mentions'
+  | 'open_loops'
+  | 'tone'
+  | 'title'
+  | 'continuation'
+  | 'template_hints'
+  | 'library_report'
+  | 'terminology_library'
   | 'files_answer'
   | 'save_template'
 
@@ -180,6 +187,13 @@ const ALL_TOOLS: AgentToolId[] = [
   'note_pulse',
   'grammar',
   'mentions',
+  'open_loops',
+  'tone',
+  'title',
+  'continuation',
+  'template_hints',
+  'library_report',
+  'terminology_library',
   'files_answer',
   'save_template',
 ]
@@ -537,4 +551,11 @@ export const AGENT_OPTIMIZABLE_TOOLS: AgentToolId[] = [
   'note_pulse',
   'grammar',
   'mentions',
+  'open_loops',
+  'tone',
+  'title',
+  'continuation',
+  'template_hints',
+  'library_report',
+  'terminology_library',
 ]

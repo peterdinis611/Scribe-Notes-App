@@ -378,6 +378,78 @@ fn intent_rules() -> &'static [(&'static str, &'static [&'static str])] {
                 "attendees",
             ],
         ),
+        (
+            "open_loops",
+            &[
+                "open loops",
+                "unfinished",
+                "loose ends",
+                "otvorene slucky",
+                "nedokoncene",
+                "co ostava",
+            ],
+        ),
+        (
+            "tone",
+            &[
+                "tone",
+                "readability",
+                "reading time",
+                "sentiment",
+                "citelnost",
+                "ton textu",
+                "nalada textu",
+            ],
+        ),
+        (
+            "title",
+            &[
+                "suggest title",
+                "rename note",
+                "better title",
+                "navrhni nazov",
+                "premenuj",
+                "lepsi nazov",
+            ],
+        ),
+        (
+            "continuation",
+            &[
+                "continue writing",
+                "keep writing",
+                "what next sentence",
+                "pokracuj v pisani",
+                "dalsia veta",
+            ],
+        ),
+        (
+            "template_hints",
+            &[
+                "template gaps",
+                "missing sections",
+                "template hints",
+                "chyba sekcia",
+                "dopln sablonu",
+            ],
+        ),
+        (
+            "library_report",
+            &[
+                "library report",
+                "library health",
+                "report kniznice",
+                "stav kniznice",
+            ],
+        ),
+        (
+            "terminology_library",
+            &[
+                "library terminology",
+                "term variants",
+                "terminologia kniznice",
+                "nekonzistentne pojmy",
+            ],
+        ),
     ]
 }
 

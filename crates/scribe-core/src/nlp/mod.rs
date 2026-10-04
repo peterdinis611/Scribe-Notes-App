@@ -9,6 +9,7 @@ pub mod jobs;
 mod memory;
 pub mod mentions;
 pub mod note_pulse;
+pub mod open_loops;
 mod parse;
 pub mod pii;
 pub mod placeholder;
@@ -18,6 +19,9 @@ pub mod revision_ai;
 pub mod section_summaries;
 mod sidecar;
 pub mod task_rank;
+pub mod template_hints;
+pub mod title;
+pub mod tone;
 mod types;
 pub mod vault_index;
 
@@ -30,10 +34,14 @@ pub use commitments::{extract_commitments, NlpCommitment, NlpCommitments};
 pub use decisions::extract_decisions;
 pub use mentions::{extract_mentions, NlpMentionsReport};
 pub use note_pulse::{note_pulse, NlpNotePulse};
+pub use open_loops::{open_loops, NlpOpenLoop, NlpOpenLoops};
 pub use quotes::extract_quotes;
 pub use reading_plan::{reading_plan, NlpReadingPlan, NlpReadingStep};
 pub use section_summaries::section_summaries;
 pub use task_rank::rank_tasks;
+pub use template_hints::{template_fill_hints, template_fill_hints_value};
+pub use title::suggest_title;
+pub use tone::{tone_pack, NlpTonePack};
 pub use document_passages::{
     build_document_answer_passages, chunk_document_passages, DOCUMENT_ANSWER_PASSAGE_LIMIT,
     DOCUMENT_EMBED_RANK_LIMIT,

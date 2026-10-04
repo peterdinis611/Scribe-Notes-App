@@ -32,18 +32,18 @@ export const AGENT_RECIPES: AgentRecipe[] = [
   {
     id: 'weekly_review',
     labelKey: 'agent.recipes.weeklyReview',
-    tools: ['brief', 'dates'],
+    tools: ['library_report', 'terminology_library', 'dates'],
   },
   {
     id: 'meeting_wrap',
     labelKey: 'agent.recipes.meetingWrap',
-    tools: ['meeting', 'decisions', 'commitments', 'rank_tasks'],
+    tools: ['meeting', 'decisions', 'open_loops', 'rank_tasks'],
     documentPreferred: true,
   },
   {
     id: 'note_to_template',
     labelKey: 'agent.recipes.noteToTemplate',
-    tools: ['outline', 'save_template'],
+    tools: ['template_hints', 'outline', 'save_template'],
     documentPreferred: true,
   },
   {
@@ -55,7 +55,7 @@ export const AGENT_RECIPES: AgentRecipe[] = [
   {
     id: 'deep_read',
     labelKey: 'agent.recipes.deepRead',
-    tools: ['section_summaries', 'glossary', 'takeaways', 'flashcards'],
+    tools: ['section_summaries', 'tone', 'takeaways', 'flashcards'],
     documentPreferred: true,
   },
   {
@@ -66,7 +66,7 @@ export const AGENT_RECIPES: AgentRecipe[] = [
   {
     id: 'cleanup',
     labelKey: 'agent.recipes.cleanup',
-    tools: ['duplicates', 'wiki', 'organize'],
+    tools: ['duplicates', 'title', 'organize'],
   },
   {
     id: 'privacy_pass',
@@ -82,7 +82,7 @@ export const AGENT_RECIPES: AgentRecipe[] = [
   {
     id: 'polish',
     labelKey: 'agent.recipes.polish',
-    tools: ['spellcheck', 'grammar', 'terminology'],
+    tools: ['spellcheck', 'grammar', 'tone'],
     documentPreferred: true,
   },
 ]

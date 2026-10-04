@@ -121,6 +121,8 @@ FEATURES = [
     "extractCommitments",
     "readingPlan",
     "notePulse",
+    "openLoops",
+    "tonePack",
     "libraryAnswer",
     "dueHints",
     "wikiSuggest",
@@ -888,6 +890,17 @@ def _handle_request_inner(
 
             text = _validate_text(str(params.get("text") or ""))
             result = note_pulse(text)
+        elif method == "open_loops":
+            from .open_loops import open_loops
+
+            text = _validate_text(str(params.get("text") or ""))
+            limit = max(1, min(int(params.get("limit") or 16), 40))
+            result = open_loops(text, limit=limit)
+        elif method == "tone_pack":
+            from .tone import tone_pack
+
+            text = _validate_text(str(params.get("text") or ""))
+            result = tone_pack(text)
         else:
             return {
                 "jsonrpc": "2.0",
