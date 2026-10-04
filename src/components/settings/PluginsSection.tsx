@@ -7,6 +7,7 @@ import { CreatePluginDialog } from '@/components/settings/CreatePluginDialog'
 import { EditPluginDialog } from '@/components/settings/EditPluginDialog'
 import { PluginCreateDemo } from '@/components/settings/PluginCreateDemo'
 import { PluginDetailPanel } from '@/components/settings/PluginDetailPanel'
+import { PluginLogsTable } from '@/components/settings/PluginLogsTable'
 import {
   applyPluginPreset,
   clearPluginLogs,
@@ -106,7 +107,7 @@ export function PluginsSection() {
     let entries = listPluginLogs()
     if (logPluginId !== 'all') entries = entries.filter((entry) => entry.pluginId === logPluginId)
     if (logLevel !== 'all') entries = entries.filter((entry) => entry.level === logLevel)
-    return entries.slice(0, 120)
+    return entries
   }, [logsTick, plugins, logLevel, logPluginId])
   const marketplace = useMemo(() => listMarketplaceListings(), [])
 
@@ -774,20 +775,7 @@ export function PluginsSection() {
             </select>
           </div>
 
-          {logs.length === 0 ? (
-            <p className="plugin-ext-muted">{t('settings.plugins.logsEmpty')}</p>
-          ) : (
-            <ul className="plugin-ext-log">
-              {logs.map((entry) => (
-                <li key={entry.id}>
-                  <span className="plugin-ext-log-meta">
-                    {entry.at.slice(11, 19)} [{entry.level}] {entry.pluginId}
-                  </span>
-                  <div>{entry.message}</div>
-                </li>
-              ))}
-            </ul>
-          )}
+          <PluginLogsTable logs={logs} pageSize={120} />
         </div>
       )}
     </div>

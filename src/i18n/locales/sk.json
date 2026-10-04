@@ -1211,6 +1211,12 @@
         "error": "Error"
       },
       "logPluginFilter": "Filter podľa rozšírenia",
+      "logColumns": {
+        "time": "Čas",
+        "level": "Úroveň",
+        "plugin": "Rozšírenie",
+        "message": "Správa"
+      },
       "on": "Zapnuté",
       "off": "Vypnuté",
       "optIn": "voliteľné",
@@ -2669,6 +2675,12 @@
       "action_items": "Akčné body",
       "glossary": "Slovník",
       "compare_notes": "Porovnať poznámky",
+      "section_summaries": "Zhrnutia sekcií",
+      "decisions": "Log rozhodnutí",
+      "quotes": "Citácie",
+      "pii": "Sken súkromia",
+      "rank_tasks": "Priorita úloh",
+      "contradictions": "Rozpory",
       "files_answer": "Opýtať sa files/",
       "save_template": "Uložiť ako šablónu"
     }
@@ -3783,7 +3795,7 @@
       "alignCenter": "Na stred",
       "alignRight": "Vpravo",
       "alignJustify": "Do bloku",
-      "link": "Odkaz (⌘K)",
+      "link": "Odkaz (⌘⇧K)",
       "inlineCode": "Inline kód (⌘E)",
       "superscript": "Horný index",
       "subscript": "Dolný index",
@@ -3834,6 +3846,13 @@
       "syntaxLanguageEmpty": "Žiadny jazyk",
       "addRow": "Pridať riadok",
       "addColumn": "Pridať stĺpec",
+      "deleteRow": "Zmazať riadok",
+      "deleteColumn": "Zmazať stĺpec",
+      "mergeCells": "Zlúčiť bunky",
+      "splitCell": "Rozdeliť bunku",
+      "toggleHeaderRow": "Prepnúť hlavičkový riadok",
+      "copyTsv": "Kopírovať tabuľku ako TSV",
+      "copyCsv": "Kopírovať tabuľku ako CSV",
       "sortAsc": "Zoradiť stĺpec A→Z",
       "sortDesc": "Zoradiť stĺpec Z→A",
       "fillDown": "Vyplniť nadol",
@@ -3853,6 +3872,9 @@
       "needColumn": "Najprv klikni do stĺpca tabuľky.",
       "fillEmpty": "Nie je čo vyplniť — vyber bunku s hodnotou nad prázdnymi bunkami.",
       "needNumbers": "V tomto stĺpci nie sú čísla na súčet.",
+      "needSelection": "Najprv vyber bunky v tabuľke.",
+      "copied": "Tabuľka skopírovaná do schránky",
+      "copyEmpty": "Žiadna tabuľka na kopírovanie.",
       "cellColor": "Farba bunky",
       "jumpToCell": "Prejsť na bunku",
       "cellTitle": "Riadok {{row}}, stĺpec {{col}}",
@@ -4421,6 +4443,20 @@
   },
   "import": {
     "encodingConverted": "Importovaný text bol skonvertovaný z {{encoding}}"
+  },
+  "fileDrop": {
+    "dropOne": "Pustite sem a otvorí sa v Scribe",
+    "dropMany": "Pustite {{count}} súborov a otvoria sa",
+    "hint": "Markdown, Word, Pages, Excel, text alebo .scribe",
+    "importing": "Importujem…",
+    "importedOne": "Otvorené z dropu",
+    "importedMany": "Otvorených dokumentov: {{count}}",
+    "skipped": "Preskočených nepodporovaných súborov: {{count}}",
+    "failed": "Nepodarilo sa importovať {{count}} súbor(ov)",
+    "unsupportedTitle": "Nepodporované súbory",
+    "unsupportedBody": "Pretiahnite .md, .docx, .pages, .xlsx, .txt alebo .scribe",
+    "busy": "Import už prebieha",
+    "error": "Drop import zlyhal"
   },
   "smartFolders": {
     "title": "Inteligentné priečinky",

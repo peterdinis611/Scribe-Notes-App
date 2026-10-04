@@ -11,8 +11,8 @@ use crate::storage;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use scribe_core::{
-    diff_lines, document_is_vault, merge_chapters, tiptap_to_html, tiptap_to_markdown,
-    tiptap_to_plain_text, DiffResult,
+    diff_lines, document_is_vault, highlight_code_html, merge_chapters, tiptap_to_html,
+    tiptap_to_markdown, tiptap_to_plain_text, DiffResult,
 };
 use std::path::PathBuf;
 use tauri::{AppHandle, State};
@@ -394,6 +394,13 @@ pub fn render_document_html(
     let include = include_title_heading.unwrap_or(true);
     let article = tiptap_to_html(&content_json, &title, include);
     Ok(wrap_structural_html(&article, &title))
+}
+
+/// Syntax-highlight a code block with the same syntect/two-face pack as Rust HTML export.
+/// Returns a self-contained `<pre>…</pre>` snippet, or `None` when the language is unknown.
+#[tauri::command]
+pub fn highlight_code(language: String, code: String) -> Option<String> {
+    highlight_code_html(&language, &code)
 }
 
 #[cfg(test)]

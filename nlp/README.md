@@ -97,6 +97,8 @@ Core: `health`, `embed`, `embed_batch`, `summarize`, `extract_*`, `analyze_docum
 
 1.5.0+: `grammar_check` — apply standing grammar teachings (prefer/avoid/capitalize) to note or plaintext
 
+1.6.0+: `section_summaries`, `extract_decisions`, `extract_quotes`, `detect_pii`, `rank_tasks`, `contradiction_hints`
+
 ## Version
 
-Current sidecar: **1.5.0**
+Current sidecar: **1.6.0**

@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
-import { FileText } from 'lucide-react'
+import { FileText, Sparkles } from 'lucide-react'
 import { searchDocuments, type SearchHit } from '@/lib/db/api'
+import { nlpSearch, nlpStatus } from '@/lib/db/nlp-api'
 import { ROUTES } from '@/lib/routes'
-import { debounce } from '@/lib/utils'
+import { useDebouncer } from '@/lib/pacer'
 import { sanitizeSnippet } from '@/lib/search-snippet'
 import { citationSearchQuery } from '@/lib/editor/citation-jump'
 import { useAppDispatch } from '@/store/hooks'
@@ -21,30 +22,56 @@ export function SidebarSearchResults({ query, onNavigate }: SidebarSearchResults
   const dispatch = useAppDispatch()
   const [hits, setHits] = useState<SearchHit[]>([])
   const [loading, setLoading] = useState(false)
+  const [nlpEnabled, setNlpEnabled] = useState(false)
 
-  const search = useMemo(
-    () =>
-      debounce(async (value: string) => {
-        if (value.trim().length < 2) {
-          setHits([])
-          setLoading(false)
-          return
+  useEffect(() => {
+    let cancelled = false
+    void nlpStatus()
+      .then((status) => {
+        if (!cancelled) setNlpEnabled(Boolean(status.enabled && status.sidecarOk))
+      })
+      .catch(() => {
+        if (!cancelled) setNlpEnabled(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const searchDebouncer = useDebouncer(
+    async (value: string) => {
+      if (value.trim().length < 2) {
+        setHits([])
+        setLoading(false)
+        return
+      }
+      setLoading(true)
+      try {
+        if (nlpEnabled) {
+          setHits(await nlpSearch(value.trim(), { limit: 20, mode: 'hybrid' }))
+        } else {
+          setHits(await searchDocuments(value.trim(), 20))
         }
-        setLoading(true)
+      } catch {
         try {
           setHits(await searchDocuments(value.trim(), 20))
         } catch {
           setHits([])
-        } finally {
-          setLoading(false)
         }
-      }, 220),
-    [],
+      } finally {
+        setLoading(false)
+      }
+    },
+    { wait: 200 },
   )
 
   useEffect(() => {
-    search(query)
-  }, [query, search])
+    searchDebouncer.maybeExecute(query)
+  }, [query, searchDebouncer, nlpEnabled])
+
+  useEffect(() => {
+    return () => searchDebouncer.cancel()
+  }, [searchDebouncer])
 
   if (query.trim().length < 2) return null
 
@@ -60,31 +87,39 @@ export function SidebarSearchResults({ query, onNavigate }: SidebarSearchResults
         <p className="px-1 py-2 text-[12px] text-[var(--color-muted-foreground)]">{t('library.searchEmpty')}</p>
       )}
       {!loading &&
-        hits.map((hit) => (
-          <button
-            key={hit.documentId}
-            type="button"
-            className="mb-0.5 flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-[var(--color-hover)]"
-            onClick={() => {
-              const needle = citationSearchQuery(hit.snippet) || query.trim()
-              if (needle) dispatch(setPendingEditorSearch(needle))
-              dispatch(setActiveDocumentId(hit.documentId))
-              navigate(ROUTES.document(hit.documentId))
-              onNavigate?.()
-            }}
-          >
-            <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 opacity-50" />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[12px] font-medium text-[var(--color-foreground)]">
-                {hit.title}
+        hits.map((hit) => {
+          const semantic =
+            hit.matchKind === 'semantic' || hit.matchKind === 'both'
+          return (
+            <button
+              key={hit.documentId}
+              type="button"
+              className="mb-0.5 flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-[var(--color-hover)]"
+              onClick={() => {
+                const needle = citationSearchQuery(hit.snippet) || query.trim()
+                if (needle) dispatch(setPendingEditorSearch(needle))
+                dispatch(setActiveDocumentId(hit.documentId))
+                navigate(ROUTES.document(hit.documentId))
+                onNavigate?.()
+              }}
+            >
+              {semantic ? (
+                <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 opacity-60 text-[var(--color-accent)]" />
+              ) : (
+                <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 opacity-50" />
+              )}
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[12px] font-medium text-[var(--color-foreground)]">
+                  {hit.title}
+                </span>
+                <span
+                  className="line-clamp-2 text-[11px] leading-snug text-[var(--color-muted-foreground)] [&_mark]:rounded-sm [&_mark]:bg-[var(--color-selection)] [&_mark]:px-0.5 [&_mark]:text-[var(--color-accent)]"
+                  dangerouslySetInnerHTML={{ __html: sanitizeSnippet(hit.snippet) }}
+                />
               </span>
-              <span
-                className="line-clamp-2 text-[11px] leading-snug text-[var(--color-muted-foreground)] [&_mark]:rounded-sm [&_mark]:bg-[var(--color-selection)] [&_mark]:px-0.5 [&_mark]:text-[var(--color-accent)]"
-                dangerouslySetInnerHTML={{ __html: sanitizeSnippet(hit.snippet) }}
-              />
-            </span>
-          </button>
-        ))}
+            </button>
+          )
+        })}
     </div>
   )
 }

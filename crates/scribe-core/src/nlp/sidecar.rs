@@ -1066,6 +1066,72 @@ impl NlpSidecar {
         )
     }
 
+    pub fn section_summaries(
+        &self,
+        text: &str,
+        limit: i64,
+        max_sentences: i64,
+    ) -> Result<Value, String> {
+        self.call_method(
+            "section_summaries",
+            json!({
+                "text": text,
+                "limit": limit,
+                "maxSentences": max_sentences,
+            }),
+        )
+    }
+
+    pub fn extract_decisions(&self, text: &str, limit: i64) -> Result<Value, String> {
+        self.call_method(
+            "extract_decisions",
+            json!({ "text": text, "limit": limit }),
+        )
+    }
+
+    pub fn extract_quotes(&self, text: &str, limit: i64) -> Result<Value, String> {
+        self.call_method(
+            "extract_quotes",
+            json!({ "text": text, "limit": limit }),
+        )
+    }
+
+    pub fn detect_pii(&self, text: &str, limit: i64) -> Result<Value, String> {
+        self.call_method(
+            "detect_pii",
+            json!({ "text": text, "limit": limit }),
+        )
+    }
+
+    pub fn rank_tasks(&self, text: &str, limit: i64) -> Result<Value, String> {
+        self.call_method(
+            "rank_tasks",
+            json!({ "text": text, "limit": limit }),
+        )
+    }
+
+    pub fn contradiction_hints(
+        &self,
+        text_a: &str,
+        text_b: &str,
+        title_a: Option<&str>,
+        title_b: Option<&str>,
+        limit: i64,
+    ) -> Result<Value, String> {
+        let mut params = json!({
+            "textA": text_a,
+            "textB": text_b,
+            "limit": limit,
+        });
+        if let Some(value) = title_a {
+            params["titleA"] = json!(value);
+        }
+        if let Some(value) = title_b {
+            params["titleB"] = json!(value);
+        }
+        self.call_method("contradiction_hints", params)
+    }
+
     pub fn agent_document_brief(
         &self,
         text: &str,
@@ -1148,6 +1214,8 @@ pub fn rpc_timeout(method: &str) -> Duration {
         | "analyze_revision_diff" | "summarize_diff" | "extract_flashcards" | "check_terminology"
         | "extract_takeaways" | "writing_coach" | "outline_quiz" | "meeting_notes_pack"
         | "check_terminology_library" | "citation_pack" | "extract_paint_ocr"
+        | "section_summaries" | "extract_decisions" | "extract_quotes" | "detect_pii"
+        | "rank_tasks" | "contradiction_hints"
         | "plan_agent_goal" | "agent_document_brief"
         | "explain_selection" | "simplify_text" | "action_items" | "glossary" | "compare_notes"
         | "files_list" | "files_read_text" | "files_search" | "files_summarize" | "files_answer" => {

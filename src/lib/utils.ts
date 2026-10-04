@@ -1,6 +1,5 @@
 import { type ClassValue, clsx } from 'clsx'
-import { Debouncer } from '@tanstack/pacer/debouncer'
-import { Throttler } from '@tanstack/pacer/throttler'
+import { Debouncer, Throttler } from '@/lib/pacer'
 import { twMerge } from 'tailwind-merge'
 
 export function cn(...inputs: ClassValue[]) {

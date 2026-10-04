@@ -1,13 +1,14 @@
 use serde_json::Value;
 
 use super::types::{
-    NlpAnswer, NlpCitation, NlpDateEvent, NlpDates, NlpDiffSummary, NlpDocumentAnalysis,
-    NlpEntities, NlpEntity, NlpExtractedTask, NlpKeyword, NlpKeywordsResult, NlpLanguage,
-    NlpMentionEdge, NlpMentionLink, NlpMentions, NlpOrganize, NlpOrganizeSuggestion, NlpOutline,
-    NlpOutlineItem, NlpQueryRewrite, NlpReadingStats, NlpRewriteResult, NlpSentiment,
-    NlpChunks, NlpDuplicatePair, NlpDuplicates, NlpLibraryReport, NlpSpellIssue, NlpSpellcheck,
-    NlpSummary, NlpTasks, NlpTemplateHints, NlpTitleSuggestion, NlpWikiSuggestion,
-    NlpWikiSuggestions,
+    NlpAnswer, NlpCitation, NlpChunks, NlpContradictionHint, NlpContradictionHints, NlpDateEvent,
+    NlpDates, NlpDecision, NlpDecisions, NlpDiffSummary, NlpDocumentAnalysis, NlpDuplicatePair,
+    NlpDuplicates, NlpEntities, NlpEntity, NlpExtractedTask, NlpKeyword, NlpKeywordsResult,
+    NlpLanguage, NlpLibraryReport, NlpMentionEdge, NlpMentionLink, NlpMentions, NlpOrganize,
+    NlpOrganizeSuggestion, NlpOutline, NlpOutlineItem, NlpPiiFinding, NlpPiiReport, NlpQueryRewrite,
+    NlpQuote, NlpQuotes, NlpRankedTask, NlpRankedTasks, NlpReadingStats, NlpRewriteResult,
+    NlpSectionSummaries, NlpSectionSummary, NlpSentiment, NlpSpellIssue, NlpSpellcheck, NlpSummary,
+    NlpTasks, NlpTemplateHints, NlpTitleSuggestion, NlpWikiSuggestion, NlpWikiSuggestions,
 };
 
 fn as_str(value: &Value) -> Option<&str> {
@@ -686,6 +687,249 @@ pub fn parse_spellcheck(result: &Value) -> NlpSpellcheck {
     }
 }
 
+pub fn parse_section_summaries(result: &Value) -> NlpSectionSummaries {
+    let sections = result
+        .get("sections")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| {
+                    Some(NlpSectionSummary {
+                        title: as_str(item.get("title")?)?.to_string(),
+                        level: item.get("level").and_then(Value::as_i64).unwrap_or(1),
+                        summary: item
+                            .get("summary")
+                            .and_then(as_str)
+                            .unwrap_or("")
+                            .to_string(),
+                        bullets: string_list(item.get("bullets")),
+                        char_count: item.get("charCount").and_then(Value::as_i64).unwrap_or(0),
+                        sentence_count: item
+                            .get("sentenceCount")
+                            .and_then(Value::as_i64)
+                            .unwrap_or(0),
+                    })
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    NlpSectionSummaries {
+        count: result
+            .get("count")
+            .and_then(Value::as_i64)
+            .unwrap_or(sections.len() as i64),
+        sections,
+        source: result
+            .get("source")
+            .and_then(as_str)
+            .unwrap_or("python")
+            .to_string(),
+    }
+}
+
+pub fn parse_decisions(result: &Value) -> NlpDecisions {
+    let decisions = result
+        .get("decisions")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| {
+                    Some(NlpDecision {
+                        text: as_str(item.get("text")?)?.to_string(),
+                        kind: item
+                            .get("kind")
+                            .and_then(as_str)
+                            .unwrap_or("decision")
+                            .to_string(),
+                        owner: item.get("owner").and_then(as_str).map(str::to_string),
+                        status: item.get("status").and_then(as_str).map(str::to_string),
+                    })
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    NlpDecisions {
+        count: result
+            .get("count")
+            .and_then(Value::as_i64)
+            .unwrap_or(decisions.len() as i64),
+        decisions,
+        source: result
+            .get("source")
+            .and_then(as_str)
+            .unwrap_or("python")
+            .to_string(),
+    }
+}
+
+pub fn parse_quotes(result: &Value) -> NlpQuotes {
+    let quotes = result
+        .get("quotes")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| {
+                    Some(NlpQuote {
+                        text: as_str(item.get("text")?)?.to_string(),
+                        kind: item
+                            .get("kind")
+                            .and_then(as_str)
+                            .unwrap_or("quote")
+                            .to_string(),
+                        attribution: item
+                            .get("attribution")
+                            .and_then(as_str)
+                            .map(str::to_string),
+                        score: item.get("score").and_then(Value::as_f64).unwrap_or(0.0),
+                    })
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    NlpQuotes {
+        count: result
+            .get("count")
+            .and_then(Value::as_i64)
+            .unwrap_or(quotes.len() as i64),
+        quotes,
+        source: result
+            .get("source")
+            .and_then(as_str)
+            .unwrap_or("python")
+            .to_string(),
+    }
+}
+
+pub fn parse_pii_report(result: &Value) -> NlpPiiReport {
+    let findings = result
+        .get("findings")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| {
+                    Some(NlpPiiFinding {
+                        kind: as_str(item.get("kind")?)?.to_string(),
+                        label: item
+                            .get("label")
+                            .and_then(as_str)
+                            .unwrap_or("")
+                            .to_string(),
+                        matched: item
+                            .get("match")
+                            .and_then(as_str)
+                            .unwrap_or("")
+                            .to_string(),
+                        start: item.get("start").and_then(Value::as_i64).unwrap_or(0),
+                        end: item.get("end").and_then(Value::as_i64).unwrap_or(0),
+                    })
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    let mut by_kind = std::collections::BTreeMap::new();
+    if let Some(map) = result.get("byKind").and_then(Value::as_object) {
+        for (key, value) in map {
+            if let Some(count) = value.as_i64() {
+                by_kind.insert(key.clone(), count);
+            }
+        }
+    }
+    NlpPiiReport {
+        count: result
+            .get("count")
+            .and_then(Value::as_i64)
+            .unwrap_or(findings.len() as i64),
+        findings,
+        by_kind,
+        risk: result
+            .get("risk")
+            .and_then(as_str)
+            .unwrap_or("none")
+            .to_string(),
+        safe_to_share: result
+            .get("safeToShare")
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
+        source: result
+            .get("source")
+            .and_then(as_str)
+            .unwrap_or("python")
+            .to_string(),
+    }
+}
+
+pub fn parse_ranked_tasks(result: &Value) -> NlpRankedTasks {
+    let tasks = result
+        .get("tasks")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| {
+                    Some(NlpRankedTask {
+                        text: as_str(item.get("text")?)?.to_string(),
+                        due_hint: item.get("dueHint").and_then(as_str).map(str::to_string),
+                        kind: item.get("kind").and_then(as_str).map(str::to_string),
+                        score: item.get("score").and_then(Value::as_f64).unwrap_or(0.0),
+                        reasons: string_list(item.get("reasons")),
+                    })
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    NlpRankedTasks {
+        count: result
+            .get("count")
+            .and_then(Value::as_i64)
+            .unwrap_or(tasks.len() as i64),
+        tasks,
+        source: result
+            .get("source")
+            .and_then(as_str)
+            .unwrap_or("python")
+            .to_string(),
+    }
+}
+
+pub fn parse_contradiction_hints(result: &Value) -> NlpContradictionHints {
+    let hints = result
+        .get("hints")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| {
+                    Some(NlpContradictionHint {
+                        text_a: as_str(item.get("textA")?)?.to_string(),
+                        text_b: as_str(item.get("textB")?)?.to_string(),
+                        score: item.get("score").and_then(Value::as_f64).unwrap_or(0.0),
+                        reasons: string_list(item.get("reasons")),
+                        overlap: item.get("overlap").and_then(Value::as_f64).unwrap_or(0.0),
+                    })
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    NlpContradictionHints {
+        title_a: result.get("titleA").and_then(as_str).map(str::to_string),
+        title_b: result.get("titleB").and_then(as_str).map(str::to_string),
+        count: result
+            .get("count")
+            .and_then(Value::as_i64)
+            .unwrap_or(hints.len() as i64),
+        hints,
+        source: result
+            .get("source")
+            .and_then(as_str)
+            .unwrap_or("python")
+            .to_string(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -929,5 +1173,61 @@ mod tests {
         }));
         assert_eq!(chunks.chunks.len(), 2);
         assert_eq!(chunks.count, 2);
+    }
+
+    #[test]
+    fn parses_v16_sidecar_payloads() {
+        let sections = parse_section_summaries(&json!({
+            "sections": [{
+                "title": "Search",
+                "level": 1,
+                "summary": "Local search.",
+                "bullets": ["a"],
+                "charCount": 40,
+                "sentenceCount": 2
+            }],
+            "count": 1,
+            "source": "python"
+        }));
+        assert_eq!(sections.sections[0].title, "Search");
+        assert_eq!(sections.count, 1);
+
+        let decisions = parse_decisions(&json!({
+            "decisions": [{"text": "We decided", "kind": "decision", "owner": null, "status": "approved"}],
+            "count": 1,
+            "source": "python"
+        }));
+        assert_eq!(decisions.decisions[0].status.as_deref(), Some("approved"));
+
+        let pii = parse_pii_report(&json!({
+            "findings": [{"kind": "email", "label": "Email", "match": "w***m", "start": 0, "end": 5}],
+            "count": 1,
+            "byKind": {"email": 1},
+            "risk": "medium",
+            "safeToShare": false,
+            "source": "python"
+        }));
+        assert_eq!(pii.risk, "medium");
+        assert_eq!(pii.by_kind.get("email"), Some(&1));
+
+        let ranked = parse_ranked_tasks(&json!({
+            "tasks": [{"text": "Ship", "score": 3.5, "reasons": ["urgent_language"], "dueHint": "today"}],
+            "count": 1,
+            "source": "python"
+        }));
+        assert_eq!(ranked.tasks[0].text, "Ship");
+
+        let hints = parse_contradiction_hints(&json!({
+            "hints": [{
+                "textA": "Ship Monday",
+                "textB": "Not Monday",
+                "score": 0.9,
+                "reasons": ["negation_mismatch"],
+                "overlap": 0.5
+            }],
+            "count": 1,
+            "source": "python"
+        }));
+        assert_eq!(hints.hints[0].reasons, vec!["negation_mismatch"]);
     }
 }

@@ -31,6 +31,12 @@ export type AgentToolId =
   | 'action_items'
   | 'glossary'
   | 'compare_notes'
+  | 'section_summaries'
+  | 'decisions'
+  | 'quotes'
+  | 'pii'
+  | 'rank_tasks'
+  | 'contradictions'
   | 'files_answer'
   | 'save_template'
 
@@ -144,6 +150,12 @@ const ALL_TOOLS: AgentToolId[] = [
   'action_items',
   'glossary',
   'compare_notes',
+  'section_summaries',
+  'decisions',
+  'quotes',
+  'pii',
+  'rank_tasks',
+  'contradictions',
   'files_answer',
   'save_template',
 ]

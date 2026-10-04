@@ -1211,6 +1211,12 @@
         "error": "Error"
       },
       "logPluginFilter": "Filter by extension",
+      "logColumns": {
+        "time": "Time",
+        "level": "Level",
+        "plugin": "Extension",
+        "message": "Message"
+      },
       "on": "Enabled",
       "off": "Disabled",
       "optIn": "opt-in",
@@ -2665,6 +2671,12 @@
       "action_items": "Action items",
       "glossary": "Glossary",
       "compare_notes": "Compare notes",
+      "section_summaries": "Section summaries",
+      "decisions": "Decision log",
+      "quotes": "Extract quotes",
+      "pii": "Privacy scan",
+      "rank_tasks": "Rank tasks",
+      "contradictions": "Contradiction hints",
       "files_answer": "Ask files/",
       "save_template": "Save as template"
     }
@@ -3769,7 +3781,7 @@
       "alignCenter": "Align center",
       "alignRight": "Align right",
       "alignJustify": "Justify",
-      "link": "Link (⌘K)",
+      "link": "Link (⌘⇧K)",
       "inlineCode": "Inline code (⌘E)",
       "superscript": "Superscript",
       "subscript": "Subscript",
@@ -3820,6 +3832,13 @@
       "syntaxLanguageEmpty": "No matching language",
       "addRow": "Add row",
       "addColumn": "Add column",
+      "deleteRow": "Delete row",
+      "deleteColumn": "Delete column",
+      "mergeCells": "Merge cells",
+      "splitCell": "Split cell",
+      "toggleHeaderRow": "Toggle header row",
+      "copyTsv": "Copy table as TSV",
+      "copyCsv": "Copy table as CSV",
       "sortAsc": "Sort column A→Z",
       "sortDesc": "Sort column Z→A",
       "fillDown": "Fill down",
@@ -3839,6 +3858,9 @@
       "needColumn": "Place the cursor in a table column first.",
       "fillEmpty": "Nothing to fill — select a cell with a value above empty cells.",
       "needNumbers": "No numbers found in this column to sum.",
+      "needSelection": "Select cells in the table first.",
+      "copied": "Table copied to clipboard",
+      "copyEmpty": "No table to copy.",
       "cellColor": "Cell color",
       "jumpToCell": "Go to cell",
       "cellTitle": "Row {{row}}, column {{col}}",
@@ -4405,6 +4427,20 @@
   },
   "import": {
     "encodingConverted": "Imported text was converted from {{encoding}}"
+  },
+  "fileDrop": {
+    "dropOne": "Drop to open in Scribe",
+    "dropMany": "Drop {{count}} files to open",
+    "hint": "Markdown, Word, Pages, Excel, text, or .scribe",
+    "importing": "Importing…",
+    "importedOne": "Opened from drop",
+    "importedMany": "Opened {{count}} documents",
+    "skipped": "Skipped {{count}} unsupported file(s)",
+    "failed": "Could not import {{count}} file(s)",
+    "unsupportedTitle": "Unsupported files",
+    "unsupportedBody": "Drop .md, .docx, .pages, .xlsx, .txt, or .scribe files",
+    "busy": "Import already in progress",
+    "error": "Drop import failed"
   },
   "smartFolders": {
     "title": "Smart folders",

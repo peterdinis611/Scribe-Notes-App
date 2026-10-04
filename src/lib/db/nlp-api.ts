@@ -697,6 +697,122 @@ export const nlpMeetingNotesPack = (input: {
   limit?: number
 }) => invoke<MeetingNotesPack>('nlp_meeting_notes_pack', { input })
 
+export type SectionSummariesResult = {
+  sections: Array<{
+    title: string
+    level: number
+    summary: string
+    bullets: string[]
+    charCount: number
+    sentenceCount: number
+  }>
+  count: number
+  source: string
+}
+
+export const nlpSectionSummaries = (input: {
+  documentId?: string
+  text?: string
+  limit?: number
+}) => invoke<SectionSummariesResult>('nlp_section_summaries', { input })
+
+export type ExtractDecisionsResult = {
+  decisions: Array<{
+    text: string
+    kind: string
+    owner?: string | null
+    status?: string | null
+  }>
+  count: number
+  source: string
+}
+
+export const nlpExtractDecisions = (input: {
+  documentId?: string
+  text?: string
+  limit?: number
+}) => invoke<ExtractDecisionsResult>('nlp_extract_decisions', { input })
+
+export type ExtractQuotesResult = {
+  quotes: Array<{
+    text: string
+    kind: string
+    attribution?: string | null
+    score: number
+  }>
+  count: number
+  source: string
+}
+
+export const nlpExtractQuotes = (input: {
+  documentId?: string
+  text?: string
+  limit?: number
+}) => invoke<ExtractQuotesResult>('nlp_extract_quotes', { input })
+
+export type DetectPiiResult = {
+  findings: Array<{
+    kind: string
+    label: string
+    match: string
+    start: number
+    end: number
+  }>
+  count: number
+  byKind: Record<string, number>
+  risk: 'none' | 'medium' | 'high' | string
+  safeToShare: boolean
+  source: string
+}
+
+export const nlpDetectPii = (input: {
+  documentId?: string
+  text?: string
+  limit?: number
+}) => invoke<DetectPiiResult>('nlp_detect_pii', { input })
+
+export type RankTasksResult = {
+  tasks: Array<{
+    text: string
+    dueHint?: string | null
+    kind?: string
+    score: number
+    reasons: string[]
+  }>
+  count: number
+  source: string
+}
+
+export const nlpRankTasks = (input: {
+  documentId?: string
+  text?: string
+  limit?: number
+}) => invoke<RankTasksResult>('nlp_rank_tasks', { input })
+
+export type ContradictionHintsResult = {
+  titleA?: string | null
+  titleB?: string | null
+  hints: Array<{
+    textA: string
+    textB: string
+    score: number
+    reasons: string[]
+    overlap: number
+  }>
+  count: number
+  source: string
+}
+
+export const nlpContradictionHints = (input: {
+  documentIdA?: string
+  documentIdB?: string
+  textA?: string
+  textB?: string
+  titleA?: string
+  titleB?: string
+  limit?: number
+}) => invoke<ContradictionHintsResult>('nlp_contradiction_hints', { input })
+
 export type AgentPlanNlpResult = {
   goal: string
   scope: string

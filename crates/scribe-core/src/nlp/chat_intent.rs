@@ -89,7 +89,20 @@ fn intent_rules() -> &'static [(&'static str, &'static [&'static str])] {
                 "podobne poznamky",
             ],
         ),
-        ("quotes", &["key claim", "main claim", "klucove tvrden", "hlavne tvrden"]),
+        (
+            "quotes",
+            &[
+                "key claim",
+                "main claim",
+                "klucove tvrden",
+                "hlavne tvrden",
+                "extract quotes",
+                "pull quotes",
+                "citacie",
+                "citaty",
+                "vyber citaty",
+            ],
+        ),
         ("tone", &["tone", "readability", "reading time", "ton", "citanie", "citatelnost"]),
         ("spellcheck", &["spellcheck", "spelling", "typo", "pravopis", "preklepy"]),
         ("title", &["suggest title", "suggested title", "better title", "navrhni nazov", "navrhnut nazov"]),
@@ -257,6 +270,60 @@ fn intent_rules() -> &'static [(&'static str, &'static [&'static str])] {
                 "brief poznamky",
             ],
         ),
+        (
+            "section_summaries",
+            &[
+                "section summary",
+                "section summaries",
+                "summarize sections",
+                "zhrnutie sekcii",
+                "zhrn sekcie",
+                "po kapitolach",
+            ],
+        ),
+        (
+            "decisions",
+            &[
+                "decision log",
+                "extract decisions",
+                "rozhodnutia",
+                "log rozhodnuti",
+                "co sme rozhodli",
+            ],
+        ),
+        (
+            "pii",
+            &[
+                "detect pii",
+                "privacy scan",
+                "personal data",
+                "citlive udaje",
+                "pii",
+                "sken sukromia",
+                "pred zdielanim",
+            ],
+        ),
+        (
+            "rank_tasks",
+            &[
+                "rank tasks",
+                "prioritize tasks",
+                "prioritize todos",
+                "zorad ulohy",
+                "priorita uloh",
+                "urgent tasks",
+            ],
+        ),
+        (
+            "contradictions",
+            &[
+                "contradiction",
+                "conflicting claims",
+                "rozpory",
+                "protirecenia",
+                "nekonzistentne tvrdenia",
+            ],
+        ),
     ]
 }
 
@@ -342,5 +409,9 @@ mod tests {
         assert_eq!(match_agent_intents("Deadlines this week"), vec!["dates"]);
         assert_eq!(match_agent_intents("Extract meeting notes"), vec!["meeting"]);
         assert_eq!(match_agent_intents("Find duplicate notes"), vec!["duplicates"]);
+        assert_eq!(match_agent_intents("detect pii before share"), vec!["pii"]);
+        assert_eq!(match_agent_intents("extract decisions"), vec!["decisions"]);
+        assert_eq!(match_agent_intents("section summaries"), vec!["section_summaries"]);
+        assert_eq!(match_agent_intents("rank tasks ASAP"), vec!["tasks", "rank_tasks"]);
     }
 }

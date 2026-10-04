@@ -109,18 +109,33 @@ fn render_node(node: &Value, out: &mut String) {
                 .and_then(Value::as_str)
                 .unwrap_or("")
                 .trim();
-            if language.is_empty() {
+            // Code content is left byte-for-byte as authored: no Unicode
+            // normalization here, since normalizing code could silently
+            // change it.
+            let code = collect_text(node);
+            if let Some(highlighted) = crate::syntax_highlight::highlight_code_html(language, &code)
+            {
+                // syntect emits a self-contained <pre style=…>…</pre>.
+                out.push_str("<div class=\"scribe-code-block\"");
+                if !language.is_empty() {
+                    out.push_str(" data-language=\"");
+                    push_escaped(out, language);
+                    out.push('"');
+                }
+                out.push('>');
+                out.push_str(&highlighted);
+                out.push_str("</div>");
+            } else if language.is_empty() {
                 out.push_str("<pre><code>");
+                push_escaped(out, &code);
+                out.push_str("</code></pre>");
             } else {
                 out.push_str("<pre><code class=\"language-");
                 push_escaped(out, language);
                 out.push_str("\">");
+                push_escaped(out, &code);
+                out.push_str("</code></pre>");
             }
-            // Code content is left byte-for-byte as authored: no Unicode
-            // normalization here, since normalizing code could silently
-            // change it.
-            push_escaped(out, &collect_text(node));
-            out.push_str("</code></pre>");
         }
         Some("horizontalRule") => out.push_str("<hr />"),
         Some("paintPad") => {
@@ -333,7 +348,11 @@ mod tests {
         assert!(html.contains(
             "<blockquote><p><a href=\"https://a.b?x=1&amp;y=2\">docs</a></p></blockquote>"
         ));
-        assert!(html.contains("<pre><code class=\"language-rust\">let x = 1 &lt; 2;</code></pre>"));
+        assert!(html.contains("data-language=\"rust\""));
+        assert!(html.contains("<pre"));
+        assert!(html.contains("<span"));
+        assert!(html.contains("let") || html.contains("x"));
+        assert!(!html.contains("<pre><code class=\"language-rust\">"));
         assert!(html.contains(
             "<li data-type=\"taskItem\"><input type=\"checkbox\" checked disabled /><p>done</p></li>"
         ));

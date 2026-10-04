@@ -1,3 +1,9 @@
+/**
+ * Single entry for TanStack Pacer in Scribe.
+ *
+ * Prefer React hooks in components/hooks; use Debouncer/Throttler classes in
+ * non-React modules (NLP queue, plugin lifecycle, etc.).
+ */
 export {
   useDebouncedCallback,
   useDebouncedState,

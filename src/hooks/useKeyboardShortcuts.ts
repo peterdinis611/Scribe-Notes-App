@@ -7,7 +7,8 @@ import { openTodayNote } from '@/lib/journal-notes'
 import { closeActiveDocumentAndMaybeHome } from '@/lib/navigation'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { prefetchDocument } from '@/lib/cache/prefetch-document'
-import { pickAndImportFile } from '@/lib/db/api'
+import { pickAndImportFiles } from '@/lib/db/api'
+import { toastImportDocumentsResult } from '@/lib/import-document'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
 import { getResolvedHotkey } from '@/lib/shortcuts'
@@ -131,14 +132,18 @@ export function useKeyboardShortcuts() {
       {
         hotkey: hotkey('import', shortcutOverrides),
         callback: async () => {
-          const imported = await pickAndImportFile()
-          if (!imported) return
-          dispatch(updateDocuments((prev) => prependDocumentSummary(prev, imported)))
-          dispatch(setActiveDocumentId(imported.id))
-          dispatch(setActiveDocument(imported))
+          const result = await pickAndImportFiles()
+          if (!result) return
+          toastImportDocumentsResult(result, (key, options) => t(key, options))
+          if (result.imported.length === 0) return
+          for (const doc of result.imported) {
+            dispatch(updateDocuments((prev) => prependDocumentSummary(prev, doc)))
+          }
+          const last = result.imported[result.imported.length - 1]!
+          dispatch(setActiveDocumentId(last.id))
+          dispatch(setActiveDocument(last))
           dispatch(setSaveStatus('saved'))
-          toast.success(t('toasts.documentImported'), imported.title)
-          navigate(ROUTES.document(imported.id))
+          navigate(ROUTES.document(last.id))
         },
         options: {
           meta: { name: t('shortcuts.import.label'), description: t('shortcuts.import.description') },

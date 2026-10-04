@@ -17,6 +17,13 @@ export const APP_SHORTCUT_BINDINGS: AppShortcutBinding[] = [
     descriptionKey: 'shortcuts.commandPalette.description',
   },
   {
+    id: 'link',
+    scope: 'app',
+    defaultHotkey: 'Mod+Shift+K',
+    labelKey: 'shortcuts.link.label',
+    descriptionKey: 'shortcuts.link.description',
+  },
+  {
     id: 'newDocument',
     scope: 'app',
     defaultHotkey: 'Mod+N',
@@ -130,6 +137,7 @@ export interface ShortcutDef {
     | 'todayNote'
     | 'save'
     | 'commandPalette'
+    | 'link'
     | 'undo'
     | 'redo'
     | 'find'
@@ -154,6 +162,7 @@ export const APP_SHORTCUTS: ShortcutDef[] = [
   { id: 'todayNote', keys: ['⌘', '⇧', 'D'] },
   { id: 'save', keys: ['⌘', 'S'] },
   { id: 'commandPalette', keys: ['⌘', 'K'] },
+  { id: 'link', keys: ['⌘', '⇧', 'K'] },
   { id: 'undo', keys: ['⌘', 'Z'] },
   { id: 'redo', keys: ['⌘', '⇧', 'Z'] },
   { id: 'find', keys: ['⌘', 'F'] },

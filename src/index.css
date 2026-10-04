@@ -2955,6 +2955,21 @@ html[data-ui-skin='press'] .editor-shell--home {
   overflow: hidden;
 }
 
+/* React 19.3 <ViewTransition> route fades (see RouteViewTransition). */
+::view-transition-old(.scribe-route-fade),
+::view-transition-new(.scribe-route-fade) {
+  animation-duration: 180ms;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
 .editor-header {
   position: relative;
   display: flex;
@@ -16450,6 +16465,157 @@ html {
   color: var(--color-muted-foreground);
 }
 
+/* —— TanStack DataTable —— */
+.data-table {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.data-table-scroll {
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--color-background) 85%, #000);
+}
+
+.data-table-scroll.is-virtualized {
+  max-height: min(52vh, 480px);
+}
+
+.data-table-grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.data-table-grid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  border-bottom: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-surface) 92%, var(--color-background));
+  padding: 7px 10px;
+  color: var(--color-muted-foreground);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.data-table-grid tbody td {
+  border-bottom: 1px solid var(--color-separator);
+  padding: 8px 10px;
+  color: var(--color-foreground);
+  vertical-align: top;
+}
+
+.data-table-grid tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.data-table-grid tbody tr:hover td {
+  background: color-mix(in srgb, var(--color-hover) 55%, transparent);
+}
+
+.data-table-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.data-table-sort:hover {
+  color: var(--color-foreground);
+}
+
+.data-table-empty {
+  margin: 0;
+  border: 1px dashed var(--color-border);
+  border-radius: 3px;
+  padding: 18px 12px;
+  color: var(--color-muted-foreground);
+  font-size: 12px;
+}
+
+.data-table-mono {
+  color: var(--color-muted-foreground);
+  white-space: nowrap;
+}
+
+.data-table-pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.data-table-pager-btn {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  padding: 4px 10px;
+  color: var(--color-foreground);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.data-table-pager-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.data-table-pager-meta {
+  color: var(--color-muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.plugin-logs-table .plugin-log-level {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 1px 7px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.plugin-logs-table .plugin-log-level.is-info {
+  background: color-mix(in srgb, var(--color-accent) 16%, transparent);
+  color: var(--color-accent);
+}
+
+.plugin-logs-table .plugin-log-level.is-warn {
+  background: color-mix(in srgb, #d97706 18%, transparent);
+  color: #d97706;
+}
+
+.plugin-logs-table .plugin-log-level.is-error {
+  background: color-mix(in srgb, #dc2626 18%, transparent);
+  color: #dc2626;
+}
+
+.plugin-logs-table .plugin-log-message {
+  display: block;
+  max-width: 56rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 /* —— Plugin create demo walkthrough —— */
 .plugin-demo {
   margin-bottom: 8px;
@@ -17016,5 +17182,402 @@ html {
   margin-right: 6px;
   font-family: var(--font-mono);
   font-size: 12.5px;
+}
+
+/* —— Window file drop (document import) —— */
+.app-file-drop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--color-background) 42%, transparent);
+  backdrop-filter: blur(7px) saturate(1.08);
+  animation: app-file-drop-veil 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.app-file-drop-overlay.is-busy {
+  background: color-mix(in srgb, var(--color-background) 58%, transparent);
+}
+
+.app-file-drop-aurora {
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(ellipse 48% 36% at 50% 42%, color-mix(in srgb, var(--color-accent) 34%, transparent), transparent 70%),
+    radial-gradient(ellipse 30% 24% at 28% 68%, color-mix(in srgb, var(--color-selection-strong) 18%, transparent), transparent 72%),
+    radial-gradient(ellipse 28% 22% at 74% 30%, color-mix(in srgb, var(--color-accent) 16%, transparent), transparent 70%);
+  animation: app-file-drop-aurora 4.8s ease-in-out infinite alternate;
+  opacity: 0.95;
+}
+
+.app-file-drop-grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.22;
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--color-foreground) 10%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--color-foreground) 10%, transparent) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse 55% 48% at 50% 48%, #000 20%, transparent 78%);
+  animation: app-file-drop-grid 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.app-file-drop-ring {
+  position: absolute;
+  width: min(520px, 78vw);
+  height: min(520px, 78vw);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 28%, transparent);
+  border-radius: 999px;
+  opacity: 0.55;
+  animation: app-file-drop-ring 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.app-file-drop-stage {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: min(480px, calc(100vw - 32px));
+}
+
+.app-file-drop-floaters {
+  position: absolute;
+  top: -34px;
+  left: 50%;
+  width: 0;
+  height: 0;
+}
+
+.app-file-drop-floater {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 52px;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 35%, var(--color-border));
+  border-radius: 8px;
+  background:
+    linear-gradient(160deg, color-mix(in srgb, var(--color-surface-elevated) 92%, #fff), var(--color-surface));
+  color: var(--color-accent);
+  box-shadow: 0 10px 24px color-mix(in srgb, #000 16%, transparent);
+  transform: translate3d(var(--floater-x), -18px, 0) rotate(var(--floater-rot)) scale(0.72);
+  opacity: 0;
+  animation:
+    app-file-drop-floater-in 520ms cubic-bezier(0.22, 1, 0.36, 1) var(--floater-delay) both,
+    app-file-drop-floater-bob 2.4s ease-in-out calc(var(--floater-delay) + 520ms) infinite;
+}
+
+.app-file-drop-overlay.is-busy .app-file-drop-floater {
+  animation:
+    app-file-drop-floater-in 420ms cubic-bezier(0.22, 1, 0.36, 1) var(--floater-delay) both,
+    app-file-drop-floater-suck 900ms cubic-bezier(0.4, 0, 0.2, 1) calc(var(--floater-delay) + 120ms) infinite;
+}
+
+.app-file-drop-card {
+  position: relative;
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  border: 1.5px dashed transparent;
+  border-radius: 14px;
+  background:
+    linear-gradient(var(--color-surface-elevated), var(--color-surface-elevated)) padding-box,
+    repeating-linear-gradient(
+      -45deg,
+      color-mix(in srgb, var(--color-accent) 72%, transparent) 0 10px,
+      color-mix(in srgb, var(--color-accent) 18%, transparent) 10px 20px
+    ) border-box;
+  padding: 34px 36px 30px;
+  color: var(--color-foreground);
+  box-shadow:
+    0 22px 54px color-mix(in srgb, #000 20%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #fff 10%, transparent);
+  text-align: center;
+  transform-origin: 50% 60%;
+  animation:
+    app-file-drop-card-in 480ms cubic-bezier(0.22, 1, 0.36, 1) 60ms both,
+    app-file-drop-dash 1.1s linear infinite;
+  background-size: auto, 28px 28px;
+}
+
+.app-file-drop-icon-wrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 4px;
+  animation: app-file-drop-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) 120ms both;
+}
+
+.app-file-drop-icon-pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+  animation: app-file-drop-pulse 1.7s ease-out infinite;
+}
+
+.app-file-drop-icon {
+  position: relative;
+  z-index: 1;
+  width: 34px;
+  height: 34px;
+  stroke-width: 1.45;
+  color: var(--color-accent);
+  filter: drop-shadow(0 6px 12px color-mix(in srgb, var(--color-accent) 28%, transparent));
+  animation: app-file-drop-icon-nudge 1.8s ease-in-out 400ms infinite;
+}
+
+.app-file-drop-overlay.is-busy .app-file-drop-icon {
+  animation: app-file-drop-icon-spin 1.1s linear infinite;
+}
+
+.app-file-drop-title {
+  margin: 2px 0 0;
+  font-family: var(--font-sans);
+  font-size: 19px;
+  font-weight: 750;
+  letter-spacing: -0.025em;
+  animation: app-file-drop-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) 180ms both;
+}
+
+.app-file-drop-hint {
+  margin: 0;
+  max-width: 36ch;
+  color: var(--color-muted-foreground);
+  font-size: 12.5px;
+  line-height: 1.45;
+  animation: app-file-drop-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) 240ms both;
+}
+
+.app-file-drop-count {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  min-width: 28px;
+  border-radius: 999px;
+  background: var(--color-accent);
+  padding: 3px 8px;
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.2;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--color-accent) 35%, transparent);
+  animation: app-file-drop-pop 420ms cubic-bezier(0.22, 1, 0.36, 1) 280ms both;
+}
+
+.app-file-drop-progress {
+  display: block;
+  width: min(220px, 70%);
+  height: 3px;
+  margin-top: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-foreground) 10%, transparent);
+  animation: app-file-drop-rise 420ms cubic-bezier(0.22, 1, 0.36, 1) 200ms both;
+}
+
+.app-file-drop-progress::after {
+  content: '';
+  display: block;
+  width: 42%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-accent),
+    color-mix(in srgb, var(--color-accent) 40%, #fff),
+    var(--color-accent),
+    transparent
+  );
+  animation: app-file-drop-shimmer 1s ease-in-out infinite;
+}
+
+@keyframes app-file-drop-veil {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes app-file-drop-aurora {
+  from {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+  to {
+    transform: scale(1.06) translate3d(0, -1.5%, 0);
+  }
+}
+
+@keyframes app-file-drop-grid {
+  from {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+  to {
+    opacity: 0.22;
+    transform: none;
+  }
+}
+
+@keyframes app-file-drop-ring {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+  to {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+}
+
+@keyframes app-file-drop-card-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes app-file-drop-dash {
+  to {
+    background-position: 0 0, 28px 0;
+  }
+}
+
+@keyframes app-file-drop-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes app-file-drop-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes app-file-drop-pulse {
+  0% {
+    transform: scale(0.72);
+    opacity: 0.85;
+  }
+  70% {
+    transform: scale(1.28);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.28);
+    opacity: 0;
+  }
+}
+
+@keyframes app-file-drop-icon-nudge {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -5px, 0);
+  }
+}
+
+@keyframes app-file-drop-icon-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes app-file-drop-floater-in {
+  from {
+    opacity: 0;
+    transform: translate3d(var(--floater-x), -38px, 0) rotate(calc(var(--floater-rot) - 8deg)) scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(var(--floater-x), 0, 0) rotate(var(--floater-rot)) scale(1);
+  }
+}
+
+@keyframes app-file-drop-floater-bob {
+  0%,
+  100% {
+    transform: translate3d(var(--floater-x), 0, 0) rotate(var(--floater-rot)) scale(1);
+  }
+  50% {
+    transform: translate3d(var(--floater-x), 8px, 0) rotate(calc(var(--floater-rot) * 0.7)) scale(1.03);
+  }
+}
+
+@keyframes app-file-drop-floater-suck {
+  0% {
+    opacity: 1;
+    transform: translate3d(var(--floater-x), 0, 0) rotate(var(--floater-rot)) scale(1);
+  }
+  70% {
+    opacity: 0.15;
+    transform: translate3d(calc(var(--floater-x) * 0.15), 54px, 0) rotate(0deg) scale(0.55);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 72px, 0) scale(0.35);
+  }
+}
+
+@keyframes app-file-drop-shimmer {
+  from {
+    transform: translateX(-120%);
+  }
+  to {
+    transform: translateX(260%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-file-drop-overlay,
+  .app-file-drop-aurora,
+  .app-file-drop-grid,
+  .app-file-drop-ring,
+  .app-file-drop-card,
+  .app-file-drop-icon-wrap,
+  .app-file-drop-icon,
+  .app-file-drop-icon-pulse,
+  .app-file-drop-title,
+  .app-file-drop-hint,
+  .app-file-drop-count,
+  .app-file-drop-progress,
+  .app-file-drop-floater {
+    animation: none !important;
+  }
+
+  .app-file-drop-floater {
+    opacity: 1;
+    transform: translate3d(var(--floater-x), 0, 0) rotate(var(--floater-rot));
+  }
 }
 

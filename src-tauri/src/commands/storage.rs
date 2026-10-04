@@ -1,6 +1,7 @@
 use crate::storage::{self, DiskDocument, DiskPersistQueue, PersistJob};
 use crate::security::PathAccessGate;
 use rusqlite::Connection;
+use scribe_core::storage_fs::{self, DiskUsage};
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_dialog::DialogExt;
@@ -11,6 +12,16 @@ use tauri_plugin_opener::OpenerExt;
 pub struct StorageSettings {
     pub documents_dir: String,
     pub folder_access_granted: bool,
+}
+
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StorageDiskUsage {
+    pub documents_dir: String,
+    pub path: String,
+    pub total_bytes: u64,
+    pub file_count: u64,
+    pub dir_count: u64,
 }
 
 #[tauri::command]
@@ -74,6 +85,45 @@ pub fn reveal_in_finder(
     app.opener()
         .reveal_item_in_dir(validated.to_string_lossy().to_string())
         .map_err(|e| e.to_string())
+}
+
+/// Reveal the active documents root in Finder / Explorer.
+#[tauri::command]
+pub fn reveal_documents_directory(
+    app: AppHandle,
+    state: tauri::State<'_, crate::db::DbState>,
+    gate: tauri::State<'_, PathAccessGate>,
+) -> Result<(), String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let dir = storage::get_documents_dir(&app, &conn)?;
+    let validated = gate.validate_reveal(&app, &conn, &dir)?;
+    drop(conn);
+
+    app.opener()
+        .reveal_item_in_dir(validated.to_string_lossy().to_string())
+        .map_err(|e| e.to_string())
+}
+
+/// Disk usage for the documents root (or a relative path under it).
+#[tauri::command]
+pub fn get_storage_disk_usage(
+    app: AppHandle,
+    state: tauri::State<'_, crate::db::DbState>,
+    path: Option<String>,
+) -> Result<StorageDiskUsage, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let dir = storage::get_documents_dir(&app, &conn)?;
+    drop(conn);
+
+    let relative = path.unwrap_or_else(|| ".".to_string());
+    let usage: DiskUsage = storage_fs::disk_usage(&dir, &relative)?;
+    Ok(StorageDiskUsage {
+        documents_dir: dir.to_string_lossy().to_string(),
+        path: usage.path,
+        total_bytes: usage.total_bytes,
+        file_count: usage.file_count,
+        dir_count: usage.dir_count,
+    })
 }
 
 pub fn persist_document(

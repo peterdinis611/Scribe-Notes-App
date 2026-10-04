@@ -1,6 +1,11 @@
 import { highlightCode } from '@/lib/editor/lowlight'
 import { APP_SHORT_VERSION } from '@/lib/app-version'
 import { resolveCodeLanguage } from '@/lib/editor/code-languages'
+import {
+  buildCodeHighlightMap,
+  codeHighlightKey,
+  type CodeHighlightBlock,
+} from '@/lib/export/highlight-code'
 import { evaluateMathExpression } from '@/lib/editor/math-js'
 import { renderD3ChartSource } from '@/lib/editor/d3-chart'
 import { renderMermaidSource } from '@/lib/editor/mermaid'
@@ -42,6 +47,8 @@ type TipTapNode = {
 type RenderContext = {
   mermaidSvgBySource: Map<string, string>
   d3SvgBySource: Map<string, string>
+  /** Precomputed syntect (or lowlight fallback) snippets keyed by language+code. */
+  codeHighlightByKey?: Map<string, string>
 }
 
 function escapeHtml(text: string): string {
@@ -215,6 +222,8 @@ function renderNodes(nodes: TipTapNode[] | undefined, ctx: RenderContext): strin
         case 'codeBlock': {
           const raw = (node.content ?? []).map((n) => n.text ?? '').join('')
           const language = node.attrs?.language as string | undefined
+          const rustOrPre = ctx.codeHighlightByKey?.get(codeHighlightKey(language, raw))
+          if (rustOrPre) return rustOrPre
           const resolved = resolveCodeLanguage(language)
           const className = resolved ? `hljs language-${resolved}` : 'hljs'
           return `<pre><code class="${className}">${highlightCode(raw, language)}</code></pre>`
@@ -444,6 +453,21 @@ export type HtmlExportOptions = {
   forPdf?: boolean
   mermaidSvgBySource?: Map<string, string>
   d3SvgBySource?: Map<string, string>
+  /** Prefer Rust syntect snippets (from `buildCodeHighlightMap`). */
+  codeHighlightByKey?: Map<string, string>
+}
+
+function collectCodeBlocks(nodes: TipTapNode[] | undefined, out: CodeHighlightBlock[] = []) {
+  for (const node of nodes ?? []) {
+    if (node.type === 'codeBlock') {
+      out.push({
+        language: (node.attrs?.language as string | undefined) ?? null,
+        code: (node.content ?? []).map((n) => n.text ?? '').join(''),
+      })
+    }
+    if (node.content?.length) collectCodeBlocks(node.content, out)
+  }
+  return out
 }
 
 function buildFirstPageMarginCss(pageSetup: PageSetup): string {
@@ -597,6 +621,7 @@ export function tiptapJsonToHtml(
   return buildHtmlDocument(contentJson, title, options, {
     mermaidSvgBySource: options?.mermaidSvgBySource ?? new Map(),
     d3SvgBySource: options?.d3SvgBySource ?? buildD3SvgMap(contentJson),
+    codeHighlightByKey: options?.codeHighlightByKey,
   })
 }
 
@@ -609,5 +634,21 @@ export async function tiptapJsonToHtmlAsync(
   const mermaidSvgBySource =
     options?.mermaidSvgBySource ?? (await buildMermaidSvgMap(contentJson, 'neutral'))
   const d3SvgBySource = options?.d3SvgBySource ?? buildD3SvgMap(contentJson)
-  return buildHtmlDocument(contentJson, title, options, { mermaidSvgBySource, d3SvgBySource })
+
+  let codeHighlightByKey = options?.codeHighlightByKey
+  if (!codeHighlightByKey) {
+    let doc: TipTapNode = { type: 'doc', content: [] }
+    try {
+      doc = JSON.parse(contentJson) as TipTapNode
+    } catch {
+      // empty
+    }
+    codeHighlightByKey = await buildCodeHighlightMap(collectCodeBlocks(doc.content))
+  }
+
+  return buildHtmlDocument(contentJson, title, options, {
+    mermaidSvgBySource,
+    d3SvgBySource,
+    codeHighlightByKey,
+  })
 }

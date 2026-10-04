@@ -1,11 +1,11 @@
-import { useEffect, useState, type RefObject } from 'react'
+import { useCallback, useEffect, useState, type RefObject } from 'react'
 import type { Editor } from '@tiptap/react'
 import {
   collectHeadingOutline,
   getActiveHeadingAtViewport,
   type DocumentOutlineItem,
 } from '@/lib/editor/document-outline'
-import { throttle } from '@/lib/utils'
+import { useThrottledCallback } from '@/lib/pacer'
 
 type UseActiveScrollHeadingOptions = {
   editor: Editor | null
@@ -22,6 +22,23 @@ export function useActiveScrollHeading({
   const [activeHeading, setActiveHeading] = useState<DocumentOutlineItem | null>(null)
   const [headingCount, setHeadingCount] = useState(0)
 
+  const sync = useCallback(() => {
+    if (!enabled || !editor || editor.isDestroyed) {
+      setActiveHeading(null)
+      setHeadingCount(0)
+      return
+    }
+
+    const scrollEl = scrollRef.current
+    if (!scrollEl) return
+
+    const headings = collectHeadingOutline(editor)
+    setHeadingCount(headings.length)
+    setActiveHeading(getActiveHeadingAtViewport(editor, headings, scrollEl))
+  }, [editor, enabled, scrollRef])
+
+  const syncThrottled = useThrottledCallback(sync, { wait: 80 })
+
   useEffect(() => {
     if (!enabled || !editor || editor.isDestroyed) {
       setActiveHeading(null)
@@ -29,16 +46,6 @@ export function useActiveScrollHeading({
       return
     }
 
-    const sync = () => {
-      const scrollEl = scrollRef.current
-      if (!scrollEl || editor.isDestroyed) return
-
-      const headings = collectHeadingOutline(editor)
-      setHeadingCount(headings.length)
-      setActiveHeading(getActiveHeadingAtViewport(editor, headings, scrollEl))
-    }
-
-    const syncThrottled = throttle(sync, 80)
     sync()
 
     const scrollEl = scrollRef.current
@@ -51,7 +58,7 @@ export function useActiveScrollHeading({
       editor.off('update', syncThrottled)
       window.removeEventListener('resize', syncThrottled)
     }
-  }, [editor, enabled, scrollRef])
+  }, [editor, enabled, scrollRef, sync, syncThrottled])
 
   return { activeHeading, headingCount }
 }
