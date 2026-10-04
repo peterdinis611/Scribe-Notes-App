@@ -258,3 +258,44 @@ export function insertColumnTotalBelow(editor: Editor): boolean {
   editor.view.dispatch(tr)
   return true
 }
+
+function escapeDelimitedCell(value: string, delimiter: ',' | '\t'): string {
+  if (delimiter === '\t') {
+    return value.replace(/\t/g, ' ').replace(/\r?\n/g, ' ')
+  }
+  const needsQuotes = /[",\r\n]/.test(value)
+  const escaped = value.replace(/"/g, '""')
+  return needsQuotes ? `"${escaped}"` : escaped
+}
+
+/** Serialize the active TipTap table to CSV or TSV. */
+export function activeTableToDelimited(editor: Editor, delimiter: ',' | '\t' = '\t'): string | null {
+  const ctx = getTableContext(editor)
+  if (!ctx) return null
+  const rows = collectRows(ctx.table.node)
+  if (rows.length === 0) return null
+
+  const lines = rows.map((row) => {
+    const cells: string[] = []
+    row.forEach((cell) => {
+      if (cell.type.name !== 'tableCell' && cell.type.name !== 'tableHeader') return
+      cells.push(escapeDelimitedCell(cellText(cell), delimiter))
+    })
+    return cells.join(delimiter)
+  })
+  return lines.join('\n')
+}
+
+export async function copyActiveTableAsDelimited(
+  editor: Editor,
+  delimiter: ',' | '\t' = '\t',
+): Promise<boolean> {
+  const text = activeTableToDelimited(editor, delimiter)
+  if (!text) return false
+  try {
+    await navigator.clipboard.writeText(text)
+    return true
+  } catch {
+    return false
+  }
+}

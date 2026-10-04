@@ -88,7 +88,9 @@ export function PluginLogsTable({
       pageSize={pageSize}
       getRowId={(row) => row.id}
       initialSorting={[{ id: 'at', desc: true }]}
-      enablePagination={logs.length > pageSize}
+      enablePagination={false}
+      enableVirtualization={logs.length > 40}
+      estimateRowHeight={44}
     />
   )
 }

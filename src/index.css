@@ -16480,6 +16480,10 @@ html {
   background: color-mix(in srgb, var(--color-background) 85%, #000);
 }
 
+.data-table-scroll.is-virtualized {
+  max-height: min(52vh, 480px);
+}
+
 .data-table-grid {
   width: 100%;
   border-collapse: collapse;

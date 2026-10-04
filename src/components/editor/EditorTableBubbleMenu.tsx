@@ -10,11 +10,18 @@ import {
   BetweenHorizontalEnd,
   BetweenVerticalEnd,
   ChartColumn,
+  ClipboardCopy,
+  Columns2,
+  Heading,
+  Rows3,
   Sigma,
+  TableCellsMerge,
+  TableCellsSplit,
   Trash2,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import {
+  copyActiveTableAsDelimited,
   fillDownActiveColumn,
   insertColumnTotalBelow,
   sortTableByActiveColumn,
@@ -116,6 +123,51 @@ export function EditorTableBubbleMenu({ editor }: EditorTableBubbleMenuProps) {
             onClick={() => editor.chain().focus().addColumnAfter().run()}
           >
             <BetweenVerticalEnd className="h-3.5 w-3.5" />
+          </TableBubbleIcon>
+          <TableBubbleIcon
+            label={t('toolbar.actions.deleteRow')}
+            onClick={() => editor.chain().focus().deleteRow().run()}
+          >
+            <Rows3 className="h-3.5 w-3.5" />
+          </TableBubbleIcon>
+          <TableBubbleIcon
+            label={t('toolbar.actions.deleteColumn')}
+            onClick={() => editor.chain().focus().deleteColumn().run()}
+          >
+            <Columns2 className="h-3.5 w-3.5" />
+          </TableBubbleIcon>
+          <TableBubbleIcon
+            label={t('toolbar.actions.mergeCells')}
+            onClick={() => {
+              if (!editor.chain().focus().mergeCells().run()) toast.info(t('toolbar.table.needSelection'))
+            }}
+          >
+            <TableCellsMerge className="h-3.5 w-3.5" />
+          </TableBubbleIcon>
+          <TableBubbleIcon
+            label={t('toolbar.actions.splitCell')}
+            onClick={() => {
+              if (!editor.chain().focus().splitCell().run()) toast.info(t('toolbar.table.needSelection'))
+            }}
+          >
+            <TableCellsSplit className="h-3.5 w-3.5" />
+          </TableBubbleIcon>
+          <TableBubbleIcon
+            label={t('toolbar.actions.toggleHeaderRow')}
+            onClick={() => editor.chain().focus().toggleHeaderRow().run()}
+          >
+            <Heading className="h-3.5 w-3.5" />
+          </TableBubbleIcon>
+          <TableBubbleIcon
+            label={t('toolbar.actions.copyTsv')}
+            onClick={() => {
+              void copyActiveTableAsDelimited(editor, '\t').then((ok) => {
+                if (ok) toast.success(t('toolbar.table.copied'))
+                else toast.info(t('toolbar.table.copyEmpty'))
+              })
+            }}
+          >
+            <ClipboardCopy className="h-3.5 w-3.5" />
           </TableBubbleIcon>
           <span className="editor-bubble-divider" />
           <TableBubbleIcon

@@ -24,6 +24,12 @@ describe('getResolvedHotkey / getDisplayKeysForShortcut', () => {
     expect(getResolvedHotkey('commandPalette', {})).toBe('Mod+K')
     expect(getDisplayKeysForShortcut('commandPalette', {})).toEqual(['⌘', 'K'])
   })
+
+  it('keeps link off Mod+K so the command palette owns it', () => {
+    expect(getResolvedHotkey('link', {})).toBe('Mod+Shift+K')
+    expect(getDisplayKeysForShortcut('link', {})).toEqual(['⌘', '⇧', 'K'])
+    expect(getResolvedHotkey('link', {})).not.toBe(getResolvedHotkey('commandPalette', {}))
+  })
 })
 
 describe('eventToHotkey', () => {

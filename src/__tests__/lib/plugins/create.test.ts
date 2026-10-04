@@ -47,6 +47,25 @@ describe('create plugin', () => {
     expect(built.code).toContain("id: \"note-stub\"")
   })
 
+  it('builds commandAndBlock and activeDoc templates', () => {
+    const both = buildCreatedPlugin({
+      name: 'Combo',
+      id: 'local.combo',
+      template: 'commandAndBlock',
+    })
+    expect(both.manifest.permissions).toEqual(expect.arrayContaining(['commands', 'editor.blocks']))
+    expect(both.code).toContain('api.commands.register')
+    expect(both.code).toContain('api.blocks.register')
+
+    const active = buildCreatedPlugin({
+      name: 'Active doc',
+      id: 'local.active-doc',
+      template: 'activeDoc',
+    })
+    expect(active.manifest.permissions).toEqual(expect.arrayContaining(['commands']))
+    expect(active.code).toContain('getActiveDocument')
+  })
+
   it('rejects invalid or taken ids', () => {
     expect(validatePluginId('Bad Id').ok).toBe(false)
     const built = buildCreatedPlugin({ name: 'Taken', id: 'local.taken', template: 'command' })

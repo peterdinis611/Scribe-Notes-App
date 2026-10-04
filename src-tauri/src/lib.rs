@@ -375,6 +375,7 @@ pub fn run() {
             commands::native_pipeline::parse_meta_tag,
             commands::native_pipeline::document_matches_meta_filters,
             commands::native_pipeline::render_document_html,
+            commands::native_pipeline::highlight_code,
             pdf_native::render_html_to_pdf,
             pdf_native::print_html,
             commands::import_export::scan_scribe_files,

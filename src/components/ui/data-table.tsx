@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import {
   flexRender,
   getCoreRowModel,
@@ -11,6 +11,7 @@ import {
   type SortingState,
   type Table as TanstackTable,
 } from '@tanstack/react-table'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
@@ -30,6 +31,9 @@ export type DataTableProps<TData> = {
   getRowId?: (originalRow: TData, index: number) => string
   enableSorting?: boolean
   enablePagination?: boolean
+  /** Virtualize body rows (skips pagination when true). */
+  enableVirtualization?: boolean
+  estimateRowHeight?: number
   /** Extra toolbar content rendered above the table. */
   toolbar?: ReactNode | ((table: TanstackTable<TData>) => ReactNode)
 }
@@ -55,15 +59,19 @@ export function DataTable<TData>({
   getRowId,
   enableSorting = true,
   enablePagination = true,
+  enableVirtualization = false,
+  estimateRowHeight = 36,
   toolbar,
 }: DataTableProps<TData>) {
   const { t } = useTranslation()
+  const scrollRef = useRef<HTMLDivElement>(null)
   const [sorting, setSorting] = useState<SortingState>(initialSorting)
   const [internalFilters, setInternalFilters] = useState<ColumnFiltersState>([])
   const [internalGlobalFilter, setInternalGlobalFilter] = useState('')
 
   const columnFilters = controlledFilters ?? internalFilters
   const globalFilter = controlledGlobalFilter ?? internalGlobalFilter
+  const paginate = enablePagination && !enableVirtualization
 
   const table = useReactTable({
     data,
@@ -87,7 +95,7 @@ export function DataTable<TData>({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: enableSorting ? getSortedRowModel() : undefined,
     getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: enablePagination ? getPaginationRowModel() : undefined,
+    getPaginationRowModel: paginate ? getPaginationRowModel() : undefined,
     getRowId,
     initialState: {
       pagination: { pageSize },
@@ -97,8 +105,23 @@ export function DataTable<TData>({
 
   const rows = table.getRowModel().rows
   const pageCount = table.getPageCount()
-  const showPager = enablePagination && pageCount > 1
+  const showPager = paginate && pageCount > 1
   const toolbarNode = typeof toolbar === 'function' ? toolbar(table) : toolbar
+  const colCount = Math.max(table.getVisibleLeafColumns().length, 1)
+
+  const virtualizer = useVirtualizer({
+    count: enableVirtualization ? rows.length : 0,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => estimateRowHeight,
+    overscan: 10,
+  })
+
+  const virtualItems = enableVirtualization ? virtualizer.getVirtualItems() : []
+  const paddingTop = virtualItems.length > 0 ? virtualItems[0]!.start : 0
+  const paddingBottom =
+    virtualItems.length > 0
+      ? virtualizer.getTotalSize() - virtualItems[virtualItems.length - 1]!.end
+      : 0
 
   return (
     <div className={cn('data-table', className)}>
@@ -106,7 +129,10 @@ export function DataTable<TData>({
       {rows.length === 0 ? (
         <p className="data-table-empty">{emptyMessage}</p>
       ) : (
-        <div className="data-table-scroll">
+        <div
+          ref={scrollRef}
+          className={cn('data-table-scroll', enableVirtualization && 'is-virtualized')}
+        >
           <table className={cn('data-table-grid', tableClassName)}>
             <thead>
               {table.getHeaderGroups().map((headerGroup) => (
@@ -144,15 +170,45 @@ export function DataTable<TData>({
               ))}
             </thead>
             <tbody>
-              {rows.map((row) => (
-                <tr key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))}
+              {enableVirtualization ? (
+                <>
+                  {paddingTop > 0 ? (
+                    <tr aria-hidden>
+                      <td colSpan={colCount} style={{ height: paddingTop, padding: 0, border: 0 }} />
+                    </tr>
+                  ) : null}
+                  {virtualItems.map((virtualRow) => {
+                    const row = rows[virtualRow.index]!
+                    return (
+                      <tr key={row.id} data-index={virtualRow.index}>
+                        {row.getVisibleCells().map((cell) => (
+                          <td key={cell.id}>
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </td>
+                        ))}
+                      </tr>
+                    )
+                  })}
+                  {paddingBottom > 0 ? (
+                    <tr aria-hidden>
+                      <td
+                        colSpan={colCount}
+                        style={{ height: paddingBottom, padding: 0, border: 0 }}
+                      />
+                    </tr>
+                  ) : null}
+                </>
+              ) : (
+                rows.map((row) => (
+                  <tr key={row.id}>
+                    {row.getVisibleCells().map((cell) => (
+                      <td key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

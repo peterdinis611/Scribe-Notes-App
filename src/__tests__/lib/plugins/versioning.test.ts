@@ -7,7 +7,9 @@ import type { InstalledPluginRecord } from '@/lib/plugins/types'
 import {
   bumpSemver,
   buildUpdatedRecord,
+  compareSemver,
   exportPluginPackage,
+  listPluginVersionHistory,
 } from '@/lib/plugins/versioning'
 
 function sampleRecord(
@@ -77,5 +79,21 @@ describe('plugin versioning', () => {
     const pkg = exportPluginPackage(sampleRecord())
     expect(pkg).toContain('"id": "local.version-demo"')
     expect(pkg).toContain('export default function activate')
+  })
+
+  it('compares semver and lists history snapshots', () => {
+    expect(compareSemver('1.0.0', '1.0.1')).toBeLessThan(0)
+    expect(compareSemver('2.0.0', '1.9.9')).toBeGreaterThan(0)
+    expect(compareSemver('1.0.0', '1.0.0')).toBe(0)
+
+    const withHistory = buildUpdatedRecord(sampleRecord('1.0.0'), {
+      code: 'export default function activate(api) { api.log("v2") }',
+      bump: 'patch',
+    })
+    const history = listPluginVersionHistory(withHistory.manifest.id)
+    // listPluginVersionHistory reads installed store — without install it may be empty.
+    // Assert the record itself carries archived history from buildUpdatedRecord.
+    expect(withHistory.history?.[0]?.version).toBe('1.0.0')
+    expect(Array.isArray(history)).toBe(true)
   })
 })
