@@ -515,6 +515,49 @@ export const listAgentRuns = (limit = 40, agentId?: string | null) =>
 
 export const getAgentDbPath = () => invoke<string | null>('get_agent_db_path')
 
+export type AgentBackendHandoff = {
+  id: string
+  fromAgentId: string
+  toAgentId: string
+  documentId?: string | null
+  summary: string
+  payloadJson?: string | null
+  status: 'pending' | 'acknowledged' | 'dismissed' | string
+  createdAt: number
+  updatedAt: number
+}
+
+export const sendAgentHandoff = (input: {
+  fromAgentId: string
+  toAgentId: string
+  summary: string
+  documentId?: string | null
+  payloadJson?: string | null
+}) =>
+  invoke<AgentBackendHandoff>('send_agent_handoff', {
+    input: {
+      fromAgentId: input.fromAgentId,
+      toAgentId: input.toAgentId,
+      summary: input.summary,
+      documentId: input.documentId ?? null,
+      payloadJson: input.payloadJson ?? null,
+    },
+  })
+
+export const listAgentHandoffs = (
+  toAgentId: string,
+  status?: string | null,
+  limit = 24,
+) =>
+  invoke<AgentBackendHandoff[]>('list_agent_handoffs', {
+    toAgentId,
+    status: status ?? null,
+    limit,
+  })
+
+export const setAgentHandoffStatus = (id: string, status: string) =>
+  invoke<AgentBackendHandoff | null>('set_agent_handoff_status', { id, status })
+
 export const clearAllDocuments = async () => {
   const count = await invoke<number>('clear_all_documents')
   clearDocumentCache()

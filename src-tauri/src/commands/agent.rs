@@ -187,7 +187,7 @@ pub fn clear_agent_messages(
 // --- scribe-agent.db (separate agent store) ---
 
 use crate::agent_db::AgentDbState;
-use scribe_agent::{AgentPrefs, AgentRoleState, AgentRunRecord, AgentTeaching};
+use scribe_agent::{AgentHandoff, AgentPrefs, AgentRoleState, AgentRunRecord, AgentTeaching};
 
 #[tauri::command]
 pub fn get_agent_prefs(agent: State<'_, AgentDbState>) -> Result<AgentPrefs, String> {
@@ -319,4 +319,54 @@ pub fn list_agent_runs(
 pub fn get_agent_db_path(agent: State<'_, AgentDbState>) -> Result<Option<String>, String> {
     let store = agent.store.lock().map_err(|e| e.to_string())?;
     Ok(store.path().map(|path| path.to_string_lossy().to_string()))
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SendAgentHandoffInput {
+    pub from_agent_id: String,
+    pub to_agent_id: String,
+    pub summary: String,
+    pub document_id: Option<String>,
+    pub payload_json: Option<String>,
+}
+
+#[tauri::command]
+pub fn send_agent_handoff(
+    agent: State<'_, AgentDbState>,
+    input: SendAgentHandoffInput,
+) -> Result<AgentHandoff, String> {
+    let store = agent.store.lock().map_err(|e| e.to_string())?;
+    store.send_handoff(
+        &input.from_agent_id,
+        &input.to_agent_id,
+        &input.summary,
+        input.document_id.as_deref(),
+        input.payload_json.as_deref(),
+    )
+}
+
+#[tauri::command]
+pub fn list_agent_handoffs(
+    agent: State<'_, AgentDbState>,
+    to_agent_id: String,
+    status: Option<String>,
+    limit: Option<u32>,
+) -> Result<Vec<AgentHandoff>, String> {
+    let store = agent.store.lock().map_err(|e| e.to_string())?;
+    store.list_handoff_inbox(
+        &to_agent_id,
+        status.as_deref(),
+        limit.unwrap_or(24) as usize,
+    )
+}
+
+#[tauri::command]
+pub fn set_agent_handoff_status(
+    agent: State<'_, AgentDbState>,
+    id: String,
+    status: String,
+) -> Result<Option<AgentHandoff>, String> {
+    let store = agent.store.lock().map_err(|e| e.to_string())?;
+    store.set_handoff_status(&id, &status)
 }

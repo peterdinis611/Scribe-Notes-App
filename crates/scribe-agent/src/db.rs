@@ -1,7 +1,7 @@
 use rusqlite::Connection;
 use std::path::{Path, PathBuf};
 
-pub const SCHEMA_VERSION: i32 = 3;
+pub const SCHEMA_VERSION: i32 = 4;
 pub const AGENT_DB_FILE: &str = "scribe-agent.db";
 
 pub struct AgentDb {
@@ -181,6 +181,33 @@ fn run_migrations(conn: &Connection) -> Result<(), String> {
         }
 
         set_schema_version(conn, 3)?;
+        current = 3;
+    }
+
+    if current < 4 {
+        // Inter-agent handoffs (structured inbox between specialists).
+        conn.execute_batch(
+            r#"
+            CREATE TABLE IF NOT EXISTS agent_handoffs (
+                id TEXT PRIMARY KEY,
+                from_agent_id TEXT NOT NULL,
+                to_agent_id TEXT NOT NULL,
+                document_id TEXT,
+                summary TEXT NOT NULL,
+                payload_json TEXT,
+                status TEXT NOT NULL DEFAULT 'pending',
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_agent_handoffs_to
+                ON agent_handoffs(to_agent_id, status, created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_agent_handoffs_from
+                ON agent_handoffs(from_agent_id, created_at DESC);
+            "#,
+        )
+        .map_err(|e| e.to_string())?;
+        set_schema_version(conn, 4)?;
     }
 
     Ok(())

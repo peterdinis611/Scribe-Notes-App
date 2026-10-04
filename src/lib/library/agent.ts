@@ -12,6 +12,13 @@ import {
   DEFAULT_AGENT_PREFS,
 } from '@/lib/library/agent-prefs'
 import {
+  handoffsToMemoryContext,
+  loadHandoffInbox,
+  maybeAutoHandoffAfterRun,
+  parseHandoffGoal,
+  sendHandoffBetweenAgents,
+} from '@/lib/library/agent-handoff'
+import {
   filterToolsByAgents,
   isAgentRoleEnabled,
   isRecipeAllowedByAgents,
@@ -216,6 +223,7 @@ const INTENT_TO_TOOL: Record<string, AgentToolId> = {
   library_report: 'library_report',
   terminology_library: 'terminology_library',
   save_template: 'save_template',
+  handoff: 'handoff',
 }
 
 const DEFAULT_CLARIFY: AgentToolId[] = [
@@ -249,6 +257,27 @@ export function matchAgentIntentsSync(goal: string): AgentToolId[] {
   if (!folded) return []
 
   const rules: Array<{ tool: AgentToolId; needles: string[] }> = [
+    {
+      tool: 'handoff',
+      needles: [
+        'handoff',
+        'delegate',
+        'pass to',
+        'send to',
+        'tell the',
+        'forward to',
+        'posli',
+        'pošli',
+        'odovzdaj',
+        'predaj',
+        '@organizer',
+        '@meeting',
+        '@librarian',
+        '@proofreader',
+        '@study',
+        '@general',
+      ],
+    },
     {
       tool: 'save_template',
       needles: [
@@ -686,12 +715,44 @@ async function runTool(
     selectionText?: string | null
     compareDocumentId?: string | null
     stream?: boolean
+    roleId?: AgentRoleId | null
   },
 ): Promise<LibraryChatResult> {
   const workingMemory = [
     ...(ctx.memoryContext ?? []),
     ...ctx.priorAnswers.map((text) => ({ role: 'assistant', text: text.slice(0, 800) })),
   ]
+
+  if (tool === 'handoff') {
+    const fromAgentId = ctx.roleId ?? 'general'
+    const prior = ctx.priorAnswers.filter(Boolean).join('\n\n').trim()
+    const parsed = parseHandoffGoal(ctx.goal, fromAgentId)
+    const toAgentId = parsed?.toAgentId
+    const summary =
+      parsed?.summary ||
+      prior.slice(0, 600) ||
+      ctx.goal.trim()
+    if (!toAgentId) {
+      throw new Error('agent.handoffNeedsTarget')
+    }
+    if (summary.trim().length < 2) {
+      throw new Error('agent.handoffEmpty')
+    }
+    const sent = await sendHandoffBetweenAgents({
+      fromAgentId,
+      toAgentId,
+      summary,
+      documentId: ctx.documentId,
+      payload: { goal: ctx.goal.slice(0, 160), priorTools: true },
+    })
+    if (!sent) {
+      throw new Error('agent.handoffFailed')
+    }
+    return {
+      answer: `Handoff sent to **${toAgentId}**:\n\n${sent.summary}`,
+      citations: [],
+    }
+  }
 
   if (tool === 'library_answer') {
     return askLibrary(ctx.goal, {
@@ -1026,15 +1087,23 @@ export async function runAgentGoal(
     }
   }
 
+  const activeRoleId: AgentRoleId = opts?.grammarOnly
+    ? 'proofreader'
+    : opts?.roleId ?? 'general'
+  const inbox = opts?.grammarOnly
+    ? []
+    : await loadHandoffInbox(activeRoleId, 'pending', 8)
+
   const contextWithTeachings = [
     ...teachingsToMemoryContext(prefs.teachings, {
       pinnedFacts: opts?.grammarOnly ? undefined : prefs.pinnedFacts,
       episodes: opts?.grammarOnly ? undefined : prefs.episodes,
       outputLanguage: prefs.outputLanguage,
       documentId,
-      agentId: opts?.grammarOnly ? 'proofreader' : opts?.roleId,
+      agentId: activeRoleId,
       grammarOnly: opts?.grammarOnly,
     }),
+    ...handoffsToMemoryContext(inbox),
     ...(memoryContext ?? []),
   ]
   const steps: AgentStep[] = []
@@ -1077,6 +1146,7 @@ export async function runAgentGoal(
         selectionText: opts?.selectionText,
         compareDocumentId: opts?.compareDocumentId,
         stream: opts?.stream && (tool === 'library_answer' || tool === 'document_answer'),
+        roleId: activeRoleId,
       })
       steps.push({
         tool,
@@ -1111,6 +1181,25 @@ export async function runAgentGoal(
       summary: episodeSummary(steps, trimmed || String(opts?.recipeId ?? 'run')),
       documentId,
     })
+  }
+
+  // Soft auto-notify peer specialist after substantive specialist work.
+  if (
+    !opts?.grammarOnly &&
+    activeRoleId !== 'general' &&
+    steps.some((step) => step.status === 'ok') &&
+    !plan.tools.includes('handoff')
+  ) {
+    const auto = await maybeAutoHandoffAfterRun({
+      fromAgentId: activeRoleId,
+      tools: steps.filter((step) => step.status === 'ok').map((step) => step.tool),
+      answer,
+      documentId,
+      goal: trimmed,
+    })
+    if (auto) {
+      followups.push(`handoff:${auto.toAgentId}`)
+    }
   }
 
   const recipeFollowups = suggestFollowupRecipes(steps, scope, prefs.agents).map(

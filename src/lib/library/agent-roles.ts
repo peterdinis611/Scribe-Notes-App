@@ -71,6 +71,7 @@ export const AGENT_ROLES: AgentRoleDefinition[] = [
       'title',
       'tone',
       'continuation',
+      'handoff',
     ],
   },
   {
@@ -82,7 +83,16 @@ export const AGENT_ROLES: AgentRoleDefinition[] = [
     defaultEnabled: true,
     panel: 'spellcheck',
     recipeIds: ['spellcheck', 'polish'],
-    tools: ['spellcheck', 'grammar', 'rewrite', 'terminology', 'terminology_library', 'style', 'tone'],
+    tools: [
+      'spellcheck',
+      'grammar',
+      'rewrite',
+      'terminology',
+      'terminology_library',
+      'style',
+      'tone',
+      'handoff',
+    ],
   },
   {
     id: 'librarian',
@@ -103,6 +113,7 @@ export const AGENT_ROLES: AgentRoleDefinition[] = [
       'library_report',
       'open_loops',
       'title',
+      'handoff',
     ],
   },
   {
@@ -129,6 +140,7 @@ export const AGENT_ROLES: AgentRoleDefinition[] = [
       'template_hints',
       'save_template',
       'outline',
+      'handoff',
     ],
   },
   {
@@ -153,6 +165,7 @@ export const AGENT_ROLES: AgentRoleDefinition[] = [
       'explain',
       'simplify',
       'continuation',
+      'handoff',
     ],
   },
   {
@@ -176,6 +189,7 @@ export const AGENT_ROLES: AgentRoleDefinition[] = [
       'title',
       'template_hints',
       'open_loops',
+      'handoff',
     ],
   },
 ]

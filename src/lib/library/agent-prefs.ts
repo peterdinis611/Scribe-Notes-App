@@ -66,6 +66,7 @@ export type AgentToolId =
   | 'terminology_library'
   | 'files_answer'
   | 'save_template'
+  | 'handoff'
 
 export type AgentMaxSteps = 1 | 2 | 3
 
@@ -202,6 +203,7 @@ const ALL_TOOLS: AgentToolId[] = [
   'terminology_library',
   'files_answer',
   'save_template',
+  'handoff',
 ]
 
 const HEAVY_TOOLS = new Set<AgentToolId>([

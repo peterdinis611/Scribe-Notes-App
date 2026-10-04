@@ -14,6 +14,25 @@ _AGENT_TOOL_LIMIT = 3
 
 # Ordered like crates/scribe-core/src/nlp/chat_intent.rs — first matches win.
 _INTENT_RULES: list[tuple[str, tuple[str, ...]]] = [
+    (
+        "handoff",
+        (
+            "handoff",
+            "delegate",
+            "pass to",
+            "send to",
+            "forward to",
+            "posli",
+            "odovzdaj",
+            "predaj",
+            "@organizer",
+            "@meeting",
+            "@librarian",
+            "@proofreader",
+            "@study",
+            "@general",
+        ),
+    ),
     ("summarize", ("summarize", "summary", "tlldr", "digest", "zhrn", "zhrnutie", "strucne")),
     ("outline", ("outline", "structure", "heading", "osnova", "struktura", "nadpisy")),
     ("tasks", ("task", "todo", "to-do", "action item", "checklist", "ulohy", "otvorene ulohy")),

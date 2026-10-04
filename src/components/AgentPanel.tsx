@@ -27,10 +27,16 @@ import {
   clearAgentMessages,
   listAgentMessages,
   listAgentRuns,
+  type AgentBackendHandoff,
   type AgentBackendRun,
   type AgentMessageStep,
   type DocumentChatCitation,
 } from '@/lib/db/api'
+import {
+  acknowledgeHandoff,
+  dismissHandoff,
+  loadHandoffInbox,
+} from '@/lib/library/agent-handoff'
 import {
   nlpDocumentAnalysis,
   nlpDocumentTasks,
@@ -151,6 +157,7 @@ const TOOL_LABEL_KEYS: Record<AgentToolId, string> = {
   terminology_library: 'agent.tools.terminology_library',
   files_answer: 'agent.tools.files_answer',
   save_template: 'agent.tools.save_template',
+  handoff: 'agent.tools.handoff',
 }
 
 
@@ -222,6 +229,8 @@ export function AgentPanel({
   const [nlpReady, setNlpReady] = useState<boolean | null>(null)
   const [runHistory, setRunHistory] = useState<AgentBackendRun[]>([])
   const [showRuns, setShowRuns] = useState(false)
+  const [handoffInbox, setHandoffInbox] = useState<AgentBackendHandoff[]>([])
+  const [showHandoffs, setShowHandoffs] = useState(false)
   const [blobMood, setBlobMood] = useState<AgentBlobatarMood>('idle')
   const [applyPreview, setApplyPreview] = useState<AgentApplyPreviewKind | null>(null)
   const [compareOpen, setCompareOpen] = useState(false)
@@ -241,6 +250,12 @@ export function AgentPanel({
       .catch(() => setRunHistory([]))
   }, [roleId])
 
+  const refreshHandoffInbox = useCallback(() => {
+    void loadHandoffInbox(roleId, 'pending', 12)
+      .then(setHandoffInbox)
+      .catch(() => setHandoffInbox([]))
+  }, [roleId])
+
   useEffect(() => {
     if (activeDocumentId) {
       setScope((prev) => (prev === 'folder' ? prev : 'document'))
@@ -254,7 +269,8 @@ export function AgentPanel({
       .then((status) => setNlpReady(Boolean(status.enabled && status.sidecarOk)))
       .catch(() => setNlpReady(false))
     refreshRunHistory()
-  }, [refreshRunHistory])
+    refreshHandoffInbox()
+  }, [refreshRunHistory, refreshHandoffInbox])
 
   useEffect(() => {
     if (!showTeach) return
@@ -559,7 +575,10 @@ export function AgentPanel({
           answer: assistant.text,
           agentId: roleId,
         })
-          .then(() => refreshRunHistory())
+          .then(() => {
+            refreshRunHistory()
+            refreshHandoffInbox()
+          })
           .catch(() => undefined)
         setMoodBriefly('done')
       } catch (error) {
@@ -582,7 +601,7 @@ export function AgentPanel({
         setLoading(false)
       }
     },
-    [loading, agentPrefs, scope, activeDocumentId, activeDocument?.folderId, messages, sessionMessages, persistPair, t, dispatch, refreshRunHistory, setMoodBriefly, roleId],
+    [loading, agentPrefs, scope, activeDocumentId, activeDocument?.folderId, messages, sessionMessages, persistPair, t, dispatch, refreshRunHistory, refreshHandoffInbox, setMoodBriefly, roleId],
   )
 
   const queueInsertPreview = useCallback(
@@ -982,6 +1001,17 @@ export function AgentPanel({
           </button>
           <button
             type="button"
+            className={cn('library-chat-chip', showHandoffs && 'is-active')}
+            onClick={() => {
+              setShowHandoffs((value) => !value)
+              refreshHandoffInbox()
+            }}
+          >
+            {t('agent.handoffInbox')}
+            {handoffInbox.length > 0 ? ` (${handoffInbox.length})` : ''}
+          </button>
+          <button
+            type="button"
             className="library-chat-chip"
             onClick={() => navigate(ROUTES.settingsSection('agent'))}
           >
@@ -1112,6 +1142,63 @@ export function AgentPanel({
                 <Eraser className="ml-1 h-3 w-3 shrink-0 opacity-70" />
               </button>
             ))}
+          </div>
+        ) : null}
+
+        {showHandoffs ? (
+          <div className="agent-run-history mt-2 space-y-1.5 px-0.5">
+            {handoffInbox.length === 0 ? (
+              <p className="px-0.5 text-[11px] text-[var(--color-muted-foreground)]">
+                {t('agent.handoffInboxEmpty')}
+              </p>
+            ) : (
+              handoffInbox.map((item) => (
+                <div key={item.id} className="agent-run-history-item">
+                  <span className="agent-run-history-goal">{item.summary}</span>
+                  <span className="agent-run-history-meta">
+                    {t('agent.handoffFrom', { role: item.fromAgentId })}
+                    {item.documentId
+                      ? ` · ${t('agent.handoffHasDocument')}`
+                      : ''}
+                  </span>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    <button
+                      type="button"
+                      className="library-chat-chip"
+                      disabled={loading}
+                      onClick={() => {
+                        void runGoal(
+                          t('agent.handoffUseGoal', {
+                            from: item.fromAgentId,
+                            summary: item.summary,
+                          }),
+                        )
+                      }}
+                    >
+                      {t('agent.handoffUse')}
+                    </button>
+                    <button
+                      type="button"
+                      className="library-chat-chip"
+                      onClick={() => {
+                        void acknowledgeHandoff(item.id).then(refreshHandoffInbox)
+                      }}
+                    >
+                      {t('agent.handoffAck')}
+                    </button>
+                    <button
+                      type="button"
+                      className="library-chat-chip"
+                      onClick={() => {
+                        void dismissHandoff(item.id).then(refreshHandoffInbox)
+                      }}
+                    >
+                      {t('agent.handoffDismiss')}
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         ) : null}
 
@@ -1431,6 +1518,23 @@ export function AgentPanel({
                             onClick={() => void runGoal('', { recipeId })}
                           >
                             {t(recipe.labelKey)}
+                          </button>
+                        )
+                      }
+                      if (item.startsWith('handoff:')) {
+                        const toRole = item.slice('handoff:'.length)
+                        return (
+                          <button
+                            key={item}
+                            type="button"
+                            className="library-chat-followup"
+                            disabled={loading}
+                            onClick={() => {
+                              toast.success(t('agent.handoffAutoToast', { role: toRole }))
+                              refreshHandoffInbox()
+                            }}
+                          >
+                            {t('agent.handoffAutoChip', { role: toRole })}
                           </button>
                         )
                       }

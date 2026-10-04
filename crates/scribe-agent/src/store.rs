@@ -480,6 +480,41 @@ impl AgentStore {
             .map_err(|e| e.to_string())?;
         rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
     }
+
+    pub fn send_handoff(
+        &self,
+        from_agent_id: &str,
+        to_agent_id: &str,
+        summary: &str,
+        document_id: Option<&str>,
+        payload_json: Option<&str>,
+    ) -> Result<crate::handoffs::AgentHandoff, String> {
+        crate::handoffs::insert_handoff(
+            &self.db.conn,
+            from_agent_id,
+            to_agent_id,
+            summary,
+            document_id,
+            payload_json,
+        )
+    }
+
+    pub fn list_handoff_inbox(
+        &self,
+        to_agent_id: &str,
+        status: Option<&str>,
+        limit: usize,
+    ) -> Result<Vec<crate::handoffs::AgentHandoff>, String> {
+        crate::handoffs::list_inbox(&self.db.conn, to_agent_id, status, limit)
+    }
+
+    pub fn set_handoff_status(
+        &self,
+        id: &str,
+        status: &str,
+    ) -> Result<Option<crate::handoffs::AgentHandoff>, String> {
+        crate::handoffs::set_status(&self.db.conn, id, status)
+    }
 }
 
 fn map_teaching_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<AgentTeaching> {
@@ -665,5 +700,41 @@ mod tests {
         assert!(updated
             .iter()
             .any(|item| item.agent_id == "meeting" && !item.enabled));
+    }
+
+    #[test]
+    fn handoffs_send_inbox_and_ack() {
+        let store = AgentStore::from_memory().unwrap();
+        let sent = store
+            .send_handoff(
+                "meeting",
+                "organizer",
+                "Three action items from standup",
+                Some("doc-1"),
+                Some(r#"{"tools":["tasks"]}"#),
+            )
+            .unwrap();
+        assert_eq!(sent.from_agent_id, "meeting");
+        assert_eq!(sent.to_agent_id, "organizer");
+        assert_eq!(sent.status, "pending");
+
+        let inbox = store
+            .list_handoff_inbox("organizer", Some("pending"), 10)
+            .unwrap();
+        assert_eq!(inbox.len(), 1);
+        assert!(store
+            .list_handoff_inbox("meeting", Some("pending"), 10)
+            .unwrap()
+            .is_empty());
+
+        let acked = store
+            .set_handoff_status(&sent.id, "acknowledged")
+            .unwrap()
+            .unwrap();
+        assert_eq!(acked.status, "acknowledged");
+        assert!(store
+            .list_handoff_inbox("organizer", Some("pending"), 10)
+            .unwrap()
+            .is_empty());
     }
 }
