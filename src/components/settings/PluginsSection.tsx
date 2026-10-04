@@ -1,21 +1,12 @@
-import {
-  Copy,
-  Filter,
-  Package,
-  Plus,
-  Puzzle,
-  RefreshCw,
-  Search,
-  Trash2,
-  Upload,
-} from 'lucide-react'
+import { Copy, Filter, Package, Plus, Puzzle, Search, Upload } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { CreatePluginDialog } from '@/components/settings/CreatePluginDialog'
+import { EditPluginDialog } from '@/components/settings/EditPluginDialog'
 import { PluginCreateDemo } from '@/components/settings/PluginCreateDemo'
-import { SettingsToggle } from '@/components/settings/SettingsPrimitives'
+import { PluginDetailPanel } from '@/components/settings/PluginDetailPanel'
 import {
   applyPluginPreset,
   clearPluginLogs,
@@ -36,11 +27,12 @@ import {
   subscribePluginLogs,
   subscribePlugins,
   uninstallPlugin,
+  type MarketplaceKind,
+  type MarketplaceListing,
   type PluginCategory,
   type PluginPresetId,
   type RegisteredPlugin,
 } from '@/lib/plugins'
-import { createPluginStorage } from '@/lib/plugins/storage'
 import { isPluginEnabled } from '@/lib/plugins/prefs'
 import { categoryForPluginId } from '@/lib/plugins/presets'
 import { toast } from '@/lib/toast'
@@ -48,6 +40,8 @@ import { cn } from '@/lib/utils'
 
 type ExtView = 'installed' | 'marketplace' | 'recommended' | 'build' | 'output'
 type ListFilter = 'all' | 'enabled' | 'disabled' | PluginCategory
+type MarketFilter = 'all' | MarketplaceKind
+type LogLevelFilter = 'all' | 'info' | 'warn' | 'error'
 
 const CATEGORY_ORDER: PluginCategory[] = ['writing', 'study', 'workspace', 'other']
 
@@ -58,19 +52,6 @@ const ICON_TONES = [
   'var(--ext-tone-d)',
   'var(--ext-tone-e)',
 ] as const
-
-function pluginStats(plugin: RegisteredPlugin): string | null {
-  try {
-    const storage = createPluginStorage(plugin.manifest.id)
-    for (const key of ['insert-count', 'export-count']) {
-      const n = storage.get(key)
-      if (n && n !== '0') return n
-    }
-  } catch {
-    return null
-  }
-  return null
-}
 
 function toneForId(id: string) {
   let hash = 0
@@ -104,10 +85,15 @@ export function PluginsSection() {
   const [presetBusy, setPresetBusy] = useState<PluginPresetId | null>(null)
   const [logsTick, setLogsTick] = useState(0)
   const [installing, setInstalling] = useState(false)
+  const [marketBusyId, setMarketBusyId] = useState<string | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
   const [view, setView] = useState<ExtView>('installed')
   const [query, setQuery] = useState('')
   const [listFilter, setListFilter] = useState<ListFilter>('all')
+  const [marketFilter, setMarketFilter] = useState<MarketFilter>('all')
+  const [logLevel, setLogLevel] = useState<LogLevelFilter>('all')
+  const [logPluginId, setLogPluginId] = useState<string>('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
   useEffect(() => subscribePlugins(() => setPlugins(listPlugins())), [])
@@ -116,8 +102,13 @@ export function PluginsSection() {
   const settingsPanels = useMemo(() => listPluginSettingsPanels(), [plugins])
   const nlpSkills = useMemo(() => listPluginNlpSkills(), [plugins])
   const mcpTools = useMemo(() => listPluginMcpTools(), [plugins])
-  const logs = useMemo(() => listPluginLogs().slice(0, 80), [logsTick, plugins])
-  const marketplace = listMarketplaceListings()
+  const logs = useMemo(() => {
+    let entries = listPluginLogs()
+    if (logPluginId !== 'all') entries = entries.filter((entry) => entry.pluginId === logPluginId)
+    if (logLevel !== 'all') entries = entries.filter((entry) => entry.level === logLevel)
+    return entries.slice(0, 120)
+  }, [logsTick, plugins, logLevel, logPluginId])
+  const marketplace = useMemo(() => listMarketplaceListings(), [])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -155,6 +146,20 @@ export function PluginsSection() {
         ),
       )
   }, [plugins, query, listFilter])
+
+  const marketFiltered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return marketplace.filter((item) => {
+      if (marketFilter !== 'all' && item.kind !== marketFilter) return false
+      if (!q) return true
+      return (
+        item.name.toLowerCase().includes(q) ||
+        item.summary.toLowerCase().includes(q) ||
+        item.id.toLowerCase().includes(q) ||
+        item.tags.some((tag) => tag.includes(q))
+      )
+    })
+  }, [marketplace, marketFilter, query])
 
   const selected =
     filtered.find((p) => p.manifest.id === selectedId) ??
@@ -221,6 +226,47 @@ export function PluginsSection() {
     }
   }
 
+  async function installMarketSample(item: MarketplaceListing) {
+    if (!item.packageJson) return
+    setMarketBusyId(item.id)
+    try {
+      const bytes = new TextEncoder().encode(item.packageJson)
+      const entry = await installPluginFromBytes(bytes, `${item.id}.scribe-ext.json`)
+      toast.success(t('settings.plugins.installToast'), entry.manifest.name)
+      setPlugins(listPlugins())
+      setSelectedId(entry.manifest.id)
+      setView('installed')
+    } catch (error) {
+      toast.error(t('settings.plugins.installError'), String(error))
+    } finally {
+      setMarketBusyId(null)
+    }
+  }
+
+  async function enableOfficial(item: MarketplaceListing) {
+    if (!item.bundledPluginId) return
+    const plugin = plugins.find((entry) => entry.manifest.id === item.bundledPluginId)
+    if (!plugin) {
+      toast.error(t('settings.plugins.toggleError'), item.bundledPluginId)
+      return
+    }
+    setMarketBusyId(item.id)
+    try {
+      await setPluginActive(plugin.manifest.id, true)
+      toast.success(
+        t('settings.plugins.enabledToast'),
+        localizeManifestField(plugin.manifest, 'name'),
+      )
+      setPlugins(listPlugins())
+      setSelectedId(plugin.manifest.id)
+      setView('installed')
+    } catch (error) {
+      toast.error(t('settings.plugins.toggleError'), String(error))
+    } finally {
+      setMarketBusyId(null)
+    }
+  }
+
   async function copyExample(code: string) {
     try {
       await navigator.clipboard.writeText(code)
@@ -246,6 +292,13 @@ export function PluginsSection() {
       id,
       label: t(`settings.plugins.categories.${id}`),
     })),
+  ]
+
+  const marketFilters: { id: MarketFilter; label: string }[] = [
+    { id: 'all', label: t('settings.plugins.filters.all') },
+    { id: 'sample', label: t('settings.plugins.marketFilters.sample') },
+    { id: 'official', label: t('settings.plugins.marketFilters.official') },
+    { id: 'community', label: t('settings.plugins.marketFilters.community') },
   ]
 
   return (
@@ -328,6 +381,16 @@ export function PluginsSection() {
         }}
       />
 
+      <EditPluginDialog
+        pluginId={selected?.source === 'installed' ? selected.manifest.id : null}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        onUpdated={(id) => {
+          setPlugins(listPlugins())
+          setSelectedId(id)
+        }}
+      />
+
       {view === 'installed' && (
         <div className="plugin-ext-split">
           <aside className="plugin-ext-list" aria-label={t('settings.plugins.listTitle')}>
@@ -388,6 +451,7 @@ export function PluginsSection() {
                             {plugin.source === 'installed'
                               ? ` · ${t('settings.plugins.sourceInstalled')}`
                               : ''}
+                            {plugin.error ? ` · ${t('settings.plugins.errorPrefix')}` : ''}
                           </span>
                           <span className="plugin-ext-row-desc">{description}</span>
                         </span>
@@ -406,12 +470,16 @@ export function PluginsSection() {
                 <p className="m-0">{t('settings.plugins.selectHint')}</p>
               </div>
             ) : (
-              <PluginDetail
+              <PluginDetailPanel
                 plugin={selected}
                 busy={busyId === selected.manifest.id}
-                settingsPanels={settingsPanels.filter((p) => p.pluginId === selected.manifest.id)}
-                nlpSkills={nlpSkills.filter((s) => s.pluginId === selected.manifest.id)}
-                mcpTools={mcpTools.filter((m) => m.pluginId === selected.manifest.id)}
+                settingsPanels={settingsPanels}
+                nlpSkills={nlpSkills}
+                mcpTools={mcpTools}
+                logsTick={logsTick}
+                onEdit={
+                  selected.source === 'installed' ? () => setEditOpen(true) : undefined
+                }
                 onToggle={() => void toggle(selected)}
                 onReload={() => {
                   setBusyId(selected.manifest.id)
@@ -458,32 +526,119 @@ export function PluginsSection() {
         <div className="plugin-ext-pane">
           <div className="plugin-ext-callout">
             <strong>{t('settings.plugins.marketplaceStatus')}</strong>
-            <p>{MARKETPLACE_STATUS.reason}</p>
-            <p className="plugin-ext-muted">{t('settings.plugins.installHint')}</p>
+            <p>{t('settings.plugins.marketplaceLocalBody')}</p>
+            <p className="plugin-ext-muted">{MARKETPLACE_STATUS.reason}</p>
           </div>
+
+          <div className="plugin-ext-filters mb-3">
+            <Filter className="h-3 w-3 shrink-0 opacity-60" aria-hidden />
+            <div className="plugin-ext-filter-scroll">
+              {marketFilters.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={cn('plugin-ext-chip', marketFilter === item.id && 'is-active')}
+                  onClick={() => setMarketFilter(item.id)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <ul className="plugin-ext-market-list">
-            {marketplace.map((item, index) => (
-              <li
-                key={item.id}
-                className="plugin-ext-market-card"
-                style={{ animationDelay: `${index * 40}ms` }}
-              >
-                <ExtIcon id={item.id} name={item.name} />
-                <div className="min-w-0 flex-1">
-                  <div className="plugin-ext-row-top">
-                    <span className="plugin-ext-row-name">{item.name}</span>
-                    <span className="plugin-ext-badge">{t('settings.plugins.comingSoon')}</span>
+            {marketFiltered.map((item, index) => {
+              const installed =
+                item.kind === 'sample' &&
+                plugins.some((plugin) => plugin.manifest.id === item.id)
+              const bundled = item.bundledPluginId
+                ? plugins.find((plugin) => plugin.manifest.id === item.bundledPluginId)
+                : null
+              const bundledEnabled = bundled
+                ? isPluginEnabled(bundled.manifest.id, bundled.manifest.defaultEnabled === true)
+                : false
+
+              return (
+                <li
+                  key={item.id}
+                  className="plugin-ext-market-card"
+                  style={{ animationDelay: `${index * 40}ms` }}
+                >
+                  <ExtIcon id={item.id} name={item.name} />
+                  <div className="min-w-0 flex-1">
+                    <div className="plugin-ext-row-top">
+                      <span className="plugin-ext-row-name">{item.name}</span>
+                      <span className="plugin-ext-badge">
+                        {item.comingSoon
+                          ? t('settings.plugins.comingSoon')
+                          : t(`settings.plugins.marketFilters.${item.kind}`)}
+                      </span>
+                    </div>
+                    <p className="plugin-ext-row-meta m-0">
+                      {item.author} · {item.id} · v{item.version}
+                      {item.verified ? ` · ${t('settings.plugins.verified')}` : ''}
+                    </p>
+                    <p className="plugin-ext-row-desc m-0 mt-1">{item.summary}</p>
+                    {item.tags.length > 0 && (
+                      <div className="plugin-ext-tag-row">
+                        {item.tags.map((tag) => (
+                          <span key={tag} className="plugin-ext-tag">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <p className="plugin-ext-row-meta m-0">
-                    {item.id} · v{item.version}
-                  </p>
-                  <p className="plugin-ext-row-desc m-0 mt-1">{item.summary}</p>
-                </div>
-                <Button type="button" size="sm" variant="outline" disabled>
-                  {t('settings.plugins.installShort')}
-                </Button>
-              </li>
-            ))}
+                  {item.kind === 'sample' && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={installed ? 'outline' : 'default'}
+                      disabled={marketBusyId === item.id || item.comingSoon}
+                      onClick={() => {
+                        if (installed) {
+                          setSelectedId(item.id)
+                          setView('installed')
+                          return
+                        }
+                        void installMarketSample(item)
+                      }}
+                    >
+                      {installed
+                        ? t('settings.plugins.marketOpen')
+                        : marketBusyId === item.id
+                          ? t('settings.plugins.installing')
+                          : t('settings.plugins.installShort')}
+                    </Button>
+                  )}
+                  {item.kind === 'official' && bundled && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={bundledEnabled ? 'outline' : 'default'}
+                      disabled={marketBusyId === item.id}
+                      onClick={() => {
+                        if (bundledEnabled) {
+                          setSelectedId(bundled.manifest.id)
+                          setView('installed')
+                          return
+                        }
+                        void enableOfficial(item)
+                      }}
+                    >
+                      {bundledEnabled
+                        ? t('settings.plugins.marketOpen')
+                        : t('settings.plugins.enable')}
+                    </Button>
+                  )}
+                  {item.kind === 'community' && (
+                    <Button type="button" size="sm" variant="outline" disabled>
+                      {t('settings.plugins.comingSoon')}
+                    </Button>
+                  )}
+                </li>
+              )
+            })}
           </ul>
         </div>
       )}
@@ -590,6 +745,35 @@ export function PluginsSection() {
               {t('settings.plugins.clearLogs')}
             </Button>
           </div>
+
+          <div className="plugin-ext-filters mb-3">
+            <div className="plugin-ext-filter-scroll">
+              {(['all', 'info', 'warn', 'error'] as const).map((level) => (
+                <button
+                  key={level}
+                  type="button"
+                  className={cn('plugin-ext-chip', logLevel === level && 'is-active')}
+                  onClick={() => setLogLevel(level)}
+                >
+                  {t(`settings.plugins.logLevels.${level}`)}
+                </button>
+              ))}
+            </div>
+            <select
+              value={logPluginId}
+              onChange={(event) => setLogPluginId(event.target.value)}
+              className="plugin-ext-log-select"
+              aria-label={t('settings.plugins.logPluginFilter')}
+            >
+              <option value="all">{t('settings.plugins.filters.all')}</option>
+              {plugins.map((plugin) => (
+                <option key={plugin.manifest.id} value={plugin.manifest.id}>
+                  {localizeManifestField(plugin.manifest, 'name')}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {logs.length === 0 ? (
             <p className="plugin-ext-muted">{t('settings.plugins.logsEmpty')}</p>
           ) : (
@@ -604,179 +788,6 @@ export function PluginsSection() {
               ))}
             </ul>
           )}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function PluginDetail({
-  plugin,
-  busy,
-  settingsPanels,
-  nlpSkills,
-  mcpTools,
-  onToggle,
-  onReload,
-  onUninstall,
-}: {
-  plugin: RegisteredPlugin
-  busy: boolean
-  settingsPanels: ReturnType<typeof listPluginSettingsPanels>
-  nlpSkills: ReturnType<typeof listPluginNlpSkills>
-  mcpTools: ReturnType<typeof listPluginMcpTools>
-  onToggle: () => void
-  onReload: () => void
-  onUninstall: () => void
-}) {
-  const { t } = useTranslation()
-  const enabled = isPluginEnabled(plugin.manifest.id, plugin.manifest.defaultEnabled === true)
-  const name = localizeManifestField(plugin.manifest, 'name')
-  const description =
-    localizeManifestField(plugin.manifest, 'description') || t('settings.plugins.noDescription')
-  const category = plugin.manifest.category ?? categoryForPluginId(plugin.manifest.id)
-  const stats = pluginStats(plugin)
-
-  return (
-    <div className="plugin-ext-detail-inner">
-      <div className="plugin-ext-detail-hero">
-        <ExtIcon id={plugin.manifest.id} name={name} size="lg" />
-        <div className="min-w-0 flex-1">
-          <h2 className="plugin-ext-detail-name">{name}</h2>
-          <p className="plugin-ext-detail-publisher">
-            {plugin.manifest.author ?? 'Scribe'}
-            <span className="plugin-ext-dot" aria-hidden>
-              ·
-            </span>
-            {t(`settings.plugins.categories.${category}`)}
-          </p>
-          <div className="plugin-ext-detail-toolbar">
-            <Button
-              type="button"
-              size="sm"
-              variant={enabled ? 'outline' : 'default'}
-              disabled={busy}
-              onClick={onToggle}
-            >
-              {enabled ? t('settings.plugins.disable') : t('settings.plugins.enable')}
-            </Button>
-            <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={onReload} title={t('settings.plugins.reload')}>
-              <RefreshCw className="h-3.5 w-3.5" />
-              {t('settings.plugins.reload')}
-            </Button>
-            {plugin.source === 'installed' && (
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                disabled={busy}
-                onClick={onUninstall}
-                title={t('settings.plugins.uninstall')}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                {t('settings.plugins.uninstall')}
-              </Button>
-            )}
-            <SettingsToggle
-              checked={enabled}
-              disabled={busy}
-              onChange={onToggle}
-              onLabel={t('settings.plugins.on')}
-              offLabel={t('settings.plugins.off')}
-            />
-          </div>
-        </div>
-      </div>
-
-      <p className="plugin-ext-detail-desc">{description}</p>
-
-      <dl className="plugin-ext-meta-grid">
-        <div>
-          <dt>{t('settings.plugins.meta.identifier')}</dt>
-          <dd className="font-[family-name:var(--font-mono)]">{plugin.manifest.id}</dd>
-        </div>
-        <div>
-          <dt>{t('settings.plugins.meta.version')}</dt>
-          <dd>v{plugin.manifest.version}</dd>
-        </div>
-        <div>
-          <dt>{t('settings.plugins.meta.source')}</dt>
-          <dd>
-            {plugin.source === 'installed'
-              ? t('settings.plugins.sourceInstalled')
-              : t('settings.plugins.sourceBundled')}
-          </dd>
-        </div>
-        <div>
-          <dt>{t('settings.plugins.meta.api')}</dt>
-          <dd>scribeApi {plugin.manifest.scribeApi}</dd>
-        </div>
-        {plugin.manifest.defaultEnabled === false && (
-          <div>
-            <dt>{t('settings.plugins.meta.default')}</dt>
-            <dd>{t('settings.plugins.optIn')}</dd>
-          </div>
-        )}
-        {stats && (
-          <div>
-            <dt>{t('settings.plugins.meta.usage')}</dt>
-            <dd>{t('settings.plugins.usage', { count: Number(stats) })}</dd>
-          </div>
-        )}
-      </dl>
-
-      {plugin.error && (
-        <div className="plugin-ext-error">
-          {t('settings.plugins.errorPrefix')}: {plugin.error}
-        </div>
-      )}
-
-      <div className="plugin-ext-section">
-        <h3>{t('settings.plugins.meta.permissions')}</h3>
-        <div className="plugin-ext-perm-list">
-          {plugin.manifest.permissions.map((permission) => (
-            <span key={permission} className="plugin-ext-perm">
-              {permission}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {settingsPanels.length > 0 && (
-        <div className="plugin-ext-section">
-          <h3>{t('settings.plugins.panelsTitle')}</h3>
-          {settingsPanels.map((panel) => (
-            <div key={panel.entryId} className="plugin-ext-settings-panel">
-              <p className="plugin-ext-settings-title">{panel.title}</p>
-              {panel.render()}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {(nlpSkills.length > 0 || mcpTools.length > 0) && (
-        <div className="plugin-ext-section">
-          <h3>{t('settings.plugins.bridgesTitle')}</h3>
-          <ul className="plugin-ext-bridge-list">
-            {nlpSkills.map((skill) => (
-              <li key={skill.entryId}>
-                <strong>{skill.title}</strong>
-                <span className="plugin-ext-muted">
-                  {' '}
-                  · NLP · {skill.pluginId}.{skill.id}
-                  {skill.description ? ` — ${skill.description}` : ''}
-                </span>
-              </li>
-            ))}
-            {mcpTools.map((tool) => (
-              <li key={tool.entryId}>
-                <strong>
-                  {tool.pluginId}.{tool.id}
-                </strong>
-                <span className="plugin-ext-muted"> · MCP · {tool.description}</span>
-              </li>
-            ))}
-          </ul>
         </div>
       )}
     </div>

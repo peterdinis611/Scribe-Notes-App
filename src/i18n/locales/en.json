@@ -1164,8 +1164,53 @@
       "logsEmpty": "No extension host output yet.",
       "clearLogs": "Clear",
       "marketplaceTitle": "Marketplace",
-      "marketplaceStatus": "Marketplace offline",
+      "marketplaceStatus": "Local marketplace",
+      "marketplaceLocalBody": "Install sample packages or enable featured official extensions. Remote signing comes later.",
       "comingSoon": "Coming soon",
+      "verified": "Verified",
+      "marketOpen": "Open",
+      "marketFilters": {
+        "sample": "Samples",
+        "official": "Official",
+        "community": "Community"
+      },
+      "inactive": "Inactive",
+      "detailTabsLabel": "Extension details",
+      "detailTabs": {
+        "details": "Details",
+        "contributions": "Features ({{count}})",
+        "versions": "Versions",
+        "runtime": "Runtime"
+      },
+      "contributionsEmpty": "This extension is active but has not registered contributions yet.",
+      "contributionsInactive": "Enable the extension to inspect live contributions.",
+      "contrib": {
+        "commands": "Commands",
+        "blocks": "Slash blocks",
+        "nodes": "Editor nodes",
+        "exports": "Export formats",
+        "imports": "Import formats",
+        "sidebar": "Sidebar panels",
+        "settings": "Settings panels",
+        "nlp": "NLP skills",
+        "mcp": "MCP tools"
+      },
+      "runtimeTitle": "Extension host log",
+      "runtimeHint": "Sandbox mode: {{mode}}. Recent api.log / notify lines for this extension.",
+      "sandbox": {
+        "trusted": "Trusted (bundled)",
+        "installed": "Restricted (installed)",
+        "installedTitle": "Installed sandbox",
+        "installedBody": "Disk-installed plugins run with a restricted permission set. Raw TipTap extensions are denied until a stronger sandbox ships.",
+        "deniedHint": "Denied by sandbox policy for installed plugins"
+      },
+      "logLevels": {
+        "all": "All levels",
+        "info": "Info",
+        "warn": "Warn",
+        "error": "Error"
+      },
+      "logPluginFilter": "Filter by extension",
       "on": "Enabled",
       "off": "Disabled",
       "optIn": "opt-in",
@@ -1178,7 +1223,8 @@
         "api": "API",
         "default": "Default",
         "usage": "Usage",
-        "permissions": "Permissions"
+        "permissions": "Permissions",
+        "sandbox": "Sandbox"
       },
       "presetsTitle": "Recommended",
       "presetsDescription": "Workspaces of related extensions — enable a pack, then fine-tune each one in Installed.",
@@ -1271,6 +1317,48 @@
             "title": "Run it",
             "hint": "Open ⌘K, find your command, press Enter."
           }
+        }
+      },
+      "edit": {
+        "open": "Edit / version",
+        "title": "Edit extension",
+        "description": "Update {{id}} (currently v{{version}}). Publish a new semver, edit activate() code, or restore an older snapshot.",
+        "currentVersion": "Installed version",
+        "bumpLabel": "Version bump",
+        "nextVersion": "Next publish: v{{version}}",
+        "noteLabel": "Changelog note",
+        "notePlaceholder": "What changed in this version?",
+        "codeLabel": "index.js",
+        "codeHint": "Must export default function activate(api). Saving reloads the extension host.",
+        "historyTitle": "Version history",
+        "historyEmpty": "No previous versions yet — publish a bump to start a history.",
+        "versionsHint": "Local history for this installed package. Use Edit to publish or restore.",
+        "current": "Current",
+        "restore": "Restore as new",
+        "export": "Export package",
+        "exportToast": "Package downloaded",
+        "publish": "Publish v{{version}}",
+        "publishing": "Publishing…",
+        "publishToast": "New version published",
+        "publishError": "Could not publish version",
+        "restoreToast": "Version restored",
+        "restoreError": "Could not restore version",
+        "updatedAt": "updated {{date}}",
+        "bumps": {
+          "patch": "Patch",
+          "minor": "Minor",
+          "major": "Major",
+          "keep": "Keep version",
+          "custom": "Custom"
+        },
+        "errors": {
+          "version_required": "Version is required",
+          "version_invalid": "Use semver like 1.2.3",
+          "code_required": "Code cannot be empty",
+          "no_changes": "No changes to publish",
+          "not_installed": "Only user-installed extensions can be edited",
+          "record_missing": "Installed package record not found",
+          "unknown": "Something went wrong"
         }
       },
       "create": {

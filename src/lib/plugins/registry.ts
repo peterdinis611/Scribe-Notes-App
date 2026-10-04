@@ -1,7 +1,9 @@
 import { createPluginHost } from '@/lib/plugins/host'
 import {
+  getInstalledPluginRecord,
   listInstalledPluginRecords,
   loadPluginModuleFromCode,
+  mergeInstallWithHistory,
   parseScribeExtBytes,
   removeInstalledPluginRecord,
   saveInstalledPluginRecord,
@@ -164,13 +166,24 @@ export async function installPluginRecord(
   record: InstalledPluginRecord,
   options?: { enable?: boolean },
 ): Promise<RegisteredPlugin> {
-  const module = await loadPluginModuleFromCode(record.manifest, record.code)
-  saveInstalledPluginRecord(record)
-  const entry = registerInstalledPlugin(module, { installPath: record.path })
+  const existing = getInstalledPluginRecord(record.manifest.id)
+  // Callers that already built history (publish) keep it; file installs merge.
+  const merged =
+    record.history !== undefined || !existing
+      ? record
+      : mergeInstallWithHistory(record, existing)
+
+  if (existing) {
+    deactivatePlugin(merged.manifest.id)
+  }
+
+  const module = await loadPluginModuleFromCode(merged.manifest, merged.code)
+  saveInstalledPluginRecord(merged)
+  const entry = registerInstalledPlugin(module, { installPath: merged.path })
   const enable = options?.enable !== false
-  setPluginEnabled(record.manifest.id, enable)
+  setPluginEnabled(merged.manifest.id, enable)
   if (enable) {
-    await activatePlugin(record.manifest.id)
+    await activatePlugin(merged.manifest.id)
   }
   return entry
 }

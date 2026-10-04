@@ -233,9 +233,23 @@ export type RegisteredPlugin = {
   installPath?: string
 }
 
+export type PluginVersionSnapshot = {
+  version: string
+  code: string
+  manifest: PluginManifest
+  savedAt: string
+  note?: string
+}
+
 export type InstalledPluginRecord = {
   manifest: PluginManifest
   code: string
   installedAt: string
+  /** Last publish / reinstall time. */
+  updatedAt?: string
+  /** Note attached to the current published version. */
+  changelogNote?: string
   path?: string
+  /** Previous versions (newest first), capped by the host. */
+  history?: PluginVersionSnapshot[]
 }

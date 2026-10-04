@@ -1164,8 +1164,53 @@
       "logsEmpty": "Zatiaľ žiadny výstup z extension hostu.",
       "clearLogs": "Vymazať",
       "marketplaceTitle": "Marketplace",
-      "marketplaceStatus": "Marketplace offline",
+      "marketplaceStatus": "Lokálny marketplace",
+      "marketplaceLocalBody": "Inštalujte sample balíky alebo zapnite featured oficiálne rozšírenia. Remote signing príde neskôr.",
       "comingSoon": "Čoskoro",
+      "verified": "Overené",
+      "marketOpen": "Otvoriť",
+      "marketFilters": {
+        "sample": "Samples",
+        "official": "Oficiálne",
+        "community": "Community"
+      },
+      "inactive": "Neaktívne",
+      "detailTabsLabel": "Detail rozšírenia",
+      "detailTabs": {
+        "details": "Detaily",
+        "contributions": "Funkcie ({{count}})",
+        "versions": "Verzie",
+        "runtime": "Runtime"
+      },
+      "contributionsEmpty": "Rozšírenie je aktívne, ale zatiaľ neregistrovalo žiadne príspevky.",
+      "contributionsInactive": "Zapnite rozšírenie, aby ste videli live príspevky.",
+      "contrib": {
+        "commands": "Príkazy",
+        "blocks": "Slash bloky",
+        "nodes": "Editor nodes",
+        "exports": "Export formáty",
+        "imports": "Import formáty",
+        "sidebar": "Sidebar panely",
+        "settings": "Settings panely",
+        "nlp": "NLP skills",
+        "mcp": "MCP tools"
+      },
+      "runtimeTitle": "Extension host log",
+      "runtimeHint": "Sandbox režim: {{mode}}. Posledné api.log / notify riadky pre toto rozšírenie.",
+      "sandbox": {
+        "trusted": "Dôveryhodné (bundled)",
+        "installed": "Obmedzené (installed)",
+        "installedTitle": "Installed sandbox",
+        "installedBody": "Pluginy z disku bežia s obmedzenými oprávneniami. Raw TipTap extensions sú zablokované, kým nepríde silnejší sandbox.",
+        "deniedHint": "Zamietnuté sandbox politikou pre installed pluginy"
+      },
+      "logLevels": {
+        "all": "Všetky úrovne",
+        "info": "Info",
+        "warn": "Warn",
+        "error": "Error"
+      },
+      "logPluginFilter": "Filter podľa rozšírenia",
       "on": "Zapnuté",
       "off": "Vypnuté",
       "optIn": "voliteľné",
@@ -1178,7 +1223,8 @@
         "api": "API",
         "default": "Predvolené",
         "usage": "Použitie",
-        "permissions": "Oprávnenia"
+        "permissions": "Oprávnenia",
+        "sandbox": "Sandbox"
       },
       "presetsTitle": "Odporúčané",
       "presetsDescription": "Sady súvisiacich rozšírení — zapnite balík a potom doladíte jednotlivé v Nainštalovaných.",
@@ -1271,6 +1317,48 @@
             "title": "Spustite ho",
             "hint": "Otvorte ⌘K, nájdite príkaz a stlačte Enter."
           }
+        }
+      },
+      "edit": {
+        "open": "Upraviť / verzia",
+        "title": "Upraviť rozšírenie",
+        "description": "Aktualizujte {{id}} (aktuálne v{{version}}). Publikujte nové semver, upravte activate() kód alebo obnovte starší snapshot.",
+        "currentVersion": "Nainštalovaná verzia",
+        "bumpLabel": "Zvýšenie verzie",
+        "nextVersion": "Ďalšie publikovanie: v{{version}}",
+        "noteLabel": "Poznámka k zmene",
+        "notePlaceholder": "Čo sa v tejto verzii zmenilo?",
+        "codeLabel": "index.js",
+        "codeHint": "Musí exportovať default function activate(api). Uloženie znova načíta extension host.",
+        "historyTitle": "História verzií",
+        "historyEmpty": "Zatiaľ žiadne predchádzajúce verzie — publikujte bump a história sa začne.",
+        "versionsHint": "Lokálna história tohto balíka. Cez Upraviť publikujete alebo obnovíte verziu.",
+        "current": "Aktuálna",
+        "restore": "Obnoviť ako novú",
+        "export": "Exportovať balík",
+        "exportToast": "Balík stiahnutý",
+        "publish": "Publikovať v{{version}}",
+        "publishing": "Publikujem…",
+        "publishToast": "Nová verzia publikovaná",
+        "publishError": "Verziu sa nepodarilo publikovať",
+        "restoreToast": "Verzia obnovená",
+        "restoreError": "Verziu sa nepodarilo obnoviť",
+        "updatedAt": "aktualizované {{date}}",
+        "bumps": {
+          "patch": "Patch",
+          "minor": "Minor",
+          "major": "Major",
+          "keep": "Ponechať verziu",
+          "custom": "Vlastná"
+        },
+        "errors": {
+          "version_required": "Verzia je povinná",
+          "version_invalid": "Použite semver ako 1.2.3",
+          "code_required": "Kód nemôže byť prázdny",
+          "no_changes": "Žiadne zmeny na publikovanie",
+          "not_installed": "Upraviť sa dajú len používateľské rozšírenia",
+          "record_missing": "Záznam nainštalovaného balíka sa nenašiel",
+          "unknown": "Niečo sa pokazilo"
         }
       },
       "create": {

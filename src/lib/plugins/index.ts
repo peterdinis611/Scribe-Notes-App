@@ -55,5 +55,28 @@ export { listPluginNlpSkills } from '@/lib/plugins/surfaces/nlp-skills'
 export { listPluginMcpTools, invokePluginMcpTool } from '@/lib/plugins/surfaces/mcp-tools'
 export { emitPluginLifecycle } from '@/lib/plugins/surfaces/lifecycle'
 export { listPluginLogs, clearPluginLogs, subscribePluginLogs } from '@/lib/plugins/devtools'
-export { MARKETPLACE_STATUS, listMarketplaceListings, checkPluginUpdates } from '@/lib/plugins/marketplace'
+export {
+  MARKETPLACE_STATUS,
+  listMarketplaceListings,
+  listMarketplaceByKind,
+  checkPluginUpdates,
+  type MarketplaceKind,
+  type MarketplaceListing,
+} from '@/lib/plugins/marketplace'
 export { sandboxPolicyFor } from '@/lib/plugins/sandbox'
+export {
+  listPluginContributions,
+  type PluginContributions,
+} from '@/lib/plugins/contributions'
+export { getInstalledPluginRecord } from '@/lib/plugins/install'
+export {
+  bumpSemver,
+  compareSemver,
+  exportPluginPackage,
+  listPluginVersionHistory,
+  publishPluginVersion,
+  restorePluginVersion,
+  type PublishPluginVersionInput,
+  type VersionBump,
+} from '@/lib/plugins/versioning'
+export type { PluginVersionSnapshot } from '@/lib/plugins/types'

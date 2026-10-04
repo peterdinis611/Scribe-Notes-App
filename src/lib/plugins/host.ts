@@ -8,6 +8,11 @@ import {
   registerPluginCommand,
   unregisterPluginCommand,
 } from '@/lib/plugins/commands'
+import {
+  trackPluginBlock,
+  untrackPluginBlock,
+  untrackPluginBlocksFor,
+} from '@/lib/plugins/contributions'
 import { pluginLog } from '@/lib/plugins/devtools'
 import { createPluginI18n } from '@/lib/plugins/i18n'
 import { isPermissionAllowed } from '@/lib/plugins/sandbox'
@@ -146,11 +151,13 @@ export function createPluginHost(
         requirePermission('editor.blocks')
         registerBlock(def)
         registeredBlockIds.add(def.id)
+        trackPluginBlock(manifest.id, def.id, def.label)
       },
       unregister(id: string) {
         requirePermission('editor.blocks')
         const ok = unregisterBlock(id)
         registeredBlockIds.delete(id)
+        untrackPluginBlock(manifest.id, id)
         return ok
       },
     },
@@ -264,6 +271,7 @@ export function createPluginHost(
   const cleanup: PluginCleanup = () => {
     for (const blockId of registeredBlockIds) unregisterBlock(blockId)
     registeredBlockIds.clear()
+    untrackPluginBlocksFor(manifest.id)
     for (const commandId of registeredCommandIds) unregisterPluginCommand(commandId)
     registeredCommandIds.clear()
     unregisterPluginExportFormatsFor(manifest.id)

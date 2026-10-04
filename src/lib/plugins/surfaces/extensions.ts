@@ -138,6 +138,14 @@ export function listPluginExtensions(): AnyExtension[] {
   return [...byKey.values()].map((entry) => entry.extension)
 }
 
+export function listPluginExtensionEntries(): Array<{
+  pluginId: string
+  name: string
+  extension: AnyExtension
+}> {
+  return [...byKey.values()]
+}
+
 export function resetPluginExtensionsForTests() {
   byKey.clear()
 }

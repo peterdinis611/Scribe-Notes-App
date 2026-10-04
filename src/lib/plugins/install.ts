@@ -79,6 +79,60 @@ export function listInstalledPluginRecords(): InstalledPluginRecord[] {
   return Array.isArray(stored) ? stored : []
 }
 
+export function getInstalledPluginRecord(pluginId: string): InstalledPluginRecord | null {
+  return listInstalledPluginRecords().find((item) => item.manifest.id === pluginId) ?? null
+}
+
+const MAX_HISTORY = 12
+
+export function snapshotInstalledVersion(
+  record: InstalledPluginRecord,
+  note?: string,
+): NonNullable<InstalledPluginRecord['history']>[number] {
+  return {
+    version: record.manifest.version,
+    code: record.code,
+    manifest: structuredClone(record.manifest),
+    savedAt: record.updatedAt ?? record.installedAt,
+    note: note ?? record.changelogNote,
+  }
+}
+
+export function archiveInstalledVersion(
+  record: InstalledPluginRecord,
+  note?: string,
+): NonNullable<InstalledPluginRecord['history']> {
+  const history = [...(record.history ?? [])]
+  const snap = snapshotInstalledVersion(record, note)
+  if (!history.some((item) => item.version === snap.version && item.code === snap.code)) {
+    history.unshift(snap)
+  }
+  return history.slice(0, MAX_HISTORY)
+}
+
+/** When installing over an existing id, keep history of the previous package. */
+export function mergeInstallWithHistory(
+  incoming: InstalledPluginRecord,
+  existing: InstalledPluginRecord | null,
+): InstalledPluginRecord {
+  if (!existing) return incoming
+  if (existing.manifest.id !== incoming.manifest.id) return incoming
+
+  const history = archiveInstalledVersion(existing)
+  for (const snap of existing.history ?? []) {
+    if (!history.some((item) => item.version === snap.version && item.code === snap.code)) {
+      history.push(snap)
+    }
+  }
+
+  return {
+    ...incoming,
+    installedAt: existing.installedAt,
+    updatedAt: new Date().toISOString(),
+    history: history.slice(0, MAX_HISTORY),
+  }
+}
+
 function persistInstalled(records: InstalledPluginRecord[]) {
   kvSetJson(INSTALLED_PLUGINS_KEY, records)
 }

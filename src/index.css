@@ -16830,3 +16830,191 @@ html {
   font-size: 11.5px;
 }
 
+.plugin-ext-detail-tabs {
+  display: flex;
+  gap: 2px;
+  margin: 0 0 16px;
+  border-bottom: 1px solid var(--color-separator);
+}
+
+.plugin-ext-detail-tab {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  padding: 8px 10px;
+  color: var(--color-muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.plugin-ext-detail-tab:hover {
+  color: var(--color-foreground);
+}
+
+.plugin-ext-detail-tab.is-active {
+  border-bottom-color: var(--color-accent);
+  color: var(--color-foreground);
+}
+
+.plugin-ext-contrib-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.plugin-ext-contrib-group {
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--color-surface) 45%, transparent);
+  padding: 10px 12px;
+}
+
+.plugin-ext-contrib-group h4 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 8px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.plugin-ext-contrib-group h4 span {
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  padding: 0 5px;
+  color: var(--color-muted-foreground);
+  font-size: 10px;
+}
+
+.plugin-ext-contrib-group ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plugin-ext-contrib-group li {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px 0;
+  border-top: 1px solid var(--color-separator);
+  font-size: 12.5px;
+}
+
+.plugin-ext-contrib-group li span {
+  color: var(--color-muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+}
+
+.plugin-ext-perm.is-denied {
+  border-color: color-mix(in srgb, var(--color-destructive) 40%, var(--color-border));
+  color: var(--color-destructive);
+  text-decoration: line-through;
+}
+
+.plugin-ext-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.plugin-ext-tag {
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--color-background) 65%, transparent);
+  padding: 1px 6px;
+  color: var(--color-muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.plugin-ext-log-select {
+  margin-left: auto;
+  height: 28px;
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  padding: 0 8px;
+  color: var(--color-foreground);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.plugin-edit-code {
+  width: 100%;
+  min-height: 220px;
+  resize: vertical;
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--color-background) 88%, #000);
+  padding: 10px 12px;
+  color: var(--color-foreground);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.5;
+  outline: none;
+}
+
+.plugin-edit-code:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-selection);
+}
+
+.plugin-edit-history {
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--color-surface) 45%, transparent);
+  padding: 12px;
+}
+
+.plugin-edit-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.plugin-edit-history-head h3 {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.plugin-edit-history-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plugin-edit-history-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px solid var(--color-separator);
+  padding: 8px 0;
+}
+
+.plugin-edit-history-list li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.plugin-edit-history-list strong {
+  margin-right: 6px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+
