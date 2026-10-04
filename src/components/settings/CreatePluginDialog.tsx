@@ -25,7 +25,7 @@ const CATEGORIES: PluginCategory[] = ['writing', 'study', 'workspace', 'other']
 type CreatePluginDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onCreated?: () => void
+  onCreated?: (pluginId?: string) => void
 }
 
 function downloadText(filename: string, contents: string) {
@@ -113,7 +113,7 @@ export function CreatePluginDialog({ open, onOpenChange, onCreated }: CreatePlug
       }
 
       toast.success(t('settings.plugins.create.successToast'), built.manifest.name)
-      onCreated?.()
+      onCreated?.(built.manifest.id)
       onOpenChange(false)
     } catch (error) {
       const key = error instanceof Error ? error.message : 'unknown'
