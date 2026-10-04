@@ -2699,6 +2699,7 @@
       "deepRead": "Hĺbkové čítanie",
       "filesDigest": "Prehľad files/",
       "cleanup": "Upratanie knižnice",
+      "privacyPass": "Privacy pass",
       "polish": "Vylepšiť poznámku"
     },
     "quickPrompts": {
@@ -2740,6 +2741,11 @@
       "pii": "Sken súkromia",
       "rank_tasks": "Priorita úloh",
       "contradictions": "Rozpory",
+      "commitments": "Záväzky",
+      "reading_plan": "Plán čítania",
+      "note_pulse": "Pulse poznámky",
+      "grammar": "Gramatika",
+      "mentions": "Mentions a ľudia",
       "files_answer": "Opýtať sa files/",
       "save_template": "Uložiť ako šablónu"
     }

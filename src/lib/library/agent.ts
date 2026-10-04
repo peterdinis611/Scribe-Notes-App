@@ -20,16 +20,21 @@ import {
 import { getAgentRecipe, type AgentRecipeId } from '@/lib/library/agent-recipes'
 import {
   runAgentCitations,
+  runAgentCommitments,
   runAgentContradictions,
   runAgentDatesLibrary,
   runAgentDecisions,
   runAgentDuplicates,
+  runAgentGrammar,
   runAgentMeetingPack,
+  runAgentMentions,
+  runAgentNotePulse,
   runAgentOrganize,
   runAgentOutlineQuiz,
   runAgentPii,
   runAgentQuotes,
   runAgentRankTasks,
+  runAgentReadingPlan,
   runAgentRevision,
   runAgentRewrite,
   runAgentSectionSummaries,
@@ -120,6 +125,11 @@ const DOCUMENT_TOOLS = new Set<AgentToolId>([
   'pii',
   'rank_tasks',
   'contradictions',
+  'commitments',
+  'reading_plan',
+  'note_pulse',
+  'grammar',
+  'mentions',
   'save_template',
 ])
 
@@ -179,6 +189,11 @@ const INTENT_TO_TOOL: Record<string, AgentToolId> = {
   pii: 'pii',
   rank_tasks: 'rank_tasks',
   contradictions: 'contradictions',
+  commitments: 'commitments',
+  reading_plan: 'reading_plan',
+  note_pulse: 'note_pulse',
+  grammar: 'grammar',
+  mentions: 'mentions',
   save_template: 'save_template',
 }
 
@@ -354,6 +369,50 @@ export function matchAgentIntentsSync(goal: string): AgentToolId[] {
         'fix spelling',
         'fix typos',
       ],
+    },
+    {
+      tool: 'section_summaries',
+      needles: ['section summary', 'section summaries', 'summarize sections', 'zhrnutie sekcii', 'zhrn sekcie', 'po kapitolach'],
+    },
+    {
+      tool: 'decisions',
+      needles: ['decision log', 'extract decisions', 'rozhodnutia', 'log rozhodnuti', 'co sme rozhodli'],
+    },
+    {
+      tool: 'quotes',
+      needles: ['extract quotes', 'pull quotes', 'citacie', 'citaty', 'vyber citaty'],
+    },
+    {
+      tool: 'pii',
+      needles: ['detect pii', 'privacy scan', 'personal data', 'citlive udaje', 'pii', 'sken sukromia', 'pred zdielanim'],
+    },
+    {
+      tool: 'rank_tasks',
+      needles: ['rank tasks', 'prioritize tasks', 'prioritize todos', 'zorad ulohy', 'priorita uloh', 'urgent tasks'],
+    },
+    {
+      tool: 'contradictions',
+      needles: ['contradiction', 'conflicting claims', 'rozpory', 'protirecenia', 'nekonzistentne tvrdenia'],
+    },
+    {
+      tool: 'commitments',
+      needles: ['commitment', 'commitments', 'i will', 'follow up', 'zavazky', 'sluby', 'co som slubil'],
+    },
+    {
+      tool: 'reading_plan',
+      needles: ['reading plan', 'study plan', 'study path', 'plan citania', 'studijny plan', 'ako citat'],
+    },
+    {
+      tool: 'note_pulse',
+      needles: ['note pulse', 'note health', 'library pulse', 'stav poznamky', 'zdravie poznamky'],
+    },
+    {
+      tool: 'grammar',
+      needles: ['grammar', 'grammar check', 'gramatika', 'skontroluj gramatiku', 'grammar tips'],
+    },
+    {
+      tool: 'mentions',
+      needles: ['mentions', 'people mentioned', '@mentions', 'spomenute osoby', 'kto je v poznamke', 'attendees'],
     },
     {
       tool: 'brief',
@@ -627,6 +686,26 @@ async function runTool(
   if (tool === 'rank_tasks') {
     if (!ctx.documentId) throw new Error('agent.needsDocument')
     return runAgentRankTasks(ctx.documentId)
+  }
+  if (tool === 'commitments') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentCommitments(ctx.documentId)
+  }
+  if (tool === 'reading_plan') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentReadingPlan(ctx.documentId)
+  }
+  if (tool === 'note_pulse') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentNotePulse(ctx.documentId)
+  }
+  if (tool === 'grammar') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentGrammar(ctx.documentId)
+  }
+  if (tool === 'mentions') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentMentions(ctx.documentId)
   }
   if (tool === 'contradictions') {
     if (!ctx.documentId) throw new Error('agent.needsDocument')

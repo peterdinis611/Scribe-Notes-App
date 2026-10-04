@@ -6,6 +6,7 @@ export type AgentRecipeId =
   | 'meeting_wrap'
   | 'study_pass'
   | 'cleanup'
+  | 'privacy_pass'
   | 'polish'
   | 'deep_read'
   | 'files_digest'
@@ -36,7 +37,7 @@ export const AGENT_RECIPES: AgentRecipe[] = [
   {
     id: 'meeting_wrap',
     labelKey: 'agent.recipes.meetingWrap',
-    tools: ['meeting', 'tasks', 'takeaways'],
+    tools: ['meeting', 'decisions', 'commitments', 'rank_tasks'],
     documentPreferred: true,
   },
   {
@@ -48,13 +49,13 @@ export const AGENT_RECIPES: AgentRecipe[] = [
   {
     id: 'study_pass',
     labelKey: 'agent.recipes.studyPass',
-    tools: ['outline', 'quiz', 'flashcards'],
+    tools: ['outline', 'reading_plan', 'quiz'],
     documentPreferred: true,
   },
   {
     id: 'deep_read',
     labelKey: 'agent.recipes.deepRead',
-    tools: ['outline', 'glossary', 'takeaways', 'flashcards'],
+    tools: ['section_summaries', 'glossary', 'takeaways', 'flashcards'],
     documentPreferred: true,
   },
   {
@@ -68,6 +69,11 @@ export const AGENT_RECIPES: AgentRecipe[] = [
     tools: ['duplicates', 'wiki', 'organize'],
   },
   {
+    id: 'privacy_pass',
+    labelKey: 'agent.recipes.privacyPass',
+    tools: ['pii', 'duplicates', 'organize'],
+  },
+  {
     id: 'spellcheck',
     labelKey: 'agent.recipes.spellcheck',
     tools: ['spellcheck'],
@@ -76,7 +82,7 @@ export const AGENT_RECIPES: AgentRecipe[] = [
   {
     id: 'polish',
     labelKey: 'agent.recipes.polish',
-    tools: ['spellcheck', 'terminology', 'style'],
+    tools: ['spellcheck', 'grammar', 'terminology'],
     documentPreferred: true,
   },
 ]

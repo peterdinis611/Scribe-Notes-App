@@ -191,6 +191,64 @@ _INTENT_RULES: list[tuple[str, tuple[str, ...]]] = [
             "nekonzistentne tvrdenia",
         ),
     ),
+    (
+        "commitments",
+        (
+            "commitment",
+            "commitments",
+            "i will",
+            "follow up",
+            "zavazky",
+            "záväzky",
+            "sluby",
+            "sľuby",
+            "co som slubil",
+        ),
+    ),
+    (
+        "reading_plan",
+        (
+            "reading plan",
+            "study plan",
+            "study path",
+            "plan citania",
+            "studijny plan",
+            "študijný plán",
+            "ako citat",
+        ),
+    ),
+    (
+        "note_pulse",
+        (
+            "note pulse",
+            "note health",
+            "library pulse",
+            "stav poznamky",
+            "zdravie poznamky",
+            "pulse",
+        ),
+    ),
+    (
+        "grammar",
+        (
+            "grammar",
+            "grammar check",
+            "gramatika",
+            "skontroluj gramatiku",
+            "grammar tips",
+        ),
+    ),
+    (
+        "mentions",
+        (
+            "mentions",
+            "people mentioned",
+            "@mentions",
+            "spomenute osoby",
+            "kto je v poznamke",
+            "attendees",
+        ),
+    ),
 ]
 
 _DOCUMENT_TOOLS = {
@@ -221,6 +279,11 @@ _DOCUMENT_TOOLS = {
     "pii",
     "rank_tasks",
     "contradictions",
+    "commitments",
+    "reading_plan",
+    "note_pulse",
+    "grammar",
+    "mentions",
     "document_answer",
 }
 
@@ -345,6 +408,11 @@ _ALLOWED_PLAN_TOOLS = {
     "pii",
     "rank_tasks",
     "contradictions",
+    "commitments",
+    "reading_plan",
+    "note_pulse",
+    "grammar",
+    "mentions",
     "document_answer",
     "library_answer",
     "duplicates",
@@ -702,6 +770,52 @@ def agent_document_brief(
                         for item in items[:limit]
                     ]
                     sections.append(_section("rank_tasks", "\n".join(lines)))
+            elif tool == "commitments":
+                from .commitments import extract_commitments
+
+                result = extract_commitments(source, limit=limit)
+                items = result.get("commitments") or []
+                if items:
+                    lines = [f"- {item.get('text') or item}" for item in items[:limit]]
+                    sections.append(_section("commitments", "\n".join(lines)))
+            elif tool == "reading_plan":
+                from .reading_plan import reading_plan
+
+                result = reading_plan(source, limit=limit)
+                items = result.get("steps") or []
+                if items:
+                    lines = [
+                        f"{item.get('order')}. **{item.get('title')}** "
+                        f"({item.get('estimatedMinutes')}m) — {item.get('focus')}"
+                        for item in items[:limit]
+                    ]
+                    sections.append(_section("reading_plan", "\n".join(lines)))
+            elif tool == "note_pulse":
+                from .note_pulse import note_pulse
+
+                result = note_pulse(source)
+                sections.append(
+                    _section(
+                        "note_pulse",
+                        f"Score **{result.get('score')}**/100 — {result.get('summary')}",
+                    )
+                )
+            elif tool == "mentions":
+                from .mentions import extract_mentions
+
+                result = extract_mentions(source)
+                names = list(result.get("mentions") or [])[:limit]
+                wiki = list(result.get("wikiLinks") or [])[:limit]
+                lines = []
+                if names:
+                    lines.append("People: " + ", ".join(f"@{n}" for n in names))
+                if wiki:
+                    lines.append("Wiki: " + ", ".join(wiki))
+                if lines:
+                    sections.append(_section("mentions", "\n".join(lines)))
+            elif tool == "grammar":
+                # Grammar needs structured check RPC with optional rules — skip in brief.
+                continue
             elif tool == "similar":
                 # Similar needs a corpus — skip in single-doc brief.
                 continue

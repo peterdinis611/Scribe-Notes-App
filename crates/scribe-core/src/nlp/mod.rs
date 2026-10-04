@@ -1,16 +1,23 @@
 mod chat_context;
 mod chat_intent;
+pub mod commitments;
 pub mod continuation;
 pub mod decisions;
 mod document_passages;
 mod duplicates;
 pub mod jobs;
 mod memory;
+pub mod mentions;
+pub mod note_pulse;
 mod parse;
 pub mod pii;
 pub mod placeholder;
+pub mod quotes;
+pub mod reading_plan;
 pub mod revision_ai;
+pub mod section_summaries;
 mod sidecar;
+pub mod task_rank;
 mod types;
 pub mod vault_index;
 
@@ -19,7 +26,14 @@ pub use chat_context::{
     DOCUMENT_CHAT_CONTEXT_LIMIT, MERGED_PASSAGE_LIMIT,
 };
 pub use chat_intent::{match_agent_intents, match_document_chat_intent};
+pub use commitments::{extract_commitments, NlpCommitment, NlpCommitments};
 pub use decisions::extract_decisions;
+pub use mentions::{extract_mentions, NlpMentionsReport};
+pub use note_pulse::{note_pulse, NlpNotePulse};
+pub use quotes::extract_quotes;
+pub use reading_plan::{reading_plan, NlpReadingPlan, NlpReadingStep};
+pub use section_summaries::section_summaries;
+pub use task_rank::rank_tasks;
 pub use document_passages::{
     build_document_answer_passages, chunk_document_passages, DOCUMENT_ANSWER_PASSAGE_LIMIT,
     DOCUMENT_EMBED_RANK_LIMIT,

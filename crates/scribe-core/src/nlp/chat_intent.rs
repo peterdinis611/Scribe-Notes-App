@@ -324,6 +324,60 @@ fn intent_rules() -> &'static [(&'static str, &'static [&'static str])] {
                 "nekonzistentne tvrdenia",
             ],
         ),
+        (
+            "commitments",
+            &[
+                "commitment",
+                "commitments",
+                "i will",
+                "follow up",
+                "zavazky",
+                "sluby",
+                "co som slubil",
+            ],
+        ),
+        (
+            "reading_plan",
+            &[
+                "reading plan",
+                "study plan",
+                "study path",
+                "plan citania",
+                "studijny plan",
+                "ako citat",
+            ],
+        ),
+        (
+            "note_pulse",
+            &[
+                "note pulse",
+                "note health",
+                "library pulse",
+                "stav poznamky",
+                "zdravie poznamky",
+            ],
+        ),
+        (
+            "grammar",
+            &[
+                "grammar",
+                "grammar check",
+                "gramatika",
+                "skontroluj gramatiku",
+                "grammar tips",
+            ],
+        ),
+        (
+            "mentions",
+            &[
+                "mentions",
+                "people mentioned",
+                "@mentions",
+                "spomenute osoby",
+                "kto je v poznamke",
+                "attendees",
+            ],
+        ),
     ]
 }
 

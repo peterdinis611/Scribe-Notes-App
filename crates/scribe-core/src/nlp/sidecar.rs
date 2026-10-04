@@ -1132,6 +1132,21 @@ impl NlpSidecar {
         self.call_method("contradiction_hints", params)
     }
 
+    pub fn extract_commitments(&self, text: &str, limit: i64) -> Result<Value, String> {
+        self.call_method(
+            "extract_commitments",
+            json!({ "text": text, "limit": limit }),
+        )
+    }
+
+    pub fn reading_plan(&self, text: &str, limit: i64) -> Result<Value, String> {
+        self.call_method("reading_plan", json!({ "text": text, "limit": limit }))
+    }
+
+    pub fn note_pulse(&self, text: &str) -> Result<Value, String> {
+        self.call_method("note_pulse", json!({ "text": text }))
+    }
+
     pub fn agent_document_brief(
         &self,
         text: &str,

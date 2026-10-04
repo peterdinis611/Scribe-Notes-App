@@ -2695,6 +2695,7 @@
       "deepRead": "Deep read",
       "filesDigest": "Files digest",
       "cleanup": "Library cleanup",
+      "privacyPass": "Privacy pass",
       "polish": "Polish note"
     },
     "quickPrompts": {
@@ -2736,6 +2737,11 @@
       "pii": "Privacy scan",
       "rank_tasks": "Rank tasks",
       "contradictions": "Contradiction hints",
+      "commitments": "Commitments",
+      "reading_plan": "Reading plan",
+      "note_pulse": "Note pulse",
+      "grammar": "Grammar check",
+      "mentions": "Mentions & people",
       "files_answer": "Ask files/",
       "save_template": "Save as template"
     }

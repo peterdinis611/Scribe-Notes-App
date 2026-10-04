@@ -8,12 +8,17 @@ import {
   nlpCitationPack,
   nlpContradictionHints,
   nlpDetectPii,
+  nlpExtractCommitments,
   nlpExtractDecisions,
+  nlpExtractMentions,
   nlpExtractQuotes,
   nlpFindDuplicates,
+  nlpGrammarCheck,
   nlpMeetingNotesPack,
+  nlpNotePulse,
   nlpOutlineQuiz,
   nlpRankTasks,
+  nlpReadingPlan,
   nlpRewriteSelection,
   nlpSectionSummaries,
   nlpSuggestTags,
@@ -152,6 +157,101 @@ export async function runAgentRankTasks(documentId: string): Promise<LibraryChat
       }),
     )}`,
     citations: [{ documentId, title: 'Ranked tasks', snippet: `${result.count} tasks` }],
+  }
+}
+
+export async function runAgentCommitments(documentId: string): Promise<LibraryChatResult> {
+  const result = await nlpExtractCommitments({ documentId, limit: 12 })
+  if (!result.commitments.length) {
+    return { answer: 'No commitments detected in this note.', citations: [] }
+  }
+  return {
+    answer: `**Commitments (${result.count})**\n\n${bullets(
+      result.commitments.map((item) => {
+        const due = item.dueHint ? ` _(due ${item.dueHint})_` : ''
+        return `${item.text}${due}`
+      }),
+    )}`,
+    citations: [
+      { documentId, title: 'Commitments', snippet: `${result.count} items · ${result.source}` },
+    ],
+  }
+}
+
+export async function runAgentReadingPlan(documentId: string): Promise<LibraryChatResult> {
+  const result = await nlpReadingPlan({ documentId, limit: 8 })
+  if (!result.steps.length) {
+    return { answer: 'No reading plan — add headings so sections can be sequenced.', citations: [] }
+  }
+  return {
+    answer: `**Reading plan** (~${result.estimatedMinutes} min)\n\n${bullets(
+      result.steps.map(
+        (step) =>
+          `${step.order}. **${step.title}** (${step.estimatedMinutes}m) — ${step.focus}`,
+      ),
+    )}`,
+    citations: [
+      {
+        documentId,
+        title: 'Reading plan',
+        snippet: `${result.count} steps · ${result.source}`,
+      },
+    ],
+  }
+}
+
+export async function runAgentNotePulse(documentId: string): Promise<LibraryChatResult> {
+  const result = await nlpNotePulse({ documentId })
+  const hints = result.hints?.length ? `\n\nHints: ${result.hints.join(', ')}` : ''
+  return {
+    answer: `**Note pulse** — score **${result.score}/100**\n\n${result.summary}${hints}`,
+    citations: [
+      {
+        documentId,
+        title: 'Note pulse',
+        snippet: `${result.source} · risk ${result.piiRisk}`,
+      },
+    ],
+  }
+}
+
+export async function runAgentGrammar(documentId: string): Promise<LibraryChatResult> {
+  const result = await nlpGrammarCheck({ documentId, limit: 20 })
+  const findings = result.findings ?? []
+  if (!findings.length) {
+    return { answer: 'Grammar check found no issues with the current rules.', citations: [] }
+  }
+  return {
+    answer: `**Grammar (${findings.length})**\n\n${bullets(
+      findings.map((item) => {
+        const tip = item.message || item.rule || 'suggestion'
+        const snippet = item.match || item.suggestion || ''
+        return `${tip}${snippet ? `: “${snippet}”` : ''}`
+      }),
+    )}`,
+    citations: [{ documentId, title: 'Grammar', snippet: `${findings.length} findings` }],
+  }
+}
+
+export async function runAgentMentions(documentId: string): Promise<LibraryChatResult> {
+  const result = await nlpExtractMentions({ documentId })
+  const people = result.mentions ?? []
+  const wiki = result.wikiLinks ?? []
+  if (!people.length && !wiki.length) {
+    return { answer: 'No @mentions or wiki links found in this note.', citations: [] }
+  }
+  const lines: string[] = []
+  if (people.length) lines.push(`People: ${people.map((name) => `@${name}`).join(', ')}`)
+  if (wiki.length) lines.push(`Wiki: ${wiki.join(', ')}`)
+  return {
+    answer: `**Mentions**\n\n${lines.join('\n')}`,
+    citations: [
+      {
+        documentId,
+        title: 'Mentions',
+        snippet: `${result.edgeCount ?? people.length + wiki.length} edges`,
+      },
+    ],
   }
 }
 

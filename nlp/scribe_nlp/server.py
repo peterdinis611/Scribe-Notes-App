@@ -118,6 +118,9 @@ FEATURES = [
     "detectPii",
     "rankTasks",
     "contradictionHints",
+    "extractCommitments",
+    "readingPlan",
+    "notePulse",
     "libraryAnswer",
     "dueHints",
     "wikiSuggest",
@@ -868,6 +871,23 @@ def _handle_request_inner(
                 title_b=str(params.get("titleB") or "") or None,
                 limit=limit,
             )
+        elif method == "extract_commitments":
+            from .commitments import extract_commitments
+
+            text = _validate_text(str(params.get("text") or ""))
+            limit = max(1, min(int(params.get("limit") or 12), 40))
+            result = extract_commitments(text, limit=limit)
+        elif method == "reading_plan":
+            from .reading_plan import reading_plan
+
+            text = _validate_text(str(params.get("text") or ""))
+            limit = max(1, min(int(params.get("limit") or 8), 20))
+            result = reading_plan(text, limit=limit)
+        elif method == "note_pulse":
+            from .note_pulse import note_pulse
+
+            text = _validate_text(str(params.get("text") or ""))
+            result = note_pulse(text)
         else:
             return {
                 "jsonrpc": "2.0",

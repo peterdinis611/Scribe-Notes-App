@@ -67,6 +67,7 @@ export const AGENT_ROLES: AgentRoleDefinition[] = [
       'citations',
       'compare_notes',
       'contradictions',
+      'note_pulse',
     ],
   },
   {
@@ -78,7 +79,7 @@ export const AGENT_ROLES: AgentRoleDefinition[] = [
     defaultEnabled: true,
     panel: 'spellcheck',
     recipeIds: ['spellcheck', 'polish'],
-    tools: ['spellcheck', 'rewrite', 'terminology', 'style'],
+    tools: ['spellcheck', 'grammar', 'rewrite', 'terminology', 'style'],
   },
   {
     id: 'librarian',
@@ -89,7 +90,7 @@ export const AGENT_ROLES: AgentRoleDefinition[] = [
     defaultEnabled: true,
     panel: 'agent',
     recipeIds: ['daily_digest', 'weekly_review', 'files_digest'],
-    tools: ['brief', 'dates', 'files_answer', 'tasks', 'library_answer'],
+    tools: ['brief', 'dates', 'files_answer', 'tasks', 'library_answer', 'note_pulse'],
   },
   {
     id: 'meeting',
@@ -105,7 +106,9 @@ export const AGENT_ROLES: AgentRoleDefinition[] = [
       'tasks',
       'action_items',
       'decisions',
+      'commitments',
       'quotes',
+      'mentions',
       'takeaways',
       'dates',
       'rank_tasks',
@@ -129,6 +132,7 @@ export const AGENT_ROLES: AgentRoleDefinition[] = [
       'flashcards',
       'quiz',
       'section_summaries',
+      'reading_plan',
       'revision',
       'explain',
       'simplify',
@@ -142,8 +146,8 @@ export const AGENT_ROLES: AgentRoleDefinition[] = [
     dockTitleKey: 'agent.roles.organizer.dockTitle',
     defaultEnabled: true,
     panel: 'agent',
-    recipeIds: ['cleanup'],
-    tools: ['organize', 'wiki', 'duplicates', 'pii', 'similar', 'terminology'],
+    recipeIds: ['cleanup', 'privacy_pass'],
+    tools: ['organize', 'wiki', 'duplicates', 'pii', 'similar', 'terminology', 'mentions'],
   },
 ]
 

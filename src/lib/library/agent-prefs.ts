@@ -48,6 +48,11 @@ export type AgentToolId =
   | 'pii'
   | 'rank_tasks'
   | 'contradictions'
+  | 'commitments'
+  | 'reading_plan'
+  | 'note_pulse'
+  | 'grammar'
+  | 'mentions'
   | 'files_answer'
   | 'save_template'
 
@@ -170,6 +175,11 @@ const ALL_TOOLS: AgentToolId[] = [
   'pii',
   'rank_tasks',
   'contradictions',
+  'commitments',
+  'reading_plan',
+  'note_pulse',
+  'grammar',
+  'mentions',
   'files_answer',
   'save_template',
 ]
@@ -516,4 +526,15 @@ export const AGENT_OPTIMIZABLE_TOOLS: AgentToolId[] = [
   'action_items',
   'glossary',
   'compare_notes',
+  'section_summaries',
+  'decisions',
+  'quotes',
+  'pii',
+  'rank_tasks',
+  'contradictions',
+  'commitments',
+  'reading_plan',
+  'note_pulse',
+  'grammar',
+  'mentions',
 ]
