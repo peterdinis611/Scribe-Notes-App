@@ -4422,6 +4422,20 @@
   "import": {
     "encodingConverted": "Importovaný text bol skonvertovaný z {{encoding}}"
   },
+  "fileDrop": {
+    "dropOne": "Pustite sem a otvorí sa v Scribe",
+    "dropMany": "Pustite {{count}} súborov a otvoria sa",
+    "hint": "Markdown, Word, Pages, Excel, text alebo .scribe",
+    "importing": "Importujem…",
+    "importedOne": "Otvorené z dropu",
+    "importedMany": "Otvorených dokumentov: {{count}}",
+    "skipped": "Preskočených nepodporovaných súborov: {{count}}",
+    "failed": "Nepodarilo sa importovať {{count}} súbor(ov)",
+    "unsupportedTitle": "Nepodporované súbory",
+    "unsupportedBody": "Pretiahnite .md, .docx, .pages, .xlsx, .txt alebo .scribe",
+    "busy": "Import už prebieha",
+    "error": "Drop import zlyhal"
+  },
   "smartFolders": {
     "title": "Inteligentné priečinky",
     "add": "Pridať inteligentný priečinok",

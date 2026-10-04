@@ -46,6 +46,10 @@ const IMPORT_FILTERS = [
   { name: 'Excel', extensions: ['xlsx', 'xlsm', 'csv', 'xls'] },
 ]
 
+/** Extensions accepted for document import (picker + window drop). */
+export const IMPORTABLE_DOCUMENT_EXT =
+  /\.(scribe\.json|scribe|pages|md|markdown|txt|docx|rtf|doc|xlsx|xlsm|csv|xls)$/i
+
 function isMarkdownPath(path: string) {
   return /\.(md|markdown)$/i.test(path)
 }
@@ -57,6 +61,95 @@ function fallbackTitleFromPath(path: string) {
 
 function isLegacyWordPath(path: string) {
   return /\.(doc|rtf)$/i.test(path) && !isWordDocxPath(path)
+}
+
+export function isImportableDocumentPath(path: string): boolean {
+  return IMPORTABLE_DOCUMENT_EXT.test(path.trim())
+}
+
+export function filterImportableDocumentPaths(paths: string[]): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const path of paths) {
+    const trimmed = path.trim()
+    if (!trimmed || seen.has(trimmed) || !isImportableDocumentPath(trimmed)) continue
+    seen.add(trimmed)
+    out.push(trimmed)
+  }
+  return out
+}
+
+export function fileNameFromPath(path: string): string {
+  return path.split(/[/\\]/).pop() ?? path
+}
+
+/** Import a single document from an absolute filesystem path. */
+export async function importDocumentFromPath(path: string): Promise<Document> {
+  const selected = path.trim()
+  if (!selected) throw new Error('Empty path')
+
+  if (isMarkdownPath(selected)) {
+    const decoded = await readTextFileDecoded(selected)
+    if (decoded.converted && decoded.encoding.toLowerCase() !== 'utf-8') {
+      toast.info(i18n.t('import.encodingConverted', { encoding: decoded.encoding }))
+    }
+    const markdown = decoded.text
+    const fallbackTitle = fallbackTitleFromPath(selected)
+    const doc = await createDocument({
+      title: titleFromMarkdown(markdown, fallbackTitle),
+      contentJson: parseMarkdownToContentJson(markdown),
+    })
+    return cacheDocument(doc)
+  }
+
+  if (isLegacyExcelPath(selected)) {
+    return await importExcelDocumentFromPath(selected)
+  }
+
+  if (isExcelPath(selected) && /\.csv$/i.test(selected)) {
+    return await importExcelDocumentFromPath(selected)
+  }
+
+  if (isPagesPath(selected)) {
+    return await importPagesDocumentFromPath(selected)
+  }
+
+  // .docx / .xlsx / text / .scribe — Rust import_file (office_import for Office).
+  if (isWordDocxPath(selected) || isExcelPath(selected) || isLegacyWordPath(selected)) {
+    return await importFile(selected)
+  }
+
+  return await importFile(selected)
+}
+
+export type ImportDocumentsResult = {
+  imported: Document[]
+  skipped: string[]
+  failed: Array<{ path: string; error: string }>
+}
+
+/** Import many paths sequentially. Skips unsupported extensions. */
+export async function importDocumentsFromPaths(paths: string[]): Promise<ImportDocumentsResult> {
+  const importable = filterImportableDocumentPaths(paths)
+  const skipped = paths
+    .map((path) => path.trim())
+    .filter((path) => path && !isImportableDocumentPath(path))
+
+  const imported: Document[] = []
+  const failed: Array<{ path: string; error: string }> = []
+
+  for (const path of importable) {
+    try {
+      imported.push(await importDocumentFromPath(path))
+    } catch (error) {
+      failed.push({
+        path,
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }
+
+  return { imported, skipped, failed }
 }
 
 export async function pickAndImportDocument(): Promise<Document | null> {
@@ -72,44 +165,7 @@ export async function pickAndImportDocument(): Promise<Document | null> {
   }
 
   try {
-    if (isMarkdownPath(selected)) {
-      const decoded = await readTextFileDecoded(selected)
-      if (decoded.converted && decoded.encoding.toLowerCase() !== 'utf-8') {
-        toast.info(
-          i18n.t('import.encodingConverted', { encoding: decoded.encoding }),
-        )
-      }
-      const markdown = decoded.text
-      const fallbackTitle = fallbackTitleFromPath(selected)
-      const doc = await createDocument({
-        title: titleFromMarkdown(markdown, fallbackTitle),
-        contentJson: parseMarkdownToContentJson(markdown),
-      })
-      return cacheDocument(doc)
-    }
-
-    if (isLegacyExcelPath(selected)) {
-      return await importExcelDocumentFromPath(selected)
-    }
-
-    if (isExcelPath(selected) && /\.csv$/i.test(selected)) {
-      return await importExcelDocumentFromPath(selected)
-    }
-
-    if (isPagesPath(selected)) {
-      return await importPagesDocumentFromPath(selected)
-    }
-
-    // .docx / .xlsx / text / .scribe — Rust import_file (office_import for Office).
-    if (
-      isWordDocxPath(selected) ||
-      isExcelPath(selected) ||
-      isLegacyWordPath(selected)
-    ) {
-      return await importFile(selected)
-    }
-
-    return await importFile(selected)
+    return await importDocumentFromPath(selected)
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error)
     await message(detail, { title: 'Import zlyhal', kind: 'error' })

@@ -4406,6 +4406,20 @@
   "import": {
     "encodingConverted": "Imported text was converted from {{encoding}}"
   },
+  "fileDrop": {
+    "dropOne": "Drop to open in Scribe",
+    "dropMany": "Drop {{count}} files to open",
+    "hint": "Markdown, Word, Pages, Excel, text, or .scribe",
+    "importing": "Importing…",
+    "importedOne": "Opened from drop",
+    "importedMany": "Opened {{count}} documents",
+    "skipped": "Skipped {{count}} unsupported file(s)",
+    "failed": "Could not import {{count}} file(s)",
+    "unsupportedTitle": "Unsupported files",
+    "unsupportedBody": "Drop .md, .docx, .pages, .xlsx, .txt, or .scribe files",
+    "busy": "Import already in progress",
+    "error": "Drop import failed"
+  },
   "smartFolders": {
     "title": "Smart folders",
     "add": "Add smart folder",

@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { Outlet, useNavigate, useParams, useRouterState } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { listen } from '@tauri-apps/api/event'
 import { AgentWorkspaceDock } from '@/components/agent/AgentWorkspaceDock'
+import { AppFileDropOverlay } from '@/components/AppFileDropOverlay'
 import { CommandPalette } from '@/components/CommandPalette'
 import { DndRoot } from '@/components/dnd/DndRoot'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -17,6 +18,7 @@ import { SetupWizard } from '@/components/SetupWizard'
 import { Sidebar } from '@/components/Sidebar'
 import { TemplatePicker } from '@/components/TemplatePicker'
 import { WhatsNewDialog } from '@/components/WhatsNewDialog'
+import { useAppFileDrop } from '@/hooks/useAppFileDrop'
 import { useLayoutTier } from '@/hooks/useLayoutTier'
 import { useResponsiveSidebar } from '@/hooks/useResponsiveSidebar'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
@@ -28,8 +30,9 @@ import { useDocumentCacheRetention } from '@/hooks/useDocumentCacheRetention'
 import { APP_VERSION } from '@/lib/app-version'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { prefetchDocument, prefetchEditorChunks, prefetchOpenDocuments } from '@/lib/cache/prefetch-document'
-import { createDocument, flushPendingWrites, importFile } from '@/lib/db/api'
+import { createDocument, flushPendingWrites, type Document } from '@/lib/db/api'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
+import { importDocumentFromPath } from '@/lib/import-document'
 import { applyDiskPersistResult } from '@/lib/disk-sync'
 import { openTodayNote } from '@/lib/journal-notes'
 import { openQuickNote } from '@/lib/quick-note'
@@ -115,6 +118,29 @@ export function AppLayout() {
     () => ensureSetupCompletedForExistingUsers() || readSetupCompleted(),
   )
 
+  const openImportedDocuments = useCallback(
+    async (docs: Document[]) => {
+      if (docs.length === 0) return
+      for (const doc of docs) {
+        dispatch(updateDocuments((prev) => prependDocumentSummary(prev, doc)))
+      }
+      const last = docs[docs.length - 1]!
+      dispatch(setActiveDocumentId(last.id))
+      dispatch(setActiveDocument(last))
+      dispatch(setSaveStatus('saved'))
+      await navigate(ROUTES.document(last.id))
+    },
+    [dispatch, navigate],
+  )
+
+  const fileDrop = useAppFileDrop({
+    onImported: openImportedDocuments,
+    t: (key, options) => t(key, options),
+    toastSuccess: (title, detail) => toast.success(title, detail),
+    toastError: (title, detail) => toast.error(title, detail),
+    toastInfo: (title, detail) => toast.info(title, detail),
+  })
+
   useEffect(() => {
     prefetchEditorChunks()
   }, [])
@@ -143,13 +169,9 @@ export function AppLayout() {
     const unlisteners: Array<() => void> = []
 
     void listen<string>('open-file', (event) => {
-      void importFile(event.payload)
-        .then((doc) => {
-          dispatch(updateDocuments((prev) => prependDocumentSummary(prev, doc)))
-          dispatch(setActiveDocumentId(doc.id))
-          dispatch(setActiveDocument(doc))
-          dispatch(setSaveStatus('saved'))
-          void navigate(ROUTES.document(doc.id))
+      void importDocumentFromPath(event.payload)
+        .then(async (doc) => {
+          await openImportedDocuments([doc])
           toast.success(t('fileMenu.openedFromFinder', { title: doc.title }))
         })
         .catch((error) => toast.error(t('fileMenu.openFromFinderError'), String(error)))
@@ -174,7 +196,7 @@ export function AppLayout() {
     return () => {
       for (const unlisten of unlisteners) unlisten()
     }
-  }, [dispatch, documents, folders, navigate, t])
+  }, [dispatch, documents, folders, navigate, openImportedDocuments, t])
 
   async function handleCreateFromTemplate(template: DocumentTemplate) {
     try {
@@ -276,6 +298,11 @@ export function AppLayout() {
       />
       <OnboardingTour enabled={setupReady} onFinished={maybeOpenWhatsNew} />
       <WhatsNewDialog open={whatsNewOpen} onClose={() => setWhatsNewOpen(false)} />
+      <AppFileDropOverlay
+        active={fileDrop.active}
+        busy={fileDrop.busy}
+        count={fileDrop.hoverCount}
+      />
       <ToastHost />
     </div>
     </DndRoot>
