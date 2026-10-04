@@ -19,7 +19,6 @@ const DEMO_CODE = `export default function activate(api) {
 }`
 
 const DEMO_STEPS = ['template', 'name', 'code', 'install', 'use'] as const
-type DemoStep = (typeof DEMO_STEPS)[number]
 
 type PluginCreateDemoProps = {
   onOpenCreate: () => void
