@@ -2,7 +2,8 @@ import { kvGet, kvGetJson, kvRemove, kvSet, kvSetJson } from '@/lib/storage/kv'
 import type { PluginStorage } from '@/lib/plugins/types'
 
 const PLUGIN_ID_PATTERN = /^[a-z][a-z0-9.-]{0,127}$/i
-const KEY_PATTERN = /^[a-zA-Z0-9._-]{1,128}$/
+/** Allow namespaced keys like `status:<uuid>` (colon + common id chars). */
+const KEY_PATTERN = /^[a-zA-Z0-9._:-]{1,160}$/
 
 export function pluginStorageKey(pluginId: string, key: string): string {
   return `scribe-plugin:${pluginId}:${key}`
@@ -20,23 +21,23 @@ export function createPluginStorage(pluginId: string): PluginStorage {
   }
 
   return {
-    get(key) {
+    get(key: string) {
       assertKey(key)
       return kvGet(pluginStorageKey(pluginId, key))
     },
-    set(key, value) {
+    set(key: string, value: string) {
       assertKey(key)
       kvSet(pluginStorageKey(pluginId, key), value)
     },
-    remove(key) {
+    remove(key: string) {
       assertKey(key)
       kvRemove(pluginStorageKey(pluginId, key))
     },
-    getJson<T>(key) {
+    getJson<T>(key: string) {
       assertKey(key)
       return kvGetJson<T>(pluginStorageKey(pluginId, key))
     },
-    setJson(key, value) {
+    setJson(key: string, value: unknown) {
       assertKey(key)
       kvSetJson(pluginStorageKey(pluginId, key), value)
     },

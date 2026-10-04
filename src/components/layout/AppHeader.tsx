@@ -24,6 +24,9 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { IconTooltip } from '@/components/ui/tooltip'
 import { exportDocument, pickAndImportFile, revealInFinder } from '@/lib/db/api'
+import { listPluginExportFormats, listPluginImportFormats } from '@/lib/plugins'
+import { open } from '@tauri-apps/plugin-dialog'
+import { readFile } from '@tauri-apps/plugin-fs'
 import { getCachedParsedContent } from '@/lib/cache/document-cache'
 import { fileBasename, toast } from '@/lib/toast'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
@@ -172,6 +175,21 @@ function DocsChrome() {
         <SidebarToggle />
         <div className="flex min-w-0 items-center gap-1.5 text-[13px]">
           <span className="font-semibold text-[var(--color-foreground)]">{t('nav.docs')}</span>
+        </div>
+      </div>
+    </header>
+  )
+}
+
+function PluginsChrome() {
+  const { t } = useTranslation()
+
+  return (
+    <header className="app-chrome titlebar-drag [[data-sidebar-drawer=true]_&]:pl-[78px]">
+      <div className="titlebar-no-drag titlebar-interactive flex min-w-0 flex-1 items-center gap-2">
+        <SidebarToggle />
+        <div className="flex min-w-0 items-center gap-1.5 text-[13px]">
+          <span className="font-semibold text-[var(--color-foreground)]">{t('nav.plugins')}</span>
         </div>
       </div>
     </header>
@@ -372,6 +390,51 @@ function EditorChrome() {
     navigate(ROUTES.document(doc.id))
   }
 
+  async function handlePluginExport(entryId: string) {
+    if (!document) return
+    const format = listPluginExportFormats().find((item) => item.entryId === entryId)
+    if (!format) return
+    try {
+      await format.export({
+        documentId: document.id,
+        title: document.title,
+        contentJson: document.contentJson,
+      })
+    } catch (error) {
+      toast.error(t('toasts.exportError'), String(error))
+    }
+  }
+
+  async function handlePluginImport(entryId: string) {
+    const format = listPluginImportFormats().find((item) => item.entryId === entryId)
+    if (!format) return
+    try {
+      const selected = await open({
+        multiple: false,
+        filters: [
+          {
+            name: format.label,
+            extensions: format.extensions.length ? format.extensions : ['*'],
+          },
+        ],
+      })
+      const path = Array.isArray(selected) ? selected[0] : selected
+      if (!path || typeof path !== 'string') return
+      const bytes = await readFile(path)
+      const fileName = path.split(/[/\\]/).pop() ?? 'import'
+      let text: string | undefined
+      try {
+        text = new TextDecoder().decode(bytes)
+      } catch {
+        text = undefined
+      }
+      await format.import({ fileName, bytes, text })
+      toast.success(t('toasts.documentImported'), format.label)
+    } catch (error) {
+      toast.error(t('toasts.importError', { defaultValue: 'Import failed' }), String(error))
+    }
+  }
+
   async function handleImportPdfHighlights() {
     try {
       const { pickAndImportPdfHighlights } = await import('@/lib/import/pdf-highlights-pick')
@@ -451,6 +514,7 @@ function EditorChrome() {
             hasFilePath={!!document?.filePath}
             onImport={() => void handleImport()}
             onImportPdfHighlights={() => void handleImportPdfHighlights()}
+            onPluginImport={(id) => void handlePluginImport(id)}
             onRevealFile={() => void handleRevealFile()}
             onPdfPreview={document ? () => setPdfPreviewOpen(true) : undefined}
             onPrint={
@@ -473,6 +537,7 @@ function EditorChrome() {
             onGoHome={handleGoHome}
             onCloseDocument={document ? handleCloseDocument : undefined}
             onExport={document ? (format) => void handleExport(format) : undefined}
+            onPluginExport={document ? (id) => void handlePluginExport(id) : undefined}
             onExportSelection={document ? (format) => void handleExportSelection(format) : undefined}
             onExportStructuredPdf={(kind) => void handleExportStructuredPdf(kind)}
             onShareOpen={document ? () => dispatch(setShareDialogOpen(true)) : undefined}
@@ -603,6 +668,7 @@ export function AppHeader() {
   const focusMode = useAppSelector((state) => state.documents.focusMode)
 
   if (focusMode) return null
+  if (pathname === '/plugins' || pathname.startsWith('/plugins/')) return <PluginsChrome />
   if (pathname.startsWith('/settings')) return <SettingsChrome />
   if (pathname === '/docs' || pathname.startsWith('/docs/')) return <DocsChrome />
   return <EditorChrome />

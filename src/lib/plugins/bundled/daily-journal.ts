@@ -23,6 +23,7 @@ export const dailyJournalPlugin: PluginModule = {
     scribeApi: 1,
     permissions: ['editor.blocks', 'storage'],
     defaultEnabled: true,
+    category: 'writing',
   },
   activate(api) {
     if (api.storage.get('insert-count') == null) {

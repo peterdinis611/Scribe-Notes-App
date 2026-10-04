@@ -44,6 +44,7 @@ import { resolvePageLayout } from '@/lib/editor/page-layout'
 import { normalizePageSetup, PAPER_SIZES } from '@/lib/editor/page-setup'
 import { resolveDocumentTypography } from '@/lib/editor/document-style-presets'
 import { getEditorExtensions } from '@/lib/editor/extensions'
+import { emitPluginLifecycle, getPluginsGeneration, subscribePlugins } from '@/lib/plugins'
 import { listGoogleFontFamilies, loadGoogleFontsForDocument } from '@/lib/editor/google-fonts'
 import { ensureAllCustomFontsLoaded, loadCustomFontsForDocument } from '@/lib/editor/custom-fonts'
 import { getEditorMarkdown, parseMarkdownToContentJson } from '@/lib/editor/markdown-content'
@@ -125,8 +126,10 @@ export function DocumentEditor() {
   const insertImagesRef = useRef(handleInsertImages)
   insertImagesRef.current = handleInsertImages
 
-  // Bump when extension set changes so HMR recreates the editor (useMemo [] is sticky).
-  const EDITOR_EXTENSIONS_REV = 7
+  // Bump when extension set / plugins change so TipTap recreates with new nodes.
+  const EDITOR_EXTENSIONS_REV = 8
+  const [pluginExtRev, setPluginExtRev] = useState(() => getPluginsGeneration())
+  useEffect(() => subscribePlugins(() => setPluginExtRev(getPluginsGeneration())), [])
   const extensions = useMemo(
     () =>
       getEditorExtensions({
@@ -134,7 +137,7 @@ export function DocumentEditor() {
           void insertImagesRef.current(files, pos)
         },
       }),
-    [EDITOR_EXTENSIONS_REV],
+    [EDITOR_EXTENSIONS_REV, pluginExtRev],
   )
 
   const pageSetup = useAppSelector((state) => state.settings.pageSetup)
@@ -179,6 +182,11 @@ export function DocumentEditor() {
     onUpdate: () => {
       if (!activeIdRef.current || viewModeRef.current !== 'rich') return
       queueSaveRef.current(activeIdRef.current)
+      emitPluginLifecycle({
+        type: 'documentSave',
+        documentId: activeIdRef.current,
+        title: activeDocumentRef.current?.title ?? '',
+      })
     },
   }, [extensions])
 
@@ -356,6 +364,33 @@ export function DocumentEditor() {
     return () => {
       editor.off('update', syncEmpty)
       editor.off('selectionUpdate', syncEmpty)
+    }
+  }, [editor])
+
+  useEffect(() => {
+    if (!activeId || !activeDocument) return
+    emitPluginLifecycle({
+      type: 'documentOpen',
+      documentId: activeId,
+      title: activeDocument.title,
+    })
+  }, [activeId, activeDocument?.id, activeDocument?.title])
+
+  useEffect(() => {
+    if (!editor) return
+    const onSelection = () => {
+      const { from, to, empty } = editor.state.selection
+      emitPluginLifecycle({
+        type: 'selectionChange',
+        documentId: activeIdRef.current,
+        empty,
+        from,
+        to,
+      })
+    }
+    editor.on('selectionUpdate', onSelection)
+    return () => {
+      editor.off('selectionUpdate', onSelection)
     }
   }, [editor])
 

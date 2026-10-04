@@ -1,9 +1,13 @@
 import { BUNDLED_PLUGINS } from '@/lib/plugins/bundled'
-import { registerBundledPlugin, syncEnabledPlugins } from '@/lib/plugins/registry'
+import {
+  hydrateInstalledPlugins,
+  registerBundledPlugin,
+  syncEnabledPlugins,
+} from '@/lib/plugins/registry'
 
 let bootstrapped = false
 
-/** Register bundled plugins and activate those enabled in prefs. Idempotent. */
+/** Register bundled + installed plugins and activate those enabled in prefs. Idempotent. */
 export async function bootstrapPlugins(): Promise<void> {
   if (bootstrapped) {
     await syncEnabledPlugins()
@@ -19,6 +23,7 @@ export async function bootstrapPlugins(): Promise<void> {
     }
   }
 
+  await hydrateInstalledPlugins()
   await syncEnabledPlugins()
   bootstrapped = true
 }

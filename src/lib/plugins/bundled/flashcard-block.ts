@@ -52,6 +52,7 @@ export const flashcardBlockPlugin: PluginModule = {
     scribeApi: 1,
     permissions: ['editor.blocks', 'commands'],
     defaultEnabled: true,
+    category: 'study',
   },
   activate(api) {
     api.blocks.register({

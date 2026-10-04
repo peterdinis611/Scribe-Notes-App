@@ -8,12 +8,14 @@ import {
 import { Button } from '@/components/ui/button'
 import { ChevronDown, Eye, FileDown, FileSymlink, FolderInput, Home, LayoutTemplate, Printer, Share2, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { listPluginExportFormats, listPluginImportFormats } from '@/lib/plugins'
 
 type EditorFileMenuProps = {
   hasDocument?: boolean
   hasFilePath?: boolean
   onImport: () => void
   onImportPdfHighlights?: () => void
+  onPluginImport?: (formatId: string) => void
   onRevealFile?: () => void
   onPdfPreview?: () => void
   onPrint?: () => void
@@ -21,6 +23,7 @@ type EditorFileMenuProps = {
   onCloseDocument?: () => void
   onGoHome?: () => void
   onExport?: (format: 'pdf' | 'docx' | 'txt' | 'pages' | 'md' | 'html' | 'html-zip' | 'epub') => void
+  onPluginExport?: (formatId: string) => void
   onExportSelection?: (format: 'md' | 'pdf') => void
   onExportStructuredPdf?: (kind: 'invoice' | 'library-report') => void
   onShareOpen?: () => void
@@ -32,6 +35,7 @@ export function EditorFileMenu({
   hasFilePath = false,
   onImport,
   onImportPdfHighlights,
+  onPluginImport,
   onRevealFile,
   onPdfPreview,
   onPrint,
@@ -39,12 +43,15 @@ export function EditorFileMenu({
   onCloseDocument,
   onGoHome,
   onExport,
+  onPluginExport,
   onExportSelection,
   onExportStructuredPdf,
   onShareOpen,
   hasSelection = false,
 }: EditorFileMenuProps) {
   const { t } = useTranslation()
+  const pluginExports = listPluginExportFormats()
+  const pluginImports = listPluginImportFormats()
 
   return (
     <DropdownMenu>
@@ -68,6 +75,16 @@ export function EditorFileMenu({
             {t('fileMenu.importPdfHighlights')}
           </DropdownMenuItem>
         )}
+        {onPluginImport &&
+          pluginImports.map((format) => (
+            <DropdownMenuItem
+              key={format.entryId}
+              onClick={() => onPluginImport(format.entryId)}
+            >
+              <FolderInput className="h-3.5 w-3.5 shrink-0" />
+              {format.label}
+            </DropdownMenuItem>
+          ))}
         {onGoHome && (
           <DropdownMenuItem onClick={onGoHome}>
             <Home className="h-3.5 w-3.5 shrink-0" />
@@ -127,6 +144,15 @@ export function EditorFileMenu({
             <DropdownMenuItem onClick={() => onExport('epub')}>{t('fileMenu.exportEpub')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => onExport('txt')}>{t('fileMenu.exportTxt')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => onExport('pages')}>{t('fileMenu.exportPages')}</DropdownMenuItem>
+            {onPluginExport &&
+              pluginExports.map((format) => (
+                <DropdownMenuItem
+                  key={format.entryId}
+                  onClick={() => onPluginExport(format.entryId)}
+                >
+                  {format.label}
+                </DropdownMenuItem>
+              ))}
           </>
         )}
         {onExportStructuredPdf && (

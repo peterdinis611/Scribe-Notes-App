@@ -34,6 +34,7 @@ export const plaintextExportPlugin: PluginModule = {
     scribeApi: 1,
     permissions: ['commands', 'storage'],
     defaultEnabled: true,
+    category: 'writing',
   },
   activate(api) {
     api.commands.register({

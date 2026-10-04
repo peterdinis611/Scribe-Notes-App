@@ -1,0 +1,16 @@
+{
+  "manifest": {
+    "id": "example.hello",
+    "name": "Hello plugin",
+    "version": "1.0.0",
+    "description": "Minimal installed plugin example.",
+    "scribeApi": 2,
+    "permissions": ["commands"],
+    "defaultEnabled": true,
+    "i18n": {
+      "en": { "cmd.title": "Say hello" },
+      "sk": { "cmd.title": "Pozdrav" }
+    }
+  },
+  "code": "export default function activate(api) {\n  api.commands.register({\n    id: 'hello',\n    title: api.i18n.t('cmd.title', 'Say hello'),\n    run: () => {\n      api.notify.success('Hello from example.hello')\n      api.log('Hello from example.hello')\n    },\n  })\n}\n"
+}

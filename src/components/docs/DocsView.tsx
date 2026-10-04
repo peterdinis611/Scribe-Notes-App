@@ -12,6 +12,7 @@ import {
   Link2,
   PenLine,
   Plug,
+  Puzzle,
   Search,
   Shield,
   Sparkles,
@@ -36,6 +37,7 @@ export const DOCS_TOPIC_IDS = [
   'localAi',
   'revisions',
   'mcp',
+  'plugins',
   'journal',
   'backup',
   'shortcuts',
@@ -55,6 +57,7 @@ const TOPIC_ICONS: Record<DocsTopicId, LucideIcon> = {
   localAi: Sparkles,
   revisions: History,
   mcp: Plug,
+  plugins: Puzzle,
   journal: CalendarDays,
   backup: Archive,
   shortcuts: Keyboard,
@@ -64,16 +67,17 @@ const DOC_GROUPS: { id: string; topics: DocsTopicId[] }[] = [
   { id: 'basics', topics: ['overview', 'privacy', 'documents'] },
   { id: 'organize', topics: ['library', 'linkGraph', 'wikiLinks'] },
   { id: 'write', topics: ['editor', 'search', 'localAi', 'revisions', 'journal'] },
-  { id: 'power', topics: ['mcp', 'backup', 'shortcuts'] },
+  { id: 'power', topics: ['mcp', 'plugins', 'backup', 'shortcuts'] },
 ]
 
-const QUICK_LINKS: DocsTopicId[] = ['library', 'localAi', 'revisions', 'mcp']
+const QUICK_LINKS: DocsTopicId[] = ['library', 'localAi', 'revisions', 'plugins']
 
 const TOPIC_TIPS: Partial<Record<DocsTopicId, { keys: string; tipKey: string }>> = {
   search: { keys: '⌘K', tipKey: 'searchTip' },
   localAi: { keys: '⌘K', tipKey: 'localAiTip' },
   revisions: { keys: '⌘Z', tipKey: 'revisionsTip' },
   mcp: { keys: '⌘,', tipKey: 'mcpTip' },
+  plugins: { keys: '⌘,', tipKey: 'pluginsTip' },
   journal: { keys: '⌘⇧D', tipKey: 'journalTip' },
   shortcuts: { keys: '⌘,', tipKey: 'shortcutsTip' },
 }

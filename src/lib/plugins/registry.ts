@@ -1,7 +1,15 @@
 import { createPluginHost } from '@/lib/plugins/host'
+import {
+  listInstalledPluginRecords,
+  loadPluginModuleFromCode,
+  parseScribeExtBytes,
+  removeInstalledPluginRecord,
+  saveInstalledPluginRecord,
+} from '@/lib/plugins/install'
 import { isPluginEnabled, setPluginEnabled } from '@/lib/plugins/prefs'
 import {
   SCRIBE_PLUGIN_API,
+  type InstalledPluginRecord,
   type PluginCleanup,
   type PluginModule,
   type RegisteredPlugin,
@@ -16,6 +24,14 @@ let generation = 0
 function emit() {
   generation += 1
   for (const listener of listeners) listener()
+}
+
+function assertApi(manifestId: string, scribeApi: number) {
+  if (scribeApi !== 1 && scribeApi !== SCRIBE_PLUGIN_API) {
+    throw new Error(
+      `Plugin "${manifestId}" requires scribeApi ${scribeApi}, host is ${SCRIBE_PLUGIN_API}`,
+    )
+  }
 }
 
 export function subscribePlugins(listener: () => void): () => void {
@@ -39,14 +55,8 @@ export function getPlugin(pluginId: string): RegisteredPlugin | undefined {
 
 export function registerBundledPlugin(module: PluginModule): RegisteredPlugin {
   const { manifest } = module
-  if (!manifest.id?.trim()) {
-    throw new Error('Plugin manifest id is required')
-  }
-  if (manifest.scribeApi !== SCRIBE_PLUGIN_API) {
-    throw new Error(
-      `Plugin "${manifest.id}" requires scribeApi ${manifest.scribeApi}, host is ${SCRIBE_PLUGIN_API}`,
-    )
-  }
+  if (!manifest.id?.trim()) throw new Error('Plugin manifest id is required')
+  assertApi(manifest.id, manifest.scribeApi)
 
   const entry: RegisteredPlugin = {
     manifest,
@@ -59,11 +69,36 @@ export function registerBundledPlugin(module: PluginModule): RegisteredPlugin {
   return entry
 }
 
+export function registerInstalledPlugin(
+  module: PluginModule,
+  meta?: { installPath?: string },
+): RegisteredPlugin {
+  const { manifest } = module
+  if (!manifest.id?.trim()) throw new Error('Plugin manifest id is required')
+  assertApi(manifest.id, manifest.scribeApi)
+
+  const existing = plugins.get(manifest.id)
+  if (existing?.active) {
+    deactivatePlugin(manifest.id)
+  }
+
+  const entry: RegisteredPlugin = {
+    manifest,
+    source: 'installed',
+    module,
+    active: false,
+    installPath: meta?.installPath,
+  }
+  plugins.set(manifest.id, entry)
+  emit()
+  return entry
+}
+
 async function activatePlugin(pluginId: string): Promise<void> {
   const entry = plugins.get(pluginId)
   if (!entry || entry.active) return
 
-  const host = createPluginHost(entry.manifest)
+  const host = createPluginHost(entry.manifest, entry.source)
   try {
     const result = await entry.module.activate(host.api)
     const userCleanup = typeof result === 'function' ? result : undefined
@@ -121,6 +156,71 @@ export async function syncEnabledPlugins(): Promise<void> {
       }
     } else if (!shouldEnable && entry.active) {
       deactivatePlugin(entry.manifest.id)
+    }
+  }
+}
+
+export async function installPluginRecord(
+  record: InstalledPluginRecord,
+  options?: { enable?: boolean },
+): Promise<RegisteredPlugin> {
+  const module = await loadPluginModuleFromCode(record.manifest, record.code)
+  saveInstalledPluginRecord(record)
+  const entry = registerInstalledPlugin(module, { installPath: record.path })
+  const enable = options?.enable !== false
+  setPluginEnabled(record.manifest.id, enable)
+  if (enable) {
+    await activatePlugin(record.manifest.id)
+  }
+  return entry
+}
+
+export async function installPluginFromBytes(
+  bytes: Uint8Array,
+  pathHint?: string,
+): Promise<RegisteredPlugin> {
+  const record = await parseScribeExtBytes(bytes, pathHint)
+  return installPluginRecord(record)
+}
+
+export async function uninstallPlugin(pluginId: string): Promise<void> {
+  const entry = plugins.get(pluginId)
+  if (!entry) return
+  if (entry.source !== 'installed') {
+    throw new Error('Only installed plugins can be uninstalled')
+  }
+  deactivatePlugin(pluginId)
+  plugins.delete(pluginId)
+  removeInstalledPluginRecord(pluginId)
+  emit()
+}
+
+/** Hot-reload an installed plugin from its stored code (devtools). */
+export async function reloadPlugin(pluginId: string): Promise<void> {
+  const entry = plugins.get(pluginId)
+  if (!entry) throw new Error(`Unknown plugin: ${pluginId}`)
+  const wasEnabled = isPluginEnabled(pluginId, entry.manifest.defaultEnabled === true)
+  deactivatePlugin(pluginId)
+
+  if (entry.source === 'installed') {
+    const record = listInstalledPluginRecords().find((item) => item.manifest.id === pluginId)
+    if (!record) throw new Error('Installed plugin record missing')
+    const module = await loadPluginModuleFromCode(record.manifest, record.code)
+    entry.module = module
+    entry.manifest = module.manifest
+  }
+
+  if (wasEnabled) await activatePlugin(pluginId)
+  else emit()
+}
+
+export async function hydrateInstalledPlugins(): Promise<void> {
+  for (const record of listInstalledPluginRecords()) {
+    try {
+      const module = await loadPluginModuleFromCode(record.manifest, record.code)
+      registerInstalledPlugin(module, { installPath: record.path })
+    } catch (error) {
+      console.error('[plugins] failed to hydrate installed plugin', record.manifest.id, error)
     }
   }
 }

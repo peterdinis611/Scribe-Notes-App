@@ -43,6 +43,7 @@
     "editor": "Editor",
     "settings": "Settings",
     "docs": "Docs",
+    "plugins": "Plugins",
     "graph": "Connection map",
     "settingsSections": "Settings sections",
     "closeLibrary": "Close library",
@@ -1126,7 +1127,129 @@
       "disabledToast": "Plugin disabled",
       "toggleError": "Could not toggle plugin",
       "errorPrefix": "Error",
-      "usage": "used {{count}}×"
+      "usage": "used {{count}}×",
+      "install": "Install .scribe-ext",
+      "installing": "Installing…",
+      "installHint": "Pick a .scribe-ext zip (manifest.json + index.js) or a JSON package. Installed plugins run with a restricted permission policy.",
+      "installToast": "Plugin installed",
+      "installError": "Could not install plugin",
+      "uninstall": "Uninstall",
+      "uninstallToast": "Plugin uninstalled",
+      "uninstallError": "Could not uninstall plugin",
+      "reload": "Reload",
+      "reloadToast": "Plugin reloaded",
+      "reloadError": "Could not reload plugin",
+      "panelsTitle": "Plugin settings",
+      "bridgesTitle": "NLP & MCP bridges",
+      "devtoolsTitle": "Devtools",
+      "logsTitle": "Plugin console",
+      "logsHint": "Recent log lines from api.log() and activation errors.",
+      "logsEmpty": "No plugin logs yet.",
+      "clearLogs": "Clear",
+      "marketplaceTitle": "Marketplace",
+      "marketplaceStatus": "Not available yet",
+      "comingSoon": "Coming soon",
+      "on": "On",
+      "off": "Off",
+      "optIn": "opt-in",
+      "sourceInstalled": "installed",
+      "presetsTitle": "Presets",
+      "presetsDescription": "Turn recommended plugin sets on or off in one click. You can still toggle each plugin below.",
+      "presetOn": "Enable",
+      "presetOff": "Disable",
+      "presetEnabledToast": "Preset enabled",
+      "presetDisabledToast": "Preset disabled",
+      "presetError": "Could not apply preset",
+      "presets": {
+        "writing": {
+          "label": "Writing",
+          "description": "Journal, meeting wrap-up, plain-text export ({{enabled}}/{{total}} on)"
+        },
+        "study": {
+          "label": "Study",
+          "description": "Flashcards and citations ({{enabled}}/{{total}} on)"
+        },
+        "workspace": {
+          "label": "Workspace",
+          "description": "Note status and theme packs ({{enabled}}/{{total}} on)"
+        },
+        "all": {
+          "label": "All bundled plugins",
+          "description": "Enable or disable every first-party plugin at once"
+        }
+      },
+      "categories": {
+        "writing": "Writing",
+        "study": "Study",
+        "workspace": "Workspace",
+        "other": "Other"
+      },
+      "examplesTitle": "How to build a plugin",
+      "examplesDescription": "Minimal recipes. Package as .scribe-ext (zip with manifest.json + index.js) or install the JSON examples from the repo.",
+      "copyExample": "Copy",
+      "exampleCopied": "Example copied",
+      "exampleCopyError": "Could not copy",
+      "exampleFilesTitle": "Repo examples",
+      "exampleFilesHint": "hello.scribe-ext.json · slash-block.scribe-ext.json · command-notify.scribe-ext.json under src/lib/plugins/examples/",
+      "examples": {
+        "minimal": {
+          "title": "1. Minimal command",
+          "hint": "index.js — register a ⌘K action and toast"
+        },
+        "manifest": {
+          "title": "2. manifest.json",
+          "hint": "Required fields + permissions + optional i18n"
+        },
+        "slashBlock": {
+          "title": "3. Slash block",
+          "hint": "Register a / command that inserts content"
+        }
+      },
+      "create": {
+        "open": "Create plugin",
+        "title": "Create a plugin",
+        "description": "Pick a template, name it, and Scribe installs it locally. You can download a .scribe-ext.json package to edit later.",
+        "nameLabel": "Name",
+        "namePlaceholder": "My helper",
+        "idLabel": "Plugin id",
+        "idHint": "Unique id like local.my-helper. Auto-filled from the name.",
+        "descriptionLabel": "Description",
+        "descriptionPlaceholder": "What this plugin does",
+        "templateLabel": "Template",
+        "categoryLabel": "Category",
+        "enableAfter": "Enable after create",
+        "downloadPackage": "Download .scribe-ext.json package",
+        "preview": "Generated code preview",
+        "submit": "Create & install",
+        "creating": "Creating…",
+        "successToast": "Plugin created",
+        "errorToast": "Could not create plugin",
+        "templates": {
+          "command": {
+            "label": "⌘K command",
+            "hint": "Adds a command palette action with a toast"
+          },
+          "slashBlock": {
+            "label": "Slash block",
+            "hint": "Adds a / slash insert in the editor"
+          },
+          "commandAndBlock": {
+            "label": "Command + slash block",
+            "hint": "Both a palette command and a slash template"
+          },
+          "activeDoc": {
+            "label": "Show active note",
+            "hint": "Command that reads the open document title"
+          }
+        },
+        "errors": {
+          "name_required": "Name is required",
+          "id_required": "Plugin id is required",
+          "id_invalid": "Use letters, numbers, dots, or dashes (e.g. local.my-plugin)",
+          "id_taken": "This plugin id is already in use",
+          "unknown": "Something went wrong"
+        }
+      }
     },
     "mcp": {
       "title": "Scribe Memory MCP",
@@ -1674,6 +1797,21 @@
             "If the DB is locked while Scribe is open, retry or check scribe_status"
           ]
         },
+        "plugins": {
+          "title": "Plugins",
+          "summary": "Presets, toggles, and .scribe-ext packages",
+          "paragraphs": [
+            "Open Plugins from the left icon rail (puzzle icon). It lists first-party extensions (slash blocks, ⌘K commands, exports, themes). Use presets (Writing, Study, Workspace) to enable or disable a set at once, or flip each plugin with its On/Off switch.",
+            "Create plugin opens a template wizard (⌘K command, slash block, or both). Scribe installs it locally and can download a .scribe-ext.json package. You can also import a zip/JSON package from disk.",
+            "The host API covers blocks, commands, storage, export/import, UI panels, TipTap nodes, NLP/MCP bridges, lifecycle hooks, notify toasts, and the active document snapshot."
+          ],
+          "points": [
+            "Plugins rail icon — top-level page next to Docs and Settings",
+            "Create plugin — template wizard on the Plugins page",
+            "Writing / Study / Workspace presets — batch enable or disable",
+            "Installed plugins can be toggled, reloaded, or uninstalled anytime"
+          ]
+        },
         "journal": {
           "title": "Journal and quick note",
           "summary": "Dated entries and scratch notes",
@@ -1710,7 +1848,8 @@
       },
       "localAiTip": "in All scope combines full-text and semantic hits when Local AI is enabled.",
       "revisionsTip": "still works for undo in the editor; History panel holds longer snapshots.",
-      "mcpTip": "opens Settings — enable MCP and copy Cursor / Claude config there."
+      "mcpTip": "opens Settings — enable MCP and copy Cursor / Claude config there.",
+      "pluginsTip": "opens the Plugins page from the left rail."
     }
   },
   "storageAccess": {

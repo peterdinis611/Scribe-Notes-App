@@ -1,0 +1,16 @@
+{
+  "manifest": {
+    "id": "example.command-notify",
+    "name": "Command + notify example",
+    "version": "1.0.0",
+    "description": "⌘K command that shows the active note title.",
+    "scribeApi": 2,
+    "permissions": ["commands"],
+    "defaultEnabled": true,
+    "i18n": {
+      "en": { "cmd.title": "Show active note" },
+      "sk": { "cmd.title": "Zobraziť aktívnu poznámku" }
+    }
+  },
+  "code": "export default function activate(api) {\n  api.commands.register({\n    id: 'show-active',\n    title: api.i18n.t('cmd.title', 'Show active note'),\n    run: () => {\n      const doc = api.app.getActiveDocument()\n      if (!doc) {\n        api.notify.error('No note open')\n        return\n      }\n      api.notify.success(doc.title, doc.id)\n      api.log('Active: ' + doc.title)\n    },\n  })\n}\n"
+}

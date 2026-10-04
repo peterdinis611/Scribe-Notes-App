@@ -25,7 +25,7 @@ import { McpPage } from '@/pages/settings/McpPage'
 import { CapturePage } from '@/pages/settings/CapturePage'
 import { NlpPage } from '@/pages/settings/NlpPage'
 import { AgentPage } from '@/pages/settings/AgentPage'
-import { PluginsPage } from '@/pages/settings/PluginsPage'
+import { PluginsPage } from '@/pages/PluginsPage'
 
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
@@ -64,6 +64,12 @@ const graphRoute = createRoute({
     around: search.around === true || search.around === 'true' ? true : undefined,
   }),
   component: GraphPage,
+})
+
+const pluginsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/plugins',
+  component: PluginsPage,
 })
 
 const storageModeRoute = createRoute({
@@ -148,10 +154,13 @@ const settingsCaptureRoute = createRoute({
   component: CapturePage,
 })
 
-const settingsPluginsRoute = createRoute({
+/** Legacy path from when Plugins lived under Settings. */
+const settingsPluginsRedirectRoute = createRoute({
   getParentRoute: () => settingsLayoutRoute,
   path: 'plugins',
-  component: PluginsPage,
+  beforeLoad: () => {
+    throw redirect({ to: '/plugins' })
+  },
 })
 
 const settingsPrivacyRoute = createRoute({
@@ -181,6 +190,7 @@ const routeTree = rootRoute.addChildren([
     documentRoute,
     docsRoute,
     graphRoute,
+    pluginsRoute,
     storageModeRoute,
     settingsLayoutRoute.addChildren([
       settingsIndexRoute,
@@ -194,7 +204,7 @@ const routeTree = rootRoute.addChildren([
       settingsNlpRoute,
       settingsAgentRoute,
       settingsCaptureRoute,
-      settingsPluginsRoute,
+      settingsPluginsRedirectRoute,
       settingsDocsRedirectRoute,
       settingsPrivacyRoute,
       settingsAboutRoute,

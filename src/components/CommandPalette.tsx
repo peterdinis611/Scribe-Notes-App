@@ -821,7 +821,7 @@ export function CommandPalette() {
         label: t('settings.plugins.title'),
         hint: t('settings.sections.plugins.description'),
         icon: <Puzzle className="h-4 w-4" />,
-        run: () => navigate(ROUTES.settingsSection('plugins')),
+        run: () => navigate(ROUTES.plugins()),
       },
       ...listPluginCommands().map((command) => ({
         type: 'action' as const,
