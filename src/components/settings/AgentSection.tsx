@@ -249,10 +249,17 @@ export function AgentSection() {
             scope: 'document',
             documentId: activeDocumentId,
             topic: teachTopic,
+            agentId: teachTopic === 'grammar' ? 'proofreader' : 'general',
           }),
         )
       } else {
-        dispatch(addAgentTeaching({ text: result.text, topic: teachTopic }))
+        dispatch(
+          addAgentTeaching({
+            text: result.text,
+            topic: teachTopic,
+            agentId: teachTopic === 'grammar' ? 'proofreader' : 'general',
+          }),
+        )
       }
       setTeachInput('')
       toast.success(

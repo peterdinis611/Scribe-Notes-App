@@ -69,6 +69,11 @@ mod tests {
             text: text.into(),
             created_at: 0,
             topic: topic.into(),
+            agent_id: if topic == "grammar" {
+                "proofreader".into()
+            } else {
+                "general".into()
+            },
         }
     }
 

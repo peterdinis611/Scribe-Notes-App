@@ -438,6 +438,7 @@ export type AgentBackendTeaching = {
   text: string
   createdAt: number
   topic?: 'general' | 'grammar'
+  agentId?: string
 }
 
 export type AgentBackendRun = {
@@ -448,6 +449,12 @@ export type AgentBackendRun = {
   stepsJson?: string | null
   answer?: string | null
   createdAt: number
+  agentId?: string
+}
+
+export type AgentBackendRoleState = {
+  agentId: string
+  enabled: boolean
 }
 
 export const getAgentPrefs = () => invoke<AgentBackendPrefs>('get_agent_prefs')
@@ -463,23 +470,33 @@ export const setAgentPrefsBackend = (input: AgentBackendPrefs) =>
     },
   })
 
-export const listAgentTeachings = () =>
-  invoke<AgentBackendTeaching[]>('list_agent_teachings')
+export const listAgentRoleStates = () =>
+  invoke<AgentBackendRoleState[]>('list_agent_role_states')
+
+export const setAgentRoleStatesBackend = (roles: AgentBackendRoleState[]) =>
+  invoke<AgentBackendRoleState[]>('set_agent_role_states', { input: { roles } })
+
+export const listAgentTeachings = (agentId?: string | null) =>
+  invoke<AgentBackendTeaching[]>('list_agent_teachings', {
+    agentId: agentId ?? null,
+  })
 
 export const addAgentTeachingBackend = (
   text: string,
   topic?: 'general' | 'grammar',
+  agentId?: string | null,
 ) =>
   invoke<AgentBackendTeaching>('add_agent_teaching', {
     text,
     topic: topic ?? null,
+    agentId: agentId ?? null,
   })
 
 export const removeAgentTeachingBackend = (id: string) =>
   invoke<boolean>('remove_agent_teaching', { id })
 
-export const clearAgentTeachingsBackend = () =>
-  invoke<number>('clear_agent_teachings')
+export const clearAgentTeachingsBackend = (agentId?: string | null) =>
+  invoke<number>('clear_agent_teachings', { agentId: agentId ?? null })
 
 export const appendAgentRun = (input: {
   scope: string
@@ -487,10 +504,14 @@ export const appendAgentRun = (input: {
   goal: string
   stepsJson?: string | null
   answer?: string | null
+  agentId?: string | null
 }) => invoke<AgentBackendRun>('append_agent_run', { input })
 
-export const listAgentRuns = (limit = 40) =>
-  invoke<AgentBackendRun[]>('list_agent_runs', { limit })
+export const listAgentRuns = (limit = 40, agentId?: string | null) =>
+  invoke<AgentBackendRun[]>('list_agent_runs', {
+    limit,
+    agentId: agentId ?? null,
+  })
 
 export const getAgentDbPath = () => invoke<string | null>('get_agent_db_path')
 

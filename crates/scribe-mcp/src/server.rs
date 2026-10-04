@@ -64,13 +64,14 @@ impl ScribeMcp {
 
     fn agent_teachings_preamble(&self, grammar_only: bool) -> Option<String> {
         let store = self.open_agent_store()?;
-        let teachings = store.list_teachings().ok()?;
+        let agent_id = if grammar_only { "proofreader" } else { "general" };
+        let teachings = store.list_teachings(Some(agent_id)).ok()?;
         scribe_agent::memory_preamble(&teachings, grammar_only)
     }
 
     fn grammar_rules_from_agent(&self) -> Vec<String> {
         self.open_agent_store()
-            .and_then(|store| store.list_teachings().ok())
+            .and_then(|store| store.list_teachings(Some("proofreader")).ok())
             .map(|teachings| scribe_agent::grammar_rule_texts(&teachings))
             .unwrap_or_default()
     }
@@ -364,12 +365,14 @@ impl ScribeMcp {
         };
 
         if let Some(store) = self.open_agent_store() {
+            let agent_id = if spellcheck { "proofreader" } else { "general" };
             let _ = store.append_run(
                 scope,
                 document_id.as_deref(),
                 goal,
                 Some(&serde_json::to_string(&steps).unwrap_or_else(|_| "[]".into())),
                 Some(&answer),
+                Some(agent_id),
             );
         }
 

@@ -123,6 +123,7 @@ export function SelectionAIContextMenu({
     try {
       const result = await distillTeachingWithLlm(text, { force: true, topic })
       const documentId = store.getState().documents.activeDocumentId
+      const agentId = topic === 'grammar' ? 'proofreader' : 'general'
       if (documentId) {
         store.dispatch(
           addAgentTeaching({
@@ -130,10 +131,11 @@ export function SelectionAIContextMenu({
             scope: 'document',
             documentId,
             topic,
+            agentId,
           }),
         )
       } else {
-        store.dispatch(addAgentTeaching({ text: result.text, topic }))
+        store.dispatch(addAgentTeaching({ text: result.text, topic, agentId }))
       }
       toast.success(
         result.distilled

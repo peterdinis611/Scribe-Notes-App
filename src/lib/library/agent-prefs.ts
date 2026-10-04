@@ -1,4 +1,5 @@
 import {
+  AGENT_ROLE_IDS,
   DEFAULT_AGENT_ROLES,
   filterToolsByAgents,
   normalizeAgentRoles,
@@ -9,7 +10,10 @@ import {
 export type { AgentRoleId, AgentRolePrefs }
 export { DEFAULT_AGENT_ROLES, normalizeAgentRoles } from '@/lib/library/agent-roles'
 
+/** Cap per specialist partition (matches scribe-agent TEACHINGS_MAX). */
 export const AGENT_TEACHINGS_MAX = 24
+/** Global FE cache across all role partitions. */
+export const AGENT_TEACHINGS_GLOBAL_MAX = AGENT_TEACHINGS_MAX * 6
 export const AGENT_TEACHING_MAX_LEN = 280
 export const AGENT_PINNED_FACTS_MAX = 12
 export const AGENT_EPISODES_MAX = 8
@@ -80,6 +84,8 @@ export type AgentTeaching = {
   /** When scope is document, bind teaching to this note. */
   documentId?: string | null
   topic?: AgentTeachingTopic
+  /** Specialist partition in scribe-agent.db (`general`, `proofreader`, …). */
+  agentId?: AgentRoleId
 }
 
 export type AgentPinnedFact = {
@@ -232,16 +238,32 @@ function normalizeTeachings(raw: unknown): AgentTeaching[] {
         typeof (item as AgentTeaching).createdAt === 'number'
       )
     })
-    .map((item) => ({
-      id: item.id,
-      text: item.text.trim().slice(0, AGENT_TEACHING_MAX_LEN),
-      createdAt: item.createdAt,
-      scope: (item.scope === 'document' ? 'document' : 'global') as AgentTeachingScope,
-      documentId: typeof item.documentId === 'string' ? item.documentId : null,
-      topic: (item.topic === 'grammar' ? 'grammar' : 'general') as AgentTeachingTopic,
-    }))
+    .map((item) => {
+      const topic = (item.topic === 'grammar' ? 'grammar' : 'general') as AgentTeachingTopic
+      const agentId = normalizeTeachingAgentId(
+        typeof item.agentId === 'string' ? item.agentId : undefined,
+        topic,
+      )
+      return {
+        id: item.id,
+        text: item.text.trim().slice(0, AGENT_TEACHING_MAX_LEN),
+        createdAt: item.createdAt,
+        scope: (item.scope === 'document' ? 'document' : 'global') as AgentTeachingScope,
+        documentId: typeof item.documentId === 'string' ? item.documentId : null,
+        topic,
+        agentId,
+      }
+    })
     .filter((item) => item.text.length > 0)
-    .slice(0, AGENT_TEACHINGS_MAX)
+    .slice(0, AGENT_TEACHINGS_GLOBAL_MAX)
+}
+
+function normalizeTeachingAgentId(
+  raw: string | undefined,
+  topic: AgentTeachingTopic,
+): AgentRoleId {
+  if (raw && (AGENT_ROLE_IDS as string[]).includes(raw)) return raw as AgentRoleId
+  return topic === 'grammar' ? 'proofreader' : 'general'
 }
 
 function normalizePinned(raw: unknown): AgentPinnedFact[] {
@@ -346,17 +368,20 @@ export function createTeaching(
     scope?: AgentTeachingScope
     documentId?: string | null
     topic?: AgentTeachingTopic
+    agentId?: AgentRoleId
   },
 ): AgentTeaching | null {
   const trimmed = text.trim().replace(/\s+/g, ' ').slice(0, AGENT_TEACHING_MAX_LEN)
   if (trimmed.length < 2) return null
+  const topic: AgentTeachingTopic = opts?.topic === 'grammar' ? 'grammar' : 'general'
   return {
     id: `teach-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     text: trimmed,
     createdAt: Date.now(),
     scope: opts?.scope === 'document' ? 'document' : 'global',
     documentId: opts?.scope === 'document' ? opts.documentId ?? null : null,
-    topic: opts?.topic === 'grammar' ? 'grammar' : 'general',
+    topic,
+    agentId: normalizeTeachingAgentId(opts?.agentId, topic),
   }
 }
 
@@ -373,8 +398,17 @@ export function createPinnedFact(text: string): AgentPinnedFact | null {
 export function relevantTeachings(
   teachings: AgentTeaching[],
   documentId?: string | null,
+  agentId?: AgentRoleId | null,
 ): AgentTeaching[] {
   return teachings.filter((item) => {
+    if (agentId) {
+      const owned = item.agentId ?? (item.topic === 'grammar' ? 'proofreader' : 'general')
+      if (agentId === 'general') {
+        if (owned !== 'general') return false
+      } else if (owned !== agentId && owned !== 'general') {
+        return false
+      }
+    }
     if (!item.scope || item.scope === 'global') return true
     if (item.scope === 'document') return Boolean(documentId && item.documentId === documentId)
     return true
@@ -389,12 +423,18 @@ export function teachingsToMemoryContext(
     episodes?: AgentEpisode[]
     outputLanguage?: AgentOutputLanguage
     documentId?: string | null
+    /** Specialist partition — includes shared `general` teachings. */
+    agentId?: AgentRoleId | null
     /** When true, only inject grammar topic teachings (spellcheck agent). */
     grammarOnly?: boolean
   },
 ): Array<{ role: string; text: string }> {
   const blocks: string[] = []
-  const scoped = relevantTeachings(teachings, extras?.documentId)
+  const scoped = relevantTeachings(
+    teachings,
+    extras?.documentId,
+    extras?.grammarOnly ? 'proofreader' : extras?.agentId,
+  )
   const general = scoped.filter((item) => !item.topic || item.topic === 'general')
   const grammar = scoped.filter((item) => item.topic === 'grammar')
   if (!extras?.grammarOnly && general.length) {

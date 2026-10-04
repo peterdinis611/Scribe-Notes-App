@@ -1032,6 +1032,7 @@ export async function runAgentGoal(
       episodes: opts?.grammarOnly ? undefined : prefs.episodes,
       outputLanguage: prefs.outputLanguage,
       documentId,
+      agentId: opts?.grammarOnly ? 'proofreader' : opts?.roleId,
       grammarOnly: opts?.grammarOnly,
     }),
     ...(memoryContext ?? []),

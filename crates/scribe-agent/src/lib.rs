@@ -4,10 +4,12 @@
 
 mod db;
 mod grammar;
+mod roles;
 mod store;
 
 pub use db::{open_agent_db, open_agent_db_memory, AgentDb, AGENT_DB_FILE, SCHEMA_VERSION};
 pub use grammar::{grammar_rule_texts, memory_preamble, normalize_topic};
+pub use roles::{normalize_agent_id, AGENT_ROLE_IDS, DEFAULT_AGENT_ID};
 pub use store::{
-    AgentPrefs, AgentRunRecord, AgentStore, AgentTeaching, DEFAULT_MAX_STEPS,
+    AgentPrefs, AgentRoleState, AgentRunRecord, AgentStore, AgentTeaching, DEFAULT_MAX_STEPS,
 };

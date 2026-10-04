@@ -236,10 +236,10 @@ export function AgentPanel({
   const displayMessages = scope === 'document' ? messages : sessionMessages
 
   const refreshRunHistory = useCallback(() => {
-    void listAgentRuns(24)
+    void listAgentRuns(24, roleId)
       .then(setRunHistory)
       .catch(() => setRunHistory([]))
-  }, [])
+  }, [roleId])
 
   useEffect(() => {
     if (activeDocumentId) {
@@ -557,6 +557,7 @@ export function AgentPanel({
           goal: trimmed || displayGoal,
           stepsJson: JSON.stringify(toPersistSteps(assistant.steps ?? [])),
           answer: assistant.text,
+          agentId: roleId,
         })
           .then(() => refreshRunHistory())
           .catch(() => undefined)
@@ -794,10 +795,11 @@ export function AgentPanel({
             scope: 'document',
             documentId: activeDocumentId,
             topic: teachTopic,
+            agentId: roleId,
           }),
         )
       } else {
-        dispatch(addAgentTeaching({ text: result.text, topic: teachTopic }))
+        dispatch(addAgentTeaching({ text: result.text, topic: teachTopic, agentId: roleId }))
       }
       setTeachInput('')
       toast.success(
@@ -812,7 +814,7 @@ export function AgentPanel({
     } finally {
       setTeachBusy(false)
     }
-  }, [teachInput, teachBusy, teachWithAi, teachTopic, dispatch, t, scope, activeDocumentId])
+  }, [teachInput, teachBusy, teachWithAi, teachTopic, dispatch, t, scope, activeDocumentId, roleId])
 
   const handleSaveReplyAsTeaching = useCallback(
     async (text: string) => {
@@ -827,10 +829,11 @@ export function AgentPanel({
               text: result.text,
               scope: 'document',
               documentId: activeDocumentId,
+              agentId: roleId,
             }),
           )
         } else {
-          dispatch(addAgentTeaching(result.text))
+          dispatch(addAgentTeaching({ text: result.text, agentId: roleId }))
         }
         toast.success(
           result.distilled ? t('settings.agent.teachRefinedToast') : t('settings.agent.taughtToast'),
@@ -841,7 +844,7 @@ export function AgentPanel({
         setTeachBusy(false)
       }
     },
-    [activeDocumentId, dispatch, scope, t, teachBusy],
+    [activeDocumentId, dispatch, roleId, scope, t, teachBusy],
   )
 
   const openCitation = useCallback(
@@ -1069,6 +1072,12 @@ export function AgentPanel({
             </form>
             {agentPrefs.teachings
               .filter((item) => {
+                const owned = item.agentId ?? (item.topic === 'grammar' ? 'proofreader' : 'general')
+                if (roleId === 'general') {
+                  if (owned !== 'general') return false
+                } else if (owned !== roleId && owned !== 'general') {
+                  return false
+                }
                 if (scope === 'document' && activeDocumentId) {
                   return (
                     !item.scope ||
