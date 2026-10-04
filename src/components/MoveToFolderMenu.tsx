@@ -17,7 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { useMoveDocumentToFolder } from '@/hooks/useMoveDocumentToFolder'
+import { useMoveDocumentToFolder, useMoveDocumentsToFolder } from '@/hooks/useMoveDocumentToFolder'
 import { promptAndCreateFolder } from '@/lib/library/create-folder'
 import { flattenFoldersForPicker } from '@/lib/library/folders'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
@@ -110,6 +110,7 @@ export function MoveToFolderMenu({
 type MoveToFolderDialogProps = {
   open: boolean
   documentId: string | null
+  documentIds?: string[]
   folderId: string | null
   onOpenChange: (open: boolean) => void
 }
@@ -117,6 +118,7 @@ type MoveToFolderDialogProps = {
 export function MoveToFolderDialog({
   open,
   documentId,
+  documentIds,
   folderId,
   onOpenChange,
 }: MoveToFolderDialogProps) {
@@ -124,12 +126,18 @@ export function MoveToFolderDialog({
   const folders = useAppSelector((state) => state.folders.folders)
   const dispatch = useAppDispatch()
   const moveDocument = useMoveDocumentToFolder()
+  const moveDocuments = useMoveDocumentsToFolder()
   const folderItems = useMemo(() => flattenFoldersForPicker(folders), [folders])
+  const ids = documentIds && documentIds.length > 0 ? documentIds : documentId ? [documentId] : []
 
-  if (!documentId) return null
+  if (ids.length === 0) return null
 
   async function handleMove(nextFolderId: string | null) {
-    await moveDocument(documentId!, nextFolderId)
+    if (ids.length === 1) {
+      await moveDocument(ids[0]!, nextFolderId)
+    } else {
+      await moveDocuments(ids, nextFolderId)
+    }
     onOpenChange(false)
   }
 

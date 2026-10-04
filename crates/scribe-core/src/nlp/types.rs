@@ -395,6 +395,162 @@ pub struct NlpChunks {
     pub count: i64,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpSectionSummary {
+    pub title: String,
+    #[serde(default)]
+    pub level: i64,
+    #[serde(default)]
+    pub summary: String,
+    #[serde(default)]
+    pub bullets: Vec<String>,
+    #[serde(default)]
+    pub char_count: i64,
+    #[serde(default)]
+    pub sentence_count: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpSectionSummaries {
+    #[serde(default)]
+    pub sections: Vec<NlpSectionSummary>,
+    #[serde(default)]
+    pub count: i64,
+    #[serde(default)]
+    pub source: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpDecision {
+    pub text: String,
+    #[serde(default)]
+    pub kind: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpDecisions {
+    #[serde(default)]
+    pub decisions: Vec<NlpDecision>,
+    #[serde(default)]
+    pub count: i64,
+    #[serde(default)]
+    pub source: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpQuote {
+    pub text: String,
+    #[serde(default)]
+    pub kind: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attribution: Option<String>,
+    #[serde(default)]
+    pub score: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpQuotes {
+    #[serde(default)]
+    pub quotes: Vec<NlpQuote>,
+    #[serde(default)]
+    pub count: i64,
+    #[serde(default)]
+    pub source: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpPiiFinding {
+    pub kind: String,
+    pub label: String,
+    #[serde(rename = "match")]
+    pub matched: String,
+    #[serde(default)]
+    pub start: i64,
+    #[serde(default)]
+    pub end: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpPiiReport {
+    #[serde(default)]
+    pub findings: Vec<NlpPiiFinding>,
+    #[serde(default)]
+    pub count: i64,
+    #[serde(default)]
+    pub by_kind: std::collections::BTreeMap<String, i64>,
+    #[serde(default)]
+    pub risk: String,
+    #[serde(default)]
+    pub safe_to_share: bool,
+    #[serde(default)]
+    pub source: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpRankedTask {
+    pub text: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub due_hint: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    #[serde(default)]
+    pub score: f64,
+    #[serde(default)]
+    pub reasons: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpRankedTasks {
+    #[serde(default)]
+    pub tasks: Vec<NlpRankedTask>,
+    #[serde(default)]
+    pub count: i64,
+    #[serde(default)]
+    pub source: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpContradictionHint {
+    pub text_a: String,
+    pub text_b: String,
+    #[serde(default)]
+    pub score: f64,
+    #[serde(default)]
+    pub reasons: Vec<String>,
+    #[serde(default)]
+    pub overlap: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpContradictionHints {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title_a: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title_b: Option<String>,
+    #[serde(default)]
+    pub hints: Vec<NlpContradictionHint>,
+    #[serde(default)]
+    pub count: i64,
+    #[serde(default)]
+    pub source: String,
+}
+
 pub fn normalize_rewrite_mode(mode: Option<&str>) -> String {
     match mode
         .map(str::trim)

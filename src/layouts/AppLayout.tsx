@@ -98,6 +98,7 @@ export function AppLayout() {
   const showDocumentTabs = useAppSelector((state) => state.settings.showDocumentTabs)
   const movePickerOpen = useAppSelector((state) => state.folders.moveDocumentPickerOpen)
   const activeDocument = useAppSelector((state) => state.documents.activeDocument)
+  const selectedDocumentIds = useAppSelector((state) => state.documents.selectedDocumentIds)
   const documents = useAppSelector((state) => state.documents.documents)
   const openDocumentIds = useAppSelector((state) => state.documents.openDocumentIds)
   const folders = useAppSelector((state) => state.folders.folders)
@@ -277,7 +278,14 @@ export function AppLayout() {
       <CommandPalette />
       <MoveToFolderDialog
         open={movePickerOpen}
-        documentId={activeDocument?.id ?? null}
+        documentId={activeDocument?.id ?? selectedDocumentIds[0] ?? null}
+        documentIds={
+          selectedDocumentIds.length > 0
+            ? selectedDocumentIds
+            : activeDocument?.id
+              ? [activeDocument.id]
+              : []
+        }
         folderId={activeDocument?.folderId ?? null}
         onOpenChange={(open) => dispatch(setMoveDocumentPickerOpen(open))}
       />

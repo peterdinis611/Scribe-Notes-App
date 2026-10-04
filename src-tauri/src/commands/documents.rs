@@ -1563,6 +1563,8 @@ mod tests {
     #[test]
     fn list_document_summaries_filters_by_folder() {
         let conn = in_memory_conn();
+        seed_folder(&conn, "f1", "One", None);
+        seed_folder(&conn, "f2", "Two", None);
         seed_document(&conn, "d1", "In folder", r#"{"type":"doc","content":[]}"#, Some("f1"));
         seed_document(&conn, "d2", "Other", r#"{"type":"doc","content":[]}"#, Some("f2"));
 

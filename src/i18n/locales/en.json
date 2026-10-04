@@ -2671,6 +2671,12 @@
       "action_items": "Action items",
       "glossary": "Glossary",
       "compare_notes": "Compare notes",
+      "section_summaries": "Section summaries",
+      "decisions": "Decision log",
+      "quotes": "Extract quotes",
+      "pii": "Privacy scan",
+      "rank_tasks": "Rank tasks",
+      "contradictions": "Contradiction hints",
       "files_answer": "Ask files/",
       "save_template": "Save as template"
     }

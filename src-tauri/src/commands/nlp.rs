@@ -1836,6 +1836,22 @@ fn document_plain_for_nlp(
     Ok(format!("{title}\n{}", extract_search_text(&content_json)))
 }
 
+/// Load document plaintext without requiring Local AI to be enabled (offline fallbacks).
+fn document_plain_offline(
+    state: &State<'_, DbState>,
+    document_id: &str,
+) -> Result<String, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let (title, content_json): (String, String) = conn
+        .query_row(
+            "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL",
+            params![document_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .map_err(|e| e.to_string())?;
+    Ok(format!("{title}\n{}", extract_search_text(&content_json)))
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NlpDocumentTextInput {
@@ -1861,6 +1877,36 @@ fn resolve_nlp_text(state: &State<'_, DbState>, input: &NlpDocumentTextInput) ->
         .filter(|value| !value.is_empty())
         .ok_or_else(|| "documentId or text is required".to_string())?;
     document_plain_for_nlp(state, document_id)
+}
+
+fn resolve_text_offline_ok(
+    state: &State<'_, DbState>,
+    input: &NlpDocumentTextInput,
+) -> Result<String, String> {
+    if let Some(plain) = input
+        .text
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        return Ok(plain.to_string());
+    }
+    let document_id = input
+        .document_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| "documentId or text is required".to_string())?;
+    document_plain_offline(state, document_id)
+}
+
+fn nlp_is_enabled(state: &State<'_, DbState>) -> bool {
+    state
+        .conn
+        .lock()
+        .ok()
+        .and_then(|conn| is_nlp_enabled(&conn).ok())
+        .unwrap_or(false)
 }
 
 /// Study flashcards from the active document (Python sidecar).
@@ -2278,6 +2324,127 @@ pub fn nlp_meeting_notes_pack(
     let text = resolve_nlp_text(&state, &input)?;
     let limit = input.limit.unwrap_or(12).clamp(1, 30);
     sidecar.meeting_notes_pack(&text, limit)
+}
+
+#[tauri::command]
+pub fn nlp_section_summaries(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpDocumentTextInput,
+) -> Result<serde_json::Value, String> {
+    let text = resolve_nlp_text(&state, &input)?;
+    let limit = input.limit.unwrap_or(12).clamp(1, 40);
+    let raw = sidecar.section_summaries(&text, limit, 2)?;
+    serde_json::to_value(scribe_core::nlp::parse_section_summaries(&raw)).map_err(|e| e.to_string())
+}
+
+/// Decision log — Python preferred, Rust offline fallback always available.
+#[tauri::command]
+pub fn nlp_extract_decisions(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpDocumentTextInput,
+) -> Result<serde_json::Value, String> {
+    let text = resolve_text_offline_ok(&state, &input)?;
+    let limit = input.limit.unwrap_or(12).clamp(1, 40);
+    if nlp_is_enabled(&state) {
+        if let Ok(raw) = sidecar.extract_decisions(&text, limit) {
+            return serde_json::to_value(scribe_core::nlp::parse_decisions(&raw))
+                .map_err(|e| e.to_string());
+        }
+    }
+    serde_json::to_value(scribe_core::nlp::extract_decisions(&text, limit as usize))
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn nlp_extract_quotes(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpDocumentTextInput,
+) -> Result<serde_json::Value, String> {
+    let text = resolve_nlp_text(&state, &input)?;
+    let limit = input.limit.unwrap_or(10).clamp(1, 30);
+    let raw = sidecar.extract_quotes(&text, limit)?;
+    serde_json::to_value(scribe_core::nlp::parse_quotes(&raw)).map_err(|e| e.to_string())
+}
+
+/// PII scan — Python preferred, Rust offline fallback always available.
+#[tauri::command]
+pub fn nlp_detect_pii(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpDocumentTextInput,
+) -> Result<serde_json::Value, String> {
+    let text = resolve_text_offline_ok(&state, &input)?;
+    let limit = input.limit.unwrap_or(40).clamp(1, 100);
+    if nlp_is_enabled(&state) {
+        if let Ok(raw) = sidecar.detect_pii(&text, limit) {
+            return serde_json::to_value(scribe_core::nlp::parse_pii_report(&raw))
+                .map_err(|e| e.to_string());
+        }
+    }
+    serde_json::to_value(scribe_core::nlp::detect_pii(&text, limit as usize))
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn nlp_rank_tasks(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpDocumentTextInput,
+) -> Result<serde_json::Value, String> {
+    let text = resolve_nlp_text(&state, &input)?;
+    let limit = input.limit.unwrap_or(20).clamp(1, 50);
+    let raw = sidecar.rank_tasks(&text, limit)?;
+    serde_json::to_value(scribe_core::nlp::parse_ranked_tasks(&raw)).map_err(|e| e.to_string())
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpContradictionInput {
+    pub document_id_a: Option<String>,
+    pub document_id_b: Option<String>,
+    pub text_a: Option<String>,
+    pub text_b: Option<String>,
+    pub title_a: Option<String>,
+    pub title_b: Option<String>,
+    pub limit: Option<i64>,
+}
+
+#[tauri::command]
+pub fn nlp_contradiction_hints(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpContradictionInput,
+) -> Result<serde_json::Value, String> {
+    let text_a = resolve_nlp_text(
+        &state,
+        &NlpDocumentTextInput {
+            document_id: input.document_id_a.clone(),
+            text: input.text_a.clone(),
+            limit: None,
+            include_cloze: None,
+        },
+    )?;
+    let text_b = resolve_nlp_text(
+        &state,
+        &NlpDocumentTextInput {
+            document_id: input.document_id_b.clone(),
+            text: input.text_b.clone(),
+            limit: None,
+            include_cloze: None,
+        },
+    )?;
+    let limit = input.limit.unwrap_or(8).clamp(1, 20);
+    let raw = sidecar.contradiction_hints(
+        &text_a,
+        &text_b,
+        input.title_a.as_deref(),
+        input.title_b.as_deref(),
+        limit,
+    )?;
+    serde_json::to_value(scribe_core::nlp::parse_contradiction_hints(&raw)).map_err(|e| e.to_string())
 }
 
 #[derive(Debug, Deserialize)]

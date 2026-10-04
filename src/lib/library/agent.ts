@@ -13,13 +13,19 @@ import {
 import { getAgentRecipe, type AgentRecipeId } from '@/lib/library/agent-recipes'
 import {
   runAgentCitations,
+  runAgentContradictions,
   runAgentDatesLibrary,
+  runAgentDecisions,
   runAgentDuplicates,
   runAgentMeetingPack,
   runAgentOrganize,
   runAgentOutlineQuiz,
+  runAgentPii,
+  runAgentQuotes,
+  runAgentRankTasks,
   runAgentRevision,
   runAgentRewrite,
+  runAgentSectionSummaries,
 } from '@/lib/library/agent-tools'
 import {
   askDocument,
@@ -101,6 +107,12 @@ const DOCUMENT_TOOLS = new Set<AgentToolId>([
   'action_items',
   'glossary',
   'compare_notes',
+  'section_summaries',
+  'decisions',
+  'quotes',
+  'pii',
+  'rank_tasks',
+  'contradictions',
   'save_template',
 ])
 
@@ -154,6 +166,12 @@ const INTENT_TO_TOOL: Record<string, AgentToolId> = {
   action_items: 'action_items',
   glossary: 'glossary',
   compare_notes: 'compare_notes',
+  section_summaries: 'section_summaries',
+  decisions: 'decisions',
+  quotes: 'quotes',
+  pii: 'pii',
+  rank_tasks: 'rank_tasks',
+  contradictions: 'contradictions',
   save_template: 'save_template',
 }
 
@@ -551,6 +569,36 @@ async function runTool(
   if (tool === 'meeting') {
     if (!ctx.documentId) throw new Error('agent.needsDocument')
     return runAgentMeetingPack(ctx.documentId)
+  }
+  if (tool === 'section_summaries') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentSectionSummaries(ctx.documentId)
+  }
+  if (tool === 'decisions') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentDecisions(ctx.documentId)
+  }
+  if (tool === 'quotes') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentQuotes(ctx.documentId)
+  }
+  if (tool === 'pii') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentPii(ctx.documentId)
+  }
+  if (tool === 'rank_tasks') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentRankTasks(ctx.documentId)
+  }
+  if (tool === 'contradictions') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    const otherId =
+      ctx.compareDocumentId?.trim() ||
+      ctx.goal.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i)?.[0]
+    if (!otherId || otherId === ctx.documentId) {
+      throw new Error('agent.compareNeedsOther')
+    }
+    return runAgentContradictions(ctx.documentId, otherId)
   }
   if (tool === 'organize') {
     if (!ctx.documentId) throw new Error('agent.needsDocument')

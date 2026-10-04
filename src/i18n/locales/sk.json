@@ -2675,6 +2675,12 @@
       "action_items": "Akčné body",
       "glossary": "Slovník",
       "compare_notes": "Porovnať poznámky",
+      "section_summaries": "Zhrnutia sekcií",
+      "decisions": "Log rozhodnutí",
+      "quotes": "Citácie",
+      "pii": "Sken súkromia",
+      "rank_tasks": "Priorita úloh",
+      "contradictions": "Rozpory",
       "files_answer": "Opýtať sa files/",
       "save_template": "Uložiť ako šablónu"
     }

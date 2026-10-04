@@ -61,6 +61,12 @@ const TOOL_LABEL_KEYS: Record<AgentToolId, string> = {
   action_items: 'agent.tools.action_items',
   glossary: 'agent.tools.glossary',
   compare_notes: 'agent.tools.compare_notes',
+  section_summaries: 'agent.tools.section_summaries',
+  decisions: 'agent.tools.decisions',
+  quotes: 'agent.tools.quotes',
+  pii: 'agent.tools.pii',
+  rank_tasks: 'agent.tools.rank_tasks',
+  contradictions: 'agent.tools.contradictions',
   files_answer: 'agent.tools.files_answer',
   save_template: 'agent.tools.save_template',
 }

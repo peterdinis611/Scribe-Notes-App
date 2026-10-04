@@ -6,10 +6,16 @@ import {
   nlpAnalyzeRevisionDiff,
   nlpCalendarEvents,
   nlpCitationPack,
+  nlpContradictionHints,
+  nlpDetectPii,
+  nlpExtractDecisions,
+  nlpExtractQuotes,
   nlpFindDuplicates,
   nlpMeetingNotesPack,
   nlpOutlineQuiz,
+  nlpRankTasks,
   nlpRewriteSelection,
+  nlpSectionSummaries,
   nlpSuggestTags,
   type CalendarEvent,
 } from '@/lib/db/nlp-api'
@@ -64,6 +70,115 @@ export async function runAgentDatesLibrary(): Promise<LibraryChatResult> {
   const range = weekRangeIso()
   const events = await nlpCalendarEvents({ limit: 24, ...range })
   return formatCalendar(events)
+}
+
+export async function runAgentSectionSummaries(documentId: string): Promise<LibraryChatResult> {
+  const result = await nlpSectionSummaries({ documentId, limit: 12 })
+  if (!result.sections.length) {
+    return { answer: 'No section summaries produced for this note.', citations: [] }
+  }
+  return {
+    answer: `**Section summaries**\n\n${result.sections
+      .map((section) => `**${section.title}**\n${section.summary || '_empty_'}`)
+      .join('\n\n')}`,
+    citations: [
+      {
+        documentId,
+        title: 'Section summaries',
+        snippet: `${result.count} sections`,
+      },
+    ],
+  }
+}
+
+export async function runAgentDecisions(documentId: string): Promise<LibraryChatResult> {
+  const result = await nlpExtractDecisions({ documentId, limit: 12 })
+  if (!result.decisions.length) {
+    return { answer: 'No decisions detected in this note.', citations: [] }
+  }
+  return {
+    answer: `**Decisions (${result.count})**\n\n${bullets(
+      result.decisions.map((item) => item.text),
+    )}`,
+    citations: [{ documentId, title: 'Decisions', snippet: `${result.count} items · ${result.source}` }],
+  }
+}
+
+export async function runAgentQuotes(documentId: string): Promise<LibraryChatResult> {
+  const result = await nlpExtractQuotes({ documentId, limit: 10 })
+  if (!result.quotes.length) {
+    return { answer: 'No quotes detected in this note.', citations: [] }
+  }
+  return {
+    answer: `**Quotes**\n\n${result.quotes.map((item) => `> ${item.text}`).join('\n\n')}`,
+    citations: [{ documentId, title: 'Quotes', snippet: `${result.count} quotes` }],
+  }
+}
+
+export async function runAgentPii(documentId: string): Promise<LibraryChatResult> {
+  const result = await nlpDetectPii({ documentId, limit: 40 })
+  if (!result.findings.length) {
+    return {
+      answer: `**Privacy scan**\n\nRisk: **${result.risk}** — no PII/secrets detected. Safe to share: ${
+        result.safeToShare ? 'yes' : 'no'
+      }.`,
+      citations: [],
+    }
+  }
+  return {
+    answer: `**Privacy scan** (risk: **${result.risk}**)\n\n${bullets(
+      result.findings.map((item) => `${item.label}: \`${item.match}\``),
+    )}`,
+    citations: [
+      {
+        documentId,
+        title: 'PII scan',
+        snippet: `${result.count} findings · ${result.source}`,
+      },
+    ],
+  }
+}
+
+export async function runAgentRankTasks(documentId: string): Promise<LibraryChatResult> {
+  const result = await nlpRankTasks({ documentId, limit: 16 })
+  if (!result.tasks.length) {
+    return { answer: 'No open tasks to rank in this note.', citations: [] }
+  }
+  return {
+    answer: `**Ranked tasks**\n\n${bullets(
+      result.tasks.map((task) => {
+        const due = task.dueHint ? ` _(due ${task.dueHint})_` : ''
+        return `(${task.score}) ${task.text}${due}`
+      }),
+    )}`,
+    citations: [{ documentId, title: 'Ranked tasks', snippet: `${result.count} tasks` }],
+  }
+}
+
+export async function runAgentContradictions(
+  documentIdA: string,
+  documentIdB: string,
+): Promise<LibraryChatResult> {
+  const result = await nlpContradictionHints({
+    documentIdA,
+    documentIdB,
+    limit: 8,
+  })
+  if (!result.hints.length) {
+    return { answer: 'No contradiction hints found between these notes.', citations: [] }
+  }
+  return {
+    answer: `**Contradiction hints (${result.count})**\n\n${result.hints
+      .map(
+        (hint) =>
+          `- A: ${hint.textA}\n  B: ${hint.textB}\n  _${(hint.reasons || []).join(', ')}_`,
+      )
+      .join('\n\n')}`,
+    citations: [
+      { documentId: documentIdA, title: 'Note A', snippet: 'Compared' },
+      { documentId: documentIdB, title: 'Note B', snippet: 'Compared' },
+    ],
+  }
 }
 
 export async function runAgentMeetingPack(documentId: string): Promise<LibraryChatResult> {

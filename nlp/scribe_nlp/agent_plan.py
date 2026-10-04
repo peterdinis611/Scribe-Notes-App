@@ -138,6 +138,59 @@ _INTENT_RULES: list[tuple[str, tuple[str, ...]]] = [
             "fix typos",
         ),
     ),
+    (
+        "section_summaries",
+        (
+            "section summary",
+            "section summaries",
+            "summarize sections",
+            "zhrnutie sekcii",
+            "zhrn sekcie",
+            "po kapitolach",
+        ),
+    ),
+    (
+        "decisions",
+        ("decision log", "extract decisions", "rozhodnutia", "log rozhodnuti", "co sme rozhodli"),
+    ),
+    (
+        "quotes",
+        ("extract quotes", "pull quotes", "citacie", "citáty", "vyber citaty"),
+    ),
+    (
+        "pii",
+        (
+            "detect pii",
+            "privacy scan",
+            "personal data",
+            "citlive udaje",
+            "pii",
+            "sken suckromia",
+            "pred zdieľaním",
+            "pred zdielanim",
+        ),
+    ),
+    (
+        "rank_tasks",
+        (
+            "rank tasks",
+            "prioritize tasks",
+            "prioritize todos",
+            "zorad ulohy",
+            "priorita uloh",
+            "urgent tasks",
+        ),
+    ),
+    (
+        "contradictions",
+        (
+            "contradiction",
+            "conflicting claims",
+            "rozpory",
+            "protirecenia",
+            "nekonzistentne tvrdenia",
+        ),
+    ),
 ]
 
 _DOCUMENT_TOOLS = {
@@ -162,6 +215,12 @@ _DOCUMENT_TOOLS = {
     "glossary",
     "compare_notes",
     "spellcheck",
+    "section_summaries",
+    "decisions",
+    "quotes",
+    "pii",
+    "rank_tasks",
+    "contradictions",
     "document_answer",
 }
 
@@ -280,6 +339,12 @@ _ALLOWED_PLAN_TOOLS = {
     "glossary",
     "compare_notes",
     "spellcheck",
+    "section_summaries",
+    "decisions",
+    "quotes",
+    "pii",
+    "rank_tasks",
+    "contradictions",
     "document_answer",
     "library_answer",
     "duplicates",
@@ -582,6 +647,61 @@ def agent_document_brief(
                         suggestions = ", ".join((item.get("suggestions") or [])[:3])
                         lines.append(f"- {word}" + (f" → {suggestions}" if suggestions else ""))
                     sections.append(_section("spellcheck", "\n".join(lines)))
+            elif tool == "section_summaries":
+                from .section_summaries import section_summaries
+
+                result = section_summaries(source, limit=limit)
+                items = result.get("sections") or []
+                if items:
+                    lines = [
+                        f"**{item.get('title') or 'Section'}** — {item.get('summary') or ''}".strip(
+                            " —"
+                        )
+                        for item in items[:limit]
+                    ]
+                    sections.append(_section("section_summaries", "\n".join(lines)))
+            elif tool == "decisions":
+                from .decisions import extract_decisions
+
+                result = extract_decisions(source, limit=limit)
+                items = result.get("decisions") or []
+                if items:
+                    lines = [f"- {item.get('text') or item}" for item in items[:limit]]
+                    sections.append(_section("decisions", "\n".join(lines)))
+            elif tool == "quotes":
+                from .quotes import extract_quotes
+
+                result = extract_quotes(source, limit=limit)
+                items = result.get("quotes") or []
+                if items:
+                    lines = [f"> {item.get('text') or item}" for item in items[:limit]]
+                    sections.append(_section("quotes", "\n\n".join(lines)))
+            elif tool == "pii":
+                from .pii import detect_pii
+
+                result = detect_pii(source, limit=limit)
+                findings = result.get("findings") or []
+                risk = result.get("risk") or "none"
+                if findings:
+                    lines = [f"Risk: **{risk}**"] + [
+                        f"- {item.get('label') or item.get('kind')}: `{item.get('match')}`"
+                        for item in findings[:limit]
+                    ]
+                    sections.append(_section("pii", "\n".join(lines)))
+                else:
+                    sections.append(_section("pii", f"Risk: **{risk}** — no PII detected."))
+            elif tool == "rank_tasks":
+                from .task_rank import rank_tasks
+
+                result = rank_tasks(source, limit=limit)
+                items = result.get("tasks") or []
+                if items:
+                    lines = [
+                        f"- ({item.get('score')}) {item.get('text')}"
+                        + (f" — due {item.get('dueHint')}" if item.get("dueHint") else "")
+                        for item in items[:limit]
+                    ]
+                    sections.append(_section("rank_tasks", "\n".join(lines)))
             elif tool == "similar":
                 # Similar needs a corpus — skip in single-doc brief.
                 continue
@@ -592,6 +712,7 @@ def agent_document_brief(
                 "rewrite",
                 "document_answer",
                 "compare_notes",
+                "contradictions",
             }:
                 # Need library context or editor selection — skip in pure-text brief.
                 continue

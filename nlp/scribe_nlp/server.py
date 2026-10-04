@@ -112,6 +112,12 @@ FEATURES = [
     "checkTerminologyLibrary",
     "citationPack",
     "extractPaintOcr",
+    "sectionSummaries",
+    "extractDecisions",
+    "extractQuotes",
+    "detectPii",
+    "rankTasks",
+    "contradictionHints",
     "libraryAnswer",
     "dueHints",
     "wikiSuggest",
@@ -818,6 +824,50 @@ def _handle_request_inner(
             content = params.get("contentJson") or params.get("content_json") or params.get("text") or ""
             texts = extract_paint_ocr(content if isinstance(content, (str, dict)) else str(content))
             result = {"texts": texts, "count": len(texts), "source": "python"}
+        elif method == "section_summaries":
+            from .section_summaries import section_summaries
+
+            text = _validate_text(str(params.get("text") or ""))
+            limit = max(1, min(int(params.get("limit") or 12), 40))
+            max_sentences = max(1, min(int(params.get("maxSentences") or params.get("max_sentences") or 2), 4))
+            result = section_summaries(text, limit=limit, max_sentences=max_sentences)
+        elif method == "extract_decisions":
+            from .decisions import extract_decisions
+
+            text = _validate_text(str(params.get("text") or ""))
+            limit = max(1, min(int(params.get("limit") or 12), 40))
+            result = extract_decisions(text, limit=limit)
+        elif method == "extract_quotes":
+            from .quotes import extract_quotes
+
+            text = _validate_text(str(params.get("text") or ""))
+            limit = max(1, min(int(params.get("limit") or 10), 30))
+            result = extract_quotes(text, limit=limit)
+        elif method == "detect_pii":
+            from .pii import detect_pii
+
+            text = _validate_text(str(params.get("text") or ""))
+            limit = max(1, min(int(params.get("limit") or 40), 100))
+            result = detect_pii(text, limit=limit)
+        elif method == "rank_tasks":
+            from .task_rank import rank_tasks
+
+            text = _validate_text(str(params.get("text") or ""))
+            limit = max(1, min(int(params.get("limit") or 20), 50))
+            result = rank_tasks(text, limit=limit)
+        elif method == "contradiction_hints":
+            from .contradictions import contradiction_hints
+
+            text_a = _validate_text(str(params.get("textA") or params.get("text_a") or ""))
+            text_b = _validate_text(str(params.get("textB") or params.get("text_b") or ""))
+            limit = max(1, min(int(params.get("limit") or 8), 20))
+            result = contradiction_hints(
+                text_a,
+                text_b,
+                title_a=str(params.get("titleA") or "") or None,
+                title_b=str(params.get("titleB") or "") or None,
+                limit=limit,
+            )
         else:
             return {
                 "jsonrpc": "2.0",
