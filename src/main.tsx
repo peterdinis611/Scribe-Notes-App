@@ -19,9 +19,11 @@ async function bootstrap() {
   await import('@/i18n')
   const { bootstrapTheme, hydrateAgentPrefs } = await import('@/store/settingsSlice')
   const { store } = await import('@/store/index')
+  const { bootstrapPlugins } = await import('@/lib/plugins')
   const { default: App } = await import('./App.tsx')
 
   bootstrapTheme()
+  await bootstrapPlugins()
   void import('@/lib/library/agent-backend').then(async ({ loadAgentPrefsFromBackend }) => {
     const prefs = await loadAgentPrefsFromBackend()
     if (prefs) store.dispatch(hydrateAgentPrefs(prefs))

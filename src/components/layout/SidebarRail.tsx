@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { BookOpen, FileText, GitBranch, Home, Settings2 } from 'lucide-react'
+import { BookOpen, FileText, GitBranch, Home, Puzzle, Settings2 } from 'lucide-react'
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import scribeMarkUrl from '@/assets/brand/scribe-mark.svg'
@@ -22,6 +22,7 @@ export function SidebarRail({ onNavigate }: SidebarRailProps) {
   const activeDocumentId = useAppSelector((state) => state.documents.activeDocumentId)
   const documents = useAppSelector((state) => state.documents.documents)
   const onSettingsPage = pathname.startsWith('/settings')
+  const onPluginsPage = pathname === '/plugins' || pathname.startsWith('/plugins/')
   const onDocsPage = pathname === '/docs' || pathname.startsWith('/docs/')
   const onGraphPage = pathname === '/graph'
   const onHomePage = pathname === '/'
@@ -100,6 +101,18 @@ export function SidebarRail({ onNavigate }: SidebarRailProps) {
           className={cn('app-rail-btn titlebar-no-drag', onDocsPage && 'is-active')}
         >
           <BookOpen className="h-[18px] w-[18px]" />
+        </Link>
+      </IconTooltip>
+
+      <IconTooltip label={t('nav.plugins')} side="right">
+        <Link
+          {...ROUTES.plugins()}
+          aria-label={t('nav.plugins')}
+          data-tour="plugins-nav"
+          onClick={() => onNavigate?.()}
+          className={cn('app-rail-btn titlebar-no-drag', onPluginsPage && 'is-active')}
+        >
+          <Puzzle className="h-[18px] w-[18px]" />
         </Link>
       </IconTooltip>
 

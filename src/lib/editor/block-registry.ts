@@ -53,6 +53,12 @@ export type BlockDefinition = {
   group?: BlockGroup
   keywords?: string[]
   /**
+   * Optional display strings for slash / plugins.
+   * When set, preferred over i18n `slash.${id}.*`.
+   */
+  label?: string
+  hint?: string
+  /**
    * When false, the block is invokable via `insertBlock` / aliases but omitted
    * from the slash catalog (e.g. legacy snippet-meeting).
    */

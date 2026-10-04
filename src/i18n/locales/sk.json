@@ -43,6 +43,7 @@
     "editor": "Dokument",
     "settings": "Nastavenia",
     "docs": "Dokumentácia",
+    "plugins": "Pluginy",
     "graph": "Mapa prepojení",
     "settingsSections": "Sekcie nastavení",
     "closeLibrary": "Zavrieť knižnicu",
@@ -809,6 +810,10 @@
         "label": "Mobilný zápis",
         "description": "Telefón → Schránka cez Wi‑Fi"
       },
+      "plugins": {
+        "label": "Pluginy",
+        "description": "Voliteľné bloky, príkazy a exporty"
+      },
       "privacy": {
         "label": "Súkromie",
         "description": "Čo ostáva na tomto Macu"
@@ -1105,6 +1110,302 @@
     "diagnostics": {
       "title": "Diagnostika",
       "description": "Stav SQLite, cesty a posledné operácie na disku."
+    },
+    "plugins": {
+      "title": "Rozšírenia",
+      "description": "Zapnite balíčkové rozšírenia — slash bloky, príkazy ⌘K a exporty. Všetko ostáva na tomto Macu.",
+      "introTitle": "Ako pluginy fungujú",
+      "introBody": "Oficiálne pluginy sa registrujú cez malé hostiteľské API (bloky, príkazy, namespaced úložisko). Kedykoľvek ich vypnete — slash položky a akcie v palete zmiznú hneď.",
+      "bundledHint": "Dostupných bundled pluginov: {{count}}",
+      "chromeHint": "{{enabled}} zapnutých · {{total}} nainštalovaných",
+      "searchPlaceholder": "Hľadať rozšírenia",
+      "viewsLabel": "Pohľady rozšírení",
+      "views": {
+        "installed": "Nainštalované",
+        "marketplace": "Marketplace",
+        "recommended": "Odporúčané",
+        "build": "Build",
+        "output": "Výstup"
+      },
+      "filters": {
+        "all": "Všetky",
+        "enabled": "Zapnuté",
+        "disabled": "Vypnuté"
+      },
+      "selectHint": "Vyberte rozšírenie na správu",
+      "listTitle": "Nainštalované",
+      "emptyTitle": "Žiadne rozšírenia",
+      "emptyBody": "Skúste iný filter, alebo nainštalujte balík .scribe-ext.",
+      "noDescription": "Bez popisu",
+      "enable": "Zapnúť",
+      "disable": "Vypnúť",
+      "enabledToast": "Rozšírenie zapnuté",
+      "disabledToast": "Rozšírenie vypnuté",
+      "toggleError": "Rozšírenie sa nepodarilo prepnúť",
+      "errorPrefix": "Chyba",
+      "usage": "použité {{count}}×",
+      "install": "Inštalovať .scribe-ext",
+      "installShort": "Inštalovať…",
+      "installing": "Inštalujem…",
+      "installHint": "Vyberte .scribe-ext zip (manifest.json + index.js) alebo JSON balík. Inštalované pluginy bežia s obmedzenými právami.",
+      "installToast": "Rozšírenie nainštalované",
+      "installError": "Rozšírenie sa nepodarilo nainštalovať",
+      "uninstall": "Odinštalovať",
+      "uninstallToast": "Rozšírenie odinštalované",
+      "uninstallError": "Rozšírenie sa nepodarilo odinštalovať",
+      "reload": "Znova načítať",
+      "reloadToast": "Rozšírenie znova načítané",
+      "reloadError": "Rozšírenie sa nepodarilo znova načítať",
+      "panelsTitle": "Nastavenia príspevkov",
+      "bridgesTitle": "NLP a MCP mosty",
+      "devtoolsTitle": "Devtools",
+      "logsTitle": "Extension host",
+      "logsHint": "Posledné riadky z api.log() a chýb aktivácie.",
+      "logsEmpty": "Zatiaľ žiadny výstup z extension hostu.",
+      "clearLogs": "Vymazať",
+      "marketplaceTitle": "Marketplace",
+      "marketplaceStatus": "Lokálny marketplace",
+      "marketplaceLocalBody": "Inštalujte sample balíky alebo zapnite featured oficiálne rozšírenia. Remote signing príde neskôr.",
+      "comingSoon": "Čoskoro",
+      "verified": "Overené",
+      "marketOpen": "Otvoriť",
+      "marketFilters": {
+        "sample": "Samples",
+        "official": "Oficiálne",
+        "community": "Community"
+      },
+      "inactive": "Neaktívne",
+      "detailTabsLabel": "Detail rozšírenia",
+      "detailTabs": {
+        "details": "Detaily",
+        "contributions": "Funkcie ({{count}})",
+        "versions": "Verzie",
+        "runtime": "Runtime"
+      },
+      "contributionsEmpty": "Rozšírenie je aktívne, ale zatiaľ neregistrovalo žiadne príspevky.",
+      "contributionsInactive": "Zapnite rozšírenie, aby ste videli live príspevky.",
+      "contrib": {
+        "commands": "Príkazy",
+        "blocks": "Slash bloky",
+        "nodes": "Editor nodes",
+        "exports": "Export formáty",
+        "imports": "Import formáty",
+        "sidebar": "Sidebar panely",
+        "settings": "Settings panely",
+        "nlp": "NLP skills",
+        "mcp": "MCP tools"
+      },
+      "runtimeTitle": "Extension host log",
+      "runtimeHint": "Sandbox režim: {{mode}}. Posledné api.log / notify riadky pre toto rozšírenie.",
+      "sandbox": {
+        "trusted": "Dôveryhodné (bundled)",
+        "installed": "Obmedzené (installed)",
+        "installedTitle": "Installed sandbox",
+        "installedBody": "Pluginy z disku bežia s obmedzenými oprávneniami. Raw TipTap extensions sú zablokované, kým nepríde silnejší sandbox.",
+        "deniedHint": "Zamietnuté sandbox politikou pre installed pluginy"
+      },
+      "logLevels": {
+        "all": "Všetky úrovne",
+        "info": "Info",
+        "warn": "Warn",
+        "error": "Error"
+      },
+      "logPluginFilter": "Filter podľa rozšírenia",
+      "on": "Zapnuté",
+      "off": "Vypnuté",
+      "optIn": "voliteľné",
+      "sourceInstalled": "Používateľské",
+      "sourceBundled": "Bundled",
+      "meta": {
+        "identifier": "Identifikátor",
+        "version": "Verzia",
+        "source": "Zdroj",
+        "api": "API",
+        "default": "Predvolené",
+        "usage": "Použitie",
+        "permissions": "Oprávnenia",
+        "sandbox": "Sandbox"
+      },
+      "presetsTitle": "Odporúčané",
+      "presetsDescription": "Sady súvisiacich rozšírení — zapnite balík a potom doladíte jednotlivé v Nainštalovaných.",
+      "presetOn": "Zapnúť",
+      "presetOff": "Vypnúť",
+      "presetEnabledToast": "Predvoľba zapnutá",
+      "presetDisabledToast": "Predvoľba vypnutá",
+      "presetError": "Predvoľbu sa nepodarilo použiť",
+      "presets": {
+        "writing": {
+          "label": "Písanie",
+          "description": "Denník, zápis zo stretnutia, plain-text export ({{enabled}}/{{total}} zap.)"
+        },
+        "study": {
+          "label": "Štúdium",
+          "description": "Flashcards a citácie ({{enabled}}/{{total}} zap.)"
+        },
+        "workspace": {
+          "label": "Workspace",
+          "description": "Status poznámky a balíky tém ({{enabled}}/{{total}} zap.)"
+        },
+        "all": {
+          "label": "Všetky bundled pluginy",
+          "description": "Zapnúť alebo vypnúť všetky oficiálne pluginy naraz"
+        }
+      },
+      "categories": {
+        "writing": "Písanie",
+        "study": "Štúdium",
+        "workspace": "Workspace",
+        "other": "Ostatné"
+      },
+      "examplesTitle": "Ako spraviť plugin",
+      "examplesDescription": "Copy-paste recepty po demo ukážke. Balík ako .scribe-ext (zip s manifest.json + index.js) alebo JSON príklady z repa.",
+      "copyExample": "Kopírovať",
+      "exampleCopied": "Príklad skopírovaný",
+      "exampleCopyError": "Nepodarilo sa skopírovať",
+      "exampleFilesTitle": "Príklady v repe",
+      "exampleFilesHint": "hello.scribe-ext.json · slash-block.scribe-ext.json · command-notify.scribe-ext.json v src/lib/plugins/examples/",
+      "examples": {
+        "minimal": {
+          "title": "1. Minimálny príkaz",
+          "hint": "index.js — ⌘K akcia a toast"
+        },
+        "manifest": {
+          "title": "2. manifest.json",
+          "hint": "Povinné polia + permissions + voliteľné i18n"
+        },
+        "slashBlock": {
+          "title": "3. Slash blok",
+          "hint": "Registrácia / príkazu, ktorý vloží obsah"
+        }
+      },
+      "demo": {
+        "kicker": "Sprievodná ukážka",
+        "title": "Vytvorenie pluginu v 5 krokoch",
+        "lead": "Pozrite si krátku demo ukážku create wizardu — od šablóny po príkaz ⌘K — potom to skúste sami alebo nainštalujte Hello sample.",
+        "play": "Prehrať demo",
+        "playing": "Prehrávam…",
+        "reset": "Reset",
+        "sampleName": "Demo Hello",
+        "installingLine": "Inštalujem local.demo-hello…",
+        "paletteItem": "Pozdrav",
+        "toastLine": "Hello from my plugin",
+        "tryWizard": "Otvoriť create wizard",
+        "installDemo": "Nainštalovať Hello sample",
+        "openDemo": "Zobraziť Hello sample",
+        "alreadyInstalled": "Hello sample už je nainštalovaný",
+        "installToast": "Demo plugin nainštalovaný",
+        "installError": "Demo plugin sa nepodarilo nainštalovať",
+        "ctaHint": "Wizard vytvorí skutočný lokálny plugin. Sample je example.hello z repa.",
+        "steps": {
+          "template": {
+            "title": "Vyberte šablónu",
+            "hint": "Začnite príkazom ⌘K — najmenší užitočný plugin."
+          },
+          "name": {
+            "title": "Pomenujte ho",
+            "hint": "Scribe doplní jedinečné id ako local.demo-hello."
+          },
+          "code": {
+            "title": "Náhľad kódu",
+            "hint": "Hostiteľ vygeneruje activate(api) za vás."
+          },
+          "install": {
+            "title": "Vytvoriť a nainštalovať",
+            "hint": "Beží lokálne len s deklarovanými oprávneniami."
+          },
+          "use": {
+            "title": "Spustite ho",
+            "hint": "Otvorte ⌘K, nájdite príkaz a stlačte Enter."
+          }
+        }
+      },
+      "edit": {
+        "open": "Upraviť / verzia",
+        "title": "Upraviť rozšírenie",
+        "description": "Aktualizujte {{id}} (aktuálne v{{version}}). Publikujte nové semver, upravte activate() kód alebo obnovte starší snapshot.",
+        "currentVersion": "Nainštalovaná verzia",
+        "bumpLabel": "Zvýšenie verzie",
+        "nextVersion": "Ďalšie publikovanie: v{{version}}",
+        "noteLabel": "Poznámka k zmene",
+        "notePlaceholder": "Čo sa v tejto verzii zmenilo?",
+        "codeLabel": "index.js",
+        "codeHint": "Musí exportovať default function activate(api). Uloženie znova načíta extension host.",
+        "historyTitle": "História verzií",
+        "historyEmpty": "Zatiaľ žiadne predchádzajúce verzie — publikujte bump a história sa začne.",
+        "versionsHint": "Lokálna história tohto balíka. Cez Upraviť publikujete alebo obnovíte verziu.",
+        "current": "Aktuálna",
+        "restore": "Obnoviť ako novú",
+        "export": "Exportovať balík",
+        "exportToast": "Balík stiahnutý",
+        "publish": "Publikovať v{{version}}",
+        "publishing": "Publikujem…",
+        "publishToast": "Nová verzia publikovaná",
+        "publishError": "Verziu sa nepodarilo publikovať",
+        "restoreToast": "Verzia obnovená",
+        "restoreError": "Verziu sa nepodarilo obnoviť",
+        "updatedAt": "aktualizované {{date}}",
+        "bumps": {
+          "patch": "Patch",
+          "minor": "Minor",
+          "major": "Major",
+          "keep": "Ponechať verziu",
+          "custom": "Vlastná"
+        },
+        "errors": {
+          "version_required": "Verzia je povinná",
+          "version_invalid": "Použite semver ako 1.2.3",
+          "code_required": "Kód nemôže byť prázdny",
+          "no_changes": "Žiadne zmeny na publikovanie",
+          "not_installed": "Upraviť sa dajú len používateľské rozšírenia",
+          "record_missing": "Záznam nainštalovaného balíka sa nenašiel",
+          "unknown": "Niečo sa pokazilo"
+        }
+      },
+      "create": {
+        "open": "Vytvoriť plugin",
+        "title": "Vytvoriť plugin",
+        "description": "Vyberte šablónu, pomenujte ju a Scribe ju nainštaluje lokálne. Môžete stiahnuť .scribe-ext.json na neskoršiu úpravu.",
+        "nameLabel": "Názov",
+        "namePlaceholder": "Môj pomocník",
+        "idLabel": "ID pluginu",
+        "idHint": "Jedinečné id ako local.moj-pomocnik. Predvyplní sa z názvu.",
+        "descriptionLabel": "Popis",
+        "descriptionPlaceholder": "Čo tento plugin robí",
+        "templateLabel": "Šablóna",
+        "categoryLabel": "Kategória",
+        "enableAfter": "Zapnúť po vytvorení",
+        "downloadPackage": "Stiahnuť balík .scribe-ext.json",
+        "preview": "Náhľad vygenerovaného kódu",
+        "submit": "Vytvoriť a nainštalovať",
+        "creating": "Vytváram…",
+        "successToast": "Plugin vytvorený",
+        "errorToast": "Plugin sa nepodarilo vytvoriť",
+        "templates": {
+          "command": {
+            "label": "Príkaz ⌘K",
+            "hint": "Akcia v príkazovej palete s toastom"
+          },
+          "slashBlock": {
+            "label": "Slash blok",
+            "hint": "Vloženie cez / v editore"
+          },
+          "commandAndBlock": {
+            "label": "Príkaz + slash blok",
+            "hint": "Aj paleta, aj slash šablóna"
+          },
+          "activeDoc": {
+            "label": "Zobraziť aktívnu poznámku",
+            "hint": "Príkaz, ktorý prečíta názov otvoreného dokumentu"
+          }
+        },
+        "errors": {
+          "name_required": "Názov je povinný",
+          "id_required": "ID pluginu je povinné",
+          "id_invalid": "Použite písmená, čísla, bodky alebo pomlčky (napr. local.moj-plugin)",
+          "id_taken": "Toto ID pluginu už existuje",
+          "unknown": "Niečo sa pokazilo"
+        }
+      }
     },
     "mcp": {
       "title": "Scribe Memory MCP",
@@ -1501,6 +1802,7 @@
       "localAiTip": "v scope Všetko kombinuje fulltext a sémantiku, ak je Lokálna AI zapnutá.",
       "revisionsTip": "stále funguje pre undo v editore; panel História drží dlhšie snímky.",
       "mcpTip": "otvorí Nastavenia — MCP zapnete a skopírujete Cursor / Claude config tam.",
+      "pluginsTip": "otvorí stránku Pluginy z ľavého railu.",
       "journalTip": "otvorí dnešnú denníkovú poznámku.",
       "shortcutsTip": "otvorí Nastavenia na úpravu skratiek.",
       "groups": {
@@ -1653,6 +1955,21 @@
             "SCRIBE_MCP_WRITE=0 vynúti read-only, ak chcete hľadať bez zápisu",
             "Prompty ako study_flashcards a revision_review vedú bežné workflow",
             "Ak je DB zamknutá pri otvorenom Scribe, skúste znova alebo skontrolujte scribe_status"
+          ]
+        },
+        "plugins": {
+          "title": "Pluginy",
+          "summary": "Predvoľby, prepínače a balíky .scribe-ext",
+          "paragraphs": [
+            "Pluginy otvoríte z ľavého icon railu (ikona puzzle). Zobrazujú oficiálne rozšírenia (slash bloky, ⌘K príkazy, exporty, témy). Predvoľby (Písanie, Štúdium, Workspace) zapnú alebo vypnú celú sadu naraz; každý plugin má aj vlastný prepínač Zap/Vyp.",
+            "Vytvoriť plugin otvorí sprievodcu šablónami (príkaz ⌘K, slash blok, alebo oboje). Scribe ho nainštaluje lokálne a môže stiahnuť balík .scribe-ext.json. Prípadne importujte zip/JSON z disku.",
+            "Hostiteľské API pokrýva bloky, príkazy, storage, export/import, UI panely, TipTap nody, NLP/MCP mosty, lifecycle, notify toasty a snapshot aktívneho dokumentu."
+          ],
+          "points": [
+            "Ikona Pluginy v raili — samostatná stránka vedľa Docs a Nastavení",
+            "Vytvoriť plugin — sprievodca šablónami na stránke Pluginy",
+            "Predvoľby Písanie / Štúdium / Workspace — hromadné zapnutie alebo vypnutie",
+            "Nainštalované pluginy viete kedykoľvek vypnúť, reloadnúť alebo odinštalovať"
           ]
         },
         "journal": {

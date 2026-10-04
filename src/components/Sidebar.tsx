@@ -36,6 +36,7 @@ import {
 } from '@/store/foldersSlice'
 import { setSyncConflictsOpen } from '@/store/uiSlice'
 import { useResizableSidebar } from '@/hooks/useResizableSidebar'
+import { getPluginsGeneration, listPluginSidebarPanels, subscribePlugins } from '@/lib/plugins'
 
 type SidebarProps = {
   isCompact?: boolean
@@ -67,7 +68,10 @@ const libraryActionClass =
 export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarProps) {
   const { t } = useTranslation()
   const [query, setQuery] = useState('')
+  const [pluginsGeneration, setPluginsGeneration] = useState(() => getPluginsGeneration())
   const scrollRef = useRef<HTMLDivElement>(null)
+  useEffect(() => subscribePlugins(() => setPluginsGeneration(getPluginsGeneration())), [])
+  const pluginPanels = useMemo(() => listPluginSidebarPanels(), [pluginsGeneration])
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
@@ -378,6 +382,16 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                 <ScrollArea className="min-h-0 flex-1">
                   <LibraryWikiHealthPanel onNavigate={onClose} />
                 </ScrollArea>
+              )}
+
+              {pluginPanels.length > 0 && (
+                <div className="mt-auto border-t border-[var(--color-border)] px-1 py-2">
+                  {pluginPanels.map((panel) => (
+                    <div key={panel.entryId} className="mb-1 last:mb-0">
+                      {panel.render()}
+                    </div>
+                  ))}
+                </div>
               )}
             </>
           )}

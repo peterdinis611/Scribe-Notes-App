@@ -50,6 +50,7 @@ import { MarkdownShortcuts } from '@/lib/editor/markdown-shortcuts'
 import { TauriInputFix } from '@/lib/editor/tauri-input-fix'
 import { WikiLink } from '@/lib/editor/wiki-link'
 import { WikiEmbed } from '@/lib/editor/wiki-embed'
+import { listPluginExtensions } from '@/lib/plugins/surfaces/extensions'
 
 type EditorExtensionsOptions = {
   onInsertImages?: (files: File[], pos?: number) => void | Promise<void>
@@ -180,5 +181,6 @@ export function getEditorExtensions(options: EditorExtensionsOptions = {}) {
     Markdown.configure({
       indentation: { style: 'space', size: 2 },
     }),
+    ...listPluginExtensions(),
   ]
 }

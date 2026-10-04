@@ -1,0 +1,13 @@
+{
+  "manifest": {
+    "id": "example.slash-block",
+    "name": "Slash block example",
+    "version": "1.0.0",
+    "description": "Registers a custom /hello-block slash command.",
+    "scribeApi": 2,
+    "permissions": ["editor.blocks"],
+    "defaultEnabled": true,
+    "category": "other"
+  },
+  "code": "export default function activate(api) {\n  api.blocks.register({\n    id: 'hello-block',\n    icon: '✦',\n    group: 'advanced',\n    label: 'Hello block',\n    hint: 'Example slash insert',\n    insert: (editor) => {\n      editor.chain().focus().insertContent({\n        type: 'paragraph',\n        content: [{ type: 'text', text: 'Hello from slash-block example' }],\n      }).run()\n      api.notify.success('Inserted hello block')\n    },\n  })\n}\n"
+}

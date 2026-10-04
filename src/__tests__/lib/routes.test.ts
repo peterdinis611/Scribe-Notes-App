@@ -37,5 +37,6 @@ describe('ROUTES', () => {
     expect(ROUTES.settingsSection('nlp')).toEqual({ to: '/settings/nlp' })
     expect(ROUTES.settingsSection('interface')).toEqual({ to: '/settings/interface' })
     expect(ROUTES.settingsSection('agent')).toEqual({ to: '/settings/agent' })
+    expect(ROUTES.plugins()).toEqual({ to: '/plugins' })
   })
 })

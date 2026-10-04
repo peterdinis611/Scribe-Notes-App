@@ -43,6 +43,7 @@
     "editor": "Editor",
     "settings": "Settings",
     "docs": "Docs",
+    "plugins": "Plugins",
     "graph": "Connection map",
     "settingsSections": "Settings sections",
     "closeLibrary": "Close library",
@@ -809,6 +810,10 @@
         "label": "Mobile capture",
         "description": "Phone → Inbox over Wi‑Fi"
       },
+      "plugins": {
+        "label": "Plugins",
+        "description": "Optional blocks, commands, and exports"
+      },
       "privacy": {
         "label": "Privacy",
         "description": "What stays on this Mac"
@@ -1105,6 +1110,302 @@
     "diagnostics": {
       "title": "Diagnostics",
       "description": "SQLite status, paths, and recent disk operations."
+    },
+    "plugins": {
+      "title": "Extensions",
+      "description": "Enable bundled extensions that add slash blocks, ⌘K commands, and exports. Everything stays on this Mac.",
+      "introTitle": "How plugins work",
+      "introBody": "Official plugins register through a small host API (blocks, commands, namespaced storage). Disable any plugin anytime — its slash items and palette actions disappear immediately.",
+      "bundledHint": "{{count}} bundled plugin(s) available",
+      "chromeHint": "{{enabled}} enabled · {{total}} installed",
+      "searchPlaceholder": "Search extensions",
+      "viewsLabel": "Extension views",
+      "views": {
+        "installed": "Installed",
+        "marketplace": "Marketplace",
+        "recommended": "Recommended",
+        "build": "Build",
+        "output": "Output"
+      },
+      "filters": {
+        "all": "All",
+        "enabled": "Enabled",
+        "disabled": "Disabled"
+      },
+      "selectHint": "Select an extension to manage it",
+      "listTitle": "Installed",
+      "emptyTitle": "No extensions match",
+      "emptyBody": "Try another filter, or install a .scribe-ext package.",
+      "noDescription": "No description",
+      "enable": "Enable",
+      "disable": "Disable",
+      "enabledToast": "Extension enabled",
+      "disabledToast": "Extension disabled",
+      "toggleError": "Could not toggle extension",
+      "errorPrefix": "Error",
+      "usage": "used {{count}}×",
+      "install": "Install .scribe-ext",
+      "installShort": "Install…",
+      "installing": "Installing…",
+      "installHint": "Pick a .scribe-ext zip (manifest.json + index.js) or a JSON package. Installed plugins run with a restricted permission policy.",
+      "installToast": "Extension installed",
+      "installError": "Could not install extension",
+      "uninstall": "Uninstall",
+      "uninstallToast": "Extension uninstalled",
+      "uninstallError": "Could not uninstall extension",
+      "reload": "Reload",
+      "reloadToast": "Extension reloaded",
+      "reloadError": "Could not reload extension",
+      "panelsTitle": "Contribution settings",
+      "bridgesTitle": "NLP & MCP bridges",
+      "devtoolsTitle": "Devtools",
+      "logsTitle": "Extension host",
+      "logsHint": "Recent log lines from api.log() and activation errors.",
+      "logsEmpty": "No extension host output yet.",
+      "clearLogs": "Clear",
+      "marketplaceTitle": "Marketplace",
+      "marketplaceStatus": "Local marketplace",
+      "marketplaceLocalBody": "Install sample packages or enable featured official extensions. Remote signing comes later.",
+      "comingSoon": "Coming soon",
+      "verified": "Verified",
+      "marketOpen": "Open",
+      "marketFilters": {
+        "sample": "Samples",
+        "official": "Official",
+        "community": "Community"
+      },
+      "inactive": "Inactive",
+      "detailTabsLabel": "Extension details",
+      "detailTabs": {
+        "details": "Details",
+        "contributions": "Features ({{count}})",
+        "versions": "Versions",
+        "runtime": "Runtime"
+      },
+      "contributionsEmpty": "This extension is active but has not registered contributions yet.",
+      "contributionsInactive": "Enable the extension to inspect live contributions.",
+      "contrib": {
+        "commands": "Commands",
+        "blocks": "Slash blocks",
+        "nodes": "Editor nodes",
+        "exports": "Export formats",
+        "imports": "Import formats",
+        "sidebar": "Sidebar panels",
+        "settings": "Settings panels",
+        "nlp": "NLP skills",
+        "mcp": "MCP tools"
+      },
+      "runtimeTitle": "Extension host log",
+      "runtimeHint": "Sandbox mode: {{mode}}. Recent api.log / notify lines for this extension.",
+      "sandbox": {
+        "trusted": "Trusted (bundled)",
+        "installed": "Restricted (installed)",
+        "installedTitle": "Installed sandbox",
+        "installedBody": "Disk-installed plugins run with a restricted permission set. Raw TipTap extensions are denied until a stronger sandbox ships.",
+        "deniedHint": "Denied by sandbox policy for installed plugins"
+      },
+      "logLevels": {
+        "all": "All levels",
+        "info": "Info",
+        "warn": "Warn",
+        "error": "Error"
+      },
+      "logPluginFilter": "Filter by extension",
+      "on": "Enabled",
+      "off": "Disabled",
+      "optIn": "opt-in",
+      "sourceInstalled": "User",
+      "sourceBundled": "Bundled",
+      "meta": {
+        "identifier": "Identifier",
+        "version": "Version",
+        "source": "Source",
+        "api": "API",
+        "default": "Default",
+        "usage": "Usage",
+        "permissions": "Permissions",
+        "sandbox": "Sandbox"
+      },
+      "presetsTitle": "Recommended",
+      "presetsDescription": "Workspaces of related extensions — enable a pack, then fine-tune each one in Installed.",
+      "presetOn": "Enable",
+      "presetOff": "Disable",
+      "presetEnabledToast": "Preset enabled",
+      "presetDisabledToast": "Preset disabled",
+      "presetError": "Could not apply preset",
+      "presets": {
+        "writing": {
+          "label": "Writing",
+          "description": "Journal, meeting wrap-up, plain-text export ({{enabled}}/{{total}} on)"
+        },
+        "study": {
+          "label": "Study",
+          "description": "Flashcards and citations ({{enabled}}/{{total}} on)"
+        },
+        "workspace": {
+          "label": "Workspace",
+          "description": "Note status and theme packs ({{enabled}}/{{total}} on)"
+        },
+        "all": {
+          "label": "All bundled plugins",
+          "description": "Enable or disable every first-party plugin at once"
+        }
+      },
+      "categories": {
+        "writing": "Writing",
+        "study": "Study",
+        "workspace": "Workspace",
+        "other": "Other"
+      },
+      "examplesTitle": "How to build a plugin",
+      "examplesDescription": "Copy-paste recipes after you try the walkthrough. Package as .scribe-ext (zip with manifest.json + index.js) or install the JSON examples from the repo.",
+      "copyExample": "Copy",
+      "exampleCopied": "Example copied",
+      "exampleCopyError": "Could not copy",
+      "exampleFilesTitle": "Repo examples",
+      "exampleFilesHint": "hello.scribe-ext.json · slash-block.scribe-ext.json · command-notify.scribe-ext.json under src/lib/plugins/examples/",
+      "examples": {
+        "minimal": {
+          "title": "1. Minimal command",
+          "hint": "index.js — register a ⌘K action and toast"
+        },
+        "manifest": {
+          "title": "2. manifest.json",
+          "hint": "Required fields + permissions + optional i18n"
+        },
+        "slashBlock": {
+          "title": "3. Slash block",
+          "hint": "Register a / command that inserts content"
+        }
+      },
+      "demo": {
+        "kicker": "Guided walkthrough",
+        "title": "Create a plugin in 5 steps",
+        "lead": "Watch a short demo of the create wizard — from template to a ⌘K command — then try it yourself or install the Hello sample.",
+        "play": "Play demo",
+        "playing": "Playing…",
+        "reset": "Reset",
+        "sampleName": "Demo Hello",
+        "installingLine": "Installing local.demo-hello…",
+        "paletteItem": "Say hello",
+        "toastLine": "Hello from my plugin",
+        "tryWizard": "Open create wizard",
+        "installDemo": "Install Hello sample",
+        "openDemo": "Show Hello sample",
+        "alreadyInstalled": "Hello sample already installed",
+        "installToast": "Demo plugin installed",
+        "installError": "Could not install demo plugin",
+        "ctaHint": "Wizard builds a real local plugin. The sample is example.hello from the repo.",
+        "steps": {
+          "template": {
+            "title": "Pick a template",
+            "hint": "Start with a ⌘K command — smallest useful plugin."
+          },
+          "name": {
+            "title": "Name it",
+            "hint": "Scribe fills a unique id like local.demo-hello."
+          },
+          "code": {
+            "title": "Preview code",
+            "hint": "The host generates activate(api) for you."
+          },
+          "install": {
+            "title": "Create & install",
+            "hint": "Runs locally with declared permissions only."
+          },
+          "use": {
+            "title": "Run it",
+            "hint": "Open ⌘K, find your command, press Enter."
+          }
+        }
+      },
+      "edit": {
+        "open": "Edit / version",
+        "title": "Edit extension",
+        "description": "Update {{id}} (currently v{{version}}). Publish a new semver, edit activate() code, or restore an older snapshot.",
+        "currentVersion": "Installed version",
+        "bumpLabel": "Version bump",
+        "nextVersion": "Next publish: v{{version}}",
+        "noteLabel": "Changelog note",
+        "notePlaceholder": "What changed in this version?",
+        "codeLabel": "index.js",
+        "codeHint": "Must export default function activate(api). Saving reloads the extension host.",
+        "historyTitle": "Version history",
+        "historyEmpty": "No previous versions yet — publish a bump to start a history.",
+        "versionsHint": "Local history for this installed package. Use Edit to publish or restore.",
+        "current": "Current",
+        "restore": "Restore as new",
+        "export": "Export package",
+        "exportToast": "Package downloaded",
+        "publish": "Publish v{{version}}",
+        "publishing": "Publishing…",
+        "publishToast": "New version published",
+        "publishError": "Could not publish version",
+        "restoreToast": "Version restored",
+        "restoreError": "Could not restore version",
+        "updatedAt": "updated {{date}}",
+        "bumps": {
+          "patch": "Patch",
+          "minor": "Minor",
+          "major": "Major",
+          "keep": "Keep version",
+          "custom": "Custom"
+        },
+        "errors": {
+          "version_required": "Version is required",
+          "version_invalid": "Use semver like 1.2.3",
+          "code_required": "Code cannot be empty",
+          "no_changes": "No changes to publish",
+          "not_installed": "Only user-installed extensions can be edited",
+          "record_missing": "Installed package record not found",
+          "unknown": "Something went wrong"
+        }
+      },
+      "create": {
+        "open": "Create plugin",
+        "title": "Create a plugin",
+        "description": "Pick a template, name it, and Scribe installs it locally. You can download a .scribe-ext.json package to edit later.",
+        "nameLabel": "Name",
+        "namePlaceholder": "My helper",
+        "idLabel": "Plugin id",
+        "idHint": "Unique id like local.my-helper. Auto-filled from the name.",
+        "descriptionLabel": "Description",
+        "descriptionPlaceholder": "What this plugin does",
+        "templateLabel": "Template",
+        "categoryLabel": "Category",
+        "enableAfter": "Enable after create",
+        "downloadPackage": "Download .scribe-ext.json package",
+        "preview": "Generated code preview",
+        "submit": "Create & install",
+        "creating": "Creating…",
+        "successToast": "Plugin created",
+        "errorToast": "Could not create plugin",
+        "templates": {
+          "command": {
+            "label": "⌘K command",
+            "hint": "Adds a command palette action with a toast"
+          },
+          "slashBlock": {
+            "label": "Slash block",
+            "hint": "Adds a / slash insert in the editor"
+          },
+          "commandAndBlock": {
+            "label": "Command + slash block",
+            "hint": "Both a palette command and a slash template"
+          },
+          "activeDoc": {
+            "label": "Show active note",
+            "hint": "Command that reads the open document title"
+          }
+        },
+        "errors": {
+          "name_required": "Name is required",
+          "id_required": "Plugin id is required",
+          "id_invalid": "Use letters, numbers, dots, or dashes (e.g. local.my-plugin)",
+          "id_taken": "This plugin id is already in use",
+          "unknown": "Something went wrong"
+        }
+      }
     },
     "mcp": {
       "title": "Scribe Memory MCP",
@@ -1652,6 +1953,21 @@
             "If the DB is locked while Scribe is open, retry or check scribe_status"
           ]
         },
+        "plugins": {
+          "title": "Plugins",
+          "summary": "Presets, toggles, and .scribe-ext packages",
+          "paragraphs": [
+            "Open Plugins from the left icon rail (puzzle icon). It lists first-party extensions (slash blocks, ⌘K commands, exports, themes). Use presets (Writing, Study, Workspace) to enable or disable a set at once, or flip each plugin with its On/Off switch.",
+            "Create plugin opens a template wizard (⌘K command, slash block, or both). Scribe installs it locally and can download a .scribe-ext.json package. You can also import a zip/JSON package from disk.",
+            "The host API covers blocks, commands, storage, export/import, UI panels, TipTap nodes, NLP/MCP bridges, lifecycle hooks, notify toasts, and the active document snapshot."
+          ],
+          "points": [
+            "Plugins rail icon — top-level page next to Docs and Settings",
+            "Create plugin — template wizard on the Plugins page",
+            "Writing / Study / Workspace presets — batch enable or disable",
+            "Installed plugins can be toggled, reloaded, or uninstalled anytime"
+          ]
+        },
         "journal": {
           "title": "Journal and quick note",
           "summary": "Dated entries and scratch notes",
@@ -1688,7 +2004,8 @@
       },
       "localAiTip": "in All scope combines full-text and semantic hits when Local AI is enabled.",
       "revisionsTip": "still works for undo in the editor; History panel holds longer snapshots.",
-      "mcpTip": "opens Settings — enable MCP and copy Cursor / Claude config there."
+      "mcpTip": "opens Settings — enable MCP and copy Cursor / Claude config there.",
+      "pluginsTip": "opens the Plugins page from the left rail."
     }
   },
   "storageAccess": {
