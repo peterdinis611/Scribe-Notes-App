@@ -2,6 +2,7 @@ import { Pencil, RefreshCw, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
+import { PluginLogsTable } from '@/components/settings/PluginLogsTable'
 import { SettingsToggle } from '@/components/settings/SettingsPrimitives'
 import {
   clearPluginLogs,
@@ -119,7 +120,7 @@ export function PluginDetailPanel({
     [plugin.manifest.id, plugin.active, logsTick],
   )
   const runtimeLogs = useMemo(
-    () => listPluginLogs(plugin.manifest.id).slice(0, 40),
+    () => listPluginLogs(plugin.manifest.id),
     [plugin.manifest.id, logsTick],
   )
   const policy = sandboxPolicyFor(plugin.source)
@@ -494,20 +495,11 @@ export function PluginDetailPanel({
               <p>{t('settings.plugins.sandbox.installedBody')}</p>
             </div>
           )}
-          {runtimeLogs.length === 0 ? (
-            <p className="plugin-ext-muted">{t('settings.plugins.logsEmpty')}</p>
-          ) : (
-            <ul className="plugin-ext-log">
-              {runtimeLogs.map((entry) => (
-                <li key={entry.id}>
-                  <span className="plugin-ext-log-meta">
-                    {entry.at.slice(11, 19)} [{entry.level}]
-                  </span>
-                  <div>{entry.message}</div>
-                </li>
-              ))}
-            </ul>
-          )}
+          <PluginLogsTable
+            logs={runtimeLogs}
+            showPluginColumn={false}
+            pageSize={40}
+          />
         </div>
       )}
     </div>

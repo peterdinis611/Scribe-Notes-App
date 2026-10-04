@@ -1211,6 +1211,12 @@
         "error": "Error"
       },
       "logPluginFilter": "Filter podľa rozšírenia",
+      "logColumns": {
+        "time": "Čas",
+        "level": "Úroveň",
+        "plugin": "Rozšírenie",
+        "message": "Správa"
+      },
       "on": "Zapnuté",
       "off": "Vypnuté",
       "optIn": "voliteľné",

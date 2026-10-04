@@ -7,6 +7,7 @@ import { AgentWorkspaceDock } from '@/components/agent/AgentWorkspaceDock'
 import { AppFileDropOverlay } from '@/components/AppFileDropOverlay'
 import { CommandPalette } from '@/components/CommandPalette'
 import { DndRoot } from '@/components/dnd/DndRoot'
+import { RouteViewTransition } from '@/components/RouteViewTransition'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { DocumentTabsBar } from '@/components/layout/DocumentTabsBar'
@@ -260,7 +261,9 @@ export function AppLayout() {
           ref={mainRef}
           className="app-main relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
         >
-          <Outlet />
+          <RouteViewTransition>
+            <Outlet />
+          </RouteViewTransition>
         </main>
       </div>
 

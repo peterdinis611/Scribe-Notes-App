@@ -2955,6 +2955,21 @@ html[data-ui-skin='press'] .editor-shell--home {
   overflow: hidden;
 }
 
+/* React 19.3 <ViewTransition> route fades (see RouteViewTransition). */
+::view-transition-old(.scribe-route-fade),
+::view-transition-new(.scribe-route-fade) {
+  animation-duration: 180ms;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
 .editor-header {
   position: relative;
   display: flex;
@@ -16448,6 +16463,153 @@ html {
 
 .plugin-ext-log-meta {
   color: var(--color-muted-foreground);
+}
+
+/* —— TanStack DataTable —— */
+.data-table {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.data-table-scroll {
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--color-background) 85%, #000);
+}
+
+.data-table-grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.data-table-grid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  border-bottom: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-surface) 92%, var(--color-background));
+  padding: 7px 10px;
+  color: var(--color-muted-foreground);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.data-table-grid tbody td {
+  border-bottom: 1px solid var(--color-separator);
+  padding: 8px 10px;
+  color: var(--color-foreground);
+  vertical-align: top;
+}
+
+.data-table-grid tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.data-table-grid tbody tr:hover td {
+  background: color-mix(in srgb, var(--color-hover) 55%, transparent);
+}
+
+.data-table-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.data-table-sort:hover {
+  color: var(--color-foreground);
+}
+
+.data-table-empty {
+  margin: 0;
+  border: 1px dashed var(--color-border);
+  border-radius: 3px;
+  padding: 18px 12px;
+  color: var(--color-muted-foreground);
+  font-size: 12px;
+}
+
+.data-table-mono {
+  color: var(--color-muted-foreground);
+  white-space: nowrap;
+}
+
+.data-table-pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.data-table-pager-btn {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  padding: 4px 10px;
+  color: var(--color-foreground);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.data-table-pager-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.data-table-pager-meta {
+  color: var(--color-muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.plugin-logs-table .plugin-log-level {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 1px 7px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.plugin-logs-table .plugin-log-level.is-info {
+  background: color-mix(in srgb, var(--color-accent) 16%, transparent);
+  color: var(--color-accent);
+}
+
+.plugin-logs-table .plugin-log-level.is-warn {
+  background: color-mix(in srgb, #d97706 18%, transparent);
+  color: #d97706;
+}
+
+.plugin-logs-table .plugin-log-level.is-error {
+  background: color-mix(in srgb, #dc2626 18%, transparent);
+  color: #dc2626;
+}
+
+.plugin-logs-table .plugin-log-message {
+  display: block;
+  max-width: 56rem;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 /* —— Plugin create demo walkthrough —— */

@@ -14,6 +14,7 @@ pub mod plain_text;
 pub mod store;
 pub mod store_ext;
 pub mod storage_fs;
+pub mod syntax_highlight;
 pub mod tags;
 pub mod tasks;
 pub mod vault;
@@ -30,6 +31,7 @@ pub use diff::{
     DiffSegment, DiffSegmentType, SideBySideCell, SideBySideCellKind, SideBySideRow,
 };
 pub use html::{escape_html, tiptap_to_html};
+pub use syntax_highlight::{highlight_code_html, list_syntax_names, supports_language};
 pub use html_paste::{looks_like_dirty_html, normalize_clipboard_html, HtmlPasteResult};
 pub use journal::{JournalNote, JournalSlot, JournalSummary, JournalSummaryInput};
 pub use office_import::{docx_bytes_to_tiptap, xlsx_bytes_to_tiptap};

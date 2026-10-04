@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import type { Editor } from '@tiptap/react'
 import {
   cacheDocument,
@@ -6,8 +6,9 @@ import {
 } from '@/lib/cache/document-cache'
 import { flushPendingWrites, updateDocument } from '@/lib/db/api'
 import { applyDiskPersistResult } from '@/lib/disk-sync'
+import { useDebouncer } from '@/lib/pacer'
 import { toast } from '@/lib/toast'
-import { debounce, extractTitleFromContent } from '@/lib/utils'
+import { extractTitleFromContent } from '@/lib/utils'
 import { store } from '@/store/index'
 import { useAppDispatch } from '@/store/hooks'
 import {
@@ -150,18 +151,21 @@ export function useDocumentAutoSave({
     [editor, getContentJson, persistContent],
   )
 
-  const scheduleSave = useMemo(
-    () =>
-      debounce((docId: string) => {
-        void saveNow(docId)
-      }, AUTO_SAVE_DELAY_MS),
-    [saveNow],
+  const saveDebouncer = useDebouncer(
+    (docId: string) => {
+      void saveNow(docId)
+    },
+    {
+      wait: AUTO_SAVE_DELAY_MS,
+      // Flush pending edits on unmount instead of dropping them.
+      onUnmount: (debouncer) => debouncer.flush(),
+    },
   )
 
   const flushSave = useCallback(async () => {
     if (!activeId || !editor) return false
 
-    scheduleSave.flush()
+    saveDebouncer.flush()
     await saveInFlightRef.current
     const ok = await saveNow(activeId)
     try {
@@ -171,7 +175,7 @@ export function useDocumentAutoSave({
       // Disk flush failures should not roll back the in-app save.
     }
     return ok
-  }, [activeId, dispatch, editor, saveNow, scheduleSave])
+  }, [activeId, dispatch, editor, saveDebouncer, saveNow])
 
   const markDirty = useCallback(() => {
     if (activeId) dispatch(markDocumentDirty(activeId))
@@ -190,9 +194,9 @@ export function useDocumentAutoSave({
 
       editorContentHashRef.current = contentHash
       markDirty()
-      scheduleSave(docId)
+      saveDebouncer.maybeExecute(docId)
     },
-    [editor, getContentJson, markDirty, scheduleSave],
+    [editor, getContentJson, markDirty, saveDebouncer],
   )
 
   useEffect(() => {
@@ -207,9 +211,8 @@ export function useDocumentAutoSave({
     previousDocIdRef.current = activeId
 
     if (previousId && previousId !== activeId) {
-      scheduleSave.cancel()
+      saveDebouncer.cancel()
       void (async () => {
-        scheduleSave.flush()
         await saveInFlightRef.current
         await saveNow(previousId)
         try {
@@ -220,7 +223,7 @@ export function useDocumentAutoSave({
         }
       })()
     }
-  }, [activeId, dispatch, saveNow, scheduleSave])
+  }, [activeId, dispatch, saveDebouncer, saveNow])
 
   useEffect(() => {
     const onVisibilityChange = () => {
@@ -233,10 +236,9 @@ export function useDocumentAutoSave({
 
     return () => {
       document.removeEventListener('visibilitychange', onVisibilityChange)
-      scheduleSave.cancel()
       void flushSave()
     }
-  }, [flushSave, scheduleSave])
+  }, [flushSave])
 
   return {
     queueSave,

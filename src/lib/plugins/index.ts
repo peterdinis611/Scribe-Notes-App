@@ -54,7 +54,13 @@ export { listPluginExtensions } from '@/lib/plugins/surfaces/extensions'
 export { listPluginNlpSkills } from '@/lib/plugins/surfaces/nlp-skills'
 export { listPluginMcpTools, invokePluginMcpTool } from '@/lib/plugins/surfaces/mcp-tools'
 export { emitPluginLifecycle } from '@/lib/plugins/surfaces/lifecycle'
-export { listPluginLogs, clearPluginLogs, subscribePluginLogs } from '@/lib/plugins/devtools'
+export {
+  listPluginLogs,
+  clearPluginLogs,
+  subscribePluginLogs,
+  type PluginLogEntry,
+  type PluginLogLevel,
+} from '@/lib/plugins/devtools'
 export {
   MARKETPLACE_STATUS,
   listMarketplaceListings,

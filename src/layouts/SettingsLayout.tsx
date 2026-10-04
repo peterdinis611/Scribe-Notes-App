@@ -1,5 +1,6 @@
 import { Link, Outlet, useRouterState } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
+import { RouteViewTransition } from '@/components/RouteViewTransition'
 import { ROUTES, useSettingsSections } from '@/lib/routes'
 import { cn } from '@/lib/utils'
 
@@ -37,7 +38,9 @@ export function SettingsLayout() {
       </nav>
 
       <div className="titlebar-no-drag min-h-0 min-w-0 flex-1 overflow-y-auto px-8 py-6">
-        <Outlet />
+        <RouteViewTransition>
+          <Outlet />
+        </RouteViewTransition>
       </div>
     </div>
   )

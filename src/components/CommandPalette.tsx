@@ -92,7 +92,8 @@ import { prefetchDocument } from '@/lib/cache/prefetch-document'
 import { isCanvasContent } from '@/lib/canvas/types'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
-import { cn, debounce } from '@/lib/utils'
+import { useDebouncer } from '@/lib/pacer'
+import { cn } from '@/lib/utils'
 import { sanitizeSnippet } from '@/lib/search-snippet'
 import { citationSearchQuery } from '@/lib/editor/citation-jump'
 import { cycleThemeId } from '@/lib/themes/apply'
@@ -1368,9 +1369,8 @@ export function CommandPalette() {
     [documentItems, filteredActions, searchItems],
   )
 
-  const runSearch = useMemo(
-    () =>
-      debounce(async (value: string, scope: SearchScope) => {
+  const searchDebouncer = useDebouncer(
+    async (value: string, scope: SearchScope) => {
         const q = value.trim()
         if (q.length >= 1 && (scope === 'all' || scope === 'titles' || scope === 'wiki')) {
           try {
@@ -1474,12 +1474,15 @@ export function CommandPalette() {
         } catch {
           setHits([])
         }
-      }, 200),
-    [documents, nlpEnabled, nlpStatusState, searchScope, t],
+    },
+    { wait: 200 },
   )
 
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      searchDebouncer.cancel()
+      return
+    }
     setQuery('')
     setHits([])
     setTitleMatches([])
@@ -1489,12 +1492,12 @@ export function CommandPalette() {
     setSearchScope('all')
     setFolderOnly(false)
     window.setTimeout(() => inputRef.current?.focus(), 0)
-  }, [open])
+  }, [open, searchDebouncer])
 
   useEffect(() => {
     setSelected(0)
-    runSearch(query, searchScope)
-  }, [query, runSearch, searchScope])
+    searchDebouncer.maybeExecute(query, searchScope)
+  }, [query, searchDebouncer, searchScope])
 
   useEffect(() => {
     if (!open) return

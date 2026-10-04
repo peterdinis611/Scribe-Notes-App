@@ -1211,6 +1211,12 @@
         "error": "Error"
       },
       "logPluginFilter": "Filter by extension",
+      "logColumns": {
+        "time": "Time",
+        "level": "Level",
+        "plugin": "Extension",
+        "message": "Message"
+      },
       "on": "Enabled",
       "off": "Disabled",
       "optIn": "opt-in",
