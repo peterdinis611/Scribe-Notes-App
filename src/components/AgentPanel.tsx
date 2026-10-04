@@ -60,6 +60,11 @@ import { applySuggestedTagsToDocument } from '@/lib/library/auto-organize'
 import { runFolderDigest } from '@/lib/library/folder-digest'
 import { AGENT_RECIPES, type AgentRecipeId } from '@/lib/library/agent-recipes'
 import {
+  getAgentRole,
+  isRecipeAllowedByAgents,
+  type AgentRoleId,
+} from '@/lib/library/agent-roles'
+import {
   buildAgentGoalChips,
   buildAgentToolOptions,
   LIBRARY_AGENT_STARTER_CHIPS,
@@ -95,6 +100,8 @@ type AgentPanelProps = {
   onNavigate?: () => void
   onClose?: () => void
   variant?: 'embedded' | 'dock'
+  /** Active specialist — filters recipes and boosts tools. */
+  roleId?: AgentRoleId
 }
 
 const TOOL_LABEL_KEYS: Record<AgentToolId, string> = {
@@ -159,7 +166,12 @@ function toPersistCitations(citations: LibraryChatCitation[]): DocumentChatCitat
   }))
 }
 
-export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded' }: AgentPanelProps) {
+export function AgentPanel({
+  onNavigate,
+  onClose: _onClose,
+  variant = 'embedded',
+  roleId = 'general',
+}: AgentPanelProps) {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
@@ -167,6 +179,12 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
   const documents = useAppSelector((state) => state.documents.documents)
   const commentAuthor = useAppSelector((state) => state.documents.commentAuthor)
   const agentPrefs = useAppSelector((state) => state.settings.agentPrefs)
+  const activeRole = getAgentRole(roleId)
+  const visibleRecipes = AGENT_RECIPES.filter((recipe) => {
+    if (!isRecipeAllowedByAgents(recipe.id, agentPrefs.agents)) return false
+    if (roleId === 'general') return true
+    return activeRole.recipeIds.includes(recipe.id)
+  })
   const activeDocument = activeDocumentId ? peekCachedDocument(activeDocumentId) : null
   const activeDocumentSummary = useMemo(
     () => documents.find((doc) => doc.id === activeDocumentId) ?? null,
@@ -488,6 +506,7 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                     agentPrefs,
                     {
                       ...opts,
+                      roleId,
                       folderId: runScope === 'folder' ? activeDocument?.folderId : null,
                       stream: true,
                     },
@@ -550,7 +569,7 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
         setLoading(false)
       }
     },
-    [loading, agentPrefs, scope, activeDocumentId, activeDocument?.folderId, messages, sessionMessages, persistPair, t, dispatch, refreshRunHistory, setMoodBriefly],
+    [loading, agentPrefs, scope, activeDocumentId, activeDocument?.folderId, messages, sessionMessages, persistPair, t, dispatch, refreshRunHistory, setMoodBriefly, roleId],
   )
 
   const queueInsertPreview = useCallback(
@@ -1504,9 +1523,9 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
               {t('agent.tools.compare_notes')}
             </button>
           ) : null}
-          {AGENT_RECIPES.filter((recipe) =>
-            scope === 'library' ? !recipe.documentPreferred : true,
-          ).map((recipe) => (
+          {visibleRecipes
+            .filter((recipe) => (scope === 'library' ? !recipe.documentPreferred : true))
+            .map((recipe) => (
             <button
               key={recipe.id}
               type="button"

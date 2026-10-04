@@ -1,6 +1,7 @@
 import { runAgentGoal } from '@/lib/library/agent'
 import type { AgentRecipeId } from '@/lib/library/agent-recipes'
 import { normalizeAgentPrefs } from '@/lib/library/agent-prefs'
+import { isRecipeAllowedByAgents, recipeOwnerRole } from '@/lib/library/agent-roles'
 import { toast } from '@/lib/toast'
 import { store } from '@/store/index'
 import { setAgentPrefs } from '@/store/settingsSlice'
@@ -14,6 +15,10 @@ export async function runAgentRecipeFromPalette(recipeId: AgentRecipeId) {
     toast.error(i18n.t('agent.errorTitle'), i18n.t('agent.disabled'))
     return
   }
+  if (!isRecipeAllowedByAgents(recipeId, prefs.agents)) {
+    toast.error(i18n.t('agent.errorTitle'), i18n.t('agent.roleDisabled'))
+    return
+  }
   const documentId = state.documents.activeDocumentId
   const libraryRecipes = new Set<AgentRecipeId>(['daily_digest', 'weekly_review', 'files_digest', 'cleanup'])
   const forceLibrary = libraryRecipes.has(recipeId)
@@ -25,7 +30,7 @@ export async function runAgentRecipeFromPalette(recipeId: AgentRecipeId) {
       forceLibrary ? null : documentId,
       undefined,
       prefs,
-      { recipeId },
+      { recipeId, roleId: recipeOwnerRole(recipeId) },
     )
     if (result.nextPrefs) store.dispatch(setAgentPrefs(result.nextPrefs))
     if (result.needsClarification) {

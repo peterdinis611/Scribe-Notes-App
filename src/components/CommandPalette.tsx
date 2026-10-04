@@ -925,7 +925,7 @@ export function CommandPalette() {
         label: t('commandPalette.openSpellcheckAgent'),
         icon: <Bot className="h-4 w-4" />,
         run: () => {
-          dispatch(openAgentPanel({ persona: 'spellcheck' }))
+          dispatch(openAgentPanel({ persona: 'proofreader' }))
         },
       },
       {
@@ -982,7 +982,7 @@ export function CommandPalette() {
         label: t('agent.recipes.spellcheck'),
         icon: <Bot className="h-4 w-4" />,
         run: () => {
-          dispatch(openAgentPanel({ persona: 'spellcheck' }))
+          dispatch(openAgentPanel({ persona: 'proofreader' }))
         },
       },
       {

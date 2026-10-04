@@ -1,4 +1,4 @@
-import { GraduationCap, Pin, Sparkles, Trash2, Zap } from 'lucide-react'
+import { Bot, GraduationCap, Pin, Sparkles, Trash2, Zap } from 'lucide-react'
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AgentBlobatar, AGENT_BLOBATAR_NAME } from '@/components/agent/AgentBlobatar'
@@ -17,6 +17,7 @@ import {
   type AgentTeachingTopic,
   type AgentToolId,
 } from '@/lib/library/agent-prefs'
+import { AGENT_ROLES, type AgentRoleId } from '@/lib/library/agent-roles'
 import {
   AGENT_TEACH_DRAFT_MAX_LEN,
   canDistillTeachingWithLlm,
@@ -129,7 +130,7 @@ function CardHead({
   id: string
   title: string
   hint: string
-  tone: 'optimize' | 'behavior' | 'pins' | 'teach'
+  tone: 'optimize' | 'behavior' | 'pins' | 'teach' | 'roles'
   children: ReactNode
 }) {
   return (
@@ -168,6 +169,24 @@ export function AgentSection() {
     const next = !prefs.enabled
     dispatch(patchAgentPrefs({ enabled: next }))
     toast.success(next ? t('settings.agent.enabledToast') : t('settings.agent.disabledToast'))
+  }
+
+  function toggleRole(roleId: AgentRoleId) {
+    const current = prefs.agents[roleId]?.enabled !== false
+    const next = !current
+    dispatch(
+      patchAgentPrefs({
+        agents: {
+          ...prefs.agents,
+          [roleId]: { enabled: next },
+        },
+      }),
+    )
+    toast.success(
+      next
+        ? t('settings.agent.roleEnabledToast', { name: t(`settings.agent.roles.${roleId}.label`) })
+        : t('settings.agent.roleDisabledToast', { name: t(`settings.agent.roles.${roleId}.label`) }),
+    )
   }
 
   useEffect(() => {
@@ -275,9 +294,46 @@ export function AgentSection() {
 
       <div className={cn('agent-settings-grid', !prefs.enabled && 'is-dimmed')}>
         <section
+          className="agent-settings-card agent-settings-card--roles"
+          aria-labelledby="agent-roles-title"
+          style={{ '--agent-reveal': '1' } as CSSProperties}
+        >
+          <CardHead
+            id="agent-roles-title"
+            title={t('settings.agent.rolesTitle')}
+            hint={t('settings.agent.rolesHint')}
+            tone="roles"
+          >
+            <Bot className="h-3.5 w-3.5" />
+          </CardHead>
+
+          <ul className="agent-settings-roles">
+            {AGENT_ROLES.map((role) => {
+              const checked = prefs.agents[role.id]?.enabled !== false
+              return (
+                <li key={role.id} className={cn(!checked && 'is-off')}>
+                  <div className="agent-settings-role-copy">
+                    <span>{t(role.labelKey)}</span>
+                    <small>{t(role.hintKey)}</small>
+                  </div>
+                  <AgentToggle
+                    compact
+                    checked={checked}
+                    onChange={() => toggleRole(role.id)}
+                    disabled={!prefs.enabled}
+                    onLabel={t('settings.agent.on')}
+                    offLabel={t('settings.agent.off')}
+                  />
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+
+        <section
           className="agent-settings-card agent-settings-card--optimize"
           aria-labelledby="agent-optimize-title"
-          style={{ '--agent-reveal': '1' } as CSSProperties}
+          style={{ '--agent-reveal': '2' } as CSSProperties}
         >
           <CardHead
             id="agent-optimize-title"

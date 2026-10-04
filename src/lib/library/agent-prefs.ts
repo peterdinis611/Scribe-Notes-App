@@ -1,3 +1,14 @@
+import {
+  DEFAULT_AGENT_ROLES,
+  filterToolsByAgents,
+  normalizeAgentRoles,
+  type AgentRoleId,
+  type AgentRolePrefs,
+} from '@/lib/library/agent-roles'
+
+export type { AgentRoleId, AgentRolePrefs }
+export { DEFAULT_AGENT_ROLES, normalizeAgentRoles } from '@/lib/library/agent-roles'
+
 export const AGENT_TEACHINGS_MAX = 24
 export const AGENT_TEACHING_MAX_LEN = 280
 export const AGENT_PINNED_FACTS_MAX = 12
@@ -76,6 +87,8 @@ export type AgentEpisode = {
 export type AgentPrefs = {
   /** Master switch — when false, agent UI/runtime refuses to run. */
   enabled: boolean
+  /** Per-role specialists the user can turn on/off. */
+  agents: Record<AgentRoleId, AgentRolePrefs>
   /** Cap tool loop length (optimization). */
   maxSteps: AgentMaxSteps
   /** Prefer lighter tools; drop heavier ones when alternatives exist. */
@@ -107,6 +120,7 @@ export type AgentPrefs = {
 
 export const DEFAULT_AGENT_PREFS: AgentPrefs = {
   enabled: true,
+  agents: { ...DEFAULT_AGENT_ROLES },
   maxSteps: 3,
   preferFast: false,
   preferredTools: [],
@@ -284,6 +298,7 @@ export function normalizeAgentPrefs(raw: unknown): AgentPrefs {
 
   return {
     enabled: input.enabled !== false,
+    agents: normalizeAgentRoles(input.agents),
     maxSteps,
     preferFast: Boolean(input.preferFast),
     preferredTools,
@@ -402,11 +417,19 @@ export function applyAgentOptimize(
   tools: AgentToolId[],
   prefs: Pick<
     AgentPrefs,
-    'maxSteps' | 'preferFast' | 'preferredTools' | 'disabledTools' | 'quietHours'
+    | 'maxSteps'
+    | 'preferFast'
+    | 'preferredTools'
+    | 'disabledTools'
+    | 'quietHours'
+    | 'agents'
   >,
 ): AgentToolId[] {
   const disabled = new Set(prefs.disabledTools)
   let next = tools.filter((tool) => !disabled.has(tool))
+  if (prefs.agents) {
+    next = filterToolsByAgents(next, prefs.agents)
+  }
 
   const dropHeavy = prefs.preferFast || (prefs.quietHours && isQuietHourNow())
   if (dropHeavy) {

@@ -7,9 +7,16 @@ import {
   pushAgentEpisode,
   teachingsToMemoryContext,
   type AgentPrefs,
+  type AgentRoleId,
   type AgentToolId,
   DEFAULT_AGENT_PREFS,
 } from '@/lib/library/agent-prefs'
+import {
+  filterToolsByAgents,
+  isAgentRoleEnabled,
+  isRecipeAllowedByAgents,
+  preferredToolsForRole,
+} from '@/lib/library/agent-roles'
 import { getAgentRecipe, type AgentRecipeId } from '@/lib/library/agent-recipes'
 import {
   runAgentCitations,
@@ -389,6 +396,7 @@ function defaultAnswerTool(scope: ChatScope): AgentToolId {
 export function suggestFollowupRecipes(
   steps: AgentStep[],
   scope: ChatScope,
+  agents = DEFAULT_AGENT_PREFS.agents,
 ): string[] {
   const ok = new Set(steps.filter((step) => step.status === 'ok').map((step) => step.tool))
   const out: string[] = []
@@ -402,7 +410,21 @@ export function suggestFollowupRecipes(
   if (ok.has('style') || ok.has('terminology')) out.push('polish')
   if (scope === 'document' && out.length === 0) out.push('spellcheck', 'polish', 'study_pass')
   if (scope !== 'document' && out.length === 0) out.push('daily_digest', 'weekly_review', 'cleanup')
-  return [...new Set(out)].slice(0, 3)
+  return [...new Set(out)]
+    .filter((id) => isRecipeAllowedByAgents(id as AgentRecipeId, agents))
+    .slice(0, 3)
+}
+
+function withRolePreferred(prefs: AgentPrefs, roleId?: AgentRoleId | null): AgentPrefs {
+  if (!roleId || roleId === 'general') return prefs
+  const boost = preferredToolsForRole(roleId)
+  return {
+    ...prefs,
+    preferredTools: [
+      ...boost,
+      ...prefs.preferredTools.filter((tool) => !boost.includes(tool)),
+    ].slice(0, 10),
+  }
 }
 
 export async function planAgentGoal(
@@ -414,34 +436,45 @@ export async function planAgentGoal(
     recipeId?: AgentRecipeId | null
     forceTools?: AgentToolId[]
     folderId?: string | null
+    /** Active dock specialist — boosts that role’s tools. */
+    roleId?: AgentRoleId | null
   },
 ): Promise<AgentPlan> {
   if (!prefs.enabled) {
     throw new Error('agent.disabled')
   }
 
+  const effective = withRolePreferred(prefs, opts?.roleId)
   const trimmed = goal.trim()
   const fallback = defaultAnswerTool(scope)
+  const fallbackAllowed = filterToolsByAgents([fallback], effective.agents)
+  const safeFallback = fallbackAllowed[0] ?? filterToolsByAgents(
+    ['library_answer', 'document_answer', 'summarize'],
+    effective.agents,
+  )[0]
 
   if (opts?.forceTools?.length) {
-    const tools = applyAgentOptimize(scopeTools(opts.forceTools, scope, documentId), prefs)
+    const tools = applyAgentOptimize(scopeTools(opts.forceTools, scope, documentId), effective)
     return {
       goal: trimmed,
       scope,
       documentId,
-      tools: tools.length > 0 ? tools : [fallback],
+      tools: tools.length > 0 ? tools : safeFallback ? [safeFallback] : [],
     }
   }
 
   if (opts?.recipeId) {
+    if (!isRecipeAllowedByAgents(opts.recipeId, effective.agents)) {
+      throw new Error('agent.roleDisabled')
+    }
     const recipe = getAgentRecipe(opts.recipeId)
     if (recipe) {
-      const tools = applyAgentOptimize(scopeTools(recipe.tools, scope, documentId), prefs)
+      const tools = applyAgentOptimize(scopeTools(recipe.tools, scope, documentId), effective)
       return {
         goal: trimmed || opts.recipeId,
         scope,
         documentId,
-        tools: tools.length > 0 ? tools : [fallback],
+        tools: tools.length > 0 ? tools : safeFallback ? [safeFallback] : [],
       }
     }
   }
@@ -451,20 +484,22 @@ export async function planAgentGoal(
     const planned = await nlpPlanAgentGoal({
       goal: trimmed,
       scope: scope === 'folder' ? 'library' : scope,
-      maxTools: prefs.maxSteps,
+      maxTools: effective.maxSteps,
     })
     intents = planned.tools
-    if (planned.needsClarification && prefs.askWhenUncertain) {
-      const clarifyOptions = (planned.clarifyOptions ?? DEFAULT_CLARIFY)
-        .map((item) => INTENT_TO_TOOL[item] ?? (item as AgentToolId))
-        .filter((tool, index, list) => list.indexOf(tool) === index)
-        .filter((tool) => {
-          if (tool === 'document_answer') return scope === 'document' || Boolean(documentId)
-          if (tool === 'library_answer') return scope === 'library' || !documentId
-          if (DOCUMENT_TOOLS.has(tool)) return Boolean(documentId) || scope === 'document'
-          return true
-        })
-        .slice(0, 5)
+    if (planned.needsClarification && effective.askWhenUncertain) {
+      const clarifyOptions = filterToolsByAgents(
+        (planned.clarifyOptions ?? DEFAULT_CLARIFY)
+          .map((item) => INTENT_TO_TOOL[item] ?? (item as AgentToolId))
+          .filter((tool, index, list) => list.indexOf(tool) === index)
+          .filter((tool) => {
+            if (tool === 'document_answer') return scope === 'document' || Boolean(documentId)
+            if (tool === 'library_answer') return scope === 'library' || !documentId
+            if (DOCUMENT_TOOLS.has(tool)) return Boolean(documentId) || scope === 'document'
+            return true
+          }),
+        effective.agents,
+      ).slice(0, 5)
       return {
         goal: trimmed,
         scope,
@@ -496,13 +531,16 @@ export async function planAgentGoal(
     }
   }
 
-  if (fromIntent.length === 0 && prefs.askWhenUncertain) {
-    const clarifyOptions = DEFAULT_CLARIFY.filter((tool) => {
-      if (tool === 'document_answer') return scope === 'document' || Boolean(documentId)
-      if (tool === 'library_answer') return scope !== 'document'
-      if (DOCUMENT_TOOLS.has(tool)) return Boolean(documentId) || scope === 'document'
-      return true
-    }).slice(0, 5)
+  if (fromIntent.length === 0 && effective.askWhenUncertain) {
+    const clarifyOptions = filterToolsByAgents(
+      DEFAULT_CLARIFY.filter((tool) => {
+        if (tool === 'document_answer') return scope === 'document' || Boolean(documentId)
+        if (tool === 'library_answer') return scope !== 'document'
+        if (DOCUMENT_TOOLS.has(tool)) return Boolean(documentId) || scope === 'document'
+        return true
+      }),
+      effective.agents,
+    ).slice(0, 5)
     return {
       goal: trimmed,
       scope,
@@ -514,17 +552,17 @@ export async function planAgentGoal(
   }
 
   if (fromIntent.length === 0) {
-    fromIntent = [fallback]
+    fromIntent = safeFallback ? [safeFallback] : [fallback]
   }
 
   const scoped = scopeTools(fromIntent, scope, documentId)
-  const tools = applyAgentOptimize(scoped.length > 0 ? scoped : [fallback], prefs)
+  const tools = applyAgentOptimize(scoped.length > 0 ? scoped : safeFallback ? [safeFallback] : [fallback], effective)
 
   return {
     goal: trimmed,
     scope,
     documentId,
-    tools: tools.length > 0 ? tools : [fallback],
+    tools: tools.length > 0 ? tools : safeFallback ? [safeFallback] : [],
   }
 }
 
@@ -803,10 +841,15 @@ export async function runAgentGoal(
     stream?: boolean
     /** Spellcheck agent: inject grammar teachings only. */
     grammarOnly?: boolean
+    /** Active dock specialist. */
+    roleId?: AgentRoleId | null
   },
 ): Promise<AgentRunResult> {
   if (!prefs.enabled) {
     throw new Error('agent.disabled')
+  }
+  if (opts?.roleId && !isAgentRoleEnabled(prefs.agents, opts.roleId)) {
+    throw new Error('agent.roleDisabled')
   }
   if (!canRunAgentBudget(prefs)) {
     throw new Error('agent.budgetExceeded')
@@ -915,7 +958,7 @@ export async function runAgentGoal(
     })
   }
 
-  const recipeFollowups = suggestFollowupRecipes(steps, scope).map(
+  const recipeFollowups = suggestFollowupRecipes(steps, scope, prefs.agents).map(
     (id) => `recipe:${id}`,
   )
 

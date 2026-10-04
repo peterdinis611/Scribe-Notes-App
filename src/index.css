@@ -4407,8 +4407,11 @@ html.dark .editor-canvas::before {
 
 .agent-persona-switch {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 2px;
+  max-width: min(100%, 22rem);
   padding: 2px;
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
@@ -4425,6 +4428,15 @@ html.dark .editor-canvas::before {
   padding: 4px 8px;
   border-radius: 999px;
   cursor: pointer;
+  white-space: nowrap;
+}
+
+.agent-dock-empty-roles {
+  margin: 0;
+  padding: 1.25rem 1.1rem;
+  color: var(--color-muted-foreground);
+  font-size: 0.9rem;
+  line-height: 1.45;
 }
 
 .agent-persona-tab.is-active {
@@ -14840,8 +14852,12 @@ html[data-ui-skin='press'] .error-folio__title {
     align-items: start;
   }
 
+  .agent-settings-grid > .agent-settings-card--roles {
+    grid-column: 1 / -1;
+  }
+
   .agent-settings-grid > .agent-settings-card--optimize {
-    grid-row: 1 / span 3;
+    grid-row: 2 / span 3;
   }
 }
 
@@ -14851,7 +14867,7 @@ html[data-ui-skin='press'] .error-folio__title {
   }
 
   .agent-settings-grid > .agent-settings-card--optimize {
-    grid-row: 1 / span 2;
+    grid-row: 2 / span 2;
   }
 }
 
@@ -14913,6 +14929,62 @@ html[data-ui-skin='press'] .error-folio__title {
     color-mix(in srgb, var(--color-foreground) 45%, var(--color-accent)),
     color-mix(in srgb, var(--color-muted-foreground) 40%, transparent)
   );
+}
+
+.agent-settings-card--roles::before {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, #5b8def 80%, #fff),
+    color-mix(in srgb, #5b8def 28%, transparent)
+  );
+}
+
+.agent-settings-card-head.is-roles .agent-settings-card-icon {
+  background: color-mix(in srgb, #5b8def 18%, transparent);
+  color: #3d6fd8;
+}
+
+.agent-settings-roles {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.agent-settings-roles > li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  background: color-mix(in srgb, var(--color-canvas) 55%, transparent);
+}
+
+.agent-settings-roles > li.is-off {
+  opacity: 0.62;
+}
+
+.agent-settings-role-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.agent-settings-role-copy span {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+.agent-settings-role-copy small {
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--color-muted-foreground);
 }
 
 .agent-settings-card-head {

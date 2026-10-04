@@ -1643,6 +1643,36 @@
       "off": "Vypnuté",
       "enabledToast": "Agent zapnutý",
       "disabledToast": "Agent vypnutý",
+      "rolesTitle": "Agenti",
+      "rolesHint": "Zapni alebo vypni špecialistov. Vypnutí zmiznú z docku a ich recepty sa nespustia.",
+      "roleEnabledToast": "{{name}} zapnutý",
+      "roleDisabledToast": "{{name}} vypnutý",
+      "roles": {
+        "general": {
+          "label": "Všeobecný",
+          "hint": "Otázky cez poznámky, zhrnutia, vysvetlenia a porovnania."
+        },
+        "proofreader": {
+          "label": "Korektor",
+          "hint": "Pravopis, gramatické učenia, prepis a polish."
+        },
+        "librarian": {
+          "label": "Knihovník",
+          "hint": "Denné digesty, termíny a odpovede zo súborov."
+        },
+        "meeting": {
+          "label": "Zápisník stretnutí",
+          "hint": "Úlohy, rozhodnutia, citácie a wrap-up meetingov."
+        },
+        "study": {
+          "label": "Študijný kouč",
+          "hint": "Osnovy, glossáre, kvízy a kartičky."
+        },
+        "organizer": {
+          "label": "Organizátor",
+          "hint": "Duplicity, wiki odkazy, priečinky a PII kontrola."
+        }
+      },
       "optimizeTitle": "Optimalizácia práce",
       "optimizeHint": "Obmedz počet krokov a uprednostni ľahšie nástroje, aby beh ostal rýchly.",
       "maxSteps": "Max. krokov nástrojov",
@@ -2514,6 +2544,35 @@
     "personaSwitch": "Prepnúť agenta",
     "personaGeneral": "Agent",
     "personaSpellcheck": "Pravopis",
+    "roleDisabled": "Tento agent je vypnutý v Nastavenia → Agent.",
+    "rolesNoneTitle": "Žiadni agenti zapnutí",
+    "rolesNoneHint": "Zapni aspoň jedného špecialistu v Nastavenia → Agent.",
+    "roles": {
+      "general": {
+        "dock": "Všeobecný",
+        "dockTitle": "Práca s poznámkami"
+      },
+      "proofreader": {
+        "dock": "Pravopis",
+        "dockTitle": "Kontrola tejto poznámky"
+      },
+      "librarian": {
+        "dock": "Knižnica",
+        "dockTitle": "Digesty a termíny"
+      },
+      "meeting": {
+        "dock": "Meeting",
+        "dockTitle": "Rozhodnutia a úlohy"
+      },
+      "study": {
+        "dock": "Štúdium",
+        "dockTitle": "Učenie z poznámky"
+      },
+      "organizer": {
+        "dock": "Organizácia",
+        "dockTitle": "Upratanie knižnice"
+      }
+    },
     "spellAgent": {
       "brandBadge": "Pravopisný agent",
       "faceTitle": "Scribe pravopisný agent",

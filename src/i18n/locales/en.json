@@ -1643,6 +1643,36 @@
       "off": "Off",
       "enabledToast": "Agent enabled",
       "disabledToast": "Agent disabled",
+      "rolesTitle": "Agents",
+      "rolesHint": "Turn specialists on or off. Disabled agents hide from the dock and skip their recipes.",
+      "roleEnabledToast": "{{name}} enabled",
+      "roleDisabledToast": "{{name}} disabled",
+      "roles": {
+        "general": {
+          "label": "General",
+          "hint": "Ask across notes, summarize, explain, and compare."
+        },
+        "proofreader": {
+          "label": "Proofreader",
+          "hint": "Spelling, grammar teachings, rewrite, and polish."
+        },
+        "librarian": {
+          "label": "Librarian",
+          "hint": "Daily digests, deadlines, and files answers."
+        },
+        "meeting": {
+          "label": "Meeting scribe",
+          "hint": "Action items, decisions, quotes, and meeting wrap-ups."
+        },
+        "study": {
+          "label": "Study coach",
+          "hint": "Outlines, glossaries, quizzes, and flashcards."
+        },
+        "organizer": {
+          "label": "Organizer",
+          "hint": "Duplicates, wiki links, folders, and PII review."
+        }
+      },
       "optimizeTitle": "Optimize work",
       "optimizeHint": "Limit steps and prefer lighter tools so runs stay fast on this Mac.",
       "maxSteps": "Max tool steps",
@@ -2510,6 +2540,35 @@
     "personaSwitch": "Switch agent",
     "personaGeneral": "Agent",
     "personaSpellcheck": "Spelling",
+    "roleDisabled": "That agent is turned off in Settings → Agent.",
+    "rolesNoneTitle": "No agents enabled",
+    "rolesNoneHint": "Turn on at least one specialist in Settings → Agent.",
+    "roles": {
+      "general": {
+        "dock": "General",
+        "dockTitle": "Work with your notes"
+      },
+      "proofreader": {
+        "dock": "Spelling",
+        "dockTitle": "Proofread this note"
+      },
+      "librarian": {
+        "dock": "Library",
+        "dockTitle": "Digests and deadlines"
+      },
+      "meeting": {
+        "dock": "Meeting",
+        "dockTitle": "Capture decisions and tasks"
+      },
+      "study": {
+        "dock": "Study",
+        "dockTitle": "Learn from this note"
+      },
+      "organizer": {
+        "dock": "Organize",
+        "dockTitle": "Clean up the library"
+      }
+    },
     "spellAgent": {
       "brandBadge": "Spellcheck Agent",
       "faceTitle": "Scribe Spellcheck Agent",
