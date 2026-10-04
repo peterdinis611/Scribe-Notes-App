@@ -1,4 +1,4 @@
-import { useHotkeys } from '@tanstack/react-hotkeys'
+import { useHotkeys, type RegisterableHotkey } from '@tanstack/react-hotkeys'
 import type { Editor } from '@tiptap/react'
 import i18n from '@/i18n'
 import { promptAndApplyEditorLink } from '@/lib/editor/link-prompt'
@@ -18,7 +18,8 @@ export function useEditorHotkeys(editor: Editor | null) {
   const dispatch = useAppDispatch()
   const findReplaceOpen = useAppSelector((state) => state.documents.findReplaceOpen)
   const shortcutOverrides = useAppSelector((state) => state.settings.shortcutOverrides)
-  const linkHotkey = getResolvedHotkey('link', shortcutOverrides) || 'Mod+Shift+K'
+  const linkHotkey = (getResolvedHotkey('link', shortcutOverrides) ||
+    'Mod+Shift+K') as RegisterableHotkey
 
   useHotkeys(
     [
