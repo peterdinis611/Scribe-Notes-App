@@ -1,6 +1,6 @@
 use rusqlite::Connection;
 
-const SCHEMA_VERSION: i32 = 22;
+const SCHEMA_VERSION: i32 = 23;
 
 pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     conn.execute_batch(
@@ -573,6 +573,23 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
                 ON agent_messages(document_id, created_at ASC);
             "#,
         )?;
+        conn.execute(
+            "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
+            ["22".to_string()],
+        )?;
+    }
+
+    if current < 23 {
+        let _ = conn.execute("ALTER TABLE folders ADD COLUMN color TEXT", []);
+        let _ = conn.execute("ALTER TABLE folders ADD COLUMN icon TEXT", []);
+        let _ = conn.execute(
+            "ALTER TABLE folders ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE folders ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0",
+            [],
+        );
         conn.execute(
             "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
             [SCHEMA_VERSION.to_string()],

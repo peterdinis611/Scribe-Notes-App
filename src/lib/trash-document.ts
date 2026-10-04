@@ -1,8 +1,8 @@
-import { invalidateDocumentCache, peekCachedDocument } from '@/lib/cache/document-cache'
+import { peekCachedDocument } from '@/lib/cache/document-cache'
 import {
-  deleteDocument,
   fetchDocumentFresh,
-  restoreDocument,
+  restoreDocumentsBatch,
+  trashDocumentsBatch,
   type DocumentSummary,
 } from '@/lib/db/api'
 import { documentToSummary } from '@/lib/db/library-sync'
@@ -86,10 +86,7 @@ export async function trashDocuments(args: {
   if (removed.length === 0) return []
 
   try {
-    for (const doc of removed) {
-      await deleteDocument(doc.id)
-      invalidateDocumentCache(doc.id)
-    }
+    await trashDocumentsBatch(removed.map((doc) => doc.id))
     return removed
   } catch (error) {
     args.dispatch(updateDocuments((prev) => [...prev, ...removed]))
@@ -116,8 +113,12 @@ export async function restoreTrashedDocuments(args: {
     args.dispatch(
       updateDocuments((prev) => [optimistic, ...prev.filter((doc) => doc.id !== item.id)]),
     )
-    await restoreDocument(item.id)
-    invalidateDocumentCache(item.id)
+  }
+
+  await restoreDocumentsBatch(args.documents.map((item) => item.id))
+
+  for (const item of args.documents) {
+    const optimistic = { ...item, deletedAt: null }
     const fresh = await fetchDocumentFresh(item.id)
     args.dispatch(
       updateDocuments((prev) => {

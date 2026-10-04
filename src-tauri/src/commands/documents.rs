@@ -144,10 +144,53 @@ fn map_summary(row: &rusqlite::Row<'_>) -> rusqlite::Result<DocumentSummary> {
     })
 }
 
+#[derive(Debug, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct ListDocumentsInput {
+    pub folder_id: Option<String>,
+    pub limit: Option<i64>,
+}
+
 #[tauri::command]
-pub fn list_documents(state: State<'_, DbState>) -> Result<Vec<DocumentSummary>, String> {
+pub fn list_documents(
+    state: State<'_, DbState>,
+    input: Option<ListDocumentsInput>,
+) -> Result<Vec<DocumentSummary>, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
-    list_open_document_summaries(&conn)
+    let input = input.unwrap_or_default();
+    match input.folder_id {
+        Some(folder_id) => list_document_summaries_in_folder(&conn, &folder_id, input.limit),
+        None => {
+            let mut docs = list_open_document_summaries(&conn)?;
+            if let Some(limit) = input.limit {
+                let max = limit.clamp(1, 10_000) as usize;
+                if docs.len() > max {
+                    docs.truncate(max);
+                }
+            }
+            Ok(docs)
+        }
+    }
+}
+
+pub(crate) fn list_document_summaries_in_folder(
+    conn: &rusqlite::Connection,
+    folder_id: &str,
+    limit: Option<i64>,
+) -> Result<Vec<DocumentSummary>, String> {
+    let library_id = crate::libraries::active_library_id(conn);
+    let max = limit.unwrap_or(10_000).clamp(1, 10_000);
+    let mut stmt = conn
+        .prepare(&format!(
+            "{SUMMARY_SELECT} WHERE deleted_at IS NULL AND library_id = ?1 AND folder_id = ?2 \
+             ORDER BY updated_at DESC LIMIT ?3"
+        ))
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map(params![library_id, folder_id, max], map_summary)
+        .map_err(|e| e.to_string())?;
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())
 }
 
 pub(crate) fn list_open_document_summaries(
@@ -442,6 +485,342 @@ pub fn delete_document(state: State<'_, DbState>, id: String) -> Result<(), Stri
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     soft_delete_document_row(&conn, &id, now_ts())?;
     Ok(())
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrashDocumentsResult {
+    pub trashed_ids: Vec<String>,
+}
+
+/// Soft-delete many documents in one transaction (bulk bar / multi-select).
+#[tauri::command]
+pub fn trash_documents(
+    state: State<'_, DbState>,
+    ids: Vec<String>,
+) -> Result<TrashDocumentsResult, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let now = now_ts();
+    let mut trashed_ids = Vec::new();
+
+    conn.execute("BEGIN IMMEDIATE", [])
+        .map_err(|e| e.to_string())?;
+    let result = (|| -> Result<TrashDocumentsResult, String> {
+        for id in ids {
+            let id = id.trim();
+            if id.is_empty() {
+                continue;
+            }
+            if soft_delete_document_row(&conn, id, now)? {
+                trashed_ids.push(id.to_string());
+            }
+        }
+        Ok(TrashDocumentsResult { trashed_ids })
+    })();
+
+    if result.is_err() {
+        let _ = conn.execute("ROLLBACK", []);
+        return result;
+    }
+    conn.execute("COMMIT", []).map_err(|e| e.to_string())?;
+    result
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RestoreDocumentsResult {
+    pub restored_ids: Vec<String>,
+}
+
+#[tauri::command]
+pub fn restore_documents(
+    state: State<'_, DbState>,
+    ids: Vec<String>,
+) -> Result<RestoreDocumentsResult, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let mut restored_ids = Vec::new();
+
+    conn.execute("BEGIN IMMEDIATE", [])
+        .map_err(|e| e.to_string())?;
+    let result = (|| -> Result<RestoreDocumentsResult, String> {
+        for id in ids {
+            let id = id.trim();
+            if id.is_empty() {
+                continue;
+            }
+            let restored = conn
+                .query_row(
+                    &format!("{DOCUMENT_SELECT} WHERE id = ?1"),
+                    params![id],
+                    map_document,
+                )
+                .optional()
+                .map_err(|e| e.to_string())?;
+
+            let affected = conn
+                .execute(
+                    "UPDATE documents SET deleted_at = NULL WHERE id = ?1 AND deleted_at IS NOT NULL",
+                    params![id],
+                )
+                .map_err(|e| e.to_string())?;
+            if affected == 0 {
+                continue;
+            }
+
+            if let Some(doc) = restored {
+                if let Some(folder_id) = &doc.folder_id {
+                    if !folder_exists(&conn, folder_id)? {
+                        let fallback = super::folders::default_folder_id(&conn)?;
+                        conn.execute(
+                            "UPDATE documents SET folder_id = ?1 WHERE id = ?2",
+                            params![fallback, id],
+                        )
+                        .map_err(|e| e.to_string())?;
+                    }
+                }
+                crate::db::sync_document_fts(&conn, &doc.id, &doc.title, &doc.content_json)?;
+                crate::db::sync_document_links(&conn, &doc.id, &doc.content_json)?;
+            }
+            restored_ids.push(id.to_string());
+        }
+        Ok(RestoreDocumentsResult { restored_ids })
+    })();
+
+    if result.is_err() {
+        let _ = conn.execute("ROLLBACK", []);
+        return result;
+    }
+    conn.execute("COMMIT", []).map_err(|e| e.to_string())?;
+    result
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RenameDocumentInput {
+    pub id: String,
+    pub title: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RenameDocumentResult {
+    pub id: String,
+    pub title: String,
+    pub updated_at: i64,
+}
+
+/// Lightweight title rename without rewriting the full document body over IPC.
+#[tauri::command]
+pub fn rename_document(
+    app: AppHandle,
+    state: State<'_, DbState>,
+    input: RenameDocumentInput,
+) -> Result<RenameDocumentResult, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let title = normalize_document_title(&input.title);
+    let now = now_ts();
+
+    let row: Option<(String, i64, Option<i64>)> = conn
+        .query_row(
+            "SELECT content_json, created_at, deleted_at FROM documents WHERE id = ?1",
+            params![input.id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .optional()
+        .map_err(|e| e.to_string())?;
+
+    let Some((content_json, created_at, deleted_at)) = row else {
+        return Err(format!("Document not found: {}", input.id));
+    };
+    if deleted_at.is_some() {
+        return Err(format!("Document not found: {}", input.id));
+    }
+
+    conn.execute(
+        "UPDATE documents SET title = ?1, updated_at = ?2 WHERE id = ?3",
+        params![title, now, input.id],
+    )
+    .map_err(|e| e.to_string())?;
+    crate::db::sync_document_fts(&conn, &input.id, &title, &content_json)?;
+
+    if let Err(error) = queue_document_persist(
+        &app,
+        &conn,
+        &state.persist_queue,
+        &input.id,
+        &title,
+        &content_json,
+        created_at,
+        now,
+    ) {
+        log::warn!("rename_document disk queue failed for {}: {error}", input.id);
+    }
+
+    Ok(RenameDocumentResult {
+        id: input.id,
+        title,
+        updated_at: now,
+    })
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TagCount {
+    pub tag: String,
+    pub count: i64,
+}
+
+#[tauri::command]
+pub fn list_document_tags(state: State<'_, DbState>) -> Result<Vec<TagCount>, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let library_id = crate::libraries::active_library_id(&conn);
+    let mut stmt = conn
+        .prepare(
+            "SELECT tags FROM documents WHERE deleted_at IS NULL AND library_id = ?1 AND tags IS NOT NULL",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([library_id], |row| row.get::<_, Option<String>>(0))
+        .map_err(|e| e.to_string())?;
+
+    let mut counts = std::collections::HashMap::<String, i64>::new();
+    for row in rows {
+        for tag in parse_tags(row.map_err(|e| e.to_string())?) {
+            *counts.entry(tag).or_insert(0) += 1;
+        }
+    }
+
+    let mut tags: Vec<TagCount> = counts
+        .into_iter()
+        .map(|(tag, count)| TagCount { tag, count })
+        .collect();
+    tags.sort_by(|left, right| {
+        right
+            .count
+            .cmp(&left.count)
+            .then_with(|| left.tag.cmp(&right.tag))
+    });
+    Ok(tags)
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MergeDocumentsInput {
+    pub keep_id: String,
+    pub drop_id: String,
+}
+
+/// Append the dropped note under a heading into keep, then soft-delete drop.
+#[tauri::command]
+pub fn merge_documents(
+    app: AppHandle,
+    state: State<'_, DbState>,
+    input: MergeDocumentsInput,
+) -> Result<Document, String> {
+    if input.keep_id == input.drop_id {
+        return Err("Cannot merge a document into itself".to_string());
+    }
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+
+    let keep = conn
+        .query_row(
+            &format!("{DOCUMENT_SELECT} WHERE id = ?1 AND deleted_at IS NULL"),
+            params![input.keep_id],
+            map_document,
+        )
+        .optional()
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("Document not found: {}", input.keep_id))?;
+
+    let drop = conn
+        .query_row(
+            &format!("{DOCUMENT_SELECT} WHERE id = ?1 AND deleted_at IS NULL"),
+            params![input.drop_id],
+            map_document,
+        )
+        .optional()
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("Document not found: {}", input.drop_id))?;
+
+    let merged_json = merge_document_content_json(&keep.content_json, &drop.content_json, &drop.title);
+    let now = now_ts();
+
+    conn.execute("BEGIN IMMEDIATE", [])
+        .map_err(|e| e.to_string())?;
+    let result = (|| -> Result<Document, String> {
+        conn.execute(
+            "UPDATE documents SET content_json = ?1, updated_at = ?2 WHERE id = ?3",
+            params![merged_json, now, keep.id],
+        )
+        .map_err(|e| e.to_string())?;
+        crate::db::sync_document_fts(&conn, &keep.id, &keep.title, &merged_json)?;
+        crate::db::sync_document_links(&conn, &keep.id, &merged_json)?;
+        soft_delete_document_row(&conn, &drop.id, now)?;
+        Ok(Document {
+            id: keep.id.clone(),
+            title: keep.title.clone(),
+            content_json: merged_json.clone(),
+            folder_id: keep.folder_id.clone(),
+            file_path: keep.file_path.clone(),
+            created_at: keep.created_at,
+            updated_at: now,
+            vault_verifier: keep.vault_verifier.clone(),
+        })
+    })();
+
+    if result.is_err() {
+        let _ = conn.execute("ROLLBACK", []);
+        return result;
+    }
+    conn.execute("COMMIT", []).map_err(|e| e.to_string())?;
+
+    if let Ok(doc) = &result {
+        if let Err(error) = queue_document_persist(
+            &app,
+            &conn,
+            &state.persist_queue,
+            &doc.id,
+            &doc.title,
+            &doc.content_json,
+            doc.created_at,
+            doc.updated_at,
+        ) {
+            log::warn!("merge_documents disk queue failed for {}: {error}", doc.id);
+        }
+    }
+
+    result
+}
+
+fn merge_document_content_json(keep_json: &str, drop_json: &str, drop_title: &str) -> String {
+    let keep_content = parse_doc_content(keep_json);
+    let drop_content = parse_doc_content(drop_json);
+    let heading_text = {
+        let trimmed = drop_title.trim();
+        if trimmed.is_empty() {
+            "Untitled"
+        } else {
+            trimmed
+        }
+    };
+    let heading = serde_json::json!({
+        "type": "heading",
+        "attrs": { "level": 2 },
+        "content": [{ "type": "text", "text": heading_text }],
+    });
+    let mut content = keep_content;
+    content.push(serde_json::json!({ "type": "horizontalRule" }));
+    content.push(heading);
+    content.extend(drop_content);
+    serde_json::json!({ "type": "doc", "content": content }).to_string()
+}
+
+fn parse_doc_content(content_json: &str) -> Vec<serde_json::Value> {
+    serde_json::from_str::<serde_json::Value>(content_json)
+        .ok()
+        .and_then(|value| value.get("content").cloned())
+        .and_then(|content| content.as_array().cloned())
+        .unwrap_or_default()
 }
 
 #[tauri::command]
@@ -1179,6 +1558,28 @@ mod tests {
 
         assert!(soft_delete_document_row(&conn, "d1", 200).unwrap());
         assert!(list_open_document_summaries(&conn).unwrap().is_empty());
+    }
+
+    #[test]
+    fn list_document_summaries_filters_by_folder() {
+        let conn = in_memory_conn();
+        seed_document(&conn, "d1", "In folder", r#"{"type":"doc","content":[]}"#, Some("f1"));
+        seed_document(&conn, "d2", "Other", r#"{"type":"doc","content":[]}"#, Some("f2"));
+
+        let listed = list_document_summaries_in_folder(&conn, "f1", None).unwrap();
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].id, "d1");
+    }
+
+    #[test]
+    fn merge_document_content_appends_heading() {
+        let keep = r#"{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"A"}]}]}"#;
+        let drop = r#"{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"B"}]}]}"#;
+        let merged = merge_document_content_json(keep, drop, "Dropped");
+        assert!(merged.contains("Dropped"));
+        assert!(merged.contains("horizontalRule"));
+        assert!(merged.contains("\"text\":\"A\""));
+        assert!(merged.contains("\"text\":\"B\""));
     }
 
     #[test]

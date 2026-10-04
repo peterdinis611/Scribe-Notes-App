@@ -1,4 +1,4 @@
-import { deleteDocument, getDocument, updateDocument } from '@/lib/db/api'
+import { mergeDocuments } from '@/lib/db/api'
 
 function parseDoc(contentJson: string): { type: string; content: unknown[] } {
   try {
@@ -26,10 +26,5 @@ export function mergeDuplicateContent(keepJson: string, dropJson: string, dropTi
 /** Append the dropped note under a heading, then move it to trash. */
 export async function mergeDuplicateNotes(keepId: string, dropId: string): Promise<void> {
   if (keepId === dropId) return
-  const [keep, drop] = await Promise.all([getDocument(keepId), getDocument(dropId)])
-  await updateDocument({
-    id: keepId,
-    contentJson: mergeDuplicateContent(keep.contentJson, drop.contentJson, drop.title),
-  })
-  await deleteDocument(dropId)
+  await mergeDocuments(keepId, dropId)
 }

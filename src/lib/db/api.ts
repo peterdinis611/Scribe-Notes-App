@@ -25,6 +25,10 @@ export interface Folder {
   isPinned: boolean
   isVault?: boolean
   vaultVerifier?: string | null
+  color?: string | null
+  icon?: string | null
+  sortOrder?: number
+  isArchived?: boolean
 }
 
 export interface SearchHit {
@@ -96,11 +100,27 @@ export interface StorageSettings {
   folderAccessGranted: boolean
 }
 
+export interface StorageDiskUsage {
+  documentsDir: string
+  path: string
+  totalBytes: number
+  fileCount: number
+  dirCount: number
+}
+
 export interface ExportResult {
   path: string
 }
 
-export const listDocuments = () => invoke<DocumentSummary[]>('list_documents')
+export const listDocuments = (input?: { folderId?: string | null; limit?: number }) =>
+  invoke<DocumentSummary[]>('list_documents', {
+    input: input
+      ? {
+          folderId: input.folderId ?? null,
+          limit: input.limit,
+        }
+      : null,
+  })
 
 async function vaultContext() {
   const { store } = await import('@/store/index')
@@ -224,11 +244,45 @@ export const deleteDocument = async (id: string) => {
   void import('@/lib/vault/ram-index').then(({ vaultRamRemove }) => vaultRamRemove(id))
 }
 
+export const trashDocumentsBatch = async (ids: string[]) => {
+  const result = await invoke<{ trashedIds: string[] }>('trash_documents', { ids })
+  for (const id of result.trashedIds) {
+    invalidateDocumentCache(id)
+    void import('@/lib/vault/ram-index').then(({ vaultRamRemove }) => vaultRamRemove(id))
+  }
+  return result
+}
+
 export const listTrashedDocuments = () => invoke<DocumentSummary[]>('list_trashed_documents')
 
 export const restoreDocument = async (id: string) => {
   await invoke<void>('restore_document', { id })
   invalidateDocumentCache(id)
+}
+
+export const restoreDocumentsBatch = async (ids: string[]) => {
+  const result = await invoke<{ restoredIds: string[] }>('restore_documents', { ids })
+  for (const id of result.restoredIds) {
+    invalidateDocumentCache(id)
+  }
+  return result
+}
+
+export const renameDocument = (id: string, title: string) =>
+  invoke<{ id: string; title: string; updatedAt: number }>('rename_document', {
+    input: { id, title },
+  })
+
+export const listDocumentTags = () =>
+  invoke<{ tag: string; count: number }[]>('list_document_tags')
+
+export const mergeDocuments = async (keepId: string, dropId: string) => {
+  const merged = cacheDocument(
+    await invoke<Document>('merge_documents', { input: { keepId, dropId } }),
+  )
+  invalidateDocumentCache(dropId)
+  void import('@/lib/vault/ram-index').then(({ vaultRamRemove }) => vaultRamRemove(dropId))
+  return merged
 }
 
 export const purgeDocument = async (id: string) => {
@@ -455,6 +509,12 @@ export const pickDocumentsDirectory = () =>
 export const revealInFinder = (path: string) =>
   invoke<void>('reveal_in_finder', { path })
 
+export const revealDocumentsDirectory = () =>
+  invoke<void>('reveal_documents_directory')
+
+export const getStorageDiskUsage = (path?: string | null) =>
+  invoke<StorageDiskUsage>('get_storage_disk_usage', { path: path ?? null })
+
 export const grantScopedPath = (path: string) =>
   invoke<void>('grant_scoped_path', { path })
 
@@ -653,13 +713,16 @@ export const previewPdfExport = async (
   return { dataBase64 }
 }
 
-export const listFolders = () => invoke<Folder[]>('list_folders')
+export const listFolders = (includeArchived = false) =>
+  invoke<Folder[]>('list_folders', { includeArchived })
 
 export const createFolder = (input: {
   name: string
   parentId?: string | null
   isVault?: boolean
   vaultVerifier?: string | null
+  color?: string | null
+  icon?: string | null
 }) =>
   invoke<Folder>('create_folder', {
     input: {
@@ -667,6 +730,8 @@ export const createFolder = (input: {
       parentId: input.parentId ?? null,
       isVault: input.isVault ?? false,
       vaultVerifier: input.vaultVerifier ?? null,
+      color: input.color ?? null,
+      icon: input.icon ?? null,
     },
   })
 
@@ -692,6 +757,38 @@ export const moveFolder = (id: string, parentId: string | null) =>
 
 export const moveDocumentToFolder = (documentId: string, folderId: string | null) =>
   invoke<void>('move_document_to_folder', { input: { documentId, folderId } })
+
+export const moveDocumentsToFolder = (documentIds: string[], folderId: string | null) =>
+  invoke<{ movedIds: string[] }>('move_documents_to_folder', {
+    input: { documentIds, folderId },
+  })
+
+export const setFolderAppearance = (
+  id: string,
+  appearance: { color?: string | null; icon?: string | null },
+) =>
+  invoke<Folder>('set_folder_appearance', {
+    input: {
+      id,
+      color: appearance.color ?? null,
+      icon: appearance.icon ?? null,
+    },
+  })
+
+export const setFolderArchived = (id: string, archived: boolean) =>
+  invoke<string[]>('set_folder_archived', { id, archived })
+
+export const reorderFolders = (orderedIds: string[]) =>
+  invoke<void>('reorder_folders', { input: { orderedIds } })
+
+export const folderStats = (id: string) =>
+  invoke<{ subfolderCount: number; documentCount: number }>('folder_stats', { id })
+
+export const folderDocumentCounts = () =>
+  invoke<{ folderId: string; count: number }[]>('folder_document_counts')
+
+export const duplicateFolderStructure = (id: string) =>
+  invoke<Folder[]>('duplicate_folder_structure', { id })
 
 export const searchDocuments = (
   query: string,
