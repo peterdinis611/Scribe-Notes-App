@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils'
 
 export type DataTableProps<TData> = {
   data: TData[]
-  columns: ColumnDef<TData, any>[]
+  columns: ColumnDef<TData, unknown>[]
   emptyMessage?: ReactNode
   className?: string
   tableClassName?: string
