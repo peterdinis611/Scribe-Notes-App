@@ -664,7 +664,6 @@ export async function planAgentGoal(
 
   let intents: string[] = []
   let planMeta: AgentPlanMeta | undefined
-  let clarifyLabels: string[] | undefined
   try {
     const planned = await nlpPlanAgentGoal({
       goal: trimmed,
@@ -751,7 +750,6 @@ export async function planAgentGoal(
       tools: [],
       needsClarification: true,
       clarifyOptions,
-      clarifyLabels,
       planMeta: planMeta ?? { source: 'fallback' },
     }
   }

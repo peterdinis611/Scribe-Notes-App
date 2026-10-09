@@ -57,7 +57,7 @@ export function parseHandoffGoal(
   const patterns: RegExp[] = [
     /^(?:handoff|delegate|pass|send|tell|forward|pošli|posli|odovzdaj|predaj)\s+(?:to\s+|pre\s+)?([a-zA-ZáäčďéíľĺňóôŕšťúýžÁÄČĎÉÍĽĹŇÓÔŔŠŤÚÝŽ_]+)\s*(?:ovi|ovi:|:|\s+)\s*(.+)$/iu,
     /^@([a-zA-Z_]+)\s+(.+)$/u,
-    /^(?:to|pre)\s+([a-zA-Z_]+)\s*[:\-]\s*(.+)$/iu,
+    /^(?:to|pre)\s+([a-zA-Z_]+)\s*[:-]\s*(.+)$/iu,
   ]
 
   let sawExplicitTarget = false
