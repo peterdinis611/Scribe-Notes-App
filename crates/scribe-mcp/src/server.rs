@@ -62,6 +62,34 @@ impl ScribeMcp {
         scribe_agent::AgentStore::from_path(&parent.join(scribe_agent::AGENT_DB_FILE)).ok()
     }
 
+    fn open_audit_store(&self) -> Option<scribe_audit::AuditStore> {
+        let parent = self.db_path.parent()?;
+        scribe_audit::AuditStore::from_path(&parent.join(scribe_audit::AUDIT_DB_FILE)).ok()
+    }
+
+    fn audit_mcp(
+        &self,
+        category: &str,
+        action: &str,
+        summary: &str,
+        detail: Option<serde_json::Value>,
+        outcome: &str,
+    ) {
+        let Some(store) = self.open_audit_store() else {
+            return;
+        };
+        let _ = store.append(scribe_audit::AuditEventInput {
+            source: "mcp".into(),
+            category: category.into(),
+            action: action.into(),
+            actor: Some("mcp".into()),
+            summary: summary.into(),
+            detail,
+            outcome: Some(outcome.into()),
+            ..Default::default()
+        });
+    }
+
     fn agent_teachings_preamble(&self, grammar_only: bool) -> Option<String> {
         let store = self.open_agent_store()?;
         let agent_id = if grammar_only { "proofreader" } else { "general" };
@@ -426,6 +454,20 @@ impl ScribeMcp {
             );
         }
 
+        let goal_preview: String = goal.chars().take(120).collect();
+        self.audit_mcp(
+            "agent",
+            "run_agent",
+            &format!("MCP run_agent ({persona}): {goal_preview}"),
+            Some(serde_json::json!({
+                "persona": persona,
+                "scope": scope,
+                "documentId": document_id,
+                "toolCount": tools_list.len(),
+            })),
+            "ok",
+        );
+
         Ok(tools::json(&serde_json::json!({
             "goal": goal,
             "scope": scope,
@@ -734,14 +776,22 @@ impl ScribeMcp {
             tools::CreateNoteParams,
         >,
     ) -> Result<String, String> {
-        self.with_store(|store| {
+        let result = self.with_store(|store| {
             let note = store.create_note(
                 &params.title,
                 params.content.as_deref(),
                 params.folder_id.as_deref(),
             )?;
             Ok(tools::json(&note))
-        })
+        })?;
+        self.audit_mcp(
+            "mcp_tool",
+            "create_note",
+            &format!("MCP create_note: {}", params.title.trim()),
+            None,
+            "ok",
+        );
+        Ok(result)
     }
 
     #[tool(description = "Append plain text paragraphs to an existing note.")]
@@ -751,10 +801,18 @@ impl ScribeMcp {
             tools::AppendNoteParams,
         >,
     ) -> Result<String, String> {
-        self.with_store(|store| {
+        let result = self.with_store(|store| {
             let note = store.append_to_note(&params.id, &params.text)?;
             Ok(tools::json(&note))
-        })
+        })?;
+        self.audit_mcp(
+            "mcp_tool",
+            "append_to_note",
+            &format!("MCP append_to_note: {}", params.id),
+            Some(serde_json::json!({ "id": params.id })),
+            "ok",
+        );
+        Ok(result)
     }
 
     #[tool(description = "List favorite documents.")]
@@ -1160,7 +1218,15 @@ impl ScribeMcp {
             tools::IdParams,
         >,
     ) -> Result<String, String> {
-        self.with_store(|store| Ok(tools::json(&store.trash_document(&params.id)?)))
+        let result = self.with_store(|store| Ok(tools::json(&store.trash_document(&params.id)?)))?;
+        self.audit_mcp(
+            "mcp_tool",
+            "trash_document",
+            &format!("MCP trash_document: {}", params.id),
+            Some(serde_json::json!({ "id": params.id })),
+            "ok",
+        );
+        Ok(result)
     }
 
     #[tool(description = "Rename a document title.")]
@@ -1720,11 +1786,19 @@ impl ScribeMcp {
         if !self.writable {
             return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
         }
-        self.with_store(|store| {
+        let result = self.with_store(|store| {
             Ok(tools::json(
                 &store.set_nlp_enabled_flag(&self.sidecar, params.enabled)?,
             ))
-        })
+        })?;
+        self.audit_mcp(
+            "nlp",
+            "set_enabled",
+            &format!("MCP set_nlp_enabled: {}", params.enabled),
+            Some(serde_json::json!({ "enabled": params.enabled })),
+            "ok",
+        );
+        Ok(result)
     }
 
     #[tool(description = "Set embedding backend: hash (default), fast (model2vec), or quality (MiniLM). Requires writable DB; reindex after switching.")]

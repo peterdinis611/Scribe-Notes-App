@@ -590,6 +590,61 @@ export const listAgentHandoffs = (
 export const setAgentHandoffStatus = (id: string, status: string) =>
   invoke<AgentBackendHandoff | null>('set_agent_handoff_status', { id, status })
 
+export type AuditAdminStatus = {
+  configured: boolean
+  unlocked: boolean
+  eventCount: number
+}
+
+export type AuditEvent = {
+  id: string
+  createdAt: number
+  source: string
+  category: string
+  action: string
+  actor: string
+  resourceType?: string | null
+  resourceId?: string | null
+  summary: string
+  detailJson?: string | null
+  outcome: string
+}
+
+export const getAuditSchemaVersion = () => invoke<number>('get_audit_schema_version')
+
+export const getAuditDbPath = () => invoke<string | null>('get_audit_db_path')
+
+export const auditAdminStatus = () => invoke<AuditAdminStatus>('audit_admin_status')
+
+export const auditAdminSetup = (password: string) =>
+  invoke<AuditAdminStatus>('audit_admin_setup', { password })
+
+export const auditAdminUnlock = (password: string) =>
+  invoke<AuditAdminStatus>('audit_admin_unlock', { password })
+
+export const auditAdminLock = () => invoke<AuditAdminStatus>('audit_admin_lock')
+
+export const auditAdminChangePassword = (currentPassword: string, newPassword: string) =>
+  invoke<AuditAdminStatus>('audit_admin_change_password', {
+    currentPassword,
+    newPassword,
+  })
+
+export const listAuditEvents = (input?: {
+  limit?: number
+  category?: string | null
+  source?: string | null
+}) =>
+  invoke<AuditEvent[]>('list_audit_events', {
+    input: {
+      limit: input?.limit ?? 100,
+      category: input?.category ?? null,
+      source: input?.source ?? null,
+    },
+  })
+
+export const clearAuditEvents = () => invoke<number>('clear_audit_events')
+
 export const clearAllDocuments = async () => {
   const count = await invoke<number>('clear_all_documents')
   clearDocumentCache()

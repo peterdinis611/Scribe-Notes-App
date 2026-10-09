@@ -6,7 +6,6 @@ import {
   FolderKanban,
   GraduationCap,
   Library,
-  MessagesSquare,
   Pin,
   Sparkles,
   SpellCheck2,
@@ -415,6 +414,9 @@ export function AgentSection() {
               const Icon = ROLE_ICON[role.id]
               const peer = DEFAULT_HANDOFF_TARGET[role.id]
               const memoryCount = teachingsByRole[role.id] ?? 0
+              const peerLabel = peer
+                ? t(`settings.agent.roles.${peer}.label`)
+                : null
               return (
                 <li
                   key={role.id}
@@ -422,44 +424,53 @@ export function AgentSection() {
                   data-role={role.id}
                   style={{ '--role-stagger': String(index) } as CSSProperties}
                 >
-                  <div className="agent-settings-role-mark" aria-hidden="true">
-                    <Icon className="h-4 w-4" />
-                  </div>
-                  <div className="agent-settings-role-copy">
+                  <header className="agent-settings-role-head">
+                    <div className="agent-settings-role-mark" aria-hidden="true">
+                      <Icon className="h-4 w-4" />
+                    </div>
                     <div className="agent-settings-role-title-row">
                       <span>{t(role.labelKey)}</span>
                       {role.panel === 'spellcheck' ? (
                         <em>{t('settings.agent.rolePanelSpell')}</em>
                       ) : null}
                     </div>
-                    <small>{t(role.hintKey)}</small>
-                    <div className="agent-settings-role-meta">
-                      <span className="agent-settings-role-chip" title={t('settings.agent.roleMemoryHint')}>
-                        <Database className="h-3 w-3" />
+                    <AgentToggle
+                      compact
+                      checked={checked}
+                      onChange={() => toggleRole(role.id)}
+                      disabled={!prefs.enabled}
+                      onLabel={t('settings.agent.on')}
+                      offLabel={t('settings.agent.off')}
+                    />
+                  </header>
+                  <p className="agent-settings-role-blurb">{t(role.hintKey)}</p>
+                  <footer className="agent-settings-role-meta">
+                    <span
+                      className={cn(
+                        'agent-settings-role-chip is-memory',
+                        memoryCount === 0 && 'is-empty',
+                      )}
+                      title={t('settings.agent.roleMemoryHint')}
+                    >
+                      <Database className="h-3 w-3 shrink-0" aria-hidden="true" />
+                      <span>
                         {memoryCount > 0
                           ? t('settings.agent.roleMemoryCount', { count: memoryCount })
                           : t('settings.agent.roleMemoryEmpty')}
                       </span>
-                      {peer ? (
-                        <span
-                          className="agent-settings-role-chip is-handoff"
-                          title={t('settings.agent.roleHandoffHint')}
-                        >
-                          <MessagesSquare className="h-3 w-3" />
-                          <ArrowRight className="h-3 w-3 opacity-70" />
-                          {t(`settings.agent.roles.${peer}.label`)}
+                    </span>
+                    {peer && peerLabel ? (
+                      <span
+                        className="agent-settings-role-chip is-handoff"
+                        title={t('settings.agent.roleHandoffHint')}
+                      >
+                        <ArrowRight className="h-3 w-3 shrink-0" aria-hidden="true" />
+                        <span>
+                          {t('settings.agent.roleHandoffTo', { name: peerLabel })}
                         </span>
-                      ) : null}
-                    </div>
-                  </div>
-                  <AgentToggle
-                    compact
-                    checked={checked}
-                    onChange={() => toggleRole(role.id)}
-                    disabled={!prefs.enabled}
-                    onLabel={t('settings.agent.on')}
-                    offLabel={t('settings.agent.off')}
-                  />
+                      </span>
+                    ) : null}
+                  </footer>
                 </li>
               )
             })}

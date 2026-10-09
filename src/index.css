@@ -15087,12 +15087,11 @@ html[data-ui-skin='press'] .error-folio__title {
 .agent-settings-role {
   --role-tone: #5b8def;
   position: relative;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: start;
-  min-height: 7.25rem;
-  padding: 12px 12px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  padding: 13px 13px 12px;
   border-radius: 14px;
   border: 1px solid color-mix(in srgb, var(--role-tone) 22%, var(--color-border));
   background:
@@ -15117,6 +15116,13 @@ html[data-ui-skin='press'] .error-folio__title {
     box-shadow 180ms ease;
   animation: agent-settings-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
   animation-delay: calc(70ms + var(--role-stagger, 0) * 40ms);
+}
+
+.agent-settings-role-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
 }
 
 .agent-settings-role::before {
@@ -15190,19 +15196,12 @@ html[data-ui-skin='press'] .error-folio__title {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--role-tone) 8%, transparent);
 }
 
-.agent-settings-role-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-  padding-top: 1px;
-}
-
 .agent-settings-role-title-row {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 6px 8px;
+  gap: 5px 8px;
+  min-width: 0;
 }
 
 .agent-settings-role-title-row em {
@@ -15215,37 +15214,6 @@ html[data-ui-skin='press'] .error-folio__title {
   color: color-mix(in srgb, var(--role-tone) 80%, var(--color-muted-foreground));
 }
 
-.agent-settings-role-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 4px;
-}
-
-.agent-settings-role-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  max-width: 100%;
-  padding: 3px 7px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
-  background: color-mix(in srgb, var(--color-background) 55%, transparent);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--color-muted-foreground);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.agent-settings-role-chip.is-handoff {
-  border-color: color-mix(in srgb, var(--role-tone) 30%, var(--color-border));
-  color: color-mix(in srgb, var(--color-foreground) 72%, var(--role-tone));
-}
-
 .agent-settings-role-title-row > span {
   font-family: var(--font-display);
   font-size: 0.95rem;
@@ -15254,14 +15222,67 @@ html[data-ui-skin='press'] .error-folio__title {
   color: var(--color-foreground);
 }
 
-.agent-settings-role-copy > small {
-  font-size: 0.72rem;
-  line-height: 1.4;
+.agent-settings-role-blurb {
+  margin: 0;
+  padding-left: calc(2.35rem + 10px);
+  font-size: 0.74rem;
+  line-height: 1.45;
   color: var(--color-muted-foreground);
 }
 
-.agent-settings-role .agent-settings-switch {
-  margin-top: 2px;
+.agent-settings-role-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+  padding: 8px 0 0;
+  padding-left: calc(2.35rem + 10px);
+  border-top: 1px solid color-mix(in srgb, var(--role-tone) 14%, var(--color-border));
+}
+
+.agent-settings-role-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  background: color-mix(in srgb, var(--color-background) 55%, transparent);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  color: var(--color-muted-foreground);
+}
+
+.agent-settings-role-chip > span {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.agent-settings-role-chip.is-memory.is-empty {
+  opacity: 0.78;
+}
+
+.agent-settings-role-chip.is-handoff {
+  border-color: color-mix(in srgb, var(--role-tone) 34%, var(--color-border));
+  background: color-mix(in srgb, var(--role-tone) 10%, var(--color-background));
+  color: color-mix(in srgb, var(--color-foreground) 78%, var(--role-tone));
+}
+
+.agent-settings-role-head .agent-settings-switch {
+  margin-top: 0;
+  flex-shrink: 0;
+}
+
+@media (max-width: 419px) {
+  .agent-settings-role-blurb,
+  .agent-settings-role-meta {
+    padding-left: 0;
+  }
 }
 
 .agent-settings-card-head {

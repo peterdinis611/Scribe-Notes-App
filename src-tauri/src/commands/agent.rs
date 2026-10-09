@@ -228,10 +228,13 @@ pub fn clear_agent_messages(
 // --- scribe-agent.db (separate agent store) ---
 
 use crate::agent_db::AgentDbState;
+use crate::audit_db::AuditDbState;
+use crate::commands::audit::append_audit;
 use scribe_agent::{
     AgentDigestSchedule, AgentHandoff, AgentPrefs, AgentRoleState, AgentRunRecord, AgentTeaching,
     CustomAgentRecipe, SCHEMA_VERSION,
 };
+use serde_json::json;
 
 #[tauri::command]
 pub fn get_agent_prefs(agent: State<'_, AgentDbState>) -> Result<AgentPrefs, String> {
@@ -260,11 +263,12 @@ pub struct SetAgentPrefsInput {
 #[tauri::command]
 pub fn set_agent_prefs(
     agent: State<'_, AgentDbState>,
+    audit: State<'_, AuditDbState>,
     input: SetAgentPrefsInput,
 ) -> Result<AgentPrefs, String> {
     let store = agent.store.lock().map_err(|e| e.to_string())?;
     let current = store.get_prefs().unwrap_or_default();
-    store.set_prefs(&AgentPrefs {
+    let prefs = store.set_prefs(&AgentPrefs {
         enabled: input.enabled,
         max_steps: input.max_steps,
         prefer_fast: input.prefer_fast,
@@ -273,7 +277,20 @@ pub fn set_agent_prefs(
         digest_schedule: input.digest_schedule.unwrap_or(current.digest_schedule),
         custom_recipes: input.custom_recipes.unwrap_or(current.custom_recipes),
         extras: input.extras.unwrap_or(current.extras),
-    })
+    })?;
+    append_audit(
+        &audit,
+        "tauri",
+        "prefs",
+        "set_prefs",
+        &format!(
+            "Agent prefs updated (enabled={}, maxSteps={})",
+            prefs.enabled, prefs.max_steps
+        ),
+        Some(json!({ "enabled": prefs.enabled, "maxSteps": prefs.max_steps })),
+        "ok",
+    );
+    Ok(prefs)
 }
 
 #[tauri::command]
@@ -293,10 +310,21 @@ pub struct SetAgentRoleStatesInput {
 #[tauri::command]
 pub fn set_agent_role_states(
     agent: State<'_, AgentDbState>,
+    audit: State<'_, AuditDbState>,
     input: SetAgentRoleStatesInput,
 ) -> Result<Vec<AgentRoleState>, String> {
     let store = agent.store.lock().map_err(|e| e.to_string())?;
-    store.set_role_states(&input.roles)
+    let roles = store.set_role_states(&input.roles)?;
+    append_audit(
+        &audit,
+        "tauri",
+        "prefs",
+        "set_roles",
+        &format!("Updated {} agent role state(s)", roles.len()),
+        None,
+        "ok",
+    );
+    Ok(roles)
 }
 
 #[tauri::command]
@@ -311,27 +339,69 @@ pub fn list_agent_teachings(
 #[tauri::command]
 pub fn add_agent_teaching(
     agent: State<'_, AgentDbState>,
+    audit: State<'_, AuditDbState>,
     text: String,
     topic: Option<String>,
     agent_id: Option<String>,
 ) -> Result<AgentTeaching, String> {
     let store = agent.store.lock().map_err(|e| e.to_string())?;
-    store.add_teaching(&text, topic.as_deref(), agent_id.as_deref())
+    let teaching = store.add_teaching(&text, topic.as_deref(), agent_id.as_deref())?;
+    append_audit(
+        &audit,
+        "tauri",
+        "agent",
+        "add_teaching",
+        "Agent teaching added",
+        Some(json!({
+            "id": teaching.id,
+            "agentId": teaching.agent_id,
+            "topic": teaching.topic,
+        })),
+        "ok",
+    );
+    Ok(teaching)
 }
 
 #[tauri::command]
-pub fn remove_agent_teaching(agent: State<'_, AgentDbState>, id: String) -> Result<bool, String> {
+pub fn remove_agent_teaching(
+    agent: State<'_, AgentDbState>,
+    audit: State<'_, AuditDbState>,
+    id: String,
+) -> Result<bool, String> {
     let store = agent.store.lock().map_err(|e| e.to_string())?;
-    store.remove_teaching(&id)
+    let removed = store.remove_teaching(&id)?;
+    if removed {
+        append_audit(
+            &audit,
+            "tauri",
+            "agent",
+            "remove_teaching",
+            "Agent teaching removed",
+            Some(json!({ "id": id })),
+            "ok",
+        );
+    }
+    Ok(removed)
 }
 
 #[tauri::command]
 pub fn clear_agent_teachings(
     agent: State<'_, AgentDbState>,
+    audit: State<'_, AuditDbState>,
     agent_id: Option<String>,
 ) -> Result<u64, String> {
     let store = agent.store.lock().map_err(|e| e.to_string())?;
-    store.clear_teachings(agent_id.as_deref())
+    let cleared = store.clear_teachings(agent_id.as_deref())?;
+    append_audit(
+        &audit,
+        "tauri",
+        "agent",
+        "clear_teachings",
+        &format!("Cleared {cleared} agent teaching(s)"),
+        Some(json!({ "agentId": agent_id })),
+        "ok",
+    );
+    Ok(cleared)
 }
 
 #[derive(Debug, Deserialize)]
@@ -348,17 +418,33 @@ pub struct AppendAgentRunInput {
 #[tauri::command]
 pub fn append_agent_run(
     agent: State<'_, AgentDbState>,
+    audit: State<'_, AuditDbState>,
     input: AppendAgentRunInput,
 ) -> Result<AgentRunRecord, String> {
     let store = agent.store.lock().map_err(|e| e.to_string())?;
-    store.append_run(
+    let run = store.append_run(
         &input.scope,
         input.document_id.as_deref(),
         &input.goal,
         input.steps_json.as_deref(),
         input.answer.as_deref(),
         input.agent_id.as_deref(),
-    )
+    )?;
+    append_audit(
+        &audit,
+        "tauri",
+        "agent",
+        "run",
+        &format!("Agent run: {}", truncate(&run.goal, 120)),
+        Some(json!({
+            "id": run.id,
+            "scope": run.scope,
+            "agentId": run.agent_id,
+            "documentId": run.document_id,
+        })),
+        "ok",
+    );
+    Ok(run)
 }
 
 #[tauri::command]
@@ -390,16 +476,37 @@ pub struct SendAgentHandoffInput {
 #[tauri::command]
 pub fn send_agent_handoff(
     agent: State<'_, AgentDbState>,
+    audit: State<'_, AuditDbState>,
     input: SendAgentHandoffInput,
 ) -> Result<AgentHandoff, String> {
     let store = agent.store.lock().map_err(|e| e.to_string())?;
-    store.send_handoff(
+    let handoff = store.send_handoff(
         &input.from_agent_id,
         &input.to_agent_id,
         &input.summary,
         input.document_id.as_deref(),
         input.payload_json.as_deref(),
-    )
+    )?;
+    append_audit(
+        &audit,
+        "tauri",
+        "handoff",
+        "send",
+        &format!(
+            "Handoff {} → {}: {}",
+            handoff.from_agent_id,
+            handoff.to_agent_id,
+            truncate(&handoff.summary, 100)
+        ),
+        Some(json!({
+            "id": handoff.id,
+            "fromAgentId": handoff.from_agent_id,
+            "toAgentId": handoff.to_agent_id,
+            "documentId": handoff.document_id,
+        })),
+        "ok",
+    );
+    Ok(handoff)
 }
 
 #[tauri::command]
@@ -420,9 +527,31 @@ pub fn list_agent_handoffs(
 #[tauri::command]
 pub fn set_agent_handoff_status(
     agent: State<'_, AgentDbState>,
+    audit: State<'_, AuditDbState>,
     id: String,
     status: String,
 ) -> Result<Option<AgentHandoff>, String> {
     let store = agent.store.lock().map_err(|e| e.to_string())?;
-    store.set_handoff_status(&id, &status)
+    let handoff = store.set_handoff_status(&id, &status)?;
+    if let Some(ref item) = handoff {
+        append_audit(
+            &audit,
+            "tauri",
+            "handoff",
+            "status",
+            &format!("Handoff {} → {}", item.id, item.status),
+            Some(json!({ "id": item.id, "status": item.status })),
+            "ok",
+        );
+    }
+    Ok(handoff)
+}
+
+fn truncate(value: &str, max: usize) -> String {
+    let trimmed = value.trim();
+    if trimmed.chars().count() <= max {
+        trimmed.to_string()
+    } else {
+        trimmed.chars().take(max.saturating_sub(1)).collect::<String>() + "…"
+    }
 }

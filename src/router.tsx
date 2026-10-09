@@ -72,6 +72,15 @@ const pluginsRoute = createRoute({
   component: PluginsPage,
 })
 
+/** Audit UI is intentionally hidden for now. */
+const auditHiddenRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/audit',
+  beforeLoad: () => {
+    throw redirect({ to: '/' })
+  },
+})
+
 const storageModeRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/storage',
@@ -163,6 +172,15 @@ const settingsPluginsRedirectRoute = createRoute({
   },
 })
 
+/** Audit UI is intentionally hidden for now. */
+const settingsAuditRedirectRoute = createRoute({
+  getParentRoute: () => settingsLayoutRoute,
+  path: 'audit',
+  beforeLoad: () => {
+    throw redirect({ to: '/settings/appearance' })
+  },
+})
+
 const settingsPrivacyRoute = createRoute({
   getParentRoute: () => settingsLayoutRoute,
   path: 'privacy',
@@ -191,6 +209,7 @@ const routeTree = rootRoute.addChildren([
     docsRoute,
     graphRoute,
     pluginsRoute,
+    auditHiddenRoute,
     storageModeRoute,
     settingsLayoutRoute.addChildren([
       settingsIndexRoute,
@@ -205,6 +224,7 @@ const routeTree = rootRoute.addChildren([
       settingsAgentRoute,
       settingsCaptureRoute,
       settingsPluginsRedirectRoute,
+      settingsAuditRedirectRoute,
       settingsDocsRedirectRoute,
       settingsPrivacyRoute,
       settingsAboutRoute,

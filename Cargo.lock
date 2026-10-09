@@ -105,6 +105,7 @@ dependencies = [
  "regex",
  "rusqlite",
  "scribe-agent",
+ "scribe-audit",
  "scribe-core",
  "serde",
  "serde_json",
@@ -3746,6 +3747,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "scribe-audit"
+version = "3.3.0"
+dependencies = [
+ "chrono",
+ "hex",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "sha2",
+ "uuid",
+]
+
+[[package]]
 name = "scribe-core"
 version = "3.3.0"
 dependencies = [
@@ -3777,6 +3791,7 @@ dependencies = [
  "rmcp",
  "schemars 1.2.2",
  "scribe-agent",
+ "scribe-audit",
  "scribe-core",
  "serde",
  "serde_json",
