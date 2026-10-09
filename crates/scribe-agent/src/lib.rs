@@ -13,5 +13,6 @@ pub use grammar::{grammar_rule_texts, memory_preamble, normalize_topic};
 pub use handoffs::{inbox_preamble, AgentHandoff};
 pub use roles::{normalize_agent_id, AGENT_ROLE_IDS, DEFAULT_AGENT_ID};
 pub use store::{
-    AgentPrefs, AgentRoleState, AgentRunRecord, AgentStore, AgentTeaching, DEFAULT_MAX_STEPS,
+    AgentDigestSchedule, AgentPrefs, AgentRoleState, AgentRunRecord, AgentStore, AgentTeaching,
+    CustomAgentRecipe, CUSTOM_RECIPES_MAX, DEFAULT_MAX_STEPS,
 };

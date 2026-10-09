@@ -1,4 +1,17 @@
-import { Eraser, FilePlus2, FileText, Folder, GraduationCap, Library, Send, Settings2, Sparkles } from 'lucide-react'
+import {
+  CalendarPlus,
+  Eraser,
+  FileDown,
+  FilePlus2,
+  FileText,
+  Folder,
+  GraduationCap,
+  Library,
+  NotebookPen,
+  Send,
+  Settings2,
+  Sparkles,
+} from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
@@ -38,6 +51,7 @@ import {
   loadHandoffInbox,
 } from '@/lib/library/agent-handoff'
 import {
+  nlpCalendarEvents,
   nlpDocumentAnalysis,
   nlpDocumentTasks,
   nlpSpellcheck,
@@ -48,6 +62,13 @@ import {
   type NlpDocumentAnalysis,
   type WikiLinkSuggestion,
 } from '@/lib/db/nlp-api'
+import {
+  calendarEventsToIcs,
+  exportIcsFile,
+  parseDueHintsFromMarkdown,
+} from '@/lib/export/ics'
+import { spawnNoteFromAgentMarkdown } from '@/lib/library/agent-spawn-note'
+import { ingestCitedFilesToNotes } from '@/lib/library/agent-files-ingest'
 import { applySpellSuggestion, applyWikiSuggestion } from '@/lib/editor/apply-suggestions'
 import {
   applyAgentAnswer,
@@ -66,7 +87,7 @@ import {
 import { recordPlanFeedback } from '@/lib/library/agent-plan-feedback'
 import { applySuggestedTagsToDocument } from '@/lib/library/auto-organize'
 import { runFolderDigest } from '@/lib/library/folder-digest'
-import { AGENT_RECIPES, type AgentRecipeId } from '@/lib/library/agent-recipes'
+import { AGENT_RECIPES, resolveAgentRecipe, type AgentRecipeId } from '@/lib/library/agent-recipes'
 import {
   getAgentRole,
   isRecipeAllowedByAgents,
@@ -162,6 +183,7 @@ const TOOL_LABEL_KEYS: Record<AgentToolId, string> = {
   library_report: 'agent.tools.library_report',
   terminology_library: 'agent.tools.terminology_library',
   files_answer: 'agent.tools.files_answer',
+  files_ingest: 'agent.tools.files_ingest',
   save_template: 'agent.tools.save_template',
   handoff: 'agent.tools.handoff',
 }
@@ -205,11 +227,28 @@ export function AgentPanel({
   const commentAuthor = useAppSelector((state) => state.documents.commentAuthor)
   const agentPrefs = useAppSelector((state) => state.settings.agentPrefs)
   const activeRole = getAgentRole(roleId)
-  const visibleRecipes = AGENT_RECIPES.filter((recipe) => {
-    if (!isRecipeAllowedByAgents(recipe.id, agentPrefs.agents)) return false
-    if (roleId === 'general') return true
-    return activeRole.recipeIds.includes(recipe.id)
-  })
+  const visibleRecipes = useMemo(() => {
+    const builtIn = AGENT_RECIPES.filter((recipe) => {
+      if (!isRecipeAllowedByAgents(recipe.id, agentPrefs.agents)) return false
+      if (roleId === 'general') return true
+      return activeRole.recipeIds.includes(recipe.id)
+    }).map((recipe) => ({
+      id: recipe.id,
+      label: t(recipe.labelKey),
+      documentPreferred: recipe.documentPreferred,
+    }))
+    const custom = (agentPrefs.customRecipes ?? [])
+      .filter((recipe) => {
+        if (roleId === 'general') return true
+        return !recipe.roleId || recipe.roleId === roleId
+      })
+      .map((recipe) => ({
+        id: recipe.id,
+        label: recipe.label,
+        documentPreferred: recipe.documentPreferred,
+      }))
+    return [...builtIn, ...custom]
+  }, [activeRole.recipeIds, agentPrefs.agents, agentPrefs.customRecipes, roleId, t])
   const activeDocument = activeDocumentId ? peekCachedDocument(activeDocumentId) : null
   const activeDocumentSummary = useMemo(
     () => documents.find((doc) => doc.id === activeDocumentId) ?? null,
@@ -313,7 +352,7 @@ export function AgentPanel({
     }
     let cancelled = false
     setHistoryLoading(true)
-    void listAgentMessages(activeDocumentId)
+    void listAgentMessages(activeDocumentId, roleId)
       .then((rows) => {
         if (cancelled) return
         setMessages(
@@ -336,7 +375,7 @@ export function AgentPanel({
     return () => {
       cancelled = true
     }
-  }, [scope, activeDocumentId])
+  }, [scope, activeDocumentId, roleId])
 
   useEffect(() => {
     if (scope !== 'document' || !activeDocumentId) {
@@ -416,13 +455,13 @@ export function AgentPanel({
     }
     if (!activeDocumentId) return
     try {
-      await clearAgentMessages(activeDocumentId)
+      await clearAgentMessages(activeDocumentId, roleId)
       setMessages([])
       toast.success(t('agent.memoryCleared'))
     } catch (error) {
       toast.error(t('agent.clearError'), String(error))
     }
-  }, [scope, activeDocumentId, t])
+  }, [scope, activeDocumentId, roleId, t])
 
   const persistPair = useCallback(
     async (userText: string, assistant: AgentThreadMessage) => {
@@ -432,6 +471,7 @@ export function AgentPanel({
           documentId: activeDocumentId,
           role: 'user',
           text: userText,
+          agentId: roleId,
         })
         await appendAgentMessage({
           documentId: activeDocumentId,
@@ -439,19 +479,20 @@ export function AgentPanel({
           text: assistant.text,
           steps: toPersistSteps(assistant.steps ?? []),
           citations: toPersistCitations(assistant.citations ?? []),
+          agentId: roleId,
         })
       } catch {
         // Soft-fail persistence — answer still shown in UI.
       }
     },
-    [scope, activeDocumentId],
+    [scope, activeDocumentId, roleId],
   )
 
   const runGoal = useCallback(
     async (
       goal: string,
       opts?: {
-        recipeId?: AgentRecipeId
+        recipeId?: AgentRecipeId | string
         forceTools?: AgentToolId[]
         compareDocumentId?: string | null
       },
@@ -478,10 +519,16 @@ export function AgentPanel({
         return
       }
 
-      const recipe = opts?.recipeId ? AGENT_RECIPES.find((item) => item.id === opts.recipeId) : null
+      const recipe = opts?.recipeId
+        ? resolveAgentRecipe(opts.recipeId, agentPrefs.customRecipes)
+        : null
       const displayGoal =
         trimmed ||
-        (recipe ? t(recipe.labelKey) : t('agent.run'))
+        (recipe
+          ? recipe.labelKey
+            ? t(recipe.labelKey)
+            : recipe.label || t('agent.run')
+          : t('agent.run'))
       const userMsg: AgentThreadMessage = {
         id: `local-user-${Date.now()}`,
         role: 'user',
@@ -834,6 +881,97 @@ export function AgentPanel({
       setApplyBusy(false)
     }
   }, [roleId])
+
+  const handleSpawnNote = useCallback(
+    async (message: AgentThreadMessage) => {
+      try {
+        const doc = await spawnNoteFromAgentMarkdown({
+          markdown: message.text,
+          titleHint: message.feedbackGoal,
+          folderId: activeDocument?.folderId ?? null,
+          dispatch,
+          navigate: (route) => {
+            void navigate({ to: route })
+          },
+        })
+        toast.success(t('agent.spawnNoteDone'), doc.title)
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error)
+        toast.error(
+          t('agent.spawnNoteFailed'),
+          detail.startsWith('agent.') ? t(detail) : detail,
+        )
+      }
+    },
+    [activeDocument?.folderId, dispatch, navigate, t],
+  )
+
+  const handleExportCalendar = useCallback(
+    async (message: AgentThreadMessage) => {
+      try {
+        const fromAnswer = parseDueHintsFromMarkdown(message.text)
+        let events = fromAnswer
+        const tools = new Set((message.steps ?? []).map((step) => step.tool))
+        if (tools.has('dates') || tools.has('brief') || fromAnswer.length === 0) {
+          const cal = await nlpCalendarEvents({ limit: 40 }).catch(() => [])
+          events = [...calendarEventsToIcs(cal), ...fromAnswer]
+        }
+        const seen = new Set<string>()
+        events = events.filter((item) => {
+          const key = `${item.date}|${item.summary}`
+          if (seen.has(key)) return false
+          seen.add(key)
+          return true
+        })
+        if (!events.length) {
+          toast.info(t('agent.exportCalendarEmpty'))
+          return
+        }
+        const path = await exportIcsFile({
+          events,
+          baseName: 'scribe-agent-calendar',
+          dialogTitle: t('agent.exportCalendar'),
+        })
+        if (path) toast.success(t('agent.exportCalendarDone'))
+      } catch (error) {
+        toast.error(t('agent.exportCalendarFailed'), String(error))
+      }
+    },
+    [t],
+  )
+
+  const handleIngestFiles = useCallback(
+    async (message: AgentThreadMessage) => {
+      try {
+        const citations = [
+          ...(message.citations ?? []),
+          ...((message.steps ?? []).flatMap((step) => step.citations ?? [])),
+        ]
+        const created = await ingestCitedFilesToNotes({
+          citations,
+          folderId: activeDocument?.folderId ?? null,
+          dispatch,
+          navigate: (route) => {
+            void navigate({ to: route })
+          },
+        })
+        if (!created.length) {
+          toast.info(t('agent.ingestFilesEmpty'))
+          return
+        }
+        toast.success(t('agent.ingestFilesDone', { count: created.length }))
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error)
+        if (detail.includes('FilesApiOffline') || detail === 'agent.filesApiOffline') {
+          setFilesOfflineHint(true)
+          toast.error(t('agent.filesApiOffline'))
+          return
+        }
+        toast.error(t('agent.ingestFilesFailed'), detail)
+      }
+    },
+    [activeDocument?.folderId, dispatch, navigate, t],
+  )
 
   const handleTeach = useCallback(async () => {
     const draft = teachInput.trim()
@@ -1569,6 +1707,43 @@ export function AgentPanel({
                     >
                       {t('agent.applyUndo')}
                     </button>
+                    <button
+                      type="button"
+                      className="library-chat-chip"
+                      disabled={loading}
+                      onClick={() => void handleSpawnNote(message)}
+                    >
+                      <NotebookPen className="mr-1 inline h-3 w-3" />
+                      {t('agent.spawnNote')}
+                    </button>
+                    {(message.steps ?? []).some((step) =>
+                      ['dates', 'rank_tasks', 'commitments', 'tasks', 'meeting', 'brief'].includes(
+                        step.tool,
+                      ),
+                    ) ? (
+                      <button
+                        type="button"
+                        className="library-chat-chip"
+                        disabled={loading}
+                        onClick={() => void handleExportCalendar(message)}
+                      >
+                        <CalendarPlus className="mr-1 inline h-3 w-3" />
+                        {t('agent.exportCalendar')}
+                      </button>
+                    ) : null}
+                    {(message.steps ?? []).some(
+                      (step) => step.tool === 'files_answer' || step.tool === 'files_ingest',
+                    ) ? (
+                      <button
+                        type="button"
+                        className="library-chat-chip"
+                        disabled={loading}
+                        onClick={() => void handleIngestFiles(message)}
+                      >
+                        <FileDown className="mr-1 inline h-3 w-3" />
+                        {t('agent.ingestFiles')}
+                      </button>
+                    ) : null}
                   </div>
                 ) : null}
                 {message.role === 'assistant' &&
@@ -1585,14 +1760,51 @@ export function AgentPanel({
                       <GraduationCap className="mr-1 inline h-3 w-3" />
                       {t('settings.agent.teachSaveReply')}
                     </button>
+                    <button
+                      type="button"
+                      className="library-chat-chip"
+                      disabled={loading}
+                      onClick={() => void handleSpawnNote(message)}
+                    >
+                      <NotebookPen className="mr-1 inline h-3 w-3" />
+                      {t('agent.spawnNote')}
+                    </button>
+                    {(message.steps ?? []).some((step) =>
+                      ['dates', 'rank_tasks', 'commitments', 'tasks', 'meeting', 'brief'].includes(
+                        step.tool,
+                      ),
+                    ) ? (
+                      <button
+                        type="button"
+                        className="library-chat-chip"
+                        disabled={loading}
+                        onClick={() => void handleExportCalendar(message)}
+                      >
+                        <CalendarPlus className="mr-1 inline h-3 w-3" />
+                        {t('agent.exportCalendar')}
+                      </button>
+                    ) : null}
+                    {(message.steps ?? []).some(
+                      (step) => step.tool === 'files_answer' || step.tool === 'files_ingest',
+                    ) ? (
+                      <button
+                        type="button"
+                        className="library-chat-chip"
+                        disabled={loading}
+                        onClick={() => void handleIngestFiles(message)}
+                      >
+                        <FileDown className="mr-1 inline h-3 w-3" />
+                        {t('agent.ingestFiles')}
+                      </button>
+                    ) : null}
                   </div>
                 ) : null}
                 {message.role === 'assistant' && message.followups && message.followups.length > 0 ? (
                   <div className="library-chat-followups">
                     {message.followups.map((item) => {
                       if (item.startsWith('recipe:')) {
-                        const recipeId = item.slice('recipe:'.length) as AgentRecipeId
-                        const recipe = AGENT_RECIPES.find((row) => row.id === recipeId)
+                        const recipeId = item.slice('recipe:'.length)
+                        const recipe = resolveAgentRecipe(recipeId, agentPrefs.customRecipes)
                         if (!recipe) return null
                         return (
                           <button
@@ -1602,7 +1814,7 @@ export function AgentPanel({
                             disabled={loading}
                             onClick={() => void runGoal('', { recipeId })}
                           >
-                            {t(recipe.labelKey)}
+                            {recipe.labelKey ? t(recipe.labelKey) : recipe.label}
                           </button>
                         )
                       }
@@ -1724,6 +1936,18 @@ export function AgentPanel({
           >
             {t('agent.tools.files_answer')}
           </button>
+          <button
+            type="button"
+            className="library-chat-chip"
+            disabled={loading || !agentPrefs.enabled}
+            onClick={() =>
+              void runGoal(t('agent.quickPrompts.ingestFiles'), {
+                forceTools: ['files_ingest'],
+              })
+            }
+          >
+            {t('agent.tools.files_ingest')}
+          </button>
           {scope === 'document' ? (
             <button
               type="button"
@@ -1744,7 +1968,7 @@ export function AgentPanel({
               disabled={loading || !agentPrefs.enabled}
               onClick={() => void runGoal('', { recipeId: recipe.id })}
             >
-              {t(recipe.labelKey)}
+              {recipe.label}
             </button>
           ))}
           {goalChips.map((chip) => (

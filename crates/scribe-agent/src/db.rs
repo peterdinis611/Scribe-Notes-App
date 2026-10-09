@@ -1,7 +1,7 @@
 use rusqlite::Connection;
 use std::path::{Path, PathBuf};
 
-pub const SCHEMA_VERSION: i32 = 4;
+pub const SCHEMA_VERSION: i32 = 5;
 pub const AGENT_DB_FILE: &str = "scribe-agent.db";
 
 pub struct AgentDb {
@@ -208,6 +208,24 @@ fn run_migrations(conn: &Connection) -> Result<(), String> {
         )
         .map_err(|e| e.to_string())?;
         set_schema_version(conn, 4)?;
+        current = 4;
+    }
+
+    if current < 5 {
+        // Durable digest schedule + custom recipes (+ opaque FE extras blob).
+        let _ = conn.execute(
+            "ALTER TABLE agent_prefs ADD COLUMN digest_schedule_json TEXT NOT NULL DEFAULT '{}'",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE agent_prefs ADD COLUMN custom_recipes_json TEXT NOT NULL DEFAULT '[]'",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE agent_prefs ADD COLUMN extras_json TEXT NOT NULL DEFAULT '{}'",
+            [],
+        );
+        set_schema_version(conn, 5)?;
     }
 
     Ok(())
@@ -252,5 +270,25 @@ mod tests {
             .unwrap();
         assert_eq!(teachings_col, 1);
         assert_eq!(runs_col, 1);
+    }
+
+    #[test]
+    fn v5_has_digest_and_recipes_columns() {
+        let db = open_agent_db_memory().unwrap();
+        for name in [
+            "digest_schedule_json",
+            "custom_recipes_json",
+            "extras_json",
+        ] {
+            let count: i32 = db
+                .conn
+                .query_row(
+                    "SELECT COUNT(*) FROM pragma_table_info('agent_prefs') WHERE name = ?1",
+                    [name],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert_eq!(count, 1, "missing column {name}");
+        }
     }
 }

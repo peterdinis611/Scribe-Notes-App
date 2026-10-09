@@ -28,6 +28,10 @@ import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts'
 import { useFolderAutoSync } from '@/hooks/useFolderAutoSync'
 import { useAutoBackup } from '@/hooks/useAutoBackup'
 import { useDocumentCacheRetention } from '@/hooks/useDocumentCacheRetention'
+import {
+  startAgentDigestScheduler,
+  stopAgentDigestScheduler,
+} from '@/lib/library/agent-digest-schedule'
 import { APP_VERSION } from '@/lib/app-version'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { prefetchDocument, prefetchEditorChunks, prefetchOpenDocuments } from '@/lib/cache/prefetch-document'
@@ -94,6 +98,10 @@ export function AppLayout() {
   useFolderAutoSync()
   useAutoBackup()
   useDocumentCacheRetention()
+  useEffect(() => {
+    startAgentDigestScheduler()
+    return () => stopAgentDigestScheduler()
+  }, [])
   const templatePickerOpen = useAppSelector((state) => state.settings.templatePickerOpen)
   const showDocumentTabs = useAppSelector((state) => state.settings.showDocumentTabs)
   const movePickerOpen = useAppSelector((state) => state.folders.moveDocumentPickerOpen)

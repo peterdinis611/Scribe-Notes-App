@@ -261,6 +261,7 @@ pub fn run() {
             commands::agent::append_agent_message,
             commands::agent::clear_agent_messages,
             commands::agent::get_agent_prefs,
+            commands::agent::get_agent_schema_version,
             commands::agent::set_agent_prefs,
             commands::agent::list_agent_role_states,
             commands::agent::set_agent_role_states,

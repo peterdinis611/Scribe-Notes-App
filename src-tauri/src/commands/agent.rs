@@ -34,6 +34,7 @@ pub struct AgentMessage {
     pub created_at: i64,
     pub steps: Vec<AgentStepRecord>,
     pub citations: Vec<AgentCitation>,
+    pub agent_id: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -44,6 +45,7 @@ pub struct AppendAgentMessageInput {
     pub text: String,
     pub steps: Option<Vec<AgentStepRecord>>,
     pub citations: Option<Vec<AgentCitation>>,
+    pub agent_id: Option<String>,
 }
 
 fn parse_json_vec<T: for<'de> Deserialize<'de>>(raw: Option<String>) -> Vec<T> {
@@ -57,34 +59,57 @@ fn parse_json_vec<T: for<'de> Deserialize<'de>>(raw: Option<String>) -> Vec<T> {
 pub fn list_agent_messages(
     state: State<'_, DbState>,
     document_id: String,
+    agent_id: Option<String>,
 ) -> Result<Vec<AgentMessage>, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
-    let mut stmt = conn
-        .prepare(
-            "SELECT id, document_id, role, text, created_at, steps_json, citations_json \
+    let agent_filter = agent_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| scribe_agent::normalize_agent_id(Some(value)));
+
+    let mut stmt = if agent_filter.is_some() {
+        conn.prepare(
+            "SELECT id, document_id, role, text, created_at, steps_json, citations_json, \
+             COALESCE(agent_id, 'general') \
+             FROM agent_messages \
+             WHERE document_id = ?1 AND COALESCE(agent_id, 'general') = ?2 \
+             ORDER BY created_at ASC, id ASC",
+        )
+    } else {
+        conn.prepare(
+            "SELECT id, document_id, role, text, created_at, steps_json, citations_json, \
+             COALESCE(agent_id, 'general') \
              FROM agent_messages \
              WHERE document_id = ?1 \
              ORDER BY created_at ASC, id ASC",
         )
-        .map_err(|e| e.to_string())?;
+    }
+    .map_err(|e| e.to_string())?;
 
-    let rows = stmt
-        .query_map(params![document_id], |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, String>(2)?,
-                row.get::<_, String>(3)?,
-                row.get::<_, i64>(4)?,
-                row.get::<_, Option<String>>(5)?,
-                row.get::<_, Option<String>>(6)?,
-            ))
-        })
-        .map_err(|e| e.to_string())?;
+    let map_row = |row: &rusqlite::Row<'_>| {
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, String>(2)?,
+            row.get::<_, String>(3)?,
+            row.get::<_, i64>(4)?,
+            row.get::<_, Option<String>>(5)?,
+            row.get::<_, Option<String>>(6)?,
+            row.get::<_, String>(7)?,
+        ))
+    };
+
+    let rows = if let Some(agent_id) = agent_filter.as_deref() {
+        stmt.query_map(params![document_id, agent_id], map_row)
+    } else {
+        stmt.query_map(params![document_id], map_row)
+    }
+    .map_err(|e| e.to_string())?;
 
     let mut messages = Vec::new();
     for row in rows {
-        let (id, document_id, role, text, created_at, steps_json, citations_json) =
+        let (id, document_id, role, text, created_at, steps_json, citations_json, agent_id) =
             row.map_err(|e| e.to_string())?;
         messages.push(AgentMessage {
             id,
@@ -94,6 +119,7 @@ pub fn list_agent_messages(
             created_at,
             steps: parse_json_vec(steps_json),
             citations: parse_json_vec(citations_json),
+            agent_id,
         });
     }
     Ok(messages)
@@ -115,6 +141,7 @@ pub fn append_agent_message(
 
     let id = Uuid::new_v4().to_string();
     let created_at = now_ts();
+    let agent_id = scribe_agent::normalize_agent_id(input.agent_id.as_deref());
     let steps = input.steps.unwrap_or_default();
     let citations = input.citations.unwrap_or_default();
     let steps_json = if steps.is_empty() {
@@ -143,8 +170,8 @@ pub fn append_agent_message(
 
         conn.execute(
             "INSERT INTO agent_messages \
-             (id, document_id, role, text, created_at, steps_json, citations_json) \
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+             (id, document_id, role, text, created_at, steps_json, citations_json, agent_id) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
             params![
                 id,
                 input.document_id,
@@ -153,6 +180,7 @@ pub fn append_agent_message(
                 created_at,
                 steps_json,
                 citations_json,
+                agent_id,
             ],
         )
         .map_err(|e| e.to_string())?;
@@ -166,6 +194,7 @@ pub fn append_agent_message(
         created_at,
         steps,
         citations,
+        agent_id,
     })
 }
 
@@ -173,26 +202,46 @@ pub fn append_agent_message(
 pub fn clear_agent_messages(
     state: State<'_, DbState>,
     document_id: String,
+    agent_id: Option<String>,
 ) -> Result<u64, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
-    let deleted = conn
-        .execute(
+    let deleted = if let Some(raw) = agent_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        let agent_id = scribe_agent::normalize_agent_id(Some(raw));
+        conn.execute(
+            "DELETE FROM agent_messages WHERE document_id = ?1 AND COALESCE(agent_id, 'general') = ?2",
+            params![document_id, agent_id],
+        )
+    } else {
+        conn.execute(
             "DELETE FROM agent_messages WHERE document_id = ?1",
             params![document_id],
         )
-        .map_err(|e| e.to_string())?;
+    }
+    .map_err(|e| e.to_string())?;
     Ok(deleted as u64)
 }
 
 // --- scribe-agent.db (separate agent store) ---
 
 use crate::agent_db::AgentDbState;
-use scribe_agent::{AgentHandoff, AgentPrefs, AgentRoleState, AgentRunRecord, AgentTeaching};
+use scribe_agent::{
+    AgentDigestSchedule, AgentHandoff, AgentPrefs, AgentRoleState, AgentRunRecord, AgentTeaching,
+    CustomAgentRecipe, SCHEMA_VERSION,
+};
 
 #[tauri::command]
 pub fn get_agent_prefs(agent: State<'_, AgentDbState>) -> Result<AgentPrefs, String> {
     let store = agent.store.lock().map_err(|e| e.to_string())?;
     store.get_prefs()
+}
+
+#[tauri::command]
+pub fn get_agent_schema_version() -> i32 {
+    SCHEMA_VERSION
 }
 
 #[derive(Debug, Deserialize)]
@@ -203,6 +252,9 @@ pub struct SetAgentPrefsInput {
     pub prefer_fast: bool,
     pub preferred_tools: Vec<String>,
     pub disabled_tools: Vec<String>,
+    pub digest_schedule: Option<AgentDigestSchedule>,
+    pub custom_recipes: Option<Vec<CustomAgentRecipe>>,
+    pub extras: Option<serde_json::Value>,
 }
 
 #[tauri::command]
@@ -211,12 +263,16 @@ pub fn set_agent_prefs(
     input: SetAgentPrefsInput,
 ) -> Result<AgentPrefs, String> {
     let store = agent.store.lock().map_err(|e| e.to_string())?;
+    let current = store.get_prefs().unwrap_or_default();
     store.set_prefs(&AgentPrefs {
         enabled: input.enabled,
         max_steps: input.max_steps,
         prefer_fast: input.prefer_fast,
         preferred_tools: input.preferred_tools,
         disabled_tools: input.disabled_tools,
+        digest_schedule: input.digest_schedule.unwrap_or(current.digest_schedule),
+        custom_recipes: input.custom_recipes.unwrap_or(current.custom_recipes),
+        extras: input.extras.unwrap_or(current.extras),
     })
 }
 

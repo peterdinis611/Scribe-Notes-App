@@ -358,7 +358,7 @@ function normalizeEpisodes(raw: unknown): AgentEpisode[] {
 
 function normalizeTimeLocal(raw: unknown): string {
   if (typeof raw !== 'string') return DEFAULT_DIGEST_SCHEDULE.timeLocal
-  const match = raw.trim().match(/^(\d{1,2}):(\d{2})$/)
+  const match = raw.trim().match(/^(\d{1,2}):(\d{1,2})$/)
   if (!match) return DEFAULT_DIGEST_SCHEDULE.timeLocal
   const hour = Math.min(23, Math.max(0, Number(match[1])))
   const minute = Math.min(59, Math.max(0, Number(match[2])))

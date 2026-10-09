@@ -25,8 +25,11 @@ import {
 import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { DEFAULT_HANDOFF_TARGET } from '@/lib/library/agent-handoff'
 import {
+  AGENT_CUSTOM_RECIPES_MAX,
   AGENT_OPTIMIZABLE_TOOLS,
   AGENT_TEACHING_MAX_LEN,
+  AGENT_TOOL_IDS,
+  createCustomRecipe,
   type AgentMaxSteps,
   type AgentOutputLanguage,
   type AgentTeachingScope,
@@ -97,6 +100,7 @@ const TOOL_LABEL_KEYS: Record<AgentToolId, string> = {
   library_report: 'agent.tools.library_report',
   terminology_library: 'agent.tools.terminology_library',
   files_answer: 'agent.tools.files_answer',
+  files_ingest: 'agent.tools.files_ingest',
   save_template: 'agent.tools.save_template',
   handoff: 'agent.tools.handoff',
 }
@@ -206,6 +210,9 @@ export function AgentSection() {
   const [teachBusy, setTeachBusy] = useState(false)
   const [llmTeachReady, setLlmTeachReady] = useState<boolean | null>(null)
   const [toolsOpen, setToolsOpen] = useState(false)
+  const [recipeLabel, setRecipeLabel] = useState('')
+  const [recipeTools, setRecipeTools] = useState<AgentToolId[]>(['summarize', 'takeaways'])
+  const [recipeDocPreferred, setRecipeDocPreferred] = useState(false)
 
   const budgetMax = prefs.dailyRunBudget
   const budgetUsed = prefs.runsToday
@@ -646,7 +653,78 @@ export function AgentSection() {
                   offLabel={t('settings.agent.off')}
                 />
               </li>
+              <li>
+                <div>
+                  <span>{t('settings.agent.digestSchedule')}</span>
+                  <small>{t('settings.agent.digestScheduleHint')}</small>
+                </div>
+                <AgentToggle
+                  compact
+                  checked={prefs.digestSchedule.enabled}
+                  onChange={() =>
+                    dispatch(
+                      patchAgentPrefs({
+                        digestSchedule: {
+                          ...prefs.digestSchedule,
+                          enabled: !prefs.digestSchedule.enabled,
+                        },
+                      }),
+                    )
+                  }
+                  disabled={!prefs.enabled}
+                  onLabel={t('settings.agent.on')}
+                  offLabel={t('settings.agent.off')}
+                />
+              </li>
             </ul>
+
+            {prefs.digestSchedule.enabled ? (
+              <div className="agent-settings-control-strip mt-2">
+                <div className="agent-settings-control">
+                  <span>{t('settings.agent.digestScheduleTime')}</span>
+                  <input
+                    type="time"
+                    className="agent-settings-time-input"
+                    value={prefs.digestSchedule.timeLocal}
+                    disabled={!prefs.enabled}
+                    onChange={(event) =>
+                      dispatch(
+                        patchAgentPrefs({
+                          digestSchedule: {
+                            ...prefs.digestSchedule,
+                            timeLocal: event.target.value || '08:00',
+                          },
+                        }),
+                      )
+                    }
+                  />
+                </div>
+                <div className="agent-settings-control">
+                  <span>{t('settings.agent.digestSchedulePeriod')}</span>
+                  <div className="agent-settings-segment" role="group">
+                    {(['day', 'week'] as const).map((period) => (
+                      <button
+                        key={period}
+                        type="button"
+                        className={cn(prefs.digestSchedule.period === period && 'is-active')}
+                        disabled={!prefs.enabled}
+                        onClick={() =>
+                          dispatch(
+                            patchAgentPrefs({
+                              digestSchedule: { ...prefs.digestSchedule, period },
+                            }),
+                          )
+                        }
+                      >
+                        {period === 'day'
+                          ? t('settings.agent.digestScheduleDaily')
+                          : t('settings.agent.digestScheduleWeekly')}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : null}
 
             <div className="agent-settings-budget-band">
               <div className="agent-settings-budget-band-copy">
@@ -766,6 +844,127 @@ export function AgentSection() {
                 </div>
               </div>
             )}
+          </section>
+
+          <section
+            className="agent-settings-card agent-settings-card--recipes"
+            aria-labelledby="agent-recipes-title"
+          >
+            <CardHead
+              id="agent-recipes-title"
+              title={t('settings.agent.customRecipesTitle')}
+              hint={t('settings.agent.customRecipesHint')}
+              tone="optimize"
+            >
+              <Zap className="h-3.5 w-3.5" />
+            </CardHead>
+
+            {prefs.customRecipes.length > 0 ? (
+              <ul className="agent-settings-custom-recipes">
+                {prefs.customRecipes.map((recipe) => (
+                  <li key={recipe.id}>
+                    <div>
+                      <strong>{recipe.label}</strong>
+                      <small>
+                        {recipe.tools
+                          .map((tool) =>
+                            TOOL_LABEL_KEYS[tool] ? t(TOOL_LABEL_KEYS[tool]) : tool,
+                          )
+                          .join(' → ')}
+                      </small>
+                    </div>
+                    <button
+                      type="button"
+                      className="library-chat-chip"
+                      disabled={!prefs.enabled}
+                      onClick={() =>
+                        dispatch(
+                          patchAgentPrefs({
+                            customRecipes: prefs.customRecipes.filter(
+                              (item) => item.id !== recipe.id,
+                            ),
+                          }),
+                        )
+                      }
+                    >
+                      <Trash2 className="mr-1 inline h-3 w-3" />
+                      {t('settings.agent.customRecipeRemove')}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="agent-settings-teach-hint">{t('settings.agent.customRecipesEmpty')}</p>
+            )}
+
+            {prefs.customRecipes.length < AGENT_CUSTOM_RECIPES_MAX ? (
+              <form
+                className="agent-settings-teach-form agent-settings-teach-form--stack"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  const created = createCustomRecipe({
+                    label: recipeLabel,
+                    tools: recipeTools,
+                    documentPreferred: recipeDocPreferred,
+                    roleId: teachAgentId,
+                  })
+                  if (!created) {
+                    toast.error(t('settings.agent.customRecipeInvalid'))
+                    return
+                  }
+                  dispatch(
+                    patchAgentPrefs({
+                      customRecipes: [...prefs.customRecipes, created],
+                    }),
+                  )
+                  setRecipeLabel('')
+                  toast.success(t('settings.agent.customRecipeAdded'))
+                }}
+              >
+                <input
+                  value={recipeLabel}
+                  maxLength={80}
+                  disabled={!prefs.enabled}
+                  placeholder={t('settings.agent.customRecipeNamePlaceholder')}
+                  onChange={(event) => setRecipeLabel(event.target.value)}
+                  aria-label={t('settings.agent.customRecipeNamePlaceholder')}
+                />
+                <div className="agent-settings-tool-cloud" role="group">
+                  {AGENT_TOOL_IDS.filter((tool) => tool !== 'handoff').slice(0, 24).map((tool) => {
+                    const active = recipeTools.includes(tool)
+                    return (
+                      <button
+                        key={tool}
+                        type="button"
+                        className={cn('agent-settings-tool-chip', active && 'is-active')}
+                        disabled={!prefs.enabled}
+                        data-mode={active ? 'prefer' : 'default'}
+                        onClick={() =>
+                          setRecipeTools((prev) => {
+                            if (prev.includes(tool)) return prev.filter((item) => item !== tool)
+                            return [...prev, tool].slice(0, 3)
+                          })
+                        }
+                      >
+                        <span>{t(TOOL_LABEL_KEYS[tool])}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+                <label className="agent-settings-inline-check">
+                  <input
+                    type="checkbox"
+                    checked={recipeDocPreferred}
+                    disabled={!prefs.enabled}
+                    onChange={(event) => setRecipeDocPreferred(event.target.checked)}
+                  />
+                  {t('settings.agent.customRecipeDocPreferred')}
+                </label>
+                <Button type="submit" size="sm" disabled={!prefs.enabled || recipeLabel.trim().length < 2}>
+                  {t('settings.agent.customRecipeAdd')}
+                </Button>
+              </form>
+            ) : null}
           </section>
 
           <section

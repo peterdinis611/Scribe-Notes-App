@@ -286,11 +286,58 @@ impl ScribeMcp {
             max_tools.unwrap_or(prefs_max).clamp(1, 6)
         };
 
+        let role_id = if spellcheck {
+            "proofreader"
+        } else if persona == "general" || persona.is_empty() {
+            "general"
+        } else {
+            persona
+        };
+
+        let (handoff_summaries, feedback_tools, inbox_block) =
+            if let Some(agent_store) = self.open_agent_store() {
+                let inbox = agent_store
+                    .list_handoff_inbox(role_id, Some("pending"), 8)
+                    .unwrap_or_default();
+                let summaries: Vec<String> = inbox
+                    .iter()
+                    .filter(|item| item.status == "pending")
+                    .take(6)
+                    .map(|item| format!("From {}: {}", item.from_agent_id, item.summary))
+                    .collect();
+                let preamble = scribe_agent::inbox_preamble(&inbox);
+                let feedback = agent_store
+                    .recent_successful_tool_sets(24)
+                    .unwrap_or_default();
+                (summaries, feedback, preamble)
+            } else {
+                (Vec::new(), Vec::new(), None)
+            };
+
         let tools_list: Vec<String> = if spellcheck {
             vec!["spellcheck".into()]
         } else {
+            let handoffs = if handoff_summaries.is_empty() {
+                None
+            } else {
+                Some(handoff_summaries.as_slice())
+            };
+            let feedback = if feedback_tools.is_empty() {
+                None
+            } else {
+                Some(feedback_tools.as_slice())
+            };
             let plan = self.with_store(|store| {
-                store.plan_agent_goal(&self.sidecar, goal, scope, Some(max_tools))
+                store.plan_agent_goal_ctx(
+                    &self.sidecar,
+                    goal,
+                    scope,
+                    Some(max_tools),
+                    Some(role_id),
+                    handoffs,
+                    feedback,
+                    None,
+                )
             })?;
 
             let planned = plan
@@ -334,6 +381,9 @@ impl ScribeMcp {
 
         if let Some(preamble) = self.agent_teachings_preamble(spellcheck) {
             answers.push(preamble);
+        }
+        if let Some(inbox) = inbox_block {
+            answers.push(inbox);
         }
 
         for tool_name in &tools_list {

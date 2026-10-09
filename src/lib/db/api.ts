@@ -406,10 +406,14 @@ export type AgentMessage = {
   createdAt: number
   steps: AgentMessageStep[]
   citations: DocumentChatCitation[]
+  agentId?: string
 }
 
-export const listAgentMessages = (documentId: string) =>
-  invoke<AgentMessage[]>('list_agent_messages', { documentId })
+export const listAgentMessages = (documentId: string, agentId?: string | null) =>
+  invoke<AgentMessage[]>('list_agent_messages', {
+    documentId,
+    agentId: agentId ?? null,
+  })
 
 export const appendAgentMessage = (input: {
   documentId: string
@@ -417,13 +421,33 @@ export const appendAgentMessage = (input: {
   text: string
   steps?: AgentMessageStep[]
   citations?: DocumentChatCitation[]
+  agentId?: string | null
 }) => invoke<AgentMessage>('append_agent_message', { input })
 
-export const clearAgentMessages = (documentId: string) =>
-  invoke<number>('clear_agent_messages', { documentId })
+export const clearAgentMessages = (documentId: string, agentId?: string | null) =>
+  invoke<number>('clear_agent_messages', {
+    documentId,
+    agentId: agentId ?? null,
+  })
 
 export const invokeMatchAgentIntents = (question: string) =>
   invoke<string[]>('match_agent_intents', { question })
+
+export type AgentBackendDigestSchedule = {
+  enabled: boolean
+  timeLocal: string
+  period: string
+  weekday: number
+  lastRunDate: string
+}
+
+export type AgentBackendCustomRecipe = {
+  id: string
+  label: string
+  tools: string[]
+  documentPreferred?: boolean
+  roleId?: string | null
+}
 
 export type AgentBackendPrefs = {
   enabled: boolean
@@ -431,7 +455,12 @@ export type AgentBackendPrefs = {
   preferFast: boolean
   preferredTools: string[]
   disabledTools: string[]
+  digestSchedule?: AgentBackendDigestSchedule
+  customRecipes?: AgentBackendCustomRecipe[]
+  extras?: Record<string, unknown>
 }
+
+export const getAgentSchemaVersion = () => invoke<number>('get_agent_schema_version')
 
 export type AgentBackendTeaching = {
   id: string
@@ -467,6 +496,9 @@ export const setAgentPrefsBackend = (input: AgentBackendPrefs) =>
       preferFast: input.preferFast,
       preferredTools: input.preferredTools,
       disabledTools: input.disabledTools,
+      digestSchedule: input.digestSchedule ?? null,
+      customRecipes: input.customRecipes ?? null,
+      extras: input.extras ?? null,
     },
   })
 

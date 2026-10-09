@@ -35,6 +35,46 @@ fn contains_any(hay: &str, needles: &[&str]) -> bool {
 
 fn intent_rules() -> &'static [(&'static str, &'static [&'static str])] {
     &[
+        (
+            "handoff",
+            &[
+                "handoff",
+                "delegate",
+                "pass to",
+                "send to",
+                "forward to",
+                "posli",
+                "odovzdaj",
+                "predaj",
+                "@organizer",
+                "@meeting",
+                "@librarian",
+                "@proofreader",
+                "@study",
+                "@general",
+            ],
+        ),
+        (
+            "files_ingest",
+            &[
+                "import files",
+                "ingest files",
+                "files to notes",
+                "sandbox to library",
+                "importuj subory",
+                "subory do kniznice",
+            ],
+        ),
+        (
+            "files_answer",
+            &[
+                "files answer",
+                "ask files",
+                "sandboxed files",
+                "subory sandbox",
+                "files/",
+            ],
+        ),
         ("summarize", &["summarize", "summary", "tlldr", "digest", "zhrn", "zhrnutie", "strucne"]),
         ("outline", &["outline", "structure", "heading", "osnova", "struktura", "nadpisy"]),
         ("keywords", &["keyword", "key word", "klucove slova"]),
@@ -513,7 +553,7 @@ mod tests {
 
     #[test]
     fn open_questions_do_not_match() {
-        assert_eq!(match_document_chat_intent("What feels unfinished or unclear here?"), None);
+        assert_eq!(match_document_chat_intent("What feels odd or unclear here?"), None);
         assert_eq!(match_document_chat_intent("What is this note mainly about?"), None);
         assert_eq!(
             match_document_chat_intent("Explain the key terms in this note"),
@@ -539,5 +579,7 @@ mod tests {
         assert_eq!(match_agent_intents("extract decisions"), vec!["decisions"]);
         assert_eq!(match_agent_intents("section summaries"), vec!["section_summaries"]);
         assert_eq!(match_agent_intents("rank tasks ASAP"), vec!["tasks", "rank_tasks"]);
+        assert_eq!(match_agent_intents("please handoff now"), vec!["handoff"]);
+        assert_eq!(match_agent_intents("ingest files from sandbox"), vec!["files_ingest"]);
     }
 }

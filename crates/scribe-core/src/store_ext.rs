@@ -137,6 +137,7 @@ pub struct AgentMessage {
     pub created_at: i64,
     pub steps: Vec<AgentMessageStep>,
     pub citations: Vec<DocumentChatCitation>,
+    pub agent_id: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -1789,18 +1790,39 @@ impl ScribeStore {
         scope: &str,
         max_tools: Option<i64>,
     ) -> Result<Value, String> {
+        self.plan_agent_goal_ctx(sidecar, goal, scope, max_tools, None, None, None, None)
+    }
+
+    /// Full planner path used by MCP / local agent (role + handoffs + feedback).
+    pub fn plan_agent_goal_ctx(
+        &self,
+        sidecar: &NlpSidecar,
+        goal: &str,
+        scope: &str,
+        max_tools: Option<i64>,
+        role: Option<&str>,
+        handoffs: Option<&[String]>,
+        feedback_tools: Option<&[Vec<String>]>,
+        allowed_tools: Option<&[String]>,
+    ) -> Result<Value, String> {
         require_nlp(&self.db)?;
         sync_sidecar_backend(sidecar, &self.db)?;
         let llm = crate::db::llm_sidecar_options(&self.db, "plan")?;
-        sidecar.plan_agent_goal_with_llm(
+        let scope_norm = if scope.eq_ignore_ascii_case("library") {
+            "library"
+        } else {
+            "document"
+        };
+        sidecar.plan_agent_goal_full(
             goal.trim(),
-            if scope.eq_ignore_ascii_case("library") {
-                "library"
-            } else {
-                "document"
-            },
+            scope_norm,
             max_tools.unwrap_or(3).clamp(1, 6),
             llm,
+            role,
+            None,
+            allowed_tools,
+            handoffs,
+            feedback_tools,
         )
     }
 
@@ -2428,41 +2450,62 @@ impl ScribeStore {
         })
     }
 
-    pub fn list_agent_messages(&self, document_id: &str) -> Result<Vec<AgentMessage>, String> {
-        let mut stmt = self
-            .db
-            .prepare(
-                "SELECT id, document_id, role, text, created_at, steps_json, citations_json \
-                 FROM agent_messages \
-                 WHERE document_id = ?1 \
-                 ORDER BY created_at ASC, id ASC",
-            )
-            .map_err(|e| e.to_string())?;
-        let rows = stmt
-            .query_map(params![document_id], |row| {
-                let steps_raw: Option<String> = row.get(5)?;
-                let citations_raw: Option<String> = row.get(6)?;
-                let steps = steps_raw
-                    .as_deref()
-                    .filter(|value| !value.trim().is_empty())
-                    .and_then(|json| serde_json::from_str(json).ok())
-                    .unwrap_or_default();
-                let citations = citations_raw
-                    .as_deref()
-                    .filter(|value| !value.trim().is_empty())
-                    .and_then(|json| serde_json::from_str(json).ok())
-                    .unwrap_or_default();
-                Ok(AgentMessage {
-                    id: row.get(0)?,
-                    document_id: row.get(1)?,
-                    role: row.get(2)?,
-                    text: row.get(3)?,
-                    created_at: row.get(4)?,
-                    steps,
-                    citations,
-                })
+    pub fn list_agent_messages(
+        &self,
+        document_id: &str,
+        agent_id: Option<&str>,
+    ) -> Result<Vec<AgentMessage>, String> {
+        let agent_filter = agent_id
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(|value| {
+                // Keep unknown roles as-is for library store (normalization lives in scribe-agent).
+                value.to_ascii_lowercase()
+            });
+        let sql = if agent_filter.is_some() {
+            "SELECT id, document_id, role, text, created_at, steps_json, citations_json, \
+             COALESCE(agent_id, 'general') \
+             FROM agent_messages \
+             WHERE document_id = ?1 AND COALESCE(agent_id, 'general') = ?2 \
+             ORDER BY created_at ASC, id ASC"
+        } else {
+            "SELECT id, document_id, role, text, created_at, steps_json, citations_json, \
+             COALESCE(agent_id, 'general') \
+             FROM agent_messages \
+             WHERE document_id = ?1 \
+             ORDER BY created_at ASC, id ASC"
+        };
+        let mut stmt = self.db.prepare(sql).map_err(|e| e.to_string())?;
+        let map_row = |row: &rusqlite::Row<'_>| {
+            let steps_raw: Option<String> = row.get(5)?;
+            let citations_raw: Option<String> = row.get(6)?;
+            let steps = steps_raw
+                .as_deref()
+                .filter(|value| !value.trim().is_empty())
+                .and_then(|json| serde_json::from_str(json).ok())
+                .unwrap_or_default();
+            let citations = citations_raw
+                .as_deref()
+                .filter(|value| !value.trim().is_empty())
+                .and_then(|json| serde_json::from_str(json).ok())
+                .unwrap_or_default();
+            Ok(AgentMessage {
+                id: row.get(0)?,
+                document_id: row.get(1)?,
+                role: row.get(2)?,
+                text: row.get(3)?,
+                created_at: row.get(4)?,
+                steps,
+                citations,
+                agent_id: row.get(7)?,
             })
-            .map_err(|e| e.to_string())?;
+        };
+        let rows = if let Some(agent_id) = agent_filter.as_deref() {
+            stmt.query_map(params![document_id, agent_id], map_row)
+        } else {
+            stmt.query_map(params![document_id], map_row)
+        }
+        .map_err(|e| e.to_string())?;
         rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
     }
 
@@ -2473,6 +2516,18 @@ impl ScribeStore {
         text: &str,
         steps: Option<&[AgentMessageStep]>,
         citations: Option<&[DocumentChatCitation]>,
+    ) -> Result<AgentMessage, String> {
+        self.append_agent_message_for(document_id, role, text, steps, citations, None)
+    }
+
+    pub fn append_agent_message_for(
+        &self,
+        document_id: &str,
+        role: &str,
+        text: &str,
+        steps: Option<&[AgentMessageStep]>,
+        citations: Option<&[DocumentChatCitation]>,
+        agent_id: Option<&str>,
     ) -> Result<AgentMessage, String> {
         let role = role.trim().to_lowercase();
         if role != "user" && role != "assistant" {
@@ -2507,11 +2562,25 @@ impl ScribeStore {
             };
             let id = Uuid::new_v4().to_string();
             let created_at = chrono::Utc::now().timestamp();
+            let agent_id = agent_id
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .unwrap_or("general")
+                .to_ascii_lowercase();
             db.execute(
                 "INSERT INTO agent_messages \
-                 (id, document_id, role, text, created_at, steps_json, citations_json) \
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-                params![id, document_id, role, text, created_at, steps_json, citations_json],
+                 (id, document_id, role, text, created_at, steps_json, citations_json, agent_id) \
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                params![
+                    id,
+                    document_id,
+                    role,
+                    text,
+                    created_at,
+                    steps_json,
+                    citations_json,
+                    agent_id
+                ],
             )
             .map_err(|e| e.to_string())?;
             Ok(AgentMessage {
@@ -2522,18 +2591,32 @@ impl ScribeStore {
                 created_at,
                 steps,
                 citations,
+                agent_id,
             })
         })
     }
 
-    pub fn clear_agent_messages(&self, document_id: &str) -> Result<u64, String> {
+    pub fn clear_agent_messages(
+        &self,
+        document_id: &str,
+        agent_id: Option<&str>,
+    ) -> Result<u64, String> {
         self.run_writable(|db| {
-            let deleted = db
-                .execute(
+            let deleted = if let Some(agent_id) = agent_id
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+            {
+                db.execute(
+                    "DELETE FROM agent_messages WHERE document_id = ?1 AND COALESCE(agent_id, 'general') = ?2",
+                    params![document_id, agent_id.to_ascii_lowercase()],
+                )
+            } else {
+                db.execute(
                     "DELETE FROM agent_messages WHERE document_id = ?1",
                     params![document_id],
                 )
-                .map_err(|e| e.to_string())?;
+            }
+            .map_err(|e| e.to_string())?;
             Ok(deleted as u64)
         })
     }
@@ -3137,7 +3220,7 @@ mod tests {
             )
             .unwrap();
 
-        let messages = store.list_agent_messages("doc-1").unwrap();
+        let messages = store.list_agent_messages("doc-1", None).unwrap();
         assert_eq!(messages.len(), 2);
         let assistant = messages
             .iter()
@@ -3146,10 +3229,22 @@ mod tests {
         assert_eq!(assistant.steps.len(), 1);
         assert_eq!(assistant.steps[0].tool, "summarize");
         assert_eq!(assistant.citations[0].snippet, "body");
+        assert_eq!(assistant.agent_id, "general");
 
-        let deleted = store.clear_agent_messages("doc-1").unwrap();
-        assert_eq!(deleted, 2);
-        assert!(store.list_agent_messages("doc-1").unwrap().is_empty());
+        store
+            .append_agent_message_for("doc-1", "user", "Proofread", None, None, Some("proofreader"))
+            .unwrap();
+        assert_eq!(
+            store
+                .list_agent_messages("doc-1", Some("proofreader"))
+                .unwrap()
+                .len(),
+            1
+        );
+
+        let deleted = store.clear_agent_messages("doc-1", None).unwrap();
+        assert_eq!(deleted, 3);
+        assert!(store.list_agent_messages("doc-1", None).unwrap().is_empty());
     }
 
     #[test]

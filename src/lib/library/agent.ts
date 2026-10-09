@@ -26,7 +26,8 @@ import {
   preferredToolsForRole,
   toolsAllowedByAgents,
 } from '@/lib/library/agent-roles'
-import { getAgentRecipe, type AgentRecipeId } from '@/lib/library/agent-recipes'
+import { resolveAgentRecipe, type AgentRecipeId } from '@/lib/library/agent-recipes'
+import { runAgentFilesIngest } from '@/lib/library/agent-files-ingest'
 import {
   runAgentCitations,
   runAgentCommitments,
@@ -171,6 +172,7 @@ const LIBRARY_ONLY_TOOLS = new Set<AgentToolId>([
   'citations',
   'library_answer',
   'files_answer',
+  'files_ingest',
   'library_report',
   'terminology_library',
 ])
@@ -236,6 +238,8 @@ const INTENT_TO_TOOL: Record<string, AgentToolId> = {
   template_hints: 'template_hints',
   library_report: 'library_report',
   terminology_library: 'terminology_library',
+  files_answer: 'files_answer',
+  files_ingest: 'files_ingest',
   save_template: 'save_template',
   handoff: 'handoff',
 }
@@ -415,6 +419,17 @@ export function matchAgentIntentsSync(goal: string): AgentToolId[] {
       needles: ['files answer', 'ask files', 'sandboxed files', 'subory sandbox', 'files/'],
     },
     {
+      tool: 'files_ingest',
+      needles: [
+        'import files',
+        'ingest files',
+        'files to notes',
+        'sandbox to library',
+        'importuj subory',
+        'subory do kniznice',
+      ],
+    },
+    {
       tool: 'spellcheck',
       needles: [
         'spellcheck',
@@ -584,7 +599,7 @@ export async function planAgentGoal(
   documentId?: string | null,
   prefs: AgentPrefs = DEFAULT_AGENT_PREFS,
   opts?: {
-    recipeId?: AgentRecipeId | null
+    recipeId?: AgentRecipeId | string | null
     forceTools?: AgentToolId[]
     folderId?: string | null
     /** Active dock specialist — boosts that role’s tools. */
@@ -616,18 +631,25 @@ export async function planAgentGoal(
   }
 
   if (opts?.recipeId) {
-    if (!isRecipeAllowedByAgents(opts.recipeId, effective.agents)) {
-      throw new Error('agent.roleDisabled')
-    }
-    const recipe = getAgentRecipe(opts.recipeId)
+    const recipe = resolveAgentRecipe(opts.recipeId, prefs.customRecipes)
     if (recipe) {
+      if (!recipe.custom) {
+        if (!isRecipeAllowedByAgents(opts.recipeId as AgentRecipeId, effective.agents)) {
+          throw new Error('agent.roleDisabled')
+        }
+      } else {
+        const custom = prefs.customRecipes.find((item) => item.id === recipe.id)
+        if (custom?.roleId && !isAgentRoleEnabled(effective.agents, custom.roleId)) {
+          throw new Error('agent.roleDisabled')
+        }
+      }
       const tools = applyAgentOptimize(scopeTools(recipe.tools, scope, documentId), effective)
       return {
-        goal: trimmed || opts.recipeId,
+        goal: trimmed || recipe.label || recipe.id,
         scope,
         documentId,
         tools: tools.length > 0 ? tools : safeFallback ? [safeFallback] : [],
-        planMeta: { source: 'recipe', topLabel: recipe.id },
+        planMeta: { source: 'recipe', topLabel: recipe.label || recipe.id },
       }
     }
   }
@@ -982,6 +1004,19 @@ async function runTool(
     }
   }
 
+  if (tool === 'files_ingest') {
+    try {
+      const result = await runAgentFilesIngest(ctx.goal)
+      return { answer: result.answer, citations: result.citations }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (message.includes('FilesApiOffline')) {
+        throw new Error('agent.filesApiOffline', { cause: error })
+      }
+      throw error
+    }
+  }
+
   if (tool === 'compare_notes') {
     if (!ctx.documentId) throw new Error('agent.needsDocument')
     const otherId =
@@ -1095,7 +1130,7 @@ export async function runAgentGoal(
   memoryContext?: Array<{ role: string; text: string }>,
   prefs: AgentPrefs = DEFAULT_AGENT_PREFS,
   opts?: {
-    recipeId?: AgentRecipeId | null
+    recipeId?: AgentRecipeId | string | null
     forceTools?: AgentToolId[]
     folderId?: string | null
     selectionText?: string | null
