@@ -76,6 +76,18 @@ describe('normalizeAgentPrefs / teach', () => {
     expect(ctx[0].text).toContain('Keep product names capitalized')
     expect(ctx[0].text).not.toContain('Answer in Slovak')
   })
+
+  it('scopes teachings by specialist agentId', () => {
+    const shared = createTeaching('Be concise', { agentId: 'general' })
+    const librarian = createTeaching('Cite sources', { agentId: 'librarian' })
+    const meeting = createTeaching('Action items only', { agentId: 'meeting' })
+    const ctx = teachingsToMemoryContext([shared!, librarian!, meeting!], {
+      agentId: 'librarian',
+    })
+    expect(ctx[0].text).toContain('Cite sources')
+    expect(ctx[0].text).toContain('Be concise')
+    expect(ctx[0].text).not.toContain('Action items only')
+  })
 })
 
 describe('applyAgentOptimize', () => {

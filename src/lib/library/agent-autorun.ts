@@ -1,5 +1,6 @@
 import { nlpAgentDocumentBrief, nlpStatus } from '@/lib/db/nlp-api'
 import { canRunAgentBudget, normalizeAgentPrefs } from '@/lib/library/agent-prefs'
+import { isAgentRoleEnabled } from '@/lib/library/agent-roles'
 import { applyAgentAnswer } from '@/lib/editor/insert-ai-answer'
 import { toast } from '@/lib/toast'
 import { store } from '@/store/index'
@@ -28,6 +29,9 @@ export function scheduleAgentAutoBrief(documentId: string) {
 async function runAutoBrief(documentId: string) {
   const prefs = normalizeAgentPrefs(store.getState().settings.agentPrefs)
   if (!prefs.enabled || !prefs.autoRunOnSave) return
+  if (!isAgentRoleEnabled(prefs.agents, 'librarian') && !isAgentRoleEnabled(prefs.agents, 'general')) {
+    return
+  }
   if (!canRunAgentBudget(prefs)) return
 
   const last = lastBriefAt.get(documentId) ?? 0

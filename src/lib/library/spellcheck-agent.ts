@@ -17,6 +17,7 @@ import {
   type AgentPrefs,
   DEFAULT_AGENT_PREFS,
 } from '@/lib/library/agent-prefs'
+import { isAgentRoleEnabled } from '@/lib/library/agent-roles'
 import type { LibraryChatCitation } from '@/lib/library/library-chat'
 
 export const SPELLCHECK_AGENT_BLOBATAR_NAME = 'scribe-spellcheck-agent'
@@ -63,6 +64,10 @@ export async function runSpellcheckAgent(
   memoryContext?: Array<{ role: string; text: string }>,
   prefs: AgentPrefs = DEFAULT_AGENT_PREFS,
 ): Promise<SpellcheckAgentResult> {
+  if (!prefs.enabled || !isAgentRoleEnabled(prefs.agents, 'proofreader')) {
+    throw new Error('agent.roleDisabled')
+  }
+
   const normalized = normalizeAgentPrefs({
     ...prefs,
     // Spell agent always uses the spellcheck tool even if disabled for general agent.
@@ -79,7 +84,7 @@ export async function runSpellcheckAgent(
     documentId,
     memoryContext,
     normalized,
-    { forceTools: ['spellcheck'], grammarOnly: true },
+    { forceTools: ['spellcheck'], grammarOnly: true, roleId: 'proofreader' },
   )
 
   let fixes = fixesFromSteps(result.steps)

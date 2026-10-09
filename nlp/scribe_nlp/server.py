@@ -118,6 +118,11 @@ FEATURES = [
     "detectPii",
     "rankTasks",
     "contradictionHints",
+    "extractCommitments",
+    "readingPlan",
+    "notePulse",
+    "openLoops",
+    "tonePack",
     "libraryAnswer",
     "dueHints",
     "wikiSuggest",
@@ -128,6 +133,7 @@ FEATURES = [
     "passageRerank",
     "planAgentGoal",
     "agentDocumentBrief",
+    "decisionJepa",
     "llmStatus",
     "llmComplete",
 ]
@@ -664,7 +670,42 @@ def _handle_request_inner(
             max_tools = max(1, min(int(params.get("maxTools") or params.get("max_tools") or 3), 6))
             llm_raw = params.get("llm")
             llm_options = llm_raw if isinstance(llm_raw, dict) else None
-            result = plan_agent_goal(goal, scope=scope, max_tools=max_tools, llm=llm_options)
+            role_raw = params.get("role") or params.get("roleId") or params.get("agentId")
+            role = str(role_raw).strip() if role_raw else None
+            context_raw = params.get("context") or params.get("notePulse") or params.get("documentHint")
+            context = str(context_raw).strip() if context_raw else None
+            allowed_raw = params.get("allowedTools") or params.get("allowed_tools")
+            allowed_tools = (
+                [str(item) for item in allowed_raw]
+                if isinstance(allowed_raw, list)
+                else None
+            )
+            handoffs_raw = params.get("handoffs") or params.get("pendingHandoffs")
+            handoffs = (
+                [str(item) for item in handoffs_raw if str(item).strip()]
+                if isinstance(handoffs_raw, list)
+                else None
+            )
+            feedback_raw = params.get("feedbackTools") or params.get("feedback_tools")
+            feedback_tools: list[list[str]] | None = None
+            if isinstance(feedback_raw, list):
+                feedback_tools = []
+                for row in feedback_raw[:24]:
+                    if isinstance(row, list):
+                        feedback_tools.append([str(item) for item in row if str(item).strip()])
+                    elif isinstance(row, str) and row.strip():
+                        feedback_tools.append([row.strip()])
+            result = plan_agent_goal(
+                goal,
+                scope=scope,
+                max_tools=max_tools,
+                llm=llm_options,
+                role=role,
+                context=context,
+                allowed_tools=allowed_tools,
+                handoffs=handoffs,
+                feedback_tools=feedback_tools,
+            )
         elif method == "agent_document_brief":
             from .agent_plan import agent_document_brief
 
@@ -868,6 +909,34 @@ def _handle_request_inner(
                 title_b=str(params.get("titleB") or "") or None,
                 limit=limit,
             )
+        elif method == "extract_commitments":
+            from .commitments import extract_commitments
+
+            text = _validate_text(str(params.get("text") or ""))
+            limit = max(1, min(int(params.get("limit") or 12), 40))
+            result = extract_commitments(text, limit=limit)
+        elif method == "reading_plan":
+            from .reading_plan import reading_plan
+
+            text = _validate_text(str(params.get("text") or ""))
+            limit = max(1, min(int(params.get("limit") or 8), 20))
+            result = reading_plan(text, limit=limit)
+        elif method == "note_pulse":
+            from .note_pulse import note_pulse
+
+            text = _validate_text(str(params.get("text") or ""))
+            result = note_pulse(text)
+        elif method == "open_loops":
+            from .open_loops import open_loops
+
+            text = _validate_text(str(params.get("text") or ""))
+            limit = max(1, min(int(params.get("limit") or 16), 40))
+            result = open_loops(text, limit=limit)
+        elif method == "tone_pack":
+            from .tone import tone_pack
+
+            text = _validate_text(str(params.get("text") or ""))
+            result = tone_pack(text)
         else:
             return {
                 "jsonrpc": "2.0",

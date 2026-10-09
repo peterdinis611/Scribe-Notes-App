@@ -1,7 +1,7 @@
 use rusqlite::Connection;
 use std::path::{Path, PathBuf};
 
-pub const SCHEMA_VERSION: i32 = 2;
+pub const SCHEMA_VERSION: i32 = 5;
 pub const AGENT_DB_FILE: &str = "scribe-agent.db";
 
 pub struct AgentDb {
@@ -41,6 +41,27 @@ fn configure(conn: &Connection) -> Result<(), String> {
     .map_err(|e| e.to_string())
 }
 
+fn schema_version(conn: &Connection) -> i32 {
+    conn.query_row(
+        "SELECT value FROM meta WHERE key = 'schema_version'",
+        [],
+        |row| {
+            let raw: String = row.get(0)?;
+            Ok(raw.parse::<i32>().unwrap_or(0))
+        },
+    )
+    .unwrap_or(0)
+}
+
+fn set_schema_version(conn: &Connection, version: i32) -> Result<(), String> {
+    conn.execute(
+        "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
+        [version.to_string()],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 fn run_migrations(conn: &Connection) -> Result<(), String> {
     conn.execute_batch(
         r#"
@@ -52,16 +73,7 @@ fn run_migrations(conn: &Connection) -> Result<(), String> {
     )
     .map_err(|e| e.to_string())?;
 
-    let current: i32 = conn
-        .query_row(
-            "SELECT value FROM meta WHERE key = 'schema_version'",
-            [],
-            |row| {
-                let raw: String = row.get(0)?;
-                Ok(raw.parse::<i32>().unwrap_or(0))
-            },
-        )
-        .unwrap_or(0);
+    let mut current = schema_version(conn);
 
     if current < 1 {
         conn.execute_batch(
@@ -105,23 +117,9 @@ fn run_migrations(conn: &Connection) -> Result<(), String> {
         )
         .map_err(|e| e.to_string())?;
 
-        conn.execute(
-            "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', '1')",
-            [],
-        )
-        .map_err(|e| e.to_string())?;
+        set_schema_version(conn, 1)?;
+        current = 1;
     }
-
-    let current: i32 = conn
-        .query_row(
-            "SELECT value FROM meta WHERE key = 'schema_version'",
-            [],
-            |row| {
-                let raw: String = row.get(0)?;
-                Ok(raw.parse::<i32>().unwrap_or(0))
-            },
-        )
-        .unwrap_or(0);
 
     if current < 2 {
         // Grammar vs general teachings (Spellcheck Agent / MCP persona).
@@ -129,11 +127,105 @@ fn run_migrations(conn: &Connection) -> Result<(), String> {
             "ALTER TABLE agent_teachings ADD COLUMN topic TEXT NOT NULL DEFAULT 'general'",
             [],
         );
-        conn.execute(
-            "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
-            [SCHEMA_VERSION.to_string()],
+        set_schema_version(conn, 2)?;
+        current = 2;
+    }
+
+    if current < 3 {
+        // Per-role logical databases inside one file (agent_id scoping).
+        let _ = conn.execute(
+            "ALTER TABLE agent_teachings ADD COLUMN agent_id TEXT NOT NULL DEFAULT 'general'",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE agent_runs ADD COLUMN agent_id TEXT NOT NULL DEFAULT 'general'",
+            [],
+        );
+        // Grammar teachings belong to the proofreader specialist.
+        let _ = conn.execute(
+            "UPDATE agent_teachings SET agent_id = 'proofreader' \
+             WHERE lower(COALESCE(topic, 'general')) IN ('grammar', 'spelling', 'spellcheck')",
+            [],
+        );
+        conn.execute_batch(
+            r#"
+            CREATE INDEX IF NOT EXISTS idx_agent_teachings_agent
+                ON agent_teachings(agent_id, created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_agent_runs_agent
+                ON agent_runs(agent_id, created_at DESC);
+
+            CREATE TABLE IF NOT EXISTS agent_role_state (
+                agent_id TEXT PRIMARY KEY,
+                enabled INTEGER NOT NULL DEFAULT 1,
+                updated_at INTEGER NOT NULL
+            );
+            "#,
         )
         .map_err(|e| e.to_string())?;
+
+        // Seed known roles (idempotent).
+        let now = chrono::Utc::now().timestamp();
+        for role in [
+            "general",
+            "proofreader",
+            "librarian",
+            "meeting",
+            "study",
+            "organizer",
+        ] {
+            let _ = conn.execute(
+                "INSERT OR IGNORE INTO agent_role_state (agent_id, enabled, updated_at) \
+                 VALUES (?1, 1, ?2)",
+                rusqlite::params![role, now],
+            );
+        }
+
+        set_schema_version(conn, 3)?;
+        current = 3;
+    }
+
+    if current < 4 {
+        // Inter-agent handoffs (structured inbox between specialists).
+        conn.execute_batch(
+            r#"
+            CREATE TABLE IF NOT EXISTS agent_handoffs (
+                id TEXT PRIMARY KEY,
+                from_agent_id TEXT NOT NULL,
+                to_agent_id TEXT NOT NULL,
+                document_id TEXT,
+                summary TEXT NOT NULL,
+                payload_json TEXT,
+                status TEXT NOT NULL DEFAULT 'pending',
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_agent_handoffs_to
+                ON agent_handoffs(to_agent_id, status, created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_agent_handoffs_from
+                ON agent_handoffs(from_agent_id, created_at DESC);
+            "#,
+        )
+        .map_err(|e| e.to_string())?;
+        set_schema_version(conn, 4)?;
+        current = 4;
+    }
+
+    if current < 5 {
+        // Durable digest schedule + custom recipes (+ opaque FE extras blob).
+        let _ = conn.execute(
+            "ALTER TABLE agent_prefs ADD COLUMN digest_schedule_json TEXT NOT NULL DEFAULT '{}'",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE agent_prefs ADD COLUMN custom_recipes_json TEXT NOT NULL DEFAULT '[]'",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE agent_prefs ADD COLUMN extras_json TEXT NOT NULL DEFAULT '{}'",
+            [],
+        );
+        set_schema_version(conn, 5)?;
     }
 
     Ok(())
@@ -155,5 +247,48 @@ mod tests {
             )
             .unwrap();
         assert_eq!(version, SCHEMA_VERSION.to_string());
+    }
+
+    #[test]
+    fn v3_has_agent_id_columns() {
+        let db = open_agent_db_memory().unwrap();
+        let teachings_col: i32 = db
+            .conn
+            .query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('agent_teachings') WHERE name = 'agent_id'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let runs_col: i32 = db
+            .conn
+            .query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('agent_runs') WHERE name = 'agent_id'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(teachings_col, 1);
+        assert_eq!(runs_col, 1);
+    }
+
+    #[test]
+    fn v5_has_digest_and_recipes_columns() {
+        let db = open_agent_db_memory().unwrap();
+        for name in [
+            "digest_schedule_json",
+            "custom_recipes_json",
+            "extras_json",
+        ] {
+            let count: i32 = db
+                .conn
+                .query_row(
+                    "SELECT COUNT(*) FROM pragma_table_info('agent_prefs') WHERE name = ?1",
+                    [name],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert_eq!(count, 1, "missing column {name}");
+        }
     }
 }

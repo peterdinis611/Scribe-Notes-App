@@ -62,15 +62,44 @@ impl ScribeMcp {
         scribe_agent::AgentStore::from_path(&parent.join(scribe_agent::AGENT_DB_FILE)).ok()
     }
 
+    fn open_audit_store(&self) -> Option<scribe_audit::AuditStore> {
+        let parent = self.db_path.parent()?;
+        scribe_audit::AuditStore::from_path(&parent.join(scribe_audit::AUDIT_DB_FILE)).ok()
+    }
+
+    fn audit_mcp(
+        &self,
+        category: &str,
+        action: &str,
+        summary: &str,
+        detail: Option<serde_json::Value>,
+        outcome: &str,
+    ) {
+        let Some(store) = self.open_audit_store() else {
+            return;
+        };
+        let _ = store.append(scribe_audit::AuditEventInput {
+            source: "mcp".into(),
+            category: category.into(),
+            action: action.into(),
+            actor: Some("mcp".into()),
+            summary: summary.into(),
+            detail,
+            outcome: Some(outcome.into()),
+            ..Default::default()
+        });
+    }
+
     fn agent_teachings_preamble(&self, grammar_only: bool) -> Option<String> {
         let store = self.open_agent_store()?;
-        let teachings = store.list_teachings().ok()?;
+        let agent_id = if grammar_only { "proofreader" } else { "general" };
+        let teachings = store.list_teachings(Some(agent_id)).ok()?;
         scribe_agent::memory_preamble(&teachings, grammar_only)
     }
 
     fn grammar_rules_from_agent(&self) -> Vec<String> {
         self.open_agent_store()
-            .and_then(|store| store.list_teachings().ok())
+            .and_then(|store| store.list_teachings(Some("proofreader")).ok())
             .map(|teachings| scribe_agent::grammar_rule_texts(&teachings))
             .unwrap_or_default()
     }
@@ -285,11 +314,58 @@ impl ScribeMcp {
             max_tools.unwrap_or(prefs_max).clamp(1, 6)
         };
 
+        let role_id = if spellcheck {
+            "proofreader"
+        } else if persona == "general" || persona.is_empty() {
+            "general"
+        } else {
+            persona
+        };
+
+        let (handoff_summaries, feedback_tools, inbox_block) =
+            if let Some(agent_store) = self.open_agent_store() {
+                let inbox = agent_store
+                    .list_handoff_inbox(role_id, Some("pending"), 8)
+                    .unwrap_or_default();
+                let summaries: Vec<String> = inbox
+                    .iter()
+                    .filter(|item| item.status == "pending")
+                    .take(6)
+                    .map(|item| format!("From {}: {}", item.from_agent_id, item.summary))
+                    .collect();
+                let preamble = scribe_agent::inbox_preamble(&inbox);
+                let feedback = agent_store
+                    .recent_successful_tool_sets(24)
+                    .unwrap_or_default();
+                (summaries, feedback, preamble)
+            } else {
+                (Vec::new(), Vec::new(), None)
+            };
+
         let tools_list: Vec<String> = if spellcheck {
             vec!["spellcheck".into()]
         } else {
+            let handoffs = if handoff_summaries.is_empty() {
+                None
+            } else {
+                Some(handoff_summaries.as_slice())
+            };
+            let feedback = if feedback_tools.is_empty() {
+                None
+            } else {
+                Some(feedback_tools.as_slice())
+            };
             let plan = self.with_store(|store| {
-                store.plan_agent_goal(&self.sidecar, goal, scope, Some(max_tools))
+                store.plan_agent_goal_ctx(
+                    &self.sidecar,
+                    goal,
+                    scope,
+                    Some(max_tools),
+                    Some(role_id),
+                    handoffs,
+                    feedback,
+                    None,
+                )
             })?;
 
             let planned = plan
@@ -334,6 +410,9 @@ impl ScribeMcp {
         if let Some(preamble) = self.agent_teachings_preamble(spellcheck) {
             answers.push(preamble);
         }
+        if let Some(inbox) = inbox_block {
+            answers.push(inbox);
+        }
 
         for tool_name in &tools_list {
             match self.execute_agent_tool(tool_name, goal, document_id.as_deref()) {
@@ -364,14 +443,30 @@ impl ScribeMcp {
         };
 
         if let Some(store) = self.open_agent_store() {
+            let agent_id = if spellcheck { "proofreader" } else { "general" };
             let _ = store.append_run(
                 scope,
                 document_id.as_deref(),
                 goal,
                 Some(&serde_json::to_string(&steps).unwrap_or_else(|_| "[]".into())),
                 Some(&answer),
+                Some(agent_id),
             );
         }
+
+        let goal_preview: String = goal.chars().take(120).collect();
+        self.audit_mcp(
+            "agent",
+            "run_agent",
+            &format!("MCP run_agent ({persona}): {goal_preview}"),
+            Some(serde_json::json!({
+                "persona": persona,
+                "scope": scope,
+                "documentId": document_id,
+                "toolCount": tools_list.len(),
+            })),
+            "ok",
+        );
 
         Ok(tools::json(&serde_json::json!({
             "goal": goal,
@@ -681,14 +776,22 @@ impl ScribeMcp {
             tools::CreateNoteParams,
         >,
     ) -> Result<String, String> {
-        self.with_store(|store| {
+        let result = self.with_store(|store| {
             let note = store.create_note(
                 &params.title,
                 params.content.as_deref(),
                 params.folder_id.as_deref(),
             )?;
             Ok(tools::json(&note))
-        })
+        })?;
+        self.audit_mcp(
+            "mcp_tool",
+            "create_note",
+            &format!("MCP create_note: {}", params.title.trim()),
+            None,
+            "ok",
+        );
+        Ok(result)
     }
 
     #[tool(description = "Append plain text paragraphs to an existing note.")]
@@ -698,10 +801,18 @@ impl ScribeMcp {
             tools::AppendNoteParams,
         >,
     ) -> Result<String, String> {
-        self.with_store(|store| {
+        let result = self.with_store(|store| {
             let note = store.append_to_note(&params.id, &params.text)?;
             Ok(tools::json(&note))
-        })
+        })?;
+        self.audit_mcp(
+            "mcp_tool",
+            "append_to_note",
+            &format!("MCP append_to_note: {}", params.id),
+            Some(serde_json::json!({ "id": params.id })),
+            "ok",
+        );
+        Ok(result)
     }
 
     #[tool(description = "List favorite documents.")]
@@ -1107,7 +1218,15 @@ impl ScribeMcp {
             tools::IdParams,
         >,
     ) -> Result<String, String> {
-        self.with_store(|store| Ok(tools::json(&store.trash_document(&params.id)?)))
+        let result = self.with_store(|store| Ok(tools::json(&store.trash_document(&params.id)?)))?;
+        self.audit_mcp(
+            "mcp_tool",
+            "trash_document",
+            &format!("MCP trash_document: {}", params.id),
+            Some(serde_json::json!({ "id": params.id })),
+            "ok",
+        );
+        Ok(result)
     }
 
     #[tool(description = "Rename a document title.")]
@@ -1667,11 +1786,19 @@ impl ScribeMcp {
         if !self.writable {
             return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
         }
-        self.with_store(|store| {
+        let result = self.with_store(|store| {
             Ok(tools::json(
                 &store.set_nlp_enabled_flag(&self.sidecar, params.enabled)?,
             ))
-        })
+        })?;
+        self.audit_mcp(
+            "nlp",
+            "set_enabled",
+            &format!("MCP set_nlp_enabled: {}", params.enabled),
+            Some(serde_json::json!({ "enabled": params.enabled })),
+            "ok",
+        );
+        Ok(result)
     }
 
     #[tool(description = "Set embedding backend: hash (default), fast (model2vec), or quality (MiniLM). Requires writable DB; reindex after switching.")]

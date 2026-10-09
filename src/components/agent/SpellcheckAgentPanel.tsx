@@ -198,6 +198,7 @@ export function SpellcheckAgentPanel({ onClose: _onClose }: SpellcheckAgentPanel
         addAgentTeaching({
           text: result.text,
           topic: 'grammar',
+          agentId: 'proofreader',
           scope: activeDocumentId ? 'document' : 'global',
           documentId: activeDocumentId,
         }),

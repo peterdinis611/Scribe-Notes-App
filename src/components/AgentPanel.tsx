@@ -1,4 +1,17 @@
-import { Eraser, FilePlus2, FileText, Folder, GraduationCap, Library, Send, Settings2, Sparkles } from 'lucide-react'
+import {
+  CalendarPlus,
+  Eraser,
+  FileDown,
+  FilePlus2,
+  FileText,
+  Folder,
+  GraduationCap,
+  Library,
+  NotebookPen,
+  Send,
+  Settings2,
+  Sparkles,
+} from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
@@ -27,11 +40,18 @@ import {
   clearAgentMessages,
   listAgentMessages,
   listAgentRuns,
+  type AgentBackendHandoff,
   type AgentBackendRun,
   type AgentMessageStep,
   type DocumentChatCitation,
 } from '@/lib/db/api'
 import {
+  acknowledgeHandoff,
+  dismissHandoff,
+  loadHandoffInbox,
+} from '@/lib/library/agent-handoff'
+import {
+  nlpCalendarEvents,
   nlpDocumentAnalysis,
   nlpDocumentTasks,
   nlpSpellcheck,
@@ -42,6 +62,13 @@ import {
   type NlpDocumentAnalysis,
   type WikiLinkSuggestion,
 } from '@/lib/db/nlp-api'
+import {
+  calendarEventsToIcs,
+  exportIcsFile,
+  parseDueHintsFromMarkdown,
+} from '@/lib/export/ics'
+import { spawnNoteFromAgentMarkdown } from '@/lib/library/agent-spawn-note'
+import { ingestCitedFilesToNotes } from '@/lib/library/agent-files-ingest'
 import { applySpellSuggestion, applyWikiSuggestion } from '@/lib/editor/apply-suggestions'
 import {
   applyAgentAnswer,
@@ -53,12 +80,19 @@ import {
 import {
   agentMemoryContext,
   runAgentGoal,
+  type AgentPlanMeta,
   type AgentStep,
   type AgentToolId,
 } from '@/lib/library/agent'
+import { recordPlanFeedback } from '@/lib/library/agent-plan-feedback'
 import { applySuggestedTagsToDocument } from '@/lib/library/auto-organize'
 import { runFolderDigest } from '@/lib/library/folder-digest'
-import { AGENT_RECIPES, type AgentRecipeId } from '@/lib/library/agent-recipes'
+import { AGENT_RECIPES, resolveAgentRecipe, type AgentRecipeId } from '@/lib/library/agent-recipes'
+import {
+  getAgentRole,
+  isRecipeAllowedByAgents,
+  type AgentRoleId,
+} from '@/lib/library/agent-roles'
 import {
   buildAgentGoalChips,
   buildAgentToolOptions,
@@ -88,6 +122,10 @@ type AgentThreadMessage = {
   steps?: AgentStep[]
   followups?: string[]
   clarifyOptions?: AgentToolId[]
+  clarifyLabels?: string[]
+  planMeta?: AgentPlanMeta
+  /** User goal that produced this assistant reply (for episodic feedback). */
+  feedbackGoal?: string
   createdAt?: number
 }
 
@@ -95,6 +133,8 @@ type AgentPanelProps = {
   onNavigate?: () => void
   onClose?: () => void
   variant?: 'embedded' | 'dock'
+  /** Active specialist — filters recipes and boosts tools. */
+  roleId?: AgentRoleId
 }
 
 const TOOL_LABEL_KEYS: Record<AgentToolId, string> = {
@@ -130,8 +170,22 @@ const TOOL_LABEL_KEYS: Record<AgentToolId, string> = {
   pii: 'agent.tools.pii',
   rank_tasks: 'agent.tools.rank_tasks',
   contradictions: 'agent.tools.contradictions',
+  commitments: 'agent.tools.commitments',
+  reading_plan: 'agent.tools.reading_plan',
+  note_pulse: 'agent.tools.note_pulse',
+  grammar: 'agent.tools.grammar',
+  mentions: 'agent.tools.mentions',
+  open_loops: 'agent.tools.open_loops',
+  tone: 'agent.tools.tone',
+  title: 'agent.tools.title',
+  continuation: 'agent.tools.continuation',
+  template_hints: 'agent.tools.template_hints',
+  library_report: 'agent.tools.library_report',
+  terminology_library: 'agent.tools.terminology_library',
   files_answer: 'agent.tools.files_answer',
+  files_ingest: 'agent.tools.files_ingest',
   save_template: 'agent.tools.save_template',
+  handoff: 'agent.tools.handoff',
 }
 
 
@@ -159,7 +213,12 @@ function toPersistCitations(citations: LibraryChatCitation[]): DocumentChatCitat
   }))
 }
 
-export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded' }: AgentPanelProps) {
+export function AgentPanel({
+  onNavigate,
+  onClose: _onClose,
+  variant = 'embedded',
+  roleId = 'general',
+}: AgentPanelProps) {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
@@ -167,6 +226,29 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
   const documents = useAppSelector((state) => state.documents.documents)
   const commentAuthor = useAppSelector((state) => state.documents.commentAuthor)
   const agentPrefs = useAppSelector((state) => state.settings.agentPrefs)
+  const activeRole = getAgentRole(roleId)
+  const visibleRecipes = useMemo(() => {
+    const builtIn = AGENT_RECIPES.filter((recipe) => {
+      if (!isRecipeAllowedByAgents(recipe.id, agentPrefs.agents)) return false
+      if (roleId === 'general') return true
+      return activeRole.recipeIds.includes(recipe.id)
+    }).map((recipe) => ({
+      id: recipe.id,
+      label: t(recipe.labelKey),
+      documentPreferred: recipe.documentPreferred,
+    }))
+    const custom = (agentPrefs.customRecipes ?? [])
+      .filter((recipe) => {
+        if (roleId === 'general') return true
+        return !recipe.roleId || recipe.roleId === roleId
+      })
+      .map((recipe) => ({
+        id: recipe.id,
+        label: recipe.label,
+        documentPreferred: recipe.documentPreferred,
+      }))
+    return [...builtIn, ...custom]
+  }, [activeRole.recipeIds, agentPrefs.agents, agentPrefs.customRecipes, roleId, t])
   const activeDocument = activeDocumentId ? peekCachedDocument(activeDocumentId) : null
   const activeDocumentSummary = useMemo(
     () => documents.find((doc) => doc.id === activeDocumentId) ?? null,
@@ -192,6 +274,8 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
   const [nlpReady, setNlpReady] = useState<boolean | null>(null)
   const [runHistory, setRunHistory] = useState<AgentBackendRun[]>([])
   const [showRuns, setShowRuns] = useState(false)
+  const [handoffInbox, setHandoffInbox] = useState<AgentBackendHandoff[]>([])
+  const [showHandoffs, setShowHandoffs] = useState(false)
   const [blobMood, setBlobMood] = useState<AgentBlobatarMood>('idle')
   const [applyPreview, setApplyPreview] = useState<AgentApplyPreviewKind | null>(null)
   const [compareOpen, setCompareOpen] = useState(false)
@@ -199,6 +283,23 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
   const [filesOfflineHint, setFilesOfflineHint] = useState(false)
   const [applyBusy, setApplyBusy] = useState(false)
   const applyPendingRef = useRef<null | (() => Promise<void> | void)>(null)
+  const applyFeedbackRef = useRef<{
+    goal: string
+    tools: AgentToolId[]
+    source?: string
+  } | null>(null)
+
+  const armPlanFeedback = useCallback((message: AgentThreadMessage) => {
+    const tools = (message.steps ?? [])
+      .filter((step) => step.status === 'ok')
+      .map((step) => step.tool)
+    const fallbackTools = (message.steps ?? []).map((step) => step.tool)
+    applyFeedbackRef.current = {
+      goal: message.feedbackGoal?.trim() || message.text.slice(0, 120),
+      tools: (tools.length > 0 ? tools : fallbackTools).slice(0, 6),
+      source: message.planMeta?.source,
+    }
+  }, [])
   const moodTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const threadEndRef = useRef<HTMLDivElement>(null)
   const slovak = i18n.language?.toLowerCase().startsWith('sk')
@@ -206,10 +307,16 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
   const displayMessages = scope === 'document' ? messages : sessionMessages
 
   const refreshRunHistory = useCallback(() => {
-    void listAgentRuns(24)
+    void listAgentRuns(24, roleId)
       .then(setRunHistory)
       .catch(() => setRunHistory([]))
-  }, [])
+  }, [roleId])
+
+  const refreshHandoffInbox = useCallback(() => {
+    void loadHandoffInbox(roleId, 'pending', 12)
+      .then(setHandoffInbox)
+      .catch(() => setHandoffInbox([]))
+  }, [roleId])
 
   useEffect(() => {
     if (activeDocumentId) {
@@ -224,7 +331,8 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
       .then((status) => setNlpReady(Boolean(status.enabled && status.sidecarOk)))
       .catch(() => setNlpReady(false))
     refreshRunHistory()
-  }, [refreshRunHistory])
+    refreshHandoffInbox()
+  }, [refreshRunHistory, refreshHandoffInbox])
 
   useEffect(() => {
     if (!showTeach) return
@@ -244,7 +352,7 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
     }
     let cancelled = false
     setHistoryLoading(true)
-    void listAgentMessages(activeDocumentId)
+    void listAgentMessages(activeDocumentId, roleId)
       .then((rows) => {
         if (cancelled) return
         setMessages(
@@ -267,7 +375,7 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
     return () => {
       cancelled = true
     }
-  }, [scope, activeDocumentId])
+  }, [scope, activeDocumentId, roleId])
 
   useEffect(() => {
     if (scope !== 'document' || !activeDocumentId) {
@@ -347,13 +455,13 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
     }
     if (!activeDocumentId) return
     try {
-      await clearAgentMessages(activeDocumentId)
+      await clearAgentMessages(activeDocumentId, roleId)
       setMessages([])
       toast.success(t('agent.memoryCleared'))
     } catch (error) {
       toast.error(t('agent.clearError'), String(error))
     }
-  }, [scope, activeDocumentId, t])
+  }, [scope, activeDocumentId, roleId, t])
 
   const persistPair = useCallback(
     async (userText: string, assistant: AgentThreadMessage) => {
@@ -363,6 +471,7 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
           documentId: activeDocumentId,
           role: 'user',
           text: userText,
+          agentId: roleId,
         })
         await appendAgentMessage({
           documentId: activeDocumentId,
@@ -370,19 +479,20 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
           text: assistant.text,
           steps: toPersistSteps(assistant.steps ?? []),
           citations: toPersistCitations(assistant.citations ?? []),
+          agentId: roleId,
         })
       } catch {
         // Soft-fail persistence — answer still shown in UI.
       }
     },
-    [scope, activeDocumentId],
+    [scope, activeDocumentId, roleId],
   )
 
   const runGoal = useCallback(
     async (
       goal: string,
       opts?: {
-        recipeId?: AgentRecipeId
+        recipeId?: AgentRecipeId | string
         forceTools?: AgentToolId[]
         compareDocumentId?: string | null
       },
@@ -409,10 +519,16 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
         return
       }
 
-      const recipe = opts?.recipeId ? AGENT_RECIPES.find((item) => item.id === opts.recipeId) : null
+      const recipe = opts?.recipeId
+        ? resolveAgentRecipe(opts.recipeId, agentPrefs.customRecipes)
+        : null
       const displayGoal =
         trimmed ||
-        (recipe ? t(recipe.labelKey) : t('agent.run'))
+        (recipe
+          ? recipe.labelKey
+            ? t(recipe.labelKey)
+            : recipe.label || t('agent.run')
+          : t('agent.run'))
       const userMsg: AgentThreadMessage = {
         id: `local-user-${Date.now()}`,
         role: 'user',
@@ -488,6 +604,7 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                     agentPrefs,
                     {
                       ...opts,
+                      roleId,
                       folderId: runScope === 'folder' ? activeDocument?.folderId : null,
                       stream: true,
                     },
@@ -502,6 +619,9 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
           patchAssistant(streamingId, {
             text: t('agent.clarifyPrompt'),
             clarifyOptions: result.clarifyOptions,
+            clarifyLabels: result.clarifyLabels,
+            planMeta: result.planMeta,
+            feedbackGoal: trimmed || displayGoal,
           })
           setMoodBriefly('done')
           return
@@ -514,6 +634,8 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
           citations: result.citations,
           steps: result.steps,
           followups: result.followups,
+          planMeta: result.planMeta,
+          feedbackGoal: trimmed || displayGoal,
           createdAt: Date.now(),
         }
         patchAssistant(streamingId, assistant)
@@ -526,8 +648,12 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
           goal: trimmed || displayGoal,
           stepsJson: JSON.stringify(toPersistSteps(assistant.steps ?? [])),
           answer: assistant.text,
+          agentId: roleId,
         })
-          .then(() => refreshRunHistory())
+          .then(() => {
+            refreshRunHistory()
+            refreshHandoffInbox()
+          })
           .catch(() => undefined)
         setMoodBriefly('done')
       } catch (error) {
@@ -550,7 +676,7 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
         setLoading(false)
       }
     },
-    [loading, agentPrefs, scope, activeDocumentId, activeDocument?.folderId, messages, sessionMessages, persistPair, t, dispatch, refreshRunHistory, setMoodBriefly],
+    [loading, agentPrefs, scope, activeDocumentId, activeDocument?.folderId, messages, sessionMessages, persistPair, t, dispatch, refreshRunHistory, refreshHandoffInbox, setMoodBriefly, roleId],
   )
 
   const queueInsertPreview = useCallback(
@@ -738,12 +864,114 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
     setApplyBusy(true)
     try {
       await action()
+      const pending = applyFeedbackRef.current
+      if (pending) {
+        recordPlanFeedback({
+          goal: pending.goal,
+          tools: pending.tools,
+          outcome: 'apply',
+          roleId,
+          source: pending.source,
+        })
+        applyFeedbackRef.current = null
+      }
       setApplyPreview(null)
       applyPendingRef.current = null
     } finally {
       setApplyBusy(false)
     }
-  }, [])
+  }, [roleId])
+
+  const handleSpawnNote = useCallback(
+    async (message: AgentThreadMessage) => {
+      try {
+        const doc = await spawnNoteFromAgentMarkdown({
+          markdown: message.text,
+          titleHint: message.feedbackGoal,
+          folderId: activeDocument?.folderId ?? null,
+          dispatch,
+          navigate: (route) => {
+            void navigate({ to: route })
+          },
+        })
+        toast.success(t('agent.spawnNoteDone'), doc.title)
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error)
+        toast.error(
+          t('agent.spawnNoteFailed'),
+          detail.startsWith('agent.') ? t(detail) : detail,
+        )
+      }
+    },
+    [activeDocument?.folderId, dispatch, navigate, t],
+  )
+
+  const handleExportCalendar = useCallback(
+    async (message: AgentThreadMessage) => {
+      try {
+        const fromAnswer = parseDueHintsFromMarkdown(message.text)
+        let events = fromAnswer
+        const tools = new Set((message.steps ?? []).map((step) => step.tool))
+        if (tools.has('dates') || tools.has('brief') || fromAnswer.length === 0) {
+          const cal = await nlpCalendarEvents({ limit: 40 }).catch(() => [])
+          events = [...calendarEventsToIcs(cal), ...fromAnswer]
+        }
+        const seen = new Set<string>()
+        events = events.filter((item) => {
+          const key = `${item.date}|${item.summary}`
+          if (seen.has(key)) return false
+          seen.add(key)
+          return true
+        })
+        if (!events.length) {
+          toast.info(t('agent.exportCalendarEmpty'))
+          return
+        }
+        const path = await exportIcsFile({
+          events,
+          baseName: 'scribe-agent-calendar',
+          dialogTitle: t('agent.exportCalendar'),
+        })
+        if (path) toast.success(t('agent.exportCalendarDone'))
+      } catch (error) {
+        toast.error(t('agent.exportCalendarFailed'), String(error))
+      }
+    },
+    [t],
+  )
+
+  const handleIngestFiles = useCallback(
+    async (message: AgentThreadMessage) => {
+      try {
+        const citations = [
+          ...(message.citations ?? []),
+          ...((message.steps ?? []).flatMap((step) => step.citations ?? [])),
+        ]
+        const created = await ingestCitedFilesToNotes({
+          citations,
+          folderId: activeDocument?.folderId ?? null,
+          dispatch,
+          navigate: (route) => {
+            void navigate({ to: route })
+          },
+        })
+        if (!created.length) {
+          toast.info(t('agent.ingestFilesEmpty'))
+          return
+        }
+        toast.success(t('agent.ingestFilesDone', { count: created.length }))
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error)
+        if (detail.includes('FilesApiOffline') || detail === 'agent.filesApiOffline') {
+          setFilesOfflineHint(true)
+          toast.error(t('agent.filesApiOffline'))
+          return
+        }
+        toast.error(t('agent.ingestFilesFailed'), detail)
+      }
+    },
+    [activeDocument?.folderId, dispatch, navigate, t],
+  )
 
   const handleTeach = useCallback(async () => {
     const draft = teachInput.trim()
@@ -763,10 +991,11 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
             scope: 'document',
             documentId: activeDocumentId,
             topic: teachTopic,
+            agentId: roleId,
           }),
         )
       } else {
-        dispatch(addAgentTeaching({ text: result.text, topic: teachTopic }))
+        dispatch(addAgentTeaching({ text: result.text, topic: teachTopic, agentId: roleId }))
       }
       setTeachInput('')
       toast.success(
@@ -781,7 +1010,7 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
     } finally {
       setTeachBusy(false)
     }
-  }, [teachInput, teachBusy, teachWithAi, teachTopic, dispatch, t, scope, activeDocumentId])
+  }, [teachInput, teachBusy, teachWithAi, teachTopic, dispatch, t, scope, activeDocumentId, roleId])
 
   const handleSaveReplyAsTeaching = useCallback(
     async (text: string) => {
@@ -796,10 +1025,11 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
               text: result.text,
               scope: 'document',
               documentId: activeDocumentId,
+              agentId: roleId,
             }),
           )
         } else {
-          dispatch(addAgentTeaching(result.text))
+          dispatch(addAgentTeaching({ text: result.text, agentId: roleId }))
         }
         toast.success(
           result.distilled ? t('settings.agent.teachRefinedToast') : t('settings.agent.taughtToast'),
@@ -810,7 +1040,7 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
         setTeachBusy(false)
       }
     },
-    [activeDocumentId, dispatch, scope, t, teachBusy],
+    [activeDocumentId, dispatch, roleId, scope, t, teachBusy],
   )
 
   const openCitation = useCallback(
@@ -948,6 +1178,17 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
           </button>
           <button
             type="button"
+            className={cn('library-chat-chip', showHandoffs && 'is-active')}
+            onClick={() => {
+              setShowHandoffs((value) => !value)
+              refreshHandoffInbox()
+            }}
+          >
+            {t('agent.handoffInbox')}
+            {handoffInbox.length > 0 ? ` (${handoffInbox.length})` : ''}
+          </button>
+          <button
+            type="button"
             className="library-chat-chip"
             onClick={() => navigate(ROUTES.settingsSection('agent'))}
           >
@@ -1038,6 +1279,12 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
             </form>
             {agentPrefs.teachings
               .filter((item) => {
+                const owned = item.agentId ?? (item.topic === 'grammar' ? 'proofreader' : 'general')
+                if (roleId === 'general') {
+                  if (owned !== 'general') return false
+                } else if (owned !== roleId && owned !== 'general') {
+                  return false
+                }
                 if (scope === 'document' && activeDocumentId) {
                   return (
                     !item.scope ||
@@ -1072,6 +1319,63 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                 <Eraser className="ml-1 h-3 w-3 shrink-0 opacity-70" />
               </button>
             ))}
+          </div>
+        ) : null}
+
+        {showHandoffs ? (
+          <div className="agent-run-history mt-2 space-y-1.5 px-0.5">
+            {handoffInbox.length === 0 ? (
+              <p className="px-0.5 text-[11px] text-[var(--color-muted-foreground)]">
+                {t('agent.handoffInboxEmpty')}
+              </p>
+            ) : (
+              handoffInbox.map((item) => (
+                <div key={item.id} className="agent-run-history-item">
+                  <span className="agent-run-history-goal">{item.summary}</span>
+                  <span className="agent-run-history-meta">
+                    {t('agent.handoffFrom', { role: item.fromAgentId })}
+                    {item.documentId
+                      ? ` · ${t('agent.handoffHasDocument')}`
+                      : ''}
+                  </span>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    <button
+                      type="button"
+                      className="library-chat-chip"
+                      disabled={loading}
+                      onClick={() => {
+                        void runGoal(
+                          t('agent.handoffUseGoal', {
+                            from: item.fromAgentId,
+                            summary: item.summary,
+                          }),
+                        )
+                      }}
+                    >
+                      {t('agent.handoffUse')}
+                    </button>
+                    <button
+                      type="button"
+                      className="library-chat-chip"
+                      onClick={() => {
+                        void acknowledgeHandoff(item.id).then(refreshHandoffInbox)
+                      }}
+                    >
+                      {t('agent.handoffAck')}
+                    </button>
+                    <button
+                      type="button"
+                      className="library-chat-chip"
+                      onClick={() => {
+                        void dismissHandoff(item.id).then(refreshHandoffInbox)
+                      }}
+                    >
+                      {t('agent.handoffDismiss')}
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         ) : null}
 
@@ -1216,6 +1520,16 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
               <MessageContent>
                 <Bubble variant={message.role === 'user' ? 'primary' : 'muted'}>
                   <BubbleContent>
+                    {message.role === 'assistant' && message.planMeta ? (
+                      <p className="agent-plan-meta" title={message.planMeta.topLabel ?? undefined}>
+                        <span className="agent-plan-source">
+                          {t('agent.planSource', { source: message.planMeta.source })}
+                        </span>
+                        {message.planMeta.topLabel ? (
+                          <span className="agent-plan-label">{message.planMeta.topLabel}</span>
+                        ) : null}
+                      </p>
+                    ) : null}
                     {message.role === 'assistant' && message.steps && message.steps.length > 0 ? (
                       <ol className="agent-step-trace" aria-label={t('agent.stepTrace')}>
                         {message.steps.map((step, index) => (
@@ -1273,19 +1587,27 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                     <p className="px-0.5 text-[11px] text-[var(--color-muted-foreground)]">
                       {t('agent.clarifyHint')}
                     </p>
-                    {message.clarifyOptions.map((tool) => (
-                      <button
-                        key={tool}
-                        type="button"
-                        className="library-chat-followup"
-                        disabled={loading}
-                        onClick={() =>
-                          void runGoal(t(TOOL_LABEL_KEYS[tool]), { forceTools: [tool] })
-                        }
-                      >
-                        {t(TOOL_LABEL_KEYS[tool])}
-                      </button>
-                    ))}
+                    {message.clarifyOptions.map((tool, index) => {
+                      const label =
+                        message.clarifyLabels?.[index]?.trim() ||
+                        (TOOL_LABEL_KEYS[tool] ? t(TOOL_LABEL_KEYS[tool]) : tool)
+                      return (
+                        <button
+                          key={`${tool}-${index}`}
+                          type="button"
+                          className="library-chat-followup"
+                          disabled={loading}
+                          title={TOOL_LABEL_KEYS[tool] ? t(TOOL_LABEL_KEYS[tool]) : tool}
+                          onClick={() =>
+                            void runGoal(t(TOOL_LABEL_KEYS[tool] ?? tool) || tool, {
+                              forceTools: [tool],
+                            })
+                          }
+                        >
+                          {label}
+                        </button>
+                      )
+                    })}
                   </div>
                 ) : null}
                 {message.role === 'assistant' &&
@@ -1297,14 +1619,33 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                       type="button"
                       className="library-chat-chip is-active"
                       disabled={loading}
-                      onClick={() =>
+                      onClick={() => {
+                        armPlanFeedback(message)
                         void applyFromSteps(message.text, message.steps)
-                      }
+                      }}
                     >
                       <FilePlus2 className="mr-1 inline h-3 w-3" />
                       {(message.steps ?? []).some((step) => step.tool === 'spellcheck')
                         ? t('agent.applySpellcheck')
                         : t('agent.applySmart')}
+                    </button>
+                    <button
+                      type="button"
+                      className="library-chat-chip"
+                      disabled={loading}
+                      onClick={() => {
+                        const tools = (message.steps ?? []).map((step) => step.tool)
+                        recordPlanFeedback({
+                          goal: message.feedbackGoal?.trim() || message.text.slice(0, 120),
+                          tools,
+                          outcome: 'dismiss',
+                          roleId,
+                          source: message.planMeta?.source,
+                        })
+                        toast.success(t('agent.feedbackDismissed'))
+                      }}
+                    >
+                      {t('agent.feedbackDismiss')}
                     </button>
                     <button
                       type="button"
@@ -1319,7 +1660,10 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                       type="button"
                       className="library-chat-chip"
                       disabled={loading}
-                      onClick={() => queueInsertPreview(message.text, 'callout')}
+                      onClick={() => {
+                        armPlanFeedback(message)
+                        queueInsertPreview(message.text, 'callout')
+                      }}
                     >
                       {t('agent.applyCallout')}
                     </button>
@@ -1327,7 +1671,10 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                       type="button"
                       className="library-chat-chip"
                       disabled={loading}
-                      onClick={() => queueInsertPreview(message.text, 'checklist')}
+                      onClick={() => {
+                        armPlanFeedback(message)
+                        queueInsertPreview(message.text, 'checklist')
+                      }}
                     >
                       {t('agent.applyChecklist')}
                     </button>
@@ -1335,7 +1682,10 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                       type="button"
                       className="library-chat-chip"
                       disabled={loading}
-                      onClick={() => queueInsertPreview(message.text, 'frontmatter')}
+                      onClick={() => {
+                        armPlanFeedback(message)
+                        queueInsertPreview(message.text, 'frontmatter')
+                      }}
                     >
                       {t('agent.applyFrontmatter')}
                     </button>
@@ -1357,6 +1707,43 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                     >
                       {t('agent.applyUndo')}
                     </button>
+                    <button
+                      type="button"
+                      className="library-chat-chip"
+                      disabled={loading}
+                      onClick={() => void handleSpawnNote(message)}
+                    >
+                      <NotebookPen className="mr-1 inline h-3 w-3" />
+                      {t('agent.spawnNote')}
+                    </button>
+                    {(message.steps ?? []).some((step) =>
+                      ['dates', 'rank_tasks', 'commitments', 'tasks', 'meeting', 'brief'].includes(
+                        step.tool,
+                      ),
+                    ) ? (
+                      <button
+                        type="button"
+                        className="library-chat-chip"
+                        disabled={loading}
+                        onClick={() => void handleExportCalendar(message)}
+                      >
+                        <CalendarPlus className="mr-1 inline h-3 w-3" />
+                        {t('agent.exportCalendar')}
+                      </button>
+                    ) : null}
+                    {(message.steps ?? []).some(
+                      (step) => step.tool === 'files_answer' || step.tool === 'files_ingest',
+                    ) ? (
+                      <button
+                        type="button"
+                        className="library-chat-chip"
+                        disabled={loading}
+                        onClick={() => void handleIngestFiles(message)}
+                      >
+                        <FileDown className="mr-1 inline h-3 w-3" />
+                        {t('agent.ingestFiles')}
+                      </button>
+                    ) : null}
                   </div>
                 ) : null}
                 {message.role === 'assistant' &&
@@ -1373,14 +1760,51 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                       <GraduationCap className="mr-1 inline h-3 w-3" />
                       {t('settings.agent.teachSaveReply')}
                     </button>
+                    <button
+                      type="button"
+                      className="library-chat-chip"
+                      disabled={loading}
+                      onClick={() => void handleSpawnNote(message)}
+                    >
+                      <NotebookPen className="mr-1 inline h-3 w-3" />
+                      {t('agent.spawnNote')}
+                    </button>
+                    {(message.steps ?? []).some((step) =>
+                      ['dates', 'rank_tasks', 'commitments', 'tasks', 'meeting', 'brief'].includes(
+                        step.tool,
+                      ),
+                    ) ? (
+                      <button
+                        type="button"
+                        className="library-chat-chip"
+                        disabled={loading}
+                        onClick={() => void handleExportCalendar(message)}
+                      >
+                        <CalendarPlus className="mr-1 inline h-3 w-3" />
+                        {t('agent.exportCalendar')}
+                      </button>
+                    ) : null}
+                    {(message.steps ?? []).some(
+                      (step) => step.tool === 'files_answer' || step.tool === 'files_ingest',
+                    ) ? (
+                      <button
+                        type="button"
+                        className="library-chat-chip"
+                        disabled={loading}
+                        onClick={() => void handleIngestFiles(message)}
+                      >
+                        <FileDown className="mr-1 inline h-3 w-3" />
+                        {t('agent.ingestFiles')}
+                      </button>
+                    ) : null}
                   </div>
                 ) : null}
                 {message.role === 'assistant' && message.followups && message.followups.length > 0 ? (
                   <div className="library-chat-followups">
                     {message.followups.map((item) => {
                       if (item.startsWith('recipe:')) {
-                        const recipeId = item.slice('recipe:'.length) as AgentRecipeId
-                        const recipe = AGENT_RECIPES.find((row) => row.id === recipeId)
+                        const recipeId = item.slice('recipe:'.length)
+                        const recipe = resolveAgentRecipe(recipeId, agentPrefs.customRecipes)
                         if (!recipe) return null
                         return (
                           <button
@@ -1390,7 +1814,24 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                             disabled={loading}
                             onClick={() => void runGoal('', { recipeId })}
                           >
-                            {t(recipe.labelKey)}
+                            {recipe.labelKey ? t(recipe.labelKey) : recipe.label}
+                          </button>
+                        )
+                      }
+                      if (item.startsWith('handoff:')) {
+                        const toRole = item.slice('handoff:'.length)
+                        return (
+                          <button
+                            key={item}
+                            type="button"
+                            className="library-chat-followup"
+                            disabled={loading}
+                            onClick={() => {
+                              toast.success(t('agent.handoffAutoToast', { role: toRole }))
+                              refreshHandoffInbox()
+                            }}
+                          >
+                            {t('agent.handoffAutoChip', { role: toRole })}
                           </button>
                         )
                       }
@@ -1402,6 +1843,7 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
                           disabled={loading}
                           onClick={() => {
                             if (/^apply spelling fixes$/i.test(item.trim())) {
+                              armPlanFeedback(message)
                               void applyFromSteps(message.text, message.steps)
                               return
                             }
@@ -1494,6 +1936,18 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
           >
             {t('agent.tools.files_answer')}
           </button>
+          <button
+            type="button"
+            className="library-chat-chip"
+            disabled={loading || !agentPrefs.enabled}
+            onClick={() =>
+              void runGoal(t('agent.quickPrompts.ingestFiles'), {
+                forceTools: ['files_ingest'],
+              })
+            }
+          >
+            {t('agent.tools.files_ingest')}
+          </button>
           {scope === 'document' ? (
             <button
               type="button"
@@ -1504,9 +1958,9 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
               {t('agent.tools.compare_notes')}
             </button>
           ) : null}
-          {AGENT_RECIPES.filter((recipe) =>
-            scope === 'library' ? !recipe.documentPreferred : true,
-          ).map((recipe) => (
+          {visibleRecipes
+            .filter((recipe) => (scope === 'library' ? !recipe.documentPreferred : true))
+            .map((recipe) => (
             <button
               key={recipe.id}
               type="button"
@@ -1514,7 +1968,7 @@ export function AgentPanel({ onNavigate, onClose: _onClose, variant = 'embedded'
               disabled={loading || !agentPrefs.enabled}
               onClick={() => void runGoal('', { recipeId: recipe.id })}
             >
-              {t(recipe.labelKey)}
+              {recipe.label}
             </button>
           ))}
           {goalChips.map((chip) => (

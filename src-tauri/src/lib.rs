@@ -1,5 +1,6 @@
 mod commands;
 mod agent_db;
+mod audit_db;
 mod backup;
 mod capture;
 mod db;
@@ -13,6 +14,7 @@ mod storage;
 mod storage_fs_api;
 
 use agent_db::{init_agent_db, AgentDbState};
+use audit_db::{init_audit_db, AuditDbState};
 use db::{init_db, DbState};
 use nlp::NlpSidecar;
 use security::PathAccessGate;
@@ -104,6 +106,11 @@ pub fn run() {
             let agent_store = init_agent_db(&app.handle())?;
             app.manage(AgentDbState {
                 store: std::sync::Mutex::new(agent_store),
+            });
+            let audit_store = init_audit_db(&app.handle())?;
+            app.manage(AuditDbState {
+                store: std::sync::Mutex::new(audit_store),
+                admin_unlocked: std::sync::Mutex::new(false),
             });
             app.manage(PathAccessGate::new());
             app.manage(NlpSidecar::new(nlp::resolve_script_path(app.handle())));
@@ -261,7 +268,10 @@ pub fn run() {
             commands::agent::append_agent_message,
             commands::agent::clear_agent_messages,
             commands::agent::get_agent_prefs,
+            commands::agent::get_agent_schema_version,
             commands::agent::set_agent_prefs,
+            commands::agent::list_agent_role_states,
+            commands::agent::set_agent_role_states,
             commands::agent::list_agent_teachings,
             commands::agent::add_agent_teaching,
             commands::agent::remove_agent_teaching,
@@ -269,6 +279,18 @@ pub fn run() {
             commands::agent::append_agent_run,
             commands::agent::list_agent_runs,
             commands::agent::get_agent_db_path,
+            commands::agent::send_agent_handoff,
+            commands::agent::list_agent_handoffs,
+            commands::agent::set_agent_handoff_status,
+            commands::audit::get_audit_schema_version,
+            commands::audit::get_audit_db_path,
+            commands::audit::audit_admin_status,
+            commands::audit::audit_admin_setup,
+            commands::audit::audit_admin_unlock,
+            commands::audit::audit_admin_lock,
+            commands::audit::audit_admin_change_password,
+            commands::audit::list_audit_events,
+            commands::audit::clear_audit_events,
             commands::folders::list_folders,
             commands::folders::create_folder,
             commands::folders::rename_folder,
@@ -332,6 +354,12 @@ pub fn run() {
             commands::nlp::nlp_detect_pii,
             commands::nlp::nlp_rank_tasks,
             commands::nlp::nlp_contradiction_hints,
+            commands::nlp::nlp_extract_commitments,
+            commands::nlp::nlp_reading_plan,
+            commands::nlp::nlp_note_pulse,
+            commands::nlp::nlp_extract_mentions,
+            commands::nlp::nlp_open_loops,
+            commands::nlp::nlp_tone_pack,
             commands::nlp::nlp_files_list,
             commands::nlp::nlp_files_read_text,
             commands::nlp::nlp_files_search,

@@ -7,13 +7,14 @@ import type { ThemeSettings } from '@/lib/themes/types'
 import type { UiSkin } from '@/lib/ui-skin'
 import type {
   AgentPrefs,
+  AgentRoleId,
   AgentTeaching,
   AgentTeachingScope,
   AgentTeachingTopic,
 } from '@/lib/library/agent-prefs'
 import {
   AGENT_PINNED_FACTS_MAX,
-  AGENT_TEACHINGS_MAX,
+  AGENT_TEACHINGS_GLOBAL_MAX,
   createPinnedFact,
   createTeaching,
   normalizeAgentPrefs,
@@ -247,6 +248,7 @@ const settingsSlice = createSlice({
             scope?: AgentTeachingScope
             documentId?: string | null
             topic?: AgentTeachingTopic
+            agentId?: AgentRoleId
           }
       >,
     ) {
@@ -259,20 +261,28 @@ const settingsSlice = createSlice({
               scope: payload.scope,
               documentId: payload.documentId,
               topic: payload.topic,
+              agentId: payload.agentId,
             }
       const teaching = createTeaching(text, opts)
       if (!teaching) return
       const teachings = [teaching, ...state.agentPrefs.teachings]
         .filter(
           (item, index, list) =>
-            list.findIndex((other) => other.text.toLowerCase() === item.text.toLowerCase()) ===
-            index,
+            list.findIndex(
+              (other) =>
+                other.text.toLowerCase() === item.text.toLowerCase() &&
+                (other.agentId ?? 'general') === (item.agentId ?? 'general'),
+            ) === index,
         )
-        .slice(0, AGENT_TEACHINGS_MAX)
+        .slice(0, AGENT_TEACHINGS_GLOBAL_MAX)
       const next = normalizeAgentPrefs({ ...state.agentPrefs, teachings })
       state.agentPrefs = next
       persistAgentPrefs(next)
-      void teachAgentBackend(teaching.text, teaching.topic === 'grammar' ? 'grammar' : 'general')
+      void teachAgentBackend(
+        teaching.text,
+        teaching.topic === 'grammar' ? 'grammar' : 'general',
+        teaching.agentId,
+      )
     },
     removeAgentTeaching(state, action: PayloadAction<string>) {
       const teachings = state.agentPrefs.teachings.filter((item) => item.id !== action.payload)

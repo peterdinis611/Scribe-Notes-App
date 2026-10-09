@@ -28,6 +28,8 @@ import type { MetaFilters } from '@/lib/library/tag-meta'
 import { EMPTY_META_FILTERS } from '@/lib/library/tag-meta'
 import type { LibrarySmartFilter } from '@/lib/library/smart-filters'
 import { moveIdBefore } from '@/lib/dnd/reorder'
+import type { AgentRoleId } from '@/lib/library/agent-roles'
+import { normalizeAgentRoleId } from '@/lib/library/agent-roles'
 
 export type SaveStatus = 'idle' | 'dirty' | 'saving' | 'saved' | 'error'
 
@@ -50,8 +52,8 @@ export interface DocumentsState {
   flashcardsPanelOpen: boolean
   /** Right workspace dock for the Local Agent (library + document goals). */
   agentPanelOpen: boolean
-  /** Which agent persona fills the dock when open. */
-  agentPersona: 'general' | 'spellcheck'
+  /** Which specialist agent fills the dock when open. */
+  agentPersona: AgentRoleId
   /** Right panel icon rail; collapsed by default for a quieter writing chrome. */
   panelRailExpanded: boolean
   focusMode: boolean
@@ -427,14 +429,14 @@ const documentsSlice = createSlice({
         state.agentPersona = 'general'
       }
     },
-    setAgentPersona(state, action: PayloadAction<'general' | 'spellcheck'>) {
-      state.agentPersona = action.payload
+    setAgentPersona(state, action: PayloadAction<AgentRoleId | 'spellcheck'>) {
+      state.agentPersona = normalizeAgentRoleId(action.payload)
     },
     openAgentPanel(
       state,
-      action: PayloadAction<{ persona?: 'general' | 'spellcheck' } | undefined>,
+      action: PayloadAction<{ persona?: AgentRoleId | 'spellcheck' } | undefined>,
     ) {
-      state.agentPersona = action.payload?.persona ?? 'general'
+      state.agentPersona = normalizeAgentRoleId(action.payload?.persona ?? 'general')
       state.agentPanelOpen = true
       persistBoolStorage('scribe-agent-panel-open', true)
       state.panelRailExpanded = true

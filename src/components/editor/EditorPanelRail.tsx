@@ -85,7 +85,7 @@ export function EditorPanelRail() {
   const agentOpen = useAppSelector((state) => state.documents.agentPanelOpen)
   const agentPersona = useAppSelector((state) => state.documents.agentPersona)
   const generalAgentOpen = agentOpen && agentPersona === 'general'
-  const spellAgentOpen = agentOpen && agentPersona === 'spellcheck'
+  const spellAgentOpen = agentOpen && agentPersona === 'proofreader'
   const clipboardOpen = useAppSelector((state) => state.documents.clipboardHistoryPanelOpen)
   const flashcardsOpen = useAppSelector((state) => state.documents.flashcardsPanelOpen)
   const findReplaceOpen = useAppSelector((state) => state.documents.findReplaceOpen)
@@ -157,7 +157,7 @@ export function EditorPanelRail() {
   function openSpellAgent() {
     closeOtherPanels('agent')
     if (spellAgentOpen) dispatch(setAgentPanelOpen(false))
-    else dispatch(openAgentPanel({ persona: 'spellcheck' }))
+    else dispatch(openAgentPanel({ persona: 'proofreader' }))
   }
 
   const agentButton = (

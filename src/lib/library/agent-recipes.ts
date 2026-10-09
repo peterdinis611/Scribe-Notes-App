@@ -1,4 +1,4 @@
-import type { AgentToolId } from '@/lib/library/agent-prefs'
+import type { AgentToolId, CustomAgentRecipe } from '@/lib/library/agent-prefs'
 
 export type AgentRecipeId =
   | 'daily_digest'
@@ -6,6 +6,7 @@ export type AgentRecipeId =
   | 'meeting_wrap'
   | 'study_pass'
   | 'cleanup'
+  | 'privacy_pass'
   | 'polish'
   | 'deep_read'
   | 'files_digest'
@@ -22,6 +23,17 @@ export type AgentRecipe = {
   documentPreferred?: boolean
 }
 
+/** Runtime recipe — built-in or user-defined. */
+export type ResolvedAgentRecipe = {
+  id: string
+  tools: AgentToolId[]
+  documentPreferred?: boolean
+  /** i18n key for built-ins; plain label for customs */
+  labelKey?: string
+  label?: string
+  custom?: boolean
+}
+
 export const AGENT_RECIPES: AgentRecipe[] = [
   {
     id: 'daily_digest',
@@ -31,30 +43,30 @@ export const AGENT_RECIPES: AgentRecipe[] = [
   {
     id: 'weekly_review',
     labelKey: 'agent.recipes.weeklyReview',
-    tools: ['brief', 'dates'],
+    tools: ['library_report', 'terminology_library', 'dates'],
   },
   {
     id: 'meeting_wrap',
     labelKey: 'agent.recipes.meetingWrap',
-    tools: ['meeting', 'tasks', 'takeaways'],
+    tools: ['meeting', 'decisions', 'open_loops', 'rank_tasks'],
     documentPreferred: true,
   },
   {
     id: 'note_to_template',
     labelKey: 'agent.recipes.noteToTemplate',
-    tools: ['outline', 'save_template'],
+    tools: ['template_hints', 'outline', 'save_template'],
     documentPreferred: true,
   },
   {
     id: 'study_pass',
     labelKey: 'agent.recipes.studyPass',
-    tools: ['outline', 'quiz', 'flashcards'],
+    tools: ['outline', 'reading_plan', 'quiz'],
     documentPreferred: true,
   },
   {
     id: 'deep_read',
     labelKey: 'agent.recipes.deepRead',
-    tools: ['outline', 'glossary', 'takeaways', 'flashcards'],
+    tools: ['section_summaries', 'tone', 'takeaways', 'flashcards'],
     documentPreferred: true,
   },
   {
@@ -65,7 +77,12 @@ export const AGENT_RECIPES: AgentRecipe[] = [
   {
     id: 'cleanup',
     labelKey: 'agent.recipes.cleanup',
-    tools: ['duplicates', 'wiki', 'organize'],
+    tools: ['duplicates', 'title', 'organize'],
+  },
+  {
+    id: 'privacy_pass',
+    labelKey: 'agent.recipes.privacyPass',
+    tools: ['pii', 'duplicates', 'organize'],
   },
   {
     id: 'spellcheck',
@@ -76,11 +93,35 @@ export const AGENT_RECIPES: AgentRecipe[] = [
   {
     id: 'polish',
     labelKey: 'agent.recipes.polish',
-    tools: ['spellcheck', 'terminology', 'style'],
+    tools: ['spellcheck', 'grammar', 'tone'],
     documentPreferred: true,
   },
 ]
 
 export function getAgentRecipe(id: string): AgentRecipe | undefined {
   return AGENT_RECIPES.find((recipe) => recipe.id === id)
+}
+
+export function resolveAgentRecipe(
+  id: string,
+  customRecipes: CustomAgentRecipe[] = [],
+): ResolvedAgentRecipe | undefined {
+  const builtIn = getAgentRecipe(id)
+  if (builtIn) {
+    return {
+      id: builtIn.id,
+      tools: builtIn.tools,
+      documentPreferred: builtIn.documentPreferred,
+      labelKey: builtIn.labelKey,
+    }
+  }
+  const custom = customRecipes.find((recipe) => recipe.id === id)
+  if (!custom) return undefined
+  return {
+    id: custom.id,
+    tools: custom.tools,
+    documentPreferred: custom.documentPreferred,
+    label: custom.label,
+    custom: true,
+  }
 }

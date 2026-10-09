@@ -813,6 +813,103 @@ export const nlpContradictionHints = (input: {
   limit?: number
 }) => invoke<ContradictionHintsResult>('nlp_contradiction_hints', { input })
 
+export type ExtractCommitmentsResult = {
+  commitments: Array<{
+    text: string
+    kind: string
+    owner?: string | null
+    dueHint?: string | null
+  }>
+  count: number
+  source: string
+}
+
+export const nlpExtractCommitments = (input: {
+  documentId?: string
+  text?: string
+  limit?: number
+}) => invoke<ExtractCommitmentsResult>('nlp_extract_commitments', { input })
+
+export type ReadingPlanResult = {
+  steps: Array<{
+    order: number
+    title: string
+    focus: string
+    bullets: string[]
+    estimatedMinutes: number
+    charCount: number
+  }>
+  count: number
+  estimatedMinutes: number
+  source: string
+}
+
+export const nlpReadingPlan = (input: {
+  documentId?: string
+  text?: string
+  limit?: number
+}) => invoke<ReadingPlanResult>('nlp_reading_plan', { input })
+
+export type NotePulseResult = {
+  score: number
+  summary: string
+  openTaskCount: number
+  dateCount: number
+  wordCount: number
+  piiRisk: string
+  piiCount: number
+  hints: string[]
+  source: string
+}
+
+export const nlpNotePulse = (input: { documentId?: string; text?: string }) =>
+  invoke<NotePulseResult>('nlp_note_pulse', { input })
+
+export type ExtractMentionsResult = {
+  wikiLinks: string[]
+  mentions: string[]
+  edges: Array<{ kind: string; target: string }>
+  edgeCount: number
+  source?: string
+}
+
+export const nlpExtractMentions = (input: { documentId?: string; text?: string }) =>
+  invoke<ExtractMentionsResult>('nlp_extract_mentions', { input })
+
+export type OpenLoopsResult = {
+  loops: Array<{
+    text: string
+    kind: string
+    score: number
+    dueHint?: string | null
+  }>
+  count: number
+  openTaskCount: number
+  commitmentCount: number
+  source: string
+}
+
+export const nlpOpenLoops = (input: {
+  documentId?: string
+  text?: string
+  limit?: number
+}) => invoke<OpenLoopsResult>('nlp_open_loops', { input })
+
+export type TonePackResult = {
+  summary: string
+  readabilityLabel: string
+  flesch: number
+  readingTimeMinutes: number
+  wordCount: number
+  polarity: string
+  polarityScore: number
+  hints: string[]
+  source: string
+}
+
+export const nlpTonePack = (input: { documentId?: string; text?: string }) =>
+  invoke<TonePackResult>('nlp_tone_pack', { input })
+
 export type AgentPlanNlpResult = {
   goal: string
   scope: string
@@ -821,14 +918,40 @@ export type AgentPlanNlpResult = {
   confidence?: number
   needsClarification: boolean
   clarifyOptions?: string[]
+  clarifyLabels?: string[]
   source: string
+  topLabel?: string | null
+  jepa?: {
+    confidence?: number
+    margin?: number
+    topLabel?: string
+    ready?: boolean
+    candidates?: Array<{ tools: string[]; label: string; score: number; tool?: string | null }>
+  }
 }
 
 export const nlpPlanAgentGoal = (input: {
   goal: string
   scope?: 'library' | 'document' | string
   maxTools?: number
-}) => invoke<AgentPlanNlpResult>('nlp_plan_agent_goal', { input })
+  role?: string | null
+  context?: string | null
+  allowedTools?: string[] | null
+  handoffs?: string[] | null
+  feedbackTools?: string[][] | null
+}) =>
+  invoke<AgentPlanNlpResult>('nlp_plan_agent_goal', {
+    input: {
+      goal: input.goal,
+      scope: input.scope,
+      maxTools: input.maxTools,
+      role: input.role ?? null,
+      context: input.context ?? null,
+      allowedTools: input.allowedTools ?? null,
+      handoffs: input.handoffs ?? null,
+      feedbackTools: input.feedbackTools ?? null,
+    },
+  })
 
 export type AgentDocumentBriefResult = {
   goal: string

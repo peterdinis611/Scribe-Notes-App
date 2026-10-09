@@ -7,25 +7,54 @@ import {
   pushAgentEpisode,
   teachingsToMemoryContext,
   type AgentPrefs,
+  type AgentRoleId,
   type AgentToolId,
   DEFAULT_AGENT_PREFS,
 } from '@/lib/library/agent-prefs'
-import { getAgentRecipe, type AgentRecipeId } from '@/lib/library/agent-recipes'
+import {
+  handoffsToMemoryContext,
+  loadHandoffInbox,
+  maybeAutoHandoffAfterRun,
+  parseHandoffGoal,
+  sendHandoffBetweenAgents,
+} from '@/lib/library/agent-handoff'
+import { listSuccessfulPlanTools } from '@/lib/library/agent-plan-feedback'
+import {
+  filterToolsByAgents,
+  isAgentRoleEnabled,
+  isRecipeAllowedByAgents,
+  preferredToolsForRole,
+  toolsAllowedByAgents,
+} from '@/lib/library/agent-roles'
+import { resolveAgentRecipe, type AgentRecipeId } from '@/lib/library/agent-recipes'
+import { runAgentFilesIngest } from '@/lib/library/agent-files-ingest'
 import {
   runAgentCitations,
+  runAgentCommitments,
+  runAgentContinuation,
   runAgentContradictions,
   runAgentDatesLibrary,
   runAgentDecisions,
   runAgentDuplicates,
+  runAgentGrammar,
+  runAgentLibraryReport,
   runAgentMeetingPack,
+  runAgentMentions,
+  runAgentNotePulse,
+  runAgentOpenLoops,
   runAgentOrganize,
   runAgentOutlineQuiz,
   runAgentPii,
   runAgentQuotes,
   runAgentRankTasks,
+  runAgentReadingPlan,
   runAgentRevision,
   runAgentRewrite,
   runAgentSectionSummaries,
+  runAgentTemplateHints,
+  runAgentTerminologyLibrary,
+  runAgentTitle,
+  runAgentTone,
 } from '@/lib/library/agent-tools'
 import {
   askDocument,
@@ -62,6 +91,14 @@ export type AgentStep = {
   spellIssues?: Array<{ word: string; suggestions: string[] }>
 }
 
+export type AgentPlanSource = 'jepa' | 'python' | 'llm' | 'recipe' | 'force' | 'fallback'
+
+export type AgentPlanMeta = {
+  source: AgentPlanSource | string
+  topLabel?: string | null
+  confidence?: number | null
+}
+
 export type AgentPlan = {
   tools: AgentToolId[]
   goal: string
@@ -70,6 +107,8 @@ export type AgentPlan = {
   /** True when askWhenUncertain and no clear intent matched. */
   needsClarification?: boolean
   clarifyOptions?: AgentToolId[]
+  clarifyLabels?: string[]
+  planMeta?: AgentPlanMeta
 }
 
 export type AgentRunResult = {
@@ -79,6 +118,8 @@ export type AgentRunResult = {
   followups?: string[]
   needsClarification?: boolean
   clarifyOptions?: AgentToolId[]
+  clarifyLabels?: string[]
+  planMeta?: AgentPlanMeta
   /** Updated prefs after budget/episode bookkeeping (caller should persist). */
   nextPrefs?: AgentPrefs
 }
@@ -113,6 +154,16 @@ const DOCUMENT_TOOLS = new Set<AgentToolId>([
   'pii',
   'rank_tasks',
   'contradictions',
+  'commitments',
+  'reading_plan',
+  'note_pulse',
+  'grammar',
+  'mentions',
+  'open_loops',
+  'tone',
+  'title',
+  'continuation',
+  'template_hints',
   'save_template',
 ])
 
@@ -121,6 +172,9 @@ const LIBRARY_ONLY_TOOLS = new Set<AgentToolId>([
   'citations',
   'library_answer',
   'files_answer',
+  'files_ingest',
+  'library_report',
+  'terminology_library',
 ])
 
 const CHAT_ACTION_TOOLS = new Set<AgentToolId>([
@@ -172,7 +226,22 @@ const INTENT_TO_TOOL: Record<string, AgentToolId> = {
   pii: 'pii',
   rank_tasks: 'rank_tasks',
   contradictions: 'contradictions',
+  commitments: 'commitments',
+  reading_plan: 'reading_plan',
+  note_pulse: 'note_pulse',
+  grammar: 'grammar',
+  mentions: 'mentions',
+  open_loops: 'open_loops',
+  tone: 'tone',
+  title: 'title',
+  continuation: 'continuation',
+  template_hints: 'template_hints',
+  library_report: 'library_report',
+  terminology_library: 'terminology_library',
+  files_answer: 'files_answer',
+  files_ingest: 'files_ingest',
   save_template: 'save_template',
+  handoff: 'handoff',
 }
 
 const DEFAULT_CLARIFY: AgentToolId[] = [
@@ -206,6 +275,27 @@ export function matchAgentIntentsSync(goal: string): AgentToolId[] {
   if (!folded) return []
 
   const rules: Array<{ tool: AgentToolId; needles: string[] }> = [
+    {
+      tool: 'handoff',
+      needles: [
+        'handoff',
+        'delegate',
+        'pass to',
+        'send to',
+        'tell the',
+        'forward to',
+        'posli',
+        'pošli',
+        'odovzdaj',
+        'predaj',
+        '@organizer',
+        '@meeting',
+        '@librarian',
+        '@proofreader',
+        '@study',
+        '@general',
+      ],
+    },
     {
       tool: 'save_template',
       needles: [
@@ -329,6 +419,17 @@ export function matchAgentIntentsSync(goal: string): AgentToolId[] {
       needles: ['files answer', 'ask files', 'sandboxed files', 'subory sandbox', 'files/'],
     },
     {
+      tool: 'files_ingest',
+      needles: [
+        'import files',
+        'ingest files',
+        'files to notes',
+        'sandbox to library',
+        'importuj subory',
+        'subory do kniznice',
+      ],
+    },
+    {
       tool: 'spellcheck',
       needles: [
         'spellcheck',
@@ -347,6 +448,78 @@ export function matchAgentIntentsSync(goal: string): AgentToolId[] {
         'fix spelling',
         'fix typos',
       ],
+    },
+    {
+      tool: 'section_summaries',
+      needles: ['section summary', 'section summaries', 'summarize sections', 'zhrnutie sekcii', 'zhrn sekcie', 'po kapitolach'],
+    },
+    {
+      tool: 'decisions',
+      needles: ['decision log', 'extract decisions', 'rozhodnutia', 'log rozhodnuti', 'co sme rozhodli'],
+    },
+    {
+      tool: 'quotes',
+      needles: ['extract quotes', 'pull quotes', 'citacie', 'citaty', 'vyber citaty'],
+    },
+    {
+      tool: 'pii',
+      needles: ['detect pii', 'privacy scan', 'personal data', 'citlive udaje', 'pii', 'sken sukromia', 'pred zdielanim'],
+    },
+    {
+      tool: 'rank_tasks',
+      needles: ['rank tasks', 'prioritize tasks', 'prioritize todos', 'zorad ulohy', 'priorita uloh', 'urgent tasks'],
+    },
+    {
+      tool: 'contradictions',
+      needles: ['contradiction', 'conflicting claims', 'rozpory', 'protirecenia', 'nekonzistentne tvrdenia'],
+    },
+    {
+      tool: 'commitments',
+      needles: ['commitment', 'commitments', 'i will', 'follow up', 'zavazky', 'sluby', 'co som slubil'],
+    },
+    {
+      tool: 'reading_plan',
+      needles: ['reading plan', 'study plan', 'study path', 'plan citania', 'studijny plan', 'ako citat'],
+    },
+    {
+      tool: 'note_pulse',
+      needles: ['note pulse', 'note health', 'library pulse', 'stav poznamky', 'zdravie poznamky'],
+    },
+    {
+      tool: 'grammar',
+      needles: ['grammar', 'grammar check', 'gramatika', 'skontroluj gramatiku', 'grammar tips'],
+    },
+    {
+      tool: 'mentions',
+      needles: ['mentions', 'people mentioned', '@mentions', 'spomenute osoby', 'kto je v poznamke', 'attendees'],
+    },
+    {
+      tool: 'open_loops',
+      needles: ['open loops', 'unfinished', 'loose ends', 'otvorene slucky', 'nedokoncene', 'co ostava'],
+    },
+    {
+      tool: 'tone',
+      needles: ['tone', 'readability', 'reading time', 'sentiment', 'citelnost', 'ton textu', 'nalada textu'],
+    },
+    {
+      tool: 'title',
+      needles: ['suggest title', 'rename note', 'better title', 'navrhni nazov', 'premenuj', 'lepsi nazov'],
+    },
+    {
+      tool: 'continuation',
+      needles: ['continue writing', 'keep writing', 'what next sentence', 'pokracuj v pisani', 'dalsia veta'],
+    },
+    {
+      tool: 'template_hints',
+      needles: ['template gaps', 'missing sections', 'template hints', 'chyba sekcia', 'dopln sablonu'],
+    },
+    {
+      tool: 'library_report',
+      needles: ['library report', 'library health', 'report kniznice', 'stav kniznice'],
+    },
+    {
+      tool: 'terminology_library',
+      needles: ['library terminology', 'term variants', 'terminologia kniznice', 'nekonzistentne pojmy'],
     },
     {
       tool: 'brief',
@@ -389,6 +562,7 @@ function defaultAnswerTool(scope: ChatScope): AgentToolId {
 export function suggestFollowupRecipes(
   steps: AgentStep[],
   scope: ChatScope,
+  agents = DEFAULT_AGENT_PREFS.agents,
 ): string[] {
   const ok = new Set(steps.filter((step) => step.status === 'ok').map((step) => step.tool))
   const out: string[] = []
@@ -402,7 +576,21 @@ export function suggestFollowupRecipes(
   if (ok.has('style') || ok.has('terminology')) out.push('polish')
   if (scope === 'document' && out.length === 0) out.push('spellcheck', 'polish', 'study_pass')
   if (scope !== 'document' && out.length === 0) out.push('daily_digest', 'weekly_review', 'cleanup')
-  return [...new Set(out)].slice(0, 3)
+  return [...new Set(out)]
+    .filter((id) => isRecipeAllowedByAgents(id as AgentRecipeId, agents))
+    .slice(0, 3)
+}
+
+function withRolePreferred(prefs: AgentPrefs, roleId?: AgentRoleId | null): AgentPrefs {
+  if (!roleId || roleId === 'general') return prefs
+  const boost = preferredToolsForRole(roleId)
+  return {
+    ...prefs,
+    preferredTools: [
+      ...boost,
+      ...prefs.preferredTools.filter((tool) => !boost.includes(tool)),
+    ].slice(0, 10),
+  }
 }
 
 export async function planAgentGoal(
@@ -411,60 +599,101 @@ export async function planAgentGoal(
   documentId?: string | null,
   prefs: AgentPrefs = DEFAULT_AGENT_PREFS,
   opts?: {
-    recipeId?: AgentRecipeId | null
+    recipeId?: AgentRecipeId | string | null
     forceTools?: AgentToolId[]
     folderId?: string | null
+    /** Active dock specialist — boosts that role’s tools. */
+    roleId?: AgentRoleId | null
   },
 ): Promise<AgentPlan> {
   if (!prefs.enabled) {
     throw new Error('agent.disabled')
   }
 
+  const effective = withRolePreferred(prefs, opts?.roleId)
   const trimmed = goal.trim()
   const fallback = defaultAnswerTool(scope)
+  const fallbackAllowed = filterToolsByAgents([fallback], effective.agents)
+  const safeFallback = fallbackAllowed[0] ?? filterToolsByAgents(
+    ['library_answer', 'document_answer', 'summarize'],
+    effective.agents,
+  )[0]
 
   if (opts?.forceTools?.length) {
-    const tools = applyAgentOptimize(scopeTools(opts.forceTools, scope, documentId), prefs)
+    const tools = applyAgentOptimize(scopeTools(opts.forceTools, scope, documentId), effective)
     return {
       goal: trimmed,
       scope,
       documentId,
-      tools: tools.length > 0 ? tools : [fallback],
+      tools: tools.length > 0 ? tools : safeFallback ? [safeFallback] : [],
+      planMeta: { source: 'force' },
     }
   }
 
   if (opts?.recipeId) {
-    const recipe = getAgentRecipe(opts.recipeId)
+    const recipe = resolveAgentRecipe(opts.recipeId, prefs.customRecipes)
     if (recipe) {
-      const tools = applyAgentOptimize(scopeTools(recipe.tools, scope, documentId), prefs)
+      if (!recipe.custom) {
+        if (!isRecipeAllowedByAgents(opts.recipeId as AgentRecipeId, effective.agents)) {
+          throw new Error('agent.roleDisabled')
+        }
+      } else {
+        const custom = prefs.customRecipes.find((item) => item.id === recipe.id)
+        if (custom?.roleId && !isAgentRoleEnabled(effective.agents, custom.roleId)) {
+          throw new Error('agent.roleDisabled')
+        }
+      }
+      const tools = applyAgentOptimize(scopeTools(recipe.tools, scope, documentId), effective)
       return {
-        goal: trimmed || opts.recipeId,
+        goal: trimmed || recipe.label || recipe.id,
         scope,
         documentId,
-        tools: tools.length > 0 ? tools : [fallback],
+        tools: tools.length > 0 ? tools : safeFallback ? [safeFallback] : [],
+        planMeta: { source: 'recipe', topLabel: recipe.label || recipe.id },
       }
     }
   }
 
+  const activeRoleId: AgentRoleId = opts?.roleId ?? 'general'
+  const inbox = await loadHandoffInbox(activeRoleId, 'pending', 8)
+  const handoffSummaries = inbox
+    .filter((item) => item.status === 'pending')
+    .slice(0, 6)
+    .map((item) => `From ${item.fromAgentId}: ${item.summary}`)
+  const feedbackTools = listSuccessfulPlanTools(24)
+
   let intents: string[] = []
+  let planMeta: AgentPlanMeta | undefined
+  let clarifyLabels: string[] | undefined
   try {
     const planned = await nlpPlanAgentGoal({
       goal: trimmed,
       scope: scope === 'folder' ? 'library' : scope,
-      maxTools: prefs.maxSteps,
+      maxTools: effective.maxSteps,
+      role: activeRoleId,
+      allowedTools: [...toolsAllowedByAgents(effective.agents)],
+      handoffs: handoffSummaries.length > 0 ? handoffSummaries : null,
+      feedbackTools: feedbackTools.length > 0 ? feedbackTools : null,
     })
     intents = planned.tools
-    if (planned.needsClarification && prefs.askWhenUncertain) {
-      const clarifyOptions = (planned.clarifyOptions ?? DEFAULT_CLARIFY)
-        .map((item) => INTENT_TO_TOOL[item] ?? (item as AgentToolId))
-        .filter((tool, index, list) => list.indexOf(tool) === index)
-        .filter((tool) => {
-          if (tool === 'document_answer') return scope === 'document' || Boolean(documentId)
-          if (tool === 'library_answer') return scope === 'library' || !documentId
-          if (DOCUMENT_TOOLS.has(tool)) return Boolean(documentId) || scope === 'document'
-          return true
-        })
-        .slice(0, 5)
+    planMeta = {
+      source: planned.source || 'python',
+      topLabel: planned.topLabel ?? planned.jepa?.topLabel ?? null,
+      confidence: planned.confidence ?? planned.jepa?.confidence ?? null,
+    }
+    if (planned.needsClarification && effective.askWhenUncertain) {
+      const clarifyOptions = filterToolsByAgents(
+        (planned.clarifyOptions ?? DEFAULT_CLARIFY)
+          .map((item) => INTENT_TO_TOOL[item] ?? (item as AgentToolId))
+          .filter((tool, index, list) => list.indexOf(tool) === index)
+          .filter((tool) => {
+            if (tool === 'document_answer') return scope === 'document' || Boolean(documentId)
+            if (tool === 'library_answer') return scope === 'library' || !documentId
+            if (DOCUMENT_TOOLS.has(tool)) return Boolean(documentId) || scope === 'document'
+            return true
+          }),
+        effective.agents,
+      ).slice(0, 5)
       return {
         goal: trimmed,
         scope,
@@ -472,6 +701,8 @@ export async function planAgentGoal(
         tools: [],
         needsClarification: true,
         clarifyOptions,
+        clarifyLabels: planned.clarifyLabels?.slice(0, clarifyOptions.length),
+        planMeta,
       }
     }
   } catch {
@@ -480,14 +711,21 @@ export async function planAgentGoal(
     } catch {
       intents = matchAgentIntentsSync(trimmed)
     }
+    planMeta = { source: 'fallback' }
   }
 
   let fromIntent = dedupeTools(
     intents
-      .map((intent) => INTENT_TO_TOOL[intent])
+      .map((intent) => INTENT_TO_TOOL[intent] ?? (intent as AgentToolId))
       .filter((tool): tool is AgentToolId => Boolean(tool)),
     AGENT_MAX_STEPS,
   )
+
+  // Pending handoff → soft-prefer role tools when NLP returned nothing useful.
+  if (fromIntent.length === 0 && handoffSummaries.length > 0) {
+    const roleBoost = preferredToolsForRole(activeRoleId).slice(0, 2)
+    if (roleBoost.length > 0) fromIntent = roleBoost
+  }
 
   if (fromIntent.length === 0) {
     const single = matchDocumentChatIntent(trimmed)
@@ -496,13 +734,16 @@ export async function planAgentGoal(
     }
   }
 
-  if (fromIntent.length === 0 && prefs.askWhenUncertain) {
-    const clarifyOptions = DEFAULT_CLARIFY.filter((tool) => {
-      if (tool === 'document_answer') return scope === 'document' || Boolean(documentId)
-      if (tool === 'library_answer') return scope !== 'document'
-      if (DOCUMENT_TOOLS.has(tool)) return Boolean(documentId) || scope === 'document'
-      return true
-    }).slice(0, 5)
+  if (fromIntent.length === 0 && effective.askWhenUncertain) {
+    const clarifyOptions = filterToolsByAgents(
+      DEFAULT_CLARIFY.filter((tool) => {
+        if (tool === 'document_answer') return scope === 'document' || Boolean(documentId)
+        if (tool === 'library_answer') return scope !== 'document'
+        if (DOCUMENT_TOOLS.has(tool)) return Boolean(documentId) || scope === 'document'
+        return true
+      }),
+      effective.agents,
+    ).slice(0, 5)
     return {
       goal: trimmed,
       scope,
@@ -510,21 +751,24 @@ export async function planAgentGoal(
       tools: [],
       needsClarification: true,
       clarifyOptions,
+      clarifyLabels,
+      planMeta: planMeta ?? { source: 'fallback' },
     }
   }
 
   if (fromIntent.length === 0) {
-    fromIntent = [fallback]
+    fromIntent = safeFallback ? [safeFallback] : [fallback]
   }
 
   const scoped = scopeTools(fromIntent, scope, documentId)
-  const tools = applyAgentOptimize(scoped.length > 0 ? scoped : [fallback], prefs)
+  const tools = applyAgentOptimize(scoped.length > 0 ? scoped : safeFallback ? [safeFallback] : [fallback], effective)
 
   return {
     goal: trimmed,
     scope,
     documentId,
-    tools: tools.length > 0 ? tools : [fallback],
+    tools: tools.length > 0 ? tools : safeFallback ? [safeFallback] : [],
+    planMeta: planMeta ?? { source: 'python' },
   }
 }
 
@@ -540,12 +784,44 @@ async function runTool(
     selectionText?: string | null
     compareDocumentId?: string | null
     stream?: boolean
+    roleId?: AgentRoleId | null
   },
 ): Promise<LibraryChatResult> {
   const workingMemory = [
     ...(ctx.memoryContext ?? []),
     ...ctx.priorAnswers.map((text) => ({ role: 'assistant', text: text.slice(0, 800) })),
   ]
+
+  if (tool === 'handoff') {
+    const fromAgentId = ctx.roleId ?? 'general'
+    const prior = ctx.priorAnswers.filter(Boolean).join('\n\n').trim()
+    const parsed = parseHandoffGoal(ctx.goal, fromAgentId)
+    const toAgentId = parsed?.toAgentId
+    const summary =
+      parsed?.summary ||
+      prior.slice(0, 600) ||
+      ctx.goal.trim()
+    if (!toAgentId) {
+      throw new Error('agent.handoffNeedsTarget')
+    }
+    if (summary.trim().length < 2) {
+      throw new Error('agent.handoffEmpty')
+    }
+    const sent = await sendHandoffBetweenAgents({
+      fromAgentId,
+      toAgentId,
+      summary,
+      documentId: ctx.documentId,
+      payload: { goal: ctx.goal.slice(0, 160), priorTools: true },
+    })
+    if (!sent) {
+      throw new Error('agent.handoffFailed')
+    }
+    return {
+      answer: `Handoff sent to **${toAgentId}**:\n\n${sent.summary}`,
+      citations: [],
+    }
+  }
 
   if (tool === 'library_answer') {
     return askLibrary(ctx.goal, {
@@ -589,6 +865,52 @@ async function runTool(
   if (tool === 'rank_tasks') {
     if (!ctx.documentId) throw new Error('agent.needsDocument')
     return runAgentRankTasks(ctx.documentId)
+  }
+  if (tool === 'commitments') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentCommitments(ctx.documentId)
+  }
+  if (tool === 'reading_plan') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentReadingPlan(ctx.documentId)
+  }
+  if (tool === 'note_pulse') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentNotePulse(ctx.documentId)
+  }
+  if (tool === 'grammar') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentGrammar(ctx.documentId)
+  }
+  if (tool === 'mentions') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentMentions(ctx.documentId)
+  }
+  if (tool === 'open_loops') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentOpenLoops(ctx.documentId)
+  }
+  if (tool === 'tone') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentTone(ctx.documentId)
+  }
+  if (tool === 'title') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentTitle(ctx.documentId)
+  }
+  if (tool === 'continuation') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentContinuation(ctx.documentId)
+  }
+  if (tool === 'template_hints') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentTemplateHints(ctx.documentId)
+  }
+  if (tool === 'library_report') {
+    return runAgentLibraryReport()
+  }
+  if (tool === 'terminology_library') {
+    return runAgentTerminologyLibrary()
   }
   if (tool === 'contradictions') {
     if (!ctx.documentId) throw new Error('agent.needsDocument')
@@ -673,6 +995,19 @@ async function runTool(
           snippet: item.snippet || item.excerpt || '',
         })),
       }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (message.includes('FilesApiOffline')) {
+        throw new Error('agent.filesApiOffline', { cause: error })
+      }
+      throw error
+    }
+  }
+
+  if (tool === 'files_ingest') {
+    try {
+      const result = await runAgentFilesIngest(ctx.goal)
+      return { answer: result.answer, citations: result.citations }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       if (message.includes('FilesApiOffline')) {
@@ -795,7 +1130,7 @@ export async function runAgentGoal(
   memoryContext?: Array<{ role: string; text: string }>,
   prefs: AgentPrefs = DEFAULT_AGENT_PREFS,
   opts?: {
-    recipeId?: AgentRecipeId | null
+    recipeId?: AgentRecipeId | string | null
     forceTools?: AgentToolId[]
     folderId?: string | null
     selectionText?: string | null
@@ -803,10 +1138,15 @@ export async function runAgentGoal(
     stream?: boolean
     /** Spellcheck agent: inject grammar teachings only. */
     grammarOnly?: boolean
+    /** Active dock specialist. */
+    roleId?: AgentRoleId | null
   },
 ): Promise<AgentRunResult> {
   if (!prefs.enabled) {
     throw new Error('agent.disabled')
+  }
+  if (opts?.roleId && !isAgentRoleEnabled(prefs.agents, opts.roleId)) {
+    throw new Error('agent.roleDisabled')
   }
   if (!canRunAgentBudget(prefs)) {
     throw new Error('agent.budgetExceeded')
@@ -826,8 +1166,18 @@ export async function runAgentGoal(
       steps: [],
       needsClarification: true,
       clarifyOptions: plan.clarifyOptions,
+      clarifyLabels: plan.clarifyLabels,
+      planMeta: plan.planMeta,
     }
   }
+
+  const activeRoleId: AgentRoleId = opts?.grammarOnly
+    ? 'proofreader'
+    : opts?.roleId ?? 'general'
+  // Inbox already informed planning; reload for memory injection (cheap locally).
+  const inbox = opts?.grammarOnly
+    ? []
+    : await loadHandoffInbox(activeRoleId, 'pending', 8)
 
   const contextWithTeachings = [
     ...teachingsToMemoryContext(prefs.teachings, {
@@ -835,8 +1185,10 @@ export async function runAgentGoal(
       episodes: opts?.grammarOnly ? undefined : prefs.episodes,
       outputLanguage: prefs.outputLanguage,
       documentId,
+      agentId: activeRoleId,
       grammarOnly: opts?.grammarOnly,
     }),
+    ...handoffsToMemoryContext(inbox),
     ...(memoryContext ?? []),
   ]
   const steps: AgentStep[] = []
@@ -879,6 +1231,7 @@ export async function runAgentGoal(
         selectionText: opts?.selectionText,
         compareDocumentId: opts?.compareDocumentId,
         stream: opts?.stream && (tool === 'library_answer' || tool === 'document_answer'),
+        roleId: activeRoleId,
       })
       steps.push({
         tool,
@@ -915,7 +1268,26 @@ export async function runAgentGoal(
     })
   }
 
-  const recipeFollowups = suggestFollowupRecipes(steps, scope).map(
+  // Soft auto-notify peer specialist after substantive specialist work.
+  if (
+    !opts?.grammarOnly &&
+    activeRoleId !== 'general' &&
+    steps.some((step) => step.status === 'ok') &&
+    !plan.tools.includes('handoff')
+  ) {
+    const auto = await maybeAutoHandoffAfterRun({
+      fromAgentId: activeRoleId,
+      tools: steps.filter((step) => step.status === 'ok').map((step) => step.tool),
+      answer,
+      documentId,
+      goal: trimmed,
+    })
+    if (auto) {
+      followups.push(`handoff:${auto.toAgentId}`)
+    }
+  }
+
+  const recipeFollowups = suggestFollowupRecipes(steps, scope, prefs.agents).map(
     (id) => `recipe:${id}`,
   )
 
@@ -924,6 +1296,7 @@ export async function runAgentGoal(
     citations: mergeCitations(citationBuckets),
     steps,
     followups: [...followups, ...recipeFollowups].slice(0, 6),
+    planMeta: plan.planMeta,
     nextPrefs,
   }
 }

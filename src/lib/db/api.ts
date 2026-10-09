@@ -406,10 +406,14 @@ export type AgentMessage = {
   createdAt: number
   steps: AgentMessageStep[]
   citations: DocumentChatCitation[]
+  agentId?: string
 }
 
-export const listAgentMessages = (documentId: string) =>
-  invoke<AgentMessage[]>('list_agent_messages', { documentId })
+export const listAgentMessages = (documentId: string, agentId?: string | null) =>
+  invoke<AgentMessage[]>('list_agent_messages', {
+    documentId,
+    agentId: agentId ?? null,
+  })
 
 export const appendAgentMessage = (input: {
   documentId: string
@@ -417,13 +421,33 @@ export const appendAgentMessage = (input: {
   text: string
   steps?: AgentMessageStep[]
   citations?: DocumentChatCitation[]
+  agentId?: string | null
 }) => invoke<AgentMessage>('append_agent_message', { input })
 
-export const clearAgentMessages = (documentId: string) =>
-  invoke<number>('clear_agent_messages', { documentId })
+export const clearAgentMessages = (documentId: string, agentId?: string | null) =>
+  invoke<number>('clear_agent_messages', {
+    documentId,
+    agentId: agentId ?? null,
+  })
 
 export const invokeMatchAgentIntents = (question: string) =>
   invoke<string[]>('match_agent_intents', { question })
+
+export type AgentBackendDigestSchedule = {
+  enabled: boolean
+  timeLocal: string
+  period: string
+  weekday: number
+  lastRunDate: string
+}
+
+export type AgentBackendCustomRecipe = {
+  id: string
+  label: string
+  tools: string[]
+  documentPreferred?: boolean
+  roleId?: string | null
+}
 
 export type AgentBackendPrefs = {
   enabled: boolean
@@ -431,13 +455,19 @@ export type AgentBackendPrefs = {
   preferFast: boolean
   preferredTools: string[]
   disabledTools: string[]
+  digestSchedule?: AgentBackendDigestSchedule
+  customRecipes?: AgentBackendCustomRecipe[]
+  extras?: Record<string, unknown>
 }
+
+export const getAgentSchemaVersion = () => invoke<number>('get_agent_schema_version')
 
 export type AgentBackendTeaching = {
   id: string
   text: string
   createdAt: number
   topic?: 'general' | 'grammar'
+  agentId?: string
 }
 
 export type AgentBackendRun = {
@@ -448,6 +478,12 @@ export type AgentBackendRun = {
   stepsJson?: string | null
   answer?: string | null
   createdAt: number
+  agentId?: string
+}
+
+export type AgentBackendRoleState = {
+  agentId: string
+  enabled: boolean
 }
 
 export const getAgentPrefs = () => invoke<AgentBackendPrefs>('get_agent_prefs')
@@ -460,26 +496,39 @@ export const setAgentPrefsBackend = (input: AgentBackendPrefs) =>
       preferFast: input.preferFast,
       preferredTools: input.preferredTools,
       disabledTools: input.disabledTools,
+      digestSchedule: input.digestSchedule ?? null,
+      customRecipes: input.customRecipes ?? null,
+      extras: input.extras ?? null,
     },
   })
 
-export const listAgentTeachings = () =>
-  invoke<AgentBackendTeaching[]>('list_agent_teachings')
+export const listAgentRoleStates = () =>
+  invoke<AgentBackendRoleState[]>('list_agent_role_states')
+
+export const setAgentRoleStatesBackend = (roles: AgentBackendRoleState[]) =>
+  invoke<AgentBackendRoleState[]>('set_agent_role_states', { input: { roles } })
+
+export const listAgentTeachings = (agentId?: string | null) =>
+  invoke<AgentBackendTeaching[]>('list_agent_teachings', {
+    agentId: agentId ?? null,
+  })
 
 export const addAgentTeachingBackend = (
   text: string,
   topic?: 'general' | 'grammar',
+  agentId?: string | null,
 ) =>
   invoke<AgentBackendTeaching>('add_agent_teaching', {
     text,
     topic: topic ?? null,
+    agentId: agentId ?? null,
   })
 
 export const removeAgentTeachingBackend = (id: string) =>
   invoke<boolean>('remove_agent_teaching', { id })
 
-export const clearAgentTeachingsBackend = () =>
-  invoke<number>('clear_agent_teachings')
+export const clearAgentTeachingsBackend = (agentId?: string | null) =>
+  invoke<number>('clear_agent_teachings', { agentId: agentId ?? null })
 
 export const appendAgentRun = (input: {
   scope: string
@@ -487,12 +536,114 @@ export const appendAgentRun = (input: {
   goal: string
   stepsJson?: string | null
   answer?: string | null
+  agentId?: string | null
 }) => invoke<AgentBackendRun>('append_agent_run', { input })
 
-export const listAgentRuns = (limit = 40) =>
-  invoke<AgentBackendRun[]>('list_agent_runs', { limit })
+export const listAgentRuns = (limit = 40, agentId?: string | null) =>
+  invoke<AgentBackendRun[]>('list_agent_runs', {
+    limit,
+    agentId: agentId ?? null,
+  })
 
 export const getAgentDbPath = () => invoke<string | null>('get_agent_db_path')
+
+export type AgentBackendHandoff = {
+  id: string
+  fromAgentId: string
+  toAgentId: string
+  documentId?: string | null
+  summary: string
+  payloadJson?: string | null
+  status: 'pending' | 'acknowledged' | 'dismissed' | string
+  createdAt: number
+  updatedAt: number
+}
+
+export const sendAgentHandoff = (input: {
+  fromAgentId: string
+  toAgentId: string
+  summary: string
+  documentId?: string | null
+  payloadJson?: string | null
+}) =>
+  invoke<AgentBackendHandoff>('send_agent_handoff', {
+    input: {
+      fromAgentId: input.fromAgentId,
+      toAgentId: input.toAgentId,
+      summary: input.summary,
+      documentId: input.documentId ?? null,
+      payloadJson: input.payloadJson ?? null,
+    },
+  })
+
+export const listAgentHandoffs = (
+  toAgentId: string,
+  status?: string | null,
+  limit = 24,
+) =>
+  invoke<AgentBackendHandoff[]>('list_agent_handoffs', {
+    toAgentId,
+    status: status ?? null,
+    limit,
+  })
+
+export const setAgentHandoffStatus = (id: string, status: string) =>
+  invoke<AgentBackendHandoff | null>('set_agent_handoff_status', { id, status })
+
+export type AuditAdminStatus = {
+  configured: boolean
+  unlocked: boolean
+  eventCount: number
+}
+
+export type AuditEvent = {
+  id: string
+  createdAt: number
+  source: string
+  category: string
+  action: string
+  actor: string
+  resourceType?: string | null
+  resourceId?: string | null
+  summary: string
+  detailJson?: string | null
+  outcome: string
+}
+
+export const getAuditSchemaVersion = () => invoke<number>('get_audit_schema_version')
+
+export const getAuditDbPath = () => invoke<string | null>('get_audit_db_path')
+
+export const auditAdminStatus = () => invoke<AuditAdminStatus>('audit_admin_status')
+
+export const auditAdminSetup = (password: string) =>
+  invoke<AuditAdminStatus>('audit_admin_setup', { password })
+
+export const auditAdminUnlock = (password: string) =>
+  invoke<AuditAdminStatus>('audit_admin_unlock', { password })
+
+export const auditAdminLock = () => invoke<AuditAdminStatus>('audit_admin_lock')
+
+export const auditAdminChangePassword = (currentPassword: string, newPassword: string) =>
+  invoke<AuditAdminStatus>('audit_admin_change_password', {
+    currentPassword,
+    newPassword,
+  })
+
+export const listAuditEvents = (input?: {
+  limit?: number
+  category?: string | null
+  source?: string | null
+}) =>
+  invoke<AuditEvent[]>('list_audit_events', {
+    input: {
+      limit: input?.limit ?? 100,
+      category: input?.category ?? null,
+      source: input?.source ?? null,
+    },
+  })
+
+export const clearAuditEvents = () => invoke<number>('clear_audit_events')
 
 export const clearAllDocuments = async () => {
   const count = await invoke<number>('clear_all_documents')

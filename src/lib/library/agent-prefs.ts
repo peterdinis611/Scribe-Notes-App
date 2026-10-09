@@ -1,4 +1,19 @@
+import {
+  AGENT_ROLE_IDS,
+  DEFAULT_AGENT_ROLES,
+  filterToolsByAgents,
+  normalizeAgentRoles,
+  type AgentRoleId,
+  type AgentRolePrefs,
+} from '@/lib/library/agent-roles'
+
+export type { AgentRoleId, AgentRolePrefs }
+export { DEFAULT_AGENT_ROLES, normalizeAgentRoles } from '@/lib/library/agent-roles'
+
+/** Cap per specialist partition (matches scribe-agent TEACHINGS_MAX). */
 export const AGENT_TEACHINGS_MAX = 24
+/** Global FE cache across all role partitions. */
+export const AGENT_TEACHINGS_GLOBAL_MAX = AGENT_TEACHINGS_MAX * 6
 export const AGENT_TEACHING_MAX_LEN = 280
 export const AGENT_PINNED_FACTS_MAX = 12
 export const AGENT_EPISODES_MAX = 8
@@ -37,8 +52,22 @@ export type AgentToolId =
   | 'pii'
   | 'rank_tasks'
   | 'contradictions'
+  | 'commitments'
+  | 'reading_plan'
+  | 'note_pulse'
+  | 'grammar'
+  | 'mentions'
+  | 'open_loops'
+  | 'tone'
+  | 'title'
+  | 'continuation'
+  | 'template_hints'
+  | 'library_report'
+  | 'terminology_library'
   | 'files_answer'
+  | 'files_ingest'
   | 'save_template'
+  | 'handoff'
 
 export type AgentMaxSteps = 1 | 2 | 3
 
@@ -57,6 +86,8 @@ export type AgentTeaching = {
   /** When scope is document, bind teaching to this note. */
   documentId?: string | null
   topic?: AgentTeachingTopic
+  /** Specialist partition in scribe-agent.db (`general`, `proofreader`, …). */
+  agentId?: AgentRoleId
 }
 
 export type AgentPinnedFact = {
@@ -73,9 +104,31 @@ export type AgentEpisode = {
   documentId?: string | null
 }
 
+export type AgentDigestSchedule = {
+  enabled: boolean
+  /** Local wall-clock HH:mm */
+  timeLocal: string
+  period: 'day' | 'week'
+  /** 0=Sun … 6=Sat — used when period is week */
+  weekday: number
+  /** Last successful auto-run (YYYY-MM-DD local) */
+  lastRunDate: string
+}
+
+export type CustomAgentRecipe = {
+  id: string
+  label: string
+  tools: AgentToolId[]
+  documentPreferred?: boolean
+  /** Optional specialist binding for dock filtering. */
+  roleId?: AgentRoleId
+}
+
 export type AgentPrefs = {
   /** Master switch — when false, agent UI/runtime refuses to run. */
   enabled: boolean
+  /** Per-role specialists the user can turn on/off. */
+  agents: Record<AgentRoleId, AgentRolePrefs>
   /** Cap tool loop length (optimization). */
   maxSteps: AgentMaxSteps
   /** Prefer lighter tools; drop heavier ones when alternatives exist. */
@@ -103,10 +156,25 @@ export type AgentPrefs = {
   runsTodayDate: string
   /** After save, queue a light document brief (preferFast tools). */
   autoRunOnSave: boolean
+  /** While the app is open, run digests at a local time. */
+  digestSchedule: AgentDigestSchedule
+  /** User-authored tool recipes (beyond built-ins). */
+  customRecipes: CustomAgentRecipe[]
 }
+
+export const DEFAULT_DIGEST_SCHEDULE: AgentDigestSchedule = {
+  enabled: false,
+  timeLocal: '08:00',
+  period: 'day',
+  weekday: 1,
+  lastRunDate: '',
+}
+
+export const AGENT_CUSTOM_RECIPES_MAX = 12
 
 export const DEFAULT_AGENT_PREFS: AgentPrefs = {
   enabled: true,
+  agents: { ...DEFAULT_AGENT_ROLES },
   maxSteps: 3,
   preferFast: false,
   preferredTools: [],
@@ -121,6 +189,8 @@ export const DEFAULT_AGENT_PREFS: AgentPrefs = {
   runsToday: 0,
   runsTodayDate: '',
   autoRunOnSave: false,
+  digestSchedule: { ...DEFAULT_DIGEST_SCHEDULE },
+  customRecipes: [],
 }
 
 const ALL_TOOLS: AgentToolId[] = [
@@ -156,9 +226,29 @@ const ALL_TOOLS: AgentToolId[] = [
   'pii',
   'rank_tasks',
   'contradictions',
+  'commitments',
+  'reading_plan',
+  'note_pulse',
+  'grammar',
+  'mentions',
+  'open_loops',
+  'tone',
+  'title',
+  'continuation',
+  'template_hints',
+  'library_report',
+  'terminology_library',
   'files_answer',
+  'files_ingest',
   'save_template',
+  'handoff',
 ]
+
+export function isAgentToolId(value: unknown): value is AgentToolId {
+  return isToolId(value)
+}
+
+export const AGENT_TOOL_IDS: AgentToolId[] = [...ALL_TOOLS]
 
 const HEAVY_TOOLS = new Set<AgentToolId>([
   'flashcards',
@@ -194,16 +284,32 @@ function normalizeTeachings(raw: unknown): AgentTeaching[] {
         typeof (item as AgentTeaching).createdAt === 'number'
       )
     })
-    .map((item) => ({
-      id: item.id,
-      text: item.text.trim().slice(0, AGENT_TEACHING_MAX_LEN),
-      createdAt: item.createdAt,
-      scope: (item.scope === 'document' ? 'document' : 'global') as AgentTeachingScope,
-      documentId: typeof item.documentId === 'string' ? item.documentId : null,
-      topic: (item.topic === 'grammar' ? 'grammar' : 'general') as AgentTeachingTopic,
-    }))
+    .map((item) => {
+      const topic = (item.topic === 'grammar' ? 'grammar' : 'general') as AgentTeachingTopic
+      const agentId = normalizeTeachingAgentId(
+        typeof item.agentId === 'string' ? item.agentId : undefined,
+        topic,
+      )
+      return {
+        id: item.id,
+        text: item.text.trim().slice(0, AGENT_TEACHING_MAX_LEN),
+        createdAt: item.createdAt,
+        scope: (item.scope === 'document' ? 'document' : 'global') as AgentTeachingScope,
+        documentId: typeof item.documentId === 'string' ? item.documentId : null,
+        topic,
+        agentId,
+      }
+    })
     .filter((item) => item.text.length > 0)
-    .slice(0, AGENT_TEACHINGS_MAX)
+    .slice(0, AGENT_TEACHINGS_GLOBAL_MAX)
+}
+
+function normalizeTeachingAgentId(
+  raw: string | undefined,
+  topic: AgentTeachingTopic,
+): AgentRoleId {
+  if (raw && (AGENT_ROLE_IDS as string[]).includes(raw)) return raw as AgentRoleId
+  return topic === 'grammar' ? 'proofreader' : 'general'
 }
 
 function normalizePinned(raw: unknown): AgentPinnedFact[] {
@@ -250,6 +356,75 @@ function normalizeEpisodes(raw: unknown): AgentEpisode[] {
     .slice(0, AGENT_EPISODES_MAX)
 }
 
+function normalizeTimeLocal(raw: unknown): string {
+  if (typeof raw !== 'string') return DEFAULT_DIGEST_SCHEDULE.timeLocal
+  const match = raw.trim().match(/^(\d{1,2}):(\d{1,2})$/)
+  if (!match) return DEFAULT_DIGEST_SCHEDULE.timeLocal
+  const hour = Math.min(23, Math.max(0, Number(match[1])))
+  const minute = Math.min(59, Math.max(0, Number(match[2])))
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+}
+
+function normalizeDigestSchedule(raw: unknown): AgentDigestSchedule {
+  if (!raw || typeof raw !== 'object') return { ...DEFAULT_DIGEST_SCHEDULE }
+  const input = raw as Partial<AgentDigestSchedule>
+  const weekday =
+    typeof input.weekday === 'number' && input.weekday >= 0 && input.weekday <= 6
+      ? Math.floor(input.weekday)
+      : DEFAULT_DIGEST_SCHEDULE.weekday
+  return {
+    enabled: Boolean(input.enabled),
+    timeLocal: normalizeTimeLocal(input.timeLocal),
+    period: input.period === 'week' ? 'week' : 'day',
+    weekday,
+    lastRunDate: typeof input.lastRunDate === 'string' ? input.lastRunDate.slice(0, 10) : '',
+  }
+}
+
+function normalizeCustomRecipes(raw: unknown): CustomAgentRecipe[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter((item): item is CustomAgentRecipe => {
+      if (!item || typeof item !== 'object') return false
+      const row = item as CustomAgentRecipe
+      return typeof row.id === 'string' && typeof row.label === 'string' && Array.isArray(row.tools)
+    })
+    .map((item) => {
+      const tools = item.tools.filter(isToolId).slice(0, 3)
+      const roleId =
+        item.roleId && (AGENT_ROLE_IDS as string[]).includes(item.roleId)
+          ? item.roleId
+          : undefined
+      return {
+        id: item.id.slice(0, 64),
+        label: item.label.trim().slice(0, 80),
+        tools,
+        documentPreferred: Boolean(item.documentPreferred),
+        roleId,
+      }
+    })
+    .filter((item) => item.label.length > 0 && item.tools.length > 0)
+    .slice(0, AGENT_CUSTOM_RECIPES_MAX)
+}
+
+export function createCustomRecipe(input: {
+  label: string
+  tools: AgentToolId[]
+  documentPreferred?: boolean
+  roleId?: AgentRoleId
+}): CustomAgentRecipe | null {
+  const label = input.label.trim().slice(0, 80)
+  const tools = input.tools.filter(isToolId).slice(0, 3)
+  if (label.length < 2 || tools.length === 0) return null
+  return {
+    id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    label,
+    tools,
+    documentPreferred: Boolean(input.documentPreferred),
+    roleId: input.roleId,
+  }
+}
+
 export function normalizeAgentPrefs(raw: unknown): AgentPrefs {
   if (!raw || typeof raw !== 'object') return { ...DEFAULT_AGENT_PREFS }
   const input = raw as Partial<AgentPrefs>
@@ -284,6 +459,7 @@ export function normalizeAgentPrefs(raw: unknown): AgentPrefs {
 
   return {
     enabled: input.enabled !== false,
+    agents: normalizeAgentRoles(input.agents),
     maxSteps,
     preferFast: Boolean(input.preferFast),
     preferredTools,
@@ -298,6 +474,8 @@ export function normalizeAgentPrefs(raw: unknown): AgentPrefs {
     runsToday,
     runsTodayDate: date === today ? today : '',
     autoRunOnSave: Boolean(input.autoRunOnSave),
+    digestSchedule: normalizeDigestSchedule(input.digestSchedule),
+    customRecipes: normalizeCustomRecipes(input.customRecipes),
   }
 }
 
@@ -307,17 +485,20 @@ export function createTeaching(
     scope?: AgentTeachingScope
     documentId?: string | null
     topic?: AgentTeachingTopic
+    agentId?: AgentRoleId
   },
 ): AgentTeaching | null {
   const trimmed = text.trim().replace(/\s+/g, ' ').slice(0, AGENT_TEACHING_MAX_LEN)
   if (trimmed.length < 2) return null
+  const topic: AgentTeachingTopic = opts?.topic === 'grammar' ? 'grammar' : 'general'
   return {
     id: `teach-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     text: trimmed,
     createdAt: Date.now(),
     scope: opts?.scope === 'document' ? 'document' : 'global',
     documentId: opts?.scope === 'document' ? opts.documentId ?? null : null,
-    topic: opts?.topic === 'grammar' ? 'grammar' : 'general',
+    topic,
+    agentId: normalizeTeachingAgentId(opts?.agentId, topic),
   }
 }
 
@@ -334,8 +515,17 @@ export function createPinnedFact(text: string): AgentPinnedFact | null {
 export function relevantTeachings(
   teachings: AgentTeaching[],
   documentId?: string | null,
+  agentId?: AgentRoleId | null,
 ): AgentTeaching[] {
   return teachings.filter((item) => {
+    if (agentId) {
+      const owned = item.agentId ?? (item.topic === 'grammar' ? 'proofreader' : 'general')
+      if (agentId === 'general') {
+        if (owned !== 'general') return false
+      } else if (owned !== agentId && owned !== 'general') {
+        return false
+      }
+    }
     if (!item.scope || item.scope === 'global') return true
     if (item.scope === 'document') return Boolean(documentId && item.documentId === documentId)
     return true
@@ -350,12 +540,18 @@ export function teachingsToMemoryContext(
     episodes?: AgentEpisode[]
     outputLanguage?: AgentOutputLanguage
     documentId?: string | null
+    /** Specialist partition — includes shared `general` teachings. */
+    agentId?: AgentRoleId | null
     /** When true, only inject grammar topic teachings (spellcheck agent). */
     grammarOnly?: boolean
   },
 ): Array<{ role: string; text: string }> {
   const blocks: string[] = []
-  const scoped = relevantTeachings(teachings, extras?.documentId)
+  const scoped = relevantTeachings(
+    teachings,
+    extras?.documentId,
+    extras?.grammarOnly ? 'proofreader' : extras?.agentId,
+  )
   const general = scoped.filter((item) => !item.topic || item.topic === 'general')
   const grammar = scoped.filter((item) => item.topic === 'grammar')
   if (!extras?.grammarOnly && general.length) {
@@ -402,11 +598,19 @@ export function applyAgentOptimize(
   tools: AgentToolId[],
   prefs: Pick<
     AgentPrefs,
-    'maxSteps' | 'preferFast' | 'preferredTools' | 'disabledTools' | 'quietHours'
+    | 'maxSteps'
+    | 'preferFast'
+    | 'preferredTools'
+    | 'disabledTools'
+    | 'quietHours'
+    | 'agents'
   >,
 ): AgentToolId[] {
   const disabled = new Set(prefs.disabledTools)
   let next = tools.filter((tool) => !disabled.has(tool))
+  if (prefs.agents) {
+    next = filterToolsByAgents(next, prefs.agents)
+  }
 
   const dropHeavy = prefs.preferFast || (prefs.quietHours && isQuietHourNow())
   if (dropHeavy) {
@@ -493,4 +697,22 @@ export const AGENT_OPTIMIZABLE_TOOLS: AgentToolId[] = [
   'action_items',
   'glossary',
   'compare_notes',
+  'section_summaries',
+  'decisions',
+  'quotes',
+  'pii',
+  'rank_tasks',
+  'contradictions',
+  'commitments',
+  'reading_plan',
+  'note_pulse',
+  'grammar',
+  'mentions',
+  'open_loops',
+  'tone',
+  'title',
+  'continuation',
+  'template_hints',
+  'library_report',
+  'terminology_library',
 ]

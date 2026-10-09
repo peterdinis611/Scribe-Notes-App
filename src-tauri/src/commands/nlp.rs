@@ -1731,21 +1731,21 @@ pub fn nlp_suggest_title(
     sidecar: State<'_, NlpSidecar>,
     document_id: String,
 ) -> Result<serde_json::Value, String> {
-    let text = {
-        let conn = state.conn.lock().map_err(|e| e.to_string())?;
-        if !is_nlp_enabled(&conn)? {
-            return Err("NLP is disabled".to_string());
+    let text = resolve_text_offline_ok(
+        &state,
+        &NlpDocumentTextInput {
+            document_id: Some(document_id),
+            text: None,
+            limit: None,
+            include_cloze: None,
+        },
+    )?;
+    if nlp_is_enabled(&state) {
+        if let Ok(raw) = sidecar.suggest_title(&text, 72) {
+            return Ok(raw);
         }
-        let (title, content_json): (String, String) = conn
-            .query_row(
-                "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL",
-                params![document_id],
-                |row| Ok((row.get(0)?, row.get(1)?)),
-            )
-            .map_err(|e| e.to_string())?;
-        format!("{title}\n{}", extract_search_text(&content_json))
-    };
-    sidecar.suggest_title(&text, 72)
+    }
+    serde_json::to_value(scribe_core::nlp::suggest_title(&text, 72)).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -2332,10 +2332,16 @@ pub fn nlp_section_summaries(
     sidecar: State<'_, NlpSidecar>,
     input: NlpDocumentTextInput,
 ) -> Result<serde_json::Value, String> {
-    let text = resolve_nlp_text(&state, &input)?;
+    let text = resolve_text_offline_ok(&state, &input)?;
     let limit = input.limit.unwrap_or(12).clamp(1, 40);
-    let raw = sidecar.section_summaries(&text, limit, 2)?;
-    serde_json::to_value(scribe_core::nlp::parse_section_summaries(&raw)).map_err(|e| e.to_string())
+    if nlp_is_enabled(&state) {
+        if let Ok(raw) = sidecar.section_summaries(&text, limit, 2) {
+            return serde_json::to_value(scribe_core::nlp::parse_section_summaries(&raw))
+                .map_err(|e| e.to_string());
+        }
+    }
+    serde_json::to_value(scribe_core::nlp::section_summaries(&text, limit as usize, 2))
+        .map_err(|e| e.to_string())
 }
 
 /// Decision log — Python preferred, Rust offline fallback always available.
@@ -2363,10 +2369,16 @@ pub fn nlp_extract_quotes(
     sidecar: State<'_, NlpSidecar>,
     input: NlpDocumentTextInput,
 ) -> Result<serde_json::Value, String> {
-    let text = resolve_nlp_text(&state, &input)?;
+    let text = resolve_text_offline_ok(&state, &input)?;
     let limit = input.limit.unwrap_or(10).clamp(1, 30);
-    let raw = sidecar.extract_quotes(&text, limit)?;
-    serde_json::to_value(scribe_core::nlp::parse_quotes(&raw)).map_err(|e| e.to_string())
+    if nlp_is_enabled(&state) {
+        if let Ok(raw) = sidecar.extract_quotes(&text, limit) {
+            return serde_json::to_value(scribe_core::nlp::parse_quotes(&raw))
+                .map_err(|e| e.to_string());
+        }
+    }
+    serde_json::to_value(scribe_core::nlp::extract_quotes(&text, limit as usize))
+        .map_err(|e| e.to_string())
 }
 
 /// PII scan — Python preferred, Rust offline fallback always available.
@@ -2394,10 +2406,112 @@ pub fn nlp_rank_tasks(
     sidecar: State<'_, NlpSidecar>,
     input: NlpDocumentTextInput,
 ) -> Result<serde_json::Value, String> {
-    let text = resolve_nlp_text(&state, &input)?;
+    let text = resolve_text_offline_ok(&state, &input)?;
     let limit = input.limit.unwrap_or(20).clamp(1, 50);
-    let raw = sidecar.rank_tasks(&text, limit)?;
-    serde_json::to_value(scribe_core::nlp::parse_ranked_tasks(&raw)).map_err(|e| e.to_string())
+    if nlp_is_enabled(&state) {
+        if let Ok(raw) = sidecar.rank_tasks(&text, limit) {
+            return serde_json::to_value(scribe_core::nlp::parse_ranked_tasks(&raw))
+                .map_err(|e| e.to_string());
+        }
+    }
+    serde_json::to_value(scribe_core::nlp::rank_tasks(&text, limit as usize))
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn nlp_extract_commitments(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpDocumentTextInput,
+) -> Result<serde_json::Value, String> {
+    let text = resolve_text_offline_ok(&state, &input)?;
+    let limit = input.limit.unwrap_or(12).clamp(1, 40);
+    if nlp_is_enabled(&state) {
+        if let Ok(raw) = sidecar.extract_commitments(&text, limit) {
+            return Ok(raw);
+        }
+    }
+    serde_json::to_value(scribe_core::nlp::extract_commitments(&text, limit as usize))
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn nlp_reading_plan(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpDocumentTextInput,
+) -> Result<serde_json::Value, String> {
+    let text = resolve_text_offline_ok(&state, &input)?;
+    let limit = input.limit.unwrap_or(8).clamp(1, 20);
+    if nlp_is_enabled(&state) {
+        if let Ok(raw) = sidecar.reading_plan(&text, limit) {
+            return Ok(raw);
+        }
+    }
+    serde_json::to_value(scribe_core::nlp::reading_plan(&text, limit as usize))
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn nlp_note_pulse(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpDocumentTextInput,
+) -> Result<serde_json::Value, String> {
+    let text = resolve_text_offline_ok(&state, &input)?;
+    if nlp_is_enabled(&state) {
+        if let Ok(raw) = sidecar.note_pulse(&text) {
+            return Ok(raw);
+        }
+    }
+    serde_json::to_value(scribe_core::nlp::note_pulse(&text)).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn nlp_extract_mentions(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpDocumentTextInput,
+) -> Result<serde_json::Value, String> {
+    let text = resolve_text_offline_ok(&state, &input)?;
+    if nlp_is_enabled(&state) {
+        if let Ok(raw) = sidecar.extract_mentions(&text) {
+            return Ok(raw);
+        }
+    }
+    serde_json::to_value(scribe_core::nlp::extract_mentions(&text)).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn nlp_open_loops(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpDocumentTextInput,
+) -> Result<serde_json::Value, String> {
+    let text = resolve_text_offline_ok(&state, &input)?;
+    let limit = input.limit.unwrap_or(16).clamp(1, 40);
+    if nlp_is_enabled(&state) {
+        if let Ok(raw) = sidecar.open_loops(&text, limit) {
+            return Ok(raw);
+        }
+    }
+    serde_json::to_value(scribe_core::nlp::open_loops(&text, limit as usize))
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn nlp_tone_pack(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpDocumentTextInput,
+) -> Result<serde_json::Value, String> {
+    let text = resolve_text_offline_ok(&state, &input)?;
+    if nlp_is_enabled(&state) {
+        if let Ok(raw) = sidecar.tone_pack(&text) {
+            return Ok(raw);
+        }
+    }
+    serde_json::to_value(scribe_core::nlp::tone_pack(&text)).map_err(|e| e.to_string())
 }
 
 #[derive(Debug, Deserialize)]
@@ -2453,6 +2567,11 @@ pub struct NlpPlanAgentGoalInput {
     pub goal: String,
     pub scope: Option<String>,
     pub max_tools: Option<i64>,
+    pub role: Option<String>,
+    pub context: Option<String>,
+    pub allowed_tools: Option<Vec<String>>,
+    pub handoffs: Option<Vec<String>>,
+    pub feedback_tools: Option<Vec<Vec<String>>>,
 }
 
 #[tauri::command]
@@ -2471,7 +2590,17 @@ pub fn nlp_plan_agent_goal(
     };
     let scope = input.scope.as_deref().unwrap_or("document");
     let max_tools = input.max_tools.unwrap_or(3).clamp(1, 6);
-    sidecar.plan_agent_goal_with_llm(input.goal.trim(), scope, max_tools, llm)
+    sidecar.plan_agent_goal_full(
+        input.goal.trim(),
+        scope,
+        max_tools,
+        llm,
+        input.role.as_deref(),
+        input.context.as_deref(),
+        input.allowed_tools.as_deref(),
+        input.handoffs.as_deref(),
+        input.feedback_tools.as_deref(),
+    )
 }
 
 #[derive(Debug, Deserialize)]
@@ -2622,25 +2751,29 @@ pub fn nlp_template_fill_hints(
     sidecar: State<'_, NlpSidecar>,
     input: NlpTemplateHintsInput,
 ) -> Result<serde_json::Value, String> {
-    let text = {
-        let conn = state.conn.lock().map_err(|e| e.to_string())?;
-        if !is_nlp_enabled(&conn)? {
-            return Err("NLP is disabled".to_string());
+    let text = resolve_text_offline_ok(
+        &state,
+        &NlpDocumentTextInput {
+            document_id: Some(input.document_id),
+            text: None,
+            limit: None,
+            include_cloze: None,
+        },
+    )?;
+    let expected = input.expected_sections.clone();
+    if nlp_is_enabled(&state) {
+        let sections = expected
+            .as_ref()
+            .map(|items| json!(items))
+            .unwrap_or(json!(null));
+        if let Ok(raw) = sidecar.template_fill_hints(&text, sections) {
+            return Ok(raw);
         }
-        let (title, content_json): (String, String) = conn
-            .query_row(
-                "SELECT title, content_json FROM documents WHERE id = ?1 AND deleted_at IS NULL",
-                params![input.document_id],
-                |row| Ok((row.get(0)?, row.get(1)?)),
-            )
-            .map_err(|e| e.to_string())?;
-        format!("{title}\n{}", extract_search_text(&content_json))
-    };
-    let sections = input
-        .expected_sections
-        .map(|items| json!(items))
-        .unwrap_or(json!(null));
-    sidecar.template_fill_hints(&text, sections)
+    }
+    Ok(scribe_core::nlp::template_fill_hints_value(
+        &text,
+        expected.as_deref(),
+    ))
 }
 
 #[derive(Debug, Serialize)]
