@@ -799,6 +799,21 @@ impl NlpSidecar {
         max_tools: i64,
         llm: Option<Value>,
     ) -> Result<Value, String> {
+        self.plan_agent_goal_full(goal, scope, max_tools, llm, None, None, None, None, None)
+    }
+
+    pub fn plan_agent_goal_full(
+        &self,
+        goal: &str,
+        scope: &str,
+        max_tools: i64,
+        llm: Option<Value>,
+        role: Option<&str>,
+        context: Option<&str>,
+        allowed_tools: Option<&[String]>,
+        handoffs: Option<&[String]>,
+        feedback_tools: Option<&[Vec<String>]>,
+    ) -> Result<Value, String> {
         let mut params = json!({
             "goal": goal,
             "scope": scope,
@@ -806,6 +821,21 @@ impl NlpSidecar {
         });
         if let Some(llm_options) = llm {
             params["llm"] = llm_options;
+        }
+        if let Some(role_id) = role.map(str::trim).filter(|value| !value.is_empty()) {
+            params["role"] = json!(role_id);
+        }
+        if let Some(ctx) = context.map(str::trim).filter(|value| !value.is_empty()) {
+            params["context"] = json!(ctx);
+        }
+        if let Some(tools) = allowed_tools.filter(|items| !items.is_empty()) {
+            params["allowedTools"] = json!(tools);
+        }
+        if let Some(items) = handoffs.filter(|rows| !rows.is_empty()) {
+            params["handoffs"] = json!(items);
+        }
+        if let Some(rows) = feedback_tools.filter(|rows| !rows.is_empty()) {
+            params["feedbackTools"] = json!(rows);
         }
         self.call_method("plan_agent_goal", params)
     }

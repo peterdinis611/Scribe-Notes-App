@@ -1,4 +1,4 @@
-import type { AgentToolId } from '@/lib/library/agent-prefs'
+import type { AgentToolId, CustomAgentRecipe } from '@/lib/library/agent-prefs'
 
 export type AgentRecipeId =
   | 'daily_digest'
@@ -21,6 +21,17 @@ export type AgentRecipe = {
   tools: AgentToolId[]
   /** Prefer document scope when true. */
   documentPreferred?: boolean
+}
+
+/** Runtime recipe — built-in or user-defined. */
+export type ResolvedAgentRecipe = {
+  id: string
+  tools: AgentToolId[]
+  documentPreferred?: boolean
+  /** i18n key for built-ins; plain label for customs */
+  labelKey?: string
+  label?: string
+  custom?: boolean
 }
 
 export const AGENT_RECIPES: AgentRecipe[] = [
@@ -89,4 +100,28 @@ export const AGENT_RECIPES: AgentRecipe[] = [
 
 export function getAgentRecipe(id: string): AgentRecipe | undefined {
   return AGENT_RECIPES.find((recipe) => recipe.id === id)
+}
+
+export function resolveAgentRecipe(
+  id: string,
+  customRecipes: CustomAgentRecipe[] = [],
+): ResolvedAgentRecipe | undefined {
+  const builtIn = getAgentRecipe(id)
+  if (builtIn) {
+    return {
+      id: builtIn.id,
+      tools: builtIn.tools,
+      documentPreferred: builtIn.documentPreferred,
+      labelKey: builtIn.labelKey,
+    }
+  }
+  const custom = customRecipes.find((recipe) => recipe.id === id)
+  if (!custom) return undefined
+  return {
+    id: custom.id,
+    tools: custom.tools,
+    documentPreferred: custom.documentPreferred,
+    label: custom.label,
+    custom: true,
+  }
 }

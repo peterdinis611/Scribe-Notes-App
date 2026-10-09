@@ -2567,6 +2567,11 @@ pub struct NlpPlanAgentGoalInput {
     pub goal: String,
     pub scope: Option<String>,
     pub max_tools: Option<i64>,
+    pub role: Option<String>,
+    pub context: Option<String>,
+    pub allowed_tools: Option<Vec<String>>,
+    pub handoffs: Option<Vec<String>>,
+    pub feedback_tools: Option<Vec<Vec<String>>>,
 }
 
 #[tauri::command]
@@ -2585,7 +2590,17 @@ pub fn nlp_plan_agent_goal(
     };
     let scope = input.scope.as_deref().unwrap_or("document");
     let max_tools = input.max_tools.unwrap_or(3).clamp(1, 6);
-    sidecar.plan_agent_goal_with_llm(input.goal.trim(), scope, max_tools, llm)
+    sidecar.plan_agent_goal_full(
+        input.goal.trim(),
+        scope,
+        max_tools,
+        llm,
+        input.role.as_deref(),
+        input.context.as_deref(),
+        input.allowed_tools.as_deref(),
+        input.handoffs.as_deref(),
+        input.feedback_tools.as_deref(),
+    )
 }
 
 #[derive(Debug, Deserialize)]

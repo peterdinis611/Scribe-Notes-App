@@ -918,14 +918,40 @@ export type AgentPlanNlpResult = {
   confidence?: number
   needsClarification: boolean
   clarifyOptions?: string[]
+  clarifyLabels?: string[]
   source: string
+  topLabel?: string | null
+  jepa?: {
+    confidence?: number
+    margin?: number
+    topLabel?: string
+    ready?: boolean
+    candidates?: Array<{ tools: string[]; label: string; score: number; tool?: string | null }>
+  }
 }
 
 export const nlpPlanAgentGoal = (input: {
   goal: string
   scope?: 'library' | 'document' | string
   maxTools?: number
-}) => invoke<AgentPlanNlpResult>('nlp_plan_agent_goal', { input })
+  role?: string | null
+  context?: string | null
+  allowedTools?: string[] | null
+  handoffs?: string[] | null
+  feedbackTools?: string[][] | null
+}) =>
+  invoke<AgentPlanNlpResult>('nlp_plan_agent_goal', {
+    input: {
+      goal: input.goal,
+      scope: input.scope,
+      maxTools: input.maxTools,
+      role: input.role ?? null,
+      context: input.context ?? null,
+      allowedTools: input.allowedTools ?? null,
+      handoffs: input.handoffs ?? null,
+      feedbackTools: input.feedbackTools ?? null,
+    },
+  })
 
 export type AgentDocumentBriefResult = {
   goal: string

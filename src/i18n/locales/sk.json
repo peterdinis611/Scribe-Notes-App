@@ -1727,6 +1727,7 @@
       "teachTopicLabel": "Typ učenia",
       "teachTopicGeneral": "Všeobecné",
       "teachTopicGrammar": "Gramatika",
+      "teachAgentLabel": "Ktorému agentovi učiť",
       "teachTopicGrammarHint": "Gramatické pravidlá vedú pravopisného agenta a nástroje prepis/polish.",
       "teachBadgeGrammar": "Gramatika",
       "taughtGrammarToast": "Gramatické pravidlo naučené",
@@ -2709,6 +2710,9 @@
     "run": "Beh agenta",
     "capabilitiesLabel": "Nástroje pre túto poznámku",
     "stepTrace": "Kroky nástrojov",
+    "planSource": "Plán · {{source}}",
+    "feedbackDismiss": "Neužitočné",
+    "feedbackDismissed": "OK — tento plán neposilníme",
     "starters": {
       "themes": "Aké témy sa objavujú v mojich poznámkach?",
       "openLoops": "Aké otvorené slučky by som mal uzavrieť?",

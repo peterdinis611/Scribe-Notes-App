@@ -18,11 +18,13 @@ import {
   parseHandoffGoal,
   sendHandoffBetweenAgents,
 } from '@/lib/library/agent-handoff'
+import { listSuccessfulPlanTools } from '@/lib/library/agent-plan-feedback'
 import {
   filterToolsByAgents,
   isAgentRoleEnabled,
   isRecipeAllowedByAgents,
   preferredToolsForRole,
+  toolsAllowedByAgents,
 } from '@/lib/library/agent-roles'
 import { getAgentRecipe, type AgentRecipeId } from '@/lib/library/agent-recipes'
 import {
@@ -88,6 +90,14 @@ export type AgentStep = {
   spellIssues?: Array<{ word: string; suggestions: string[] }>
 }
 
+export type AgentPlanSource = 'jepa' | 'python' | 'llm' | 'recipe' | 'force' | 'fallback'
+
+export type AgentPlanMeta = {
+  source: AgentPlanSource | string
+  topLabel?: string | null
+  confidence?: number | null
+}
+
 export type AgentPlan = {
   tools: AgentToolId[]
   goal: string
@@ -96,6 +106,8 @@ export type AgentPlan = {
   /** True when askWhenUncertain and no clear intent matched. */
   needsClarification?: boolean
   clarifyOptions?: AgentToolId[]
+  clarifyLabels?: string[]
+  planMeta?: AgentPlanMeta
 }
 
 export type AgentRunResult = {
@@ -105,6 +117,8 @@ export type AgentRunResult = {
   followups?: string[]
   needsClarification?: boolean
   clarifyOptions?: AgentToolId[]
+  clarifyLabels?: string[]
+  planMeta?: AgentPlanMeta
   /** Updated prefs after budget/episode bookkeeping (caller should persist). */
   nextPrefs?: AgentPrefs
 }
@@ -597,6 +611,7 @@ export async function planAgentGoal(
       scope,
       documentId,
       tools: tools.length > 0 ? tools : safeFallback ? [safeFallback] : [],
+      planMeta: { source: 'force' },
     }
   }
 
@@ -612,18 +627,38 @@ export async function planAgentGoal(
         scope,
         documentId,
         tools: tools.length > 0 ? tools : safeFallback ? [safeFallback] : [],
+        planMeta: { source: 'recipe', topLabel: recipe.id },
       }
     }
   }
 
+  const activeRoleId: AgentRoleId = opts?.roleId ?? 'general'
+  const inbox = await loadHandoffInbox(activeRoleId, 'pending', 8)
+  const handoffSummaries = inbox
+    .filter((item) => item.status === 'pending')
+    .slice(0, 6)
+    .map((item) => `From ${item.fromAgentId}: ${item.summary}`)
+  const feedbackTools = listSuccessfulPlanTools(24)
+
   let intents: string[] = []
+  let planMeta: AgentPlanMeta | undefined
+  let clarifyLabels: string[] | undefined
   try {
     const planned = await nlpPlanAgentGoal({
       goal: trimmed,
       scope: scope === 'folder' ? 'library' : scope,
       maxTools: effective.maxSteps,
+      role: activeRoleId,
+      allowedTools: [...toolsAllowedByAgents(effective.agents)],
+      handoffs: handoffSummaries.length > 0 ? handoffSummaries : null,
+      feedbackTools: feedbackTools.length > 0 ? feedbackTools : null,
     })
     intents = planned.tools
+    planMeta = {
+      source: planned.source || 'python',
+      topLabel: planned.topLabel ?? planned.jepa?.topLabel ?? null,
+      confidence: planned.confidence ?? planned.jepa?.confidence ?? null,
+    }
     if (planned.needsClarification && effective.askWhenUncertain) {
       const clarifyOptions = filterToolsByAgents(
         (planned.clarifyOptions ?? DEFAULT_CLARIFY)
@@ -644,6 +679,8 @@ export async function planAgentGoal(
         tools: [],
         needsClarification: true,
         clarifyOptions,
+        clarifyLabels: planned.clarifyLabels?.slice(0, clarifyOptions.length),
+        planMeta,
       }
     }
   } catch {
@@ -652,14 +689,21 @@ export async function planAgentGoal(
     } catch {
       intents = matchAgentIntentsSync(trimmed)
     }
+    planMeta = { source: 'fallback' }
   }
 
   let fromIntent = dedupeTools(
     intents
-      .map((intent) => INTENT_TO_TOOL[intent])
+      .map((intent) => INTENT_TO_TOOL[intent] ?? (intent as AgentToolId))
       .filter((tool): tool is AgentToolId => Boolean(tool)),
     AGENT_MAX_STEPS,
   )
+
+  // Pending handoff → soft-prefer role tools when NLP returned nothing useful.
+  if (fromIntent.length === 0 && handoffSummaries.length > 0) {
+    const roleBoost = preferredToolsForRole(activeRoleId).slice(0, 2)
+    if (roleBoost.length > 0) fromIntent = roleBoost
+  }
 
   if (fromIntent.length === 0) {
     const single = matchDocumentChatIntent(trimmed)
@@ -685,6 +729,8 @@ export async function planAgentGoal(
       tools: [],
       needsClarification: true,
       clarifyOptions,
+      clarifyLabels,
+      planMeta: planMeta ?? { source: 'fallback' },
     }
   }
 
@@ -700,6 +746,7 @@ export async function planAgentGoal(
     scope,
     documentId,
     tools: tools.length > 0 ? tools : safeFallback ? [safeFallback] : [],
+    planMeta: planMeta ?? { source: 'python' },
   }
 }
 
@@ -1084,12 +1131,15 @@ export async function runAgentGoal(
       steps: [],
       needsClarification: true,
       clarifyOptions: plan.clarifyOptions,
+      clarifyLabels: plan.clarifyLabels,
+      planMeta: plan.planMeta,
     }
   }
 
   const activeRoleId: AgentRoleId = opts?.grammarOnly
     ? 'proofreader'
     : opts?.roleId ?? 'general'
+  // Inbox already informed planning; reload for memory injection (cheap locally).
   const inbox = opts?.grammarOnly
     ? []
     : await loadHandoffInbox(activeRoleId, 'pending', 8)
@@ -1211,6 +1261,7 @@ export async function runAgentGoal(
     citations: mergeCitations(citationBuckets),
     steps,
     followups: [...followups, ...recipeFollowups].slice(0, 6),
+    planMeta: plan.planMeta,
     nextPrefs,
   }
 }

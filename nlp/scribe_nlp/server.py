@@ -133,6 +133,7 @@ FEATURES = [
     "passageRerank",
     "planAgentGoal",
     "agentDocumentBrief",
+    "decisionJepa",
     "llmStatus",
     "llmComplete",
 ]
@@ -669,7 +670,42 @@ def _handle_request_inner(
             max_tools = max(1, min(int(params.get("maxTools") or params.get("max_tools") or 3), 6))
             llm_raw = params.get("llm")
             llm_options = llm_raw if isinstance(llm_raw, dict) else None
-            result = plan_agent_goal(goal, scope=scope, max_tools=max_tools, llm=llm_options)
+            role_raw = params.get("role") or params.get("roleId") or params.get("agentId")
+            role = str(role_raw).strip() if role_raw else None
+            context_raw = params.get("context") or params.get("notePulse") or params.get("documentHint")
+            context = str(context_raw).strip() if context_raw else None
+            allowed_raw = params.get("allowedTools") or params.get("allowed_tools")
+            allowed_tools = (
+                [str(item) for item in allowed_raw]
+                if isinstance(allowed_raw, list)
+                else None
+            )
+            handoffs_raw = params.get("handoffs") or params.get("pendingHandoffs")
+            handoffs = (
+                [str(item) for item in handoffs_raw if str(item).strip()]
+                if isinstance(handoffs_raw, list)
+                else None
+            )
+            feedback_raw = params.get("feedbackTools") or params.get("feedback_tools")
+            feedback_tools: list[list[str]] | None = None
+            if isinstance(feedback_raw, list):
+                feedback_tools = []
+                for row in feedback_raw[:24]:
+                    if isinstance(row, list):
+                        feedback_tools.append([str(item) for item in row if str(item).strip()])
+                    elif isinstance(row, str) and row.strip():
+                        feedback_tools.append([row.strip()])
+            result = plan_agent_goal(
+                goal,
+                scope=scope,
+                max_tools=max_tools,
+                llm=llm_options,
+                role=role,
+                context=context,
+                allowed_tools=allowed_tools,
+                handoffs=handoffs,
+                feedback_tools=feedback_tools,
+            )
         elif method == "agent_document_brief":
             from .agent_plan import agent_document_brief
 

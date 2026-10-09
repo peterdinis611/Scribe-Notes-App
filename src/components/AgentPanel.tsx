@@ -59,9 +59,11 @@ import {
 import {
   agentMemoryContext,
   runAgentGoal,
+  type AgentPlanMeta,
   type AgentStep,
   type AgentToolId,
 } from '@/lib/library/agent'
+import { recordPlanFeedback } from '@/lib/library/agent-plan-feedback'
 import { applySuggestedTagsToDocument } from '@/lib/library/auto-organize'
 import { runFolderDigest } from '@/lib/library/folder-digest'
 import { AGENT_RECIPES, type AgentRecipeId } from '@/lib/library/agent-recipes'
@@ -99,6 +101,10 @@ type AgentThreadMessage = {
   steps?: AgentStep[]
   followups?: string[]
   clarifyOptions?: AgentToolId[]
+  clarifyLabels?: string[]
+  planMeta?: AgentPlanMeta
+  /** User goal that produced this assistant reply (for episodic feedback). */
+  feedbackGoal?: string
   createdAt?: number
 }
 
@@ -238,6 +244,23 @@ export function AgentPanel({
   const [filesOfflineHint, setFilesOfflineHint] = useState(false)
   const [applyBusy, setApplyBusy] = useState(false)
   const applyPendingRef = useRef<null | (() => Promise<void> | void)>(null)
+  const applyFeedbackRef = useRef<{
+    goal: string
+    tools: AgentToolId[]
+    source?: string
+  } | null>(null)
+
+  const armPlanFeedback = useCallback((message: AgentThreadMessage) => {
+    const tools = (message.steps ?? [])
+      .filter((step) => step.status === 'ok')
+      .map((step) => step.tool)
+    const fallbackTools = (message.steps ?? []).map((step) => step.tool)
+    applyFeedbackRef.current = {
+      goal: message.feedbackGoal?.trim() || message.text.slice(0, 120),
+      tools: (tools.length > 0 ? tools : fallbackTools).slice(0, 6),
+      source: message.planMeta?.source,
+    }
+  }, [])
   const moodTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const threadEndRef = useRef<HTMLDivElement>(null)
   const slovak = i18n.language?.toLowerCase().startsWith('sk')
@@ -549,6 +572,9 @@ export function AgentPanel({
           patchAssistant(streamingId, {
             text: t('agent.clarifyPrompt'),
             clarifyOptions: result.clarifyOptions,
+            clarifyLabels: result.clarifyLabels,
+            planMeta: result.planMeta,
+            feedbackGoal: trimmed || displayGoal,
           })
           setMoodBriefly('done')
           return
@@ -561,6 +587,8 @@ export function AgentPanel({
           citations: result.citations,
           steps: result.steps,
           followups: result.followups,
+          planMeta: result.planMeta,
+          feedbackGoal: trimmed || displayGoal,
           createdAt: Date.now(),
         }
         patchAssistant(streamingId, assistant)
@@ -789,12 +817,23 @@ export function AgentPanel({
     setApplyBusy(true)
     try {
       await action()
+      const pending = applyFeedbackRef.current
+      if (pending) {
+        recordPlanFeedback({
+          goal: pending.goal,
+          tools: pending.tools,
+          outcome: 'apply',
+          roleId,
+          source: pending.source,
+        })
+        applyFeedbackRef.current = null
+      }
       setApplyPreview(null)
       applyPendingRef.current = null
     } finally {
       setApplyBusy(false)
     }
-  }, [])
+  }, [roleId])
 
   const handleTeach = useCallback(async () => {
     const draft = teachInput.trim()
@@ -1343,6 +1382,16 @@ export function AgentPanel({
               <MessageContent>
                 <Bubble variant={message.role === 'user' ? 'primary' : 'muted'}>
                   <BubbleContent>
+                    {message.role === 'assistant' && message.planMeta ? (
+                      <p className="agent-plan-meta" title={message.planMeta.topLabel ?? undefined}>
+                        <span className="agent-plan-source">
+                          {t('agent.planSource', { source: message.planMeta.source })}
+                        </span>
+                        {message.planMeta.topLabel ? (
+                          <span className="agent-plan-label">{message.planMeta.topLabel}</span>
+                        ) : null}
+                      </p>
+                    ) : null}
                     {message.role === 'assistant' && message.steps && message.steps.length > 0 ? (
                       <ol className="agent-step-trace" aria-label={t('agent.stepTrace')}>
                         {message.steps.map((step, index) => (
@@ -1400,19 +1449,27 @@ export function AgentPanel({
                     <p className="px-0.5 text-[11px] text-[var(--color-muted-foreground)]">
                       {t('agent.clarifyHint')}
                     </p>
-                    {message.clarifyOptions.map((tool) => (
-                      <button
-                        key={tool}
-                        type="button"
-                        className="library-chat-followup"
-                        disabled={loading}
-                        onClick={() =>
-                          void runGoal(t(TOOL_LABEL_KEYS[tool]), { forceTools: [tool] })
-                        }
-                      >
-                        {t(TOOL_LABEL_KEYS[tool])}
-                      </button>
-                    ))}
+                    {message.clarifyOptions.map((tool, index) => {
+                      const label =
+                        message.clarifyLabels?.[index]?.trim() ||
+                        (TOOL_LABEL_KEYS[tool] ? t(TOOL_LABEL_KEYS[tool]) : tool)
+                      return (
+                        <button
+                          key={`${tool}-${index}`}
+                          type="button"
+                          className="library-chat-followup"
+                          disabled={loading}
+                          title={TOOL_LABEL_KEYS[tool] ? t(TOOL_LABEL_KEYS[tool]) : tool}
+                          onClick={() =>
+                            void runGoal(t(TOOL_LABEL_KEYS[tool] ?? tool) || tool, {
+                              forceTools: [tool],
+                            })
+                          }
+                        >
+                          {label}
+                        </button>
+                      )
+                    })}
                   </div>
                 ) : null}
                 {message.role === 'assistant' &&
@@ -1424,14 +1481,33 @@ export function AgentPanel({
                       type="button"
                       className="library-chat-chip is-active"
                       disabled={loading}
-                      onClick={() =>
+                      onClick={() => {
+                        armPlanFeedback(message)
                         void applyFromSteps(message.text, message.steps)
-                      }
+                      }}
                     >
                       <FilePlus2 className="mr-1 inline h-3 w-3" />
                       {(message.steps ?? []).some((step) => step.tool === 'spellcheck')
                         ? t('agent.applySpellcheck')
                         : t('agent.applySmart')}
+                    </button>
+                    <button
+                      type="button"
+                      className="library-chat-chip"
+                      disabled={loading}
+                      onClick={() => {
+                        const tools = (message.steps ?? []).map((step) => step.tool)
+                        recordPlanFeedback({
+                          goal: message.feedbackGoal?.trim() || message.text.slice(0, 120),
+                          tools,
+                          outcome: 'dismiss',
+                          roleId,
+                          source: message.planMeta?.source,
+                        })
+                        toast.success(t('agent.feedbackDismissed'))
+                      }}
+                    >
+                      {t('agent.feedbackDismiss')}
                     </button>
                     <button
                       type="button"
@@ -1446,7 +1522,10 @@ export function AgentPanel({
                       type="button"
                       className="library-chat-chip"
                       disabled={loading}
-                      onClick={() => queueInsertPreview(message.text, 'callout')}
+                      onClick={() => {
+                        armPlanFeedback(message)
+                        queueInsertPreview(message.text, 'callout')
+                      }}
                     >
                       {t('agent.applyCallout')}
                     </button>
@@ -1454,7 +1533,10 @@ export function AgentPanel({
                       type="button"
                       className="library-chat-chip"
                       disabled={loading}
-                      onClick={() => queueInsertPreview(message.text, 'checklist')}
+                      onClick={() => {
+                        armPlanFeedback(message)
+                        queueInsertPreview(message.text, 'checklist')
+                      }}
                     >
                       {t('agent.applyChecklist')}
                     </button>
@@ -1462,7 +1544,10 @@ export function AgentPanel({
                       type="button"
                       className="library-chat-chip"
                       disabled={loading}
-                      onClick={() => queueInsertPreview(message.text, 'frontmatter')}
+                      onClick={() => {
+                        armPlanFeedback(message)
+                        queueInsertPreview(message.text, 'frontmatter')
+                      }}
                     >
                       {t('agent.applyFrontmatter')}
                     </button>
@@ -1546,6 +1631,7 @@ export function AgentPanel({
                           disabled={loading}
                           onClick={() => {
                             if (/^apply spelling fixes$/i.test(item.trim())) {
+                              armPlanFeedback(message)
                               void applyFromSteps(message.text, message.steps)
                               return
                             }

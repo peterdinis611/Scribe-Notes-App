@@ -201,6 +201,7 @@ export function AgentSection() {
   const [pinInput, setPinInput] = useState('')
   const [teachScope, setTeachScope] = useState<AgentTeachingScope>('global')
   const [teachTopic, setTeachTopic] = useState<AgentTeachingTopic>('general')
+  const [teachAgentId, setTeachAgentId] = useState<AgentRoleId>('general')
   const [teachWithAi, setTeachWithAi] = useState(true)
   const [teachBusy, setTeachBusy] = useState(false)
   const [llmTeachReady, setLlmTeachReady] = useState<boolean | null>(null)
@@ -312,7 +313,7 @@ export function AgentSection() {
             scope: 'document',
             documentId: activeDocumentId,
             topic: teachTopic,
-            agentId: teachTopic === 'grammar' ? 'proofreader' : 'general',
+            agentId: teachTopic === 'grammar' ? 'proofreader' : teachAgentId,
           }),
         )
       } else {
@@ -320,7 +321,7 @@ export function AgentSection() {
           addAgentTeaching({
             text: result.text,
             topic: teachTopic,
-            agentId: teachTopic === 'grammar' ? 'proofreader' : 'general',
+            agentId: teachTopic === 'grammar' ? 'proofreader' : teachAgentId,
           }),
         )
       }
@@ -818,12 +819,36 @@ export function AgentSection() {
                 <button
                   type="button"
                   className={cn('library-chat-scope-tab', teachTopic === 'grammar' && 'is-active')}
-                  onClick={() => setTeachTopic('grammar')}
+                  onClick={() => {
+                    setTeachTopic('grammar')
+                    setTeachAgentId('proofreader')
+                  }}
                 >
                   {t('settings.agent.teachTopicGrammar')}
                 </button>
               </div>
             </div>
+            {teachTopic !== 'grammar' ? (
+              <div
+                className="agent-scope-switch agent-teach-role-switch"
+                role="group"
+                aria-label={t('settings.agent.teachAgentLabel')}
+              >
+                {AGENT_ROLES.map((role) => (
+                  <button
+                    key={role.id}
+                    type="button"
+                    className={cn(
+                      'library-chat-scope-tab',
+                      teachAgentId === role.id && 'is-active',
+                    )}
+                    onClick={() => setTeachAgentId(role.id)}
+                  >
+                    {t(role.labelKey)}
+                  </button>
+                ))}
+              </div>
+            ) : null}
             <p className="agent-settings-teach-hint">
               {teachTopic === 'grammar'
                 ? t('settings.agent.teachTopicGrammarHint')

@@ -65,6 +65,7 @@ export type AgentToolId =
   | 'library_report'
   | 'terminology_library'
   | 'files_answer'
+  | 'files_ingest'
   | 'save_template'
   | 'handoff'
 
@@ -103,6 +104,26 @@ export type AgentEpisode = {
   documentId?: string | null
 }
 
+export type AgentDigestSchedule = {
+  enabled: boolean
+  /** Local wall-clock HH:mm */
+  timeLocal: string
+  period: 'day' | 'week'
+  /** 0=Sun … 6=Sat — used when period is week */
+  weekday: number
+  /** Last successful auto-run (YYYY-MM-DD local) */
+  lastRunDate: string
+}
+
+export type CustomAgentRecipe = {
+  id: string
+  label: string
+  tools: AgentToolId[]
+  documentPreferred?: boolean
+  /** Optional specialist binding for dock filtering. */
+  roleId?: AgentRoleId
+}
+
 export type AgentPrefs = {
   /** Master switch — when false, agent UI/runtime refuses to run. */
   enabled: boolean
@@ -135,7 +156,21 @@ export type AgentPrefs = {
   runsTodayDate: string
   /** After save, queue a light document brief (preferFast tools). */
   autoRunOnSave: boolean
+  /** While the app is open, run digests at a local time. */
+  digestSchedule: AgentDigestSchedule
+  /** User-authored tool recipes (beyond built-ins). */
+  customRecipes: CustomAgentRecipe[]
 }
+
+export const DEFAULT_DIGEST_SCHEDULE: AgentDigestSchedule = {
+  enabled: false,
+  timeLocal: '08:00',
+  period: 'day',
+  weekday: 1,
+  lastRunDate: '',
+}
+
+export const AGENT_CUSTOM_RECIPES_MAX = 12
 
 export const DEFAULT_AGENT_PREFS: AgentPrefs = {
   enabled: true,
@@ -154,6 +189,8 @@ export const DEFAULT_AGENT_PREFS: AgentPrefs = {
   runsToday: 0,
   runsTodayDate: '',
   autoRunOnSave: false,
+  digestSchedule: { ...DEFAULT_DIGEST_SCHEDULE },
+  customRecipes: [],
 }
 
 const ALL_TOOLS: AgentToolId[] = [
@@ -202,9 +239,16 @@ const ALL_TOOLS: AgentToolId[] = [
   'library_report',
   'terminology_library',
   'files_answer',
+  'files_ingest',
   'save_template',
   'handoff',
 ]
+
+export function isAgentToolId(value: unknown): value is AgentToolId {
+  return isToolId(value)
+}
+
+export const AGENT_TOOL_IDS: AgentToolId[] = [...ALL_TOOLS]
 
 const HEAVY_TOOLS = new Set<AgentToolId>([
   'flashcards',
@@ -312,6 +356,75 @@ function normalizeEpisodes(raw: unknown): AgentEpisode[] {
     .slice(0, AGENT_EPISODES_MAX)
 }
 
+function normalizeTimeLocal(raw: unknown): string {
+  if (typeof raw !== 'string') return DEFAULT_DIGEST_SCHEDULE.timeLocal
+  const match = raw.trim().match(/^(\d{1,2}):(\d{2})$/)
+  if (!match) return DEFAULT_DIGEST_SCHEDULE.timeLocal
+  const hour = Math.min(23, Math.max(0, Number(match[1])))
+  const minute = Math.min(59, Math.max(0, Number(match[2])))
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+}
+
+function normalizeDigestSchedule(raw: unknown): AgentDigestSchedule {
+  if (!raw || typeof raw !== 'object') return { ...DEFAULT_DIGEST_SCHEDULE }
+  const input = raw as Partial<AgentDigestSchedule>
+  const weekday =
+    typeof input.weekday === 'number' && input.weekday >= 0 && input.weekday <= 6
+      ? Math.floor(input.weekday)
+      : DEFAULT_DIGEST_SCHEDULE.weekday
+  return {
+    enabled: Boolean(input.enabled),
+    timeLocal: normalizeTimeLocal(input.timeLocal),
+    period: input.period === 'week' ? 'week' : 'day',
+    weekday,
+    lastRunDate: typeof input.lastRunDate === 'string' ? input.lastRunDate.slice(0, 10) : '',
+  }
+}
+
+function normalizeCustomRecipes(raw: unknown): CustomAgentRecipe[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter((item): item is CustomAgentRecipe => {
+      if (!item || typeof item !== 'object') return false
+      const row = item as CustomAgentRecipe
+      return typeof row.id === 'string' && typeof row.label === 'string' && Array.isArray(row.tools)
+    })
+    .map((item) => {
+      const tools = item.tools.filter(isToolId).slice(0, 3)
+      const roleId =
+        item.roleId && (AGENT_ROLE_IDS as string[]).includes(item.roleId)
+          ? item.roleId
+          : undefined
+      return {
+        id: item.id.slice(0, 64),
+        label: item.label.trim().slice(0, 80),
+        tools,
+        documentPreferred: Boolean(item.documentPreferred),
+        roleId,
+      }
+    })
+    .filter((item) => item.label.length > 0 && item.tools.length > 0)
+    .slice(0, AGENT_CUSTOM_RECIPES_MAX)
+}
+
+export function createCustomRecipe(input: {
+  label: string
+  tools: AgentToolId[]
+  documentPreferred?: boolean
+  roleId?: AgentRoleId
+}): CustomAgentRecipe | null {
+  const label = input.label.trim().slice(0, 80)
+  const tools = input.tools.filter(isToolId).slice(0, 3)
+  if (label.length < 2 || tools.length === 0) return null
+  return {
+    id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    label,
+    tools,
+    documentPreferred: Boolean(input.documentPreferred),
+    roleId: input.roleId,
+  }
+}
+
 export function normalizeAgentPrefs(raw: unknown): AgentPrefs {
   if (!raw || typeof raw !== 'object') return { ...DEFAULT_AGENT_PREFS }
   const input = raw as Partial<AgentPrefs>
@@ -361,6 +474,8 @@ export function normalizeAgentPrefs(raw: unknown): AgentPrefs {
     runsToday,
     runsTodayDate: date === today ? today : '',
     autoRunOnSave: Boolean(input.autoRunOnSave),
+    digestSchedule: normalizeDigestSchedule(input.digestSchedule),
+    customRecipes: normalizeCustomRecipes(input.customRecipes),
   }
 }
 

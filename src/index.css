@@ -4767,6 +4767,29 @@ html.dark .editor-canvas::before {
   color: var(--color-muted-foreground);
 }
 
+.agent-plan-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.55rem;
+  margin: 0 0 0.45rem;
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--color-muted-foreground);
+}
+
+.agent-plan-source {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-accent) 75%, var(--color-foreground));
+}
+
+.agent-plan-label {
+  opacity: 0.9;
+  font-style: italic;
+}
+
 .agent-step-trace {
   margin: 0 0 0.65rem;
   padding: 0;
@@ -4774,6 +4797,11 @@ html.dark .editor-canvas::before {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.agent-teach-role-switch {
+  flex-wrap: wrap;
+  margin-top: 0.35rem;
 }
 
 .agent-step-trace-item {

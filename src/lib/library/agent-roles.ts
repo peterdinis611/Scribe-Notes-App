@@ -107,6 +107,7 @@ export const AGENT_ROLES: AgentRoleDefinition[] = [
       'brief',
       'dates',
       'files_answer',
+      'files_ingest',
       'tasks',
       'library_answer',
       'note_pulse',

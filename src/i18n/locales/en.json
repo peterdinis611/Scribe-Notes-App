@@ -1726,6 +1726,7 @@
       "teachTopicLabel": "Teaching type",
       "teachTopicGeneral": "General",
       "teachTopicGrammar": "Grammar",
+      "teachAgentLabel": "Teach which agent",
       "teachTopicGrammarHint": "Grammar rules guide the Spellcheck Agent and rewrite/polish tools.",
       "teachBadgeGrammar": "Grammar",
       "taughtGrammarToast": "Grammar rule taught",
@@ -2705,6 +2706,9 @@
     "run": "Agent run",
     "capabilitiesLabel": "Tools for this note",
     "stepTrace": "Tool steps",
+    "planSource": "Plan · {{source}}",
+    "feedbackDismiss": "Not useful",
+    "feedbackDismissed": "Thanks — won’t boost this plan",
     "starters": {
       "themes": "What themes show up across my notes?",
       "openLoops": "What open loops should I close?",

@@ -377,14 +377,48 @@ def match_agent_intents(goal: str, *, max_tools: int = _AGENT_TOOL_LIMIT) -> lis
     return [tool for tool, _score in match_agent_intents_scored(goal, max_tools=max_tools)]
 
 
+def _default_clarify_options(scope: str) -> list[str]:
+    if scope == "document":
+        return ["summarize", "takeaways", "tasks", "dates", "document_answer"]
+    return ["dates", "duplicates", "citations", "library_answer", "brief"]
+
+
+def _clarify_from_jepa_candidates(jepa: dict[str, Any] | None, scope: str) -> list[str]:
+    """Prefer top JEPA candidate primary tools over the fixed clarify list."""
+    candidates = (jepa or {}).get("candidates") or []
+    options: list[str] = []
+    for cand in candidates[:5]:
+        if not isinstance(cand, dict):
+            continue
+        tools = cand.get("tools") or []
+        primary = None
+        if isinstance(tools, list) and tools:
+            primary = str(tools[0]).strip()
+        elif cand.get("tool"):
+            primary = str(cand.get("tool")).strip()
+        if primary and primary not in options:
+            options.append(primary)
+        if len(options) >= 3:
+            break
+    if options:
+        return options
+    return _default_clarify_options(scope)
+
+
 def plan_agent_goal(
     goal: str,
     *,
     scope: str = "document",
     max_tools: int = _AGENT_TOOL_LIMIT,
     llm: dict[str, Any] | None = None,
+    role: str | None = None,
+    context: str | None = None,
+    allowed_tools: list[str] | None = None,
+    handoffs: list[str] | None = None,
+    feedback_tools: list[list[str]] | None = None,
+    jepa_embed_fn: Any | None = None,
 ) -> dict[str, Any]:
-    """Plan Local Agent tools from a free-form goal (EN/SK heuristics + optional LLM)."""
+    """Plan Local Agent tools from a free-form goal (EN/SK + JEPA-like + optional LLM)."""
     trimmed = (goal or "").strip()
     scope_norm = "library" if str(scope or "").lower().startswith("lib") else "document"
     limit = max(1, min(int(max_tools or _AGENT_TOOL_LIMIT), 6))
@@ -401,8 +435,17 @@ def plan_agent_goal(
             "similar",
             "library_answer",
             "brief",
+            "library_report",
+            "terminology_library",
+            "open_loops",
+            "files_answer",
+            "handoff",
         }
         scored = [(tool, score) for tool, score in scored if tool in library_ok]
+
+    if allowed_tools:
+        allow = {str(item) for item in allowed_tools}
+        scored = [(tool, score) for tool, score in scored if tool in allow]
 
     tools = [tool for tool, _score in scored]
     tool_scores = [{"tool": tool, "score": score} for tool, score in scored]
@@ -410,7 +453,57 @@ def plan_agent_goal(
     source = "python"
     needs = len(tools) == 0 or confidence < 0.48
 
-    if llm and (needs or confidence < 0.62):
+    # JEPA-like latent ranking — prefer when confidence clears the threshold.
+    jepa_meta: dict[str, Any] | None = None
+    jepa_full: dict[str, Any] | None = None
+    try:
+        from .decision_jepa import score_decision_plans, should_prefer_jepa
+
+        jepa = score_decision_plans(
+            trimmed,
+            scope=scope_norm,
+            max_tools=limit,
+            role=role,
+            context=context,
+            handoffs=handoffs,
+            feedback_tools=feedback_tools,
+            allowed_tools=allowed_tools,
+            embed_fn=jepa_embed_fn,
+        )
+        jepa_full = jepa
+        jepa_meta = {
+            "confidence": jepa.get("confidence"),
+            "margin": jepa.get("margin"),
+            "topLabel": jepa.get("topLabel"),
+            "ready": jepa.get("ready"),
+            "candidates": jepa.get("candidates") or [],
+        }
+        if should_prefer_jepa(jepa):
+            tools = list(jepa.get("tools") or [])
+            tool_scores = list(jepa.get("toolScores") or [])
+            confidence = float(jepa.get("confidence") or 0.0)
+            source = "jepa"
+            needs = len(tools) == 0
+        elif needs and jepa.get("ready") and jepa.get("tools"):
+            # Weak keyword match — use JEPA as soft fill even below prefer threshold
+            # when keywords produced nothing useful.
+            if confidence < 0.48:
+                tools = list(jepa.get("tools") or [])
+                tool_scores = list(jepa.get("toolScores") or [])
+                confidence = float(jepa.get("confidence") or 0.0)
+                source = "jepa"
+                needs = len(tools) == 0
+    except Exception:
+        jepa_meta = None
+        jepa_full = None
+
+    # LLM last resort — skip when JEPA already won with a clear latent signal.
+    jepa_margin = float((jepa_meta or {}).get("margin") or 0.0)
+    jepa_locked = source == "jepa" and (
+        (confidence >= 0.72 and jepa_margin >= 0.01)
+        or (confidence >= 0.55 and jepa_margin >= 0.03)
+    )
+    if llm and (needs or confidence < 0.62) and not jepa_locked:
         llm_plan = _try_llm_plan(trimmed, scope=scope_norm, limit=limit, llm=llm)
         if llm_plan:
             tools = llm_plan["tools"]
@@ -419,22 +512,31 @@ def plan_agent_goal(
             needs = len(tools) == 0
             source = "llm"
 
-    return {
+    needs_clarify = needs and len(tools) == 0
+    clarify_options = (
+        _clarify_from_jepa_candidates(jepa_full, scope_norm) if needs_clarify else []
+    )
+    clarify_labels: list[str] = []
+    if needs_clarify and jepa_full:
+        for cand in (jepa_full.get("candidates") or [])[:3]:
+            if isinstance(cand, dict) and cand.get("label"):
+                clarify_labels.append(str(cand["label"]))
+
+    result: dict[str, Any] = {
         "goal": trimmed,
         "scope": scope_norm,
-        "tools": [] if needs and len(tools) == 0 else tools,
+        "tools": [] if needs_clarify else tools,
         "toolScores": tool_scores,
         "confidence": confidence,
-        "needsClarification": needs and len(tools) == 0,
-        "clarifyOptions": (
-            ["summarize", "takeaways", "tasks", "dates", "document_answer"]
-            if scope_norm == "document"
-            else ["dates", "duplicates", "citations", "library_answer", "brief"]
-        )
-        if needs and len(tools) == 0
-        else [],
+        "needsClarification": needs_clarify,
+        "clarifyOptions": clarify_options,
+        "clarifyLabels": clarify_labels,
         "source": source,
+        "topLabel": (jepa_meta or {}).get("topLabel") if source == "jepa" else None,
     }
+    if jepa_meta is not None:
+        result["jepa"] = jepa_meta
+    return result
 
 
 _ALLOWED_PLAN_TOOLS = {
