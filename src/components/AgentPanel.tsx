@@ -569,7 +569,7 @@ export function AgentPanel({
         const digestGoal =
           /folder \(7 days\)|priečinku \(7 dní\)|priecinku \(7 dni\)/i.test(trimmed) ||
           /what.?s new in this folder|čo je nové v priečinku/i.test(trimmed)
-        const libraryRecipes = new Set<AgentRecipeId>([
+        const libraryRecipes = new Set<string>([
           'daily_digest',
           'weekly_review',
           'files_digest',
@@ -587,6 +587,9 @@ export function AgentPanel({
                 steps: [{ tool: 'brief' as AgentToolId, status: 'ok' as const, detail: 'folder-digest' }],
                 followups: answer.followups,
                 needsClarification: false as const,
+                clarifyOptions: undefined as AgentToolId[] | undefined,
+                clarifyLabels: undefined as string[] | undefined,
+                planMeta: undefined as AgentPlanMeta | undefined,
                 nextPrefs: null,
               }))
             : await withLlmChunkListener(
@@ -891,7 +894,7 @@ export function AgentPanel({
           folderId: activeDocument?.folderId ?? null,
           dispatch,
           navigate: (route) => {
-            void navigate({ to: route })
+            void navigate(route)
           },
         })
         toast.success(t('agent.spawnNoteDone'), doc.title)
@@ -952,7 +955,7 @@ export function AgentPanel({
           folderId: activeDocument?.folderId ?? null,
           dispatch,
           navigate: (route) => {
-            void navigate({ to: route })
+            void navigate(route)
           },
         })
         if (!created.length) {
