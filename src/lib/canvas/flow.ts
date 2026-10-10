@@ -7,6 +7,8 @@ import {
   type CanvasEdge,
 } from '@/lib/canvas/types'
 
+/** Keep in sync with `crates/scribe-ui/src/canvas_flow.rs`. */
+
 export const CANVAS_NOTE_TYPE = 'note' as const
 
 export type CanvasNoteData = {

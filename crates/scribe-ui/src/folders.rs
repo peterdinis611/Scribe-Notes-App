@@ -71,6 +71,46 @@ pub fn folder_path_label(folders: &[FolderNode], folder_id: Option<&str>, root_l
     }
 }
 
+fn normalize_tag(value: &str) -> String {
+    value.trim().to_lowercase()
+}
+
+/// Suggest a folder by matching tag/suggestion terms to folder names
+/// (`src/lib/library/auto-organize.ts` offline fallback).
+pub fn suggest_folder_from_tags<'a>(
+    folders: &'a [FolderNode],
+    terms: &[String],
+) -> Option<&'a FolderNode> {
+    let needles: Vec<String> = terms
+        .iter()
+        .map(|t| normalize_tag(t))
+        .filter(|t| !t.is_empty())
+        .collect();
+    if needles.is_empty() {
+        return None;
+    }
+
+    let mut best: Option<(&FolderNode, i32)> = None;
+    for folder in folders {
+        let name = normalize_tag(&folder.name);
+        if name.is_empty() {
+            continue;
+        }
+        let mut score = 0;
+        for needle in &needles {
+            if name == *needle {
+                score += 3;
+            } else if name.contains(needle) || needle.contains(&name) {
+                score += 1;
+            }
+        }
+        if score > 0 && best.as_ref().map(|(_, s)| score > *s).unwrap_or(true) {
+            best = Some((folder, score));
+        }
+    }
+    best.map(|(folder, _)| folder)
+}
+
 pub fn collect_folder_subtree_ids(folders: &[FolderNode], root_id: &str) -> Vec<String> {
     let mut children: HashMap<&str, Vec<&str>> = HashMap::new();
     for folder in folders {
@@ -104,5 +144,24 @@ mod tests {
         assert_eq!(flat.len(), 2);
         assert_eq!(flat[1].depth, 1);
         assert_eq!(folder_path_label(&folders, Some("b"), "Root"), "A / B");
+    }
+
+    #[test]
+    fn suggests_folder_from_tags() {
+        let folders = vec![
+            FolderNode {
+                id: "work".into(),
+                name: "Work".into(),
+                parent_id: None,
+            },
+            FolderNode {
+                id: "personal".into(),
+                name: "Personal".into(),
+                parent_id: None,
+            },
+        ];
+        let terms = vec!["work".into(), "meeting".into()];
+        let hit = suggest_folder_from_tags(&folders, &terms).unwrap();
+        assert_eq!(hit.id, "work");
     }
 }

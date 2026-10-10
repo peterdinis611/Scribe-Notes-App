@@ -2,6 +2,7 @@ use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use super::UiSurfaceRequest;
+use crate::components::{FolioKicker, FolioTitle};
 use crate::docs_nav::{docs_groups, docs_topic_ids};
 use crate::render::i18n::{t, StringMap};
 
@@ -76,8 +77,8 @@ pub fn docs_view(props: DocsProps) -> Element {
 
     rsx! {
         div { class: "docs-shell",
-            p { class: "setup-folio-kicker", "{brand}" }
-            h1 { class: "setup-folio-title", "{page_title}" }
+            FolioKicker { text: brand }
+            FolioTitle { text: page_title }
             p { class: "lead", "{page_desc}" }
             input {
                 class: "docs-search",

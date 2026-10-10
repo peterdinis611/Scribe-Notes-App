@@ -4,6 +4,7 @@ mod i18n;
 mod shell;
 mod surfaces;
 
+pub use crate::components;
 pub use i18n::StringMap;
 pub use surfaces::{
     AboutProps, DocsProps, DocsTopicContent, PrivacyArticle, PrivacyProps, RecentDoc,

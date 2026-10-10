@@ -686,6 +686,8 @@ export type UiManifest = {
   documentStylePresetIds: string[]
   themePresetIds: string[]
   builtInLocales: string[]
+  paragraphStyleIds: string[]
+  headingLevels: number[]
 }
 
 export type AppVersionInfo = {
@@ -1019,6 +1021,148 @@ export const suggestOrphanLinksNative = (rows: unknown[]) =>
 
 export const resolveColorNative = (color: string, tokens: Record<string, string>) =>
   invoke<string>('resolve_color_ui', { color, tokens })
+
+export const mergeDuplicateContentNative = (
+  keepJson: string,
+  dropJson: string,
+  dropTitle: string,
+) => invoke<string>('merge_duplicate_content_ui', { keepJson, dropJson, dropTitle })
+
+export const flattenLibraryNative = (
+  folders: unknown[],
+  documents: unknown[],
+  expandedIds: string[],
+) => invoke<unknown[]>('flatten_library_ui', { folders, documents, expandedIds })
+
+export const estimateFlatItemSizeNative = (item: unknown) =>
+  invoke<number>('estimate_flat_item_size_ui', { item })
+
+export const parseCustomLocalePackNative = (
+  raw: string,
+  fallbackCode?: string | null,
+  fallbackName?: string | null,
+) =>
+  invoke<{ code: string; name: string; messages: Record<string, unknown> }>(
+    'parse_custom_locale_pack_ui',
+    {
+      raw,
+      fallbackCode: fallbackCode ?? null,
+      fallbackName: fallbackName ?? null,
+    },
+  )
+
+export const normalizeLocaleCodeNative = (raw: string) =>
+  invoke<string>('normalize_locale_code_ui', { raw })
+
+export const pdfHighlightsToContentJsonNative = (imported: {
+  fileName: string
+  pageCount: number
+  highlights: Array<{ page: number; text: string; color: string | null; subtype: string }>
+}) => invoke<unknown>('pdf_highlights_to_content_json_ui', { imported })
+
+export const mapToTiptapHighlightNative = (color?: string | null) =>
+  invoke<string>('map_to_tiptap_highlight_ui', { color: color ?? null })
+
+export const createCustomTemplateNative = (input: {
+  name: string
+  description?: string
+  category: string
+  title: string
+  content: unknown
+}) => invoke<unknown>('create_custom_template_ui', { input })
+
+export const parseStoredCustomTemplatesNative = (raw: unknown) =>
+  invoke<unknown[]>('parse_stored_custom_templates_ui', { raw })
+
+export const cardsToNodesNative = (cards: unknown[]) =>
+  invoke<unknown[]>('cards_to_nodes_ui', { cards })
+
+export const canvasEdgesToFlowNative = (edges: unknown[]) =>
+  invoke<unknown[]>('canvas_edges_to_flow_ui', { edges })
+
+export const flowToCanvasDocumentNative = (nodes: unknown[], edges: unknown[]) =>
+  invoke<unknown>('flow_to_canvas_document_ui', { nodes, edges })
+
+export const resolvePanelWidthsNative = (args: {
+  sidebarRaw?: string | null
+  editorRaw?: string | null
+  tocRaw?: string | null
+  viewportWidth?: number | null
+  editorMinWidth?: number | null
+}) =>
+  invoke<{ sidebar: number; editorPanel: number; tocRail: number }>('resolve_panel_widths_ui', {
+    sidebarRaw: args.sidebarRaw ?? null,
+    editorRaw: args.editorRaw ?? null,
+    tocRaw: args.tocRaw ?? null,
+    viewportWidth: args.viewportWidth ?? null,
+    editorMinWidth: args.editorMinWidth ?? null,
+  })
+
+export const clampTocRailWidthNative = (
+  value: number,
+  viewportWidth?: number | null,
+  sidebarWidth?: number | null,
+) =>
+  invoke<number>('clamp_toc_rail_width_ui', {
+    value,
+    viewportWidth: viewportWidth ?? null,
+    sidebarWidth: sidebarWidth ?? null,
+  })
+
+export const planThemeApplicationNative = (
+  settings: { themeId: string; customTheme?: Record<string, string> | null },
+  skin: string,
+  prefersDark: boolean,
+) =>
+  invoke<{
+    cssVars: Array<{ name: string; value: string }>
+    dataTheme: string
+    isDark: boolean
+    colorScheme: string
+    resolvedId: string
+    skin: string
+  }>('plan_theme_application_ui', { settings, skin, prefersDark })
+
+export const resolveThemeColorsNative = (
+  settings: { themeId: string; customTheme?: Record<string, string> | null },
+  prefersDark: boolean,
+) =>
+  invoke<{
+    colors: Record<string, string>
+    colorScheme: string
+    resolvedId: string
+  }>('resolve_theme_colors_ui', { settings, prefersDark })
+
+export const isDarkColorNative = (color: string) =>
+  invoke<boolean>('is_dark_color_ui', { color })
+
+export const buildHeaderFooterLinesNative = (
+  config: {
+    enabled: boolean
+    headerText: string
+    footerText: string
+    showPageNumber: boolean
+  },
+  context: { title: string; page: number; pages: number; date: string },
+  paginationSummary: string,
+) =>
+  invoke<{ header: string; footer: string }>('build_header_footer_lines_ui', {
+    config,
+    context,
+    paginationSummary,
+  })
+
+export const resolveHeaderFooterTemplateNative = (
+  template: string,
+  context: { title: string; page: number; pages: number; date: string },
+) => invoke<string>('resolve_header_footer_template_ui', { template, context })
+
+export const formatExportDateNative = (
+  year: number,
+  month: number,
+  day: number,
+  language: string,
+) => invoke<string>('format_export_date_ui', { year, month, day, language })
 
 export type UiSurfaceId = 'whats-new' | 'welcome' | 'privacy' | 'about' | 'docs'
 

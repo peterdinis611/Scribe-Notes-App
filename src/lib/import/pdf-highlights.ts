@@ -1,5 +1,9 @@
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist'
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+import { pdfHighlightsToContentJsonNative } from '@/lib/db/api'
+import { isTauriRuntime } from '@/lib/tauri'
+
+/** Pure helpers keep in sync with `crates/scribe-ui/src/pdf_highlights.rs` (pdf.js extraction stays here). */
 
 if (!GlobalWorkerOptions.workerSrc) {
   GlobalWorkerOptions.workerSrc = pdfWorkerUrl
@@ -184,4 +188,18 @@ export function pdfHighlightsToContentJson(imported: PdfHighlightsImport): Recor
   }
 
   return { type: 'doc', content }
+}
+
+/** Prefer Rust `scribe-ui` under Tauri; otherwise JS fallback. */
+export async function pdfHighlightsToContentJsonAsync(
+  imported: PdfHighlightsImport,
+): Promise<Record<string, unknown>> {
+  if (isTauriRuntime()) {
+    try {
+      return (await pdfHighlightsToContentJsonNative(imported)) as Record<string, unknown>
+    } catch {
+      /* fall through */
+    }
+  }
+  return pdfHighlightsToContentJson(imported)
 }

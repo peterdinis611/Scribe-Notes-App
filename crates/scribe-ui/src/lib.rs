@@ -2,10 +2,14 @@
 
 mod agent_catalog;
 mod canvas_doc;
+mod canvas_flow;
 mod code_languages;
+mod custom_locales;
+mod custom_templates;
 mod diff_filters;
 mod doc_stats;
 mod docs_nav;
+mod document_ask;
 mod document_style_presets;
 mod document_styles;
 mod editor_catalogs;
@@ -17,22 +21,30 @@ mod folders;
 mod fuzzy;
 mod global_shortcuts;
 mod graph;
+mod heading_levels;
 mod html_content;
 mod ics;
 mod import_path;
 mod journal_dates;
 mod layout;
+mod layout_panels;
+mod library_tree;
 mod locale_options;
 mod locale_sections;
 mod lorem;
+mod lru_cache;
 mod map_spec;
 mod markdown;
 mod markdown_outline;
 mod markdown_promote;
 mod marketplace_catalog;
+mod merge_duplicates;
 mod orphan_links;
+mod page_header_footer;
 mod page_setup;
 mod palette_headings;
+mod paragraph_styles;
+mod pdf_highlights;
 mod plugin_presets;
 mod privacy;
 mod reorder;
@@ -52,6 +64,7 @@ mod template_categories;
 mod template_packs;
 mod templates_catalog;
 mod theme;
+mod theme_apply;
 mod theme_presets;
 mod tour_selectors;
 mod ui_fonts;
@@ -59,6 +72,8 @@ mod version;
 mod video_embed;
 mod whats_new;
 
+#[cfg(feature = "dioxus")]
+pub mod components;
 #[cfg(feature = "dioxus")]
 pub mod render;
 
@@ -68,15 +83,36 @@ pub use agent_catalog::{
 };
 pub use canvas_doc::{
     empty_canvas_document, is_canvas_content, parse_canvas_document, serialize_canvas_document,
-    CanvasDocument, CANVAS_CONTENT_TYPE, CANVAS_VERSION,
+    CanvasCard, CanvasDocument, CanvasEdge, CANVAS_CONTENT_TYPE, CANVAS_VERSION,
+};
+pub use canvas_flow::{
+    canvas_edges_to_flow, cards_to_nodes, create_note_node, create_note_node_with_id,
+    flow_to_canvas_document, CanvasNoteData, CanvasNoteNode, FlowEdge, FlowMeasured, FlowNode,
+    FlowPosition, FlowSize, CANVAS_EDGE_TYPE, CANVAS_NOTE_TYPE,
 };
 pub use code_languages::{
     filter_code_languages, humanize_language_id, pinned_language_ids, resolve_code_language_alias,
     CodeLanguage, PINNED_LANGUAGE_IDS,
 };
+pub use custom_locales::{
+    count_leaves, guess_code_from_file_name, is_built_in_locale_code, is_valid_locale_code,
+    normalize_locale_code, parse_custom_locale_pack, serialize_custom_locale_pack, CustomLocaleError,
+    CustomLocalePack, ParseLocaleOptions, MAX_LOCALE_CODE_LEN, MAX_LOCALE_JSON_CHARS,
+    MAX_LOCALE_NAME_LEN, MIN_TRANSLATION_LEAVES,
+};
+pub use custom_templates::{
+    create_custom_template, is_custom_template, merge_templates, parse_stored_custom_templates,
+    CustomDocumentTemplate, CustomTemplateInput, CUSTOM_TEMPLATE_ID_PREFIX,
+    DEFAULT_TEMPLATE_CATEGORY,
+};
 pub use diff_filters::{
-    count_diff_changes, filter_diff_lines, filter_diff_lines_with_context, DiffChangeCounts,
-    DiffLine, CURRENT_REVISION_ID,
+    count_diff_changes, filter_diff_lines, filter_diff_lines_with_context,
+    filter_side_by_side_rows, filter_side_by_side_with_context, normalize_side_by_side_rows,
+    DiffChangeCounts, DiffLine, SideBySideCell, SideBySideRow, CURRENT_REVISION_ID,
+};
+pub use document_ask::{
+    build_document_ask_actions, build_document_ask_questions, AskAnalysisInput, AskDate,
+    AskKeyword, AskOutlineItem, AskTaskInput, DocumentAskOptions,
 };
 pub use doc_stats::{
     count_characters, count_words, extract_title_from_content,
@@ -89,7 +125,7 @@ pub use docs_nav::{
 pub use document_style_presets::{
     apply_document_style_preset, default_document_typography, default_page_setup,
     document_style_preset_ids, document_style_presets, get_document_style_preset,
-    DocumentStylePreset, PageSetup,
+    DocumentStylePreset, PageHeaderFooter, PageSetup,
 };
 pub use document_styles::{
     build_document_content_css, build_watermark_css, document_content_css,
@@ -106,8 +142,8 @@ pub use export_colors::color_for_export;
 pub use filenames::{sanitize_file_name, sanitize_file_stem};
 pub use flashcards::{flashcards_to_anki_tsv, flashcards_to_markdown, FlashcardInput};
 pub use folders::{
-    collect_folder_subtree_ids, flatten_folders_for_picker, folder_path_label, FolderNode,
-    FolderPickerItem,
+    collect_folder_subtree_ids, flatten_folders_for_picker, folder_path_label,
+    suggest_folder_from_tags, FolderNode, FolderPickerItem,
 };
 pub use fuzzy::{fuzzy_rank_strings, FuzzyRankHit, FuzzyRankItem};
 pub use global_shortcuts::{
@@ -116,6 +152,9 @@ pub use global_shortcuts::{
 pub use graph::{
     analyze_graph_density, is_untitled_orphan_title, partition_orphans, suggested_layout_size,
     GraphDensity, OrphanRow,
+};
+pub use heading_levels::{
+    heading_label, heading_levels, is_heading_level, HeadingLevel, HEADING_LEVELS,
 };
 pub use html_content::{
     empty_doc_json, normalize_doc_json, plain_text_to_content_json, title_from_html,
@@ -131,9 +170,21 @@ pub use layout::{
     EDITOR_PANEL_WIDTH_DEFAULT, EDITOR_PANEL_WIDTH_MAX, EDITOR_PANEL_WIDTH_MIN,
     SIDEBAR_WIDTH_DEFAULT, SIDEBAR_WIDTH_MAX, SIDEBAR_WIDTH_MIN,
 };
+pub use layout_panels::{
+    clamp_toc_rail_width, editor_side_room, occupied_library_width, read_editor_panel_width,
+    read_sidebar_width, read_toc_rail_width, resolve_panel_widths, resolve_panel_widths_default,
+    width_css_var, PanelWidths, DEFAULT_VIEWPORT_WIDTH, EDITOR_PANEL_WIDTH_CSS_VAR,
+    EDITOR_PANEL_WIDTH_KEY, SIDEBAR_WIDTH_CSS_VAR, SIDEBAR_WIDTH_KEY, TOC_RAIL_WIDTH_CSS_VAR,
+    TOC_RAIL_WIDTH_DEFAULT, TOC_RAIL_WIDTH_KEY, TOC_RAIL_WIDTH_MAX, TOC_RAIL_WIDTH_MIN,
+};
+pub use library_tree::{
+    build_tree, estimate_flat_item_size, flatten_library, flatten_tree, FlatTreeItem,
+    LibraryDocument, LibraryFolder, TreeNode, DOCUMENT_ROW_HEIGHT, FOLDER_ROW_HEIGHT,
+};
 pub use locale_options::{build_locale_options, CustomLocaleInput, LocaleOption, BUILT_IN_LOCALES, DEFAULT_LOCALE};
 pub use locale_sections::{locale_section_group_ids, locale_section_groups, LocaleSectionGroup};
 pub use lorem::{generate_lorem_ipsum, normalize_lorem_options, LoremOptions, LoremUnit};
+pub use lru_cache::{LruCache, LruCacheOptions, LruCacheStats, LruEvictReason};
 pub use map_spec::{
     is_map_url, map_embed_href, map_osm_href, map_preview_label, parse_map_spec, spec_from_map_url,
     MapSpec, MAP_DEFAULT_SOURCE,
@@ -145,10 +196,27 @@ pub use marketplace_catalog::{
     check_plugin_updates, list_marketplace_by_kind, list_marketplace_listings, MarketplaceListing,
     MarketplaceStatus, PluginUpdate, MARKETPLACE_STATUS,
 };
+pub use merge_duplicates::{merge_duplicate_content, merge_duplicate_content_value};
 pub use orphan_links::{suggest_orphan_links, OrphanLinkSuggestion, OrphanSuggestionRow};
+pub use page_header_footer::{
+    build_header_footer_lines, format_export_date, format_export_date_today,
+    format_pagination_summary, pagination_summary_template, resolve_header_footer_template,
+    HeaderFooterContext, HeaderFooterLines, PAGINATION_SUMMARY_EN, PAGINATION_SUMMARY_SK,
+};
+pub use page_header_footer::px_to_pt as header_footer_px_to_pt;
 pub use page_setup::{
     default_margins, paper_size_ids, paper_sizes, resolve_page_layout, PageMargins, PaperSize,
     PaperSizeId, ResolvedPageLayout,
+};
+pub use paragraph_styles::{
+    is_paragraph_style_id, paragraph_style_ids, paragraph_styles, resolve_paragraph_style,
+    ParagraphStyleAttrs, ParagraphStyleDef, ParagraphStyleId, PARAGRAPH_STYLE_IDS,
+};
+pub use pdf_highlights::{
+    extract_text_from_quad_points, highlight_from_annotation, is_highlight_subtype,
+    map_to_tiptap_highlight, parse_rgb_triplet, pdf_highlights_to_content_json, rgba_to_css,
+    PdfHighlightAnnotation, PdfHighlightsImport, PdfTextItem, DEFAULT_HIGHLIGHT_HEX,
+    HIGHLIGHT_SUBTYPES,
 };
 pub use palette_headings::collect_headings_from_json;
 pub use plugin_presets::{
@@ -199,10 +267,14 @@ pub use templates_catalog::{
     BUILT_IN_TEMPLATE_CATEGORIES, NEW_CATEGORY_SELECT_VALUE,
 };
 pub use theme::{generate_random_theme, ColorScheme, ThemeColors};
+pub use theme_apply::{
+    cycle_theme_id, is_dark_color, plan_theme_application, resolve_theme_colors, resolve_theme_id,
+    CssVar, ResolvedTheme, ThemeApplication,
+};
 pub use theme_presets::{
     default_custom_theme, get_preset_by_id, is_theme_id, next_cycle_theme, theme_preset_ids,
-    theme_presets, ThemeColorField, ThemePreset, ThemeSettings, CYCLE_THEME_ORDER,
-    THEME_COLOR_FIELDS,
+    theme_presets, ThemeColorField, ThemeColorScheme, ThemePreset, ThemeSettings, CYCLE_THEME_ORDER,
+    THEME_COLOR_FIELDS, THEME_ID_CUSTOM, THEME_ID_SYSTEM,
 };
 pub use tour_selectors::{is_tour_id, tour_selector, tour_target_ids, TOUR_TARGETS};
 pub use ui_fonts::{
@@ -254,6 +326,8 @@ pub struct UiManifest {
     pub document_style_preset_ids: Vec<String>,
     pub theme_preset_ids: Vec<String>,
     pub built_in_locales: Vec<String>,
+    pub paragraph_style_ids: Vec<String>,
+    pub heading_levels: Vec<u8>,
 }
 
 pub fn ui_manifest() -> UiManifest {
@@ -286,6 +360,8 @@ pub fn ui_manifest() -> UiManifest {
         document_style_preset_ids: document_style_preset_ids(),
         theme_preset_ids: theme_preset_ids(),
         built_in_locales: BUILT_IN_LOCALES.iter().map(|s| (*s).to_string()).collect(),
+        paragraph_style_ids: paragraph_style_ids(),
+        heading_levels: heading_levels(),
     }
 }
 
@@ -313,5 +389,7 @@ mod tests {
         assert!(m.document_style_preset_ids.contains(&"academic".to_string()));
         assert!(!m.theme_preset_ids.is_empty());
         assert!(m.built_in_locales.contains(&"sk".to_string()));
+        assert!(m.paragraph_style_ids.contains(&"title".to_string()));
+        assert_eq!(m.heading_levels, vec![1, 2, 3, 4, 5, 6]);
     }
 }

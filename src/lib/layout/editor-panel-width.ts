@@ -1,6 +1,7 @@
 import { SIDEBAR_RAIL_WIDTH, readSidebarWidth } from '@/lib/layout/sidebar-width'
 import { kvGet, kvSet } from '@/lib/storage/kv'
 
+/** Clamp/read helpers keep in sync with `crates/scribe-ui/src/layout_panels.rs`. */
 // Keep in sync with Tailwind `xl` / SIDEBAR_DRAWER_BREAKPOINT — library is overlay below this.
 const LIBRARY_IN_FLOW_MIN_WIDTH = 1280
 
