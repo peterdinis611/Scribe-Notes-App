@@ -1,19 +1,30 @@
-//! Scribe UI domain — version chrome, Whats New, settings nav, theme/ICS/fuzzy helpers.
+//! Scribe UI domain — catalogs, helpers, and optional Dioxus chrome surfaces.
 
+mod agent_catalog;
+mod code_languages;
+mod diff_filters;
 mod docs_nav;
 mod error;
 mod export_colors;
 mod flashcards;
+mod folders;
 mod fuzzy;
+mod graph;
 mod ics;
 mod layout;
+mod markdown;
+mod page_setup;
+mod plugin_presets;
 mod privacy;
 mod reorder;
 mod settings_nav;
+mod shortcuts;
 mod skin;
 mod smart_filters;
 mod snippet;
 mod tag_colors;
+mod tag_meta;
+mod templates_catalog;
 mod theme;
 mod version;
 mod whats_new;
@@ -21,6 +32,18 @@ mod whats_new;
 #[cfg(feature = "dioxus")]
 pub mod render;
 
+pub use agent_catalog::{
+    agent_recipe_ids, agent_recipes, agent_role_ids, is_agent_recipe_id, is_agent_role_id,
+    AgentRecipeDef, AGENT_RECIPE_IDS, AGENT_ROLE_IDS,
+};
+pub use code_languages::{
+    filter_code_languages, humanize_language_id, pinned_language_ids, resolve_code_language_alias,
+    CodeLanguage, PINNED_LANGUAGE_IDS,
+};
+pub use diff_filters::{
+    count_diff_changes, filter_diff_lines, filter_diff_lines_with_context, DiffChangeCounts,
+    DiffLine, CURRENT_REVISION_ID,
+};
 pub use docs_nav::{
     docs_groups, docs_quick_links, docs_topic_ids, is_docs_topic, DocsGroup, DOCS_QUICK_LINKS,
     DOCS_TOPIC_IDS,
@@ -28,16 +51,36 @@ pub use docs_nav::{
 pub use error::UiError;
 pub use export_colors::color_for_export;
 pub use flashcards::{flashcards_to_anki_tsv, flashcards_to_markdown, FlashcardInput};
+pub use folders::{
+    collect_folder_subtree_ids, flatten_folders_for_picker, folder_path_label, FolderNode,
+    FolderPickerItem,
+};
 pub use fuzzy::{fuzzy_rank_strings, FuzzyRankHit, FuzzyRankItem};
+pub use graph::{
+    analyze_graph_density, is_untitled_orphan_title, partition_orphans, suggested_layout_size,
+    GraphDensity, OrphanRow,
+};
 pub use ics::{build_ics_calendar, IcsEventInput};
 pub use layout::{
     clamp_editor_panel_width, clamp_sidebar_width, next_editor_panel_width_on_double_click,
     EDITOR_PANEL_WIDTH_DEFAULT, EDITOR_PANEL_WIDTH_MAX, EDITOR_PANEL_WIDTH_MIN,
     SIDEBAR_WIDTH_DEFAULT, SIDEBAR_WIDTH_MAX, SIDEBAR_WIDTH_MIN,
 };
+pub use markdown::tiptap_json_to_markdown;
+pub use page_setup::{
+    default_margins, paper_size_ids, paper_sizes, resolve_page_layout, PageMargins, PaperSize,
+    PaperSizeId, ResolvedPageLayout,
+};
+pub use plugin_presets::{
+    category_for_plugin_id, plugin_preset_ids, plugin_presets, PluginPreset,
+};
 pub use privacy::{privacy_article_ids, PRIVACY_ARTICLE_IDS, PRIVACY_EFFECTIVE_DATE};
 pub use reorder::{can_nest_folder, move_id_before, FolderNestNode};
 pub use settings_nav::{is_settings_section, settings_section_ids, SettingsSection};
+pub use shortcuts::{
+    app_shortcut_bindings, get_resolved_hotkey, hotkey_to_display_keys, shortcut_ids,
+    AppShortcutBinding,
+};
 pub use skin::{
     is_ui_skin, normalize_ui_skin, ui_skin_ids, UiSkin, UI_SKIN_STORAGE_KEY,
 };
@@ -47,6 +90,14 @@ pub use smart_filters::{
 };
 pub use snippet::sanitize_snippet;
 pub use tag_colors::color_for_tag;
+pub use tag_meta::{
+    document_matches_meta_filters, make_meta_tag, parse_tag, status_tag_values, MetaFilters,
+    ParsedTag, TagKind, STATUS_TAG_VALUES,
+};
+pub use templates_catalog::{
+    built_in_template_categories, is_built_in_category, is_custom_category_id, is_valid_category_id,
+    BUILT_IN_TEMPLATE_CATEGORIES, NEW_CATEGORY_SELECT_VALUE,
+};
 pub use theme::{generate_random_theme, ColorScheme, ThemeColors};
 pub use version::{app_version_info, short_version, AppVersionInfo, APP_VERSION};
 pub use whats_new::{whats_new_highlights, EDITION_MARK_KEY, WHATS_NEW_34_HIGHLIGHTS};
@@ -75,6 +126,14 @@ pub struct UiManifest {
     pub docs_groups: Vec<DocsGroup>,
     pub ui_skin_ids: Vec<String>,
     pub smart_filter_ids: Vec<String>,
+    pub shortcut_ids: Vec<String>,
+    pub agent_role_ids: Vec<String>,
+    pub agent_recipe_ids: Vec<String>,
+    pub template_category_ids: Vec<String>,
+    pub plugin_preset_ids: Vec<String>,
+    pub status_tag_values: Vec<String>,
+    pub paper_size_ids: Vec<String>,
+    pub pinned_language_ids: Vec<String>,
 }
 
 pub fn ui_manifest() -> UiManifest {
@@ -92,6 +151,14 @@ pub fn ui_manifest() -> UiManifest {
         docs_groups: docs_groups(),
         ui_skin_ids: ui_skin_ids(),
         smart_filter_ids: smart_filter_ids(),
+        shortcut_ids: shortcut_ids(),
+        agent_role_ids: agent_role_ids(),
+        agent_recipe_ids: agent_recipe_ids(),
+        template_category_ids: built_in_template_categories(),
+        plugin_preset_ids: plugin_preset_ids(),
+        status_tag_values: status_tag_values(),
+        paper_size_ids: paper_size_ids(),
+        pinned_language_ids: pinned_language_ids(),
     }
 }
 
@@ -108,5 +175,9 @@ mod tests {
         assert_eq!(m.docs_topic_ids.len(), 15);
         assert!(m.ui_skin_ids.contains(&"grove".to_string()));
         assert!(m.smart_filter_ids.contains(&"untagged".to_string()));
+        assert!(m.shortcut_ids.contains(&"commandPalette".to_string()));
+        assert!(m.agent_role_ids.contains(&"general".to_string()));
+        assert!(m.template_category_ids.contains(&"general".to_string()));
+        assert!(m.plugin_preset_ids.contains(&"writing".to_string()));
     }
 }

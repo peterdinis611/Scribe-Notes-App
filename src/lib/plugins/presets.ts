@@ -1,5 +1,5 @@
 /**
- * First-party plugin presets — enable/disable a recommended set at once.
+ * First-party plugin presets — catalog mirrored in `scribe_ui::plugin_presets`.
  */
 
 import { listPlugins, setPluginActive } from '@/lib/plugins/registry'

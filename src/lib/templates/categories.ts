@@ -1,5 +1,6 @@
 import i18n from '@/i18n'
 
+/** Keep in sync with `scribe_ui::templates_catalog`. */
 export const BUILT_IN_TEMPLATE_CATEGORIES = [
   'general',
   'business',

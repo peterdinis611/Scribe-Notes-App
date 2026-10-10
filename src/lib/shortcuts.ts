@@ -1,3 +1,5 @@
+/** Keep bindings / hotkey display in sync with `scribe_ui::shortcuts`. */
+
 export type ShortcutScope = 'app'
 
 export interface AppShortcutBinding {

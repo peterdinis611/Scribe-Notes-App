@@ -663,6 +663,14 @@ export type UiManifest = {
   docsGroups: UiDocsGroup[]
   uiSkinIds: string[]
   smartFilterIds: string[]
+  shortcutIds: string[]
+  agentRoleIds: string[]
+  agentRecipeIds: string[]
+  templateCategoryIds: string[]
+  pluginPresetIds: string[]
+  statusTagValues: string[]
+  paperSizeIds: string[]
+  pinnedLanguageIds: string[]
 }
 
 export type AppVersionInfo = {
@@ -764,6 +772,53 @@ export const clampEditorPanelWidthNative = (args: {
     sidebarWidth: args.sidebarWidth ?? null,
     minWidth: args.minWidth ?? null,
   })
+
+export const hotkeyToDisplayKeysNative = (hotkey: string) =>
+  invoke<string[]>('hotkey_to_display_keys', { hotkey })
+
+export const parseUiTagNative = (raw: string) =>
+  invoke<{ raw: string; kind: string; value: string }>('parse_ui_tag', { raw })
+
+export const resolvePageLayoutNative = (args: {
+  paperId: string
+  margins: {
+    marginTop: number
+    marginBottom: number
+    marginLeft: number
+    marginRight: number
+  }
+  headerFooterReserve?: number | null
+}) =>
+  invoke<{
+    width: number
+    paddingTop: number
+    paddingBottom: number
+    paddingLeft: number
+    paddingRight: number
+    contentHeight: number
+    scrollPaddingTop: number
+    paperHeight: number
+  }>('resolve_page_layout_ui', {
+    paperId: args.paperId,
+    margins: args.margins,
+    headerFooterReserve: args.headerFooterReserve ?? null,
+  })
+
+export const tiptapJsonToMarkdownNative = (contentJson: string, title: string) =>
+  invoke<string>('tiptap_json_to_markdown_ui', { contentJson, title })
+
+export const analyzeGraphDensityNative = (
+  seedCount: number,
+  edgeCount: number,
+  orphanCount: number,
+) =>
+  invoke<{ sparse: boolean; orphanRatio: number; edgeRatio: number }>(
+    'analyze_graph_density_ui',
+    { seedCount, edgeCount, orphanCount },
+  )
+
+export const isUntitledOrphanTitleNative = (title: string) =>
+  invoke<boolean>('is_untitled_orphan_title_ui', { title })
 
 export type UiSurfaceId = 'whats-new' | 'welcome' | 'privacy' | 'about' | 'docs'
 

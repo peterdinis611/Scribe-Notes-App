@@ -1,3 +1,5 @@
+/** Density helpers mirrored in `scribe_ui::graph`; force sim stays FE. */
+
 export type ForceNodeKind = 'document' | 'tag' | 'entity'
 
 export type ForceNode = {

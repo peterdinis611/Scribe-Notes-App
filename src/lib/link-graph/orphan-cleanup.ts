@@ -1,5 +1,7 @@
 import type { LinkGraphOrphan, SearchHit } from '@/lib/db/api'
 
+/** Untitled detection mirrored in `scribe_ui::graph`. */
+
 const UNTITLED_RE = /^(untitled|bez názvu|bez nazvu)$/i
 
 export function isUntitledOrphanTitle(title: string | null | undefined): boolean {

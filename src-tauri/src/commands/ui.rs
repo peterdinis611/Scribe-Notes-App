@@ -152,3 +152,68 @@ pub fn next_editor_panel_width_on_double_click(
         min_width.unwrap_or(scribe_ui::EDITOR_PANEL_WIDTH_MIN),
     )
 }
+
+#[tauri::command]
+pub fn hotkey_to_display_keys(hotkey: String) -> Vec<String> {
+    scribe_ui::hotkey_to_display_keys(&hotkey)
+}
+
+#[tauri::command]
+pub fn parse_ui_tag(raw: String) -> scribe_ui::ParsedTag {
+    scribe_ui::parse_tag(&raw)
+}
+
+#[tauri::command]
+pub fn document_matches_meta_filters_ui(
+    tags: Vec<String>,
+    filters: scribe_ui::MetaFilters,
+) -> bool {
+    scribe_ui::document_matches_meta_filters(&tags, &filters)
+}
+
+#[tauri::command]
+pub fn resolve_page_layout_ui(
+    paper_id: String,
+    margins: scribe_ui::PageMargins,
+    header_footer_reserve: Option<f64>,
+) -> scribe_ui::ResolvedPageLayout {
+    scribe_ui::resolve_page_layout(&paper_id, &margins, header_footer_reserve.unwrap_or(0.0))
+}
+
+#[tauri::command]
+pub fn tiptap_json_to_markdown_ui(content_json: String, title: String) -> String {
+    scribe_ui::tiptap_json_to_markdown(&content_json, &title)
+}
+
+#[tauri::command]
+pub fn flatten_folders_for_picker_ui(
+    folders: Vec<scribe_ui::FolderNode>,
+) -> Vec<scribe_ui::FolderPickerItem> {
+    scribe_ui::flatten_folders_for_picker(&folders)
+}
+
+#[tauri::command]
+pub fn filter_diff_lines_ui(
+    lines: Vec<scribe_ui::DiffLine>,
+    changes_only: bool,
+    context_lines: Option<usize>,
+) -> Vec<scribe_ui::DiffLine> {
+    match context_lines {
+        Some(n) => scribe_ui::filter_diff_lines_with_context(&lines, changes_only, n),
+        None => scribe_ui::filter_diff_lines(&lines, changes_only),
+    }
+}
+
+#[tauri::command]
+pub fn analyze_graph_density_ui(
+    seed_count: usize,
+    edge_count: usize,
+    orphan_count: usize,
+) -> scribe_ui::GraphDensity {
+    scribe_ui::analyze_graph_density(seed_count, edge_count, orphan_count)
+}
+
+#[tauri::command]
+pub fn is_untitled_orphan_title_ui(title: String) -> bool {
+    scribe_ui::is_untitled_orphan_title(&title)
+}

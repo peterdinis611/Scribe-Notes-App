@@ -1,3 +1,5 @@
+/** Sync serializer — also `scribe_ui::tiptap_json_to_markdown` / `tiptap_json_to_markdown_ui`. */
+
 type TipTapNode = {
   type?: string
   text?: string
