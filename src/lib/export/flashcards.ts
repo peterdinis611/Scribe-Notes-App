@@ -5,16 +5,11 @@ import {
   writeTextFile,
 } from '@/lib/db/api'
 import type { Flashcard } from '@/lib/db/nlp-api'
+import { sanitizeFileName } from '@/lib/filenames'
 import { isTauriRuntime } from '@/lib/tauri'
 
-function sanitizeFileName(name: string, ext: string) {
-  const cleaned = name
-    .trim()
-    .replace(/[\\/:*?"<>|]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .slice(0, 80)
-    .trim()
-  return `${cleaned || 'flashcards'}.${ext}`
+function flashcardsFileName(name: string, ext: string) {
+  return sanitizeFileName(name.trim() || 'flashcards', ext)
 }
 
 function cardFront(card: Flashcard): string {
@@ -83,7 +78,7 @@ export async function exportFlashcardsAnki(args: {
 }): Promise<string | null> {
   const path = await save({
     title: args.dialogTitle ?? 'Export Anki TSV',
-    defaultPath: sanitizeFileName(args.baseName, 'txt'),
+    defaultPath: flashcardsFileName(args.baseName, 'txt'),
     filters: [{ name: 'Anki text', extensions: ['txt', 'tsv'] }],
   })
   if (!path) return null
@@ -99,7 +94,7 @@ export async function exportFlashcardsMarkdown(args: {
 }): Promise<string | null> {
   const path = await save({
     title: args.dialogTitle ?? 'Export Markdown',
-    defaultPath: sanitizeFileName(args.baseName, 'md'),
+    defaultPath: flashcardsFileName(args.baseName, 'md'),
     filters: [{ name: 'Markdown', extensions: ['md'] }],
   })
   if (!path) return null

@@ -1,20 +1,11 @@
 import { save } from '@tauri-apps/plugin-dialog'
 import { convertTiptap, writeTextFile } from '@/lib/db/api'
 import { tiptapToPlainText } from '@/lib/export/plain-text'
+import { sanitizeFileName } from '@/lib/filenames'
 import type { PluginModule } from '@/lib/plugins/types'
 import { store } from '@/store/index'
 import { toast } from '@/lib/toast'
 import { isTauriRuntime } from '@/lib/tauri'
-
-function sanitizeFileName(name: string): string {
-  const cleaned = name
-    .trim()
-    .replace(/[\\/:*?"<>|]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .slice(0, 80)
-    .trim()
-  return `${cleaned || 'document'}.txt`
-}
 
 async function documentPlainText(contentJson: string): Promise<string> {
   try {
@@ -66,7 +57,7 @@ export const plaintextExportPlugin: PluginModule = {
         try {
           const path = await save({
             title: 'Export plain text',
-            defaultPath: sanitizeFileName(doc.title),
+            defaultPath: sanitizeFileName(doc.title.trim() || 'document', 'txt'),
             filters: [{ name: 'Plain text', extensions: ['txt'] }],
           })
           if (!path) return

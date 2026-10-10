@@ -6,6 +6,8 @@ import {
   isKnownGoogleFont,
 } from '@/lib/editor/google-fonts'
 
+/** Preset catalog keep in sync with `crates/scribe-ui/src/ui_fonts.rs`. */
+
 const UI_FONTS_KEY = 'scribe-ui-fonts-v1'
 
 export type UiFontRole = 'sans' | 'display'

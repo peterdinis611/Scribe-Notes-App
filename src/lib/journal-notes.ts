@@ -20,6 +20,8 @@ import { kvGet, kvSet } from '@/lib/storage/kv'
 import type { DocumentSummary, Folder } from '@/lib/db/api'
 import { DEFAULT_PERSIST_LIBRARY_ID, getPersistLibraryId } from '@/store/persistence'
 
+/** Date-key helpers keep in sync with `crates/scribe-ui/src/journal_dates.rs`. */
+
 const JOURNAL_MAP_KEY = 'scribe-journal-map'
 
 type JournalMap = Record<string, string>

@@ -6,17 +6,25 @@ mod diff_filters;
 mod docs_nav;
 mod error;
 mod export_colors;
+mod filenames;
 mod flashcards;
 mod folders;
 mod fuzzy;
+mod global_shortcuts;
 mod graph;
 mod ics;
+mod journal_dates;
 mod layout;
+mod locale_sections;
+mod lorem;
 mod markdown;
 mod page_setup;
 mod plugin_presets;
 mod privacy;
 mod reorder;
+mod revision_compare;
+mod routes_catalog;
+mod semver;
 mod settings_nav;
 mod shortcuts;
 mod skin;
@@ -24,8 +32,10 @@ mod smart_filters;
 mod snippet;
 mod tag_colors;
 mod tag_meta;
+mod template_packs;
 mod templates_catalog;
 mod theme;
+mod ui_fonts;
 mod version;
 mod whats_new;
 
@@ -50,22 +60,32 @@ pub use docs_nav::{
 };
 pub use error::UiError;
 pub use export_colors::color_for_export;
+pub use filenames::{sanitize_file_name, sanitize_file_stem};
 pub use flashcards::{flashcards_to_anki_tsv, flashcards_to_markdown, FlashcardInput};
 pub use folders::{
     collect_folder_subtree_ids, flatten_folders_for_picker, folder_path_label, FolderNode,
     FolderPickerItem,
 };
 pub use fuzzy::{fuzzy_rank_strings, FuzzyRankHit, FuzzyRankItem};
+pub use global_shortcuts::{
+    global_shortcut_ids, to_global_shortcut_accelerator, GLOBAL_SHORTCUT_IDS,
+};
 pub use graph::{
     analyze_graph_density, is_untitled_orphan_title, partition_orphans, suggested_layout_size,
     GraphDensity, OrphanRow,
 };
 pub use ics::{build_ics_calendar, IcsEventInput};
+pub use journal_dates::{
+    compute_journal_streak, current_week_range, format_date_key, format_date_key_today,
+    format_week_key,
+};
 pub use layout::{
     clamp_editor_panel_width, clamp_sidebar_width, next_editor_panel_width_on_double_click,
     EDITOR_PANEL_WIDTH_DEFAULT, EDITOR_PANEL_WIDTH_MAX, EDITOR_PANEL_WIDTH_MIN,
     SIDEBAR_WIDTH_DEFAULT, SIDEBAR_WIDTH_MAX, SIDEBAR_WIDTH_MIN,
 };
+pub use locale_sections::{locale_section_group_ids, locale_section_groups, LocaleSectionGroup};
+pub use lorem::{generate_lorem_ipsum, normalize_lorem_options, LoremOptions, LoremUnit};
 pub use markdown::tiptap_json_to_markdown;
 pub use page_setup::{
     default_margins, paper_size_ids, paper_sizes, resolve_page_layout, PageMargins, PaperSize,
@@ -76,6 +96,12 @@ pub use plugin_presets::{
 };
 pub use privacy::{privacy_article_ids, PRIVACY_ARTICLE_IDS, PRIVACY_EFFECTIVE_DATE};
 pub use reorder::{can_nest_folder, move_id_before, FolderNestNode};
+pub use revision_compare::{
+    build_revision_compare_options, get_revision_timestamp, normalize_compare_pair,
+    RevisionCompareOption, RevisionInput,
+};
+pub use routes_catalog::{document_path, route_paths, settings_path, RoutePaths};
+pub use semver::{bump_semver, compare_semver, parse_semver, VersionBump};
 pub use settings_nav::{is_settings_section, settings_section_ids, SettingsSection};
 pub use shortcuts::{
     app_shortcut_bindings, get_resolved_hotkey, hotkey_to_display_keys, shortcut_ids,
@@ -94,11 +120,18 @@ pub use tag_meta::{
     document_matches_meta_filters, make_meta_tag, parse_tag, status_tag_values, MetaFilters,
     ParsedTag, TagKind, STATUS_TAG_VALUES,
 };
+pub use template_packs::{
+    is_template_pack, parse_template_pack, parse_template_pack_str, serialize_template_pack,
+    TemplatePack, TemplatePackItem, TEMPLATE_PACK_EXTENSION, TEMPLATE_PACK_VERSION,
+};
 pub use templates_catalog::{
     built_in_template_categories, is_built_in_category, is_custom_category_id, is_valid_category_id,
     BUILT_IN_TEMPLATE_CATEGORIES, NEW_CATEGORY_SELECT_VALUE,
 };
 pub use theme::{generate_random_theme, ColorScheme, ThemeColors};
+pub use ui_fonts::{
+    is_ui_font_preset_id, ui_font_preset_ids, ui_font_presets, UiFontPreset, UI_FONTS_STORAGE_KEY,
+};
 pub use version::{app_version_info, short_version, AppVersionInfo, APP_VERSION};
 pub use whats_new::{whats_new_highlights, EDITION_MARK_KEY, WHATS_NEW_34_HIGHLIGHTS};
 
@@ -134,6 +167,10 @@ pub struct UiManifest {
     pub status_tag_values: Vec<String>,
     pub paper_size_ids: Vec<String>,
     pub pinned_language_ids: Vec<String>,
+    pub locale_section_group_ids: Vec<String>,
+    pub global_shortcut_ids: Vec<String>,
+    pub ui_font_preset_ids: Vec<String>,
+    pub route_paths: RoutePaths,
 }
 
 pub fn ui_manifest() -> UiManifest {
@@ -159,6 +196,10 @@ pub fn ui_manifest() -> UiManifest {
         status_tag_values: status_tag_values(),
         paper_size_ids: paper_size_ids(),
         pinned_language_ids: pinned_language_ids(),
+        locale_section_group_ids: locale_section_group_ids(),
+        global_shortcut_ids: global_shortcut_ids(),
+        ui_font_preset_ids: ui_font_preset_ids(),
+        route_paths: route_paths(),
     }
 }
 
@@ -179,5 +220,9 @@ mod tests {
         assert!(m.agent_role_ids.contains(&"general".to_string()));
         assert!(m.template_category_ids.contains(&"general".to_string()));
         assert!(m.plugin_preset_ids.contains(&"writing".to_string()));
+        assert!(m.locale_section_group_ids.contains(&"core".to_string()));
+        assert!(m.global_shortcut_ids.contains(&"quickNote".to_string()));
+        assert!(m.ui_font_preset_ids.contains(&"default".to_string()));
+        assert_eq!(m.route_paths.home, "/");
     }
 }

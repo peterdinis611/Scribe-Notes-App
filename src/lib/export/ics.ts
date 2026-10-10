@@ -1,6 +1,7 @@
 import { save } from '@tauri-apps/plugin-dialog'
 import { buildIcsCalendarNative, writeTextFile } from '@/lib/db/api'
 import type { CalendarEvent } from '@/lib/db/nlp-api'
+import { sanitizeFileName } from '@/lib/filenames'
 import { isTauriRuntime } from '@/lib/tauri'
 
 export type IcsEventInput = {
@@ -9,16 +10,6 @@ export type IcsEventInput = {
   date: string
   description?: string
   uid?: string
-}
-
-function sanitizeFileName(name: string): string {
-  const cleaned = name
-    .trim()
-    .replace(/[\\/:*?"<>|]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .slice(0, 80)
-    .trim()
-  return `${cleaned || 'scribe-calendar'}.ics`
 }
 
 function escapeIcsText(value: string): string {
@@ -162,7 +153,7 @@ export async function exportIcsFile(args: {
   if (!args.events.length) return null
   const path = await save({
     title: args.dialogTitle ?? 'Export calendar',
-    defaultPath: sanitizeFileName(args.baseName ?? 'scribe-calendar'),
+    defaultPath: sanitizeFileName(args.baseName ?? 'scribe-calendar', 'ics'),
     filters: [{ name: 'iCalendar', extensions: ['ics'] }],
   })
   if (!path) return null

@@ -14,6 +14,8 @@ import {
   type CustomDocumentTemplate,
 } from '@/lib/templates/custom'
 
+/** Keep schema/parse in sync with `crates/scribe-ui/src/template_packs.rs`. */
+
 export const TEMPLATE_PACK_VERSION = 1 as const
 export const TEMPLATE_PACK_EXTENSION = 'scribe-templates.json'
 

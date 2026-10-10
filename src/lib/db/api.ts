@@ -671,6 +671,18 @@ export type UiManifest = {
   statusTagValues: string[]
   paperSizeIds: string[]
   pinnedLanguageIds: string[]
+  localeSectionGroupIds: string[]
+  globalShortcutIds: string[]
+  uiFontPresetIds: string[]
+  routePaths: {
+    home: string
+    document: string
+    docs: string
+    graph: string
+    plugins: string
+    storageMode: string
+    settingsPrefix: string
+  }
 }
 
 export type AppVersionInfo = {
@@ -819,6 +831,122 @@ export const analyzeGraphDensityNative = (
 
 export const isUntitledOrphanTitleNative = (title: string) =>
   invoke<boolean>('is_untitled_orphan_title_ui', { title })
+
+export const toGlobalShortcutAcceleratorNative = (hotkey: string) =>
+  invoke<string>('to_global_shortcut_accelerator_ui', { hotkey })
+
+export const computeJournalStreakNative = (notedDates: string[], today?: string | null) =>
+  invoke<number>('compute_journal_streak_ui', { notedDates, today: today ?? null })
+
+export const formatWeekKeyNative = (year: number, month: number, day: number) =>
+  invoke<string | null>('format_week_key_ui', { year, month, day })
+
+export const currentWeekRangeNative = (year: number, month: number, day: number) =>
+  invoke<[string, string] | null>('current_week_range_ui', { year, month, day })
+
+export const buildRevisionCompareOptionsNative = (
+  revisions: Array<{
+    id: string
+    title: string
+    createdAt: number
+    label?: string | null
+  }>,
+  currentUpdatedAt: number,
+  currentLabel?: string | null,
+) =>
+  invoke<
+    Array<{
+      id: string
+      label: string
+      createdAt: number
+      isCurrent?: boolean
+    }>
+  >('build_revision_compare_options_ui', {
+    revisions,
+    currentUpdatedAt,
+    currentLabel: currentLabel ?? null,
+  })
+
+export const normalizeComparePairNative = (
+  versionAId: string,
+  versionBId: string,
+  revisions: Array<{
+    id: string
+    title: string
+    createdAt: number
+    label?: string | null
+  }>,
+  currentUpdatedAt: number,
+) =>
+  invoke<[string, string]>('normalize_compare_pair_ui', {
+    versionAId,
+    versionBId,
+    revisions,
+    currentUpdatedAt,
+  })
+
+export const bumpSemverNative = (
+  version: string,
+  bump: 'patch' | 'minor' | 'major' | 'keep',
+) => invoke<string>('bump_semver_ui', { version, bump })
+
+export const compareSemverNative = (a: string, b: string) =>
+  invoke<number>('compare_semver_ui', { a, b })
+
+export const parseTemplatePackNative = (raw: string) =>
+  invoke<{
+    version: number
+    name: string
+    locale?: string
+    templates: Array<{
+      name: string
+      title: string
+      description?: string
+      categoryId?: string
+      content: unknown
+    }>
+  }>('parse_template_pack_ui', { raw })
+
+export const serializeTemplatePackNative = (pack: {
+  version: number
+  name: string
+  locale?: string
+  templates: Array<{
+    name: string
+    title: string
+    description?: string
+    categoryId?: string
+    content: unknown
+  }>
+}) => invoke<string>('serialize_template_pack_ui', { pack })
+
+export const generateLoremIpsumNative = (args: {
+  unit: 'paragraphs' | 'sentences' | 'words'
+  count: number
+  startWithLorem?: boolean | null
+}) =>
+  invoke<string>('generate_lorem_ipsum_ui', {
+    unit: args.unit,
+    count: args.count,
+    startWithLorem: args.startWithLorem ?? null,
+  })
+
+export const sanitizeFileNameNative = (name: string, ext?: string | null) =>
+  invoke<string>('sanitize_file_name_ui', { name, ext: ext ?? null })
+
+export const localeSectionGroupsNative = () =>
+  invoke<Array<{ id: string; sections: string[] }>>('locale_section_groups_ui')
+
+export const uiFontPresetsNative = () =>
+  invoke<
+    Array<{
+      id: string
+      sample: string
+      sans: string
+      display: string
+      google?: string[]
+    }>
+  >('ui_font_presets_ui')
 
 export type UiSurfaceId = 'whats-new' | 'welcome' | 'privacy' | 'about' | 'docs'
 

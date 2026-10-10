@@ -217,3 +217,112 @@ pub fn analyze_graph_density_ui(
 pub fn is_untitled_orphan_title_ui(title: String) -> bool {
     scribe_ui::is_untitled_orphan_title(&title)
 }
+
+#[tauri::command]
+pub fn to_global_shortcut_accelerator_ui(hotkey: String) -> String {
+    scribe_ui::to_global_shortcut_accelerator(&hotkey)
+}
+
+#[tauri::command]
+pub fn compute_journal_streak_ui(noted_dates: Vec<String>, today: Option<String>) -> usize {
+    let today = today.unwrap_or_else(scribe_ui::format_date_key_today);
+    scribe_ui::compute_journal_streak(&noted_dates, &today)
+}
+
+#[tauri::command]
+pub fn format_week_key_ui(year: i32, month: u32, day: u32) -> Option<String> {
+    scribe_ui::format_week_key(year, month, day)
+}
+
+#[tauri::command]
+pub fn current_week_range_ui(year: i32, month: u32, day: u32) -> Option<(String, String)> {
+    scribe_ui::current_week_range(year, month, day)
+}
+
+#[tauri::command]
+pub fn build_revision_compare_options_ui(
+    revisions: Vec<scribe_ui::RevisionInput>,
+    current_updated_at: i64,
+    current_label: Option<String>,
+) -> Vec<scribe_ui::RevisionCompareOption> {
+    scribe_ui::build_revision_compare_options(
+        &revisions,
+        current_updated_at,
+        current_label.as_deref().unwrap_or("Aktuálna verzia"),
+    )
+}
+
+#[tauri::command]
+pub fn normalize_compare_pair_ui(
+    version_a_id: String,
+    version_b_id: String,
+    revisions: Vec<scribe_ui::RevisionInput>,
+    current_updated_at: i64,
+) -> (String, String) {
+    scribe_ui::normalize_compare_pair(
+        &version_a_id,
+        &version_b_id,
+        &revisions,
+        current_updated_at,
+    )
+}
+
+#[tauri::command]
+pub fn bump_semver_ui(version: String, bump: String) -> String {
+    let parsed = match bump.as_str() {
+        "major" => scribe_ui::VersionBump::Major,
+        "minor" => scribe_ui::VersionBump::Minor,
+        "keep" => scribe_ui::VersionBump::Keep,
+        _ => scribe_ui::VersionBump::Patch,
+    };
+    scribe_ui::bump_semver(&version, parsed)
+}
+
+#[tauri::command]
+pub fn compare_semver_ui(a: String, b: String) -> i32 {
+    scribe_ui::compare_semver(&a, &b)
+}
+
+#[tauri::command]
+pub fn parse_template_pack_ui(raw: String) -> Result<scribe_ui::TemplatePack, String> {
+    scribe_ui::parse_template_pack_str(&raw).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn serialize_template_pack_ui(pack: scribe_ui::TemplatePack) -> String {
+    scribe_ui::serialize_template_pack(&pack)
+}
+
+#[tauri::command]
+pub fn generate_lorem_ipsum_ui(
+    unit: String,
+    count: u32,
+    start_with_lorem: Option<bool>,
+) -> String {
+    let unit = match unit.as_str() {
+        "words" => scribe_ui::LoremUnit::Words,
+        "sentences" => scribe_ui::LoremUnit::Sentences,
+        _ => scribe_ui::LoremUnit::Paragraphs,
+    };
+    let opts = scribe_ui::LoremOptions {
+        unit,
+        count,
+        start_with_lorem: start_with_lorem.unwrap_or(true),
+    };
+    scribe_ui::generate_lorem_ipsum(&opts)
+}
+
+#[tauri::command]
+pub fn sanitize_file_name_ui(name: String, ext: Option<String>) -> String {
+    scribe_ui::sanitize_file_name(&name, ext.as_deref().unwrap_or(""))
+}
+
+#[tauri::command]
+pub fn locale_section_groups_ui() -> Vec<scribe_ui::LocaleSectionGroup> {
+    scribe_ui::locale_section_groups()
+}
+
+#[tauri::command]
+pub fn ui_font_presets_ui() -> Vec<scribe_ui::UiFontPreset> {
+    scribe_ui::ui_font_presets()
+}
