@@ -1,7 +1,7 @@
 import i18n from '@/i18n'
 import { APP_SHORT_VERSION, APP_VERSION } from '@/lib/app-version'
 import { closeUiSurface, openUiSurface, renderUiSurfaceHtml, type UiSurfaceId, type UiSurfaceRequest } from '@/lib/db/api'
-import { DOCS_TOPIC_IDS } from '@/components/docs/DocsView'
+import { DOCS_GROUPS, DOCS_TOPIC_IDS } from '@/components/docs/docs-groups'
 import { PRIVACY_ARTICLE_IDS } from '@/lib/privacy'
 import { isTauriRuntime } from '@/lib/tauri'
 import { listen } from '@tauri-apps/api/event'
@@ -76,12 +76,7 @@ function docsTopics() {
 }
 
 function docsGroups(): Array<[string, string[]]> {
-  return [
-    ['basics', ['overview', 'privacy', 'documents']],
-    ['organize', ['library', 'linkGraph', 'wikiLinks']],
-    ['write', ['editor', 'search', 'localAi', 'revisions', 'journal']],
-    ['power', ['mcp', 'plugins', 'backup', 'shortcuts']],
-  ]
+  return DOCS_GROUPS.map((group) => [group.id, [...group.topics]])
 }
 
 function highlightCopy(): Record<string, [string, string]> {

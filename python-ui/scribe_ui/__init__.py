@@ -1,5 +1,6 @@
-"""Scribe UI domain — catalogs and helpers (Python twin of crates/scribe-ui)."""
+"""Scribe UI domain — catalogs, helpers, and HTML chrome builders."""
 
+from . import html
 from .agent_catalog import (
     AGENT_RECIPE_IDS,
     AGENT_ROLE_IDS,
@@ -59,6 +60,7 @@ from .whats_new import EDITION_MARK_KEY, WHATS_NEW_34_HIGHLIGHTS, whats_new_high
 __version__ = APP_VERSION
 
 __all__ = [
+    "html",
     "AGENT_RECIPE_IDS",
     "AGENT_ROLE_IDS",
     "APP_VERSION",

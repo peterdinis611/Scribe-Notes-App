@@ -755,6 +755,20 @@ pub struct RandomThemeParams {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+pub struct RenderUiSurfaceParams {
+    /// `whats-new`, `welcome`, `about`, `docs`, or `privacy`.
+    pub surface: String,
+    pub strings: Option<std::collections::HashMap<String, String>>,
+    pub version: Option<String>,
+    pub short_version: Option<String>,
+    pub recent: Option<serde_json::Value>,
+    /// When true, return an HTML fragment (no full document chrome).
+    pub fragment: Option<bool>,
+    pub full_document: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct PlanAgentGoalParams {
     pub goal: String,
     /// `document` (default) or `library`.

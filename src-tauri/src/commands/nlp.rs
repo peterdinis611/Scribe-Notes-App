@@ -3803,3 +3803,57 @@ pub fn nlp_suggest_continuation(
     serde_json::to_value(result).map_err(|e| e.to_string())
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpRenderUiSurfaceInput {
+    pub surface: String,
+    #[serde(default)]
+    pub strings: Option<std::collections::HashMap<String, String>>,
+    #[serde(default)]
+    pub version: Option<String>,
+    #[serde(default)]
+    pub short_version: Option<String>,
+    #[serde(default)]
+    pub recent: Option<Value>,
+    #[serde(default)]
+    pub fragment: Option<bool>,
+    #[serde(default)]
+    pub full_document: Option<bool>,
+}
+
+/// Render Scribe chrome HTML via the Python `python-ui` package (Local AI sidecar).
+#[tauri::command]
+pub fn nlp_render_ui_surface(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpRenderUiSurfaceInput,
+) -> Result<Value, String> {
+    if !nlp_is_enabled(&state) {
+        return Err("Local AI is disabled — enable it to render Python UI surfaces".into());
+    }
+    let mut params = json!({
+        "surface": input.surface,
+        "version": input.version.unwrap_or_else(|| "3.4.0".into()),
+    });
+    if let Some(strings) = input.strings {
+        params["strings"] = json!(strings);
+    }
+    if let Some(short) = input.short_version {
+        params["shortVersion"] = json!(short);
+    }
+    if let Some(recent) = input.recent {
+        params["recent"] = recent;
+    }
+    if let Some(fragment) = input.fragment {
+        params["fragment"] = json!(fragment);
+    }
+    if let Some(full) = input.full_document {
+        params["fullDocument"] = json!(full);
+    }
+    {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        let _ = sync_sidecar_backend(&sidecar, &conn);
+    }
+    sidecar.render_ui_surface(params)
+}
+

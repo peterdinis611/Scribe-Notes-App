@@ -1185,6 +1185,11 @@ impl NlpSidecar {
         self.call_method("tone_pack", json!({ "text": text }))
     }
 
+    /// Render chrome HTML via `python-ui` (`render_ui_surface` RPC).
+    pub fn render_ui_surface(&self, params: Value) -> Result<Value, String> {
+        self.call_method("render_ui_surface", params)
+    }
+
     pub fn agent_document_brief(
         &self,
         text: &str,

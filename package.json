@@ -45,7 +45,8 @@
     "nlp:debug": "SCRIBE_NLP_DEBUG=1 PYTHONPATH=nlp python3 -m scribe_nlp.debug_cli",
     "nlp:test": "PYTHONPATH=nlp python3 -m unittest discover -s nlp/tests -p 'test_*.py'",
     "ui:py:test": "PYTHONPATH=python-ui python3 -m unittest discover -s python-ui/tests -p 'test_*.py'",
-    "ui:py:manifest": "PYTHONPATH=python-ui python3 -m scribe_ui"
+    "ui:py:manifest": "PYTHONPATH=python-ui python3 -m scribe_ui",
+    "ui:py:html": "PYTHONPATH=python-ui python3 -m scribe_ui html"
   },
   "dependencies": {
     "@blobatar/react": "^2.7.0",

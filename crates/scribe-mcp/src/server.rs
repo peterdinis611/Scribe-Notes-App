@@ -2956,6 +2956,39 @@ impl ScribeMcp {
         Ok(tools::json(&scribe_ui::generate_random_theme(Some(scheme))))
     }
 
+    #[tool(
+        description = "Render Scribe chrome HTML via python-ui (whats-new, welcome, about, docs, privacy). Same CSS/data-sui-event bridge as Dioxus. Requires Local AI."
+    )]
+    fn render_ui_surface(
+        &self,
+        Parameters(params): Parameters<tools::RenderUiSurfaceParams>,
+    ) -> Result<String, String> {
+        let mut payload = serde_json::json!({
+            "surface": params.surface,
+            "version": params.version.unwrap_or_else(|| "3.4.0".into()),
+        });
+        if let Some(strings) = params.strings {
+            payload["strings"] = serde_json::json!(strings);
+        }
+        if let Some(short) = params.short_version {
+            payload["shortVersion"] = serde_json::json!(short);
+        }
+        if let Some(recent) = params.recent {
+            payload["recent"] = recent;
+        }
+        if let Some(fragment) = params.fragment {
+            payload["fragment"] = serde_json::json!(fragment);
+        }
+        if let Some(full) = params.full_document {
+            payload["fullDocument"] = serde_json::json!(full);
+        }
+        let value = self
+            .sidecar
+            .render_ui_surface(payload)
+            .map_err(|e| format!("render_ui_surface failed (is Local AI available?): {e}"))?;
+        Ok(tools::json(&value))
+    }
+
     #[tool(description = "Plan which local-agent tools to run for a goal (no execution). Same planner as run_agent. Requires Local AI.")]
     fn plan_agent_goal(
         &self,
@@ -3375,7 +3408,7 @@ impl ServerHandler for ScribeMcp {
              Study AI: extract_flashcards / extract_takeaways / check_terminology / writing_coach / outline_quiz / meeting_notes_pack / explain_selection / simplify / action_items / glossary / compare_notes (id or text). \
              Review pack: section_summaries / extract_decisions / detect_pii / rank_tasks / open_loops / reading_plan / note_pulse / tone_pack. \
              Planner-only: plan_agent_goal / agent_document_brief (run_agent still executes). \
-             UI catalogs: get_ui_manifest / fuzzy_rank_strings / list_theme_presets / generate_random_theme. \
+             UI catalogs: get_ui_manifest / fuzzy_rank_strings / list_theme_presets / generate_random_theme / render_ui_surface (HTML via python-ui). \
              Files sandbox AI: files_list / files_read_text / files_search / files_summarize / files_answer / files_index (requires Local Files API). \
              Library study: check_terminology_library / citation_pack. \
              Intent router: match_document_chat_intent. Convert: convert_tiptap. Diff: diff_plain_texts. Meta tags: document_matches_meta_filters. \

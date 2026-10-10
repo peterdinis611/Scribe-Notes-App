@@ -74,6 +74,7 @@ pub fn docs_view(props: DocsProps) -> Element {
         .replace("{{version}}", &props.short_version);
     let brand = t(&props.strings, "welcome.brandWithEdition")
         .replace("{{version}}", &props.short_version);
+    let search_ph = t(&props.strings, "settings.docs.searchPlaceholder");
 
     rsx! {
         div { class: "docs-shell",
@@ -83,18 +84,27 @@ pub fn docs_view(props: DocsProps) -> Element {
             input {
                 class: "docs-search",
                 r#type: "search",
-                placeholder: "{t(&props.strings, \"settings.docs.searchPlaceholder\")}",
+                placeholder: "{search_ph.clone()}",
+                aria_label: "{search_ph}",
                 "data-sui-filter": "docs",
             }
             div { class: "docs-groups",
                 for (group_id, topic_ids) in props.groups.iter() {
                     section { class: "docs-group",
-                        h2 { "{group_id}" }
+                        h2 {
+                            {
+                                let key = format!("settings.docs.groups.{group_id}");
+                                let label = t(&props.strings, &key);
+                                if label == key { group_id.clone() } else { label }
+                            }
+                        }
                         for topic_id in topic_ids.iter() {
                             if let Some(topic) = props.topics.iter().find(|t| &t.id == topic_id) {
                                 article { class: "docs-topic", id: "docs-{topic_id}",
                                     h3 { "{topic.title}" }
-                                    p { "{topic.summary}" }
+                                    if !topic.summary.is_empty() {
+                                        p { class: "docs-topic-summary", "{topic.summary}" }
+                                    }
                                     for paragraph in topic.paragraphs.iter() {
                                         p { "{paragraph}" }
                                     }

@@ -17,9 +17,23 @@ pip install -e '.[fuzzy]'
 
 ```bash
 npm run ui:py:test
+npm run ui:py:html -- whats-new > /tmp/whats-new.html
 # or
 PYTHONPATH=python-ui python3 -m unittest discover -s python-ui/tests -p 'test_*.py'
 ```
+
+## HTML chrome
+
+```python
+from scribe_ui.html import render_surface, sui_button, el, text
+
+html = render_surface("whats-new", version="3.4.0")  # full document + chrome.css
+fragment = render_surface("welcome", full_document=False)
+button = sui_button("New", event="welcome-new-document", variant="primary").render()
+```
+
+Local AI RPC: `render_ui_surface` `{ surface, strings?, version?, fragment? }` → `{ html, engine: "python-ui" }`.
+Markup uses the same `data-sui-event` bridge as Rust/Dioxus surfaces.
 
 ## Modules
 

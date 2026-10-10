@@ -1140,6 +1140,25 @@ export const nlpSuggestContinuation = (input: {
   excludeDocumentId?: string
 }) => invoke<NlpContinuationResult>('nlp_suggest_continuation', { input })
 
+export type NlpRenderUiSurfaceResult = {
+  surface: string
+  html: string
+  fullDocument: boolean
+  supportedSurfaces: string[]
+  engine: string
+}
+
+/** Render chrome HTML via python-ui (whats-new, welcome, about, docs, privacy). */
+export const nlpRenderUiSurface = (input: {
+  surface: string
+  strings?: Record<string, string>
+  version?: string
+  shortVersion?: string
+  recent?: Array<Record<string, unknown>>
+  fragment?: boolean
+  fullDocument?: boolean
+}) => invoke<NlpRenderUiSurfaceResult>('nlp_render_ui_surface', { input })
+
 export const nlpCalendarEvents = (options?: {
   limit?: number
   fromDate?: string

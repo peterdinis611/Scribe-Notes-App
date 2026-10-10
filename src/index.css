@@ -9940,76 +9940,183 @@ body.is-block-dragging .tiptap {
   color: var(--color-destructive);
 }
 
-/* ── Docs page ── */
+/* ── Docs page — grove editorial field guide ── */
 .docs-page {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  scroll-behavior: smooth;
   background:
-    radial-gradient(900px 420px at 8% -8%, color-mix(in srgb, var(--color-accent) 12%, transparent), transparent),
-    linear-gradient(180deg, color-mix(in srgb, var(--color-canvas) 88%, var(--color-background)), var(--color-canvas));
+    radial-gradient(
+      1100px 520px at 12% -12%,
+      color-mix(in srgb, var(--color-accent) 16%, transparent),
+      transparent 58%
+    ),
+    radial-gradient(
+      700px 380px at 92% 8%,
+      color-mix(in srgb, var(--color-accent) 8%, transparent),
+      transparent 50%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-background) 70%, var(--color-canvas)),
+      var(--color-canvas)
+    );
+  color: var(--color-foreground);
 }
 
-.docs-hero {
-  margin-bottom: 1.75rem;
-  padding-bottom: 1.25rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
-  box-shadow: inset 3px 0 0 0 var(--color-accent);
-  padding-left: 1rem;
+.docs-layout {
+  display: grid;
+  gap: 1.25rem;
+  width: min(1120px, calc(100% - 32px));
+  margin: 16px auto 48px;
+  align-items: start;
 }
 
-.docs-hero-eyebrow {
-  margin: 0 0 0.35rem;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.12em;
+@media (min-width: 960px) {
+  .docs-layout {
+    grid-template-columns: 212px minmax(0, 1fr);
+    gap: 2.25rem;
+  }
+
+  .docs-toc {
+    position: sticky;
+    top: 0.75rem;
+    max-height: calc(100vh - 5.5rem);
+    overflow-y: auto;
+    padding: 10px 6px 18px 0;
+    scrollbar-width: thin;
+  }
+}
+
+.docs-shell {
+  position: relative;
+  min-width: 0;
+  padding: 28px 28px 44px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-accent) 6%, transparent),
+      transparent 42%
+    ),
+    color-mix(in srgb, var(--color-surface-elevated) 94%, var(--color-background) 6%);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-background) 50%, transparent) inset,
+    0 18px 40px color-mix(in srgb, var(--color-foreground) 7%, transparent);
+  animation: docs-shell-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes docs-shell-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.docs-shell-head {
+  position: relative;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+}
+
+.docs-shell-hero-mark {
+  position: absolute;
+  left: -28px;
+  top: 6px;
+  bottom: 18px;
+  width: 3px;
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    var(--color-accent),
+    color-mix(in srgb, var(--color-accent) 20%, transparent)
+  );
+}
+
+.docs-shell-kicker {
+  margin: 0 0 8px;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--color-accent);
 }
 
-.docs-hero-title {
+.docs-shell-title {
   margin: 0;
-  font-size: clamp(28px, 4vw, 40px);
+  font-family: var(--font-display);
+  font-size: clamp(30px, 4.8vw, 38px);
   font-weight: 800;
   letter-spacing: -0.045em;
   line-height: 1.05;
   color: var(--color-foreground);
-  font-family: var(--font-display);
 }
 
-.docs-hero-desc {
-  margin: 0.65rem 0 0;
-  max-width: 46ch;
-  font-size: 14px;
-  line-height: 1.55;
+.docs-shell-lead {
+  margin: 12px 0 0;
+  max-width: 48ch;
+  font-size: 15.5px;
+  line-height: 1.5;
   color: var(--color-muted-foreground);
 }
 
-.docs-search-wrap {
+.docs-shell-search-wrap {
   position: relative;
-  margin-top: 1.15rem;
-  max-width: 420px;
+  margin: 22px 0 16px;
 }
 
-.docs-search-icon {
+.docs-shell-search-icon {
   position: absolute;
-  left: 11px;
+  left: 13px;
   top: 50%;
-  width: 15px;
-  height: 15px;
   transform: translateY(-50%);
   color: var(--color-muted-foreground);
   pointer-events: none;
 }
 
-.docs-search-clear {
+.docs-shell-search {
+  width: 100%;
+  padding: 12px 40px 12px 38px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--color-foreground);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.docs-shell-search::placeholder {
+  color: color-mix(in srgb, var(--color-muted-foreground) 80%, transparent);
+}
+
+.docs-shell-search:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 22%, transparent);
+}
+
+.docs-shell-search-clear,
+.docs-shell-search-kbd {
   position: absolute;
-  right: 8px;
+  right: 10px;
   top: 50%;
+  transform: translateY(-50%);
+}
+
+.docs-shell-search-clear {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -10017,20 +10124,41 @@ body.is-block-dragging .tiptap {
   cursor: pointer;
 }
 
-.docs-search-clear:hover {
+.docs-shell-search-clear:hover {
   background: var(--color-hover);
   color: var(--color-foreground);
 }
 
+.docs-shell-search-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-surface-elevated) 80%, transparent);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+}
+
+.docs-shell-match-count {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--color-muted-foreground);
+}
+
 .docs-quick {
-  margin-top: 1rem;
+  margin: 4px 0 18px;
 }
 
 .docs-quick-label {
-  margin: 0 0 0.45rem;
-  font-family: var(--font-mono);
+  margin: 0 0 0.5rem;
+  font-family: var(--font-sans);
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-muted-foreground);
@@ -10039,49 +10167,225 @@ body.is-block-dragging .tiptap {
 .docs-quick-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
+  gap: 0.5rem;
 }
 
 .docs-quick-chip {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.4rem 0.7rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 28%, var(--color-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface));
+  color: var(--color-foreground);
+  font-size: 12.5px;
+  font-weight: 550;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.docs-quick-chip:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-border));
+  background: color-mix(in srgb, var(--color-selection) 70%, var(--color-surface));
+  color: var(--color-accent);
+  transform: translateY(-1px);
+}
+
+.docs-shell-groups {
+  display: grid;
+  gap: 30px;
+}
+
+.docs-shell-group-label {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 4px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+
+.docs-shell-group-label::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    var(--color-separator),
+    transparent 92%
+  );
+}
+
+.docs-shell-topic {
+  position: relative;
+  scroll-margin-top: 1.25rem;
+  margin-top: 4px;
+  padding: 16px 14px 14px 16px;
+  border-left: 2px solid transparent;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  animation: docs-topic-in 0.4s ease both;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.docs-shell-topic.is-active {
+  border-left-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 7%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 12%, transparent);
+}
+
+.docs-shell-topic-title {
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--color-foreground);
+}
+
+.docs-shell-topic-summary {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-foreground);
+}
+
+.docs-shell-topic-body {
+  margin: 0 0 10px;
+  max-width: 62ch;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--color-muted-foreground);
+}
+
+.docs-shell-topic-points {
+  margin: 6px 0 0;
+  padding-left: 1.15em;
+  max-width: 62ch;
+  color: var(--color-muted-foreground);
+  line-height: 1.55;
+}
+
+.docs-shell-topic-points li {
+  margin: 0 0 7px;
+  padding-left: 0.15em;
+}
+
+.docs-shell-topic-points li::marker {
+  color: var(--color-accent);
+}
+
+.docs-shell-tip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem 0.55rem;
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 22%, var(--color-border));
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface));
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-muted-foreground);
+}
+
+.docs-shell-tip-label {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+.docs-shell-tip kbd {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 0 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 5px;
+  background: var(--color-surface-elevated);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-foreground);
+}
+
+.docs-shell-empty {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  margin: 12px 0 0;
+  padding: 22px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-muted-foreground);
+}
+
+.docs-shell-empty p {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+.docs-shell-empty span {
+  font-size: 13px;
+}
+
+.docs-shell-empty-clear {
+  margin-top: 4px;
+  padding: 8px 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: var(--color-foreground);
-  font-size: 12.5px;
-  font-weight: 500;
+  font-size: 13px;
   cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
 }
 
-.docs-quick-chip:hover {
-  border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
-  background: color-mix(in srgb, var(--color-selection) 55%, var(--color-surface));
+.docs-shell-empty-clear:hover {
+  border-color: var(--color-accent);
   color: var(--color-accent);
 }
 
-.docs-layout {
-  display: grid;
-  gap: 1.5rem;
-}
-
-@media (min-width: 960px) {
-  .docs-layout {
-    grid-template-columns: 200px minmax(0, 1fr);
-    gap: 2rem;
-    align-items: start;
+@media (max-width: 959px) {
+  .docs-toc {
+    margin: 0 -4px;
+    padding: 0 4px 4px;
   }
 
-  .docs-toc {
-    position: sticky;
-    top: 0.5rem;
-    max-height: calc(100vh - 6rem);
-    overflow-y: auto;
-    padding-bottom: 1rem;
-    scrollbar-width: thin;
+  .docs-shell {
+    padding: 22px 18px 36px;
+  }
+
+  .docs-shell-hero-mark {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .docs-page {
+    scroll-behavior: auto;
+  }
+
+  .docs-shell,
+  .docs-shell-topic,
+  .docs-quick-chip {
+    animation: none;
+    transition: none;
   }
 }
 
@@ -10186,6 +10490,16 @@ body.is-block-dragging .tiptap {
   color: var(--color-accent);
   font-weight: 600;
   box-shadow: inset 2px 0 0 var(--color-accent);
+}
+
+.docs-toc-item.is-dimmed {
+  opacity: 0.38;
+}
+
+.docs-toc-heading {
+  font-family: var(--font-sans);
+  letter-spacing: 0.12em;
+  color: var(--color-accent);
 }
 
 .docs-section {

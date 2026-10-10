@@ -1882,13 +1882,15 @@
     },
     "docs": {
       "pageTitle": "Scribe {{version}}",
-      "pageDescription": "How Scribe {{version}} stores, links, and edits documents on your Mac.",
+      "pageDescription": "A field guide to writing, linking, and keeping your library on this Mac — Local AI and agents when you want them.",
       "searchPlaceholder": "Search topics…",
       "onThisPage": "On this page",
       "quickStart": "Jump to",
       "clearSearch": "Clear search",
       "noResults": "No matching topics",
       "noResultsHint": "Try another keyword, or clear the search.",
+      "matchCount": "{{count}} topics match",
+      "matchCount_one": "{{count}} topic matches",
       "tipLabel": "Tip",
       "searchTip": "opens the command palette anywhere in the app.",
       "journalTip": "opens today’s journal note.",
@@ -1905,10 +1907,10 @@
           "summary": "Write documents. Link notes. Stay local.",
           "paragraphs": [
             "Scribe {{version}} is a local document editor for macOS. Write and export on this Mac — your library lives in SQLite, with optional .scribe backups on disk.",
-            "As notes grow, link them with wiki links. Local AI, Revision AI, the connection map, and MCP (Cursor / Claude) are power tools — useful when you need them, not required to start writing."
+            "As notes grow, link them with wiki links. Specialist agents, Local AI, Revision AI, the connection map, and MCP (Cursor / Claude) are power tools — useful when you need them, not required to start writing."
           ],
           "points": [
-            "2.5 highlights — continue writing, smart paste, 3D models, Revision AI, study & style chat actions",
+            "{{version}} highlights — specialist agents, handoffs, digests & recipes, calendar spawn, files ingest",
             "Everything below works offline except optional embeds or MCP hosts you choose to connect"
           ]
         },

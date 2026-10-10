@@ -1882,13 +1882,15 @@
     },
     "docs": {
       "pageTitle": "Scribe {{version}}",
-      "pageDescription": "Ako Scribe {{version}} ukladá, prepojuje a upravuje dokumenty na Macu.",
+      "pageDescription": "Sprievodca písaním, prepojením a knižnicou na tomto Macu — Lokálna AI a agenti, keď ich chceš.",
       "searchPlaceholder": "Hľadať témy…",
       "onThisPage": "Na tejto stránke",
       "quickStart": "Prejsť na",
       "clearSearch": "Vymazať hľadanie",
       "noResults": "Žiadne zodpovedajúce témy",
       "noResultsHint": "Skúste iné kľúčové slovo alebo vymažte hľadanie.",
+      "matchCount": "{{count}} tém sedí",
+      "matchCount_one": "{{count}} téma sedí",
       "tipLabel": "Tip",
       "searchTip": "otvorí príkazovú paletu kdekoľvek v aplikácii.",
       "localAiTip": "v scope Všetko kombinuje fulltext a sémantiku, ak je Lokálna AI zapnutá.",
@@ -1909,10 +1911,10 @@
           "summary": "Píšte dokumenty. Prepájajte poznámky. Ostávajte lokálne.",
           "paragraphs": [
             "Scribe {{version}} je lokálny editor dokumentov pre macOS. Píšte a exportujte súbory na tomto Macu — knižnica žije v SQLite, s voliteľnými .scribe zálohmi na disku.",
-            "Keď poznámok pribudne, prepájajte ich wiki odkazmi. Lokálna AI, Revision AI, mapa prepojení a MCP (Cursor / Claude) sú pokročilé nástroje — užitočné, keď ich potrebujete, nie povinný štart."
+            "Keď poznámok pribudne, prepájajte ich wiki odkazmi. Špecializovaní agenti, Lokálna AI, Revision AI, mapa prepojení a MCP (Cursor / Claude) sú pokročilé nástroje — užitočné, keď ich potrebujete, nie povinný štart."
           ],
           "points": [
-            "Novinky 2.5 — pokračovanie textu, smart paste, 3D modely, Revision AI, študijné a štýlové akcie v chate",
+            "Novinky {{version}} — špecialisti, handoffy, digesty a recepty, kalendár spawn, súbory ingest",
             "Všetko nižšie funguje offline okrem voliteľných embedov alebo MCP hostiteľov, ktoré sami pripojíte"
           ]
         },
