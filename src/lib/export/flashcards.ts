@@ -1,15 +1,15 @@
 import { save } from '@tauri-apps/plugin-dialog'
-import { writeTextFile } from '@/lib/db/api'
+import {
+  flashcardsToAnkiTsvNative,
+  flashcardsToMarkdownNative,
+  writeTextFile,
+} from '@/lib/db/api'
 import type { Flashcard } from '@/lib/db/nlp-api'
+import { sanitizeFileName } from '@/lib/filenames'
+import { isTauriRuntime } from '@/lib/tauri'
 
-function sanitizeFileName(name: string, ext: string) {
-  const cleaned = name
-    .trim()
-    .replace(/[\\/:*?"<>|]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .slice(0, 80)
-    .trim()
-  return `${cleaned || 'flashcards'}.${ext}`
+function flashcardsFileName(name: string, ext: string) {
+  return sanitizeFileName(name.trim() || 'flashcards', ext)
 }
 
 function cardFront(card: Flashcard): string {
@@ -20,8 +20,8 @@ function cardBack(card: Flashcard): string {
   return (card.answer || '').trim()
 }
 
-/** Anki “Text” import: tab-separated Front / Back (one card per line). */
-export function flashcardsToAnkiTsv(cards: Flashcard[]): string {
+/** Sync JS fallback — used by vitest and when Tauri IPC is unavailable. */
+export function flashcardsToAnkiTsvLocal(cards: Flashcard[]): string {
   return cards
     .map((card) => {
       const front = cardFront(card).replace(/\t/g, ' ').replace(/\r?\n/g, '<br>')
@@ -32,7 +32,8 @@ export function flashcardsToAnkiTsv(cards: Flashcard[]): string {
     .join('\n')
 }
 
-export function flashcardsToMarkdown(cards: Flashcard[], title?: string): string {
+/** Sync JS fallback — used by vitest and when Tauri IPC is unavailable. */
+export function flashcardsToMarkdownLocal(cards: Flashcard[], title?: string): string {
   const lines: string[] = []
   if (title?.trim()) lines.push(`# ${title.trim()}`, '')
   cards.forEach((card, index) => {
@@ -46,6 +47,30 @@ export function flashcardsToMarkdown(cards: Flashcard[], title?: string): string
   return lines.join('\n').trimEnd() + '\n'
 }
 
+/** Prefer Rust `scribe-ui` when running under Tauri; otherwise JS fallback. */
+export async function flashcardsToAnkiTsv(cards: Flashcard[]): Promise<string> {
+  if (isTauriRuntime()) {
+    try {
+      return await flashcardsToAnkiTsvNative(cards)
+    } catch {
+      // Fall through.
+    }
+  }
+  return flashcardsToAnkiTsvLocal(cards)
+}
+
+/** Prefer Rust `scribe-ui` when running under Tauri; otherwise JS fallback. */
+export async function flashcardsToMarkdown(cards: Flashcard[], title?: string): Promise<string> {
+  if (isTauriRuntime()) {
+    try {
+      return await flashcardsToMarkdownNative(cards, title ?? null)
+    } catch {
+      // Fall through.
+    }
+  }
+  return flashcardsToMarkdownLocal(cards, title)
+}
+
 export async function exportFlashcardsAnki(args: {
   cards: Flashcard[]
   baseName: string
@@ -53,11 +78,11 @@ export async function exportFlashcardsAnki(args: {
 }): Promise<string | null> {
   const path = await save({
     title: args.dialogTitle ?? 'Export Anki TSV',
-    defaultPath: sanitizeFileName(args.baseName, 'txt'),
+    defaultPath: flashcardsFileName(args.baseName, 'txt'),
     filters: [{ name: 'Anki text', extensions: ['txt', 'tsv'] }],
   })
   if (!path) return null
-  await writeTextFile(path, flashcardsToAnkiTsv(args.cards))
+  await writeTextFile(path, await flashcardsToAnkiTsv(args.cards))
   return path
 }
 
@@ -69,10 +94,10 @@ export async function exportFlashcardsMarkdown(args: {
 }): Promise<string | null> {
   const path = await save({
     title: args.dialogTitle ?? 'Export Markdown',
-    defaultPath: sanitizeFileName(args.baseName, 'md'),
+    defaultPath: flashcardsFileName(args.baseName, 'md'),
     filters: [{ name: 'Markdown', extensions: ['md'] }],
   })
   if (!path) return null
-  await writeTextFile(path, flashcardsToMarkdown(args.cards, args.title))
+  await writeTextFile(path, await flashcardsToMarkdown(args.cards, args.title))
   return path
 }

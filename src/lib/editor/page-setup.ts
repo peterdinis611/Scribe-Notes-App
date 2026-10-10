@@ -1,3 +1,5 @@
+/** Paper sizes / layout math mirrored in `scribe_ui::page_setup`. */
+
 export type PaperSizeId = 'a4' | 'letter' | 'a5'
 
 export type PageHeaderFooter = {

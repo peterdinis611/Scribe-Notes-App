@@ -5,7 +5,7 @@ import {
   DEFAULT_AGENT_PREFS,
 } from '@/lib/library/agent-prefs'
 import { resolveAgentRecipe } from '@/lib/library/agent-recipes'
-import { shouldRunDigestNow } from '@/lib/library/agent-digest-schedule'
+import { shouldCatchUpDigest, shouldRunDigestNow } from '@/lib/library/agent-digest-schedule'
 
 describe('custom recipes + digest schedule', () => {
   it('normalizes digest schedule and custom recipes', () => {
@@ -54,6 +54,22 @@ describe('custom recipes + digest schedule', () => {
           lastRunDate: '2026-10-09',
         },
         now,
+      ),
+    ).toBe(false)
+  })
+
+  it('catches up digest after scheduled time when app opens', () => {
+    const late = new Date('2026-10-09T10:30:00')
+    expect(
+      shouldCatchUpDigest(
+        { enabled: true, timeLocal: '08:00', period: 'day', weekday: 1, lastRunDate: '' },
+        late,
+      ),
+    ).toBe(true)
+    expect(
+      shouldCatchUpDigest(
+        { enabled: true, timeLocal: '08:00', period: 'day', weekday: 1, lastRunDate: '' },
+        new Date('2026-10-09T07:00:00'),
       ),
     ).toBe(false)
   })

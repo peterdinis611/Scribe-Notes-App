@@ -1,3 +1,4 @@
+/** Keep in sync with `crates/scribe-ui` counterpart. */
 import type { BuiltInLocale } from '@/i18n'
 import { BUILT_IN_LOCALES, DEFAULT_LOCALE } from '@/i18n'
 

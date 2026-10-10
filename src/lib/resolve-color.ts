@@ -1,3 +1,4 @@
+/** Keep in sync with `crates/scribe-ui` counterpart. */
 import type { ColorTokens } from "@/components/pdf-themes";
 
 /** Theme color token keys that can be used for the color prop */

@@ -1,4 +1,3 @@
-import { getVersion } from '@tauri-apps/api/app'
 import { confirm, open } from '@tauri-apps/plugin-dialog'
 import { Archive, ArchiveRestore, FileJson, FolderOpen, FolderSearch, Languages, Shuffle, Trash2, Upload } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -37,7 +36,9 @@ import { runFolderReconcile } from '@/lib/disk-sync'
 import { ROUTES } from '@/lib/routes'
 import { THEME_PRESETS } from '@/lib/themes/presets'
 import { generateRandomTheme } from '@/lib/themes/generate-random-theme'
-import { APP_VERSION, APP_SHORT_VERSION } from '@/lib/app-version'
+import { APP_SHORT_VERSION } from '@/lib/app-version'
+import { openScribeUiSurface, subscribeScribeUiEvents } from '@/lib/scribe-ui-host'
+import { isTauriRuntime } from '@/lib/tauri'
 import type { ThemeColors, ThemePresetId } from '@/lib/themes/types'
 import { THEME_COLOR_FIELDS } from '@/lib/themes/types'
 import {
@@ -109,7 +110,9 @@ export function AppearanceSection() {
   }
 
   function applyRandomTheme() {
-    dispatch(setThemeSettings(createCustomThemeSelection(themeSettings, generateRandomTheme())))
+    void generateRandomTheme().then((theme) => {
+      dispatch(setThemeSettings(createCustomThemeSelection(themeSettings, theme)))
+    })
   }
 
   async function handleImportLanguage() {
@@ -946,54 +949,40 @@ export function ShortcutsSection() {
 }
 
 export function AboutSection() {
-  const [version, setVersion] = useState(APP_VERSION)
   const { t } = useTranslation()
   const navigate = useNavigate()
 
   useEffect(() => {
-    getVersion()
-      .then(setVersion)
-      .catch(() => undefined)
-  }, [])
+    if (!isTauriRuntime()) return
+    void openScribeUiSurface('about')
+    return subscribeScribeUiEvents((payload) => {
+      if (payload.event === 'about-replay-tour') {
+        void import('@/lib/app-tour').then(({ requestAppTour }) => requestAppTour())
+      }
+      if (payload.event === 'about-open-privacy') {
+        void navigate(ROUTES.settingsSection('privacy'))
+      }
+    })
+  }, [navigate])
 
   return (
     <SettingsSection>
       <div className="mb-6 flex flex-col items-center rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-8 text-center">
-        <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-accent)]">
-          <FileTextIcon />
-        </div>
         <h3 className="m-0 inline-flex items-baseline gap-2.5 text-[20px] font-bold tracking-[-0.02em]">
           {t('welcome.brand')}
           <span className="scribe-edition">{APP_SHORT_VERSION}</span>
         </h3>
-        <p className="mt-1 text-[13px] text-[var(--color-muted-foreground)]">
+        <p className="mt-2 text-[12px] text-[var(--color-muted-foreground)]">
           {t('settings.about.tagline', { version: APP_SHORT_VERSION })}
         </p>
-        <p className="mt-2 text-[12px] text-[var(--color-muted-foreground)]">{t('common.version', { version })}</p>
         <button
           type="button"
-          className="mt-5 inline-flex h-9 items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-background)] px-4 text-[13px] font-medium text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-hover)]"
-          onClick={() => {
-            void import('@/lib/app-tour').then(({ requestAppTour }) => requestAppTour())
-          }}
+          className="mt-5 inline-flex h-9 items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-background)] px-4 text-[13px] font-medium"
+          onClick={() => void openScribeUiSurface('about')}
         >
-          {t('settings.about.replayTour')}
+          {t('settings.about.tagline', { version: APP_SHORT_VERSION })}
         </button>
       </div>
-
-      <div className="space-y-2">
-        <AboutRow label={t('settings.about.platform')} value="macOS" />
-        <AboutRow label={t('settings.about.fileFormat')} value=".scribe" />
-        <AboutRow label={t('settings.about.export')} value="PDF, DOCX, TXT, Pages" />
-      </div>
-
-      <button
-        type="button"
-        className="privacy-notice-about-link mt-4 w-full"
-        onClick={() => navigate(ROUTES.settingsSection('privacy'))}
-      >
-        {t('settings.about.privacy')}
-      </button>
     </SettingsSection>
   )
 }
@@ -1020,28 +1009,6 @@ export function SettingsSectionContent({ section }: { section: SettingsSectionId
     case 'capture':
       return null
   }
-}
-
-function AboutRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-4 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3">
-      <span className="text-[12px] text-[var(--color-muted-foreground)]">{label}</span>
-      <span className="text-[13px] font-medium text-[var(--color-foreground)]">{value}</span>
-    </div>
-  )
-}
-
-function FileTextIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-7 w-7" stroke="currentColor" strokeWidth="1.5">
-      <path
-        d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
 }
 
 function RandomThemeCard({ onClick }: { onClick: () => void }) {

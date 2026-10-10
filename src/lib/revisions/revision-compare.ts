@@ -1,5 +1,12 @@
 import type { DocumentRevision } from '@/lib/db/api'
+import {
+  buildRevisionCompareOptionsNative,
+  normalizeComparePairNative,
+} from '@/lib/db/api'
 import { CURRENT_REVISION_ID } from '@/lib/revisions/diff-text'
+import { isTauriRuntime } from '@/lib/tauri'
+
+/** Keep in sync with `crates/scribe-ui/src/revision_compare.rs`. */
 
 export type RevisionCompareOption = {
   id: string
@@ -58,4 +65,53 @@ export function findRevisionOption(
   options: RevisionCompareOption[],
 ): RevisionCompareOption | undefined {
   return options.find((option) => option.id === revisionId)
+}
+
+export async function buildRevisionCompareOptionsNativeSafe(
+  revisions: DocumentRevision[],
+  currentUpdatedAt: number,
+): Promise<RevisionCompareOption[]> {
+  if (isTauriRuntime()) {
+    try {
+      return await buildRevisionCompareOptionsNative(
+        revisions.map((r) => ({
+          id: r.id,
+          title: r.title,
+          createdAt: r.createdAt,
+          label: r.label ?? null,
+        })),
+        currentUpdatedAt,
+      )
+    } catch {
+      /* fall through */
+    }
+  }
+  return buildRevisionCompareOptions(revisions, currentUpdatedAt)
+}
+
+export async function normalizeComparePairNativeSafe(
+  versionAId: string,
+  versionBId: string,
+  revisions: DocumentRevision[],
+  currentUpdatedAt: number,
+): Promise<{ olderId: string; newerId: string }> {
+  if (isTauriRuntime()) {
+    try {
+      const [olderId, newerId] = await normalizeComparePairNative(
+        versionAId,
+        versionBId,
+        revisions.map((r) => ({
+          id: r.id,
+          title: r.title,
+          createdAt: r.createdAt,
+          label: r.label ?? null,
+        })),
+        currentUpdatedAt,
+      )
+      return { olderId, newerId }
+    } catch {
+      /* fall through */
+    }
+  }
+  return normalizeComparePair(versionAId, versionBId, revisions, currentUpdatedAt)
 }

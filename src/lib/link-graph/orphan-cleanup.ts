@@ -1,4 +1,7 @@
+/** Keep in sync with `crates/scribe-ui` counterpart. */
 import type { LinkGraphOrphan, SearchHit } from '@/lib/db/api'
+
+/** Untitled detection mirrored in `scribe_ui::graph`. */
 
 const UNTITLED_RE = /^(untitled|bez názvu|bez nazvu)$/i
 

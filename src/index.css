@@ -4785,9 +4785,93 @@ html.dark .editor-canvas::before {
   color: color-mix(in srgb, var(--color-accent) 75%, var(--color-foreground));
 }
 
+.agent-plan-source.is-jepa {
+  color: color-mix(in srgb, #38bdf8 70%, var(--color-foreground));
+}
+
+.agent-plan-source.is-recipe {
+  color: color-mix(in srgb, #6ec6a8 70%, var(--color-foreground));
+}
+
+.agent-plan-source.is-fallback {
+  color: var(--color-muted-foreground);
+}
+
 .agent-plan-label {
   opacity: 0.9;
   font-style: italic;
+}
+
+.agent-plan-confidence {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+.agent-clarify-badge {
+  margin: 0 0 0.25rem;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, #e8b84a 85%, var(--color-foreground));
+}
+
+.agent-handoff-chip-pending {
+  border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
+  color: color-mix(in srgb, var(--color-accent) 80%, var(--color-foreground));
+}
+
+.agent-handoff-inbox-hint {
+  margin: 0;
+  padding: 0 0.25rem;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--color-muted-foreground);
+}
+
+.agent-handoff-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 22%, var(--color-border));
+  background: color-mix(in srgb, var(--color-accent) 6%, var(--color-surface));
+}
+
+.agent-handoff-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.agent-handoff-from {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-accent) 70%, var(--color-foreground));
+}
+
+.agent-handoff-doc {
+  font-size: 10px;
+  color: var(--color-muted-foreground);
+}
+
+.agent-handoff-summary {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--color-foreground);
+}
+
+.library-chat-followup.is-handoff {
+  border-color: color-mix(in srgb, var(--color-accent) 35%, var(--color-border));
+  font-weight: 600;
 }
 
 .agent-step-trace {
@@ -5891,30 +5975,30 @@ html.dark .editor-canvas::before {
 }
 
 .editor-pagination--summary {
-  padding: 2px 6px;
-  gap: 2px;
-  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-hover) 55%, transparent);
-  border-top: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  padding: 0;
+  gap: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
 
 .editor-pagination--summary .editor-pagination-summary {
-  min-width: 4.75rem;
+  min-width: 3.75rem;
+  margin: 0;
   text-align: center;
   font-size: 11px;
-  font-weight: 550;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.01em;
   color: var(--color-muted-foreground);
 }
 
 .editor-pagination--summary .editor-pagination-arrow {
-  width: 24px;
-  height: 24px;
-  border-radius: 999px;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
   color: var(--color-muted-foreground);
 }
 
@@ -6088,72 +6172,82 @@ html.dark .editor-canvas::before {
 
 
 .editor-status-bar {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  gap: 10px;
-  min-height: 36px;
-  padding: 0 10px;
-  border-top: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
-  background: color-mix(in srgb, var(--color-toolbar) 88%, transparent);
-  backdrop-filter: blur(16px) saturate(150%);
-  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  column-gap: 12px;
+  min-height: 34px;
+  padding: 0 12px;
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 55%, transparent);
+  background: color-mix(in srgb, var(--color-toolbar) 92%, transparent);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
   flex-shrink: 0;
   box-shadow: none;
 }
 
 html[data-ui-skin='press'] .editor-status-bar {
-  min-height: 36px;
-  backdrop-filter: blur(10px) saturate(130%);
-  -webkit-backdrop-filter: blur(10px) saturate(130%);
-  box-shadow: inset 0 1px 0 0 color-mix(in srgb, var(--color-accent) 40%, transparent);
+  min-height: 34px;
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+  box-shadow: inset 0 1px 0 0 color-mix(in srgb, var(--color-border) 55%, transparent);
 }
 
 .editor-status-bar-left,
 .editor-status-bar-right {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   min-width: 0;
 }
 
 .editor-status-bar-left {
-  flex: 1 1 0;
+  justify-content: flex-start;
 }
 
 .editor-status-bar-center {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  flex-shrink: 0;
+  gap: 8px;
   min-width: 0;
+  max-width: min(420px, 46vw);
+}
+
+.editor-status-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  padding: 1px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--color-hover) 45%, transparent);
 }
 
 .editor-status-section {
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   gap: 6px;
-  max-width: min(220px, 28vw);
+  max-width: min(200px, 26vw);
   height: 26px;
-  padding: 0 8px;
+  padding: 0 8px 0 6px;
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: var(--color-foreground);
+  color: var(--color-muted-foreground);
   cursor: default;
+  transition: background 140ms ease, color 140ms ease;
 }
 
 .editor-status-section:hover {
   background: var(--color-hover);
+  color: var(--color-foreground);
 }
 
-.editor-status-section-kicker {
+.editor-status-section-icon {
   flex-shrink: 0;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--color-accent);
+  width: 13px;
+  height: 13px;
+  opacity: 0.72;
 }
 
 .editor-status-section-title {
@@ -6161,14 +6255,15 @@ html[data-ui-skin='press'] .editor-status-bar {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: inherit;
 }
 
 .editor-status-bar-right {
-  flex: 1 1 0;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 10px;
 }
 
 .editor-status-chip {
@@ -6202,8 +6297,8 @@ html[data-ui-skin='press'] .editor-status-bar {
   font-size: 10.5px;
   font-weight: 650;
   letter-spacing: 0.04em;
-  color: var(--color-accent);
-  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  color: var(--color-muted-foreground);
+  background: transparent;
 }
 
 .editor-status-chip-label {
@@ -6228,6 +6323,11 @@ html[data-ui-skin='press'] .editor-status-bar {
 .editor-status-icon-btn:hover {
   background: var(--color-hover);
   color: var(--color-foreground);
+}
+
+.editor-status-icon-btn.is-active {
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  color: var(--color-accent);
 }
 
 .editor-status-divider {
@@ -6289,6 +6389,29 @@ html[data-ui-skin='press'] .editor-status-bar {
   color: var(--color-muted-foreground);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+.editor-status-meta--coach {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 550;
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--color-accent) 70%, var(--color-muted-foreground));
+}
+
+@media (max-width: 860px) {
+  .editor-status-bar {
+    column-gap: 8px;
+    padding: 0 8px;
+  }
+
+  .editor-status-section {
+    max-width: min(140px, 22vw);
+  }
+
+  .editor-status-meta--coach {
+    display: none;
+  }
 }
 
 .editor-pagination-pages {
@@ -13528,7 +13651,8 @@ html.dark .link-graph-toolbar--overlay {
 }
 
 .setup-folio--edition-25,
-.setup-folio--edition-27 {
+.setup-folio--edition-27,
+.setup-folio--edition-34 {
   min-height: 560px;
 }
 

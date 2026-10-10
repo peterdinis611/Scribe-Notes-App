@@ -1,5 +1,7 @@
 import en from '@/i18n/locales/en.json'
 
+/** Keep group catalog in sync with `crates/scribe-ui/src/locale_sections.rs`. */
+
 /** Top-level keys of the built-in English catalog — each may appear under `messages`. */
 export const LOCALE_TOP_LEVEL_SECTIONS = Object.keys(en)
 

@@ -1,3 +1,4 @@
+/** Keep in sync with `crates/scribe-ui` counterpart. */
 type JsonNode = {
   type?: string
   attrs?: { level?: number }

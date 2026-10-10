@@ -63,6 +63,8 @@ export function useSettingsSections() {
   )
 }
 
+/** Path catalog keep in sync with `crates/scribe-ui/src/routes_catalog.rs`. */
+
 const SETTINGS_PATHS = {
   appearance: '/settings/appearance',
   interface: '/settings/interface',

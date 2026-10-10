@@ -1,7 +1,7 @@
 /**
  * Diff view helpers for the revision panel.
  * Line / word / side-by-side LCS lives in scribe-core (`diff_lines`).
- * Prefer `diffDocumentRevisions` / `diffPlainTexts` for algorithms.
+ * Presentation filters also in `scribe_ui::diff_filters`.
  */
 
 export type DiffLine = {

@@ -488,16 +488,39 @@
     "badge": "Novinky {{version}}",
     "kicker": "Poznámky k vydaniu",
     "title": "Scribe {{version}}",
-    "subtitle": "In-app Local Agent s trvalou pamäťou, učením preferencií, paint padmi a vlastnou agent DB — všetko offline na tomto Macu.",
-    "editionMark": "Agent · local-first",
+    "subtitle": "Špecializovaní agenti si odovzdávajú prácu, digesty a recepty bežia podľa rozvrhu a odpovede sa dajú premeniť na poznámku, kalendár alebo súbory v knižnici — stále lokálne.",
+    "editionMark": "Agenti · handoffs",
     "tagsLabel": "Témy tohto vydania",
     "tags": {
       "agent": "Agent",
+      "agents": "Špecialisti",
+      "handoffs": "Handoffs",
+      "recipes": "Recepty",
       "localAi": "Lokálna AI",
       "editor": "Editor",
       "history": "História"
     },
-    "footNote": "Nastavenia → Agent na zapnutie, optimalizáciu a učenie. Local AI poháňa nástroje.",
+    "footNote": "Nastavenia → Agent pre role, digesty a učenie. Panel Agent na handoffs a recepty.",
+    "specialistAgents": {
+      "title": "Špecializovaní agenti",
+      "description": "General, Proofreader, Librarian, Meeting scribe, Study coach a Organizer — každý so svojou pamäťou a sadou receptov."
+    },
+    "agentHandoffs": {
+      "title": "Odovzdávanie medzi agentmi",
+      "description": "Po behu môže špecialista upozorniť kolegu. Inbox v paneli Agent umožní prácu prevziať alebo odmietnuť."
+    },
+    "digestsRecipes": {
+      "title": "Digesty a recepty",
+      "description": "Naplánuj denný alebo týždenný digest knižnice, kým je appka otvorená, alebo spusti vstavané a vlastné recepty z panela."
+    },
+    "spawnAndCalendar": {
+      "title": "Nová poznámka a kalendár",
+      "description": "Z odpovede agenta vytvor poznámku v knižnici alebo exportuj termíny do .ics súboru."
+    },
+    "filesIngest": {
+      "title": "Súbory → knižnica",
+      "description": "Citované lokálne súbory z files odpovede vlož ako nové poznámky do knižnice."
+    },
     "localAgent": {
       "title": "In-app Local Agent",
       "description": "Nový tab Agent naplánuje až tri Local AI nástroje na cieľ — zhrnutie, úlohy, súvisiace — s viditeľným trace krokov."
@@ -2654,7 +2677,8 @@
     "disabled": "Agent je vypnutý. Zapni ho v Nastavenia → Agent.",
     "budgetExceeded": "Denný rozpočet agenta je vyčerpaný. Zvýš ho v Nastavenia → Agent.",
     "clarifyPrompt": "Nie som si istý, ktoré nástroje spustiť. Vyber:",
-    "clarifyHint": "Vyber nástroj pre tento cieľ",
+    "clarifyHint": "Pýtať sa pri neistote je zapnuté — vyber nástroj pre tento cieľ",
+    "clarifyUncertainBadge": "Treba výber",
     "applyToNote": "Vložiť do poznámky",
     "applySmart": "Aplikovať do poznámky",
     "applyCallout": "Callout",
@@ -2708,8 +2732,11 @@
     "handoffAck": "Hotovo",
     "handoffDismiss": "Zrušiť",
     "handoffUseGoal": "Spracuj handoff od {{from}}: {{summary}}",
-    "handoffAutoToast": "Informovaný agent {{role}}",
-    "handoffAutoChip": "Odoslané → {{role}}",
+    "handoffAutoToast": "Odovzdá {{role}}",
+    "handoffAutoChip": "Odovzdá {{role}}",
+    "handoffInboxTitle": "Handoff inbox",
+    "handoffInboxPending": "{{count}} čaká",
+    "handoffInboxHint": "Kolegovia nechali prácu pre tohto špecialistu. Použi, potvrď alebo odmietni.",
     "handoffNeedsTarget": "Uveď cieľového agenta (napr. pošli organizerovi: …).",
     "handoffEmpty": "Handoff potrebuje krátke zhrnutie.",
     "handoffFailed": "Handoff sa nepodarilo odoslať.",
@@ -2729,6 +2756,15 @@
     "capabilitiesLabel": "Nástroje pre túto poznámku",
     "stepTrace": "Kroky nástrojov",
     "planSource": "Plán · {{source}}",
+    "planSources": {
+      "jepa": "JEPA",
+      "python": "Lokálna AI",
+      "llm": "Lokálne LLM",
+      "recipe": "Recept",
+      "force": "Pripnuté nástroje",
+      "fallback": "Heuristiky"
+    },
+    "planConfidence": "{{pct}}% zhoda",
     "feedbackDismiss": "Neužitočné",
     "feedbackDismissed": "OK — tento plán neposilníme",
     "spawnNote": "Uložiť ako poznámku",
@@ -2745,6 +2781,7 @@
     "ingestFilesEmpty": "Žiadne cesty zo sandboxu na import",
     "ingestEmpty": "Súbor bol prázdny",
     "digestScheduleDone": "Plánovaný digest je hotový",
+    "digestScheduleCatchUp": "Digest hotový (dobehnuté pri otvorení)",
     "starters": {
       "themes": "Aké témy sa objavujú v mojich poznámkach?",
       "openLoops": "Aké otvorené slučky by som mal uzavrieť?",

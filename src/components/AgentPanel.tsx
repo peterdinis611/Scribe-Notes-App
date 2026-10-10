@@ -630,6 +630,18 @@ export function AgentPanel({
           return
         }
 
+        const handoffFollowup = (result.followups ?? []).find((item) =>
+          item.startsWith('handoff:'),
+        )
+        if (handoffFollowup) {
+          const toRole = handoffFollowup.slice('handoff:'.length)
+          const roleLabel = t(`settings.agent.roles.${toRole}.label`, {
+            defaultValue: toRole,
+          })
+          toast.success(t('agent.handoffAutoToast', { role: roleLabel }))
+          refreshHandoffInbox()
+        }
+
         const assistant: AgentThreadMessage = {
           id: streamingId,
           role: 'assistant',
@@ -1181,14 +1193,20 @@ export function AgentPanel({
           </button>
           <button
             type="button"
-            className={cn('library-chat-chip', showHandoffs && 'is-active')}
+            className={cn(
+              'library-chat-chip',
+              showHandoffs && 'is-active',
+              handoffInbox.length > 0 && 'agent-handoff-chip-pending',
+            )}
             onClick={() => {
               setShowHandoffs((value) => !value)
               refreshHandoffInbox()
             }}
           >
-            {t('agent.handoffInbox')}
-            {handoffInbox.length > 0 ? ` (${handoffInbox.length})` : ''}
+            {t('agent.handoffInboxTitle')}
+            {handoffInbox.length > 0
+              ? ` · ${t('agent.handoffInboxPending', { count: handoffInbox.length })}`
+              : ''}
           </button>
           <button
             type="button"
@@ -1326,22 +1344,29 @@ export function AgentPanel({
         ) : null}
 
         {showHandoffs ? (
-          <div className="agent-run-history mt-2 space-y-1.5 px-0.5">
+          <div className="agent-handoff-inbox mt-2 space-y-1.5 px-0.5">
+            <p className="agent-handoff-inbox-hint">{t('agent.handoffInboxHint')}</p>
             {handoffInbox.length === 0 ? (
               <p className="px-0.5 text-[11px] text-[var(--color-muted-foreground)]">
                 {t('agent.handoffInboxEmpty')}
               </p>
             ) : (
               handoffInbox.map((item) => (
-                <div key={item.id} className="agent-run-history-item">
-                  <span className="agent-run-history-goal">{item.summary}</span>
-                  <span className="agent-run-history-meta">
-                    {t('agent.handoffFrom', { role: item.fromAgentId })}
-                    {item.documentId
-                      ? ` · ${t('agent.handoffHasDocument')}`
-                      : ''}
-                  </span>
-                  <div className="mt-1 flex flex-wrap gap-1">
+                <div key={item.id} className="agent-handoff-card">
+                  <div className="agent-handoff-card-head">
+                    <span className="agent-handoff-from">
+                      {t('agent.handoffFrom', {
+                        role: t(`settings.agent.roles.${item.fromAgentId}.label`, {
+                          defaultValue: item.fromAgentId,
+                        }),
+                      })}
+                    </span>
+                    {item.documentId ? (
+                      <span className="agent-handoff-doc">{t('agent.handoffHasDocument')}</span>
+                    ) : null}
+                  </div>
+                  <span className="agent-handoff-summary">{item.summary}</span>
+                  <div className="mt-1.5 flex flex-wrap gap-1">
                     <button
                       type="button"
                       className="library-chat-chip"
@@ -1525,11 +1550,27 @@ export function AgentPanel({
                   <BubbleContent>
                     {message.role === 'assistant' && message.planMeta ? (
                       <p className="agent-plan-meta" title={message.planMeta.topLabel ?? undefined}>
-                        <span className="agent-plan-source">
-                          {t('agent.planSource', { source: message.planMeta.source })}
+                        <span
+                          className={cn(
+                            'agent-plan-source',
+                            `is-${String(message.planMeta.source).toLowerCase()}`,
+                          )}
+                        >
+                          {t('agent.planSource', {
+                            source: t(`agent.planSources.${message.planMeta.source}`, {
+                              defaultValue: message.planMeta.source,
+                            }),
+                          })}
                         </span>
                         {message.planMeta.topLabel ? (
                           <span className="agent-plan-label">{message.planMeta.topLabel}</span>
+                        ) : null}
+                        {typeof message.planMeta.confidence === 'number' ? (
+                          <span className="agent-plan-confidence">
+                            {t('agent.planConfidence', {
+                              pct: Math.round(message.planMeta.confidence * 100),
+                            })}
+                          </span>
                         ) : null}
                       </p>
                     ) : null}
@@ -1586,7 +1627,8 @@ export function AgentPanel({
                   </MessageFooter>
                 ) : null}
                 {message.role === 'assistant' && message.clarifyOptions && message.clarifyOptions.length > 0 ? (
-                  <div className="library-chat-followups">
+                  <div className="library-chat-followups agent-clarify-block">
+                    <p className="agent-clarify-badge">{t('agent.clarifyUncertainBadge')}</p>
                     <p className="px-0.5 text-[11px] text-[var(--color-muted-foreground)]">
                       {t('agent.clarifyHint')}
                     </p>
@@ -1823,18 +1865,22 @@ export function AgentPanel({
                       }
                       if (item.startsWith('handoff:')) {
                         const toRole = item.slice('handoff:'.length)
+                        const roleLabel = t(`settings.agent.roles.${toRole}.label`, {
+                          defaultValue: toRole,
+                        })
                         return (
                           <button
                             key={item}
                             type="button"
-                            className="library-chat-followup"
+                            className="library-chat-followup is-handoff"
                             disabled={loading}
                             onClick={() => {
-                              toast.success(t('agent.handoffAutoToast', { role: toRole }))
+                              toast.success(t('agent.handoffAutoToast', { role: roleLabel }))
+                              setShowHandoffs(true)
                               refreshHandoffInbox()
                             }}
                           >
-                            {t('agent.handoffAutoChip', { role: toRole })}
+                            {t('agent.handoffAutoChip', { role: roleLabel })}
                           </button>
                         )
                       }

@@ -4,6 +4,14 @@ All tools return JSON text in the MCP `content` payload (pretty-printed). Errors
 
 Server name: `scribe-memory`
 
+## Audit logging
+
+Mutating tools append soft-fail events to `scribe-audit.db` (same app data directory as `scribe.db` / `scribe-agent.db`). Source is always `mcp`. Categories include `mcp_tool`, `agent`, and `nlp`.
+
+Currently audited (non-exhaustive): `create_note`, `append_to_note`, `trash_document`, `restore_document`, `purge_document`, `rename_document`, `replace_document_content`, `duplicate_document`, `empty_trash`, `move_document_to_folder`, `set_nlp_enabled`, `run_agent` / spellcheck persona runs.
+
+Audit viewing in the Scribe UI is admin-gated and may be hidden in some builds; the SQLite file is always written when the path is available.
+
 ---
 
 ## `scribe_status`

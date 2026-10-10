@@ -11,6 +11,8 @@ import type {
   RegisteredPlugin,
 } from '@/lib/plugins/types'
 
+/** Keep semver helpers in sync with `crates/scribe-ui/src/semver.rs`. */
+
 export type VersionBump = 'patch' | 'minor' | 'major' | 'keep'
 
 export function parseSemver(version: string): [number, number, number] | null {

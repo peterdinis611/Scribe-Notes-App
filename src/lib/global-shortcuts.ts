@@ -1,8 +1,11 @@
 /** Register OS-wide shortcuts (works while Scribe is unfocused). */
 
+import { toGlobalShortcutAcceleratorNative } from '@/lib/db/api'
 import { isTauriRuntime } from '@/lib/tauri'
 import { getResolvedHotkey } from '@/lib/shortcuts'
 import type { ShortcutOverrides } from '@/store/persistence'
+
+/** Keep in sync with `crates/scribe-ui/src/global_shortcuts.rs`. */
 
 /** Shortcut IDs that should work system-wide (tray-style capture). */
 export const GLOBAL_SHORTCUT_IDS = ['quickNote', 'todayNote'] as const
@@ -24,6 +27,18 @@ export function toGlobalShortcutAccelerator(hotkey: string): string {
       return key
     })
     .join('+')
+}
+
+/** Prefer under Tauri when async is OK. */
+export async function toGlobalShortcutAcceleratorAsync(hotkey: string): Promise<string> {
+  if (isTauriRuntime()) {
+    try {
+      return await toGlobalShortcutAcceleratorNative(hotkey)
+    } catch {
+      /* fall through */
+    }
+  }
+  return toGlobalShortcutAccelerator(hotkey)
 }
 
 export type GlobalShortcutHandlers = Partial<Record<GlobalShortcutId, () => void | Promise<void>>>

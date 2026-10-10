@@ -645,6 +645,411 @@ export const listAuditEvents = (input?: {
 
 export const clearAuditEvents = () => invoke<number>('clear_audit_events')
 
+export type UiDocsGroup = {
+  id: string
+  topics: string[]
+}
+
+export type UiManifest = {
+  version: string
+  shortVersion: string
+  whatsNewHighlights: string[]
+  settingsSectionIds: string[]
+  privacyArticleIds: string[]
+  privacyEffectiveDate: string
+  editionMarkKey: string
+  docsTopicIds: string[]
+  docsQuickLinks: string[]
+  docsGroups: UiDocsGroup[]
+  uiSkinIds: string[]
+  smartFilterIds: string[]
+  shortcutIds: string[]
+  agentRoleIds: string[]
+  agentRecipeIds: string[]
+  templateCategoryIds: string[]
+  pluginPresetIds: string[]
+  statusTagValues: string[]
+  paperSizeIds: string[]
+  pinnedLanguageIds: string[]
+  localeSectionGroupIds: string[]
+  globalShortcutIds: string[]
+  uiFontPresetIds: string[]
+  routePaths: {
+    home: string
+    document: string
+    docs: string
+    graph: string
+    plugins: string
+    storageMode: string
+    settingsPrefix: string
+  }
+  documentStylePresetIds: string[]
+  themePresetIds: string[]
+  builtInLocales: string[]
+}
+
+export type AppVersionInfo = {
+  version: string
+  shortVersion: string
+}
+
+export const getUiManifest = () => invoke<UiManifest>('get_ui_manifest')
+
+export const getAppVersionInfo = () => invoke<AppVersionInfo>('get_app_version_info')
+
+export const listSettingsSectionIds = () => invoke<string[]>('list_settings_section_ids')
+
+export const generateRandomThemeNative = (scheme?: 'light' | 'dark' | null) =>
+  invoke<import('@/lib/themes/types').ThemeColors>('generate_random_theme', {
+    scheme: scheme ?? null,
+  })
+
+export const buildIcsCalendarNative = (events: Array<{
+  summary: string
+  date: string
+  description?: string
+  uid?: string
+}>, calendarName?: string) =>
+  invoke<string>('build_ics_calendar', {
+    events,
+    calendarName: calendarName ?? null,
+  })
+
+export type FuzzyRankItem = {
+  id: string
+  primary: string
+  secondary?: string
+}
+
+export type FuzzyRankHit = {
+  id: string
+  score: number
+}
+
+export const fuzzyRankStringsNative = (
+  items: FuzzyRankItem[],
+  query: string,
+  limit?: number | null,
+) =>
+  invoke<FuzzyRankHit[]>('fuzzy_rank_strings', {
+    items,
+    query,
+    limit: limit ?? null,
+  })
+
+export const colorForTagNative = (tag: string) => invoke<string>('color_for_tag', { tag })
+
+export const sanitizeSnippetNative = (html: string) =>
+  invoke<string>('sanitize_snippet', { html })
+
+export const colorForExportNative = (color: string, background?: string | null) =>
+  invoke<string>('color_for_export', { color, background: background ?? null })
+
+export type FlashcardNativeInput = {
+  kind?: string | null
+  question: string
+  answer: string
+  front?: string | null
+}
+
+export const flashcardsToAnkiTsvNative = (cards: FlashcardNativeInput[]) =>
+  invoke<string>('flashcards_to_anki_tsv', { cards })
+
+export const flashcardsToMarkdownNative = (
+  cards: FlashcardNativeInput[],
+  title?: string | null,
+) => invoke<string>('flashcards_to_markdown', { cards, title: title ?? null })
+
+export const moveIdBeforeNative = (ids: string[], fromId: string, toId: string) =>
+  invoke<string[]>('move_id_before', { ids, fromId, toId })
+
+export const canNestFolderNative = (
+  dragId: string,
+  targetId: string | null,
+  folders: Array<{ id: string; parentId: string | null }>,
+) => invoke<boolean>('can_nest_folder', { dragId, targetId, folders })
+
+export const normalizeUiSkinNative = (value: string) =>
+  invoke<string>('normalize_ui_skin', { value })
+
+export const clampSidebarWidthNative = (value: number, viewportWidth?: number | null) =>
+  invoke<number>('clamp_sidebar_width', { value, viewportWidth: viewportWidth ?? null })
+
+export const clampEditorPanelWidthNative = (args: {
+  value: number
+  viewportWidth?: number | null
+  sidebarWidth?: number | null
+  minWidth?: number | null
+}) =>
+  invoke<number>('clamp_editor_panel_width', {
+    value: args.value,
+    viewportWidth: args.viewportWidth ?? null,
+    sidebarWidth: args.sidebarWidth ?? null,
+    minWidth: args.minWidth ?? null,
+  })
+
+export const hotkeyToDisplayKeysNative = (hotkey: string) =>
+  invoke<string[]>('hotkey_to_display_keys', { hotkey })
+
+export const parseUiTagNative = (raw: string) =>
+  invoke<{ raw: string; kind: string; value: string }>('parse_ui_tag', { raw })
+
+export const resolvePageLayoutNative = (args: {
+  paperId: string
+  margins: {
+    marginTop: number
+    marginBottom: number
+    marginLeft: number
+    marginRight: number
+  }
+  headerFooterReserve?: number | null
+}) =>
+  invoke<{
+    width: number
+    paddingTop: number
+    paddingBottom: number
+    paddingLeft: number
+    paddingRight: number
+    contentHeight: number
+    scrollPaddingTop: number
+    paperHeight: number
+  }>('resolve_page_layout_ui', {
+    paperId: args.paperId,
+    margins: args.margins,
+    headerFooterReserve: args.headerFooterReserve ?? null,
+  })
+
+export const tiptapJsonToMarkdownNative = (contentJson: string, title: string) =>
+  invoke<string>('tiptap_json_to_markdown_ui', { contentJson, title })
+
+export const analyzeGraphDensityNative = (
+  seedCount: number,
+  edgeCount: number,
+  orphanCount: number,
+) =>
+  invoke<{ sparse: boolean; orphanRatio: number; edgeRatio: number }>(
+    'analyze_graph_density_ui',
+    { seedCount, edgeCount, orphanCount },
+  )
+
+export const isUntitledOrphanTitleNative = (title: string) =>
+  invoke<boolean>('is_untitled_orphan_title_ui', { title })
+
+export const toGlobalShortcutAcceleratorNative = (hotkey: string) =>
+  invoke<string>('to_global_shortcut_accelerator_ui', { hotkey })
+
+export const computeJournalStreakNative = (notedDates: string[], today?: string | null) =>
+  invoke<number>('compute_journal_streak_ui', { notedDates, today: today ?? null })
+
+export const formatWeekKeyNative = (year: number, month: number, day: number) =>
+  invoke<string | null>('format_week_key_ui', { year, month, day })
+
+export const currentWeekRangeNative = (year: number, month: number, day: number) =>
+  invoke<[string, string] | null>('current_week_range_ui', { year, month, day })
+
+export const buildRevisionCompareOptionsNative = (
+  revisions: Array<{
+    id: string
+    title: string
+    createdAt: number
+    label?: string | null
+  }>,
+  currentUpdatedAt: number,
+  currentLabel?: string | null,
+) =>
+  invoke<
+    Array<{
+      id: string
+      label: string
+      createdAt: number
+      isCurrent?: boolean
+    }>
+  >('build_revision_compare_options_ui', {
+    revisions,
+    currentUpdatedAt,
+    currentLabel: currentLabel ?? null,
+  })
+
+export const normalizeComparePairNative = (
+  versionAId: string,
+  versionBId: string,
+  revisions: Array<{
+    id: string
+    title: string
+    createdAt: number
+    label?: string | null
+  }>,
+  currentUpdatedAt: number,
+) =>
+  invoke<[string, string]>('normalize_compare_pair_ui', {
+    versionAId,
+    versionBId,
+    revisions,
+    currentUpdatedAt,
+  })
+
+export const bumpSemverNative = (
+  version: string,
+  bump: 'patch' | 'minor' | 'major' | 'keep',
+) => invoke<string>('bump_semver_ui', { version, bump })
+
+export const compareSemverNative = (a: string, b: string) =>
+  invoke<number>('compare_semver_ui', { a, b })
+
+export const parseTemplatePackNative = (raw: string) =>
+  invoke<{
+    version: number
+    name: string
+    locale?: string
+    templates: Array<{
+      name: string
+      title: string
+      description?: string
+      categoryId?: string
+      content: unknown
+    }>
+  }>('parse_template_pack_ui', { raw })
+
+export const serializeTemplatePackNative = (pack: {
+  version: number
+  name: string
+  locale?: string
+  templates: Array<{
+    name: string
+    title: string
+    description?: string
+    categoryId?: string
+    content: unknown
+  }>
+}) => invoke<string>('serialize_template_pack_ui', { pack })
+
+export const generateLoremIpsumNative = (args: {
+  unit: 'paragraphs' | 'sentences' | 'words'
+  count: number
+  startWithLorem?: boolean | null
+}) =>
+  invoke<string>('generate_lorem_ipsum_ui', {
+    unit: args.unit,
+    count: args.count,
+    startWithLorem: args.startWithLorem ?? null,
+  })
+
+export const sanitizeFileNameNative = (name: string, ext?: string | null) =>
+  invoke<string>('sanitize_file_name_ui', { name, ext: ext ?? null })
+
+export const localeSectionGroupsNative = () =>
+  invoke<Array<{ id: string; sections: string[] }>>('locale_section_groups_ui')
+
+export const uiFontPresetsNative = () =>
+  invoke<
+    Array<{
+      id: string
+      sample: string
+      sans: string
+      display: string
+      google?: string[]
+    }>
+  >('ui_font_presets_ui')
+
+export const extractTitleFromContentNative = (contentJson: string, fallback?: string | null) =>
+  invoke<string>('extract_title_from_content_ui', { contentJson, fallback: fallback ?? null })
+
+export const countWordsNative = (contentJson: string) =>
+  invoke<number>('count_words_ui', { contentJson })
+
+export const countCharactersNative = (contentJson: string) =>
+  invoke<number>('count_characters_ui', { contentJson })
+
+export const collectHeadingsFromJsonNative = (contentJson: string) =>
+  invoke<string[]>('collect_headings_from_json_ui', { contentJson })
+
+export const plainTextToContentJsonNative = (text: string) =>
+  invoke<string>('plain_text_to_content_json_ui', { text })
+
+export const titleFromHtmlNative = (html: string, fallback: string) =>
+  invoke<string>('title_from_html_ui', { html, fallback })
+
+export const validateSnippetInputNative = (
+  input: Record<string, unknown>,
+  existingCustomCount?: number | null,
+  isUpdate?: boolean | null,
+) =>
+  invoke<{ ok: boolean; value?: unknown; error?: { code: string; message: string } }>(
+    'validate_snippet_input_ui',
+    { input, existingCustomCount: existingCustomCount ?? null, isUpdate: isUpdate ?? null },
+  )
+
+export const isVideoUrlNative = (value: string) => invoke<boolean>('is_video_url_ui', { value })
+
+export const videoProviderLabelNative = (src: string) =>
+  invoke<string>('video_provider_label_ui', { src })
+
+export const videoExportEmbedNative = (src: string) =>
+  invoke<{ kind: string; href: string }>('video_export_embed_ui', { src })
+
+export const documentStylePresetsNative = () => invoke<unknown[]>('document_style_presets_ui')
+
+export const applyDocumentStylePresetNative = (id: string) =>
+  invoke<unknown>('apply_document_style_preset_ui', { id })
+
+export const parseCanvasDocumentNative = (contentJson: string) =>
+  invoke<unknown | null>('parse_canvas_document_ui', { contentJson })
+
+export const serializeCanvasDocumentNative = (doc: unknown) =>
+  invoke<string>('serialize_canvas_document_ui', { doc })
+
+export const promoteMarkdownSpecialBlocksNative = (doc: unknown) =>
+  invoke<unknown>('promote_markdown_special_blocks_ui', { doc })
+
+export const collectMarkdownHeadingOutlineNative = (markdown: string) =>
+  invoke<unknown[]>('collect_markdown_heading_outline_ui', { markdown })
+
+export const parseMapSpecNative = (source: string) =>
+  invoke<unknown>('parse_map_spec_ui', { source })
+
+export const importTitleFromPathNative = (path: string, fallback: string) =>
+  invoke<string>('import_title_from_path_ui', { path, fallback })
+
+export const isPagesPathNative = (path: string) => invoke<boolean>('is_pages_path_ui', { path })
+
+export const themePresetIdsNative = () => invoke<string[]>('theme_preset_ids_ui')
+
+export const suggestOrphanLinksNative = (rows: unknown[]) =>
+  invoke<unknown[]>('suggest_orphan_links_ui', { rows })
+
+export const resolveColorNative = (color: string, tokens: Record<string, string>) =>
+  invoke<string>('resolve_color_ui', { color, tokens })
+
+export type UiSurfaceId = 'whats-new' | 'welcome' | 'privacy' | 'about' | 'docs'
+
+export type UiSurfaceRequest = {
+  surface: UiSurfaceId
+  locale?: string
+  strings?: Record<string, string>
+  version?: string
+  shortVersion?: string
+  highlights?: string[]
+  highlightCopy?: Record<string, [string, string]>
+  recent?: Array<{ id: string; title: string; updatedLabel?: string }>
+  privacyArticles?: Array<{ id: string; title: string; paragraphs: string[] }>
+  docsTopics?: Array<{
+    id: string
+    title: string
+    summary: string
+    paragraphs?: string[]
+    points?: string[]
+  }>
+  docsGroups?: Array<[string, string[]]>
+}
+
+export const renderUiSurfaceHtml = (request: UiSurfaceRequest) =>
+  invoke<string>('render_ui_surface_html', { request })
+
+export const openUiSurface = (request: UiSurfaceRequest) =>
+  invoke<void>('open_ui_surface', { input: { request } })
+
+export const closeUiSurface = () => invoke<void>('close_ui_surface')
+
 export const clearAllDocuments = async () => {
   const count = await invoke<number>('clear_all_documents')
   clearDocumentCache()

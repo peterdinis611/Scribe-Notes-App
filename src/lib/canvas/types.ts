@@ -1,3 +1,4 @@
+/** Keep in sync with `crates/scribe-ui` counterpart. */
 export type CanvasCard = {
   id: string
   x: number

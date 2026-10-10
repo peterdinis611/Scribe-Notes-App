@@ -1,7 +1,7 @@
 import type { AgentToolId } from '@/lib/library/agent-prefs'
 import type { AgentRecipeId } from '@/lib/library/agent-recipes'
 
-/** Named specialist agents the user can enable/disable in Settings. */
+/** Named specialist agents — ids mirrored in `scribe_ui::agent_catalog`. */
 export type AgentRoleId =
   | 'general'
   | 'proofreader'

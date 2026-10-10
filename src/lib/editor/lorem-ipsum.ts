@@ -1,4 +1,8 @@
+import { generateLoremIpsumNative } from '@/lib/db/api'
 import { kvGet, kvSet } from '@/lib/storage/kv'
+import { isTauriRuntime } from '@/lib/tauri'
+
+/** Local generator keep in sync with `crates/scribe-ui/src/lorem.rs`. */
 
 export type LoremUnit = 'paragraphs' | 'sentences' | 'words'
 
@@ -226,7 +230,7 @@ function sentencesToParagraphs(sentences: string[], paragraphCount: number): str
   return paragraphs
 }
 
-/** Generate plain text (paragraphs separated by blank lines). */
+/** Generate plain text (paragraphs separated by blank lines). Sync local path. */
 export function generateLoremIpsum(options: Partial<LoremOptions> = {}): string {
   const opts = normalizeLoremOptions(options)
 
@@ -245,4 +249,23 @@ export function generateLoremIpsum(options: Partial<LoremOptions> = {}): string 
   const words = buildWords(approxWords, opts.startWithLorem)
   const sentences = wordsToSentences(words, sentenceCount)
   return sentencesToParagraphs(sentences, opts.count).join('\n\n')
+}
+
+/** Prefer under Tauri when async is OK (local Latin bank via scribe-ui). */
+export async function generateLoremIpsumLocalNative(
+  options: Partial<LoremOptions> = {},
+): Promise<string> {
+  const opts = normalizeLoremOptions(options)
+  if (isTauriRuntime()) {
+    try {
+      return await generateLoremIpsumNative({
+        unit: opts.unit,
+        count: opts.count,
+        startWithLorem: opts.startWithLorem,
+      })
+    } catch {
+      /* fall through */
+    }
+  }
+  return generateLoremIpsum(opts)
 }

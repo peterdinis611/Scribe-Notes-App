@@ -1,3 +1,4 @@
+/** Keep in sync with `crates/scribe-ui` counterpart. */
 export function importTitleFromPath(path: string, fallback: string) {
   const fileName = path.split(/[/\\]/).pop() ?? fallback
   const stem = fileName.replace(/\.[^.]+$/, '').trim()

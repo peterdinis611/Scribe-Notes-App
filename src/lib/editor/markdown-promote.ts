@@ -1,3 +1,4 @@
+/** Keep in sync with `crates/scribe-ui` counterpart. */
 import type { JSONContent } from '@tiptap/core'
 import { D3_CHART_DEFAULT_SOURCE } from '@/lib/editor/d3-chart'
 import { MAP_DEFAULT_SOURCE } from '@/lib/editor/map'

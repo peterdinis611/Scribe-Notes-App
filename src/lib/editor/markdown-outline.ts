@@ -1,3 +1,4 @@
+/** Keep in sync with `crates/scribe-ui` counterpart. */
 import type { RefObject } from 'react'
 import type { DocumentOutlineItem } from '@/lib/editor/document-outline'
 

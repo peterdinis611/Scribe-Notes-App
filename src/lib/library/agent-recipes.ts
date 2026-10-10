@@ -1,5 +1,7 @@
 import type { AgentToolId, CustomAgentRecipe } from '@/lib/library/agent-prefs'
 
+/** Recipe catalog — keep ids/tools in sync with `scribe_ui::agent_catalog`. */
+
 export type AgentRecipeId =
   | 'daily_digest'
   | 'weekly_review'

@@ -1,7 +1,7 @@
 {
   "name": "scribe",
   "private": true,
-  "version": "3.3.0",
+  "version": "3.4.0",
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -26,6 +26,7 @@
     "postinstall": "node --experimental-strip-types scripts/ensure-prosemirror-singleton.ts",
     "pm:check": "node --experimental-strip-types scripts/ensure-prosemirror-singleton.ts --check",
     "version:check": "bun scripts/check-version-sync.ts",
+    "ui:surfaces": "bun scripts/dev-scribe-ui.ts",
     "ci:local": "bun scripts/ci-local.ts",
     "ci:local:tauri": "bun scripts/ci-local.ts --tauri",
     "ci:local:tag": "bun scripts/ci-local.ts --tauri --tag",

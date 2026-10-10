@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { ArrowRight, CalendarDays, Clock, FileText, FolderInput, GitBranch, Plus } from 'lucide-react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
@@ -10,6 +10,7 @@ import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { prefetchDocument } from '@/lib/cache/prefetch-document'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { openTodayNote } from '@/lib/journal-notes'
+import { closeScribeUiSurface } from '@/lib/scribe-ui-host'
 import { toast } from '@/lib/toast'
 import { ROUTES } from '@/lib/routes'
 import { getDisplayKeysForShortcut } from '@/lib/shortcuts'
@@ -33,6 +34,10 @@ export function WelcomeScreen() {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const { t } = useTranslation()
+
+  useEffect(() => {
+    void closeScribeUiSurface()
+  }, [])
 
   const isGrove = uiSkin !== 'classic'
   const newDocKeys = getDisplayKeysForShortcut('newDocument', shortcutOverrides).join('')

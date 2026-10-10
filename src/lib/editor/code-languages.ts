@@ -1,5 +1,7 @@
 import hljs from 'highlight.js'
 
+/** Pinned ids / aliases mirrored in `scribe_ui::code_languages` (hljs list stays here). */
+
 export interface CodeLanguage {
   id: string
   label: string

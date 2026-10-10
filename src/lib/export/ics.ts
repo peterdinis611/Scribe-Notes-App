@@ -1,6 +1,8 @@
 import { save } from '@tauri-apps/plugin-dialog'
-import { writeTextFile } from '@/lib/db/api'
+import { buildIcsCalendarNative, writeTextFile } from '@/lib/db/api'
 import type { CalendarEvent } from '@/lib/db/nlp-api'
+import { sanitizeFileName } from '@/lib/filenames'
+import { isTauriRuntime } from '@/lib/tauri'
 
 export type IcsEventInput = {
   summary: string
@@ -8,16 +10,6 @@ export type IcsEventInput = {
   date: string
   description?: string
   uid?: string
-}
-
-function sanitizeFileName(name: string): string {
-  const cleaned = name
-    .trim()
-    .replace(/[\\/:*?"<>|]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .slice(0, 80)
-    .trim()
-  return `${cleaned || 'scribe-calendar'}.ics`
 }
 
 function escapeIcsText(value: string): string {
@@ -65,8 +57,8 @@ function stampNow(): string {
     .replace(/\.\d{3}Z$/, 'Z')
 }
 
-/** Build a minimal VCALENDAR body (RFC 5545 subset). */
-export function buildIcsCalendar(events: IcsEventInput[], calendarName = 'Scribe'): string {
+/** Sync JS fallback — used by vitest and when Tauri IPC is unavailable. */
+export function buildIcsCalendarLocal(events: IcsEventInput[], calendarName = 'Scribe'): string {
   const lines: string[] = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
@@ -99,6 +91,21 @@ export function buildIcsCalendar(events: IcsEventInput[], calendarName = 'Scribe
   })
   lines.push('END:VCALENDAR')
   return lines.map(foldLine).join('\r\n') + '\r\n'
+}
+
+/** Prefer Rust `scribe-ui` when running under Tauri; otherwise JS fallback. */
+export async function buildIcsCalendar(
+  events: IcsEventInput[],
+  calendarName = 'Scribe',
+): Promise<string> {
+  if (isTauriRuntime()) {
+    try {
+      return await buildIcsCalendarNative(events, calendarName)
+    } catch {
+      // Fall through to local builder.
+    }
+  }
+  return buildIcsCalendarLocal(events, calendarName)
 }
 
 export function calendarEventsToIcs(events: CalendarEvent[]): IcsEventInput[] {
@@ -146,10 +153,10 @@ export async function exportIcsFile(args: {
   if (!args.events.length) return null
   const path = await save({
     title: args.dialogTitle ?? 'Export calendar',
-    defaultPath: sanitizeFileName(args.baseName ?? 'scribe-calendar'),
+    defaultPath: sanitizeFileName(args.baseName ?? 'scribe-calendar', 'ics'),
     filters: [{ name: 'iCalendar', extensions: ['ics'] }],
   })
   if (!path) return null
-  await writeTextFile(path, buildIcsCalendar(args.events, args.calendarName ?? 'Scribe'))
+  await writeTextFile(path, await buildIcsCalendar(args.events, args.calendarName ?? 'Scribe'))
   return path
 }

@@ -1,3 +1,4 @@
+/** Keep in sync with `crates/scribe-ui` counterpart. */
 import {
   DEFAULT_PAGE_HEADER_FOOTER,
   DEFAULT_PAGE_SETUP,

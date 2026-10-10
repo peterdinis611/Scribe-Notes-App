@@ -1,5 +1,7 @@
 import type { Folder } from '@/lib/db/api'
 
+/** Picker tree helpers — mirrored in `scribe_ui::folders`. */
+
 export type FolderPickerItem = {
   folder: Folder
   depth: number

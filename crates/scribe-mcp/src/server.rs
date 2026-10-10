@@ -861,9 +861,17 @@ impl ScribeMcp {
             tools::IdParams,
         >,
     ) -> Result<String, String> {
-        self.with_store(|store| {
+        let result = self.with_store(|store| {
             Ok(tools::json(&store.restore_document(&params.id)?))
-        })
+        })?;
+        self.audit_mcp(
+            "mcp_tool",
+            "restore_document",
+            &format!("MCP restore_document: {}", params.id),
+            Some(serde_json::json!({ "id": params.id })),
+            "ok",
+        );
+        Ok(result)
     }
 
     #[tool(description = "Permanently delete a trashed document.")]
@@ -873,7 +881,15 @@ impl ScribeMcp {
             tools::IdParams,
         >,
     ) -> Result<String, String> {
-        self.with_store(|store| Ok(tools::json(&store.purge_document(&params.id)?)))
+        let result = self.with_store(|store| Ok(tools::json(&store.purge_document(&params.id)?)))?;
+        self.audit_mcp(
+            "mcp_tool",
+            "purge_document",
+            &format!("MCP purge_document: {}", params.id),
+            Some(serde_json::json!({ "id": params.id })),
+            "ok",
+        );
+        Ok(result)
     }
 
     #[tool(description = "List all tags with document counts.")]
@@ -965,12 +981,23 @@ impl ScribeMcp {
             tools::MoveDocumentParams,
         >,
     ) -> Result<String, String> {
-        self.with_store(|store| {
+        let result = self.with_store(|store| {
             Ok(tools::json(&store.move_document_to_folder(
                 &params.document_id,
                 params.folder_id.as_deref(),
             )?))
-        })
+        })?;
+        self.audit_mcp(
+            "mcp_tool",
+            "move_document_to_folder",
+            &format!("MCP move_document_to_folder: {}", params.document_id),
+            Some(serde_json::json!({
+                "documentId": params.document_id,
+                "folderId": params.folder_id,
+            })),
+            "ok",
+        );
+        Ok(result)
     }
 
     #[tool(description = "List comment threads on a document.")]
@@ -1236,9 +1263,17 @@ impl ScribeMcp {
             tools::RenameDocumentParams,
         >,
     ) -> Result<String, String> {
-        self.with_store(|store| {
+        let result = self.with_store(|store| {
             Ok(tools::json(&store.rename_document(&params.id, &params.title)?))
-        })
+        })?;
+        self.audit_mcp(
+            "mcp_tool",
+            "rename_document",
+            &format!("MCP rename_document: {}", params.id),
+            Some(serde_json::json!({ "id": params.id, "title": params.title })),
+            "ok",
+        );
+        Ok(result)
     }
 
     #[tool(description = "Replace document body with plain text (creates a revision when content changes).")]
@@ -1248,9 +1283,17 @@ impl ScribeMcp {
             tools::ReplaceContentParams,
         >,
     ) -> Result<String, String> {
-        self.with_store(|store| {
+        let result = self.with_store(|store| {
             Ok(tools::json(&store.replace_document_content(&params.id, &params.content)?))
-        })
+        })?;
+        self.audit_mcp(
+            "mcp_tool",
+            "replace_document_content",
+            &format!("MCP replace_document_content: {}", params.id),
+            Some(serde_json::json!({ "id": params.id })),
+            "ok",
+        );
+        Ok(result)
     }
 
     #[tool(description = "Mark a document as favorite or remove favorite.")]
@@ -1296,14 +1339,30 @@ impl ScribeMcp {
         &self,
         Parameters(params): Parameters<tools::DuplicateDocumentParams>,
     ) -> Result<String, String> {
-        self.with_store(|store| {
+        let result = self.with_store(|store| {
             Ok(tools::json(&store.duplicate_document(&params.id, params.title.as_deref())?))
-        })
+        })?;
+        self.audit_mcp(
+            "mcp_tool",
+            "duplicate_document",
+            &format!("MCP duplicate_document: {}", params.id),
+            Some(serde_json::json!({ "id": params.id })),
+            "ok",
+        );
+        Ok(result)
     }
 
     #[tool(description = "Permanently delete all trashed documents.")]
     fn empty_trash(&self) -> Result<String, String> {
-        self.with_store(|store| Ok(tools::json(&store.empty_trash()?)))
+        let result = self.with_store(|store| Ok(tools::json(&store.empty_trash()?)))?;
+        self.audit_mcp(
+            "mcp_tool",
+            "empty_trash",
+            "MCP empty_trash",
+            None,
+            "ok",
+        );
+        Ok(result)
     }
 
     #[tool(description = "Delete a folder (trashes documents in the subtree).")]

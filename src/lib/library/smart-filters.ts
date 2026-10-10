@@ -1,6 +1,14 @@
 import type { DocumentSummary } from '@/lib/db/api'
 
+/** Keep in sync with `scribe_ui::smart_filter_ids`. */
 export type LibrarySmartFilter = 'none' | 'unlinked' | 'untagged' | 'unread'
+
+export const LIBRARY_SMART_FILTER_IDS = [
+  'none',
+  'unlinked',
+  'untagged',
+  'unread',
+] as const satisfies readonly LibrarySmartFilter[]
 
 export function documentMatchesSmartFilter(
   doc: DocumentSummary,

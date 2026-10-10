@@ -1,30 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  Archive,
-  BookOpen,
-  CalendarDays,
-  FileText,
-  FolderTree,
-  GitFork,
-  History,
-  Keyboard,
-  Link2,
-  PenLine,
-  Plug,
-  Puzzle,
-  Search,
-  Shield,
-  Sparkles,
-  X,
-  type LucideIcon,
-} from 'lucide-react'
-import { Input } from '@/components/ui/input'
-import { SettingsKbd } from '@/components/settings/SettingsPrimitives'
-import { cn } from '@/lib/utils'
-import { IconTooltip } from '@/components/ui/tooltip'
+import { openScribeUiSurface } from '@/lib/scribe-ui-host'
+import { isTauriRuntime } from '@/lib/tauri'
 import { APP_SHORT_VERSION } from '@/lib/app-version'
 
+/** Keep in sync with `scribe_ui::DOCS_TOPIC_IDS` / UiManifest.docsTopicIds. */
 export const DOCS_TOPIC_IDS = [
   'overview',
   'privacy',
@@ -45,323 +25,44 @@ export const DOCS_TOPIC_IDS = [
 
 export type DocsTopicId = (typeof DOCS_TOPIC_IDS)[number]
 
-const TOPIC_ICONS: Record<DocsTopicId, LucideIcon> = {
-  overview: BookOpen,
-  privacy: Shield,
-  documents: FileText,
-  library: FolderTree,
-  linkGraph: GitFork,
-  wikiLinks: Link2,
-  editor: PenLine,
-  search: Search,
-  localAi: Sparkles,
-  revisions: History,
-  mcp: Plug,
-  plugins: Puzzle,
-  journal: CalendarDays,
-  backup: Archive,
-  shortcuts: Keyboard,
-}
-
-const DOC_GROUPS: { id: string; topics: DocsTopicId[] }[] = [
-  { id: 'basics', topics: ['overview', 'privacy', 'documents'] },
-  { id: 'organize', topics: ['library', 'linkGraph', 'wikiLinks'] },
-  { id: 'write', topics: ['editor', 'search', 'localAi', 'revisions', 'journal'] },
-  { id: 'power', topics: ['mcp', 'plugins', 'backup', 'shortcuts'] },
-]
-
-const QUICK_LINKS: DocsTopicId[] = ['library', 'localAi', 'revisions', 'plugins']
-
-const TOPIC_TIPS: Partial<Record<DocsTopicId, { keys: string; tipKey: string }>> = {
-  search: { keys: '⌘K', tipKey: 'searchTip' },
-  localAi: { keys: '⌘K', tipKey: 'localAiTip' },
-  revisions: { keys: '⌘Z', tipKey: 'revisionsTip' },
-  mcp: { keys: '⌘,', tipKey: 'mcpTip' },
-  plugins: { keys: '⌘,', tipKey: 'pluginsTip' },
-  journal: { keys: '⌘⇧D', tipKey: 'journalTip' },
-  shortcuts: { keys: '⌘,', tipKey: 'shortcutsTip' },
-}
-
-function useActiveTopic(ids: DocsTopicId[], root: HTMLElement | null, enabled: boolean) {
-  const [activeId, setActiveId] = useState<DocsTopicId | null>(ids[0] ?? null)
-
-  useEffect(() => {
-    if (!enabled || ids.length === 0 || !root) {
-      setActiveId(ids[0] ?? null)
-      return
-    }
-
-    const elements = ids
-      .map((id) => root.querySelector(`#docs-${id}`))
-      .filter((el): el is HTMLElement => el instanceof HTMLElement)
-
-    if (elements.length === 0) return
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
-        const top = visible[0]
-        if (top?.target.id.startsWith('docs-')) {
-          setActiveId(top.target.id.replace('docs-', '') as DocsTopicId)
-        }
-      },
-      { root, rootMargin: '-12% 0px -62% 0px', threshold: [0, 0.2, 0.5] },
-    )
-
-    for (const el of elements) observer.observe(el)
-    setActiveId(ids[0] ?? null)
-    return () => observer.disconnect()
-  }, [enabled, ids, root])
-
-  return activeId
-}
-
-function TopicBody({ topicId }: { topicId: DocsTopicId }) {
-  const { t, i18n } = useTranslation()
-  const base = `settings.docs.topics.${topicId}`
-  const paragraphs = t(`${base}.paragraphs`, { returnObjects: true, version: APP_SHORT_VERSION })
-  const points = t(`${base}.points`, { returnObjects: true, version: APP_SHORT_VERSION })
-  const paragraphList = Array.isArray(paragraphs) ? (paragraphs as string[]) : []
-  const pointList = Array.isArray(points) ? (points as string[]) : []
-  const tip = TOPIC_TIPS[topicId]
-
-  if (paragraphList.length === 0 && pointList.length === 0) {
-    const body = i18n.exists(`${base}.body`) ? t(`${base}.body`) : ''
-    if (!body) return null
-    return (
-      <p className="m-0 whitespace-pre-line text-[13.5px] leading-[1.65] text-[var(--color-muted-foreground)]">
-        {body}
-      </p>
-    )
-  }
-
-  return (
-    <div className="space-y-3.5">
-      {paragraphList.map((text) => (
-        <p key={text} className="m-0 text-[13.5px] leading-[1.65] text-[var(--color-muted-foreground)]">
-          {text}
-        </p>
-      ))}
-      {pointList.length > 0 && (
-        <ul className="docs-point-list m-0 list-none space-y-2.5 p-0">
-          {pointList.map((point) => (
-            <li key={point} className="docs-point-item">
-              <span className="docs-point-dot" aria-hidden="true" />
-              <span className="text-[13.5px] leading-[1.55] text-[var(--color-muted-foreground)]">
-                {point}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-      {tip && (
-        <div className="docs-tip">
-          <span className="docs-tip-label">{t('settings.docs.tipLabel')}</span>
-          <SettingsKbd>{tip.keys}</SettingsKbd>
-          <span>{t(`settings.docs.${tip.tipKey}`)}</span>
-        </div>
-      )}
-    </div>
-  )
-}
-
+/** Docs chrome — Dioxus surface under Tauri. */
 export function DocsView() {
   const { t } = useTranslation()
-  const [query, setQuery] = useState('')
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null)
 
   useEffect(() => {
-    setScrollEl(scrollRef.current)
+    if (!isTauriRuntime()) return
+    void openScribeUiSurface('docs')
   }, [])
 
-  const filteredIds = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) return [...DOCS_TOPIC_IDS]
-
-    return DOCS_TOPIC_IDS.filter((id) => {
-      const title = t(`settings.docs.topics.${id}.title`, { version: APP_SHORT_VERSION }).toLowerCase()
-      const summary = t(`settings.docs.topics.${id}.summary`, { version: APP_SHORT_VERSION }).toLowerCase()
-      const paragraphs = t(`settings.docs.topics.${id}.paragraphs`, {
-        returnObjects: true,
-        version: APP_SHORT_VERSION,
-      })
-      const points = t(`settings.docs.topics.${id}.points`, {
-        returnObjects: true,
-        version: APP_SHORT_VERSION,
-      })
-      const blob = [
-        title,
-        summary,
-        ...(Array.isArray(paragraphs) ? paragraphs : []),
-        ...(Array.isArray(points) ? points : []),
-      ]
-        .join(' ')
-        .toLowerCase()
-      return blob.includes(q)
-    })
-  }, [query, t])
-
-  const filteredSet = useMemo(() => new Set(filteredIds), [filteredIds])
-  const activeId = useActiveTopic(filteredIds, scrollEl, query.trim().length === 0)
-
-  function scrollToTopic(id: DocsTopicId) {
-    const el = scrollRef.current?.querySelector(`#docs-${id}`)
-    el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
-
   return (
-    <div className="docs-page flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div ref={scrollRef} className="docs-scroll min-h-0 flex-1 overflow-y-auto">
-        <div className="docs-shell mx-auto w-full max-w-[1040px] px-5 py-7 sm:px-8 lg:px-10 lg:py-9">
-          <header className="docs-hero">
-            <div className="docs-hero-copy">
-              <p className="docs-hero-eyebrow">{t('welcome.brandWithEdition', { version: APP_SHORT_VERSION })}</p>
-              <h1 className="docs-hero-title">{t('settings.docs.pageTitle', { version: APP_SHORT_VERSION })}</h1>
-              <p className="docs-hero-desc">{t('settings.docs.pageDescription', { version: APP_SHORT_VERSION })}</p>
-            </div>
-
-            <div className="docs-search-wrap">
-              <Search className="docs-search-icon" aria-hidden="true" />
-              <Input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={t('settings.docs.searchPlaceholder')}
-                className="docs-search-input h-10 border-[var(--color-border)] bg-[var(--color-surface)] pl-9 pr-9 text-[13px]"
-                aria-label={t('settings.docs.searchPlaceholder')}
-              />
-              {query && (
-                <IconTooltip label={t('common.close')}>
-                  <button
-                    type="button"
-                    className="docs-search-clear"
-                    onClick={() => setQuery('')}
-                    aria-label={t('common.close')}
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </IconTooltip>
-              )}
-            </div>
-
-            {!query && (
-              <div className="docs-quick">
-                <p className="docs-quick-label">{t('settings.docs.quickStart')}</p>
-                <div className="docs-quick-row">
-                  {QUICK_LINKS.map((id) => {
-                    const Icon = TOPIC_ICONS[id]
-                    return (
-                      <button
-                        key={id}
-                        type="button"
-                        className="docs-quick-chip"
-                        onClick={() => scrollToTopic(id)}
-                      >
-                        <Icon className="h-3.5 w-3.5 shrink-0 opacity-80" />
-                        <span>{t(`settings.docs.topics.${id}.title`, { version: APP_SHORT_VERSION })}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-          </header>
-
-          <div className="docs-layout">
-            <aside className="docs-toc" aria-label={t('settings.docs.onThisPage')}>
-              <p className="docs-toc-heading">{t('settings.docs.onThisPage')}</p>
-              <nav className="docs-toc-nav">
-                {DOC_GROUPS.map((group) => {
-                  const topics = group.topics.filter((id) => filteredSet.has(id))
-                  if (topics.length === 0) return null
-                  return (
-                    <div key={group.id} className="docs-toc-group">
-                      <p className="docs-toc-group-label">
-                        {t(`settings.docs.groups.${group.id}`)}
-                      </p>
-                      {topics.map((id) => {
-                        const Icon = TOPIC_ICONS[id]
-                        const isActive = activeId === id && !query.trim()
-                        return (
-                          <button
-                            key={id}
-                            type="button"
-                            onClick={() => scrollToTopic(id)}
-                            className={cn('docs-toc-item', isActive && 'is-active')}
-                          >
-                            <Icon className="h-3.5 w-3.5 shrink-0 opacity-70" />
-                            <span className="truncate">{t(`settings.docs.topics.${id}.title`, { version: APP_SHORT_VERSION })}</span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  )
-                })}
-              </nav>
-            </aside>
-
-            <div className="docs-content min-w-0">
-              {filteredIds.length === 0 ? (
-                <div className="docs-empty">
-                  <Search className="mx-auto mb-3 h-5 w-5 text-[var(--color-muted-foreground)]" />
-                  <p className="m-0 text-[14px] font-medium text-[var(--color-foreground)]">
-                    {t('settings.docs.noResults')}
-                  </p>
-                  <p className="mt-1 text-[12.5px] text-[var(--color-muted-foreground)]">
-                    {t('settings.docs.noResultsHint')}
-                  </p>
-                  <button type="button" className="docs-empty-clear" onClick={() => setQuery('')}>
-                    {t('settings.docs.clearSearch')}
-                  </button>
-                </div>
-              ) : (
-                <div className="docs-topics">
-                  {DOC_GROUPS.map((group) => {
-                    const topics = group.topics.filter((id) => filteredSet.has(id))
-                    if (topics.length === 0) return null
-                    return (
-                      <section key={group.id} className="docs-section">
-                        <h2 className="docs-section-title">
-                          {t(`settings.docs.groups.${group.id}`)}
-                        </h2>
-                        <div className="docs-section-stack">
-                          {topics.map((id, index) => {
-                            const Icon = TOPIC_ICONS[id]
-                            return (
-                              <article
-                                key={id}
-                                id={`docs-${id}`}
-                                className="docs-topic"
-                                style={{ animationDelay: `${Math.min(index, 6) * 40}ms` }}
-                              >
-                                <div className="docs-topic-head">
-                                  <div className="docs-topic-icon">
-                                    <Icon className="h-4 w-4" />
-                                  </div>
-                                  <div className="min-w-0">
-                                    <h3 className="docs-topic-title">
-                                      {t(`settings.docs.topics.${id}.title`, { version: APP_SHORT_VERSION })}
-                                    </h3>
-                                    <p className="docs-topic-summary">
-                                      {t(`settings.docs.topics.${id}.summary`, { version: APP_SHORT_VERSION })}
-                                    </p>
-                                  </div>
-                                </div>
-                                <TopicBody topicId={id} />
-                              </article>
-                            )
-                          })}
-                        </div>
-                      </section>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+    <div className="docs-page flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden p-8">
+      <div className="max-w-lg text-center">
+        <p className="text-[12px] uppercase tracking-[0.18em] text-[var(--color-muted-foreground)]">
+          {t('welcome.brandWithEdition', { version: APP_SHORT_VERSION })}
+        </p>
+        <h1 className="mt-3 text-[28px] font-bold tracking-[-0.03em]">
+          {t('settings.docs.pageTitle', { version: APP_SHORT_VERSION })}
+        </h1>
+        <p className="mt-2 text-[14px] text-[var(--color-muted-foreground)]">
+          {isTauriRuntime()
+            ? t('common.loading')
+            : t('settings.docs.pageDescription', { version: APP_SHORT_VERSION })}
+        </p>
+        {isTauriRuntime() ? (
+          <button
+            type="button"
+            className="mt-6 rounded-[var(--radius-md)] border border-[var(--color-border)] px-4 py-2 text-[13px]"
+            onClick={() => void openScribeUiSurface('docs')}
+          >
+            {t('settings.docs.pageTitle', { version: APP_SHORT_VERSION })}
+          </button>
+        ) : (
+          <ul className="mt-6 space-y-2 text-left text-[13px] text-[var(--color-muted-foreground)]">
+            {DOCS_TOPIC_IDS.map((id) => (
+              <li key={id}>{t(`settings.docs.topics.${id}.title`, { version: APP_SHORT_VERSION })}</li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   )

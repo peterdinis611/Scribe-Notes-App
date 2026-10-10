@@ -6,6 +6,7 @@ import {
   toastImportDocumentsResult,
 } from '@/lib/import-document'
 import type { Document } from '@/lib/db/api'
+import { isTauriRuntime } from '@/lib/tauri'
 
 export type AppFileDropHandlers = {
   onImported: (docs: Document[]) => void | Promise<void>
@@ -28,82 +29,88 @@ export function useAppFileDrop(handlers: AppFileDropHandlers) {
   const busyRef = useRef(false)
 
   useEffect(() => {
+    if (!isTauriRuntime()) return
+
     let disposed = false
     let unlisten: (() => void) | undefined
 
-    void getCurrentWindow()
-      .onDragDropEvent((event) => {
-        if (disposed) return
-        const { payload } = event
+    try {
+      void getCurrentWindow()
+        .onDragDropEvent((event) => {
+          if (disposed) return
+          const { payload } = event
 
-        if (payload.type === 'enter') {
-          enterPathsRef.current = payload.paths
-          const importable = filterImportableDocumentPaths(payload.paths)
-          setHoverCount(importable.length > 0 ? importable.length : payload.paths.length)
-          setActive(importable.length > 0 || payload.paths.length > 0)
-          return
-        }
+          if (payload.type === 'enter') {
+            enterPathsRef.current = payload.paths
+            const importable = filterImportableDocumentPaths(payload.paths)
+            setHoverCount(importable.length > 0 ? importable.length : payload.paths.length)
+            setActive(importable.length > 0 || payload.paths.length > 0)
+            return
+          }
 
-        if (payload.type === 'over') {
-          setActive(true)
-          return
-        }
+          if (payload.type === 'over') {
+            setActive(true)
+            return
+          }
 
-        if (payload.type === 'leave') {
+          if (payload.type === 'leave') {
+            enterPathsRef.current = []
+            setActive(false)
+            setHoverCount(0)
+            return
+          }
+
+          if (payload.type !== 'drop') return
+
+          const paths = payload.paths.length > 0 ? payload.paths : enterPathsRef.current
           enterPathsRef.current = []
           setActive(false)
           setHoverCount(0)
-          return
-        }
 
-        if (payload.type !== 'drop') return
-
-        const paths = payload.paths.length > 0 ? payload.paths : enterPathsRef.current
-        enterPathsRef.current = []
-        setActive(false)
-        setHoverCount(0)
-
-        if (busyRef.current) {
-          handlersRef.current.toastInfo(handlersRef.current.t('fileDrop.busy'))
-          return
-        }
-
-        const importable = filterImportableDocumentPaths(paths)
-        if (importable.length === 0) {
-          handlersRef.current.toastError(
-            handlersRef.current.t('fileDrop.unsupportedTitle'),
-            handlersRef.current.t('fileDrop.unsupportedBody'),
-          )
-          return
-        }
-
-        busyRef.current = true
-        setBusy(true)
-
-        void (async () => {
-          const h = handlersRef.current
-          try {
-            // Import one-by-one so progress toasts stay ordered; shared helper is sequential.
-            const result = await importDocumentsFromPaths(importable)
-            if (result.imported.length > 0) {
-              await h.onImported(result.imported)
-            }
-            toastImportDocumentsResult(result, h.t)
-          } catch (error) {
-            h.toastError(h.t('fileDrop.error'), String(error))
-          } finally {
-            busyRef.current = false
-            setBusy(false)
+          if (busyRef.current) {
+            handlersRef.current.toastInfo(handlersRef.current.t('fileDrop.busy'))
+            return
           }
-        })()
-      })
-      .then((fn) => {
-        if (disposed) fn()
-        else unlisten = fn
-      })
-      .catch(() => {
-        // Not in Tauri / permissions — drop silently unavailable.
-      })
+
+          const importable = filterImportableDocumentPaths(paths)
+          if (importable.length === 0) {
+            handlersRef.current.toastError(
+              handlersRef.current.t('fileDrop.unsupportedTitle'),
+              handlersRef.current.t('fileDrop.unsupportedBody'),
+            )
+            return
+          }
+
+          busyRef.current = true
+          setBusy(true)
+
+          void (async () => {
+            const h = handlersRef.current
+            try {
+              // Import one-by-one so progress toasts stay ordered; shared helper is sequential.
+              const result = await importDocumentsFromPaths(importable)
+              if (result.imported.length > 0) {
+                await h.onImported(result.imported)
+              }
+              toastImportDocumentsResult(result, h.t)
+            } catch (error) {
+              h.toastError(h.t('fileDrop.error'), String(error))
+            } finally {
+              busyRef.current = false
+              setBusy(false)
+            }
+          })()
+        })
+        .then((fn) => {
+          if (disposed) fn()
+          else unlisten = fn
+        })
+        .catch(() => {
+          // Permissions / drag-drop unavailable.
+        })
+    } catch {
+      // getCurrentWindow() throws sync when `__TAURI_INTERNALS__` is missing.
+    }
 
     return () => {
       disposed = true
