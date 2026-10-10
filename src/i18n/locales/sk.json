@@ -56,13 +56,15 @@
     "brandWithEdition": "Scribe {{version}}",
     "eyebrow": "Lokálny editor dokumentov · {{version}}",
     "brandTagline": "Píšte dokumenty lokálne. Prepájajte poznámky, keď ich pribudne.",
-    "editionNote": "{{version}} — Local Agent spúšťa nástroje na tomto Macu; nauč ho svoje preferencie.",
+    "editionNote": "{{version}} — Docs sprievodca, Python UI chrome a zdieľané surfaces — stále lokálne.",
     "newDocument": "Nový dokument",
     "todayNote": "Dnešná poznámka",
     "import": "Importovať",
     "connectionMap": "Mapa prepojení",
     "connectionMapHint": "Poznámky spojené cez [[názov]]. Hodí sa, keď už máte pár odkazov.",
-    "workflowHint": "Nový dokument → [[odkazy]] → export. Mapu prepojení otvoríte, keď ju budete chcieť.",
+    "openDocs": "Otvoriť Docs",
+    "openDocsHint": "Prehľadávateľný sprievodca pre Scribe {{version}}",
+    "workflowHint": "Nový dokument → [[odkazy]] → Docs, keď chceš mapu. Export, keď si pripravený.",
     "stepsLabel": "Ako začať",
     "stepWrite": "Napíšte dokument — šablóna alebo prázdna stránka.",
     "stepLink": "Prepojte poznámky cez [[názov]], keď to dáva zmysel.",
@@ -73,12 +75,12 @@
     "emptyStartHint": "Začnite novým dokumentom alebo dnešnou poznámkou.",
     "press": {
       "eyebrow": "Grove · Scribe {{version}} · lokálne na tomto Macu",
-      "brandTagline": "Píšte v tichom háji. Poznámky ostávajú na disku.",
-      "editionNote": "{{version}} — Organický Grove chrome pre sústredené písanie; Local Agent beží na tomto Macu.",
-      "workflowHint": "Nová stránka → [[odkazy]] → export. Pokročilé nástroje nechajte na neskôr.",
+      "brandTagline": "Píšte v tichom háji. Docs otvor, keď chceš mapu.",
+      "editionNote": "{{version}} — Surfaces: Docs v appke, Python HTML chrome, zdieľané UI katalógy.",
+      "workflowHint": "Nová stránka → [[odkazy]] → Docs alebo export. Agenti ostávajú voliteľní.",
       "recentDocuments": "Nedávne listy",
       "noDocuments": "Háj je prázdny",
-      "noDocumentsHint": "Zasaďte nový dokument alebo otvorte dnešnú poznámku. Sprievodca je voliteľný."
+      "noDocumentsHint": "Zasaďte nový dokument alebo otvorte dnešnú poznámku. Docs a ukážka sú voliteľné."
     }
   },
   "demoGuide": {
@@ -488,19 +490,42 @@
     "badge": "Novinky {{version}}",
     "kicker": "Poznámky k vydaniu",
     "title": "Scribe {{version}}",
-    "subtitle": "Špecializovaní agenti si odovzdávajú prácu, digesty a recepty bežia podľa rozvrhu a odpovede sa dajú premeniť na poznámku, kalendár alebo súbory v knižnici — stále lokálne.",
-    "editionMark": "Agenti · handoffs",
+    "subtitle": "Prehľadávateľný Docs sprievodca, Python UI chrome a zdieľané katalógy naprieč appkou, Lokálnou AI a MCP — stále lokálne.",
+    "editionMark": "Surfaces · Docs",
     "tagsLabel": "Témy tohto vydania",
     "tags": {
       "agent": "Agent",
       "agents": "Špecialisti",
       "handoffs": "Handoffs",
       "recipes": "Recepty",
+      "docs": "Docs",
+      "surfaces": "Surfaces",
+      "python": "Python UI",
       "localAi": "Lokálna AI",
       "editor": "Editor",
       "history": "História"
     },
-    "footNote": "Nastavenia → Agent pre role, digesty a učenie. Panel Agent na handoffs a recepty.",
+    "footNote": "Docs otvoríš kedykoľvek z railu. Lokálna AI → render_ui_surface vygeneruje rovnaký chrome v HTML.",
+    "docsFieldGuide": {
+      "title": "Docs sprievodca",
+      "description": "Docs v appke so sticky outline, hľadaním, jump chipmi a tipmi — vo farbe Grove light aj dark."
+    },
+    "pythonUiChrome": {
+      "title": "Python UI chrome",
+      "description": "Balík python-ui renderuje Whats New, Welcome, Docs a Privacy HTML s rovnakými bridge eventmi ako Dioxus."
+    },
+    "sharedUiCatalogs": {
+      "title": "Zdieľané UI katalógy",
+      "description": "Topic id, theme preset a manifesy ostávajú zosúladené naprieč Rust scribe-ui, Pythonom a MCP nástrojmi."
+    },
+    "renderUiSurface": {
+      "title": "Render UI surfaces",
+      "description": "Lokálna AI a MCP môžu volať render_ui_surface a dostať hostiteľné chrome HTML pre agentov a testy."
+    },
+    "welcomeSurfaces": {
+      "title": "Welcome · Surfaces",
+      "description": "Úvodná obrazovka zvýrazní Docs a Surfaces edíciu {{version}} — najprv píš, potom otvor mapu."
+    },
     "specialistAgents": {
       "title": "Špecializovaní agenti",
       "description": "General, Proofreader, Librarian, Meeting scribe, Study coach a Organizer — každý so svojou pamäťou a sadou receptov."

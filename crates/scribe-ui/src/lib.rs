@@ -285,7 +285,9 @@ pub use video_embed::{
     extract_vimeo_id, extract_youtube_id, is_video_url, video_export_embed, video_provider_label,
     VideoExportEmbed,
 };
-pub use whats_new::{whats_new_highlights, EDITION_MARK_KEY, WHATS_NEW_34_HIGHLIGHTS};
+pub use whats_new::{
+    whats_new_highlights, EDITION_MARK_KEY, WHATS_NEW_34_HIGHLIGHTS, WHATS_NEW_35_HIGHLIGHTS,
+};
 
 #[cfg(feature = "dioxus")]
 pub use render::{

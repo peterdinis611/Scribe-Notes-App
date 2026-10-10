@@ -56,13 +56,15 @@
     "brandWithEdition": "Scribe {{version}}",
     "eyebrow": "Local document editor · {{version}}",
     "brandTagline": "Write documents locally. Link notes when you need them.",
-    "editionNote": "{{version}} — Local Agent runs tools on this Mac; teach it your preferences.",
+    "editionNote": "{{version}} — Docs field guide, Python UI chrome, and shared surfaces — still fully local.",
     "newDocument": "New document",
     "todayNote": "Today’s note",
     "import": "Import",
     "connectionMap": "Connection map",
     "connectionMapHint": "Notes linked with [[title]]. Useful after you have a few links.",
-    "workflowHint": "New document → [[links]] → export. Open the connection map when you need it.",
+    "openDocs": "Open Docs",
+    "openDocsHint": "Searchable field guide for Scribe {{version}}",
+    "workflowHint": "New document → [[links]] → Docs when you need a map. Export when you’re ready.",
     "stepsLabel": "How to start",
     "stepWrite": "Write a document — template or blank page.",
     "stepLink": "Link notes with [[title]] when it helps.",
@@ -73,12 +75,12 @@
     "emptyStartHint": "Start with a new document or today’s note.",
     "press": {
       "eyebrow": "Grove · Scribe {{version}} · local on this Mac",
-      "brandTagline": "Write in a quiet grove. Notes stay on your disk.",
-      "editionNote": "{{version}} — Organic Grove chrome for deep local writing; Local Agent still runs on this Mac.",
-      "workflowHint": "Blank page → [[links]] → export. Leave advanced tools for later.",
+      "brandTagline": "Write in a quiet grove. Open Docs when you want the map.",
+      "editionNote": "{{version}} — Surfaces edition: in-app Docs, Python HTML chrome, shared UI catalogs.",
+      "workflowHint": "Blank page → [[links]] → Docs or export. Agents stay optional.",
       "recentDocuments": "Recent leaves",
       "noDocuments": "The grove is empty",
-      "noDocumentsHint": "Plant a new document or today’s note. The guide is optional."
+      "noDocumentsHint": "Plant a new document or today’s note. Docs and the demo are optional."
     }
   },
   "demoGuide": {
@@ -488,19 +490,42 @@
     "badge": "What's new in {{version}}",
     "kicker": "Edition notes",
     "title": "Scribe {{version}}",
-    "subtitle": "Specialist agents hand work to peers, digests and recipes run on a schedule, and agent answers can become notes, calendars, or library files — still fully local.",
-    "editionMark": "Agents · handoffs",
+    "subtitle": "A searchable Docs field guide, Python-built UI chrome, and shared catalogs across the app, Local AI, and MCP — still fully local.",
+    "editionMark": "Surfaces · Docs",
     "tagsLabel": "Themes in this release",
     "tags": {
       "agent": "Agent",
       "agents": "Specialists",
       "handoffs": "Handoffs",
       "recipes": "Recipes",
+      "docs": "Docs",
+      "surfaces": "Surfaces",
+      "python": "Python UI",
       "localAi": "Local AI",
       "editor": "Editor",
       "history": "History"
     },
-    "footNote": "Settings → Agent for roles, digests, and teach. Open the Agent panel for handoffs and recipes.",
+    "footNote": "Open Docs from the rail anytime. Local AI → render_ui_surface builds the same chrome in HTML.",
+    "docsFieldGuide": {
+      "title": "Docs field guide",
+      "description": "In-app Docs with sticky outline, search, jump chips, and tips — themed to Grove light and dark."
+    },
+    "pythonUiChrome": {
+      "title": "Python UI chrome",
+      "description": "The python-ui package renders Whats New, Welcome, Docs, and Privacy HTML with the same bridge events as Dioxus."
+    },
+    "sharedUiCatalogs": {
+      "title": "Shared UI catalogs",
+      "description": "Topic ids, theme presets, and manifests stay aligned across Rust scribe-ui, Python, and MCP tools."
+    },
+    "renderUiSurface": {
+      "title": "Render UI surfaces",
+      "description": "Local AI and MCP can call render_ui_surface to produce hostable chrome HTML for agents and tests."
+    },
+    "welcomeSurfaces": {
+      "title": "Welcome · Surfaces",
+      "description": "The home welcome desk highlights Docs and the {{version}} Surfaces edition — start writing, then open the map."
+    },
     "specialistAgents": {
       "title": "Specialist agents",
       "description": "General, Proofreader, Librarian, Meeting scribe, Study coach, and Organizer — each with its own memory partition and recipe set."

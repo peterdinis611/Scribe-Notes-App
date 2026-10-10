@@ -19,7 +19,7 @@ def render_ui_surface(
     surface: str,
     *,
     strings: Mapping[str, str] | None = None,
-    version: str = "3.4.0",
+    version: str = "3.5.0",
     short_version: str | None = None,
     recent: Sequence[Mapping[str, Any]] | None = None,
     docs_topics: Sequence[Mapping[str, Any]] | None = None,

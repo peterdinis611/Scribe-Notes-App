@@ -14,8 +14,8 @@ class RenderUiSurfaceTests(unittest.TestCase):
                 "method": "render_ui_surface",
                 "params": {
                     "surface": "whats-new",
-                    "version": "3.4.0",
-                    "shortVersion": "3.4",
+                    "version": "3.5.0",
+                    "shortVersion": "3.5",
                     "strings": {
                         "whatsNew.gotIt": "Got it",
                         "whatsNew.title": "Scribe {{version}}",

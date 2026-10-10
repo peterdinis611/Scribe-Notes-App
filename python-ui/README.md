@@ -27,7 +27,7 @@ PYTHONPATH=python-ui python3 -m unittest discover -s python-ui/tests -p 'test_*.
 ```python
 from scribe_ui.html import render_surface, sui_button, el, text
 
-html = render_surface("whats-new", version="3.4.0")  # full document + chrome.css
+html = render_surface("whats-new", version="3.5.0")  # full document + chrome.css
 fragment = render_surface("welcome", full_document=False)
 button = sui_button("New", event="welcome-new-document", variant="primary").render()
 ```

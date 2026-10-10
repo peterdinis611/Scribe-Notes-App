@@ -3833,7 +3833,7 @@ pub fn nlp_render_ui_surface(
     }
     let mut params = json!({
         "surface": input.surface,
-        "version": input.version.unwrap_or_else(|| "3.4.0".into()),
+        "version": input.version.unwrap_or_else(|| "3.5.0".into()),
     });
     if let Some(strings) = input.strings {
         params["strings"] = json!(strings);

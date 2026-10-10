@@ -16,7 +16,7 @@ from scribe_ui.version import short_version_of
 
 class HelperTests(unittest.TestCase):
     def test_short_version(self) -> None:
-        self.assertEqual(short_version_of("3.4.0"), "3.4")
+        self.assertEqual(short_version_of("3.5.0"), "3.5")
         self.assertEqual(short_version_of("1.0"), "1.0")
         self.assertRegex(short_version(), r"^\d+\.\d+$")
 

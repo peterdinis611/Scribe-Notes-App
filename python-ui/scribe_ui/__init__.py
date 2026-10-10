@@ -55,7 +55,12 @@ from .theme_presets import (
     theme_preset_ids,
 )
 from .version import APP_VERSION, app_version_info, short_version
-from .whats_new import EDITION_MARK_KEY, WHATS_NEW_34_HIGHLIGHTS, whats_new_highlights
+from .whats_new import (
+    EDITION_MARK_KEY,
+    WHATS_NEW_34_HIGHLIGHTS,
+    WHATS_NEW_35_HIGHLIGHTS,
+    whats_new_highlights,
+)
 
 __version__ = APP_VERSION
 
@@ -77,6 +82,7 @@ __all__ = [
     "THEME_ID_SYSTEM",
     "UI_SKIN_STORAGE_KEY",
     "WHATS_NEW_34_HIGHLIGHTS",
+    "WHATS_NEW_35_HIGHLIGHTS",
     "FuzzyRankHit",
     "FuzzyRankItem",
     "UiManifest",

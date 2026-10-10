@@ -13966,8 +13966,22 @@ html.dark .link-graph-toolbar--overlay {
 
 .setup-folio--edition-25,
 .setup-folio--edition-27,
-.setup-folio--edition-34 {
+.setup-folio--edition-34,
+.setup-folio--edition-35 {
   min-height: 560px;
+}
+
+.welcome-desk--edition-35 .welcome-edition-note {
+  margin: 10px 0 0;
+  max-width: 42ch;
+  padding: 8px 12px;
+  border-left: 2px solid var(--color-accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--color-muted-foreground);
 }
 
 .setup-folio-margin-mid {

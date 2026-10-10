@@ -81,11 +81,11 @@ function docsGroups(): Array<[string, string[]]> {
 
 function highlightCopy(): Record<string, [string, string]> {
   const ids = [
-    'specialistAgents',
-    'agentHandoffs',
-    'digestsRecipes',
-    'spawnAndCalendar',
-    'filesIngest',
+    'docsFieldGuide',
+    'pythonUiChrome',
+    'sharedUiCatalogs',
+    'renderUiSurface',
+    'welcomeSurfaces',
   ]
   const out: Record<string, [string, string]> = {}
   for (const id of ids) {

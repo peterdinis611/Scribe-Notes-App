@@ -25,7 +25,7 @@ class HtmlBuilderTests(unittest.TestCase):
         self.assertIn('class="primary"', html)
 
     def test_whats_new_document(self) -> None:
-        html = render_whats_new(version="3.4.0", short="3.4")
+        html = render_whats_new(version="3.5.0", short="3.5")
         self.assertIn("<!doctype html>", html)
         self.assertIn("data-sui-surface=\"whats-new\"", html)
         self.assertIn("setup-folio--news", html)
@@ -44,13 +44,13 @@ class HtmlBuilderTests(unittest.TestCase):
         self.assertIn("scribeUiBridge", html)
 
     def test_docs_surface_matches_app_copy(self) -> None:
-        html = render_surface("docs", short_version="3.4", full_document=False)
+        html = render_surface("docs", short_version="3.5", full_document=False)
         self.assertIn('class="docs-shell"', html)
-        self.assertIn("Scribe 3.4", html)
+        self.assertIn("Scribe 3.5", html)
         self.assertIn("field guide to writing, linking, and keeping your library", html)
         self.assertIn("Search topics…", html)
         self.assertIn("Basics", html)
-        self.assertIn("What is Scribe 3.4?", html)
+        self.assertIn("What is Scribe 3.5?", html)
         self.assertIn("Write documents. Link notes. Stay local.", html)
         self.assertIn("docs-topic-summary", html)
         self.assertIn("What stays on this Mac", html)
