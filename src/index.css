@@ -4785,9 +4785,93 @@ html.dark .editor-canvas::before {
   color: color-mix(in srgb, var(--color-accent) 75%, var(--color-foreground));
 }
 
+.agent-plan-source.is-jepa {
+  color: color-mix(in srgb, #38bdf8 70%, var(--color-foreground));
+}
+
+.agent-plan-source.is-recipe {
+  color: color-mix(in srgb, #6ec6a8 70%, var(--color-foreground));
+}
+
+.agent-plan-source.is-fallback {
+  color: var(--color-muted-foreground);
+}
+
 .agent-plan-label {
   opacity: 0.9;
   font-style: italic;
+}
+
+.agent-plan-confidence {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+.agent-clarify-badge {
+  margin: 0 0 0.25rem;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, #e8b84a 85%, var(--color-foreground));
+}
+
+.agent-handoff-chip-pending {
+  border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
+  color: color-mix(in srgb, var(--color-accent) 80%, var(--color-foreground));
+}
+
+.agent-handoff-inbox-hint {
+  margin: 0;
+  padding: 0 0.25rem;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--color-muted-foreground);
+}
+
+.agent-handoff-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 22%, var(--color-border));
+  background: color-mix(in srgb, var(--color-accent) 6%, var(--color-surface));
+}
+
+.agent-handoff-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.agent-handoff-from {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-accent) 70%, var(--color-foreground));
+}
+
+.agent-handoff-doc {
+  font-size: 10px;
+  color: var(--color-muted-foreground);
+}
+
+.agent-handoff-summary {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--color-foreground);
+}
+
+.library-chat-followup.is-handoff {
+  border-color: color-mix(in srgb, var(--color-accent) 35%, var(--color-border));
+  font-weight: 600;
 }
 
 .agent-step-trace {
@@ -13528,7 +13612,8 @@ html.dark .link-graph-toolbar--overlay {
 }
 
 .setup-folio--edition-25,
-.setup-folio--edition-27 {
+.setup-folio--edition-27,
+.setup-folio--edition-34 {
   min-height: 560px;
 }
 

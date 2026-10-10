@@ -13,7 +13,7 @@ describe('APP_VERSION', () => {
   })
 
   it('matches the 3.3 release line', () => {
-    expect(APP_VERSION.startsWith('3.3.')).toBe(true)
+    expect(APP_VERSION.startsWith('3.4.')).toBe(true)
     expect(APP_SHORT_VERSION).toBe('3.3')
   })
 

@@ -488,16 +488,39 @@
     "badge": "What's new in {{version}}",
     "kicker": "Edition notes",
     "title": "Scribe {{version}}",
-    "subtitle": "In-app Local Agent with durable memory, teachable prefs, paint pads, and a dedicated agent database — all offline on this Mac.",
-    "editionMark": "Agent · local-first",
+    "subtitle": "Specialist agents hand work to peers, digests and recipes run on a schedule, and agent answers can become notes, calendars, or library files — still fully local.",
+    "editionMark": "Agents · handoffs",
     "tagsLabel": "Themes in this release",
     "tags": {
       "agent": "Agent",
+      "agents": "Specialists",
+      "handoffs": "Handoffs",
+      "recipes": "Recipes",
       "localAi": "Local AI",
       "editor": "Editor",
       "history": "History"
     },
-    "footNote": "Settings → Agent to enable, optimize, and teach. Local AI powers the tools.",
+    "footNote": "Settings → Agent for roles, digests, and teach. Open the Agent panel for handoffs and recipes.",
+    "specialistAgents": {
+      "title": "Specialist agents",
+      "description": "General, Proofreader, Librarian, Meeting scribe, Study coach, and Organizer — each with its own memory partition and recipe set."
+    },
+    "agentHandoffs": {
+      "title": "Handoffs between agents",
+      "description": "After a run, a specialist can notify a peer. The inbox in the Agent panel lets you pick up the work or dismiss it."
+    },
+    "digestsRecipes": {
+      "title": "Digests & recipes",
+      "description": "Schedule a daily or weekly library digest while the app is open, or fire built-in and custom recipes from the panel."
+    },
+    "spawnAndCalendar": {
+      "title": "Spawn note & calendar",
+      "description": "Turn an agent answer into a new library note, or export due dates as an .ics calendar file."
+    },
+    "filesIngest": {
+      "title": "Files → library",
+      "description": "Ingest cited local files from a files answer into new notes in your library."
+    },
     "localAgent": {
       "title": "In-app Local Agent",
       "description": "A new Agent tab plans up to three Local AI tools per goal — summarize, tasks, related notes — with a visible step trace."
@@ -2650,7 +2673,8 @@
     "disabled": "Agent is turned off. Enable it in Settings → Agent.",
     "budgetExceeded": "Daily agent budget reached. Raise it in Settings → Agent.",
     "clarifyPrompt": "I’m not sure which tools to run. Pick one:",
-    "clarifyHint": "Choose a tool for this goal",
+    "clarifyHint": "Ask when uncertain is on — choose a tool for this goal",
+    "clarifyUncertainBadge": "Needs a choice",
     "applyToNote": "Insert into note",
     "applySmart": "Apply to note",
     "applyCallout": "Callout",
@@ -2704,8 +2728,11 @@
     "handoffAck": "Done",
     "handoffDismiss": "Dismiss",
     "handoffUseGoal": "Act on this handoff from {{from}}: {{summary}}",
-    "handoffAutoToast": "Notified {{role}} agent",
-    "handoffAutoChip": "Sent to {{role}}",
+    "handoffAutoToast": "Hands to {{role}}",
+    "handoffAutoChip": "Hands to {{role}}",
+    "handoffInboxTitle": "Handoff inbox",
+    "handoffInboxPending": "{{count}} pending",
+    "handoffInboxHint": "Peers left work for this specialist. Use one, acknowledge, or dismiss.",
     "handoffNeedsTarget": "Name a target agent (e.g. handoff to organizer: …).",
     "handoffEmpty": "Handoff needs a short summary.",
     "handoffFailed": "Could not send the handoff.",
@@ -2725,6 +2752,15 @@
     "capabilitiesLabel": "Tools for this note",
     "stepTrace": "Tool steps",
     "planSource": "Plan · {{source}}",
+    "planSources": {
+      "jepa": "JEPA",
+      "python": "Local AI",
+      "llm": "Local LLM",
+      "recipe": "Recipe",
+      "force": "Pinned tools",
+      "fallback": "Heuristics"
+    },
+    "planConfidence": "{{pct}}% match",
     "feedbackDismiss": "Not useful",
     "feedbackDismissed": "Thanks — won’t boost this plan",
     "spawnNote": "Save as note",
@@ -2741,6 +2777,7 @@
     "ingestFilesEmpty": "No sandbox file paths to import",
     "ingestEmpty": "File was empty",
     "digestScheduleDone": "Scheduled digest ready",
+    "digestScheduleCatchUp": "Digest ready (caught up on open)",
     "starters": {
       "themes": "What themes show up across my notes?",
       "openLoops": "What open loops should I close?",
