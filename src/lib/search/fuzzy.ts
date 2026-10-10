@@ -1,4 +1,6 @@
 import Fuse from 'fuse.js'
+import { fuzzyRankStringsNative, type FuzzyRankItem } from '@/lib/db/api'
+import { isTauriRuntime } from '@/lib/tauri'
 
 export type FuzzyListOptions = {
   /** Fuse threshold — 0.0 exact, 1.0 match anything. Default 0.35. */
@@ -9,6 +11,7 @@ export type FuzzyListOptions = {
 /**
  * Rank / filter a list with fuse.js. Returns items in best-match order.
  * Empty query returns the original list (caller can slice).
+ * Sync path for interactive UI (command palette); prefer `fuzzyFilterNative` under Tauri when async is OK.
  */
 export function fuzzyFilter<T>(
   items: readonly T[],
@@ -43,6 +46,42 @@ export function fuzzyFilter<T>(
   const hits = fuse.search(q)
   const limit = options.limit ?? hits.length
   return hits.slice(0, limit).map((hit) => items[hit.item.index]!)
+}
+
+/**
+ * Prefer Rust `scribe-ui` fuzzy ranking under Tauri; falls back to fuse.js.
+ */
+export async function fuzzyFilterNative<T>(
+  items: readonly T[],
+  query: string,
+  getHaystack: (item: T) => string | string[],
+  options: FuzzyListOptions = {},
+): Promise<T[]> {
+  const q = query.trim()
+  if (!q) return [...items]
+  if (items.length === 0) return []
+
+  if (isTauriRuntime()) {
+    try {
+      const payload: FuzzyRankItem[] = items.map((item, index) => {
+        const hay = getHaystack(item)
+        const fields = Array.isArray(hay) ? hay : [hay]
+        return {
+          id: String(index),
+          primary: fields[0] ?? '',
+          secondary: fields.slice(1).join(' '),
+        }
+      })
+      const hits = await fuzzyRankStringsNative(payload, q, options.limit ?? null)
+      return hits
+        .map((hit) => items[Number(hit.id)])
+        .filter((item): item is T => item !== undefined)
+    } catch {
+      // Fall through to fuse.js.
+    }
+  }
+
+  return fuzzyFilter(items, query, getHaystack, options)
 }
 
 export type FuzzyTextChunk = {

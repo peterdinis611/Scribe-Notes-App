@@ -1,5 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import { isSettingsSection, ROUTES } from '@/lib/routes'
+import { isSettingsSection, ROUTES, type SettingsSection } from '@/lib/routes'
+
+/** Mirrors `scribe_ui::settings_section_ids` — keep in sync with crates/scribe-ui. */
+const RUST_SETTINGS_SECTION_IDS = [
+  'appearance',
+  'interface',
+  'storage',
+  'shortcuts',
+  'diagnostics',
+  'mcp',
+  'nlp',
+  'agent',
+  'capture',
+  'privacy',
+  'about',
+] as const satisfies readonly SettingsSection[]
 
 describe('isSettingsSection', () => {
   it('accepts known sections', () => {
@@ -15,6 +30,13 @@ describe('isSettingsSection', () => {
   it('rejects unknown values', () => {
     expect(isSettingsSection(undefined)).toBe(false)
     expect(isSettingsSection('nope')).toBe(false)
+  })
+
+  it('matches Rust settings section id list', () => {
+    for (const id of RUST_SETTINGS_SECTION_IDS) {
+      expect(isSettingsSection(id)).toBe(true)
+    }
+    expect(RUST_SETTINGS_SECTION_IDS).toHaveLength(11)
   })
 })
 

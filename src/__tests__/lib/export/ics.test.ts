@@ -1,19 +1,27 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildIcsCalendar,
+  buildIcsCalendarLocal,
   calendarEventsToIcs,
   parseDueHintsFromMarkdown,
 } from '@/lib/export/ics'
 
 describe('ics export', () => {
   it('builds VCALENDAR with all-day events', () => {
-    const body = buildIcsCalendar([
+    const body = buildIcsCalendarLocal([
       { summary: 'Ship notes', date: '2026-10-12', description: 'From Scribe' },
     ])
     expect(body).toContain('BEGIN:VCALENDAR')
     expect(body).toContain('DTSTART;VALUE=DATE:20261012')
     expect(body).toContain('SUMMARY:Ship notes')
     expect(body).toContain('END:VCALENDAR')
+  })
+
+  it('async entry falls back to local outside Tauri', async () => {
+    const body = await buildIcsCalendar([
+      { summary: 'Ship notes', date: '2026-10-12' },
+    ])
+    expect(body).toContain('DTSTART;VALUE=DATE:20261012')
   })
 
   it('maps calendar events and parses due hints from markdown', () => {

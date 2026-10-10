@@ -109,7 +109,9 @@ export function AppearanceSection() {
   }
 
   function applyRandomTheme() {
-    dispatch(setThemeSettings(createCustomThemeSelection(themeSettings, generateRandomTheme())))
+    void generateRandomTheme().then((theme) => {
+      dispatch(setThemeSettings(createCustomThemeSelection(themeSettings, theme)))
+    })
   }
 
   async function handleImportLanguage() {

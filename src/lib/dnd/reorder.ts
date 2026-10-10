@@ -1,3 +1,4 @@
+/** Sync JS fallback — mirrored in `scribe-ui::move_id_before`. */
 export function moveIdBefore(ids: string[], fromId: string, toId: string): string[] {
   if (fromId === toId) return ids
   const from = ids.indexOf(fromId)
@@ -14,6 +15,7 @@ export function moveIdBefore(ids: string[], fromId: string, toId: string): strin
   return next
 }
 
+/** Sync JS fallback — mirrored in `scribe-ui::can_nest_folder`. */
 export function canNestFolder(
   dragId: string,
   targetId: string | null,

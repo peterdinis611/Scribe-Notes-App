@@ -38,6 +38,7 @@ image = { version = "0.25", default-features = false, features = ["jpeg", "png",
 scribe-core = { path = "../crates/scribe-core", features = ["enhance"] }
 scribe-agent = { path = "../crates/scribe-agent" }
 scribe-audit = { path = "../crates/scribe-audit" }
+scribe-ui = { path = "../crates/scribe-ui" }
 tauri-plugin-persisted-scope = { version = "2.3.7", features = ["protocol-asset"] }
 tauri-plugin-positioner = { version = "2.4.0", features = ["tray-icon"] }
 

@@ -1,6 +1,7 @@
 import { save } from '@tauri-apps/plugin-dialog'
-import { writeTextFile } from '@/lib/db/api'
+import { buildIcsCalendarNative, writeTextFile } from '@/lib/db/api'
 import type { CalendarEvent } from '@/lib/db/nlp-api'
+import { isTauriRuntime } from '@/lib/tauri'
 
 export type IcsEventInput = {
   summary: string
@@ -65,8 +66,8 @@ function stampNow(): string {
     .replace(/\.\d{3}Z$/, 'Z')
 }
 
-/** Build a minimal VCALENDAR body (RFC 5545 subset). */
-export function buildIcsCalendar(events: IcsEventInput[], calendarName = 'Scribe'): string {
+/** Sync JS fallback — used by vitest and when Tauri IPC is unavailable. */
+export function buildIcsCalendarLocal(events: IcsEventInput[], calendarName = 'Scribe'): string {
   const lines: string[] = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
@@ -99,6 +100,21 @@ export function buildIcsCalendar(events: IcsEventInput[], calendarName = 'Scribe
   })
   lines.push('END:VCALENDAR')
   return lines.map(foldLine).join('\r\n') + '\r\n'
+}
+
+/** Prefer Rust `scribe-ui` when running under Tauri; otherwise JS fallback. */
+export async function buildIcsCalendar(
+  events: IcsEventInput[],
+  calendarName = 'Scribe',
+): Promise<string> {
+  if (isTauriRuntime()) {
+    try {
+      return await buildIcsCalendarNative(events, calendarName)
+    } catch {
+      // Fall through to local builder.
+    }
+  }
+  return buildIcsCalendarLocal(events, calendarName)
 }
 
 export function calendarEventsToIcs(events: CalendarEvent[]): IcsEventInput[] {
@@ -150,6 +166,6 @@ export async function exportIcsFile(args: {
     filters: [{ name: 'iCalendar', extensions: ['ics'] }],
   })
   if (!path) return null
-  await writeTextFile(path, buildIcsCalendar(args.events, args.calendarName ?? 'Scribe'))
+  await writeTextFile(path, await buildIcsCalendar(args.events, args.calendarName ?? 'Scribe'))
   return path
 }

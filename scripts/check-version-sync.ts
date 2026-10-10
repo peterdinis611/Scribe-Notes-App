@@ -51,6 +51,7 @@ export function checkVersionSync() {
     ['src-tauri/Cargo.toml', cargoVersion('src-tauri/Cargo.toml')],
     ['crates/scribe-core/Cargo.toml', cargoVersion('crates/scribe-core/Cargo.toml')],
     ['crates/scribe-mcp/Cargo.toml', cargoVersion('crates/scribe-mcp/Cargo.toml')],
+    ['crates/scribe-ui/Cargo.toml', cargoVersion('crates/scribe-ui/Cargo.toml')],
     ['src/lib/app-version.ts', appTsVersion()],
     ['src-tauri/Cargo.lock (app)', cargoLockAppVersion()],
   ]

@@ -1,3 +1,6 @@
+import { colorForExportNative } from '@/lib/db/api'
+import { isTauriRuntime } from '@/lib/tauri'
+
 function parseRgb(color: string): { r: number; g: number; b: number; a: number } | null {
   const value = color.trim().toLowerCase()
   if (!value) return null
@@ -52,8 +55,8 @@ function contrastRatio(l1: number, l2: number): number {
   return (lighter + 0.05) / (darker + 0.05)
 }
 
-/** Keep intentional dark colors; lift low-contrast light text saved from dark mode. */
-export function colorForExport(color: string, background = '#ffffff'): string {
+/** Sync JS fallback — mirrored in `scribe-ui::color_for_export`. */
+export function colorForExportLocal(color: string, background = '#ffffff'): string {
   const parsed = parseRgb(color)
   if (!parsed || parsed.a < 0.2) return color
 
@@ -65,4 +68,24 @@ export function colorForExport(color: string, background = '#ffffff'): string {
   if (fgLum > 0.72) return '#111111'
   if (bgLum > fgLum && fgLum > 0.55) return '#111111'
   return color
+}
+
+/** Sync path for HTML/PDF builders. */
+export function colorForExport(color: string, background = '#ffffff'): string {
+  return colorForExportLocal(color, background)
+}
+
+/** Prefer Rust `scribe-ui` when running under Tauri; otherwise JS fallback. */
+export async function colorForExportAsync(
+  color: string,
+  background = '#ffffff',
+): Promise<string> {
+  if (isTauriRuntime()) {
+    try {
+      return await colorForExportNative(color, background)
+    } catch {
+      // Fall through.
+    }
+  }
+  return colorForExportLocal(color, background)
 }

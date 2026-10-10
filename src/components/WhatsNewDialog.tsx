@@ -1,8 +1,11 @@
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { APP_VERSION, APP_SHORT_VERSION } from '@/lib/app-version'
+import { getUiManifest } from '@/lib/db/api'
+import { isTauriRuntime } from '@/lib/tauri'
 import { persistWhatsNewVersion } from '@/store/persistence'
 
-/** Edition 3.4 release notes — specialists, handoffs, digests, agent exports. */
+/** Edition 3.4 release notes — specialists, handoffs, digests, agent exports. Fallback when Rust manifest is unavailable. */
 export const WHATS_NEW_34_HIGHLIGHTS = [
   'specialistAgents',
   'agentHandoffs',
@@ -83,13 +86,32 @@ export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
   )
 }
 
-/** Presentational list of 3.4.0 highlights. */
+/** Presentational list of 3.4.0 highlights — hydrated from Rust UiManifest when available. */
 export function WhatsNew34Highlights() {
   const { t } = useTranslation()
+  const [highlights, setHighlights] = useState<string[]>([...WHATS_NEW_34_HIGHLIGHTS])
+
+  useEffect(() => {
+    if (!isTauriRuntime()) return
+    let cancelled = false
+    void getUiManifest()
+      .then((manifest) => {
+        if (cancelled) return
+        if (manifest.whatsNewHighlights.length > 0) {
+          setHighlights(manifest.whatsNewHighlights)
+        }
+      })
+      .catch(() => {
+        // Keep local fallback list.
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   return (
     <ol className="setup-folio-points setup-folio-points--edition">
-      {WHATS_NEW_34_HIGHLIGHTS.map((id, index) => (
+      {highlights.map((id, index) => (
         <li key={id} style={{ animationDelay: `${80 + index * 55}ms` }}>
           <span>{String(index + 1).padStart(2, '0')}</span>
           <div>

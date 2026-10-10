@@ -645,6 +645,126 @@ export const listAuditEvents = (input?: {
 
 export const clearAuditEvents = () => invoke<number>('clear_audit_events')
 
+export type UiDocsGroup = {
+  id: string
+  topics: string[]
+}
+
+export type UiManifest = {
+  version: string
+  shortVersion: string
+  whatsNewHighlights: string[]
+  settingsSectionIds: string[]
+  privacyArticleIds: string[]
+  privacyEffectiveDate: string
+  editionMarkKey: string
+  docsTopicIds: string[]
+  docsQuickLinks: string[]
+  docsGroups: UiDocsGroup[]
+  uiSkinIds: string[]
+  smartFilterIds: string[]
+}
+
+export type AppVersionInfo = {
+  version: string
+  shortVersion: string
+}
+
+export const getUiManifest = () => invoke<UiManifest>('get_ui_manifest')
+
+export const getAppVersionInfo = () => invoke<AppVersionInfo>('get_app_version_info')
+
+export const listSettingsSectionIds = () => invoke<string[]>('list_settings_section_ids')
+
+export const generateRandomThemeNative = (scheme?: 'light' | 'dark' | null) =>
+  invoke<import('@/lib/themes/types').ThemeColors>('generate_random_theme', {
+    scheme: scheme ?? null,
+  })
+
+export const buildIcsCalendarNative = (events: Array<{
+  summary: string
+  date: string
+  description?: string
+  uid?: string
+}>, calendarName?: string) =>
+  invoke<string>('build_ics_calendar', {
+    events,
+    calendarName: calendarName ?? null,
+  })
+
+export type FuzzyRankItem = {
+  id: string
+  primary: string
+  secondary?: string
+}
+
+export type FuzzyRankHit = {
+  id: string
+  score: number
+}
+
+export const fuzzyRankStringsNative = (
+  items: FuzzyRankItem[],
+  query: string,
+  limit?: number | null,
+) =>
+  invoke<FuzzyRankHit[]>('fuzzy_rank_strings', {
+    items,
+    query,
+    limit: limit ?? null,
+  })
+
+export const colorForTagNative = (tag: string) => invoke<string>('color_for_tag', { tag })
+
+export const sanitizeSnippetNative = (html: string) =>
+  invoke<string>('sanitize_snippet', { html })
+
+export const colorForExportNative = (color: string, background?: string | null) =>
+  invoke<string>('color_for_export', { color, background: background ?? null })
+
+export type FlashcardNativeInput = {
+  kind?: string | null
+  question: string
+  answer: string
+  front?: string | null
+}
+
+export const flashcardsToAnkiTsvNative = (cards: FlashcardNativeInput[]) =>
+  invoke<string>('flashcards_to_anki_tsv', { cards })
+
+export const flashcardsToMarkdownNative = (
+  cards: FlashcardNativeInput[],
+  title?: string | null,
+) => invoke<string>('flashcards_to_markdown', { cards, title: title ?? null })
+
+export const moveIdBeforeNative = (ids: string[], fromId: string, toId: string) =>
+  invoke<string[]>('move_id_before', { ids, fromId, toId })
+
+export const canNestFolderNative = (
+  dragId: string,
+  targetId: string | null,
+  folders: Array<{ id: string; parentId: string | null }>,
+) => invoke<boolean>('can_nest_folder', { dragId, targetId, folders })
+
+export const normalizeUiSkinNative = (value: string) =>
+  invoke<string>('normalize_ui_skin', { value })
+
+export const clampSidebarWidthNative = (value: number, viewportWidth?: number | null) =>
+  invoke<number>('clamp_sidebar_width', { value, viewportWidth: viewportWidth ?? null })
+
+export const clampEditorPanelWidthNative = (args: {
+  value: number
+  viewportWidth?: number | null
+  sidebarWidth?: number | null
+  minWidth?: number | null
+}) =>
+  invoke<number>('clamp_editor_panel_width', {
+    value: args.value,
+    viewportWidth: args.viewportWidth ?? null,
+    sidebarWidth: args.sidebarWidth ?? null,
+    minWidth: args.minWidth ?? null,
+  })
+
 export const clearAllDocuments = async () => {
   const count = await invoke<number>('clear_all_documents')
   clearDocumentCache()

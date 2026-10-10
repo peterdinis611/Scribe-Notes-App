@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils'
 import { IconTooltip } from '@/components/ui/tooltip'
 import { APP_SHORT_VERSION } from '@/lib/app-version'
 
+/** Keep in sync with `scribe_ui::DOCS_TOPIC_IDS` / UiManifest.docsTopicIds. */
 export const DOCS_TOPIC_IDS = [
   'overview',
   'privacy',

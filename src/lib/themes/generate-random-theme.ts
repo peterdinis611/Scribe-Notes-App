@@ -1,4 +1,6 @@
 import type { ThemeColors } from '@/lib/themes/types'
+import { generateRandomThemeNative } from '@/lib/db/api'
+import { isTauriRuntime } from '@/lib/tauri'
 
 function randomBetween(min: number, max: number) {
   return min + Math.random() * (max - min)
@@ -94,8 +96,14 @@ function shiftLightness(hex: string, delta: number) {
   return hslToHex(h, s * 100, clamp(l * 100 + delta, 0, 100))
 }
 
-export function generateRandomTheme(options?: { colorScheme?: 'light' | 'dark' }): ThemeColors {
-  const isDark = options?.colorScheme ?? Math.random() < 0.52
+/** Sync JS fallback — used by vitest and when Tauri IPC is unavailable. */
+export function generateRandomThemeLocal(options?: { colorScheme?: 'light' | 'dark' }): ThemeColors {
+  const isDark =
+    options?.colorScheme === 'dark'
+      ? true
+      : options?.colorScheme === 'light'
+        ? false
+        : Math.random() < 0.52
   const hue = Math.floor(Math.random() * 360)
   const tintHue = hue + randomBetween(-18, 18)
 
@@ -156,4 +164,18 @@ export function generateRandomTheme(options?: { colorScheme?: 'light' | 'dark' }
     formatBar: rgbaFromHex(formatBar, 0.94),
     destructive,
   }
+}
+
+/** Prefer Rust `scribe-ui` when running under Tauri; otherwise JS fallback. */
+export async function generateRandomTheme(
+  options?: { colorScheme?: 'light' | 'dark' },
+): Promise<ThemeColors> {
+  if (isTauriRuntime()) {
+    try {
+      return await generateRandomThemeNative(options?.colorScheme ?? null)
+    } catch {
+      // Fall through to local generator.
+    }
+  }
+  return generateRandomThemeLocal(options)
 }

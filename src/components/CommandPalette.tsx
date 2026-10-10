@@ -1025,7 +1025,9 @@ export function CommandPalette() {
         hint: t('commandPalette.randomThemeHint'),
         icon: <Shuffle className="h-4 w-4" />,
         run: () => {
-          dispatch(setThemeSettings(createCustomThemeSelection(themeSettings, generateRandomTheme())))
+          void generateRandomTheme().then((theme) => {
+            dispatch(setThemeSettings(createCustomThemeSelection(themeSettings, theme)))
+          })
         },
       },
       {
