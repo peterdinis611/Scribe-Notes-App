@@ -1,3 +1,4 @@
+/** Keep in sync with `crates/scribe-ui` counterpart. */
 import type { ThemeColors, ThemePreset } from '@/lib/themes/types'
 
 /** Grove (default) light / dark — organic botanical chrome */

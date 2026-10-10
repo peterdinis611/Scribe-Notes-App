@@ -1,3 +1,4 @@
+/** Keep in sync with `crates/scribe-ui` counterpart. */
 import type { JSONContent } from '@tiptap/core'
 
 /** Soft limits so corrupted / hostile KV payloads cannot blow up the editor. */

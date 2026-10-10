@@ -326,3 +326,130 @@ pub fn locale_section_groups_ui() -> Vec<scribe_ui::LocaleSectionGroup> {
 pub fn ui_font_presets_ui() -> Vec<scribe_ui::UiFontPreset> {
     scribe_ui::ui_font_presets()
 }
+
+#[tauri::command]
+pub fn extract_title_from_content_ui(content_json: String, fallback: Option<String>) -> String {
+    match fallback {
+        Some(fb) => scribe_ui::extract_title_from_content_with_fallback(&content_json, &fb),
+        None => scribe_ui::extract_title_from_content(&content_json),
+    }
+}
+
+#[tauri::command]
+pub fn count_words_ui(content_json: String) -> usize {
+    scribe_ui::count_words(&content_json)
+}
+
+#[tauri::command]
+pub fn count_characters_ui(content_json: String) -> usize {
+    scribe_ui::count_characters(&content_json)
+}
+
+#[tauri::command]
+pub fn collect_headings_from_json_ui(content_json: String) -> Vec<String> {
+    scribe_ui::collect_headings_from_json(&content_json)
+}
+
+#[tauri::command]
+pub fn plain_text_to_content_json_ui(text: String) -> String {
+    scribe_ui::plain_text_to_content_json(&text)
+}
+
+#[tauri::command]
+pub fn title_from_html_ui(html: String, fallback: String) -> String {
+    scribe_ui::title_from_html(&html, &fallback)
+}
+
+#[tauri::command]
+pub fn validate_snippet_input_ui(
+    input: scribe_ui::ValidateSnippetInput,
+    existing_custom_count: Option<usize>,
+    is_update: Option<bool>,
+) -> serde_json::Value {
+    serde_json::to_value(scribe_ui::validate_snippet_input(
+        &input,
+        existing_custom_count,
+        is_update.unwrap_or(false),
+    ))
+    .unwrap_or(serde_json::json!({ "ok": false }))
+}
+
+#[tauri::command]
+pub fn is_video_url_ui(value: String) -> bool {
+    scribe_ui::is_video_url(&value)
+}
+
+#[tauri::command]
+pub fn video_provider_label_ui(src: String) -> String {
+    scribe_ui::video_provider_label(&src)
+}
+
+#[tauri::command]
+pub fn video_export_embed_ui(src: String) -> scribe_ui::VideoExportEmbed {
+    scribe_ui::video_export_embed(&src)
+}
+
+#[tauri::command]
+pub fn document_style_presets_ui() -> Vec<scribe_ui::DocumentStylePreset> {
+    scribe_ui::document_style_presets()
+}
+
+#[tauri::command]
+pub fn apply_document_style_preset_ui(id: String) -> scribe_ui::PageSetup {
+    scribe_ui::apply_document_style_preset(&id)
+}
+
+#[tauri::command]
+pub fn parse_canvas_document_ui(content_json: String) -> Option<scribe_ui::CanvasDocument> {
+    scribe_ui::parse_canvas_document(&content_json)
+}
+
+#[tauri::command]
+pub fn serialize_canvas_document_ui(doc: scribe_ui::CanvasDocument) -> String {
+    scribe_ui::serialize_canvas_document(&doc)
+}
+
+#[tauri::command]
+pub fn promote_markdown_special_blocks_ui(doc: serde_json::Value) -> serde_json::Value {
+    scribe_ui::promote_markdown_special_blocks(&doc)
+}
+
+#[tauri::command]
+pub fn collect_markdown_heading_outline_ui(markdown: String) -> serde_json::Value {
+    serde_json::to_value(scribe_ui::collect_markdown_heading_outline(&markdown))
+        .unwrap_or(serde_json::json!([]))
+}
+
+#[tauri::command]
+pub fn parse_map_spec_ui(source: String) -> Result<serde_json::Value, String> {
+    scribe_ui::parse_map_spec(&source).and_then(|spec| {
+        serde_json::to_value(spec).map_err(|e| e.to_string())
+    })
+}
+
+#[tauri::command]
+pub fn import_title_from_path_ui(path: String, fallback: String) -> String {
+    scribe_ui::import_title_from_path(&path, &fallback)
+}
+
+#[tauri::command]
+pub fn is_pages_path_ui(path: String) -> bool {
+    scribe_ui::is_pages_path(&path)
+}
+
+#[tauri::command]
+pub fn theme_preset_ids_ui() -> Vec<String> {
+    scribe_ui::theme_preset_ids()
+}
+
+#[tauri::command]
+pub fn suggest_orphan_links_ui(
+    rows: Vec<scribe_ui::OrphanSuggestionRow>,
+) -> Vec<scribe_ui::OrphanLinkSuggestion> {
+    scribe_ui::suggest_orphan_links(&rows)
+}
+
+#[tauri::command]
+pub fn resolve_color_ui(color: String, tokens: scribe_ui::ColorTokens) -> String {
+    scribe_ui::resolve_color(&color, &tokens)
+}

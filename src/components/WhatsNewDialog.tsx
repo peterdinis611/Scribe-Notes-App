@@ -1,10 +1,12 @@
-import { useEffect } from 'react'
-import { APP_VERSION } from '@/lib/app-version'
-import { openScribeUiSurface, subscribeScribeUiEvents } from '@/lib/scribe-ui-host'
+import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { APP_VERSION, APP_SHORT_VERSION } from '@/lib/app-version'
+import { getUiManifest } from '@/lib/db/api'
+import { closeScribeUiSurface } from '@/lib/scribe-ui-host'
 import { isTauriRuntime } from '@/lib/tauri'
 import { persistWhatsNewVersion } from '@/store/persistence'
 
-/** Edition 3.4 release notes — kept for unit tests / fallback IDs. */
+/** Edition 3.4 release notes — specialists, handoffs, digests, agent exports. Fallback when Rust manifest is unavailable. */
 export const WHATS_NEW_34_HIGHLIGHTS = [
   'specialistAgents',
   'agentHandoffs',
@@ -25,35 +27,106 @@ type WhatsNewDialogProps = {
   onClose: () => void
 }
 
-/** Opens the Dioxus `scribe-ui` Whats New surface (Tauri). Falls back to immediate close outside Tauri. */
 export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
+  const { t } = useTranslation()
+
   useEffect(() => {
-    if (!open) return
+    if (open) void closeScribeUiSurface()
+  }, [open])
 
-    if (!isTauriRuntime()) {
-      persistWhatsNewVersion(APP_VERSION)
-      onClose()
-      return
-    }
+  function handleClose() {
+    persistWhatsNewVersion(APP_VERSION)
+    onClose()
+  }
 
-    void openScribeUiSurface('whats-new')
+  if (!open) return null
 
-    return subscribeScribeUiEvents((payload) => {
-      if (payload.event === 'whats-new-acked' || payload.event === 'surface-closed') {
-        if (payload.event === 'whats-new-acked') {
-          persistWhatsNewVersion(APP_VERSION)
-        }
-        onClose()
-      }
-    })
-  }, [open, onClose])
-
-  return null
+  return (
+    <div
+      className="setup-folio-root titlebar-no-drag"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="whats-new-title"
+    >
+      <button
+        type="button"
+        className="setup-folio-scrim"
+        aria-label={t('whatsNew.gotIt')}
+        onClick={handleClose}
+      />
+      <div className="setup-folio setup-folio--news setup-folio--edition-34">
+        <aside className="setup-folio-margin" aria-hidden="true">
+          <p className="setup-folio-brand">
+            {t('welcome.brandWithEdition', { version: APP_SHORT_VERSION })}
+          </p>
+          <div className="setup-folio-margin-mid">
+            <span className="setup-folio-numeral">{APP_SHORT_VERSION}</span>
+            <p className="setup-folio-edition-mark">{t('whatsNew.editionMark')}</p>
+          </div>
+          <p className="setup-folio-count">{t('whatsNew.badge', { version: APP_VERSION })}</p>
+        </aside>
+        <div className="setup-folio-page">
+          <header className="setup-folio-head">
+            <p className="setup-folio-kicker">{t('whatsNew.kicker')}</p>
+            <h1 id="whats-new-title" className="setup-folio-title">
+              {t('whatsNew.title', { version: APP_SHORT_VERSION })}
+            </h1>
+            <p className="setup-folio-lead">{t('whatsNew.subtitle')}</p>
+            <ul className="setup-folio-tags" aria-label={t('whatsNew.tagsLabel')}>
+              <li>{t('whatsNew.tags.agents')}</li>
+              <li>{t('whatsNew.tags.handoffs')}</li>
+              <li>{t('whatsNew.tags.recipes')}</li>
+            </ul>
+          </header>
+          <WhatsNew34Highlights />
+          <footer className="setup-folio-foot">
+            <span className="setup-folio-foot-note">{t('whatsNew.footNote')}</span>
+            <button type="button" className="setup-folio-next" onClick={handleClose}>
+              {t('whatsNew.gotIt')}
+            </button>
+          </footer>
+        </div>
+      </div>
+    </div>
+  )
 }
 
-/** @deprecated Highlights render inside Dioxus surface. */
+/** Presentational list of 3.4.0 highlights — hydrated from Rust UiManifest when available. */
 export function WhatsNew34Highlights() {
-  return null
+  const { t } = useTranslation()
+  const [highlights, setHighlights] = useState<string[]>([...WHATS_NEW_34_HIGHLIGHTS])
+
+  useEffect(() => {
+    if (!isTauriRuntime()) return
+    let cancelled = false
+    void getUiManifest()
+      .then((manifest) => {
+        if (cancelled) return
+        if (manifest.whatsNewHighlights.length > 0) {
+          setHighlights(manifest.whatsNewHighlights)
+        }
+      })
+      .catch(() => {
+        // Keep local fallback list.
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  return (
+    <ol className="setup-folio-points setup-folio-points--edition">
+      {highlights.map((id, index) => (
+        <li key={id} style={{ animationDelay: `${80 + index * 55}ms` }}>
+          <span>{String(index + 1).padStart(2, '0')}</span>
+          <div>
+            <strong>{t(`whatsNew.${id}.title`)}</strong>
+            <p>{t(`whatsNew.${id}.description`)}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
+  )
 }
 
 /** @deprecated Prefer WhatsNew34Highlights */

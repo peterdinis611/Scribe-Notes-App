@@ -1,3 +1,4 @@
+/** Keep in sync with `crates/scribe-ui` counterpart. */
 /**
  * Local marketplace catalog — remote signing/discovery still later.
  * Ships installable sample packages + featured official plugins.

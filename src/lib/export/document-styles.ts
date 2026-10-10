@@ -1,3 +1,4 @@
+/** Keep in sync with `crates/scribe-ui` counterpart. */
 /** Shared typography and layout CSS for editor print mode, HTML export, and print preview. */
 import type { PageSetup } from '@/lib/editor/page-setup'
 import { DEFAULT_PAGE_SETUP, normalizePageSetup } from '@/lib/editor/page-setup'

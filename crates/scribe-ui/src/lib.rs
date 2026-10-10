@@ -1,9 +1,14 @@
 //! Scribe UI domain — catalogs, helpers, and optional Dioxus chrome surfaces.
 
 mod agent_catalog;
+mod canvas_doc;
 mod code_languages;
 mod diff_filters;
+mod doc_stats;
 mod docs_nav;
+mod document_style_presets;
+mod document_styles;
+mod editor_catalogs;
 mod error;
 mod export_colors;
 mod filenames;
@@ -12,16 +17,26 @@ mod folders;
 mod fuzzy;
 mod global_shortcuts;
 mod graph;
+mod html_content;
 mod ics;
+mod import_path;
 mod journal_dates;
 mod layout;
+mod locale_options;
 mod locale_sections;
 mod lorem;
+mod map_spec;
 mod markdown;
+mod markdown_outline;
+mod markdown_promote;
+mod marketplace_catalog;
+mod orphan_links;
 mod page_setup;
+mod palette_headings;
 mod plugin_presets;
 mod privacy;
 mod reorder;
+mod resolve_color;
 mod revision_compare;
 mod routes_catalog;
 mod semver;
@@ -30,13 +45,18 @@ mod shortcuts;
 mod skin;
 mod smart_filters;
 mod snippet;
+mod snippet_validation;
 mod tag_colors;
 mod tag_meta;
+mod template_categories;
 mod template_packs;
 mod templates_catalog;
 mod theme;
+mod theme_presets;
+mod tour_selectors;
 mod ui_fonts;
 mod version;
+mod video_embed;
 mod whats_new;
 
 #[cfg(feature = "dioxus")]
@@ -46,6 +66,10 @@ pub use agent_catalog::{
     agent_recipe_ids, agent_recipes, agent_role_ids, is_agent_recipe_id, is_agent_role_id,
     AgentRecipeDef, AGENT_RECIPE_IDS, AGENT_ROLE_IDS,
 };
+pub use canvas_doc::{
+    empty_canvas_document, is_canvas_content, parse_canvas_document, serialize_canvas_document,
+    CanvasDocument, CANVAS_CONTENT_TYPE, CANVAS_VERSION,
+};
 pub use code_languages::{
     filter_code_languages, humanize_language_id, pinned_language_ids, resolve_code_language_alias,
     CodeLanguage, PINNED_LANGUAGE_IDS,
@@ -54,9 +78,27 @@ pub use diff_filters::{
     count_diff_changes, filter_diff_lines, filter_diff_lines_with_context, DiffChangeCounts,
     DiffLine, CURRENT_REVISION_ID,
 };
+pub use doc_stats::{
+    count_characters, count_words, extract_title_from_content,
+    extract_title_from_content_with_fallback,
+};
 pub use docs_nav::{
     docs_groups, docs_quick_links, docs_topic_ids, is_docs_topic, DocsGroup, DOCS_QUICK_LINKS,
     DOCS_TOPIC_IDS,
+};
+pub use document_style_presets::{
+    apply_document_style_preset, default_document_typography, default_page_setup,
+    document_style_preset_ids, document_style_presets, get_document_style_preset,
+    DocumentStylePreset, PageSetup,
+};
+pub use document_styles::{
+    build_document_content_css, document_content_css, resolve_document_typography,
+    DocumentTypography, DocumentTypographyInput, DOCUMENT_BODY_FONT, DOCUMENT_HIGHLIGHT_CSS,
+    DOCUMENT_TIPTAP_CSS, PDF_CAPTURE_CSS,
+};
+pub use editor_catalogs::{
+    normalize_font_family, FONT_FAMILIES, FONT_SIZES, HIGHLIGHT_COLORS, LINE_HEIGHTS,
+    PARAGRAPH_SPACING, TEXT_COLORS,
 };
 pub use error::UiError;
 pub use export_colors::color_for_export;
@@ -74,7 +116,11 @@ pub use graph::{
     analyze_graph_density, is_untitled_orphan_title, partition_orphans, suggested_layout_size,
     GraphDensity, OrphanRow,
 };
+pub use html_content::{
+    empty_doc_json, normalize_doc_json, plain_text_to_content_json, title_from_html,
+};
 pub use ics::{build_ics_calendar, IcsEventInput};
+pub use import_path::{import_title_from_path, is_pages_path};
 pub use journal_dates::{
     compute_journal_streak, current_week_range, format_date_key, format_date_key_today,
     format_week_key,
@@ -84,18 +130,26 @@ pub use layout::{
     EDITOR_PANEL_WIDTH_DEFAULT, EDITOR_PANEL_WIDTH_MAX, EDITOR_PANEL_WIDTH_MIN,
     SIDEBAR_WIDTH_DEFAULT, SIDEBAR_WIDTH_MAX, SIDEBAR_WIDTH_MIN,
 };
+pub use locale_options::{build_locale_options, CustomLocaleInput, LocaleOption, BUILT_IN_LOCALES, DEFAULT_LOCALE};
 pub use locale_sections::{locale_section_group_ids, locale_section_groups, LocaleSectionGroup};
 pub use lorem::{generate_lorem_ipsum, normalize_lorem_options, LoremOptions, LoremUnit};
+pub use map_spec::{parse_map_spec, MAP_DEFAULT_SOURCE};
 pub use markdown::tiptap_json_to_markdown;
+pub use markdown_outline::collect_markdown_heading_outline;
+pub use markdown_promote::promote_markdown_special_blocks;
+pub use marketplace_catalog::{list_marketplace_by_kind, list_marketplace_listings};
+pub use orphan_links::{suggest_orphan_links, OrphanLinkSuggestion, OrphanSuggestionRow};
 pub use page_setup::{
     default_margins, paper_size_ids, paper_sizes, resolve_page_layout, PageMargins, PaperSize,
     PaperSizeId, ResolvedPageLayout,
 };
+pub use palette_headings::collect_headings_from_json;
 pub use plugin_presets::{
     category_for_plugin_id, plugin_preset_ids, plugin_presets, PluginPreset,
 };
 pub use privacy::{privacy_article_ids, PRIVACY_ARTICLE_IDS, PRIVACY_EFFECTIVE_DATE};
 pub use reorder::{can_nest_folder, move_id_before, FolderNestNode};
+pub use resolve_color::{is_theme_color_key, resolve_color, ColorTokens};
 pub use revision_compare::{
     build_revision_compare_options, get_revision_timestamp, normalize_compare_pair,
     RevisionCompareOption, RevisionInput,
@@ -115,10 +169,18 @@ pub use smart_filters::{
     SmartFilterOptions,
 };
 pub use snippet::sanitize_snippet;
+pub use snippet_validation::{
+    allowed_snippet_node_types, is_valid_snippet_id, sanitize_json_content,
+    sanitize_json_content_list, validate_snippet_input, ParsedSnippetInput, SNIPPET_LIMITS,
+    ValidateSnippetInput,
+};
 pub use tag_colors::color_for_tag;
 pub use tag_meta::{
     document_matches_meta_filters, make_meta_tag, parse_tag, status_tag_values, MetaFilters,
     ParsedTag, TagKind, STATUS_TAG_VALUES,
+};
+pub use template_categories::{
+    create_custom_category, parse_stored_custom_categories, CustomTemplateCategory,
 };
 pub use template_packs::{
     is_template_pack, parse_template_pack, parse_template_pack_str, serialize_template_pack,
@@ -129,10 +191,18 @@ pub use templates_catalog::{
     BUILT_IN_TEMPLATE_CATEGORIES, NEW_CATEGORY_SELECT_VALUE,
 };
 pub use theme::{generate_random_theme, ColorScheme, ThemeColors};
+pub use theme_presets::{
+    get_preset_by_id, is_theme_id, theme_preset_ids, theme_presets, ThemePreset,
+};
+pub use tour_selectors::{is_tour_id, tour_selector, TOUR_TARGETS};
 pub use ui_fonts::{
     is_ui_font_preset_id, ui_font_preset_ids, ui_font_presets, UiFontPreset, UI_FONTS_STORAGE_KEY,
 };
 pub use version::{app_version_info, short_version, AppVersionInfo, APP_VERSION};
+pub use video_embed::{
+    extract_vimeo_id, extract_youtube_id, is_video_url, video_export_embed, video_provider_label,
+    VideoExportEmbed,
+};
 pub use whats_new::{whats_new_highlights, EDITION_MARK_KEY, WHATS_NEW_34_HIGHLIGHTS};
 
 #[cfg(feature = "dioxus")]
@@ -171,6 +241,9 @@ pub struct UiManifest {
     pub global_shortcut_ids: Vec<String>,
     pub ui_font_preset_ids: Vec<String>,
     pub route_paths: RoutePaths,
+    pub document_style_preset_ids: Vec<String>,
+    pub theme_preset_ids: Vec<String>,
+    pub built_in_locales: Vec<String>,
 }
 
 pub fn ui_manifest() -> UiManifest {
@@ -200,6 +273,9 @@ pub fn ui_manifest() -> UiManifest {
         global_shortcut_ids: global_shortcut_ids(),
         ui_font_preset_ids: ui_font_preset_ids(),
         route_paths: route_paths(),
+        document_style_preset_ids: document_style_preset_ids(),
+        theme_preset_ids: theme_preset_ids(),
+        built_in_locales: BUILT_IN_LOCALES.iter().map(|s| (*s).to_string()).collect(),
     }
 }
 
@@ -224,5 +300,8 @@ mod tests {
         assert!(m.global_shortcut_ids.contains(&"quickNote".to_string()));
         assert!(m.ui_font_preset_ids.contains(&"default".to_string()));
         assert_eq!(m.route_paths.home, "/");
+        assert!(m.document_style_preset_ids.contains(&"academic".to_string()));
+        assert!(!m.theme_preset_ids.is_empty());
+        assert!(m.built_in_locales.contains(&"sk".to_string()));
     }
 }

@@ -1,3 +1,4 @@
+/** Keep in sync with `crates/scribe-ui` counterpart. */
 import { type ClassValue, clsx } from 'clsx'
 import { Debouncer, Throttler } from '@/lib/pacer'
 import { twMerge } from 'tailwind-merge'

@@ -1,3 +1,4 @@
+/** Keep in sync with `crates/scribe-ui` counterpart. */
 /** Stable selectors for the guided product tour (driver.js). */
 export const TOUR = {
   sidebarRail: '[data-tour="sidebar-rail"]',

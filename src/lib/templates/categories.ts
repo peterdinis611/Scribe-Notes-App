@@ -1,3 +1,4 @@
+/** Keep in sync with `crates/scribe-ui` counterpart. */
 import i18n from '@/i18n'
 
 /** Keep in sync with `scribe_ui::templates_catalog`. */

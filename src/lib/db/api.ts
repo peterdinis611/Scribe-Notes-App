@@ -683,6 +683,9 @@ export type UiManifest = {
     storageMode: string
     settingsPrefix: string
   }
+  documentStylePresetIds: string[]
+  themePresetIds: string[]
+  builtInLocales: string[]
 }
 
 export type AppVersionInfo = {
@@ -947,6 +950,75 @@ export const uiFontPresetsNative = () =>
       google?: string[]
     }>
   >('ui_font_presets_ui')
+
+export const extractTitleFromContentNative = (contentJson: string, fallback?: string | null) =>
+  invoke<string>('extract_title_from_content_ui', { contentJson, fallback: fallback ?? null })
+
+export const countWordsNative = (contentJson: string) =>
+  invoke<number>('count_words_ui', { contentJson })
+
+export const countCharactersNative = (contentJson: string) =>
+  invoke<number>('count_characters_ui', { contentJson })
+
+export const collectHeadingsFromJsonNative = (contentJson: string) =>
+  invoke<string[]>('collect_headings_from_json_ui', { contentJson })
+
+export const plainTextToContentJsonNative = (text: string) =>
+  invoke<string>('plain_text_to_content_json_ui', { text })
+
+export const titleFromHtmlNative = (html: string, fallback: string) =>
+  invoke<string>('title_from_html_ui', { html, fallback })
+
+export const validateSnippetInputNative = (
+  input: Record<string, unknown>,
+  existingCustomCount?: number | null,
+  isUpdate?: boolean | null,
+) =>
+  invoke<{ ok: boolean; value?: unknown; error?: { code: string; message: string } }>(
+    'validate_snippet_input_ui',
+    { input, existingCustomCount: existingCustomCount ?? null, isUpdate: isUpdate ?? null },
+  )
+
+export const isVideoUrlNative = (value: string) => invoke<boolean>('is_video_url_ui', { value })
+
+export const videoProviderLabelNative = (src: string) =>
+  invoke<string>('video_provider_label_ui', { src })
+
+export const videoExportEmbedNative = (src: string) =>
+  invoke<{ kind: string; href: string }>('video_export_embed_ui', { src })
+
+export const documentStylePresetsNative = () => invoke<unknown[]>('document_style_presets_ui')
+
+export const applyDocumentStylePresetNative = (id: string) =>
+  invoke<unknown>('apply_document_style_preset_ui', { id })
+
+export const parseCanvasDocumentNative = (contentJson: string) =>
+  invoke<unknown | null>('parse_canvas_document_ui', { contentJson })
+
+export const serializeCanvasDocumentNative = (doc: unknown) =>
+  invoke<string>('serialize_canvas_document_ui', { doc })
+
+export const promoteMarkdownSpecialBlocksNative = (doc: unknown) =>
+  invoke<unknown>('promote_markdown_special_blocks_ui', { doc })
+
+export const collectMarkdownHeadingOutlineNative = (markdown: string) =>
+  invoke<unknown[]>('collect_markdown_heading_outline_ui', { markdown })
+
+export const parseMapSpecNative = (source: string) =>
+  invoke<unknown>('parse_map_spec_ui', { source })
+
+export const importTitleFromPathNative = (path: string, fallback: string) =>
+  invoke<string>('import_title_from_path_ui', { path, fallback })
+
+export const isPagesPathNative = (path: string) => invoke<boolean>('is_pages_path_ui', { path })
+
+export const themePresetIdsNative = () => invoke<string[]>('theme_preset_ids_ui')
+
+export const suggestOrphanLinksNative = (rows: unknown[]) =>
+  invoke<unknown[]>('suggest_orphan_links_ui', { rows })
+
+export const resolveColorNative = (color: string, tokens: Record<string, string>) =>
+  invoke<string>('resolve_color_ui', { color, tokens })
 
 export type UiSurfaceId = 'whats-new' | 'welcome' | 'privacy' | 'about' | 'docs'
 

@@ -1,3 +1,4 @@
+/** Keep in sync with `crates/scribe-ui` counterpart. */
 const VIDEO_FILE_EXT = /\.(?:mp4|webm|ogv|ogg|mov|m3u8)(?:\?[^#]*)?(?:#.*)?$/i
 
 const VIDEO_HOSTS = [
