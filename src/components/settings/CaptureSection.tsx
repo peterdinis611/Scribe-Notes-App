@@ -28,6 +28,7 @@ export function CaptureSection() {
   const [status, setStatus] = useState<CaptureStatus | null>(null)
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [allowLan, setAllowLan] = useState(false)
 
   const refresh = useCallback(async () => {
     const next = await captureStatus()
@@ -68,7 +69,7 @@ export function CaptureSection() {
   async function handleStart() {
     setBusy(true)
     try {
-      const next = await captureStart()
+      const next = await captureStart(allowLan)
       setStatus(next)
       if (next.url) {
         const dataUrl = await QRCode.toDataURL(next.url, {
@@ -119,6 +120,16 @@ export function CaptureSection() {
 
       <SettingsGroup>
         <SettingsRow title={t('capture.lanTitle')} description={t('capture.lanDescription')}>
+          {!running ? (
+            <label className="mr-2 flex items-center gap-2 text-[12px] text-[var(--color-muted-foreground)]">
+              <input
+                type="checkbox"
+                checked={allowLan}
+                onChange={(e) => setAllowLan(e.target.checked)}
+              />
+              {t('capture.allowLan')}
+            </label>
+          ) : null}
           {!running ? (
             <Button type="button" size="sm" disabled={busy} onClick={() => void handleStart()}>
               {busy ? t('capture.starting') : t('capture.start')}

@@ -19,7 +19,11 @@ const CURSOR_CONFIG = `{
   "mcpServers": {
     "scribe-memory": {
       "command": "__SCRIBE/target/release/scribe-mcp",
-      "args": []
+      "args": [],
+      "env": {
+        "SCRIBE_MCP_WRITE": "0",
+        "SCRIBE_MCP_SCOPE": "no-vault"
+      }
     }
   }
 }`
@@ -28,7 +32,11 @@ const CLAUDE_CONFIG = `{
   "mcpServers": {
     "scribe-memory": {
       "command": "__SCRIBE/target/release/scribe-mcp",
-      "args": []
+      "args": [],
+      "env": {
+        "SCRIBE_MCP_WRITE": "0",
+        "SCRIBE_MCP_SCOPE": "no-vault"
+      }
     }
   }
 }`

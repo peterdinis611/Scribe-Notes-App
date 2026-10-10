@@ -19,7 +19,11 @@ Binary: `target/release/scribe-mcp`
   "mcpServers": {
     "scribe-memory": {
       "command": "/absolute/path/to/scribe/target/release/scribe-mcp",
-      "args": []
+      "args": [],
+      "env": {
+        "SCRIBE_MCP_WRITE": "0",
+        "SCRIBE_MCP_SCOPE": "no-vault"
+      }
     }
   }
 }
@@ -32,8 +36,8 @@ Example: [`cursor.mcp.example.json`](cursor.mcp.example.json)
 | Variable | Meaning |
 |----------|---------|
 | `SCRIBE_DB_PATH` | Path to `scribe.db` (default: `~/Library/Application Support/com.scribe.app/scribe.db`) |
-| `SCRIBE_MCP_WRITE` | Set to `0` to force read-only |
-| `SCRIBE_MCP_SCOPE` | Vault access: `no-vault` (default), `meta-only`, or `full` |
+| `SCRIBE_MCP_WRITE` | Default read-only. Set to `1` to allow write tools |
+| `SCRIBE_MCP_SCOPE` | Vault access: `no-vault` (default), `meta-only`, or `full` (warns if not `no-vault`) |
 | `SCRIBE_NLP_SCRIPT` | Path to Python NLP `__main__.py` for semantic tools |
 | `SCRIBE_NLP_PYTHON` | Python binary (default `python3`) |
 

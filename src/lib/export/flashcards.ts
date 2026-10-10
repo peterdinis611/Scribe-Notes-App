@@ -1,4 +1,4 @@
-import { save } from '@tauri-apps/plugin-dialog'
+import { saveScopedFile } from '@/lib/fs/scoped-dialog'
 import {
   flashcardsToAnkiTsvNative,
   flashcardsToMarkdownNative,
@@ -76,10 +76,9 @@ export async function exportFlashcardsAnki(args: {
   baseName: string
   dialogTitle?: string
 }): Promise<string | null> {
-  const path = await save({
+  const path = await saveScopedFile({
     title: args.dialogTitle ?? 'Export Anki TSV',
     defaultPath: flashcardsFileName(args.baseName, 'txt'),
-    filters: [{ name: 'Anki text', extensions: ['txt', 'tsv'] }],
   })
   if (!path) return null
   await writeTextFile(path, await flashcardsToAnkiTsv(args.cards))
@@ -92,10 +91,9 @@ export async function exportFlashcardsMarkdown(args: {
   title?: string
   dialogTitle?: string
 }): Promise<string | null> {
-  const path = await save({
+  const path = await saveScopedFile({
     title: args.dialogTitle ?? 'Export Markdown',
     defaultPath: flashcardsFileName(args.baseName, 'md'),
-    filters: [{ name: 'Markdown', extensions: ['md'] }],
   })
   if (!path) return null
   await writeTextFile(path, await flashcardsToMarkdown(args.cards, args.title))

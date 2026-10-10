@@ -7,6 +7,20 @@ use std::sync::Mutex;
 
 pub const UI_WINDOW_LABEL: &str = "scribe-ui";
 
+/// Allowed `data-sui-event` names from surface HTML (deny unknown events).
+const ALLOWED_UI_EVENTS: &[&str] = &[
+    "surface-closed",
+    "whats-new-acked",
+    "welcome-new-document",
+    "welcome-today",
+    "welcome-import",
+    "welcome-open-docs",
+    "welcome-open-document",
+    "about-replay-tour",
+    "about-open-privacy",
+    "docs-open-topic",
+];
+
 #[derive(Default)]
 pub struct UiHostState {
     pub html_path: Mutex<Option<PathBuf>>,
@@ -91,11 +105,18 @@ pub fn close_ui_surface(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+fn is_allowed_ui_event(event: &str) -> bool {
+    ALLOWED_UI_EVENTS.iter().any(|name| *name == event)
+}
+
 #[tauri::command]
 pub fn ui_surface_event(
     app: AppHandle,
     payload: UiSurfaceEventPayload,
 ) -> Result<(), String> {
+    if !is_allowed_ui_event(&payload.event) {
+        return Err(format!("UI event not allowed: {}", payload.event));
+    }
     if payload.event == "surface-closed" || payload.event == "whats-new-acked" {
         let _ = close_ui_surface(app.clone());
     }
@@ -103,4 +124,17 @@ pub fn ui_surface_event(
         .or_else(|_| app.emit("scribe-ui-event", &payload))
         .map_err(|e| e.to_string())?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_allowed_ui_event;
+
+    #[test]
+    fn allows_known_surface_events() {
+        assert!(is_allowed_ui_event("welcome-new-document"));
+        assert!(is_allowed_ui_event("whats-new-acked"));
+        assert!(!is_allowed_ui_event("eval"));
+        assert!(!is_allowed_ui_event(""));
+    }
 }

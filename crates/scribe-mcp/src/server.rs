@@ -32,9 +32,16 @@ impl ScribeMcp {
         let opened = open_scribe_store(None).map_err(|error| anyhow::anyhow!(error))?;
         let vault_scope = McpVaultScope::from_env();
         eprintln!(
-            "[scribe-mcp] vault scope={} (SCRIBE_MCP_SCOPE)",
-            vault_scope.as_str()
+            "[scribe-mcp] vault scope={} (SCRIBE_MCP_SCOPE) writable={} (SCRIBE_MCP_WRITE=1 to enable writes)",
+            vault_scope.as_str(),
+            opened.writable
         );
+        if vault_scope != McpVaultScope::NoVault {
+            eprintln!(
+                "[scribe-mcp] WARNING: SCRIBE_MCP_SCOPE={} exposes vault metadata/ciphertext to MCP tools. Prefer no-vault.",
+                vault_scope.as_str()
+            );
+        }
         Ok(Self {
             store: Mutex::new(opened.store),
             sidecar: NlpSidecar::new(resolve_script_path()),
@@ -1899,7 +1906,7 @@ impl ScribeMcp {
         Parameters(params): Parameters<tools::SetNlpEnabledParams>,
     ) -> Result<String, String> {
         if !self.writable {
-            return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
+            return Err("MCP is read-only (set SCRIBE_MCP_WRITE=1 to enable writes)".to_string());
         }
         let result = self.with_store(|store| {
             Ok(tools::json(
@@ -1922,7 +1929,7 @@ impl ScribeMcp {
         Parameters(params): Parameters<tools::SetEmbedBackendParams>,
     ) -> Result<String, String> {
         if !self.writable {
-            return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
+            return Err("MCP is read-only (set SCRIBE_MCP_WRITE=1 to enable writes)".to_string());
         }
         self.with_store(|store| {
             Ok(tools::json(
@@ -1937,7 +1944,7 @@ impl ScribeMcp {
         Parameters(params): Parameters<tools::SetAnswerBackendParams>,
     ) -> Result<String, String> {
         if !self.writable {
-            return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
+            return Err("MCP is read-only (set SCRIBE_MCP_WRITE=1 to enable writes)".to_string());
         }
         self.with_store(|store| {
             Ok(tools::json(
@@ -1954,7 +1961,7 @@ impl ScribeMcp {
         Parameters(params): Parameters<tools::SetLlmPrefsParams>,
     ) -> Result<String, String> {
         if !self.writable {
-            return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
+            return Err("MCP is read-only (set SCRIBE_MCP_WRITE=1 to enable writes)".to_string());
         }
         self.with_store(|store| {
             Ok(tools::json(&store.set_nlp_llm_prefs(
@@ -2112,7 +2119,7 @@ impl ScribeMcp {
         Parameters(params): Parameters<tools::IdParams>,
     ) -> Result<String, String> {
         if !self.writable {
-            return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
+            return Err("MCP is read-only (set SCRIBE_MCP_WRITE=1 to enable writes)".to_string());
         }
         self.with_store(|store| Ok(tools::json(&store.switch_library(&params.id)?)))
     }
@@ -2123,7 +2130,7 @@ impl ScribeMcp {
         Parameters(params): Parameters<tools::CreateLibraryParams>,
     ) -> Result<String, String> {
         if !self.writable {
-            return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
+            return Err("MCP is read-only (set SCRIBE_MCP_WRITE=1 to enable writes)".to_string());
         }
         self.with_store(|store| {
             Ok(tools::json(
@@ -2191,7 +2198,7 @@ impl ScribeMcp {
         Parameters(params): Parameters<tools::UpsertManuscriptParams>,
     ) -> Result<String, String> {
         if !self.writable {
-            return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
+            return Err("MCP is read-only (set SCRIBE_MCP_WRITE=1 to enable writes)".to_string());
         }
         self.with_store(|store| {
             let chapter_ids = params.chapter_ids.unwrap_or_default();
@@ -2224,7 +2231,7 @@ impl ScribeMcp {
         Parameters(params): Parameters<tools::AppendDocumentChatParams>,
     ) -> Result<String, String> {
         if !self.writable {
-            return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
+            return Err("MCP is read-only (set SCRIBE_MCP_WRITE=1 to enable writes)".to_string());
         }
         self.with_store(|store| {
             let citations = params
@@ -2253,7 +2260,7 @@ impl ScribeMcp {
         Parameters(params): Parameters<tools::DocumentIdParams>,
     ) -> Result<String, String> {
         if !self.writable {
-            return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
+            return Err("MCP is read-only (set SCRIBE_MCP_WRITE=1 to enable writes)".to_string());
         }
         self.with_store(|store| {
             let deleted = store.clear_document_chat_messages(&params.document_id)?;
@@ -2295,7 +2302,7 @@ impl ScribeMcp {
         Parameters(params): Parameters<tools::UpsertSmartFolderParams>,
     ) -> Result<String, String> {
         if !self.writable {
-            return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
+            return Err("MCP is read-only (set SCRIBE_MCP_WRITE=1 to enable writes)".to_string());
         }
         self.with_store(|store| {
             Ok(tools::json(&store.upsert_smart_folder(
@@ -2313,7 +2320,7 @@ impl ScribeMcp {
         Parameters(params): Parameters<tools::DeleteIdParams>,
     ) -> Result<String, String> {
         if !self.writable {
-            return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
+            return Err("MCP is read-only (set SCRIBE_MCP_WRITE=1 to enable writes)".to_string());
         }
         self.with_store(|store| {
             let deleted = store.delete_smart_folder(&params.id)?;
@@ -2356,7 +2363,7 @@ impl ScribeMcp {
         Parameters(params): Parameters<tools::ResolveSyncConflictParams>,
     ) -> Result<String, String> {
         if !self.writable {
-            return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
+            return Err("MCP is read-only (set SCRIBE_MCP_WRITE=1 to enable writes)".to_string());
         }
         self.with_store(|store| {
             Ok(tools::json(
@@ -2418,7 +2425,7 @@ impl ScribeMcp {
     ) -> Result<String, String> {
         let dry_run = params.dry_run.unwrap_or(true);
         if !dry_run && !self.writable {
-            return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
+            return Err("MCP is read-only (set SCRIBE_MCP_WRITE=1 to enable writes)".to_string());
         }
         self.with_store(|store| {
             Ok(tools::json(&store.library_find_replace(
@@ -2438,7 +2445,7 @@ impl ScribeMcp {
         Parameters(params): Parameters<tools::DocumentAnswerParams>,
     ) -> Result<String, String> {
         if !self.writable {
-            return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
+            return Err("MCP is read-only (set SCRIBE_MCP_WRITE=1 to enable writes)".to_string());
         }
         self.with_store(|store| {
             Ok(tools::json(&store.document_answer_and_save(
@@ -2789,7 +2796,7 @@ impl ScribeMcp {
         Parameters(params): Parameters<tools::DeleteIdParams>,
     ) -> Result<String, String> {
         if !self.writable {
-            return Err("MCP is read-only (SCRIBE_MCP_WRITE=0)".to_string());
+            return Err("MCP is read-only (set SCRIBE_MCP_WRITE=1 to enable writes)".to_string());
         }
         self.with_store(|store| Ok(tools::json(&store.delete_document_revision(&params.id)?)))
     }

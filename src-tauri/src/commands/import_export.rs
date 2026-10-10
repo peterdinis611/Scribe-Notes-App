@@ -27,9 +27,69 @@ pub struct ExportResult {
     pub path: String,
 }
 
+/// Native open dialog; grants the picked path. Rejects arbitrary JS path strings.
 #[tauri::command]
-pub fn grant_scoped_path(gate: State<'_, PathAccessGate>, path: String) -> Result<(), String> {
-    gate.grant(Path::new(&path));
+pub fn pick_and_grant_path(
+    app: AppHandle,
+    gate: State<'_, PathAccessGate>,
+    title: Option<String>,
+    directory: Option<bool>,
+) -> Result<Option<String>, String> {
+    let mut dialog = app.dialog().file();
+    if let Some(title) = title.as_deref() {
+        dialog = dialog.set_title(title);
+    }
+    let picked = if directory.unwrap_or(false) {
+        dialog.blocking_pick_folder().map(|p| PathBuf::from(p.to_string()))
+    } else {
+        dialog.blocking_pick_file().map(|p| PathBuf::from(p.to_string()))
+    };
+    let Some(path) = picked else {
+        return Ok(None);
+    };
+    gate.grant_from_picker(&path);
+    Ok(Some(path.to_string_lossy().into_owned()))
+}
+
+/// Native save dialog; grants the chosen path (and parent) for a subsequent write.
+#[tauri::command]
+pub fn pick_and_grant_save_path(
+    app: AppHandle,
+    gate: State<'_, PathAccessGate>,
+    title: Option<String>,
+    default_path: Option<String>,
+) -> Result<Option<String>, String> {
+    let mut dialog = app.dialog().file();
+    if let Some(title) = title.as_deref() {
+        dialog = dialog.set_title(title);
+    }
+    if let Some(default_path) = default_path.as_deref() {
+        dialog = dialog.set_file_name(default_path);
+    }
+    let Some(path) = dialog.blocking_save_file() else {
+        return Ok(None);
+    };
+    let path = PathBuf::from(path.to_string());
+    gate.grant_from_picker(&path);
+    Ok(Some(path.to_string_lossy().into_owned()))
+}
+
+/// Grant paths from a native window drag-and-drop (Rust-side event). Not for arbitrary JS strings.
+#[tauri::command]
+pub fn grant_dropped_paths(
+    gate: State<'_, PathAccessGate>,
+    paths: Vec<String>,
+) -> Result<(), String> {
+    if paths.len() > 64 {
+        return Err("Príliš veľa súborov naraz.".into());
+    }
+    for path in paths {
+        let path = PathBuf::from(path);
+        if !path.exists() {
+            continue;
+        }
+        gate.grant_from_picker(&path);
+    }
     Ok(())
 }
 
@@ -83,7 +143,6 @@ pub fn write_text_file(
     contents: String,
 ) -> Result<(), String> {
     let path = PathBuf::from(path);
-    gate.grant(&path);
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     let validated = gate.validate_read(&app, &conn, &path)?;
     drop(conn);
@@ -140,7 +199,7 @@ pub fn pick_and_import_file(
     let mut failed = Vec::new();
     for path in paths {
         let path = PathBuf::from(path.to_string());
-        gate.grant(&path);
+        gate.grant_from_picker(&path);
         match import_file_at_path(&app, &state, &gate, &path) {
             Ok(doc) => imported.push(doc),
             Err(error) => failed.push(PickAndImportFailure {
@@ -169,7 +228,6 @@ pub fn prepare_pages_import(
     path: String,
 ) -> Result<PagesImportPrepared, String> {
     let path = PathBuf::from(path);
-    gate.grant(&path);
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     gate.validate_read(&app, &conn, &path)?;
     drop(conn);
@@ -212,7 +270,6 @@ pub fn import_file(
     path: String,
 ) -> Result<Document, String> {
     let path = Path::new(&path);
-    gate.grant(path);
     import_file_at_path(&app, &state, &gate, path)
 }
 

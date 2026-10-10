@@ -54,19 +54,6 @@ fn find_header_end(buf: &[u8]) -> Option<usize> {
     buf.windows(4).position(|w| w == b"\r\n\r\n").map(|i| i + 4)
 }
 
-fn query_param(path: &str, key: &str) -> Option<String> {
-    let q = path.split_once('?')?.1;
-    for pair in q.split('&') {
-        let mut parts = pair.splitn(2, '=');
-        let k = parts.next()?;
-        let v = parts.next().unwrap_or("");
-        if k == key {
-            return Some(urlencoding_decode(v));
-        }
-    }
-    None
-}
-
 fn urlencoding_decode(value: &str) -> String {
     let bytes = value.as_bytes();
     let mut out = Vec::with_capacity(bytes.len());
@@ -106,10 +93,7 @@ fn write_response(stream: &mut TcpStream, status: &str, content_type: &str, body
     let _ = stream.flush();
 }
 
-fn token_ok(headers: &str, path: &str, expected: &str) -> bool {
-    if query_param(path, "token").as_deref() == Some(expected) {
-        return true;
-    }
+fn token_ok(headers: &str, _path: &str, expected: &str) -> bool {
     for line in headers.lines() {
         let lower = line.to_ascii_lowercase();
         if let Some(rest) = lower.strip_prefix("authorization:") {
@@ -118,6 +102,11 @@ fn token_ok(headers: &str, path: &str, expected: &str) -> bool {
                 if token.trim() == expected {
                     return true;
                 }
+            }
+        }
+        if let Some(rest) = lower.strip_prefix("x-scribe-capture-token:") {
+            if rest.trim() == expected {
+                return true;
             }
         }
     }
@@ -149,12 +138,9 @@ pub fn handle_connection(mut stream: TcpStream, app: &AppHandle, expected_token:
         return;
     }
 
+    // Public form shell — token is never in the query string; POST requires Bearer.
     if method == "GET" && (path == "/" || path.starts_with("/?")) {
-        if !token_ok(&headers, path, expected_token) {
-            write_response(&mut stream, "401 Unauthorized", "text/plain", b"invalid token");
-            return;
-        }
-        let page = capture_page(expected_token);
+        let page = capture_page("");
         write_response(&mut stream, "200 OK", "text/html; charset=utf-8", page.as_bytes());
         return;
     }

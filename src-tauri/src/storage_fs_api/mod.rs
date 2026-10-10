@@ -1,4 +1,8 @@
 //! Loopback Files API server (REST + GraphQL + OpenAPI demo) for Storage Mode.
+//!
+//! Disabled by default — start explicitly from Settings. Every request (except
+//! OPTIONS and a minimal unauthenticated health probe) requires
+//! `Authorization: Bearer <token>` issued when the server starts.
 
 mod http;
 mod openapi;
@@ -10,6 +14,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use tauri::{AppHandle, State};
+use uuid::Uuid;
 
 use crate::db::DbState;
 use crate::storage;
@@ -32,6 +37,8 @@ pub struct StorageFsServerStatus {
     pub running: bool,
     pub port: Option<u16>,
     pub url: Option<String>,
+    /// Bearer token for API clients. Present only while the server is running.
+    pub token: Option<String>,
     pub documents_dir: Option<String>,
     pub files_root: Option<String>,
     pub endpoints: Vec<StorageFsEndpoint>,
@@ -40,6 +47,7 @@ pub struct StorageFsServerStatus {
 struct Runtime {
     port: u16,
     url: String,
+    token: String,
     documents_dir: PathBuf,
     stop: Arc<AtomicBool>,
     join: Option<JoinHandle<()>>,
@@ -108,6 +116,7 @@ fn status_from(runtime: Option<&Runtime>) -> StorageFsServerStatus {
             running: true,
             port: Some(rt.port),
             url: Some(rt.url.clone()),
+            token: Some(rt.token.clone()),
             documents_dir: Some(rt.documents_dir.to_string_lossy().into_owned()),
             files_root: Some(rt.documents_dir.join("files").to_string_lossy().into_owned()),
             endpoints,
@@ -116,6 +125,7 @@ fn status_from(runtime: Option<&Runtime>) -> StorageFsServerStatus {
             running: false,
             port: None,
             url: None,
+            token: None,
             documents_dir: None,
             files_root: None,
             endpoints,
@@ -159,10 +169,12 @@ pub fn storage_fs_server_start(
         .map_err(|e| format!("Could not bind Files API port: {e}"))?;
     let bound = listener.local_addr().map_err(|e| e.to_string())?.port();
     let url = format!("http://127.0.0.1:{bound}");
+    let token = Uuid::new_v4().to_string().replace('-', "");
 
     let stop = Arc::new(AtomicBool::new(false));
     let stop_thread = Arc::clone(&stop);
     let docs_thread = documents_dir.clone();
+    let token_thread = token.clone();
 
     let join = std::thread::spawn(move || {
         let _ = listener.set_nonblocking(true);
@@ -170,7 +182,7 @@ pub fn storage_fs_server_start(
             match listener.accept() {
                 Ok((stream, _)) => {
                     let _ = stream.set_nonblocking(false);
-                    handle_connection(stream, &docs_thread, bound);
+                    handle_connection(stream, &docs_thread, bound, &token_thread);
                 }
                 Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                     std::thread::sleep(std::time::Duration::from_millis(40));
@@ -184,6 +196,7 @@ pub fn storage_fs_server_start(
     *guard = Some(Runtime {
         port: bound,
         url,
+        token,
         documents_dir,
         stop,
         join: Some(join),
@@ -205,4 +218,22 @@ pub fn storage_fs_server_stop(
         }
     }
     Ok(status_from(None))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::http::{bearer_token_from_headers, path_escapes_files_root};
+
+    #[test]
+    fn bearer_parses_authorization_header() {
+        let headers = "Host: localhost\r\nAuthorization: Bearer abc123\r\n\r\n";
+        assert_eq!(bearer_token_from_headers(headers).as_deref(), Some("abc123"));
+    }
+
+    #[test]
+    fn path_escape_rejected() {
+        assert!(path_escapes_files_root("../etc/passwd"));
+        assert!(path_escapes_files_root("files/../../secret"));
+        assert!(!path_escapes_files_root("notes/a.md"));
+    }
 }

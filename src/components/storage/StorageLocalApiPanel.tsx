@@ -39,6 +39,7 @@ export function StorageLocalApiPanel() {
         running: false,
         port: null,
         url: null,
+        token: null,
         documentsDir: null,
         filesRoot: null,
         endpoints: STORAGE_FS_ENDPOINT_CATALOG,
@@ -146,6 +147,7 @@ export function StorageLocalApiPanel() {
             void copyText(
               formatEndpointsMarkdown({
                 url: base ?? 'http://127.0.0.1:8787',
+                token: status?.token ?? null,
                 endpoints,
               }),
               'storageMode.localApi.copiedAll',
@@ -161,7 +163,11 @@ export function StorageLocalApiPanel() {
             size="sm"
             variant="outline"
             className="gap-1.5"
-            onClick={() => void openExternalPath('/docs')}
+            onClick={() => {
+              const token = status?.token
+              const path = token ? `/docs?access_token=${encodeURIComponent(token)}` : '/docs'
+              void openExternalPath(path)
+            }}
           >
             <ExternalLink className="h-3 w-3" />
             {t('storageMode.localApi.openSwagger')}
@@ -184,6 +190,20 @@ export function StorageLocalApiPanel() {
       ) : (
         <p className="storage-api-hint">{t('storageMode.localApi.startHint')}</p>
       )}
+
+      {running && status?.token ? (
+        <div className="storage-api-base">
+          <code title={status.token}>Bearer {status.token.slice(0, 8)}…</code>
+          <button
+            type="button"
+            className="storage-api-icon-btn"
+            aria-label={t('storageMode.localApi.copyToken')}
+            onClick={() => void copyText(status.token!, 'storageMode.localApi.copiedToken')}
+          >
+            <Copy className="h-3 w-3" />
+          </button>
+        </div>
+      ) : null}
 
       {status?.filesRoot ? (
         <p className="storage-api-root" title={status.filesRoot}>

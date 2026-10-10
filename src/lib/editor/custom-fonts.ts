@@ -1,6 +1,6 @@
-import { open } from '@tauri-apps/plugin-dialog'
 import { formatCustomFontFamily, normalizeFontFamily } from '@/lib/editor/font-family'
 import { readBinaryFile } from '@/lib/db/api'
+import { openScopedFile } from '@/lib/fs/scoped-dialog'
 import { fontBlobGet, fontBlobRemove, fontBlobSet } from '@/lib/storage/font-blobs'
 import { kvGet, kvSet } from '@/lib/storage/kv'
 
@@ -236,13 +236,11 @@ function pickFontViaInput(): Promise<File | null> {
 
 async function pickFontFile(): Promise<{ fileName: string; bytes: Uint8Array } | null> {
   try {
-    const selected = await open({
-      multiple: false,
+    const selected = await openScopedFile({
       title: 'Upload font',
       filters: [{ name: 'Fonts', extensions: ['woff2', 'woff', 'ttf', 'otf'] }],
-      fileAccessMode: 'scoped',
     })
-    if (selected && !Array.isArray(selected)) {
+    if (selected) {
       const bytes = new Uint8Array(await readBinaryFile(selected))
       const fileName = selected.split(/[/\\]/).pop() ?? 'font.ttf'
       return { fileName, bytes }

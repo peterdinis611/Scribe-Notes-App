@@ -18,7 +18,9 @@ impl PathAccessGate {
         }
     }
 
-    pub fn grant(&self, path: &Path) {
+    /// Grant access after a native file/folder picker (or other trusted Rust path).
+    /// Do not call with untrusted strings from the webview.
+    pub fn grant_from_picker(&self, path: &Path) {
         let Ok(canonical) = canonicalize_path(path) else {
             return;
         };
@@ -77,9 +79,8 @@ impl PathAccessGate {
             return false;
         };
 
-        guard
-            .iter()
-            .any(|granted| canonical.starts_with(granted) || granted.starts_with(canonical))
+        // Only descendants of a granted root (never the reverse prefix match).
+        guard.iter().any(|granted| canonical.starts_with(granted))
     }
 }
 
@@ -211,5 +212,20 @@ mod tests {
         let validated = PathAccessGate::validate_temp_file(&file).unwrap();
         assert_eq!(validated, canonicalize_path(&file).unwrap());
         let _ = fs::remove_dir_all(file.parent().unwrap());
+    }
+
+    #[test]
+    fn grant_does_not_allow_sibling_via_reverse_prefix() {
+        let base = temp_dir();
+        let deep = base.join("a").join("b").join("note.md");
+        fs::create_dir_all(deep.parent().unwrap()).unwrap();
+        fs::write(&deep, b"ok").unwrap();
+        let gate = PathAccessGate::new();
+        gate.grant_from_picker(&deep);
+        let sibling = base.join("a").join("secret.md");
+        fs::write(&sibling, b"no").unwrap();
+        let can_sibling = gate.is_granted(&canonicalize_path(&sibling).unwrap());
+        assert!(!can_sibling);
+        let _ = fs::remove_dir_all(base);
     }
 }

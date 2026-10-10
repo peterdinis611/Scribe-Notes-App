@@ -1,6 +1,12 @@
-import { message, open } from '@tauri-apps/plugin-dialog'
+import { message } from '@tauri-apps/plugin-dialog'
 import { cacheDocument } from '@/lib/cache/document-cache'
-import { createDocument, importFile, readTextFileDecoded, type Document } from '@/lib/db/api'
+import {
+  createDocument,
+  importFile,
+  pickAndImportFiles,
+  readTextFileDecoded,
+  type Document,
+} from '@/lib/db/api'
 import {
   parseMarkdownToContentJson,
   titleFromMarkdown,
@@ -17,34 +23,6 @@ import {
 import { isWordDocxPath } from '@/lib/import/word-docx'
 import { toast } from '@/lib/toast'
 import i18n from '@/i18n'
-
-const IMPORT_FILTERS = [
-  {
-    name: 'Apple Pages',
-    extensions: ['pages'],
-  },
-  {
-    name: 'Podporované dokumenty',
-    extensions: [
-      'scribe',
-      'pages',
-      'md',
-      'markdown',
-      'txt',
-      'docx',
-      'rtf',
-      'doc',
-      'xlsx',
-      'xlsm',
-      'csv',
-      'xls',
-    ],
-  },
-  { name: 'Scribe', extensions: ['scribe'] },
-  { name: 'Text a Markdown', extensions: ['md', 'markdown', 'txt'] },
-  { name: 'Word', extensions: ['docx', 'doc', 'rtf'] },
-  { name: 'Excel', extensions: ['xlsx', 'xlsm', 'csv', 'xls'] },
-]
 
 /** Extensions accepted for document import (picker + window drop). */
 export const IMPORTABLE_DOCUMENT_EXT =
@@ -157,23 +135,17 @@ export async function importDocumentsFromPaths(paths: string[]): Promise<ImportD
  * Returns `null` when the user cancels.
  */
 export async function pickAndImportDocuments(): Promise<ImportDocumentsResult | null> {
-  const selected = await open({
-    multiple: true,
-    title: 'Importovať dokumenty',
-    filters: IMPORT_FILTERS,
-    fileAccessMode: 'scoped',
-  })
-
-  if (selected == null) {
-    return null
+  // Native Rust multi-file picker + PathAccessGate grant (not JS path strings).
+  const result = await pickAndImportFiles()
+  if (!result) return null
+  for (const doc of result.imported) {
+    cacheDocument(doc)
   }
-
-  const paths = (Array.isArray(selected) ? selected : [selected]).filter(Boolean)
-  if (paths.length === 0) {
-    return null
+  return {
+    imported: result.imported,
+    skipped: [],
+    failed: result.failed,
   }
-
-  return importDocumentsFromPaths(paths)
 }
 
 /** Single-file convenience wrapper (first imported doc, or null). */

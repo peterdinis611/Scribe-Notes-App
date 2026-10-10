@@ -28,12 +28,15 @@
       }
     ],
     "security": {
-      "csp": null,
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: http://asset.localhost data: blob: https:; font-src 'self' data: https:; connect-src 'self' ipc: http://ipc.localhost https://ipc.localhost http://127.0.0.1:* http://localhost:* ws://localhost:* http://localhost:5174 https://fonts.googleapis.com https://fonts.gstatic.com; media-src 'self' asset: http://asset.localhost blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'self' asset: http://asset.localhost blob:",
       "assetProtocol": {
         "enable": true,
         "scope": [
           "$DOCUMENT/**",
-          "$HOME/**"
+          "$APPDATA/**",
+          "$APPLOCALDATA/**",
+          "$TEMP/**",
+          "$CACHE/**"
         ]
       }
     }

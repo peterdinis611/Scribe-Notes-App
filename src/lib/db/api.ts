@@ -1215,8 +1215,23 @@ export const revealDocumentsDirectory = () =>
 export const getStorageDiskUsage = (path?: string | null) =>
   invoke<StorageDiskUsage>('get_storage_disk_usage', { path: path ?? null })
 
-export const grantScopedPath = (path: string) =>
-  invoke<void>('grant_scoped_path', { path })
+/** Native open dialog that grants the path in Rust (never pass arbitrary JS paths to grant). */
+export const pickAndGrantPath = (options?: { title?: string; directory?: boolean }) =>
+  invoke<string | null>('pick_and_grant_path', {
+    title: options?.title ?? null,
+    directory: options?.directory ?? null,
+  })
+
+/** Native save dialog that grants the chosen path for a subsequent write. */
+export const pickAndGrantSavePath = (options?: { title?: string; defaultPath?: string }) =>
+  invoke<string | null>('pick_and_grant_save_path', {
+    title: options?.title ?? null,
+    defaultPath: options?.defaultPath ?? null,
+  })
+
+/** Grant paths after a native window drop (also handled in Rust on_window_event). */
+export const grantDroppedPaths = (paths: string[]) =>
+  invoke<void>('grant_dropped_paths', { paths })
 
 export const readTextFile = async (path: string) => {
   const result = await readTextFileDecoded(path)
@@ -1229,29 +1244,27 @@ export type ReadTextFileResult = {
   converted: boolean
 }
 
-export const readTextFileDecoded = async (path: string) => {
-  await grantScopedPath(path)
-  return invoke<ReadTextFileResult>('read_text_file', { path })
-}
+export const readTextFileDecoded = async (path: string) =>
+  invoke<ReadTextFileResult>('read_text_file', { path })
 
-export const readBinaryFile = async (path: string) => {
-  await grantScopedPath(path)
-  return invoke<number[]>('read_binary_file', { path })
-}
+export const readBinaryFile = async (path: string) =>
+  invoke<number[]>('read_binary_file', { path })
 
-export const writeTextFile = async (path: string, contents: string) => {
-  await grantScopedPath(path)
-  return invoke<void>('write_text_file', { path, contents })
-}
+export const writeTextFile = async (path: string, contents: string) =>
+  invoke<void>('write_text_file', { path, contents })
 
 export const saveDocumentOcr = (documentId: string, imagePath: string, text: string) =>
   invoke<void>('save_document_ocr', { documentId, imagePath, text })
 
-/** Multi-file import picker. Returns `null` when cancelled. */
-export const pickAndImportFiles = async () => {
-  const { pickAndImportDocuments } = await import('@/lib/import-document')
-  return pickAndImportDocuments()
+export type PickAndImportFailure = { path: string; error: string }
+export type PickAndImportResult = {
+  imported: Document[]
+  failed: PickAndImportFailure[]
 }
+
+/** Multi-file import via native Rust picker (grants PathAccessGate). */
+export const pickAndImportFiles = () =>
+  invoke<PickAndImportResult | null>('pick_and_import_file')
 
 /** @deprecated Prefer `pickAndImportFiles` — kept for single-doc call sites. */
 export const pickAndImportFile = async () => {
@@ -1260,8 +1273,6 @@ export const pickAndImportFile = async () => {
 }
 
 export const importFile = async (path: string) => {
-  await grantScopedPath(path)
-
   const [
     { isPagesPath, importPagesDocumentFromPath },
     { isExcelPath, isLegacyExcelPath, importExcelDocumentFromPath },

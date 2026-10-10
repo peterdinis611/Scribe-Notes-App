@@ -11,6 +11,9 @@ async function bootstrap() {
   }
 
   await hydrateKvStore()
+  void import('@/lib/vault/session').then(({ installVaultAutoLock }) => {
+    installVaultAutoLock()
+  })
   const { ensureAllCustomFontsLoaded } = await import('@/lib/editor/custom-fonts')
   void ensureAllCustomFontsLoaded()
 

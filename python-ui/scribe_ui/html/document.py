@@ -8,7 +8,21 @@ from pathlib import Path
 
 BRIDGE_JS = r"""
 (function () {
+  var ALLOWED = {
+    'surface-closed': 1,
+    'whats-new-acked': 1,
+    'welcome-new-document': 1,
+    'welcome-today': 1,
+    'welcome-import': 1,
+    'welcome-open-docs': 1,
+    'welcome-open-document': 1,
+    'about-replay-tour': 1,
+    'about-open-privacy': 1,
+    'docs-open-topic': 1
+  };
+
   function emit(event, arg) {
+    if (!event || !ALLOWED[event]) return;
     var payload = { event: event, arg: arg || null };
     try {
       if (window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke) {
@@ -18,7 +32,10 @@ BRIDGE_JS = r"""
     } catch (e) {}
     try {
       if (window.parent && window.parent !== window) {
-        window.parent.postMessage({ source: 'scribe-ui', ...payload }, '*');
+        var target = window.location.origin && window.location.origin !== 'null'
+          ? window.location.origin
+          : window.parent.location.origin;
+        window.parent.postMessage({ source: 'scribe-ui', ...payload }, target);
       }
     } catch (e2) {}
   }

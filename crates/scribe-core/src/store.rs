@@ -2784,9 +2784,17 @@ pub fn open_scribe_store(db_path: Option<PathBuf>) -> Result<OpenStoreResult, St
     let db_path = db_path.unwrap_or_else(default_db_path);
     assert_db_exists(&db_path)?;
 
-    let force_readonly = std::env::var("SCRIBE_MCP_WRITE").ok().as_deref() == Some("0");
+    // Default read-only. Set SCRIBE_MCP_WRITE=1 to allow writes.
+    let allow_write = matches!(
+        std::env::var("SCRIBE_MCP_WRITE")
+            .ok()
+            .as_deref()
+            .map(|v| v.trim().to_ascii_lowercase())
+            .as_deref(),
+        Some("1") | Some("true") | Some("yes")
+    );
 
-    if !force_readonly {
+    if allow_write {
         match open_writable(&db_path) {
             Ok(store) => {
                 return Ok(OpenStoreResult {

@@ -49,6 +49,7 @@ describe('normalizeAgentPrefs / teach', () => {
     const prefs = normalizeAgentPrefs({})
     expect(prefs.enabled).toBe(true)
     expect(prefs.maxSteps).toBe(3)
+    expect(prefs.preferFast).toBe(true)
     expect(prefs.teachings).toEqual([])
   })
 

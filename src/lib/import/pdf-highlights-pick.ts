@@ -1,6 +1,6 @@
-import { open } from '@tauri-apps/plugin-dialog'
 import { cacheDocument } from '@/lib/cache/document-cache'
 import { createDocument, readBinaryFile, type Document } from '@/lib/db/api'
+import { openScopedFile } from '@/lib/fs/scoped-dialog'
 import {
   extractPdfHighlights,
   pdfHighlightsToContentJson,
@@ -16,14 +16,12 @@ export async function pickAndImportPdfHighlights(): Promise<{
   document: Document
   highlightCount: number
 } | null> {
-  const selected = await open({
-    multiple: false,
+  const selected = await openScopedFile({
     title: 'Import PDF highlights',
     filters: [{ name: 'PDF', extensions: ['pdf'] }],
-    fileAccessMode: 'scoped',
   })
 
-  if (!selected || Array.isArray(selected)) return null
+  if (!selected) return null
 
   const bytes = await readBinaryFile(selected)
   const uint8 = bytes instanceof Uint8Array ? bytes : Uint8Array.from(bytes)

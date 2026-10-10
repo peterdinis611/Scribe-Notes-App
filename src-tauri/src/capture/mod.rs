@@ -25,6 +25,7 @@ pub struct CaptureStatus {
     pub url: Option<String>,
     pub token: Option<String>,
     pub lan_ip: Option<String>,
+    pub allow_lan: bool,
     pub inbox_folder_id: Option<String>,
 }
 
@@ -33,6 +34,7 @@ struct CaptureRuntime {
     port: u16,
     url: String,
     lan_ip: String,
+    allow_lan: bool,
     stop: Arc<AtomicBool>,
     join: Option<JoinHandle<()>>,
 }
@@ -184,6 +186,7 @@ pub fn capture_status(state: State<'_, CaptureServerState>) -> Result<CaptureSta
             url: Some(runtime.url.clone()),
             token: Some(runtime.token.clone()),
             lan_ip: Some(runtime.lan_ip.clone()),
+            allow_lan: runtime.allow_lan,
             inbox_folder_id: None,
         },
         None => CaptureStatus {
@@ -192,6 +195,7 @@ pub fn capture_status(state: State<'_, CaptureServerState>) -> Result<CaptureSta
             url: None,
             token: None,
             lan_ip: detect_lan_ip(),
+            allow_lan: false,
             inbox_folder_id: None,
         },
     })
@@ -202,6 +206,7 @@ pub fn capture_start(
     app: AppHandle,
     state: State<'_, CaptureServerState>,
     db: State<'_, DbState>,
+    allow_lan: Option<bool>,
 ) -> Result<CaptureStatus, String> {
     {
         let guard = state.inner.lock().map_err(|e| e.to_string())?;
@@ -216,30 +221,31 @@ pub fn capture_start(
         let _ = ensure_inbox_folder(&conn)?;
     }
 
+    let allow_lan = allow_lan.unwrap_or(false);
     let token = Uuid::new_v4().to_string().replace('-', "");
-    let listener = TcpListener::bind(("0.0.0.0", DEFAULT_PORT))
-        .or_else(|_| TcpListener::bind(("0.0.0.0", 0)))
+    let bind_host = if allow_lan { "0.0.0.0" } else { "127.0.0.1" };
+    let listener = TcpListener::bind((bind_host, DEFAULT_PORT))
+        .or_else(|_| TcpListener::bind((bind_host, 0)))
         .map_err(|e| format!("Could not bind capture port: {e}"))?;
     listener
         .set_nonblocking(false)
         .map_err(|e| e.to_string())?;
     let port = listener.local_addr().map_err(|e| e.to_string())?.port();
-    let lan_ip = detect_lan_ip().unwrap_or_else(|| "127.0.0.1".to_string());
-    let url = format!("http://{lan_ip}:{port}/?token={token}");
+    let display_host = if allow_lan {
+        detect_lan_ip().unwrap_or_else(|| "127.0.0.1".to_string())
+    } else {
+        "127.0.0.1".to_string()
+    };
+    // Token stays out of the query string (history / Referer). Hash is client-only.
+    let url = format!("http://{display_host}:{port}/#t={token}");
 
     let stop = Arc::new(AtomicBool::new(false));
     let stop_thread = Arc::clone(&stop);
     let token_thread = token.clone();
     let app_thread = app.clone();
 
-    // Accept loop in a dedicated thread. Use a short read timeout via another
-    // thread that connects to unblock accept on stop — simpler: set read timeout
-    // on the listener by using non-blocking + sleep, or just leave until stop
-    // connects. We'll shut down by connecting once after setting the flag.
     let join = std::thread::spawn(move || {
-        listener
-            .set_nonblocking(true)
-            .ok();
+        listener.set_nonblocking(true).ok();
         while !stop_thread.load(Ordering::SeqCst) {
             match listener.accept() {
                 Ok((stream, _)) => {
@@ -258,7 +264,8 @@ pub fn capture_start(
         token: token.clone(),
         port,
         url: url.clone(),
-        lan_ip: lan_ip.clone(),
+        lan_ip: display_host.clone(),
+        allow_lan,
         stop,
         join: Some(join),
     };
@@ -271,7 +278,8 @@ pub fn capture_start(
         port: Some(port),
         url: Some(url),
         token: Some(token),
-        lan_ip: Some(lan_ip),
+        lan_ip: Some(display_host),
+        allow_lan,
         inbox_folder_id: None,
     })
 }
@@ -293,6 +301,7 @@ pub fn capture_stop(state: State<'_, CaptureServerState>) -> Result<CaptureStatu
         url: None,
         token: None,
         lan_ip: detect_lan_ip(),
+        allow_lan: false,
         inbox_folder_id: None,
     })
 }

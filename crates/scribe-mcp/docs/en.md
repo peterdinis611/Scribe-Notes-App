@@ -52,7 +52,11 @@ npm run mcp
   "mcpServers": {
     "scribe-memory": {
       "command": "/Users/YOU/path/to/scribe/target/release/scribe-mcp",
-      "args": []
+      "args": [],
+      "env": {
+        "SCRIBE_MCP_WRITE": "0",
+        "SCRIBE_MCP_SCOPE": "no-vault"
+      }
     }
   }
 }
@@ -82,15 +86,15 @@ See also [`../cursor.mcp.example.json`](../cursor.mcp.example.json).
 - **`switch_library`** — change which library list/create/search use
 - **`upsert_manuscript`** / **`append_document_chat`** / **`clear_document_chat`** — compilations and note chat
 
-**Warning:** the running Scribe app may lock the database. If you see a lock/busy error or `writable: false` from `scribe_status`, retry shortly (or temporarily quit Scribe). Force readonly with `SCRIBE_MCP_WRITE=0`.
+**Warning:** the running Scribe app may lock the database. If you see a lock/busy error or `writable: false` from `scribe_status`, retry shortly (or temporarily quit Scribe). MCP is **read-only by default**; set `SCRIBE_MCP_WRITE=1` only when you need write tools.
 
 ## Environment
 
 | Variable | Meaning |
 |----------|---------|
 | `SCRIBE_DB_PATH` | Absolute path to `scribe.db` when not using the default |
-| `SCRIBE_MCP_WRITE` | `0` = force read-only |
-| `SCRIBE_MCP_SCOPE` | Vault access: `no-vault` (default), `meta-only`, `full` |
+| `SCRIBE_MCP_WRITE` | Default read-only. `1` / `true` enables writes |
+| `SCRIBE_MCP_SCOPE` | Vault access: `no-vault` (default), `meta-only`, `full` (server warns if not `no-vault`) |
 | `SCRIBE_NLP_SCRIPT` | Path to Python NLP `__main__.py` for semantic tools |
 | `SCRIBE_NLP_PYTHON` | Python binary (default `python3`) |
 

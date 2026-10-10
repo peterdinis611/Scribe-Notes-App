@@ -234,7 +234,14 @@ pub fn capture_page(token: &str) -> String {
     </section>
   </main>
   <script>
-    const TOKEN = {token_json};
+    function tokenFromHash() {{
+      try {{
+        const h = (location.hash || '').replace(/^#/, '');
+        const params = new URLSearchParams(h.includes('=') ? h : ('t=' + h));
+        return (params.get('t') || params.get('token') || '').trim();
+      }} catch (_) {{ return ''; }}
+    }}
+    const TOKEN = tokenFromHash() || {token_json};
     const KEY_DRAFT = 'scribe.draft';
     const KEY_QUEUE = 'scribe.queue';
     const KEY_RECENT = 'scribe.recent';
@@ -345,9 +352,17 @@ pub fn capture_page(token: &str) -> String {
     async function send(payload) {{
       let res;
       try {{
-        res = await fetch('/api/capture?token=' + encodeURIComponent(TOKEN), {{
+        if (!TOKEN) {{
+          const err = new Error('Missing capture token. Open the QR link from Scribe.');
+          err.retryable = false;
+          throw err;
+        }}
+        res = await fetch('/api/capture', {{
           method: 'POST',
-          headers: {{ 'Content-Type': 'application/json' }},
+          headers: {{
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + TOKEN,
+          }},
           body: JSON.stringify(payload),
         }});
       }} catch (err) {{

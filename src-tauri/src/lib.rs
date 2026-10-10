@@ -66,6 +66,16 @@ pub fn run() {
         // persisted-scope must come after fs so runtime FS/asset scopes survive restarts
         .plugin(tauri_plugin_persisted_scope::init())
         .plugin(tauri_plugin_opener::init())
+        .on_window_event(|window, event| {
+            use tauri::{DragDropEvent, WindowEvent};
+            if let WindowEvent::DragDrop(DragDropEvent::Drop { paths, .. }) = event {
+                if let Some(gate) = window.try_state::<PathAccessGate>() {
+                    for path in paths {
+                        gate.grant_from_picker(path);
+                    }
+                }
+            }
+        })
         .setup(|app| {
             #[cfg(desktop)]
             {
@@ -494,7 +504,9 @@ pub fn run() {
             commands::storage::reveal_in_finder,
             commands::storage::reveal_documents_directory,
             commands::storage::get_storage_disk_usage,
-            commands::import_export::grant_scoped_path,
+            commands::import_export::pick_and_grant_path,
+            commands::import_export::pick_and_grant_save_path,
+            commands::import_export::grant_dropped_paths,
             commands::import_export::read_text_file,
             commands::import_export::read_binary_file,
             commands::import_export::write_text_file,
