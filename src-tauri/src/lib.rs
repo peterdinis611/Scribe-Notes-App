@@ -12,6 +12,7 @@ mod pdf_native;
 mod security;
 mod storage;
 mod storage_fs_api;
+mod ui_host;
 
 use agent_db::{init_agent_db, AgentDbState};
 use audit_db::{init_audit_db, AuditDbState};
@@ -117,6 +118,7 @@ pub fn run() {
             app.manage(scribe_core::nlp::UnlockedVaultIndex::new());
             app.manage(capture::CaptureServerState::new());
             app.manage(storage_fs_api::StorageFsServerState::new());
+            app.manage(ui_host::UiHostState::default());
 
             let docs_watcher = storage::watch::spawn(app.handle().clone());
             app.manage(docs_watcher);
@@ -297,6 +299,10 @@ pub fn run() {
             commands::ui::generate_random_theme,
             commands::ui::build_ics_calendar,
             commands::ui::fuzzy_rank_strings,
+            ui_host::render_ui_surface_html,
+            ui_host::open_ui_surface,
+            ui_host::close_ui_surface,
+            ui_host::ui_surface_event,
             commands::ui::color_for_tag,
             commands::ui::sanitize_snippet,
             commands::ui::color_for_export,

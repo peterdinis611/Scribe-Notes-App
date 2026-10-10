@@ -18,6 +18,9 @@ mod theme;
 mod version;
 mod whats_new;
 
+#[cfg(feature = "dioxus")]
+pub mod render;
+
 pub use docs_nav::{
     docs_groups, docs_quick_links, docs_topic_ids, is_docs_topic, DocsGroup, DOCS_QUICK_LINKS,
     DOCS_TOPIC_IDS,
@@ -47,6 +50,12 @@ pub use tag_colors::color_for_tag;
 pub use theme::{generate_random_theme, ColorScheme, ThemeColors};
 pub use version::{app_version_info, short_version, AppVersionInfo, APP_VERSION};
 pub use whats_new::{whats_new_highlights, EDITION_MARK_KEY, WHATS_NEW_34_HIGHLIGHTS};
+
+#[cfg(feature = "dioxus")]
+pub use render::{
+    render_ui_surface, DocsTopicContent, PrivacyArticle, RecentDoc, StringMap, UiSurface,
+    UiSurfaceRequest,
+};
 
 use serde::{Deserialize, Serialize};
 

@@ -765,6 +765,36 @@ export const clampEditorPanelWidthNative = (args: {
     minWidth: args.minWidth ?? null,
   })
 
+export type UiSurfaceId = 'whats-new' | 'welcome' | 'privacy' | 'about' | 'docs'
+
+export type UiSurfaceRequest = {
+  surface: UiSurfaceId
+  locale?: string
+  strings?: Record<string, string>
+  version?: string
+  shortVersion?: string
+  highlights?: string[]
+  highlightCopy?: Record<string, [string, string]>
+  recent?: Array<{ id: string; title: string; updatedLabel?: string }>
+  privacyArticles?: Array<{ id: string; title: string; paragraphs: string[] }>
+  docsTopics?: Array<{
+    id: string
+    title: string
+    summary: string
+    paragraphs?: string[]
+    points?: string[]
+  }>
+  docsGroups?: Array<[string, string[]]>
+}
+
+export const renderUiSurfaceHtml = (request: UiSurfaceRequest) =>
+  invoke<string>('render_ui_surface_html', { request })
+
+export const openUiSurface = (request: UiSurfaceRequest) =>
+  invoke<void>('open_ui_surface', { input: { request } })
+
+export const closeUiSurface = () => invoke<void>('close_ui_surface')
+
 export const clearAllDocuments = async () => {
   const count = await invoke<number>('clear_all_documents')
   clearDocumentCache()
