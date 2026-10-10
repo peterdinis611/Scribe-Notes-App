@@ -1,4 +1,13 @@
-import { Columns2, FileText, LayoutGrid, Minus, Plus, Printer, Rows2 } from 'lucide-react'
+import {
+  Columns2,
+  FileText,
+  LayoutGrid,
+  ListTree,
+  Minus,
+  Plus,
+  Printer,
+  Rows2,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
@@ -47,6 +56,8 @@ export function EditorStatusBar({
 
   const words = document ? countWords(document.contentJson) : 0
   const templateCoverage = templateCoachFromJson(document?.contentJson ?? null)
+  const coachIncomplete =
+    templateCoverage != null && templateCoverage.present < templateCoverage.expected
 
   function adjustZoom(delta: number) {
     const next = Math.min(1, Math.max(0.5, Number((printZoom + delta).toFixed(2))))
@@ -57,40 +68,45 @@ export function EditorStatusBar({
     <TooltipProvider delayDuration={400}>
       <footer className="editor-status-bar titlebar-no-drag" data-tour="status-bar">
         <div className="editor-status-bar-left">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                className={cn('editor-status-chip', printLayoutEnabled && 'is-active')}
-                aria-pressed={printLayoutEnabled}
-                aria-label={t('printLayout.pageLayout')}
-                onClick={() => dispatch(setPrintLayoutEnabled(!printLayoutEnabled))}
-              >
-                <LayoutGrid className="h-3.5 w-3.5" />
-                <span className="editor-status-chip-label">{t('printLayout.layout')}</span>
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="top">{t('printLayout.pageLayoutHint')}</TooltipContent>
-          </Tooltip>
+          <div className="editor-status-cluster" role="group" aria-label={t('printLayout.pageLayout')}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className={cn('editor-status-icon-btn', printLayoutEnabled && 'is-active')}
+                  aria-pressed={printLayoutEnabled}
+                  aria-label={t('printLayout.pageLayout')}
+                  onClick={() => dispatch(setPrintLayoutEnabled(!printLayoutEnabled))}
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top">{t('printLayout.pageLayoutHint')}</TooltipContent>
+            </Tooltip>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                className="editor-status-icon-btn"
-                aria-label={t('printLayout.pageSetup')}
-                onClick={onOpenPageSetup}
-              >
-                <FileText className="h-3.5 w-3.5" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="top">{t('printLayout.pageSetupHint')}</TooltipContent>
-          </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="editor-status-icon-btn"
+                  aria-label={t('printLayout.pageSetup')}
+                  onClick={onOpenPageSetup}
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top">{t('printLayout.pageSetupHint')}</TooltipContent>
+            </Tooltip>
+          </div>
 
           {printLayoutEnabled && (
             <>
               <div className="editor-status-divider" aria-hidden="true" />
-              <div className="editor-status-segmented" role="group" aria-label={t('printLayout.preview')}>
+              <div
+                className="editor-status-segmented"
+                role="group"
+                aria-label={t('printLayout.preview')}
+              >
                 <IconTooltip label={t('printLayout.oneColumn')}>
                   <button
                     type="button"
@@ -151,8 +167,9 @@ export function EditorStatusBar({
                   type="button"
                   className="editor-status-section"
                   onClick={onOpenOutline}
+                  aria-label={`${t('panels.outline.youAreHere')}: ${sectionLabel}`}
                 >
-                  <span className="editor-status-section-kicker">{t('panels.outline.youAreHere')}</span>
+                  <ListTree className="editor-status-section-icon" aria-hidden="true" />
                   <span className="editor-status-section-title">{sectionLabel}</span>
                 </button>
               </TooltipTrigger>
@@ -168,24 +185,22 @@ export function EditorStatusBar({
         </div>
 
         <div className="editor-status-bar-right">
-          {templateCoverage ? (
+          {coachIncomplete && templateCoverage ? (
             <span
-              className="editor-status-chip editor-status-chip--coach"
+              className="editor-status-meta editor-status-meta--coach"
               title={
-                templateCoverage.missingHeadings.length || templateCoverage.openChecklist.length
-                  ? [
-                      templateCoverage.missingHeadings.length
-                        ? `${t('templateCoach.missing')}: ${templateCoverage.missingHeadings.join(', ')}`
-                        : null,
-                      templateCoverage.openChecklist.length
-                        ? `${t('templateCoach.checklistOpen')}: ${templateCoverage.openChecklist
-                            .slice(0, 3)
-                            .join(', ')}`
-                        : null,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')
-                  : t('templateCoach.hint')
+                [
+                  templateCoverage.missingHeadings.length
+                    ? `${t('templateCoach.missing')}: ${templateCoverage.missingHeadings.join(', ')}`
+                    : null,
+                  templateCoverage.openChecklist.length
+                    ? `${t('templateCoach.checklistOpen')}: ${templateCoverage.openChecklist
+                        .slice(0, 3)
+                        .join(', ')}`
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ') || t('templateCoach.hint')
               }
             >
               {t('templateCoach.chip', {
