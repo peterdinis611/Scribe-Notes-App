@@ -21,7 +21,7 @@
     "test:load:rust:heavy": "SCRIBE_LOAD=1 CARGO_TARGET_DIR=./target cargo test -p scribe-core --test load_core -- --nocapture",
     "test:load:nlp": "PYTHONPATH=nlp python3 -m unittest discover -s nlp/tests -p 'test_load.py' -v",
     "test:load:nlp:heavy": "SCRIBE_LOAD=1 PYTHONPATH=nlp python3 -m unittest discover -s nlp/tests -p 'test_load.py' -v",
-    "test:all": "npm run test && npm run test:backend && npm run nlp:test",
+    "test:all": "npm run test && npm run test:backend && npm run nlp:test && npm run ui:py:test",
     "preview": "vite preview",
     "postinstall": "node --experimental-strip-types scripts/ensure-prosemirror-singleton.ts",
     "pm:check": "node --experimental-strip-types scripts/ensure-prosemirror-singleton.ts --check",
@@ -43,7 +43,9 @@
     "mcp:install": "cargo build --release -p scribe-mcp",
     "nlp:health": "printf '%s\\n' '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"health\",\"params\":{}}' | python3 nlp/scribe_nlp/__main__.py",
     "nlp:debug": "SCRIBE_NLP_DEBUG=1 PYTHONPATH=nlp python3 -m scribe_nlp.debug_cli",
-    "nlp:test": "PYTHONPATH=nlp python3 -m unittest discover -s nlp/tests -p 'test_*.py'"
+    "nlp:test": "PYTHONPATH=nlp python3 -m unittest discover -s nlp/tests -p 'test_*.py'",
+    "ui:py:test": "PYTHONPATH=python-ui python3 -m unittest discover -s python-ui/tests -p 'test_*.py'",
+    "ui:py:manifest": "PYTHONPATH=python-ui python3 -m scribe_ui"
   },
   "dependencies": {
     "@blobatar/react": "^2.7.0",

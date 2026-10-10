@@ -1,0 +1,22 @@
+[project]
+name = "scribe-python-ui"
+version = "3.4.0"
+description = "UI domain catalogs and helpers for Scribe (Python twin of crates/scribe-ui)"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{ name = "Peter Dinis" }]
+dependencies = []
+
+[project.optional-dependencies]
+fuzzy = ["rapidfuzz>=3.6.0"]
+
+[project.scripts]
+scribe-ui = "scribe_ui.__main__:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["scribe_ui*"]

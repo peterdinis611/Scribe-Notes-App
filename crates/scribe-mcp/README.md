@@ -124,6 +124,11 @@ Encrypted vault notes are stored as AES-GCM ciphertext in SQLite. The unlock pas
 | `list_backups` | List zip backups |
 | `create_backup` | Create a library zip backup |
 | `list_document_assets` | Images / SVG / Lottie under `assets/{id}/` |
+| `get_ui_manifest` | UI catalogs from `scribe-ui` (Whats New, settings/docs, themes, agents) |
+| `fuzzy_rank_strings` | Fuzzy rank `{id, primary, secondary?}` lists |
+| `list_theme_presets` / `generate_random_theme` | Theme preset catalog / random colors |
+| `plan_agent_goal` / `agent_document_brief` | Planner-only (no tool execution) |
+| `section_summaries` / `extract_decisions` / `detect_pii` / `rank_tasks` / `open_loops` / `reading_plan` / `note_pulse` / `tone_pack` | Study/review pack (Python + Rust fallback) |
 
 Plus legacy tools: `scribe_status`, `get_document`, wiki links, folders, revisions, `create_note`, `append_to_note`, …
 

@@ -265,6 +265,62 @@ impl ScribeMcp {
                 let result = store.files_answer(&self.sidecar, goal, None, Some(6), None)?;
                 Ok(("files_answer".into(), Some(tools::json(&result))))
             }
+            "section_summaries" => {
+                let id = document_id
+                    .ok_or_else(|| "documentId required for section_summaries".to_string())?;
+                let result = store.section_summaries(&self.sidecar, Some(id), None, Some(12))?;
+                Ok(("section_summaries".into(), Some(tools::json(&result))))
+            }
+            "decisions" => {
+                let id = document_id.ok_or_else(|| "documentId required for decisions".to_string())?;
+                let result = store.extract_decisions(&self.sidecar, Some(id), None, Some(12))?;
+                Ok(("decisions".into(), Some(tools::json(&result))))
+            }
+            "pii" => {
+                let id = document_id.ok_or_else(|| "documentId required for pii".to_string())?;
+                let result = store.detect_pii(&self.sidecar, Some(id), None, Some(40))?;
+                Ok(("pii".into(), Some(tools::json(&result))))
+            }
+            "rank_tasks" => {
+                let id = document_id.ok_or_else(|| "documentId required for rank_tasks".to_string())?;
+                let result = store.rank_tasks(&self.sidecar, Some(id), None, Some(20))?;
+                Ok(("rank_tasks".into(), Some(tools::json(&result))))
+            }
+            "open_loops" => {
+                let id = document_id.ok_or_else(|| "documentId required for open_loops".to_string())?;
+                let result = store.open_loops(&self.sidecar, Some(id), None, Some(16))?;
+                Ok(("open_loops".into(), Some(tools::json(&result))))
+            }
+            "reading_plan" => {
+                let id =
+                    document_id.ok_or_else(|| "documentId required for reading_plan".to_string())?;
+                let result = store.reading_plan(&self.sidecar, Some(id), None, Some(8))?;
+                Ok(("reading_plan".into(), Some(tools::json(&result))))
+            }
+            "tone" => {
+                let id = document_id.ok_or_else(|| "documentId required for tone".to_string())?;
+                let result = store.tone_pack(&self.sidecar, Some(id), None)?;
+                Ok(("tone".into(), Some(tools::json(&result))))
+            }
+            "title" => {
+                let id = document_id.ok_or_else(|| "documentId required for title".to_string())?;
+                let result = store.suggest_document_title(&self.sidecar, id)?;
+                Ok(("title".into(), Some(tools::json(&result))))
+            }
+            "template_hints" => {
+                let id = document_id
+                    .ok_or_else(|| "documentId required for template_hints".to_string())?;
+                let result = store.template_fill_hints(&self.sidecar, id, None)?;
+                Ok(("template_hints".into(), Some(tools::json(&result))))
+            }
+            "library_report" => {
+                let result = store.library_report(&self.sidecar)?;
+                Ok(("library_report".into(), Some(tools::json(&result))))
+            }
+            "terminology_library" => {
+                let result = store.check_terminology_library(&self.sidecar, Some(16), Some(40))?;
+                Ok(("terminology_library".into(), Some(tools::json(&result))))
+            }
             "compare_notes" => Err(
                 "compare_notes needs two documents — call the compare_notes MCP tool with documentIdA/documentIdB"
                     .into(),
@@ -2851,6 +2907,213 @@ impl ScribeMcp {
         );
         Ok(tools::json(&serde_json::json!({ "matched": matched })))
     }
+
+    #[tool(description = "UI domain manifest from scribe-ui (version, Whats New, settings/docs ids, themes, agent roles/recipes). No DB.")]
+    fn get_ui_manifest(&self) -> Result<String, String> {
+        Ok(tools::json(&scribe_ui::ui_manifest()))
+    }
+
+    #[tool(description = "Fuzzy-rank a list of {id, primary, secondary?} strings (scribe-ui Skim matcher). No DB.")]
+    fn fuzzy_rank_strings(
+        &self,
+        Parameters(params): Parameters<tools::FuzzyRankParams>,
+    ) -> Result<String, String> {
+        let items: Vec<scribe_ui::FuzzyRankItem> = params
+            .items
+            .into_iter()
+            .map(|item| scribe_ui::FuzzyRankItem {
+                id: item.id,
+                primary: item.primary,
+                secondary: item.secondary.unwrap_or_default(),
+            })
+            .collect();
+        let limit = params.limit.map(|n| n.clamp(1, 100) as usize);
+        Ok(tools::json(&scribe_ui::fuzzy_rank_strings(
+            &items,
+            &params.query,
+            limit,
+        )))
+    }
+
+    #[tool(description = "List built-in theme preset ids + color maps (scribe-ui). No DB.")]
+    fn list_theme_presets(&self) -> Result<String, String> {
+        Ok(tools::json(&serde_json::json!({
+            "ids": scribe_ui::theme_preset_ids(),
+            "presets": scribe_ui::theme_presets(),
+        })))
+    }
+
+    #[tool(description = "Generate a random light/dark theme color map (scribe-ui). No DB.")]
+    fn generate_random_theme(
+        &self,
+        Parameters(params): Parameters<tools::RandomThemeParams>,
+    ) -> Result<String, String> {
+        let scheme = match params.scheme.as_deref().unwrap_or("light").to_ascii_lowercase().as_str()
+        {
+            "dark" => scribe_ui::ColorScheme::Dark,
+            _ => scribe_ui::ColorScheme::Light,
+        };
+        Ok(tools::json(&scribe_ui::generate_random_theme(Some(scheme))))
+    }
+
+    #[tool(description = "Plan which local-agent tools to run for a goal (no execution). Same planner as run_agent. Requires Local AI.")]
+    fn plan_agent_goal(
+        &self,
+        Parameters(params): Parameters<tools::PlanAgentGoalParams>,
+    ) -> Result<String, String> {
+        let scope = params.scope.unwrap_or_else(|| "document".into());
+        self.with_store(|store| {
+            Ok(tools::json(&store.plan_agent_goal_ctx(
+                &self.sidecar,
+                &params.goal,
+                &scope,
+                params.max_tools,
+                params.role.as_deref(),
+                None,
+                None,
+                None,
+            )?))
+        })
+    }
+
+    #[tool(description = "Build a short document brief for the local agent (id or plaintext + optional goal/tools). Requires Local AI.")]
+    fn agent_document_brief(
+        &self,
+        Parameters(params): Parameters<tools::AgentDocumentBriefParams>,
+    ) -> Result<String, String> {
+        let tools_value = params
+            .tools
+            .as_ref()
+            .map(|list| serde_json::json!(list));
+        self.with_store(|store| {
+            Ok(tools::json(&store.agent_document_brief(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.text.as_deref(),
+                params.goal.as_deref(),
+                tools_value.as_ref(),
+                params.limit,
+            )?))
+        })
+    }
+
+    #[tool(description = "Per-heading section summaries for a note id or plaintext. Python preferred; Rust offline fallback.")]
+    fn section_summaries(
+        &self,
+        Parameters(params): Parameters<tools::StudyLimitParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.section_summaries(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.text.as_deref(),
+                params.limit,
+            )?))
+        })
+    }
+
+    #[tool(description = "Extract decision-log bullets from a note id or plaintext. Python preferred; Rust offline fallback.")]
+    fn extract_decisions(
+        &self,
+        Parameters(params): Parameters<tools::StudyLimitParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.extract_decisions(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.text.as_deref(),
+                params.limit,
+            )?))
+        })
+    }
+
+    #[tool(description = "Scan a note id or plaintext for PII-like patterns. Python preferred; Rust offline fallback.")]
+    fn detect_pii(
+        &self,
+        Parameters(params): Parameters<tools::StudyLimitParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.detect_pii(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.text.as_deref(),
+                params.limit,
+            )?))
+        })
+    }
+
+    #[tool(description = "Rank open tasks / checklist items in a note by urgency cues. Python preferred; Rust offline fallback.")]
+    fn rank_tasks(
+        &self,
+        Parameters(params): Parameters<tools::StudyLimitParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.rank_tasks(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.text.as_deref(),
+                params.limit,
+            )?))
+        })
+    }
+
+    #[tool(description = "Find open loops / unfinished threads in a note. Python preferred; Rust offline fallback.")]
+    fn open_loops(
+        &self,
+        Parameters(params): Parameters<tools::StudyLimitParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.open_loops(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.text.as_deref(),
+                params.limit,
+            )?))
+        })
+    }
+
+    #[tool(description = "Build a short reading plan (sections / time boxes) for a note. Python preferred; Rust offline fallback.")]
+    fn reading_plan(
+        &self,
+        Parameters(params): Parameters<tools::StudyLimitParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.reading_plan(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.text.as_deref(),
+                params.limit,
+            )?))
+        })
+    }
+
+    #[tool(description = "Compact note pulse (density / tasks / dates signals) for a note id or plaintext.")]
+    fn note_pulse(
+        &self,
+        Parameters(params): Parameters<tools::StudyLimitParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.note_pulse(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.text.as_deref(),
+            )?))
+        })
+    }
+
+    #[tool(description = "Tone pack (formality / energy / voice cues) for a note id or plaintext.")]
+    fn tone_pack(
+        &self,
+        Parameters(params): Parameters<tools::StudyLimitParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.tone_pack(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.text.as_deref(),
+            )?))
+        })
+    }
 }
 
 #[prompt_router]
@@ -3110,6 +3373,9 @@ impl ServerHandler for ScribeMcp {
              create_library adds a library without switching. \
              extract_entities / extract_mentions / extract_dates / extract_outline / chunk_text accept id or text. \
              Study AI: extract_flashcards / extract_takeaways / check_terminology / writing_coach / outline_quiz / meeting_notes_pack / explain_selection / simplify / action_items / glossary / compare_notes (id or text). \
+             Review pack: section_summaries / extract_decisions / detect_pii / rank_tasks / open_loops / reading_plan / note_pulse / tone_pack. \
+             Planner-only: plan_agent_goal / agent_document_brief (run_agent still executes). \
+             UI catalogs: get_ui_manifest / fuzzy_rank_strings / list_theme_presets / generate_random_theme. \
              Files sandbox AI: files_list / files_read_text / files_search / files_summarize / files_answer / files_index (requires Local Files API). \
              Library study: check_terminology_library / citation_pack. \
              Intent router: match_document_chat_intent. Convert: convert_tiptap. Diff: diff_plain_texts. Meta tags: document_matches_meta_filters. \

@@ -26,6 +26,12 @@ function cargoVersion(path: string): string {
   return match[1]
 }
 
+function pyprojectVersion(path: string): string {
+  const match = read(path).match(/^version\s*=\s*"([^"]+)"/m)
+  if (!match) throw new Error(`No version in ${path}`)
+  return match[1]
+}
+
 function appTsVersion(): string {
   const match = read('src/lib/app-version.ts').match(/APP_VERSION\s*=\s*['"]([^'"]+)['"]/)
   if (!match) throw new Error('APP_VERSION not found in src/lib/app-version.ts')
@@ -52,6 +58,7 @@ export function checkVersionSync() {
     ['crates/scribe-core/Cargo.toml', cargoVersion('crates/scribe-core/Cargo.toml')],
     ['crates/scribe-mcp/Cargo.toml', cargoVersion('crates/scribe-mcp/Cargo.toml')],
     ['crates/scribe-ui/Cargo.toml', cargoVersion('crates/scribe-ui/Cargo.toml')],
+    ['python-ui/pyproject.toml', pyprojectVersion('python-ui/pyproject.toml')],
     ['src/lib/app-version.ts', appTsVersion()],
     ['src-tauri/Cargo.lock (app)', cargoLockAppVersion()],
   ]

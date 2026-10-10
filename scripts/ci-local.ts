@@ -91,6 +91,12 @@ if (!skipNlp) {
     args: ['-m', 'unittest', 'discover', '-s', 'nlp/tests', '-p', 'test_*.py'],
     env: { PYTHONPATH: 'nlp' },
   })
+  run({
+    name: 'CI / Python UI',
+    cmd: 'python3',
+    args: ['-m', 'unittest', 'discover', '-s', 'python-ui/tests', '-p', 'test_*.py'],
+    env: { PYTHONPATH: 'python-ui' },
+  })
 }
 
 if (!skipRust) {
