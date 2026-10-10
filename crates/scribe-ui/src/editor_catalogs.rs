@@ -1,7 +1,7 @@
 //! Editor toolbar catalogs (font sizes, line heights, spacing, colors, font families)
 //! ported from `editor/font-size.ts`, `block-spacing.ts`, and `font-family.ts`.
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 pub const FONT_SIZES: &[&str] = &[
     "10px", "11px", "12px", "14px", "16px", "18px", "20px", "22px", "24px", "28px", "32px", "36px",

@@ -1,7 +1,7 @@
 //! Snippet TipTap JSON sanitize + validate (allowlists / soft limits).
 
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::Value;
 
 #[derive(Debug, Clone, Copy)]
 pub struct SnippetLimits {
@@ -437,6 +437,7 @@ pub fn allowed_snippet_node_types() -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     #[test]
     fn sanitizes_and_validates() {

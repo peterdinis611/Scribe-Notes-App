@@ -92,13 +92,14 @@ pub use document_style_presets::{
     DocumentStylePreset, PageSetup,
 };
 pub use document_styles::{
-    build_document_content_css, document_content_css, resolve_document_typography,
-    DocumentTypography, DocumentTypographyInput, DOCUMENT_BODY_FONT, DOCUMENT_HIGHLIGHT_CSS,
-    DOCUMENT_TIPTAP_CSS, PDF_CAPTURE_CSS,
+    build_document_content_css, build_watermark_css, document_content_css,
+    resolve_document_typography, DocumentTypography, DocumentTypographyInput, DOCUMENT_BODY_FONT,
+    DOCUMENT_HIGHLIGHT_CSS, DOCUMENT_TIPTAP_CSS, PDF_CAPTURE_CSS,
 };
 pub use editor_catalogs::{
-    normalize_font_family, FONT_FAMILIES, FONT_SIZES, HIGHLIGHT_COLORS, LINE_HEIGHTS,
-    PARAGRAPH_SPACING, TEXT_COLORS,
+    font_family_label, format_custom_font_family, is_preset_font_family, normalize_font_family,
+    parse_recent_fonts, push_recent_font, FONT_FAMILIES, FONT_SIZES, HIGHLIGHT_COLORS, LINE_HEIGHTS,
+    MAX_RECENT_FONTS, PARAGRAPH_SPACING, RECENT_FONTS_KEY, TEXT_COLORS,
 };
 pub use error::UiError;
 pub use export_colors::color_for_export;
@@ -133,11 +134,17 @@ pub use layout::{
 pub use locale_options::{build_locale_options, CustomLocaleInput, LocaleOption, BUILT_IN_LOCALES, DEFAULT_LOCALE};
 pub use locale_sections::{locale_section_group_ids, locale_section_groups, LocaleSectionGroup};
 pub use lorem::{generate_lorem_ipsum, normalize_lorem_options, LoremOptions, LoremUnit};
-pub use map_spec::{parse_map_spec, MAP_DEFAULT_SOURCE};
+pub use map_spec::{
+    is_map_url, map_embed_href, map_osm_href, map_preview_label, parse_map_spec, spec_from_map_url,
+    MapSpec, MAP_DEFAULT_SOURCE,
+};
 pub use markdown::tiptap_json_to_markdown;
 pub use markdown_outline::collect_markdown_heading_outline;
 pub use markdown_promote::promote_markdown_special_blocks;
-pub use marketplace_catalog::{list_marketplace_by_kind, list_marketplace_listings};
+pub use marketplace_catalog::{
+    check_plugin_updates, list_marketplace_by_kind, list_marketplace_listings, MarketplaceListing,
+    MarketplaceStatus, PluginUpdate, MARKETPLACE_STATUS,
+};
 pub use orphan_links::{suggest_orphan_links, OrphanLinkSuggestion, OrphanSuggestionRow};
 pub use page_setup::{
     default_margins, paper_size_ids, paper_sizes, resolve_page_layout, PageMargins, PaperSize,
@@ -180,7 +187,8 @@ pub use tag_meta::{
     ParsedTag, TagKind, STATUS_TAG_VALUES,
 };
 pub use template_categories::{
-    create_custom_category, parse_stored_custom_categories, CustomTemplateCategory,
+    built_in_category_label, category_label, create_custom_category,
+    parse_stored_custom_categories, CustomTemplateCategory,
 };
 pub use template_packs::{
     is_template_pack, parse_template_pack, parse_template_pack_str, serialize_template_pack,
@@ -192,9 +200,11 @@ pub use templates_catalog::{
 };
 pub use theme::{generate_random_theme, ColorScheme, ThemeColors};
 pub use theme_presets::{
-    get_preset_by_id, is_theme_id, theme_preset_ids, theme_presets, ThemePreset,
+    default_custom_theme, get_preset_by_id, is_theme_id, next_cycle_theme, theme_preset_ids,
+    theme_presets, ThemeColorField, ThemePreset, ThemeSettings, CYCLE_THEME_ORDER,
+    THEME_COLOR_FIELDS,
 };
-pub use tour_selectors::{is_tour_id, tour_selector, TOUR_TARGETS};
+pub use tour_selectors::{is_tour_id, tour_selector, tour_target_ids, TOUR_TARGETS};
 pub use ui_fonts::{
     is_ui_font_preset_id, ui_font_preset_ids, ui_font_presets, UiFontPreset, UI_FONTS_STORAGE_KEY,
 };
