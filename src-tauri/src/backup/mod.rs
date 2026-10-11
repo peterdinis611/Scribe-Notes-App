@@ -468,7 +468,18 @@ fn clamp_interval_hours(hours: i64) -> i64 {
 }
 
 fn auto_backup_password(conn: &Connection) -> Option<String> {
-    meta_get(conn, META_AUTO_BACKUP_PASSWORD).filter(|p| !p.trim().is_empty())
+    // Prefer OS keychain; migrate legacy meta password once.
+    if let Some(pw) = crate::security::get_auto_backup_password() {
+        return Some(pw);
+    }
+    let legacy = meta_get(conn, META_AUTO_BACKUP_PASSWORD).filter(|p| !p.trim().is_empty())?;
+    if crate::security::set_auto_backup_password(Some(&legacy)).is_ok() {
+        let _ = conn.execute(
+            "DELETE FROM meta WHERE key = ?1",
+            rusqlite::params![META_AUTO_BACKUP_PASSWORD],
+        );
+    }
+    Some(legacy)
 }
 
 fn read_auto_backup_config(conn: &Connection) -> AutoBackupConfig {
@@ -661,6 +672,7 @@ pub fn configure_auto_backup(
 }
 
 /// Set or clear the AES password used for automatic backup archives.
+/// Stored in the OS keychain (never returned to the webview).
 /// Pass `None` or empty string to clear (archives written unencrypted).
 #[tauri::command]
 pub fn set_auto_backup_password(
@@ -668,17 +680,17 @@ pub fn set_auto_backup_password(
     scheduler: tauri::State<'_, Arc<AutoBackupScheduler>>,
     password: Option<String>,
 ) -> Result<AutoBackupConfig, String> {
-    let conn = state.conn.lock().map_err(|e| e.to_string())?;
-    match password.as_deref().map(str::trim).filter(|p| !p.is_empty()) {
-        Some(pw) => meta_set(&conn, META_AUTO_BACKUP_PASSWORD, pw)?,
-        None => {
-            conn.execute(
-                "DELETE FROM meta WHERE key = ?1",
-                rusqlite::params![META_AUTO_BACKUP_PASSWORD],
-            )
-            .map_err(|e| e.to_string())?;
-        }
+    let pw = password.as_deref().map(str::trim).filter(|p| !p.is_empty());
+    crate::security::set_auto_backup_password(pw)?;
+    // Drop any legacy plaintext copy from SQLite meta.
+    {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        let _ = conn.execute(
+            "DELETE FROM meta WHERE key = ?1",
+            rusqlite::params![META_AUTO_BACKUP_PASSWORD],
+        );
     }
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
     let next = read_auto_backup_config(&conn);
     drop(conn);
     scheduler.wake();

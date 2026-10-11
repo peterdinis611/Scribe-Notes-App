@@ -1163,7 +1163,7 @@
       "autoBackupNow": "Backup now",
       "autoBackupLast": "Last automatic backup",
       "autoBackupEncryptTitle": "Encrypt automatic backups",
-      "autoBackupEncryptDescription": "Optional AES-256 password for scheduled archives. Stored locally in app meta (same trust as the library).",
+      "autoBackupEncryptDescription": "Optional AES-256 password for scheduled archives. Stored in the OS keychain (not in SQLite).",
       "autoBackupEncryptOn": "Password set",
       "autoBackupEncryptOff": "Not encrypted",
       "autoBackupEncryptSet": "Set password",
@@ -1267,7 +1267,10 @@
         "installed": "Restricted (installed)",
         "installedTitle": "Installed sandbox",
         "installedBody": "Disk-installed plugins run with a restricted permission set. Raw TipTap extensions are denied until a stronger sandbox ships.",
-        "deniedHint": "Denied by sandbox policy for installed plugins"
+        "deniedHint": "Denied by sandbox policy for installed plugins",
+        "needsGrantHint": "Requires an explicit grant below before the plugin can use this capability",
+        "grantPermission": "Allow {{permission}}",
+        "revokeGrant": "Revoke {{permission}}"
       },
       "logLevels": {
         "all": "All levels",
@@ -3391,6 +3394,13 @@
       "copiedAll": "Endpoint list copied",
       "copyToken": "Copy bearer token",
       "copiedToken": "Bearer token copied",
+      "rotateToken": "Rotate token",
+      "refreshToken": "Refresh TTL",
+      "rotated": "Bearer token rotated",
+      "rotateError": "Could not rotate token",
+      "refreshed": "Token TTL refreshed",
+      "refreshError": "Could not refresh token",
+      "expiresAt": "Expires {{time}}",
       "copyError": "Could not copy",
       "openError": "Could not open URL"
     }
@@ -4723,6 +4733,9 @@
     "clearConfirm": "Delete all audit events on this Mac?",
     "clearDone": "Cleared {{count}} events",
     "clearError": "Could not clear audit log",
+    "export": "Export JSON",
+    "exportDone": "Audit events exported",
+    "exportError": "Could not export audit events",
     "empty": "No events yet",
     "lockedEmpty": "Unlock as admin to view events",
     "filterSource": "Source",

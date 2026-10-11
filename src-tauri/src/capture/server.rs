@@ -1,6 +1,7 @@
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::sync::Mutex;
+use std::time::Instant;
 use tauri::AppHandle;
 
 use super::html::capture_page;
@@ -154,6 +155,7 @@ pub fn handle_connection(
     session: &crate::security::TokenSession,
     limiter: &crate::security::RateLimiter,
     form_nonce: &Mutex<Option<String>>,
+    last_activity: &Mutex<Instant>,
 ) {
     let Some((first_line, headers, body_bytes)) = read_http_request(&mut stream) else {
         write_response(&mut stream, "400 Bad Request", "text/plain", b"bad request");
@@ -182,6 +184,9 @@ pub fn handle_connection(
 
     // Public form shell — session token is in the URL hash; POST needs Bearer + one-time nonce.
     if method == "GET" && (path == "/" || path.starts_with("/?")) {
+        if let Ok(mut last) = last_activity.lock() {
+            *last = Instant::now();
+        }
         let nonce = mint_form_nonce();
         if let Ok(mut guard) = form_nonce.lock() {
             *guard = Some(nonce.clone());
@@ -306,6 +311,9 @@ pub fn handle_connection(
 
         match create_inbox_note(app, &parsed.title, &text) {
             Ok(created) => {
+                if let Ok(mut last) = last_activity.lock() {
+                    *last = Instant::now();
+                }
                 let payload = serde_json::json!({
                     "ok": true,
                     "documentId": created.document_id,

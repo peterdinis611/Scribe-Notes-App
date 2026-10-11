@@ -55,7 +55,8 @@ Scribe is a local-first notes app. This document summarizes the threat model and
 
 - Off until started from Settings / Storage Mode.
 - Bound to `127.0.0.1` only.
-- Random bearer token with **1h TTL**; clients must send `Authorization: Bearer <token>`.
+- Random bearer token with **30 min TTL**; clients must send `Authorization: Bearer <token>`.
+- Settings can **rotate** (new secret) or **refresh** (extend TTL) the token.
 - Per-IP rate limit (~60 req/min).
 - Unauthenticated `GET /v1/fs/health` returns `{ ok, auth: "required" }` without directory paths.
 - Browser docs may use `?access_token=` for `/docs` and `/openapi.json` only.
@@ -65,6 +66,7 @@ Scribe is a local-first notes app. This document summarizes the threat model and
 - Default bind: `127.0.0.1`. LAN (`0.0.0.0`) is an explicit opt-in (audited).
 - Short-lived session token (**15 min TTL**) in the URL **hash** (not query / Referer).
 - `POST /api/capture` requires Bearer / `X-Scribe-Capture-Token` **and** a one-time form nonce (`X-Scribe-Capture-Nonce`, issued on `GET /`, rotated after each attempt).
+- Auto-stops after **15 minutes** without page load or successful POST (idle timeout).
 - Per-IP rate limit.
 
 ## MCP
@@ -82,9 +84,11 @@ Scribe is a local-first notes app. This document summarizes the threat model and
 - `ui_surface_event` allow-lists `data-sui-event` names in Rust.
 - Bridge JS filters the same set and avoids `postMessage(..., '*')`.
 - Bundled plugins are trusted; **installed** `.scribe-ext` plugins get a restricted permission set and cannot access Tauri IPC globals during `activate`.
+- Elevated capabilities (`nlp.skills`, `mcp.tools`) require an explicit per-plugin user grant in Settings.
 
-## Editor SVG
+## Editor HTML / SVG
 
+- Clipboard / Word paste is normalized in Rust (`normalize_clipboard_html`) — strips script/style/iframe/object/embed/svg/base and dangerous attrs.
 - Mermaid / chart SVG is sanitized before `innerHTML`.
 
 ## Vault
@@ -97,8 +101,13 @@ Scribe is a local-first notes app. This document summarizes the threat model and
 ## Backups
 
 - Manual library export may use optional **AES-256 ZIP** password (`password` arg to `export_library_archive`).
-- Automatic backups can use the same AES-256 encryption via `set_auto_backup_password` (stored in local SQLite meta; same trust boundary as the library).
+- Automatic backup password is stored in the **OS keychain** (`com.scribe.app` / `auto-backup-password`); legacy SQLite meta values are migrated then deleted.
 - Import accepts an optional password for encrypted archives.
+
+## Hardened runtime (macOS)
+
+- Releases build with **Hardened Runtime** + `src-tauri/entitlements.plist`.
+- Full App Sandbox is deferred (NLP Python sidecar + user Documents library). Seatbelt/XPC isolation for the sidecar is a future hardening step.
 
 ## Command allowlist notes
 
@@ -110,12 +119,21 @@ Risky path-bearing commands must not grant from raw JS strings:
 | `pick_and_import_file` | Native dialog |
 | `grant_dropped_paths` | Native drag-drop (also Rust `on_window_event`) |
 | `read_*` / `write_text_file` / `import_file` | Validate via `PathAccessGate` only |
+| `extract_image_ocr` / `save_document_ocr` | Temp or `PathAccessGate::validate_read` |
 | `audit_security_event` | Allowlisted actions only |
+
+CI fails if a new path-bearing `#[tauri::command]` appears without an entry in `scripts/tauri-path-commands.allowlist`.
 
 ## CI
 
-- `.github/workflows/security-audit.yml` — `npm audit` + `cargo audit`
+- `.github/workflows/security-audit.yml` — `npm audit` + `cargo audit` + `cargo deny` + path-command inventory
 - Dependabot — npm + cargo + GitHub Actions
+
+## Out of scope (still)
+
+- SQLCipher / full DB at-rest encryption (large migration)
+- Full App Sandbox + XPC NLP sidecar
+- Unix-domain socket / mTLS for Files API
 
 ## Reporting
 

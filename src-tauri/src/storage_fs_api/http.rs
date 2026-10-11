@@ -2,8 +2,6 @@ use serde_json::{json, Value};
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::path::Path;
-use std::time::Instant;
-
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use scribe_core::storage_fs::{self, ListOpts};
 
@@ -449,7 +447,7 @@ pub fn handle_connection(
     }
 
     if !auth_ok {
-        let expired = Instant::now() >= session.expires_at;
+        let expired = session.is_expired();
         write_json(
             &mut stream,
             "401 Unauthorized",

@@ -1,0 +1,55 @@
+/**
+ * User-granted elevated permissions for installed plugins.
+ * Bundled plugins ignore this (trusted). Stored in localStorage.
+ */
+
+import type { PluginPermission } from '@/lib/plugins/types'
+
+const STORAGE_KEY = 'scribe.plugin.permissionGrants'
+
+/** Permissions that require an explicit user grant for installed plugins. */
+export const ELEVATED_PERMISSIONS: PluginPermission[] = ['nlp.skills', 'mcp.tools']
+
+type GrantMap = Record<string, PluginPermission[]>
+
+function readMap(): GrantMap {
+  if (typeof localStorage === 'undefined') return {}
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw) as GrantMap
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+function writeMap(map: GrantMap) {
+  if (typeof localStorage === 'undefined') return
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(map))
+}
+
+export function grantedPermissionsFor(pluginId: string): PluginPermission[] {
+  return readMap()[pluginId] ?? []
+}
+
+export function isPermissionGranted(pluginId: string, permission: PluginPermission): boolean {
+  return grantedPermissionsFor(pluginId).includes(permission)
+}
+
+export function grantPluginPermission(pluginId: string, permission: PluginPermission): void {
+  if (!ELEVATED_PERMISSIONS.includes(permission)) return
+  const map = readMap()
+  const current = new Set(map[pluginId] ?? [])
+  current.add(permission)
+  map[pluginId] = [...current]
+  writeMap(map)
+}
+
+export function revokePluginPermission(pluginId: string, permission: PluginPermission): void {
+  const map = readMap()
+  const next = (map[pluginId] ?? []).filter((p) => p !== permission)
+  if (next.length === 0) delete map[pluginId]
+  else map[pluginId] = next
+  writeMap(map)
+}

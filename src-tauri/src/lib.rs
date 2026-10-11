@@ -549,6 +549,8 @@ pub fn run() {
             storage_fs_api::storage_fs_server_status,
             storage_fs_api::storage_fs_server_start,
             storage_fs_api::storage_fs_server_stop,
+            storage_fs_api::storage_fs_server_rotate_token,
+            storage_fs_api::storage_fs_server_refresh_token,
             backup::export_library_archive,
             backup::export_library_archive_to_dir,
             backup::get_default_auto_backup_dir,

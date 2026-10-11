@@ -1163,7 +1163,7 @@
       "autoBackupNow": "Zálohovať teraz",
       "autoBackupLast": "Posledná automatická záloha",
       "autoBackupEncryptTitle": "Šifrovať automatické zálohy",
-      "autoBackupEncryptDescription": "Voliteľné AES-256 heslo pre plánované archívy. Uložené lokálne v meta (rovnaká dôvera ako knižnica).",
+      "autoBackupEncryptDescription": "Voliteľné AES-256 heslo pre plánované archívy. Uložené v OS keychain (nie v SQLite).",
       "autoBackupEncryptOn": "Heslo nastavené",
       "autoBackupEncryptOff": "Nešifrované",
       "autoBackupEncryptSet": "Nastaviť heslo",
@@ -1267,7 +1267,10 @@
         "installed": "Obmedzené (installed)",
         "installedTitle": "Installed sandbox",
         "installedBody": "Pluginy z disku bežia s obmedzenými oprávneniami. Raw TipTap extensions sú zablokované, kým nepríde silnejší sandbox.",
-        "deniedHint": "Zamietnuté sandbox politikou pre installed pluginy"
+        "deniedHint": "Zamietnuté sandbox politikou pre installed pluginy",
+        "needsGrantHint": "Vyžaduje explicitný grant nižšie pred použitím tejto schopnosti",
+        "grantPermission": "Povoliť {{permission}}",
+        "revokeGrant": "Odvolať {{permission}}"
       },
       "logLevels": {
         "all": "Všetky úrovne",
@@ -3399,6 +3402,13 @@
       "copiedAll": "Zoznam endpointov skopírovaný",
       "copyToken": "Kopírovať bearer token",
       "copiedToken": "Bearer token skopírovaný",
+      "rotateToken": "Rotovať token",
+      "refreshToken": "Obnoviť TTL",
+      "rotated": "Bearer token rotovaný",
+      "rotateError": "Nepodarilo sa rotovať token",
+      "refreshed": "TTL tokenu obnovené",
+      "refreshError": "Nepodarilo sa obnoviť token",
+      "expiresAt": "Vyprší {{time}}",
       "copyError": "Nepodarilo sa skopírovať",
       "openError": "URL sa nepodarilo otvoriť"
     }
@@ -4739,6 +4749,9 @@
     "clearConfirm": "Vymazať všetky audit udalosti na tomto Macu?",
     "clearDone": "Vymazaných {{count}} udalostí",
     "clearError": "Nepodarilo sa vymazať audit log",
+    "export": "Exportovať JSON",
+    "exportDone": "Audit udalosti exportované",
+    "exportError": "Nepodarilo sa exportovať audit",
     "empty": "Zatiaľ žiadne udalosti",
     "lockedEmpty": "Odomkni ako admin na zobrazenie udalostí",
     "filterSource": "Zdroj",

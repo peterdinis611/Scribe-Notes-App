@@ -61,6 +61,12 @@ export const storageFsServerStart = (port?: number) =>
 export const storageFsServerStop = () =>
   invoke<StorageFsServerStatus>('storage_fs_server_stop')
 
+export const storageFsServerRotateToken = () =>
+  invoke<StorageFsServerStatus>('storage_fs_server_rotate_token')
+
+export const storageFsServerRefreshToken = () =>
+  invoke<StorageFsServerStatus>('storage_fs_server_refresh_token')
+
 export function absoluteEndpointUrl(baseUrl: string | null | undefined, path: string): string {
   const base = (baseUrl ?? 'http://127.0.0.1:8787').replace(/\/$/, '')
   return `${base}${path}`

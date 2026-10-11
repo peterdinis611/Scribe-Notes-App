@@ -42,3 +42,21 @@ jobs:
       - name: Audit src-tauri
         working-directory: src-tauri
         run: cargo audit
+
+  cargo-deny:
+    name: cargo deny
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          arguments: --all-features
+          command: check
+
+  tauri-path-commands:
+    name: Tauri path command inventory
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check path-bearing commands
+        run: python3 scripts/check_tauri_path_commands.py

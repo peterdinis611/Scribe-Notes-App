@@ -1,7 +1,8 @@
 use crate::db::DbState;
+use crate::security::PathAccessGate;
 use serde::{Deserialize, Serialize};
-use std::path::Path;
-use tauri::State;
+use std::path::PathBuf;
+use tauri::{AppHandle, State};
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -113,23 +114,42 @@ fn tesseract_ocr(image_path: &str) -> Option<OcrResult> {
     })
 }
 
+fn validate_ocr_image_path(
+    app: &AppHandle,
+    state: &DbState,
+    gate: &PathAccessGate,
+    image_path: &str,
+) -> Result<PathBuf, String> {
+    let path = PathBuf::from(image_path);
+    if let Ok(temp) = PathAccessGate::validate_temp_file(&path) {
+        return Ok(temp);
+    }
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    gate.validate_read(app, &conn, &path)
+}
+
 #[tauri::command]
-pub fn extract_image_ocr(image_path: String) -> Result<OcrResult, String> {
-    let path = Path::new(&image_path);
+pub fn extract_image_ocr(
+    app: AppHandle,
+    state: State<'_, DbState>,
+    gate: State<'_, PathAccessGate>,
+    image_path: String,
+) -> Result<OcrResult, String> {
+    let path = validate_ocr_image_path(&app, &state, &gate, &image_path)?;
     if !path.exists() {
-        return Err(format!("Image file does not exist: {}", image_path));
+        return Err(format!("Image file does not exist: {}", path.display()));
     }
 
     #[cfg(target_os = "macos")]
     {
-        match vision::recognize_text(path) {
+        match vision::recognize_text(&path) {
             Ok(result) if !result.text.trim().is_empty() => return Ok(result),
             Ok(_) => {}
             Err(error) => log::warn!("Vision OCR unavailable: {error}"),
         }
     }
 
-    if let Some(result) = tesseract_ocr(&image_path) {
+    if let Some(result) = tesseract_ocr(&path.to_string_lossy()) {
         return Ok(result);
     }
 
@@ -169,14 +189,37 @@ pub fn extract_image_ocr_base64(image_base64: String, mime_hint: Option<String>)
     std::fs::create_dir_all(&dir).map_err(|error| error.to_string())?;
     let path = dir.join(format!("{}.{}", Uuid::new_v4(), ext));
     std::fs::write(&path, &bytes).map_err(|error| error.to_string())?;
-    let result = extract_image_ocr(path.to_string_lossy().to_string());
+    let path_str = path.to_string_lossy().to_string();
+    // Temp file — validate_temp_file path; use empty gate via internal helper.
+    let result = {
+        let validated = PathAccessGate::validate_temp_file(&path)?;
+        #[cfg(target_os = "macos")]
+        {
+            match vision::recognize_text(&validated) {
+                Ok(r) if !r.text.trim().is_empty() => {
+                    let _ = std::fs::remove_file(&path);
+                    return Ok(r);
+                }
+                Ok(_) => {}
+                Err(error) => log::warn!("Vision OCR unavailable: {error}"),
+            }
+        }
+        let out = tesseract_ocr(&path_str).unwrap_or(OcrResult {
+            text: String::new(),
+            confidence: 0.0,
+            language: "auto".to_string(),
+        });
+        Ok(out)
+    };
     let _ = std::fs::remove_file(&path);
     result
 }
 
 #[tauri::command]
 pub fn save_document_ocr(
+    app: AppHandle,
     state: State<'_, DbState>,
+    gate: State<'_, PathAccessGate>,
     document_id: String,
     image_path: String,
     text: String,
@@ -185,6 +228,7 @@ pub fn save_document_ocr(
     if trimmed.is_empty() {
         return Ok(());
     }
+    let validated = validate_ocr_image_path(&app, &state, &gate, &image_path)?;
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     conn.execute(
         "INSERT INTO document_ocr (id, document_id, image_path, ocr_text, created_at)
@@ -192,7 +236,7 @@ pub fn save_document_ocr(
         rusqlite::params![
             Uuid::new_v4().to_string(),
             document_id,
-            image_path,
+            validated.to_string_lossy().to_string(),
             trimmed,
             chrono::Utc::now().timestamp()
         ],

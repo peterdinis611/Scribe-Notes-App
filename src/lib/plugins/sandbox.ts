@@ -4,6 +4,7 @@
  * permission set and must not touch Tauri IPC / FS APIs directly.
  */
 
+import { isPermissionGranted } from '@/lib/plugins/grants'
 import type { PluginPermission } from '@/lib/plugins/types'
 
 /** Permissions never granted to disk-installed plugins. */
@@ -103,10 +104,13 @@ export function isPermissionAllowed(
   source: 'bundled' | 'installed',
   permission: PluginPermission,
   requested: PluginPermission[],
+  pluginId?: string,
 ): boolean {
   if (!requested.includes(permission)) return false
   const policy = sandboxPolicyFor(source)
   if (policy.mode === 'trusted') return true
   if (policy.deny.includes(permission)) return false
-  return policy.allow.includes(permission)
+  if (policy.allow.includes(permission)) return true
+  // Elevated permissions (nlp.skills, mcp.tools) need an explicit user grant.
+  return Boolean(pluginId && isPermissionGranted(pluginId, permission))
 }

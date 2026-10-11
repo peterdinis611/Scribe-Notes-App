@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Lock, LockOpen, RefreshCw, ScrollText, Trash2 } from 'lucide-react'
+import { Download, Lock, LockOpen, RefreshCw, ScrollText, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -208,6 +208,23 @@ export function AuditSection() {
     }
   }
 
+  async function handleExport() {
+    if (!events.length) return
+    try {
+      const payload = JSON.stringify(events, null, 2)
+      const blob = new Blob([payload], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `scribe-audit-${new Date().toISOString().slice(0, 10)}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success(t('audit.exportDone'))
+    } catch (error) {
+      toast.error(t('audit.exportError'), String(error))
+    }
+  }
+
   return (
     <>
       <SettingsSection>
@@ -402,16 +419,28 @@ export function AuditSection() {
           description={t('audit.eventsHint')}
           actions={
             status?.unlocked ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={busy || (status.eventCount ?? 0) === 0}
-                onClick={() => void handleClear()}
-              >
-                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                {t('audit.clear')}
-              </Button>
+              <div className="flex flex-wrap gap-1.5">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={busy || events.length === 0}
+                  onClick={() => void handleExport()}
+                >
+                  <Download className="mr-1.5 h-3.5 w-3.5" />
+                  {t('audit.export')}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={busy || (status.eventCount ?? 0) === 0}
+                  onClick={() => void handleClear()}
+                >
+                  <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                  {t('audit.clear')}
+                </Button>
+              </div>
             ) : null
           }
         />

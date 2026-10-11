@@ -28,7 +28,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: http://asset.localhost data: blob: https:; font-src 'self' data: https:; connect-src 'self' ipc: http://ipc.localhost https://ipc.localhost http://127.0.0.1:* http://localhost:* ws://localhost:* http://localhost:5174 https://fonts.googleapis.com https://fonts.gstatic.com; media-src 'self' asset: http://asset.localhost blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'self' asset: http://asset.localhost blob:; report-uri ipc://localhost/csp-report",
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: http://asset.localhost data: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' ipc: http://ipc.localhost https://ipc.localhost http://127.0.0.1:* http://localhost:* ws://localhost:* http://localhost:5174 https://fonts.googleapis.com https://fonts.gstatic.com; media-src 'self' asset: http://asset.localhost blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'self' asset: http://asset.localhost blob:; report-uri ipc://localhost/csp-report",
       "assetProtocol": {
         "enable": true,
         "scope": [
@@ -74,6 +74,8 @@
     ],
     "macOS": {
       "minimumSystemVersion": "12.0",
+      "hardenedRuntime": true,
+      "entitlements": "entitlements.plist",
       "files": {
         "Resources/scribe-document.icns": "icons/scribe-document.icns"
       }

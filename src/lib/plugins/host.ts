@@ -98,7 +98,7 @@ export function createPluginHost(
   const lifecycleUnsubs: Array<() => void> = []
 
   function requirePermission(permission: PluginPermission) {
-    if (!isPermissionAllowed(source, permission, manifest.permissions)) {
+    if (!isPermissionAllowed(source, permission, manifest.permissions, manifest.id)) {
       throw new PluginPermissionError(permission, manifest.id)
     }
   }
@@ -175,7 +175,7 @@ export function createPluginHost(
         return ok
       },
     },
-    storage: isPermissionAllowed(source, 'storage', manifest.permissions)
+    storage: isPermissionAllowed(source, 'storage', manifest.permissions, manifest.id)
       ? storage
       : deniedStorage,
     export: {
@@ -224,8 +224,8 @@ export function createPluginHost(
       registerNode(spec: PluginNodeSpec) {
         // Safe path: allowed with editor.blocks OR editor.extensions
         if (
-          !isPermissionAllowed(source, 'editor.extensions', manifest.permissions) &&
-          !isPermissionAllowed(source, 'editor.blocks', manifest.permissions)
+          !isPermissionAllowed(source, 'editor.extensions', manifest.permissions, manifest.id) &&
+          !isPermissionAllowed(source, 'editor.blocks', manifest.permissions, manifest.id)
         ) {
           throw new PluginPermissionError('editor.blocks', manifest.id)
         }

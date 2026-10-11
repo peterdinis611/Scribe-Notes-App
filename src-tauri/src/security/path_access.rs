@@ -309,4 +309,27 @@ mod tests {
         }
         let _ = fs::remove_dir_all(base);
     }
+
+    #[test]
+    fn safe_join_property_dotdot_never_escapes() {
+        let base = temp_dir();
+        let mut seed = 0xC0_FF_EE_u64;
+        for i in 0..256u64 {
+            seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
+            let depth = (seed % 5) as usize + 1;
+            let mut rel = String::new();
+            for _ in 0..depth {
+                rel.push_str("../");
+            }
+            rel.push_str(&format!("escape-{i}.bin"));
+            assert!(
+                safe_join_under(&base, &rel).is_err(),
+                "escape candidate should fail: {rel}"
+            );
+            // Positive: nested normal segments from the same seed.
+            let ok = format!("n{}/f{}.md", seed % 97, i);
+            assert!(safe_join_under(&base, &ok).is_ok(), "expected allow {ok}");
+        }
+        let _ = fs::remove_dir_all(base);
+    }
 }

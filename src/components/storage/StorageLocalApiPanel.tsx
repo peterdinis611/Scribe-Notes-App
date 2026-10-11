@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { openUrl } from '@tauri-apps/plugin-opener'
-import { Copy, ExternalLink, Play, Square, Radio } from 'lucide-react'
+import { Copy, ExternalLink, Play, RefreshCw, Square, Radio, KeyRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
@@ -9,6 +9,8 @@ import {
   STORAGE_FS_ENDPOINT_CATALOG,
   absoluteEndpointUrl,
   formatEndpointsMarkdown,
+  storageFsServerRefreshToken,
+  storageFsServerRotateToken,
   storageFsServerStart,
   storageFsServerStatus,
   storageFsServerStop,
@@ -85,6 +87,32 @@ export function StorageLocalApiPanel() {
       toast.info(t('storageMode.localApi.stopped'))
     } catch (error) {
       toast.error(t('storageMode.localApi.stopError'), String(error))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleRotateToken() {
+    setBusy(true)
+    try {
+      const next = await storageFsServerRotateToken()
+      setStatus(next)
+      toast.success(t('storageMode.localApi.rotated'))
+    } catch (error) {
+      toast.error(t('storageMode.localApi.rotateError'), String(error))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleRefreshToken() {
+    setBusy(true)
+    try {
+      const next = await storageFsServerRefreshToken()
+      setStatus(next)
+      toast.success(t('storageMode.localApi.refreshed'))
+    } catch (error) {
+      toast.error(t('storageMode.localApi.refreshError'), String(error))
     } finally {
       setBusy(false)
     }
@@ -203,6 +231,31 @@ export function StorageLocalApiPanel() {
           >
             <Copy className="h-3 w-3" />
           </button>
+          <button
+            type="button"
+            className="storage-api-icon-btn"
+            aria-label={t('storageMode.localApi.rotateToken')}
+            disabled={busy}
+            onClick={() => void handleRotateToken()}
+          >
+            <KeyRound className="h-3 w-3" />
+          </button>
+          <button
+            type="button"
+            className="storage-api-icon-btn"
+            aria-label={t('storageMode.localApi.refreshToken')}
+            disabled={busy}
+            onClick={() => void handleRefreshToken()}
+          >
+            <RefreshCw className="h-3 w-3" />
+          </button>
+          {status.tokenExpiresAt ? (
+            <span className="storage-api-hint">
+              {t('storageMode.localApi.expiresAt', {
+                time: new Date(status.tokenExpiresAt * 1000).toLocaleTimeString(),
+              })}
+            </span>
+          ) : null}
         </div>
       ) : null}
 

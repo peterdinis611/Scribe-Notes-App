@@ -13,7 +13,10 @@ use tauri::{AppHandle, Emitter, Manager, State};
 use uuid::Uuid;
 
 use crate::db::DbState;
-use crate::security::{log_security, RateLimiter, TokenSession, CAPTURE_TOKEN_TTL};
+use crate::security::{
+    log_security, RateLimiter, TokenSession, CAPTURE_IDLE_STOP, CAPTURE_TOKEN_TTL,
+};
+use std::time::Instant;
 use server::handle_connection;
 
 const DEFAULT_PORT: u16 = 17_847;
@@ -37,6 +40,9 @@ struct CaptureRuntime {
     /// Kept alive for the accept loop (cloned into the worker thread).
     #[allow(dead_code)]
     form_nonce: Arc<Mutex<Option<String>>>,
+    /// Cloned into the accept loop for idle auto-stop.
+    #[allow(dead_code)]
+    last_activity: Arc<Mutex<Instant>>,
     port: u16,
     url: String,
     lan_ip: String,
@@ -190,7 +196,7 @@ pub fn capture_status(state: State<'_, CaptureServerState>) -> Result<CaptureSta
             running: true,
             port: Some(runtime.port),
             url: Some(runtime.url.clone()),
-            token: Some(runtime.session.token.clone()),
+            token: Some(runtime.session.token()),
             token_expires_at: Some(runtime.session.expires_unix()),
             lan_ip: Some(runtime.lan_ip.clone()),
             allow_lan: runtime.allow_lan,
@@ -233,6 +239,7 @@ pub fn capture_start(
     let token = Uuid::new_v4().to_string().replace('-', "");
     let session = Arc::new(TokenSession::new(token.clone(), CAPTURE_TOKEN_TTL));
     let form_nonce = Arc::new(Mutex::new(None::<String>));
+    let last_activity = Arc::new(Mutex::new(Instant::now()));
     let limiter = Arc::new(RateLimiter::new());
     let bind_host = if allow_lan { "0.0.0.0" } else { "127.0.0.1" };
     let listener = TcpListener::bind((bind_host, DEFAULT_PORT))
@@ -254,12 +261,20 @@ pub fn capture_start(
     let stop_thread = Arc::clone(&stop);
     let session_thread = Arc::clone(&session);
     let form_nonce_thread = Arc::clone(&form_nonce);
+    let last_activity_thread = Arc::clone(&last_activity);
     let limiter_thread = Arc::clone(&limiter);
     let app_thread = app.clone();
 
     let join = std::thread::spawn(move || {
         listener.set_nonblocking(true).ok();
         while !stop_thread.load(Ordering::SeqCst) {
+            if let Ok(last) = last_activity_thread.lock() {
+                if last.elapsed() >= CAPTURE_IDLE_STOP {
+                    log::info!("Capture idle timeout — stopping server");
+                    stop_thread.store(true, Ordering::SeqCst);
+                    break;
+                }
+            }
             match listener.accept() {
                 Ok((stream, peer)) => {
                     let _ = stream.set_nonblocking(false);
@@ -270,6 +285,7 @@ pub fn capture_start(
                         &session_thread,
                         &limiter_thread,
                         &form_nonce_thread,
+                        &last_activity_thread,
                     );
                 }
                 Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
@@ -299,6 +315,7 @@ pub fn capture_start(
     let runtime = CaptureRuntime {
         session: Arc::clone(&session),
         form_nonce,
+        last_activity,
         port,
         url: url.clone(),
         lan_ip: display_host.clone(),

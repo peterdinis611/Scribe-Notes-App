@@ -120,7 +120,7 @@ fn status_from(runtime: Option<&Runtime>) -> StorageFsServerStatus {
             running: true,
             port: Some(rt.port),
             url: Some(rt.url.clone()),
-            token: Some(rt.session.token.clone()),
+            token: Some(rt.session.token()),
             token_expires_at: Some(rt.session.expires_unix()),
             documents_dir: Some(rt.documents_dir.to_string_lossy().into_owned()),
             files_root: Some(rt.documents_dir.join("files").to_string_lossy().into_owned()),
@@ -242,6 +242,41 @@ pub fn storage_fs_server_stop(
         }
     }
     Ok(status_from(None))
+}
+
+/// Issue a new bearer token (invalidates the previous one) and reset TTL.
+#[tauri::command]
+pub fn storage_fs_server_rotate_token(
+    app: AppHandle,
+    state: State<'_, StorageFsServerState>,
+) -> Result<StorageFsServerStatus, String> {
+    let guard = state.inner.lock().map_err(|e| e.to_string())?;
+    let Some(runtime) = guard.as_ref() else {
+        return Err("Files API is not running".into());
+    };
+    let token = Uuid::new_v4().to_string().replace('-', "");
+    let _ = runtime.session.rotate(token);
+    log_security(
+        &app,
+        "files_api_rotate",
+        "Files API bearer token rotated",
+        Some(json!({ "ttlSec": FILES_TOKEN_TTL.as_secs() })),
+        "ok",
+    );
+    Ok(status_from(Some(runtime)))
+}
+
+/// Extend the current token TTL without changing the secret.
+#[tauri::command]
+pub fn storage_fs_server_refresh_token(
+    state: State<'_, StorageFsServerState>,
+) -> Result<StorageFsServerStatus, String> {
+    let guard = state.inner.lock().map_err(|e| e.to_string())?;
+    let Some(runtime) = guard.as_ref() else {
+        return Err("Files API is not running".into());
+    };
+    let _ = runtime.session.refresh();
+    Ok(status_from(Some(runtime)))
 }
 
 #[cfg(test)]
