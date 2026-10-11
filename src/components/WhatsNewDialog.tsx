@@ -6,21 +6,23 @@ import { closeScribeUiSurface } from '@/lib/scribe-ui-host'
 import { isTauriRuntime } from '@/lib/tauri'
 import { persistWhatsNewVersion } from '@/store/persistence'
 
-/** Edition 3.4 release notes — specialists, handoffs, digests, agent exports. Fallback when Rust manifest is unavailable. */
-export const WHATS_NEW_34_HIGHLIGHTS = [
-  'specialistAgents',
-  'agentHandoffs',
-  'digestsRecipes',
-  'spawnAndCalendar',
-  'filesIngest',
+/** Edition 3.5 release notes — Docs field guide, python-ui chrome, shared catalogs. */
+export const WHATS_NEW_35_HIGHLIGHTS = [
+  'docsFieldGuide',
+  'pythonUiChrome',
+  'sharedUiCatalogs',
+  'renderUiSurface',
+  'welcomeSurfaces',
 ] as const
 
-export type WhatsNew34HighlightId = (typeof WHATS_NEW_34_HIGHLIGHTS)[number]
+export type WhatsNew35HighlightId = (typeof WHATS_NEW_35_HIGHLIGHTS)[number]
 
-/** @deprecated Prefer WHATS_NEW_34_HIGHLIGHTS */
-export const WHATS_NEW_27_HIGHLIGHTS = WHATS_NEW_34_HIGHLIGHTS
-/** @deprecated Prefer WHATS_NEW_34_HIGHLIGHTS */
-export const WHATS_NEW_25_HIGHLIGHTS = WHATS_NEW_34_HIGHLIGHTS
+/** @deprecated Prefer WHATS_NEW_35_HIGHLIGHTS */
+export const WHATS_NEW_34_HIGHLIGHTS = WHATS_NEW_35_HIGHLIGHTS
+/** @deprecated Prefer WHATS_NEW_35_HIGHLIGHTS */
+export const WHATS_NEW_27_HIGHLIGHTS = WHATS_NEW_35_HIGHLIGHTS
+/** @deprecated Prefer WHATS_NEW_35_HIGHLIGHTS */
+export const WHATS_NEW_25_HIGHLIGHTS = WHATS_NEW_35_HIGHLIGHTS
 
 type WhatsNewDialogProps = {
   open: boolean
@@ -54,7 +56,7 @@ export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
         aria-label={t('whatsNew.gotIt')}
         onClick={handleClose}
       />
-      <div className="setup-folio setup-folio--news setup-folio--edition-34">
+      <div className="setup-folio setup-folio--news setup-folio--edition-35">
         <aside className="setup-folio-margin" aria-hidden="true">
           <p className="setup-folio-brand">
             {t('welcome.brandWithEdition', { version: APP_SHORT_VERSION })}
@@ -73,12 +75,12 @@ export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
             </h1>
             <p className="setup-folio-lead">{t('whatsNew.subtitle')}</p>
             <ul className="setup-folio-tags" aria-label={t('whatsNew.tagsLabel')}>
-              <li>{t('whatsNew.tags.agents')}</li>
-              <li>{t('whatsNew.tags.handoffs')}</li>
-              <li>{t('whatsNew.tags.recipes')}</li>
+              <li>{t('whatsNew.tags.docs')}</li>
+              <li>{t('whatsNew.tags.surfaces')}</li>
+              <li>{t('whatsNew.tags.python')}</li>
             </ul>
           </header>
-          <WhatsNew34Highlights />
+          <WhatsNew35Highlights />
           <footer className="setup-folio-foot">
             <span className="setup-folio-foot-note">{t('whatsNew.footNote')}</span>
             <button type="button" className="setup-folio-next" onClick={handleClose}>
@@ -91,10 +93,10 @@ export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
   )
 }
 
-/** Presentational list of 3.4.0 highlights — hydrated from Rust UiManifest when available. */
-export function WhatsNew34Highlights() {
+/** Presentational list of 3.5.0 highlights — hydrated from Rust UiManifest when available. */
+export function WhatsNew35Highlights() {
   const { t } = useTranslation()
-  const [highlights, setHighlights] = useState<string[]>([...WHATS_NEW_34_HIGHLIGHTS])
+  const [highlights, setHighlights] = useState<string[]>([...WHATS_NEW_35_HIGHLIGHTS])
 
   useEffect(() => {
     if (!isTauriRuntime()) return
@@ -129,7 +131,9 @@ export function WhatsNew34Highlights() {
   )
 }
 
-/** @deprecated Prefer WhatsNew34Highlights */
-export const WhatsNew27Highlights = WhatsNew34Highlights
-/** @deprecated Prefer WhatsNew34Highlights */
-export const WhatsNew25Highlights = WhatsNew34Highlights
+/** @deprecated Prefer WhatsNew35Highlights */
+export const WhatsNew34Highlights = WhatsNew35Highlights
+/** @deprecated Prefer WhatsNew35Highlights */
+export const WhatsNew27Highlights = WhatsNew35Highlights
+/** @deprecated Prefer WhatsNew35Highlights */
+export const WhatsNew25Highlights = WhatsNew35Highlights

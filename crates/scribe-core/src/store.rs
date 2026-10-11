@@ -2780,13 +2780,26 @@ fn open_readonly(db_path: &Path) -> Result<ScribeStore, String> {
     })
 }
 
+/// Whether MCP may open the DB writable. Default is read-only.
+pub fn mcp_write_allowed_from_env() -> bool {
+    matches!(
+        std::env::var("SCRIBE_MCP_WRITE")
+            .ok()
+            .as_deref()
+            .map(|v| v.trim().to_ascii_lowercase())
+            .as_deref(),
+        Some("1") | Some("true") | Some("yes")
+    )
+}
+
 pub fn open_scribe_store(db_path: Option<PathBuf>) -> Result<OpenStoreResult, String> {
     let db_path = db_path.unwrap_or_else(default_db_path);
     assert_db_exists(&db_path)?;
 
-    let force_readonly = std::env::var("SCRIBE_MCP_WRITE").ok().as_deref() == Some("0");
+    // Default read-only. Set SCRIBE_MCP_WRITE=1 to allow writes.
+    let allow_write = mcp_write_allowed_from_env();
 
-    if !force_readonly {
+    if allow_write {
         match open_writable(&db_path) {
             Ok(store) => {
                 return Ok(OpenStoreResult {
@@ -2817,6 +2830,9 @@ mod tests {
     use crate::db::test_helpers::seed_document;
     use crate::nlp::NlpSidecar;
     use std::path::PathBuf;
+    use std::sync::Mutex;
+
+    static MCP_WRITE_ENV_LOCK: Mutex<()> = Mutex::new(());
 
     fn dummy_sidecar() -> NlpSidecar {
         NlpSidecar::new(PathBuf::from("/tmp/scribe-nlp-missing.py"))
@@ -3163,5 +3179,26 @@ mod tests {
         assert_eq!(result.target_id, target.id);
         let unresolved = store.list_unresolved_wiki_links(20).unwrap();
         assert!(unresolved.iter().all(|link| link.document_id != source.id));
+    }
+
+    #[test]
+    fn mcp_write_defaults_to_readonly() {
+        // Isolate from ambient env used by other tests/processes.
+        let _guard = MCP_WRITE_ENV_LOCK.lock().unwrap();
+        let previous = std::env::var("SCRIBE_MCP_WRITE").ok();
+        std::env::remove_var("SCRIBE_MCP_WRITE");
+        assert!(!mcp_write_allowed_from_env());
+        std::env::set_var("SCRIBE_MCP_WRITE", "0");
+        assert!(!mcp_write_allowed_from_env());
+        std::env::set_var("SCRIBE_MCP_WRITE", "1");
+        assert!(mcp_write_allowed_from_env());
+        std::env::set_var("SCRIBE_MCP_WRITE", "true");
+        assert!(mcp_write_allowed_from_env());
+        std::env::set_var("SCRIBE_MCP_WRITE", "YES");
+        assert!(mcp_write_allowed_from_env());
+        match previous {
+            Some(v) => std::env::set_var("SCRIBE_MCP_WRITE", v),
+            None => std::env::remove_var("SCRIBE_MCP_WRITE"),
+        }
     }
 }

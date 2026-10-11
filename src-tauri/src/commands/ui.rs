@@ -453,3 +453,161 @@ pub fn suggest_orphan_links_ui(
 pub fn resolve_color_ui(color: String, tokens: scribe_ui::ColorTokens) -> String {
     scribe_ui::resolve_color(&color, &tokens)
 }
+
+#[tauri::command]
+pub fn merge_duplicate_content_ui(keep_json: String, drop_json: String, drop_title: String) -> String {
+    scribe_ui::merge_duplicate_content(&keep_json, &drop_json, &drop_title)
+}
+
+#[tauri::command]
+pub fn flatten_library_ui(
+    folders: Vec<scribe_ui::LibraryFolder>,
+    documents: Vec<scribe_ui::LibraryDocument>,
+    expanded_ids: Vec<String>,
+) -> Vec<scribe_ui::FlatTreeItem> {
+    scribe_ui::flatten_library(&folders, &documents, &expanded_ids)
+}
+
+#[tauri::command]
+pub fn estimate_flat_item_size_ui(item: scribe_ui::FlatTreeItem) -> u32 {
+    scribe_ui::estimate_flat_item_size(&item)
+}
+
+#[tauri::command]
+pub fn parse_custom_locale_pack_ui(
+    raw: String,
+    fallback_code: Option<String>,
+    fallback_name: Option<String>,
+) -> Result<scribe_ui::CustomLocalePack, String> {
+    let options = scribe_ui::ParseLocaleOptions {
+        fallback_code,
+        fallback_name,
+    };
+    scribe_ui::parse_custom_locale_pack(&raw, &options).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn normalize_locale_code_ui(raw: String) -> String {
+    scribe_ui::normalize_locale_code(&raw)
+}
+
+#[tauri::command]
+pub fn pdf_highlights_to_content_json_ui(
+    imported: scribe_ui::PdfHighlightsImport,
+) -> serde_json::Value {
+    scribe_ui::pdf_highlights_to_content_json(&imported)
+}
+
+#[tauri::command]
+pub fn map_to_tiptap_highlight_ui(color: Option<String>) -> String {
+    scribe_ui::map_to_tiptap_highlight(color.as_deref())
+}
+
+#[tauri::command]
+pub fn create_custom_template_ui(
+    input: scribe_ui::CustomTemplateInput,
+) -> scribe_ui::CustomDocumentTemplate {
+    scribe_ui::create_custom_template(input)
+}
+
+#[tauri::command]
+pub fn parse_stored_custom_templates_ui(raw: serde_json::Value) -> Vec<scribe_ui::CustomDocumentTemplate> {
+    scribe_ui::parse_stored_custom_templates(&raw)
+}
+
+#[tauri::command]
+pub fn cards_to_nodes_ui(cards: Vec<scribe_ui::CanvasCard>) -> Vec<scribe_ui::CanvasNoteNode> {
+    scribe_ui::cards_to_nodes(&cards)
+}
+
+#[tauri::command]
+pub fn canvas_edges_to_flow_ui(edges: Vec<scribe_ui::CanvasEdge>) -> Vec<scribe_ui::FlowEdge> {
+    scribe_ui::canvas_edges_to_flow(&edges)
+}
+
+#[tauri::command]
+pub fn flow_to_canvas_document_ui(
+    nodes: Vec<scribe_ui::FlowNode>,
+    edges: Vec<scribe_ui::FlowEdge>,
+) -> scribe_ui::CanvasDocument {
+    scribe_ui::flow_to_canvas_document(&nodes, &edges)
+}
+
+#[tauri::command]
+pub fn resolve_panel_widths_ui(
+    sidebar_raw: Option<String>,
+    editor_raw: Option<String>,
+    toc_raw: Option<String>,
+    viewport_width: Option<i32>,
+    editor_min_width: Option<i32>,
+) -> scribe_ui::PanelWidths {
+    scribe_ui::resolve_panel_widths(
+        viewport_width.unwrap_or(scribe_ui::DEFAULT_VIEWPORT_WIDTH),
+        sidebar_raw.as_deref(),
+        editor_raw.as_deref(),
+        toc_raw.as_deref(),
+        editor_min_width.unwrap_or(scribe_ui::EDITOR_PANEL_WIDTH_MIN),
+    )
+}
+
+#[tauri::command]
+pub fn clamp_toc_rail_width_ui(
+    value: f64,
+    viewport_width: Option<i32>,
+    sidebar_width: Option<i32>,
+) -> i32 {
+    scribe_ui::clamp_toc_rail_width(
+        value,
+        viewport_width.unwrap_or(scribe_ui::DEFAULT_VIEWPORT_WIDTH),
+        sidebar_width.unwrap_or(scribe_ui::SIDEBAR_WIDTH_DEFAULT),
+    )
+}
+
+#[tauri::command]
+pub fn plan_theme_application_ui(
+    settings: scribe_ui::ThemeSettings,
+    skin: String,
+    prefers_dark: bool,
+) -> scribe_ui::ThemeApplication {
+    let skin = scribe_ui::normalize_ui_skin(&skin);
+    scribe_ui::plan_theme_application(&settings, skin, prefers_dark)
+}
+
+#[tauri::command]
+pub fn resolve_theme_colors_ui(
+    settings: scribe_ui::ThemeSettings,
+    prefers_dark: bool,
+) -> scribe_ui::ResolvedTheme {
+    scribe_ui::resolve_theme_colors(&settings, prefers_dark)
+}
+
+#[tauri::command]
+pub fn is_dark_color_ui(color: String) -> bool {
+    scribe_ui::is_dark_color(&color)
+}
+
+#[tauri::command]
+pub fn build_header_footer_lines_ui(
+    config: scribe_ui::PageHeaderFooter,
+    context: scribe_ui::HeaderFooterContext,
+    pagination_summary: String,
+) -> scribe_ui::HeaderFooterLines {
+    scribe_ui::build_header_footer_lines(&config, &context, &pagination_summary)
+}
+
+#[tauri::command]
+pub fn resolve_header_footer_template_ui(
+    template: String,
+    context: scribe_ui::HeaderFooterContext,
+) -> String {
+    scribe_ui::resolve_header_footer_template(&template, &context)
+}
+
+#[tauri::command]
+pub fn format_export_date_ui(year: i32, month: u32, day: u32, language: String) -> String {
+    use chrono::NaiveDate;
+    let date = NaiveDate::from_ymd_opt(year, month, day).unwrap_or_else(|| {
+        chrono::Local::now().date_naive()
+    });
+    scribe_ui::format_export_date(date, &language)
+}

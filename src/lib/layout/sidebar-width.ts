@@ -1,5 +1,7 @@
 import { kvGet, kvSet } from '@/lib/storage/kv'
 
+/** Keep clamp/defaults in sync with `crates/scribe-ui` layout + `layout_panels`. */
+
 export const SIDEBAR_WIDTH_KEY = 'scribe-sidebar-width'
 export const SIDEBAR_WIDTH_DEFAULT = 300
 export const SIDEBAR_WIDTH_MIN = 240

@@ -1,5 +1,5 @@
-import { open, save } from '@tauri-apps/plugin-dialog'
 import { readTextFile, writeTextFile } from '@/lib/db/api'
+import { openScopedFile, saveScopedFile } from '@/lib/fs/scoped-dialog'
 import type { CustomTemplateCategory } from '@/lib/templates/categories'
 import type { CustomDocumentTemplate } from '@/lib/templates/custom'
 import {
@@ -33,14 +33,12 @@ export async function pickAndImportTemplatePack(
   categories: CustomTemplateCategory[],
   options?: { title?: string },
 ): Promise<ImportTemplatePackResult | null> {
-  const selected = await open({
-    multiple: false,
+  const selected = await openScopedFile({
     title: options?.title ?? 'Import template pack',
     filters: PACK_FILTERS,
-    fileAccessMode: 'scoped',
   })
 
-  if (!selected || Array.isArray(selected)) return null
+  if (!selected) return null
 
   const raw = await readTextFile(selected)
   const pack = parseTemplatePack(raw)
@@ -54,10 +52,9 @@ export async function exportCustomTemplatesPack(args: {
   dialogTitle?: string
 }): Promise<string | null> {
   const pack = buildTemplatePackFromCustoms(args)
-  const path = await save({
+  const path = await saveScopedFile({
     title: args.dialogTitle ?? 'Export template pack',
     defaultPath: sanitizePackFileName(pack.name),
-    filters: PACK_FILTERS,
   })
   if (!path) return null
 

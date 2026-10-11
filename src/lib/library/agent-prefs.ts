@@ -176,7 +176,7 @@ export const DEFAULT_AGENT_PREFS: AgentPrefs = {
   enabled: true,
   agents: { ...DEFAULT_AGENT_ROLES },
   maxSteps: 3,
-  preferFast: false,
+  preferFast: true,
   preferredTools: [],
   disabledTools: [],
   teachings: [],
@@ -461,7 +461,8 @@ export function normalizeAgentPrefs(raw: unknown): AgentPrefs {
     enabled: input.enabled !== false,
     agents: normalizeAgentRoles(input.agents),
     maxSteps,
-    preferFast: Boolean(input.preferFast),
+    preferFast:
+      typeof input.preferFast === 'boolean' ? input.preferFast : DEFAULT_AGENT_PREFS.preferFast,
     preferredTools,
     disabledTools,
     teachings: normalizeTeachings(input.teachings),

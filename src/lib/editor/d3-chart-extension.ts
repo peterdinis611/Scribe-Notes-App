@@ -3,6 +3,7 @@ import type { Editor } from '@tiptap/core'
 import type { Node as PMNode } from '@tiptap/pm/model'
 import i18n from '@/i18n'
 import { D3_CHART_DEFAULT_SOURCE, renderD3ChartSource } from '@/lib/editor/d3-chart'
+import { sanitizeSvg } from '@/lib/sanitize-svg'
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -68,7 +69,7 @@ function createD3ChartNodeView() {
       preview.classList.remove('d3-chart__preview--error')
       const result = renderD3ChartSource(source)
       if (result.ok) {
-        preview.innerHTML = result.svg
+        preview.innerHTML = sanitizeSvg(result.svg)
         const svg = preview.querySelector('svg')
         if (svg) {
           svg.removeAttribute('height')

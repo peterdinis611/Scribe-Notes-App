@@ -88,10 +88,12 @@ describe('planAgentGoal', () => {
   })
 
   it('plans multi-step document tools', async () => {
+    const { DEFAULT_AGENT_PREFS } = await import('@/lib/library/agent-prefs')
     const plan = await planAgentGoal(
       'Summarize and find related notes',
       'document',
       'doc-1',
+      { ...DEFAULT_AGENT_PREFS, preferFast: false },
     )
     expect(plan.tools[0]).toBe('summarize')
     expect(plan.tools).toContain('similar')
@@ -115,7 +117,14 @@ describe('planAgentGoal', () => {
 
 describe('runAgentGoal', () => {
   it('merges soft-fail steps', async () => {
-    const result = await runAgentGoal('Summarize and find related notes', 'document', 'doc-1')
+    const { DEFAULT_AGENT_PREFS } = await import('@/lib/library/agent-prefs')
+    const result = await runAgentGoal(
+      'Summarize and find related notes',
+      'document',
+      'doc-1',
+      undefined,
+      { ...DEFAULT_AGENT_PREFS, preferFast: false },
+    )
     expect(result.steps.length).toBeGreaterThanOrEqual(2)
     expect(result.steps.every((step) => step.status === 'ok')).toBe(true)
     expect(result.answer).toContain('summarize')

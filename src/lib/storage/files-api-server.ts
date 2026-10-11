@@ -11,6 +11,8 @@ export type StorageFsServerStatus = {
   running: boolean
   port: number | null
   url: string | null
+  token: string | null
+  tokenExpiresAt: number | null
   documentsDir: string | null
   filesRoot: string | null
   endpoints: StorageFsEndpoint[]
@@ -59,19 +61,26 @@ export const storageFsServerStart = (port?: number) =>
 export const storageFsServerStop = () =>
   invoke<StorageFsServerStatus>('storage_fs_server_stop')
 
+export const storageFsServerRotateToken = () =>
+  invoke<StorageFsServerStatus>('storage_fs_server_rotate_token')
+
+export const storageFsServerRefreshToken = () =>
+  invoke<StorageFsServerStatus>('storage_fs_server_refresh_token')
+
 export function absoluteEndpointUrl(baseUrl: string | null | undefined, path: string): string {
   const base = (baseUrl ?? 'http://127.0.0.1:8787').replace(/\/$/, '')
   return `${base}${path}`
 }
 
 export function formatEndpointsMarkdown(
-  status: Pick<StorageFsServerStatus, 'url' | 'endpoints'>,
+  status: Pick<StorageFsServerStatus, 'url' | 'token' | 'endpoints'>,
 ): string {
   const base = status.url ?? 'http://127.0.0.1:8787'
   const lines = [
     `# Scribe Files API`,
     ``,
     `Base: ${base}`,
+    status.token ? `Authorization: Bearer ${status.token}` : `Authorization: Bearer <token from Settings>`,
     ``,
     ...status.endpoints.map((ep) => `- \`${ep.method}\` ${absoluteEndpointUrl(base, ep.path)} — ${ep.label}`),
   ]

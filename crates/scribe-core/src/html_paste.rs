@@ -30,12 +30,14 @@ fn re_comments() -> &'static Regex {
 fn re_script_style() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
     RE.get_or_init(|| {
-        re(r"(?is)<(?:script|style|meta|link|xml|head|title)\b[^>]*>[\s\S]*?</(?:script|style|meta|link|xml|head|title)\s*>")
+        re(r"(?is)<(?:script|style|meta|link|xml|head|title|iframe|object|embed|form|svg|math)\b[^>]*>[\s\S]*?</(?:script|style|meta|link|xml|head|title|iframe|object|embed|form|svg|math)\s*>")
     })
 }
 fn re_void_junk() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
-    RE.get_or_init(|| re(r"(?is)</?(script|style|meta|link|xml|head|title|o:[a-z]+|w:[a-z]+)[^>]*/?>"))
+    RE.get_or_init(|| {
+        re(r"(?is)</?(script|style|meta|link|xml|head|title|base|iframe|object|embed|form|svg|math|o:[a-z]+|w:[a-z]+)[^>]*/?>")
+    })
 }
 fn re_namespace() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
@@ -354,5 +356,18 @@ mod tests {
         let result = normalize_clipboard_html(html);
         assert!(result.html.contains("Plain"));
         assert!(result.html.contains("<em>text</em>"));
+    }
+
+    #[test]
+    fn strips_iframe_embed_object_and_base() {
+        let html = r#"<p>Hi</p><iframe src="https://evil.test"></iframe><object data="x"></object><embed src="y"><base href="https://evil.test/"><svg onload="alert(1)"></svg>"#;
+        let result = normalize_clipboard_html(html);
+        let lower = result.html.to_ascii_lowercase();
+        assert!(lower.contains("<p>"));
+        assert!(!lower.contains("iframe"));
+        assert!(!lower.contains("object"));
+        assert!(!lower.contains("embed"));
+        assert!(!lower.contains("<base"));
+        assert!(!lower.contains("<svg"));
     }
 }

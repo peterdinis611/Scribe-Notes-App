@@ -4,6 +4,7 @@ import { useNavigate } from '@tanstack/react-router'
 import {
   ArrowDownLeft,
   ArrowUpRight,
+  Columns2,
   FileText,
   GitFork,
   Link2,
@@ -24,7 +25,13 @@ import { toast } from '@/lib/toast'
 import { cn, formatRelativeTime } from '@/lib/utils'
 import { navigateViaWikiLink } from '@/lib/navigation'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { setFindReplaceOpen, setPendingEditorSearch } from '@/store/documentsSlice'
+import {
+  setFindReplaceOpen,
+  setLibraryGraphAroundActive,
+  setLibraryView,
+  setPendingEditorSearch,
+  setSecondaryDocumentId,
+} from '@/store/documentsSlice'
 import {
   EditorSidePanel,
   EditorSidePanelEmpty,
@@ -170,8 +177,17 @@ export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
   }, [activeId, activeTitle, backlinks, outgoing, t])
 
   const openFullGraph = useCallback(() => {
+    dispatch(setLibraryGraphAroundActive(true))
+    dispatch(setLibraryView('graph'))
     void navigate(ROUTES.graph({ around: true }))
-  }, [navigate])
+  }, [dispatch, navigate])
+
+  const openInSplit = useCallback(
+    (id: string) => {
+      dispatch(setSecondaryDocumentId(id))
+    },
+    [dispatch],
+  )
 
   const renderList = (
     docs: DocumentSummary[],
@@ -184,10 +200,13 @@ export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
     return docs.map((doc) => {
       const snippet = options?.showMentionSnippet ? mentionSnippets[doc.id] : undefined
       return (
-        <button
+        <div
           key={doc.id}
+          className="flex w-full items-center gap-1 rounded-[9px] border border-transparent px-1 py-0.5 transition-[background,border-color] duration-120 hover:border-[var(--color-border)] hover:bg-[var(--color-surface-elevated)]"
+        >
+        <button
           type="button"
-          className="flex w-full items-center gap-2.5 rounded-[9px] border border-transparent bg-transparent px-2.5 py-2 text-left transition-[background,border-color] duration-120 hover:border-[var(--color-border)] hover:bg-[var(--color-surface-elevated)]"
+          className="flex min-w-0 flex-1 items-center gap-2.5 bg-transparent px-1.5 py-2 text-left"
           onClick={() => handleOpen(doc.id, options?.mentionNeedle)}
           title={doc.title}
         >
@@ -207,6 +226,16 @@ export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
             )}
           </span>
         </button>
+          <button
+            type="button"
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-[7px] text-[var(--color-muted-foreground)] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
+            title={t('panels.backlinks.openSplit')}
+            aria-label={t('panels.backlinks.openSplit')}
+            onClick={() => openInSplit(doc.id)}
+          >
+            <Columns2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
       )
     })
   }

@@ -157,6 +157,8 @@ export function NlpSection() {
   async function handleEmbedBackend(next: 'hash' | 'fast' | 'quality') {
     if (!status || status.embedBackend === next) return
     try {
+      const { invalidateNlpAutoIndexStatus } = await import('@/lib/nlp/auto-index')
+      invalidateNlpAutoIndexStatus()
       const updated = await nlpSetEmbedBackend(next)
       setStatus(updated)
       toast.success(

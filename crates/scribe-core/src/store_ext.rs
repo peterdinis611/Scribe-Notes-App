@@ -12,21 +12,23 @@ use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
 
 use crate::db::{
-    active_library_id, document_index_text, extract_search_text, rank_document_chunks, set_answer_backend, set_embed_backend, set_nlp_enabled,
-    sync_document_fts, sync_document_links, SearchMode, DEFAULT_LIBRARY_ID, META_ACTIVE_LIBRARY,
+    active_library_id, document_index_text, extract_search_text, is_nlp_enabled, rank_document_chunks,
+    set_answer_backend, set_embed_backend, set_nlp_enabled, sync_document_fts, sync_document_links,
+    SearchMode, DEFAULT_LIBRARY_ID, META_ACTIVE_LIBRARY,
 };
 use crate::db::delete_revision;
 use crate::nlp::{
     collect_document_memory_passages, collect_library_memory_passages, followups_from_sidecar,
     merge_chat_memory_passages, normalize_rewrite_mode, parse_chunks, parse_dates_result,
-    persist_document_memory, persist_library_memory, parse_diff_summary, parse_duplicates,
-    parse_entities, parse_keywords_result, parse_language, parse_library_answer, parse_mentions,
-    parse_organize, parse_outline_result, parse_query_rewrite, parse_reading_stats, parse_sentiment,
-    parse_spellcheck, parse_template_hints, parse_title_suggestion, parse_wiki_suggestions, ChatTurn,
-    NlpAnswer, NlpChunks, NlpDates, NlpDiffSummary, NlpDocumentAnalysis, NlpDuplicates, NlpEntities,
-    NlpKeywordsResult, NlpLanguage, NlpMentions, NlpOrganize, NlpOutline, NlpQueryRewrite,
-    NlpReadingStats, NlpRewriteResult, NlpSentiment, NlpSidecar, NlpSpellcheck, NlpTemplateHints,
-    NlpTitleSuggestion, NlpWikiSuggestions,
+    parse_decisions, parse_diff_summary, parse_duplicates, parse_entities, parse_keywords_result,
+    parse_language, parse_library_answer, parse_mentions, parse_organize, parse_outline_result,
+    parse_pii_report, parse_query_rewrite, parse_ranked_tasks, parse_reading_stats,
+    parse_section_summaries, parse_sentiment, parse_spellcheck, parse_template_hints,
+    parse_title_suggestion, parse_wiki_suggestions, persist_document_memory, persist_library_memory,
+    ChatTurn, NlpAnswer, NlpChunks, NlpDates, NlpDiffSummary, NlpDocumentAnalysis, NlpDuplicates,
+    NlpEntities, NlpKeywordsResult, NlpLanguage, NlpMentions, NlpOrganize, NlpOutline,
+    NlpQueryRewrite, NlpReadingStats, NlpRewriteResult, NlpSentiment, NlpSidecar, NlpSpellcheck,
+    NlpTemplateHints, NlpTitleSuggestion, NlpWikiSuggestions,
 };
 use crate::store::{
     require_nlp, search_library, sync_sidecar_backend, IdTitle, ScribeStore,
@@ -1845,6 +1847,154 @@ impl ScribeStore {
             &tools_value,
             limit.unwrap_or(8).clamp(1, 20),
         )
+    }
+
+    /// Section summaries — Python preferred, Rust offline fallback.
+    pub fn section_summaries(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+        limit: Option<i64>,
+    ) -> Result<Value, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        let limit = limit.unwrap_or(12).clamp(1, 40);
+        if is_nlp_enabled(&self.db).unwrap_or(false) {
+            let _ = sync_sidecar_backend(sidecar, &self.db);
+            if let Ok(raw) = sidecar.section_summaries(&source, limit, 2) {
+                return Ok(serde_json::to_value(parse_section_summaries(&raw))
+                    .unwrap_or(raw));
+            }
+        }
+        serde_json::to_value(crate::nlp::section_summaries(&source, limit as usize, 2))
+            .map_err(|e| e.to_string())
+    }
+
+    pub fn extract_decisions(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+        limit: Option<i64>,
+    ) -> Result<Value, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        let limit = limit.unwrap_or(12).clamp(1, 40);
+        if is_nlp_enabled(&self.db).unwrap_or(false) {
+            let _ = sync_sidecar_backend(sidecar, &self.db);
+            if let Ok(raw) = sidecar.extract_decisions(&source, limit) {
+                return Ok(serde_json::to_value(parse_decisions(&raw)).unwrap_or(raw));
+            }
+        }
+        serde_json::to_value(crate::nlp::extract_decisions(&source, limit as usize))
+            .map_err(|e| e.to_string())
+    }
+
+    pub fn detect_pii(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+        limit: Option<i64>,
+    ) -> Result<Value, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        let limit = limit.unwrap_or(40).clamp(1, 100);
+        if is_nlp_enabled(&self.db).unwrap_or(false) {
+            let _ = sync_sidecar_backend(sidecar, &self.db);
+            if let Ok(raw) = sidecar.detect_pii(&source, limit) {
+                return Ok(serde_json::to_value(parse_pii_report(&raw)).unwrap_or(raw));
+            }
+        }
+        serde_json::to_value(crate::nlp::detect_pii(&source, limit as usize))
+            .map_err(|e| e.to_string())
+    }
+
+    pub fn rank_tasks(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+        limit: Option<i64>,
+    ) -> Result<Value, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        let limit = limit.unwrap_or(20).clamp(1, 50);
+        if is_nlp_enabled(&self.db).unwrap_or(false) {
+            let _ = sync_sidecar_backend(sidecar, &self.db);
+            if let Ok(raw) = sidecar.rank_tasks(&source, limit) {
+                return Ok(serde_json::to_value(parse_ranked_tasks(&raw)).unwrap_or(raw));
+            }
+        }
+        serde_json::to_value(crate::nlp::rank_tasks(&source, limit as usize))
+            .map_err(|e| e.to_string())
+    }
+
+    pub fn open_loops(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+        limit: Option<i64>,
+    ) -> Result<Value, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        let limit = limit.unwrap_or(16).clamp(1, 40);
+        if is_nlp_enabled(&self.db).unwrap_or(false) {
+            let _ = sync_sidecar_backend(sidecar, &self.db);
+            if let Ok(raw) = sidecar.open_loops(&source, limit) {
+                return Ok(raw);
+            }
+        }
+        serde_json::to_value(crate::nlp::open_loops(&source, limit as usize))
+            .map_err(|e| e.to_string())
+    }
+
+    pub fn reading_plan(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+        limit: Option<i64>,
+    ) -> Result<Value, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        let limit = limit.unwrap_or(8).clamp(1, 20);
+        if is_nlp_enabled(&self.db).unwrap_or(false) {
+            let _ = sync_sidecar_backend(sidecar, &self.db);
+            if let Ok(raw) = sidecar.reading_plan(&source, limit) {
+                return Ok(raw);
+            }
+        }
+        serde_json::to_value(crate::nlp::reading_plan(&source, limit as usize))
+            .map_err(|e| e.to_string())
+    }
+
+    pub fn note_pulse(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+    ) -> Result<Value, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        if is_nlp_enabled(&self.db).unwrap_or(false) {
+            let _ = sync_sidecar_backend(sidecar, &self.db);
+            if let Ok(raw) = sidecar.note_pulse(&source) {
+                return Ok(raw);
+            }
+        }
+        serde_json::to_value(crate::nlp::note_pulse(&source)).map_err(|e| e.to_string())
+    }
+
+    pub fn tone_pack(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+    ) -> Result<Value, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        if is_nlp_enabled(&self.db).unwrap_or(false) {
+            let _ = sync_sidecar_backend(sidecar, &self.db);
+            if let Ok(raw) = sidecar.tone_pack(&source) {
+                return Ok(raw);
+            }
+        }
+        serde_json::to_value(crate::nlp::tone_pack(&source)).map_err(|e| e.to_string())
     }
 
     pub fn check_terminology_library(

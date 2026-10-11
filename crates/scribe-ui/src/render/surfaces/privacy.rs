@@ -2,8 +2,9 @@ use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use super::UiSurfaceRequest;
-use crate::render::i18n::{t, StringMap};
+use crate::components::{FolioKicker, FolioTitle, SuiPanel};
 use crate::privacy_article_ids;
+use crate::render::i18n::{t, StringMap};
 use crate::PRIVACY_EFFECTIVE_DATE;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -56,10 +57,10 @@ pub fn privacy_view(props: PrivacyProps) -> Element {
     let colophon = t(&props.strings, "settings.privacy.colophon");
 
     rsx! {
-        div { class: "sui-panel privacy-notice",
+        SuiPanel { class: "privacy-notice",
             header {
-                p { class: "setup-folio-kicker", "{kicker}" }
-                h1 { class: "setup-folio-title", "{title}" }
+                FolioKicker { text: kicker }
+                FolioTitle { text: title }
                 p { class: "lead", "{effective}" }
                 p { class: "lead", "{lead}" }
                 p { class: "lead", "{effective_date}" }
@@ -84,7 +85,7 @@ pub fn privacy_view(props: PrivacyProps) -> Element {
                     }
                 }
             }
-            footer { class: "lead", "{colophon}" }
+            p { class: "lead", "{colophon}" }
         }
     }
 }

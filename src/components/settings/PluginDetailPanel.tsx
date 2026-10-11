@@ -17,9 +17,16 @@ import {
   sandboxPolicyFor,
   type RegisteredPlugin,
 } from '@/lib/plugins'
+import {
+  ELEVATED_PERMISSIONS,
+  grantPluginPermission,
+  isPermissionGranted,
+  revokePluginPermission,
+} from '@/lib/plugins/grants'
 import { createPluginStorage } from '@/lib/plugins/storage'
 import { isPluginEnabled } from '@/lib/plugins/prefs'
 import { categoryForPluginId } from '@/lib/plugins/presets'
+import type { PluginPermission } from '@/lib/plugins/types'
 import { cn } from '@/lib/utils'
 
 type DetailTab = 'details' | 'contributions' | 'versions' | 'runtime'
@@ -109,6 +116,7 @@ export function PluginDetailPanel({
 }) {
   const { t } = useTranslation()
   const [tab, setTab] = useState<DetailTab>('details')
+  const [grantTick, setGrantTick] = useState(0)
   const enabled = isPluginEnabled(plugin.manifest.id, plugin.manifest.defaultEnabled === true)
   const name = localizeManifestField(plugin.manifest, 'name')
   const description =
@@ -303,18 +311,66 @@ export function PluginDetailPanel({
             <div className="plugin-ext-perm-list">
               {plugin.manifest.permissions.map((permission) => {
                 const denied = policy.deny.includes(permission)
+                const elevated =
+                  plugin.source === 'installed' &&
+                  ELEVATED_PERMISSIONS.includes(permission as PluginPermission)
+                const granted =
+                  elevated && isPermissionGranted(plugin.manifest.id, permission)
                 return (
                   <span
-                    key={permission}
-                    className={cn('plugin-ext-perm', denied && 'is-denied')}
-                    title={denied ? t('settings.plugins.sandbox.deniedHint') : undefined}
+                    key={`${permission}-${grantTick}`}
+                    className={cn(
+                      'plugin-ext-perm',
+                      denied && 'is-denied',
+                      elevated && !granted && 'is-needs-grant',
+                      granted && 'is-granted',
+                    )}
+                    title={
+                      denied
+                        ? t('settings.plugins.sandbox.deniedHint')
+                        : elevated && !granted
+                          ? t('settings.plugins.sandbox.needsGrantHint')
+                          : undefined
+                    }
                   >
                     {permission}
-                    {denied ? ' ✕' : ''}
+                    {denied ? ' ✕' : granted ? ' ✓' : elevated ? ' ?' : ''}
                   </span>
                 )
               })}
             </div>
+            {plugin.source === 'installed' &&
+              plugin.manifest.permissions.some((p) =>
+                ELEVATED_PERMISSIONS.includes(p as PluginPermission),
+              ) && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {plugin.manifest.permissions
+                    .filter((p) => ELEVATED_PERMISSIONS.includes(p as PluginPermission))
+                    .map((permission) => {
+                      const granted = isPermissionGranted(plugin.manifest.id, permission)
+                      return (
+                        <Button
+                          key={`${permission}-btn-${grantTick}`}
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            if (granted) {
+                              revokePluginPermission(plugin.manifest.id, permission)
+                            } else {
+                              grantPluginPermission(plugin.manifest.id, permission)
+                            }
+                            setGrantTick((n) => n + 1)
+                          }}
+                        >
+                          {granted
+                            ? t('settings.plugins.sandbox.revokeGrant', { permission })
+                            : t('settings.plugins.sandbox.grantPermission', { permission })}
+                        </Button>
+                      )
+                    })}
+                </div>
+              )}
           </div>
 
           {pluginSettings.length > 0 && (

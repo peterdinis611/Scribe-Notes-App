@@ -1,5 +1,5 @@
-import { open, save } from '@tauri-apps/plugin-dialog'
 import { readTextFile, writeTextFile } from '@/lib/db/api'
+import { openScopedFile, saveScopedFile } from '@/lib/fs/scoped-dialog'
 import en from '@/i18n/locales/en.json'
 import sampleLocalePack from '@/i18n/locales/locale-pack.example.json'
 import {
@@ -33,13 +33,11 @@ function pickJsonViaInput(): Promise<{ text: string; name: string } | null> {
 
 async function pickLanguageJson(): Promise<{ text: string; name: string } | null> {
   try {
-    const selected = await open({
-      multiple: false,
+    const selected = await openScopedFile({
       title: 'Import language JSON',
       filters: FILTERS,
-      fileAccessMode: 'scoped',
     })
-    if (selected && !Array.isArray(selected)) {
+    if (selected) {
       const text = await readTextFile(selected)
       const name = selected.split(/[/\\]/).pop() ?? 'language.json'
       return { text, name }
@@ -62,11 +60,7 @@ export async function pickAndParseCustomLocale(): Promise<CustomLocalePack | nul
 
 async function saveLocaleJson(body: string, defaultPath: string, title: string): Promise<string | null> {
   try {
-    const path = await save({
-      title,
-      defaultPath,
-      filters: FILTERS,
-    })
+    const path = await saveScopedFile({ title, defaultPath })
     if (path) {
       await writeTextFile(path, body)
       return path

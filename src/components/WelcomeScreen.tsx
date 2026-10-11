@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react'
-import { ArrowRight, CalendarDays, Clock, FileText, FolderInput, GitBranch, Plus } from 'lucide-react'
+import { ArrowRight, BookOpen, CalendarDays, Clock, FileText, FolderInput, GitBranch, Plus } from 'lucide-react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
@@ -135,6 +135,15 @@ export function WelcomeScreen() {
 
   const moreLinks = (
     <div className={isGrove ? 'welcome-actions-more' : 'welcome-more'}>
+      <button
+        type="button"
+        title={t('welcome.openDocsHint', { version: APP_SHORT_VERSION })}
+        className={isGrove ? 'welcome-link' : 'welcome-more-link'}
+        onClick={() => void navigate(ROUTES.docs())}
+      >
+        <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
+        {t('welcome.openDocs')}
+      </button>
       <DemoGuideButton variant="link" className={isGrove ? 'welcome-link' : undefined} />
       <button
         type="button"
@@ -227,7 +236,7 @@ export function WelcomeScreen() {
 
   if (isGrove) {
     return (
-      <div className="welcome-desk titlebar-no-drag">
+      <div className="welcome-desk welcome-desk--edition-35 titlebar-no-drag">
         <div className="welcome-desk-grain" aria-hidden="true" />
         <p className="welcome-stamp" aria-hidden="true">
           {t('welcome.brand')}
@@ -245,6 +254,9 @@ export function WelcomeScreen() {
               <span className="scribe-edition">{APP_SHORT_VERSION}</span>
             </h1>
             <p className="welcome-tagline">{t('welcome.press.brandTagline')}</p>
+            <p className="welcome-edition-note">
+              {t('welcome.press.editionNote', { version: APP_SHORT_VERSION })}
+            </p>
             <p className="welcome-workflow">{t('welcome.press.workflowHint')}</p>
             <div className="welcome-actions">
               <div className="welcome-actions-primary">

@@ -1,4 +1,4 @@
-import { save } from '@tauri-apps/plugin-dialog'
+import { saveScopedFile } from '@/lib/fs/scoped-dialog'
 import { buildIcsCalendarNative, writeTextFile } from '@/lib/db/api'
 import type { CalendarEvent } from '@/lib/db/nlp-api'
 import { sanitizeFileName } from '@/lib/filenames'
@@ -151,10 +151,9 @@ export async function exportIcsFile(args: {
   dialogTitle?: string
 }): Promise<string | null> {
   if (!args.events.length) return null
-  const path = await save({
+  const path = await saveScopedFile({
     title: args.dialogTitle ?? 'Export calendar',
     defaultPath: sanitizeFileName(args.baseName ?? 'scribe-calendar', 'ics'),
-    filters: [{ name: 'iCalendar', extensions: ['ics'] }],
   })
   if (!path) return null
   await writeTextFile(path, await buildIcsCalendar(args.events, args.calendarName ?? 'Scribe'))

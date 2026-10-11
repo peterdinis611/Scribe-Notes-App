@@ -1,6 +1,9 @@
 use dioxus::prelude::*;
 
 use super::UiSurfaceRequest;
+use crate::components::{
+    SuiActions, SuiButton, SuiButtonVariant, SuiCard, SuiLinkButton, SuiMetaRow, SuiPanel,
+};
 use crate::render::i18n::{t, StringMap};
 
 #[derive(Props, Clone, PartialEq)]
@@ -26,31 +29,34 @@ pub fn about_view(props: AboutProps) -> Element {
     let version_line = t(&props.strings, "common.version").replace("{{version}}", &props.version);
 
     rsx! {
-        div { class: "sui-panel",
-            div { class: "sui-card",
+        SuiPanel {
+            SuiCard {
                 h1 { "{t(&props.strings, \"welcome.brand\")}" }
                 p { class: "lead", "{tagline}" }
                 p { class: "lead", "{version_line}" }
-                div { class: "sui-actions",
-                    button { class: "primary", "data-sui-event": "about-replay-tour",
+                SuiActions {
+                    SuiButton {
+                        variant: SuiButtonVariant::Primary,
+                        event: "about-replay-tour",
                         "{t(&props.strings, \"settings.about.replayTour\")}"
                     }
                 }
             }
-            div { class: "sui-row",
-                span { "{t(&props.strings, \"settings.about.platform\")}" }
-                strong { "macOS" }
+            SuiMetaRow {
+                label: t(&props.strings, "settings.about.platform"),
+                value: "macOS",
             }
-            div { class: "sui-row",
-                span { "{t(&props.strings, \"settings.about.fileFormat\")}" }
-                strong { ".scribe" }
+            SuiMetaRow {
+                label: t(&props.strings, "settings.about.fileFormat"),
+                value: ".scribe",
             }
-            div { class: "sui-row",
-                span { "{t(&props.strings, \"settings.about.export\")}" }
-                strong { "PDF, DOCX, TXT, Pages" }
+            SuiMetaRow {
+                label: t(&props.strings, "settings.about.export"),
+                value: "PDF, DOCX, TXT, Pages",
             }
-            div { class: "sui-actions",
-                button { class: "sui-link-btn", "data-sui-event": "about-open-privacy",
+            SuiActions {
+                SuiLinkButton {
+                    event: "about-open-privacy",
                     "{t(&props.strings, \"settings.about.privacy\")}"
                 }
             }

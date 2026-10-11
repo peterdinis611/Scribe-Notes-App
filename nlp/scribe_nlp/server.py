@@ -136,6 +136,7 @@ FEATURES = [
     "decisionJepa",
     "llmStatus",
     "llmComplete",
+    "renderUiSurface",
 ]
 
 
@@ -937,6 +938,88 @@ def _handle_request_inner(
 
             text = _validate_text(str(params.get("text") or ""))
             result = tone_pack(text)
+        elif method == "passage_rerank":
+            from .rerank import rerank_passages
+
+            query = str(params.get("query") or params.get("question") or "")
+            passages_raw = params.get("passages")
+            if not isinstance(passages_raw, list):
+                raise SidecarError("passages must be an array", code=-32602)
+            passages = [item for item in passages_raw if isinstance(item, dict)]
+            limit = max(1, min(int(params.get("limit") or 12), 40))
+            backend = params.get("embedBackend") or params.get("embed_backend")
+            ranked = rerank_passages(
+                query,
+                passages,
+                limit=limit,
+                embed_backend=str(backend) if backend else None,
+            )
+            result = {"passages": ranked, "count": len(ranked), "query": query}
+        elif method == "answer_followups":
+            from .library_answer import suggest_followups
+
+            question = str(params.get("question") or params.get("query") or "")
+            sentences_raw = params.get("sentences") or []
+            passages_raw = params.get("passages") or []
+            if not isinstance(sentences_raw, list):
+                raise SidecarError("sentences must be an array", code=-32602)
+            if not isinstance(passages_raw, list):
+                raise SidecarError("passages must be an array", code=-32602)
+            sentences = [str(item) for item in sentences_raw if str(item).strip()]
+            passages = [item for item in passages_raw if isinstance(item, dict)]
+            scope = str(params.get("scope") or "library")
+            intent = params.get("intent")
+            limit = max(1, min(int(params.get("limit") or 6), 8))
+            followups = suggest_followups(
+                question,
+                sentences,
+                passages,  # type: ignore[arg-type]
+                scope=scope,
+                intent=str(intent) if intent else None,
+                limit=limit,
+            )
+            result = {
+                "followups": followups,
+                "count": len(followups),
+                "scope": scope,
+            }
+        elif method == "render_ui_surface":
+            from .ui_html import render_ui_surface
+
+            surface = str(params.get("surface") or params.get("id") or "whats-new")
+            strings_raw = params.get("strings") or {}
+            if strings_raw is not None and not isinstance(strings_raw, dict):
+                raise SidecarError("strings must be an object", code=-32602)
+            docs_topics = params.get("docsTopics") or params.get("docs_topics")
+            docs_groups_raw = params.get("docsGroups") or params.get("docs_groups")
+            docs_groups = None
+            if isinstance(docs_groups_raw, list):
+                parsed_groups: list[tuple[str, list[str]]] = []
+                for entry in docs_groups_raw:
+                    if isinstance(entry, (list, tuple)) and len(entry) >= 2:
+                        parsed_groups.append(
+                            (str(entry[0]), [str(t) for t in entry[1]])
+                        )
+                    elif isinstance(entry, dict):
+                        parsed_groups.append(
+                            (
+                                str(entry.get("id") or ""),
+                                [str(t) for t in (entry.get("topics") or [])],
+                            )
+                        )
+                docs_groups = parsed_groups or None
+            result = render_ui_surface(
+                surface,
+                strings=strings_raw if isinstance(strings_raw, dict) else {},
+                version=str(params.get("version") or "3.5.0"),
+                short_version=str(params.get("shortVersion") or params.get("short_version") or "")
+                or None,
+                recent=params.get("recent") if isinstance(params.get("recent"), list) else None,
+                docs_topics=docs_topics if isinstance(docs_topics, list) else None,
+                docs_groups=docs_groups,
+                full_document=bool(params.get("fullDocument", params.get("full_document", True))),
+                fragment_only=bool(params.get("fragment") or params.get("fragmentOnly")),
+            )
         else:
             return {
                 "jsonrpc": "2.0",

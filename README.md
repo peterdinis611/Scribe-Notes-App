@@ -433,7 +433,7 @@ The SQLite schema is versioned in `src-tauri/src/db/migrations.rs` (and shared h
 
 ## Version
 
-Current version: **3.4.0**
+Current version: **3.5.0**
 
 ## Privacy
 

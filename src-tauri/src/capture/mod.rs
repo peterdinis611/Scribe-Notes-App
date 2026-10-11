@@ -4,6 +4,7 @@ mod html;
 mod server;
 
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::net::TcpListener;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -12,6 +13,10 @@ use tauri::{AppHandle, Emitter, Manager, State};
 use uuid::Uuid;
 
 use crate::db::DbState;
+use crate::security::{
+    log_security, RateLimiter, TokenSession, CAPTURE_IDLE_STOP, CAPTURE_TOKEN_TTL,
+};
+use std::time::Instant;
 use server::handle_connection;
 
 const DEFAULT_PORT: u16 = 17_847;
@@ -24,15 +29,24 @@ pub struct CaptureStatus {
     pub port: Option<u16>,
     pub url: Option<String>,
     pub token: Option<String>,
+    pub token_expires_at: Option<i64>,
     pub lan_ip: Option<String>,
+    pub allow_lan: bool,
     pub inbox_folder_id: Option<String>,
 }
 
 struct CaptureRuntime {
-    token: String,
+    session: Arc<TokenSession>,
+    /// Kept alive for the accept loop (cloned into the worker thread).
+    #[allow(dead_code)]
+    form_nonce: Arc<Mutex<Option<String>>>,
+    /// Cloned into the accept loop for idle auto-stop.
+    #[allow(dead_code)]
+    last_activity: Arc<Mutex<Instant>>,
     port: u16,
     url: String,
     lan_ip: String,
+    allow_lan: bool,
     stop: Arc<AtomicBool>,
     join: Option<JoinHandle<()>>,
 }
@@ -182,8 +196,10 @@ pub fn capture_status(state: State<'_, CaptureServerState>) -> Result<CaptureSta
             running: true,
             port: Some(runtime.port),
             url: Some(runtime.url.clone()),
-            token: Some(runtime.token.clone()),
+            token: Some(runtime.session.token()),
+            token_expires_at: Some(runtime.session.expires_unix()),
             lan_ip: Some(runtime.lan_ip.clone()),
+            allow_lan: runtime.allow_lan,
             inbox_folder_id: None,
         },
         None => CaptureStatus {
@@ -191,7 +207,9 @@ pub fn capture_status(state: State<'_, CaptureServerState>) -> Result<CaptureSta
             port: None,
             url: None,
             token: None,
+            token_expires_at: None,
             lan_ip: detect_lan_ip(),
+            allow_lan: false,
             inbox_folder_id: None,
         },
     })
@@ -202,6 +220,7 @@ pub fn capture_start(
     app: AppHandle,
     state: State<'_, CaptureServerState>,
     db: State<'_, DbState>,
+    allow_lan: Option<bool>,
 ) -> Result<CaptureStatus, String> {
     {
         let guard = state.inner.lock().map_err(|e| e.to_string())?;
@@ -216,35 +235,58 @@ pub fn capture_start(
         let _ = ensure_inbox_folder(&conn)?;
     }
 
+    let allow_lan = allow_lan.unwrap_or(false);
     let token = Uuid::new_v4().to_string().replace('-', "");
-    let listener = TcpListener::bind(("0.0.0.0", DEFAULT_PORT))
-        .or_else(|_| TcpListener::bind(("0.0.0.0", 0)))
+    let session = Arc::new(TokenSession::new(token.clone(), CAPTURE_TOKEN_TTL));
+    let form_nonce = Arc::new(Mutex::new(None::<String>));
+    let last_activity = Arc::new(Mutex::new(Instant::now()));
+    let limiter = Arc::new(RateLimiter::new());
+    let bind_host = if allow_lan { "0.0.0.0" } else { "127.0.0.1" };
+    let listener = TcpListener::bind((bind_host, DEFAULT_PORT))
+        .or_else(|_| TcpListener::bind((bind_host, 0)))
         .map_err(|e| format!("Could not bind capture port: {e}"))?;
     listener
         .set_nonblocking(false)
         .map_err(|e| e.to_string())?;
     let port = listener.local_addr().map_err(|e| e.to_string())?.port();
-    let lan_ip = detect_lan_ip().unwrap_or_else(|| "127.0.0.1".to_string());
-    let url = format!("http://{lan_ip}:{port}/?token={token}");
+    let display_host = if allow_lan {
+        detect_lan_ip().unwrap_or_else(|| "127.0.0.1".to_string())
+    } else {
+        "127.0.0.1".to_string()
+    };
+    // Short-lived session token in the URL hash (not query / Referer).
+    let url = format!("http://{display_host}:{port}/#t={token}");
 
     let stop = Arc::new(AtomicBool::new(false));
     let stop_thread = Arc::clone(&stop);
-    let token_thread = token.clone();
+    let session_thread = Arc::clone(&session);
+    let form_nonce_thread = Arc::clone(&form_nonce);
+    let last_activity_thread = Arc::clone(&last_activity);
+    let limiter_thread = Arc::clone(&limiter);
     let app_thread = app.clone();
 
-    // Accept loop in a dedicated thread. Use a short read timeout via another
-    // thread that connects to unblock accept on stop — simpler: set read timeout
-    // on the listener by using non-blocking + sleep, or just leave until stop
-    // connects. We'll shut down by connecting once after setting the flag.
     let join = std::thread::spawn(move || {
-        listener
-            .set_nonblocking(true)
-            .ok();
+        listener.set_nonblocking(true).ok();
         while !stop_thread.load(Ordering::SeqCst) {
+            if let Ok(last) = last_activity_thread.lock() {
+                if last.elapsed() >= CAPTURE_IDLE_STOP {
+                    log::info!("Capture idle timeout — stopping server");
+                    stop_thread.store(true, Ordering::SeqCst);
+                    break;
+                }
+            }
             match listener.accept() {
-                Ok((stream, _)) => {
+                Ok((stream, peer)) => {
                     let _ = stream.set_nonblocking(false);
-                    handle_connection(stream, &app_thread, &token_thread);
+                    handle_connection(
+                        stream,
+                        Some(peer),
+                        &app_thread,
+                        &session_thread,
+                        &limiter_thread,
+                        &form_nonce_thread,
+                        &last_activity_thread,
+                    );
                 }
                 Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                     std::thread::sleep(std::time::Duration::from_millis(80));
@@ -254,11 +296,30 @@ pub fn capture_start(
         }
     });
 
+    log_security(
+        &app,
+        "capture_start",
+        if allow_lan {
+            "Mobile capture started (LAN)"
+        } else {
+            "Mobile capture started (localhost)"
+        },
+        Some(json!({
+            "port": port,
+            "allowLan": allow_lan,
+            "ttlSec": CAPTURE_TOKEN_TTL.as_secs(),
+        })),
+        "ok",
+    );
+
     let runtime = CaptureRuntime {
-        token: token.clone(),
+        session: Arc::clone(&session),
+        form_nonce,
+        last_activity,
         port,
         url: url.clone(),
-        lan_ip: lan_ip.clone(),
+        lan_ip: display_host.clone(),
+        allow_lan,
         stop,
         join: Some(join),
     };
@@ -271,7 +332,9 @@ pub fn capture_start(
         port: Some(port),
         url: Some(url),
         token: Some(token),
-        lan_ip: Some(lan_ip),
+        token_expires_at: Some(session.expires_unix()),
+        lan_ip: Some(display_host),
+        allow_lan,
         inbox_folder_id: None,
     })
 }
@@ -292,7 +355,9 @@ pub fn capture_stop(state: State<'_, CaptureServerState>) -> Result<CaptureStatu
         port: None,
         url: None,
         token: None,
+        token_expires_at: None,
         lan_ip: detect_lan_ip(),
+        allow_lan: false,
         inbox_folder_id: None,
     })
 }

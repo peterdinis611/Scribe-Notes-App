@@ -36,7 +36,14 @@
     "filter": "Filter",
     "confirm": "Confirm",
     "folder": "Folder",
-    "all": "All"
+    "all": "All",
+    "dismiss": "Dismiss"
+  },
+  "security": {
+    "tokenExpired": "Token expired",
+    "tokenExpiresInHours": "Expires in {{hours}}h {{minutes}}m",
+    "tokenExpiresInMin": "Expires in {{minutes}}m {{seconds}}s",
+    "tokenExpiresInSec": "Expires in {{seconds}}s"
   },
   "nav": {
     "home": "Home",
@@ -56,13 +63,15 @@
     "brandWithEdition": "Scribe {{version}}",
     "eyebrow": "Local document editor · {{version}}",
     "brandTagline": "Write documents locally. Link notes when you need them.",
-    "editionNote": "{{version}} — Local Agent runs tools on this Mac; teach it your preferences.",
+    "editionNote": "{{version}} — Docs field guide, Python UI chrome, and shared surfaces — still fully local.",
     "newDocument": "New document",
     "todayNote": "Today’s note",
     "import": "Import",
     "connectionMap": "Connection map",
     "connectionMapHint": "Notes linked with [[title]]. Useful after you have a few links.",
-    "workflowHint": "New document → [[links]] → export. Open the connection map when you need it.",
+    "openDocs": "Open Docs",
+    "openDocsHint": "Searchable field guide for Scribe {{version}}",
+    "workflowHint": "New document → [[links]] → Docs when you need a map. Export when you’re ready.",
     "stepsLabel": "How to start",
     "stepWrite": "Write a document — template or blank page.",
     "stepLink": "Link notes with [[title]] when it helps.",
@@ -73,12 +82,12 @@
     "emptyStartHint": "Start with a new document or today’s note.",
     "press": {
       "eyebrow": "Grove · Scribe {{version}} · local on this Mac",
-      "brandTagline": "Write in a quiet grove. Notes stay on your disk.",
-      "editionNote": "{{version}} — Organic Grove chrome for deep local writing; Local Agent still runs on this Mac.",
-      "workflowHint": "Blank page → [[links]] → export. Leave advanced tools for later.",
+      "brandTagline": "Write in a quiet grove. Open Docs when you want the map.",
+      "editionNote": "{{version}} — Surfaces edition: in-app Docs, Python HTML chrome, shared UI catalogs.",
+      "workflowHint": "Blank page → [[links]] → Docs or export. Agents stay optional.",
       "recentDocuments": "Recent leaves",
       "noDocuments": "The grove is empty",
-      "noDocumentsHint": "Plant a new document or today’s note. The guide is optional."
+      "noDocumentsHint": "Plant a new document or today’s note. Docs and the demo are optional."
     }
   },
   "demoGuide": {
@@ -237,7 +246,16 @@
     "markdownPlaceholder": "# Heading\n\nWrite in **Markdown** — headings, lists, `code`, tables…",
     "markdownSwitchError": "Could not switch to text mode.",
     "renameTitleHint": "Click to rename",
-    "renameTitleHintDouble": "Double-click to rename"
+    "renameTitleHintDouble": "Double-click to rename",
+    "nlp": {
+      "off": "AI off",
+      "ready": "Index {{count}}",
+      "stale": "Stale {{count}}",
+      "reindex": "Reindex Local AI",
+      "reindexed": "Indexed {{count}} notes",
+      "reindexError": "Reindex failed",
+      "hint": "Local AI index health — click to reindex"
+    }
   },
   "tableOfContents": {
     "title": "Contents",
@@ -488,19 +506,42 @@
     "badge": "What's new in {{version}}",
     "kicker": "Edition notes",
     "title": "Scribe {{version}}",
-    "subtitle": "Specialist agents hand work to peers, digests and recipes run on a schedule, and agent answers can become notes, calendars, or library files — still fully local.",
-    "editionMark": "Agents · handoffs",
+    "subtitle": "A searchable Docs field guide, Python-built UI chrome, and shared catalogs across the app, Local AI, and MCP — still fully local.",
+    "editionMark": "Surfaces · Docs",
     "tagsLabel": "Themes in this release",
     "tags": {
       "agent": "Agent",
       "agents": "Specialists",
       "handoffs": "Handoffs",
       "recipes": "Recipes",
+      "docs": "Docs",
+      "surfaces": "Surfaces",
+      "python": "Python UI",
       "localAi": "Local AI",
       "editor": "Editor",
       "history": "History"
     },
-    "footNote": "Settings → Agent for roles, digests, and teach. Open the Agent panel for handoffs and recipes.",
+    "footNote": "Open Docs from the rail anytime. Local AI → render_ui_surface builds the same chrome in HTML.",
+    "docsFieldGuide": {
+      "title": "Docs field guide",
+      "description": "In-app Docs with sticky outline, search, jump chips, and tips — themed to Grove light and dark."
+    },
+    "pythonUiChrome": {
+      "title": "Python UI chrome",
+      "description": "The python-ui package renders Whats New, Welcome, Docs, and Privacy HTML with the same bridge events as Dioxus."
+    },
+    "sharedUiCatalogs": {
+      "title": "Shared UI catalogs",
+      "description": "Topic ids, theme presets, and manifests stay aligned across Rust scribe-ui, Python, and MCP tools."
+    },
+    "renderUiSurface": {
+      "title": "Render UI surfaces",
+      "description": "Local AI and MCP can call render_ui_surface to produce hostable chrome HTML for agents and tests."
+    },
+    "welcomeSurfaces": {
+      "title": "Welcome · Surfaces",
+      "description": "The home welcome desk highlights Docs and the {{version}} Surfaces edition — start writing, then open the map."
+    },
     "specialistAgents": {
       "title": "Specialist agents",
       "description": "General, Proofreader, Librarian, Meeting scribe, Study coach, and Organizer — each with its own memory partition and recipe set."
@@ -1097,11 +1138,14 @@
       "folderChanged": "Documents folder changed",
       "backupTitle": "Library backup",
       "backupDescription": "Export or import the full archive (.scribe-backup.zip) including SQLite and on-disk files.",
-      "backupDescriptionShort": "Export / import the full archive (.scribe-backup.zip).",
+      "backupDescriptionShort": "Export / import the full archive (.scribe-backup.zip). Optional AES-256 password.",
       "backupExport": "Export",
       "backupExporting": "Exporting…",
       "backupExportDone": "Backup exported",
       "backupExportError": "Backup export failed",
+      "backupExportPasswordTitle": "Encrypt backup?",
+      "backupExportPasswordDescription": "Optional AES-256 password. Leave empty for an unencrypted archive.",
+      "backupExportPasswordPlaceholder": "Password (optional)",
       "backupImport": "Import",
       "backupImporting": "Importing…",
       "backupImportDone": "Backup restored",
@@ -1109,6 +1153,9 @@
       "backupImportConfirmTitle": "Restore backup?",
       "backupImportConfirm": "The current library will be replaced by the archive contents. The existing database is backed up to a .bak file.",
       "backupImportConfirmOk": "Import",
+      "backupImportPasswordTitle": "Backup password",
+      "backupImportPasswordDescription": "Enter the archive password if it was encrypted. Leave empty for unencrypted archives.",
+      "backupImportPasswordPlaceholder": "Password (if encrypted)",
       "autoBackupTitle": "Scheduled backup",
       "autoBackupDescription": "On by default. Writes a .scribe-backup.zip to Documents/Scribe/Backups (keeps the last 14).",
       "autoBackupOn": "On",
@@ -1130,7 +1177,16 @@
       "autoBackupChooseFolder": "Choose…",
       "autoBackupUseDefault": "Use default",
       "autoBackupNow": "Backup now",
-      "autoBackupLast": "Last automatic backup"
+      "autoBackupLast": "Last automatic backup",
+      "autoBackupEncryptTitle": "Encrypt automatic backups",
+      "autoBackupEncryptDescription": "Optional AES-256 password for scheduled archives. Stored in the OS keychain (not in SQLite).",
+      "autoBackupEncryptOn": "Password set",
+      "autoBackupEncryptOff": "Not encrypted",
+      "autoBackupEncryptSet": "Set password",
+      "autoBackupEncryptClear": "Clear password",
+      "autoBackupEncryptPasswordTitle": "Auto-backup password",
+      "autoBackupEncryptPasswordDescription": "Used for AES-256 zip encryption of automatic backups.",
+      "autoBackupEncryptPasswordPlaceholder": "Password"
     },
     "diagnostics": {
       "title": "Diagnostics",
@@ -1227,7 +1283,10 @@
         "installed": "Restricted (installed)",
         "installedTitle": "Installed sandbox",
         "installedBody": "Disk-installed plugins run with a restricted permission set. Raw TipTap extensions are denied until a stronger sandbox ships.",
-        "deniedHint": "Denied by sandbox policy for installed plugins"
+        "deniedHint": "Denied by sandbox policy for installed plugins",
+        "needsGrantHint": "Requires an explicit grant below before the plugin can use this capability",
+        "grantPermission": "Allow {{permission}}",
+        "revokeGrant": "Revoke {{permission}}"
       },
       "logLevels": {
         "all": "All levels",
@@ -1531,7 +1590,24 @@
       "copyError": "Could not copy to clipboard",
       "pathHint": "After npm run mcp:install, point command at target/release/scribe-mcp with an absolute path (see crates/scribe-mcp/README.md).",
       "lockHint": "Write tools need a writable DB open. If Scribe has the database locked, retry create/append shortly or check scribe_status for writable: false.",
-      "localAiLink": "Semantic MCP tools work best with Scribe Local AI →"
+      "localAiLink": "Semantic MCP tools work best with Scribe Local AI →",
+      "writeTitle": "Allow write tools",
+      "writeDescription": "When on, MCP may create or append notes (SCRIBE_MCP_WRITE=1). Prefer off unless you trust the client.",
+      "writeOn": "Writes on",
+      "writeOff": "Read-only",
+      "writeEnabledToast": "MCP writes enabled — copy the config again for Cursor/Claude",
+      "writeDisabledToast": "MCP writes disabled — copy the config again",
+      "scopeTitle": "Vault scope",
+      "scopeDescription": "How MCP treats encrypted vault folders. Copy the config after changing.",
+      "scopeUpdated": "MCP vault scope updated — copy the config again",
+      "scope": {
+        "no-vault": "No vault",
+        "unlocked-vault": "Unlocked vault",
+        "all": "All folders"
+      },
+      "auditTitle": "Audit log",
+      "auditDescription": "MCP and app security events share the local audit log.",
+      "openAudit": "Open audit log"
     },
     "nlp": {
       "title": "Scribe Local AI",
@@ -1598,7 +1674,7 @@
       "statusStaleCount": "Stale records",
       "statusEmbedBackend": "Embedding backend",
       "embedBackendTitle": "Semantic quality",
-      "embedBackendDescription": "Hash is instant. Fast (Model2Vec) is a CPU middle path. Quality (MiniLM/ONNX) is strongest — reindex after switching.",
+      "embedBackendDescription": "Daily: Hash or Fast. Quality only when you need precision (ONNX: pip install -e '.[enhance,onnx]' in nlp/). Reindex after switching. Auto-index waits longer on Quality.",
       "embedBackendInstallHint": "Install: pip install -e '.[enhance,onnx,faiss,fast-embed,lexical]' from nlp/ (add [quality] or [hnsw] as needed)",
       "embedBackendHash": "Hash",
       "embedBackendQuality": "Quality (MiniLM)",
@@ -1614,7 +1690,7 @@
       "embedBackendFast": "Fast (Model2Vec)",
       "fastEnabledToast": "Using Model2Vec fast embeddings — reindex your library",
       "answerBackendTitle": "Ask / answer quality",
-      "answerBackendDescription": "Keep Fast for indexing; Auto uses Quality/ONNX only when answering (query + top passages).",
+      "answerBackendDescription": "Prefer Auto (Quality only on Ask). Use Same as index if the library is already on Quality — avoids a second embed pass.",
       "answerBackendAuto": "Auto (Quality on Ask)",
       "answerBackendIndex": "Same as index",
       "answerBackendQuality": "Always Quality",
@@ -1711,7 +1787,7 @@
       "maxSteps": "Max tool steps",
       "maxStepsHint": "How many Local AI tools one goal may chain (1–3).",
       "preferFast": "Prefer fast tools",
-      "preferFastHint": "Skip heavier tools (related notes, flashcards, writing coach) when lighter ones match.",
+      "preferFastHint": "On by default — skip heavier tools (related notes, flashcards, writing coach) when lighter ones match. Leave Ollama off unless you use it.",
       "preferredTools": "Prefer these tools",
       "disabledTools": "Never run these tools",
       "toolColumn": "Tool",
@@ -1882,13 +1958,15 @@
     },
     "docs": {
       "pageTitle": "Scribe {{version}}",
-      "pageDescription": "How Scribe {{version}} stores, links, and edits documents on your Mac.",
+      "pageDescription": "A field guide to writing, linking, and keeping your library on this Mac — Local AI and agents when you want them.",
       "searchPlaceholder": "Search topics…",
       "onThisPage": "On this page",
       "quickStart": "Jump to",
       "clearSearch": "Clear search",
       "noResults": "No matching topics",
       "noResultsHint": "Try another keyword, or clear the search.",
+      "matchCount": "{{count}} topics match",
+      "matchCount_one": "{{count}} topic matches",
       "tipLabel": "Tip",
       "searchTip": "opens the command palette anywhere in the app.",
       "journalTip": "opens today’s journal note.",
@@ -1905,10 +1983,10 @@
           "summary": "Write documents. Link notes. Stay local.",
           "paragraphs": [
             "Scribe {{version}} is a local document editor for macOS. Write and export on this Mac — your library lives in SQLite, with optional .scribe backups on disk.",
-            "As notes grow, link them with wiki links. Local AI, Revision AI, the connection map, and MCP (Cursor / Claude) are power tools — useful when you need them, not required to start writing."
+            "As notes grow, link them with wiki links. Specialist agents, Local AI, Revision AI, the connection map, and MCP (Cursor / Claude) are power tools — useful when you need them, not required to start writing."
           ],
           "points": [
-            "2.5 highlights — continue writing, smart paste, 3D models, Revision AI, study & style chat actions",
+            "{{version}} highlights — specialist agents, handoffs, digests & recipes, calendar spawn, files ingest",
             "Everything below works offline except optional embeds or MCP hosts you choose to connect"
           ]
         },
@@ -2373,7 +2451,8 @@
       "created": "Created \"{{title}}\" and linked [[{{label}}]]",
       "createAll": "Create all missing ({{count}})",
       "batchCreated": "Created {{count}} missing notes",
-      "createError": "Could not create note for wiki link"
+      "createError": "Could not create note for wiki link",
+      "openSplit": "Open in split"
     },
     "duplicates": {
       "title": "Near-duplicate notes",
@@ -2389,6 +2468,8 @@
     },
     "trash": "Trash",
     "newFolder": "New folder",
+    "newVaultFolder": "New vault folder",
+    "newVaultSubfolder": "New vault subfolder",
     "newSubfolder": "New subfolder",
     "renameFolder": "Rename folder",
     "deleteFolder": "Delete folder",
@@ -2456,7 +2537,8 @@
       "all": "All",
       "unlinked": "No links",
       "untagged": "Untagged",
-      "unread": "Unread"
+      "unread": "Unread",
+      "canvas": "Canvas"
     },
     "bulk": {
       "selected": "{{count}} selected",
@@ -2987,6 +3069,7 @@
       "neighborhood": "Neighborhood",
       "neighborhoodHint": "Nearby linked notes — open the full map for the whole library.",
       "openGraph": "Open connection map",
+      "openSplit": "Open in split",
       "edgeSummary": "{{count}} links in neighborhood"
     },
     "insights": {
@@ -3319,6 +3402,23 @@
     "emptyFilteredTitle": "Nothing matches",
     "emptyFilteredBody": "Try another filter or clear the search.",
     "orphanDocument": "Unknown document",
+    "orphanBadge": "orphan",
+    "filterOrphans": "Orphans ({{count}})",
+    "selectAsset": "Select asset",
+    "deleteTitle": "Delete assets?",
+    "deleteConfirm": "Permanently delete {{count}} file(s) from the library assets folder?",
+    "deleteSelected": "Delete {{count}}",
+    "deleteAllOrphans": "Delete all orphans ({{count}})",
+    "deleted": "Deleted {{count}} asset(s)",
+    "deleteError": "Could not delete asset",
+    "relink": "Find note",
+    "relinkTitle": "Find note to relink",
+    "relinkDescription": "Type a note title. Scribe opens it so you can re-insert the file.",
+    "relinkPlaceholder": "Note title…",
+    "relinkOpen": "Open note",
+    "relinkEmpty": "No notes in the library",
+    "relinkNotFound": "No matching note",
+    "relinkHint": "Opened „{{title}}“ — re-insert {{file}} from Finder if needed",
     "reveal": "Finder",
     "openDocument": "Open note",
     "sidebarHint": "Storage mode is on. Browse every file and image in the main panel.",
@@ -3347,6 +3447,15 @@
       "stopError": "Could not stop Files API",
       "copied": "URL copied",
       "copiedAll": "Endpoint list copied",
+      "copyToken": "Copy bearer token",
+      "copiedToken": "Bearer token copied",
+      "rotateToken": "Rotate token",
+      "refreshToken": "Refresh TTL",
+      "rotated": "Bearer token rotated",
+      "rotateError": "Could not rotate token",
+      "refreshed": "Token TTL refreshed",
+      "refreshError": "Could not refresh token",
+      "expiresAt": "Expires {{time}}",
       "copyError": "Could not copy",
       "openError": "Could not open URL"
     }
@@ -4165,7 +4274,8 @@
     "zoom": "Zoom",
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
-    "moveToFolder": "Move to folder"
+    "moveToFolder": "Move to folder",
+    "graphAround": "Graph around this note"
   },
   "pageStyles": {
     "title": "Page setup",
@@ -4279,7 +4389,8 @@
     "dailyBriefingJournalHint": "Open today’s note from ⌘K → Today, or write below.",
     "dailyBriefingSummaryPlaceholder": "Brief overview of what needs attention today.",
     "dailyBriefingError": "Failed to create daily briefing",
-    "heatWorkflowHint": "Darker days = more consecutive entries. Click a day or use ⌘K for yesterday / tomorrow.",
+    "heatWorkflowHint": "Darker days = more journal notes that day. Click a day or use ⌘K for yesterday / tomorrow.",
+    "heatDayTitle": "{{date}} · {{count}} notes",
     "thisWeek": "This week",
     "folderName": "Journal",
     "todayTitle": "{{date}}",
@@ -4302,6 +4413,7 @@
   },
   "wikiEmbed": {
     "open": "Open document",
+    "openSplit": "Open in split pane",
     "missing": "Document not found — check ![[Title]].",
     "empty": "Empty note"
   },
@@ -4457,9 +4569,10 @@
   },
   "capture": {
     "title": "Mobile capture",
-    "description": "While Scribe is open, start a local capture page on your Wi‑Fi. Scan the QR from your phone and send notes into the Inbox folder — no cloud account.",
-    "lanTitle": "LAN capture server",
-    "lanDescription": "Phone and Mac must be on the same network. The link includes a one-time token.",
+    "description": "While Scribe is open, start a local capture page. Default is localhost only; enable LAN to reach a phone on Wi‑Fi. The token stays out of the query string.",
+    "lanTitle": "Capture server",
+    "lanDescription": "Binds to 127.0.0.1 by default. Opt in to LAN (0.0.0.0) so a phone on the same Wi‑Fi can open the page. POSTs require Authorization: Bearer.",
+    "allowLan": "Allow LAN (Wi‑Fi)",
     "start": "Start capture",
     "starting": "Starting…",
     "stop": "Stop",
@@ -4472,9 +4585,14 @@
     "urlCopyError": "Could not copy URL",
     "qrAlt": "QR code for mobile capture",
     "scanHint": "Scan with your phone camera, then write and send.",
-    "localhostWarning": "Could not detect a LAN IP — phones on Wi‑Fi won’t reach 127.0.0.1. Connect this Mac to Wi‑Fi and restart capture.",
+    "localhostWarning": "Localhost only — phones on Wi‑Fi won’t reach 127.0.0.1. Enable “Allow LAN” and restart capture.",
     "inboxTitle": "Inbox folder",
     "inboxDescription": "Captures create notes in a top-level Inbox folder (or Schránka if it already exists). Triage them later like any other note.",
+    "queueTitle": "Capture inbox",
+    "queueDescription": "Untriaged notes received from the phone QR page. Open to edit, or dismiss when done.",
+    "queueEmpty": "No pending captures.",
+    "queueClear": "Clear inbox",
+    "tokenTtl": "Token expires",
     "noteReceived": "Note from phone"
   },
   "vault": {
@@ -4678,6 +4796,9 @@
     "clearConfirm": "Delete all audit events on this Mac?",
     "clearDone": "Cleared {{count}} events",
     "clearError": "Could not clear audit log",
+    "export": "Export JSON",
+    "exportDone": "Audit events exported",
+    "exportError": "Could not export audit events",
     "empty": "No events yet",
     "lockedEmpty": "Unlock as admin to view events",
     "filterSource": "Source",

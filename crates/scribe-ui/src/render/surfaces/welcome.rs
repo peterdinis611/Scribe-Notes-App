@@ -2,6 +2,9 @@ use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use super::UiSurfaceRequest;
+use crate::components::{
+    FolioKicker, FolioTitle, SuiActions, SuiButton, SuiButtonVariant, SuiPanel,
+};
 use crate::render::i18n::{t, StringMap};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -37,21 +40,26 @@ pub fn welcome_view(props: WelcomeProps) -> Element {
         .replace("{{version}}", &props.short_version);
 
     rsx! {
-        div { class: "sui-panel",
-            p { class: "setup-folio-kicker", "{brand}" }
-            h1 { class: "setup-folio-title", "{t(&props.strings, \"welcome.brand\")}" }
+        SuiPanel {
+            FolioKicker { text: brand }
+            FolioTitle { text: t(&props.strings, "welcome.brand") }
             p { class: "lead", "{t(&props.strings, \"whatsNew.subtitle\")}" }
-            div { class: "sui-actions",
-                button { class: "primary", "data-sui-event": "welcome-new-document",
+            SuiActions {
+                SuiButton {
+                    variant: SuiButtonVariant::Primary,
+                    event: "welcome-new-document",
                     "{t(&props.strings, \"welcome.newDocument\")}"
                 }
-                button { "data-sui-event": "welcome-today",
+                SuiButton {
+                    event: "welcome-today",
                     "{t(&props.strings, \"welcome.todayNote\")}"
                 }
-                button { "data-sui-event": "welcome-import",
+                SuiButton {
+                    event: "welcome-import",
                     "{t(&props.strings, \"common.import\")}"
                 }
-                button { "data-sui-event": "welcome-open-docs",
+                SuiButton {
+                    event: "welcome-open-docs",
                     "{t(&props.strings, \"nav.docs\")}"
                 }
             }
@@ -60,9 +68,9 @@ pub fn welcome_view(props: WelcomeProps) -> Element {
                 ul { class: "sui-recent",
                     for doc in props.recent.iter() {
                         li {
-                            button {
-                                "data-sui-event": "welcome-open-document",
-                                "data-sui-arg": "{doc.id}",
+                            SuiButton {
+                                event: "welcome-open-document",
+                                arg: "{doc.id}",
                                 strong { "{doc.title}" }
                                 span { "{doc.updated_label}" }
                             }

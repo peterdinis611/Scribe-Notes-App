@@ -1,0 +1,28 @@
+# Reviewed path-bearing Tauri commands (scripts/check_tauri_path_commands.py).
+# Only add after PathAccessGate / picker / temp / basename-only review.
+
+# Auto-backup write into resolved/created directory (no arbitrary read).
+backup::export_library_archive_to_dir
+
+# Picker / drag-drop grants + gated FS.
+commands::import_export::grant_dropped_paths
+commands::import_export::read_text_file
+commands::import_export::read_binary_file
+commands::import_export::write_text_file
+commands::import_export::prepare_pages_import
+commands::import_export::cleanup_temp_import_file
+commands::import_export::import_file
+
+# OCR — must validate via PathAccessGate (documents/temp/granted).
+commands::ocr::extract_image_ocr
+commands::ocr::save_document_ocr
+
+# Reveal — PathAccessGate::validate_reveal.
+commands::storage::reveal_in_finder
+
+# Library asset delete — PathAccessGate::validate_read + under documents/assets.
+commands::images::delete_library_asset
+
+# Basename helpers only (no FS I/O).
+commands::ui::import_title_from_path_ui
+commands::ui::is_pages_path_ui

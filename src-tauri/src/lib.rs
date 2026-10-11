@@ -66,6 +66,16 @@ pub fn run() {
         // persisted-scope must come after fs so runtime FS/asset scopes survive restarts
         .plugin(tauri_plugin_persisted_scope::init())
         .plugin(tauri_plugin_opener::init())
+        .on_window_event(|window, event| {
+            use tauri::{DragDropEvent, WindowEvent};
+            if let WindowEvent::DragDrop(DragDropEvent::Drop { paths, .. }) = event {
+                if let Some(gate) = window.try_state::<PathAccessGate>() {
+                    for path in paths {
+                        gate.grant_from_picker(path);
+                    }
+                }
+            }
+        })
         .setup(|app| {
             #[cfg(desktop)]
             {
@@ -293,6 +303,7 @@ pub fn run() {
             commands::audit::audit_admin_change_password,
             commands::audit::list_audit_events,
             commands::audit::clear_audit_events,
+            commands::audit::audit_security_event,
             commands::ui::get_ui_manifest,
             commands::ui::get_app_version_info,
             commands::ui::list_settings_section_ids,
@@ -361,6 +372,26 @@ pub fn run() {
             commands::ui::theme_preset_ids_ui,
             commands::ui::suggest_orphan_links_ui,
             commands::ui::resolve_color_ui,
+            commands::ui::merge_duplicate_content_ui,
+            commands::ui::flatten_library_ui,
+            commands::ui::estimate_flat_item_size_ui,
+            commands::ui::parse_custom_locale_pack_ui,
+            commands::ui::normalize_locale_code_ui,
+            commands::ui::pdf_highlights_to_content_json_ui,
+            commands::ui::map_to_tiptap_highlight_ui,
+            commands::ui::create_custom_template_ui,
+            commands::ui::parse_stored_custom_templates_ui,
+            commands::ui::cards_to_nodes_ui,
+            commands::ui::canvas_edges_to_flow_ui,
+            commands::ui::flow_to_canvas_document_ui,
+            commands::ui::resolve_panel_widths_ui,
+            commands::ui::clamp_toc_rail_width_ui,
+            commands::ui::plan_theme_application_ui,
+            commands::ui::resolve_theme_colors_ui,
+            commands::ui::is_dark_color_ui,
+            commands::ui::build_header_footer_lines_ui,
+            commands::ui::resolve_header_footer_template_ui,
+            commands::ui::format_export_date_ui,
             commands::folders::list_folders,
             commands::folders::create_folder,
             commands::folders::rename_folder,
@@ -430,6 +461,7 @@ pub fn run() {
             commands::nlp::nlp_extract_mentions,
             commands::nlp::nlp_open_loops,
             commands::nlp::nlp_tone_pack,
+            commands::nlp::nlp_render_ui_surface,
             commands::nlp::nlp_files_list,
             commands::nlp::nlp_files_read_text,
             commands::nlp::nlp_files_search,
@@ -473,7 +505,9 @@ pub fn run() {
             commands::storage::reveal_in_finder,
             commands::storage::reveal_documents_directory,
             commands::storage::get_storage_disk_usage,
-            commands::import_export::grant_scoped_path,
+            commands::import_export::pick_and_grant_path,
+            commands::import_export::pick_and_grant_save_path,
+            commands::import_export::grant_dropped_paths,
             commands::import_export::read_text_file,
             commands::import_export::read_binary_file,
             commands::import_export::write_text_file,
@@ -501,6 +535,7 @@ pub fn run() {
             commands::import_export::normalize_clipboard_html,
             commands::images::save_document_image,
             commands::images::list_library_assets,
+            commands::images::delete_library_asset,
             commands::system::get_backend_stats,
             commands::system::flush_pending_writes,
             commands::system::reconcile_storage,
@@ -515,12 +550,15 @@ pub fn run() {
             storage_fs_api::storage_fs_server_status,
             storage_fs_api::storage_fs_server_start,
             storage_fs_api::storage_fs_server_stop,
+            storage_fs_api::storage_fs_server_rotate_token,
+            storage_fs_api::storage_fs_server_refresh_token,
             backup::export_library_archive,
             backup::export_library_archive_to_dir,
             backup::get_default_auto_backup_dir,
             backup::import_library_archive,
             backup::get_auto_backup_config,
             backup::configure_auto_backup,
+            backup::set_auto_backup_password,
             commands::system::set_documents_watch_enabled,
         ])
         .build(tauri::generate_context!())

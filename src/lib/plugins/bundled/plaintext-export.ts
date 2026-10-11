@@ -1,5 +1,5 @@
-import { save } from '@tauri-apps/plugin-dialog'
 import { convertTiptap, writeTextFile } from '@/lib/db/api'
+import { saveScopedFile } from '@/lib/fs/scoped-dialog'
 import { tiptapToPlainText } from '@/lib/export/plain-text'
 import { sanitizeFileName } from '@/lib/filenames'
 import type { PluginModule } from '@/lib/plugins/types'
@@ -55,10 +55,9 @@ export const plaintextExportPlugin: PluginModule = {
         }
 
         try {
-          const path = await save({
+          const path = await saveScopedFile({
             title: 'Export plain text',
             defaultPath: sanitizeFileName(doc.title.trim() || 'document', 'txt'),
-            filters: [{ name: 'Plain text', extensions: ['txt'] }],
           })
           if (!path) return
           await writeTextFile(path, plain)

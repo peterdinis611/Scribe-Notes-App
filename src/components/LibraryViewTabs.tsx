@@ -7,6 +7,7 @@ import {
   GitBranch,
   HardDrive,
   History,
+  MessageSquare,
   Network,
   Star,
   Tag as TagIcon,
@@ -67,6 +68,7 @@ export function LibraryViewTabs({
     { id: 'duplicates', label: t('library.tabs.duplicates'), icon: Copy },
     { id: 'tasks', label: t('library.tabs.tasks'), icon: CheckSquare },
     { id: 'wikiHealth', label: t('library.tabs.wikiHealth'), icon: Network },
+    { id: 'chat', label: t('library.tabs.chat'), icon: MessageSquare },
     { id: 'agent', label: t('library.tabs.agent'), icon: Bot },
   ]
 

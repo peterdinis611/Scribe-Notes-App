@@ -2,6 +2,8 @@ import type { JSONContent } from '@tiptap/core'
 import type { DocumentTemplate } from '@/lib/templates'
 import { isValidCategoryId } from '@/lib/templates/categories'
 
+/** Keep in sync with `crates/scribe-ui/src/custom_templates.rs`. */
+
 export type CustomDocumentTemplate = DocumentTemplate & {
   isCustom: true
   createdAt: number

@@ -36,7 +36,14 @@
     "filter": "Filter",
     "confirm": "Potvrdiť",
     "folder": "Priečinok",
-    "all": "Všetko"
+    "all": "Všetko",
+    "dismiss": "Zahodiť"
+  },
+  "security": {
+    "tokenExpired": "Token vypršal",
+    "tokenExpiresInHours": "Vyprší o {{hours}}h {{minutes}}m",
+    "tokenExpiresInMin": "Vyprší o {{minutes}}m {{seconds}}s",
+    "tokenExpiresInSec": "Vyprší o {{seconds}}s"
   },
   "nav": {
     "home": "Domov",
@@ -56,13 +63,15 @@
     "brandWithEdition": "Scribe {{version}}",
     "eyebrow": "Lokálny editor dokumentov · {{version}}",
     "brandTagline": "Píšte dokumenty lokálne. Prepájajte poznámky, keď ich pribudne.",
-    "editionNote": "{{version}} — Local Agent spúšťa nástroje na tomto Macu; nauč ho svoje preferencie.",
+    "editionNote": "{{version}} — Docs sprievodca, Python UI chrome a zdieľané surfaces — stále lokálne.",
     "newDocument": "Nový dokument",
     "todayNote": "Dnešná poznámka",
     "import": "Importovať",
     "connectionMap": "Mapa prepojení",
     "connectionMapHint": "Poznámky spojené cez [[názov]]. Hodí sa, keď už máte pár odkazov.",
-    "workflowHint": "Nový dokument → [[odkazy]] → export. Mapu prepojení otvoríte, keď ju budete chcieť.",
+    "openDocs": "Otvoriť Docs",
+    "openDocsHint": "Prehľadávateľný sprievodca pre Scribe {{version}}",
+    "workflowHint": "Nový dokument → [[odkazy]] → Docs, keď chceš mapu. Export, keď si pripravený.",
     "stepsLabel": "Ako začať",
     "stepWrite": "Napíšte dokument — šablóna alebo prázdna stránka.",
     "stepLink": "Prepojte poznámky cez [[názov]], keď to dáva zmysel.",
@@ -73,12 +82,12 @@
     "emptyStartHint": "Začnite novým dokumentom alebo dnešnou poznámkou.",
     "press": {
       "eyebrow": "Grove · Scribe {{version}} · lokálne na tomto Macu",
-      "brandTagline": "Píšte v tichom háji. Poznámky ostávajú na disku.",
-      "editionNote": "{{version}} — Organický Grove chrome pre sústredené písanie; Local Agent beží na tomto Macu.",
-      "workflowHint": "Nová stránka → [[odkazy]] → export. Pokročilé nástroje nechajte na neskôr.",
+      "brandTagline": "Píšte v tichom háji. Docs otvor, keď chceš mapu.",
+      "editionNote": "{{version}} — Surfaces: Docs v appke, Python HTML chrome, zdieľané UI katalógy.",
+      "workflowHint": "Nová stránka → [[odkazy]] → Docs alebo export. Agenti ostávajú voliteľní.",
       "recentDocuments": "Nedávne listy",
       "noDocuments": "Háj je prázdny",
-      "noDocumentsHint": "Zasaďte nový dokument alebo otvorte dnešnú poznámku. Sprievodca je voliteľný."
+      "noDocumentsHint": "Zasaďte nový dokument alebo otvorte dnešnú poznámku. Docs a ukážka sú voliteľné."
     }
   },
   "demoGuide": {
@@ -237,7 +246,16 @@
     "markdownPlaceholder": "# Nadpis\n\nPíšte v **Markdown** — nadpisy, zoznamy, `kód`, tabuľky…",
     "markdownSwitchError": "Nepodarilo sa prepnúť do textového režimu.",
     "renameTitleHint": "Kliknite pre premenovanie",
-    "renameTitleHintDouble": "Dvojklik pre premenovanie"
+    "renameTitleHintDouble": "Dvojklik pre premenovanie",
+    "nlp": {
+      "off": "AI vypnutá",
+      "ready": "Index {{count}}",
+      "stale": "Zastaralé {{count}}",
+      "reindex": "Preindexovať Lokálnu AI",
+      "reindexed": "Indexovaných {{count}} poznámok",
+      "reindexError": "Preindexovanie zlyhalo",
+      "hint": "Stav indexu Lokálnej AI — kliknite pre preindexovanie"
+    }
   },
   "tableOfContents": {
     "title": "Obsah",
@@ -488,19 +506,42 @@
     "badge": "Novinky {{version}}",
     "kicker": "Poznámky k vydaniu",
     "title": "Scribe {{version}}",
-    "subtitle": "Špecializovaní agenti si odovzdávajú prácu, digesty a recepty bežia podľa rozvrhu a odpovede sa dajú premeniť na poznámku, kalendár alebo súbory v knižnici — stále lokálne.",
-    "editionMark": "Agenti · handoffs",
+    "subtitle": "Prehľadávateľný Docs sprievodca, Python UI chrome a zdieľané katalógy naprieč appkou, Lokálnou AI a MCP — stále lokálne.",
+    "editionMark": "Surfaces · Docs",
     "tagsLabel": "Témy tohto vydania",
     "tags": {
       "agent": "Agent",
       "agents": "Špecialisti",
       "handoffs": "Handoffs",
       "recipes": "Recepty",
+      "docs": "Docs",
+      "surfaces": "Surfaces",
+      "python": "Python UI",
       "localAi": "Lokálna AI",
       "editor": "Editor",
       "history": "História"
     },
-    "footNote": "Nastavenia → Agent pre role, digesty a učenie. Panel Agent na handoffs a recepty.",
+    "footNote": "Docs otvoríš kedykoľvek z railu. Lokálna AI → render_ui_surface vygeneruje rovnaký chrome v HTML.",
+    "docsFieldGuide": {
+      "title": "Docs sprievodca",
+      "description": "Docs v appke so sticky outline, hľadaním, jump chipmi a tipmi — vo farbe Grove light aj dark."
+    },
+    "pythonUiChrome": {
+      "title": "Python UI chrome",
+      "description": "Balík python-ui renderuje Whats New, Welcome, Docs a Privacy HTML s rovnakými bridge eventmi ako Dioxus."
+    },
+    "sharedUiCatalogs": {
+      "title": "Zdieľané UI katalógy",
+      "description": "Topic id, theme preset a manifesy ostávajú zosúladené naprieč Rust scribe-ui, Pythonom a MCP nástrojmi."
+    },
+    "renderUiSurface": {
+      "title": "Render UI surfaces",
+      "description": "Lokálna AI a MCP môžu volať render_ui_surface a dostať hostiteľné chrome HTML pre agentov a testy."
+    },
+    "welcomeSurfaces": {
+      "title": "Welcome · Surfaces",
+      "description": "Úvodná obrazovka zvýrazní Docs a Surfaces edíciu {{version}} — najprv píš, potom otvor mapu."
+    },
     "specialistAgents": {
       "title": "Špecializovaní agenti",
       "description": "General, Proofreader, Librarian, Meeting scribe, Study coach a Organizer — každý so svojou pamäťou a sadou receptov."
@@ -1097,11 +1138,14 @@
       "folderChanged": "Priečinok dokumentov zmenený",
       "backupTitle": "Záloha knižnice",
       "backupDescription": "Export alebo import celého archívu (.scribe-backup.zip) vrátane SQLite a súborov na disku.",
-      "backupDescriptionShort": "Export / import celého archívu (.scribe-backup.zip).",
+      "backupDescriptionShort": "Export / import celého archívu (.scribe-backup.zip). Voliteľné AES-256 heslo.",
       "backupExport": "Exportovať",
       "backupExporting": "Exportujem…",
       "backupExportDone": "Záloha exportovaná",
       "backupExportError": "Export zálohy zlyhal",
+      "backupExportPasswordTitle": "Šifrovať zálohu?",
+      "backupExportPasswordDescription": "Voliteľné AES-256 heslo. Prázdne = nešifrovaný archív.",
+      "backupExportPasswordPlaceholder": "Heslo (voliteľné)",
       "backupImport": "Importovať",
       "backupImporting": "Importujem…",
       "backupImportDone": "Záloha obnovená",
@@ -1109,6 +1153,9 @@
       "backupImportConfirmTitle": "Obnoviť zálohu?",
       "backupImportConfirm": "Aktuálna knižnica bude nahradená obsahom archívu. Existujúca databáza sa zálohuje do .bak súboru.",
       "backupImportConfirmOk": "Importovať",
+      "backupImportPasswordTitle": "Heslo zálohy",
+      "backupImportPasswordDescription": "Zadajte heslo archívu, ak bol šifrovaný. Prázdne pre nešifrované archívy.",
+      "backupImportPasswordPlaceholder": "Heslo (ak je šifrované)",
       "autoBackupTitle": "Plánovaná záloha",
       "autoBackupDescription": "Zapnuté predvolene. Ukladá .scribe-backup.zip do Documents/Scribe/Backups (ponechá posledných 14).",
       "autoBackupOn": "Zapnuté",
@@ -1130,7 +1177,16 @@
       "autoBackupChooseFolder": "Vybrať…",
       "autoBackupUseDefault": "Použiť predvolený",
       "autoBackupNow": "Zálohovať teraz",
-      "autoBackupLast": "Posledná automatická záloha"
+      "autoBackupLast": "Posledná automatická záloha",
+      "autoBackupEncryptTitle": "Šifrovať automatické zálohy",
+      "autoBackupEncryptDescription": "Voliteľné AES-256 heslo pre plánované archívy. Uložené v OS keychain (nie v SQLite).",
+      "autoBackupEncryptOn": "Heslo nastavené",
+      "autoBackupEncryptOff": "Nešifrované",
+      "autoBackupEncryptSet": "Nastaviť heslo",
+      "autoBackupEncryptClear": "Vymazať heslo",
+      "autoBackupEncryptPasswordTitle": "Heslo automatickej zálohy",
+      "autoBackupEncryptPasswordDescription": "Použije sa na AES-256 šifrovanie zip archívov automatickej zálohy.",
+      "autoBackupEncryptPasswordPlaceholder": "Heslo"
     },
     "diagnostics": {
       "title": "Diagnostika",
@@ -1227,7 +1283,10 @@
         "installed": "Obmedzené (installed)",
         "installedTitle": "Installed sandbox",
         "installedBody": "Pluginy z disku bežia s obmedzenými oprávneniami. Raw TipTap extensions sú zablokované, kým nepríde silnejší sandbox.",
-        "deniedHint": "Zamietnuté sandbox politikou pre installed pluginy"
+        "deniedHint": "Zamietnuté sandbox politikou pre installed pluginy",
+        "needsGrantHint": "Vyžaduje explicitný grant nižšie pred použitím tejto schopnosti",
+        "grantPermission": "Povoliť {{permission}}",
+        "revokeGrant": "Odvolať {{permission}}"
       },
       "logLevels": {
         "all": "Všetky úrovne",
@@ -1531,7 +1590,24 @@
       "copyError": "Nepodarilo sa skopírovať do schránky",
       "pathHint": "Po npm run mcp:install použite absolútnu cestu k target/release/scribe-mcp (pozri crates/scribe-mcp/README.md).",
       "lockHint": "Nástroje na zápis potrebujú writable DB. Ak Scribe drží zámok, skúste create/append znova o chvíľu alebo skontrolujte scribe_status (writable: false).",
-      "localAiLink": "Sémantické MCP nástroje fungujú najlepšie so Scribe Lokálnou AI →"
+      "localAiLink": "Sémantické MCP nástroje fungujú najlepšie so Scribe Lokálnou AI →",
+      "writeTitle": "Povoliť zápis",
+      "writeDescription": "Keď je zapnuté, MCP môže vytvárať alebo dopĺňať poznámky (SCRIBE_MCP_WRITE=1). Nechajte vypnuté, kým klientovi nedôverujete.",
+      "writeOn": "Zápis zapnutý",
+      "writeOff": "Len čítanie",
+      "writeEnabledToast": "MCP zápis zapnutý — skopírujte config znova do Cursor/Claude",
+      "writeDisabledToast": "MCP zápis vypnutý — skopírujte config znova",
+      "scopeTitle": "Rozsah trezoru",
+      "scopeDescription": "Ako MCP pracuje so šifrovanými trezormi. Po zmene skopírujte config.",
+      "scopeUpdated": "Rozsah trezoru aktualizovaný — skopírujte config znova",
+      "scope": {
+        "no-vault": "Bez trezoru",
+        "unlocked-vault": "Odomknutý trezor",
+        "all": "Všetky priečinky"
+      },
+      "auditTitle": "Audit log",
+      "auditDescription": "MCP a app security eventy zdieľajú lokálny audit log.",
+      "openAudit": "Otvoriť audit log"
     },
     "nlp": {
       "title": "Scribe Lokálna AI",
@@ -1598,7 +1674,7 @@
       "statusStaleCount": "Zastarané záznamy",
       "statusEmbedBackend": "Spôsob vektorov",
       "embedBackendTitle": "Kvalita sémantiky",
-      "embedBackendDescription": "Hash je okamžitý. Fast (Model2Vec) je stredná CPU cesta. Quality (MiniLM/ONNX) je najsilnejšia — po prepnutí preindexuj.",
+      "embedBackendDescription": "Denne: Hash alebo Fast. Quality len pri potrebe presnosti (ONNX: pip install -e '.[enhance,onnx]' v nlp/). Po zmene preindexuj. Auto-index pri Quality čaká dlhšie.",
       "embedBackendInstallHint": "Inštalácia: pip install -e '.[enhance,onnx,faiss,fast-embed,lexical]' z nlp/ (podľa potreby [quality] alebo [hnsw])",
       "embedBackendHash": "Hash",
       "embedBackendQuality": "Quality (MiniLM)",
@@ -1614,7 +1690,7 @@
       "embedBackendFast": "Fast (Model2Vec)",
       "fastEnabledToast": "Používajú sa Model2Vec fast embeddingy — preindexuj knižnicu",
       "answerBackendTitle": "Kvalita Ask / odpovede",
-      "answerBackendDescription": "Fast nechaj na index; Auto použije Quality/ONNX len pri odpovedi (query + top passáže).",
+      "answerBackendDescription": "Preferuj Auto (Quality len pri Ask). Same as index, ak už knižnica beží na Quality — bez druhého embedu.",
       "answerBackendAuto": "Auto (Quality pri Ask)",
       "answerBackendIndex": "Rovnaké ako index",
       "answerBackendQuality": "Vždy Quality",
@@ -1711,7 +1787,7 @@
       "maxSteps": "Max. krokov nástrojov",
       "maxStepsHint": "Koľko Local AI nástrojov môže jeden cieľ spojiť (1–3).",
       "preferFast": "Preferovať rýchle nástroje",
-      "preferFastHint": "Preskočiť ťažšie nástroje (súvisiace, kartičky, writing coach), keď stačia ľahšie.",
+      "preferFastHint": "Predvolene zapnuté — preskočí ťažšie nástroje (súvisiace, kartičky, writing coach), keď stačia ľahšie. Ollama nechaj vypnutú, ak ju nepoužívaš.",
       "preferredTools": "Preferovať tieto nástroje",
       "disabledTools": "Nikdy nespúšťať tieto nástroje",
       "toolColumn": "Nástroj",
@@ -1882,13 +1958,15 @@
     },
     "docs": {
       "pageTitle": "Scribe {{version}}",
-      "pageDescription": "Ako Scribe {{version}} ukladá, prepojuje a upravuje dokumenty na Macu.",
+      "pageDescription": "Sprievodca písaním, prepojením a knižnicou na tomto Macu — Lokálna AI a agenti, keď ich chceš.",
       "searchPlaceholder": "Hľadať témy…",
       "onThisPage": "Na tejto stránke",
       "quickStart": "Prejsť na",
       "clearSearch": "Vymazať hľadanie",
       "noResults": "Žiadne zodpovedajúce témy",
       "noResultsHint": "Skúste iné kľúčové slovo alebo vymažte hľadanie.",
+      "matchCount": "{{count}} tém sedí",
+      "matchCount_one": "{{count}} téma sedí",
       "tipLabel": "Tip",
       "searchTip": "otvorí príkazovú paletu kdekoľvek v aplikácii.",
       "localAiTip": "v scope Všetko kombinuje fulltext a sémantiku, ak je Lokálna AI zapnutá.",
@@ -1909,10 +1987,10 @@
           "summary": "Píšte dokumenty. Prepájajte poznámky. Ostávajte lokálne.",
           "paragraphs": [
             "Scribe {{version}} je lokálny editor dokumentov pre macOS. Píšte a exportujte súbory na tomto Macu — knižnica žije v SQLite, s voliteľnými .scribe zálohmi na disku.",
-            "Keď poznámok pribudne, prepájajte ich wiki odkazmi. Lokálna AI, Revision AI, mapa prepojení a MCP (Cursor / Claude) sú pokročilé nástroje — užitočné, keď ich potrebujete, nie povinný štart."
+            "Keď poznámok pribudne, prepájajte ich wiki odkazmi. Špecializovaní agenti, Lokálna AI, Revision AI, mapa prepojení a MCP (Cursor / Claude) sú pokročilé nástroje — užitočné, keď ich potrebujete, nie povinný štart."
           ],
           "points": [
-            "Novinky 2.5 — pokračovanie textu, smart paste, 3D modely, Revision AI, študijné a štýlové akcie v chate",
+            "Novinky {{version}} — špecialisti, handoffy, digesty a recepty, kalendár spawn, súbory ingest",
             "Všetko nižšie funguje offline okrem voliteľných embedov alebo MCP hostiteľov, ktoré sami pripojíte"
           ]
         },
@@ -2375,7 +2453,8 @@
       "created": "Vytvorené „{{title}}“ a prepojené [[{{label}}]]",
       "createAll": "Vytvoriť všetky chýbajúce ({{count}})",
       "batchCreated": "Vytvorených {{count}} chýbajúcich poznámok",
-      "createError": "Poznámku pre wiki odkaz sa nepodarilo vytvoriť"
+      "createError": "Poznámku pre wiki odkaz sa nepodarilo vytvoriť",
+      "openSplit": "Otvoriť v splite"
     },
     "duplicates": {
       "title": "Takmer rovnaké poznámky",
@@ -2391,6 +2470,8 @@
     },
     "trash": "Kôš",
     "newFolder": "Nový priečinok",
+    "newVaultFolder": "Nový trezorový priečinok",
+    "newVaultSubfolder": "Nový trezorový podpriečinok",
     "newSubfolder": "Nový podpriečinok",
     "renameFolder": "Premenovať priečinok",
     "deleteFolder": "Vymazať priečinok",
@@ -2460,7 +2541,8 @@
       "all": "Všetko",
       "unlinked": "Bez odkazov",
       "untagged": "Bez štítkov",
-      "unread": "Neprečítané"
+      "unread": "Neprečítané",
+      "canvas": "Canvas"
     },
     "bulk": {
       "selected": "{{count}} vybraných",
@@ -2995,6 +3077,7 @@
       "neighborhood": "Okolo",
       "neighborhoodHint": "Blízke prepojené poznámky — celú knižnicu uvidíte na mape.",
       "openGraph": "Otvoriť mapu prepojení",
+      "openSplit": "Otvoriť v splite",
       "edgeSummary": "{{count}} odkazov v okolí"
     },
     "insights": {
@@ -3327,6 +3410,23 @@
     "emptyFilteredTitle": "Nič nevyhovuje",
     "emptyFilteredBody": "Skús iný filter alebo vymaž hľadanie.",
     "orphanDocument": "Neznámy dokument",
+    "orphanBadge": "osirolený",
+    "filterOrphans": "Osirolené ({{count}})",
+    "selectAsset": "Vybrať súbor",
+    "deleteTitle": "Vymazať súbory?",
+    "deleteConfirm": "Natrvalo vymazať {{count}} súbor(ov) z priečinka assets?",
+    "deleteSelected": "Vymazať {{count}}",
+    "deleteAllOrphans": "Vymazať všetky osirolené ({{count}})",
+    "deleted": "Vymazaných {{count}} súbor(ov)",
+    "deleteError": "Súbor sa nepodarilo vymazať",
+    "relink": "Nájsť poznámku",
+    "relinkTitle": "Nájsť poznámku na prepojenie",
+    "relinkDescription": "Napíšte názov poznámky. Scribe ju otvorí, aby ste mohli súbor znova vložiť.",
+    "relinkPlaceholder": "Názov poznámky…",
+    "relinkOpen": "Otvoriť poznámku",
+    "relinkEmpty": "V knižnici nie sú poznámky",
+    "relinkNotFound": "Žiadna zodpovedajúca poznámka",
+    "relinkHint": "Otvorené „{{title}}“ — vložte {{file}} znova z Findera, ak treba",
     "reveal": "Finder",
     "openDocument": "Otvoriť poznámku",
     "sidebarHint": "Storage mode je zapnutý. Prehliadaj súbory a obrázky v hlavnom paneli.",
@@ -3355,6 +3455,15 @@
       "stopError": "Files API sa nepodarilo zastaviť",
       "copied": "URL skopírované",
       "copiedAll": "Zoznam endpointov skopírovaný",
+      "copyToken": "Kopírovať bearer token",
+      "copiedToken": "Bearer token skopírovaný",
+      "rotateToken": "Rotovať token",
+      "refreshToken": "Obnoviť TTL",
+      "rotated": "Bearer token rotovaný",
+      "rotateError": "Nepodarilo sa rotovať token",
+      "refreshed": "TTL tokenu obnovené",
+      "refreshError": "Nepodarilo sa obnoviť token",
+      "expiresAt": "Vyprší {{time}}",
       "copyError": "Nepodarilo sa skopírovať",
       "openError": "URL sa nepodarilo otvoriť"
     }
@@ -4181,7 +4290,8 @@
     "zoom": "Mierka",
     "zoomIn": "Priblížiť",
     "zoomOut": "Oddialiť",
-    "moveToFolder": "Presunúť do priečinka"
+    "moveToFolder": "Presunúť do priečinka",
+    "graphAround": "Graf okolo tejto poznámky"
   },
   "pageStyles": {
     "title": "Nastavenie stránky",
@@ -4295,7 +4405,8 @@
     "dailyBriefingJournalHint": "Dnešnú poznámku otvoríte cez ⌘K → Dnes, alebo píšte nižšie.",
     "dailyBriefingSummaryPlaceholder": "Krátky prehľad toho, čo dnes treba vyriešiť.",
     "dailyBriefingError": "Nepodarilo sa vytvoriť denný briefing",
-    "heatWorkflowHint": "Tmavšie dni = viac zápisov v rade. Kliknite na deň alebo použite ⌘K pre včera / zajtra.",
+    "heatWorkflowHint": "Tmavšie dni = viac denníkových poznámok v daný deň. Kliknite na deň alebo použite ⌘K pre včera / zajtra.",
+    "heatDayTitle": "{{date}} · {{count}} poznámok",
     "thisWeek": "Tento týždeň",
     "folderName": "Denník",
     "todayTitle": "{{date}}",
@@ -4318,6 +4429,7 @@
   },
   "wikiEmbed": {
     "open": "Otvoriť dokument",
+    "openSplit": "Otvoriť v split paneli",
     "missing": "Dokument sa nenašiel — skontrolujte ![[Názov]].",
     "empty": "Prázdna poznámka"
   },
@@ -4473,9 +4585,10 @@
   },
   "capture": {
     "title": "Mobilný zápis",
-    "description": "Kým beží Scribe, spustite lokálnu stránku pre zápis vo Wi‑Fi. Naskenujte QR telefónom a pošlite poznámky do priečinka Inbox — bez cloudového účtu.",
-    "lanTitle": "Server pre mobilný zápis",
-    "lanDescription": "Telefón a Mac musia byť v rovnakej sieti. Odkaz obsahuje jednorazový token.",
+    "description": "Kým beží Scribe, spustite lokálnu stránku pre zápis. Predvolene len localhost; LAN zapnite pre telefón na Wi‑Fi. Token nie je v query reťazci.",
+    "lanTitle": "Server pre zápis",
+    "lanDescription": "Predvolene 127.0.0.1. Zapnite LAN (0.0.0.0), aby telefón na Wi‑Fi otvoril stránku. POST vyžaduje Authorization: Bearer.",
+    "allowLan": "Povoliť LAN (Wi‑Fi)",
     "start": "Spustiť zápis",
     "starting": "Spúšťam…",
     "stop": "Zastaviť",
@@ -4488,9 +4601,14 @@
     "urlCopyError": "Nepodarilo sa skopírovať URL",
     "qrAlt": "QR kód pre mobilný zápis",
     "scanHint": "Naskenujte kamerou telefónu, napíšte a odošlite.",
-    "localhostWarning": "Nepodarilo sa zistiť sieťovú IP — telefón na Wi‑Fi nedosiahne 127.0.0.1. Pripojte Mac na Wi‑Fi a spustite zápis znova.",
+    "localhostWarning": "Len localhost — telefón na Wi‑Fi nedosiahne 127.0.0.1. Zapnite „Povoliť LAN“ a spustite zápis znova.",
     "inboxTitle": "Priečinok Inbox",
     "inboxDescription": "Zápisy vytvárajú poznámky v priečinku Inbox (alebo Schránka, ak už existuje). Potom ich triedením spracujete ako bežné poznámky.",
+    "queueTitle": "Fronta zápisov",
+    "queueDescription": "Nezaradené poznámky z QR stránky telefónu. Otvorte na úpravu, alebo zahodte po spracovaní.",
+    "queueEmpty": "Žiadne čakajúce zápisy.",
+    "queueClear": "Vyprázdniť frontu",
+    "tokenTtl": "Token vyprší",
     "noteReceived": "Poznámka z telefónu"
   },
   "vault": {
@@ -4694,6 +4812,9 @@
     "clearConfirm": "Vymazať všetky audit udalosti na tomto Macu?",
     "clearDone": "Vymazaných {{count}} udalostí",
     "clearError": "Nepodarilo sa vymazať audit log",
+    "export": "Exportovať JSON",
+    "exportDone": "Audit udalosti exportované",
+    "exportError": "Nepodarilo sa exportovať audit",
     "empty": "Zatiaľ žiadne udalosti",
     "lockedEmpty": "Odomkni ako admin na zobrazenie udalostí",
     "filterSource": "Zdroj",

@@ -5,7 +5,7 @@ import { setLibrarySmartFilter } from '@/store/documentsSlice'
 import type { LibrarySmartFilter } from '@/lib/library/smart-filters'
 import { cn } from '@/lib/utils'
 
-const FILTERS: LibrarySmartFilter[] = ['none', 'unlinked', 'untagged', 'unread']
+const FILTERS: LibrarySmartFilter[] = ['none', 'unlinked', 'untagged', 'unread', 'canvas']
 
 export function LibrarySmartFilters() {
   const { t } = useTranslation()
@@ -19,6 +19,7 @@ export function LibrarySmartFilters() {
         unlinked: t('library.smartFilters.unlinked'),
         untagged: t('library.smartFilters.untagged'),
         unread: t('library.smartFilters.unread'),
+        canvas: t('library.smartFilters.canvas'),
       }) satisfies Record<LibrarySmartFilter, string>,
     [t],
   )

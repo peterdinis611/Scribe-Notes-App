@@ -11,6 +11,30 @@ async function bootstrap() {
   }
 
   await hydrateKvStore()
+  void import('@/lib/vault/session').then(({ installVaultAutoLock }) => {
+    installVaultAutoLock()
+  })
+  // CSP regression signal (debug builds / DevTools).
+  window.addEventListener('securitypolicyviolation', (event) => {
+    const detail = {
+      violatedDirective: event.violatedDirective,
+      blockedURI: event.blockedURI,
+      effectiveDirective: event.effectiveDirective,
+      disposition: event.disposition,
+    }
+    if (isFrontendDebug()) {
+      feDebug('csp:violation', detail)
+    }
+    void import('@/lib/tauri').then(({ invoke, isTauriRuntime }) => {
+      if (!isTauriRuntime()) return
+      void invoke('audit_security_event', {
+        action: 'csp_violation',
+        summary: `CSP blocked ${event.violatedDirective}`,
+        detail,
+        outcome: 'denied',
+      }).catch(() => {})
+    })
+  })
   const { ensureAllCustomFontsLoaded } = await import('@/lib/editor/custom-fonts')
   void ensureAllCustomFontsLoaded()
 

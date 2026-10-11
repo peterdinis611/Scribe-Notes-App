@@ -1,5 +1,6 @@
 import { createFolder, type Folder } from '@/lib/db/api'
 import { promptInput } from '@/lib/input-dialog'
+import { createVaultVerifier } from '@/lib/vault/crypto'
 import { toast } from '@/lib/toast'
 import type { AppDispatch } from '@/store/index'
 import { setLibraryView } from '@/store/documentsSlice'
@@ -73,6 +74,64 @@ export async function promptAndCreateFolder({
       isVault ? t('toasts.vaultFolderCreated') : t('toasts.folderCreated'),
       folder.name,
     )
+    return folder
+  } catch (error) {
+    toast.error(t('toasts.folderCreateError'), String(error))
+    return null
+  }
+}
+
+/** Wizard: name → password → confirm → encrypted vault folder. */
+export async function promptAndCreateVaultFolder({
+  t,
+  dispatch,
+  parentId = null,
+}: {
+  t: Translate
+  dispatch: AppDispatch
+  parentId?: string | null
+}): Promise<Folder | null> {
+  const name = await promptInput({
+    title: parentId ? t('library.newVaultSubfolder') : t('library.newVaultFolder'),
+    description: t('vault.createConfirm'),
+    placeholder: t('library.folderNamePlaceholder'),
+    confirmLabel: t('common.next'),
+  })
+  if (!name) return null
+
+  const password = await promptInput({
+    title: t('vault.setPasswordTitle'),
+    description: t('vault.setPasswordDescription'),
+    placeholder: t('vault.passwordPlaceholder'),
+    password: true,
+    confirmLabel: t('common.next'),
+  })
+  if (!password) return null
+  if (password.trim().length < 4) {
+    toast.error(t('vault.passwordTooShort'))
+    return null
+  }
+
+  const confirm = await promptInput({
+    title: t('vault.doc.confirmTitle'),
+    description: t('vault.doc.confirmDescription'),
+    placeholder: t('vault.passwordPlaceholder'),
+    password: true,
+    confirmLabel: t('vault.createOk'),
+  })
+  if (confirm === null) return null
+  if (confirm !== password) {
+    toast.error(t('vault.doc.passwordMismatch'))
+    return null
+  }
+
+  try {
+    const vaultVerifier = await createVaultVerifier(password)
+    const folder = await createLibraryFolder(
+      { name, parentId, isVault: true, vaultVerifier },
+      dispatch,
+    )
+    toast.success(t('toasts.vaultFolderCreated'), folder.name)
     return folder
   } catch (error) {
     toast.error(t('toasts.folderCreateError'), String(error))

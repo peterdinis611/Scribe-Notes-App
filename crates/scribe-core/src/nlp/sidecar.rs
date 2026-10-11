@@ -1185,6 +1185,11 @@ impl NlpSidecar {
         self.call_method("tone_pack", json!({ "text": text }))
     }
 
+    /// Render chrome HTML via `python-ui` (`render_ui_surface` RPC).
+    pub fn render_ui_surface(&self, params: Value) -> Result<Value, String> {
+        self.call_method("render_ui_surface", params)
+    }
+
     pub fn agent_document_brief(
         &self,
         text: &str,
@@ -1312,24 +1317,57 @@ fn spawn_sidecar(script_path: &Path, python_bin: &str) -> Result<(SidecarProcess
         ));
     }
 
-    let mut child = Command::new(python_bin)
-        .arg(script_path)
+    // Sandbox-ish spawn: clear inherited env, pass only what NLP needs.
+    let debug = std::env::var("SCRIBE_NLP_DEBUG").unwrap_or_else(|_| {
+        match std::env::var("SCRIBE_DEBUG").as_deref() {
+            Ok("1" | "true" | "yes" | "on" | "debug") => "1".to_string(),
+            _ => "0".to_string(),
+        }
+    });
+    let script_dir = script_path
+        .parent()
+        .unwrap_or_else(|| Path::new("."))
+        .to_path_buf();
+    let path_env = std::env::var("PATH").unwrap_or_default();
+    let pythonpath = std::env::var("PYTHONPATH").unwrap_or_else(|_| {
+        // Prefer repo `nlp/` next to the script when unset.
+        script_dir
+            .parent()
+            .map(|p| p.to_string_lossy().into_owned())
+            .unwrap_or_default()
+    });
+    let home = std::env::var("HOME").ok();
+    let tmpdir = std::env::var("TMPDIR")
+        .or_else(|_| std::env::var("TMP"))
+        .or_else(|_| std::env::var("TEMP"))
+        .unwrap_or_else(|_| std::env::temp_dir().to_string_lossy().into_owned());
+
+    let mut cmd = Command::new(python_bin);
+    cmd.arg(script_path)
+        .current_dir(&script_dir)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::inherit())
-        .env(
-            "SCRIBE_NLP_DEBUG",
-            std::env::var("SCRIBE_NLP_DEBUG").unwrap_or_else(|_| {
-                match std::env::var("SCRIBE_DEBUG").as_deref() {
-                    Ok("1" | "true" | "yes" | "on" | "debug") => "1".to_string(),
-                    _ => "0".to_string(),
-                }
-            }),
-        )
-        .spawn()
-        .map_err(|error| {
-            format!("Failed to start Python sidecar ({python_bin}): {error}")
-        })?;
+        .env_clear()
+        .env("PATH", path_env)
+        .env("PYTHONPATH", pythonpath)
+        .env("PYTHONNOUSERSITE", "1")
+        .env("PYTHONDONTWRITEBYTECODE", "1")
+        .env("TMPDIR", &tmpdir)
+        .env("TMP", &tmpdir)
+        .env("TEMP", &tmpdir)
+        .env("SCRIBE_NLP_DEBUG", debug)
+        .env("SCRIBE_NLP_SANDBOX", "1");
+    if let Some(home) = home {
+        cmd.env("HOME", home);
+    }
+    // HuggingFace / sentence-transformers cache under temp when sandboxing.
+    cmd.env("HF_HOME", format!("{tmpdir}/scribe-nlp-hf"));
+    cmd.env("TRANSFORMERS_CACHE", format!("{tmpdir}/scribe-nlp-hf"));
+
+    let mut child = cmd.spawn().map_err(|error| {
+        format!("Failed to start Python sidecar ({python_bin}): {error}")
+    })?;
 
     let stdin = child.stdin.take().ok_or("Missing sidecar stdin")?;
     let stdout = child.stdout.take().ok_or("Missing sidecar stdout")?;

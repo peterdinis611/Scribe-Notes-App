@@ -1,4 +1,5 @@
 import type { MermaidConfig } from 'mermaid'
+import { sanitizeSvg } from '@/lib/sanitize-svg'
 
 export const MERMAID_TEMPLATE_IDS = ['flowchart', 'sequence', 'gantt', 'class', 'state'] as const
 
@@ -117,7 +118,11 @@ export async function renderMermaidSource(
     })
     const id = `scribe-mermaid-${++renderSeq}`
     const { svg } = await mermaid.render(id, trimmed)
-    return { ok: true, svg }
+    const safe = sanitizeSvg(svg)
+    if (!safe) {
+      return { ok: false, error: 'Diagram produced unsafe SVG' }
+    }
+    return { ok: true, svg: safe }
   } catch (error) {
     return {
       ok: false,

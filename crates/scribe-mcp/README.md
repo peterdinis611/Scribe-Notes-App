@@ -19,7 +19,11 @@ Binary: `target/release/scribe-mcp`
   "mcpServers": {
     "scribe-memory": {
       "command": "/absolute/path/to/scribe/target/release/scribe-mcp",
-      "args": []
+      "args": [],
+      "env": {
+        "SCRIBE_MCP_WRITE": "0",
+        "SCRIBE_MCP_SCOPE": "no-vault"
+      }
     }
   }
 }
@@ -32,8 +36,8 @@ Example: [`cursor.mcp.example.json`](cursor.mcp.example.json)
 | Variable | Meaning |
 |----------|---------|
 | `SCRIBE_DB_PATH` | Path to `scribe.db` (default: `~/Library/Application Support/com.scribe.app/scribe.db`) |
-| `SCRIBE_MCP_WRITE` | Set to `0` to force read-only |
-| `SCRIBE_MCP_SCOPE` | Vault access: `no-vault` (default), `meta-only`, or `full` |
+| `SCRIBE_MCP_WRITE` | Default read-only. Set to `1` to allow write tools |
+| `SCRIBE_MCP_SCOPE` | Vault access: `no-vault` (default), `meta-only`, or `full` (warns if not `no-vault`) |
 | `SCRIBE_NLP_SCRIPT` | Path to Python NLP `__main__.py` for semantic tools |
 | `SCRIBE_NLP_PYTHON` | Python binary (default `python3`) |
 
@@ -124,6 +128,12 @@ Encrypted vault notes are stored as AES-GCM ciphertext in SQLite. The unlock pas
 | `list_backups` | List zip backups |
 | `create_backup` | Create a library zip backup |
 | `list_document_assets` | Images / SVG / Lottie under `assets/{id}/` |
+| `get_ui_manifest` | UI catalogs from `scribe-ui` (Whats New, settings/docs, themes, agents) |
+| `fuzzy_rank_strings` | Fuzzy rank `{id, primary, secondary?}` lists |
+| `list_theme_presets` / `generate_random_theme` | Theme preset catalog / random colors |
+| `render_ui_surface` | Chrome HTML via `python-ui` (whats-new, welcome, …; needs Local AI) |
+| `plan_agent_goal` / `agent_document_brief` | Planner-only (no tool execution) |
+| `section_summaries` / `extract_decisions` / `detect_pii` / `rank_tasks` / `open_loops` / `reading_plan` / `note_pulse` / `tone_pack` | Study/review pack (Python + Rust fallback) |
 
 Plus legacy tools: `scribe_status`, `get_document`, wiki links, folders, revisions, `create_note`, `append_to_note`, …
 

@@ -18,7 +18,9 @@ impl PathAccessGate {
         }
     }
 
-    pub fn grant(&self, path: &Path) {
+    /// Grant access after a native file/folder picker (or other trusted Rust path).
+    /// Do not call with untrusted strings from the webview.
+    pub fn grant_from_picker(&self, path: &Path) {
         let Ok(canonical) = canonicalize_path(path) else {
             return;
         };
@@ -77,9 +79,8 @@ impl PathAccessGate {
             return false;
         };
 
-        guard
-            .iter()
-            .any(|granted| canonical.starts_with(granted) || granted.starts_with(canonical))
+        // Only descendants of a granted root (never the reverse prefix match).
+        guard.iter().any(|granted| canonical.starts_with(granted))
     }
 }
 
@@ -211,5 +212,124 @@ mod tests {
         let validated = PathAccessGate::validate_temp_file(&file).unwrap();
         assert_eq!(validated, canonicalize_path(&file).unwrap());
         let _ = fs::remove_dir_all(file.parent().unwrap());
+    }
+
+    #[test]
+    fn grant_does_not_allow_sibling_via_reverse_prefix() {
+        let base = temp_dir();
+        let deep = base.join("a").join("b").join("note.md");
+        fs::create_dir_all(deep.parent().unwrap()).unwrap();
+        fs::write(&deep, b"ok").unwrap();
+        let gate = PathAccessGate::new();
+        gate.grant_from_picker(&deep);
+        let sibling = base.join("a").join("secret.md");
+        fs::write(&sibling, b"no").unwrap();
+        let can_sibling = gate.is_granted(&canonicalize_path(&sibling).unwrap());
+        assert!(!can_sibling);
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn grant_allows_same_folder_sibling_via_parent_grant() {
+        let base = temp_dir();
+        let first = base.join("notes").join("a.md");
+        fs::create_dir_all(first.parent().unwrap()).unwrap();
+        fs::write(&first, b"a").unwrap();
+        let second = base.join("notes").join("b.md");
+        fs::write(&second, b"b").unwrap();
+        let gate = PathAccessGate::new();
+        gate.grant_from_picker(&first);
+        assert!(gate.is_granted(&canonicalize_path(&second).unwrap()));
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn grant_allows_picked_file_itself() {
+        let base = temp_dir();
+        let file = base.join("picked.md");
+        fs::write(&file, b"ok").unwrap();
+        let gate = PathAccessGate::new();
+        gate.grant_from_picker(&file);
+        assert!(gate.is_granted(&canonicalize_path(&file).unwrap()));
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn ungranted_path_is_denied() {
+        let base = temp_dir();
+        let file = base.join("secret.md");
+        fs::write(&file, b"x").unwrap();
+        let gate = PathAccessGate::new();
+        assert!(!gate.is_granted(&canonicalize_path(&file).unwrap()));
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn safe_join_rejects_absolute_and_dotdot_components() {
+        let base = temp_dir();
+        assert!(safe_join_under(&base, "/etc/passwd").is_err());
+        assert!(safe_join_under(&base, "a/../../escape").is_err());
+        assert!(safe_join_under(&base, "").is_err());
+        assert!(safe_join_under(&base, r"evil\path").is_err());
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn validate_temp_file_rejects_outside_temp() {
+        let base = temp_dir();
+        // Place a file under a non-temp dir when possible; if the test dir is
+        // already under temp (common), nest outside via a name that fails exists.
+        let outside = PathBuf::from("/this/path/does/not/exist/scribe-escape.bin");
+        assert!(PathAccessGate::validate_temp_file(&outside).is_err());
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn safe_join_fuzz_rejects_escape_patterns() {
+        let base = temp_dir();
+        let reject = [
+            "../x",
+            "../../etc/passwd",
+            "a/../../../b",
+            "/absolute",
+            r"a\..\b",
+            "./../secret",
+            "ok/../../nope",
+            "..",
+        ];
+        for rel in reject {
+            assert!(
+                safe_join_under(&base, rel).is_err(),
+                "expected reject for {rel:?}"
+            );
+        }
+        // Nested normal paths (and odd-but-safe filenames) still work.
+        for rel in ["a/b/c.md", "notes/2026/01/x.scribe", "file.txt", "....dots"] {
+            assert!(safe_join_under(&base, rel).is_ok(), "expected allow for {rel:?}");
+        }
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn safe_join_property_dotdot_never_escapes() {
+        let base = temp_dir();
+        let mut seed = 0xC0_FF_EE_u64;
+        for i in 0..256u64 {
+            seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
+            let depth = (seed % 5) as usize + 1;
+            let mut rel = String::new();
+            for _ in 0..depth {
+                rel.push_str("../");
+            }
+            rel.push_str(&format!("escape-{i}.bin"));
+            assert!(
+                safe_join_under(&base, &rel).is_err(),
+                "escape candidate should fail: {rel}"
+            );
+            // Positive: nested normal segments from the same seed.
+            let ok = format!("n{}/f{}.md", seed % 97, i);
+            assert!(safe_join_under(&base, &ok).is_ok(), "expected allow {ok}");
+        }
+        let _ = fs::remove_dir_all(base);
     }
 }

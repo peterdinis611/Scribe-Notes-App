@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { openUrl } from '@tauri-apps/plugin-opener'
-import { Copy, ExternalLink, Play, Square, Radio } from 'lucide-react'
+import { Copy, ExternalLink, Play, RefreshCw, Square, Radio, KeyRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { TokenExpiryCountdown } from '@/components/security/TokenExpiryCountdown'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import {
   STORAGE_FS_ENDPOINT_CATALOG,
   absoluteEndpointUrl,
   formatEndpointsMarkdown,
+  storageFsServerRefreshToken,
+  storageFsServerRotateToken,
   storageFsServerStart,
   storageFsServerStatus,
   storageFsServerStop,
@@ -39,6 +42,8 @@ export function StorageLocalApiPanel() {
         running: false,
         port: null,
         url: null,
+        token: null,
+        tokenExpiresAt: null,
         documentsDir: null,
         filesRoot: null,
         endpoints: STORAGE_FS_ENDPOINT_CATALOG,
@@ -83,6 +88,32 @@ export function StorageLocalApiPanel() {
       toast.info(t('storageMode.localApi.stopped'))
     } catch (error) {
       toast.error(t('storageMode.localApi.stopError'), String(error))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleRotateToken() {
+    setBusy(true)
+    try {
+      const next = await storageFsServerRotateToken()
+      setStatus(next)
+      toast.success(t('storageMode.localApi.rotated'))
+    } catch (error) {
+      toast.error(t('storageMode.localApi.rotateError'), String(error))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleRefreshToken() {
+    setBusy(true)
+    try {
+      const next = await storageFsServerRefreshToken()
+      setStatus(next)
+      toast.success(t('storageMode.localApi.refreshed'))
+    } catch (error) {
+      toast.error(t('storageMode.localApi.refreshError'), String(error))
     } finally {
       setBusy(false)
     }
@@ -146,6 +177,7 @@ export function StorageLocalApiPanel() {
             void copyText(
               formatEndpointsMarkdown({
                 url: base ?? 'http://127.0.0.1:8787',
+                token: status?.token ?? null,
                 endpoints,
               }),
               'storageMode.localApi.copiedAll',
@@ -161,7 +193,11 @@ export function StorageLocalApiPanel() {
             size="sm"
             variant="outline"
             className="gap-1.5"
-            onClick={() => void openExternalPath('/docs')}
+            onClick={() => {
+              const token = status?.token
+              const path = token ? `/docs?access_token=${encodeURIComponent(token)}` : '/docs'
+              void openExternalPath(path)
+            }}
           >
             <ExternalLink className="h-3 w-3" />
             {t('storageMode.localApi.openSwagger')}
@@ -184,6 +220,39 @@ export function StorageLocalApiPanel() {
       ) : (
         <p className="storage-api-hint">{t('storageMode.localApi.startHint')}</p>
       )}
+
+      {running && status?.token ? (
+        <div className="storage-api-base">
+          <code title={status.token}>Bearer {status.token.slice(0, 8)}…</code>
+          <button
+            type="button"
+            className="storage-api-icon-btn"
+            aria-label={t('storageMode.localApi.copyToken')}
+            onClick={() => void copyText(status.token!, 'storageMode.localApi.copiedToken')}
+          >
+            <Copy className="h-3 w-3" />
+          </button>
+          <button
+            type="button"
+            className="storage-api-icon-btn"
+            aria-label={t('storageMode.localApi.rotateToken')}
+            disabled={busy}
+            onClick={() => void handleRotateToken()}
+          >
+            <KeyRound className="h-3 w-3" />
+          </button>
+          <button
+            type="button"
+            className="storage-api-icon-btn"
+            aria-label={t('storageMode.localApi.refreshToken')}
+            disabled={busy}
+            onClick={() => void handleRefreshToken()}
+          >
+            <RefreshCw className="h-3 w-3" />
+          </button>
+          <TokenExpiryCountdown expiresAt={status.tokenExpiresAt} className="storage-api-hint" />
+        </div>
+      ) : null}
 
       {status?.filesRoot ? (
         <p className="storage-api-root" title={status.filesRoot}>

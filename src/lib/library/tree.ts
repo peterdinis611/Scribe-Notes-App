@@ -1,5 +1,7 @@
 import type { DocumentSummary, Folder } from '@/lib/db/api'
 
+/** Keep in sync with `crates/scribe-ui/src/library_tree.rs`. */
+
 export type TreeNode =
   | { type: 'folder'; folder: Folder; children: TreeNode[] }
   | { type: 'document'; document: DocumentSummary }

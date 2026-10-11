@@ -1,5 +1,7 @@
 use std::io::{Read, Write};
 use std::net::TcpStream;
+use std::sync::Mutex;
+use std::time::Instant;
 use tauri::AppHandle;
 
 use super::html::capture_page;
@@ -54,19 +56,6 @@ fn find_header_end(buf: &[u8]) -> Option<usize> {
     buf.windows(4).position(|w| w == b"\r\n\r\n").map(|i| i + 4)
 }
 
-fn query_param(path: &str, key: &str) -> Option<String> {
-    let q = path.split_once('?')?.1;
-    for pair in q.split('&') {
-        let mut parts = pair.splitn(2, '=');
-        let k = parts.next()?;
-        let v = parts.next().unwrap_or("");
-        if k == key {
-            return Some(urlencoding_decode(v));
-        }
-    }
-    None
-}
-
 fn urlencoding_decode(value: &str) -> String {
     let bytes = value.as_bytes();
     let mut out = Vec::with_capacity(bytes.len());
@@ -106,10 +95,10 @@ fn write_response(stream: &mut TcpStream, status: &str, content_type: &str, body
     let _ = stream.flush();
 }
 
-fn token_ok(headers: &str, path: &str, expected: &str) -> bool {
-    if query_param(path, "token").as_deref() == Some(expected) {
-        return true;
-    }
+/// Capture auth: Bearer / X-Scribe-Capture-Token only (query `?token=` is rejected).
+pub(crate) fn token_ok(headers: &str, path: &str, expected: &str) -> bool {
+    // Explicitly ignore query tokens — they must not authorize.
+    let _ = path;
     for line in headers.lines() {
         let lower = line.to_ascii_lowercase();
         if let Some(rest) = lower.strip_prefix("authorization:") {
@@ -118,6 +107,11 @@ fn token_ok(headers: &str, path: &str, expected: &str) -> bool {
                 if token.trim() == expected {
                     return true;
                 }
+            }
+        }
+        if let Some(rest) = lower.strip_prefix("x-scribe-capture-token:") {
+            if rest.trim() == expected {
+                return true;
             }
         }
     }
@@ -134,7 +128,35 @@ struct CaptureBody {
     text: String,
 }
 
-pub fn handle_connection(mut stream: TcpStream, app: &AppHandle, expected_token: &str) {
+fn mint_form_nonce() -> String {
+    uuid::Uuid::new_v4().to_string().replace('-', "")
+}
+
+/// Consume a one-time form nonce. Returns false if missing/mismatched.
+fn consume_form_nonce(store: &Mutex<Option<String>>, presented: &str) -> bool {
+    let Ok(mut guard) = store.lock() else {
+        return false;
+    };
+    match guard.take() {
+        Some(expected) if !presented.is_empty() && expected == presented => true,
+        Some(expected) => {
+            // Put back so a wrong guess does not wipe a valid pending nonce.
+            *guard = Some(expected);
+            false
+        }
+        None => false,
+    }
+}
+
+pub fn handle_connection(
+    mut stream: TcpStream,
+    peer: Option<std::net::SocketAddr>,
+    app: &AppHandle,
+    session: &crate::security::TokenSession,
+    limiter: &crate::security::RateLimiter,
+    form_nonce: &Mutex<Option<String>>,
+    last_activity: &Mutex<Instant>,
+) {
     let Some((first_line, headers, body_bytes)) = read_http_request(&mut stream) else {
         write_response(&mut stream, "400 Bad Request", "text/plain", b"bad request");
         return;
@@ -149,12 +171,27 @@ pub fn handle_connection(mut stream: TcpStream, app: &AppHandle, expected_token:
         return;
     }
 
+    let key = crate::security::client_key(peer);
+    if !limiter.check(&key) {
+        write_response(
+            &mut stream,
+            "429 Too Many Requests",
+            "application/json",
+            br#"{"error":"rate limit exceeded"}"#,
+        );
+        return;
+    }
+
+    // Public form shell — session token is in the URL hash; POST needs Bearer + one-time nonce.
     if method == "GET" && (path == "/" || path.starts_with("/?")) {
-        if !token_ok(&headers, path, expected_token) {
-            write_response(&mut stream, "401 Unauthorized", "text/plain", b"invalid token");
-            return;
+        if let Ok(mut last) = last_activity.lock() {
+            *last = Instant::now();
         }
-        let page = capture_page(expected_token);
+        let nonce = mint_form_nonce();
+        if let Ok(mut guard) = form_nonce.lock() {
+            *guard = Some(nonce.clone());
+        }
+        let page = capture_page("", &nonce);
         write_response(&mut stream, "200 OK", "text/html; charset=utf-8", page.as_bytes());
         return;
     }
@@ -165,12 +202,56 @@ pub fn handle_connection(mut stream: TcpStream, app: &AppHandle, expected_token:
     }
 
     if method == "POST" && path.starts_with("/api/capture") {
-        if !token_ok(&headers, path, expected_token) {
+        let presented = headers.lines().find_map(|line| {
+            let lower = line.to_ascii_lowercase();
+            lower
+                .strip_prefix("authorization:")
+                .and_then(|rest| rest.trim().strip_prefix("bearer ").map(|t| t.trim().to_string()))
+                .or_else(|| {
+                    lower
+                        .strip_prefix("x-scribe-capture-token:")
+                        .map(|t| t.trim().to_string())
+                })
+        });
+        let auth_ok = presented
+            .as_deref()
+            .map(|t| session.is_valid(t))
+            .unwrap_or(false);
+        if !auth_ok {
             write_response(
                 &mut stream,
                 "401 Unauthorized",
                 "application/json",
-                br#"{"error":"invalid token"}"#,
+                br#"{"error":"invalid or expired token"}"#,
+            );
+            return;
+        }
+
+        let presented_nonce = headers.lines().find_map(|line| {
+            let lower = line.to_ascii_lowercase();
+            lower
+                .strip_prefix("x-scribe-capture-nonce:")
+                .map(|t| t.trim().to_string())
+        });
+        let nonce_ok = presented_nonce
+            .as_deref()
+            .map(|n| consume_form_nonce(form_nonce, n))
+            .unwrap_or(false);
+        if !nonce_ok {
+            // Issue a fresh nonce so a legitimate client can retry after reload.
+            let fresh = mint_form_nonce();
+            if let Ok(mut guard) = form_nonce.lock() {
+                *guard = Some(fresh.clone());
+            }
+            let payload = serde_json::json!({
+                "error": "invalid or reused form nonce",
+                "nonce": fresh,
+            });
+            write_response(
+                &mut stream,
+                "403 Forbidden",
+                "application/json",
+                payload.to_string().as_bytes(),
             );
             return;
         }
@@ -210,22 +291,34 @@ pub fn handle_connection(mut stream: TcpStream, app: &AppHandle, expected_token:
         } else {
             parsed.text
         };
+        let next_nonce = mint_form_nonce();
+        if let Ok(mut guard) = form_nonce.lock() {
+            *guard = Some(next_nonce.clone());
+        }
         if text.trim().is_empty() {
+            let payload = serde_json::json!({
+                "error": "body is required",
+                "nonce": next_nonce,
+            });
             write_response(
                 &mut stream,
                 "400 Bad Request",
                 "application/json",
-                br#"{"error":"body is required"}"#,
+                payload.to_string().as_bytes(),
             );
             return;
         }
 
         match create_inbox_note(app, &parsed.title, &text) {
             Ok(created) => {
+                if let Ok(mut last) = last_activity.lock() {
+                    *last = Instant::now();
+                }
                 let payload = serde_json::json!({
                     "ok": true,
                     "documentId": created.document_id,
                     "title": created.title,
+                    "nonce": next_nonce,
                 });
                 write_response(
                     &mut stream,
@@ -235,7 +328,7 @@ pub fn handle_connection(mut stream: TcpStream, app: &AppHandle, expected_token:
                 );
             }
             Err(error) => {
-                let payload = serde_json::json!({ "error": error });
+                let payload = serde_json::json!({ "error": error, "nonce": next_nonce });
                 write_response(
                     &mut stream,
                     "500 Internal Server Error",
@@ -248,4 +341,36 @@ pub fn handle_connection(mut stream: TcpStream, app: &AppHandle, expected_token:
     }
 
     write_response(&mut stream, "404 Not Found", "text/plain", b"not found");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::token_ok;
+
+    #[test]
+    fn accepts_bearer_header() {
+        let headers = "Host: 127.0.0.1\r\nAuthorization: Bearer secret\r\n\r\n";
+        assert!(token_ok(headers, "/api/capture", "secret"));
+    }
+
+    #[test]
+    fn accepts_custom_capture_header() {
+        let headers = "X-Scribe-Capture-Token: secret\r\n";
+        assert!(token_ok(headers, "/api/capture", "secret"));
+    }
+
+    #[test]
+    fn rejects_query_token() {
+        assert!(!token_ok(
+            "Host: x\r\n\r\n",
+            "/api/capture?token=secret",
+            "secret"
+        ));
+    }
+
+    #[test]
+    fn rejects_wrong_bearer() {
+        let headers = "Authorization: Bearer nope\r\n";
+        assert!(!token_ok(headers, "/api/capture", "secret"));
+    }
 }

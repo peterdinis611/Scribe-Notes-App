@@ -102,7 +102,12 @@ async function activatePlugin(pluginId: string): Promise<void> {
 
   const host = createPluginHost(entry.manifest, entry.source)
   try {
-    const result = await entry.module.activate(host.api)
+    const { withInstalledPluginIsolation } = await import('@/lib/plugins/sandbox')
+    const activate = () => entry.module.activate(host.api)
+    const result =
+      entry.source === 'installed'
+        ? await withInstalledPluginIsolation(activate)
+        : await activate()
     const userCleanup = typeof result === 'function' ? result : undefined
     cleanups.set(pluginId, () => {
       try {

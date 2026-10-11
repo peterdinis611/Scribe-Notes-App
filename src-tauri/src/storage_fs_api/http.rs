@@ -2,7 +2,6 @@ use serde_json::{json, Value};
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::path::Path;
-
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use scribe_core::storage_fs::{self, ListOpts};
 
@@ -103,12 +102,61 @@ fn path_only(full: &str) -> &str {
 
 fn write_response(stream: &mut TcpStream, status: &str, content_type: &str, body: &[u8]) {
     let header = format!(
-        "HTTP/1.1 {status}\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\nConnection: close\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Headers: content-type\r\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\r\n\r\n",
+        "HTTP/1.1 {status}\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\nConnection: close\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Headers: content-type, authorization\r\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\r\n\r\n",
         body.len()
     );
     let _ = stream.write_all(header.as_bytes());
     let _ = stream.write_all(body);
     let _ = stream.flush();
+}
+
+pub(crate) fn bearer_token_from_headers(headers: &str) -> Option<String> {
+    for line in headers.lines() {
+        let lower = line.to_ascii_lowercase();
+        if let Some(rest) = lower.strip_prefix("authorization:") {
+            let rest = rest.trim();
+            if let Some(token) = rest.strip_prefix("bearer ") {
+                return Some(token.trim().to_string());
+            }
+        }
+    }
+    None
+}
+
+pub(crate) fn token_authorized(headers: &str, full_path: &str, expected: &str) -> bool {
+    if bearer_token_from_headers(headers).as_deref() == Some(expected) {
+        return true;
+    }
+    // Browser-opened docs / OpenAPI may pass the token once via query (not for data APIs).
+    let path = path_only(full_path);
+    if matches!(path, "/docs" | "/swagger" | "/swagger-ui" | "/openapi.json" | "/graphql") {
+        if query_param(full_path, "access_token").as_deref() == Some(expected) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Conservative path-escape detector for unit tests / preflight.
+pub(crate) fn path_escapes_files_root(relative: &str) -> bool {
+    if relative.is_empty() {
+        return false;
+    }
+    let mut depth = 0i32;
+    for part in relative.replace('\\', "/").split('/') {
+        if part.is_empty() || part == "." {
+            continue;
+        }
+        if part == ".." {
+            depth -= 1;
+            if depth < 0 {
+                return true;
+            }
+        } else {
+            depth += 1;
+        }
+    }
+    false
 }
 
 fn write_json(stream: &mut TcpStream, status: &str, value: &Value) {
@@ -337,8 +385,15 @@ fn handle_graphql(documents_dir: &Path, body: &[u8]) -> Result<Value, String> {
     }))
 }
 
-pub fn handle_connection(mut stream: TcpStream, documents_dir: &Path, port: u16) {
-    let Some((first_line, _headers, body_bytes)) = read_http_request(&mut stream) else {
+pub fn handle_connection(
+    mut stream: TcpStream,
+    peer: Option<std::net::SocketAddr>,
+    documents_dir: &Path,
+    port: u16,
+    session: &crate::security::TokenSession,
+    limiter: &crate::security::RateLimiter,
+) {
+    let Some((first_line, headers, body_bytes)) = read_http_request(&mut stream) else {
         write_response(&mut stream, "400 Bad Request", "text/plain", b"bad request");
         return;
     };
@@ -350,6 +405,60 @@ pub fn handle_connection(mut stream: TcpStream, documents_dir: &Path, port: u16)
 
     if method == "OPTIONS" {
         write_response(&mut stream, "204 No Content", "text/plain", b"");
+        return;
+    }
+
+    let key = crate::security::client_key(peer);
+    if !limiter.check(&key) {
+        write_json(
+            &mut stream,
+            "429 Too Many Requests",
+            &json!({ "error": "rate limit exceeded" }),
+        );
+        return;
+    }
+
+    let presented = bearer_token_from_headers(&headers)
+        .or_else(|| {
+            let p = path_only(full_path);
+            if matches!(p, "/docs" | "/swagger" | "/swagger-ui" | "/openapi.json" | "/graphql") {
+                query_param(full_path, "access_token")
+            } else {
+                None
+            }
+        });
+    let auth_ok = presented
+        .as_deref()
+        .map(|t| session.is_valid(t))
+        .unwrap_or(false);
+
+    // Minimal unauthenticated probe — no directory paths or catalog.
+    if method == "GET" && path == "/v1/fs/health" && !auth_ok {
+        write_json(
+            &mut stream,
+            "200 OK",
+            &json!({
+                "ok": true,
+                "auth": "required",
+                "tokenTtlHintSec": crate::security::FILES_TOKEN_TTL.as_secs(),
+            }),
+        );
+        return;
+    }
+
+    if !auth_ok {
+        let expired = session.is_expired();
+        write_json(
+            &mut stream,
+            "401 Unauthorized",
+            &json!({
+                "error": if expired {
+                    "token expired — restart Files API from Settings"
+                } else {
+                    "missing or invalid bearer token"
+                }
+            }),
+        );
         return;
     }
 

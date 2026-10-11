@@ -156,6 +156,48 @@ pub fn clear_audit_events(audit: State<'_, AuditDbState>) -> Result<u64, String>
     Ok(deleted)
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AuditSecurityEventInput {
+    pub action: String,
+    pub summary: String,
+    pub detail: Option<Value>,
+    pub outcome: Option<String>,
+}
+
+/// Frontend-callable security audit (vault unlock, etc.). Soft-fails never.
+#[tauri::command]
+pub fn audit_security_event(
+    audit: State<'_, AuditDbState>,
+    input: AuditSecurityEventInput,
+) -> Result<(), String> {
+    let action = input.action.trim();
+    if action.is_empty() || action.len() > 80 {
+        return Err("invalid action".into());
+    }
+    // Allowlist of FE-originated security actions.
+    const ALLOWED: &[&str] = &[
+        "vault_unlock",
+        "vault_unlock_document",
+        "vault_lock",
+        "csp_violation",
+    ];
+    if !ALLOWED.contains(&action) {
+        return Err(format!("action not allowed: {action}"));
+    }
+    let store = audit.store.lock().map_err(|e| e.to_string())?;
+    let _ = store.append(AuditEventInput {
+        source: "tauri".into(),
+        category: "security".into(),
+        action: action.into(),
+        summary: input.summary.chars().take(200).collect(),
+        detail: input.detail,
+        outcome: Some(input.outcome.unwrap_or_else(|| "ok".into())),
+        ..Default::default()
+    });
+    Ok(())
+}
+
 /// Soft-fail helper for other command modules.
 pub fn append_audit(
     audit: &AuditDbState,

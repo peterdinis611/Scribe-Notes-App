@@ -5,7 +5,9 @@ export type CaptureStatus = {
   port: number | null
   url: string | null
   token: string | null
+  tokenExpiresAt: number | null
   lanIp: string | null
+  allowLan: boolean
   inboxFolderId: string | null
 }
 
@@ -16,5 +18,6 @@ export type CaptureCreatedEvent = {
 }
 
 export const captureStatus = () => invoke<CaptureStatus>('capture_status')
-export const captureStart = () => invoke<CaptureStatus>('capture_start')
+export const captureStart = (allowLan = false) =>
+  invoke<CaptureStatus>('capture_start', { allowLan })
 export const captureStop = () => invoke<CaptureStatus>('capture_stop')

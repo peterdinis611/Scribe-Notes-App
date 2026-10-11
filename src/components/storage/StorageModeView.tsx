@@ -8,22 +8,32 @@ import {
   FolderOpen,
   HardDrive,
   Image as ImageIcon,
+  Link2,
   RefreshCw,
   Search,
   Sparkles,
+  Trash2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { listLibraryAssets, revealInFinder, type LibraryAsset } from '@/lib/db/api'
+import {
+  deleteLibraryAsset,
+  listLibraryAssets,
+  revealInFinder,
+  type LibraryAsset,
+} from '@/lib/db/api'
 import { convertFileSrc } from '@/lib/tauri'
 import { ROUTES } from '@/lib/routes'
 import { cn } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 import { goToHome } from '@/lib/navigation'
-import { useAppDispatch } from '@/store/hooks'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { setActiveDocumentId } from '@/store/documentsSlice'
 import { StorageLocalApiPanel } from '@/components/storage/StorageLocalApiPanel'
+import { promptInput } from '@/lib/input-dialog'
+import { confirm } from '@tauri-apps/plugin-dialog'
 
-type AssetFilter = 'all' | 'image' | 'svg' | 'lottie' | 'model3d' | 'other'
+type AssetFilter = 'all' | 'orphans' | 'image' | 'svg' | 'lottie' | 'model3d' | 'other'
 
 function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return '0 B'
@@ -49,20 +59,28 @@ function isPreviewable(kind: string) {
   return kind === 'image' || kind === 'svg'
 }
 
+function isOrphanAsset(asset: LibraryAsset) {
+  return !asset.documentTitle
+}
+
 export function StorageModeView() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
+  const documents = useAppSelector((state) => state.documents.documents)
   const [assets, setAssets] = useState<LibraryAsset[]>([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<AssetFilter>('all')
+  const [selected, setSelected] = useState<Set<string>>(() => new Set())
+  const [busy, setBusy] = useState(false)
 
   async function loadAssets() {
     setLoading(true)
     try {
       const next = await listLibraryAssets()
       setAssets(next)
+      setSelected(new Set())
     } catch (error) {
       toast.error(t('storageMode.loadError'), String(error))
       setAssets([])
@@ -75,10 +93,16 @@ export function StorageModeView() {
     void loadAssets()
   }, [])
 
+  const orphanCount = useMemo(() => assets.filter(isOrphanAsset).length, [assets])
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return assets.filter((asset) => {
-      if (filter !== 'all' && asset.kind !== filter) return false
+      if (filter === 'orphans') {
+        if (!isOrphanAsset(asset)) return false
+      } else if (filter !== 'all' && asset.kind !== filter) {
+        return false
+      }
       if (!q) return true
       return (
         asset.fileName.toLowerCase().includes(q) ||
@@ -91,12 +115,74 @@ export function StorageModeView() {
 
   const filters: { id: AssetFilter; label: string }[] = [
     { id: 'all', label: t('storageMode.filterAll') },
+    {
+      id: 'orphans',
+      label: t('storageMode.filterOrphans', { count: orphanCount }),
+    },
     { id: 'image', label: t('storageMode.filterImages') },
     { id: 'svg', label: t('storageMode.filterSvg') },
     { id: 'lottie', label: t('storageMode.filterLottie') },
     { id: 'model3d', label: t('storageMode.filterModel3d') },
     { id: 'other', label: t('storageMode.filterOther') },
   ]
+
+  function toggleSelect(path: string) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(path)) next.delete(path)
+      else next.add(path)
+      return next
+    })
+  }
+
+  async function deletePaths(paths: string[]) {
+    if (!paths.length) return
+    const ok = await confirm(
+      t('storageMode.deleteConfirm', { count: paths.length }),
+      { title: t('storageMode.deleteTitle'), kind: 'warning' },
+    )
+    if (!ok) return
+    setBusy(true)
+    let deleted = 0
+    try {
+      for (const path of paths) {
+        await deleteLibraryAsset(path)
+        deleted += 1
+      }
+      toast.success(t('storageMode.deleted', { count: deleted }))
+      await loadAssets()
+    } catch (error) {
+      toast.error(t('storageMode.deleteError'), String(error))
+      await loadAssets()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function relinkAsset(asset: LibraryAsset) {
+    const alive = documents.filter((doc) => doc.deletedAt == null)
+    if (alive.length === 0) {
+      toast.error(t('storageMode.relinkEmpty'))
+      return
+    }
+    const title = await promptInput({
+      title: t('storageMode.relinkTitle'),
+      description: t('storageMode.relinkDescription'),
+      placeholder: t('storageMode.relinkPlaceholder'),
+      confirmLabel: t('storageMode.relinkOpen'),
+    })
+    if (!title) return
+    const needle = title.trim().toLowerCase()
+    const match = alive.find((doc) => doc.title.toLowerCase() === needle)
+      ?? alive.find((doc) => doc.title.toLowerCase().includes(needle))
+    if (!match) {
+      toast.error(t('storageMode.relinkNotFound'))
+      return
+    }
+    dispatch(setActiveDocumentId(match.id))
+    void navigate(ROUTES.document(match.id))
+    toast.success(t('storageMode.relinkHint', { title: match.title, file: asset.fileName }))
+  }
 
   return (
     <div className="storage-mode flex h-full min-h-0 flex-1 flex-col overflow-hidden">
@@ -112,6 +198,34 @@ export function StorageModeView() {
           </div>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {selected.size > 0 ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              disabled={busy}
+              onClick={() => void deletePaths([...selected])}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              {t('storageMode.deleteSelected', { count: selected.size })}
+            </Button>
+          ) : null}
+          {filter === 'orphans' && orphanCount > 0 ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              disabled={busy}
+              onClick={() =>
+                void deletePaths(assets.filter(isOrphanAsset).map((a) => a.path))
+              }
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              {t('storageMode.deleteAllOrphans', { count: orphanCount })}
+            </Button>
+          ) : null}
           <Button
             type="button"
             variant="outline"
@@ -195,6 +309,14 @@ export function StorageModeView() {
                         <KindIcon kind={asset.kind} />
                       </span>
                     )}
+                    <label className="storage-mode-select absolute left-2 top-2">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(asset.path)}
+                        onChange={() => toggleSelect(asset.path)}
+                        aria-label={t('storageMode.selectAsset')}
+                      />
+                    </label>
                   </div>
                   <div className="storage-mode-card-body">
                     <p className="storage-mode-file" title={asset.fileName}>
@@ -202,6 +324,7 @@ export function StorageModeView() {
                     </p>
                     <p className="storage-mode-meta">
                       {asset.extension ? asset.extension.toUpperCase() : 'FILE'} · {formatBytes(asset.sizeBytes)}
+                      {isOrphanAsset(asset) ? ` · ${t('storageMode.orphanBadge')}` : ''}
                     </p>
                     <p className="storage-mode-doc" title={asset.documentTitle ?? asset.documentId}>
                       {asset.documentTitle || t('storageMode.orphanDocument')}
@@ -227,7 +350,29 @@ export function StorageModeView() {
                         >
                           {t('storageMode.openDocument')}
                         </Button>
-                      ) : null}
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 gap-1 px-2 text-[11px]"
+                          onClick={() => void relinkAsset(asset)}
+                        >
+                          <Link2 className="h-3 w-3" />
+                          {t('storageMode.relink')}
+                        </Button>
+                      )}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 gap-1 px-2 text-[11px]"
+                        disabled={busy}
+                        onClick={() => void deletePaths([asset.path])}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        {t('common.delete')}
+                      </Button>
                     </div>
                   </div>
                 </li>

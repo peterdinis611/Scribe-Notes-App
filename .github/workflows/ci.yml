@@ -60,6 +60,19 @@ jobs:
       - name: Unit tests
         run: PYTHONPATH=nlp python3 -m unittest discover -s nlp/tests -p 'test_*.py'
 
+  python-ui:
+    name: Python UI
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Unit tests
+        run: PYTHONPATH=python-ui python3 -m unittest discover -s python-ui/tests -p 'test_*.py'
+
   rust:
     name: Rust (${{ matrix.os }})
     runs-on: ${{ matrix.os }}

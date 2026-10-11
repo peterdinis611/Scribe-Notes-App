@@ -52,7 +52,11 @@ npm run mcp
   "mcpServers": {
     "scribe-memory": {
       "command": "/Users/VAS_USER/Desktop/práca/scribe/target/release/scribe-mcp",
-      "args": []
+      "args": [],
+      "env": {
+        "SCRIBE_MCP_WRITE": "0",
+        "SCRIBE_MCP_SCOPE": "no-vault"
+      }
     }
   }
 }
@@ -82,15 +86,15 @@ Príklad v repo: [`../cursor.mcp.example.json`](../cursor.mcp.example.json).
 - **`switch_library`** — prepne knižnicu pre list/create/search
 - **`upsert_manuscript`** / **`append_document_chat`** / **`clear_document_chat`** — zostavenia a chat pri poznámke
 
-**Upozornenie:** bežiaca aplikácia Scribe môže DB zamknúť. Pri chybe „locked / busy“ alebo `writable: false` v `scribe_status` skúste znova o chvíľu (alebo dočasne zatvorte Scribe). Force readonly: `SCRIBE_MCP_WRITE=0`.
+**Upozornenie:** bežiaca aplikácia Scribe môže DB zamknúť. Pri chybe „locked / busy“ alebo `writable: false` v `scribe_status` skúste znova o chvíľu (alebo dočasne zatvorte Scribe). MCP je predvolene **read-only**; zápis zapnete cez `SCRIBE_MCP_WRITE=1`.
 
 ## Premenné prostredia
 
 | Premenná | Význam |
 |----------|--------|
 | `SCRIBE_DB_PATH` | Absolútna cesta k `scribe.db`, ak nie je predvolená |
-| `SCRIBE_MCP_WRITE` | `0` = vynútiť read-only |
-| `SCRIBE_MCP_SCOPE` | Prístup k trezoru: `no-vault` (predvolené), `meta-only`, `full` |
+| `SCRIBE_MCP_WRITE` | Predvolene read-only. `1` / `true` povolí zápis |
+| `SCRIBE_MCP_SCOPE` | Prístup k trezoru: `no-vault` (predvolené), `meta-only`, `full` (pri inom ako no-vault server varuje) |
 | `SCRIBE_NLP_SCRIPT` | Cesta k Python NLP `__main__.py` pre sémantické nástroje |
 | `SCRIBE_NLP_PYTHON` | Python binárka (predvolene `python3`) |
 

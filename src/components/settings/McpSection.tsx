@@ -1,4 +1,4 @@
-import { Cable, Copy, BookOpen, Sparkles, Terminal } from 'lucide-react'
+import { Cable, Copy, BookOpen, Shield, Sparkles, Terminal } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
@@ -10,28 +10,35 @@ import {
   SettingsSectionHeader,
 } from '@/components/settings/SettingsPrimitives'
 import { navigateToMcpDemo } from '@/lib/demo/load-mcp-demo'
-import { isMcpEnabled, setMcpEnabled } from '@/lib/mcp/prefs'
+import {
+  getMcpVaultScope,
+  isMcpEnabled,
+  isMcpWriteEnabled,
+  setMcpEnabled,
+  setMcpVaultScope,
+  setMcpWriteEnabled,
+  type McpVaultScope,
+} from '@/lib/mcp/prefs'
 import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 
-const CURSOR_CONFIG = `{
+function buildMcpConfig(write: boolean, scope: McpVaultScope): string {
+  return `{
   "mcpServers": {
     "scribe-memory": {
       "command": "__SCRIBE/target/release/scribe-mcp",
-      "args": []
+      "args": [],
+      "env": {
+        "SCRIBE_MCP_WRITE": "${write ? '1' : '0'}",
+        "SCRIBE_MCP_SCOPE": "${scope}"
+      }
     }
   }
 }`
+}
 
-const CLAUDE_CONFIG = `{
-  "mcpServers": {
-    "scribe-memory": {
-      "command": "__SCRIBE/target/release/scribe-mcp",
-      "args": []
-    }
-  }
-}`
+const SCOPE_PRESETS: McpVaultScope[] = ['no-vault', 'unlocked-vault', 'all']
 
 const SAMPLE_TOOLS = [
   { id: 'scribe_status', hintKey: 'settings.mcp.tools.status' },
@@ -79,7 +86,10 @@ export function McpSection() {
   const dispatch = useAppDispatch()
   const documents = useAppSelector((state) => state.documents.documents)
   const [enabled, setEnabled] = useState(() => isMcpEnabled())
+  const [writeEnabled, setWriteEnabled] = useState(() => isMcpWriteEnabled())
+  const [scope, setScope] = useState<McpVaultScope>(() => getMcpVaultScope())
   const [openingDemo, setOpeningDemo] = useState(false)
+  const mcpConfig = useMemo(() => buildMcpConfig(writeEnabled, scope), [writeEnabled, scope])
 
   const howToSteps = useMemo(() => {
     const steps = t('settings.mcp.howToSteps', { returnObjects: true })
@@ -98,6 +108,19 @@ export function McpSection() {
     setMcpEnabled(next)
     setEnabled(next)
     toast.success(next ? t('settings.mcp.enabledToast') : t('settings.mcp.disabledToast'))
+  }
+
+  function toggleWrite() {
+    const next = !writeEnabled
+    setMcpWriteEnabled(next)
+    setWriteEnabled(next)
+    toast.success(next ? t('settings.mcp.writeEnabledToast') : t('settings.mcp.writeDisabledToast'))
+  }
+
+  function applyScope(next: McpVaultScope) {
+    setMcpVaultScope(next)
+    setScope(next)
+    toast.success(t('settings.mcp.scopeUpdated'))
   }
 
   async function openDemo() {
@@ -163,6 +186,56 @@ export function McpSection() {
           >
             <Cable className="h-3.5 w-3.5" />
             {enabled ? t('settings.mcp.enabled') : t('settings.mcp.enable')}
+          </Button>
+        </SettingsRow>
+        <SettingsRow
+          title={t('settings.mcp.writeTitle')}
+          description={t('settings.mcp.writeDescription')}
+        >
+          <Button
+            type="button"
+            variant={writeEnabled ? 'default' : 'outline'}
+            size="sm"
+            className="gap-1.5"
+            disabled={!enabled}
+            onClick={toggleWrite}
+          >
+            {writeEnabled ? t('settings.mcp.writeOn') : t('settings.mcp.writeOff')}
+          </Button>
+        </SettingsRow>
+        <SettingsRow
+          title={t('settings.mcp.scopeTitle')}
+          description={t('settings.mcp.scopeDescription')}
+          layout="stack"
+        >
+          <div className="flex flex-wrap gap-1.5">
+            {SCOPE_PRESETS.map((preset) => (
+              <Button
+                key={preset}
+                type="button"
+                variant={scope === preset ? 'default' : 'outline'}
+                size="sm"
+                disabled={!enabled}
+                onClick={() => applyScope(preset)}
+              >
+                {t(`settings.mcp.scope.${preset}`)}
+              </Button>
+            ))}
+          </div>
+        </SettingsRow>
+        <SettingsRow
+          title={t('settings.mcp.auditTitle')}
+          description={t('settings.mcp.auditDescription')}
+        >
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => void navigate({ to: '/audit' })}
+          >
+            <Shield className="h-3.5 w-3.5" />
+            {t('settings.mcp.openAudit')}
           </Button>
         </SettingsRow>
         <SettingsRow
@@ -257,7 +330,7 @@ export function McpSection() {
               className="gap-1.5"
               onClick={() =>
                 void copyText(
-                  CURSOR_CONFIG,
+                  mcpConfig,
                   'settings.mcp.configCopied',
                   'settings.mcp.copyError',
                   t,
@@ -279,7 +352,7 @@ export function McpSection() {
               className="gap-1.5"
               onClick={() =>
                 void copyText(
-                  CLAUDE_CONFIG,
+                  mcpConfig,
                   'settings.mcp.claudeConfigCopied',
                   'settings.mcp.copyError',
                   t,
@@ -315,7 +388,7 @@ export function McpSection() {
         </SettingsGroup>
 
         <pre className="mb-3 overflow-x-auto rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 font-mono text-[11px] leading-relaxed text-[var(--color-foreground)]">
-          {CURSOR_CONFIG}
+          {mcpConfig}
         </pre>
         <p className="m-0 max-w-2xl text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
           {t('settings.mcp.pathHint')}

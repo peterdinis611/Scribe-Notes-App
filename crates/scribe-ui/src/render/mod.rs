@@ -4,6 +4,7 @@ mod i18n;
 mod shell;
 mod surfaces;
 
+pub use crate::components;
 pub use i18n::StringMap;
 pub use surfaces::{
     AboutProps, DocsProps, DocsTopicContent, PrivacyArticle, PrivacyProps, RecentDoc,
@@ -45,16 +46,16 @@ mod tests {
         for (k, v) in [
             ("whatsNew.gotIt", "Got it"),
             ("whatsNew.kicker", "Edition notes"),
-            ("whatsNew.title", "Scribe 3.4"),
+            ("whatsNew.title", "Scribe 3.5"),
             ("whatsNew.subtitle", "Subtitle"),
-            ("whatsNew.editionMark", "Agents"),
+            ("whatsNew.editionMark", "Surfaces · Docs"),
             ("whatsNew.badge", "What's new"),
             ("whatsNew.tagsLabel", "Themes"),
-            ("whatsNew.tags.agents", "Specialists"),
-            ("whatsNew.tags.handoffs", "Handoffs"),
-            ("whatsNew.tags.recipes", "Recipes"),
+            ("whatsNew.tags.docs", "Docs"),
+            ("whatsNew.tags.surfaces", "Surfaces"),
+            ("whatsNew.tags.python", "Python UI"),
             ("whatsNew.footNote", "Note"),
-            ("welcome.brandWithEdition", "Scribe 3.4"),
+            ("welcome.brandWithEdition", "Scribe 3.5"),
             ("welcome.brand", "Scribe"),
             ("welcome.newDocument", "New"),
             ("welcome.todayNote", "Today"),
@@ -73,7 +74,7 @@ mod tests {
             ("settings.about.fileFormat", "Format"),
             ("settings.about.export", "Export"),
             ("settings.about.privacy", "Privacy"),
-            ("common.version", "Scribe 3.4.0"),
+            ("common.version", "Scribe 3.5.0"),
             ("settings.docs.pageTitle", "Docs"),
             ("settings.docs.pageDescription", "Desc"),
             ("settings.docs.searchPlaceholder", "Search"),
@@ -106,5 +107,16 @@ mod tests {
         assert!(html.contains("Got it"));
         assert!(html.contains("setup-folio"));
         assert!(html.contains("scribe-ui-bridge"));
+        assert!(html.contains("if (!event || !ALLOWED[event]) return;"));
+        assert!(!html.contains(", '*'"), "UI bridge must not postMessage to '*'");
+    }
+
+    #[test]
+    fn bridge_js_allowlists_events() {
+        let js = shell::BRIDGE_JS;
+        assert!(js.contains("'welcome-new-document': 1"));
+        assert!(js.contains("'whats-new-acked': 1"));
+        assert!(js.contains("postMessage("));
+        assert!(!js.contains(", '*'"));
     }
 }

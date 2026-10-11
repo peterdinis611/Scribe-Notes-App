@@ -45,11 +45,14 @@ import {
   clearAllDocuments,
   exportLibraryArchive,
   exportLibraryArchiveToDir,
+  getAutoBackupConfig,
   getDefaultAutoBackupDir,
   getStorageSettings,
   importLibraryArchive,
   revealInFinder,
+  setAutoBackupPassword,
 } from '@/lib/db/api'
+import { promptInput } from '@/lib/input-dialog'
 import { toast } from '@/lib/toast'
 import type { SettingsSection as SettingsSectionId } from '@/lib/routes'
 import { cn, formatRelativeTime } from '@/lib/utils'
@@ -424,6 +427,7 @@ export function StorageSection() {
   const [autoBackingUp, setAutoBackingUp] = useState(false)
   const [reconcileMessage, setReconcileMessage] = useState<string | null>(null)
   const [defaultAutoBackupDir, setDefaultAutoBackupDir] = useState<string | null>(null)
+  const [autoBackupEncrypted, setAutoBackupEncrypted] = useState(false)
   const [customDaysDraft, setCustomDaysDraft] = useState(() =>
     String(Math.max(1, Math.round(autoBackupIntervalHours / 24))),
   )
@@ -443,6 +447,9 @@ export function StorageSection() {
     getDefaultAutoBackupDir()
       .then(setDefaultAutoBackupDir)
       .catch(() => setDefaultAutoBackupDir(null))
+    getAutoBackupConfig()
+      .then((config) => setAutoBackupEncrypted(Boolean(config.encrypted)))
+      .catch(() => setAutoBackupEncrypted(false))
   }, [])
 
   function handlePickFolder() {
@@ -485,9 +492,19 @@ export function StorageSection() {
   }
 
   async function handleExportBackup() {
+    const password = await promptInput({
+      title: t('settings.storage.backupExportPasswordTitle'),
+      description: t('settings.storage.backupExportPasswordDescription'),
+      placeholder: t('settings.storage.backupExportPasswordPlaceholder'),
+      password: true,
+      confirmLabel: t('settings.storage.backupExport'),
+      cancelLabel: t('common.cancel'),
+    })
+    if (password === null) return
+
     setExporting(true)
     try {
-      const result = await exportLibraryArchive()
+      const result = await exportLibraryArchive(password)
       if (!result) return
       toast.success(t('settings.storage.backupExportDone'), result.path)
     } catch (error) {
@@ -506,9 +523,19 @@ export function StorageSection() {
     })
     if (!confirmed) return
 
+    const password = await promptInput({
+      title: t('settings.storage.backupImportPasswordTitle'),
+      description: t('settings.storage.backupImportPasswordDescription'),
+      placeholder: t('settings.storage.backupImportPasswordPlaceholder'),
+      password: true,
+      confirmLabel: t('settings.storage.backupImport'),
+      cancelLabel: t('common.cancel'),
+    })
+    if (password === null) return
+
     setImporting(true)
     try {
-      const result = await importLibraryArchive()
+      const result = await importLibraryArchive(password)
       if (!result) return
       await reloadLibraryFromBackend(dispatch)
       toast.success(t('settings.storage.backupImportDone'), result.message)
@@ -794,6 +821,61 @@ export function StorageSection() {
                   ? t('settings.storage.backupExporting')
                   : t('settings.storage.autoBackupNow')}
               </Button>
+            </SettingsRow>
+
+            <SettingsRow
+              title={t('settings.storage.autoBackupEncryptTitle')}
+              description={
+                autoBackupEncrypted
+                  ? t('settings.storage.autoBackupEncryptOn')
+                  : t('settings.storage.autoBackupEncryptDescription')
+              }
+            >
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  void (async () => {
+                    const password = await promptInput({
+                      title: t('settings.storage.autoBackupEncryptPasswordTitle'),
+                      description: t('settings.storage.autoBackupEncryptPasswordDescription'),
+                      placeholder: t('settings.storage.autoBackupEncryptPasswordPlaceholder'),
+                      password: true,
+                      confirmLabel: t('settings.storage.autoBackupEncryptSet'),
+                      cancelLabel: t('common.cancel'),
+                    })
+                    if (password === null) return
+                    try {
+                      const next = await setAutoBackupPassword(password)
+                      setAutoBackupEncrypted(Boolean(next.encrypted))
+                    } catch (error) {
+                      toast.error(t('settings.storage.backupExportError'), String(error))
+                    }
+                  })()
+                }}
+              >
+                {t('settings.storage.autoBackupEncryptSet')}
+              </Button>
+              {autoBackupEncrypted ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    void (async () => {
+                      try {
+                        const next = await setAutoBackupPassword(null)
+                        setAutoBackupEncrypted(Boolean(next.encrypted))
+                      } catch (error) {
+                        toast.error(t('settings.storage.backupExportError'), String(error))
+                      }
+                    })()
+                  }}
+                >
+                  {t('settings.storage.autoBackupEncryptClear')}
+                </Button>
+              ) : null}
             </SettingsRow>
 
             {lastAutoBackupAt ? (
