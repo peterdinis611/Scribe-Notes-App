@@ -26,8 +26,14 @@ jobs:
           node-version: 22
       - name: Install
         run: bun install --frozen-lockfile
-      - name: Audit production deps
-        run: npm audit --omit=dev --audit-level=high
+      # Repo uses bun.lock (no package-lock.json); npm audit cannot run.
+      # Ignore SheetJS community CVEs — no fixed 0.18.x release on the OSS line.
+      - name: Audit dependencies
+        run: >
+          bun audit --audit-level=high
+          --ignore GHSA-4r6h-8v6p-xvw6
+          --ignore GHSA-5pgg-2g8v-p4x9
+
 
   cargo-audit:
     name: cargo audit
@@ -38,9 +44,6 @@ jobs:
       - name: Install cargo-audit
         run: cargo install cargo-audit --locked
       - name: Audit workspace
-        run: cargo audit
-      - name: Audit src-tauri
-        working-directory: src-tauri
         run: cargo audit
 
   cargo-deny:

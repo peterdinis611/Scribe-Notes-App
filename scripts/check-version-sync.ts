@@ -41,12 +41,12 @@ function appTsVersion(): string {
 export function parseCargoLockAppVersion(text: string): string {
   const normalized = text.replace(/\r\n/g, '\n')
   const match = normalized.match(/^name = "app"\nversion = "([^"]+)"/m)
-  if (!match) throw new Error('app crate version not found in src-tauri/Cargo.lock')
+  if (!match) throw new Error('app crate version not found in Cargo.lock')
   return match[1]
 }
 
 function cargoLockAppVersion(): string {
-  return parseCargoLockAppVersion(read('src-tauri/Cargo.lock'))
+  return parseCargoLockAppVersion(read('Cargo.lock'))
 }
 
 export function checkVersionSync() {
@@ -60,7 +60,7 @@ export function checkVersionSync() {
     ['crates/scribe-ui/Cargo.toml', cargoVersion('crates/scribe-ui/Cargo.toml')],
     ['python-ui/pyproject.toml', pyprojectVersion('python-ui/pyproject.toml')],
     ['src/lib/app-version.ts', appTsVersion()],
-    ['src-tauri/Cargo.lock (app)', cargoLockAppVersion()],
+    ['Cargo.lock (app)', cargoLockAppVersion()],
   ]
 
   const mismatches = sources.filter(([, version]) => version !== expected)

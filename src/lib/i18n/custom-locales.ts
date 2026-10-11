@@ -115,7 +115,7 @@ export async function parseCustomLocalePackAsync(
       if (
         /too large|Invalid JSON|must be an object|language code|built-in|too few/i.test(message)
       ) {
-        throw new Error(message)
+        throw new Error(message, { cause: err })
       }
       /* fall through for invoke/transport errors */
     }
