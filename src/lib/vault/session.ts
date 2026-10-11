@@ -90,17 +90,32 @@ export function isDocumentUnlocked(documentId: string): boolean {
   return documentSessions.has(documentId)
 }
 
+/**
+ * Best-effort clear of password material. JS strings are immutable, so we cannot
+ * guarantee memzero — we overwrite the session field and drop references for GC.
+ */
+function wipeSessionPassword(session: { password: string } | undefined) {
+  if (!session) return
+  const len = session.password.length
+  session.password = len > 0 ? '\u0000'.repeat(len) : ''
+  session.password = ''
+}
+
 export function lockVault(folderId: string) {
+  wipeSessionPassword(folderSessions.get(folderId))
   folderSessions.delete(folderId)
   scheduleIdleLock()
 }
 
 export function lockDocument(documentId: string) {
+  wipeSessionPassword(documentSessions.get(documentId))
   documentSessions.delete(documentId)
   scheduleIdleLock()
 }
 
 export function lockAllVaults() {
+  for (const session of folderSessions.values()) wipeSessionPassword(session)
+  for (const session of documentSessions.values()) wipeSessionPassword(session)
   folderSessions.clear()
   documentSessions.clear()
   clearIdleTimer()
@@ -117,6 +132,15 @@ export async function unlockVault(
   folderSessions.set(folderId, { folderId, password })
   installVaultAutoLock()
   scheduleIdleLock()
+  void import('@/lib/tauri').then(({ invoke, isTauriRuntime }) => {
+    if (!isTauriRuntime()) return
+    void invoke('audit_security_event', {
+      action: 'vault_unlock',
+      summary: 'Vault folder unlocked',
+      detail: { folderId },
+      outcome: 'ok',
+    }).catch(() => {})
+  })
   return true
 }
 
@@ -131,6 +155,15 @@ export async function unlockDocument(
   documentSessions.set(documentId, { documentId, password })
   installVaultAutoLock()
   scheduleIdleLock()
+  void import('@/lib/tauri').then(({ invoke, isTauriRuntime }) => {
+    if (!isTauriRuntime()) return
+    void invoke('audit_security_event', {
+      action: 'vault_unlock_document',
+      summary: 'Password-protected note unlocked',
+      detail: { documentId },
+      outcome: 'ok',
+    }).catch(() => {})
+  })
   return true
 }
 

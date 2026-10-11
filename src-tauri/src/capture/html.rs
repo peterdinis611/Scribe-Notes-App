@@ -8,7 +8,9 @@
 //! `{ "title": str, "body": str, "tags": [str], "kind": "note"|"task"|"idea" }`
 //! Older servers that only read `title` and `body` keep working.
 
-pub fn capture_page(token: &str) -> String {
+pub fn capture_page(token: &str, form_nonce: &str) -> String {
+    let token_json = serde_json::to_string(token).unwrap_or_else(|_| "\"\"".into());
+    let nonce_json = serde_json::to_string(form_nonce).unwrap_or_else(|_| "\"\"".into());
     format!(
         r##"<!DOCTYPE html>
 <html lang="en">
@@ -242,6 +244,7 @@ pub fn capture_page(token: &str) -> String {
       }} catch (_) {{ return ''; }}
     }}
     const TOKEN = tokenFromHash() || {token_json};
+    let FORM_NONCE = {nonce_json};
     const KEY_DRAFT = 'scribe.draft';
     const KEY_QUEUE = 'scribe.queue';
     const KEY_RECENT = 'scribe.recent';
@@ -357,11 +360,17 @@ pub fn capture_page(token: &str) -> String {
           err.retryable = false;
           throw err;
         }}
+        if (!FORM_NONCE) {{
+          const err = new Error('Missing form nonce. Reload the capture page.');
+          err.retryable = false;
+          throw err;
+        }}
         res = await fetch('/api/capture', {{
           method: 'POST',
           headers: {{
             'Content-Type': 'application/json',
             'Authorization': 'Bearer ' + TOKEN,
+            'X-Scribe-Capture-Nonce': FORM_NONCE,
           }},
           body: JSON.stringify(payload),
         }});
@@ -370,6 +379,7 @@ pub fn capture_page(token: &str) -> String {
         throw err;
       }}
       const data = await res.json().catch(() => ({{}}));
+      if (data && data.nonce) {{ FORM_NONCE = data.nonce; }}
       if (!res.ok) {{
         const err = new Error(data.error || ('HTTP ' + res.status));
         err.retryable = res.status >= 500;
@@ -517,6 +527,7 @@ pub fn capture_page(token: &str) -> String {
 </body>
 </html>
 "##,
-        token_json = serde_json::to_string(token).unwrap_or_else(|_| "\"\"".to_string()),
+        token_json = token_json,
+        nonce_json = nonce_json,
     )
 }

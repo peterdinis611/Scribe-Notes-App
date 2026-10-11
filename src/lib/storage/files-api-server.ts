@@ -12,6 +12,7 @@ export type StorageFsServerStatus = {
   port: number | null
   url: string | null
   token: string | null
+  tokenExpiresAt: number | null
   documentsDir: string | null
   filesRoot: string | null
   endpoints: StorageFsEndpoint[]

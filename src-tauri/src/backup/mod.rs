@@ -8,7 +8,7 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Manager};
 use tauri_plugin_dialog::DialogExt;
-use zip::write::SimpleFileOptions;
+use zip::write::{FileOptions, SimpleFileOptions};
 use zip::{ZipArchive, ZipWriter};
 
 const MANIFEST_NAME: &str = "manifest.json";
@@ -104,7 +104,7 @@ fn add_dir_to_zip(
     zip: &mut ZipWriter<File>,
     base: &Path,
     prefix: &str,
-    options: SimpleFileOptions,
+    options: FileOptions<'_, ()>,
 ) -> Result<u32, String> {
     let mut count = 0u32;
     if !base.exists() {
@@ -155,11 +155,20 @@ fn walkdir_light(root: &Path) -> Result<Vec<PathBuf>, String> {
     Ok(files)
 }
 
+fn archive_file_options(password: Option<&str>) -> FileOptions<'_, ()> {
+    let base = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+    match password.map(str::trim).filter(|p| !p.is_empty()) {
+        Some(pw) => base.with_aes_encryption(zip::AesMode::Aes256, pw),
+        None => base,
+    }
+}
+
 fn write_library_archive(
     out_path: &Path,
     db_path: &Path,
     documents_dir: &Path,
     schema_version: i32,
+    password: Option<&str>,
 ) -> Result<BackupExportResult, String> {
     if let Some(parent) = out_path.parent() {
         fs::create_dir_all(parent).map_err(|e| e.to_string())?;
@@ -167,7 +176,7 @@ fn write_library_archive(
 
     let file = File::create(out_path).map_err(|e| e.to_string())?;
     let mut zip = ZipWriter::new(file);
-    let options = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+    let options = archive_file_options(password);
 
     let manifest = BackupManifest {
         version: env!("CARGO_PKG_VERSION").to_string(),
@@ -223,6 +232,7 @@ fn prepare_backup_paths(
 pub async fn export_library_archive(
     app: AppHandle,
     state: tauri::State<'_, DbState>,
+    password: Option<String>,
 ) -> Result<Option<BackupExportResult>, String> {
     let (db_path, documents_dir, schema_version) = prepare_backup_paths(&app, &state)?;
 
@@ -242,11 +252,13 @@ pub async fn export_library_archive(
     };
 
     let out_path = PathBuf::from(save_path.to_string());
+    let pw = password.as_deref().map(str::trim).filter(|p| !p.is_empty());
     Ok(Some(write_library_archive(
         &out_path,
         &db_path,
         &documents_dir,
         schema_version,
+        pw,
     )?))
 }
 
@@ -270,7 +282,17 @@ pub async fn export_library_archive_to_dir(
         "{BACKUP_FILE_PREFIX}{}.zip",
         chrono::Utc::now().format("%Y%m%d-%H%M%S")
     ));
-    let result = write_library_archive(&out_path, &db_path, &documents_dir, schema_version)?;
+    let password = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        auto_backup_password(&conn)
+    };
+    let result = write_library_archive(
+        &out_path,
+        &db_path,
+        &documents_dir,
+        schema_version,
+        password.as_deref(),
+    )?;
     let _ = prune_old_auto_backups(&dir, AUTO_BACKUP_KEEP);
     Ok(result)
 }
@@ -279,6 +301,7 @@ pub async fn export_library_archive_to_dir(
 pub async fn import_library_archive(
     app: AppHandle,
     state: tauri::State<'_, DbState>,
+    password: Option<String>,
 ) -> Result<Option<BackupImportResult>, String> {
     let picked = app
         .dialog()
@@ -294,13 +317,29 @@ pub async fn import_library_archive(
     let archive_path = PathBuf::from(picked.to_string());
     let file = File::open(&archive_path).map_err(|e| e.to_string())?;
     let mut archive = ZipArchive::new(file).map_err(|e| e.to_string())?;
+    let pw_bytes = password
+        .as_deref()
+        .map(str::trim)
+        .filter(|p| !p.is_empty())
+        .map(|p| p.as_bytes());
 
     let mut manifest: Option<BackupManifest> = None;
     let mut db_bytes: Option<Vec<u8>> = None;
     let mut document_files: Vec<(String, Vec<u8>)> = Vec::new();
 
     for i in 0..archive.len() {
-        let mut file = archive.by_index(i).map_err(|e| e.to_string())?;
+        let mut file = match pw_bytes {
+            Some(pw) => archive
+                .by_index_decrypt(i, pw)
+                .map_err(|e| format!("Nepodarilo sa otvoriť súbor v archíve (heslo?): {e}"))?,
+            None => archive.by_index(i).map_err(|e| {
+                if format!("{e}").to_lowercase().contains("encrypt") {
+                    "Archív je šifrovaný — zadajte heslo.".to_string()
+                } else {
+                    e.to_string()
+                }
+            })?,
+        };
         let name = file.name().to_string();
         let mut buffer = Vec::new();
         file.read_to_end(&mut buffer).map_err(|e| e.to_string())?;
@@ -383,6 +422,7 @@ const META_AUTO_BACKUP_ENABLED: &str = "auto_backup_enabled";
 const META_AUTO_BACKUP_INTERVAL_HOURS: &str = "auto_backup_interval_hours";
 const META_AUTO_BACKUP_DIRECTORY: &str = "auto_backup_directory";
 const META_AUTO_BACKUP_LAST_AT: &str = "auto_backup_last_at";
+const META_AUTO_BACKUP_PASSWORD: &str = "auto_backup_password";
 const MIN_INTERVAL_HOURS: i64 = 1;
 const MAX_INTERVAL_HOURS: i64 = 24 * 30;
 
@@ -393,6 +433,9 @@ pub struct AutoBackupConfig {
     pub interval_hours: i64,
     pub directory: Option<String>,
     pub last_at: Option<i64>,
+    /// True when AES password is configured (password itself is never returned).
+    #[serde(default)]
+    pub encrypted: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -424,6 +467,10 @@ fn clamp_interval_hours(hours: i64) -> i64 {
     hours.clamp(MIN_INTERVAL_HOURS, MAX_INTERVAL_HOURS)
 }
 
+fn auto_backup_password(conn: &Connection) -> Option<String> {
+    meta_get(conn, META_AUTO_BACKUP_PASSWORD).filter(|p| !p.trim().is_empty())
+}
+
 fn read_auto_backup_config(conn: &Connection) -> AutoBackupConfig {
     let enabled = meta_get(conn, META_AUTO_BACKUP_ENABLED)
         .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
@@ -434,11 +481,13 @@ fn read_auto_backup_config(conn: &Connection) -> AutoBackupConfig {
         .unwrap_or(24);
     let directory = meta_get(conn, META_AUTO_BACKUP_DIRECTORY).filter(|v| !v.trim().is_empty());
     let last_at = meta_get(conn, META_AUTO_BACKUP_LAST_AT).and_then(|v| v.parse::<i64>().ok());
+    let encrypted = auto_backup_password(conn).is_some();
     AutoBackupConfig {
         enabled,
         interval_hours,
         directory,
         last_at,
+        encrypted,
     }
 }
 
@@ -545,7 +594,17 @@ fn run_scheduled_backup(app: &AppHandle, config: &AutoBackupConfig) -> Result<Au
         "{BACKUP_FILE_PREFIX}{}.zip",
         chrono::Utc::now().format("%Y%m%d-%H%M%S")
     ));
-    let result = write_library_archive(&out_path, &db_path, &documents_dir, schema_version)?;
+    let password = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        auto_backup_password(&conn)
+    };
+    let result = write_library_archive(
+        &out_path,
+        &db_path,
+        &documents_dir,
+        schema_version,
+        password.as_deref(),
+    )?;
     let _ = prune_old_auto_backups(&dir, AUTO_BACKUP_KEEP);
     let at = chrono::Utc::now().timestamp_millis();
     {
@@ -601,6 +660,31 @@ pub fn configure_auto_backup(
     Ok(next)
 }
 
+/// Set or clear the AES password used for automatic backup archives.
+/// Pass `None` or empty string to clear (archives written unencrypted).
+#[tauri::command]
+pub fn set_auto_backup_password(
+    state: tauri::State<'_, DbState>,
+    scheduler: tauri::State<'_, Arc<AutoBackupScheduler>>,
+    password: Option<String>,
+) -> Result<AutoBackupConfig, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    match password.as_deref().map(str::trim).filter(|p| !p.is_empty()) {
+        Some(pw) => meta_set(&conn, META_AUTO_BACKUP_PASSWORD, pw)?,
+        None => {
+            conn.execute(
+                "DELETE FROM meta WHERE key = ?1",
+                rusqlite::params![META_AUTO_BACKUP_PASSWORD],
+            )
+            .map_err(|e| e.to_string())?;
+        }
+    }
+    let next = read_auto_backup_config(&conn);
+    drop(conn);
+    scheduler.wake();
+    Ok(next)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -647,6 +731,7 @@ mod tests {
             interval_hours: 24,
             directory: None,
             last_at: None,
+            encrypted: false,
         };
         assert!(is_backup_due(&config, 1_000_000));
     }

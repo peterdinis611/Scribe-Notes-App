@@ -303,6 +303,7 @@ pub fn run() {
             commands::audit::audit_admin_change_password,
             commands::audit::list_audit_events,
             commands::audit::clear_audit_events,
+            commands::audit::audit_security_event,
             commands::ui::get_ui_manifest,
             commands::ui::get_app_version_info,
             commands::ui::list_settings_section_ids,
@@ -554,6 +555,7 @@ pub fn run() {
             backup::import_library_archive,
             backup::get_auto_backup_config,
             backup::configure_auto_backup,
+            backup::set_auto_backup_password,
             commands::system::set_documents_watch_enabled,
         ])
         .build(tauri::generate_context!())

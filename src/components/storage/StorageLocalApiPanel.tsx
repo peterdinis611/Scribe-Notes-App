@@ -40,6 +40,7 @@ export function StorageLocalApiPanel() {
         port: null,
         url: null,
         token: null,
+        tokenExpiresAt: null,
         documentsDir: null,
         filesRoot: null,
         endpoints: STORAGE_FS_ENDPOINT_CATALOG,

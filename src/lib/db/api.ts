@@ -1682,8 +1682,10 @@ export const resolveWikiLink = (documentId: string, label: string, targetId: str
     targetId,
   })
 
-export const exportLibraryArchive = () =>
-  invoke<BackupExportResult | null>('export_library_archive')
+export const exportLibraryArchive = (password?: string | null) =>
+  invoke<BackupExportResult | null>('export_library_archive', {
+    password: password?.trim() ? password.trim() : null,
+  })
 
 export const exportLibraryArchiveToDir = (directory: string) =>
   invoke<BackupExportResult>('export_library_archive_to_dir', { directory })
@@ -1697,12 +1699,20 @@ export interface AutoBackupConfig {
   intervalHours: number
   directory: string | null
   lastAt: number | null
+  /** True when AES password is configured for auto-backup zips. */
+  encrypted?: boolean
 }
 
 export const getAutoBackupConfig = () => invoke<AutoBackupConfig>('get_auto_backup_config')
 
 export const configureAutoBackup = (config: AutoBackupConfig) =>
   invoke<AutoBackupConfig>('configure_auto_backup', { config })
+
+/** Set or clear AES password for automatic backup archives. Empty clears. */
+export const setAutoBackupPassword = (password: string | null) =>
+  invoke<AutoBackupConfig>('set_auto_backup_password', {
+    password: password?.trim() ? password.trim() : null,
+  })
 
 export const setDocumentsWatchEnabled = (enabled: boolean) =>
   invoke<void>('set_documents_watch_enabled', { enabled })
@@ -1744,8 +1754,10 @@ export const evaluateSmartFolder = (input: {
   limit?: number
 }) => invoke<SmartFolderEval>('evaluate_smart_folder', { input })
 
-export const importLibraryArchive = () =>
-  invoke<BackupImportResult | null>('import_library_archive')
+export const importLibraryArchive = (password?: string | null) =>
+  invoke<BackupImportResult | null>('import_library_archive', {
+    password: password?.trim() ? password.trim() : null,
+  })
 
 export const scanScribeFiles = () => invoke<ScanScribeResult>('scan_scribe_files')
 

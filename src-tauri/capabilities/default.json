@@ -29,7 +29,9 @@
     {
       "identifier": "opener:allow-open-url",
       "allow": [
-        { "url": "https://*" },
+        { "url": "https://github.com/peterdinis611/Scribe-Notes-App/*" },
+        { "url": "https://github.com/peterdinis611/*" },
+        { "url": "https://docs.github.com/*" },
         { "url": "http://127.0.0.1:*" },
         { "url": "http://localhost:*" }
       ]

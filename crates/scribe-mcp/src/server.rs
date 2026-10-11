@@ -36,6 +36,11 @@ impl ScribeMcp {
             vault_scope.as_str(),
             opened.writable
         );
+        if opened.writable {
+            eprintln!(
+                "[scribe-mcp] WARNING: write tools enabled (SCRIBE_MCP_WRITE=1). Prefer read-only."
+            );
+        }
         if vault_scope != McpVaultScope::NoVault {
             eprintln!(
                 "[scribe-mcp] WARNING: SCRIBE_MCP_SCOPE={} exposes vault metadata/ciphertext to MCP tools. Prefer no-vault.",

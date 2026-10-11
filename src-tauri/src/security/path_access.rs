@@ -283,4 +283,30 @@ mod tests {
         assert!(PathAccessGate::validate_temp_file(&outside).is_err());
         let _ = fs::remove_dir_all(base);
     }
+
+    #[test]
+    fn safe_join_fuzz_rejects_escape_patterns() {
+        let base = temp_dir();
+        let reject = [
+            "../x",
+            "../../etc/passwd",
+            "a/../../../b",
+            "/absolute",
+            r"a\..\b",
+            "./../secret",
+            "ok/../../nope",
+            "..",
+        ];
+        for rel in reject {
+            assert!(
+                safe_join_under(&base, rel).is_err(),
+                "expected reject for {rel:?}"
+            );
+        }
+        // Nested normal paths (and odd-but-safe filenames) still work.
+        for rel in ["a/b/c.md", "notes/2026/01/x.scribe", "file.txt", "....dots"] {
+            assert!(safe_join_under(&base, rel).is_ok(), "expected allow for {rel:?}");
+        }
+        let _ = fs::remove_dir_all(base);
+    }
 }

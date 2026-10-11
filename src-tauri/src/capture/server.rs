@@ -1,5 +1,6 @@
 use std::io::{Read, Write};
 use std::net::TcpStream;
+use std::sync::Mutex;
 use tauri::AppHandle;
 
 use super::html::capture_page;
@@ -126,7 +127,34 @@ struct CaptureBody {
     text: String,
 }
 
-pub fn handle_connection(mut stream: TcpStream, app: &AppHandle, expected_token: &str) {
+fn mint_form_nonce() -> String {
+    uuid::Uuid::new_v4().to_string().replace('-', "")
+}
+
+/// Consume a one-time form nonce. Returns false if missing/mismatched.
+fn consume_form_nonce(store: &Mutex<Option<String>>, presented: &str) -> bool {
+    let Ok(mut guard) = store.lock() else {
+        return false;
+    };
+    match guard.take() {
+        Some(expected) if !presented.is_empty() && expected == presented => true,
+        Some(expected) => {
+            // Put back so a wrong guess does not wipe a valid pending nonce.
+            *guard = Some(expected);
+            false
+        }
+        None => false,
+    }
+}
+
+pub fn handle_connection(
+    mut stream: TcpStream,
+    peer: Option<std::net::SocketAddr>,
+    app: &AppHandle,
+    session: &crate::security::TokenSession,
+    limiter: &crate::security::RateLimiter,
+    form_nonce: &Mutex<Option<String>>,
+) {
     let Some((first_line, headers, body_bytes)) = read_http_request(&mut stream) else {
         write_response(&mut stream, "400 Bad Request", "text/plain", b"bad request");
         return;
@@ -141,9 +169,24 @@ pub fn handle_connection(mut stream: TcpStream, app: &AppHandle, expected_token:
         return;
     }
 
-    // Public form shell — token is never in the query string; POST requires Bearer.
+    let key = crate::security::client_key(peer);
+    if !limiter.check(&key) {
+        write_response(
+            &mut stream,
+            "429 Too Many Requests",
+            "application/json",
+            br#"{"error":"rate limit exceeded"}"#,
+        );
+        return;
+    }
+
+    // Public form shell — session token is in the URL hash; POST needs Bearer + one-time nonce.
     if method == "GET" && (path == "/" || path.starts_with("/?")) {
-        let page = capture_page("");
+        let nonce = mint_form_nonce();
+        if let Ok(mut guard) = form_nonce.lock() {
+            *guard = Some(nonce.clone());
+        }
+        let page = capture_page("", &nonce);
         write_response(&mut stream, "200 OK", "text/html; charset=utf-8", page.as_bytes());
         return;
     }
@@ -154,12 +197,56 @@ pub fn handle_connection(mut stream: TcpStream, app: &AppHandle, expected_token:
     }
 
     if method == "POST" && path.starts_with("/api/capture") {
-        if !token_ok(&headers, path, expected_token) {
+        let presented = headers.lines().find_map(|line| {
+            let lower = line.to_ascii_lowercase();
+            lower
+                .strip_prefix("authorization:")
+                .and_then(|rest| rest.trim().strip_prefix("bearer ").map(|t| t.trim().to_string()))
+                .or_else(|| {
+                    lower
+                        .strip_prefix("x-scribe-capture-token:")
+                        .map(|t| t.trim().to_string())
+                })
+        });
+        let auth_ok = presented
+            .as_deref()
+            .map(|t| session.is_valid(t))
+            .unwrap_or(false);
+        if !auth_ok {
             write_response(
                 &mut stream,
                 "401 Unauthorized",
                 "application/json",
-                br#"{"error":"invalid token"}"#,
+                br#"{"error":"invalid or expired token"}"#,
+            );
+            return;
+        }
+
+        let presented_nonce = headers.lines().find_map(|line| {
+            let lower = line.to_ascii_lowercase();
+            lower
+                .strip_prefix("x-scribe-capture-nonce:")
+                .map(|t| t.trim().to_string())
+        });
+        let nonce_ok = presented_nonce
+            .as_deref()
+            .map(|n| consume_form_nonce(form_nonce, n))
+            .unwrap_or(false);
+        if !nonce_ok {
+            // Issue a fresh nonce so a legitimate client can retry after reload.
+            let fresh = mint_form_nonce();
+            if let Ok(mut guard) = form_nonce.lock() {
+                *guard = Some(fresh.clone());
+            }
+            let payload = serde_json::json!({
+                "error": "invalid or reused form nonce",
+                "nonce": fresh,
+            });
+            write_response(
+                &mut stream,
+                "403 Forbidden",
+                "application/json",
+                payload.to_string().as_bytes(),
             );
             return;
         }
@@ -199,12 +286,20 @@ pub fn handle_connection(mut stream: TcpStream, app: &AppHandle, expected_token:
         } else {
             parsed.text
         };
+        let next_nonce = mint_form_nonce();
+        if let Ok(mut guard) = form_nonce.lock() {
+            *guard = Some(next_nonce.clone());
+        }
         if text.trim().is_empty() {
+            let payload = serde_json::json!({
+                "error": "body is required",
+                "nonce": next_nonce,
+            });
             write_response(
                 &mut stream,
                 "400 Bad Request",
                 "application/json",
-                br#"{"error":"body is required"}"#,
+                payload.to_string().as_bytes(),
             );
             return;
         }
@@ -215,6 +310,7 @@ pub fn handle_connection(mut stream: TcpStream, app: &AppHandle, expected_token:
                     "ok": true,
                     "documentId": created.document_id,
                     "title": created.title,
+                    "nonce": next_nonce,
                 });
                 write_response(
                     &mut stream,
@@ -224,7 +320,7 @@ pub fn handle_connection(mut stream: TcpStream, app: &AppHandle, expected_token:
                 );
             }
             Err(error) => {
-                let payload = serde_json::json!({ "error": error });
+                let payload = serde_json::json!({ "error": error, "nonce": next_nonce });
                 write_response(
                     &mut stream,
                     "500 Internal Server Error",

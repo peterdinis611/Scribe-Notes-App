@@ -48,6 +48,13 @@ pub fn pick_and_grant_path(
         return Ok(None);
     };
     gate.grant_from_picker(&path);
+    crate::security::log_security(
+        &app,
+        "path_grant",
+        "Granted path from native picker",
+        Some(serde_json::json!({ "kind": "open" })),
+        "ok",
+    );
     Ok(Some(path.to_string_lossy().into_owned()))
 }
 
@@ -71,6 +78,13 @@ pub fn pick_and_grant_save_path(
     };
     let path = PathBuf::from(path.to_string());
     gate.grant_from_picker(&path);
+    crate::security::log_security(
+        &app,
+        "path_grant",
+        "Granted path from native save dialog",
+        Some(serde_json::json!({ "kind": "save" })),
+        "ok",
+    );
     Ok(Some(path.to_string_lossy().into_owned()))
 }
 

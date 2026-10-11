@@ -2,6 +2,7 @@ use serde_json::{json, Value};
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::path::Path;
+use std::time::Instant;
 
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use scribe_core::storage_fs::{self, ListOpts};
@@ -386,7 +387,14 @@ fn handle_graphql(documents_dir: &Path, body: &[u8]) -> Result<Value, String> {
     }))
 }
 
-pub fn handle_connection(mut stream: TcpStream, documents_dir: &Path, port: u16, token: &str) {
+pub fn handle_connection(
+    mut stream: TcpStream,
+    peer: Option<std::net::SocketAddr>,
+    documents_dir: &Path,
+    port: u16,
+    session: &crate::security::TokenSession,
+    limiter: &crate::security::RateLimiter,
+) {
     let Some((first_line, headers, body_bytes)) = read_http_request(&mut stream) else {
         write_response(&mut stream, "400 Bad Request", "text/plain", b"bad request");
         return;
@@ -402,22 +410,56 @@ pub fn handle_connection(mut stream: TcpStream, documents_dir: &Path, port: u16,
         return;
     }
 
-    // Minimal unauthenticated probe — no directory paths or catalog.
-    if method == "GET" && path == "/v1/fs/health" && !token_authorized(&headers, full_path, token)
-    {
+    let key = crate::security::client_key(peer);
+    if !limiter.check(&key) {
         write_json(
             &mut stream,
-            "200 OK",
-            &json!({ "ok": true, "auth": "required" }),
+            "429 Too Many Requests",
+            &json!({ "error": "rate limit exceeded" }),
         );
         return;
     }
 
-    if !token_authorized(&headers, full_path, token) {
+    let presented = bearer_token_from_headers(&headers)
+        .or_else(|| {
+            let p = path_only(full_path);
+            if matches!(p, "/docs" | "/swagger" | "/swagger-ui" | "/openapi.json" | "/graphql") {
+                query_param(full_path, "access_token")
+            } else {
+                None
+            }
+        });
+    let auth_ok = presented
+        .as_deref()
+        .map(|t| session.is_valid(t))
+        .unwrap_or(false);
+
+    // Minimal unauthenticated probe — no directory paths or catalog.
+    if method == "GET" && path == "/v1/fs/health" && !auth_ok {
+        write_json(
+            &mut stream,
+            "200 OK",
+            &json!({
+                "ok": true,
+                "auth": "required",
+                "tokenTtlHintSec": crate::security::FILES_TOKEN_TTL.as_secs(),
+            }),
+        );
+        return;
+    }
+
+    if !auth_ok {
+        let expired = Instant::now() >= session.expires_at;
         write_json(
             &mut stream,
             "401 Unauthorized",
-            &json!({ "error": "missing or invalid bearer token" }),
+            &json!({
+                "error": if expired {
+                    "token expired — restart Files API from Settings"
+                } else {
+                    "missing or invalid bearer token"
+                }
+            }),
         );
         return;
     }

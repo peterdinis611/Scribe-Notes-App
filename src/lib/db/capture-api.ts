@@ -5,6 +5,7 @@ export type CaptureStatus = {
   port: number | null
   url: string | null
   token: string | null
+  tokenExpiresAt: number | null
   lanIp: string | null
   allowLan: boolean
   inboxFolderId: string | null
