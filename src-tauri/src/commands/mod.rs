@@ -1,5 +1,6 @@
 pub mod libraries;
 pub mod agent;
+pub mod antivirus;
 pub mod audit;
 pub mod ui;
 pub mod comments;

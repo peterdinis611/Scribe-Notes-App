@@ -2199,6 +2199,36 @@
           ]
         }
       }
+    },
+    "antivirus": {
+      "title": "Antivírus (ClamAV)",
+      "description": "Voliteľný lokálny malware scan cez clamscan / clamdscan. Scribe neobsahuje signatúry — nainštaluj ClamAV na tomto Macu.",
+      "engine": "Skener",
+      "loading": "Kontrolujem PATH…",
+      "refresh": "Obnoviť",
+      "enabled": "Zapnúť politiku skenovania",
+      "enabledHint": "Keď je vypnuté, import a inbox scany sa preskočia.",
+      "scanOnImport": "Skenovať pri importe",
+      "scanOnImportHint": "Preferovať sken pred vstupom do knižnice (keď je napojené).",
+      "quarantineInfected": "Karanténa pre infikované",
+      "quarantineInfectedHint": "Presunúť nálezy do files/.quarantine namiesto inboxu.",
+      "actions": "Nástroje",
+      "actionsHint": "Self-test použije EICAR. Inbox scan prejde files/inbox.",
+      "selfTest": "Self-test",
+      "selfTestOk": "ClamAV self-test prešiel",
+      "selfTestFail": "ClamAV self-test zlyhal",
+      "scanInbox": "Skenovať inbox",
+      "scanClean": "Inbox je čistý",
+      "scanInfected": "{{count}} infikovaných",
+      "scanSummary": "{{scanned}} skenovaných · {{clean}} čistých",
+      "scanError": "Sken inboxu zlyhal",
+      "quarantineTitle": "Karanténa ({{count}})",
+      "restore": "Obnoviť",
+      "purge": "Zmazať",
+      "restoreOk": "Obnovené z karantény",
+      "restoreError": "Obnova zlyhala",
+      "purgeOk": "Odstránené z karantény",
+      "purgeError": "Mazanie zlyhalo"
     }
   },
   "storageAccess": {

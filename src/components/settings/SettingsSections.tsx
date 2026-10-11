@@ -11,6 +11,7 @@ import { IconTooltip } from '@/components/ui/tooltip'
 import { Input } from '@/components/ui/input'
 import { DiagnosticsSection } from '@/components/settings/DiagnosticsSection'
 import { InterfaceSection } from '@/components/settings/InterfaceSection'
+import { AntivirusPanel } from '@/components/settings/AntivirusPanel'
 import { LibrariesSettingsList } from '@/components/settings/LibrariesSettingsList'
 import { LocaleKeysReference } from '@/components/settings/LocaleKeysReference'
 import { FontsSettingsSection } from '@/components/settings/FontsSettingsSection'
@@ -904,6 +905,8 @@ export function StorageSection() {
           </Button>
         </SettingsRow>
       </SettingsGroup>
+
+      <AntivirusPanel />
     </SettingsSection>
   )
 }
