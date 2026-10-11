@@ -22,6 +22,16 @@ pub const DOCS_TOPIC_IDS: &[&str] = &[
 
 pub const DOCS_QUICK_LINKS: &[&str] = &["library", "localAi", "revisions", "plugins"];
 
+/// Optional tip copy keys under `settings.docs.*Tip` + shortcut label (FE `DOCS_TOPIC_TIPS`).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct DocsTopicTip {
+    pub topic_id: String,
+    pub tip_key: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub shortcut: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct DocsGroup {
@@ -71,6 +81,26 @@ pub fn docs_groups() -> Vec<DocsGroup> {
 
 pub fn is_docs_topic(value: &str) -> bool {
     DOCS_TOPIC_IDS.contains(&value)
+}
+
+pub fn docs_topic_tips() -> Vec<DocsTopicTip> {
+    vec![
+        tip("search", "searchTip", Some("⌘K")),
+        tip("journal", "journalTip", Some("⌘J")),
+        tip("shortcuts", "shortcutsTip", Some("⌘,")),
+        tip("localAi", "localAiTip", Some("⌘K")),
+        tip("revisions", "revisionsTip", None),
+        tip("mcp", "mcpTip", None),
+        tip("plugins", "pluginsTip", None),
+    ]
+}
+
+fn tip(topic_id: &str, tip_key: &str, shortcut: Option<&str>) -> DocsTopicTip {
+    DocsTopicTip {
+        topic_id: topic_id.into(),
+        tip_key: tip_key.into(),
+        shortcut: shortcut.map(|s| s.into()),
+    }
 }
 
 #[cfg(test)]

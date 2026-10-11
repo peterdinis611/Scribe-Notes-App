@@ -6,23 +6,28 @@ import { closeScribeUiSurface } from '@/lib/scribe-ui-host'
 import { isTauriRuntime } from '@/lib/tauri'
 import { persistWhatsNewVersion } from '@/store/persistence'
 
-/** Edition 3.5 release notes — Docs field guide, python-ui chrome, shared catalogs. */
-export const WHATS_NEW_35_HIGHLIGHTS = [
-  'docsFieldGuide',
-  'pythonUiChrome',
-  'sharedUiCatalogs',
-  'renderUiSurface',
-  'welcomeSurfaces',
+/** Edition 3.6 release notes — keep in sync with `scribe_ui::WHATS_NEW_36_*`. */
+export const WHATS_NEW_36_HIGHLIGHTS = [
+  'tanstackMarkdown',
+  'captureInbox',
+  'syncMergeStudio',
+  'wikiHealthQueue',
+  'mcpWriteCountdown',
 ] as const
 
-export type WhatsNew35HighlightId = (typeof WHATS_NEW_35_HIGHLIGHTS)[number]
+/** Folio tag keys under `whatsNew.tags.*` — keep in sync with `WHATS_NEW_36_TAG_KEYS`. */
+export const WHATS_NEW_36_TAG_KEYS = ['library', 'capture', 'markdown'] as const
 
-/** @deprecated Prefer WHATS_NEW_35_HIGHLIGHTS */
-export const WHATS_NEW_34_HIGHLIGHTS = WHATS_NEW_35_HIGHLIGHTS
-/** @deprecated Prefer WHATS_NEW_35_HIGHLIGHTS */
-export const WHATS_NEW_27_HIGHLIGHTS = WHATS_NEW_35_HIGHLIGHTS
-/** @deprecated Prefer WHATS_NEW_35_HIGHLIGHTS */
-export const WHATS_NEW_25_HIGHLIGHTS = WHATS_NEW_35_HIGHLIGHTS
+export type WhatsNew36HighlightId = (typeof WHATS_NEW_36_HIGHLIGHTS)[number]
+
+/** @deprecated Prefer WHATS_NEW_36_HIGHLIGHTS */
+export const WHATS_NEW_35_HIGHLIGHTS = WHATS_NEW_36_HIGHLIGHTS
+/** @deprecated Prefer WHATS_NEW_36_HIGHLIGHTS */
+export const WHATS_NEW_34_HIGHLIGHTS = WHATS_NEW_36_HIGHLIGHTS
+/** @deprecated Prefer WHATS_NEW_36_HIGHLIGHTS */
+export const WHATS_NEW_27_HIGHLIGHTS = WHATS_NEW_36_HIGHLIGHTS
+/** @deprecated Prefer WHATS_NEW_36_HIGHLIGHTS */
+export const WHATS_NEW_25_HIGHLIGHTS = WHATS_NEW_36_HIGHLIGHTS
 
 type WhatsNewDialogProps = {
   open: boolean
@@ -56,7 +61,7 @@ export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
         aria-label={t('whatsNew.gotIt')}
         onClick={handleClose}
       />
-      <div className="setup-folio setup-folio--news setup-folio--edition-35">
+      <div className="setup-folio setup-folio--news setup-folio--edition-36">
         <aside className="setup-folio-margin" aria-hidden="true">
           <p className="setup-folio-brand">
             {t('welcome.brandWithEdition', { version: APP_SHORT_VERSION })}
@@ -75,12 +80,12 @@ export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
             </h1>
             <p className="setup-folio-lead">{t('whatsNew.subtitle')}</p>
             <ul className="setup-folio-tags" aria-label={t('whatsNew.tagsLabel')}>
-              <li>{t('whatsNew.tags.docs')}</li>
-              <li>{t('whatsNew.tags.surfaces')}</li>
-              <li>{t('whatsNew.tags.python')}</li>
+              {WHATS_NEW_36_TAG_KEYS.map((key) => (
+                <li key={key}>{t(`whatsNew.tags.${key}`)}</li>
+              ))}
             </ul>
           </header>
-          <WhatsNew35Highlights />
+          <WhatsNew36Highlights />
           <footer className="setup-folio-foot">
             <span className="setup-folio-foot-note">{t('whatsNew.footNote')}</span>
             <button type="button" className="setup-folio-next" onClick={handleClose}>
@@ -93,10 +98,10 @@ export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
   )
 }
 
-/** Presentational list of 3.5.0 highlights — hydrated from Rust UiManifest when available. */
-export function WhatsNew35Highlights() {
+/** Presentational list of 3.6.0 highlights — hydrated from Rust UiManifest when available. */
+export function WhatsNew36Highlights() {
   const { t } = useTranslation()
-  const [highlights, setHighlights] = useState<string[]>([...WHATS_NEW_35_HIGHLIGHTS])
+  const [highlights, setHighlights] = useState<string[]>([...WHATS_NEW_36_HIGHLIGHTS])
 
   useEffect(() => {
     if (!isTauriRuntime()) return
@@ -131,9 +136,11 @@ export function WhatsNew35Highlights() {
   )
 }
 
-/** @deprecated Prefer WhatsNew35Highlights */
-export const WhatsNew34Highlights = WhatsNew35Highlights
-/** @deprecated Prefer WhatsNew35Highlights */
-export const WhatsNew27Highlights = WhatsNew35Highlights
-/** @deprecated Prefer WhatsNew35Highlights */
-export const WhatsNew25Highlights = WhatsNew35Highlights
+/** @deprecated Prefer WhatsNew36Highlights */
+export const WhatsNew35Highlights = WhatsNew36Highlights
+/** @deprecated Prefer WhatsNew36Highlights */
+export const WhatsNew34Highlights = WhatsNew36Highlights
+/** @deprecated Prefer WhatsNew36Highlights */
+export const WhatsNew27Highlights = WhatsNew36Highlights
+/** @deprecated Prefer WhatsNew36Highlights */
+export const WhatsNew25Highlights = WhatsNew36Highlights

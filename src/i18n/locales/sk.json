@@ -63,7 +63,7 @@
     "brandWithEdition": "Scribe {{version}}",
     "eyebrow": "Lokálny editor dokumentov · {{version}}",
     "brandTagline": "Píšte dokumenty lokálne. Prepájajte poznámky, keď ich pribudne.",
-    "editionNote": "{{version}} — Docs sprievodca, Python UI chrome a zdieľané surfaces — stále lokálne.",
+    "editionNote": "{{version}} — TanStack Markdown, capture inbox, sync merge a wiki health — stále lokálne.",
     "newDocument": "Nový dokument",
     "todayNote": "Dnešná poznámka",
     "import": "Importovať",
@@ -83,8 +83,8 @@
     "press": {
       "eyebrow": "Grove · Scribe {{version}} · lokálne na tomto Macu",
       "brandTagline": "Píšte v tichom háji. Docs otvor, keď chceš mapu.",
-      "editionNote": "{{version}} — Surfaces: Docs v appke, Python HTML chrome, zdieľané UI katalógy.",
-      "workflowHint": "Nová stránka → [[odkazy]] → Docs alebo export. Agenti ostávajú voliteľní.",
+      "editionNote": "{{version}} — Library · Flow: Markdown náhľad, capture inbox, sync merge, wiki health.",
+      "workflowHint": "Capture → poznámky → [[odkazy]] → Docs alebo export. Agenti ostávajú voliteľní.",
       "recentDocuments": "Nedávne listy",
       "noDocuments": "Háj je prázdny",
       "noDocumentsHint": "Zasaďte nový dokument alebo otvorte dnešnú poznámku. Docs a ukážka sú voliteľné."
@@ -506,8 +506,8 @@
     "badge": "Novinky {{version}}",
     "kicker": "Poznámky k vydaniu",
     "title": "Scribe {{version}}",
-    "subtitle": "Prehľadávateľný Docs sprievodca, Python UI chrome a zdieľané katalógy naprieč appkou, Lokálnou AI a MCP — stále lokálne.",
-    "editionMark": "Surfaces · Docs",
+    "subtitle": "TanStack Markdown náhľad, capture inbox, sync merge studio, wiki health fronta a bezpečnejšie MCP zápisy — stále lokálne.",
+    "editionMark": "Library · Flow",
     "tagsLabel": "Témy tohto vydania",
     "tags": {
       "agent": "Agent",
@@ -519,9 +519,32 @@
       "python": "Python UI",
       "localAi": "Lokálna AI",
       "editor": "Editor",
-      "history": "História"
+      "history": "História",
+      "library": "Knižnica",
+      "capture": "Capture",
+      "markdown": "Markdown"
     },
-    "footNote": "Docs otvoríš kedykoľvek z railu. Lokálna AI → render_ui_surface vygeneruje rovnaký chrome v HTML.",
+    "footNote": "Docs otvoríš kedykoľvek z railu. Capture a sync ostávajú na tomto Macu.",
+    "tanstackMarkdown": {
+      "title": "TanStack Markdown",
+      "description": "Zdrojový a chat náhľad ide cez @tanstack/markdown — rýchly parse, heading anchory a Scribe syntax highlighting."
+    },
+    "captureInbox": {
+      "title": "Capture inbox",
+      "description": "Rýchle zachytenia idú do fronty s rozumnými predvoľbami a do knižnice ich založíš, keď budeš pripravený."
+    },
+    "syncMergeStudio": {
+      "title": "Sync merge studio",
+      "description": "Konfliktné poznámky riešiš vedľa seba namiesto slepého výberu víťaza."
+    },
+    "wikiHealthQueue": {
+      "title": "Wiki health fronta",
+      "description": "Rozbité a osirolené wiki odkazy sa ukážu ako fronta opráv — skoč a oprav graf."
+    },
+    "mcpWriteCountdown": {
+      "title": "MCP write scope",
+      "description": "V Nastaveniach zapni write nástroje a sleduj expiráciu tokenu, aby remote klienti ostali zámerní."
+    },
     "docsFieldGuide": {
       "title": "Docs sprievodca",
       "description": "Docs v appke so sticky outline, hľadaním, jump chipmi a tipmi — vo farbe Grove light aj dark."
@@ -2176,6 +2199,50 @@
           ]
         }
       }
+    },
+    "antivirus": {
+      "title": "Antivírus (ClamAV)",
+      "description": "Voliteľný lokálny malware scan cez clamscan / clamdscan. Scribe neobsahuje signatúry — nainštaluj ClamAV na tomto Macu.",
+      "engine": "Skener",
+      "loading": "Kontrolujem PATH…",
+      "refresh": "Obnoviť",
+      "enabled": "Zapnúť politiku skenovania",
+      "enabledHint": "Keď je vypnuté, import a skeny úložiska sa preskočia.",
+      "scanOnImport": "Skenovať pri importe",
+      "scanOnImportHint": "Skenovať súbory pred vstupom do knižnice (drop, výber, otvorenie).",
+      "blockInfected": "Blokovať infikované importy",
+      "blockInfectedHint": "Odmietnuť malware, keď je karanténa vypnutá.",
+      "quarantineInfected": "Karanténa pre infikované",
+      "quarantineInfectedHint": "Skopírovať alebo presunúť nálezy do files/.quarantine a zablokovať import.",
+      "warnIfUnavailable": "Varovať, ak ClamAV chýba",
+      "warnIfUnavailableHint": "Blokovať import, keď skener nie je dostupný alebo vyprší čas.",
+      "actions": "Nástroje",
+      "actionsHint": "Self-test použije EICAR. Stromové skeny prechádzajú files/; výber skenuje ľubovoľnú cestu.",
+      "selfTest": "Self-test",
+      "selfTestOk": "ClamAV self-test prešiel",
+      "selfTestFail": "ClamAV self-test zlyhal",
+      "scanInbox": "Skenovať inbox",
+      "scanAll": "Skenovať všetky súbory",
+      "pickScan": "Skenovať súbor…",
+      "scanClean": "Inbox je čistý",
+      "scanAllClean": "Strom files/ je čistý",
+      "scanInfected": "{{count}} infikovaných",
+      "scanUnavailable": "{{count}} nedostupných",
+      "scanSummary": "{{scanned}} skenovaných · {{clean}} čistých",
+      "scanError": "Sken zlyhal",
+      "pickClean": "Súbor je čistý",
+      "pickInfected": "Detegovaná hrozba",
+      "pickOther": "Sken dokončený",
+      "pickResult": "{{verdict}} · {{path}}",
+      "quarantineTitle": "Karanténa ({{count}})",
+      "restore": "Obnoviť",
+      "purge": "Zmazať",
+      "purgeAll": "Vymazať všetko",
+      "restoreOk": "Obnovené z karantény",
+      "restoreError": "Obnova zlyhala",
+      "purgeOk": "Odstránené z karantény",
+      "purgeAllOk": "Vymazaných {{count}} položiek karantény",
+      "purgeError": "Mazanie zlyhalo"
     }
   },
   "storageAccess": {

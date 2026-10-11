@@ -16,19 +16,23 @@ import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { IconTooltip } from '@/components/ui/tooltip'
 
-export type LibraryView =
-  | 'folders'
-  | 'recent'
-  | 'favorites'
-  | 'tags'
-  | 'graph'
-  | 'journal'
-  | 'chat'
-  | 'agent'
-  | 'duplicates'
-  | 'tasks'
-  | 'wikiHealth'
-  | 'storage'
+/** Keep in sync with `scribe_ui::LIBRARY_VIEW_IDS` / UiManifest.libraryViewIds. */
+export const LIBRARY_VIEW_IDS = [
+  'folders',
+  'recent',
+  'favorites',
+  'tags',
+  'graph',
+  'journal',
+  'chat',
+  'agent',
+  'duplicates',
+  'tasks',
+  'wikiHealth',
+  'storage',
+] as const
+
+export type LibraryView = (typeof LIBRARY_VIEW_IDS)[number]
 
 type LibraryViewTabsProps = {
   value: LibraryView

@@ -123,21 +123,26 @@ pub(crate) fn bearer_token_from_headers(headers: &str) -> Option<String> {
     None
 }
 
-pub(crate) fn token_authorized(headers: &str, full_path: &str, expected: &str) -> bool {
-    if bearer_token_from_headers(headers).as_deref() == Some(expected) {
-        return true;
+/// Presented Files API token: Bearer header, or `access_token` query on docs/GraphQL shells only.
+pub(crate) fn presented_access_token(headers: &str, full_path: &str) -> Option<String> {
+    if let Some(token) = bearer_token_from_headers(headers) {
+        return Some(token);
     }
     // Browser-opened docs / OpenAPI may pass the token once via query (not for data APIs).
     let path = path_only(full_path);
     if matches!(path, "/docs" | "/swagger" | "/swagger-ui" | "/openapi.json" | "/graphql") {
-        if query_param(full_path, "access_token").as_deref() == Some(expected) {
-            return true;
-        }
+        return query_param(full_path, "access_token");
     }
-    false
+    None
 }
 
-/// Conservative path-escape detector for unit tests / preflight.
+/// Equality check for unit tests; production validates via the token session.
+#[cfg(test)]
+pub(crate) fn token_authorized(headers: &str, full_path: &str, expected: &str) -> bool {
+    presented_access_token(headers, full_path).as_deref() == Some(expected)
+}
+
+/// Conservative path-escape detector for unit tests / HTTP preflight.
 pub(crate) fn path_escapes_files_root(relative: &str) -> bool {
     if relative.is_empty() {
         return false;
@@ -157,6 +162,35 @@ pub(crate) fn path_escapes_files_root(relative: &str) -> bool {
         }
     }
     false
+}
+
+fn require_safe_rel(relative: &str) -> Result<(), String> {
+    if path_escapes_files_root(relative) {
+        return Err("InvalidPath: path escapes files root".into());
+    }
+    Ok(())
+}
+
+fn query_rel(full_path: &str) -> Result<String, String> {
+    let rel = query_param(full_path, "path").unwrap_or_default();
+    require_safe_rel(&rel)?;
+    Ok(rel)
+}
+
+fn optional_query_rel(full_path: &str) -> Result<Option<String>, String> {
+    match query_param(full_path, "path") {
+        Some(rel) => {
+            require_safe_rel(&rel)?;
+            Ok(Some(rel))
+        }
+        None => Ok(None),
+    }
+}
+
+fn payload_rel<'a>(payload: &'a Value, key: &str) -> Result<&'a str, String> {
+    let rel = payload.get(key).and_then(|v| v.as_str()).unwrap_or("");
+    require_safe_rel(rel)?;
+    Ok(rel)
 }
 
 fn write_json(stream: &mut TcpStream, status: &str, value: &Value) {
@@ -418,16 +452,7 @@ pub fn handle_connection(
         return;
     }
 
-    let presented = bearer_token_from_headers(&headers)
-        .or_else(|| {
-            let p = path_only(full_path);
-            if matches!(p, "/docs" | "/swagger" | "/swagger-ui" | "/openapi.json" | "/graphql") {
-                query_param(full_path, "access_token")
-            } else {
-                None
-            }
-        });
-    let auth_ok = presented
+    let auth_ok = presented_access_token(&headers, full_path)
         .as_deref()
         .map(|t| session.is_valid(t))
         .unwrap_or(false);
@@ -516,7 +541,13 @@ pub fn handle_connection(
     }
 
     if method == "GET" && path == "/v1/fs/list" {
-        let rel = query_param(full_path, "path").unwrap_or_default();
+        let rel = match query_rel(full_path) {
+            Ok(r) => r,
+            Err(e) => {
+                write_err(&mut stream, &e);
+                return;
+            }
+        };
         let recursive = query_param(full_path, "recursive")
             .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
             .unwrap_or(false);
@@ -540,7 +571,13 @@ pub fn handle_connection(
     }
 
     if method == "GET" && path == "/v1/fs/tree" {
-        let rel = query_param(full_path, "path").unwrap_or_default();
+        let rel = match query_rel(full_path) {
+            Ok(r) => r,
+            Err(e) => {
+                write_err(&mut stream, &e);
+                return;
+            }
+        };
         let depth = query_param(full_path, "depth").and_then(|v| v.parse().ok());
         match storage_fs::tree(documents_dir, &rel, depth) {
             Ok(node) => write_json(&mut stream, "200 OK", &json!(node)),
@@ -550,7 +587,13 @@ pub fn handle_connection(
     }
 
     if method == "GET" && path == "/v1/fs/stat" {
-        let rel = query_param(full_path, "path").unwrap_or_default();
+        let rel = match query_rel(full_path) {
+            Ok(r) => r,
+            Err(e) => {
+                write_err(&mut stream, &e);
+                return;
+            }
+        };
         match storage_fs::stat(documents_dir, &rel) {
             Ok(entry) => write_json(&mut stream, "200 OK", &json!(entry)),
             Err(e) => write_err(&mut stream, &e),
@@ -559,7 +602,13 @@ pub fn handle_connection(
     }
 
     if method == "GET" && path == "/v1/fs/exists" {
-        let rel = query_param(full_path, "path").unwrap_or_default();
+        let rel = match query_rel(full_path) {
+            Ok(r) => r,
+            Err(e) => {
+                write_err(&mut stream, &e);
+                return;
+            }
+        };
         match storage_fs::exists(documents_dir, &rel) {
             Ok(result) => write_json(&mut stream, "200 OK", &json!(result)),
             Err(e) => write_err(&mut stream, &e),
@@ -568,7 +617,13 @@ pub fn handle_connection(
     }
 
     if method == "GET" && path == "/v1/fs/read" {
-        let rel = query_param(full_path, "path").unwrap_or_default();
+        let rel = match query_rel(full_path) {
+            Ok(r) => r,
+            Err(e) => {
+                write_err(&mut stream, &e);
+                return;
+            }
+        };
         match storage_fs::read_file(documents_dir, &rel) {
             Ok(bytes) => write_json(
                 &mut stream,
@@ -585,7 +640,13 @@ pub fn handle_connection(
     }
 
     if method == "GET" && path == "/v1/fs/read-text" {
-        let rel = query_param(full_path, "path").unwrap_or_default();
+        let rel = match query_rel(full_path) {
+            Ok(r) => r,
+            Err(e) => {
+                write_err(&mut stream, &e);
+                return;
+            }
+        };
         match storage_fs::read_text(documents_dir, &rel, None) {
             Ok(text) => write_json(
                 &mut stream,
@@ -598,7 +659,13 @@ pub fn handle_connection(
     }
 
     if method == "GET" && path == "/v1/fs/read-json" {
-        let rel = query_param(full_path, "path").unwrap_or_default();
+        let rel = match query_rel(full_path) {
+            Ok(r) => r,
+            Err(e) => {
+                write_err(&mut stream, &e);
+                return;
+            }
+        };
         match storage_fs::read_json(documents_dir, &rel) {
             Ok(value) => write_json(
                 &mut stream,
@@ -611,7 +678,13 @@ pub fn handle_connection(
     }
 
     if method == "GET" && path == "/v1/fs/preview" {
-        let rel = query_param(full_path, "path").unwrap_or_default();
+        let rel = match query_rel(full_path) {
+            Ok(r) => r,
+            Err(e) => {
+                write_err(&mut stream, &e);
+                return;
+            }
+        };
         let max_chars = query_param(full_path, "maxChars").and_then(|v| v.parse().ok());
         match storage_fs::preview(documents_dir, &rel, max_chars) {
             Ok(prev) => write_json(&mut stream, "200 OK", &json!(prev)),
@@ -621,7 +694,13 @@ pub fn handle_connection(
     }
 
     if method == "GET" && path == "/v1/fs/checksum" {
-        let rel = query_param(full_path, "path").unwrap_or_default();
+        let rel = match query_rel(full_path) {
+            Ok(r) => r,
+            Err(e) => {
+                write_err(&mut stream, &e);
+                return;
+            }
+        };
         match storage_fs::checksum_sha256(documents_dir, &rel) {
             Ok(sum) => write_json(&mut stream, "200 OK", &json!(sum)),
             Err(e) => write_err(&mut stream, &e),
@@ -631,7 +710,13 @@ pub fn handle_connection(
 
     if method == "GET" && path == "/v1/fs/search" {
         let query = query_param(full_path, "query").unwrap_or_default();
-        let under = query_param(full_path, "path");
+        let under = match optional_query_rel(full_path) {
+            Ok(u) => u,
+            Err(e) => {
+                write_err(&mut stream, &e);
+                return;
+            }
+        };
         let glob = query_param(full_path, "glob");
         let limit = query_param(full_path, "limit").and_then(|v| v.parse().ok());
         match storage_fs::search(
@@ -648,7 +733,13 @@ pub fn handle_connection(
     }
 
     if method == "GET" && path == "/v1/fs/recent" {
-        let under = query_param(full_path, "path");
+        let under = match optional_query_rel(full_path) {
+            Ok(u) => u,
+            Err(e) => {
+                write_err(&mut stream, &e);
+                return;
+            }
+        };
         let limit = query_param(full_path, "limit").and_then(|v| v.parse().ok());
         let files_only = query_param(full_path, "filesOnly")
             .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
@@ -661,7 +752,13 @@ pub fn handle_connection(
     }
 
     if method == "GET" && path == "/v1/fs/disk-usage" {
-        let rel = query_param(full_path, "path").unwrap_or_default();
+        let rel = match query_rel(full_path) {
+            Ok(r) => r,
+            Err(e) => {
+                write_err(&mut stream, &e);
+                return;
+            }
+        };
         match storage_fs::disk_usage(documents_dir, &rel) {
             Ok(usage) => write_json(&mut stream, "200 OK", &json!(usage)),
             Err(e) => write_err(&mut stream, &e),
@@ -672,21 +769,17 @@ pub fn handle_connection(
     if method == "POST" {
         let payload: Value = serde_json::from_slice(&body_bytes).unwrap_or(json!({}));
         let result = match path {
-            "/v1/fs/mkdir" => {
-                let p = payload.get("path").and_then(|v| v.as_str()).unwrap_or("");
-                storage_fs::mkdir(documents_dir, p).map(|e| json!(e))
-            }
-            "/v1/fs/write-text" => {
-                let p = payload.get("path").and_then(|v| v.as_str()).unwrap_or("");
+            "/v1/fs/mkdir" => payload_rel(&payload, "path")
+                .and_then(|p| storage_fs::mkdir(documents_dir, p).map(|e| json!(e))),
+            "/v1/fs/write-text" => payload_rel(&payload, "path").and_then(|p| {
                 let text = payload.get("text").and_then(|v| v.as_str()).unwrap_or("");
                 let overwrite = payload
                     .get("overwrite")
                     .and_then(|v| v.as_bool())
                     .unwrap_or(false);
                 storage_fs::write_text(documents_dir, p, text, overwrite).map(|e| json!(e))
-            }
-            "/v1/fs/write-json" => {
-                let p = payload.get("path").and_then(|v| v.as_str()).unwrap_or("");
+            }),
+            "/v1/fs/write-json" => payload_rel(&payload, "path").and_then(|p| {
                 let value = payload.get("value").cloned().unwrap_or(json!({}));
                 let overwrite = payload
                     .get("overwrite")
@@ -697,9 +790,8 @@ pub fn handle_connection(
                     .and_then(|v| v.as_bool())
                     .unwrap_or(true);
                 storage_fs::write_json(documents_dir, p, &value, overwrite, pretty).map(|e| json!(e))
-            }
-            "/v1/fs/write" => {
-                let p = payload.get("path").and_then(|v| v.as_str()).unwrap_or("");
+            }),
+            "/v1/fs/write" => payload_rel(&payload, "path").and_then(|p| {
                 let data = payload
                     .get("dataBase64")
                     .and_then(|v| v.as_str())
@@ -714,14 +806,12 @@ pub fn handle_connection(
                     }
                     Err(e) => Err(format!("InvalidPath: bad base64 ({e})")),
                 }
-            }
-            "/v1/fs/append-text" => {
-                let p = payload.get("path").and_then(|v| v.as_str()).unwrap_or("");
+            }),
+            "/v1/fs/append-text" => payload_rel(&payload, "path").and_then(|p| {
                 let text = payload.get("text").and_then(|v| v.as_str()).unwrap_or("");
                 storage_fs::append_text(documents_dir, p, text).map(|e| json!(e))
-            }
-            "/v1/fs/append" => {
-                let p = payload.get("path").and_then(|v| v.as_str()).unwrap_or("");
+            }),
+            "/v1/fs/append" => payload_rel(&payload, "path").and_then(|p| {
                 let data = payload
                     .get("dataBase64")
                     .and_then(|v| v.as_str())
@@ -730,43 +820,37 @@ pub fn handle_connection(
                     Ok(bytes) => storage_fs::append_bytes(documents_dir, p, &bytes).map(|e| json!(e)),
                     Err(e) => Err(format!("InvalidPath: bad base64 ({e})")),
                 }
-            }
-            "/v1/fs/touch" => {
-                let p = payload.get("path").and_then(|v| v.as_str()).unwrap_or("");
-                storage_fs::touch(documents_dir, p).map(|e| json!(e))
-            }
-            "/v1/fs/delete" => {
-                let p = payload.get("path").and_then(|v| v.as_str()).unwrap_or("");
+            }),
+            "/v1/fs/touch" => payload_rel(&payload, "path")
+                .and_then(|p| storage_fs::touch(documents_dir, p).map(|e| json!(e))),
+            "/v1/fs/delete" => payload_rel(&payload, "path").and_then(|p| {
                 let recursive = payload
                     .get("recursive")
                     .and_then(|v| v.as_bool())
                     .unwrap_or(false);
                 storage_fs::delete(documents_dir, p, recursive)
                     .map(|_| json!({ "ok": true, "path": p }))
-            }
-            "/v1/fs/clear-dir" => {
-                let p = payload.get("path").and_then(|v| v.as_str()).unwrap_or("");
-                storage_fs::clear_dir(documents_dir, p).map(|e| json!(e))
-            }
-            "/v1/fs/rename" => {
-                let from = payload.get("from").and_then(|v| v.as_str()).unwrap_or("");
-                let to = payload.get("to").and_then(|v| v.as_str()).unwrap_or("");
-                storage_fs::rename(documents_dir, from, to).map(|e| json!(e))
-            }
-            "/v1/fs/move-into" => {
-                let from = payload.get("from").and_then(|v| v.as_str()).unwrap_or("");
-                let dir = payload.get("dir").and_then(|v| v.as_str()).unwrap_or("");
-                storage_fs::move_into(documents_dir, from, dir).map(|e| json!(e))
-            }
-            "/v1/fs/copy" => {
-                let from = payload.get("from").and_then(|v| v.as_str()).unwrap_or("");
-                let to = payload.get("to").and_then(|v| v.as_str()).unwrap_or("");
-                let overwrite = payload
-                    .get("overwrite")
-                    .and_then(|v| v.as_bool())
-                    .unwrap_or(false);
-                storage_fs::copy(documents_dir, from, to, overwrite).map(|e| json!(e))
-            }
+            }),
+            "/v1/fs/clear-dir" => payload_rel(&payload, "path")
+                .and_then(|p| storage_fs::clear_dir(documents_dir, p).map(|e| json!(e))),
+            "/v1/fs/rename" => payload_rel(&payload, "from").and_then(|from| {
+                payload_rel(&payload, "to")
+                    .and_then(|to| storage_fs::rename(documents_dir, from, to).map(|e| json!(e)))
+            }),
+            "/v1/fs/move-into" => payload_rel(&payload, "from").and_then(|from| {
+                payload_rel(&payload, "dir").and_then(|dir| {
+                    storage_fs::move_into(documents_dir, from, dir).map(|e| json!(e))
+                })
+            }),
+            "/v1/fs/copy" => payload_rel(&payload, "from").and_then(|from| {
+                payload_rel(&payload, "to").and_then(|to| {
+                    let overwrite = payload
+                        .get("overwrite")
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or(false);
+                    storage_fs::copy(documents_dir, from, to, overwrite).map(|e| json!(e))
+                })
+            }),
             "/v1/fs/ensure-defaults" => storage_fs::ensure_defaults(documents_dir)
                 .map(|created| json!({ "created": created })),
             _ => Err(format!("NotFound: unknown route {path}")),

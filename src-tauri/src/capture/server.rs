@@ -95,27 +95,29 @@ fn write_response(stream: &mut TcpStream, status: &str, content_type: &str, body
     let _ = stream.flush();
 }
 
-/// Capture auth: Bearer / X-Scribe-Capture-Token only (query `?token=` is rejected).
-pub(crate) fn token_ok(headers: &str, path: &str, expected: &str) -> bool {
-    // Explicitly ignore query tokens — they must not authorize.
-    let _ = path;
+/// Capture auth: Bearer / X-Scribe-Capture-Token only (query `?token=` is never read).
+pub(crate) fn presented_capture_token(headers: &str) -> Option<String> {
     for line in headers.lines() {
         let lower = line.to_ascii_lowercase();
         if let Some(rest) = lower.strip_prefix("authorization:") {
             let rest = rest.trim();
             if let Some(token) = rest.strip_prefix("bearer ") {
-                if token.trim() == expected {
-                    return true;
-                }
+                return Some(token.trim().to_string());
             }
         }
         if let Some(rest) = lower.strip_prefix("x-scribe-capture-token:") {
-            if rest.trim() == expected {
-                return true;
-            }
+            return Some(rest.trim().to_string());
         }
     }
-    false
+    None
+}
+
+/// Equality check for unit tests; production validates via the token session.
+#[cfg(test)]
+pub(crate) fn token_ok(headers: &str, path: &str, expected: &str) -> bool {
+    // Explicitly ignore query tokens — they must not authorize.
+    let _ = path;
+    presented_capture_token(headers).as_deref() == Some(expected)
 }
 
 #[derive(serde::Deserialize)]
@@ -202,18 +204,7 @@ pub fn handle_connection(
     }
 
     if method == "POST" && path.starts_with("/api/capture") {
-        let presented = headers.lines().find_map(|line| {
-            let lower = line.to_ascii_lowercase();
-            lower
-                .strip_prefix("authorization:")
-                .and_then(|rest| rest.trim().strip_prefix("bearer ").map(|t| t.trim().to_string()))
-                .or_else(|| {
-                    lower
-                        .strip_prefix("x-scribe-capture-token:")
-                        .map(|t| t.trim().to_string())
-                })
-        });
-        let auth_ok = presented
+        let auth_ok = presented_capture_token(&headers)
             .as_deref()
             .map(|t| session.is_valid(t))
             .unwrap_or(false);

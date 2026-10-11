@@ -1,7 +1,8 @@
 import i18n from '@/i18n'
+import { WHATS_NEW_36_HIGHLIGHTS } from '@/components/WhatsNewDialog'
+import { DOCS_GROUPS, DOCS_TOPIC_IDS } from '@/components/docs/docs-groups'
 import { APP_SHORT_VERSION, APP_VERSION } from '@/lib/app-version'
 import { closeUiSurface, openUiSurface, renderUiSurfaceHtml, type UiSurfaceId, type UiSurfaceRequest } from '@/lib/db/api'
-import { DOCS_GROUPS, DOCS_TOPIC_IDS } from '@/components/docs/docs-groups'
 import { PRIVACY_ARTICLE_IDS } from '@/lib/privacy'
 import { isTauriRuntime } from '@/lib/tauri'
 import { listen } from '@tauri-apps/api/event'
@@ -80,15 +81,8 @@ function docsGroups(): Array<[string, string[]]> {
 }
 
 function highlightCopy(): Record<string, [string, string]> {
-  const ids = [
-    'docsFieldGuide',
-    'pythonUiChrome',
-    'sharedUiCatalogs',
-    'renderUiSurface',
-    'welcomeSurfaces',
-  ]
   const out: Record<string, [string, string]> = {}
-  for (const id of ids) {
+  for (const id of WHATS_NEW_36_HIGHLIGHTS) {
     out[id] = [
       i18n.t(`whatsNew.${id}.title`),
       i18n.t(`whatsNew.${id}.description`),

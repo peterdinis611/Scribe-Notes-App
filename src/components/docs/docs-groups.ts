@@ -45,7 +45,8 @@ export const DOCS_QUICK_LINKS: DocsTopicId[] = [
   'plugins',
 ]
 
-/** Optional tip copy keys under `settings.docs.*Tip` + shortcut label. */
+/** Optional tip copy keys under `settings.docs.*Tip` + shortcut label.
+ * Keep in sync with `scribe_ui::docs_topic_tips` / python-ui `docs_nav`. */
 export const DOCS_TOPIC_TIPS: Partial<
   Record<DocsTopicId, { tipKey: string; shortcut?: string }>
 > = {

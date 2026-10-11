@@ -21,6 +21,7 @@ import {
   isLegacyExcelPath,
 } from '@/lib/import/excel-xlsx'
 import { isWordDocxPath } from '@/lib/import/word-docx'
+import { assertImportAllowedByAntivirus } from '@/lib/antivirus/scan-import'
 import { toast } from '@/lib/toast'
 import i18n from '@/i18n'
 
@@ -65,6 +66,8 @@ export function fileNameFromPath(path: string): string {
 export async function importDocumentFromPath(path: string): Promise<Document> {
   const selected = path.trim()
   if (!selected) throw new Error('Empty path')
+
+  await assertImportAllowedByAntivirus(selected)
 
   if (isMarkdownPath(selected)) {
     const decoded = await readTextFileDecoded(selected)

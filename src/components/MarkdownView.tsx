@@ -1,4 +1,5 @@
-import { Markdown } from '@tanstack/markdown/react'
+import { parseMarkdown } from '@tanstack/markdown/parser'
+import { Markdown, type MarkdownComponents } from '@tanstack/markdown/react'
 import {
   Children,
   isValidElement,
@@ -35,6 +36,10 @@ function MarkdownPre({ children, className, ...props }: ComponentPropsWithoutRef
   return <ScribeSyntaxHighlighter code={code} language={lang} className={cn('scribe-markdown__code', className)} />
 }
 
+const markdownComponents = {
+  pre: MarkdownPre,
+} satisfies MarkdownComponents
+
 export function MarkdownView({
   source,
   className,
@@ -46,18 +51,18 @@ export function MarkdownView({
   const text = deferred ? deferredSource : source
   const trimmed = text.trim()
 
-  const content = useMemo(() => {
+  const document = useMemo(() => {
     if (!trimmed) return null
-    return (
-      <Markdown headingIds={headingIds} components={{ pre: MarkdownPre }}>
-        {text}
-      </Markdown>
-    )
+    return parseMarkdown(text, { headingIds })
   }, [headingIds, text, trimmed])
 
-  if (!trimmed) {
+  if (!document) {
     return emptyFallback ? <div className={cn('scribe-markdown', className)}>{emptyFallback}</div> : null
   }
 
-  return <div className={cn('scribe-markdown', className)}>{content}</div>
+  return (
+    <div className={cn('scribe-markdown', className)}>
+      <Markdown components={markdownComponents}>{document}</Markdown>
+    </div>
+  )
 }

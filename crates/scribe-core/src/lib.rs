@@ -3,6 +3,8 @@ pub mod dates;
 pub mod db;
 pub mod diff;
 pub mod enhance;
+pub mod file_antivirus;
+pub mod file_integrity;
 pub mod html;
 pub mod html_paste;
 pub mod journal;
@@ -25,6 +27,19 @@ pub use dates::{date_key_bounds, date_key_bounds_ms, extract_due_hint, parse_dat
 pub use enhance::{
     decode_bytes, decode_bytes_detailed, enhance_status, fuzzy_extract, fuzzy_ratio, DecodedText,
     EnhanceStatus,
+};
+pub use file_antivirus::{
+    decide_import_gate, detect_engine, gate_import_path, list_quarantine, probe_and_scan_path,
+    purge_all_quarantine, purge_quarantine, quarantine_copy, quarantine_file, restore_quarantine,
+    scan_bytes, scan_bytes_with, scan_directory, scan_path, scan_path_with, scan_paths,
+    scanner_status, self_test, AntivirusEngine, AntivirusPolicy, AntivirusStatus, BatchScanReport,
+    FileHealthReport, ImportGateAction, ImportGateDecision, QuarantineEntry, ScanOptions,
+    ScanReport, ScanVerdict, SelfTestReport, ThreatHit, DEFAULT_SCAN_TIMEOUT_SECS,
+    EICAR_TEST_STRING, QUARANTINE_DIR,
+};
+pub use file_integrity::{
+    detect_kind, is_healthy, probe_bytes, probe_path, FileKind, IntegrityIssue, IntegrityReport,
+    IntegrityStatus, MAX_PROBE_BYTES,
 };
 pub use diff::{
     build_side_by_side_from_lines, diff_lines, diff_words, DiffLine, DiffLineType, DiffResult,

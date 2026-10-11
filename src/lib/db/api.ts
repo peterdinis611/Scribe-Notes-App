@@ -650,10 +650,17 @@ export type UiDocsGroup = {
   topics: string[]
 }
 
+export type UiDocsTopicTip = {
+  topicId: string
+  tipKey: string
+  shortcut?: string
+}
+
 export type UiManifest = {
   version: string
   shortVersion: string
   whatsNewHighlights: string[]
+  whatsNewTagKeys: string[]
   settingsSectionIds: string[]
   privacyArticleIds: string[]
   privacyEffectiveDate: string
@@ -661,8 +668,10 @@ export type UiManifest = {
   docsTopicIds: string[]
   docsQuickLinks: string[]
   docsGroups: UiDocsGroup[]
+  docsTopicTips: UiDocsTopicTip[]
   uiSkinIds: string[]
   smartFilterIds: string[]
+  libraryViewIds: string[]
   shortcutIds: string[]
   agentRoleIds: string[]
   agentRecipeIds: string[]
@@ -1215,6 +1224,140 @@ export const revealDocumentsDirectory = () =>
 export const getStorageDiskUsage = (path?: string | null) =>
   invoke<StorageDiskUsage>('get_storage_disk_usage', { path: path ?? null })
 
+/** Local ClamAV CLI status (`clamscan` / `clamdscan` on PATH). */
+export type AntivirusEngine = 'none' | 'clamscan' | 'clamdscan'
+export type ScanVerdict = 'clean' | 'infected' | 'unavailable' | 'skipped'
+
+export type AntivirusStatus = {
+  engine: AntivirusEngine
+  available: boolean
+  binaryPath?: string | null
+  version?: string | null
+  detail: string
+  installHint: string
+}
+
+export type ThreatHit = {
+  name: string
+  path: string
+}
+
+export type AntivirusScanReport = {
+  engine: AntivirusEngine
+  verdict: ScanVerdict
+  path: string
+  threats: ThreatHit[]
+  rawSummary: string
+  durationMs: number
+}
+
+export type AntivirusBatchReport = {
+  scanned: number
+  clean: number
+  infected: number
+  unavailable: number
+  skipped: number
+  reports: AntivirusScanReport[]
+  durationMs: number
+}
+
+export type AntivirusSelfTestReport = {
+  engine: AntivirusEngine
+  passed: boolean
+  detail: string
+  scan: AntivirusScanReport
+}
+
+export type QuarantineEntry = {
+  id: string
+  originalPath: string
+  quarantinedPath: string
+  threatName?: string | null
+  reason: string
+  quarantinedAt: number
+  sizeBytes: number
+}
+
+export type FileHealthReport = {
+  integrity: {
+    kind: string
+    status: 'ok' | 'suspect' | 'corrupt'
+    sizeBytes: number
+    issues: Array<{ code: string; message: string }>
+    checks: string[]
+  }
+  antivirus: AntivirusScanReport
+}
+
+export const antivirusStatus = () => invoke<AntivirusStatus>('antivirus_status')
+
+export const antivirusSelfTest = () => invoke<AntivirusSelfTestReport>('antivirus_self_test')
+
+export const antivirusScanPath = (path: string, timeoutSecs?: number | null) =>
+  invoke<AntivirusScanReport>('antivirus_scan_path', {
+    path,
+    timeoutSecs: timeoutSecs ?? null,
+  })
+
+export const antivirusScanStorageFile = (path: string, timeoutSecs?: number | null) =>
+  invoke<AntivirusScanReport>('antivirus_scan_storage_file', {
+    path,
+    timeoutSecs: timeoutSecs ?? null,
+  })
+
+export const antivirusScanStorageTree = (options?: {
+  path?: string | null
+  recursive?: boolean
+  maxFiles?: number
+}) =>
+  invoke<AntivirusBatchReport>('antivirus_scan_storage_tree', {
+    path: options?.path ?? null,
+    recursive: options?.recursive ?? true,
+    maxFiles: options?.maxFiles ?? 200,
+  })
+
+export const antivirusCheckStorageHealth = (path: string) =>
+  invoke<FileHealthReport>('antivirus_check_storage_health', { path })
+
+export const antivirusQuarantineStorageFile = (
+  path: string,
+  reason?: string | null,
+  threatName?: string | null,
+) =>
+  invoke<QuarantineEntry>('antivirus_quarantine_storage_file', {
+    path,
+    reason: reason ?? null,
+    threatName: threatName ?? null,
+  })
+
+export const antivirusQuarantineExternalPath = (
+  path: string,
+  reason?: string | null,
+  threatName?: string | null,
+) =>
+  invoke<QuarantineEntry>('antivirus_quarantine_external_path', {
+    path,
+    reason: reason ?? null,
+    threatName: threatName ?? null,
+  })
+
+export const antivirusListQuarantine = () =>
+  invoke<QuarantineEntry[]>('antivirus_list_quarantine')
+
+export const antivirusRestoreQuarantine = (id: string) =>
+  invoke<string>('antivirus_restore_quarantine', { id })
+
+export const antivirusPurgeQuarantine = (id: string) =>
+  invoke<void>('antivirus_purge_quarantine', { id })
+
+export const antivirusPurgeAllQuarantine = () =>
+  invoke<number>('antivirus_purge_all_quarantine')
+
+export const antivirusPickAndScan = (timeoutSecs?: number | null) =>
+  invoke<AntivirusScanReport | null>('antivirus_pick_and_scan', {
+    timeoutSecs: timeoutSecs ?? null,
+  })
+
 /** Native open dialog that grants the path in Rust (never pass arbitrary JS paths to grant). */
 export const pickAndGrantPath = (options?: { title?: string; directory?: boolean }) =>
   invoke<string | null>('pick_and_grant_path', {
@@ -1263,8 +1406,12 @@ export type PickAndImportResult = {
 }
 
 /** Multi-file import via native Rust picker (grants PathAccessGate). */
-export const pickAndImportFiles = () =>
-  invoke<PickAndImportResult | null>('pick_and_import_file')
+export const pickAndImportFiles = async () => {
+  const { readAntivirusPolicy } = await import('@/lib/antivirus/prefs')
+  return invoke<PickAndImportResult | null>('pick_and_import_file', {
+    antivirusPolicy: readAntivirusPolicy(),
+  })
+}
 
 /** @deprecated Prefer `pickAndImportFiles` — kept for single-doc call sites. */
 export const pickAndImportFile = async () => {

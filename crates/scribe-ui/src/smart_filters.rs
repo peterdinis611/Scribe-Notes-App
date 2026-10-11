@@ -10,6 +10,7 @@ pub enum LibrarySmartFilter {
     Unlinked,
     Untagged,
     Unread,
+    Canvas,
 }
 
 impl LibrarySmartFilter {
@@ -19,6 +20,7 @@ impl LibrarySmartFilter {
             Self::Unlinked => "unlinked",
             Self::Untagged => "untagged",
             Self::Unread => "unread",
+            Self::Canvas => "canvas",
         }
     }
 
@@ -28,6 +30,7 @@ impl LibrarySmartFilter {
             "unlinked" => Some(Self::Unlinked),
             "untagged" => Some(Self::Untagged),
             "unread" => Some(Self::Unread),
+            "canvas" => Some(Self::Canvas),
             _ => None,
         }
     }
@@ -56,6 +59,8 @@ pub struct SmartFilterOptions {
     pub orphan_ids: Vec<String>,
     #[serde(default)]
     pub recent_document_ids: Vec<String>,
+    #[serde(default)]
+    pub canvas_ids: Vec<String>,
 }
 
 pub fn document_matches_smart_filter(
@@ -74,6 +79,7 @@ pub fn document_matches_smart_filter(
         LibrarySmartFilter::Untagged => doc.tags.is_empty(),
         LibrarySmartFilter::Unlinked => options.orphan_ids.iter().any(|id| id == &doc.id),
         LibrarySmartFilter::Unread => !options.recent_document_ids.iter().any(|id| id == &doc.id),
+        LibrarySmartFilter::Canvas => options.canvas_ids.iter().any(|id| id == &doc.id),
     }
 }
 
@@ -82,7 +88,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn untagged_and_unread() {
+    fn untagged_unread_and_canvas() {
         let doc = SmartFilterDoc {
             id: "a".into(),
             tags: vec![],
@@ -109,5 +115,14 @@ mod tests {
                 ..Default::default()
             }
         ));
+        assert!(document_matches_smart_filter(
+            &doc,
+            LibrarySmartFilter::Canvas,
+            &SmartFilterOptions {
+                canvas_ids: vec!["a".into()],
+                ..Default::default()
+            }
+        ));
+        assert_eq!(smart_filter_ids().len(), 5);
     }
 }

@@ -702,6 +702,121 @@ pub fn checksum_sha256(documents_dir: &Path, path: &str) -> Result<ChecksumResul
     })
 }
 
+/// Probe whether a file under `files/` looks truncated or corrupt.
+pub fn check_integrity(
+    documents_dir: &Path,
+    path: &str,
+) -> Result<crate::file_integrity::IntegrityReport, String> {
+    let root = ensure_files_root(documents_dir)?;
+    let abs = safe_join_under(&root, path)?;
+    if !abs.is_file() {
+        return Err(err("NotAFile:", format!("`{path}`")));
+    }
+    crate::file_integrity::probe_path(&abs)
+}
+
+/// Integrity + optional ClamAV scan for a file under `files/`.
+pub fn check_file_health(
+    documents_dir: &Path,
+    path: &str,
+) -> Result<crate::file_antivirus::FileHealthReport, String> {
+    let root = ensure_files_root(documents_dir)?;
+    let abs = safe_join_under(&root, path)?;
+    if !abs.is_file() {
+        return Err(err("NotAFile:", format!("`{path}`")));
+    }
+    crate::file_antivirus::probe_and_scan_path(&abs)
+}
+
+/// Recursively scan files under a relative folder (skips `.quarantine`).
+pub fn scan_storage_tree(
+    documents_dir: &Path,
+    path: &str,
+    recursive: bool,
+    max_files: usize,
+) -> Result<crate::file_antivirus::BatchScanReport, String> {
+    let root = ensure_files_root(documents_dir)?;
+    let abs = safe_join_under(&root, path)?;
+    if !abs.is_dir() && !path.trim().is_empty() {
+        // Single file
+        if abs.is_file() {
+            return Ok(crate::file_antivirus::scan_paths(
+                &[abs],
+                &crate::file_antivirus::ScanOptions::default(),
+                50,
+            ));
+        }
+        return Err(err("NotADirectory:", format!("`{path}`")));
+    }
+    let dir = if path.trim().is_empty() {
+        root
+    } else {
+        abs
+    };
+    crate::file_antivirus::scan_directory(
+        &dir,
+        recursive,
+        &crate::file_antivirus::ScanOptions::default(),
+        max_files.max(1),
+    )
+}
+
+pub fn quarantine_storage_file(
+    documents_dir: &Path,
+    path: &str,
+    reason: &str,
+    threat_name: Option<&str>,
+) -> Result<crate::file_antivirus::QuarantineEntry, String> {
+    let root = ensure_files_root(documents_dir)?;
+    let abs = safe_join_under(&root, path)?;
+    crate::file_antivirus::quarantine_file(&root, &abs, path, reason, threat_name)
+}
+
+pub fn list_storage_quarantine(
+    documents_dir: &Path,
+) -> Result<Vec<crate::file_antivirus::QuarantineEntry>, String> {
+    let root = ensure_files_root(documents_dir)?;
+    crate::file_antivirus::list_quarantine(&root)
+}
+
+pub fn restore_storage_quarantine(
+    documents_dir: &Path,
+    id: &str,
+) -> Result<String, String> {
+    let root = ensure_files_root(documents_dir)?;
+    crate::file_antivirus::restore_quarantine(&root, id)
+}
+
+pub fn purge_storage_quarantine(documents_dir: &Path, id: &str) -> Result<(), String> {
+    let root = ensure_files_root(documents_dir)?;
+    crate::file_antivirus::purge_quarantine(&root, id)
+}
+
+pub fn purge_all_storage_quarantine(documents_dir: &Path) -> Result<u32, String> {
+    let root = ensure_files_root(documents_dir)?;
+    crate::file_antivirus::purge_all_quarantine(&root)
+}
+
+/// Copy an absolute path (outside or inside sandbox) into `files/.quarantine`.
+pub fn quarantine_external_path(
+    documents_dir: &Path,
+    abs_path: &Path,
+    reason: &str,
+    threat_name: Option<&str>,
+) -> Result<crate::file_antivirus::QuarantineEntry, String> {
+    let root = ensure_files_root(documents_dir)?;
+    if !abs_path.is_file() {
+        return Err(err("NotAFile:", abs_path.display().to_string()));
+    }
+    crate::file_antivirus::quarantine_copy(
+        &root,
+        abs_path,
+        &abs_path.display().to_string(),
+        reason,
+        threat_name,
+    )
+}
+
 pub fn recent(
     documents_dir: &Path,
     path: Option<&str>,

@@ -6,7 +6,7 @@ use crate::components::{
     FolioRoot, FolioShell, FolioTags, FolioTitle, SuiButton, SuiButtonVariant,
 };
 use crate::render::i18n::{t, StringMap};
-use crate::whats_new_highlights;
+use crate::{whats_new_highlights, whats_new_tag_keys};
 
 #[derive(Props, Clone, PartialEq)]
 pub struct WhatsNewProps {
@@ -52,11 +52,10 @@ pub fn whats_new_view(props: WhatsNewProps) -> Element {
     let brand = t(&props.strings, "welcome.brandWithEdition").replace("{{version}}", &props.short_version);
     let badge = t(&props.strings, "whatsNew.badge").replace("{{version}}", &props.version);
     let title = t(&props.strings, "whatsNew.title").replace("{{version}}", &props.short_version);
-    let tags = vec![
-        t(&props.strings, "whatsNew.tags.agents"),
-        t(&props.strings, "whatsNew.tags.handoffs"),
-        t(&props.strings, "whatsNew.tags.recipes"),
-    ];
+    let tags = whats_new_tag_keys()
+        .into_iter()
+        .map(|key| t(&props.strings, &format!("whatsNew.tags.{key}")))
+        .collect::<Vec<_>>();
 
     rsx! {
         FolioRoot {
