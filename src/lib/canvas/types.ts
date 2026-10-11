@@ -1,6 +1,14 @@
 /** Keep in sync with `crates/scribe-ui` counterpart. */
 
-export type CanvasObjectKind = 'note' | 'frame' | 'rect' | 'ellipse' | 'text'
+export type CanvasObjectKind =
+  | 'note'
+  | 'frame'
+  | 'rect'
+  | 'ellipse'
+  | 'text'
+  | 'line'
+  | 'arrow'
+  | 'docLink'
 
 export type CanvasCard = {
   id: string
@@ -26,6 +34,12 @@ export type CanvasObject = {
   strokeWidth: number
   fontSize: number
   color: string
+  opacity: number
+  cornerRadius: number
+  rotation: number
+  groupId: string
+  documentId: string
+  documentTitle: string
 }
 
 export type CanvasEdge = {
@@ -62,6 +76,10 @@ export const DEFAULT_SHAPE_W = 160
 export const DEFAULT_SHAPE_H = 120
 export const DEFAULT_TEXT_W = 180
 export const DEFAULT_TEXT_H = 48
+export const DEFAULT_LINE_W = 160
+export const DEFAULT_LINE_H = 24
+export const DEFAULT_DOCLINK_W = 220
+export const DEFAULT_DOCLINK_H = 64
 
 /** Theme-aligned fills — not a generic rainbow picker. */
 export const CANVAS_FILL_PRESETS = [
@@ -78,6 +96,17 @@ export const CANVAS_STROKE_PRESETS = [
   'var(--color-muted)',
   'var(--color-foreground)',
 ] as const
+
+const KIND_SET = new Set<string>([
+  'note',
+  'frame',
+  'rect',
+  'ellipse',
+  'text',
+  'line',
+  'arrow',
+  'docLink',
+])
 
 export function emptyCanvasDocument(): CanvasDocument {
   return {
@@ -118,6 +147,12 @@ export function cardToObject(card: CanvasCard, zIndex = 0): CanvasObject {
     strokeWidth: 1,
     fontSize: 14,
     color: 'var(--color-foreground)',
+    opacity: 1,
+    cornerRadius: 10,
+    rotation: 0,
+    groupId: '',
+    documentId: '',
+    documentTitle: '',
   }
 }
 
@@ -194,9 +229,7 @@ function normalizeCard(raw: unknown): CanvasCard {
 }
 
 function normalizeKind(raw: unknown): CanvasObjectKind {
-  if (raw === 'frame' || raw === 'rect' || raw === 'ellipse' || raw === 'text' || raw === 'note') {
-    return raw
-  }
+  if (typeof raw === 'string' && KIND_SET.has(raw)) return raw as CanvasObjectKind
   return 'note'
 }
 
@@ -204,13 +237,14 @@ function normalizeObject(raw: unknown, index: number): CanvasObject {
   const obj = (raw ?? {}) as Partial<CanvasObject> & { kind?: string }
   const kind = normalizeKind(obj.kind)
   const defaults = defaultsForKind(kind)
+  const minSize = kind === 'line' || kind === 'arrow' ? 8 : 24
   return {
     id: typeof obj.id === 'string' && obj.id ? obj.id : crypto.randomUUID(),
     kind,
     x: Number.isFinite(obj.x) ? Number(obj.x) : 0,
     y: Number.isFinite(obj.y) ? Number(obj.y) : 0,
-    w: Number.isFinite(obj.w) && Number(obj.w) > 24 ? Number(obj.w) : defaults.w,
-    h: Number.isFinite(obj.h) && Number(obj.h) > 24 ? Number(obj.h) : defaults.h,
+    w: Number.isFinite(obj.w) && Number(obj.w) > minSize ? Number(obj.w) : defaults.w,
+    h: Number.isFinite(obj.h) && Number(obj.h) > minSize ? Number(obj.h) : defaults.h,
     zIndex: Number.isFinite(obj.zIndex) ? Number(obj.zIndex) : index,
     text: typeof obj.text === 'string' ? obj.text : '',
     label: typeof obj.label === 'string' ? obj.label : kind === 'frame' ? 'Frame' : '',
@@ -225,12 +259,22 @@ function normalizeObject(raw: unknown, index: number): CanvasObject {
         ? Number(obj.fontSize)
         : defaults.fontSize,
     color: typeof obj.color === 'string' && obj.color ? obj.color : defaults.color,
+    opacity:
+      Number.isFinite(obj.opacity) ? Math.min(1, Math.max(0, Number(obj.opacity))) : 1,
+    cornerRadius:
+      Number.isFinite(obj.cornerRadius) && Number(obj.cornerRadius) >= 0
+        ? Number(obj.cornerRadius)
+        : defaults.cornerRadius,
+    rotation: Number.isFinite(obj.rotation) ? Number(obj.rotation) : 0,
+    groupId: typeof obj.groupId === 'string' ? obj.groupId : '',
+    documentId: typeof obj.documentId === 'string' ? obj.documentId : '',
+    documentTitle: typeof obj.documentTitle === 'string' ? obj.documentTitle : '',
   }
 }
 
 function defaultsForKind(kind: CanvasObjectKind): Pick<
   CanvasObject,
-  'w' | 'h' | 'fill' | 'stroke' | 'strokeWidth' | 'fontSize' | 'color'
+  'w' | 'h' | 'fill' | 'stroke' | 'strokeWidth' | 'fontSize' | 'color' | 'cornerRadius'
 > {
   switch (kind) {
     case 'frame':
@@ -242,6 +286,7 @@ function defaultsForKind(kind: CanvasObjectKind): Pick<
         strokeWidth: 1.5,
         fontSize: 12,
         color: 'var(--color-muted-foreground)',
+        cornerRadius: 4,
       }
     case 'rect':
     case 'ellipse':
@@ -253,6 +298,7 @@ function defaultsForKind(kind: CanvasObjectKind): Pick<
         strokeWidth: 1.5,
         fontSize: 14,
         color: 'var(--color-foreground)',
+        cornerRadius: kind === 'ellipse' ? 999 : 10,
       }
     case 'text':
       return {
@@ -263,6 +309,30 @@ function defaultsForKind(kind: CanvasObjectKind): Pick<
         strokeWidth: 0,
         fontSize: 18,
         color: 'var(--color-foreground)',
+        cornerRadius: 0,
+      }
+    case 'line':
+    case 'arrow':
+      return {
+        w: DEFAULT_LINE_W,
+        h: DEFAULT_LINE_H,
+        fill: 'transparent',
+        stroke: 'var(--color-accent)',
+        strokeWidth: 2,
+        fontSize: 12,
+        color: 'var(--color-foreground)',
+        cornerRadius: 0,
+      }
+    case 'docLink':
+      return {
+        w: DEFAULT_DOCLINK_W,
+        h: DEFAULT_DOCLINK_H,
+        fill: 'var(--color-surface-elevated)',
+        stroke: 'var(--color-border)',
+        strokeWidth: 1,
+        fontSize: 13,
+        color: 'var(--color-foreground)',
+        cornerRadius: 10,
       }
     case 'note':
     default:
@@ -274,6 +344,7 @@ function defaultsForKind(kind: CanvasObjectKind): Pick<
         strokeWidth: 1,
         fontSize: 14,
         color: 'var(--color-foreground)',
+        cornerRadius: 10,
       }
   }
 }
@@ -306,15 +377,18 @@ export function createCanvasObject(
   kind: CanvasObjectKind,
   position: { x: number; y: number },
   zIndex = 0,
+  extras?: Partial<Pick<CanvasObject, 'documentId' | 'documentTitle' | 'w' | 'h' | 'x' | 'y'>>,
 ): CanvasObject {
   const defaults = defaultsForKind(kind)
+  const w = extras?.w ?? defaults.w
+  const h = extras?.h ?? defaults.h
   return {
     id: crypto.randomUUID(),
     kind,
-    x: position.x - defaults.w / 2,
-    y: position.y - defaults.h / 2,
-    w: defaults.w,
-    h: defaults.h,
+    x: extras?.x ?? position.x - w / 2,
+    y: extras?.y ?? position.y - h / 2,
+    w,
+    h,
     zIndex,
     text: kind === 'text' ? 'Text' : '',
     label: kind === 'frame' ? 'Frame' : '',
@@ -323,5 +397,24 @@ export function createCanvasObject(
     strokeWidth: defaults.strokeWidth,
     fontSize: defaults.fontSize,
     color: defaults.color,
+    opacity: 1,
+    cornerRadius: defaults.cornerRadius,
+    rotation: 0,
+    groupId: '',
+    documentId: extras?.documentId ?? '',
+    documentTitle: extras?.documentTitle ?? '',
   }
+}
+
+export function canvasObjectsToPlainText(objects: CanvasObject[]): string {
+  return objects
+    .filter((obj) => obj.kind === 'note' || obj.kind === 'text' || obj.kind === 'docLink')
+    .map((obj) => {
+      if (obj.kind === 'docLink') {
+        return obj.documentTitle || obj.label || obj.documentId || 'Document'
+      }
+      return obj.text.trim()
+    })
+    .filter(Boolean)
+    .join('\n\n')
 }

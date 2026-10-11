@@ -13,9 +13,14 @@ pub const DEFAULT_SHAPE_W: f64 = 160.0;
 pub const DEFAULT_SHAPE_H: f64 = 120.0;
 pub const DEFAULT_TEXT_W: f64 = 180.0;
 pub const DEFAULT_TEXT_H: f64 = 48.0;
+pub const DEFAULT_LINE_W: f64 = 160.0;
+pub const DEFAULT_LINE_H: f64 = 24.0;
+pub const DEFAULT_DOCLINK_W: f64 = 220.0;
+pub const DEFAULT_DOCLINK_H: f64 = 64.0;
 /// Cards/objects must be strictly larger than this on each axis to keep their size.
 const MIN_CARD_SIZE: f64 = 40.0;
 const MIN_OBJECT_SIZE: f64 = 24.0;
+const MIN_LINE_SIZE: f64 = 8.0;
 
 /// Emit whole numbers as integers (`120`, not `120.0`) to match JS `JSON.stringify`.
 pub(crate) fn ser_num<S: Serializer>(v: &f64, s: S) -> Result<S::Ok, S::Error> {
@@ -34,6 +39,10 @@ pub enum CanvasObjectKind {
     Rect,
     Ellipse,
     Text,
+    Line,
+    Arrow,
+    #[serde(rename = "docLink")]
+    DocLink,
 }
 
 impl CanvasObjectKind {
@@ -44,6 +53,9 @@ impl CanvasObjectKind {
             Self::Rect => "rect",
             Self::Ellipse => "ellipse",
             Self::Text => "text",
+            Self::Line => "line",
+            Self::Arrow => "arrow",
+            Self::DocLink => "docLink",
         }
     }
 
@@ -53,6 +65,9 @@ impl CanvasObjectKind {
             Some("rect") => Self::Rect,
             Some("ellipse") => Self::Ellipse,
             Some("text") => Self::Text,
+            Some("line") => Self::Line,
+            Some("arrow") => Self::Arrow,
+            Some("docLink") => Self::DocLink,
             _ => Self::Note,
         }
     }
@@ -97,6 +112,22 @@ pub struct CanvasObject {
     #[serde(serialize_with = "ser_num")]
     pub font_size: f64,
     pub color: String,
+    #[serde(default = "default_opacity", serialize_with = "ser_num")]
+    pub opacity: f64,
+    #[serde(default, serialize_with = "ser_num")]
+    pub corner_radius: f64,
+    #[serde(default, serialize_with = "ser_num")]
+    pub rotation: f64,
+    #[serde(default)]
+    pub group_id: String,
+    #[serde(default)]
+    pub document_id: String,
+    #[serde(default)]
+    pub document_title: String,
+}
+
+fn default_opacity() -> f64 {
+    1.0
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -188,7 +219,10 @@ pub fn normalize_card(raw: &Value) -> CanvasCard {
     }
 }
 
-fn defaults_for_kind(kind: CanvasObjectKind) -> (f64, f64, &'static str, &'static str, f64, f64, &'static str) {
+/// (w, h, fill, stroke, stroke_width, font_size, color, corner_radius)
+fn defaults_for_kind(
+    kind: CanvasObjectKind,
+) -> (f64, f64, &'static str, &'static str, f64, f64, &'static str, f64) {
     match kind {
         CanvasObjectKind::Frame => (
             DEFAULT_FRAME_W,
@@ -198,8 +232,9 @@ fn defaults_for_kind(kind: CanvasObjectKind) -> (f64, f64, &'static str, &'stati
             1.5,
             12.0,
             "var(--color-muted-foreground)",
+            4.0,
         ),
-        CanvasObjectKind::Rect | CanvasObjectKind::Ellipse => (
+        CanvasObjectKind::Rect => (
             DEFAULT_SHAPE_W,
             DEFAULT_SHAPE_H,
             "color-mix(in srgb, var(--color-accent) 18%, var(--color-surface))",
@@ -207,6 +242,17 @@ fn defaults_for_kind(kind: CanvasObjectKind) -> (f64, f64, &'static str, &'stati
             1.5,
             14.0,
             "var(--color-foreground)",
+            10.0,
+        ),
+        CanvasObjectKind::Ellipse => (
+            DEFAULT_SHAPE_W,
+            DEFAULT_SHAPE_H,
+            "color-mix(in srgb, var(--color-accent) 18%, var(--color-surface))",
+            "var(--color-accent)",
+            1.5,
+            14.0,
+            "var(--color-foreground)",
+            999.0,
         ),
         CanvasObjectKind::Text => (
             DEFAULT_TEXT_W,
@@ -216,6 +262,27 @@ fn defaults_for_kind(kind: CanvasObjectKind) -> (f64, f64, &'static str, &'stati
             0.0,
             18.0,
             "var(--color-foreground)",
+            0.0,
+        ),
+        CanvasObjectKind::Line | CanvasObjectKind::Arrow => (
+            DEFAULT_LINE_W,
+            DEFAULT_LINE_H,
+            "transparent",
+            "var(--color-accent)",
+            2.0,
+            12.0,
+            "var(--color-foreground)",
+            0.0,
+        ),
+        CanvasObjectKind::DocLink => (
+            DEFAULT_DOCLINK_W,
+            DEFAULT_DOCLINK_H,
+            "var(--color-surface-elevated)",
+            "var(--color-border)",
+            1.0,
+            13.0,
+            "var(--color-foreground)",
+            10.0,
         ),
         CanvasObjectKind::Note => (
             DEFAULT_CARD_W,
@@ -225,12 +292,14 @@ fn defaults_for_kind(kind: CanvasObjectKind) -> (f64, f64, &'static str, &'stati
             1.0,
             14.0,
             "var(--color-foreground)",
+            10.0,
         ),
     }
 }
 
 pub fn card_to_object(card: &CanvasCard, z_index: f64) -> CanvasObject {
-    let (w, h, fill, stroke, stroke_width, font_size, color) = defaults_for_kind(CanvasObjectKind::Note);
+    let (w, h, fill, stroke, stroke_width, font_size, color, corner_radius) =
+        defaults_for_kind(CanvasObjectKind::Note);
     CanvasObject {
         id: card.id.clone(),
         kind: CanvasObjectKind::Note,
@@ -246,6 +315,12 @@ pub fn card_to_object(card: &CanvasCard, z_index: f64) -> CanvasObject {
         stroke_width,
         font_size,
         color: color.into(),
+        opacity: 1.0,
+        corner_radius,
+        rotation: 0.0,
+        group_id: String::new(),
+        document_id: String::new(),
+        document_title: String::new(),
     }
 }
 
@@ -266,9 +341,13 @@ pub fn object_to_card(object: &CanvasObject) -> Option<CanvasCard> {
 pub fn normalize_object(raw: &Value, index: usize) -> CanvasObject {
     let get = |key: &str| raw.as_object().and_then(|o| o.get(key));
     let kind = CanvasObjectKind::parse(get("kind").and_then(Value::as_str));
-    let (dw, dh, dfill, dstroke, dsw, dfs, dcolor) = defaults_for_kind(kind);
+    let (dw, dh, dfill, dstroke, dsw, dfs, dcolor, dradius) = defaults_for_kind(kind);
+    let min_size = match kind {
+        CanvasObjectKind::Line | CanvasObjectKind::Arrow => MIN_LINE_SIZE,
+        _ => MIN_OBJECT_SIZE,
+    };
     let size = |key: &str, default: f64| match finite_num(get(key)) {
-        Some(n) if n > MIN_OBJECT_SIZE => n,
+        Some(n) if n > min_size => n,
         _ => default,
     };
     CanvasObject {
@@ -294,6 +373,16 @@ pub fn normalize_object(raw: &Value, index: usize) -> CanvasObject {
             .filter(|s| !s.is_empty())
             .unwrap_or(dcolor)
             .to_string(),
+        opacity: finite_num(get("opacity"))
+            .map(|n| n.clamp(0.0, 1.0))
+            .unwrap_or(1.0),
+        corner_radius: finite_num(get("cornerRadius"))
+            .filter(|n| *n >= 0.0)
+            .unwrap_or(dradius),
+        rotation: finite_num(get("rotation")).unwrap_or(0.0),
+        group_id: get("groupId").and_then(Value::as_str).unwrap_or("").to_string(),
+        document_id: get("documentId").and_then(Value::as_str).unwrap_or("").to_string(),
+        document_title: get("documentTitle").and_then(Value::as_str).unwrap_or("").to_string(),
     }
 }
 
@@ -482,6 +571,12 @@ mod tests {
                 stroke_width: 1.5,
                 font_size: 14.0,
                 color: "var(--color-foreground)".into(),
+                opacity: 1.0,
+                corner_radius: 10.0,
+                rotation: 0.0,
+                group_id: String::new(),
+                document_id: String::new(),
+                document_title: String::new(),
             }],
             ..empty_canvas_document()
         };

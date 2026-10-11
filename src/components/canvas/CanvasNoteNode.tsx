@@ -14,6 +14,8 @@ function CanvasNoteNodeInner({ id, data, selected }: NodeProps<CanvasNoteNodeTyp
   const stroke = typeof data.stroke === 'string' ? data.stroke : 'var(--color-border)'
   const color = typeof data.color === 'string' ? data.color : 'var(--color-foreground)'
   const fontSize = Number.isFinite(data.fontSize) ? data.fontSize : 14
+  const opacity = Number.isFinite(data.opacity) ? data.opacity : 1
+  const radius = Number.isFinite(data.cornerRadius) ? data.cornerRadius : 10
 
   return (
     <div
@@ -23,6 +25,8 @@ function CanvasNoteNodeInner({ id, data, selected }: NodeProps<CanvasNoteNodeTyp
         borderColor: stroke,
         color,
         fontSize,
+        opacity,
+        borderRadius: radius,
       }}
     >
       <NodeResizer

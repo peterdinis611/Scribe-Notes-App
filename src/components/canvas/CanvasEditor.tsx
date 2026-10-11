@@ -21,30 +21,53 @@ import {
   type NodeTypes,
 } from '@xyflow/react'
 import {
+  AlignCenterHorizontal,
+  AlignCenterVertical,
+  AlignEndHorizontal,
+  AlignEndVertical,
+  AlignHorizontalSpaceAround,
+  AlignStartHorizontal,
+  AlignStartVertical,
+  AlignVerticalSpaceAround,
+  ArrowRight,
+  BringToFront,
   Circle,
+  Copy,
+  Download,
+  FileText,
   Frame,
+  Group,
+  Layers,
   Link2,
   Minus,
   MousePointer2,
+  MoveHorizontal,
   Plus,
+  SendToBack,
+  Sparkles,
   Square,
   StickyNote,
   Trash2,
   Type,
+  Ungroup,
   ZoomIn,
   ZoomOut,
-  Download,
-  Layers,
-  BringToFront,
-  SendToBack,
 } from 'lucide-react'
 import '@xyflow/react/dist/style.css'
 import { DocumentLoadingState } from '@/components/DocumentLoadingState'
+import { CanvasDocLinkNode } from '@/components/canvas/CanvasDocLinkNode'
 import { CanvasFrameNode } from '@/components/canvas/CanvasFrameNode'
+import { CanvasLineNode } from '@/components/canvas/CanvasLineNode'
 import { CanvasNoteNode } from '@/components/canvas/CanvasNoteNode'
 import { CanvasObjectActions } from '@/components/canvas/CanvasObjectActions'
 import { CanvasShapeNode } from '@/components/canvas/CanvasShapeNode'
 import { CanvasTextNode } from '@/components/canvas/CanvasTextNode'
+import { alignNodes, type AlignMode } from '@/lib/canvas/align'
+import {
+  buildClipboardPayload,
+  createCanvasHistory,
+  parseClipboardPayload,
+} from '@/lib/canvas/history'
 import {
   canvasEdgesToFlow,
   createObjectNode,
@@ -56,6 +79,7 @@ import {
 import {
   CANVAS_FILL_PRESETS,
   CANVAS_STROKE_PRESETS,
+  canvasObjectsToPlainText,
   emptyCanvasDocument,
   parseCanvasDocument,
   serializeCanvasDocument,
@@ -63,6 +87,7 @@ import {
 } from '@/lib/canvas/types'
 import { cacheDocument, hashContent } from '@/lib/cache/document-cache'
 import { flushPendingWrites, updateDocument } from '@/lib/db/api'
+import { nlpExtractTakeaways } from '@/lib/db/nlp-api'
 import { applyDiskPersistResult } from '@/lib/disk-sync'
 import { toast } from '@/lib/toast'
 import { cn, debounce } from '@/lib/utils'
@@ -73,8 +98,9 @@ import { isOpenLibraryDocumentId } from '@/lib/trash-document'
 import { store } from '@/store/index'
 
 const AUTO_SAVE_DELAY_MS = 600
+const GRID = 16
 
-type CanvasTool = 'select' | 'link' | CanvasObjectKind
+type CanvasTool = 'select' | 'link' | 'docLink' | CanvasObjectKind
 
 const nodeTypes: NodeTypes = {
   note: CanvasNoteNode,
@@ -82,6 +108,9 @@ const nodeTypes: NodeTypes = {
   rect: CanvasShapeNode,
   ellipse: CanvasShapeNode,
   text: CanvasTextNode,
+  line: CanvasLineNode,
+  arrow: CanvasLineNode,
+  docLink: CanvasDocLinkNode,
 }
 
 const defaultEdgeOptions = {
@@ -89,7 +118,23 @@ const defaultEdgeOptions = {
   animated: false,
 }
 
-const PLACE_TOOLS: CanvasObjectKind[] = ['note', 'frame', 'rect', 'ellipse', 'text']
+const PLACE_TOOLS: CanvasObjectKind[] = [
+  'note',
+  'frame',
+  'rect',
+  'ellipse',
+  'text',
+  'line',
+  'arrow',
+]
+
+const DRAG_CREATE_TOOLS = new Set<CanvasObjectKind>([
+  'frame',
+  'rect',
+  'ellipse',
+  'line',
+  'arrow',
+])
 
 function kindLabelKey(kind: CanvasObjectKind): string {
   switch (kind) {
@@ -103,6 +148,12 @@ function kindLabelKey(kind: CanvasObjectKind): string {
       return 'canvas.toolEllipse'
     case 'text':
       return 'canvas.toolText'
+    case 'line':
+      return 'canvas.toolLine'
+    case 'arrow':
+      return 'canvas.toolArrow'
+    case 'docLink':
+      return 'canvas.toolDocLink'
   }
 }
 
@@ -114,32 +165,61 @@ function CanvasFlow() {
   const viewport = useViewport()
   const activeDocument = useAppSelector((state) => state.documents.activeDocument)
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
+  const libraryDocs = useAppSelector((state) => state.documents.documents)
 
   const [nodes, setNodes] = useState<Node<CanvasObjectData>[]>([])
   const [edges, setEdges] = useState<Edge[]>([])
   const [tool, setTool] = useState<CanvasTool>('select')
   const [linkFromId, setLinkFromId] = useState<string | null>(null)
   const [layersOpen, setLayersOpen] = useState(true)
+  const [docPickerOpen, setDocPickerOpen] = useState(false)
+  const [spacePan, setSpacePan] = useState(false)
+  const [takeawaysBusy, setTakeawaysBusy] = useState(false)
   const surfaceRef = useRef<HTMLDivElement | null>(null)
+  const historyRef = useRef(createCanvasHistory())
+  const dragCreateRef = useRef<{
+    kind: CanvasObjectKind
+    start: { x: number; y: number }
+    nodeId: string
+  } | null>(null)
+  const draggingRef = useRef(false)
 
   const nodesRef = useRef(nodes)
   const edgesRef = useRef(edges)
+  const viewportRef = useRef(viewport)
   const titleRef = useRef(activeDocument?.title ?? '')
   const lastPersistedHashRef = useRef<string | null>(null)
   const latestDocIdRef = useRef<string | null>(activeId)
 
   nodesRef.current = nodes
   edgesRef.current = edges
+  viewportRef.current = viewport
   titleRef.current = activeDocument?.title ?? ''
   latestDocIdRef.current = activeId
+
+  const serializeCurrent = useCallback(
+    (nextNodes: Node<CanvasObjectData>[], nextEdges: Edge[]) =>
+      serializeCanvasDocument(
+        flowToCanvasDocument(nextNodes, nextEdges, {
+          x: viewportRef.current.x,
+          y: viewportRef.current.y,
+          zoom: viewportRef.current.zoom,
+        }),
+      ),
+    [],
+  )
 
   useEffect(() => {
     if (!activeDocument) return
     const parsed = parseCanvasDocument(activeDocument.contentJson) ?? emptyCanvasDocument()
-    setNodes(objectsToNodes(parsed.objects))
-    setEdges(canvasEdgesToFlow(parsed.edges))
+    const nextNodes = objectsToNodes(parsed.objects)
+    const nextEdges = canvasEdgesToFlow(parsed.edges)
+    setNodes(nextNodes)
+    setEdges(nextEdges)
+    historyRef.current.reset({ nodes: nextNodes, edges: nextEdges })
     setTool('select')
     setLinkFromId(null)
+    setDocPickerOpen(false)
     lastPersistedHashRef.current = hashContent(serializeCanvasDocument(parsed))
     if (parsed.viewport) {
       void setViewport(parsed.viewport)
@@ -206,13 +286,18 @@ function CanvasFlow() {
   const queueSave = useMemo(
     () =>
       debounce((docId: string, nextNodes: Node<CanvasObjectData>[], nextEdges: Edge[]) => {
-        void persistContent(docId, serializeCanvasDocument(flowToCanvasDocument(nextNodes, nextEdges)))
+        void persistContent(docId, serializeCurrent(nextNodes, nextEdges))
       }, AUTO_SAVE_DELAY_MS),
-    [persistContent],
+    [persistContent, serializeCurrent],
   )
 
   const commitFlow = useCallback(
-    (nextNodes: Node<CanvasObjectData>[], nextEdges: Edge[]) => {
+    (nextNodes: Node<CanvasObjectData>[], nextEdges: Edge[], opts?: { history?: boolean }) => {
+      if (opts?.history !== false) {
+        historyRef.current.commit({ nodes: nextNodes, edges: nextEdges })
+      } else {
+        historyRef.current.sync({ nodes: nextNodes, edges: nextEdges })
+      }
       if (activeId) {
         dispatch(setSaveStatus('dirty'))
         queueSave(activeId, nextNodes, nextEdges)
@@ -226,24 +311,39 @@ function CanvasFlow() {
       queueSave.cancel()
       const id = latestDocIdRef.current
       if (!id) return
-      const contentJson = serializeCanvasDocument(
-        flowToCanvasDocument(nodesRef.current, edgesRef.current),
-      )
+      const contentJson = serializeCurrent(nodesRef.current, edgesRef.current)
       if (hashContent(contentJson) === lastPersistedHashRef.current) return
       void persistContent(id, contentJson)
     }
-  }, [persistContent, queueSave])
+  }, [persistContent, queueSave, serializeCurrent])
 
   const onNodesChange = useCallback(
     (changes: NodeChange<Node<CanvasObjectData>>[]) => {
+      const isDrag = changes.some((c) => c.type === 'position' && 'dragging' in c && c.dragging)
+      const dragEnd = changes.some((c) => c.type === 'position' && 'dragging' in c && c.dragging === false)
+      if (isDrag && !draggingRef.current) {
+        draggingRef.current = true
+        historyRef.current.commit({ nodes: nodesRef.current, edges: edgesRef.current })
+      }
       setNodes((current) => {
         const next = applyNodeChanges(changes, current)
         const structural = changes.some((change) => change.type !== 'select')
-        if (structural) commitFlow(next, edgesRef.current)
+        if (dragEnd) {
+          draggingRef.current = false
+          commitFlow(next, edgesRef.current, { history: false })
+        } else if (structural && isDrag) {
+          historyRef.current.sync({ nodes: next, edges: edgesRef.current })
+          if (activeId) {
+            dispatch(setSaveStatus('dirty'))
+            queueSave(activeId, next, edgesRef.current)
+          }
+        } else if (structural) {
+          commitFlow(next, edgesRef.current)
+        }
         return next
       })
     },
-    [commitFlow],
+    [activeId, commitFlow, dispatch, queueSave],
   )
 
   const onEdgesChange = useCallback(
@@ -277,8 +377,12 @@ function CanvasFlow() {
   )
 
   const placeObjectAt = useCallback(
-    (kind: CanvasObjectKind, position: { x: number; y: number }) => {
-      const node = createObjectNode(kind, position, nextZIndex(nodesRef.current))
+    (
+      kind: CanvasObjectKind,
+      position: { x: number; y: number },
+      extras?: Parameters<typeof createObjectNode>[3],
+    ) => {
+      const node = createObjectNode(kind, position, nextZIndex(nodesRef.current), extras)
       setNodes((current) => {
         const next = [...current.map((n) => ({ ...n, selected: false })), { ...node, selected: true }]
         commitFlow(next, edgesRef.current)
@@ -286,6 +390,7 @@ function CanvasFlow() {
       })
       setLinkFromId(null)
       setTool('select')
+      return node.id
     },
     [commitFlow],
   )
@@ -298,6 +403,10 @@ function CanvasFlow() {
             ? {
                 ...node,
                 data: { ...node.data, ...patch },
+                style: {
+                  ...node.style,
+                  ...(patch.opacity != null ? { opacity: patch.opacity } : {}),
+                },
               }
             : node,
         )
@@ -353,9 +462,17 @@ function CanvasFlow() {
   )
 
   function selectNode(id: string) {
-    setNodes((current) =>
-      current.map((node) => ({ ...node, selected: node.id === id })),
-    )
+    setNodes((current) => {
+      const target = current.find((n) => n.id === id)
+      const groupId = target?.data.groupId
+      if (groupId) {
+        return current.map((node) => ({
+          ...node,
+          selected: node.id === id || node.data.groupId === groupId,
+        }))
+      }
+      return current.map((node) => ({ ...node, selected: node.id === id }))
+    })
     setTool('select')
   }
 
@@ -379,6 +496,41 @@ function CanvasFlow() {
     })
   }
 
+  function applyAlign(mode: AlignMode) {
+    const ids = new Set(selectedNodes.map((n) => n.id))
+    if (ids.size < 2) return
+    setNodes((current) => {
+      const next = alignNodes(current, ids, mode)
+      commitFlow(next, edgesRef.current)
+      return next
+    })
+  }
+
+  function groupSelected() {
+    if (selectedNodes.length < 2) return
+    const groupId = crypto.randomUUID()
+    const ids = new Set(selectedNodes.map((n) => n.id))
+    setNodes((current) => {
+      const next = current.map((node) =>
+        ids.has(node.id) ? { ...node, data: { ...node.data, groupId } } : node,
+      )
+      commitFlow(next, edgesRef.current)
+      return next
+    })
+  }
+
+  function ungroupSelected() {
+    const ids = new Set(selectedNodes.map((n) => n.id))
+    if (ids.size === 0) return
+    setNodes((current) => {
+      const next = current.map((node) =>
+        ids.has(node.id) ? { ...node, data: { ...node.data, groupId: '' } } : node,
+      )
+      commitFlow(next, edgesRef.current)
+      return next
+    })
+  }
+
   async function deleteSelected() {
     const selectedNodeList = nodes.filter((node) => node.selected)
     const selectedEdgeList = edges.filter((edge) => edge.selected)
@@ -387,29 +539,274 @@ function CanvasFlow() {
     setLinkFromId(null)
   }
 
+  function applyHistorySnapshot(snapshot: { nodes: Node<CanvasObjectData>[]; edges: Edge[] } | null) {
+    if (!snapshot) return
+    setNodes(snapshot.nodes)
+    setEdges(snapshot.edges)
+    if (activeId) {
+      dispatch(setSaveStatus('dirty'))
+      queueSave(activeId, snapshot.nodes, snapshot.edges)
+    }
+  }
+
+  function duplicateSelected() {
+    if (selectedNodes.length === 0) return
+    const z = nextZIndex(nodesRef.current)
+    const clones = selectedNodes.map((node, index) => {
+      const w = node.width ?? 160
+      const h = node.height ?? 120
+      const clone = createObjectNode(
+        node.data.kind,
+        {
+          x: node.position.x + w / 2 + 24,
+          y: node.position.y + h / 2 + 24,
+        },
+        z + index,
+        {
+          w,
+          h,
+          documentId: node.data.documentId,
+          documentTitle: node.data.documentTitle,
+        },
+      )
+      return {
+        ...clone,
+        selected: true,
+        data: {
+          ...clone.data,
+          ...node.data,
+          zIndex: z + index,
+          groupId: '',
+        },
+      }
+    })
+    setNodes((current) => {
+      const next = [
+        ...current.map((n) => ({ ...n, selected: false })),
+        ...clones,
+      ]
+      commitFlow(next, edgesRef.current)
+      return next
+    })
+  }
+
+  async function copySelected() {
+    if (selectedNodes.length === 0) return
+    const payload = buildClipboardPayload(selectedNodes)
+    try {
+      await navigator.clipboard.writeText(payload)
+      toast.success(t('canvas.copied'))
+    } catch {
+      toast.error(t('canvas.copyFailed'))
+    }
+  }
+
+  async function pasteClipboard() {
+    try {
+      const raw = await navigator.clipboard.readText()
+      const objects = parseClipboardPayload(raw)
+      if (!objects?.length) return
+      const z = nextZIndex(nodesRef.current)
+      const clones = objects.map((obj, index) => {
+        const node = createObjectNode(
+          obj.kind,
+          { x: obj.x + obj.w / 2 + 32, y: obj.y + obj.h / 2 + 32 },
+          z + index,
+          {
+            w: obj.w,
+            h: obj.h,
+            x: obj.x + 32,
+            y: obj.y + 32,
+            documentId: obj.documentId,
+            documentTitle: obj.documentTitle,
+          },
+        )
+        return {
+          ...node,
+          selected: true,
+          data: {
+            ...node.data,
+            text: obj.text,
+            label: obj.label,
+            fill: obj.fill,
+            stroke: obj.stroke,
+            strokeWidth: obj.strokeWidth,
+            fontSize: obj.fontSize,
+            color: obj.color,
+            opacity: obj.opacity,
+            cornerRadius: obj.cornerRadius,
+            rotation: obj.rotation,
+            groupId: '',
+            documentId: obj.documentId,
+            documentTitle: obj.documentTitle,
+            zIndex: z + index,
+          },
+        }
+      })
+      setNodes((current) => {
+        const next = [...current.map((n) => ({ ...n, selected: false })), ...clones]
+        commitFlow(next, edgesRef.current)
+        return next
+      })
+    } catch {
+      // ignore clipboard errors
+    }
+  }
+
+  async function extractTakeaways() {
+    const texts = selectedNodes
+      .filter((n) => n.data.kind === 'note' || n.data.kind === 'text')
+      .map((n) => n.data.text.trim())
+      .filter(Boolean)
+    if (texts.length === 0) {
+      toast.error(t('canvas.takeawaysNeedText'))
+      return
+    }
+    setTakeawaysBusy(true)
+    try {
+      const result = await nlpExtractTakeaways({ text: texts.join('\n\n'), limit: 8 })
+      const items = result.takeaways ?? []
+      if (items.length === 0) {
+        toast.error(t('canvas.takeawaysEmpty'))
+        return
+      }
+      const anchor = selectedNodes[0]
+      const baseX = (anchor?.position.x ?? 0) + (anchor?.width ?? 200) + 40
+      const baseY = anchor?.position.y ?? 0
+      const z = nextZIndex(nodesRef.current)
+      const newNodes = items.map((item, index) => {
+        const node = createObjectNode('note', { x: baseX + 100, y: baseY + index * 140 + 60 }, z + index)
+        return {
+          ...node,
+          selected: true,
+          data: { ...node.data, text: item.text, zIndex: z + index },
+        }
+      })
+      setNodes((current) => {
+        const next = [...current.map((n) => ({ ...n, selected: false })), ...newNodes]
+        commitFlow(next, edgesRef.current)
+        return next
+      })
+      toast.success(t('canvas.takeawaysAdded', { count: items.length }))
+    } catch (error) {
+      toast.error(t('canvas.takeawaysFailed'), String(error))
+    } finally {
+      setTakeawaysBusy(false)
+    }
+  }
+
+  function exportPlainText() {
+    const doc = flowToCanvasDocument(nodesRef.current, edgesRef.current)
+    const source =
+      selectedNodes.length > 0
+        ? doc.objects.filter((o) => selectedNodes.some((n) => n.id === o.id))
+        : doc.objects
+    const text = canvasObjectsToPlainText(source)
+    if (!text) {
+      toast.error(t('canvas.exportTextEmpty'))
+      return
+    }
+    void navigator.clipboard.writeText(text).then(
+      () => toast.success(t('canvas.exportedText')),
+      () => toast.error(t('canvas.copyFailed')),
+    )
+  }
+
+  function insertDocLink(docId: string, title: string) {
+    const rect = surfaceRef.current?.getBoundingClientRect()
+    placeObjectAt(
+      'docLink',
+      screenToFlowPosition({
+        x: rect ? rect.left + rect.width / 2 : window.innerWidth / 2,
+        y: rect ? rect.top + rect.height / 2 : window.innerHeight / 2,
+      }),
+      { documentId: docId, documentTitle: title },
+    )
+    setDocPickerOpen(false)
+  }
+
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
         return
       }
-      if (event.key === 'v' || event.key === 'V') setTool('select')
-      if (event.key === 'f' || event.key === 'F') setTool('frame')
-      if (event.key === 'r' || event.key === 'R') setTool('rect')
-      if (event.key === 'o' || event.key === 'O') setTool('ellipse')
-      if (event.key === 't' || event.key === 'T') setTool('text')
-      if (event.key === 'n' || event.key === 'N') setTool('note')
-      if (event.key === 'l' || event.key === 'L') {
-        setTool('link')
-        setLinkFromId(null)
+      const meta = event.metaKey || event.ctrlKey
+      if (event.code === 'Space' && !event.repeat) {
+        event.preventDefault()
+        setSpacePan(true)
+        return
+      }
+      if (meta && event.key.toLowerCase() === 'z') {
+        event.preventDefault()
+        if (event.shiftKey) applyHistorySnapshot(historyRef.current.redo())
+        else applyHistorySnapshot(historyRef.current.undo())
+        return
+      }
+      if (meta && event.key.toLowerCase() === 'd') {
+        event.preventDefault()
+        duplicateSelected()
+        return
+      }
+      if (meta && event.key.toLowerCase() === 'c') {
+        event.preventDefault()
+        void copySelected()
+        return
+      }
+      if (meta && event.key.toLowerCase() === 'v') {
+        event.preventDefault()
+        void pasteClipboard()
+        return
+      }
+      if (!meta) {
+        if (event.key === 'v' || event.key === 'V') setTool('select')
+        if (event.key === 'f' || event.key === 'F') setTool('frame')
+        if (event.key === 'r' || event.key === 'R') setTool('rect')
+        if (event.key === 'o' || event.key === 'O') setTool('ellipse')
+        if (event.key === 't' || event.key === 'T') setTool('text')
+        if (event.key === 'n' || event.key === 'N') setTool('note')
+        if (event.key === 'a' || event.key === 'A') setTool('arrow')
+        if (event.key === 'l' || event.key === 'L') {
+          setTool('link')
+          setLinkFromId(null)
+        }
       }
       if (event.key === 'Escape') {
         setTool('select')
         setLinkFromId(null)
+        setDocPickerOpen(false)
+        setNodes((current) => current.map((n) => ({ ...n, selected: false })))
+      }
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
+        const selected = nodesRef.current.filter((n) => n.selected)
+        if (selected.length === 0) return
+        event.preventDefault()
+        const step = event.shiftKey ? GRID : 1
+        const dx = event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0
+        const dy = event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0
+        setNodes((current) => {
+          const next = current.map((node) =>
+            node.selected
+              ? {
+                  ...node,
+                  position: { x: node.position.x + dx, y: node.position.y + dy },
+                }
+              : node,
+          )
+          commitFlow(next, edgesRef.current)
+          return next
+        })
       }
     }
+    function onKeyUp(event: KeyboardEvent) {
+      if (event.code === 'Space') setSpacePan(false)
+    }
     window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [])
+    window.addEventListener('keyup', onKeyUp)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
+    }
+  }, [activeId, commitFlow, dispatch, queueSave, t])
 
   if (!activeId || !activeDocument) {
     return (
@@ -425,80 +822,49 @@ function CanvasFlow() {
     <div className="editor-shell canvas-shell">
       <div className="canvas-toolbar" role="toolbar" aria-label={t('canvas.toolbar')}>
         <div className="canvas-tool-rail" role="group" aria-label={t('canvas.tools')}>
-          <IconTooltip label={t('canvas.toolSelect')}>
+          {(
+            [
+              ['select', MousePointer2, t('canvas.toolSelect')],
+              ['note', StickyNote, t('canvas.toolNote')],
+              ['frame', Frame, t('canvas.toolFrame')],
+              ['rect', Square, t('canvas.toolRect')],
+              ['ellipse', Circle, t('canvas.toolEllipse')],
+              ['text', Type, t('canvas.toolText')],
+              ['line', Minus, t('canvas.toolLine')],
+              ['arrow', ArrowRight, t('canvas.toolArrow')],
+              ['link', Link2, t('canvas.linkCards')],
+            ] as const
+          ).map(([id, Icon, label]) => (
+            <IconTooltip key={id} label={label}>
+              <button
+                type="button"
+                className={cn(
+                  'canvas-toolbar-btn canvas-toolbar-btn--icon',
+                  tool === id && 'is-active',
+                )}
+                onClick={() => {
+                  if (id === 'link') {
+                    setTool((prev) => (prev === 'link' ? 'select' : 'link'))
+                    setLinkFromId(null)
+                    return
+                  }
+                  setTool(id)
+                  setLinkFromId(null)
+                }}
+                aria-label={label}
+              >
+                <Icon className="h-3.5 w-3.5" />
+              </button>
+            </IconTooltip>
+          ))}
+          <IconTooltip label={t('canvas.toolDocLink')}>
             <button
               type="button"
-              className={cn('canvas-toolbar-btn canvas-toolbar-btn--icon', tool === 'select' && 'is-active')}
-              onClick={() => {
-                setTool('select')
-                setLinkFromId(null)
-              }}
-              aria-label={t('canvas.toolSelect')}
+              className={cn('canvas-toolbar-btn canvas-toolbar-btn--icon', docPickerOpen && 'is-active')}
+              onClick={() => setDocPickerOpen((prev) => !prev)}
+              aria-label={t('canvas.toolDocLink')}
             >
-              <MousePointer2 className="h-3.5 w-3.5" />
-            </button>
-          </IconTooltip>
-          <IconTooltip label={t('canvas.toolNote')}>
-            <button
-              type="button"
-              className={cn('canvas-toolbar-btn canvas-toolbar-btn--icon', tool === 'note' && 'is-active')}
-              onClick={() => setTool('note')}
-              aria-label={t('canvas.toolNote')}
-            >
-              <StickyNote className="h-3.5 w-3.5" />
-            </button>
-          </IconTooltip>
-          <IconTooltip label={t('canvas.toolFrame')}>
-            <button
-              type="button"
-              className={cn('canvas-toolbar-btn canvas-toolbar-btn--icon', tool === 'frame' && 'is-active')}
-              onClick={() => setTool('frame')}
-              aria-label={t('canvas.toolFrame')}
-            >
-              <Frame className="h-3.5 w-3.5" />
-            </button>
-          </IconTooltip>
-          <IconTooltip label={t('canvas.toolRect')}>
-            <button
-              type="button"
-              className={cn('canvas-toolbar-btn canvas-toolbar-btn--icon', tool === 'rect' && 'is-active')}
-              onClick={() => setTool('rect')}
-              aria-label={t('canvas.toolRect')}
-            >
-              <Square className="h-3.5 w-3.5" />
-            </button>
-          </IconTooltip>
-          <IconTooltip label={t('canvas.toolEllipse')}>
-            <button
-              type="button"
-              className={cn('canvas-toolbar-btn canvas-toolbar-btn--icon', tool === 'ellipse' && 'is-active')}
-              onClick={() => setTool('ellipse')}
-              aria-label={t('canvas.toolEllipse')}
-            >
-              <Circle className="h-3.5 w-3.5" />
-            </button>
-          </IconTooltip>
-          <IconTooltip label={t('canvas.toolText')}>
-            <button
-              type="button"
-              className={cn('canvas-toolbar-btn canvas-toolbar-btn--icon', tool === 'text' && 'is-active')}
-              onClick={() => setTool('text')}
-              aria-label={t('canvas.toolText')}
-            >
-              <Type className="h-3.5 w-3.5" />
-            </button>
-          </IconTooltip>
-          <IconTooltip label={t('canvas.linkCards')}>
-            <button
-              type="button"
-              className={cn('canvas-toolbar-btn canvas-toolbar-btn--icon', tool === 'link' && 'is-active')}
-              onClick={() => {
-                setTool((prev) => (prev === 'link' ? 'select' : 'link'))
-                setLinkFromId(null)
-              }}
-              aria-label={t('canvas.linkCards')}
-            >
-              <Link2 className="h-3.5 w-3.5" />
+              <FileText className="h-3.5 w-3.5" />
             </button>
           </IconTooltip>
         </div>
@@ -513,6 +879,39 @@ function CanvasFlow() {
           <Trash2 className="h-3.5 w-3.5" />
           <span>{t('canvas.deleteSelected')}</span>
         </button>
+        <IconTooltip label={t('canvas.duplicate')}>
+          <button
+            type="button"
+            className="canvas-toolbar-btn canvas-toolbar-btn--icon"
+            disabled={selectedNodes.length === 0}
+            onClick={() => duplicateSelected()}
+            aria-label={t('canvas.duplicate')}
+          >
+            <Copy className="h-3.5 w-3.5" />
+          </button>
+        </IconTooltip>
+        <IconTooltip label={t('canvas.group')}>
+          <button
+            type="button"
+            className="canvas-toolbar-btn canvas-toolbar-btn--icon"
+            disabled={selectedNodes.length < 2}
+            onClick={() => groupSelected()}
+            aria-label={t('canvas.group')}
+          >
+            <Group className="h-3.5 w-3.5" />
+          </button>
+        </IconTooltip>
+        <IconTooltip label={t('canvas.ungroup')}>
+          <button
+            type="button"
+            className="canvas-toolbar-btn canvas-toolbar-btn--icon"
+            disabled={selectedNodes.length === 0}
+            onClick={() => ungroupSelected()}
+            aria-label={t('canvas.ungroup')}
+          >
+            <Ungroup className="h-3.5 w-3.5" />
+          </button>
+        </IconTooltip>
         <IconTooltip label={t('canvas.bringFront')}>
           <button
             type="button"
@@ -535,6 +934,53 @@ function CanvasFlow() {
             <SendToBack className="h-3.5 w-3.5" />
           </button>
         </IconTooltip>
+
+        <div className="canvas-align-rail" role="group" aria-label={t('canvas.alignGroup')}>
+          {(
+            [
+              ['left', AlignStartVertical],
+              ['centerX', AlignCenterVertical],
+              ['right', AlignEndVertical],
+              ['top', AlignStartHorizontal],
+              ['middleY', AlignCenterHorizontal],
+              ['bottom', AlignEndHorizontal],
+              ['distributeX', AlignHorizontalSpaceAround],
+              ['distributeY', AlignVerticalSpaceAround],
+            ] as const
+          ).map(([mode, Icon]) => (
+            <IconTooltip key={mode} label={t(`canvas.align.${mode}`)}>
+              <button
+                type="button"
+                className="canvas-toolbar-btn canvas-toolbar-btn--icon"
+                disabled={selectedNodes.length < 2}
+                onClick={() => applyAlign(mode)}
+                aria-label={t(`canvas.align.${mode}`)}
+              >
+                <Icon className="h-3.5 w-3.5" />
+              </button>
+            </IconTooltip>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          className="canvas-toolbar-btn"
+          disabled={takeawaysBusy || selectedNodes.every((n) => n.data.kind !== 'note' && n.data.kind !== 'text')}
+          onClick={() => void extractTakeaways()}
+          title={t('canvas.takeaways')}
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+          <span>{t('canvas.takeaways')}</span>
+        </button>
+        <button
+          type="button"
+          className="canvas-toolbar-btn"
+          onClick={() => exportPlainText()}
+          title={t('canvas.exportText')}
+        >
+          <MoveHorizontal className="h-3.5 w-3.5" />
+          <span>{t('canvas.exportText')}</span>
+        </button>
         <button
           type="button"
           className={cn('canvas-toolbar-btn', layersOpen && 'is-active')}
@@ -600,9 +1046,13 @@ function CanvasFlow() {
         <span className="canvas-toolbar-meta">{Math.round(viewport.zoom * 100)}%</span>
       </div>
 
-      {primarySelected && (
+      {(primarySelected || selectedNodes.length > 1) && (
         <div className="canvas-props" role="group" aria-label={t('canvas.properties')}>
-          <span className="canvas-props-kind">{t(kindLabelKey(primarySelected.data.kind))}</span>
+          <span className="canvas-props-kind">
+            {primarySelected
+              ? t(kindLabelKey(primarySelected.data.kind))
+              : t('canvas.multiSelected', { count: selectedNodes.length })}
+          </span>
           <div className="canvas-props-group">
             <span className="canvas-props-label">{t('canvas.fill')}</span>
             <div className="canvas-swatches">
@@ -612,9 +1062,14 @@ function CanvasFlow() {
                   type="button"
                   className={cn(
                     'canvas-swatch',
-                    primarySelected.data.fill === fill && 'is-active',
+                    primarySelected?.data.fill === fill && 'is-active',
                   )}
-                  style={{ background: fill === 'transparent' ? 'repeating-conic-gradient(#ccc 0% 25%, #fff 0% 50%) 50% / 8px 8px' : fill }}
+                  style={{
+                    background:
+                      fill === 'transparent'
+                        ? 'repeating-conic-gradient(#ccc 0% 25%, #fff 0% 50%) 50% / 8px 8px'
+                        : fill,
+                  }}
                   onClick={() => patchSelected({ fill })}
                   aria-label={t('canvas.fill')}
                 />
@@ -630,7 +1085,7 @@ function CanvasFlow() {
                   type="button"
                   className={cn(
                     'canvas-swatch canvas-swatch--stroke',
-                    primarySelected.data.stroke === stroke && 'is-active',
+                    primarySelected?.data.stroke === stroke && 'is-active',
                   )}
                   style={{ borderColor: stroke, background: 'var(--color-surface)' }}
                   onClick={() => patchSelected({ stroke })}
@@ -639,21 +1094,64 @@ function CanvasFlow() {
               ))}
             </div>
           </div>
-          {(primarySelected.data.kind === 'text' || primarySelected.data.kind === 'note') && (
+          <div className="canvas-props-group">
+            <span className="canvas-props-label">{t('canvas.strokeWidth')}</span>
+            <input
+              type="range"
+              min={0}
+              max={8}
+              step={0.5}
+              value={primarySelected?.data.strokeWidth ?? 1}
+              onChange={(event) => patchSelected({ strokeWidth: Number(event.target.value) })}
+              className="canvas-props-range"
+            />
+          </div>
+          <div className="canvas-props-group">
+            <span className="canvas-props-label">{t('canvas.opacity')}</span>
+            <input
+              type="range"
+              min={0.15}
+              max={1}
+              step={0.05}
+              value={primarySelected?.data.opacity ?? 1}
+              onChange={(event) => patchSelected({ opacity: Number(event.target.value) })}
+              className="canvas-props-range"
+            />
+          </div>
+          {(!primarySelected ||
+            primarySelected.data.kind === 'rect' ||
+            primarySelected.data.kind === 'frame' ||
+            primarySelected.data.kind === 'note' ||
+            primarySelected.data.kind === 'docLink') && (
             <div className="canvas-props-group">
-              <span className="canvas-props-label">{t('canvas.fontSize')}</span>
+              <span className="canvas-props-label">{t('canvas.cornerRadius')}</span>
               <input
                 type="range"
-                min={12}
-                max={48}
+                min={0}
+                max={32}
                 step={1}
-                value={primarySelected.data.fontSize || 14}
-                onChange={(event) => patchSelected({ fontSize: Number(event.target.value) })}
+                value={primarySelected?.data.cornerRadius ?? 10}
+                onChange={(event) => patchSelected({ cornerRadius: Number(event.target.value) })}
                 className="canvas-props-range"
               />
-              <span className="canvas-toolbar-meta">{primarySelected.data.fontSize || 14}</span>
             </div>
           )}
+          {primarySelected &&
+            (primarySelected.data.kind === 'text' || primarySelected.data.kind === 'note') && (
+              <div className="canvas-props-group">
+                <span className="canvas-props-label">{t('canvas.fontSize')}</span>
+                <input
+                  type="range"
+                  min={12}
+                  max={48}
+                  step={1}
+                  value={primarySelected.data.fontSize || 14}
+                  onChange={(event) => patchSelected({ fontSize: Number(event.target.value) })}
+                  className="canvas-props-range"
+                />
+                <span className="canvas-toolbar-meta">{primarySelected.data.fontSize || 14}</span>
+              </div>
+            )}
         </div>
       )}
 
@@ -664,7 +1162,60 @@ function CanvasFlow() {
             'canvas-surface canvas-surface--flow',
             placing && 'is-placing',
             tool === 'link' && 'is-linking',
+            spacePan && 'is-space-pan',
           )}
+          onMouseDown={(event) => {
+            if (!placing || !DRAG_CREATE_TOOLS.has(tool as CanvasObjectKind)) return
+            if (event.button !== 0) return
+            const target = event.target as HTMLElement
+            if (!target.classList.contains('react-flow__pane')) return
+            event.preventDefault()
+            const start = screenToFlowPosition({ x: event.clientX, y: event.clientY })
+            const kind = tool as CanvasObjectKind
+            const node = createObjectNode(kind, start, nextZIndex(nodesRef.current), {
+              x: start.x,
+              y: start.y,
+              w: 16,
+              h: kind === 'line' || kind === 'arrow' ? 24 : 16,
+            })
+            dragCreateRef.current = { kind, start, nodeId: node.id }
+            setNodes((current) => [
+              ...current.map((n) => ({ ...n, selected: false })),
+              { ...node, selected: true },
+            ])
+          }}
+          onMouseMove={(event) => {
+            const drag = dragCreateRef.current
+            if (!drag) return
+            const cur = screenToFlowPosition({ x: event.clientX, y: event.clientY })
+            const x = Math.min(drag.start.x, cur.x)
+            const y = Math.min(drag.start.y, cur.y)
+            const w = Math.max(16, Math.abs(cur.x - drag.start.x))
+            const h =
+              drag.kind === 'line' || drag.kind === 'arrow'
+                ? 24
+                : Math.max(16, Math.abs(cur.y - drag.start.y))
+            setNodes((current) =>
+              current.map((node) =>
+                node.id === drag.nodeId
+                  ? {
+                      ...node,
+                      position: { x, y },
+                      width: w,
+                      height: h,
+                      style: { ...node.style, width: w, height: h },
+                    }
+                  : node,
+              ),
+            )
+          }}
+          onMouseUp={() => {
+            const drag = dragCreateRef.current
+            if (!drag) return
+            dragCreateRef.current = null
+            setTool('select')
+            commitFlow(nodesRef.current, edgesRef.current)
+          }}
         >
           <ReactFlow
             nodes={nodes}
@@ -678,35 +1229,58 @@ function CanvasFlow() {
             minZoom={0.35}
             maxZoom={2.5}
             snapToGrid
-            snapGrid={[16, 16]}
+            snapGrid={[GRID, GRID]}
             deleteKeyCode={['Backspace', 'Delete']}
             zoomOnDoubleClick={false}
-            panOnDrag={tool === 'select' || tool === 'link' ? [1] : true}
-            selectionOnDrag={tool === 'select'}
+            panOnDrag={spacePan || tool !== 'select' ? true : [1]}
+            selectionOnDrag={tool === 'select' && !spacePan}
             selectionMode={SelectionMode.Partial}
-            nodesDraggable={tool === 'select'}
+            multiSelectionKeyCode="Shift"
+            nodesDraggable={tool === 'select' && !spacePan}
             elementsSelectable={tool === 'select' || tool === 'link'}
             proOptions={{ hideAttribution: true }}
             onPaneClick={(event) => {
-              if (placing) {
-                placeObjectAt(tool as CanvasObjectKind, screenToFlowPosition({
-                  x: event.clientX,
-                  y: event.clientY,
-                }))
+              if (dragCreateRef.current) return
+              if (placing && !DRAG_CREATE_TOOLS.has(tool as CanvasObjectKind)) {
+                placeObjectAt(
+                  tool as CanvasObjectKind,
+                  screenToFlowPosition({ x: event.clientX, y: event.clientY }),
+                )
               }
             }}
-            onNodeClick={(_event, node) => {
-              if (tool !== 'link') return
-              if (!linkFromId) {
-                setLinkFromId(node.id)
+            onNodeClick={(event, node) => {
+              if (tool === 'link') {
+                if (!linkFromId) {
+                  setLinkFromId(node.id)
+                  return
+                }
+                if (linkFromId === node.id) return
+                onConnect({
+                  source: linkFromId,
+                  target: node.id,
+                  sourceHandle: null,
+                  targetHandle: null,
+                })
                 return
               }
-              if (linkFromId === node.id) return
-              onConnect({ source: linkFromId, target: node.id, sourceHandle: null, targetHandle: null })
+              if (event.shiftKey) return
+              if (node.data.groupId) {
+                const gid = node.data.groupId
+                setNodes((current) =>
+                  current.map((n) => ({
+                    ...n,
+                    selected: n.data.groupId === gid,
+                  })),
+                )
+              }
             }}
             onDoubleClick={(event) => {
               if (tool !== 'select') return
-              if ((event.target as HTMLElement).closest('.react-flow__node, .canvas-card, .canvas-shape, .canvas-frame, .canvas-text-node, textarea, input')) {
+              if (
+                (event.target as HTMLElement).closest(
+                  '.react-flow__node, .canvas-card, .canvas-shape, .canvas-frame, .canvas-text-node, .canvas-doclink, .canvas-line-node, textarea, input',
+                )
+              ) {
                 return
               }
               placeObjectAt('note', screenToFlowPosition({ x: event.clientX, y: event.clientY }))
@@ -728,6 +1302,7 @@ function CanvasFlow() {
                 const data = node.data as CanvasObjectData | undefined
                 if (data?.kind === 'frame') return 'var(--color-border)'
                 if (data?.kind === 'text') return 'var(--color-foreground)'
+                if (data?.kind === 'docLink') return 'var(--color-accent)'
                 return 'var(--color-accent)'
               }}
             />
@@ -751,12 +1326,50 @@ function CanvasFlow() {
             </div>
           )}
 
+          {docPickerOpen && (
+            <aside className="canvas-doc-picker" aria-label={t('canvas.toolDocLink')}>
+              <header className="canvas-layers-head">
+                <span>{t('canvas.pickDocument')}</span>
+                <button
+                  type="button"
+                  className="canvas-toolbar-btn canvas-toolbar-btn--icon"
+                  onClick={() => setDocPickerOpen(false)}
+                  aria-label={t('canvas.close')}
+                >
+                  <Minus className="h-3.5 w-3.5" />
+                </button>
+              </header>
+              <ul className="canvas-layers-list">
+                {libraryDocs.length === 0 ? (
+                  <li className="canvas-layers-empty">{t('canvas.noDocuments')}</li>
+                ) : (
+                  libraryDocs.slice(0, 40).map((doc) => (
+                    <li key={doc.id}>
+                      <button
+                        type="button"
+                        className="canvas-layers-item"
+                        onClick={() => insertDocLink(doc.id, doc.title || t('canvas.docLinkUntitled'))}
+                      >
+                        <span className="canvas-layers-kind">{t('canvas.toolDocLink')}</span>
+                        <span className="canvas-layers-title">{doc.title || t('canvas.docLinkUntitled')}</span>
+                      </button>
+                    </li>
+                  ))
+                )}
+              </ul>
+            </aside>
+          )}
+
           {layersOpen && (
             <aside className="canvas-layers" aria-label={t('canvas.layers')}>
               <header className="canvas-layers-head">
                 <span>{t('canvas.layers')}</span>
                 <span className="canvas-toolbar-meta">{nodes.length}</span>
               </header>
+              <div className="canvas-design-panel">
+                <span className="canvas-props-label">{t('canvas.design')}</span>
+                <p className="canvas-design-hint">{t('canvas.designHint')}</p>
+              </div>
               <ul className="canvas-layers-list">
                 {layers.length === 0 ? (
                   <li className="canvas-layers-empty">{t('canvas.layersEmpty')}</li>
@@ -766,7 +1379,9 @@ function CanvasFlow() {
                     const title =
                       kind === 'frame'
                         ? node.data.label || t('canvas.frameDefault')
-                        : node.data.text.trim() || t(kindLabelKey(kind))
+                        : kind === 'docLink'
+                          ? node.data.documentTitle || t('canvas.docLinkUntitled')
+                          : node.data.text.trim() || t(kindLabelKey(kind))
                     return (
                       <li key={node.id}>
                         <button

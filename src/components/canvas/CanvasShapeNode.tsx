@@ -16,6 +16,12 @@ function CanvasShapeNodeInner({ id, data, selected, type }: NodeProps<CanvasFlow
   const strokeWidth = Number.isFinite(data.strokeWidth) ? data.strokeWidth : 1.5
   const color = typeof data.color === 'string' ? data.color : 'var(--color-foreground)'
   const fontSize = Number.isFinite(data.fontSize) ? data.fontSize : 14
+  const opacity = Number.isFinite(data.opacity) ? data.opacity : 1
+  const radius = isEllipse
+    ? 999
+    : Number.isFinite(data.cornerRadius)
+      ? data.cornerRadius
+      : 10
 
   return (
     <div
@@ -30,6 +36,8 @@ function CanvasShapeNodeInner({ id, data, selected, type }: NodeProps<CanvasFlow
         borderWidth: strokeWidth,
         color,
         fontSize,
+        opacity,
+        borderRadius: radius,
       }}
     >
       <NodeResizer

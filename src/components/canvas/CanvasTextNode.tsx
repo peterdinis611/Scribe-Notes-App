@@ -12,11 +12,12 @@ function CanvasTextNodeInner({ id, data, selected }: NodeProps<CanvasFlowNode>) 
   const text = typeof data.text === 'string' ? data.text : ''
   const color = typeof data.color === 'string' ? data.color : 'var(--color-foreground)'
   const fontSize = Number.isFinite(data.fontSize) ? data.fontSize : 18
+  const opacity = Number.isFinite(data.opacity) ? data.opacity : 1
 
   return (
     <div
       className={cn('canvas-text-node', selected && 'is-selected')}
-      style={{ color, fontSize }}
+      style={{ color, fontSize, opacity }}
     >
       <NodeResizer
         minWidth={80}

@@ -7,6 +7,7 @@ import {
   type CanvasEdge,
   type CanvasObject,
   type CanvasObjectKind,
+  type CanvasViewport,
 } from '@/lib/canvas/types'
 
 /** Keep in sync with `crates/scribe-ui/src/canvas_flow.rs`. */
@@ -16,6 +17,9 @@ export const CANVAS_FRAME_TYPE = 'frame' as const
 export const CANVAS_RECT_TYPE = 'rect' as const
 export const CANVAS_ELLIPSE_TYPE = 'ellipse' as const
 export const CANVAS_TEXT_TYPE = 'text' as const
+export const CANVAS_LINE_TYPE = 'line' as const
+export const CANVAS_ARROW_TYPE = 'arrow' as const
+export const CANVAS_DOCLINK_TYPE = 'docLink' as const
 
 export type CanvasObjectData = {
   kind: CanvasObjectKind
@@ -27,6 +31,12 @@ export type CanvasObjectData = {
   fontSize: number
   color: string
   zIndex: number
+  opacity: number
+  cornerRadius: number
+  rotation: number
+  groupId: string
+  documentId: string
+  documentTitle: string
 }
 
 /** @deprecated Prefer CanvasObjectData — kept for note-node typing. */
@@ -35,6 +45,17 @@ export type CanvasNoteData = CanvasObjectData
 export type CanvasFlowNode = Node<CanvasObjectData, CanvasObjectKind>
 
 export type CanvasNoteNode = Node<CanvasObjectData, typeof CANVAS_NOTE_TYPE>
+
+const KNOWN_KINDS = new Set<CanvasObjectKind>([
+  'note',
+  'frame',
+  'rect',
+  'ellipse',
+  'text',
+  'line',
+  'arrow',
+  'docLink',
+])
 
 function objectToNode(object: CanvasObject): CanvasFlowNode {
   return {
@@ -51,10 +72,22 @@ function objectToNode(object: CanvasObject): CanvasFlowNode {
       fontSize: object.fontSize,
       color: object.color,
       zIndex: object.zIndex,
+      opacity: object.opacity,
+      cornerRadius: object.cornerRadius,
+      rotation: object.rotation,
+      groupId: object.groupId,
+      documentId: object.documentId,
+      documentTitle: object.documentTitle,
     },
     width: object.w,
     height: object.h,
-    style: { width: object.w, height: object.h, zIndex: object.zIndex },
+    style: {
+      width: object.w,
+      height: object.h,
+      zIndex: object.zIndex,
+      opacity: object.opacity,
+      transform: object.rotation ? `rotate(${object.rotation}deg)` : undefined,
+    },
     zIndex: object.zIndex,
   }
 }
@@ -82,6 +115,12 @@ export function cardsToNodes(cards: CanvasCard[]): CanvasFlowNode[] {
       strokeWidth: 1,
       fontSize: 14,
       color: 'var(--color-foreground)',
+      opacity: 1,
+      cornerRadius: 10,
+      rotation: 0,
+      groupId: '',
+      documentId: '',
+      documentTitle: '',
     })),
   )
 }
@@ -99,23 +138,22 @@ function nodeSize(node: Node<CanvasObjectData>, fallback: { w: number; h: number
   const width = node.width ?? node.measured?.width ?? fallback.w
   const height = node.height ?? node.measured?.height ?? fallback.h
   return {
-    w: Number.isFinite(width) && width > 24 ? width : fallback.w,
-    h: Number.isFinite(height) && height > 24 ? height : fallback.h,
+    w: Number.isFinite(width) && width > 8 ? width : fallback.w,
+    h: Number.isFinite(height) && height > 8 ? height : fallback.h,
   }
 }
 
 function kindOf(node: Node<CanvasObjectData>): CanvasObjectKind {
-  if (node.data?.kind) return node.data.kind
-  const type = node.type
-  if (type === 'frame' || type === 'rect' || type === 'ellipse' || type === 'text' || type === 'note') {
-    return type
-  }
+  if (node.data?.kind && KNOWN_KINDS.has(node.data.kind)) return node.data.kind
+  const type = node.type as CanvasObjectKind | undefined
+  if (type && KNOWN_KINDS.has(type)) return type
   return 'note'
 }
 
 export function flowToCanvasDocument(
   nodes: Node<CanvasObjectData>[],
   edges: Edge[],
+  viewport?: CanvasViewport,
 ): CanvasDocument {
   const objects: CanvasObject[] = nodes.map((node, index) => {
     const kind = kindOf(node)
@@ -136,6 +174,12 @@ export function flowToCanvasDocument(
       strokeWidth: Number.isFinite(data.strokeWidth) ? Number(data.strokeWidth) : 1,
       fontSize: Number.isFinite(data.fontSize) ? Number(data.fontSize) : 14,
       color: typeof data.color === 'string' ? data.color : 'var(--color-foreground)',
+      opacity: Number.isFinite(data.opacity) ? Number(data.opacity) : 1,
+      cornerRadius: Number.isFinite(data.cornerRadius) ? Number(data.cornerRadius) : 0,
+      rotation: Number.isFinite(data.rotation) ? Number(data.rotation) : 0,
+      groupId: typeof data.groupId === 'string' ? data.groupId : '',
+      documentId: typeof data.documentId === 'string' ? data.documentId : '',
+      documentTitle: typeof data.documentTitle === 'string' ? data.documentTitle : '',
     }
   })
 
@@ -155,6 +199,7 @@ export function flowToCanvasDocument(
         from: edge.source,
         to: edge.target,
       })),
+    ...(viewport ? { viewport } : {}),
   }
 }
 
@@ -168,8 +213,9 @@ export function createObjectNode(
   kind: CanvasObjectKind,
   position: { x: number; y: number },
   zIndex = 0,
+  extras?: Parameters<typeof createCanvasObject>[3],
 ): CanvasFlowNode {
-  return objectToNode(createCanvasObject(kind, position, zIndex))
+  return objectToNode(createCanvasObject(kind, position, zIndex, extras))
 }
 
 export function nextZIndex(nodes: Node<CanvasObjectData>[]): number {
@@ -180,3 +226,5 @@ export function nextZIndex(nodes: Node<CanvasObjectData>[]): number {
   }
   return max + 1
 }
+
+export { objectToNode }

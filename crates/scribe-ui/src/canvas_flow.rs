@@ -43,6 +43,22 @@ pub struct CanvasObjectData {
     pub color: String,
     #[serde(serialize_with = "crate::canvas_doc::ser_num", default)]
     pub z_index: f64,
+    #[serde(default = "default_opacity", serialize_with = "crate::canvas_doc::ser_num")]
+    pub opacity: f64,
+    #[serde(default, serialize_with = "crate::canvas_doc::ser_num")]
+    pub corner_radius: f64,
+    #[serde(default, serialize_with = "crate::canvas_doc::ser_num")]
+    pub rotation: f64,
+    #[serde(default)]
+    pub group_id: String,
+    #[serde(default)]
+    pub document_id: String,
+    #[serde(default)]
+    pub document_title: String,
+}
+
+fn default_opacity() -> f64 {
+    1.0
 }
 
 /// Back-compat alias used by older call sites.
@@ -128,6 +144,12 @@ fn object_to_node(object: &CanvasObject) -> CanvasFlowNode {
             font_size: object.font_size,
             color: object.color.clone(),
             z_index: object.z_index,
+            opacity: object.opacity,
+            corner_radius: object.corner_radius,
+            rotation: object.rotation,
+            group_id: object.group_id.clone(),
+            document_id: object.document_id.clone(),
+            document_title: object.document_title.clone(),
         },
         width: object.w,
         height: object.h,
@@ -226,6 +248,12 @@ pub fn flow_to_canvas_document(nodes: &[FlowNode], edges: &[FlowEdge]) -> Canvas
                 stroke_width: data_num(&node.data, "strokeWidth", 1.0),
                 font_size: data_num(&node.data, "fontSize", 14.0),
                 color: data_str(&node.data, "color", "var(--color-foreground)"),
+                opacity: data_num(&node.data, "opacity", 1.0).clamp(0.0, 1.0),
+                corner_radius: data_num(&node.data, "cornerRadius", 0.0),
+                rotation: data_num(&node.data, "rotation", 0.0),
+                group_id: data_str(&node.data, "groupId", ""),
+                document_id: data_str(&node.data, "documentId", ""),
+                document_title: data_str(&node.data, "documentTitle", ""),
             }
         })
         .collect();

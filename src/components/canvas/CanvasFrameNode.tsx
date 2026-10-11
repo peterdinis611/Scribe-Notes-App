@@ -13,6 +13,8 @@ function CanvasFrameNodeInner({ id, data, selected }: NodeProps<CanvasFlowNode>)
   const fill = typeof data.fill === 'string' ? data.fill : 'transparent'
   const stroke = typeof data.stroke === 'string' ? data.stroke : 'var(--color-border)'
   const strokeWidth = Number.isFinite(data.strokeWidth) ? data.strokeWidth : 1.5
+  const opacity = Number.isFinite(data.opacity) ? data.opacity : 1
+  const radius = Number.isFinite(data.cornerRadius) ? data.cornerRadius : 4
 
   return (
     <div
@@ -21,6 +23,8 @@ function CanvasFrameNodeInner({ id, data, selected }: NodeProps<CanvasFlowNode>)
         background: fill,
         borderColor: stroke,
         borderWidth: strokeWidth,
+        opacity,
+        borderRadius: radius,
       }}
     >
       <NodeResizer
