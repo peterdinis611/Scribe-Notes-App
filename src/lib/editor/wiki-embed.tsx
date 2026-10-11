@@ -4,13 +4,13 @@ import type { NodeViewProps } from '@tiptap/react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { ExternalLink, FileText } from 'lucide-react'
+import { Columns2, ExternalLink, FileText } from 'lucide-react'
 import { getDocument } from '@/lib/db/api'
 import { tiptapToPlainText } from '@/lib/export/plain-text'
 import { ROUTES } from '@/lib/routes'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { setActiveDocumentId } from '@/store/documentsSlice'
+import { setActiveDocumentId, setSecondaryDocumentId } from '@/store/documentsSlice'
 import { store } from '@/store/index'
 
 function resolveTitle(title: string): { targetId: string | null; label: string } {
@@ -69,6 +69,11 @@ function WikiEmbedView({ node, selected }: NodeViewProps) {
     void navigate(ROUTES.document(targetId))
   }
 
+  function openInSplit() {
+    if (!targetId) return
+    dispatch(setSecondaryDocumentId(targetId))
+  }
+
   return (
     <NodeViewWrapper
       className={cn('wiki-embed', selected && 'is-selected')}
@@ -79,14 +84,24 @@ function WikiEmbedView({ node, selected }: NodeViewProps) {
           <FileText className="h-3.5 w-3.5 opacity-70" />
           <span className="wiki-embed-title">{summary?.title || label}</span>
           {targetId && (
-            <button
-              type="button"
-              className="wiki-embed-open"
-              onClick={openTarget}
-              title={t('wikiEmbed.open')}
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-            </button>
+            <>
+              <button
+                type="button"
+                className="wiki-embed-open"
+                onClick={openInSplit}
+                title={t('wikiEmbed.openSplit')}
+              >
+                <Columns2 className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                className="wiki-embed-open"
+                onClick={openTarget}
+                title={t('wikiEmbed.open')}
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+              </button>
+            </>
           )}
         </div>
         <div className="wiki-embed-body">

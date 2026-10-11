@@ -5420,6 +5420,17 @@ html.dark .editor-canvas::before {
   gap: 4px;
 }
 
+.library-wiki-health__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.library-wiki-health__row .library-wiki-health__item {
+  flex: 1;
+  min-width: 0;
+}
+
 .library-wiki-health__item {
   display: flex;
   width: 100%;

@@ -1,4 +1,4 @@
-import { CalendarDays, FolderPlus, Search, Trash2 } from 'lucide-react'
+import { CalendarDays, FolderPlus, Lock, Search, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useRouterState } from '@tanstack/react-router'
@@ -16,6 +16,7 @@ import { LibraryLinkGraphView } from '@/components/LibraryLinkGraphView'
 import { LibraryDuplicatesPanel } from '@/components/LibraryDuplicatesPanel'
 import { LibraryTasksPanel } from '@/components/LibraryTasksPanel'
 import { LibraryWikiHealthPanel } from '@/components/LibraryWikiHealthPanel'
+import { LibraryChatPanel } from '@/components/LibraryChatPanel'
 import { LibrarySwitcher } from '@/components/library/LibrarySwitcher'
 import { LibraryViewTabs } from '@/components/LibraryViewTabs'
 import { SidebarRail } from '@/components/layout/SidebarRail'
@@ -24,7 +25,7 @@ import { listWikiHealth } from '@/lib/db/api'
 import { nlpListOpenTasks } from '@/lib/db/nlp-api'
 import { visibleLibraryDocuments } from '@/lib/db/library-sync'
 import { openTodayNote } from '@/lib/journal-notes'
-import { promptAndCreateFolder } from '@/lib/library/create-folder'
+import { promptAndCreateFolder, promptAndCreateVaultFolder } from '@/lib/library/create-folder'
 import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
@@ -83,9 +84,8 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
   const agentPanelOpen = useAppSelector((state) => state.documents.agentPanelOpen)
   const graphAroundActive = useAppSelector((state) => state.documents.libraryGraphAroundActive)
   const storageModeEnabled = useAppSelector((state) => state.settings.storageModeEnabled)
-  /** Agent moved to the right dock — never render it as a left library view. */
-  const contentView =
-    libraryView === 'agent' || libraryView === 'chat' ? 'folders' : libraryView
+  /** Agent stays in the right dock; chat has its own left-pane panel. */
+  const contentView = libraryView === 'agent' ? 'folders' : libraryView
   const isContentSearch = query.trim().length >= 2
 
   useEffect(() => {
@@ -224,9 +224,18 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                   taskCount={taskCount}
                   wikiHealthCount={wikiHealthCount}
                   onChange={(view) => {
-                    if (view === 'agent' || view === 'chat') {
+                    if (view === 'agent') {
                       if (agentPanelOpen) dispatch(setAgentPanelOpen(false))
                       else dispatch(openAgentPanel({ persona: 'general' }))
+                      return
+                    }
+                    if (view === 'chat') {
+                      dispatch(setLibraryView('chat'))
+                      return
+                    }
+                    if (view === 'graph') {
+                      dispatch(setLibraryGraphAroundActive(false))
+                      dispatch(setLibraryView('graph'))
                       return
                     }
                     if (view === 'storage') {
@@ -265,6 +274,18 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                         >
                           <FolderPlus className="h-3.5 w-3.5" />
                           <span className="library-new-folder-label">{t('library.newFolder')}</span>
+                        </button>
+                      </IconTooltip>
+                      <IconTooltip label={t('library.newVaultFolder')}>
+                        <button
+                          type="button"
+                          className={libraryActionClass}
+                          onClick={() =>
+                            void promptAndCreateVaultFolder({ t, dispatch }).catch(() => undefined)
+                          }
+                          aria-label={t('library.newVaultFolder')}
+                        >
+                          <Lock className="h-3.5 w-3.5" />
                         </button>
                       </IconTooltip>
                       <IconTooltip label={t('journal.today')}>
@@ -381,6 +402,14 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
               {contentView === 'wikiHealth' && (
                 <ScrollArea className="min-h-0 flex-1">
                   <LibraryWikiHealthPanel onNavigate={onClose} />
+                </ScrollArea>
+              )}
+
+              {contentView === 'chat' && (
+                <ScrollArea className="min-h-0 flex-1">
+                  <div className="px-1 pb-3 pt-1">
+                    <LibraryChatPanel />
+                  </div>
                 </ScrollArea>
               )}
 

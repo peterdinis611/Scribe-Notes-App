@@ -1,5 +1,6 @@
 import { createDocument } from '@/lib/db/api'
 import { cacheDocument } from '@/lib/cache/document-cache'
+import { markCanvasDocument } from '@/lib/canvas/known'
 import { emptyCanvasDocument, serializeCanvasDocument } from '@/lib/canvas/types'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { ROUTES } from '@/lib/routes'
@@ -23,6 +24,7 @@ export async function openNewCanvasNote(
     }),
   )
 
+  markCanvasDocument(document.id)
   dispatch(updateDocuments((prev) => prependDocumentSummary(prev, document)))
   dispatch(setActiveDocumentId(document.id))
   dispatch(setActiveDocument(document))

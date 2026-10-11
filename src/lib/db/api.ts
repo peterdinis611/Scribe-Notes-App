@@ -1808,6 +1808,9 @@ export interface LibraryAsset {
 
 export const listLibraryAssets = () => invoke<LibraryAsset[]>('list_library_assets')
 
+export const deleteLibraryAsset = (path: string) =>
+  invoke<void>('delete_library_asset', { path })
+
 export interface CustomTemplateCategoryRow {
   id: string
   name: string

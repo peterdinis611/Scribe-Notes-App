@@ -20,6 +20,9 @@ commands::ocr::save_document_ocr
 # Reveal — PathAccessGate::validate_reveal.
 commands::storage::reveal_in_finder
 
+# Library asset delete — PathAccessGate::validate_read + under documents/assets.
+commands::images::delete_library_asset
+
 # Basename helpers only (no FS I/O).
 commands::ui::import_title_from_path_ui
 commands::ui::is_pages_path_ui

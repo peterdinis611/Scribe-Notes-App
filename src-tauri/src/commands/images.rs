@@ -1,5 +1,6 @@
 use crate::db::DbState;
 use crate::images::{optimize_image_bytes, OptimizeOptions};
+use crate::security::PathAccessGate;
 use crate::storage;
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use rusqlite::OptionalExtension;
@@ -245,4 +246,39 @@ pub fn list_library_assets(
             .then_with(|| a.file_name.cmp(&b.file_name))
     });
     Ok(assets)
+}
+
+/// Deletes an asset file under `{documentsDir}/assets/…` after PathAccessGate validation.
+#[tauri::command]
+pub fn delete_library_asset(
+    app: AppHandle,
+    state: State<'_, DbState>,
+    gate: State<'_, PathAccessGate>,
+    path: String,
+) -> Result<(), String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let validated = gate.validate_read(&app, &conn, Path::new(&path))?;
+    let documents_dir = storage::get_documents_dir(&app, &conn)?;
+    let docs_canon = std::fs::canonicalize(&documents_dir)
+        .unwrap_or_else(|_| documents_dir.clone());
+    let assets_root = docs_canon.join("assets");
+
+    if !validated.starts_with(&assets_root) {
+        return Err("Asset path is outside the library assets folder.".to_string());
+    }
+    if !validated.is_file() {
+        return Err("Asset file not found.".to_string());
+    }
+    std::fs::remove_file(&validated).map_err(|e| format!("Could not delete asset: {e}"))?;
+
+    if let Some(parent) = validated.parent() {
+        if parent.is_dir()
+            && std::fs::read_dir(parent)
+                .map(|mut d| d.next().is_none())
+                .unwrap_or(false)
+        {
+            let _ = std::fs::remove_dir(parent);
+        }
+    }
+    Ok(())
 }

@@ -36,7 +36,14 @@
     "filter": "Filter",
     "confirm": "Confirm",
     "folder": "Folder",
-    "all": "All"
+    "all": "All",
+    "dismiss": "Dismiss"
+  },
+  "security": {
+    "tokenExpired": "Token expired",
+    "tokenExpiresInHours": "Expires in {{hours}}h {{minutes}}m",
+    "tokenExpiresInMin": "Expires in {{minutes}}m {{seconds}}s",
+    "tokenExpiresInSec": "Expires in {{seconds}}s"
   },
   "nav": {
     "home": "Home",
@@ -239,7 +246,16 @@
     "markdownPlaceholder": "# Heading\n\nWrite in **Markdown** — headings, lists, `code`, tables…",
     "markdownSwitchError": "Could not switch to text mode.",
     "renameTitleHint": "Click to rename",
-    "renameTitleHintDouble": "Double-click to rename"
+    "renameTitleHintDouble": "Double-click to rename",
+    "nlp": {
+      "off": "AI off",
+      "ready": "Index {{count}}",
+      "stale": "Stale {{count}}",
+      "reindex": "Reindex Local AI",
+      "reindexed": "Indexed {{count}} notes",
+      "reindexError": "Reindex failed",
+      "hint": "Local AI index health — click to reindex"
+    }
   },
   "tableOfContents": {
     "title": "Contents",
@@ -1574,7 +1590,24 @@
       "copyError": "Could not copy to clipboard",
       "pathHint": "After npm run mcp:install, point command at target/release/scribe-mcp with an absolute path (see crates/scribe-mcp/README.md).",
       "lockHint": "Write tools need a writable DB open. If Scribe has the database locked, retry create/append shortly or check scribe_status for writable: false.",
-      "localAiLink": "Semantic MCP tools work best with Scribe Local AI →"
+      "localAiLink": "Semantic MCP tools work best with Scribe Local AI →",
+      "writeTitle": "Allow write tools",
+      "writeDescription": "When on, MCP may create or append notes (SCRIBE_MCP_WRITE=1). Prefer off unless you trust the client.",
+      "writeOn": "Writes on",
+      "writeOff": "Read-only",
+      "writeEnabledToast": "MCP writes enabled — copy the config again for Cursor/Claude",
+      "writeDisabledToast": "MCP writes disabled — copy the config again",
+      "scopeTitle": "Vault scope",
+      "scopeDescription": "How MCP treats encrypted vault folders. Copy the config after changing.",
+      "scopeUpdated": "MCP vault scope updated — copy the config again",
+      "scope": {
+        "no-vault": "No vault",
+        "unlocked-vault": "Unlocked vault",
+        "all": "All folders"
+      },
+      "auditTitle": "Audit log",
+      "auditDescription": "MCP and app security events share the local audit log.",
+      "openAudit": "Open audit log"
     },
     "nlp": {
       "title": "Scribe Local AI",
@@ -2418,7 +2451,8 @@
       "created": "Created \"{{title}}\" and linked [[{{label}}]]",
       "createAll": "Create all missing ({{count}})",
       "batchCreated": "Created {{count}} missing notes",
-      "createError": "Could not create note for wiki link"
+      "createError": "Could not create note for wiki link",
+      "openSplit": "Open in split"
     },
     "duplicates": {
       "title": "Near-duplicate notes",
@@ -2434,6 +2468,8 @@
     },
     "trash": "Trash",
     "newFolder": "New folder",
+    "newVaultFolder": "New vault folder",
+    "newVaultSubfolder": "New vault subfolder",
     "newSubfolder": "New subfolder",
     "renameFolder": "Rename folder",
     "deleteFolder": "Delete folder",
@@ -2501,7 +2537,8 @@
       "all": "All",
       "unlinked": "No links",
       "untagged": "Untagged",
-      "unread": "Unread"
+      "unread": "Unread",
+      "canvas": "Canvas"
     },
     "bulk": {
       "selected": "{{count}} selected",
@@ -3032,6 +3069,7 @@
       "neighborhood": "Neighborhood",
       "neighborhoodHint": "Nearby linked notes — open the full map for the whole library.",
       "openGraph": "Open connection map",
+      "openSplit": "Open in split",
       "edgeSummary": "{{count}} links in neighborhood"
     },
     "insights": {
@@ -3364,6 +3402,23 @@
     "emptyFilteredTitle": "Nothing matches",
     "emptyFilteredBody": "Try another filter or clear the search.",
     "orphanDocument": "Unknown document",
+    "orphanBadge": "orphan",
+    "filterOrphans": "Orphans ({{count}})",
+    "selectAsset": "Select asset",
+    "deleteTitle": "Delete assets?",
+    "deleteConfirm": "Permanently delete {{count}} file(s) from the library assets folder?",
+    "deleteSelected": "Delete {{count}}",
+    "deleteAllOrphans": "Delete all orphans ({{count}})",
+    "deleted": "Deleted {{count}} asset(s)",
+    "deleteError": "Could not delete asset",
+    "relink": "Find note",
+    "relinkTitle": "Find note to relink",
+    "relinkDescription": "Type a note title. Scribe opens it so you can re-insert the file.",
+    "relinkPlaceholder": "Note title…",
+    "relinkOpen": "Open note",
+    "relinkEmpty": "No notes in the library",
+    "relinkNotFound": "No matching note",
+    "relinkHint": "Opened „{{title}}“ — re-insert {{file}} from Finder if needed",
     "reveal": "Finder",
     "openDocument": "Open note",
     "sidebarHint": "Storage mode is on. Browse every file and image in the main panel.",
@@ -4219,7 +4274,8 @@
     "zoom": "Zoom",
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
-    "moveToFolder": "Move to folder"
+    "moveToFolder": "Move to folder",
+    "graphAround": "Graph around this note"
   },
   "pageStyles": {
     "title": "Page setup",
@@ -4333,7 +4389,8 @@
     "dailyBriefingJournalHint": "Open today’s note from ⌘K → Today, or write below.",
     "dailyBriefingSummaryPlaceholder": "Brief overview of what needs attention today.",
     "dailyBriefingError": "Failed to create daily briefing",
-    "heatWorkflowHint": "Darker days = more consecutive entries. Click a day or use ⌘K for yesterday / tomorrow.",
+    "heatWorkflowHint": "Darker days = more journal notes that day. Click a day or use ⌘K for yesterday / tomorrow.",
+    "heatDayTitle": "{{date}} · {{count}} notes",
     "thisWeek": "This week",
     "folderName": "Journal",
     "todayTitle": "{{date}}",
@@ -4356,6 +4413,7 @@
   },
   "wikiEmbed": {
     "open": "Open document",
+    "openSplit": "Open in split pane",
     "missing": "Document not found — check ![[Title]].",
     "empty": "Empty note"
   },
@@ -4530,6 +4588,11 @@
     "localhostWarning": "Localhost only — phones on Wi‑Fi won’t reach 127.0.0.1. Enable “Allow LAN” and restart capture.",
     "inboxTitle": "Inbox folder",
     "inboxDescription": "Captures create notes in a top-level Inbox folder (or Schránka if it already exists). Triage them later like any other note.",
+    "queueTitle": "Capture inbox",
+    "queueDescription": "Untriaged notes received from the phone QR page. Open to edit, or dismiss when done.",
+    "queueEmpty": "No pending captures.",
+    "queueClear": "Clear inbox",
+    "tokenTtl": "Token expires",
     "noteReceived": "Note from phone"
   },
   "vault": {

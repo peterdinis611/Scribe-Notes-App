@@ -9,6 +9,7 @@ import {
   FolderInput,
   FolderMinus,
   FolderPlus,
+  LayoutGrid,
   Pin,
   Star,
   Tag,
@@ -17,6 +18,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { DocumentTitleField } from '@/components/DocumentTitleField'
+import { isKnownCanvasDocument } from '@/lib/canvas/known'
 import { prefetchDocument } from '@/lib/cache/prefetch-document'
 import {
   ContextMenu,
@@ -45,6 +47,7 @@ type FolderTreeFolderRowProps = {
   onToggle: (id: string) => void
   onRename: (id: string, name: string) => void
   onCreateChild: (parentId: string) => void
+  onCreateVaultChild?: (parentId: string) => void
   onTrashDocuments: (id: string, name: string, event: React.MouseEvent) => void
   onDelete: (id: string, name: string, event: React.MouseEvent) => void
   onTogglePin: (id: string, event: React.MouseEvent) => void
@@ -62,6 +65,7 @@ export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
   onToggle,
   onRename,
   onCreateChild,
+  onCreateVaultChild,
   onTrashDocuments,
   onDelete,
   onTogglePin,
@@ -177,6 +181,12 @@ export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
           <FolderPlus className="h-4 w-4" />
           {t('library.newSubfolder')}
         </ContextMenuItem>
+        {onCreateVaultChild ? (
+          <ContextMenuItem onSelect={() => onCreateVaultChild(folder.id)}>
+            <Lock className="h-4 w-4" />
+            {t('library.newVaultSubfolder')}
+          </ContextMenuItem>
+        ) : null}
         <ContextMenuItem onSelect={() => onRename(folder.id, folder.name)}>
           {t('library.renameFolder')}
         </ContextMenuItem>
@@ -312,7 +322,11 @@ export const FolderTreeDocumentRow = memo(function FolderTreeDocumentRow({
           ) : null}
 
           <span className={cn('folder-tree-doc-mark', isActive && 'is-active')} aria-hidden="true">
-            <FileText className="h-3.5 w-3.5" />
+            {isKnownCanvasDocument(document.id) ? (
+              <LayoutGrid className="h-3.5 w-3.5" />
+            ) : (
+              <FileText className="h-3.5 w-3.5" />
+            )}
           </span>
 
           <div className="folder-tree-doc-body">
@@ -333,6 +347,13 @@ export const FolderTreeDocumentRow = memo(function FolderTreeDocumentRow({
           </div>
 
           <div className="folder-tree-doc-badges">
+            {isKnownCanvasDocument(document.id) ? (
+              <IconTooltip label={t('library.smartFilters.canvas')}>
+                <span tabIndex={0} className="inline-flex">
+                  <LayoutGrid className="folder-tree-pin h-3 w-3 text-[var(--color-muted-foreground)]" aria-hidden="true" />
+                </span>
+              </IconTooltip>
+            ) : null}
             {document.isPasswordProtected ? (
               <IconTooltip label={t('vault.doc.protect')}>
                 <span tabIndex={0} className="inline-flex">

@@ -11,6 +11,7 @@ import {
   formatDateKey,
   formatWeekKey,
   getJournalFolderId,
+  listJournalDailyCounts,
   listJournalDailyDates,
   openEveningNote,
   openJournalNoteForDate,
@@ -127,6 +128,10 @@ export function LibraryJournalView({ onNavigate }: LibraryJournalViewProps) {
 
   const notedDates = useMemo(
     () => listJournalDailyDates(documents, folderId),
+    [documents, folderId],
+  )
+  const notedCounts = useMemo(
+    () => listJournalDailyCounts(documents, folderId),
     [documents, folderId],
   )
   const streak = useMemo(() => computeJournalStreak(notedDates), [notedDates])
@@ -420,11 +425,14 @@ export function LibraryJournalView({ onNavigate }: LibraryJournalViewProps) {
             }
             const hasNote = notedDateSet.has(cell.key)
             const isToday = cell.key === todayKey
-            const prevKey = formatDateKey(new Date(cell.date.getTime() - 86_400_000))
-            const nextKey = formatDateKey(new Date(cell.date.getTime() + 86_400_000))
-            const heat = hasNote
-              ? 1 + (notedDateSet.has(prevKey) ? 1 : 0) + (notedDateSet.has(nextKey) ? 1 : 0)
-              : 0
+            const noteCount = notedCounts.get(cell.key) ?? 0
+            const heat = !hasNote
+              ? 0
+              : noteCount >= 3
+                ? 3
+                : noteCount === 2
+                  ? 2
+                  : 1
             return (
               <button
                 key={cell.key}
@@ -436,7 +444,11 @@ export function LibraryJournalView({ onNavigate }: LibraryJournalViewProps) {
                 )}
                 data-heat={heat}
                 onClick={() => void openDate(cell.date!)}
-                title={cell.key}
+                title={
+                  noteCount > 0
+                    ? t('journal.heatDayTitle', { date: cell.key, count: noteCount })
+                    : cell.key
+                }
               >
                 {cell.date.getDate()}
               </button>

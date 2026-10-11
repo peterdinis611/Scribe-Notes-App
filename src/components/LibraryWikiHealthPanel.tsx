@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { FileWarning, Link2Off, LoaderCircle, Network, Unlink } from 'lucide-react'
+import { Columns2, FileWarning, Link2Off, LoaderCircle, Network, Unlink } from 'lucide-react'
 import {
   createDocument,
   getDocument,
@@ -20,6 +20,7 @@ import {
   setActiveDocumentId,
   setFindReplaceOpen,
   setPendingEditorSearch,
+  setSecondaryDocumentId,
 } from '@/store/documentsSlice'
 
 type LibraryWikiHealthPanelProps = {
@@ -61,6 +62,12 @@ export function LibraryWikiHealthPanel({ onNavigate }: LibraryWikiHealthPanelPro
       dispatch(setPendingEditorSearch(needle))
     }
     void navigate(ROUTES.document(documentId))
+    onNavigate?.()
+  }
+
+  function openInSplit(documentId: string) {
+    if (!documentId) return
+    dispatch(setSecondaryDocumentId(documentId))
     onNavigate?.()
   }
 
@@ -190,13 +197,24 @@ export function LibraryWikiHealthPanel({ onNavigate }: LibraryWikiHealthPanelPro
             empty={t('library.wikiHealth.orphansEmpty')}
             items={orphans}
             renderItem={(item: WikiHealthOrphan) => (
-              <button
-                type="button"
-                className="library-wiki-health__item"
-                onClick={() => openDocument(item.id)}
-              >
-                <span className="library-wiki-health__text">{item.title || t('common.untitled')}</span>
-              </button>
+              <div className="library-wiki-health__row">
+                <button
+                  type="button"
+                  className="library-wiki-health__item"
+                  onClick={() => openDocument(item.id)}
+                >
+                  <span className="library-wiki-health__text">{item.title || t('common.untitled')}</span>
+                </button>
+                <button
+                  type="button"
+                  className="library-wiki-health__resolve"
+                  title={t('library.wikiHealth.openSplit')}
+                  aria-label={t('library.wikiHealth.openSplit')}
+                  onClick={() => openInSplit(item.id)}
+                >
+                  <Columns2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
             )}
           />
 
@@ -278,18 +296,29 @@ export function LibraryWikiHealthPanel({ onNavigate }: LibraryWikiHealthPanelPro
             empty={t('library.wikiHealth.stubsEmpty')}
             items={stubs}
             renderItem={(item: WikiHealthStub) => (
-              <button
-                type="button"
-                className="library-wiki-health__item"
-                onClick={() => openDocument(item.id)}
-              >
-                <span className="min-w-0">
-                  <span className="library-wiki-health__text">{item.title || t('common.untitled')}</span>
-                  <span className="library-wiki-health__meta">
-                    {t('library.wikiHealth.stubWords', { count: item.wordCount })}
+              <div className="library-wiki-health__row">
+                <button
+                  type="button"
+                  className="library-wiki-health__item"
+                  onClick={() => openDocument(item.id)}
+                >
+                  <span className="min-w-0">
+                    <span className="library-wiki-health__text">{item.title || t('common.untitled')}</span>
+                    <span className="library-wiki-health__meta">
+                      {t('library.wikiHealth.stubWords', { count: item.wordCount })}
+                    </span>
                   </span>
-                </span>
-              </button>
+                </button>
+                <button
+                  type="button"
+                  className="library-wiki-health__resolve"
+                  title={t('library.wikiHealth.openSplit')}
+                  aria-label={t('library.wikiHealth.openSplit')}
+                  onClick={() => openInSplit(item.id)}
+                >
+                  <Columns2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
             )}
           />
         </>

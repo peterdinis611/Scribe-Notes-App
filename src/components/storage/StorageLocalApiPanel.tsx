@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { Copy, ExternalLink, Play, RefreshCw, Square, Radio, KeyRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { TokenExpiryCountdown } from '@/components/security/TokenExpiryCountdown'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import {
@@ -249,13 +250,7 @@ export function StorageLocalApiPanel() {
           >
             <RefreshCw className="h-3 w-3" />
           </button>
-          {status.tokenExpiresAt ? (
-            <span className="storage-api-hint">
-              {t('storageMode.localApi.expiresAt', {
-                time: new Date(status.tokenExpiresAt * 1000).toLocaleTimeString(),
-              })}
-            </span>
-          ) : null}
+          <TokenExpiryCountdown expiresAt={status.tokenExpiresAt} className="storage-api-hint" />
         </div>
       ) : null}
 

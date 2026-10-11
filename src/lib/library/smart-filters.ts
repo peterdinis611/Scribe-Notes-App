@@ -1,13 +1,14 @@
 import type { DocumentSummary } from '@/lib/db/api'
 
-/** Keep in sync with `scribe_ui::smart_filter_ids`. */
-export type LibrarySmartFilter = 'none' | 'unlinked' | 'untagged' | 'unread'
+/** Keep in sync with `scribe_ui::smart_filter_ids` where applicable. */
+export type LibrarySmartFilter = 'none' | 'unlinked' | 'untagged' | 'unread' | 'canvas'
 
 export const LIBRARY_SMART_FILTER_IDS = [
   'none',
   'unlinked',
   'untagged',
   'unread',
+  'canvas',
 ] as const satisfies readonly LibrarySmartFilter[]
 
 export function documentMatchesSmartFilter(
@@ -16,6 +17,7 @@ export function documentMatchesSmartFilter(
   options: {
     orphanIds?: Set<string>
     recentDocumentIds?: string[]
+    canvasIds?: Set<string>
   },
 ): boolean {
   if (filter === 'none') return true
@@ -30,6 +32,8 @@ export function documentMatchesSmartFilter(
       const recent = new Set(options.recentDocumentIds ?? [])
       return !recent.has(doc.id)
     }
+    case 'canvas':
+      return options.canvasIds?.has(doc.id) ?? false
     default:
       return true
   }

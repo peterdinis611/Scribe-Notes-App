@@ -458,21 +458,42 @@ export async function createDailyBriefingDocument(args: OpenJournalArgs) {
 
 /** Dates that already have a daily journal note (from local map + journal folder titles). */
 export function listJournalDailyDates(documents: DocumentSummary[], folderId: string | null): string[] {
+  return [...listJournalDailyCounts(documents, folderId).keys()].sort()
+}
+
+/** Counts journal notes per day (daily + morning/evening + dated titles). */
+export function listJournalDailyCounts(
+  documents: DocumentSummary[],
+  folderId: string | null,
+): Map<string, number> {
   const map = readJournalMap()
-  const dates = new Set<string>()
+  const counts = new Map<string, number>()
+  const seen = new Set<string>()
+  const bump = (date: string, docId: string) => {
+    const key = `${date}::${docId}`
+    if (seen.has(key)) return
+    seen.add(key)
+    counts.set(date, (counts.get(date) ?? 0) + 1)
+  }
+
   for (const [key, docId] of Object.entries(map)) {
-    if (!key.startsWith('daily:')) continue
     const alive = documents.some((doc) => doc.id === docId && doc.deletedAt == null)
-    if (alive) dates.add(key.slice('daily:'.length))
+    if (!alive) continue
+    if (key.startsWith('daily:')) {
+      bump(key.slice('daily:'.length), docId)
+    } else if (key.startsWith('morning:') || key.startsWith('evening:')) {
+      const date = key.slice(key.indexOf(':') + 1)
+      if (/^\d{4}-\d{2}-\d{2}$/.test(date)) bump(date, docId)
+    }
   }
   if (folderId) {
     for (const doc of documents) {
       if (doc.deletedAt != null || doc.folderId !== folderId) continue
       const match = /^(\d{4}-\d{2}-\d{2})/.exec(doc.title)
-      if (match) dates.add(match[1]!)
+      if (match) bump(match[1]!, doc.id)
     }
   }
-  return [...dates].sort()
+  return counts
 }
 
 export function getJournalFolderId(folders: Folder[], folderName: string): string | null {

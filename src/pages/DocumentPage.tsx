@@ -5,6 +5,7 @@ import { DocumentLoadingState } from '@/components/DocumentLoadingState'
 import { SecondaryDocumentPane } from '@/components/SecondaryDocumentPane'
 import { peekCachedDocument, peekCachedParsedContent } from '@/lib/cache/document-cache'
 import { prefetchDocument } from '@/lib/cache/prefetch-document'
+import { markCanvasDocument } from '@/lib/canvas/known'
 import { isCanvasContent } from '@/lib/canvas/types'
 import { ROUTES } from '@/lib/routes'
 import { isOpenLibraryDocumentId } from '@/lib/trash-document'
@@ -122,6 +123,12 @@ export function DocumentPage() {
       return false
     }
   }, [resolvedDocument])
+
+  useEffect(() => {
+    if (isCanvas && resolvedDocument?.id) {
+      markCanvasDocument(resolvedDocument.id)
+    }
+  }, [isCanvas, resolvedDocument?.id])
 
   if (!documentId || !resolvedDocument || resolvedDocument.id !== documentId) {
     return (

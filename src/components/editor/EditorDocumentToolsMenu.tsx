@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChevronDown, FileText, FolderInput, KeyRound, Lock, LockOpen, SlidersHorizontal, Unlock } from 'lucide-react'
+import { useNavigate } from '@tanstack/react-router'
+import { ChevronDown, FileText, FolderInput, GitFork, KeyRound, Lock, LockOpen, SlidersHorizontal, Unlock } from 'lucide-react'
 import { PageSetupDialog } from '@/components/editor/PageSetupDialog'
 import { Button } from '@/components/ui/button'
 import {
@@ -10,6 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
 import {
   isDocumentPasswordProtected,
@@ -20,6 +22,7 @@ import {
 } from '@/lib/vault/document-protect'
 import { isDocumentUnlocked } from '@/lib/vault/session'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { setLibraryGraphAroundActive, setLibraryView } from '@/store/documentsSlice'
 import { setMoveDocumentPickerOpen } from '@/store/foldersSlice'
 
 type EditorDocumentToolsMenuProps = {
@@ -29,6 +32,7 @@ type EditorDocumentToolsMenuProps = {
 export function EditorDocumentToolsMenu({ viewMode }: EditorDocumentToolsMenuProps) {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
   const [pageSetupOpen, setPageSetupOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const activeDocument = useAppSelector((state) => state.documents.activeDocument)
@@ -84,6 +88,18 @@ export function EditorDocumentToolsMenu({ viewMode }: EditorDocumentToolsMenuPro
             <FolderInput className="h-4 w-4 shrink-0" />
             {t('printLayout.moveToFolder')}
           </DropdownMenuItem>
+          {activeDocument ? (
+            <DropdownMenuItem
+              onClick={() => {
+                dispatch(setLibraryGraphAroundActive(true))
+                dispatch(setLibraryView('graph'))
+                void navigate(ROUTES.graph({ around: true }))
+              }}
+            >
+              <GitFork className="h-4 w-4 shrink-0" />
+              {t('printLayout.graphAround')}
+            </DropdownMenuItem>
+          ) : null}
 
           {activeDocument ? (
             <>

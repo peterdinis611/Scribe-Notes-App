@@ -6,8 +6,11 @@ import {
   Minus,
   Plus,
   Printer,
+  RefreshCw,
   Rows2,
+  Sparkles,
 } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
@@ -27,6 +30,9 @@ import {
 } from '@/store/settingsSlice'
 import { EditorPagination } from '@/components/EditorPagination'
 import { templateCoachFromJson } from '@/lib/editor/template-coach'
+import { nlpStatus, type NlpStatus } from '@/lib/db/nlp-api'
+import { runNlpIndexAllWithProgress } from '@/lib/nlp/index-progress'
+import { toast } from '@/lib/toast'
 
 type EditorStatusBarProps = {
   currentPage: number
@@ -58,11 +64,47 @@ export function EditorStatusBar({
   const templateCoverage = templateCoachFromJson(document?.contentJson ?? null)
   const coachIncomplete =
     templateCoverage != null && templateCoverage.present < templateCoverage.expected
+  const [nlp, setNlp] = useState<NlpStatus | null>(null)
+  const [reindexing, setReindexing] = useState(false)
+
+  const refreshNlp = useCallback(() => {
+    void nlpStatus()
+      .then(setNlp)
+      .catch(() => setNlp(null))
+  }, [])
+
+  useEffect(() => {
+    refreshNlp()
+    const id = window.setInterval(refreshNlp, 30_000)
+    return () => window.clearInterval(id)
+  }, [refreshNlp])
+
+  async function reindexNlp() {
+    if (reindexing) return
+    setReindexing(true)
+    try {
+      const result = await runNlpIndexAllWithProgress(() => undefined)
+      toast.success(t('editor.nlp.reindexed', { count: result.indexed }))
+      refreshNlp()
+    } catch (error) {
+      toast.error(t('editor.nlp.reindexError'), String(error))
+    } finally {
+      setReindexing(false)
+    }
+  }
 
   function adjustZoom(delta: number) {
     const next = Math.min(1, Math.max(0.5, Number((printZoom + delta).toFixed(2))))
     dispatch(setPrintZoom(next))
   }
+
+  const nlpLabel = !nlp
+    ? null
+    : !nlp.enabled
+      ? t('editor.nlp.off')
+      : nlp.indexStale
+        ? t('editor.nlp.stale', { count: nlp.staleIndexCount || nlp.indexedCount })
+        : t('editor.nlp.ready', { count: nlp.indexedCount })
 
   return (
     <TooltipProvider delayDuration={400}>
@@ -185,6 +227,30 @@ export function EditorStatusBar({
         </div>
 
         <div className="editor-status-bar-right">
+          {nlpLabel ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className={cn(
+                    'editor-status-meta inline-flex items-center gap-1',
+                    nlp?.indexStale && 'editor-status-meta--coach',
+                  )}
+                  disabled={reindexing || !nlp?.enabled}
+                  onClick={() => void reindexNlp()}
+                  aria-label={t('editor.nlp.reindex')}
+                >
+                  {reindexing ? (
+                    <RefreshCw className="h-3 w-3 animate-spin" aria-hidden />
+                  ) : (
+                    <Sparkles className="h-3 w-3" aria-hidden />
+                  )}
+                  <span>{nlpLabel}</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top">{t('editor.nlp.hint')}</TooltipContent>
+            </Tooltip>
+          ) : null}
           {coachIncomplete && templateCoverage ? (
             <span
               className="editor-status-meta editor-status-meta--coach"

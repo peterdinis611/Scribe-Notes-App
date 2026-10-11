@@ -45,4 +45,11 @@ describe('documentMatchesSmartFilter', () => {
       documentMatchesSmartFilter(doc({ id: 'a' }), 'unread', { recentDocumentIds: ['a'] }),
     ).toBe(false)
   })
+
+  it('matches known canvas documents', () => {
+    const canvasIds = new Set(['c1'])
+    expect(documentMatchesSmartFilter(doc({ id: 'c1' }), 'canvas', { canvasIds })).toBe(true)
+    expect(documentMatchesSmartFilter(doc({ id: 'c2' }), 'canvas', { canvasIds })).toBe(false)
+    expect(documentMatchesSmartFilter(doc({ id: 'c1' }), 'canvas', {})).toBe(false)
+  })
 })

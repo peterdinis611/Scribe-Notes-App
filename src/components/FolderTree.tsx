@@ -29,13 +29,14 @@ import {
 } from '@/lib/library/folders'
 import { buildTree, estimateFlatItemSize, flattenTree } from '@/lib/library/tree'
 import { documentMatchesMetaFilters } from '@/lib/library/tag-meta'
+import { knownCanvasDocumentIds } from '@/lib/canvas/known'
 import { documentMatchesSmartFilter } from '@/lib/library/smart-filters'
 import { canNestFolder } from '@/lib/dnd/reorder'
 import { LIBRARY_DND_TYPE, type LibraryDragItem } from '@/lib/dnd/types'
 import { nlpStatus, nlpSuggestTags } from '@/lib/db/nlp-api'
 import { describeNlpTagSuggestionFailure } from '@/lib/nlp/errors'
 import { ROUTES } from '@/lib/routes'
-import { promptAndCreateFolder } from '@/lib/library/create-folder'
+import { promptAndCreateFolder, promptAndCreateVaultFolder } from '@/lib/library/create-folder'
 import { promptInput } from '@/lib/input-dialog'
 import { isVaultUnlocked } from '@/lib/vault/session'
 import { toast } from '@/lib/toast'
@@ -72,7 +73,13 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const [orphanIds, setOrphanIds] = useState<Set<string>>(new Set())
+  const [canvasIds, setCanvasIds] = useState(() => knownCanvasDocumentIds())
   const rootRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (librarySmartFilter !== 'canvas') return
+    setCanvasIds(knownCanvasDocumentIds())
+  }, [librarySmartFilter, documents.length])
 
   useEffect(() => {
     let cancelled = false
@@ -101,13 +108,24 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
         !documentMatchesSmartFilter(doc, librarySmartFilter, {
           orphanIds,
           recentDocumentIds,
+          canvasIds,
         })
       ) {
         return false
       }
       return true
     })
-  }, [documents, query, favoritesOnly, activeTag, metaFilters, librarySmartFilter, orphanIds, recentDocumentIds])
+  }, [
+    documents,
+    query,
+    favoritesOnly,
+    activeTag,
+    metaFilters,
+    librarySmartFilter,
+    orphanIds,
+    recentDocumentIds,
+    canvasIds,
+  ])
 
   const tree = useMemo(() => buildTree(folders, filteredDocuments), [folders, filteredDocuments])
   const flatItems = useMemo(() => flattenTree(tree, expandedIds), [tree, expandedIds])
@@ -132,6 +150,10 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
 
   const handleCreateFolder = useCallback(async (parentId: string | null) => {
     await promptAndCreateFolder({ t, dispatch, parentId })
+  }, [dispatch, t])
+
+  const handleCreateVaultFolder = useCallback(async (parentId: string | null) => {
+    await promptAndCreateVaultFolder({ t, dispatch, parentId })
   }, [dispatch, t])
 
   const handleRenameFolder = useCallback(async (id: string, currentName: string) => {
@@ -598,6 +620,7 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
               onToggle={toggleFolder}
               onRename={(id, name) => void handleRenameFolder(id, name)}
               onCreateChild={(parentId) => void handleCreateFolder(parentId)}
+              onCreateVaultChild={(parentId) => void handleCreateVaultFolder(parentId)}
               onTrashDocuments={(id, folderName, event) =>
                 void handleTrashFolderDocuments(id, folderName, event)
               }
@@ -681,6 +704,7 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
                       onToggle={toggleFolder}
                       onRename={(id, name) => void handleRenameFolder(id, name)}
                       onCreateChild={(parentId) => void handleCreateFolder(parentId)}
+                      onCreateVaultChild={(parentId) => void handleCreateVaultFolder(parentId)}
                       onTrashDocuments={(id, folderName, event) =>
                         void handleTrashFolderDocuments(id, folderName, event)
                       }
