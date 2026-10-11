@@ -34,7 +34,7 @@ zip = { version = "2", features = ["aes-crypto"] }
 regex = "1"
 keyring = "3"
 base64 = "0.22"
-fontdb = "0.23"
+fontdb = "0.24"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "webp", "bmp"] }
 scribe-core = { path = "../crates/scribe-core", features = ["enhance"] }
 scribe-agent = { path = "../crates/scribe-agent" }
