@@ -16,6 +16,14 @@ describe('isCanvasContent', () => {
         edges: [],
       }),
     ).toBe(true)
+    expect(
+      isCanvasContent({
+        type: 'canvas',
+        version: 2,
+        objects: [],
+        edges: [],
+      }),
+    ).toBe(true)
   })
 
   it('rejects non-canvas payloads', () => {
@@ -35,13 +43,48 @@ describe('parseCanvasDocument / serializeCanvasDocument', () => {
     }
     const parsed = parseCanvasDocument(JSON.stringify(source))
     expect(parsed).not.toBeNull()
+    expect(parsed?.version).toBe(2)
     expect(parsed?.cards).toHaveLength(1)
+    expect(parsed?.objects).toHaveLength(1)
+    expect(parsed?.objects[0]?.kind).toBe('note')
     expect(parsed?.cards[0]?.text).toBe('Hello')
     expect(parsed?.edges).toHaveLength(1)
 
     const again = parseCanvasDocument(serializeCanvasDocument(parsed!))
     expect(again?.cards[0]?.id).toBe('c1')
+    expect(again?.objects[0]?.id).toBe('c1')
     expect(again?.edges[0]?.from).toBe('c1')
+  })
+
+  it('parses v2 shape objects', () => {
+    const parsed = parseCanvasDocument(
+      JSON.stringify({
+        type: 'canvas',
+        version: 2,
+        cards: [],
+        objects: [
+          {
+            id: 'r1',
+            kind: 'rect',
+            x: 0,
+            y: 0,
+            w: 160,
+            h: 120,
+            zIndex: 0,
+            text: '',
+            label: '',
+            fill: 'red',
+            stroke: 'blue',
+            strokeWidth: 2,
+            fontSize: 14,
+            color: 'black',
+          },
+        ],
+        edges: [],
+      }),
+    )
+    expect(parsed?.objects[0]?.kind).toBe('rect')
+    expect(parsed?.cards).toHaveLength(0)
   })
 
   it('normalizes bad card sizes and drops invalid edges', () => {

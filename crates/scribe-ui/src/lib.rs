@@ -84,12 +84,14 @@ pub use agent_catalog::{
 };
 pub use canvas_doc::{
     empty_canvas_document, is_canvas_content, parse_canvas_document, serialize_canvas_document,
-    CanvasCard, CanvasDocument, CanvasEdge, CANVAS_CONTENT_TYPE, CANVAS_VERSION,
+    CanvasCard, CanvasDocument, CanvasEdge, CanvasObject, CanvasObjectKind, CanvasViewport,
+    CANVAS_CONTENT_TYPE, CANVAS_VERSION,
 };
 pub use canvas_flow::{
     canvas_edges_to_flow, cards_to_nodes, create_note_node, create_note_node_with_id,
-    flow_to_canvas_document, CanvasNoteData, CanvasNoteNode, FlowEdge, FlowMeasured, FlowNode,
-    FlowPosition, FlowSize, CANVAS_EDGE_TYPE, CANVAS_NOTE_TYPE,
+    flow_to_canvas_document, objects_to_nodes, CanvasFlowNode, CanvasNoteData, CanvasNoteNode,
+    CanvasObjectData, FlowEdge, FlowMeasured, FlowNode, FlowPosition, FlowSize, CANVAS_EDGE_TYPE,
+    CANVAS_NOTE_TYPE,
 };
 pub use code_languages::{
     filter_code_languages, humanize_language_id, pinned_language_ids, resolve_code_language_alias,

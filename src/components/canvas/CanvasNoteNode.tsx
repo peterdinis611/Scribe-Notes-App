@@ -1,23 +1,30 @@
-import { createContext, memo, useContext, useState } from 'react'
+import { memo, useContext, useState } from 'react'
 import { Handle, NodeResizer, Position, type NodeProps } from '@xyflow/react'
 import { useTranslation } from 'react-i18next'
+import { CanvasObjectActions } from '@/components/canvas/CanvasObjectActions'
 import { cn } from '@/lib/utils'
 import type { CanvasNoteNode as CanvasNoteNodeType } from '@/lib/canvas/flow'
 
-export const CanvasNoteActions = createContext<{
-  onTextChange: (id: string, text: string) => void
-}>({
-  onTextChange: () => undefined,
-})
-
 function CanvasNoteNodeInner({ id, data, selected }: NodeProps<CanvasNoteNodeType>) {
   const { t } = useTranslation()
-  const { onTextChange } = useContext(CanvasNoteActions)
+  const { onTextChange } = useContext(CanvasObjectActions)
   const [editing, setEditing] = useState(false)
   const text = typeof data.text === 'string' ? data.text : ''
+  const fill = typeof data.fill === 'string' ? data.fill : 'var(--color-surface-elevated)'
+  const stroke = typeof data.stroke === 'string' ? data.stroke : 'var(--color-border)'
+  const color = typeof data.color === 'string' ? data.color : 'var(--color-foreground)'
+  const fontSize = Number.isFinite(data.fontSize) ? data.fontSize : 14
 
   return (
-    <div className={cn('canvas-card canvas-card--flow', selected && 'is-selected')}>
+    <div
+      className={cn('canvas-card canvas-card--flow', selected && 'is-selected')}
+      style={{
+        background: fill,
+        borderColor: stroke,
+        color,
+        fontSize,
+      }}
+    >
       <NodeResizer
         minWidth={120}
         minHeight={80}
@@ -59,3 +66,4 @@ function CanvasNoteNodeInner({ id, data, selected }: NodeProps<CanvasNoteNodeTyp
 }
 
 export const CanvasNoteNode = memo(CanvasNoteNodeInner)
+export { CanvasNoteActions } from '@/components/canvas/CanvasObjectActions'

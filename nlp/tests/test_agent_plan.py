@@ -26,6 +26,29 @@ class AgentPlanTests(unittest.TestCase):
         dates = match_agent_intents("Aké termíny mám tento týždeň?")
         self.assertIn("dates", dates)
 
+    def test_token_prefix_avoids_substring_false_positives(self) -> None:
+        self.assertEqual(match_agent_intents("milestone stone path"), [])
+        self.assertIn("files_answer", match_agent_intents("ask files/ about deadlines"))
+        self.assertIn("files_ingest", match_agent_intents("ingest files from sandbox"))
+
+    def test_role_boost_soft_adds_persona_tools(self) -> None:
+        plan = plan_agent_goal("please review this", role="proofreader", max_tools=3)
+        self.assertTrue(set(plan["tools"]) & {"spellcheck", "grammar", "style"})
+
+    def test_brief_runs_new_document_tools(self) -> None:
+        text = (
+            "# Agenda\n\n"
+            "We decided to ship Friday. I will follow up with Alex.\n"
+            "- [ ] Write tests\n"
+        )
+        brief = agent_document_brief(
+            text,
+            tools=["decisions", "commitments", "open_loops", "note_pulse"],
+            limit=6,
+        )
+        self.assertGreaterEqual(brief["count"], 1)
+        self.assertTrue(brief["answer"])
+
     def test_plan_needs_clarification(self) -> None:
         plan = plan_agent_goal("What is this about?", scope="document")
         self.assertTrue(plan["needsClarification"])
