@@ -17,6 +17,13 @@ commands::import_export::import_file
 commands::ocr::extract_image_ocr
 commands::ocr::save_document_ocr
 
+# Antivirus — PathAccessGate (temp/granted) or scoped under documents/files/.
+commands::antivirus::antivirus_scan_path
+commands::antivirus::antivirus_scan_storage_file
+commands::antivirus::antivirus_check_storage_health
+commands::antivirus::antivirus_quarantine_storage_file
+commands::antivirus::antivirus_quarantine_external_path
+
 # Reveal — PathAccessGate::validate_reveal.
 commands::storage::reveal_in_finder
 
