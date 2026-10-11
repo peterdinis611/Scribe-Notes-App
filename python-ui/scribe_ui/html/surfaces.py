@@ -54,7 +54,7 @@ def _replace(template: str, **vars: str) -> str:
 def render_whats_new(
     *,
     strings: StringMap | None = None,
-    version: str = "3.5.0",
+    version: str = "3.6.0",
     short: str | None = None,
     highlights: Sequence[tuple[str, str, str]] | None = None,
     full_document: bool = True,
@@ -78,7 +78,7 @@ def render_whats_new(
         kicker = "Edition notes"
     edition = t(strings, "whatsNew.editionMark")
     if edition == "whatsNew.editionMark":
-        edition = "Surfaces · Docs"
+        edition = "Library · Flow"
     foot = t(strings, "whatsNew.footNote")
     if foot == "whatsNew.footNote":
         foot = "Local-first · no cloud required"
@@ -102,15 +102,15 @@ def render_whats_new(
         ]
 
     tags = [
-        t(strings, "whatsNew.tags.docs")
-        if t(strings, "whatsNew.tags.docs") != "whatsNew.tags.docs"
-        else "Docs",
-        t(strings, "whatsNew.tags.surfaces")
-        if t(strings, "whatsNew.tags.surfaces") != "whatsNew.tags.surfaces"
-        else "Surfaces",
-        t(strings, "whatsNew.tags.python")
-        if t(strings, "whatsNew.tags.python") != "whatsNew.tags.python"
-        else "Python UI",
+        t(strings, "whatsNew.tags.library")
+        if t(strings, "whatsNew.tags.library") != "whatsNew.tags.library"
+        else "Library",
+        t(strings, "whatsNew.tags.capture")
+        if t(strings, "whatsNew.tags.capture") != "whatsNew.tags.capture"
+        else "Capture",
+        t(strings, "whatsNew.tags.markdown")
+        if t(strings, "whatsNew.tags.markdown") != "whatsNew.tags.markdown"
+        else "Markdown",
     ]
 
     body = el(
@@ -218,7 +218,7 @@ def render_welcome(
 def render_about(
     *,
     strings: StringMap | None = None,
-    version: str = "3.5.0",
+    version: str = "3.6.0",
     short: str | None = None,
     full_document: bool = True,
 ) -> str:
@@ -261,7 +261,7 @@ def render_about(
 def render_privacy(
     *,
     strings: StringMap | None = None,
-    version: str = "3.5.0",
+    version: str = "3.6.0",
     articles: Sequence[Mapping[str, Any]] | None = None,
     full_document: bool = True,
 ) -> str:
@@ -469,7 +469,7 @@ def render_surface(
     surface: str,
     *,
     strings: StringMap | None = None,
-    version: str = "3.5.0",
+    version: str = "3.6.0",
     short_version: str | None = None,
     highlights: Sequence[tuple[str, str, str]] | None = None,
     recent: Sequence[Mapping[str, str]] | None = None,

@@ -53,9 +53,9 @@ pub fn whats_new_view(props: WhatsNewProps) -> Element {
     let badge = t(&props.strings, "whatsNew.badge").replace("{{version}}", &props.version);
     let title = t(&props.strings, "whatsNew.title").replace("{{version}}", &props.short_version);
     let tags = vec![
-        t(&props.strings, "whatsNew.tags.agents"),
-        t(&props.strings, "whatsNew.tags.handoffs"),
-        t(&props.strings, "whatsNew.tags.recipes"),
+        t(&props.strings, "whatsNew.tags.library"),
+        t(&props.strings, "whatsNew.tags.capture"),
+        t(&props.strings, "whatsNew.tags.markdown"),
     ];
 
     rsx! {

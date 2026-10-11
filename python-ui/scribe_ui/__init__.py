@@ -59,6 +59,7 @@ from .whats_new import (
     EDITION_MARK_KEY,
     WHATS_NEW_34_HIGHLIGHTS,
     WHATS_NEW_35_HIGHLIGHTS,
+    WHATS_NEW_36_HIGHLIGHTS,
     whats_new_highlights,
 )
 
@@ -83,6 +84,7 @@ __all__ = [
     "UI_SKIN_STORAGE_KEY",
     "WHATS_NEW_34_HIGHLIGHTS",
     "WHATS_NEW_35_HIGHLIGHTS",
+    "WHATS_NEW_36_HIGHLIGHTS",
     "FuzzyRankHit",
     "FuzzyRankItem",
     "UiManifest",
