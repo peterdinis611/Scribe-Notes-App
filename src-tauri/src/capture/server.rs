@@ -93,7 +93,10 @@ fn write_response(stream: &mut TcpStream, status: &str, content_type: &str, body
     let _ = stream.flush();
 }
 
-fn token_ok(headers: &str, _path: &str, expected: &str) -> bool {
+/// Capture auth: Bearer / X-Scribe-Capture-Token only (query `?token=` is rejected).
+pub(crate) fn token_ok(headers: &str, path: &str, expected: &str) -> bool {
+    // Explicitly ignore query tokens — they must not authorize.
+    let _ = path;
     for line in headers.lines() {
         let lower = line.to_ascii_lowercase();
         if let Some(rest) = lower.strip_prefix("authorization:") {
@@ -234,4 +237,36 @@ pub fn handle_connection(mut stream: TcpStream, app: &AppHandle, expected_token:
     }
 
     write_response(&mut stream, "404 Not Found", "text/plain", b"not found");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::token_ok;
+
+    #[test]
+    fn accepts_bearer_header() {
+        let headers = "Host: 127.0.0.1\r\nAuthorization: Bearer secret\r\n\r\n";
+        assert!(token_ok(headers, "/api/capture", "secret"));
+    }
+
+    #[test]
+    fn accepts_custom_capture_header() {
+        let headers = "X-Scribe-Capture-Token: secret\r\n";
+        assert!(token_ok(headers, "/api/capture", "secret"));
+    }
+
+    #[test]
+    fn rejects_query_token() {
+        assert!(!token_ok(
+            "Host: x\r\n\r\n",
+            "/api/capture?token=secret",
+            "secret"
+        ));
+    }
+
+    #[test]
+    fn rejects_wrong_bearer() {
+        let headers = "Authorization: Bearer nope\r\n";
+        assert!(!token_ok(headers, "/api/capture", "secret"));
+    }
 }

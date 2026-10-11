@@ -228,4 +228,59 @@ mod tests {
         assert!(!can_sibling);
         let _ = fs::remove_dir_all(base);
     }
+
+    #[test]
+    fn grant_allows_same_folder_sibling_via_parent_grant() {
+        let base = temp_dir();
+        let first = base.join("notes").join("a.md");
+        fs::create_dir_all(first.parent().unwrap()).unwrap();
+        fs::write(&first, b"a").unwrap();
+        let second = base.join("notes").join("b.md");
+        fs::write(&second, b"b").unwrap();
+        let gate = PathAccessGate::new();
+        gate.grant_from_picker(&first);
+        assert!(gate.is_granted(&canonicalize_path(&second).unwrap()));
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn grant_allows_picked_file_itself() {
+        let base = temp_dir();
+        let file = base.join("picked.md");
+        fs::write(&file, b"ok").unwrap();
+        let gate = PathAccessGate::new();
+        gate.grant_from_picker(&file);
+        assert!(gate.is_granted(&canonicalize_path(&file).unwrap()));
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn ungranted_path_is_denied() {
+        let base = temp_dir();
+        let file = base.join("secret.md");
+        fs::write(&file, b"x").unwrap();
+        let gate = PathAccessGate::new();
+        assert!(!gate.is_granted(&canonicalize_path(&file).unwrap()));
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn safe_join_rejects_absolute_and_dotdot_components() {
+        let base = temp_dir();
+        assert!(safe_join_under(&base, "/etc/passwd").is_err());
+        assert!(safe_join_under(&base, "a/../../escape").is_err());
+        assert!(safe_join_under(&base, "").is_err());
+        assert!(safe_join_under(&base, r"evil\path").is_err());
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn validate_temp_file_rejects_outside_temp() {
+        let base = temp_dir();
+        // Place a file under a non-temp dir when possible; if the test dir is
+        // already under temp (common), nest outside via a name that fails exists.
+        let outside = PathBuf::from("/this/path/does/not/exist/scribe-escape.bin");
+        assert!(PathAccessGate::validate_temp_file(&outside).is_err());
+        let _ = fs::remove_dir_all(base);
+    }
 }

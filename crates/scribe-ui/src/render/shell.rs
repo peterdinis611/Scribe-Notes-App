@@ -1,6 +1,6 @@
 const CHROME_CSS: &str = include_str!("../../assets/chrome.css");
 
-const BRIDGE_JS: &str = r#"
+pub(crate) const BRIDGE_JS: &str = r#"
 (function () {
   var ALLOWED = {
     'surface-closed': 1,
@@ -81,4 +81,33 @@ pub fn wrap_document(body_html: &str, surface_id: &str) -> String {
         body = body_html,
         js = BRIDGE_JS,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{wrap_document, BRIDGE_JS};
+
+    #[test]
+    fn bridge_rejects_wildcard_post_message() {
+        assert!(BRIDGE_JS.contains("postMessage("));
+        assert!(
+            !BRIDGE_JS.contains(", '*'"),
+            "bridge must not use postMessage(..., '*')"
+        );
+    }
+
+    #[test]
+    fn bridge_allowlists_surface_events() {
+        assert!(BRIDGE_JS.contains("'welcome-new-document': 1"));
+        assert!(BRIDGE_JS.contains("'whats-new-acked': 1"));
+        assert!(BRIDGE_JS.contains("if (!event || !ALLOWED[event]) return;"));
+    }
+
+    #[test]
+    fn wrap_document_embeds_hardened_bridge() {
+        let html = wrap_document("<p>hi</p>", "welcome");
+        assert!(html.contains("scribeUiBridge"));
+        assert!(html.contains("data-sui-event=\"surface-closed\""));
+        assert!(!html.contains(", '*'"));
+    }
 }

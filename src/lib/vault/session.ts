@@ -22,10 +22,18 @@ const folderSessions = new Map<string, FolderVaultSession>()
 const documentSessions = new Map<string, DocumentVaultSession>()
 
 /** Auto-lock unlocked vault passwords after this much idle time (ms). */
-const VAULT_IDLE_LOCK_MS = 15 * 60 * 1000
+export const VAULT_IDLE_LOCK_MS = 15 * 60 * 1000
 
 let idleTimer: ReturnType<typeof setTimeout> | null = null
 let autoLockInstalled = false
+
+/** Test-only: clear sessions, timers, and auto-lock listener flag. */
+export function resetVaultSessionForTests() {
+  folderSessions.clear()
+  documentSessions.clear()
+  clearIdleTimer()
+  autoLockInstalled = false
+}
 
 function clearIdleTimer() {
   if (idleTimer != null) {

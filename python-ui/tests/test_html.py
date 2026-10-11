@@ -43,6 +43,13 @@ class HtmlBuilderTests(unittest.TestCase):
         self.assertIn("data-sui-surface=\"about\"", html)
         self.assertIn("scribeUiBridge", html)
 
+    def test_bridge_is_hardened(self) -> None:
+        html = wrap_document("<p>hi</p>", "welcome")
+        self.assertIn("welcome-new-document", html)
+        self.assertIn("if (!event || !ALLOWED[event]) return;", html)
+        self.assertNotIn(", '*'", html)
+        self.assertNotIn(', "*"', html)
+
     def test_docs_surface_matches_app_copy(self) -> None:
         html = render_surface("docs", short_version="3.5", full_document=False)
         self.assertIn('class="docs-shell"', html)

@@ -23,4 +23,23 @@ describe('sanitizeSvg', () => {
     const out = sanitizeSvg(dirty)
     expect(out.toLowerCase()).not.toContain('javascript:')
   })
+
+  it('removes foreignObject / iframe / embed', () => {
+    const dirty = `<svg xmlns="http://www.w3.org/2000/svg">
+      <foreignObject width="100" height="100"><body xmlns="http://www.w3.org/1999/xhtml"><script>x</script></body></foreignObject>
+      <iframe src="https://evil.test"></iframe>
+      <embed src="x"></embed>
+      <text>safe</text>
+    </svg>`
+    const out = sanitizeSvg(dirty).toLowerCase()
+    expect(out).not.toContain('foreignobject')
+    expect(out).not.toContain('iframe')
+    expect(out).not.toContain('embed')
+    expect(out).toContain('safe')
+  })
+
+  it('returns empty for non-svg markup', () => {
+    expect(sanitizeSvg('<div onclick="x">hi</div>')).toBe('')
+    expect(sanitizeSvg('')).toBe('')
+  })
 })

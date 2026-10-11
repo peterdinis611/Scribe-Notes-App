@@ -107,5 +107,16 @@ mod tests {
         assert!(html.contains("Got it"));
         assert!(html.contains("setup-folio"));
         assert!(html.contains("scribe-ui-bridge"));
+        assert!(html.contains("if (!event || !ALLOWED[event]) return;"));
+        assert!(!html.contains(", '*'"), "UI bridge must not postMessage to '*'");
+    }
+
+    #[test]
+    fn bridge_js_allowlists_events() {
+        let js = shell::BRIDGE_JS;
+        assert!(js.contains("'welcome-new-document': 1"));
+        assert!(js.contains("'whats-new-acked': 1"));
+        assert!(js.contains("postMessage("));
+        assert!(!js.contains(", '*'"));
     }
 }

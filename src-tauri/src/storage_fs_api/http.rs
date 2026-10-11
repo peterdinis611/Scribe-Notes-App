@@ -124,7 +124,7 @@ pub(crate) fn bearer_token_from_headers(headers: &str) -> Option<String> {
     None
 }
 
-fn token_authorized(headers: &str, full_path: &str, expected: &str) -> bool {
+pub(crate) fn token_authorized(headers: &str, full_path: &str, expected: &str) -> bool {
     if bearer_token_from_headers(headers).as_deref() == Some(expected) {
         return true;
     }

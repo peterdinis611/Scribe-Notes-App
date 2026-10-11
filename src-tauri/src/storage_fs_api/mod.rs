@@ -222,7 +222,7 @@ pub fn storage_fs_server_stop(
 
 #[cfg(test)]
 mod tests {
-    use super::http::{bearer_token_from_headers, path_escapes_files_root};
+    use super::http::{bearer_token_from_headers, path_escapes_files_root, token_authorized};
 
     #[test]
     fn bearer_parses_authorization_header() {
@@ -231,9 +231,38 @@ mod tests {
     }
 
     #[test]
+    fn bearer_rejects_missing_or_wrong_token() {
+        assert!(bearer_token_from_headers("Host: x\r\n\r\n").is_none());
+        assert!(bearer_token_from_headers("Authorization: Basic abc\r\n").is_none());
+        let headers = "Authorization: Bearer wrong\r\n";
+        assert!(!token_authorized(headers, "/v1/fs/list", "secret"));
+    }
+
+    #[test]
+    fn access_token_query_allowed_only_for_docs_paths() {
+        let expected = "tok123";
+        assert!(token_authorized("", "/docs?access_token=tok123", expected));
+        assert!(token_authorized("", "/openapi.json?access_token=tok123", expected));
+        assert!(token_authorized("", "/graphql?access_token=tok123", expected));
+        // Data APIs must not accept query tokens.
+        assert!(!token_authorized("", "/v1/fs/list?access_token=tok123", expected));
+        assert!(!token_authorized("", "/v1/fs/read-text?access_token=tok123&path=a", expected));
+    }
+
+    #[test]
+    fn bearer_authorizes_data_api_paths() {
+        let headers = "Authorization: Bearer tok123\r\n";
+        assert!(token_authorized(headers, "/v1/fs/list?path=", "tok123"));
+        assert!(token_authorized(headers, "/v1/fs/write", "tok123"));
+    }
+
+    #[test]
     fn path_escape_rejected() {
         assert!(path_escapes_files_root("../etc/passwd"));
         assert!(path_escapes_files_root("files/../../secret"));
+        assert!(path_escapes_files_root(".."));
         assert!(!path_escapes_files_root("notes/a.md"));
+        assert!(!path_escapes_files_root("a/b/../c.md"));
+        assert!(!path_escapes_files_root(""));
     }
 }

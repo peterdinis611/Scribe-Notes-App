@@ -128,13 +128,23 @@ pub fn ui_surface_event(
 
 #[cfg(test)]
 mod tests {
-    use super::is_allowed_ui_event;
+    use super::{is_allowed_ui_event, ALLOWED_UI_EVENTS};
 
     #[test]
     fn allows_known_surface_events() {
         assert!(is_allowed_ui_event("welcome-new-document"));
         assert!(is_allowed_ui_event("whats-new-acked"));
+        assert!(is_allowed_ui_event("surface-closed"));
+        assert!(is_allowed_ui_event("docs-open-topic"));
         assert!(!is_allowed_ui_event("eval"));
         assert!(!is_allowed_ui_event(""));
+        assert!(!is_allowed_ui_event("welcome-new-document;alert(1)"));
+    }
+
+    #[test]
+    fn allowlist_is_non_empty_and_stable() {
+        assert!(ALLOWED_UI_EVENTS.len() >= 8);
+        assert!(ALLOWED_UI_EVENTS.contains(&"surface-closed"));
+        assert!(ALLOWED_UI_EVENTS.contains(&"whats-new-acked"));
     }
 }
