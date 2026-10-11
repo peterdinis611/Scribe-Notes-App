@@ -721,6 +721,28 @@ pub fn quarantine_file(
     reason: &str,
     threat_name: Option<&str>,
 ) -> Result<QuarantineEntry, String> {
+    quarantine_file_inner(files_root, abs_file, original_relative, reason, threat_name, true)
+}
+
+/// Copy an external (outside `files/`) path into quarantine without deleting the original.
+pub fn quarantine_copy(
+    files_root: &Path,
+    abs_file: &Path,
+    display_path: &str,
+    reason: &str,
+    threat_name: Option<&str>,
+) -> Result<QuarantineEntry, String> {
+    quarantine_file_inner(files_root, abs_file, display_path, reason, threat_name, false)
+}
+
+fn quarantine_file_inner(
+    files_root: &Path,
+    abs_file: &Path,
+    original_path: &str,
+    reason: &str,
+    threat_name: Option<&str>,
+    move_source: bool,
+) -> Result<QuarantineEntry, String> {
     if !abs_file.is_file() {
         return Err(format!("NotAFile:{}", abs_file.display()));
     }
@@ -738,17 +760,21 @@ pub fn quarantine_file(
     let size_bytes = std::fs::metadata(abs_file)
         .map(|m| m.len())
         .unwrap_or(0);
-    std::fs::rename(abs_file, &dest)
-        .or_else(|_| {
-            std::fs::copy(abs_file, &dest)?;
-            std::fs::remove_file(abs_file)?;
-            Ok(())
-        })
-        .map_err(|e: std::io::Error| e.to_string())?;
+    if move_source {
+        std::fs::rename(abs_file, &dest)
+            .or_else(|_| {
+                std::fs::copy(abs_file, &dest)?;
+                std::fs::remove_file(abs_file)?;
+                Ok(())
+            })
+            .map_err(|e: std::io::Error| e.to_string())?;
+    } else {
+        std::fs::copy(abs_file, &dest).map_err(|e| e.to_string())?;
+    }
 
     let entry = QuarantineEntry {
         id: id.clone(),
-        original_path: original_relative.into(),
+        original_path: original_path.into(),
         quarantined_path: dest
             .strip_prefix(files_root)
             .map(|p| p.to_string_lossy().replace('\\', "/"))
@@ -827,6 +853,76 @@ pub fn purge_quarantine(files_root: &Path, id: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// Delete every quarantine entry (payload + sidecar). Returns how many were removed.
+pub fn purge_all_quarantine(files_root: &Path) -> Result<u32, String> {
+    let entries = list_quarantine(files_root)?;
+    let mut n = 0u32;
+    for entry in entries {
+        purge_quarantine(files_root, &entry.id)?;
+        n += 1;
+    }
+    Ok(n)
+}
+
+/// Apply import policy: scan + decide. On Quarantine, copy into `files/.quarantine`.
+pub fn gate_import_path(
+    path: &Path,
+    policy: &AntivirusPolicy,
+    files_root: Option<&Path>,
+) -> Result<ImportGateDecision, String> {
+    if !policy.enabled || !policy.scan_on_import {
+        return Ok(ImportGateDecision {
+            action: ImportGateAction::Allow,
+            report: ScanReport {
+                engine: AntivirusEngine::None,
+                verdict: ScanVerdict::Skipped,
+                path: path.display().to_string(),
+                threats: vec![],
+                raw_summary: "policy disabled or scan-on-import off".into(),
+                duration_ms: 0,
+            },
+        });
+    }
+    let report = scan_path(path);
+    let decision = decide_import_gate(&report, policy);
+    match decision.action {
+        ImportGateAction::Allow => Ok(decision),
+        ImportGateAction::WarnUnavailable => Err(format!(
+            "AntivirusUnavailable:{}",
+            decision.report.raw_summary
+        )),
+        ImportGateAction::Block => {
+            let threat = decision
+                .report
+                .threats
+                .first()
+                .map(|t| t.name.as_str())
+                .unwrap_or("malware");
+            Err(format!("AntivirusBlocked:{threat}"))
+        }
+        ImportGateAction::Quarantine => {
+            let threat = decision
+                .report
+                .threats
+                .first()
+                .map(|t| t.name.as_str())
+                .unwrap_or("malware");
+            if let Some(root) = files_root {
+                let _ = quarantine_copy(
+                    root,
+                    path,
+                    &path.display().to_string(),
+                    &format!("import blocked: {threat}"),
+                    Some(threat),
+                )?;
+                Err(format!("AntivirusQuarantined:{threat}"))
+            } else {
+                Err(format!("AntivirusBlocked:{threat}"))
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -882,5 +978,35 @@ mod tests {
     fn eicar_constant_is_standard_length() {
         assert!(EICAR_TEST_STRING.contains("EICAR-STANDARD-ANTIVIRUS-TEST-FILE"));
         assert_eq!(EICAR_TEST_STRING.len(), 68);
+    }
+
+    #[test]
+    fn quarantine_copy_keeps_source() {
+        let root = std::env::temp_dir().join(format!("scribe-av-q-{}", uuid::Uuid::new_v4()));
+        let files = root.join("files");
+        std::fs::create_dir_all(&files).unwrap();
+        let src = root.join("outside.bin");
+        std::fs::write(&src, b"payload").unwrap();
+        let entry = quarantine_copy(&files, &src, "outside.bin", "test", Some("X")).unwrap();
+        assert!(src.is_file(), "source must remain");
+        assert!(files.join(&entry.quarantined_path).is_file());
+        assert_eq!(entry.threat_name.as_deref(), Some("X"));
+        assert_eq!(purge_all_quarantine(&files).unwrap(), 1);
+        assert!(list_quarantine(&files).unwrap().is_empty());
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn gate_import_skips_when_disabled() {
+        let root = std::env::temp_dir().join(format!("scribe-av-g-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&root).unwrap();
+        let path = root.join("ok.txt");
+        std::fs::write(&path, b"hi").unwrap();
+        let mut policy = AntivirusPolicy::default();
+        policy.enabled = false;
+        let decision = gate_import_path(&path, &policy, None).unwrap();
+        assert_eq!(decision.action, ImportGateAction::Allow);
+        assert_eq!(decision.report.verdict, ScanVerdict::Skipped);
+        let _ = std::fs::remove_dir_all(&root);
     }
 }

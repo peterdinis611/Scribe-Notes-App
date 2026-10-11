@@ -1330,6 +1330,17 @@ export const antivirusQuarantineStorageFile = (
     threatName: threatName ?? null,
   })
 
+export const antivirusQuarantineExternalPath = (
+  path: string,
+  reason?: string | null,
+  threatName?: string | null,
+) =>
+  invoke<QuarantineEntry>('antivirus_quarantine_external_path', {
+    path,
+    reason: reason ?? null,
+    threatName: threatName ?? null,
+  })
+
 export const antivirusListQuarantine = () =>
   invoke<QuarantineEntry[]>('antivirus_list_quarantine')
 
@@ -1338,6 +1349,14 @@ export const antivirusRestoreQuarantine = (id: string) =>
 
 export const antivirusPurgeQuarantine = (id: string) =>
   invoke<void>('antivirus_purge_quarantine', { id })
+
+export const antivirusPurgeAllQuarantine = () =>
+  invoke<number>('antivirus_purge_all_quarantine')
+
+export const antivirusPickAndScan = (timeoutSecs?: number | null) =>
+  invoke<AntivirusScanReport | null>('antivirus_pick_and_scan', {
+    timeoutSecs: timeoutSecs ?? null,
+  })
 
 /** Native open dialog that grants the path in Rust (never pass arbitrary JS paths to grant). */
 export const pickAndGrantPath = (options?: { title?: string; directory?: boolean }) =>
@@ -1387,8 +1406,12 @@ export type PickAndImportResult = {
 }
 
 /** Multi-file import via native Rust picker (grants PathAccessGate). */
-export const pickAndImportFiles = () =>
-  invoke<PickAndImportResult | null>('pick_and_import_file')
+export const pickAndImportFiles = async () => {
+  const { readAntivirusPolicy } = await import('@/lib/antivirus/prefs')
+  return invoke<PickAndImportResult | null>('pick_and_import_file', {
+    antivirusPolicy: readAntivirusPolicy(),
+  })
+}
 
 /** @deprecated Prefer `pickAndImportFiles` — kept for single-doc call sites. */
 export const pickAndImportFile = async () => {

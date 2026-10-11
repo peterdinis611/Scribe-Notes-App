@@ -4,6 +4,8 @@ use crate::export;
 use crate::security::PathAccessGate;
 use crate::storage;
 use rusqlite::{params, OptionalExtension};
+use scribe_core::file_antivirus::{self, AntivirusPolicy};
+use scribe_core::storage_fs;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use tauri::{AppHandle, State};
@@ -188,6 +190,7 @@ pub fn pick_and_import_file(
     app: AppHandle,
     state: State<'_, DbState>,
     gate: State<'_, PathAccessGate>,
+    antivirus_policy: Option<AntivirusPolicy>,
 ) -> Result<Option<PickAndImportResult>, String> {
     let picked = app
         .dialog()
@@ -214,7 +217,7 @@ pub fn pick_and_import_file(
     for path in paths {
         let path = PathBuf::from(path.to_string());
         gate.grant_from_picker(&path);
-        match import_file_at_path(&app, &state, &gate, &path) {
+        match import_file_at_path(&app, &state, &gate, &path, antivirus_policy.as_ref()) {
             Ok(doc) => imported.push(doc),
             Err(error) => failed.push(PickAndImportFailure {
                 path: path.to_string_lossy().to_string(),
@@ -282,9 +285,10 @@ pub fn import_file(
     state: State<'_, DbState>,
     gate: State<'_, PathAccessGate>,
     path: String,
+    antivirus_policy: Option<AntivirusPolicy>,
 ) -> Result<Document, String> {
     let path = Path::new(&path);
-    import_file_at_path(&app, &state, &gate, path)
+    import_file_at_path(&app, &state, &gate, path, antivirus_policy.as_ref())
 }
 
 fn import_file_at_path(
@@ -292,10 +296,21 @@ fn import_file_at_path(
     state: &State<'_, DbState>,
     gate: &State<'_, PathAccessGate>,
     path: &Path,
+    antivirus_policy: Option<&AntivirusPolicy>,
 ) -> Result<Document, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     let validated = gate.validate_read(app, &conn, path)?;
+    let docs = storage::get_documents_dir(app, &conn)?;
     drop(conn);
+
+    // `None` = caller already gated (or opted out). `Some(policy)` = apply here
+    // (used by the native multi-file picker).
+    if let Some(policy) = antivirus_policy {
+        if policy.enabled && policy.scan_on_import {
+            let files_root = storage_fs::ensure_files_root(&docs).ok();
+            file_antivirus::gate_import_path(&validated, policy, files_root.as_deref())?;
+        }
+    }
 
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     let now = chrono::Utc::now().timestamp();

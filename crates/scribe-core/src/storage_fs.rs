@@ -792,6 +792,31 @@ pub fn purge_storage_quarantine(documents_dir: &Path, id: &str) -> Result<(), St
     crate::file_antivirus::purge_quarantine(&root, id)
 }
 
+pub fn purge_all_storage_quarantine(documents_dir: &Path) -> Result<u32, String> {
+    let root = ensure_files_root(documents_dir)?;
+    crate::file_antivirus::purge_all_quarantine(&root)
+}
+
+/// Copy an absolute path (outside or inside sandbox) into `files/.quarantine`.
+pub fn quarantine_external_path(
+    documents_dir: &Path,
+    abs_path: &Path,
+    reason: &str,
+    threat_name: Option<&str>,
+) -> Result<crate::file_antivirus::QuarantineEntry, String> {
+    let root = ensure_files_root(documents_dir)?;
+    if !abs_path.is_file() {
+        return Err(err("NotAFile:", abs_path.display().to_string()));
+    }
+    crate::file_antivirus::quarantine_copy(
+        &root,
+        abs_path,
+        &abs_path.display().to_string(),
+        reason,
+        threat_name,
+    )
+}
+
 pub fn recent(
     documents_dir: &Path,
     path: Option<&str>,

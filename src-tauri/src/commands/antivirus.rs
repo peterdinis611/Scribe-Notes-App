@@ -144,3 +144,63 @@ pub fn antivirus_purge_quarantine(
     let dir = docs_dir(&app, &state)?;
     storage_fs::purge_storage_quarantine(&dir, &id)
 }
+
+#[tauri::command]
+pub fn antivirus_purge_all_quarantine(
+    app: AppHandle,
+    state: State<'_, DbState>,
+) -> Result<u32, String> {
+    let dir = docs_dir(&app, &state)?;
+    storage_fs::purge_all_storage_quarantine(&dir)
+}
+
+/// Copy an absolute path into `files/.quarantine` (does not delete the original).
+#[tauri::command]
+pub fn antivirus_quarantine_external_path(
+    app: AppHandle,
+    state: State<'_, DbState>,
+    gate: State<'_, PathAccessGate>,
+    path: String,
+    reason: Option<String>,
+    threat_name: Option<String>,
+) -> Result<QuarantineEntry, String> {
+    let path_buf = PathBuf::from(&path);
+    let validated = if let Ok(temp) = PathAccessGate::validate_temp_file(&path_buf) {
+        temp
+    } else {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        gate.validate_read(&app, &conn, &path_buf)?
+    };
+    let dir = docs_dir(&app, &state)?;
+    storage_fs::quarantine_external_path(
+        &dir,
+        &validated,
+        reason.as_deref().unwrap_or("import blocked"),
+        threat_name.as_deref(),
+    )
+}
+
+/// Native file picker + ClamAV scan (grants PathAccessGate).
+#[tauri::command]
+pub fn antivirus_pick_and_scan(
+    app: AppHandle,
+    gate: State<'_, PathAccessGate>,
+    timeout_secs: Option<u64>,
+) -> Result<Option<ScanReport>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let picked = app
+        .dialog()
+        .file()
+        .set_title("Skenovať súbor (ClamAV)")
+        .blocking_pick_file();
+    let Some(path) = picked else {
+        return Ok(None);
+    };
+    let path = PathBuf::from(path.to_string());
+    gate.grant_from_picker(&path);
+    let opts = ScanOptions {
+        timeout: Duration::from_secs(timeout_secs.unwrap_or(DEFAULT_SCAN_TIMEOUT_SECS)),
+        ..Default::default()
+    };
+    Ok(Some(file_antivirus::scan_path_with(&path, &opts)))
+}

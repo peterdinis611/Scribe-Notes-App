@@ -1,4 +1,5 @@
 import {
+  antivirusQuarantineExternalPath,
   antivirusQuarantineStorageFile,
   antivirusScanPath,
   type AntivirusScanReport,
@@ -7,14 +8,37 @@ import { readAntivirusPolicy } from '@/lib/antivirus/prefs'
 
 export type ImportScanOutcome =
   | { ok: true; report: AntivirusScanReport }
-  | { ok: false; reason: 'blocked' | 'quarantined' | 'unavailable'; report: AntivirusScanReport; message: string }
+  | {
+      ok: false
+      reason: 'blocked' | 'quarantined' | 'unavailable'
+      report: AntivirusScanReport
+      message: string
+    }
+
+export class AntivirusImportError extends Error {
+  readonly reason: 'blocked' | 'quarantined' | 'unavailable'
+  readonly report: AntivirusScanReport
+
+  constructor(outcome: Extract<ImportScanOutcome, { ok: false }>) {
+    super(
+      outcome.reason === 'unavailable'
+        ? `AntivirusUnavailable:${outcome.message}`
+        : outcome.reason === 'quarantined'
+          ? `AntivirusQuarantined:${outcome.message}`
+          : `AntivirusBlocked:${outcome.message}`,
+    )
+    this.name = 'AntivirusImportError'
+    this.reason = outcome.reason
+    this.report = outcome.report
+  }
+}
 
 /**
  * Apply local antivirus policy to a file about to enter the library.
  * - disabled / clean / skipped → allow
- * - infected + quarantine → move under files/.quarantine when `storageRelative` is set
+ * - infected + quarantine → move/copy into files/.quarantine
  * - infected + block → reject
- * - unavailable + warn → reject with unavailable (caller may still allow)
+ * - unavailable + warn → reject with unavailable
  */
 export async function gateImportWithAntivirus(options: {
   absolutePath: string
@@ -43,12 +67,20 @@ export async function gateImportWithAntivirus(options: {
 
   if (report.verdict === 'infected') {
     const threat = report.threats[0]?.name ?? 'malware'
-    if (policy.quarantineInfected && options.storageRelative) {
-      await antivirusQuarantineStorageFile(
-        options.storageRelative,
-        `import blocked: ${threat}`,
-        threat,
-      )
+    if (policy.quarantineInfected) {
+      if (options.storageRelative) {
+        await antivirusQuarantineStorageFile(
+          options.storageRelative,
+          `import blocked: ${threat}`,
+          threat,
+        )
+      } else {
+        await antivirusQuarantineExternalPath(
+          options.absolutePath,
+          `import blocked: ${threat}`,
+          threat,
+        )
+      }
       return {
         ok: false,
         reason: 'quarantined',
@@ -62,7 +94,6 @@ export async function gateImportWithAntivirus(options: {
     return { ok: true, report }
   }
 
-  // unavailable
   if (policy.warnIfUnavailable) {
     return {
       ok: false,
@@ -72,4 +103,10 @@ export async function gateImportWithAntivirus(options: {
     }
   }
   return { ok: true, report }
+}
+
+/** Gate and throw {@link AntivirusImportError} when the file must not enter the library. */
+export async function assertImportAllowedByAntivirus(absolutePath: string): Promise<void> {
+  const outcome = await gateImportWithAntivirus({ absolutePath })
+  if (!outcome.ok) throw new AntivirusImportError(outcome)
 }
