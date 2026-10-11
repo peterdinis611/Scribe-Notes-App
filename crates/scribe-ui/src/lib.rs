@@ -290,6 +290,7 @@ pub use video_embed::{
 pub use whats_new::{
     whats_new_highlights, whats_new_tag_keys, EDITION_MARK_KEY, WHATS_NEW_34_HIGHLIGHTS,
     WHATS_NEW_35_HIGHLIGHTS, WHATS_NEW_36_HIGHLIGHTS, WHATS_NEW_36_TAG_KEYS,
+    WHATS_NEW_37_HIGHLIGHTS, WHATS_NEW_37_TAG_KEYS,
 };
 
 #[cfg(feature = "dioxus")]

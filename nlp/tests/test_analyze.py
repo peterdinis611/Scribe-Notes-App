@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import unittest
 
-from scribe_nlp.analyze import analyze_document
+from scribe_nlp.analyze import analyze_document, analyze_document_detailed, clear_analysis_cache
 from scribe_nlp.server import handle_request
 from scribe_nlp.similar import similar_notes
 
 
 class AnalyzeTests(unittest.TestCase):
+    def setUp(self) -> None:
+        clear_analysis_cache()
+
     def test_analyze_returns_core_fields(self) -> None:
         text = (
             "# Projekt Scribe\n\n"
@@ -21,6 +24,17 @@ class AnalyzeTests(unittest.TestCase):
         self.assertGreater(len(result["keywords"]), 0)
         self.assertTrue(result.get("summary"))
         self.assertIn("outline", result)
+
+    def test_analyze_cache_hit(self) -> None:
+        text = (
+            "Scribe caches document analysis for repeated insights calls. "
+            "Second pass should reuse the LRU entry without redoing sections."
+        )
+        first = analyze_document_detailed(text, use_cache=True)
+        second = analyze_document_detailed(text, use_cache=True)
+        self.assertFalse(first["cacheHit"])
+        self.assertTrue(second["cacheHit"])
+        self.assertEqual(first["analysis"]["language"], second["analysis"]["language"])
 
     def test_short_text_skips_summary(self) -> None:
         result = analyze_document("Hi there.")

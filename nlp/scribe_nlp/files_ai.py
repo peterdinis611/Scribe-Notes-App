@@ -16,6 +16,7 @@ import hashlib
 import io
 import math
 import re
+import threading
 import time
 import unicodedata
 import zipfile
@@ -24,7 +25,9 @@ from typing import Any, Literal
 from xml.etree import ElementTree as ET
 
 from .embed import cosine_similarity, embed_batch, embed_text
+from .embed_backend import current_model_id
 from .chunking import chunk_text
+from .faiss_search import faiss_available, faiss_top_k
 from .storage_fs import StorageFsClient, StorageFsError
 from .text_utils import split_sentences
 
@@ -41,8 +44,14 @@ MAX_DOCX_XML_BYTES = 30_000_000   # guard against zip bombs
 PDF_MAX_PAGES = 40
 SCAN_LIMIT_DEFAULT = 200
 HYBRID_ALPHA = 0.7                # weight of the embedding score in hybrid mode
+ANN_MIN_CHUNKS = 24               # use FAISS/HNSW when enough vectors
 
 RetrievalMode = Literal["hybrid", "semantic", "lexical"]
+
+_index_mem_lock = threading.Lock()
+# base_url -> (updatedAt|None, index dict)
+_index_memory: dict[str, tuple[Any, dict[str, Any]]] = {}
+_dim_cache: tuple[str, int] | None = None
 
 
 class FilesApiOfflineError(RuntimeError):
@@ -446,19 +455,55 @@ def _empty_index() -> dict[str, Any]:
     }
 
 
+def clear_files_index_memory() -> None:
+    """Drop process-local index cache (embed backend change / tests)."""
+    global _dim_cache
+    with _index_mem_lock:
+        _index_memory.clear()
+    _dim_cache = None
+
+
+def _embed_dim() -> int:
+    """Cached embedding dimensionality for the active model."""
+    global _dim_cache
+    mid = current_model_id()
+    if _dim_cache is not None and _dim_cache[0] == mid:
+        return _dim_cache[1]
+    dim = len(embed_text("dimension probe"))
+    _dim_cache = (mid, dim)
+    return dim
+
+
+def _mem_key(client: StorageFsClient) -> str:
+    return getattr(client, "base_url", None) or DEFAULT_BASE_URL
+
+
 def _load_index(client: StorageFsClient) -> dict[str, Any]:
+    key = _mem_key(client)
+    with _index_mem_lock:
+        cached = _index_memory.get(key)
+    if cached is not None:
+        return cached[1]
+
+    raw: dict[str, Any] | None = None
     try:
-        raw = client.read_json(INDEX_PATH)
-        if isinstance(raw, dict) and raw.get("namespace") == INDEX_NAMESPACE:
-            return raw
+        loaded = client.read_json(INDEX_PATH)
+        if isinstance(loaded, dict) and loaded.get("namespace") == INDEX_NAMESPACE:
+            raw = loaded
     except StorageFsError:
         pass
-    return _empty_index()
+    index = raw if raw is not None else _empty_index()
+    with _index_mem_lock:
+        _index_memory[key] = (index.get("updatedAt"), index)
+    return index
 
 
 def _save_index(client: StorageFsClient, index: dict[str, Any]) -> None:
     client.mkdir("scratch")
     client.write_json(INDEX_PATH, index, overwrite=True)
+    key = _mem_key(client)
+    with _index_mem_lock:
+        _index_memory[key] = (index.get("updatedAt"), index)
 
 
 def _group_chunks(chunks: list[Any]) -> dict[str, list[dict[str, Any]]]:
@@ -495,7 +540,7 @@ def files_index(
     index = _load_index(client)
     scope = _norm_path(path)
 
-    dim = len(embed_text("dimension probe"))
+    dim = _embed_dim()
     if index.get("dim") not in (None, dim):  # embedding model changed -> rebuild all
         index = _empty_index()
         force = True
@@ -735,6 +780,37 @@ def files_similar(
 # Answering
 # --------------------------------------------------------------------------- #
 
+def _cosine_scores_for_chunks(
+    query_vec: list[float],
+    chunks: list[dict[str, Any]],
+) -> list[float]:
+    """Semantic scores: FAISS shortlist when large, else linear scan."""
+    cos_scores = [0.0] * len(chunks)
+    valid_idx: list[int] = []
+    matrix: list[list[float]] = []
+    for i, chunk in enumerate(chunks):
+        vector = chunk.get("vector")
+        if isinstance(vector, list) and len(vector) == len(query_vec):
+            valid_idx.append(i)
+            matrix.append(vector)
+
+    if not matrix:
+        return cos_scores
+
+    use_ann = faiss_available() and len(matrix) >= ANN_MIN_CHUNKS
+    if use_ann:
+        # Shortlist; unscored vectors stay 0 (hybrid still lifts strong lexical hits).
+        shortlist = min(len(matrix), max(48, len(matrix) // 4))
+        for local_idx, score in faiss_top_k(query_vec, matrix, limit=shortlist):
+            if 0 <= local_idx < len(valid_idx):
+                cos_scores[valid_idx[local_idx]] = max(0.0, float(score))
+        return cos_scores
+
+    for i, vector in zip(valid_idx, matrix):
+        cos_scores[i] = max(0.0, cosine_similarity(query_vec, vector))
+    return cos_scores
+
+
 def _answer_from_index(
     question: str,
     *,
@@ -756,13 +832,7 @@ def _answer_from_index(
 
     q_tokens = _tokens(question)
     query_vec = embed_text(question)
-    cos_scores: list[float] = []
-    for chunk in chunks:
-        vector = chunk.get("vector")
-        if isinstance(vector, list) and len(vector) == len(query_vec):
-            cos_scores.append(max(0.0, cosine_similarity(query_vec, vector)))
-        else:  # missing or stale (different embedding dimension)
-            cos_scores.append(0.0)
+    cos_scores = _cosine_scores_for_chunks(query_vec, chunks)
 
     alpha = 1.0 if mode == "semantic" else HYBRID_ALPHA
     lex_scores = [0.0] * len(chunks)

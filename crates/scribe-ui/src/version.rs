@@ -2,7 +2,7 @@
 
 pub const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-/// Major.minor for “Scribe 3.6” chrome.
+/// Major.minor for “Scribe 3.7” chrome.
 pub fn short_version() -> String {
     short_version_of(APP_VERSION)
 }
@@ -36,7 +36,7 @@ mod tests {
 
     #[test]
     fn short_version_trims_patch() {
-        assert_eq!(short_version_of("3.6.0"), "3.6");
+        assert_eq!(short_version_of("3.7.0"), "3.7");
         assert_eq!(short_version_of("1.0"), "1.0");
     }
 }

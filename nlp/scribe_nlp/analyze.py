@@ -9,10 +9,12 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import os
 import re
 import threading
 import time
 from collections import OrderedDict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from typing import Any, Callable, Iterable
 
@@ -226,6 +228,83 @@ def clear_analysis_cache() -> None:
 # Core
 # --------------------------------------------------------------------------- #
 
+def _parallel_workers() -> int:
+    raw = os.environ.get("SCRIBE_ANALYZE_WORKERS", "").strip()
+    if raw:
+        try:
+            return max(1, min(int(raw), 8))
+        except ValueError:
+            pass
+    return 4
+
+
+def _run_sections(
+    source: str,
+    opts: AnalysisOptions,
+    *,
+    strict: bool,
+) -> tuple[dict[str, Any], dict[str, str], dict[str, float]]:
+    """Run selected sections; parallel when more than one (language first)."""
+    out: dict[str, Any] = copy.deepcopy(_DEFAULTS)
+    if opts.extended:
+        out.update(copy.deepcopy(_EXTENDED_DEFAULTS))
+    errors: dict[str, str] = {}
+    timings: dict[str, float] = {}
+
+    selected = [name for name in SECTION_NAMES if name in opts.sections]
+    if not selected:
+        return out, errors, timings
+
+    def _one(name: str) -> tuple[str, dict[str, Any] | None, str | None, float]:
+        t0 = time.perf_counter()
+        try:
+            payload = _RUNNERS[name](source, opts)
+            return name, payload, None, (time.perf_counter() - t0) * 1000
+        except Exception as exc:  # noqa: BLE001
+            if strict:
+                raise
+            return name, None, f"{type(exc).__name__}: {exc}", (time.perf_counter() - t0) * 1000
+
+    # Warm language / Lingua singleton before fan-out so other workers don't race build.
+    if "language" in selected:
+        name, payload, err, ms = _one("language")
+        timings[name] = round(ms, 3)
+        if err:
+            errors[name] = err
+        elif payload:
+            out.update(payload)
+        selected = [n for n in selected if n != "language"]
+
+    if len(selected) <= 1:
+        for name in selected:
+            name, payload, err, ms = _one(name)
+            timings[name] = round(ms, 3)
+            if err:
+                errors[name] = err
+            elif payload:
+                out.update(payload)
+    else:
+        workers = min(_parallel_workers(), len(selected))
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = {pool.submit(_one, name): name for name in selected}
+            # Collect then apply in SECTION_NAMES order for deterministic merges.
+            finished: dict[str, tuple[dict[str, Any] | None, str | None, float]] = {}
+            for fut in as_completed(futures):
+                name, payload, err, ms = fut.result()
+                finished[name] = (payload, err, ms)
+        for name in SECTION_NAMES:
+            if name not in finished:
+                continue
+            payload, err, ms = finished[name]
+            timings[name] = round(ms, 3)
+            if err:
+                errors[name] = err
+            elif payload:
+                out.update(payload)
+
+    return out, errors, timings
+
+
 def _run(text: str, opts: AnalysisOptions, *, strict: bool, use_cache: bool) -> dict[str, Any]:
     unknown = opts.sections - set(SECTION_NAMES)
     if unknown:
@@ -244,23 +323,7 @@ def _run(text: str, opts: AnalysisOptions, *, strict: bool, use_cache: bool) -> 
             hit["cacheHit"] = True
             return hit
 
-    out: dict[str, Any] = copy.deepcopy(_DEFAULTS)
-    if opts.extended:
-        out.update(copy.deepcopy(_EXTENDED_DEFAULTS))
-    errors: dict[str, str] = {}
-    timings: dict[str, float] = {}
-
-    for name in SECTION_NAMES:  # fixed order => deterministic output
-        if name not in opts.sections:
-            continue
-        t0 = time.perf_counter()
-        try:
-            out.update(_RUNNERS[name](source, opts))
-        except Exception as exc:  # noqa: BLE001
-            if strict:
-                raise
-            errors[name] = f"{type(exc).__name__}: {exc}"
-        timings[name] = round((time.perf_counter() - t0) * 1000, 3)
+    out, errors, timings = _run_sections(source, opts, strict=strict)
 
     if opts.extended:
         t0 = time.perf_counter()
@@ -315,12 +378,13 @@ def analyze_document(
     sections: Iterable[str] | None = None,
     extended: bool = False,
     max_chars: int | None = None,
-    use_cache: bool = False,
+    use_cache: bool = True,
     strict: bool = True,
 ) -> dict[str, object]:
     """Original API. By default behaves as before (errors propagate).
 
     ``strict=False`` isolates failures: a failing section keeps its default value.
+    Cache is on by default so repeated UI insights stay cheap.
     """
     opts = _opts(keyword_limit, outline_limit, summary_sentences, sections,
                  extended, max_chars, min_summary_chars)

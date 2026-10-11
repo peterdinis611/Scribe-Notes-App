@@ -183,6 +183,16 @@ def warmup_fast_model() -> bool:
         return False
 
 
+def warmup_active_backend() -> bool:
+    """Warm whichever non-hash backend is active (ONNX preferred for quality)."""
+    backend = active_backend()
+    if backend == "quality":
+        return warmup_quality_model()
+    if backend == "fast":
+        return warmup_fast_model()
+    return False
+
+
 def embed_quality(text: str) -> list[float]:
     if _prefer_onnx():
         try:
