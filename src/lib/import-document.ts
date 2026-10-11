@@ -102,7 +102,8 @@ export async function importDocumentFromPath(path: string): Promise<Document> {
 
 export type ImportDocumentsResult = {
   imported: Document[]
-  skipped: string[]
+  /** Unsupported paths skipped before import (optional for native picker results). */
+  skipped?: string[]
   failed: Array<{ path: string; error: string }>
 }
 
@@ -179,10 +180,11 @@ export function toastImportDocumentsResult(
     toast.success(t('fileDrop.importedMany', { count: result.imported.length }))
   }
 
-  if (result.skipped.length > 0) {
+  const skipped = result.skipped ?? []
+  if (skipped.length > 0) {
     toast.info(
-      t('fileDrop.skipped', { count: result.skipped.length }),
-      result.skipped.slice(0, 3).map(fileNameFromPath).join(', '),
+      t('fileDrop.skipped', { count: skipped.length }),
+      skipped.slice(0, 3).map(fileNameFromPath).join(', '),
     )
   }
 

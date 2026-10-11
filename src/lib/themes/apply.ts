@@ -187,7 +187,9 @@ export async function applyThemeSettingsAsync(
       const plan = await planThemeApplicationNative(
         {
           themeId: settings.themeId,
-          customTheme: settings.customTheme ?? null,
+          customTheme: settings.customTheme
+            ? ({ ...settings.customTheme } as Record<string, string>)
+            : null,
         },
         skin,
         prefersDark(),
