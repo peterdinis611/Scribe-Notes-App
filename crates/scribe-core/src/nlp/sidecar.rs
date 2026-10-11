@@ -1019,6 +1019,91 @@ impl NlpSidecar {
         self.call_method("files_index", params)
     }
 
+    pub fn files_index_status(
+        &self,
+        path: &str,
+        scan_limit: i64,
+        base_url: Option<&str>,
+    ) -> Result<Value, String> {
+        let mut params = json!({
+            "path": path,
+            "scanLimit": scan_limit,
+        });
+        if let Some(url) = base_url {
+            params["baseUrl"] = json!(url);
+        }
+        self.call_method("files_index_status", params)
+    }
+
+    pub fn files_similar(
+        &self,
+        path: &str,
+        scope: Option<&str>,
+        limit: i64,
+        base_url: Option<&str>,
+    ) -> Result<Value, String> {
+        let mut params = json!({ "path": path, "limit": limit });
+        if let Some(value) = scope {
+            params["scope"] = json!(value);
+        }
+        if let Some(url) = base_url {
+            params["baseUrl"] = json!(url);
+        }
+        self.call_method("files_similar", params)
+    }
+
+    pub fn files_index_clear(
+        &self,
+        path: &str,
+        base_url: Option<&str>,
+    ) -> Result<Value, String> {
+        let mut params = json!({ "path": path });
+        if let Some(url) = base_url {
+            params["baseUrl"] = json!(url);
+        }
+        self.call_method("files_index_clear", params)
+    }
+
+    pub fn passage_rerank(
+        &self,
+        query: &str,
+        passages: &Value,
+        limit: i64,
+    ) -> Result<Value, String> {
+        self.call_method(
+            "passage_rerank",
+            json!({
+                "query": query,
+                "passages": passages,
+                "limit": limit,
+            }),
+        )
+    }
+
+    pub fn answer_followups(
+        &self,
+        question: &str,
+        sentences: &Value,
+        passages: &Value,
+        scope: Option<&str>,
+        intent: Option<&str>,
+        limit: i64,
+    ) -> Result<Value, String> {
+        let mut params = json!({
+            "question": question,
+            "sentences": sentences,
+            "passages": passages,
+            "limit": limit,
+        });
+        if let Some(value) = scope {
+            params["scope"] = json!(value);
+        }
+        if let Some(value) = intent {
+            params["intent"] = json!(value);
+        }
+        self.call_method("answer_followups", params)
+    }
+
     pub fn explain_selection(&self, text: &str, llm: Option<&Value>) -> Result<Value, String> {
         let mut params = json!({ "text": text });
         if let Some(options) = llm {
@@ -1276,7 +1361,9 @@ pub fn rpc_timeout(method: &str) -> Duration {
         | "rank_tasks" | "contradiction_hints"
         | "plan_agent_goal" | "agent_document_brief"
         | "explain_selection" | "simplify_text" | "action_items" | "glossary" | "compare_notes"
-        | "files_list" | "files_read_text" | "files_search" | "files_summarize" | "files_answer" => {
+        | "files_list" | "files_read_text" | "files_search" | "files_summarize" | "files_answer"
+        | "files_index_status" | "files_similar" | "files_index_clear"
+        | "passage_rerank" | "answer_followups" | "extract_commitments" => {
             Duration::from_secs(25)
         }
         "files_index" => Duration::from_secs(180),

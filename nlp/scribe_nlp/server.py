@@ -819,6 +819,41 @@ def _handle_request_inner(
                 )
             except FilesApiOfflineError as exc:
                 raise SidecarError(str(exc), code=-32020) from exc
+        elif method == "files_index_status":
+            from .files_ai import FilesApiOfflineError, files_index_status
+
+            try:
+                result = files_index_status(
+                    str(params.get("path") or ""),
+                    base_url=str(params.get("baseUrl") or params.get("base_url") or "") or None,
+                    scan_limit=max(1, min(int(params.get("scanLimit") or 1_000), 5_000)),
+                )
+            except FilesApiOfflineError as exc:
+                raise SidecarError(str(exc), code=-32020) from exc
+        elif method == "files_similar":
+            from .files_ai import FilesApiOfflineError, files_similar
+
+            try:
+                result = files_similar(
+                    str(params.get("path") or ""),
+                    scope=str(params.get("scope") or ""),
+                    limit=max(1, min(int(params.get("limit") or 5), 20)),
+                    base_url=str(params.get("baseUrl") or params.get("base_url") or "") or None,
+                )
+            except FilesApiOfflineError as exc:
+                raise SidecarError(str(exc), code=-32020) from exc
+            except ValueError as exc:
+                raise SidecarError(str(exc), code=-32602) from exc
+        elif method == "files_index_clear":
+            from .files_ai import FilesApiOfflineError, files_index_clear
+
+            try:
+                result = files_index_clear(
+                    str(params.get("path") or ""),
+                    base_url=str(params.get("baseUrl") or params.get("base_url") or "") or None,
+                )
+            except FilesApiOfflineError as exc:
+                raise SidecarError(str(exc), code=-32020) from exc
         elif method == "explain_selection":
             from .note_skills import explain_selection
 

@@ -19,16 +19,16 @@ use crate::db::{
 use crate::db::delete_revision;
 use crate::nlp::{
     collect_document_memory_passages, collect_library_memory_passages, followups_from_sidecar,
-    merge_chat_memory_passages, normalize_rewrite_mode, parse_chunks, parse_dates_result,
-    parse_decisions, parse_diff_summary, parse_duplicates, parse_entities, parse_keywords_result,
-    parse_language, parse_library_answer, parse_mentions, parse_organize, parse_outline_result,
-    parse_pii_report, parse_query_rewrite, parse_ranked_tasks, parse_reading_stats,
-    parse_section_summaries, parse_sentiment, parse_spellcheck, parse_template_hints,
-    parse_title_suggestion, parse_wiki_suggestions, persist_document_memory, persist_library_memory,
-    ChatTurn, NlpAnswer, NlpChunks, NlpDates, NlpDiffSummary, NlpDocumentAnalysis, NlpDuplicates,
-    NlpEntities, NlpKeywordsResult, NlpLanguage, NlpMentions, NlpOrganize, NlpOutline,
-    NlpQueryRewrite, NlpReadingStats, NlpRewriteResult, NlpSentiment, NlpSidecar, NlpSpellcheck,
-    NlpTemplateHints, NlpTitleSuggestion, NlpWikiSuggestions,
+    merge_chat_memory_passages, normalize_rewrite_mode, parse_chunks, parse_contradiction_hints,
+    parse_dates_result, parse_decisions, parse_diff_summary, parse_duplicates, parse_entities,
+    parse_keywords_result, parse_language, parse_library_answer, parse_mentions, parse_organize,
+    parse_outline_result, parse_pii_report, parse_query_rewrite, parse_quotes, parse_ranked_tasks,
+    parse_reading_stats, parse_section_summaries, parse_sentiment, parse_spellcheck,
+    parse_template_hints, parse_title_suggestion, parse_wiki_suggestions, persist_document_memory,
+    persist_library_memory, ChatTurn, NlpAnswer, NlpChunks, NlpDates, NlpDiffSummary,
+    NlpDocumentAnalysis, NlpDuplicates, NlpEntities, NlpKeywordsResult, NlpLanguage, NlpMentions,
+    NlpOrganize, NlpOutline, NlpQueryRewrite, NlpReadingStats, NlpRewriteResult, NlpSentiment,
+    NlpSidecar, NlpSpellcheck, NlpTemplateHints, NlpTitleSuggestion, NlpWikiSuggestions,
 };
 use crate::store::{
     require_nlp, search_library, sync_sidecar_backend, IdTitle, ScribeStore,
@@ -1494,6 +1494,51 @@ impl ScribeStore {
         )
     }
 
+    pub fn files_index_status(
+        &self,
+        sidecar: &NlpSidecar,
+        path: &str,
+        scan_limit: Option<i64>,
+        base_url: Option<&str>,
+    ) -> Result<Value, String> {
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        sidecar.files_index_status(
+            path,
+            scan_limit.unwrap_or(1_000).clamp(1, 5_000),
+            base_url,
+        )
+    }
+
+    pub fn files_similar(
+        &self,
+        sidecar: &NlpSidecar,
+        path: &str,
+        scope: Option<&str>,
+        limit: Option<i64>,
+        base_url: Option<&str>,
+    ) -> Result<Value, String> {
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        sidecar.files_similar(
+            path,
+            scope,
+            limit.unwrap_or(5).clamp(1, 20),
+            base_url,
+        )
+    }
+
+    pub fn files_index_clear(
+        &self,
+        sidecar: &NlpSidecar,
+        path: &str,
+        base_url: Option<&str>,
+    ) -> Result<Value, String> {
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        sidecar.files_index_clear(path, base_url)
+    }
+
     pub fn analyze_revision_diff(
         &self,
         sidecar: &NlpSidecar,
@@ -1906,6 +1951,105 @@ impl ScribeStore {
         }
         serde_json::to_value(crate::nlp::detect_pii(&source, limit as usize))
             .map_err(|e| e.to_string())
+    }
+
+    pub fn extract_quotes(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+        limit: Option<i64>,
+    ) -> Result<Value, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        let limit = limit.unwrap_or(10).clamp(1, 30);
+        if is_nlp_enabled(&self.db).unwrap_or(false) {
+            let _ = sync_sidecar_backend(sidecar, &self.db);
+            if let Ok(raw) = sidecar.extract_quotes(&source, limit) {
+                return Ok(serde_json::to_value(parse_quotes(&raw)).unwrap_or(raw));
+            }
+        }
+        serde_json::to_value(crate::nlp::extract_quotes(&source, limit as usize))
+            .map_err(|e| e.to_string())
+    }
+
+    pub fn extract_commitments(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+        limit: Option<i64>,
+    ) -> Result<Value, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        let limit = limit.unwrap_or(12).clamp(1, 40);
+        if is_nlp_enabled(&self.db).unwrap_or(false) {
+            let _ = sync_sidecar_backend(sidecar, &self.db);
+            if let Ok(raw) = sidecar.extract_commitments(&source, limit) {
+                return Ok(raw);
+            }
+        }
+        serde_json::to_value(crate::nlp::extract_commitments(&source, limit as usize))
+            .map_err(|e| e.to_string())
+    }
+
+    pub fn contradiction_hints(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id_a: Option<&str>,
+        document_id_b: Option<&str>,
+        text_a: Option<&str>,
+        text_b: Option<&str>,
+        title_a: Option<&str>,
+        title_b: Option<&str>,
+        limit: Option<i64>,
+    ) -> Result<Value, String> {
+        let source_a = self.nlp_source_text(document_id_a, text_a)?;
+        let source_b = self.nlp_source_text(document_id_b, text_b)?;
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        let limit = limit.unwrap_or(8).clamp(1, 20);
+        let raw = sidecar.contradiction_hints(
+            &source_a,
+            &source_b,
+            title_a,
+            title_b,
+            limit,
+        )?;
+        Ok(serde_json::to_value(parse_contradiction_hints(&raw)).unwrap_or(raw))
+    }
+
+    pub fn passage_rerank(
+        &self,
+        sidecar: &NlpSidecar,
+        query: &str,
+        passages: &Value,
+        limit: Option<i64>,
+    ) -> Result<Value, String> {
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        sidecar.passage_rerank(query, passages, limit.unwrap_or(12).clamp(1, 40))
+    }
+
+    pub fn answer_followups(
+        &self,
+        sidecar: &NlpSidecar,
+        question: &str,
+        sentences: Option<&Value>,
+        passages: Option<&Value>,
+        scope: Option<&str>,
+        intent: Option<&str>,
+        limit: Option<i64>,
+    ) -> Result<Value, String> {
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        let empty_arr = json!([]);
+        sidecar.answer_followups(
+            question,
+            sentences.unwrap_or(&empty_arr),
+            passages.unwrap_or(&empty_arr),
+            scope,
+            intent,
+            limit.unwrap_or(6).clamp(1, 8),
+        )
     }
 
     pub fn rank_tasks(

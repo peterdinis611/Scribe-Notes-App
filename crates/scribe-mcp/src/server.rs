@@ -293,6 +293,17 @@ impl ScribeMcp {
                 let result = store.detect_pii(&self.sidecar, Some(id), None, Some(40))?;
                 Ok(("pii".into(), Some(tools::json(&result))))
             }
+            "quotes" => {
+                let id = document_id.ok_or_else(|| "documentId required for quotes".to_string())?;
+                let result = store.extract_quotes(&self.sidecar, Some(id), None, Some(10))?;
+                Ok(("quotes".into(), Some(tools::json(&result))))
+            }
+            "commitments" => {
+                let id =
+                    document_id.ok_or_else(|| "documentId required for commitments".to_string())?;
+                let result = store.extract_commitments(&self.sidecar, Some(id), None, Some(12))?;
+                Ok(("commitments".into(), Some(tools::json(&result))))
+            }
             "rank_tasks" => {
                 let id = document_id.ok_or_else(|| "documentId required for rank_tasks".to_string())?;
                 let result = store.rank_tasks(&self.sidecar, Some(id), None, Some(20))?;
@@ -335,6 +346,10 @@ impl ScribeMcp {
             }
             "compare_notes" => Err(
                 "compare_notes needs two documents — call the compare_notes MCP tool with documentIdA/documentIdB"
+                    .into(),
+            ),
+            "contradiction_hints" => Err(
+                "contradiction_hints needs two documents — call the contradiction_hints MCP tool with idA/idB"
                     .into(),
             ),
             "revision" => Err(
@@ -2713,6 +2728,54 @@ impl ScribeMcp {
         })
     }
 
+    #[tool(description = "Compare the files/ embedding index with disk (stale / unindexed / missing). No embedding work. Requires Local Files API.")]
+    fn files_index_status(
+        &self,
+        Parameters(params): Parameters<tools::FilesIndexStatusParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.files_index_status(
+                &self.sidecar,
+                params.path.as_deref().unwrap_or(""),
+                params.scan_limit,
+                params.base_url.as_deref(),
+            )?))
+        })
+    }
+
+    #[tool(description = "Find files whose indexed content is closest to a given path (mean chunk embedding). Run files_index first.")]
+    fn files_similar(
+        &self,
+        Parameters(params): Parameters<tools::FilesSimilarParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.files_similar(
+                &self.sidecar,
+                &params.path,
+                params.scope.as_deref(),
+                params.limit,
+                params.base_url.as_deref(),
+            )?))
+        })
+    }
+
+    #[tool(description = "Clear files/ embedding index entries under path (all when path empty). Requires writable MCP + Local Files API.")]
+    fn files_index_clear(
+        &self,
+        Parameters(params): Parameters<tools::FilesIndexClearParams>,
+    ) -> Result<String, String> {
+        if !self.writable {
+            return Err("MCP is read-only (set SCRIBE_MCP_WRITE=1 to enable writes)".to_string());
+        }
+        self.with_store(|store| {
+            Ok(tools::json(&store.files_index_clear(
+                &self.sidecar,
+                params.path.as_deref().unwrap_or(""),
+                params.base_url.as_deref(),
+            )?))
+        })
+    }
+
     #[tool(description = "Revision AI: classify what changed between two plain texts (changeKind, risks, bullets). Python preferred; Rust fallback always available.")]
     fn analyze_revision_diff(
         &self,
@@ -3087,6 +3150,101 @@ impl ScribeMcp {
         })
     }
 
+    #[tool(description = "Extract notable quotes from a note id or plaintext. Python preferred; Rust offline fallback.")]
+    fn extract_quotes(
+        &self,
+        Parameters(params): Parameters<tools::StudyLimitParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.extract_quotes(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.text.as_deref(),
+                params.limit,
+            )?))
+        })
+    }
+
+    #[tool(description = "Extract commitments / promises from a note id or plaintext. Python preferred; Rust offline fallback.")]
+    fn extract_commitments(
+        &self,
+        Parameters(params): Parameters<tools::StudyLimitParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.extract_commitments(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.text.as_deref(),
+                params.limit,
+            )?))
+        })
+    }
+
+    #[tool(description = "Flag possible contradictions between two notes (ids or plaintexts). Requires Local AI.")]
+    fn contradiction_hints(
+        &self,
+        Parameters(params): Parameters<tools::ContradictionHintsParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.contradiction_hints(
+                &self.sidecar,
+                params.id_a.as_deref(),
+                params.id_b.as_deref(),
+                params.text_a.as_deref(),
+                params.text_b.as_deref(),
+                params.title_a.as_deref(),
+                params.title_b.as_deref(),
+                params.limit,
+            )?))
+        })
+    }
+
+    #[tool(description = "Rerank candidate passages for a query (semantic + lexical). Pass passages from search/library_answer. Requires Local AI.")]
+    fn passage_rerank(
+        &self,
+        Parameters(params): Parameters<tools::PassageRerankParams>,
+    ) -> Result<String, String> {
+        let passages = serde_json::to_value(&params.passages).map_err(|e| e.to_string())?;
+        self.with_store(|store| {
+            Ok(tools::json(&store.passage_rerank(
+                &self.sidecar,
+                &params.query,
+                &passages,
+                params.limit,
+            )?))
+        })
+    }
+
+    #[tool(description = "Suggest follow-up questions after a library/document answer. Pass answer sentences and/or citation passages. Requires Local AI.")]
+    fn answer_followups(
+        &self,
+        Parameters(params): Parameters<tools::AnswerFollowupsParams>,
+    ) -> Result<String, String> {
+        let sentences = params
+            .sentences
+            .as_ref()
+            .map(serde_json::to_value)
+            .transpose()
+            .map_err(|e| e.to_string())?;
+        let passages = params
+            .passages
+            .as_ref()
+            .map(serde_json::to_value)
+            .transpose()
+            .map_err(|e| e.to_string())?;
+        self.with_store(|store| {
+            Ok(tools::json(&store.answer_followups(
+                &self.sidecar,
+                &params.question,
+                sentences.as_ref(),
+                passages.as_ref(),
+                params.scope.as_deref(),
+                params.intent.as_deref(),
+                params.limit,
+            )?))
+        })
+    }
+
     #[tool(description = "Rank open tasks / checklist items in a note by urgency cues. Python preferred; Rust offline fallback.")]
     fn rank_tasks(
         &self,
@@ -3418,10 +3576,11 @@ impl ServerHandler for ScribeMcp {
              create_library adds a library without switching. \
              extract_entities / extract_mentions / extract_dates / extract_outline / chunk_text accept id or text. \
              Study AI: extract_flashcards / extract_takeaways / check_terminology / writing_coach / outline_quiz / meeting_notes_pack / explain_selection / simplify / action_items / glossary / compare_notes (id or text). \
-             Review pack: section_summaries / extract_decisions / detect_pii / rank_tasks / open_loops / reading_plan / note_pulse / tone_pack. \
+             Review pack: section_summaries / extract_decisions / extract_quotes / extract_commitments / detect_pii / rank_tasks / open_loops / reading_plan / note_pulse / tone_pack / contradiction_hints. \
+             Retrieval helpers: passage_rerank / answer_followups (after library_answer or document_answer). \
              Planner-only: plan_agent_goal / agent_document_brief (run_agent still executes). \
              UI catalogs: get_ui_manifest / fuzzy_rank_strings / list_theme_presets / generate_random_theme / render_ui_surface (HTML via python-ui). \
-             Files sandbox AI: files_list / files_read_text / files_search / files_summarize / files_answer / files_index (requires Local Files API). \
+             Files sandbox AI: files_list / files_read_text / files_search / files_summarize / files_answer / files_index / files_index_status / files_similar / files_index_clear (requires Local Files API). \
              Library study: check_terminology_library / citation_pack. \
              Intent router: match_document_chat_intent. Convert: convert_tiptap. Diff: diff_plain_texts. Meta tags: document_matches_meta_filters. \
              Placeholder: generate_placeholder. Answer backend: set_answer_backend. \
