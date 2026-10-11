@@ -8,7 +8,7 @@ from ..docs_copy import DOCS_GROUP_LABELS, DOCS_PAGE, topic_copy
 from ..docs_nav import docs_groups, docs_topic_ids
 from ..privacy import PRIVACY_EFFECTIVE_DATE, privacy_article_ids
 from ..version import short_version
-from ..whats_new import whats_new_highlights
+from ..whats_new import whats_new_highlights, whats_new_tag_keys
 from .components import (
     articles_list,
     folio_count,
@@ -101,17 +101,10 @@ def render_whats_new(
             for hid in ids
         ]
 
-    tags = [
-        t(strings, "whatsNew.tags.library")
-        if t(strings, "whatsNew.tags.library") != "whatsNew.tags.library"
-        else "Library",
-        t(strings, "whatsNew.tags.capture")
-        if t(strings, "whatsNew.tags.capture") != "whatsNew.tags.capture"
-        else "Capture",
-        t(strings, "whatsNew.tags.markdown")
-        if t(strings, "whatsNew.tags.markdown") != "whatsNew.tags.markdown"
-        else "Markdown",
-    ]
+    tags = []
+    for key in whats_new_tag_keys():
+        label = t(strings, f"whatsNew.tags.{key}")
+        tags.append(label if label != f"whatsNew.tags.{key}" else key)
 
     body = el(
         "div",

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 DOCS_TOPIC_IDS: tuple[str, ...] = (
     "overview",
@@ -30,6 +30,12 @@ class DocsGroup(TypedDict):
     topics: list[str]
 
 
+class DocsTopicTip(TypedDict):
+    topicId: str
+    tipKey: str
+    shortcut: NotRequired[str]
+
+
 def docs_topic_ids() -> list[str]:
     return list(DOCS_TOPIC_IDS)
 
@@ -52,3 +58,16 @@ def docs_groups() -> list[DocsGroup]:
 
 def is_docs_topic(value: str) -> bool:
     return value in DOCS_TOPIC_IDS
+
+
+def docs_topic_tips() -> list[DocsTopicTip]:
+    tips: list[DocsTopicTip] = [
+        {"topicId": "search", "tipKey": "searchTip", "shortcut": "⌘K"},
+        {"topicId": "journal", "tipKey": "journalTip", "shortcut": "⌘J"},
+        {"topicId": "shortcuts", "tipKey": "shortcutsTip", "shortcut": "⌘,"},
+        {"topicId": "localAi", "tipKey": "localAiTip", "shortcut": "⌘K"},
+        {"topicId": "revisions", "tipKey": "revisionsTip"},
+        {"topicId": "mcp", "tipKey": "mcpTip"},
+        {"topicId": "plugins", "tipKey": "pluginsTip"},
+    ]
+    return tips

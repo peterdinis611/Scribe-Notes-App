@@ -54,6 +54,8 @@ mod tests {
             ("whatsNew.tags.library", "Library"),
             ("whatsNew.tags.capture", "Capture"),
             ("whatsNew.tags.markdown", "Markdown"),
+            ("whatsNew.tanstackMarkdown.title", "Markdown"),
+            ("whatsNew.tanstackMarkdown.description", "Preview"),
             ("whatsNew.footNote", "Note"),
             ("welcome.brandWithEdition", "Scribe 3.6"),
             ("welcome.brand", "Scribe"),

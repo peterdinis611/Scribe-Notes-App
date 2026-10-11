@@ -6,7 +6,7 @@ import { closeScribeUiSurface } from '@/lib/scribe-ui-host'
 import { isTauriRuntime } from '@/lib/tauri'
 import { persistWhatsNewVersion } from '@/store/persistence'
 
-/** Edition 3.6 release notes — Markdown, capture, sync, wiki health, MCP. */
+/** Edition 3.6 release notes — keep in sync with `scribe_ui::WHATS_NEW_36_*`. */
 export const WHATS_NEW_36_HIGHLIGHTS = [
   'tanstackMarkdown',
   'captureInbox',
@@ -14,6 +14,9 @@ export const WHATS_NEW_36_HIGHLIGHTS = [
   'wikiHealthQueue',
   'mcpWriteCountdown',
 ] as const
+
+/** Folio tag keys under `whatsNew.tags.*` — keep in sync with `WHATS_NEW_36_TAG_KEYS`. */
+export const WHATS_NEW_36_TAG_KEYS = ['library', 'capture', 'markdown'] as const
 
 export type WhatsNew36HighlightId = (typeof WHATS_NEW_36_HIGHLIGHTS)[number]
 
@@ -77,9 +80,9 @@ export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
             </h1>
             <p className="setup-folio-lead">{t('whatsNew.subtitle')}</p>
             <ul className="setup-folio-tags" aria-label={t('whatsNew.tagsLabel')}>
-              <li>{t('whatsNew.tags.library')}</li>
-              <li>{t('whatsNew.tags.capture')}</li>
-              <li>{t('whatsNew.tags.markdown')}</li>
+              {WHATS_NEW_36_TAG_KEYS.map((key) => (
+                <li key={key}>{t(`whatsNew.tags.${key}`)}</li>
+              ))}
             </ul>
           </header>
           <WhatsNew36Highlights />

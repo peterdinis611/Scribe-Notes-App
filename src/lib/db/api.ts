@@ -650,10 +650,17 @@ export type UiDocsGroup = {
   topics: string[]
 }
 
+export type UiDocsTopicTip = {
+  topicId: string
+  tipKey: string
+  shortcut?: string
+}
+
 export type UiManifest = {
   version: string
   shortVersion: string
   whatsNewHighlights: string[]
+  whatsNewTagKeys: string[]
   settingsSectionIds: string[]
   privacyArticleIds: string[]
   privacyEffectiveDate: string
@@ -661,8 +668,10 @@ export type UiManifest = {
   docsTopicIds: string[]
   docsQuickLinks: string[]
   docsGroups: UiDocsGroup[]
+  docsTopicTips: UiDocsTopicTip[]
   uiSkinIds: string[]
   smartFilterIds: string[]
+  libraryViewIds: string[]
   shortcutIds: string[]
   agentRoleIds: string[]
   agentRecipeIds: string[]

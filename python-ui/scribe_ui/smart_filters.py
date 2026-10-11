@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TypedDict
 
-SMART_FILTER_IDS: tuple[str, ...] = ("none", "unlinked", "untagged", "unread")
+SMART_FILTER_IDS: tuple[str, ...] = ("none", "unlinked", "untagged", "unread", "canvas")
 
 
 class SmartFilterDoc(TypedDict, total=False):
@@ -16,6 +16,7 @@ class SmartFilterDoc(TypedDict, total=False):
 class SmartFilterOptions(TypedDict, total=False):
     orphanIds: list[str]
     recentDocumentIds: list[str]
+    canvasIds: list[str]
 
 
 def smart_filter_ids() -> list[str]:
@@ -44,4 +45,6 @@ def document_matches_smart_filter(
         return doc_id in (opts.get("orphanIds") or [])
     if filter_id == "unread":
         return doc_id not in (opts.get("recentDocumentIds") or [])
+    if filter_id == "canvas":
+        return doc_id in (opts.get("canvasIds") or [])
     return False

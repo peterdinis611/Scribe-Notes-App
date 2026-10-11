@@ -29,6 +29,7 @@ mod journal_dates;
 mod layout;
 mod layout_panels;
 mod library_tree;
+mod library_views;
 mod locale_options;
 mod locale_sections;
 mod lorem;
@@ -119,8 +120,8 @@ pub use doc_stats::{
     extract_title_from_content_with_fallback,
 };
 pub use docs_nav::{
-    docs_groups, docs_quick_links, docs_topic_ids, is_docs_topic, DocsGroup, DOCS_QUICK_LINKS,
-    DOCS_TOPIC_IDS,
+    docs_groups, docs_quick_links, docs_topic_ids, docs_topic_tips, is_docs_topic, DocsGroup,
+    DocsTopicTip, DOCS_QUICK_LINKS, DOCS_TOPIC_IDS,
 };
 pub use document_style_presets::{
     apply_document_style_preset, default_document_typography, default_page_setup,
@@ -181,6 +182,7 @@ pub use library_tree::{
     build_tree, estimate_flat_item_size, flatten_library, flatten_tree, FlatTreeItem,
     LibraryDocument, LibraryFolder, TreeNode, DOCUMENT_ROW_HEIGHT, FOLDER_ROW_HEIGHT,
 };
+pub use library_views::{is_library_view_id, library_view_ids, LIBRARY_VIEW_IDS};
 pub use locale_options::{build_locale_options, CustomLocaleInput, LocaleOption, BUILT_IN_LOCALES, DEFAULT_LOCALE};
 pub use locale_sections::{locale_section_group_ids, locale_section_groups, LocaleSectionGroup};
 pub use lorem::{generate_lorem_ipsum, normalize_lorem_options, LoremOptions, LoremUnit};
@@ -286,8 +288,8 @@ pub use video_embed::{
     VideoExportEmbed,
 };
 pub use whats_new::{
-    whats_new_highlights, EDITION_MARK_KEY, WHATS_NEW_34_HIGHLIGHTS, WHATS_NEW_35_HIGHLIGHTS,
-    WHATS_NEW_36_HIGHLIGHTS,
+    whats_new_highlights, whats_new_tag_keys, EDITION_MARK_KEY, WHATS_NEW_34_HIGHLIGHTS,
+    WHATS_NEW_35_HIGHLIGHTS, WHATS_NEW_36_HIGHLIGHTS, WHATS_NEW_36_TAG_KEYS,
 };
 
 #[cfg(feature = "dioxus")]
@@ -305,6 +307,7 @@ pub struct UiManifest {
     pub version: String,
     pub short_version: String,
     pub whats_new_highlights: Vec<String>,
+    pub whats_new_tag_keys: Vec<String>,
     pub settings_section_ids: Vec<String>,
     pub privacy_article_ids: Vec<String>,
     pub privacy_effective_date: String,
@@ -312,8 +315,10 @@ pub struct UiManifest {
     pub docs_topic_ids: Vec<String>,
     pub docs_quick_links: Vec<String>,
     pub docs_groups: Vec<DocsGroup>,
+    pub docs_topic_tips: Vec<DocsTopicTip>,
     pub ui_skin_ids: Vec<String>,
     pub smart_filter_ids: Vec<String>,
+    pub library_view_ids: Vec<String>,
     pub shortcut_ids: Vec<String>,
     pub agent_role_ids: Vec<String>,
     pub agent_recipe_ids: Vec<String>,
@@ -339,6 +344,7 @@ pub fn ui_manifest() -> UiManifest {
         version: info.version,
         short_version: info.short_version,
         whats_new_highlights: whats_new_highlights(),
+        whats_new_tag_keys: whats_new_tag_keys(),
         settings_section_ids: settings_section_ids(),
         privacy_article_ids: privacy_article_ids(),
         privacy_effective_date: PRIVACY_EFFECTIVE_DATE.to_string(),
@@ -346,8 +352,10 @@ pub fn ui_manifest() -> UiManifest {
         docs_topic_ids: docs_topic_ids(),
         docs_quick_links: docs_quick_links(),
         docs_groups: docs_groups(),
+        docs_topic_tips: docs_topic_tips(),
         ui_skin_ids: ui_skin_ids(),
         smart_filter_ids: smart_filter_ids(),
+        library_view_ids: library_view_ids(),
         shortcut_ids: shortcut_ids(),
         agent_role_ids: agent_role_ids(),
         agent_recipe_ids: agent_recipe_ids(),
@@ -380,7 +388,10 @@ mod tests {
         assert!(m.settings_section_ids.contains(&"agent".to_string()));
         assert_eq!(m.docs_topic_ids.len(), 15);
         assert!(m.ui_skin_ids.contains(&"grove".to_string()));
-        assert!(m.smart_filter_ids.contains(&"untagged".to_string()));
+        assert!(m.smart_filter_ids.contains(&"canvas".to_string()));
+        assert!(m.library_view_ids.contains(&"wikiHealth".to_string()));
+        assert_eq!(m.whats_new_tag_keys, vec!["library", "capture", "markdown"]);
+        assert_eq!(m.docs_topic_tips.len(), 7);
         assert!(m.shortcut_ids.contains(&"commandPalette".to_string()));
         assert!(m.agent_role_ids.contains(&"general".to_string()));
         assert!(m.template_category_ids.contains(&"general".to_string()));

@@ -9,6 +9,9 @@ pub const WHATS_NEW_36_HIGHLIGHTS: &[&str] = &[
     "mcpWriteCountdown",
 ];
 
+/// Folio tag keys under `whatsNew.tags.*` for the 3.6 edition.
+pub const WHATS_NEW_36_TAG_KEYS: &[&str] = &["library", "capture", "markdown"];
+
 /// @deprecated Prefer [`WHATS_NEW_36_HIGHLIGHTS`].
 pub const WHATS_NEW_35_HIGHLIGHTS: &[&str] = WHATS_NEW_36_HIGHLIGHTS;
 /// @deprecated Prefer [`WHATS_NEW_36_HIGHLIGHTS`].
@@ -23,6 +26,13 @@ pub fn whats_new_highlights() -> Vec<String> {
         .collect()
 }
 
+pub fn whats_new_tag_keys() -> Vec<String> {
+    WHATS_NEW_36_TAG_KEYS
+        .iter()
+        .map(|id| (*id).to_string())
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -31,5 +41,6 @@ mod tests {
     fn has_five_highlights() {
         assert_eq!(WHATS_NEW_36_HIGHLIGHTS.len(), 5);
         assert!(WHATS_NEW_36_HIGHLIGHTS.contains(&"tanstackMarkdown"));
+        assert_eq!(whats_new_tag_keys(), vec!["library", "capture", "markdown"]);
     }
 }
