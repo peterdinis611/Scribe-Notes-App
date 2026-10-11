@@ -32,7 +32,7 @@ chrono = { version = "0.4", features = ["clock"] }
 dirs = "6"
 zip = { version = "2", features = ["aes-crypto"] }
 regex = "1"
-keyring = "3"
+keyring = "4"
 base64 = "0.22"
 fontdb = "0.23"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "webp", "bmp"] }
