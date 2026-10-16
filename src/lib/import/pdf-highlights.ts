@@ -1,13 +1,11 @@
-import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist'
-import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+import { getDocument } from 'pdfjs-dist'
 import { pdfHighlightsToContentJsonNative } from '@/lib/db/api'
+import { ensurePdfjsWorker } from '@/lib/pdf/pdfjs-worker'
 import { isTauriRuntime } from '@/lib/tauri'
 
 /** Pure helpers keep in sync with `crates/scribe-ui/src/pdf_highlights.rs` (pdf.js extraction stays here). */
 
-if (!GlobalWorkerOptions.workerSrc) {
-  GlobalWorkerOptions.workerSrc = pdfWorkerUrl
-}
+ensurePdfjsWorker()
 
 /** One highlight/underline annotation extracted from a PDF. */
 export type PdfHighlightAnnotation = {

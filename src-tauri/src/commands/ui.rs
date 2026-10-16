@@ -119,6 +119,16 @@ pub fn document_matches_smart_filter(
 }
 
 #[tauri::command]
+pub fn filter_documents_by_smart_filter_ui(
+    docs: Vec<SmartFilterDoc>,
+    filter: String,
+    options: Option<SmartFilterOptions>,
+) -> Vec<SmartFilterDoc> {
+    let parsed = LibrarySmartFilter::parse_id(&filter).unwrap_or(LibrarySmartFilter::None);
+    scribe_ui::filter_documents_by_smart_filter(&docs, parsed, &options.unwrap_or_default())
+}
+
+#[tauri::command]
 pub fn clamp_sidebar_width(value: f64, viewport_width: Option<i32>) -> i32 {
     clamp_sidebar(value, viewport_width.unwrap_or(1440))
 }
@@ -375,21 +385,6 @@ pub fn validate_snippet_input_ui(
 }
 
 #[tauri::command]
-pub fn is_video_url_ui(value: String) -> bool {
-    scribe_ui::is_video_url(&value)
-}
-
-#[tauri::command]
-pub fn video_provider_label_ui(src: String) -> String {
-    scribe_ui::video_provider_label(&src)
-}
-
-#[tauri::command]
-pub fn video_export_embed_ui(src: String) -> scribe_ui::VideoExportEmbed {
-    scribe_ui::video_export_embed(&src)
-}
-
-#[tauri::command]
 pub fn document_style_presets_ui() -> Vec<scribe_ui::DocumentStylePreset> {
     scribe_ui::document_style_presets()
 }
@@ -452,6 +447,38 @@ pub fn suggest_orphan_links_ui(
 #[tauri::command]
 pub fn resolve_color_ui(color: String, tokens: scribe_ui::ColorTokens) -> String {
     scribe_ui::resolve_color(&color, &tokens)
+}
+
+#[tauri::command]
+pub fn asset_kind_ui(extension: String) -> String {
+    scribe_ui::asset_kind(&extension).to_string()
+}
+
+#[tauri::command]
+pub fn format_bytes_ui(bytes: u64) -> String {
+    scribe_ui::format_bytes(bytes)
+}
+
+#[tauri::command]
+pub fn is_orphan_asset_ui(document_title: Option<String>) -> bool {
+    scribe_ui::is_orphan_asset(document_title.as_deref())
+}
+
+#[tauri::command]
+pub fn filter_library_assets_ui(
+    assets: Vec<scribe_ui::LibraryAssetRow>,
+    filter: String,
+    query: String,
+) -> Vec<scribe_ui::LibraryAssetRow> {
+    scribe_ui::filter_library_assets(&assets, &filter, &query)
+}
+
+#[tauri::command]
+pub fn library_asset_kind_filters_ui() -> Vec<String> {
+    scribe_ui::library_asset_kind_filters()
+        .into_iter()
+        .map(str::to_string)
+        .collect()
 }
 
 #[tauri::command]
@@ -610,4 +637,48 @@ pub fn format_export_date_ui(year: i32, month: u32, day: u32, language: String) 
         chrono::Local::now().date_naive()
     });
     scribe_ui::format_export_date(date, &language)
+}
+
+#[tauri::command]
+pub fn build_document_ask_questions_ui(
+    analysis: Option<scribe_ui::AskAnalysisInput>,
+    tasks: Vec<scribe_ui::AskTaskInput>,
+    options: scribe_ui::DocumentAskOptions,
+) -> Vec<String> {
+    scribe_ui::build_document_ask_questions(analysis.as_ref(), &tasks, &options)
+}
+
+#[tauri::command]
+pub fn build_document_ask_actions_ui(
+    analysis: Option<scribe_ui::AskAnalysisInput>,
+    tasks: Vec<scribe_ui::AskTaskInput>,
+) -> Vec<String> {
+    scribe_ui::build_document_ask_actions(analysis.as_ref(), &tasks)
+}
+
+#[tauri::command]
+pub fn build_document_content_css_ui(
+    typography: Option<scribe_ui::DocumentTypographyInput>,
+) -> String {
+    scribe_ui::build_document_content_css(typography.as_ref())
+}
+
+#[tauri::command]
+pub fn build_watermark_css_ui(opacity: f64, angle: f64) -> String {
+    scribe_ui::build_watermark_css(opacity, angle)
+}
+
+#[tauri::command]
+pub fn document_tiptap_css_ui() -> String {
+    scribe_ui::DOCUMENT_TIPTAP_CSS.to_string()
+}
+
+#[tauri::command]
+pub fn document_highlight_css_ui() -> String {
+    scribe_ui::DOCUMENT_HIGHLIGHT_CSS.to_string()
+}
+
+#[tauri::command]
+pub fn pdf_capture_css_ui() -> String {
+    scribe_ui::PDF_CAPTURE_CSS.to_string()
 }

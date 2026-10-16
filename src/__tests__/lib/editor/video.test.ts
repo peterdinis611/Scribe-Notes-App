@@ -3,7 +3,19 @@ import StarterKit from '@tiptap/starter-kit'
 import { afterEach, describe, expect, it } from 'vitest'
 import '@/i18n'
 import { Video } from '@/lib/editor/video-extension'
-import { extractYoutubeId, isVideoUrl, videoExportEmbed, videoProviderLabel } from '@/lib/editor/video'
+import {
+  detectVideoProvider,
+  extractLoomId,
+  extractStartSeconds,
+  extractYoutubeId,
+  isVideoUrl,
+  normalizeVideoSrc,
+  parseVideoFence,
+  videoExportEmbed,
+  videoProviderLabel,
+  videoThumbnailUrl,
+  videoToMarkdownFence,
+} from '@/lib/editor/video'
 import { collectDocumentOutline } from '@/lib/editor/document-outline'
 import { promoteMarkdownSpecialBlocks } from '@/lib/editor/markdown-promote'
 import { runSlashCommand, SLASH_COMMAND_DEFS } from '@/lib/editor/slash-commands'
@@ -11,26 +23,46 @@ import { tiptapJsonToHtml } from '@/lib/export/html'
 import { tiptapJsonToMarkdown } from '@/lib/export/markdown'
 
 describe('video URL helpers', () => {
-  it('detects YouTube, Vimeo, and file URLs', () => {
+  it('detects YouTube, Vimeo, Loom, and file URLs', () => {
     expect(isVideoUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toBe(true)
     expect(isVideoUrl('https://youtu.be/dQw4w9WgXcQ')).toBe(true)
     expect(isVideoUrl('https://vimeo.com/148751763')).toBe(true)
+    expect(isVideoUrl('https://www.loom.com/share/deadbeef')).toBe(true)
     expect(isVideoUrl('https://cdn.example.com/clip.mp4')).toBe(true)
     expect(isVideoUrl('https://example.com/notes')).toBe(false)
   })
 
-  it('extracts ids and export embeds', () => {
+  it('extracts ids, normalizes, and builds export embeds', () => {
     expect(extractYoutubeId('https://www.youtube.com/watch?v=abc123')).toBe('abc123')
     expect(extractYoutubeId('https://youtu.be/abc123')).toBe('abc123')
+    expect(extractLoomId('https://www.loom.com/share/deadbeef')).toBe('deadbeef')
+    expect(detectVideoProvider('https://youtu.be/abc123')).toBe('youtube')
     expect(videoProviderLabel('https://youtu.be/abc123')).toBe('YouTube')
+    expect(normalizeVideoSrc('https://youtu.be/abc123')).toBe(
+      'https://www.youtube.com/watch?v=abc123',
+    )
     expect(videoExportEmbed('https://www.youtube.com/watch?v=abc123')).toEqual({
       kind: 'iframe',
       href: 'https://www.youtube-nocookie.com/embed/abc123',
+    })
+    expect(videoExportEmbed('https://www.loom.com/share/deadbeef')).toEqual({
+      kind: 'iframe',
+      href: 'https://www.loom.com/embed/deadbeef',
     })
     expect(videoExportEmbed('https://files.example.com/a.webm')).toEqual({
       kind: 'video',
       href: 'https://files.example.com/a.webm',
     })
+    expect(extractStartSeconds('https://youtu.be/abc123?t=1m30s')).toBe(90)
+    expect(videoExportEmbed('https://youtu.be/abc123?t=90').href).toContain('start=90')
+    expect(videoThumbnailUrl('https://youtu.be/abc123')).toContain('abc123')
+    expect(parseVideoFence('https://youtu.be/abc\ncaption: Demo')).toEqual({
+      src: 'https://www.youtube.com/watch?v=abc',
+      caption: 'Demo',
+    })
+    expect(videoToMarkdownFence({ src: 'https://vimeo.com/1', caption: 'Hi' })).toContain(
+      'caption: Hi',
+    )
   })
 })
 

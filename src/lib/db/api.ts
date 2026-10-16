@@ -998,6 +998,171 @@ export const videoProviderLabelNative = (src: string) =>
 export const videoExportEmbedNative = (src: string) =>
   invoke<{ kind: string; href: string }>('video_export_embed_ui', { src })
 
+export const extractYoutubeIdNative = (src: string) =>
+  invoke<string | null>('extract_youtube_id_ui', { src })
+
+export const extractVimeoIdNative = (src: string) =>
+  invoke<string | null>('extract_vimeo_id_ui', { src })
+
+export const detectVideoProviderNative = (src: string) =>
+  invoke<string>('detect_video_provider_ui', { src })
+
+export const normalizeVideoSrcNative = (src: string) =>
+  invoke<string>('normalize_video_src_ui', { src })
+
+export const inspectVideoNative = (src: string) =>
+  invoke<{
+    src: string
+    normalized: string
+    provider: string
+    label: string
+    isVideo: boolean
+    export: { kind: string; href: string }
+    providerId?: string | null
+    startSeconds?: number | null
+    thumbnailUrl?: string | null
+    youtubeId?: string | null
+    vimeoId?: string | null
+  }>('inspect_video_ui', { src })
+
+export const extractStartSecondsNative = (src: string) =>
+  invoke<number | null>('extract_start_seconds_ui', { src })
+
+export const videoThumbnailUrlNative = (src: string) =>
+  invoke<string | null>('video_thumbnail_url_ui', { src })
+
+export const extractProviderIdNative = (src: string) =>
+  invoke<string | null>('extract_provider_id_ui', { src })
+
+export const parseVideoFenceNative = (body: string) =>
+  invoke<{ src?: string | null; caption?: string | null }>('parse_video_fence_ui', { body })
+
+export const videoToMarkdownFenceNative = (src?: string | null, caption?: string | null) =>
+  invoke<string>('video_to_markdown_fence_ui', { src: src ?? null, caption: caption ?? null })
+
+export const renderVideoFigureHtmlNative = (src?: string | null, caption?: string | null) =>
+  invoke<string>('render_video_figure_html_ui', { src: src ?? null, caption: caption ?? null })
+
+export const collectVideosFromTiptapNative = (contentJson: string) =>
+  invoke<unknown[]>('collect_videos_from_tiptap_ui', { contentJson })
+
+/** Local large-video library (Rust store + optional Python ASR). */
+export type VideoImportMode = 'copy' | 'reference'
+
+export type LibraryVideoStatus =
+  | 'ready'
+  | 'probing'
+  | 'thumbPending'
+  | 'transcribing'
+  | 'transcriptReady'
+  | 'failed'
+
+export type LibraryVideo = {
+  id: string
+  title: string
+  importMode: VideoImportMode
+  sourcePath: string
+  relPath?: string | null
+  sizeBytes: number
+  contentHash?: string | null
+  durationSecs?: number | null
+  width?: number | null
+  height?: number | null
+  codec?: string | null
+  thumbRelPath?: string | null
+  transcriptRelPath?: string | null
+  transcriptDocumentId?: string | null
+  status: LibraryVideoStatus
+  error?: string | null
+  documentId?: string | null
+  createdAt: number
+  updatedAt: number
+}
+
+export type ImportLocalVideoResult = {
+  video: LibraryVideo
+  large: boolean
+}
+
+export type ProbeVideoResult = {
+  durationSecs?: number | null
+  width?: number | null
+  height?: number | null
+  codec?: string | null
+  available: boolean
+}
+
+export type TranscriptSegment = {
+  start: number
+  end: number
+  text: string
+}
+
+export type TranscribeVideoResult = {
+  videoId: string
+  text: string
+  segments: TranscriptSegment[]
+  model: string
+  language?: string | null
+  transcriptRelPath?: string | null
+  transcriptDocumentId?: string | null
+}
+
+/** Native file picker; grants PathAccessGate. Returns absolute path or null if cancelled. */
+export const pickLocalVideoNative = () =>
+  invoke<string | null>('pick_local_video')
+
+export const importLocalVideoNative = (input: {
+  sourcePath: string
+  title?: string | null
+  importMode?: VideoImportMode | null
+  documentId?: string | null
+}) =>
+  invoke<ImportLocalVideoResult>('import_local_video', {
+    request: {
+      sourcePath: input.sourcePath,
+      title: input.title ?? null,
+      importMode: input.importMode ?? null,
+      documentId: input.documentId ?? null,
+    },
+  })
+
+export const listLibraryVideosNative = () =>
+  invoke<LibraryVideo[]>('list_library_videos_cmd')
+
+export const getLibraryVideoNative = (id: string) =>
+  invoke<LibraryVideo | null>('get_library_video_cmd', { id })
+
+export const deleteLibraryVideoNative = (id: string, removeFiles = true) =>
+  invoke<boolean>('delete_library_video_cmd', { id, removeFiles })
+
+export const probeLibraryVideoNative = (id: string) =>
+  invoke<ProbeVideoResult>('probe_library_video', { id })
+
+export const generateLibraryVideoThumbnailNative = (id: string, atSecs?: number | null) =>
+  invoke<LibraryVideo>('generate_library_video_thumbnail', {
+    id,
+    atSecs: atSecs ?? null,
+  })
+
+export const transcribeLibraryVideoNative = (input: {
+  videoId: string
+  model?: string | null
+  language?: string | null
+  createDocument?: boolean | null
+}) =>
+  invoke<TranscribeVideoResult>('transcribe_library_video', {
+    request: {
+      videoId: input.videoId,
+      model: input.model ?? null,
+      language: input.language ?? null,
+      createDocument: input.createDocument ?? null,
+    },
+  })
+
+export const libraryVideoPlaybackPathNative = (id: string) =>
+  invoke<string>('library_video_playback_path', { id })
+
 export const documentStylePresetsNative = () => invoke<unknown[]>('document_style_presets_ui')
 
 export const applyDocumentStylePresetNative = (id: string) =>
@@ -1018,6 +1183,52 @@ export const collectMarkdownHeadingOutlineNative = (markdown: string) =>
 export const parseMapSpecNative = (source: string) =>
   invoke<unknown>('parse_map_spec_ui', { source })
 
+export const documentMatchesSmartFilterNative = (args: {
+  doc: { id: string; tags: string[]; deletedAt?: number | null }
+  filter: string
+  options?: {
+    orphanIds?: string[]
+    recentDocumentIds?: string[]
+    canvasIds?: string[]
+  } | null
+}) =>
+  invoke<boolean>('document_matches_smart_filter', {
+    doc: args.doc,
+    filter: args.filter,
+    options: args.options ?? null,
+  })
+
+export const filterDocumentsBySmartFilterNative = (args: {
+  docs: Array<{ id: string; tags: string[]; deletedAt?: number | null }>
+  filter: string
+  options?: {
+    orphanIds?: string[]
+    recentDocumentIds?: string[]
+    canvasIds?: string[]
+  } | null
+}) =>
+  invoke<Array<{ id: string; tags: string[]; deletedAt?: number | null }>>(
+    'filter_documents_by_smart_filter_ui',
+    {
+      docs: args.docs,
+      filter: args.filter,
+      options: args.options ?? null,
+    },
+  )
+
+export const documentMatchesMetaFiltersUiNative = (
+  tags: string[],
+  filters: { status?: string | null; project?: string | null; year?: string | null },
+) =>
+  invoke<boolean>('document_matches_meta_filters_ui', {
+    tags,
+    filters: {
+      status: filters.status ?? null,
+      project: filters.project ?? null,
+      year: filters.year ?? null,
+    },
+  })
+
 export const importTitleFromPathNative = (path: string, fallback: string) =>
   invoke<string>('import_title_from_path_ui', { path, fallback })
 
@@ -1027,6 +1238,56 @@ export const themePresetIdsNative = () => invoke<string[]>('theme_preset_ids_ui'
 
 export const suggestOrphanLinksNative = (rows: unknown[]) =>
   invoke<unknown[]>('suggest_orphan_links_ui', { rows })
+
+export const flattenFoldersForPickerNative = (folders: unknown[]) =>
+  invoke<Array<{ folder: unknown; depth: number }>>('flatten_folders_for_picker_ui', { folders })
+
+export const filterDiffLinesNative = (
+  lines: Array<{ type: string; text: string }>,
+  changesOnly: boolean,
+  contextLines?: number | null,
+) =>
+  invoke<Array<{ type: string; text: string }>>('filter_diff_lines_ui', {
+    lines,
+    changesOnly,
+    contextLines: contextLines ?? null,
+  })
+
+export const buildDocumentAskQuestionsNative = (
+  analysis: unknown | null,
+  tasks: Array<{ text: string; checked: boolean }>,
+  options: { title?: string | null; slovak?: boolean },
+) =>
+  invoke<string[]>('build_document_ask_questions_ui', {
+    analysis,
+    tasks,
+    options: {
+      title: options.title ?? null,
+      slovak: Boolean(options.slovak),
+    },
+  })
+
+export const buildDocumentAskActionsNative = (
+  analysis: unknown | null,
+  tasks: Array<{ text: string; checked: boolean }>,
+) => invoke<string[]>('build_document_ask_actions_ui', { analysis, tasks })
+
+export const buildDocumentContentCssNative = (
+  typography?: {
+    fontFamily?: string | null
+    fontSize?: number | null
+    lineHeight?: number | null
+  } | null,
+) => invoke<string>('build_document_content_css_ui', { typography: typography ?? null })
+
+export const buildWatermarkCssNative = (opacity: number, angle: number) =>
+  invoke<string>('build_watermark_css_ui', { opacity, angle })
+
+export const documentTiptapCssNative = () => invoke<string>('document_tiptap_css_ui')
+
+export const documentHighlightCssNative = () => invoke<string>('document_highlight_css_ui')
+
+export const pdfCaptureCssNative = () => invoke<string>('pdf_capture_css_ui')
 
 export const resolveColorNative = (color: string, tokens: Record<string, string>) =>
   invoke<string>('resolve_color_ui', { color, tokens })
@@ -1950,7 +2211,19 @@ export const saveDocumentImage = (
     dataBase64,
   })
 
-export type LibraryAssetKind = 'image' | 'svg' | 'lottie' | 'model3d' | 'other'
+/** Edge flood-fill background removal → new PNG path under the document assets. */
+export const removeImageBackground = (
+  documentId: string,
+  imagePath: string,
+  tolerance?: number | null,
+) =>
+  invoke<string>('remove_image_background', {
+    documentId,
+    imagePath,
+    tolerance: tolerance ?? null,
+  })
+
+export type LibraryAssetKind = 'image' | 'svg' | 'lottie' | 'model3d' | 'video' | 'other'
 
 export interface LibraryAsset {
   path: string
@@ -1967,6 +2240,25 @@ export const listLibraryAssets = () => invoke<LibraryAsset[]>('list_library_asse
 
 export const deleteLibraryAsset = (path: string) =>
   invoke<void>('delete_library_asset', { path })
+
+export const assetKindNative = (extension: string) =>
+  invoke<string>('asset_kind_ui', { extension })
+
+export const formatBytesNative = (bytes: number) =>
+  invoke<string>('format_bytes_ui', { bytes })
+
+export const isOrphanAssetNative = (documentTitle: string | null) =>
+  invoke<boolean>('is_orphan_asset_ui', { documentTitle })
+
+export const filterLibraryAssetsNative = (
+  assets: LibraryAsset[],
+  filter: string,
+  query: string,
+) =>
+  invoke<LibraryAsset[]>('filter_library_assets_ui', { assets, filter, query })
+
+export const libraryAssetKindFiltersNative = () =>
+  invoke<string[]>('library_asset_kind_filters_ui')
 
 export interface CustomTemplateCategoryRow {
   id: string

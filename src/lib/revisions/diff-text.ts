@@ -3,6 +3,8 @@
  * Line / word / side-by-side LCS lives in scribe-core (`diff_lines`).
  * Presentation filters also in `scribe_ui::diff_filters`.
  */
+import { filterDiffLinesNative } from '@/lib/db/api'
+import { isTauriRuntime } from '@/lib/tauri'
 
 export type DiffLine = {
   type: 'unchanged' | 'added' | 'removed'
@@ -71,6 +73,22 @@ export function filterDiffLinesWithContext(
   })
 
   return lines.filter((_, index) => keep.has(index))
+}
+
+/** Prefer Rust `scribe-ui` under Tauri; otherwise JS fallback. */
+export async function filterDiffLinesWithContextAsync(
+  lines: DiffLine[],
+  changesOnly: boolean,
+  contextLines = 2,
+): Promise<DiffLine[]> {
+  if (isTauriRuntime()) {
+    try {
+      return (await filterDiffLinesNative(lines, changesOnly, contextLines)) as DiffLine[]
+    } catch {
+      /* fall through */
+    }
+  }
+  return filterDiffLinesWithContext(lines, changesOnly, contextLines)
 }
 
 export function filterSideBySideRows(rows: SideBySideRow[], changesOnly: boolean): SideBySideRow[] {

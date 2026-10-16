@@ -119,7 +119,7 @@ Risky path-bearing commands must not grant from raw JS strings:
 | `pick_and_import_file` | Native dialog |
 | `grant_dropped_paths` | Native drag-drop (also Rust `on_window_event`) |
 | `read_*` / `write_text_file` / `import_file` | Validate via `PathAccessGate` only |
-| `extract_image_ocr` / `save_document_ocr` | Temp or `PathAccessGate::validate_read` |
+| `extract_image_ocr` / `save_document_ocr` / `remove_image_background` | Temp or `PathAccessGate::validate_read` |
 | `audit_security_event` | Allowlisted actions only |
 
 CI fails if a new path-bearing `#[tauri::command]` appears without an entry in `scripts/tauri-path-commands.allowlist`.

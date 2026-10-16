@@ -1,4 +1,5 @@
-import type { Folder } from '@/lib/db/api'
+import { flattenFoldersForPickerNative, type Folder } from '@/lib/db/api'
+import { isTauriRuntime } from '@/lib/tauri'
 
 /** Picker tree helpers — mirrored in `scribe_ui::folders`. */
 
@@ -34,6 +35,34 @@ export function flattenFoldersForPicker(folders: Folder[]): FolderPickerItem[] {
 
   walk(null, 0)
   return items
+}
+
+/** Prefer Rust `scribe-ui` under Tauri; otherwise JS fallback. */
+export async function flattenFoldersForPickerAsync(
+  folders: Folder[],
+): Promise<FolderPickerItem[]> {
+  if (isTauriRuntime()) {
+    try {
+      const byId = new Map(folders.map((folder) => [folder.id, folder]))
+      const items = await flattenFoldersForPickerNative(
+        folders.map((folder) => ({
+          id: folder.id,
+          name: folder.name,
+          parentId: folder.parentId,
+        })),
+      )
+      return items
+        .map((item) => {
+          const node = item.folder as { id: string }
+          const folder = byId.get(node.id)
+          return folder ? { folder, depth: item.depth } : null
+        })
+        .filter((item): item is FolderPickerItem => item != null)
+    } catch {
+      /* fall through */
+    }
+  }
+  return flattenFoldersForPicker(folders)
 }
 
 export function folderPathLabel(

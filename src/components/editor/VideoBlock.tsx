@@ -5,7 +5,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link2, Trash2, Video } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { isVideoUrl, videoProviderLabel } from '@/lib/editor/video'
+import { isVideoUrl, normalizeVideoSrc, videoProviderLabel } from '@/lib/editor/video'
 import { promptInput } from '@/lib/input-dialog'
 
 export function VideoBlock({ node, updateAttributes, selected, editor, deleteNode }: NodeViewProps) {
@@ -35,7 +35,7 @@ export function VideoBlock({ node, updateAttributes, selected, editor, deleteNod
       updateAttributes({ src: null })
       return
     }
-    updateAttributes({ src: trimmed })
+    updateAttributes({ src: normalizeVideoSrc(trimmed) })
   }
 
   function onSubmitUrl(event: FormEvent) {

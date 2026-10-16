@@ -1,4 +1,9 @@
 /** Keep in sync with `crates/scribe-ui` counterpart. */
+import {
+  parseCanvasDocumentNative,
+  serializeCanvasDocumentNative,
+} from '@/lib/db/api'
+import { isTauriRuntime } from '@/lib/tauri'
 
 export type CanvasObjectKind =
   | 'note'
@@ -406,6 +411,31 @@ export function serializeCanvasDocument(doc: CanvasDocument): string {
     edges: doc.edges,
     ...(doc.viewport ? { viewport: doc.viewport } : {}),
   })
+}
+
+export async function parseCanvasDocumentAsync(
+  contentJson: string,
+): Promise<CanvasDocument | null> {
+  if (isTauriRuntime()) {
+    try {
+      const parsed = (await parseCanvasDocumentNative(contentJson)) as CanvasDocument | null
+      if (parsed) return parsed
+    } catch {
+      /* fall through */
+    }
+  }
+  return parseCanvasDocument(contentJson)
+}
+
+export async function serializeCanvasDocumentAsync(doc: CanvasDocument): Promise<string> {
+  if (isTauriRuntime()) {
+    try {
+      return await serializeCanvasDocumentNative(doc)
+    } catch {
+      /* fall through */
+    }
+  }
+  return serializeCanvasDocument(doc)
 }
 
 export function createCanvasObject(

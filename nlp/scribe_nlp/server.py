@@ -807,6 +807,21 @@ def _handle_request_inner(
                 )
             except FilesApiOfflineError as exc:
                 raise SidecarError(str(exc), code=-32020) from exc
+        elif method == "transcribe_video":
+            from .video_transcribe import (
+                TranscribeUnavailable,
+                TranscribeValidationError,
+                transcribe_video,
+            )
+
+            try:
+                result = transcribe_video(params if isinstance(params, dict) else {})
+            except TranscribeValidationError as exc:
+                raise SidecarError(str(exc), code=-32602) from exc
+            except TranscribeUnavailable as exc:
+                raise SidecarError(str(exc), code=-32021) from exc
+            except Exception as exc:  # noqa: BLE001 — surface ASR failures to Rust
+                raise SidecarError(f"transcribe_video failed: {exc}", code=-32022) from exc
         elif method == "files_index":
             from .files_ai import FilesApiOfflineError, files_index
 
@@ -1058,7 +1073,7 @@ def _handle_request_inner(
             result = render_ui_surface(
                 surface,
                 strings=strings_raw if isinstance(strings_raw, dict) else {},
-                version=str(params.get("version") or "3.7.0"),
+                version=str(params.get("version") or "3.8.0"),
                 short_version=str(params.get("shortVersion") or params.get("short_version") or "")
                 or None,
                 recent=params.get("recent") if isinstance(params.get("recent"), list) else None,

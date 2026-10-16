@@ -107,6 +107,7 @@ export function insertEmptyVideoBlock(editor: Editor, pos?: number) {
 
 export async function insertVideo(editor: Editor) {
   if (editor.isDestroyed) return
+  const { normalizeVideoSrcAsync } = await import('@/lib/editor/video')
   const url = await promptInput({
     title: i18n.t('toolbar.videoDialog.title'),
     description: i18n.t('toolbar.videoDialog.description'),
@@ -115,7 +116,9 @@ export async function insertVideo(editor: Editor) {
     confirmLabel: i18n.t('toolbar.videoDialog.confirm'),
   })
   if (!url?.trim() || editor.isDestroyed) return
-  editor.chain().focus().insertVideo({ src: url.trim() }).run()
+  const src = await normalizeVideoSrcAsync(url)
+  if (editor.isDestroyed) return
+  editor.chain().focus().insertVideo({ src }).run()
 }
 
 export async function insertYoutubeVideo(editor: Editor) {
@@ -217,6 +220,54 @@ export async function insertScannedBarcode(editor: Editor): Promise<boolean> {
     editor.chain().focus().insertContent(content).run()
   }
   return true
+}
+
+/** Prompt for text/URL and insert a QR code as a document image. */
+export async function insertQrCodeImage(editor: Editor): Promise<boolean> {
+  const { store } = await import('@/store/index')
+  const documentId = store.getState().documents.activeDocumentId
+  if (!documentId) {
+    toast.error(i18n.t('toasts.qrNoDocument'))
+    return false
+  }
+
+  const content = await promptInput({
+    title: i18n.t('toolbar.actions.qrCode'),
+    description: i18n.t('toolbar.actions.qrCodeHint'),
+    placeholder: i18n.t('toolbar.actions.qrCodePlaceholder'),
+    confirmLabel: i18n.t('toolbar.actions.qrCodeInsert'),
+  })
+  if (!content?.trim() || editor.isDestroyed) return false
+
+  try {
+    const { generateQrDataUrl } = await import('@/lib/editor/qr-generate')
+    const { saveDocumentImage } = await import('@/lib/db/api')
+    const dataUrl = await generateQrDataUrl(content)
+    const path = await saveDocumentImage(
+      documentId,
+      `qr-${Date.now()}.png`,
+      dataUrl,
+    )
+    if (editor.isDestroyed) return false
+    editor
+      .chain()
+      .focus()
+      .insertContent({
+        type: 'image',
+        attrs: {
+          src: path,
+          alt: content.trim().slice(0, 120),
+          caption: null,
+          width: '280px',
+          align: 'center',
+        },
+      })
+      .run()
+    return true
+  } catch (error) {
+    toast.error(i18n.t('toasts.qrGenerateError'), String(error))
+    return false
+  }
 }
 
 export function insertDetailsBlock(editor: Editor) {

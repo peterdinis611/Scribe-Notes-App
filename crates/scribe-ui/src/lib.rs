@@ -28,6 +28,7 @@ mod import_path;
 mod journal_dates;
 mod layout;
 mod layout_panels;
+mod library_assets;
 mod library_tree;
 mod library_views;
 mod locale_options;
@@ -70,7 +71,6 @@ mod theme_presets;
 mod tour_selectors;
 mod ui_fonts;
 mod version;
-mod video_embed;
 mod whats_new;
 
 #[cfg(feature = "dioxus")]
@@ -181,6 +181,10 @@ pub use layout_panels::{
     EDITOR_PANEL_WIDTH_KEY, SIDEBAR_WIDTH_CSS_VAR, SIDEBAR_WIDTH_KEY, TOC_RAIL_WIDTH_CSS_VAR,
     TOC_RAIL_WIDTH_DEFAULT, TOC_RAIL_WIDTH_KEY, TOC_RAIL_WIDTH_MAX, TOC_RAIL_WIDTH_MIN,
 };
+pub use library_assets::{
+    asset_kind, filter_library_assets, format_bytes, is_orphan_asset, is_previewable_kind,
+    is_video_kind, library_asset_kind_filters, LibraryAssetRow, LIBRARY_ASSET_KIND_FILTERS,
+};
 pub use library_tree::{
     build_tree, estimate_flat_item_size, flatten_library, flatten_tree, FlatTreeItem,
     LibraryDocument, LibraryFolder, TreeNode, DOCUMENT_ROW_HEIGHT, FOLDER_ROW_HEIGHT,
@@ -245,8 +249,8 @@ pub use skin::{
     is_ui_skin, normalize_ui_skin, ui_skin_ids, UiSkin, UI_SKIN_STORAGE_KEY,
 };
 pub use smart_filters::{
-    document_matches_smart_filter, smart_filter_ids, LibrarySmartFilter, SmartFilterDoc,
-    SmartFilterOptions,
+    document_matches_smart_filter, filter_documents_by_smart_filter, smart_filter_ids,
+    LibrarySmartFilter, SmartFilterDoc, SmartFilterOptions,
 };
 pub use snippet::sanitize_snippet;
 pub use snippet_validation::{
@@ -286,14 +290,19 @@ pub use ui_fonts::{
     is_ui_font_preset_id, ui_font_preset_ids, ui_font_presets, UiFontPreset, UI_FONTS_STORAGE_KEY,
 };
 pub use version::{app_version_info, short_version, AppVersionInfo, APP_VERSION};
-pub use video_embed::{
-    extract_vimeo_id, extract_youtube_id, is_video_url, video_export_embed, video_provider_label,
-    VideoExportEmbed,
+/// Video helpers live in `scribe-video`; re-exported for existing `scribe_ui::` callers.
+pub use scribe_video::{
+    collect_videos_from_tiptap_json, detect_provider, extract_provider_id, extract_start_seconds,
+    extract_vimeo_id, extract_youtube_id, inspect_video, is_video_url, normalize_video_src,
+    parse_video_fence, render_video_figure_html, video_export_embed, video_provider_label,
+    video_thumbnail_url, video_to_markdown_fence, CollectedVideo, VideoBlockAttrs, VideoExportEmbed,
+    VideoInfo, VideoProvider,
 };
 pub use whats_new::{
     whats_new_highlights, whats_new_tag_keys, EDITION_MARK_KEY, WHATS_NEW_34_HIGHLIGHTS,
     WHATS_NEW_35_HIGHLIGHTS, WHATS_NEW_36_HIGHLIGHTS, WHATS_NEW_36_TAG_KEYS,
-    WHATS_NEW_37_HIGHLIGHTS, WHATS_NEW_37_TAG_KEYS,
+    WHATS_NEW_37_HIGHLIGHTS, WHATS_NEW_37_TAG_KEYS, WHATS_NEW_38_HIGHLIGHTS,
+    WHATS_NEW_38_TAG_KEYS,
 };
 
 #[cfg(feature = "dioxus")]

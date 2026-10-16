@@ -21,6 +21,7 @@ import {
   Minus,
   Palette,
   PlusSquare,
+  QrCode,
   Quote,
   Redo,
   ScanLine,
@@ -71,6 +72,7 @@ import {
   insertInlineMath,
   insertLoremIpsum,
   insertMermaidDiagram,
+  insertQrCodeImage,
   insertScannedBarcode,
   insertVideo,
 } from '@/lib/editor/insert-helpers'
@@ -153,6 +155,15 @@ export function ToolbarRibbon({
       if (inserted) toast.success(t('toasts.barcodeInserted'))
     } catch (error) {
       toast.error(t('toasts.barcodeScanError'), String(error))
+    }
+  }
+
+  async function handleInsertQr() {
+    try {
+      const inserted = await insertQrCodeImage(editor)
+      if (inserted) toast.success(t('toasts.qrInserted'))
+    } catch (error) {
+      toast.error(t('toasts.qrGenerateError'), String(error))
     }
   }
 
@@ -244,6 +255,10 @@ export function ToolbarRibbon({
             <DropdownMenuItem onClick={() => void handlePickImage()}>
               <ImagePlus className="h-4 w-4" />
               {t('toolbar.actions.image')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void handleInsertQr()}>
+              <QrCode className="h-4 w-4" />
+              {t('toolbar.actions.qrCode')}
             </DropdownMenuItem>
             {scannerAvailable && (
               <DropdownMenuItem onClick={() => void handleScanBarcode()}>

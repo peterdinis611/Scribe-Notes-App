@@ -1,7 +1,10 @@
-/** Keep in sync with `crates/scribe-ui` counterpart. */
+/** Keep in sync with `crates/scribe-ui` / `scribe-video` counterparts. */
 import type { JSONContent } from '@tiptap/core'
+import { promoteMarkdownSpecialBlocksNative } from '@/lib/db/api'
 import { D3_CHART_DEFAULT_SOURCE } from '@/lib/editor/d3-chart'
 import { MAP_DEFAULT_SOURCE } from '@/lib/editor/map'
+import { parseVideoFence } from '@/lib/editor/video'
+import { isTauriRuntime } from '@/lib/tauri'
 
 function codeBlockText(node: JSONContent): string {
   return (node.content ?? []).map((child) => child.text ?? '').join('')
@@ -36,9 +39,13 @@ function promoteNode(node: JSONContent): JSONContent {
     }
 
     if (language === 'video') {
+      const attrs = parseVideoFence(text)
       return {
         type: 'video',
-        attrs: { src: text.trim() || null },
+        attrs: {
+          src: attrs.src ?? null,
+          caption: attrs.caption ?? null,
+        },
       }
     }
 
@@ -67,4 +74,18 @@ export function promoteMarkdownSpecialBlocks(doc: JSONContent): JSONContent {
     return { type: 'doc', content: [] }
   }
   return promoteNode(doc)
+}
+
+/** Prefer Rust `scribe-ui` under Tauri; otherwise JS fallback. */
+export async function promoteMarkdownSpecialBlocksAsync(
+  doc: JSONContent,
+): Promise<JSONContent> {
+  if (isTauriRuntime()) {
+    try {
+      return (await promoteMarkdownSpecialBlocksNative(doc)) as JSONContent
+    } catch {
+      /* fall through */
+    }
+  }
+  return promoteMarkdownSpecialBlocks(doc)
 }

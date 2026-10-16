@@ -3,6 +3,8 @@ pub mod agent;
 pub mod antivirus;
 pub mod audit;
 pub mod ui;
+pub mod video;
+pub mod video_library;
 pub mod comments;
 pub mod document_chat;
 pub mod documents;

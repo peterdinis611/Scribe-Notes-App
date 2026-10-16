@@ -290,6 +290,15 @@ export async function saveCroppedImage(documentId: string, dataUrl: string): Pro
   return saveDocumentImage(documentId, `cropped-${Date.now()}.png`, dataUrl)
 }
 
+export async function removeImageBackgroundForDocument(
+  documentId: string,
+  imagePath: string,
+  tolerance?: number,
+): Promise<string> {
+  const { removeImageBackground } = await import('@/lib/db/api')
+  return removeImageBackground(documentId, imagePath, tolerance ?? null)
+}
+
 export async function downloadImageSrc(src: string, baseName = 'image'): Promise<void> {
   const resolved = resolveImageSrc(src)
   const response = await fetch(resolved)

@@ -10,7 +10,7 @@ import { evaluateMathExpression } from '@/lib/editor/math-js'
 import { renderD3ChartSource } from '@/lib/editor/d3-chart'
 import { renderMermaidSource } from '@/lib/editor/mermaid'
 import { mapEmbedHref, mapOsmHref, parseMapSpec } from '@/lib/editor/map'
-import { videoExportEmbed } from '@/lib/editor/video'
+import { renderVideoFigureHtml } from '@/lib/editor/video'
 import {
   DEFAULT_PAGE_SETUP,
   normalizePageSetup,
@@ -28,6 +28,8 @@ import {
   PDF_CAPTURE_CSS,
   buildDocumentContentCss,
   buildWatermarkCss,
+  resolveDocumentCssBundle,
+  type DocumentCssBundle,
 } from '@/lib/export/document-styles'
 import { colorForExport } from '@/lib/export/export-colors'
 import {
@@ -160,20 +162,7 @@ function renderMermaidFigure(source: string, ctx: RenderContext): string {
 }
 
 function renderVideoFigure(source: string, caption?: string): string {
-  const embed = videoExportEmbed(source)
-  const captionHtml = caption?.trim()
-    ? `<figcaption>${escapeHtml(caption.trim())}</figcaption>`
-    : ''
-  if (embed.kind === 'iframe') {
-    return `<figure class="video-block" style="margin:16pt 0;"><div style="aspect-ratio:16/9;"><iframe src="${escapeHtml(embed.href)}" width="100%" height="360" frameborder="0" allowfullscreen></iframe></div>${captionHtml}</figure>`
-  }
-  if (embed.kind === 'video') {
-    return `<figure class="video-block" style="margin:16pt 0;"><video src="${escapeHtml(embed.href)}" controls style="width:100%;max-height:420px;"></video>${captionHtml}</figure>`
-  }
-  if (!source.trim()) {
-    return `<figure class="video-block" style="margin:16pt 0;"><p>Video</p>${captionHtml}</figure>`
-  }
-  return `<figure class="video-block" style="margin:16pt 0;"><p><a href="${escapeHtml(embed.href)}">${escapeHtml(source)}</a></p>${captionHtml}</figure>`
+  return renderVideoFigureHtml({ src: source, caption: caption ?? null })
 }
 
 function renderMapFigure(source: string): string {
@@ -497,12 +486,20 @@ function buildHtmlDocument(
   title: string,
   options: HtmlExportOptions | undefined,
   ctx: RenderContext,
+  css?: DocumentCssBundle,
 ): string {
   const pageSetup = normalizePageSetup(options?.pageSetup ?? DEFAULT_PAGE_SETUP)
   const includeTitleHeading = options?.includeTitleHeading ?? true
   const forPdf = options?.forPdf ?? false
   const forPrint = forPdf || (options?.forPrint ?? false)
   const paper = PAPER_SIZES[pageSetup.paperSize]
+  const contentCss = css?.contentCss ?? buildDocumentContentCss(pageSetup)
+  const tipTapCss = css?.tipTapCss ?? DOCUMENT_TIPTAP_CSS
+  const highlightCss = css?.highlightCss ?? DOCUMENT_HIGHLIGHT_CSS
+  const pdfCaptureCss = css?.pdfCaptureCss ?? PDF_CAPTURE_CSS
+  const watermarkCss =
+    css?.watermarkCss ??
+    buildWatermarkCss(pageSetup.watermark.opacity, pageSetup.watermark.angle)
   let doc: TipTapNode = { type: 'doc', content: [] }
   try {
     doc = JSON.parse(contentJson) as TipTapNode
@@ -554,7 +551,7 @@ function buildHtmlDocument(
       background: ${forPrint ? '#ffffff' : '#f3f4f6'};
     }
     body {
-      ${buildDocumentContentCss(pageSetup)}
+      ${contentCss}
       max-width: ${paper.width}px;
       margin: 0 auto;
       padding: ${forPrint ? '0' : `${pageSetup.marginTop}px ${pageSetup.marginRight}px ${pageSetup.marginBottom}px ${pageSetup.marginLeft}px`};
@@ -576,10 +573,10 @@ function buildHtmlDocument(
     .export-footer { margin-top: 24pt; padding-top: 6pt; border-top: 1px solid #ddd; }
     .mermaid-diagram svg, .d3-chart svg { max-width: 100%; height: auto; }
     .video-block iframe, .video-block video, .map-block iframe { width: 100%; height: 100%; border: 0; }
-    ${DOCUMENT_TIPTAP_CSS}
-    ${DOCUMENT_HIGHLIGHT_CSS}
-    ${forPrint ? PDF_CAPTURE_CSS : ''}
-    ${buildWatermarkCss(pageSetup.watermark.opacity, pageSetup.watermark.angle)}
+    ${tipTapCss}
+    ${highlightCss}
+    ${forPrint ? pdfCaptureCss : ''}
+    ${watermarkCss}
     @media print {
       html, body { background: #ffffff; }
       body { padding: 0; }
@@ -631,8 +628,13 @@ export async function tiptapJsonToHtmlAsync(
   title: string,
   options?: HtmlExportOptions,
 ): Promise<string> {
-  const mermaidSvgBySource =
-    options?.mermaidSvgBySource ?? (await buildMermaidSvgMap(contentJson, 'neutral'))
+  const pageSetup = normalizePageSetup(options?.pageSetup ?? DEFAULT_PAGE_SETUP)
+  const [mermaidSvgBySource, css] = await Promise.all([
+    options?.mermaidSvgBySource
+      ? Promise.resolve(options.mermaidSvgBySource)
+      : buildMermaidSvgMap(contentJson, 'neutral'),
+    resolveDocumentCssBundle(pageSetup),
+  ])
   const d3SvgBySource = options?.d3SvgBySource ?? buildD3SvgMap(contentJson)
 
   let codeHighlightByKey = options?.codeHighlightByKey
@@ -646,9 +648,15 @@ export async function tiptapJsonToHtmlAsync(
     codeHighlightByKey = await buildCodeHighlightMap(collectCodeBlocks(doc.content))
   }
 
-  return buildHtmlDocument(contentJson, title, options, {
-    mermaidSvgBySource,
-    d3SvgBySource,
-    codeHighlightByKey,
-  })
+  return buildHtmlDocument(
+    contentJson,
+    title,
+    options,
+    {
+      mermaidSvgBySource,
+      d3SvgBySource,
+      codeHighlightByKey,
+    },
+    css,
+  )
 }
