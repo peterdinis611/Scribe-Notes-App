@@ -9,6 +9,9 @@ export type CanvasObjectKind =
   | 'line'
   | 'arrow'
   | 'docLink'
+  | 'pen'
+
+export type CanvasPoint = { x: number; y: number }
 
 export type CanvasCard = {
   id: string
@@ -38,8 +41,12 @@ export type CanvasObject = {
   cornerRadius: number
   rotation: number
   groupId: string
+  /** Parent frame id when nested; empty = free on canvas. */
+  parentId: string
   documentId: string
   documentTitle: string
+  /** Freehand path points relative to object origin (pen kind). */
+  points: CanvasPoint[]
 }
 
 export type CanvasEdge = {
@@ -106,6 +113,7 @@ const KIND_SET = new Set<string>([
   'line',
   'arrow',
   'docLink',
+  'pen',
 ])
 
 export function emptyCanvasDocument(): CanvasDocument {
@@ -151,8 +159,10 @@ export function cardToObject(card: CanvasCard, zIndex = 0): CanvasObject {
     cornerRadius: 10,
     rotation: 0,
     groupId: '',
+    parentId: '',
     documentId: '',
     documentTitle: '',
+    points: [],
   }
 }
 
@@ -267,9 +277,23 @@ function normalizeObject(raw: unknown, index: number): CanvasObject {
         : defaults.cornerRadius,
     rotation: Number.isFinite(obj.rotation) ? Number(obj.rotation) : 0,
     groupId: typeof obj.groupId === 'string' ? obj.groupId : '',
+    parentId: typeof obj.parentId === 'string' ? obj.parentId : '',
     documentId: typeof obj.documentId === 'string' ? obj.documentId : '',
     documentTitle: typeof obj.documentTitle === 'string' ? obj.documentTitle : '',
+    points: normalizePoints(obj.points),
   }
+}
+
+function normalizePoints(raw: unknown): CanvasPoint[] {
+  if (!Array.isArray(raw)) return []
+  const points: CanvasPoint[] = []
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue
+    const p = item as Partial<CanvasPoint>
+    if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue
+    points.push({ x: Number(p.x), y: Number(p.y) })
+  }
+  return points
 }
 
 function defaultsForKind(kind: CanvasObjectKind): Pick<
@@ -333,6 +357,17 @@ function defaultsForKind(kind: CanvasObjectKind): Pick<
         fontSize: 13,
         color: 'var(--color-foreground)',
         cornerRadius: 10,
+      }
+    case 'pen':
+      return {
+        w: 120,
+        h: 80,
+        fill: 'transparent',
+        stroke: 'var(--color-accent)',
+        strokeWidth: 2.5,
+        fontSize: 12,
+        color: 'var(--color-foreground)',
+        cornerRadius: 0,
       }
     case 'note':
     default:
@@ -401,8 +436,10 @@ export function createCanvasObject(
     cornerRadius: defaults.cornerRadius,
     rotation: 0,
     groupId: '',
+    parentId: '',
     documentId: extras?.documentId ?? '',
     documentTitle: extras?.documentTitle ?? '',
+    points: [],
   }
 }
 

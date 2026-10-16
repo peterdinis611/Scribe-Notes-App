@@ -43,8 +43,10 @@ describe('canvas ↔ React Flow mapping', () => {
         cornerRadius: 8,
         rotation: 0,
         groupId: '',
+        parentId: '',
         documentId: '',
         documentTitle: '',
+        points: [],
       },
       {
         id: 'l1',
@@ -65,8 +67,10 @@ describe('canvas ↔ React Flow mapping', () => {
         cornerRadius: 0,
         rotation: 0,
         groupId: '',
+        parentId: '',
         documentId: '',
         documentTitle: '',
+        points: [],
       },
     ])
     expect(nodes[0]?.type).toBe('line')

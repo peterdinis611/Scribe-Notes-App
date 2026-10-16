@@ -198,6 +198,52 @@ pub fn audit_security_event(
     Ok(())
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AuditCanvasEventInput {
+    pub action: String,
+    pub summary: String,
+    pub detail: Option<Value>,
+    pub outcome: Option<String>,
+}
+
+/// Frontend-callable canvas audit (create / move / delete / export). Soft-fail never.
+#[tauri::command]
+pub fn audit_canvas_event(
+    audit: State<'_, AuditDbState>,
+    input: AuditCanvasEventInput,
+) -> Result<(), String> {
+    let action = input.action.trim();
+    if action.is_empty() || action.len() > 80 {
+        return Err("invalid action".into());
+    }
+    const ALLOWED: &[&str] = &[
+        "canvas_create",
+        "canvas_object_create",
+        "canvas_object_delete",
+        "canvas_object_move",
+        "canvas_export_svg",
+        "canvas_export_png",
+        "canvas_export_tiptap",
+        "canvas_template",
+    ];
+    if !ALLOWED.contains(&action) {
+        return Err(format!("action not allowed: {action}"));
+    }
+    let store = audit.store.lock().map_err(|e| e.to_string())?;
+    let _ = store.append(AuditEventInput {
+        source: "tauri".into(),
+        category: "canvas".into(),
+        action: action.into(),
+        resource_type: Some("canvas".into()),
+        summary: input.summary.chars().take(200).collect(),
+        detail: input.detail,
+        outcome: Some(input.outcome.unwrap_or_else(|| "ok".into())),
+        ..Default::default()
+    });
+    Ok(())
+}
+
 /// Soft-fail helper for other command modules.
 pub fn append_audit(
     audit: &AuditDbState,

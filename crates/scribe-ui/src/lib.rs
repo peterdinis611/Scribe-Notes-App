@@ -84,7 +84,8 @@ pub use agent_catalog::{
 };
 pub use canvas_doc::{
     empty_canvas_document, is_canvas_content, parse_canvas_document, serialize_canvas_document,
-    CanvasCard, CanvasDocument, CanvasEdge, CanvasObject, CanvasObjectKind, CanvasViewport,
+    CanvasCard, CanvasDocument, CanvasEdge, CanvasObject, CanvasObjectKind, CanvasPoint,
+    CanvasViewport,
     CANVAS_CONTENT_TYPE, CANVAS_VERSION,
 };
 pub use canvas_flow::{

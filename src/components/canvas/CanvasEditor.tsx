@@ -34,14 +34,19 @@ import {
   Circle,
   Copy,
   Download,
+  FilePlus,
   FileText,
   Frame,
   Group,
+  Hand,
+  ImageDown,
   Layers,
+  LayoutTemplate,
   Link2,
   Minus,
   MousePointer2,
   MoveHorizontal,
+  Pencil,
   Plus,
   SendToBack,
   Sparkles,
@@ -60,30 +65,39 @@ import { CanvasFrameNode } from '@/components/canvas/CanvasFrameNode'
 import { CanvasLineNode } from '@/components/canvas/CanvasLineNode'
 import { CanvasNoteNode } from '@/components/canvas/CanvasNoteNode'
 import { CanvasObjectActions } from '@/components/canvas/CanvasObjectActions'
+import { CanvasPenNode } from '@/components/canvas/CanvasPenNode'
 import { CanvasShapeNode } from '@/components/canvas/CanvasShapeNode'
 import { CanvasTextNode } from '@/components/canvas/CanvasTextNode'
 import { alignNodes, type AlignMode } from '@/lib/canvas/align'
+import { logCanvasAudit } from '@/lib/canvas/audit'
+import { openTiptapFromCanvasSelection } from '@/lib/canvas/create-canvas'
 import {
   buildClipboardPayload,
   createCanvasHistory,
   parseClipboardPayload,
 } from '@/lib/canvas/history'
 import {
+  absolutePosition,
   canvasEdgesToFlow,
   createObjectNode,
   flowToCanvasDocument,
   nextZIndex,
+  objectToNode,
   objectsToNodes,
   type CanvasObjectData,
 } from '@/lib/canvas/flow'
+import { snapNodePosition, type SnapGuide } from '@/lib/canvas/snap'
+import { buildCanvasTemplate, type CanvasTemplateId } from '@/lib/canvas/templates'
 import {
   CANVAS_FILL_PRESETS,
   CANVAS_STROKE_PRESETS,
   canvasObjectsToPlainText,
+  createCanvasObject,
   emptyCanvasDocument,
   parseCanvasDocument,
   serializeCanvasDocument,
   type CanvasObjectKind,
+  type CanvasPoint,
 } from '@/lib/canvas/types'
 import { cacheDocument, hashContent } from '@/lib/cache/document-cache'
 import { flushPendingWrites, updateDocument } from '@/lib/db/api'
@@ -96,11 +110,12 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setActiveDocument, setSaveStatus, updateDocuments } from '@/store/documentsSlice'
 import { isOpenLibraryDocumentId } from '@/lib/trash-document'
 import { store } from '@/store/index'
+import { useNavigate } from '@tanstack/react-router'
 
 const AUTO_SAVE_DELAY_MS = 600
 const GRID = 16
 
-type CanvasTool = 'select' | 'link' | 'docLink' | CanvasObjectKind
+type CanvasTool = 'select' | 'hand' | 'link' | 'docLink' | 'pen' | CanvasObjectKind
 
 const nodeTypes: NodeTypes = {
   note: CanvasNoteNode,
@@ -111,6 +126,7 @@ const nodeTypes: NodeTypes = {
   line: CanvasLineNode,
   arrow: CanvasLineNode,
   docLink: CanvasDocLinkNode,
+  pen: CanvasPenNode,
 }
 
 const defaultEdgeOptions = {
@@ -154,12 +170,15 @@ function kindLabelKey(kind: CanvasObjectKind): string {
       return 'canvas.toolArrow'
     case 'docLink':
       return 'canvas.toolDocLink'
+    case 'pen':
+      return 'canvas.toolPen'
   }
 }
 
 function CanvasFlow() {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
   const { screenToFlowPosition, zoomIn, zoomOut, setViewport, deleteElements, fitView } =
     useReactFlow()
   const viewport = useViewport()
@@ -173,9 +192,12 @@ function CanvasFlow() {
   const [linkFromId, setLinkFromId] = useState<string | null>(null)
   const [layersOpen, setLayersOpen] = useState(true)
   const [docPickerOpen, setDocPickerOpen] = useState(false)
+  const [templatesOpen, setTemplatesOpen] = useState(false)
   const [spacePan, setSpacePan] = useState(false)
   const [takeawaysBusy, setTakeawaysBusy] = useState(false)
+  const [snapGuides, setSnapGuides] = useState<SnapGuide[]>([])
   const surfaceRef = useRef<HTMLDivElement | null>(null)
+  const penStrokeRef = useRef<{ points: CanvasPoint[]; nodeId: string } | null>(null)
   const historyRef = useRef(createCanvasHistory())
   const dragCreateRef = useRef<{
     kind: CanvasObjectKind
@@ -536,6 +558,10 @@ function CanvasFlow() {
     const selectedEdgeList = edges.filter((edge) => edge.selected)
     if (selectedNodeList.length === 0 && selectedEdgeList.length === 0) return
     await deleteElements({ nodes: selectedNodeList, edges: selectedEdgeList })
+    void logCanvasAudit('canvas_object_delete', 'Deleted canvas selection', {
+      documentId: activeId,
+      count: selectedNodeList.length,
+    })
     setLinkFromId(null)
   }
 
@@ -759,12 +785,14 @@ function CanvasFlow() {
       }
       if (!meta) {
         if (event.key === 'v' || event.key === 'V') setTool('select')
+        if (event.key === 'h' || event.key === 'H') setTool('hand')
         if (event.key === 'f' || event.key === 'F') setTool('frame')
         if (event.key === 'r' || event.key === 'R') setTool('rect')
         if (event.key === 'o' || event.key === 'O') setTool('ellipse')
         if (event.key === 't' || event.key === 'T') setTool('text')
         if (event.key === 'n' || event.key === 'N') setTool('note')
         if (event.key === 'a' || event.key === 'A') setTool('arrow')
+        if (event.key === 'p' || event.key === 'P') setTool('pen')
         if (event.key === 'l' || event.key === 'L') {
           setTool('link')
           setLinkFromId(null)
@@ -825,6 +853,7 @@ function CanvasFlow() {
           {(
             [
               ['select', MousePointer2, t('canvas.toolSelect')],
+              ['hand', Hand, t('canvas.toolHand')],
               ['note', StickyNote, t('canvas.toolNote')],
               ['frame', Frame, t('canvas.toolFrame')],
               ['rect', Square, t('canvas.toolRect')],
@@ -832,6 +861,7 @@ function CanvasFlow() {
               ['text', Type, t('canvas.toolText')],
               ['line', Minus, t('canvas.toolLine')],
               ['arrow', ArrowRight, t('canvas.toolArrow')],
+              ['pen', Pencil, t('canvas.toolPen')],
               ['link', Link2, t('canvas.linkCards')],
             ] as const
           ).map(([id, Icon, label]) => (
@@ -992,6 +1022,32 @@ function CanvasFlow() {
         </button>
         <button
           type="button"
+          className={cn('canvas-toolbar-btn', templatesOpen && 'is-active')}
+          onClick={() => setTemplatesOpen((prev) => !prev)}
+          title={t('canvas.templates')}
+        >
+          <LayoutTemplate className="h-3.5 w-3.5" />
+          <span>{t('canvas.templates')}</span>
+        </button>
+        <button
+          type="button"
+          className="canvas-toolbar-btn"
+          disabled={selectedNodes.length === 0}
+          onClick={() => {
+            const doc = flowToCanvasDocument(nodesRef.current, edgesRef.current)
+            const selected = doc.objects.filter((o) => selectedNodes.some((n) => n.id === o.id))
+            void openTiptapFromCanvasSelection(dispatch, navigate, t, selected).then(
+              () => toast.success(t('canvas.insertedTiptap')),
+              (error) => toast.error(t('canvas.insertTiptapFailed'), String(error)),
+            )
+          }}
+          title={t('canvas.insertTiptap')}
+        >
+          <FilePlus className="h-3.5 w-3.5" />
+          <span>{t('canvas.insertTiptap')}</span>
+        </button>
+        <button
+          type="button"
           className="canvas-toolbar-btn"
           onClick={() => {
             const el = surfaceRef.current
@@ -1004,12 +1060,66 @@ function CanvasFlow() {
             link.download = `${activeDocument?.title || 'canvas'}.svg`
             link.click()
             URL.revokeObjectURL(url)
+            void logCanvasAudit('canvas_export_svg', 'Exported canvas SVG', {
+              documentId: activeId,
+            })
             toast.success(t('canvas.exportedSvg'))
           }}
           title={t('canvas.exportSvg')}
         >
           <Download className="h-3.5 w-3.5" />
           <span>{t('canvas.exportSvg')}</span>
+        </button>
+        <button
+          type="button"
+          className="canvas-toolbar-btn"
+          onClick={() => {
+            const el = surfaceRef.current
+            if (!el) return
+            const width = el.clientWidth
+            const height = el.clientHeight
+            const svgData = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><foreignObject width="100%" height="100%">${new XMLSerializer().serializeToString(el)}</foreignObject></svg>`
+            const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' })
+            const url = URL.createObjectURL(blob)
+            const img = new Image()
+            img.onload = () => {
+              const canvas = document.createElement('canvas')
+              canvas.width = width * 2
+              canvas.height = height * 2
+              const ctx = canvas.getContext('2d')
+              if (!ctx) {
+                URL.revokeObjectURL(url)
+                return
+              }
+              ctx.scale(2, 2)
+              ctx.fillStyle = getComputedStyle(el).backgroundColor || '#fff'
+              ctx.fillRect(0, 0, width, height)
+              ctx.drawImage(img, 0, 0, width, height)
+              canvas.toBlob((png) => {
+                URL.revokeObjectURL(url)
+                if (!png) return
+                const pngUrl = URL.createObjectURL(png)
+                const link = document.createElement('a')
+                link.href = pngUrl
+                link.download = `${activeDocument?.title || 'canvas'}.png`
+                link.click()
+                URL.revokeObjectURL(pngUrl)
+                void logCanvasAudit('canvas_export_png', 'Exported canvas PNG', {
+                  documentId: activeId,
+                })
+                toast.success(t('canvas.exportedPng'))
+              }, 'image/png')
+            }
+            img.onerror = () => {
+              URL.revokeObjectURL(url)
+              toast.error(t('canvas.exportPngFailed'))
+            }
+            img.src = url
+          }}
+          title={t('canvas.exportPng')}
+        >
+          <ImageDown className="h-3.5 w-3.5" />
+          <span>{t('canvas.exportPng')}</span>
         </button>
         <div className="canvas-toolbar-spacer" />
         <IconTooltip label={t('canvas.zoomOut')}>
@@ -1152,6 +1262,37 @@ function CanvasFlow() {
                 <span className="canvas-toolbar-meta">{primarySelected.data.fontSize || 14}</span>
               </div>
             )}
+          <div className="canvas-props-group">
+            <span className="canvas-props-label">{t('canvas.rotation')}</span>
+            <input
+              type="range"
+              min={-180}
+              max={180}
+              step={1}
+              value={primarySelected?.data.rotation ?? 0}
+              onChange={(event) => {
+                const rotation = Number(event.target.value)
+                setNodes((current) => {
+                  const next = current.map((node) =>
+                    node.selected
+                      ? {
+                          ...node,
+                          data: { ...node.data, rotation },
+                          style: {
+                            ...node.style,
+                            transform: rotation ? `rotate(${rotation}deg)` : undefined,
+                          },
+                        }
+                      : node,
+                  )
+                  commitFlow(next, edgesRef.current)
+                  return next
+                })
+              }}
+              className="canvas-props-range"
+            />
+            <span className="canvas-toolbar-meta">{primarySelected?.data.rotation ?? 0}°</span>
+          </div>
         </div>
       )}
 
@@ -1162,13 +1303,34 @@ function CanvasFlow() {
             'canvas-surface canvas-surface--flow',
             placing && 'is-placing',
             tool === 'link' && 'is-linking',
-            spacePan && 'is-space-pan',
+            (spacePan || tool === 'hand') && 'is-space-pan',
+            tool === 'pen' && 'is-drawing',
           )}
           onMouseDown={(event) => {
-            if (!placing || !DRAG_CREATE_TOOLS.has(tool as CanvasObjectKind)) return
             if (event.button !== 0) return
             const target = event.target as HTMLElement
             if (!target.classList.contains('react-flow__pane')) return
+
+            if (tool === 'pen') {
+              event.preventDefault()
+              const start = screenToFlowPosition({ x: event.clientX, y: event.clientY })
+              const obj = createCanvasObject('pen', start, nextZIndex(nodesRef.current), {
+                x: start.x,
+                y: start.y,
+                w: 8,
+                h: 8,
+              })
+              obj.points = [{ x: 0, y: 0 }]
+              const node = objectToNode(obj)
+              penStrokeRef.current = { points: [{ x: 0, y: 0 }], nodeId: node.id }
+              setNodes((current) => [
+                ...current.map((n) => ({ ...n, selected: false })),
+                { ...node, selected: true },
+              ])
+              return
+            }
+
+            if (!placing || !DRAG_CREATE_TOOLS.has(tool as CanvasObjectKind)) return
             event.preventDefault()
             const start = screenToFlowPosition({ x: event.clientX, y: event.clientY })
             const kind = tool as CanvasObjectKind
@@ -1185,6 +1347,37 @@ function CanvasFlow() {
             ])
           }}
           onMouseMove={(event) => {
+            const pen = penStrokeRef.current
+            if (pen) {
+              const origin = nodesRef.current.find((n) => n.id === pen.nodeId)?.position
+              if (!origin) return
+              const cur = screenToFlowPosition({ x: event.clientX, y: event.clientY })
+              const local = { x: cur.x - origin.x, y: cur.y - origin.y }
+              pen.points.push(local)
+              const xs = pen.points.map((p) => p.x)
+              const ys = pen.points.map((p) => p.y)
+              const minX = Math.min(...xs)
+              const minY = Math.min(...ys)
+              const maxX = Math.max(...xs)
+              const maxY = Math.max(...ys)
+              const w = Math.max(8, maxX - minX + 8)
+              const h = Math.max(8, maxY - minY + 8)
+              setNodes((current) =>
+                current.map((node) =>
+                  node.id === pen.nodeId
+                    ? {
+                        ...node,
+                        width: w,
+                        height: h,
+                        style: { ...node.style, width: w, height: h },
+                        data: { ...node.data, points: [...pen.points] },
+                      }
+                    : node,
+                ),
+              )
+              return
+            }
+
             const drag = dragCreateRef.current
             if (!drag) return
             const cur = screenToFlowPosition({ x: event.clientX, y: event.clientY })
@@ -1210,11 +1403,26 @@ function CanvasFlow() {
             )
           }}
           onMouseUp={() => {
+            if (penStrokeRef.current) {
+              const id = penStrokeRef.current.nodeId
+              penStrokeRef.current = null
+              setTool('select')
+              commitFlow(nodesRef.current, edgesRef.current)
+              void logCanvasAudit('canvas_object_create', 'Created pen stroke', {
+                documentId: activeId,
+                objectId: id,
+              })
+              return
+            }
             const drag = dragCreateRef.current
             if (!drag) return
             dragCreateRef.current = null
             setTool('select')
             commitFlow(nodesRef.current, edgesRef.current)
+            void logCanvasAudit('canvas_object_create', `Created ${drag.kind}`, {
+              documentId: activeId,
+              objectId: drag.nodeId,
+            })
           }}
         >
           <ReactFlow
@@ -1232,16 +1440,92 @@ function CanvasFlow() {
             snapGrid={[GRID, GRID]}
             deleteKeyCode={['Backspace', 'Delete']}
             zoomOnDoubleClick={false}
-            panOnDrag={spacePan || tool !== 'select' ? true : [1]}
+            panOnDrag={
+              spacePan || tool === 'hand' ? true : tool === 'select' ? [1] : tool === 'pen' ? false : true
+            }
             selectionOnDrag={tool === 'select' && !spacePan}
             selectionMode={SelectionMode.Partial}
             multiSelectionKeyCode="Shift"
             nodesDraggable={tool === 'select' && !spacePan}
             elementsSelectable={tool === 'select' || tool === 'link'}
             proOptions={{ hideAttribution: true }}
+            onNodeDrag={(_event, node) => {
+              const snapped = snapNodePosition(node, nodesRef.current, node.position)
+              setSnapGuides(snapped.guides)
+              if (
+                snapped.position.x !== node.position.x ||
+                snapped.position.y !== node.position.y
+              ) {
+                setNodes((current) =>
+                  current.map((n) =>
+                    n.id === node.id ? { ...n, position: snapped.position } : n,
+                  ),
+                )
+              }
+            }}
+            onNodeDragStop={(_event, node) => {
+              setSnapGuides([])
+              // Nest into frame when dropped inside (absolute coords).
+              const byId = new Map(nodesRef.current.map((n) => [n.id, n]))
+              const abs = absolutePosition(
+                { ...node, position: node.position },
+                byId,
+              )
+              const w = node.width ?? 160
+              const h = node.height ?? 120
+              const cx = abs.x + w / 2
+              const cy = abs.y + h / 2
+              let parentFrame: Node<CanvasObjectData> | null = null
+              for (const candidate of nodesRef.current) {
+                if (candidate.id === node.id || candidate.data.kind !== 'frame') continue
+                if (node.parentId === candidate.id) continue
+                const frameAbs = absolutePosition(candidate, byId)
+                const fw = candidate.width ?? 360
+                const fh = candidate.height ?? 240
+                if (
+                  cx >= frameAbs.x &&
+                  cy >= frameAbs.y &&
+                  cx <= frameAbs.x + fw &&
+                  cy <= frameAbs.y + fh
+                ) {
+                  parentFrame = candidate
+                }
+              }
+              if (parentFrame) {
+                const frameAbs = absolutePosition(parentFrame, byId)
+                setNodes((current) => {
+                  const next = current.map((n) =>
+                    n.id === node.id
+                      ? {
+                          ...n,
+                          parentId: parentFrame!.id,
+                          extent: 'parent' as const,
+                          position: {
+                            x: abs.x - frameAbs.x,
+                            y: abs.y - frameAbs.y,
+                          },
+                          data: { ...n.data, parentId: parentFrame!.id },
+                        }
+                      : n,
+                  )
+                  commitFlow(next, edgesRef.current)
+                  return next
+                })
+                void logCanvasAudit('canvas_object_move', 'Nested object into frame', {
+                  documentId: activeId,
+                  objectId: node.id,
+                  parentId: parentFrame.id,
+                })
+              } else {
+                void logCanvasAudit('canvas_object_move', 'Moved canvas object', {
+                  documentId: activeId,
+                  objectId: node.id,
+                })
+              }
+            }}
             onPaneClick={(event) => {
-              if (dragCreateRef.current) return
-              if (placing && !DRAG_CREATE_TOOLS.has(tool as CanvasObjectKind)) {
+              if (dragCreateRef.current || penStrokeRef.current) return
+              if (placing && !DRAG_CREATE_TOOLS.has(tool as CanvasObjectKind) && tool !== 'pen') {
                 placeObjectAt(
                   tool as CanvasObjectKind,
                   screenToFlowPosition({ x: event.clientX, y: event.clientY }),
@@ -1324,6 +1608,68 @@ function CanvasFlow() {
             <div className="canvas-place-banner" role="status">
               {t('canvas.placeHint', { tool: t(kindLabelKey(tool as CanvasObjectKind)) })}
             </div>
+          )}
+
+          {snapGuides.length > 0 && (
+            <div className="canvas-snap-guides" aria-hidden="true">
+              {snapGuides.map((guide, index) => (
+                <div
+                  key={`${guide.orientation}-${guide.value}-${index}`}
+                  className={cn(
+                    'canvas-snap-guide',
+                    guide.orientation === 'x' ? 'is-x' : 'is-y',
+                  )}
+                  style={
+                    guide.orientation === 'x'
+                      ? { left: guide.value * viewport.zoom + viewport.x }
+                      : { top: guide.value * viewport.zoom + viewport.y }
+                  }
+                />
+              ))}
+            </div>
+          )}
+
+          {templatesOpen && (
+            <aside className="canvas-doc-picker" aria-label={t('canvas.templates')}>
+              <header className="canvas-layers-head">
+                <span>{t('canvas.templates')}</span>
+                <button
+                  type="button"
+                  className="canvas-toolbar-btn canvas-toolbar-btn--icon"
+                  onClick={() => setTemplatesOpen(false)}
+                  aria-label={t('canvas.close')}
+                >
+                  <Minus className="h-3.5 w-3.5" />
+                </button>
+              </header>
+              <ul className="canvas-layers-list">
+                {(['blank', 'brainstorm', 'roadmap'] as CanvasTemplateId[]).map((id) => (
+                  <li key={id}>
+                    <button
+                      type="button"
+                      className="canvas-layers-item"
+                      onClick={() => {
+                        const doc = buildCanvasTemplate(id)
+                        const nextNodes = objectsToNodes(doc.objects)
+                        const nextEdges = canvasEdgesToFlow(doc.edges)
+                        setNodes(nextNodes)
+                        setEdges(nextEdges)
+                        commitFlow(nextNodes, nextEdges)
+                        setTemplatesOpen(false)
+                        void logCanvasAudit('canvas_template', `Applied template ${id}`, {
+                          documentId: activeId,
+                          template: id,
+                        })
+                        toast.success(t('canvas.templateApplied', { name: t(`canvas.template.${id}.label`) }))
+                      }}
+                    >
+                      <span className="canvas-layers-kind">{t(`canvas.template.${id}.label`)}</span>
+                      <span className="canvas-layers-title">{t(`canvas.template.${id}.hint`)}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </aside>
           )}
 
           {docPickerOpen && (

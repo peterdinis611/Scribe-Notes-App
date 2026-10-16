@@ -136,8 +136,10 @@ describe('parseCanvasDocument / serializeCanvasDocument', () => {
         cornerRadius: 0,
         rotation: 0,
         groupId: '',
+        parentId: '',
         documentId: '',
         documentTitle: '',
+        points: [],
       },
       {
         id: '2',
@@ -158,8 +160,10 @@ describe('parseCanvasDocument / serializeCanvasDocument', () => {
         cornerRadius: 0,
         rotation: 0,
         groupId: '',
+        parentId: '',
         documentId: 'd',
         documentTitle: 'Linked',
+        points: [],
       },
     ])
     expect(text).toContain('Alpha')

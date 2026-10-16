@@ -52,9 +52,13 @@ pub struct CanvasObjectData {
     #[serde(default)]
     pub group_id: String,
     #[serde(default)]
+    pub parent_id: String,
+    #[serde(default)]
     pub document_id: String,
     #[serde(default)]
     pub document_title: String,
+    #[serde(default)]
+    pub points: Vec<crate::canvas_doc::CanvasPoint>,
 }
 
 fn default_opacity() -> f64 {
@@ -148,8 +152,10 @@ fn object_to_node(object: &CanvasObject) -> CanvasFlowNode {
             corner_radius: object.corner_radius,
             rotation: object.rotation,
             group_id: object.group_id.clone(),
+            parent_id: object.parent_id.clone(),
             document_id: object.document_id.clone(),
             document_title: object.document_title.clone(),
+            points: object.points.clone(),
         },
         width: object.w,
         height: object.h,
@@ -252,8 +258,23 @@ pub fn flow_to_canvas_document(nodes: &[FlowNode], edges: &[FlowEdge]) -> Canvas
                 corner_radius: data_num(&node.data, "cornerRadius", 0.0),
                 rotation: data_num(&node.data, "rotation", 0.0),
                 group_id: data_str(&node.data, "groupId", ""),
+                parent_id: data_str(&node.data, "parentId", ""),
                 document_id: data_str(&node.data, "documentId", ""),
                 document_title: data_str(&node.data, "documentTitle", ""),
+                points: node
+                    .data
+                    .get("points")
+                    .and_then(Value::as_array)
+                    .map(|arr| {
+                        arr.iter()
+                            .filter_map(|item| {
+                                let x = item.get("x").and_then(Value::as_f64).filter(|n| n.is_finite())?;
+                                let y = item.get("y").and_then(Value::as_f64).filter(|n| n.is_finite())?;
+                                Some(crate::canvas_doc::CanvasPoint { x, y })
+                            })
+                            .collect()
+                    })
+                    .unwrap_or_default(),
             }
         })
         .collect();

@@ -43,6 +43,7 @@ pub enum CanvasObjectKind {
     Arrow,
     #[serde(rename = "docLink")]
     DocLink,
+    Pen,
 }
 
 impl CanvasObjectKind {
@@ -56,6 +57,7 @@ impl CanvasObjectKind {
             Self::Line => "line",
             Self::Arrow => "arrow",
             Self::DocLink => "docLink",
+            Self::Pen => "pen",
         }
     }
 
@@ -68,9 +70,19 @@ impl CanvasObjectKind {
             Some("line") => Self::Line,
             Some("arrow") => Self::Arrow,
             Some("docLink") => Self::DocLink,
+            Some("pen") => Self::Pen,
             _ => Self::Note,
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct CanvasPoint {
+    #[serde(serialize_with = "ser_num")]
+    pub x: f64,
+    #[serde(serialize_with = "ser_num")]
+    pub y: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -121,9 +133,13 @@ pub struct CanvasObject {
     #[serde(default)]
     pub group_id: String,
     #[serde(default)]
+    pub parent_id: String,
+    #[serde(default)]
     pub document_id: String,
     #[serde(default)]
     pub document_title: String,
+    #[serde(default)]
+    pub points: Vec<CanvasPoint>,
 }
 
 fn default_opacity() -> f64 {
@@ -284,6 +300,16 @@ fn defaults_for_kind(
             "var(--color-foreground)",
             10.0,
         ),
+        CanvasObjectKind::Pen => (
+            120.0,
+            80.0,
+            "transparent",
+            "var(--color-accent)",
+            2.5,
+            12.0,
+            "var(--color-foreground)",
+            0.0,
+        ),
         CanvasObjectKind::Note => (
             DEFAULT_CARD_W,
             DEFAULT_CARD_H,
@@ -319,8 +345,10 @@ pub fn card_to_object(card: &CanvasCard, z_index: f64) -> CanvasObject {
         corner_radius,
         rotation: 0.0,
         group_id: String::new(),
+        parent_id: String::new(),
         document_id: String::new(),
         document_title: String::new(),
+        points: Vec::new(),
     }
 }
 
@@ -381,8 +409,21 @@ pub fn normalize_object(raw: &Value, index: usize) -> CanvasObject {
             .unwrap_or(dradius),
         rotation: finite_num(get("rotation")).unwrap_or(0.0),
         group_id: get("groupId").and_then(Value::as_str).unwrap_or("").to_string(),
+        parent_id: get("parentId").and_then(Value::as_str).unwrap_or("").to_string(),
         document_id: get("documentId").and_then(Value::as_str).unwrap_or("").to_string(),
         document_title: get("documentTitle").and_then(Value::as_str).unwrap_or("").to_string(),
+        points: get("points")
+            .and_then(Value::as_array)
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|item| {
+                        let x = item.get("x").and_then(Value::as_f64).filter(|n| n.is_finite())?;
+                        let y = item.get("y").and_then(Value::as_f64).filter(|n| n.is_finite())?;
+                        Some(CanvasPoint { x, y })
+                    })
+                    .collect()
+            })
+            .unwrap_or_default(),
     }
 }
 
@@ -575,8 +616,10 @@ mod tests {
                 corner_radius: 10.0,
                 rotation: 0.0,
                 group_id: String::new(),
+                parent_id: String::new(),
                 document_id: String::new(),
                 document_title: String::new(),
+                points: Vec::new(),
             }],
             ..empty_canvas_document()
         };

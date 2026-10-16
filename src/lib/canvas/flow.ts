@@ -7,6 +7,7 @@ import {
   type CanvasEdge,
   type CanvasObject,
   type CanvasObjectKind,
+  type CanvasPoint,
   type CanvasViewport,
 } from '@/lib/canvas/types'
 
@@ -20,6 +21,7 @@ export const CANVAS_TEXT_TYPE = 'text' as const
 export const CANVAS_LINE_TYPE = 'line' as const
 export const CANVAS_ARROW_TYPE = 'arrow' as const
 export const CANVAS_DOCLINK_TYPE = 'docLink' as const
+export const CANVAS_PEN_TYPE = 'pen' as const
 
 export type CanvasObjectData = {
   kind: CanvasObjectKind
@@ -35,8 +37,10 @@ export type CanvasObjectData = {
   cornerRadius: number
   rotation: number
   groupId: string
+  parentId: string
   documentId: string
   documentTitle: string
+  points: CanvasPoint[]
 }
 
 /** @deprecated Prefer CanvasObjectData — kept for note-node typing. */
@@ -55,10 +59,11 @@ const KNOWN_KINDS = new Set<CanvasObjectKind>([
   'line',
   'arrow',
   'docLink',
+  'pen',
 ])
 
 function objectToNode(object: CanvasObject): CanvasFlowNode {
-  return {
+  const node: CanvasFlowNode = {
     id: object.id,
     type: object.kind,
     position: { x: object.x, y: object.y },
@@ -76,8 +81,10 @@ function objectToNode(object: CanvasObject): CanvasFlowNode {
       cornerRadius: object.cornerRadius,
       rotation: object.rotation,
       groupId: object.groupId,
+      parentId: object.parentId,
       documentId: object.documentId,
       documentTitle: object.documentTitle,
+      points: object.points ?? [],
     },
     width: object.w,
     height: object.h,
@@ -90,12 +97,19 @@ function objectToNode(object: CanvasObject): CanvasFlowNode {
     },
     zIndex: object.zIndex,
   }
+  if (object.parentId) {
+    node.parentId = object.parentId
+    node.extent = 'parent'
+  }
+  return node
 }
 
 export function objectsToNodes(objects: CanvasObject[]): CanvasFlowNode[] {
-  return [...objects]
-    .sort((a, b) => a.zIndex - b.zIndex)
-    .map(objectToNode)
+  // Parents before children so React Flow can resolve nesting.
+  const frames = objects.filter((o) => o.kind === 'frame')
+  const rest = objects.filter((o) => o.kind !== 'frame')
+  const ordered = [...frames, ...rest].sort((a, b) => a.zIndex - b.zIndex)
+  return ordered.map(objectToNode)
 }
 
 export function cardsToNodes(cards: CanvasCard[]): CanvasFlowNode[] {
@@ -119,8 +133,10 @@ export function cardsToNodes(cards: CanvasCard[]): CanvasFlowNode[] {
       cornerRadius: 10,
       rotation: 0,
       groupId: '',
+      parentId: '',
       documentId: '',
       documentTitle: '',
+      points: [],
     })),
   )
 }
@@ -159,6 +175,9 @@ export function flowToCanvasDocument(
     const kind = kindOf(node)
     const size = nodeSize(node, { w: 160, h: 120 })
     const data = node.data ?? ({} as CanvasObjectData)
+    const parentId =
+      (typeof node.parentId === 'string' && node.parentId) ||
+      (typeof data.parentId === 'string' ? data.parentId : '')
     return {
       id: node.id,
       kind,
@@ -178,8 +197,10 @@ export function flowToCanvasDocument(
       cornerRadius: Number.isFinite(data.cornerRadius) ? Number(data.cornerRadius) : 0,
       rotation: Number.isFinite(data.rotation) ? Number(data.rotation) : 0,
       groupId: typeof data.groupId === 'string' ? data.groupId : '',
+      parentId,
       documentId: typeof data.documentId === 'string' ? data.documentId : '',
       documentTitle: typeof data.documentTitle === 'string' ? data.documentTitle : '',
+      points: Array.isArray(data.points) ? data.points : [],
     }
   })
 
@@ -225,6 +246,24 @@ export function nextZIndex(nodes: Node<CanvasObjectData>[]): number {
     if (z > max) max = z
   }
   return max + 1
+}
+
+/** Absolute top-left of a node accounting for parent chain. */
+export function absolutePosition(
+  node: Node<CanvasObjectData>,
+  byId: Map<string, Node<CanvasObjectData>>,
+): { x: number; y: number } {
+  let x = node.position.x
+  let y = node.position.y
+  let parentId = node.parentId
+  while (parentId) {
+    const parent = byId.get(parentId)
+    if (!parent) break
+    x += parent.position.x
+    y += parent.position.y
+    parentId = parent.parentId
+  }
+  return { x, y }
 }
 
 export { objectToNode }

@@ -304,6 +304,7 @@ pub fn run() {
             commands::audit::list_audit_events,
             commands::audit::clear_audit_events,
             commands::audit::audit_security_event,
+            commands::audit::audit_canvas_event,
             commands::ui::get_ui_manifest,
             commands::ui::get_app_version_info,
             commands::ui::list_settings_section_ids,

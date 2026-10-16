@@ -17,7 +17,7 @@ pub struct AuditEvent {
     pub created_at: i64,
     /// `tauri` | `mcp` | `system`
     pub source: String,
-    /// `agent` | `handoff` | `mcp_tool` | `prefs` | `security` | `nlp` | `admin`
+    /// `agent` | `handoff` | `mcp_tool` | `prefs` | `security` | `nlp` | `admin` | `canvas`
     pub category: String,
     pub action: String,
     pub actor: String,
@@ -295,6 +295,7 @@ fn normalize_category(raw: &str) -> String {
         "security" => "security".into(),
         "nlp" => "nlp".into(),
         "admin" => "admin".into(),
+        "canvas" => "canvas".into(),
         _ => "agent".into(),
     }
 }

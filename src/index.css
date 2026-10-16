@@ -12576,6 +12576,59 @@ html.dark .link-graph-toolbar--overlay {
   cursor: grabbing;
 }
 
+.canvas-surface.is-drawing .react-flow__pane {
+  cursor: crosshair;
+}
+
+.canvas-pen-node {
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+
+.canvas-pen-node.is-selected {
+  outline: 1px dashed color-mix(in srgb, var(--color-accent) 40%, transparent);
+}
+
+.canvas-pen-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.canvas-snap-guides {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  overflow: hidden;
+}
+
+.canvas-snap-guide {
+  position: absolute;
+  background: color-mix(in srgb, var(--color-accent) 70%, transparent);
+}
+
+.canvas-snap-guide.is-x {
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+
+.canvas-snap-guide.is-y {
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+
+.canvas-surface--flow .react-flow__node-pen {
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
 .canvas-line-node {
   position: relative;
   width: 100%;
