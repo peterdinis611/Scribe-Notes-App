@@ -179,7 +179,7 @@ export function PdfJsPageViewer({ url, title, className }: PdfJsPageViewerProps)
             <IconTooltip label={t('pagination.previousPage')}>
               <Button
                 type="button"
-                variant="secondary"
+                variant="outline"
                 size="icon"
                 className="pdf-js-viewer-nav pdf-js-viewer-nav--prev"
                 disabled={page <= 1}
@@ -201,7 +201,7 @@ export function PdfJsPageViewer({ url, title, className }: PdfJsPageViewerProps)
             <IconTooltip label={t('pagination.nextPage')}>
               <Button
                 type="button"
-                variant="secondary"
+                variant="outline"
                 size="icon"
                 className="pdf-js-viewer-nav pdf-js-viewer-nav--next"
                 disabled={page >= pageCount}
