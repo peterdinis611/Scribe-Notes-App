@@ -4,7 +4,7 @@
  * Usage:
  *   bun run ci:local              # frontend + NLP + Rust + path-commands (CI workflow)
  *   bun run ci:local:tauri        # + tauri build for this OS (Build workflow)
- *   bun scripts/ci-local.ts --tag v3.7.0   # also assert tag ↔ package.json
+ *   bun scripts/ci-local.ts --tag v3.8.0   # also assert tag ↔ package.json
  *
  * Flags:
  *   --tauri          run `tauri build` (current OS only; CI builds 3 platforms)
@@ -69,7 +69,7 @@ const tagEnv: Record<string, string> = {}
 if (wantTag) {
   const tag = flagValue('--tag') ?? latestVersionTag()
   if (!tag) {
-    console.error('No tag supplied and no v* git tags found. Use: --tag v3.7.0')
+    console.error('No tag supplied and no v* git tags found. Use: --tag v3.8.0')
     process.exit(1)
   }
   tagEnv.GITHUB_REF_TYPE = 'tag'

@@ -12,9 +12,9 @@ describe('APP_VERSION', () => {
     expect(APP_VERSION).toMatch(/^\d+\.\d+\.\d+$/)
   })
 
-  it('matches the 3.7 release line', () => {
-    expect(APP_VERSION.startsWith('3.7.')).toBe(true)
-    expect(APP_SHORT_VERSION).toBe('3.7')
+  it('matches the 3.8 release line', () => {
+    expect(APP_VERSION.startsWith('3.8.')).toBe(true)
+    expect(APP_SHORT_VERSION).toBe('3.8')
   })
 
   it('stays in sync with package.json', () => {

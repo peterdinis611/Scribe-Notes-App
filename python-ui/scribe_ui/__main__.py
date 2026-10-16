@@ -27,7 +27,7 @@ def main(argv: list[str] | None = None) -> None:
         action="store_true",
         help="Body fragment only (no document shell)",
     )
-    html_parser.add_argument("--version", default="3.7.0")
+    html_parser.add_argument("--version", default="3.8.0")
     html_parser.add_argument("--short-version", default=None)
 
     args = parser.parse_args(argv)

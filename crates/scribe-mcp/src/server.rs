@@ -3208,7 +3208,7 @@ impl ScribeMcp {
     ) -> Result<String, String> {
         let mut payload = serde_json::json!({
             "surface": params.surface,
-            "version": params.version.unwrap_or_else(|| "3.7.0".into()),
+            "version": params.version.unwrap_or_else(|| "3.8.0".into()),
         });
         if let Some(strings) = params.strings {
             payload["strings"] = serde_json::json!(strings);
