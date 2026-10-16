@@ -1,4 +1,5 @@
 # Native Tauri builds — version tags or manual dispatch.
+# On tags: creates/updates a draft GitHub Release and uploads macOS artifacts.
 name: Build
 
 on:
@@ -10,10 +11,14 @@ concurrency:
   group: build-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: write
+
 jobs:
   tauri:
     name: Tauri (${{ matrix.name }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -21,17 +26,19 @@ jobs:
           - name: macOS
             os: macos-latest
             args: ''
-            artifacts: true
+            release: true
           - name: Linux
             os: ubuntu-24.04
             args: --no-bundle
-            artifacts: false
+            release: false
           - name: Windows
             os: windows-latest
             args: --no-bundle
-            artifacts: false
+            release: false
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install Linux WebKit / GTK deps
         if: runner.os == 'Linux'
@@ -72,11 +79,31 @@ jobs:
           GITHUB_REF_TYPE: ${{ github.ref_type }}
           GITHUB_REF_NAME: ${{ github.ref_name }}
 
-      - name: Build Tauri app
+      - name: Build Tauri app (release draft on tag / macOS)
+        if: matrix.release && startsWith(github.ref, 'refs/tags/v')
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: .
+          tagName: v__VERSION__
+          releaseName: 'Scribe v__VERSION__'
+          releaseBody: |
+            Draft release for Scribe __VERSION__.
+
+            - macOS: `.dmg` / `.app` attached when the Build workflow finishes
+            - Linux / Windows: compile-checked in CI (`--no-bundle`); ship packages from a signed runner when ready
+          releaseDraft: true
+          prerelease: false
+          includeUpdaterJson: false
+          args: ${{ matrix.args }}
+
+      - name: Build Tauri app (no release upload)
+        if: ${{ !(matrix.release && startsWith(github.ref, 'refs/tags/v')) }}
         uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: .
           args: ${{ matrix.args }}
-          uploadWorkflowArtifacts: ${{ matrix.artifacts }}
+          uploadWorkflowArtifacts: ${{ matrix.release }}

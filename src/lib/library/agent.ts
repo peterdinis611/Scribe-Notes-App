@@ -277,7 +277,7 @@ const DEFAULT_CLARIFY: AgentToolId[] = [
   'library_answer',
 ]
 
-function dedupeTools(tools: AgentToolId[], limit = AGENT_MAX_STEPS): AgentToolId[] {
+function dedupeTools(tools: AgentToolId[], limit: number = AGENT_MAX_STEPS): AgentToolId[] {
   const seen = new Set<AgentToolId>()
   const out: AgentToolId[] = []
   for (const tool of tools) {
