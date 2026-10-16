@@ -109,6 +109,7 @@ dependencies = [
  "scribe-audit",
  "scribe-core",
  "scribe-ui",
+ "scribe-video",
  "serde",
  "serde_json",
  "tauri",
@@ -4203,11 +4204,19 @@ dependencies = [
  "dioxus-ssr",
  "fuzzy-matcher",
  "rand",
+ "scribe-video",
  "serde",
  "serde_json",
  "strum",
  "thiserror 1.0.69",
  "uuid",
+]
+
+[[package]]
+name = "scribe-video"
+version = "3.8.0"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

@@ -10,6 +10,12 @@ import {
   type CanvasPoint,
   type CanvasViewport,
 } from '@/lib/canvas/types'
+import {
+  canvasEdgesToFlowNative,
+  cardsToNodesNative,
+  flowToCanvasDocumentNative,
+} from '@/lib/db/api'
+import { isTauriRuntime } from '@/lib/tauri'
 
 /** Keep in sync with `crates/scribe-ui/src/canvas_flow.rs`. */
 
@@ -267,3 +273,45 @@ export function absolutePosition(
 }
 
 export { objectToNode }
+
+/** Prefer Rust `scribe-ui` under Tauri; otherwise JS fallback. */
+export async function cardsToNodesAsync(cards: CanvasCard[]): Promise<CanvasFlowNode[]> {
+  if (isTauriRuntime()) {
+    try {
+      return (await cardsToNodesNative(cards)) as CanvasFlowNode[]
+    } catch {
+      /* fall through */
+    }
+  }
+  return cardsToNodes(cards)
+}
+
+/** Prefer Rust `scribe-ui` under Tauri; otherwise JS fallback. */
+export async function canvasEdgesToFlowAsync(edges: CanvasEdge[]): Promise<Edge[]> {
+  if (isTauriRuntime()) {
+    try {
+      return (await canvasEdgesToFlowNative(edges)) as Edge[]
+    } catch {
+      /* fall through */
+    }
+  }
+  return canvasEdgesToFlow(edges)
+}
+
+/** Prefer Rust `scribe-ui` under Tauri; otherwise JS fallback. */
+export async function flowToCanvasDocumentAsync(
+  nodes: Node<CanvasObjectData>[],
+  edges: Edge[],
+  viewport?: CanvasViewport,
+): Promise<CanvasDocument> {
+  if (isTauriRuntime()) {
+    try {
+      const doc = (await flowToCanvasDocumentNative(nodes, edges)) as CanvasDocument
+      if (viewport) return { ...doc, viewport }
+      return doc
+    } catch {
+      /* fall through */
+    }
+  }
+  return flowToCanvasDocument(nodes, edges, viewport)
+}

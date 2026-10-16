@@ -107,6 +107,7 @@ export function insertEmptyVideoBlock(editor: Editor, pos?: number) {
 
 export async function insertVideo(editor: Editor) {
   if (editor.isDestroyed) return
+  const { normalizeVideoSrcAsync } = await import('@/lib/editor/video')
   const url = await promptInput({
     title: i18n.t('toolbar.videoDialog.title'),
     description: i18n.t('toolbar.videoDialog.description'),
@@ -115,7 +116,9 @@ export async function insertVideo(editor: Editor) {
     confirmLabel: i18n.t('toolbar.videoDialog.confirm'),
   })
   if (!url?.trim() || editor.isDestroyed) return
-  editor.chain().focus().insertVideo({ src: url.trim() }).run()
+  const src = await normalizeVideoSrcAsync(url)
+  if (editor.isDestroyed) return
+  editor.chain().focus().insertVideo({ src }).run()
 }
 
 export async function insertYoutubeVideo(editor: Editor) {

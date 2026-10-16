@@ -375,21 +375,6 @@ pub fn validate_snippet_input_ui(
 }
 
 #[tauri::command]
-pub fn is_video_url_ui(value: String) -> bool {
-    scribe_ui::is_video_url(&value)
-}
-
-#[tauri::command]
-pub fn video_provider_label_ui(src: String) -> String {
-    scribe_ui::video_provider_label(&src)
-}
-
-#[tauri::command]
-pub fn video_export_embed_ui(src: String) -> scribe_ui::VideoExportEmbed {
-    scribe_ui::video_export_embed(&src)
-}
-
-#[tauri::command]
 pub fn document_style_presets_ui() -> Vec<scribe_ui::DocumentStylePreset> {
     scribe_ui::document_style_presets()
 }
@@ -610,4 +595,48 @@ pub fn format_export_date_ui(year: i32, month: u32, day: u32, language: String) 
         chrono::Local::now().date_naive()
     });
     scribe_ui::format_export_date(date, &language)
+}
+
+#[tauri::command]
+pub fn build_document_ask_questions_ui(
+    analysis: Option<scribe_ui::AskAnalysisInput>,
+    tasks: Vec<scribe_ui::AskTaskInput>,
+    options: scribe_ui::DocumentAskOptions,
+) -> Vec<String> {
+    scribe_ui::build_document_ask_questions(analysis.as_ref(), &tasks, &options)
+}
+
+#[tauri::command]
+pub fn build_document_ask_actions_ui(
+    analysis: Option<scribe_ui::AskAnalysisInput>,
+    tasks: Vec<scribe_ui::AskTaskInput>,
+) -> Vec<String> {
+    scribe_ui::build_document_ask_actions(analysis.as_ref(), &tasks)
+}
+
+#[tauri::command]
+pub fn build_document_content_css_ui(
+    typography: Option<scribe_ui::DocumentTypographyInput>,
+) -> String {
+    scribe_ui::build_document_content_css(typography.as_ref())
+}
+
+#[tauri::command]
+pub fn build_watermark_css_ui(opacity: f64, angle: f64) -> String {
+    scribe_ui::build_watermark_css(opacity, angle)
+}
+
+#[tauri::command]
+pub fn document_tiptap_css_ui() -> String {
+    scribe_ui::DOCUMENT_TIPTAP_CSS.to_string()
+}
+
+#[tauri::command]
+pub fn document_highlight_css_ui() -> String {
+    scribe_ui::DOCUMENT_HIGHLIGHT_CSS.to_string()
+}
+
+#[tauri::command]
+pub fn pdf_capture_css_ui() -> String {
+    scribe_ui::PDF_CAPTURE_CSS.to_string()
 }

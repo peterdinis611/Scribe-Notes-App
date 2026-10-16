@@ -1,8 +1,10 @@
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Columns2, List } from 'lucide-react'
 import {
   countDiffChanges,
   filterDiffLinesWithContext,
+  filterDiffLinesWithContextAsync,
   filterSideBySideWithContext,
   type DiffLine,
   type DiffSegment,
@@ -76,7 +78,20 @@ export function RevisionDiffView({
   onClose,
 }: RevisionDiffViewProps) {
   const { t } = useTranslation()
-  const visibleLines = filterDiffLinesWithContext(lines, changesOnly, contextLines)
+  const [visibleLines, setVisibleLines] = useState(() =>
+    filterDiffLinesWithContext(lines, changesOnly, contextLines),
+  )
+
+  useEffect(() => {
+    let cancelled = false
+    setVisibleLines(filterDiffLinesWithContext(lines, changesOnly, contextLines))
+    void filterDiffLinesWithContextAsync(lines, changesOnly, contextLines).then((next) => {
+      if (!cancelled) setVisibleLines(next)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [lines, changesOnly, contextLines])
   const visibleRows = filterSideBySideWithContext(sideBySideRows, changesOnly, contextLines)
   const { added, removed } = countDiffChanges(lines)
   const hasTerms =

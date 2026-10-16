@@ -24,7 +24,9 @@ import {
 import { nlpDocumentAnalysis, nlpDocumentTasks, nlpStatus, type DocumentTask, type NlpDocumentAnalysis } from '@/lib/db/nlp-api'
 import {
   buildDocumentAskActions,
+  buildDocumentAskActionsAsync,
   buildDocumentAskQuestions,
+  buildDocumentAskQuestionsAsync,
 } from '@/lib/library/document-ask-suggestions'
 import {
   askChat,
@@ -192,39 +194,63 @@ export function LibraryChatPanel({ onNavigate }: LibraryChatPanelProps) {
     }
   }, [scope, activeDocumentId, nlpReady])
 
-  const documentQuestions = useMemo(() => {
-    if (scope !== 'document') return [] as string[]
+  const [documentQuestions, setDocumentQuestions] = useState<string[]>([])
+  const [documentActions, setDocumentActions] = useState(() => DOCUMENT_ACTIONS.slice(0, 6))
+
+  useEffect(() => {
+    const byId = new Map(DOCUMENT_ACTIONS.map((item) => [item.id, item]))
+    const fallback = DOCUMENT_ACTIONS.slice(0, 6)
+    const promptFallback = () => DOCUMENT_PROMPTS.map((key) => t(key))
+
+    function orderActions(ranked: DocumentChatAction[]) {
+      if (!ranked.length) return fallback
+      const ordered = ranked
+        .map((id) => byId.get(id))
+        .filter((item): item is (typeof DOCUMENT_ACTIONS)[number] => Boolean(item))
+      for (const extra of DOCUMENT_ACTIONS) {
+        if (
+          ordered.length < 8 &&
+          !ordered.some((item) => item.id === extra.id) &&
+          (extra.id === 'title' || extra.id === 'spellcheck')
+        ) {
+          ordered.push(extra)
+        }
+      }
+      return ordered
+    }
+
+    if (scope !== 'document') {
+      setDocumentQuestions([])
+      setDocumentActions(fallback)
+      return
+    }
+
+    let cancelled = false
     const slovak =
       (docAnalysis?.language || i18n.language || '').toLowerCase().startsWith('sk')
-    const generated = buildDocumentAskQuestions(docAnalysis, docTasks, {
+    const syncQuestions = buildDocumentAskQuestions(docAnalysis, docTasks, {
       title: activeDocument?.title,
       slovak,
     })
-    if (generated.length > 0) return generated
-    return DOCUMENT_PROMPTS.map((key) => t(key))
-  }, [scope, docAnalysis, docTasks, activeDocument?.title, i18n.language, t])
+    setDocumentQuestions(syncQuestions.length > 0 ? syncQuestions : promptFallback())
+    setDocumentActions(orderActions(buildDocumentAskActions(docAnalysis, docTasks)))
 
-  const documentActions = useMemo(() => {
-    const byId = new Map(DOCUMENT_ACTIONS.map((item) => [item.id, item]))
-    const fallback = DOCUMENT_ACTIONS.slice(0, 6)
-    if (scope !== 'document') return fallback
-    const ranked = buildDocumentAskActions(docAnalysis, docTasks)
-    if (!ranked.length) return fallback
-    const ordered = ranked
-      .map((id) => byId.get(id))
-      .filter((item): item is (typeof DOCUMENT_ACTIONS)[number] => Boolean(item))
-    // Keep title/spellcheck available even when not top-ranked.
-    for (const extra of DOCUMENT_ACTIONS) {
-      if (
-        ordered.length < 8 &&
-        !ordered.some((item) => item.id === extra.id) &&
-        (extra.id === 'title' || extra.id === 'spellcheck')
-      ) {
-        ordered.push(extra)
-      }
+    void Promise.all([
+      buildDocumentAskQuestionsAsync(docAnalysis, docTasks, {
+        title: activeDocument?.title,
+        slovak,
+      }),
+      buildDocumentAskActionsAsync(docAnalysis, docTasks),
+    ]).then(([questions, actions]) => {
+      if (cancelled) return
+      setDocumentQuestions(questions.length > 0 ? questions : promptFallback())
+      setDocumentActions(orderActions(actions))
+    })
+
+    return () => {
+      cancelled = true
     }
-    return ordered
-  }, [scope, docAnalysis, docTasks])
+  }, [scope, docAnalysis, docTasks, activeDocument?.title, i18n.language, t])
 
   useEffect(() => {
     if (!sidebarOpen) return

@@ -1,5 +1,8 @@
 import type { DocumentTask, NlpDocumentAnalysis } from '@/lib/db/nlp-api'
-import { buildDocumentAskQuestions } from '@/lib/library/document-ask-suggestions'
+import {
+  buildDocumentAskQuestions,
+  buildDocumentAskQuestionsAsync,
+} from '@/lib/library/document-ask-suggestions'
 import type { AgentToolId } from '@/lib/library/agent-prefs'
 
 const MAX_CHIPS = 12
@@ -160,6 +163,18 @@ export function buildAgentGoalChips(
   chips.push(slovak ? 'Organizuj tagy a priečinok' : 'Organize tags and folder for this note')
 
   return uniqueKeepOrder(chips, MAX_CHIPS)
+}
+
+/** Prefer Rust ask-questions under Tauri when building agent goal chips. */
+export async function buildAgentGoalChipsAsync(
+  analysis: NlpDocumentAnalysis | null | undefined,
+  tasks: DocumentTask[] | null | undefined,
+  opts?: { title?: string | null; slovak?: boolean },
+): Promise<string[]> {
+  const grounded = await buildDocumentAskQuestionsAsync(analysis, tasks, opts)
+  const rest = buildAgentGoalChips(analysis, tasks, opts)
+  // Prefer Rust-grounded questions first, then fill with the rest of the chip set.
+  return uniqueKeepOrder([...grounded.slice(0, 6), ...rest], MAX_CHIPS)
 }
 
 /** Ranked agent tools that match signals in this note. */

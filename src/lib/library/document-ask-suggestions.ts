@@ -1,5 +1,12 @@
+import {
+  buildDocumentAskActionsNative,
+  buildDocumentAskQuestionsNative,
+} from '@/lib/db/api'
 import type { DocumentTask, NlpDocumentAnalysis } from '@/lib/db/nlp-api'
 import type { DocumentChatAction } from '@/lib/library/library-chat'
+import { isTauriRuntime } from '@/lib/tauri'
+
+/** Keep in sync with `crates/scribe-ui/src/document_ask.rs`. Sync helpers remain for tests / fallback. */
 
 const MAX_QUESTIONS = 10
 const MAX_ACTIONS = 8
@@ -23,6 +30,30 @@ function clip(text: string, max = 56): string {
   const trimmed = text.trim().replace(/\s+/g, ' ')
   if (trimmed.length <= max) return trimmed
   return `${trimmed.slice(0, max - 1).trimEnd()}…`
+}
+
+function toAskAnalysis(analysis: NlpDocumentAnalysis | null | undefined) {
+  if (!analysis) return null
+  return {
+    outline: (analysis.outline ?? []).map((item) => ({ title: item.title })),
+    keyphrases: analysis.keyphrases ?? [],
+    keywords: (analysis.keywords ?? []).map((item) => ({ term: item.term })),
+    mentions: analysis.mentions ?? [],
+    dates: (analysis.dates ?? []).map((item) => ({
+      text: item.text,
+      resolvedDate: item.resolvedDate ?? '',
+    })),
+    wikiLinks: analysis.wikiLinks ?? [],
+    hosts: analysis.hosts ?? [],
+    summary: analysis.summary ?? '',
+  }
+}
+
+function toAskTasks(tasks: DocumentTask[] | null | undefined) {
+  return (tasks ?? []).map((task) => ({
+    text: task.text,
+    checked: Boolean(task.checked),
+  }))
 }
 
 /**
@@ -178,4 +209,43 @@ export function buildDocumentAskActions(
 
   ranked.sort((a, b) => b.score - a.score)
   return ranked.slice(0, MAX_ACTIONS).map((item) => item.action)
+}
+
+/** Prefer Rust `scribe-ui` under Tauri; otherwise JS fallback. */
+export async function buildDocumentAskQuestionsAsync(
+  analysis: NlpDocumentAnalysis | null | undefined,
+  tasks: DocumentTask[] | null | undefined,
+  opts?: { title?: string | null; slovak?: boolean },
+): Promise<string[]> {
+  if (isTauriRuntime()) {
+    try {
+      return await buildDocumentAskQuestionsNative(
+        toAskAnalysis(analysis),
+        toAskTasks(tasks),
+        { title: opts?.title ?? null, slovak: Boolean(opts?.slovak) },
+      )
+    } catch {
+      /* fall through */
+    }
+  }
+  return buildDocumentAskQuestions(analysis, tasks, opts)
+}
+
+/** Prefer Rust `scribe-ui` under Tauri; otherwise JS fallback. */
+export async function buildDocumentAskActionsAsync(
+  analysis: NlpDocumentAnalysis | null | undefined,
+  tasks: DocumentTask[] | null | undefined,
+): Promise<DocumentChatAction[]> {
+  if (isTauriRuntime()) {
+    try {
+      const actions = await buildDocumentAskActionsNative(
+        toAskAnalysis(analysis),
+        toAskTasks(tasks),
+      )
+      return actions as DocumentChatAction[]
+    } catch {
+      /* fall through */
+    }
+  }
+  return buildDocumentAskActions(analysis, tasks)
 }

@@ -70,7 +70,6 @@ mod theme_presets;
 mod tour_selectors;
 mod ui_fonts;
 mod version;
-mod video_embed;
 mod whats_new;
 
 #[cfg(feature = "dioxus")]
@@ -286,9 +285,11 @@ pub use ui_fonts::{
     is_ui_font_preset_id, ui_font_preset_ids, ui_font_presets, UiFontPreset, UI_FONTS_STORAGE_KEY,
 };
 pub use version::{app_version_info, short_version, AppVersionInfo, APP_VERSION};
-pub use video_embed::{
-    extract_vimeo_id, extract_youtube_id, is_video_url, video_export_embed, video_provider_label,
-    VideoExportEmbed,
+/// Video helpers live in `scribe-video`; re-exported for existing `scribe_ui::` callers.
+pub use scribe_video::{
+    detect_provider, extract_vimeo_id, extract_youtube_id, inspect_video, is_video_url,
+    normalize_video_src, video_export_embed, video_provider_label, VideoExportEmbed, VideoInfo,
+    VideoProvider,
 };
 pub use whats_new::{
     whats_new_highlights, whats_new_tag_keys, EDITION_MARK_KEY, WHATS_NEW_34_HIGHLIGHTS,

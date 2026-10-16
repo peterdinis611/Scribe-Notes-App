@@ -9,7 +9,7 @@ import {
   svgMarkupToFile,
 } from '@/lib/editor/image-utils'
 import { isMapUrl, specFromMapUrl } from '@/lib/editor/map'
-import { isVideoUrl } from '@/lib/editor/video'
+import { isVideoUrl, normalizeVideoSrc } from '@/lib/editor/video'
 
 export const PASTE_IMAGE_MIME_TYPES = [
   'image/jpeg',
@@ -179,7 +179,7 @@ export const ClipboardPaste = Extension.create<ClipboardPasteOptions>({
 
             if (text && isVideoUrl(text) && this.editor) {
               event.preventDefault()
-              this.editor.chain().focus().insertVideo({ src: text }).run()
+              this.editor.chain().focus().insertVideo({ src: normalizeVideoSrc(text) }).run()
               return true
             }
 

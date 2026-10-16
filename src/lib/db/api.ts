@@ -998,6 +998,30 @@ export const videoProviderLabelNative = (src: string) =>
 export const videoExportEmbedNative = (src: string) =>
   invoke<{ kind: string; href: string }>('video_export_embed_ui', { src })
 
+export const extractYoutubeIdNative = (src: string) =>
+  invoke<string | null>('extract_youtube_id_ui', { src })
+
+export const extractVimeoIdNative = (src: string) =>
+  invoke<string | null>('extract_vimeo_id_ui', { src })
+
+export const detectVideoProviderNative = (src: string) =>
+  invoke<string>('detect_video_provider_ui', { src })
+
+export const normalizeVideoSrcNative = (src: string) =>
+  invoke<string>('normalize_video_src_ui', { src })
+
+export const inspectVideoNative = (src: string) =>
+  invoke<{
+    src: string
+    normalized: string
+    provider: string
+    label: string
+    isVideo: boolean
+    export: { kind: string; href: string }
+    youtubeId?: string | null
+    vimeoId?: string | null
+  }>('inspect_video_ui', { src })
+
 export const documentStylePresetsNative = () => invoke<unknown[]>('document_style_presets_ui')
 
 export const applyDocumentStylePresetNative = (id: string) =>
@@ -1027,6 +1051,56 @@ export const themePresetIdsNative = () => invoke<string[]>('theme_preset_ids_ui'
 
 export const suggestOrphanLinksNative = (rows: unknown[]) =>
   invoke<unknown[]>('suggest_orphan_links_ui', { rows })
+
+export const flattenFoldersForPickerNative = (folders: unknown[]) =>
+  invoke<Array<{ folder: unknown; depth: number }>>('flatten_folders_for_picker_ui', { folders })
+
+export const filterDiffLinesNative = (
+  lines: Array<{ type: string; text: string }>,
+  changesOnly: boolean,
+  contextLines?: number | null,
+) =>
+  invoke<Array<{ type: string; text: string }>>('filter_diff_lines_ui', {
+    lines,
+    changesOnly,
+    contextLines: contextLines ?? null,
+  })
+
+export const buildDocumentAskQuestionsNative = (
+  analysis: unknown | null,
+  tasks: Array<{ text: string; checked: boolean }>,
+  options: { title?: string | null; slovak?: boolean },
+) =>
+  invoke<string[]>('build_document_ask_questions_ui', {
+    analysis,
+    tasks,
+    options: {
+      title: options.title ?? null,
+      slovak: Boolean(options.slovak),
+    },
+  })
+
+export const buildDocumentAskActionsNative = (
+  analysis: unknown | null,
+  tasks: Array<{ text: string; checked: boolean }>,
+) => invoke<string[]>('build_document_ask_actions_ui', { analysis, tasks })
+
+export const buildDocumentContentCssNative = (
+  typography?: {
+    fontFamily?: string | null
+    fontSize?: number | null
+    lineHeight?: number | null
+  } | null,
+) => invoke<string>('build_document_content_css_ui', { typography: typography ?? null })
+
+export const buildWatermarkCssNative = (opacity: number, angle: number) =>
+  invoke<string>('build_watermark_css_ui', { opacity, angle })
+
+export const documentTiptapCssNative = () => invoke<string>('document_tiptap_css_ui')
+
+export const documentHighlightCssNative = () => invoke<string>('document_highlight_css_ui')
+
+export const pdfCaptureCssNative = () => invoke<string>('pdf_capture_css_ui')
 
 export const resolveColorNative = (color: string, tokens: Record<string, string>) =>
   invoke<string>('resolve_color_ui', { color, tokens })

@@ -1,8 +1,16 @@
 /** Keep in sync with `crates/scribe-ui` counterpart. */
 /** Shared typography and layout CSS for editor print mode, HTML export, and print preview. */
+import {
+  buildDocumentContentCssNative,
+  buildWatermarkCssNative,
+  documentHighlightCssNative,
+  documentTiptapCssNative,
+  pdfCaptureCssNative,
+} from '@/lib/db/api'
 import type { PageSetup } from '@/lib/editor/page-setup'
 import { DEFAULT_PAGE_SETUP, normalizePageSetup } from '@/lib/editor/page-setup'
 import { resolveDocumentTypography } from '@/lib/editor/document-style-presets'
+import { isTauriRuntime } from '@/lib/tauri'
 
 export const DOCUMENT_BODY_FONT =
   '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif'
@@ -97,4 +105,46 @@ export function buildWatermarkCss(opacity: number, angle: number): string {
       user-select: none;
     }
   `
+}
+
+export type DocumentCssBundle = {
+  contentCss: string
+  tipTapCss: string
+  highlightCss: string
+  pdfCaptureCss: string
+  watermarkCss: string
+}
+
+/** Prefer Rust `scribe-ui` under Tauri; otherwise JS fallback. */
+export async function resolveDocumentCssBundle(
+  pageSetup?: PageSetup,
+): Promise<DocumentCssBundle> {
+  const setup = normalizePageSetup(pageSetup ?? DEFAULT_PAGE_SETUP)
+  const typography = resolveDocumentTypography(setup)
+  const sync: DocumentCssBundle = {
+    contentCss: buildDocumentContentCss(setup),
+    tipTapCss: DOCUMENT_TIPTAP_CSS,
+    highlightCss: DOCUMENT_HIGHLIGHT_CSS,
+    pdfCaptureCss: PDF_CAPTURE_CSS,
+    watermarkCss: buildWatermarkCss(setup.watermark.opacity, setup.watermark.angle),
+  }
+
+  if (!isTauriRuntime()) return sync
+
+  try {
+    const [contentCss, tipTapCss, highlightCss, pdfCaptureCss, watermarkCss] = await Promise.all([
+      buildDocumentContentCssNative({
+        fontFamily: typography.fontFamily,
+        fontSize: typography.fontSize,
+        lineHeight: typography.lineHeight,
+      }),
+      documentTiptapCssNative(),
+      documentHighlightCssNative(),
+      pdfCaptureCssNative(),
+      buildWatermarkCssNative(setup.watermark.opacity, setup.watermark.angle),
+    ])
+    return { contentCss, tipTapCss, highlightCss, pdfCaptureCss, watermarkCss }
+  } catch {
+    return sync
+  }
 }

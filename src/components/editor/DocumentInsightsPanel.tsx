@@ -53,7 +53,9 @@ import {
 } from '@/lib/db/api'
 import {
   buildDocumentAskActions,
+  buildDocumentAskActionsAsync,
   buildDocumentAskQuestions,
+  buildDocumentAskQuestionsAsync,
 } from '@/lib/library/document-ask-suggestions'
 import {
   askDocument,
@@ -359,19 +361,38 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
     [analysis?.language, i18n.language],
   )
 
-  const documentQuestions = useMemo(
-    () =>
-      buildDocumentAskQuestions(analysis, openTasks, {
-        title: activeDocument?.title || activeSummary?.title,
-        slovak,
-      }),
-    [analysis, openTasks, activeDocument?.title, activeSummary?.title, slovak],
+  const askTitle = activeDocument?.title || activeSummary?.title
+  const [documentQuestions, setDocumentQuestions] = useState(() =>
+    buildDocumentAskQuestions(analysis, openTasks, { title: askTitle, slovak }),
   )
-
-  const documentActions = useMemo(() => {
+  const [documentActions, setDocumentActions] = useState<DocumentChatAction[]>(() => {
     const ranked = buildDocumentAskActions(analysis, openTasks)
     return ranked.length > 0 ? ranked : FALLBACK_INSIGHT_ACTIONS
-  }, [analysis, openTasks])
+  })
+
+  useEffect(() => {
+    let cancelled = false
+    const syncQuestions = buildDocumentAskQuestions(analysis, openTasks, {
+      title: askTitle,
+      slovak,
+    })
+    const syncActions = buildDocumentAskActions(analysis, openTasks)
+    setDocumentQuestions(syncQuestions)
+    setDocumentActions(syncActions.length > 0 ? syncActions : FALLBACK_INSIGHT_ACTIONS)
+
+    void Promise.all([
+      buildDocumentAskQuestionsAsync(analysis, openTasks, { title: askTitle, slovak }),
+      buildDocumentAskActionsAsync(analysis, openTasks),
+    ]).then(([questions, actions]) => {
+      if (cancelled) return
+      setDocumentQuestions(questions)
+      setDocumentActions(actions.length > 0 ? actions : FALLBACK_INSIGHT_ACTIONS)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [analysis, openTasks, askTitle, slovak])
 
   const handleOpen = useCallback(
     (id: string) => {
