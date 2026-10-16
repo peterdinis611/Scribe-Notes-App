@@ -203,7 +203,7 @@ pub fn probe_library_video(
     state: State<'_, DbState>,
     id: String,
 ) -> Result<ProbeVideoResult, String> {
-    let mut conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
     let Some(mut video) = get_library_video(&conn, &id)? else {
         return Err("Video not found".into());
     };
@@ -367,13 +367,14 @@ pub fn transcribe_library_video(
 
     // Prefer sandbox-relative path for Python; fall back to absolute for reference imports.
     let params = serde_json::json!({
+        "videoId": video.id,
         "relPath": video.rel_path,
         "sourcePath": video.source_path,
         "model": request.model.clone().unwrap_or_else(|| "base".into()),
         "language": request.language,
     });
 
-    let _ = TRANSCRIBE_VIDEO_METHOD;
+    debug_assert_eq!(TRANSCRIBE_VIDEO_METHOD, "transcribe_video");
     let result_value = sidecar.transcribe_video(params).map_err(|e| {
         let mut failed = video.clone();
         failed.status = LibraryVideoStatus::Failed;

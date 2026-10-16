@@ -162,9 +162,13 @@ pub struct TranscriptSegment {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct TranscribeVideoResult {
+    #[serde(default)]
     pub video_id: String,
+    #[serde(default)]
     pub text: String,
+    #[serde(default)]
     pub segments: Vec<TranscriptSegment>,
+    #[serde(default)]
     pub model: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub language: Option<String>,

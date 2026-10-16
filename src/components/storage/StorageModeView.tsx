@@ -5,6 +5,7 @@ import {
   Box,
   FileImage,
   FileQuestion,
+  Film,
   FolderOpen,
   HardDrive,
   Image as ImageIcon,
@@ -33,7 +34,7 @@ import { StorageLocalApiPanel } from '@/components/storage/StorageLocalApiPanel'
 import { promptInput } from '@/lib/input-dialog'
 import { confirm } from '@tauri-apps/plugin-dialog'
 
-type AssetFilter = 'all' | 'orphans' | 'image' | 'svg' | 'lottie' | 'model3d' | 'other'
+type AssetFilter = 'all' | 'orphans' | 'image' | 'svg' | 'lottie' | 'model3d' | 'video' | 'other'
 
 function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return '0 B'
@@ -52,6 +53,7 @@ function KindIcon({ kind }: { kind: string }) {
   if (kind === 'svg') return <FileImage className="h-5 w-5" />
   if (kind === 'lottie') return <Sparkles className="h-5 w-5" />
   if (kind === 'model3d') return <Box className="h-5 w-5" />
+  if (kind === 'video') return <Film className="h-5 w-5" />
   return <FileQuestion className="h-5 w-5" />
 }
 
@@ -123,6 +125,7 @@ export function StorageModeView() {
     { id: 'svg', label: t('storageMode.filterSvg') },
     { id: 'lottie', label: t('storageMode.filterLottie') },
     { id: 'model3d', label: t('storageMode.filterModel3d') },
+    { id: 'video', label: t('storageMode.filterVideos') },
     { id: 'other', label: t('storageMode.filterOther') },
   ]
 
@@ -303,6 +306,15 @@ export function StorageModeView() {
                         alt={asset.fileName}
                         loading="lazy"
                         className="storage-mode-thumb-img"
+                      />
+                    ) : asset.kind === 'video' ? (
+                      <video
+                        src={convertFileSrc(asset.path)}
+                        className="storage-mode-thumb-img"
+                        muted
+                        playsInline
+                        preload="metadata"
+                        aria-label={asset.fileName}
                       />
                     ) : (
                       <span className="storage-mode-thumb-fallback" aria-hidden="true">

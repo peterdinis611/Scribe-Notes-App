@@ -1046,6 +1046,123 @@ export const renderVideoFigureHtmlNative = (src?: string | null, caption?: strin
 export const collectVideosFromTiptapNative = (contentJson: string) =>
   invoke<unknown[]>('collect_videos_from_tiptap_ui', { contentJson })
 
+/** Local large-video library (Rust store + optional Python ASR). */
+export type VideoImportMode = 'copy' | 'reference'
+
+export type LibraryVideoStatus =
+  | 'ready'
+  | 'probing'
+  | 'thumbPending'
+  | 'transcribing'
+  | 'transcriptReady'
+  | 'failed'
+
+export type LibraryVideo = {
+  id: string
+  title: string
+  importMode: VideoImportMode
+  sourcePath: string
+  relPath?: string | null
+  sizeBytes: number
+  contentHash?: string | null
+  durationSecs?: number | null
+  width?: number | null
+  height?: number | null
+  codec?: string | null
+  thumbRelPath?: string | null
+  transcriptRelPath?: string | null
+  transcriptDocumentId?: string | null
+  status: LibraryVideoStatus
+  error?: string | null
+  documentId?: string | null
+  createdAt: number
+  updatedAt: number
+}
+
+export type ImportLocalVideoResult = {
+  video: LibraryVideo
+  large: boolean
+}
+
+export type ProbeVideoResult = {
+  durationSecs?: number | null
+  width?: number | null
+  height?: number | null
+  codec?: string | null
+  available: boolean
+}
+
+export type TranscriptSegment = {
+  start: number
+  end: number
+  text: string
+}
+
+export type TranscribeVideoResult = {
+  videoId: string
+  text: string
+  segments: TranscriptSegment[]
+  model: string
+  language?: string | null
+  transcriptRelPath?: string | null
+  transcriptDocumentId?: string | null
+}
+
+/** Native file picker; grants PathAccessGate. Returns absolute path or null if cancelled. */
+export const pickLocalVideoNative = () =>
+  invoke<string | null>('pick_local_video')
+
+export const importLocalVideoNative = (input: {
+  sourcePath: string
+  title?: string | null
+  importMode?: VideoImportMode | null
+  documentId?: string | null
+}) =>
+  invoke<ImportLocalVideoResult>('import_local_video', {
+    request: {
+      sourcePath: input.sourcePath,
+      title: input.title ?? null,
+      importMode: input.importMode ?? null,
+      documentId: input.documentId ?? null,
+    },
+  })
+
+export const listLibraryVideosNative = () =>
+  invoke<LibraryVideo[]>('list_library_videos_cmd')
+
+export const getLibraryVideoNative = (id: string) =>
+  invoke<LibraryVideo | null>('get_library_video_cmd', { id })
+
+export const deleteLibraryVideoNative = (id: string, removeFiles = true) =>
+  invoke<boolean>('delete_library_video_cmd', { id, removeFiles })
+
+export const probeLibraryVideoNative = (id: string) =>
+  invoke<ProbeVideoResult>('probe_library_video', { id })
+
+export const generateLibraryVideoThumbnailNative = (id: string, atSecs?: number | null) =>
+  invoke<LibraryVideo>('generate_library_video_thumbnail', {
+    id,
+    atSecs: atSecs ?? null,
+  })
+
+export const transcribeLibraryVideoNative = (input: {
+  videoId: string
+  model?: string | null
+  language?: string | null
+  createDocument?: boolean | null
+}) =>
+  invoke<TranscribeVideoResult>('transcribe_library_video', {
+    request: {
+      videoId: input.videoId,
+      model: input.model ?? null,
+      language: input.language ?? null,
+      createDocument: input.createDocument ?? null,
+    },
+  })
+
+export const libraryVideoPlaybackPathNative = (id: string) =>
+  invoke<string>('library_video_playback_path', { id })
+
 export const documentStylePresetsNative = () => invoke<unknown[]>('document_style_presets_ui')
 
 export const applyDocumentStylePresetNative = (id: string) =>
@@ -2048,7 +2165,7 @@ export const saveDocumentImage = (
     dataBase64,
   })
 
-export type LibraryAssetKind = 'image' | 'svg' | 'lottie' | 'model3d' | 'other'
+export type LibraryAssetKind = 'image' | 'svg' | 'lottie' | 'model3d' | 'video' | 'other'
 
 export interface LibraryAsset {
   path: string

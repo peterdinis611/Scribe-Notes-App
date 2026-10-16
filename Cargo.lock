@@ -112,6 +112,7 @@ dependencies = [
  "scribe-video",
  "serde",
  "serde_json",
+ "sha2",
  "tauri",
  "tauri-build",
  "tauri-plugin-barcode-scanner",
