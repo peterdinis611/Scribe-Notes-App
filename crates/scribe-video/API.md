@@ -54,6 +54,23 @@ type TranscribeVideoRequest = {
 
 Frontend wrappers: `src/lib/db/api.ts` (`pickLocalVideoNative`, `importLocalVideoNative`, …).
 
+## Validation
+
+Rust (`scribe-video` + Tauri commands):
+
+- source path: local video ext, no URLs / NUL
+- size: ≥ 64 B; copy mode ≤ 2 GiB (else `reference`)
+- ids / titles: safe charset, length caps
+- whisper model allowlist; language `sk` / `en-us`
+- thumb seek: finite, 0…86400 s
+- sandbox `relPath` must stay under `attachments/videos/{id}/`
+
+Python `transcribe_video`:
+
+- absolute readable file with video extension
+- same model/language rules; size 64 B…4 GiB
+- segment sanitization (bounds + text length)
+
 ## NLP JSON-RPC
 
 Method: `transcribe_video` (timeout 600s).
@@ -61,7 +78,7 @@ Method: `transcribe_video` (timeout 600s).
 Params: `{ videoId?, sourcePath, relPath?, model?, language? }`  
 Result: `{ text, segments: [{ start, end, text }], model, language?, videoId? }`
 
-Requires optional `faster-whisper`. Errors: `-32021` unavailable, `-32022` failed.
+Requires optional `faster-whisper`. Errors: `-32602` validation, `-32021` unavailable, `-32022` failed.
 
 ## Storage mode
 

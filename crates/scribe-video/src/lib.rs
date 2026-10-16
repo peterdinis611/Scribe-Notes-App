@@ -19,11 +19,16 @@ mod url;
 
 pub use collect::{collect_videos_from_tiptap, collect_videos_from_tiptap_json, CollectedVideo};
 pub use library::{
-    default_import_mode, extension_of, is_local_video_path, title_from_path, video_dir_rel,
+    default_import_mode, extension_of, is_local_video_path, normalize_language_code,
+    normalize_whisper_model, title_from_path, validate_import_size, validate_import_source_path,
+    validate_optional_document_id, validate_thumb_seek, validate_title, validate_transcribe_request,
+    validate_video_extension, validate_video_id, validate_video_rel_path, video_dir_rel,
     video_source_rel, video_thumb_rel, video_transcript_rel, ImportLocalVideoRequest,
     ImportLocalVideoResult, LibraryVideo, LibraryVideoStatus, ProbeVideoResult,
     TranscribeVideoRequest, TranscribeVideoResult, TranscriptSegment, VideoImportMode,
-    LARGE_VIDEO_HINT_BYTES, LIBRARY_VIDEOS_PREFIX, TRANSCRIBE_VIDEO_METHOD,
+    ALLOWED_WHISPER_MODELS, LARGE_VIDEO_HINT_BYTES, LIBRARY_VIDEOS_PREFIX, MAX_COPY_BYTES,
+    MAX_THUMB_SEEK_SECS, MAX_VIDEO_ID_CHARS, MAX_VIDEO_TITLE_CHARS, MIN_VIDEO_BYTES,
+    TRANSCRIBE_VIDEO_METHOD,
 };
 pub use detect::{has_video_ext, is_video_url, VIDEO_FILE_EXT, VIDEO_HOSTS};
 pub use embed::{video_export_embed, VideoEmbedKind, VideoExportEmbed};
