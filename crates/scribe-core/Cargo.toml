@@ -25,7 +25,7 @@ chrono = { version = "0.4", features = ["clock"] }
 regex = "1"
 dirs = "6"
 scribe-video = { path = "../scribe-video" }
-zip = "2"
+zip = "8"
 quick-xml = "0.42"
 rapidfuzz = { version = "0.5", optional = true }
 rayon = { version = "1.10", optional = true }
