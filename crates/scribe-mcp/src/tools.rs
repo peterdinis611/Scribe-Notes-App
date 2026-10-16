@@ -1,5 +1,5 @@
 use rmcp::schemars::JsonSchema;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 pub fn json<T: serde::Serialize>(value: &T) -> String {
     serde_json::to_string_pretty(value).unwrap_or_else(|error| error.to_string())
@@ -525,6 +525,48 @@ pub struct CompareNotesParams {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+pub struct ContradictionHintsParams {
+    pub id_a: Option<String>,
+    pub id_b: Option<String>,
+    pub text_a: Option<String>,
+    pub text_b: Option<String>,
+    pub title_a: Option<String>,
+    pub title_b: Option<String>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct PassageRerankItem {
+    pub document_id: Option<String>,
+    pub title: Option<String>,
+    pub snippet: Option<String>,
+    pub text: Option<String>,
+    pub score: Option<f64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct PassageRerankParams {
+    pub query: String,
+    pub passages: Vec<PassageRerankItem>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct AnswerFollowupsParams {
+    pub question: String,
+    pub sentences: Option<Vec<String>>,
+    pub passages: Option<Vec<PassageRerankItem>>,
+    /// `library` (default) or `document`.
+    pub scope: Option<String>,
+    pub intent: Option<String>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct FilesPathParams {
     pub path: Option<String>,
     pub recursive: Option<bool>,
@@ -571,6 +613,30 @@ pub struct FilesIndexParams {
     pub path: Option<String>,
     pub limit_files: Option<i64>,
     pub force: Option<bool>,
+    pub base_url: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct FilesIndexStatusParams {
+    pub path: Option<String>,
+    pub scan_limit: Option<i64>,
+    pub base_url: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct FilesSimilarParams {
+    pub path: String,
+    pub scope: Option<String>,
+    pub limit: Option<i64>,
+    pub base_url: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct FilesIndexClearParams {
+    pub path: Option<String>,
     pub base_url: Option<String>,
 }
 

@@ -28,8 +28,30 @@ fn collect_targets(value: &Value, targets: &mut Vec<String>) {
                     }
                 }
             }
+            // Canvas v2 docLink objects (mind-map bridges into the wiki graph).
+            if map.get("type").and_then(Value::as_str) == Some("canvas") {
+                if let Some(objects) = map.get("objects").and_then(Value::as_array) {
+                    for obj in objects {
+                        let kind = obj.get("kind").and_then(Value::as_str);
+                        if kind != Some("docLink") {
+                            continue;
+                        }
+                        if let Some(target) = obj.get("documentId").and_then(Value::as_str) {
+                            if !target.is_empty() {
+                                targets.push(target.to_string());
+                            }
+                        }
+                    }
+                }
+            }
             if let Some(content) = map.get("content") {
                 collect_targets(content, targets);
+            }
+            if let Some(objects) = map.get("objects") {
+                // Nested walk when objects appear outside a typed canvas root.
+                if map.get("type").and_then(Value::as_str) != Some("canvas") {
+                    collect_targets(objects, targets);
+                }
             }
         }
         Value::Array(items) => {
@@ -106,6 +128,17 @@ mod tests {
         ]}"#;
         let targets = extract_wiki_link_targets(json);
         assert_eq!(targets, vec!["doc-a".to_string(), "doc-b".to_string()]);
+    }
+
+    #[test]
+    fn extracts_canvas_doc_link_targets() {
+        let json = r#"{"type":"canvas","version":2,"cards":[],"objects":[
+            {"id":"1","kind":"docLink","documentId":"doc-x","documentTitle":"X"},
+            {"id":"2","kind":"note","text":"hi","documentId":""},
+            {"id":"3","kind":"docLink","documentId":"doc-y","documentTitle":"Y"}
+        ],"edges":[]}"#;
+        let targets = extract_wiki_link_targets(json);
+        assert_eq!(targets, vec!["doc-x".to_string(), "doc-y".to_string()]);
     }
 
     #[test]

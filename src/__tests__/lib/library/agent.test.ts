@@ -109,9 +109,29 @@ describe('planAgentGoal', () => {
     expect(matchAgentIntentsSync('daily digest')).toContain('brief')
   })
 
+  it('plans wiki_health, keywords, and canvas intents', () => {
+    expect(matchAgentIntentsSync('Check wiki health and broken links')).toContain('wiki_health')
+    expect(matchAgentIntentsSync('Extract keywords from this note')).toContain('keywords')
+    expect(matchAgentIntentsSync('Summarize canvas board')).toContain('canvas_summarize')
+    expect(matchAgentIntentsSync('Canvas to note')).toContain('canvas_to_note')
+    expect(matchAgentIntentsSync('Apply brainstorm canvas template')).toContain('canvas_template')
+  })
+
   it('plans spellcheck intents', () => {
     expect(matchAgentIntentsSync('Skontroluj pravopis')).toContain('spellcheck')
     expect(matchAgentIntentsSync('Fix typos in this note')).toContain('spellcheck')
+  })
+
+  it('recipe soft-cap keeps full meeting_wrap tools', async () => {
+    const { DEFAULT_AGENT_PREFS } = await import('@/lib/library/agent-prefs')
+    const plan = await planAgentGoal('meeting wrap', 'document', 'doc-1', {
+      ...DEFAULT_AGENT_PREFS,
+      maxSteps: 2,
+      preferFast: false,
+    }, { recipeId: 'meeting_wrap' })
+    expect(plan.tools.length).toBeGreaterThanOrEqual(3)
+    expect(plan.tools).toContain('meeting')
+    expect(plan.planMeta?.source).toBe('recipe')
   })
 })
 

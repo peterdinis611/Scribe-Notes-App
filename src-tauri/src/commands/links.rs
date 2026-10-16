@@ -92,6 +92,15 @@ pub fn list_wiki_health(
 }
 
 #[tauri::command]
+pub fn list_graph_hubs(
+    state: tauri::State<'_, DbState>,
+    limit: Option<i64>,
+) -> Result<Vec<scribe_core::GraphHub>, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    scribe_core::list_graph_hubs(&conn, limit.unwrap_or(12))
+}
+
+#[tauri::command]
 pub fn find_documents_by_title(
     state: tauri::State<'_, DbState>,
     title: String,

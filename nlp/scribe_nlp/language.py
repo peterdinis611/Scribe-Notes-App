@@ -1,10 +1,25 @@
 from __future__ import annotations
 
+import threading
+from functools import lru_cache
+
 from .extras import has_lingua
 from .stopwords import STOP_WORDS_EN, STOP_WORDS_SK
 from .text_utils import tokenize
 
 SK_CHARS = set("áäčďéíĺľňóôŕšťúýžÁÄČĎÉÍĹĽŇÓÔŔŠŤÚÝŽ")
+
+_lingua_lock = threading.Lock()
+
+
+@lru_cache(maxsize=1)
+def _lingua_detector():
+    from lingua import Language, LanguageDetectorBuilder
+
+    return LanguageDetectorBuilder.from_languages(
+        Language.SLOVAK,
+        Language.ENGLISH,
+    ).build()
 
 
 def detect_language(text: str) -> dict[str, object]:
@@ -19,13 +34,11 @@ def _detect_lingua(text: str) -> dict[str, object] | None:
     if not has_lingua() or len((text or "").strip()) < 12:
         return None
     try:
-        from lingua import Language, LanguageDetectorBuilder
+        from lingua import Language
 
-        detector = LanguageDetectorBuilder.from_languages(
-            Language.SLOVAK,
-            Language.ENGLISH,
-        ).build()
-        confidence_values = detector.compute_language_confidence_values(text or "")
+        detector = _lingua_detector()
+        with _lingua_lock:
+            confidence_values = detector.compute_language_confidence_values(text or "")
         scores = {"sk": 0.0, "en": 0.0}
         for item in confidence_values:
             if item.language == Language.SLOVAK:
@@ -84,7 +97,7 @@ def _detect_heuristic(text: str) -> dict[str, object]:
         confidence = min(1.0, sk_score / max(sk_score + en_score, 1e-6))
     elif en_score > sk_score * 1.05:
         language = "en"
-        confidence = min(1.0, en_score / max(sk_score + en_score, 1e-6))
+        confidence = min(1.0, en_score / max(en_score + sk_score, 1e-6))
     else:
         language = "unknown"
         confidence = 0.35

@@ -516,6 +516,8 @@ Same local agent planner as the Scribe app (`plan_agent_goal` + tool execution).
 
 When `persona` is `spellcheck`, the run forces the `spellcheck` tool, requires `documentId`, and injects **grammar** teachings only.
 
+Executed tools (parity with the in-app agent) include library/document NLP tools plus `keywords`, `wiki_health`, `note_pulse`, `continuation`, `mentions`, `handoff`, `save_template` (requires `SCRIBE_MCP_WRITE=1`), and `canvas_summarize` / `canvas_to_note` (write). `canvas_template` and `files_ingest` remain app-only.
+
 ---
 
 ## `run_spellcheck_agent`
@@ -1069,8 +1071,16 @@ All accept `id` and/or `text` unless noted. Require Local AI enabled (except whe
 | `action_items` | `limit?` | Extract action items |
 | `glossary` | `limit?` | Terms + short definitions |
 | `compare_notes` | `idA?`, `idB?`, `textA?`, `textB?` | Diff-style summary of two notes |
+| `contradiction_hints` | `idA?`, `idB?`, `textA?`, `textB?`, `limit?` | Possible contradictions between two notes (Local AI) |
+| `extract_quotes` | `id?`, `text?`, `limit?` | Notable quotes (Python + Rust fallback) |
+| `extract_commitments` | `id?`, `text?`, `limit?` | Commitments / promises (Python + Rust fallback) |
+| `passage_rerank` | `query`, `passages[]`, `limit?` | Rerank search/answer passages (Local AI) |
+| `answer_followups` | `question`, `sentences?`, `passages?`, `scope?` | Suggested follow-up questions (Local AI) |
 | `files_list` / `files_read_text` / `files_search` / `files_summarize` / `files_answer` | path/query | Storage Files API (`files/`); `FilesApiOffline` if server down |
 | `files_index` | `path?`, `limitFiles?`, `force?` | Path-scoped embeddings under `scratch/.scribe-files-index.json` |
+| `files_index_status` | `path?`, `scanLimit?` | Stale / unindexed / missing vs disk (no embed work) |
+| `files_similar` | `path`, `scope?`, `limit?` | Closest indexed files to a path |
+| `files_index_clear` | `path?` | Drop index entries (writable MCP) |
 | `suggest_continuation` | `prefix`, `maxSuggestions?`, `maxTokens?`, `excludeDocumentId?`, `preferRust?` | Library n-grams; Rust fallback |
 | `analyze_revision_diff` | `oldText`, `newText`, `maxBullets?`, `language?`, `preferRust?` | Richer than `summarize_diff` |
 | `analyze_revision_diff_for_document` | `id`, `revisionId`, … | Snapshot → current note |

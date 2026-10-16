@@ -23,6 +23,10 @@ pub const AGENT_RECIPE_IDS: &[&str] = &[
     "files_digest",
     "note_to_template",
     "spellcheck",
+    "wiki_cleanup",
+    "canvas_board",
+    "files_learn",
+    "files_to_library",
 ];
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -56,6 +60,10 @@ pub fn agent_recipes() -> Vec<AgentRecipeDef> {
         recipe("privacy_pass", "agent.recipes.privacyPass", &["pii", "duplicates", "organize"], false),
         recipe("spellcheck", "agent.recipes.spellcheck", &["spellcheck"], true),
         recipe("polish", "agent.recipes.polish", &["spellcheck", "grammar", "tone"], true),
+        recipe("wiki_cleanup", "agent.recipes.wikiCleanup", &["wiki_health", "wiki", "organize"], true),
+        recipe("canvas_board", "agent.recipes.canvasBoard", &["canvas_summarize", "canvas_to_note"], true),
+        recipe("files_learn", "agent.recipes.filesLearn", &["files_answer", "files_ingest"], false),
+        recipe("files_to_library", "agent.recipes.filesToLibrary", &["files_ingest", "brief", "organize"], false),
     ]
 }
 
@@ -83,6 +91,6 @@ mod tests {
     #[test]
     fn catalogs_non_empty() {
         assert_eq!(agent_role_ids().len(), 6);
-        assert_eq!(agent_recipes().len(), 11);
+        assert_eq!(agent_recipes().len(), 15);
     }
 }

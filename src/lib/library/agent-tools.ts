@@ -1,6 +1,11 @@
+import { parseCanvasDocument } from '@/lib/canvas/types'
 import {
+  createCustomTemplate,
+  getDocument,
   getDocumentRevision,
   listDocumentRevisions,
+  listGraphHubs,
+  listWikiHealth,
 } from '@/lib/db/api'
 import {
   nlpAnalyzeRevisionDiff,
@@ -9,6 +14,7 @@ import {
   nlpContradictionHints,
   nlpCheckTerminologyLibrary,
   nlpDetectPii,
+  nlpDocumentAnalysis,
   nlpExtractCommitments,
   nlpExtractDecisions,
   nlpExtractMentions,
@@ -596,5 +602,120 @@ export async function runAgentRewrite(
   return {
     answer: `**Rewrite** (_${result.mode}_)\n\n${result.output}`,
     citations: [{ documentId, title: 'Rewrite', snippet: result.original.slice(0, 120) }],
+  }
+}
+
+export async function runAgentKeywords(documentId: string): Promise<LibraryChatResult> {
+  const analysis = await nlpDocumentAnalysis(documentId)
+  const keywords = analysis.keywords?.slice(0, 16) ?? []
+  if (!keywords.length) {
+    return { answer: 'No keywords extracted for this note yet.', citations: [] }
+  }
+  const lines = keywords.map((item) => {
+    const score = typeof item.score === 'number' ? ` (${item.score.toFixed(2)})` : ''
+    return `${item.term}${score}`
+  })
+  return {
+    answer: `**Keywords**\n\n${bullets(lines)}`,
+    citations: [
+      {
+        documentId,
+        title: 'Keywords',
+        snippet: keywords
+          .slice(0, 4)
+          .map((item) => item.term)
+          .join(', '),
+      },
+    ],
+  }
+}
+
+export async function runAgentWikiHealth(): Promise<LibraryChatResult> {
+  const [health, hubs] = await Promise.all([
+    listWikiHealth({ unresolvedLimit: 40, stubMaxWords: 40, stubLimit: 24 }),
+    listGraphHubs(10).catch(() => []),
+  ])
+  const sections: string[] = ['**Wiki health**']
+  sections.push(
+    `Unresolved [[links]]: **${health.unresolved.length}** · Orphans: **${health.orphans.length}** · Stubs: **${health.stubs.length}**`,
+  )
+  if (hubs.length) {
+    sections.push(
+      `**Hubs**\n${bullets(
+        hubs.slice(0, 8).map(
+          (hub) =>
+            `${hub.title} (←${hub.backlinks} →${hub.outgoing})`,
+        ),
+      )}`,
+    )
+  }
+  if (health.unresolved.length) {
+    sections.push(
+      `**Unresolved**\n${bullets(
+        health.unresolved
+          .slice(0, 10)
+          .map((item) => `[[${item.label}]] in ${item.documentTitle}`),
+      )}`,
+    )
+  }
+  if (health.stubs.length) {
+    sections.push(
+      `**Stubs**\n${bullets(
+        health.stubs.slice(0, 8).map((item) => `${item.title} (${item.wordCount} words)`),
+      )}`,
+    )
+  }
+  if (health.orphans.length) {
+    sections.push(
+      `**Orphans**\n${bullets(health.orphans.slice(0, 8).map((item) => item.title))}`,
+    )
+  }
+  const citations: LibraryChatCitation[] = []
+  for (const hub of hubs.slice(0, 4)) {
+    citations.push({
+      documentId: hub.id,
+      title: hub.title,
+      snippet: `hub ←${hub.backlinks} →${hub.outgoing}`,
+    })
+  }
+  for (const item of health.unresolved.slice(0, 4)) {
+    citations.push({
+      documentId: item.documentId,
+      title: item.documentTitle,
+      snippet: `[[${item.label}]]`,
+    })
+  }
+  return { answer: sections.join('\n\n'), citations }
+}
+
+export async function runAgentSaveTemplate(documentId: string): Promise<LibraryChatResult> {
+  const document = await getDocument(documentId)
+  if (parseCanvasDocument(document.contentJson)) {
+    throw new Error('agent.saveTemplateCanvas')
+  }
+  const name = document.title.trim() || 'Template'
+  const id =
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `tpl-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  await createCustomTemplate({
+    id,
+    name,
+    description: 'Saved by local agent',
+    category: 'general',
+    title: name,
+    contentJson: document.contentJson,
+    createdAt: Date.now(),
+  })
+  return {
+    answer: `Saved **${name}** as a reusable template in your template library.`,
+    citations: [
+      {
+        documentId,
+        title: name,
+        snippet: 'Custom template',
+      },
+    ],
+    followups: ['Create a note from this template', 'Polish the note first'],
   }
 }

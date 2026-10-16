@@ -22,8 +22,7 @@ from .embed_backend import (
     fast_available,
     quality_available,
     set_backend_change_hook,
-    warmup_fast_model,
-    warmup_quality_model,
+    warmup_active_backend,
 )
 from .text_utils import truncate_text
 
@@ -41,6 +40,18 @@ def _cached_embed(text: str) -> tuple[float, ...]:
 
 def _clear_embed_cache() -> None:
     _cached_embed.cache_clear()
+    try:
+        from .faiss_search import clear_faiss_cache
+
+        clear_faiss_cache()
+    except Exception:
+        pass
+    try:
+        from .files_ai import clear_files_index_memory
+
+        clear_files_index_memory()
+    except Exception:
+        pass
 
 
 set_backend_change_hook(_clear_embed_cache)
@@ -215,15 +226,13 @@ def _handle_request_inner(
         elif method == "set_embed_backend":
             backend = str(params.get("backend") or "hash")
             configured = configure_backend(backend)
-            if configured == "quality":
-                warmup_quality_model()
-            elif configured == "fast":
-                warmup_fast_model()
+            warmed = warmup_active_backend()
             result = {
                 "embedBackend": configured,
                 "model": current_model_id(),
                 "qualityAvailable": quality_available(),
                 "fastAvailable": fast_available(),
+                "warmed": warmed,
             }
         elif method == "embed":
             text = _validate_text(str(params.get("text") or ""))
@@ -306,11 +315,14 @@ def _handle_request_inner(
             from .analyze import analyze_document
 
             text = _validate_text(str(params.get("text") or ""))
+            use_cache_raw = params.get("useCache")
+            use_cache = True if use_cache_raw is None else bool(use_cache_raw)
             result = analyze_document(
                 text,
                 keyword_limit=max(1, min(int(params.get("keywordLimit") or 12), 32)),
                 outline_limit=max(1, min(int(params.get("outlineLimit") or 24), 80)),
                 summary_sentences=max(1, min(int(params.get("summarySentences") or 3), 8)),
+                use_cache=use_cache,
             )
         elif method == "similar_notes":
             from .similar import similar_notes
@@ -807,6 +819,41 @@ def _handle_request_inner(
                 )
             except FilesApiOfflineError as exc:
                 raise SidecarError(str(exc), code=-32020) from exc
+        elif method == "files_index_status":
+            from .files_ai import FilesApiOfflineError, files_index_status
+
+            try:
+                result = files_index_status(
+                    str(params.get("path") or ""),
+                    base_url=str(params.get("baseUrl") or params.get("base_url") or "") or None,
+                    scan_limit=max(1, min(int(params.get("scanLimit") or 1_000), 5_000)),
+                )
+            except FilesApiOfflineError as exc:
+                raise SidecarError(str(exc), code=-32020) from exc
+        elif method == "files_similar":
+            from .files_ai import FilesApiOfflineError, files_similar
+
+            try:
+                result = files_similar(
+                    str(params.get("path") or ""),
+                    scope=str(params.get("scope") or ""),
+                    limit=max(1, min(int(params.get("limit") or 5), 20)),
+                    base_url=str(params.get("baseUrl") or params.get("base_url") or "") or None,
+                )
+            except FilesApiOfflineError as exc:
+                raise SidecarError(str(exc), code=-32020) from exc
+            except ValueError as exc:
+                raise SidecarError(str(exc), code=-32602) from exc
+        elif method == "files_index_clear":
+            from .files_ai import FilesApiOfflineError, files_index_clear
+
+            try:
+                result = files_index_clear(
+                    str(params.get("path") or ""),
+                    base_url=str(params.get("baseUrl") or params.get("base_url") or "") or None,
+                )
+            except FilesApiOfflineError as exc:
+                raise SidecarError(str(exc), code=-32020) from exc
         elif method == "explain_selection":
             from .note_skills import explain_selection
 
@@ -1011,7 +1058,7 @@ def _handle_request_inner(
             result = render_ui_surface(
                 surface,
                 strings=strings_raw if isinstance(strings_raw, dict) else {},
-                version=str(params.get("version") or "3.6.0"),
+                version=str(params.get("version") or "3.7.0"),
                 short_version=str(params.get("shortVersion") or params.get("short_version") or "")
                 or None,
                 recent=params.get("recent") if isinstance(params.get("recent"), list) else None,
@@ -1042,7 +1089,20 @@ def _handle_request_inner(
         }
 
 
+def _maybe_warmup_on_start() -> None:
+    """Eager-load ONNX / Model2Vec when env selects a non-hash backend."""
+    import os
+
+    flag = os.environ.get("SCRIBE_EMBED_WARMUP", "").strip().lower()
+    if flag in {"0", "false", "no", "off"}:
+        return
+    # Default: warm when backend is already quality/fast (env or prior configure).
+    if active_backend() in {"quality", "fast"} or flag in {"1", "true", "yes", "on"}:
+        warmup_active_backend()
+
+
 def run_stdio_server() -> None:
+    _maybe_warmup_on_start()
     for line in sys.stdin:
         line = line.strip()
         if not line:

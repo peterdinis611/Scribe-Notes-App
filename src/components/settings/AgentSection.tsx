@@ -36,11 +36,13 @@ import {
   type AgentToolId,
 } from '@/lib/library/agent-prefs'
 import { AGENT_ROLES, type AgentRoleId } from '@/lib/library/agent-roles'
+import { FILES_TEACH_PRESETS } from '@/lib/library/agent-files-train'
 import {
   AGENT_TEACH_DRAFT_MAX_LEN,
   canDistillTeachingWithLlm,
   distillTeachingWithLlm,
 } from '@/lib/library/agent-teach'
+import { storageFsServerStart, storageFsServerStatus } from '@/lib/storage/files-api-server'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
@@ -102,6 +104,11 @@ const TOOL_LABEL_KEYS: Record<AgentToolId, string> = {
   files_ingest: 'agent.tools.files_ingest',
   save_template: 'agent.tools.save_template',
   handoff: 'agent.tools.handoff',
+  keywords: 'agent.tools.keywords',
+  wiki_health: 'agent.tools.wiki_health',
+  canvas_summarize: 'agent.tools.canvas_summarize',
+  canvas_to_note: 'agent.tools.canvas_to_note',
+  canvas_template: 'agent.tools.canvas_template',
 }
 
 type ToolMode = 'default' | 'prefer' | 'never'
@@ -495,7 +502,7 @@ export function AgentSection() {
               <div className="agent-settings-control">
                 <span>{t('settings.agent.maxSteps')}</span>
                 <div className="agent-settings-segment" role="group" aria-label={t('settings.agent.maxSteps')}>
-                  {([1, 2, 3] as AgentMaxSteps[]).map((steps) => (
+                  {([1, 2, 3, 4, 5, 6] as AgentMaxSteps[]).map((steps) => (
                     <button
                       key={steps}
                       type="button"
@@ -976,6 +983,78 @@ export function AgentSection() {
                 </Button>
               </form>
             ) : null}
+          </section>
+
+          <section
+            className="agent-settings-card agent-settings-card--teach"
+            aria-labelledby="agent-files-train-title"
+          >
+            <CardHead
+              id="agent-files-train-title"
+              title={t('settings.agent.filesTrain.title')}
+              hint={t('settings.agent.filesTrain.hint')}
+              tone="teach"
+            >
+              <FolderKanban className="h-3.5 w-3.5" />
+            </CardHead>
+            <p className="agent-settings-card-copy text-[12px] text-[var(--color-muted-foreground)]">
+              {t('settings.agent.filesTrain.description')}
+            </p>
+            <ol className="mb-2 list-decimal space-y-1 pl-4 text-[12px] text-[var(--color-muted-foreground)]">
+              <li>{t('settings.agent.filesTrain.stepApi')}</li>
+              <li>{t('settings.agent.filesTrain.stepAsk')}</li>
+              <li>{t('settings.agent.filesTrain.stepIngest')}</li>
+              <li>{t('settings.agent.filesTrain.stepTeach')}</li>
+            </ol>
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={!prefs.enabled}
+                onClick={() => {
+                  void storageFsServerStatus()
+                    .then((status) => {
+                      if (status.running) {
+                        toast.success(t('localIntelligence.filesOn'))
+                        return
+                      }
+                      return storageFsServerStart().then(() =>
+                        toast.success(t('localIntelligence.filesOn')),
+                      )
+                    })
+                    .catch((error) => toast.error(String(error)))
+                }}
+              >
+                {t('localIntelligence.startFilesApi')}
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {FILES_TEACH_PRESETS.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  className="library-chat-chip"
+                  disabled={!prefs.enabled}
+                  title={t(preset.textKey)}
+                  onClick={() => {
+                    dispatch(
+                      addAgentTeaching({
+                        text: t(preset.textKey),
+                        topic: 'general',
+                        agentId: 'librarian',
+                      }),
+                    )
+                    if (preset.pinTextKey) {
+                      dispatch(addAgentPinnedFact(t(preset.pinTextKey)))
+                    }
+                    toast.success(t('settings.agent.filesTrain.presetAdded'))
+                  }}
+                >
+                  {t(preset.labelKey)}
+                </button>
+              ))}
+            </div>
           </section>
 
           <section

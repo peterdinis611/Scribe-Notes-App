@@ -99,6 +99,7 @@ export async function runAgentFilesIngest(goal: string): Promise<{
   answer: string
   citations: LibraryChatCitation[]
   created: Document[]
+  followups?: string[]
 }> {
   const listed = await nlpFilesList({ recursive: true })
   const needle = goal.trim().toLowerCase()
@@ -116,9 +117,11 @@ export async function runAgentFilesIngest(goal: string): Promise<{
   entries = entries.slice(0, 5)
   if (!entries.length) {
     return {
-      answer: 'No text-like files found in the sandbox to import.',
+      answer:
+        'No text-like files found in the sandbox to import. Put `.md` / `.txt` files under `files/` and start the Local Files API.',
       citations: [],
       created: [],
+      followups: ['recipe:files_digest', 'teach:files'],
     }
   }
 
@@ -136,12 +139,17 @@ export async function runAgentFilesIngest(goal: string): Promise<{
   }
 
   return {
-    answer: `**Imported ${created.length} file(s) into the library**\n\n${lines.join('\n')}`,
+    answer: `**Imported ${created.length} file(s) into the library**\n\n${lines.join('\n')}\n\n_Tip: save a standing instruction (Teach) so the agent prefers these notes / files/ paths next time._`,
     citations: created.map((doc) => ({
       documentId: doc.id,
       title: doc.title,
       snippet: 'Imported from files/',
     })),
     created,
+    followups: [
+      'recipe:files_to_library',
+      'recipe:weekly_review',
+      'teach:files',
+    ],
   }
 }

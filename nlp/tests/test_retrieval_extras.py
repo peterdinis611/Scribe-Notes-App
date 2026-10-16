@@ -4,7 +4,7 @@ import unittest
 
 from scribe_nlp.bm25_search import bm25_rank
 from scribe_nlp.embed_backend import configure_backend, current_model_id, fast_available
-from scribe_nlp.faiss_search import HNSW_THRESHOLD, faiss_top_k
+from scribe_nlp.faiss_search import HNSW_THRESHOLD, clear_faiss_cache, faiss_top_k
 from scribe_nlp.rerank import _bm25_preselect, rerank_passages
 from scribe_nlp.server import handle_request
 
@@ -51,10 +51,14 @@ class TestRetrievalExtras(unittest.TestCase):
 
     def test_faiss_top_k_empty_without_deps(self) -> None:
         # Soft: returns [] when neither faiss nor pynear is installed / usable.
+        clear_faiss_cache()
         query = [1.0, 0.0, 0.0]
         vectors = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]
         hits = faiss_top_k(query, vectors, limit=1)
         self.assertIsInstance(hits, list)
+        # Second call reuses fingerprint cache when FAISS is available.
+        hits2 = faiss_top_k(query, vectors, limit=1)
+        self.assertEqual(hits, hits2)
 
     def test_hnsw_threshold_constant(self) -> None:
         self.assertGreaterEqual(HNSW_THRESHOLD, 64)

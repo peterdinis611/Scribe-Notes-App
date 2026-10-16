@@ -2,15 +2,15 @@
  * Run the same checks as GitHub Actions CI (+ optional Tauri build) on this machine.
  *
  * Usage:
- *   bun run ci:local              # frontend + NLP + Rust (CI workflow)
+ *   bun run ci:local              # frontend + NLP + Rust + path-commands (CI workflow)
  *   bun run ci:local:tauri        # + tauri build for this OS (Build workflow)
- *   bun scripts/ci-local.ts --tag v2.6.0   # also assert tag ↔ package.json
+ *   bun scripts/ci-local.ts --tag v3.7.0   # also assert tag ↔ package.json
  *
  * Flags:
  *   --tauri          run `tauri build` (current OS only; CI builds 3 platforms)
  *   --tag [vX.Y.Z]   set GITHUB_REF_* like a tag push (defaults to latest v* tag)
  *   --frontend-only  skip NLP + Rust
- *   --skip-frontend / --skip-nlp / --skip-rust
+ *   --skip-frontend / --skip-nlp / --skip-rust / --skip-path-commands
  */
 import { spawnSync } from 'node:child_process'
 import { dirname, join } from 'node:path'
@@ -60,6 +60,8 @@ function run(step: Step): void {
 const skipFrontend = hasFlag('--skip-frontend') || hasFlag('--nlp-only') || hasFlag('--rust-only')
 const skipNlp = hasFlag('--skip-nlp') || hasFlag('--frontend-only') || hasFlag('--rust-only')
 const skipRust = hasFlag('--skip-rust') || hasFlag('--frontend-only') || hasFlag('--nlp-only')
+const skipPathCommands =
+  hasFlag('--skip-path-commands') || hasFlag('--frontend-only') || hasFlag('--nlp-only')
 const withTauri = hasFlag('--tauri')
 const wantTag = hasFlag('--tag')
 
@@ -67,7 +69,7 @@ const tagEnv: Record<string, string> = {}
 if (wantTag) {
   const tag = flagValue('--tag') ?? latestVersionTag()
   if (!tag) {
-    console.error('No tag supplied and no v* git tags found. Use: --tag v2.6.0')
+    console.error('No tag supplied and no v* git tags found. Use: --tag v3.7.0')
     process.exit(1)
   }
   tagEnv.GITHUB_REF_TYPE = 'tag'
@@ -82,6 +84,14 @@ if (!skipFrontend) {
   run({ name: 'CI / Frontend lint', cmd: 'bun', args: ['run', 'lint'] })
   run({ name: 'CI / Frontend unit tests', cmd: 'bun', args: ['run', 'test'] })
   run({ name: 'CI / Frontend build', cmd: 'bun', args: ['run', 'build'] })
+}
+
+if (!skipPathCommands) {
+  run({
+    name: 'CI / Tauri path command inventory',
+    cmd: 'python3',
+    args: ['scripts/check_tauri_path_commands.py'],
+  })
 }
 
 if (!skipNlp) {

@@ -12557,6 +12557,252 @@ html.dark .link-graph-toolbar--overlay {
   backdrop-filter: blur(12px);
 }
 
+.canvas-tool-rail,
+.canvas-align-rail {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--color-border);
+  border-radius: calc(var(--radius-sm) + 2px);
+  background: color-mix(in srgb, var(--color-surface) 80%, var(--color-canvas));
+}
+
+.canvas-surface.is-space-pan .react-flow__pane {
+  cursor: grab;
+}
+
+.canvas-surface.is-space-pan .react-flow__pane:active {
+  cursor: grabbing;
+}
+
+.canvas-surface.is-drawing .react-flow__pane {
+  cursor: crosshair;
+}
+
+.canvas-pen-node {
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+
+.canvas-pen-node.is-selected {
+  outline: 1px dashed color-mix(in srgb, var(--color-accent) 40%, transparent);
+}
+
+.canvas-pen-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.canvas-snap-guides {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  overflow: hidden;
+}
+
+.canvas-snap-guide {
+  position: absolute;
+  background: color-mix(in srgb, var(--color-accent) 70%, transparent);
+}
+
+.canvas-snap-guide.is-x {
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+
+.canvas-snap-guide.is-y {
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+
+.canvas-surface--flow .react-flow__node-pen {
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.canvas-line-node {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+
+.canvas-line-node.is-selected {
+  outline: 1px dashed color-mix(in srgb, var(--color-accent) 45%, transparent);
+  outline-offset: 2px;
+}
+
+.canvas-line-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.canvas-doclink {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  cursor: grab;
+  overflow: hidden;
+}
+
+.canvas-doclink.is-selected {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 28%, transparent);
+}
+
+.canvas-doclink-icon {
+  flex-shrink: 0;
+  color: var(--color-accent);
+}
+
+.canvas-doclink-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.canvas-doclink-kind {
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+
+.canvas-doclink-title {
+  border: none;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--color-accent);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.canvas-doclink-title:disabled {
+  color: var(--color-muted-foreground);
+  cursor: default;
+}
+
+.canvas-doc-picker {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 3;
+  width: min(260px, calc(100% - 28px));
+  max-height: min(360px, calc(100% - 72px));
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 12px 32px color-mix(in srgb, #000 12%, transparent);
+  overflow: hidden;
+}
+
+.canvas-design-panel {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.canvas-design-hint {
+  margin: 4px 0 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--color-muted-foreground);
+}
+
+.canvas-surface--flow .react-flow__node-line,
+.canvas-surface--flow .react-flow__node-arrow,
+.canvas-surface--flow .react-flow__node-docLink {
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.canvas-props {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+}
+
+.canvas-props-kind {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+
+.canvas-props-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.canvas-props-label {
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+}
+
+.canvas-swatches {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.canvas-swatch {
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.canvas-swatch:hover {
+  transform: translateY(-1px);
+}
+
+.canvas-swatch.is-active {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 45%, transparent);
+}
+
+.canvas-swatch--stroke {
+  border-width: 2.5px;
+}
+
+.canvas-props-range {
+  width: 88px;
+  accent-color: var(--color-accent);
+}
+
 .canvas-toolbar-btn {
   display: inline-flex;
   align-items: center;
@@ -12652,11 +12898,23 @@ html.dark .link-graph-toolbar--overlay {
   stroke: var(--color-accent);
 }
 
-.canvas-surface--flow .react-flow__node-note {
+.canvas-surface--flow .react-flow__node-note,
+.canvas-surface--flow .react-flow__node-frame,
+.canvas-surface--flow .react-flow__node-rect,
+.canvas-surface--flow .react-flow__node-ellipse,
+.canvas-surface--flow .react-flow__node-text {
   padding: 0;
   border: none;
   background: transparent;
   box-shadow: none;
+}
+
+.canvas-surface.is-placing .react-flow__pane {
+  cursor: crosshair;
+}
+
+.canvas-surface.is-linking .react-flow__pane {
+  cursor: copy;
 }
 
 .canvas-minimap {
@@ -12803,7 +13061,8 @@ html.dark .link-graph-toolbar--overlay {
   color: var(--color-muted-foreground);
 }
 
-.canvas-link-banner {
+.canvas-link-banner,
+.canvas-place-banner {
   position: absolute;
   left: 50%;
   bottom: 18px;
@@ -12820,10 +13079,241 @@ html.dark .link-graph-toolbar--overlay {
   pointer-events: none;
 }
 
+.canvas-place-banner {
+  border-color: color-mix(in srgb, var(--color-muted) 40%, var(--color-border));
+  background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+  color: var(--color-foreground);
+}
+
+.canvas-shape {
+  position: relative;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  border-style: solid;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+}
+
+.canvas-shape--ellipse {
+  border-radius: 999px;
+}
+
+.canvas-shape.is-selected {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 30%, transparent);
+}
+
+.canvas-shape-label,
+.canvas-shape-input {
+  width: calc(100% - 16px);
+  max-height: calc(100% - 16px);
+  border: none;
+  background: transparent;
+  text-align: center;
+  color: inherit;
+  font: inherit;
+  resize: none;
+  outline: none;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.canvas-shape-label {
+  cursor: text;
+  padding: 0;
+}
+
+.canvas-shape-label.is-empty {
+  min-height: 1.2em;
+}
+
+.canvas-frame {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  border-style: dashed;
+  border-radius: 4px;
+  cursor: grab;
+  overflow: visible;
+}
+
+.canvas-frame.is-selected {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 22%, transparent);
+}
+
+.canvas-frame-chrome {
+  position: absolute;
+  left: 0;
+  top: -22px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.canvas-frame-label,
+.canvas-frame-label-input {
+  border: none;
+  background: transparent;
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0;
+}
+
+.canvas-frame-label {
+  cursor: text;
+}
+
+.canvas-frame-label-input {
+  outline: none;
+  min-width: 64px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.canvas-text-node {
+  position: relative;
+  display: flex;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: grab;
+  overflow: hidden;
+}
+
+.canvas-text-node.is-selected {
+  border-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 55%, transparent);
+}
+
+.canvas-text-label,
+.canvas-text-input {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 550;
+  line-height: 1.3;
+  text-align: left;
+  resize: none;
+  outline: none;
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding: 0;
+}
+
+.canvas-text-label {
+  cursor: text;
+}
+
+.canvas-text-label.is-placeholder {
+  color: var(--color-muted-foreground);
+  font-weight: 450;
+}
+
+.canvas-layers {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 3;
+  width: min(220px, calc(100% - 28px));
+  max-height: min(360px, calc(100% - 72px));
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 12px 32px color-mix(in srgb, #000 12%, transparent);
+  overflow: hidden;
+}
+
+.canvas-layers-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+
+.canvas-layers-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  overflow: auto;
+}
+
+.canvas-layers-empty {
+  padding: 12px 8px;
+  font-size: 12px;
+  color: var(--color-muted-foreground);
+}
+
+.canvas-layers-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  padding: 7px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-foreground);
+  text-align: left;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.canvas-layers-item:hover {
+  background: var(--color-hover);
+}
+
+.canvas-layers-item.is-active {
+  border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 10%, var(--color-surface));
+}
+
+.canvas-layers-kind {
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+
+.canvas-layers-title {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .dark .canvas-card {
   box-shadow:
     0 1px 0 color-mix(in srgb, #fff 4%, transparent),
     0 10px 28px color-mix(in srgb, #000 35%, transparent);
+}
+
+.dark .canvas-layers {
+  box-shadow: 0 14px 36px color-mix(in srgb, #000 40%, transparent);
 }
 
 /* —— AI insights panel —— */
@@ -13979,12 +14469,14 @@ html.dark .link-graph-toolbar--overlay {
 .setup-folio--edition-27,
 .setup-folio--edition-34,
 .setup-folio--edition-35,
-.setup-folio--edition-36 {
+.setup-folio--edition-36,
+.setup-folio--edition-37 {
   min-height: 560px;
 }
 
 .welcome-desk--edition-35 .welcome-edition-note,
-.welcome-desk--edition-36 .welcome-edition-note {
+.welcome-desk--edition-36 .welcome-edition-note,
+.welcome-desk--edition-37 .welcome-edition-note {
   margin: 10px 0 0;
   max-width: 42ch;
   padding: 8px 12px;

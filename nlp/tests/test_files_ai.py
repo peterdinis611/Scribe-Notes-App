@@ -9,7 +9,10 @@ from unittest.mock import MagicMock, patch
 
 from scribe_nlp.files_ai import (
     FilesApiOfflineError,
+    _answer_from_index,
+    _cosine_scores_for_chunks,
     _extract_docx_text,
+    clear_files_index_memory,
     extract_file_text,
     files_answer,
 )
@@ -32,6 +35,53 @@ def _minimal_docx(text: str) -> bytes:
 
 
 class FilesAiTests(unittest.TestCase):
+    def setUp(self) -> None:
+        clear_files_index_memory()
+
+    def test_cosine_scores_shape(self) -> None:
+        query = [1.0, 0.0, 0.0]
+        chunks = [
+            {"vector": [1.0, 0.0, 0.0], "snippet": "a"},
+            {"vector": [0.0, 1.0, 0.0], "snippet": "b"},
+            {"vector": [0.5, 0.5, 0.0], "snippet": "c"},
+        ]
+        scores = _cosine_scores_for_chunks(query, chunks)
+        self.assertEqual(len(scores), 3)
+        self.assertGreater(scores[0], scores[1])
+
+    def test_answer_from_index_semantic(self) -> None:
+        index = {
+            "namespace": "files",
+            "chunks": [
+                {
+                    "id": "files:a.md#0",
+                    "path": "a.md",
+                    "chunkIndex": 0,
+                    "snippet": "Project deadline is Friday for the release.",
+                    "vector": [1.0, 0.0, 0.0],
+                },
+                {
+                    "id": "files:b.md#0",
+                    "path": "b.md",
+                    "chunkIndex": 0,
+                    "snippet": "Tomato soup recipe with basil.",
+                    "vector": [0.0, 1.0, 0.0],
+                },
+            ],
+        }
+        with patch("scribe_nlp.files_ai.embed_text", return_value=[1.0, 0.0, 0.0]):
+            result = _answer_from_index(
+                "deadline release",
+                path="",
+                limit=2,
+                index=index,
+                mode="semantic",
+                min_score=0.01,
+            )
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertEqual(result["citations"][0]["path"], "a.md")
+
     def test_extract_docx_text(self) -> None:
         data = _minimal_docx("Hello sandbox")
         self.assertIn("Hello sandbox", _extract_docx_text(data))

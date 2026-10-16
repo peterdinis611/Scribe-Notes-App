@@ -109,7 +109,7 @@ Encrypted vault notes are stored as AES-GCM ciphertext in SQLite. The unlock pas
 | `set_nlp_enabled` | Enable/disable Local AI (writable) |
 | `set_embed_backend` | `hash` or `quality` embeddings (writable) |
 | `calendar_events` | Date events from recent notes |
-| `run_agent` | Local agent planner (`persona=spellcheck` for Spellcheck Agent) |
+| `run_agent` | Local agent planner (wiki/canvas/keywords/handoff/save_template parity; `persona=spellcheck` for Spellcheck Agent) |
 | `run_spellcheck_agent` | Spellcheck Agent on one note (grammar teachings) |
 | `spellcheck` | Spellcheck a document |
 | `extract_keywords` | Keywords / keyphrases |
@@ -133,7 +133,9 @@ Encrypted vault notes are stored as AES-GCM ciphertext in SQLite. The unlock pas
 | `list_theme_presets` / `generate_random_theme` | Theme preset catalog / random colors |
 | `render_ui_surface` | Chrome HTML via `python-ui` (whats-new, welcome, …; needs Local AI) |
 | `plan_agent_goal` / `agent_document_brief` | Planner-only (no tool execution) |
-| `section_summaries` / `extract_decisions` / `detect_pii` / `rank_tasks` / `open_loops` / `reading_plan` / `note_pulse` / `tone_pack` | Study/review pack (Python + Rust fallback) |
+| `section_summaries` / `extract_decisions` / `extract_quotes` / `extract_commitments` / `detect_pii` / `rank_tasks` / `open_loops` / `reading_plan` / `note_pulse` / `tone_pack` / `contradiction_hints` | Study/review pack (Python + Rust fallback; contradictions need Local AI) |
+| `passage_rerank` / `answer_followups` | Retrieval helpers after search / Q&A |
+| `files_index_status` / `files_similar` / `files_index_clear` | Files sandbox index ops (Local Files API) |
 
 Plus legacy tools: `scribe_status`, `get_document`, wiki links, folders, revisions, `create_note`, `append_to_note`, …
 

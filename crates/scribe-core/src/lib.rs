@@ -57,8 +57,8 @@ pub use tags::{
     remove_document_tag, IdTags, MetaFilters, ParsedTag, TagKind, STATUS_TAG_VALUES,
 };
 pub use wiki::{
-    find_documents_by_title, list_stub_documents, list_unresolved_wiki_links,
-    resolve_wiki_link_in_document, wiki_health, OrphanDocument, ResolveWikiLinkResult,
+    find_documents_by_title, list_graph_hubs, list_stub_documents, list_unresolved_wiki_links,
+    resolve_wiki_link_in_document, wiki_health, GraphHub, OrphanDocument, ResolveWikiLinkResult,
     StubDocument, TitleMatch, UnresolvedWikiLink, WikiHealth,
 };
 pub use manuscripts::{list_manuscripts, upsert_manuscript, ManuscriptRecord};

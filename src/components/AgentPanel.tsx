@@ -111,7 +111,13 @@ import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { citationSearchQuery } from '@/lib/editor/citation-jump'
 import { setActiveDocument, setActiveDocumentId, setPendingEditorSearch } from '@/store/documentsSlice'
-import { addAgentTeaching, removeAgentTeaching, setAgentPrefs } from '@/store/settingsSlice'
+import { FILES_TEACH_PRESETS } from '@/lib/library/agent-files-train'
+import {
+  addAgentPinnedFact,
+  addAgentTeaching,
+  removeAgentTeaching,
+  setAgentPrefs,
+} from '@/store/settingsSlice'
 import { setSaveCustomTemplateDialog } from '@/store/templatesSlice'
 
 type AgentThreadMessage = {
@@ -186,6 +192,11 @@ const TOOL_LABEL_KEYS: Record<AgentToolId, string> = {
   files_ingest: 'agent.tools.files_ingest',
   save_template: 'agent.tools.save_template',
   handoff: 'agent.tools.handoff',
+  keywords: 'agent.tools.keywords',
+  wiki_health: 'agent.tools.wiki_health',
+  canvas_summarize: 'agent.tools.canvas_summarize',
+  canvas_to_note: 'agent.tools.canvas_to_note',
+  canvas_template: 'agent.tools.canvas_template',
 }
 
 
@@ -573,6 +584,8 @@ export function AgentPanel({
           'daily_digest',
           'weekly_review',
           'files_digest',
+          'files_learn',
+          'files_to_library',
           'cleanup',
         ])
         const forceLibrary = Boolean(opts?.recipeId && libraryRecipes.has(opts.recipeId))
@@ -1250,6 +1263,40 @@ export function AgentPanel({
                 {t('settings.agent.teachTopicGrammar')}
               </button>
             </div>
+            {teachTopic === 'general' ? (
+              <div className="space-y-1">
+                <p className="px-0.5 text-[11px] text-[var(--color-muted-foreground)]">
+                  {t('settings.agent.filesTrain.hint')}
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {FILES_TEACH_PRESETS.map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      className="library-chat-chip"
+                      disabled={teachBusy}
+                      title={t(preset.textKey)}
+                      onClick={() => {
+                        const text = t(preset.textKey)
+                        dispatch(
+                          addAgentTeaching({
+                            text,
+                            topic: 'general',
+                            agentId: roleId === 'general' ? 'librarian' : roleId,
+                          }),
+                        )
+                        if (preset.pinTextKey) {
+                          dispatch(addAgentPinnedFact(t(preset.pinTextKey)))
+                        }
+                        toast.success(t('settings.agent.filesTrain.presetAdded'))
+                      }}
+                    >
+                      {t(preset.labelKey)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
             <form
               className="flex flex-col gap-1.5"
               onSubmit={(event) => {
@@ -1490,6 +1537,8 @@ export function AgentPanel({
                       'agent.starters.themes',
                       'agent.starters.openLoops',
                       'agent.starters.deadlines',
+                      'agent.starters.askFiles',
+                      'agent.starters.learnFiles',
                     ] as const)
                 ).map((key) => (
                   <Button
@@ -1499,7 +1548,17 @@ export function AgentPanel({
                     size="sm"
                     className="h-7 text-[11px]"
                     disabled={loading || !agentPrefs.enabled}
-                    onClick={() => void runGoal(t(key))}
+                    onClick={() => {
+                      if (key === 'agent.starters.askFiles') {
+                        void runGoal(t(key), { forceTools: ['files_answer'] })
+                        return
+                      }
+                      if (key === 'agent.starters.learnFiles') {
+                        void runGoal('', { recipeId: 'files_learn' })
+                        return
+                      }
+                      void runGoal(t(key))
+                    }}
                   >
                     {t(key)}
                   </Button>
@@ -1863,6 +1922,23 @@ export function AgentPanel({
                           </button>
                         )
                       }
+                      if (item === 'teach:files' || item.startsWith('teach:')) {
+                        return (
+                          <button
+                            key={item}
+                            type="button"
+                            className="library-chat-followup"
+                            disabled={loading}
+                            onClick={() => {
+                              setTeachTopic('general')
+                              setShowTeach(true)
+                              toast.info(t('settings.agent.filesTrain.hint'))
+                            }}
+                          >
+                            {t('settings.agent.filesTrain.title')}
+                          </button>
+                        )
+                      }
                       if (item.startsWith('handoff:')) {
                         const toRole = item.slice('handoff:'.length)
                         const roleLabel = t(`settings.agent.roles.${toRole}.label`, {
@@ -1996,6 +2072,22 @@ export function AgentPanel({
             }
           >
             {t('agent.tools.files_ingest')}
+          </button>
+          <button
+            type="button"
+            className="library-chat-chip"
+            disabled={loading || !agentPrefs.enabled}
+            onClick={() => void runGoal('', { recipeId: 'files_learn' })}
+          >
+            {t('agent.recipes.filesLearn')}
+          </button>
+          <button
+            type="button"
+            className="library-chat-chip"
+            disabled={loading || !agentPrefs.enabled}
+            onClick={() => void runGoal('', { recipeId: 'files_to_library' })}
+          >
+            {t('agent.recipes.filesToLibrary')}
           </button>
           {scope === 'document' ? (
             <button

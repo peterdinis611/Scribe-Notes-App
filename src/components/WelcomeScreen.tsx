@@ -236,7 +236,7 @@ export function WelcomeScreen() {
 
   if (isGrove) {
     return (
-      <div className="welcome-desk welcome-desk--edition-36 titlebar-no-drag">
+      <div className="welcome-desk welcome-desk--edition-37 titlebar-no-drag">
         <div className="welcome-desk-grain" aria-hidden="true" />
         <p className="welcome-stamp" aria-hidden="true">
           {t('welcome.brand')}
