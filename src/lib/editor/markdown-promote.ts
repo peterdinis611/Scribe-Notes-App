@@ -1,7 +1,8 @@
-/** Keep in sync with `crates/scribe-ui` counterpart. */
+/** Keep in sync with `crates/scribe-ui` / `scribe-video` counterparts. */
 import type { JSONContent } from '@tiptap/core'
 import { D3_CHART_DEFAULT_SOURCE } from '@/lib/editor/d3-chart'
 import { MAP_DEFAULT_SOURCE } from '@/lib/editor/map'
+import { parseVideoFence } from '@/lib/editor/video'
 
 function codeBlockText(node: JSONContent): string {
   return (node.content ?? []).map((child) => child.text ?? '').join('')
@@ -36,9 +37,13 @@ function promoteNode(node: JSONContent): JSONContent {
     }
 
     if (language === 'video') {
+      const attrs = parseVideoFence(text)
       return {
         type: 'video',
-        attrs: { src: text.trim() || null },
+        attrs: {
+          src: attrs.src ?? null,
+          caption: attrs.caption ?? null,
+        },
       }
     }
 

@@ -287,9 +287,11 @@ pub use ui_fonts::{
 pub use version::{app_version_info, short_version, AppVersionInfo, APP_VERSION};
 /// Video helpers live in `scribe-video`; re-exported for existing `scribe_ui::` callers.
 pub use scribe_video::{
-    detect_provider, extract_vimeo_id, extract_youtube_id, inspect_video, is_video_url,
-    normalize_video_src, video_export_embed, video_provider_label, VideoExportEmbed, VideoInfo,
-    VideoProvider,
+    collect_videos_from_tiptap_json, detect_provider, extract_provider_id, extract_start_seconds,
+    extract_vimeo_id, extract_youtube_id, inspect_video, is_video_url, normalize_video_src,
+    parse_video_fence, render_video_figure_html, video_export_embed, video_provider_label,
+    video_thumbnail_url, video_to_markdown_fence, CollectedVideo, VideoBlockAttrs, VideoExportEmbed,
+    VideoInfo, VideoProvider,
 };
 pub use whats_new::{
     whats_new_highlights, whats_new_tag_keys, EDITION_MARK_KEY, WHATS_NEW_34_HIGHLIGHTS,

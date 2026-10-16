@@ -2,8 +2,8 @@
 
 use crate::detect::has_video_ext;
 use crate::extract::{
-    extract_dailymotion_id, extract_loom_id, extract_streamable_id, extract_tiktok_id,
-    extract_twitch_id, extract_vimeo_id, extract_youtube_id,
+    extract_bilibili_id, extract_dailymotion_id, extract_loom_id, extract_streamable_id,
+    extract_tiktok_id, extract_twitch_id, extract_vimeo_id, extract_wistia_id, extract_youtube_id,
 };
 use crate::url::parse_host_path;
 use serde::{Deserialize, Serialize};
@@ -92,6 +92,12 @@ pub fn detect_provider(src: &str) -> VideoProvider {
     }
     if extract_streamable_id(trimmed).is_some() {
         return VideoProvider::Streamable;
+    }
+    if extract_wistia_id(trimmed).is_some() {
+        return VideoProvider::Wistia;
+    }
+    if extract_bilibili_id(trimmed).is_some() {
+        return VideoProvider::Bilibili;
     }
     if let Some((host, path, _)) = parse_host_path(trimmed) {
         if host.contains("facebook") || host == "fb.watch" || host == "fb.com" {

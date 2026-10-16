@@ -1018,9 +1018,33 @@ export const inspectVideoNative = (src: string) =>
     label: string
     isVideo: boolean
     export: { kind: string; href: string }
+    providerId?: string | null
+    startSeconds?: number | null
+    thumbnailUrl?: string | null
     youtubeId?: string | null
     vimeoId?: string | null
   }>('inspect_video_ui', { src })
+
+export const extractStartSecondsNative = (src: string) =>
+  invoke<number | null>('extract_start_seconds_ui', { src })
+
+export const videoThumbnailUrlNative = (src: string) =>
+  invoke<string | null>('video_thumbnail_url_ui', { src })
+
+export const extractProviderIdNative = (src: string) =>
+  invoke<string | null>('extract_provider_id_ui', { src })
+
+export const parseVideoFenceNative = (body: string) =>
+  invoke<{ src?: string | null; caption?: string | null }>('parse_video_fence_ui', { body })
+
+export const videoToMarkdownFenceNative = (src?: string | null, caption?: string | null) =>
+  invoke<string>('video_to_markdown_fence_ui', { src: src ?? null, caption: caption ?? null })
+
+export const renderVideoFigureHtmlNative = (src?: string | null, caption?: string | null) =>
+  invoke<string>('render_video_figure_html_ui', { src: src ?? null, caption: caption ?? null })
+
+export const collectVideosFromTiptapNative = (contentJson: string) =>
+  invoke<unknown[]>('collect_videos_from_tiptap_ui', { contentJson })
 
 export const documentStylePresetsNative = () => invoke<unknown[]>('document_style_presets_ui')
 

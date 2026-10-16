@@ -10,7 +10,7 @@ import { evaluateMathExpression } from '@/lib/editor/math-js'
 import { renderD3ChartSource } from '@/lib/editor/d3-chart'
 import { renderMermaidSource } from '@/lib/editor/mermaid'
 import { mapEmbedHref, mapOsmHref, parseMapSpec } from '@/lib/editor/map'
-import { videoExportEmbed } from '@/lib/editor/video'
+import { renderVideoFigureHtml } from '@/lib/editor/video'
 import {
   DEFAULT_PAGE_SETUP,
   normalizePageSetup,
@@ -162,20 +162,7 @@ function renderMermaidFigure(source: string, ctx: RenderContext): string {
 }
 
 function renderVideoFigure(source: string, caption?: string): string {
-  const embed = videoExportEmbed(source)
-  const captionHtml = caption?.trim()
-    ? `<figcaption>${escapeHtml(caption.trim())}</figcaption>`
-    : ''
-  if (embed.kind === 'iframe') {
-    return `<figure class="video-block" style="margin:16pt 0;"><div style="aspect-ratio:16/9;"><iframe src="${escapeHtml(embed.href)}" width="100%" height="360" frameborder="0" allowfullscreen></iframe></div>${captionHtml}</figure>`
-  }
-  if (embed.kind === 'video') {
-    return `<figure class="video-block" style="margin:16pt 0;"><video src="${escapeHtml(embed.href)}" controls style="width:100%;max-height:420px;"></video>${captionHtml}</figure>`
-  }
-  if (!source.trim()) {
-    return `<figure class="video-block" style="margin:16pt 0;"><p>Video</p>${captionHtml}</figure>`
-  }
-  return `<figure class="video-block" style="margin:16pt 0;"><p><a href="${escapeHtml(embed.href)}">${escapeHtml(source)}</a></p>${captionHtml}</figure>`
+  return renderVideoFigureHtml({ src: source, caption: caption ?? null })
 }
 
 function renderMapFigure(source: string): string {

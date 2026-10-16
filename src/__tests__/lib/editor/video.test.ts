@@ -6,11 +6,15 @@ import { Video } from '@/lib/editor/video-extension'
 import {
   detectVideoProvider,
   extractLoomId,
+  extractStartSeconds,
   extractYoutubeId,
   isVideoUrl,
   normalizeVideoSrc,
+  parseVideoFence,
   videoExportEmbed,
   videoProviderLabel,
+  videoThumbnailUrl,
+  videoToMarkdownFence,
 } from '@/lib/editor/video'
 import { collectDocumentOutline } from '@/lib/editor/document-outline'
 import { promoteMarkdownSpecialBlocks } from '@/lib/editor/markdown-promote'
@@ -49,6 +53,16 @@ describe('video URL helpers', () => {
       kind: 'video',
       href: 'https://files.example.com/a.webm',
     })
+    expect(extractStartSeconds('https://youtu.be/abc123?t=1m30s')).toBe(90)
+    expect(videoExportEmbed('https://youtu.be/abc123?t=90').href).toContain('start=90')
+    expect(videoThumbnailUrl('https://youtu.be/abc123')).toContain('abc123')
+    expect(parseVideoFence('https://youtu.be/abc\ncaption: Demo')).toEqual({
+      src: 'https://www.youtube.com/watch?v=abc',
+      caption: 'Demo',
+    })
+    expect(videoToMarkdownFence({ src: 'https://vimeo.com/1', caption: 'Hi' })).toContain(
+      'caption: Hi',
+    )
   })
 })
 

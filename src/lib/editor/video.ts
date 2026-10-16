@@ -1,15 +1,27 @@
 /** Keep in sync with `crates/scribe-video`. Sync helpers remain for paste / tests / web fallback. */
 import {
+  collectVideosFromTiptapNative,
   detectVideoProviderNative,
+  extractProviderIdNative,
+  extractStartSecondsNative,
   extractVimeoIdNative,
   extractYoutubeIdNative,
   inspectVideoNative,
   isVideoUrlNative,
   normalizeVideoSrcNative,
+  parseVideoFenceNative,
+  renderVideoFigureHtmlNative,
   videoExportEmbedNative,
   videoProviderLabelNative,
+  videoThumbnailUrlNative,
+  videoToMarkdownFenceNative,
 } from '@/lib/db/api'
 import { isTauriRuntime } from '@/lib/tauri'
+
+export type VideoBlockAttrs = {
+  src?: string | null
+  caption?: string | null
+}
 
 const VIDEO_FILE_EXT = /\.(?:mp4|webm|ogv|ogg|mov|m3u8|mkv|m4v)(?:\?[^#]*)?(?:#.*)?$/i
 
@@ -220,18 +232,86 @@ export function normalizeVideoSrc(src: string): string {
   return trimmed
 }
 
+export function parseDurationToken(raw: string): number | null {
+  const s = raw.trim()
+  if (!s) return null
+  if (/^\d+$/.test(s)) return Number(s)
+  const lower = s.toLowerCase()
+  let total = 0
+  let num = 0
+  let sawUnit = false
+  for (const ch of lower) {
+    if (ch >= '0' && ch <= '9') {
+      num = num * 10 + (ch.charCodeAt(0) - 48)
+      continue
+    }
+    const mult = ch === 'h' ? 3600 : ch === 'm' ? 60 : ch === 's' ? 1 : null
+    if (mult == null) return null
+    total += num * mult
+    num = 0
+    sawUnit = true
+  }
+  if (!sawUnit || num !== 0) return null
+  return total
+}
+
+export function extractStartSeconds(src: string): number | null {
+  try {
+    const url = new URL(src.trim())
+    for (const key of ['t', 'start', 'time_continue']) {
+      const value = url.searchParams.get(key)
+      if (value) {
+        const secs = parseDurationToken(value)
+        if (secs != null) return secs
+      }
+    }
+    const hash = url.hash.replace(/^#/, '')
+    const frag = hash.split('&')[0] ?? ''
+    if (frag.startsWith('t=')) {
+      return parseDurationToken(frag.slice(2))
+    }
+  } catch {
+    /* ignore */
+  }
+  return null
+}
+
+export function videoThumbnailUrl(src: string): string | null {
+  const youtubeId = extractYoutubeId(src)
+  if (youtubeId) return `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`
+  const dailymotionId = extractDailymotionId(src)
+  if (dailymotionId) return `https://www.dailymotion.com/thumbnail/video/${dailymotionId}`
+  return null
+}
+
+function withStart(href: string, start: number | null): string {
+  if (start == null || start <= 0) return href
+  return href.includes('?') ? `${href}&start=${start}` : `${href}?start=${start}`
+}
+
 export function videoExportEmbed(src: string): { kind: 'iframe' | 'video' | 'link'; href: string } {
+  const start = extractStartSeconds(src)
   const youtubeId = extractYoutubeId(src)
   if (youtubeId) {
-    return { kind: 'iframe', href: `https://www.youtube-nocookie.com/embed/${youtubeId}` }
+    return {
+      kind: 'iframe',
+      href: withStart(`https://www.youtube-nocookie.com/embed/${youtubeId}`, start),
+    }
   }
   const vimeoId = extractVimeoId(src)
   if (vimeoId) {
-    return { kind: 'iframe', href: `https://player.vimeo.com/video/${vimeoId}` }
+    const base = `https://player.vimeo.com/video/${vimeoId}`
+    return {
+      kind: 'iframe',
+      href: start && start > 0 ? `${base}#t=${start}s` : base,
+    }
   }
   const dailymotionId = extractDailymotionId(src)
   if (dailymotionId) {
-    return { kind: 'iframe', href: `https://www.dailymotion.com/embed/video/${dailymotionId}` }
+    return {
+      kind: 'iframe',
+      href: withStart(`https://www.dailymotion.com/embed/video/${dailymotionId}`, start),
+    }
   }
   const loomId = extractLoomId(src)
   if (loomId) {
@@ -249,6 +329,57 @@ export function videoExportEmbed(src: string): { kind: 'iframe' | 'video' | 'lin
     return { kind: 'video', href: src }
   }
   return { kind: 'link', href: src }
+}
+
+export function parseVideoFence(body: string): VideoBlockAttrs {
+  let src: string | null = null
+  let caption: string | null = null
+  for (const raw of body.split(/\r?\n/)) {
+    const line = raw.trim()
+    if (!line) continue
+    if (/^caption:/i.test(line)) {
+      const value = line.replace(/^caption:\s*/i, '').trim()
+      if (value) caption = value
+      continue
+    }
+    if (!src) src = normalizeVideoSrc(line)
+    else if (!caption) caption = line
+  }
+  return { src, caption }
+}
+
+export function videoToMarkdownFence(attrs: VideoBlockAttrs): string {
+  const lines = ['```video']
+  if (attrs.src?.trim()) lines.push(attrs.src.trim())
+  if (attrs.caption?.trim()) lines.push(`caption: ${attrs.caption.trim()}`)
+  lines.push('```', '')
+  return lines.join('\n')
+}
+
+function escapeHtml(text: string): string {
+  return text
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+}
+
+export function renderVideoFigureHtml(attrs: VideoBlockAttrs): string {
+  const source = attrs.src?.trim() ?? ''
+  const embed = videoExportEmbed(source)
+  const captionHtml = attrs.caption?.trim()
+    ? `<figcaption>${escapeHtml(attrs.caption.trim())}</figcaption>`
+    : ''
+  if (!source) {
+    return `<figure class="video-block" style="margin:16pt 0;"><p>Video</p>${captionHtml}</figure>`
+  }
+  if (embed.kind === 'iframe') {
+    return `<figure class="video-block" style="margin:16pt 0;"><div style="aspect-ratio:16/9;"><iframe src="${escapeHtml(embed.href)}" width="100%" height="360" frameborder="0" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe></div>${captionHtml}</figure>`
+  }
+  if (embed.kind === 'video') {
+    return `<figure class="video-block" style="margin:16pt 0;"><video src="${escapeHtml(embed.href)}" controls playsinline style="width:100%;max-height:420px;"></video>${captionHtml}</figure>`
+  }
+  return `<figure class="video-block" style="margin:16pt 0;"><p><a href="${escapeHtml(embed.href)}">${escapeHtml(source)}</a></p>${captionHtml}</figure>`
 }
 
 /** Prefer Rust `scribe-video` under Tauri; otherwise JS fallback. */
@@ -331,6 +462,9 @@ export async function inspectVideoAsync(src: string) {
     label: PROVIDER_LABELS[provider],
     isVideo: isVideoUrl(src),
     export: videoExportEmbed(src),
+    providerId: extractYoutubeId(src) || extractVimeoId(src) || extractLoomId(src),
+    startSeconds: extractStartSeconds(src),
+    thumbnailUrl: videoThumbnailUrl(src),
     youtubeId: extractYoutubeId(src),
     vimeoId: extractVimeoId(src),
   }
@@ -357,4 +491,88 @@ export async function extractVimeoIdAsync(src: string): Promise<string | null> {
     }
   }
   return extractVimeoId(src)
+}
+
+export async function extractStartSecondsAsync(src: string): Promise<number | null> {
+  if (isTauriRuntime()) {
+    try {
+      return await extractStartSecondsNative(src)
+    } catch {
+      /* fall through */
+    }
+  }
+  return extractStartSeconds(src)
+}
+
+export async function videoThumbnailUrlAsync(src: string): Promise<string | null> {
+  if (isTauriRuntime()) {
+    try {
+      return await videoThumbnailUrlNative(src)
+    } catch {
+      /* fall through */
+    }
+  }
+  return videoThumbnailUrl(src)
+}
+
+export async function extractProviderIdAsync(src: string): Promise<string | null> {
+  if (isTauriRuntime()) {
+    try {
+      return await extractProviderIdNative(src)
+    } catch {
+      /* fall through */
+    }
+  }
+  return (
+    extractYoutubeId(src) ||
+    extractVimeoId(src) ||
+    extractDailymotionId(src) ||
+    extractLoomId(src) ||
+    extractStreamableId(src) ||
+    extractTiktokId(src)
+  )
+}
+
+export async function parseVideoFenceAsync(body: string): Promise<VideoBlockAttrs> {
+  if (isTauriRuntime()) {
+    try {
+      return await parseVideoFenceNative(body)
+    } catch {
+      /* fall through */
+    }
+  }
+  return parseVideoFence(body)
+}
+
+export async function videoToMarkdownFenceAsync(attrs: VideoBlockAttrs): Promise<string> {
+  if (isTauriRuntime()) {
+    try {
+      return await videoToMarkdownFenceNative(attrs.src, attrs.caption)
+    } catch {
+      /* fall through */
+    }
+  }
+  return videoToMarkdownFence(attrs)
+}
+
+export async function renderVideoFigureHtmlAsync(attrs: VideoBlockAttrs): Promise<string> {
+  if (isTauriRuntime()) {
+    try {
+      return await renderVideoFigureHtmlNative(attrs.src, attrs.caption)
+    } catch {
+      /* fall through */
+    }
+  }
+  return renderVideoFigureHtml(attrs)
+}
+
+export async function collectVideosFromTiptapAsync(contentJson: string) {
+  if (isTauriRuntime()) {
+    try {
+      return await collectVideosFromTiptapNative(contentJson)
+    } catch {
+      /* fall through */
+    }
+  }
+  return []
 }

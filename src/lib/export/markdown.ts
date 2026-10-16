@@ -99,8 +99,13 @@ function renderNodes(nodes?: TipTapNode[]): string {
         }
         case 'youtube':
         case 'video': {
-          const src = String(node.attrs?.src ?? '')
-          return src ? `\`\`\`video\n${src}\n\`\`\`\n\n` : ''
+          const src = String(node.attrs?.src ?? '').trim()
+          const caption = String(node.attrs?.caption ?? '').trim()
+          if (!src) return ''
+          const lines = ['```video', src]
+          if (caption) lines.push(`caption: ${caption}`)
+          lines.push('```')
+          return `${lines.join('\n')}\n\n`
         }
         case 'image': {
           const alt = String(node.attrs?.alt ?? 'image')

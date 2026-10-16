@@ -2,9 +2,10 @@
 
 use crate::detect::has_video_ext;
 use crate::extract::{
-    extract_dailymotion_id, extract_loom_id, extract_streamable_id, extract_tiktok_id,
-    extract_twitch_id, extract_vimeo_id, extract_youtube_id,
+    extract_bilibili_id, extract_dailymotion_id, extract_loom_id, extract_streamable_id,
+    extract_tiktok_id, extract_twitch_id, extract_vimeo_id, extract_wistia_id, extract_youtube_id,
 };
+use crate::timestamp::extract_start_seconds;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -42,25 +43,47 @@ impl VideoExportEmbed {
     }
 }
 
+fn with_start(href: String, start: Option<u64>) -> String {
+    match start {
+        Some(secs) if secs > 0 => {
+            if href.contains('?') {
+                format!("{href}&start={secs}")
+            } else {
+                format!("{href}?start={secs}")
+            }
+        }
+        _ => href,
+    }
+}
+
 /// Resolve a stable embed/playback URL for HTML export and print.
 pub fn video_export_embed(src: &str) -> VideoExportEmbed {
     let trimmed = src.trim();
+    let start = extract_start_seconds(trimmed);
     if let Some(id) = extract_youtube_id(trimmed) {
         return VideoExportEmbed::new(
             VideoEmbedKind::Iframe,
-            format!("https://www.youtube-nocookie.com/embed/{id}"),
+            with_start(
+                format!("https://www.youtube-nocookie.com/embed/{id}"),
+                start,
+            ),
         );
     }
     if let Some(id) = extract_vimeo_id(trimmed) {
-        return VideoExportEmbed::new(
-            VideoEmbedKind::Iframe,
-            format!("https://player.vimeo.com/video/{id}"),
-        );
+        let base = format!("https://player.vimeo.com/video/{id}");
+        let href = match start {
+            Some(secs) if secs > 0 => format!("{base}#t={secs}s"),
+            _ => base,
+        };
+        return VideoExportEmbed::new(VideoEmbedKind::Iframe, href);
     }
     if let Some(id) = extract_dailymotion_id(trimmed) {
         return VideoExportEmbed::new(
             VideoEmbedKind::Iframe,
-            format!("https://www.dailymotion.com/embed/video/{id}"),
+            with_start(
+                format!("https://www.dailymotion.com/embed/video/{id}"),
+                start,
+            ),
         );
     }
     if let Some(id) = extract_loom_id(trimmed) {
@@ -79,6 +102,18 @@ pub fn video_export_embed(src: &str) -> VideoExportEmbed {
         return VideoExportEmbed::new(
             VideoEmbedKind::Iframe,
             format!("https://www.tiktok.com/embed/v2/{id}"),
+        );
+    }
+    if let Some(id) = extract_wistia_id(trimmed) {
+        return VideoExportEmbed::new(
+            VideoEmbedKind::Iframe,
+            format!("https://fast.wistia.net/embed/iframe/{id}"),
+        );
+    }
+    if let Some(id) = extract_bilibili_id(trimmed) {
+        return VideoExportEmbed::new(
+            VideoEmbedKind::Iframe,
+            format!("https://player.bilibili.com/player.html?bvid={id}&high_quality=1"),
         );
     }
     if let Some((kind, id)) = extract_twitch_id(trimmed) {

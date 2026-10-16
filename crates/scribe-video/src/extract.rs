@@ -123,6 +123,77 @@ pub fn extract_streamable_id(src: &str) -> Option<String> {
         .map(str::to_string)
 }
 
+/// Wistia media hashed id from `/medias/` or embed iframe paths.
+pub fn extract_wistia_id(src: &str) -> Option<String> {
+    let (host, path, _) = parse_host_path(src)?;
+    if !host.contains("wistia") {
+        return None;
+    }
+    let parts = path_segments(&path);
+    if let Some(marker) = parts
+        .iter()
+        .position(|p| *p == "medias" || *p == "iframe" || *p == "embed")
+    {
+        return parts.get(marker + 1).map(|s| (*s).to_string());
+    }
+    None
+}
+
+/// Bilibili `BV…` id from path or `bvid=` query.
+pub fn extract_bilibili_id(src: &str) -> Option<String> {
+    let (host, path, query) = parse_host_path(src)?;
+    if host != "bilibili.com"
+        && !host.ends_with(".bilibili.com")
+        && host != "b23.tv"
+        && host != "player.bilibili.com"
+    {
+        return None;
+    }
+    if let Some(bvid) = query_param(&query, "bvid") {
+        if bvid.starts_with("BV") {
+            return Some(bvid);
+        }
+    }
+    for part in path_segments(&path) {
+        if part.starts_with("BV") && part.len() >= 10 {
+            return Some(part.to_string());
+        }
+    }
+    None
+}
+
+/// Best-effort primary id string for the detected provider (Twitch returns `kind:id`).
+pub fn extract_provider_id(src: &str) -> Option<String> {
+    if let Some(id) = extract_youtube_id(src) {
+        return Some(id);
+    }
+    if let Some(id) = extract_vimeo_id(src) {
+        return Some(id);
+    }
+    if let Some(id) = extract_dailymotion_id(src) {
+        return Some(id);
+    }
+    if let Some((kind, id)) = extract_twitch_id(src) {
+        return Some(format!("{kind}:{id}"));
+    }
+    if let Some(id) = extract_loom_id(src) {
+        return Some(id);
+    }
+    if let Some(id) = extract_tiktok_id(src) {
+        return Some(id);
+    }
+    if let Some(id) = extract_streamable_id(src) {
+        return Some(id);
+    }
+    if let Some(id) = extract_wistia_id(src) {
+        return Some(id);
+    }
+    if let Some(id) = extract_bilibili_id(src) {
+        return Some(id);
+    }
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
