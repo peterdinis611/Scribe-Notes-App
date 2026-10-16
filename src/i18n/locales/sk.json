@@ -4233,6 +4233,8 @@
     "ariaLabel": "Náhľad PDF: {{title}}",
     "export": "Exportovať",
     "generating": "Generujem PDF náhľad…",
+    "loadingPages": "Otváram PDF…",
+    "pageAria": "{{title}} — strana {{page}} z {{total}}",
     "errorFallback": "Nepodarilo sa vygenerovať náhľad PDF.",
     "errorHint": "Skúste znova alebo exportujte priamo do súboru cez menu Súbor."
   },

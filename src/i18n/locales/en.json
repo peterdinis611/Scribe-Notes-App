@@ -4219,6 +4219,8 @@
     "ariaLabel": "PDF preview: {{title}}",
     "export": "Export",
     "generating": "Generating PDF preview…",
+    "loadingPages": "Opening PDF…",
+    "pageAria": "{{title}} — page {{page}} of {{total}}",
     "errorFallback": "Failed to generate PDF preview.",
     "errorHint": "Try again or export directly to a file via the File menu."
   },
