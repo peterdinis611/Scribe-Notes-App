@@ -119,6 +119,16 @@ pub fn document_matches_smart_filter(
 }
 
 #[tauri::command]
+pub fn filter_documents_by_smart_filter_ui(
+    docs: Vec<SmartFilterDoc>,
+    filter: String,
+    options: Option<SmartFilterOptions>,
+) -> Vec<SmartFilterDoc> {
+    let parsed = LibrarySmartFilter::parse_id(&filter).unwrap_or(LibrarySmartFilter::None);
+    scribe_ui::filter_documents_by_smart_filter(&docs, parsed, &options.unwrap_or_default())
+}
+
+#[tauri::command]
 pub fn clamp_sidebar_width(value: f64, viewport_width: Option<i32>) -> i32 {
     clamp_sidebar(value, viewport_width.unwrap_or(1440))
 }
@@ -437,6 +447,38 @@ pub fn suggest_orphan_links_ui(
 #[tauri::command]
 pub fn resolve_color_ui(color: String, tokens: scribe_ui::ColorTokens) -> String {
     scribe_ui::resolve_color(&color, &tokens)
+}
+
+#[tauri::command]
+pub fn asset_kind_ui(extension: String) -> String {
+    scribe_ui::asset_kind(&extension).to_string()
+}
+
+#[tauri::command]
+pub fn format_bytes_ui(bytes: u64) -> String {
+    scribe_ui::format_bytes(bytes)
+}
+
+#[tauri::command]
+pub fn is_orphan_asset_ui(document_title: Option<String>) -> bool {
+    scribe_ui::is_orphan_asset(document_title.as_deref())
+}
+
+#[tauri::command]
+pub fn filter_library_assets_ui(
+    assets: Vec<scribe_ui::LibraryAssetRow>,
+    filter: String,
+    query: String,
+) -> Vec<scribe_ui::LibraryAssetRow> {
+    scribe_ui::filter_library_assets(&assets, &filter, &query)
+}
+
+#[tauri::command]
+pub fn library_asset_kind_filters_ui() -> Vec<String> {
+    scribe_ui::library_asset_kind_filters()
+        .into_iter()
+        .map(str::to_string)
+        .collect()
 }
 
 #[tauri::command]

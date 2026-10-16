@@ -1,7 +1,10 @@
 import type { JSONContent } from '@tiptap/core'
 import { MarkdownManager } from '@tiptap/markdown'
 import { getEditorExtensions } from '@/lib/editor/extensions'
-import { promoteMarkdownSpecialBlocks } from '@/lib/editor/markdown-promote'
+import {
+  promoteMarkdownSpecialBlocks,
+  promoteMarkdownSpecialBlocksAsync,
+} from '@/lib/editor/markdown-promote'
 
 let markdownManager: MarkdownManager | null = null
 
@@ -16,6 +19,13 @@ function getMarkdownManager(): MarkdownManager {
 
 export function parseMarkdownToContentJson(markdown: string): string {
   const doc = promoteMarkdownSpecialBlocks(getMarkdownManager().parse(markdown) as JSONContent)
+  return JSON.stringify(doc)
+}
+
+/** Prefer Rust promote under Tauri after TipTap Markdown parse. */
+export async function parseMarkdownToContentJsonAsync(markdown: string): Promise<string> {
+  const parsed = getMarkdownManager().parse(markdown) as JSONContent
+  const doc = await promoteMarkdownSpecialBlocksAsync(parsed)
   return JSON.stringify(doc)
 }
 

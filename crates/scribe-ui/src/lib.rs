@@ -28,6 +28,7 @@ mod import_path;
 mod journal_dates;
 mod layout;
 mod layout_panels;
+mod library_assets;
 mod library_tree;
 mod library_views;
 mod locale_options;
@@ -180,6 +181,10 @@ pub use layout_panels::{
     EDITOR_PANEL_WIDTH_KEY, SIDEBAR_WIDTH_CSS_VAR, SIDEBAR_WIDTH_KEY, TOC_RAIL_WIDTH_CSS_VAR,
     TOC_RAIL_WIDTH_DEFAULT, TOC_RAIL_WIDTH_KEY, TOC_RAIL_WIDTH_MAX, TOC_RAIL_WIDTH_MIN,
 };
+pub use library_assets::{
+    asset_kind, filter_library_assets, format_bytes, is_orphan_asset, is_previewable_kind,
+    is_video_kind, library_asset_kind_filters, LibraryAssetRow, LIBRARY_ASSET_KIND_FILTERS,
+};
 pub use library_tree::{
     build_tree, estimate_flat_item_size, flatten_library, flatten_tree, FlatTreeItem,
     LibraryDocument, LibraryFolder, TreeNode, DOCUMENT_ROW_HEIGHT, FOLDER_ROW_HEIGHT,
@@ -244,8 +249,8 @@ pub use skin::{
     is_ui_skin, normalize_ui_skin, ui_skin_ids, UiSkin, UI_SKIN_STORAGE_KEY,
 };
 pub use smart_filters::{
-    document_matches_smart_filter, smart_filter_ids, LibrarySmartFilter, SmartFilterDoc,
-    SmartFilterOptions,
+    document_matches_smart_filter, filter_documents_by_smart_filter, smart_filter_ids,
+    LibrarySmartFilter, SmartFilterDoc, SmartFilterOptions,
 };
 pub use snippet::sanitize_snippet;
 pub use snippet_validation::{

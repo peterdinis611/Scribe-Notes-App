@@ -1183,6 +1183,52 @@ export const collectMarkdownHeadingOutlineNative = (markdown: string) =>
 export const parseMapSpecNative = (source: string) =>
   invoke<unknown>('parse_map_spec_ui', { source })
 
+export const documentMatchesSmartFilterNative = (args: {
+  doc: { id: string; tags: string[]; deletedAt?: number | null }
+  filter: string
+  options?: {
+    orphanIds?: string[]
+    recentDocumentIds?: string[]
+    canvasIds?: string[]
+  } | null
+}) =>
+  invoke<boolean>('document_matches_smart_filter', {
+    doc: args.doc,
+    filter: args.filter,
+    options: args.options ?? null,
+  })
+
+export const filterDocumentsBySmartFilterNative = (args: {
+  docs: Array<{ id: string; tags: string[]; deletedAt?: number | null }>
+  filter: string
+  options?: {
+    orphanIds?: string[]
+    recentDocumentIds?: string[]
+    canvasIds?: string[]
+  } | null
+}) =>
+  invoke<Array<{ id: string; tags: string[]; deletedAt?: number | null }>>(
+    'filter_documents_by_smart_filter_ui',
+    {
+      docs: args.docs,
+      filter: args.filter,
+      options: args.options ?? null,
+    },
+  )
+
+export const documentMatchesMetaFiltersUiNative = (
+  tags: string[],
+  filters: { status?: string | null; project?: string | null; year?: string | null },
+) =>
+  invoke<boolean>('document_matches_meta_filters_ui', {
+    tags,
+    filters: {
+      status: filters.status ?? null,
+      project: filters.project ?? null,
+      year: filters.year ?? null,
+    },
+  })
+
 export const importTitleFromPathNative = (path: string, fallback: string) =>
   invoke<string>('import_title_from_path_ui', { path, fallback })
 
@@ -2182,6 +2228,25 @@ export const listLibraryAssets = () => invoke<LibraryAsset[]>('list_library_asse
 
 export const deleteLibraryAsset = (path: string) =>
   invoke<void>('delete_library_asset', { path })
+
+export const assetKindNative = (extension: string) =>
+  invoke<string>('asset_kind_ui', { extension })
+
+export const formatBytesNative = (bytes: number) =>
+  invoke<string>('format_bytes_ui', { bytes })
+
+export const isOrphanAssetNative = (documentTitle: string | null) =>
+  invoke<boolean>('is_orphan_asset_ui', { documentTitle })
+
+export const filterLibraryAssetsNative = (
+  assets: LibraryAsset[],
+  filter: string,
+  query: string,
+) =>
+  invoke<LibraryAsset[]>('filter_library_assets_ui', { assets, filter, query })
+
+export const libraryAssetKindFiltersNative = () =>
+  invoke<string[]>('library_asset_kind_filters_ui')
 
 export interface CustomTemplateCategoryRow {
   id: string

@@ -26,17 +26,6 @@ pub struct LibraryAsset {
     pub modified_at: Option<i64>,
 }
 
-fn asset_kind(extension: &str) -> &'static str {
-    match extension {
-        "svg" => "svg",
-        "json" | "lottie" => "lottie",
-        "png" | "jpg" | "jpeg" | "gif" | "webp" | "bmp" | "avif" | "apng" => "image",
-        "glb" | "gltf" | "usdz" => "model3d",
-        "mp4" | "webm" | "ogv" | "ogg" | "mov" | "m3u8" | "mkv" | "m4v" => "video",
-        _ => "other",
-    }
-}
-
 fn document_title_for(conn: &rusqlite::Connection, document_id: &str) -> Result<Option<String>, String> {
     if document_id.is_empty() {
         return Ok(None);
@@ -75,7 +64,7 @@ fn push_file_asset(
     let modified_at = meta.as_ref().and_then(modified_at_secs);
     let kind = kind_override
         .map(str::to_string)
-        .unwrap_or_else(|| asset_kind(&extension).to_string());
+        .unwrap_or_else(|| scribe_ui::asset_kind(&extension).to_string());
     assets.push(LibraryAsset {
         path: path.to_string_lossy().to_string(),
         file_name,

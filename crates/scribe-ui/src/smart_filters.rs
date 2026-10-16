@@ -83,6 +83,18 @@ pub fn document_matches_smart_filter(
     }
 }
 
+/// Keep documents that match `filter` (order preserved).
+pub fn filter_documents_by_smart_filter(
+    docs: &[SmartFilterDoc],
+    filter: LibrarySmartFilter,
+    options: &SmartFilterOptions,
+) -> Vec<SmartFilterDoc> {
+    docs.iter()
+        .filter(|doc| document_matches_smart_filter(doc, filter, options))
+        .cloned()
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -124,5 +136,19 @@ mod tests {
             }
         ));
         assert_eq!(smart_filter_ids().len(), 5);
+        let filtered = filter_documents_by_smart_filter(
+            &[
+                doc.clone(),
+                SmartFilterDoc {
+                    id: "b".into(),
+                    tags: vec!["x".into()],
+                    deleted_at: None,
+                },
+            ],
+            LibrarySmartFilter::Untagged,
+            &SmartFilterOptions::default(),
+        );
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].id, "a");
     }
 }

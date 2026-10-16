@@ -23,6 +23,13 @@ import {
   revealInFinder,
   type LibraryAsset,
 } from '@/lib/db/api'
+import {
+  filterLibraryAssets,
+  formatBytes,
+  isOrphanAsset as isOrphanTitle,
+  isPreviewableKind,
+  LIBRARY_ASSET_KIND_FILTERS,
+} from '@/lib/storage/library-assets'
 import { convertFileSrc } from '@/lib/tauri'
 import { ROUTES } from '@/lib/routes'
 import { cn } from '@/lib/utils'
@@ -34,19 +41,7 @@ import { StorageLocalApiPanel } from '@/components/storage/StorageLocalApiPanel'
 import { promptInput } from '@/lib/input-dialog'
 import { confirm } from '@tauri-apps/plugin-dialog'
 
-type AssetFilter = 'all' | 'orphans' | 'image' | 'svg' | 'lottie' | 'model3d' | 'video' | 'other'
-
-function formatBytes(bytes: number): string {
-  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B'
-  const units = ['B', 'KB', 'MB', 'GB']
-  let value = bytes
-  let unit = 0
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024
-    unit += 1
-  }
-  return `${value < 10 && unit > 0 ? value.toFixed(1) : Math.round(value)} ${units[unit]}`
-}
+type AssetFilter = 'all' | 'orphans' | (typeof LIBRARY_ASSET_KIND_FILTERS)[number]
 
 function KindIcon({ kind }: { kind: string }) {
   if (kind === 'image') return <ImageIcon className="h-5 w-5" />
@@ -57,12 +52,8 @@ function KindIcon({ kind }: { kind: string }) {
   return <FileQuestion className="h-5 w-5" />
 }
 
-function isPreviewable(kind: string) {
-  return kind === 'image' || kind === 'svg'
-}
-
 function isOrphanAsset(asset: LibraryAsset) {
-  return !asset.documentTitle
+  return isOrphanTitle(asset.documentTitle)
 }
 
 export function StorageModeView() {
@@ -97,23 +88,10 @@ export function StorageModeView() {
 
   const orphanCount = useMemo(() => assets.filter(isOrphanAsset).length, [assets])
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    return assets.filter((asset) => {
-      if (filter === 'orphans') {
-        if (!isOrphanAsset(asset)) return false
-      } else if (filter !== 'all' && asset.kind !== filter) {
-        return false
-      }
-      if (!q) return true
-      return (
-        asset.fileName.toLowerCase().includes(q) ||
-        asset.extension.toLowerCase().includes(q) ||
-        (asset.documentTitle ?? '').toLowerCase().includes(q) ||
-        asset.documentId.toLowerCase().includes(q)
-      )
-    })
-  }, [assets, filter, query])
+  const filtered = useMemo(
+    () => filterLibraryAssets(assets, filter, query),
+    [assets, filter, query],
+  )
 
   const filters: { id: AssetFilter; label: string }[] = [
     { id: 'all', label: t('storageMode.filterAll') },
@@ -300,7 +278,7 @@ export function StorageModeView() {
               {filtered.map((asset) => (
                 <li key={asset.path} className="storage-mode-card">
                   <div className="storage-mode-thumb">
-                    {isPreviewable(asset.kind) ? (
+                    {isPreviewableKind(asset.kind) ? (
                       <img
                         src={convertFileSrc(asset.path)}
                         alt={asset.fileName}
