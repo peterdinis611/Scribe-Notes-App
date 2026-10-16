@@ -556,6 +556,7 @@ pub fn run() {
             commands::system::list_system_font_families,
             commands::links::list_link_graph,
             commands::links::list_wiki_health,
+            commands::links::list_graph_hubs,
             commands::links::find_documents_by_title,
             commands::links::resolve_wiki_link,
             capture::capture_status,

@@ -1819,6 +1819,16 @@ export const listWikiHealth = (options?: {
     stubLimit: options?.stubLimit ?? null,
   })
 
+export interface GraphHub {
+  id: string
+  title: string
+  backlinks: number
+  outgoing: number
+}
+
+export const listGraphHubs = (limit = 12) =>
+  invoke<GraphHub[]>('list_graph_hubs', { limit })
+
 export const findDocumentsByTitle = (title: string, limit = 10) =>
   invoke<TitleMatch[]>('find_documents_by_title', { title, limit })
 

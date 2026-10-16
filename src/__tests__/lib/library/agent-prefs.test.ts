@@ -53,6 +53,12 @@ describe('normalizeAgentPrefs / teach', () => {
     expect(prefs.teachings).toEqual([])
   })
 
+  it('accepts maxSteps up to 6', () => {
+    expect(normalizeAgentPrefs({ maxSteps: 6 }).maxSteps).toBe(6)
+    expect(normalizeAgentPrefs({ maxSteps: 4 }).maxSteps).toBe(4)
+    expect(normalizeAgentPrefs({ maxSteps: 99 }).maxSteps).toBe(3)
+  })
+
   it('creates and injects teachings', () => {
     const teaching = createTeaching('Prefer Slovak answers')
     expect(teaching?.text).toBe('Prefer Slovak answers')

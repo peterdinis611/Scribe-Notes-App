@@ -1936,6 +1936,39 @@
       "pinnedPlaceholder": "napr. Projekt Atlas; odpovedaj odrážkami",
       "pinnedAdd": "Pripnúť",
       "pinnedEmpty": "Zatiaľ žiadne pripnuté fakty.",
+      "filesTrain": {
+        "title": "Tréning na files/",
+        "hint": "Napoj lokálneho agenta na sandbox files/ — API, otázky, import a trvalé pravidlá.",
+        "description": "Agent sa netrénuje ako model. Učí sa z files/ cez Local Files API, voliteľný import do poznámok a krátke teachings / pinned facts.",
+        "stepApi": "Spusti Local Files API (Storage Mode), aby bol files/ čitateľný.",
+        "stepAsk": "Spusti Files digest / Učiť sa z files/ a spýtaj sa sandboxu.",
+        "stepIngest": "Importuj textové súbory do knižnice, aby ich vedeli digesty a wiki nástroje.",
+        "stepTeach": "Pridaj trvalú inštrukciu (presety nižšie), aby ďalšie behy preferovali cesty files/ a citovali ich.",
+        "presetAdded": "Učenie pre files/ uložené",
+        "presets": {
+          "citePaths": {
+            "label": "Citovať cesty",
+            "text": "Pri odpovediach z files/ alebo importovaných sandbox poznámok vždy cituj cestu k súboru."
+          },
+          "preferSandbox": {
+            "label": "Najprv files/",
+            "text": "Pri projektových otázkach najprv skontroluj sandbox files/, až potom tipuj z pamäte."
+          },
+          "ingestThenAnswer": {
+            "label": "Import a potom odpoveď",
+            "text": "Keď vyzerajú sandbox súbory relevantne, najprv ich importuj do knižnice a až potom dlhšie odpovedaj."
+          },
+          "slovakFiles": {
+            "label": "Slovenčina + files/",
+            "text": "Odpovedaj po slovensky a preferuj dôkazy z files/ s citáciami ciest."
+          },
+          "projectInbox": {
+            "label": "Projektový inbox",
+            "text": "Ber files/inbox ako drop zónu projektu; najprv zhrň nové súbory tam.",
+            "pin": "Projektová drop zóna: files/inbox"
+          }
+        }
+      },
       "teachTitle": "Naučiť agenta",
       "teachHint": "Krátke trvalé inštrukcie (jazyk, priority, návyky). Zvoľ Gramatiku pre pravopisné/štýlové pravidlá pravopisného agenta. Globálne platia všade; dokumentové len pri otvorenej poznámke.",
       "teachPlaceholder": "napr. Odpovedaj po slovensky; najprv termíny",
@@ -2901,6 +2934,8 @@
     "clearSession": "Vymazať session",
     "clearError": "Pamäť agenta sa nepodarilo vymazať",
     "needsDocument": "Pre tento nástroj otvor dokument.",
+    "needsCanvas": "Pre tento nástroj otvor canvas dokument.",
+    "saveTemplateCanvas": "Canvas poznámky zatiaľ nie je možné uložiť ako textové šablóny.",
     "disabled": "Agent je vypnutý. Zapni ho v Nastavenia → Agent.",
     "budgetExceeded": "Denný rozpočet agenta je vyčerpaný. Zvýš ho v Nastavenia → Agent.",
     "clarifyPrompt": "Nie som si istý, ktoré nástroje spustiť. Vyber:",
@@ -3014,7 +3049,10 @@
       "openLoops": "Aké otvorené slučky by som mal uzavrieť?",
       "deadlines": "Aké termíny sa blížia?",
       "connections": "Ktoré poznámky sa prepojujú?",
-      "folderWhatsNew": "Čo je nové v priečinku (7 dní)?"
+      "folderWhatsNew": "Čo je nové v priečinku (7 dní)?",
+      "askFiles": "Čo je v sandboxe files/?",
+      "ingestFiles": "Importuj nedávne files/ do knižnice",
+      "learnFiles": "Učiť sa z files/ (opýtať + import)"
     },
     "recipes": {
       "dailyDigest": "Denný digest",
@@ -3025,9 +3063,13 @@
       "studyPass": "Štúdium",
       "deepRead": "Hĺbkové čítanie",
       "filesDigest": "Prehľad files/",
+      "filesLearn": "Učiť sa z files/",
+      "filesToLibrary": "Files → knižnica",
       "cleanup": "Upratanie knižnice",
       "privacyPass": "Privacy pass",
-      "polish": "Vylepšiť poznámku"
+      "polish": "Vylepšiť poznámku",
+      "wikiCleanup": "Wiki upratanie",
+      "canvasBoard": "Canvas → poznámka"
     },
     "quickPrompts": {
       "explain": "Vysvetli túto poznámku",
@@ -3084,7 +3126,12 @@
       "files_answer": "Opýtať sa files/",
       "files_ingest": "Files → poznámky",
       "save_template": "Uložiť ako šablónu",
-      "handoff": "Handoff agentovi"
+      "handoff": "Handoff agentovi",
+      "keywords": "Kľúčové slová",
+      "wiki_health": "Zdravie wiki",
+      "canvas_summarize": "Zhrnúť canvas",
+      "canvas_to_note": "Canvas → poznámka",
+      "canvas_template": "Šablóna canvasu"
     }
   },
   "localIntelligence": {

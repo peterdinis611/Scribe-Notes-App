@@ -33,6 +33,7 @@ _LIBRARY_TOOLS: frozenset[str] = frozenset(
         "files_ingest",
         "handoff",
         "keywords",
+        "wiki_health",
     }
 )
 
@@ -40,9 +41,17 @@ _LIBRARY_TOOLS: frozenset[str] = frozenset(
 _ROLE_TOOL_BOOSTS: dict[str, tuple[str, ...]] = {
     "proofreader": ("spellcheck", "grammar", "style", "simplify"),
     "meeting": ("meeting", "action_items", "decisions", "commitments", "mentions"),
-    "librarian": ("wiki", "organize", "similar", "duplicates", "citations"),
+    "librarian": ("wiki_health", "wiki", "organize", "similar", "duplicates", "citations"),
     "study": ("flashcards", "quiz", "reading_plan", "takeaways", "section_summaries"),
-    "organizer": ("tasks", "rank_tasks", "dates", "open_loops", "organize"),
+    "organizer": (
+        "tasks",
+        "rank_tasks",
+        "dates",
+        "open_loops",
+        "organize",
+        "canvas_summarize",
+        "wiki_health",
+    ),
     "general": (),
 }
 
@@ -121,7 +130,53 @@ _INTENT_RULES: list[tuple[str, tuple[str, ...]]] = [
             "nekonzistent",
         ),
     ),
+    (
+        "wiki_health",
+        (
+            "wiki health",
+            "broken links",
+            "unresolved wiki",
+            "graph hubs",
+            "zdravie wiki",
+            "rozbite odkazy",
+            "nevyriesene odkazy",
+            "orphan notes",
+            "sirotky",
+        ),
+    ),
     ("wiki", ("wiki link", "wikilink", "backlink", "wiki odkazy", "prepojen")),
+    (
+        "canvas_summarize",
+        (
+            "summarize canvas",
+            "canvas summary",
+            "board summary",
+            "zhrn canvas",
+            "zhrnutie canvas",
+            "zhrn board",
+        ),
+    ),
+    (
+        "canvas_to_note",
+        (
+            "canvas to note",
+            "board to note",
+            "export canvas",
+            "canvas do poznamky",
+            "board do poznamky",
+        ),
+    ),
+    (
+        "canvas_template",
+        (
+            "canvas template",
+            "board template",
+            "brainstorm template",
+            "roadmap template",
+            "sablona canvas",
+            "canvas sablona",
+        ),
+    ),
     (
         "organize",
         ("organize", "suggest folder", "suggest tag", "zarad", "priecinok", "tagy", "organizuj"),
@@ -370,6 +425,7 @@ _DOCUMENT_TOOLS = {
     "meeting",
     "terminology",
     "wiki",
+    "wiki_health",
     "organize",
     "quiz",
     "revision",
@@ -400,6 +456,10 @@ _DOCUMENT_TOOLS = {
     "title",
     "continuation",
     "template_hints",
+    "save_template",
+    "canvas_summarize",
+    "canvas_to_note",
+    "canvas_template",
     "document_answer",
 }
 
@@ -635,6 +695,11 @@ _ALLOWED_PLAN_TOOLS = _DOCUMENT_TOOLS | _LIBRARY_TOOLS | {
     "files_ingest",
     "keywords",
     "handoff",
+    "wiki_health",
+    "canvas_summarize",
+    "canvas_to_note",
+    "canvas_template",
+    "save_template",
 }
 
 

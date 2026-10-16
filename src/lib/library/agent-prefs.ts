@@ -68,8 +68,15 @@ export type AgentToolId =
   | 'files_ingest'
   | 'save_template'
   | 'handoff'
+  | 'keywords'
+  | 'wiki_health'
+  | 'canvas_summarize'
+  | 'canvas_to_note'
+  | 'canvas_template'
 
-export type AgentMaxSteps = 1 | 2 | 3
+export type AgentMaxSteps = 1 | 2 | 3 | 4 | 5 | 6
+
+export const AGENT_MAX_STEPS_HARD = 6 as const
 
 export type AgentOutputLanguage = 'auto' | 'en' | 'sk'
 
@@ -242,6 +249,11 @@ const ALL_TOOLS: AgentToolId[] = [
   'files_ingest',
   'save_template',
   'handoff',
+  'keywords',
+  'wiki_health',
+  'canvas_summarize',
+  'canvas_to_note',
+  'canvas_template',
 ]
 
 export function isAgentToolId(value: unknown): value is AgentToolId {
@@ -390,7 +402,7 @@ function normalizeCustomRecipes(raw: unknown): CustomAgentRecipe[] {
       return typeof row.id === 'string' && typeof row.label === 'string' && Array.isArray(row.tools)
     })
     .map((item) => {
-      const tools = item.tools.filter(isToolId).slice(0, 3)
+      const tools = item.tools.filter(isToolId).slice(0, AGENT_MAX_STEPS_HARD)
       const roleId =
         item.roleId && (AGENT_ROLE_IDS as string[]).includes(item.roleId)
           ? item.roleId
@@ -414,7 +426,7 @@ export function createCustomRecipe(input: {
   roleId?: AgentRoleId
 }): CustomAgentRecipe | null {
   const label = input.label.trim().slice(0, 80)
-  const tools = input.tools.filter(isToolId).slice(0, 3)
+  const tools = input.tools.filter(isToolId).slice(0, AGENT_MAX_STEPS_HARD)
   if (label.length < 2 || tools.length === 0) return null
   return {
     id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -428,10 +440,15 @@ export function createCustomRecipe(input: {
 export function normalizeAgentPrefs(raw: unknown): AgentPrefs {
   if (!raw || typeof raw !== 'object') return { ...DEFAULT_AGENT_PREFS }
   const input = raw as Partial<AgentPrefs>
-  const maxSteps =
-    input.maxSteps === 1 || input.maxSteps === 2 || input.maxSteps === 3
-      ? input.maxSteps
+  const maxStepsRaw =
+    typeof input.maxSteps === 'number' && Number.isFinite(input.maxSteps)
+      ? Math.floor(input.maxSteps)
       : DEFAULT_AGENT_PREFS.maxSteps
+  const maxSteps = (
+    maxStepsRaw >= 1 && maxStepsRaw <= AGENT_MAX_STEPS_HARD
+      ? maxStepsRaw
+      : DEFAULT_AGENT_PREFS.maxSteps
+  ) as AgentMaxSteps
 
   const preferredTools = Array.isArray(input.preferredTools)
     ? input.preferredTools.filter(isToolId).slice(0, 10)

@@ -26,6 +26,10 @@ class AgentPlanTests(unittest.TestCase):
         dates = match_agent_intents("Aké termíny mám tento týždeň?")
         self.assertIn("dates", dates)
 
+        self.assertIn("wiki_health", match_agent_intents("Check wiki health and broken links"))
+        self.assertIn("canvas_summarize", match_agent_intents("Summarize canvas board"))
+        self.assertIn("keywords", match_agent_intents("Extract keywords from this note"))
+
     def test_token_prefix_avoids_substring_false_positives(self) -> None:
         self.assertEqual(match_agent_intents("milestone stone path"), [])
         self.assertIn("files_answer", match_agent_intents("ask files/ about deadlines"))

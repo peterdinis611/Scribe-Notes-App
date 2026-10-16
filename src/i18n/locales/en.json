@@ -1936,6 +1936,39 @@
       "pinnedPlaceholder": "e.g. Project Atlas; prefer bullet answers",
       "pinnedAdd": "Pin",
       "pinnedEmpty": "No pinned facts yet.",
+      "filesTrain": {
+        "title": "Train on files/",
+        "hint": "Wire the local agent to your sandbox files — API, ask, import, then standing rules.",
+        "description": "The agent does not fine-tune a model. It learns from files/ via the Local Files API, optional import into notes, and short teachings/pinned facts.",
+        "stepApi": "Start Local Files API (Storage Mode) so files/ is readable.",
+        "stepAsk": "Run Files digest / Learn from files/ to query the sandbox.",
+        "stepIngest": "Import text files into the library so digests and wiki tools can use them.",
+        "stepTeach": "Add a standing instruction (presets below) so future runs prefer files/ paths and cite them.",
+        "presetAdded": "Files teaching saved",
+        "presets": {
+          "citePaths": {
+            "label": "Cite file paths",
+            "text": "When answering from files/ or imported sandbox notes, always cite the file path."
+          },
+          "preferSandbox": {
+            "label": "Prefer files/ first",
+            "text": "For project questions, check the files/ sandbox before guessing from memory."
+          },
+          "ingestThenAnswer": {
+            "label": "Import then answer",
+            "text": "When sandbox files look relevant, import them into the library before a long answer."
+          },
+          "slovakFiles": {
+            "label": "Slovak + files/",
+            "text": "Answer in Slovak and prefer evidence from files/ with path citations."
+          },
+          "projectInbox": {
+            "label": "Project inbox",
+            "text": "Treat files/inbox as the project drop zone; summarize new files there first.",
+            "pin": "Project drop zone: files/inbox"
+          }
+        }
+      },
       "teachTitle": "Teach the agent",
       "teachHint": "Short standing instructions (language, priorities, habits). Choose Grammar to teach spelling/style rules for the Spellcheck Agent. Global teachings apply everywhere; document teachings only when that note is open.",
       "teachPlaceholder": "e.g. Prefer Slovak answers; focus on deadlines first",
@@ -2897,6 +2930,8 @@
     "clearSession": "Clear session",
     "clearError": "Could not clear agent memory",
     "needsDocument": "Open a document for this tool.",
+    "needsCanvas": "Open a canvas document for this tool.",
+    "saveTemplateCanvas": "Canvas notes can’t be saved as text templates.",
     "disabled": "Agent is turned off. Enable it in Settings → Agent.",
     "budgetExceeded": "Daily agent budget reached. Raise it in Settings → Agent.",
     "clarifyPrompt": "I’m not sure which tools to run. Pick one:",
@@ -3010,7 +3045,10 @@
       "openLoops": "What open loops should I close?",
       "deadlines": "What deadlines are coming up?",
       "connections": "Which notes connect to each other?",
-      "folderWhatsNew": "What’s new in this folder (7 days)?"
+      "folderWhatsNew": "What’s new in this folder (7 days)?",
+      "askFiles": "What's in my files/ sandbox?",
+      "ingestFiles": "Import recent files/ into the library",
+      "learnFiles": "Learn from files/ (ask + import)"
     },
     "recipes": {
       "dailyDigest": "Daily digest",
@@ -3021,9 +3059,13 @@
       "studyPass": "Study pass",
       "deepRead": "Deep read",
       "filesDigest": "Files digest",
+      "filesLearn": "Learn from files/",
+      "filesToLibrary": "Files → library",
       "cleanup": "Library cleanup",
       "privacyPass": "Privacy pass",
-      "polish": "Polish note"
+      "polish": "Polish note",
+      "wikiCleanup": "Wiki cleanup",
+      "canvasBoard": "Canvas → note"
     },
     "quickPrompts": {
       "explain": "Explain this note",
@@ -3080,7 +3122,12 @@
       "files_answer": "Ask files/",
       "files_ingest": "Files → notes",
       "save_template": "Save as template",
-      "handoff": "Handoff to agent"
+      "handoff": "Handoff to agent",
+      "keywords": "Keywords",
+      "wiki_health": "Wiki health",
+      "canvas_summarize": "Summarize canvas",
+      "canvas_to_note": "Canvas → note",
+      "canvas_template": "Canvas template"
     }
   },
   "localIntelligence": {

@@ -203,4 +203,7 @@ export const LIBRARY_AGENT_STARTER_CHIPS = [
   'agent.starters.openLoops',
   'agent.starters.deadlines',
   'agent.starters.connections',
+  'agent.starters.askFiles',
+  'agent.starters.ingestFiles',
+  'agent.starters.learnFiles',
 ] as const

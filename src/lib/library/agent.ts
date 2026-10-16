@@ -1,16 +1,23 @@
 import { invokeMatchAgentIntents } from '@/lib/db/api'
 import { nlpAgentDocumentBrief, nlpPlanAgentGoal } from '@/lib/db/nlp-api'
 import {
+  AGENT_MAX_STEPS_HARD,
   applyAgentOptimize,
   bumpAgentRunCount,
   canRunAgentBudget,
   pushAgentEpisode,
   teachingsToMemoryContext,
+  type AgentMaxSteps,
   type AgentPrefs,
   type AgentRoleId,
   type AgentToolId,
   DEFAULT_AGENT_PREFS,
 } from '@/lib/library/agent-prefs'
+import {
+  runAgentCanvasSummarize,
+  runAgentCanvasTemplate,
+  runAgentCanvasToNote,
+} from '@/lib/library/agent-canvas'
 import {
   handoffsToMemoryContext,
   loadHandoffInbox,
@@ -37,6 +44,7 @@ import {
   runAgentDecisions,
   runAgentDuplicates,
   runAgentGrammar,
+  runAgentKeywords,
   runAgentLibraryReport,
   runAgentMeetingPack,
   runAgentMentions,
@@ -50,11 +58,13 @@ import {
   runAgentReadingPlan,
   runAgentRevision,
   runAgentRewrite,
+  runAgentSaveTemplate,
   runAgentSectionSummaries,
   runAgentTemplateHints,
   runAgentTerminologyLibrary,
   runAgentTitle,
   runAgentTone,
+  runAgentWikiHealth,
 } from '@/lib/library/agent-tools'
 import {
   askDocument,
@@ -78,7 +88,7 @@ import {
 
 export type { AgentToolId }
 
-export const AGENT_MAX_STEPS = 3
+export const AGENT_MAX_STEPS = AGENT_MAX_STEPS_HARD
 
 export type AgentStepStatus = 'ok' | 'error' | 'skipped'
 
@@ -165,6 +175,10 @@ const DOCUMENT_TOOLS = new Set<AgentToolId>([
   'continuation',
   'template_hints',
   'save_template',
+  'keywords',
+  'canvas_summarize',
+  'canvas_to_note',
+  'canvas_template',
 ])
 
 const LIBRARY_ONLY_TOOLS = new Set<AgentToolId>([
@@ -175,6 +189,7 @@ const LIBRARY_ONLY_TOOLS = new Set<AgentToolId>([
   'files_ingest',
   'library_report',
   'terminology_library',
+  'wiki_health',
 ])
 
 const CHAT_ACTION_TOOLS = new Set<AgentToolId>([
@@ -242,6 +257,15 @@ const INTENT_TO_TOOL: Record<string, AgentToolId> = {
   files_ingest: 'files_ingest',
   save_template: 'save_template',
   handoff: 'handoff',
+  keywords: 'keywords',
+  wiki_health: 'wiki_health',
+  canvas_summarize: 'canvas_summarize',
+  canvas_to_note: 'canvas_to_note',
+  canvas_template: 'canvas_template',
+}
+
+function recipeStepCap(prefsMax: AgentMaxSteps, recipeToolCount: number): AgentMaxSteps {
+  return Math.min(AGENT_MAX_STEPS_HARD, Math.max(prefsMax, recipeToolCount)) as AgentMaxSteps
 }
 
 const DEFAULT_CLARIFY: AgentToolId[] = [
@@ -307,6 +331,57 @@ export function matchAgentIntentsSync(goal: string): AgentToolId[] {
         'ako sablonu',
         'uloz ako sablonu',
         'urob sablonu',
+      ],
+    },
+    {
+      tool: 'wiki_health',
+      needles: [
+        'wiki health',
+        'broken links',
+        'unresolved wiki',
+        'graph hubs',
+        'zdravie wiki',
+        'rozbite odkazy',
+        'nevyriesene odkazy',
+        'orphan notes',
+        'sirotky',
+      ],
+    },
+    {
+      tool: 'keywords',
+      needles: ['keyword', 'key word', 'keyphrase', 'klucove slova', 'klucovych slov', 'tag candidates'],
+    },
+    {
+      tool: 'canvas_summarize',
+      needles: [
+        'summarize canvas',
+        'canvas summary',
+        'board summary',
+        'zhrn canvas',
+        'zhrnutie canvas',
+        'zhrn board',
+      ],
+    },
+    {
+      tool: 'canvas_to_note',
+      needles: [
+        'canvas to note',
+        'board to note',
+        'export canvas',
+        'canvas do poznamky',
+        'board do poznamky',
+        'vloz canvas',
+      ],
+    },
+    {
+      tool: 'canvas_template',
+      needles: [
+        'canvas template',
+        'board template',
+        'brainstorm template',
+        'roadmap template',
+        'sablona canvas',
+        'canvas sablona',
       ],
     },
     {
@@ -571,11 +646,17 @@ export function suggestFollowupRecipes(
   if (ok.has('outline') || ok.has('meeting')) out.push('note_to_template')
   if (ok.has('outline') || ok.has('flashcards')) out.push('study_pass')
   if (ok.has('glossary') || ok.has('outline')) out.push('deep_read')
-  if (ok.has('duplicates') || ok.has('wiki')) out.push('cleanup')
+  if (ok.has('duplicates') || ok.has('wiki') || ok.has('wiki_health')) out.push('cleanup', 'wiki_cleanup')
+  if (ok.has('canvas_summarize') || ok.has('canvas_to_note')) out.push('canvas_board')
+  if (ok.has('files_answer') || ok.has('files_ingest')) {
+    out.push('files_learn', 'files_to_library', 'files_digest')
+  }
   if (ok.has('spellcheck')) out.push('spellcheck', 'polish')
   if (ok.has('style') || ok.has('terminology')) out.push('polish')
   if (scope === 'document' && out.length === 0) out.push('spellcheck', 'polish', 'study_pass')
-  if (scope !== 'document' && out.length === 0) out.push('daily_digest', 'weekly_review', 'cleanup')
+  if (scope !== 'document' && out.length === 0) {
+    out.push('daily_digest', 'weekly_review', 'cleanup', 'files_learn')
+  }
   return [...new Set(out)]
     .filter((id) => isRecipeAllowedByAgents(id as AgentRecipeId, agents))
     .slice(0, 3)
@@ -643,7 +724,11 @@ export async function planAgentGoal(
           throw new Error('agent.roleDisabled')
         }
       }
-      const tools = applyAgentOptimize(scopeTools(recipe.tools, scope, documentId), effective)
+      const stepCap = recipeStepCap(effective.maxSteps, recipe.tools.length)
+      const tools = applyAgentOptimize(scopeTools(recipe.tools, scope, documentId), {
+        ...effective,
+        maxSteps: stepCap,
+      })
       return {
         goal: trimmed || recipe.label || recipe.id,
         scope,
@@ -717,7 +802,7 @@ export async function planAgentGoal(
     intents
       .map((intent) => INTENT_TO_TOOL[intent] ?? (intent as AgentToolId))
       .filter((tool): tool is AgentToolId => Boolean(tool)),
-    AGENT_MAX_STEPS,
+    effective.maxSteps,
   )
 
   // Pending handoff → soft-prefer role tools when NLP returned nothing useful.
@@ -938,18 +1023,26 @@ async function runTool(
   }
   if (tool === 'save_template') {
     if (!ctx.documentId) throw new Error('agent.needsDocument')
-    return {
-      answer:
-        'Ready to save this note as a reusable template. Use **Save as template** below to name it and store it in your template library.',
-      citations: [
-        {
-          documentId: ctx.documentId,
-          title: 'Template',
-          snippet: 'Open the save-as-template dialog',
-        },
-      ],
-      followups: ['Polish this note first', 'Extract meeting wrap-up'],
-    }
+    return runAgentSaveTemplate(ctx.documentId)
+  }
+  if (tool === 'keywords') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentKeywords(ctx.documentId)
+  }
+  if (tool === 'wiki_health') {
+    return runAgentWikiHealth()
+  }
+  if (tool === 'canvas_summarize') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentCanvasSummarize(ctx.documentId)
+  }
+  if (tool === 'canvas_to_note') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentCanvasToNote(ctx.documentId)
+  }
+  if (tool === 'canvas_template') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentCanvasTemplate(ctx.documentId, ctx.goal)
   }
   if (tool === 'brief') {
     if (ctx.scope === 'folder' && ctx.folderId) {
@@ -992,6 +1085,11 @@ async function runTool(
           title: item.path,
           snippet: item.snippet || item.excerpt || '',
         })),
+        followups: [
+          'recipe:files_learn',
+          'recipe:files_to_library',
+          'teach:files',
+        ],
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
@@ -1005,7 +1103,15 @@ async function runTool(
   if (tool === 'files_ingest') {
     try {
       const result = await runAgentFilesIngest(ctx.goal)
-      return { answer: result.answer, citations: result.citations }
+      return {
+        answer: result.answer,
+        citations: result.citations,
+        followups: result.followups ?? [
+          'recipe:files_to_library',
+          'recipe:weekly_review',
+          'teach:files',
+        ],
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       if (message.includes('FilesApiOffline')) {
@@ -1194,8 +1300,9 @@ export async function runAgentGoal(
   const sectionAnswers: string[] = []
   const citationBuckets: LibraryChatCitation[][] = []
   const followups: string[] = []
+  let replanUsed = false
 
-  for (const tool of plan.tools) {
+  const runOne = async (tool: AgentToolId) => {
     const needsDoc =
       DOCUMENT_TOOLS.has(tool) &&
       tool !== 'dates' &&
@@ -1208,7 +1315,7 @@ export async function runAgentGoal(
         status: 'skipped',
         detail: scope === 'document' ? 'libraryChat.noActiveDocument' : 'agent.needsDocument',
       })
-      continue
+      return
     }
 
     try {
@@ -1247,7 +1354,32 @@ export async function runAgentGoal(
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error)
       steps.push({ tool, status: 'error', detail })
+      if (replanUsed || opts?.recipeId) return
+      replanUsed = true
+      try {
+        const avoidPrefs: AgentPrefs = {
+          ...prefs,
+          disabledTools: [...prefs.disabledTools, tool].filter(
+            (item, index, list) => list.indexOf(item) === index,
+          ),
+        }
+        const rescue = await planAgentGoal(trimmed || 'continue', scope, documentId, avoidPrefs, {
+          roleId: opts?.roleId,
+          folderId: opts?.folderId,
+        })
+        const attempted = new Set(steps.map((step) => step.tool))
+        const alt = rescue.tools.find((candidate) => !attempted.has(candidate))
+        if (alt) {
+          await runOne(alt)
+        }
+      } catch {
+        // soft-fail replan is best-effort
+      }
     }
+  }
+
+  for (const tool of plan.tools) {
+    await runOne(tool)
   }
 
   const answer =

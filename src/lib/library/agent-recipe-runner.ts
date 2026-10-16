@@ -20,7 +20,14 @@ export async function runAgentRecipeFromPalette(recipeId: AgentRecipeId) {
     return
   }
   const documentId = state.documents.activeDocumentId
-  const libraryRecipes = new Set<AgentRecipeId>(['daily_digest', 'weekly_review', 'files_digest', 'cleanup'])
+  const libraryRecipes = new Set<AgentRecipeId>([
+    'daily_digest',
+    'weekly_review',
+    'files_digest',
+    'files_learn',
+    'files_to_library',
+    'cleanup',
+  ])
   const forceLibrary = libraryRecipes.has(recipeId)
   const scope = forceLibrary || !documentId ? 'library' : 'document'
   try {

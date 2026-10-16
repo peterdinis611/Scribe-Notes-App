@@ -14,6 +14,10 @@ export type AgentRecipeId =
   | 'files_digest'
   | 'note_to_template'
   | 'spellcheck'
+  | 'wiki_cleanup'
+  | 'canvas_board'
+  | 'files_learn'
+  | 'files_to_library'
 
 export type AgentRecipe = {
   id: AgentRecipeId
@@ -77,6 +81,16 @@ export const AGENT_RECIPES: AgentRecipe[] = [
     tools: ['files_answer'],
   },
   {
+    id: 'files_learn',
+    labelKey: 'agent.recipes.filesLearn',
+    tools: ['files_answer', 'files_ingest'],
+  },
+  {
+    id: 'files_to_library',
+    labelKey: 'agent.recipes.filesToLibrary',
+    tools: ['files_ingest', 'brief', 'organize'],
+  },
+  {
     id: 'cleanup',
     labelKey: 'agent.recipes.cleanup',
     tools: ['duplicates', 'title', 'organize'],
@@ -96,6 +110,18 @@ export const AGENT_RECIPES: AgentRecipe[] = [
     id: 'polish',
     labelKey: 'agent.recipes.polish',
     tools: ['spellcheck', 'grammar', 'tone'],
+    documentPreferred: true,
+  },
+  {
+    id: 'wiki_cleanup',
+    labelKey: 'agent.recipes.wikiCleanup',
+    tools: ['wiki_health', 'wiki', 'organize'],
+    documentPreferred: true,
+  },
+  {
+    id: 'canvas_board',
+    labelKey: 'agent.recipes.canvasBoard',
+    tools: ['canvas_summarize', 'canvas_to_note'],
     documentPreferred: true,
   },
 ]

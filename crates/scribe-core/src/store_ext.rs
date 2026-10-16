@@ -50,6 +50,13 @@ fn default_auto_backup_dir() -> PathBuf {
     default_documents_dir().join("Backups")
 }
 
+fn content_looks_like_canvas(content_json: &str) -> bool {
+    serde_json::from_str::<Value>(content_json)
+        .ok()
+        .and_then(|v| v.get("type").and_then(|t| t.as_str()).map(|t| t == "canvas"))
+        .unwrap_or(false)
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CustomTemplateSummary {
@@ -961,6 +968,60 @@ impl ScribeStore {
             .map_err(|e| e.to_string())?;
         rows.collect::<Result<Vec<_>, _>>()
             .map_err(|e| e.to_string())
+    }
+
+    /// Save a document’s TipTap JSON as a reusable custom template.
+    pub fn create_custom_template_from_document(
+        &self,
+        document_id: &str,
+    ) -> Result<CustomTemplateSummary, String> {
+        let doc = self
+            .get_document(document_id, true)?
+            .ok_or_else(|| format!("document not found: {document_id}"))?;
+        let content_json = doc
+            .content_json
+            .clone()
+            .filter(|s| !s.trim().is_empty())
+            .ok_or_else(|| "document has no content".to_string())?;
+        if content_looks_like_canvas(&content_json) {
+            return Err("canvas notes cannot be saved as text templates".into());
+        }
+        let name = doc.title.trim();
+        if name.is_empty() {
+            return Err("document title is empty".into());
+        }
+        let id = Uuid::new_v4().to_string();
+        let now = Self::now_ms();
+        let library_id = active_library_id(&self.db);
+        let description = "Saved by local agent";
+        let category = "general";
+        let title = name.to_string();
+        self.run_writable(|db| {
+            db.execute(
+                "INSERT INTO custom_templates (id, name, description, category, title, content_json, created_at, library_id)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                params![
+                    id,
+                    title,
+                    description,
+                    category,
+                    title,
+                    content_json,
+                    now,
+                    library_id,
+                ],
+            )
+            .map_err(|e| e.to_string())?;
+            Ok(())
+        })?;
+        Ok(CustomTemplateSummary {
+            id,
+            name: title.clone(),
+            description: description.into(),
+            category: category.into(),
+            title,
+            created_at: now,
+        })
     }
 
     pub fn create_note_from_template(

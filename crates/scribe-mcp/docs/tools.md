@@ -516,6 +516,8 @@ Same local agent planner as the Scribe app (`plan_agent_goal` + tool execution).
 
 When `persona` is `spellcheck`, the run forces the `spellcheck` tool, requires `documentId`, and injects **grammar** teachings only.
 
+Executed tools (parity with the in-app agent) include library/document NLP tools plus `keywords`, `wiki_health`, `note_pulse`, `continuation`, `mentions`, `handoff`, `save_template` (requires `SCRIBE_MCP_WRITE=1`), and `canvas_summarize` / `canvas_to_note` (write). `canvas_template` and `files_ingest` remain app-only.
+
 ---
 
 ## `run_spellcheck_agent`

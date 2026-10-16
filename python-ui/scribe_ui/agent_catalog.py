@@ -25,6 +25,10 @@ AGENT_RECIPE_IDS: tuple[str, ...] = (
     "files_digest",
     "note_to_template",
     "spellcheck",
+    "wiki_cleanup",
+    "canvas_board",
+    "files_learn",
+    "files_to_library",
 )
 
 
@@ -117,5 +121,29 @@ def agent_recipes() -> list[AgentRecipeDef]:
             "agent.recipes.polish",
             ["spellcheck", "grammar", "tone"],
             True,
+        ),
+        _recipe(
+            "wiki_cleanup",
+            "agent.recipes.wikiCleanup",
+            ["wiki_health", "wiki", "organize"],
+            True,
+        ),
+        _recipe(
+            "canvas_board",
+            "agent.recipes.canvasBoard",
+            ["canvas_summarize", "canvas_to_note"],
+            True,
+        ),
+        _recipe(
+            "files_learn",
+            "agent.recipes.filesLearn",
+            ["files_answer", "files_ingest"],
+            False,
+        ),
+        _recipe(
+            "files_to_library",
+            "agent.recipes.filesToLibrary",
+            ["files_ingest", "brief", "organize"],
+            False,
         ),
     ]

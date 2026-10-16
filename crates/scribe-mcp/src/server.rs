@@ -348,14 +348,182 @@ impl ScribeMcp {
                 "compare_notes needs two documents — call the compare_notes MCP tool with documentIdA/documentIdB"
                     .into(),
             ),
-            "contradiction_hints" => Err(
-                "contradiction_hints needs two documents — call the contradiction_hints MCP tool with idA/idB"
+            "contradictions" | "contradiction_hints" => Err(
+                "contradictions needs two documents — call the contradiction_hints MCP tool with idA/idB"
                     .into(),
             ),
             "revision" => Err(
                 "revision needs a revisionId — call analyze_revision_diff_for_document".into(),
             ),
-            "save_template" => Err("save_template is available in the Scribe app only".into()),
+            "keywords" => {
+                let id = document_id.ok_or_else(|| "documentId required for keywords".to_string())?;
+                let result = store.extract_document_keywords(&self.sidecar, id, Some(16))?;
+                Ok(("keywords".into(), Some(tools::json(&result))))
+            }
+            "note_pulse" => {
+                let id = document_id.ok_or_else(|| "documentId required for note_pulse".to_string())?;
+                let result = store.note_pulse(&self.sidecar, Some(id), None)?;
+                Ok(("note_pulse".into(), Some(tools::json(&result))))
+            }
+            "continuation" => {
+                let id =
+                    document_id.ok_or_else(|| "documentId required for continuation".to_string())?;
+                let doc = store
+                    .get_document(id, false)?
+                    .ok_or_else(|| format!("document not found: {id}"))?;
+                let prefix = doc.plain_text.chars().rev().take(240).collect::<String>();
+                let prefix: String = prefix.chars().rev().collect();
+                let prefix = prefix.trim();
+                if prefix.is_empty() {
+                    return Err("document has no text for continuation".into());
+                }
+                let result = store.suggest_continuation(
+                    &self.sidecar,
+                    prefix,
+                    Some(4),
+                    Some(24),
+                    Some(id),
+                    None,
+                )?;
+                Ok(("continuation".into(), Some(tools::json(&result))))
+            }
+            "mentions" => {
+                let id = document_id.ok_or_else(|| "documentId required for mentions".to_string())?;
+                let result = store.extract_mentions_text(&self.sidecar, Some(id), None)?;
+                Ok(("mentions".into(), Some(tools::json(&result))))
+            }
+            "wiki_health" => {
+                let health = store.wiki_health(40, 40, 24)?;
+                let hubs = store.list_graph_hubs(10)?;
+                Ok((
+                    "wiki_health".into(),
+                    Some(tools::json(&serde_json::json!({
+                        "health": health,
+                        "hubs": hubs,
+                    }))),
+                ))
+            }
+            "save_template" => {
+                let id =
+                    document_id.ok_or_else(|| "documentId required for save_template".to_string())?;
+                if !self.writable {
+                    return Err("save_template requires SCRIBE_MCP_WRITE=1".into());
+                }
+                let created = store.create_custom_template_from_document(id)?;
+                Ok(("save_template".into(), Some(tools::json(&created))))
+            }
+            "handoff" => {
+                let agent = self
+                    .open_agent_store()
+                    .ok_or_else(|| "agent store unavailable".to_string())?;
+                let folded = goal.to_ascii_lowercase();
+                let to = [
+                    "organizer",
+                    "meeting",
+                    "librarian",
+                    "proofreader",
+                    "study",
+                    "general",
+                ]
+                .into_iter()
+                .find(|role| folded.contains(&format!("@{role}")) || folded.contains(*role))
+                .unwrap_or("organizer");
+                let summary = goal.trim();
+                if summary.len() < 2 {
+                    return Err("handoff summary too short".into());
+                }
+                let sent = agent.send_handoff("general", to, summary, document_id, None)?;
+                Ok(("handoff".into(), Some(tools::json(&sent))))
+            }
+            "files_ingest" => Err(
+                "files_ingest runs in the Scribe app (sandbox → notes). Use files_answer from MCP, or open the app agent."
+                    .into(),
+            ),
+            "canvas_summarize" => {
+                let id = document_id
+                    .ok_or_else(|| "documentId required for canvas_summarize".to_string())?;
+                let doc = store
+                    .get_document(id, true)?
+                    .ok_or_else(|| format!("document not found: {id}"))?;
+                let content = doc
+                    .content_json
+                    .as_deref()
+                    .ok_or_else(|| "document has no content".to_string())?;
+                let canvas = scribe_ui::parse_canvas_document(content)
+                    .ok_or_else(|| "document is not a canvas".to_string())?;
+                let mut notes = Vec::new();
+                let mut frames = Vec::new();
+                let mut links = Vec::new();
+                for obj in &canvas.objects {
+                    match &obj.kind {
+                        scribe_ui::CanvasObjectKind::Note if !obj.text.trim().is_empty() => {
+                            notes.push(obj.text.trim().chars().take(160).collect::<String>());
+                        }
+                        scribe_ui::CanvasObjectKind::Frame if !obj.label.trim().is_empty() => {
+                            frames.push(obj.label.trim().to_string());
+                        }
+                        scribe_ui::CanvasObjectKind::DocLink => {
+                            let label = if !obj.document_title.trim().is_empty() {
+                                obj.document_title.trim()
+                            } else if !obj.document_id.trim().is_empty() {
+                                obj.document_id.trim()
+                            } else {
+                                "link"
+                            };
+                            links.push(label.to_string());
+                        }
+                        _ => {}
+                    }
+                }
+                Ok((
+                    "canvas_summarize".into(),
+                    Some(tools::json(&serde_json::json!({
+                        "title": doc.title,
+                        "objectCount": canvas.objects.len(),
+                        "notes": notes,
+                        "frames": frames,
+                        "docLinks": links,
+                    }))),
+                ))
+            }
+            "canvas_to_note" => {
+                let id =
+                    document_id.ok_or_else(|| "documentId required for canvas_to_note".to_string())?;
+                if !self.writable {
+                    return Err("canvas_to_note requires SCRIBE_MCP_WRITE=1".into());
+                }
+                let doc = store
+                    .get_document(id, true)?
+                    .ok_or_else(|| format!("document not found: {id}"))?;
+                let content = doc
+                    .content_json
+                    .as_deref()
+                    .ok_or_else(|| "document has no content".to_string())?;
+                let canvas = scribe_ui::parse_canvas_document(content)
+                    .ok_or_else(|| "document is not a canvas".to_string())?;
+                let mut lines: Vec<String> = Vec::new();
+                for obj in &canvas.objects {
+                    let text = obj.text.trim();
+                    let label = obj.label.trim();
+                    if !label.is_empty() {
+                        lines.push(format!("## {label}"));
+                    }
+                    if !text.is_empty() {
+                        lines.push(text.to_string());
+                    }
+                }
+                let body = if lines.is_empty() {
+                    "(empty canvas)".to_string()
+                } else {
+                    lines.join("\n\n")
+                };
+                let title = format!("{} — from canvas", doc.title);
+                let created = store.create_note(&title, Some(&body), None)?;
+                Ok(("canvas_to_note".into(), Some(tools::json(&created))))
+            }
+            "canvas_template" => Err(
+                "canvas_template applies built-in board layouts in the Scribe app only".into(),
+            ),
             other => Err(format!("unsupported agent tool: {other}")),
         })
     }

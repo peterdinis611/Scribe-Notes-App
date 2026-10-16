@@ -643,7 +643,7 @@ fn map_run_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<AgentRunRecord> {
 }
 
 fn clamp_steps(value: i32) -> i32 {
-    value.clamp(1, 3)
+    value.clamp(1, 6)
 }
 
 fn parse_string_list(raw: &str) -> Vec<String> {
@@ -696,7 +696,7 @@ fn parse_custom_recipes(raw: &str) -> Vec<CustomAgentRecipe> {
                 .into_iter()
                 .map(|tool| tool.trim().to_string())
                 .filter(|tool| !tool.is_empty())
-                .take(3)
+                .take(6)
                 .collect();
             if label.len() < 2 || tools.is_empty() {
                 return None;
@@ -783,10 +783,18 @@ mod tests {
             })
             .unwrap();
         assert!(!prefs.enabled);
-        assert_eq!(prefs.max_steps, 3);
+        assert_eq!(prefs.max_steps, 6);
         assert!(prefs.prefer_fast);
         let loaded = store.get_prefs().unwrap();
         assert_eq!(loaded, prefs);
+    }
+
+    #[test]
+    fn clamp_steps_allows_six() {
+        assert_eq!(clamp_steps(0), 1);
+        assert_eq!(clamp_steps(4), 4);
+        assert_eq!(clamp_steps(6), 6);
+        assert_eq!(clamp_steps(99), 6);
     }
 
     #[test]
