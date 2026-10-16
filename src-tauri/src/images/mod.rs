@@ -1,5 +1,9 @@
 //! Document image encode/optimize helpers.
 
+mod remove_bg;
+
+pub use remove_bg::remove_background_bytes;
+
 use image::codecs::jpeg::JpegEncoder;
 use image::codecs::png::{CompressionType, FilterType as PngFilterType, PngEncoder};
 use image::imageops::FilterType;
@@ -87,6 +91,10 @@ fn encode_jpeg(img: &DynamicImage, quality: u8) -> Result<Vec<u8>, String> {
 }
 
 fn encode_png(img: &DynamicImage) -> Result<Vec<u8>, String> {
+    encode_png_public(img)
+}
+
+pub(crate) fn encode_png_public(img: &DynamicImage) -> Result<Vec<u8>, String> {
     let rgba = img.to_rgba8();
     let mut out = Cursor::new(Vec::new());
     let encoder = PngEncoder::new_with_quality(

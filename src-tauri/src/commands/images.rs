@@ -1,5 +1,5 @@
 use crate::db::DbState;
-use crate::images::{optimize_image_bytes, OptimizeOptions};
+use crate::images::{optimize_image_bytes, remove_background_bytes, OptimizeOptions};
 use crate::security::PathAccessGate;
 use crate::storage;
 use base64::{engine::general_purpose::STANDARD, Engine as _};
@@ -305,6 +305,40 @@ pub fn save_document_image(
     std::fs::write(&path, &out_bytes).map_err(|e| e.to_string())?;
 
     Ok(path.to_string_lossy().to_string())
+}
+
+/// Remove a near-solid edge-connected background; returns a new PNG under `assets/{documentId}/`.
+#[tauri::command]
+pub fn remove_image_background(
+    app: AppHandle,
+    state: State<'_, DbState>,
+    gate: State<'_, PathAccessGate>,
+    document_id: String,
+    image_path: String,
+    tolerance: Option<u32>,
+) -> Result<String, String> {
+    if document_id.trim().is_empty() {
+        return Err("documentId is required".into());
+    }
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let path = PathBuf::from(&image_path);
+    let validated = if let Ok(temp) = PathAccessGate::validate_temp_file(&path) {
+        temp
+    } else {
+        gate.validate_read(&app, &conn, &path)?
+    };
+    if !validated.is_file() {
+        return Err("Image file not found.".into());
+    }
+    let bytes = std::fs::read(&validated).map_err(|e| format!("Read failed: {e}"))?;
+    let png = remove_background_bytes(&bytes, tolerance)?;
+
+    let dir = storage::get_documents_dir(&app, &conn)?;
+    let assets_dir = dir.join("assets").join(document_id.trim());
+    std::fs::create_dir_all(&assets_dir).map_err(|e| e.to_string())?;
+    let out_path = assets_dir.join(format!("bg-removed-{}.png", Uuid::new_v4()));
+    std::fs::write(&out_path, &png).map_err(|e| e.to_string())?;
+    Ok(out_path.to_string_lossy().to_string())
 }
 
 /// Lists media under `{documentsDir}/assets/{documentId}/` plus local library videos.

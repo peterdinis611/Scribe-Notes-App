@@ -9,6 +9,7 @@ import {
   Copy,
   Crop,
   Download,
+  Eraser,
   Expand,
   ImageIcon,
   Link2,
@@ -30,6 +31,7 @@ import {
   copyImageToClipboard,
   downloadImageSrc,
   pickImageFiles,
+  removeImageBackgroundForDocument,
   replaceImageFromFile,
   saveCroppedImage,
 } from '@/lib/editor/image-utils'
@@ -253,6 +255,21 @@ export function ImageBlock({
     }
   }
 
+  async function handleRemoveBackground() {
+    if (!documentId || !rawSrc || busy || animated) return
+    setBusy(true)
+    try {
+      const path = await removeImageBackgroundForDocument(documentId, rawSrc)
+      updateAttributes({ src: path })
+      setBroken(false)
+      toast.success(t('image.bgRemoved'))
+    } catch (error) {
+      toast.error(t('image.bgRemoveFailed'), String(error))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   function handleDuplicate() {
     const pos = typeof getPos === 'function' ? getPos() : null
     if (typeof pos !== 'number') return
@@ -357,6 +374,15 @@ export function ImageBlock({
               {!animated ? (
                 <ToolbarBtn onClick={() => setCropOpen(true)} title={t('image.crop')}>
                   <Crop className="h-3.5 w-3.5" />
+                </ToolbarBtn>
+              ) : null}
+              {!animated ? (
+                <ToolbarBtn
+                  onClick={() => void handleRemoveBackground()}
+                  title={t('image.removeBackground')}
+                  disabled={busy || !documentId}
+                >
+                  <Eraser className="h-3.5 w-3.5" />
                 </ToolbarBtn>
               ) : null}
               <ToolbarBtn onClick={() => void handleReplace()} title={t('image.replace')} disabled={busy}>

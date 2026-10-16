@@ -3701,6 +3701,9 @@
     "barcodeInserted": "Čiarový kód vložený",
     "barcodeScanError": "Skenovanie zlyhalo",
     "barcodeUnavailable": "Skenovanie QR/čiarových kódov je dostupné na iOS a Androide",
+    "qrInserted": "QR kód vložený",
+    "qrGenerateError": "QR kód sa nepodarilo vygenerovať",
+    "qrNoDocument": "Pred vložením QR otvorte poznámku",
     "windowMoveError": "Nepodarilo sa presunúť okno",
     "documentImported": "Dokument importovaný",
     "pdfHighlightsImported": "Zvýraznenia z PDF importované",
@@ -4289,6 +4292,10 @@
       "youtubeVideo": "YouTube video",
       "video": "Video",
       "map": "Mapa",
+      "qrCode": "QR kód",
+      "qrCodeHint": "Zadajte URL alebo krátky text — vloží sa ako QR obrázok do poznámky.",
+      "qrCodePlaceholder": "https://… alebo text",
+      "qrCodeInsert": "Vložiť QR",
       "scanBarcode": "Skenovať QR / čiarový kód",
       "tableOfContents": "Obsah (TOC)",
       "pageBreak": "Zalomenie strany",
@@ -4686,7 +4693,10 @@
     "animatedBadge": "GIF",
     "animatedHint": "Animovaný obrázok",
     "ocrExtract": "Extrahovať text (OCR)",
-    "ocrFailed": "OCR zlyhalo"
+    "ocrFailed": "OCR zlyhalo",
+    "removeBackground": "Odstrániť pozadie",
+    "bgRemoved": "Pozadie odstránené",
+    "bgRemoveFailed": "Pozadie sa nepodarilo odstrániť"
   },
   "map": {
     "provider": "OpenStreetMap",

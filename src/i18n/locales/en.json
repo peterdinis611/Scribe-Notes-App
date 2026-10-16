@@ -3693,6 +3693,9 @@
     "barcodeInserted": "Barcode inserted",
     "barcodeScanError": "Barcode scan failed",
     "barcodeUnavailable": "Barcode scanning is available on iOS and Android",
+    "qrInserted": "QR code inserted",
+    "qrGenerateError": "Could not generate QR code",
+    "qrNoDocument": "Open a note before inserting a QR code",
     "windowMoveError": "Could not move the window",
     "documentImported": "Document imported",
     "pdfHighlightsImported": "PDF highlights imported",
@@ -4275,6 +4278,10 @@
       "youtubeVideo": "YouTube video",
       "video": "Video",
       "map": "Map",
+      "qrCode": "QR code",
+      "qrCodeHint": "Enter a URL or short text to encode as a QR image in the note.",
+      "qrCodePlaceholder": "https://… or text",
+      "qrCodeInsert": "Insert QR",
       "scanBarcode": "Scan QR / barcode",
       "tableOfContents": "Table of contents (TOC)",
       "pageBreak": "Page break",
@@ -4670,7 +4677,10 @@
     "animatedBadge": "GIF",
     "animatedHint": "Animated image",
     "ocrExtract": "Extract text (OCR)",
-    "ocrFailed": "OCR failed"
+    "ocrFailed": "OCR failed",
+    "removeBackground": "Remove background",
+    "bgRemoved": "Background removed",
+    "bgRemoveFailed": "Could not remove background"
   },
   "map": {
     "provider": "OpenStreetMap",

@@ -222,6 +222,54 @@ export async function insertScannedBarcode(editor: Editor): Promise<boolean> {
   return true
 }
 
+/** Prompt for text/URL and insert a QR code as a document image. */
+export async function insertQrCodeImage(editor: Editor): Promise<boolean> {
+  const { store } = await import('@/store/index')
+  const documentId = store.getState().documents.activeDocumentId
+  if (!documentId) {
+    toast.error(i18n.t('toasts.qrNoDocument'))
+    return false
+  }
+
+  const content = await promptInput({
+    title: i18n.t('toolbar.actions.qrCode'),
+    description: i18n.t('toolbar.actions.qrCodeHint'),
+    placeholder: i18n.t('toolbar.actions.qrCodePlaceholder'),
+    confirmLabel: i18n.t('toolbar.actions.qrCodeInsert'),
+  })
+  if (!content?.trim() || editor.isDestroyed) return false
+
+  try {
+    const { generateQrDataUrl } = await import('@/lib/editor/qr-generate')
+    const { saveDocumentImage } = await import('@/lib/db/api')
+    const dataUrl = await generateQrDataUrl(content)
+    const path = await saveDocumentImage(
+      documentId,
+      `qr-${Date.now()}.png`,
+      dataUrl,
+    )
+    if (editor.isDestroyed) return false
+    editor
+      .chain()
+      .focus()
+      .insertContent({
+        type: 'image',
+        attrs: {
+          src: path,
+          alt: content.trim().slice(0, 120),
+          caption: null,
+          width: '280px',
+          align: 'center',
+        },
+      })
+      .run()
+    return true
+  } catch (error) {
+    toast.error(i18n.t('toasts.qrGenerateError'), String(error))
+    return false
+  }
+}
+
 export function insertDetailsBlock(editor: Editor) {
   editor.chain().focus().setDetails().run()
 }

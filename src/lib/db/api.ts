@@ -2211,6 +2211,18 @@ export const saveDocumentImage = (
     dataBase64,
   })
 
+/** Edge flood-fill background removal → new PNG path under the document assets. */
+export const removeImageBackground = (
+  documentId: string,
+  imagePath: string,
+  tolerance?: number | null,
+) =>
+  invoke<string>('remove_image_background', {
+    documentId,
+    imagePath,
+    tolerance: tolerance ?? null,
+  })
+
 export type LibraryAssetKind = 'image' | 'svg' | 'lottie' | 'model3d' | 'video' | 'other'
 
 export interface LibraryAsset {
