@@ -4167,6 +4167,7 @@ dependencies = [
  "rayon",
  "regex",
  "rusqlite",
+ "scribe-video",
  "serde",
  "serde_json",
  "sha2",

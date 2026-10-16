@@ -1,6 +1,6 @@
 use rusqlite::Connection;
 
-const SCHEMA_VERSION: i32 = 24;
+const SCHEMA_VERSION: i32 = 25;
 
 pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     conn.execute_batch(
@@ -606,6 +606,42 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
             r#"
             CREATE INDEX IF NOT EXISTS idx_agent_messages_doc_agent
                 ON agent_messages(document_id, agent_id, created_at ASC);
+            "#,
+        )?;
+        conn.execute(
+            "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?1)",
+            ["24".to_string()],
+        )?;
+    }
+
+    if current < 25 {
+        conn.execute_batch(
+            r#"
+            CREATE TABLE IF NOT EXISTS library_videos (
+                id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                import_mode TEXT NOT NULL,
+                source_path TEXT NOT NULL,
+                rel_path TEXT,
+                size_bytes INTEGER NOT NULL DEFAULT 0,
+                content_hash TEXT,
+                duration_secs REAL,
+                width INTEGER,
+                height INTEGER,
+                codec TEXT,
+                thumb_rel_path TEXT,
+                transcript_rel_path TEXT,
+                transcript_document_id TEXT,
+                status TEXT NOT NULL DEFAULT 'ready',
+                error TEXT,
+                document_id TEXT,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_library_videos_created
+                ON library_videos(created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_library_videos_document
+                ON library_videos(document_id);
             "#,
         )?;
         conn.execute(

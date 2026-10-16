@@ -9,6 +9,7 @@ mod detect;
 mod embed;
 mod extract;
 mod html;
+mod library;
 mod markdown;
 mod normalize;
 mod provider;
@@ -17,6 +18,13 @@ mod timestamp;
 mod url;
 
 pub use collect::{collect_videos_from_tiptap, collect_videos_from_tiptap_json, CollectedVideo};
+pub use library::{
+    default_import_mode, extension_of, is_local_video_path, title_from_path, video_dir_rel,
+    video_source_rel, video_thumb_rel, video_transcript_rel, ImportLocalVideoRequest,
+    ImportLocalVideoResult, LibraryVideo, LibraryVideoStatus, ProbeVideoResult,
+    TranscribeVideoRequest, TranscribeVideoResult, TranscriptSegment, VideoImportMode,
+    LARGE_VIDEO_HINT_BYTES, LIBRARY_VIDEOS_PREFIX, TRANSCRIBE_VIDEO_METHOD,
+};
 pub use detect::{has_video_ext, is_video_url, VIDEO_FILE_EXT, VIDEO_HOSTS};
 pub use embed::{video_export_embed, VideoEmbedKind, VideoExportEmbed};
 pub use extract::{

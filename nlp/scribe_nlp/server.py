@@ -807,6 +807,15 @@ def _handle_request_inner(
                 )
             except FilesApiOfflineError as exc:
                 raise SidecarError(str(exc), code=-32020) from exc
+        elif method == "transcribe_video":
+            from .video_transcribe import TranscribeUnavailable, transcribe_video
+
+            try:
+                result = transcribe_video(params if isinstance(params, dict) else {})
+            except TranscribeUnavailable as exc:
+                raise SidecarError(str(exc), code=-32021) from exc
+            except Exception as exc:  # noqa: BLE001 — surface ASR failures to Rust
+                raise SidecarError(f"transcribe_video failed: {exc}", code=-32022) from exc
         elif method == "files_index":
             from .files_ai import FilesApiOfflineError, files_index
 

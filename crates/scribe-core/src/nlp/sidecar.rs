@@ -1001,6 +1001,11 @@ impl NlpSidecar {
         self.call_method("files_answer", params)
     }
 
+    /// ASR for a local library video (Python `transcribe_video`).
+    pub fn transcribe_video(&self, params: Value) -> Result<Value, String> {
+        self.call_method("transcribe_video", params)
+    }
+
     pub fn files_index(
         &self,
         path: &str,
@@ -1366,6 +1371,7 @@ pub fn rpc_timeout(method: &str) -> Duration {
         | "passage_rerank" | "answer_followups" | "extract_commitments" => {
             Duration::from_secs(25)
         }
+        "transcribe_video" => Duration::from_secs(600),
         "files_index" => Duration::from_secs(180),
         "llm_status" => Duration::from_secs(8),
         "llm_complete" | "rewrite_selection" => Duration::from_secs(120),

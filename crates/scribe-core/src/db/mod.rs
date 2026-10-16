@@ -1,6 +1,7 @@
 mod embeddings;
 mod fts;
 mod library_scope;
+mod library_videos;
 mod links;
 pub mod migrations;
 mod revisions;
@@ -26,6 +27,10 @@ pub use fts::{
     remove_document_fts, sync_document_fts,
 };
 pub use links::{backfill_links, sync_document_links};
+pub use library_videos::{
+    delete_library_video, get_library_video, insert_library_video, list_library_videos,
+    update_library_video,
+};
 pub use revisions::{
     delete_revision, fetch_revision, restore_document_content, save_revision, set_revision_label,
 };

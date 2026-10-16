@@ -24,6 +24,7 @@ uuid = { version = "1", features = ["v4"] }
 chrono = { version = "0.4", features = ["clock"] }
 regex = "1"
 dirs = "6"
+scribe-video = { path = "../scribe-video" }
 zip = "2"
 quick-xml = "0.42"
 rapidfuzz = { version = "0.5", optional = true }
