@@ -1073,7 +1073,7 @@ def _handle_request_inner(
             result = render_ui_surface(
                 surface,
                 strings=strings_raw if isinstance(strings_raw, dict) else {},
-                version=str(params.get("version") or "3.8.0"),
+                version=str(params.get("version") or "3.9.0"),
                 short_version=str(params.get("shortVersion") or params.get("short_version") or "")
                 or None,
                 recent=params.get("recent") if isinstance(params.get("recent"), list) else None,

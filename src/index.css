@@ -14603,14 +14603,16 @@ html.dark .link-graph-toolbar--overlay {
 .setup-folio--edition-35,
 .setup-folio--edition-36,
 .setup-folio--edition-37,
-.setup-folio--edition-38 {
+.setup-folio--edition-38,
+.setup-folio--edition-39 {
   min-height: 560px;
 }
 
 .welcome-desk--edition-35 .welcome-edition-note,
 .welcome-desk--edition-36 .welcome-edition-note,
 .welcome-desk--edition-37 .welcome-edition-note,
-.welcome-desk--edition-38 .welcome-edition-note {
+.welcome-desk--edition-38 .welcome-edition-note,
+.welcome-desk--edition-39 .welcome-edition-note {
   margin: 10px 0 0;
   max-width: 42ch;
   padding: 8px 12px;
