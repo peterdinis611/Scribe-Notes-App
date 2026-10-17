@@ -131,6 +131,64 @@ export function LibraryWikiHealthPanel({ onNavigate }: LibraryWikiHealthPanelPro
     }
   }
 
+  /** Enrich unresolved rows with NLP suggestions, then auto-resolve confident matches. */
+  async function handleNlpSuggestBatch() {
+    const items = health?.unresolved ?? []
+    if (!items.length) return
+    setResolvingKey('nlp:batch')
+    try {
+      const { nlpSuggestWikiLinks } = await import('@/lib/db/nlp-api')
+      const byDoc = new Map<string, WikiHealthUnresolved[]>()
+      for (const item of items) {
+        const list = byDoc.get(item.documentId) ?? []
+        list.push(item)
+        byDoc.set(item.documentId, list)
+      }
+      let resolved = 0
+      let enriched = 0
+      const nextUnresolved = [...items]
+      for (const [documentId, rows] of byDoc) {
+        const suggestions = await nlpSuggestWikiLinks(documentId, 12).catch(() => [])
+        for (const row of rows) {
+          const fold = row.label.trim().toLowerCase()
+          const match = suggestions.find(
+            (suggestion) =>
+              suggestion.documentId &&
+              (suggestion.phrase?.trim().toLowerCase() === fold ||
+                suggestion.title?.trim().toLowerCase() === fold),
+          )
+          if (!match?.documentId) continue
+          enriched += 1
+          const idx = nextUnresolved.findIndex(
+            (item) => item.documentId === row.documentId && item.label === row.label,
+          )
+          if (idx >= 0) {
+            nextUnresolved[idx] = {
+              ...nextUnresolved[idx],
+              suggestions: [
+                { id: match.documentId, title: match.title, score: match.score ?? 0 },
+                ...(nextUnresolved[idx].suggestions ?? []),
+              ],
+            }
+          }
+          if ((match.score ?? 0) >= 0.72) {
+            await resolveWikiLink(row.documentId, row.label, match.documentId)
+            resolved += 1
+          }
+        }
+      }
+      setHealth((prev) => (prev ? { ...prev, unresolved: nextUnresolved } : prev))
+      toast.success(
+        t('library.wikiHealth.nlpBatchDone', { enriched, resolved }),
+      )
+      if (resolved > 0) await load()
+    } catch (error) {
+      toast.error(t('library.wikiHealth.nlpBatchError'), String(error))
+    } finally {
+      setResolvingKey(null)
+    }
+  }
+
   async function handleResolve(
     item: WikiHealthUnresolved,
     suggestion: { id: string; title: string },
@@ -224,17 +282,31 @@ export function LibraryWikiHealthPanel({ onNavigate }: LibraryWikiHealthPanelPro
             empty={t('library.wikiHealth.unresolvedEmpty')}
             items={unresolved}
             headerAction={
-              unresolved.length > 1 ? (
-                <button
-                  type="button"
-                  className="library-wiki-health__resolve"
-                  disabled={resolvingKey === 'create:all'}
-                  onClick={() => void handleCreateAllUnresolved()}
-                >
-                  {resolvingKey === 'create:all'
-                    ? t('common.loading')
-                    : t('library.wikiHealth.createAll', { count: unresolved.length })}
-                </button>
+              unresolved.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    className="library-wiki-health__resolve"
+                    disabled={resolvingKey === 'nlp:batch'}
+                    onClick={() => void handleNlpSuggestBatch()}
+                  >
+                    {resolvingKey === 'nlp:batch'
+                      ? t('common.loading')
+                      : t('library.wikiHealth.nlpSuggestBatch')}
+                  </button>
+                  {unresolved.length > 1 ? (
+                    <button
+                      type="button"
+                      className="library-wiki-health__resolve"
+                      disabled={resolvingKey === 'create:all'}
+                      onClick={() => void handleCreateAllUnresolved()}
+                    >
+                      {resolvingKey === 'create:all'
+                        ? t('common.loading')
+                        : t('library.wikiHealth.createAll', { count: unresolved.length })}
+                    </button>
+                  ) : null}
+                </div>
               ) : null
             }
             renderItem={(item: WikiHealthUnresolved) => {

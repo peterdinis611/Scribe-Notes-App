@@ -403,7 +403,7 @@ mod tests {
         assert!(m.ui_skin_ids.contains(&"grove".to_string()));
         assert!(m.smart_filter_ids.contains(&"canvas".to_string()));
         assert!(m.library_view_ids.contains(&"wikiHealth".to_string()));
-        assert_eq!(m.whats_new_tag_keys, vec!["library", "capture", "markdown"]);
+        assert_eq!(m.whats_new_tag_keys, vec!["library", "capture", "media"]);
         assert_eq!(m.docs_topic_tips.len(), 7);
         assert!(m.shortcut_ids.contains(&"commandPalette".to_string()));
         assert!(m.agent_role_ids.contains(&"general".to_string()));

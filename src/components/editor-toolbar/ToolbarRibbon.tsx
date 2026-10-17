@@ -72,6 +72,7 @@ import {
   insertInlineMath,
   insertLoremIpsum,
   insertMermaidDiagram,
+  insertLocalLibraryVideo,
   insertQrCodeImage,
   insertScannedBarcode,
   insertVideo,
@@ -271,6 +272,9 @@ export function ToolbarRibbon({
               {t('toolbar.actions.table')}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => void insertVideo(editor)}>{t('toolbar.actions.video')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void insertLocalLibraryVideo(editor)}>
+              {t('toolbar.actions.localVideo')}
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => insertEmptyLottieBlock(editor)}>{t('toolbar.actions.lottie')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => insertEmptyModel3dBlock(editor)}>{t('toolbar.actions.model3d')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => insertEmptyPaintPad(editor)}>{t('toolbar.actions.paint')}</DropdownMenuItem>

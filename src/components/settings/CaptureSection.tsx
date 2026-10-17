@@ -25,10 +25,11 @@ import {
   removeCaptureInboxItem,
   type CaptureInboxItem,
 } from '@/lib/capture/inbox'
-import { listDocuments, listFolders } from '@/lib/db/api'
+import { addDocumentTag, listDocuments, listFolders, moveDocumentToFolder } from '@/lib/db/api'
+import { promptInput } from '@/lib/input-dialog'
 import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
-import { useAppDispatch } from '@/store/hooks'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setActiveDocumentId, setDocuments } from '@/store/documentsSlice'
 import { setFolders } from '@/store/foldersSlice'
 
@@ -41,6 +42,8 @@ export function CaptureSection() {
   const [busy, setBusy] = useState(false)
   const [allowLan, setAllowLan] = useState(false)
   const [inbox, setInbox] = useState<CaptureInboxItem[]>(() => readCaptureInbox())
+  const [selectedInbox, setSelectedInbox] = useState<Set<string>>(() => new Set())
+  const folders = useAppSelector((state) => state.folders.folders)
 
   const refresh = useCallback(async () => {
     const next = await captureStatus()
@@ -60,6 +63,13 @@ export function CaptureSection() {
   useEffect(() => {
     void refresh().catch(() => setStatus(null))
   }, [refresh])
+
+  useEffect(() => {
+    if (folders.length > 0) return
+    void listFolders()
+      .then((rows) => dispatch(setFolders(rows)))
+      .catch(() => null)
+  }, [dispatch, folders.length])
 
   useEffect(() => {
     let unlisten: (() => void) | undefined
@@ -207,39 +217,126 @@ export function CaptureSection() {
                     key={`${item.documentId}-${item.receivedAt}`}
                     className="flex items-center justify-between gap-2 rounded-[var(--radius-sm)] border border-[var(--color-border)] px-2.5 py-1.5"
                   >
-                    <button
-                      type="button"
-                      className="min-w-0 flex-1 truncate text-left text-[12px] font-medium text-[var(--color-foreground)] hover:underline"
-                      onClick={() => {
-                        dispatch(setActiveDocumentId(item.documentId))
-                        void navigate(ROUTES.document(item.documentId))
-                        setInbox(removeCaptureInboxItem(item.documentId))
-                      }}
-                    >
-                      {item.title || t('common.untitled')}
-                    </button>
+                    <label className="flex min-w-0 flex-1 items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedInbox.has(item.documentId)}
+                        onChange={() => {
+                          setSelectedInbox((prev) => {
+                            const next = new Set(prev)
+                            if (next.has(item.documentId)) next.delete(item.documentId)
+                            else next.add(item.documentId)
+                            return next
+                          })
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="min-w-0 flex-1 truncate text-left text-[12px] font-medium text-[var(--color-foreground)] hover:underline"
+                        onClick={() => {
+                          dispatch(setActiveDocumentId(item.documentId))
+                          void navigate(ROUTES.document(item.documentId))
+                          setInbox(removeCaptureInboxItem(item.documentId))
+                          setSelectedInbox((prev) => {
+                            const next = new Set(prev)
+                            next.delete(item.documentId)
+                            return next
+                          })
+                        }}
+                      >
+                        {item.title || t('common.untitled')}
+                      </button>
+                    </label>
                     <Button
                       type="button"
                       size="sm"
                       variant="ghost"
-                      onClick={() => setInbox(removeCaptureInboxItem(item.documentId))}
+                      onClick={() => {
+                        setInbox(removeCaptureInboxItem(item.documentId))
+                        setSelectedInbox((prev) => {
+                          const next = new Set(prev)
+                          next.delete(item.documentId)
+                          return next
+                        })
+                      }}
                     >
                       {t('common.dismiss')}
                     </Button>
                   </li>
                 ))}
               </ul>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  clearCaptureInbox()
-                  setInbox([])
-                }}
-              >
-                {t('capture.queueClear')}
-              </Button>
+              <div className="flex flex-wrap gap-1.5">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={selectedInbox.size === 0}
+                  onClick={() => {
+                    void (async () => {
+                      const tag = await promptInput({
+                        title: t('capture.triageTag'),
+                        description: t('capture.triageTagHint'),
+                        placeholder: 'inbox',
+                        confirmLabel: t('common.confirm'),
+                      })
+                      if (!tag?.trim()) return
+                      for (const id of selectedInbox) {
+                        await addDocumentTag(id, tag.trim()).catch(() => null)
+                        setInbox(removeCaptureInboxItem(id))
+                      }
+                      setSelectedInbox(new Set())
+                      toast.success(t('capture.triageTagged', { tag: tag.trim() }))
+                    })()
+                  }}
+                >
+                  {t('capture.triageTag')}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={selectedInbox.size === 0 || folders.length === 0}
+                  onClick={() => {
+                    void (async () => {
+                      const names = folders.map((folder) => folder.name).join(', ')
+                      const picked = await promptInput({
+                        title: t('capture.triageFolder'),
+                        description: t('capture.triageFolderHint', { folders: names }),
+                        placeholder: folders[0]?.name ?? '',
+                        confirmLabel: t('common.confirm'),
+                      })
+                      if (!picked?.trim()) return
+                      const folder = folders.find(
+                        (row) => row.name.toLowerCase() === picked.trim().toLowerCase(),
+                      )
+                      if (!folder) {
+                        toast.error(t('capture.triageFolderMissing'))
+                        return
+                      }
+                      for (const id of selectedInbox) {
+                        await moveDocumentToFolder(id, folder.id).catch(() => null)
+                        setInbox(removeCaptureInboxItem(id))
+                      }
+                      setSelectedInbox(new Set())
+                      toast.success(t('capture.triageMoved', { folder: folder.name }))
+                    })()
+                  }}
+                >
+                  {t('capture.triageFolder')}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    clearCaptureInbox()
+                    setInbox([])
+                    setSelectedInbox(new Set())
+                  }}
+                >
+                  {t('capture.queueClear')}
+                </Button>
+              </div>
             </div>
           )}
         </SettingsRow>

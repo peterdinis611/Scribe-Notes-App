@@ -78,6 +78,7 @@ export function ImageBlock({
   const [captionDraft, setCaptionDraft] = useState((node.attrs.caption as string) ?? '')
   const [ocrText, setOcrText] = useState<string | null>(null)
   const [ocrLoading, setOcrLoading] = useState(false)
+  const [bgTolerance, setBgTolerance] = useState(48)
 
   const rawSrc = (node.attrs.src as string) ?? ''
   const { displaySrc, animated, kind: animatedKind } = useAnimatedImageSrc(rawSrc)
@@ -259,7 +260,7 @@ export function ImageBlock({
     if (!documentId || !rawSrc || busy || animated) return
     setBusy(true)
     try {
-      const path = await removeImageBackgroundForDocument(documentId, rawSrc)
+      const path = await removeImageBackgroundForDocument(documentId, rawSrc, bgTolerance)
       updateAttributes({ src: path })
       setBroken(false)
       toast.success(t('image.bgRemoved'))
@@ -377,13 +378,31 @@ export function ImageBlock({
                 </ToolbarBtn>
               ) : null}
               {!animated ? (
-                <ToolbarBtn
-                  onClick={() => void handleRemoveBackground()}
-                  title={t('image.removeBackground')}
-                  disabled={busy || !documentId}
-                >
-                  <Eraser className="h-3.5 w-3.5" />
-                </ToolbarBtn>
+                <>
+                  <label
+                    className="image-toolbar-tolerance"
+                    title={t('image.bgTolerance')}
+                    onMouseDown={(event) => event.stopPropagation()}
+                  >
+                    <span className="sr-only">{t('image.bgTolerance')}</span>
+                    <input
+                      type="range"
+                      min={16}
+                      max={120}
+                      step={4}
+                      value={bgTolerance}
+                      disabled={busy || !documentId}
+                      onChange={(event) => setBgTolerance(Number(event.target.value))}
+                    />
+                  </label>
+                  <ToolbarBtn
+                    onClick={() => void handleRemoveBackground()}
+                    title={`${t('image.removeBackground')} (${bgTolerance})`}
+                    disabled={busy || !documentId}
+                  >
+                    <Eraser className="h-3.5 w-3.5" />
+                  </ToolbarBtn>
+                </>
               ) : null}
               <ToolbarBtn onClick={() => void handleReplace()} title={t('image.replace')} disabled={busy}>
                 <Replace className="h-3.5 w-3.5" />

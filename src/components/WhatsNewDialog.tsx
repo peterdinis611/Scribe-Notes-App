@@ -8,15 +8,15 @@ import { persistWhatsNewVersion } from '@/store/persistence'
 
 /** Edition 3.9 release notes — keep in sync with `scribe_ui::WHATS_NEW_39_*`. */
 export const WHATS_NEW_39_HIGHLIGHTS = [
-  'tanstackMarkdown',
-  'captureInbox',
-  'syncMergeStudio',
-  'wikiHealthQueue',
+  'localVideoLibrary',
   'mcpWriteCountdown',
+  'syncMergeStudio',
+  'captureInbox',
+  'wikiHealthQueue',
 ] as const
 
 /** Folio tag keys under `whatsNew.tags.*` — keep in sync with `WHATS_NEW_39_TAG_KEYS`. */
-export const WHATS_NEW_39_TAG_KEYS = ['library', 'capture', 'markdown'] as const
+export const WHATS_NEW_39_TAG_KEYS = ['library', 'capture', 'media'] as const
 
 export type WhatsNew39HighlightId = (typeof WHATS_NEW_39_HIGHLIGHTS)[number]
 

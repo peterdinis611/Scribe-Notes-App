@@ -194,6 +194,25 @@ export function DocumentEditor() {
   editorRefs.editor = editor
   const editorReady = useEditorReady(editor)
 
+  useEffect(() => {
+    if (!editor || !editorReady || !activeId || editor.isDestroyed) return
+    void (async () => {
+      const { takePendingVideoInsert } = await import('@/lib/editor/pending-video-insert')
+      const pending = takePendingVideoInsert(activeId)
+      if (!pending) return
+      editor
+        .chain()
+        .focus()
+        .insertVideo({
+          src: pending.path,
+          caption: pending.title ?? null,
+          libraryVideoId: pending.libraryVideoId ?? null,
+        })
+        .run()
+      toast.success(t('toasts.localVideoInserted'))
+    })()
+  }, [activeId, editor, editorReady, t])
+
   // Sync editable + DOM attributes when settings change. Key handling stays in TauriInputFix.
   useEffect(() => {
     if (!editor || editor.isDestroyed) return

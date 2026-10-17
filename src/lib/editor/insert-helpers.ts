@@ -125,6 +125,73 @@ export async function insertYoutubeVideo(editor: Editor) {
   await insertVideo(editor)
 }
 
+/** Pick a local file, import into the video library, and insert a playable block. */
+export async function insertLocalLibraryVideo(editor: Editor): Promise<boolean> {
+  if (editor.isDestroyed) return false
+  const { store } = await import('@/store/index')
+  const documentId = store.getState().documents.activeDocumentId
+  try {
+    const {
+      pickLocalVideoNative,
+      importLocalVideoNative,
+      libraryVideoPlaybackPathNative,
+      probeLibraryVideoNative,
+    } = await import('@/lib/db/api')
+    const sourcePath = await pickLocalVideoNative()
+    if (!sourcePath || editor.isDestroyed) return false
+    const { video } = await importLocalVideoNative({
+      sourcePath,
+      documentId: documentId ?? null,
+      importMode: 'copy',
+    })
+    void probeLibraryVideoNative(video.id).catch(() => null)
+    const playbackPath = await libraryVideoPlaybackPathNative(video.id)
+    if (editor.isDestroyed) return false
+    editor
+      .chain()
+      .focus()
+      .insertVideo({
+        src: playbackPath,
+        caption: video.title || null,
+        libraryVideoId: video.id,
+      })
+      .run()
+    toast.success(i18n.t('toasts.localVideoInserted'))
+    return true
+  } catch (error) {
+    toast.error(i18n.t('toasts.localVideoError'), String(error))
+    return false
+  }
+}
+
+/** Insert an already-imported library video (e.g. from Storage mode). */
+export async function insertLibraryVideoById(
+  editor: Editor,
+  videoId: string,
+  options?: { title?: string | null; src?: string | null },
+): Promise<boolean> {
+  if (editor.isDestroyed || !videoId.trim()) return false
+  try {
+    const { libraryVideoPlaybackPathNative, getLibraryVideoNative } = await import('@/lib/db/api')
+    const video = options?.src ? null : await getLibraryVideoNative(videoId)
+    const playbackPath = options?.src?.trim() || (await libraryVideoPlaybackPathNative(videoId))
+    if (editor.isDestroyed) return false
+    editor
+      .chain()
+      .focus()
+      .insertVideo({
+        src: playbackPath,
+        caption: options?.title ?? video?.title ?? null,
+        libraryVideoId: videoId,
+      })
+      .run()
+    return true
+  } catch (error) {
+    toast.error(i18n.t('toasts.localVideoError'), String(error))
+    return false
+  }
+}
+
 /** Opens options dialog, then inserts configured lorem / placeholder text at the cursor. */
 export async function insertLoremIpsum(editor: Editor): Promise<boolean> {
   if (editor.isDestroyed) return false
@@ -231,24 +298,52 @@ export async function insertQrCodeImage(editor: Editor): Promise<boolean> {
     return false
   }
 
+  const deepLinkDefault = `scribe://doc/${documentId}`
   const content = await promptInput({
     title: i18n.t('toolbar.actions.qrCode'),
-    description: i18n.t('toolbar.actions.qrCodeHint'),
+    description: i18n.t('toolbar.actions.qrCodeHintDeepLink', {
+      deepLink: deepLinkDefault,
+    }),
     placeholder: i18n.t('toolbar.actions.qrCodePlaceholder'),
+    defaultValue: deepLinkDefault,
     confirmLabel: i18n.t('toolbar.actions.qrCodeInsert'),
   })
   if (!content?.trim() || editor.isDestroyed) return false
 
+  const sizeRaw = await promptInput({
+    title: i18n.t('toolbar.actions.qrCodeSize'),
+    description: i18n.t('toolbar.actions.qrCodeSizeHint'),
+    placeholder: '512',
+    defaultValue: '512',
+    confirmLabel: i18n.t('common.next'),
+  })
+  if (sizeRaw == null || editor.isDestroyed) return false
+  const width = Math.min(1024, Math.max(128, Number(sizeRaw) || 512))
+
+  const dark = await promptInput({
+    title: i18n.t('toolbar.actions.qrCodeDark'),
+    description: i18n.t('toolbar.actions.qrCodeColorHint'),
+    placeholder: '#0c0a09',
+    defaultValue: '#0c0a09',
+    confirmLabel: i18n.t('toolbar.actions.qrCodeInsert'),
+  })
+  if (dark == null || editor.isDestroyed) return false
+
   try {
     const { generateQrDataUrl } = await import('@/lib/editor/qr-generate')
     const { saveDocumentImage } = await import('@/lib/db/api')
-    const dataUrl = await generateQrDataUrl(content)
+    const dataUrl = await generateQrDataUrl(content, {
+      width,
+      dark: dark.trim() || '#0c0a09',
+      light: '#ffffff',
+    })
     const path = await saveDocumentImage(
       documentId,
       `qr-${Date.now()}.png`,
       dataUrl,
     )
     if (editor.isDestroyed) return false
+    const displayWidth = Math.round(width * 0.55)
     editor
       .chain()
       .focus()
@@ -258,7 +353,7 @@ export async function insertQrCodeImage(editor: Editor): Promise<boolean> {
           src: path,
           alt: content.trim().slice(0, 120),
           caption: null,
-          width: '280px',
+          width: `${displayWidth}px`,
           align: 'center',
         },
       })

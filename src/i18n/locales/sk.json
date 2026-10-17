@@ -579,8 +579,8 @@
     "badge": "Novinky {{version}}",
     "kicker": "Poznámky k vydaniu",
     "title": "Scribe {{version}}",
-    "subtitle": "TanStack Markdown náhľad, capture inbox, sync merge studio, wiki health fronta a bezpečnejšie MCP zápisy — stále lokálne.",
-    "editionMark": "Library · Flow",
+    "subtitle": "Lokálna video knižnica, časovaný MCP zápis, sync merge bez straty formátu, capture triage a wiki NLP — stále lokálne.",
+    "editionMark": "Library · Media",
     "tagsLabel": "Témy tohto vydania",
     "tags": {
       "agent": "Agent",
@@ -595,28 +595,33 @@
       "history": "História",
       "library": "Knižnica",
       "capture": "Capture",
-      "markdown": "Markdown"
+      "markdown": "Markdown",
+      "media": "Médiá"
     },
     "footNote": "Docs otvoríš kedykoľvek z railu. Capture a sync ostávajú na tomto Macu.",
+    "localVideoLibrary": {
+      "title": "Lokálna video knižnica",
+      "description": "Importuj veľké lokálne videá do poznámok, prehrávaj ich na mieste a prepíš cez Lokálnu AI."
+    },
     "tanstackMarkdown": {
       "title": "TanStack Markdown",
       "description": "Zdrojový a chat náhľad ide cez @tanstack/markdown — rýchly parse, heading anchory a Scribe syntax highlighting."
     },
     "captureInbox": {
       "title": "Capture inbox",
-      "description": "Rýchle zachytenia idú do fronty s rozumnými predvoľbami a do knižnice ich založíš, keď budeš pripravený."
+      "description": "Zachytenia z telefónu idú do fronty — označ štítkom alebo ich založ do priečinka naraz."
     },
     "syncMergeStudio": {
       "title": "Sync merge studio",
-      "description": "Konfliktné poznámky riešiš vedľa seba namiesto slepého výberu víťaza."
+      "description": "Pri voľbe app/disk ostane TipTap formát — plain text len pri zmiešaných hunkoch."
     },
     "wikiHealthQueue": {
       "title": "Wiki health fronta",
-      "description": "Rozbité a osirolené wiki odkazy sa ukážu ako fronta opráv — skoč a oprav graf."
+      "description": "Rozbité odkazy majú fuzzy návrhy plus dávkové NLP suggest-and-resolve."
     },
     "mcpWriteCountdown": {
-      "title": "MCP write scope",
-      "description": "V Nastaveniach zapni write nástroje a sleduj expiráciu tokenu, aby remote klienti ostali zámerní."
+      "title": "MCP write countdown",
+      "description": "Write nástroje vypršia po 30 minútach s odpočtom — predĺž, keď ich ešte potrebuješ."
     },
     "docsFieldGuide": {
       "title": "Docs sprievodca",
@@ -1693,11 +1698,13 @@
       "lockHint": "Nástroje na zápis potrebujú writable DB. Ak Scribe drží zámok, skúste create/append znova o chvíľu alebo skontrolujte scribe_status (writable: false).",
       "localAiLink": "Sémantické MCP nástroje fungujú najlepšie so Scribe Lokálnou AI →",
       "writeTitle": "Povoliť zápis",
-      "writeDescription": "Keď je zapnuté, MCP môže vytvárať alebo dopĺňať poznámky (SCRIBE_MCP_WRITE=1). Nechajte vypnuté, kým klientovi nedôverujete.",
+      "writeDescription": "Keď je zapnuté, MCP môže 30 minút vytvárať alebo dopĺňať poznámky (SCRIBE_MCP_WRITE=1). Nechajte vypnuté, kým klientovi nedôverujete.",
       "writeOn": "Zápis zapnutý",
       "writeOff": "Len čítanie",
-      "writeEnabledToast": "MCP zápis zapnutý — skopírujte config znova do Cursor/Claude",
+      "writeEnabledToast": "MCP zápis zapnutý na 30 minút — skopírujte config znova do Cursor/Claude",
       "writeDisabledToast": "MCP zápis vypnutý — skopírujte config znova",
+      "writeExtend": "Predĺžiť o 30 min",
+      "writeExtendedToast": "Okno MCP zápisu predĺžené — skopírujte config znova",
       "scopeTitle": "Rozsah trezoru",
       "scopeDescription": "Ako MCP pracuje so šifrovanými trezormi. Po zmene skopírujte config.",
       "scopeUpdated": "Rozsah trezoru aktualizovaný — skopírujte config znova",
@@ -2564,6 +2571,9 @@
     "mergeHint": "Pre každú zmenu vyber apku, disk alebo oboje, uprav draft a ulož.",
     "mergeSave": "Uložiť zlúčenie",
     "mergeSaved": "Zlúčená verzia uložená",
+    "mergeSavedPlain": "Zlúčené ako plain text (zmiešané voľby) — formátovanie môže byť zjednodušené",
+    "keepAppFormatted": "Ponechať app (formát)",
+    "keepDiskFormatted": "Ponechať disk (formát)",
     "pick": {
       "app": "Apka",
       "disk": "Disk",
@@ -2632,6 +2642,9 @@
       "createAll": "Vytvoriť všetky chýbajúce ({{count}})",
       "batchCreated": "Vytvorených {{count}} chýbajúcich poznámok",
       "createError": "Poznámku pre wiki odkaz sa nepodarilo vytvoriť",
+      "nlpSuggestBatch": "Navrhnúť cez NLP",
+      "nlpBatchDone": "NLP: {{enriched}} návrhov, {{resolved}} auto-vyriešených",
+      "nlpBatchError": "NLP návrhy wiki odkazov zlyhali",
       "openSplit": "Otvoriť v splite"
     },
     "duplicates": {
@@ -2720,7 +2733,10 @@
       "unlinked": "Bez odkazov",
       "untagged": "Bez štítkov",
       "unread": "Neprečítané",
-      "canvas": "Canvas"
+      "canvas": "Canvas",
+      "stubs": "Stubs",
+      "tasks": "Otvorené úlohy",
+      "media": "S médiami"
     },
     "bulk": {
       "selected": "{{count}} vybraných",
@@ -3622,6 +3638,9 @@
     "relinkHint": "Otvorené „{{title}}“ — vložte {{file}} znova z Findera, ak treba",
     "reveal": "Finder",
     "openDocument": "Otvoriť poznámku",
+    "insertVideo": "Vložiť do poznámky",
+    "insertVideoQueued": "Otváram poznámku na vloženie videa…",
+    "insertVideoNoDoc": "Najprv otvorte alebo vytvorte poznámku",
     "sidebarHint": "Storage mode je zapnutý. Prehliadaj súbory, obrázky a videá v hlavnom paneli.",
     "openBrowser": "Otvoriť prehliadač",
     "localApi": {
@@ -3704,6 +3723,8 @@
     "qrInserted": "QR kód vložený",
     "qrGenerateError": "QR kód sa nepodarilo vygenerovať",
     "qrNoDocument": "Pred vložením QR otvorte poznámku",
+    "localVideoInserted": "Lokálne video vložené",
+    "localVideoError": "Lokálne video sa nepodarilo importovať",
     "windowMoveError": "Nepodarilo sa presunúť okno",
     "documentImported": "Dokument importovaný",
     "pdfHighlightsImported": "Zvýraznenia z PDF importované",
@@ -4294,8 +4315,14 @@
       "map": "Mapa",
       "qrCode": "QR kód",
       "qrCodeHint": "Zadajte URL alebo krátky text — vloží sa ako QR obrázok do poznámky.",
+      "qrCodeHintDeepLink": "URL, text alebo MCP resource tejto poznámky ({{deepLink}}).",
       "qrCodePlaceholder": "https://… alebo text",
       "qrCodeInsert": "Vložiť QR",
+      "qrCodeSize": "Veľkosť QR (px)",
+      "qrCodeSizeHint": "Veľkosť štvorca medzi 128 a 1024.",
+      "qrCodeDark": "Farba tmavých modulov",
+      "qrCodeColorHint": "CSS hex pre tmavé moduly (svetlé zostanú biele).",
+      "localVideo": "Lokálne video…",
       "scanBarcode": "Skenovať QR / čiarový kód",
       "tableOfContents": "Obsah (TOC)",
       "pageBreak": "Zalomenie strany",
@@ -4696,7 +4723,8 @@
     "ocrFailed": "OCR zlyhalo",
     "removeBackground": "Odstrániť pozadie",
     "bgRemoved": "Pozadie odstránené",
-    "bgRemoveFailed": "Pozadie sa nepodarilo odstrániť"
+    "bgRemoveFailed": "Pozadie sa nepodarilo odstrániť",
+    "bgTolerance": "Tolerancia odstránenia pozadia"
   },
   "map": {
     "provider": "OpenStreetMap",
@@ -4705,15 +4733,26 @@
     "cancel": "Zrušiť",
     "delete": "Odstrániť mapu",
     "fallbackTitle": "Mapa",
-    "openOsm": "Otvoriť v OpenStreetMap"
+    "openOsm": "Otvoriť v OpenStreetMap",
+    "formMode": "Formulár",
+    "jsonMode": "JSON",
+    "titleLabel": "Názov",
+    "markers": "Markery",
+    "addMarker": "Pridať marker",
+    "markerLabel": "Popisok"
   },
   "video": {
     "replace": "Zmeniť URL",
     "delete": "Odstrániť video",
     "emptyTitle": "Pridať video",
-    "emptyHint": "YouTube, Vimeo, Twitch alebo URL .mp4 / .webm",
+    "emptyHint": "Vložte URL alebo importujte lokálny súbor do video knižnice",
     "error": "Toto video sa nepodarilo prehrať",
-    "captionPlaceholder": "Popisok"
+    "captionPlaceholder": "Popisok",
+    "importLocal": "Importovať lokálne video",
+    "localLibrary": "Lokálna knižnica",
+    "transcribe": "Prepísať",
+    "transcribeDone": "Prepis pripravený",
+    "transcribeFailed": "Prepis zlyhal"
   },
   "lottie": {
     "alignGroup": "Zarovnanie Lottie",
@@ -4814,7 +4853,14 @@
     "queueEmpty": "Žiadne čakajúce zápisy.",
     "queueClear": "Vyprázdniť frontu",
     "tokenTtl": "Token vyprší",
-    "noteReceived": "Poznámka z telefónu"
+    "noteReceived": "Poznámka z telefónu",
+    "triageTag": "Označiť vybrané",
+    "triageTagHint": "Pridá štítok a odstráni položky z capture fronty.",
+    "triageTagged": "Označené ako {{tag}}",
+    "triageFolder": "Presunúť do priečinka",
+    "triageFolderHint": "Presný názov priečinka. Dostupné: {{folders}}",
+    "triageFolderMissing": "Priečinok s týmto názvom neexistuje",
+    "triageMoved": "Presunuté do {{folder}}"
   },
   "vault": {
     "createTitle": "Šifrovaný trezor?",

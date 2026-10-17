@@ -3,9 +3,10 @@ import { useTranslation } from 'react-i18next'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setLibrarySmartFilter } from '@/store/documentsSlice'
 import type { LibrarySmartFilter } from '@/lib/library/smart-filters'
+import { LIBRARY_SMART_FILTER_IDS } from '@/lib/library/smart-filters'
 import { cn } from '@/lib/utils'
 
-const FILTERS: LibrarySmartFilter[] = ['none', 'unlinked', 'untagged', 'unread', 'canvas']
+const FILTERS: LibrarySmartFilter[] = [...LIBRARY_SMART_FILTER_IDS]
 
 export function LibrarySmartFilters() {
   const { t } = useTranslation()
@@ -20,6 +21,9 @@ export function LibrarySmartFilters() {
         untagged: t('library.smartFilters.untagged'),
         unread: t('library.smartFilters.unread'),
         canvas: t('library.smartFilters.canvas'),
+        stubs: t('library.smartFilters.stubs'),
+        tasks: t('library.smartFilters.tasks'),
+        media: t('library.smartFilters.media'),
       }) satisfies Record<LibrarySmartFilter, string>,
     [t],
   )

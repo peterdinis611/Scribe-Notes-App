@@ -1,5 +1,5 @@
 import { Cable, Copy, BookOpen, Shield, Sparkles, Terminal } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
@@ -10,8 +10,11 @@ import {
   SettingsSectionHeader,
 } from '@/components/settings/SettingsPrimitives'
 import { navigateToMcpDemo } from '@/lib/demo/load-mcp-demo'
+import { TokenExpiryCountdown } from '@/components/security/TokenExpiryCountdown'
 import {
+  extendMcpWrite,
   getMcpVaultScope,
+  getMcpWriteExpiresAt,
   isMcpEnabled,
   isMcpWriteEnabled,
   setMcpEnabled,
@@ -92,9 +95,24 @@ export function McpSection() {
   const documents = useAppSelector((state) => state.documents.documents)
   const [enabled, setEnabled] = useState(() => isMcpEnabled())
   const [writeEnabled, setWriteEnabled] = useState(() => isMcpWriteEnabled())
+  const [writeExpiresAt, setWriteExpiresAt] = useState<number | null>(() => getMcpWriteExpiresAt())
   const [scope, setScope] = useState<McpVaultScope>(() => getMcpVaultScope())
   const [openingDemo, setOpeningDemo] = useState(false)
   const mcpConfig = useMemo(() => buildMcpConfig(writeEnabled, scope), [writeEnabled, scope])
+
+  useEffect(() => {
+    if (!writeEnabled || writeExpiresAt == null) return
+    const id = window.setInterval(() => {
+      const stillOn = isMcpWriteEnabled()
+      if (!stillOn) {
+        setWriteEnabled(false)
+        setWriteExpiresAt(null)
+      } else {
+        setWriteExpiresAt(getMcpWriteExpiresAt())
+      }
+    }, 1000)
+    return () => window.clearInterval(id)
+  }, [writeEnabled, writeExpiresAt])
 
   const howToSteps = useMemo(() => {
     const steps = t('settings.mcp.howToSteps', { returnObjects: true })
@@ -118,8 +136,16 @@ export function McpSection() {
   function toggleWrite() {
     const next = !writeEnabled
     setMcpWriteEnabled(next)
-    setWriteEnabled(next)
+    setWriteEnabled(isMcpWriteEnabled())
+    setWriteExpiresAt(getMcpWriteExpiresAt())
     toast.success(next ? t('settings.mcp.writeEnabledToast') : t('settings.mcp.writeDisabledToast'))
+  }
+
+  function extendWrite() {
+    extendMcpWrite()
+    setWriteEnabled(true)
+    setWriteExpiresAt(getMcpWriteExpiresAt())
+    toast.success(t('settings.mcp.writeExtendedToast'))
   }
 
   function applyScope(next: McpVaultScope) {
@@ -197,16 +223,32 @@ export function McpSection() {
           title={t('settings.mcp.writeTitle')}
           description={t('settings.mcp.writeDescription')}
         >
-          <Button
-            type="button"
-            variant={writeEnabled ? 'default' : 'outline'}
-            size="sm"
-            className="gap-1.5"
-            disabled={!enabled}
-            onClick={toggleWrite}
-          >
-            {writeEnabled ? t('settings.mcp.writeOn') : t('settings.mcp.writeOff')}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant={writeEnabled ? 'default' : 'outline'}
+              size="sm"
+              className="gap-1.5"
+              disabled={!enabled}
+              onClick={toggleWrite}
+            >
+              {writeEnabled ? t('settings.mcp.writeOn') : t('settings.mcp.writeOff')}
+            </Button>
+            {writeEnabled ? (
+              <>
+                <TokenExpiryCountdown expiresAt={writeExpiresAt} />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!enabled}
+                  onClick={extendWrite}
+                >
+                  {t('settings.mcp.writeExtend')}
+                </Button>
+              </>
+            ) : null}
+          </div>
         </SettingsRow>
         <SettingsRow
           title={t('settings.mcp.scopeTitle')}

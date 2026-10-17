@@ -20,9 +20,11 @@ import { Input } from '@/components/ui/input'
 import {
   deleteLibraryAsset,
   listLibraryAssets,
+  listLibraryVideosNative,
   revealInFinder,
   type LibraryAsset,
 } from '@/lib/db/api'
+import { queuePendingVideoInsert } from '@/lib/editor/pending-video-insert'
 import {
   filterLibraryAssets,
   formatBytes,
@@ -330,6 +332,49 @@ export function StorageModeView() {
                         <FolderOpen className="h-3 w-3" />
                         {t('storageMode.reveal')}
                       </Button>
+                      {asset.kind === 'video' ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 text-[11px]"
+                          onClick={() => {
+                            void (async () => {
+                              const targetId =
+                                asset.documentId ||
+                                documents.find((doc) => !doc.deletedAt)?.id ||
+                                null
+                              if (!targetId) {
+                                toast.error(t('storageMode.insertVideoNoDoc'))
+                                return
+                              }
+                              let libraryVideoId: string | null = null
+                              try {
+                                const videos = await listLibraryVideosNative()
+                                const match = videos.find(
+                                  (video) =>
+                                    video.sourcePath === asset.path ||
+                                    (video.relPath != null && asset.path.endsWith(video.relPath)),
+                                )
+                                libraryVideoId = match?.id ?? null
+                              } catch {
+                                libraryVideoId = null
+                              }
+                              queuePendingVideoInsert({
+                                path: asset.path,
+                                title: asset.fileName,
+                                libraryVideoId,
+                                documentId: targetId,
+                              })
+                              dispatch(setActiveDocumentId(targetId))
+                              await navigate(ROUTES.document(targetId))
+                              toast.success(t('storageMode.insertVideoQueued'))
+                            })()
+                          }}
+                        >
+                          {t('storageMode.insertVideo')}
+                        </Button>
+                      ) : null}
                       {asset.documentTitle ? (
                         <Button
                           type="button"

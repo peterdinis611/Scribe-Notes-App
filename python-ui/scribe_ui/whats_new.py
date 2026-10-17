@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 WHATS_NEW_39_HIGHLIGHTS: tuple[str, ...] = (
-    "tanstackMarkdown",
-    "captureInbox",
-    "syncMergeStudio",
-    "wikiHealthQueue",
+    "localVideoLibrary",
     "mcpWriteCountdown",
+    "syncMergeStudio",
+    "captureInbox",
+    "wikiHealthQueue",
 )
 
-WHATS_NEW_39_TAG_KEYS: tuple[str, ...] = ("library", "capture", "markdown")
+WHATS_NEW_39_TAG_KEYS: tuple[str, ...] = ("library", "capture", "media")
 
 # Back-compat aliases for older imports / tests.
 WHATS_NEW_38_HIGHLIGHTS = WHATS_NEW_39_HIGHLIGHTS

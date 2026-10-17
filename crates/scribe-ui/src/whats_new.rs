@@ -2,15 +2,15 @@
 
 /// Edition 3.9 highlight ids — must match `whatsNew.*` keys in en/sk.json.
 pub const WHATS_NEW_39_HIGHLIGHTS: &[&str] = &[
-    "tanstackMarkdown",
-    "captureInbox",
-    "syncMergeStudio",
-    "wikiHealthQueue",
+    "localVideoLibrary",
     "mcpWriteCountdown",
+    "syncMergeStudio",
+    "captureInbox",
+    "wikiHealthQueue",
 ];
 
 /// Folio tag keys under `whatsNew.tags.*` for the 3.9 edition.
-pub const WHATS_NEW_39_TAG_KEYS: &[&str] = &["library", "capture", "markdown"];
+pub const WHATS_NEW_39_TAG_KEYS: &[&str] = &["library", "capture", "media"];
 
 /// @deprecated Prefer [`WHATS_NEW_39_TAG_KEYS`].
 pub const WHATS_NEW_38_TAG_KEYS: &[&str] = WHATS_NEW_39_TAG_KEYS;
@@ -53,7 +53,7 @@ mod tests {
     #[test]
     fn has_five_highlights() {
         assert_eq!(WHATS_NEW_39_HIGHLIGHTS.len(), 5);
-        assert!(WHATS_NEW_39_HIGHLIGHTS.contains(&"tanstackMarkdown"));
-        assert_eq!(whats_new_tag_keys(), vec!["library", "capture", "markdown"]);
+        assert!(WHATS_NEW_39_HIGHLIGHTS.contains(&"localVideoLibrary"));
+        assert_eq!(whats_new_tag_keys(), vec!["library", "capture", "media"]);
     }
 }

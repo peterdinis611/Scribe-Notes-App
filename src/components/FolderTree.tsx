@@ -74,6 +74,9 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
   const navigate = useNavigate()
   const [orphanIds, setOrphanIds] = useState<Set<string>>(new Set())
   const [canvasIds, setCanvasIds] = useState(() => knownCanvasDocumentIds())
+  const [stubIds, setStubIds] = useState<Set<string>>(new Set())
+  const [taskDocIds, setTaskDocIds] = useState<Set<string>>(new Set())
+  const [mediaDocIds, setMediaDocIds] = useState<Set<string>>(new Set())
   const rootRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -96,6 +99,57 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     }
   }, [documents.length])
 
+  useEffect(() => {
+    if (librarySmartFilter !== 'stubs' && librarySmartFilter !== 'tasks' && librarySmartFilter !== 'media') {
+      return
+    }
+    let cancelled = false
+    void (async () => {
+      try {
+        if (librarySmartFilter === 'stubs') {
+          const { listWikiHealth } = await import('@/lib/db/api')
+          const health = await listWikiHealth({ stubLimit: 200, stubMaxWords: 40 })
+          if (!cancelled) setStubIds(new Set(health.stubs.map((row) => row.id)))
+        } else if (librarySmartFilter === 'tasks') {
+          const { nlpListOpenTasks } = await import('@/lib/db/nlp-api')
+          const tasks = await nlpListOpenTasks(400)
+          if (!cancelled) {
+            setTaskDocIds(
+              new Set(
+                tasks
+                  .map((row) => row.documentId)
+                  .filter((id): id is string => Boolean(id)),
+              ),
+            )
+          }
+        } else if (librarySmartFilter === 'media') {
+          const { listLibraryAssets } = await import('@/lib/db/api')
+          const assets = await listLibraryAssets()
+          if (!cancelled) {
+            setMediaDocIds(
+              new Set(
+                assets
+                  .filter((asset) =>
+                    ['image', 'video', 'lottie', 'model3d', 'svg'].includes(String(asset.kind)),
+                  )
+                  .map((asset) => asset.documentId)
+                  .filter(Boolean),
+              ),
+            )
+          }
+        }
+      } catch {
+        if (cancelled) return
+        if (librarySmartFilter === 'stubs') setStubIds(new Set())
+        if (librarySmartFilter === 'tasks') setTaskDocIds(new Set())
+        if (librarySmartFilter === 'media') setMediaDocIds(new Set())
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [librarySmartFilter, documents.length])
+
   const filteredDocuments = useMemo(() => {
     const q = query.trim().toLowerCase()
     return documents.filter((doc) => {
@@ -109,6 +163,9 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
           orphanIds,
           recentDocumentIds,
           canvasIds,
+          stubIds,
+          taskDocIds,
+          mediaDocIds,
         })
       ) {
         return false
@@ -125,6 +182,9 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     orphanIds,
     recentDocumentIds,
     canvasIds,
+    stubIds,
+    taskDocIds,
+    mediaDocIds,
   ])
 
   const tree = useMemo(() => buildTree(folders, filteredDocuments), [folders, filteredDocuments])

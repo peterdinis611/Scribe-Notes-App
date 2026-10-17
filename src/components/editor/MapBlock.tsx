@@ -9,6 +9,8 @@ import {
   MAP_DEFAULT_SOURCE,
   mapOsmHref,
   parseMapSpec,
+  serializeMapSpec,
+  type MapMarker,
   type MapSpec,
 } from '@/lib/editor/map'
 import 'leaflet/dist/leaflet.css'
@@ -122,17 +124,53 @@ export function MapBlock({ node, updateAttributes, selected, editor, deleteNode 
   const currentSource = String(node.attrs.source ?? MAP_DEFAULT_SOURCE)
   const editable = editor.isEditable
   const [editing, setEditing] = useState(false)
+  const [advancedJson, setAdvancedJson] = useState(false)
   const [draft, setDraft] = useState(currentSource)
+  const [form, setForm] = useState<MapSpec>(() => {
+    const parsed = parseMapSpec(currentSource)
+    return parsed.ok
+      ? parsed.spec
+      : { lat: 48.1486, lng: 17.1077, zoom: 13, title: '', markers: [] }
+  })
   const parsed = useMemo(() => parseMapSpec(currentSource), [currentSource])
 
   useEffect(() => {
-    if (!editing) setDraft(currentSource)
+    if (!editing) {
+      setDraft(currentSource)
+      const next = parseMapSpec(currentSource)
+      if (next.ok) setForm(next.spec)
+    }
   }, [currentSource, editing])
 
   function commit() {
-    const next = draft.trim() || MAP_DEFAULT_SOURCE
-    updateAttributes({ source: next })
+    if (advancedJson) {
+      updateAttributes({ source: draft.trim() || MAP_DEFAULT_SOURCE })
+    } else {
+      updateAttributes({ source: serializeMapSpec(form) })
+    }
     setEditing(false)
+    setAdvancedJson(false)
+  }
+
+  function updateMarker(index: number, patch: Partial<MapMarker>) {
+    setForm((prev) => ({
+      ...prev,
+      markers: prev.markers.map((marker, i) => (i === index ? { ...marker, ...patch } : marker)),
+    }))
+  }
+
+  function addMarker() {
+    setForm((prev) => ({
+      ...prev,
+      markers: [...prev.markers, { lat: prev.lat, lng: prev.lng, label: '' }],
+    }))
+  }
+
+  function removeMarker(index: number) {
+    setForm((prev) => ({
+      ...prev,
+      markers: prev.markers.filter((_, i) => i !== index),
+    }))
   }
 
   return (
@@ -151,6 +189,8 @@ export function MapBlock({ node, updateAttributes, selected, editor, deleteNode 
               if (editing) commit()
               else {
                 setDraft(currentSource)
+                const next = parseMapSpec(currentSource)
+                if (next.ok) setForm(next.spec)
                 setEditing(true)
               }
             }}
@@ -158,9 +198,25 @@ export function MapBlock({ node, updateAttributes, selected, editor, deleteNode 
             {editing ? t('map.done') : t('map.edit')}
           </button>
           {editing ? (
-            <button type="button" className="map-block__btn" onClick={() => setEditing(false)}>
-              {t('map.cancel')}
-            </button>
+            <>
+              <button
+                type="button"
+                className="map-block__btn"
+                onClick={() => {
+                  if (!advancedJson) setDraft(serializeMapSpec(form))
+                  else {
+                    const next = parseMapSpec(draft)
+                    if (next.ok) setForm(next.spec)
+                  }
+                  setAdvancedJson((value) => !value)
+                }}
+              >
+                {advancedJson ? t('map.formMode') : t('map.jsonMode')}
+              </button>
+              <button type="button" className="map-block__btn" onClick={() => setEditing(false)}>
+                {t('map.cancel')}
+              </button>
+            </>
           ) : (
             <button type="button" className="map-block__btn map-block__btn--danger" onClick={() => deleteNode()}>
               <Trash2 className="h-3.5 w-3.5" />
@@ -171,14 +227,90 @@ export function MapBlock({ node, updateAttributes, selected, editor, deleteNode 
       ) : null}
 
       {editing ? (
-        <textarea
-          className="map-block__source"
-          value={draft}
-          spellCheck={false}
-          rows={10}
-          onChange={(event) => setDraft(event.target.value)}
-          onMouseDown={(event) => event.stopPropagation()}
-        />
+        advancedJson ? (
+          <textarea
+            className="map-block__source"
+            value={draft}
+            spellCheck={false}
+            rows={10}
+            onChange={(event) => setDraft(event.target.value)}
+            onMouseDown={(event) => event.stopPropagation()}
+          />
+        ) : (
+          <div className="map-block__form" contentEditable={false} onMouseDown={(event) => event.stopPropagation()}>
+            <label>
+              <span>{t('map.titleLabel')}</span>
+              <input
+                value={form.title ?? ''}
+                onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
+              />
+            </label>
+            <div className="map-block__form-row">
+              <label>
+                <span>Lat</span>
+                <input
+                  type="number"
+                  step="0.0001"
+                  value={form.lat}
+                  onChange={(event) => setForm((prev) => ({ ...prev, lat: Number(event.target.value) }))}
+                />
+              </label>
+              <label>
+                <span>Lng</span>
+                <input
+                  type="number"
+                  step="0.0001"
+                  value={form.lng}
+                  onChange={(event) => setForm((prev) => ({ ...prev, lng: Number(event.target.value) }))}
+                />
+              </label>
+              <label>
+                <span>Zoom</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={19}
+                  value={form.zoom}
+                  onChange={(event) => setForm((prev) => ({ ...prev, zoom: Number(event.target.value) }))}
+                />
+              </label>
+            </div>
+            <div className="map-block__markers">
+              <div className="map-block__markers-head">
+                <strong>{t('map.markers')}</strong>
+                <button type="button" className="map-block__btn" onClick={addMarker}>
+                  {t('map.addMarker')}
+                </button>
+              </div>
+              {form.markers.map((marker, index) => (
+                <div key={index} className="map-block__marker-row">
+                  <input
+                    type="number"
+                    step="0.0001"
+                    value={marker.lat}
+                    aria-label="lat"
+                    onChange={(event) => updateMarker(index, { lat: Number(event.target.value) })}
+                  />
+                  <input
+                    type="number"
+                    step="0.0001"
+                    value={marker.lng}
+                    aria-label="lng"
+                    onChange={(event) => updateMarker(index, { lng: Number(event.target.value) })}
+                  />
+                  <input
+                    value={marker.label ?? ''}
+                    placeholder={t('map.markerLabel')}
+                    onChange={(event) => updateMarker(index, { label: event.target.value })}
+                  />
+                  <button type="button" className="map-block__btn map-block__btn--danger" onClick={() => removeMarker(index)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
       ) : parsed.ok ? (
         <MapStage spec={parsed.spec} />
       ) : (

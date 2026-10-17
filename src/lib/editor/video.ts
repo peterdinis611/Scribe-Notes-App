@@ -16,14 +16,48 @@ import {
   videoThumbnailUrlNative,
   videoToMarkdownFenceNative,
 } from '@/lib/db/api'
-import { isTauriRuntime } from '@/lib/tauri'
+import { convertFileSrc, isTauriRuntime } from '@/lib/tauri'
+
+const VIDEO_FILE_EXT = /\.(?:mp4|webm|ogv|ogg|mov|m3u8|mkv|m4v)(?:\?[^#]*)?(?:#.*)?$/i
 
 export type VideoBlockAttrs = {
   src?: string | null
   caption?: string | null
+  /** Local library video id (ASR / playback path). */
+  libraryVideoId?: string | null
 }
 
-const VIDEO_FILE_EXT = /\.(?:mp4|webm|ogv|ogg|mov|m3u8|mkv|m4v)(?:\?[^#]*)?(?:#.*)?$/i
+/** Resolve a stored path/URL for React Player (local files need convertFileSrc). */
+export function resolveVideoSrc(src: string | null | undefined): string {
+  if (!src) return ''
+  const trimmed = src.trim()
+  if (
+    trimmed.startsWith('data:') ||
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://') ||
+    trimmed.startsWith('asset://') ||
+    trimmed.startsWith('file://') ||
+    trimmed.startsWith('blob:')
+  ) {
+    return trimmed
+  }
+  if (trimmed.startsWith('/') || /^[A-Za-z]:[\\/]/.test(trimmed)) {
+    return convertFileSrc(trimmed)
+  }
+  return trimmed
+}
+
+export function isLocalVideoPath(src: string): boolean {
+  const trimmed = src.trim()
+  if (!trimmed) return false
+  if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith('asset://')) return false
+  return (
+    trimmed.startsWith('/') ||
+    /^[A-Za-z]:[\\/]/.test(trimmed) ||
+    trimmed.startsWith('file://') ||
+    VIDEO_FILE_EXT.test(trimmed)
+  )
+}
 
 const VIDEO_HOSTS = [
   'youtube.com',

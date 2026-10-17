@@ -8071,6 +8071,70 @@ body.is-block-dragging .tiptap {
   background: var(--color-canvas);
 }
 
+.tiptap .map-block__form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-size: 12px;
+}
+
+.tiptap .map-block__form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--color-muted-foreground);
+}
+
+.tiptap .map-block__form input {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  padding: 6px 8px;
+}
+
+.tiptap .map-block__form-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tiptap .map-block__markers {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tiptap .map-block__markers-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tiptap .map-block__marker-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.4fr auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.tiptap .image-toolbar-tolerance {
+  display: inline-flex;
+  align-items: center;
+  width: 72px;
+  margin: 0 2px;
+}
+
+.tiptap .image-toolbar-tolerance input[type='range'] {
+  width: 100%;
+  accent-color: var(--color-accent);
+}
+
 .tiptap .map-block__source:focus {
   outline: 2px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
   outline-offset: 1px;

@@ -52,4 +52,11 @@ describe('documentMatchesSmartFilter', () => {
     expect(documentMatchesSmartFilter(doc({ id: 'c2' }), 'canvas', { canvasIds })).toBe(false)
     expect(documentMatchesSmartFilter(doc({ id: 'c1' }), 'canvas', {})).toBe(false)
   })
+
+  it('matches stubs, tasks, and media sets', () => {
+    expect(documentMatchesSmartFilter(doc({ id: 's1' }), 'stubs', { stubIds: new Set(['s1']) })).toBe(true)
+    expect(documentMatchesSmartFilter(doc({ id: 't1' }), 'tasks', { taskDocIds: new Set(['t1']) })).toBe(true)
+    expect(documentMatchesSmartFilter(doc({ id: 'm1' }), 'media', { mediaDocIds: new Set(['m1']) })).toBe(true)
+    expect(documentMatchesSmartFilter(doc({ id: 'x' }), 'media', { mediaDocIds: new Set(['m1']) })).toBe(false)
+  })
 })

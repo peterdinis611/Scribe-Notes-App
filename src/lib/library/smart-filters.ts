@@ -6,7 +6,15 @@ import {
 import { isTauriRuntime } from '@/lib/tauri'
 
 /** Keep in sync with `scribe_ui::smart_filter_ids` where applicable. */
-export type LibrarySmartFilter = 'none' | 'unlinked' | 'untagged' | 'unread' | 'canvas'
+export type LibrarySmartFilter =
+  | 'none'
+  | 'unlinked'
+  | 'untagged'
+  | 'unread'
+  | 'canvas'
+  | 'stubs'
+  | 'tasks'
+  | 'media'
 
 export const LIBRARY_SMART_FILTER_IDS = [
   'none',
@@ -14,12 +22,18 @@ export const LIBRARY_SMART_FILTER_IDS = [
   'untagged',
   'unread',
   'canvas',
+  'stubs',
+  'tasks',
+  'media',
 ] as const satisfies readonly LibrarySmartFilter[]
 
 export type SmartFilterOptions = {
   orphanIds?: Set<string>
   recentDocumentIds?: string[]
   canvasIds?: Set<string>
+  stubIds?: Set<string>
+  taskDocIds?: Set<string>
+  mediaDocIds?: Set<string>
 }
 
 function toNativeDoc(doc: Pick<DocumentSummary, 'id' | 'tags' | 'deletedAt'>) {
@@ -35,13 +49,19 @@ function toNativeOptions(options: SmartFilterOptions) {
     orphanIds: options.orphanIds ? [...options.orphanIds] : [],
     recentDocumentIds: options.recentDocumentIds ?? [],
     canvasIds: options.canvasIds ? [...options.canvasIds] : [],
+    stubIds: options.stubIds ? [...options.stubIds] : [],
+    taskDocIds: options.taskDocIds ? [...options.taskDocIds] : [],
+    mediaDocIds: options.mediaDocIds ? [...options.mediaDocIds] : [],
   }
 }
+
+/** Filters that Rust may not know yet — always evaluate in JS. */
+const JS_ONLY_FILTERS = new Set<LibrarySmartFilter>(['stubs', 'tasks', 'media'])
 
 export function documentMatchesSmartFilter(
   doc: DocumentSummary,
   filter: LibrarySmartFilter,
-  options: SmartFilterOptions,
+  options: SmartFilterOptions = {},
 ): boolean {
   if (filter === 'none') return true
   if (doc.deletedAt != null) return false
@@ -57,6 +77,12 @@ export function documentMatchesSmartFilter(
     }
     case 'canvas':
       return options.canvasIds?.has(doc.id) ?? false
+    case 'stubs':
+      return options.stubIds?.has(doc.id) ?? false
+    case 'tasks':
+      return options.taskDocIds?.has(doc.id) ?? false
+    case 'media':
+      return options.mediaDocIds?.has(doc.id) ?? false
     default:
       return true
   }
@@ -68,6 +94,9 @@ export async function documentMatchesSmartFilterAsync(
   filter: LibrarySmartFilter,
   options: SmartFilterOptions,
 ): Promise<boolean> {
+  if (JS_ONLY_FILTERS.has(filter)) {
+    return documentMatchesSmartFilter(doc, filter, options)
+  }
   if (isTauriRuntime()) {
     try {
       return await documentMatchesSmartFilterNative({
@@ -89,6 +118,9 @@ export async function filterDocumentsBySmartFilterAsync(
   options: SmartFilterOptions,
 ): Promise<DocumentSummary[]> {
   if (filter === 'none') return docs
+  if (JS_ONLY_FILTERS.has(filter)) {
+    return docs.filter((doc) => documentMatchesSmartFilter(doc, filter, options))
+  }
   if (isTauriRuntime()) {
     try {
       const matched = await filterDocumentsBySmartFilterNative({
