@@ -438,8 +438,6 @@ export type HtmlExportOptions = {
   includeTitleHeading?: boolean
   /** Strip preview chrome; use paper margins once. Same path as native PDF. */
   forPrint?: boolean
-  /** @deprecated Prefer `forPrint`. Kept as an alias for native PDF / light capture. */
-  forPdf?: boolean
   mermaidSvgBySource?: Map<string, string>
   d3SvgBySource?: Map<string, string>
   /** Prefer Rust syntect snippets (from `buildCodeHighlightMap`). */
@@ -490,8 +488,7 @@ function buildHtmlDocument(
 ): string {
   const pageSetup = normalizePageSetup(options?.pageSetup ?? DEFAULT_PAGE_SETUP)
   const includeTitleHeading = options?.includeTitleHeading ?? true
-  const forPdf = options?.forPdf ?? false
-  const forPrint = forPdf || (options?.forPrint ?? false)
+  const forPrint = options?.forPrint ?? false
   const paper = PAPER_SIZES[pageSetup.paperSize]
   const contentCss = css?.contentCss ?? buildDocumentContentCss(pageSetup)
   const tipTapCss = css?.tipTapCss ?? DOCUMENT_TIPTAP_CSS

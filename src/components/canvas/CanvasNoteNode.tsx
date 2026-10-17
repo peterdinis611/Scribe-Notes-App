@@ -70,4 +70,3 @@ function CanvasNoteNodeInner({ id, data, selected }: NodeProps<CanvasNoteNodeTyp
 }
 
 export const CanvasNoteNode = memo(CanvasNoteNodeInner)
-export { CanvasNoteActions } from '@/components/canvas/CanvasObjectActions'

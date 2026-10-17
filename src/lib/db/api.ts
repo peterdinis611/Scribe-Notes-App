@@ -1732,12 +1732,6 @@ export const pickAndImportFiles = async () => {
   })
 }
 
-/** @deprecated Prefer `pickAndImportFiles` — kept for single-doc call sites. */
-export const pickAndImportFile = async () => {
-  const result = await pickAndImportFiles()
-  return result?.imported[0] ?? null
-}
-
 export const importFile = async (path: string) => {
   const [
     { isPagesPath, importPagesDocumentFromPath },

@@ -103,9 +103,6 @@ function allSlashItems(): SlashCommandItem[] {
   ]
 }
 
-/** @deprecated Static list without live custom snippets — prefer listSlashCommands(). */
-export const SLASH_COMMANDS: SlashCommandItem[] = SLASH_COMMAND_DEFS.map(localizeSlashCommand)
-
 export function listSlashCommands(): SlashCommandItem[] {
   return allSlashItems()
 }

@@ -12,29 +12,6 @@ pub const WHATS_NEW_40_HIGHLIGHTS: &[&str] = &[
 /// Folio tag keys under `whatsNew.tags.*` for the 4.0 edition.
 pub const WHATS_NEW_40_TAG_KEYS: &[&str] = &["workspace", "design", "audit"];
 
-/// @deprecated Prefer [`WHATS_NEW_40_HIGHLIGHTS`].
-pub const WHATS_NEW_39_HIGHLIGHTS: &[&str] = WHATS_NEW_40_HIGHLIGHTS;
-/// @deprecated Prefer [`WHATS_NEW_40_TAG_KEYS`].
-pub const WHATS_NEW_39_TAG_KEYS: &[&str] = WHATS_NEW_40_TAG_KEYS;
-
-/// @deprecated Prefer [`WHATS_NEW_40_TAG_KEYS`].
-pub const WHATS_NEW_38_TAG_KEYS: &[&str] = WHATS_NEW_40_TAG_KEYS;
-/// @deprecated Prefer [`WHATS_NEW_40_TAG_KEYS`].
-pub const WHATS_NEW_37_TAG_KEYS: &[&str] = WHATS_NEW_40_TAG_KEYS;
-/// @deprecated Prefer [`WHATS_NEW_40_TAG_KEYS`].
-pub const WHATS_NEW_36_TAG_KEYS: &[&str] = WHATS_NEW_40_TAG_KEYS;
-
-/// @deprecated Prefer [`WHATS_NEW_40_HIGHLIGHTS`].
-pub const WHATS_NEW_38_HIGHLIGHTS: &[&str] = WHATS_NEW_40_HIGHLIGHTS;
-/// @deprecated Prefer [`WHATS_NEW_40_HIGHLIGHTS`].
-pub const WHATS_NEW_37_HIGHLIGHTS: &[&str] = WHATS_NEW_40_HIGHLIGHTS;
-/// @deprecated Prefer [`WHATS_NEW_40_HIGHLIGHTS`].
-pub const WHATS_NEW_36_HIGHLIGHTS: &[&str] = WHATS_NEW_40_HIGHLIGHTS;
-/// @deprecated Prefer [`WHATS_NEW_40_HIGHLIGHTS`].
-pub const WHATS_NEW_35_HIGHLIGHTS: &[&str] = WHATS_NEW_40_HIGHLIGHTS;
-/// @deprecated Prefer [`WHATS_NEW_40_HIGHLIGHTS`].
-pub const WHATS_NEW_34_HIGHLIGHTS: &[&str] = WHATS_NEW_40_HIGHLIGHTS;
-
 pub const EDITION_MARK_KEY: &str = "whatsNew.editionMark";
 
 pub fn whats_new_highlights() -> Vec<String> {

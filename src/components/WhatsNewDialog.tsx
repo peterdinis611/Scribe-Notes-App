@@ -20,30 +20,6 @@ export const WHATS_NEW_40_TAG_KEYS = ['workspace', 'design', 'audit'] as const
 
 export type WhatsNew40HighlightId = (typeof WHATS_NEW_40_HIGHLIGHTS)[number]
 
-/** @deprecated Prefer WHATS_NEW_40_HIGHLIGHTS */
-export const WHATS_NEW_39_HIGHLIGHTS = WHATS_NEW_40_HIGHLIGHTS
-/** @deprecated Prefer WHATS_NEW_40_HIGHLIGHTS */
-export const WHATS_NEW_38_HIGHLIGHTS = WHATS_NEW_40_HIGHLIGHTS
-/** @deprecated Prefer WHATS_NEW_40_HIGHLIGHTS */
-export const WHATS_NEW_37_HIGHLIGHTS = WHATS_NEW_40_HIGHLIGHTS
-/** @deprecated Prefer WHATS_NEW_40_HIGHLIGHTS */
-export const WHATS_NEW_36_HIGHLIGHTS = WHATS_NEW_40_HIGHLIGHTS
-/** @deprecated Prefer WHATS_NEW_40_HIGHLIGHTS */
-export const WHATS_NEW_35_HIGHLIGHTS = WHATS_NEW_40_HIGHLIGHTS
-/** @deprecated Prefer WHATS_NEW_40_HIGHLIGHTS */
-export const WHATS_NEW_34_HIGHLIGHTS = WHATS_NEW_40_HIGHLIGHTS
-/** @deprecated Prefer WHATS_NEW_40_HIGHLIGHTS */
-export const WHATS_NEW_27_HIGHLIGHTS = WHATS_NEW_40_HIGHLIGHTS
-/** @deprecated Prefer WHATS_NEW_40_HIGHLIGHTS */
-export const WHATS_NEW_25_HIGHLIGHTS = WHATS_NEW_40_HIGHLIGHTS
-
-/** @deprecated Prefer WHATS_NEW_40_TAG_KEYS */
-export const WHATS_NEW_39_TAG_KEYS = WHATS_NEW_40_TAG_KEYS
-/** @deprecated Prefer WHATS_NEW_40_TAG_KEYS */
-export const WHATS_NEW_38_TAG_KEYS = WHATS_NEW_40_TAG_KEYS
-/** @deprecated Prefer WHATS_NEW_40_TAG_KEYS */
-export const WHATS_NEW_37_TAG_KEYS = WHATS_NEW_40_TAG_KEYS
-
 type WhatsNewDialogProps = {
   open: boolean
   onClose: () => void
@@ -150,20 +126,3 @@ export function WhatsNew40Highlights() {
     </ol>
   )
 }
-
-/** @deprecated Prefer WhatsNew40Highlights */
-export const WhatsNew39Highlights = WhatsNew40Highlights
-/** @deprecated Prefer WhatsNew40Highlights */
-export const WhatsNew38Highlights = WhatsNew40Highlights
-/** @deprecated Prefer WhatsNew40Highlights */
-export const WhatsNew37Highlights = WhatsNew40Highlights
-/** @deprecated Prefer WhatsNew40Highlights */
-export const WhatsNew36Highlights = WhatsNew40Highlights
-/** @deprecated Prefer WhatsNew40Highlights */
-export const WhatsNew35Highlights = WhatsNew40Highlights
-/** @deprecated Prefer WhatsNew40Highlights */
-export const WhatsNew34Highlights = WhatsNew40Highlights
-/** @deprecated Prefer WhatsNew40Highlights */
-export const WhatsNew27Highlights = WhatsNew40Highlights
-/** @deprecated Prefer WhatsNew40Highlights */
-export const WhatsNew25Highlights = WhatsNew40Highlights

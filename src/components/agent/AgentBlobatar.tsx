@@ -12,8 +12,6 @@ type AgentBlobatarProps = {
   name?: string
   size?: number
   className?: string
-  /** @deprecated Prefer `mood="thinking"`. */
-  talking?: boolean
   mood?: AgentBlobatarMood
   title?: string
 }
@@ -30,12 +28,11 @@ export function AgentBlobatar({
   name = AGENT_BLOBATAR_NAME,
   size = 28,
   className,
-  talking = false,
-  mood,
+  mood = 'idle',
   title,
 }: AgentBlobatarProps) {
   const seed = name.trim() || AGENT_BLOBATAR_NAME
-  const resolved: AgentBlobatarMood = mood ?? (talking ? 'thinking' : 'idle')
+  const resolved = mood
   const expression = expressionFor(resolved)
   return (
     <span

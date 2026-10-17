@@ -1,4 +1,4 @@
-import { Cable, Copy, BookOpen, Shield, Sparkles, Terminal } from 'lucide-react'
+import { Cable, Copy, BookOpen, Sparkles, Terminal } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
@@ -305,21 +305,6 @@ export function McpSection() {
               </Button>
             ))}
           </div>
-        </SettingsRow>
-        <SettingsRow
-          title={t('settings.mcp.auditTitle')}
-          description={t('settings.mcp.auditDescription')}
-        >
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            onClick={() => void navigate({ to: '/audit' })}
-          >
-            <Shield className="h-3.5 w-3.5" />
-            {t('settings.mcp.openAudit')}
-          </Button>
         </SettingsRow>
         <SettingsRow
           title={t('settings.mcp.demoTitle')}

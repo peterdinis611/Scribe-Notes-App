@@ -18,9 +18,6 @@ pub const EVENTS_KEEP_MIN: usize = 100;
 pub const EVENTS_KEEP_MAX: usize = 50_000;
 const EVENTS_KEEP_META: &str = "events_keep";
 
-/// Back-compat alias.
-pub const EVENTS_KEEP: usize = EVENTS_KEEP_DEFAULT;
-
 pub struct AuditStore {
     db: AuditDb,
 }

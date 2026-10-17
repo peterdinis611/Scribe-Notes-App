@@ -9,6 +9,3 @@ export const CanvasObjectActions = createContext<CanvasObjectActionsValue>({
   onTextChange: () => undefined,
   onLabelChange: () => undefined,
 })
-
-/** @deprecated Use CanvasObjectActions */
-export const CanvasNoteActions = CanvasObjectActions

@@ -2,32 +2,22 @@
 
 from __future__ import annotations
 
-WHATS_NEW_39_HIGHLIGHTS: tuple[str, ...] = (
-    "localVideoLibrary",
-    "mcpWriteCountdown",
-    "syncMergeStudio",
-    "captureInbox",
-    "wikiHealthQueue",
+WHATS_NEW_40_HIGHLIGHTS: tuple[str, ...] = (
+    "pageWorkspace",
+    "editorCanvas",
+    "welcomeHome",
+    "auditInsights",
+    "skinPicker",
 )
 
-WHATS_NEW_39_TAG_KEYS: tuple[str, ...] = ("library", "capture", "media")
-
-# Back-compat aliases for older imports / tests.
-WHATS_NEW_38_HIGHLIGHTS = WHATS_NEW_39_HIGHLIGHTS
-WHATS_NEW_38_TAG_KEYS = WHATS_NEW_39_TAG_KEYS
-WHATS_NEW_37_HIGHLIGHTS = WHATS_NEW_39_HIGHLIGHTS
-WHATS_NEW_37_TAG_KEYS = WHATS_NEW_39_TAG_KEYS
-WHATS_NEW_36_HIGHLIGHTS = WHATS_NEW_39_HIGHLIGHTS
-WHATS_NEW_36_TAG_KEYS = WHATS_NEW_39_TAG_KEYS
-WHATS_NEW_35_HIGHLIGHTS = WHATS_NEW_39_HIGHLIGHTS
-WHATS_NEW_34_HIGHLIGHTS = WHATS_NEW_39_HIGHLIGHTS
+WHATS_NEW_40_TAG_KEYS: tuple[str, ...] = ("workspace", "design", "audit")
 
 EDITION_MARK_KEY = "whatsNew.editionMark"
 
 
 def whats_new_highlights() -> list[str]:
-    return list(WHATS_NEW_39_HIGHLIGHTS)
+    return list(WHATS_NEW_40_HIGHLIGHTS)
 
 
 def whats_new_tag_keys() -> list[str]:
-    return list(WHATS_NEW_39_TAG_KEYS)
+    return list(WHATS_NEW_40_TAG_KEYS)

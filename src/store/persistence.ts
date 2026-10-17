@@ -314,22 +314,6 @@ export function persistAutoBackupIntervalHours(hours: AutoBackupIntervalHours) {
   kvSet(AUTO_BACKUP_INTERVAL_HOURS_KEY, String(value))
 }
 
-/** @deprecated Use readAutoBackupIntervalHours — kept for older imports. */
-export type AutoBackupIntervalDays = 1 | 7 | 30
-
-/** @deprecated Use readAutoBackupIntervalHours */
-export function readAutoBackupIntervalDays(): AutoBackupIntervalDays {
-  const hours = readAutoBackupIntervalHours()
-  if (hours <= 24) return 1
-  if (hours <= 168) return 7
-  return 30
-}
-
-/** @deprecated Use persistAutoBackupIntervalHours */
-export function persistAutoBackupIntervalDays(days: AutoBackupIntervalDays) {
-  persistAutoBackupIntervalHours(days * 24)
-}
-
 export function readAutoBackupDirectory(): string | null {
   try {
     const raw = kvGet(AUTO_BACKUP_DIR_KEY)

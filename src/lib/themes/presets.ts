@@ -67,10 +67,6 @@ export const GROVE_DARK: ThemeColors = {
   destructive: '#f97066',
 }
 
-/** @deprecated Alias kept for older press-skin call sites. */
-export const PRESS_LIGHT: ThemeColors = GROVE_LIGHT
-export const PRESS_DARK: ThemeColors = GROVE_DARK
-
 export const THEME_PRESETS: ThemePreset[] = [
   {
     id: 'light',

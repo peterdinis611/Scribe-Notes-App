@@ -90,8 +90,8 @@ pub use canvas_doc::{
 };
 pub use canvas_flow::{
     canvas_edges_to_flow, cards_to_nodes, create_note_node, create_note_node_with_id,
-    flow_to_canvas_document, objects_to_nodes, CanvasFlowNode, CanvasNoteData, CanvasNoteNode,
-    CanvasObjectData, FlowEdge, FlowMeasured, FlowNode, FlowPosition, FlowSize, CANVAS_EDGE_TYPE,
+    flow_to_canvas_document, objects_to_nodes, CanvasFlowNode, CanvasObjectData, FlowEdge,
+    FlowMeasured, FlowNode, FlowPosition, FlowSize, CANVAS_EDGE_TYPE,
     CANVAS_NOTE_TYPE,
 };
 pub use code_languages::{
@@ -299,11 +299,8 @@ pub use scribe_video::{
     VideoInfo, VideoProvider,
 };
 pub use whats_new::{
-    whats_new_highlights, whats_new_tag_keys, EDITION_MARK_KEY, WHATS_NEW_34_HIGHLIGHTS,
-    WHATS_NEW_35_HIGHLIGHTS, WHATS_NEW_36_HIGHLIGHTS, WHATS_NEW_36_TAG_KEYS,
-    WHATS_NEW_37_HIGHLIGHTS, WHATS_NEW_37_TAG_KEYS, WHATS_NEW_38_HIGHLIGHTS,
-    WHATS_NEW_38_TAG_KEYS, WHATS_NEW_39_HIGHLIGHTS, WHATS_NEW_39_TAG_KEYS,
-    WHATS_NEW_40_HIGHLIGHTS, WHATS_NEW_40_TAG_KEYS,
+    whats_new_highlights, whats_new_tag_keys, EDITION_MARK_KEY, WHATS_NEW_40_HIGHLIGHTS,
+    WHATS_NEW_40_TAG_KEYS,
 };
 
 #[cfg(feature = "dioxus")]

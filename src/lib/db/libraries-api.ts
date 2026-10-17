@@ -40,7 +40,5 @@ export const listSyncConflicts = () => invoke<SyncConflict[]>('list_sync_conflic
 export const resolveSyncConflict = (id: string, keep: 'app' | 'disk') =>
   invoke<void>('resolve_sync_conflict', { input: { id, keep } })
 
-export const listManuscripts = () => invoke<Manuscript[]>('list_manuscripts')
-
 export const upsertManuscript = (input: { id?: string; title: string; chapterIds: string[] }) =>
   invoke<Manuscript>('upsert_manuscript', { input })

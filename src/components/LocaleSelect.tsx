@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Languages } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -39,6 +39,15 @@ export function useLocaleOptions(refreshToken = 0): LocaleOption[] {
       }),
     [refreshToken, t],
   )
+}
+
+/** Force LocaleSelect to re-read custom locale packs after import/remove. */
+export function useCustomLocaleRefresh() {
+  const [token, setToken] = useState(0)
+  return {
+    refreshToken: token,
+    bump: () => setToken((value) => value + 1),
+  }
 }
 
 export function LocaleSelect({

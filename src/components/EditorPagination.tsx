@@ -11,19 +11,16 @@ type EditorPaginationProps = {
   onPageChange: (page: number) => void
   /** full = page pills + summary; compact = smaller pills + summary; summary = arrows + “1 / N” only */
   mode?: 'full' | 'compact' | 'summary'
-  /** @deprecated use mode="compact" */
-  compact?: boolean
 }
 
 export function EditorPagination({
   currentPage,
   pageCount,
   onPageChange,
-  mode,
-  compact = false,
+  mode = 'full',
 }: EditorPaginationProps) {
   const { t } = useTranslation()
-  const resolvedMode = mode ?? (compact ? 'compact' : 'full')
+  const resolvedMode = mode
   const summaryOnly = resolvedMode === 'summary'
   const visiblePages = summaryOnly ? [] : getVisiblePageNumbers(currentPage, pageCount)
 
