@@ -123,6 +123,14 @@ Encrypted vault notes are stored as AES-GCM ciphertext in SQLite. The unlock pas
 | `suggest_continuation` | Continue-writing suggestions from library corpus |
 | `wiki_health_report` | Unresolved links + stubs summary |
 | `list_stub_documents` | Short stub notes |
+| `list_orphan_documents` | Notes with no wiki links |
+| `suggest_wiki_resolutions` | Unresolved links + fuzzy title scores |
+| `resolve_wiki_link` | Set `targetId` on `[[label]]` (writable) |
+| `create_and_link_wiki_note` | Create missing target + link (writable) |
+| `auto_resolve_wiki_links` | Auto-link when suggestion ≥ minScore (writable) |
+| `expand_stub_document` | Append outline scaffold to a stub (writable) |
+| `filter_library_smart` | Sidebar smart filters (stubs/tasks/media/…) |
+| `list_library_videos` | Local large-video library |
 | `list_templates` | Custom note templates |
 | `create_note_from_template` | Create a note from a template (writable) |
 | `list_backups` | List zip backups |
@@ -154,3 +162,14 @@ Cursor / Claude  →  scribe-mcp (Rust, rmcp stdio)
 ```
 
 Shared logic lives in `crates/scribe-core` (also used by the Tauri app).
+
+### Source layout
+
+| Path | Role |
+|------|------|
+| `src/main.rs` | stdio entry |
+| `src/server/mod.rs` | `ScribeMcp` + merged `tool_router` / `prompt_router` |
+| `src/server/tools_*.rs` | Domain tool routers (documents, journal, agent, library, study/files, wiki, UI) |
+| `src/server/agent_exec.rs` | Local-agent tool dispatch |
+| `src/server/prompts.rs` / `resources.rs` | MCP prompts + `scribe://` resources |
+| `src/tools/*.rs` | Tool parameter structs |
