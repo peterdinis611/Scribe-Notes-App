@@ -1,7 +1,9 @@
 use crate::audit_db::{require_admin, AuditDbState};
 use serde::Deserialize;
 use serde_json::Value;
-use scribe_audit::{AuditEvent, AuditEventInput, SCHEMA_VERSION};
+use scribe_audit::{
+    AuditEvent, AuditEventInput, AuditListQuery, AuditStats, SCHEMA_VERSION,
+};
 use tauri::State;
 
 #[tauri::command]
@@ -21,6 +23,7 @@ pub struct AuditAdminStatus {
     pub configured: bool,
     pub unlocked: bool,
     pub event_count: u64,
+    pub keep_limit: u64,
 }
 
 #[tauri::command]
@@ -31,6 +34,7 @@ pub fn audit_admin_status(audit: State<'_, AuditDbState>) -> Result<AuditAdminSt
         configured: store.admin_configured()?,
         unlocked,
         event_count: store.count()?,
+        keep_limit: store.events_keep()? as u64,
     })
 }
 
@@ -123,6 +127,24 @@ pub struct ListAuditEventsInput {
     pub limit: Option<usize>,
     pub category: Option<String>,
     pub source: Option<String>,
+    pub outcome: Option<String>,
+    pub action: Option<String>,
+    pub since: Option<i64>,
+    pub until: Option<i64>,
+}
+
+impl ListAuditEventsInput {
+    fn into_query(self) -> AuditListQuery {
+        AuditListQuery {
+            limit: self.limit,
+            category: self.category,
+            source: self.source,
+            outcome: self.outcome,
+            action: self.action,
+            since: self.since,
+            until: self.until,
+        }
+    }
 }
 
 #[tauri::command]
@@ -132,11 +154,68 @@ pub fn list_audit_events(
 ) -> Result<Vec<AuditEvent>, String> {
     require_admin(&audit)?;
     let store = audit.store.lock().map_err(|e| e.to_string())?;
-    store.list(
-        input.limit.unwrap_or(100),
-        input.category.as_deref(),
-        input.source.as_deref(),
-    )
+    store.list_query(input.into_query())
+}
+
+#[tauri::command]
+pub fn get_audit_stats(audit: State<'_, AuditDbState>) -> Result<AuditStats, String> {
+    require_admin(&audit)?;
+    let store = audit.store.lock().map_err(|e| e.to_string())?;
+    store.stats()
+}
+
+#[tauri::command]
+pub fn export_audit_events_jsonl(
+    audit: State<'_, AuditDbState>,
+    input: ListAuditEventsInput,
+) -> Result<String, String> {
+    require_admin(&audit)?;
+    let store = audit.store.lock().map_err(|e| e.to_string())?;
+    store.export_jsonl(input.into_query())
+}
+
+#[tauri::command]
+pub fn purge_audit_events_before(
+    audit: State<'_, AuditDbState>,
+    before: i64,
+) -> Result<u64, String> {
+    require_admin(&audit)?;
+    let store = audit.store.lock().map_err(|e| e.to_string())?;
+    let deleted = store.purge_before(before)?;
+    let _ = store.append(AuditEventInput {
+        source: "tauri".into(),
+        category: "admin".into(),
+        action: "purge".into(),
+        actor: Some("admin".into()),
+        summary: format!("Purged {deleted} audit events before {before}"),
+        detail: Some(serde_json::json!({ "before": before, "deleted": deleted })),
+        outcome: Some("ok".into()),
+        ..Default::default()
+    });
+    Ok(deleted)
+}
+
+#[tauri::command]
+pub fn set_audit_events_keep(
+    audit: State<'_, AuditDbState>,
+    keep: usize,
+) -> Result<AuditAdminStatus, String> {
+    require_admin(&audit)?;
+    {
+        let store = audit.store.lock().map_err(|e| e.to_string())?;
+        let applied = store.set_events_keep(keep)?;
+        let _ = store.append(AuditEventInput {
+            source: "tauri".into(),
+            category: "admin".into(),
+            action: "set_keep".into(),
+            actor: Some("admin".into()),
+            summary: format!("Retention keep set to {applied}"),
+            detail: Some(serde_json::json!({ "keep": applied })),
+            outcome: Some("ok".into()),
+            ..Default::default()
+        });
+    }
+    audit_admin_status(audit)
 }
 
 #[tauri::command]

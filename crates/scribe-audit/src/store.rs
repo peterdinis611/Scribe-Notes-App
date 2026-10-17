@@ -1,46 +1,22 @@
-use rusqlite::params;
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use rusqlite::{params, params_from_iter, ToSql};
 use uuid::Uuid;
 
 use crate::admin::{
     admin_is_configured, change_admin_password, setup_admin_password, verify_admin_password,
 };
 use crate::db::AuditDb;
+use crate::types::{
+    normalize_action, normalize_category, normalize_outcome, normalize_source, AuditCountBucket,
+    AuditEvent, AuditEventInput, AuditListQuery, AuditStats,
+};
 
-pub const EVENTS_KEEP: usize = 5_000;
+pub const EVENTS_KEEP_DEFAULT: usize = 5_000;
+pub const EVENTS_KEEP_MIN: usize = 100;
+pub const EVENTS_KEEP_MAX: usize = 50_000;
+const EVENTS_KEEP_META: &str = "events_keep";
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub struct AuditEvent {
-    pub id: String,
-    pub created_at: i64,
-    /// `tauri` | `mcp` | `system`
-    pub source: String,
-    /// `agent` | `handoff` | `mcp_tool` | `prefs` | `security` | `nlp` | `admin` | `canvas`
-    pub category: String,
-    pub action: String,
-    pub actor: String,
-    pub resource_type: Option<String>,
-    pub resource_id: Option<String>,
-    pub summary: String,
-    pub detail_json: Option<String>,
-    /// `ok` | `error` | `denied`
-    pub outcome: String,
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct AuditEventInput {
-    pub source: String,
-    pub category: String,
-    pub action: String,
-    pub actor: Option<String>,
-    pub resource_type: Option<String>,
-    pub resource_id: Option<String>,
-    pub summary: String,
-    pub detail: Option<Value>,
-    pub outcome: Option<String>,
-}
+/// Back-compat alias.
+pub const EVENTS_KEEP: usize = EVENTS_KEEP_DEFAULT;
 
 pub struct AuditStore {
     db: AuditDb,
@@ -63,6 +39,35 @@ impl AuditStore {
         self.db.path.as_deref()
     }
 
+    pub fn events_keep(&self) -> Result<usize, String> {
+        let raw: Option<String> = self
+            .db
+            .conn
+            .query_row(
+                "SELECT value FROM meta WHERE key = ?1",
+                [EVENTS_KEEP_META],
+                |row| row.get(0),
+            )
+            .ok();
+        let value = raw
+            .and_then(|s| s.parse::<usize>().ok())
+            .unwrap_or(EVENTS_KEEP_DEFAULT);
+        Ok(value.clamp(EVENTS_KEEP_MIN, EVENTS_KEEP_MAX))
+    }
+
+    pub fn set_events_keep(&self, keep: usize) -> Result<usize, String> {
+        let keep = keep.clamp(EVENTS_KEEP_MIN, EVENTS_KEEP_MAX);
+        self.db
+            .conn
+            .execute(
+                "INSERT OR REPLACE INTO meta (key, value) VALUES (?1, ?2)",
+                params![EVENTS_KEEP_META, keep.to_string()],
+            )
+            .map_err(|e| e.to_string())?;
+        self.trim_to_keep(keep)?;
+        Ok(keep)
+    }
+
     pub fn append(&self, input: AuditEventInput) -> Result<AuditEvent, String> {
         let summary = input.summary.trim();
         if summary.is_empty() {
@@ -70,7 +75,7 @@ impl AuditStore {
         }
         let source = normalize_source(&input.source);
         let category = normalize_category(&input.category);
-        let action = input.action.trim().chars().take(80).collect::<String>();
+        let action = normalize_action(&input.action);
         if action.is_empty() {
             return Err("action is required".into());
         }
@@ -134,78 +139,189 @@ impl AuditStore {
             )
             .map_err(|e| e.to_string())?;
 
+        let keep = self.events_keep().unwrap_or(EVENTS_KEEP_DEFAULT);
+        self.trim_to_keep(keep)?;
+        Ok(event)
+    }
+
+    fn trim_to_keep(&self, keep: usize) -> Result<(), String> {
         self.db
             .conn
             .execute(
                 "DELETE FROM audit_events WHERE id NOT IN (
                     SELECT id FROM audit_events ORDER BY created_at DESC, id DESC LIMIT ?1
                  )",
-                params![EVENTS_KEEP as i64],
+                params![keep as i64],
             )
             .map_err(|e| e.to_string())?;
-
-        Ok(event)
+        Ok(())
     }
 
+    /// Legacy list API (category + source only).
     pub fn list(
         &self,
         limit: usize,
         category: Option<&str>,
         source: Option<&str>,
     ) -> Result<Vec<AuditEvent>, String> {
-        let limit = limit.clamp(1, 500) as i64;
-        let category = category
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-            .map(normalize_category);
-        let source = source
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-            .map(normalize_source);
-
-        match (category.as_deref(), source.as_deref()) {
-            (Some(category), Some(source)) => self.query_filtered(
-                "SELECT id, created_at, source, category, action, actor, resource_type, resource_id, \
-                 summary, detail_json, outcome \
-                 FROM audit_events WHERE category = ?1 AND source = ?2 \
-                 ORDER BY created_at DESC, id DESC LIMIT ?3",
-                params![category, source, limit],
-            ),
-            (Some(category), None) => self.query_filtered(
-                "SELECT id, created_at, source, category, action, actor, resource_type, resource_id, \
-                 summary, detail_json, outcome \
-                 FROM audit_events WHERE category = ?1 \
-                 ORDER BY created_at DESC, id DESC LIMIT ?2",
-                params![category, limit],
-            ),
-            (None, Some(source)) => self.query_filtered(
-                "SELECT id, created_at, source, category, action, actor, resource_type, resource_id, \
-                 summary, detail_json, outcome \
-                 FROM audit_events WHERE source = ?1 \
-                 ORDER BY created_at DESC, id DESC LIMIT ?2",
-                params![source, limit],
-            ),
-            (None, None) => self.query_filtered(
-                "SELECT id, created_at, source, category, action, actor, resource_type, resource_id, \
-                 summary, detail_json, outcome \
-                 FROM audit_events \
-                 ORDER BY created_at DESC, id DESC LIMIT ?1",
-                params![limit],
-            ),
-        }
+        self.list_query(AuditListQuery {
+            limit: Some(limit),
+            category: category.map(str::to_string),
+            source: source.map(str::to_string),
+            ..Default::default()
+        })
     }
 
-    fn query_filtered(
-        &self,
-        sql: &str,
-        params: impl rusqlite::Params,
-    ) -> Result<Vec<AuditEvent>, String> {
-        let mut stmt = self.db.conn.prepare(sql).map_err(|e| e.to_string())?;
+    pub fn list_query(&self, query: AuditListQuery) -> Result<Vec<AuditEvent>, String> {
+        let limit = query.limit.unwrap_or(100).clamp(1, 500) as i64;
+        let mut sql = String::from(
+            "SELECT id, created_at, source, category, action, actor, resource_type, resource_id, \
+             summary, detail_json, outcome FROM audit_events WHERE 1=1",
+        );
+        let mut binds: Vec<Box<dyn ToSql>> = Vec::new();
+
+        if let Some(category) = query
+            .category
+            .as_deref()
+            .map(str::trim)
+            .filter(|v| !v.is_empty())
+        {
+            sql.push_str(" AND category = ?");
+            binds.push(Box::new(normalize_category(category)));
+        }
+        if let Some(source) = query
+            .source
+            .as_deref()
+            .map(str::trim)
+            .filter(|v| !v.is_empty())
+        {
+            sql.push_str(" AND source = ?");
+            binds.push(Box::new(normalize_source(source)));
+        }
+        if let Some(outcome) = query
+            .outcome
+            .as_deref()
+            .map(str::trim)
+            .filter(|v| !v.is_empty())
+        {
+            sql.push_str(" AND outcome = ?");
+            binds.push(Box::new(normalize_outcome(outcome)));
+        }
+        if let Some(action) = query
+            .action
+            .as_deref()
+            .map(str::trim)
+            .filter(|v| !v.is_empty())
+        {
+            sql.push_str(" AND action = ?");
+            binds.push(Box::new(normalize_action(action)));
+        }
+        if let Some(since) = query.since {
+            sql.push_str(" AND created_at >= ?");
+            binds.push(Box::new(since));
+        }
+        if let Some(until) = query.until {
+            sql.push_str(" AND created_at <= ?");
+            binds.push(Box::new(until));
+        }
+
+        sql.push_str(" ORDER BY created_at DESC, id DESC LIMIT ?");
+        binds.push(Box::new(limit));
+
+        let mut stmt = self.db.conn.prepare(&sql).map_err(|e| e.to_string())?;
         let rows = stmt
-            .query_map(params, map_event_row)
+            .query_map(params_from_iter(binds.iter().map(|b| b.as_ref())), map_event_row)
             .map_err(|e| e.to_string())?;
         rows.collect::<Result<Vec<_>, _>>()
             .map_err(|e| e.to_string())
+    }
+
+    pub fn get(&self, id: &str) -> Result<Option<AuditEvent>, String> {
+        let id = id.trim();
+        if id.is_empty() {
+            return Ok(None);
+        }
+        let mut stmt = self
+            .db
+            .conn
+            .prepare(
+                "SELECT id, created_at, source, category, action, actor, resource_type, resource_id, \
+                 summary, detail_json, outcome FROM audit_events WHERE id = ?1",
+            )
+            .map_err(|e| e.to_string())?;
+        let mut rows = stmt
+            .query_map(params![id], map_event_row)
+            .map_err(|e| e.to_string())?;
+        match rows.next() {
+            Some(row) => Ok(Some(row.map_err(|e| e.to_string())?)),
+            None => Ok(None),
+        }
+    }
+
+    pub fn stats(&self) -> Result<AuditStats, String> {
+        let total = self.count()?;
+        let keep_limit = self.events_keep()? as u64;
+        let oldest_at: Option<i64> = self
+            .db
+            .conn
+            .query_row("SELECT MIN(created_at) FROM audit_events", [], |row| {
+                row.get::<_, Option<i64>>(0)
+            })
+            .unwrap_or(None);
+        let newest_at: Option<i64> = self
+            .db
+            .conn
+            .query_row("SELECT MAX(created_at) FROM audit_events", [], |row| {
+                row.get::<_, Option<i64>>(0)
+            })
+            .unwrap_or(None);
+
+        Ok(AuditStats {
+            total,
+            keep_limit,
+            oldest_at,
+            newest_at,
+            by_category: self.count_group("category")?,
+            by_source: self.count_group("source")?,
+            by_outcome: self.count_group("outcome")?,
+        })
+    }
+
+    fn count_group(&self, column: &str) -> Result<Vec<AuditCountBucket>, String> {
+        // column is internal-only allowlist
+        if !matches!(column, "category" | "source" | "outcome") {
+            return Err("invalid group column".into());
+        }
+        let sql = format!(
+            "SELECT {column}, COUNT(*) FROM audit_events GROUP BY {column} ORDER BY COUNT(*) DESC, {column} ASC"
+        );
+        let mut stmt = self.db.conn.prepare(&sql).map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok(AuditCountBucket {
+                    key: row.get(0)?,
+                    count: row.get::<_, i64>(1)? as u64,
+                })
+            })
+            .map_err(|e| e.to_string())?;
+        rows.collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())
+    }
+
+    /// NDJSON export (one event per line), newest first.
+    pub fn export_jsonl(&self, query: AuditListQuery) -> Result<String, String> {
+        let mut q = query;
+        if q.limit.is_none() {
+            q.limit = Some(2_000);
+        }
+        let events = self.list_query(q)?;
+        let mut out = String::new();
+        for event in events {
+            let line = serde_json::to_string(&event).map_err(|e| e.to_string())?;
+            out.push_str(&line);
+            out.push('\n');
+        }
+        Ok(out)
     }
 
     pub fn clear(&self) -> Result<u64, String> {
@@ -213,6 +329,19 @@ impl AuditStore {
             .db
             .conn
             .execute("DELETE FROM audit_events", [])
+            .map_err(|e| e.to_string())?;
+        Ok(deleted as u64)
+    }
+
+    /// Delete events with `created_at` strictly less than `before` (unix seconds).
+    pub fn purge_before(&self, before: i64) -> Result<u64, String> {
+        let deleted = self
+            .db
+            .conn
+            .execute(
+                "DELETE FROM audit_events WHERE created_at < ?1",
+                params![before],
+            )
             .map_err(|e| e.to_string())?;
         Ok(deleted as u64)
     }
@@ -279,35 +408,6 @@ fn map_event_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<AuditEvent> {
     })
 }
 
-fn normalize_source(raw: &str) -> String {
-    match raw.trim().to_ascii_lowercase().as_str() {
-        "mcp" => "mcp".into(),
-        "system" => "system".into(),
-        _ => "tauri".into(),
-    }
-}
-
-fn normalize_category(raw: &str) -> String {
-    match raw.trim().to_ascii_lowercase().as_str() {
-        "handoff" => "handoff".into(),
-        "mcp_tool" | "mcp-tool" | "tool" => "mcp_tool".into(),
-        "prefs" | "preferences" => "prefs".into(),
-        "security" => "security".into(),
-        "nlp" => "nlp".into(),
-        "admin" => "admin".into(),
-        "canvas" => "canvas".into(),
-        _ => "agent".into(),
-    }
-}
-
-fn normalize_outcome(raw: &str) -> String {
-    match raw.trim().to_ascii_lowercase().as_str() {
-        "error" | "fail" | "failed" => "error".into(),
-        "denied" | "forbidden" => "denied".into(),
-        _ => "ok".into(),
-    }
-}
-
 /// Convenience helpers used by Tauri / MCP call sites.
 pub fn log_ok(
     store: &AuditStore,
@@ -326,12 +426,46 @@ pub fn log_ok(
     })
 }
 
+pub fn log_denied(
+    store: &AuditStore,
+    source: &str,
+    category: &str,
+    action: &str,
+    summary: &str,
+) -> Result<AuditEvent, String> {
+    store.append(AuditEventInput {
+        source: source.into(),
+        category: category.into(),
+        action: action.into(),
+        summary: summary.into(),
+        outcome: Some("denied".into()),
+        ..Default::default()
+    })
+}
+
+pub fn log_error(
+    store: &AuditStore,
+    source: &str,
+    category: &str,
+    action: &str,
+    summary: &str,
+) -> Result<AuditEvent, String> {
+    store.append(AuditEventInput {
+        source: source.into(),
+        category: category.into(),
+        action: action.into(),
+        summary: summary.into(),
+        outcome: Some("error".into()),
+        ..Default::default()
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn append_list_and_trim() {
+    fn append_list_filter_stats_and_export() {
         let store = AuditStore::from_memory().unwrap();
         store
             .append(AuditEventInput {
@@ -351,14 +485,51 @@ mod tests {
                 category: "mcp_tool".into(),
                 action: "run_agent".into(),
                 summary: "MCP run_agent".into(),
+                outcome: Some("error".into()),
                 ..Default::default()
             })
             .unwrap();
 
-        let all = store.list(10, None, None).unwrap();
-        assert_eq!(all.len(), 2);
-        assert_eq!(store.list(10, Some("mcp_tool"), None).unwrap().len(), 1);
-        assert_eq!(store.list(10, None, Some("tauri")).unwrap().len(), 1);
-        assert_eq!(store.count().unwrap(), 2);
+        assert_eq!(store.list(10, None, None).unwrap().len(), 2);
+        assert_eq!(
+            store
+                .list_query(AuditListQuery {
+                    outcome: Some("error".into()),
+                    ..Default::default()
+                })
+                .unwrap()
+                .len(),
+            1
+        );
+        let stats = store.stats().unwrap();
+        assert_eq!(stats.total, 2);
+        assert!(stats.by_source.iter().any(|b| b.key == "mcp" && b.count == 1));
+        let jsonl = store
+            .export_jsonl(AuditListQuery {
+                limit: Some(10),
+                ..Default::default()
+            })
+            .unwrap();
+        assert_eq!(jsonl.lines().count(), 2);
+        assert!(store.get(&store.list(1, None, None).unwrap()[0].id).unwrap().is_some());
+    }
+
+    #[test]
+    fn purge_before_and_retention() {
+        let store = AuditStore::from_memory().unwrap();
+        store.set_events_keep(100).unwrap();
+        store
+            .append(AuditEventInput {
+                source: "tauri".into(),
+                category: "security".into(),
+                action: "vault_lock".into(),
+                summary: "old".into(),
+                ..Default::default()
+            })
+            .unwrap();
+        let now = chrono::Utc::now().timestamp();
+        let deleted = store.purge_before(now + 10).unwrap();
+        assert_eq!(deleted, 1);
+        assert_eq!(store.count().unwrap(), 0);
     }
 }

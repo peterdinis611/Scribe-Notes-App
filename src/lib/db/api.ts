@@ -594,6 +594,7 @@ export type AuditAdminStatus = {
   configured: boolean
   unlocked: boolean
   eventCount: number
+  keepLimit: number
 }
 
 export type AuditEvent = {
@@ -608,6 +609,31 @@ export type AuditEvent = {
   summary: string
   detailJson?: string | null
   outcome: string
+}
+
+export type AuditCountBucket = {
+  key: string
+  count: number
+}
+
+export type AuditStats = {
+  total: number
+  keepLimit: number
+  oldestAt?: number | null
+  newestAt?: number | null
+  byCategory: AuditCountBucket[]
+  bySource: AuditCountBucket[]
+  byOutcome: AuditCountBucket[]
+}
+
+export type AuditListInput = {
+  limit?: number
+  category?: string | null
+  source?: string | null
+  outcome?: string | null
+  action?: string | null
+  since?: number | null
+  until?: number | null
 }
 
 export const getAuditSchemaVersion = () => invoke<number>('get_audit_schema_version')
@@ -630,18 +656,35 @@ export const auditAdminChangePassword = (currentPassword: string, newPassword: s
     newPassword,
   })
 
-export const listAuditEvents = (input?: {
-  limit?: number
-  category?: string | null
-  source?: string | null
-}) =>
+function auditListPayload(input?: AuditListInput) {
+  return {
+    limit: input?.limit ?? 100,
+    category: input?.category ?? null,
+    source: input?.source ?? null,
+    outcome: input?.outcome ?? null,
+    action: input?.action ?? null,
+    since: input?.since ?? null,
+    until: input?.until ?? null,
+  }
+}
+
+export const listAuditEvents = (input?: AuditListInput) =>
   invoke<AuditEvent[]>('list_audit_events', {
-    input: {
-      limit: input?.limit ?? 100,
-      category: input?.category ?? null,
-      source: input?.source ?? null,
-    },
+    input: auditListPayload(input),
   })
+
+export const getAuditStats = () => invoke<AuditStats>('get_audit_stats')
+
+export const exportAuditEventsJsonl = (input?: AuditListInput) =>
+  invoke<string>('export_audit_events_jsonl', {
+    input: auditListPayload({ ...input, limit: input?.limit ?? 2000 }),
+  })
+
+export const purgeAuditEventsBefore = (before: number) =>
+  invoke<number>('purge_audit_events_before', { before })
+
+export const setAuditEventsKeep = (keep: number) =>
+  invoke<AuditAdminStatus>('set_audit_events_keep', { keep })
 
 export const clearAuditEvents = () => invoke<number>('clear_audit_events')
 

@@ -1,7 +1,7 @@
 use rusqlite::Connection;
 use std::path::{Path, PathBuf};
 
-pub const SCHEMA_VERSION: i32 = 1;
+pub const SCHEMA_VERSION: i32 = 2;
 pub const AUDIT_DB_FILE: &str = "scribe-audit.db";
 
 pub struct AuditDb {
@@ -103,6 +103,20 @@ fn run_migrations(conn: &Connection) -> Result<(), String> {
         .map_err(|e| e.to_string())?;
         set_schema_version(conn, 1)?;
         current = 1;
+    }
+
+    if current < 2 {
+        conn.execute_batch(
+            r#"
+            CREATE INDEX IF NOT EXISTS idx_audit_events_outcome
+                ON audit_events(outcome, created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_audit_events_action
+                ON audit_events(action, created_at DESC);
+            "#,
+        )
+        .map_err(|e| e.to_string())?;
+        set_schema_version(conn, 2)?;
+        current = 2;
     }
 
     let _ = current;
