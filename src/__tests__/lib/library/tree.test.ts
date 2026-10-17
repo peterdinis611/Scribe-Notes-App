@@ -62,13 +62,26 @@ describe('flattenTree', () => {
   it('includes only expanded branches', () => {
     const tree = buildTree(folders, documents)
     const collapsed = flattenTree(tree, [])
-    expect(collapsed.map((item) => (item.type === 'folder' ? item.folder.id : item.document.id))).toEqual([
-      'f1',
-      'd2',
-    ])
+    expect(
+      collapsed.map((item) =>
+        item.type === 'folder'
+          ? item.folder.id
+          : item.type === 'document'
+            ? item.document.id
+            : item.folderId,
+      ),
+    ).toEqual(['f1', 'd2'])
 
     const expanded = flattenTree(tree, ['f1'])
     expect(expanded.some((item) => item.type === 'document' && item.document.id === 'd1')).toBe(true)
     expect(expanded.some((item) => item.type === 'folder' && item.folder.id === 'f2')).toBe(true)
+  })
+
+  it('shows an empty placeholder for expanded empty folders', () => {
+    const tree = buildTree(folders, documents)
+    const expanded = flattenTree(tree, ['f1', 'f2'])
+    expect(
+      expanded.some((item) => item.type === 'folder-empty' && item.folderId === 'f2'),
+    ).toBe(true)
   })
 })

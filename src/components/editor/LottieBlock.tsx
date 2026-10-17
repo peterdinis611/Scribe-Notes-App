@@ -227,7 +227,7 @@ export function LottieBlock({
 
         <div className="image-media lottie-media" contentEditable={false} {...(!isEmpty ? { 'data-drag-handle': '' } : {})}>
           {isEmpty ? (
-            <div className="image-placeholder image-placeholder--notion">
+            <div className="image-placeholder image-placeholder--page">
               <Sparkles className="h-8 w-8" />
               <span>{t('lottie.emptyTitle')}</span>
               <span className="image-placeholder-hint">{t('lottie.emptyHint')}</span>

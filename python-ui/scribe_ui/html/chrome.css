@@ -1,5 +1,5 @@
 :root {
-  /* Page / Notion chrome — keep in sync with crates/scribe-ui/assets/chrome.css */
+  /* Page chrome — keep in sync with crates/scribe-ui/assets/chrome.css */
   --color-background: #ffffff;
   --color-foreground: #37352f;
   --color-muted-foreground: #787774;

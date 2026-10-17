@@ -1,7 +1,7 @@
 /** Keep in sync with `crates/scribe-ui` counterpart. */
 import type { ThemeColors, ThemePreset } from '@/lib/themes/types'
 
-/** Page (default) — Notion-inspired workspace: cool paper, graphite ink, sky accent */
+/** Page (default) — cool paper, graphite ink, sky accent */
 const light: ThemeColors = {
   background: '#ffffff',
   foreground: '#37352f',

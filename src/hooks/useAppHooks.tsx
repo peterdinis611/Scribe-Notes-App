@@ -2,6 +2,7 @@ import { listDocuments, listFolders, getStorageSettings } from "@/lib/db/api"
 import { listLibraries, listSyncConflicts } from "@/lib/db/libraries-api"
 import { loadLibrarySession } from "@/lib/libraries/session"
 import { mergeLibrarySummaries } from "@/lib/db/library-sync"
+import { scheduleIdle } from "@/lib/schedule-idle"
 import { applyThemeSettings } from "@/lib/themes/apply"
 import { updateDocuments } from "@/store/documentsSlice"
 import { setFolders } from "@/store/foldersSlice"
@@ -31,13 +32,13 @@ export function useDocumentBootstrap() {
     const dispatch = useAppDispatch()
   
     useEffect(() => {
-      async function bootstrap() {
-        const [docs, folders] = await Promise.all([listDocuments(), listFolders()])
-        dispatch(updateDocuments((prev) => mergeLibrarySummaries(prev, docs)))
-        dispatch(setFolders(folders))
-      }
-  
-      bootstrap()
+      // Library list is critical for the sidebar — start immediately.
+      void Promise.all([listDocuments(), listFolders()])
+        .then(([docs, folders]) => {
+          dispatch(updateDocuments((prev) => mergeLibrarySummaries(prev, docs)))
+          dispatch(setFolders(folders))
+        })
+        .catch(() => undefined)
     }, [dispatch])
   }
   
@@ -45,17 +46,24 @@ export function useStorageBootstrap() {
     const dispatch = useAppDispatch()
   
     useEffect(() => {
-      Promise.all([getStorageSettings(), listLibraries(), listSyncConflicts().catch(() => [])])
-        .then(([settings, libraries, conflicts]) => {
-          dispatch(setStorageSettings(settings))
-          dispatch(setLibraries(libraries))
-          dispatch(setOpenConflictCount(conflicts.length))
-          const active = libraries.find((item) => item.isActive)
-          if (active) loadLibrarySession(dispatch, active.id)
-          if (settings.folderAccessGranted) {
-            persistStorageFolderAccessGranted(true)
-          }
-        })
-        .catch(() => undefined)
+      // Storage/libraries are secondary — wait a tick so docs/folders win the IPC queue.
+      return scheduleIdle(() => {
+        void Promise.all([
+          getStorageSettings(),
+          listLibraries(),
+          listSyncConflicts().catch(() => []),
+        ])
+          .then(([settings, libraries, conflicts]) => {
+            dispatch(setStorageSettings(settings))
+            dispatch(setLibraries(libraries))
+            dispatch(setOpenConflictCount(conflicts.length))
+            const active = libraries.find((item) => item.isActive)
+            if (active) loadLibrarySession(dispatch, active.id)
+            if (settings.folderAccessGranted) {
+              persistStorageFolderAccessGranted(true)
+            }
+          })
+          .catch(() => undefined)
+      }, 1500)
     }, [dispatch])
   }

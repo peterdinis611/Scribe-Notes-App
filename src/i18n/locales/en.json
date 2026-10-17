@@ -579,7 +579,7 @@
     "badge": "What's new in {{version}}",
     "kicker": "Edition notes",
     "title": "Scribe {{version}}",
-    "subtitle": "A Notion-inspired Page workspace, quieter chrome, richer audit insights, and skins you can switch — still fully local.",
+    "subtitle": "A calmer Page workspace, quieter chrome, richer audit insights, and skins you can switch — still fully local.",
     "editionMark": "Workspace · Design",
     "tagsLabel": "Themes in this release",
     "tags": {
@@ -604,7 +604,7 @@
     "footNote": "Open Docs from the rail anytime. Capture and sync stay on this Mac.",
     "pageWorkspace": {
       "title": "Page workspace",
-      "description": "A Notion-inspired default skin — Outfit type, clean paper, sky accent, and flat chrome."
+      "description": "The default Page skin — Outfit type, clean paper, sky accent, and flat chrome."
     },
     "editorCanvas": {
       "title": "Continuous editor",
@@ -807,9 +807,9 @@
       "title": "Image optimization",
       "description": "Uploads are resized and compressed in Rust (JPEG / PNG / WebP) so notes stay lean."
     },
-    "notionImages": {
-      "title": "Notion-style images",
-      "description": "Empty image blocks, embed from URL, lightbox, captions, and corner resize — like Notion."
+    "pageImages": {
+      "title": "Richer image blocks",
+      "description": "Empty image blocks, embed from URL, lightbox, captions, and corner resize handles."
     },
     "excelImport": {
       "title": "Import from Excel",
@@ -1172,7 +1172,7 @@
       "skinTitle": "Design language",
       "skinDescription": "Grove organic chrome for writing, or a flatter Classic variant.",
       "skinPage": "Page",
-      "skinPageDesc": "Notion-inspired workspace — Outfit, clean paper, sky accent.",
+      "skinPageDesc": "Clean workspace — Outfit, paper surface, sky accent.",
       "skinClassic": "Classic",
       "skinClassicDesc": "Flatter Grove — less grain and tighter corners.",
       "skinGrove": "Grove",
@@ -2703,6 +2703,10 @@
     "newVaultFolder": "New vault folder",
     "newVaultSubfolder": "New vault subfolder",
     "newSubfolder": "New subfolder",
+    "newPageInFolder": "New page",
+    "untitledPage": "Untitled",
+    "emptyFolderHint": "New page",
+    "folderActions": "Folder actions",
     "renameFolder": "Rename folder",
     "deleteFolder": "Delete folder",
     "deleteFolderTitle": "Delete folder?",
@@ -3872,7 +3876,7 @@
     },
     "image": {
       "label": "Image",
-      "hint": "Upload or embed — Notion-style block"
+      "hint": "Upload a file or embed from a link"
     },
     "image-url": {
       "label": "Image URL",

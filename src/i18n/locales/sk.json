@@ -579,7 +579,7 @@
     "badge": "Novinky {{version}}",
     "kicker": "Poznámky k vydaniu",
     "title": "Scribe {{version}}",
-    "subtitle": "Workspace v štýle Notion (Page), pokojnejší chrome, bohatší audit a prepínateľné skiny — stále lokálne.",
+    "subtitle": "Pokojnejší Page workspace, tichší chrome, bohatší audit a prepínateľné skiny — stále lokálne.",
     "editionMark": "Workspace · Dizajn",
     "tagsLabel": "Témy tohto vydania",
     "tags": {
@@ -604,7 +604,7 @@
     "footNote": "Docs otvoríš kedykoľvek z railu. Capture a sync ostávajú na tomto Macu.",
     "pageWorkspace": {
       "title": "Page workspace",
-      "description": "Predvolený skin v štýle Notion — Outfit, čistý papier, sky akcent a flat chrome."
+      "description": "Predvolený Page skin — Outfit, čistý papier, sky akcent a flat chrome."
     },
     "editorCanvas": {
       "title": "Súvislý editor",
@@ -807,9 +807,9 @@
       "title": "Optimalizácia obrázkov",
       "description": "Nahraté obrázky sa v Ruste zmenšia a skomprimujú (JPEG / PNG / WebP), aby poznámky ostali ľahké."
     },
-    "notionImages": {
-      "title": "Obrázky ako v Notion",
-      "description": "Prázdny blok, vložiť z URL, lightbox, popisky a resize v rohoch — ako v Notion."
+    "pageImages": {
+      "title": "Bohatšie obrázkové bloky",
+      "description": "Prázdny blok, vložiť z URL, lightbox, popisky a resize v rohoch."
     },
     "excelImport": {
       "title": "Import z Excelu",
@@ -1172,7 +1172,7 @@
       "skinTitle": "Dizajn",
       "skinDescription": "Organický Grove, alebo plochejší Classic variant.",
       "skinPage": "Page",
-      "skinPageDesc": "Workspace v štýle Notion — Outfit, čistý papier, sky akcent.",
+      "skinPageDesc": "Čistý workspace — Outfit, papierový povrch, sky akcent.",
       "skinClassic": "Classic",
       "skinClassicDesc": "Plochší Grove — menej textúry a ostrejšie rohy.",
       "skinGrove": "Grove",
@@ -2705,6 +2705,10 @@
     "newVaultFolder": "Nový trezorový priečinok",
     "newVaultSubfolder": "Nový trezorový podpriečinok",
     "newSubfolder": "Nový podpriečinok",
+    "newPageInFolder": "Nová stránka",
+    "untitledPage": "Bez názvu",
+    "emptyFolderHint": "Nová stránka",
+    "folderActions": "Akcie priečinka",
     "renameFolder": "Premenovať priečinok",
     "deleteFolder": "Vymazať priečinok",
     "deleteFolderTitle": "Vymazať priečinok?",
@@ -3880,7 +3884,7 @@
     },
     "image": {
       "label": "Obrázok",
-      "hint": "Nahrať alebo vložiť odkaz — ako v Notion"
+      "hint": "Nahrať súbor alebo vložiť odkaz"
     },
     "image-url": {
       "label": "Obrázok z URL",

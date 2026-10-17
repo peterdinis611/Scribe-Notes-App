@@ -6,6 +6,7 @@ import type { LibrarySmartFilter } from '@/lib/library/smart-filters'
 import { documentMatchesSmartFilter, LIBRARY_SMART_FILTER_IDS } from '@/lib/library/smart-filters'
 import { knownCanvasDocumentIds } from '@/lib/canvas/known'
 import { isLibraryDocumentVisible } from '@/lib/db/library-sync'
+import { scheduleIdle } from '@/lib/schedule-idle'
 import { cn } from '@/lib/utils'
 
 const FILTERS: LibrarySmartFilter[] = [...LIBRARY_SMART_FILTER_IDS]
@@ -24,38 +25,45 @@ export function LibrarySmartFilters() {
 
   useEffect(() => {
     let cancelled = false
-    void (async () => {
-      try {
-        const { listLinkGraph, listWikiHealth, listLibraryAssets } = await import('@/lib/db/api')
-        const { nlpListOpenTasks } = await import('@/lib/db/nlp-api')
-        const [graph, health, tasks, assets] = await Promise.all([
-          listLinkGraph().catch(() => null),
-          listWikiHealth({ stubLimit: 200, stubMaxWords: 40 }).catch(() => null),
-          nlpListOpenTasks(400).catch(() => []),
-          listLibraryAssets().catch(() => []),
-        ])
-        if (cancelled) return
-        setOrphanIds(new Set(graph?.orphans.map((item) => item.id) ?? []))
-        setStubIds(new Set(health?.stubs.map((row) => row.id) ?? []))
-        setTaskDocIds(
-          new Set(tasks.map((row) => row.documentId).filter((id): id is string => Boolean(id))),
-        )
-        setMediaDocIds(
-          new Set(
-            assets
-              .filter((asset) =>
-                ['image', 'video', 'lottie', 'model3d', 'svg'].includes(String(asset.kind)),
-              )
-              .map((asset) => asset.documentId)
-              .filter(Boolean),
-          ),
-        )
-      } catch {
-        /* keep empty counts */
-      }
-    })()
+    const cancel = scheduleIdle(() => {
+      void (async () => {
+        try {
+          const { listLinkGraph, listWikiHealth, listLibraryAssets } = await import('@/lib/db/api')
+          const { nlpListOpenTasks } = await import('@/lib/db/nlp-api')
+          // Stagger: graph first (cheap-ish), then heavier wiki/NLP/assets.
+          const graph = await listLinkGraph().catch(() => null)
+          if (cancelled) return
+          setOrphanIds(new Set(graph?.orphans.map((item) => item.id) ?? []))
+
+          const [health, tasks, assets] = await Promise.all([
+            listWikiHealth({ stubLimit: 200, stubMaxWords: 40 }).catch(() => null),
+            nlpListOpenTasks(400).catch(() => []),
+            listLibraryAssets().catch(() => []),
+          ])
+          if (cancelled) return
+          setStubIds(new Set(health?.stubs.map((row) => row.id) ?? []))
+          setTaskDocIds(
+            new Set(tasks.map((row) => row.documentId).filter((id): id is string => Boolean(id))),
+          )
+          setMediaDocIds(
+            new Set(
+              assets
+                .filter((asset) =>
+                  ['image', 'video', 'lottie', 'model3d', 'svg'].includes(String(asset.kind)),
+                )
+                .map((asset) => asset.documentId)
+                .filter(Boolean),
+            ),
+          )
+        } catch {
+          /* keep empty counts */
+        }
+      })()
+    }, 3000)
+
     return () => {
       cancelled = true
+      cancel()
     }
   }, [documents.length])
 

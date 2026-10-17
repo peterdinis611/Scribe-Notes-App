@@ -1,3 +1,4 @@
+import { lazy, Suspense, type ComponentType } from 'react'
 import {
   createRootRoute,
   createRoute,
@@ -6,26 +7,47 @@ import {
   redirect,
 } from '@tanstack/react-router'
 import { AppLayout } from '@/layouts/AppLayout'
-import { SettingsLayout } from '@/layouts/SettingsLayout'
 import { HomePage } from '@/pages/HomePage'
 import { DocumentPage } from '@/pages/DocumentPage'
-import { DocsPage } from '@/pages/DocsPage'
-import { GraphPage } from '@/pages/GraphPage'
-import { StorageModePage } from '@/pages/StorageModePage'
 import { ErrorPage } from '@/pages/ErrorPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
-import { AppearancePage } from '@/pages/settings/AppearancePage'
-import { InterfacePage } from '@/pages/settings/InterfacePage'
-import { StoragePage } from '@/pages/settings/StoragePage'
-import { ShortcutsPage } from '@/pages/settings/ShortcutsPage'
-import { AboutPage } from '@/pages/settings/AboutPage'
-import { PrivacyPage } from '@/pages/settings/PrivacyPage'
-import { DiagnosticsPage } from '@/pages/settings/DiagnosticsPage'
-import { McpPage } from '@/pages/settings/McpPage'
-import { CapturePage } from '@/pages/settings/CapturePage'
-import { NlpPage } from '@/pages/settings/NlpPage'
-import { AgentPage } from '@/pages/settings/AgentPage'
-import { PluginsPage } from '@/pages/PluginsPage'
+
+function lazyPage<T extends ComponentType<object>>(
+  loader: () => Promise<{ [key: string]: T }>,
+  exportName: string,
+) {
+  return lazy(async () => {
+    const mod = await loader()
+    return { default: mod[exportName]! }
+  })
+}
+
+const SettingsLayout = lazyPage(() => import('@/layouts/SettingsLayout'), 'SettingsLayout')
+const DocsPage = lazyPage(() => import('@/pages/DocsPage'), 'DocsPage')
+const GraphPage = lazyPage(() => import('@/pages/GraphPage'), 'GraphPage')
+const StorageModePage = lazyPage(() => import('@/pages/StorageModePage'), 'StorageModePage')
+const PluginsPage = lazyPage(() => import('@/pages/PluginsPage'), 'PluginsPage')
+const AppearancePage = lazyPage(() => import('@/pages/settings/AppearancePage'), 'AppearancePage')
+const InterfacePage = lazyPage(() => import('@/pages/settings/InterfacePage'), 'InterfacePage')
+const StoragePage = lazyPage(() => import('@/pages/settings/StoragePage'), 'StoragePage')
+const ShortcutsPage = lazyPage(() => import('@/pages/settings/ShortcutsPage'), 'ShortcutsPage')
+const AboutPage = lazyPage(() => import('@/pages/settings/AboutPage'), 'AboutPage')
+const PrivacyPage = lazyPage(() => import('@/pages/settings/PrivacyPage'), 'PrivacyPage')
+const DiagnosticsPage = lazyPage(() => import('@/pages/settings/DiagnosticsPage'), 'DiagnosticsPage')
+const McpPage = lazyPage(() => import('@/pages/settings/McpPage'), 'McpPage')
+const CapturePage = lazyPage(() => import('@/pages/settings/CapturePage'), 'CapturePage')
+const NlpPage = lazyPage(() => import('@/pages/settings/NlpPage'), 'NlpPage')
+const AgentPage = lazyPage(() => import('@/pages/settings/AgentPage'), 'AgentPage')
+
+function withSuspense(Page: ComponentType) {
+  return function SuspendedPage() {
+    return (
+      <Suspense fallback={null}>
+        <Page />
+      </Suspense>
+    )
+  }
+}
 
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
@@ -54,7 +76,7 @@ const documentRoute = createRoute({
 const docsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/docs',
-  component: DocsPage,
+  component: withSuspense(DocsPage),
 })
 
 const graphRoute = createRoute({
@@ -63,13 +85,13 @@ const graphRoute = createRoute({
   validateSearch: (search: Record<string, unknown>): { around?: boolean } => ({
     around: search.around === true || search.around === 'true' ? true : undefined,
   }),
-  component: GraphPage,
+  component: withSuspense(GraphPage),
 })
 
 const pluginsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/plugins',
-  component: PluginsPage,
+  component: withSuspense(PluginsPage),
 })
 
 /** Audit UI is intentionally hidden for now. */
@@ -84,13 +106,13 @@ const auditHiddenRoute = createRoute({
 const storageModeRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/storage',
-  component: StorageModePage,
+  component: withSuspense(StorageModePage),
 })
 
 const settingsLayoutRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/settings',
-  component: SettingsLayout,
+  component: withSuspense(SettingsLayout),
 })
 
 const settingsIndexRoute = createRoute({
@@ -104,13 +126,13 @@ const settingsIndexRoute = createRoute({
 const settingsAppearanceRoute = createRoute({
   getParentRoute: () => settingsLayoutRoute,
   path: 'appearance',
-  component: AppearancePage,
+  component: withSuspense(AppearancePage),
 })
 
 const settingsInterfaceRoute = createRoute({
   getParentRoute: () => settingsLayoutRoute,
   path: 'interface',
-  component: InterfacePage,
+  component: withSuspense(InterfacePage),
 })
 
 const settingsAiRedirectRoute = createRoute({
@@ -124,43 +146,43 @@ const settingsAiRedirectRoute = createRoute({
 const settingsStorageRoute = createRoute({
   getParentRoute: () => settingsLayoutRoute,
   path: 'storage',
-  component: StoragePage,
+  component: withSuspense(StoragePage),
 })
 
 const settingsShortcutsRoute = createRoute({
   getParentRoute: () => settingsLayoutRoute,
   path: 'shortcuts',
-  component: ShortcutsPage,
+  component: withSuspense(ShortcutsPage),
 })
 
 const settingsDiagnosticsRoute = createRoute({
   getParentRoute: () => settingsLayoutRoute,
   path: 'diagnostics',
-  component: DiagnosticsPage,
+  component: withSuspense(DiagnosticsPage),
 })
 
 const settingsMcpRoute = createRoute({
   getParentRoute: () => settingsLayoutRoute,
   path: 'mcp',
-  component: McpPage,
+  component: withSuspense(McpPage),
 })
 
 const settingsNlpRoute = createRoute({
   getParentRoute: () => settingsLayoutRoute,
   path: 'nlp',
-  component: NlpPage,
+  component: withSuspense(NlpPage),
 })
 
 const settingsAgentRoute = createRoute({
   getParentRoute: () => settingsLayoutRoute,
   path: 'agent',
-  component: AgentPage,
+  component: withSuspense(AgentPage),
 })
 
 const settingsCaptureRoute = createRoute({
   getParentRoute: () => settingsLayoutRoute,
   path: 'capture',
-  component: CapturePage,
+  component: withSuspense(CapturePage),
 })
 
 /** Legacy path from when Plugins lived under Settings. */
@@ -184,13 +206,13 @@ const settingsAuditRedirectRoute = createRoute({
 const settingsPrivacyRoute = createRoute({
   getParentRoute: () => settingsLayoutRoute,
   path: 'privacy',
-  component: PrivacyPage,
+  component: withSuspense(PrivacyPage),
 })
 
 const settingsAboutRoute = createRoute({
   getParentRoute: () => settingsLayoutRoute,
   path: 'about',
-  component: AboutPage,
+  component: withSuspense(AboutPage),
 })
 
 /** Legacy path from when Docs lived under Settings. */

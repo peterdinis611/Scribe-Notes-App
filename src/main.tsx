@@ -1,7 +1,6 @@
 import { createRoot } from 'react-dom/client'
 import { feDebug, isFrontendDebug } from '@/lib/debug'
 import { hydrateKvStore } from '@/lib/storage/kv'
-import 'highlight.js/styles/github-dark.min.css'
 import './index.css'
 
 async function bootstrap() {
@@ -11,10 +10,16 @@ async function bootstrap() {
   }
 
   await hydrateKvStore()
+
+  // Non-critical: vault auto-lock, custom fonts, syntax theme — never block first paint.
   void import('@/lib/vault/session').then(({ installVaultAutoLock }) => {
     installVaultAutoLock()
   })
-  // CSP regression signal (debug builds / DevTools).
+  void import('@/lib/editor/custom-fonts').then(({ ensureAllCustomFontsLoaded }) => {
+    void ensureAllCustomFontsLoaded()
+  })
+  void import('highlight.js/styles/github-dark.min.css')
+
   window.addEventListener('securitypolicyviolation', (event) => {
     const detail = {
       violatedDirective: event.violatedDirective,
@@ -35,23 +40,19 @@ async function bootstrap() {
       }).catch(() => {})
     })
   })
-  const { ensureAllCustomFontsLoaded } = await import('@/lib/editor/custom-fonts')
-  void ensureAllCustomFontsLoaded()
 
-  const { Provider } = await import('react-redux')
-  const { HotkeysProvider } = await import('@tanstack/react-hotkeys')
-  await import('@/i18n')
-  const { bootstrapTheme, hydrateAgentPrefs } = await import('@/store/settingsSlice')
-  const { store } = await import('@/store/index')
-  const { bootstrapPlugins } = await import('@/lib/plugins')
-  const { default: App } = await import('./App.tsx')
+  // Critical path: load shell deps in parallel, then paint.
+  const [{ Provider }, { HotkeysProvider }, , { bootstrapTheme, hydrateAgentPrefs }, { store }, { default: App }] =
+    await Promise.all([
+      import('react-redux'),
+      import('@tanstack/react-hotkeys'),
+      import('@/i18n'),
+      import('@/store/settingsSlice'),
+      import('@/store/index'),
+      import('./App.tsx'),
+    ])
 
   bootstrapTheme()
-  await bootstrapPlugins()
-  void import('@/lib/library/agent-backend').then(async ({ loadAgentPrefsFromBackend }) => {
-    const prefs = await loadAgentPrefsFromBackend()
-    if (prefs) store.dispatch(hydrateAgentPrefs(prefs))
-  })
 
   // TipTap + React StrictMode double-mount can leave ProseMirror non-editable on WebKit.
   createRoot(document.getElementById('root')!).render(
@@ -70,6 +71,19 @@ async function bootstrap() {
   )
 
   feDebug('bootstrap:ready')
+
+  // After first paint: plugins + agent prefs.
+  void import('@/lib/schedule-idle').then(({ scheduleIdle }) => {
+    scheduleIdle(() => {
+      void import('@/lib/plugins').then(async ({ bootstrapPlugins }) => {
+        await bootstrapPlugins()
+      })
+      void import('@/lib/library/agent-backend').then(async ({ loadAgentPrefsFromBackend }) => {
+        const prefs = await loadAgentPrefsFromBackend()
+        if (prefs) store.dispatch(hydrateAgentPrefs(prefs))
+      })
+    }, 2000)
+  })
 }
 
 void bootstrap()

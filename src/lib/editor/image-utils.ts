@@ -30,7 +30,7 @@ export function resolveImageSrc(src: string | null | undefined): string {
   return convertFileSrc(src)
 }
 
-/** Notion-style: bare image URL or known CDN image host. */
+/** Bare image URL or known CDN image host (paste-to-embed). */
 export function isLikelyImageUrl(value: string): boolean {
   const trimmed = value.trim()
   if (!/^https?:\/\//i.test(trimmed)) return false

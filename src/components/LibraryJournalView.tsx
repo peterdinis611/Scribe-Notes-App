@@ -279,6 +279,19 @@ export function LibraryJournalView({ onNavigate }: LibraryJournalViewProps) {
                   weekLabel: t('journal.weeklySummaryTitle'),
                   summaryPlaceholder: t('journal.digestSummaryPlaceholder'),
                   footerNote: t('structuredPdf.digestFooter'),
+                  summary: weeklySummary,
+                  bullets: weeklyBullets,
+                  toneLabel: weeklyTone,
+                  tasks: weeklyTasks
+                    .filter((task) => !task.checked && task.text.trim())
+                    .map((task) =>
+                      task.documentTitle
+                        ? `${task.text.trim()} (${task.documentTitle})`
+                        : task.text.trim(),
+                    ),
+                  documentCount: weekDocumentIds.length,
+                  // Soft cap: do not hang the toolbar on a stalled Local AI sidecar.
+                  nlpTimeoutMs: 2_500,
                 })
                 const path = await exportStructuredPdfAndReveal(result)
                 if (path) toast.success(t('toasts.exportDone'), path.split('/').pop() ?? path)

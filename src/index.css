@@ -102,7 +102,7 @@
   }
 }
 
-/* Page skin — Notion-inspired workspace (default) */
+/* Page skin — default workspace */
 html[data-ui-skin='page'],
 html:not([data-ui-skin]) {
   --font-sans: "Outfit", "Avenir Next", "Segoe UI", sans-serif;
@@ -968,7 +968,7 @@ html[data-ui-skin='classic'] .app-chrome::after {
   opacity: 0.85;
 }
 
-/* Page chrome — flat Notion top bar */
+/* Page chrome — flat top bar */
 html[data-ui-skin='page'] .app-chrome,
 html:not([data-ui-skin]) .app-chrome {
   background: var(--color-background);
@@ -1245,14 +1245,16 @@ html:not([data-ui-skin]) .document-tab.is-active {
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: inherit;
   opacity: 0;
   cursor: pointer;
+  /* Keep gestures on the control — do not let DnD on the tab steal them. */
+  touch-action: manipulation;
   transition:
     opacity 120ms ease,
     background 120ms ease,
@@ -2603,7 +2605,7 @@ html[data-ui-skin='press'] .editor-shell--home {
   }
 }
 
-/* Welcome — Page (Notion-inspired home) */
+/* Welcome — Page home */
 .welcome-page {
   position: relative;
   display: flex;
@@ -4334,7 +4336,7 @@ html:not([data-ui-skin]) .toolbar-btn.is-active {
   isolation: isolate;
 }
 
-/* Page: floating document sheet → continuous Notion canvas */
+/* Page: floating document sheet → continuous canvas */
 html[data-ui-skin='page'] .editor-canvas,
 html:not([data-ui-skin]) .editor-canvas {
   width: min(100%, 900px);
@@ -7092,7 +7094,7 @@ html[data-ui-skin='press'] .editor-status-bar {
   line-height: 1.25;
 }
 
-/* Page: Notion-like sans titles in the editor */
+/* Page: sans titles in the editor */
 html[data-ui-skin='page'] .tiptap h1,
 html:not([data-ui-skin]) .tiptap h1 {
   font-family: var(--font-sans);
@@ -9048,7 +9050,7 @@ body.is-block-dragging .tiptap {
   font-size: 13px;
 }
 
-.tiptap .image-placeholder--notion {
+.tiptap .image-placeholder--page {
   min-height: 180px;
   width: min(100%, 480px);
   border: 1px dashed color-mix(in srgb, var(--color-border) 90%, transparent);
@@ -12868,12 +12870,12 @@ html.dark .link-graph-toolbar--overlay {
   margin: 0;
   min-width: 0;
   flex: 1 1 7rem;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 650;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--color-muted-foreground) 92%, var(--color-accent));
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 550;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--color-muted-foreground);
 }
 
 .library-docs-actions {
@@ -12893,14 +12895,14 @@ html.dark .link-graph-toolbar--overlay {
   height: 26px;
   max-width: 100%;
   padding: 0 8px 0 6px;
-  border: 1px solid color-mix(in srgb, var(--color-accent) 35%, var(--color-border));
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 650;
-  letter-spacing: 0.01em;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
   cursor: pointer;
 }
 
@@ -12911,8 +12913,7 @@ html.dark .link-graph-toolbar--overlay {
 }
 
 .library-new-folder-btn:hover {
-  border-color: var(--color-accent);
-  background: color-mix(in srgb, var(--color-accent) 20%, transparent);
+  background: var(--color-hover);
 }
 
 @container library-panel (max-width: 248px) {
@@ -12945,41 +12946,82 @@ html.dark .link-graph-toolbar--overlay {
 
 .folder-tree-row {
   --folder-depth: 0;
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.3rem;
   width: calc(100% - 4px);
   margin: 0 2px;
-  min-height: 2rem;
-  padding: 0.3rem 0.45rem 0.3rem calc(0.45rem + (var(--folder-depth) * 0.85rem));
+  min-height: 1.85rem;
+  padding: 0.2rem 0.35rem 0.2rem calc(0.35rem + (var(--folder-depth) * 0.95rem));
   border: 1px solid transparent;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--color-foreground);
   cursor: default;
-  transition:
-    background 120ms ease,
-    border-color 120ms ease;
+  transition: background 100ms ease;
+}
+
+/* Nested folder indent guide */
+.folder-tree-row[data-depth]:not([data-depth='0'])::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(0.55rem + ((var(--folder-depth) - 1) * 0.95rem) + 0.55rem);
+  width: 1px;
+  background: color-mix(in srgb, var(--color-border) 70%, transparent);
+  pointer-events: none;
 }
 
 html[data-ui-skin='page'] .folder-tree-row,
 html:not([data-ui-skin]) .folder-tree-row {
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
 }
 
 .folder-tree-row--doc {
-  min-height: 2.55rem;
-  padding-top: 0.4rem;
-  padding-bottom: 0.4rem;
+  min-height: 2rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  cursor: pointer;
 }
 
 .folder-tree-row--folder {
-  min-height: 1.9rem;
-  margin-top: 0.2rem;
+  min-height: 1.85rem;
+}
+
+.folder-tree-row--empty {
+  min-height: 1.75rem;
+  border-style: dashed;
+  border-color: transparent;
+  color: var(--color-muted-foreground);
+  cursor: pointer;
+}
+
+.folder-tree-row--empty:hover {
+  border-color: color-mix(in srgb, var(--color-border) 80%, transparent);
+  background: var(--color-hover);
+  color: var(--color-foreground);
+}
+
+.folder-tree-empty-mark {
+  display: grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  color: inherit;
+  opacity: 0.7;
+}
+
+.folder-tree-empty-label {
+  font-size: 12.5px;
+  font-weight: 450;
+  letter-spacing: -0.01em;
 }
 
 .folder-tree-row:hover {
-  background: color-mix(in srgb, var(--color-hover) 88%, transparent);
+  background: var(--color-hover);
 }
 
 .folder-tree-row--doc:active {
@@ -12987,14 +13029,9 @@ html:not([data-ui-skin]) .folder-tree-row {
 }
 
 .folder-tree-row--doc.is-active {
-  background:
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--color-accent) 14%, transparent),
-      color-mix(in srgb, var(--color-selection) 80%, transparent)
-    );
-  border-color: color-mix(in srgb, var(--color-accent) 18%, transparent);
-  box-shadow: inset 2px 0 0 0 var(--color-accent);
+  background: var(--color-hover);
+  border-color: transparent;
+  box-shadow: none;
 }
 
 html[data-ui-skin='page'] .folder-tree-row--doc.is-active,
@@ -13011,13 +13048,12 @@ html:not([data-ui-skin]) .folder-tree-row--doc.is-selected {
 }
 
 .folder-tree-row--doc.is-selected {
-  border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
   background: color-mix(in srgb, var(--color-accent) 8%, var(--color-hover));
 }
 
 .folder-tree-row--folder.is-drop-target {
-  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-selection));
-  border-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 10%, var(--color-hover));
+  border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
   border-style: dashed;
 }
 
@@ -13029,30 +13065,42 @@ html:not([data-ui-skin]) .folder-tree-row--doc.is-selected {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.35rem;
-  height: 1.35rem;
+  width: 1.2rem;
+  height: 1.2rem;
   flex-shrink: 0;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--color-muted-foreground);
-  transition: background 120ms ease, color 120ms ease;
+  opacity: 0.65;
+  transition: background 100ms ease, color 100ms ease, opacity 100ms ease;
+}
+
+.folder-tree-row--folder:hover .folder-tree-chevron,
+.folder-tree-chevron:hover,
+.folder-tree-row--folder.is-expanded .folder-tree-chevron {
+  opacity: 1;
 }
 
 .folder-tree-chevron:hover {
-  background: var(--color-hover);
+  background: color-mix(in srgb, var(--color-hover) 80%, transparent);
   color: var(--color-foreground);
 }
 
 .folder-tree-folder-mark {
   display: grid;
   place-items: center;
-  width: 1.4rem;
-  height: 1.4rem;
+  width: 1.25rem;
+  height: 1.25rem;
   flex-shrink: 0;
-  border-radius: 7px;
-  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
-  color: var(--color-accent);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-muted-foreground);
+}
+
+.folder-tree-row--folder:hover .folder-tree-folder-mark,
+.folder-tree-row--folder.is-expanded .folder-tree-folder-mark {
+  color: var(--color-foreground);
 }
 
 .folder-tree-folder-name {
@@ -13065,24 +13113,52 @@ html:not([data-ui-skin]) .folder-tree-row--doc.is-selected {
   background: transparent;
   padding: 0;
   text-align: left;
-  font-size: 12.5px;
-  font-weight: 650;
-  letter-spacing: -0.015em;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.011em;
   color: var(--color-foreground);
 }
 
 .folder-tree-count {
   flex-shrink: 0;
-  min-width: 1.15rem;
-  padding: 0.05rem 0.35rem;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-muted-foreground) 10%, transparent);
-  font-family: var(--font-mono);
-  font-size: 9.5px;
-  font-weight: 600;
+  min-width: 1rem;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 450;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.02em;
+  letter-spacing: -0.01em;
   color: var(--color-muted-foreground);
+  opacity: 0;
+  transition: opacity 100ms ease;
+}
+
+.folder-tree-row--folder:hover .folder-tree-count,
+.folder-tree-row--folder:focus-within .folder-tree-count {
+  opacity: 1;
+}
+
+.folder-tree-hover-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  margin-left: auto;
+  flex-shrink: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 100ms ease;
+}
+
+.folder-tree-row--folder:hover .folder-tree-hover-actions,
+.folder-tree-row--folder:focus-within .folder-tree-hover-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.folder-tree-pin-slot {
+  margin-left: 2px;
 }
 
 .folder-tree-add {
@@ -13091,20 +13167,17 @@ html:not([data-ui-skin]) .folder-tree-row--doc.is-selected {
   justify-content: center;
   width: 22px;
   height: 22px;
-  margin-left: auto;
   flex-shrink: 0;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--color-muted-foreground);
-  opacity: 0.55;
   cursor: pointer;
 }
 
-.folder-tree-row--folder:hover .folder-tree-add,
+.folder-tree-add:hover,
 .folder-tree-add:focus-visible {
-  opacity: 1;
-  background: var(--color-hover);
+  background: color-mix(in srgb, var(--color-foreground) 6%, transparent);
   color: var(--color-foreground);
 }
 
@@ -13148,21 +13221,21 @@ html:not([data-ui-skin]) .folder-tree-row--doc.is-selected {
 .folder-tree-doc-mark {
   display: grid;
   place-items: center;
-  width: 1.55rem;
-  height: 1.55rem;
+  width: 1.25rem;
+  height: 1.25rem;
   flex-shrink: 0;
-  border-radius: 8px;
-  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
-  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
   color: var(--color-muted-foreground);
-  transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
+  transition: color 100ms ease;
 }
 
 .folder-tree-doc-mark.is-active,
 .folder-tree-row--doc.is-active .folder-tree-doc-mark {
-  border-color: color-mix(in srgb, var(--color-accent) 35%, var(--color-border));
-  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
-  color: var(--color-accent);
+  border: none;
+  background: transparent;
+  color: var(--color-foreground);
 }
 
 .folder-tree-doc-body {
@@ -13170,32 +13243,39 @@ html:not([data-ui-skin]) .folder-tree-row--doc.is-selected {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: 0;
 }
 
 .folder-tree-doc-title {
   font-size: 13px;
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  line-height: 1.25;
+  font-weight: 450;
+  letter-spacing: -0.011em;
+  line-height: 1.3;
 }
 
 .folder-tree-row--doc.is-active .folder-tree-doc-title {
+  font-weight: 550;
   color: var(--color-foreground);
 }
 
 .folder-tree-doc-meta {
-  display: block;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
+  display: none;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 450;
+  letter-spacing: -0.01em;
   line-height: 1.3;
   color: var(--color-muted-foreground);
 }
 
+.folder-tree-row--doc:hover .folder-tree-doc-meta,
+.folder-tree-row--doc.is-active .folder-tree-doc-meta,
+.folder-tree-row--doc:focus-within .folder-tree-doc-meta {
+  display: block;
+}
+
 .folder-tree-row--doc.is-active .folder-tree-doc-meta {
-  color: color-mix(in srgb, var(--color-accent) 62%, var(--color-muted-foreground));
+  color: var(--color-muted-foreground);
 }
 
 .folder-tree-doc-tags {

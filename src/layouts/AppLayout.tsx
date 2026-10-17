@@ -1,11 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { Outlet, useNavigate, useParams, useRouterState } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { listen } from '@tauri-apps/api/event'
-import { AgentWorkspaceDock } from '@/components/agent/AgentWorkspaceDock'
 import { AppFileDropOverlay } from '@/components/AppFileDropOverlay'
-import { CommandPalette } from '@/components/CommandPalette'
 import { DndRoot } from '@/components/dnd/DndRoot'
 import { RouteViewTransition } from '@/components/RouteViewTransition'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -13,12 +11,9 @@ import { AppHeader } from '@/components/layout/AppHeader'
 import { DocumentTabsBar } from '@/components/layout/DocumentTabsBar'
 import { FocusModeExitBar } from '@/components/editor/FocusModeExitBar'
 import { ReadingModeExitBar } from '@/components/editor/ReadingModeExitBar'
-import { MoveToFolderDialog } from '@/components/MoveToFolderMenu'
-import { OnboardingTour } from '@/components/OnboardingTour'
-import { SetupWizard } from '@/components/SetupWizard'
 import { Sidebar } from '@/components/Sidebar'
-import { TemplatePicker } from '@/components/TemplatePicker'
-import { WhatsNewDialog } from '@/components/WhatsNewDialog'
+import { ToastHost } from '@/components/ToastHost'
+import { DeferredAppChrome } from '@/layouts/DeferredAppChrome'
 import { useAppFileDrop } from '@/hooks/useAppFileDrop'
 import { useLayoutTier } from '@/hooks/useLayoutTier'
 import { useResponsiveSidebar } from '@/hooks/useResponsiveSidebar'
@@ -35,6 +30,7 @@ import {
 import { APP_VERSION } from '@/lib/app-version'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { prefetchDocument, prefetchEditorChunks, prefetchOpenDocuments } from '@/lib/cache/prefetch-document'
+import { scheduleIdle } from '@/lib/schedule-idle'
 import { createDocument, flushPendingWrites, type Document } from '@/lib/db/api'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { importDocumentFromPath } from '@/lib/import-document'
@@ -45,20 +41,6 @@ import { isOpenLibraryDocumentId } from '@/lib/trash-document'
 import { toast } from '@/lib/toast'
 import { ROUTES } from '@/lib/routes'
 import type { DocumentTemplate } from '@/lib/templates'
-import { InputDialogHost } from '@/components/InputDialogHost'
-import { CommentDialogHost } from '@/components/CommentDialogHost'
-import { LoremIpsumDialogHost } from '@/components/LoremIpsumDialogHost'
-import { MathExpressionDialogHost } from '@/components/MathExpressionDialogHost'
-import { ChartBuilderDialogHost } from '@/components/ChartBuilderDialogHost'
-import { MermaidDialogHost } from '@/components/MermaidDialogHost'
-import { InvoiceDialogHost } from '@/components/InvoiceDialogHost'
-import { StorageAccessDialogHost } from '@/components/StorageAccessDialogHost'
-import { CompileDialog } from '@/components/library/CompileDialog'
-import { SyncConflictsDialog } from '@/components/library/SyncConflictsDialog'
-import { SaveCustomTemplateDialogHost } from '@/components/SaveCustomTemplateDialogHost'
-import { ToastHost } from '@/components/ToastHost'
-import { TrashDialog } from '@/components/TrashDialog'
-import { LibraryFindReplaceDialog } from '@/components/LibraryFindReplaceDialog'
 import { ensureSetupCompletedForExistingUsers, readOnboardingDismissed, readSetupCompleted, readWhatsNewVersion } from '@/store/persistence'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
@@ -99,8 +81,11 @@ export function AppLayout() {
   useAutoBackup()
   useDocumentCacheRetention()
   useEffect(() => {
-    startAgentDigestScheduler()
-    return () => stopAgentDigestScheduler()
+    const cancel = scheduleIdle(() => startAgentDigestScheduler(), 5000)
+    return () => {
+      cancel()
+      stopAgentDigestScheduler()
+    }
   }, [])
   const templatePickerOpen = useAppSelector((state) => state.settings.templatePickerOpen)
   const showDocumentTabs = useAppSelector((state) => state.settings.showDocumentTabs)
@@ -151,16 +136,18 @@ export function AppLayout() {
     toastInfo: (title, detail) => toast.info(title, detail),
   })
 
-  useEffect(() => {
-    prefetchEditorChunks()
-  }, [])
+  useEffect(() => scheduleIdle(() => prefetchEditorChunks(), 3500), [])
 
   useEffect(() => {
     const activeId = activeDocument?.id
     const prioritized = activeId
       ? [activeId, ...openDocumentIds.filter((id) => id !== activeId)]
       : openDocumentIds
-    prefetchOpenDocuments(prioritized, { limit: 6, priority: 'high' })
+    // Warm a few open tabs after paint — don't flood IPC on cold start.
+    return scheduleIdle(
+      () => prefetchOpenDocuments(prioritized, { limit: 4, priority: 'high' }),
+      2500,
+    )
   }, [activeDocument?.id, openDocumentIds])
 
   function maybeOpenWhatsNew() {
@@ -270,53 +257,38 @@ export function AppLayout() {
           ref={mainRef}
           className="app-main relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
         >
-          <RouteViewTransition>
-            <Outlet />
-          </RouteViewTransition>
+          <Suspense fallback={null}>
+            <RouteViewTransition>
+              <Outlet />
+            </RouteViewTransition>
+          </Suspense>
         </main>
       </div>
 
-      <AgentWorkspaceDock />
-
-      <TemplatePicker
-        open={templatePickerOpen}
-        onClose={() => dispatch(setTemplatePickerOpen(false))}
-        onSelect={(template) => handleCreateFromTemplate(template)}
-      />
-      <CommandPalette />
-      <MoveToFolderDialog
-        open={movePickerOpen}
-        documentId={activeDocument?.id ?? selectedDocumentIds[0] ?? null}
-        documentIds={
+      <DeferredAppChrome
+        templatePickerOpen={templatePickerOpen}
+        onTemplatePickerClose={() => dispatch(setTemplatePickerOpen(false))}
+        onSelectTemplate={async (template) => {
+          await handleCreateFromTemplate(template)
+        }}
+        movePickerOpen={movePickerOpen}
+        moveDocumentId={activeDocument?.id ?? selectedDocumentIds[0] ?? null}
+        moveDocumentIds={
           selectedDocumentIds.length > 0
             ? selectedDocumentIds
             : activeDocument?.id
               ? [activeDocument.id]
               : []
         }
-        folderId={activeDocument?.folderId ?? null}
-        onOpenChange={(open) => dispatch(setMoveDocumentPickerOpen(open))}
+        moveFolderId={activeDocument?.folderId ?? null}
+        onMovePickerOpenChange={(open) => dispatch(setMoveDocumentPickerOpen(open))}
+        setupReady={setupReady}
+        onSetupFinished={() => setSetupReady(true)}
+        onboardingEnabled={setupReady}
+        onOnboardingFinished={maybeOpenWhatsNew}
+        whatsNewOpen={whatsNewOpen}
+        onWhatsNewClose={() => setWhatsNewOpen(false)}
       />
-      <InputDialogHost />
-      <CommentDialogHost />
-      <LoremIpsumDialogHost />
-      <MathExpressionDialogHost />
-      <ChartBuilderDialogHost />
-      <MermaidDialogHost />
-      <InvoiceDialogHost />
-      <StorageAccessDialogHost />
-      <SaveCustomTemplateDialogHost />
-      <CompileDialog />
-      <SyncConflictsDialog />
-      <TrashDialog />
-      <LibraryFindReplaceDialog />
-      <SetupWizard
-        onFinished={() => {
-          setSetupReady(true)
-        }}
-      />
-      <OnboardingTour enabled={setupReady} onFinished={maybeOpenWhatsNew} />
-      <WhatsNewDialog open={whatsNewOpen} onClose={() => setWhatsNewOpen(false)} />
       <AppFileDropOverlay
         active={fileDrop.active}
         busy={fileDrop.busy}
