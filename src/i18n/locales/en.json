@@ -579,8 +579,8 @@
     "badge": "What's new in {{version}}",
     "kicker": "Edition notes",
     "title": "Scribe {{version}}",
-    "subtitle": "Local video library, timed MCP writes, format-safe sync merge, capture triage, and wiki NLP — still fully local.",
-    "editionMark": "Library · Media",
+    "subtitle": "A Notion-inspired Page workspace, quieter chrome, richer audit insights, and skins you can switch — still fully local.",
+    "editionMark": "Workspace · Design",
     "tagsLabel": "Themes in this release",
     "tags": {
       "agent": "Agent",
@@ -596,9 +596,32 @@
       "library": "Library",
       "capture": "Capture",
       "markdown": "Markdown",
-      "media": "Media"
+      "media": "Media",
+      "workspace": "Workspace",
+      "design": "Design",
+      "audit": "Audit"
     },
     "footNote": "Open Docs from the rail anytime. Capture and sync stay on this Mac.",
+    "pageWorkspace": {
+      "title": "Page workspace",
+      "description": "A Notion-inspired default skin — Outfit type, clean paper, sky accent, and flat chrome."
+    },
+    "editorCanvas": {
+      "title": "Continuous editor",
+      "description": "The writing surface drops the floating card look for a calm, full-bleed page canvas."
+    },
+    "welcomeHome": {
+      "title": "Quiet home",
+      "description": "Welcome is a simple recent-pages list with clear actions — no grain, orbs, or desk theater."
+    },
+    "auditInsights": {
+      "title": "Audit insights",
+      "description": "Filter by actor, resource, and summary; browse action/actor stats; optional correlation context."
+    },
+    "skinPicker": {
+      "title": "Page · Grove · Classic",
+      "description": "Pick Page for the new look, or keep Grove / Classic botanical chrome in Appearance."
+    },
     "localVideoLibrary": {
       "title": "Local video library",
       "description": "Import large local videos into notes, play them in-place, and transcribe with Local AI."
@@ -1148,8 +1171,10 @@
     "appearance": {
       "skinTitle": "Design language",
       "skinDescription": "Grove organic chrome for writing, or a flatter Classic variant.",
+      "skinPage": "Page",
+      "skinPageDesc": "Notion-inspired workspace — Outfit, clean paper, sky accent.",
       "skinClassic": "Classic",
-      "skinClassicDesc": "Same Grove palette with less grain and tighter corners.",
+      "skinClassicDesc": "Flatter Grove — less grain and tighter corners.",
       "skinGrove": "Grove",
       "skinGroveDesc": "Organic botanical chrome — Fraunces, soft moss paper, lichen accent.",
       "skinPress": "Grove",
@@ -5054,6 +5079,8 @@
     "statsByOutcome": "By outcome",
     "statsBySource": "By source",
     "statsByCategory": "By category",
+    "statsByAction": "By action",
+    "statsByActor": "By actor",
     "setupTitle": "Create admin password",
     "setupHint": "First unlock sets a local admin password (iterated salted hash in scribe-audit.db).",
     "setupPassword": "Admin password",
@@ -5106,6 +5133,14 @@
     "filterSource": "Source",
     "filterCategory": "Category",
     "filterOutcome": "Outcome",
+    "filterActor": "Actor",
+    "filterActorPlaceholder": "local",
+    "filterResourceType": "Resource type",
+    "filterResourceTypePlaceholder": "doc",
+    "filterResourceId": "Resource id",
+    "filterResourceIdPlaceholder": "id",
+    "filterSearch": "Search",
+    "filterSearchPlaceholder": "Summary…",
     "filterAll": "All",
     "colTime": "Time",
     "colSource": "Source",

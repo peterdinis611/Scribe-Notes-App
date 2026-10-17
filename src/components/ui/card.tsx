@@ -5,7 +5,7 @@ function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn(
-        'grove-panel rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)]',
+        'grove-panel rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-background)]',
         className,
       )}
       {...props}
@@ -20,7 +20,10 @@ function CardHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement
 function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h3
-      className={cn('text-[15px] font-semibold leading-none tracking-[-0.02em] text-[var(--color-foreground)] [font-family:var(--font-display)]', className)}
+      className={cn(
+        'text-[15px] font-semibold leading-none tracking-[-0.015em] text-[var(--color-foreground)]',
+        className,
+      )}
       {...props}
     />
   )

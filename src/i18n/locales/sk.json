@@ -579,8 +579,8 @@
     "badge": "Novinky {{version}}",
     "kicker": "Poznámky k vydaniu",
     "title": "Scribe {{version}}",
-    "subtitle": "Lokálna video knižnica, časovaný MCP zápis, sync merge bez straty formátu, capture triage a wiki NLP — stále lokálne.",
-    "editionMark": "Library · Media",
+    "subtitle": "Workspace v štýle Notion (Page), pokojnejší chrome, bohatší audit a prepínateľné skiny — stále lokálne.",
+    "editionMark": "Workspace · Dizajn",
     "tagsLabel": "Témy tohto vydania",
     "tags": {
       "agent": "Agent",
@@ -596,9 +596,32 @@
       "library": "Knižnica",
       "capture": "Capture",
       "markdown": "Markdown",
-      "media": "Médiá"
+      "media": "Médiá",
+      "workspace": "Workspace",
+      "design": "Dizajn",
+      "audit": "Audit"
     },
     "footNote": "Docs otvoríš kedykoľvek z railu. Capture a sync ostávajú na tomto Macu.",
+    "pageWorkspace": {
+      "title": "Page workspace",
+      "description": "Predvolený skin v štýle Notion — Outfit, čistý papier, sky akcent a flat chrome."
+    },
+    "editorCanvas": {
+      "title": "Súvislý editor",
+      "description": "Písanie bez plávajúcej karty — pokojný full-bleed page canvas."
+    },
+    "welcomeHome": {
+      "title": "Tichý home",
+      "description": "Welcome je jednoduchý zoznam recent pages s jasnými akciami — bez grainu a orbov."
+    },
+    "auditInsights": {
+      "title": "Audit insights",
+      "description": "Filtre podľa aktéra, zdroja a súhrnu; štatistiky akcií/aktérov; voliteľná korelácia."
+    },
+    "skinPicker": {
+      "title": "Page · Grove · Classic",
+      "description": "Page pre nový vzhľad, alebo Grove / Classic botanický chrome vo Appearance."
+    },
     "localVideoLibrary": {
       "title": "Lokálna video knižnica",
       "description": "Importuj veľké lokálne videá do poznámok, prehrávaj ich na mieste a prepíš cez Lokálnu AI."
@@ -1148,8 +1171,10 @@
     "appearance": {
       "skinTitle": "Dizajn",
       "skinDescription": "Organický Grove, alebo plochejší Classic variant.",
+      "skinPage": "Page",
+      "skinPageDesc": "Workspace v štýle Notion — Outfit, čistý papier, sky akcent.",
       "skinClassic": "Classic",
-      "skinClassicDesc": "Rovnaká Grove paleta s menej textúrou a ostrejšími rohmi.",
+      "skinClassicDesc": "Plochší Grove — menej textúry a ostrejšie rohy.",
       "skinGrove": "Grove",
       "skinGroveDesc": "Organický botanický chrome — Fraunces, mäkký sage papier, lichen akcent.",
       "skinPress": "Grove",
@@ -5070,6 +5095,8 @@
     "statsByOutcome": "Podľa výsledku",
     "statsBySource": "Podľa zdroja",
     "statsByCategory": "Podľa kategórie",
+    "statsByAction": "Podľa akcie",
+    "statsByActor": "Podľa aktéra",
     "setupTitle": "Vytvoriť admin heslo",
     "setupHint": "Prvé odomknutie nastaví lokálne admin heslo (iterovaný hash so soľou v scribe-audit.db).",
     "setupPassword": "Admin heslo",
@@ -5122,6 +5149,14 @@
     "filterSource": "Zdroj",
     "filterCategory": "Kategória",
     "filterOutcome": "Výsledok",
+    "filterActor": "Aktér",
+    "filterActorPlaceholder": "local",
+    "filterResourceType": "Typ zdroja",
+    "filterResourceTypePlaceholder": "doc",
+    "filterResourceId": "ID zdroja",
+    "filterResourceIdPlaceholder": "id",
+    "filterSearch": "Hľadať",
+    "filterSearchPlaceholder": "Súhrn…",
     "filterAll": "Všetko",
     "colTime": "Čas",
     "colSource": "Zdroj",

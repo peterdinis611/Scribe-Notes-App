@@ -174,10 +174,10 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
 
         <div className="app-sidebar-panel titlebar-no-drag min-h-0" data-tour="library-panel">
           <div className="@container/library-head min-w-0 px-3 pb-1 pt-3">
-            <p className="m-0 truncate px-1 font-[family-name:var(--font-display)] text-[15px] font-extrabold tracking-[-0.03em] text-[var(--color-foreground)]">
+            <p className="m-0 truncate px-1 text-[14px] font-semibold tracking-[-0.01em] text-[var(--color-foreground)]">
               {t('library.title')}
             </p>
-            <p className="m-0 mt-0.5 truncate px-1 font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-[0.04em] text-[var(--color-muted-foreground)]">
+            <p className="m-0 mt-0.5 truncate px-1 text-[12px] text-[var(--color-muted-foreground)]">
               {t('library.documentCount', { count: visibleDocuments.length })}
             </p>
             <LibrarySwitcher />
@@ -370,7 +370,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
 
               {contentView === 'storage' && (
                 <div className="px-3 py-3 text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
-                  <p className="m-0 font-[family-name:var(--font-display)] text-[13px] font-semibold text-[var(--color-foreground)]">
+                  <p className="m-0 text-[13px] font-semibold tracking-[-0.01em] text-[var(--color-foreground)]">
                     {t('library.tabs.storage')}
                   </p>
                   <p className="mt-1.5 m-0">{t('storageMode.sidebarHint')}</p>

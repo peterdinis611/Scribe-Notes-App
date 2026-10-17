@@ -8,7 +8,7 @@ import type { AgentPrefs } from '@/lib/library/agent-prefs'
 import { DEFAULT_AGENT_PREFS, normalizeAgentPrefs } from '@/lib/library/agent-prefs'
 import { kvGet, kvRemove, kvSet } from '@/lib/storage/kv'
 import type { ThemeSettings } from '@/lib/themes/types'
-import { normalizeUiSkin, type UiSkin } from '@/lib/ui-skin'
+import { resolveStoredUiSkin, type UiSkin } from '@/lib/ui-skin'
 import type { CustomDocumentTemplate } from '@/lib/templates/custom'
 import { parseStoredCustomTemplates } from '@/lib/templates/custom'
 import type { CustomTemplateCategory } from '@/lib/templates/categories'
@@ -81,11 +81,11 @@ export function persistLocale(locale: AppLocale) {
 
 export function readUiSkin(): UiSkin {
   try {
-    return normalizeUiSkin(kvGet(UI_SKIN_KEY))
+    return resolveStoredUiSkin(kvGet, kvSet)
   } catch {
     // ignore
   }
-  return 'grove'
+  return 'page'
 }
 
 export function persistUiSkin(skin: import('@/lib/ui-skin').UiSkin) {

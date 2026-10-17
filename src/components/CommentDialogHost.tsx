@@ -77,7 +77,7 @@ export function CommentDialogHost() {
           ) : null}
 
           <label className="mb-3 flex flex-col gap-1.5">
-            <span className="font-[family-name:var(--font-display)] text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--color-muted-foreground)]">
+            <span className="text-[11px] font-medium text-[var(--color-muted-foreground)]">
               {t('panels.comments.authorLabel')}
             </span>
             <Input
@@ -91,7 +91,7 @@ export function CommentDialogHost() {
           </label>
 
           <label className="mb-3 flex flex-col gap-1.5">
-            <span className="font-[family-name:var(--font-display)] text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--color-muted-foreground)]">
+            <span className="text-[11px] font-medium text-[var(--color-muted-foreground)]">
               {t('panels.comments.bodyLabel')}
             </span>
             <textarea

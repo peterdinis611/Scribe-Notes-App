@@ -84,14 +84,26 @@ export function AuditSection() {
   const [source, setSource] = useState<FilterSource>('all')
   const [category, setCategory] = useState<FilterCategory>('all')
   const [outcome, setOutcome] = useState<FilterOutcome>('all')
+  const [actor, setActor] = useState('')
+  const [resourceType, setResourceType] = useState('')
+  const [resourceId, setResourceId] = useState('')
+  const [searchQ, setSearchQ] = useState('')
   const [keepDraft, setKeepDraft] = useState('5000')
 
   function listInput() {
+    const trimmedActor = actor.trim()
+    const trimmedType = resourceType.trim()
+    const trimmedId = resourceId.trim()
+    const trimmedQ = searchQ.trim()
     return {
       limit: 200,
       source: source === 'all' ? null : source,
       category: category === 'all' ? null : category,
       outcome: outcome === 'all' ? null : outcome,
+      actor: trimmedActor || null,
+      resourceType: trimmedType || null,
+      resourceId: trimmedId || null,
+      q: trimmedQ || null,
     }
   }
 
@@ -145,7 +157,7 @@ export function AuditSection() {
       toast.error(t('audit.loadError'), String(error))
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps -- filters
-  }, [source, category, outcome])
+  }, [source, category, outcome, actor, resourceType, resourceId, searchQ])
 
   const filtersDisabled = !status?.unlocked || busy
 
@@ -383,6 +395,12 @@ export function AuditSection() {
                 </p>
                 <p>
                   {t('audit.statsByCategory')}: {formatBuckets(stats.byCategory)}
+                </p>
+                <p>
+                  {t('audit.statsByAction')}: {formatBuckets(stats.byAction ?? [])}
+                </p>
+                <p>
+                  {t('audit.statsByActor')}: {formatBuckets(stats.byActor ?? [])}
                 </p>
               </div>
             </SettingsRow>
@@ -643,6 +661,46 @@ export function AuditSection() {
               <option value="error">error</option>
               <option value="denied">denied</option>
             </select>
+          </label>
+          <label className="flex items-center gap-2 text-[12px] text-[var(--color-muted-foreground)]">
+            {t('audit.filterActor')}
+            <Input
+              className="h-8 w-[120px] text-[12px]"
+              value={actor}
+              disabled={filtersDisabled}
+              placeholder={t('audit.filterActorPlaceholder')}
+              onChange={(event) => setActor(event.target.value)}
+            />
+          </label>
+          <label className="flex items-center gap-2 text-[12px] text-[var(--color-muted-foreground)]">
+            {t('audit.filterResourceType')}
+            <Input
+              className="h-8 w-[110px] text-[12px]"
+              value={resourceType}
+              disabled={filtersDisabled}
+              placeholder={t('audit.filterResourceTypePlaceholder')}
+              onChange={(event) => setResourceType(event.target.value)}
+            />
+          </label>
+          <label className="flex items-center gap-2 text-[12px] text-[var(--color-muted-foreground)]">
+            {t('audit.filterResourceId')}
+            <Input
+              className="h-8 w-[120px] text-[12px]"
+              value={resourceId}
+              disabled={filtersDisabled}
+              placeholder={t('audit.filterResourceIdPlaceholder')}
+              onChange={(event) => setResourceId(event.target.value)}
+            />
+          </label>
+          <label className="flex items-center gap-2 text-[12px] text-[var(--color-muted-foreground)]">
+            {t('audit.filterSearch')}
+            <Input
+              className="h-8 w-[160px] text-[12px]"
+              value={searchQ}
+              disabled={filtersDisabled}
+              placeholder={t('audit.filterSearchPlaceholder')}
+              onChange={(event) => setSearchQ(event.target.value)}
+            />
           </label>
         </div>
 

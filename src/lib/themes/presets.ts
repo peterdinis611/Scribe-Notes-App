@@ -1,8 +1,41 @@
 /** Keep in sync with `crates/scribe-ui` counterpart. */
 import type { ThemeColors, ThemePreset } from '@/lib/themes/types'
 
-/** Grove (default) light / dark — organic botanical chrome */
+/** Page (default) — Notion-inspired workspace: cool paper, graphite ink, sky accent */
 const light: ThemeColors = {
+  background: '#ffffff',
+  foreground: '#37352f',
+  mutedForeground: '#787774',
+  border: 'rgba(55, 53, 47, 0.09)',
+  sidebar: 'rgba(247, 247, 245, 0.96)',
+  sidebarSolid: '#f7f7f5',
+  toolbar: 'rgba(255, 255, 255, 0.94)',
+  selection: 'rgba(35, 131, 226, 0.14)',
+  selectionStrong: '#2383e2',
+  hover: 'rgba(55, 53, 47, 0.08)',
+  separator: 'rgba(55, 53, 47, 0.06)',
+  formatBar: 'rgba(255, 255, 255, 0.98)',
+  destructive: '#e03e3e',
+}
+
+const dark: ThemeColors = {
+  background: '#191919',
+  foreground: '#e3e2e0',
+  mutedForeground: '#9b9a97',
+  border: 'rgba(255, 255, 255, 0.075)',
+  sidebar: 'rgba(32, 32, 32, 0.96)',
+  sidebarSolid: '#202020',
+  toolbar: 'rgba(25, 25, 25, 0.94)',
+  selection: 'rgba(35, 131, 226, 0.28)',
+  selectionStrong: '#529cca',
+  hover: 'rgba(255, 255, 255, 0.055)',
+  separator: 'rgba(255, 255, 255, 0.06)',
+  formatBar: 'rgba(37, 37, 37, 0.96)',
+  destructive: '#ff7369',
+}
+
+/** Grove — organic botanical chrome (opt-in skin) */
+export const GROVE_LIGHT: ThemeColors = {
   background: '#e7efe4',
   foreground: '#1c2b22',
   mutedForeground: '#5c7264',
@@ -18,7 +51,7 @@ const light: ThemeColors = {
   destructive: '#b42318',
 }
 
-const dark: ThemeColors = {
+export const GROVE_DARK: ThemeColors = {
   background: '#121a16',
   foreground: '#e4efe6',
   mutedForeground: '#8fa898',
@@ -34,24 +67,22 @@ const dark: ThemeColors = {
   destructive: '#f97066',
 }
 
-/** @deprecated Alias kept for older press-skin call sites — same as Grove light/dark. */
-export const PRESS_LIGHT: ThemeColors = light
-export const PRESS_DARK: ThemeColors = dark
-export const GROVE_LIGHT: ThemeColors = light
-export const GROVE_DARK: ThemeColors = dark
+/** @deprecated Alias kept for older press-skin call sites. */
+export const PRESS_LIGHT: ThemeColors = GROVE_LIGHT
+export const PRESS_DARK: ThemeColors = GROVE_DARK
 
 export const THEME_PRESETS: ThemePreset[] = [
   {
     id: 'light',
     name: 'Svetlá',
-    description: 'Grove — mäkký sage papier',
+    description: 'Page — čistý workspace papier',
     colorScheme: 'light',
     colors: light,
   },
   {
     id: 'dark',
     name: 'Tmavá',
-    description: 'Grove — hlboká hlina',
+    description: 'Page — grafitový workspace',
     colorScheme: 'dark',
     colors: dark,
   },

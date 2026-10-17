@@ -30,9 +30,9 @@ export function SelectTrigger({
   return (
     <SelectPrimitive.Trigger
       className={cn(
-        'titlebar-no-drag flex w-full min-w-0 items-center justify-between gap-2 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] text-left text-[var(--color-foreground)] outline-none transition-[border-color,box-shadow]',
+        'titlebar-no-drag flex w-full min-w-0 items-center justify-between gap-2 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-background)] text-left text-[var(--color-foreground)] outline-none transition-[border-color,box-shadow,background]',
         'placeholder:text-[var(--color-muted-foreground)]',
-        'focus:border-[var(--color-accent)] focus:shadow-[0_0_0_3px_var(--color-selection)]',
+        'focus:border-[color-mix(in_srgb,var(--color-accent)_45%,var(--color-border))] focus:shadow-[0_0_0_2px_var(--color-selection)]',
         'disabled:cursor-not-allowed disabled:opacity-50',
         '[&>span]:min-w-0 [&>span]:flex-1 [&>span]:truncate',
         size === 'sm' ? 'h-8 px-2.5 text-[12.5px]' : 'h-9 px-3 text-[12px]',

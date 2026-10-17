@@ -17,7 +17,7 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      'titlebar-no-drag fixed inset-0 z-50 bg-[color-mix(in_srgb,#0e1511_48%,transparent)] backdrop-blur-[3px]',
+      'titlebar-no-drag fixed inset-0 z-50 bg-[color-mix(in_srgb,#000_40%,transparent)] backdrop-blur-[2px]',
       className,
     )}
     {...props}
@@ -37,9 +37,9 @@ const DialogContent = React.forwardRef<
         ref={ref}
         className={cn(
           'titlebar-no-drag fixed left-1/2 top-1/2 z-[51] w-full max-w-md -translate-x-1/2 -translate-y-1/2',
-          'rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-5',
-          'shadow-[0_24px_60px_rgba(28,43,34,0.22)]',
-          'animate-in fade-in-0 zoom-in-95 duration-200',
+          'rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-background)] p-5',
+          'shadow-[0_12px_40px_rgba(15,15,15,0.18)]',
+          'animate-in fade-in-0 zoom-in-95 duration-150',
           'focus:outline-none',
           className,
         )}
@@ -49,7 +49,7 @@ const DialogContent = React.forwardRef<
         {showClose && (
           <IconTooltip label={t('common.close')}>
             <DialogPrimitive.Close
-              className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-muted-foreground)] transition-colors hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
+              className="absolute right-3 top-3 inline-flex h-7 w-7 items-center justify-center rounded-[var(--radius-md)] text-[var(--color-muted-foreground)] transition-colors hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
               aria-label={t('common.close')}
             >
               <X className="h-4 w-4" />
@@ -78,7 +78,10 @@ function DialogTitle({
 }: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>) {
   return (
     <DialogPrimitive.Title
-      className={cn('text-[16px] font-semibold tracking-[-0.02em] text-[var(--color-foreground)] [font-family:var(--font-display)]', className)}
+      className={cn(
+        'm-0 text-[16px] font-semibold tracking-[-0.015em] text-[var(--color-foreground)]',
+        className,
+      )}
       {...props}
     />
   )
@@ -90,7 +93,7 @@ function DialogDescription({
 }: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>) {
   return (
     <DialogPrimitive.Description
-      className={cn('text-[13px] leading-relaxed text-[var(--color-muted-foreground)]', className)}
+      className={cn('m-0 text-[13px] leading-relaxed text-[var(--color-muted-foreground)]', className)}
       {...props}
     />
   )
@@ -98,13 +101,13 @@ function DialogDescription({
 
 export {
   Dialog,
-  DialogPortal,
-  DialogOverlay,
   DialogClose,
-  DialogTrigger,
   DialogContent,
-  DialogHeader,
-  DialogFooter,
-  DialogTitle,
   DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+  DialogTrigger,
 }

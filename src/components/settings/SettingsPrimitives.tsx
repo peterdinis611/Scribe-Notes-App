@@ -23,7 +23,7 @@ export function SettingsSectionHeader({
   return (
     <div className="mb-3 flex items-start justify-between gap-3">
       <div>
-        <h3 className="m-0 font-[family-name:var(--font-display)] text-[15px] font-bold tracking-[-0.02em] text-[var(--color-foreground)]">
+        <h3 className="m-0 text-[15px] font-semibold tracking-[-0.015em] text-[var(--color-foreground)]">
           {title}
         </h3>
         {description && (
@@ -47,7 +47,7 @@ export function SettingsGroup({
   return (
     <div
       className={cn(
-        'settings-group overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)]',
+        'settings-group overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-background)]',
         className,
       )}
     >

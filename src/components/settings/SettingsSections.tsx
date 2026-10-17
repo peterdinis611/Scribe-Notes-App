@@ -286,41 +286,33 @@ export function AppearanceSection() {
           title={t('settings.appearance.skinTitle')}
           description={t('settings.appearance.skinDescription')}
         />
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={() => dispatch(setUiSkin('grove'))}
-            className={cn(
-              'rounded-[var(--radius-lg)] border px-4 py-3 text-left transition-all duration-200',
-              uiSkin === 'grove'
-                ? 'border-[var(--color-accent)] bg-[var(--color-selection)] shadow-[0_8px_24px_color-mix(in_srgb,var(--color-accent)_16%,transparent)]'
-                : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-hover)]',
-            )}
-          >
-            <p className="m-0 text-[13px] font-semibold text-[var(--color-foreground)] [font-family:var(--font-display)]">
-              {t('settings.appearance.skinGrove')}
-            </p>
-            <p className="mt-1 text-[11px] leading-snug text-[var(--color-muted-foreground)]">
-              {t('settings.appearance.skinGroveDesc')}
-            </p>
-          </button>
-          <button
-            type="button"
-            onClick={() => dispatch(setUiSkin('classic'))}
-            className={cn(
-              'rounded-[var(--radius-lg)] border px-4 py-3 text-left transition-all duration-200',
-              uiSkin === 'classic'
-                ? 'border-[var(--color-accent)] bg-[var(--color-selection)]'
-                : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-hover)]',
-            )}
-          >
-            <p className="m-0 text-[13px] font-semibold text-[var(--color-foreground)] [font-family:var(--font-display)]">
-              {t('settings.appearance.skinClassic')}
-            </p>
-            <p className="mt-1 text-[11px] leading-snug text-[var(--color-muted-foreground)]">
-              {t('settings.appearance.skinClassicDesc')}
-            </p>
-          </button>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          {(
+            [
+              ['page', 'settings.appearance.skinPage', 'settings.appearance.skinPageDesc'],
+              ['grove', 'settings.appearance.skinGrove', 'settings.appearance.skinGroveDesc'],
+              ['classic', 'settings.appearance.skinClassic', 'settings.appearance.skinClassicDesc'],
+            ] as const
+          ).map(([id, titleKey, descKey]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => dispatch(setUiSkin(id))}
+              className={cn(
+                'rounded-[var(--radius-lg)] border px-4 py-3 text-left transition-[background,border-color,box-shadow] duration-150',
+                uiSkin === id
+                  ? 'border-[var(--color-accent)] bg-[var(--color-selection)]'
+                  : 'border-[var(--color-border)] bg-[var(--color-background)] hover:bg-[var(--color-hover)]',
+              )}
+            >
+              <p className="m-0 text-[13px] font-semibold tracking-[-0.01em] text-[var(--color-foreground)]">
+                {t(titleKey)}
+              </p>
+              <p className="mt-1 text-[11px] leading-snug text-[var(--color-muted-foreground)]">
+                {t(descKey)}
+              </p>
+            </button>
+          ))}
         </div>
       </SettingsSection>
 

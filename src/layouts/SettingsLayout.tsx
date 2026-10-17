@@ -26,10 +26,10 @@ export function SettingsLayout() {
           >
             <Icon className="mt-0.5 h-4 w-4 shrink-0 opacity-70" />
             <span className="min-w-0">
-              <span className="block font-[family-name:var(--font-display)] text-[13px] font-bold tracking-[-0.02em] text-[var(--color-foreground)]">
+              <span className="block text-[13px] font-semibold tracking-[-0.01em] text-[var(--color-foreground)]">
                 {label}
               </span>
-              <span className="mt-0.5 block font-mono text-[10px] uppercase tracking-[0.06em] text-[var(--color-muted-foreground)]">
+              <span className="mt-0.5 block text-[11px] leading-snug text-[var(--color-muted-foreground)]">
                 {description}
               </span>
             </span>

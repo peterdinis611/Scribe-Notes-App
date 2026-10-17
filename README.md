@@ -1,10 +1,10 @@
-# Scribe 3.9
+# Scribe 4.0
 
 <p align="center">
   <img src="docs/screenshots/icon.png" alt="Scribe icon" width="96" height="96" />
 </p>
 
-Write documents. Link notes. **Scribe 3.9** is a local macOS rich-text editor with a library, templates, and multi-format export.
+Write documents. Link notes. **Scribe 4.0** is a local macOS rich-text editor with a library, templates, and multi-format export.
 
 Scribe runs locally on your Mac. No accounts, no cloud — documents, the database, and settings belong to the macOS user account running the app.
 
@@ -437,7 +437,7 @@ The SQLite schema is versioned in `src-tauri/src/db/migrations.rs` (and shared h
 
 ## Version
 
-Current version: **3.9.0**
+Current version: **4.0.0**
 
 ## Privacy
 

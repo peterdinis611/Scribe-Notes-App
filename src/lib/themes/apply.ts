@@ -3,6 +3,8 @@ import {
   CYCLE_THEME_ORDER,
   getDefaultCustomTheme,
   getPresetById,
+  GROVE_DARK,
+  GROVE_LIGHT,
 } from '@/lib/themes/presets'
 import type { ThemeColors, ThemePresetId, ThemeSettings } from '@/lib/themes/types'
 import { isTauriRuntime } from '@/lib/tauri'
@@ -113,25 +115,31 @@ function colorsForSkin(
   _colorScheme: 'light' | 'dark',
   skin: UiSkin,
 ): ThemeColors {
-  // Grove is the default palette baked into light/dark presets.
-  // Classic keeps named presets as-authored; for light/dark use a flatter paper variant.
-  if (skin === 'classic' && (resolvedId === 'light' || resolvedId === 'dark')) {
+  // Page = stock light/dark presets. Grove / Classic remint botanical variants.
+  if (resolvedId !== 'light' && resolvedId !== 'dark') return colors
+
+  if (skin === 'grove') {
+    return resolvedId === 'dark' ? { ...GROVE_DARK } : { ...GROVE_LIGHT }
+  }
+
+  if (skin === 'classic') {
     if (resolvedId === 'dark') {
       return {
-        ...colors,
+        ...GROVE_DARK,
         background: '#151c18',
         sidebarSolid: '#1a221d',
         toolbar: 'rgba(21, 28, 24, 0.96)',
       }
     }
     return {
-      ...colors,
+      ...GROVE_LIGHT,
       background: '#eef4eb',
       sidebar: 'rgba(232, 240, 228, 0.92)',
       sidebarSolid: '#e4eee0',
       toolbar: 'rgba(238, 244, 235, 0.96)',
     }
   }
+
   return colors
 }
 

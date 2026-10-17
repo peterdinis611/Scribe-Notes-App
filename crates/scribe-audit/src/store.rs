@@ -6,9 +6,12 @@ use crate::admin::{
 };
 use crate::db::AuditDb;
 use crate::types::{
-    normalize_action, normalize_category, normalize_outcome, normalize_source, AuditCountBucket,
-    AuditEvent, AuditEventInput, AuditListQuery, AuditStats,
+    escape_like_pattern, normalize_action, normalize_category, normalize_optional_id,
+    normalize_outcome, normalize_search_q, normalize_source, AuditCategory, AuditCountBucket,
+    AuditEvent, AuditEventInput, AuditListQuery, AuditOutcome, AuditSource, AuditStats,
 };
+
+const STATS_TOP_N: usize = 20;
 
 pub const EVENTS_KEEP_DEFAULT: usize = 5_000;
 pub const EVENTS_KEEP_MIN: usize = 100;
@@ -73,13 +76,13 @@ impl AuditStore {
         if summary.is_empty() {
             return Err("summary is required".into());
         }
-        let source = normalize_source(&input.source);
-        let category = normalize_category(&input.category);
+        let source = AuditSource::parse(&input.source);
+        let category = AuditCategory::parse(&input.category);
         let action = normalize_action(&input.action);
         if action.is_empty() {
             return Err("action is required".into());
         }
-        let outcome = normalize_outcome(input.outcome.as_deref().unwrap_or("ok"));
+        let outcome = AuditOutcome::parse(input.outcome.as_deref().unwrap_or("ok"));
         let actor = input
             .actor
             .as_deref()
@@ -103,17 +106,14 @@ impl AuditStore {
             category,
             action,
             actor,
-            resource_type: input
-                .resource_type
-                .map(|value| value.trim().chars().take(64).collect())
-                .filter(|value: &String| !value.is_empty()),
-            resource_id: input
-                .resource_id
-                .map(|value| value.trim().chars().take(128).collect())
-                .filter(|value: &String| !value.is_empty()),
+            resource_type: normalize_optional_id(input.resource_type, 64),
+            resource_id: normalize_optional_id(input.resource_id, 128),
             summary: summary.chars().take(400).collect(),
             detail_json,
             outcome,
+            correlation_id: normalize_optional_id(input.correlation_id, 128),
+            session_id: normalize_optional_id(input.session_id, 128),
+            app_version: normalize_optional_id(input.app_version, 64),
         };
 
         self.db
@@ -121,20 +121,23 @@ impl AuditStore {
             .execute(
                 "INSERT INTO audit_events \
                  (id, created_at, source, category, action, actor, resource_type, resource_id, \
-                  summary, detail_json, outcome) \
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+                  summary, detail_json, outcome, correlation_id, session_id, app_version) \
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
                 params![
                     event.id,
                     event.created_at,
-                    event.source,
-                    event.category,
+                    event.source.as_str(),
+                    event.category.as_str(),
                     event.action,
                     event.actor,
                     event.resource_type,
                     event.resource_id,
                     event.summary,
                     event.detail_json,
-                    event.outcome,
+                    event.outcome.as_str(),
+                    event.correlation_id,
+                    event.session_id,
+                    event.app_version,
                 ],
             )
             .map_err(|e| e.to_string())?;
@@ -176,7 +179,8 @@ impl AuditStore {
         let limit = query.limit.unwrap_or(100).clamp(1, 500) as i64;
         let mut sql = String::from(
             "SELECT id, created_at, source, category, action, actor, resource_type, resource_id, \
-             summary, detail_json, outcome FROM audit_events WHERE 1=1",
+             summary, detail_json, outcome, correlation_id, session_id, app_version \
+             FROM audit_events WHERE 1=1",
         );
         let mut binds: Vec<Box<dyn ToSql>> = Vec::new();
 
@@ -216,6 +220,48 @@ impl AuditStore {
             sql.push_str(" AND action = ?");
             binds.push(Box::new(normalize_action(action)));
         }
+        if let Some(actor) = query
+            .actor
+            .as_deref()
+            .map(str::trim)
+            .filter(|v| !v.is_empty())
+        {
+            sql.push_str(" AND actor = ?");
+            binds.push(Box::new(actor.chars().take(80).collect::<String>()));
+        }
+        if let Some(resource_type) = query
+            .resource_type
+            .as_deref()
+            .map(str::trim)
+            .filter(|v| !v.is_empty())
+        {
+            sql.push_str(" AND resource_type = ?");
+            binds.push(Box::new(resource_type.chars().take(64).collect::<String>()));
+        }
+        if let Some(resource_id) = query
+            .resource_id
+            .as_deref()
+            .map(str::trim)
+            .filter(|v| !v.is_empty())
+        {
+            sql.push_str(" AND resource_id = ?");
+            binds.push(Box::new(resource_id.chars().take(128).collect::<String>()));
+        }
+        if let Some(correlation_id) = query
+            .correlation_id
+            .as_deref()
+            .map(str::trim)
+            .filter(|v| !v.is_empty())
+        {
+            sql.push_str(" AND correlation_id = ?");
+            binds.push(Box::new(
+                correlation_id.chars().take(128).collect::<String>(),
+            ));
+        }
+        if let Some(q) = query.q.as_deref().map(normalize_search_q).filter(|v| !v.is_empty()) {
+            sql.push_str(" AND summary LIKE ? ESCAPE '\\'");
+            binds.push(Box::new(format!("%{}%", escape_like_pattern(&q))));
+        }
         if let Some(since) = query.since {
             sql.push_str(" AND created_at >= ?");
             binds.push(Box::new(since));
@@ -246,7 +292,8 @@ impl AuditStore {
             .conn
             .prepare(
                 "SELECT id, created_at, source, category, action, actor, resource_type, resource_id, \
-                 summary, detail_json, outcome FROM audit_events WHERE id = ?1",
+                 summary, detail_json, outcome, correlation_id, session_id, app_version \
+                 FROM audit_events WHERE id = ?1",
             )
             .map_err(|e| e.to_string())?;
         let mut rows = stmt
@@ -281,20 +328,30 @@ impl AuditStore {
             keep_limit,
             oldest_at,
             newest_at,
-            by_category: self.count_group("category")?,
-            by_source: self.count_group("source")?,
-            by_outcome: self.count_group("outcome")?,
+            by_category: self.count_group("category", None)?,
+            by_source: self.count_group("source", None)?,
+            by_outcome: self.count_group("outcome", None)?,
+            by_action: self.count_group("action", Some(STATS_TOP_N))?,
+            by_actor: self.count_group("actor", Some(STATS_TOP_N))?,
         })
     }
 
-    fn count_group(&self, column: &str) -> Result<Vec<AuditCountBucket>, String> {
+    fn count_group(
+        &self,
+        column: &str,
+        top_n: Option<usize>,
+    ) -> Result<Vec<AuditCountBucket>, String> {
         // column is internal-only allowlist
-        if !matches!(column, "category" | "source" | "outcome") {
+        if !matches!(column, "category" | "source" | "outcome" | "action" | "actor") {
             return Err("invalid group column".into());
         }
-        let sql = format!(
-            "SELECT {column}, COUNT(*) FROM audit_events GROUP BY {column} ORDER BY COUNT(*) DESC, {column} ASC"
+        let mut sql = format!(
+            "SELECT {column}, COUNT(*) FROM audit_events GROUP BY {column} \
+             ORDER BY COUNT(*) DESC, {column} ASC"
         );
+        if let Some(n) = top_n {
+            sql.push_str(&format!(" LIMIT {}", n.max(1)));
+        }
         let mut stmt = self.db.conn.prepare(&sql).map_err(|e| e.to_string())?;
         let rows = stmt
             .query_map([], |row| {
@@ -393,18 +450,24 @@ impl AuditStore {
 }
 
 fn map_event_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<AuditEvent> {
+    let source: String = row.get(2)?;
+    let category: String = row.get(3)?;
+    let outcome: String = row.get(10)?;
     Ok(AuditEvent {
         id: row.get(0)?,
         created_at: row.get(1)?,
-        source: row.get(2)?,
-        category: row.get(3)?,
+        source: AuditSource::parse(&source),
+        category: AuditCategory::parse(&category),
         action: row.get(4)?,
         actor: row.get(5)?,
         resource_type: row.get(6)?,
         resource_id: row.get(7)?,
         summary: row.get(8)?,
         detail_json: row.get(9)?,
-        outcome: row.get(10)?,
+        outcome: AuditOutcome::parse(&outcome),
+        correlation_id: row.get(11)?,
+        session_id: row.get(12)?,
+        app_version: row.get(13)?,
     })
 }
 
@@ -557,11 +620,11 @@ mod tests {
                 ..Default::default()
             })
             .unwrap();
-        assert_eq!(event.source, "tauri");
-        assert_eq!(event.category, "mcp_tool");
+        assert_eq!(event.source, AuditSource::Tauri);
+        assert_eq!(event.category, AuditCategory::McpTool);
         assert_eq!(event.action, "ping");
         assert_eq!(event.actor, "local");
-        assert_eq!(event.outcome, "error");
+        assert_eq!(event.outcome, AuditOutcome::Error);
     }
 
     #[test]
@@ -765,8 +828,8 @@ mod tests {
             .unwrap();
         assert_eq!(jsonl.lines().count(), 1);
         let event: AuditEvent = serde_json::from_str(jsonl.lines().next().unwrap()).unwrap();
-        assert_eq!(event.outcome, "error");
-        assert_eq!(event.source, "mcp");
+        assert_eq!(event.outcome, AuditOutcome::Error);
+        assert_eq!(event.source, AuditSource::Mcp);
     }
 
     #[test]
@@ -774,19 +837,19 @@ mod tests {
         let store = AuditStore::from_memory().unwrap();
         assert_eq!(
             log_ok(&store, "tauri", "agent", "run", "ok").unwrap().outcome,
-            "ok"
+            AuditOutcome::Ok
         );
         assert_eq!(
             log_denied(&store, "tauri", "security", "vault", "nope")
                 .unwrap()
                 .outcome,
-            "denied"
+            AuditOutcome::Denied
         );
         assert_eq!(
             log_error(&store, "mcp", "mcp_tool", "fail", "boom")
                 .unwrap()
                 .outcome,
-            "error"
+            AuditOutcome::Error
         );
         assert_eq!(store.count().unwrap(), 3);
     }
@@ -817,6 +880,9 @@ mod tests {
                 resource_type: Some("t".repeat(100)),
                 resource_id: Some("i".repeat(200)),
                 summary: "s".repeat(500),
+                correlation_id: Some("c".repeat(200)),
+                session_id: Some("s".repeat(200)),
+                app_version: Some("v".repeat(100)),
                 ..Default::default()
             })
             .unwrap();
@@ -825,5 +891,118 @@ mod tests {
         assert_eq!(event.resource_type.as_ref().unwrap().len(), 64);
         assert_eq!(event.resource_id.as_ref().unwrap().len(), 128);
         assert_eq!(event.summary.len(), 400);
+        assert_eq!(event.correlation_id.as_ref().unwrap().len(), 128);
+        assert_eq!(event.session_id.as_ref().unwrap().len(), 128);
+        assert_eq!(event.app_version.as_ref().unwrap().len(), 64);
+    }
+
+    #[test]
+    fn list_query_filters_actor_resource_q_and_correlation() {
+        let store = AuditStore::from_memory().unwrap();
+        store
+            .append(AuditEventInput {
+                source: "tauri".into(),
+                category: "agent".into(),
+                action: "run".into(),
+                actor: Some("alice".into()),
+                resource_type: Some("doc".into()),
+                resource_id: Some("d-1".into()),
+                summary: "Vault unlock ok".into(),
+                correlation_id: Some("corr-a".into()),
+                ..Default::default()
+            })
+            .unwrap();
+        store
+            .append(AuditEventInput {
+                source: "mcp".into(),
+                category: "mcp_tool".into(),
+                action: "ping".into(),
+                actor: Some("bob".into()),
+                resource_type: Some("tool".into()),
+                resource_id: Some("t-9".into()),
+                summary: "Other event".into(),
+                correlation_id: Some("corr-b".into()),
+                ..Default::default()
+            })
+            .unwrap();
+
+        assert_eq!(
+            store
+                .list_query(AuditListQuery {
+                    actor: Some("alice".into()),
+                    ..Default::default()
+                })
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            store
+                .list_query(AuditListQuery {
+                    resource_type: Some("doc".into()),
+                    resource_id: Some("d-1".into()),
+                    ..Default::default()
+                })
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            store
+                .list_query(AuditListQuery {
+                    q: Some("vault".into()),
+                    ..Default::default()
+                })
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            store
+                .list_query(AuditListQuery {
+                    correlation_id: Some("corr-b".into()),
+                    ..Default::default()
+                })
+                .unwrap()[0]
+                .actor,
+            "bob"
+        );
+        // LIKE metacharacters in q must not act as wildcards.
+        assert_eq!(
+            store
+                .list_query(AuditListQuery {
+                    q: Some("%".into()),
+                    ..Default::default()
+                })
+                .unwrap()
+                .len(),
+            0
+        );
+    }
+
+    #[test]
+    fn stats_include_action_and_actor_buckets() {
+        let store = AuditStore::from_memory().unwrap();
+        store
+            .append(sample("tauri", "agent", "run", "a", None))
+            .unwrap();
+        store
+            .append(AuditEventInput {
+                source: "tauri".into(),
+                category: "agent".into(),
+                action: "run".into(),
+                actor: Some("mcp".into()),
+                summary: "b".into(),
+                ..Default::default()
+            })
+            .unwrap();
+        store
+            .append(sample("mcp", "wiki", "resolve", "c", None))
+            .unwrap();
+
+        let stats = store.stats().unwrap();
+        assert!(stats.by_action.iter().any(|b| b.key == "run" && b.count == 2));
+        assert!(stats.by_actor.iter().any(|b| b.key == "local" && b.count >= 1));
+        assert!(stats.by_actor.iter().any(|b| b.key == "mcp" && b.count == 1));
     }
 }
