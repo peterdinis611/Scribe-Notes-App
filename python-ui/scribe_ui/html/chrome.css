@@ -1,17 +1,18 @@
 :root {
-  --color-background: #f4f1ea;
-  --color-foreground: #1a1714;
-  --color-muted-foreground: #5c574f;
-  --color-border: rgba(26, 23, 20, 0.12);
-  --color-separator: rgba(26, 23, 20, 0.08);
-  --color-surface: #faf8f4;
-  --color-surface-elevated: #fffcf7;
-  --color-accent: #3d6b4f;
-  --color-hover: rgba(26, 23, 20, 0.05);
-  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-  --font-body: "Source Serif 4", "Iowan Old Style", Georgia, serif;
-  --radius-md: 8px;
-  --radius-lg: 14px;
+  /* Page / Notion chrome — keep in sync with crates/scribe-ui/assets/chrome.css */
+  --color-background: #ffffff;
+  --color-foreground: #37352f;
+  --color-muted-foreground: #787774;
+  --color-border: rgba(55, 53, 47, 0.16);
+  --color-separator: rgba(55, 53, 47, 0.09);
+  --color-surface: #ffffff;
+  --color-surface-elevated: #ffffff;
+  --color-accent: #2383e2;
+  --color-hover: rgba(55, 53, 47, 0.06);
+  --font-display: "Literata", "Iowan Old Style", "Palatino Linotype", serif;
+  --font-body: "Outfit", "Avenir Next", "Segoe UI", sans-serif;
+  --radius-md: 6px;
+  --radius-lg: 8px;
 }
 
 * { box-sizing: border-box; }
@@ -19,6 +20,9 @@ html, body {
   margin: 0;
   min-height: 100%;
   font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  letter-spacing: -0.011em;
   background: var(--color-background);
   color: var(--color-foreground);
 }
@@ -177,9 +181,9 @@ button { font: inherit; cursor: pointer; }
   border: 0;
   border-radius: var(--radius-md);
   background: var(--color-accent);
-  color: #f7faf7;
+  color: #fff;
   padding: 10px 16px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .sui-panel {
@@ -188,16 +192,56 @@ button { font: inherit; cursor: pointer; }
   padding: 28px 22px 40px;
 }
 .sui-panel h1, .sui-panel h3 {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
+  font-weight: 650;
   letter-spacing: -0.03em;
 }
 .sui-panel .lead {
   color: var(--color-muted-foreground);
   line-height: 1.5;
 }
-.sui-articles { list-style: none; padding: 0; margin: 24px 0; display: flex; flex-direction: column; gap: 18px; }
-.sui-articles li { display: grid; grid-template-columns: 32px 1fr; gap: 12px; }
-.sui-articles li > span { color: var(--color-accent); font-weight: 700; font-size: 12px; }
+.sui-articles { list-style: none; padding: 0; margin: 20px 0; display: flex; flex-direction: column; gap: 0; }
+.sui-articles li {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--color-separator);
+}
+.sui-articles li > span {
+  color: var(--color-muted-foreground);
+  font-weight: 500;
+  font-size: 12px;
+  padding-top: 2px;
+}
+.sui-articles h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.privacy-notice header {
+  margin-bottom: 8px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--color-separator);
+}
+.privacy-notice .setup-folio-kicker {
+  margin: 0 0 6px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--color-muted-foreground);
+}
+.privacy-notice .setup-folio-title {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 28px;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
 .sui-card {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -226,8 +270,9 @@ button { font: inherit; cursor: pointer; }
 }
 .sui-actions button.primary {
   background: var(--color-accent);
-  color: #f7faf7;
+  color: #fff;
   border-color: transparent;
+  font-weight: 600;
 }
 .sui-recent { list-style: none; padding: 0; margin: 18px 0 0; }
 .sui-recent button {

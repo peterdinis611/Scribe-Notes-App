@@ -1205,6 +1205,13 @@ html:not([data-ui-skin]) .toolbar-cluster {
     0 -1px 0 color-mix(in srgb, var(--color-background) 100%, transparent);
 }
 
+html[data-ui-skin='page'] .document-tab.is-active,
+html:not([data-ui-skin]) .document-tab.is-active {
+  box-shadow: none;
+  background: var(--color-hover);
+  border-color: transparent;
+}
+
 .document-tab.is-pinned {
   min-width: 96px;
 }
@@ -10654,6 +10661,11 @@ body.is-block-dragging .tiptap {
   color: var(--color-foreground);
 }
 
+html[data-ui-skin='page'] .docs-page,
+html:not([data-ui-skin]) .docs-page {
+  background: var(--color-background);
+}
+
 .docs-layout {
   display: grid;
   gap: 1.25rem;
@@ -10695,6 +10707,51 @@ body.is-block-dragging .tiptap {
     0 1px 0 color-mix(in srgb, var(--color-background) 50%, transparent) inset,
     0 18px 40px color-mix(in srgb, var(--color-foreground) 7%, transparent);
   animation: docs-shell-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+html[data-ui-skin='page'] .docs-shell,
+html:not([data-ui-skin]) .docs-shell {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  animation: none;
+  padding: 24px 8px 48px;
+}
+
+html[data-ui-skin='page'] .docs-shell-hero-mark,
+html:not([data-ui-skin]) .docs-shell-hero-mark {
+  display: none;
+}
+
+html[data-ui-skin='page'] .docs-shell-kicker,
+html:not([data-ui-skin]) .docs-shell-kicker {
+  letter-spacing: 0.02em;
+  text-transform: none;
+  font-weight: 500;
+  color: var(--color-muted-foreground);
+}
+
+html[data-ui-skin='page'] .docs-shell-title,
+html:not([data-ui-skin]) .docs-shell-title {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+html[data-ui-skin='page'] .docs-toc-item.is-active,
+html:not([data-ui-skin]) .docs-toc-item.is-active {
+  background: var(--color-hover);
+  border-color: transparent;
+  color: var(--color-foreground);
+  box-shadow: none;
+}
+
+html[data-ui-skin='page'] .docs-toc-heading,
+html:not([data-ui-skin]) .docs-toc-heading {
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--color-muted-foreground);
 }
 
 @keyframes docs-shell-in {
@@ -12940,6 +12997,19 @@ html:not([data-ui-skin]) .folder-tree-row {
   box-shadow: inset 2px 0 0 0 var(--color-accent);
 }
 
+html[data-ui-skin='page'] .folder-tree-row--doc.is-active,
+html:not([data-ui-skin]) .folder-tree-row--doc.is-active {
+  background: var(--color-hover);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+html[data-ui-skin='page'] .folder-tree-row--doc.is-selected,
+html:not([data-ui-skin]) .folder-tree-row--doc.is-selected {
+  background: var(--color-hover);
+  border-color: transparent;
+}
+
 .folder-tree-row--doc.is-selected {
   border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
   background: color-mix(in srgb, var(--color-accent) 8%, var(--color-hover));
@@ -13222,17 +13292,17 @@ html:not([data-ui-skin]) .folder-tree-row {
   align-items: center;
   gap: 4px;
   border: 1px solid var(--color-border);
-  border-radius: 999px;
+  border-radius: var(--radius-md);
   background: transparent;
   padding: 2px 8px;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--color-muted-foreground);
 }
 
 .command-palette-filter-chip.is-active {
-  border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
-  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
-  color: var(--color-accent);
+  border-color: transparent;
+  background: var(--color-hover);
+  color: var(--color-foreground);
 }
 
 /* —— Canvas / whiteboard document —— */
@@ -15668,66 +15738,47 @@ html:not([data-ui-skin]) .folder-tree-row {
   padding-bottom: 2rem;
 }
 
-.privacy-notice::before {
-  content: "";
-  position: absolute;
-  inset: -8px -18px auto;
-  height: 7.5rem;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse at 8% 0%, color-mix(in srgb, var(--color-accent) 16%, transparent), transparent 52%),
-    repeating-linear-gradient(
-      -12deg,
-      transparent,
-      transparent 11px,
-      color-mix(in srgb, var(--color-border) 35%, transparent) 11px,
-      color-mix(in srgb, var(--color-border) 35%, transparent) 12px
-    );
-  mask-image: linear-gradient(to bottom, black 30%, transparent);
-  opacity: 0.55;
-}
-
 .privacy-notice-masthead {
   position: relative;
   margin-bottom: 1.25rem;
-  padding: 0.25rem 0 1.5rem;
-  border-bottom: 1px solid var(--color-border);
+  padding: 0.25rem 0 1.35rem;
+  border-bottom: 1px solid var(--color-separator, var(--color-border));
 }
 
 .privacy-notice-kicker {
-  margin: 0 0 0.65rem;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--color-accent);
+  margin: 0 0 0.45rem;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--color-muted-foreground);
 }
 
 .privacy-notice-title {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: clamp(1.7rem, 3vw, 2.15rem);
-  font-weight: 750;
-  letter-spacing: -0.035em;
-  line-height: 1.1;
+  font-family: var(--font-sans);
+  font-size: clamp(1.5rem, 2.6vw, 1.85rem);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
   color: var(--color-foreground);
 }
 
 .privacy-notice-effective {
-  margin: 0.7rem 0 0;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.02em;
+  margin: 0.55rem 0 0;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  letter-spacing: -0.01em;
   color: var(--color-muted-foreground);
 }
 
 .privacy-notice-lead {
-  margin: 1rem 0 0;
+  margin: 0.85rem 0 0;
   max-width: 36rem;
-  font-size: 14.5px;
+  font-size: 14px;
   line-height: 1.55;
-  color: var(--color-foreground);
+  color: var(--color-muted-foreground);
 }
 
 .privacy-notice-articles {
@@ -15738,32 +15789,32 @@ html:not([data-ui-skin]) .folder-tree-row {
 
 .privacy-notice-articles li {
   display: grid;
-  grid-template-columns: 2.4rem minmax(0, 1fr);
-  gap: 0.85rem 1.1rem;
-  padding: 1.15rem 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
+  grid-template-columns: 2rem minmax(0, 1fr);
+  gap: 0.75rem 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--color-separator, var(--color-border));
 }
 
 .privacy-notice-articles li > span {
-  padding-top: 0.2rem;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  color: var(--color-accent);
+  padding-top: 0.15rem;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--color-muted-foreground);
 }
 
 .privacy-notice-articles h4 {
-  margin: 0 0 0.4rem;
-  font-family: var(--font-display);
+  margin: 0 0 0.35rem;
+  font-family: var(--font-sans);
   font-size: 15px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-weight: 600;
+  letter-spacing: -0.015em;
   color: var(--color-foreground);
 }
 
 .privacy-notice-articles p {
-  margin: 0 0 0.55rem;
+  margin: 0 0 0.5rem;
   font-size: 13px;
   line-height: 1.6;
   color: var(--color-muted-foreground);
@@ -15774,11 +15825,11 @@ html:not([data-ui-skin]) .folder-tree-row {
 }
 
 .privacy-notice-colophon {
-  margin-top: 1.35rem;
+  margin-top: 1.25rem;
   padding-top: 0.85rem;
-  border-top: 1px dashed var(--color-border);
-  font-family: var(--font-mono);
-  font-size: 11px;
+  border-top: 1px solid var(--color-separator, var(--color-border));
+  font-family: var(--font-sans);
+  font-size: 12px;
   line-height: 1.55;
   color: var(--color-muted-foreground);
 }
@@ -15789,12 +15840,12 @@ html:not([data-ui-skin]) .folder-tree-row {
   justify-content: space-between;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: var(--color-surface);
-  padding: 0.85rem 1rem;
-  font-family: var(--font-display);
+  background: var(--color-background);
+  padding: 0.75rem 0.9rem;
+  font-family: var(--font-sans);
   font-size: 13px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-weight: 500;
+  letter-spacing: -0.01em;
   color: var(--color-foreground);
   cursor: pointer;
   text-align: left;
@@ -15802,14 +15853,13 @@ html:not([data-ui-skin]) .folder-tree-row {
 
 .privacy-notice-about-link::after {
   content: "→";
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--color-accent);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--color-muted-foreground);
 }
 
 .privacy-notice-about-link:hover {
   background: var(--color-hover);
-  border-color: color-mix(in srgb, var(--color-accent) 35%, var(--color-border));
 }
 
 .library-report__markdown {

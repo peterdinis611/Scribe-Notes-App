@@ -16,6 +16,7 @@ import { LibrariesSettingsList } from '@/components/settings/LibrariesSettingsLi
 import { LocaleKeysReference } from '@/components/settings/LocaleKeysReference'
 import { FontsSettingsSection } from '@/components/settings/FontsSettingsSection'
 import { McpSection } from '@/components/settings/McpSection'
+import { AboutSection } from '@/components/settings/AboutSection'
 import { PrivacySection } from '@/components/settings/PrivacySection'
 import {
   SettingsGroup,
@@ -37,9 +38,6 @@ import { runFolderReconcile } from '@/lib/disk-sync'
 import { ROUTES } from '@/lib/routes'
 import { THEME_PRESETS } from '@/lib/themes/presets'
 import { generateRandomTheme } from '@/lib/themes/generate-random-theme'
-import { APP_SHORT_VERSION } from '@/lib/app-version'
-import { openScribeUiSurface, subscribeScribeUiEvents } from '@/lib/scribe-ui-host'
-import { isTauriRuntime } from '@/lib/tauri'
 import type { ThemeColors, ThemePresetId } from '@/lib/themes/types'
 import { THEME_COLOR_FIELDS } from '@/lib/themes/types'
 import {
@@ -1020,45 +1018,6 @@ export function ShortcutsSection() {
             </div>
           ))}
         </div>
-      </div>
-    </SettingsSection>
-  )
-}
-
-export function AboutSection() {
-  const { t } = useTranslation()
-  const navigate = useNavigate()
-
-  useEffect(() => {
-    if (!isTauriRuntime()) return
-    void openScribeUiSurface('about')
-    return subscribeScribeUiEvents((payload) => {
-      if (payload.event === 'about-replay-tour') {
-        void import('@/lib/app-tour').then(({ requestAppTour }) => requestAppTour())
-      }
-      if (payload.event === 'about-open-privacy') {
-        void navigate(ROUTES.settingsSection('privacy'))
-      }
-    })
-  }, [navigate])
-
-  return (
-    <SettingsSection>
-      <div className="mb-6 flex flex-col items-center rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-8 text-center">
-        <h3 className="m-0 inline-flex items-baseline gap-2.5 text-[20px] font-bold tracking-[-0.02em]">
-          {t('welcome.brand')}
-          <span className="scribe-edition">{APP_SHORT_VERSION}</span>
-        </h3>
-        <p className="mt-2 text-[12px] text-[var(--color-muted-foreground)]">
-          {t('settings.about.tagline', { version: APP_SHORT_VERSION })}
-        </p>
-        <button
-          type="button"
-          className="mt-5 inline-flex h-9 items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-background)] px-4 text-[13px] font-medium"
-          onClick={() => void openScribeUiSurface('about')}
-        >
-          {t('settings.about.tagline', { version: APP_SHORT_VERSION })}
-        </button>
       </div>
     </SettingsSection>
   )

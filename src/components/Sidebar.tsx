@@ -212,217 +212,191 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
           <SidebarSearchResults query={query} onNavigate={onClose} />
 
           {!isContentSearch && (
-            <>
-              <div className="px-2 pb-1 pt-0.5" data-tour="library-views">
-                <LibraryViewTabs
-                  value={libraryView}
-                  agentOpen={agentPanelOpen}
-                  storageModeEnabled={storageModeEnabled}
-                  favoriteCount={favoriteCount}
-                  tagCount={tagCount}
-                  recentCount={recentCount}
-                  taskCount={taskCount}
-                  wikiHealthCount={wikiHealthCount}
-                  onChange={(view) => {
-                    if (view === 'agent') {
-                      if (agentPanelOpen) dispatch(setAgentPanelOpen(false))
-                      else dispatch(openAgentPanel({ persona: 'general' }))
-                      return
-                    }
-                    if (view === 'chat') {
-                      dispatch(setLibraryView('chat'))
-                      return
-                    }
-                    if (view === 'graph') {
-                      dispatch(setLibraryGraphAroundActive(false))
-                      dispatch(setLibraryView('graph'))
-                      return
-                    }
-                    if (view === 'storage') {
-                      dispatch(setLibraryView('storage'))
-                      void navigate(ROUTES.storageMode())
-                      onClose?.()
-                      return
-                    }
-                    if (libraryView === 'storage' && pathname === '/storage') {
-                      void navigate(ROUTES.home())
-                    }
-                    dispatch(setLibraryView(view))
-                  }}
+            <ScrollArea className="min-h-0 flex-1" viewportRef={scrollRef}>
+              <div className="flex min-h-0 flex-col pb-3">
+                <div className="px-2 pb-1 pt-0.5" data-tour="library-views">
+                  <LibraryViewTabs
+                    value={libraryView}
+                    agentOpen={agentPanelOpen}
+                    storageModeEnabled={storageModeEnabled}
+                    favoriteCount={favoriteCount}
+                    tagCount={tagCount}
+                    recentCount={recentCount}
+                    taskCount={taskCount}
+                    wikiHealthCount={wikiHealthCount}
+                    onChange={(view) => {
+                      if (view === 'agent') {
+                        if (agentPanelOpen) dispatch(setAgentPanelOpen(false))
+                        else dispatch(openAgentPanel({ persona: 'general' }))
+                        return
+                      }
+                      if (view === 'chat') {
+                        dispatch(setLibraryView('chat'))
+                        return
+                      }
+                      if (view === 'graph') {
+                        dispatch(setLibraryGraphAroundActive(false))
+                        dispatch(setLibraryView('graph'))
+                        return
+                      }
+                      if (view === 'storage') {
+                        dispatch(setLibraryView('storage'))
+                        void navigate(ROUTES.storageMode())
+                        onClose?.()
+                        return
+                      }
+                      if (libraryView === 'storage' && pathname === '/storage') {
+                        void navigate(ROUTES.home())
+                      }
+                      dispatch(setLibraryView(view))
+                    }}
+                  />
+                </div>
+
+                <div
+                  className="mx-3 my-2 h-px bg-[linear-gradient(90deg,var(--color-accent),color-mix(in_srgb,var(--color-border)_80%,transparent)_28%,transparent)]"
+                  aria-hidden="true"
                 />
-              </div>
 
-              <div
-                className="mx-3 my-2 h-px bg-[linear-gradient(90deg,var(--color-accent),color-mix(in_srgb,var(--color-border)_80%,transparent)_28%,transparent)]"
-                aria-hidden="true"
-              />
-
-              {contentView === 'folders' && (
-                <>
-                  <LibraryFilterBanner />
-                  <LibrarySmartFilters />
-                  <LibraryBulkBar />
-                  <div className="library-docs-header">
-                    <h2 className="library-docs-heading">{t('library.allDocuments')}</h2>
-                    <div className="library-docs-actions">
-                      <IconTooltip label={t('library.newFolder')}>
-                        <button
-                          type="button"
-                          className="library-new-folder-btn"
-                          onClick={() => void handleCreateFolder()}
-                          aria-label={t('library.newFolder')}
-                        >
-                          <FolderPlus className="h-3.5 w-3.5" />
-                          <span className="library-new-folder-label">{t('library.newFolder')}</span>
-                        </button>
-                      </IconTooltip>
-                      <IconTooltip label={t('library.newVaultFolder')}>
-                        <button
-                          type="button"
-                          className={libraryActionClass}
-                          onClick={() =>
-                            void promptAndCreateVaultFolder({ t, dispatch }).catch(() => undefined)
-                          }
-                          aria-label={t('library.newVaultFolder')}
-                        >
-                          <Lock className="h-3.5 w-3.5" />
-                        </button>
-                      </IconTooltip>
-                      <IconTooltip label={t('journal.today')}>
-                        <button
-                          type="button"
-                          className={libraryActionClass}
-                          onClick={() => {
-                            void openTodayNote({
-                              documents,
-                              folders,
-                              dispatch,
-                              navigate,
-                              t: (key, options) => t(key, options),
-                            }).catch((error) => {
-                              toast.error(t('journal.openError'), String(error))
-                            })
-                          }}
-                          aria-label={t('journal.today')}
-                        >
-                          <CalendarDays className="h-3.5 w-3.5" />
-                        </button>
-                      </IconTooltip>
-                      <IconTooltip label={t('library.trash')}>
-                        <button
-                          type="button"
-                          className={libraryActionClass}
-                          onClick={() => dispatch(setTrashOpen(true))}
-                          aria-label={t('library.trash')}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </IconTooltip>
+                {contentView === 'folders' && (
+                  <>
+                    <LibraryFilterBanner />
+                    <LibrarySmartFilters />
+                    <LibraryBulkBar />
+                    <div className="library-docs-header">
+                      <h2 className="library-docs-heading">{t('library.allDocuments')}</h2>
+                      <div className="library-docs-actions">
+                        <IconTooltip label={t('library.newFolder')}>
+                          <button
+                            type="button"
+                            className="library-new-folder-btn"
+                            onClick={() => void handleCreateFolder()}
+                            aria-label={t('library.newFolder')}
+                          >
+                            <FolderPlus className="h-3.5 w-3.5" />
+                            <span className="library-new-folder-label">{t('library.newFolder')}</span>
+                          </button>
+                        </IconTooltip>
+                        <IconTooltip label={t('library.newVaultFolder')}>
+                          <button
+                            type="button"
+                            className={libraryActionClass}
+                            onClick={() =>
+                              void promptAndCreateVaultFolder({ t, dispatch }).catch(() => undefined)
+                            }
+                            aria-label={t('library.newVaultFolder')}
+                          >
+                            <Lock className="h-3.5 w-3.5" />
+                          </button>
+                        </IconTooltip>
+                        <IconTooltip label={t('journal.today')}>
+                          <button
+                            type="button"
+                            className={libraryActionClass}
+                            onClick={() => {
+                              void openTodayNote({
+                                documents,
+                                folders,
+                                dispatch,
+                                navigate,
+                                t: (key, options) => t(key, options),
+                              }).catch((error) => {
+                                toast.error(t('journal.openError'), String(error))
+                              })
+                            }}
+                            aria-label={t('journal.today')}
+                          >
+                            <CalendarDays className="h-3.5 w-3.5" />
+                          </button>
+                        </IconTooltip>
+                        <IconTooltip label={t('library.trash')}>
+                          <button
+                            type="button"
+                            className={libraryActionClass}
+                            onClick={() => dispatch(setTrashOpen(true))}
+                            aria-label={t('library.trash')}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </IconTooltip>
+                      </div>
                     </div>
-                  </div>
-                  <ScrollArea className="min-h-0 flex-1" viewportRef={scrollRef}>
                     <div className="folder-tree px-1.5 pb-3" data-tour="library-tree">
                       <SmartFoldersSection onNavigate={onClose} />
                       <FolderTree query={query} scrollRef={scrollRef} onNavigate={onClose} />
                     </div>
-                  </ScrollArea>
-                </>
-              )}
+                  </>
+                )}
 
-              {contentView === 'recent' && (
-                <ScrollArea className="min-h-0 flex-1">
+                {contentView === 'recent' && (
                   <div className="px-1 pb-3 pt-1">
                     <LibraryRecentView onNavigate={onClose} />
                   </div>
-                </ScrollArea>
-              )}
+                )}
 
-              {contentView === 'favorites' && (
-                <ScrollArea className="min-h-0 flex-1">
+                {contentView === 'favorites' && (
                   <div className="px-1 pb-3 pt-1">
                     <LibraryFavoritesView onNavigate={onClose} />
                   </div>
-                </ScrollArea>
-              )}
+                )}
 
-              {contentView === 'tags' && (
-                <ScrollArea className="min-h-0 flex-1">
+                {contentView === 'tags' && (
                   <div className="px-1 pb-3 pt-1">
                     <LibraryTagsView onNavigate={onClose} />
                   </div>
-                </ScrollArea>
-              )}
+                )}
 
-              {contentView === 'journal' && (
-                <ScrollArea className="min-h-0 flex-1">
-                  <LibraryJournalView onNavigate={onClose} />
-                </ScrollArea>
-              )}
+                {contentView === 'journal' && <LibraryJournalView onNavigate={onClose} />}
 
-              {contentView === 'graph' && (
-                <ScrollArea className="min-h-0 flex-1">
+                {contentView === 'graph' && (
                   <LibraryLinkGraphView
                     initialAroundActive={graphAroundActive}
                     onAroundActiveConsumed={() => dispatch(setLibraryGraphAroundActive(false))}
                   />
-                </ScrollArea>
-              )}
+                )}
 
-              {contentView === 'storage' && (
-                <div className="px-3 py-3 text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
-                  <p className="m-0 text-[13px] font-semibold tracking-[-0.01em] text-[var(--color-foreground)]">
-                    {t('library.tabs.storage')}
-                  </p>
-                  <p className="mt-1.5 m-0">{t('storageMode.sidebarHint')}</p>
-                  <button
-                    type="button"
-                    className="mt-3 inline-flex h-8 items-center rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 text-[12px] font-medium text-[var(--color-foreground)] hover:bg-[var(--color-hover)]"
-                    onClick={() => {
-                      void navigate(ROUTES.storageMode())
-                      onClose?.()
-                    }}
-                  >
-                    {t('storageMode.openBrowser')}
-                  </button>
-                </div>
-              )}
+                {contentView === 'storage' && (
+                  <div className="px-3 py-3 text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
+                    <p className="m-0 text-[13px] font-semibold tracking-[-0.01em] text-[var(--color-foreground)]">
+                      {t('library.tabs.storage')}
+                    </p>
+                    <p className="mt-1.5 m-0">{t('storageMode.sidebarHint')}</p>
+                    <button
+                      type="button"
+                      className="mt-3 inline-flex h-8 items-center rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 text-[12px] font-medium text-[var(--color-foreground)] hover:bg-[var(--color-hover)]"
+                      onClick={() => {
+                        void navigate(ROUTES.storageMode())
+                        onClose?.()
+                      }}
+                    >
+                      {t('storageMode.openBrowser')}
+                    </button>
+                  </div>
+                )}
 
-              {contentView === 'duplicates' && (
-                <ScrollArea className="min-h-0 flex-1">
-                  <LibraryDuplicatesPanel onNavigate={onClose} />
-                </ScrollArea>
-              )}
+                {contentView === 'duplicates' && <LibraryDuplicatesPanel onNavigate={onClose} />}
 
-              {contentView === 'tasks' && (
-                <ScrollArea className="min-h-0 flex-1">
-                  <LibraryTasksPanel onNavigate={onClose} />
-                </ScrollArea>
-              )}
+                {contentView === 'tasks' && <LibraryTasksPanel onNavigate={onClose} />}
 
-              {contentView === 'wikiHealth' && (
-                <ScrollArea className="min-h-0 flex-1">
-                  <LibraryWikiHealthPanel onNavigate={onClose} />
-                </ScrollArea>
-              )}
+                {contentView === 'wikiHealth' && <LibraryWikiHealthPanel onNavigate={onClose} />}
 
-              {contentView === 'chat' && (
-                <ScrollArea className="min-h-0 flex-1">
+                {contentView === 'chat' && (
                   <div className="px-1 pb-3 pt-1">
                     <LibraryChatPanel />
                   </div>
-                </ScrollArea>
-              )}
+                )}
 
-              {pluginPanels.length > 0 && (
-                <div className="mt-auto border-t border-[var(--color-border)] px-1 py-2">
-                  {pluginPanels.map((panel) => (
-                    <div key={panel.entryId} className="mb-1 last:mb-0">
-                      {panel.render()}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
+                {pluginPanels.length > 0 && (
+                  <div className="border-t border-[var(--color-border)] px-1 py-2">
+                    {pluginPanels.map((panel) => (
+                      <div key={panel.entryId} className="mb-1 last:mb-0">
+                        {panel.render()}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
           )}
         </div>
       </div>

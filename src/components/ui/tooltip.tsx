@@ -36,7 +36,7 @@ export function TooltipContent({
       <TooltipPrimitive.Content
         sideOffset={sideOffset}
         className={cn(
-          'titlebar-no-drag z-[90] max-w-[240px] rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-background)] px-2.5 py-1.5 text-[12px] leading-snug text-[var(--color-foreground)] shadow-[0_4px_16px_rgba(0,0,0,0.12)]',
+          'titlebar-no-drag z-[90] max-w-[240px] rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-background)] px-2.5 py-1.5 text-[12px] leading-snug text-[var(--color-foreground)] shadow-[0_4px_14px_rgba(15,15,15,0.1)]',
           className,
         )}
         {...props}

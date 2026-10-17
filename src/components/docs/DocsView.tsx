@@ -44,7 +44,7 @@ function scrollToTopic(id: DocsTopicId) {
   el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
-/** In-app Docs — grove editorial field guide. */
+/** In-app Docs — Page workspace field guide. */
 export function DocsView() {
   const { t } = useTranslation()
   const [query, setQuery] = useState('')

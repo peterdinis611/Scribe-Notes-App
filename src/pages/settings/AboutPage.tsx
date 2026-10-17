@@ -1,4 +1,4 @@
-import { AboutSection } from '@/components/settings/SettingsSections'
+import { AboutSection } from '@/components/settings/AboutSection'
 
 export function AboutPage() {
   return <AboutSection />
