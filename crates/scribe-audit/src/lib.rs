@@ -12,6 +12,7 @@ pub use store::{
     EVENTS_KEEP_MIN,
 };
 pub use types::{
-    normalize_action, normalize_category, normalize_outcome, normalize_source, AuditCountBucket,
-    AuditEvent, AuditEventInput, AuditListQuery, AuditStats,
+    escape_like_pattern, normalize_action, normalize_category, normalize_optional_id,
+    normalize_outcome, normalize_search_q, normalize_source, AuditCategory, AuditCountBucket,
+    AuditEvent, AuditEventInput, AuditListQuery, AuditOutcome, AuditSource, AuditStats,
 };

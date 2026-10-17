@@ -1,7 +1,7 @@
 use rusqlite::Connection;
 use std::path::{Path, PathBuf};
 
-pub const SCHEMA_VERSION: i32 = 2;
+pub const SCHEMA_VERSION: i32 = 3;
 pub const AUDIT_DB_FILE: &str = "scribe-audit.db";
 
 pub struct AuditDb {
@@ -119,6 +119,26 @@ fn run_migrations(conn: &Connection) -> Result<(), String> {
         current = 2;
     }
 
+    if current < 3 {
+        conn.execute_batch(
+            r#"
+            ALTER TABLE audit_events ADD COLUMN correlation_id TEXT;
+            ALTER TABLE audit_events ADD COLUMN session_id TEXT;
+            ALTER TABLE audit_events ADD COLUMN app_version TEXT;
+
+            CREATE INDEX IF NOT EXISTS idx_audit_events_actor
+                ON audit_events(actor, created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_audit_events_resource
+                ON audit_events(resource_type, resource_id);
+            CREATE INDEX IF NOT EXISTS idx_audit_events_correlation
+                ON audit_events(correlation_id);
+            "#,
+        )
+        .map_err(|e| e.to_string())?;
+        set_schema_version(conn, 3)?;
+        current = 3;
+    }
+
     let _ = current;
     Ok(())
 }
@@ -169,7 +189,7 @@ mod tests {
     }
 
     #[test]
-    fn schema_v2_indexes_exist() {
+    fn schema_v3_indexes_and_columns_exist() {
         let db = open_audit_db_memory().unwrap();
         let indexes: Vec<String> = {
             let mut stmt = db
@@ -184,10 +204,24 @@ mod tests {
         assert!(indexes.iter().any(|n| n == "idx_audit_events_outcome"));
         assert!(indexes.iter().any(|n| n == "idx_audit_events_action"));
         assert!(indexes.iter().any(|n| n == "idx_audit_events_created"));
+        assert!(indexes.iter().any(|n| n == "idx_audit_events_actor"));
+        assert!(indexes.iter().any(|n| n == "idx_audit_events_resource"));
+        assert!(indexes.iter().any(|n| n == "idx_audit_events_correlation"));
+
+        let cols: Vec<String> = {
+            let mut stmt = db.conn.prepare("PRAGMA table_info(audit_events)").unwrap();
+            stmt.query_map([], |row| row.get::<_, String>(1))
+                .unwrap()
+                .map(|r| r.unwrap())
+                .collect()
+        };
+        assert!(cols.iter().any(|c| c == "correlation_id"));
+        assert!(cols.iter().any(|c| c == "session_id"));
+        assert!(cols.iter().any(|c| c == "app_version"));
     }
 
     #[test]
-    fn migrate_from_v1_adds_v2_indexes() {
+    fn migrate_from_v1_reaches_v3() {
         let conn = Connection::open_in_memory().unwrap();
         configure(&conn).unwrap();
         conn.execute_batch(
@@ -211,7 +245,7 @@ mod tests {
         )
         .unwrap();
         run_migrations(&conn).unwrap();
-        assert_eq!(schema_version_value(&conn), "2");
+        assert_eq!(schema_version_value(&conn), "3");
         let has_outcome: i64 = conn
             .query_row(
                 "SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name='idx_audit_events_outcome'",
@@ -220,5 +254,49 @@ mod tests {
             )
             .unwrap();
         assert_eq!(has_outcome, 1);
+        let has_actor: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name='idx_audit_events_actor'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(has_actor, 1);
+    }
+
+    #[test]
+    fn migrate_from_v2_adds_v3() {
+        let conn = Connection::open_in_memory().unwrap();
+        configure(&conn).unwrap();
+        conn.execute_batch(
+            r#"
+            CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+            CREATE TABLE audit_events (
+                id TEXT PRIMARY KEY,
+                created_at INTEGER NOT NULL,
+                source TEXT NOT NULL,
+                category TEXT NOT NULL,
+                action TEXT NOT NULL,
+                actor TEXT NOT NULL DEFAULT 'local',
+                resource_type TEXT,
+                resource_id TEXT,
+                summary TEXT NOT NULL,
+                detail_json TEXT,
+                outcome TEXT NOT NULL DEFAULT 'ok'
+            );
+            INSERT INTO meta (key, value) VALUES ('schema_version', '2');
+            "#,
+        )
+        .unwrap();
+        run_migrations(&conn).unwrap();
+        assert_eq!(schema_version_value(&conn), "3");
+        let has_corr: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('audit_events') WHERE name='correlation_id'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(has_corr, 1);
     }
 }
