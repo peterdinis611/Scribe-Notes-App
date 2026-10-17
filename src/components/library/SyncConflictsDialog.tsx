@@ -17,6 +17,7 @@ import {
   updateDocument,
 } from '@/lib/db/api'
 import { plainTextToTipTapContent } from '@/lib/editor/block-snippets'
+import { mergeTiptapJson } from '@/lib/editor/tiptap-merge'
 import { listSyncConflicts, resolveSyncConflict, type SyncConflict } from '@/lib/db/libraries-api'
 import { tiptapToPlainText } from '@/lib/export/plain-text'
 import { reloadLibraryFromBackend } from '@/lib/library-reload'
@@ -32,6 +33,8 @@ import { setSyncConflictsOpen } from '@/store/uiSlice'
 type ConflictPreview = {
   appText: string | null
   diskText: string | null
+  appJson: string | null
+  diskJson: string | null
 }
 
 type MergeState = {
@@ -41,6 +44,45 @@ type MergeState = {
   /** For each changed index: 'app' | 'disk' | 'both' */
   picks: Record<number, 'app' | 'disk' | 'both'>
   draft: string
+  appJson: string | null
+  diskJson: string | null
+}
+
+/** When every hunk picks a single side, preserve TipTap JSON instead of plain-text rebuild. */
+function picksPreferSide(
+  lines: DiffLine[],
+  picks: Record<number, 'app' | 'disk' | 'both'>,
+): 'app' | 'disk' | 'mixed' {
+  let sawApp = false
+  let sawDisk = false
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i]
+    if (line.type === 'unchanged') continue
+    if (line.type === 'removed') {
+      const next = lines[i + 1]
+      const pick = picks[i] ?? 'app'
+      if (next?.type === 'added') {
+        if (pick === 'both') return 'mixed'
+        if (pick === 'app') sawApp = true
+        if (pick === 'disk') sawDisk = true
+        i += 1
+      } else if (pick !== 'disk') {
+        sawApp = true
+      } else {
+        sawDisk = true
+      }
+      continue
+    }
+    if (line.type === 'added') {
+      const pick = picks[i] ?? 'disk'
+      if (pick === 'both') return 'mixed'
+      if (pick === 'app') sawApp = true
+      else sawDisk = true
+    }
+  }
+  if (sawApp && sawDisk) return 'mixed'
+  if (sawDisk) return 'disk'
+  return 'app'
 }
 
 function formatTs(value: number): string {
@@ -117,21 +159,24 @@ export function SyncConflictsDialog() {
         (rev.label || '').toLowerCase().includes('before sync conflict'),
       )
       let appText: string | null = null
+      let appJson: string | null = null
       if (before) {
         const detail = await getDocumentRevision(before.id)
+        appJson = detail.contentJson
         appText = tiptapToPlainText(detail.contentJson).slice(0, 12_000)
       }
+      const diskJson = current?.contentJson ?? null
       const diskText = current
         ? tiptapToPlainText(current.contentJson).slice(0, 12_000)
         : null
       setPreviews((prev) => ({
         ...prev,
-        [item.id]: { appText, diskText },
+        [item.id]: { appText, diskText, appJson, diskJson },
       }))
     } catch {
       setPreviews((prev) => ({
         ...prev,
-        [item.id]: { appText: null, diskText: null },
+        [item.id]: { appText: null, diskText: null, appJson: null, diskJson: null },
       }))
     } finally {
       setLoadingPreview(null)
@@ -151,14 +196,17 @@ export function SyncConflictsDialog() {
           (rev.label || '').toLowerCase().includes('before sync conflict'),
         )
         let appText: string | null = null
+        let appJson: string | null = null
         if (before) {
           const detail = await getDocumentRevision(before.id)
+          appJson = detail.contentJson
           appText = tiptapToPlainText(detail.contentJson).slice(0, 12_000)
         }
+        const diskJson = current?.contentJson ?? null
         const diskText = current
           ? tiptapToPlainText(current.contentJson).slice(0, 12_000)
           : null
-        preview = { appText, diskText }
+        preview = { appText, diskText, appJson, diskJson }
         setPreviews((prev) => ({ ...prev, [item.id]: preview! }))
       }
 
@@ -176,6 +224,8 @@ export function SyncConflictsDialog() {
         lines: diff.lines,
         picks,
         draft: buildDraftFromPicks(diff.lines, picks),
+        appJson: preview.appJson,
+        diskJson: preview.diskJson,
       })
       setExpandedId(item.id)
     } catch (error) {
@@ -193,25 +243,47 @@ export function SyncConflictsDialog() {
     })
   }
 
-  async function saveMerge() {
+  async function saveMerge(prefer?: 'app' | 'disk') {
     if (!merge) return
     setSavingMerge(true)
     try {
-      const content = {
-        type: 'doc',
-        content: plainTextToTipTapContent(merge.draft),
+      const side = prefer ?? picksPreferSide(merge.lines, merge.picks)
+      let contentJson: string | null = null
+      if (side === 'app' && merge.appJson) contentJson = merge.appJson
+      else if (side === 'disk' && merge.diskJson) contentJson = merge.diskJson
+      else if (side === 'mixed' && merge.appJson && merge.diskJson) {
+        const divergent =
+          Object.values(merge.picks).includes('both')
+            ? 'both'
+            : Object.values(merge.picks).every((pick) => pick === 'disk')
+              ? 'disk'
+              : Object.values(merge.picks).every((pick) => pick === 'app')
+                ? 'app'
+                : 'both'
+        contentJson = mergeTiptapJson(merge.appJson, merge.diskJson, divergent)
+      }
+      if (!contentJson) {
+        const content = {
+          type: 'doc',
+          content: plainTextToTipTapContent(merge.draft),
+        }
+        contentJson = JSON.stringify(content)
       }
       await updateDocument({
         id: merge.documentId,
-        contentJson: JSON.stringify(content),
+        contentJson,
       })
-      await resolveSyncConflict(merge.conflictId, 'app')
+      await resolveSyncConflict(merge.conflictId, side === 'disk' ? 'disk' : 'app')
       const next = await listSyncConflicts()
       setConflicts(next)
       dispatch(setOpenConflictCount(next.length))
       await reloadLibraryFromBackend(dispatch, { preserveActive: true })
       setMerge(null)
-      toast.success(t('syncConflicts.mergeSaved'))
+      toast.success(
+        side === 'mixed' && contentJson && merge.appJson && contentJson !== merge.appJson
+          ? t('syncConflicts.mergeSavedBlocks')
+          : t('syncConflicts.mergeSaved'),
+      )
       if (next.length === 0) dispatch(setSyncConflictsOpen(false))
     } catch (error) {
       toast.error(t('syncConflicts.resolveError'), String(error))
@@ -398,10 +470,32 @@ export function SyncConflictsDialog() {
                             )
                           }
                         />
-                        <div className="flex justify-end gap-1.5">
+                        <div className="flex flex-wrap justify-end gap-1.5">
                           <Button type="button" size="sm" variant="ghost" onClick={() => setMerge(null)}>
                             {t('common.cancel')}
                           </Button>
+                          {merge.appJson ? (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={savingMerge}
+                              onClick={() => void saveMerge('app')}
+                            >
+                              {t('syncConflicts.keepAppFormatted')}
+                            </Button>
+                          ) : null}
+                          {merge.diskJson ? (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={savingMerge}
+                              onClick={() => void saveMerge('disk')}
+                            >
+                              {t('syncConflicts.keepDiskFormatted')}
+                            </Button>
+                          ) : null}
                           <Button
                             type="button"
                             size="sm"

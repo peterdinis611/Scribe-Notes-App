@@ -66,6 +66,8 @@ export {
   listMarketplaceListings,
   listMarketplaceByKind,
   checkPluginUpdates,
+  packageChecksum,
+  verifyPackageChecksum,
   type MarketplaceKind,
   type MarketplaceListing,
 } from '@/lib/plugins/marketplace'

@@ -1,10 +1,10 @@
-# Scribe 3.8
+# Scribe 3.9
 
 <p align="center">
   <img src="docs/screenshots/icon.png" alt="Scribe icon" width="96" height="96" />
 </p>
 
-Write documents. Link notes. **Scribe 3.8** is a local macOS rich-text editor with a library, templates, and multi-format export.
+Write documents. Link notes. **Scribe 3.9** is a local macOS rich-text editor with a library, templates, and multi-format export.
 
 Scribe runs locally on your Mac. No accounts, no cloud — documents, the database, and settings belong to the macOS user account running the app.
 
@@ -410,21 +410,25 @@ The editor adds a formatting toolbar, document tabs (pin), print-layout “paper
 | Command | Description |
 |--------|-------------|
 | `bun run test` | Frontend (Vitest) |
-| `bun run test:backend` | Rust workspace |
+| `bun run test:backend` | Rust workspace (`--locked`) |
+| `bun run test:audit` | `scribe-audit` clippy + unit tests |
 | `bun run nlp:test` | Python NLP |
 | `bun run test:all` | All of the above |
 
 GitHub Actions (`.github/workflows/`):
 
-- **CI** — on `v*` version tags (or manual dispatch): version sync check; frontend lint + Vitest + Vite build; NLP tests; Rust tests on **macOS**, **Ubuntu**, and **Windows**
-- **Build** — on `v*` version tags (or manual dispatch): version sync check; Tauri build (macOS ships `.app`/`.dmg` artifacts; Linux/Windows compile with `--no-bundle` until those platforms are productized)
+- **CI** — on PRs, `main` / `version-*` pushes, `v*` tags, or manual dispatch: version sync; frontend lint + Vitest + Vite build; NLP + Python UI; path-command inventory; fast Rust libs job (`--exclude app`, clippy `scribe-audit`); full Rust workspace tests on **macOS**, **Ubuntu**, and **Windows** (`--locked`)
+- **Build** — on `v*` tags or manual dispatch: version sync; Tauri build (macOS ships `.app`/`.dmg`; Linux/Windows `--no-bundle` until productized)
+- **Security audit** — `bun audit`, `cargo audit`, `cargo deny` (also weekly)
 
 
 ```bash
-bun run test          # 200+ frontend tests
-bun run test:backend  # Rust unit tests (migrations, export, storage)
+bun run test          # frontend tests
+bun run test:backend  # Rust workspace unit tests
+bun run test:audit    # scribe-audit clippy + tests
 npm run nlp:test      # Python Local AI sidecar tests
 bun run test:all      # frontend + Rust + NLP
+bun run ci:local      # mirror GitHub CI on this machine
 ```
 
 ### Database migrations
@@ -433,7 +437,7 @@ The SQLite schema is versioned in `src-tauri/src/db/migrations.rs` (and shared h
 
 ## Version
 
-Current version: **3.8.0**
+Current version: **3.9.0**
 
 ## Privacy
 

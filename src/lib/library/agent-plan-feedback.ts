@@ -1,5 +1,6 @@
 import type { AgentRoleId } from '@/lib/library/agent-roles'
 import type { AgentToolId } from '@/lib/library/agent-prefs'
+import { kvGetJson, kvRemove, kvSetJson } from '@/lib/storage/kv'
 
 const STORAGE_KEY = 'scribe-agent-plan-feedback'
 const MAX_ENTRIES = 48
@@ -16,31 +17,19 @@ export type PlanFeedbackEntry = {
 }
 
 function readEntries(): PlanFeedbackEntry[] {
-  if (typeof localStorage === 'undefined') return []
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw) as PlanFeedbackEntry[]
-    if (!Array.isArray(parsed)) return []
-    return parsed.filter(
-      (item) =>
-        item &&
-        typeof item.goal === 'string' &&
-        Array.isArray(item.tools) &&
-        (item.outcome === 'apply' || item.outcome === 'dismiss'),
-    )
-  } catch {
-    return []
-  }
+  const parsed = kvGetJson<PlanFeedbackEntry[]>(STORAGE_KEY)
+  if (!Array.isArray(parsed)) return []
+  return parsed.filter(
+    (item) =>
+      item &&
+      typeof item.goal === 'string' &&
+      Array.isArray(item.tools) &&
+      (item.outcome === 'apply' || item.outcome === 'dismiss'),
+  )
 }
 
 function writeEntries(entries: PlanFeedbackEntry[]) {
-  if (typeof localStorage === 'undefined') return
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries.slice(0, MAX_ENTRIES)))
-  } catch {
-    // quota / private mode — ignore
-  }
+  kvSetJson(STORAGE_KEY, entries.slice(0, MAX_ENTRIES))
 }
 
 export function recordPlanFeedback(input: {
@@ -76,10 +65,5 @@ export function listSuccessfulPlanTools(limit = 24): string[][] {
 }
 
 export function clearPlanFeedback(): void {
-  if (typeof localStorage === 'undefined') return
-  try {
-    localStorage.removeItem(STORAGE_KEY)
-  } catch {
-    // ignore
-  }
+  kvRemove(STORAGE_KEY)
 }

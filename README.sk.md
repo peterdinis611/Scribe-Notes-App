@@ -160,7 +160,8 @@ Dev server beží na `http://localhost:5174`. Pri prvom spustení Tauri stiahne 
 | `bun run dev` | Len Vite (prehliadač, bez Tauri IPC) |
 | `bun run dev:debug` | Vite s `VITE_DEBUG=1` |
 | `bun run test` | Frontend testy (Vitest) |
-| `bun run test:backend` | Rust testy |
+| `bun run test:backend` | Rust workspace (`--locked`) |
+| `bun run test:audit` | `scribe-audit` clippy + unit testy |
 | `bun run test:all` | Frontend + Rust + NLP testy |
 | `bun run lint` | ESLint |
 | `npm run nlp:health` | Ping Lokálnej AI (JSON-RPC health) |
@@ -408,16 +409,19 @@ Editor pridáva formátovací toolbar, taby dokumentov (pin), print-layout „pa
 ### Testy
 
 ```bash
-bun run test          # 200+ frontend testov
-bun run test:backend  # Rust unit testy (migrácie, export, storage)
+bun run test          # frontend testy
+bun run test:backend  # Rust workspace unit testy
+bun run test:audit    # scribe-audit clippy + testy
 npm run nlp:test      # Python testy Lokálnej AI
 bun run test:all      # frontend + Rust + NLP
+bun run ci:local      # zrkadlo GitHub CI na tomto stroji
 ```
 
 GitHub Actions (`.github/workflows/`):
 
-- **CI** — na tagoch `v*` (alebo manuálny dispatch): kontrola synchronizácie verzie; frontend lint + Vitest + Vite build; NLP testy; Rust testy na **macOS**, **Ubuntu** a **Windows**
-- **Build** — na tagoch `v*` (alebo manuálny dispatch): kontrola synchronizácie verzie; Tauri build (macOS `.app`/`.dmg` artefakty; Linux/Windows zatiaľ `--no-bundle`, kým nie sú produktové inštalátory)
+- **CI** — na PR, pushoch `main` / `version-*`, tagoch `v*` alebo manuálnom dispatchi: sync verzie; frontend lint + Vitest + Vite build; NLP + Python UI; inventár path príkazov; rýchly Rust libs job (`--exclude app`, clippy `scribe-audit`); plné Rust workspace testy na **macOS**, **Ubuntu** a **Windows** (`--locked`)
+- **Build** — na tagoch `v*` alebo manuálnom dispatchi: sync verzie; Tauri build (macOS `.app`/`.dmg`; Linux/Windows `--no-bundle`, kým nie sú produktové)
+- **Security audit** — `bun audit`, `cargo audit`, `cargo deny` (aj týždenne)
 
 ### Databázové migrácie
 

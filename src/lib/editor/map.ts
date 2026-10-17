@@ -158,6 +158,22 @@ export function isMapUrl(value: string): boolean {
   return specFromMapUrl(value) != null
 }
 
+export function serializeMapSpec(spec: MapSpec): string {
+  return JSON.stringify(
+    {
+      title: spec.title || undefined,
+      lat: spec.lat,
+      lng: spec.lng,
+      zoom: spec.zoom,
+      markers: spec.markers.map((marker) =>
+        marker.label ? { lat: marker.lat, lng: marker.lng, label: marker.label } : { lat: marker.lat, lng: marker.lng },
+      ),
+    },
+    null,
+    2,
+  )
+}
+
 export function mapPreviewLabel(source: string): string {
   const parsed = parseMapSpec(source)
   if (!parsed.ok) return 'Map'

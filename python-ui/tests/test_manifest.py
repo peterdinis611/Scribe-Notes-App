@@ -21,7 +21,7 @@ class ManifestTests(unittest.TestCase):
         self.assertEqual(m["version"], APP_VERSION)
         self.assertEqual(m["shortVersion"], short_version())
         self.assertEqual(len(m["whatsNewHighlights"]), 5)
-        self.assertEqual(m["whatsNewTagKeys"], ["library", "capture", "markdown"])
+        self.assertEqual(m["whatsNewTagKeys"], ["library", "capture", "media"])
         self.assertIn("agent", m["settingsSectionIds"])
         self.assertIn("nlp", m["settingsSectionIds"])
         self.assertEqual(len(m["privacyArticleIds"]), 10)

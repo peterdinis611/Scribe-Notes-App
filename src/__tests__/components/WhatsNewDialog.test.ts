@@ -1,21 +1,21 @@
 import { describe, expect, it } from 'vitest'
-import { WHATS_NEW_38_HIGHLIGHTS, WHATS_NEW_38_TAG_KEYS } from '@/components/WhatsNewDialog'
+import { WHATS_NEW_39_HIGHLIGHTS, WHATS_NEW_39_TAG_KEYS } from '@/components/WhatsNewDialog'
 import { APP_SHORT_VERSION, APP_VERSION } from '@/lib/app-version'
 
-describe('WhatsNew 3.8 highlights', () => {
-  it('lists Library · Flow edition highlights', () => {
-    expect(WHATS_NEW_38_HIGHLIGHTS).toEqual([
-      'tanstackMarkdown',
-      'captureInbox',
-      'syncMergeStudio',
-      'wikiHealthQueue',
+describe('WhatsNew 3.9 highlights', () => {
+  it('lists 3.9 edition highlights', () => {
+    expect(WHATS_NEW_39_HIGHLIGHTS).toEqual([
+      'localVideoLibrary',
       'mcpWriteCountdown',
+      'syncMergeStudio',
+      'captureInbox',
+      'wikiHealthQueue',
     ])
-    expect(WHATS_NEW_38_TAG_KEYS).toEqual(['library', 'capture', 'markdown'])
+    expect(WHATS_NEW_39_TAG_KEYS).toEqual(['library', 'capture', 'media'])
   })
 
-  it('matches app version 3.8.0', () => {
-    expect(APP_VERSION).toBe('3.8.0')
-    expect(APP_SHORT_VERSION).toBe('3.8')
+  it('matches app version 3.9.0', () => {
+    expect(APP_VERSION).toBe('3.9.0')
+    expect(APP_SHORT_VERSION).toBe('3.9')
   })
 })

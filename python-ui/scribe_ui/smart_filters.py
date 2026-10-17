@@ -11,12 +11,14 @@ from typing import Callable, Iterable, Literal, Sequence, TypedDict
 
 SmartFilterId = Literal[
     "none", "unlinked", "untagged", "unread", "canvas",
+    "stubs", "tasks", "media",
     "linked", "tagged", "read", "trashed",
 ]
 
 SMART_FILTER_IDS: tuple[str, ...] = (
-    "none", "unlinked", "untagged", "unread", "canvas",  # original (Rust parity)
-    "linked", "tagged", "read", "trashed",               # new
+    "none", "unlinked", "untagged", "unread", "canvas",
+    "stubs", "tasks", "media",  # Rust / FE parity
+    "linked", "tagged", "read", "trashed",
 )
 
 
@@ -30,6 +32,9 @@ class SmartFilterOptions(TypedDict, total=False):
     orphanIds: list[str]
     recentDocumentIds: list[str]
     canvasIds: list[str]
+    stubIds: list[str]
+    taskDocIds: list[str]
+    mediaDocIds: list[str]
 
 
 @dataclass(frozen=True)
@@ -39,6 +44,9 @@ class SmartFilterContext:
     orphan_ids: frozenset[str] = frozenset()
     recent_ids: frozenset[str] = frozenset()
     canvas_ids: frozenset[str] = frozenset()
+    stub_ids: frozenset[str] = frozenset()
+    task_doc_ids: frozenset[str] = frozenset()
+    media_doc_ids: frozenset[str] = frozenset()
 
     @classmethod
     def from_options(cls, options: SmartFilterOptions | None = None) -> "SmartFilterContext":
@@ -47,6 +55,9 @@ class SmartFilterContext:
             orphan_ids=frozenset(o.get("orphanIds") or ()),
             recent_ids=frozenset(o.get("recentDocumentIds") or ()),
             canvas_ids=frozenset(o.get("canvasIds") or ()),
+            stub_ids=frozenset(o.get("stubIds") or ()),
+            task_doc_ids=frozenset(o.get("taskDocIds") or ()),
+            media_doc_ids=frozenset(o.get("mediaDocIds") or ()),
         )
 
 
@@ -109,6 +120,21 @@ def _read(doc, ctx):
 @_register("canvas")
 def _canvas(doc, ctx):
     return _id(doc) in ctx.canvas_ids
+
+
+@_register("stubs")
+def _stubs(doc, ctx):
+    return _id(doc) in ctx.stub_ids
+
+
+@_register("tasks")
+def _tasks(doc, ctx):
+    return _id(doc) in ctx.task_doc_ids
+
+
+@_register("media")
+def _media(doc, ctx):
+    return _id(doc) in ctx.media_doc_ids
 
 
 @_register("trashed", include_deleted=True)

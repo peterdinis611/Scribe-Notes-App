@@ -1,11 +1,14 @@
 /**
  * User-granted elevated permissions for installed plugins.
- * Bundled plugins ignore this (trusted). Stored in localStorage.
+ * Bundled plugins ignore this (trusted). Stored in IndexedDB via kv.
  */
 
 import type { PluginPermission } from '@/lib/plugins/types'
+import { kvGetJson, kvSetJson } from '@/lib/storage/kv'
 
-const STORAGE_KEY = 'scribe.plugin.permissionGrants'
+const STORAGE_KEY = 'scribe-plugin-permission-grants'
+/** Legacy localStorage / dotted kv key — still readable after hydrate migration. */
+const LEGACY_STORAGE_KEY = 'scribe.plugin.permissionGrants'
 
 /** Permissions that require an explicit user grant for installed plugins. */
 export const ELEVATED_PERMISSIONS: PluginPermission[] = ['nlp.skills', 'mcp.tools']
@@ -13,20 +16,13 @@ export const ELEVATED_PERMISSIONS: PluginPermission[] = ['nlp.skills', 'mcp.tool
 type GrantMap = Record<string, PluginPermission[]>
 
 function readMap(): GrantMap {
-  if (typeof localStorage === 'undefined') return {}
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return {}
-    const parsed = JSON.parse(raw) as GrantMap
-    return parsed && typeof parsed === 'object' ? parsed : {}
-  } catch {
-    return {}
-  }
+  const parsed =
+    kvGetJson<GrantMap>(STORAGE_KEY) ?? kvGetJson<GrantMap>(LEGACY_STORAGE_KEY)
+  return parsed && typeof parsed === 'object' ? parsed : {}
 }
 
 function writeMap(map: GrantMap) {
-  if (typeof localStorage === 'undefined') return
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(map))
+  kvSetJson(STORAGE_KEY, map)
 }
 
 export function grantedPermissionsFor(pluginId: string): PluginPermission[] {

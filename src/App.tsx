@@ -7,12 +7,14 @@ import { useI18nSync } from '@/hooks/useI18nSync'
 import { useTemplateCollectionsBootstrap } from '@/hooks/useTemplateCollections'
 import { router } from '@/router'
 import { useThemeSync, useDocumentBootstrap, useStorageBootstrap } from './hooks/useAppHooks'
+import { useScribeDeepLinks } from '@/hooks/useScribeDeepLinks'
 
 export default function App() {
   useI18nSync()
   useThemeSync()
   useDocumentBootstrap()
   useStorageBootstrap()
+  useScribeDeepLinks()
   const { t } = useTranslation()
   const { error: templateCollectionsError } = useTemplateCollectionsBootstrap()
   useActiveDocumentLoader()

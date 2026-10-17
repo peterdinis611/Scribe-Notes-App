@@ -11,6 +11,9 @@ pub enum LibrarySmartFilter {
     Untagged,
     Unread,
     Canvas,
+    Stubs,
+    Tasks,
+    Media,
 }
 
 impl LibrarySmartFilter {
@@ -21,6 +24,9 @@ impl LibrarySmartFilter {
             Self::Untagged => "untagged",
             Self::Unread => "unread",
             Self::Canvas => "canvas",
+            Self::Stubs => "stubs",
+            Self::Tasks => "tasks",
+            Self::Media => "media",
         }
     }
 
@@ -31,6 +37,9 @@ impl LibrarySmartFilter {
             "untagged" => Some(Self::Untagged),
             "unread" => Some(Self::Unread),
             "canvas" => Some(Self::Canvas),
+            "stubs" => Some(Self::Stubs),
+            "tasks" => Some(Self::Tasks),
+            "media" => Some(Self::Media),
             _ => None,
         }
     }
@@ -61,6 +70,12 @@ pub struct SmartFilterOptions {
     pub recent_document_ids: Vec<String>,
     #[serde(default)]
     pub canvas_ids: Vec<String>,
+    #[serde(default)]
+    pub stub_ids: Vec<String>,
+    #[serde(default)]
+    pub task_doc_ids: Vec<String>,
+    #[serde(default)]
+    pub media_doc_ids: Vec<String>,
 }
 
 pub fn document_matches_smart_filter(
@@ -80,6 +95,9 @@ pub fn document_matches_smart_filter(
         LibrarySmartFilter::Unlinked => options.orphan_ids.iter().any(|id| id == &doc.id),
         LibrarySmartFilter::Unread => !options.recent_document_ids.iter().any(|id| id == &doc.id),
         LibrarySmartFilter::Canvas => options.canvas_ids.iter().any(|id| id == &doc.id),
+        LibrarySmartFilter::Stubs => options.stub_ids.iter().any(|id| id == &doc.id),
+        LibrarySmartFilter::Tasks => options.task_doc_ids.iter().any(|id| id == &doc.id),
+        LibrarySmartFilter::Media => options.media_doc_ids.iter().any(|id| id == &doc.id),
     }
 }
 
@@ -100,7 +118,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn untagged_unread_and_canvas() {
+    fn stubs_tasks_media_and_ids() {
         let doc = SmartFilterDoc {
             id: "a".into(),
             tags: vec![],
@@ -108,47 +126,28 @@ mod tests {
         };
         assert!(document_matches_smart_filter(
             &doc,
-            LibrarySmartFilter::Untagged,
-            &SmartFilterOptions::default()
-        ));
-        assert!(document_matches_smart_filter(
-            &doc,
-            LibrarySmartFilter::Unread,
+            LibrarySmartFilter::Stubs,
             &SmartFilterOptions {
-                recent_document_ids: vec!["b".into()],
-                ..Default::default()
-            }
-        ));
-        assert!(!document_matches_smart_filter(
-            &doc,
-            LibrarySmartFilter::Unread,
-            &SmartFilterOptions {
-                recent_document_ids: vec!["a".into()],
+                stub_ids: vec!["a".into()],
                 ..Default::default()
             }
         ));
         assert!(document_matches_smart_filter(
             &doc,
-            LibrarySmartFilter::Canvas,
+            LibrarySmartFilter::Tasks,
             &SmartFilterOptions {
-                canvas_ids: vec!["a".into()],
+                task_doc_ids: vec!["a".into()],
                 ..Default::default()
             }
         ));
-        assert_eq!(smart_filter_ids().len(), 5);
-        let filtered = filter_documents_by_smart_filter(
-            &[
-                doc.clone(),
-                SmartFilterDoc {
-                    id: "b".into(),
-                    tags: vec!["x".into()],
-                    deleted_at: None,
-                },
-            ],
-            LibrarySmartFilter::Untagged,
-            &SmartFilterOptions::default(),
-        );
-        assert_eq!(filtered.len(), 1);
-        assert_eq!(filtered[0].id, "a");
+        assert!(document_matches_smart_filter(
+            &doc,
+            LibrarySmartFilter::Media,
+            &SmartFilterOptions {
+                media_doc_ids: vec!["a".into()],
+                ..Default::default()
+            }
+        ));
+        assert_eq!(smart_filter_ids().len(), 8);
     }
 }

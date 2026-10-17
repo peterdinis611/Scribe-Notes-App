@@ -104,7 +104,7 @@ fn add_dir_to_zip(
     zip: &mut ZipWriter<File>,
     base: &Path,
     prefix: &str,
-    options: FileOptions<'_, ()>,
+    options: FileOptions<'_, '_, ()>,
 ) -> Result<u32, String> {
     let mut count = 0u32;
     if !base.exists() {
@@ -155,7 +155,7 @@ fn walkdir_light(root: &Path) -> Result<Vec<PathBuf>, String> {
     Ok(files)
 }
 
-fn archive_file_options(password: Option<&str>) -> FileOptions<'_, ()> {
+fn archive_file_options(password: Option<&str>) -> FileOptions<'_, '_, ()> {
     let base = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
     match password.map(str::trim).filter(|p| !p.is_empty()) {
         Some(pw) => base.with_aes_encryption(zip::AesMode::Aes256, pw),
@@ -340,7 +340,10 @@ pub async fn import_library_archive(
                 }
             })?,
         };
-        let name = file.name().to_string();
+        let name = file
+            .name()
+            .map_err(|e| e.to_string())?
+            .into_owned();
         let mut buffer = Vec::new();
         file.read_to_end(&mut buffer).map_err(|e| e.to_string())?;
 

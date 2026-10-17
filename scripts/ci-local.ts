@@ -4,12 +4,13 @@
  * Usage:
  *   bun run ci:local              # frontend + NLP + Rust + path-commands (CI workflow)
  *   bun run ci:local:tauri        # + tauri build for this OS (Build workflow)
- *   bun scripts/ci-local.ts --tag v3.8.0   # also assert tag ↔ package.json
+ *   bun scripts/ci-local.ts --tag v3.9.0   # also assert tag ↔ package.json
  *
  * Flags:
  *   --tauri          run `tauri build` (current OS only; CI builds 3 platforms)
  *   --tag [vX.Y.Z]   set GITHUB_REF_* like a tag push (defaults to latest v* tag)
  *   --frontend-only  skip NLP + Rust
+ *   --rust-only      skip frontend + NLP + path-commands
  *   --skip-frontend / --skip-nlp / --skip-rust / --skip-path-commands
  */
 import { spawnSync } from 'node:child_process'
@@ -69,7 +70,7 @@ const tagEnv: Record<string, string> = {}
 if (wantTag) {
   const tag = flagValue('--tag') ?? latestVersionTag()
   if (!tag) {
-    console.error('No tag supplied and no v* git tags found. Use: --tag v3.8.0')
+    console.error('No tag supplied and no v* git tags found. Use: --tag v3.9.0')
     process.exit(1)
   }
   tagEnv.GITHUB_REF_TYPE = 'tag'
@@ -110,7 +111,21 @@ if (!skipNlp) {
 }
 
 if (!skipRust) {
-  run({ name: 'CI / Rust cargo test', cmd: 'cargo', args: ['test', '--workspace'] })
+  run({
+    name: 'CI / Rust clippy scribe-audit',
+    cmd: 'cargo',
+    args: ['clippy', '-p', 'scribe-audit', '--locked', '--all-targets', '--', '-D', 'warnings'],
+  })
+  run({
+    name: 'CI / Rust libs (exclude app)',
+    cmd: 'cargo',
+    args: ['test', '--workspace', '--exclude', 'app', '--locked'],
+  })
+  run({
+    name: 'CI / Rust cargo test (workspace)',
+    cmd: 'cargo',
+    args: ['test', '--workspace', '--locked'],
+  })
 }
 
 if (withTauri) {

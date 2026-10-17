@@ -2573,6 +2573,66 @@ impl ScribeStore {
     pub fn list_graph_hubs(&self, limit: i64) -> Result<Vec<GraphHub>, String> {
         list_graph_hubs_in_conn(&self.db, limit)
     }
+
+    pub fn list_orphan_documents(&self) -> Result<Vec<OrphanDocument>, String> {
+        crate::wiki::list_orphan_documents(&self.db)
+    }
+
+    /// Set `targetId` on unresolved `[[label]]` nodes in one document.
+    pub fn resolve_wiki_link(
+        &self,
+        document_id: &str,
+        label: &str,
+        target_id: &str,
+    ) -> Result<crate::wiki::ResolveWikiLinkResult, String> {
+        crate::wiki::resolve_wiki_link_in_document(&self.db, document_id, label, target_id)
+    }
+
+    /// Unresolved wiki links with fuzzy title suggestions attached.
+    pub fn list_unresolved_wiki_links_with_suggestions(
+        &self,
+        limit: i64,
+    ) -> Result<Vec<UnresolvedWikiLink>, String> {
+        let mut links = list_unresolved_wiki_links_in_conn(&self.db, limit)?;
+        crate::wiki::attach_link_suggestions(&self.db, &mut links)?;
+        Ok(links)
+    }
+
+    /// Auto-resolve unresolved links whose best suggestion score >= `min_score` (0.4–0.95).
+    pub fn auto_resolve_wiki_links(
+        &self,
+        limit: i64,
+        min_score: f64,
+    ) -> Result<serde_json::Value, String> {
+        let threshold = min_score.clamp(0.4, 0.95);
+        let mut links = self.list_unresolved_wiki_links_with_suggestions(limit)?;
+        let mut resolved = Vec::new();
+        let mut skipped = 0i64;
+        for link in links.drain(..) {
+            let Some(best) = link.suggestions.first() else {
+                skipped += 1;
+                continue;
+            };
+            if best.score < threshold {
+                skipped += 1;
+                continue;
+            }
+            match self.resolve_wiki_link(&link.document_id, &link.label, &best.id) {
+                Ok(result) => resolved.push(result),
+                Err(_) => skipped += 1,
+            }
+        }
+        Ok(serde_json::json!({
+            "minScore": threshold,
+            "resolvedCount": resolved.len(),
+            "skipped": skipped,
+            "resolved": resolved,
+        }))
+    }
+
+    pub fn list_library_videos(&self) -> Result<Vec<scribe_video::LibraryVideo>, String> {
+        crate::db::list_library_videos(&self.db)
+    }
 }
 
 pub(crate) fn require_nlp(conn: &Connection) -> Result<(), String> {

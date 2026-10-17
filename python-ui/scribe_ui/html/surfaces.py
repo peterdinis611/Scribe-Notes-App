@@ -54,7 +54,7 @@ def _replace(template: str, **vars: str) -> str:
 def render_whats_new(
     *,
     strings: StringMap | None = None,
-    version: str = "3.8.0",
+    version: str = "3.9.0",
     short: str | None = None,
     highlights: Sequence[tuple[str, str, str]] | None = None,
     full_document: bool = True,
@@ -211,7 +211,7 @@ def render_welcome(
 def render_about(
     *,
     strings: StringMap | None = None,
-    version: str = "3.8.0",
+    version: str = "3.9.0",
     short: str | None = None,
     full_document: bool = True,
 ) -> str:
@@ -254,7 +254,7 @@ def render_about(
 def render_privacy(
     *,
     strings: StringMap | None = None,
-    version: str = "3.8.0",
+    version: str = "3.9.0",
     articles: Sequence[Mapping[str, Any]] | None = None,
     full_document: bool = True,
 ) -> str:
@@ -462,7 +462,7 @@ def render_surface(
     surface: str,
     *,
     strings: StringMap | None = None,
-    version: str = "3.8.0",
+    version: str = "3.9.0",
     short_version: str | None = None,
     highlights: Sequence[tuple[str, str, str]] | None = None,
     recent: Sequence[Mapping[str, str]] | None = None,

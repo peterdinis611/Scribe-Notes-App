@@ -302,7 +302,7 @@ pub use whats_new::{
     whats_new_highlights, whats_new_tag_keys, EDITION_MARK_KEY, WHATS_NEW_34_HIGHLIGHTS,
     WHATS_NEW_35_HIGHLIGHTS, WHATS_NEW_36_HIGHLIGHTS, WHATS_NEW_36_TAG_KEYS,
     WHATS_NEW_37_HIGHLIGHTS, WHATS_NEW_37_TAG_KEYS, WHATS_NEW_38_HIGHLIGHTS,
-    WHATS_NEW_38_TAG_KEYS,
+    WHATS_NEW_38_TAG_KEYS, WHATS_NEW_39_HIGHLIGHTS, WHATS_NEW_39_TAG_KEYS,
 };
 
 #[cfg(feature = "dioxus")]
@@ -403,7 +403,7 @@ mod tests {
         assert!(m.ui_skin_ids.contains(&"grove".to_string()));
         assert!(m.smart_filter_ids.contains(&"canvas".to_string()));
         assert!(m.library_view_ids.contains(&"wikiHealth".to_string()));
-        assert_eq!(m.whats_new_tag_keys, vec!["library", "capture", "markdown"]);
+        assert_eq!(m.whats_new_tag_keys, vec!["library", "capture", "media"]);
         assert_eq!(m.docs_topic_tips.len(), 7);
         assert!(m.shortcut_ids.contains(&"commandPalette".to_string()));
         assert!(m.agent_role_ids.contains(&"general".to_string()));

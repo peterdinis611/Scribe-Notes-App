@@ -1,10 +1,18 @@
 //! Local admin gate for viewing audit logs (password hash in meta).
+//!
+//! Hash scheme v2: 120_000× SHA-256 (salted). Legacy v1 (single SHA-256) still verifies
+//! once, then re-hashes to v2 on successful unlock / password change.
 
 use rusqlite::Connection;
 use sha2::{Digest, Sha256};
 
 const ADMIN_SALT_KEY: &str = "admin_salt";
 const ADMIN_HASH_KEY: &str = "admin_password_hash";
+const ADMIN_HASH_VERSION_KEY: &str = "admin_hash_version";
+const HASH_VERSION_V1: &str = "1";
+const HASH_VERSION_V2: &str = "2";
+const PBKDF_ITERS: u32 = 120_000;
+pub const MIN_PASSWORD_CHARS: usize = 8;
 
 fn meta_get(conn: &Connection, key: &str) -> Result<Option<String>, String> {
     let mut stmt = conn
@@ -27,7 +35,7 @@ fn meta_set(conn: &Connection, key: &str, value: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn hash_password(salt: &str, password: &str) -> String {
+fn hash_password_v1(salt: &str, password: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(salt.as_bytes());
     hasher.update(b"|");
@@ -35,23 +43,61 @@ fn hash_password(salt: &str, password: &str) -> String {
     hex::encode(hasher.finalize())
 }
 
+/// Iterated salted SHA-256 (no extra crates; stronger than single-pass v1).
+fn hash_password_v2(salt: &str, password: &str) -> String {
+    let mut dig = {
+        let mut hasher = Sha256::new();
+        hasher.update(salt.as_bytes());
+        hasher.update(b"|v2|");
+        hasher.update(password.as_bytes());
+        hasher.finalize()
+    };
+    for _ in 1..PBKDF_ITERS {
+        let mut hasher = Sha256::new();
+        hasher.update(dig);
+        hasher.update(password.as_bytes());
+        dig = hasher.finalize();
+    }
+    hex::encode(dig)
+}
+
+fn ct_eq_hex(a: &str, b: &str) -> bool {
+    a.len() == b.len()
+        && a.bytes()
+            .zip(b.bytes())
+            .fold(0u8, |acc, (x, y)| acc | (x ^ y))
+            == 0
+}
+
 pub fn admin_is_configured(conn: &Connection) -> Result<bool, String> {
     Ok(meta_get(conn, ADMIN_HASH_KEY)?.is_some())
 }
 
-pub fn setup_admin_password(conn: &Connection, password: &str) -> Result<(), String> {
+fn validate_password(password: &str) -> Result<&str, String> {
     let trimmed = password.trim();
-    if trimmed.chars().count() < 4 {
-        return Err("admin password must be at least 4 characters".into());
+    if trimmed.chars().count() < MIN_PASSWORD_CHARS {
+        return Err(format!(
+            "admin password must be at least {MIN_PASSWORD_CHARS} characters"
+        ));
     }
+    Ok(trimmed)
+}
+
+fn store_password(conn: &Connection, password: &str) -> Result<(), String> {
+    let salt = uuid::Uuid::new_v4().to_string();
+    let hash = hash_password_v2(&salt, password);
+    meta_set(conn, ADMIN_SALT_KEY, &salt)?;
+    meta_set(conn, ADMIN_HASH_KEY, &hash)?;
+    meta_set(conn, ADMIN_HASH_VERSION_KEY, HASH_VERSION_V2)?;
+    Ok(())
+}
+
+pub fn setup_admin_password(conn: &Connection, password: &str) -> Result<(), String> {
+    let trimmed = validate_password(password)?;
     if admin_is_configured(conn)? {
         return Err("admin password already configured".into());
     }
-    let salt = uuid::Uuid::new_v4().to_string();
-    let hash = hash_password(&salt, trimmed);
-    meta_set(conn, ADMIN_SALT_KEY, &salt)?;
-    meta_set(conn, ADMIN_HASH_KEY, &hash)?;
-    Ok(())
+    store_password(conn, trimmed)
 }
 
 pub fn verify_admin_password(conn: &Connection, password: &str) -> Result<bool, String> {
@@ -61,14 +107,17 @@ pub fn verify_admin_password(conn: &Connection, password: &str) -> Result<bool, 
     let Some(expected) = meta_get(conn, ADMIN_HASH_KEY)? else {
         return Ok(false);
     };
-    let actual = hash_password(&salt, password.trim());
-    // Constant-time-ish compare for equal length hex.
-    Ok(actual.len() == expected.len()
-        && actual
-            .bytes()
-            .zip(expected.bytes())
-            .fold(0u8, |acc, (a, b)| acc | (a ^ b))
-            == 0)
+    let version = meta_get(conn, ADMIN_HASH_VERSION_KEY)?.unwrap_or_else(|| HASH_VERSION_V1.into());
+    let trimmed = password.trim();
+    let ok = match version.as_str() {
+        HASH_VERSION_V2 => ct_eq_hex(&hash_password_v2(&salt, trimmed), &expected),
+        _ => ct_eq_hex(&hash_password_v1(&salt, trimmed), &expected),
+    };
+    if ok && version != HASH_VERSION_V2 {
+        // Upgrade legacy hash after successful unlock.
+        let _ = store_password(conn, trimmed);
+    }
+    Ok(ok)
 }
 
 pub fn change_admin_password(
@@ -79,15 +128,8 @@ pub fn change_admin_password(
     if !verify_admin_password(conn, current)? {
         return Err("current admin password is incorrect".into());
     }
-    let trimmed = next.trim();
-    if trimmed.chars().count() < 4 {
-        return Err("admin password must be at least 4 characters".into());
-    }
-    let salt = uuid::Uuid::new_v4().to_string();
-    let hash = hash_password(&salt, trimmed);
-    meta_set(conn, ADMIN_SALT_KEY, &salt)?;
-    meta_set(conn, ADMIN_HASH_KEY, &hash)?;
-    Ok(())
+    let trimmed = validate_password(next)?;
+    store_password(conn, trimmed)
 }
 
 #[cfg(test)]
@@ -103,7 +145,91 @@ mod tests {
         assert!(admin_is_configured(&db.conn).unwrap());
         assert!(verify_admin_password(&db.conn, "scribe-admin").unwrap());
         assert!(!verify_admin_password(&db.conn, "wrong").unwrap());
-        change_admin_password(&db.conn, "scribe-admin", "new-pass").unwrap();
-        assert!(verify_admin_password(&db.conn, "new-pass").unwrap());
+        change_admin_password(&db.conn, "scribe-admin", "new-pass-ok").unwrap();
+        assert!(verify_admin_password(&db.conn, "new-pass-ok").unwrap());
+    }
+
+    #[test]
+    fn rejects_short_password() {
+        let db = open_audit_db_memory().unwrap();
+        assert!(setup_admin_password(&db.conn, "short").is_err());
+        assert!(setup_admin_password(&db.conn, "1234567").is_err());
+        setup_admin_password(&db.conn, "12345678").unwrap();
+    }
+
+    #[test]
+    fn rejects_duplicate_setup() {
+        let db = open_audit_db_memory().unwrap();
+        setup_admin_password(&db.conn, "scribe-admin").unwrap();
+        let err = setup_admin_password(&db.conn, "another-pw").unwrap_err();
+        assert!(err.contains("already configured"));
+    }
+
+    #[test]
+    fn change_password_requires_current() {
+        let db = open_audit_db_memory().unwrap();
+        setup_admin_password(&db.conn, "scribe-admin").unwrap();
+        assert!(change_admin_password(&db.conn, "wrong-pass", "new-pass-ok").is_err());
+        assert!(change_admin_password(&db.conn, "scribe-admin", "short").is_err());
+        change_admin_password(&db.conn, "scribe-admin", "brand-new1").unwrap();
+        assert!(!verify_admin_password(&db.conn, "scribe-admin").unwrap());
+        assert!(verify_admin_password(&db.conn, "brand-new1").unwrap());
+    }
+
+    #[test]
+    fn verify_without_setup_is_false() {
+        let db = open_audit_db_memory().unwrap();
+        assert!(!verify_admin_password(&db.conn, "anything").unwrap());
+    }
+
+    #[test]
+    fn password_trims_whitespace() {
+        let db = open_audit_db_memory().unwrap();
+        setup_admin_password(&db.conn, "  padded-pw  ").unwrap();
+        assert!(verify_admin_password(&db.conn, "padded-pw").unwrap());
+        assert!(verify_admin_password(&db.conn, "  padded-pw  ").unwrap());
+    }
+
+    #[test]
+    fn upgrades_v1_hash_on_verify() {
+        let db = open_audit_db_memory().unwrap();
+        let salt = "test-salt";
+        let password = "legacy-password";
+        meta_set(&db.conn, ADMIN_SALT_KEY, salt).unwrap();
+        meta_set(
+            &db.conn,
+            ADMIN_HASH_KEY,
+            &hash_password_v1(salt, password),
+        )
+        .unwrap();
+        meta_set(&db.conn, ADMIN_HASH_VERSION_KEY, HASH_VERSION_V1).unwrap();
+        assert!(verify_admin_password(&db.conn, password).unwrap());
+        assert_eq!(
+            meta_get(&db.conn, ADMIN_HASH_VERSION_KEY).unwrap().as_deref(),
+            Some(HASH_VERSION_V2)
+        );
+        assert!(verify_admin_password(&db.conn, password).unwrap());
+        // Wrong password must not upgrade / succeed.
+        assert!(!verify_admin_password(&db.conn, "nope-nope").unwrap());
+    }
+
+    #[test]
+    fn v1_without_version_meta_still_verifies() {
+        let db = open_audit_db_memory().unwrap();
+        let salt = "legacy-salt";
+        let password = "legacy-password";
+        meta_set(&db.conn, ADMIN_SALT_KEY, salt).unwrap();
+        meta_set(
+            &db.conn,
+            ADMIN_HASH_KEY,
+            &hash_password_v1(salt, password),
+        )
+        .unwrap();
+        // No ADMIN_HASH_VERSION_KEY → treated as v1.
+        assert!(verify_admin_password(&db.conn, password).unwrap());
+        assert_eq!(
+            meta_get(&db.conn, ADMIN_HASH_VERSION_KEY).unwrap().as_deref(),
+            Some(HASH_VERSION_V2)
+        );
     }
 }

@@ -14,8 +14,12 @@ describe('indexeddb kv store', () => {
   it('migrates legacy localStorage keys once', async () => {
     await resetKvStoreForTests()
     localStorage.setItem('scribe-legacy-test', 'migrated')
+    localStorage.setItem('scribe.dotted-legacy', 'dot')
     await hydrateKvStore()
     expect(kvGet('scribe-legacy-test')).toBe('migrated')
+    expect(kvGet('scribe.dotted-legacy')).toBe('dot')
     expect(localStorage.getItem('scribe-legacy-test')).toBeNull()
+    expect(localStorage.getItem('scribe.dotted-legacy')).toBeNull()
   })
 })
+

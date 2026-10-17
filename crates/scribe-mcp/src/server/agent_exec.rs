@@ -1,0 +1,620 @@
+//! Local-agent tool dispatch (parity with in-app Local Agent).
+
+use crate::server::ScribeMcp;
+use crate::tools;
+
+
+impl ScribeMcp {
+    /// Map planner tool ids to store methods (mirrors the in-app Local Agent).
+    pub(crate) fn execute_agent_tool(
+        &self,
+        tool: &str,
+        goal: &str,
+        document_id: Option<&str>,
+    ) -> Result<(String, Option<String>), String> {
+        let tool = tool.trim().to_ascii_lowercase();
+        let grammar_rules = if tool == "grammar" || tool == "grammar_check" {
+            self.grammar_rules_from_agent()
+        } else {
+            Vec::new()
+        };
+        self.with_store(|store| match tool.as_str() {
+            "library_answer" => {
+                let result = store.library_answer(&self.sidecar, goal, Some(8))?;
+                Ok((
+                    format!("{} citations", result.citations.len()),
+                    Some(result.answer),
+                ))
+            }
+            "document_answer" => {
+                let id = document_id.ok_or_else(|| "documentId required for document_answer".to_string())?;
+                let result = store.document_answer(&self.sidecar, id, goal, None)?;
+                Ok((
+                    format!("{} citations", result.citations.len()),
+                    Some(result.answer),
+                ))
+            }
+            "summarize" | "brief" => {
+                let id = document_id.ok_or_else(|| "documentId required for summarize".to_string())?;
+                let summary = store.summarize_document(&self.sidecar, id, Some(5))?;
+                Ok(("summarize".into(), Some(summary.summary)))
+            }
+            "outline" => {
+                let id = document_id.ok_or_else(|| "documentId required for outline".to_string())?;
+                let outline = store.get_document_outline(id)?;
+                Ok(("outline".into(), Some(tools::json(&outline))))
+            }
+            "tasks" => {
+                let id = document_id.ok_or_else(|| "documentId required for tasks".to_string())?;
+                let tasks = store.extract_document_tasks(&self.sidecar, id)?;
+                Ok(("tasks".into(), Some(tools::json(&tasks))))
+            }
+            "takeaways" => {
+                let id = document_id.ok_or_else(|| "documentId required for takeaways".to_string())?;
+                let result = store.extract_takeaways(&self.sidecar, Some(id), None, Some(10))?;
+                Ok(("takeaways".into(), Some(tools::json(&result))))
+            }
+            "organize" => {
+                let id = document_id.ok_or_else(|| "documentId required for organize".to_string())?;
+                let suggestions = store.suggest_tags(&self.sidecar, id)?;
+                Ok(("organize".into(), Some(tools::json(&suggestions))))
+            }
+            "wiki" => {
+                let id = document_id.ok_or_else(|| "documentId required for wiki".to_string())?;
+                let links = store.suggest_wiki_links(&self.sidecar, id, Some(8))?;
+                Ok(("wiki".into(), Some(tools::json(&links))))
+            }
+            "dates" => {
+                let events = store.calendar_events(&self.sidecar, Some(16), None, None)?;
+                Ok(("dates".into(), Some(tools::json(&events))))
+            }
+            "duplicates" => {
+                let result = store.find_duplicate_documents(&self.sidecar, Some(12))?;
+                Ok(("duplicates".into(), Some(tools::json(&result))))
+            }
+            "meeting" => {
+                let id = document_id.ok_or_else(|| "documentId required for meeting".to_string())?;
+                let pack = store.meeting_notes_pack(&self.sidecar, Some(id), None, Some(12))?;
+                Ok(("meeting".into(), Some(tools::json(&pack))))
+            }
+            "citations" => {
+                let pack = store.citation_pack(&self.sidecar, goal, Some(8))?;
+                Ok(("citations".into(), Some(tools::json(&pack))))
+            }
+            "analysis" | "document_analysis" => {
+                let id = document_id.ok_or_else(|| "documentId required for analysis".to_string())?;
+                let analysis = store.document_analysis(&self.sidecar, id)?;
+                Ok(("analysis".into(), Some(tools::json(&analysis))))
+            }
+            "flashcards" => {
+                let id = document_id.ok_or_else(|| "documentId required for flashcards".to_string())?;
+                let cards = store.extract_flashcards(&self.sidecar, Some(id), None, Some(12), Some(true))?;
+                Ok(("flashcards".into(), Some(tools::json(&cards))))
+            }
+            "style" | "writing_coach" => {
+                let id = document_id.ok_or_else(|| "documentId required for writing_coach".to_string())?;
+                let coach = store.writing_coach(&self.sidecar, Some(id), None, None)?;
+                Ok(("style".into(), Some(tools::json(&coach))))
+            }
+            "spellcheck" => {
+                let id = document_id.ok_or_else(|| "documentId required for spellcheck".to_string())?;
+                let result = store.spellcheck_document(&self.sidecar, id)?;
+                Ok(("spellcheck".into(), Some(tools::json(&result))))
+            }
+            "grammar" | "grammar_check" => {
+                let id = document_id.ok_or_else(|| "documentId required for grammar_check".to_string())?;
+                let result = store.grammar_check(
+                    &self.sidecar,
+                    Some(id),
+                    None,
+                    &grammar_rules,
+                    Some(24),
+                )?;
+                Ok(("grammar_check".into(), Some(tools::json(&result))))
+            }
+            "similar" => {
+                let id = document_id.ok_or_else(|| "documentId required for similar".to_string())?;
+                let hits = store.similar_documents_for(id, 8)?;
+                Ok(("similar".into(), Some(tools::json(&hits))))
+            }
+            "rewrite" | "polish" => {
+                let id = document_id.ok_or_else(|| "documentId required for rewrite".to_string())?;
+                let doc = store
+                    .get_document(id, false)?
+                    .ok_or_else(|| format!("document not found: {id}"))?;
+                let result = store.rewrite_selection(
+                    &self.sidecar,
+                    &doc.plain_text,
+                    Some("polish"),
+                    None,
+                )?;
+                Ok(("rewrite".into(), Some(tools::json(&result))))
+            }
+            "explain" => {
+                let id = document_id.ok_or_else(|| "documentId required for explain".to_string())?;
+                let result = store.explain_selection(&self.sidecar, Some(id), None)?;
+                Ok(("explain".into(), Some(tools::json(&result))))
+            }
+            "simplify" => {
+                let id = document_id.ok_or_else(|| "documentId required for simplify".to_string())?;
+                let result = store.simplify_text(&self.sidecar, Some(id), None)?;
+                Ok(("simplify".into(), Some(tools::json(&result))))
+            }
+            "action_items" => {
+                let id =
+                    document_id.ok_or_else(|| "documentId required for action_items".to_string())?;
+                let result = store.action_items(&self.sidecar, Some(id), None, Some(12))?;
+                Ok(("action_items".into(), Some(tools::json(&result))))
+            }
+            "glossary" => {
+                let id = document_id.ok_or_else(|| "documentId required for glossary".to_string())?;
+                let result = store.glossary(&self.sidecar, Some(id), None, Some(16))?;
+                Ok(("glossary".into(), Some(tools::json(&result))))
+            }
+            "terminology" => {
+                let id =
+                    document_id.ok_or_else(|| "documentId required for terminology".to_string())?;
+                let result = store.check_terminology(&self.sidecar, Some(id), None, Some(12))?;
+                Ok(("terminology".into(), Some(tools::json(&result))))
+            }
+            "quiz" => {
+                let id = document_id.ok_or_else(|| "documentId required for quiz".to_string())?;
+                let result = store.outline_quiz(&self.sidecar, Some(id), None, Some(12))?;
+                Ok(("quiz".into(), Some(tools::json(&result))))
+            }
+            "files_answer" => {
+                let result = store.files_answer(&self.sidecar, goal, None, Some(6), None)?;
+                Ok(("files_answer".into(), Some(tools::json(&result))))
+            }
+            "section_summaries" => {
+                let id = document_id
+                    .ok_or_else(|| "documentId required for section_summaries".to_string())?;
+                let result = store.section_summaries(&self.sidecar, Some(id), None, Some(12))?;
+                Ok(("section_summaries".into(), Some(tools::json(&result))))
+            }
+            "decisions" => {
+                let id = document_id.ok_or_else(|| "documentId required for decisions".to_string())?;
+                let result = store.extract_decisions(&self.sidecar, Some(id), None, Some(12))?;
+                Ok(("decisions".into(), Some(tools::json(&result))))
+            }
+            "pii" => {
+                let id = document_id.ok_or_else(|| "documentId required for pii".to_string())?;
+                let result = store.detect_pii(&self.sidecar, Some(id), None, Some(40))?;
+                Ok(("pii".into(), Some(tools::json(&result))))
+            }
+            "quotes" => {
+                let id = document_id.ok_or_else(|| "documentId required for quotes".to_string())?;
+                let result = store.extract_quotes(&self.sidecar, Some(id), None, Some(10))?;
+                Ok(("quotes".into(), Some(tools::json(&result))))
+            }
+            "commitments" => {
+                let id =
+                    document_id.ok_or_else(|| "documentId required for commitments".to_string())?;
+                let result = store.extract_commitments(&self.sidecar, Some(id), None, Some(12))?;
+                Ok(("commitments".into(), Some(tools::json(&result))))
+            }
+            "rank_tasks" => {
+                let id = document_id.ok_or_else(|| "documentId required for rank_tasks".to_string())?;
+                let result = store.rank_tasks(&self.sidecar, Some(id), None, Some(20))?;
+                Ok(("rank_tasks".into(), Some(tools::json(&result))))
+            }
+            "open_loops" => {
+                let id = document_id.ok_or_else(|| "documentId required for open_loops".to_string())?;
+                let result = store.open_loops(&self.sidecar, Some(id), None, Some(16))?;
+                Ok(("open_loops".into(), Some(tools::json(&result))))
+            }
+            "reading_plan" => {
+                let id =
+                    document_id.ok_or_else(|| "documentId required for reading_plan".to_string())?;
+                let result = store.reading_plan(&self.sidecar, Some(id), None, Some(8))?;
+                Ok(("reading_plan".into(), Some(tools::json(&result))))
+            }
+            "tone" => {
+                let id = document_id.ok_or_else(|| "documentId required for tone".to_string())?;
+                let result = store.tone_pack(&self.sidecar, Some(id), None)?;
+                Ok(("tone".into(), Some(tools::json(&result))))
+            }
+            "title" => {
+                let id = document_id.ok_or_else(|| "documentId required for title".to_string())?;
+                let result = store.suggest_document_title(&self.sidecar, id)?;
+                Ok(("title".into(), Some(tools::json(&result))))
+            }
+            "template_hints" => {
+                let id = document_id
+                    .ok_or_else(|| "documentId required for template_hints".to_string())?;
+                let result = store.template_fill_hints(&self.sidecar, id, None)?;
+                Ok(("template_hints".into(), Some(tools::json(&result))))
+            }
+            "library_report" => {
+                let result = store.library_report(&self.sidecar)?;
+                Ok(("library_report".into(), Some(tools::json(&result))))
+            }
+            "terminology_library" => {
+                let result = store.check_terminology_library(&self.sidecar, Some(16), Some(40))?;
+                Ok(("terminology_library".into(), Some(tools::json(&result))))
+            }
+            "compare_notes" => Err(
+                "compare_notes needs two documents — call the compare_notes MCP tool with documentIdA/documentIdB"
+                    .into(),
+            ),
+            "contradictions" | "contradiction_hints" => Err(
+                "contradictions needs two documents — call the contradiction_hints MCP tool with idA/idB"
+                    .into(),
+            ),
+            "revision" => Err(
+                "revision needs a revisionId — call analyze_revision_diff_for_document".into(),
+            ),
+            "keywords" => {
+                let id = document_id.ok_or_else(|| "documentId required for keywords".to_string())?;
+                let result = store.extract_document_keywords(&self.sidecar, id, Some(16))?;
+                Ok(("keywords".into(), Some(tools::json(&result))))
+            }
+            "note_pulse" => {
+                let id = document_id.ok_or_else(|| "documentId required for note_pulse".to_string())?;
+                let result = store.note_pulse(&self.sidecar, Some(id), None)?;
+                Ok(("note_pulse".into(), Some(tools::json(&result))))
+            }
+            "continuation" => {
+                let id =
+                    document_id.ok_or_else(|| "documentId required for continuation".to_string())?;
+                let doc = store
+                    .get_document(id, false)?
+                    .ok_or_else(|| format!("document not found: {id}"))?;
+                let prefix = doc.plain_text.chars().rev().take(240).collect::<String>();
+                let prefix: String = prefix.chars().rev().collect();
+                let prefix = prefix.trim();
+                if prefix.is_empty() {
+                    return Err("document has no text for continuation".into());
+                }
+                let result = store.suggest_continuation(
+                    &self.sidecar,
+                    prefix,
+                    Some(4),
+                    Some(24),
+                    Some(id),
+                    None,
+                )?;
+                Ok(("continuation".into(), Some(tools::json(&result))))
+            }
+            "mentions" => {
+                let id = document_id.ok_or_else(|| "documentId required for mentions".to_string())?;
+                let result = store.extract_mentions_text(&self.sidecar, Some(id), None)?;
+                Ok(("mentions".into(), Some(tools::json(&result))))
+            }
+            "wiki_health" => {
+                let health = store.wiki_health(40, 40, 24)?;
+                let hubs = store.list_graph_hubs(10)?;
+                Ok((
+                    "wiki_health".into(),
+                    Some(tools::json(&serde_json::json!({
+                        "health": health,
+                        "hubs": hubs,
+                    }))),
+                ))
+            }
+            "save_template" => {
+                let id =
+                    document_id.ok_or_else(|| "documentId required for save_template".to_string())?;
+                if !self.writable {
+                    return Err("save_template requires SCRIBE_MCP_WRITE=1".into());
+                }
+                let created = store.create_custom_template_from_document(id)?;
+                Ok(("save_template".into(), Some(tools::json(&created))))
+            }
+            "handoff" => {
+                let agent = self
+                    .open_agent_store()
+                    .ok_or_else(|| "agent store unavailable".to_string())?;
+                let folded = goal.to_ascii_lowercase();
+                let to = [
+                    "organizer",
+                    "meeting",
+                    "librarian",
+                    "proofreader",
+                    "study",
+                    "general",
+                ]
+                .into_iter()
+                .find(|role| folded.contains(&format!("@{role}")) || folded.contains(*role))
+                .unwrap_or("organizer");
+                let summary = goal.trim();
+                if summary.len() < 2 {
+                    return Err("handoff summary too short".into());
+                }
+                let sent = agent.send_handoff("general", to, summary, document_id, None)?;
+                Ok(("handoff".into(), Some(tools::json(&sent))))
+            }
+            "files_ingest" => Err(
+                "files_ingest runs in the Scribe app (sandbox → notes). Use files_answer from MCP, or open the app agent."
+                    .into(),
+            ),
+            "canvas_summarize" => {
+                let id = document_id
+                    .ok_or_else(|| "documentId required for canvas_summarize".to_string())?;
+                let doc = store
+                    .get_document(id, true)?
+                    .ok_or_else(|| format!("document not found: {id}"))?;
+                let content = doc
+                    .content_json
+                    .as_deref()
+                    .ok_or_else(|| "document has no content".to_string())?;
+                let canvas = scribe_ui::parse_canvas_document(content)
+                    .ok_or_else(|| "document is not a canvas".to_string())?;
+                let mut notes = Vec::new();
+                let mut frames = Vec::new();
+                let mut links = Vec::new();
+                for obj in &canvas.objects {
+                    match &obj.kind {
+                        scribe_ui::CanvasObjectKind::Note if !obj.text.trim().is_empty() => {
+                            notes.push(obj.text.trim().chars().take(160).collect::<String>());
+                        }
+                        scribe_ui::CanvasObjectKind::Frame if !obj.label.trim().is_empty() => {
+                            frames.push(obj.label.trim().to_string());
+                        }
+                        scribe_ui::CanvasObjectKind::DocLink => {
+                            let label = if !obj.document_title.trim().is_empty() {
+                                obj.document_title.trim()
+                            } else if !obj.document_id.trim().is_empty() {
+                                obj.document_id.trim()
+                            } else {
+                                "link"
+                            };
+                            links.push(label.to_string());
+                        }
+                        _ => {}
+                    }
+                }
+                Ok((
+                    "canvas_summarize".into(),
+                    Some(tools::json(&serde_json::json!({
+                        "title": doc.title,
+                        "objectCount": canvas.objects.len(),
+                        "notes": notes,
+                        "frames": frames,
+                        "docLinks": links,
+                    }))),
+                ))
+            }
+            "canvas_to_note" => {
+                let id =
+                    document_id.ok_or_else(|| "documentId required for canvas_to_note".to_string())?;
+                if !self.writable {
+                    return Err("canvas_to_note requires SCRIBE_MCP_WRITE=1".into());
+                }
+                let doc = store
+                    .get_document(id, true)?
+                    .ok_or_else(|| format!("document not found: {id}"))?;
+                let content = doc
+                    .content_json
+                    .as_deref()
+                    .ok_or_else(|| "document has no content".to_string())?;
+                let canvas = scribe_ui::parse_canvas_document(content)
+                    .ok_or_else(|| "document is not a canvas".to_string())?;
+                let mut lines: Vec<String> = Vec::new();
+                for obj in &canvas.objects {
+                    let text = obj.text.trim();
+                    let label = obj.label.trim();
+                    if !label.is_empty() {
+                        lines.push(format!("## {label}"));
+                    }
+                    if !text.is_empty() {
+                        lines.push(text.to_string());
+                    }
+                }
+                let body = if lines.is_empty() {
+                    "(empty canvas)".to_string()
+                } else {
+                    lines.join("\n\n")
+                };
+                let title = format!("{} — from canvas", doc.title);
+                let created = store.create_note(&title, Some(&body), None)?;
+                Ok(("canvas_to_note".into(), Some(tools::json(&created))))
+            }
+            "canvas_template" => Err(
+                "canvas_template applies built-in board layouts in the Scribe app only".into(),
+            ),
+            other => Err(format!("unsupported agent tool: {other}")),
+        })
+    }
+
+    pub(crate) fn run_agent_with_persona(
+        &self,
+        goal: &str,
+        scope: &str,
+        document_id: Option<String>,
+        max_tools: Option<i64>,
+        persona: &str,
+    ) -> Result<String, String> {
+        let spellcheck = persona == "spellcheck";
+        if spellcheck && document_id.as_deref().map(str::trim).filter(|v| !v.is_empty()).is_none()
+        {
+            return Err("documentId is required for the spellcheck persona".into());
+        }
+
+        let (prefs_enabled, prefs_max, disabled_tools) = self
+            .open_agent_store()
+            .and_then(|store| store.get_prefs().ok())
+            .map(|prefs| {
+                (
+                    prefs.enabled,
+                    prefs.max_steps as i64,
+                    prefs.disabled_tools,
+                )
+            })
+            .unwrap_or((true, 3, Vec::new()));
+
+        if !prefs_enabled {
+            return Err("Local agent is disabled in Scribe settings".into());
+        }
+
+        let scope = if spellcheck { "document" } else { scope };
+        let max_tools = if spellcheck {
+            1
+        } else {
+            max_tools.unwrap_or(prefs_max).clamp(1, 6)
+        };
+
+        let role_id = if spellcheck {
+            "proofreader"
+        } else if persona == "general" || persona.is_empty() {
+            "general"
+        } else {
+            persona
+        };
+
+        let (handoff_summaries, feedback_tools, inbox_block) =
+            if let Some(agent_store) = self.open_agent_store() {
+                let inbox = agent_store
+                    .list_handoff_inbox(role_id, Some("pending"), 8)
+                    .unwrap_or_default();
+                let summaries: Vec<String> = inbox
+                    .iter()
+                    .filter(|item| item.status == "pending")
+                    .take(6)
+                    .map(|item| format!("From {}: {}", item.from_agent_id, item.summary))
+                    .collect();
+                let preamble = scribe_agent::inbox_preamble(&inbox);
+                let feedback = agent_store
+                    .recent_successful_tool_sets(24)
+                    .unwrap_or_default();
+                (summaries, feedback, preamble)
+            } else {
+                (Vec::new(), Vec::new(), None)
+            };
+
+        let tools_list: Vec<String> = if spellcheck {
+            vec!["spellcheck".into()]
+        } else {
+            let handoffs = if handoff_summaries.is_empty() {
+                None
+            } else {
+                Some(handoff_summaries.as_slice())
+            };
+            let feedback = if feedback_tools.is_empty() {
+                None
+            } else {
+                Some(feedback_tools.as_slice())
+            };
+            let plan = self.with_store(|store| {
+                store.plan_agent_goal_ctx(
+                    &self.sidecar,
+                    goal,
+                    scope,
+                    Some(max_tools),
+                    Some(role_id),
+                    handoffs,
+                    feedback,
+                    None,
+                )
+            })?;
+
+            let planned = plan
+                .get("tools")
+                .and_then(|value| value.as_array())
+                .cloned()
+                .unwrap_or_default()
+                .into_iter()
+                .filter_map(|value| value.as_str().map(|s| s.to_string()))
+                .filter(|tool| {
+                    !disabled_tools
+                        .iter()
+                        .any(|disabled| disabled.eq_ignore_ascii_case(tool))
+                })
+                .take(max_tools as usize)
+                .collect::<Vec<_>>();
+
+            if plan
+                .get("needsClarification")
+                .and_then(|value| value.as_bool())
+                .unwrap_or(false)
+                && planned.is_empty()
+            {
+                return Ok(tools::json(&serde_json::json!({
+                    "goal": goal,
+                    "scope": scope,
+                    "documentId": document_id,
+                    "persona": persona,
+                    "needsClarification": true,
+                    "clarifyOptions": plan.get("clarifyOptions").cloned().unwrap_or(serde_json::json!([])),
+                    "steps": [],
+                    "answer": "Goal is ambiguous — pick a tool from clarifyOptions, or call run_agent again with a more specific goal.",
+                })));
+            }
+
+            planned
+        };
+
+        let mut steps = Vec::new();
+        let mut answers = Vec::new();
+
+        if let Some(preamble) = self.agent_teachings_preamble(spellcheck) {
+            answers.push(preamble);
+        }
+        if let Some(inbox) = inbox_block {
+            answers.push(inbox);
+        }
+
+        for tool_name in &tools_list {
+            match self.execute_agent_tool(tool_name, goal, document_id.as_deref()) {
+                Ok((detail, answer)) => {
+                    if let Some(text) = answer.as_ref().filter(|s| !s.trim().is_empty()) {
+                        answers.push(text.clone());
+                    }
+                    steps.push(serde_json::json!({
+                        "tool": tool_name,
+                        "status": "ok",
+                        "detail": detail,
+                    }));
+                }
+                Err(error) => {
+                    steps.push(serde_json::json!({
+                        "tool": tool_name,
+                        "status": "error",
+                        "detail": error,
+                    }));
+                }
+            }
+        }
+
+        let answer = if answers.is_empty() {
+            "No tool produced an answer.".to_string()
+        } else {
+            answers.join("\n\n")
+        };
+
+        if let Some(store) = self.open_agent_store() {
+            let agent_id = if spellcheck { "proofreader" } else { "general" };
+            let _ = store.append_run(
+                scope,
+                document_id.as_deref(),
+                goal,
+                Some(&serde_json::to_string(&steps).unwrap_or_else(|_| "[]".into())),
+                Some(&answer),
+                Some(agent_id),
+            );
+        }
+
+        let goal_preview: String = goal.chars().take(120).collect();
+        self.audit_mcp(
+            "agent",
+            "run_agent",
+            &format!("MCP run_agent ({persona}): {goal_preview}"),
+            Some(serde_json::json!({
+                "persona": persona,
+                "scope": scope,
+                "documentId": document_id,
+                "toolCount": tools_list.len(),
+            })),
+            "ok",
+        );
+
+        Ok(tools::json(&serde_json::json!({
+            "goal": goal,
+            "scope": scope,
+            "documentId": document_id,
+            "persona": persona,
+            "steps": steps,
+            "answer": answer,
+        })))
+    }
+}

@@ -1089,10 +1089,24 @@ All accept `id` and/or `text` unless noted. Require Local AI enabled (except whe
 
 ## Wiki health
 
-| Tool | Args |
-|------|------|
-| `wiki_health_report` | `unresolvedLimit?`, `stubMaxWords?`, `stubLimit?` |
-| `list_stub_documents` | `maxWords?`, `limit?` |
+| Tool | Args | Notes |
+|------|------|--------|
+| `wiki_health_report` | `unresolvedLimit?`, `stubMaxWords?`, `stubLimit?` | Orphans + unresolved + stubs |
+| `list_stub_documents` | `maxWords?`, `limit?` | Short notes |
+| `list_orphan_documents` | — | No wiki edges |
+| `suggest_wiki_resolutions` | `limit?` | Unresolved + fuzzy title scores |
+| `resolve_wiki_link` | `documentId`, `label`, `targetId` | Writable |
+| `create_and_link_wiki_note` | `documentId`, `label`, `folderId?`, `content?` | Create target + link; writable |
+| `auto_resolve_wiki_links` | `limit?`, `minScore?` (default `0.72`) | Writable |
+| `expand_stub_document` | `id`, `heading?` | Append outline scaffold; writable |
+| `list_graph_hubs` | `limit?` | Most connected notes |
+
+## Smart filters & media
+
+| Tool | Args | Notes |
+|------|------|--------|
+| `filter_library_smart` | `filter`, `limit?`, `folderId?` | `none` \| `unlinked` \| `untagged` \| `unread` \| `canvas` \| `stubs` \| `tasks` \| `media` |
+| `list_library_videos` | — | Local large-video library rows |
 
 ---
 
@@ -1103,7 +1117,7 @@ All accept `id` and/or `text` unless noted. Require Local AI enabled (except whe
 | `weekly_journal_review` | Optional `fromDate` / `toDate` — reuse artifacts, then journal_summary + tasks |
 | `capture_today` | get_or_create_journal + append_to_note |
 | `open_tasks_triage` | list_open_tasks, then toggle_task |
-| `wiki_health` | hubs + unresolved wiki links |
+| `wiki_health` | hubs + suggest/resolve/create/expand wiki workflow |
 | `rewrite_selection_draft` | rewrite_selection preview (do not apply unless asked) |
 | `continue_document_chat` | prefer `document_answer_and_save` |
 | `analyze_this_note` | `id` — analysis → keywords → takeaways → organize |

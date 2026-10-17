@@ -1,7 +1,7 @@
 {
   "name": "scribe",
   "private": true,
-  "version": "3.8.0",
+  "version": "3.9.0",
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -13,7 +13,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:backend": "cargo test --workspace",
+    "test:backend": "cargo test --workspace --locked",
+    "test:audit": "cargo clippy -p scribe-audit --locked --all-targets -- -D warnings && cargo test -p scribe-audit --locked",
     "test:load": "npm run test:load:fe && npm run test:load:rust && npm run test:load:nlp",
     "test:load:fe": "vitest run src/__tests__/load",
     "test:load:fe:heavy": "SCRIBE_LOAD=1 vitest run src/__tests__/load",

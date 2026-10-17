@@ -16,14 +16,21 @@ import {
   auditAdminStatus,
   auditAdminUnlock,
   clearAuditEvents,
+  exportAuditEventsJsonl,
   getAuditDbPath,
   getAuditSchemaVersion,
+  getAuditStats,
   listAuditEvents,
+  purgeAuditEventsBefore,
+  setAuditEventsKeep,
   type AuditAdminStatus,
   type AuditEvent,
+  type AuditStats,
 } from '@/lib/db/api'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
+
+const MIN_PASSWORD = 8
 
 type FilterSource = 'all' | 'tauri' | 'mcp' | 'system'
 type FilterCategory =
@@ -35,6 +42,10 @@ type FilterCategory =
   | 'nlp'
   | 'admin'
   | 'security'
+  | 'canvas'
+  | 'wiki'
+  | 'library'
+type FilterOutcome = 'all' | 'ok' | 'error' | 'denied'
 
 function formatTs(epoch: number): string {
   try {
@@ -50,10 +61,19 @@ function outcomeClass(outcome: string): string {
   return 'text-[var(--color-muted-foreground)]'
 }
 
+function formatBuckets(buckets: { key: string; count: number }[]): string {
+  if (!buckets.length) return '—'
+  return buckets
+    .slice(0, 6)
+    .map((b) => `${b.key}:${b.count}`)
+    .join(' · ')
+}
+
 export function AuditSection() {
   const { t } = useTranslation()
   const [status, setStatus] = useState<AuditAdminStatus | null>(null)
   const [events, setEvents] = useState<AuditEvent[]>([])
+  const [stats, setStats] = useState<AuditStats | null>(null)
   const [dbPath, setDbPath] = useState<string | null>(null)
   const [schemaVersion, setSchemaVersion] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
@@ -63,24 +83,37 @@ export function AuditSection() {
   const [newPassword, setNewPassword] = useState('')
   const [source, setSource] = useState<FilterSource>('all')
   const [category, setCategory] = useState<FilterCategory>('all')
+  const [outcome, setOutcome] = useState<FilterOutcome>('all')
+  const [keepDraft, setKeepDraft] = useState('5000')
+
+  function listInput() {
+    return {
+      limit: 200,
+      source: source === 'all' ? null : source,
+      category: category === 'all' ? null : category,
+      outcome: outcome === 'all' ? null : outcome,
+    }
+  }
 
   async function refreshStatus() {
     const next = await auditAdminStatus()
     setStatus(next)
+    setKeepDraft(String(next.keepLimit ?? 5000))
     return next
   }
 
   async function refreshEvents(unlocked: boolean) {
     if (!unlocked) {
       setEvents([])
+      setStats(null)
       return
     }
-    const list = await listAuditEvents({
-      limit: 200,
-      source: source === 'all' ? null : source,
-      category: category === 'all' ? null : category,
-    })
+    const [list, nextStats] = await Promise.all([
+      listAuditEvents(listInput()),
+      getAuditStats(),
+    ])
     setEvents(list)
+    setStats(nextStats)
   }
 
   async function bootstrap() {
@@ -112,7 +145,7 @@ export function AuditSection() {
       toast.error(t('audit.loadError'), String(error))
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps -- filters
-  }, [source, category])
+  }, [source, category, outcome])
 
   const filtersDisabled = !status?.unlocked || busy
 
@@ -158,6 +191,7 @@ export function AuditSection() {
       const next = await auditAdminLock()
       setStatus(next)
       setEvents([])
+      setStats(null)
       toast.success(t('audit.lockDone'))
     } catch (error) {
       toast.error(t('audit.lockError'), String(error))
@@ -196,6 +230,42 @@ export function AuditSection() {
     }
   }
 
+  async function handlePurge(days: number) {
+    if (!window.confirm(t('audit.purgeConfirm', { days }))) return
+    setBusy(true)
+    try {
+      const before = Math.floor(Date.now() / 1000) - days * 86_400
+      const deleted = await purgeAuditEventsBefore(before)
+      await refreshStatus()
+      await refreshEvents(true)
+      toast.success(t('audit.purgeDone', { count: deleted }))
+    } catch (error) {
+      toast.error(t('audit.purgeError'), String(error))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleSetKeep() {
+    const keep = Number.parseInt(keepDraft, 10)
+    if (!Number.isFinite(keep) || keep < 100) {
+      toast.error(t('audit.keepError'), t('audit.keepHint'))
+      return
+    }
+    setBusy(true)
+    try {
+      const next = await setAuditEventsKeep(keep)
+      setStatus(next)
+      setKeepDraft(String(next.keepLimit))
+      await refreshEvents(true)
+      toast.success(t('audit.keepDone', { count: next.keepLimit }))
+    } catch (error) {
+      toast.error(t('audit.keepError'), String(error))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function handleRefresh() {
     setBusy(true)
     try {
@@ -209,19 +279,28 @@ export function AuditSection() {
   }
 
   async function handleExport() {
-    if (!events.length) return
+    setBusy(true)
     try {
-      const payload = JSON.stringify(events, null, 2)
-      const blob = new Blob([payload], { type: 'application/json' })
+      const payload = await exportAuditEventsJsonl({
+        ...listInput(),
+        limit: 2000,
+      })
+      if (!payload.trim()) {
+        toast.error(t('audit.exportError'), t('audit.empty'))
+        return
+      }
+      const blob = new Blob([payload], { type: 'application/x-ndjson' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `scribe-audit-${new Date().toISOString().slice(0, 10)}.json`
+      a.download = `scribe-audit-${new Date().toISOString().slice(0, 10)}.jsonl`
       a.click()
       URL.revokeObjectURL(url)
       toast.success(t('audit.exportDone'))
     } catch (error) {
       toast.error(t('audit.exportError'), String(error))
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -271,6 +350,11 @@ export function AuditSection() {
               <span className="text-[var(--color-muted-foreground)]">
                 {t('audit.eventCount', { count: status?.eventCount ?? 0 })}
               </span>
+              {status?.keepLimit != null ? (
+                <span className="text-[var(--color-muted-foreground)]">
+                  {t('audit.keepLimitLabel', { count: status.keepLimit })}
+                </span>
+              ) : null}
             </div>
           </SettingsRow>
 
@@ -283,6 +367,26 @@ export function AuditSection() {
           <SettingsRow title={t('audit.schemaVersion')}>
             <span className="font-mono text-[13px]">{schemaVersion ?? '—'}</span>
           </SettingsRow>
+
+          {status?.unlocked && stats ? (
+            <SettingsRow
+              title={t('audit.statsTitle')}
+              description={t('audit.statsHint')}
+              layout="stack"
+            >
+              <div className="space-y-1 font-mono text-[11px] text-[var(--color-muted-foreground)]">
+                <p>
+                  {t('audit.statsByOutcome')}: {formatBuckets(stats.byOutcome)}
+                </p>
+                <p>
+                  {t('audit.statsBySource')}: {formatBuckets(stats.bySource)}
+                </p>
+                <p>
+                  {t('audit.statsByCategory')}: {formatBuckets(stats.byCategory)}
+                </p>
+              </div>
+            </SettingsRow>
+          ) : null}
         </SettingsGroup>
       </SettingsSection>
 
@@ -318,7 +422,7 @@ export function AuditSection() {
                 <Button
                   type="button"
                   size="sm"
-                  disabled={busy || password.trim().length < 4}
+                  disabled={busy || password.trim().length < MIN_PASSWORD}
                   onClick={() => void handleSetup()}
                 >
                   {t('audit.setupAction')}
@@ -369,13 +473,58 @@ export function AuditSection() {
                       disabled={
                         busy ||
                         currentPassword.trim().length < 1 ||
-                        newPassword.trim().length < 4
+                        newPassword.trim().length < MIN_PASSWORD
                       }
                       onClick={() => void handleChangePassword()}
                     >
                       {t('audit.changePasswordAction')}
                     </Button>
                   </div>
+                </div>
+              </SettingsRow>
+              <SettingsRow
+                title={t('audit.keepTitle')}
+                description={t('audit.keepHint')}
+                layout="stack"
+              >
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <Input
+                    type="number"
+                    min={100}
+                    max={50000}
+                    step={100}
+                    value={keepDraft}
+                    onChange={(event) => setKeepDraft(event.target.value)}
+                    className="sm:max-w-[140px]"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() => void handleSetKeep()}
+                  >
+                    {t('audit.keepAction')}
+                  </Button>
+                </div>
+              </SettingsRow>
+              <SettingsRow
+                title={t('audit.purgeTitle')}
+                description={t('audit.purgeHint')}
+              >
+                <div className="flex flex-wrap gap-1.5">
+                  {[30, 90, 365].map((days) => (
+                    <Button
+                      key={days}
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={busy}
+                      onClick={() => void handlePurge(days)}
+                    >
+                      {t('audit.purgeDays', { days })}
+                    </Button>
+                  ))}
                 </div>
               </SettingsRow>
             </>
@@ -393,7 +542,7 @@ export function AuditSection() {
                   onChange={(event) => setPassword(event.target.value)}
                   placeholder={t('audit.passwordPlaceholder')}
                   onKeyDown={(event) => {
-                    if (event.key === 'Enter' && password.trim().length >= 4) {
+                    if (event.key === 'Enter' && password.trim().length >= 1) {
                       void handleUnlock()
                     }
                   }}
@@ -401,7 +550,7 @@ export function AuditSection() {
                 <Button
                   type="button"
                   size="sm"
-                  disabled={busy || password.trim().length < 4}
+                  disabled={busy || password.trim().length < 1}
                   onClick={() => void handleUnlock()}
                 >
                   <LockOpen className="mr-1.5 h-3.5 w-3.5" />
@@ -424,7 +573,7 @@ export function AuditSection() {
                   type="button"
                   size="sm"
                   variant="outline"
-                  disabled={busy || events.length === 0}
+                  disabled={busy || (status.eventCount ?? 0) === 0}
                   onClick={() => void handleExport()}
                 >
                   <Download className="mr-1.5 h-3.5 w-3.5" />
@@ -476,6 +625,23 @@ export function AuditSection() {
               <option value="nlp">nlp</option>
               <option value="admin">admin</option>
               <option value="security">security</option>
+              <option value="canvas">canvas</option>
+              <option value="wiki">wiki</option>
+              <option value="library">library</option>
+            </select>
+          </label>
+          <label className="flex items-center gap-2 text-[12px] text-[var(--color-muted-foreground)]">
+            {t('audit.filterOutcome')}
+            <select
+              className="h-8 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] px-2 text-[12px] text-[var(--color-foreground)]"
+              value={outcome}
+              disabled={filtersDisabled}
+              onChange={(event) => setOutcome(event.target.value as FilterOutcome)}
+            >
+              <option value="all">{t('audit.filterAll')}</option>
+              <option value="ok">ok</option>
+              <option value="error">error</option>
+              <option value="denied">denied</option>
             </select>
           </label>
         </div>

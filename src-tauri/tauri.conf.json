@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Scribe",
-  "version": "3.8.0",
+  "version": "3.9.0",
   "identifier": "com.scribe.app",
   "build": {
     "frontendDist": "../dist",
@@ -76,6 +76,7 @@
       "minimumSystemVersion": "12.0",
       "hardenedRuntime": true,
       "entitlements": "entitlements.plist",
+      "infoPlist": "Info.plist",
       "files": {
         "Resources/scribe-document.icns": "icons/scribe-document.icns"
       }

@@ -3,11 +3,18 @@ import { ReactNodeViewRenderer } from '@tiptap/react'
 import Youtube from '@tiptap/extension-youtube'
 import { VideoBlock } from '@/components/editor/VideoBlock'
 
+type VideoCommandOptions = {
+  src?: string | null
+  caption?: string | null
+  libraryVideoId?: string | null
+  pos?: number
+}
+
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     video: {
-      insertVideo: (options?: { src?: string | null; caption?: string | null; pos?: number }) => ReturnType
-      updateVideo: (options?: { src?: string | null; caption?: string | null; pos?: number }) => ReturnType
+      insertVideo: (options?: VideoCommandOptions) => ReturnType
+      updateVideo: (options?: VideoCommandOptions) => ReturnType
       deleteVideo: (options?: { pos?: number }) => ReturnType
     }
   }
@@ -35,6 +42,10 @@ export const Video = Node.create({
         parseHTML: (element) =>
           element.getAttribute('data-caption') ?? element.querySelector('figcaption')?.textContent ?? null,
       },
+      libraryVideoId: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('data-library-video-id'),
+      },
     }
   },
 
@@ -47,6 +58,7 @@ export const Video = Node.create({
     const attrs = mergeAttributes(HTMLAttributes, {
       'data-type': 'video',
       'data-src': node.attrs.src ?? '',
+      'data-library-video-id': node.attrs.libraryVideoId ?? '',
       class: 'video-block',
     })
     if (caption) {
@@ -67,6 +79,7 @@ export const Video = Node.create({
             this.type.create({
               src: options?.src ?? null,
               caption: options?.caption ?? null,
+              libraryVideoId: options?.libraryVideoId ?? null,
             }),
           )
           return true
@@ -81,6 +94,9 @@ export const Video = Node.create({
             ...node.attrs,
             ...(options?.src !== undefined ? { src: options.src } : {}),
             ...(options?.caption !== undefined ? { caption: options.caption } : {}),
+            ...(options?.libraryVideoId !== undefined
+              ? { libraryVideoId: options.libraryVideoId }
+              : {}),
           })
           return true
         },
