@@ -1,4 +1,4 @@
-import { CircleMarker, MapContainer, TileLayer, Tooltip, useMap } from 'react-leaflet'
+import { CircleMarker, MapContainer, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet'
 import { NodeViewWrapper } from '@tiptap/react'
 import type { NodeViewProps } from '@tiptap/react'
 import { Component, useEffect, useMemo, useRef, useState, type ErrorInfo, type ReactNode } from 'react'
@@ -57,7 +57,13 @@ function StaticFallback({ spec }: { spec: MapSpec }) {
   )
 }
 
-function MapStage({ spec }: { spec: MapSpec }) {
+function MapStage({
+  spec,
+  onAddMarker,
+}: {
+  spec: MapSpec
+  onAddMarker?: (lat: number, lng: number) => void
+}) {
   const stageRef = useRef<HTMLDivElement>(null)
   const [live, setLive] = useState(false)
 
@@ -78,7 +84,7 @@ function MapStage({ spec }: { spec: MapSpec }) {
       {spec.title ? <div className="map-block__title">{spec.title}</div> : null}
       {live ? (
         <MapErrorBoundary fallback={<StaticFallback spec={spec} />}>
-          <LeafletPreview spec={spec} />
+          <LeafletPreview spec={spec} onAddMarker={onAddMarker} />
         </MapErrorBoundary>
       ) : (
         <StaticFallback spec={spec} />
@@ -87,7 +93,22 @@ function MapStage({ spec }: { spec: MapSpec }) {
   )
 }
 
-function LeafletPreview({ spec }: { spec: MapSpec }) {
+function ClickToAddMarker({ onAdd }: { onAdd: (lat: number, lng: number) => void }) {
+  useMapEvents({
+    click(event) {
+      onAdd(event.latlng.lat, event.latlng.lng)
+    },
+  })
+  return null
+}
+
+function LeafletPreview({
+  spec,
+  onAddMarker,
+}: {
+  spec: MapSpec
+  onAddMarker?: (lat: number, lng: number) => void
+}) {
   const { t } = useTranslation()
   const markers = spec.markers.length > 0 ? spec.markers : [{ lat: spec.lat, lng: spec.lng, label: spec.title }]
 
@@ -104,6 +125,7 @@ function LeafletPreview({ spec }: { spec: MapSpec }) {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <SyncView spec={spec} />
+      {onAddMarker ? <ClickToAddMarker onAdd={onAddMarker} /> : null}
       {markers.map((marker, index) => (
         <CircleMarker
           key={`${marker.lat}-${marker.lng}-${index}`}
@@ -247,7 +269,7 @@ export function MapBlock({ node, updateAttributes, selected, editor, deleteNode 
             </label>
             <div className="map-block__form-row">
               <label>
-                <span>Lat</span>
+                <span>{t('map.lat')}</span>
                 <input
                   type="number"
                   step="0.0001"
@@ -256,7 +278,7 @@ export function MapBlock({ node, updateAttributes, selected, editor, deleteNode 
                 />
               </label>
               <label>
-                <span>Lng</span>
+                <span>{t('map.lng')}</span>
                 <input
                   type="number"
                   step="0.0001"
@@ -265,7 +287,7 @@ export function MapBlock({ node, updateAttributes, selected, editor, deleteNode 
                 />
               </label>
               <label>
-                <span>Zoom</span>
+                <span>{t('map.zoom')}</span>
                 <input
                   type="number"
                   min={1}
@@ -275,6 +297,16 @@ export function MapBlock({ node, updateAttributes, selected, editor, deleteNode 
                 />
               </label>
             </div>
+            <p className="map-block__click-hint">{t('map.clickToAdd')}</p>
+            <MapStage
+              spec={form}
+              onAddMarker={(lat, lng) =>
+                setForm((prev) => ({
+                  ...prev,
+                  markers: [...prev.markers, { lat, lng, label: '' }],
+                }))
+              }
+            />
             <div className="map-block__markers">
               <div className="map-block__markers-head">
                 <strong>{t('map.markers')}</strong>

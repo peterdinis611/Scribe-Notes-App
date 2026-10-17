@@ -617,11 +617,16 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             if let RunEvent::Opened { urls } = event {
                 for url in urls {
+                    let as_str = url.to_string();
+                    if as_str.starts_with("scribe://") {
+                        let _ = app_handle.emit("open-deep-link", as_str);
+                        continue;
+                    }
                     let path = url
                         .to_file_path()
                         .ok()
                         .map(|p| p.to_string_lossy().to_string())
-                        .unwrap_or_else(|| url.to_string());
+                        .unwrap_or_else(|| as_str.clone());
                     if path.ends_with(".scribe")
                         || path.ends_with(".scribe.json")
                         || path.ends_with(".docx")

@@ -15,12 +15,16 @@ import {
   extendMcpWrite,
   getMcpVaultScope,
   getMcpWriteExpiresAt,
+  getMcpWriteTtlMinutes,
   isMcpEnabled,
   isMcpWriteEnabled,
+  MCP_WRITE_TTL_PRESETS_MIN,
   setMcpEnabled,
   setMcpVaultScope,
   setMcpWriteEnabled,
+  setMcpWriteTtlMinutes,
   type McpVaultScope,
+  type McpWriteTtlMinutes,
 } from '@/lib/mcp/prefs'
 import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
@@ -96,6 +100,7 @@ export function McpSection() {
   const [enabled, setEnabled] = useState(() => isMcpEnabled())
   const [writeEnabled, setWriteEnabled] = useState(() => isMcpWriteEnabled())
   const [writeExpiresAt, setWriteExpiresAt] = useState<number | null>(() => getMcpWriteExpiresAt())
+  const [writeTtlMin, setWriteTtlMin] = useState<McpWriteTtlMinutes>(() => getMcpWriteTtlMinutes())
   const [scope, setScope] = useState<McpVaultScope>(() => getMcpVaultScope())
   const [openingDemo, setOpeningDemo] = useState(false)
   const mcpConfig = useMemo(() => buildMcpConfig(writeEnabled, scope), [writeEnabled, scope])
@@ -141,7 +146,11 @@ export function McpSection() {
     toast.success(next ? t('settings.mcp.writeEnabledToast') : t('settings.mcp.writeDisabledToast'))
   }
 
-  function extendWrite() {
+  function extendWrite(minutes?: McpWriteTtlMinutes) {
+    if (minutes != null) {
+      setMcpWriteTtlMinutes(minutes)
+      setWriteTtlMin(minutes)
+    }
     extendMcpWrite()
     setWriteEnabled(true)
     setWriteExpiresAt(getMcpWriteExpiresAt())
@@ -237,17 +246,44 @@ export function McpSection() {
             {writeEnabled ? (
               <>
                 <TokenExpiryCountdown expiresAt={writeExpiresAt} />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={!enabled}
-                  onClick={extendWrite}
-                >
-                  {t('settings.mcp.writeExtend')}
-                </Button>
+                <div className="flex flex-wrap gap-1">
+                  {MCP_WRITE_TTL_PRESETS_MIN.map((minutes) => (
+                    <Button
+                      key={minutes}
+                      type="button"
+                      variant={writeTtlMin === minutes ? 'default' : 'outline'}
+                      size="sm"
+                      disabled={!enabled}
+                      onClick={() => extendWrite(minutes)}
+                    >
+                      {t('settings.mcp.writeTtlMin', { minutes })}
+                    </Button>
+                  ))}
+                </div>
               </>
-            ) : null}
+            ) : (
+              <div className="flex flex-wrap gap-1">
+                {MCP_WRITE_TTL_PRESETS_MIN.map((minutes) => (
+                  <Button
+                    key={minutes}
+                    type="button"
+                    variant={writeTtlMin === minutes ? 'default' : 'outline'}
+                    size="sm"
+                    disabled={!enabled}
+                    onClick={() => {
+                      setMcpWriteTtlMinutes(minutes)
+                      setWriteTtlMin(minutes)
+                      setMcpWriteEnabled(true)
+                      setWriteEnabled(true)
+                      setWriteExpiresAt(getMcpWriteExpiresAt())
+                      toast.success(t('settings.mcp.writeEnabledToast'))
+                    }}
+                  >
+                    {t('settings.mcp.writeTtlMin', { minutes })}
+                  </Button>
+                ))}
+              </div>
+            )}
           </div>
         </SettingsRow>
         <SettingsRow

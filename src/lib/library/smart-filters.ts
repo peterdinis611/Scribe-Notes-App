@@ -55,9 +55,6 @@ function toNativeOptions(options: SmartFilterOptions) {
   }
 }
 
-/** Filters that Rust may not know yet — always evaluate in JS. */
-const JS_ONLY_FILTERS = new Set<LibrarySmartFilter>(['stubs', 'tasks', 'media'])
-
 export function documentMatchesSmartFilter(
   doc: DocumentSummary,
   filter: LibrarySmartFilter,
@@ -94,9 +91,6 @@ export async function documentMatchesSmartFilterAsync(
   filter: LibrarySmartFilter,
   options: SmartFilterOptions,
 ): Promise<boolean> {
-  if (JS_ONLY_FILTERS.has(filter)) {
-    return documentMatchesSmartFilter(doc, filter, options)
-  }
   if (isTauriRuntime()) {
     try {
       return await documentMatchesSmartFilterNative({
@@ -118,9 +112,6 @@ export async function filterDocumentsBySmartFilterAsync(
   options: SmartFilterOptions,
 ): Promise<DocumentSummary[]> {
   if (filter === 'none') return docs
-  if (JS_ONLY_FILTERS.has(filter)) {
-    return docs.filter((doc) => documentMatchesSmartFilter(doc, filter, options))
-  }
   if (isTauriRuntime()) {
     try {
       const matched = await filterDocumentsBySmartFilterNative({

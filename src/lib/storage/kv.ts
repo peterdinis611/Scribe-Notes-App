@@ -7,7 +7,7 @@ let hydrated = false
 let hydratePromise: Promise<void> | null = null
 
 function isScribeStorageKey(key: string) {
-  return key.startsWith('scribe-') || key.startsWith('scribe_')
+  return key.startsWith('scribe-') || key.startsWith('scribe_') || key.startsWith('scribe.')
 }
 
 function migrateFromLocalStorage() {

@@ -1,8 +1,11 @@
 import { store } from '@/store/index'
 import { setInvoiceDialog } from '@/store/uiSlice'
 import type { ScribeInvoiceInput, ScribeInvoiceItem } from '@/components/pdf/templates/invoice'
+import { kvGetJson, kvSetJson } from '@/lib/storage/kv'
 
-const STORAGE_KEY = 'scribe.invoice-options.v1'
+/** Prefixed for IndexedDB kv; legacy `scribe.invoice-options.v1` migrates via hydrate. */
+const STORAGE_KEY = 'scribe-invoice-options-v1'
+const LEGACY_STORAGE_KEY = 'scribe.invoice-options.v1'
 
 export type InvoiceDialogDraft = {
   invoiceNumber: string
@@ -63,21 +66,15 @@ export function normalizeInvoiceDraft(partial: Partial<InvoiceDialogDraft>): Inv
 }
 
 export function loadInvoiceDraft(): InvoiceDialogDraft {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return { ...DEFAULT_DRAFT, items: [...DEFAULT_DRAFT.items] }
-    return normalizeInvoiceDraft(JSON.parse(raw) as Partial<InvoiceDialogDraft>)
-  } catch {
-    return { ...DEFAULT_DRAFT, items: [...DEFAULT_DRAFT.items] }
-  }
+  const stored =
+    kvGetJson<Partial<InvoiceDialogDraft>>(STORAGE_KEY) ??
+    kvGetJson<Partial<InvoiceDialogDraft>>(LEGACY_STORAGE_KEY)
+  if (!stored) return { ...DEFAULT_DRAFT, items: [...DEFAULT_DRAFT.items] }
+  return normalizeInvoiceDraft(stored)
 }
 
 export function saveInvoiceDraft(draft: InvoiceDialogDraft) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizeInvoiceDraft(draft)))
-  } catch {
-    // ignore quota / private mode
-  }
+  kvSetJson(STORAGE_KEY, normalizeInvoiceDraft(draft))
 }
 
 export function draftToInvoiceInput(

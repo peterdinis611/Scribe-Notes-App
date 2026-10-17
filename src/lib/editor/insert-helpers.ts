@@ -325,9 +325,23 @@ export async function insertQrCodeImage(editor: Editor): Promise<boolean> {
     description: i18n.t('toolbar.actions.qrCodeColorHint'),
     placeholder: '#0c0a09',
     defaultValue: '#0c0a09',
-    confirmLabel: i18n.t('toolbar.actions.qrCodeInsert'),
+    confirmLabel: i18n.t('common.next'),
   })
   if (dark == null || editor.isDestroyed) return false
+
+  const eclRaw = await promptInput({
+    title: i18n.t('toolbar.actions.qrCodeEcc'),
+    description: i18n.t('toolbar.actions.qrCodeEccHint'),
+    placeholder: 'M',
+    defaultValue: 'M',
+    confirmLabel: i18n.t('toolbar.actions.qrCodeInsert'),
+  })
+  if (eclRaw == null || editor.isDestroyed) return false
+  const ecl = (['L', 'M', 'Q', 'H'] as const).includes(
+    eclRaw.trim().toUpperCase() as 'L' | 'M' | 'Q' | 'H',
+  )
+    ? (eclRaw.trim().toUpperCase() as 'L' | 'M' | 'Q' | 'H')
+    : 'M'
 
   try {
     const { generateQrDataUrl } = await import('@/lib/editor/qr-generate')
@@ -336,6 +350,7 @@ export async function insertQrCodeImage(editor: Editor): Promise<boolean> {
       width,
       dark: dark.trim() || '#0c0a09',
       light: '#ffffff',
+      errorCorrectionLevel: ecl,
     })
     const path = await saveDocumentImage(
       documentId,

@@ -291,39 +291,38 @@ export function CaptureSection() {
                 >
                   {t('capture.triageTag')}
                 </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={selectedInbox.size === 0 || folders.length === 0}
-                  onClick={() => {
-                    void (async () => {
-                      const names = folders.map((folder) => folder.name).join(', ')
-                      const picked = await promptInput({
-                        title: t('capture.triageFolder'),
-                        description: t('capture.triageFolderHint', { folders: names }),
-                        placeholder: folders[0]?.name ?? '',
-                        confirmLabel: t('common.confirm'),
-                      })
-                      if (!picked?.trim()) return
-                      const folder = folders.find(
-                        (row) => row.name.toLowerCase() === picked.trim().toLowerCase(),
-                      )
-                      if (!folder) {
-                        toast.error(t('capture.triageFolderMissing'))
-                        return
-                      }
-                      for (const id of selectedInbox) {
-                        await moveDocumentToFolder(id, folder.id).catch(() => null)
-                        setInbox(removeCaptureInboxItem(id))
-                      }
-                      setSelectedInbox(new Set())
-                      toast.success(t('capture.triageMoved', { folder: folder.name }))
-                    })()
-                  }}
-                >
-                  {t('capture.triageFolder')}
-                </Button>
+                <label className="inline-flex items-center gap-1.5 text-[12px] text-[var(--color-muted-foreground)]">
+                  <span className="sr-only">{t('capture.triageFolder')}</span>
+                  <select
+                    className="h-8 max-w-[160px] rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] px-2 text-[12px] text-[var(--color-foreground)]"
+                    disabled={selectedInbox.size === 0 || folders.length === 0}
+                    defaultValue=""
+                    onChange={(event) => {
+                      const folderId = event.target.value
+                      event.target.value = ''
+                      if (!folderId || selectedInbox.size === 0) return
+                      const folder = folders.find((row) => row.id === folderId)
+                      if (!folder) return
+                      void (async () => {
+                        for (const id of selectedInbox) {
+                          await moveDocumentToFolder(id, folder.id).catch(() => null)
+                          setInbox(removeCaptureInboxItem(id))
+                        }
+                        setSelectedInbox(new Set())
+                        toast.success(t('capture.triageMoved', { folder: folder.name }))
+                      })()
+                    }}
+                  >
+                    <option value="" disabled>
+                      {t('capture.triageFolder')}
+                    </option>
+                    {folders.map((folder) => (
+                      <option key={folder.id} value={folder.id}>
+                        {folder.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <Button
                   type="button"
                   size="sm"

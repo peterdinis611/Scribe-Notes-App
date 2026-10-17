@@ -17,6 +17,7 @@ import {
   updateDocument,
 } from '@/lib/db/api'
 import { plainTextToTipTapContent } from '@/lib/editor/block-snippets'
+import { mergeTiptapJson } from '@/lib/editor/tiptap-merge'
 import { listSyncConflicts, resolveSyncConflict, type SyncConflict } from '@/lib/db/libraries-api'
 import { tiptapToPlainText } from '@/lib/export/plain-text'
 import { reloadLibraryFromBackend } from '@/lib/library-reload'
@@ -250,6 +251,17 @@ export function SyncConflictsDialog() {
       let contentJson: string | null = null
       if (side === 'app' && merge.appJson) contentJson = merge.appJson
       else if (side === 'disk' && merge.diskJson) contentJson = merge.diskJson
+      else if (side === 'mixed' && merge.appJson && merge.diskJson) {
+        const divergent =
+          Object.values(merge.picks).includes('both')
+            ? 'both'
+            : Object.values(merge.picks).every((pick) => pick === 'disk')
+              ? 'disk'
+              : Object.values(merge.picks).every((pick) => pick === 'app')
+                ? 'app'
+                : 'both'
+        contentJson = mergeTiptapJson(merge.appJson, merge.diskJson, divergent)
+      }
       if (!contentJson) {
         const content = {
           type: 'doc',
@@ -268,7 +280,9 @@ export function SyncConflictsDialog() {
       await reloadLibraryFromBackend(dispatch, { preserveActive: true })
       setMerge(null)
       toast.success(
-        side === 'mixed' ? t('syncConflicts.mergeSavedPlain') : t('syncConflicts.mergeSaved'),
+        side === 'mixed' && contentJson && merge.appJson && contentJson !== merge.appJson
+          ? t('syncConflicts.mergeSavedBlocks')
+          : t('syncConflicts.mergeSaved'),
       )
       if (next.length === 0) dispatch(setSyncConflictsOpen(false))
     } catch (error) {

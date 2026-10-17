@@ -18,6 +18,10 @@ import { useNavigate } from '@tanstack/react-router'
 import { ROUTES } from '@/lib/routes'
 import { useAppDispatch } from '@/store/hooks'
 import { setActiveDocumentId } from '@/store/documentsSlice'
+import {
+  VideoTranscribeDialog,
+  type VideoTranscribeOptions,
+} from '@/components/editor/VideoTranscribeDialog'
 
 export function VideoBlock({ node, updateAttributes, selected, editor, deleteNode }: NodeViewProps) {
   const { t } = useTranslation()
@@ -31,6 +35,7 @@ export function VideoBlock({ node, updateAttributes, selected, editor, deleteNod
   const [draft, setDraft] = useState(rawSrc)
   const [captionDraft, setCaptionDraft] = useState(String(node.attrs.caption ?? ''))
   const [busy, setBusy] = useState(false)
+  const [transcribeOpen, setTranscribeOpen] = useState(false)
 
   useEffect(() => {
     setDraft(rawSrc)
@@ -109,15 +114,18 @@ export function VideoBlock({ node, updateAttributes, selected, editor, deleteNod
     }
   }
 
-  async function transcribe() {
+  async function runTranscribe(options: VideoTranscribeOptions) {
     if (!libraryVideoId || busy) return
     setBusy(true)
     try {
       const { transcribeLibraryVideoNative } = await import('@/lib/db/api')
       const result = await transcribeLibraryVideoNative({
         videoId: libraryVideoId,
+        model: options.model,
+        language: options.language,
         createDocument: true,
       })
+      setTranscribeOpen(false)
       toast.success(t('video.transcribeDone'))
       if (result.transcriptDocumentId) {
         dispatch(setActiveDocumentId(result.transcriptDocumentId))
@@ -154,7 +162,7 @@ export function VideoBlock({ node, updateAttributes, selected, editor, deleteNod
               type="button"
               className="video-block__btn"
               disabled={busy}
-              onClick={() => void transcribe()}
+              onClick={() => setTranscribeOpen(true)}
             >
               {t('video.transcribe')}
             </button>
@@ -228,6 +236,13 @@ export function VideoBlock({ node, updateAttributes, selected, editor, deleteNod
           onBlur={commitCaption}
         />
       ) : null}
+
+      <VideoTranscribeDialog
+        open={transcribeOpen}
+        busy={busy}
+        onOpenChange={setTranscribeOpen}
+        onConfirm={(options) => void runTranscribe(options)}
+      />
     </NodeViewWrapper>
   )
 }

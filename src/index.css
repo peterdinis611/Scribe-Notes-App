@@ -5462,6 +5462,25 @@ html.dark .editor-canvas::before {
   color: var(--color-muted-foreground);
 }
 
+.library-wiki-health__threshold {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+}
+
+.library-wiki-health__threshold input {
+  width: 4.25rem;
+  height: 1.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-foreground);
+  padding: 0 0.35rem;
+  font-size: 11px;
+}
+
 .library-wiki-health__unresolved {
   display: flex;
   flex-direction: column;
@@ -8101,6 +8120,12 @@ body.is-block-dragging .tiptap {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+}
+
+.tiptap .map-block__click-hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--color-muted-foreground);
 }
 
 .tiptap .map-block__markers {
@@ -12670,6 +12695,9 @@ html.dark .link-graph-toolbar--overlay {
 }
 
 .library-smart-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   border: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
   border-radius: 999px;
   background: color-mix(in srgb, var(--color-surface) 55%, transparent);
@@ -12690,6 +12718,16 @@ html.dark .link-graph-toolbar--overlay {
   background: color-mix(in srgb, var(--color-accent) 12%, transparent);
   color: var(--color-accent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 12%, transparent);
+}
+
+.library-smart-filter-count {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.72;
+  font-size: 0.92em;
+}
+
+.library-smart-filter-chip.is-active .library-smart-filter-count {
+  opacity: 0.9;
 }
 
 .journal-streak-badge {

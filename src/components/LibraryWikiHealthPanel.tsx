@@ -5,14 +5,17 @@ import { Columns2, FileWarning, Link2Off, LoaderCircle, Network, Unlink } from '
 import {
   createDocument,
   getDocument,
+  listGraphHubs,
   listWikiHealth,
   resolveWikiLink,
+  updateDocument,
   type WikiHealth,
   type WikiHealthOrphan,
   type WikiHealthStub,
   type WikiHealthUnresolved,
 } from '@/lib/db/api'
 import { ROUTES } from '@/lib/routes'
+import { kvGet, kvSet } from '@/lib/storage/kv'
 import { toast } from '@/lib/toast'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
@@ -35,12 +38,23 @@ export function LibraryWikiHealthPanel({ onNavigate }: LibraryWikiHealthPanelPro
   const [health, setHealth] = useState<WikiHealth | null>(null)
   const [loading, setLoading] = useState(true)
   const [resolvingKey, setResolvingKey] = useState<string | null>(null)
+  const [nlpThreshold, setNlpThreshold] = useState(() => {
+    const raw = Number(kvGet('scribe-wiki-nlp-threshold'))
+    return Number.isFinite(raw) ? Math.min(0.95, Math.max(0.4, raw)) : 0.72
+  })
+  const [hubs, setHubs] = useState<Array<{ id: string; title: string; backlinks: number; outgoing: number }>>(
+    [],
+  )
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const result = await listWikiHealth({ unresolvedLimit: 120, stubMaxWords: 40, stubLimit: 80 })
+      const [result, nextHubs] = await Promise.all([
+        listWikiHealth({ unresolvedLimit: 120, stubMaxWords: 40, stubLimit: 80 }),
+        listGraphHubs(12).catch(() => []),
+      ])
       setHealth(result)
+      setHubs(nextHubs)
     } catch (error) {
       toast.error(t('library.wikiHealth.loadError'), String(error))
       setHealth(null)
@@ -171,7 +185,7 @@ export function LibraryWikiHealthPanel({ onNavigate }: LibraryWikiHealthPanelPro
               ],
             }
           }
-          if ((match.score ?? 0) >= 0.72) {
+          if ((match.score ?? 0) >= nlpThreshold) {
             await resolveWikiLink(row.documentId, row.label, match.documentId)
             resolved += 1
           }
@@ -184,6 +198,54 @@ export function LibraryWikiHealthPanel({ onNavigate }: LibraryWikiHealthPanelPro
       if (resolved > 0) await load()
     } catch (error) {
       toast.error(t('library.wikiHealth.nlpBatchError'), String(error))
+    } finally {
+      setResolvingKey(null)
+    }
+  }
+
+  async function handleExpandStub(item: WikiHealthStub) {
+    const key = `expand:${item.id}`
+    setResolvingKey(key)
+    try {
+      const doc = await getDocument(item.id)
+      const seed = t('library.wikiHealth.stubExpandSeed', { title: item.title || t('common.untitled') })
+      let content: { type: string; content: unknown[] }
+      try {
+        content = JSON.parse(doc.contentJson) as { type: string; content: unknown[] }
+        if (!content?.content) throw new Error('bad doc')
+      } catch {
+        content = { type: 'doc', content: [] }
+      }
+      content.content = [
+        ...(content.content ?? []),
+        {
+          type: 'heading',
+          attrs: { level: 2 },
+          content: [{ type: 'text', text: t('library.wikiHealth.stubExpandHeading') }],
+        },
+        {
+          type: 'paragraph',
+          content: [{ type: 'text', text: seed }],
+        },
+        {
+          type: 'bulletList',
+          content: [1, 2, 3].map((n) => ({
+            type: 'listItem',
+            content: [
+              {
+                type: 'paragraph',
+                content: [{ type: 'text', text: t('library.wikiHealth.stubExpandBullet', { n }) }],
+              },
+            ],
+          })),
+        },
+      ]
+      await updateDocument({ id: item.id, contentJson: JSON.stringify(content) })
+      toast.success(t('library.wikiHealth.stubExpanded'))
+      openDocument(item.id)
+      await load()
+    } catch (error) {
+      toast.error(t('library.wikiHealth.stubExpandError'), String(error))
     } finally {
       setResolvingKey(null)
     }
@@ -249,6 +311,36 @@ export function LibraryWikiHealthPanel({ onNavigate }: LibraryWikiHealthPanelPro
             })}
           </p>
 
+          {hubs.length > 0 ? (
+            <HealthSection
+              icon={Network}
+              title={t('library.wikiHealth.hubs')}
+              empty={t('library.wikiHealth.hubsEmpty')}
+              items={hubs}
+              renderItem={(item) => (
+                <div className="library-wiki-health__row">
+                  <button
+                    type="button"
+                    className="library-wiki-health__item"
+                    onClick={() => openDocument(item.id)}
+                  >
+                    <span className="min-w-0">
+                      <span className="library-wiki-health__text">
+                        {item.title || t('common.untitled')}
+                      </span>
+                      <span className="library-wiki-health__meta">
+                        {t('library.wikiHealth.hubStats', {
+                          backlinks: item.backlinks,
+                          outgoing: item.outgoing,
+                        })}
+                      </span>
+                    </span>
+                  </button>
+                </div>
+              )}
+            />
+          ) : null}
+
           <HealthSection
             icon={Unlink}
             title={t('library.wikiHealth.orphans')}
@@ -283,7 +375,25 @@ export function LibraryWikiHealthPanel({ onNavigate }: LibraryWikiHealthPanelPro
             items={unresolved}
             headerAction={
               unresolved.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <label className="library-wiki-health__threshold">
+                    <span>{t('library.wikiHealth.nlpThreshold')}</span>
+                    <input
+                      type="number"
+                      min={0.4}
+                      max={0.95}
+                      step={0.01}
+                      value={nlpThreshold}
+                      onChange={(event) => {
+                        const next = Number(event.target.value)
+                        const clamped = Number.isFinite(next)
+                          ? Math.min(0.95, Math.max(0.4, next))
+                          : 0.72
+                        setNlpThreshold(clamped)
+                        kvSet('scribe-wiki-nlp-threshold', String(clamped))
+                      }}
+                    />
+                  </label>
                   <button
                     type="button"
                     className="library-wiki-health__resolve"
@@ -380,6 +490,16 @@ export function LibraryWikiHealthPanel({ onNavigate }: LibraryWikiHealthPanelPro
                       {t('library.wikiHealth.stubWords', { count: item.wordCount })}
                     </span>
                   </span>
+                </button>
+                <button
+                  type="button"
+                  className="library-wiki-health__resolve"
+                  disabled={resolvingKey === `expand:${item.id}`}
+                  onClick={() => void handleExpandStub(item)}
+                >
+                  {resolvingKey === `expand:${item.id}`
+                    ? t('common.loading')
+                    : t('library.wikiHealth.expandStub')}
                 </button>
                 <button
                   type="button"

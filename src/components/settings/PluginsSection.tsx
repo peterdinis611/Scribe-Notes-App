@@ -10,6 +10,7 @@ import { PluginDetailPanel } from '@/components/settings/PluginDetailPanel'
 import { PluginLogsTable } from '@/components/settings/PluginLogsTable'
 import {
   applyPluginPreset,
+  checkPluginUpdates,
   clearPluginLogs,
   installPluginFromBytes,
   listMarketplaceListings,
@@ -28,6 +29,7 @@ import {
   subscribePluginLogs,
   subscribePlugins,
   uninstallPlugin,
+  verifyPackageChecksum,
   type MarketplaceKind,
   type MarketplaceListing,
   type PluginCategory,
@@ -87,6 +89,10 @@ export function PluginsSection() {
   const [logsTick, setLogsTick] = useState(0)
   const [installing, setInstalling] = useState(false)
   const [marketBusyId, setMarketBusyId] = useState<string | null>(null)
+  const [updateChecking, setUpdateChecking] = useState(false)
+  const [availableUpdates, setAvailableUpdates] = useState<
+    Array<{ id: string; current: string; latest: string }>
+  >([])
   const [createOpen, setCreateOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [view, setView] = useState<ExtView>('installed')
@@ -229,6 +235,10 @@ export function PluginsSection() {
 
   async function installMarketSample(item: MarketplaceListing) {
     if (!item.packageJson) return
+    if (!verifyPackageChecksum(item.packageJson, item.packageChecksum)) {
+      toast.error(t('settings.plugins.marketplaceChecksumFail'), item.id)
+      return
+    }
     setMarketBusyId(item.id)
     try {
       const bytes = new TextEncoder().encode(item.packageJson)
@@ -529,6 +539,43 @@ export function PluginsSection() {
             <strong>{t('settings.plugins.marketplaceStatus')}</strong>
             <p>{t('settings.plugins.marketplaceLocalBody')}</p>
             <p className="plugin-ext-muted">{MARKETPLACE_STATUS.reason}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={updateChecking}
+                onClick={() => {
+                  setUpdateChecking(true)
+                  void checkPluginUpdates()
+                    .then((updates) => {
+                      setAvailableUpdates(updates)
+                      if (updates.length === 0) {
+                        toast.success(t('settings.plugins.marketplaceUpToDate'))
+                      } else {
+                        toast.info(
+                          t('settings.plugins.marketplaceUpdatesFound', { count: updates.length }),
+                        )
+                      }
+                    })
+                    .catch((error) => {
+                      toast.error(t('settings.plugins.marketplaceUpdateError'), String(error))
+                    })
+                    .finally(() => setUpdateChecking(false))
+                }}
+              >
+                {updateChecking
+                  ? t('common.loading')
+                  : t('settings.plugins.marketplaceCheckUpdates')}
+              </Button>
+              {availableUpdates.length > 0 ? (
+                <span className="text-[12px] text-[var(--color-muted-foreground)]">
+                  {availableUpdates
+                    .map((row) => `${row.id} ${row.current}→${row.latest}`)
+                    .join(' · ')}
+                </span>
+              ) : null}
+            </div>
           </div>
 
           <div className="plugin-ext-filters mb-3">

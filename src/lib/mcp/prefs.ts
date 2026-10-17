@@ -8,7 +8,28 @@ export const MCP_SCOPE_KEY = 'scribe-mcp-scope'
 /** Default intentional write window (30 minutes). */
 export const MCP_WRITE_TTL_SECS = 30 * 60
 
+export const MCP_WRITE_TTL_PRESETS_MIN = [5, 15, 30, 60] as const
+export type McpWriteTtlMinutes = (typeof MCP_WRITE_TTL_PRESETS_MIN)[number]
+
+export const MCP_WRITE_TTL_PRESET_KEY = 'scribe-mcp-write-ttl-min'
+
 export type McpVaultScope = 'no-vault' | 'unlocked-vault' | 'all'
+
+export function getMcpWriteTtlMinutes(): McpWriteTtlMinutes {
+  const raw = Number(kvGet(MCP_WRITE_TTL_PRESET_KEY))
+  if ((MCP_WRITE_TTL_PRESETS_MIN as readonly number[]).includes(raw)) {
+    return raw as McpWriteTtlMinutes
+  }
+  return 30
+}
+
+export function setMcpWriteTtlMinutes(minutes: McpWriteTtlMinutes) {
+  kvSet(MCP_WRITE_TTL_PRESET_KEY, String(minutes))
+}
+
+export function mcpWriteTtlSecs(minutes = getMcpWriteTtlMinutes()): number {
+  return Math.max(60, minutes * 60)
+}
 
 export function isMcpEnabled(): boolean {
   return kvGet(MCP_ENABLED_KEY) === '1'
@@ -40,20 +61,21 @@ export function isMcpWriteEnabled(): boolean {
   return true
 }
 
-export function setMcpWriteEnabled(enabled: boolean, ttlSecs = MCP_WRITE_TTL_SECS) {
+export function setMcpWriteEnabled(enabled: boolean, ttlSecs?: number) {
   if (!enabled) {
     kvSet(MCP_WRITE_KEY, '0')
     clearMcpWriteExpiry()
     return
   }
   kvSet(MCP_WRITE_KEY, '1')
-  const expiresAt = Math.floor(Date.now() / 1000) + Math.max(60, ttlSecs)
+  const secs = ttlSecs ?? mcpWriteTtlSecs()
+  const expiresAt = Math.floor(Date.now() / 1000) + Math.max(60, secs)
   kvSet(MCP_WRITE_EXPIRES_AT_KEY, String(expiresAt))
 }
 
-/** Extend the current write window (or enable with default TTL). */
-export function extendMcpWrite(ttlSecs = MCP_WRITE_TTL_SECS) {
-  setMcpWriteEnabled(true, ttlSecs)
+/** Extend the current write window (or enable with selected TTL preset). */
+export function extendMcpWrite(ttlSecs?: number) {
+  setMcpWriteEnabled(true, ttlSecs ?? mcpWriteTtlSecs())
 }
 
 export function getMcpVaultScope(): McpVaultScope {

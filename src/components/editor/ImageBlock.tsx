@@ -40,6 +40,7 @@ import { ImageLightbox } from '@/components/editor/ImageLightbox'
 import { ImageLoupe } from '@/components/editor/ImageLoupe'
 import { ImageUrlDialog } from '@/components/editor/ImageUrlDialog'
 import { toast } from '@/lib/toast'
+import { kvGet, kvSet } from '@/lib/storage/kv'
 import { useAppSelector } from '@/store/hooks'
 import { saveDocumentOcr } from '@/lib/db/api'
 import { scheduleNlpDocumentIndex } from '@/lib/nlp/auto-index'
@@ -78,7 +79,11 @@ export function ImageBlock({
   const [captionDraft, setCaptionDraft] = useState((node.attrs.caption as string) ?? '')
   const [ocrText, setOcrText] = useState<string | null>(null)
   const [ocrLoading, setOcrLoading] = useState(false)
-  const [bgTolerance, setBgTolerance] = useState(48)
+  const [bgTolerance, setBgTolerance] = useState(() => {
+    const raw = kvGet('scribe-bg-tolerance')
+    const value = raw != null ? Number(raw) : 48
+    return Number.isFinite(value) ? Math.min(120, Math.max(16, value)) : 48
+  })
 
   const rawSrc = (node.attrs.src as string) ?? ''
   const { displaySrc, animated, kind: animatedKind } = useAnimatedImageSrc(rawSrc)
@@ -392,7 +397,11 @@ export function ImageBlock({
                       step={4}
                       value={bgTolerance}
                       disabled={busy || !documentId}
-                      onChange={(event) => setBgTolerance(Number(event.target.value))}
+                      onChange={(event) => {
+                        const next = Number(event.target.value)
+                        setBgTolerance(next)
+                        kvSet('scribe-bg-tolerance', String(next))
+                      }}
                     />
                   </label>
                   <ToolbarBtn

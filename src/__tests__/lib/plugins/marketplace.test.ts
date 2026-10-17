@@ -4,6 +4,8 @@ import {
   checkPluginUpdates,
   listMarketplaceByKind,
   listMarketplaceListings,
+  packageChecksum,
+  verifyPackageChecksum,
 } from '@/lib/plugins/marketplace'
 
 describe('marketplace catalog', () => {
@@ -22,7 +24,7 @@ describe('marketplace catalog', () => {
     expect(listMarketplaceByKind('official').every((item) => item.kind === 'official')).toBe(true)
   })
 
-  it('ships installable sample packages with parseable JSON', () => {
+  it('ships installable sample packages with parseable JSON and checksums', () => {
     for (const sample of listMarketplaceByKind('sample')) {
       expect(sample.packageJson).toBeTruthy()
       const parsed = JSON.parse(sample.packageJson!) as {
@@ -31,10 +33,13 @@ describe('marketplace catalog', () => {
       expect(parsed.manifest.id).toBe(sample.id)
       expect(parsed.manifest.version).toBe(sample.version)
       expect(parsed.manifest.name).toBeTruthy()
+      expect(sample.packageChecksum).toBe(packageChecksum(sample.packageJson!))
+      expect(verifyPackageChecksum(sample.packageJson!, sample.packageChecksum)).toBe(true)
     }
   })
 
-  it('returns no remote updates yet', async () => {
-    await expect(checkPluginUpdates()).resolves.toEqual([])
+  it('runs a local update check against installed plugins', async () => {
+    const updates = await checkPluginUpdates()
+    expect(Array.isArray(updates)).toBe(true)
   })
 })
