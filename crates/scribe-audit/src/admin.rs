@@ -153,6 +153,41 @@ mod tests {
     fn rejects_short_password() {
         let db = open_audit_db_memory().unwrap();
         assert!(setup_admin_password(&db.conn, "short").is_err());
+        assert!(setup_admin_password(&db.conn, "1234567").is_err());
+        setup_admin_password(&db.conn, "12345678").unwrap();
+    }
+
+    #[test]
+    fn rejects_duplicate_setup() {
+        let db = open_audit_db_memory().unwrap();
+        setup_admin_password(&db.conn, "scribe-admin").unwrap();
+        let err = setup_admin_password(&db.conn, "another-pw").unwrap_err();
+        assert!(err.contains("already configured"));
+    }
+
+    #[test]
+    fn change_password_requires_current() {
+        let db = open_audit_db_memory().unwrap();
+        setup_admin_password(&db.conn, "scribe-admin").unwrap();
+        assert!(change_admin_password(&db.conn, "wrong-pass", "new-pass-ok").is_err());
+        assert!(change_admin_password(&db.conn, "scribe-admin", "short").is_err());
+        change_admin_password(&db.conn, "scribe-admin", "brand-new1").unwrap();
+        assert!(!verify_admin_password(&db.conn, "scribe-admin").unwrap());
+        assert!(verify_admin_password(&db.conn, "brand-new1").unwrap());
+    }
+
+    #[test]
+    fn verify_without_setup_is_false() {
+        let db = open_audit_db_memory().unwrap();
+        assert!(!verify_admin_password(&db.conn, "anything").unwrap());
+    }
+
+    #[test]
+    fn password_trims_whitespace() {
+        let db = open_audit_db_memory().unwrap();
+        setup_admin_password(&db.conn, "  padded-pw  ").unwrap();
+        assert!(verify_admin_password(&db.conn, "padded-pw").unwrap());
+        assert!(verify_admin_password(&db.conn, "  padded-pw  ").unwrap());
     }
 
     #[test]
@@ -174,5 +209,27 @@ mod tests {
             Some(HASH_VERSION_V2)
         );
         assert!(verify_admin_password(&db.conn, password).unwrap());
+        // Wrong password must not upgrade / succeed.
+        assert!(!verify_admin_password(&db.conn, "nope-nope").unwrap());
+    }
+
+    #[test]
+    fn v1_without_version_meta_still_verifies() {
+        let db = open_audit_db_memory().unwrap();
+        let salt = "legacy-salt";
+        let password = "legacy-password";
+        meta_set(&db.conn, ADMIN_SALT_KEY, salt).unwrap();
+        meta_set(
+            &db.conn,
+            ADMIN_HASH_KEY,
+            &hash_password_v1(salt, password),
+        )
+        .unwrap();
+        // No ADMIN_HASH_VERSION_KEY → treated as v1.
+        assert!(verify_admin_password(&db.conn, password).unwrap());
+        assert_eq!(
+            meta_get(&db.conn, ADMIN_HASH_VERSION_KEY).unwrap().as_deref(),
+            Some(HASH_VERSION_V2)
+        );
     }
 }

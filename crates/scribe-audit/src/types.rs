@@ -104,3 +104,51 @@ pub fn normalize_outcome(raw: &str) -> String {
 pub fn normalize_action(raw: &str) -> String {
     raw.trim().chars().take(80).collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn normalize_source_aliases() {
+        assert_eq!(normalize_source("MCP"), "mcp");
+        assert_eq!(normalize_source(" system "), "system");
+        assert_eq!(normalize_source("desktop"), "tauri");
+        assert_eq!(normalize_source(""), "tauri");
+    }
+
+    #[test]
+    fn normalize_category_aliases() {
+        assert_eq!(normalize_category("mcp-tool"), "mcp_tool");
+        assert_eq!(normalize_category("tool"), "mcp_tool");
+        assert_eq!(normalize_category("preferences"), "prefs");
+        assert_eq!(normalize_category("sync"), "library");
+        assert_eq!(normalize_category("unknown"), "agent");
+        assert_eq!(normalize_category(" Wiki "), "wiki");
+    }
+
+    #[test]
+    fn normalize_outcome_aliases() {
+        assert_eq!(normalize_outcome("failed"), "error");
+        assert_eq!(normalize_outcome("fail"), "error");
+        assert_eq!(normalize_outcome("forbidden"), "denied");
+        assert_eq!(normalize_outcome("ok"), "ok");
+        assert_eq!(normalize_outcome("whatever"), "ok");
+    }
+
+    #[test]
+    fn normalize_action_trims_and_truncates() {
+        assert_eq!(normalize_action("  run  "), "run");
+        let long = "a".repeat(100);
+        assert_eq!(normalize_action(&long).len(), 80);
+    }
+
+    #[test]
+    fn list_query_serde_camel_case() {
+        let raw = r#"{"limit":10,"category":"agent","outcome":"error"}"#;
+        let q: AuditListQuery = serde_json::from_str(raw).unwrap();
+        assert_eq!(q.limit, Some(10));
+        assert_eq!(q.category.as_deref(), Some("agent"));
+        assert_eq!(q.outcome.as_deref(), Some("error"));
+    }
+}

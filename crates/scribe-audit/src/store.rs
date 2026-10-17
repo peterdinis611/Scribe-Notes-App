@@ -464,6 +464,17 @@ pub fn log_error(
 mod tests {
     use super::*;
 
+    fn sample(source: &str, category: &str, action: &str, summary: &str, outcome: Option<&str>) -> AuditEventInput {
+        AuditEventInput {
+            source: source.into(),
+            category: category.into(),
+            action: action.into(),
+            summary: summary.into(),
+            outcome: outcome.map(str::to_string),
+            ..Default::default()
+        }
+    }
+
     #[test]
     fn append_list_filter_stats_and_export() {
         let store = AuditStore::from_memory().unwrap();
@@ -480,14 +491,7 @@ mod tests {
             })
             .unwrap();
         store
-            .append(AuditEventInput {
-                source: "mcp".into(),
-                category: "mcp_tool".into(),
-                action: "run_agent".into(),
-                summary: "MCP run_agent".into(),
-                outcome: Some("error".into()),
-                ..Default::default()
-            })
+            .append(sample("mcp", "mcp_tool", "run_agent", "MCP run_agent", Some("error")))
             .unwrap();
 
         assert_eq!(store.list(10, None, None).unwrap().len(), 2);
@@ -503,7 +507,11 @@ mod tests {
         );
         let stats = store.stats().unwrap();
         assert_eq!(stats.total, 2);
+        assert_eq!(stats.keep_limit, EVENTS_KEEP_DEFAULT as u64);
+        assert!(stats.oldest_at.is_some());
+        assert!(stats.newest_at.is_some());
         assert!(stats.by_source.iter().any(|b| b.key == "mcp" && b.count == 1));
+        assert!(stats.by_outcome.iter().any(|b| b.key == "error" && b.count == 1));
         let jsonl = store
             .export_jsonl(AuditListQuery {
                 limit: Some(10),
@@ -511,7 +519,178 @@ mod tests {
             })
             .unwrap();
         assert_eq!(jsonl.lines().count(), 2);
-        assert!(store.get(&store.list(1, None, None).unwrap()[0].id).unwrap().is_some());
+        let agent = store
+            .list_query(AuditListQuery {
+                category: Some("agent".into()),
+                ..Default::default()
+            })
+            .unwrap()
+            .into_iter()
+            .next()
+            .unwrap();
+        let got = store.get(&agent.id).unwrap().unwrap();
+        assert_eq!(got.summary, "Agent run completed");
+        assert!(got.detail_json.as_deref().unwrap().contains("summarize"));
+    }
+
+    #[test]
+    fn rejects_empty_summary_and_action() {
+        let store = AuditStore::from_memory().unwrap();
+        assert!(store
+            .append(sample("tauri", "agent", "run", "   ", None))
+            .is_err());
+        assert!(store
+            .append(sample("tauri", "agent", "  ", "ok summary", None))
+            .is_err());
+    }
+
+    #[test]
+    fn defaults_actor_outcome_and_normalizes() {
+        let store = AuditStore::from_memory().unwrap();
+        let event = store
+            .append(AuditEventInput {
+                source: "DESKTOP".into(),
+                category: "mcp-tool".into(),
+                action: "  ping  ".into(),
+                summary: "hi".into(),
+                outcome: Some("failed".into()),
+                ..Default::default()
+            })
+            .unwrap();
+        assert_eq!(event.source, "tauri");
+        assert_eq!(event.category, "mcp_tool");
+        assert_eq!(event.action, "ping");
+        assert_eq!(event.actor, "local");
+        assert_eq!(event.outcome, "error");
+    }
+
+    #[test]
+    fn list_query_filters_source_category_action_and_time() {
+        let store = AuditStore::from_memory().unwrap();
+        let a = store
+            .append(sample("tauri", "security", "vault_lock", "lock", Some("ok")))
+            .unwrap();
+        let b = store
+            .append(sample("mcp", "wiki", "resolve", "wiki hit", Some("denied")))
+            .unwrap();
+
+        assert_eq!(
+            store
+                .list_query(AuditListQuery {
+                    source: Some("mcp".into()),
+                    ..Default::default()
+                })
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            store
+                .list_query(AuditListQuery {
+                    category: Some("security".into()),
+                    ..Default::default()
+                })
+                .unwrap()[0]
+                .id,
+            a.id
+        );
+        assert_eq!(
+            store
+                .list_query(AuditListQuery {
+                    action: Some("resolve".into()),
+                    ..Default::default()
+                })
+                .unwrap()[0]
+                .id,
+            b.id
+        );
+        assert_eq!(
+            store
+                .list_query(AuditListQuery {
+                    outcome: Some("denied".into()),
+                    ..Default::default()
+                })
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            store
+                .list_query(AuditListQuery {
+                    since: Some(a.created_at),
+                    until: Some(b.created_at),
+                    ..Default::default()
+                })
+                .unwrap()
+                .len(),
+            2
+        );
+        assert_eq!(
+            store
+                .list_query(AuditListQuery {
+                    until: Some(a.created_at - 1),
+                    ..Default::default()
+                })
+                .unwrap()
+                .len(),
+            0
+        );
+        assert_eq!(store.list(10, Some("wiki"), Some("mcp")).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn list_limit_clamps() {
+        let store = AuditStore::from_memory().unwrap();
+        for i in 0..5 {
+            store
+                .append(sample("tauri", "agent", "run", &format!("e{i}"), None))
+                .unwrap();
+        }
+        assert_eq!(
+            store
+                .list_query(AuditListQuery {
+                    limit: Some(0),
+                    ..Default::default()
+                })
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            store
+                .list_query(AuditListQuery {
+                    limit: Some(3),
+                    ..Default::default()
+                })
+                .unwrap()
+                .len(),
+            3
+        );
+    }
+
+    #[test]
+    fn get_missing_and_blank_id() {
+        let store = AuditStore::from_memory().unwrap();
+        assert!(store.get("missing").unwrap().is_none());
+        assert!(store.get("").unwrap().is_none());
+        assert!(store.get("   ").unwrap().is_none());
+    }
+
+    #[test]
+    fn clear_removes_all_then_allows_append() {
+        let store = AuditStore::from_memory().unwrap();
+        store
+            .append(sample("tauri", "agent", "run", "one", None))
+            .unwrap();
+        assert_eq!(store.clear().unwrap(), 1);
+        assert_eq!(store.count().unwrap(), 0);
+        let stats = store.stats().unwrap();
+        assert_eq!(stats.total, 0);
+        assert!(stats.oldest_at.is_none());
+        store
+            .append(sample("system", "admin", "setup", "again", None))
+            .unwrap();
+        assert_eq!(store.count().unwrap(), 1);
     }
 
     #[test]
@@ -519,17 +698,132 @@ mod tests {
         let store = AuditStore::from_memory().unwrap();
         store.set_events_keep(100).unwrap();
         store
-            .append(AuditEventInput {
-                source: "tauri".into(),
-                category: "security".into(),
-                action: "vault_lock".into(),
-                summary: "old".into(),
-                ..Default::default()
-            })
+            .append(sample("tauri", "security", "vault_lock", "old", None))
             .unwrap();
         let now = chrono::Utc::now().timestamp();
         let deleted = store.purge_before(now + 10).unwrap();
         assert_eq!(deleted, 1);
         assert_eq!(store.count().unwrap(), 0);
+        assert_eq!(store.purge_before(now).unwrap(), 0);
+    }
+
+    #[test]
+    fn trim_to_keep_drops_oldest() {
+        let store = AuditStore::from_memory().unwrap();
+        let first = store
+            .append(sample("tauri", "agent", "a", "first", None))
+            .unwrap();
+        let second = store
+            .append(sample("tauri", "agent", "b", "second", None))
+            .unwrap();
+        let third = store
+            .append(sample("tauri", "agent", "c", "third", None))
+            .unwrap();
+        // Force distinct timestamps so retention order is deterministic.
+        for (ts, id) in [(100i64, &first.id), (200, &second.id), (300, &third.id)] {
+            store
+                .db
+                .conn
+                .execute(
+                    "UPDATE audit_events SET created_at = ?1 WHERE id = ?2",
+                    params![ts, id],
+                )
+                .unwrap();
+        }
+        // Bypass set_events_keep clamp (min 100) — exercise trim directly.
+        store.trim_to_keep(2).unwrap();
+        assert_eq!(store.count().unwrap(), 2);
+        let list = store.list(10, None, None).unwrap();
+        assert_eq!(list[0].summary, "third");
+        assert_eq!(list[1].summary, "second");
+        assert!(store.get(&first.id).unwrap().is_none());
+    }
+
+    #[test]
+    fn events_keep_clamps_bounds() {
+        let store = AuditStore::from_memory().unwrap();
+        assert_eq!(store.set_events_keep(1).unwrap(), EVENTS_KEEP_MIN);
+        assert_eq!(store.set_events_keep(999_999).unwrap(), EVENTS_KEEP_MAX);
+        assert_eq!(store.events_keep().unwrap(), EVENTS_KEEP_MAX);
+    }
+
+    #[test]
+    fn export_jsonl_respects_filters_and_parses() {
+        let store = AuditStore::from_memory().unwrap();
+        store
+            .append(sample("tauri", "agent", "run", "ok one", Some("ok")))
+            .unwrap();
+        store
+            .append(sample("mcp", "agent", "run", "err one", Some("error")))
+            .unwrap();
+        let jsonl = store
+            .export_jsonl(AuditListQuery {
+                outcome: Some("error".into()),
+                limit: Some(50),
+                ..Default::default()
+            })
+            .unwrap();
+        assert_eq!(jsonl.lines().count(), 1);
+        let event: AuditEvent = serde_json::from_str(jsonl.lines().next().unwrap()).unwrap();
+        assert_eq!(event.outcome, "error");
+        assert_eq!(event.source, "mcp");
+    }
+
+    #[test]
+    fn log_helpers_set_outcomes() {
+        let store = AuditStore::from_memory().unwrap();
+        assert_eq!(
+            log_ok(&store, "tauri", "agent", "run", "ok").unwrap().outcome,
+            "ok"
+        );
+        assert_eq!(
+            log_denied(&store, "tauri", "security", "vault", "nope")
+                .unwrap()
+                .outcome,
+            "denied"
+        );
+        assert_eq!(
+            log_error(&store, "mcp", "mcp_tool", "fail", "boom")
+                .unwrap()
+                .outcome,
+            "error"
+        );
+        assert_eq!(store.count().unwrap(), 3);
+    }
+
+    #[test]
+    fn store_admin_flow_logs_events() {
+        let store = AuditStore::from_memory().unwrap();
+        assert!(!store.admin_configured().unwrap());
+        store.setup_admin("scribe-admin").unwrap();
+        assert!(store.admin_configured().unwrap());
+        assert!(store.verify_admin("scribe-admin").unwrap());
+        store.change_admin("scribe-admin", "new-pass-ok").unwrap();
+        assert!(store.verify_admin("new-pass-ok").unwrap());
+        let events = store.list(10, Some("admin"), Some("system")).unwrap();
+        assert!(events.iter().any(|e| e.action == "setup"));
+        assert!(events.iter().any(|e| e.action == "password_change"));
+    }
+
+    #[test]
+    fn truncates_long_fields() {
+        let store = AuditStore::from_memory().unwrap();
+        let event = store
+            .append(AuditEventInput {
+                source: "tauri".into(),
+                category: "agent".into(),
+                action: "x".repeat(120),
+                actor: Some("a".repeat(200)),
+                resource_type: Some("t".repeat(100)),
+                resource_id: Some("i".repeat(200)),
+                summary: "s".repeat(500),
+                ..Default::default()
+            })
+            .unwrap();
+        assert_eq!(event.action.len(), 80);
+        assert_eq!(event.actor.len(), 80);
+        assert_eq!(event.resource_type.as_ref().unwrap().len(), 64);
+        assert_eq!(event.resource_id.as_ref().unwrap().len(), 128);
+        assert_eq!(event.summary.len(), 400);
     }
 }
