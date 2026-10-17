@@ -10,6 +10,7 @@
  *   --tauri          run `tauri build` (current OS only; CI builds 3 platforms)
  *   --tag [vX.Y.Z]   set GITHUB_REF_* like a tag push (defaults to latest v* tag)
  *   --frontend-only  skip NLP + Rust
+ *   --rust-only      skip frontend + NLP + path-commands
  *   --skip-frontend / --skip-nlp / --skip-rust / --skip-path-commands
  */
 import { spawnSync } from 'node:child_process'
@@ -110,7 +111,21 @@ if (!skipNlp) {
 }
 
 if (!skipRust) {
-  run({ name: 'CI / Rust cargo test', cmd: 'cargo', args: ['test', '--workspace'] })
+  run({
+    name: 'CI / Rust clippy scribe-audit',
+    cmd: 'cargo',
+    args: ['clippy', '-p', 'scribe-audit', '--locked', '--all-targets', '--', '-D', 'warnings'],
+  })
+  run({
+    name: 'CI / Rust libs (exclude app)',
+    cmd: 'cargo',
+    args: ['test', '--workspace', '--exclude', 'app', '--locked'],
+  })
+  run({
+    name: 'CI / Rust cargo test (workspace)',
+    cmd: 'cargo',
+    args: ['test', '--workspace', '--locked'],
+  })
 }
 
 if (withTauri) {

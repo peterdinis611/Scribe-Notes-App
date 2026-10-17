@@ -528,7 +528,7 @@ fn extract_from_pages_zip(path: &Path) -> Result<String, String> {
 
     for i in 0..archive.len() {
         let mut entry = archive.by_index(i).map_err(|e| e.to_string())?;
-        let name = entry.name().to_string();
+        let name = entry.name().map_err(|e| e.to_string())?.into_owned();
         if name.ends_with("index.xml") || name.ends_with("Index.xml") {
             let mut xml = String::new();
             entry.read_to_string(&mut xml).map_err(|e| e.to_string())?;

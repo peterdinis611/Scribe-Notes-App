@@ -42,8 +42,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Install cargo-audit
-        run: cargo install cargo-audit --locked
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
       - name: Audit workspace
         run: cargo audit
 

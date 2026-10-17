@@ -85,6 +85,29 @@ jobs:
       - name: Check path-bearing commands
         run: python3 scripts/check_tauri_path_commands.py
 
+  # Pure workspace crates (no Tauri / WebKit). Fast feedback for scribe-audit et al.
+  rust-libs:
+    name: Rust libs (exclude app)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: . -> target
+          prefix-key: rust-libs
+
+      - name: Clippy scribe-audit
+        run: cargo clippy -p scribe-audit --locked --all-targets -- -D warnings
+
+      - name: Test workspace crates (exclude app)
+        run: cargo test --workspace --exclude app --locked
+
   rust:
     name: Rust (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -120,5 +143,5 @@ jobs:
             . -> target
             src-tauri -> target
 
-      - name: Cargo test (workspace)
-        run: cargo test --workspace
+      - name: Cargo test (workspace + app)
+        run: cargo test --workspace --locked

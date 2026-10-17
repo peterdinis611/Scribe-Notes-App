@@ -48,7 +48,7 @@ export function VideoBlock({ node, updateAttributes, selected, editor, deleteNod
 
   const canPlay =
     playSrc.length > 0 &&
-    (ReactPlayer.canPlay?.(playSrc) ?? isVideoUrl(playSrc) || isLocalVideoPath(rawSrc))
+    ((ReactPlayer.canPlay?.(playSrc) ?? isVideoUrl(playSrc)) || isLocalVideoPath(rawSrc))
   const isEmpty = !rawSrc
   const showChrome = (selected || isEmpty) && editable
 
