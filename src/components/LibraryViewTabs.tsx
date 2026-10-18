@@ -3,6 +3,7 @@ import {
   CalendarDays,
   CheckSquare,
   Copy,
+  Database,
   FolderTree,
   GitBranch,
   HardDrive,
@@ -28,6 +29,7 @@ export const LIBRARY_VIEW_IDS = [
   'agent',
   'duplicates',
   'tasks',
+  'database',
   'wikiHealth',
   'storage',
 ] as const
@@ -71,6 +73,7 @@ export function LibraryViewTabs({
       : []),
     { id: 'duplicates', label: t('library.tabs.duplicates'), icon: Copy },
     { id: 'tasks', label: t('library.tabs.tasks'), icon: CheckSquare },
+    { id: 'database', label: t('library.tabs.database'), icon: Database },
     { id: 'wikiHealth', label: t('library.tabs.wikiHealth'), icon: Network },
     { id: 'chat', label: t('library.tabs.chat'), icon: MessageSquare },
     { id: 'agent', label: t('library.tabs.agent'), icon: Bot },

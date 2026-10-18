@@ -13,6 +13,7 @@ LIBRARY_VIEW_IDS: tuple[str, ...] = (
     "agent",
     "duplicates",
     "tasks",
+    "database",
     "wikiHealth",
     "storage",
 )

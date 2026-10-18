@@ -40,8 +40,15 @@ import {
   Tag,
   LayoutGrid,
   Move,
+  Mic,
   Paintbrush,
   PanelTop,
+  ClipboardPaste,
+  Globe,
+  FolderSync,
+  Database,
+  Highlighter,
+  BookmarkPlus,
   Type,
 } from 'lucide-react'
 import {
@@ -52,6 +59,10 @@ import {
 import { openQuickNote } from '@/lib/quick-note'
 import { openNewCanvasNote } from '@/lib/canvas/create-canvas'
 import { openNewPaintSketch } from '@/lib/editor/create-paint-sketch'
+import { openClipboardCaptureNote } from '@/lib/capture/clipboard-note'
+import { copyClipBookmarklet } from '@/lib/capture/clip-bookmarklet'
+import { publishLocalWikiSite } from '@/lib/export/publish-wiki'
+import { exportMarkdownVault, importMarkdownVault } from '@/lib/export/md-vault'
 import { Position, moveAppWindow } from '@/lib/window-position'
 import { isTauriRuntime } from '@/lib/tauri'
 import {
@@ -285,6 +296,123 @@ export function CommandPalette() {
           void openNewPaintSketch(dispatch, navigate, (key) => t(key)).catch((error) =>
             toast.error(t('toasts.documentCreateError'), String(error)),
           )
+        },
+      },
+      {
+        type: 'action',
+        id: 'capture-clipboard',
+        label: t('commandPalette.captureClipboard'),
+        icon: <ClipboardPaste className="h-4 w-4" />,
+        run: () => {
+          void openClipboardCaptureNote(dispatch, navigate, (key) => t(key)).catch((error) =>
+            toast.error(t('capture.clipboardError'), String(error)),
+          )
+        },
+      },
+      {
+        type: 'action',
+        id: 'open-database',
+        label: t('commandPalette.openDatabase'),
+        icon: <Database className="h-4 w-4" />,
+        run: () => dispatch(setLibraryView('database')),
+      },
+      {
+        type: 'action',
+        id: 'publish-wiki',
+        label: t('commandPalette.publishWiki'),
+        icon: <Globe className="h-4 w-4" />,
+        run: () => {
+          void publishLocalWikiSite({
+            documents,
+            siteTitle: 'Scribe',
+            dialogTitle: t('commandPalette.publishWiki'),
+          })
+            .then((folder) => {
+              if (folder) toast.success(t('toasts.exportDone'), folder)
+            })
+            .catch((error) => toast.error(t('toasts.exportError'), String(error)))
+        },
+      },
+      {
+        type: 'action',
+        id: 'export-md-vault',
+        label: t('commandPalette.exportMdVault'),
+        icon: <FolderSync className="h-4 w-4" />,
+        run: () => {
+          void exportMarkdownVault({
+            documents,
+            dialogTitle: t('commandPalette.exportMdVault'),
+          })
+            .then((folder) => {
+              if (folder) toast.success(t('toasts.exportDone'), folder)
+            })
+            .catch((error) => toast.error(t('toasts.exportError'), String(error)))
+        },
+      },
+      {
+        type: 'action',
+        id: 'import-md-vault',
+        label: t('commandPalette.importMdVault'),
+        icon: <FolderInput className="h-4 w-4" />,
+        run: () => {
+          void importMarkdownVault({ dialogTitle: t('commandPalette.importMdVault') })
+            .then((result) => {
+              if (!result) return
+              for (const doc of result.documents) {
+                dispatch(updateDocuments((prev) => prependDocumentSummary(prev, doc)))
+              }
+              toast.success(
+                t('commandPalette.importMdVaultDone', { count: result.documents.length }),
+                result.folder,
+              )
+            })
+            .catch((error) => toast.error(t('toasts.importError', { defaultValue: 'Import failed' }), String(error)))
+        },
+      },
+      {
+        type: 'action',
+        id: 'copy-clip-bookmarklet',
+        label: t('commandPalette.copyClipBookmarklet'),
+        icon: <BookmarkPlus className="h-4 w-4" />,
+        run: () => {
+          void copyClipBookmarklet()
+            .then(() => toast.success(t('commandPalette.clipBookmarkletCopied')))
+            .catch((error) => toast.error(t('capture.clipboardError'), String(error)))
+        },
+      },
+      {
+        type: 'action',
+        id: 'import-pdf-highlights',
+        label: t('commandPalette.importPdfHighlights'),
+        icon: <Highlighter className="h-4 w-4" />,
+        run: () => {
+          void (async () => {
+            try {
+              const { pickAndImportPdfHighlights } = await import('@/lib/import/pdf-highlights-pick')
+              const result = await pickAndImportPdfHighlights()
+              if (!result) return
+              const { document: doc, highlightCount } = result
+              dispatch(updateDocuments((prev) => prependDocumentSummary(prev, doc)))
+              dispatch(setActiveDocumentId(doc.id))
+              dispatch(setActiveDocument(doc))
+              toast.success(
+                t('toasts.pdfHighlightsImported'),
+                t('toasts.pdfHighlightsCount', { count: highlightCount }),
+              )
+              void navigate(ROUTES.document(doc.id))
+            } catch (error) {
+              toast.error(t('toasts.pdfHighlightsError'), String(error))
+            }
+          })()
+        },
+      },
+      {
+        type: 'action',
+        id: 'voice-note',
+        label: t('commandPalette.voiceNote'),
+        icon: <Mic className="h-4 w-4" />,
+        run: () => {
+          window.dispatchEvent(new CustomEvent('scribe:open-voice-note'))
         },
       },
       ...(activeDocument

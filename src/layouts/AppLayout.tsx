@@ -37,6 +37,8 @@ import { importDocumentFromPath } from '@/lib/import-document'
 import { applyDiskPersistResult } from '@/lib/disk-sync'
 import { openTodayNote } from '@/lib/journal-notes'
 import { openQuickNote } from '@/lib/quick-note'
+import { openClipboardCaptureNote } from '@/lib/capture/clipboard-note'
+import { VoiceQuickNoteDialog } from '@/components/VoiceQuickNoteDialog'
 import { isOpenLibraryDocumentId } from '@/lib/trash-document'
 import { toast } from '@/lib/toast'
 import { ROUTES } from '@/lib/routes'
@@ -78,6 +80,7 @@ export function AppLayout() {
   useClipboardHistoryCapture(true)
   useGlobalShortcuts()
   useFolderAutoSync()
+  const [voiceNoteOpen, setVoiceNoteOpen] = useState(false)
   useAutoBackup()
   useDocumentCacheRetention()
   useEffect(() => {
@@ -190,8 +193,22 @@ export function AppLayout() {
       }).catch((error) => toast.error(t('journal.openError'), String(error)))
     }).then((unlisten) => unlisteners.push(unlisten))
 
+    void listen('tray-capture-clipboard', () => {
+      void openClipboardCaptureNote(dispatch, navigate, (key) => t(key)).catch((error) =>
+        toast.error(t('capture.clipboardError'), String(error)),
+      )
+    }).then((unlisten) => unlisteners.push(unlisten))
+
+    void listen('tray-voice-note', () => {
+      setVoiceNoteOpen(true)
+    }).then((unlisten) => unlisteners.push(unlisten))
+
+    const onVoiceEvent = () => setVoiceNoteOpen(true)
+    window.addEventListener('scribe:open-voice-note', onVoiceEvent)
+
     return () => {
       for (const unlisten of unlisteners) unlisten()
+      window.removeEventListener('scribe:open-voice-note', onVoiceEvent)
     }
   }, [dispatch, documents, folders, navigate, openImportedDocuments, t])
 
@@ -294,6 +311,7 @@ export function AppLayout() {
         busy={fileDrop.busy}
         count={fileDrop.hoverCount}
       />
+      <VoiceQuickNoteDialog open={voiceNoteOpen} onClose={() => setVoiceNoteOpen(false)} />
       <ToastHost />
     </div>
     </DndRoot>

@@ -74,3 +74,66 @@ export async function openTiptapFromCanvasSelection(
   await navigate(ROUTES.document(document.id))
   return document
 }
+
+/**
+ * Turn selected note/text cards into real wiki documents and return
+ * patch objects that should become `docLink` cards on the canvas.
+ */
+export async function promoteCanvasCardsToWikiNotes(
+  dispatch: AppDispatch,
+  getTitle: (key: string) => string,
+  objects: CanvasObject[],
+): Promise<{ created: number; patched: CanvasObject[] }> {
+  const patched: CanvasObject[] = []
+  let created = 0
+
+  for (const obj of objects) {
+    if (obj.kind === 'docLink' && obj.documentId) {
+      patched.push(obj)
+      continue
+    }
+    const text =
+      obj.kind === 'note' || obj.kind === 'text' || obj.kind === 'rect' || obj.kind === 'ellipse'
+        ? obj.text.trim() || obj.label.trim()
+        : obj.label.trim()
+    if (!text) {
+      patched.push(obj)
+      continue
+    }
+    const title =
+      text.split(/\n/)[0]?.trim().slice(0, 80) || getTitle('canvas.insertDocTitle')
+    const paragraphs = text
+      .split(/\n+/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => ({
+        type: 'paragraph',
+        content: [{ type: 'text', text: line }],
+      }))
+    const document = cacheDocument(
+      await createDocument({
+        title,
+        contentJson: JSON.stringify({
+          type: 'doc',
+          content: paragraphs.length > 0 ? paragraphs : [{ type: 'paragraph' }],
+        }),
+      }),
+    )
+    created += 1
+    dispatch(updateDocuments((prev) => prependDocumentSummary(prev, document)))
+    patched.push({
+      ...obj,
+      kind: 'docLink',
+      documentId: document.id,
+      documentTitle: document.title,
+      text: '',
+      label: document.title,
+    })
+  }
+
+  void logCanvasAudit('canvas_promote_wiki', 'Promoted canvas cards to wiki notes', {
+    created,
+    objectCount: objects.length,
+  })
+  return { created, patched }
+}

@@ -64,10 +64,10 @@ export interface DocumentsState {
   shareDialogOpen: boolean
   libraryFindReplaceOpen: boolean
   pendingEditorSearch: string | null
-  libraryView: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal' | 'chat' | 'agent' | 'duplicates' | 'tasks' | 'wikiHealth' | 'storage'
+  libraryView: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal' | 'chat' | 'agent' | 'duplicates' | 'tasks' | 'database' | 'wikiHealth' | 'storage'
   libraryGraphAroundActive: boolean
   pendingLibraryView: {
-    view: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal' | 'chat' | 'agent' | 'duplicates' | 'tasks' | 'wikiHealth' | 'storage'
+        view: 'folders' | 'recent' | 'favorites' | 'tags' | 'graph' | 'journal' | 'chat' | 'agent' | 'duplicates' | 'tasks' | 'database' | 'wikiHealth' | 'storage'
     aroundActive?: boolean
   } | null
   trashOpen: boolean
