@@ -840,15 +840,43 @@ pub fn nlp_journal_summary(
         (docs, count)
     };
 
-    let mut combined = String::new();
-    for (title, content_json) in docs {
-        combined.push_str(&title);
-        combined.push_str("\n");
-        combined.push_str(&extract_search_text(&content_json));
-        combined.push_str("\n\n");
+    // Per-note extractive summaries, then merge — avoids MMR dilution on long concat.
+    let mut note_summaries: Vec<String> = Vec::new();
+    let mut bullet_candidates: Vec<String> = Vec::new();
+    let mut combined_for_tone = String::new();
+    let per_note_sentences: i64 = if docs.len() <= 2 { 3 } else { 2 };
+
+    for (_title, content_json) in &docs {
+        let text = extract_search_text(content_json);
+        if text.trim().is_empty() {
+            continue;
+        }
+        combined_for_tone.push_str(&text);
+        combined_for_tone.push_str("\n\n");
+
+        let result = match sidecar.summarize(&text, per_note_sentences, None) {
+            Ok(value) => value,
+            Err(_) => continue,
+        };
+        if let Some(summary) = result.get("summary").and_then(|value| value.as_str()) {
+            let trimmed = summary.trim();
+            if !trimmed.is_empty() {
+                note_summaries.push(trimmed.to_string());
+            }
+        }
+        if let Some(items) = result.get("bullets").and_then(|value| value.as_array()) {
+            for item in items {
+                if let Some(bullet) = item.as_str() {
+                    let trimmed = bullet.trim();
+                    if !trimmed.is_empty() {
+                        bullet_candidates.push(trimmed.to_string());
+                    }
+                }
+            }
+        }
     }
 
-    if combined.trim().is_empty() {
+    if note_summaries.is_empty() && combined_for_tone.trim().is_empty() {
         return Ok(NlpJournalSummary {
             summary: String::new(),
             bullets: Vec::new(),
@@ -858,24 +886,34 @@ pub fn nlp_journal_summary(
         });
     }
 
-    let result = sidecar.summarize(&combined, 5, None)?;
-    let summary = result
-        .get("summary")
-        .and_then(|value| value.as_str())
-        .unwrap_or("")
-        .to_string();
-    let bullets = result
-        .get("bullets")
-        .and_then(|value| value.as_array())
-        .map(|items| {
-            items
-                .iter()
-                .filter_map(|item| item.as_str().map(str::to_string))
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
+    let summary = if note_summaries.len() <= 1 {
+        note_summaries.first().cloned().unwrap_or_default()
+    } else {
+        let merged = note_summaries.join("\n");
+        match sidecar.summarize(&merged, 5, None) {
+            Ok(result) => result
+                .get("summary")
+                .and_then(|value| value.as_str())
+                .map(|value| value.trim().to_string())
+                .filter(|value| !value.is_empty())
+                .unwrap_or_else(|| note_summaries.join(" ")),
+            Err(_) => note_summaries.join(" "),
+        }
+    };
 
-    let (tone, tone_score) = match sidecar.analyze_sentiment(&combined) {
+    let mut seen_bullets: std::collections::HashSet<String> = std::collections::HashSet::new();
+    let mut bullets: Vec<String> = Vec::new();
+    for bullet in bullet_candidates {
+        let key = bullet.to_lowercase();
+        if seen_bullets.insert(key) {
+            bullets.push(bullet);
+        }
+        if bullets.len() >= 8 {
+            break;
+        }
+    }
+
+    let (tone, tone_score) = match sidecar.analyze_sentiment(&combined_for_tone) {
         Ok(sentiment) => (
             sentiment
                 .get("label")

@@ -161,13 +161,22 @@ export function NlpSection() {
       invalidateNlpAutoIndexStatus()
       const updated = await nlpSetEmbedBackend(next)
       setStatus(updated)
-      toast.success(
-        next === 'quality'
-          ? t('settings.nlp.qualityEnabledToast')
-          : next === 'fast'
-            ? t('settings.nlp.fastEnabledToast')
-            : t('settings.nlp.hashEnabledToast'),
-      )
+      if (updated.embedBackendFallback) {
+        toast.info(
+          t('settings.nlp.embedBackendFallbackToast', {
+            requested: next,
+            active: updated.activeEmbedBackend ?? 'hash',
+          }),
+        )
+      } else {
+        toast.success(
+          next === 'quality'
+            ? t('settings.nlp.qualityEnabledToast')
+            : next === 'fast'
+              ? t('settings.nlp.fastEnabledToast')
+              : t('settings.nlp.hashEnabledToast'),
+        )
+      }
     } catch (error) {
       toast.error(t('settings.nlp.embedBackendError'), String(error))
     }
@@ -329,6 +338,21 @@ export function NlpSection() {
           {t('settings.nlp.sidecarScriptMissing')}
         </div>
       )}
+
+      {status?.enabled &&
+        status.sidecarOk &&
+        status.embedBackendFallback &&
+        (status.activeEmbedBackend ?? status.embedBackend) !== status.embedBackend && (
+          <div className="mb-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
+            {t('settings.nlp.embedBackendFallbackHint', {
+              requested: status.embedBackend,
+              active: status.activeEmbedBackend ?? 'hash',
+              reason: t(`settings.nlp.embedFallback.${status.embedBackendFallback}`, {
+                defaultValue: status.embedBackendFallback,
+              }),
+            })}
+          </div>
+        )}
 
       {status?.enabled && status.sidecarOk && status.indexStale && (
         <div className="mb-4 rounded-xl border border-[color-mix(in_srgb,var(--color-accent)_35%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-accent)_8%,var(--color-surface))] px-3 py-3 text-[12px] leading-relaxed text-[var(--color-foreground)]">

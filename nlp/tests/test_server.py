@@ -82,10 +82,13 @@ class ServerTests(unittest.TestCase):
             }
         )
         self.assertNotIn("error", response)
+        self.assertEqual(response["result"]["requestedEmbedBackend"], "hash")
+        self.assertIsNone(response["result"].get("embedBackendFallback"))
         health = handle_request(
             {"jsonrpc": "2.0", "id": 6, "method": "health", "params": {}}
         )["result"]
         self.assertEqual(health["embedBackend"], "hash")
+        self.assertEqual(health["requestedEmbedBackend"], "hash")
 
     def test_rejects_oversized_batch(self) -> None:
         response = handle_request(

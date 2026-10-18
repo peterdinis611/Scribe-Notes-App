@@ -17,6 +17,7 @@ import {
 } from '@/lib/journal-notes'
 import type { DocumentSummary, ExportResult, Folder } from '@/lib/db/api'
 import { revealInFinder } from '@/lib/db/api'
+import { withNlpTimeout } from '@/lib/nlp/timeout'
 
 function asCountRows(
   raw: unknown,
@@ -87,22 +88,6 @@ export type JournalDigestExportArgs = {
   nlpTimeoutMs?: number
 }
 
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('timeout')), ms)
-    promise.then(
-      (value) => {
-        clearTimeout(timer)
-        resolve(value)
-      },
-      (error) => {
-        clearTimeout(timer)
-        reject(error)
-      },
-    )
-  })
-}
-
 function formatTaskLines(
   tasks: { checked?: boolean; text: string; documentTitle?: string | null }[],
 ): string[] {
@@ -136,7 +121,7 @@ export async function exportJournalDigestPdf(
   // Only ask Local AI when we still need content — and never hang the export.
   if (documentIds.length > 0 && timeoutMs > 0 && !hasPrefill) {
     const [summaryResult, tasksResult] = await Promise.allSettled([
-      withTimeout(
+      withNlpTimeout(
         nlpJournalSummary({
           fromDate: from,
           toDate: to,
@@ -145,7 +130,7 @@ export async function exportJournalDigestPdf(
         }),
         timeoutMs,
       ),
-      withTimeout(nlpJournalTasks(documentIds), timeoutMs),
+      withNlpTimeout(nlpJournalTasks(documentIds), timeoutMs),
     ])
     if (summaryResult.status === 'fulfilled') {
       summaryText = summaryResult.value.summary || args.summaryPlaceholder
@@ -159,7 +144,7 @@ export async function exportJournalDigestPdf(
   } else if (documentIds.length > 0 && timeoutMs > 0 && tasks.length === 0) {
     // Prefer a quick task fill when summary was already loaded in the UI.
     const tasksResult = await Promise.allSettled([
-      withTimeout(nlpJournalTasks(documentIds), Math.min(timeoutMs, 2_500)),
+      withNlpTimeout(nlpJournalTasks(documentIds), Math.min(timeoutMs, 2_500)),
     ])
     if (tasksResult[0]?.status === 'fulfilled') {
       tasks = formatTaskLines(tasksResult[0].value)

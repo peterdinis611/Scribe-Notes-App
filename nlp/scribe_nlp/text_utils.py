@@ -62,11 +62,29 @@ def content_stems(text: str) -> list[str]:
 
 
 def split_sentences(text: str) -> list[str]:
-    cleaned = normalize_text(text)
+    """Split on sentence punctuation; fall back to newlines for journal-style notes."""
+    source = text or ""
+    cleaned = normalize_text(source)
     if not cleaned:
         return []
     parts = SENTENCE_SPLIT.split(cleaned)
-    return [part.strip() for part in parts if part.strip()]
+    sentences = [part.strip() for part in parts if part.strip()]
+
+    # Journal entries often lack .!? — prefer paragraph / bullet lines.
+    if len(sentences) <= 1:
+        line_parts: list[str] = []
+        for raw_line in re.split(r"[\n\r]+", source):
+            line = raw_line.strip()
+            if not line:
+                continue
+            line = re.sub(r"^[-*+•]\s+", "", line)
+            line = re.sub(r"^\d+[.)]\s+", "", line).strip()
+            if line:
+                line_parts.append(line)
+        if len(line_parts) > 1:
+            return line_parts
+
+    return sentences
 
 
 def jaccard_similarity(left: str, right: str) -> float:

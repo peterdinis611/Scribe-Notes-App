@@ -3,12 +3,29 @@ from __future__ import annotations
 import unittest
 
 from scribe_nlp.embed import MODEL_ID, embed_batch, embed_text
+from scribe_nlp.embed_backend import (
+    configure_backend,
+    embed_backend_fallback,
+    quality_available,
+    requested_backend,
+)
 from scribe_nlp.text_utils import jaccard_similarity
 
 
 class EmbedTests(unittest.TestCase):
     def test_model_id_is_v4(self) -> None:
         self.assertEqual(MODEL_ID, "scribe-hash-v4")
+
+    def test_configure_backend_tracks_requested_and_fallback(self) -> None:
+        configure_backend("hash")
+        self.assertEqual(requested_backend(), "hash")
+        self.assertIsNone(embed_backend_fallback())
+        if not quality_available():
+            active = configure_backend("quality")
+            self.assertEqual(requested_backend(), "quality")
+            self.assertEqual(active, "hash")
+            self.assertEqual(embed_backend_fallback(), "missing_quality")
+            configure_backend("hash")
 
     def test_empty_text_returns_zero_vector(self) -> None:
         vector = embed_text("")

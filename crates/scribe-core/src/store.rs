@@ -1436,6 +1436,9 @@ impl ScribeStore {
                 "indexStale": false,
                 "staleIndexCount": 0,
                 "embedBackend": embed_backend,
+                "activeEmbedBackend": embed_backend,
+                "requestedEmbedBackend": embed_backend,
+                "embedBackendFallback": Value::Null,
                 "answerBackend": answer_backend,
                 "llm": crate::db::get_llm_prefs(&self.db).unwrap_or(crate::db::NlpLlmPrefs {
                     enabled: false,
@@ -1482,6 +1485,14 @@ impl ScribeStore {
             indexed_count > 0 && stale_index_count > 0 && current_model.is_some();
 
         if let Some(health) = health {
+            let active_backend = health
+                .embed_backend
+                .clone()
+                .unwrap_or_else(|| embed_backend.clone());
+            let requested_backend = health
+                .requested_embed_backend
+                .clone()
+                .unwrap_or_else(|| embed_backend.clone());
             Ok(json!({
                 "enabled": true,
                 "sidecarAvailable": sidecar_available,
@@ -1492,10 +1503,15 @@ impl ScribeStore {
                 "storedModel": stored_model,
                 "indexStale": index_stale,
                 "staleIndexCount": stale_index_count,
-                "embedBackend": health.embed_backend.unwrap_or(embed_backend),
+                // Preference from DB (UI selection); active may differ when extras missing.
+                "embedBackend": embed_backend,
+                "activeEmbedBackend": active_backend,
+                "requestedEmbedBackend": requested_backend,
+                "embedBackendFallback": health.embed_backend_fallback.clone(),
                 "answerBackend": answer_backend,
                 "llm": crate::db::get_llm_prefs(&self.db)?,
                 "qualityAvailable": health.quality_available.unwrap_or(quality_available),
+                "fastAvailable": health.fast_available.unwrap_or(false),
                 "onnxAvailable": health.onnx_available.unwrap_or(false),
                 "faissAvailable": health.faiss_available.unwrap_or(false),
                 "spacyAvailable": health.spacy_available.unwrap_or(false),
@@ -1518,6 +1534,9 @@ impl ScribeStore {
                 "indexStale": index_stale,
                 "staleIndexCount": stale_index_count,
                 "embedBackend": embed_backend,
+                "activeEmbedBackend": embed_backend,
+                "requestedEmbedBackend": embed_backend,
+                "embedBackendFallback": Value::Null,
                 "answerBackend": answer_backend,
                 "llm": crate::db::get_llm_prefs(&self.db)?,
                 "qualityAvailable": quality_available,

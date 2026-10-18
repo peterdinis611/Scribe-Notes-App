@@ -176,6 +176,19 @@ STOP_WORDS_SK = frozenset(
         "že",
         "zajtra",
         "čiže",
+        # Journal time-of-day noise (keywords / tags)
+        "dneska",
+        "ráno",
+        "rano",
+        "večer",
+        "vecer",
+        "obed",
+        "poobedie",
+        "noc",
+        "týždeň",
+        "tyzden",
+        "víkend",
+        "vikend",
     }
 )
 
@@ -317,6 +330,17 @@ STOP_WORDS_EN = frozenset(
         "using",
         "use",
         "used",
+        # Journal time-of-day noise
+        "today",
+        "tomorrow",
+        "yesterday",
+        "tonight",
+        "morning",
+        "evening",
+        "afternoon",
+        "night",
+        "weekend",
+        "week",
     }
 )
 

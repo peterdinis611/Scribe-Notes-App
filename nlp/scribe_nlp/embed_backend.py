@@ -14,6 +14,7 @@ QUALITY_MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
 QUALITY_BATCH_SIZE = 64
 
 _active_backend: EmbedBackend = "hash"
+_requested_backend: str = "hash"
 _quality_model = None
 _on_backend_change = None
 
@@ -25,9 +26,12 @@ def set_backend_change_hook(callback) -> None:
 
 
 def configure_backend(value: str | None) -> EmbedBackend:
-    global _active_backend
+    global _active_backend, _requested_backend
     previous = _active_backend
     normalized = (value or "hash").strip().lower()
+    if normalized not in {"hash", "fast", "quality"}:
+        normalized = "hash"
+    _requested_backend = normalized
     if normalized == "quality" and quality_available():
         _active_backend = "quality"
     elif normalized == "fast" and fast_available():
@@ -37,6 +41,23 @@ def configure_backend(value: str | None) -> EmbedBackend:
     if _active_backend != previous and _on_backend_change is not None:
         _on_backend_change()
     return _active_backend
+
+
+def requested_backend() -> str:
+    return _requested_backend
+
+
+def embed_backend_fallback() -> str | None:
+    """Why active differs from requested — or None when they match."""
+    requested = _requested_backend
+    active = active_backend()
+    if requested == active:
+        return None
+    if requested == "quality" and not quality_available():
+        return "missing_quality"
+    if requested == "fast" and not fast_available():
+        return "missing_fast"
+    return "unavailable"
 
 
 def active_backend() -> EmbedBackend:

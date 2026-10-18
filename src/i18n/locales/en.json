@@ -1825,6 +1825,13 @@
       "embedBackendHash": "Hash",
       "embedBackendQuality": "Quality (MiniLM)",
       "embedBackendError": "Could not switch embedding backend",
+      "embedBackendFallbackToast": "Requested {{requested}}, but sidecar fell back to {{active}} — install extras or keep Hash.",
+      "embedBackendFallbackHint": "Preference is {{requested}}, but the sidecar is running {{active}} ({{reason}}). Install optional packages from nlp/, then switch again.",
+      "embedFallback": {
+        "missing_quality": "Quality extras not installed",
+        "missing_fast": "Fast (Model2Vec) extras not installed",
+        "unavailable": "requested backend unavailable"
+      },
       "hashEnabledToast": "Using hash embeddings",
       "qualityEnabledToast": "Using quality embedding model — reindex your library",
       "extrasTitle": "Optional Python packages",
@@ -4658,6 +4665,9 @@
     "tasksLoading": "Loading tasks…",
     "summaryLoading": "Generating overview…",
     "summaryError": "Failed to generate overview",
+    "summaryTimeout": "Weekly overview timed out — Local AI is busy or slow. Try again.",
+    "summaryDisabled": "Local AI is off — enable it in Settings → Local AI for weekly overviews.",
+    "summarySidecarUnavailable": "Local AI is not ready — check Python 3.10+ in Settings → Local AI.",
     "createDigest": "Create digest",
     "digestCreating": "Creating digest…",
     "exportDigestPdf": "Export digest PDF",

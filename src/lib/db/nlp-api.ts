@@ -31,7 +31,13 @@ export interface NlpStatus {
   storedModel: string | null
   indexStale: boolean
   staleIndexCount: number
+  /** User preference stored in SQLite (hash | fast | quality). */
   embedBackend: string
+  /** Backend the sidecar is actually running (may fall back when extras missing). */
+  activeEmbedBackend?: string
+  requestedEmbedBackend?: string
+  /** missing_quality | missing_fast | unavailable when active ≠ requested */
+  embedBackendFallback?: string | null
   answerBackend?: string
   llm?: NlpLlmPrefs
   qualityAvailable: boolean

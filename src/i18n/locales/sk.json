@@ -1825,6 +1825,13 @@
       "embedBackendHash": "Hash",
       "embedBackendQuality": "Quality (MiniLM)",
       "embedBackendError": "Nepodarilo sa zmeniť spôsob vektorov",
+      "embedBackendFallbackToast": "Vybrané {{requested}}, ale sidecar prešiel na {{active}} — doinštaluj extras alebo nechaj Hash.",
+      "embedBackendFallbackHint": "Preferencia je {{requested}}, ale sidecar beží na {{active}} ({{reason}}). Doinštaluj voliteľné balíčky z nlp/ a znova prepni.",
+      "embedFallback": {
+        "missing_quality": "Quality extras nie sú nainštalované",
+        "missing_fast": "Fast (Model2Vec) extras nie sú nainštalované",
+        "unavailable": "požadovaný backend nie je dostupný"
+      },
       "hashEnabledToast": "Používajú sa hash embeddingy",
       "qualityEnabledToast": "Používa sa quality embedding model — preindexuj knižnicu",
       "extrasTitle": "Voliteľné Python balíčky",
@@ -4674,6 +4681,9 @@
     "tasksLoading": "Načítavam úlohy…",
     "summaryLoading": "Generujem prehľad…",
     "summaryError": "Nepodarilo sa vygenerovať prehľad",
+    "summaryTimeout": "Týždenný prehľad vypršal — Local AI je zaneprázdnená alebo pomalá. Skús znova.",
+    "summaryDisabled": "Local AI je vypnutá — zapni ju v Nastavenia → Local AI pre týždenné prehľady.",
+    "summarySidecarUnavailable": "Local AI nie je pripravená — skontroluj Python 3.10+ v Nastavenia → Local AI.",
     "createDigest": "Vytvoriť digest",
     "digestCreating": "Vytváram digest…",
     "exportDigestPdf": "Exportovať digest PDF",

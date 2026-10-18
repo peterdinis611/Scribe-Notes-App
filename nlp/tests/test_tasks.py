@@ -43,6 +43,14 @@ class TaskExtractionTests(unittest.TestCase):
         self.assertGreaterEqual(result["openCount"], 1)
         self.assertTrue(any("dokončiť report" in task["text"].lower() for task in result["tasks"]))
 
+    def test_inline_task_truncates_trailing_clause(self) -> None:
+        text = "Musím poslať invoice; potom ešte niečo úplne iné a dlhé."
+        result = extract_tasks(text)
+        self.assertGreaterEqual(result["openCount"], 1)
+        body = result["tasks"][0]["text"].lower()
+        self.assertIn("poslať invoice", body)
+        self.assertNotIn("úplne iné", body)
+
     def test_open_count_excludes_checked(self) -> None:
         text = "- [x] done\n- [ ] open"
         result = extract_tasks(text)

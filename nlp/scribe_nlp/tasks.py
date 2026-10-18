@@ -17,9 +17,10 @@ IMPERATIVE = re.compile(
 )
 
 # Inline cue: "Treba X", "Musím X", "Don't forget to X", "Need to X" ...
+# Capture body is capped; callers also truncate at the first sentence end.
 INLINE_TASK = re.compile(
     r"(?i)\b(?:treba|musím|musime|musíme|potrebujem|je\s+potrebné|je\s+potrebne|"
-    r"nezabudni(?:te)?|don['’]t forget to|remember to|need to|have to)\s+(.{4,120})"
+    r"nezabudni(?:te)?|don['’]t forget to|remember to|need to|have to)\s+(.{4,80})"
 )
 
 # Metadáta
@@ -89,7 +90,13 @@ def extract_tasks(text: str, *, sort: bool = False) -> dict[str, object]:
             continue
         inline = INLINE_TASK.search(stripped)
         if inline:
-            _add(inline.group(1), checked=False, source_kind="inline")
+            body = inline.group(1).strip()
+            # Keep a single action phrase — drop trailing clauses after .!? or ;
+            cut = re.search(r"[.!?;]", body)
+            if cut:
+                body = body[: cut.start()].strip()
+            if len(body) >= 3:
+                _add(body, checked=False, source_kind="inline")
 
     if sort:
         # stabilné triedenie: otvorené pred hotovými, potom podľa priority

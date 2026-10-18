@@ -19,8 +19,10 @@ from .embed_backend import (
     active_backend,
     configure_backend,
     current_model_id,
+    embed_backend_fallback,
     fast_available,
     quality_available,
+    requested_backend,
     set_backend_change_hook,
     warmup_active_backend,
 )
@@ -206,6 +208,8 @@ def _handle_request_inner(
                 "version": __version__,
                 "model": current_model_id(),
                 "embedBackend": active_backend(),
+                "requestedEmbedBackend": requested_backend(),
+                "embedBackendFallback": embed_backend_fallback(),
                 "qualityAvailable": quality_available(),
                 "fastAvailable": fast_available(),
                 "onnxAvailable": onnx_available(),
@@ -229,6 +233,8 @@ def _handle_request_inner(
             warmed = warmup_active_backend()
             result = {
                 "embedBackend": configured,
+                "requestedEmbedBackend": requested_backend(),
+                "embedBackendFallback": embed_backend_fallback(),
                 "model": current_model_id(),
                 "qualityAvailable": quality_available(),
                 "fastAvailable": fast_available(),
