@@ -1,9 +1,5 @@
 /** Keep in sync with `crates/scribe-ui` counterpart. */
 import {
-  applyDocumentStylePresetNative,
-  documentStylePresetsNative,
-} from '@/lib/db/api'
-import {
   DEFAULT_PAGE_HEADER_FOOTER,
   DEFAULT_PAGE_SETUP,
   DEFAULT_PAGE_WATERMARK,
@@ -12,7 +8,6 @@ import {
   type DocumentTypography,
   type PageSetup,
 } from '@/lib/editor/page-setup'
-import { isTauriRuntime } from '@/lib/tauri'
 
 export type DocumentStylePresetId =
   | 'default'
@@ -190,29 +185,4 @@ export function applyDocumentStylePreset(id: DocumentStylePresetId): PageSetup {
     typography: { ...preset.typography },
     stylePresetId: preset.id,
   }
-}
-
-export async function documentStylePresetsAsync(): Promise<DocumentStylePreset[]> {
-  if (isTauriRuntime()) {
-    try {
-      const rows = (await documentStylePresetsNative()) as DocumentStylePreset[]
-      if (Array.isArray(rows) && rows.length > 0) return rows
-    } catch {
-      /* fall through */
-    }
-  }
-  return DOCUMENT_STYLE_PRESETS
-}
-
-export async function applyDocumentStylePresetAsync(
-  id: DocumentStylePresetId | string,
-): Promise<PageSetup> {
-  if (isTauriRuntime()) {
-    try {
-      return (await applyDocumentStylePresetNative(id)) as PageSetup
-    } catch {
-      /* fall through */
-    }
-  }
-  return applyDocumentStylePreset(id as DocumentStylePresetId)
 }

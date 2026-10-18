@@ -1,8 +1,6 @@
 /** Keep in sync with `crates/scribe-ui` counterpart. */
 import type { RefObject } from 'react'
-import { collectMarkdownHeadingOutlineNative } from '@/lib/db/api'
 import type { DocumentOutlineItem } from '@/lib/editor/document-outline'
-import { isTauriRuntime } from '@/lib/tauri'
 
 export function collectMarkdownHeadingOutline(markdown: string): DocumentOutlineItem[] {
   const lines = markdown.split('\n')
@@ -33,20 +31,6 @@ export function collectMarkdownHeadingOutline(markdown: string): DocumentOutline
 }
 
 /** Prefer Rust `scribe-ui` under Tauri; otherwise JS fallback. */
-export async function collectMarkdownHeadingOutlineAsync(
-  markdown: string,
-): Promise<DocumentOutlineItem[]> {
-  if (isTauriRuntime()) {
-    try {
-      const items = (await collectMarkdownHeadingOutlineNative(markdown)) as DocumentOutlineItem[]
-      if (Array.isArray(items)) return items
-    } catch {
-      /* fall through */
-    }
-  }
-  return collectMarkdownHeadingOutline(markdown)
-}
-
 export function jumpToMarkdownOutlineItem(
   textarea: HTMLTextAreaElement,
   scrollRef: RefObject<HTMLElement | null>,

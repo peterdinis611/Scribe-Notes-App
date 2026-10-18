@@ -284,64 +284,6 @@ pub fn read_scribe_file(path: &Path) -> Result<DiskDocument, String> {
     serde_json::from_str(&raw).map_err(|e| format!("Neplatný .scribe súbor: {e}"))
 }
 
-#[allow(dead_code)]
-pub fn sync_all_documents_to_disk(
-    app: &AppHandle,
-    conn: &Connection,
-) -> Result<(), String> {
-    let dir = get_documents_dir(app, conn)?;
-
-    let mut stmt = conn
-        .prepare(
-            "SELECT id, title, content_json, created_at, updated_at, file_path FROM documents",
-        )
-        .map_err(|e| e.to_string())?;
-
-    let rows = stmt
-        .query_map([], |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, String>(2)?,
-                row.get::<_, i64>(3)?,
-                row.get::<_, i64>(4)?,
-                row.get::<_, Option<String>>(5)?,
-            ))
-        })
-        .map_err(|e| e.to_string())?;
-
-    for row in rows {
-        let (id, title, content_json, created_at, updated_at, file_path) =
-            row.map_err(|e| e.to_string())?;
-
-        if document_file_is_current(file_path.as_deref(), updated_at, &content_json)? {
-            continue;
-        }
-
-        let disk_doc = DiskDocument {
-            version: 1,
-            id: id.clone(),
-            title: title.clone(),
-            content_json: content_json.clone(),
-            created_at,
-            updated_at,
-        };
-
-        let path = write_document_file(&dir, &disk_doc, file_path.as_deref())?;
-        let path_str = path.to_string_lossy().to_string();
-
-        if file_path.as_deref() != Some(path_str.as_str()) {
-            conn.execute(
-                "UPDATE documents SET file_path = ?1 WHERE id = ?2",
-                rusqlite::params![path_str, id],
-            )
-            .map_err(|e| e.to_string())?;
-        }
-    }
-
-    Ok(())
-}
-
 pub fn document_file_is_current(
     file_path: Option<&str>,
     updated_at: i64,

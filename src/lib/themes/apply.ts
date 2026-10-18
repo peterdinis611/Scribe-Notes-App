@@ -1,4 +1,3 @@
-import { planThemeApplicationNative } from '@/lib/db/api'
 import {
   CYCLE_THEME_ORDER,
   getDefaultCustomTheme,
@@ -7,7 +6,6 @@ import {
   GROVE_LIGHT,
 } from '@/lib/themes/presets'
 import type { ThemeColors, ThemePresetId, ThemeSettings } from '@/lib/themes/types'
-import { isTauriRuntime } from '@/lib/tauri'
 import { applyUiSkin, type UiSkin } from '@/lib/ui-skin'
 import { applyUiFontSettings } from '@/lib/ui-fonts'
 import { readUiSkin } from '@/store/persistence'
@@ -186,31 +184,6 @@ export function applyThemeSettings(settings: ThemeSettings, skin: UiSkin = readU
 }
 
 /** Prefer Rust plan under Tauri; DOM writes stay in the frontend. */
-export async function applyThemeSettingsAsync(
-  settings: ThemeSettings,
-  skin: UiSkin = readUiSkin(),
-): Promise<void> {
-  if (isTauriRuntime()) {
-    try {
-      const plan = await planThemeApplicationNative(
-        {
-          themeId: settings.themeId,
-          customTheme: settings.customTheme
-            ? ({ ...settings.customTheme } as Record<string, string>)
-            : null,
-        },
-        skin,
-        prefersDark(),
-      )
-      writeThemeApplication(plan)
-      return
-    } catch {
-      /* fall through */
-    }
-  }
-  applyThemeSettings(settings, skin)
-}
-
 export function cycleThemeId(current: ThemePresetId): ThemePresetId {
   const index = CYCLE_THEME_ORDER.indexOf(current as (typeof CYCLE_THEME_ORDER)[number])
   if (index === -1) return 'system'

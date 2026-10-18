@@ -1,5 +1,3 @@
-import { colorForExportNative } from '@/lib/db/api'
-import { isTauriRuntime } from '@/lib/tauri'
 
 function parseRgb(color: string): { r: number; g: number; b: number; a: number } | null {
   const value = color.trim().toLowerCase()
@@ -75,17 +73,3 @@ export function colorForExport(color: string, background = '#ffffff'): string {
   return colorForExportLocal(color, background)
 }
 
-/** Prefer Rust `scribe-ui` when running under Tauri; otherwise JS fallback. */
-export async function colorForExportAsync(
-  color: string,
-  background = '#ffffff',
-): Promise<string> {
-  if (isTauriRuntime()) {
-    try {
-      return await colorForExportNative(color, background)
-    } catch {
-      // Fall through.
-    }
-  }
-  return colorForExportLocal(color, background)
-}

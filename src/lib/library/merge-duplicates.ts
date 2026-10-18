@@ -1,5 +1,4 @@
-import { mergeDocuments, mergeDuplicateContentNative } from '@/lib/db/api'
-import { isTauriRuntime } from '@/lib/tauri'
+import { mergeDocuments } from '@/lib/db/api'
 
 /** Keep in sync with `crates/scribe-ui/src/merge_duplicates.rs`. */
 
@@ -24,22 +23,6 @@ export function mergeDuplicateContent(keepJson: string, dropJson: string, dropTi
     type: 'doc',
     content: [...keepDoc.content, { type: 'horizontalRule' }, heading, ...dropDoc.content],
   })
-}
-
-/** Prefer Rust `scribe-ui` under Tauri; otherwise JS fallback. */
-export async function mergeDuplicateContentAsync(
-  keepJson: string,
-  dropJson: string,
-  dropTitle: string,
-): Promise<string> {
-  if (isTauriRuntime()) {
-    try {
-      return await mergeDuplicateContentNative(keepJson, dropJson, dropTitle)
-    } catch {
-      /* fall through */
-    }
-  }
-  return mergeDuplicateContent(keepJson, dropJson, dropTitle)
 }
 
 /** Append the dropped note under a heading, then move it to trash. */

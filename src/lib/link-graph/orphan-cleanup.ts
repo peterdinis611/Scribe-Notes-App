@@ -1,11 +1,5 @@
 /** Keep in sync with `crates/scribe-ui` counterpart. */
-import {
-  isUntitledOrphanTitleNative,
-  suggestOrphanLinksNative,
-  type LinkGraphOrphan,
-  type SearchHit,
-} from '@/lib/db/api'
-import { isTauriRuntime } from '@/lib/tauri'
+import { type LinkGraphOrphan, type SearchHit } from '@/lib/db/api'
 
 /** Untitled detection mirrored in `scribe_ui::graph`. */
 
@@ -17,19 +11,6 @@ export function isUntitledOrphanTitle(title: string | null | undefined): boolean
 }
 
 /** Prefer Rust `scribe-ui` under Tauri; otherwise JS fallback. */
-export async function isUntitledOrphanTitleAsync(
-  title: string | null | undefined,
-): Promise<boolean> {
-  if (isTauriRuntime()) {
-    try {
-      return await isUntitledOrphanTitleNative(title ?? '')
-    } catch {
-      /* fall through */
-    }
-  }
-  return isUntitledOrphanTitle(title)
-}
-
 export function partitionOrphans(orphans: LinkGraphOrphan[]): {
   untitled: LinkGraphOrphan[]
   named: LinkGraphOrphan[]
@@ -70,16 +51,3 @@ export function suggestOrphanLinks(
   return out
 }
 
-/** Prefer Rust `scribe-ui` under Tauri; otherwise JS fallback. */
-export async function suggestOrphanLinksAsync(
-  rows: Array<{ id: string; title: string; similar: SearchHit[] }>,
-): Promise<OrphanLinkSuggestion[]> {
-  if (isTauriRuntime()) {
-    try {
-      return (await suggestOrphanLinksNative(rows)) as OrphanLinkSuggestion[]
-    } catch {
-      /* fall through */
-    }
-  }
-  return suggestOrphanLinks(rows)
-}

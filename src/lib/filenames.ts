@@ -1,5 +1,3 @@
-import { sanitizeFileNameNative } from '@/lib/db/api'
-import { isTauriRuntime } from '@/lib/tauri'
 
 /** Keep in sync with `crates/scribe-ui/src/filenames.rs`. */
 
@@ -17,15 +15,4 @@ export function sanitizeFileName(name: string, ext: string): string {
   const stem = sanitizeFileStem(name)
   const cleanExt = ext.trim().replace(/^\.+/, '')
   return cleanExt ? `${stem}.${cleanExt}` : stem
-}
-
-export async function sanitizeFileNameAsync(name: string, ext = ''): Promise<string> {
-  if (isTauriRuntime()) {
-    try {
-      return await sanitizeFileNameNative(name, ext || null)
-    } catch {
-      /* fall through */
-    }
-  }
-  return sanitizeFileName(name, ext)
 }

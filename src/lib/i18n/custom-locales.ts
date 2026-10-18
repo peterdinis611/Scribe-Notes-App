@@ -1,5 +1,3 @@
-import { parseCustomLocalePackNative } from '@/lib/db/api'
-import { isTauriRuntime } from '@/lib/tauri'
 
 /** Keep in sync with `crates/scribe-ui/src/custom_locales.rs`. */
 
@@ -98,31 +96,6 @@ export function parseCustomLocalePack(
 }
 
 /** Prefer Rust `scribe-ui` under Tauri; otherwise JS fallback. */
-export async function parseCustomLocalePackAsync(
-  raw: string,
-  options?: { fallbackCode?: string; fallbackName?: string },
-): Promise<CustomLocalePack> {
-  if (isTauriRuntime()) {
-    try {
-      return await parseCustomLocalePackNative(
-        raw,
-        options?.fallbackCode ?? null,
-        options?.fallbackName ?? null,
-      )
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      // Validation failures from Rust — surface the same message as JS.
-      if (
-        /too large|Invalid JSON|must be an object|language code|built-in|too few/i.test(message)
-      ) {
-        throw new Error(message, { cause: err })
-      }
-      /* fall through for invoke/transport errors */
-    }
-  }
-  return parseCustomLocalePack(raw, options)
-}
-
 export function serializeCustomLocalePack(pack: CustomLocalePack): string {
   return `${JSON.stringify(
     {
