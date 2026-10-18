@@ -1743,9 +1743,9 @@ export const importFile = async (path: string) => {
     import('@/lib/import/word-docx'),
   ])
 
-  // .docx / .xlsx go through Rust (scribe-core office_import) via import_file.
-  // Legacy .xls and CSV stay in TS; Pages keeps its hybrid path.
-  if (isLegacyExcelPath(path) || (isExcelPath(path) && /\.csv$/i.test(path))) {
+  // Excel / CSV → TipTap tables via SheetJS (editable). Legacy .xls errors with convert hint.
+  // Native picker also uses Rust `xlsx_bytes_to_tiptap` (same table shape).
+  if (isLegacyExcelPath(path) || isExcelPath(path)) {
     return importExcelDocumentFromPath(path)
   }
 
@@ -1753,7 +1753,7 @@ export const importFile = async (path: string) => {
     return importPagesDocumentFromPath(path)
   }
 
-  if (isWordDocxPath(path) || isExcelPath(path)) {
+  if (isWordDocxPath(path)) {
     return cacheDocument(await invoke<Document>('import_file', { path }))
   }
 

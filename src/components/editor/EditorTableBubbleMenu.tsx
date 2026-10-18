@@ -12,6 +12,8 @@ import {
   ChartColumn,
   ClipboardCopy,
   Columns2,
+  FileSpreadsheet,
+  FileType,
   Heading,
   Rows3,
   Sigma,
@@ -26,7 +28,10 @@ import {
   insertColumnTotalBelow,
   sortTableByActiveColumn,
 } from '@/lib/editor/table-commands'
+import { exportActiveTableAsXlsx } from '@/lib/export/excel-xlsx'
 import { insertChartFromTable } from '@/lib/editor/insert-helpers'
+import { fileBasename } from '@/lib/toast'
+import { useAppSelector } from '@/store/hooks'
 import {
   focusTableCell,
   getTableMatrix,
@@ -62,6 +67,7 @@ function TableBubbleIcon({
 
 export function EditorTableBubbleMenu({ editor }: EditorTableBubbleMenuProps) {
   const { t } = useTranslation()
+  const documentTitle = useAppSelector((state) => state.documents.activeDocument?.title)
   const tableState = useEditorState({
     editor,
     selector: ({ editor: currentEditor }) => ({
@@ -168,6 +174,31 @@ export function EditorTableBubbleMenu({ editor }: EditorTableBubbleMenuProps) {
             }}
           >
             <ClipboardCopy className="h-3.5 w-3.5" />
+          </TableBubbleIcon>
+          <TableBubbleIcon
+            label={t('toolbar.actions.copyCsv')}
+            onClick={() => {
+              void copyActiveTableAsDelimited(editor, ',').then((ok) => {
+                if (ok) toast.success(t('toolbar.table.copied'))
+                else toast.info(t('toolbar.table.copyEmpty'))
+              })
+            }}
+          >
+            <FileType className="h-3.5 w-3.5" />
+          </TableBubbleIcon>
+          <TableBubbleIcon
+            label={t('toolbar.actions.exportExcel')}
+            onClick={() => {
+              void exportActiveTableAsXlsx(editor, {
+                baseName: documentTitle?.trim() || 'table',
+                dialogTitle: t('toolbar.actions.exportExcel'),
+              }).then((path) => {
+                if (path) toast.success(t('toolbar.table.exportedExcel'), fileBasename(path))
+                else toast.info(t('toolbar.table.exportExcelEmpty'))
+              })
+            }}
+          >
+            <FileSpreadsheet className="h-3.5 w-3.5" />
           </TableBubbleIcon>
           <span className="editor-bubble-divider" />
           <TableBubbleIcon
