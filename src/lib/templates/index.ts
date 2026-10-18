@@ -3,6 +3,7 @@ import i18n from '@/i18n'
 import type { TemplateCategoryId } from '@/lib/templates/categories'
 import { emptyCanvasDocument, type CanvasDocument } from '@/lib/canvas/types'
 
+import { emptyPaintSketchDoc } from '@/lib/editor/paint'
 import { SCRIBE_DEMO_GUIDE_TEMPLATE } from '@/lib/templates/demo-guide'
 import { EXTRA_DOCUMENT_TEMPLATES } from '@/lib/templates/extra-builtins'
 
@@ -47,6 +48,15 @@ const canvasNote: DocumentTemplate = {
   category: 'creative',
   title: 'Canvas',
   content: emptyCanvasDocument(),
+}
+
+const inkSketch: DocumentTemplate = {
+  id: 'ink-sketch',
+  name: 'Atramentová skica',
+  description: 'Poznámka s voľnou kresliacou plochou (pero, zvýrazňovač, OCR)',
+  category: 'creative',
+  title: 'Skica',
+  content: emptyPaintSketchDoc('Skica'),
 }
 
 const modernReport: DocumentTemplate = {
@@ -786,6 +796,7 @@ const academicPaper: DocumentTemplate = {
 export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
   blank,
   canvasNote,
+  inkSketch,
   SCRIBE_DEMO_GUIDE_TEMPLATE,
   modernReport,
   businessLetter,

@@ -40,6 +40,7 @@ import {
   Tag,
   LayoutGrid,
   Move,
+  Paintbrush,
   PanelTop,
   Type,
 } from 'lucide-react'
@@ -50,6 +51,7 @@ import {
 } from '@/lib/plugins'
 import { openQuickNote } from '@/lib/quick-note'
 import { openNewCanvasNote } from '@/lib/canvas/create-canvas'
+import { openNewPaintSketch } from '@/lib/editor/create-paint-sketch'
 import { Position, moveAppWindow } from '@/lib/window-position'
 import { isTauriRuntime } from '@/lib/tauri'
 import {
@@ -270,6 +272,17 @@ export function CommandPalette() {
         icon: <LayoutGrid className="h-4 w-4" />,
         run: () => {
           void openNewCanvasNote(dispatch, navigate, (key) => t(key)).catch((error) =>
+            toast.error(t('toasts.documentCreateError'), String(error)),
+          )
+        },
+      },
+      {
+        type: 'action',
+        id: 'new-paint-sketch',
+        label: t('commandPalette.newPaintSketch'),
+        icon: <Paintbrush className="h-4 w-4" />,
+        run: () => {
+          void openNewPaintSketch(dispatch, navigate, (key) => t(key)).catch((error) =>
             toast.error(t('toasts.documentCreateError'), String(error)),
           )
         },

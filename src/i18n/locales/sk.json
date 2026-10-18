@@ -152,6 +152,7 @@
     "sectionRecent": "Nedávne",
     "quickNote": "Rýchla poznámka",
     "newCanvas": "Nová canvas poznámka",
+    "newPaintSketch": "Nová atramentová skica",
     "reopenClosed": "Znova otvoriť posledný zatvorený",
     "reopenClosedHint": "Nedávno zatvorený dokument",
     "openSplit": "Otvoriť v split view",
@@ -4114,6 +4115,11 @@
         "description": "Tabuľa s kartami a prepojeniami",
         "title": "Canvas"
       },
+      "ink-sketch": {
+        "name": "Atramentová skica",
+        "description": "Poznámka s voľnou kresliacou plochou (pero, zvýrazňovač, OCR)",
+        "title": "Skica"
+      },
       "scribe-demo-guide": {
         "name": "Sprievodca Scribe",
         "description": "Kompletné demo všetkých funkcií aplikácie s príkladmi",
@@ -4857,13 +4863,18 @@
   },
   "paint": {
     "title": "Atramentový blok",
+    "defaultTitle": "Skica",
     "pen": "Pero",
+    "highlighter": "Zvýrazňovač",
     "eraser": "Guma",
     "size": "Hrúbka štetca",
     "colors": "Farby atramentu",
+    "paper": "Farba papiera",
     "undo": "Späť ťah",
     "redo": "Znova ťah",
     "clear": "Vymazať plochu",
+    "export": "Exportovať PNG",
+    "exportDone": "Skica exportovaná ako PNG",
     "ocr": "Rozpoznať text (OCR)",
     "ocrLabel": "OCR",
     "ocrDone": "Text z kresby rozpoznaný",

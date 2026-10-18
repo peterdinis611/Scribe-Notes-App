@@ -8376,6 +8376,12 @@ body.is-block-dragging .tiptap {
   gap: 4px;
 }
 
+.tiptap .paint-block__swatches--paper {
+  padding-left: 6px;
+  margin-left: 2px;
+  border-left: 1px solid color-mix(in srgb, var(--color-border) 70%, #8b7355);
+}
+
 .tiptap .paint-block__swatch {
   width: 16px;
   height: 16px;
@@ -8383,6 +8389,10 @@ body.is-block-dragging .tiptap {
   border: 1px solid color-mix(in srgb, #000 25%, transparent);
   cursor: pointer;
   padding: 0;
+}
+
+.tiptap .paint-block__swatch--paper {
+  border-radius: 3px;
 }
 
 .tiptap .paint-block__swatch.is-active {

@@ -152,6 +152,7 @@
     "sectionRecent": "Recent",
     "quickNote": "Quick note",
     "newCanvas": "New canvas note",
+    "newPaintSketch": "New ink sketch",
     "reopenClosed": "Reopen last closed",
     "reopenClosedHint": "Recently closed document",
     "openSplit": "Open in split view",
@@ -4106,6 +4107,11 @@
         "description": "Whiteboard with cards and connections",
         "title": "Canvas"
       },
+      "ink-sketch": {
+        "name": "Ink sketch",
+        "description": "Note with a freehand paint pad (pen, highlighter, OCR)",
+        "title": "Sketch"
+      },
       "scribe-demo-guide": {
         "name": "Scribe guide",
         "description": "Full demo of app features with examples",
@@ -4841,13 +4847,18 @@
   },
   "paint": {
     "title": "Ink pad",
+    "defaultTitle": "Sketch",
     "pen": "Pen",
+    "highlighter": "Highlighter",
     "eraser": "Eraser",
     "size": "Brush size",
     "colors": "Ink colors",
+    "paper": "Paper color",
     "undo": "Undo stroke",
     "redo": "Redo stroke",
     "clear": "Clear pad",
+    "export": "Export PNG",
+    "exportDone": "Sketch exported as PNG",
     "ocr": "Recognize text (OCR)",
     "ocrLabel": "OCR",
     "ocrDone": "Text recognized from drawing",
