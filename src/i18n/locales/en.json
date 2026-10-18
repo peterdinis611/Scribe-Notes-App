@@ -51,7 +51,6 @@
     "settings": "Settings",
     "docs": "Docs",
     "plugins": "Plugins",
-    "audit": "Audit log",
     "graph": "Connection map",
     "settingsSections": "Settings sections",
     "closeLibrary": "Close library",
@@ -153,6 +152,7 @@
     "sectionRecent": "Recent",
     "quickNote": "Quick note",
     "newCanvas": "New canvas note",
+    "newPaintSketch": "New ink sketch",
     "reopenClosed": "Reopen last closed",
     "reopenClosedHint": "Recently closed document",
     "openSplit": "Open in split view",
@@ -177,7 +177,6 @@
     "mobileCaptureHint": "QR → Inbox over Wi‑Fi",
     "privacy": "Privacy policy",
     "privacyHint": "What stays on this Mac",
-    "auditHint": "Admin-only activity history for app and MCP",
     "windowCenter": "Center window",
     "windowTopRight": "Move window to top right",
     "docs": "Documentation",
@@ -299,9 +298,21 @@
     "templates": "Templates",
     "templateApplied": "Applied {{name}}",
     "template": {
-      "blank": { "label": "Blank", "hint": "Empty canvas", "title": "Canvas note" },
-      "brainstorm": { "label": "Brainstorm", "hint": "Ideas + decide frames", "title": "Brainstorm" },
-      "roadmap": { "label": "Roadmap", "hint": "Now / Next / Later", "title": "Roadmap" }
+      "blank": {
+        "label": "Blank",
+        "hint": "Empty canvas",
+        "title": "Canvas note"
+      },
+      "brainstorm": {
+        "label": "Brainstorm",
+        "hint": "Ideas + decide frames",
+        "title": "Brainstorm"
+      },
+      "roadmap": {
+        "label": "Roadmap",
+        "hint": "Now / Next / Later",
+        "title": "Roadmap"
+      }
     },
     "insertTiptap": "To note",
     "insertDocTitle": "From canvas",
@@ -579,8 +590,8 @@
     "badge": "What's new in {{version}}",
     "kicker": "Edition notes",
     "title": "Scribe {{version}}",
-    "subtitle": "Local video library, timed MCP writes, format-safe sync merge, capture triage, and wiki NLP — still fully local.",
-    "editionMark": "Library · Media",
+    "subtitle": "A calmer Page workspace, quieter chrome, richer audit insights, and skins you can switch — still fully local.",
+    "editionMark": "Workspace · Design",
     "tagsLabel": "Themes in this release",
     "tags": {
       "agent": "Agent",
@@ -596,9 +607,32 @@
       "library": "Library",
       "capture": "Capture",
       "markdown": "Markdown",
-      "media": "Media"
+      "media": "Media",
+      "workspace": "Workspace",
+      "design": "Design",
+      "audit": "Audit"
     },
     "footNote": "Open Docs from the rail anytime. Capture and sync stay on this Mac.",
+    "pageWorkspace": {
+      "title": "Page workspace",
+      "description": "The default Page skin — Outfit type, clean paper, sky accent, and flat chrome."
+    },
+    "editorCanvas": {
+      "title": "Continuous editor",
+      "description": "The writing surface drops the floating card look for a calm, full-bleed page canvas."
+    },
+    "welcomeHome": {
+      "title": "Quiet home",
+      "description": "Welcome is a simple recent-pages list with clear actions — no grain, orbs, or desk theater."
+    },
+    "auditInsights": {
+      "title": "Audit insights",
+      "description": "Filter by actor, resource, and summary; browse action/actor stats; optional correlation context."
+    },
+    "skinPicker": {
+      "title": "Page · Grove · Classic",
+      "description": "Pick Page for the new look, or keep Grove / Classic botanical chrome in Appearance."
+    },
     "localVideoLibrary": {
       "title": "Local video library",
       "description": "Import large local videos into notes, play them in-place, and transcribe with Local AI."
@@ -784,9 +818,9 @@
       "title": "Image optimization",
       "description": "Uploads are resized and compressed in Rust (JPEG / PNG / WebP) so notes stay lean."
     },
-    "notionImages": {
-      "title": "Notion-style images",
-      "description": "Empty image blocks, embed from URL, lightbox, captions, and corner resize — like Notion."
+    "pageImages": {
+      "title": "Richer image blocks",
+      "description": "Empty image blocks, embed from URL, lightbox, captions, and corner resize handles."
     },
     "excelImport": {
       "title": "Import from Excel",
@@ -1148,8 +1182,10 @@
     "appearance": {
       "skinTitle": "Design language",
       "skinDescription": "Grove organic chrome for writing, or a flatter Classic variant.",
+      "skinPage": "Page",
+      "skinPageDesc": "Clean workspace — Outfit, paper surface, sky accent.",
       "skinClassic": "Classic",
-      "skinClassicDesc": "Same Grove palette with less grain and tighter corners.",
+      "skinClassicDesc": "Flatter Grove — less grain and tighter corners.",
       "skinGrove": "Grove",
       "skinGroveDesc": "Organic botanical chrome — Fraunces, soft moss paper, lichen accent.",
       "skinPress": "Grove",
@@ -1718,10 +1754,7 @@
         "no-vault": "No vault",
         "unlocked-vault": "Unlocked vault",
         "all": "All folders"
-      },
-      "auditTitle": "Audit log",
-      "auditDescription": "MCP and app security events share the local audit log.",
-      "openAudit": "Open audit log"
+      }
     },
     "nlp": {
       "title": "Scribe Local AI",
@@ -1793,6 +1826,13 @@
       "embedBackendHash": "Hash",
       "embedBackendQuality": "Quality (MiniLM)",
       "embedBackendError": "Could not switch embedding backend",
+      "embedBackendFallbackToast": "Requested {{requested}}, but sidecar fell back to {{active}} — install extras or keep Hash.",
+      "embedBackendFallbackHint": "Preference is {{requested}}, but the sidecar is running {{active}} ({{reason}}). Install optional packages from nlp/, then switch again.",
+      "embedFallback": {
+        "missing_quality": "Quality extras not installed",
+        "missing_fast": "Fast (Model2Vec) extras not installed",
+        "unavailable": "requested backend unavailable"
+      },
       "hashEnabledToast": "Using hash embeddings",
       "qualityEnabledToast": "Using quality embedding model — reindex your library",
       "extrasTitle": "Optional Python packages",
@@ -2678,6 +2718,10 @@
     "newVaultFolder": "New vault folder",
     "newVaultSubfolder": "New vault subfolder",
     "newSubfolder": "New subfolder",
+    "newPageInFolder": "New page",
+    "untitledPage": "Untitled",
+    "emptyFolderHint": "New page",
+    "folderActions": "Folder actions",
     "renameFolder": "Rename folder",
     "deleteFolder": "Delete folder",
     "deleteFolderTitle": "Delete folder?",
@@ -3847,7 +3891,7 @@
     },
     "image": {
       "label": "Image",
-      "hint": "Upload or embed — Notion-style block"
+      "hint": "Upload a file or embed from a link"
     },
     "image-url": {
       "label": "Image URL",
@@ -4062,6 +4106,11 @@
         "name": "Canvas note",
         "description": "Whiteboard with cards and connections",
         "title": "Canvas"
+      },
+      "ink-sketch": {
+        "name": "Ink sketch",
+        "description": "Note with a freehand paint pad (pen, highlighter, OCR)",
+        "title": "Sketch"
       },
       "scribe-demo-guide": {
         "name": "Scribe guide",
@@ -4622,6 +4671,9 @@
     "tasksLoading": "Loading tasks…",
     "summaryLoading": "Generating overview…",
     "summaryError": "Failed to generate overview",
+    "summaryTimeout": "Weekly overview timed out — Local AI is busy or slow. Try again.",
+    "summaryDisabled": "Local AI is off — enable it in Settings → Local AI for weekly overviews.",
+    "summarySidecarUnavailable": "Local AI is not ready — check Python 3.10+ in Settings → Local AI.",
     "createDigest": "Create digest",
     "digestCreating": "Creating digest…",
     "exportDigestPdf": "Export digest PDF",
@@ -4795,13 +4847,18 @@
   },
   "paint": {
     "title": "Ink pad",
+    "defaultTitle": "Sketch",
     "pen": "Pen",
+    "highlighter": "Highlighter",
     "eraser": "Eraser",
     "size": "Brush size",
     "colors": "Ink colors",
+    "paper": "Paper color",
     "undo": "Undo stroke",
     "redo": "Redo stroke",
     "clear": "Clear pad",
+    "export": "Export PNG",
+    "exportDone": "Sketch exported as PNG",
     "ocr": "Recognize text (OCR)",
     "ocrLabel": "OCR",
     "ocrDone": "Text recognized from drawing",
@@ -5033,85 +5090,5 @@
     "saveFailed": "Could not save smart folder",
     "evalFailed": "Could not evaluate smart folder",
     "deleteFailed": "Could not remove smart folder"
-  },
-  "audit": {
-    "title": "Audit log",
-    "description": "Local append-only history of app and MCP actions. Viewing requires an admin password on this Mac.",
-    "refresh": "Refresh",
-    "loading": "Loading…",
-    "loadError": "Could not load audit log",
-    "statusTitle": "Session",
-    "statusHint": "Unlock lasts until you lock again or quit Scribe.",
-    "locked": "Locked",
-    "unlocked": "Unlocked",
-    "eventCount": "{{count}} events",
-    "keepLimitLabel": "keep {{count}}",
-    "dbPath": "Database path",
-    "dbPathUnknown": "Not available",
-    "schemaVersion": "Schema version",
-    "statsTitle": "Stats",
-    "statsHint": "Counts for the full local log (not just the filtered table).",
-    "statsByOutcome": "By outcome",
-    "statsBySource": "By source",
-    "statsByCategory": "By category",
-    "setupTitle": "Create admin password",
-    "setupHint": "First unlock sets a local admin password (iterated salted hash in scribe-audit.db).",
-    "setupPassword": "Admin password",
-    "setupPasswordHint": "At least 8 characters. Needed to view or clear audit events.",
-    "setupAction": "Create & unlock",
-    "setupDone": "Admin password created",
-    "setupError": "Could not create admin password",
-    "gateTitle": "Admin access",
-    "gateHint": "Enter the admin password to view audit events.",
-    "unlockTitle": "Unlock",
-    "unlockHint": "Password stays on this Mac. Nothing is sent anywhere.",
-    "unlockAction": "Unlock",
-    "unlockDone": "Audit log unlocked",
-    "unlockError": "Unlock failed",
-    "lockTitle": "Lock again",
-    "lockHint": "Hide events until the next unlock.",
-    "lockAction": "Lock",
-    "lockDone": "Audit log locked",
-    "lockError": "Could not lock",
-    "changePassword": "Change password",
-    "changePasswordHint": "Requires the current password. New password needs at least 8 characters.",
-    "changePasswordAction": "Update password",
-    "passwordChanged": "Admin password updated",
-    "passwordChangeError": "Could not change password",
-    "passwordPlaceholder": "Password",
-    "currentPasswordPlaceholder": "Current password",
-    "newPasswordPlaceholder": "New password (min 8)",
-    "keepTitle": "Retention cap",
-    "keepHint": "Keep the newest 100–50 000 events (default 5 000). Older rows are trimmed on append.",
-    "keepAction": "Apply keep",
-    "keepDone": "Retention set to {{count}} events",
-    "keepError": "Could not update retention",
-    "purgeTitle": "Age purge",
-    "purgeHint": "Delete events older than the chosen window. Does not remove newer rows.",
-    "purgeDays": "Older than {{days}}d",
-    "purgeConfirm": "Delete audit events older than {{days}} days on this Mac?",
-    "purgeDone": "Purged {{count}} events",
-    "purgeError": "Could not purge audit events",
-    "eventsTitle": "Events",
-    "eventsHint": "Newest first. Filtered list; export uses the same filters (JSONL).",
-    "clear": "Clear log",
-    "clearConfirm": "Delete all audit events on this Mac?",
-    "clearDone": "Cleared {{count}} events",
-    "clearError": "Could not clear audit log",
-    "export": "Export JSONL",
-    "exportDone": "Audit events exported",
-    "exportError": "Could not export audit events",
-    "empty": "No events yet",
-    "lockedEmpty": "Unlock as admin to view events",
-    "filterSource": "Source",
-    "filterCategory": "Category",
-    "filterOutcome": "Outcome",
-    "filterAll": "All",
-    "colTime": "Time",
-    "colSource": "Source",
-    "colCategory": "Category",
-    "colAction": "Action",
-    "colOutcome": "Outcome",
-    "colSummary": "Summary"
   }
 }

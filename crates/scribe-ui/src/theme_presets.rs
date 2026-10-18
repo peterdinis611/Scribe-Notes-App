@@ -82,11 +82,11 @@ pub const CYCLE_THEME_ORDER: &[&str] = &[
 type PresetRow = (&'static str, &'static str, &'static str, bool, [&'static str; 13]);
 
 const PRESET_ROWS: &[PresetRow] = &[
-    ("light", "Svetlá", "Grove — mäkký sage papier", false, [
-        "#e7efe4", "#1c2b22", "#5c7264", "rgba(28, 43, 34, 0.12)", "rgba(214, 228, 210, 0.88)", "#d6e4d2", "rgba(231, 239, 228, 0.94)", "rgba(63, 122, 90, 0.18)", "#3f7a5a", "rgba(28, 43, 34, 0.05)", "rgba(28, 43, 34, 0.08)", "rgba(244, 248, 242, 0.96)", "#b42318",
+    ("light", "Svetlá", "Page — čistý workspace papier", false, [
+        "#ffffff", "#37352f", "#787774", "rgba(55, 53, 47, 0.09)", "rgba(247, 247, 245, 0.96)", "#f7f7f5", "rgba(255, 255, 255, 0.94)", "rgba(35, 131, 226, 0.14)", "#2383e2", "rgba(55, 53, 47, 0.08)", "rgba(55, 53, 47, 0.06)", "rgba(255, 255, 255, 0.98)", "#e03e3e",
     ]),
-    ("dark", "Tmavá", "Grove — hlboká hlina", true, [
-        "#121a16", "#e4efe6", "#8fa898", "rgba(228, 239, 230, 0.1)", "rgba(22, 32, 26, 0.94)", "#16201a", "rgba(18, 26, 22, 0.94)", "rgba(124, 184, 146, 0.22)", "#7cb892", "rgba(228, 239, 230, 0.06)", "rgba(228, 239, 230, 0.08)", "rgba(28, 40, 33, 0.96)", "#f97066",
+    ("dark", "Tmavá", "Page — grafitový workspace", true, [
+        "#191919", "#e3e2e0", "#9b9a97", "rgba(255, 255, 255, 0.075)", "rgba(32, 32, 32, 0.96)", "#202020", "rgba(25, 25, 25, 0.94)", "rgba(35, 131, 226, 0.28)", "#529cca", "rgba(255, 255, 255, 0.055)", "rgba(255, 255, 255, 0.06)", "rgba(37, 37, 37, 0.96)", "#ff7369",
     ]),
     ("sepia", "Sépiová", "Teplé pozadie pre dlhé čítanie", false, [
         "#f4ecd8", "#3d3428", "#7a6f5c", "rgba(61, 52, 40, 0.12)", "rgba(237, 228, 210, 0.85)", "#ede4d2", "rgba(244, 236, 216, 0.9)", "rgba(166, 124, 62, 0.18)", "#a67c3e", "rgba(61, 52, 40, 0.06)", "rgba(61, 52, 40, 0.08)", "rgba(250, 244, 232, 0.95)", "#c0392b",
@@ -271,7 +271,7 @@ mod tests {
     fn light_preset_matches_default_custom() {
         let light = get_preset_by_id("light").unwrap();
         assert_eq!(light.colors, default_custom_theme());
-        assert_eq!(light.colors.selection_strong, "#3f7a5a");
+        assert_eq!(light.colors.selection_strong, "#2383e2");
         assert_eq!(light.color_scheme, ThemeColorScheme::Light);
     }
 

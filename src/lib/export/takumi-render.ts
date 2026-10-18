@@ -5,13 +5,28 @@ import type { ExportResult } from '@/lib/db/api'
 
 let initPromise: Promise<void> | null = null
 
+async function resolveTakumiWasm(): Promise<string | URL | ArrayBuffer> {
+  // Vite asset URL — works in the Tauri webview (same pattern as pdf.js worker).
+  try {
+    const mod = await import('takumi-pdf/takumi_pdf_wasm_bg.wasm?url')
+    if (typeof mod.default === 'string' && mod.default.length > 0) return mod.default
+  } catch {
+    // fall through
+  }
+  const { default: wasmUrl } = await import('takumi-pdf/wasm-url')
+  return wasmUrl
+}
+
 async function ensureTakumiReady(): Promise<typeof import('takumi-pdf/no-init')> {
   const mod = await import('takumi-pdf/no-init')
   if (!initPromise) {
     initPromise = (async () => {
-      const { default: wasmUrl } = await import('takumi-pdf/wasm-url')
-      await mod.default({ module_or_path: wasmUrl })
-    })()
+      const moduleOrPath = await resolveTakumiWasm()
+      await mod.default({ module_or_path: moduleOrPath })
+    })().catch((error) => {
+      initPromise = null
+      throw error
+    })
   }
   await initPromise
   return mod

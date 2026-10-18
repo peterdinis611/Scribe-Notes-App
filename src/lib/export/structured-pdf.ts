@@ -17,6 +17,7 @@ import {
 } from '@/lib/journal-notes'
 import type { DocumentSummary, ExportResult, Folder } from '@/lib/db/api'
 import { revealInFinder } from '@/lib/db/api'
+import { withNlpTimeout } from '@/lib/nlp/timeout'
 
 function asCountRows(
   raw: unknown,
@@ -78,6 +79,26 @@ export type JournalDigestExportArgs = {
   summaryPlaceholder: string
   toneLabel?: string | null
   footerNote?: string
+  /** Prefer already-loaded journal UI data so export does not wait on NLP. */
+  summary?: string | null
+  bullets?: string[]
+  tasks?: string[]
+  documentCount?: number
+  /** Soft cap for optional NLP enrichment (ms). Export always proceeds after this. */
+  nlpTimeoutMs?: number
+}
+
+function formatTaskLines(
+  tasks: { checked?: boolean; text: string; documentTitle?: string | null }[],
+): string[] {
+  return tasks
+    .filter((task) => !task.checked && task.text.trim())
+    .map((task) =>
+      task.documentTitle
+        ? `${task.text.trim()} (${task.documentTitle})`
+        : task.text.trim(),
+    )
+    .slice(0, 24)
 }
 
 export async function exportJournalDigestPdf(
@@ -88,21 +109,28 @@ export async function exportJournalDigestPdf(
   const folderId = getJournalFolderId(args.folders, args.journalFolderName)
   const documentIds = collectJournalDocumentIdsForRange(args.documents, folderId, from, to)
 
-  let summaryText = args.summaryPlaceholder
-  let bullets: string[] = []
-  let documentCount = documentIds.length
+  let summaryText = args.summary?.trim() || args.summaryPlaceholder
+  let bullets = args.bullets?.length ? [...args.bullets] : []
+  let documentCount = args.documentCount ?? documentIds.length
   let toneLabel = args.toneLabel ?? null
-  let tasks: string[] = []
+  let tasks = args.tasks?.length ? [...args.tasks].slice(0, 24) : []
 
-  if (documentIds.length > 0) {
+  const hasPrefill = Boolean(args.summary?.trim()) || bullets.length > 0 || tasks.length > 0
+  const timeoutMs = args.nlpTimeoutMs ?? 4_000
+
+  // Only ask Local AI when we still need content — and never hang the export.
+  if (documentIds.length > 0 && timeoutMs > 0 && !hasPrefill) {
     const [summaryResult, tasksResult] = await Promise.allSettled([
-      nlpJournalSummary({
-        fromDate: from,
-        toDate: to,
-        journalFolderId: folderId,
-        documentIds,
-      }),
-      nlpJournalTasks(documentIds),
+      withNlpTimeout(
+        nlpJournalSummary({
+          fromDate: from,
+          toDate: to,
+          journalFolderId: folderId,
+          documentIds,
+        }),
+        timeoutMs,
+      ),
+      withNlpTimeout(nlpJournalTasks(documentIds), timeoutMs),
     ])
     if (summaryResult.status === 'fulfilled') {
       summaryText = summaryResult.value.summary || args.summaryPlaceholder
@@ -111,14 +139,15 @@ export async function exportJournalDigestPdf(
       if (summaryResult.value.tone) toneLabel = summaryResult.value.tone
     }
     if (tasksResult.status === 'fulfilled') {
-      tasks = tasksResult.value
-        .filter((task) => !task.checked && task.text.trim())
-        .map((task) =>
-          task.documentTitle
-            ? `${task.text.trim()} (${task.documentTitle})`
-            : task.text.trim(),
-        )
-        .slice(0, 24)
+      tasks = formatTaskLines(tasksResult.value)
+    }
+  } else if (documentIds.length > 0 && timeoutMs > 0 && tasks.length === 0) {
+    // Prefer a quick task fill when summary was already loaded in the UI.
+    const tasksResult = await Promise.allSettled([
+      withNlpTimeout(nlpJournalTasks(documentIds), Math.min(timeoutMs, 2_500)),
+    ])
+    if (tasksResult[0]?.status === 'fulfilled') {
+      tasks = formatTaskLines(tasksResult[0].value)
     }
   }
 

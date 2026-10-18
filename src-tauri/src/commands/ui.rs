@@ -543,7 +543,7 @@ pub fn parse_stored_custom_templates_ui(raw: serde_json::Value) -> Vec<scribe_ui
 }
 
 #[tauri::command]
-pub fn cards_to_nodes_ui(cards: Vec<scribe_ui::CanvasCard>) -> Vec<scribe_ui::CanvasNoteNode> {
+pub fn cards_to_nodes_ui(cards: Vec<scribe_ui::CanvasCard>) -> Vec<scribe_ui::CanvasFlowNode> {
     scribe_ui::cards_to_nodes(&cards)
 }
 

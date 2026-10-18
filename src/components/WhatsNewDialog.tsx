@@ -6,39 +6,19 @@ import { closeScribeUiSurface } from '@/lib/scribe-ui-host'
 import { isTauriRuntime } from '@/lib/tauri'
 import { persistWhatsNewVersion } from '@/store/persistence'
 
-/** Edition 3.9 release notes — keep in sync with `scribe_ui::WHATS_NEW_39_*`. */
-export const WHATS_NEW_39_HIGHLIGHTS = [
-  'localVideoLibrary',
-  'mcpWriteCountdown',
-  'syncMergeStudio',
-  'captureInbox',
-  'wikiHealthQueue',
+/** Edition 4.0 release notes — keep in sync with `scribe_ui::WHATS_NEW_40_*`. */
+export const WHATS_NEW_40_HIGHLIGHTS = [
+  'pageWorkspace',
+  'editorCanvas',
+  'welcomeHome',
+  'auditInsights',
+  'skinPicker',
 ] as const
 
-/** Folio tag keys under `whatsNew.tags.*` — keep in sync with `WHATS_NEW_39_TAG_KEYS`. */
-export const WHATS_NEW_39_TAG_KEYS = ['library', 'capture', 'media'] as const
+/** Folio tag keys under `whatsNew.tags.*` — keep in sync with `WHATS_NEW_40_TAG_KEYS`. */
+export const WHATS_NEW_40_TAG_KEYS = ['workspace', 'design', 'audit'] as const
 
-export type WhatsNew39HighlightId = (typeof WHATS_NEW_39_HIGHLIGHTS)[number]
-
-/** @deprecated Prefer WHATS_NEW_39_HIGHLIGHTS */
-export const WHATS_NEW_38_HIGHLIGHTS = WHATS_NEW_39_HIGHLIGHTS
-/** @deprecated Prefer WHATS_NEW_39_HIGHLIGHTS */
-export const WHATS_NEW_37_HIGHLIGHTS = WHATS_NEW_39_HIGHLIGHTS
-/** @deprecated Prefer WHATS_NEW_39_HIGHLIGHTS */
-export const WHATS_NEW_36_HIGHLIGHTS = WHATS_NEW_39_HIGHLIGHTS
-/** @deprecated Prefer WHATS_NEW_39_HIGHLIGHTS */
-export const WHATS_NEW_35_HIGHLIGHTS = WHATS_NEW_39_HIGHLIGHTS
-/** @deprecated Prefer WHATS_NEW_39_HIGHLIGHTS */
-export const WHATS_NEW_34_HIGHLIGHTS = WHATS_NEW_39_HIGHLIGHTS
-/** @deprecated Prefer WHATS_NEW_39_HIGHLIGHTS */
-export const WHATS_NEW_27_HIGHLIGHTS = WHATS_NEW_39_HIGHLIGHTS
-/** @deprecated Prefer WHATS_NEW_39_HIGHLIGHTS */
-export const WHATS_NEW_25_HIGHLIGHTS = WHATS_NEW_39_HIGHLIGHTS
-
-/** @deprecated Prefer WHATS_NEW_39_TAG_KEYS */
-export const WHATS_NEW_38_TAG_KEYS = WHATS_NEW_39_TAG_KEYS
-/** @deprecated Prefer WHATS_NEW_39_TAG_KEYS */
-export const WHATS_NEW_37_TAG_KEYS = WHATS_NEW_39_TAG_KEYS
+export type WhatsNew40HighlightId = (typeof WHATS_NEW_40_HIGHLIGHTS)[number]
 
 type WhatsNewDialogProps = {
   open: boolean
@@ -72,7 +52,7 @@ export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
         aria-label={t('whatsNew.gotIt')}
         onClick={handleClose}
       />
-      <div className="setup-folio setup-folio--news setup-folio--edition-39">
+      <div className="setup-folio setup-folio--news setup-folio--edition-40">
         <aside className="setup-folio-margin" aria-hidden="true">
           <p className="setup-folio-brand">
             {t('welcome.brandWithEdition', { version: APP_SHORT_VERSION })}
@@ -91,12 +71,12 @@ export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
             </h1>
             <p className="setup-folio-lead">{t('whatsNew.subtitle')}</p>
             <ul className="setup-folio-tags" aria-label={t('whatsNew.tagsLabel')}>
-              {WHATS_NEW_39_TAG_KEYS.map((key) => (
+              {WHATS_NEW_40_TAG_KEYS.map((key) => (
                 <li key={key}>{t(`whatsNew.tags.${key}`)}</li>
               ))}
             </ul>
           </header>
-          <WhatsNew39Highlights />
+          <WhatsNew40Highlights />
           <footer className="setup-folio-foot">
             <span className="setup-folio-foot-note">{t('whatsNew.footNote')}</span>
             <button type="button" className="setup-folio-next" onClick={handleClose}>
@@ -109,10 +89,10 @@ export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
   )
 }
 
-/** Presentational list of 3.9.0 highlights — hydrated from Rust UiManifest when available. */
-export function WhatsNew39Highlights() {
+/** Presentational list of 4.0.0 highlights — hydrated from Rust UiManifest when available. */
+export function WhatsNew40Highlights() {
   const { t } = useTranslation()
-  const [highlights, setHighlights] = useState<string[]>([...WHATS_NEW_39_HIGHLIGHTS])
+  const [highlights, setHighlights] = useState<string[]>([...WHATS_NEW_40_HIGHLIGHTS])
 
   useEffect(() => {
     if (!isTauriRuntime()) return
@@ -146,18 +126,3 @@ export function WhatsNew39Highlights() {
     </ol>
   )
 }
-
-/** @deprecated Prefer WhatsNew39Highlights */
-export const WhatsNew38Highlights = WhatsNew39Highlights
-/** @deprecated Prefer WhatsNew39Highlights */
-export const WhatsNew37Highlights = WhatsNew39Highlights
-/** @deprecated Prefer WhatsNew39Highlights */
-export const WhatsNew36Highlights = WhatsNew39Highlights
-/** @deprecated Prefer WhatsNew39Highlights */
-export const WhatsNew35Highlights = WhatsNew39Highlights
-/** @deprecated Prefer WhatsNew39Highlights */
-export const WhatsNew34Highlights = WhatsNew39Highlights
-/** @deprecated Prefer WhatsNew39Highlights */
-export const WhatsNew27Highlights = WhatsNew39Highlights
-/** @deprecated Prefer WhatsNew39Highlights */
-export const WhatsNew25Highlights = WhatsNew39Highlights

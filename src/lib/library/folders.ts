@@ -116,7 +116,6 @@ export function countDocumentsInFolders(
   return documents.filter((doc) => doc.folderId != null && folderIds.has(doc.folderId)).length
 }
 
-/** @deprecated Prefer formatDocumentCount with i18n */
 export function formatSlovakDocumentCount(count: number): string {
   if (count === 1) return '1 dokument'
   if (count >= 2 && count <= 4) return `${count} dokumenty`

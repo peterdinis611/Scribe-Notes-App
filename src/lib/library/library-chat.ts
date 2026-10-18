@@ -186,7 +186,6 @@ export async function askChat(
   return askLibrary(question, { stream: opts?.stream })
 }
 
-/** @deprecated Prefer Rust `match_document_chat_intent` — kept for sync tests only. */
 export function matchDocumentChatIntent(question: string): DocumentChatAction | null {
   const folded = question
     .trim()

@@ -40,6 +40,7 @@ import {
   Tag,
   LayoutGrid,
   Move,
+  Paintbrush,
   PanelTop,
   Type,
 } from 'lucide-react'
@@ -50,6 +51,7 @@ import {
 } from '@/lib/plugins'
 import { openQuickNote } from '@/lib/quick-note'
 import { openNewCanvasNote } from '@/lib/canvas/create-canvas'
+import { openNewPaintSketch } from '@/lib/editor/create-paint-sketch'
 import { Position, moveAppWindow } from '@/lib/window-position'
 import { isTauriRuntime } from '@/lib/tauri'
 import {
@@ -270,6 +272,17 @@ export function CommandPalette() {
         icon: <LayoutGrid className="h-4 w-4" />,
         run: () => {
           void openNewCanvasNote(dispatch, navigate, (key) => t(key)).catch((error) =>
+            toast.error(t('toasts.documentCreateError'), String(error)),
+          )
+        },
+      },
+      {
+        type: 'action',
+        id: 'new-paint-sketch',
+        label: t('commandPalette.newPaintSketch'),
+        icon: <Paintbrush className="h-4 w-4" />,
+        run: () => {
+          void openNewPaintSketch(dispatch, navigate, (key) => t(key)).catch((error) =>
             toast.error(t('toasts.documentCreateError'), String(error)),
           )
         },
@@ -1527,12 +1540,12 @@ export function CommandPalette() {
   return (
     <Dialog open={open} onOpenChange={(next) => dispatch(setCommandPaletteOpen(next))}>
       {open && (
-        <DialogContent className="command-palette-dialog top-[12vh] max-w-[560px] translate-y-0 gap-0 overflow-hidden p-0 shadow-[0_24px_60px_rgba(0,0,0,0.28)]">
-        <div className="flex items-center gap-2.5 border-b border-[var(--color-border)] px-4 py-3.5 shadow-[inset_3px_0_0_0_var(--color-accent)]">
-          <Search className="h-4 w-4 text-[var(--color-accent)]" />
+        <DialogContent className="command-palette-dialog top-[12vh] max-w-[560px] translate-y-0 gap-0 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-background)] p-0 shadow-[0_16px_48px_rgba(15,15,15,0.16)]">
+        <div className="flex items-center gap-2.5 border-b border-[var(--color-border)] px-4 py-3">
+          <Search className="h-4 w-4 text-[var(--color-muted-foreground)]" />
           <input
             ref={inputRef}
-            className="flex-1 border-none bg-transparent font-[family-name:var(--font-display)] text-[16px] font-semibold tracking-[-0.02em] text-[var(--color-foreground)] outline-none placeholder:font-sans placeholder:font-normal placeholder:tracking-normal placeholder:text-[var(--color-muted-foreground)]"
+            className="flex-1 border-none bg-transparent text-[15px] font-medium tracking-[-0.01em] text-[var(--color-foreground)] outline-none placeholder:font-normal placeholder:text-[var(--color-muted-foreground)]"
             placeholder={t('commandPalette.placeholder')}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -1667,18 +1680,15 @@ function PaletteRow({
       type="button"
       className={cn(
         'flex w-full items-center gap-2.5 rounded-[var(--radius-sm)] border border-transparent px-3 py-2.5 text-left transition-colors',
-        selected &&
-          'border-[color-mix(in_srgb,var(--color-accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] shadow-[inset_2px_0_0_0_var(--color-accent)]',
+        selected && 'bg-[var(--color-hover)]',
         !selected && 'hover:bg-[var(--color-hover)]',
       )}
       onMouseEnter={onSelect}
       onClick={onRun}
     >
-      <span className={cn(selected ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted-foreground)]')}>
-        {item.icon}
-      </span>
+      <span className="text-[var(--color-muted-foreground)]">{item.icon}</span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[13px] font-semibold tracking-[-0.01em] text-[var(--color-foreground)]">
+        <span className="block text-[13px] font-medium tracking-[-0.01em] text-[var(--color-foreground)]">
           {item.label}
         </span>
         {item.type === 'document' && item.snippetHtml ? (

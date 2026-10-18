@@ -20,8 +20,8 @@ pub fn ui_font_presets() -> Vec<UiFontPreset> {
         UiFontPreset {
             id: "default".into(),
             sample: "Aa".into(),
-            sans: "\"Figtree\", \"Avenir Next\", \"Segoe UI\", sans-serif".into(),
-            display: "\"Fraunces\", \"Iowan Old Style\", \"Palatino Linotype\", serif".into(),
+            sans: "\"Outfit\", \"Avenir Next\", \"Segoe UI\", sans-serif".into(),
+            display: "\"Literata\", \"Iowan Old Style\", \"Palatino Linotype\", serif".into(),
             google: vec![],
         },
         UiFontPreset {

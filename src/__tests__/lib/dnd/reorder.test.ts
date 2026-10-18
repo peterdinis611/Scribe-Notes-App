@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { canNestFolder, moveIdBefore } from '@/lib/dnd/reorder'
-import { isLibraryDragItem } from '@/lib/library/folder-tree-drag'
+import type { LibraryDragItem } from '@/lib/dnd/types'
+
+function isLibraryDragItem(value: unknown): value is LibraryDragItem {
+  if (typeof value !== 'object' || value == null) return false
+  const item = value as LibraryDragItem
+  return (
+    (item.kind === 'document' || item.kind === 'folder') &&
+    typeof item.id === 'string' &&
+    item.id.length > 0
+  )
+}
 
 describe('moveIdBefore', () => {
   it('moves an id in front of another', () => {

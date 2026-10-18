@@ -179,5 +179,4 @@ export function resolvePageLayout(setup: PageSetup): ResolvedPageLayout {
   }
 }
 
-/** @deprecated use resolvePageLayout(DEFAULT_PAGE_SETUP) */
 export const EDITOR_PAGE = resolvePageLayout(DEFAULT_PAGE_SETUP)

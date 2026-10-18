@@ -145,26 +145,74 @@ pub fn resolve_theme_colors(settings: &ThemeSettings, prefers_dark: bool) -> Res
     }
 }
 
-/// Classic skin flattens the stock light / dark palettes; Grove (and named presets) are untouched.
+fn grove_light() -> ThemeColors {
+    ThemeColors {
+        background: "#e7efe4".into(),
+        foreground: "#1c2b22".into(),
+        muted_foreground: "#5c7264".into(),
+        border: "rgba(28, 43, 34, 0.12)".into(),
+        sidebar: "rgba(214, 228, 210, 0.88)".into(),
+        sidebar_solid: "#d6e4d2".into(),
+        toolbar: "rgba(231, 239, 228, 0.94)".into(),
+        selection: "rgba(63, 122, 90, 0.18)".into(),
+        selection_strong: "#3f7a5a".into(),
+        hover: "rgba(28, 43, 34, 0.05)".into(),
+        separator: "rgba(28, 43, 34, 0.08)".into(),
+        format_bar: "rgba(244, 248, 242, 0.96)".into(),
+        destructive: "#b42318".into(),
+    }
+}
+
+fn grove_dark() -> ThemeColors {
+    ThemeColors {
+        background: "#121a16".into(),
+        foreground: "#e4efe6".into(),
+        muted_foreground: "#8fa898".into(),
+        border: "rgba(228, 239, 230, 0.1)".into(),
+        sidebar: "rgba(22, 32, 26, 0.94)".into(),
+        sidebar_solid: "#16201a".into(),
+        toolbar: "rgba(18, 26, 22, 0.94)".into(),
+        selection: "rgba(124, 184, 146, 0.22)".into(),
+        selection_strong: "#7cb892".into(),
+        hover: "rgba(228, 239, 230, 0.06)".into(),
+        separator: "rgba(228, 239, 230, 0.08)".into(),
+        format_bar: "rgba(28, 40, 33, 0.96)".into(),
+        destructive: "#f97066".into(),
+    }
+}
+
+/// Page keeps stock light/dark; Grove / Classic remint botanical variants.
 pub fn colors_for_skin(colors: &ThemeColors, resolved_id: &str, skin: UiSkin) -> ThemeColors {
-    if skin != UiSkin::Classic {
+    if resolved_id != "light" && resolved_id != "dark" {
         return colors.clone();
     }
-    match resolved_id {
-        "dark" => ThemeColors {
-            background: "#151c18".into(),
-            sidebar_solid: "#1a221d".into(),
-            toolbar: "rgba(21, 28, 24, 0.96)".into(),
-            ..colors.clone()
-        },
-        "light" => ThemeColors {
-            background: "#eef4eb".into(),
-            sidebar: "rgba(232, 240, 228, 0.92)".into(),
-            sidebar_solid: "#e4eee0".into(),
-            toolbar: "rgba(238, 244, 235, 0.96)".into(),
-            ..colors.clone()
-        },
-        _ => colors.clone(),
+    match skin {
+        UiSkin::Page => colors.clone(),
+        UiSkin::Grove => {
+            if resolved_id == "dark" {
+                grove_dark()
+            } else {
+                grove_light()
+            }
+        }
+        UiSkin::Classic => {
+            if resolved_id == "dark" {
+                ThemeColors {
+                    background: "#151c18".into(),
+                    sidebar_solid: "#1a221d".into(),
+                    toolbar: "rgba(21, 28, 24, 0.96)".into(),
+                    ..grove_dark()
+                }
+            } else {
+                ThemeColors {
+                    background: "#eef4eb".into(),
+                    sidebar: "rgba(232, 240, 228, 0.92)".into(),
+                    sidebar_solid: "#e4eee0".into(),
+                    toolbar: "rgba(238, 244, 235, 0.96)".into(),
+                    ..grove_light()
+                }
+            }
+        }
     }
 }
 
@@ -240,7 +288,7 @@ mod tests {
         assert!(is_dark_color("#000"));
         assert!(is_dark_color("#121a16"));
         assert!(!is_dark_color("#fff"));
-        assert!(!is_dark_color("#e7efe4"));
+        assert!(!is_dark_color("#ffffff"));
         assert!(is_dark_color("rgb(10, 10, 10)"));
         assert!(!is_dark_color("rgba(250, 250, 250, 0.9)"));
         assert!(!is_dark_color("rgb(nonsense)"));
@@ -281,27 +329,29 @@ mod tests {
     }
 
     #[test]
-    fn classic_skin_flattens_light_and_dark_only() {
+    fn skins_remap_light_and_dark_only() {
         let light = get_preset_by_id("light").unwrap().colors;
         let dark = get_preset_by_id("dark").unwrap().colors;
         let nord = get_preset_by_id("nord").unwrap().colors;
-        assert_eq!(colors_for_skin(&light, "light", UiSkin::Grove), light);
+        assert_eq!(colors_for_skin(&light, "light", UiSkin::Page), light);
         assert_eq!(colors_for_skin(&nord, "nord", UiSkin::Classic), nord);
+
+        let grove = colors_for_skin(&light, "light", UiSkin::Grove);
+        assert_eq!(grove.background, "#e7efe4");
+        assert_eq!(grove.selection_strong, "#3f7a5a");
 
         let l = colors_for_skin(&light, "light", UiSkin::Classic);
         assert_eq!(l.background, "#eef4eb");
         assert_eq!(l.sidebar_solid, "#e4eee0");
-        assert_eq!(l.foreground, light.foreground);
 
         let d = colors_for_skin(&dark, "dark", UiSkin::Classic);
         assert_eq!(d.background, "#151c18");
         assert_eq!(d.toolbar, "rgba(21, 28, 24, 0.96)");
-        assert_eq!(d.sidebar, dark.sidebar);
     }
 
     #[test]
     fn plans_application() {
-        let plan = plan_theme_application(&settings("system", None), UiSkin::Grove, true);
+        let plan = plan_theme_application(&settings("system", None), UiSkin::Page, true);
         assert_eq!(plan.data_theme, "system");
         assert_eq!(plan.resolved_id, "dark");
         assert!(plan.is_dark);

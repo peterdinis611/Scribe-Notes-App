@@ -40,8 +40,8 @@ export const UI_FONT_PRESETS: UiFontPreset[] = [
   {
     id: 'default',
     sample: 'Aa',
-    sans: '"Figtree", "Avenir Next", "Segoe UI", sans-serif',
-    display: '"Fraunces", "Iowan Old Style", "Palatino Linotype", serif',
+    sans: '"Outfit", "Avenir Next", "Segoe UI", sans-serif',
+    display: '"Literata", "Iowan Old Style", "Palatino Linotype", serif',
   },
   {
     id: 'system',

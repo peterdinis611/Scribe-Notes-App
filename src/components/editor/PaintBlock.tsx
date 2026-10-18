@@ -3,7 +3,9 @@ import type { NodeViewProps } from '@tiptap/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
+  Download,
   Eraser,
+  Highlighter,
   LoaderCircle,
   Paintbrush,
   Redo2,
@@ -22,7 +24,9 @@ import {
   PAINT_DEFAULT_COLOR,
   PAINT_DEFAULT_HEIGHT,
   PAINT_DEFAULT_WIDTH,
+  PAINT_HIGHLIGHTER_COLORS,
   PAINT_INK_COLORS,
+  PAINT_PAPER_COLORS,
   parsePaintStrokes,
   renderPaintStrokes,
   serializePaintStrokes,
@@ -42,6 +46,12 @@ function pointerToCanvas(
     x: (clientX - rect.left) * scaleX,
     y: (clientY - rect.top) * scaleY,
   }
+}
+
+function draftWidth(tool: PaintTool, brush: number): number {
+  if (tool === 'eraser') return Math.max(brush * 2.5, 8)
+  if (tool === 'highlighter') return Math.max(brush * 3, 12)
+  return brush
 }
 
 export function PaintBlock({ node, selected, deleteNode, updateAttributes, getPos }: NodeViewProps) {
@@ -109,7 +119,7 @@ export function PaintBlock({ node, selected, deleteNode, updateAttributes, getPo
     draftRef.current = {
       tool,
       color: tool === 'eraser' ? '#000000' : color,
-      width: tool === 'eraser' ? Math.max(brush * 2.5, 8) : brush,
+      width: draftWidth(tool, brush),
       points: [point],
     }
     setDrawing(true)
@@ -164,6 +174,20 @@ export function PaintBlock({ node, selected, deleteNode, updateAttributes, getPo
     updateAttributes({ ocrText: '' })
   }
 
+  function setPaper(next: string) {
+    updateAttributes({ background: next })
+  }
+
+  function exportPng() {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const link = document.createElement('a')
+    link.download = `scribe-sketch-${Date.now()}.png`
+    link.href = canvas.toDataURL('image/png')
+    link.click()
+    toast.success(t('paint.exportDone'))
+  }
+
   async function runOcr() {
     const canvas = canvasRef.current
     if (!canvas || !activeId) {
@@ -211,6 +235,8 @@ export function PaintBlock({ node, selected, deleteNode, updateAttributes, getPo
     deleteNode()
   }
 
+  const swatches = tool === 'highlighter' ? PAINT_HIGHLIGHTER_COLORS : PAINT_INK_COLORS
+
   return (
     <NodeViewWrapper
       className={cn('paint-block', selected && 'is-selected', drawing && 'is-drawing')}
@@ -224,9 +250,28 @@ export function PaintBlock({ node, selected, deleteNode, updateAttributes, getPo
             className={cn('paint-block__btn', tool === 'pen' && 'is-active')}
             aria-label={t('paint.pen')}
             title={t('paint.pen')}
-            onClick={() => setTool('pen')}
+            onClick={() => {
+              setTool('pen')
+              if (!PAINT_INK_COLORS.includes(color as (typeof PAINT_INK_COLORS)[number])) {
+                setColor(PAINT_DEFAULT_COLOR)
+              }
+              setBrush((w) => Math.min(w, 24))
+            }}
           >
             <Paintbrush className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            className={cn('paint-block__btn', tool === 'highlighter' && 'is-active')}
+            aria-label={t('paint.highlighter')}
+            title={t('paint.highlighter')}
+            onClick={() => {
+              setTool('highlighter')
+              setColor(PAINT_HIGHLIGHTER_COLORS[0])
+              setBrush((w) => Math.max(w, 8))
+            }}
+          >
+            <Highlighter className="h-3.5 w-3.5" />
           </button>
           <button
             type="button"
@@ -237,18 +282,18 @@ export function PaintBlock({ node, selected, deleteNode, updateAttributes, getPo
           >
             <Eraser className="h-3.5 w-3.5" />
           </button>
-            <label className="paint-block__size" title={t('paint.size')}>
+          <label className="paint-block__size" title={t('paint.size')}>
             <input
               type="range"
               min={1}
-              max={24}
+              max={tool === 'highlighter' ? 40 : 24}
               value={brush}
               aria-label={t('paint.size')}
               onChange={(event) => setBrush(Number(event.target.value))}
             />
           </label>
           <div className="paint-block__swatches" role="listbox" aria-label={t('paint.colors')}>
-            {PAINT_INK_COLORS.map((swatch) => (
+            {swatches.map((swatch) => (
               <button
                 key={swatch}
                 type="button"
@@ -257,8 +302,24 @@ export function PaintBlock({ node, selected, deleteNode, updateAttributes, getPo
                 aria-label={swatch}
                 onClick={() => {
                   setColor(swatch)
-                  setTool('pen')
+                  setTool((prev) => (prev === 'eraser' ? 'pen' : prev))
                 }}
+              />
+            ))}
+          </div>
+          <div className="paint-block__swatches paint-block__swatches--paper" role="listbox" aria-label={t('paint.paper')}>
+            {PAINT_PAPER_COLORS.map((paper) => (
+              <button
+                key={paper}
+                type="button"
+                className={cn(
+                  'paint-block__swatch paint-block__swatch--paper',
+                  background === paper && 'is-active',
+                )}
+                style={{ background: paper }}
+                aria-label={paper}
+                title={t('paint.paper')}
+                onClick={() => setPaper(paper)}
               />
             ))}
           </div>
@@ -269,6 +330,15 @@ export function PaintBlock({ node, selected, deleteNode, updateAttributes, getPo
           </button>
           <button type="button" className="paint-block__btn" disabled={redoStack.length === 0} onClick={redo} title={t('paint.redo')}>
             <Redo2 className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            className="paint-block__btn"
+            disabled={strokes.length === 0}
+            onClick={exportPng}
+            title={t('paint.export')}
+          >
+            <Download className="h-3.5 w-3.5" />
           </button>
           <button
             type="button"
@@ -288,7 +358,7 @@ export function PaintBlock({ node, selected, deleteNode, updateAttributes, getPo
         </div>
       </div>
 
-      <div className="paint-block__stage" contentEditable={false}>
+      <div className="paint-block__stage" contentEditable={false} style={{ background }}>
         <canvas
           ref={canvasRef}
           className="paint-block__canvas"

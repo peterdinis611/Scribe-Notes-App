@@ -2,7 +2,15 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import { CalendarDays, CheckSquare, ChevronLeft, ChevronRight, Flame, Moon, Sparkles, Sun } from 'lucide-react'
-import { nlpCalendarEvents, nlpJournalSummary, nlpJournalTasks, type CalendarEvent, type DocumentTask } from '@/lib/db/nlp-api'
+import {
+  nlpCalendarEvents,
+  nlpJournalSummary,
+  nlpJournalTasks,
+  nlpStatus,
+  type CalendarEvent,
+  type DocumentTask,
+} from '@/lib/db/nlp-api'
+import { JOURNAL_NLP_TIMEOUT_MS, JOURNAL_TASKS_TIMEOUT_MS, withNlpTimeout } from '@/lib/nlp/timeout'
 import {
   computeJournalStreak,
   collectJournalDocumentIdsForRange,
@@ -59,18 +67,45 @@ export function LibraryJournalView({ onNavigate }: LibraryJournalViewProps) {
     const { from, to } = currentWeekRange()
     setSummaryLoading(true)
     try {
+      const status = await withNlpTimeout(nlpStatus(), 4_000).catch(() => null)
+      if (!status?.enabled) {
+        toast.info(t('journal.summaryDisabled'))
+        setWeeklySummary(t('journal.digestSummaryPlaceholder'))
+        setWeeklyBullets([])
+        setWeeklyTone(null)
+        return
+      }
+      if (!status.sidecarOk) {
+        toast.info(t('journal.summarySidecarUnavailable'))
+        setWeeklySummary(t('journal.digestSummaryPlaceholder'))
+        setWeeklyBullets([])
+        setWeeklyTone(null)
+        return
+      }
+
       const documentIds = collectJournalDocumentIdsForRange(documents, folderId, from, to)
-      const result = await nlpJournalSummary({
-        fromDate: from,
-        toDate: to,
-        journalFolderId: folderId,
-        documentIds,
-      })
+      const result = await withNlpTimeout(
+        nlpJournalSummary({
+          fromDate: from,
+          toDate: to,
+          journalFolderId: folderId,
+          documentIds,
+        }),
+        JOURNAL_NLP_TIMEOUT_MS,
+      )
       setWeeklySummary(result.summary)
       setWeeklyBullets(result.bullets)
       setWeeklyTone(result.tone ?? null)
     } catch (error) {
-      toast.error(t('journal.summaryError'), String(error))
+      const message = error instanceof Error ? error.message : String(error)
+      if (message === 'timeout' || /timed out/i.test(message)) {
+        toast.error(t('journal.summaryTimeout'))
+      } else if (/NLP is disabled/i.test(message)) {
+        toast.info(t('journal.summaryDisabled'))
+        setWeeklySummary(t('journal.digestSummaryPlaceholder'))
+      } else {
+        toast.error(t('journal.summaryError'), message)
+      }
     } finally {
       setSummaryLoading(false)
     }
@@ -94,7 +129,7 @@ export function LibraryJournalView({ onNavigate }: LibraryJournalViewProps) {
     }
     let cancelled = false
     setTasksLoading(true)
-    nlpJournalTasks(weekDocumentIds)
+    void withNlpTimeout(nlpJournalTasks(weekDocumentIds), JOURNAL_TASKS_TIMEOUT_MS)
       .then((tasks) => {
         if (!cancelled) {
           setWeeklyTasks(tasks.filter((task) => !task.checked))
@@ -279,6 +314,19 @@ export function LibraryJournalView({ onNavigate }: LibraryJournalViewProps) {
                   weekLabel: t('journal.weeklySummaryTitle'),
                   summaryPlaceholder: t('journal.digestSummaryPlaceholder'),
                   footerNote: t('structuredPdf.digestFooter'),
+                  summary: weeklySummary,
+                  bullets: weeklyBullets,
+                  toneLabel: weeklyTone,
+                  tasks: weeklyTasks
+                    .filter((task) => !task.checked && task.text.trim())
+                    .map((task) =>
+                      task.documentTitle
+                        ? `${task.text.trim()} (${task.documentTitle})`
+                        : task.text.trim(),
+                    ),
+                  documentCount: weekDocumentIds.length,
+                  // Soft cap: do not hang the toolbar on a stalled Local AI sidecar.
+                  nlpTimeoutMs: 2_500,
                 })
                 const path = await exportStructuredPdfAndReveal(result)
                 if (path) toast.success(t('toasts.exportDone'), path.split('/').pop() ?? path)

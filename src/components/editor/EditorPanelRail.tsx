@@ -171,7 +171,7 @@ export function EditorPanelRail() {
       <AgentBlobatar
         name={AGENT_BLOBATAR_NAME}
         size={22}
-        talking={generalAgentOpen}
+        mood={generalAgentOpen ? 'thinking' : 'idle'}
         title={t('agent.faceTitle')}
       />
     </RailButton>
@@ -188,7 +188,7 @@ export function EditorPanelRail() {
       <AgentBlobatar
         name={SPELLCHECK_AGENT_BLOBATAR_NAME}
         size={22}
-        talking={spellAgentOpen}
+        mood={spellAgentOpen ? 'thinking' : 'idle'}
         title={t('agent.spellAgent.faceTitle')}
       />
     </RailButton>

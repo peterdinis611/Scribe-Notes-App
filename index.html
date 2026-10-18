@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="sk" data-ui-skin="grove">
+<html lang="sk" data-ui-skin="page">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -8,12 +8,56 @@
     <title>Scribe</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Non-blocking font CSS — swap in after load so first paint isn't stalled. -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Mono:wght@400;500&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Mono:wght@400;500&family=Literata:ital,opsz,wght@0,7..72,500;0,7..72,600;0,7..72,700;1,7..72,500&family=Outfit:wght@400;500;600;700&display=swap"
+      onload="this.onload=null;this.rel='stylesheet'"
     />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Mono:wght@400;500&family=Literata:ital,opsz,wght@0,7..72,500;0,7..72,600;0,7..72,700;1,7..72,500&family=Outfit:wght@400;500;600;700&display=swap"
+      />
+    </noscript>
     <script>
       ;(function () {
+        var page = {
+          light: {
+            background: '#ffffff',
+            foreground: '#37352f',
+            mutedForeground: '#787774',
+            border: 'rgba(55, 53, 47, 0.09)',
+            sidebar: 'rgba(247, 247, 245, 0.96)',
+            sidebarSolid: '#f7f7f5',
+            toolbar: 'rgba(255, 255, 255, 0.94)',
+            selection: 'rgba(35, 131, 226, 0.14)',
+            selectionStrong: '#2383e2',
+            hover: 'rgba(55, 53, 47, 0.08)',
+            separator: 'rgba(55, 53, 47, 0.06)',
+            formatBar: 'rgba(255, 255, 255, 0.98)',
+            destructive: '#e03e3e',
+            colorScheme: 'light',
+          },
+          dark: {
+            background: '#191919',
+            foreground: '#e3e2e0',
+            mutedForeground: '#9b9a97',
+            border: 'rgba(255, 255, 255, 0.075)',
+            sidebar: 'rgba(32, 32, 32, 0.96)',
+            sidebarSolid: '#202020',
+            toolbar: 'rgba(25, 25, 25, 0.94)',
+            selection: 'rgba(35, 131, 226, 0.28)',
+            selectionStrong: '#529cca',
+            hover: 'rgba(255, 255, 255, 0.055)',
+            separator: 'rgba(255, 255, 255, 0.06)',
+            formatBar: 'rgba(37, 37, 37, 0.96)',
+            destructive: '#ff7369',
+            colorScheme: 'dark',
+          },
+        }
+
         var grove = {
           light: {
             background: '#e7efe4',
@@ -52,11 +96,19 @@
         var root = document.documentElement
         var themeId = 'system'
         var customTheme = null
-        var uiSkin = 'grove'
+        var uiSkin = 'page'
         try {
+          var migrated = localStorage.getItem('scribe-ui-skin-migrated-page-v2')
           var storedSkin = localStorage.getItem('scribe-ui-skin')
-          if (storedSkin === 'classic') uiSkin = 'classic'
-          else uiSkin = 'grove'
+          if (migrated === '1') {
+            if (storedSkin === 'classic') uiSkin = 'classic'
+            else if (storedSkin === 'grove' || storedSkin === 'press') uiSkin = 'grove'
+            else uiSkin = 'page'
+          } else {
+            localStorage.setItem('scribe-ui-skin-migrated-page-v2', '1')
+            localStorage.setItem('scribe-ui-skin', 'page')
+            uiSkin = 'page'
+          }
         } catch (e) {}
 
         var resolved = themeId
@@ -66,11 +118,12 @@
             : 'light'
         }
 
+        var palette = uiSkin === 'grove' || uiSkin === 'classic' ? grove : page
         var colors = customTheme
-        if (!colors && (resolved === 'light' || resolved === 'dark') && grove[resolved]) {
-          colors = grove[resolved]
+        if (!colors && (resolved === 'light' || resolved === 'dark') && palette[resolved]) {
+          colors = palette[resolved]
         }
-        if (!colors) colors = grove.light
+        if (!colors) colors = page.light
 
         var map = {
           background: '--color-background',

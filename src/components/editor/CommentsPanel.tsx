@@ -391,7 +391,7 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
                 }}
               >
                 <label className="flex min-w-0 flex-col items-stretch gap-1">
-                  <span className="font-[family-name:var(--font-display)] text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--color-muted-foreground)]">
+                  <span className="text-[11px] font-medium text-[var(--color-muted-foreground)]">
                     {t('panels.comments.authorLabel')}
                   </span>
                   <Input
@@ -432,7 +432,7 @@ export function CommentsPanel({ editor, onClose }: CommentsPanelProps) {
       </EditorSidePanelList>
 
       <label className="flex flex-row items-center gap-2 border-t border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-surface)_70%,transparent)] px-3.5 pt-2.5 pb-3">
-        <span className="shrink-0 font-[family-name:var(--font-display)] text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--color-muted-foreground)]">
+        <span className="shrink-0 text-[11px] font-medium text-[var(--color-muted-foreground)]">
           {t('panels.comments.signedAs')}
         </span>
         <Input

@@ -609,6 +609,9 @@ export type AuditEvent = {
   summary: string
   detailJson?: string | null
   outcome: string
+  correlationId?: string | null
+  sessionId?: string | null
+  appVersion?: string | null
 }
 
 export type AuditCountBucket = {
@@ -624,6 +627,8 @@ export type AuditStats = {
   byCategory: AuditCountBucket[]
   bySource: AuditCountBucket[]
   byOutcome: AuditCountBucket[]
+  byAction: AuditCountBucket[]
+  byActor: AuditCountBucket[]
 }
 
 export type AuditListInput = {
@@ -632,6 +637,11 @@ export type AuditListInput = {
   source?: string | null
   outcome?: string | null
   action?: string | null
+  actor?: string | null
+  resourceType?: string | null
+  resourceId?: string | null
+  q?: string | null
+  correlationId?: string | null
   since?: number | null
   until?: number | null
 }
@@ -663,6 +673,11 @@ function auditListPayload(input?: AuditListInput) {
     source: input?.source ?? null,
     outcome: input?.outcome ?? null,
     action: input?.action ?? null,
+    actor: input?.actor ?? null,
+    resourceType: input?.resourceType ?? null,
+    resourceId: input?.resourceId ?? null,
+    q: input?.q ?? null,
+    correlationId: input?.correlationId ?? null,
     since: input?.since ?? null,
     until: input?.until ?? null,
   }
@@ -1715,12 +1730,6 @@ export const pickAndImportFiles = async () => {
   return invoke<PickAndImportResult | null>('pick_and_import_file', {
     antivirusPolicy: readAntivirusPolicy(),
   })
-}
-
-/** @deprecated Prefer `pickAndImportFiles` — kept for single-doc call sites. */
-export const pickAndImportFile = async () => {
-  const result = await pickAndImportFiles()
-  return result?.imported[0] ?? null
 }
 
 export const importFile = async (path: string) => {

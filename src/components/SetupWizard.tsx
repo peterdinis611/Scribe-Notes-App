@@ -1,8 +1,7 @@
 import { Upload } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { LocaleSelect } from '@/components/LocaleSelect'
-import { useCustomLocaleRefresh } from '@/components/LocaleToggle'
+import { LocaleSelect, useCustomLocaleRefresh } from '@/components/LocaleSelect'
 import { registerCustomLocaleBundle } from '@/i18n'
 import { APP_SHORT_VERSION } from '@/lib/app-version'
 import { pickAndParseCustomLocale } from '@/lib/i18n/custom-locale-io'
@@ -228,6 +227,7 @@ export function SetupWizard({ onFinished }: SetupWizardProps) {
           {stepId === 'skin' && (
             <div className="setup-folio-skins">
               {([
+                ['page', 'settings.appearance.skinPage', 'settings.appearance.skinPageDesc'],
                 ['grove', 'settings.appearance.skinGrove', 'settings.appearance.skinGroveDesc'],
                 ['classic', 'settings.appearance.skinClassic', 'settings.appearance.skinClassicDesc'],
               ] as const).map(([id, titleKey, descKey]) => (

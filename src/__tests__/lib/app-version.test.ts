@@ -1,23 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import { APP_SHORT_VERSION, APP_VERSION } from '@/lib/app-version'
-import { readFileSync } from 'node:fs'
-import path from 'node:path'
-
-const pkg = JSON.parse(readFileSync(path.join(process.cwd(), 'package.json'), 'utf8')) as {
-  version: string
-}
+import pkg from '../../../package.json'
 
 describe('APP_VERSION', () => {
-  it('is a semver major.minor.patch string', () => {
+  it('is semver major.minor.patch', () => {
     expect(APP_VERSION).toMatch(/^\d+\.\d+\.\d+$/)
   })
 
-  it('matches the 3.9 release line', () => {
-    expect(APP_VERSION.startsWith('3.9.')).toBe(true)
-    expect(APP_SHORT_VERSION).toBe('3.9')
+  it('matches the 4.0 release line', () => {
+    expect(APP_VERSION.startsWith('4.0.')).toBe(true)
+    expect(APP_SHORT_VERSION).toBe('4.0')
   })
 
-  it('stays in sync with package.json', () => {
+  it('matches package.json', () => {
     expect(APP_VERSION).toBe(pkg.version)
   })
 })

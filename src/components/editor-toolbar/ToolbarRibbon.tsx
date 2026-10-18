@@ -19,6 +19,7 @@ import {
   ListOrdered,
   ListTree,
   Minus,
+  Paintbrush,
   Palette,
   PlusSquare,
   QrCode,
@@ -241,6 +242,14 @@ export function ToolbarRibbon({
 
         <ToolbarButton label={t('toolbar.actions.link')} active={editor.isActive('link')} onClick={setLink}>
           <Link2 className="h-4 w-4 stroke-[1.75]" />
+        </ToolbarButton>
+
+        <ToolbarButton
+          label={t('toolbar.actions.paint')}
+          active={editor.isActive('paintPad')}
+          onClick={() => insertEmptyPaintPad(editor)}
+        >
+          <Paintbrush className="h-4 w-4 stroke-[1.75]" />
         </ToolbarButton>
 
         <DropdownMenu>

@@ -90,8 +90,8 @@ pub use canvas_doc::{
 };
 pub use canvas_flow::{
     canvas_edges_to_flow, cards_to_nodes, create_note_node, create_note_node_with_id,
-    flow_to_canvas_document, objects_to_nodes, CanvasFlowNode, CanvasNoteData, CanvasNoteNode,
-    CanvasObjectData, FlowEdge, FlowMeasured, FlowNode, FlowPosition, FlowSize, CANVAS_EDGE_TYPE,
+    flow_to_canvas_document, objects_to_nodes, CanvasFlowNode, CanvasObjectData, FlowEdge,
+    FlowMeasured, FlowNode, FlowPosition, FlowSize, CANVAS_EDGE_TYPE,
     CANVAS_NOTE_TYPE,
 };
 pub use code_languages::{
@@ -299,10 +299,8 @@ pub use scribe_video::{
     VideoInfo, VideoProvider,
 };
 pub use whats_new::{
-    whats_new_highlights, whats_new_tag_keys, EDITION_MARK_KEY, WHATS_NEW_34_HIGHLIGHTS,
-    WHATS_NEW_35_HIGHLIGHTS, WHATS_NEW_36_HIGHLIGHTS, WHATS_NEW_36_TAG_KEYS,
-    WHATS_NEW_37_HIGHLIGHTS, WHATS_NEW_37_TAG_KEYS, WHATS_NEW_38_HIGHLIGHTS,
-    WHATS_NEW_38_TAG_KEYS, WHATS_NEW_39_HIGHLIGHTS, WHATS_NEW_39_TAG_KEYS,
+    whats_new_highlights, whats_new_tag_keys, EDITION_MARK_KEY, WHATS_NEW_40_HIGHLIGHTS,
+    WHATS_NEW_40_TAG_KEYS,
 };
 
 #[cfg(feature = "dioxus")]
@@ -400,10 +398,21 @@ mod tests {
         assert_eq!(m.whats_new_highlights.len(), 5);
         assert!(m.settings_section_ids.contains(&"agent".to_string()));
         assert_eq!(m.docs_topic_ids.len(), 15);
+        assert!(m.ui_skin_ids.contains(&"page".to_string()));
         assert!(m.ui_skin_ids.contains(&"grove".to_string()));
         assert!(m.smart_filter_ids.contains(&"canvas".to_string()));
         assert!(m.library_view_ids.contains(&"wikiHealth".to_string()));
-        assert_eq!(m.whats_new_tag_keys, vec!["library", "capture", "media"]);
+        assert_eq!(m.whats_new_tag_keys, vec!["workspace", "design", "audit"]);
+        assert_eq!(
+            m.whats_new_highlights,
+            vec![
+                "pageWorkspace",
+                "editorCanvas",
+                "welcomeHome",
+                "auditInsights",
+                "skinPicker",
+            ]
+        );
         assert_eq!(m.docs_topic_tips.len(), 7);
         assert!(m.shortcut_ids.contains(&"commandPalette".to_string()));
         assert!(m.agent_role_ids.contains(&"general".to_string()));

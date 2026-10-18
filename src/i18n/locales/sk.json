@@ -51,7 +51,6 @@
     "settings": "Nastavenia",
     "docs": "Dokumentácia",
     "plugins": "Pluginy",
-    "audit": "Audit log",
     "graph": "Mapa prepojení",
     "settingsSections": "Sekcie nastavení",
     "closeLibrary": "Zavrieť knižnicu",
@@ -153,6 +152,7 @@
     "sectionRecent": "Nedávne",
     "quickNote": "Rýchla poznámka",
     "newCanvas": "Nová canvas poznámka",
+    "newPaintSketch": "Nová atramentová skica",
     "reopenClosed": "Znova otvoriť posledný zatvorený",
     "reopenClosedHint": "Nedávno zatvorený dokument",
     "openSplit": "Otvoriť v split view",
@@ -177,7 +177,6 @@
     "mobileCaptureHint": "QR → Inbox cez Wi‑Fi",
     "privacy": "Zásady ochrany súkromia",
     "privacyHint": "Čo ostáva na tomto Macu",
-    "auditHint": "História aktivít appky a MCP — len pre admina",
     "windowCenter": "Vycentrovať okno",
     "windowTopRight": "Presunúť okno vpravo hore",
     "docs": "Dokumentácia",
@@ -299,9 +298,21 @@
     "templates": "Šablóny",
     "templateApplied": "Použitá {{name}}",
     "template": {
-      "blank": { "label": "Prázdny", "hint": "Čistý canvas", "title": "Canvas poznámka" },
-      "brainstorm": { "label": "Brainstorm", "hint": "Nápady + rozhodnutie", "title": "Brainstorm" },
-      "roadmap": { "label": "Roadmap", "hint": "Teraz / Ďalej / Neskôr", "title": "Roadmap" }
+      "blank": {
+        "label": "Prázdny",
+        "hint": "Čistý canvas",
+        "title": "Canvas poznámka"
+      },
+      "brainstorm": {
+        "label": "Brainstorm",
+        "hint": "Nápady + rozhodnutie",
+        "title": "Brainstorm"
+      },
+      "roadmap": {
+        "label": "Roadmap",
+        "hint": "Teraz / Ďalej / Neskôr",
+        "title": "Roadmap"
+      }
     },
     "insertTiptap": "Do poznámky",
     "insertDocTitle": "Z canvasu",
@@ -579,8 +590,8 @@
     "badge": "Novinky {{version}}",
     "kicker": "Poznámky k vydaniu",
     "title": "Scribe {{version}}",
-    "subtitle": "Lokálna video knižnica, časovaný MCP zápis, sync merge bez straty formátu, capture triage a wiki NLP — stále lokálne.",
-    "editionMark": "Library · Media",
+    "subtitle": "Pokojnejší Page workspace, tichší chrome, bohatší audit a prepínateľné skiny — stále lokálne.",
+    "editionMark": "Workspace · Dizajn",
     "tagsLabel": "Témy tohto vydania",
     "tags": {
       "agent": "Agent",
@@ -596,9 +607,32 @@
       "library": "Knižnica",
       "capture": "Capture",
       "markdown": "Markdown",
-      "media": "Médiá"
+      "media": "Médiá",
+      "workspace": "Workspace",
+      "design": "Dizajn",
+      "audit": "Audit"
     },
     "footNote": "Docs otvoríš kedykoľvek z railu. Capture a sync ostávajú na tomto Macu.",
+    "pageWorkspace": {
+      "title": "Page workspace",
+      "description": "Predvolený Page skin — Outfit, čistý papier, sky akcent a flat chrome."
+    },
+    "editorCanvas": {
+      "title": "Súvislý editor",
+      "description": "Písanie bez plávajúcej karty — pokojný full-bleed page canvas."
+    },
+    "welcomeHome": {
+      "title": "Tichý home",
+      "description": "Welcome je jednoduchý zoznam recent pages s jasnými akciami — bez grainu a orbov."
+    },
+    "auditInsights": {
+      "title": "Audit insights",
+      "description": "Filtre podľa aktéra, zdroja a súhrnu; štatistiky akcií/aktérov; voliteľná korelácia."
+    },
+    "skinPicker": {
+      "title": "Page · Grove · Classic",
+      "description": "Page pre nový vzhľad, alebo Grove / Classic botanický chrome vo Appearance."
+    },
     "localVideoLibrary": {
       "title": "Lokálna video knižnica",
       "description": "Importuj veľké lokálne videá do poznámok, prehrávaj ich na mieste a prepíš cez Lokálnu AI."
@@ -784,9 +818,9 @@
       "title": "Optimalizácia obrázkov",
       "description": "Nahraté obrázky sa v Ruste zmenšia a skomprimujú (JPEG / PNG / WebP), aby poznámky ostali ľahké."
     },
-    "notionImages": {
-      "title": "Obrázky ako v Notion",
-      "description": "Prázdny blok, vložiť z URL, lightbox, popisky a resize v rohoch — ako v Notion."
+    "pageImages": {
+      "title": "Bohatšie obrázkové bloky",
+      "description": "Prázdny blok, vložiť z URL, lightbox, popisky a resize v rohoch."
     },
     "excelImport": {
       "title": "Import z Excelu",
@@ -1148,8 +1182,10 @@
     "appearance": {
       "skinTitle": "Dizajn",
       "skinDescription": "Organický Grove, alebo plochejší Classic variant.",
+      "skinPage": "Page",
+      "skinPageDesc": "Čistý workspace — Outfit, papierový povrch, sky akcent.",
       "skinClassic": "Classic",
-      "skinClassicDesc": "Rovnaká Grove paleta s menej textúrou a ostrejšími rohmi.",
+      "skinClassicDesc": "Plochší Grove — menej textúry a ostrejšie rohy.",
       "skinGrove": "Grove",
       "skinGroveDesc": "Organický botanický chrome — Fraunces, mäkký sage papier, lichen akcent.",
       "skinPress": "Grove",
@@ -1718,10 +1754,7 @@
         "no-vault": "Bez trezoru",
         "unlocked-vault": "Odomknutý trezor",
         "all": "Všetky priečinky"
-      },
-      "auditTitle": "Audit log",
-      "auditDescription": "MCP a app security eventy zdieľajú lokálny audit log.",
-      "openAudit": "Otvoriť audit log"
+      }
     },
     "nlp": {
       "title": "Scribe Lokálna AI",
@@ -1793,6 +1826,13 @@
       "embedBackendHash": "Hash",
       "embedBackendQuality": "Quality (MiniLM)",
       "embedBackendError": "Nepodarilo sa zmeniť spôsob vektorov",
+      "embedBackendFallbackToast": "Vybrané {{requested}}, ale sidecar prešiel na {{active}} — doinštaluj extras alebo nechaj Hash.",
+      "embedBackendFallbackHint": "Preferencia je {{requested}}, ale sidecar beží na {{active}} ({{reason}}). Doinštaluj voliteľné balíčky z nlp/ a znova prepni.",
+      "embedFallback": {
+        "missing_quality": "Quality extras nie sú nainštalované",
+        "missing_fast": "Fast (Model2Vec) extras nie sú nainštalované",
+        "unavailable": "požadovaný backend nie je dostupný"
+      },
       "hashEnabledToast": "Používajú sa hash embeddingy",
       "qualityEnabledToast": "Používa sa quality embedding model — preindexuj knižnicu",
       "extrasTitle": "Voliteľné Python balíčky",
@@ -2680,6 +2720,10 @@
     "newVaultFolder": "Nový trezorový priečinok",
     "newVaultSubfolder": "Nový trezorový podpriečinok",
     "newSubfolder": "Nový podpriečinok",
+    "newPageInFolder": "Nová stránka",
+    "untitledPage": "Bez názvu",
+    "emptyFolderHint": "Nová stránka",
+    "folderActions": "Akcie priečinka",
     "renameFolder": "Premenovať priečinok",
     "deleteFolder": "Vymazať priečinok",
     "deleteFolderTitle": "Vymazať priečinok?",
@@ -3855,7 +3899,7 @@
     },
     "image": {
       "label": "Obrázok",
-      "hint": "Nahrať alebo vložiť odkaz — ako v Notion"
+      "hint": "Nahrať súbor alebo vložiť odkaz"
     },
     "image-url": {
       "label": "Obrázok z URL",
@@ -4070,6 +4114,11 @@
         "name": "Canvas poznámka",
         "description": "Tabuľa s kartami a prepojeniami",
         "title": "Canvas"
+      },
+      "ink-sketch": {
+        "name": "Atramentová skica",
+        "description": "Poznámka s voľnou kresliacou plochou (pero, zvýrazňovač, OCR)",
+        "title": "Skica"
       },
       "scribe-demo-guide": {
         "name": "Sprievodca Scribe",
@@ -4638,6 +4687,9 @@
     "tasksLoading": "Načítavam úlohy…",
     "summaryLoading": "Generujem prehľad…",
     "summaryError": "Nepodarilo sa vygenerovať prehľad",
+    "summaryTimeout": "Týždenný prehľad vypršal — Local AI je zaneprázdnená alebo pomalá. Skús znova.",
+    "summaryDisabled": "Local AI je vypnutá — zapni ju v Nastavenia → Local AI pre týždenné prehľady.",
+    "summarySidecarUnavailable": "Local AI nie je pripravená — skontroluj Python 3.10+ v Nastavenia → Local AI.",
     "createDigest": "Vytvoriť digest",
     "digestCreating": "Vytváram digest…",
     "exportDigestPdf": "Exportovať digest PDF",
@@ -4811,13 +4863,18 @@
   },
   "paint": {
     "title": "Atramentový blok",
+    "defaultTitle": "Skica",
     "pen": "Pero",
+    "highlighter": "Zvýrazňovač",
     "eraser": "Guma",
     "size": "Hrúbka štetca",
     "colors": "Farby atramentu",
+    "paper": "Farba papiera",
     "undo": "Späť ťah",
     "redo": "Znova ťah",
     "clear": "Vymazať plochu",
+    "export": "Exportovať PNG",
+    "exportDone": "Skica exportovaná ako PNG",
     "ocr": "Rozpoznať text (OCR)",
     "ocrLabel": "OCR",
     "ocrDone": "Text z kresby rozpoznaný",
@@ -5049,85 +5106,5 @@
     "saveFailed": "Nepodarilo sa uložiť inteligentný priečinok",
     "evalFailed": "Nepodarilo sa vyhodnotiť inteligentný priečinok",
     "deleteFailed": "Nepodarilo sa odstrániť inteligentný priečinok"
-  },
-  "audit": {
-    "title": "Audit log",
-    "description": "Lokálna append-only história akcií aplikácie a MCP. Zobrazenie vyžaduje admin heslo na tomto Macu.",
-    "refresh": "Obnoviť",
-    "loading": "Načítavam…",
-    "loadError": "Nepodarilo sa načítať audit log",
-    "statusTitle": "Relácia",
-    "statusHint": "Odomknutie platí do uzamknutia alebo ukončenia Scribe.",
-    "locked": "Zamknuté",
-    "unlocked": "Odomknuté",
-    "eventCount": "{{count}} udalostí",
-    "keepLimitLabel": "keep {{count}}",
-    "dbPath": "Cesta k databáze",
-    "dbPathUnknown": "Nedostupné",
-    "schemaVersion": "Verzia schémy",
-    "statsTitle": "Štatistiky",
-    "statsHint": "Počty pre celý lokálny log (nie len filtrovanú tabuľku).",
-    "statsByOutcome": "Podľa výsledku",
-    "statsBySource": "Podľa zdroja",
-    "statsByCategory": "Podľa kategórie",
-    "setupTitle": "Vytvoriť admin heslo",
-    "setupHint": "Prvé odomknutie nastaví lokálne admin heslo (iterovaný hash so soľou v scribe-audit.db).",
-    "setupPassword": "Admin heslo",
-    "setupPasswordHint": "Aspoň 8 znakov. Potrebné na zobrazenie alebo vymazanie udalostí.",
-    "setupAction": "Vytvoriť a odomknúť",
-    "setupDone": "Admin heslo vytvorené",
-    "setupError": "Nepodarilo sa vytvoriť admin heslo",
-    "gateTitle": "Admin prístup",
-    "gateHint": "Zadaj admin heslo na zobrazenie audit udalostí.",
-    "unlockTitle": "Odomknúť",
-    "unlockHint": "Heslo ostáva na tomto Macu. Nikam sa neodosiela.",
-    "unlockAction": "Odomknúť",
-    "unlockDone": "Audit log odomknutý",
-    "unlockError": "Odomknutie zlyhalo",
-    "lockTitle": "Znova zamknúť",
-    "lockHint": "Skryť udalosti do ďalšieho odomknutia.",
-    "lockAction": "Zamknúť",
-    "lockDone": "Audit log zamknutý",
-    "lockError": "Nepodarilo sa zamknúť",
-    "changePassword": "Zmeniť heslo",
-    "changePasswordHint": "Vyžaduje aktuálne heslo. Nové heslo aspoň 8 znakov.",
-    "changePasswordAction": "Aktualizovať heslo",
-    "passwordChanged": "Admin heslo aktualizované",
-    "passwordChangeError": "Nepodarilo sa zmeniť heslo",
-    "passwordPlaceholder": "Heslo",
-    "currentPasswordPlaceholder": "Aktuálne heslo",
-    "newPasswordPlaceholder": "Nové heslo (min. 8)",
-    "keepTitle": "Limit uchovania",
-    "keepHint": "Uchovať najnovších 100–50 000 udalostí (predvolene 5 000). Staršie sa orežú pri zápise.",
-    "keepAction": "Použiť limit",
-    "keepDone": "Limit nastavený na {{count}} udalostí",
-    "keepError": "Nepodarilo sa nastaviť limit",
-    "purgeTitle": "Vymazanie podľa veku",
-    "purgeHint": "Zmazať udalosti staršie než zvolené okno. Novšie riadky ostanú.",
-    "purgeDays": "Staršie ako {{days}} dní",
-    "purgeConfirm": "Zmazať audit udalosti staršie ako {{days}} dní na tomto Macu?",
-    "purgeDone": "Vymazaných {{count}} udalostí",
-    "purgeError": "Nepodarilo sa vymazať staré udalosti",
-    "eventsTitle": "Udalosti",
-    "eventsHint": "Najnovšie hore. Filtrovaný zoznam; export používa rovnaké filtre (JSONL).",
-    "clear": "Vymazať log",
-    "clearConfirm": "Vymazať všetky audit udalosti na tomto Macu?",
-    "clearDone": "Vymazaných {{count}} udalostí",
-    "clearError": "Nepodarilo sa vymazať audit log",
-    "export": "Exportovať JSONL",
-    "exportDone": "Audit udalosti exportované",
-    "exportError": "Nepodarilo sa exportovať audit",
-    "empty": "Zatiaľ žiadne udalosti",
-    "lockedEmpty": "Odomkni ako admin na zobrazenie udalostí",
-    "filterSource": "Zdroj",
-    "filterCategory": "Kategória",
-    "filterOutcome": "Výsledok",
-    "filterAll": "Všetko",
-    "colTime": "Čas",
-    "colSource": "Zdroj",
-    "colCategory": "Kategória",
-    "colAction": "Akcia",
-    "colOutcome": "Výsledok",
-    "colSummary": "Súhrn"
   }
 }

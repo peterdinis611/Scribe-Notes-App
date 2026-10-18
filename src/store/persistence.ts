@@ -8,7 +8,7 @@ import type { AgentPrefs } from '@/lib/library/agent-prefs'
 import { DEFAULT_AGENT_PREFS, normalizeAgentPrefs } from '@/lib/library/agent-prefs'
 import { kvGet, kvRemove, kvSet } from '@/lib/storage/kv'
 import type { ThemeSettings } from '@/lib/themes/types'
-import { normalizeUiSkin, type UiSkin } from '@/lib/ui-skin'
+import { resolveStoredUiSkin, type UiSkin } from '@/lib/ui-skin'
 import type { CustomDocumentTemplate } from '@/lib/templates/custom'
 import { parseStoredCustomTemplates } from '@/lib/templates/custom'
 import type { CustomTemplateCategory } from '@/lib/templates/categories'
@@ -81,11 +81,11 @@ export function persistLocale(locale: AppLocale) {
 
 export function readUiSkin(): UiSkin {
   try {
-    return normalizeUiSkin(kvGet(UI_SKIN_KEY))
+    return resolveStoredUiSkin(kvGet, kvSet)
   } catch {
     // ignore
   }
-  return 'grove'
+  return 'page'
 }
 
 export function persistUiSkin(skin: import('@/lib/ui-skin').UiSkin) {
@@ -312,22 +312,6 @@ export function readAutoBackupIntervalHours(): AutoBackupIntervalHours {
 export function persistAutoBackupIntervalHours(hours: AutoBackupIntervalHours) {
   const value = clampAutoBackupIntervalHours(hours)
   kvSet(AUTO_BACKUP_INTERVAL_HOURS_KEY, String(value))
-}
-
-/** @deprecated Use readAutoBackupIntervalHours — kept for older imports. */
-export type AutoBackupIntervalDays = 1 | 7 | 30
-
-/** @deprecated Use readAutoBackupIntervalHours */
-export function readAutoBackupIntervalDays(): AutoBackupIntervalDays {
-  const hours = readAutoBackupIntervalHours()
-  if (hours <= 24) return 1
-  if (hours <= 168) return 7
-  return 30
-}
-
-/** @deprecated Use persistAutoBackupIntervalHours */
-export function persistAutoBackupIntervalDays(days: AutoBackupIntervalDays) {
-  persistAutoBackupIntervalHours(days * 24)
 }
 
 export function readAutoBackupDirectory(): string | null {

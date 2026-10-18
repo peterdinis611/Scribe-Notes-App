@@ -68,7 +68,7 @@ export const ResizableImage = Image.extend({
         tag: 'img',
         getAttrs: (element) => {
           if (!(element instanceof HTMLElement)) return false
-          // Allow empty placeholders without src (Notion-style).
+          // Allow empty placeholders without src.
           return {
             src: element.getAttribute('src'),
             alt: element.getAttribute('alt'),

@@ -368,7 +368,7 @@ export function AgentSection() {
           <AgentBlobatar
             name={AGENT_BLOBATAR_NAME}
             size={40}
-            talking={prefs.enabled}
+            mood={prefs.enabled ? 'thinking' : 'idle'}
             title={t('agent.faceTitle')}
           />
           <span className="agent-settings-power-led" data-on={prefs.enabled || undefined} />

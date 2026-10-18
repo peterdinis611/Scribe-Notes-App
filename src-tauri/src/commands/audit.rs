@@ -129,6 +129,11 @@ pub struct ListAuditEventsInput {
     pub source: Option<String>,
     pub outcome: Option<String>,
     pub action: Option<String>,
+    pub actor: Option<String>,
+    pub resource_type: Option<String>,
+    pub resource_id: Option<String>,
+    pub q: Option<String>,
+    pub correlation_id: Option<String>,
     pub since: Option<i64>,
     pub until: Option<i64>,
 }
@@ -141,6 +146,11 @@ impl ListAuditEventsInput {
             source: self.source,
             outcome: self.outcome,
             action: self.action,
+            actor: self.actor,
+            resource_type: self.resource_type,
+            resource_id: self.resource_id,
+            q: self.q,
+            correlation_id: self.correlation_id,
             since: self.since,
             until: self.until,
         }

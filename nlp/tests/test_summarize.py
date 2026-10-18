@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 
 from scribe_nlp.summarize import summarize_text
+from scribe_nlp.text_utils import content_tokens, split_sentences
 
 
 class SummarizeTests(unittest.TestCase):
@@ -28,6 +29,21 @@ class SummarizeTests(unittest.TestCase):
         bullets = result["bullets"]
         self.assertEqual(len(bullets), 3)
         self.assertEqual(bullets, sorted(bullets, key=text.index))
+
+    def test_journal_newlines_without_punctuation(self) -> None:
+        text = "Dokončiť report\nZavolať Petrovi\nPripraviť slides na meeting"
+        parts = split_sentences(text)
+        self.assertGreaterEqual(len(parts), 3)
+        result = summarize_text(text, max_sentences=3)
+        self.assertGreaterEqual(len(result["bullets"]), 2)
+
+    def test_journal_time_stopwords_filtered(self) -> None:
+        tokens = content_tokens("Dnes ráno som napísal report večer")
+        self.assertNotIn("dnes", tokens)
+        self.assertNotIn("ráno", tokens)
+        self.assertNotIn("večer", tokens)
+        self.assertIn("napísal", tokens)
+        self.assertIn("report", tokens)
 
 
 if __name__ == "__main__":

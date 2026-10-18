@@ -447,7 +447,7 @@ export function ImageBlock({
 
         <div className="image-media" contentEditable={false} {...(!isEmpty ? { 'data-drag-handle': '' } : {})}>
           {isEmpty ? (
-            <div className="image-placeholder image-placeholder--notion">
+            <div className="image-placeholder image-placeholder--page">
               <ImageIcon className="h-8 w-8" />
               <span>{broken ? t('image.missing') : t('image.emptyTitle')}</span>
               <span className="image-placeholder-hint">{t('image.emptyHint')}</span>

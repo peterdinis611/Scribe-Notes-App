@@ -21,7 +21,7 @@ export function StatusPageLayout({
       <div className="max-w-[440px] text-center">
         <div
           className={cn(
-            'mb-5 inline-flex h-16 w-16 items-center justify-center rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-accent)] shadow-[0_4px_16px_rgba(0,0,0,0.06)]',
+            'mb-5 inline-flex h-14 w-14 items-center justify-center rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-background)] text-[var(--color-muted-foreground)]',
             iconClassName,
           )}
         >

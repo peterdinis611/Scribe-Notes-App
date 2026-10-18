@@ -4,7 +4,11 @@ import { useTranslation } from 'react-i18next'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useNavigate } from '@tanstack/react-router'
 import { confirm } from '@tauri-apps/plugin-dialog'
-import { FolderTreeDocumentRow, FolderTreeFolderRow } from '@/components/FolderTreeRows'
+import {
+  FolderTreeDocumentRow,
+  FolderTreeEmptyRow,
+  FolderTreeFolderRow,
+} from '@/components/FolderTreeRows'
 import {
   deleteFolder,
   listLinkGraph,
@@ -37,6 +41,7 @@ import { nlpStatus, nlpSuggestTags } from '@/lib/db/nlp-api'
 import { describeNlpTagSuggestionFailure } from '@/lib/nlp/errors'
 import { ROUTES } from '@/lib/routes'
 import { promptAndCreateFolder, promptAndCreateVaultFolder } from '@/lib/library/create-folder'
+import { createDocumentInFolder } from '@/lib/library/create-document-in-folder'
 import { promptInput } from '@/lib/input-dialog'
 import { isVaultUnlocked } from '@/lib/vault/session'
 import { toast } from '@/lib/toast'
@@ -85,6 +90,10 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
   }, [librarySmartFilter, documents.length])
 
   useEffect(() => {
+    if (librarySmartFilter !== 'unlinked') {
+      setOrphanIds(new Set())
+      return
+    }
     let cancelled = false
     void listLinkGraph()
       .then((graph) => {
@@ -97,7 +106,7 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     return () => {
       cancelled = true
     }
-  }, [documents.length])
+  }, [documents.length, librarySmartFilter])
 
   useEffect(() => {
     if (librarySmartFilter !== 'stubs' && librarySmartFilter !== 'tasks' && librarySmartFilter !== 'media') {
@@ -215,6 +224,19 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
   const handleCreateVaultFolder = useCallback(async (parentId: string | null) => {
     await promptAndCreateVaultFolder({ t, dispatch, parentId })
   }, [dispatch, t])
+
+  const handleCreatePage = useCallback(
+    async (folderId: string | null) => {
+      await createDocumentInFolder({
+        folderId,
+        t,
+        dispatch,
+        navigate: (route) => navigate(route),
+      })
+      onNavigate?.()
+    },
+    [dispatch, navigate, onNavigate, t],
+  )
 
   const handleRenameFolder = useCallback(async (id: string, currentName: string) => {
     const name = await promptInput({
@@ -680,6 +702,7 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
               onToggle={toggleFolder}
               onRename={(id, name) => void handleRenameFolder(id, name)}
               onCreateChild={(parentId) => void handleCreateFolder(parentId)}
+              onCreatePage={(folderId) => void handleCreatePage(folderId)}
               onCreateVaultChild={(parentId) => void handleCreateVaultFolder(parentId)}
               onTrashDocuments={(id, folderName, event) =>
                 void handleTrashFolderDocuments(id, folderName, event)
@@ -718,17 +741,26 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
       >
         {flatItems.length === 0 ? (
           <div className="px-3 py-6 text-center">
-            <p className="m-0 text-[12px] text-[var(--color-muted-foreground)]">
+            <p className="m-0 text-[13px] font-medium text-[var(--color-foreground)]">
               {query ? t('library.noResults') : t('library.noDocumentsYet')}
             </p>
             {!query ? (
-              <button
-                type="button"
-                className="mt-3 inline-flex items-center rounded-lg border border-[var(--color-border)] bg-transparent px-3 py-1.5 text-[12px] text-[var(--color-foreground)] hover:bg-[var(--color-hover)]"
-                onClick={() => void handleCreateFolder(null)}
-              >
-                {t('library.newFolder')}
-              </button>
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                <button
+                  type="button"
+                  className="inline-flex items-center rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-1.5 text-[12px] font-medium text-[var(--color-foreground)] hover:bg-[var(--color-hover)]"
+                  onClick={() => void handleCreatePage(null)}
+                >
+                  {t('library.newPageInFolder')}
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex items-center rounded-[var(--radius-sm)] border border-transparent px-3 py-1.5 text-[12px] text-[var(--color-muted-foreground)] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
+                  onClick={() => void handleCreateFolder(null)}
+                >
+                  {t('library.newFolder')}
+                </button>
+              </div>
             ) : null}
           </div>
         ) : (
@@ -764,6 +796,7 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
                       onToggle={toggleFolder}
                       onRename={(id, name) => void handleRenameFolder(id, name)}
                       onCreateChild={(parentId) => void handleCreateFolder(parentId)}
+                      onCreatePage={(folderId) => void handleCreatePage(folderId)}
                       onCreateVaultChild={(parentId) => void handleCreateVaultFolder(parentId)}
                       onTrashDocuments={(id, folderName, event) =>
                         void handleTrashFolderDocuments(id, folderName, event)
@@ -774,6 +807,12 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
                       onLockVault={(id) => void handleLockVault(id)}
                       vaultUnlocked={isVaultUnlocked(item.folder.id)}
                       onDropItem={(folderId, item) => void handleLibraryDrop(folderId, item)}
+                    />
+                  ) : item.type === 'folder-empty' ? (
+                    <FolderTreeEmptyRow
+                      folderId={item.folderId}
+                      depth={item.depth}
+                      onCreatePage={(folderId) => void handleCreatePage(folderId)}
                     />
                   ) : (
                     <FolderTreeDocumentRow

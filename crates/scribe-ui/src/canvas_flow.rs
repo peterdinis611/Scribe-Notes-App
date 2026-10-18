@@ -65,9 +65,6 @@ fn default_opacity() -> f64 {
     1.0
 }
 
-/// Back-compat alias used by older call sites.
-pub type CanvasNoteData = CanvasObjectData;
-
 /// Node produced for the canvas.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CanvasFlowNode {
@@ -82,9 +79,6 @@ pub struct CanvasFlowNode {
     #[serde(default, rename = "zIndex", skip_serializing_if = "Option::is_none")]
     pub z_index: Option<f64>,
 }
-
-/// Back-compat alias.
-pub type CanvasNoteNode = CanvasFlowNode;
 
 /// Node as received from React Flow: only what `flowToCanvasDocument` reads.
 #[derive(Debug, Clone, Deserialize, PartialEq)]

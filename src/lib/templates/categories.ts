@@ -18,7 +18,6 @@ export interface CustomTemplateCategory {
   createdAt: number
 }
 
-/** @deprecated Prefer getBuiltInCategoryLabel() for locale-aware labels. */
 export const builtInCategoryLabels: Record<BuiltInTemplateCategory, string> = {
   general: 'Všeobecné',
   business: 'Biznis',

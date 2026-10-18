@@ -8,6 +8,11 @@ import { scribeEditorFullReload } from './scripts/vite-editor-full-reload'
 const rootDir = path.dirname(fileURLToPath(import.meta.url))
 const tauriHost = process.env.TAURI_DEV_HOST
 
+// macOS often stores "práca" as NFD while some import.meta.url paths are NFC.
+// Vite's @fs allow-list is a string prefix check — both forms must be allowed
+// or takumi-pdf WASM (and other absolute node_modules assets) 403.
+const rootFsAllow = [...new Set([rootDir, rootDir.normalize('NFC'), rootDir.normalize('NFD')])]
+
 export default defineConfig({
   plugins: [react(), tailwindcss(), scribeEditorFullReload()],
   resolve: {
@@ -21,6 +26,9 @@ export default defineConfig({
     strictPort: true,
     host: tauriHost || '127.0.0.1',
     hmr: tauriHost ? { protocol: 'ws', host: tauriHost, port: 5175 } : undefined,
+    fs: {
+      allow: rootFsAllow,
+    },
     watch: {
       ignored: ['**/src-tauri/**', '**/target/**'],
     },

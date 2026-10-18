@@ -9,6 +9,7 @@ export type TreeNode =
 export type FlatTreeItem =
   | { type: 'folder'; folder: Folder; depth: number; hasChildren: boolean }
   | { type: 'document'; document: DocumentSummary; depth: number }
+  | { type: 'folder-empty'; folderId: string; depth: number }
 
 export function buildTree(folders: Folder[], documents: DocumentSummary[]): TreeNode[] {
   const folderMap = new Map<string, TreeNode & { type: 'folder' }>()
@@ -47,8 +48,12 @@ export function flattenTree(nodes: TreeNode[], expandedIds: readonly string[], d
     if (node.type === 'folder') {
       const hasChildren = node.children.length > 0
       items.push({ type: 'folder', folder: node.folder, depth, hasChildren })
-      if (hasChildren && expandedIds.includes(node.folder.id)) {
-        items.push(...flattenTree(node.children, expandedIds, depth + 1))
+      if (expandedIds.includes(node.folder.id)) {
+        if (hasChildren) {
+          items.push(...flattenTree(node.children, expandedIds, depth + 1))
+        } else {
+          items.push({ type: 'folder-empty', folderId: node.folder.id, depth: depth + 1 })
+        }
       }
       continue
     }
@@ -60,5 +65,7 @@ export function flattenTree(nodes: TreeNode[], expandedIds: readonly string[], d
 }
 
 export function estimateFlatItemSize(item: FlatTreeItem): number {
-  return item.type === 'folder' ? 32 : 52
+  if (item.type === 'folder') return 30
+  if (item.type === 'folder-empty') return 28
+  return 34
 }

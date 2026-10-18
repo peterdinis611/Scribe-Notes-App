@@ -321,14 +321,14 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
             className="flex h-[min(680px,calc(100vh-40px))] max-w-[720px] flex-col gap-0 overflow-hidden p-0"
             showClose
           >
-            <div className="flex shrink-0 flex-col gap-1 border-b border-[var(--color-border)] px-5 pb-3.5 pt-[18px] pr-12 shadow-[inset_3px_0_0_0_var(--color-accent)]">
-              <p className="m-0 font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--color-accent)]">
+            <div className="flex shrink-0 flex-col gap-1 border-b border-[var(--color-border)] px-5 pb-3.5 pt-[18px] pr-12">
+              <p className="m-0 text-[12px] font-medium text-[var(--color-muted-foreground)]">
                 {t('templates.subtitle')}
               </p>
-              <h2 className="m-0 font-[family-name:var(--font-display)] text-[22px] font-extrabold tracking-[-0.04em]">
+              <h2 className="m-0 text-[20px] font-semibold tracking-[-0.025em] text-[var(--color-foreground)]">
                 {t('templates.title')}
               </h2>
-              <p className="m-0 text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
+              <p className="m-0 text-[13px] leading-relaxed text-[var(--color-muted-foreground)]">
                 {t('templates.introHint')}
               </p>
             </div>
@@ -618,11 +618,10 @@ function TemplateCard({
     <button
       type="button"
       className={cn(
-        'titlebar-no-drag flex w-full flex-col gap-2.5 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-left transition-[border-color,box-shadow,background]',
+        'titlebar-no-drag flex w-full flex-col gap-2.5 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-background)] p-3 text-left transition-[border-color,background]',
         variant === 'hero' && 'sm:flex-row sm:items-center',
-        selected &&
-          'border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-selection)_65%,var(--color-surface))] shadow-[inset_3px_0_0_0_var(--color-accent)]',
-        !selected && 'hover:border-[color-mix(in_srgb,var(--color-accent)_35%,var(--color-border))]',
+        selected && 'border-[var(--color-foreground)] bg-[var(--color-hover)]',
+        !selected && 'hover:bg-[var(--color-hover)]',
       )}
       onClick={onSelect}
     >
@@ -642,7 +641,7 @@ function TemplateCard({
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
-          <p className="m-0 font-[family-name:var(--font-display)] text-[14px] font-bold tracking-[-0.02em] text-[var(--color-foreground)]">
+          <p className="m-0 text-[14px] font-semibold tracking-[-0.015em] text-[var(--color-foreground)]">
             {template.name}
           </p>
           <Badge variant={selected ? 'accent' : 'muted'} className="shrink-0 text-[10px]">

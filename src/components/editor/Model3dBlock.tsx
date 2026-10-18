@@ -235,7 +235,7 @@ export function Model3dBlock({
           {...(!isEmpty ? { 'data-drag-handle': '' } : {})}
         >
           {isEmpty ? (
-            <div className="image-placeholder image-placeholder--notion">
+            <div className="image-placeholder image-placeholder--page">
               <Box className="h-8 w-8" />
               <span>{t('model3d.emptyTitle')}</span>
               <span className="image-placeholder-hint">{t('model3d.emptyHint')}</span>

@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type SyntheticEvent,
+} from 'react'
 import { useDrag, useDrop } from 'react-dnd'
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
@@ -31,6 +39,7 @@ export function DocumentTabsBar() {
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
   const focusMode = useAppSelector((state) => state.documents.focusMode)
   const listRef = useRef<HTMLDivElement>(null)
+  const suppressActivateUntilRef = useRef(0)
   const [scrollHints, setScrollHints] = useState({ left: false, right: false })
 
   const onEditorRoute = pathname === '/' || pathname.startsWith('/doc/')
@@ -114,6 +123,9 @@ export function DocumentTabsBar() {
   if (!onEditorRoute || focusMode || tabs.length === 0) return null
 
   function activate(id: string) {
+    // After closing a tab the row reflows under the cursor — ignore the
+    // accidental activate that would otherwise feel like a “preklik”.
+    if (performance.now() < suppressActivateUntilRef.current) return
     dispatch(setActiveDocumentId(id))
     const cached = peekCachedDocument(id)
     if (cached) dispatch(setActiveDocument(cached))
@@ -123,6 +135,7 @@ export function DocumentTabsBar() {
 
   function closeTab(id: string) {
     if (pinnedIds.includes(id)) return
+    suppressActivateUntilRef.current = performance.now() + 450
 
     if (id === activeId) {
       closeActiveDocumentAndMaybeHome({
@@ -238,6 +251,11 @@ function DocumentTab({
 
   drag(drop(tabRef))
 
+  const stopTabGesture = (event: SyntheticEvent) => {
+    event.preventDefault()
+    event.stopPropagation()
+  }
+
   return (
     <div
       ref={tabRef}
@@ -260,9 +278,10 @@ function DocumentTab({
         <button
           type="button"
           className={cn('document-tab-pin', tab.pinned && 'is-on')}
+          onPointerDown={stopTabGesture}
+          onMouseDown={stopTabGesture}
           onClick={(event) => {
-            event.preventDefault()
-            event.stopPropagation()
+            stopTabGesture(event)
             dispatch(togglePinnedDocument(tab.id))
           }}
           aria-label={tab.pinned ? t('tabs.unpin') : t('tabs.pin')}
@@ -287,14 +306,16 @@ function DocumentTab({
           <button
             type="button"
             className="document-tab-close"
-            onClick={(event) => {
-              event.preventDefault()
-              event.stopPropagation()
+            onPointerDown={stopTabGesture}
+            onMouseDown={stopTabGesture}
+            onPointerUp={(event) => {
+              stopTabGesture(event)
               onClose(tab.id)
             }}
+            onClick={stopTabGesture}
             aria-label={t('tabs.close')}
           >
-            <X className="h-3 w-3" />
+            <X className="h-3.5 w-3.5" strokeWidth={2.25} />
           </button>
         </IconTooltip>
       ) : null}

@@ -49,9 +49,6 @@ export type CanvasObjectData = {
   points: CanvasPoint[]
 }
 
-/** @deprecated Prefer CanvasObjectData — kept for note-node typing. */
-export type CanvasNoteData = CanvasObjectData
-
 export type CanvasFlowNode = Node<CanvasObjectData, CanvasObjectKind>
 
 export type CanvasNoteNode = Node<CanvasObjectData, typeof CANVAS_NOTE_TYPE>

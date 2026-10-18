@@ -4,10 +4,12 @@ import { useTranslation } from 'react-i18next'
 import {
   Check,
   ChevronRight,
+  FilePlus,
   FileText,
   Folder,
   FolderInput,
   FolderMinus,
+  FolderOpen,
   FolderPlus,
   LayoutGrid,
   Pin,
@@ -47,6 +49,7 @@ type FolderTreeFolderRowProps = {
   onToggle: (id: string) => void
   onRename: (id: string, name: string) => void
   onCreateChild: (parentId: string) => void
+  onCreatePage?: (folderId: string) => void
   onCreateVaultChild?: (parentId: string) => void
   onTrashDocuments: (id: string, name: string, event: React.MouseEvent) => void
   onDelete: (id: string, name: string, event: React.MouseEvent) => void
@@ -65,6 +68,7 @@ export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
   onToggle,
   onRename,
   onCreateChild,
+  onCreatePage,
   onCreateVaultChild,
   onTrashDocuments,
   onDelete,
@@ -115,6 +119,7 @@ export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
             isOver && 'is-drop-target',
             isDragging && 'is-dragging',
           )}
+          data-depth={depth}
           style={{ '--folder-depth': depth } as React.CSSProperties}
         >
           <IconTooltip label={isExpanded ? t('library.collapseFolder') : t('library.expandFolder')}>
@@ -129,7 +134,11 @@ export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
             </button>
           </IconTooltip>
           <span className="folder-tree-folder-mark" aria-hidden="true">
-            <Folder className="h-3.5 w-3.5" />
+            {isExpanded ? (
+              <FolderOpen className="h-3.5 w-3.5" />
+            ) : (
+              <Folder className="h-3.5 w-3.5" />
+            )}
           </span>
           {folder.isVault ? (
             <IconTooltip label={vaultUnlocked ? t('vault.unlocked') : t('vault.locked')}>
@@ -153,30 +162,54 @@ export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
           {documentCount > 0 ? (
             <span className="folder-tree-count">{documentCount}</span>
           ) : null}
-          <IconTooltip label={t('library.newSubfolder')}>
-            <button
-              type="button"
-              className="folder-tree-add"
-              aria-label={t('library.newSubfolder')}
-              onClick={(event) => {
-                event.preventDefault()
-                event.stopPropagation()
-                onCreateChild(folder.id)
-              }}
-            >
-              <FolderPlus className="h-3.5 w-3.5" />
-            </button>
-          </IconTooltip>
-            {folder.isPinned ? (
+          {folder.isPinned ? (
             <IconTooltip label={t('library.pinnedSection')}>
-              <span tabIndex={0} className="inline-flex">
+              <span tabIndex={0} className="folder-tree-pin-slot inline-flex">
                 <Pin className="folder-tree-pin" aria-hidden />
               </span>
             </IconTooltip>
           ) : null}
+          <div className="folder-tree-hover-actions">
+            {onCreatePage ? (
+              <IconTooltip label={t('library.newPageInFolder')}>
+                <button
+                  type="button"
+                  className="folder-tree-add"
+                  aria-label={t('library.newPageInFolder')}
+                  onClick={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    onCreatePage(folder.id)
+                  }}
+                >
+                  <FilePlus className="h-3.5 w-3.5" />
+                </button>
+              </IconTooltip>
+            ) : null}
+            <IconTooltip label={t('library.newSubfolder')}>
+              <button
+                type="button"
+                className="folder-tree-add"
+                aria-label={t('library.newSubfolder')}
+                onClick={(event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  onCreateChild(folder.id)
+                }}
+              >
+                <FolderPlus className="h-3.5 w-3.5" />
+              </button>
+            </IconTooltip>
+          </div>
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent className="min-w-[200px]">
+        {onCreatePage ? (
+          <ContextMenuItem onSelect={() => onCreatePage(folder.id)}>
+            <FilePlus className="h-4 w-4" />
+            {t('library.newPageInFolder')}
+          </ContextMenuItem>
+        ) : null}
         <ContextMenuItem onSelect={() => onCreateChild(folder.id)}>
           <FolderPlus className="h-4 w-4" />
           {t('library.newSubfolder')}
@@ -235,6 +268,35 @@ export const FolderTreeFolderRow = memo(function FolderTreeFolderRow({
   )
 })
 
+
+type FolderTreeEmptyRowProps = {
+  folderId: string
+  depth: number
+  onCreatePage: (folderId: string) => void
+}
+
+export const FolderTreeEmptyRow = memo(function FolderTreeEmptyRow({
+  folderId,
+  depth,
+  onCreatePage,
+}: FolderTreeEmptyRowProps) {
+  const { t } = useTranslation()
+
+  return (
+    <button
+      type="button"
+      className="folder-tree-row folder-tree-row--empty titlebar-no-drag"
+      data-depth={depth}
+      style={{ '--folder-depth': depth } as React.CSSProperties}
+      onClick={() => onCreatePage(folderId)}
+    >
+      <span className="folder-tree-empty-mark" aria-hidden="true">
+        <FilePlus className="h-3.5 w-3.5" />
+      </span>
+      <span className="folder-tree-empty-label">{t('library.emptyFolderHint')}</span>
+    </button>
+  )
+})
 
 type FolderTreeDocumentRowProps = {
   document: DocumentSummary
@@ -301,6 +363,7 @@ export const FolderTreeDocumentRow = memo(function FolderTreeDocumentRow({
             isSelected && 'is-selected',
             isDragging && 'is-dragging',
           )}
+          data-depth={depth}
           style={{ '--folder-depth': depth } as React.CSSProperties}
         >
           {onToggleSelect ? (

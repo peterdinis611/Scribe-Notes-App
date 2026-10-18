@@ -11,9 +11,6 @@ export type BuiltInLocale = (typeof BUILT_IN_LOCALES)[number]
 /** Built-in or imported custom language code. */
 export type AppLocale = string
 
-/** @deprecated Prefer BUILT_IN_LOCALES — kept for older imports. */
-export const SUPPORTED_LOCALES = BUILT_IN_LOCALES
-
 export const DEFAULT_LOCALE: BuiltInLocale = 'sk'
 
 export function registerCustomLocaleBundle(pack: CustomLocalePack) {

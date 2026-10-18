@@ -101,7 +101,7 @@ export function LibraryViewTabs({
               className={cn(
                 'flex w-full min-w-0 cursor-default items-center justify-start gap-2 rounded-[var(--radius-sm)] border border-transparent bg-transparent px-2 py-1.5 text-[13px] font-medium text-[var(--color-muted-foreground)] transition-[background,color,border-color] duration-120 hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]',
                 isActive &&
-                  'bg-[var(--color-selection)] text-[var(--color-foreground)] shadow-none [[html[data-ui-skin=press]_&]]:border-[color-mix(in_srgb,var(--color-accent)_28%,transparent)] [[html[data-ui-skin=press]_&]]:bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] [[html[data-ui-skin=press]_&]]:shadow-[inset_2px_0_0_0_var(--color-accent)]',
+                  'bg-[var(--color-hover)] text-[var(--color-foreground)] shadow-none [[html[data-ui-skin=grove]_&]]:bg-[var(--color-selection)] [[html[data-ui-skin=classic]_&]]:bg-[var(--color-selection)] [[html[data-ui-skin=press]_&]]:border-[color-mix(in_srgb,var(--color-accent)_28%,transparent)] [[html[data-ui-skin=press]_&]]:bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] [[html[data-ui-skin=press]_&]]:shadow-[inset_2px_0_0_0_var(--color-accent)]',
               )}
               data-tour={tab.id === 'chat' ? 'library-chat' : tab.id === 'agent' ? 'library-agent' : undefined}
               onClick={() => onChange(tab.id)}

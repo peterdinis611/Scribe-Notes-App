@@ -20,10 +20,10 @@ function ToastIcon({ variant }: { variant: ToastVariant }) {
 }
 
 const toastVariantClass: Record<ToastVariant, string> = {
-  default: 'border-[var(--color-border)] shadow-[inset_3px_0_0_0_color-mix(in_srgb,var(--color-muted-foreground)_40%,transparent)]',
-  success: 'border-[color-mix(in_srgb,var(--color-accent)_35%,var(--color-border))] shadow-[inset_3px_0_0_0_var(--color-accent)]',
-  error: 'border-[color-mix(in_srgb,var(--color-destructive)_35%,var(--color-border))] shadow-[inset_3px_0_0_0_var(--color-destructive)]',
-  info: 'border-[color-mix(in_srgb,var(--color-accent)_35%,var(--color-border))] shadow-[inset_3px_0_0_0_var(--color-accent)]',
+  default: 'border-[var(--color-border)]',
+  success: 'border-[color-mix(in_srgb,var(--color-accent)_28%,var(--color-border))]',
+  error: 'border-[color-mix(in_srgb,var(--color-destructive)_28%,var(--color-border))]',
+  info: 'border-[color-mix(in_srgb,var(--color-accent)_28%,var(--color-border))]',
 }
 
 export function ToastHost() {
@@ -42,14 +42,14 @@ export function ToastHost() {
         <div
           key={item.id}
           className={cn(
-            'pointer-events-auto flex items-start gap-2.5 rounded-[var(--radius-sm)] border bg-[var(--color-surface-elevated)] p-3 shadow-[0_12px_32px_rgba(0,0,0,0.18)]',
+            'pointer-events-auto flex items-start gap-2.5 rounded-[var(--radius-md)] border bg-[var(--color-background)] p-3 shadow-[0_8px_24px_rgba(15,15,15,0.12)]',
             toastVariantClass[item.variant],
           )}
           role="status"
         >
           <ToastIcon variant={item.variant} />
           <div className="min-w-0 flex-1">
-            <p className="m-0 font-[family-name:var(--font-display)] text-[13px] font-bold tracking-[-0.02em] text-[var(--color-foreground)]">
+            <p className="m-0 text-[13px] font-semibold tracking-[-0.01em] text-[var(--color-foreground)]">
               {item.title}
             </p>
             {item.description && (
@@ -60,7 +60,7 @@ export function ToastHost() {
             {item.actionLabel && (
               <button
                 type="button"
-                className="mt-2 inline-flex h-7 items-center rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-background)] px-2.5 text-[11px] font-semibold text-[var(--color-accent)] transition-colors hover:bg-[var(--color-hover)]"
+                className="mt-2 inline-flex h-7 items-center rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-background)] px-2.5 text-[11px] font-medium text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-hover)]"
                 onClick={() => runToastAction(item.id)}
               >
                 {item.actionLabel}
@@ -70,7 +70,7 @@ export function ToastHost() {
           <IconTooltip label={t('common.close')}>
             <button
               type="button"
-              className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[var(--color-muted-foreground)] transition-colors hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
+              className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-[var(--color-muted-foreground)] transition-colors hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
               aria-label={t('common.close')}
               onClick={() => dismissToast(item.id)}
             >

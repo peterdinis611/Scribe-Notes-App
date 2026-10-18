@@ -30,6 +30,10 @@ pub struct NlpHealth {
     #[serde(default)]
     pub embed_backend: Option<String>,
     #[serde(default)]
+    pub requested_embed_backend: Option<String>,
+    #[serde(default)]
+    pub embed_backend_fallback: Option<String>,
+    #[serde(default)]
     pub quality_available: Option<bool>,
     #[serde(default)]
     pub fast_available: Option<bool>,

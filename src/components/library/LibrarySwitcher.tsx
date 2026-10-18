@@ -77,7 +77,7 @@ export function LibrarySwitcher() {
         <SelectTrigger
           size="sm"
           id="library-switcher-select"
-          className="h-8 w-full min-w-0 border-[color-mix(in_srgb,var(--color-border)_88%,transparent)] bg-[color-mix(in_srgb,var(--color-surface)_72%,transparent)] font-[family-name:var(--font-display)] text-[13px] font-[650] tracking-[-0.02em] hover:border-[color-mix(in_srgb,var(--color-accent)_28%,var(--color-border))] hover:bg-[color-mix(in_srgb,var(--color-surface)_88%,transparent)]"
+          className="h-8 w-full min-w-0 border-[var(--color-border)] bg-[var(--color-background)] text-[13px] font-medium tracking-[-0.01em] hover:bg-[var(--color-hover)]"
           aria-label={t('libraries.label')}
         >
           <SelectValue placeholder={t('libraries.placeholder')}>{active?.name}</SelectValue>

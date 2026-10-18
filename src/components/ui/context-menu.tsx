@@ -47,7 +47,7 @@ export function ContextMenuContent({
     <ContextMenuPrimitive.Portal>
       <ContextMenuPrimitive.Content
         className={cn(
-          'titlebar-no-drag z-[70] max-h-[min(80vh,var(--radix-context-menu-content-available-height))] min-w-[10rem] overflow-y-auto overflow-x-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] p-1 shadow-lg',
+          'titlebar-no-drag z-[70] max-h-[min(80vh,var(--radix-context-menu-content-available-height))] min-w-[10rem] overflow-y-auto overflow-x-hidden rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-background)] p-1 shadow-[0_8px_24px_rgba(15,15,15,0.12)]',
           className,
         )}
         {...props}
@@ -66,7 +66,7 @@ export function ContextMenuItem({
   return (
     <ContextMenuPrimitive.Item
       className={cn(
-        'relative flex cursor-default select-none items-center gap-2 rounded-[6px] px-2 py-1.5 text-[13px] outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-40 data-[highlighted]:bg-[var(--color-hover)] [&_svg]:size-4 [&_svg]:shrink-0',
+        'relative flex cursor-default select-none items-center gap-2 rounded-[var(--radius-md)] px-2 py-1.5 text-[13px] outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-40 data-[highlighted]:bg-[var(--color-hover)] [&_svg]:size-4 [&_svg]:shrink-0',
         inset && 'pl-8',
         className,
       )}
