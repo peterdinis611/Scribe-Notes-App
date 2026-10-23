@@ -240,10 +240,26 @@ function EditorChrome() {
     }
   }, [pdfPreviewPayload])
 
-  async function handleExport(format: 'pdf' | 'docx' | 'txt' | 'pages' | 'md' | 'html' | 'html-zip' | 'epub') {
+  async function handleExport(
+    format: 'pdf' | 'docx' | 'txt' | 'pages' | 'md' | 'md-llm' | 'html' | 'html-zip' | 'epub',
+  ) {
     if (!pdfPreviewPayload || !document) return
     const { plainText, title, markdown, pageSetup: exportPageSetup, contentJson } = pdfPreviewPayload
     try {
+      if (format === 'md-llm') {
+        const result = await shareDocumentPackage({
+          contentJson: document.contentJson,
+          title: document.title,
+          format: 'md-llm',
+          pageSetup,
+          documentId: document.id,
+        })
+        if (result?.path) {
+          toast.success(t('toasts.exportDone'), fileBasename(result.path))
+        }
+        return
+      }
+
       const nativeFormats = new Set(['md', 'txt', 'html', 'html-zip', 'epub'])
       if (nativeFormats.has(format)) {
         const result = await exportDocument(

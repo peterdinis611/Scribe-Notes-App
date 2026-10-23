@@ -22,7 +22,9 @@ type EditorFileMenuProps = {
   onSaveAsTemplate?: () => void
   onCloseDocument?: () => void
   onGoHome?: () => void
-  onExport?: (format: 'pdf' | 'docx' | 'txt' | 'pages' | 'md' | 'html' | 'html-zip' | 'epub') => void
+  onExport?: (
+    format: 'pdf' | 'docx' | 'txt' | 'pages' | 'md' | 'md-llm' | 'html' | 'html-zip' | 'epub',
+  ) => void
   onPluginExport?: (formatId: string) => void
   onExportSelection?: (format: 'md' | 'pdf') => void
   onExportStructuredPdf?: (kind: 'invoice' | 'library-report') => void
@@ -139,6 +141,7 @@ export function EditorFileMenu({
             <DropdownMenuItem onClick={() => onExport('pdf')}>{t('fileMenu.exportPdf')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => onExport('docx')}>{t('fileMenu.exportDocx')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => onExport('md')}>{t('fileMenu.exportMd')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onExport('md-llm')}>{t('fileMenu.exportMdLlm')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => onExport('html')}>{t('fileMenu.exportHtml')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => onExport('html-zip')}>{t('fileMenu.exportHtmlZip')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => onExport('epub')}>{t('fileMenu.exportEpub')}</DropdownMenuItem>

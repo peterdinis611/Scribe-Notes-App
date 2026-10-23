@@ -2,22 +2,22 @@ import { exportDocument, revealInFinder, type ExportResult } from '@/lib/db/api'
 import { tiptapJsonToHtmlAsync } from '@/lib/export/html'
 import { tiptapJsonToMarkdown } from '@/lib/export/markdown'
 import { tiptapToPlainText } from '@/lib/export/plain-text'
+import { exportDocumentAsXlsx } from '@/lib/export/document-xlsx'
+import { generateMarkdownWithLlm } from '@/lib/export/llm-markdown'
 import type { PageSetup } from '@/lib/editor/page-setup'
 
-export type SharePackageFormat = 'pdf' | 'html-zip' | 'md'
+/** Formats that write a file via the share / convert dialog. */
+export type SharePackageFormat = 'pdf' | 'html-zip' | 'md' | 'md-llm' | 'docx' | 'txt' | 'xlsx'
 
 export type ShareDocumentAction =
-  | 'pdf'
-  | 'html-zip'
-  | 'md'
+  | SharePackageFormat
   | 'copy-markdown'
   | 'copy-path'
   | 'reveal'
 
 /**
- * Build a local share package (PDF, HTML ZIP, or Markdown), save via the existing
- * export pipeline, then reveal the file in Finder for AirDrop / sharing.
- * No cloud URLs — the user gets a file on disk.
+ * Convert / share a document as a local file (PDF, Markdown, Word, Excel, TXT, HTML ZIP),
+ * then reveal it in Finder. No cloud URLs — the user gets a file on disk.
  */
 export async function shareDocumentPackage(args: {
   contentJson: string
@@ -30,6 +30,21 @@ export async function shareDocumentPackage(args: {
     return shareDocumentAsMarkdownFile(args)
   }
 
+  if (args.format === 'md-llm') {
+    return shareDocumentAsLlmMarkdownFile(args)
+  }
+
+  if (args.format === 'txt') {
+    return shareDocumentAsPlainTextFile(args)
+  }
+
+  if (args.format === 'xlsx') {
+    return exportDocumentAsXlsx({
+      contentJson: args.contentJson,
+      title: args.title,
+    })
+  }
+
   if (args.format === 'html-zip' && args.documentId) {
     const result = await exportDocument('', '', args.title, 'html-zip', undefined, undefined, {
       documentId: args.documentId,
@@ -40,6 +55,29 @@ export async function shareDocumentPackage(args: {
     return result
   }
 
+  if (args.format === 'docx') {
+    const html = await tiptapJsonToHtmlAsync(args.contentJson, args.title, {
+      pageSetup: args.pageSetup,
+      forPrint: true,
+    })
+    const plainText = tiptapToPlainText(args.contentJson)
+    const markdown = tiptapJsonToMarkdown(args.contentJson, args.title)
+    const result = await exportDocument(
+      html,
+      plainText,
+      args.title,
+      'docx',
+      markdown,
+      args.pageSetup,
+      args.documentId ? { documentId: args.documentId } : undefined,
+    )
+    if (result?.path) {
+      await revealInFinder(result.path)
+    }
+    return result
+  }
+
+  // pdf (and html-zip fallback without documentId)
   const html = await tiptapJsonToHtmlAsync(args.contentJson, args.title, {
     pageSetup: args.pageSetup,
     forPrint: true,
@@ -50,7 +88,7 @@ export async function shareDocumentPackage(args: {
     html,
     plainText,
     args.title,
-    args.format,
+    args.format === 'html-zip' ? 'html-zip' : 'pdf',
     undefined,
     args.pageSetup,
     args.documentId ? { documentId: args.documentId } : undefined,
@@ -69,6 +107,57 @@ export async function shareDocumentAsMarkdownFile(args: {
   documentId?: string
 }): Promise<ExportResult | null> {
   const markdown = tiptapJsonToMarkdown(args.contentJson, args.title)
+  const plainText = tiptapToPlainText(args.contentJson)
+  const result = await exportDocument(
+    '',
+    plainText,
+    args.title,
+    'md',
+    markdown,
+    undefined,
+    args.documentId ? { documentId: args.documentId } : undefined,
+  )
+
+  if (result?.path) {
+    await revealInFinder(result.path)
+  }
+
+  return result
+}
+
+export async function shareDocumentAsPlainTextFile(args: {
+  contentJson: string
+  title: string
+  documentId?: string
+}): Promise<ExportResult | null> {
+  const plainText = tiptapToPlainText(args.contentJson)
+  const result = await exportDocument(
+    '',
+    plainText,
+    args.title,
+    'txt',
+    undefined,
+    undefined,
+    args.documentId ? { documentId: args.documentId } : undefined,
+  )
+
+  if (result?.path) {
+    await revealInFinder(result.path)
+  }
+
+  return result
+}
+
+/** LLM-polished Markdown export (falls back to deterministic serializer). */
+export async function shareDocumentAsLlmMarkdownFile(args: {
+  contentJson: string
+  title: string
+  documentId?: string
+}): Promise<ExportResult | null> {
+  const { markdown } = await generateMarkdownWithLlm({
+    contentJson: args.contentJson,
+    title: args.title,
+  })
   const plainText = tiptapToPlainText(args.contentJson)
   const result = await exportDocument(
     '',
