@@ -24,6 +24,7 @@ import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
 import { cn, formatRelativeTime } from '@/lib/utils'
 import { navigateViaWikiLink } from '@/lib/navigation'
+import { editorRefs } from '@/store/editorRefs'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
   setFindReplaceOpen,
@@ -396,6 +397,36 @@ export function BacklinksPanel({ onClose }: BacklinksPanelProps) {
             <p className="m-0 mb-1.5 text-[10.5px] text-[var(--color-muted-foreground)]">
               {t('panels.backlinks.unlinkedHint')}
             </p>
+            {unlinked.length > 0 ? (
+              <button
+                type="button"
+                className="mb-2 text-[11px] font-semibold text-[var(--color-accent)] hover:underline"
+                onClick={() => {
+                  const editor = editorRefs.editor
+                  if (!editor) {
+                    toast.info(t('panels.backlinks.bulkLinkNeedEditor'))
+                    return
+                  }
+                  const nodes = unlinked.slice(0, 24).map((hit) => ({
+                    type: 'paragraph',
+                    content: [
+                      {
+                        type: 'wikiLink',
+                        attrs: {
+                          targetId: hit.documentId,
+                          label: hit.title || hit.documentId,
+                          linkTitle: hit.title || hit.documentId,
+                        },
+                      },
+                    ],
+                  }))
+                  editor.chain().focus('end').insertContent(nodes).run()
+                  toast.success(t('panels.backlinks.bulkLinkDone', { count: nodes.length }))
+                }}
+              >
+                {t('panels.backlinks.bulkLink')}
+              </button>
+            ) : null}
             {unlinked.length === 0 ? (
               <p className="m-0 mt-0.5 text-[11.5px] text-[var(--color-muted-foreground)]">
                 {t('panels.backlinks.unlinkedEmpty')}

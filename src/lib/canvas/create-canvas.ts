@@ -1,4 +1,5 @@
-import { createDocument } from '@/lib/db/api'
+import { createDocument, setDocumentTags } from '@/lib/db/api'
+import { setNoteProperty } from '@/lib/library/document-properties'
 import { cacheDocument } from '@/lib/cache/document-cache'
 import { markCanvasDocument } from '@/lib/canvas/known'
 import { buildCanvasTemplate, type CanvasTemplateId } from '@/lib/canvas/templates'
@@ -136,4 +137,26 @@ export async function promoteCanvasCardsToWikiNotes(
     objectCount: objects.length,
   })
   return { created, patched }
+}
+
+/** Promote selected cards to wiki notes tagged as database rows (status/project/due). */
+export async function promoteCanvasCardsToDatabaseRows(
+  dispatch: AppDispatch,
+  getTitle: (key: string) => string,
+  objects: CanvasObject[],
+  extras?: { status?: string; project?: string; due?: string },
+): Promise<{ created: number; patched: CanvasObject[] }> {
+  const result = await promoteCanvasCardsToWikiNotes(dispatch, getTitle, objects)
+  if (result.created === 0) return result
+
+  for (const obj of result.patched) {
+    if (obj.kind !== 'docLink' || !obj.documentId) continue
+    let tags: string[] = []
+    if (extras?.status) tags = setNoteProperty(tags, 'status', extras.status)
+    if (extras?.project) tags = setNoteProperty(tags, 'project', extras.project)
+    if (extras?.due) tags = setNoteProperty(tags, 'due', extras.due)
+    if (tags.length === 0) tags = setNoteProperty(tags, 'status', 'inbox')
+    await setDocumentTags(obj.documentId, tags).catch(() => null)
+  }
+  return result
 }

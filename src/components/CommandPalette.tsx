@@ -63,6 +63,9 @@ import { openClipboardCaptureNote } from '@/lib/capture/clipboard-note'
 import { copyClipBookmarklet } from '@/lib/capture/clip-bookmarklet'
 import { publishLocalWikiSite } from '@/lib/export/publish-wiki'
 import { exportMarkdownVault, importMarkdownVault } from '@/lib/export/md-vault'
+import { exportWikiPack } from '@/lib/export/wiki-pack'
+import { addAliasTag } from '@/lib/library/wiki-aliases'
+import { promptInput } from '@/lib/input-dialog'
 import { Position, moveAppWindow } from '@/lib/window-position'
 import { isTauriRuntime } from '@/lib/tauri'
 import {
@@ -80,13 +83,16 @@ import { getDisplayKeysForShortcut } from '@/lib/shortcuts'
 import { useLocaleOptions } from '@/components/LocaleSelect'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import {
+  createNamedRevision,
   duplicateDocument,
   findDocumentsByTitle,
+  getDocument,
   listCommentThreads,
   listLinkGraph,
   moveDocumentToFolder,
   searchDocuments,
   setDocumentPinned,
+  setDocumentTags,
   type TitleMatch,
 } from '@/lib/db/api'
 import { nlpSearch, nlpStatus, type NlpStatus } from '@/lib/db/nlp-api'
@@ -333,6 +339,84 @@ export function CommandPalette() {
             .catch((error) => toast.error(t('toasts.exportError'), String(error)))
         },
       },
+      ...(activeDocument
+        ? [
+            {
+              type: 'action' as const,
+              id: 'export-wiki-pack',
+              label: t('commandPalette.exportWikiPack'),
+              icon: <Share2 className="h-4 w-4" />,
+              run: () => {
+                void exportWikiPack({
+                  rootId: activeDocument.id,
+                  rootTitle: activeDocument.title,
+                  hops: 2,
+                  dialogTitle: t('commandPalette.exportWikiPack'),
+                })
+                  .then((folder) => {
+                    if (folder) toast.success(t('toasts.exportDone'), folder)
+                  })
+                  .catch((error) => toast.error(t('toasts.exportError'), String(error)))
+              },
+            },
+            {
+              type: 'action' as const,
+              id: 'add-wiki-alias',
+              label: t('commandPalette.addWikiAlias'),
+              icon: <Tag className="h-4 w-4" />,
+              run: () => {
+                void (async () => {
+                  const alias = await promptInput({
+                    title: t('commandPalette.addWikiAlias'),
+                    description: t('commandPalette.addWikiAliasHint'),
+                    placeholder: 'skratka',
+                    confirmLabel: t('common.confirm'),
+                  })
+                  if (!alias?.trim()) return
+                  try {
+                    const doc = await getDocument(activeDocument.id)
+                    const next = addAliasTag(doc.tags, alias.trim())
+                    await setDocumentTags(activeDocument.id, next)
+                    dispatch(
+                      updateDocuments((prev) =>
+                        prev.map((item) =>
+                          item.id === activeDocument.id ? { ...item, tags: next } : item,
+                        ),
+                      ),
+                    )
+                    toast.success(t('commandPalette.wikiAliasAdded', { alias: alias.trim() }))
+                  } catch (error) {
+                    toast.error(t('commandPalette.wikiAliasError'), String(error))
+                  }
+                })()
+              },
+            },
+            {
+              type: 'action' as const,
+              id: 'create-named-revision',
+              label: t('commandPalette.createNamedRevision'),
+              icon: <GitBranch className="h-4 w-4" />,
+              run: () => {
+                void (async () => {
+                  const label = await promptInput({
+                    title: t('commandPalette.createNamedRevision'),
+                    description: t('commandPalette.createNamedRevisionHint'),
+                    placeholder: t('commandPalette.createNamedRevisionPlaceholder'),
+                    confirmLabel: t('common.confirm'),
+                  })
+                  if (!label?.trim()) return
+                  try {
+                    await createNamedRevision(activeDocument.id, label.trim(), true)
+                    dispatch(setRevisionHistoryOpen(true))
+                    toast.success(t('commandPalette.namedRevisionCreated'))
+                  } catch (error) {
+                    toast.error(t('panels.revisions.saveError', { defaultValue: 'Could not save revision' }), String(error))
+                  }
+                })()
+              },
+            },
+          ]
+        : []),
       {
         type: 'action',
         id: 'export-md-vault',

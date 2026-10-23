@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Download,
@@ -6,6 +6,7 @@ import {
   LoaderCircle,
   PanelRightClose,
   RefreshCw,
+  RotateCcw,
 } from 'lucide-react'
 import {
   nlpExtractFlashcards,
@@ -16,6 +17,8 @@ import {
   exportFlashcardsAnki,
   exportFlashcardsMarkdown,
 } from '@/lib/export/flashcards'
+import { dueCountForDocument, getCardState, gradeCard } from '@/lib/flashcards/review-store'
+import { isDue, type Sm2Grade } from '@/lib/flashcards/sm2'
 import { toast } from '@/lib/toast'
 import { useAppSelector } from '@/store/hooks'
 import { Button } from '@/components/ui/button'
@@ -26,9 +29,16 @@ import {
   EditorSidePanelIconButton,
   EditorSidePanelList,
 } from '@/components/editor/EditorSidePanelPrimitives'
+import { cn } from '@/lib/utils'
 
 type FlashcardsPanelProps = {
   onClose: () => void
+}
+
+type PanelMode = 'list' | 'review'
+
+function cardFront(card: Flashcard) {
+  return card.front || card.question
 }
 
 export function FlashcardsPanel({ onClose }: FlashcardsPanelProps) {
@@ -40,6 +50,10 @@ export function FlashcardsPanel({ onClose }: FlashcardsPanelProps) {
   const [loading, setLoading] = useState(false)
   const [nlpEnabled, setNlpEnabled] = useState(true)
   const [exporting, setExporting] = useState<'anki' | 'md' | null>(null)
+  const [mode, setMode] = useState<PanelMode>('list')
+  const [reviewIndex, setReviewIndex] = useState(0)
+  const [revealed, setRevealed] = useState(false)
+  const [tick, setTick] = useState(0)
 
   const refresh = useCallback(async () => {
     if (!activeId) {
@@ -75,6 +89,25 @@ export function FlashcardsPanel({ onClose }: FlashcardsPanelProps) {
     void refresh()
   }, [refresh])
 
+  const dueCards = useMemo(() => {
+    if (!activeId) return []
+    void tick
+    const now = Date.now()
+    return cards.filter((card) => {
+      const state = getCardState(activeId, cardFront(card), card.answer)
+      // Unseen / due
+      return isDue(state, now)
+    })
+  }, [activeId, cards, tick])
+
+  const dueCount = activeId ? dueCountForDocument(activeId, cards.length) : 0
+  const current = dueCards[reviewIndex] ?? null
+
+  useEffect(() => {
+    setReviewIndex(0)
+    setRevealed(false)
+  }, [mode, activeId, cards])
+
   async function handleExportAnki() {
     if (!cards.length) return
     setExporting('anki')
@@ -108,6 +141,18 @@ export function FlashcardsPanel({ onClose }: FlashcardsPanelProps) {
     } finally {
       setExporting(null)
     }
+  }
+
+  function handleGrade(grade: Sm2Grade) {
+    if (!activeId || !current) return
+    gradeCard(activeId, cardFront(current), current.answer, grade)
+    setRevealed(false)
+    setTick((n) => n + 1)
+    setReviewIndex((index) => {
+      const remaining = dueCards.length - 1
+      if (remaining <= 0) return 0
+      return Math.min(index, remaining - 1)
+    })
   }
 
   return (
@@ -155,6 +200,29 @@ export function FlashcardsPanel({ onClose }: FlashcardsPanelProps) {
       ) : (
         <>
           <div className="flex flex-wrap gap-2 border-b border-[var(--color-border)] px-3 py-2">
+            <div className="inline-flex overflow-hidden rounded-md border border-[var(--color-border)]">
+              <button
+                type="button"
+                className={cn(
+                  'px-2 py-1 text-[11px] font-semibold',
+                  mode === 'list' && 'bg-[var(--color-selection)]',
+                )}
+                onClick={() => setMode('list')}
+              >
+                {t('panels.flashcards.modeList')}
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  'px-2 py-1 text-[11px] font-semibold',
+                  mode === 'review' && 'bg-[var(--color-selection)]',
+                )}
+                onClick={() => setMode('review')}
+              >
+                {t('panels.flashcards.modeReview')}
+                {dueCount > 0 ? ` (${dueCount})` : ''}
+              </button>
+            </div>
             <Button
               type="button"
               variant="outline"
@@ -187,28 +255,85 @@ export function FlashcardsPanel({ onClose }: FlashcardsPanelProps) {
               </span>
             ) : null}
           </div>
-          <EditorSidePanelList>
-            <ul className="m-0 list-none space-y-2 p-3">
-              {cards.map((card, index) => (
-                <li
-                  key={`${card.kind}-${index}-${card.question.slice(0, 24)}`}
-                  className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2.5"
-                >
-                  <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
-                    <Layers className="h-3 w-3" aria-hidden />
-                    {card.kind || 'card'}
-                    <span className="ml-auto tabular-nums opacity-70">{index + 1}</span>
-                  </div>
-                  <p className="m-0 text-[13px] font-semibold leading-snug text-[var(--color-foreground)]">
-                    {card.front || card.question}
+
+          {mode === 'list' ? (
+            <EditorSidePanelList>
+              <ul className="m-0 list-none space-y-2 p-3">
+                {cards.map((card, index) => (
+                  <li
+                    key={`${card.kind}-${index}-${card.question.slice(0, 24)}`}
+                    className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2.5"
+                  >
+                    <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
+                      <Layers className="h-3 w-3" aria-hidden />
+                      {card.kind || 'card'}
+                      <span className="ml-auto tabular-nums opacity-70">{index + 1}</span>
+                    </div>
+                    <p className="m-0 text-[13px] font-semibold leading-snug text-[var(--color-foreground)]">
+                      {cardFront(card)}
+                    </p>
+                    <p className="mt-1.5 m-0 text-[12px] leading-snug text-[var(--color-muted-foreground)]">
+                      {card.answer}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </EditorSidePanelList>
+          ) : !current ? (
+            <EditorSidePanelEmpty>
+              <span className="inline-flex flex-col items-center gap-2 text-center">
+                <RotateCcw className="h-4 w-4" aria-hidden />
+                {t('panels.flashcards.reviewDone')}
+              </span>
+            </EditorSidePanelEmpty>
+          ) : (
+            <div className="flex flex-1 flex-col gap-3 p-3">
+              <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
+                {t('panels.flashcards.reviewProgress', {
+                  current: reviewIndex + 1,
+                  total: dueCards.length,
+                })}
+              </p>
+              <div className="rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-4">
+                <p className="m-0 text-[15px] font-semibold leading-snug">{cardFront(current)}</p>
+                {revealed ? (
+                  <p className="mt-3 m-0 text-[13px] leading-snug text-[var(--color-muted-foreground)]">
+                    {current.answer}
                   </p>
-                  <p className="mt-1.5 m-0 text-[12px] leading-snug text-[var(--color-muted-foreground)]">
-                    {card.answer}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          </EditorSidePanelList>
+                ) : (
+                  <Button
+                    type="button"
+                    className="mt-4"
+                    variant="secondary"
+                    onClick={() => setRevealed(true)}
+                  >
+                    {t('panels.flashcards.reveal')}
+                  </Button>
+                )}
+              </div>
+              {revealed ? (
+                <div className="grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      ['again', 'panels.flashcards.gradeAgain'],
+                      ['hard', 'panels.flashcards.gradeHard'],
+                      ['good', 'panels.flashcards.gradeGood'],
+                      ['easy', 'panels.flashcards.gradeEasy'],
+                    ] as const
+                  ).map(([grade, labelKey]) => (
+                    <Button
+                      key={grade}
+                      type="button"
+                      variant={grade === 'good' || grade === 'easy' ? 'default' : 'outline'}
+                      onClick={() => handleGrade(grade)}
+                    >
+                      {t(labelKey)}
+                    </Button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          )}
         </>
       )}
     </EditorSidePanel>

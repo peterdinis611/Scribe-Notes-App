@@ -6,6 +6,7 @@ import type { Range } from '@tiptap/core'
 import type { Editor } from '@tiptap/react'
 import { createDocument, findDocumentsByTitle } from '@/lib/db/api'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
+import { findDocumentByTitleOrAlias } from '@/lib/library/wiki-aliases'
 import { toast } from '@/lib/toast'
 import { WikiLinkSuggestionList, type WikiLinkItem } from '@/components/editor/WikiLinkSuggestionList'
 import { store } from '@/store/index'
@@ -106,12 +107,10 @@ declare module '@tiptap/core' {
   }
 }
 
-/** Local exact match — used when closing `]]` and as offline fallback. */
+/** Local exact match (title or `alias:` tag) — used when closing `]]` and as offline fallback. */
 function resolveTitleLocal(title: string): { targetId: string | null; label: string } {
   const { documents: docs, activeDocumentId: activeId } = store.getState().documents
-  const match = docs.find(
-    (doc) => doc.id !== activeId && doc.title.toLowerCase() === title.toLowerCase(),
-  )
+  const match = findDocumentByTitleOrAlias(docs, title, activeId)
   return match ? { targetId: match.id, label: match.title } : { targetId: null, label: title }
 }
 

@@ -4,24 +4,32 @@ import type { NodeViewProps } from '@tiptap/react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { Columns2, ExternalLink, FileText } from 'lucide-react'
+import { Columns2, ExternalLink, FileText, ListTodo } from 'lucide-react'
 import { getDocument } from '@/lib/db/api'
+import { nlpListOpenTasks } from '@/lib/db/nlp-api'
 import { tiptapToPlainText } from '@/lib/export/plain-text'
+import {
+  filterDocumentsByLiveQuery,
+  formatAgendaEmbedLines,
+  parseLiveQuery,
+} from '@/lib/editor/live-query-embed'
+import { findDocumentByTitleOrAlias } from '@/lib/library/wiki-aliases'
 import { ROUTES } from '@/lib/routes'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setActiveDocumentId, setSecondaryDocumentId } from '@/store/documentsSlice'
 import { store } from '@/store/index'
 
-function resolveTitle(title: string): { targetId: string | null; label: string } {
+function resolveTitle(title: string): { targetId: string | null; label: string; query: string | null } {
+  const live = parseLiveQuery(title)
+  if (live) {
+    return { targetId: null, label: title, query: title }
+  }
   const { documents: docs, activeDocumentId: activeId } = store.getState().documents
-  const match = docs.find(
-    (doc) =>
-      doc.deletedAt == null &&
-      doc.id !== activeId &&
-      doc.title.toLowerCase() === title.toLowerCase(),
-  )
-  return match ? { targetId: match.id, label: match.title } : { targetId: null, label: title }
+  const match = findDocumentByTitleOrAlias(docs, title, activeId)
+  return match
+    ? { targetId: match.id, label: match.title, query: null }
+    : { targetId: null, label: title, query: null }
 }
 
 function WikiEmbedView({ node, selected }: NodeViewProps) {
@@ -30,16 +38,46 @@ function WikiEmbedView({ node, selected }: NodeViewProps) {
   const navigate = useNavigate()
   const targetId = (node.attrs.targetId as string | null) ?? null
   const label = (node.attrs.label as string) ?? t('common.untitled')
+  const queryRaw = (node.attrs.query as string | null) ?? null
+  const documents = useAppSelector((state) => state.documents.documents)
   const summary = useAppSelector((state) =>
     targetId
       ? state.documents.documents.find((doc) => doc.id === targetId && doc.deletedAt == null)
       : null,
   )
   const [excerpt, setExcerpt] = useState('')
-  const [loading, setLoading] = useState(Boolean(targetId))
+  const [loading, setLoading] = useState(Boolean(targetId || queryRaw))
+  const liveQuery = queryRaw ? parseLiveQuery(queryRaw) : null
 
   useEffect(() => {
     let cancelled = false
+    if (liveQuery?.kind === 'agenda') {
+      setLoading(true)
+      void nlpListOpenTasks(120, null)
+        .then((tasks) => {
+          if (cancelled) return
+          setExcerpt(formatAgendaEmbedLines(tasks).join('\n') || t('wikiEmbed.empty'))
+        })
+        .catch(() => {
+          if (!cancelled) setExcerpt('')
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false)
+        })
+      return () => {
+        cancelled = true
+      }
+    }
+    if (liveQuery) {
+      const rows = filterDocumentsByLiveQuery(documents, liveQuery)
+      setExcerpt(
+        rows.length
+          ? rows.map((doc) => `• ${doc.title.trim() || t('common.untitled')}`).join('\n')
+          : t('wikiEmbed.empty'),
+      )
+      setLoading(false)
+      return
+    }
     if (!targetId) {
       setExcerpt('')
       setLoading(false)
@@ -61,7 +99,7 @@ function WikiEmbedView({ node, selected }: NodeViewProps) {
     return () => {
       cancelled = true
     }
-  }, [targetId])
+  }, [documents, liveQuery, t, targetId])
 
   function openTarget() {
     if (!targetId) return
@@ -74,14 +112,20 @@ function WikiEmbedView({ node, selected }: NodeViewProps) {
     dispatch(setSecondaryDocumentId(targetId))
   }
 
+  const isQuery = Boolean(liveQuery)
+
   return (
     <NodeViewWrapper
-      className={cn('wiki-embed', selected && 'is-selected')}
+      className={cn('wiki-embed', selected && 'is-selected', isQuery && 'is-query')}
       data-drag-handle
     >
       <div className="wiki-embed-card" contentEditable={false}>
         <div className="wiki-embed-head">
-          <FileText className="h-3.5 w-3.5 opacity-70" />
+          {isQuery ? (
+            <ListTodo className="h-3.5 w-3.5 opacity-70" />
+          ) : (
+            <FileText className="h-3.5 w-3.5 opacity-70" />
+          )}
           <span className="wiki-embed-title">{summary?.title || label}</span>
           {targetId && (
             <>
@@ -104,8 +148,8 @@ function WikiEmbedView({ node, selected }: NodeViewProps) {
             </>
           )}
         </div>
-        <div className="wiki-embed-body">
-          {!targetId
+        <div className="wiki-embed-body whitespace-pre-wrap">
+          {!targetId && !isQuery
             ? t('wikiEmbed.missing')
             : loading
               ? t('common.loading')
@@ -127,6 +171,7 @@ export const WikiEmbed = Node.create({
     return {
       targetId: { default: null },
       label: { default: '' },
+      query: { default: null },
     }
   },
 
@@ -152,11 +197,11 @@ export const WikiEmbed = Node.create({
         handler: ({ range, match, chain }) => {
           const title = match[1]?.trim()
           if (!title) return
-          const { targetId, label } = resolveTitle(title)
+          const { targetId, label, query } = resolveTitle(title)
           chain()
             .insertContentAt({ from: range.from, to: range.to }, {
               type: this.name,
-              attrs: { targetId, label },
+              attrs: { targetId, label, query },
             })
             .run()
         },

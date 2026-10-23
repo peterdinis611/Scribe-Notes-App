@@ -23,6 +23,7 @@ import {
   Upload,
   CopyPlus,
   Scan,
+  StickyNote,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { IconTooltip } from '@/components/ui/tooltip'
@@ -41,8 +42,10 @@ import { ImageLoupe } from '@/components/editor/ImageLoupe'
 import { ImageUrlDialog } from '@/components/editor/ImageUrlDialog'
 import { toast } from '@/lib/toast'
 import { kvGet, kvSet } from '@/lib/storage/kv'
-import { useAppSelector } from '@/store/hooks'
+import { useNavigate } from '@tanstack/react-router'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { saveDocumentOcr } from '@/lib/db/api'
+import { openOcrCaptureNote } from '@/lib/capture/ocr-note'
 import { scheduleNlpDocumentIndex } from '@/lib/nlp/auto-index'
 
 const MIN_WIDTH = 120
@@ -59,6 +62,8 @@ export function ImageBlock({
   getPos,
 }: NodeViewProps) {
   const { t } = useTranslation()
+  const dispatch = useAppDispatch()
+  const navigate = useNavigate()
   const documentId = useAppSelector((state) => state.documents.activeDocumentId)
   const imgRef = useRef<HTMLImageElement>(null)
   const frameRef = useRef<HTMLDivElement>(null)
@@ -574,9 +579,28 @@ export function ImageBlock({
 
         {ocrText && (
           <div className="mt-1.5 p-2 rounded bg-muted/60 border border-border/60 text-xs font-mono select-text" contentEditable={false}>
-            <div className="flex items-center justify-between font-sans font-semibold text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
-              <span>Extracted Image Text (OCR)</span>
-              <button onClick={() => setOcrText(null)} className="hover:text-foreground">Close</button>
+            <div className="flex items-center justify-between gap-2 font-sans font-semibold text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
+              <span>{t('image.ocrExtracted')}</span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 hover:text-foreground normal-case tracking-normal"
+                  onClick={() => {
+                    void openOcrCaptureNote(dispatch, navigate, {
+                      text: ocrText,
+                      sourceTitle: (node.attrs.alt as string) || undefined,
+                    })
+                      .then(() => toast.success(t('image.ocrNoteCreated')))
+                      .catch((error) => toast.error(t('image.ocrNoteFailed'), String(error)))
+                  }}
+                >
+                  <StickyNote className="h-3 w-3" />
+                  {t('image.ocrToNote')}
+                </button>
+                <button type="button" onClick={() => setOcrText(null)} className="hover:text-foreground">
+                  {t('common.close')}
+                </button>
+              </div>
             </div>
             <div className="whitespace-pre-wrap">{ocrText}</div>
           </div>

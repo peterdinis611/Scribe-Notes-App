@@ -806,6 +806,13 @@ export const fuzzyRankStringsNative = (
     limit: limit ?? null,
   })
 
+export type FlashcardNativeInput = {
+  kind?: string | null
+  question: string
+  answer: string
+  front?: string | null
+}
+
 export const flashcardsToAnkiTsvNative = (cards: FlashcardNativeInput[]) =>
   invoke<string>('flashcards_to_anki_tsv', { cards })
 
@@ -866,9 +873,81 @@ export const generateLoremIpsumNative = (args: {
     startWithLorem: args.startWithLorem ?? null,
   })
 
+    Array<{
+      id: string
+      sample: string
+      sans: string
+      display: string
+      google?: string[]
+    }>
+  >('ui_font_presets_ui')
+
 export const normalizeVideoSrcNative = (src: string) =>
   invoke<string>('normalize_video_src_ui', { src })
 
+/** Local large-video library (Rust store + optional Python ASR). */
+export type VideoImportMode = 'copy' | 'reference'
+
+export type LibraryVideoStatus =
+  | 'ready'
+  | 'probing'
+  | 'thumbPending'
+  | 'transcribing'
+  | 'transcriptReady'
+  | 'failed'
+
+export type LibraryVideo = {
+  id: string
+  title: string
+  importMode: VideoImportMode
+  sourcePath: string
+  relPath?: string | null
+  sizeBytes: number
+  contentHash?: string | null
+  durationSecs?: number | null
+  width?: number | null
+  height?: number | null
+  codec?: string | null
+  thumbRelPath?: string | null
+  transcriptRelPath?: string | null
+  transcriptDocumentId?: string | null
+  status: LibraryVideoStatus
+  error?: string | null
+  documentId?: string | null
+  createdAt: number
+  updatedAt: number
+}
+
+export type ImportLocalVideoResult = {
+  video: LibraryVideo
+  large: boolean
+}
+
+export type ProbeVideoResult = {
+  durationSecs?: number | null
+  width?: number | null
+  height?: number | null
+  codec?: string | null
+  available: boolean
+}
+
+export type TranscriptSegment = {
+  start: number
+  end: number
+  text: string
+}
+
+export type TranscribeVideoResult = {
+  videoId: string
+  text: string
+  segments: TranscriptSegment[]
+  model: string
+  language?: string | null
+  transcriptRelPath?: string | null
+  transcriptDocumentId?: string | null
+}
+
+/** Native file picker; grants PathAccessGate. Returns absolute path or null if cancelled. */
 export const pickLocalVideoNative = () =>
   invoke<string | null>('pick_local_video')
 
@@ -964,3 +1043,852 @@ export const documentHighlightCssNative = () => invoke<string>('document_highlig
 
 export const pdfCaptureCssNative = () => invoke<string>('pdf_capture_css_ui')
 
+export type UiSurfaceId = 'whats-new' | 'welcome' | 'privacy' | 'about' | 'docs'
+
+export type UiSurfaceRequest = {
+  surface: UiSurfaceId
+  locale?: string
+  strings?: Record<string, string>
+  version?: string
+  shortVersion?: string
+  highlights?: string[]
+  highlightCopy?: Record<string, [string, string]>
+  recent?: Array<{ id: string; title: string; updatedLabel?: string }>
+  privacyArticles?: Array<{ id: string; title: string; paragraphs: string[] }>
+  docsTopics?: Array<{
+    id: string
+    title: string
+    summary: string
+    paragraphs?: string[]
+    points?: string[]
+  }>
+  docsGroups?: Array<[string, string[]]>
+}
+
+export const renderUiSurfaceHtml = (request: UiSurfaceRequest) =>
+  invoke<string>('render_ui_surface_html', { request })
+
+export const openUiSurface = (request: UiSurfaceRequest) =>
+  invoke<void>('open_ui_surface', { input: { request } })
+
+export const closeUiSurface = () => invoke<void>('close_ui_surface')
+
+export const clearAllDocuments = async () => {
+  const count = await invoke<number>('clear_all_documents')
+  clearDocumentCache()
+  return count
+}
+
+export const getStorageSettings = () =>
+  invoke<StorageSettings>('get_storage_settings')
+
+export const pickDocumentsDirectory = () =>
+  invoke<StorageSettings | null>('pick_documents_directory')
+
+export const revealInFinder = (path: string) =>
+  invoke<void>('reveal_in_finder', { path })
+
+export const revealDocumentsDirectory = () =>
+  invoke<void>('reveal_documents_directory')
+
+export const getStorageDiskUsage = (path?: string | null) =>
+  invoke<StorageDiskUsage>('get_storage_disk_usage', { path: path ?? null })
+
+/** Local ClamAV CLI status (`clamscan` / `clamdscan` on PATH). */
+export type AntivirusEngine = 'none' | 'clamscan' | 'clamdscan'
+export type ScanVerdict = 'clean' | 'infected' | 'unavailable' | 'skipped'
+
+export type AntivirusStatus = {
+  engine: AntivirusEngine
+  available: boolean
+  binaryPath?: string | null
+  version?: string | null
+  detail: string
+  installHint: string
+}
+
+export type ThreatHit = {
+  name: string
+  path: string
+}
+
+export type AntivirusScanReport = {
+  engine: AntivirusEngine
+  verdict: ScanVerdict
+  path: string
+  threats: ThreatHit[]
+  rawSummary: string
+  durationMs: number
+}
+
+export type AntivirusBatchReport = {
+  scanned: number
+  clean: number
+  infected: number
+  unavailable: number
+  skipped: number
+  reports: AntivirusScanReport[]
+  durationMs: number
+}
+
+export type AntivirusSelfTestReport = {
+  engine: AntivirusEngine
+  passed: boolean
+  detail: string
+  scan: AntivirusScanReport
+}
+
+export type QuarantineEntry = {
+  id: string
+  originalPath: string
+  quarantinedPath: string
+  threatName?: string | null
+  reason: string
+  quarantinedAt: number
+  sizeBytes: number
+}
+
+export type FileHealthReport = {
+  integrity: {
+    kind: string
+    status: 'ok' | 'suspect' | 'corrupt'
+    sizeBytes: number
+    issues: Array<{ code: string; message: string }>
+    checks: string[]
+  }
+  antivirus: AntivirusScanReport
+}
+
+export const antivirusStatus = () => invoke<AntivirusStatus>('antivirus_status')
+
+export const antivirusSelfTest = () => invoke<AntivirusSelfTestReport>('antivirus_self_test')
+
+export const antivirusScanPath = (path: string, timeoutSecs?: number | null) =>
+  invoke<AntivirusScanReport>('antivirus_scan_path', {
+    path,
+    timeoutSecs: timeoutSecs ?? null,
+  })
+
+export const antivirusScanStorageFile = (path: string, timeoutSecs?: number | null) =>
+  invoke<AntivirusScanReport>('antivirus_scan_storage_file', {
+    path,
+    timeoutSecs: timeoutSecs ?? null,
+  })
+
+export const antivirusScanStorageTree = (options?: {
+  path?: string | null
+  recursive?: boolean
+  maxFiles?: number
+}) =>
+  invoke<AntivirusBatchReport>('antivirus_scan_storage_tree', {
+    path: options?.path ?? null,
+    recursive: options?.recursive ?? true,
+    maxFiles: options?.maxFiles ?? 200,
+  })
+
+export const antivirusCheckStorageHealth = (path: string) =>
+  invoke<FileHealthReport>('antivirus_check_storage_health', { path })
+
+export const antivirusQuarantineStorageFile = (
+  path: string,
+  reason?: string | null,
+  threatName?: string | null,
+) =>
+  invoke<QuarantineEntry>('antivirus_quarantine_storage_file', {
+    path,
+    reason: reason ?? null,
+    threatName: threatName ?? null,
+  })
+
+export const antivirusQuarantineExternalPath = (
+  path: string,
+  reason?: string | null,
+  threatName?: string | null,
+) =>
+  invoke<QuarantineEntry>('antivirus_quarantine_external_path', {
+    path,
+    reason: reason ?? null,
+    threatName: threatName ?? null,
+  })
+
+export const antivirusListQuarantine = () =>
+  invoke<QuarantineEntry[]>('antivirus_list_quarantine')
+
+export const antivirusRestoreQuarantine = (id: string) =>
+  invoke<string>('antivirus_restore_quarantine', { id })
+
+export const antivirusPurgeQuarantine = (id: string) =>
+  invoke<void>('antivirus_purge_quarantine', { id })
+
+export const antivirusPurgeAllQuarantine = () =>
+  invoke<number>('antivirus_purge_all_quarantine')
+
+export const antivirusPickAndScan = (timeoutSecs?: number | null) =>
+  invoke<AntivirusScanReport | null>('antivirus_pick_and_scan', {
+    timeoutSecs: timeoutSecs ?? null,
+  })
+
+/** Native open dialog that grants the path in Rust (never pass arbitrary JS paths to grant). */
+export const pickAndGrantPath = (options?: { title?: string; directory?: boolean }) =>
+  invoke<string | null>('pick_and_grant_path', {
+    title: options?.title ?? null,
+    directory: options?.directory ?? null,
+  })
+
+/** Native save dialog that grants the chosen path for a subsequent write. */
+export const pickAndGrantSavePath = (options?: { title?: string; defaultPath?: string }) =>
+  invoke<string | null>('pick_and_grant_save_path', {
+    title: options?.title ?? null,
+    defaultPath: options?.defaultPath ?? null,
+  })
+
+/** Grant paths after a native window drop (also handled in Rust on_window_event). */
+export const grantDroppedPaths = (paths: string[]) =>
+  invoke<void>('grant_dropped_paths', { paths })
+
+export const readTextFile = async (path: string) => {
+  const result = await readTextFileDecoded(path)
+  return result.text
+}
+
+export type ReadTextFileResult = {
+  text: string
+  encoding: string
+  converted: boolean
+}
+
+export const readTextFileDecoded = async (path: string) =>
+  invoke<ReadTextFileResult>('read_text_file', { path })
+
+export const readBinaryFile = async (path: string) =>
+  invoke<number[]>('read_binary_file', { path })
+
+export const writeTextFile = async (path: string, contents: string) =>
+  invoke<void>('write_text_file', { path, contents })
+
+export const saveDocumentOcr = (documentId: string, imagePath: string, text: string) =>
+  invoke<void>('save_document_ocr', { documentId, imagePath, text })
+
+export type PickAndImportFailure = { path: string; error: string }
+export type PickAndImportResult = {
+  imported: Document[]
+  failed: PickAndImportFailure[]
+}
+
+/** Multi-file import via native Rust picker (grants PathAccessGate). */
+export const pickAndImportFiles = async () => {
+  const { readAntivirusPolicy } = await import('@/lib/antivirus/prefs')
+  return invoke<PickAndImportResult | null>('pick_and_import_file', {
+    antivirusPolicy: readAntivirusPolicy(),
+  })
+}
+
+export const importFile = async (path: string) => {
+  const [
+    { isPagesPath, importPagesDocumentFromPath },
+    { isExcelPath, isLegacyExcelPath, importExcelDocumentFromPath },
+    { isWordDocxPath },
+  ] = await Promise.all([
+    import('@/lib/import/pages'),
+    import('@/lib/import/excel-xlsx'),
+    import('@/lib/import/word-docx'),
+  ])
+
+  // Excel / CSV → TipTap tables via SheetJS (editable). Legacy .xls errors with convert hint.
+  // Native picker also uses Rust `xlsx_bytes_to_tiptap` (same table shape).
+  if (isLegacyExcelPath(path) || isExcelPath(path)) {
+    return importExcelDocumentFromPath(path)
+  }
+
+  if (isPagesPath(path)) {
+    return importPagesDocumentFromPath(path)
+  }
+
+  if (isWordDocxPath(path)) {
+    return cacheDocument(await invoke<Document>('import_file', { path }))
+  }
+
+  return cacheDocument(await invoke<Document>('import_file', { path }))
+}
+
+const NATIVE_EXPORT_FORMATS = new Set(['md', 'txt', 'html', 'html-zip', 'epub'])
+
+/** Export from SQLite by document id — TipTap blob never crosses IPC. */
+export const exportDocumentById = (
+  documentId: string,
+  format: 'md' | 'txt' | 'html' | 'html-zip' | 'epub',
+) =>
+  invoke<ExportResult | null>('export_document_by_id', {
+    input: { documentId, format },
+  })
+
+export const compileDocuments = (title: string, chapterIds: string[]) =>
+  invoke<Document>('compile_documents', {
+    input: { title, chapterIds },
+  }).then(cacheDocument)
+
+export type DiffDocumentRevisionsResult = {
+  lines: Array<{ type: 'unchanged' | 'added' | 'removed'; text: string }>
+  added: number
+  removed: number
+  oldText: string
+  newText: string
+  sideBySideRows: import('@/lib/revisions/diff-text').SideBySideRow[]
+}
+
+export const diffDocumentRevisions = (
+  documentId: string,
+  oldRevisionId: string,
+  newRevisionId: string,
+  currentPlainText?: string,
+) =>
+  invoke<DiffDocumentRevisionsResult>('diff_document_revisions', {
+    input: {
+      documentId,
+      oldRevisionId,
+      newRevisionId,
+      currentPlainText: currentPlainText ?? null,
+    },
+  })
+
+export type DiffPlainTextsResult = {
+  lines: Array<{ type: 'unchanged' | 'added' | 'removed'; text: string }>
+  added: number
+  removed: number
+  sideBySideRows: import('@/lib/revisions/diff-text').SideBySideRow[]
+}
+
+export const diffPlainTexts = (oldText: string, newText: string) =>
+  invoke<DiffPlainTextsResult>('diff_plain_texts', { oldText, newText })
+
+export const convertTiptap = (contentJson: string, format: 'plain' | 'markdown') =>
+  invoke<string>('convert_tiptap', { contentJson, format })
+
+export const invokeMatchDocumentChatIntent = (question: string) =>
+  invoke<string | null>('match_document_chat_intent', { question })
+
+export const invokeParseMetaTag = (raw: string) =>
+  invoke<{ raw: string; kind: string; value: string }>('parse_meta_tag', { raw })
+
+export const invokeDocumentMatchesMetaFilters = (
+  tags: string[],
+  filters: { status?: string | null; project?: string | null; year?: string | null },
+) =>
+  invoke<boolean>('document_matches_meta_filters', {
+    tags,
+    filters: {
+      status: filters.status ?? null,
+      project: filters.project ?? null,
+      year: filters.year ?? null,
+    },
+  })
+
+export const renderDocumentHtml = (documentId: string, includeTitleHeading = true) =>
+  invoke<string>('render_document_html', {
+    documentId,
+    includeTitleHeading,
+  })
+
+export const exportDocument = async (
+  html: string,
+  plainText: string,
+  title: string,
+  format: 'pdf' | 'docx' | 'txt' | 'pages' | 'md' | 'html' | 'html-zip' | 'epub',
+  markdown?: string,
+  pageSetup?: import('@/lib/editor/page-setup').PageSetup,
+  options?: { documentId?: string },
+) => {
+  if (
+    options?.documentId &&
+    NATIVE_EXPORT_FORMATS.has(format) &&
+    format !== 'pdf'
+  ) {
+    try {
+      return await exportDocumentById(
+        options.documentId,
+        format as 'md' | 'txt' | 'html' | 'html-zip' | 'epub',
+      )
+    } catch {
+      // Vault / missing row — fall through to blob export.
+    }
+  }
+
+  if (format === 'pdf') {
+    const { generatePdfFromHtml } = await import('@/lib/export/pdf')
+    const { dataBase64 } = await generatePdfFromHtml(html, { pageSetup, title })
+    return invoke<ExportResult | null>('export_pdf_bytes', {
+      input: { title, dataBase64 },
+    })
+  }
+
+  return invoke<ExportResult | null>('export_document', {
+    input: {
+      html,
+      plainText: format === 'md' ? (markdown ?? plainText) : plainText,
+      title,
+      format,
+    },
+  })
+}
+
+export const previewPdfExport = async (
+  html: string,
+  _plainText: string,
+  title: string,
+  pageSetup?: import('@/lib/editor/page-setup').PageSetup,
+) => {
+  const { generatePdfFromHtml } = await import('@/lib/export/pdf')
+  const { dataBase64 } = await generatePdfFromHtml(html, { pageSetup, title })
+  return { dataBase64 }
+}
+
+export const listFolders = (includeArchived = false) =>
+  invoke<Folder[]>('list_folders', { includeArchived })
+
+export const createFolder = (input: {
+  name: string
+  parentId?: string | null
+  isVault?: boolean
+  vaultVerifier?: string | null
+  color?: string | null
+  icon?: string | null
+}) =>
+  invoke<Folder>('create_folder', {
+    input: {
+      name: input.name,
+      parentId: input.parentId ?? null,
+      isVault: input.isVault ?? false,
+      vaultVerifier: input.vaultVerifier ?? null,
+      color: input.color ?? null,
+      icon: input.icon ?? null,
+    },
+  })
+
+export const renameFolder = (id: string, name: string) =>
+  invoke<Folder>('rename_folder', { input: { id, name } })
+
+export interface DeleteFolderResult {
+  deletedDocumentIds: string[]
+  deletedFolderIds: string[]
+}
+
+export interface TrashFolderDocumentsResult {
+  trashedDocumentIds: string[]
+}
+
+export const deleteFolder = (id: string) => invoke<DeleteFolderResult>('delete_folder', { id })
+
+export const trashFolderDocuments = (folderId: string) =>
+  invoke<TrashFolderDocumentsResult>('trash_folder_documents', { folderId })
+
+export const moveFolder = (id: string, parentId: string | null) =>
+  invoke<Folder>('move_folder', { input: { id, parentId } })
+
+export const moveDocumentToFolder = (documentId: string, folderId: string | null) =>
+  invoke<void>('move_document_to_folder', { input: { documentId, folderId } })
+
+export const moveDocumentsToFolder = (documentIds: string[], folderId: string | null) =>
+  invoke<{ movedIds: string[] }>('move_documents_to_folder', {
+    input: { documentIds, folderId },
+  })
+
+export const setFolderAppearance = (
+  id: string,
+  appearance: { color?: string | null; icon?: string | null },
+) =>
+  invoke<Folder>('set_folder_appearance', {
+    input: {
+      id,
+      color: appearance.color ?? null,
+      icon: appearance.icon ?? null,
+    },
+  })
+
+export const setFolderArchived = (id: string, archived: boolean) =>
+  invoke<string[]>('set_folder_archived', { id, archived })
+
+export const reorderFolders = (orderedIds: string[]) =>
+  invoke<void>('reorder_folders', { input: { orderedIds } })
+
+export const folderStats = (id: string) =>
+  invoke<{ subfolderCount: number; documentCount: number }>('folder_stats', { id })
+
+export const folderDocumentCounts = () =>
+  invoke<{ folderId: string; count: number }[]>('folder_document_counts')
+
+export const duplicateFolderStructure = (id: string) =>
+  invoke<Folder[]>('duplicate_folder_structure', { id })
+
+export const searchDocuments = (
+  query: string,
+  limit = 20,
+  filter?: {
+    folderId?: string
+    tag?: string
+    fromDate?: string
+    toDate?: string
+    libraryId?: string
+  },
+) =>
+  invoke<SearchHit[]>('search_documents', {
+    query,
+    limit,
+    folderId: filter?.folderId,
+    tag: filter?.tag,
+    fromDate: filter?.fromDate,
+    toDate: filter?.toDate,
+    libraryId: filter?.libraryId,
+  })
+
+export const listDocumentRevisions = (documentId: string, limit = 20) =>
+  invoke<DocumentRevision[]>('list_document_revisions', { documentId, limit })
+
+export const getDocumentRevision = (revisionId: string) =>
+  invoke<DocumentRevisionDetail>('get_document_revision', { revisionId })
+
+export const createNamedRevision = (documentId: string, label: string, pinned = true) =>
+  invoke<DocumentRevision>('create_named_revision', {
+    input: { documentId, label, pinned },
+  })
+
+export const renameDocumentRevision = (
+  revisionId: string,
+  label: string | null,
+  pinned?: boolean,
+) =>
+  invoke<DocumentRevision>('rename_document_revision', {
+    input: { revisionId, label, pinned },
+  })
+
+export const deleteDocumentRevision = (revisionId: string) =>
+  invoke<void>('delete_document_revision', { revisionId })
+
+export const restoreDocumentRevision = (revisionId: string) =>
+  invoke<Document>('restore_document_revision', { revisionId })
+
+export interface ScanScribeResult {
+  scannedCount: number
+  importedCount: number
+  updatedCount: number
+}
+
+export interface ReconcileResult {
+  scannedCount: number
+  importedCount: number
+  updatedFromDiskCount: number
+  syncedToDiskCount: number
+  conflictCount: number
+}
+
+export interface DiskPersistError {
+  documentId: string
+  message: string
+}
+
+export interface FlushPendingWritesResult {
+  flushed: number
+  errors: DiskPersistError[]
+}
+
+export interface BackendStats {
+  schemaVersion: number
+  documentsCount: number
+  foldersCount: number
+  revisionsCount: number
+  linksCount: number
+  walEnabled: boolean
+  deferredDiskWrites: boolean
+  dbPath: string
+  documentsDir: string
+  appVersion: string
+  pendingDiskJobs: number
+}
+
+export interface LinkGraphEdge {
+  sourceId: string
+  targetId: string
+  sourceTitle: string
+  targetTitle: string
+}
+
+export interface LinkGraphOrphan {
+  id: string
+  title: string
+}
+
+export interface LinkGraph {
+  edges: LinkGraphEdge[]
+  orphans: LinkGraphOrphan[]
+}
+
+export interface BackupExportResult {
+  path: string
+  documentsIncluded: number
+}
+
+export interface BackupImportResult {
+  documentsImported: number
+  message: string
+}
+
+export const listLinkGraph = () => invoke<LinkGraph>('list_link_graph')
+
+export interface WikiHealthOrphan {
+  id: string
+  title: string
+}
+
+export interface WikiHealthUnresolved {
+  documentId: string
+  documentTitle: string
+  label: string
+  targetId?: string | null
+  suggestions?: TitleMatch[]
+}
+
+export interface TitleMatch {
+  id: string
+  title: string
+  score: number
+}
+
+export interface ResolveWikiLinkResult {
+  documentId: string
+  label: string
+  targetId: string
+  targetTitle: string
+  updated: number
+}
+
+export interface WikiHealthStub {
+  id: string
+  title: string
+  wordCount: number
+}
+
+export interface WikiHealth {
+  orphans: WikiHealthOrphan[]
+  unresolved: WikiHealthUnresolved[]
+  stubs: WikiHealthStub[]
+}
+
+export const listWikiHealth = (options?: {
+  unresolvedLimit?: number
+  stubMaxWords?: number
+  stubLimit?: number
+}) =>
+  invoke<WikiHealth>('list_wiki_health', {
+    unresolvedLimit: options?.unresolvedLimit ?? null,
+    stubMaxWords: options?.stubMaxWords ?? null,
+    stubLimit: options?.stubLimit ?? null,
+  })
+
+export interface GraphHub {
+  id: string
+  title: string
+  backlinks: number
+  outgoing: number
+}
+
+export const listGraphHubs = (limit = 12) =>
+  invoke<GraphHub[]>('list_graph_hubs', { limit })
+
+export const findDocumentsByTitle = (title: string, limit = 10) =>
+  invoke<TitleMatch[]>('find_documents_by_title', { title, limit })
+
+export const resolveWikiLink = (documentId: string, label: string, targetId: string) =>
+  invoke<ResolveWikiLinkResult>('resolve_wiki_link', {
+    documentId,
+    label,
+    targetId,
+  })
+
+export const exportLibraryArchive = (password?: string | null) =>
+  invoke<BackupExportResult | null>('export_library_archive', {
+    password: password?.trim() ? password.trim() : null,
+  })
+
+export const exportLibraryArchiveToDir = (directory: string) =>
+  invoke<BackupExportResult>('export_library_archive_to_dir', { directory })
+
+/** Default folder for automatic backups (~/Documents/Scribe/Backups). */
+export const getDefaultAutoBackupDir = () =>
+  invoke<string>('get_default_auto_backup_dir')
+
+export interface AutoBackupConfig {
+  enabled: boolean
+  intervalHours: number
+  directory: string | null
+  lastAt: number | null
+  /** True when AES password is configured for auto-backup zips. */
+  encrypted?: boolean
+}
+
+export const getAutoBackupConfig = () => invoke<AutoBackupConfig>('get_auto_backup_config')
+
+export const configureAutoBackup = (config: AutoBackupConfig) =>
+  invoke<AutoBackupConfig>('configure_auto_backup', { config })
+
+/** Set or clear AES password for automatic backup archives. Empty clears. */
+export const setAutoBackupPassword = (password: string | null) =>
+  invoke<AutoBackupConfig>('set_auto_backup_password', {
+    password: password?.trim() ? password.trim() : null,
+  })
+
+export const setDocumentsWatchEnabled = (enabled: boolean) =>
+  invoke<void>('set_documents_watch_enabled', { enabled })
+
+export interface SmartFolderRecord {
+  id: string
+  libraryId: string
+  name: string
+  queryRule: string
+  icon: string | null
+  createdAt: number
+  updatedAt: number
+}
+
+export interface SmartFolderMatch {
+  documentId: string
+  title: string
+}
+
+export interface SmartFolderEval {
+  folder: SmartFolderRecord
+  matches: SmartFolderMatch[]
+}
+
+export const listSmartFolders = () => invoke<SmartFolderRecord[]>('list_smart_folders')
+
+export const upsertSmartFolder = (input: {
+  id?: string | null
+  name: string
+  queryRule: string
+  icon?: string | null
+}) => invoke<SmartFolderRecord>('upsert_smart_folder', { input })
+
+export const deleteSmartFolder = (id: string) => invoke<boolean>('delete_smart_folder', { id })
+
+export const evaluateSmartFolder = (input: {
+  id?: string | null
+  queryRule?: string | null
+  limit?: number
+}) => invoke<SmartFolderEval>('evaluate_smart_folder', { input })
+
+export const importLibraryArchive = (password?: string | null) =>
+  invoke<BackupImportResult | null>('import_library_archive', {
+    password: password?.trim() ? password.trim() : null,
+  })
+
+export const scanScribeFiles = () => invoke<ScanScribeResult>('scan_scribe_files')
+
+export const reconcileStorage = () => invoke<ReconcileResult>('reconcile_storage')
+
+export const flushPendingWrites = (documentId?: string) =>
+  invoke<FlushPendingWritesResult>('flush_pending_writes', {
+    documentId: documentId ?? null,
+  })
+
+export const getBackendStats = () => invoke<BackendStats>('get_backend_stats')
+
+/** Installed system font family names (empty when not in Tauri). */
+export async function listSystemFontFamilies(): Promise<string[]> {
+  try {
+    return await invoke<string[]>('list_system_font_families')
+  } catch {
+    return []
+  }
+}
+
+export const forceSaveDocument = async (id: string) =>
+  cacheDocument(await invoke<Document>('force_save_document', { id }))
+
+export const saveDocumentImage = (
+  documentId: string,
+  fileName: string,
+  dataBase64: string,
+) =>
+  invoke<string>('save_document_image', {
+    documentId,
+    fileName,
+    dataBase64,
+  })
+
+/** Edge flood-fill background removal → new PNG path under the document assets. */
+export const removeImageBackground = (
+  documentId: string,
+  imagePath: string,
+  tolerance?: number | null,
+) =>
+  invoke<string>('remove_image_background', {
+    documentId,
+    imagePath,
+    tolerance: tolerance ?? null,
+  })
+
+export type LibraryAssetKind = 'image' | 'svg' | 'lottie' | 'model3d' | 'video' | 'other'
+
+export interface LibraryAsset {
+  path: string
+  fileName: string
+  extension: string
+  kind: LibraryAssetKind | string
+  sizeBytes: number
+  documentId: string
+  documentTitle: string | null
+  modifiedAt: number | null
+}
+
+export const listLibraryAssets = () => invoke<LibraryAsset[]>('list_library_assets')
+
+export const deleteLibraryAsset = (path: string) =>
+  invoke<void>('delete_library_asset', { path })
+
+export interface CustomTemplateCategoryRow {
+  id: string
+  name: string
+  createdAt: number
+}
+
+export interface CustomTemplateRow {
+  id: string
+  name: string
+  description: string
+  category: string
+  title: string
+  contentJson: string
+  createdAt: number
+}
+
+export const listCustomTemplateCategories = () =>
+  invoke<CustomTemplateCategoryRow[]>('list_custom_template_categories')
+
+export const createCustomTemplateCategory = (input: CustomTemplateCategoryRow) =>
+  invoke<CustomTemplateCategoryRow>('create_custom_template_category', {
+    input: {
+      id: input.id,
+      name: input.name,
+      createdAt: input.createdAt,
+    },
+  })
+
+export const deleteCustomTemplateCategory = (id: string) =>
+  invoke<number>('delete_custom_template_category', { id })
+
+export const listCustomTemplates = () => invoke<CustomTemplateRow[]>('list_custom_templates')
+
+export const createCustomTemplate = (input: CustomTemplateRow) =>
+  invoke<CustomTemplateRow>('create_custom_template', {
+    input: {
+      id: input.id,
+      name: input.name,
+      description: input.description,
+      category: input.category,
+      title: input.title,
+      contentJson: input.contentJson,
+      createdAt: input.createdAt,
+    },
+  })
+
+export const deleteCustomTemplate = (id: string) =>
+  invoke<void>('delete_custom_template', { id })
