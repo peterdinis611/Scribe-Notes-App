@@ -375,7 +375,7 @@ export function CommandPalette() {
                   if (!alias?.trim()) return
                   try {
                     const doc = await getDocument(activeDocument.id)
-                    const next = addAliasTag(doc.tags, alias.trim())
+                    const next = addAliasTag(doc.tags ?? [], alias.trim())
                     await setDocumentTags(activeDocument.id, next)
                     dispatch(
                       updateDocuments((prev) =>

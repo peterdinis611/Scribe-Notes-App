@@ -64,6 +64,7 @@ export interface Document {
   vaultVerifier?: string | null
   /** Runtime-only: true when ciphertext could not be decrypted (locked). */
   vaultLocked?: boolean
+  tags?: string[]
 }
 
 export interface CreateDocumentInput {

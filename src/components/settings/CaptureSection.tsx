@@ -338,7 +338,7 @@ export function CaptureSection() {
                         for (const id of selectedInbox) {
                           try {
                             const doc = await getDocument(id)
-                            const next = setNoteProperty(doc.tags, 'status', status)
+                            const next = setNoteProperty(doc.tags ?? [], 'status', status)
                             await setDocumentTags(id, next)
                           } catch {
                             // ignore per-item
@@ -377,7 +377,7 @@ export function CaptureSection() {
                       for (const id of selectedInbox) {
                         try {
                           const doc = await getDocument(id)
-                          const next = setNoteProperty(doc.tags, 'project', project.trim())
+                          const next = setNoteProperty(doc.tags ?? [], 'project', project.trim())
                           await setDocumentTags(id, next)
                         } catch {
                           // ignore

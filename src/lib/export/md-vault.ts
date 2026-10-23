@@ -83,9 +83,10 @@ export async function exportMarkdownVault(args: {
     const stem = sanitizeFileStem(doc.title || summary.id)
     const fileName = `${stem}.md`
     const markdown = tiptapJsonToMarkdown(doc.contentJson, doc.title)
-    const tags = (doc.tags ?? []).map((tag) => `#${tag.replace(/\s+/g, '-')}`).join(' ')
+    const docTags = doc.tags ?? summary.tags ?? []
+    const tags = docTags.map((tag: string) => `#${tag.replace(/\s+/g, '-')}`).join(' ')
     const body = tags
-      ? `---\ntitle: ${JSON.stringify(doc.title)}\ntags: ${JSON.stringify(doc.tags ?? [])}\n---\n\n${markdown}`
+      ? `---\ntitle: ${JSON.stringify(doc.title)}\ntags: ${JSON.stringify(docTags)}\n---\n\n${markdown}`
       : markdown
     await writeFile(await join(notesDir, fileName), new TextEncoder().encode(body))
     indexLines.push(`- [[notes/${stem}]] — ${doc.title.trim() || 'Untitled'}`)

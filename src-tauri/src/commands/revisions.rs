@@ -260,6 +260,7 @@ pub fn restore_document_revision(
         created_at: existing.created_at,
         updated_at: now,
         vault_verifier: existing.vault_verifier,
+        tags: existing.tags,
     })
 }
 

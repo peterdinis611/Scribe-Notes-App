@@ -1,4 +1,3 @@
-import { readText } from '@tauri-apps/plugin-clipboard-manager'
 import { createDocument } from '@/lib/db/api'
 import { cacheDocument } from '@/lib/cache/document-cache'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
@@ -65,7 +64,7 @@ export async function openClipboardCaptureNote(
 ) {
   let text = ''
   try {
-    text = await readText()
+    text = (await navigator.clipboard.readText()) ?? ''
   } catch {
     text = ''
   }

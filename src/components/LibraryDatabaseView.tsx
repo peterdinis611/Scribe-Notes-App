@@ -54,15 +54,21 @@ export function LibraryDatabaseView({ onNavigate }: LibraryDatabaseViewProps) {
   }, [projectFilter, rows])
 
   const boardColumns = useMemo(() => {
-    const cols = NOTE_STATUS_OPTIONS.map((status) => ({
-      status,
-      items: filtered.filter((row) => (row.props.status ?? 'inbox') === status),
-    }))
+    type BoardStatus = (typeof NOTE_STATUS_OPTIONS)[number] | 'other'
+    const cols: Array<{ status: BoardStatus; items: typeof filtered }> = NOTE_STATUS_OPTIONS.map(
+      (status) => ({
+        status,
+        items: filtered.filter((row) => (row.props.status ?? 'inbox') === status),
+      }),
+    )
     const other = filtered.filter(
-      (row) => !NOTE_STATUS_OPTIONS.includes((row.props.status ?? 'inbox') as (typeof NOTE_STATUS_OPTIONS)[number]),
+      (row) =>
+        !NOTE_STATUS_OPTIONS.includes(
+          (row.props.status ?? 'inbox') as (typeof NOTE_STATUS_OPTIONS)[number],
+        ),
     )
     if (other.length > 0) {
-      cols.push({ status: 'other' as const, items: other })
+      cols.push({ status: 'other', items: other })
     }
     return cols
   }, [filtered])
