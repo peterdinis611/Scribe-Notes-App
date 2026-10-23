@@ -268,22 +268,31 @@ function escapeDelimitedCell(value: string, delimiter: ',' | '\t'): string {
   return needsQuotes ? `"${escaped}"` : escaped
 }
 
-/** Serialize the active TipTap table to CSV or TSV. */
-export function activeTableToDelimited(editor: Editor, delimiter: ',' | '\t' = '\t'): string | null {
+/** Matrix of cell strings for the active TipTap table (row-major). */
+export function activeTableToMatrix(editor: Editor): string[][] | null {
   const ctx = getTableContext(editor)
   if (!ctx) return null
   const rows = collectRows(ctx.table.node)
   if (rows.length === 0) return null
 
-  const lines = rows.map((row) => {
+  return rows.map((row) => {
     const cells: string[] = []
     row.forEach((cell) => {
       if (cell.type.name !== 'tableCell' && cell.type.name !== 'tableHeader') return
-      cells.push(escapeDelimitedCell(cellText(cell), delimiter))
+      cells.push(cellText(cell))
     })
-    return cells.join(delimiter)
+    return cells
   })
-  return lines.join('\n')
+}
+
+/** Serialize the active TipTap table to CSV or TSV. */
+export function activeTableToDelimited(editor: Editor, delimiter: ',' | '\t' = '\t'): string | null {
+  const matrix = activeTableToMatrix(editor)
+  if (!matrix || matrix.length === 0) return null
+
+  return matrix
+    .map((row) => row.map((cell) => escapeDelimitedCell(cell, delimiter)).join(delimiter))
+    .join('\n')
 }
 
 export async function copyActiveTableAsDelimited(

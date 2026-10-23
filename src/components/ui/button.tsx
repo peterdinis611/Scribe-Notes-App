@@ -10,6 +10,10 @@ const buttonVariants = cva(
       variant: {
         default:
           'rounded-[var(--radius-md)] bg-[var(--color-accent)] text-white hover:brightness-[1.03] active:brightness-[0.97] shadow-none',
+        secondary:
+          'rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-foreground)] hover:bg-[var(--color-hover)]',
+        destructive:
+          'rounded-[var(--radius-md)] bg-[color-mix(in_srgb,#c23b22_92%,black)] text-white hover:brightness-[1.05] active:brightness-[0.96]',
         outline:
           'rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-background)] text-[var(--color-foreground)] hover:bg-[var(--color-hover)]',
         ghost:

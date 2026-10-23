@@ -15,6 +15,7 @@ import { LibraryJournalView } from '@/components/LibraryJournalView'
 import { LibraryLinkGraphView } from '@/components/LibraryLinkGraphView'
 import { LibraryDuplicatesPanel } from '@/components/LibraryDuplicatesPanel'
 import { LibraryTasksPanel } from '@/components/LibraryTasksPanel'
+import { LibraryDatabaseView } from '@/components/LibraryDatabaseView'
 import { LibraryWikiHealthPanel } from '@/components/LibraryWikiHealthPanel'
 import { LibraryChatPanel } from '@/components/LibraryChatPanel'
 import { LibrarySwitcher } from '@/components/library/LibrarySwitcher'
@@ -420,6 +421,8 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                     {contentView === 'duplicates' && <LibraryDuplicatesPanel onNavigate={onClose} />}
 
                     {contentView === 'tasks' && <LibraryTasksPanel onNavigate={onClose} />}
+
+                    {contentView === 'database' && <LibraryDatabaseView onNavigate={onClose} />}
 
                     {contentView === 'wikiHealth' && <LibraryWikiHealthPanel onNavigate={onClose} />}
 

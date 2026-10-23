@@ -1,6 +1,5 @@
 /** Register OS-wide shortcuts (works while Scribe is unfocused). */
 
-import { toGlobalShortcutAcceleratorNative } from '@/lib/db/api'
 import { isTauriRuntime } from '@/lib/tauri'
 import { getResolvedHotkey } from '@/lib/shortcuts'
 import type { ShortcutOverrides } from '@/store/persistence'
@@ -30,17 +29,6 @@ export function toGlobalShortcutAccelerator(hotkey: string): string {
 }
 
 /** Prefer under Tauri when async is OK. */
-export async function toGlobalShortcutAcceleratorAsync(hotkey: string): Promise<string> {
-  if (isTauriRuntime()) {
-    try {
-      return await toGlobalShortcutAcceleratorNative(hotkey)
-    } catch {
-      /* fall through */
-    }
-  }
-  return toGlobalShortcutAccelerator(hotkey)
-}
-
 export type GlobalShortcutHandlers = Partial<Record<GlobalShortcutId, () => void | Promise<void>>>
 
 /**

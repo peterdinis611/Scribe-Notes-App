@@ -158,8 +158,10 @@ pub fn xlsx_bytes_to_tiptap(bytes: &[u8]) -> Result<String, String> {
         sheets.push(("Sheet1".to_string(), None));
     }
 
+    let sheet_list: Vec<_> = sheets.into_iter().take(MAX_SHEETS).collect();
+    let multiple_sheets = sheet_list.len() > 1;
     let mut nodes: Vec<Value> = Vec::new();
-    for (index, (name, rel_id)) in sheets.into_iter().take(MAX_SHEETS).enumerate() {
+    for (index, (name, rel_id)) in sheet_list.into_iter().enumerate() {
         let path = rel_id
             .and_then(|id| relationships.get(&id).cloned())
             .map(|target| sheet_entry_path(&target))
@@ -169,26 +171,79 @@ pub fn xlsx_bytes_to_tiptap(bytes: &[u8]) -> Result<String, String> {
             continue;
         };
         let rows = parse_sheet_rows(&xml, &shared)?;
-        if rows.is_empty() {
+        let Some(table) = sheet_rows_to_table(&rows) else {
             continue;
+        };
+
+        if multiple_sheets {
+            let title = if name.is_empty() {
+                "Sheet".to_string()
+            } else {
+                name
+            };
+            nodes.push(json!({
+                "type": "heading",
+                "attrs": { "level": 2 },
+                "content": [{ "type": "text", "text": title }],
+            }));
         }
 
-        nodes.push(json!({
-            "type": "heading",
-            "attrs": { "level": 2 },
-            "content": [{ "type": "text", "text": if name.is_empty() { "Sheet".to_string() } else { name } }],
-        }));
-        for row in rows {
-            let line = row.join(" | ");
-            nodes.push(if line.trim().is_empty() {
-                json!({ "type": "paragraph" })
-            } else {
-                json!({ "type": "paragraph", "content": [{ "type": "text", "text": line }] })
-            });
-        }
+        nodes.push(table);
+        nodes.push(json!({ "type": "paragraph" }));
     }
 
     Ok(doc_json(nodes))
+}
+
+fn paragraph_node(text: &str) -> Value {
+    if text.is_empty() {
+        return json!({ "type": "paragraph" });
+    }
+    json!({
+        "type": "paragraph",
+        "content": [{ "type": "text", "text": text }]
+    })
+}
+
+fn table_cell_node(text: &str, header: bool) -> Value {
+    json!({
+        "type": if header { "tableHeader" } else { "tableCell" },
+        "attrs": { "colspan": 1, "rowspan": 1, "colwidth": null },
+        "content": [paragraph_node(text)]
+    })
+}
+
+/// First row becomes a header row; cells are TipTap `tableHeader` / `tableCell`.
+fn sheet_rows_to_table(rows: &[Vec<String>]) -> Option<Value> {
+    if rows.is_empty() {
+        return None;
+    }
+    let width = rows
+        .iter()
+        .map(|row| row.len())
+        .max()
+        .unwrap_or(0)
+        .min(MAX_COLS);
+    if width == 0 {
+        return None;
+    }
+
+    let table_rows: Vec<Value> = rows
+        .iter()
+        .take(MAX_ROWS)
+        .enumerate()
+        .map(|(row_index, row)| {
+            let cells: Vec<Value> = (0..width)
+                .map(|col| {
+                    let text = row.get(col).map(String::as_str).unwrap_or("");
+                    table_cell_node(text, row_index == 0)
+                })
+                .collect();
+            json!({ "type": "tableRow", "content": cells })
+        })
+        .collect();
+
+    Some(json!({ "type": "table", "content": table_rows }))
 }
 
 fn parse_shared_strings(xml: &str) -> Result<Vec<String>, String> {
@@ -533,7 +588,7 @@ mod tests {
     }
 
     #[test]
-    fn xlsx_sheets_become_headings_and_rows() {
+    fn xlsx_sheets_become_editable_tables() {
         let workbook = r#"<workbook xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
             <sheets><sheet name="Rozpočet" sheetId="1" r:id="rId1"/></sheets></workbook>"#;
         let rels = r#"<Relationships><Relationship Id="rId1" Type="worksheet" Target="worksheets/sheet1.xml"/></Relationships>"#;
@@ -554,13 +609,25 @@ mod tests {
         let doc: Value = serde_json::from_str(&json).unwrap();
         let nodes = doc["content"].as_array().unwrap();
 
-        assert_eq!(nodes.len(), 3);
-        assert_eq!(nodes[0]["type"], "heading");
-        assert_eq!(nodes[0]["attrs"]["level"], 2);
-        assert_eq!(nodes[0]["content"][0]["text"], "Rozpočet");
-        assert_eq!(nodes[1]["content"][0]["text"], "Názov | Suma");
-        // Column C is empty, column D holds a boolean.
-        assert_eq!(nodes[2]["content"][0]["text"], "Kniečo & iné | 42 |  | TRUE");
+        // Single sheet → table + trailing paragraph (no section heading).
+        assert_eq!(nodes.len(), 2);
+        assert_eq!(nodes[0]["type"], "table");
+        let rows = nodes[0]["content"].as_array().unwrap();
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0]["content"][0]["type"], "tableHeader");
+        assert_eq!(rows[0]["content"][0]["content"][0]["content"][0]["text"], "Názov");
+        assert_eq!(rows[0]["content"][1]["content"][0]["content"][0]["text"], "Suma");
+        // Column C is empty, column D holds a boolean → width 4.
+        assert_eq!(rows[1]["content"].as_array().unwrap().len(), 4);
+        assert_eq!(rows[1]["content"][0]["type"], "tableCell");
+        assert_eq!(
+            rows[1]["content"][0]["content"][0]["content"][0]["text"],
+            "Kniečo & iné"
+        );
+        assert_eq!(rows[1]["content"][1]["content"][0]["content"][0]["text"], "42");
+        assert_eq!(rows[1]["content"][2]["content"][0].get("content"), None);
+        assert_eq!(rows[1]["content"][3]["content"][0]["content"][0]["text"], "TRUE");
+        assert_eq!(nodes[1]["type"], "paragraph");
     }
 
     #[test]
@@ -570,8 +637,11 @@ mod tests {
         let doc: Value = serde_json::from_str(&json).unwrap();
         let nodes = doc["content"].as_array().unwrap();
 
-        assert_eq!(nodes[0]["content"][0]["text"], "Sheet1");
-        assert_eq!(nodes[1]["content"][0]["text"], "Inline");
+        assert_eq!(nodes[0]["type"], "table");
+        assert_eq!(
+            nodes[0]["content"][0]["content"][0]["content"][0]["content"][0]["text"],
+            "Inline"
+        );
     }
 
     #[test]

@@ -1,5 +1,33 @@
 import { describe, expect, it } from 'vitest'
-import { findFuzzyTextMatches, fuzzyFilter } from '@/lib/search/fuzzy'
+import {
+  findFuzzyTextMatches,
+  foldDiacritics,
+  fuzzyFilter,
+  normalizeForFuzzy,
+  structuralScore,
+  tokenScore,
+} from '@/lib/search/fuzzy'
+
+describe('normalizeForFuzzy', () => {
+  it('folds Slovak diacritics', () => {
+    expect(foldDiacritics('Správa')).toBe('Sprava')
+    expect(normalizeForFuzzy('Správa používateľov')).toBe('sprava pouzivatelov')
+    expect(normalizeForFuzzy('Kôň')).toBe('kon')
+  })
+})
+
+describe('structural scoring', () => {
+  it('scores exact / prefix / substring', () => {
+    expect(tokenScore('sprava', 'sprava')).toBe(100)
+    expect(tokenScore('sprava pouzivatelov', 'sprava')).toBeGreaterThan(90)
+    expect(tokenScore('moja sprava', 'sprava')).toBeGreaterThan(70)
+  })
+
+  it('requires all query tokens (AND)', () => {
+    expect(structuralScore('Weekly project roadmap', 'week road')).toBeGreaterThan(70)
+    expect(structuralScore('Weekly digest', 'week road')).toBe(0)
+  })
+})
 
 describe('fuzzyFilter', () => {
   const items = [
@@ -7,6 +35,7 @@ describe('fuzzyFilter', () => {
     { id: '2', title: 'Weekly digest', hint: 'summary' },
     { id: '3', title: 'Project roadmap', hint: 'milestones' },
     { id: '4', title: 'Denník', hint: 'journal' },
+    { id: '5', title: 'Správa používateľov', hint: 'admin' },
   ]
 
   it('returns all items for empty query', () => {
@@ -28,6 +57,24 @@ describe('fuzzyFilter', () => {
     expect(hits.map((item) => item.id)).toContain('4')
   })
 
+  it('matches queries without diacritics to accented titles', () => {
+    const hits = fuzzyFilter(items, 'sprava', (item) => item.title)
+    expect(hits[0]?.id).toBe('5')
+  })
+
+  it('ranks multi-token queries with AND semantics', () => {
+    const hits = fuzzyFilter(
+      [
+        { id: 'a', title: 'Weekly project roadmap' },
+        { id: 'b', title: 'Weekly digest' },
+      ],
+      'week road',
+      (item) => item.title,
+    )
+    expect(hits[0]?.id).toBe('a')
+    expect(hits.map((item) => item.id)).not.toContain('b')
+  })
+
   it('respects limit', () => {
     const hits = fuzzyFilter(items, 'e', (item) => item.title, { limit: 1 })
     expect(hits).toHaveLength(1)
@@ -47,6 +94,12 @@ describe('findFuzzyTextMatches', () => {
     expect(matches.length).toBeGreaterThan(0)
     expect(matches[0]!.from).toBeGreaterThanOrEqual(10)
     expect(matches[0]!.to).toBeGreaterThan(matches[0]!.from)
+  })
+
+  it('matches without diacritics against accented text', () => {
+    const matches = findFuzzyTextMatches([{ text: 'Správa používateľov', from: 0 }], 'sprava')
+    expect(matches.length).toBeGreaterThan(0)
+    expect(matches[0]!.from).toBe(0)
   })
 
   it('returns empty for blank term', () => {
@@ -79,8 +132,6 @@ describe('findFuzzyTextMatches', () => {
       caseSensitive: true,
     })
     expect(insensitive.length).toBeGreaterThan(0)
-    // Case-sensitive search for lowercase against uppercase may still soft-match via Fuse,
-    // but should not outrank / exceed insensitive results.
     expect(sensitive.length).toBeLessThanOrEqual(insensitive.length)
   })
 })

@@ -1,4 +1,3 @@
-import { planThemeApplicationNative } from '@/lib/db/api'
 import {
   CYCLE_THEME_ORDER,
   getDefaultCustomTheme,
@@ -7,7 +6,6 @@ import {
   GROVE_LIGHT,
 } from '@/lib/themes/presets'
 import type { ThemeColors, ThemePresetId, ThemeSettings } from '@/lib/themes/types'
-import { isTauriRuntime } from '@/lib/tauri'
 import { applyUiSkin, type UiSkin } from '@/lib/ui-skin'
 import { applyUiFontSettings } from '@/lib/ui-fonts'
 import { readUiSkin } from '@/store/persistence'
@@ -143,24 +141,6 @@ function colorsForSkin(
   return colors
 }
 
-function writeThemeApplication(plan: {
-  cssVars: Array<{ name: string; value: string }>
-  dataTheme: string
-  isDark: boolean
-  colorScheme: string
-  skin: string
-}) {
-  const root = document.documentElement
-  applyUiSkin(plan.skin as UiSkin)
-  applyUiFontSettings()
-  for (const { name, value } of plan.cssVars) {
-    root.style.setProperty(name, value)
-  }
-  root.dataset.theme = plan.dataTheme
-  root.classList.toggle('dark', plan.isDark)
-  root.style.colorScheme = plan.colorScheme
-}
-
 export function applyThemeSettings(settings: ThemeSettings, skin: UiSkin = readUiSkin()) {
   const { colors: baseColors, colorScheme, resolvedId } = resolveThemeColors(settings)
   const colors = colorsForSkin(baseColors, resolvedId, colorScheme, skin)
@@ -186,31 +166,6 @@ export function applyThemeSettings(settings: ThemeSettings, skin: UiSkin = readU
 }
 
 /** Prefer Rust plan under Tauri; DOM writes stay in the frontend. */
-export async function applyThemeSettingsAsync(
-  settings: ThemeSettings,
-  skin: UiSkin = readUiSkin(),
-): Promise<void> {
-  if (isTauriRuntime()) {
-    try {
-      const plan = await planThemeApplicationNative(
-        {
-          themeId: settings.themeId,
-          customTheme: settings.customTheme
-            ? ({ ...settings.customTheme } as Record<string, string>)
-            : null,
-        },
-        skin,
-        prefersDark(),
-      )
-      writeThemeApplication(plan)
-      return
-    } catch {
-      /* fall through */
-    }
-  }
-  applyThemeSettings(settings, skin)
-}
-
 export function cycleThemeId(current: ThemePresetId): ThemePresetId {
   const index = CYCLE_THEME_ORDER.indexOf(current as (typeof CYCLE_THEME_ORDER)[number])
   if (index === -1) return 'system'

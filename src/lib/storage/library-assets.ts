@@ -1,12 +1,5 @@
 /** Keep in sync with `crates/scribe-ui/src/library_assets.rs`. */
-import {
-  assetKindNative,
-  filterLibraryAssetsNative,
-  formatBytesNative,
-  isOrphanAssetNative,
-  type LibraryAsset,
-} from '@/lib/db/api'
-import { isTauriRuntime } from '@/lib/tauri'
+import { type LibraryAsset } from '@/lib/db/api'
 
 export type LibraryAssetKindFilter =
   | 'image'
@@ -104,54 +97,4 @@ export function filterLibraryAssets(
       asset.documentId.toLowerCase().includes(q)
     )
   })
-}
-
-export async function assetKindAsync(extension: string): Promise<string> {
-  if (isTauriRuntime()) {
-    try {
-      return await assetKindNative(extension)
-    } catch {
-      /* fall through */
-    }
-  }
-  return assetKind(extension)
-}
-
-export async function formatBytesAsync(bytes: number): Promise<string> {
-  if (isTauriRuntime()) {
-    try {
-      return await formatBytesNative(bytes)
-    } catch {
-      /* fall through */
-    }
-  }
-  return formatBytes(bytes)
-}
-
-export async function isOrphanAssetAsync(
-  documentTitle: string | null | undefined,
-): Promise<boolean> {
-  if (isTauriRuntime()) {
-    try {
-      return await isOrphanAssetNative(documentTitle ?? null)
-    } catch {
-      /* fall through */
-    }
-  }
-  return isOrphanAsset(documentTitle)
-}
-
-export async function filterLibraryAssetsAsync(
-  assets: LibraryAsset[],
-  filter: string,
-  query: string,
-): Promise<LibraryAsset[]> {
-  if (isTauriRuntime()) {
-    try {
-      return await filterLibraryAssetsNative(assets, filter, query)
-    } catch {
-      /* fall through */
-    }
-  }
-  return filterLibraryAssets(assets, filter, query)
 }

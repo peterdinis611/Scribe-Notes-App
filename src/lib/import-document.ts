@@ -83,11 +83,7 @@ export async function importDocumentFromPath(path: string): Promise<Document> {
     return cacheDocument(doc)
   }
 
-  if (isLegacyExcelPath(selected)) {
-    return await importExcelDocumentFromPath(selected)
-  }
-
-  if (isExcelPath(selected) && /\.csv$/i.test(selected)) {
+  if (isLegacyExcelPath(selected) || isExcelPath(selected)) {
     return await importExcelDocumentFromPath(selected)
   }
 
@@ -95,8 +91,8 @@ export async function importDocumentFromPath(path: string): Promise<Document> {
     return await importPagesDocumentFromPath(selected)
   }
 
-  // .docx / .xlsx / text / .scribe — Rust import_file (office_import for Office).
-  if (isWordDocxPath(selected) || isExcelPath(selected) || isLegacyWordPath(selected)) {
+  // .docx / text / .scribe — Rust import_file (office_import for Word).
+  if (isWordDocxPath(selected) || isLegacyWordPath(selected)) {
     return await importFile(selected)
   }
 

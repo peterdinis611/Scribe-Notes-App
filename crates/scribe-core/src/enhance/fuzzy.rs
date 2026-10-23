@@ -2,7 +2,6 @@
 
 use std::collections::{BTreeSet, HashMap};
 
-#[cfg(feature = "diacritics")]
 use unicode_normalization::UnicodeNormalization;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -12,18 +11,15 @@ pub struct FuzzyMatch {
     pub score: f64,
 }
 
-/// Lowercase, strip diacritics (feature `diacritics`), replace punctuation
-/// with spaces and collapse whitespace.
+/// Lowercase, strip diacritics, replace punctuation with spaces and collapse whitespace.
 pub fn normalize(input: &str) -> String {
     let lowered = input.trim().to_lowercase();
-
-    #[cfg(feature = "diacritics")]
-    let lowered: String = lowered
+    let folded: String = lowered
         .nfd()
         .filter(|c| !unicode_normalization::char::is_combining_mark(*c))
         .collect();
 
-    let cleaned: String = lowered
+    let cleaned: String = folded
         .chars()
         .map(|c| if c.is_alphanumeric() { c } else { ' ' })
         .collect();
@@ -187,10 +183,10 @@ mod tests {
         assert_eq!(res[0].index, 1);
     }
 
-    #[cfg(feature = "diacritics")]
     #[test]
     fn diacritics_are_ignored() {
         assert_eq!(fuzzy_ratio("Kôň", "kon"), 1.0);
+        assert!(fuzzy_ratio("Správa", "sprava") > 0.99);
     }
 
     #[test]

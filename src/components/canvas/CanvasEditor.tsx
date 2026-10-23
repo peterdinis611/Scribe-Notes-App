@@ -33,6 +33,7 @@ import {
   BringToFront,
   Circle,
   Copy,
+  Database,
   Download,
   FilePlus,
   FileText,
@@ -70,7 +71,11 @@ import { CanvasShapeNode } from '@/components/canvas/CanvasShapeNode'
 import { CanvasTextNode } from '@/components/canvas/CanvasTextNode'
 import { alignNodes, type AlignMode } from '@/lib/canvas/align'
 import { logCanvasAudit } from '@/lib/canvas/audit'
-import { openTiptapFromCanvasSelection } from '@/lib/canvas/create-canvas'
+import {
+  openTiptapFromCanvasSelection,
+  promoteCanvasCardsToDatabaseRows,
+  promoteCanvasCardsToWikiNotes,
+} from '@/lib/canvas/create-canvas'
 import {
   buildClipboardPayload,
   createCanvasHistory,
@@ -1045,6 +1050,70 @@ function CanvasFlow() {
         >
           <FilePlus className="h-3.5 w-3.5" />
           <span>{t('canvas.insertTiptap')}</span>
+        </button>
+        <button
+          type="button"
+          className="canvas-toolbar-btn"
+          disabled={selectedNodes.length === 0}
+          onClick={() => {
+            const doc = flowToCanvasDocument(nodesRef.current, edgesRef.current)
+            const selected = doc.objects.filter((o) => selectedNodes.some((n) => n.id === o.id))
+            void promoteCanvasCardsToWikiNotes(dispatch, t, selected)
+              .then(({ created, patched }) => {
+                if (created === 0) {
+                  toast.info(t('canvas.promoteWikiEmpty'))
+                  return
+                }
+                const byId = new Map(patched.map((obj) => [obj.id, obj]))
+                setNodes((current) => {
+                  const next = current.map((node) => {
+                    const obj = byId.get(node.id)
+                    if (!obj) return node
+                    return objectToNode(obj)
+                  })
+                  commitFlow(next, edgesRef.current)
+                  return next
+                })
+                toast.success(t('canvas.promoteWikiDone', { count: created }))
+              })
+              .catch((error) => toast.error(t('canvas.promoteWikiFailed'), String(error)))
+          }}
+          title={t('canvas.promoteWiki')}
+        >
+          <Link2 className="h-3.5 w-3.5" />
+          <span>{t('canvas.promoteWiki')}</span>
+        </button>
+        <button
+          type="button"
+          className="canvas-toolbar-btn"
+          disabled={selectedNodes.length === 0}
+          onClick={() => {
+            const doc = flowToCanvasDocument(nodesRef.current, edgesRef.current)
+            const selected = doc.objects.filter((o) => selectedNodes.some((n) => n.id === o.id))
+            void promoteCanvasCardsToDatabaseRows(dispatch, t, selected, { status: 'inbox' })
+              .then(({ created, patched }) => {
+                if (created === 0) {
+                  toast.info(t('canvas.promoteWikiEmpty'))
+                  return
+                }
+                const byId = new Map(patched.map((obj) => [obj.id, obj]))
+                setNodes((current) => {
+                  const next = current.map((node) => {
+                    const obj = byId.get(node.id)
+                    if (!obj) return node
+                    return objectToNode(obj)
+                  })
+                  commitFlow(next, edgesRef.current)
+                  return next
+                })
+                toast.success(t('canvas.promoteDbDone', { count: created }))
+              })
+              .catch((error) => toast.error(t('canvas.promoteDbFailed'), String(error)))
+          }}
+          title={t('canvas.promoteDb')}
+        >
+          <Database className="h-3.5 w-3.5" />
+          <span>{t('canvas.promoteDb')}</span>
         </button>
         <button
           type="button"

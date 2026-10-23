@@ -39,6 +39,8 @@ pub struct Document {
     pub updated_at: i64,
     #[serde(default)]
     pub vault_verifier: Option<String>,
+    #[serde(default)]
+    pub tags: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -118,11 +120,12 @@ pub fn map_document(row: &rusqlite::Row<'_>) -> rusqlite::Result<Document> {
         created_at: row.get(5)?,
         updated_at: row.get(6)?,
         vault_verifier: row.get(7)?,
+        tags: parse_tags(row.get::<_, Option<String>>(8)?),
     })
 }
 
 pub const DOCUMENT_SELECT: &str =
-    "SELECT id, title, content_json, folder_id, file_path, created_at, updated_at, vault_verifier FROM documents";
+    "SELECT id, title, content_json, folder_id, file_path, created_at, updated_at, vault_verifier, tags FROM documents";
 
 const SUMMARY_SELECT: &str =
     "SELECT id, title, folder_id, file_path, updated_at, is_favorite, is_pinned, tags, deleted_at, \
@@ -313,6 +316,7 @@ pub fn create_document(
         created_at: now,
         updated_at: now,
         vault_verifier: None,
+        tags: Vec::new(),
     })
 }
 
@@ -410,6 +414,7 @@ pub fn update_document(
         created_at: existing.created_at,
         updated_at: now,
         vault_verifier,
+        tags: existing.tags,
     })
 }
 
@@ -477,6 +482,7 @@ pub fn duplicate_document(
         created_at: now,
         updated_at: now,
         vault_verifier: source.vault_verifier,
+        tags: source.tags,
     })
 }
 
@@ -765,6 +771,7 @@ pub fn merge_documents(
             created_at: keep.created_at,
             updated_at: now,
             vault_verifier: keep.vault_verifier.clone(),
+            tags: keep.tags.clone(),
         })
     })();
 
@@ -1430,6 +1437,7 @@ pub fn library_find_replace(
                     created_at,
                     updated_at: now,
                     vault_verifier: doc.vault_verifier,
+                    tags: doc.tags,
                 },
                 created_at,
             ));

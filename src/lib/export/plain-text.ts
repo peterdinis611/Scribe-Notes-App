@@ -3,7 +3,6 @@
  * Canonical serializer: scribe-core `tiptap_to_plain_text` via `convert_tiptap`.
  * Sync fallback kept for vitest / hot vault paths without IPC.
  */
-import { convertTiptap } from '@/lib/db/api'
 import { chartPreviewLabel } from '@/lib/editor/d3-chart'
 
 type TipTapNode = {
@@ -90,7 +89,7 @@ function blockToPlain(node: TipTapNode): string {
   }
 }
 
-/** Sync fallback — prefer `tiptapToPlainTextAsync` in app code. */
+/** Sync fallback — JS sync serializer. */
 export function tiptapToPlainText(contentJson: string): string {
   try {
     const doc = JSON.parse(contentJson) as TipTapNode
@@ -101,13 +100,5 @@ export function tiptapToPlainText(contentJson: string): string {
     return blocks.join('\n\n').trim()
   } catch {
     return ''
-  }
-}
-
-export async function tiptapToPlainTextAsync(contentJson: string): Promise<string> {
-  try {
-    return await convertTiptap(contentJson, 'plain')
-  } catch {
-    return tiptapToPlainText(contentJson)
   }
 }

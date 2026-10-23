@@ -1,4 +1,5 @@
-import { createDocument } from '@/lib/db/api'
+import { createDocument, setDocumentTags } from '@/lib/db/api'
+import { setNoteProperty } from '@/lib/library/document-properties'
 import { cacheDocument } from '@/lib/cache/document-cache'
 import { markCanvasDocument } from '@/lib/canvas/known'
 import { buildCanvasTemplate, type CanvasTemplateId } from '@/lib/canvas/templates'
@@ -73,4 +74,89 @@ export async function openTiptapFromCanvasSelection(
   })
   await navigate(ROUTES.document(document.id))
   return document
+}
+
+/**
+ * Turn selected note/text cards into real wiki documents and return
+ * patch objects that should become `docLink` cards on the canvas.
+ */
+export async function promoteCanvasCardsToWikiNotes(
+  dispatch: AppDispatch,
+  getTitle: (key: string) => string,
+  objects: CanvasObject[],
+): Promise<{ created: number; patched: CanvasObject[] }> {
+  const patched: CanvasObject[] = []
+  let created = 0
+
+  for (const obj of objects) {
+    if (obj.kind === 'docLink' && obj.documentId) {
+      patched.push(obj)
+      continue
+    }
+    const text =
+      obj.kind === 'note' || obj.kind === 'text' || obj.kind === 'rect' || obj.kind === 'ellipse'
+        ? obj.text.trim() || obj.label.trim()
+        : obj.label.trim()
+    if (!text) {
+      patched.push(obj)
+      continue
+    }
+    const title =
+      text.split(/\n/)[0]?.trim().slice(0, 80) || getTitle('canvas.insertDocTitle')
+    const paragraphs = text
+      .split(/\n+/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => ({
+        type: 'paragraph',
+        content: [{ type: 'text', text: line }],
+      }))
+    const document = cacheDocument(
+      await createDocument({
+        title,
+        contentJson: JSON.stringify({
+          type: 'doc',
+          content: paragraphs.length > 0 ? paragraphs : [{ type: 'paragraph' }],
+        }),
+      }),
+    )
+    created += 1
+    dispatch(updateDocuments((prev) => prependDocumentSummary(prev, document)))
+    patched.push({
+      ...obj,
+      kind: 'docLink',
+      documentId: document.id,
+      documentTitle: document.title,
+      text: '',
+      label: document.title,
+    })
+  }
+
+  void logCanvasAudit('canvas_promote_wiki', 'Promoted canvas cards to wiki notes', {
+    created,
+    objectCount: objects.length,
+  })
+  return { created, patched }
+}
+
+/** Promote selected cards to wiki notes tagged as database rows (status/project/due). */
+export async function promoteCanvasCardsToDatabaseRows(
+  dispatch: AppDispatch,
+  getTitle: (key: string) => string,
+  objects: CanvasObject[],
+  extras?: { status?: string; project?: string; due?: string },
+): Promise<{ created: number; patched: CanvasObject[] }> {
+  const result = await promoteCanvasCardsToWikiNotes(dispatch, getTitle, objects)
+  if (result.created === 0) return result
+
+  for (const obj of result.patched) {
+    if (obj.kind !== 'docLink' || !obj.documentId) continue
+    let tags: string[] = []
+    if (extras?.status) tags = setNoteProperty(tags, 'status', extras.status)
+    if (extras?.project) tags = setNoteProperty(tags, 'project', extras.project)
+    if (extras?.due) tags = setNoteProperty(tags, 'due', extras.due)
+    if (tags.length === 0) tags = setNoteProperty(tags, 'status', 'inbox')
+    await setDocumentTags(obj.documentId, tags).catch(() => null)
+  }
+  return result
 }

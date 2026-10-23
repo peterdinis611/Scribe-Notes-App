@@ -171,12 +171,21 @@ pub fn run() {
                     .build(app)?;
                 let today_note =
                     MenuItemBuilder::with_id("tray-today-note", "Today's journal").build(app)?;
+                let capture_clipboard = MenuItemBuilder::with_id(
+                    "tray-capture-clipboard",
+                    "Capture from clipboard",
+                )
+                .build(app)?;
+                let voice_note =
+                    MenuItemBuilder::with_id("tray-voice-note", "Voice note").build(app)?;
                 let show_app = MenuItemBuilder::with_id("tray-show", "Show Scribe").build(app)?;
                 let quit = PredefinedMenuItem::quit(app, Some("Quit"))?;
 
                 let tray_menu = MenuBuilder::new(app)
                     .item(&quick_note)
                     .item(&today_note)
+                    .item(&capture_clipboard)
+                    .item(&voice_note)
                     .separator()
                     .item(&show_app)
                     .item(&quit)
@@ -201,6 +210,20 @@ pub fn run() {
                             }
                             "tray-today-note" => {
                                 let _ = app.emit("tray-today-note", ());
+                                if let Some(window) = app.get_webview_window("main") {
+                                    let _ = window.show();
+                                    let _ = window.set_focus();
+                                }
+                            }
+                            "tray-capture-clipboard" => {
+                                let _ = app.emit("tray-capture-clipboard", ());
+                                if let Some(window) = app.get_webview_window("main") {
+                                    let _ = window.show();
+                                    let _ = window.set_focus();
+                                }
+                            }
+                            "tray-voice-note" => {
+                                let _ = app.emit("tray-voice-note", ());
                                 if let Some(window) = app.get_webview_window("main") {
                                     let _ = window.show();
                                     let _ = window.set_focus();

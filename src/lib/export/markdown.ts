@@ -148,16 +148,3 @@ export function tiptapJsonToMarkdown(contentJson: string, title: string): string
   return `# ${title}\n\n${body}\n`
 }
 
-/** Prefer Rust `convert_tiptap` when available; falls back to sync serializer. */
-export async function tiptapJsonToMarkdownAsync(
-  contentJson: string,
-  title: string,
-): Promise<string> {
-  try {
-    const { convertTiptap } = await import('@/lib/db/api')
-    const body = (await convertTiptap(contentJson, 'markdown')).trim()
-    return `# ${title}\n\n${body}\n`
-  } catch {
-    return tiptapJsonToMarkdown(contentJson, title)
-  }
-}

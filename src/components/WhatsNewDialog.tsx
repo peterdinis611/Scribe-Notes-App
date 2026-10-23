@@ -89,7 +89,7 @@ export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
   )
 }
 
-/** Presentational list of 4.0.0 highlights — hydrated from Rust UiManifest when available. */
+/** Presentational list of 4.0 edition highlights — hydrated from Rust UiManifest when available. */
 export function WhatsNew40Highlights() {
   const { t } = useTranslation()
   const [highlights, setHighlights] = useState<string[]>([...WHATS_NEW_40_HIGHLIGHTS])

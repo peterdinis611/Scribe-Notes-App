@@ -258,6 +258,7 @@ pub fn compile_documents(
         created_at: now,
         updated_at: now,
         vault_verifier: None,
+        tags: Vec::new(),
     })
 }
 

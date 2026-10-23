@@ -58,7 +58,7 @@ pub fn find_documents_by_title(
                 "SELECT id, title FROM documents
                  WHERE deleted_at IS NULL
                  ORDER BY updated_at DESC
-                 LIMIT 200",
+                 LIMIT 500",
             )
             .map_err(|e| e.to_string())?;
         let candidates = cand_stmt

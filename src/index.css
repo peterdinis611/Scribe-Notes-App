@@ -1456,9 +1456,295 @@ html:not([data-ui-skin]) .document-tab.is-active {
   cursor: default;
 }
 
+.library-tasks__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 0.75rem;
+  margin: 0.35rem 0 0.75rem;
+}
+
+.library-tasks__layout {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--color-border) 88%, transparent);
+  border-radius: var(--radius-md);
+}
+
+.library-tasks__layout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 1.75rem;
+  padding: 0 0.55rem;
+  border: none;
+  background: var(--color-surface);
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.library-tasks__layout-btn.is-active {
+  background: color-mix(in srgb, var(--color-accent) 14%, var(--color-surface));
+  color: var(--color-foreground);
+}
+
 .library-tasks__filter {
   display: block;
-  margin: 0.35rem 0 0.75rem;
+  margin: 0;
+  flex: 1 1 10rem;
+  min-width: 8rem;
+}
+
+.library-tasks__meta {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+}
+
+.library-tasks__bucket-count {
+  margin-left: 0.4rem;
+  font-weight: 500;
+  color: var(--color-muted-foreground);
+}
+
+.library-database {
+  padding: 0.25rem 0.15rem 1rem;
+}
+
+.library-database__kicker,
+.library-database__hint {
+  margin: 0;
+}
+
+.library-database__kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+
+.library-database__hint {
+  margin-top: 0.35rem;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-muted-foreground);
+}
+
+.library-database__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 0.85rem;
+  align-items: center;
+  margin: 0.75rem 0;
+}
+
+.library-database__layout {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--color-border) 88%, transparent);
+  border-radius: var(--radius-md);
+}
+
+.library-database__layout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 1.75rem;
+  padding: 0 0.55rem;
+  border: none;
+  background: var(--color-surface);
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.library-database__layout-btn.is-active {
+  background: color-mix(in srgb, var(--color-accent) 14%, var(--color-surface));
+  color: var(--color-foreground);
+}
+
+.library-database__filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 12px;
+  color: var(--color-muted-foreground);
+}
+
+.library-database__filter select,
+.library-database__table select,
+.library-database__table input {
+  height: 1.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-size: 12px;
+  padding: 0 0.4rem;
+}
+
+.library-database__table-wrap {
+  overflow: auto;
+  border: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
+  border-radius: var(--radius-md);
+}
+
+.library-database__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.library-database__table th,
+.library-database__table td {
+  padding: 0.45rem 0.5rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.library-database__table th {
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+}
+
+.library-database__note {
+  border: none;
+  background: none;
+  color: var(--color-accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+}
+
+.library-database__board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.65rem;
+}
+
+.library-database__column {
+  border: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-surface) 90%, transparent);
+  padding: 0.5rem;
+  min-height: 8rem;
+}
+
+.library-database__column h4 {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 0 0.45rem;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+
+.library-database__column ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.library-database__column button {
+  width: 100%;
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  border-radius: var(--radius-sm);
+  background: var(--color-background);
+  padding: 0.45rem 0.5rem;
+  text-align: left;
+  cursor: pointer;
+  color: var(--color-foreground);
+}
+
+.library-database__card-title {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.library-database__card-meta {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 10px;
+  color: var(--color-muted-foreground);
+}
+
+.library-database__calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.library-database__day {
+  border: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-surface) 90%, transparent);
+  padding: 0.55rem 0.65rem;
+}
+
+.library-database__day.is-undated {
+  opacity: 0.92;
+}
+
+.library-database__day h4 {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 0 0 0.45rem;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--color-foreground);
+}
+
+.library-database__day h4 span {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-muted-foreground);
+}
+
+.library-database__day ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.library-database__day button {
+  width: 100%;
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  border-radius: var(--radius-sm);
+  background: var(--color-background);
+  padding: 0.45rem 0.5rem;
+  text-align: left;
+  cursor: pointer;
+  color: var(--color-foreground);
+}
+
+.library-database__empty {
+  margin: 1rem 0;
+  font-size: 12px;
+  color: var(--color-muted-foreground);
 }
 
 .library-tasks__select {

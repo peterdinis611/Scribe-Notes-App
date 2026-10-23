@@ -1,9 +1,10 @@
-/** Parse and apply `scribe://` deep links (docs / artifacts / revisions). */
+/** Parse and apply `scribe://` deep links (docs / artifacts / revisions / clip). */
 
 export type ScribeDeepLink =
   | { kind: 'doc'; documentId: string }
   | { kind: 'artifact'; artifactId: string }
   | { kind: 'revision'; documentId: string; revisionId: string }
+  | { kind: 'clip'; url?: string; title?: string; text?: string }
 
 export function parseScribeDeepLink(raw: string): ScribeDeepLink | null {
   const trimmed = raw.trim()
@@ -19,6 +20,16 @@ export function parseScribeDeepLink(raw: string): ScribeDeepLink | null {
   const rest = url.hostname
     ? url.pathname.replace(/^\//, '')
     : url.pathname.replace(/^\//, '').split('/').slice(1).join('/')
+
+  // scribe://clip?url=&title=&text=
+  if (host === 'clip' || rest === 'clip' || rest.startsWith('clip?')) {
+    return {
+      kind: 'clip',
+      url: url.searchParams.get('url')?.trim() || undefined,
+      title: url.searchParams.get('title')?.trim() || undefined,
+      text: url.searchParams.get('text')?.trim() || undefined,
+    }
+  }
 
   // scribe://doc/{id}
   if (host === 'doc') {
@@ -42,6 +53,14 @@ export function parseScribeDeepLink(raw: string): ScribeDeepLink | null {
 
   // scribe:///doc/{id} (empty host)
   const parts = trimmed.replace(/^scribe:\/\//i, '').split('/').filter(Boolean)
+  if (parts[0] === 'clip') {
+    return {
+      kind: 'clip',
+      url: url.searchParams.get('url')?.trim() || undefined,
+      title: url.searchParams.get('title')?.trim() || undefined,
+      text: url.searchParams.get('text')?.trim() || undefined,
+    }
+  }
   if (parts[0] === 'doc' && parts[1]) return { kind: 'doc', documentId: parts[1] }
   if (parts[0] === 'artifact' && parts[1]) return { kind: 'artifact', artifactId: parts[1] }
   if (parts[0] === 'revision' && parts[1] && parts[2]) {

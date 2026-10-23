@@ -406,6 +406,7 @@ fn import_file_at_path(
         created_at,
         updated_at: now,
         vault_verifier: None,
+        tags: Vec::new(),
     })
 }
 

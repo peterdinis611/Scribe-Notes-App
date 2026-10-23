@@ -25,13 +25,22 @@ import {
   removeCaptureInboxItem,
   type CaptureInboxItem,
 } from '@/lib/capture/inbox'
-import { addDocumentTag, listDocuments, listFolders, moveDocumentToFolder } from '@/lib/db/api'
+import {
+  addDocumentTag,
+  getDocument,
+  listDocuments,
+  listFolders,
+  moveDocumentToFolder,
+  setDocumentTags,
+} from '@/lib/db/api'
+import { setNoteProperty, NOTE_STATUS_OPTIONS } from '@/lib/library/document-properties'
 import { promptInput } from '@/lib/input-dialog'
 import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { setActiveDocumentId, setDocuments } from '@/store/documentsSlice'
+import { setActiveDocumentId, setActiveDocument, setDocuments, setSaveStatus } from '@/store/documentsSlice'
 import { setFolders } from '@/store/foldersSlice'
+import { cacheDocument } from '@/lib/cache/document-cache'
 
 export function CaptureSection() {
   const { t } = useTranslation()
@@ -269,6 +278,30 @@ export function CaptureSection() {
                 <Button
                   type="button"
                   size="sm"
+                  variant="default"
+                  disabled={inbox.length === 0}
+                  onClick={() => {
+                    const next = inbox[0]
+                    if (!next) return
+                    void (async () => {
+                      try {
+                        const doc = cacheDocument(await getDocument(next.documentId))
+                        dispatch(setActiveDocumentId(doc.id))
+                        dispatch(setActiveDocument(doc))
+                        dispatch(setSaveStatus('saved'))
+                        await navigate(ROUTES.document(doc.id))
+                        setInbox(removeCaptureInboxItem(doc.id))
+                      } catch (error) {
+                        toast.error(t('capture.triageNextError'), String(error))
+                      }
+                    })()
+                  }}
+                >
+                  {t('capture.triageNext')}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
                   variant="outline"
                   disabled={selectedInbox.size === 0}
                   onClick={() => {
@@ -290,6 +323,73 @@ export function CaptureSection() {
                   }}
                 >
                   {t('capture.triageTag')}
+                </Button>
+                <label className="inline-flex items-center gap-1.5 text-[12px] text-[var(--color-muted-foreground)]">
+                  <span className="sr-only">{t('capture.triageStatus')}</span>
+                  <select
+                    className="h-8 max-w-[140px] rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] px-2 text-[12px] text-[var(--color-foreground)]"
+                    disabled={selectedInbox.size === 0}
+                    defaultValue=""
+                    onChange={(event) => {
+                      const status = event.target.value
+                      event.target.value = ''
+                      if (!status || selectedInbox.size === 0) return
+                      void (async () => {
+                        for (const id of selectedInbox) {
+                          try {
+                            const doc = await getDocument(id)
+                            const next = setNoteProperty(doc.tags ?? [], 'status', status)
+                            await setDocumentTags(id, next)
+                          } catch {
+                            // ignore per-item
+                          }
+                          setInbox(removeCaptureInboxItem(id))
+                        }
+                        setSelectedInbox(new Set())
+                        toast.success(t('capture.triageStatusDone', { status }))
+                      })()
+                    }}
+                  >
+                    <option value="" disabled>
+                      {t('capture.triageStatus')}
+                    </option>
+                    {NOTE_STATUS_OPTIONS.map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={selectedInbox.size === 0}
+                  onClick={() => {
+                    void (async () => {
+                      const project = await promptInput({
+                        title: t('capture.triageProject'),
+                        description: t('capture.triageProjectHint'),
+                        placeholder: 'Acme',
+                        confirmLabel: t('common.confirm'),
+                      })
+                      if (!project?.trim()) return
+                      for (const id of selectedInbox) {
+                        try {
+                          const doc = await getDocument(id)
+                          const next = setNoteProperty(doc.tags ?? [], 'project', project.trim())
+                          await setDocumentTags(id, next)
+                        } catch {
+                          // ignore
+                        }
+                        setInbox(removeCaptureInboxItem(id))
+                      }
+                      setSelectedInbox(new Set())
+                      toast.success(t('capture.triageProjectDone', { project: project.trim() }))
+                    })()
+                  }}
+                >
+                  {t('capture.triageProject')}
                 </Button>
                 <label className="inline-flex items-center gap-1.5 text-[12px] text-[var(--color-muted-foreground)]">
                   <span className="sr-only">{t('capture.triageFolder')}</span>

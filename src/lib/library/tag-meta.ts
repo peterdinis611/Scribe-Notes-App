@@ -1,12 +1,7 @@
 /** Convention-based structured tags: status:draft, project:Acme, year:2026.
  * Canonical: scribe-core + `scribe_ui::tag_meta` (also Tauri `parse_ui_tag`).
- * Sync helpers stay for Library UI filtering; Prefer-Rust via `*Async`.
+ * Sync helpers stay for Library UI filtering.
  */
-import {
-  documentMatchesMetaFiltersUiNative,
-  parseUiTagNative,
-} from '@/lib/db/api'
-import { isTauriRuntime } from '@/lib/tauri'
 
 export type TagKind = 'status' | 'project' | 'year' | 'plain'
 
@@ -79,36 +74,6 @@ export function documentMatchesMetaFilters(tags: string[], filters: MetaFilters)
 }
 
 /** Prefer Rust `parse_ui_tag` under Tauri; otherwise JS fallback. */
-export async function parseTagAsync(raw: string): Promise<ParsedTag> {
-  if (isTauriRuntime()) {
-    try {
-      const parsed = await parseUiTagNative(raw)
-      const kind = parsed.kind as TagKind
-      if (kind === 'status' || kind === 'project' || kind === 'year' || kind === 'plain') {
-        return { raw: parsed.raw, kind, value: parsed.value }
-      }
-    } catch {
-      /* fall through */
-    }
-  }
-  return parseTag(raw)
-}
-
-/** Prefer Rust `document_matches_meta_filters_ui` under Tauri; otherwise JS fallback. */
-export async function documentMatchesMetaFiltersAsync(
-  tags: string[],
-  filters: MetaFilters,
-): Promise<boolean> {
-  if (isTauriRuntime()) {
-    try {
-      return await documentMatchesMetaFiltersUiNative(tags, filters)
-    } catch {
-      /* fall through */
-    }
-  }
-  return documentMatchesMetaFilters(tags, filters)
-}
-
 export function collectMetaOptions(allTags: string[]): {
   statuses: string[]
   projects: string[]

@@ -1,10 +1,10 @@
-# Scribe 2.3
+# Scribe 4.1
 
 <p align="center">
   <img src="docs/screenshots/icon.png" alt="Ikona Scribe" width="96" height="96" />
 </p>
 
-Píšte dokumenty. Prepájajte poznámky. **Scribe 2.3** je lokálny macOS rich-text editor s knižnicou, šablónami a exportom do viacerých formátov.
+Píšte dokumenty. Prepájajte poznámky. **Scribe 4.1** je lokálny macOS rich-text editor s knižnicou, šablónami a exportom do viacerých formátov.
 
 Scribe beží lokálne na vašom Macu. Žiadne účty, žiadny cloud — dokumenty, databáza a nastavenia patria používateľovi macOS účtu, v ktorom je aplikácia spustená.
 
@@ -429,7 +429,7 @@ Schéma SQLite je verzovaná v `src-tauri/src/db/migrations.rs` (a zdieľané he
 
 ## Verzia
 
-Aktuálna verzia: **2.5.0**
+Aktuálna verzia: **4.1.0**
 
 ## Súkromie
 

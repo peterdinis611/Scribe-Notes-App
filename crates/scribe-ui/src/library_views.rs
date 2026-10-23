@@ -11,6 +11,7 @@ pub const LIBRARY_VIEW_IDS: &[&str] = &[
     "agent",
     "duplicates",
     "tasks",
+    "database",
     "wikiHealth",
     "storage",
 ];
@@ -30,6 +31,6 @@ mod tests {
     #[test]
     fn includes_wiki_health() {
         assert!(is_library_view_id("wikiHealth"));
-        assert_eq!(library_view_ids().len(), 12);
+        assert_eq!(library_view_ids().len(), 13);
     }
 }

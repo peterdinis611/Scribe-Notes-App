@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { listen } from '@tauri-apps/api/event'
 import { OPEN_DEEP_LINK_EVENT, parseScribeDeepLink } from '@/lib/deep-links'
+import { openWebClipNote } from '@/lib/capture/web-clip'
 import { ROUTES } from '@/lib/routes'
 import { isTauriRuntime } from '@/lib/tauri'
 import { useAppDispatch } from '@/store/hooks'
@@ -34,6 +35,12 @@ export function useScribeDeepLinks() {
         dispatch(setRevisionHistoryOpen(true))
         void navigate(ROUTES.document(link.documentId))
         toast.success(t('toasts.deepLinkOpened'))
+        return
+      }
+      if (link.kind === 'clip') {
+        void openWebClipNote(dispatch, navigate, link)
+          .then(() => toast.success(t('toasts.webClipSaved')))
+          .catch((error) => toast.error(t('toasts.webClipError'), String(error)))
       }
     }
 

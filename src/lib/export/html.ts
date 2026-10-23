@@ -440,7 +440,6 @@ export type HtmlExportOptions = {
   forPrint?: boolean
   mermaidSvgBySource?: Map<string, string>
   d3SvgBySource?: Map<string, string>
-  /** Prefer Rust syntect snippets (from `buildCodeHighlightMap`). */
   codeHighlightByKey?: Map<string, string>
 }
 

@@ -1,5 +1,3 @@
-import { normalizeUiSkinNative } from '@/lib/db/api'
-import { isTauriRuntime } from '@/lib/tauri'
 
 export type UiSkin = 'page' | 'grove' | 'classic'
 
@@ -23,18 +21,6 @@ export function normalizeUiSkin(value: unknown): UiSkin {
 }
 
 /** Prefer Rust `scribe-ui` when running under Tauri; otherwise JS fallback. */
-export async function normalizeUiSkinAsync(value: unknown): Promise<UiSkin> {
-  if (isTauriRuntime() && typeof value === 'string') {
-    try {
-      const next = await normalizeUiSkinNative(value)
-      if (isUiSkin(next)) return next
-    } catch {
-      // Fall through.
-    }
-  }
-  return normalizeUiSkin(value)
-}
-
 export function applyUiSkin(skin: UiSkin) {
   const root = document.documentElement
   root.dataset.uiSkin = skin

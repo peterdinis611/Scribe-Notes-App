@@ -1,6 +1,4 @@
 /** Keep in sync with `crates/scribe-ui` counterpart. */
-import { parseMapSpecNative } from '@/lib/db/api'
-import { isTauriRuntime } from '@/lib/tauri'
 
 export type MapMarker = {
   lat: number
@@ -202,31 +200,3 @@ export function mapEmbedHref(spec: MapSpec): string {
   return `https://www.openstreetmap.org/export/embed.html?${params.toString()}`
 }
 
-/** Prefer Rust `scribe-ui` under Tauri; otherwise JS fallback. */
-export async function parseMapSpecAsync(source: string): Promise<MapParseResult> {
-  if (isTauriRuntime()) {
-    try {
-      const spec = (await parseMapSpecNative(source)) as MapSpec
-      return { ok: true, spec }
-    } catch (error) {
-      const message =
-        typeof error === 'string'
-          ? error
-          : error instanceof Error
-            ? error.message
-            : String(error)
-      if (message) return { ok: false, error: message }
-    }
-  }
-  return parseMapSpec(source)
-}
-
-export async function mapPreviewLabelAsync(source: string): Promise<string> {
-  const parsed = await parseMapSpecAsync(source)
-  if (!parsed.ok) return 'Map'
-  return (
-    parsed.spec.title ||
-    parsed.spec.markers[0]?.label ||
-    `${parsed.spec.lat.toFixed(3)}, ${parsed.spec.lng.toFixed(3)}`
-  )
-}

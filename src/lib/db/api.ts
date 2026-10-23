@@ -64,6 +64,7 @@ export interface Document {
   vaultVerifier?: string | null
   /** Runtime-only: true when ciphertext could not be decrypted (locked). */
   vaultLocked?: boolean
+  tags?: string[]
 }
 
 export interface CreateDocumentInput {
@@ -806,14 +807,6 @@ export const fuzzyRankStringsNative = (
     limit: limit ?? null,
   })
 
-export const colorForTagNative = (tag: string) => invoke<string>('color_for_tag', { tag })
-
-export const sanitizeSnippetNative = (html: string) =>
-  invoke<string>('sanitize_snippet', { html })
-
-export const colorForExportNative = (color: string, background?: string | null) =>
-  invoke<string>('color_for_export', { color, background: background ?? null })
-
 export type FlashcardNativeInput = {
   kind?: string | null
   question: string
@@ -828,93 +821,6 @@ export const flashcardsToMarkdownNative = (
   cards: FlashcardNativeInput[],
   title?: string | null,
 ) => invoke<string>('flashcards_to_markdown', { cards, title: title ?? null })
-
-export const moveIdBeforeNative = (ids: string[], fromId: string, toId: string) =>
-  invoke<string[]>('move_id_before', { ids, fromId, toId })
-
-export const canNestFolderNative = (
-  dragId: string,
-  targetId: string | null,
-  folders: Array<{ id: string; parentId: string | null }>,
-) => invoke<boolean>('can_nest_folder', { dragId, targetId, folders })
-
-export const normalizeUiSkinNative = (value: string) =>
-  invoke<string>('normalize_ui_skin', { value })
-
-export const clampSidebarWidthNative = (value: number, viewportWidth?: number | null) =>
-  invoke<number>('clamp_sidebar_width', { value, viewportWidth: viewportWidth ?? null })
-
-export const clampEditorPanelWidthNative = (args: {
-  value: number
-  viewportWidth?: number | null
-  sidebarWidth?: number | null
-  minWidth?: number | null
-}) =>
-  invoke<number>('clamp_editor_panel_width', {
-    value: args.value,
-    viewportWidth: args.viewportWidth ?? null,
-    sidebarWidth: args.sidebarWidth ?? null,
-    minWidth: args.minWidth ?? null,
-  })
-
-export const hotkeyToDisplayKeysNative = (hotkey: string) =>
-  invoke<string[]>('hotkey_to_display_keys', { hotkey })
-
-export const parseUiTagNative = (raw: string) =>
-  invoke<{ raw: string; kind: string; value: string }>('parse_ui_tag', { raw })
-
-export const resolvePageLayoutNative = (args: {
-  paperId: string
-  margins: {
-    marginTop: number
-    marginBottom: number
-    marginLeft: number
-    marginRight: number
-  }
-  headerFooterReserve?: number | null
-}) =>
-  invoke<{
-    width: number
-    paddingTop: number
-    paddingBottom: number
-    paddingLeft: number
-    paddingRight: number
-    contentHeight: number
-    scrollPaddingTop: number
-    paperHeight: number
-  }>('resolve_page_layout_ui', {
-    paperId: args.paperId,
-    margins: args.margins,
-    headerFooterReserve: args.headerFooterReserve ?? null,
-  })
-
-export const tiptapJsonToMarkdownNative = (contentJson: string, title: string) =>
-  invoke<string>('tiptap_json_to_markdown_ui', { contentJson, title })
-
-export const analyzeGraphDensityNative = (
-  seedCount: number,
-  edgeCount: number,
-  orphanCount: number,
-) =>
-  invoke<{ sparse: boolean; orphanRatio: number; edgeRatio: number }>(
-    'analyze_graph_density_ui',
-    { seedCount, edgeCount, orphanCount },
-  )
-
-export const isUntitledOrphanTitleNative = (title: string) =>
-  invoke<boolean>('is_untitled_orphan_title_ui', { title })
-
-export const toGlobalShortcutAcceleratorNative = (hotkey: string) =>
-  invoke<string>('to_global_shortcut_accelerator_ui', { hotkey })
-
-export const computeJournalStreakNative = (notedDates: string[], today?: string | null) =>
-  invoke<number>('compute_journal_streak_ui', { notedDates, today: today ?? null })
-
-export const formatWeekKeyNative = (year: number, month: number, day: number) =>
-  invoke<string | null>('format_week_key_ui', { year, month, day })
-
-export const currentWeekRangeNative = (year: number, month: number, day: number) =>
-  invoke<[string, string] | null>('current_week_range_ui', { year, month, day })
 
 export const buildRevisionCompareOptionsNative = (
   revisions: Array<{
@@ -957,41 +863,6 @@ export const normalizeComparePairNative = (
     currentUpdatedAt,
   })
 
-export const bumpSemverNative = (
-  version: string,
-  bump: 'patch' | 'minor' | 'major' | 'keep',
-) => invoke<string>('bump_semver_ui', { version, bump })
-
-export const compareSemverNative = (a: string, b: string) =>
-  invoke<number>('compare_semver_ui', { a, b })
-
-export const parseTemplatePackNative = (raw: string) =>
-  invoke<{
-    version: number
-    name: string
-    locale?: string
-    templates: Array<{
-      name: string
-      title: string
-      description?: string
-      categoryId?: string
-      content: unknown
-    }>
-  }>('parse_template_pack_ui', { raw })
-
-export const serializeTemplatePackNative = (pack: {
-  version: number
-  name: string
-  locale?: string
-  templates: Array<{
-    name: string
-    title: string
-    description?: string
-    categoryId?: string
-    content: unknown
-  }>
-}) => invoke<string>('serialize_template_pack_ui', { pack })
-
 export const generateLoremIpsumNative = (args: {
   unit: 'paragraphs' | 'sentences' | 'words'
   count: number
@@ -1003,106 +874,8 @@ export const generateLoremIpsumNative = (args: {
     startWithLorem: args.startWithLorem ?? null,
   })
 
-export const sanitizeFileNameNative = (name: string, ext?: string | null) =>
-  invoke<string>('sanitize_file_name_ui', { name, ext: ext ?? null })
-
-export const localeSectionGroupsNative = () =>
-  invoke<Array<{ id: string; sections: string[] }>>('locale_section_groups_ui')
-
-export const uiFontPresetsNative = () =>
-  invoke<
-    Array<{
-      id: string
-      sample: string
-      sans: string
-      display: string
-      google?: string[]
-    }>
-  >('ui_font_presets_ui')
-
-export const extractTitleFromContentNative = (contentJson: string, fallback?: string | null) =>
-  invoke<string>('extract_title_from_content_ui', { contentJson, fallback: fallback ?? null })
-
-export const countWordsNative = (contentJson: string) =>
-  invoke<number>('count_words_ui', { contentJson })
-
-export const countCharactersNative = (contentJson: string) =>
-  invoke<number>('count_characters_ui', { contentJson })
-
-export const collectHeadingsFromJsonNative = (contentJson: string) =>
-  invoke<string[]>('collect_headings_from_json_ui', { contentJson })
-
-export const plainTextToContentJsonNative = (text: string) =>
-  invoke<string>('plain_text_to_content_json_ui', { text })
-
-export const titleFromHtmlNative = (html: string, fallback: string) =>
-  invoke<string>('title_from_html_ui', { html, fallback })
-
-export const validateSnippetInputNative = (
-  input: Record<string, unknown>,
-  existingCustomCount?: number | null,
-  isUpdate?: boolean | null,
-) =>
-  invoke<{ ok: boolean; value?: unknown; error?: { code: string; message: string } }>(
-    'validate_snippet_input_ui',
-    { input, existingCustomCount: existingCustomCount ?? null, isUpdate: isUpdate ?? null },
-  )
-
-export const isVideoUrlNative = (value: string) => invoke<boolean>('is_video_url_ui', { value })
-
-export const videoProviderLabelNative = (src: string) =>
-  invoke<string>('video_provider_label_ui', { src })
-
-export const videoExportEmbedNative = (src: string) =>
-  invoke<{ kind: string; href: string }>('video_export_embed_ui', { src })
-
-export const extractYoutubeIdNative = (src: string) =>
-  invoke<string | null>('extract_youtube_id_ui', { src })
-
-export const extractVimeoIdNative = (src: string) =>
-  invoke<string | null>('extract_vimeo_id_ui', { src })
-
-export const detectVideoProviderNative = (src: string) =>
-  invoke<string>('detect_video_provider_ui', { src })
-
 export const normalizeVideoSrcNative = (src: string) =>
   invoke<string>('normalize_video_src_ui', { src })
-
-export const inspectVideoNative = (src: string) =>
-  invoke<{
-    src: string
-    normalized: string
-    provider: string
-    label: string
-    isVideo: boolean
-    export: { kind: string; href: string }
-    providerId?: string | null
-    startSeconds?: number | null
-    thumbnailUrl?: string | null
-    youtubeId?: string | null
-    vimeoId?: string | null
-  }>('inspect_video_ui', { src })
-
-export const extractStartSecondsNative = (src: string) =>
-  invoke<number | null>('extract_start_seconds_ui', { src })
-
-export const videoThumbnailUrlNative = (src: string) =>
-  invoke<string | null>('video_thumbnail_url_ui', { src })
-
-export const extractProviderIdNative = (src: string) =>
-  invoke<string | null>('extract_provider_id_ui', { src })
-
-export const parseVideoFenceNative = (body: string) =>
-  invoke<{ src?: string | null; caption?: string | null }>('parse_video_fence_ui', { body })
-
-export const videoToMarkdownFenceNative = (src?: string | null, caption?: string | null) =>
-  invoke<string>('video_to_markdown_fence_ui', { src: src ?? null, caption: caption ?? null })
-
-export const renderVideoFigureHtmlNative = (src?: string | null, caption?: string | null) =>
-  invoke<string>('render_video_figure_html_ui', { src: src ?? null, caption: caption ?? null })
-
-export const collectVideosFromTiptapNative = (contentJson: string) =>
-  invoke<unknown[]>('collect_videos_from_tiptap_ui', { contentJson })
 
 /** Local large-video library (Rust store + optional Python ASR). */
 export type VideoImportMode = 'copy' | 'reference'
@@ -1191,17 +964,8 @@ export const listLibraryVideosNative = () =>
 export const getLibraryVideoNative = (id: string) =>
   invoke<LibraryVideo | null>('get_library_video_cmd', { id })
 
-export const deleteLibraryVideoNative = (id: string, removeFiles = true) =>
-  invoke<boolean>('delete_library_video_cmd', { id, removeFiles })
-
 export const probeLibraryVideoNative = (id: string) =>
   invoke<ProbeVideoResult>('probe_library_video', { id })
-
-export const generateLibraryVideoThumbnailNative = (id: string, atSecs?: number | null) =>
-  invoke<LibraryVideo>('generate_library_video_thumbnail', {
-    id,
-    atSecs: atSecs ?? null,
-  })
 
 export const transcribeLibraryVideoNative = (input: {
   videoId: string
@@ -1221,84 +985,8 @@ export const transcribeLibraryVideoNative = (input: {
 export const libraryVideoPlaybackPathNative = (id: string) =>
   invoke<string>('library_video_playback_path', { id })
 
-export const documentStylePresetsNative = () => invoke<unknown[]>('document_style_presets_ui')
-
-export const applyDocumentStylePresetNative = (id: string) =>
-  invoke<unknown>('apply_document_style_preset_ui', { id })
-
-export const parseCanvasDocumentNative = (contentJson: string) =>
-  invoke<unknown | null>('parse_canvas_document_ui', { contentJson })
-
-export const serializeCanvasDocumentNative = (doc: unknown) =>
-  invoke<string>('serialize_canvas_document_ui', { doc })
-
 export const promoteMarkdownSpecialBlocksNative = (doc: unknown) =>
   invoke<unknown>('promote_markdown_special_blocks_ui', { doc })
-
-export const collectMarkdownHeadingOutlineNative = (markdown: string) =>
-  invoke<unknown[]>('collect_markdown_heading_outline_ui', { markdown })
-
-export const parseMapSpecNative = (source: string) =>
-  invoke<unknown>('parse_map_spec_ui', { source })
-
-export const documentMatchesSmartFilterNative = (args: {
-  doc: { id: string; tags: string[]; deletedAt?: number | null }
-  filter: string
-  options?: {
-    orphanIds?: string[]
-    recentDocumentIds?: string[]
-    canvasIds?: string[]
-  } | null
-}) =>
-  invoke<boolean>('document_matches_smart_filter', {
-    doc: args.doc,
-    filter: args.filter,
-    options: args.options ?? null,
-  })
-
-export const filterDocumentsBySmartFilterNative = (args: {
-  docs: Array<{ id: string; tags: string[]; deletedAt?: number | null }>
-  filter: string
-  options?: {
-    orphanIds?: string[]
-    recentDocumentIds?: string[]
-    canvasIds?: string[]
-  } | null
-}) =>
-  invoke<Array<{ id: string; tags: string[]; deletedAt?: number | null }>>(
-    'filter_documents_by_smart_filter_ui',
-    {
-      docs: args.docs,
-      filter: args.filter,
-      options: args.options ?? null,
-    },
-  )
-
-export const documentMatchesMetaFiltersUiNative = (
-  tags: string[],
-  filters: { status?: string | null; project?: string | null; year?: string | null },
-) =>
-  invoke<boolean>('document_matches_meta_filters_ui', {
-    tags,
-    filters: {
-      status: filters.status ?? null,
-      project: filters.project ?? null,
-      year: filters.year ?? null,
-    },
-  })
-
-export const importTitleFromPathNative = (path: string, fallback: string) =>
-  invoke<string>('import_title_from_path_ui', { path, fallback })
-
-export const isPagesPathNative = (path: string) => invoke<boolean>('is_pages_path_ui', { path })
-
-export const themePresetIdsNative = () => invoke<string[]>('theme_preset_ids_ui')
-
-export const suggestOrphanLinksNative = (rows: unknown[]) =>
-  invoke<unknown[]>('suggest_orphan_links_ui', { rows })
-
-export const flattenFoldersForPickerNative = (folders: unknown[]) =>
-  invoke<Array<{ folder: unknown; depth: number }>>('flatten_folders_for_picker_ui', { folders })
 
 export const filterDiffLinesNative = (
   lines: Array<{ type: string; text: string }>,
@@ -1346,151 +1034,6 @@ export const documentTiptapCssNative = () => invoke<string>('document_tiptap_css
 export const documentHighlightCssNative = () => invoke<string>('document_highlight_css_ui')
 
 export const pdfCaptureCssNative = () => invoke<string>('pdf_capture_css_ui')
-
-export const resolveColorNative = (color: string, tokens: Record<string, string>) =>
-  invoke<string>('resolve_color_ui', { color, tokens })
-
-export const mergeDuplicateContentNative = (
-  keepJson: string,
-  dropJson: string,
-  dropTitle: string,
-) => invoke<string>('merge_duplicate_content_ui', { keepJson, dropJson, dropTitle })
-
-export const flattenLibraryNative = (
-  folders: unknown[],
-  documents: unknown[],
-  expandedIds: string[],
-) => invoke<unknown[]>('flatten_library_ui', { folders, documents, expandedIds })
-
-export const estimateFlatItemSizeNative = (item: unknown) =>
-  invoke<number>('estimate_flat_item_size_ui', { item })
-
-export const parseCustomLocalePackNative = (
-  raw: string,
-  fallbackCode?: string | null,
-  fallbackName?: string | null,
-) =>
-  invoke<{ code: string; name: string; messages: Record<string, unknown> }>(
-    'parse_custom_locale_pack_ui',
-    {
-      raw,
-      fallbackCode: fallbackCode ?? null,
-      fallbackName: fallbackName ?? null,
-    },
-  )
-
-export const normalizeLocaleCodeNative = (raw: string) =>
-  invoke<string>('normalize_locale_code_ui', { raw })
-
-export const pdfHighlightsToContentJsonNative = (imported: {
-  fileName: string
-  pageCount: number
-  highlights: Array<{ page: number; text: string; color: string | null; subtype: string }>
-}) => invoke<unknown>('pdf_highlights_to_content_json_ui', { imported })
-
-export const mapToTiptapHighlightNative = (color?: string | null) =>
-  invoke<string>('map_to_tiptap_highlight_ui', { color: color ?? null })
-
-export const createCustomTemplateNative = (input: {
-  name: string
-  description?: string
-  category: string
-  title: string
-  content: unknown
-}) => invoke<unknown>('create_custom_template_ui', { input })
-
-export const parseStoredCustomTemplatesNative = (raw: unknown) =>
-  invoke<unknown[]>('parse_stored_custom_templates_ui', { raw })
-
-export const cardsToNodesNative = (cards: unknown[]) =>
-  invoke<unknown[]>('cards_to_nodes_ui', { cards })
-
-export const canvasEdgesToFlowNative = (edges: unknown[]) =>
-  invoke<unknown[]>('canvas_edges_to_flow_ui', { edges })
-
-export const flowToCanvasDocumentNative = (nodes: unknown[], edges: unknown[]) =>
-  invoke<unknown>('flow_to_canvas_document_ui', { nodes, edges })
-
-export const resolvePanelWidthsNative = (args: {
-  sidebarRaw?: string | null
-  editorRaw?: string | null
-  tocRaw?: string | null
-  viewportWidth?: number | null
-  editorMinWidth?: number | null
-}) =>
-  invoke<{ sidebar: number; editorPanel: number; tocRail: number }>('resolve_panel_widths_ui', {
-    sidebarRaw: args.sidebarRaw ?? null,
-    editorRaw: args.editorRaw ?? null,
-    tocRaw: args.tocRaw ?? null,
-    viewportWidth: args.viewportWidth ?? null,
-    editorMinWidth: args.editorMinWidth ?? null,
-  })
-
-export const clampTocRailWidthNative = (
-  value: number,
-  viewportWidth?: number | null,
-  sidebarWidth?: number | null,
-) =>
-  invoke<number>('clamp_toc_rail_width_ui', {
-    value,
-    viewportWidth: viewportWidth ?? null,
-    sidebarWidth: sidebarWidth ?? null,
-  })
-
-export const planThemeApplicationNative = (
-  settings: { themeId: string; customTheme?: Record<string, string> | null },
-  skin: string,
-  prefersDark: boolean,
-) =>
-  invoke<{
-    cssVars: Array<{ name: string; value: string }>
-    dataTheme: string
-    isDark: boolean
-    colorScheme: string
-    resolvedId: string
-    skin: string
-  }>('plan_theme_application_ui', { settings, skin, prefersDark })
-
-export const resolveThemeColorsNative = (
-  settings: { themeId: string; customTheme?: Record<string, string> | null },
-  prefersDark: boolean,
-) =>
-  invoke<{
-    colors: Record<string, string>
-    colorScheme: string
-    resolvedId: string
-  }>('resolve_theme_colors_ui', { settings, prefersDark })
-
-export const isDarkColorNative = (color: string) =>
-  invoke<boolean>('is_dark_color_ui', { color })
-
-export const buildHeaderFooterLinesNative = (
-  config: {
-    enabled: boolean
-    headerText: string
-    footerText: string
-    showPageNumber: boolean
-  },
-  context: { title: string; page: number; pages: number; date: string },
-  paginationSummary: string,
-) =>
-  invoke<{ header: string; footer: string }>('build_header_footer_lines_ui', {
-    config,
-    context,
-    paginationSummary,
-  })
-
-export const resolveHeaderFooterTemplateNative = (
-  template: string,
-  context: { title: string; page: number; pages: number; date: string },
-) => invoke<string>('resolve_header_footer_template_ui', { template, context })
-
-export const formatExportDateNative = (
-  year: number,
-  month: number,
-  day: number,
-  language: string,
-) => invoke<string>('format_export_date_ui', { year, month, day, language })
 
 export type UiSurfaceId = 'whats-new' | 'welcome' | 'privacy' | 'about' | 'docs'
 
@@ -1743,9 +1286,9 @@ export const importFile = async (path: string) => {
     import('@/lib/import/word-docx'),
   ])
 
-  // .docx / .xlsx go through Rust (scribe-core office_import) via import_file.
-  // Legacy .xls and CSV stay in TS; Pages keeps its hybrid path.
-  if (isLegacyExcelPath(path) || (isExcelPath(path) && /\.csv$/i.test(path))) {
+  // Excel / CSV → TipTap tables via SheetJS (editable). Legacy .xls errors with convert hint.
+  // Native picker also uses Rust `xlsx_bytes_to_tiptap` (same table shape).
+  if (isLegacyExcelPath(path) || isExcelPath(path)) {
     return importExcelDocumentFromPath(path)
   }
 
@@ -1753,7 +1296,7 @@ export const importFile = async (path: string) => {
     return importPagesDocumentFromPath(path)
   }
 
-  if (isWordDocxPath(path) || isExcelPath(path)) {
+  if (isWordDocxPath(path)) {
     return cacheDocument(await invoke<Document>('import_file', { path }))
   }
 
@@ -2292,25 +1835,6 @@ export const listLibraryAssets = () => invoke<LibraryAsset[]>('list_library_asse
 
 export const deleteLibraryAsset = (path: string) =>
   invoke<void>('delete_library_asset', { path })
-
-export const assetKindNative = (extension: string) =>
-  invoke<string>('asset_kind_ui', { extension })
-
-export const formatBytesNative = (bytes: number) =>
-  invoke<string>('format_bytes_ui', { bytes })
-
-export const isOrphanAssetNative = (documentTitle: string | null) =>
-  invoke<boolean>('is_orphan_asset_ui', { documentTitle })
-
-export const filterLibraryAssetsNative = (
-  assets: LibraryAsset[],
-  filter: string,
-  query: string,
-) =>
-  invoke<LibraryAsset[]>('filter_library_assets_ui', { assets, filter, query })
-
-export const libraryAssetKindFiltersNative = () =>
-  invoke<string[]>('library_asset_kind_filters_ui')
 
 export interface CustomTemplateCategoryRow {
   id: string
