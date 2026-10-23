@@ -33,7 +33,8 @@ export function isDue(state: Sm2State, now = Date.now()): boolean {
 
 /** Classic SM-2 with Again=0, Hard=2, Good=3, Easy=4 style mapping. */
 export function reviewSm2(state: Sm2State, grade: Sm2Grade, now = Date.now()): Sm2State {
-  let { ease, interval, repetitions, lapses } = state
+  let { ease, interval } = state
+  const { repetitions, lapses } = state
 
   if (grade === 'again') {
     return {

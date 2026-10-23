@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { DocumentSummary } from '@/lib/db/api'
 import {
   addAliasTag,
   findDocumentByTitleOrAlias,
@@ -11,15 +12,19 @@ describe('wiki aliases', () => {
   })
 
   it('resolves by alias', () => {
-    const docs = [
+    const docs: DocumentSummary[] = [
       {
         id: '1',
         title: 'Dlhy nazov dokumentu',
+        folderId: null,
+        filePath: null,
         tags: ['alias:dnd'],
         deletedAt: null,
         updatedAt: 1,
+        isFavorite: false,
+        isPinned: false,
       },
-    ] as any
+    ]
     expect(findDocumentByTitleOrAlias(docs, 'dnd')?.id).toBe('1')
     expect(addAliasTag(['work'], 'foo')).toEqual(['work', 'alias:foo'])
   })

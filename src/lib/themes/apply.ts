@@ -141,24 +141,6 @@ function colorsForSkin(
   return colors
 }
 
-function writeThemeApplication(plan: {
-  cssVars: Array<{ name: string; value: string }>
-  dataTheme: string
-  isDark: boolean
-  colorScheme: string
-  skin: string
-}) {
-  const root = document.documentElement
-  applyUiSkin(plan.skin as UiSkin)
-  applyUiFontSettings()
-  for (const { name, value } of plan.cssVars) {
-    root.style.setProperty(name, value)
-  }
-  root.dataset.theme = plan.dataTheme
-  root.classList.toggle('dark', plan.isDark)
-  root.style.colorScheme = plan.colorScheme
-}
-
 export function applyThemeSettings(settings: ThemeSettings, skin: UiSkin = readUiSkin()) {
   const { colors: baseColors, colorScheme, resolvedId } = resolveThemeColors(settings)
   const colors = colorsForSkin(baseColors, resolvedId, colorScheme, skin)
