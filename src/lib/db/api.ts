@@ -873,15 +873,6 @@ export const generateLoremIpsumNative = (args: {
     startWithLorem: args.startWithLorem ?? null,
   })
 
-    Array<{
-      id: string
-      sample: string
-      sans: string
-      display: string
-      google?: string[]
-    }>
-  >('ui_font_presets_ui')
-
 export const normalizeVideoSrcNative = (src: string) =>
   invoke<string>('normalize_video_src_ui', { src })
 
