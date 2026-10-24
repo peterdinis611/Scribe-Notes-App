@@ -1,0 +1,15 @@
+# Recommended NLP extras for security audit / hashed lockfile.
+# Regenerate:  cd nlp && ./scripts/gen-requirements-lock.sh
+# (or from repo root: bash nlp/scripts/gen-requirements-lock.sh)
+
+rapidfuzz>=3.6.0
+lingua-language-detector>=2.0.2
+ftfy>=6.2.0
+dateparser>=1.2.0
+onnxruntime>=1.17.0
+numpy>=1.24.0
+tokenizers>=0.15.0
+huggingface_hub>=0.20.0
+faiss-cpu>=1.7.4
+bm25s>=0.2.0
+pillow>=13.0.0

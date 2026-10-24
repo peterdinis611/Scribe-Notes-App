@@ -82,6 +82,16 @@ Useful env vars:
 
 `health` returns `config.path` + expanded `limits`. Reload live with RPC `reload_config`.
 
+## Security audit (pip)
+
+Recommended extras are listed in [`requirements.in`](./requirements.in). CI runs `pip-audit` against a hashed [`requirements.lock`](./requirements.lock) when present:
+
+```bash
+bash nlp/scripts/gen-requirements-lock.sh   # regenerates requirements.lock with hashes
+```
+
+Never commit secrets or writable MCP env into shared configs (see repo `SECURITY.md`).
+
 ## Dev
 
 ```bash
