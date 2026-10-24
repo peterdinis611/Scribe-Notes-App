@@ -129,6 +129,11 @@ FEATURES = [
     "prepareImageForOcr",
     "probeVideo",
     "extractVideoThumbnail",
+    "inspectCsv",
+    "csvToTiptap",
+    "matrixToCsv",
+    "inspectSource",
+    "sourceToTiptap",
     "sectionSummaries",
     "extractDecisions",
     "extractQuotes",
@@ -956,6 +961,61 @@ def _handle_request_inner(
                 raise SidecarError(str(exc), code=-32602) from exc
             except VideoOpsUnavailable as exc:
                 raise SidecarError(str(exc), code=-32023) from exc
+        elif method == "inspect_csv":
+            from .csv_ops import CsvOpsError, inspect_csv
+
+            try:
+                result = inspect_csv(params if isinstance(params, dict) else {})
+            except CsvOpsError as exc:
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "error": {"code": -32602, "message": str(exc)},
+                }
+        elif method == "csv_to_tiptap":
+            from .csv_ops import CsvOpsError, csv_to_tiptap
+
+            try:
+                result = csv_to_tiptap(params if isinstance(params, dict) else {})
+            except CsvOpsError as exc:
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "error": {"code": -32602, "message": str(exc)},
+                }
+        elif method == "matrix_to_csv":
+            from .csv_ops import CsvOpsError, matrix_to_csv_rpc
+
+            try:
+                result = matrix_to_csv_rpc(params if isinstance(params, dict) else {})
+            except CsvOpsError as exc:
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "error": {"code": -32602, "message": str(exc)},
+                }
+        elif method == "inspect_source":
+            from .code_ops import CodeOpsError, inspect_source
+
+            try:
+                result = inspect_source(params if isinstance(params, dict) else {})
+            except CodeOpsError as exc:
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "error": {"code": -32602, "message": str(exc)},
+                }
+        elif method == "source_to_tiptap":
+            from .code_ops import CodeOpsError, source_to_tiptap
+
+            try:
+                result = source_to_tiptap(params if isinstance(params, dict) else {})
+            except CodeOpsError as exc:
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "error": {"code": -32602, "message": str(exc)},
+                }
         elif method == "extract_video_thumbnail":
             from .video_ops import VideoOpsUnavailable, extract_video_thumbnail
             from .video_transcribe import TranscribeValidationError
