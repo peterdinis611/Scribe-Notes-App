@@ -27,8 +27,10 @@ faiss = ["faiss-cpu>=1.7.4", "numpy>=1.24.0"]
 fast-embed = ["model2vec>=0.4.0", "numpy>=1.24.0"]
 lexical = ["bm25s>=0.2.0", "numpy>=1.24.0"]
 hnsw = ["pynear>=2.0.0", "numpy>=1.24.0"]
+# Pillow 13.0.0+ required (CVE fixes vs <=12.3.0). Needs Python 3.11+.
+image = ["pillow>=13.0.0; python_version >= '3.11'"]
 full = [
-  "scribe-nlp[quality,enhance,translate,ner,onnx,faiss,fast-embed,lexical,hnsw]",
+  "scribe-nlp[quality,enhance,translate,ner,onnx,faiss,fast-embed,lexical,hnsw,image]",
 ]
 
 [project.scripts]

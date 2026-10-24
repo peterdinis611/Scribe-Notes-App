@@ -1874,7 +1874,7 @@
       "hashEnabledToast": "Používajú sa hash embeddingy",
       "qualityEnabledToast": "Používa sa quality embedding model — preindexuj knižnicu",
       "extrasTitle": "Voliteľné Python balíčky",
-      "extrasDescription": "Z nlp/: pip install -e '.[enhance,onnx,faiss,fast-embed,lexical,hnsw]'. Zvýraznené chipy sú detegované za behu.",
+      "extrasDescription": "Z nlp/: pip install -e '.[enhance,onnx,faiss,fast-embed,lexical,hnsw,image]'. Pillow musí byť ≥13.0.0 (CVE-patched). Zvýraznené chipy sú detegované za behu.",
       "rustExtrasTitle": "Vstavané Rust extras",
       "rustExtrasDescription": "Skompilované v aplikácii (Cargo feature enhance). Fuzzy názvy, rýchlejšie vektory a detekcia encodingu pri importe.",
       "yes": "Áno",

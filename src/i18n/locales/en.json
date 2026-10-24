@@ -1874,7 +1874,7 @@
       "hashEnabledToast": "Using hash embeddings",
       "qualityEnabledToast": "Using quality embedding model — reindex your library",
       "extrasTitle": "Optional Python packages",
-      "extrasDescription": "From nlp/: pip install -e '.[enhance,onnx,faiss,fast-embed,lexical,hnsw]'. Highlighted chips are detected at runtime.",
+      "extrasDescription": "From nlp/: pip install -e '.[enhance,onnx,faiss,fast-embed,lexical,hnsw,image]'. Pillow must be ≥13.0.0 (CVE-patched). Highlighted chips are detected at runtime.",
       "rustExtrasTitle": "Built-in Rust extras",
       "rustExtrasDescription": "Compiled into the app (Cargo feature enhance). Fuzzy titles, faster vector scoring, and import encoding detection.",
       "yes": "Yes",

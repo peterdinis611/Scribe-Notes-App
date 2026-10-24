@@ -125,6 +125,8 @@ FEATURES = [
     "checkTerminologyLibrary",
     "citationPack",
     "extractPaintOcr",
+    "inspectImage",
+    "prepareImageForOcr",
     "sectionSummaries",
     "extractDecisions",
     "extractQuotes",
@@ -934,6 +936,14 @@ def _handle_request_inner(
             content = params.get("contentJson") or params.get("content_json") or params.get("text") or ""
             texts = extract_paint_ocr(content if isinstance(content, (str, dict)) else str(content))
             result = {"texts": texts, "count": len(texts), "source": "python"}
+        elif method == "inspect_image":
+            from .image_ops import inspect_image
+
+            result = inspect_image(params if isinstance(params, dict) else {})
+        elif method == "prepare_image_for_ocr":
+            from .image_ops import prepare_image_for_ocr
+
+            result = prepare_image_for_ocr(params if isinstance(params, dict) else {})
         elif method == "section_summaries":
             from .section_summaries import section_summaries
 
