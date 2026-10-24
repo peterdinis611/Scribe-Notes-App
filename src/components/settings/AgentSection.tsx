@@ -2,6 +2,7 @@ import {
   ArrowRight,
   Bot,
   ChevronDown,
+  Code2,
   Database,
   FolderKanban,
   GraduationCap,
@@ -109,6 +110,7 @@ const TOOL_LABEL_KEYS: Record<AgentToolId, string> = {
   canvas_summarize: 'agent.tools.canvas_summarize',
   canvas_to_note: 'agent.tools.canvas_to_note',
   canvas_template: 'agent.tools.canvas_template',
+  code_brief: 'agent.tools.code_brief',
 }
 
 type ToolMode = 'default' | 'prefer' | 'never'
@@ -120,6 +122,7 @@ const ROLE_ICON: Record<AgentRoleId, typeof Bot> = {
   meeting: Users,
   study: GraduationCap,
   organizer: FolderKanban,
+  developer: Code2,
 }
 
 function toolMode(

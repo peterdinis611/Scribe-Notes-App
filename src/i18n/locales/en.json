@@ -3302,7 +3302,8 @@
       "wiki_health": "Wiki health",
       "canvas_summarize": "Summarize canvas",
       "canvas_to_note": "Canvas → note",
-      "canvas_template": "Canvas template"
+      "canvas_template": "Canvas template",
+      "code_brief": "Code brief"
     }
   },
   "localIntelligence": {
