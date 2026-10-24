@@ -1296,4 +1296,7 @@ def run_stdio_server() -> None:
 
 
 def main() -> None:
+    from .sandbox import install_sandbox_guards
+
+    install_sandbox_guards()
     run_stdio_server()

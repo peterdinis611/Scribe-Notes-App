@@ -78,6 +78,9 @@ Useful env vars:
 | `SCRIBE_NLP_MAX_FILE_BYTES` | Files sandbox read limit |
 | `SCRIBE_NLP_AGENT_TOOL_LIMIT` | Planner default tool count |
 | `SCRIBE_EMBED_BACKEND` | `hash` / `fast` / `quality` |
+| `SCRIBE_NLP_SANDBOX` | Set by Rust spawn (`1`) — Python FS deny-list for DBs/SSH/keychain |
+| `SCRIBE_NLP_SEATBELT` | macOS: `1` wraps Python in `sandbox-exec` |
+| `SCRIBE_NLP_NO_SEATBELT` | Force-disable seatbelt even if `SCRIBE_NLP_SEATBELT=1` |
 | `SCRIBE_NLP_DEBUG` | stderr RPC timings |
 
 `health` returns `config.path` + expanded `limits`. Reload live with RPC `reload_config`.
