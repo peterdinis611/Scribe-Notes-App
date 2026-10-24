@@ -21,6 +21,10 @@ pip install -e '.[fast-embed]'                       # Model2Vec stredná cesta 
 pip install -e '.[lexical]'                          # bm25s hybrid lexical ranking
 pip install -e '.[hnsw]'                             # pynear HNSW (veľké knižnice)
 pip install -e '.[image]'                            # Pillow ≥13.0.0 (CVE-patched) image/OCR prep
+# MoviePy 2 probe/thumbs — CVE-safe Pillow (MoviePy still pins pillow<12):
+python3 -m pip install -e '.[video]'
+python3 -m pip install 'moviepy>=2.2.1' --no-deps
+python3 -m pip install -U 'pillow>=13.0.0'
 pip install -e '.[quality]'                          # MiniLM (sentence-transformers)
 pip install -e '.[translate]'                        # argostranslate (SK↔EN)
 pip install -e '.[ner]' && python -m spacy download xx_ent_wiki_sm
@@ -56,6 +60,7 @@ pip install -e '.[full]'                             # všetko vyššie
 | bm25s | Lexical BM25 boost in similar notes + library_answer rerank |
 | pynear | HNSW cosine ANN when candidate set ≥ 128 (falls back to FAISS) |
 | pillow (≥13.0.0) | Safe `inspect_image` / `prepare_image_for_ocr` (blocks vulnerable ≤12.3.0) |
+| moviepy (≥2.2.1) | `probe_video` / `extract_video_thumbnail` (fallback when ffmpeg/ffprobe missing). **Force-upgrade Pillow after install.** |
 
 ## Dev
 

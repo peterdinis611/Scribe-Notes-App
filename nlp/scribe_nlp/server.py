@@ -127,6 +127,8 @@ FEATURES = [
     "extractPaintOcr",
     "inspectImage",
     "prepareImageForOcr",
+    "probeVideo",
+    "extractVideoThumbnail",
     "sectionSummaries",
     "extractDecisions",
     "extractQuotes",
@@ -944,6 +946,26 @@ def _handle_request_inner(
             from .image_ops import prepare_image_for_ocr
 
             result = prepare_image_for_ocr(params if isinstance(params, dict) else {})
+        elif method == "probe_video":
+            from .video_ops import VideoOpsUnavailable, probe_video
+            from .video_transcribe import TranscribeValidationError
+
+            try:
+                result = probe_video(params if isinstance(params, dict) else {})
+            except TranscribeValidationError as exc:
+                raise SidecarError(str(exc), code=-32602) from exc
+            except VideoOpsUnavailable as exc:
+                raise SidecarError(str(exc), code=-32023) from exc
+        elif method == "extract_video_thumbnail":
+            from .video_ops import VideoOpsUnavailable, extract_video_thumbnail
+            from .video_transcribe import TranscribeValidationError
+
+            try:
+                result = extract_video_thumbnail(params if isinstance(params, dict) else {})
+            except TranscribeValidationError as exc:
+                raise SidecarError(str(exc), code=-32602) from exc
+            except VideoOpsUnavailable as exc:
+                raise SidecarError(str(exc), code=-32023) from exc
         elif method == "section_summaries":
             from .section_summaries import section_summaries
 

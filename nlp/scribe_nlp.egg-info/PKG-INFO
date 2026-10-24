@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: scribe-nlp
-Version: 1.0.0
+Version: 1.8.0
 Summary: Optional local NLP sidecar for Scribe
 Author: Peter Dinis
 License-Expression: MIT
@@ -24,5 +24,23 @@ Requires-Dist: huggingface_hub>=0.20.0; extra == "onnx"
 Provides-Extra: faiss
 Requires-Dist: faiss-cpu>=1.7.4; extra == "faiss"
 Requires-Dist: numpy>=1.24.0; extra == "faiss"
+Provides-Extra: fast-embed
+Requires-Dist: model2vec>=0.4.0; extra == "fast-embed"
+Requires-Dist: numpy>=1.24.0; extra == "fast-embed"
+Provides-Extra: lexical
+Requires-Dist: bm25s>=0.2.0; extra == "lexical"
+Requires-Dist: numpy>=1.24.0; extra == "lexical"
+Provides-Extra: hnsw
+Requires-Dist: pynear>=2.0.0; extra == "hnsw"
+Requires-Dist: numpy>=1.24.0; extra == "hnsw"
+Provides-Extra: image
+Requires-Dist: pillow>=13.0.0; python_version >= "3.11" and extra == "image"
+Provides-Extra: video
+Requires-Dist: imageio<3.0,>=2.5; extra == "video"
+Requires-Dist: imageio-ffmpeg>=0.2.0; extra == "video"
+Requires-Dist: numpy>=1.25.0; extra == "video"
+Requires-Dist: decorator<6.0,>=4.0.2; extra == "video"
+Requires-Dist: proglog<=1.0.0; extra == "video"
+Requires-Dist: python-dotenv>=0.10; extra == "video"
 Provides-Extra: full
-Requires-Dist: scribe-nlp[enhance,faiss,ner,onnx,quality,translate]; extra == "full"
+Requires-Dist: scribe-nlp[enhance,faiss,fast-embed,hnsw,image,lexical,ner,onnx,quality,translate,video]; extra == "full"
