@@ -144,6 +144,18 @@
     "asDocxHint": "Microsoft Word / Pages-compatible document.",
     "asExcel": "Excel (.xlsx)",
     "asExcelHint": "Workbook with document text plus a sheet per table.",
+    "asCsv": "CSV (.csv)",
+    "asCsvHint": "First table as comma-separated values (UTF-8).",
+    "asHtml": "HTML (.html)",
+    "asHtmlHint": "Single HTML page you can open in any browser.",
+    "asEpub": "EPUB (.epub)",
+    "asEpubHint": "E-book package for readers and long-form notes.",
+    "asJson": "JSON (.json)",
+    "asJsonHint": "Structured blocks plus full TipTap document.",
+    "asOpml": "OPML (.opml)",
+    "asOpmlHint": "Outline for mind maps and feed/outline tools.",
+    "asSource": "Source code",
+    "asSourceHint": "Save the first code block as .rs / .ts / .py / …",
     "asTxt": "Plain text (.txt)",
     "asTxtHint": "Classic unformatted text file.",
     "copyMarkdown": "Copy as Markdown",
@@ -1874,7 +1886,7 @@
       "hashEnabledToast": "Using hash embeddings",
       "qualityEnabledToast": "Using quality embedding model — reindex your library",
       "extrasTitle": "Optional Python packages",
-      "extrasDescription": "From nlp/: pip install -e '.[enhance,onnx,faiss,fast-embed,lexical,hnsw,image]'. Pillow must be ≥13.0.0 (CVE-patched). Highlighted chips are detected at runtime.",
+      "extrasDescription": "From nlp/: python3 -m pip install -e '.[enhance,onnx,faiss,…,image,video]'. For video: also `python3 -m pip install moviepy --no-deps` then `python3 -m pip install -U 'pillow>=13.0.0'`. Highlighted chips are detected at runtime.",
       "rustExtrasTitle": "Built-in Rust extras",
       "rustExtrasDescription": "Compiled into the app (Cargo feature enhance). Fuzzy titles, faster vector scoring, and import encoding detection.",
       "yes": "Yes",
@@ -1972,6 +1984,10 @@
         "organizer": {
           "label": "Organizer",
           "hint": "Duplicates, wiki links, folders, and PII review."
+        },
+        "developer": {
+          "label": "Developer",
+          "hint": "Code briefs for Rust/Python, sandbox search, and source ingest."
         }
       },
       "optimizeTitle": "Optimize work",
@@ -3038,6 +3054,10 @@
       "organizer": {
         "dock": "Organize",
         "dockTitle": "Clean up the library"
+      },
+      "developer": {
+        "dock": "Code",
+        "dockTitle": "Review Rust & Python"
       }
     },
     "spellAgent": {

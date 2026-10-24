@@ -9,6 +9,7 @@ pub const AGENT_ROLE_IDS: &[&str] = &[
     "meeting",
     "study",
     "organizer",
+    "developer",
 ];
 
 /// Normalize a role / persona string into a known `agent_id`.
@@ -23,6 +24,7 @@ pub fn normalize_agent_id(raw: Option<&str>) -> String {
         "meeting" | "meetings" | "notes" => "meeting".into(),
         "study" | "learning" | "flashcards" => "study".into(),
         "organizer" | "organise" | "organize" | "tasks" => "organizer".into(),
+        "developer" | "dev" | "coder" | "engineer" | "rust" | "python" => "developer".into(),
         _ => DEFAULT_AGENT_ID.into(),
     }
 }
@@ -43,6 +45,8 @@ mod tests {
     fn persona_aliases() {
         assert_eq!(normalize_agent_id(Some("spellcheck")), "proofreader");
         assert_eq!(normalize_agent_id(Some("Librarian")), "librarian");
+        assert_eq!(normalize_agent_id(Some("rust")), "developer");
+        assert_eq!(normalize_agent_id(Some("python")), "developer");
         assert_eq!(normalize_agent_id(None), "general");
     }
 }

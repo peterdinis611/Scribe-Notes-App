@@ -9,6 +9,7 @@ pub const AGENT_ROLE_IDS: &[&str] = &[
     "meeting",
     "study",
     "organizer",
+    "developer",
 ];
 
 pub const AGENT_RECIPE_IDS: &[&str] = &[
@@ -90,7 +91,7 @@ mod tests {
 
     #[test]
     fn catalogs_non_empty() {
-        assert_eq!(agent_role_ids().len(), 6);
+        assert_eq!(agent_role_ids().len(), 7);
         assert_eq!(agent_recipes().len(), 15);
     }
 }

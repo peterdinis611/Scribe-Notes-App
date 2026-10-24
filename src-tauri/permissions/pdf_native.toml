@@ -1,0 +1,17 @@
+[[permission]]
+identifier = "allow-print-html"
+description = "Allow print_html"
+commands.allow = ["print_html"]
+
+[[permission]]
+identifier = "allow-render-html-to-pdf"
+description = "Allow render_html_to_pdf"
+commands.allow = ["render_html_to_pdf"]
+
+[[set]]
+identifier = "group-pdf-native"
+description = "Command group: pdf_native"
+permissions = [
+  "allow-print-html",
+  "allow-render-html-to-pdf",
+]

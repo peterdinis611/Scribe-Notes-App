@@ -1,0 +1,47 @@
+[[permission]]
+identifier = "allow-configure-auto-backup"
+description = "Allow configure_auto_backup"
+commands.allow = ["configure_auto_backup"]
+
+[[permission]]
+identifier = "allow-export-library-archive"
+description = "Allow export_library_archive"
+commands.allow = ["export_library_archive"]
+
+[[permission]]
+identifier = "allow-export-library-archive-to-dir"
+description = "Allow export_library_archive_to_dir"
+commands.allow = ["export_library_archive_to_dir"]
+
+[[permission]]
+identifier = "allow-get-auto-backup-config"
+description = "Allow get_auto_backup_config"
+commands.allow = ["get_auto_backup_config"]
+
+[[permission]]
+identifier = "allow-get-default-auto-backup-dir"
+description = "Allow get_default_auto_backup_dir"
+commands.allow = ["get_default_auto_backup_dir"]
+
+[[permission]]
+identifier = "allow-import-library-archive"
+description = "Allow import_library_archive"
+commands.allow = ["import_library_archive"]
+
+[[permission]]
+identifier = "allow-set-auto-backup-password"
+description = "Allow set_auto_backup_password"
+commands.allow = ["set_auto_backup_password"]
+
+[[set]]
+identifier = "group-backup"
+description = "Command group: backup"
+permissions = [
+  "allow-configure-auto-backup",
+  "allow-export-library-archive",
+  "allow-export-library-archive-to-dir",
+  "allow-get-auto-backup-config",
+  "allow-get-default-auto-backup-dir",
+  "allow-import-library-archive",
+  "allow-set-auto-backup-password",
+]

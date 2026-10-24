@@ -274,7 +274,7 @@ pub fn validate_video_extension(ext: &str) -> Result<String, String> {
         return Err("Missing video file extension.".into());
     }
     let dotted = format!(".{ext}");
-    if !VIDEO_FILE_EXT.iter().any(|e| *e == dotted.as_str()) {
+    if !VIDEO_FILE_EXT.contains(&dotted.as_str()) {
         return Err(format!("Unsupported video extension: .{ext}"));
     }
     Ok(ext)
@@ -315,7 +315,7 @@ pub fn validate_import_size(size_bytes: u64, mode: VideoImportMode) -> Result<()
 pub fn normalize_whisper_model(model: Option<&str>) -> Result<String, String> {
     let raw = model.map(str::trim).filter(|s| !s.is_empty()).unwrap_or("base");
     let lower = raw.to_ascii_lowercase();
-    if !ALLOWED_WHISPER_MODELS.iter().any(|m| *m == lower.as_str()) {
+    if !ALLOWED_WHISPER_MODELS.contains(&lower.as_str()) {
         return Err(format!(
             "Unsupported whisper model '{raw}'. Allowed: {}.",
             ALLOWED_WHISPER_MODELS.join(", ")

@@ -1,6 +1,7 @@
 pub mod compile;
 pub mod dates;
 pub mod db;
+pub mod db_crypto;
 pub mod diff;
 pub mod enhance;
 pub mod file_antivirus;
@@ -11,6 +12,8 @@ pub mod journal;
 pub mod manuscripts;
 pub mod nlp;
 pub mod office_import;
+pub mod rich_import;
+pub mod source_code;
 pub mod path;
 pub mod plain_text;
 pub mod store;
@@ -49,7 +52,19 @@ pub use html::{escape_html, tiptap_to_html};
 pub use syntax_highlight::{highlight_code_html, list_syntax_names, supports_language};
 pub use html_paste::{looks_like_dirty_html, normalize_clipboard_html, HtmlPasteResult};
 pub use journal::{JournalNote, JournalSlot, JournalSummary, JournalSummaryInput};
-pub use office_import::{docx_bytes_to_tiptap, xlsx_bytes_to_tiptap};
+pub use office_import::{
+    csv_bytes_to_tiptap, csv_text_to_tiptap, docx_bytes_to_tiptap, matrix_to_csv, xlsx_bytes_to_tiptap,
+};
+pub use rich_import::{
+    epub_bytes_to_tiptap, html_bytes_to_tiptap, html_text_to_tiptap, json_bytes_to_tiptap,
+    json_text_to_tiptap, ods_bytes_to_tiptap, odt_bytes_to_tiptap, opml_bytes_to_tiptap,
+    opml_text_to_tiptap, pptx_bytes_to_tiptap, rtf_bytes_to_tiptap, rtf_text_to_tiptap,
+    tiptap_to_opml, tiptap_to_structured_json,
+};
+pub use source_code::{
+    is_source_extension, language_from_extension, source_bytes_to_tiptap, source_path_to_tiptap,
+    source_text_to_tiptap,
+};
 pub use plain_text::{tiptap_to_markdown, tiptap_to_plain_text};
 pub use store::{search_library, sync_sidecar_backend};
 pub use tags::{

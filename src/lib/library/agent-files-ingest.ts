@@ -16,14 +16,65 @@ import {
   updateDocuments,
 } from '@/store/documentsSlice'
 
-const TEXT_EXT = /\.(md|markdown|txt|csv|json|html|htm|rst|log)$/i
+const TEXT_EXT = /\.(md|markdown|txt|csv|html|htm|rst|log)$/i
+const CODE_EXT =
+  /\.(rs|py|pyw|pyi|ts|tsx|js|jsx|mjs|cjs|go|java|kt|kts|swift|c|h|hh|hpp|cc|cpp|cxx|cs|rb|php|lua|r|sql|toml|ya?ml|xml|css|scss|sh|bash|zsh|ps1|graphql|gql|proto|vue|svelte|dart|scala|ex|exs|hs|clj|zig|nim|nix|tf|sol|diff|patch|json|jsonc|jsonl|ini|cfg|env)$/i
+
+const LANG_BY_EXT: Record<string, string> = {
+  rs: 'rust',
+  py: 'python',
+  pyw: 'python',
+  pyi: 'python',
+  ts: 'typescript',
+  tsx: 'typescript',
+  js: 'javascript',
+  jsx: 'javascript',
+  mjs: 'javascript',
+  cjs: 'javascript',
+  go: 'go',
+  java: 'java',
+  kt: 'kotlin',
+  toml: 'toml',
+  yml: 'yaml',
+  yaml: 'yaml',
+  json: 'json',
+  jsonc: 'json',
+  sh: 'bash',
+  bash: 'bash',
+  zsh: 'bash',
+  sql: 'sql',
+  css: 'css',
+  scss: 'scss',
+}
 
 function basename(path: string): string {
   return path.split(/[/\\]/).pop() || path
 }
 
 function titleFromPath(path: string): string {
-  return basename(path).replace(TEXT_EXT, '').trim() || basename(path)
+  return basename(path).replace(TEXT_EXT, '').replace(CODE_EXT, '').trim() || basename(path)
+}
+
+function languageFromPath(path: string): string | null {
+  const name = basename(path).toLowerCase()
+  if (name === 'dockerfile' || name.startsWith('dockerfile.')) return 'dockerfile'
+  if (name === 'makefile' || name === 'gnumakefile') return 'makefile'
+  const ext = name.includes('.') ? name.split('.').pop()! : ''
+  return LANG_BY_EXT[ext] ?? (CODE_EXT.test(path) ? ext || null : null)
+}
+
+function sourceToContentJson(code: string, language: string | null): string {
+  return JSON.stringify({
+    type: 'doc',
+    content: [
+      {
+        type: 'codeBlock',
+        attrs: { language: language || null },
+        content: code ? [{ type: 'text', text: code }] : [],
+      },
+      { type: 'paragraph' },
+    ],
+  })
 }
 
 export async function ingestSandboxFileToNote(input: {
@@ -37,11 +88,22 @@ export async function ingestSandboxFileToNote(input: {
   const text = (read.text || '').trim()
   if (!text) throw new Error('agent.ingestEmpty')
 
-  const looksMd = TEXT_EXT.test(input.path) || /^#\s/m.test(text)
-  const title = titleFromMarkdown(text, titleFromPath(input.path))
-  const contentJson = looksMd
-    ? parseMarkdownToContentJson(text)
-    : parseMarkdownToContentJson(text.split(/\n+/).map((line) => line.trim()).filter(Boolean).join('\n\n'))
+  const codeLang = languageFromPath(input.path)
+  const looksMd = !codeLang && (TEXT_EXT.test(input.path) || /^#\s/m.test(text))
+  const title = codeLang
+    ? titleFromPath(input.path)
+    : titleFromMarkdown(text, titleFromPath(input.path))
+  const contentJson = codeLang
+    ? sourceToContentJson(text, codeLang)
+    : looksMd
+      ? parseMarkdownToContentJson(text)
+      : parseMarkdownToContentJson(
+          text
+            .split(/\n+/)
+            .map((line) => line.trim())
+            .filter(Boolean)
+            .join('\n\n'),
+        )
 
   const document = cacheDocument(
     await createDocument({
@@ -104,7 +166,11 @@ export async function runAgentFilesIngest(goal: string): Promise<{
   const listed = await nlpFilesList({ recursive: true })
   const needle = goal.trim().toLowerCase()
   let entries = (listed.entries || []).filter(
-    (item) => item.kind !== 'dir' && (item.textLike || TEXT_EXT.test(item.name || item.path)),
+    (item) =>
+      item.kind !== 'dir' &&
+      (item.textLike ||
+        TEXT_EXT.test(item.name || item.path) ||
+        CODE_EXT.test(item.name || item.path)),
   )
   if (needle) {
     const matched = entries.filter(
@@ -118,7 +184,7 @@ export async function runAgentFilesIngest(goal: string): Promise<{
   if (!entries.length) {
     return {
       answer:
-        'No text-like files found in the sandbox to import. Put `.md` / `.txt` files under `files/` and start the Local Files API.',
+        'No text/code files found in the sandbox to import. Put `.md`, `.py`, `.rs`, … under `files/` and start the Local Files API.',
       citations: [],
       created: [],
       followups: ['recipe:files_digest', 'teach:files'],

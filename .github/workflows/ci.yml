@@ -84,6 +84,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check path-bearing commands
         run: python3 scripts/check_tauri_path_commands.py
+      - name: Check command permission groups
+        run: python3 scripts/check_tauri_command_permissions.py
 
   # Pure workspace crates (no Tauri / WebKit). Fast feedback for scribe-audit et al.
   rust-libs:

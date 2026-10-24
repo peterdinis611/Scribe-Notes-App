@@ -2835,9 +2835,8 @@ fn assert_db_exists(db_path: &Path) -> Result<(), String> {
 }
 
 fn open_writable(db_path: &Path) -> Result<ScribeStore, String> {
-    let conn = Connection::open(db_path).map_err(|e| e.to_string())?;
-    conn.execute_batch("PRAGMA journal_mode=WAL;")
-        .map_err(|e| e.to_string())?;
+    let key = crate::db_crypto::db_key_from_env();
+    let conn = crate::db_crypto::open_library_connection(db_path, &key)?;
     migrations::run_migrations(&conn).map_err(|e| e.to_string())?;
     Ok(ScribeStore {
         db: conn,
@@ -2846,11 +2845,21 @@ fn open_writable(db_path: &Path) -> Result<ScribeStore, String> {
 }
 
 fn open_readonly(db_path: &Path) -> Result<ScribeStore, String> {
+    let key = crate::db_crypto::db_key_from_env();
     let conn = Connection::open_with_flags(
         db_path,
         OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
     )
     .map_err(|e| e.to_string())?;
+    // Apply key before any other statement when SQLCipher is enabled.
+    match &key {
+        crate::db_crypto::DbKey::None => {}
+        #[cfg(feature = "sqlcipher")]
+        crate::db_crypto::DbKey::Passphrase(passphrase) => {
+            conn.pragma_update(None, "key", passphrase)
+                .map_err(|e| format!("SQLCipher PRAGMA key failed: {e}"))?;
+        }
+    }
     conn.execute_batch("PRAGMA query_only = ON;")
         .map_err(|e| e.to_string())?;
     Ok(ScribeStore {

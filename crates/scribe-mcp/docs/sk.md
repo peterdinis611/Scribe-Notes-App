@@ -86,7 +86,7 @@ Príklad v repo: [`../cursor.mcp.example.json`](../cursor.mcp.example.json).
 - **`switch_library`** — prepne knižnicu pre list/create/search
 - **`upsert_manuscript`** / **`append_document_chat`** / **`clear_document_chat`** — zostavenia a chat pri poznámke
 
-**Upozornenie:** bežiaca aplikácia Scribe môže DB zamknúť. Pri chybe „locked / busy“ alebo `writable: false` v `scribe_status` skúste znova o chvíľu (alebo dočasne zatvorte Scribe). MCP je predvolene **read-only**; zápis zapnete cez `SCRIBE_MCP_WRITE=1`.
+**Upozornenie:** bežiaca aplikácia Scribe môže DB zamknúť. Pri chybe „locked / busy“ alebo `writable: false` v `scribe_status` skúste znova o chvíľu (alebo dočasne zatvorte Scribe). MCP je predvolene **read-only**; zápis zapnete cez `SCRIBE_MCP_WRITE=1` — a **nikdy** nedávajte `SCRIBE_MCP_WRITE=1` ani `SCRIBE_MCP_SCOPE=full` do zdieľaných Cursor MCP configov.
 
 ## Premenné prostredia
 

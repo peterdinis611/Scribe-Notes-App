@@ -729,6 +729,7 @@ export function NlpSection() {
                 ['bm25s', status?.bm25Available ?? status?.extras?.bm25s],
                 ['pynear', status?.hnswAvailable ?? status?.extras?.pynear],
                 ['pillow', status?.extras?.pillow],
+                ['moviepy', status?.extras?.moviepy],
                 ['sentenceTransformers', status?.qualityAvailable ?? status?.extras?.sentenceTransformers],
               ] as const
             ).map(([key, on]) => (

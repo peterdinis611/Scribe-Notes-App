@@ -1,0 +1,29 @@
+[[permission]]
+identifier = "allow-close-ui-surface"
+description = "Allow close_ui_surface"
+commands.allow = ["close_ui_surface"]
+
+[[permission]]
+identifier = "allow-open-ui-surface"
+description = "Allow open_ui_surface"
+commands.allow = ["open_ui_surface"]
+
+[[permission]]
+identifier = "allow-render-ui-surface-html"
+description = "Allow render_ui_surface_html"
+commands.allow = ["render_ui_surface_html"]
+
+[[permission]]
+identifier = "allow-ui-surface-event"
+description = "Allow ui_surface_event"
+commands.allow = ["ui_surface_event"]
+
+[[set]]
+identifier = "group-ui-host"
+description = "Command group: ui_host"
+permissions = [
+  "allow-close-ui-surface",
+  "allow-open-ui-surface",
+  "allow-render-ui-surface-html",
+  "allow-ui-surface-event",
+]

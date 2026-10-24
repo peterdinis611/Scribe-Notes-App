@@ -4,6 +4,7 @@ import {
   convertExcelBytesToContentJson,
   isExcelPath,
   isLegacyExcelPath,
+  MAX_EXCEL_BYTES,
 } from '@/lib/import/excel-xlsx'
 
 function workbookBytes(rows: unknown[][], sheetName = 'Sheet1'): Uint8Array {
@@ -18,6 +19,7 @@ describe('excel-xlsx import', () => {
     expect(isExcelPath('/tmp/budget.xlsx')).toBe(true)
     expect(isExcelPath('/tmp/budget.XLSM')).toBe(true)
     expect(isExcelPath('/tmp/data.csv')).toBe(true)
+    expect(isExcelPath('/tmp/data.tsv')).toBe(true)
     expect(isExcelPath('/tmp/budget.xls')).toBe(false)
     expect(isLegacyExcelPath('/tmp/budget.xls')).toBe(true)
     expect(isLegacyExcelPath('/tmp/budget.xlsx')).toBe(false)
@@ -43,6 +45,11 @@ describe('excel-xlsx import', () => {
 
     const firstRow = (table?.content?.[0] as { content: Array<{ type: string }> }).content
     expect(firstRow[0].type).toBe('tableHeader')
+  })
+
+  it('rejects oversized workbooks before parse', async () => {
+    const bytes = new Uint8Array(MAX_EXCEL_BYTES + 1)
+    await expect(convertExcelBytesToContentJson(bytes)).rejects.toThrow(/príliš veľký/i)
   })
 
   it('adds headings for multi-sheet workbooks', async () => {

@@ -1,0 +1,35 @@
+[[permission]]
+identifier = "allow-flush-pending-writes"
+description = "Allow flush_pending_writes"
+commands.allow = ["flush_pending_writes"]
+
+[[permission]]
+identifier = "allow-get-backend-stats"
+description = "Allow get_backend_stats"
+commands.allow = ["get_backend_stats"]
+
+[[permission]]
+identifier = "allow-list-system-font-families"
+description = "Allow list_system_font_families"
+commands.allow = ["list_system_font_families"]
+
+[[permission]]
+identifier = "allow-reconcile-storage"
+description = "Allow reconcile_storage"
+commands.allow = ["reconcile_storage"]
+
+[[permission]]
+identifier = "allow-set-documents-watch-enabled"
+description = "Allow set_documents_watch_enabled"
+commands.allow = ["set_documents_watch_enabled"]
+
+[[set]]
+identifier = "group-system"
+description = "Command group: system"
+permissions = [
+  "allow-flush-pending-writes",
+  "allow-get-backend-stats",
+  "allow-list-system-font-families",
+  "allow-reconcile-storage",
+  "allow-set-documents-watch-enabled",
+]

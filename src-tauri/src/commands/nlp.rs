@@ -2226,6 +2226,42 @@ pub fn nlp_explain_selection(
     sidecar.explain_selection(&text, llm.as_ref())
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpCodeBriefInput {
+    pub document_id: Option<String>,
+    pub text: Option<String>,
+    pub language: Option<String>,
+    pub path: Option<String>,
+}
+
+#[tauri::command]
+pub fn nlp_code_brief(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpCodeBriefInput,
+) -> Result<serde_json::Value, String> {
+    let text = resolve_nlp_text(
+        &state,
+        &NlpDocumentTextInput {
+            document_id: input.document_id,
+            text: input.text,
+            limit: None,
+            include_cloze: None,
+        },
+    )?;
+    let llm = {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        llm_sidecar_options(&conn, "enhance")?
+    };
+    sidecar.code_brief(
+        &text,
+        input.language.as_deref(),
+        input.path.as_deref(),
+        llm.as_ref(),
+    )
+}
+
 #[tauri::command]
 pub fn nlp_simplify(
     state: State<'_, DbState>,

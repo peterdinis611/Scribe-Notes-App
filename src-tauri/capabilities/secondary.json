@@ -1,0 +1,25 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "secondary",
+  "description": "Reduced IPC for pdf-export and scribe-ui surfaces (no documents/nlp/fs-gated commands)",
+  "windows": ["pdf-export-*", "scribe-ui"],
+  "permissions": [
+    "secondary-window",
+    "core:default",
+    "core:window:allow-close",
+    "core:window:allow-destroy",
+    "core:window:allow-hide",
+    "core:window:allow-show",
+    "core:window:allow-set-focus",
+    "fs:allow-read-file",
+    "fs:allow-exists",
+    "fs:allow-stat",
+    {
+      "identifier": "fs:scope",
+      "allow": [
+        { "path": "$TEMP/**" },
+        { "path": "$CACHE/**" }
+      ]
+    }
+  ]
+}

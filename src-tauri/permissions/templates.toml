@@ -1,0 +1,41 @@
+[[permission]]
+identifier = "allow-create-custom-template"
+description = "Allow create_custom_template"
+commands.allow = ["create_custom_template"]
+
+[[permission]]
+identifier = "allow-create-custom-template-category"
+description = "Allow create_custom_template_category"
+commands.allow = ["create_custom_template_category"]
+
+[[permission]]
+identifier = "allow-delete-custom-template"
+description = "Allow delete_custom_template"
+commands.allow = ["delete_custom_template"]
+
+[[permission]]
+identifier = "allow-delete-custom-template-category"
+description = "Allow delete_custom_template_category"
+commands.allow = ["delete_custom_template_category"]
+
+[[permission]]
+identifier = "allow-list-custom-template-categories"
+description = "Allow list_custom_template_categories"
+commands.allow = ["list_custom_template_categories"]
+
+[[permission]]
+identifier = "allow-list-custom-templates"
+description = "Allow list_custom_templates"
+commands.allow = ["list_custom_templates"]
+
+[[set]]
+identifier = "group-templates"
+description = "Command group: templates"
+permissions = [
+  "allow-create-custom-template",
+  "allow-create-custom-template-category",
+  "allow-delete-custom-template",
+  "allow-delete-custom-template-category",
+  "allow-list-custom-template-categories",
+  "allow-list-custom-templates",
+]

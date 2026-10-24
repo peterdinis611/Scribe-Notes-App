@@ -1,0 +1,95 @@
+[[permission]]
+identifier = "allow-cleanup-temp-import-file"
+description = "Allow cleanup_temp_import_file"
+commands.allow = ["cleanup_temp_import_file"]
+
+[[permission]]
+identifier = "allow-export-document"
+description = "Allow export_document"
+commands.allow = ["export_document"]
+
+[[permission]]
+identifier = "allow-export-pdf-bytes"
+description = "Allow export_pdf_bytes"
+commands.allow = ["export_pdf_bytes"]
+
+[[permission]]
+identifier = "allow-force-save-document"
+description = "Allow force_save_document"
+commands.allow = ["force_save_document"]
+
+[[permission]]
+identifier = "allow-grant-dropped-paths"
+description = "Allow grant_dropped_paths"
+commands.allow = ["grant_dropped_paths"]
+
+[[permission]]
+identifier = "allow-import-file"
+description = "Allow import_file"
+commands.allow = ["import_file"]
+
+[[permission]]
+identifier = "allow-normalize-clipboard-html"
+description = "Allow normalize_clipboard_html"
+commands.allow = ["normalize_clipboard_html"]
+
+[[permission]]
+identifier = "allow-pick-and-grant-path"
+description = "Allow pick_and_grant_path"
+commands.allow = ["pick_and_grant_path"]
+
+[[permission]]
+identifier = "allow-pick-and-grant-save-path"
+description = "Allow pick_and_grant_save_path"
+commands.allow = ["pick_and_grant_save_path"]
+
+[[permission]]
+identifier = "allow-pick-and-import-file"
+description = "Allow pick_and_import_file"
+commands.allow = ["pick_and_import_file"]
+
+[[permission]]
+identifier = "allow-prepare-pages-import"
+description = "Allow prepare_pages_import"
+commands.allow = ["prepare_pages_import"]
+
+[[permission]]
+identifier = "allow-read-binary-file"
+description = "Allow read_binary_file"
+commands.allow = ["read_binary_file"]
+
+[[permission]]
+identifier = "allow-read-text-file"
+description = "Allow read_text_file"
+commands.allow = ["read_text_file"]
+
+[[permission]]
+identifier = "allow-scan-scribe-files"
+description = "Allow scan_scribe_files"
+commands.allow = ["scan_scribe_files"]
+
+[[permission]]
+identifier = "allow-write-text-file"
+description = "Allow write_text_file"
+commands.allow = ["write_text_file"]
+
+[[set]]
+identifier = "group-import-export"
+description = "Command group: import_export"
+permissions = [
+  "allow-cleanup-temp-import-file",
+  "allow-export-document",
+  "allow-export-pdf-bytes",
+  "allow-force-save-document",
+  "allow-grant-dropped-paths",
+  "allow-import-file",
+  "allow-normalize-clipboard-html",
+  "allow-pick-and-grant-path",
+  "allow-pick-and-grant-save-path",
+  "allow-pick-and-import-file",
+  "allow-prepare-pages-import",
+  "allow-read-binary-file",
+  "allow-read-text-file",
+  "allow-scan-scribe-files",
+  "allow-write-text-file",
+]

@@ -1,0 +1,23 @@
+[[permission]]
+identifier = "allow-extract-image-ocr"
+description = "Allow extract_image_ocr"
+commands.allow = ["extract_image_ocr"]
+
+[[permission]]
+identifier = "allow-extract-image-ocr-base64"
+description = "Allow extract_image_ocr_base64"
+commands.allow = ["extract_image_ocr_base64"]
+
+[[permission]]
+identifier = "allow-save-document-ocr"
+description = "Allow save_document_ocr"
+commands.allow = ["save_document_ocr"]
+
+[[set]]
+identifier = "group-ocr"
+description = "Command group: ocr"
+permissions = [
+  "allow-extract-image-ocr",
+  "allow-extract-image-ocr-base64",
+  "allow-save-document-ocr",
+]

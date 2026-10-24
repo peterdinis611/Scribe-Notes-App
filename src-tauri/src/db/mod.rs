@@ -23,19 +23,10 @@ pub fn init_db(app: &AppHandle) -> Result<(Connection, PathBuf), Box<dyn std::er
 
     std::fs::create_dir_all(&app_dir)?;
     let db_path = app_dir.join("scribe.db");
-    let conn = Connection::open(&db_path)?;
-
-    conn.execute_batch(
-        r#"
-        PRAGMA journal_mode=WAL;
-        PRAGMA synchronous=NORMAL;
-        PRAGMA foreign_keys=ON;
-        PRAGMA cache_size=-64000;
-        PRAGMA temp_store=MEMORY;
-        PRAGMA mmap_size=268435456;
-        "#,
-    )
-    .map_err(|e| format!("Failed to configure database: {e}"))?;
+    // Central open path for a future SQLCipher migration (`DbKey` / feature).
+    let key = scribe_core::db_crypto::db_key_from_env();
+    let conn = scribe_core::db_crypto::open_library_connection(&db_path, &key)
+        .map_err(|e| -> Box<dyn std::error::Error> { e.into() })?;
 
     scribe_core::db::migrations::run_migrations(&conn)?;
     scribe_core::db::migrations::seed_if_empty(&conn)?;

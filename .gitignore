@@ -18,6 +18,8 @@ src-tauri/target/
 
 # Python
 **/__pycache__/
+nlp/.venv*/
+**/.venv-audit/
 *.py[cod]
 
 # Editor directories and files

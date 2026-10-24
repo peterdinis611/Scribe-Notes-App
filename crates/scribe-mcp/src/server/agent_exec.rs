@@ -135,6 +135,12 @@ impl ScribeMcp {
                 let result = store.explain_selection(&self.sidecar, Some(id), None)?;
                 Ok(("explain".into(), Some(tools::json(&result))))
             }
+            "code_brief" => {
+                let id =
+                    document_id.ok_or_else(|| "documentId required for code_brief".to_string())?;
+                let result = store.code_brief(&self.sidecar, Some(id), None, None, None)?;
+                Ok(("code_brief".into(), Some(tools::json(&result))))
+            }
             "simplify" => {
                 let id = document_id.ok_or_else(|| "documentId required for simplify".to_string())?;
                 let result = store.simplify_text(&self.sidecar, Some(id), None)?;

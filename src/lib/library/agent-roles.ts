@@ -9,6 +9,7 @@ export type AgentRoleId =
   | 'meeting'
   | 'study'
   | 'organizer'
+  | 'developer'
 
 export type AgentRolePrefs = {
   enabled: boolean
@@ -40,6 +41,7 @@ export const AGENT_ROLE_IDS: AgentRoleId[] = [
   'meeting',
   'study',
   'organizer',
+  'developer',
 ]
 
 export const AGENT_ROLES: AgentRoleDefinition[] = [
@@ -213,6 +215,27 @@ export const AGENT_ROLES: AgentRoleDefinition[] = [
       'handoff',
     ],
   },
+  {
+    id: 'developer',
+    labelKey: 'settings.agent.roles.developer.label',
+    hintKey: 'settings.agent.roles.developer.hint',
+    dockLabelKey: 'agent.roles.developer.dock',
+    dockTitleKey: 'agent.roles.developer.dockTitle',
+    defaultEnabled: true,
+    panel: 'agent',
+    recipeIds: [],
+    tools: [
+      'code_brief',
+      'explain',
+      'files_answer',
+      'files_ingest',
+      'outline',
+      'keywords',
+      'document_answer',
+      'library_answer',
+      'handoff',
+    ],
+  },
 ]
 
 export const DEFAULT_AGENT_ROLES: Record<AgentRoleId, AgentRolePrefs> = {
@@ -222,6 +245,7 @@ export const DEFAULT_AGENT_ROLES: Record<AgentRoleId, AgentRolePrefs> = {
   meeting: { enabled: true },
   study: { enabled: true },
   organizer: { enabled: true },
+  developer: { enabled: true },
 }
 
 const ROLE_BY_ID = new Map(AGENT_ROLES.map((role) => [role.id, role]))

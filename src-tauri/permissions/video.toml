@@ -1,0 +1,95 @@
+[[permission]]
+identifier = "allow-collect-videos-from-tiptap-ui"
+description = "Allow collect_videos_from_tiptap_ui"
+commands.allow = ["collect_videos_from_tiptap_ui"]
+
+[[permission]]
+identifier = "allow-detect-video-provider-ui"
+description = "Allow detect_video_provider_ui"
+commands.allow = ["detect_video_provider_ui"]
+
+[[permission]]
+identifier = "allow-extract-provider-id-ui"
+description = "Allow extract_provider_id_ui"
+commands.allow = ["extract_provider_id_ui"]
+
+[[permission]]
+identifier = "allow-extract-start-seconds-ui"
+description = "Allow extract_start_seconds_ui"
+commands.allow = ["extract_start_seconds_ui"]
+
+[[permission]]
+identifier = "allow-extract-vimeo-id-ui"
+description = "Allow extract_vimeo_id_ui"
+commands.allow = ["extract_vimeo_id_ui"]
+
+[[permission]]
+identifier = "allow-extract-youtube-id-ui"
+description = "Allow extract_youtube_id_ui"
+commands.allow = ["extract_youtube_id_ui"]
+
+[[permission]]
+identifier = "allow-inspect-video-ui"
+description = "Allow inspect_video_ui"
+commands.allow = ["inspect_video_ui"]
+
+[[permission]]
+identifier = "allow-is-video-url-ui"
+description = "Allow is_video_url_ui"
+commands.allow = ["is_video_url_ui"]
+
+[[permission]]
+identifier = "allow-normalize-video-src-ui"
+description = "Allow normalize_video_src_ui"
+commands.allow = ["normalize_video_src_ui"]
+
+[[permission]]
+identifier = "allow-parse-video-fence-ui"
+description = "Allow parse_video_fence_ui"
+commands.allow = ["parse_video_fence_ui"]
+
+[[permission]]
+identifier = "allow-render-video-figure-html-ui"
+description = "Allow render_video_figure_html_ui"
+commands.allow = ["render_video_figure_html_ui"]
+
+[[permission]]
+identifier = "allow-video-export-embed-ui"
+description = "Allow video_export_embed_ui"
+commands.allow = ["video_export_embed_ui"]
+
+[[permission]]
+identifier = "allow-video-provider-label-ui"
+description = "Allow video_provider_label_ui"
+commands.allow = ["video_provider_label_ui"]
+
+[[permission]]
+identifier = "allow-video-thumbnail-url-ui"
+description = "Allow video_thumbnail_url_ui"
+commands.allow = ["video_thumbnail_url_ui"]
+
+[[permission]]
+identifier = "allow-video-to-markdown-fence-ui"
+description = "Allow video_to_markdown_fence_ui"
+commands.allow = ["video_to_markdown_fence_ui"]
+
+[[set]]
+identifier = "group-video"
+description = "Command group: video"
+permissions = [
+  "allow-collect-videos-from-tiptap-ui",
+  "allow-detect-video-provider-ui",
+  "allow-extract-provider-id-ui",
+  "allow-extract-start-seconds-ui",
+  "allow-extract-vimeo-id-ui",
+  "allow-extract-youtube-id-ui",
+  "allow-inspect-video-ui",
+  "allow-is-video-url-ui",
+  "allow-normalize-video-src-ui",
+  "allow-parse-video-fence-ui",
+  "allow-render-video-figure-html-ui",
+  "allow-video-export-embed-ui",
+  "allow-video-provider-label-ui",
+  "allow-video-thumbnail-url-ui",
+  "allow-video-to-markdown-fence-ui",
+]

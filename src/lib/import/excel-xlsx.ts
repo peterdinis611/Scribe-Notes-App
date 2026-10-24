@@ -5,8 +5,11 @@ import {
 } from '@/lib/fs/read-scoped-binary'
 import { importTitleFromPath } from '@/lib/import/import-path'
 
-const EXCEL_EXTENSION = /\.(xlsx|xlsm|csv)$/i
+const EXCEL_EXTENSION = /\.(xlsx|xlsm|csv|tsv)$/i
 const LEGACY_EXCEL_EXTENSION = /\.xls$/i
+
+/** Reject oversized workbooks before SheetJS parses (CVE blast radius). */
+export const MAX_EXCEL_BYTES = 12 * 1024 * 1024
 
 const MAX_SHEETS = 15
 const MAX_ROWS = 400
@@ -86,12 +89,29 @@ function normalizeDocJson(json: TipTapNode): string {
 }
 
 export async function convertExcelBytesToContentJson(bytes: Uint8Array): Promise<string> {
+  if (bytes.byteLength > MAX_EXCEL_BYTES) {
+    throw new Error(
+      `Excel súbor je príliš veľký (max ${Math.floor(MAX_EXCEL_BYTES / (1024 * 1024))} MB).`,
+    )
+  }
+
+  // Dynamic import keeps SheetJS off the main bundle path until parse time.
   const XLSX = await import('xlsx')
 
-  const workbook = XLSX.read(bytes, {
-    type: 'array',
-    cellDates: true,
-  })
+  let workbook: ReturnType<typeof XLSX.read>
+  try {
+    workbook = XLSX.read(bytes, {
+      type: 'array',
+      cellDates: true,
+      sheetRows: MAX_ROWS,
+      dense: true,
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    throw new Error(`Nepodarilo sa načítať Excel súbor: ${message}`, {
+      cause: error,
+    })
+  }
 
   const sheetNames = (workbook.SheetNames ?? []).slice(0, MAX_SHEETS)
   if (sheetNames.length === 0) {
@@ -141,13 +161,22 @@ export async function importExcelDocumentFromPath(path: string) {
     )
   }
 
+  const { assertImportAllowedByAntivirus } = await import('@/lib/antivirus/scan-import')
+  await assertImportAllowedByAntivirus(path)
+
   const bytes = await readScopedBinaryFile(path)
 
   if (bytes.length === 0) {
     throw new Error('Súbor sa nepodarilo prečítať alebo je prázdny.')
   }
 
-  const isCsv = /\.csv$/i.test(path)
+  if (bytes.byteLength > MAX_EXCEL_BYTES) {
+    throw new Error(
+      `Excel súbor je príliš veľký (max ${Math.floor(MAX_EXCEL_BYTES / (1024 * 1024))} MB).`,
+    )
+  }
+
+  const isCsv = /\.(csv|tsv)$/i.test(path)
   if (!isCsv) {
     if (isOleWordDoc(bytes)) {
       throw new Error(

@@ -144,6 +144,18 @@
     "asDocxHint": "Dokument kompatibilný s Microsoft Word / Pages.",
     "asExcel": "Excel (.xlsx)",
     "asExcelHint": "Zošit s textom dokumentu a hárok pre každú tabuľku.",
+    "asCsv": "CSV (.csv)",
+    "asCsvHint": "Prvá tabuľka ako hodnoty oddelené čiarkou (UTF-8).",
+    "asHtml": "HTML (.html)",
+    "asHtmlHint": "Jedna HTML stránka otvoriteľná v akomkoľvek prehliadači.",
+    "asEpub": "EPUB (.epub)",
+    "asEpubHint": "E-kniha pre čítačky a dlhé poznámky.",
+    "asJson": "JSON (.json)",
+    "asJsonHint": "Štruktúrované bloky plus celý TipTap dokument.",
+    "asOpml": "OPML (.opml)",
+    "asOpmlHint": "Osnova pre mind mapy a outline nástroje.",
+    "asSource": "Zdrojový kód",
+    "asSourceHint": "Uloží prvý code block ako .rs / .ts / .py / …",
     "asTxt": "Obyčajný text (.txt)",
     "asTxtHint": "Klasický neformátovaný textový súbor.",
     "copyMarkdown": "Skopírovať ako Markdown",
@@ -1874,7 +1886,7 @@
       "hashEnabledToast": "Používajú sa hash embeddingy",
       "qualityEnabledToast": "Používa sa quality embedding model — preindexuj knižnicu",
       "extrasTitle": "Voliteľné Python balíčky",
-      "extrasDescription": "Z nlp/: pip install -e '.[enhance,onnx,faiss,fast-embed,lexical,hnsw,image]'. Pillow musí byť ≥13.0.0 (CVE-patched). Zvýraznené chipy sú detegované za behu.",
+      "extrasDescription": "Z nlp/: python3 -m pip install -e '.[enhance,onnx,faiss,…,image,video]'. Pre video ešte: `python3 -m pip install moviepy --no-deps` a potom `python3 -m pip install -U 'pillow>=13.0.0'`. Zvýraznené chipy sú detegované za behu.",
       "rustExtrasTitle": "Vstavané Rust extras",
       "rustExtrasDescription": "Skompilované v aplikácii (Cargo feature enhance). Fuzzy názvy, rýchlejšie vektory a detekcia encodingu pri importe.",
       "yes": "Áno",
@@ -1972,6 +1984,10 @@
         "organizer": {
           "label": "Organizátor",
           "hint": "Duplicity, wiki odkazy, priečinky a PII kontrola."
+        },
+        "developer": {
+          "label": "Vývojár",
+          "hint": "Code brief pre Rust/Python, hľadanie v sandboxe a import zdrojov."
         }
       },
       "optimizeTitle": "Optimalizácia práce",
@@ -3042,6 +3058,10 @@
       "organizer": {
         "dock": "Organizácia",
         "dockTitle": "Upratanie knižnice"
+      },
+      "developer": {
+        "dock": "Kód",
+        "dockTitle": "Review Rust & Python"
       }
     },
     "spellAgent": {

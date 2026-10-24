@@ -202,10 +202,11 @@ pub fn delete_library_video_cmd(
     delete_library_video(&conn, &id)
 }
 
-/// Best-effort ffprobe metadata (available=false when binary missing).
+/// Best-effort ffprobe metadata; falls back to MoviePy NLP sidecar when ffprobe is missing.
 #[tauri::command]
 pub fn probe_library_video(
     state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
     id: String,
 ) -> Result<ProbeVideoResult, String> {
     validate_video_id(&id)?;
@@ -223,8 +224,12 @@ pub fn probe_library_video(
     video.status = LibraryVideoStatus::Probing;
     video.updated_at = now_ts();
     update_library_video(&conn, &video)?;
+    let source_path = video.source_path.clone();
 
-    let probe = run_ffprobe(source);
+    let mut probe = run_ffprobe(Path::new(&source_path));
+    if !probe.available {
+        probe = run_moviepy_probe(&sidecar, &source_path);
+    }
     if probe.available {
         video.duration_secs = probe.duration_secs;
         video.width = probe.width;
@@ -305,11 +310,51 @@ fn run_ffprobe(path: &Path) -> ProbeVideoResult {
     }
 }
 
-/// Extract a JPEG thumbnail via ffmpeg into the Files sandbox.
+fn run_moviepy_probe(sidecar: &NlpSidecar, source_path: &str) -> ProbeVideoResult {
+    let Ok(value) = sidecar.probe_video(serde_json::json!({ "sourcePath": source_path })) else {
+        return ProbeVideoResult {
+            available: false,
+            ..Default::default()
+        };
+    };
+    let available = value
+        .get("available")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false)
+        || value.get("ok").and_then(|v| v.as_bool()).unwrap_or(false);
+    if !available {
+        return ProbeVideoResult {
+            available: false,
+            ..Default::default()
+        };
+    }
+    ProbeVideoResult {
+        duration_secs: value
+            .get("durationSecs")
+            .or_else(|| value.get("duration_secs"))
+            .and_then(|v| v.as_f64()),
+        width: value
+            .get("width")
+            .and_then(|v| v.as_u64())
+            .map(|v| v as u32),
+        height: value
+            .get("height")
+            .and_then(|v| v.as_u64())
+            .map(|v| v as u32),
+        codec: value
+            .get("codec")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        available: true,
+    }
+}
+
+/// Extract a JPEG thumbnail via ffmpeg, with MoviePy NLP fallback.
 #[tauri::command]
 pub fn generate_library_video_thumbnail(
     app: tauri::AppHandle,
     state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
     id: String,
     at_secs: Option<f64>,
 ) -> Result<LibraryVideo, String> {
@@ -329,18 +374,19 @@ pub fn generate_library_video_thumbnail(
     let thumb_rel = video_thumb_rel(&id);
     validate_video_rel_path(&thumb_rel, &id)?;
     let thumb_abs = storage_fs::safe_join_under(&files_root, &thumb_rel)?;
+    let source_path = video.source_path.clone();
 
     video.status = LibraryVideoStatus::ThumbPending;
     video.updated_at = now_ts();
     update_library_video(&conn, &video)?;
 
-    let status = Command::new("ffmpeg")
+    let ffmpeg_ok = Command::new("ffmpeg")
         .args([
             "-y",
             "-ss",
             &format!("{seek:.3}"),
             "-i",
-            &video.source_path,
+            &source_path,
             "-frames:v",
             "1",
             "-q:v",
@@ -348,13 +394,22 @@ pub fn generate_library_video_thumbnail(
             &thumb_abs.to_string_lossy(),
         ])
         .status()
-        .map_err(|e| format!("ffmpeg not available: {e}"))?;
-    if !status.success() {
-        video.status = LibraryVideoStatus::Failed;
-        video.error = Some("ffmpeg thumbnail failed".into());
-        video.updated_at = now_ts();
-        update_library_video(&conn, &video)?;
-        return Err("ffmpeg thumbnail failed".into());
+        .map(|s| s.success())
+        .unwrap_or(false);
+
+    if !ffmpeg_ok {
+        let moviepy = sidecar.extract_video_thumbnail(serde_json::json!({
+            "sourcePath": source_path,
+            "atSecs": seek,
+            "outputPath": thumb_abs.to_string_lossy(),
+        }));
+        if moviepy.is_err() || !thumb_abs.is_file() {
+            video.status = LibraryVideoStatus::Failed;
+            video.error = Some("thumbnail failed (ffmpeg and MoviePy)".into());
+            video.updated_at = now_ts();
+            update_library_video(&conn, &video)?;
+            return Err("thumbnail failed (ffmpeg and MoviePy)".into());
+        }
     }
 
     video.thumb_rel_path = Some(thumb_rel);

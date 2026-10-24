@@ -17,6 +17,7 @@ export const DEFAULT_HANDOFF_TARGET: Partial<Record<AgentRoleId, AgentRoleId>> =
   proofreader: 'general',
   organizer: 'meeting',
   librarian: 'general',
+  developer: 'librarian',
   general: 'organizer',
 }
 
@@ -39,6 +40,12 @@ const TARGET_ALIASES: Record<string, AgentRoleId> = {
   organise: 'organizer',
   organize: 'organizer',
   tasks: 'organizer',
+  developer: 'developer',
+  dev: 'developer',
+  coder: 'developer',
+  engineer: 'developer',
+  rust: 'developer',
+  python: 'developer',
 }
 
 export type ParsedHandoffGoal = {

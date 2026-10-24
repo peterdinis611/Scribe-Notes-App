@@ -1,0 +1,113 @@
+[[permission]]
+identifier = "allow-add-agent-teaching"
+description = "Allow add_agent_teaching"
+commands.allow = ["add_agent_teaching"]
+
+[[permission]]
+identifier = "allow-append-agent-message"
+description = "Allow append_agent_message"
+commands.allow = ["append_agent_message"]
+
+[[permission]]
+identifier = "allow-append-agent-run"
+description = "Allow append_agent_run"
+commands.allow = ["append_agent_run"]
+
+[[permission]]
+identifier = "allow-clear-agent-messages"
+description = "Allow clear_agent_messages"
+commands.allow = ["clear_agent_messages"]
+
+[[permission]]
+identifier = "allow-clear-agent-teachings"
+description = "Allow clear_agent_teachings"
+commands.allow = ["clear_agent_teachings"]
+
+[[permission]]
+identifier = "allow-get-agent-db-path"
+description = "Allow get_agent_db_path"
+commands.allow = ["get_agent_db_path"]
+
+[[permission]]
+identifier = "allow-get-agent-prefs"
+description = "Allow get_agent_prefs"
+commands.allow = ["get_agent_prefs"]
+
+[[permission]]
+identifier = "allow-get-agent-schema-version"
+description = "Allow get_agent_schema_version"
+commands.allow = ["get_agent_schema_version"]
+
+[[permission]]
+identifier = "allow-list-agent-handoffs"
+description = "Allow list_agent_handoffs"
+commands.allow = ["list_agent_handoffs"]
+
+[[permission]]
+identifier = "allow-list-agent-messages"
+description = "Allow list_agent_messages"
+commands.allow = ["list_agent_messages"]
+
+[[permission]]
+identifier = "allow-list-agent-role-states"
+description = "Allow list_agent_role_states"
+commands.allow = ["list_agent_role_states"]
+
+[[permission]]
+identifier = "allow-list-agent-runs"
+description = "Allow list_agent_runs"
+commands.allow = ["list_agent_runs"]
+
+[[permission]]
+identifier = "allow-list-agent-teachings"
+description = "Allow list_agent_teachings"
+commands.allow = ["list_agent_teachings"]
+
+[[permission]]
+identifier = "allow-remove-agent-teaching"
+description = "Allow remove_agent_teaching"
+commands.allow = ["remove_agent_teaching"]
+
+[[permission]]
+identifier = "allow-send-agent-handoff"
+description = "Allow send_agent_handoff"
+commands.allow = ["send_agent_handoff"]
+
+[[permission]]
+identifier = "allow-set-agent-handoff-status"
+description = "Allow set_agent_handoff_status"
+commands.allow = ["set_agent_handoff_status"]
+
+[[permission]]
+identifier = "allow-set-agent-prefs"
+description = "Allow set_agent_prefs"
+commands.allow = ["set_agent_prefs"]
+
+[[permission]]
+identifier = "allow-set-agent-role-states"
+description = "Allow set_agent_role_states"
+commands.allow = ["set_agent_role_states"]
+
+[[set]]
+identifier = "group-agent"
+description = "Command group: agent"
+permissions = [
+  "allow-add-agent-teaching",
+  "allow-append-agent-message",
+  "allow-append-agent-run",
+  "allow-clear-agent-messages",
+  "allow-clear-agent-teachings",
+  "allow-get-agent-db-path",
+  "allow-get-agent-prefs",
+  "allow-get-agent-schema-version",
+  "allow-list-agent-handoffs",
+  "allow-list-agent-messages",
+  "allow-list-agent-role-states",
+  "allow-list-agent-runs",
+  "allow-list-agent-teachings",
+  "allow-remove-agent-teaching",
+  "allow-send-agent-handoff",
+  "allow-set-agent-handoff-status",
+  "allow-set-agent-prefs",
+  "allow-set-agent-role-states",
+]
