@@ -62,6 +62,26 @@ pip install -e '.[full]'                             # všetko vyššie
 | pillow (≥13.0.0) | Safe `inspect_image` / `prepare_image_for_ocr` (blocks vulnerable ≤12.3.0) |
 | moviepy (≥2.2.1) | `probe_video` / `extract_video_thumbnail` (fallback when ffmpeg/ffprobe missing). **Force-upgrade Pillow after install.** |
 
+## Configuration
+
+Optional TOML/JSON file + env overrides (env wins). Example: [`scribe-nlp.example.toml`](./scribe-nlp.example.toml).
+
+**Search order:** `$SCRIBE_NLP_CONFIG` → `./scribe-nlp.toml` → `~/.config/scribe/nlp.toml` → macOS App Support `nlp.toml`.
+
+Useful env vars:
+
+| Variable | Effect |
+|----------|--------|
+| `SCRIBE_NLP_CONFIG` | Absolute path to config file |
+| `SCRIBE_NLP_MAX_TEXT_CHARS` | RPC text guardrail |
+| `SCRIBE_NLP_MAX_SOURCE_BYTES` | Code import / `code_brief` size cap |
+| `SCRIBE_NLP_MAX_FILE_BYTES` | Files sandbox read limit |
+| `SCRIBE_NLP_AGENT_TOOL_LIMIT` | Planner default tool count |
+| `SCRIBE_EMBED_BACKEND` | `hash` / `fast` / `quality` |
+| `SCRIBE_NLP_DEBUG` | stderr RPC timings |
+
+`health` returns `config.path` + expanded `limits`. Reload live with RPC `reload_config`.
+
 ## Dev
 
 ```bash

@@ -13,9 +13,17 @@ import io
 import json
 from typing import Any
 
-MAX_ROWS = 5_000
-MAX_COLS = 128
-MAX_INPUT_BYTES = 16 * 1024 * 1024
+from .config import get_config
+
+
+def _csv_limits() -> tuple[int, int, int]:
+    code = get_config().code
+    return code.max_csv_rows, code.max_csv_cols, code.max_csv_bytes
+
+
+MAX_ROWS = get_config().code.max_csv_rows
+MAX_COLS = get_config().code.max_csv_cols
+MAX_INPUT_BYTES = get_config().code.max_csv_bytes
 
 
 class CsvOpsError(ValueError):

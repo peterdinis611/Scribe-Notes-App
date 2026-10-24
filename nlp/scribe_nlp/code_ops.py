@@ -10,7 +10,11 @@ import json
 import re
 from typing import Any
 
-MAX_SOURCE_BYTES = 2 * 1024 * 1024
+from .config import get_config
+
+
+def _max_source_bytes() -> int:
+    return get_config().code.max_source_bytes
 
 _EXT_TO_LANG: dict[str, str] = {
     "js": "javascript",
@@ -124,13 +128,14 @@ def _decode_text(params: dict[str, Any]) -> str:
     elif isinstance(params.get("sourcePath"), str) and params["sourcePath"].strip():
         try:
             with open(params["sourcePath"].strip(), "rb") as handle:
-                raw = handle.read(MAX_SOURCE_BYTES + 1)
+                raw = handle.read(_max_source_bytes() + 1)
         except OSError as exc:
             raise CodeOpsError(f"Cannot read path: {exc}") from exc
     if raw is None:
         raise CodeOpsError("Provide text, base64, bytes, or sourcePath")
-    if len(raw) > MAX_SOURCE_BYTES:
-        raise CodeOpsError(f"Source exceeds {MAX_SOURCE_BYTES} byte limit")
+    limit = _max_source_bytes()
+    if len(raw) > limit:
+        raise CodeOpsError(f"Source exceeds {limit} byte limit")
     if raw.startswith(b"\xef\xbb\xbf"):
         raw = raw[3:]
     if b"\x00" in raw[: 8 * 1024]:
@@ -226,7 +231,8 @@ def _extract_code_payload(text: str, language: str | None) -> tuple[str, str | N
     return (text or "").strip(), language
 
 
-def _unique(items: list[str], limit: int = 12) -> list[str]:
+def _unique(items: list[str], limit: int | None = None) -> list[str]:
+    cap = limit if limit is not None else get_config().code.code_brief_max_symbols
     seen: set[str] = set()
     out: list[str] = []
     for item in items:
@@ -235,7 +241,7 @@ def _unique(items: list[str], limit: int = 12) -> list[str]:
             continue
         seen.add(key)
         out.append(key)
-        if len(out) >= limit:
+        if len(out) >= cap:
             break
     return out
 
@@ -309,7 +315,8 @@ def code_brief(
     if todos:
         sections.append("**Open markers:**\n" + "\n".join(f"- {t}" for t in todos))
     if not symbols and not imports and not todos:
-        preview = "\n".join(lines[:8])
+        preview_n = get_config().code.code_brief_preview_lines
+        preview = "\n".join(lines[:preview_n])
         sections.append(f"```{lang or ''}\n{preview}\n```")
 
     answer = "\n\n".join(sections)

@@ -31,6 +31,8 @@ from .faiss_search import faiss_available, faiss_top_k
 from .storage_fs import StorageFsClient, StorageFsError
 from .text_utils import split_sentences
 
+from .config import get_config
+
 TEXT_EXTENSIONS = {".md", ".txt", ".json", ".csv", ".markdown", ".mdx"}
 # Programming / config sources — searchable by files_answer / index.
 CODE_EXTENSIONS = {
@@ -98,17 +100,22 @@ CODE_EXTENSIONS = {
 }
 RICH_TEXT_EXTENSIONS = {".pdf", ".docx"}
 INDEXABLE_EXTENSIONS = TEXT_EXTENSIONS | CODE_EXTENSIONS | RICH_TEXT_EXTENSIONS
-DEFAULT_BASE_URL = "http://127.0.0.1:8787"
 INDEX_PATH = "scratch/.scribe-files-index.json"
 INDEX_NAMESPACE = "files"
 INDEX_VERSION = 2
 
-MAX_FILE_BYTES = 5_000_000        # refuse to read bigger files
-MAX_DOCX_XML_BYTES = 30_000_000   # guard against zip bombs
-PDF_MAX_PAGES = 40
-SCAN_LIMIT_DEFAULT = 200
-HYBRID_ALPHA = 0.7                # weight of the embedding score in hybrid mode
-ANN_MIN_CHUNKS = 24               # use FAISS/HNSW when enough vectors
+
+def _files_limits():
+    return get_config().files
+
+
+DEFAULT_BASE_URL = get_config().files.files_api_base_url
+MAX_FILE_BYTES = get_config().files.max_file_bytes
+MAX_DOCX_XML_BYTES = get_config().files.max_docx_xml_bytes
+PDF_MAX_PAGES = get_config().files.pdf_max_pages
+SCAN_LIMIT_DEFAULT = get_config().files.scan_limit_default
+HYBRID_ALPHA = get_config().files.hybrid_alpha
+ANN_MIN_CHUNKS = get_config().files.ann_min_chunks
 
 RetrievalMode = Literal["hybrid", "semantic", "lexical"]
 

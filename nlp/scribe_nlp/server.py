@@ -12,6 +12,8 @@ from .config import (
     MAX_EMBED_BATCH,
     MAX_REPORT_DOCUMENTS,
     MAX_TEXT_CHARS,
+    get_config,
+    reload_config,
 )
 from .debug import nlp_debug_enabled
 from .embed import embed_batch, embed_batch_with_chunks, embed_text, embed_with_chunks
@@ -135,6 +137,7 @@ FEATURES = [
     "inspectSource",
     "sourceToTiptap",
     "codeBrief",
+    "reloadConfig",
     "sectionSummaries",
     "extractDecisions",
     "extractQuotes",
@@ -235,8 +238,21 @@ def _handle_request_inner(
                     "maxTextChars": MAX_TEXT_CHARS,
                     "maxEmbedBatch": MAX_EMBED_BATCH,
                     "maxReportDocuments": MAX_REPORT_DOCUMENTS,
+                    "embedCacheSize": EMBED_CACHE_SIZE,
+                    "maxSourceBytes": get_config().code.max_source_bytes,
+                    "maxFileBytes": get_config().files.max_file_bytes,
+                    "agentToolLimit": get_config().agent.tool_limit,
+                },
+                "config": {
+                    "path": get_config().config_path,
+                    "debug": get_config().debug,
+                    "embedDefaultBackend": get_config().embed.default_backend,
+                    "filesApiBaseUrl": get_config().files.files_api_base_url,
                 },
             }
+        elif method == "reload_config":
+            cfg = reload_config()
+            result = {"ok": True, "config": cfg.snapshot()}
         elif method == "set_embed_backend":
             backend = str(params.get("backend") or "hash")
             configured = configure_backend(backend)

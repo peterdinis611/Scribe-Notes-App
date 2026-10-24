@@ -12,7 +12,9 @@ import unicodedata
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
-_AGENT_TOOL_LIMIT = 3
+from .config import get_config
+
+_AGENT_TOOL_LIMIT = get_config().agent.tool_limit
 
 # Library-scoped tools (MCP / FE agent). Keep LLM + keyword filters aligned.
 _LIBRARY_TOOLS: frozenset[str] = frozenset(
@@ -538,7 +540,8 @@ def match_agent_intents_scored(
     folded = _fold(goal)
     if not folded:
         return []
-    limit = max(1, min(int(max_tools or _AGENT_TOOL_LIMIT), 6))
+    hard = get_config().agent.tool_limit_hard
+    limit = max(1, min(int(max_tools or get_config().agent.tool_limit), hard))
     scored: list[tuple[str, float, int]] = []
     for index, (tool, needles) in enumerate(_INTENT_RULES):
         hits = [needle for needle in needles if _needle_hit(folded, needle)]
@@ -628,7 +631,8 @@ def plan_agent_goal(
     """Plan Local Agent tools from a free-form goal (EN/SK + JEPA-like + optional LLM)."""
     trimmed = (goal or "").strip()
     scope_norm = "library" if str(scope or "").lower().startswith("lib") else "document"
-    limit = max(1, min(int(max_tools or _AGENT_TOOL_LIMIT), 6))
+    hard = get_config().agent.tool_limit_hard
+    limit = max(1, min(int(max_tools or get_config().agent.tool_limit), hard))
     scored = match_agent_intents_scored(trimmed, max_tools=max(limit, 6))
 
     if scope_norm == "library":

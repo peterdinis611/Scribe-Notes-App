@@ -1,0 +1,42 @@
+# Copy to one of:
+#   ./scribe-nlp.toml
+#   ~/.config/scribe/nlp.toml
+#   ~/Library/Application Support/com.scribe.app/nlp.toml
+# Or set SCRIBE_NLP_CONFIG=/absolute/path/to/file.toml
+#
+# Environment variables (SCRIBE_NLP_*) always override file values.
+
+debug = false
+
+[rpc]
+max_text_chars = 120000
+max_embed_batch = 128
+max_report_documents = 5000
+embed_cache_size = 256
+
+[files]
+max_file_bytes = 5000000
+max_docx_xml_bytes = 30000000
+pdf_max_pages = 40
+scan_limit_default = 200
+hybrid_alpha = 0.7
+ann_min_chunks = 24
+files_api_base_url = "http://127.0.0.1:8787"
+
+[code]
+max_source_bytes = 2097152
+max_csv_bytes = 16777216
+max_csv_rows = 5000
+max_csv_cols = 128
+code_brief_max_symbols = 12
+code_brief_preview_lines = 8
+
+[agent]
+tool_limit = 3
+tool_limit_hard = 6
+brief_workers = 4
+
+[embed]
+# hash | fast | quality — startup default; UI/RPC can still change live backend
+default_backend = "hash"
+warmup_on_start = true
