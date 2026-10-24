@@ -134,6 +134,7 @@ FEATURES = [
     "matrixToCsv",
     "inspectSource",
     "sourceToTiptap",
+    "codeBrief",
     "sectionSummaries",
     "extractDecisions",
     "extractQuotes",
@@ -1010,6 +1011,26 @@ def _handle_request_inner(
 
             try:
                 result = source_to_tiptap(params if isinstance(params, dict) else {})
+            except CodeOpsError as exc:
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "error": {"code": -32602, "message": str(exc)},
+                }
+        elif method == "code_brief":
+            from .code_ops import CodeOpsError, code_brief
+
+            try:
+                text = str(params.get("text") or "")
+                language = params.get("language")
+                path = params.get("path") or params.get("sourcePath")
+                llm = params.get("llm") if isinstance(params.get("llm"), dict) else None
+                result = code_brief(
+                    text,
+                    language=str(language) if isinstance(language, str) else None,
+                    path=str(path) if isinstance(path, str) else None,
+                    llm=llm,
+                )
             except CodeOpsError as exc:
                 return {
                     "jsonrpc": "2.0",

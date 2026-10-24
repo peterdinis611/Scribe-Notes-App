@@ -27,6 +27,21 @@ def explain_selection(
     source = (text or "").strip()
     if not source:
         raise ValueError("text is required")
+
+    from .code_ops import code_brief, looks_like_code
+
+    if looks_like_code(source):
+        brief = code_brief(source, llm=llm)
+        return {
+            "language": brief.get("language") or _lang_code(source),
+            "explanation": brief.get("answer") or brief.get("brief") or "",
+            "bullets": (brief.get("symbols") or [])[:6],
+            "keyTerms": (brief.get("imports") or [])[:6],
+            "enhanced": bool(brief.get("enhanced")),
+            "source": "python",
+            "kind": "code",
+        }
+
     language = _lang_code(source)
     slovak = language.startswith("sk")
     sentences = [s.strip() for s in split_sentences(source) if s.strip()]

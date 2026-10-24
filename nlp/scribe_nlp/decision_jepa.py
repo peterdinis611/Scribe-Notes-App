@@ -180,6 +180,22 @@ def _library_catalog() -> list[_Candidate]:
             "label": "answer from files in the sandbox folder",
         },
         {
+            "tools": ["files_ingest"],
+            "label": "import sandbox source files into library notes",
+        },
+        {
+            "tools": ["code_brief"],
+            "label": "review rust or python code in the note",
+        },
+        {
+            "tools": ["code_brief", "explain"],
+            "label": "explain and brief the source code",
+        },
+        {
+            "tools": ["files_answer", "code_brief"],
+            "label": "search the codebase sandbox then brief matches",
+        },
+        {
             "tools": ["handoff"],
             "label": "handoff a summary to another specialist agent",
         },
@@ -200,6 +216,7 @@ _ROLE_HANDOFF_TOOLS: dict[str, tuple[str, ...]] = {
     "meeting": ("meeting", "tasks", "action_items", "decisions", "commitments", "takeaways"),
     "study": ("outline", "glossary", "flashcards", "quiz", "reading_plan", "section_summaries"),
     "organizer": ("organize", "wiki", "duplicates", "pii", "tasks", "similar", "title"),
+    "developer": ("code_brief", "explain", "files_answer", "files_ingest", "outline"),
 }
 
 _HANDOFF_SCORE_BOOST = 0.08
