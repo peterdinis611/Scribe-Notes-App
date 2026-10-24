@@ -1,0 +1,33 @@
+[[set]]
+identifier = "main-all-commands"
+description = "All Scribe app commands for the main window (IPC ACL baseline)"
+permissions = [
+  "group-agent",
+  "group-antivirus",
+  "group-audit",
+  "group-backup",
+  "group-capture",
+  "group-comments",
+  "group-document-chat",
+  "group-documents",
+  "group-folders",
+  "group-images",
+  "group-import-export",
+  "group-libraries",
+  "group-links",
+  "group-native-pipeline",
+  "group-nlp",
+  "group-ocr",
+  "group-pdf-native",
+  "group-revisions",
+  "group-search",
+  "group-smart-folders",
+  "group-storage",
+  "group-storage-fs-api",
+  "group-system",
+  "group-templates",
+  "group-ui",
+  "group-ui-host",
+  "group-video",
+  "group-video-library",
+]

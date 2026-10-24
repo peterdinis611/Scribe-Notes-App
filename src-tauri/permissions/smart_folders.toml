@@ -1,0 +1,29 @@
+[[permission]]
+identifier = "allow-delete-smart-folder"
+description = "Allow delete_smart_folder"
+commands.allow = ["delete_smart_folder"]
+
+[[permission]]
+identifier = "allow-evaluate-smart-folder"
+description = "Allow evaluate_smart_folder"
+commands.allow = ["evaluate_smart_folder"]
+
+[[permission]]
+identifier = "allow-list-smart-folders"
+description = "Allow list_smart_folders"
+commands.allow = ["list_smart_folders"]
+
+[[permission]]
+identifier = "allow-upsert-smart-folder"
+description = "Allow upsert_smart_folder"
+commands.allow = ["upsert_smart_folder"]
+
+[[set]]
+identifier = "group-smart-folders"
+description = "Command group: smart_folders"
+permissions = [
+  "allow-delete-smart-folder",
+  "allow-evaluate-smart-folder",
+  "allow-list-smart-folders",
+  "allow-upsert-smart-folder",
+]

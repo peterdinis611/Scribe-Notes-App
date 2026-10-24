@@ -3,11 +3,30 @@ import { tiptapJsonToHtmlAsync } from '@/lib/export/html'
 import { tiptapJsonToMarkdown } from '@/lib/export/markdown'
 import { tiptapToPlainText } from '@/lib/export/plain-text'
 import { exportDocumentAsXlsx } from '@/lib/export/document-xlsx'
+import { exportDocumentAsCsv } from '@/lib/export/document-csv'
+import {
+  exportDocumentAsOpml,
+  exportDocumentAsStructuredJson,
+} from '@/lib/export/document-structured'
+import { exportDocumentAsSource } from '@/lib/export/document-source'
 import { generateMarkdownWithLlm } from '@/lib/export/llm-markdown'
 import type { PageSetup } from '@/lib/editor/page-setup'
 
 /** Formats that write a file via the share / convert dialog. */
-export type SharePackageFormat = 'pdf' | 'html-zip' | 'md' | 'md-llm' | 'docx' | 'txt' | 'xlsx'
+export type SharePackageFormat =
+  | 'pdf'
+  | 'html-zip'
+  | 'html'
+  | 'md'
+  | 'md-llm'
+  | 'docx'
+  | 'txt'
+  | 'xlsx'
+  | 'csv'
+  | 'json'
+  | 'opml'
+  | 'epub'
+  | 'source'
 
 export type ShareDocumentAction =
   | SharePackageFormat
@@ -45,6 +64,44 @@ export async function shareDocumentPackage(args: {
     })
   }
 
+  if (args.format === 'csv') {
+    return exportDocumentAsCsv({
+      contentJson: args.contentJson,
+      title: args.title,
+    })
+  }
+
+  if (args.format === 'json') {
+    return exportDocumentAsStructuredJson({
+      contentJson: args.contentJson,
+      title: args.title,
+    })
+  }
+
+  if (args.format === 'opml') {
+    return exportDocumentAsOpml({
+      contentJson: args.contentJson,
+      title: args.title,
+    })
+  }
+
+  if (args.format === 'source') {
+    return exportDocumentAsSource({
+      contentJson: args.contentJson,
+      title: args.title,
+    })
+  }
+
+  if ((args.format === 'html' || args.format === 'epub') && args.documentId) {
+    const result = await exportDocument('', '', args.title, args.format, undefined, undefined, {
+      documentId: args.documentId,
+    })
+    if (result?.path) {
+      await revealInFinder(result.path)
+    }
+    return result
+  }
+
   if (args.format === 'html-zip' && args.documentId) {
     const result = await exportDocument('', '', args.title, 'html-zip', undefined, undefined, {
       documentId: args.documentId,
@@ -77,18 +134,23 @@ export async function shareDocumentPackage(args: {
     return result
   }
 
-  // pdf (and html-zip fallback without documentId)
+  // pdf / html / html-zip / epub fallback without documentId
   const html = await tiptapJsonToHtmlAsync(args.contentJson, args.title, {
     pageSetup: args.pageSetup,
     forPrint: true,
   })
   const plainText = tiptapToPlainText(args.contentJson)
 
+  const blobFormat =
+    args.format === 'html-zip' || args.format === 'html' || args.format === 'epub'
+      ? args.format
+      : 'pdf'
+
   const result = await exportDocument(
     html,
     plainText,
     args.title,
-    args.format === 'html-zip' ? 'html-zip' : 'pdf',
+    blobFormat,
     undefined,
     args.pageSetup,
     args.documentId ? { documentId: args.documentId } : undefined,

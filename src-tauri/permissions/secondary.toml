@@ -1,0 +1,9 @@
+[[set]]
+identifier = "secondary-window"
+description = "Minimal commands for pdf-export / scribe-ui secondary windows"
+permissions = [
+  "allow-close-ui-surface",
+  "allow-open-ui-surface",
+  "allow-render-ui-surface-html",
+  "allow-ui-surface-event",
+]

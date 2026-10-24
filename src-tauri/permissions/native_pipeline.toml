@@ -1,0 +1,71 @@
+[[permission]]
+identifier = "allow-compile-documents"
+description = "Allow compile_documents"
+commands.allow = ["compile_documents"]
+
+[[permission]]
+identifier = "allow-convert-tiptap"
+description = "Allow convert_tiptap"
+commands.allow = ["convert_tiptap"]
+
+[[permission]]
+identifier = "allow-diff-document-revisions"
+description = "Allow diff_document_revisions"
+commands.allow = ["diff_document_revisions"]
+
+[[permission]]
+identifier = "allow-diff-plain-texts"
+description = "Allow diff_plain_texts"
+commands.allow = ["diff_plain_texts"]
+
+[[permission]]
+identifier = "allow-document-matches-meta-filters"
+description = "Allow document_matches_meta_filters"
+commands.allow = ["document_matches_meta_filters"]
+
+[[permission]]
+identifier = "allow-export-document-by-id"
+description = "Allow export_document_by_id"
+commands.allow = ["export_document_by_id"]
+
+[[permission]]
+identifier = "allow-highlight-code"
+description = "Allow highlight_code"
+commands.allow = ["highlight_code"]
+
+[[permission]]
+identifier = "allow-match-agent-intents"
+description = "Allow match_agent_intents"
+commands.allow = ["match_agent_intents"]
+
+[[permission]]
+identifier = "allow-match-document-chat-intent"
+description = "Allow match_document_chat_intent"
+commands.allow = ["match_document_chat_intent"]
+
+[[permission]]
+identifier = "allow-parse-meta-tag"
+description = "Allow parse_meta_tag"
+commands.allow = ["parse_meta_tag"]
+
+[[permission]]
+identifier = "allow-render-document-html"
+description = "Allow render_document_html"
+commands.allow = ["render_document_html"]
+
+[[set]]
+identifier = "group-native-pipeline"
+description = "Command group: native_pipeline"
+permissions = [
+  "allow-compile-documents",
+  "allow-convert-tiptap",
+  "allow-diff-document-revisions",
+  "allow-diff-plain-texts",
+  "allow-document-matches-meta-filters",
+  "allow-export-document-by-id",
+  "allow-highlight-code",
+  "allow-match-agent-intents",
+  "allow-match-document-chat-intent",
+  "allow-parse-meta-tag",
+  "allow-render-document-html",
+]

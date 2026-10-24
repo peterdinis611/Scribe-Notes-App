@@ -1,0 +1,35 @@
+[[permission]]
+identifier = "allow-get-storage-disk-usage"
+description = "Allow get_storage_disk_usage"
+commands.allow = ["get_storage_disk_usage"]
+
+[[permission]]
+identifier = "allow-get-storage-settings"
+description = "Allow get_storage_settings"
+commands.allow = ["get_storage_settings"]
+
+[[permission]]
+identifier = "allow-pick-documents-directory"
+description = "Allow pick_documents_directory"
+commands.allow = ["pick_documents_directory"]
+
+[[permission]]
+identifier = "allow-reveal-documents-directory"
+description = "Allow reveal_documents_directory"
+commands.allow = ["reveal_documents_directory"]
+
+[[permission]]
+identifier = "allow-reveal-in-finder"
+description = "Allow reveal_in_finder"
+commands.allow = ["reveal_in_finder"]
+
+[[set]]
+identifier = "group-storage"
+description = "Command group: storage"
+permissions = [
+  "allow-get-storage-disk-usage",
+  "allow-get-storage-settings",
+  "allow-pick-documents-directory",
+  "allow-reveal-documents-directory",
+  "allow-reveal-in-finder",
+]

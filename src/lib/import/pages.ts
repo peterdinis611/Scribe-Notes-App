@@ -45,6 +45,9 @@ async function importPagesText(text: string, sourcePath: string): Promise<Docume
 }
 
 export async function importPagesDocumentFromPath(path: string): Promise<Document> {
+  const { assertImportAllowedByAntivirus } = await import('@/lib/antivirus/scan-import')
+  await assertImportAllowedByAntivirus(path)
+
   const prepared = await invoke<PagesImportPrepared>('prepare_pages_import', { path })
 
   if (prepared.kind === 'docx') {

@@ -1010,6 +1010,16 @@ impl NlpSidecar {
         self.call_method("transcribe_video", params)
     }
 
+    /// MoviePy probe for a local video (duration / size) when ffprobe is missing.
+    pub fn probe_video(&self, params: Value) -> Result<Value, String> {
+        self.call_method("probe_video", params)
+    }
+
+    /// MoviePy frame grab → JPEG thumbnail (optional outputPath on disk).
+    pub fn extract_video_thumbnail(&self, params: Value) -> Result<Value, String> {
+        self.call_method("extract_video_thumbnail", params)
+    }
+
     pub fn files_index(
         &self,
         path: &str,
@@ -1119,6 +1129,26 @@ impl NlpSidecar {
             params["llm"] = options.clone();
         }
         self.call_method("explain_selection", params)
+    }
+
+    pub fn code_brief(
+        &self,
+        text: &str,
+        language: Option<&str>,
+        path: Option<&str>,
+        llm: Option<&Value>,
+    ) -> Result<Value, String> {
+        let mut params = json!({ "text": text });
+        if let Some(value) = language {
+            params["language"] = json!(value);
+        }
+        if let Some(value) = path {
+            params["path"] = json!(value);
+        }
+        if let Some(options) = llm {
+            params["llm"] = options.clone();
+        }
+        self.call_method("code_brief", params)
     }
 
     pub fn simplify_text(&self, text: &str, llm: Option<&Value>) -> Result<Value, String> {
@@ -1370,12 +1400,15 @@ pub fn rpc_timeout(method: &str) -> Duration {
         | "rank_tasks" | "contradiction_hints"
         | "plan_agent_goal" | "agent_document_brief"
         | "explain_selection" | "simplify_text" | "action_items" | "glossary" | "compare_notes"
+        | "code_brief" | "inspect_source" | "source_to_tiptap"
         | "files_list" | "files_read_text" | "files_search" | "files_summarize" | "files_answer"
         | "files_index_status" | "files_similar" | "files_index_clear"
         | "passage_rerank" | "answer_followups" | "extract_commitments" => {
             Duration::from_secs(25)
         }
         "transcribe_video" => Duration::from_secs(600),
+        "probe_video" | "extract_video_thumbnail" => Duration::from_secs(120),
+        "inspect_image" | "prepare_image_for_ocr" => Duration::from_secs(30),
         "files_index" => Duration::from_secs(180),
         "llm_status" => Duration::from_secs(8),
         "llm_complete" | "rewrite_selection" => Duration::from_secs(120),
@@ -1406,6 +1439,25 @@ fn kill_os_pid(pid: u32) {
     }
 }
 
+fn python_bin_path_dir(python_bin: &str) -> String {
+    Path::new(python_bin)
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .map(|p| p.to_string_lossy().into_owned())
+        .unwrap_or_else(|| "/usr/bin".to_string())
+}
+
+fn build_sidecar_command(
+    python_bin: &str,
+    script_path: &Path,
+    script_dir: &Path,
+    tmpdir: &str,
+) -> Result<Command, String> {
+    let mut base = Command::new(python_bin);
+    base.arg(script_path).current_dir(script_dir);
+    crate::nlp::seatbelt::apply_seatbelt(base, python_bin, script_path, script_dir, tmpdir)
+}
+
 fn spawn_sidecar(script_path: &Path, python_bin: &str) -> Result<(SidecarProcess, mpsc::Receiver<Result<String, String>>), String> {
     if !script_path.exists() {
         return Err(format!(
@@ -1425,7 +1477,6 @@ fn spawn_sidecar(script_path: &Path, python_bin: &str) -> Result<(SidecarProcess
         .parent()
         .unwrap_or_else(|| Path::new("."))
         .to_path_buf();
-    let path_env = std::env::var("PATH").unwrap_or_default();
     let pythonpath = std::env::var("PYTHONPATH").unwrap_or_else(|_| {
         // Prefer repo `nlp/` next to the script when unset.
         script_dir
@@ -1433,16 +1484,19 @@ fn spawn_sidecar(script_path: &Path, python_bin: &str) -> Result<(SidecarProcess
             .map(|p| p.to_string_lossy().into_owned())
             .unwrap_or_default()
     });
-    let home = std::env::var("HOME").ok();
     let tmpdir = std::env::var("TMPDIR")
         .or_else(|_| std::env::var("TMP"))
         .or_else(|_| std::env::var("TEMP"))
         .unwrap_or_else(|_| std::env::temp_dir().to_string_lossy().into_owned());
+    // Do not forward the real HOME — keep ~ / user-site away from the sidecar.
+    let sandbox_home = format!("{tmpdir}/scribe-nlp-home");
+    let _ = std::fs::create_dir_all(&sandbox_home);
+    let _ = std::fs::create_dir_all(format!("{tmpdir}/scribe-nlp-hf"));
+    // Narrow PATH to the directory that contains the chosen interpreter.
+    let path_env = python_bin_path_dir(python_bin);
 
-    let mut cmd = Command::new(python_bin);
-    cmd.arg(script_path)
-        .current_dir(&script_dir)
-        .stdin(Stdio::piped())
+    let mut cmd = build_sidecar_command(python_bin, script_path, &script_dir, &tmpdir)?;
+    cmd.stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::inherit())
         .env_clear()
@@ -1453,11 +1507,9 @@ fn spawn_sidecar(script_path: &Path, python_bin: &str) -> Result<(SidecarProcess
         .env("TMPDIR", &tmpdir)
         .env("TMP", &tmpdir)
         .env("TEMP", &tmpdir)
+        .env("HOME", &sandbox_home)
         .env("SCRIBE_NLP_DEBUG", debug)
         .env("SCRIBE_NLP_SANDBOX", "1");
-    if let Some(home) = home {
-        cmd.env("HOME", home);
-    }
     // HuggingFace / sentence-transformers cache under temp when sandboxing.
     cmd.env("HF_HOME", format!("{tmpdir}/scribe-nlp-hf"));
     cmd.env("TRANSFORMERS_CACHE", format!("{tmpdir}/scribe-nlp-hf"));

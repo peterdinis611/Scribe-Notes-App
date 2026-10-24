@@ -65,3 +65,35 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check path-bearing commands
         run: python3 scripts/check_tauri_path_commands.py
+
+  tauri-command-permissions:
+    name: Tauri command permission inventory
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check command groups match generate_handler
+        run: python3 scripts/check_tauri_command_permissions.py
+
+  pip-audit-nlp:
+    name: pip-audit (nlp)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: nlp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pip-audit + hashed lockfile
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade 'pip>=26.2' pip-audit
+          if [ -f requirements.lock ]; then
+            python -m pip install --require-hashes -r requirements.lock
+          else
+            echo "requirements.lock missing — install floors from requirements.in"
+            python -m pip install -r requirements.in
+          fi
+      - name: Audit installed packages
+        run: python -m pip_audit --progress-spinner off --strict

@@ -27,7 +27,15 @@ import i18n from '@/i18n'
 
 /** Extensions accepted for document import (picker + window drop). */
 export const IMPORTABLE_DOCUMENT_EXT =
-  /\.(scribe\.json|scribe|pages|md|markdown|txt|docx|rtf|doc|xlsx|xlsm|csv|xls)$/i
+  /\.(scribe\.json|scribe|pages|md|markdown|txt|docx|rtf|doc|xlsx|xlsm|csv|tsv|xls|odt|ods|html|htm|epub|pptx|opml|json|jsonc|jsonl|ndjson|rs|py|pyw|pyi|ts|tsx|js|jsx|mjs|cjs|go|java|kt|kts|swift|c|h|hh|hpp|cc|cpp|cxx|cs|fs|rb|php|lua|r|pl|pm|ex|exs|erl|hs|clj|cljs|ml|elm|nim|zig|vue|svelte|css|scss|sass|less|toml|ya?ml|xml|xsl|svg|sql|graphql|gql|proto|sh|bash|zsh|fish|ps1|bat|cmd|tf|hcl|nix|wasm|wat|ini|cfg|conf|env|gradle|groovy|tex|latex|mdx|astro|sol|diff|patch|log)$/i
+
+/** Extensionless build files accepted on drop / open. */
+const IMPORTABLE_BASENAMES = /^(dockerfile|makefile|gnumakefile|cmakelists\.txt)(\.|$)/i
+
+export function isImportableSourceBasename(path: string): boolean {
+  const name = path.split(/[/\\]/).pop() ?? ''
+  return IMPORTABLE_BASENAMES.test(name)
+}
 
 function isMarkdownPath(path: string) {
   return /\.(md|markdown)$/i.test(path)
@@ -39,11 +47,13 @@ function fallbackTitleFromPath(path: string) {
 }
 
 function isLegacyWordPath(path: string) {
-  return /\.(doc|rtf)$/i.test(path) && !isWordDocxPath(path)
+  // Legacy .doc still goes through Rust textutil; .rtf uses the RTF importer.
+  return /\.doc$/i.test(path) && !isWordDocxPath(path)
 }
 
 export function isImportableDocumentPath(path: string): boolean {
-  return IMPORTABLE_DOCUMENT_EXT.test(path.trim())
+  const trimmed = path.trim()
+  return IMPORTABLE_DOCUMENT_EXT.test(trimmed) || isImportableSourceBasename(trimmed)
 }
 
 export function filterImportableDocumentPaths(paths: string[]): string[] {

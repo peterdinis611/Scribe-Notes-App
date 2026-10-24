@@ -31,13 +31,15 @@ Binary: `target/release/scribe-mcp`
 
 Example: [`cursor.mcp.example.json`](cursor.mcp.example.json)
 
+**Shared / team Cursor configs:** never set `SCRIBE_MCP_WRITE=1` or `SCRIBE_MCP_SCOPE=full`. Those belong only in a private local override when you explicitly need write/vault access, then turn them off again.
+
 ## Environment
 
 | Variable | Meaning |
 |----------|---------|
 | `SCRIBE_DB_PATH` | Path to `scribe.db` (default: `~/Library/Application Support/com.scribe.app/scribe.db`) |
-| `SCRIBE_MCP_WRITE` | Default read-only. Set to `1` to allow write tools |
-| `SCRIBE_MCP_SCOPE` | Vault access: `no-vault` (default), `meta-only`, or `full` (warns if not `no-vault`) |
+| `SCRIBE_MCP_WRITE` | Default read-only. Set to `1` to allow write tools (**local only — not in shared configs**) |
+| `SCRIBE_MCP_SCOPE` | Vault access: `no-vault` (default), `meta-only`, or `full` (**never `full` in shared configs**) |
 | `SCRIBE_NLP_SCRIPT` | Path to Python NLP `__main__.py` for semantic tools |
 | `SCRIBE_NLP_PYTHON` | Python binary (default `python3`) |
 

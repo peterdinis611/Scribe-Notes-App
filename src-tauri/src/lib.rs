@@ -532,6 +532,7 @@ pub fn run() {
             commands::nlp::nlp_files_index,
             commands::nlp::nlp_summarize,
             commands::nlp::nlp_explain_selection,
+            commands::nlp::nlp_code_brief,
             commands::nlp::nlp_simplify,
             commands::nlp::nlp_action_items,
             commands::nlp::nlp_glossary,
@@ -654,16 +655,41 @@ pub fn run() {
                         .ok()
                         .map(|p| p.to_string_lossy().to_string())
                         .unwrap_or_else(|| as_str.clone());
-                    if path.ends_with(".scribe")
-                        || path.ends_with(".scribe.json")
-                        || path.ends_with(".docx")
-                        || path.ends_with(".xlsx")
-                        || path.ends_with(".xlsm")
-                        || path.ends_with(".csv")
-                        || path.ends_with(".pages")
-                        || path.ends_with(".md")
-                        || path.ends_with(".markdown")
-                        || path.ends_with(".txt")
+                    let lower = path.to_ascii_lowercase();
+                    if lower.ends_with(".scribe")
+                        || lower.ends_with(".scribe.json")
+                        || lower.ends_with(".docx")
+                        || lower.ends_with(".xlsx")
+                        || lower.ends_with(".xlsm")
+                        || lower.ends_with(".csv")
+                        || lower.ends_with(".tsv")
+                        || lower.ends_with(".odt")
+                        || lower.ends_with(".ods")
+                        || lower.ends_with(".html")
+                        || lower.ends_with(".htm")
+                        || lower.ends_with(".rtf")
+                        || lower.ends_with(".epub")
+                        || lower.ends_with(".pptx")
+                        || lower.ends_with(".opml")
+                        || lower.ends_with(".json")
+                        || lower.ends_with(".rs")
+                        || lower.ends_with(".py")
+                        || lower.ends_with(".ts")
+                        || lower.ends_with(".tsx")
+                        || lower.ends_with(".js")
+                        || lower.ends_with(".jsx")
+                        || lower.ends_with(".go")
+                        || lower.ends_with(".java")
+                        || lower.ends_with(".toml")
+                        || lower.ends_with(".yaml")
+                        || lower.ends_with(".yml")
+                        || lower.ends_with(".pages")
+                        || lower.ends_with(".md")
+                        || lower.ends_with(".markdown")
+                        || lower.ends_with(".txt")
+                        || lower.ends_with("/dockerfile")
+                        || lower.ends_with("\\dockerfile")
+                        || lower == "dockerfile"
                     {
                         let _ = app_handle.emit("open-file", path);
                     }

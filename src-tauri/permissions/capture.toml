@@ -1,0 +1,23 @@
+[[permission]]
+identifier = "allow-capture-start"
+description = "Allow capture_start"
+commands.allow = ["capture_start"]
+
+[[permission]]
+identifier = "allow-capture-status"
+description = "Allow capture_status"
+commands.allow = ["capture_status"]
+
+[[permission]]
+identifier = "allow-capture-stop"
+description = "Allow capture_stop"
+commands.allow = ["capture_stop"]
+
+[[set]]
+identifier = "group-capture"
+description = "Command group: capture"
+permissions = [
+  "allow-capture-start",
+  "allow-capture-status",
+  "allow-capture-stop",
+]

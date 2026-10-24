@@ -195,6 +195,176 @@ pub fn xlsx_bytes_to_tiptap(bytes: &[u8]) -> Result<String, String> {
     Ok(doc_json(nodes))
 }
 
+// ---------------------------------------------------------------- CSV / TSV
+
+/// Convert CSV or TSV bytes (UTF-8 / UTF-8 BOM) into a TipTap document with one table.
+pub fn csv_bytes_to_tiptap(bytes: &[u8]) -> Result<String, String> {
+    let text = decode_tabular_text(bytes)?;
+    csv_text_to_tiptap(&text, None)
+}
+
+/// Parse CSV/TSV text into TipTap JSON. When `delimiter` is `None`, auto-detect `,` / `;` / `\t`.
+pub fn csv_text_to_tiptap(text: &str, delimiter: Option<char>) -> Result<String, String> {
+    let delimiter = delimiter.unwrap_or_else(|| detect_csv_delimiter(text));
+    let rows = parse_delimited_rows(text, delimiter)?;
+    let Some(table) = sheet_rows_to_table(&rows) else {
+        return Ok(EMPTY_DOC_JSON.to_string());
+    };
+    Ok(doc_json(vec![table, json!({ "type": "paragraph" })]))
+}
+
+/// Serialize a row matrix to RFC4180 CSV (comma) or TSV (`\t`).
+pub fn matrix_to_csv(rows: &[Vec<String>], delimiter: char) -> String {
+    let mut out = String::new();
+    for (index, row) in rows.iter().enumerate() {
+        if index > 0 {
+            out.push('\n');
+        }
+        for (col, cell) in row.iter().enumerate() {
+            if col > 0 {
+                out.push(delimiter);
+            }
+            out.push_str(&escape_csv_field(cell, delimiter));
+        }
+    }
+    if !out.is_empty() {
+        out.push('\n');
+    }
+    out
+}
+
+fn decode_tabular_text(bytes: &[u8]) -> Result<String, String> {
+    if bytes.is_empty() {
+        return Err("CSV file is empty".into());
+    }
+    let trimmed = if bytes.starts_with(&[0xEF, 0xBB, 0xBF]) {
+        &bytes[3..]
+    } else {
+        bytes
+    };
+    String::from_utf8(trimmed.to_vec()).map_err(|_| {
+        "CSV must be UTF-8 (save as UTF-8 CSV from Excel / Numbers)".to_string()
+    })
+}
+
+fn detect_csv_delimiter(text: &str) -> char {
+    let sample: String = text.lines().take(8).collect::<Vec<_>>().join("\n");
+    let mut scores = [(',', 0usize), (';', 0), ('\t', 0)];
+    for (delim, score) in scores.iter_mut() {
+        *score = sample.matches(*delim).count();
+    }
+    scores.sort_by(|a, b| b.1.cmp(&a.1));
+    if scores[0].1 == 0 {
+        ','
+    } else {
+        scores[0].0
+    }
+}
+
+fn parse_delimited_rows(text: &str, delimiter: char) -> Result<Vec<Vec<String>>, String> {
+    let mut rows: Vec<Vec<String>> = Vec::new();
+    let mut row: Vec<String> = Vec::new();
+    let mut field = String::new();
+    let mut chars = text.chars().peekable();
+    let mut in_quotes = false;
+
+    while let Some(ch) = chars.next() {
+        if in_quotes {
+            if ch == '"' {
+                if chars.peek() == Some(&'"') {
+                    field.push('"');
+                    chars.next();
+                } else {
+                    in_quotes = false;
+                }
+            } else {
+                field.push(ch);
+            }
+            continue;
+        }
+
+        match ch {
+            '"' => in_quotes = true,
+            c if c == delimiter => {
+                row.push(std::mem::take(&mut field));
+            }
+            '\n' => {
+                row.push(std::mem::take(&mut field));
+                if rows.len() >= MAX_ROWS {
+                    break;
+                }
+                let is_blank = row.iter().all(|cell| cell.is_empty());
+                if !is_blank {
+                    rows.push(std::mem::take(&mut row));
+                } else {
+                    row.clear();
+                }
+            }
+            '\r' => {
+                // Handle CRLF / lone CR as row break.
+                if chars.peek() == Some(&'\n') {
+                    chars.next();
+                }
+                row.push(std::mem::take(&mut field));
+                if rows.len() >= MAX_ROWS {
+                    break;
+                }
+                let is_blank = row.iter().all(|cell| cell.is_empty());
+                if !is_blank {
+                    rows.push(std::mem::take(&mut row));
+                } else {
+                    row.clear();
+                }
+            }
+            _ => field.push(ch),
+        }
+    }
+
+    if in_quotes {
+        return Err("CSV has an unclosed quoted field".into());
+    }
+    if !field.is_empty() || !row.is_empty() {
+        row.push(field);
+        if rows.len() < MAX_ROWS {
+            rows.push(row);
+        }
+    }
+
+    // Drop a trailing all-empty row from a final newline.
+    if let Some(last) = rows.last() {
+        if last.iter().all(|cell| cell.is_empty()) {
+            rows.pop();
+        }
+    }
+
+    for row in &mut rows {
+        if row.len() > MAX_COLS {
+            row.truncate(MAX_COLS);
+        }
+    }
+
+    Ok(rows)
+}
+
+fn escape_csv_field(value: &str, delimiter: char) -> String {
+    let needs_quotes = value.contains(delimiter)
+        || value.contains('"')
+        || value.contains('\n')
+        || value.contains('\r');
+    if !needs_quotes {
+        return value.to_string();
+    }
+    let mut escaped = String::from('"');
+    for ch in value.chars() {
+        if ch == '"' {
+            escaped.push('"');
+        }
+        escaped.push(ch);
+    }
+    escaped.push('"');
+    escaped
+}
+
 fn paragraph_node(text: &str) -> Value {
     if text.is_empty() {
         return json!({ "type": "paragraph" });
@@ -575,6 +745,40 @@ mod tests {
     fn non_zip_bytes_fail() {
         assert!(docx_bytes_to_tiptap(b"plain text").is_err());
         assert!(xlsx_bytes_to_tiptap(b"plain text").is_err());
+    }
+
+    #[test]
+    fn csv_bytes_become_table() {
+        let json = csv_bytes_to_tiptap(b"Name,Amount\nAlice,10\nBob,\"1,2\"\n").unwrap();
+        let doc: Value = serde_json::from_str(&json).unwrap();
+        let table = &doc["content"][0];
+        assert_eq!(table["type"], "table");
+        let rows = table["content"].as_array().unwrap();
+        assert_eq!(rows.len(), 3);
+        assert_eq!(rows[0]["content"][0]["type"], "tableHeader");
+        assert_eq!(
+            rows[2]["content"][1]["content"][0]["content"][0]["text"],
+            "1,2"
+        );
+    }
+
+    #[test]
+    fn csv_roundtrip_matrix() {
+        let rows = vec![
+            vec!["a".into(), "b,c".into()],
+            vec!["1".into(), "2".into()],
+        ];
+        let csv = matrix_to_csv(&rows, ',');
+        assert!(csv.contains("\"b,c\""));
+        let json = csv_text_to_tiptap(&csv, Some(',')).unwrap();
+        assert!(json.contains("table"));
+    }
+
+    #[test]
+    fn tsv_auto_detect() {
+        let json = csv_text_to_tiptap("A\tB\n1\t2\n", None).unwrap();
+        let doc: Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(doc["content"][0]["type"], "table");
     }
 
     #[test]

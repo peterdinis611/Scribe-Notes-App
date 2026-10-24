@@ -1,0 +1,41 @@
+[[permission]]
+identifier = "allow-create-named-revision"
+description = "Allow create_named_revision"
+commands.allow = ["create_named_revision"]
+
+[[permission]]
+identifier = "allow-delete-document-revision"
+description = "Allow delete_document_revision"
+commands.allow = ["delete_document_revision"]
+
+[[permission]]
+identifier = "allow-get-document-revision"
+description = "Allow get_document_revision"
+commands.allow = ["get_document_revision"]
+
+[[permission]]
+identifier = "allow-list-document-revisions"
+description = "Allow list_document_revisions"
+commands.allow = ["list_document_revisions"]
+
+[[permission]]
+identifier = "allow-rename-document-revision"
+description = "Allow rename_document_revision"
+commands.allow = ["rename_document_revision"]
+
+[[permission]]
+identifier = "allow-restore-document-revision"
+description = "Allow restore_document_revision"
+commands.allow = ["restore_document_revision"]
+
+[[set]]
+identifier = "group-revisions"
+description = "Command group: revisions"
+permissions = [
+  "allow-create-named-revision",
+  "allow-delete-document-revision",
+  "allow-get-document-revision",
+  "allow-list-document-revisions",
+  "allow-rename-document-revision",
+  "allow-restore-document-revision",
+]

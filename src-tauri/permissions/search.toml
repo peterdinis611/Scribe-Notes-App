@@ -1,0 +1,11 @@
+[[permission]]
+identifier = "allow-search-documents"
+description = "Allow search_documents"
+commands.allow = ["search_documents"]
+
+[[set]]
+identifier = "group-search"
+description = "Command group: search"
+permissions = [
+  "allow-search-documents",
+]

@@ -1,0 +1,95 @@
+[[permission]]
+identifier = "allow-create-folder"
+description = "Allow create_folder"
+commands.allow = ["create_folder"]
+
+[[permission]]
+identifier = "allow-delete-folder"
+description = "Allow delete_folder"
+commands.allow = ["delete_folder"]
+
+[[permission]]
+identifier = "allow-duplicate-folder-structure"
+description = "Allow duplicate_folder_structure"
+commands.allow = ["duplicate_folder_structure"]
+
+[[permission]]
+identifier = "allow-folder-document-counts"
+description = "Allow folder_document_counts"
+commands.allow = ["folder_document_counts"]
+
+[[permission]]
+identifier = "allow-folder-stats"
+description = "Allow folder_stats"
+commands.allow = ["folder_stats"]
+
+[[permission]]
+identifier = "allow-list-folders"
+description = "Allow list_folders"
+commands.allow = ["list_folders"]
+
+[[permission]]
+identifier = "allow-move-document-to-folder"
+description = "Allow move_document_to_folder"
+commands.allow = ["move_document_to_folder"]
+
+[[permission]]
+identifier = "allow-move-documents-to-folder"
+description = "Allow move_documents_to_folder"
+commands.allow = ["move_documents_to_folder"]
+
+[[permission]]
+identifier = "allow-move-folder"
+description = "Allow move_folder"
+commands.allow = ["move_folder"]
+
+[[permission]]
+identifier = "allow-rename-folder"
+description = "Allow rename_folder"
+commands.allow = ["rename_folder"]
+
+[[permission]]
+identifier = "allow-reorder-folders"
+description = "Allow reorder_folders"
+commands.allow = ["reorder_folders"]
+
+[[permission]]
+identifier = "allow-set-folder-appearance"
+description = "Allow set_folder_appearance"
+commands.allow = ["set_folder_appearance"]
+
+[[permission]]
+identifier = "allow-set-folder-archived"
+description = "Allow set_folder_archived"
+commands.allow = ["set_folder_archived"]
+
+[[permission]]
+identifier = "allow-set-folder-pinned"
+description = "Allow set_folder_pinned"
+commands.allow = ["set_folder_pinned"]
+
+[[permission]]
+identifier = "allow-trash-folder-documents"
+description = "Allow trash_folder_documents"
+commands.allow = ["trash_folder_documents"]
+
+[[set]]
+identifier = "group-folders"
+description = "Command group: folders"
+permissions = [
+  "allow-create-folder",
+  "allow-delete-folder",
+  "allow-duplicate-folder-structure",
+  "allow-folder-document-counts",
+  "allow-folder-stats",
+  "allow-list-folders",
+  "allow-move-document-to-folder",
+  "allow-move-documents-to-folder",
+  "allow-move-folder",
+  "allow-rename-folder",
+  "allow-reorder-folders",
+  "allow-set-folder-appearance",
+  "allow-set-folder-archived",
+  "allow-set-folder-pinned",
+  "allow-trash-folder-documents",
+]

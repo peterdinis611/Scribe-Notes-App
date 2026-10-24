@@ -1,0 +1,35 @@
+[[permission]]
+identifier = "allow-find-documents-by-title"
+description = "Allow find_documents_by_title"
+commands.allow = ["find_documents_by_title"]
+
+[[permission]]
+identifier = "allow-list-graph-hubs"
+description = "Allow list_graph_hubs"
+commands.allow = ["list_graph_hubs"]
+
+[[permission]]
+identifier = "allow-list-link-graph"
+description = "Allow list_link_graph"
+commands.allow = ["list_link_graph"]
+
+[[permission]]
+identifier = "allow-list-wiki-health"
+description = "Allow list_wiki_health"
+commands.allow = ["list_wiki_health"]
+
+[[permission]]
+identifier = "allow-resolve-wiki-link"
+description = "Allow resolve_wiki_link"
+commands.allow = ["resolve_wiki_link"]
+
+[[set]]
+identifier = "group-links"
+description = "Command group: links"
+permissions = [
+  "allow-find-documents-by-title",
+  "allow-list-graph-hubs",
+  "allow-list-link-graph",
+  "allow-list-wiki-health",
+  "allow-resolve-wiki-link",
+]

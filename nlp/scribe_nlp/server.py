@@ -12,6 +12,8 @@ from .config import (
     MAX_EMBED_BATCH,
     MAX_REPORT_DOCUMENTS,
     MAX_TEXT_CHARS,
+    get_config,
+    reload_config,
 )
 from .debug import nlp_debug_enabled
 from .embed import embed_batch, embed_batch_with_chunks, embed_text, embed_with_chunks
@@ -125,6 +127,17 @@ FEATURES = [
     "checkTerminologyLibrary",
     "citationPack",
     "extractPaintOcr",
+    "inspectImage",
+    "prepareImageForOcr",
+    "probeVideo",
+    "extractVideoThumbnail",
+    "inspectCsv",
+    "csvToTiptap",
+    "matrixToCsv",
+    "inspectSource",
+    "sourceToTiptap",
+    "codeBrief",
+    "reloadConfig",
     "sectionSummaries",
     "extractDecisions",
     "extractQuotes",
@@ -225,8 +238,21 @@ def _handle_request_inner(
                     "maxTextChars": MAX_TEXT_CHARS,
                     "maxEmbedBatch": MAX_EMBED_BATCH,
                     "maxReportDocuments": MAX_REPORT_DOCUMENTS,
+                    "embedCacheSize": EMBED_CACHE_SIZE,
+                    "maxSourceBytes": get_config().code.max_source_bytes,
+                    "maxFileBytes": get_config().files.max_file_bytes,
+                    "agentToolLimit": get_config().agent.tool_limit,
+                },
+                "config": {
+                    "path": get_config().config_path,
+                    "debug": get_config().debug,
+                    "embedDefaultBackend": get_config().embed.default_backend,
+                    "filesApiBaseUrl": get_config().files.files_api_base_url,
                 },
             }
+        elif method == "reload_config":
+            cfg = reload_config()
+            result = {"ok": True, "config": cfg.snapshot()}
         elif method == "set_embed_backend":
             backend = str(params.get("backend") or "hash")
             configured = configure_backend(backend)
@@ -934,6 +960,109 @@ def _handle_request_inner(
             content = params.get("contentJson") or params.get("content_json") or params.get("text") or ""
             texts = extract_paint_ocr(content if isinstance(content, (str, dict)) else str(content))
             result = {"texts": texts, "count": len(texts), "source": "python"}
+        elif method == "inspect_image":
+            from .image_ops import inspect_image
+
+            result = inspect_image(params if isinstance(params, dict) else {})
+        elif method == "prepare_image_for_ocr":
+            from .image_ops import prepare_image_for_ocr
+
+            result = prepare_image_for_ocr(params if isinstance(params, dict) else {})
+        elif method == "probe_video":
+            from .video_ops import VideoOpsUnavailable, probe_video
+            from .video_transcribe import TranscribeValidationError
+
+            try:
+                result = probe_video(params if isinstance(params, dict) else {})
+            except TranscribeValidationError as exc:
+                raise SidecarError(str(exc), code=-32602) from exc
+            except VideoOpsUnavailable as exc:
+                raise SidecarError(str(exc), code=-32023) from exc
+        elif method == "inspect_csv":
+            from .csv_ops import CsvOpsError, inspect_csv
+
+            try:
+                result = inspect_csv(params if isinstance(params, dict) else {})
+            except CsvOpsError as exc:
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "error": {"code": -32602, "message": str(exc)},
+                }
+        elif method == "csv_to_tiptap":
+            from .csv_ops import CsvOpsError, csv_to_tiptap
+
+            try:
+                result = csv_to_tiptap(params if isinstance(params, dict) else {})
+            except CsvOpsError as exc:
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "error": {"code": -32602, "message": str(exc)},
+                }
+        elif method == "matrix_to_csv":
+            from .csv_ops import CsvOpsError, matrix_to_csv_rpc
+
+            try:
+                result = matrix_to_csv_rpc(params if isinstance(params, dict) else {})
+            except CsvOpsError as exc:
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "error": {"code": -32602, "message": str(exc)},
+                }
+        elif method == "inspect_source":
+            from .code_ops import CodeOpsError, inspect_source
+
+            try:
+                result = inspect_source(params if isinstance(params, dict) else {})
+            except CodeOpsError as exc:
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "error": {"code": -32602, "message": str(exc)},
+                }
+        elif method == "source_to_tiptap":
+            from .code_ops import CodeOpsError, source_to_tiptap
+
+            try:
+                result = source_to_tiptap(params if isinstance(params, dict) else {})
+            except CodeOpsError as exc:
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "error": {"code": -32602, "message": str(exc)},
+                }
+        elif method == "code_brief":
+            from .code_ops import CodeOpsError, code_brief
+
+            try:
+                text = str(params.get("text") or "")
+                language = params.get("language")
+                path = params.get("path") or params.get("sourcePath")
+                llm = params.get("llm") if isinstance(params.get("llm"), dict) else None
+                result = code_brief(
+                    text,
+                    language=str(language) if isinstance(language, str) else None,
+                    path=str(path) if isinstance(path, str) else None,
+                    llm=llm,
+                )
+            except CodeOpsError as exc:
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "error": {"code": -32602, "message": str(exc)},
+                }
+        elif method == "extract_video_thumbnail":
+            from .video_ops import VideoOpsUnavailable, extract_video_thumbnail
+            from .video_transcribe import TranscribeValidationError
+
+            try:
+                result = extract_video_thumbnail(params if isinstance(params, dict) else {})
+            except TranscribeValidationError as exc:
+                raise SidecarError(str(exc), code=-32602) from exc
+            except VideoOpsUnavailable as exc:
+                raise SidecarError(str(exc), code=-32023) from exc
         elif method == "section_summaries":
             from .section_summaries import section_summaries
 
@@ -1167,4 +1296,7 @@ def run_stdio_server() -> None:
 
 
 def main() -> None:
+    from .sandbox import install_sandbox_guards
+
+    install_sandbox_guards()
     run_stdio_server()

@@ -1,0 +1,29 @@
+[[permission]]
+identifier = "allow-delete-library-asset"
+description = "Allow delete_library_asset"
+commands.allow = ["delete_library_asset"]
+
+[[permission]]
+identifier = "allow-list-library-assets"
+description = "Allow list_library_assets"
+commands.allow = ["list_library_assets"]
+
+[[permission]]
+identifier = "allow-remove-image-background"
+description = "Allow remove_image_background"
+commands.allow = ["remove_image_background"]
+
+[[permission]]
+identifier = "allow-save-document-image"
+description = "Allow save_document_image"
+commands.allow = ["save_document_image"]
+
+[[set]]
+identifier = "group-images"
+description = "Command group: images"
+permissions = [
+  "allow-delete-library-asset",
+  "allow-list-library-assets",
+  "allow-remove-image-background",
+  "allow-save-document-image",
+]

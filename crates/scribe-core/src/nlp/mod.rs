@@ -17,6 +17,7 @@ pub mod quotes;
 pub mod reading_plan;
 pub mod revision_ai;
 pub mod section_summaries;
+mod seatbelt;
 mod sidecar;
 pub mod task_rank;
 pub mod template_hints;

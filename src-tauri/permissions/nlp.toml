@@ -1,0 +1,449 @@
+[[permission]]
+identifier = "allow-nlp-action-items"
+description = "Allow nlp_action_items"
+commands.allow = ["nlp_action_items"]
+
+[[permission]]
+identifier = "allow-nlp-agent-document-brief"
+description = "Allow nlp_agent_document_brief"
+commands.allow = ["nlp_agent_document_brief"]
+
+[[permission]]
+identifier = "allow-nlp-analyze-plaintext"
+description = "Allow nlp_analyze_plaintext"
+commands.allow = ["nlp_analyze_plaintext"]
+
+[[permission]]
+identifier = "allow-nlp-analyze-revision-diff"
+description = "Allow nlp_analyze_revision_diff"
+commands.allow = ["nlp_analyze_revision_diff"]
+
+[[permission]]
+identifier = "allow-nlp-calendar-events"
+description = "Allow nlp_calendar_events"
+commands.allow = ["nlp_calendar_events"]
+
+[[permission]]
+identifier = "allow-nlp-cancel"
+description = "Allow nlp_cancel"
+commands.allow = ["nlp_cancel"]
+
+[[permission]]
+identifier = "allow-nlp-check-terminology"
+description = "Allow nlp_check_terminology"
+commands.allow = ["nlp_check_terminology"]
+
+[[permission]]
+identifier = "allow-nlp-check-terminology-library"
+description = "Allow nlp_check_terminology_library"
+commands.allow = ["nlp_check_terminology_library"]
+
+[[permission]]
+identifier = "allow-nlp-citation-pack"
+description = "Allow nlp_citation_pack"
+commands.allow = ["nlp_citation_pack"]
+
+[[permission]]
+identifier = "allow-nlp-code-brief"
+description = "Allow nlp_code_brief"
+commands.allow = ["nlp_code_brief"]
+
+[[permission]]
+identifier = "allow-nlp-compare-notes"
+description = "Allow nlp_compare_notes"
+commands.allow = ["nlp_compare_notes"]
+
+[[permission]]
+identifier = "allow-nlp-contradiction-hints"
+description = "Allow nlp_contradiction_hints"
+commands.allow = ["nlp_contradiction_hints"]
+
+[[permission]]
+identifier = "allow-nlp-detect-pii"
+description = "Allow nlp_detect_pii"
+commands.allow = ["nlp_detect_pii"]
+
+[[permission]]
+identifier = "allow-nlp-document-analysis"
+description = "Allow nlp_document_analysis"
+commands.allow = ["nlp_document_analysis"]
+
+[[permission]]
+identifier = "allow-nlp-document-answer"
+description = "Allow nlp_document_answer"
+commands.allow = ["nlp_document_answer"]
+
+[[permission]]
+identifier = "allow-nlp-document-tasks"
+description = "Allow nlp_document_tasks"
+commands.allow = ["nlp_document_tasks"]
+
+[[permission]]
+identifier = "allow-nlp-explain-selection"
+description = "Allow nlp_explain_selection"
+commands.allow = ["nlp_explain_selection"]
+
+[[permission]]
+identifier = "allow-nlp-extract-commitments"
+description = "Allow nlp_extract_commitments"
+commands.allow = ["nlp_extract_commitments"]
+
+[[permission]]
+identifier = "allow-nlp-extract-decisions"
+description = "Allow nlp_extract_decisions"
+commands.allow = ["nlp_extract_decisions"]
+
+[[permission]]
+identifier = "allow-nlp-extract-flashcards"
+description = "Allow nlp_extract_flashcards"
+commands.allow = ["nlp_extract_flashcards"]
+
+[[permission]]
+identifier = "allow-nlp-extract-mentions"
+description = "Allow nlp_extract_mentions"
+commands.allow = ["nlp_extract_mentions"]
+
+[[permission]]
+identifier = "allow-nlp-extract-quotes"
+description = "Allow nlp_extract_quotes"
+commands.allow = ["nlp_extract_quotes"]
+
+[[permission]]
+identifier = "allow-nlp-extract-takeaways"
+description = "Allow nlp_extract_takeaways"
+commands.allow = ["nlp_extract_takeaways"]
+
+[[permission]]
+identifier = "allow-nlp-files-answer"
+description = "Allow nlp_files_answer"
+commands.allow = ["nlp_files_answer"]
+
+[[permission]]
+identifier = "allow-nlp-files-index"
+description = "Allow nlp_files_index"
+commands.allow = ["nlp_files_index"]
+
+[[permission]]
+identifier = "allow-nlp-files-list"
+description = "Allow nlp_files_list"
+commands.allow = ["nlp_files_list"]
+
+[[permission]]
+identifier = "allow-nlp-files-read-text"
+description = "Allow nlp_files_read_text"
+commands.allow = ["nlp_files_read_text"]
+
+[[permission]]
+identifier = "allow-nlp-files-search"
+description = "Allow nlp_files_search"
+commands.allow = ["nlp_files_search"]
+
+[[permission]]
+identifier = "allow-nlp-files-summarize"
+description = "Allow nlp_files_summarize"
+commands.allow = ["nlp_files_summarize"]
+
+[[permission]]
+identifier = "allow-nlp-find-duplicates"
+description = "Allow nlp_find_duplicates"
+commands.allow = ["nlp_find_duplicates"]
+
+[[permission]]
+identifier = "allow-nlp-generate-placeholder"
+description = "Allow nlp_generate_placeholder"
+commands.allow = ["nlp_generate_placeholder"]
+
+[[permission]]
+identifier = "allow-nlp-glossary"
+description = "Allow nlp_glossary"
+commands.allow = ["nlp_glossary"]
+
+[[permission]]
+identifier = "allow-nlp-grammar-check"
+description = "Allow nlp_grammar_check"
+commands.allow = ["nlp_grammar_check"]
+
+[[permission]]
+identifier = "allow-nlp-index-all"
+description = "Allow nlp_index_all"
+commands.allow = ["nlp_index_all"]
+
+[[permission]]
+identifier = "allow-nlp-index-document"
+description = "Allow nlp_index_document"
+commands.allow = ["nlp_index_document"]
+
+[[permission]]
+identifier = "allow-nlp-journal-summary"
+description = "Allow nlp_journal_summary"
+commands.allow = ["nlp_journal_summary"]
+
+[[permission]]
+identifier = "allow-nlp-journal-tasks"
+description = "Allow nlp_journal_tasks"
+commands.allow = ["nlp_journal_tasks"]
+
+[[permission]]
+identifier = "allow-nlp-library-answer"
+description = "Allow nlp_library_answer"
+commands.allow = ["nlp_library_answer"]
+
+[[permission]]
+identifier = "allow-nlp-library-report"
+description = "Allow nlp_library_report"
+commands.allow = ["nlp_library_report"]
+
+[[permission]]
+identifier = "allow-nlp-list-open-tasks"
+description = "Allow nlp_list_open_tasks"
+commands.allow = ["nlp_list_open_tasks"]
+
+[[permission]]
+identifier = "allow-nlp-llm-complete"
+description = "Allow nlp_llm_complete"
+commands.allow = ["nlp_llm_complete"]
+
+[[permission]]
+identifier = "allow-nlp-llm-status"
+description = "Allow nlp_llm_status"
+commands.allow = ["nlp_llm_status"]
+
+[[permission]]
+identifier = "allow-nlp-meeting-notes-pack"
+description = "Allow nlp_meeting_notes_pack"
+commands.allow = ["nlp_meeting_notes_pack"]
+
+[[permission]]
+identifier = "allow-nlp-note-pulse"
+description = "Allow nlp_note_pulse"
+commands.allow = ["nlp_note_pulse"]
+
+[[permission]]
+identifier = "allow-nlp-open-loops"
+description = "Allow nlp_open_loops"
+commands.allow = ["nlp_open_loops"]
+
+[[permission]]
+identifier = "allow-nlp-outline-quiz"
+description = "Allow nlp_outline_quiz"
+commands.allow = ["nlp_outline_quiz"]
+
+[[permission]]
+identifier = "allow-nlp-plan-agent-goal"
+description = "Allow nlp_plan_agent_goal"
+commands.allow = ["nlp_plan_agent_goal"]
+
+[[permission]]
+identifier = "allow-nlp-rank-tasks"
+description = "Allow nlp_rank_tasks"
+commands.allow = ["nlp_rank_tasks"]
+
+[[permission]]
+identifier = "allow-nlp-reading-plan"
+description = "Allow nlp_reading_plan"
+commands.allow = ["nlp_reading_plan"]
+
+[[permission]]
+identifier = "allow-nlp-render-ui-surface"
+description = "Allow nlp_render_ui_surface"
+commands.allow = ["nlp_render_ui_surface"]
+
+[[permission]]
+identifier = "allow-nlp-rewrite-selection"
+description = "Allow nlp_rewrite_selection"
+commands.allow = ["nlp_rewrite_selection"]
+
+[[permission]]
+identifier = "allow-nlp-search"
+description = "Allow nlp_search"
+commands.allow = ["nlp_search"]
+
+[[permission]]
+identifier = "allow-nlp-section-summaries"
+description = "Allow nlp_section_summaries"
+commands.allow = ["nlp_section_summaries"]
+
+[[permission]]
+identifier = "allow-nlp-semantic-search"
+description = "Allow nlp_semantic_search"
+commands.allow = ["nlp_semantic_search"]
+
+[[permission]]
+identifier = "allow-nlp-set-answer-backend"
+description = "Allow nlp_set_answer_backend"
+commands.allow = ["nlp_set_answer_backend"]
+
+[[permission]]
+identifier = "allow-nlp-set-embed-backend"
+description = "Allow nlp_set_embed_backend"
+commands.allow = ["nlp_set_embed_backend"]
+
+[[permission]]
+identifier = "allow-nlp-set-enabled"
+description = "Allow nlp_set_enabled"
+commands.allow = ["nlp_set_enabled"]
+
+[[permission]]
+identifier = "allow-nlp-set-llm-prefs"
+description = "Allow nlp_set_llm_prefs"
+commands.allow = ["nlp_set_llm_prefs"]
+
+[[permission]]
+identifier = "allow-nlp-similar-documents"
+description = "Allow nlp_similar_documents"
+commands.allow = ["nlp_similar_documents"]
+
+[[permission]]
+identifier = "allow-nlp-simplify"
+description = "Allow nlp_simplify"
+commands.allow = ["nlp_simplify"]
+
+[[permission]]
+identifier = "allow-nlp-spellcheck"
+description = "Allow nlp_spellcheck"
+commands.allow = ["nlp_spellcheck"]
+
+[[permission]]
+identifier = "allow-nlp-status"
+description = "Allow nlp_status"
+commands.allow = ["nlp_status"]
+
+[[permission]]
+identifier = "allow-nlp-suggest-continuation"
+description = "Allow nlp_suggest_continuation"
+commands.allow = ["nlp_suggest_continuation"]
+
+[[permission]]
+identifier = "allow-nlp-suggest-tags"
+description = "Allow nlp_suggest_tags"
+commands.allow = ["nlp_suggest_tags"]
+
+[[permission]]
+identifier = "allow-nlp-suggest-title"
+description = "Allow nlp_suggest_title"
+commands.allow = ["nlp_suggest_title"]
+
+[[permission]]
+identifier = "allow-nlp-suggest-wiki-links"
+description = "Allow nlp_suggest_wiki_links"
+commands.allow = ["nlp_suggest_wiki_links"]
+
+[[permission]]
+identifier = "allow-nlp-summarize"
+description = "Allow nlp_summarize"
+commands.allow = ["nlp_summarize"]
+
+[[permission]]
+identifier = "allow-nlp-summarize-diff"
+description = "Allow nlp_summarize_diff"
+commands.allow = ["nlp_summarize_diff"]
+
+[[permission]]
+identifier = "allow-nlp-template-fill-hints"
+description = "Allow nlp_template_fill_hints"
+commands.allow = ["nlp_template_fill_hints"]
+
+[[permission]]
+identifier = "allow-nlp-tone-pack"
+description = "Allow nlp_tone_pack"
+commands.allow = ["nlp_tone_pack"]
+
+[[permission]]
+identifier = "allow-nlp-vault-index-clear-folder"
+description = "Allow nlp_vault_index_clear_folder"
+commands.allow = ["nlp_vault_index_clear_folder"]
+
+[[permission]]
+identifier = "allow-nlp-vault-index-put"
+description = "Allow nlp_vault_index_put"
+commands.allow = ["nlp_vault_index_put"]
+
+[[permission]]
+identifier = "allow-nlp-vault-index-remove"
+description = "Allow nlp_vault_index_remove"
+commands.allow = ["nlp_vault_index_remove"]
+
+[[permission]]
+identifier = "allow-nlp-writing-coach"
+description = "Allow nlp_writing_coach"
+commands.allow = ["nlp_writing_coach"]
+
+[[set]]
+identifier = "group-nlp"
+description = "Command group: nlp"
+permissions = [
+  "allow-nlp-action-items",
+  "allow-nlp-agent-document-brief",
+  "allow-nlp-analyze-plaintext",
+  "allow-nlp-analyze-revision-diff",
+  "allow-nlp-calendar-events",
+  "allow-nlp-cancel",
+  "allow-nlp-check-terminology",
+  "allow-nlp-check-terminology-library",
+  "allow-nlp-citation-pack",
+  "allow-nlp-code-brief",
+  "allow-nlp-compare-notes",
+  "allow-nlp-contradiction-hints",
+  "allow-nlp-detect-pii",
+  "allow-nlp-document-analysis",
+  "allow-nlp-document-answer",
+  "allow-nlp-document-tasks",
+  "allow-nlp-explain-selection",
+  "allow-nlp-extract-commitments",
+  "allow-nlp-extract-decisions",
+  "allow-nlp-extract-flashcards",
+  "allow-nlp-extract-mentions",
+  "allow-nlp-extract-quotes",
+  "allow-nlp-extract-takeaways",
+  "allow-nlp-files-answer",
+  "allow-nlp-files-index",
+  "allow-nlp-files-list",
+  "allow-nlp-files-read-text",
+  "allow-nlp-files-search",
+  "allow-nlp-files-summarize",
+  "allow-nlp-find-duplicates",
+  "allow-nlp-generate-placeholder",
+  "allow-nlp-glossary",
+  "allow-nlp-grammar-check",
+  "allow-nlp-index-all",
+  "allow-nlp-index-document",
+  "allow-nlp-journal-summary",
+  "allow-nlp-journal-tasks",
+  "allow-nlp-library-answer",
+  "allow-nlp-library-report",
+  "allow-nlp-list-open-tasks",
+  "allow-nlp-llm-complete",
+  "allow-nlp-llm-status",
+  "allow-nlp-meeting-notes-pack",
+  "allow-nlp-note-pulse",
+  "allow-nlp-open-loops",
+  "allow-nlp-outline-quiz",
+  "allow-nlp-plan-agent-goal",
+  "allow-nlp-rank-tasks",
+  "allow-nlp-reading-plan",
+  "allow-nlp-render-ui-surface",
+  "allow-nlp-rewrite-selection",
+  "allow-nlp-search",
+  "allow-nlp-section-summaries",
+  "allow-nlp-semantic-search",
+  "allow-nlp-set-answer-backend",
+  "allow-nlp-set-embed-backend",
+  "allow-nlp-set-enabled",
+  "allow-nlp-set-llm-prefs",
+  "allow-nlp-similar-documents",
+  "allow-nlp-simplify",
+  "allow-nlp-spellcheck",
+  "allow-nlp-status",
+  "allow-nlp-suggest-continuation",
+  "allow-nlp-suggest-tags",
+  "allow-nlp-suggest-title",
+  "allow-nlp-suggest-wiki-links",
+  "allow-nlp-summarize",
+  "allow-nlp-summarize-diff",
+  "allow-nlp-template-fill-hints",
+  "allow-nlp-tone-pack",
+  "allow-nlp-vault-index-clear-folder",
+  "allow-nlp-vault-index-put",
+  "allow-nlp-vault-index-remove",
+  "allow-nlp-writing-coach",
+]

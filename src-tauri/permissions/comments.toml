@@ -1,0 +1,35 @@
+[[permission]]
+identifier = "allow-add-comment-reply"
+description = "Allow add_comment_reply"
+commands.allow = ["add_comment_reply"]
+
+[[permission]]
+identifier = "allow-create-comment-thread"
+description = "Allow create_comment_thread"
+commands.allow = ["create_comment_thread"]
+
+[[permission]]
+identifier = "allow-delete-comment-thread"
+description = "Allow delete_comment_thread"
+commands.allow = ["delete_comment_thread"]
+
+[[permission]]
+identifier = "allow-list-comment-threads"
+description = "Allow list_comment_threads"
+commands.allow = ["list_comment_threads"]
+
+[[permission]]
+identifier = "allow-resolve-comment-thread"
+description = "Allow resolve_comment_thread"
+commands.allow = ["resolve_comment_thread"]
+
+[[set]]
+identifier = "group-comments"
+description = "Command group: comments"
+permissions = [
+  "allow-add-comment-reply",
+  "allow-create-comment-thread",
+  "allow-delete-comment-thread",
+  "allow-list-comment-threads",
+  "allow-resolve-comment-thread",
+]

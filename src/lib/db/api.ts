@@ -1280,11 +1280,15 @@ export const importFile = async (path: string) => {
     { isPagesPath, importPagesDocumentFromPath },
     { isExcelPath, isLegacyExcelPath, importExcelDocumentFromPath },
     { isWordDocxPath },
+    { readAntivirusPolicy },
   ] = await Promise.all([
     import('@/lib/import/pages'),
     import('@/lib/import/excel-xlsx'),
     import('@/lib/import/word-docx'),
+    import('@/lib/antivirus/prefs'),
   ])
+
+  const antivirusPolicy = readAntivirusPolicy()
 
   // Excel / CSV → TipTap tables via SheetJS (editable). Legacy .xls errors with convert hint.
   // Native picker also uses Rust `xlsx_bytes_to_tiptap` (same table shape).
@@ -1297,10 +1301,14 @@ export const importFile = async (path: string) => {
   }
 
   if (isWordDocxPath(path)) {
-    return cacheDocument(await invoke<Document>('import_file', { path }))
+    return cacheDocument(
+      await invoke<Document>('import_file', { path, antivirusPolicy }),
+    )
   }
 
-  return cacheDocument(await invoke<Document>('import_file', { path }))
+  return cacheDocument(
+    await invoke<Document>('import_file', { path, antivirusPolicy }),
+  )
 }
 
 const NATIVE_EXPORT_FORMATS = new Set(['md', 'txt', 'html', 'html-zip', 'epub'])

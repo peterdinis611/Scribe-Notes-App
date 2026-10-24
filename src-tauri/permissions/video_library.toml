@@ -1,0 +1,59 @@
+[[permission]]
+identifier = "allow-delete-library-video-cmd"
+description = "Allow delete_library_video_cmd"
+commands.allow = ["delete_library_video_cmd"]
+
+[[permission]]
+identifier = "allow-generate-library-video-thumbnail"
+description = "Allow generate_library_video_thumbnail"
+commands.allow = ["generate_library_video_thumbnail"]
+
+[[permission]]
+identifier = "allow-get-library-video-cmd"
+description = "Allow get_library_video_cmd"
+commands.allow = ["get_library_video_cmd"]
+
+[[permission]]
+identifier = "allow-import-local-video"
+description = "Allow import_local_video"
+commands.allow = ["import_local_video"]
+
+[[permission]]
+identifier = "allow-library-video-playback-path"
+description = "Allow library_video_playback_path"
+commands.allow = ["library_video_playback_path"]
+
+[[permission]]
+identifier = "allow-list-library-videos-cmd"
+description = "Allow list_library_videos_cmd"
+commands.allow = ["list_library_videos_cmd"]
+
+[[permission]]
+identifier = "allow-pick-local-video"
+description = "Allow pick_local_video"
+commands.allow = ["pick_local_video"]
+
+[[permission]]
+identifier = "allow-probe-library-video"
+description = "Allow probe_library_video"
+commands.allow = ["probe_library_video"]
+
+[[permission]]
+identifier = "allow-transcribe-library-video"
+description = "Allow transcribe_library_video"
+commands.allow = ["transcribe_library_video"]
+
+[[set]]
+identifier = "group-video-library"
+description = "Command group: video_library"
+permissions = [
+  "allow-delete-library-video-cmd",
+  "allow-generate-library-video-thumbnail",
+  "allow-get-library-video-cmd",
+  "allow-import-local-video",
+  "allow-library-video-playback-path",
+  "allow-list-library-videos-cmd",
+  "allow-pick-local-video",
+  "allow-probe-library-video",
+  "allow-transcribe-library-video",
+]

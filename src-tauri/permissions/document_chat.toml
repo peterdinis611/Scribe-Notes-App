@@ -1,0 +1,23 @@
+[[permission]]
+identifier = "allow-append-document-chat-message"
+description = "Allow append_document_chat_message"
+commands.allow = ["append_document_chat_message"]
+
+[[permission]]
+identifier = "allow-clear-document-chat-messages"
+description = "Allow clear_document_chat_messages"
+commands.allow = ["clear_document_chat_messages"]
+
+[[permission]]
+identifier = "allow-list-document-chat-messages"
+description = "Allow list_document_chat_messages"
+commands.allow = ["list_document_chat_messages"]
+
+[[set]]
+identifier = "group-document-chat"
+description = "Command group: document_chat"
+permissions = [
+  "allow-append-document-chat-message",
+  "allow-clear-document-chat-messages",
+  "allow-list-document-chat-messages",
+]

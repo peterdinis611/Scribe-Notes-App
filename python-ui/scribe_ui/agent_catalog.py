@@ -11,6 +11,7 @@ AGENT_ROLE_IDS: tuple[str, ...] = (
     "meeting",
     "study",
     "organizer",
+    "developer",
 )
 
 AGENT_RECIPE_IDS: tuple[str, ...] = (

@@ -197,6 +197,7 @@ const TOOL_LABEL_KEYS: Record<AgentToolId, string> = {
   canvas_summarize: 'agent.tools.canvas_summarize',
   canvas_to_note: 'agent.tools.canvas_to_note',
   canvas_template: 'agent.tools.canvas_template',
+  code_brief: 'agent.tools.code_brief',
 }
 
 

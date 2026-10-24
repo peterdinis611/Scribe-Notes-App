@@ -1399,6 +1399,21 @@ impl ScribeStore {
         sidecar.explain_selection(&source, llm.as_ref())
     }
 
+    pub fn code_brief(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+        language: Option<&str>,
+        path: Option<&str>,
+    ) -> Result<Value, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        require_nlp(&self.db)?;
+        sync_sidecar_backend(sidecar, &self.db)?;
+        let llm = crate::db::llm_sidecar_options(&self.db, "enhance")?;
+        sidecar.code_brief(&source, language, path, llm.as_ref())
+    }
+
     pub fn simplify_text(
         &self,
         sidecar: &NlpSidecar,

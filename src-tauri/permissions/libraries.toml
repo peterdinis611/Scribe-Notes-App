@@ -1,0 +1,47 @@
+[[permission]]
+identifier = "allow-create-library"
+description = "Allow create_library"
+commands.allow = ["create_library"]
+
+[[permission]]
+identifier = "allow-list-libraries"
+description = "Allow list_libraries"
+commands.allow = ["list_libraries"]
+
+[[permission]]
+identifier = "allow-list-manuscripts"
+description = "Allow list_manuscripts"
+commands.allow = ["list_manuscripts"]
+
+[[permission]]
+identifier = "allow-list-sync-conflicts"
+description = "Allow list_sync_conflicts"
+commands.allow = ["list_sync_conflicts"]
+
+[[permission]]
+identifier = "allow-resolve-sync-conflict"
+description = "Allow resolve_sync_conflict"
+commands.allow = ["resolve_sync_conflict"]
+
+[[permission]]
+identifier = "allow-switch-library"
+description = "Allow switch_library"
+commands.allow = ["switch_library"]
+
+[[permission]]
+identifier = "allow-upsert-manuscript"
+description = "Allow upsert_manuscript"
+commands.allow = ["upsert_manuscript"]
+
+[[set]]
+identifier = "group-libraries"
+description = "Command group: libraries"
+permissions = [
+  "allow-create-library",
+  "allow-list-libraries",
+  "allow-list-manuscripts",
+  "allow-list-sync-conflicts",
+  "allow-resolve-sync-conflict",
+  "allow-switch-library",
+  "allow-upsert-manuscript",
+]

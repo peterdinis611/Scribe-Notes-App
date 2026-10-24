@@ -66,6 +66,7 @@ export type AgentToolId =
   | 'terminology_library'
   | 'files_answer'
   | 'files_ingest'
+  | 'code_brief'
   | 'save_template'
   | 'handoff'
   | 'keywords'

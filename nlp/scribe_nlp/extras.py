@@ -9,6 +9,8 @@ Install groups (from nlp/):
   pip install 'scribe-nlp[fast-embed]'  # model2vec static embeddings
   pip install 'scribe-nlp[lexical]'     # bm25s hybrid lexical ranking
   pip install 'scribe-nlp[hnsw]'        # pynear HNSW for large ANN
+  pip install 'scribe-nlp[image]'       # Pillow >=13 (CVE-patched) image/OCR prep
+  pip install 'scribe-nlp[video]'       # MoviePy 2 + then: pip install -U 'pillow>=13.0.0'
   pip install 'scribe-nlp[full]'        # everything including quality MiniLM
 """
 
@@ -86,6 +88,28 @@ def has_pynear() -> bool:
     return _probe("pynear")
 
 
+@lru_cache(maxsize=1)
+def has_pillow() -> bool:
+    """True only when Pillow is installed and CVE-patched (>=13.0.0)."""
+    try:
+        from .image_ops import pillow_is_patched
+
+        return pillow_is_patched()
+    except Exception:
+        return False
+
+
+@lru_cache(maxsize=1)
+def has_moviepy() -> bool:
+    """True when MoviePy is importable AND Pillow meets the CVE floor."""
+    try:
+        from .video_ops import moviepy_available
+
+        return moviepy_available()
+    except Exception:
+        return False
+
+
 def extras_status() -> dict[str, bool]:
     """Capability flags for health RPC / Settings UI."""
     return {
@@ -100,6 +124,8 @@ def extras_status() -> dict[str, bool]:
         "model2vec": has_model2vec(),
         "bm25s": has_bm25s(),
         "pynear": has_pynear(),
+        "pillow": has_pillow(),
+        "moviepy": has_moviepy(),
         "sentenceTransformers": _probe("sentence_transformers"),
     }
 
@@ -120,6 +146,8 @@ def extras_feature_flags() -> list[str]:
         "model2vec": "fastEmbed",
         "bm25s": "bm25Lexical",
         "pynear": "hnswSearch",
+        "pillow": "pillowImage",
+        "moviepy": "moviepyVideo",
     }
     for key, flag in mapping.items():
         if status.get(key):

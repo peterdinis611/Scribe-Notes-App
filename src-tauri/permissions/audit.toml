@@ -1,0 +1,95 @@
+[[permission]]
+identifier = "allow-audit-admin-change-password"
+description = "Allow audit_admin_change_password"
+commands.allow = ["audit_admin_change_password"]
+
+[[permission]]
+identifier = "allow-audit-admin-lock"
+description = "Allow audit_admin_lock"
+commands.allow = ["audit_admin_lock"]
+
+[[permission]]
+identifier = "allow-audit-admin-setup"
+description = "Allow audit_admin_setup"
+commands.allow = ["audit_admin_setup"]
+
+[[permission]]
+identifier = "allow-audit-admin-status"
+description = "Allow audit_admin_status"
+commands.allow = ["audit_admin_status"]
+
+[[permission]]
+identifier = "allow-audit-admin-unlock"
+description = "Allow audit_admin_unlock"
+commands.allow = ["audit_admin_unlock"]
+
+[[permission]]
+identifier = "allow-audit-canvas-event"
+description = "Allow audit_canvas_event"
+commands.allow = ["audit_canvas_event"]
+
+[[permission]]
+identifier = "allow-audit-security-event"
+description = "Allow audit_security_event"
+commands.allow = ["audit_security_event"]
+
+[[permission]]
+identifier = "allow-clear-audit-events"
+description = "Allow clear_audit_events"
+commands.allow = ["clear_audit_events"]
+
+[[permission]]
+identifier = "allow-export-audit-events-jsonl"
+description = "Allow export_audit_events_jsonl"
+commands.allow = ["export_audit_events_jsonl"]
+
+[[permission]]
+identifier = "allow-get-audit-db-path"
+description = "Allow get_audit_db_path"
+commands.allow = ["get_audit_db_path"]
+
+[[permission]]
+identifier = "allow-get-audit-schema-version"
+description = "Allow get_audit_schema_version"
+commands.allow = ["get_audit_schema_version"]
+
+[[permission]]
+identifier = "allow-get-audit-stats"
+description = "Allow get_audit_stats"
+commands.allow = ["get_audit_stats"]
+
+[[permission]]
+identifier = "allow-list-audit-events"
+description = "Allow list_audit_events"
+commands.allow = ["list_audit_events"]
+
+[[permission]]
+identifier = "allow-purge-audit-events-before"
+description = "Allow purge_audit_events_before"
+commands.allow = ["purge_audit_events_before"]
+
+[[permission]]
+identifier = "allow-set-audit-events-keep"
+description = "Allow set_audit_events_keep"
+commands.allow = ["set_audit_events_keep"]
+
+[[set]]
+identifier = "group-audit"
+description = "Command group: audit"
+permissions = [
+  "allow-audit-admin-change-password",
+  "allow-audit-admin-lock",
+  "allow-audit-admin-setup",
+  "allow-audit-admin-status",
+  "allow-audit-admin-unlock",
+  "allow-audit-canvas-event",
+  "allow-audit-security-event",
+  "allow-clear-audit-events",
+  "allow-export-audit-events-jsonl",
+  "allow-get-audit-db-path",
+  "allow-get-audit-schema-version",
+  "allow-get-audit-stats",
+  "allow-list-audit-events",
+  "allow-purge-audit-events-before",
+  "allow-set-audit-events-keep",
+]

@@ -199,8 +199,78 @@ pub fn pick_and_import_file(
         .add_filter(
             "Podporované dokumenty",
             &[
-                "scribe", "pages", "md", "markdown", "txt", "docx", "rtf", "doc", "xlsx", "xlsm",
-                "csv", "xls",
+                "scribe",
+                "pages",
+                "md",
+                "markdown",
+                "txt",
+                "docx",
+                "rtf",
+                "doc",
+                "xlsx",
+                "xlsm",
+                "csv",
+                "tsv",
+                "xls",
+                "odt",
+                "ods",
+                "html",
+                "htm",
+                "epub",
+                "pptx",
+                "opml",
+                "json",
+                "jsonc",
+                "jsonl",
+                "rs",
+                "py",
+                "ts",
+                "tsx",
+                "js",
+                "jsx",
+                "go",
+                "java",
+                "kt",
+                "swift",
+                "c",
+                "h",
+                "cpp",
+                "cc",
+                "cs",
+                "rb",
+                "php",
+                "lua",
+                "r",
+                "sql",
+                "toml",
+                "yaml",
+                "yml",
+                "xml",
+                "css",
+                "scss",
+                "sh",
+                "bash",
+                "zsh",
+                "ps1",
+                "dockerfile",
+                "makefile",
+                "graphql",
+                "proto",
+                "vue",
+                "svelte",
+                "dart",
+                "scala",
+                "ex",
+                "exs",
+                "hs",
+                "clj",
+                "zig",
+                "nim",
+                "nix",
+                "tf",
+                "sol",
+                "diff",
+                "patch",
             ],
         )
         .blocking_pick_files();
@@ -303,13 +373,15 @@ fn import_file_at_path(
     let docs = storage::get_documents_dir(app, &conn)?;
     drop(conn);
 
-    // `None` = caller already gated (or opted out). `Some(policy)` = apply here
-    // (used by the native multi-file picker).
-    if let Some(policy) = antivirus_policy {
-        if policy.enabled && policy.scan_on_import {
-            let files_root = storage_fs::ensure_files_root(&docs).ok();
-            file_antivirus::gate_import_path(&validated, policy, files_root.as_deref())?;
-        }
+    // Always enforce policy in Rust. `None` uses secure defaults (scan on import) so
+    // a forgotten FE argument cannot skip the gate. Callers that already scanned
+    // should pass an explicit policy with `scan_on_import: false` / `enabled: false`.
+    let policy = antivirus_policy
+        .cloned()
+        .unwrap_or_else(AntivirusPolicy::default);
+    if policy.enabled && policy.scan_on_import {
+        let files_root = storage_fs::ensure_files_root(&docs).ok();
+        file_antivirus::gate_import_path(&validated, &policy, files_root.as_deref())?;
     }
 
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
@@ -370,6 +442,104 @@ fn import_file_at_path(
                 now,
             )
         }
+        ImportFormat::Csv => {
+            let bytes = std::fs::read(&validated).map_err(|e| e.to_string())?;
+            let title = import_title_from_path(&validated, "Importovaná tabuľka");
+            (
+                Uuid::new_v4().to_string(),
+                title,
+                scribe_core::csv_bytes_to_tiptap(&bytes)?,
+                now,
+            )
+        }
+        ImportFormat::Odt => {
+            let bytes = std::fs::read(&validated).map_err(|e| e.to_string())?;
+            let title = import_title_from_path(&validated, "Importovaný dokument");
+            (
+                Uuid::new_v4().to_string(),
+                title,
+                scribe_core::odt_bytes_to_tiptap(&bytes)?,
+                now,
+            )
+        }
+        ImportFormat::Ods => {
+            let bytes = std::fs::read(&validated).map_err(|e| e.to_string())?;
+            let title = import_title_from_path(&validated, "Importovaný zošit");
+            (
+                Uuid::new_v4().to_string(),
+                title,
+                scribe_core::ods_bytes_to_tiptap(&bytes)?,
+                now,
+            )
+        }
+        ImportFormat::Html => {
+            let bytes = std::fs::read(&validated).map_err(|e| e.to_string())?;
+            let title = import_title_from_path(&validated, "Importovaná stránka");
+            (
+                Uuid::new_v4().to_string(),
+                title,
+                scribe_core::html_bytes_to_tiptap(&bytes)?,
+                now,
+            )
+        }
+        ImportFormat::Rtf => {
+            let bytes = std::fs::read(&validated).map_err(|e| e.to_string())?;
+            let title = import_title_from_path(&validated, "Importovaný dokument");
+            (
+                Uuid::new_v4().to_string(),
+                title,
+                scribe_core::rtf_bytes_to_tiptap(&bytes)?,
+                now,
+            )
+        }
+        ImportFormat::Epub => {
+            let bytes = std::fs::read(&validated).map_err(|e| e.to_string())?;
+            let title = import_title_from_path(&validated, "Importovaná kniha");
+            (
+                Uuid::new_v4().to_string(),
+                title,
+                scribe_core::epub_bytes_to_tiptap(&bytes)?,
+                now,
+            )
+        }
+        ImportFormat::Pptx => {
+            let bytes = std::fs::read(&validated).map_err(|e| e.to_string())?;
+            let title = import_title_from_path(&validated, "Importovaná prezentácia");
+            (
+                Uuid::new_v4().to_string(),
+                title,
+                scribe_core::pptx_bytes_to_tiptap(&bytes)?,
+                now,
+            )
+        }
+        ImportFormat::Opml => {
+            let bytes = std::fs::read(&validated).map_err(|e| e.to_string())?;
+            let title = import_title_from_path(&validated, "Importovaná osnova");
+            (
+                Uuid::new_v4().to_string(),
+                title,
+                scribe_core::opml_bytes_to_tiptap(&bytes)?,
+                now,
+            )
+        }
+        ImportFormat::Json => {
+            let bytes = std::fs::read(&validated).map_err(|e| e.to_string())?;
+            let title = import_title_from_path(&validated, "Importovaný JSON");
+            (
+                Uuid::new_v4().to_string(),
+                title,
+                scribe_core::json_bytes_to_tiptap(&bytes)?,
+                now,
+            )
+        }
+        ImportFormat::SourceCode => {
+            let bytes = std::fs::read(&validated).map_err(|e| e.to_string())?;
+            let title = import_title_from_path(&validated, "Importovaný kód");
+            let path_str = validated.to_string_lossy();
+            let content_json = scribe_core::source_path_to_tiptap(&path_str, &bytes)?
+                .ok_or_else(|| "Nepodporovaný programovací formát".to_string())?;
+            (Uuid::new_v4().to_string(), title, content_json, now)
+        }
     };
 
     let existing: Option<String> = conn
@@ -417,6 +587,16 @@ enum ImportFormat {
     Text,
     Docx,
     Xlsx,
+    Csv,
+    Odt,
+    Ods,
+    Html,
+    Rtf,
+    Epub,
+    Pptx,
+    Opml,
+    Json,
+    SourceCode,
 }
 
 fn import_title_from_path(path: &Path, fallback: &str) -> String {
@@ -456,6 +636,16 @@ fn detect_import_format(path: &Path) -> Result<ImportFormat, String> {
         return Ok(ImportFormat::Pages);
     }
 
+    // Extensionless / special build files.
+    if file_name == "dockerfile"
+        || file_name.starts_with("dockerfile.")
+        || file_name == "makefile"
+        || file_name == "gnumakefile"
+        || file_name == "cmakelists.txt"
+    {
+        return Ok(ImportFormat::SourceCode);
+    }
+
     let extension = path
         .extension()
         .and_then(|ext| ext.to_str())
@@ -467,9 +657,22 @@ fn detect_import_format(path: &Path) -> Result<ImportFormat, String> {
         "pages" => Ok(ImportFormat::Pages),
         "docx" => Ok(ImportFormat::Docx),
         "xlsx" | "xlsm" => Ok(ImportFormat::Xlsx),
-        "md" | "markdown" | "txt" | "doc" | "rtf" => Ok(ImportFormat::Text),
+        "csv" | "tsv" => Ok(ImportFormat::Csv),
+        "odt" => Ok(ImportFormat::Odt),
+        "ods" => Ok(ImportFormat::Ods),
+        "html" | "htm" => Ok(ImportFormat::Html),
+        "rtf" => Ok(ImportFormat::Rtf),
+        "epub" => Ok(ImportFormat::Epub),
+        "pptx" => Ok(ImportFormat::Pptx),
+        "opml" => Ok(ImportFormat::Opml),
+        // Structured Scribe JSON when shape matches; otherwise code block.
+        "json" => Ok(ImportFormat::Json),
+        "md" | "markdown" | "txt" | "doc" => Ok(ImportFormat::Text),
+        ext if scribe_core::is_source_extension(ext) => Ok(ImportFormat::SourceCode),
         _ => Err(
-            "Podporované formáty: .scribe, .pages, .md, .txt, .docx, .xlsx, .rtf".to_string(),
+            "Podporované formáty: dokumenty (docx, odt, md, …), tabuľky (xlsx, ods, csv), \
+             EPUB/PPTX/OPML/JSON a zdrojový kód (rs, ts, py, go, …)"
+                .to_string(),
         ),
     }
 }
@@ -507,6 +710,58 @@ mod tests {
         assert_eq!(
             detect_import_format(Path::new("/tmp/budget.xlsx")).unwrap(),
             ImportFormat::Xlsx
+        );
+        assert_eq!(
+            detect_import_format(Path::new("/tmp/people.csv")).unwrap(),
+            ImportFormat::Csv
+        );
+        assert_eq!(
+            detect_import_format(Path::new("/tmp/people.tsv")).unwrap(),
+            ImportFormat::Csv
+        );
+        assert_eq!(
+            detect_import_format(Path::new("/tmp/note.odt")).unwrap(),
+            ImportFormat::Odt
+        );
+        assert_eq!(
+            detect_import_format(Path::new("/tmp/sheet.ods")).unwrap(),
+            ImportFormat::Ods
+        );
+        assert_eq!(
+            detect_import_format(Path::new("/tmp/page.html")).unwrap(),
+            ImportFormat::Html
+        );
+        assert_eq!(
+            detect_import_format(Path::new("/tmp/memo.rtf")).unwrap(),
+            ImportFormat::Rtf
+        );
+        assert_eq!(
+            detect_import_format(Path::new("/tmp/book.epub")).unwrap(),
+            ImportFormat::Epub
+        );
+        assert_eq!(
+            detect_import_format(Path::new("/tmp/deck.pptx")).unwrap(),
+            ImportFormat::Pptx
+        );
+        assert_eq!(
+            detect_import_format(Path::new("/tmp/outline.opml")).unwrap(),
+            ImportFormat::Opml
+        );
+        assert_eq!(
+            detect_import_format(Path::new("/tmp/note.json")).unwrap(),
+            ImportFormat::Json
+        );
+        assert_eq!(
+            detect_import_format(Path::new("/tmp/main.rs")).unwrap(),
+            ImportFormat::SourceCode
+        );
+        assert_eq!(
+            detect_import_format(Path::new("/tmp/app.tsx")).unwrap(),
+            ImportFormat::SourceCode
+        );
+        assert_eq!(
+            detect_import_format(Path::new("/tmp/Dockerfile")).unwrap(),
+            ImportFormat::SourceCode
         );
         assert!(detect_import_format(Path::new("/tmp/image.png")).is_err());
     }

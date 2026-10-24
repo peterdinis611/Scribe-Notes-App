@@ -1,0 +1,569 @@
+[[permission]]
+identifier = "allow-analyze-graph-density-ui"
+description = "Allow analyze_graph_density_ui"
+commands.allow = ["analyze_graph_density_ui"]
+
+[[permission]]
+identifier = "allow-apply-document-style-preset-ui"
+description = "Allow apply_document_style_preset_ui"
+commands.allow = ["apply_document_style_preset_ui"]
+
+[[permission]]
+identifier = "allow-asset-kind-ui"
+description = "Allow asset_kind_ui"
+commands.allow = ["asset_kind_ui"]
+
+[[permission]]
+identifier = "allow-build-document-ask-actions-ui"
+description = "Allow build_document_ask_actions_ui"
+commands.allow = ["build_document_ask_actions_ui"]
+
+[[permission]]
+identifier = "allow-build-document-ask-questions-ui"
+description = "Allow build_document_ask_questions_ui"
+commands.allow = ["build_document_ask_questions_ui"]
+
+[[permission]]
+identifier = "allow-build-document-content-css-ui"
+description = "Allow build_document_content_css_ui"
+commands.allow = ["build_document_content_css_ui"]
+
+[[permission]]
+identifier = "allow-build-header-footer-lines-ui"
+description = "Allow build_header_footer_lines_ui"
+commands.allow = ["build_header_footer_lines_ui"]
+
+[[permission]]
+identifier = "allow-build-ics-calendar"
+description = "Allow build_ics_calendar"
+commands.allow = ["build_ics_calendar"]
+
+[[permission]]
+identifier = "allow-build-revision-compare-options-ui"
+description = "Allow build_revision_compare_options_ui"
+commands.allow = ["build_revision_compare_options_ui"]
+
+[[permission]]
+identifier = "allow-build-watermark-css-ui"
+description = "Allow build_watermark_css_ui"
+commands.allow = ["build_watermark_css_ui"]
+
+[[permission]]
+identifier = "allow-bump-semver-ui"
+description = "Allow bump_semver_ui"
+commands.allow = ["bump_semver_ui"]
+
+[[permission]]
+identifier = "allow-can-nest-folder"
+description = "Allow can_nest_folder"
+commands.allow = ["can_nest_folder"]
+
+[[permission]]
+identifier = "allow-canvas-edges-to-flow-ui"
+description = "Allow canvas_edges_to_flow_ui"
+commands.allow = ["canvas_edges_to_flow_ui"]
+
+[[permission]]
+identifier = "allow-cards-to-nodes-ui"
+description = "Allow cards_to_nodes_ui"
+commands.allow = ["cards_to_nodes_ui"]
+
+[[permission]]
+identifier = "allow-clamp-editor-panel-width"
+description = "Allow clamp_editor_panel_width"
+commands.allow = ["clamp_editor_panel_width"]
+
+[[permission]]
+identifier = "allow-clamp-sidebar-width"
+description = "Allow clamp_sidebar_width"
+commands.allow = ["clamp_sidebar_width"]
+
+[[permission]]
+identifier = "allow-clamp-toc-rail-width-ui"
+description = "Allow clamp_toc_rail_width_ui"
+commands.allow = ["clamp_toc_rail_width_ui"]
+
+[[permission]]
+identifier = "allow-collect-headings-from-json-ui"
+description = "Allow collect_headings_from_json_ui"
+commands.allow = ["collect_headings_from_json_ui"]
+
+[[permission]]
+identifier = "allow-collect-markdown-heading-outline-ui"
+description = "Allow collect_markdown_heading_outline_ui"
+commands.allow = ["collect_markdown_heading_outline_ui"]
+
+[[permission]]
+identifier = "allow-color-for-export"
+description = "Allow color_for_export"
+commands.allow = ["color_for_export"]
+
+[[permission]]
+identifier = "allow-color-for-tag"
+description = "Allow color_for_tag"
+commands.allow = ["color_for_tag"]
+
+[[permission]]
+identifier = "allow-compare-semver-ui"
+description = "Allow compare_semver_ui"
+commands.allow = ["compare_semver_ui"]
+
+[[permission]]
+identifier = "allow-compute-journal-streak-ui"
+description = "Allow compute_journal_streak_ui"
+commands.allow = ["compute_journal_streak_ui"]
+
+[[permission]]
+identifier = "allow-count-characters-ui"
+description = "Allow count_characters_ui"
+commands.allow = ["count_characters_ui"]
+
+[[permission]]
+identifier = "allow-count-words-ui"
+description = "Allow count_words_ui"
+commands.allow = ["count_words_ui"]
+
+[[permission]]
+identifier = "allow-create-custom-template-ui"
+description = "Allow create_custom_template_ui"
+commands.allow = ["create_custom_template_ui"]
+
+[[permission]]
+identifier = "allow-current-week-range-ui"
+description = "Allow current_week_range_ui"
+commands.allow = ["current_week_range_ui"]
+
+[[permission]]
+identifier = "allow-document-highlight-css-ui"
+description = "Allow document_highlight_css_ui"
+commands.allow = ["document_highlight_css_ui"]
+
+[[permission]]
+identifier = "allow-document-matches-meta-filters-ui"
+description = "Allow document_matches_meta_filters_ui"
+commands.allow = ["document_matches_meta_filters_ui"]
+
+[[permission]]
+identifier = "allow-document-matches-smart-filter"
+description = "Allow document_matches_smart_filter"
+commands.allow = ["document_matches_smart_filter"]
+
+[[permission]]
+identifier = "allow-document-style-presets-ui"
+description = "Allow document_style_presets_ui"
+commands.allow = ["document_style_presets_ui"]
+
+[[permission]]
+identifier = "allow-document-tiptap-css-ui"
+description = "Allow document_tiptap_css_ui"
+commands.allow = ["document_tiptap_css_ui"]
+
+[[permission]]
+identifier = "allow-estimate-flat-item-size-ui"
+description = "Allow estimate_flat_item_size_ui"
+commands.allow = ["estimate_flat_item_size_ui"]
+
+[[permission]]
+identifier = "allow-extract-title-from-content-ui"
+description = "Allow extract_title_from_content_ui"
+commands.allow = ["extract_title_from_content_ui"]
+
+[[permission]]
+identifier = "allow-filter-diff-lines-ui"
+description = "Allow filter_diff_lines_ui"
+commands.allow = ["filter_diff_lines_ui"]
+
+[[permission]]
+identifier = "allow-filter-documents-by-smart-filter-ui"
+description = "Allow filter_documents_by_smart_filter_ui"
+commands.allow = ["filter_documents_by_smart_filter_ui"]
+
+[[permission]]
+identifier = "allow-filter-library-assets-ui"
+description = "Allow filter_library_assets_ui"
+commands.allow = ["filter_library_assets_ui"]
+
+[[permission]]
+identifier = "allow-flashcards-to-anki-tsv"
+description = "Allow flashcards_to_anki_tsv"
+commands.allow = ["flashcards_to_anki_tsv"]
+
+[[permission]]
+identifier = "allow-flashcards-to-markdown"
+description = "Allow flashcards_to_markdown"
+commands.allow = ["flashcards_to_markdown"]
+
+[[permission]]
+identifier = "allow-flatten-folders-for-picker-ui"
+description = "Allow flatten_folders_for_picker_ui"
+commands.allow = ["flatten_folders_for_picker_ui"]
+
+[[permission]]
+identifier = "allow-flatten-library-ui"
+description = "Allow flatten_library_ui"
+commands.allow = ["flatten_library_ui"]
+
+[[permission]]
+identifier = "allow-flow-to-canvas-document-ui"
+description = "Allow flow_to_canvas_document_ui"
+commands.allow = ["flow_to_canvas_document_ui"]
+
+[[permission]]
+identifier = "allow-format-bytes-ui"
+description = "Allow format_bytes_ui"
+commands.allow = ["format_bytes_ui"]
+
+[[permission]]
+identifier = "allow-format-export-date-ui"
+description = "Allow format_export_date_ui"
+commands.allow = ["format_export_date_ui"]
+
+[[permission]]
+identifier = "allow-format-week-key-ui"
+description = "Allow format_week_key_ui"
+commands.allow = ["format_week_key_ui"]
+
+[[permission]]
+identifier = "allow-fuzzy-rank-strings"
+description = "Allow fuzzy_rank_strings"
+commands.allow = ["fuzzy_rank_strings"]
+
+[[permission]]
+identifier = "allow-generate-lorem-ipsum-ui"
+description = "Allow generate_lorem_ipsum_ui"
+commands.allow = ["generate_lorem_ipsum_ui"]
+
+[[permission]]
+identifier = "allow-generate-random-theme"
+description = "Allow generate_random_theme"
+commands.allow = ["generate_random_theme"]
+
+[[permission]]
+identifier = "allow-get-app-version-info"
+description = "Allow get_app_version_info"
+commands.allow = ["get_app_version_info"]
+
+[[permission]]
+identifier = "allow-get-ui-manifest"
+description = "Allow get_ui_manifest"
+commands.allow = ["get_ui_manifest"]
+
+[[permission]]
+identifier = "allow-hotkey-to-display-keys"
+description = "Allow hotkey_to_display_keys"
+commands.allow = ["hotkey_to_display_keys"]
+
+[[permission]]
+identifier = "allow-import-title-from-path-ui"
+description = "Allow import_title_from_path_ui"
+commands.allow = ["import_title_from_path_ui"]
+
+[[permission]]
+identifier = "allow-is-dark-color-ui"
+description = "Allow is_dark_color_ui"
+commands.allow = ["is_dark_color_ui"]
+
+[[permission]]
+identifier = "allow-is-orphan-asset-ui"
+description = "Allow is_orphan_asset_ui"
+commands.allow = ["is_orphan_asset_ui"]
+
+[[permission]]
+identifier = "allow-is-pages-path-ui"
+description = "Allow is_pages_path_ui"
+commands.allow = ["is_pages_path_ui"]
+
+[[permission]]
+identifier = "allow-is-ui-skin"
+description = "Allow is_ui_skin"
+commands.allow = ["is_ui_skin"]
+
+[[permission]]
+identifier = "allow-is-untitled-orphan-title-ui"
+description = "Allow is_untitled_orphan_title_ui"
+commands.allow = ["is_untitled_orphan_title_ui"]
+
+[[permission]]
+identifier = "allow-library-asset-kind-filters-ui"
+description = "Allow library_asset_kind_filters_ui"
+commands.allow = ["library_asset_kind_filters_ui"]
+
+[[permission]]
+identifier = "allow-list-settings-section-ids"
+description = "Allow list_settings_section_ids"
+commands.allow = ["list_settings_section_ids"]
+
+[[permission]]
+identifier = "allow-locale-section-groups-ui"
+description = "Allow locale_section_groups_ui"
+commands.allow = ["locale_section_groups_ui"]
+
+[[permission]]
+identifier = "allow-map-to-tiptap-highlight-ui"
+description = "Allow map_to_tiptap_highlight_ui"
+commands.allow = ["map_to_tiptap_highlight_ui"]
+
+[[permission]]
+identifier = "allow-merge-duplicate-content-ui"
+description = "Allow merge_duplicate_content_ui"
+commands.allow = ["merge_duplicate_content_ui"]
+
+[[permission]]
+identifier = "allow-move-id-before"
+description = "Allow move_id_before"
+commands.allow = ["move_id_before"]
+
+[[permission]]
+identifier = "allow-next-editor-panel-width-on-double-click"
+description = "Allow next_editor_panel_width_on_double_click"
+commands.allow = ["next_editor_panel_width_on_double_click"]
+
+[[permission]]
+identifier = "allow-normalize-compare-pair-ui"
+description = "Allow normalize_compare_pair_ui"
+commands.allow = ["normalize_compare_pair_ui"]
+
+[[permission]]
+identifier = "allow-normalize-locale-code-ui"
+description = "Allow normalize_locale_code_ui"
+commands.allow = ["normalize_locale_code_ui"]
+
+[[permission]]
+identifier = "allow-normalize-ui-skin"
+description = "Allow normalize_ui_skin"
+commands.allow = ["normalize_ui_skin"]
+
+[[permission]]
+identifier = "allow-parse-canvas-document-ui"
+description = "Allow parse_canvas_document_ui"
+commands.allow = ["parse_canvas_document_ui"]
+
+[[permission]]
+identifier = "allow-parse-custom-locale-pack-ui"
+description = "Allow parse_custom_locale_pack_ui"
+commands.allow = ["parse_custom_locale_pack_ui"]
+
+[[permission]]
+identifier = "allow-parse-map-spec-ui"
+description = "Allow parse_map_spec_ui"
+commands.allow = ["parse_map_spec_ui"]
+
+[[permission]]
+identifier = "allow-parse-stored-custom-templates-ui"
+description = "Allow parse_stored_custom_templates_ui"
+commands.allow = ["parse_stored_custom_templates_ui"]
+
+[[permission]]
+identifier = "allow-parse-template-pack-ui"
+description = "Allow parse_template_pack_ui"
+commands.allow = ["parse_template_pack_ui"]
+
+[[permission]]
+identifier = "allow-parse-ui-tag"
+description = "Allow parse_ui_tag"
+commands.allow = ["parse_ui_tag"]
+
+[[permission]]
+identifier = "allow-pdf-capture-css-ui"
+description = "Allow pdf_capture_css_ui"
+commands.allow = ["pdf_capture_css_ui"]
+
+[[permission]]
+identifier = "allow-pdf-highlights-to-content-json-ui"
+description = "Allow pdf_highlights_to_content_json_ui"
+commands.allow = ["pdf_highlights_to_content_json_ui"]
+
+[[permission]]
+identifier = "allow-plain-text-to-content-json-ui"
+description = "Allow plain_text_to_content_json_ui"
+commands.allow = ["plain_text_to_content_json_ui"]
+
+[[permission]]
+identifier = "allow-plan-theme-application-ui"
+description = "Allow plan_theme_application_ui"
+commands.allow = ["plan_theme_application_ui"]
+
+[[permission]]
+identifier = "allow-promote-markdown-special-blocks-ui"
+description = "Allow promote_markdown_special_blocks_ui"
+commands.allow = ["promote_markdown_special_blocks_ui"]
+
+[[permission]]
+identifier = "allow-resolve-color-ui"
+description = "Allow resolve_color_ui"
+commands.allow = ["resolve_color_ui"]
+
+[[permission]]
+identifier = "allow-resolve-header-footer-template-ui"
+description = "Allow resolve_header_footer_template_ui"
+commands.allow = ["resolve_header_footer_template_ui"]
+
+[[permission]]
+identifier = "allow-resolve-page-layout-ui"
+description = "Allow resolve_page_layout_ui"
+commands.allow = ["resolve_page_layout_ui"]
+
+[[permission]]
+identifier = "allow-resolve-panel-widths-ui"
+description = "Allow resolve_panel_widths_ui"
+commands.allow = ["resolve_panel_widths_ui"]
+
+[[permission]]
+identifier = "allow-resolve-theme-colors-ui"
+description = "Allow resolve_theme_colors_ui"
+commands.allow = ["resolve_theme_colors_ui"]
+
+[[permission]]
+identifier = "allow-sanitize-file-name-ui"
+description = "Allow sanitize_file_name_ui"
+commands.allow = ["sanitize_file_name_ui"]
+
+[[permission]]
+identifier = "allow-sanitize-snippet"
+description = "Allow sanitize_snippet"
+commands.allow = ["sanitize_snippet"]
+
+[[permission]]
+identifier = "allow-serialize-canvas-document-ui"
+description = "Allow serialize_canvas_document_ui"
+commands.allow = ["serialize_canvas_document_ui"]
+
+[[permission]]
+identifier = "allow-serialize-template-pack-ui"
+description = "Allow serialize_template_pack_ui"
+commands.allow = ["serialize_template_pack_ui"]
+
+[[permission]]
+identifier = "allow-suggest-orphan-links-ui"
+description = "Allow suggest_orphan_links_ui"
+commands.allow = ["suggest_orphan_links_ui"]
+
+[[permission]]
+identifier = "allow-theme-preset-ids-ui"
+description = "Allow theme_preset_ids_ui"
+commands.allow = ["theme_preset_ids_ui"]
+
+[[permission]]
+identifier = "allow-tiptap-json-to-markdown-ui"
+description = "Allow tiptap_json_to_markdown_ui"
+commands.allow = ["tiptap_json_to_markdown_ui"]
+
+[[permission]]
+identifier = "allow-title-from-html-ui"
+description = "Allow title_from_html_ui"
+commands.allow = ["title_from_html_ui"]
+
+[[permission]]
+identifier = "allow-to-global-shortcut-accelerator-ui"
+description = "Allow to_global_shortcut_accelerator_ui"
+commands.allow = ["to_global_shortcut_accelerator_ui"]
+
+[[permission]]
+identifier = "allow-ui-font-presets-ui"
+description = "Allow ui_font_presets_ui"
+commands.allow = ["ui_font_presets_ui"]
+
+[[permission]]
+identifier = "allow-validate-snippet-input-ui"
+description = "Allow validate_snippet_input_ui"
+commands.allow = ["validate_snippet_input_ui"]
+
+[[set]]
+identifier = "group-ui"
+description = "Command group: ui"
+permissions = [
+  "allow-analyze-graph-density-ui",
+  "allow-apply-document-style-preset-ui",
+  "allow-asset-kind-ui",
+  "allow-build-document-ask-actions-ui",
+  "allow-build-document-ask-questions-ui",
+  "allow-build-document-content-css-ui",
+  "allow-build-header-footer-lines-ui",
+  "allow-build-ics-calendar",
+  "allow-build-revision-compare-options-ui",
+  "allow-build-watermark-css-ui",
+  "allow-bump-semver-ui",
+  "allow-can-nest-folder",
+  "allow-canvas-edges-to-flow-ui",
+  "allow-cards-to-nodes-ui",
+  "allow-clamp-editor-panel-width",
+  "allow-clamp-sidebar-width",
+  "allow-clamp-toc-rail-width-ui",
+  "allow-collect-headings-from-json-ui",
+  "allow-collect-markdown-heading-outline-ui",
+  "allow-color-for-export",
+  "allow-color-for-tag",
+  "allow-compare-semver-ui",
+  "allow-compute-journal-streak-ui",
+  "allow-count-characters-ui",
+  "allow-count-words-ui",
+  "allow-create-custom-template-ui",
+  "allow-current-week-range-ui",
+  "allow-document-highlight-css-ui",
+  "allow-document-matches-meta-filters-ui",
+  "allow-document-matches-smart-filter",
+  "allow-document-style-presets-ui",
+  "allow-document-tiptap-css-ui",
+  "allow-estimate-flat-item-size-ui",
+  "allow-extract-title-from-content-ui",
+  "allow-filter-diff-lines-ui",
+  "allow-filter-documents-by-smart-filter-ui",
+  "allow-filter-library-assets-ui",
+  "allow-flashcards-to-anki-tsv",
+  "allow-flashcards-to-markdown",
+  "allow-flatten-folders-for-picker-ui",
+  "allow-flatten-library-ui",
+  "allow-flow-to-canvas-document-ui",
+  "allow-format-bytes-ui",
+  "allow-format-export-date-ui",
+  "allow-format-week-key-ui",
+  "allow-fuzzy-rank-strings",
+  "allow-generate-lorem-ipsum-ui",
+  "allow-generate-random-theme",
+  "allow-get-app-version-info",
+  "allow-get-ui-manifest",
+  "allow-hotkey-to-display-keys",
+  "allow-import-title-from-path-ui",
+  "allow-is-dark-color-ui",
+  "allow-is-orphan-asset-ui",
+  "allow-is-pages-path-ui",
+  "allow-is-ui-skin",
+  "allow-is-untitled-orphan-title-ui",
+  "allow-library-asset-kind-filters-ui",
+  "allow-list-settings-section-ids",
+  "allow-locale-section-groups-ui",
+  "allow-map-to-tiptap-highlight-ui",
+  "allow-merge-duplicate-content-ui",
+  "allow-move-id-before",
+  "allow-next-editor-panel-width-on-double-click",
+  "allow-normalize-compare-pair-ui",
+  "allow-normalize-locale-code-ui",
+  "allow-normalize-ui-skin",
+  "allow-parse-canvas-document-ui",
+  "allow-parse-custom-locale-pack-ui",
+  "allow-parse-map-spec-ui",
+  "allow-parse-stored-custom-templates-ui",
+  "allow-parse-template-pack-ui",
+  "allow-parse-ui-tag",
+  "allow-pdf-capture-css-ui",
+  "allow-pdf-highlights-to-content-json-ui",
+  "allow-plain-text-to-content-json-ui",
+  "allow-plan-theme-application-ui",
+  "allow-promote-markdown-special-blocks-ui",
+  "allow-resolve-color-ui",
+  "allow-resolve-header-footer-template-ui",
+  "allow-resolve-page-layout-ui",
+  "allow-resolve-panel-widths-ui",
+  "allow-resolve-theme-colors-ui",
+  "allow-sanitize-file-name-ui",
+  "allow-sanitize-snippet",
+  "allow-serialize-canvas-document-ui",
+  "allow-serialize-template-pack-ui",
+  "allow-suggest-orphan-links-ui",
+  "allow-theme-preset-ids-ui",
+  "allow-tiptap-json-to-markdown-ui",
+  "allow-title-from-html-ui",
+  "allow-to-global-shortcut-accelerator-ui",
+  "allow-ui-font-presets-ui",
+  "allow-validate-snippet-input-ui",
+]

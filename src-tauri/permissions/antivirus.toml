@@ -1,0 +1,83 @@
+[[permission]]
+identifier = "allow-antivirus-check-storage-health"
+description = "Allow antivirus_check_storage_health"
+commands.allow = ["antivirus_check_storage_health"]
+
+[[permission]]
+identifier = "allow-antivirus-list-quarantine"
+description = "Allow antivirus_list_quarantine"
+commands.allow = ["antivirus_list_quarantine"]
+
+[[permission]]
+identifier = "allow-antivirus-pick-and-scan"
+description = "Allow antivirus_pick_and_scan"
+commands.allow = ["antivirus_pick_and_scan"]
+
+[[permission]]
+identifier = "allow-antivirus-purge-all-quarantine"
+description = "Allow antivirus_purge_all_quarantine"
+commands.allow = ["antivirus_purge_all_quarantine"]
+
+[[permission]]
+identifier = "allow-antivirus-purge-quarantine"
+description = "Allow antivirus_purge_quarantine"
+commands.allow = ["antivirus_purge_quarantine"]
+
+[[permission]]
+identifier = "allow-antivirus-quarantine-external-path"
+description = "Allow antivirus_quarantine_external_path"
+commands.allow = ["antivirus_quarantine_external_path"]
+
+[[permission]]
+identifier = "allow-antivirus-quarantine-storage-file"
+description = "Allow antivirus_quarantine_storage_file"
+commands.allow = ["antivirus_quarantine_storage_file"]
+
+[[permission]]
+identifier = "allow-antivirus-restore-quarantine"
+description = "Allow antivirus_restore_quarantine"
+commands.allow = ["antivirus_restore_quarantine"]
+
+[[permission]]
+identifier = "allow-antivirus-scan-path"
+description = "Allow antivirus_scan_path"
+commands.allow = ["antivirus_scan_path"]
+
+[[permission]]
+identifier = "allow-antivirus-scan-storage-file"
+description = "Allow antivirus_scan_storage_file"
+commands.allow = ["antivirus_scan_storage_file"]
+
+[[permission]]
+identifier = "allow-antivirus-scan-storage-tree"
+description = "Allow antivirus_scan_storage_tree"
+commands.allow = ["antivirus_scan_storage_tree"]
+
+[[permission]]
+identifier = "allow-antivirus-self-test"
+description = "Allow antivirus_self_test"
+commands.allow = ["antivirus_self_test"]
+
+[[permission]]
+identifier = "allow-antivirus-status"
+description = "Allow antivirus_status"
+commands.allow = ["antivirus_status"]
+
+[[set]]
+identifier = "group-antivirus"
+description = "Command group: antivirus"
+permissions = [
+  "allow-antivirus-check-storage-health",
+  "allow-antivirus-list-quarantine",
+  "allow-antivirus-pick-and-scan",
+  "allow-antivirus-purge-all-quarantine",
+  "allow-antivirus-purge-quarantine",
+  "allow-antivirus-quarantine-external-path",
+  "allow-antivirus-quarantine-storage-file",
+  "allow-antivirus-restore-quarantine",
+  "allow-antivirus-scan-path",
+  "allow-antivirus-scan-storage-file",
+  "allow-antivirus-scan-storage-tree",
+  "allow-antivirus-self-test",
+  "allow-antivirus-status",
+]

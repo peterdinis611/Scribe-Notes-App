@@ -644,6 +644,26 @@ export const nlpExplainSelection = (input: {
   text?: string
 }) => invoke<ExplainSelectionResult>('nlp_explain_selection', { input })
 
+export type CodeBriefResult = {
+  ok?: boolean
+  language?: string | null
+  lineCount?: number
+  symbols?: string[]
+  imports?: string[]
+  todos?: string[]
+  answer?: string
+  brief?: string
+  enhanced?: boolean
+  source?: string
+}
+
+export const nlpCodeBrief = (input: {
+  documentId?: string
+  text?: string
+  language?: string
+  path?: string
+}) => invoke<CodeBriefResult>('nlp_code_brief', { input })
+
 export const nlpSimplify = (input: { documentId?: string; text?: string }) =>
   invoke<SimplifyResult>('nlp_simplify', { input })
 

@@ -1,0 +1,149 @@
+[[permission]]
+identifier = "allow-add-document-tag"
+description = "Allow add_document_tag"
+commands.allow = ["add_document_tag"]
+
+[[permission]]
+identifier = "allow-clear-all-documents"
+description = "Allow clear_all_documents"
+commands.allow = ["clear_all_documents"]
+
+[[permission]]
+identifier = "allow-create-document"
+description = "Allow create_document"
+commands.allow = ["create_document"]
+
+[[permission]]
+identifier = "allow-delete-document"
+description = "Allow delete_document"
+commands.allow = ["delete_document"]
+
+[[permission]]
+identifier = "allow-duplicate-document"
+description = "Allow duplicate_document"
+commands.allow = ["duplicate_document"]
+
+[[permission]]
+identifier = "allow-empty-trash"
+description = "Allow empty_trash"
+commands.allow = ["empty_trash"]
+
+[[permission]]
+identifier = "allow-get-document"
+description = "Allow get_document"
+commands.allow = ["get_document"]
+
+[[permission]]
+identifier = "allow-library-find-replace"
+description = "Allow library_find_replace"
+commands.allow = ["library_find_replace"]
+
+[[permission]]
+identifier = "allow-list-backlinks"
+description = "Allow list_backlinks"
+commands.allow = ["list_backlinks"]
+
+[[permission]]
+identifier = "allow-list-document-tags"
+description = "Allow list_document_tags"
+commands.allow = ["list_document_tags"]
+
+[[permission]]
+identifier = "allow-list-documents"
+description = "Allow list_documents"
+commands.allow = ["list_documents"]
+
+[[permission]]
+identifier = "allow-list-outgoing-links"
+description = "Allow list_outgoing_links"
+commands.allow = ["list_outgoing_links"]
+
+[[permission]]
+identifier = "allow-list-trashed-documents"
+description = "Allow list_trashed_documents"
+commands.allow = ["list_trashed_documents"]
+
+[[permission]]
+identifier = "allow-merge-documents"
+description = "Allow merge_documents"
+commands.allow = ["merge_documents"]
+
+[[permission]]
+identifier = "allow-purge-document"
+description = "Allow purge_document"
+commands.allow = ["purge_document"]
+
+[[permission]]
+identifier = "allow-remove-document-tag"
+description = "Allow remove_document_tag"
+commands.allow = ["remove_document_tag"]
+
+[[permission]]
+identifier = "allow-rename-document"
+description = "Allow rename_document"
+commands.allow = ["rename_document"]
+
+[[permission]]
+identifier = "allow-restore-document"
+description = "Allow restore_document"
+commands.allow = ["restore_document"]
+
+[[permission]]
+identifier = "allow-restore-documents"
+description = "Allow restore_documents"
+commands.allow = ["restore_documents"]
+
+[[permission]]
+identifier = "allow-set-document-favorite"
+description = "Allow set_document_favorite"
+commands.allow = ["set_document_favorite"]
+
+[[permission]]
+identifier = "allow-set-document-pinned"
+description = "Allow set_document_pinned"
+commands.allow = ["set_document_pinned"]
+
+[[permission]]
+identifier = "allow-set-document-tags"
+description = "Allow set_document_tags"
+commands.allow = ["set_document_tags"]
+
+[[permission]]
+identifier = "allow-trash-documents"
+description = "Allow trash_documents"
+commands.allow = ["trash_documents"]
+
+[[permission]]
+identifier = "allow-update-document"
+description = "Allow update_document"
+commands.allow = ["update_document"]
+
+[[set]]
+identifier = "group-documents"
+description = "Command group: documents"
+permissions = [
+  "allow-add-document-tag",
+  "allow-clear-all-documents",
+  "allow-create-document",
+  "allow-delete-document",
+  "allow-duplicate-document",
+  "allow-empty-trash",
+  "allow-get-document",
+  "allow-library-find-replace",
+  "allow-list-backlinks",
+  "allow-list-document-tags",
+  "allow-list-documents",
+  "allow-list-outgoing-links",
+  "allow-list-trashed-documents",
+  "allow-merge-documents",
+  "allow-purge-document",
+  "allow-remove-document-tag",
+  "allow-rename-document",
+  "allow-restore-document",
+  "allow-restore-documents",
+  "allow-set-document-favorite",
+  "allow-set-document-pinned",
+  "allow-set-document-tags",
+  "allow-trash-documents",
+  "allow-update-document",
+]

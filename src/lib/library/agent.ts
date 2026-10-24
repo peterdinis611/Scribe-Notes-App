@@ -79,6 +79,7 @@ import {
 } from '@/lib/library/library-chat'
 import {
   nlpActionItems,
+  nlpCodeBrief,
   nlpCompareNotes,
   nlpExplainSelection,
   nlpFilesAnswer,
@@ -154,6 +155,7 @@ const DOCUMENT_TOOLS = new Set<AgentToolId>([
   'rewrite',
   'brief',
   'explain',
+  'code_brief',
   'simplify',
   'action_items',
   'glossary',
@@ -255,6 +257,7 @@ const INTENT_TO_TOOL: Record<string, AgentToolId> = {
   terminology_library: 'terminology_library',
   files_answer: 'files_answer',
   files_ingest: 'files_ingest',
+  code_brief: 'code_brief',
   save_template: 'save_template',
   handoff: 'handoff',
   keywords: 'keywords',
@@ -317,6 +320,7 @@ export function matchAgentIntentsSync(goal: string): AgentToolId[] {
         '@librarian',
         '@proofreader',
         '@study',
+        '@developer',
         '@general',
       ],
     },
@@ -491,7 +495,18 @@ export function matchAgentIntentsSync(goal: string): AgentToolId[] {
     },
     {
       tool: 'files_answer',
-      needles: ['files answer', 'ask files', 'sandboxed files', 'subory sandbox', 'files/'],
+      needles: [
+        'files answer',
+        'ask files',
+        'sandboxed files',
+        'subory sandbox',
+        'files/',
+        'ask codebase',
+        'search code',
+        'search rust',
+        'search python',
+        'najdi v kode',
+      ],
     },
     {
       tool: 'files_ingest',
@@ -502,6 +517,33 @@ export function matchAgentIntentsSync(goal: string): AgentToolId[] {
         'sandbox to library',
         'importuj subory',
         'subory do kniznice',
+        'import source',
+        'import code',
+        'import rust',
+        'import python',
+        'importuj kod',
+      ],
+    },
+    {
+      tool: 'code_brief',
+      needles: [
+        'code brief',
+        'review code',
+        'review rust',
+        'review python',
+        'explain rust',
+        'explain python',
+        'explain this code',
+        'code review',
+        'rust code',
+        'python code',
+        'source code',
+        'this code',
+        'prezri kod',
+        'analyzuj kod',
+        'vysvetli rust',
+        'vysvetli python',
+        'vysvetli kod',
       ],
     },
     {
@@ -1149,6 +1191,20 @@ async function runTool(
     return {
       answer: result.explanation || 'No explanation produced.',
       citations: [],
+    }
+  }
+
+  if (tool === 'code_brief') {
+    const text = ctx.selectionText?.trim() || undefined
+    if (!text && !ctx.documentId) throw new Error('agent.needsDocument')
+    const result = await nlpCodeBrief({
+      documentId: text ? undefined : ctx.documentId ?? undefined,
+      text,
+    })
+    return {
+      answer: result.answer || result.brief || 'No code brief produced.',
+      citations: [],
+      followups: ['recipe:files_learn', 'teach:code'],
     }
   }
 

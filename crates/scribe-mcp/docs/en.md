@@ -86,7 +86,7 @@ See also [`../cursor.mcp.example.json`](../cursor.mcp.example.json).
 - **`switch_library`** — change which library list/create/search use
 - **`upsert_manuscript`** / **`append_document_chat`** / **`clear_document_chat`** — compilations and note chat
 
-**Warning:** the running Scribe app may lock the database. If you see a lock/busy error or `writable: false` from `scribe_status`, retry shortly (or temporarily quit Scribe). MCP is **read-only by default**; set `SCRIBE_MCP_WRITE=1` only when you need write tools.
+**Warning:** the running Scribe app may lock the database. If you see a lock/busy error or `writable: false` from `scribe_status`, retry shortly (or temporarily quit Scribe). MCP is **read-only by default**; set `SCRIBE_MCP_WRITE=1` only when you need write tools — and **never** commit `SCRIBE_MCP_WRITE=1` or `SCRIBE_MCP_SCOPE=full` into shared Cursor MCP configs.
 
 ## Environment
 

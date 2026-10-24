@@ -9,8 +9,25 @@ dateparser>=1.2.0
 faiss-cpu>=1.7.4
 numpy>=1.24.0
 
+[fast-embed]
+model2vec>=0.4.0
+numpy>=1.24.0
+
 [full]
-scribe-nlp[enhance,faiss,ner,onnx,quality,translate]
+scribe-nlp[enhance,faiss,fast-embed,hnsw,image,lexical,ner,onnx,quality,translate,video]
+
+[hnsw]
+pynear>=2.0.0
+numpy>=1.24.0
+
+[image]
+
+[image:python_version >= "3.11"]
+pillow>=13.0.0
+
+[lexical]
+bm25s>=0.2.0
+numpy>=1.24.0
 
 [ner]
 spacy>=3.7.0
@@ -26,3 +43,11 @@ sentence-transformers>=3.0.0
 
 [translate]
 argostranslate>=1.9.6
+
+[video]
+imageio<3.0,>=2.5
+imageio-ffmpeg>=0.2.0
+numpy>=1.25.0
+decorator<6.0,>=4.0.2
+proglog<=1.0.0
+python-dotenv>=0.10

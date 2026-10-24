@@ -1,0 +1,35 @@
+[[permission]]
+identifier = "allow-storage-fs-server-refresh-token"
+description = "Allow storage_fs_server_refresh_token"
+commands.allow = ["storage_fs_server_refresh_token"]
+
+[[permission]]
+identifier = "allow-storage-fs-server-rotate-token"
+description = "Allow storage_fs_server_rotate_token"
+commands.allow = ["storage_fs_server_rotate_token"]
+
+[[permission]]
+identifier = "allow-storage-fs-server-start"
+description = "Allow storage_fs_server_start"
+commands.allow = ["storage_fs_server_start"]
+
+[[permission]]
+identifier = "allow-storage-fs-server-status"
+description = "Allow storage_fs_server_status"
+commands.allow = ["storage_fs_server_status"]
+
+[[permission]]
+identifier = "allow-storage-fs-server-stop"
+description = "Allow storage_fs_server_stop"
+commands.allow = ["storage_fs_server_stop"]
+
+[[set]]
+identifier = "group-storage-fs-api"
+description = "Command group: storage_fs_api"
+permissions = [
+  "allow-storage-fs-server-refresh-token",
+  "allow-storage-fs-server-rotate-token",
+  "allow-storage-fs-server-start",
+  "allow-storage-fs-server-status",
+  "allow-storage-fs-server-stop",
+]

@@ -3,13 +3,9 @@
 /// Returns `(host without www., path, query)` for `http(s)` URLs.
 pub fn parse_host_path(url: &str) -> Option<(String, String, String)> {
     let trimmed = url.trim();
-    let without_scheme = if let Some(rest) = trimmed.strip_prefix("https://") {
-        rest
-    } else if let Some(rest) = trimmed.strip_prefix("http://") {
-        rest
-    } else {
-        return None;
-    };
+    let without_scheme = trimmed
+        .strip_prefix("https://")
+        .or_else(|| trimmed.strip_prefix("http://"))?;
     let (authority, rest) = without_scheme
         .split_once('/')
         .map(|(a, r)| (a, format!("/{r}")))

@@ -34,10 +34,15 @@ class AgentPlanTests(unittest.TestCase):
         self.assertEqual(match_agent_intents("milestone stone path"), [])
         self.assertIn("files_answer", match_agent_intents("ask files/ about deadlines"))
         self.assertIn("files_ingest", match_agent_intents("ingest files from sandbox"))
+        self.assertIn("code_brief", match_agent_intents("code review for this module"))
+        self.assertIn("code_brief", match_agent_intents("explain this rust code"))
+        self.assertIn("code_brief", match_agent_intents("vysvetli python"))
 
     def test_role_boost_soft_adds_persona_tools(self) -> None:
         plan = plan_agent_goal("please review this", role="proofreader", max_tools=3)
         self.assertTrue(set(plan["tools"]) & {"spellcheck", "grammar", "style"})
+        dev = plan_agent_goal("please review this", role="developer", max_tools=3)
+        self.assertTrue(set(dev["tools"]) & {"code_brief", "explain", "files_answer"})
 
     def test_brief_runs_new_document_tools(self) -> None:
         text = (

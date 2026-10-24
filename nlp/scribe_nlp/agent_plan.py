@@ -12,7 +12,9 @@ import unicodedata
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
-_AGENT_TOOL_LIMIT = 3
+from .config import get_config
+
+_AGENT_TOOL_LIMIT = get_config().agent.tool_limit
 
 # Library-scoped tools (MCP / FE agent). Keep LLM + keyword filters aligned.
 _LIBRARY_TOOLS: frozenset[str] = frozenset(
@@ -52,6 +54,14 @@ _ROLE_TOOL_BOOSTS: dict[str, tuple[str, ...]] = {
         "canvas_summarize",
         "wiki_health",
     ),
+    "developer": (
+        "code_brief",
+        "explain",
+        "files_answer",
+        "files_ingest",
+        "outline",
+        "keywords",
+    ),
     "general": (),
 }
 
@@ -73,6 +83,7 @@ _INTENT_RULES: list[tuple[str, tuple[str, ...]]] = [
             "@librarian",
             "@proofreader",
             "@study",
+            "@developer",
             "@general",
         ),
     ),
@@ -85,6 +96,13 @@ _INTENT_RULES: list[tuple[str, tuple[str, ...]]] = [
             "sandbox to library",
             "importuj subory",
             "subory do kniznice",
+            "import source",
+            "import code",
+            "import rust",
+            "import python",
+            "importuj kod",
+            "importuj rust",
+            "importuj python",
         ),
     ),
     (
@@ -97,6 +115,35 @@ _INTENT_RULES: list[tuple[str, tuple[str, ...]]] = [
             "files/",
             "otazka na subory",
             "otázka na súbory",
+            "ask codebase",
+            "search code",
+            "search rust",
+            "search python",
+            "najdi v kode",
+            "hladaj v kode",
+        ),
+    ),
+    (
+        "code_brief",
+        (
+            "code brief",
+            "review code",
+            "review rust",
+            "review python",
+            "explain rust",
+            "explain python",
+            "explain this code",
+            "code review",
+            "rust code",
+            "python code",
+            "source code",
+            "this code",
+            "prezri kod",
+            "analyzuj kod",
+            "vysvetli rust",
+            "vysvetli python",
+            "vysvetli kod",
+            "code overview",
         ),
     ),
     ("summarize", ("summarize", "summary", "tlldr", "digest", "zhrn", "zhrnutie", "strucne")),
@@ -461,6 +508,7 @@ _DOCUMENT_TOOLS = {
     "canvas_to_note",
     "canvas_template",
     "document_answer",
+    "code_brief",
 }
 
 
@@ -492,7 +540,8 @@ def match_agent_intents_scored(
     folded = _fold(goal)
     if not folded:
         return []
-    limit = max(1, min(int(max_tools or _AGENT_TOOL_LIMIT), 6))
+    hard = get_config().agent.tool_limit_hard
+    limit = max(1, min(int(max_tools or get_config().agent.tool_limit), hard))
     scored: list[tuple[str, float, int]] = []
     for index, (tool, needles) in enumerate(_INTENT_RULES):
         hits = [needle for needle in needles if _needle_hit(folded, needle)]
@@ -582,7 +631,8 @@ def plan_agent_goal(
     """Plan Local Agent tools from a free-form goal (EN/SK + JEPA-like + optional LLM)."""
     trimmed = (goal or "").strip()
     scope_norm = "library" if str(scope or "").lower().startswith("lib") else "document"
-    limit = max(1, min(int(max_tools or _AGENT_TOOL_LIMIT), 6))
+    hard = get_config().agent.tool_limit_hard
+    limit = max(1, min(int(max_tools or get_config().agent.tool_limit), hard))
     scored = match_agent_intents_scored(trimmed, max_tools=max(limit, 6))
 
     if scope_norm == "library":
@@ -939,6 +989,12 @@ def _run_brief_tool(tool: str, source: str, limit: int) -> dict[str, Any] | None
             result = explain_selection(source)
             text_out = (result.get("explanation") or "").strip()
             return _section("explain", text_out) if text_out else None
+        if tool == "code_brief":
+            from .code_ops import code_brief
+
+            result = code_brief(source)
+            text_out = (result.get("answer") or result.get("brief") or "").strip()
+            return _section("code_brief", text_out) if text_out else None
         if tool == "simplify":
             from .note_skills import simplify_text
 
