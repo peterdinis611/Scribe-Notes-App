@@ -14,8 +14,8 @@ describe('WhatsNew 4.0 highlights', () => {
     expect(WHATS_NEW_40_TAG_KEYS).toEqual(['workspace', 'design', 'audit'])
   })
 
-  it('matches app version 4.1.0', () => {
-    expect(APP_VERSION).toBe('4.1.0')
-    expect(APP_SHORT_VERSION).toBe('4.1')
+  it('matches app version 4.2.0', () => {
+    expect(APP_VERSION).toBe('4.2.0')
+    expect(APP_SHORT_VERSION).toBe('4.2')
   })
 })
